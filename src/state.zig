@@ -22,6 +22,12 @@ const expect = std.testing.expect;
 
 const UNDEF: i8 = -128;
 
+const GameError = error{
+    PositionOccupied,
+    Suicide,
+    KoRepeat,
+};
+
 fn char_from_stone(stone: i8) u8 {
     if (stone == 0) return '.'; // empty
     if (stone == UNDEF) return '/'; // -128
@@ -50,17 +56,19 @@ pub fn print_armies(armies: *const [25]i8) void {
     print("\n", .{});
 }
 
-pub fn armies_from_move_xy(armies: *const [25]i8, color: i8, x: u8, y: u8) [25]i8 {
+pub fn armies_from_move_xy(armies: *const [25]i8, color: i8, x: u8, y: u8) GameError![25]i8 {
     return armies_from_move(armies, color, y * 5 + x);
 }
 
-pub fn armies_from_move(old_armies: *const [25]i8, color: i8, index: u8) [25]i8 {
-    if (old_armies[index] != 0) return null;
-    var armies = old_armies;
-
+pub fn armies_from_move(parent: *const [25]i8, color: i8, index: u8) GameError![25]i8 {
+    if (parent[index] != 0) return GameError.PositionOccupied;
+    var armies = parent.*;
     armies[index] = color;
+    update_armies(&armies);
+    return armies;
 
-    // killed anything?
+    // killed opposite color?
+    // if not killed self (suicide)?
 }
 
 // Converts a grid of white, empty, black stones into armies of common flags.
@@ -139,67 +147,8 @@ pub fn update_armies(armies: *[25]i8) void {
 }
 
 pub fn armies_from_pos(pos: *const [25]i8) [25]i8 {
-    var armies: [25]i8 = undefined;
-    var flagb: i8 = 0;
-    var flagw: i8 = 0;
-    for (0..25) |p| {
-        if (pos[p] == 0) {
-            // if empty then continue
-            armies[p] = 0;
-            continue;
-        }
-        const color: i8 = if (pos[p] > 0) 1 else -1; // 1 == black or -1 == white
-        if (p >= 5 and p % 5 > 0 and (pos[p - 5] * color > 0 and pos[p - 1] * color > 0)) {
-            // if north exists and not west wall and north is friend and west is friend
-
-            if (armies[p - 5] == armies[p - 1]) {
-                // accept flag of existing large army
-                armies[p] = armies[p - 5]; // north (same as west)
-            } else {
-                // merge two or three armies under one flag
-                var burn_flag: i8 = armies[p - 1];
-                var keep_flag: i8 = armies[p - 5];
-
-                // keep the oldest and burn the newest flag
-                if ((keep_flag - burn_flag) * color > 0) {
-                    burn_flag = armies[p - 5];
-                    keep_flag = armies[p - 1];
-                }
-
-                // reset the latest flag if burned
-                // NOTE: the burned flag is often
-                // (but not always) the latest flag.
-                // Thus skipped flag values are possible
-                if (color > 0) { // black
-                    if (burn_flag == flagb) flagb -= 1;
-                } else { // white
-                    if (burn_flag == flagw) flagw += 1;
-                }
-
-                // set all previous burned flags to the kept flag
-                armies[p] = keep_flag;
-                for (0..p) |i| {
-                    if (armies[i] == burn_flag) {
-                        armies[i] = keep_flag;
-                    }
-                }
-            }
-        } else if (p >= 5 and pos[p - 5] * color > 0) {
-            // if north exists and north is friend
-            armies[p] = armies[p - 5]; // north
-        } else if (p >= 1 and p % 5 > 0 and pos[p - 1] * color > 0) {
-            // if west exists and not west wall and and west is friend
-            armies[p] = armies[p - 1]; // west
-        } else if (color > 0) {
-            // new black army, no friends north nor west
-            flagb += 1;
-            armies[p] = flagb;
-        } else {
-            // new white army, no friends north nor west
-            flagw -= 1;
-            armies[p] = flagw;
-        }
-    }
+    var armies: [25]i8 = pos.*;
+    update_armies(&armies);
     return armies;
 }
 
@@ -210,10 +159,86 @@ fn is_equal_25i8(a: *const [25]i8, b: *const [25]i8) bool {
     return true;
 }
 
-fn expect_pos_repeatable_army(a: *const [25]i8, b: *const [25]i8) !void {
-    var c = armies_from_pos(b);
-    try expect(is_equal_25i8(a, &c));
-    try expect(is_equal_25i8(a, &armies_from_pos(&c)));
+fn expect_armies_from_input(expected: *const [25]i8, input: *const [25]i8) !void {
+    var output = armies_from_pos(input);
+    try expect(is_equal_25i8(expected, &output));
+    try expect(is_equal_25i8(expected, &armies_from_pos(&output)));
+    output = input.*;
+    update_armies(&output);
+    try expect(is_equal_25i8(expected, &output));
+}
+
+test "add move" {
+    const A: i8 = -1;
+    const B: i8 = -2;
+    const C: i8 = -3;
+    const empty = [_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    var board = try armies_from_move_xy(&empty, 1, 3, 3);
+    try expect_armies_from_input(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 }, &board);
+    board = try armies_from_move_xy(&board, -1, 2, 3);
+    try expect_armies_from_input(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 0, 0, 0 }, &board);
+    board = try armies_from_move_xy(&board, 1, 2, 2);
+    try expect_armies_from_input(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, A, 2, 0, 0, 0, 0, 0, 0 }, &board);
+    board = try armies_from_move_xy(&board, -1, 3, 2);
+    board = try armies_from_move_xy(&board, 1, 1, 3);
+    try expect_armies_from_input(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, A, 0, 0, 2, B, 3, 0, 0, 0, 0, 0, 0 }, &board);
+    board = try armies_from_move_xy(&board, -1, 1, 2);
+
+    // black captures white C on 2, 3
+    board = try armies_from_move_xy(&board, 1, 2, 4);
+    print("\nBlack should capture white C 2, 4\n", .{});
+    print_armies(&board);
+    try expect_armies_from_input(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, A, 1, B, 0,
+        0, 2, C, 3, 0,
+        0, 0, 4, 0, 0,
+    }, &board);
+}
+
+test "white suicide in the corner" {
+    const A: i8 = -1;
+    var board = [_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    board = try armies_from_move_xy(&board, 1, 4, 3);
+    board = try armies_from_move_xy(&board, 1, 3, 4);
+    board = try armies_from_move_xy(&board, A, 4, 4);
+    print("\nWhite attempts suicide in the corner\n", .{});
+    print_armies(&board);
+    try expect_armies_from_input(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 2, A,
+    }, &board);
+}
+
+test "merge armies in several moves" {
+    var board = [_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    board = try armies_from_move_xy(&board, 1, 2, 1);
+    board = try armies_from_move_xy(&board, 1, 2, 3);
+    board = try armies_from_move_xy(&board, 1, 1, 2);
+    board = try armies_from_move_xy(&board, 1, 3, 2);
+    print("\nBlack to merge four independent armies\n", .{});
+    print_armies(&board);
+    try expect_armies_from_input(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 1, 0, 0,
+        0, 2, 0, 3, 0,
+        0, 0, 4, 0, 0,
+        0, 0, 0, 0, 0,
+    }, &board);
+    board = try armies_from_move_xy(&board, 1, 2, 2);
+    print("Black to merge five armies into one on the center\n", .{});
+    print_armies(&board);
+    try expect_armies_from_input(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 1, 0, 0,
+        0, 1, 1, 1, 0,
+        0, 0, 1, 0, 0,
+        0, 0, 0, 0, 0,
+    }, &board);
 }
 
 test "print full range" {
@@ -291,20 +316,20 @@ test "merge armies" {
     const Z: i8 = -127;
     const z: i8 = 127;
 
-    try expect_pos_repeatable_army(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M }, &[_]i8{ A, 4, A, 1, A, 5, A, 5, A, 2, A, 3, A, 1, A, 5, A, 2, A, 3, A, 4, A, 5, A });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, &[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 1, 0, 0, 2, 1, 1, 0, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 0, 3, 2, 2, 0, 3, 3 }, &[_]i8{ 0, 1, 0, 0, 9, 3, 6, 0, 5, 4, 0, 0, 2, 9, 0, 0, 1, 9, 0, 3, 1, 1, 0, 9, 1 });
-    try expect_pos_repeatable_army(&[_]i8{ 0, A, 0, 0, B, A, A, 1, 0, 2, 0, 3, 0, 2, 2, 4, 0, 5, 0, C, 0, 6, 0, 7, C }, &[_]i8{ 0, A, 0, 0, A, A, A, 2, 0, 7, 0, 3, 0, 1, 8, 2, 0, 3, 0, A, 0, 9, 0, 1, A });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 0, 1, 0, 3, 1, 1, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, &[_]i8{ 1, 0, 1, 0, 2, 7, 1, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2 }, &[_]i8{ 7, 3, 5, 1, 6, 2, 0, 0, 0, 9, 1, 0, 1, 0, 7, 4, 2, 8, 0, 0, 0, 0, 0, 0, 1 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 2 }, &[_]i8{ 1, 0, 2, 6, 4, 3, 0, 5, 0, 1, 2, 0, 8, 0, 6, 7, 0, 6, 0, 0, 4, 2, 1, 0, 1 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 1, 0, 2, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0 }, &[_]i8{ 1, 2, 0, 1, 0, 8, 0, 0, 0, 3, 7, 0, 2, 0, 3, 9, 0, 7, 5, 2, 1, 7, 1, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 1, 0, 2, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0 }, &[_]i8{ 4, 2, 0, 3, 0, 1, 0, 0, 0, 9, 2, 0, 8, 0, 3, 1, 0, 2, 6, 4, 7, 8, 9, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 3, 0, 0, 0, 0 }, &[_]i8{ 2, 0, 1, 0, 2, 7, 0, 3, 0, 2, 5, 7, 8, 0, 5, 0, 0, 9, 4, 6, 2, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ A, 0, A, 0, A, A, 0, A, 0, A, A, A, A, 0, A, 0, 0, A, A, A, C, 0, 0, 0, 0 }, &[_]i8{ A, 0, A, 0, A, A, 0, A, 0, A, A, A, A, 0, A, 0, 0, A, A, A, A, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ A, 0, A, 0, A, A, A, A, A, A, 0, 0, 0, 0, 0, C, 0, C, 0, E, C, C, C, 0, 0 }, &[_]i8{ A, 0, A, 0, A, A, A, A, A, A, 0, 0, 0, 0, 0, A, 0, A, 0, A, A, A, A, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 0, A, 0, B, C, 0, A, 0, 0, 0, 0, 0, 0, D, E, 0, F, 0, 0, 0, 0, F, 0, G }, &[_]i8{ 0, 0, A, 0, A, A, 0, A, 0, 0, 0, 0, 0, 0, A, A, 0, A, 0, 0, 0, 0, A, 0, A });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 0, A, 0, B, C, 0, A, 0, 0, C, 0, 0, 0, D, C, 0, E, 0, D, 0, 0, E, 0, D }, &[_]i8{ 0, 0, B, 0, A, C, 0, J, 0, 0, A, 0, 0, 0, G, D, 0, A, 0, F, 0, 0, A, 0, E });
+    try expect_armies_from_input(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M }, &[_]i8{ A, 4, A, 1, A, 5, A, 5, A, 2, A, 3, A, 1, A, 5, A, 2, A, 3, A, 4, A, 5, A });
+    try expect_armies_from_input(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, &[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ 0, 1, 0, 0, 2, 1, 1, 0, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 0, 3, 2, 2, 0, 3, 3 }, &[_]i8{ 0, 1, 0, 0, 9, 3, 6, 0, 5, 4, 0, 0, 2, 9, 0, 0, 1, 9, 0, 3, 1, 1, 0, 9, 1 });
+    try expect_armies_from_input(&[_]i8{ 0, A, 0, 0, B, A, A, 1, 0, 2, 0, 3, 0, 2, 2, 4, 0, 5, 0, C, 0, 6, 0, 7, C }, &[_]i8{ 0, A, 0, 0, A, A, A, 2, 0, 7, 0, 3, 0, 1, 8, 2, 0, 3, 0, A, 0, 9, 0, 1, A });
+    try expect_armies_from_input(&[_]i8{ 1, 0, 1, 0, 3, 1, 1, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, &[_]i8{ 1, 0, 1, 0, 2, 7, 1, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2 }, &[_]i8{ 7, 3, 5, 1, 6, 2, 0, 0, 0, 9, 1, 0, 1, 0, 7, 4, 2, 8, 0, 0, 0, 0, 0, 0, 1 });
+    try expect_armies_from_input(&[_]i8{ 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 2 }, &[_]i8{ 1, 0, 2, 6, 4, 3, 0, 5, 0, 1, 2, 0, 8, 0, 6, 7, 0, 6, 0, 0, 4, 2, 1, 0, 1 });
+    try expect_armies_from_input(&[_]i8{ 1, 1, 0, 2, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0 }, &[_]i8{ 1, 2, 0, 1, 0, 8, 0, 0, 0, 3, 7, 0, 2, 0, 3, 9, 0, 7, 5, 2, 1, 7, 1, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ 1, 1, 0, 2, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0 }, &[_]i8{ 4, 2, 0, 3, 0, 1, 0, 0, 0, 9, 2, 0, 8, 0, 3, 1, 0, 2, 6, 4, 7, 8, 9, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 3, 0, 0, 0, 0 }, &[_]i8{ 2, 0, 1, 0, 2, 7, 0, 3, 0, 2, 5, 7, 8, 0, 5, 0, 0, 9, 4, 6, 2, 0, 0, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ A, 0, A, 0, A, A, 0, A, 0, A, A, A, A, 0, A, 0, 0, A, A, A, C, 0, 0, 0, 0 }, &[_]i8{ A, 0, A, 0, A, A, 0, A, 0, A, A, A, A, 0, A, 0, 0, A, A, A, A, 0, 0, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ A, 0, A, 0, A, A, A, A, A, A, 0, 0, 0, 0, 0, C, 0, C, 0, E, C, C, C, 0, 0 }, &[_]i8{ A, 0, A, 0, A, A, A, A, A, A, 0, 0, 0, 0, 0, A, 0, A, 0, A, A, A, A, 0, 0 });
+    try expect_armies_from_input(&[_]i8{ 0, 0, A, 0, B, C, 0, A, 0, 0, 0, 0, 0, 0, D, E, 0, F, 0, 0, 0, 0, F, 0, G }, &[_]i8{ 0, 0, A, 0, A, A, 0, A, 0, 0, 0, 0, 0, 0, A, A, 0, A, 0, 0, 0, 0, A, 0, A });
+    try expect_armies_from_input(&[_]i8{ 0, 0, A, 0, B, C, 0, A, 0, 0, C, 0, 0, 0, D, C, 0, E, 0, D, 0, 0, E, 0, D }, &[_]i8{ 0, 0, B, 0, A, C, 0, J, 0, 0, A, 0, 0, 0, G, D, 0, A, 0, F, 0, 0, A, 0, E });
 
     // all possible realistic but absurd input (-13..12)
     try expect(is_equal_25i8(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M }, &armies_from_pos(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M })));
@@ -339,44 +364,10 @@ test "update armies" {
     const K: i8 = -11;
     const L: i8 = -12;
     const M: i8 = -13;
-    const Z: i8 = -127;
-    const z: i8 = 127;
 
     const expected = [_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M };
-    const input = [_]i8{ A, 4, A, 1, A, 5, A, 5, A, 2, A, 3, A, 1, A, 5, A, 2, A, 3, A, 4, A, 5, A };
-    var actual: [25]i8 = input;
+    var actual = [_]i8{ A, 4, A, 1, A, 5, A, 5, A, 2, A, 3, A, 1, A, 5, A, 2, A, 3, A, 4, A, 5, A };
 
     update_armies(&actual);
     try expect(is_equal_25i8(&expected, &actual));
-
-    try expect_pos_repeatable_army(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M }, &[_]i8{ A, 4, A, 1, A, 5, A, 5, A, 2, A, 3, A, 1, A, 5, A, 2, A, 3, A, 4, A, 5, A });
-
-    try expect_pos_repeatable_army(&[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, &[_]i8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 1, 0, 0, 2, 1, 1, 0, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 0, 3, 2, 2, 0, 3, 3 }, &[_]i8{ 0, 1, 0, 0, 9, 3, 6, 0, 5, 4, 0, 0, 2, 9, 0, 0, 1, 9, 0, 3, 1, 1, 0, 9, 1 });
-    try expect_pos_repeatable_army(&[_]i8{ 0, A, 0, 0, B, A, A, 1, 0, 2, 0, 3, 0, 2, 2, 4, 0, 5, 0, C, 0, 6, 0, 7, C }, &[_]i8{ 0, A, 0, 0, A, A, A, 2, 0, 7, 0, 3, 0, 1, 8, 2, 0, 3, 0, A, 0, 9, 0, 1, A });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 0, 1, 0, 3, 1, 1, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, &[_]i8{ 1, 0, 1, 0, 2, 7, 1, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2 }, &[_]i8{ 7, 3, 5, 1, 6, 2, 0, 0, 0, 9, 1, 0, 1, 0, 7, 4, 2, 8, 0, 0, 0, 0, 0, 0, 1 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 2 }, &[_]i8{ 1, 0, 2, 6, 4, 3, 0, 5, 0, 1, 2, 0, 8, 0, 6, 7, 0, 6, 0, 0, 4, 2, 1, 0, 1 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 1, 0, 2, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0 }, &[_]i8{ 1, 2, 0, 1, 0, 8, 0, 0, 0, 3, 7, 0, 2, 0, 3, 9, 0, 7, 5, 2, 1, 7, 1, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 1, 0, 2, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0 }, &[_]i8{ 4, 2, 0, 3, 0, 1, 0, 0, 0, 9, 2, 0, 8, 0, 3, 1, 0, 2, 6, 4, 7, 8, 9, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 3, 0, 0, 0, 0 }, &[_]i8{ 2, 0, 1, 0, 2, 7, 0, 3, 0, 2, 5, 7, 8, 0, 5, 0, 0, 9, 4, 6, 2, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ A, 0, A, 0, A, A, 0, A, 0, A, A, A, A, 0, A, 0, 0, A, A, A, C, 0, 0, 0, 0 }, &[_]i8{ A, 0, A, 0, A, A, 0, A, 0, A, A, A, A, 0, A, 0, 0, A, A, A, A, 0, 0, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ A, 0, A, 0, A, A, A, A, A, A, 0, 0, 0, 0, 0, C, 0, C, 0, E, C, C, C, 0, 0 }, &[_]i8{ A, 0, A, 0, A, A, A, A, A, A, 0, 0, 0, 0, 0, A, 0, A, 0, A, A, A, A, 0, 0 });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 0, A, 0, B, C, 0, A, 0, 0, 0, 0, 0, 0, D, E, 0, F, 0, 0, 0, 0, F, 0, G }, &[_]i8{ 0, 0, A, 0, A, A, 0, A, 0, 0, 0, 0, 0, 0, A, A, 0, A, 0, 0, 0, 0, A, 0, A });
-    try expect_pos_repeatable_army(&[_]i8{ 0, 0, A, 0, B, C, 0, A, 0, 0, C, 0, 0, 0, D, C, 0, E, 0, D, 0, 0, E, 0, D }, &[_]i8{ 0, 0, B, 0, A, C, 0, J, 0, 0, A, 0, 0, 0, G, D, 0, A, 0, F, 0, 0, A, 0, E });
-
-    // all possible realistic but absurd input (-13..12)
-    try expect(is_equal_25i8(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M }, &armies_from_pos(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M })));
-
-    // repeat the realistic output back as input again
-    try expect(is_equal_25i8(&[_]i8{ A, 1, B, 2, C, 3, D, 4, E, 5, F, 6, G, 7, H, 8, I, 9, J, j, K, k, L, l, M }, &armies_from_pos(&[_]i8{ A, 4, A, 1, A, 5, A, 5, A, 2, A, 3, A, 1, A, 5, A, 2, A, 3, A, 4, A, 5, A })));
-
-    // most extreme -127 to -1 all white
-    try expect(is_equal_25i8(&[_]i8{ A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A }, &armies_from_pos(&[_]i8{ Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z })));
-
-    // most extreme 127 to 1 all black
-    try expect(is_equal_25i8(&[_]i8{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, &armies_from_pos(&[_]i8{ z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z })));
-
-    // a mix of extreme values
-    try expect(is_equal_25i8(&[_]i8{ A, 1, 1, 1, 1, 2, B, 1, C, C, 2, 0, 1, C, 3, 2, 2, 0, 2, D, 2, 2, 2, 2, 2 }, &armies_from_pos(&[_]i8{ Z, z, j, z, z, z, M, 1, A, K, z, 0, j, J, k, l, z, 0, k, J, z, k, z, z, z })));
 }
