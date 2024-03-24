@@ -58,6 +58,91 @@ pub fn print_armies(armies: *const [25]i8) void {
     print("\n", .{});
 }
 
+// A B C D E     U P K F A
+// F G H I J     V Q L G B
+// K L M N O --> W R M H C
+// P Q R S T     X S N I D
+// U V W X Y     Y T O J E
+//
+// 00 01 02 03 04     20 15 10 05 00
+// 05 06 07 08 09     21 16 11 06 01
+// 10 11 12 13 14 --> 22 17 12 07 02
+// 15 16 17 18 19     23 18 13 08 03
+// 20 21 22 23 24     24 19 14 09 04
+pub fn update_rotate(armies: *[25]i8) void {
+    var tmp = armies[0];
+    armies[0] = armies[20];
+    armies[20] = armies[24];
+    armies[24] = armies[4];
+    armies[4] = tmp;
+
+    tmp = armies[1];
+    armies[1] = armies[15];
+    armies[15] = armies[23];
+    armies[23] = armies[9];
+    armies[9] = tmp;
+
+    tmp = armies[2];
+    armies[2] = armies[10];
+    armies[10] = armies[22];
+    armies[22] = armies[14];
+    armies[14] = tmp;
+
+    tmp = armies[3];
+    armies[3] = armies[5];
+    armies[5] = armies[21];
+    armies[21] = armies[19];
+    armies[19] = tmp;
+
+    tmp = armies[6];
+    armies[6] = armies[16];
+    armies[16] = armies[18];
+    armies[18] = armies[8];
+    armies[8] = tmp;
+
+    tmp = armies[7];
+    armies[7] = armies[11];
+    armies[11] = armies[17];
+    armies[17] = armies[13];
+    armies[13] = tmp;
+
+    //armies[12] = armies[12];
+}
+
+pub fn armies_rotate(parent: *const [25]i8) [25]i8 {
+    var armies = parent.*;
+    update_rotate(&armies);
+    return armies;
+}
+
+pub fn update_reflect(armies: *[25]i8) void {
+    for (0..5) |x| {
+        var p = x * 5;
+        var tmp = armies[p];
+        armies[p] = armies[p + 4];
+        armies[p + 4] = tmp;
+        tmp = armies[p + 1];
+        armies[p + 1] = armies[p + 3];
+        armies[p + 3] = tmp;
+    }
+}
+
+pub fn armies_reflect(parent: *const [25]i8) [25]i8 {
+    var armies = parent.*;
+    update_reflect(&armies);
+    return armies;
+}
+
+pub fn update_inverse(armies: *[25]i8) void {
+    for (0..25) |p| armies[p] *= -1;
+}
+
+pub fn armies_inverse(parent: *const [25]i8) [25]i8 {
+    var armies = parent.*;
+    update_inverse(&armies);
+    return armies;
+}
+
 pub fn update_captures(armies: *[25]i8, color: i8) u8 {
     var liberty = [_]i8{UNDEF} ** 15;
     var key: usize = undefined;
@@ -184,7 +269,7 @@ pub fn armies_from_pos(pos: *const [25]i8) [25]i8 {
     return armies;
 }
 
-fn is_equal_25i8(a: *const [25]i8, b: *const [25]i8) bool {
+pub fn is_equal_25i8(a: *const [25]i8, b: *const [25]i8) bool {
     for (0..25) |p| {
         if (a[p] != b[p]) return false;
     }
@@ -200,31 +285,88 @@ fn expect_armies_from_input(expected: *const [25]i8, input: *const [25]i8) !void
     try expect(is_equal_25i8(expected, &output));
 }
 
+test "rotate" {
+    const A: i8 = -1;
+    const B: i8 = -2;
+    const board = [_]i8{
+        B, 1, 0, A, 0,
+        1, A, 1, B, B,
+        B, 2, A, 2, 0,
+        A, B, 0, A, 2,
+        0, 0, 1, 1, 0,
+    };
+    var rotate = armies_rotate(&board);
+    const expect_first_rotation = [_]i8{
+        0, A, B, 1, B,
+        0, B, 2, A, 1,
+        1, 0, A, 1, 0,
+        1, A, 2, B, A,
+        0, 2, 0, B, 0,
+    };
+    try expect(is_equal_25i8(&expect_first_rotation, &rotate));
+    rotate = armies_rotate(&rotate);
+    rotate = armies_rotate(&rotate);
+    rotate = armies_rotate(&rotate);
+    try expect(is_equal_25i8(&board, &rotate));
+
+    update_rotate(&rotate);
+    try expect(is_equal_25i8(&expect_first_rotation, &rotate));
+    update_rotate(&rotate);
+    update_rotate(&rotate);
+    update_rotate(&rotate);
+    try expect(is_equal_25i8(&board, &rotate));
+}
+
+test "reflect" {
+    const A: i8 = -1;
+    const B: i8 = -2;
+    const board = [_]i8{
+        B, 1, 0, A, 0, 1, A, 1, B, B, B, 2, A, 2, 0,
+        A, B, 0, A, 2, 0, 0, 1, 1, 0,
+    };
+    var reflect = armies_reflect(&board);
+    try expect(is_equal_25i8(&[_]i8{
+        0, A, 0, 1, B, B, B, 1, A, 1, 0, 2, A, 2, B,
+        2, A, 0, B, A, 0, 1, 1, 0, 0,
+    }, &reflect));
+    try expect(is_equal_25i8(&board, &armies_reflect(&reflect)));
+    update_reflect(&reflect);
+    try expect(is_equal_25i8(&board, &reflect));
+}
+
+test "inverse" {
+    const A: i8 = -1;
+    const B: i8 = -2;
+    const board = [_]i8{
+        0, 1, 0, 0, 0, 0, A, 1, 0, B, B, 2, A,
+        2, 0, A, B, 0, A, 2, 0, 0, 1, 1, 0,
+    };
+    var inv = armies_inverse(&board);
+    try expect(is_equal_25i8(&[_]i8{
+        0, A, 0, 0, 0, 0, 1, A, 0, 2, 2, B, 1,
+        B, 0, 1, 2, 0, 1, B, 0, 0, A, A, 0,
+    }, &inv));
+    try expect(is_equal_25i8(&board, &armies_inverse(&inv)));
+    update_inverse(&inv);
+    try expect(is_equal_25i8(&board, &inv));
+}
+
 test "white capture in the center" {
     const A: i8 = -1;
     const B: i8 = -2;
     const C: i8 = -3;
     var board = try armies_from_move_xy(&[_]i8{
-        0, 0, 0, 0, 0,
-        0, A, 1, 0, 0,
-        0, 1, A, 1, 0,
-        0, 0, 0, A, 0,
-        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 1, A, 1, 0,
+        0, 0, 0, A, 0, 0, 0, 0, 0, 0,
     }, 1, 2, 3);
     try expect(is_equal_25i8(&[_]i8{
-        0, 0, 0, 0, 0,
-        0, A, 1, 0, 0,
-        0, 2, 0, 3, 0,
-        0, 0, 4, C, 0,
-        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 2, 0, 3, 0,
+        0, 0, 4, C, 0, 0, 0, 0, 0, 0,
     }, &board));
     board = try armies_from_move_xy(&board, A, 3, 1);
     try expect_armies_from_input(&[_]i8{
-        0, 0, 0, 0, 0,
-        0, A, 1, B, 0,
-        0, 2, 0, 3, 0,
-        0, 0, 4, C, 0,
-        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, A, 1, B, 0, 0, 2, 0, 3, 0,
+        0, 0, 4, C, 0, 0, 0, 0, 0, 0,
     }, &board);
     try expectError(GameError.Occupied, armies_from_move_xy(&board, 1, 1, 1));
     try expectError(GameError.Suicide, armies_from_move_xy(&board, A, 2, 2));
@@ -235,19 +377,20 @@ test "west captures" {
     const B: i8 = -2;
     const C: i8 = -3;
     var board = try armies_from_move_xy(&[_]i8{
-        A, 0, 0, 0, 0, 1, A, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        A, 0, 0, 0, 0, 1, A, 0, 0, 0, 0, 1, 0,
+        0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     }, A, 0, 2);
     board = try armies_from_move_xy(&board, 1, 0, 4);
     try expect_armies_from_input(&[_]i8{
-        A, 0, 0, 0, 0, 0, B, 0, 0, 0, C, 1, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0,
+        A, 0, 0, 0, 0, 0, B, 0, 0, 0, C, 1, 0,
+        0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0,
     }, &board);
     board = try armies_from_move_xy(&board, A, 1, 3);
     board = try armies_from_move_xy(&board, 1, 1, 4);
     board = try armies_from_move_xy(&board, A, 2, 4);
     try expect_armies_from_input(&[_]i8{
-        A, 0, 0, 0, 0,  0, B, 0, 0, 0, C,  1,
-        0, 0, 0, 0, -4, 0, 0, 0, 0, 0, -5, 0,
-        0,
+        A, 0, 0, 0,  0, 0, B, 0, 0, 0,  C, 1, 0,
+        0, 0, 0, -4, 0, 0, 0, 0, 0, -5, 0, 0,
     }, &board);
 }
 
