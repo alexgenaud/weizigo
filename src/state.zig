@@ -109,6 +109,37 @@ pub fn update_rotate(armies: *[25]i8) void {
     //armies[12] = armies[12];
 }
 
+// returns a unique board view
+// 0 = empty to 3^25-1 = fully white
+//  2^40 > 3^25 > 2^39
+//  1 TB > 847 GB > 550 GB
+// considers only negative, zero, positive array elements
+pub fn view_from_pos(pos: *const [25]i8) u40 {
+    var h: u40 = 0;
+    var m: u40 = 1;
+    for (0..25) |p| {
+        if (pos[p] > 0) h += m;
+        if (pos[p] < 0) h += m * 2;
+        m *= 3;
+    }
+    return h;
+}
+
+pub fn pos_from_view(view: u40) [25]i8 {
+    var rem = view;
+    var pos: [25]i8 = undefined;
+    for (0..25) |p| {
+        pos[p] = switch (rem % 3) {
+            0 => 0,
+            1 => 1,
+            2 => -1,
+            else => unreachable,
+        };
+        rem /= 3;
+    }
+    return pos;
+}
+
 pub fn armies_rotate(parent: *const [25]i8) [25]i8 {
     var armies = parent.*;
     update_rotate(&armies);
@@ -285,6 +316,21 @@ fn expect_armies_from_input(expected: *const [25]i8, input: *const [25]i8) !void
     try expect(is_equal_25i8(expected, &output));
 }
 
+test "pos from view" {
+    //       0 1  2  3   4   5    6    7     8     9
+    // black 1 3  9 27  81 243  729 2187  6561 19683
+    // white 2 6 18 54 162 486 1458 4375 13122
+
+    const W: i8 = -1;
+    try expect(is_equal_25i8(&[25]i8{
+        W, 1, 0, 1, W, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    }, &pos_from_view(5 + 27 + 162)));
+    try expect(is_equal_25i8(&[_]i8{
+        0, 0, W, 0, 1, 0, 1, 0, W, 1, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    }, &pos_from_view(81 + 729 + 19683 + 18 + 13122)));
+}
 test "rotate" {
     const A: i8 = -1;
     const B: i8 = -2;
