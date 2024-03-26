@@ -20,6 +20,8 @@ const std = @import("std");
 const print = std.debug.print;
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
+const util = @import("util.zig");
+const println = util.println;
 
 const UNDEF: i8 = -128;
 
@@ -125,6 +127,21 @@ pub fn view_from_pos(pos: *const [25]i8) u40 {
     return h;
 }
 
+pub fn seq8_from_pos(pos: *const [25]i8) u8 {
+    var cnt: u8 = 0;
+    var h: u8 = 0;
+    var m: u8 = 1;
+    for (0..25) |p| {
+        if (pos[p] == 0) continue;
+        // black 1, white 0 bit
+        if (pos[p] > 0) h += m;
+        cnt += 1;
+        if (cnt >= 8) break;
+        m *= 2;
+    }
+    return h;
+}
+
 pub fn pos_from_blind(blind: u25) [25]i8 {
     var rem = blind;
     var pos: [25]i8 = undefined;
@@ -137,6 +154,23 @@ pub fn pos_from_blind(blind: u25) [25]i8 {
         rem /= 2;
     }
     return pos;
+}
+
+pub fn seq8_from_view(view: u40) u8 {
+    var cnt: u8 = 0;
+    var h: u8 = 0;
+    var m: u8 = 1;
+    var rem = view;
+    for (0..25) |_| {
+        var val = rem % 3;
+        rem /= 3;
+        if (val == 0) continue;
+        if (val == 1) h += m;
+        cnt += 1;
+        if (cnt >= 8) break;
+        m *= 2;
+    }
+    return h;
 }
 
 pub fn pos_from_view(view: u40) [25]i8 {
@@ -341,6 +375,7 @@ pub fn blind_from_view(view: u40) u25 {
     }
     return @intCast(blind);
 }
+
 pub fn blind_from_pos(pos: *const [25]i8) u25 {
     var blind: u32 = 0;
     var m: u32 = 1;
@@ -349,6 +384,21 @@ pub fn blind_from_pos(pos: *const [25]i8) u25 {
         m *= 2;
     }
     return @intCast(blind);
+}
+
+test "seq8 from view and pos" {
+    const W: i8 = -1;
+    try expect(seq8_from_pos(&[25]i8{
+        //1   2  4  8    16    32    64   128
+        W, 0, W, W, 1, 0, 1, 0, 1, 0, W, 0, 1,
+        1, 1, W, W, 1, 0, 1, 0, 0, 0, 0, 0,
+    }) == 8 + 16 + 32 + 128);
+
+    const view_black = view_from_pos(&armies_from_pos(&[25]i8{
+        1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, W,
+        1, W, W, W, 1, W, 1, W, W, 1, 1, 1,
+    }));
+    try expect(seq8_from_view(view_black) == 255);
 }
 
 test "blind from view" {
@@ -486,20 +536,26 @@ test "white capture in the center" {
     const B: i8 = -2;
     const C: i8 = -3;
     var board = try armies_from_move_xy(&[_]i8{
-        0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 1, A, 1, 0,
-        0, 0, 0, A, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 1, A,
+        1, 0, 0, 0, 0, A, 0, 0, 0, 0, 0, 0,
     }, 1, 2, 3);
     try expect(is_equal_25i8(&[_]i8{
-        0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 2, 0, 3, 0,
-        0, 0, 4, C, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, A, 1, 0, 0, 0, 2, 0,
+        3, 0, 0, 0, 4, C, 0, 0, 0, 0, 0, 0,
     }, &board));
     board = try armies_from_move_xy(&board, A, 3, 1);
     try expect_armies_from_input(&[_]i8{
-        0, 0, 0, 0, 0, 0, A, 1, B, 0, 0, 2, 0, 3, 0,
-        0, 0, 4, C, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, A, 1, B, 0, 0, 2, 0,
+        3, 0, 0, 0, 4, C, 0, 0, 0, 0, 0, 0,
     }, &board);
-    try expectError(GameError.Occupied, armies_from_move_xy(&board, 1, 1, 1));
-    try expectError(GameError.Suicide, armies_from_move_xy(&board, A, 2, 2));
+    try expectError(
+        GameError.Occupied,
+        armies_from_move_xy(&board, 1, 1, 1),
+    );
+    try expectError(
+        GameError.Suicide,
+        armies_from_move_xy(&board, A, 2, 2),
+    );
 }
 
 test "west captures" {
