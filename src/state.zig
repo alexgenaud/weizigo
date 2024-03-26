@@ -125,6 +125,20 @@ pub fn view_from_pos(pos: *const [25]i8) u40 {
     return h;
 }
 
+pub fn pos_from_blind(blind: u25) [25]i8 {
+    var rem = blind;
+    var pos: [25]i8 = undefined;
+    for (0..25) |p| {
+        pos[p] = switch (rem % 2) {
+            0 => 0,
+            1 => 1,
+            else => unreachable,
+        };
+        rem /= 2;
+    }
+    return pos;
+}
+
 pub fn pos_from_view(view: u40) [25]i8 {
     var rem = view;
     var pos: [25]i8 = undefined;
@@ -314,6 +328,76 @@ fn expect_armies_from_input(expected: *const [25]i8, input: *const [25]i8) !void
     output = input.*;
     update_armies(&output);
     try expect(is_equal_25i8(expected, &output));
+}
+
+pub fn blind_from_view(view: u40) u25 {
+    var blind: u32 = 0;
+    var rem = view;
+    var m: u32 = 1;
+    for (0..25) |_| {
+        if (rem % 3 != 0) blind += m;
+        rem /= 3;
+        m *= 2;
+    }
+    return @intCast(blind);
+}
+pub fn blind_from_pos(pos: *const [25]i8) u25 {
+    var blind: u32 = 0;
+    var m: u32 = 1;
+    for (0..25) |p| {
+        if (pos[p] != 0) blind += m;
+        m *= 2;
+    }
+    return @intCast(blind);
+}
+
+test "blind from view" {
+    const W: i8 = -1;
+
+    // a line of white and black becomes blind
+    const viewW31: u40 = 2 + 6 + 18 + 27 + 81 + 243;
+    try expect(is_equal_25i8(&[25]i8{
+        W, W, W, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    }, &pos_from_view(viewW31)));
+    const blindW31 = blind_from_view(viewW31);
+    const posB31 = [25]i8{
+        1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    };
+    try expect(blindW31 == blind_from_pos(&posB31));
+
+    var m2: u64 = 1;
+    var m3: u64 = 1;
+    for (0..25) |_| {
+        var posBlack = pos_from_view(@intCast(m3));
+        var posWhite = pos_from_view(@intCast(m3 * 2));
+        var posBlind = pos_from_blind(@intCast(m2));
+
+        try expect(view_from_pos(&posWhite) ==
+            view_from_pos(&armies_inverse(&posBlack)));
+        try expect(view_from_pos(&posBlind) ==
+            view_from_pos(&armies_inverse(&posWhite)));
+        try expect(blind_from_pos(&posBlack) ==
+            blind_from_pos(&posWhite));
+
+        m2 *= 2;
+        m3 *= 3;
+    }
+
+    try expect(is_equal_25i8( // 3 ^ 25 - 1
+        &armies_inverse(&pos_from_view(847288609442)),
+        &pos_from_view(423644304721), // 3 ^ 25 / 2
+    ));
+    try expect(is_equal_25i8(
+        &pos_from_view(423644304721), // 3 ^ 25 / 2
+        &pos_from_blind(33554431), // 2 ^ 25 - 1
+    ));
+
+    try expect(is_equal_25i8(
+        &[_]i8{W} ** 25, // all white
+        &pos_from_view(847288609442), // 3 ^ 25 - 1
+    ));
 }
 
 test "pos from view" {
