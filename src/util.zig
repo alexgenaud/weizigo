@@ -2,6 +2,12 @@ const std = @import("std");
 const expect = std.testing.expect;
 const print = std.debug.print;
 
+pub const UNDEF: i8 = -128;
+
+pub fn max2(a: anytype, b: anytype) @TypeOf(a) {
+    return if (a > b) a else b;
+}
+
 pub fn min2(a: anytype, b: anytype) @TypeOf(a) {
     return if (a < b) a else b;
 }

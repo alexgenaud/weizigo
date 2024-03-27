@@ -23,7 +23,7 @@ const expectError = std.testing.expectError;
 const util = @import("util.zig");
 const println = util.println;
 
-const UNDEF: i8 = -128;
+pub const UNDEF: i8 = util.UNDEF; // -128;
 
 const GameError = error{
     Occupied,
@@ -127,7 +127,7 @@ pub fn view_from_pos(pos: *const [25]i8) u40 {
     return h;
 }
 
-pub fn seq8_from_pos(pos: *const [25]i8) u8 {
+pub fn seq_from_pos(pos: *const [25]i8) u8 {
     var cnt: u8 = 0;
     var h: u8 = 0;
     var m: u8 = 1;
@@ -156,7 +156,7 @@ pub fn pos_from_blind(blind: u25) [25]i8 {
     return pos;
 }
 
-pub fn seq8_from_view(view: u40) u8 {
+pub fn seq_from_view(view: u40) u8 {
     var cnt: u8 = 0;
     var h: u8 = 0;
     var m: u8 = 1;
@@ -342,6 +342,55 @@ pub fn update_armies(armies: *[25]i8) void {
     }
 }
 
+// negative are to white advantage,
+// zero when black and white have equal stones on the board
+// positive is to black advantage.
+// If 10 black and 5 white, then return +5
+pub fn stone_diff_from_pos(pos: *const [25]i8) i8 {
+    var diff: i8 = 0;
+    for (0..25) |p| {
+        if (pos[p] > 0) {
+            diff += 1;
+        } else if (pos[p] < 0) {
+            diff -= 1;
+        }
+    }
+    return diff;
+}
+
+pub fn stone_diff_from_view(view: u40) i8 {
+    var diff: i8 = 0;
+    var rem = view;
+    for (0..25) |_| {
+        diff += switch (rem % 3) {
+            0 => 0,
+            1 => 1,
+            2 => -1,
+            else => unreachable,
+        };
+        rem /= 3;
+    }
+    return diff;
+}
+
+pub fn stone_count_from_pos(pos: *const [25]i8) u8 {
+    var cnt: u8 = 0;
+    for (0..25) |p| {
+        if (pos[p] != 0) cnt += 1;
+    }
+    return cnt;
+}
+
+pub fn stone_count_from_view(view: u40) u8 {
+    var cnt: i8 = 0;
+    var rem = view;
+    for (0..25) |_| {
+        if (rem % 3 != 0) cnt += 1;
+        rem /= 3;
+    }
+    return cnt;
+}
+
 pub fn armies_from_pos(pos: *const [25]i8) [25]i8 {
     var armies: [25]i8 = pos.*;
     update_armies(&armies);
@@ -386,9 +435,53 @@ pub fn blind_from_pos(pos: *const [25]i8) u25 {
     return @intCast(blind);
 }
 
-test "seq8 from view and pos" {
+pub const lowest = struct {
+    pos: [25]i8 = undefined,
+    blind: u25 = undefined,
+    seq: u8 = undefined,
+};
+
+pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
+    var orig = pos.*;
+    var refl = armies_reflect(&orig);
+
+    var orig_blind = blind_from_pos(&orig);
+    var refl_blind = blind_from_pos(&refl);
+
+    var lowest_pos: [25]i8 = undefined;
+    var lowest_seq: u8 = undefined;
+    var lowest_blind: u25 = orig_blind;
+
+    if (refl_blind < lowest_blind) {
+        lowest_blind = refl_blind;
+        lowest_pos = refl; // copy
+        lowest_seq = seq_from_pos(&refl);
+    } else {
+        lowest_pos = orig; // copy
+        lowest_seq = seq_from_pos(&orig);
+    }
+
+    for (0..3) |_| {
+        update_rotate(&orig);
+        update_rotate(&refl);
+        orig_blind = blind_from_pos(&orig);
+        refl_blind = blind_from_pos(&refl);
+        if (orig_blind < lowest_blind and orig_blind < refl_blind) {
+            lowest_blind = orig_blind;
+            lowest_pos = orig; // copy
+            lowest_seq = seq_from_pos(&orig);
+        } else if (refl_blind < lowest_blind and refl_blind < orig_blind) {
+            lowest_blind = refl_blind;
+            lowest_pos = refl; // copy
+            lowest_seq = seq_from_pos(&refl);
+        }
+    }
+    return lowest{ .pos = lowest_pos, .blind = lowest_blind, .seq = lowest_seq };
+}
+
+test "seq from view and pos" {
     const W: i8 = -1;
-    try expect(seq8_from_pos(&[25]i8{
+    try expect(seq_from_pos(&[25]i8{
         //1   2  4  8    16    32    64   128
         W, 0, W, W, 1, 0, 1, 0, 1, 0, W, 0, 1,
         1, 1, W, W, 1, 0, 1, 0, 0, 0, 0, 0,
@@ -398,7 +491,7 @@ test "seq8 from view and pos" {
         1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, W,
         1, W, W, W, 1, W, 1, W, W, 1, 1, 1,
     }));
-    try expect(seq8_from_view(view_black) == 255);
+    try expect(seq_from_view(view_black) == 255);
 }
 
 test "blind from view" {
