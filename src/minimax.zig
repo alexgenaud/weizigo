@@ -27,37 +27,75 @@ const max2 = util.max2;
 const min2 = util.min2;
 const UNDEF = util.UNDEF;
 
-// MAX_DEPTH = 1 COLLISION_SIZE =  1 TREE_SIZE =    10
-// MAX_DEPTH = 2 COLLISION_SIZE =  2 TREE_SIZE =    70
-// MAX_DEPTH = 3 COLLISION_SIZE =  3 TREE_SIZE =   427
-// MAX_DEPTH = 4 COLLISION_SIZE =  6 TREE_SIZE =  2190
-// MAX_DEPTH = 5 COLLISION_SIZE = 12 TREE_SIZE =  9217
-//
-// to reduce but the following work
-// MAX_DEPTH = 6 COLLISION_SIZE = 24 TREE_SIZE = 32100 (crahes)
-// MAX_DEPTH = 6 COLLISION_SIZE = 24 TREE_SIZE = 32105 (-- trial --)
-// MAX_DEPTH = 6 COLLISION_SIZE = 24 TREE_SIZE = 32110 (no collisions)
-const MAX_DEPTH = 6;
+// MAX_DEPTH = 1 COLLISION_SIZE =  1 TABLE_SIZE =      10
+// MAX_DEPTH = 2 COLLISION_SIZE =  2 TABLE_SIZE =     140
+// MAX_DEPTH = 3 COLLISION_SIZE =  3 TABLE_SIZE =    1281
+// MAX_DEPTH = 4 COLLISION_SIZE =  6 TABLE_SIZE =   13140
+// MAX_DEPTH = 5 COLLISION_SIZE = 12 TABLE_SIZE =  110604
+// MAX_DEPTH = 6 COLLISION_SIZE = 24 TABLE_SIZE =  744321
+// MAX_DEPTH = 7 COLLISION_SIZE = 47 TABLE_SIZE = 3786648 ?
+const MAX_DEPTH = 7;
 const COLLISION_SIZE = 24; // safe collision if too small
-const TREE_SIZE = 32105; // crash if too small
+const TABLE_SIZE = 3744321; // 24 * 157777; // crash if too small
+// 137777 too small
 
-const SEQ_TABLE_SIZE: u32 = COLLISION_SIZE * TREE_SIZE;
 var blind_table = [_]u32{0} ** 33_554_432; // 2^25
-var seq_index_empty: u32 = COLLISION_SIZE; // FIXME cannot set to zero
+var seq_next_empty_index: u32 = 0;
 pub const seq_score = struct {
     seq: u8 = 0,
     score: i8 = UNDEF,
 };
 
-var seq_table = [_]seq_score{.{}} ** SEQ_TABLE_SIZE;
-var zero_empty = &seq_table[0];
+var seq_table = [_]seq_score{.{}} ** TABLE_SIZE;
+//var zero_empty = &seq_table[0];
+
+pub fn collision_size(num_stones: u8) u8 {
+    if (num_stones <= 1) { // x 1 bit max
+        if (MAX_DEPTH <= 8) return 1;
+    }
+    if (num_stones <= 2) { // xx 2 bit 4 patterns
+        if (MAX_DEPTH <= 2) return 2;
+        if (MAX_DEPTH <= 8) return 3;
+    }
+    if (num_stones <= 3) {
+        if (MAX_DEPTH <= 3) return 3;
+        if (MAX_DEPTH <= 6) return 5;
+        if (MAX_DEPTH <= 8) return 5;
+    }
+    if (num_stones <= 4) {
+        if (MAX_DEPTH <= 4) return 6;
+        if (MAX_DEPTH <= 6) return 12;
+        if (MAX_DEPTH <= 8) return 12;
+    }
+    if (num_stones <= 5) {
+        if (MAX_DEPTH <= 5) return 12;
+        if (MAX_DEPTH <= 6) return 24;
+        if (MAX_DEPTH <= 7) return 27; // [27 - ?
+        if (MAX_DEPTH <= 8) return 26;
+    }
+    if (num_stones <= 6) {
+        if (MAX_DEPTH <= 6) return 24;
+        if (MAX_DEPTH <= 7) return 47; // [47 - 48?
+        if (MAX_DEPTH <= 8) return 24;
+    }
+    if (num_stones <= 7) {
+        if (MAX_DEPTH <= 7) return 37; // [37 < 40?
+        if (MAX_DEPTH <= 8) return 36;
+    }
+    if (num_stones <= 8) {
+        if (MAX_DEPTH <= 8) return 24;
+    }
+    unreachable;
+}
 
 pub fn get_game_score(pos: *const [25]i8) i8 {
     var lowest = state.lowest_blind_from_pos(&pos);
-    var seq_block_from_blind_table = blind_table[lowest.blind];
-    if (seq_block_from_blind_table == 0) return UNDEF;
-    var i = seq_block_from_blind_table;
-    while (i < seq_block_from_blind_table + COLLISION_SIZE) : (i += 1) {
+    var seq_block_size = collision_size(lowest.num_stones);
+    var seq_block_start = blind_table[lowest.blind];
+    if (seq_block_start == 0) return UNDEF;
+    var i = seq_block_start;
+    var seq_block_end = i + seq_block_size;
+    while (i < seq_block_end) : (i += 1) {
         var curr = &seq_table[i];
         if (curr.seq == lowest.seq or curr.score == UNDEF) {
             return curr.score;
@@ -68,19 +106,29 @@ pub fn get_game_score(pos: *const [25]i8) i8 {
 
 pub fn set_game_score(pos: *const [25]i8, score: i8) i8 {
     var lowest = state.lowest_blind_from_pos(pos);
+    var seq_block_size = collision_size(lowest.num_stones);
 
-    var seq_block_from_blind_table = blind_table[lowest.blind];
-    if (seq_block_from_blind_table == 0) {
-        if (seq_index_empty + COLLISION_SIZE > seq_table.len) {
-            print("Uh oh! we have run out of space\n", .{});
+    var seq_block_start = blind_table[lowest.blind];
+    if (seq_block_start == 0) {
+        // create seq_block if does not yet exist
+        if (seq_next_empty_index + seq_block_size > seq_table.len) {
+            print("Uh oh! we have run out of space " ++
+                "while setting num={}\n", .{
+                lowest.num_stones,
+            });
+            state.print_armies(&lowest.pos);
         }
-        seq_block_from_blind_table = seq_index_empty;
-        blind_table[lowest.blind] = seq_index_empty;
-        seq_index_empty += COLLISION_SIZE;
+        seq_block_start = seq_next_empty_index;
+        blind_table[lowest.blind] = seq_next_empty_index;
+        // move the index forward for the next seq_block
+        seq_next_empty_index += seq_block_size;
     }
 
-    var i = seq_block_from_blind_table;
-    while (i < seq_block_from_blind_table + COLLISION_SIZE) : (i += 1) {
+    // search for seq (of black-white-black... patterns)
+    // from seq_block_start to seq_block_end
+    var i = seq_block_start;
+    var seq_block_end = i + seq_block_size;
+    while (i < seq_block_end) : (i += 1) {
         var curr = &seq_table[i];
         if (curr.seq != lowest.seq and curr.score != UNDEF) {
             continue; // around again
@@ -93,31 +141,84 @@ pub fn set_game_score(pos: *const [25]i8, score: i8) i8 {
             curr.score = score;
             return score;
         }
-        // if (curr.seq == lowest.seq and
-        //     curr.score != UNDEF and
-        //     curr.score != score)
-        // {
-        //     // found but occupied by different score
-        //     print("Uh oh! found blind={} and block seq={} with score={} but failed to set seq={} with score={}\n", .{
-        //         lowest.blind,
-        //         curr.seq,
-        //         curr.score,
-        //         lowest.seq,
-        //         score,
-        //     });
-        //     return curr.score;
-        // }
     }
-    print("Uh oh! found blind={} and block seq={} but no space to put score={}\n", .{ lowest.blind, lowest.seq, score });
+    print(
+        "Uh oh! found blind={} of num_stones={} and block seq={} " ++
+            "but no space to put score={} in seq_block_size={}\n",
+        .{
+            lowest.blind,
+            lowest.num_stones,
+            lowest.seq,
+            score,
+            seq_block_size,
+        },
+    );
+    state.print_armies(&lowest.pos);
     return UNDEF;
 }
 
-pub fn pos_score(pos: *const [25]i8, force_score: bool) i8 {
-    var diff = state.stone_diff_from_pos(pos);
-    if (diff > 3 or diff < -1 or force_score) {
-        return diff;
+test "blind size" {
+    var all_black = [_]i8{1} ** 25; // 2^25
+    try expect(33_554_432 - 1 == state.blind_from_pos(&all_black));
+}
+
+// komi 0.5
+// black is penalized a stone and
+// must have two stones more than white to be ahead
+// A score above 25 could be considered a a good lead
+// scores roughly between -126 to +126 for total board captures.
+// score is relative to number of stones on the board
+// with a bias toward
+// large late captures rather than small early captures.
+// a very early capture is 64 points, then 48, 38
+// and an early double capture is 80 points.
+// earliest triple capture in the corner is 112 points
+pub fn wt_score(diff: i8, count: u8) i8 {
+    if (count <= 1) return 0;
+    var neg: i8 = if (diff < 0) -1 else 1;
+    var weight = 64 *
+        @as(f64, @floatFromInt(neg * (2 * diff - 1))) /
+        @as(f64, @floatFromInt(count + 1));
+    var res: i8 = neg * @as(i8, @intFromFloat(weight));
+    // if (res <= -81 or res >= 81) {
+    //     print("\n{} / {} = {}\n", .{ diff, count, res });
+    // }
+    return res;
+}
+
+test "weighted score" {
+    try expect(wt_score(0, 0) == 0);
+    try expect(wt_score(1, 1) == 0);
+
+    try expect(wt_score(0, 2) >= -21);
+    try expect(wt_score(0, 3) >= -16);
+    try expect(wt_score(0, 4) >= -12);
+    try expect(wt_score(1, 2) >= 21);
+    try expect(wt_score(1, 3) >= 16);
+    try expect(wt_score(1, 4) >= 12);
+    try expect(wt_score(2, 2) >= 48);
+    try expect(wt_score(2, 3) >= 48);
+    try expect(wt_score(2, 4) >= 38);
+    try expect(wt_score(2, 5) >= 32);
+    try expect(wt_score(25, 25) >= 0);
+    try expect(wt_score(-25, 25) <= 0);
+
+    for (0..25) |d| {
+        var i: i8 = @intCast(d);
+        var u: u8 = @intCast(d);
+        try expect(wt_score(i, u) >= 0);
+        try expect(wt_score(-i, u) <= 0);
+        try expect(wt_score(i + 1, u) == -wt_score(-i, u));
+        try expect(wt_score(i, u) == -wt_score(1 - i, u));
     }
-    return UNDEF;
+}
+
+// black must have two stones more than white to be ahead
+// +/- 25 is a strong score, +/- 100 is total dominance
+pub fn pos_score(pos: *const [25]i8) i8 {
+    var diff = state.stone_diff_from_pos(pos);
+    var count = state.stone_count_from_pos(pos);
+    return wt_score(diff, count);
 }
 
 pub fn minimax(
@@ -125,15 +226,9 @@ pub fn minimax(
     color: i8,
     depth: u8,
 ) i8 {
-    var score: i8 = pos_score(pos, false);
-    if (score != UNDEF) { // game over
-        //print("depth={} score={} returned organically\n", .{ depth, score });
-        //state.print_armies(pos);
-        return set_game_score(pos, score);
-    }
-    if (depth >= MAX_DEPTH) {
-        score = pos_score(pos, true);
-        //print("depth={} score={} max depth reached\n", .{ depth, score });
+    var score: i8 = pos_score(pos);
+    if (score < -25 or score > 25 or depth >= MAX_DEPTH) { // game over
+        //print("depth={} score={}\n", .{ depth, score });
         //state.print_armies(pos);
         return set_game_score(pos, score);
     }
@@ -144,293 +239,39 @@ pub fn minimax(
         //print("loop --- color={} depth={} check p={}\n", .{ color, depth, p });
         child_cnt += 1;
 
-        // var legal: [25]i8 = undefined;
-        // if (state.armies_from_move(pos, -color, @intCast(p))) |success| {
-        //     legal = success;
-        // } else |_| continue;
-
         var child: [25]i8 = state.armies_from_move(
             pos,
             -color,
             @intCast(p),
         ) catch continue;
 
+        var child_score = minimax(&child, -color, depth + 1);
         val = if (color > 0)
-            min2(val, minimax(&child, -color, depth + 1))
+            min2(val, child_score)
         else
-            max2(val, minimax(&child, -color, depth + 1));
+            max2(val, child_score);
     }
-    if (child_cnt == 0) val = pos_score(pos, true);
+
+    if (child_cnt == 0) val = pos_score(pos);
+    if (depth == 6 and (val >= 65 or val <= -65)) {
+        print("-- depth {} -- score: {}\n", .{ depth, val });
+        state.print_armies(pos);
+    }
     return set_game_score(pos, val);
 }
 
 pub fn main() !void {
-    print("start with MAX_DEPTH={} COLLISION_SIZE={} TREE_SIZE={}\n", .{
+    print("start with MAX_DEPTH={} COLLISION_SIZE={} TABLE_SIZE={}\n", .{
         MAX_DEPTH,
         COLLISION_SIZE,
-        TREE_SIZE,
+        TABLE_SIZE,
     });
     const board = [_]i8{0} ** 25;
     var root_score = minimax(&board, -1, 0);
     print("completed with root score={}\n", .{root_score});
-    print("end with MAX_DEPTH={} COLLISION_SIZE={} TREE_SIZE={}\n", .{
+    print("end with MAX_DEPTH={} COLLISION_SIZE={} TABLE_SIZE={}\n", .{
         MAX_DEPTH,
         COLLISION_SIZE,
-        TREE_SIZE,
+        TABLE_SIZE,
     });
 }
-
-// test "white always wins, terminal leaf souls, hopeless black parent" {
-//     const W = -1;
-//     const WHITE_TO_PLAY = false;
-//     const BLACK_TO_PLAY = true;
-
-//     const white_diagonal_win = [_]i8{
-//         W, 1, 1,
-//         1, W, 1,
-//         0, W, W,
-//     };
-//     const white_diagonal_soul = soul_from_pos(&white_diagonal_win);
-//     const white_diagonal_score = pos_score(&white_diagonal_win);
-
-//     // test score
-//     // negative for W win,
-//     // with 0 + 1 remaining
-//     try expect(white_diagonal_score == -2);
-
-//     var souls: SoulTable = SoulTable{};
-
-//     // minimax returns parent/root score,
-//     // is that what we expect?
-//     try expect(-2 == minimax(&white_diagonal_win, WHITE_TO_PLAY, &souls));
-//     try expect(souls.get_count() == 1);
-
-//     // sibling, another way for white to win
-//     const white_bottom_row_win = [_]i8{
-//         W, 1, 1,
-//         1, 0, 1,
-//         W, W, W,
-//     };
-//     const white_bottom_row_soul = soul_from_pos(&white_bottom_row_win);
-//     const white_bottom_row_score = pos_score(&white_bottom_row_win);
-
-//     try expect(white_bottom_row_score == -2);
-//     try expect(-2 == minimax(&white_bottom_row_win, WHITE_TO_PLAY, &souls));
-//     try expect(souls.get_count() == 2);
-
-//     // let's test integrity of both previous states
-//     try expect(white_diagonal_score == souls.get_score(white_diagonal_soul));
-//     try expect(white_bottom_row_score == souls.get_score(white_bottom_row_soul));
-//     try expect(UNDEF == souls.get_score(123));
-
-//     // going up (backwards), let's consider parent
-//     const black_parent = [_]i8{
-//         W, 1, 1,
-//         1, 0, 1,
-//         0, W, W,
-//     };
-//     try expect(pos_score(&black_parent) == UNDEF);
-//     try expect(-2 == minimax(&black_parent, BLACK_TO_PLAY, &souls));
-//     try expect(souls.get_count() == 3);
-// }
-
-// test "white always wins, start from hopeless black parent" {
-//     const W = -1;
-//     const BLACK_TO_PLAY = true;
-//     var souls: SoulTable = SoulTable{};
-//     const white_diagonal_win = [_]i8{
-//         W, 1, 1,
-//         1, W, 1,
-//         0, W, W,
-//     };
-//     const white_diagonal_soul = soul_from_pos(&white_diagonal_win);
-//     const white_diagonal_score = pos_score(&white_diagonal_win);
-
-//     // test score
-//     // negative for W win,
-//     // with 0 + 1 remaining
-//     try expect(white_diagonal_score == -2);
-
-//     // sibling, another way for white to win
-//     const white_bottom_row_win = [_]i8{
-//         W, 1, 1,
-//         1, 0, 1,
-//         W, W, W,
-//     };
-//     const white_bottom_row_soul = soul_from_pos(&white_bottom_row_win);
-//     const white_bottom_row_score = pos_score(&white_bottom_row_win);
-
-//     try expect(white_bottom_row_score == -2);
-
-//     // prove that souls knows nothing
-//     try expect(UNDEF == souls.get_score(white_diagonal_soul));
-//     try expect(UNDEF == souls.get_score(white_bottom_row_soul));
-//     try expect(UNDEF == souls.get_score(123));
-
-//     // going up (backwards), let's consider parent
-//     const black_parent = [_]i8{
-//         W, 1, 1,
-//         1, 0, 1,
-//         0, W, W,
-//     };
-//     try expect(pos_score(&black_parent) == UNDEF);
-//     try expect(-2 == minimax(&black_parent, BLACK_TO_PLAY, &souls));
-//     try expect(souls.get_count() == 3);
-// }
-
-// test "unbalanced tree, two and three levels from white" {
-//     const W = -1;
-//     const WHITE_TO_PLAY = false;
-//     const BLACK_TO_PLAY = true;
-//     var souls: SoulTable = SoulTable{};
-//     const white_diagonal_win = [_]i8{
-//         W, 0, 1,
-//         1, W, 1,
-//         1, W, W,
-//     };
-//     const white_diagonal_score = pos_score(&white_diagonal_win);
-//     try expect(white_diagonal_score == -2);
-//     try expect(-2 == minimax(&white_diagonal_win, WHITE_TO_PLAY, &souls));
-
-//     // black nephew wins by row and diagonal
-//     const black_nephew_double_win = [_]i8{
-//         W, W, 1,
-//         1, 1, 1,
-//         1, W, W,
-//     };
-//     const black_nephew_double_score = pos_score(&black_nephew_double_win);
-
-//     // no empty space but still a positive win for black
-//     try expect(black_nephew_double_score == 1);
-//     try expect(1 == minimax(&black_nephew_double_win, BLACK_TO_PLAY, &souls));
-
-//     // going up (backwards), let's consider parent
-//     const black_parent = [_]i8{
-//         W, 1, 1,
-//         1, 0, 1,
-//         0, W, W,
-//     };
-//     try expect(pos_score(&black_parent) == UNDEF);
-
-//     try expect(-2 == minimax(&black_parent, BLACK_TO_PLAY, &souls));
-//     try expect(souls.get_count() == 5);
-// }
-
-// test "full minimax from empty board" {
-//     const W: i8 = -1;
-//     var souls: SoulTable = SoulTable{};
-//     var empty_board = pos_from_view(0);
-//     var resMinimax = minimax(&empty_board, false, &souls);
-//     try expect(resMinimax == 0);
-//     try expect(souls.get_score(0) == souls.get_score(1)); // top left
-//     try expect(souls.get_score(3) == souls.get_score(81)); // top == middle
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 0,
-//         W, 1, 0,
-//         0, 0, 0,
-//     }) == 5);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 0,
-//         W, 1, 0,
-//         0, 1, 0,
-//     }) == 5);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 0,
-//         W, 1, 0,
-//         1, 0, 0,
-//     }) == 3);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 0,
-//         W, 1, 0,
-//         1, W, 0,
-//     }) == 3);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 1,
-//         W, 1, 0,
-//         1, W, 0,
-//     }) == 3);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 1,
-//         W, 1, 0,
-//         1, W, 0,
-//     }) == 3);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 1,
-//         W, 1, W,
-//         1, W, 0,
-//     }) == UNDEF);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         W, 1, 0,
-//         W, 1, 1,
-//         1, W, 0,
-//     }) == 0);
-//     try expect(souls.get_count() >= 765);
-// }
-
-// test "four levels from the top, white to play" {
-//     const W = -1;
-//     const WHITE_TO_PLAY = false;
-//     var souls: SoulTable = SoulTable{};
-//     const white_to_play = [_]i8{
-//         W, 0, 1,
-//         1, 0, 1,
-//         0, W, W,
-//     };
-//     try expect(pos_score(&white_to_play) == UNDEF);
-//     try expect(minimax(&white_to_play, WHITE_TO_PLAY, &souls) == 3);
-//     try expect(souls.get_score(4153) == 3);
-//     try expect(souls.get_score(4180) == -2);
-//     try expect(souls.get_score(4234) == 3);
-//     try expect(souls.get_score(8314) == -2);
-//     //
-//     // WHITE                    (4153+3)
-//     //                         /    |   \
-//     //                        /     |    \
-//     // BLACK          (4180-2)  (4234+3)  (8314-2)
-//     //                /      \            /     \
-//     //               /        \          /       \
-//     // WHITE   (4342-2) (10502-2)   (10768+1)   (8476-2)
-//     //                               /
-//     //                              /
-//     // BLACK                  (10849+1)
-//     //
-//     try expect(souls.get_score(4342) == -2);
-//     try expect(souls.get_score(10502) == -2);
-//     try expect(souls.get_score(10768) == 1);
-//     try expect(souls.get_score(8476) == -2);
-//     try expect(souls.get_score(10849) == 1);
-//     try expect(souls.get_count() >= 9);
-// }
-
-// test "white lead to draw to win early" {
-//     const W: i8 = -1;
-//     var souls: SoulTable = SoulTable{};
-//     var empty_board = pos_from_view(0);
-//     try expect(0 == minimax(&empty_board, false, &souls));
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         1, 0, 0,
-//         1, W, 0,
-//         0, 0, 0,
-//     }) == 0);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         1, 0, 0,
-//         1, W, 0,
-//         W, 0, 0,
-//     }) == 0);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         1, 0, 1,
-//         1, W, 0,
-//         W, 0, 0,
-//     }) == 0);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         1, W, 1,
-//         1, W, 0,
-//         W, 0, 0,
-//     }) == 0);
-//     try expect(souls.get_score_from_pos(&[9]i8{
-//         1, W, 1,
-//         1, W, 0,
-//         W, 1, 0,
-//     }) == 0);
-//     try expect(souls.get_count() >= 765);
-// }

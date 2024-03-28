@@ -439,6 +439,7 @@ pub const lowest = struct {
     pos: [25]i8 = undefined,
     blind: u25 = undefined,
     seq: u8 = undefined,
+    num_stones: u8 = undefined,
 };
 
 pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
@@ -476,7 +477,12 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
             lowest_seq = seq_from_pos(&refl);
         }
     }
-    return lowest{ .pos = lowest_pos, .blind = lowest_blind, .seq = lowest_seq };
+    return lowest{
+        .pos = lowest_pos,
+        .blind = lowest_blind,
+        .seq = lowest_seq,
+        .num_stones = stone_count_from_pos(&orig),
+    };
 }
 
 test "seq from view and pos" {
