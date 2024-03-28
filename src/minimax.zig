@@ -27,70 +27,142 @@ const max2 = util.max2;
 const min2 = util.min2;
 const UNDEF = util.UNDEF;
 
-// MAX_DEPTH = 1 COLLISION_SIZE =  1 TABLE_SIZE =      10
-// MAX_DEPTH = 2 COLLISION_SIZE =  2 TABLE_SIZE =     140
-// MAX_DEPTH = 3 COLLISION_SIZE =  3 TABLE_SIZE =    1281
-// MAX_DEPTH = 4 COLLISION_SIZE =  6 TABLE_SIZE =   13140
-// MAX_DEPTH = 5 COLLISION_SIZE = 12 TABLE_SIZE =  110604
-// MAX_DEPTH = 6 COLLISION_SIZE = 24 TABLE_SIZE =  744321
-// MAX_DEPTH = 7 COLLISION_SIZE = 47 TABLE_SIZE = 3786648 ?
-const MAX_DEPTH = 7;
-const COLLISION_SIZE = 24; // safe collision if too small
-const TABLE_SIZE = 3744321; // 24 * 157777; // crash if too small
-// 137777 too small
+pub fn seq_table_size(max_depth: u8) u32 {
+    return switch (max_depth) {
+        1 => 10, //    original     10 ok
+        2 => 117, //               117 ok
+        3 => 1_176, //           1_176 ok
+        4 => 12_139, //         12_139 ok
+        5 => 105_583, //       105_583 ok
+        6 => 733_447, //       733_447 ok
+        7 => 3_446_846, //   3_446_846 ok
+        8 => 15_627_565, // 15_627_560 too low, ...565 high
+        else => 15_627_550, // seq is 8 bits max (lower req than 8?)
+    };
+}
 
-var blind_table = [_]u32{0} ** 33_554_432; // 2^25
+pub fn main() !void {
+    const max_depth: u8 = 9;
+    const global = struct {
+        var blind_array = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+    };
+    print("start with max_depth={} seq_table_size={}\n", .{
+        max_depth,
+        seq_table_size(max_depth),
+    });
+    const board = [_]i8{0} ** 25;
+    var root_score = minimax(
+        &board,
+        -1,
+        0,
+        &global.blind_array,
+        &global.seq_table,
+        max_depth,
+    );
+    print("completed with root score={}\n", .{root_score});
+    print("end with max_depth={} seq_table_size={} minimax/found={} %\n", .{
+        max_depth,
+        seq_table_size(max_depth),
+        100 * total_minimax_child / (total_found_child + 1),
+    });
+}
+
+test "black traps white" {
+    const max_depth: u8 = 5;
+    const global = struct {
+        var blind_array = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+    };
+    const W: i8 = -1;
+    _ = minimax(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+    }, -1, 0, &global.blind_array, &global.seq_table, max_depth);
+
+    var good_score_black = get_game_score(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 1, 0, 0, 0,
+        W, 0, 0, 0, 0,
+    }, &global.blind_array, &global.seq_table, max_depth);
+
+    print("score after black trap white {}\n", .{good_score_black});
+    try expect(good_score_black > 1);
+
+    var bad_score_black = get_game_score(&[_]i8{
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, W, 0, 0, 0,
+        1, 0, 0, 0, 0,
+    }, &global.blind_array, &global.seq_table, max_depth);
+
+    print("score after white traps black {}\n", .{bad_score_black});
+    try expect(bad_score_black < good_score_black);
+}
+
 var seq_next_empty_index: u32 = 0;
 pub const seq_score = struct {
     seq: u8 = 0,
     score: i8 = UNDEF,
 };
 
-var seq_table = [_]seq_score{.{}} ** TABLE_SIZE;
-//var zero_empty = &seq_table[0];
-
-pub fn collision_size(num_stones: u8) u8 {
+pub fn collision_size(num_stones: u8, max_depth: u8) u8 {
     if (num_stones <= 1) { // x 1 bit max
-        if (MAX_DEPTH <= 8) return 1;
+        if (max_depth <= 8) return 1;
+        if (max_depth <= 9) return 1;
     }
     if (num_stones <= 2) { // xx 2 bit 4 patterns
-        if (MAX_DEPTH <= 2) return 2;
-        if (MAX_DEPTH <= 8) return 3;
+        if (max_depth <= 2) return 2;
+        if (max_depth <= 8) return 3;
+        if (max_depth <= 9) return 3;
     }
     if (num_stones <= 3) {
-        if (MAX_DEPTH <= 3) return 3;
-        if (MAX_DEPTH <= 6) return 5;
-        if (MAX_DEPTH <= 8) return 5;
+        if (max_depth <= 3) return 3;
+        if (max_depth <= 8) return 5;
+        if (max_depth <= 9) return 5;
     }
     if (num_stones <= 4) {
-        if (MAX_DEPTH <= 4) return 6;
-        if (MAX_DEPTH <= 6) return 12;
-        if (MAX_DEPTH <= 8) return 12;
+        if (max_depth <= 4) return 6;
+        if (max_depth <= 8) return 12;
+        if (max_depth <= 9) return 12;
     }
     if (num_stones <= 5) {
-        if (MAX_DEPTH <= 5) return 12;
-        if (MAX_DEPTH <= 6) return 24;
-        if (MAX_DEPTH <= 7) return 27; // [27 - ?
-        if (MAX_DEPTH <= 8) return 26;
+        if (max_depth <= 5) return 12;
+        if (max_depth <= 6) return 24;
+        if (max_depth <= 8) return 24;
+        if (max_depth <= 9) return 24;
     }
     if (num_stones <= 6) {
-        if (MAX_DEPTH <= 6) return 24;
-        if (MAX_DEPTH <= 7) return 47; // [47 - 48?
-        if (MAX_DEPTH <= 8) return 24;
+        if (max_depth <= 6) return 24;
+        if (max_depth <= 8) return 44; // 45 ok
+        if (max_depth <= 9) return 44; // 45 ok
     }
     if (num_stones <= 7) {
-        if (MAX_DEPTH <= 7) return 37; // [37 < 40?
-        if (MAX_DEPTH <= 8) return 36;
+        if (max_depth <= 7) return 37;
+        if (max_depth <= 8) return 64; // 64 required
+        if (max_depth <= 9) return 64; // 64 required
     }
     if (num_stones <= 8) {
-        if (MAX_DEPTH <= 8) return 24;
+        if (max_depth <= 8) return 77; // 78 ok
+        if (max_depth <= 9) return 77; // 78 ok
     }
-    unreachable;
+    unreachable; // 9 bit stone seq not supported
 }
 
-pub fn get_game_score(pos: *const [25]i8) i8 {
-    var lowest = state.lowest_blind_from_pos(&pos);
-    var seq_block_size = collision_size(lowest.num_stones);
+pub fn get_game_score(
+    pos: *const [25]i8,
+    blind_table: []u32,
+    seq_table: []seq_score,
+    max_depth: u8,
+) i8 {
+    var lowest = state.lowest_blind_from_pos(pos);
+    var seq_block_size = collision_size(lowest.num_stones, max_depth);
     var seq_block_start = blind_table[lowest.blind];
     if (seq_block_start == 0) return UNDEF;
     var i = seq_block_start;
@@ -104,10 +176,15 @@ pub fn get_game_score(pos: *const [25]i8) i8 {
     return UNDEF;
 }
 
-pub fn set_game_score(pos: *const [25]i8, score: i8) i8 {
+pub fn set_game_score(
+    pos: *const [25]i8,
+    score: i8,
+    blind_table: []u32,
+    seq_table: []seq_score,
+    max_depth: u8,
+) i8 {
     var lowest = state.lowest_blind_from_pos(pos);
-    var seq_block_size = collision_size(lowest.num_stones);
-
+    var seq_block_size = collision_size(lowest.num_stones, max_depth);
     var seq_block_start = blind_table[lowest.blind];
     if (seq_block_start == 0) {
         // create seq_block if does not yet exist
@@ -221,16 +298,24 @@ pub fn pos_score(pos: *const [25]i8) i8 {
     return wt_score(diff, count);
 }
 
+var total_minimax_child: u64 = 0;
+var total_found_child: u64 = 0;
 pub fn minimax(
     pos: *const [25]i8,
     color: i8,
     depth: u8,
+    blind_table: []u32,
+    seq_table: []seq_score,
+    max_depth: u8,
 ) i8 {
     var score: i8 = pos_score(pos);
-    if (score < -25 or score > 25 or depth >= MAX_DEPTH) { // game over
+    if (depth > 8) { // FIXME cannot set seq more than 8 bits
+        return score;
+    }
+    if (score < -25 or score > 25 or depth >= max_depth) { // game over
         //print("depth={} score={}\n", .{ depth, score });
         //state.print_armies(pos);
-        return set_game_score(pos, score);
+        return set_game_score(pos, score, blind_table, seq_table, max_depth);
     }
     var val: i8 = if (color > 0) 99 else -99;
     var child_cnt: u8 = 0;
@@ -245,33 +330,44 @@ pub fn minimax(
             @intCast(p),
         ) catch continue;
 
-        var child_score = minimax(&child, -color, depth + 1);
+        var child_score = if (depth < 8)
+            get_game_score(&child, blind_table, seq_table, max_depth)
+        else
+            UNDEF;
+
+        if (child_score == UNDEF) {
+            total_minimax_child += 1;
+            child_score = minimax(
+                &child,
+                -color,
+                depth + 1,
+                blind_table,
+                seq_table,
+                max_depth,
+            );
+        } else total_found_child += 1;
+
         val = if (color > 0)
             min2(val, child_score)
         else
             max2(val, child_score);
     }
 
-    if (child_cnt == 0) val = pos_score(pos);
-    if (depth == 6 and (val >= 65 or val <= -65)) {
-        print("-- depth {} -- score: {}\n", .{ depth, val });
+    if (child_cnt == 0) val = -pos_score(pos);
+
+    if ((depth == 3 and (val >= 90 or val <= -90))) {
+        print("-- depth {} -- score: {} minimax/found={} %\n", .{
+            depth,
+            val,
+            100 * total_minimax_child / (total_found_child + 1),
+        });
         state.print_armies(pos);
     }
-    return set_game_score(pos, val);
-}
-
-pub fn main() !void {
-    print("start with MAX_DEPTH={} COLLISION_SIZE={} TABLE_SIZE={}\n", .{
-        MAX_DEPTH,
-        COLLISION_SIZE,
-        TABLE_SIZE,
-    });
-    const board = [_]i8{0} ** 25;
-    var root_score = minimax(&board, -1, 0);
-    print("completed with root score={}\n", .{root_score});
-    print("end with MAX_DEPTH={} COLLISION_SIZE={} TABLE_SIZE={}\n", .{
-        MAX_DEPTH,
-        COLLISION_SIZE,
-        TABLE_SIZE,
-    });
+    return if (depth < 8) set_game_score(
+        pos,
+        val,
+        blind_table,
+        seq_table,
+        max_depth,
+    ) else val;
 }
