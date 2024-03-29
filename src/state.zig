@@ -444,6 +444,17 @@ pub const lowest = struct {
     diff: i8 = undefined,
 };
 
+pub fn lowest_sequence_inversion_from_pos(pos: *const [25]i8) lowest {
+    return lowest{
+        .pos = &pos,
+        .blind = 0,
+        .seq = 0,
+        .inverse_seq = 0,
+        .num_stones = 0,
+        .diff = 0,
+    };
+}
+
 pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
     var orig = pos.*;
     var refl = armies_reflect(&orig);
