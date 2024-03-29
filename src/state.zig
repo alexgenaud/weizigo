@@ -439,66 +439,324 @@ pub const lowest = struct {
     pos: [25]i8 = undefined,
     blind: u25 = undefined,
     seq: u8 = undefined,
-    inverse_seq: u8 = undefined,
+    is_mirrored: bool = undefined,
+    is_inverse: bool = undefined,
     num_stones: u8 = undefined,
     diff: i8 = undefined,
 };
 
-pub fn lowest_sequence_inversion_from_pos(pos: *const [25]i8) lowest {
-    return lowest{
-        .pos = &pos,
-        .blind = 0,
-        .seq = 0,
-        .inverse_seq = 0,
-        .num_stones = 0,
-        .diff = 0,
+test "lowest empty" {
+    var a = [_]i8{0} ** 25;
+    var ablind = blind_from_pos(&a);
+    try expect(0 == ablind);
+    var aseq = seq_from_pos(&a);
+    try expect(0 == aseq);
+    var astones = stone_count_from_pos(&a);
+    try expect(0 == astones);
+    var adiff = stone_diff_from_pos(&a);
+    try expect(0 == adiff);
+    var low = lowest_blind_from_pos(&a);
+    try expect(0 == low.blind);
+    try expect(0 == low.seq);
+    try expect(!low.is_inverse); // orig empty
+    try expect(0 == low.num_stones);
+    try expect(0 == low.diff);
+    try expect(0 == low.pos[1]);
+}
+
+test "lowest full black" {
+    var a = [_]i8{1} ** 25; // all black
+    var ablind = blind_from_pos(&a);
+    try expect((1 << 25) - 1 == ablind); // all filled
+    var aseq = seq_from_pos(&a);
+    try expect(255 == aseq);
+    var astones = stone_count_from_pos(&a);
+    try expect(25 == astones);
+    var adiff = stone_diff_from_pos(&a);
+    try expect(25 == adiff);
+    var low = lowest_blind_from_pos(&a);
+    try expect((1 << 25) - 1 == low.blind);
+    try expect(0 == low.seq); // 0000 0000 white
+    try expect(low.is_inverse); // black 1 to white 0
+    try expect(25 == low.num_stones);
+    try expect(-25 == low.diff);
+    try expect(-1 == low.pos[1]);
+}
+
+test "lowest full white" {
+    var a = [_]i8{-1} ** 25; // all white
+    var ablind = blind_from_pos(&a);
+    try expect((1 << 25) - 1 == ablind); // same as black
+    var aseq = seq_from_pos(&a);
+    try expect(0 == aseq); // filled white
+    var astones = stone_count_from_pos(&a);
+    try expect(25 == astones);
+    var adiff = stone_diff_from_pos(&a);
+    try expect(-25 == adiff); // white are negative
+    var low = lowest_blind_from_pos(&a);
+    try expect((1 << 25) - 1 == low.blind); // same
+    try expect(0 == low.seq); // 0000 0000 white
+    try expect(!low.is_inverse); // still white
+    try expect(25 == low.num_stones);
+    try expect(-25 == low.diff);
+    try expect(-1 == low.pos[1]);
+}
+
+test "lowest mirror" {
+    var a = [25]i8{
+        0, -1, 0, 0, 0,
+        1, 0,  0, 0, 0,
+        0, 0,  0, 0, 0,
+        0, 0,  0, 0, 0,
+        0, 0,  0, 0, 0,
     };
+    var b = [25]i8{
+        0,  1, 0, 0, 0,
+        -1, 0, 0, 0, 0,
+        0,  0, 0, 0, 0,
+        0,  0, 0, 0, 0,
+        0,  0, 0, 0, 0,
+    };
+    var alow = lowest_blind_from_pos(&a);
+    var blow = lowest_blind_from_pos(&b);
+    print("\n\nmirror a\n\n", .{});
+    print_armies(&alow.pos);
+    print_armies(&blow.pos);
+    try expect(alow.num_stones == blow.num_stones);
+    try expect(alow.blind == blow.blind);
+    try expect(alow.seq == blow.seq);
+    try expect(alow.diff == 0 - blow.diff);
+}
+
+test "lowest white self" {
+    var a = [25]i8{
+        0, -1, 0, 0, 0,
+        0, 0,  0, 0, 0,
+        0, 0,  0, 0, 0,
+        0, 0,  0, 0, 0,
+        0, 0,  0, 0, 0,
+    };
+    var ablind = blind_from_pos(&a);
+    try expect(2 == ablind);
+    var aseq = seq_from_pos(&a);
+    try expect(0 == aseq);
+    var astones = stone_count_from_pos(&a);
+    try expect(1 == astones);
+    var adiff = stone_diff_from_pos(&a);
+    try expect(-1 == adiff);
+    var low = lowest_blind_from_pos(&a);
+    try expect(2 == low.blind);
+    try expect(0 == low.seq);
+    try expect(!low.is_inverse); // is orig white (seq=0)
+    try expect(1 == low.num_stones);
+    try expect(-1 == low.diff);
+    try expect(-1 == low.pos[1]);
+}
+
+test "lowest rotate inverse" {
+    var A: i8 = -1;
+    var a = [25]i8{
+        0, 0, A, 0, 0,
+        0, 0, 0, 0, 0,
+        1, 0, 0, 0, 0,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 1, 1,
+    };
+    var ablind = blind_from_pos(&a);
+    try expect(ablind > 25_000_000);
+    var aseq = seq_from_pos(&a);
+    try expect(30 == aseq); // 00011110 = 16 8 4 2 0
+    var astones = stone_count_from_pos(&a);
+    try expect(5 == astones);
+    var adiff = stone_diff_from_pos(&a);
+    try expect(3 == adiff);
+    // rotate and inverse
+    var guess = [25]i8{
+        0, 0, A, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 1,
+        A, 0, 0, 0, 0,
+        A, A, 0, 0, 0,
+    };
+    var low = lowest_blind_from_pos(&a);
+    try expect(low.blind > (1 << 21));
+    try expect(low.blind < (1 << 22));
+    try expect(low.blind == blind_from_pos(&guess));
+    try expect(2 == low.seq); // <-- 00010 <--
+    try expect(low.is_inverse); // flipped
+    try expect(5 == low.num_stones);
+    try expect(-3 == low.diff);
+    try expect(0 == low.pos[1]);
+}
+
+test "lowest inverse black" {
+    var a = [25]i8{
+        0, 1, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+    };
+    var ablind = blind_from_pos(&a);
+    try expect(2 == ablind);
+    var aseq = seq_from_pos(&a);
+    try expect(1 == aseq); // just 1
+    var astones = stone_count_from_pos(&a);
+    try expect(1 == astones);
+    var adiff = stone_diff_from_pos(&a);
+    try expect(1 == adiff);
+    var low = lowest_blind_from_pos(&a);
+    try expect(2 == low.blind);
+    try expect(0 == low.seq); // 0010 to 0000
+    try expect(low.is_inverse); // is now white 0
+    try expect(1 == low.num_stones);
+    try expect(-1 == low.diff);
+    try expect(-1 == low.pos[1]);
 }
 
 pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
-    var orig = pos.*;
-    var refl = armies_reflect(&orig);
+    var lowest_blind = blind_from_pos(pos);
+    if (lowest_blind == 0) return lowest{
+        .pos = pos.*,
+        .blind = 0,
+        .seq = 0,
+        .is_inverse = false,
+        .num_stones = 0,
+        .diff = 0,
+    };
 
-    var orig_blind = blind_from_pos(&orig);
-    var refl_blind = blind_from_pos(&refl);
+    var o0 = pos.*;
+    var o1 = armies_rotate(&o0);
+    var o2 = armies_rotate(&o1);
+    var o3 = armies_rotate(&o2);
 
-    var lowest_pos: [25]i8 = undefined;
-    var lowest_seq: u8 = undefined;
-    var lowest_blind: u25 = orig_blind;
+    var r0 = armies_reflect(&o0);
+    var r1 = armies_rotate(&r0);
+    var r2 = armies_rotate(&r1);
+    var r3 = armies_rotate(&r2);
 
-    if (refl_blind < lowest_blind) {
-        lowest_blind = refl_blind;
-        lowest_pos = refl; // copy
-        lowest_seq = seq_from_pos(&refl);
-    } else {
-        lowest_pos = orig; // copy
-        lowest_seq = seq_from_pos(&orig);
-    }
+    var k0 = armies_inverse(&o0);
+    var k1 = armies_rotate(&k0);
+    var k2 = armies_rotate(&k1);
+    var k3 = armies_rotate(&k2);
 
-    for (0..3) |_| {
-        update_rotate(&orig);
-        update_rotate(&refl);
-        orig_blind = blind_from_pos(&orig);
-        refl_blind = blind_from_pos(&refl);
-        if (orig_blind < lowest_blind and orig_blind < refl_blind) {
-            lowest_blind = orig_blind;
-            lowest_pos = orig; // copy
-            lowest_seq = seq_from_pos(&orig);
-        } else if (refl_blind < lowest_blind and refl_blind < orig_blind) {
-            lowest_blind = refl_blind;
-            lowest_pos = refl; // copy
-            lowest_seq = seq_from_pos(&refl);
+    var j0 = armies_inverse(&r0);
+    var j1 = armies_rotate(&j0);
+    var j2 = armies_rotate(&j1);
+    var j3 = armies_rotate(&j2);
+
+    var armies = [16][25]i8{
+        o0, o1, o2, o3,
+        r0, r1, r2, r3,
+        k0, k1, k2, k3,
+        j0, j1, j2, j3,
+    };
+
+    // only test 8 (not 16) because
+    // inverts have the same blind
+    var blinds = [8]u25{
+        lowest_blind,        blind_from_pos(&r0),
+        blind_from_pos(&o1), blind_from_pos(&r1),
+        blind_from_pos(&o2), blind_from_pos(&r2),
+        blind_from_pos(&o3), blind_from_pos(&r3),
+    };
+
+    for (1..8) |i| { // first is already lowest_blind
+        if (blinds[i] < lowest_blind) {
+            lowest_blind = blinds[i];
         }
     }
-    return lowest{
-        .pos = lowest_pos,
-        .blind = lowest_blind,
-        .seq = lowest_seq,
-        // TODO must be faster inverse_seq considering num_stones
-        .inverse_seq = seq_from_pos(&armies_inverse(&lowest_pos)),
-        .num_stones = stone_count_from_pos(&orig),
-        .diff = stone_diff_from_pos(&orig),
-    };
+    var seqs = [_]u8{255} ** 16;
+    var lowest_seq: u8 = 255;
+    for (0..8) |i| { // set and find lowest seq
+        if (blinds[i] == lowest_blind) {
+            seqs[i] = seq_from_pos(&armies[i]);
+            if (seqs[i] < lowest_seq) lowest_seq = seqs[i];
+            seqs[i + 8] = seq_from_pos(&armies[i + 8]);
+            if (seqs[i + 8] < lowest_seq) lowest_seq = seqs[i + 8];
+        }
+    }
+    var found_original: usize = 999;
+    var found_inverse: usize = 999;
+    for (0..8) |i| {
+        if (seqs[i] == lowest_seq) {
+            found_original = i;
+            break;
+        }
+    }
+    for (8..16) |i| {
+        if (seqs[i] == lowest_seq) {
+            found_inverse = i;
+            break;
+        }
+    }
+
+    if (found_original < 888 and found_inverse < 888) {
+        // print("\n\n---a MIRROR ----------------\n\n", .{});
+        // print("original blind={} seq={} num_stones={} diff={}\n", .{
+        //     lowest_blind,                                  lowest_seq,
+        //     stone_count_from_pos(&armies[found_original]), stone_diff_from_pos(&armies[found_original]),
+        // });
+        // print_armies(&armies[found_original]);
+        // print("inverse blind={} seq={} num_stones={} diff={}\n", .{
+        //     lowest_blind,                                 lowest_seq,
+        //     stone_count_from_pos(&armies[found_inverse]), stone_diff_from_pos(&armies[found_inverse]),
+        // });
+        // print_armies(&armies[found_inverse]);
+        // print("---z MIRROR ----------------\n\n", .{});
+
+        var diff = stone_diff_from_pos(&armies[found_original]);
+        if (diff != 0) {
+            print("\n\n// mirror with diff={} //\n\n", .{diff});
+        }
+
+        return lowest{
+            .pos = armies[found_original],
+            .blind = lowest_blind,
+            .seq = lowest_seq,
+            .is_mirrored = true,
+            .is_inverse = false,
+            .num_stones = stone_count_from_pos(&armies[found_original]),
+            .diff = stone_diff_from_pos(&armies[found_original]),
+        };
+    } else if (found_original < 888) {
+        // print("\n---a not mirror ----------------\n\n", .{});
+        // print("original blind={} seq={} num_stones={} diff={}\n", .{
+        //     lowest_blind,                                  lowest_seq,
+        //     stone_count_from_pos(&armies[found_original]), stone_diff_from_pos(&armies[found_original]),
+        // });
+        // print_armies(&armies[found_original]);
+        // print("---z not mirror ----------------\n\n", .{});
+        return lowest{
+            .pos = armies[found_original],
+            .blind = lowest_blind,
+            .seq = lowest_seq,
+            .is_mirrored = false,
+            .is_inverse = false,
+            .num_stones = stone_count_from_pos(&armies[found_original]),
+            .diff = stone_diff_from_pos(&armies[found_original]),
+        };
+    } else if (found_inverse < 888) {
+        // print("\n---a not mirror ----------------\n\n", .{});
+        // print("inverse blind={} seq={} num_stones={} diff={}\n", .{
+        //     lowest_blind,                                 lowest_seq,
+        //     stone_count_from_pos(&armies[found_inverse]), stone_diff_from_pos(&armies[found_inverse]),
+        // });
+        // print_armies(&armies[found_inverse]);
+        // print("---z not mirror ----------------\n\n", .{});
+        return lowest{
+            .pos = armies[found_inverse],
+            .blind = lowest_blind,
+            .seq = lowest_seq,
+            .is_mirrored = false,
+            .is_inverse = true,
+            .num_stones = stone_count_from_pos(&armies[found_inverse]),
+            .diff = stone_diff_from_pos(&armies[found_inverse]),
+        };
+    }
+    print("\nOops could not find lowest of pos\n\n", .{});
+    print_armies(pos);
+    unreachable;
 }
 
 test "seq from view and pos" {

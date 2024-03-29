@@ -44,16 +44,16 @@ pub const seq_score = struct {
 
 pub fn seq_table_size(max_depth: u8) u32 {
     const ret: u32 = switch (max_depth) { // FIXME 2 * doubled for two 2^25 blind tables
-        0 => 1,
-        1 => 1 * 10, //    original     10 ok
-        2 => 1 * 117, //               117 ok
-        3 => 1 * 1_176, //           1_176 ok
-        4 => 1 * 12_139, //         12_139 ok
-        5 => 1 * 105_583, //       105_583 ok
-        6 => 1 * 733_447, //       733_447 ok
-        7 => 1 * 3_446_846, //   3_446_846 ok
-        8 => 1 * 15_627_565, // 15_627_560 too low, ...565 high
-        else => 2 * 15_627_550, // seq is 8 bits max (lower req than 8?)
+        0 => 3,
+        1 => 3 * 10, //    original     10 ok
+        2 => 3 * 117, //               117 ok
+        3 => 3 * 1_176, //           1_176 ok
+        4 => 3 * 12_139, //         12_139 ok
+        5 => 3 * 105_583, //       105_583 ok
+        6 => 3 * 733_447, //       733_447 ok
+        7 => 3 * 3_446_846, //   3_446_846 ok
+        8 => 3 * 15_627_565, // 15_627_560 too low, ...565 high
+        else => 3 * 15_627_550, // seq is 8 bits max (lower req than 8?)
     };
     return ret;
 }
@@ -112,7 +112,7 @@ pub fn collision_size(num_stones: u8, max_depth: u8) u8 {
 }
 
 test "new sizes" {
-    const max_depth: u8 = 2;
+    const max_depth: u8 = 1;
     const global = struct {
         var black_table = [_]u32{0} ** (1 << 25);
         var white_table = [_]u32{0} ** (1 << 25);
@@ -362,24 +362,16 @@ pub fn get_game_score(
     seq_table: []seq_score,
     max_depth: u8,
 ) i8 {
-    // start new lowest sequence
     var lowest = state.lowest_blind_from_pos(pos);
-    var is_inverse: bool = false;
-    var is_black = color;
+    var is_black = if (lowest.is_inverse) -color else color;
     var sequence = lowest.seq;
-    //if (lowest.diff < 0 or (lowest.diff == 0 and lowest.inverse_seq < lowest.seq)) {
-    if (lowest.diff == 0 and lowest.inverse_seq < lowest.seq) {
-        is_inverse = true;
-        is_black = -color;
-        sequence = lowest.inverse_seq;
-    }
-    // end new lowest sequence
-
+    if (sequence > 127) print("\n\nPANIC sequence={}\n\n", .{sequence});
     var seq_block_size = collision_size(lowest.num_stones, max_depth);
     var seq_block_start = if (is_black > 0)
         black_table[lowest.blind]
     else
         white_table[lowest.blind];
+
     if (seq_block_start == 0) return UNDEF;
     var i = seq_block_start;
     var seq_block_end = i + seq_block_size;
@@ -387,7 +379,7 @@ pub fn get_game_score(
         var curr = &seq_table[i];
         if (curr.seq == sequence or curr.score == UNDEF) {
             if (curr.score == UNDEF) return UNDEF;
-            return if (is_inverse) -curr.score else curr.score;
+            return if (lowest.is_inverse) -curr.score else curr.score;
         }
     }
     return UNDEF;
@@ -402,21 +394,12 @@ pub fn set_game_score(
     seq_table: []seq_score,
     max_depth: u8,
 ) i8 {
-    // start new lowest sequence
     var lowest = state.lowest_blind_from_pos(pos);
-    var is_inverse: bool = false;
-    var is_black = color;
+    var is_black = if (lowest.is_inverse) -color else color;
     var sequence = lowest.seq;
+    if (sequence > 127) print("\n\nPANIC sequence={}\n\n", .{sequence});
     var score_to_set = score;
-    //if (lowest.diff < 0 or (lowest.diff == 0 and lowest.inverse_seq < lowest.seq)) {
-    if (lowest.diff == 0 and lowest.inverse_seq < lowest.seq) {
-        is_inverse = true;
-        is_black = -color;
-        sequence = lowest.inverse_seq;
-        score_to_set = if (score == UNDEF) UNDEF else -score;
-    }
-    // end new lowest sequence
-
+    if (score != UNDEF and lowest.is_inverse) score_to_set = -score;
     var seq_block_size = collision_size(lowest.num_stones, max_depth);
     var seq_block_start = if (is_black > 0)
         black_table[lowest.blind]
@@ -430,6 +413,7 @@ pub fn set_game_score(
                 "while setting num={}\n", .{
                 lowest.num_stones,
             });
+            state.print_armies(pos);
             state.print_armies(&lowest.pos);
         }
         seq_block_start = seq_next_empty_index;
