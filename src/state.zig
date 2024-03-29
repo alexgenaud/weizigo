@@ -439,7 +439,9 @@ pub const lowest = struct {
     pos: [25]i8 = undefined,
     blind: u25 = undefined,
     seq: u8 = undefined,
+    inverse_seq: u8 = undefined,
     num_stones: u8 = undefined,
+    diff: i8 = undefined,
 };
 
 pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
@@ -481,7 +483,10 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
         .pos = lowest_pos,
         .blind = lowest_blind,
         .seq = lowest_seq,
+        // TODO must be faster inverse_seq considering num_stones
+        .inverse_seq = seq_from_pos(&armies_inverse(&lowest_pos)),
         .num_stones = stone_count_from_pos(&orig),
+        .diff = stone_diff_from_pos(&orig),
     };
 }
 

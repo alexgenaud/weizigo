@@ -27,26 +27,121 @@ const max2 = util.max2;
 const min2 = util.min2;
 const UNDEF = util.UNDEF;
 
+var seq_next_empty_index: u32 = 0;
+var total_minimax_child: u64 = 0;
+var total_found_child: u64 = 0;
+
+pub fn init_tables(empty_index: u8) void {
+    seq_next_empty_index = empty_index; // TODO 0 means not found
+    total_minimax_child = 0;
+    total_found_child = 0;
+}
+
+pub const seq_score = struct {
+    seq: u8 = 0,
+    score: i8 = UNDEF,
+};
+
 pub fn seq_table_size(max_depth: u8) u32 {
-    return switch (max_depth) {
-        1 => 10, //    original     10 ok
-        2 => 117, //               117 ok
-        3 => 1_176, //           1_176 ok
-        4 => 12_139, //         12_139 ok
-        5 => 105_583, //       105_583 ok
-        6 => 733_447, //       733_447 ok
-        7 => 3_446_846, //   3_446_846 ok
-        8 => 15_627_565, // 15_627_560 too low, ...565 high
-        else => 15_627_550, // seq is 8 bits max (lower req than 8?)
+    const ret: u32 = switch (max_depth) { // FIXME 2 * doubled for two 2^25 blind tables
+        0 => 1,
+        1 => 1 * 10, //    original     10 ok
+        2 => 1 * 117, //               117 ok
+        3 => 1 * 1_176, //           1_176 ok
+        4 => 1 * 12_139, //         12_139 ok
+        5 => 1 * 105_583, //       105_583 ok
+        6 => 1 * 733_447, //       733_447 ok
+        7 => 1 * 3_446_846, //   3_446_846 ok
+        8 => 1 * 15_627_565, // 15_627_560 too low, ...565 high
+        else => 2 * 15_627_550, // seq is 8 bits max (lower req than 8?)
     };
+    return ret;
+}
+
+pub fn collision_size(num_stones: u8, max_depth: u8) u8 {
+    if (num_stones <= 1) { // 1 bit max 0 (1)
+        if (max_depth <= 8) return 1;
+        if (max_depth <= 9) return 1;
+        if (max_depth <= 10) return 1;
+    }
+    if (num_stones <= 2) { // 1 bit = 2 = 4/2 patterns 00 01 (10 11)
+        if (max_depth <= 8) return 1; // was 3
+        if (max_depth <= 9) return 1;
+        if (max_depth <= 10) return 1;
+    }
+    if (num_stones <= 3) { // 2 bit = 4 = 8/2 patterns 000 001 010 011
+        if (max_depth <= 4) return 3;
+        if (max_depth <= 8) return 4; // was 5
+        if (max_depth <= 9) return 4;
+        if (max_depth <= 10) return 4;
+    }
+    if (num_stones <= 4) { // 3 bit = 8 = 16/2 patterns 0xxx
+        if (max_depth <= 4) return 3; // was 6
+        if (max_depth <= 8) return 6; // was 12
+        if (max_depth <= 9) return 6;
+        if (max_depth <= 10) return 6;
+    }
+    if (num_stones <= 5) { // 4 bit = 16 = 32/2 patterns 0 xxxx
+        if (max_depth <= 6) return 10; // was 24
+        if (max_depth <= 7) return 12; // was 24
+        if (max_depth <= 8) return 14; // was 24
+        if (max_depth <= 9) return 14;
+        if (max_depth <= 10) return 14;
+    }
+    if (num_stones <= 6) { // 5 bit = 32 = 64/2 patterns 0 xxxx x
+        if (max_depth <= 6) return 10; // was 24
+        if (max_depth <= 8) return 23; // was 44
+        if (max_depth <= 9) return 23;
+        if (max_depth <= 10) return 23;
+    }
+    if (num_stones <= 7) { // 6 bit = 64 = 128/2 patterns 0 xxxx xx
+        if (max_depth <= 8) return 35; // was 64
+        if (max_depth <= 9) return 35;
+        if (max_depth <= 10) return 35;
+    }
+    if (num_stones <= 8) { // 7 bit = 128 = 256/2 patterns 0 xxxx xxx
+        if (max_depth <= 8) return 35; // was 77
+        if (max_depth <= 9) return 35;
+        if (max_depth <= 10) return 35;
+    }
+    print("\nFAIL: collision_size(num_stones={}, max_depth={})\n\n", .{
+        num_stones,
+        max_depth,
+    });
+    unreachable; // 9 bit stone seq not yet supported
+}
+
+test "new sizes" {
+    const max_depth: u8 = 2;
+    const global = struct {
+        var black_table = [_]u32{0} ** (1 << 25);
+        var white_table = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+    };
+    init_tables(0);
+    var root_score = minimax(
+        &[_]i8{0} ** 25,
+        -1,
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        0,
+        max_depth,
+    );
+    print("end with max_depth={} seq_table_size={} minimax/found={} % root_score={}\n", .{
+        max_depth,                                           seq_table_size(max_depth),
+        100 * total_minimax_child / (total_found_child + 1), root_score,
+    });
 }
 
 pub fn main() !void {
-    const max_depth: u8 = 9;
+    const max_depth: u8 = 6;
     const global = struct {
-        var blind_array = [_]u32{0} ** (1 << 25);
+        var black_table = [_]u32{0} ** (1 << 25);
+        var white_table = [_]u32{0} ** (1 << 25);
         var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
     };
+    init_tables(0);
     print("start with max_depth={} seq_table_size={}\n", .{
         max_depth,
         seq_table_size(max_depth),
@@ -55,9 +150,10 @@ pub fn main() !void {
     var root_score = minimax(
         &board,
         -1,
-        0,
-        &global.blind_array,
+        &global.black_table,
+        &global.white_table,
         &global.seq_table,
+        0,
         max_depth,
     );
     print("completed with root score={}\n", .{root_score});
@@ -68,109 +164,230 @@ pub fn main() !void {
     });
 }
 
-test "black traps white" {
-    const max_depth: u8 = 5;
+test "get undefined game score" {
     const global = struct {
-        var blind_array = [_]u32{0} ** (1 << 25);
-        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+        var black_table = [_]u32{0} ** (1 << 25);
+        var white_table = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(3);
     };
-    const W: i8 = -1;
-    _ = minimax(&[_]i8{
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-    }, -1, 0, &global.blind_array, &global.seq_table, max_depth);
-
-    var good_score_black = get_game_score(&[_]i8{
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 1, 0, 0, 0,
-        W, 0, 0, 0, 0,
-    }, &global.blind_array, &global.seq_table, max_depth);
-
-    print("score after black trap white {}\n", .{good_score_black});
-    try expect(good_score_black > 1);
-
-    var bad_score_black = get_game_score(&[_]i8{
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0,
-        0, W, 0, 0, 0,
-        1, 0, 0, 0, 0,
-    }, &global.blind_array, &global.seq_table, max_depth);
-
-    print("score after white traps black {}\n", .{bad_score_black});
-    try expect(bad_score_black < good_score_black);
+    init_tables(0);
+    _ = minimax(&[_]i8{0} ** 25, -1, &global.black_table, &global.white_table, &global.seq_table, 0, 0);
+    try expect(UNDEF == get_game_score(&[_]i8{
+        1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    }, 1, &global.black_table, &global.white_table, &global.seq_table, 3));
 }
 
-var seq_next_empty_index: u32 = 0;
-pub const seq_score = struct {
-    seq: u8 = 0,
-    score: i8 = UNDEF,
-};
+test "set inverse ten score" {
+    const max_depth: u8 = 1;
+    const global = struct {
+        var black_table = [_]u32{0} ** (1 << 25);
+        var white_table = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+    };
+    init_tables(0);
+    _ = minimax(&[_]i8{0} ** 25, -1, &global.black_table, &global.white_table, &global.seq_table, 0, 0);
+    const W: i8 = -1;
+    var board_1w = [_]i8{
+        1, W, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    };
+    var score_for_white = set_game_score(
+        &board_1w,
+        W, // <---- white last move
+        10, // <--- set 10 score
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+    try expect(10 == score_for_white);
+    score_for_white = get_game_score(
+        &board_1w, // <-- same board
+        W, // <---------- white last move
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+    try expect(10 == score_for_white);
 
-pub fn collision_size(num_stones: u8, max_depth: u8) u8 {
-    if (num_stones <= 1) { // x 1 bit max
-        if (max_depth <= 8) return 1;
-        if (max_depth <= 9) return 1;
-    }
-    if (num_stones <= 2) { // xx 2 bit 4 patterns
-        if (max_depth <= 2) return 2;
-        if (max_depth <= 8) return 3;
-        if (max_depth <= 9) return 3;
-    }
-    if (num_stones <= 3) {
-        if (max_depth <= 3) return 3;
-        if (max_depth <= 8) return 5;
-        if (max_depth <= 9) return 5;
-    }
-    if (num_stones <= 4) {
-        if (max_depth <= 4) return 6;
-        if (max_depth <= 8) return 12;
-        if (max_depth <= 9) return 12;
-    }
-    if (num_stones <= 5) {
-        if (max_depth <= 5) return 12;
-        if (max_depth <= 6) return 24;
-        if (max_depth <= 8) return 24;
-        if (max_depth <= 9) return 24;
-    }
-    if (num_stones <= 6) {
-        if (max_depth <= 6) return 24;
-        if (max_depth <= 8) return 44; // 45 ok
-        if (max_depth <= 9) return 44; // 45 ok
-    }
-    if (num_stones <= 7) {
-        if (max_depth <= 7) return 37;
-        if (max_depth <= 8) return 64; // 64 required
-        if (max_depth <= 9) return 64; // 64 required
-    }
-    if (num_stones <= 8) {
-        if (max_depth <= 8) return 77; // 78 ok
-        if (max_depth <= 9) return 77; // 78 ok
-    }
-    unreachable; // 9 bit stone seq not supported
+    // get the inverse
+    var board_w1 = [_]i8{
+        W, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    };
+    var score_for_black = get_game_score(
+        &board_w1, // <-- inverted board
+        1, // <---- black last move (invert player)
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+    try expect(-10 == score_for_black); // invert score
+}
+
+test "set inverse zero score" {
+    const max_depth: u8 = 1;
+    const global = struct {
+        var black_table = [_]u32{0} ** (1 << 25);
+        var white_table = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+    };
+    init_tables(0);
+    _ = minimax(&[_]i8{0} ** 25, -1, &global.black_table, &global.white_table, &global.seq_table, 0, 0);
+    const W: i8 = -1;
+    var board_1w = [_]i8{
+        1, W, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    };
+    var score_for_white = set_game_score(
+        &board_1w,
+        W, // <---- white last move
+        0, // <--- set 0 score
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+    try expect(0 == score_for_white);
+    score_for_white = get_game_score(
+        &board_1w, // <-- same board
+        W, // <---------- white last move
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+    try expect(0 == score_for_white);
+
+    // get the inverse
+    var board_w1 = [_]i8{
+        W, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    };
+    var score_for_black = get_game_score(
+        &board_w1,
+        1, // <---- black last move
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+    try expect(0 == score_for_black);
+}
+
+test "black traps white" {
+    const max_depth: u8 = 5; // 6 to learn all captures
+    const global = struct {
+        var black_table = [_]u32{0} ** (1 << 25);
+        var white_table = [_]u32{0} ** (1 << 25);
+        var seq_table = [_]seq_score{.{}} ** seq_table_size(max_depth);
+    };
+    init_tables(0);
+    const W: i8 = -1;
+    _ = minimax(
+        &[_]i8{0} ** 25,
+        W, // black next to play
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        0,
+        max_depth,
+    );
+
+    var good_score_black = get_game_score(
+        &[_]i8{
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 1, 0, 0, 0,
+            W, 0, 0, 0, 0,
+        },
+        W, // white played last, black to play next
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+
+    //print("\nwhite is trapped and black to play: {}\n", .{good_score_black});
+    try expect(good_score_black > 1);
+
+    var bad_score_black = get_game_score(
+        &[_]i8{
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, W, 0, 0, 0,
+            1, 0, 0, 0, 0,
+        },
+        1, // black played last, white to play next
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+
+    //print("black is trapped and white to play: {}\n", .{bad_score_black});
+    try expect(bad_score_black <= good_score_black);
+    try expect(bad_score_black == 0 - good_score_black);
+
+    var little_white_hope = get_game_score(
+        &[_]i8{
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            0, W, 0, 0, 0,
+            1, 0, 0, 0, 0,
+        },
+        W, // white played last, black to play next
+        &global.black_table,
+        &global.white_table,
+        &global.seq_table,
+        max_depth,
+    );
+
+    //print("black is trapped, black to play with little hope: {}\n", .{little_white_hope});
+    try expect(little_white_hope <= good_score_black);
+    try expect(little_white_hope > 0 - good_score_black);
 }
 
 pub fn get_game_score(
     pos: *const [25]i8,
-    blind_table: []u32,
+    color: i8,
+    black_table: []u32,
+    white_table: []u32,
     seq_table: []seq_score,
     max_depth: u8,
 ) i8 {
+    // start new lowest sequence
     var lowest = state.lowest_blind_from_pos(pos);
+    var is_inverse: bool = false;
+    var is_black = color;
+    var sequence = lowest.seq;
+    //if (lowest.diff < 0 or (lowest.diff == 0 and lowest.inverse_seq < lowest.seq)) {
+    if (lowest.diff == 0 and lowest.inverse_seq < lowest.seq) {
+        is_inverse = true;
+        is_black = -color;
+        sequence = lowest.inverse_seq;
+    }
+    // end new lowest sequence
+
     var seq_block_size = collision_size(lowest.num_stones, max_depth);
-    var seq_block_start = blind_table[lowest.blind];
+    var seq_block_start = if (is_black > 0)
+        black_table[lowest.blind]
+    else
+        white_table[lowest.blind];
     if (seq_block_start == 0) return UNDEF;
     var i = seq_block_start;
     var seq_block_end = i + seq_block_size;
     while (i < seq_block_end) : (i += 1) {
         var curr = &seq_table[i];
-        if (curr.seq == lowest.seq or curr.score == UNDEF) {
-            return curr.score;
+        if (curr.seq == sequence or curr.score == UNDEF) {
+            if (curr.score == UNDEF) return UNDEF;
+            return if (is_inverse) -curr.score else curr.score;
         }
     }
     return UNDEF;
@@ -178,14 +395,34 @@ pub fn get_game_score(
 
 pub fn set_game_score(
     pos: *const [25]i8,
+    color: i8,
     score: i8,
-    blind_table: []u32,
+    black_table: []u32,
+    white_table: []u32,
     seq_table: []seq_score,
     max_depth: u8,
 ) i8 {
+    // start new lowest sequence
     var lowest = state.lowest_blind_from_pos(pos);
+    var is_inverse: bool = false;
+    var is_black = color;
+    var sequence = lowest.seq;
+    var score_to_set = score;
+    //if (lowest.diff < 0 or (lowest.diff == 0 and lowest.inverse_seq < lowest.seq)) {
+    if (lowest.diff == 0 and lowest.inverse_seq < lowest.seq) {
+        is_inverse = true;
+        is_black = -color;
+        sequence = lowest.inverse_seq;
+        score_to_set = if (score == UNDEF) UNDEF else -score;
+    }
+    // end new lowest sequence
+
     var seq_block_size = collision_size(lowest.num_stones, max_depth);
-    var seq_block_start = blind_table[lowest.blind];
+    var seq_block_start = if (is_black > 0)
+        black_table[lowest.blind]
+    else
+        white_table[lowest.blind];
+
     if (seq_block_start == 0) {
         // create seq_block if does not yet exist
         if (seq_next_empty_index + seq_block_size > seq_table.len) {
@@ -196,7 +433,13 @@ pub fn set_game_score(
             state.print_armies(&lowest.pos);
         }
         seq_block_start = seq_next_empty_index;
-        blind_table[lowest.blind] = seq_next_empty_index;
+
+        if (is_black > 0) {
+            black_table[lowest.blind] = seq_next_empty_index;
+        } else {
+            white_table[lowest.blind] = seq_next_empty_index;
+        }
+
         // move the index forward for the next seq_block
         seq_next_empty_index += seq_block_size;
     }
@@ -207,26 +450,24 @@ pub fn set_game_score(
     var seq_block_end = i + seq_block_size;
     while (i < seq_block_end) : (i += 1) {
         var curr = &seq_table[i];
-        if (curr.seq != lowest.seq and curr.score != UNDEF) {
+        if (curr.seq != sequence and curr.score != UNDEF) {
             continue; // around again
         }
-        if (curr.seq == lowest.seq and curr.score == score) {
-            return curr.score; // happy case
-        }
-        if (curr.score == UNDEF) {
-            curr.seq = lowest.seq; // new entry
-            curr.score = score;
-            return score;
+        if ((curr.seq == sequence and curr.score == score_to_set) or
+            curr.score == UNDEF)
+        {
+            curr.seq = sequence;
+            curr.score = score_to_set;
+            return score; // original score
         }
     }
     print(
         "Uh oh! found blind={} of num_stones={} and block seq={} " ++
-            "but no space to put score={} in seq_block_size={}\n",
+            "but no space in seq_block_size={}\n",
         .{
             lowest.blind,
             lowest.num_stones,
-            lowest.seq,
-            score,
+            sequence,
             seq_block_size,
         },
     );
@@ -263,7 +504,7 @@ pub fn wt_score(diff: i8, count: u8) i8 {
     return res;
 }
 
-test "weighted score" {
+test "weighted score with komi" {
     try expect(wt_score(0, 0) == 0);
     try expect(wt_score(1, 1) == 0);
 
@@ -290,6 +531,33 @@ test "weighted score" {
     }
 }
 
+pub fn wt_score_no_komi(diff: i8, count: u8) i8 {
+    if (count <= 1) return 0;
+    var neg: i8 = if (diff < 0) -1 else 1;
+    var weight = 66 *
+        @as(f64, @floatFromInt(neg * (2 * diff))) /
+        @as(f64, @floatFromInt(count + 1));
+    return neg * @as(i8, @intFromFloat(weight));
+}
+
+test "weighted score no komi" {
+    try expect(wt_score_no_komi(0, 0) == 0);
+    try expect(wt_score_no_komi(1, 1) == 0);
+
+    try expect(wt_score_no_komi(0, 2) >= -21);
+    try expect(wt_score_no_komi(0, 3) >= -16);
+    try expect(wt_score_no_komi(0, 4) >= -12);
+    try expect(wt_score_no_komi(1, 2) >= 21);
+    try expect(wt_score_no_komi(1, 3) >= 16);
+    try expect(wt_score_no_komi(1, 4) >= 12);
+    try expect(wt_score_no_komi(2, 2) >= 48);
+    try expect(wt_score_no_komi(2, 3) >= 48);
+    try expect(wt_score_no_komi(2, 4) >= 38);
+    try expect(wt_score_no_komi(2, 5) >= 32);
+    try expect(wt_score_no_komi(25, 25) >= 0);
+    try expect(wt_score_no_komi(-25, 25) <= 0);
+}
+
 // black must have two stones more than white to be ahead
 // +/- 25 is a strong score, +/- 100 is total dominance
 pub fn pos_score(pos: *const [25]i8) i8 {
@@ -298,14 +566,13 @@ pub fn pos_score(pos: *const [25]i8) i8 {
     return wt_score(diff, count);
 }
 
-var total_minimax_child: u64 = 0;
-var total_found_child: u64 = 0;
 pub fn minimax(
     pos: *const [25]i8,
     color: i8,
-    depth: u8,
-    blind_table: []u32,
+    black_table: []u32,
+    white_table: []u32,
     seq_table: []seq_score,
+    depth: u8,
     max_depth: u8,
 ) i8 {
     var score: i8 = pos_score(pos);
@@ -315,7 +582,15 @@ pub fn minimax(
     if (score < -25 or score > 25 or depth >= max_depth) { // game over
         //print("depth={} score={}\n", .{ depth, score });
         //state.print_armies(pos);
-        return set_game_score(pos, score, blind_table, seq_table, max_depth);
+        return set_game_score(
+            pos,
+            color,
+            score,
+            black_table,
+            white_table,
+            seq_table,
+            max_depth,
+        );
     }
     var val: i8 = if (color > 0) 99 else -99;
     var child_cnt: u8 = 0;
@@ -331,7 +606,14 @@ pub fn minimax(
         ) catch continue;
 
         var child_score = if (depth < 8)
-            get_game_score(&child, blind_table, seq_table, max_depth)
+            get_game_score(
+                &child,
+                -color,
+                black_table,
+                white_table,
+                seq_table,
+                max_depth,
+            )
         else
             UNDEF;
 
@@ -340,9 +622,10 @@ pub fn minimax(
             child_score = minimax(
                 &child,
                 -color,
-                depth + 1,
-                blind_table,
+                black_table,
+                white_table,
                 seq_table,
+                depth + 1,
                 max_depth,
             );
         } else total_found_child += 1;
@@ -365,8 +648,10 @@ pub fn minimax(
     }
     return if (depth < 8) set_game_score(
         pos,
+        color,
         val,
-        blind_table,
+        black_table,
+        white_table,
         seq_table,
         max_depth,
     ) else val;
