@@ -267,6 +267,20 @@ pub fn armies_from_move(parent: *const [25]i8, color: i8, index: u8) GameError![
     return armies;
 }
 
+test "capture white corner" {
+    var board = try armies_from_move(&[_]i8{0} ** 25, 1, 1);
+    try expect(1 == stone_count_from_pos(&board));
+    try expect(1 == stone_diff_from_pos(&board));
+
+    board = try armies_from_move(&board, -1, 0);
+    try expect(2 == stone_count_from_pos(&board));
+    try expect(0 == stone_diff_from_pos(&board));
+
+    board = try armies_from_move(&board, 1, 5);
+    try expect(2 == stone_count_from_pos(&board));
+    try expect(2 == stone_diff_from_pos(&board));
+}
+
 // Converts a grid of white, empty, black stones into armies of common flags.
 // For example:
 //      black empty white black black
@@ -464,6 +478,26 @@ test "lowest empty" {
     try expect(0 == low.pos[1]);
 }
 
+test "lowest four" {
+    var board = [_]i8{ 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    var bw = lowest_blind_from_pos(&board);
+    try expect(bw.blind == 3);
+    try expect(bw.seq == 1);
+    try expect(bw.diff == 0);
+    try expect(bw.num_stones == 2);
+    try expect(!bw.is_inverse);
+    try expect(!bw.is_mirrored);
+
+    var board2 = [_]i8{ -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    var wb = lowest_blind_from_pos(&board2);
+    try expect(bw.blind == wb.blind);
+    try expect(bw.seq == wb.seq);
+    try expect(bw.num_stones == wb.num_stones);
+    try expect(bw.is_mirrored == wb.is_mirrored);
+    try expect(bw.diff - wb.diff == 0);
+    try expect(bw.is_inverse != wb.is_inverse);
+}
+
 test "lowest full black" {
     var a = [_]i8{1} ** 25; // all black
     var ablind = blind_from_pos(&a);
@@ -503,13 +537,13 @@ test "lowest full white" {
 }
 
 test "lowest mirror" {
-    var a = [25]i8{
+    var alow = lowest_blind_from_pos(&[25]i8{
         0, -1, 0, 0, 0,
         1, 0,  0, 0, 0,
         0, 0,  0, 0, 0,
         0, 0,  0, 0, 0,
         0, 0,  0, 0, 0,
-    };
+    });
     var b = [25]i8{
         0,  1, 0, 0, 0,
         -1, 0, 0, 0, 0,
@@ -517,15 +551,22 @@ test "lowest mirror" {
         0,  0, 0, 0, 0,
         0,  0, 0, 0, 0,
     };
-    var alow = lowest_blind_from_pos(&a);
     var blow = lowest_blind_from_pos(&b);
-    print("\n\nmirror a\n\n", .{});
-    print_armies(&alow.pos);
-    print_armies(&blow.pos);
-    try expect(alow.num_stones == blow.num_stones);
+
+    try expect(alow.blind == 34);
+    try expect(alow.seq == 1);
+    try expect(alow.diff == 0);
+    try expect(alow.num_stones == 2);
+    try expect(!alow.is_inverse);
+    try expect(alow.is_mirrored); // is mirrored !!
+
     try expect(alow.blind == blow.blind);
     try expect(alow.seq == blow.seq);
-    try expect(alow.diff == 0 - blow.diff);
+    try expect(alow.diff - blow.diff == 0);
+    try expect(alow.num_stones == blow.num_stones);
+
+    try expect(alow.is_inverse == blow.is_inverse);
+    try expect(alow.is_mirrored == blow.is_mirrored);
 }
 
 test "lowest white self" {
@@ -692,24 +733,6 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
     }
 
     if (found_original < 888 and found_inverse < 888) {
-        // print("\n\n---a MIRROR ----------------\n\n", .{});
-        // print("original blind={} seq={} num_stones={} diff={}\n", .{
-        //     lowest_blind,                                  lowest_seq,
-        //     stone_count_from_pos(&armies[found_original]), stone_diff_from_pos(&armies[found_original]),
-        // });
-        // print_armies(&armies[found_original]);
-        // print("inverse blind={} seq={} num_stones={} diff={}\n", .{
-        //     lowest_blind,                                 lowest_seq,
-        //     stone_count_from_pos(&armies[found_inverse]), stone_diff_from_pos(&armies[found_inverse]),
-        // });
-        // print_armies(&armies[found_inverse]);
-        // print("---z MIRROR ----------------\n\n", .{});
-
-        var diff = stone_diff_from_pos(&armies[found_original]);
-        if (diff != 0) {
-            print("\n\n// mirror with diff={} //\n\n", .{diff});
-        }
-
         return lowest{
             .pos = armies[found_original],
             .blind = lowest_blind,
@@ -720,13 +743,6 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
             .diff = stone_diff_from_pos(&armies[found_original]),
         };
     } else if (found_original < 888) {
-        // print("\n---a not mirror ----------------\n\n", .{});
-        // print("original blind={} seq={} num_stones={} diff={}\n", .{
-        //     lowest_blind,                                  lowest_seq,
-        //     stone_count_from_pos(&armies[found_original]), stone_diff_from_pos(&armies[found_original]),
-        // });
-        // print_armies(&armies[found_original]);
-        // print("---z not mirror ----------------\n\n", .{});
         return lowest{
             .pos = armies[found_original],
             .blind = lowest_blind,
@@ -737,13 +753,6 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
             .diff = stone_diff_from_pos(&armies[found_original]),
         };
     } else if (found_inverse < 888) {
-        // print("\n---a not mirror ----------------\n\n", .{});
-        // print("inverse blind={} seq={} num_stones={} diff={}\n", .{
-        //     lowest_blind,                                 lowest_seq,
-        //     stone_count_from_pos(&armies[found_inverse]), stone_diff_from_pos(&armies[found_inverse]),
-        // });
-        // print_armies(&armies[found_inverse]);
-        // print("---z not mirror ----------------\n\n", .{});
         return lowest{
             .pos = armies[found_inverse],
             .blind = lowest_blind,
