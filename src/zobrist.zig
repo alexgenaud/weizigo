@@ -91,13 +91,13 @@ var zobrist_hits: u32 = 0;
 var zobrist_collision: u32 = 0;
 
 fn set_board_as_zobrist_view(board: *const [25]i8) u32 {
-    var view: u40 = state.view_from_pos(board);
-    var zob: u32 = zobrist_from_pos(board);
-    var cnt = table_z_hits[zob];
+    const view: u40 = state.view_from_pos(board);
+    const zob: u32 = zobrist_from_pos(board);
+    const cnt = table_z_hits[zob];
     table_z_hits[zob] += 1;
     zobrist_hits += 1;
     if (cnt > 0) {
-        var old_view = table_z_views[zob];
+        const old_view = table_z_views[zob];
         if (view != old_view) zobrist_collision += 1;
         return cnt;
     }
@@ -107,7 +107,7 @@ fn set_board_as_zobrist_view(board: *const [25]i8) u32 {
 }
 
 pub fn num_prev_requests(board: *const [25]i8) u32 {
-    var cnt = set_board_as_zobrist_view(board);
+    const cnt = set_board_as_zobrist_view(board);
     if (cnt > 0) {
         zobrist_repeat += 1;
         return cnt;
@@ -132,7 +132,7 @@ pub fn recurse(parent: *const [25]i8, color: i8, depth: u8) void {
     for (0..25) |p| {
         if (parent[p] != 0) continue;
 
-        var child = state.armies_from_move(
+        const child = state.armies_from_move(
             parent,
             -color,
             @intCast(p),
