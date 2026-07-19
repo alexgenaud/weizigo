@@ -1,0 +1,17 @@
+24 bit zobrist
+
+// depth >= 5 return
+//  345707 collision
+// 6613674 repeat
+// 7775146 hits
+
+
+// depth >= 6 return
+//  17352856 collision
+// 133518243 repeat
+// 138193939 hits
+
+// depth >= 7 return
+//  17352856 zobrist view collision
+// 133518243 repeat
+// 138193939 hits
