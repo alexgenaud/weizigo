@@ -48,7 +48,7 @@ fn char_from_stone(stone: i8) u8 {
 
 pub fn print_armies(armies: *const [25]i8) void {
     for (0..5) |x| {
-        var i = x * 5;
+        const i = x * 5;
         print("{c} {c} {c} {c} {c}\n", .{
             char_from_stone(armies[i]),
             char_from_stone(armies[i + 1]),
@@ -162,7 +162,7 @@ pub fn seq_from_view(view: u40) u8 {
     var m: u8 = 1;
     var rem = view;
     for (0..25) |_| {
-        var val = rem % 3;
+        const val = rem % 3;
         rem /= 3;
         if (val == 0) continue;
         if (val == 1) h += m;
@@ -196,7 +196,7 @@ pub fn armies_rotate(parent: *const [25]i8) [25]i8 {
 
 pub fn update_reflect(armies: *[25]i8) void {
     for (0..5) |x| {
-        var p = x * 5;
+        const p = x * 5;
         var tmp = armies[p];
         armies[p] = armies[p + 4];
         armies[p + 4] = tmp;
@@ -257,8 +257,8 @@ pub fn armies_from_move(parent: *const [25]i8, color: i8, index: u8) GameError![
     var armies = parent.*;
     armies[index] = color;
     update_armies(&armies);
-    var enemy_captures = update_captures(&armies, -color);
-    var self_captures = update_captures(&armies, color);
+    const enemy_captures = update_captures(&armies, -color);
+    const self_captures = update_captures(&armies, color);
     if (enemy_captures > 0 and self_captures > 0) {
         return GameError.Unexpected;
     } else if (self_captures > 0) {
@@ -461,15 +461,15 @@ pub const lowest = struct {
 
 test "lowest empty" {
     var a = [_]i8{0} ** 25;
-    var ablind = blind_from_pos(&a);
+    const ablind = blind_from_pos(&a);
     try expect(0 == ablind);
-    var aseq = seq_from_pos(&a);
+    const aseq = seq_from_pos(&a);
     try expect(0 == aseq);
-    var astones = stone_count_from_pos(&a);
+    const astones = stone_count_from_pos(&a);
     try expect(0 == astones);
-    var adiff = stone_diff_from_pos(&a);
+    const adiff = stone_diff_from_pos(&a);
     try expect(0 == adiff);
-    var low = lowest_blind_from_pos(&a);
+    const low = lowest_blind_from_pos(&a);
     try expect(0 == low.blind);
     try expect(0 == low.seq);
     try expect(!low.is_inverse); // orig empty
@@ -480,7 +480,7 @@ test "lowest empty" {
 
 test "lowest four" {
     var board = [_]i8{ 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    var bw = lowest_blind_from_pos(&board);
+    const bw = lowest_blind_from_pos(&board);
     try expect(bw.blind == 3);
     try expect(bw.seq == 1);
     try expect(bw.diff == 0);
@@ -489,7 +489,7 @@ test "lowest four" {
     try expect(!bw.is_mirrored);
 
     var board2 = [_]i8{ -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    var wb = lowest_blind_from_pos(&board2);
+    const wb = lowest_blind_from_pos(&board2);
     try expect(bw.blind == wb.blind);
     try expect(bw.seq == wb.seq);
     try expect(bw.num_stones == wb.num_stones);
@@ -500,15 +500,15 @@ test "lowest four" {
 
 test "lowest full black" {
     var a = [_]i8{1} ** 25; // all black
-    var ablind = blind_from_pos(&a);
+    const ablind = blind_from_pos(&a);
     try expect((1 << 25) - 1 == ablind); // all filled
-    var aseq = seq_from_pos(&a);
+    const aseq = seq_from_pos(&a);
     try expect(255 == aseq);
-    var astones = stone_count_from_pos(&a);
+    const astones = stone_count_from_pos(&a);
     try expect(25 == astones);
-    var adiff = stone_diff_from_pos(&a);
+    const adiff = stone_diff_from_pos(&a);
     try expect(25 == adiff);
-    var low = lowest_blind_from_pos(&a);
+    const low = lowest_blind_from_pos(&a);
     try expect((1 << 25) - 1 == low.blind);
     try expect(0 == low.seq); // 0000 0000 white
     try expect(low.is_inverse); // black 1 to white 0
@@ -519,15 +519,15 @@ test "lowest full black" {
 
 test "lowest full white" {
     var a = [_]i8{-1} ** 25; // all white
-    var ablind = blind_from_pos(&a);
+    const ablind = blind_from_pos(&a);
     try expect((1 << 25) - 1 == ablind); // same as black
-    var aseq = seq_from_pos(&a);
+    const aseq = seq_from_pos(&a);
     try expect(0 == aseq); // filled white
-    var astones = stone_count_from_pos(&a);
+    const astones = stone_count_from_pos(&a);
     try expect(25 == astones);
-    var adiff = stone_diff_from_pos(&a);
+    const adiff = stone_diff_from_pos(&a);
     try expect(-25 == adiff); // white are negative
-    var low = lowest_blind_from_pos(&a);
+    const low = lowest_blind_from_pos(&a);
     try expect((1 << 25) - 1 == low.blind); // same
     try expect(0 == low.seq); // 0000 0000 white
     try expect(!low.is_inverse); // still white
@@ -537,7 +537,7 @@ test "lowest full white" {
 }
 
 test "lowest mirror" {
-    var alow = lowest_blind_from_pos(&[25]i8{
+    const alow = lowest_blind_from_pos(&[25]i8{
         0, -1, 0, 0, 0,
         1, 0,  0, 0, 0,
         0, 0,  0, 0, 0,
@@ -551,7 +551,7 @@ test "lowest mirror" {
         0,  0, 0, 0, 0,
         0,  0, 0, 0, 0,
     };
-    var blow = lowest_blind_from_pos(&b);
+    const blow = lowest_blind_from_pos(&b);
 
     try expect(alow.blind == 34);
     try expect(alow.seq == 1);
@@ -577,15 +577,15 @@ test "lowest white self" {
         0, 0,  0, 0, 0,
         0, 0,  0, 0, 0,
     };
-    var ablind = blind_from_pos(&a);
+    const ablind = blind_from_pos(&a);
     try expect(2 == ablind);
-    var aseq = seq_from_pos(&a);
+    const aseq = seq_from_pos(&a);
     try expect(0 == aseq);
-    var astones = stone_count_from_pos(&a);
+    const astones = stone_count_from_pos(&a);
     try expect(1 == astones);
-    var adiff = stone_diff_from_pos(&a);
+    const adiff = stone_diff_from_pos(&a);
     try expect(-1 == adiff);
-    var low = lowest_blind_from_pos(&a);
+    const low = lowest_blind_from_pos(&a);
     try expect(2 == low.blind);
     try expect(0 == low.seq);
     try expect(!low.is_inverse); // is orig white (seq=0)
@@ -595,7 +595,7 @@ test "lowest white self" {
 }
 
 test "lowest rotate inverse" {
-    var A: i8 = -1;
+    const A: i8 = -1;
     var a = [25]i8{
         0, 0, A, 0, 0,
         0, 0, 0, 0, 0,
@@ -603,13 +603,13 @@ test "lowest rotate inverse" {
         0, 0, 0, 0, 1,
         0, 0, 0, 1, 1,
     };
-    var ablind = blind_from_pos(&a);
+    const ablind = blind_from_pos(&a);
     try expect(ablind > 25_000_000);
-    var aseq = seq_from_pos(&a);
+    const aseq = seq_from_pos(&a);
     try expect(30 == aseq); // 00011110 = 16 8 4 2 0
-    var astones = stone_count_from_pos(&a);
+    const astones = stone_count_from_pos(&a);
     try expect(5 == astones);
-    var adiff = stone_diff_from_pos(&a);
+    const adiff = stone_diff_from_pos(&a);
     try expect(3 == adiff);
     // rotate and inverse
     var guess = [25]i8{
@@ -619,7 +619,7 @@ test "lowest rotate inverse" {
         A, 0, 0, 0, 0,
         A, A, 0, 0, 0,
     };
-    var low = lowest_blind_from_pos(&a);
+    const low = lowest_blind_from_pos(&a);
     try expect(low.blind > (1 << 21));
     try expect(low.blind < (1 << 22));
     try expect(low.blind == blind_from_pos(&guess));
@@ -638,15 +638,15 @@ test "lowest inverse black" {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
     };
-    var ablind = blind_from_pos(&a);
+    const ablind = blind_from_pos(&a);
     try expect(2 == ablind);
-    var aseq = seq_from_pos(&a);
+    const aseq = seq_from_pos(&a);
     try expect(1 == aseq); // just 1
-    var astones = stone_count_from_pos(&a);
+    const astones = stone_count_from_pos(&a);
     try expect(1 == astones);
-    var adiff = stone_diff_from_pos(&a);
+    const adiff = stone_diff_from_pos(&a);
     try expect(1 == adiff);
-    var low = lowest_blind_from_pos(&a);
+    const low = lowest_blind_from_pos(&a);
     try expect(2 == low.blind);
     try expect(0 == low.seq); // 0010 to 0000
     try expect(low.is_inverse); // is now white 0
@@ -679,12 +679,12 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
     var k0 = armies_inverse(&o0);
     var k1 = armies_rotate(&k0);
     var k2 = armies_rotate(&k1);
-    var k3 = armies_rotate(&k2);
+    const k3 = armies_rotate(&k2);
 
     var j0 = armies_inverse(&r0);
     var j1 = armies_rotate(&j0);
     var j2 = armies_rotate(&j1);
-    var j3 = armies_rotate(&j2);
+    const j3 = armies_rotate(&j2);
 
     var armies = [16][25]i8{
         o0, o1, o2, o3,
@@ -695,7 +695,7 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
 
     // only test 8 (not 16) because
     // inverts have the same blind
-    var blinds = [8]u25{
+    const blinds = [8]u25{
         lowest_blind,        blind_from_pos(&r0),
         blind_from_pos(&o1), blind_from_pos(&r1),
         blind_from_pos(&o2), blind_from_pos(&r2),

@@ -369,7 +369,7 @@ test "set inverse zero score" {
         W, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     };
-    var score_for_black = get_game_score(
+    const score_for_black = get_game_score(
         &board_w1,
         W, // <---- black last move
         &global.black_table,
@@ -404,8 +404,8 @@ test "set inverse mirror" {
         0, 0,  0, 0, 0,
     };
 
-    var lowa = state.lowest_blind_from_pos(&a);
-    var lowb = state.lowest_blind_from_pos(&b);
+    const lowa = state.lowest_blind_from_pos(&a);
+    const lowb = state.lowest_blind_from_pos(&b);
     try expect(lowa.blind == lowb.blind);
     try expect(lowa.seq == lowb.seq);
     try expect(lowa.diff == lowb.diff);
@@ -424,7 +424,7 @@ test "set inverse mirror" {
     try expect(g == UNDEF);
 
     // set white a 50
-    var s = set_game_score(&a, 1, 50, // mostly black stones, black played
+    const s = set_game_score(&a, 1, 50, // mostly black stones, black played
         &global.black_table, &global.white_table, &global.seq_table, max_depth);
     g = get_game_score(&a, 1, &global.black_table, &global.white_table, &global.seq_table, max_depth);
     try expect(s == 50 and g == 50 and s == g);
@@ -460,7 +460,7 @@ test "black traps white" {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
     };
-    var white_trapped_score = get_game_score(&white_trapped, W, // black to play
+    const white_trapped_score = get_game_score(&white_trapped, W, // black to play
         &global.black_table, &global.white_table, &global.seq_table, max_depth);
 
     try expect(white_trapped_score > 1);
@@ -472,12 +472,12 @@ test "black traps white" {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
     };
-    var black_triple_score = get_game_score(&black_triple_trapped, 1, // white to play
+    const black_triple_score = get_game_score(&black_triple_trapped, 1, // white to play
         &global.black_table, &global.white_table, &global.seq_table, max_depth);
 
     try expect(black_triple_score > -120 and black_triple_score < -3);
 
-    var black_trapped_score = get_game_score(
+    const black_trapped_score = get_game_score(
         &[_]i8{
             1, 0, 0, 0, 0,
             0, W, 0, 0, 0,
@@ -518,18 +518,18 @@ pub fn get_game_score(
     //     seq_table: []seq_score,
     //     max_depth: u8,
     // ) i8 {
-    var lowest = state.lowest_blind_from_pos(pos);
-    var sequence = lowest.seq;
+    const lowest = state.lowest_blind_from_pos(pos);
+    const sequence = lowest.seq;
     if (sequence > 127) print("\n\nPANIC sequence={}\n\n", .{sequence});
-    var seq_block_size = collision_size(lowest.num_stones, max_depth);
+    const seq_block_size = collision_size(lowest.num_stones, max_depth);
     //var seq_block_start = black_table[lowest.blind];
-    var seq_block_start = if (color > 0) black_table[lowest.blind] else white_table[lowest.blind];
+    const seq_block_start = if (color > 0) black_table[lowest.blind] else white_table[lowest.blind];
 
     if (seq_block_start == 0) return UNDEF;
     var i = seq_block_start;
-    var seq_block_end = seq_block_start + seq_block_size;
+    const seq_block_end = seq_block_start + seq_block_size;
     while (i < seq_block_end) : (i += 1) {
-        var curr = &seq_table[i];
+        const curr = &seq_table[i];
         if (curr.seq == sequence or curr.score == UNDEF) {
             if (curr.score == UNDEF) return UNDEF;
 
@@ -572,11 +572,11 @@ pub fn set_game_score(
         unreachable;
     }
     var lowest = state.lowest_blind_from_pos(pos);
-    var sequence = lowest.seq;
+    const sequence = lowest.seq;
     if (sequence > 127) print("\n\nPANIC sequence={}\n\n", .{sequence});
     var score_to_set = score * color;
     if (lowest.is_inverse) score_to_set = -score * color;
-    var seq_block_size = collision_size(lowest.num_stones, max_depth);
+    const seq_block_size = collision_size(lowest.num_stones, max_depth);
     //var seq_block_start = black_table[lowest.blind];
     var seq_block_start = if (color > 0) black_table[lowest.blind] else white_table[lowest.blind];
 
@@ -609,7 +609,7 @@ pub fn set_game_score(
     // search for seq (of black-white-black... patterns)
     // from seq_block_start to seq_block_end
     var i = seq_block_start;
-    var seq_block_end = seq_block_start + seq_block_size;
+    const seq_block_end = seq_block_start + seq_block_size;
     while (i < seq_block_end) : (i += 1) {
         var curr = &seq_table[i];
         if (curr.seq != sequence and curr.score != UNDEF) {
@@ -657,13 +657,13 @@ test "blind size" {
 pub fn wt_score(diff: i8, count: u8, color: i8) i8 {
     if (count < 1) return 0;
     if (diff * color == 1) return 0;
-    var turn_diff = 2 * diff - color;
+    const turn_diff = 2 * diff - color;
 
-    var neg: i8 = if (turn_diff < 0) -1 else 1;
-    var weight = 65 *
+    const neg: i8 = if (turn_diff < 0) -1 else 1;
+    const weight = 65 *
         @as(f64, @floatFromInt(neg * turn_diff)) /
         @as(f64, @floatFromInt(count + 1));
-    var res: i8 = neg * @as(i8, @intFromFloat(weight));
+    const res: i8 = neg * @as(i8, @intFromFloat(weight));
     return res;
 }
 
@@ -684,7 +684,7 @@ test "weighted score with komi" {
 
 pub fn simple_score(diff: i8, count: u8, color: i8) i8 {
     _ = count;
-    var komi: i8 = if (color > 0) 1 else -1;
+    const komi: i8 = if (color > 0) 1 else -1;
     return diff * 2 - komi;
 }
 
@@ -695,9 +695,9 @@ test "simple score" {
 // black must have two stones more than white to be ahead
 // +/- 25 is a strong score, +/- 100 is total dominance
 pub fn pos_score(pos: *const [25]i8, color: i8) i8 {
-    var diff = state.stone_diff_from_pos(pos);
-    var count = state.stone_count_from_pos(pos);
-    var ret = simple_score(diff, count, color);
+    const diff = state.stone_diff_from_pos(pos);
+    const count = state.stone_count_from_pos(pos);
+    const ret = simple_score(diff, count, color);
     return if (ret <= UNDEF) -127 else ret;
 }
 
@@ -737,7 +737,7 @@ pub fn minimax(
             // FIXME cannot set seq more than 8 bits
             return pos_score(pos, color);
         }
-        var score = pos_score(pos, color);
+        const score = pos_score(pos, color);
         return set_game_score(pos, color, score, black_table, white_table, seq_table, max_depth);
     }
     var val: i8 = if (color > 0) 99 else -99;

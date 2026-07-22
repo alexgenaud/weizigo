@@ -19,24 +19,15 @@
 const std = @import("std");
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    std.debug.print("weizigo: brute-force perfect 5x5 go\n", .{});
+    std.debug.print("run the full test suite with `zig build test`\n", .{});
+    std.debug.print("or a single module with e.g. `zig test src/minimax.zig`\n", .{});
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+// Pull every module's tests into `zig build test`.
+test {
+    _ = @import("util.zig");
+    _ = @import("state.zig");
+    _ = @import("zobrist.zig");
+    _ = @import("minimax.zig");
 }
