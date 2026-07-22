@@ -127,16 +127,16 @@ pub fn view_from_pos(pos: *const [25]i8) u40 {
     return h;
 }
 
-pub fn seq_from_pos(pos: *const [25]i8) u8 {
+pub fn seq_from_pos(pos: *const [25]i8) u16 {
     var cnt: u8 = 0;
-    var h: u8 = 0;
-    var m: u8 = 1;
+    var h: u16 = 0;
+    var m: u16 = 1;
     for (0..25) |p| {
         if (pos[p] == 0) continue;
         // black 1, white 0 bit
         if (pos[p] > 0) h += m;
         cnt += 1;
-        if (cnt >= 8) break;
+        if (cnt >= 16) break;
         m *= 2;
     }
     return h;
@@ -156,10 +156,10 @@ pub fn pos_from_blind(blind: u25) [25]i8 {
     return pos;
 }
 
-pub fn seq_from_view(view: u40) u8 {
+pub fn seq_from_view(view: u40) u16 {
     var cnt: u8 = 0;
-    var h: u8 = 0;
-    var m: u8 = 1;
+    var h: u16 = 0;
+    var m: u16 = 1;
     var rem = view;
     for (0..25) |_| {
         const val = rem % 3;
@@ -167,7 +167,7 @@ pub fn seq_from_view(view: u40) u8 {
         if (val == 0) continue;
         if (val == 1) h += m;
         cnt += 1;
-        if (cnt >= 8) break;
+        if (cnt >= 16) break;
         m *= 2;
     }
     return h;
@@ -452,7 +452,7 @@ pub fn blind_from_pos(pos: *const [25]i8) u25 {
 pub const lowest = struct {
     pos: [25]i8 = undefined,
     blind: u25 = undefined,
-    seq: u8 = undefined,
+    seq: u16 = undefined,
     is_mirrored: bool = undefined,
     is_inverse: bool = undefined,
     num_stones: u8 = undefined,
@@ -503,7 +503,7 @@ test "lowest full black" {
     const ablind = blind_from_pos(&a);
     try expect((1 << 25) - 1 == ablind); // all filled
     const aseq = seq_from_pos(&a);
-    try expect(255 == aseq);
+    try expect(65535 == aseq); // first 16 stones all black = 2^16-1
     const astones = stone_count_from_pos(&a);
     try expect(25 == astones);
     const adiff = stone_diff_from_pos(&a);
@@ -661,6 +661,7 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
         .pos = pos.*,
         .blind = 0,
         .seq = 0,
+        .is_mirrored = false,
         .is_inverse = false,
         .num_stones = 0,
         .diff = 0,
@@ -707,8 +708,10 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
             lowest_blind = blinds[i];
         }
     }
-    var seqs = [_]u8{255} ** 16;
-    var lowest_seq: u8 = 255;
+    // canonical seq of k<=16 stones fits in 16 bits; use 0xFFFF as the
+    // "not computed" sentinel (above any real canonical seq, which is <=32767)
+    var seqs = [_]u16{0xFFFF} ** 16;
+    var lowest_seq: u16 = 0xFFFF;
     for (0..8) |i| { // set and find lowest seq
         if (blinds[i] == lowest_blind) {
             seqs[i] = seq_from_pos(&armies[i]);
@@ -717,8 +720,11 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
             if (seqs[i + 8] < lowest_seq) lowest_seq = seqs[i + 8];
         }
     }
-    var found_original: usize = 999;
-    var found_inverse: usize = 999;
+    // Indices 0..7 are the non-inverted symmetries, 8..15 the inverted ones.
+    // The canonical seq may be realised by an original, an inverted, or both
+    // (both => the position is mirror-symmetric under inversion).
+    var found_original: ?usize = null;
+    var found_inverse: ?usize = null;
     for (0..8) |i| {
         if (seqs[i] == lowest_seq) {
             found_original = i;
@@ -732,35 +738,25 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
         }
     }
 
-    if (found_original < 888 and found_inverse < 888) {
+    if (found_original) |i| {
         return lowest{
-            .pos = armies[found_original],
+            .pos = armies[i],
             .blind = lowest_blind,
             .seq = lowest_seq,
-            .is_mirrored = true,
+            .is_mirrored = found_inverse != null, // realised both ways
             .is_inverse = false,
-            .num_stones = stone_count_from_pos(&armies[found_original]),
-            .diff = stone_diff_from_pos(&armies[found_original]),
+            .num_stones = stone_count_from_pos(&armies[i]),
+            .diff = stone_diff_from_pos(&armies[i]),
         };
-    } else if (found_original < 888) {
+    } else if (found_inverse) |i| {
         return lowest{
-            .pos = armies[found_original],
-            .blind = lowest_blind,
-            .seq = lowest_seq,
-            .is_mirrored = false,
-            .is_inverse = false,
-            .num_stones = stone_count_from_pos(&armies[found_original]),
-            .diff = stone_diff_from_pos(&armies[found_original]),
-        };
-    } else if (found_inverse < 888) {
-        return lowest{
-            .pos = armies[found_inverse],
+            .pos = armies[i],
             .blind = lowest_blind,
             .seq = lowest_seq,
             .is_mirrored = false,
             .is_inverse = true,
-            .num_stones = stone_count_from_pos(&armies[found_inverse]),
-            .diff = stone_diff_from_pos(&armies[found_inverse]),
+            .num_stones = stone_count_from_pos(&armies[i]),
+            .diff = stone_diff_from_pos(&armies[i]),
         };
     }
     print("\nOops could not find lowest of pos\n\n", .{});
@@ -770,17 +766,20 @@ pub fn lowest_blind_from_pos(pos: *const [25]i8) lowest {
 
 test "seq from view and pos" {
     const W: i8 = -1;
+    // 14 stones, bit per stone in order (black=1): weights of the black ones
     try expect(seq_from_pos(&[25]i8{
-        //1   2  4  8    16    32    64   128
+        //1   2  4  8    16    32    64   128 256 512
         W, 0, W, W, 1, 0, 1, 0, 1, 0, W, 0, 1,
         1, 1, W, W, 1, 0, 1, 0, 0, 0, 0, 0,
-    }) == 8 + 16 + 32 + 128);
+    }) == 8 + 16 + 32 + 128 + 256 + 512 + 4096 + 8192);
 
+    // 16-stone sequence: first 16 stones now recorded (was truncated at 8)
     const view_black = view_from_pos(&armies_from_pos(&[25]i8{
         1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, W,
         1, W, W, W, 1, W, 1, W, W, 1, 1, 1,
     }));
-    try expect(seq_from_view(view_black) == 255);
+    try expect(seq_from_view(view_black) ==
+        1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 + 256 + 1024 + 16384);
 }
 
 test "blind from view" {
