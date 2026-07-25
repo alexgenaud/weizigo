@@ -127,6 +127,32 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
             lbw: ?[]i8 = null,
             ubw: ?[]i8 = null,
 
+            // TRACK B (ADR-0013): dependency-guarded reuse. `deps` on = each
+            // memo entry (exact value and fail-soft bounds) carries a Bloom
+            // fingerprint of the positions its value depends on, and a
+            // cross-branch hit is taken ONLY when that fingerprint shares no
+            // bits with the OR of the current search-path ancestors'
+            // fingerprints (proof no ancestor is in the dependency set -> reuse
+            // is history-safe). Sound by construction; bit-collisions only cost
+            // reuse. The fingerprints live in a SPARSE map keyed by (idx,side):
+            // reuse is per-root (the map is cleared each root), so only the
+            // few-thousand LIVE entries are stored — which lets the fingerprint
+            // be made wide (precise) for negligible memory, instead of a dense
+            // 3^n array (prohibitive at 4x4+). Absent key => empty dependency
+            // set => a certified seed, always safe to reuse.
+            deps: bool = false,
+            dep_map: ?*DepMap = null,
+            // Sound dependency-set shrink (ADR-0013): a position can only be a
+            // real search-path ancestor if it has <= dep_layer_max stones (the
+            // finisher solves deepest-layer-first, so any position with MORE
+            // stones than the root is already certified and acts as a leaf -
+            // the search never recurses through it, so it is never an ancestor).
+            // Excluding >dep_layer_max positions from a value's dependency
+            // fingerprint therefore cannot change any real (fingerprint ∩
+            // ancestors) test, but stops the fingerprint saturating on the many
+            // deep positions. 255 = no shrink (include everything).
+            dep_layer_max: u8 = 255,
+
             // Optional undo journal: every memo WRITE is recorded as
             // idx | side_bit<<31 | bound_bit<<30 so a multi-root driver can
             // revert just the touched slots to its baseline instead of a
@@ -153,7 +179,26 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
             }
         };
 
-        pub const Result = struct { value: i8, ko_ref: usize };
+        // Bloom fingerprint width, in 64-bit words (Track B, ADR-0013). Wider
+        // = less saturation = more safe reuse recovered, at more memory per
+        // memo entry (8*FP_WORDS bytes) and a wider Result. Tunable to
+        // characterize the saturation/reuse tradeoff vs board size.
+        pub const FP_WORDS = 32;
+        pub const Fp = [FP_WORDS]u64;
+        pub const fp_zero: Fp = [_]u64{0} ** FP_WORDS;
+
+        // Sparse dependency-fingerprint store (Track B). Key packs (idx, side);
+        // only the current root's live entries are held (cleared per root).
+        pub const DepMap = std.AutoHashMap(u64, Fp);
+        pub inline fn depKey(idx: usize, to_move: i8) u64 {
+            return (@as(u64, idx) << 1) | @intFromBool(to_move <= 0);
+        }
+
+        // `fp` (Track B): a Bloom fingerprint of the set of board positions the
+        // value depends on (every position visited in the node's subtree). Used
+        // by the dependency-guarded memo to decide safe reuse. Default empty
+        // (KO_CLEAN early-exits set it to the node's own bits).
+        pub const Result = struct { value: i8, ko_ref: usize, fp: Fp = fp_zero };
 
         pub fn solve(ctx: *Ctx, pos: *const Pos, to_move: i8, passes: u8, hist: *History) error{Budget}!Result {
             ctx.nodes += 1;

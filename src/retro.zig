@@ -120,6 +120,20 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             dw: []u8,
             db1: []u8, // dtt of the V1 node (working column for db/dw)
             dw1: []u8,
+            // kill-X% rule (experimental, ABANDONED as a residue lever): an
+            // edge whose move captures MORE than kill_pct% of the board's
+            // points is treated as terminal, scored by area at the child. 0 =
+            // off (pure PSK). Set before converge().
+            // CORRECTION (measured, RETRO_KILLCENSUS): an earlier comment here
+            // claimed kill edges "contribute identically to L and H -> can only
+            // SHRINK the residue". That is FALSE. A kill edge does not merely
+            // ADD a history-free option; it REPLACES a move's continuation
+            // (a sub-game with its own [L,H] bracket) with a frozen area score,
+            // which shifts the L and H fixpoints by different amounts and can
+            // WIDEN a parent's bracket. Net effect on 4x4: residue GREW as the
+            // threshold dropped (kill 0/50/40/30% -> 21.32/21.24/21.63/25.01%),
+            // because lower thresholds rewrite far more mid-game positions.
+            kill_pct: u8 = 0,
             // build statistics
             sweeps: usize = 0,
             legal_count: u64 = 0,
@@ -259,7 +273,24 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                             if (apply_eye_prune and R.is_own_eye(&pos, p, side, &own_alive)) continue;
                             const child = R.pos_from_move(&pos, side, p) catch continue;
                             const ci: usize = @intCast(X.colex_from_pos(&child));
-                            const cv = if (maximizing) q.w0[ci] else q.b0[ci];
+                            // kill-X%: a move capturing > kill_pct% of the
+                            // board's points ends the game (scored by area);
+                            // the child is NOT expanded, so no kill-refill cycle.
+                            const cv = blk: {
+                                if (t.kill_pct != 0) {
+                                    var before: u32 = 0;
+                                    var after: u32 = 0;
+                                    for (pos) |v| {
+                                        if (v == -side) before += 1;
+                                    }
+                                    for (child) |v| {
+                                        if (v == -side) after += 1;
+                                    }
+                                    if ((before - after) * 100 > @as(u32, t.kill_pct) * n)
+                                        break :blk R.area_score(&child);
+                                }
+                                break :blk if (maximizing) q.w0[ci] else q.b0[ci];
+                            };
                             if (!have_move) {
                                 m = cv;
                                 have_move = true;
@@ -342,6 +373,65 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             return if (side > 0) t.hi.b1[idx] else t.hi.w1[idx];
         }
 
+        /// Bloom fingerprint of a single position: k hash-selected bits spread
+        /// across the 64*FP_WORDS-bit fingerprint (Track B, ADR-0013). Equal
+        /// positions hash identically, so if position A is in a set whose
+        /// fingerprint is F, then fpDisjoint(F, fpBits(A)) is false.
+        /// Contrapositive gives the sound reuse test: fpDisjoint(entry_fp,
+        /// ancestor_bits) proves no ancestor is in the dependency set. Hashes
+        /// the board cells directly (no colex needed).
+        fn fpBits(pos: *const Pos) O.Fp {
+            var x: u64 = 1469598103934665603; // FNV-1a offset basis
+            for (pos) |c| {
+                x = (x ^ @as(u64, @as(u8, @bitCast(c)))) *% 1099511628211;
+            }
+            var out = O.fp_zero;
+            const nbits: u64 = 64 * O.FP_WORDS;
+            // k = 3 independent bit positions (mixed via splitmix64 steps)
+            inline for (0..3) |_| {
+                x ^= x >> 30;
+                x *%= 0xbf58476d1ce4e5b9;
+                x ^= x >> 27;
+                const b = x % nbits;
+                out[@intCast(b / 64)] |= @as(u64, 1) << @as(u6, @intCast(b % 64));
+            }
+            return out;
+        }
+
+        fn countStones(pos: *const Pos) u8 {
+            var c: u8 = 0;
+            for (pos) |v| {
+                if (v != 0) c += 1;
+            }
+            return c;
+        }
+
+        fn fpOr(a: O.Fp, b: O.Fp) O.Fp {
+            var out: O.Fp = undefined;
+            inline for (0..O.FP_WORDS) |i| out[i] = a[i] | b[i];
+            return out;
+        }
+
+        /// True iff the two fingerprints share NO set bit (sound: proves the
+        /// underlying sets are disjoint; false negatives from bit-collisions
+        /// only cost reuse, never correctness).
+        fn fpDisjoint(a: O.Fp, b: O.Fp) bool {
+            inline for (0..O.FP_WORDS) |i| {
+                if (a[i] & b[i] != 0) return false;
+            }
+            return true;
+        }
+
+        /// OR `add` into the sparse dependency fingerprint for (idx, side).
+        /// No-op unless deps is on. OOM panics (same policy as the journal).
+        fn depAccumulate(ctx: *O.Ctx, idx: usize, to_move: i8, add: O.Fp) void {
+            if (!ctx.deps) return;
+            const m = ctx.dep_map.?;
+            const k = O.depKey(idx, to_move);
+            const g = m.get(k) orelse O.fp_zero;
+            m.put(k, fpOr(g, add)) catch @panic("retro: dep_map allocation failed");
+        }
+
         /// Bracket-guided fail-soft alpha-beta (ADR-0010): the finisher's
         /// forward solve with [L,H] cutoffs at EVERY node and bracket-ordered
         /// edges. Same graph, terminals, eye-prune, superko and ko_ref
@@ -356,29 +446,52 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             alpha0: i8,
             beta0: i8,
             hist: *O.History,
+            anc_or: O.Fp, // OR of fpBits over this node's strict path-ancestors
         ) error{Budget}!O.Result {
             ctx.nodes += 1;
             if (ctx.budget != 0 and ctx.nodes > ctx.budget) return error.Budget;
             const idx: usize = @intCast(X.colex_from_pos(pos));
-            if (passes >= 2 or t.settled[idx]) return .{ .value = t.score[idx], .ko_ref = O.KO_CLEAN };
+            // fingerprints (Track B) cost O(FP_WORDS) per node, so compute them
+            // ONLY when deps is on; sound/reuse modes pay nothing. The sound
+            // shrink: a position with more stones than dep_layer_max can never
+            // be a real ancestor, so it contributes nothing to any dependency
+            // set (its fingerprint stays empty), which keeps the fingerprint
+            // sparse and unsaturated.
+            const in_dep = ctx.deps and countStones(pos) <= ctx.dep_layer_max;
+            const self_fp = if (in_dep) fpBits(pos) else O.fp_zero;
+            if (passes >= 2 or t.settled[idx]) return .{ .value = t.score[idx], .ko_ref = O.KO_CLEAN, .fp = self_fp };
 
             // bracket cut: [lo,hi] holds under ANY arrival history -> KO_CLEAN
             // (conditional assumption; ctx.brackets toggles it off)
             if (ctx.brackets) {
                 const blo = lo_from_node(t, idx, to_move, passes);
                 const bhi = hi_from_node(t, idx, to_move, passes);
-                if (blo == bhi) return .{ .value = blo, .ko_ref = O.KO_CLEAN };
-                if (bhi <= alpha0) return .{ .value = bhi, .ko_ref = O.KO_CLEAN };
-                if (blo >= beta0) return .{ .value = blo, .ko_ref = O.KO_CLEAN };
+                if (blo == bhi) return .{ .value = blo, .ko_ref = O.KO_CLEAN, .fp = self_fp };
+                if (bhi <= alpha0) return .{ .value = bhi, .ko_ref = O.KO_CLEAN, .fp = self_fp };
+                if (blo >= beta0) return .{ .value = blo, .ko_ref = O.KO_CLEAN, .fp = self_fp };
             }
 
             const d = hist.len - 1;
             const hashable = ctx.memo and passes == 0;
+            // fingerprint of ancestors INCLUDING this node (passed to children)
+            const anc_or_child = if (ctx.deps) fpOr(anc_or, self_fp) else O.fp_zero;
             if (hashable) {
+                // exact memo hit. Legacy (deps off): unconditional reuse — the
+                // unsound ko_ref>=d path. deps on (Track B): reuse ONLY when the
+                // entry's dependency fingerprint shares no bits with the current
+                // ancestors, proving no ancestor is in the dependency set.
                 if (to_move > 0) {
-                    if (ctx.cb[idx]) return .{ .value = ctx.vb[idx], .ko_ref = O.KO_CLEAN };
+                    if (ctx.cb[idx]) {
+                        if (!ctx.deps) return .{ .value = ctx.vb[idx], .ko_ref = O.KO_CLEAN, .fp = self_fp };
+                        const dep = ctx.dep_map.?.get(O.depKey(idx, to_move)) orelse O.fp_zero;
+                        if (fpDisjoint(dep, anc_or)) return .{ .value = ctx.vb[idx], .ko_ref = O.KO_CLEAN, .fp = dep };
+                    }
                 } else {
-                    if (ctx.cw[idx]) return .{ .value = ctx.vw[idx], .ko_ref = O.KO_CLEAN };
+                    if (ctx.cw[idx]) {
+                        if (!ctx.deps) return .{ .value = ctx.vw[idx], .ko_ref = O.KO_CLEAN, .fp = self_fp };
+                        const dep = ctx.dep_map.?.get(O.depKey(idx, to_move)) orelse O.fp_zero;
+                        if (fpDisjoint(dep, anc_or)) return .{ .value = ctx.vw[idx], .ko_ref = O.KO_CLEAN, .fp = dep };
+                    }
                 }
             }
 
@@ -387,17 +500,25 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             var beta = beta0;
             // BOUNDS memo read (per-root, ko_ref-clean like the exact memo):
             // stored fail-soft bounds cut or narrow the window — this is what
-            // lets one null-window probe reuse the previous probe's work.
+            // lets one null-window (MTD) probe reuse the previous probe's work,
+            // and is where the finisher's reuse actually lives. Under `deps`
+            // (Track B) a stored bound is honoured ONLY when its dependency
+            // fingerprint is disjoint from the current ancestors (same
+            // soundness argument as the exact memo); the dep fingerprint is
+            // shared per (idx,side) and covers both bounds' dependencies.
             if (hashable) {
                 const lbs = if (to_move > 0) ctx.lbb else ctx.lbw;
                 const ubs = if (to_move > 0) ctx.ubb else ctx.ubw;
-                if (lbs) |lb| {
-                    if (lb[idx] >= beta) return .{ .value = lb[idx], .ko_ref = O.KO_CLEAN };
-                    if (lb[idx] > alpha) alpha = lb[idx];
-                }
-                if (ubs) |ub| {
-                    if (ub[idx] <= alpha) return .{ .value = ub[idx], .ko_ref = O.KO_CLEAN };
-                    if (ub[idx] < beta) beta = ub[idx];
+                const dep = if (!ctx.deps) O.fp_zero else (ctx.dep_map.?.get(O.depKey(idx, to_move)) orelse O.fp_zero);
+                if (!ctx.deps or fpDisjoint(dep, anc_or)) {
+                    if (lbs) |lb| {
+                        if (lb[idx] >= beta) return .{ .value = lb[idx], .ko_ref = O.KO_CLEAN, .fp = dep };
+                        if (lb[idx] > alpha) alpha = lb[idx];
+                    }
+                    if (ubs) |ub| {
+                        if (ub[idx] <= alpha) return .{ .value = ub[idx], .ko_ref = O.KO_CLEAN, .fp = dep };
+                        if (ub[idx] < beta) beta = ub[idx];
+                    }
                 }
             }
             // exactness / bound classification is judged against the window
@@ -407,6 +528,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             const b_entry = beta;
             var best: i8 = if (maximizing) -127 else 127;
             var ko_ref: usize = O.KO_CLEAN;
+            var sub_fp: O.Fp = self_fp; // this node + everything its value touches
 
             // gather legal edges (board moves + pass), bracket-scored
             const Edge = struct { child: Pos, order: i16, pass: bool };
@@ -420,6 +542,8 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 if (hist.repeatsIndex(&child)) |j| {
                     ctx.saw_ban = true;
                     if (j < ko_ref) ko_ref = j;
+                    if (ctx.deps and countStones(&child) <= ctx.dep_layer_max)
+                        sub_fp = fpOr(sub_fp, fpBits(&child)); // ban target is a dependency
                     continue;
                 }
                 const ci: usize = @intCast(X.colex_from_pos(&child));
@@ -446,13 +570,14 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             for (edges[0..ne]) |*e| {
                 var r: O.Result = undefined;
                 if (e.pass) {
-                    r = try ab_solve(t, ctx, pos, -to_move, passes + 1, alpha, beta, hist);
+                    r = try ab_solve(t, ctx, pos, -to_move, passes + 1, alpha, beta, hist, anc_or_child);
                 } else {
                     hist.push(&e.child);
-                    r = try ab_solve(t, ctx, &e.child, -to_move, 0, alpha, beta, hist);
+                    r = try ab_solve(t, ctx, &e.child, -to_move, 0, alpha, beta, hist, anc_or_child);
                     hist.pop();
                 }
                 if (r.ko_ref < ko_ref) ko_ref = r.ko_ref;
+                if (ctx.deps) sub_fp = fpOr(sub_fp, r.fp); // fold child's dependency set into ours
                 if (maximizing) {
                     if (r.value > best) best = r.value;
                     if (best > alpha) alpha = best;
@@ -466,8 +591,14 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             // memo write, ko_ref-clean only: exact if inside the entry
             // window, otherwise a fail-soft BOUND into the bounds memo
             if (hashable and ctx.memo_writes and ko_ref >= d) {
+                // Track B: the entry's dependency fingerprint is shared per
+                // (idx,side) across the exact value and both bounds, OR-ed into
+                // the sparse map so it soundly covers every dependency
+                // contributing to the slot. Accumulated only at recorded writes;
+                // the per-root map clear (runRoot / seedCtx) undoes it exactly.
                 if (best > a_entry and best < b_entry) {
                     ctx.record(idx, to_move);
+                    depAccumulate(ctx, idx, to_move, sub_fp);
                     if (to_move > 0) {
                         ctx.vb[idx] = best;
                         ctx.cb[idx] = true;
@@ -480,6 +611,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                     if (lbs) |lb| {
                         if (best > lb[idx]) {
                             ctx.record_bound(idx, to_move);
+                            depAccumulate(ctx, idx, to_move, sub_fp);
                             lb[idx] = best;
                         }
                     }
@@ -488,12 +620,13 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                     if (ubs) |ub| {
                         if (best < ub[idx]) {
                             ctx.record_bound(idx, to_move);
+                            depAccumulate(ctx, idx, to_move, sub_fp);
                             ub[idx] = best;
                         }
                     }
                 }
             }
-            return .{ .value = best, .ko_ref = ko_ref };
+            return .{ .value = best, .ko_ref = ko_ref, .fp = sub_fp };
         }
 
         /// Exact fresh-start value of a root by NULL-WINDOW binary search
@@ -515,7 +648,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 hist.reset();
                 hist.push(pos);
                 ctx.saw_ban = false;
-                const r = try ab_solve(t, ctx, pos, to_move, 0, mid - 1, mid, hist);
+                const r = try ab_solve(t, ctx, pos, to_move, 0, mid - 1, mid, hist, O.fp_zero);
                 if (r.value >= mid) lo = r.value else hi = r.value;
             }
             return lo;
@@ -550,13 +683,17 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// as the engine-vs-engine cross-check; both must produce identical
         /// tables where both complete).
         pub fn finish(t: *Tables, gpa: std.mem.Allocator, budget: u64, bracketed: bool) !FinishStats {
-            return finishProgress(t, gpa, budget, bracketed, 0);
+            return finishProgress(t, gpa, budget, bracketed, 0, true, false);
         }
 
         /// finish() with a progress heartbeat (report every `progress_every`
         /// solved-or-skipped orbit reps; 0 = silent), layers deepest-first.
-        pub fn finishProgress(t: *Tables, gpa: std.mem.Allocator, budget: u64, bracketed: bool, progress_every: u64) !FinishStats {
-            var f = try Finisher.init(t, gpa, budget, bracketed, progress_every);
+        /// `memo_writes` false = SOUND mode (Track A, ADR-0013): no cross-branch
+        /// memo/bounds reuse — the `ko_ref >= d` GHI shortcut is disabled, so
+        /// residue values are trustworthy but the search loses the reuse
+        /// accelerant (slower). true = the fast (unsound) legacy path.
+        pub fn finishProgress(t: *Tables, gpa: std.mem.Allocator, budget: u64, bracketed: bool, progress_every: u64, memo_writes: bool, deps: bool) !FinishStats {
+            var f = try Finisher.init(t, gpa, budget, bracketed, progress_every, memo_writes, deps);
             defer f.deinit();
             var layer: usize = n + 1;
             while (layer > 0) {
@@ -591,11 +728,12 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             tried_w: []bool,
             hist: *O.History,
             journal: std.ArrayList(u32) = .empty,
+            dep_map: O.DepMap = undefined, // Track B; init'd iff deps
             st: FinishStats = .{},
             start_ms: u64,
             next_report: u64,
 
-            pub fn init(t: *Tables, gpa: std.mem.Allocator, budget: u64, bracketed: bool, progress_every: u64) !Finisher {
+            pub fn init(t: *Tables, gpa: std.mem.Allocator, budget: u64, bracketed: bool, progress_every: u64, memo_writes: bool, deps: bool) !Finisher {
                 var f = Finisher{
                     .t = t,
                     .gpa = gpa,
@@ -608,6 +746,8 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                         .cb = try gpa.alloc(bool, total),
                         .cw = try gpa.alloc(bool, total),
                         .memo = true,
+                        .memo_writes = memo_writes,
+                        .deps = deps,
                     },
                     .base_vb = try gpa.alloc(i8, total),
                     .base_vw = try gpa.alloc(i8, total),
@@ -630,6 +770,14 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 @memset(f.ctx.ubb.?, 127);
                 @memset(f.ctx.lbw.?, -127);
                 @memset(f.ctx.ubw.?, 127);
+                // Track B dependency fingerprints: sparse map (only the current
+                // root's live entries), cleared per root. Certified seeds have
+                // no entry => empty dependency set => always reuse.
+                // NOTE: the self-pointer f.ctx.dep_map = &f.dep_map must be set
+                // in runLayer, not here — init returns Finisher BY VALUE, so a
+                // pointer into this local `f` would dangle (same reason journal
+                // is wired in runLayer).
+                if (deps) f.dep_map = O.DepMap.init(gpa);
                 // The certified-only baseline. NOTE: values filled by an
                 // earlier finisher pass or a loaded checkpoint carry
                 // FLAG_FROM_FORWARD — they are fresh-start values of
@@ -662,6 +810,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 f.gpa.free(f.ctx.ubb.?);
                 f.gpa.free(f.ctx.lbw.?);
                 f.gpa.free(f.ctx.ubw.?);
+                if (f.ctx.dep_map != null) f.dep_map.deinit();
                 f.gpa.free(f.base_vb);
                 f.gpa.free(f.base_vw);
                 f.gpa.free(f.base_cb);
@@ -676,6 +825,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 const t = f.t;
                 f.ctx.journal = &f.journal;
                 f.ctx.journal_gpa = f.gpa;
+                if (f.ctx.deps) f.ctx.dep_map = &f.dep_map; // final location (init returns by value)
                 var li: u64 = X.layer_offset[layer];
                 const li_stop = X.layer_offset[layer + 1];
                 while (li < li_stop) : (li += 1) {
@@ -698,6 +848,18 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             fn runRoot(f: *Finisher, i: usize, pos: *Pos, side: i8, layer: usize) void {
                 const t = f.t;
                 f.journal.clearRetainingCapacity();
+                // Track B: the dependency fingerprints are per-root; drop the
+                // previous root's live entries (base state = empty set). The
+                // root has `layer` stones, and (deepest-layer-first) every real
+                // ancestor has <= layer stones, so that is the sound shrink
+                // threshold for this root's dependency sets.
+                if (f.ctx.dep_map) |m| m.clearRetainingCapacity();
+                // NOTE: a stone-count shrink of the dependency set (dep_layer_max
+                // = layer) was tried and PROVEN UNSOUND (RETRO_DEPSVAL diverged):
+                // deeper residue positions are re-searched, not leaves, so real
+                // ancestors are NOT bounded by the root's stone count. Left at
+                // 255 (no shrink) -- the full-subtree dependency set is exact.
+                f.ctx.dep_layer_max = 255;
                 f.ctx.nodes = 0;
                 f.ctx.budget = f.budget;
                 const solved: error{Budget}!i8 = if (f.bracketed)
@@ -988,7 +1150,13 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
         pub const X = colexmod.Indexer(w, h);
         pub const total: usize = @intCast(X.total);
         pub const Bans = std.StaticBitSet(total);
-        pub const Key = struct { idx: u32, side: i8, passes: u8, bans: Bans };
+        /// N-ply ko window: the up-to-MAX_KO_PLY most recent board indices,
+        /// most-recent first, sentinel-padded. See Ctx.ko_ply.
+        pub const MAX_KO_PLY = 8;
+        pub const KO_NONE: u32 = std.math.maxInt(u32);
+        pub const Win = [MAX_KO_PLY]u32;
+        pub const win_empty: Win = [_]u32{KO_NONE} ** MAX_KO_PLY;
+        pub const Key = struct { idx: u32, side: i8, passes: u8, win: Win, bans: Bans };
         pub const Map = std.AutoHashMap(Key, i8);
 
         pub const Ctx = struct {
@@ -996,9 +1164,52 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
             nodes: u64 = 0,
             budget: u64 = 0, // 0 = unlimited (shared across roots)
             entry_cap: u32 = 0, // stop INSERTING beyond this (stays sound, just slower)
+            // kill-X% rule (experimental, ABANDONED as a residue lever): a move
+            // capturing MORE than kill_pct% of the board's points ends the
+            // game, scored by area. 0 = disabled. See Tables.kill_pct.
+            kill_pct: u8 = 0,
+            // N-ply superko + score-on-cycle (the bounded-history family that
+            // interpolates basic ko -> PSK). When cycle_score is set, positional
+            // superko is REPLACED by: (a) a move may not recreate any of the
+            // last `ko_ply` board positions (the bounded ko WINDOW; ko_ply=1 =
+            // basic ko); (b) a repeat OLDER than the window (a longer cycle the
+            // window can't forbid) ENDS the game, scored by area AS-IS. This
+            // makes every N-ply rule terminate and interpolate basic ko (N=1)
+            // -> PSK (N large enough that no repeat is ever "older"). The value
+            // depends on the window + full history, so `win` and `bans` are
+            // both in the memo key -> a small-board VALUES/tractability probe,
+            // not a generation method. false = pure PSK.
+            cycle_score: bool = false,
+            ko_ply: usize = 1, // window depth N (1..MAX_KO_PLY); used iff cycle_score
         };
 
-        pub fn solve(ctx: *Ctx, pos: *const R.Pos, side: i8, passes: u8, bans: Bans) error{ Budget, OutOfMemory }!i8 {
+        fn stones(pos: *const R.Pos, colour: i8) u32 {
+            var c: u32 = 0;
+            for (pos) |v| {
+                if (v == colour) c += 1;
+            }
+            return c;
+        }
+
+        /// True iff `ci` is in the first `n` slots of the ko window.
+        fn inWindow(win: *const Win, n: usize, ci: usize) bool {
+            const c: u32 = @intCast(ci);
+            for (win[0..n]) |wb| {
+                if (wb == c) return true;
+            }
+            return false;
+        }
+
+        /// New window after moving to `next`: prepend it, keep the N most
+        /// recent, drop the oldest. (A pass instead clears the window.)
+        fn pushWindow(win: *const Win, next: usize) Win {
+            var out = win_empty;
+            out[0] = @intCast(next);
+            for (0..MAX_KO_PLY - 1) |k| out[k + 1] = win[k];
+            return out;
+        }
+
+        pub fn solve(ctx: *Ctx, pos: *const R.Pos, side: i8, passes: u8, win: Win, bans: Bans) error{ Budget, OutOfMemory }!i8 {
             ctx.nodes += 1;
             if (ctx.budget != 0 and ctx.nodes > ctx.budget) return error.Budget;
             if (passes >= 2) return R.area_score(pos);
@@ -1007,24 +1218,53 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
                 .idx = @intCast(X.colex_from_pos(pos)),
                 .side = side,
                 .passes = passes,
+                .win = win,
                 .bans = bans,
             };
             if (ctx.map.get(key)) |v| return v;
+            const self_idx: usize = @intCast(key.idx);
             const maximizing = side > 0;
             var best: i8 = if (maximizing) -127 else 127;
             for (0..R.n) |p| {
                 if (pos[p] != 0) continue;
                 const child = R.pos_from_move(pos, side, p) catch continue;
                 const ci: usize = @intCast(X.colex_from_pos(&child));
-                if (bans.isSet(ci)) continue; // positional superko
+                if (ctx.cycle_score) {
+                    // N-ply ko: may not recreate any of the last ko_ply boards.
+                    if (inWindow(&win, ctx.ko_ply, ci)) continue;
+                    // repeat OLDER than the window (a longer cycle the window
+                    // can't forbid): the game ends now, scored by area AS-IS.
+                    if (bans.isSet(ci)) {
+                        const v = R.area_score(&child);
+                        if (maximizing) {
+                            if (v > best) best = v;
+                        } else if (v < best) best = v;
+                        continue;
+                    }
+                } else if (bans.isSet(ci)) continue; // positional superko
+                // kill-X%: if this move captured > kill_pct% of the board's
+                // points worth of opponent stones, the game ends now (scored
+                // by area). Terminal -> no recursion, so no kill-refill cycle.
+                if (ctx.kill_pct != 0) {
+                    const captured = stones(pos, -side) -| stones(&child, -side);
+                    if (captured * 100 > @as(u32, ctx.kill_pct) * R.n) {
+                        const v = R.area_score(&child);
+                        if (maximizing) {
+                            if (v > best) best = v;
+                        } else if (v < best) best = v;
+                        continue;
+                    }
+                }
                 var nb = bans;
                 nb.set(ci);
-                const v = try solve(ctx, &child, -side, 0, nb);
+                const nw = pushWindow(&win, self_idx);
+                const v = try solve(ctx, &child, -side, 0, nw, nb);
                 if (maximizing) {
                     if (v > best) best = v;
                 } else if (v < best) best = v;
             }
-            const vp = try solve(ctx, pos, -side, passes + 1, bans);
+            // a pass places no stone and clears any pending ko window.
+            const vp = try solve(ctx, pos, -side, passes + 1, win_empty, bans);
             if (maximizing) {
                 if (vp > best) best = vp;
             } else if (vp < best) best = vp;
@@ -1034,13 +1274,197 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
             return best;
         }
 
-        /// Fresh-start value (ADR-0008): ban set seeded with the root itself.
+        /// Fresh-start value (ADR-0008): ban set seeded with the root itself,
+        /// empty ko window.
         pub fn root(ctx: *Ctx, pos: *const R.Pos, side: i8) error{ Budget, OutOfMemory }!i8 {
             var bans = Bans.initEmpty();
             bans.set(@intCast(X.colex_from_pos(pos)));
-            return solve(ctx, pos, side, 0, bans);
+            return solve(ctx, pos, side, 0, win_empty, bans);
         }
     };
+}
+
+/// One lean L/H Bellman sweep over a single quad given as raw slices
+/// (b0/w0/b1/w1). Stone-count DESCENDING Gauss-Seidel, identical update to
+/// Retro.sweep but with NO kill-X% branch and NO finisher columns. Returns the
+/// number of value changes. This is the perf-critical loop of the core-only
+/// (Option (c)) build; keep it byte-for-byte equivalent to Retro.sweep's
+/// no-kill path (regression-gated against the full-Tables numbers).
+fn coreSweep(
+    comptime w: usize,
+    comptime h: usize,
+    b0: []i8,
+    w0: []i8,
+    b1: []i8,
+    w1: []i8,
+    legal: []const bool,
+    settled: []const bool,
+    score: []const i8,
+) u64 {
+    const R = rules.Rules(w, h);
+    const X = colexmod.Indexer(w, h);
+    const n = R.n;
+    var changes: u64 = 0;
+    var layer: usize = n + 1;
+    while (layer > 0) {
+        layer -= 1;
+        var idx: u64 = X.layer_offset[layer];
+        const stop = X.layer_offset[layer + 1];
+        while (idx < stop) : (idx += 1) {
+            const i: usize = @intCast(idx);
+            if (!legal[i] or settled[i]) continue;
+            var pos = X.pos_from_colex(idx);
+            inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
+                const maximizing = comptime (side > 0);
+                var have_move = false;
+                var m: i8 = undefined;
+                for (0..n) |pp| {
+                    if (pos[pp] != 0) continue;
+                    const child = R.pos_from_move(&pos, side, pp) catch continue;
+                    const ci: usize = @intCast(X.colex_from_pos(&child));
+                    const cv = if (maximizing) w0[ci] else b0[ci];
+                    if (!have_move) {
+                        m = cv;
+                        have_move = true;
+                    } else m = if (maximizing) @max(m, cv) else @min(m, cv);
+                }
+                var v1: i8 = score[i];
+                var v0: i8 = if (maximizing) w1[i] else b1[i];
+                if (have_move) {
+                    v1 = if (maximizing) @max(m, v1) else @min(m, v1);
+                    v0 = if (maximizing) @max(m, v0) else @min(m, v0);
+                }
+                const a1 = if (maximizing) b1 else w1;
+                const a0 = if (maximizing) b0 else w0;
+                if (a1[i] != v1) {
+                    a1[i] = v1;
+                    changes += 1;
+                }
+                if (a0[i] != v0) {
+                    a0[i] = v0;
+                    changes += 1;
+                }
+            }
+        }
+    }
+    return changes;
+}
+
+/// LEAN CORE-ONLY census (Option (c), the 5x5 scaling path). Allocates only the
+/// 11 columns seed/converge/core-count need — legal, settled, score, and the
+/// L/H quads [b0,w0,b1,w1]x2 — dropping the 8 finisher/artifact columns
+/// (vb/vw/fb/fw/db/dw/db1/dw1) the certified-core census never reads. ~halves
+/// RAM per index (19 -> 11 bytes): 4x4 = 0.5 GB, 5x4 = 38 GB dense (before
+/// symmetry folding / out-of-core, which 5x5 will require). Reports the
+/// rule-independent certified-core fraction + empty(B) bracket — no finisher,
+/// no ko rule. MUST reproduce the full-Tables (RETRO_BRACKET) numbers exactly.
+fn coreCensus(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
+    const R = rules.Rules(w, h);
+    const X = colexmod.Indexer(w, h);
+    const E = enumerate.Enumerator(w, h);
+    const n = R.n;
+    const N: i8 = @intCast(n);
+    const total: usize = @intCast(X.total);
+    const p = std.debug.print;
+
+    p("core-census {d}x{d}: total=3^{d}={d}  lean RAM = {d:.2} GB (11 B/idx)\n", .{
+        w, h, n, total, @as(f64, @floatFromInt(total)) * 11.0 / 1e9,
+    });
+
+    const legal = try gpa.alloc(bool, total);
+    defer gpa.free(legal);
+    const settled = try gpa.alloc(bool, total);
+    defer gpa.free(settled);
+    const score = try gpa.alloc(i8, total);
+    defer gpa.free(score);
+    var q: [8][]i8 = undefined;
+    for (0..8) |k| q[k] = try gpa.alloc(i8, total);
+    defer for (0..8) |k| gpa.free(q[k]);
+    const lb0 = q[0];
+    const lw0 = q[1];
+    const lb1 = q[2];
+    const lw1 = q[3];
+    const hb0 = q[4];
+    const hw0 = q[5];
+    const hb1 = q[6];
+    const hw1 = q[7];
+
+    const t0 = nowMs();
+    var legal_count: u64 = 0;
+    var settled_count: u64 = 0;
+    for (0..total) |i| {
+        var pos = X.pos_from_colex(i);
+        const ok = E.is_legal(&pos);
+        legal[i] = ok;
+        if (!ok) {
+            settled[i] = false;
+            score[i] = 0;
+            inline for (0..8) |k| q[k][i] = 0;
+            continue;
+        }
+        legal_count += 1;
+        const sc = R.area_score(&pos);
+        score[i] = sc;
+        const st = R.is_settled(&pos);
+        settled[i] = st;
+        if (st) {
+            settled_count += 1;
+            inline for (0..8) |k| q[k][i] = sc;
+        } else {
+            lb0[i] = -N;
+            lw0[i] = -N;
+            lb1[i] = -N;
+            lw1[i] = -N;
+            hb0[i] = N;
+            hw0[i] = N;
+            hb1[i] = N;
+            hw1[i] = N;
+        }
+    }
+    const seed_ms = nowMs() - t0;
+
+    var sweeps: usize = 0;
+    while (true) {
+        const c = coreSweep(w, h, lb0, lw0, lb1, lw1, legal, settled, score) +
+            coreSweep(w, h, hb0, hw0, hb1, hw1, legal, settled, score);
+        sweeps += 1;
+        if (c == 0) break;
+    }
+    const build_ms = nowMs() - t0;
+
+    var certified: u64 = settled_count * 2;
+    var residue: u64 = 0;
+    for (0..total) |i| {
+        if (!legal[i] or settled[i]) continue;
+        if (lb0[i] == hb0[i]) certified += 1 else residue += 1;
+        if (lw0[i] == hw0[i]) certified += 1 else residue += 1;
+    }
+    const slots = legal_count * 2;
+    const core_pct = @as(f64, @floatFromInt(certified)) * 100.0 / @as(f64, @floatFromInt(slots));
+    const res_pct = @as(f64, @floatFromInt(residue)) * 100.0 / @as(f64, @floatFromInt(slots));
+
+    const e: usize = @intCast(X.colex_from_pos(&([_]i8{0} ** R.n)));
+    p("  slots={d}  CERTIFIED={d} ({d:.2}%)  residue={d} ({d:.4}%)  sweeps={d}  seed={d}ms build={d}ms\n", .{
+        slots, certified, core_pct, residue, res_pct, sweeps, seed_ms, build_ms,
+    });
+    if (lb0[e] == hb0[e]) {
+        p("  empty(B) CERTIFIED = {d} (rule-independent)\n", .{lb0[e]});
+    } else {
+        p("  empty(B) bracket = [{d}, {d}] (width {d})\n", .{ lb0[e], hb0[e], @as(i16, hb0[e]) - @as(i16, lb0[e]) });
+    }
+}
+
+fn runCore(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("CORE: lean core-only certified-core census (Option (c), 5x5 path)\n", .{});
+    p("  [validation — must match RETRO_BRACKET: 3x3 65.69%, 4x3 73.53%, 4x4 78.68%]\n", .{});
+    coreCensus(3, 3, gpa) catch |e| p("  3x3 FAILED: {t}\n", .{e});
+    coreCensus(4, 3, gpa) catch |e| p("  4x3 FAILED: {t}\n", .{e});
+    coreCensus(4, 4, gpa) catch |e| p("  4x4 FAILED: {t}\n", .{e});
+    if (std.c.getenv("RETRO_CORE_5X4") != null) {
+        p("  [5x4 dress rehearsal — ~38 GB dense, the residue-growth measurement]\n", .{});
+        coreCensus(5, 4, gpa) catch |e| p("  5x4 FAILED: {t}\n", .{e});
+    }
 }
 
 /// Monotonic milliseconds (std.time.Timer is gone in Zig 0.16; the Io-based
@@ -1066,6 +1490,8 @@ const RunOpts = struct {
     spot_cap: u64 = 400, // hard cap on spot solves (bounds wall time)
     finisher_budget: u64 = 500_000_000,
     finisher_bracketed: bool = true, // ADR-0010 alpha-beta; false = plain ADR-0009 cross-check
+    finisher_memo_writes: bool = true, // false = SOUND (Track A): no cross-branch reuse (ADR-0013)
+    finisher_deps: bool = false, // true = Track B: fingerprint-guarded reuse (ADR-0013)
     finisher_progress_every: u64 = 0, // heartbeat every N orbit reps (0 = silent)
     diag: bool = false, // report the residue-orbit census, then CONTINUE
     diag_only: bool = false, // build + certify + report residue-orbit scale, then stop
@@ -1234,7 +1660,7 @@ fn anchorProbe(gpa: std.mem.Allocator, budget: u64) !void {
 /// the loaded bytes: every column identical to the in-memory table, and the
 /// battery's key facts re-checked from the LOADED data (the file, not the
 /// RAM it came from, is what future sessions trust).
-fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, path: []const u8, finisher_budget: u64, progress_every: u64, diag: bool, checkpoint_path: ?[]const u8) !void {
+fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, path: []const u8, finisher_budget: u64, progress_every: u64, diag: bool, checkpoint_path: ?[]const u8, memo_writes: bool, deps: bool) !void {
     const RT = Retro(w, h);
     const p = std.debug.print;
     p("==== artifact {d}x{d} -> {s} ====\n", .{ w, h, path });
@@ -1294,7 +1720,7 @@ fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, pa
     const t1 = nowMs();
     var fin: RT.FinishStats = undefined;
     {
-        var f = try RT.Finisher.init(&t, gpa, finisher_budget, true, progress_every);
+        var f = try RT.Finisher.init(&t, gpa, finisher_budget, true, progress_every, memo_writes, deps);
         defer f.deinit();
         var layer: usize = RT.n + 1;
         var last_work: u64 = 0;
@@ -1314,8 +1740,8 @@ fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, pa
         }
         fin = f.st;
     }
-    p("finisher[bracketed]: orbits solved={d} skipped={d} nodes={d} max/root={d} ({d} ms)\n", .{
-        fin.solved, fin.budget_skipped, fin.nodes, fin.max_nodes, nowMs() - t1,
+    p("finisher[bracketed,{s}]: orbits solved={d} skipped={d} nodes={d} max/root={d} ({d} ms)\n", .{
+        if (deps) "deps" else if (memo_writes) "reuse" else "sound", fin.solved, fin.budget_skipped, fin.nodes, fin.max_nodes, nowMs() - t1,
     });
     const t2 = nowMs();
     RT.dttPass(&t);
@@ -1406,10 +1832,11 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
 
     if (opts.finisher_budget != 0) {
         const t1 = nowMs();
-        const fin = try RT.finishProgress(&t, gpa, opts.finisher_budget, opts.finisher_bracketed, opts.finisher_progress_every);
+        const fin = try RT.finishProgress(&t, gpa, opts.finisher_budget, opts.finisher_bracketed, opts.finisher_progress_every, opts.finisher_memo_writes, opts.finisher_deps);
         const fin_ms = nowMs() - t1;
-        p("finisher[{s}]: orbits solved={d} slots filled={d} budget-skipped={d} nodes={d} max/root={d} bracket-fails={d} orbit-clashes={d} ({d} ms)\n", .{
+        p("finisher[{s},{s}]: orbits solved={d} slots filled={d} budget-skipped={d} nodes={d} max/root={d} bracket-fails={d} orbit-clashes={d} ({d} ms)\n", .{
             if (opts.finisher_bracketed) "bracketed" else "plain",
+            if (opts.finisher_memo_writes) "reuse" else "sound",
             fin.solved, fin.filled, fin.budget_skipped, fin.nodes, fin.max_nodes, fin.bracket_fail, fin.orbit_clash, fin_ms,
         });
     } else {
@@ -1591,7 +2018,7 @@ fn value_from_line(comptime w: usize, comptime h: usize, t: *const Retro(w, h).T
     while (lo < hi) {
         const mid = lo + @divTrunc(hi - lo + 1, 2);
         ctx.saw_ban = false;
-        const r = try RT.ab_solve(t, ctx, pos, to_move, 0, mid - 1, mid, hist);
+        const r = try RT.ab_solve(t, ctx, pos, to_move, 0, mid - 1, mid, hist, RT.O.fp_zero);
         if (r.value >= mid) lo = r.value else hi = r.value;
     }
     return lo;
@@ -1748,7 +2175,7 @@ fn solveNode(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables,
     while (lo < hi) {
         const mid = lo + @divTrunc(hi - lo + 1, 2);
         ctx.saw_ban = false;
-        const r = try RT.ab_solve(t, ctx, pos, to_move, passes, mid - 1, mid, hist);
+        const r = try RT.ab_solve(t, ctx, pos, to_move, passes, mid - 1, mid, hist, RT.O.fp_zero);
         if (r.value >= mid) lo = r.value else hi = r.value;
     }
     return lo;
@@ -1769,6 +2196,10 @@ fn seedCtx(comptime w: usize, comptime h: usize, c: *Retro(w, h).O.Ctx, tt: *con
     @memset(c.ubb.?, 127);
     @memset(c.lbw.?, -127);
     @memset(c.ubw.?, 127);
+    // certified seeds are history-free: no map entry => empty dependency set,
+    // always reused. Residue slots get a real fp on write; drop the prior
+    // solve's live entries.
+    if (c.dep_map) |m| m.clearRetainingCapacity();
     c.nodes = 0;
 }
 
@@ -1883,19 +2314,24 @@ fn consistBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, ma
     defer inline for (.{ ctx.cb, ctx.cw }) |a| gpa.free(a);
     defer inline for (.{ ctx.lbb.?, ctx.lbw.? }) |a| gpa.free(a);
     defer inline for (.{ ctx.ubb.?, ctx.ubw.? }) |a| gpa.free(a);
+    var dep_map = RT.O.DepMap.init(gpa);
+    defer dep_map.deinit();
+    ctx.dep_map = &dep_map;
 
     const hist = try gpa.create(RT.O.History);
     defer gpa.destroy(hist);
     hist.* = .{};
 
-    const Variant = struct { name: []const u8, writes: bool };
+    const Variant = struct { name: []const u8, writes: bool, deps: bool };
     const variants = [_]Variant{
-        .{ .name = "new (memo_writes ON)", .writes = true },
-        .{ .name = "soundish (writes OFF)", .writes = false },
+        .{ .name = "new (memo_writes ON)", .writes = true, .deps = false },
+        .{ .name = "soundish (writes OFF)", .writes = false, .deps = false },
+        .{ .name = "deps (guarded reuse, Track B)", .writes = true, .deps = true },
     };
 
     for (variants) |V| {
         ctx.memo_writes = V.writes;
+        ctx.deps = V.deps;
         var checked: u64 = 0;
         var violations: u64 = 0;
         var skipped: u64 = 0;
@@ -1940,461 +2376,6 @@ fn consistBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, ma
     p("  new inconsistent, soundish consistent -> cross-branch writes are the bug; go to #3\n", .{});
     p("  both inconsistent -> hole deeper than writes (brackets/seeds); widen #3 guard\n", .{});
     p("  both consistent -> inconclusive; #3 still required for the true values\n", .{});
-}
-
-/// CONTRADICTION LOCALIZER: the replay probe reported value(P10) = -1 yet
-/// max over P10's children = +1 (same position, same history) — impossible
-/// if the machinery were sound under prefixes. Recompute both quantities
-/// under every combination of {bracket cuts, certified seeds} to localize
-/// which conditional assumption breaks. (Exact+bounds memo with the ko_ref
-/// discipline stays on throughout — it is the machinery under test when
-/// both toggles are off.)
-fn runAdj(gpa: std.mem.Allocator) void {
-    adj3x2(gpa) catch |err| std.debug.print("adj FAILED: {t}\n", .{err});
-}
-
-fn runFoothold(gpa: std.mem.Allocator) void {
-    foothold3x2(gpa) catch |err| std.debug.print("foothold FAILED: {t}\n", .{err});
-}
-
-fn runFoot4(gpa: std.mem.Allocator) void {
-    foothold4x4(gpa) catch |err| std.debug.print("foot4 FAILED: {t}\n", .{err});
-}
-
-/// 4x4 foothold adjudication. Exact (ban-set-keyed) is memory-dead at 4x4
-/// (5.38 MB per key), so the judge is O.value_from_root with memo OFF: plain
-/// minimax + REAL superko history + eye-prune, NO cross-branch cache (the
-/// convicted mechanism cannot act). Only assumption = the eye-prune, which
-/// all three finisher generations share and so cannot be the cause of their
-/// disagreement. Memory-safe; a hard slot budget-skips rather than OOMs.
-/// Compares the judge against the COMMITTED (new/MTD) artifact and the
-/// writes-off "soundish" finisher, most-filled slots first.
-fn foothold4x4(gpa: std.mem.Allocator) !void {
-    const RT = Retro(4, 4);
-    const p = std.debug.print;
-
-    var t = try RT.Tables.init(gpa);
-    defer t.deinit();
-    RT.seed(&t);
-    RT.converge(&t);
-    RT.finalize(&t);
-    p("foot4: build done. judge = O.solve memo=OFF (minimax+history+eyeprune)\n", .{});
-
-    var threaded = std.Io.Threaded.init(gpa, .{});
-    const io = threaded.io();
-    var art = try artifact.load(io, std.Io.Dir.cwd(), "data/oracle-4x4.wzo", gpa);
-    defer art.deinit();
-
-    // JUDGE ctx: memo off (arrays unused but required by the struct)
-    var jc = RT.O.Ctx{
-        .vb = try gpa.alloc(i8, 1),
-        .vw = try gpa.alloc(i8, 1),
-        .cb = try gpa.alloc(bool, 1),
-        .cw = try gpa.alloc(bool, 1),
-        .memo = false,
-        .budget = 1_500_000_000,
-    };
-    defer inline for (.{ jc.vb, jc.vw }) |a| gpa.free(a);
-    defer inline for (.{ jc.cb, jc.cw }) |a| gpa.free(a);
-
-    // SOUNDISH ctx: writes-off bracket-guided (seeds + brackets, no reuse)
-    var sc = RT.O.Ctx{
-        .vb = try gpa.alloc(i8, RT.total),
-        .vw = try gpa.alloc(i8, RT.total),
-        .cb = try gpa.alloc(bool, RT.total),
-        .cw = try gpa.alloc(bool, RT.total),
-        .lbb = try gpa.alloc(i8, RT.total),
-        .ubb = try gpa.alloc(i8, RT.total),
-        .lbw = try gpa.alloc(i8, RT.total),
-        .ubw = try gpa.alloc(i8, RT.total),
-        .memo = true,
-        .memo_writes = false,
-        .brackets = true,
-        .budget = 1_500_000_000,
-    };
-    defer inline for (.{ sc.vb, sc.vw }) |a| gpa.free(a);
-    defer inline for (.{ sc.cb, sc.cw }) |a| gpa.free(a);
-    defer inline for (.{ sc.lbb.?, sc.lbw.? }) |a| gpa.free(a);
-    defer inline for (.{ sc.ubb.?, sc.ubw.? }) |a| gpa.free(a);
-    const seed_s = struct {
-        fn go(c: *RT.O.Ctx, tt: *const RT.Tables) void {
-            @memcpy(c.vb, tt.vb);
-            @memcpy(c.vw, tt.vw);
-            for (0..RT.total) |i| {
-                c.cb[i] = tt.legal[i] and tt.vb[i] != UNDEF;
-                c.cw[i] = tt.legal[i] and tt.vw[i] != UNDEF;
-            }
-            @memset(c.lbb.?, -127);
-            @memset(c.ubb.?, 127);
-            @memset(c.lbw.?, -127);
-            @memset(c.ubw.?, 127);
-        }
-    }.go;
-
-    const hist = try gpa.create(RT.O.History);
-    defer gpa.destroy(hist);
-    hist.* = .{};
-
-    p("idx sd st | JUDGE | committed soundish | matches\n", .{});
-    var got: u64 = 0;
-    var com_ok: u64 = 0;
-    var snd_ok: u64 = 0;
-    var none_ok: u64 = 0;
-    var attempts: u64 = 0;
-    // most-filled first; stop after 60 footholds or 4000 attempts (bound wall)
-    var layer: usize = RT.n + 1;
-    while (layer > 0 and got < 60 and attempts < 4000) {
-        layer -= 1;
-        if (layer < 10) break; // deeper openings are hopeless for a memo-less judge
-        var li: u64 = RT.X.layer_offset[layer];
-        const stop = RT.X.layer_offset[layer + 1];
-        while (li < stop and got < 60 and attempts < 4000) : (li += 1) {
-            const i: usize = @intCast(li);
-            if (!t.legal[i]) continue;
-            var pos = RT.X.pos_from_colex(i);
-            inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
-                const fl = if (side > 0) t.fb[i] else t.fw[i];
-                if (fl & FLAG_KO_SENSITIVE != 0) {
-                    attempts += 1;
-                    jc.nodes = 0;
-                    if (RT.O.value_from_root(&jc, &pos, side, hist)) |jv| {
-                        got += 1;
-                        const cv: i8 = if (side > 0) art.vb[i] else art.vw[i];
-                        sc.memo_writes = false;
-                        seed_s(&sc, &t);
-                        const sv = RT.ab_value_from_root(&t, &sc, &pos, side, hist) catch 127;
-                        const cm = cv == jv;
-                        const sm = sv == jv;
-                        if (cm) com_ok += 1;
-                        if (sm) snd_ok += 1;
-                        if (!cm and !sm) none_ok += 1;
-                        p("{d:>8} {c} {d:>2} | {d:>4} | {d:>4} {d:>4} | {s}{s}{s}\n", .{
-                            i, @as(u8, if (side > 0) 'b' else 'w'), layer, jv, cv, sv,
-                            if (cm) "committed " else "", if (sm) "soundish " else "",
-                            if (!cm and !sm) "NONE" else "",
-                        });
-                    } else |_| {}
-                }
-            }
-        }
-    }
-    p("\nfoot4 RESULT: judge-reached={d} of {d} attempts | committed-correct={d} soundish-correct={d} none={d}\n", .{
-        got, attempts, com_ok, snd_ok, none_ok,
-    });
-}
-
-/// FOOTHOLD ADJUDICATION (ADR-0012 doctrine): the assumption-free Exact
-/// solver (ban-set-keyed, no brackets/seeds/ko_ref) is the only true oracle.
-/// It is intractable on the opening but tractable near the terminal wall.
-/// Run it on every KO_SENSITIVE 3x2 slot it can afford; where it completes,
-/// print the GROUND TRUTH beside all three finisher generations so we learn
-/// which (if any) is right — and aim the eventual fix at real values.
-fn foothold3x2(gpa: std.mem.Allocator) !void {
-    const RT = Retro(3, 2);
-    const EX = Exact(3, 2);
-    const p = std.debug.print;
-
-    var t = try RT.Tables.init(gpa);
-    defer t.deinit();
-    RT.seed(&t);
-    RT.converge(&t);
-    RT.finalize(&t);
-
-    var threaded = std.Io.Threaded.init(gpa, .{});
-    const io = threaded.io();
-    var old = try artifact.load(io, std.Io.Dir.cwd(), "artifacts/oracle-3x2.wzo", gpa);
-    defer old.deinit();
-
-    // two finisher solvers sharing one ctx: writes-ON (= "new") and
-    // writes-OFF (= least-assumption); certified seeds preloaded
-    var ctx = RT.O.Ctx{
-        .vb = try gpa.alloc(i8, RT.total),
-        .vw = try gpa.alloc(i8, RT.total),
-        .cb = try gpa.alloc(bool, RT.total),
-        .cw = try gpa.alloc(bool, RT.total),
-        .lbb = try gpa.alloc(i8, RT.total),
-        .ubb = try gpa.alloc(i8, RT.total),
-        .lbw = try gpa.alloc(i8, RT.total),
-        .ubw = try gpa.alloc(i8, RT.total),
-        .memo = true,
-        .budget = 3_000_000_000,
-    };
-    defer inline for (.{ ctx.vb, ctx.vw }) |a| gpa.free(a);
-    defer inline for (.{ ctx.cb, ctx.cw }) |a| gpa.free(a);
-    defer inline for (.{ ctx.lbb.?, ctx.lbw.? }) |a| gpa.free(a);
-    defer inline for (.{ ctx.ubb.?, ctx.ubw.? }) |a| gpa.free(a);
-    const seed_v = struct {
-        fn go(c: *RT.O.Ctx, tt: *const RT.Tables) void {
-            @memcpy(c.vb, tt.vb);
-            @memcpy(c.vw, tt.vw);
-            for (0..RT.total) |i| {
-                c.cb[i] = tt.legal[i] and tt.vb[i] != UNDEF;
-                c.cw[i] = tt.legal[i] and tt.vw[i] != UNDEF;
-            }
-            @memset(c.lbb.?, -127);
-            @memset(c.ubb.?, 127);
-            @memset(c.lbw.?, -127);
-            @memset(c.ubw.?, 127);
-        }
-    }.go;
-    const hist = try gpa.create(RT.O.History);
-    defer gpa.destroy(hist);
-    hist.* = .{};
-
-    var exctx = EX.Ctx{ .map = EX.Map.init(gpa), .entry_cap = 12_000_000 };
-    defer exctx.map.deinit();
-
-    p("foothold: Exact (assumption-free) vs old / new(writes-on) / soundish(writes-off), 3x2 residue\n", .{});
-    p("targeting most-filled disputed slots first (Exact shrinks as board fills)\n", .{});
-    p("idx sd st |  EXACT | old new sndish | who-matches-EXACT\n", .{});
-    var got: u64 = 0;
-    var old_ok: u64 = 0;
-    var new_ok: u64 = 0;
-    var snd_ok: u64 = 0;
-    var none_ok: u64 = 0;
-    // iterate DESCENDING stone count (layers high->low): the near-terminal
-    // disputed slots are the only Exact-reachable footholds
-    var layer: usize = RT.n + 1;
-    while (layer > 0) {
-        layer -= 1;
-        var li: u64 = RT.X.layer_offset[layer];
-        const stop = RT.X.layer_offset[layer + 1];
-        while (li < stop) : (li += 1) {
-            const i: usize = @intCast(li);
-            if (!t.legal[i]) continue;
-            var pos = RT.X.pos_from_colex(i);
-            inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
-                const flags = if (side > 0) t.fb[i] else t.fw[i];
-                if (flags & FLAG_KO_SENSITIVE != 0) {
-                    exctx.nodes = 0;
-                    exctx.budget = 300_000_000;
-                    exctx.map.clearRetainingCapacity();
-                    if (EX.root(&exctx, &pos, side)) |ex| {
-                    got += 1;
-                    const ov: i8 = if (side > 0) old.vb[i] else old.vw[i];
-                    ctx.brackets = true;
-                    ctx.memo_writes = true;
-                    seed_v(&ctx, &t);
-                    const nv = RT.ab_value_from_root(&t, &ctx, &pos, side, hist) catch 127;
-                    ctx.memo_writes = false;
-                    seed_v(&ctx, &t);
-                    const sv = RT.ab_value_from_root(&t, &ctx, &pos, side, hist) catch 127;
-                    const om = ov == ex;
-                    const nm = nv == ex;
-                    const sm = sv == ex;
-                    if (om) old_ok += 1;
-                    if (nm) new_ok += 1;
-                    if (sm) snd_ok += 1;
-                    if (!om and !nm and !sm) none_ok += 1;
-                    p("{d:>3} {c} {d:>2} | {d:>5} | {d:>3} {d:>3} {d:>6} | {s}{s}{s}{s}\n", .{
-                        i, @as(u8, if (side > 0) 'b' else 'w'), layer, ex, ov, nv, sv,
-                        if (om) "old " else "", if (nm) "new " else "", if (sm) "sound " else "",
-                        if (!om and !nm and !sm) "NONE" else "",
-                    });
-                } else |_| {} // unreachable within budget: no foothold here
-                }
-            }
-        }
-    }
-    p("\nfoothold RESULT: exact-reached={d} | old-correct={d} new-correct={d} soundish-correct={d} none-correct={d}\n", .{
-        got, old_ok, new_ok, snd_ok, none_ok,
-    });
-}
-
-fn adj3x2(gpa: std.mem.Allocator) !void {
-    const RT = Retro(3, 2);
-    const p = std.debug.print;
-    var t = try RT.Tables.init(gpa);
-    defer t.deinit();
-    RT.seed(&t);
-    RT.converge(&t);
-    RT.finalize(&t);
-
-    // load the COMMITTED (aspiration-era) artifact to compare against
-    var threaded = std.Io.Threaded.init(gpa, .{});
-    const io = threaded.io();
-    var old = try artifact.load(io, std.Io.Dir.cwd(), "artifacts/oracle-3x2.wzo", gpa);
-    defer old.deinit();
-
-    // SOUND adjudicating solver: bracket-guided (tractable) with cross-branch
-    // memo writes OFF (the convicted mechanism excluded). Bounds arrays are
-    // allocated but stay vacuous (writes suppressed); seeds + brackets cut.
-    var ctx = RT.O.Ctx{
-        .vb = try gpa.alloc(i8, RT.total),
-        .vw = try gpa.alloc(i8, RT.total),
-        .cb = try gpa.alloc(bool, RT.total),
-        .cw = try gpa.alloc(bool, RT.total),
-        .lbb = try gpa.alloc(i8, RT.total),
-        .ubb = try gpa.alloc(i8, RT.total),
-        .lbw = try gpa.alloc(i8, RT.total),
-        .ubw = try gpa.alloc(i8, RT.total),
-        .memo = true,
-        .memo_writes = false,
-        .brackets = true,
-        .budget = 4_000_000_000,
-    };
-    defer inline for (.{ ctx.vb, ctx.vw }) |a| gpa.free(a);
-    defer inline for (.{ ctx.cb, ctx.cw }) |a| gpa.free(a);
-    defer inline for (.{ ctx.lbb.?, ctx.lbw.? }) |a| gpa.free(a);
-    defer inline for (.{ ctx.ubb.?, ctx.ubw.? }) |a| gpa.free(a);
-    @memcpy(ctx.vb, t.vb);
-    @memcpy(ctx.vw, t.vw);
-    for (0..RT.total) |i| {
-        ctx.cb[i] = t.legal[i] and t.vb[i] != UNDEF;
-        ctx.cw[i] = t.legal[i] and t.vw[i] != UNDEF;
-    }
-    @memset(ctx.lbb.?, -127);
-    @memset(ctx.ubb.?, 127);
-    @memset(ctx.lbw.?, -127);
-    @memset(ctx.ubw.?, 127);
-    const hist = try gpa.create(RT.O.History);
-    defer gpa.destroy(hist);
-    hist.* = .{};
-
-    var agree_old: u64 = 0;
-    var disagree_old: u64 = 0;
-    var budget: u64 = 0;
-    p("adjudicator: 3x2 residue, SOUND solver (brackets on, cross-branch writes OFF) vs committed artifact\n", .{});
-    for (0..RT.total) |i| {
-        if (!t.legal[i]) continue;
-        var pos = RT.X.pos_from_colex(i);
-        inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
-            const flags = if (side > 0) t.fb[i] else t.fw[i];
-            if (flags & FLAG_KO_SENSITIVE != 0) {
-                // reset seeds (previous root may have left stale bounds — none,
-                // writes are off, but be explicit)
-                if (RT.ab_value_from_root(&t, &ctx, &pos, side, hist)) |v| {
-                    const ov = if (side > 0) old.vb[i] else old.vw[i];
-                    if (v == ov) {
-                        agree_old += 1;
-                    } else {
-                        disagree_old += 1;
-                        if (disagree_old <= 20)
-                            p("  DISAGREE idx {d} {c}: sound={d} committed-old={d}\n", .{ i, @as(u8, if (side > 0) 'b' else 'w'), v, ov });
-                    }
-                } else |_| budget += 1;
-            }
-        }
-    }
-    p("adjudicator RESULT: sound-vs-old agree={d} disagree={d} budget-skipped={d}\n", .{ agree_old, disagree_old, budget });
-    p("  (if disagree=0: OLD artifact was CORRECT, new finisher generation is BUGGY)\n", .{});
-    p("  (if disagree>0: OLD artifact also wrong at those slots)\n", .{});
-}
-
-fn runContra(gpa: std.mem.Allocator) void {
-    contra4x4(gpa) catch |err| std.debug.print("contra FAILED: {t}\n", .{err});
-}
-
-fn contra4x4(gpa: std.mem.Allocator) !void {
-    const RT = Retro(4, 4);
-    const p = std.debug.print;
-    const game10 = "C3 B2 B3 C2 A2 D3 C4 A3 A4 B1"; // through ply 10: B to move
-
-    var t = try RT.Tables.init(gpa);
-    defer t.deinit();
-    RT.seed(&t);
-    RT.converge(&t);
-    RT.finalize(&t);
-    p("contra: build done. quantity A = value(P10, B, prefix); B = max over children\n", .{});
-
-    var ctx = RT.O.Ctx{
-        .vb = try gpa.alloc(i8, RT.total),
-        .vw = try gpa.alloc(i8, RT.total),
-        .cb = try gpa.alloc(bool, RT.total),
-        .cw = try gpa.alloc(bool, RT.total),
-        .lbb = try gpa.alloc(i8, RT.total),
-        .ubb = try gpa.alloc(i8, RT.total),
-        .lbw = try gpa.alloc(i8, RT.total),
-        .ubw = try gpa.alloc(i8, RT.total),
-        .memo = true,
-        .budget = 3_000_000_000,
-    };
-    defer {
-        gpa.free(ctx.vb);
-        gpa.free(ctx.vw);
-        gpa.free(ctx.cb);
-        gpa.free(ctx.cw);
-        gpa.free(ctx.lbb.?);
-        gpa.free(ctx.ubb.?);
-        gpa.free(ctx.lbw.?);
-        gpa.free(ctx.ubw.?);
-    }
-    const hist = try gpa.create(RT.O.History);
-    defer gpa.destroy(hist);
-    hist.* = .{};
-
-    var pos: RT.Pos = [_]i8{0} ** 16;
-    hist.push(&pos);
-    var side: i8 = 1;
-    var it = std.mem.tokenizeScalar(u8, game10, ' ');
-    while (it.next()) |mv| {
-        const col: usize = @intCast(std.ascii.toUpper(mv[0]) - 'A');
-        const row: usize = @intCast(mv[1] - '0');
-        pos = try RT.R.pos_from_move(&pos, side, (4 - row) * 4 + col);
-        hist.push(&pos);
-        side = -side;
-    }
-    // side is now Black (ply 11 to move)
-    std.debug.assert(side == 1);
-
-    inline for (.{ true, false }) |use_brackets| {
-        inline for (.{ true, false }) |use_seeds| {
-            ctx.brackets = use_brackets;
-            const resetM = struct {
-                fn go(c: *RT.O.Ctx, tt: *const RT.Tables, seeds: bool) void {
-                    if (seeds) {
-                        @memcpy(c.vb, tt.vb);
-                        @memcpy(c.vw, tt.vw);
-                        for (0..RT.total) |i| {
-                            c.cb[i] = tt.legal[i] and tt.vb[i] != UNDEF;
-                            c.cw[i] = tt.legal[i] and tt.vw[i] != UNDEF;
-                        }
-                    } else {
-                        @memset(c.cb, false);
-                        @memset(c.cw, false);
-                    }
-                    @memset(c.lbb.?, -127);
-                    @memset(c.ubb.?, 127);
-                    @memset(c.lbw.?, -127);
-                    @memset(c.ubw.?, 127);
-                    c.nodes = 0;
-                }
-            }.go;
-
-            resetM(&ctx, &t, use_seeds);
-            const a: i16 = if (value_from_line(4, 4, &t, &ctx, &pos, 1, hist)) |v| v else |_| -999;
-            const a_nodes = ctx.nodes;
-            var best: i16 = -999;
-            var best_cell: usize = 99;
-            var total_nodes: u64 = 0;
-            for (0..16) |cell| {
-                if (pos[cell] != 0) continue;
-                const child = RT.R.pos_from_move(&pos, 1, cell) catch continue;
-                var banned = false;
-                for (hist.boards[0..hist.len]) |*b| {
-                    if (std.mem.eql(i8, b, &child)) {
-                        banned = true;
-                        break;
-                    }
-                }
-                if (banned) continue;
-                resetM(&ctx, &t, use_seeds);
-                hist.push(&child);
-                const cv: i16 = if (value_from_line(4, 4, &t, &ctx, &child, -1, hist)) |v| v else |_| -999;
-                hist.pop();
-                total_nodes += ctx.nodes;
-                if (cv != -999 and cv > best) {
-                    best = cv;
-                    best_cell = cell;
-                }
-            }
-            p("  brackets={s} seeds={s}: A={d} (nodes {d})  child-max={d} (cell {d}, nodes {d})  {s}\n", .{
-                if (use_brackets) "ON " else "OFF", if (use_seeds) "ON " else "OFF",
-                a, a_nodes, best, best_cell, total_nodes,
-                if (a != -999 and best != -999 and a < best) "INCONSISTENT" else "consistent-or-unknown",
-            });
-        }
-    }
 }
 
 /// ADJUDICATOR for the replay probe: plain assumption-free forward solve
@@ -2463,12 +2444,23 @@ fn verify4x4(gpa: std.mem.Allocator) !void {
 }
 
 fn run6x3(gpa: std.mem.Allocator) void {
-    saveArtifact(6, 3, gpa, "data/oracle-6x3.wzo", 20_000_000, 100_000, true, "data/oracle-6x3.checkpoint.wzo") catch |err| {
+    saveArtifact(6, 3, gpa, "data/oracle-6x3.wzo", 20_000_000, 100_000, true, "data/oracle-6x3.checkpoint.wzo", true, false) catch |err| {
         std.debug.print("6x3 run FAILED: {t}\n", .{err});
     };
 }
 
 fn run4x4(gpa: std.mem.Allocator) void {
+    // Finisher mode (ADR-0013): RETRO_DEPS=1 -> Track B fingerprint-guarded
+    // reuse (sound AND fast); RETRO_SOUND=1 -> Track A writes-off (sound, slow);
+    // neither -> fast legacy reuse (unsound residue). deps implies writes on.
+    const deps_4x4 = std.c.getenv("RETRO_DEPS") != null;
+    const memo_writes_4x4 = deps_4x4 or (std.c.getenv("RETRO_SOUND") == null);
+    // per-root node budget (RETRO_BUDGET, default 20M). Higher lets the hard
+    // opening roots complete instead of budget-skipping.
+    const budget_4x4: u64 = if (std.c.getenv("RETRO_BUDGET")) |b|
+        (std.fmt.parseInt(u64, std.mem.span(b), 10) catch 20_000_000)
+    else
+        20_000_000;
     // Full pipeline WITH persistence: a checkpoint after every finished
     // layer (resumable — rerun and it picks up where it stopped), final
     // artifact only if complete. data/ is gitignored (~258 MB files).
@@ -2477,14 +2469,411 @@ fn run4x4(gpa: std.mem.Allocator) void {
     // this size, so hopeless roots must fail FAST (~6 s each). Layers run
     // deepest-first, so the tractable bulk is solved and checkpointed
     // before the opening tail is even attempted.
-    saveArtifact(4, 4, gpa, "data/oracle-4x4.wzo", 20_000_000, 25_000, true, "data/oracle-4x4.checkpoint.wzo") catch |err| {
+    saveArtifact(4, 4, gpa, "data/oracle-4x4.wzo", budget_4x4, 25_000, true, "data/oracle-4x4.checkpoint.wzo", memo_writes_4x4, deps_4x4) catch |err| {
         std.debug.print("4x4 run FAILED: {t}\n", .{err});
     };
+}
+
+/// CENSUS (5x5 projection): build each board through seed+converge+finalize
+/// only (NO finisher — this is the cheap history-free part) and report the
+/// numbers that drive the 5x5 feasibility question: legal-position count
+/// (final table size), certified vs KO_SENSITIVE residue split and its
+/// fraction (does the hard part grow?), and convergence sweeps + wall time
+/// (out-of-core sweep cost). See docs/research/methods-and-findings.md sec 8.
+fn censusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+    const raw: u64 = RT.total;
+    const t0 = nowMs();
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+    const ms = nowMs() - t0;
+    // residue = KO_SENSITIVE slots (per side); certified = legal-but-not-residue
+    var res_b: u64 = 0;
+    var res_w: u64 = 0;
+    for (0..RT.total) |i| {
+        if (!t.legal[i]) continue;
+        if (t.fb[i] & FLAG_KO_SENSITIVE != 0) res_b += 1;
+        if (t.fw[i] & FLAG_KO_SENSITIVE != 0) res_w += 1;
+    }
+    const res = res_b + res_w;
+    const slots = t.legal_count * 2; // both sides
+    const pct = if (slots != 0) @as(f64, @floatFromInt(res)) * 100.0 / @as(f64, @floatFromInt(slots)) else 0;
+    p("{d}x{d}: raw 3^n={d:>12}  legal={d:>11} ({d:>2}% of raw)  settled={d:>11}\n", .{
+        w, h, raw, t.legal_count, t.legal_count * 100 / raw, t.settled_count,
+    });
+    p("       side-slots={d:>11}  residue(KO) B/W={d}/{d} = {d} ({d:.4}% of slots)  sweeps={d}  build={d} ms\n", .{
+        slots, res_b, res_w, res, pct, t.sweeps, ms,
+    });
+}
+
+/// BRACKET report (Option B, the honest scalable deliverable). After
+/// converge/finalize the L and H fixpoints bracket every node's value under
+/// ANY cycle convention whose cycle-value lies in [-N,N] (PSK, basic-ko,
+/// score-on-cycle-as-is, kill-X%, ...). Where L==H the value is CERTIFIED and
+/// rule-independent (no finisher, no ko rule needed). Where L<H the value is
+/// convention-dependent and provably lies in [L,H]. This reports the certified
+/// core, the empty-board bracket (the headline), and the residue bracket-width
+/// distribution — all sound, no finisher.
+fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+    const t0 = nowMs();
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+    const ms = nowMs() - t0;
+
+    var certified: u64 = 0;
+    var residue: u64 = 0;
+    // width histogram: index = hi-lo (0..2N), only residue (width>0) counted
+    var width_hist = [_]u64{0} ** (2 * RT.n + 1);
+    var max_width: i16 = 0;
+    for (0..RT.total) |i| {
+        if (!t.legal[i] or t.settled[i]) continue;
+        inline for (.{ .{ t.lo.b0, t.hi.b0 }, .{ t.lo.w0, t.hi.w0 } }) |c| {
+            const lo = c[0][i];
+            const hi = c[1][i];
+            if (lo == hi) {
+                certified += 1;
+            } else {
+                residue += 1;
+                const wdt: usize = @intCast(@as(i16, hi) - @as(i16, lo));
+                width_hist[wdt] += 1;
+                if (@as(i16, hi) - @as(i16, lo) > max_width) max_width = @as(i16, hi) - @as(i16, lo);
+            }
+        }
+    }
+    // settled slots are trivially certified (lo==hi==score); fold them in for
+    // the headline core fraction, since they are exact rule-independent too.
+    certified += t.settled_count * 2;
+    const slots = t.legal_count * 2;
+    const core_pct = @as(f64, @floatFromInt(certified)) * 100.0 / @as(f64, @floatFromInt(slots));
+
+    const e: usize = @intCast(RT.X.colex_from_pos(&([_]i8{0} ** RT.n)));
+    const elo = t.lo.b0[e];
+    const ehi = t.hi.b0[e];
+
+    p("{d}x{d}: slots={d}  CERTIFIED(core)={d} ({d:.2}%)  residue={d}  sweeps={d}  build={d}ms\n", .{
+        w, h, slots, certified, core_pct, residue, t.sweeps, ms,
+    });
+    if (elo == ehi) {
+        p("       empty(B) CERTIFIED = {d} (rule-independent)\n", .{elo});
+    } else {
+        p("       empty(B) bracket = [{d}, {d}]  (width {d}; value is convention-dependent)\n", .{ elo, ehi, @as(i16, ehi) - @as(i16, elo) });
+    }
+    p("       residue bracket-width histogram (width: count):", .{});
+    for (width_hist, 0..) |cnt, wdt| {
+        if (cnt != 0) p(" {d}:{d}", .{ wdt, cnt });
+    }
+    p("\n", .{});
+}
+
+fn runBracket(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("BRACKET: rule-independent certified core + [L,H] residue bracket (no finisher)\n", .{});
+    bracketBoard(3, 3, gpa) catch |e| p("  3x3 FAILED: {t}\n", .{e});
+    bracketBoard(4, 3, gpa) catch |e| p("  4x3 FAILED: {t}\n", .{e});
+    bracketBoard(4, 4, gpa) catch |e| p("  4x4 FAILED: {t}\n", .{e});
+}
+
+/// FAIL-FAST throughput comparison: build a board once, then run the residue
+/// finisher twice on fresh certified tables — fast REUSE path vs SOUND
+/// (writes-off) path — and report wall time, slots filled, and budget-skips.
+/// Quantifies the cost of dropping the (unsound) cross-branch reuse, the
+/// number that decides whether Track A alone can scale (ADR-0013).
+fn finishCompare(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) !void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+    p("finish-compare {d}x{d} (budget {d}/root): reuse=fast/unsound, sound=writes-off, deps=Track B guarded reuse\n", .{ w, h, budget });
+    const Mode = struct { name: []const u8, writes: bool, deps: bool };
+    inline for (.{
+        Mode{ .name = "reuse", .writes = true, .deps = false },
+        Mode{ .name = "sound", .writes = false, .deps = false },
+        Mode{ .name = "deps ", .writes = true, .deps = true },
+    }) |m| {
+        var t = try RT.Tables.init(gpa);
+        defer t.deinit();
+        RT.seed(&t);
+        RT.converge(&t);
+        RT.finalize(&t);
+        const t0 = nowMs();
+        const fin = try RT.finishProgress(&t, gpa, budget, true, 0, m.writes, m.deps);
+        const ms = nowMs() - t0;
+        var unfilled: u64 = 0;
+        for (0..RT.total) |i| {
+            if (t.legal[i] and (t.vb[i] == UNDEF or t.vw[i] == UNDEF)) unfilled += 1;
+        }
+        p("  [{s}] solved={d} filled={d} skipped={d} unfilled={d} nodes={d} max/root={d}  {d} ms\n", .{
+            m.name, fin.solved, fin.filled, fin.budget_skipped, unfilled, fin.nodes, fin.max_nodes, ms,
+        });
+    }
+}
+
+fn runCompare(gpa: std.mem.Allocator) void {
+    finishCompare(3, 3, gpa, 500_000_000) catch |e| std.debug.print("cmp 3x3 FAILED: {t}\n", .{e});
+    finishCompare(4, 3, gpa, 200_000_000) catch |e| std.debug.print("cmp 4x3 FAILED: {t}\n", .{e});
+}
+
+/// CORRECTNESS gate for Track B: finish the same board two ways — sound
+/// (writes-off) and deps (fingerprint-guarded reuse) — and compare every
+/// filled value slot. They MUST be identical: deps is only sound if it
+/// reproduces the writes-off values exactly. (The auditor proves
+/// self-consistency; this proves value-equality with the trusted baseline.)
+fn depsValidate(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) !void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+    var ts = try RT.Tables.init(gpa);
+    defer ts.deinit();
+    RT.seed(&ts);
+    RT.converge(&ts);
+    RT.finalize(&ts);
+    _ = try RT.finishProgress(&ts, gpa, budget, true, 0, false, false); // sound
+
+    var td = try RT.Tables.init(gpa);
+    defer td.deinit();
+    RT.seed(&td);
+    RT.converge(&td);
+    RT.finalize(&td);
+    _ = try RT.finishProgress(&td, gpa, budget, true, 0, true, true); // deps
+
+    var mism: u64 = 0;
+    var checked: u64 = 0;
+    for (0..RT.total) |i| {
+        if (!ts.legal[i]) continue;
+        inline for (.{ true, false }) |black| {
+            const a = if (black) ts.vb[i] else ts.vw[i];
+            const b = if (black) td.vb[i] else td.vw[i];
+            if (a != UNDEF or b != UNDEF) {
+                checked += 1;
+                if (a != b) {
+                    mism += 1;
+                    if (mism <= 10) p("  MISMATCH idx {d} {c}: sound={d} deps={d}\n", .{ i, @as(u8, if (black) 'b' else 'w'), a, b });
+                }
+            }
+        }
+    }
+    p("deps-validate {d}x{d}: checked={d} mismatches={d}  -> {s}\n", .{
+        w, h, checked, mism, if (mism == 0) "IDENTICAL (deps correct)" else "DIVERGED (deps BUGGY)",
+    });
+}
+
+fn runDepsVal(gpa: std.mem.Allocator) void {
+    depsValidate(3, 2, gpa, 500_000_000) catch |e| std.debug.print("depsval 3x2 FAILED: {t}\n", .{e});
+    depsValidate(3, 3, gpa, 500_000_000) catch |e| std.debug.print("depsval 3x3 FAILED: {t}\n", .{e});
+    depsValidate(4, 3, gpa, 200_000_000) catch |e| std.debug.print("depsval 4x3 FAILED: {t}\n", .{e});
+}
+
+/// RULES experiment (sanity tier): solve the EMPTY board with the exact
+/// PSK solver, kill_pct = 0 (pure PSK) vs 50 (kill->immediate scored end), and
+/// report the value + search size. Answers: (a) does kill-50 change the true
+/// value? (b) does the kill rule make the otherwise-explosive exact solve
+/// terminate? Tiny boards only (exact PSK is intractable beyond ~3x3).
+fn rulesBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) void {
+    const EX = Exact(w, h);
+    const p = std.debug.print;
+    for ([_]u8{ 0, 50 }) |kill| {
+        var ctx = EX.Ctx{ .map = EX.Map.init(gpa), .budget = budget, .kill_pct = kill };
+        defer ctx.map.deinit();
+        var empty: EX.R.Pos = [_]i8{0} ** (w * h);
+        ctx.nodes = 0;
+        const rb = EX.root(&ctx, &empty, 1);
+        const bnodes = ctx.nodes;
+        const states = ctx.map.count();
+        if (rb) |v| {
+            p("  {d}x{d} kill={d:>2}%: empty(B) = {d:>3}  (nodes {d}, states {d})\n", .{ w, h, kill, v, bnodes, states });
+        } else |_| {
+            p("  {d}x{d} kill={d:>2}%: empty(B) = BUDGET-EXCEEDED (> {d} nodes, states {d})\n", .{ w, h, kill, budget, states });
+        }
+    }
+}
+
+fn runRules(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("RULES: exact PSK, kill_pct 0 vs 50, empty-board value (sanity tier)\n", .{});
+    rulesBoard(2, 2, gpa, 200_000_000);
+    rulesBoard(3, 2, gpa, 200_000_000);
+    rulesBoard(3, 3, gpa, 200_000_000);
+    rulesBoard(4, 3, gpa, 200_000_000);
+}
+
+/// Option B probe: exact empty-board value under basic-ko + score-on-cycle
+/// (the game ends and is scored AS-IS the first time a longer cycle would
+/// repeat an earlier board). Reported side by side with pure PSK so we can
+/// see (a) whether the rule changes the value and (b) whether it is any more
+/// tractable than PSK. History-dependent, so a values probe, not generation.
+fn cycleBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) void {
+    const EX = Exact(w, h);
+    const p = std.debug.print;
+    const Row = struct { label: []const u8, cyc: bool };
+    for ([_]Row{ .{ .label = "PSK        ", .cyc = false }, .{ .label = "basic+cycle", .cyc = true } }) |row| {
+        var ctx = EX.Ctx{ .map = EX.Map.init(gpa), .budget = budget, .cycle_score = row.cyc };
+        defer ctx.map.deinit();
+        var empty: EX.R.Pos = [_]i8{0} ** (w * h);
+        ctx.nodes = 0;
+        const rb = EX.root(&ctx, &empty, 1);
+        if (rb) |v| {
+            p("  {d}x{d} {s}: empty(B) = {d:>3}  (nodes {d}, states {d})\n", .{ w, h, row.label, v, ctx.nodes, ctx.map.count() });
+        } else |_| {
+            p("  {d}x{d} {s}: empty(B) = BUDGET-EXCEEDED (> {d} nodes, states {d})\n", .{ w, h, row.label, budget, ctx.map.count() });
+        }
+    }
+}
+
+fn runCycle(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("CYCLE: exact empty-board value, PSK vs basic-ko + score-on-cycle-as-is\n", .{});
+    cycleBoard(2, 2, gpa, 200_000_000);
+    cycleBoard(3, 2, gpa, 200_000_000);
+    cycleBoard(3, 3, gpa, 200_000_000);
+    cycleBoard(4, 3, gpa, 200_000_000);
+}
+
+/// N-PLY SWEEP (the agreed experiment): exact empty-board value + tractability
+/// under the bounded-history superko family. For each N in {1,2,4,6,8} a move
+/// may not recreate any of the last N boards, and a repeat OLDER than the
+/// window ends the game scored by area. N=1 is basic ko; large N approaches
+/// PSK. We watch two things: (1) does the VALUE converge toward the PSK anchor
+/// as N grows? (2) does small N stay TRACTABLE (score-on-cycle ends games
+/// early, potentially pruning the tree PSK can't prune)?
+fn plyBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) void {
+    const EX = Exact(w, h);
+    const p = std.debug.print;
+    var empty: EX.R.Pos = [_]i8{0} ** (w * h);
+
+    // PSK anchor (unbounded superko, no score-on-cycle)
+    {
+        var ctx = EX.Ctx{ .map = EX.Map.init(gpa), .budget = budget, .entry_cap = 5_000_000, .cycle_score = false };
+        defer ctx.map.deinit();
+        const rb = EX.root(&ctx, &empty, 1);
+        if (rb) |v| {
+            p("  {d}x{d} PSK   : empty(B) = {d:>3}  (nodes {d}, states {d})\n", .{ w, h, v, ctx.nodes, ctx.map.count() });
+        } else |_| {
+            p("  {d}x{d} PSK   : empty(B) = BUDGET (> {d} nodes, states {d})\n", .{ w, h, budget, ctx.map.count() });
+        }
+    }
+    // N-ply window + score-on-cycle
+    for ([_]usize{ 1, 2, 4, 6, 8 }) |ply| {
+        if (ply > EX.MAX_KO_PLY) continue;
+        var ctx = EX.Ctx{ .map = EX.Map.init(gpa), .budget = budget, .entry_cap = 5_000_000, .cycle_score = true, .ko_ply = ply };
+        defer ctx.map.deinit();
+        const rb = EX.root(&ctx, &empty, 1);
+        if (rb) |v| {
+            p("  {d}x{d} {d}-ply : empty(B) = {d:>3}  (nodes {d}, states {d})\n", .{ w, h, ply, v, ctx.nodes, ctx.map.count() });
+        } else |_| {
+            p("  {d}x{d} {d}-ply : empty(B) = BUDGET (> {d} nodes, states {d})\n", .{ w, h, ply, budget, ctx.map.count() });
+        }
+    }
+}
+
+fn runPly(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("N-PLY SWEEP: exact empty-board value + tractability, N in {{1,2,4,6,8}} vs PSK\n", .{});
+    p("  (N-ply = ban last N boards; older repeat scores as-is; N=1 basic ko, N->inf PSK)\n", .{});
+    plyBoard(2, 2, gpa, 200_000_000);
+    plyBoard(3, 2, gpa, 200_000_000);
+    plyBoard(3, 3, gpa, 200_000_000);
+}
+
+/// KILL-CENSUS: retrograde build-only census with a given kill_pct, reporting
+/// how the residue (KO_SENSITIVE) fraction responds to the kill-X% rule. The
+/// retrograde engine is tractable at 4x4 (unlike the exact solver), so this is
+/// how we measure the kill rule where it matters.
+fn killCensusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, kill_pct: u8) !void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+    const t0 = nowMs();
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    t.kill_pct = kill_pct;
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+    var res: u64 = 0;
+    for (0..RT.total) |i| {
+        if (!t.legal[i]) continue;
+        if (t.fb[i] & FLAG_KO_SENSITIVE != 0) res += 1;
+        if (t.fw[i] & FLAG_KO_SENSITIVE != 0) res += 1;
+    }
+    const slots = t.legal_count * 2;
+    const pct = @as(f64, @floatFromInt(res)) * 100.0 / @as(f64, @floatFromInt(slots));
+    const e: usize = @intCast(RT.X.colex_from_pos(&([_]i8{0} ** RT.n)));
+    const cert = t.fb[e] & FLAG_KO_SENSITIVE == 0;
+    p("{d}x{d} kill={d:>3}%: residue={d}/{d} ({d:.4}%) sweeps={d} empty(B)={s} build={d}ms\n", .{
+        w, h, kill_pct, res, slots, pct, t.sweeps,
+        if (cert) "certified" else "still-residue", nowMs() - t0,
+    });
+}
+
+fn runKillCensus(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("KILL-CENSUS 4x4: residue fraction vs kill_pct (kill=0 baseline = 21.32%)\n", .{});
+    inline for (.{ @as(u8, 0), 50, 40, 30 }) |k| {
+        killCensusBoard(4, 4, gpa, k) catch |e| p("  4x4 kill={d} FAILED: {t}\n", .{ k, e });
+    }
+}
+
+fn runCensus(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("CENSUS: history-free build only (no finisher). Residue = the hard part.\n\n", .{});
+    inline for (.{ .{ 2, 2 }, .{ 3, 2 }, .{ 3, 3 }, .{ 4, 3 }, .{ 4, 4 } }) |b| {
+        censusBoard(b[0], b[1], gpa) catch |err| p("  {d}x{d} FAILED: {t}\n", .{ b[0], b[1], err });
+    }
 }
 
 pub fn main() !void {
     const gpa = std.heap.page_allocator;
     std.debug.print("weizigo retrograde engine (ADR-0009) -- L/H value iteration + finisher + battery\n\n", .{});
+    if (std.c.getenv("RETRO_CENSUS") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runCensus, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_RULES") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runRules, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_KILLCENSUS") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runKillCensus, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_CYCLE") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runCycle, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_BRACKET") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runBracket, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_CORE") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runCore, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_PLY") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runPly, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_CMP") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runCompare, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_DEPSVAL") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runDepsVal, .{gpa});
+        thread.join();
+        return;
+    }
     if (std.c.getenv("RETRO_DIAG") != null) {
         try runBoard(2, 2, gpa, .{ .diag_only = true });
         try runBoard(3, 2, gpa, .{ .diag_only = true });
@@ -2501,40 +2890,20 @@ pub fn main() !void {
     }
     if (std.c.getenv("RETRO_SAVE") != null) {
         // persist the complete oracles (2x2, 3x2, 3x3) as ADR-0011 artifacts
-        try saveArtifact(2, 2, gpa, "artifacts/oracle-2x2.wzo", 500_000_000, 0, false, null);
-        try saveArtifact(3, 2, gpa, "artifacts/oracle-3x2.wzo", 500_000_000, 0, false, null);
-        try saveArtifact(3, 3, gpa, "artifacts/oracle-3x3.wzo", 500_000_000, 0, false, null);
+        try saveArtifact(2, 2, gpa, "artifacts/oracle-2x2.wzo", 500_000_000, 0, false, null, false, false);
+        try saveArtifact(3, 2, gpa, "artifacts/oracle-3x2.wzo", 500_000_000, 0, false, null, false, false);
+        try saveArtifact(3, 3, gpa, "artifacts/oracle-3x3.wzo", 500_000_000, 0, false, null, false, false);
+        // 4x3 completes fully with the sound (writes-off) finisher (residue is
+        // tractable at this size — measured 0 budget-skips); provably correct.
+        try saveArtifact(4, 3, gpa, "artifacts/oracle-4x3.wzo", 2_000_000_000, 0, false, null, false, false);
         // external checksums of the files as written (verify independently of
         // the reader: `shasum -a 256 -c artifacts/SHA256SUMS` from repo root)
         try writeChecksums(gpa, "artifacts/SHA256SUMS", &.{
             "artifacts/oracle-2x2.wzo",
             "artifacts/oracle-3x2.wzo",
             "artifacts/oracle-3x3.wzo",
+            "artifacts/oracle-4x3.wzo",
         });
-        return;
-    }
-    if (std.c.getenv("RETRO_FOOTHOLD") != null) {
-        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runFoothold, .{gpa});
-        thread.join();
-        return;
-    }
-    if (std.c.getenv("RETRO_FOOT4") != null) {
-        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runFoot4, .{gpa});
-        thread.join();
-        return;
-    }
-    if (std.c.getenv("RETRO_ADJ") != null) {
-        // ADJUDICATE the 3x2 finisher-generation disagreement: recompute
-        // every residue slot with the seeds-only NO-WRRITES solver (no
-        // cross-branch reuse possible) and print idx/side/value for diffing
-        // against both artifact generations.
-        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runAdj, .{gpa});
-        thread.join();
-        return;
-    }
-    if (std.c.getenv("RETRO_CONTRA") != null) {
-        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runContra, .{gpa});
-        thread.join();
         return;
     }
     if (std.c.getenv("RETRO_CONSIST") != null) {

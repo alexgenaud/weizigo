@@ -203,8 +203,9 @@ const LogSink = struct {
 
 const KNOWN_COMMANDS = [_][]const u8{
     "protocol_version", "name",        "version",  "known_command", "list_commands",
-    "boardsize",        "clear_board", "komi",     "play",          "genmove",
-    "undo",             "showboard",   "final_score", "quit",
+    "boardsize",        "rectangular_boardsize",    "clear_board",   "komi",
+    "play",             "genmove",     "undo",     "showboard",     "final_score",
+    "quit",
 };
 
 fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *const artifact.Decoded, log: *const LogSink) !void {
@@ -272,10 +273,17 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 }
                 @memcpy(rbuf[0..ll], lb[0..ll]);
                 reply = rbuf[0..ll];
-            } else if (std.mem.eql(u8, first, "boardsize")) {
+            } else if (std.mem.eql(u8, first, "boardsize") or std.mem.eql(u8, first, "rectangular_boardsize")) {
+                // Square GTP is "boardsize N"; for non-square boards Sabaki
+                // sends "rectangular_boardsize W H" (and detects support via
+                // known_command, so it MUST be listed). Either way: first token
+                // = width, optional second = height (defaults to width). The
+                // board is fixed by the artifact; accept only an exact match.
                 const q = tokens.next() orelse "";
-                const want = std.fmt.parseInt(usize, q, 10) catch 0;
-                if (want == w and w == h) {
+                const want_w = std.fmt.parseInt(usize, q, 10) catch 0;
+                const q2 = tokens.next();
+                const want_h = if (q2) |s2| (std.fmt.parseInt(usize, s2, 10) catch 0) else want_w;
+                if (want_w == w and want_h == h) {
                     s.reset();
                 } else {
                     ok = false;
@@ -434,6 +442,7 @@ pub fn main(init: std.process.Init) !void {
         202 => try runSession(2, 2, gpa, &dec, &log),
         302 => try runSession(3, 2, gpa, &dec, &log),
         303 => try runSession(3, 3, gpa, &dec, &log),
+        403 => try runSession(4, 3, gpa, &dec, &log),
         404 => try runSession(4, 4, gpa, &dec, &log),
         603 => try runSession(6, 3, gpa, &dec, &log),
         505 => try runSession(5, 5, gpa, &dec, &log),

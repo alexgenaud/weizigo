@@ -278,6 +278,7 @@ pub fn main(init: std.process.Init) !void {
         202 => try runArena(2, 2, gpa, &dec, num_seeds, det),
         302 => try runArena(3, 2, gpa, &dec, num_seeds, det),
         303 => try runArena(3, 3, gpa, &dec, num_seeds, det),
+        403 => try runArena(4, 3, gpa, &dec, num_seeds, det),
         404 => try runArena(4, 4, gpa, &dec, num_seeds, det),
         603 => try runArena(6, 3, gpa, &dec, num_seeds, det),
         else => return error.UnsupportedBoard,

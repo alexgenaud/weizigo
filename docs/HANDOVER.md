@@ -2,9 +2,140 @@
 
 Snapshot for resuming after a context compact/clear. Read this, then
 `docs/ARCHITECTURE.md` (module map), `docs/TODO.md`, and the ADRs.
-Updated 2026-07-23.
+Updated 2026-07-24.
 
-## LATEST (2026-07-23): FINISHER CORRECTNESS CRISIS — build #2 auditor, then #3 (KM)
+## LATEST (2026-07-24): STRATEGIC PIVOT — abandon PSK solving; move to configurable rules (SIMPLE ko / kill-X%)
+
+Big decision this session: **stop trying to exact-solve positional superko
+(PSK).** We proved it's the wrong target — PSK is intractable by the sound
+exact method even on the EMPTY 2x2 board (118M ban-set states), and the PSK 4x4
+residue's capture-reopening tangles budget-skip in the hundreds. **Tracks A and
+B (sound PSK 4x4) are ABANDONED.** Full rationale + research in
+`docs/research/ruleset-options.md`.
+
+WHY (researched, sourced): PSK is a computer-Go convenience, NOT how real Go is
+played. Japan/Korea = basic ko + no-result on cycles; China = anti-repetition;
+AGA/NZ/Tromp-Taylor = superko; AlphaGo vs Lee Sedol/Ke Jie = Chinese rules (not
+PSK). Strong bots (AlphaGo/KataGo) SIDESTEP superko: bounded history (~8 board
+planes) + engine-computed "illegal move" plane + ESTIMATED value. So superko's
+graph-history-interaction pain is essentially a PROVABLE-SOLVER problem;
+approximate bots never face it. KataGo is the model: CONFIGURABLE ko
+{SIMPLE, POSITIONAL, SITUATIONAL} x scoring {AREA, TERRITORY}.
+
+TWO CONTEXTS (do not conflate):
+- GENERATION (the table): ONE fixed tractable rule; values perfect for THAT
+  rule only. Target rule = SIMPLE ko (+ area, + optional kill-X%). NOT PSK.
+- PLAY / interop: can enforce any ko rule for legality (cheap); perfect only
+  when the loaded table's rule matches. PSK/SSK kept only as play-time skins.
+- Keep ALL tables, tagged by (size, ruleset): PSK small tables stay as sanity;
+  new-rule/larger tables get their own files.
+
+PROJECT DIRECTION (user): sub-4x4 teaches nothing about Go — infra-sanity only.
+All CONCEPT work at 4x4 minimum. 4x3 true value = Black +4 (perfect).
+
+KILL-CENSUS VERDICT (RETRO_KILLCENSUS, complete — full 4x4 build per row):
+| kill_pct | residue / 48,636,330 | fraction | empty(B) |
+|---|---|---|---|
+| 0 (PSK) | 10,367,922 | 21.32% | still-residue |
+| 50% | 10,331,246 | 21.24% | still-residue |
+| 40% | 10,521,182 | 21.63% | still-residue |
+| 30% | 12,163,434 | 25.01% | still-residue |
+**kill-X% does NOT collapse the 4x4 residue — it makes it WORSE** (lower
+thresholds fragment the graph with mid-game terminals -> MORE ko-sensitive
+states). Empty board ambiguous at every threshold. **OPTION A DEAD.** Output
+archived: `<scratchpad>/killcensus.out` (task bjc2oed6j).
+`<scratchpad>` = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/<uuid>/scratchpad
+
+OPTION B (chosen) — basic ko + score-on-cycle-as-is. THE THEORY CATCH (learned,
+important): "score-on-cycle-as-is" is genuinely PATH-DEPENDENT (the value from a
+board depends on which earlier boards were seen), so it CANNOT be pinned exactly
+by a history-free (board,side) retrograde table — same wall as PSK. A bounded
+(board,side,ko-point) state fixes basic-ko LEGALITY but still not the
+longer-cycle TERMINAL. So the sound + scalable deliverable is NOT a fragile
+single number; it is:
+  1. The RULE-INDEPENDENT CERTIFIED CORE. Where L==H (~79% of 4x4) the value is
+     identical under PSK / basic-ko / score-on-cycle / kill-X% — any cycle
+     convention. Already computed by cheap converge/finalize, NO finisher.
+  2. The HONEST [L,H] BRACKET for the residue. Every residue value under any
+     in-[-N,N] cycle rule lies in [L,H]; ship the bracket, not a guess.
+Pinning residue exactly needs full history (exact solver, intractable >~3x3) or
+a loopy-combinatorial-game solver (future work).
+
+EVIDENCE (both probes complete, committed 3771ec6/d8ef32b):
+- `RETRO_CYCLE` (Exact.Ctx.cycle_score): basic-ko+score-on-cycle is EXACTLY as
+  exact-intractable as PSK — 2x2/3x2 empty budget-exceed at byte-identical
+  state counts (118,475,182 / 116,114,272) under both rules (a repeated board
+  never recurses either way). Path-dependent -> the theory wall. (3x3+ OOM at
+  200M nodes; identity already proven at 3x2.)
+- `RETRO_BRACKET` (the deliverable, no finisher):
+  | board | slots | certified core | empty(B) bracket | anchor |
+  |---|---|---|---|---|
+  | 3x3 | 25,350 | 65.69% | [2,9] w7 | +9 in-bracket |
+  | 4x3 | 643,378 | 73.53% | [-1,12] w13 | +4 in-bracket |
+  | 4x4 | 48,636,330 | **78.68%** | [-6,16] w22 | +2 in-bracket |
+  4x4 residue 10,367,922 == kill=0 census (regression check). But 3.7M residue
+  slots have width-32 = [-16,16] = ZERO info; empty bracket [-6,16] w22/32.
+  => certified core is the real result; single "value of 4x4" NOT pinnable
+  soundly by tractable means.
+
+OPEN FORK (surfaced to user, awaiting steer): (a) accept core+bracket as THE
+deliverable (finisher removable, player -> bracket-based); (b) build loopy-
+combinatorial-game solver to pin residue (research-grade, uncertain); (c) pivot
+to 5x5 CERTIFIED-CORE (converge/finalize polynomial, NO finisher; but 3^25
+states => needs out-of-core + symmetry folding first). Lean: (c)+(a)'s cleanup.
+Cleanup (b/c) shape depends on this choice. Probe outputs archived:
+`<scratchpad>/{killcensus,cycle,bracket}.out`.
+
+CLEANUP (code health audit done — solid tested core, but retro.zig bloated):
+- (a) DONE: deleted dead crisis probes (RETRO_FOOTHOLD/FOOT4/ADJ/CONTRA),
+  retro.zig 3132->2653 lines, 90 tests pass.
+- (b) GATED ON CENSUS: if finisher unneeded (residue collapses), DELETE the
+  now-PSK-specific machinery: Finisher (MTD, per-root bounds memo, journal),
+  Track B deps/fingerprint (dep_map, fpBits/fpOr/fpDisjoint, Fp type,
+  countStones/dep_layer_max remnants), and the entanglement in ab_solve;
+  else trim. saveArtifact checkpoint/resume may also go.
+- (c) collapse remaining ~19 RETRO_* env probes into a few documented subcmds.
+
+KEY ARTIFACTS/BINARIES this session:
+- kill-X% implemented in BOTH the exact solver (Exact.Ctx.kill_pct) and the
+  retrograde L/H sweep (Tables.kill_pct); kill=0 is a byte-identical no-op
+  (built-in regression check). Probes: RETRO_RULES (exact, tiny), RETRO_CENSUS,
+  RETRO_KILLCENSUS.
+- Playable: `weizigo-oracle <artifact>` (GTP; 2x2/3x2/3x3/4x3/4x4; supports
+  `rectangular_boardsize W H` for Sabaki non-square). `weizigo-arena <artifact>
+  <seeds>` measured the fresh-start PLAYER leaks ~9% of 4x3 games (the player
+  is NOT history-perfect even though the table is sound — a separate gap; a
+  history-perfect genmove is future work).
+
+### Superseded (2026-07-23): CRISIS RESOLVED — #2 auditor convicted the write path; Track A/B
+
+The #2 self-consistency auditor is BUILT (`RETRO_CONSIST` 3x2 exhaustive,
+`RETRO_CONSIST4` 4x4 deepest-N sample) and RAN. VERDICT on 3x2 (378 slots):
+`new` (memo_writes ON, the committed generation) = **45 violations, PROVABLY
+BUGGY**; `soundish` (writes OFF) = **0 violations, self-consistent**. The
+empty board is caught: new=-2 but its own best child=0 (published value).
+Bug site pinned: the `ko_ref >= d` memo-write guard (oracle.zig:208,
+retro.zig:468) — an unsound GHI shortcut. Full result: `research/
+consistency-audit.md`. Decision record: `ADR-0013`. Plain-English narrative
+of the whole project (goal, dead ends, limits, 5x5 outlook, for a
+non-technical Go player): `research/methods-and-findings.md`.
+
+REFRAMING (important): `soundish` is CORRECT through 4x4 by construction (it
+reuses only certified L==H values; else plain bracket-guided alpha-beta over
+the real superko history = the Exact solver minus its ban-set memo). So:
+- TRACK A (correctness now): regenerate 2x2..4x4 with memo_writes=false,
+  re-verify (auditor + battery + arena), re-hash. Delivers a correct oracle.
+- TRACK B (speed for 5xN): Kishimoto-Muller dependency-guarded memo — restore
+  sound cross-branch reuse; #2 auditor is its acceptance gate.
+#3 (KM) is a SCALING optimization, NOT a correctness prerequisite.
+
+OPEN MEASUREMENT (blocks the 5x5 promise): writes-off 4x4 tractability. The
+`RETRO_CONSIST4` 400-node sample did NOT finish in ~14 min (killed) — writes-
+off history-exact solving is expensive at 4x4. `RETRO_CENSUS` (new) reports
+the residue-growth + table-size projection numbers (2x2..4x4). If writes-off
+full 4x4 finish is impractical, Track B becomes blocking, not a follow-up.
+
+### Superseded crisis notes (kept for the record)
 
 The pilot gate (`tools/pilot_gate.sh`, ADR-0012) caught it: regenerating the
 committed small artifacts with the current engine changes deep-residue

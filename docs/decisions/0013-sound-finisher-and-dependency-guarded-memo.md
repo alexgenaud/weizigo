@@ -64,21 +64,55 @@ Cost: writes off forfeits the within-search bounds reuse that made MTD probes
 incremental. Tractability at 4×4 is being measured; if a full writes-off 4×4
 finish is impractical, Track B becomes blocking rather than a follow-up.
 
-### Track B — speed at 5×N: Kishimoto–Müller dependency-guarded memo
+### Track B — sound cross-branch reuse via dependency fingerprints (IMPLEMENTED)
 
-Restore sound cross-branch reuse. Each residue memo entry records the set of
-history positions its value depended on for repetition detection (the
-Kishimoto–Müller GHI solution). An entry is reusable at a new arrival iff every
-position in that dependency set has the same in-path / not-in-path membership
-as when the entry was written — i.e. the new path cannot introduce or remove a
-repetition the stored value relied on. Sound by construction; the
-`ko_ref >= d` scalar is replaced by a membership test against the recorded set.
+Restore sound reuse. The Kishimoto–Müller idea: a memo entry is reusable at a
+new arrival only when the new search path cannot introduce or remove a
+repetition the stored value relied on. Concretely, an entry's value depends on
+the set of board positions its subtree touched (call it D); reuse is safe iff
+none of the current search-path ancestors is in D (a disjoint ancestor set
+cannot create a new superko ban inside the subtree, so the value is unchanged).
 
-Open implementation question (defer to 5×N work, profile first): the
-dependency set is variable-size per residue slot. The truly-clean subset
-(`ko_ref == KO_CLEAN`, no repetition anywhere in the subtree) is already sound
-to memoize globally and is the cheap floor; the value of KM is precisely the
-residue entries between that floor and the flawed `ko_ref >= d` ceiling.
+**Realization (`deps` mode, retro.zig ab_solve):** storing the full set D per
+entry is memory-prohibitive, so D is summarized as a **Bloom fingerprint** — a
+`64 * FP_WORDS`-bit word with a few hash-selected bits per position. Each node
+returns its subtree fingerprint (self OR children OR ban-targets); every memo
+write (exact value AND fail-soft bounds) records it, journal-reverted per root.
+On read, the entry is honoured only when `fpDisjoint(entry_fp, anc_or)`, where
+`anc_or` is the OR of the ancestors' fingerprints threaded down the recursion.
+Equal positions hash identically, so a shared set bit is the ONLY way an
+ancestor can be in D; bit-disjointness therefore *proves* safety. False
+positives (bit collisions) only forgo reuse — never correctness. The unsound
+`ko_ref >= d` unconditional reuse is replaced by this guarded reuse.
+
+**Validated (3×2/3×3/4×3):** `RETRO_CONSIST` → deps 0 auditor violations
+(self-consistent); `RETRO_DEPSVAL` → deps values byte-**identical** to
+writes-off (correct, not merely consistent). Sound and correct.
+
+**Measured tradeoff (`RETRO_CMP`):** reuse recovery grows with fingerprint
+width because a too-narrow fingerprint *saturates* (residue subtrees touch far
+more than 64 positions, so every entry's bits fill and always collide):
+
+| width | 3×3 nodes (sound=315k, unsound=79k) | 4×3 nodes (sound=183M, unsound=11M) |
+|---|---|---|
+| 64 bit | 315k (≈0 reuse) | 183M (≈0 reuse) |
+| 256 bit | 304k (~4%) | 181M (~1%) |
+| 4096 bit | 139k (~75% of gap), ~2× faster | 105M (~45%), ~1.7× faster than sound |
+
+So Track B is **sound, correct, and faster than writes-off** — but the reuse it
+recovers is bought with fingerprint memory (`8 * FP_WORDS` bytes per slot per
+side), and even at 4096 bits it recovers under half the unsound path's reuse at
+4×3 (the unsound path is faster only because its unsafe reuses *happen* to be
+correct most of the time). **This memory-for-reuse tradeoff is the central 5×N
+obstacle:** at 5×5's ~tens of billions of entries, even a 256-bit fingerprint
+is terabytes. Exact dependency sets would be precise but larger still.
+
+Open directions (5×N): out-of-core / streamed dependency storage; shrinking D
+to only ancestor-*candidate* positions (those reachable as future ancestors);
+per-bound (not shared) fingerprints with replace-not-OR to cut saturation; or
+accepting partial reuse. The truly-clean subset (`ko_ref == KO_CLEAN`) is a
+sound cheap floor but, on its own, does not make a re-encounter safe (a later
+arrival can still collide with the subtree) — so it is not a shortcut.
 
 ## Acceptance test (both tracks)
 
