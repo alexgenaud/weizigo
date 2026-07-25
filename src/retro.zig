@@ -2826,6 +2826,600 @@ fn runCensus(gpa: std.mem.Allocator) void {
     }
 }
 
+
+/// E2 (leak-crisis, 2026-07-25): range-aware self-play. Both players play the
+/// lo-game (Black maximizes lo[child], White minimizes lo[child]) with REAL
+/// PSK legality (a move recreating any prior board is illegal). The audited
+/// colour records a promise = the lo-floor of the move it chose; a game leaks
+/// if the final score is worse than the strongest promise. Zero leaks => lo is
+/// a true lower bound (C3 supported). In-memory converge (no artifact: the
+/// artifact does not store lo/hi). See docs/status/leak-crisis.md.
+/// E3 (leak-crisis): exact history-aware cross-check of a leaking self-play
+/// line. Replays the game to the ply where the strongest promise was made,
+/// then walks the self-play line to the end; at each position compares the
+/// table's `lo` (claimed lower bound, ban-set-independent) to the TRUE value
+/// from the exact PSK solver with the actual ban set. `true < lo` => the
+/// bracket is not a sound real-game bound (C3 false) OR `lo` is mis-computed.
+/// See docs/status/leak-crisis.md.
+fn e3Analyze(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables, gpa: std.mem.Allocator, moves: []const u8, ply: usize, promise_ply: usize, audited_color: i8, promise: i16) void {
+    const RT = Retro(w, h);
+    const R = RT.R;
+    const X = RT.X;
+    const n = RT.n;
+    const Pos = RT.Pos;
+    const EX = Exact(w, h);
+    const p = std.debug.print;
+    _ = audited_color;
+
+    p("E3 audit: promise {d} at ply {d}/{d}\n", .{ promise, promise_ply, ply });
+    // PSK-legality scan: replay the WHOLE game, verify no move recreated a
+    // prior board (the self-play `seen` filter must match this). Any illegal
+    // move => the leak is a self-play/PSK wiring bug, not a bound failure.
+    {
+        var lp: Pos = [_]i8{0} ** n;
+        var lb = EX.Bans.initEmpty();
+        lb.set(@intCast(X.colex_from_pos(&lp)));
+        var ls: i8 = 1;
+        var lpass: u8 = 0;
+        var illegal: u64 = 0;
+        var j: usize = 0;
+        while (j < ply) : (j += 1) {
+            const m = moves[j];
+            if (m == 0) {
+                lpass += 1;
+            } else {
+                const cell: usize = @intCast(m - 1);
+                const child = R.pos_from_move(&lp, ls, cell) catch {
+                    illegal += 1;
+                    p("  *** ILLEGAL move at ply {d}: pos_from_move failed ***\n", .{j});
+                    break;
+                };
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (lb.isSet(ci)) {
+                    illegal += 1;
+                    p("  *** ILLEGAL move at ply {d}: child recreates a banned position (self-play/PSK bug) ***\n", .{j});
+                }
+                lb.set(ci);
+                lp = child;
+                lpass = 0;
+            }
+            ls = -ls;
+        }
+        p("  PSK-legality: {d} illegal moves in {d} plies -> {s}\n", .{ illegal, ply, if (illegal == 0) "VALID PSK game" else "INVALID (self-play bug)" });
+    }
+
+
+    // replay to the promise ply, building the ban set (positions seen so far)
+    var pos: Pos = [_]i8{0} ** n;
+    var bans = EX.Bans.initEmpty();
+    bans.set(@intCast(X.colex_from_pos(&pos)));
+    var side: i8 = 1;
+    var passes: u8 = 0;
+    var i: usize = 0;
+    while (i < promise_ply) : (i += 1) {
+        const m = moves[i];
+        if (m == 0) {
+            passes += 1;
+        } else {
+            const cell: usize = @intCast(m - 1);
+            const child = R.pos_from_move(&pos, side, cell) catch break;
+            bans.set(@intCast(X.colex_from_pos(&child)));
+            pos = child;
+            passes = 0;
+        }
+        side = -side;
+    }
+
+    // walk the self-play line; compare lo (table) vs true (exact solver)
+    var ctx = EX.Ctx{ .map = EX.Map.init(gpa), .budget = 2_000_000, .entry_cap = 1_000_000 };
+    defer ctx.map.deinit();
+    var violations: u64 = 0;
+    while (i < ply) : (i += 1) {
+        const idx: usize = @intCast(X.colex_from_pos(&pos));
+        const lo_tbl: i8 = if (passes >= 2) t.score[idx] else if (passes == 0) (if (side > 0) t.lo.b0[idx] else t.lo.w0[idx]) else (if (side > 0) t.lo.b1[idx] else t.lo.w1[idx]);
+        const hi_tbl: i8 = if (passes >= 2) t.score[idx] else if (passes == 0) (if (side > 0) t.hi.b0[idx] else t.hi.w0[idx]) else (if (side > 0) t.hi.b1[idx] else t.hi.w1[idx]);
+        ctx.nodes = 0;
+        var tractable = true;
+        var true_v: i8 = 0;
+        const r = EX.solve(&ctx, &pos, side, passes, EX.win_empty, bans);
+        if (r) |v| {
+            true_v = v;
+        } else |_| {
+            tractable = false;
+            p("  ply {d} side {s} passes {d} lo={d} hi={d} : EXACT budget-exceeded ({d} nodes) -- intractable here\n", .{ i, if (side > 0) "B" else "W", passes, lo_tbl, hi_tbl, ctx.nodes });
+        }
+        if (tractable) {
+            const bad = true_v < lo_tbl;
+            p("  ply {d} side {s} passes {d} lo={d} hi={d} true={d} nodes={d}  {s}\n", .{ i, if (side > 0) "B" else "W", passes, lo_tbl, hi_tbl, true_v, ctx.nodes, if (bad) "<<< true < lo  (C3 FALSE / lo-bug)" else "ok" });
+            if (bad) {
+                violations += 1;
+                if (violations >= 3) {
+                    p("  (stopping after 3 violations)\n", .{});
+                    break;
+                }
+            }
+        }
+        // advance along the self-play line
+        const m = moves[i];
+        if (m == 0) {
+            passes += 1;
+        } else {
+            const cell: usize = @intCast(m - 1);
+            const child = R.pos_from_move(&pos, side, cell) catch break;
+            bans.set(@intCast(X.colex_from_pos(&child)));
+            pos = child;
+            passes = 0;
+        }
+        side = -side;
+    }
+    p("E3 audit: {s}\n", .{ if (violations > 0) "VIOLATION (true < lo on the self-play line)" else "no violation on the traversed line (early plies may be intractable)" });
+}
+
+fn e2Board(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, num_seeds: u64, comptime trivial: bool) !void {
+    const RT = Retro(w, h);
+    const R = RT.R;
+    const X = RT.X;
+    const n = RT.n;
+    const Pos = RT.Pos;
+    const p = std.debug.print;
+
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    if (trivial) {
+        // POLICY SANITY CHECK: feed trivially-valid bounds (lo=-N, hi=+N for
+        // every legal position). True by the rules alone (every area score is
+        // in [-N,N]); uses NO game-theoretic value. A correct range-aware
+        // policy MUST be leak-free here. Any leak => a policy/wiring bug, not
+        // a bound problem. See docs/status/leak-crisis.md.
+        for (0..RT.total) |i| {
+            if (!t.legal[i]) continue;
+            t.lo.b0[i] = -RT.N; t.lo.w0[i] = -RT.N; t.lo.b1[i] = -RT.N; t.lo.w1[i] = -RT.N;
+            t.hi.b0[i] = RT.N;  t.hi.w0[i] = RT.N;  t.hi.b1[i] = RT.N;  t.hi.w1[i] = RT.N;
+        }
+    } else {
+        RT.converge(&t);
+        RT.finalize(&t);
+    }
+
+    const PLY_CAP = 400;
+    const MAX_HIST = 4096;
+    var hist: [MAX_HIST]Pos = undefined;
+    var pos: Pos = [_]i8{0} ** n;
+    var passes: u8 = 0;
+    var hlen: usize = 0;
+
+    var leaks: u64 = 0;
+    var max_leak: i16 = 0;
+    var games: u64 = 0;
+    var capped: u64 = 0;
+    var audited_won: u64 = 0;
+    var e3_analyzed: u64 = 0;
+
+    var seed: u64 = 0;
+    while (seed < num_seeds) : (seed += 1) {
+        for ([_]i8{ 1, -1 }) |audited_color| {
+            var prng = std.Random.DefaultPrng.init(seed * 1013 + @as(u64, if (audited_color > 0) 0 else 1));
+            const rnd = prng.random();
+
+            pos = [_]i8{0} ** n;
+            hlen = 0;
+            hist[0] = pos;
+            hlen = 1;
+            passes = 0;
+            var side: i8 = 1;
+            var promise: i16 = if (audited_color > 0) -127 else 127;
+            var ply: usize = 0;
+            var promise_ply: usize = 0;
+            var moves_rec: [PLY_CAP]u8 = undefined;
+
+            while (passes < 2 and ply < PLY_CAP) : (ply += 1) {
+                const idx: usize = @intCast(X.colex_from_pos(&pos));
+                var cells: [n + 1]?usize = undefined;
+                var vals: [n + 1]i8 = undefined;
+                var cnt: usize = 0;
+                // pass option: game ends if a pass is already standing, else the V1 lo-floor
+                cells[0] = null;
+                vals[0] = if (passes >= 1) R.area_score(&pos) else (if (side > 0) t.lo.w1[idx] else t.hi.b1[idx]);
+                cnt = 1;
+                for (0..n) |cell| {
+                    if (pos[cell] != 0) continue;
+                    const child = R.pos_from_move(&pos, side, cell) catch continue;
+                    var seen = false;
+                    for (hist[0..hlen]) |*b| {
+                        if (std.mem.eql(i8, b, &child)) {
+                            seen = true;
+                            break;
+                        }
+                    }
+                    if (seen) continue;
+                    const ci: usize = @intCast(X.colex_from_pos(&child));
+                    cells[cnt] = cell;
+                    vals[cnt] = if (side > 0) t.lo.w0[ci] else t.hi.b0[ci];
+                    cnt += 1;
+                }
+                const maximizing = side > 0;
+                var best: i8 = vals[0];
+                for (vals[1..cnt]) |v| {
+                    if (if (maximizing) v > best else v < best) best = v;
+                }
+                // random tie-break among lo-optimal moves (line variety)
+                var pick: usize = 0;
+                var opt_count: usize = 0;
+                for (vals[0..cnt], 0..) |v, i| {
+                    if (v == best) {
+                        opt_count += 1;
+                        if (rnd.uintLessThan(usize, opt_count) == 0) pick = i;
+                    }
+                }
+                if (side == audited_color) {
+                    if (audited_color > 0) {
+                        if (@as(i16, best) > promise) {
+                            promise = best;
+                            promise_ply = ply;
+                        }
+                    } else {
+                        if (@as(i16, best) < promise) {
+                            promise = best;
+                            promise_ply = ply;
+                        }
+                    }
+                }
+                const ch = cells[pick];
+                moves_rec[ply] = if (ch) |c| @intCast(c + 1) else 0;
+                if (ch) |c| {
+                    const child = R.pos_from_move(&pos, side, c) catch unreachable;
+                    pos = child;
+                    hist[hlen] = pos;
+                    hlen += 1;
+                    passes = 0;
+                } else {
+                    passes += 1;
+                    if (passes >= 2) break;
+                }
+                side = -side;
+            }
+
+            games += 1;
+            if (ply >= PLY_CAP) {
+                capped += 1;
+                continue;
+            }
+            const score: i16 = R.area_score(&pos);
+            if (if (audited_color > 0) score > 0 else score < 0) audited_won += 1;
+            const leak: i16 = if (audited_color > 0) promise - score else score - promise;
+            if (leak > 0) {
+                leaks += 1;
+                if (leak > max_leak) max_leak = leak;
+                p("E2 LEAK {d} pts | {d}x{d} seed {d} audited {s} promise {d} final {d}\n", .{
+                    leak, w, h, seed, if (audited_color > 0) "B" else "W", promise, score,
+                });
+                if (e3_analyzed < 1) {
+                    e3_analyzed += 1;
+                    e3Analyze(w, h, &t, gpa, moves_rec[0..ply], ply, promise_ply, audited_color, promise);
+                }
+            }
+        }
+    }
+    p("E2 {d}x{d}: games={d} capped={d} leaks={d} (max {d}) audited-won={d}  -> {s}\n", .{
+        w, h, games, capped, leaks, max_leak, audited_won,
+        if (leaks == 0) "ZERO LEAKS (C3 supported)" else "LEAKS (C3 falsified)",
+    });
+}
+
+fn runE2(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("E2: range-aware (maximin over lo/hi) self-play; promise = bound of chosen move; acceptance = zero leaks\n", .{});
+    e2Board(2, 2, gpa, 2000, false) catch |e| p("E2 2x2 FAILED: {t}\n", .{e});
+    e2Board(3, 2, gpa, 2000, false) catch |e| p("E2 3x2 FAILED: {t}\n", .{e});
+    e2Board(3, 3, gpa, 2000, false) catch |e| p("E2 3x3 FAILED: {t}\n", .{e});
+}
+
+/// E2 POLICY SANITY CHECK: trivially-valid bounds (lo=-N, hi=+N), no converge,
+/// no Go knowledge. A correct policy MUST leak zero. Isolates policy/wiring
+/// from the bound-correctness question.
+fn runE2sanity(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("E2-SANITY: trivially-valid bounds (lo=-N, hi=+N, no converge). Expected: ZERO leaks (policy wiring check).\n", .{});
+    e2Board(2, 2, gpa, 2000, true) catch |e| p("E2-sanity 2x2 FAILED: {t}\n", .{e});
+    e2Board(3, 2, gpa, 2000, true) catch |e| p("E2-sanity 3x2 FAILED: {t}\n", .{e});
+    e2Board(3, 3, gpa, 2000, true) catch |e| p("E2-sanity 3x3 FAILED: {t}\n", .{e});
+}
+
+
+/// B1 (leak-crisis, 2026-07-25, T02.2): independently verify the canonical
+/// `RT.converge` lands at the true least fixpoint of the L map it applies.
+/// Three checks at every legal, non-settled (i, side):
+///   (A) V0 fixpoint: stored `lo.b0[i]` (B) / `lo.w0[i]` (W) equals
+///       opt(side)( max_{p ∈ moves} oppV0[colex(child)] , oppV1[i] ).
+///   (B) V1 fixpoint: stored `lo.b1[i]` (B) / `lo.w1[i]` (W) equals
+///       opt(side)( max_{p ∈ moves} oppV0[colex(child)] , t.score[i] ).
+///   (C) Symmetric for `hi` (greatest-fixpoint dual via colour inversion).
+/// Plus §3 least-fixpoint checks:
+///   (D) Re-converge from `lo=-N+1` (lower seed); must land at canonical
+///       lo elementwise AFTER `sweep(t, &t.lo) == 0` (zero-change).
+///   (E) Re-converge from `lo=+N` (upper seed); must drain to canonical lo
+///       elementwise AFTER zero-change.
+/// Acceptance (the contract): all V0/V1 violations zero on 2x2/3x2/3x3 AND
+/// re-converges elementwise match canonical after zero-change => (b)
+/// converge-bug RULED OUT. Any violation or element-above => (b) plausible.
+/// MAX_SWEEPS hit => report and treat as inconclusive. See untracked/b1-spec.md
+/// and untracked/T02-minimax.md.
+fn e3LofixCheck(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
+    const RT = Retro(w, h);
+    const R = RT.R;
+    const X = RT.X;
+    const n = RT.n;
+    const N: i8 = @intCast(n);
+    const total: usize = RT.total;
+    const p = std.debug.print;
+
+    // ---------- canonical converge ----------
+    var t0 = try RT.Tables.init(gpa);
+    defer t0.deinit();
+    RT.seed(&t0);
+    RT.converge(&t0);
+
+    var empty_pos: RT.Pos = [_]i8{0} ** n;
+    const empty_idx: usize = @intCast(X.colex_from_pos(&empty_pos));
+
+    p("B1 {d}x{d}: canonical sweeps={d}  empty(B) lo=[{d},{d}]  hi=[{d},{d}]  residue_b={d} residue_w={d}\n", .{
+        w, h, t0.sweeps,
+        t0.lo.b0[empty_idx], t0.lo.b1[empty_idx],
+        t0.hi.b0[empty_idx], t0.hi.b1[empty_idx],
+        t0.residue_b, t0.residue_w,
+    });
+
+    // ---------- (A) V0 fixpoint-equation check ----------
+    // For every legal, non-settled (i, side):
+    //   B to move: stored lo.b0[i] = opt_max( max_p lo.w0[colex(child_p)] ,
+    //                                         lo.w1[i] )
+    //   W to move: stored lo.w0[i] = opt_min( min_p lo.b0[colex(child_p)] ,
+    //                                         lo.b1[i] )
+    var a_v0_viol: u64 = 0;
+    var a_v0_exemplars: u8 = 0;
+    {
+        var i: usize = 0;
+        while (i < total) : (i += 1) {
+            if (!t0.legal[i] or t0.settled[i]) continue;
+            var pos = X.pos_from_colex(i);
+            // B
+            var best_b: i8 = t0.lo.w1[i]; // start with the "pass" branch value
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, 1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.lo.w0[ci] > best_b) best_b = t0.lo.w0[ci];
+            }
+            if (t0.lo.b0[i] != best_b) {
+                a_v0_viol += 1;
+                if (a_v0_exemplars < 10) {
+                    a_v0_exemplars += 1;
+                    p("  [A-V0-B] idx={d} stored={d} expected={d}  (max over p of lo.w0[child_p]; pass: lo.w1[i]={d})\n", .{
+                        i, t0.lo.b0[i], best_b, t0.lo.w1[i],
+                    });
+                }
+            }
+            // W
+            var best_w: i8 = t0.lo.b1[i]; // start with the "pass" branch value
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, -1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.lo.b0[ci] < best_w) best_w = t0.lo.b0[ci];
+            }
+            if (t0.lo.w0[i] != best_w) {
+                a_v0_viol += 1;
+                if (a_v0_exemplars < 10) {
+                    a_v0_exemplars += 1;
+                    p("  [A-V0-W] idx={d} stored={d} expected={d}  (min over p of lo.b0[child_p]; pass: lo.b1[i]={d})\n", .{
+                        i, t0.lo.w0[i], best_w, t0.lo.b1[i],
+                    });
+                }
+            }
+        }
+    }
+    p("B1 {d}x{d} [A-V0] fixpoint-equation violations (V0 over all legal non-settled (i,side)): {d}\n", .{ w, h, a_v0_viol });
+
+    // ---------- (B) V1 fixpoint-equation check ----------
+    // B: stored lo.b1[i] = opt_max( max_p lo.w0[colex(child_p)] , t.score[i] )
+    // W: stored lo.w1[i] = opt_min( min_p lo.b0[colex(child_p)] , t.score[i] )
+    // (Boss correction 2026-07-25: V1 also reads oppV0[child], not oppV1[child];
+    //  the sweep's `m` is shared between v0 and v1.)
+    var a_v1_viol: u64 = 0;
+    var a_v1_exemplars: u8 = 0;
+    {
+        var i: usize = 0;
+        while (i < total) : (i += 1) {
+            if (!t0.legal[i] or t0.settled[i]) continue;
+            var pos = X.pos_from_colex(i);
+            // B
+            var best_b: i8 = t0.score[i]; // start with the "second pass" branch value
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, 1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.lo.w0[ci] > best_b) best_b = t0.lo.w0[ci];
+            }
+            if (t0.lo.b1[i] != best_b) {
+                a_v1_viol += 1;
+                if (a_v1_exemplars < 10) {
+                    a_v1_exemplars += 1;
+                    p("  [B-V1-B] idx={d} stored={d} expected={d}  (max over p of lo.w0[child_p]; pass: score[i]={d})\n", .{
+                        i, t0.lo.b1[i], best_b, t0.score[i],
+                    });
+                }
+            }
+            // W
+            var best_w: i8 = t0.score[i]; // start with the "second pass" branch value
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, -1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.lo.b0[ci] < best_w) best_w = t0.lo.b0[ci];
+            }
+            if (t0.lo.w1[i] != best_w) {
+                a_v1_viol += 1;
+                if (a_v1_exemplars < 10) {
+                    a_v1_exemplars += 1;
+                    p("  [B-V1-W] idx={d} stored={d} expected={d}  (min over p of lo.b0[child_p]; pass: score[i]={d})\n", .{
+                        i, t0.lo.w1[i], best_w, t0.score[i],
+                    });
+                }
+            }
+        }
+    }
+    p("B1 {d}x{d} [B-V1] fixpoint-equation violations (V1 over all legal non-settled (i,side)): {d}\n", .{ w, h, a_v1_viol });
+
+    // ---------- (C) Same checks against `hi` (greatest fixpoint) ----------
+    // Same equations, but with hi instead of lo. By colour inversion
+    // hi(-pos,-side) == -lo(pos,side); a violation here is the same kind
+    // of evidence as a lo violation.
+    var c_v0_viol: u64 = 0;
+    var c_v1_viol: u64 = 0;
+    {
+        var i: usize = 0;
+        while (i < total) : (i += 1) {
+            if (!t0.legal[i] or t0.settled[i]) continue;
+            var pos = X.pos_from_colex(i);
+            // B-V0 on hi
+            var best_b_v0: i8 = t0.hi.w1[i];
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, 1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.hi.w0[ci] > best_b_v0) best_b_v0 = t0.hi.w0[ci];
+            }
+            if (t0.hi.b0[i] != best_b_v0) c_v0_viol += 1;
+            // W-V0 on hi
+            var best_w_v0: i8 = t0.hi.b1[i];
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, -1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.hi.b0[ci] < best_w_v0) best_w_v0 = t0.hi.b0[ci];
+            }
+            if (t0.hi.w0[i] != best_w_v0) c_v0_viol += 1;
+            // B-V1 on hi
+            var best_b_v1: i8 = t0.score[i];
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, 1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.hi.w0[ci] > best_b_v1) best_b_v1 = t0.hi.w0[ci];
+            }
+            if (t0.hi.b1[i] != best_b_v1) c_v1_viol += 1;
+            // W-V1 on hi
+            var best_w_v1: i8 = t0.score[i];
+            for (0..n) |p_idx| {
+                if (pos[p_idx] != 0) continue;
+                const child = R.pos_from_move(&pos, @as(i8, -1), p_idx) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (t0.hi.b0[ci] < best_w_v1) best_w_v1 = t0.hi.b0[ci];
+            }
+            if (t0.hi.w1[i] != best_w_v1) c_v1_viol += 1;
+        }
+    }
+    p("B1 {d}x{d} [C-hi]  V0 violations={d}  V1 violations={d}\n", .{ w, h, c_v0_viol, c_v1_viol });
+
+    // ---------- (D) Re-converge from `lo = -N+1` (lower bound) ----------
+    var t_d = try RT.Tables.init(gpa);
+    defer t_d.deinit();
+    RT.seed(&t_d);
+    // re-seed lo to (-N+1) — strictly above the canonical seed (-N). hi
+    // left at its canonical value (do NOT double-perturb; b1-spec §6).
+    for (0..total) |i| {
+        if (!t_d.legal[i] or t_d.settled[i]) continue;
+        t_d.lo.b0[i] = -N + 1;
+        t_d.lo.w0[i] = -N + 1;
+        t_d.lo.b1[i] = -N + 1;
+        t_d.lo.w1[i] = -N + 1;
+    }
+    RT.converge(&t_d);
+    const d_zero: u64 = RT.sweep(&t_d, &t_d.lo);
+    var d_above: u64 = 0;
+    var d_below: u64 = 0;
+    for (0..total) |i| {
+        if (!t_d.legal[i] or t_d.settled[i]) continue;
+        // For L map: re-converge from a higher lower seed must drain
+        // DOWN to the canonical least fixpoint. Compare elementwise:
+        // any re-converge element strictly ABOVE canonical => (b).
+        if (t_d.lo.b0[i] > t0.lo.b0[i]) d_above += 1;
+        if (t_d.lo.b0[i] < t0.lo.b0[i]) d_below += 1;
+        if (t_d.lo.w0[i] > t0.lo.w0[i]) d_above += 1;
+        if (t_d.lo.w0[i] < t0.lo.w0[i]) d_below += 1;
+        if (t_d.lo.b1[i] > t0.lo.b1[i]) d_above += 1;
+        if (t_d.lo.b1[i] < t0.lo.b1[i]) d_below += 1;
+        if (t_d.lo.w1[i] > t0.lo.w1[i]) d_above += 1;
+        if (t_d.lo.w1[i] < t0.lo.w1[i]) d_below += 1;
+    }
+    const d_reached_canon: bool = (d_above == 0);
+    p("B1 {d}x{d} [D]   re-converge lo=-N+1: empty(B) lo={d} (canon={d})  sweep_changes_after={d}  above_canon={d} below_canon={d}  reached_canon={s}\n", .{
+        w, h, t_d.lo.b0[empty_idx], t0.lo.b0[empty_idx], d_zero, d_above, d_below,
+        if (d_reached_canon) "YES" else "NO",
+    });
+
+    // ---------- (E) Re-converge from `lo = +N` (upper seed) ----------
+    // Map is monotone in q; iterating from above must drain down to the
+    // LEAST fixpoint (the map's reads of q are all opt; raising q can
+    // only raise the result; iterating from a higher q must decrease
+    // monotonically toward the least fixpoint).
+    var t_e = try RT.Tables.init(gpa);
+    defer t_e.deinit();
+    RT.seed(&t_e);
+    for (0..total) |i| {
+        if (!t_e.legal[i] or t_e.settled[i]) continue;
+        t_e.lo.b0[i] = N;
+        t_e.lo.w0[i] = N;
+        t_e.lo.b1[i] = N;
+        t_e.lo.w1[i] = N;
+    }
+    RT.converge(&t_e);
+    const e_zero: u64 = RT.sweep(&t_e, &t_e.lo);
+    var e_above: u64 = 0;
+    var e_below: u64 = 0;
+    for (0..total) |i| {
+        if (!t_e.legal[i] or t_e.settled[i]) continue;
+        if (t_e.lo.b0[i] > t0.lo.b0[i]) e_above += 1;
+        if (t_e.lo.b0[i] < t0.lo.b0[i]) e_below += 1;
+        if (t_e.lo.w0[i] > t0.lo.w0[i]) e_above += 1;
+        if (t_e.lo.w0[i] < t0.lo.w0[i]) e_below += 1;
+        if (t_e.lo.b1[i] > t0.lo.b1[i]) e_above += 1;
+        if (t_e.lo.b1[i] < t0.lo.b1[i]) e_below += 1;
+        if (t_e.lo.w1[i] > t0.lo.w1[i]) e_above += 1;
+        if (t_e.lo.w1[i] < t0.lo.w1[i]) e_below += 1;
+    }
+    const e_reached_canon: bool = (e_above == 0);
+    p("B1 {d}x{d} [E]   re-converge lo=+N:   empty(B) lo={d} (canon={d})  sweep_changes_after={d}  above_canon={d} below_canon={d}  reached_canon={s}\n", .{
+        w, h, t_e.lo.b0[empty_idx], t0.lo.b0[empty_idx], e_zero, e_above, e_below,
+        if (e_reached_canon) "YES" else "NO",
+    });
+
+    // ---------- Verdict ----------
+    const all_zero_change: bool = (d_zero == 0 and e_zero == 0);
+    const all_pass: bool = (a_v0_viol == 0 and a_v1_viol == 0 and c_v0_viol == 0 and c_v1_viol == 0
+        and d_reached_canon and e_reached_canon and all_zero_change);
+    p("B1 {d}x{d}: V0_viol={d} V1_viol={d} hi_V0={d} hi_V1={d} D_reached_canon={s} E_reached_canon={s} D_zero_change={s} E_zero_change={s}  -> {s}\n", .{
+        w, h, a_v0_viol, a_v1_viol, c_v0_viol, c_v1_viol,
+        if (d_reached_canon) "YES" else "NO",
+        if (e_reached_canon) "YES" else "NO",
+        if (d_zero == 0) "YES" else "NO",
+        if (e_zero == 0) "YES" else "NO",
+        if (all_pass) "(b) RULED OUT on this board" else "(b) PLAUSIBLE or INCONCLUSIVE on this board",
+    });
+}
+
+fn runE3B1(gpa: std.mem.Allocator) void {
+    const p = std.debug.print;
+    p("B1: independently verify lo is the true least fixpoint of the L map (rules out (b) converge-bug).\n", .{});
+    p("      Three checks per board: V0 + V1 fixpoint equation on lo and hi, plus two least-fixpoint\n", .{});
+    p("      re-converge checks from lo=-N+1 and lo=+N with zero-change precondition.\n", .{});
+    p("      Spec: untracked/b1-spec.md  T02: untracked/T02-minimax.md\n\n", .{});
+    e3LofixCheck(2, 2, gpa) catch |e| p("B1 2x2 FAILED: {t}\n", .{e});
+    e3LofixCheck(3, 2, gpa) catch |e| p("B1 3x2 FAILED: {t}\n", .{e});
+    e3LofixCheck(3, 3, gpa) catch |e| p("B1 3x3 FAILED: {t}\n", .{e});
+}
+
 pub fn main() !void {
     const gpa = std.heap.page_allocator;
     std.debug.print("weizigo retrograde engine (ADR-0009) -- L/H value iteration + finisher + battery\n\n", .{});
@@ -2854,6 +3448,23 @@ pub fn main() !void {
         thread.join();
         return;
     }
+    if (std.c.getenv("RETRO_E2") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runE2, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_E2SANITY") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runE2sanity, .{gpa});
+        thread.join();
+        return;
+    }
+
+    if (std.c.getenv("RETRO_B1_LOFIX") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runE3B1, .{gpa});
+        thread.join();
+        return;
+    }
+
     if (std.c.getenv("RETRO_CORE") != null) {
         const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runCore, .{gpa});
         thread.join();

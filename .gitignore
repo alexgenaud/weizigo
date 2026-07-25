@@ -3,3 +3,12 @@ zig-cache/
 zig-out/
 data/
 log/
+
+# ephemeral scratch / working notes — not tracked
+untracked/
+
+# compiled probe binaries (built by agents)
+/retro-e*
+
+# your personal scrap/notes file — never commit
+/HUMAN.md

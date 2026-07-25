@@ -68,6 +68,8 @@ const GameStats = struct {
     max_leak: i16 = 0,
     diverged_games: u64 = 0,
     diverged_events: u64 = 0,
+    diverged_single: u64 = 0, // E1 (2026-07-25): diverged at single-score positions
+    diverged_ko: u64 = 0,     // E1 (2026-07-25): diverged at ko-sensitive positions
     audited_won: u64 = 0,
     audited_held: u64 = 0, // final score == best promise (exactly kept)
 };
@@ -111,6 +113,8 @@ fn runArena(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *
 
                 var promise: i16 = if (audited_color > 0) -127 else 127; // strongest value promised
                 var diverged: u64 = 0;
+                var diverged_single: u64 = 0; // E1: diverged at single-score (KO_SENSITIVE==0) positions
+                var diverged_ko: u64 = 0;    // E1: diverged at ko-sensitive positions
                 var moves_rec: [PLY_CAP]u8 = undefined; // cell+1, 0 = pass
                 var ply: usize = 0;
 
@@ -149,7 +153,17 @@ fn runArena(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *
                         if (audited_color > 0) {
                             if (stored > promise) promise = stored;
                         } else if (stored < promise) promise = stored;
-                        if (best != stored) diverged += 1;
+                        if (best != stored) {
+                            diverged += 1;
+                            // E1 diagnostic (2026-07-25): which region did the
+                            // fresh-start player's plan break in? NOTE: the flag
+                            // is from converge; `best` is the fresh-start player's
+                            // BELIEF (max fresh-start child over PSK-legal), NOT
+                            // the true real-history value — so a single-score
+                            // divergence does NOT falsify C2. See status/leak-crisis.md.
+                            const ko = (s.flags0(&s.pos, side) & 1) != 0;
+                            if (ko) diverged_ko += 1 else diverged_single += 1;
+                        }
                         if (det) {
                             // DETERMINISTIC mode: exactly the GTP player's
                             // policy (min-DTT tie-break via Session.choose),
@@ -229,6 +243,8 @@ fn runArena(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *
                     stats[pi].diverged_games += 1;
                     stats[pi].diverged_events += diverged;
                 }
+                stats[pi].diverged_single += diverged_single;
+                stats[pi].diverged_ko += diverged_ko;
                 const leak: i16 = if (audited_color > 0) promise - score else score - promise;
                 if (leak > 0) {
                     stats[pi].leaks += 1;
@@ -256,6 +272,7 @@ fn runArena(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *
             persona.name, stats[pi].games, stats[pi].capped, stats[pi].audited_won, stats[pi].audited_held,
             stats[pi].leaks, stats[pi].max_leak, stats[pi].diverged_games, stats[pi].diverged_events,
         });
+        p("  {s:<13} E1 diverged: single-score={d}  ko-sensitive={d}\n", .{ persona.name, stats[pi].diverged_single, stats[pi].diverged_ko });
     }
 }
 
