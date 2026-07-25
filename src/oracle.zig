@@ -104,6 +104,10 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
             cb: []bool, // vb[idx] is a memoized CLEAN value
             cw: []bool,
             memo: bool, // enable memo read/write
+            // false = ADJUDICATION mode: memo READS only (certified seeds
+            // still cut) but no in-search writes — eliminates cross-branch
+            // reuse, the mechanism convicted by the contradiction localizer
+            memo_writes: bool = true,
             // CONDITIONAL ASSUMPTION toggle (arena-audit doctrine): [L,H]
             // bracket cuts in retro.ab_solve. Off = values come only from
             // the memo discipline + search. Used to localize prefix-
@@ -201,7 +205,7 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
                 if (rp.value < best) best = rp.value;
             }
 
-            if (hashable and ko_ref >= d) {
+            if (hashable and ctx.memo_writes and ko_ref >= d) {
                 ctx.record(idx, to_move);
                 if (to_move > 0) {
                     ctx.vb[idx] = best;

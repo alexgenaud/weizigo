@@ -465,7 +465,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
 
             // memo write, ko_ref-clean only: exact if inside the entry
             // window, otherwise a fail-soft BOUND into the bounds memo
-            if (hashable and ko_ref >= d) {
+            if (hashable and ctx.memo_writes and ko_ref >= d) {
                 if (best > a_entry and best < b_entry) {
                     ctx.record(idx, to_move);
                     if (to_move > 0) {
@@ -1722,6 +1722,226 @@ fn replay4x4(gpa: std.mem.Allocator) !void {
     }
 }
 
+/// Solve a single node (position, side, passes) to its EXACT value under the
+/// history already staged in `hist` (hist top must be the node's position for
+/// passes>0, or the node itself for a fresh root). Same binary-search-over-
+/// brackets driver as value_from_root, but with an explicit `passes` so the
+/// consistency auditor can price the pass branch (passes=1) too. With
+/// ctx.brackets off the search runs over the full [-n, n] score range.
+fn solveNode(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables, ctx: *Retro(w, h).O.Ctx, pos: *const Retro(w, h).Pos, to_move: i8, passes: u8, hist: *Retro(w, h).O.History) error{Budget}!i8 {
+    const RT = Retro(w, h);
+    const idx: usize = @intCast(RT.X.colex_from_pos(pos));
+    const nn: i8 = @intCast(RT.n);
+    var lo: i8 = undefined;
+    var hi: i8 = undefined;
+    if (passes >= 2 or t.settled[idx]) return t.score[idx];
+    if (!ctx.brackets) {
+        lo = -nn;
+        hi = nn;
+    } else if (passes == 0) {
+        lo = if (to_move > 0) t.lo.b0[idx] else t.lo.w0[idx];
+        hi = if (to_move > 0) t.hi.b0[idx] else t.hi.w0[idx];
+    } else {
+        lo = if (to_move > 0) t.lo.b1[idx] else t.lo.w1[idx];
+        hi = if (to_move > 0) t.hi.b1[idx] else t.hi.w1[idx];
+    }
+    while (lo < hi) {
+        const mid = lo + @divTrunc(hi - lo + 1, 2);
+        ctx.saw_ban = false;
+        const r = try RT.ab_solve(t, ctx, pos, to_move, passes, mid - 1, mid, hist);
+        if (r.value >= mid) lo = r.value else hi = r.value;
+    }
+    return lo;
+}
+
+/// Re-seed a per-root memo/bounds context from the finalized table (the exact
+/// state the finisher's runRoot starts each residue root from): certified
+/// slots become clean cutoffs, bounds memo vacuous.
+fn seedCtx(comptime w: usize, comptime h: usize, c: *Retro(w, h).O.Ctx, tt: *const Retro(w, h).Tables) void {
+    const RT = Retro(w, h);
+    @memcpy(c.vb, tt.vb);
+    @memcpy(c.vw, tt.vw);
+    for (0..RT.total) |i| {
+        c.cb[i] = tt.legal[i] and tt.vb[i] != UNDEF;
+        c.cw[i] = tt.legal[i] and tt.vw[i] != UNDEF;
+    }
+    @memset(c.lbb.?, -127);
+    @memset(c.ubb.?, 127);
+    @memset(c.lbw.?, -127);
+    @memset(c.ubw.?, 127);
+    c.nodes = 0;
+}
+
+const ConsistOutcome = struct {
+    status: enum { consistent, violation, skipped },
+    parent: i8 = 0,
+    best: i8 = 0,
+};
+
+/// Audit ONE node against the minimax identity under a FIXED history H=[P]:
+///   V(P, side, [P]) == opt_side( { V(c, -side, [P,c]) : c legal }, pass )
+/// where the pass branch is V(P, -side, [P]) at passes=1. Parent, every
+/// board child, and the pass branch are each solved as INDEPENDENT roots with
+/// a freshly re-seeded ctx (so the check compares final exact values, not the
+/// search's fail-soft internals). A maximizer's parent below its best option
+/// (or a minimizer's above) is an outright PROOF of a bug in this variant.
+fn auditNode(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables, ctx: *Retro(w, h).O.Ctx, hist: *Retro(w, h).O.History, pos_in: *const Retro(w, h).Pos, side: i8) ConsistOutcome {
+    const RT = Retro(w, h);
+    var pos = pos_in.*;
+
+    // parent as its own root under H = [P]
+    seedCtx(w, h, ctx, t);
+    hist.reset();
+    hist.push(&pos);
+    const parent = solveNode(w, h, t, ctx, &pos, side, 0, hist) catch return .{ .status = .skipped };
+
+    // opt over PSK-legal, eye-pruned board children under H = [P, c]
+    var best: i8 = if (side > 0) -127 else 127;
+    const own_alive = RT.R.pass_alive(&pos, side);
+    for (0..RT.n) |cell| {
+        if (pos[cell] != 0) continue;
+        if (RT.R.is_own_eye(&pos, cell, side, &own_alive)) continue;
+        const child = RT.R.pos_from_move(&pos, side, cell) catch continue;
+        if (hist.repeatsIndex(&child) != null) continue; // PSK-illegal here
+        hist.reset();
+        hist.push(&pos);
+        hist.push(&child); // H = [P, child]
+        seedCtx(w, h, ctx, t);
+        const cv = solveNode(w, h, t, ctx, &child, -side, 0, hist) catch return .{ .status = .skipped };
+        if (side > 0) {
+            if (cv > best) best = cv;
+        } else {
+            if (cv < best) best = cv;
+        }
+    }
+
+    // the pass branch: opponent to move with one pass pending, still under [P]
+    hist.reset();
+    hist.push(&pos);
+    seedCtx(w, h, ctx, t);
+    const pv = solveNode(w, h, t, ctx, &pos, -side, 1, hist) catch return .{ .status = .skipped };
+    if (side > 0) {
+        if (pv > best) best = pv;
+    } else {
+        if (pv < best) best = pv;
+    }
+
+    return .{
+        .status = if (parent == best) .consistent else .violation,
+        .parent = parent,
+        .best = best,
+    };
+}
+
+fn runConsist(gpa: std.mem.Allocator) void {
+    consistBoard(3, 2, gpa, 0) catch |err| std.debug.print("consist FAILED: {t}\n", .{err});
+}
+
+fn runConsist4(gpa: std.mem.Allocator) void {
+    // 4x4 is far too large to audit exhaustively; sample the deepest (most
+    // near-terminal, cheapest-to-solve) KO_SENSITIVE nodes first.
+    consistBoard(4, 4, gpa, 400) catch |err| std.debug.print("consist4 FAILED: {t}\n", .{err});
+}
+
+/// #2 SELF-CONSISTENCY AUDITOR (docs/research/next-step-consistency-auditor.md).
+/// Necessary-not-sufficient bug detector: needs no external oracle and never
+/// has to brute-force the ko-tangled residue (that was #1, structurally dead).
+/// For each variant (memo_writes ON = the committed "new" generation, OFF =
+/// "soundish"), check the minimax identity at every KO_SENSITIVE 3x2 node.
+/// ANY violation is a PROOF that variant is buggy; zero violations is the weak
+/// (necessary) pass — it cannot crown a winner, only eliminate a loser.
+fn consistBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, max_checks: u64) !void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+    const t0 = nowMs();
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+    p("consist: {d}x{d} self-consistency audit (build {d} ms)\n", .{ w, h, nowMs() - t0 });
+    p("  identity: V(P,side,[P]) == opt over children V(c,-side,[P,c]) and pass\n", .{});
+    p("  a violation is a PROOF of a bug; zero = necessary (not sufficient) pass\n", .{});
+    if (max_checks != 0)
+        p("  SAMPLED: deepest {d} KO_SENSITIVE nodes per variant (not exhaustive)\n", .{max_checks});
+    p("\n", .{});
+
+    var ctx = RT.O.Ctx{
+        .vb = try gpa.alloc(i8, RT.total),
+        .vw = try gpa.alloc(i8, RT.total),
+        .cb = try gpa.alloc(bool, RT.total),
+        .cw = try gpa.alloc(bool, RT.total),
+        .lbb = try gpa.alloc(i8, RT.total),
+        .ubb = try gpa.alloc(i8, RT.total),
+        .lbw = try gpa.alloc(i8, RT.total),
+        .ubw = try gpa.alloc(i8, RT.total),
+        .memo = true,
+        .brackets = true,
+        .budget = 2_000_000_000,
+    };
+    defer inline for (.{ ctx.vb, ctx.vw }) |a| gpa.free(a);
+    defer inline for (.{ ctx.cb, ctx.cw }) |a| gpa.free(a);
+    defer inline for (.{ ctx.lbb.?, ctx.lbw.? }) |a| gpa.free(a);
+    defer inline for (.{ ctx.ubb.?, ctx.ubw.? }) |a| gpa.free(a);
+
+    const hist = try gpa.create(RT.O.History);
+    defer gpa.destroy(hist);
+    hist.* = .{};
+
+    const Variant = struct { name: []const u8, writes: bool };
+    const variants = [_]Variant{
+        .{ .name = "new (memo_writes ON)", .writes = true },
+        .{ .name = "soundish (writes OFF)", .writes = false },
+    };
+
+    for (variants) |V| {
+        ctx.memo_writes = V.writes;
+        var checked: u64 = 0;
+        var violations: u64 = 0;
+        var skipped: u64 = 0;
+        p("=== variant: {s} ===\n", .{V.name});
+        // deepest layer first: near-terminal residue is cheapest to solve, so
+        // a bounded sample gets the most coverage per node.
+        var layer: usize = RT.n + 1;
+        outer: while (layer > 0) {
+            layer -= 1;
+            var li: u64 = RT.X.layer_offset[layer];
+            const stop = RT.X.layer_offset[layer + 1];
+            while (li < stop) : (li += 1) {
+                const i: usize = @intCast(li);
+                if (!t.legal[i]) continue;
+                var pos = RT.X.pos_from_colex(li);
+                for ([_]i8{ 1, -1 }) |side| {
+                    const flags = if (side > 0) t.fb[i] else t.fw[i];
+                    if (flags & FLAG_KO_SENSITIVE == 0) continue;
+                    const o = auditNode(w, h, &t, &ctx, hist, &pos, side);
+                    switch (o.status) {
+                        .skipped => skipped += 1,
+                        .consistent => checked += 1,
+                        .violation => {
+                            checked += 1;
+                            violations += 1;
+                            p("  VIOLATION idx {d:>7} {c} stones {d}: parent={d} best-option={d}  ({s})\n", .{
+                                i, @as(u8, if (side > 0) 'b' else 'w'), layer, o.parent, o.best,
+                                if (side > 0) "max: parent < best is the bug" else "min: parent > best is the bug",
+                            });
+                        },
+                    }
+                    if (max_checks != 0 and checked + skipped >= max_checks) break :outer;
+                }
+            }
+        }
+        p("  RESULT {s}: checked={d} violations={d} skipped={d}  -> {s}\n\n", .{
+            V.name, checked, violations, skipped,
+            if (violations > 0) "PROVABLY BUGGY" else "self-consistent (necessary pass only)",
+        });
+    }
+    p("reading:\n", .{});
+    p("  new inconsistent, soundish consistent -> cross-branch writes are the bug; go to #3\n", .{});
+    p("  both inconsistent -> hole deeper than writes (brackets/seeds); widen #3 guard\n", .{});
+    p("  both consistent -> inconclusive; #3 still required for the true values\n", .{});
+}
+
 /// CONTRADICTION LOCALIZER: the replay probe reported value(P10) = -1 yet
 /// max over P10's children = +1 (same position, same history) — impossible
 /// if the machinery were sound under prefixes. Recompute both quantities
@@ -1729,6 +1949,338 @@ fn replay4x4(gpa: std.mem.Allocator) !void {
 /// which conditional assumption breaks. (Exact+bounds memo with the ko_ref
 /// discipline stays on throughout — it is the machinery under test when
 /// both toggles are off.)
+fn runAdj(gpa: std.mem.Allocator) void {
+    adj3x2(gpa) catch |err| std.debug.print("adj FAILED: {t}\n", .{err});
+}
+
+fn runFoothold(gpa: std.mem.Allocator) void {
+    foothold3x2(gpa) catch |err| std.debug.print("foothold FAILED: {t}\n", .{err});
+}
+
+fn runFoot4(gpa: std.mem.Allocator) void {
+    foothold4x4(gpa) catch |err| std.debug.print("foot4 FAILED: {t}\n", .{err});
+}
+
+/// 4x4 foothold adjudication. Exact (ban-set-keyed) is memory-dead at 4x4
+/// (5.38 MB per key), so the judge is O.value_from_root with memo OFF: plain
+/// minimax + REAL superko history + eye-prune, NO cross-branch cache (the
+/// convicted mechanism cannot act). Only assumption = the eye-prune, which
+/// all three finisher generations share and so cannot be the cause of their
+/// disagreement. Memory-safe; a hard slot budget-skips rather than OOMs.
+/// Compares the judge against the COMMITTED (new/MTD) artifact and the
+/// writes-off "soundish" finisher, most-filled slots first.
+fn foothold4x4(gpa: std.mem.Allocator) !void {
+    const RT = Retro(4, 4);
+    const p = std.debug.print;
+
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+    p("foot4: build done. judge = O.solve memo=OFF (minimax+history+eyeprune)\n", .{});
+
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    const io = threaded.io();
+    var art = try artifact.load(io, std.Io.Dir.cwd(), "data/oracle-4x4.wzo", gpa);
+    defer art.deinit();
+
+    // JUDGE ctx: memo off (arrays unused but required by the struct)
+    var jc = RT.O.Ctx{
+        .vb = try gpa.alloc(i8, 1),
+        .vw = try gpa.alloc(i8, 1),
+        .cb = try gpa.alloc(bool, 1),
+        .cw = try gpa.alloc(bool, 1),
+        .memo = false,
+        .budget = 1_500_000_000,
+    };
+    defer inline for (.{ jc.vb, jc.vw }) |a| gpa.free(a);
+    defer inline for (.{ jc.cb, jc.cw }) |a| gpa.free(a);
+
+    // SOUNDISH ctx: writes-off bracket-guided (seeds + brackets, no reuse)
+    var sc = RT.O.Ctx{
+        .vb = try gpa.alloc(i8, RT.total),
+        .vw = try gpa.alloc(i8, RT.total),
+        .cb = try gpa.alloc(bool, RT.total),
+        .cw = try gpa.alloc(bool, RT.total),
+        .lbb = try gpa.alloc(i8, RT.total),
+        .ubb = try gpa.alloc(i8, RT.total),
+        .lbw = try gpa.alloc(i8, RT.total),
+        .ubw = try gpa.alloc(i8, RT.total),
+        .memo = true,
+        .memo_writes = false,
+        .brackets = true,
+        .budget = 1_500_000_000,
+    };
+    defer inline for (.{ sc.vb, sc.vw }) |a| gpa.free(a);
+    defer inline for (.{ sc.cb, sc.cw }) |a| gpa.free(a);
+    defer inline for (.{ sc.lbb.?, sc.lbw.? }) |a| gpa.free(a);
+    defer inline for (.{ sc.ubb.?, sc.ubw.? }) |a| gpa.free(a);
+    const seed_s = struct {
+        fn go(c: *RT.O.Ctx, tt: *const RT.Tables) void {
+            @memcpy(c.vb, tt.vb);
+            @memcpy(c.vw, tt.vw);
+            for (0..RT.total) |i| {
+                c.cb[i] = tt.legal[i] and tt.vb[i] != UNDEF;
+                c.cw[i] = tt.legal[i] and tt.vw[i] != UNDEF;
+            }
+            @memset(c.lbb.?, -127);
+            @memset(c.ubb.?, 127);
+            @memset(c.lbw.?, -127);
+            @memset(c.ubw.?, 127);
+        }
+    }.go;
+
+    const hist = try gpa.create(RT.O.History);
+    defer gpa.destroy(hist);
+    hist.* = .{};
+
+    p("idx sd st | JUDGE | committed soundish | matches\n", .{});
+    var got: u64 = 0;
+    var com_ok: u64 = 0;
+    var snd_ok: u64 = 0;
+    var none_ok: u64 = 0;
+    var attempts: u64 = 0;
+    // most-filled first; stop after 60 footholds or 4000 attempts (bound wall)
+    var layer: usize = RT.n + 1;
+    while (layer > 0 and got < 60 and attempts < 4000) {
+        layer -= 1;
+        if (layer < 10) break; // deeper openings are hopeless for a memo-less judge
+        var li: u64 = RT.X.layer_offset[layer];
+        const stop = RT.X.layer_offset[layer + 1];
+        while (li < stop and got < 60 and attempts < 4000) : (li += 1) {
+            const i: usize = @intCast(li);
+            if (!t.legal[i]) continue;
+            var pos = RT.X.pos_from_colex(i);
+            inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
+                const fl = if (side > 0) t.fb[i] else t.fw[i];
+                if (fl & FLAG_KO_SENSITIVE != 0) {
+                    attempts += 1;
+                    jc.nodes = 0;
+                    if (RT.O.value_from_root(&jc, &pos, side, hist)) |jv| {
+                        got += 1;
+                        const cv: i8 = if (side > 0) art.vb[i] else art.vw[i];
+                        sc.memo_writes = false;
+                        seed_s(&sc, &t);
+                        const sv = RT.ab_value_from_root(&t, &sc, &pos, side, hist) catch 127;
+                        const cm = cv == jv;
+                        const sm = sv == jv;
+                        if (cm) com_ok += 1;
+                        if (sm) snd_ok += 1;
+                        if (!cm and !sm) none_ok += 1;
+                        p("{d:>8} {c} {d:>2} | {d:>4} | {d:>4} {d:>4} | {s}{s}{s}\n", .{
+                            i, @as(u8, if (side > 0) 'b' else 'w'), layer, jv, cv, sv,
+                            if (cm) "committed " else "", if (sm) "soundish " else "",
+                            if (!cm and !sm) "NONE" else "",
+                        });
+                    } else |_| {}
+                }
+            }
+        }
+    }
+    p("\nfoot4 RESULT: judge-reached={d} of {d} attempts | committed-correct={d} soundish-correct={d} none={d}\n", .{
+        got, attempts, com_ok, snd_ok, none_ok,
+    });
+}
+
+/// FOOTHOLD ADJUDICATION (ADR-0012 doctrine): the assumption-free Exact
+/// solver (ban-set-keyed, no brackets/seeds/ko_ref) is the only true oracle.
+/// It is intractable on the opening but tractable near the terminal wall.
+/// Run it on every KO_SENSITIVE 3x2 slot it can afford; where it completes,
+/// print the GROUND TRUTH beside all three finisher generations so we learn
+/// which (if any) is right — and aim the eventual fix at real values.
+fn foothold3x2(gpa: std.mem.Allocator) !void {
+    const RT = Retro(3, 2);
+    const EX = Exact(3, 2);
+    const p = std.debug.print;
+
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    const io = threaded.io();
+    var old = try artifact.load(io, std.Io.Dir.cwd(), "artifacts/oracle-3x2.wzo", gpa);
+    defer old.deinit();
+
+    // two finisher solvers sharing one ctx: writes-ON (= "new") and
+    // writes-OFF (= least-assumption); certified seeds preloaded
+    var ctx = RT.O.Ctx{
+        .vb = try gpa.alloc(i8, RT.total),
+        .vw = try gpa.alloc(i8, RT.total),
+        .cb = try gpa.alloc(bool, RT.total),
+        .cw = try gpa.alloc(bool, RT.total),
+        .lbb = try gpa.alloc(i8, RT.total),
+        .ubb = try gpa.alloc(i8, RT.total),
+        .lbw = try gpa.alloc(i8, RT.total),
+        .ubw = try gpa.alloc(i8, RT.total),
+        .memo = true,
+        .budget = 3_000_000_000,
+    };
+    defer inline for (.{ ctx.vb, ctx.vw }) |a| gpa.free(a);
+    defer inline for (.{ ctx.cb, ctx.cw }) |a| gpa.free(a);
+    defer inline for (.{ ctx.lbb.?, ctx.lbw.? }) |a| gpa.free(a);
+    defer inline for (.{ ctx.ubb.?, ctx.ubw.? }) |a| gpa.free(a);
+    const seed_v = struct {
+        fn go(c: *RT.O.Ctx, tt: *const RT.Tables) void {
+            @memcpy(c.vb, tt.vb);
+            @memcpy(c.vw, tt.vw);
+            for (0..RT.total) |i| {
+                c.cb[i] = tt.legal[i] and tt.vb[i] != UNDEF;
+                c.cw[i] = tt.legal[i] and tt.vw[i] != UNDEF;
+            }
+            @memset(c.lbb.?, -127);
+            @memset(c.ubb.?, 127);
+            @memset(c.lbw.?, -127);
+            @memset(c.ubw.?, 127);
+        }
+    }.go;
+    const hist = try gpa.create(RT.O.History);
+    defer gpa.destroy(hist);
+    hist.* = .{};
+
+    var exctx = EX.Ctx{ .map = EX.Map.init(gpa), .entry_cap = 12_000_000 };
+    defer exctx.map.deinit();
+
+    p("foothold: Exact (assumption-free) vs old / new(writes-on) / soundish(writes-off), 3x2 residue\n", .{});
+    p("targeting most-filled disputed slots first (Exact shrinks as board fills)\n", .{});
+    p("idx sd st |  EXACT | old new sndish | who-matches-EXACT\n", .{});
+    var got: u64 = 0;
+    var old_ok: u64 = 0;
+    var new_ok: u64 = 0;
+    var snd_ok: u64 = 0;
+    var none_ok: u64 = 0;
+    // iterate DESCENDING stone count (layers high->low): the near-terminal
+    // disputed slots are the only Exact-reachable footholds
+    var layer: usize = RT.n + 1;
+    while (layer > 0) {
+        layer -= 1;
+        var li: u64 = RT.X.layer_offset[layer];
+        const stop = RT.X.layer_offset[layer + 1];
+        while (li < stop) : (li += 1) {
+            const i: usize = @intCast(li);
+            if (!t.legal[i]) continue;
+            var pos = RT.X.pos_from_colex(i);
+            inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
+                const flags = if (side > 0) t.fb[i] else t.fw[i];
+                if (flags & FLAG_KO_SENSITIVE != 0) {
+                    exctx.nodes = 0;
+                    exctx.budget = 300_000_000;
+                    exctx.map.clearRetainingCapacity();
+                    if (EX.root(&exctx, &pos, side)) |ex| {
+                    got += 1;
+                    const ov: i8 = if (side > 0) old.vb[i] else old.vw[i];
+                    ctx.brackets = true;
+                    ctx.memo_writes = true;
+                    seed_v(&ctx, &t);
+                    const nv = RT.ab_value_from_root(&t, &ctx, &pos, side, hist) catch 127;
+                    ctx.memo_writes = false;
+                    seed_v(&ctx, &t);
+                    const sv = RT.ab_value_from_root(&t, &ctx, &pos, side, hist) catch 127;
+                    const om = ov == ex;
+                    const nm = nv == ex;
+                    const sm = sv == ex;
+                    if (om) old_ok += 1;
+                    if (nm) new_ok += 1;
+                    if (sm) snd_ok += 1;
+                    if (!om and !nm and !sm) none_ok += 1;
+                    p("{d:>3} {c} {d:>2} | {d:>5} | {d:>3} {d:>3} {d:>6} | {s}{s}{s}{s}\n", .{
+                        i, @as(u8, if (side > 0) 'b' else 'w'), layer, ex, ov, nv, sv,
+                        if (om) "old " else "", if (nm) "new " else "", if (sm) "sound " else "",
+                        if (!om and !nm and !sm) "NONE" else "",
+                    });
+                } else |_| {} // unreachable within budget: no foothold here
+                }
+            }
+        }
+    }
+    p("\nfoothold RESULT: exact-reached={d} | old-correct={d} new-correct={d} soundish-correct={d} none-correct={d}\n", .{
+        got, old_ok, new_ok, snd_ok, none_ok,
+    });
+}
+
+fn adj3x2(gpa: std.mem.Allocator) !void {
+    const RT = Retro(3, 2);
+    const p = std.debug.print;
+    var t = try RT.Tables.init(gpa);
+    defer t.deinit();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+
+    // load the COMMITTED (aspiration-era) artifact to compare against
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    const io = threaded.io();
+    var old = try artifact.load(io, std.Io.Dir.cwd(), "artifacts/oracle-3x2.wzo", gpa);
+    defer old.deinit();
+
+    // SOUND adjudicating solver: bracket-guided (tractable) with cross-branch
+    // memo writes OFF (the convicted mechanism excluded). Bounds arrays are
+    // allocated but stay vacuous (writes suppressed); seeds + brackets cut.
+    var ctx = RT.O.Ctx{
+        .vb = try gpa.alloc(i8, RT.total),
+        .vw = try gpa.alloc(i8, RT.total),
+        .cb = try gpa.alloc(bool, RT.total),
+        .cw = try gpa.alloc(bool, RT.total),
+        .lbb = try gpa.alloc(i8, RT.total),
+        .ubb = try gpa.alloc(i8, RT.total),
+        .lbw = try gpa.alloc(i8, RT.total),
+        .ubw = try gpa.alloc(i8, RT.total),
+        .memo = true,
+        .memo_writes = false,
+        .brackets = true,
+        .budget = 4_000_000_000,
+    };
+    defer inline for (.{ ctx.vb, ctx.vw }) |a| gpa.free(a);
+    defer inline for (.{ ctx.cb, ctx.cw }) |a| gpa.free(a);
+    defer inline for (.{ ctx.lbb.?, ctx.lbw.? }) |a| gpa.free(a);
+    defer inline for (.{ ctx.ubb.?, ctx.ubw.? }) |a| gpa.free(a);
+    @memcpy(ctx.vb, t.vb);
+    @memcpy(ctx.vw, t.vw);
+    for (0..RT.total) |i| {
+        ctx.cb[i] = t.legal[i] and t.vb[i] != UNDEF;
+        ctx.cw[i] = t.legal[i] and t.vw[i] != UNDEF;
+    }
+    @memset(ctx.lbb.?, -127);
+    @memset(ctx.ubb.?, 127);
+    @memset(ctx.lbw.?, -127);
+    @memset(ctx.ubw.?, 127);
+    const hist = try gpa.create(RT.O.History);
+    defer gpa.destroy(hist);
+    hist.* = .{};
+
+    var agree_old: u64 = 0;
+    var disagree_old: u64 = 0;
+    var budget: u64 = 0;
+    p("adjudicator: 3x2 residue, SOUND solver (brackets on, cross-branch writes OFF) vs committed artifact\n", .{});
+    for (0..RT.total) |i| {
+        if (!t.legal[i]) continue;
+        var pos = RT.X.pos_from_colex(i);
+        inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
+            const flags = if (side > 0) t.fb[i] else t.fw[i];
+            if (flags & FLAG_KO_SENSITIVE != 0) {
+                // reset seeds (previous root may have left stale bounds — none,
+                // writes are off, but be explicit)
+                if (RT.ab_value_from_root(&t, &ctx, &pos, side, hist)) |v| {
+                    const ov = if (side > 0) old.vb[i] else old.vw[i];
+                    if (v == ov) {
+                        agree_old += 1;
+                    } else {
+                        disagree_old += 1;
+                        if (disagree_old <= 20)
+                            p("  DISAGREE idx {d} {c}: sound={d} committed-old={d}\n", .{ i, @as(u8, if (side > 0) 'b' else 'w'), v, ov });
+                    }
+                } else |_| budget += 1;
+            }
+        }
+    }
+    p("adjudicator RESULT: sound-vs-old agree={d} disagree={d} budget-skipped={d}\n", .{ agree_old, disagree_old, budget });
+    p("  (if disagree=0: OLD artifact was CORRECT, new finisher generation is BUGGY)\n", .{});
+    p("  (if disagree>0: OLD artifact also wrong at those slots)\n", .{});
+}
+
 fn runContra(gpa: std.mem.Allocator) void {
     contra4x4(gpa) catch |err| std.debug.print("contra FAILED: {t}\n", .{err});
 }
@@ -1961,8 +2513,41 @@ pub fn main() !void {
         });
         return;
     }
+    if (std.c.getenv("RETRO_FOOTHOLD") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runFoothold, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_FOOT4") != null) {
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runFoot4, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_ADJ") != null) {
+        // ADJUDICATE the 3x2 finisher-generation disagreement: recompute
+        // every residue slot with the seeds-only NO-WRRITES solver (no
+        // cross-branch reuse possible) and print idx/side/value for diffing
+        // against both artifact generations.
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runAdj, .{gpa});
+        thread.join();
+        return;
+    }
     if (std.c.getenv("RETRO_CONTRA") != null) {
         const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runContra, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_CONSIST") != null) {
+        // #2 self-consistency auditor: minimax-identity check on every 3x2
+        // KO_SENSITIVE node, memo_writes ON vs OFF. Any violation PROVES that
+        // variant buggy (necessary, not sufficient).
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runConsist, .{gpa});
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_CONSIST4") != null) {
+        // same auditor, sampled over the deepest 4x4 KO_SENSITIVE nodes.
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runConsist4, .{gpa});
         thread.join();
         return;
     }

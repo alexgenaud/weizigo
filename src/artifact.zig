@@ -220,7 +220,18 @@ pub fn save(io: std.Io, dir: std.Io.Dir, sub_path: []const u8, gpa: Allocator, h
     const bytes = try encode(gpa, header, cols);
     defer gpa.free(bytes);
     if (std.fs.path.dirname(sub_path)) |parent| try dir.createDirPath(io, parent);
-    try dir.writeFile(io, .{ .sub_path = sub_path, .data = bytes });
+    var file = try dir.createFile(io, sub_path, .{});
+    defer file.close(io);
+    // CHUNKED write: a single write() of a >2 GiB buffer fails on macOS
+    // (error.Unexpected). Boards >= 6x3 exceed that; write in <=1 GiB pieces
+    // at explicit offsets so every artifact size is handled uniformly.
+    const CHUNK: usize = 1 << 30;
+    var off: u64 = 0;
+    while (off < bytes.len) {
+        const end = @min(off + CHUNK, bytes.len);
+        try file.writePositionalAll(io, bytes[@intCast(off)..@intCast(end)], off);
+        off = end;
+    }
 }
 
 /// Read, verify and decode an artifact from `sub_path` under `dir`.

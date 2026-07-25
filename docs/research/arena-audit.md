@@ -164,3 +164,79 @@ self-play line, which cannot diverge because both sides follow the same
 book down its own principal variation. The permanent lesson, now
 infrastructure: every claim about a PLAYER (not a table) must be tested by
 adversarial play, and "self-play smoke test" is not adversarial.
+
+## THREE-WAY finisher disagreement (2026-07-23) — correctness crisis, honestly logged
+
+Regenerating small artifacts (pilot gate) exposed that the current finisher
+disagrees with the committed artifacts. Adjudication made it WORSE, not
+better: three methods give three different values for the empty 3x2 board
+(idx 0, fresh-start):
+
+    old      (aspiration exact-memo finisher)     : +1
+    new      (MTD + bounds memo finisher)         : -2
+    writes-off (bracket-guided, cross-branch      :  0
+                memo writes disabled)
+
+62 of 378 residue (slot,side) pairs differ between writes-off and old.
+CONCLUSION we can and cannot draw:
+- We CAN conclude the finisher-produced RESIDUE is unreliable across
+  generations — at least two of the three methods are wrong on these slots,
+  and possibly all three.
+- We CANNOT yet name the true value. The "writes-off" judge removes the
+  convicted cross-branch memo reuse but still ASSUMES the L/H brackets and
+  the certified seeds are sound and that its own search logic is correct —
+  none of those is proven; it is the least-assumption-laden of the three,
+  not an oracle.
+- The ONLY assumption-free judge is Exact(w,h) (ban-set-keyed, sound by
+  construction). It is intractable on the empty board (Finding 3) but IS
+  tractable on near-terminal disputed slots (high stone count). Those are
+  the footholds: adjudicate every Exact-reachable disputed slot, see which
+  method (if any) it matches.
+
+Scope of the doubt (unchanged): the CERTIFIED CORE (L==H) is not in
+dispute here — every disputed slot is KO_SENSITIVE residue. But residue is
+21-49% of every board and includes the opening, so "the oracle is correct
+on its certified core" is true and "the published 3x2/3x3/4x4 artifacts are
+fully correct" is NOT currently established.
+
+This is the honest state: the two-sided L/H CERTIFICATION is trustworthy;
+the FINISHER (every generation of it) is under a cloud; the fix is the
+dependency-guarded memo (Kishimoto-Muller), and the acceptance test is
+agreement with Exact on every Exact-reachable slot at 2x2/3x2 plus the
+pilot-gate byte-identity thereafter.
+
+## Foothold adjudication is STRUCTURALLY DEFEATED (2026-07-23)
+
+Attempted #1 (assumption-minimal external adjudication of the disputed
+residue) on both boards. Both failed to produce a SINGLE foothold:
+- 3x2: Exact (ban-set-keyed), most-filled disputed slots, 2e9 then 3e8
+  node budget — 0 reached (~2 h).
+- 4x4: Exact is memory-dead (5.38 MB per ban-set key = 3^16 bits); judge =
+  O.solve memo=OFF (minimax + real superko history + eye-prune, no
+  cross-branch cache, memory-safe). Most-filled residue, 1.5e9 budget,
+  ~6.5 h — 0 footholds reached.
+
+WHY (structural, not tuning): the disputed slots ARE the ko-sensitive
+residue, and those are exactly the positions where a capture REOPENS the
+board mid-search (Finding 7), exploding any un-memoized or ban-set-memoized
+solve. Exact memoization is the only thing that could tame it, and its key
+(the full superko ban-set) is what makes it intractable — the graph-history-
+interaction cost IS the whole cost (Finding 3, restated). This is
+board-size-independent: it defeated 3x2 (a ko machine) AND 4x4 (a square
+target) identically.
+
+CONCLUSION — reframes the correctness strategy:
+- We CANNOT prove the ko-tangled residue correct by EXTERNAL CHECK against a
+  brute oracle; that is intractable by the same mechanism the whole project
+  exists to circumvent. No current check (Exact-reachable slots, brackets,
+  symmetry, bracket-containment) DISCRIMINATES old vs new — they agree on
+  the certified core and are silent on the residue.
+- Therefore residue correctness must come BY CONSTRUCTION: a provably-sound
+  finisher (Kishimoto-Muller dependency-guarded memo — a published,
+  proven-correct GHI method), whose trust rests on the ALGORITHM, validated
+  by determinism (pilot gate), bracket containment, exhaustive symmetry, and
+  agreement with Exact on the reachable (non-residue) slots — NOT on
+  adjudicating individual disputed slots.
+- Honest status: which of old/new is right on the disputed residue is
+  currently UNDECIDABLE by any tractable external means. Only a from-scratch
+  provably-sound recompute settles it. #1 is exhausted.

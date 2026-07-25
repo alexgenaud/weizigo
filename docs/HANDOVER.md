@@ -2,9 +2,60 @@
 
 Snapshot for resuming after a context compact/clear. Read this, then
 `docs/ARCHITECTURE.md` (module map), `docs/TODO.md`, and the ADRs.
-Updated 2026-07-22.
+Updated 2026-07-23.
 
-## LATEST (2026-07-22): ko_ref memo reuse DISPROVEN under prefixes; next = KM guard
+## LATEST (2026-07-23): FINISHER CORRECTNESS CRISIS — build #2 auditor, then #3 (KM)
+
+The pilot gate (`tools/pilot_gate.sh`, ADR-0012) caught it: regenerating the
+committed small artifacts with the current engine changes deep-residue
+values. THREE finisher generations give THREE different answers for the
+empty 3x2 board (fresh-start): old(aspiration)=+1, new(MTD+bounds)=-2,
+writes-off(bracket, no cross-branch memo)=0. 62 of 378 residue slots differ.
+Full story: `research/arena-audit.md` (bottom three sections).
+
+WHAT IS / ISN'T IN DOUBT:
+- NOT in doubt: the L/H CERTIFICATION (certified core, L==H, ~79% of 4x4).
+  Simple monotone iteration, exhaustively convergence-checked. Every
+  disputed slot is KO_SENSITIVE residue, OUTSIDE the certified core.
+- IN doubt: the FINISHER (every generation) that fills the ko-sensitive
+  residue. The committed artifacts' RESIDUE values are unverified; the
+  certified core stands.
+
+ADJUDICATION STATUS (three options from the session):
+- #1 external brute adjudication (Exact ban-set-keyed; or memo-less
+  minimax) — EXHAUSTED / STRUCTURALLY DEAD. 3x2 (Exact, ~2h) and 4x4
+  (memo-less judge, overnight incl. sleep) each produced ZERO footholds:
+  the disputed slots ARE the capture-reopening residue that explodes any
+  brute solve (Finding 3/7). Exact key at 4x4 = 5.38 MB/state (memory-dead).
+  Do NOT retry #1.
+- #2 self-consistency audit — VIABLE, NOT YET BUILT. Under a FIXED history,
+  a solver's own outputs must satisfy minimax (value never below best
+  child); a violation PROVES a bug (this is how the write path was
+  convicted via RETRO_CONTRA). Necessary-not-sufficient (a self-consistent
+  solver can still sit at a wrong fixpoint) and never yields the true value,
+  but it is CHEAP (shallow parent-vs-children under one history, no deep
+  re-search) and MAY ELIMINATE old or new. THIS IS THE IMMEDIATE NEXT TASK.
+- #3 Kishimoto-Muller dependency-guarded finisher — the only route to
+  PROVEN residue correctness (soundness by construction). Bigger build.
+  Validated BY #2 + determinism + brackets + symmetry + Exact-on-reachable.
+  Same machinery the history-perfect player needs (not a detour).
+
+PLAN (decided): build #2 auditor first (cheap, may eliminate a suspect),
+THEN #3. Do both; they compose (#2 is #3's acceptance test).
+
+TOGGLES ALREADY IN PLACE (conditional-assumptions doctrine, ADR-0012):
+`O.Ctx.memo` (memo on/off), `O.Ctx.memo_writes` (cross-branch writes; the
+convicted knob), `O.Ctx.brackets` (L/H cuts). Probes: RETRO_CONTRA (toggle
+matrix), RETRO_ADJ (sound-vs-old 3x2), RETRO_FOOTHOLD/RETRO_FOOT4 (the dead
+#1 — kept for the record). "writes-off + brackets" = least-assumption
+tractable solver = ab_value_from_root with memo_writes=false.
+
+DO NOT trust `data/oracle-4x4.wzo` residue or the committed 3x2/3x3 residue
+until the finisher is fixed. Certified core is fine. 6x3 abandoned (dubious
+value + ko-machine, files removed). Git history squashed to 10 commits on
+main (force-pushed); inverse-player branch is stale/deletable.
+
+## Earlier (2026-07-22): ko_ref memo reuse DISPROVEN under prefixes
 
 The day a 15-kyu human beat the oracle (the "B+16 game") and everything it
 taught. Read `research/arena-audit.md` + the B+16 sections of
