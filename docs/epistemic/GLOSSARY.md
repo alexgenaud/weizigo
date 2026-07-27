@@ -22,7 +22,7 @@ software engineers, and LLM agents. Organized by domain.
   captured prisoners. Needs capture tracking; not used for solving here. Usually
   agrees with area scoring within ~1 point.
 - **komi** — points added to White's score to offset Black's first-move
-  advantage. This project uses komi 0; the empty-board value IS the fair komi.
+  advantage. This project uses komi 0; the empty-board score IS the fair komi.
 - **Black-positive** — this project's sign convention: scores are always written
   from Black's point of view. +2 = Black ends 2 ahead; −2 = White ends 2 ahead.
   Side-to-move selects which array slot (vb/vw) to read, never the sign.
@@ -47,7 +47,7 @@ software engineers, and LLM agents. Organized by domain.
 - **superko** — generic term for "no board state may repeat" rules (PSK/SSK).
 - **triple ko / eternal life** — longer repetition cycles (3+ positions) that
   basic ko does not forbid. Under basic-ko rules these are *no result*; under
-  superko they are illegal. The source of the *residue* difficulty.
+  superko they are illegal. The source of the *ko-sensitive region* difficulty.
 - **no result** — (Japanese rules) a game that cannot finish due to a long
   cycle; voided and replayed. The basic-ko alternative to superko's "illegal."
 
@@ -55,10 +55,10 @@ software engineers, and LLM agents. Organized by domain.
 
 - **eye** — an empty point (or small region) enclosed by one color; two genuine
   eyes make a group unconditionally alive.
-- **Benson / pass-alive / unconditional life** — Benson's algorithm (D. Benson,
+- **Benson / Benson-alive / unconditional life** — Benson's algorithm (D. Benson,
   1976) proves a group can never be captured *even if its owner only ever
   passes* (needs roughly two real eyes' worth of protected space). Implemented
-  in `terminal.pass_alive` / `rules.pass_alive`. The THEOREM (not just the
+  in `terminal.benson_alive` / `rules.benson_alive`. The THEOREM (not just the
   port) was exhaustively falsification-tested at 3x3 here.
 - **seki** — mutual life: adjacent enemy groups share liberties and neither can
   capture without dying. Shared liberties are *dame*. Not certified by Benson;
@@ -96,34 +96,34 @@ software engineers, and LLM agents. Organized by domain.
   positions; how chess/checkers endgame tablebases are built. Here realized as
   *successor-sweep value iteration* (forward move generator only — no un-capture
   code exists), which is a fixpoint because captures are back-edges.
-- **minimax** — the exact game-value rule: the player to move picks the
-  continuation best for them; the value is that best outcome. The foundation;
+- **minimax** — the exact game-score rule: the player to move picks the
+  continuation best for them; the score is that best outcome. The foundation;
   not a search algorithm per se.
 - **alpha-beta search** — a depth-first minimax search that prunes branches
-  proven irrelevant to the value. Proves the value but PRUNES (does not visit
+  proven irrelevant to the score. Proves the score but PRUNES (does not visit
   every subtree), so it cannot populate a complete oracle. Used here only inside
   the *finisher* and the *query engine*, not as the oracle builder.
 - **DFS / BFS** — depth-first / breadth-first traversal.
 - **TT — transposition table** — a cache mapping a canonical position to its
-  computed value, so a position reached by different move orders is solved once
+  computed score, so a position reached by different move orders is solved once
   (`solve.Table`). Unsafe under GHI without a guard (see *ko_ref*, *Kishimoto–
   Müller*).
 - **GHI — Graph History Interaction** — (standard term; Kishimoto & Müller,
-  and earlier) the problem that a position's value can depend on the *history*
-  used to reach it (because of superko), so a plain position→value cache is
+  and earlier) the problem that a position's score can depend on the *history*
+  used to reach it (because of superko), so a plain position→score cache is
   unsafe. The central villain of this project. See `research/ghi-and-superko.md`.
-- **fixpoint iteration** — repeat a relaxation step until values stop changing.
+- **fixpoint iteration** — repeat a relaxation step until scores stop changing.
   Used for retrograde here because captures create back-edges (no clean
   topological order). Converges in 2/6/12/19 sweeps at 2x2/3x2/3x3/4x4.
 - **Bellman update / value iteration** — (Richard Bellman; dynamic programming)
-  the relaxation step "a state's value = the best one-step successor value"
+  the relaxation step "a state's score = the best one-step successor score"
   applied until convergence. The retrograde engine's core operation.
 - **MPH — minimal perfect hash** — a collision-free map from a known key set
   onto a dense integer range; the index itself becomes the storage key.
   Candidate data model for the compressed oracle.
 - **canonical form / equivalence class** — the 16 variants of a board (8
   dihedral symmetries × colour inversion) all share one fate (colour swap
-  negates the value), forming ONE equivalence class storing ONE value. The
+  negates the score), forming ONE equivalence class storing ONE score. The
   *canonical* form is the class's designated representative (here the
   lexicographically-least variant, with −1 < 0 < 1).
 - **colex index (layered colex)** — a board's serial number in a fixed
@@ -138,13 +138,11 @@ software engineers, and LLM agents. Organized by domain.
 - **CGT — combinatorial game theory** — Conway/Berlekamp/Guy theory decomposing
   endgames into independent local games with values and *temperatures*;
   formalizes sente/gote. Substrate candidate for local evaluation and the
-  **loopy**-game extension needed to pin *residue* values exactly.
-
-TODO: is "residue" used in research papers? If not, we should call it what it is: the bracketed ko-sensitive range of position. Better if we can find a more concise descriptive term to replace "risidue".
+  **loopy**-game extension needed to pin *ko-sensitive region* scores exactly.
 
 - **loopy games** — (CGT) games with cycles, whose values are not simple numbers
   but "loopy" combinatorial-game values (Berlekamp–Conway–Guy). The research-
-  grade route to exact residue values; unbuilt here.
+  grade route to exact ko-sensitive scores; unbuilt here.
 
 ## Terms named for authors / papers
 
@@ -157,12 +155,12 @@ TODO: is "residue" used in research papers? If not, we should call it what it is
   basic-ko/PSK-compatible rules). 2009.
 - **Kishimoto–Müller (dependency-guarded memo)** — (A. Kishimoto; M. Müller) the
   sound solution to GHI in transposition tables: a memo entry records the
-  position-set its value depends on, and is reused only when the current search
+  position-set its score depends on, and is reused only when the current search
   path cannot invalidate it. Realized here as *deps mode* / *fingerprint* reuse
   (Track B, ADR-0013). The unsound `ko_ref >= d` guard it replaces was the bug.
 - **Berlekamp–Conway–Guy** — authors of *Winning Ways* / *On Numbers and Games*;
   the CGT framework including loopy games (see *loopy games*).
-- **Benson** — (D. Benson) see *Benson / pass-alive*.
+- **Benson** — (D. Benson) see *Benson / Benson-alive*.
 - **Syzygy** — (R. Liśkiewicz? no — Ronald de Man) a family of chess endgame
   tablebases; their colex-style addressing inspired the weizigo address system.
 - **Spight** — (T. Spight) a ruleset family for bounded ko with "repeat-twice-
@@ -179,15 +177,15 @@ TODO: is "residue" used in research papers? If not, we should call it what it is
   genuine term of art, NOT invented here. **However**, in this codebase "sound"
   has also been used as loose shorthand for "correct / not GHI-tainted / safe to
   trust / produced by the certified path." That loose usage can be cryptic;
-  agents should prefer the plain-English ("never returns a wrong value here") and
+  agents should prefer the plain-English ("never returns a wrong score here") and
   reserve "sound" for the formal-methods sense, naming the specific invariant.
-  - *unsound* — may return a wrong value (the `ko_ref >= d` guard was unsound).
+  - *unsound* — may return a wrong score (the `ko_ref >= d` guard was unsound).
   - **[project term]** *soundish* — shorthand for the `memo_writes=false`
     finisher config: self-consistent and resting only on already-checked
     invariants, but not independently proven. Prefer "writes-off finisher."
 - **the #2 auditor** **[project term]** — the self-consistency auditor
   (`RETRO_CONSIST`/`RETRO_CONSIST4`): under a fixed history a solver's own
-  outputs must satisfy minimax (a parent's value never below its best child); a
+  outputs must satisfy minimax (a parent's score never below its best child); a
   violation PROVES a bug. Necessary-not-sufficient. The mandatory pre-commit
   gate for finisher/memo/ko changes.
 - **battery** **[project term]** — the standard validation suite run after an
@@ -196,43 +194,60 @@ TODO: is "residue" used in research papers? If not, we should call it what it is
 
 ## weizigo engine concepts (project jargon — defined, not standard)
 
-- **fresh-start value** **[project term]** — the value of a position assuming
+- **fresh-start score** **[project term]** — the score of a position assuming
   the game history is empty (no prior boards to forbid). The ADR-0008 oracle
-  semantics. Equals the history-free value where the certified core holds.
+  semantics. Equals the history-free score where the fresh-start single-score region holds.
 - **L / H (two-sided certification)** **[project term]** — two fixpoints of the
   retrograde value iteration: **L** seeded −n (cycles scored maximally anti-
   Black → least fixpoint), **H** seeded +n (pro-Black → greatest fixpoint).
-  Where L==H the value is history- and rule-independent (the *certified core*);
-  where L<H the node is *KO_SENSITIVE* (the *residue*), bracketed [L,H].
-- **certified core** **[project term]** — the set of (position, side) where
-  L==H: the value is provably identical under any cycle convention (PSK,
-  basic-ko, score-on-cycle, kill-X%). ~66/74/79% of slots at 3x3/4x3/4x4. The
-  sound, scalable, shippable exact result.
-- **residue** **[project term]** — the complement: positions where L<H, i.e.
-  genuinely cycle-dependent. The hard part. Fraction FALLS with size
-  (72/39/34/21% at 2x2/3x2/3x3/4x4) but never vanishes.
-- **bracket / [L,H] bracket** **[project term]** — the sound deliverable for a
-  residue slot: every admissible cycle rule's true value lies in [L,H]. We ship
-  the interval, not a guessed point. A "single number" is not soundly pinnable.
+  Where L==H the score is *claimed* history- and rule-independent (the **fresh-start single-score region**; C2, falsified at 3×2 by T13 — see `status/leak-crisis.md`); where L<H the node is *KO_SENSITIVE* (the **ko-sensitive
+  region**), bracketed [L,H]. See `names.md` for canonical names.
+- **certified core** **[project term; DEPRECATED]** — historical synonym
+  for the **fresh-start single-score region** (positions where L==H). The
+  term implied real-game history-independence; that implication is **false**
+  (C2 falsified at 3×2 by T13, 2026-07-26; see `status/leak-crisis.md`).
+  Use "fresh-start single-score region" or "single-score scores" instead.
+
+## fresh-start score
+
+[project term] The score of a (position, side) reached from the empty board
+with no prior history, played out under the generation rule (basic ko +
+bracket-guided finisher, `memo_writes=false`). The table holds fresh-start
+scores (C1). A fresh-start score is **not** a real-game score under PSK
+(C2 falsified at 3×2; C3 falsified at 3×3).
+- **ko-sensitive region** **[project term]** — the complement of the
+  single-score region: positions where L<H, i.e. the fresh-start score is not
+  unique across cycle conventions. Fraction FALLS with size (72/39/34/21% at
+  2x2/3x2/3x3/4x4) but never vanishes. The bracket `[L,H]` is the **spread of
+  fresh-start fixpoints under different cycle-resolution conventions**; it is a
+  CLAIMED fresh-start property, **not** a real-game bound (C3 falsified at
+  3×3; see `../status/leak-crisis.md`). See `names.md`.
+- **bracket / [L,H] bracket** **[project term]** — the bracket for a
+  ko-sensitive slot: a `[L,H]` range from the L/H fixpoint iteration. It is the
+  **spread of fresh-start fixpoints under different cycle-resolution
+  conventions**, not a real-game bound (C3 falsified at 3×3; see
+  `status/leak-crisis.md`). The lower bound L is the least fresh-start
+  fixpoint; the upper bound H is the greatest. The range-aware player is NOT
+  leak-free. See `names.md`.
 - **KO_SENSITIVE** **[project term]** — the flag (FLAG_KO_SENSITIVE) marking a
-  residue slot (L<H). Its value depends on the cycle rule / history.
+  ko-sensitive slot (L<H). Its score depends on the cycle rule / history.
 - **DTT — depth-to-terminal** **[project term]** — the fastest optimal
   resolution length (in plies) for a slot, saturating at DTT_FAR. Computed free
   by the retrograde sweeps; unrecoverable later, so stored in the schema.
-- **finisher** **[project term]** — the forward solve that resolves residue
-  slots, seeded with certified values so it terminates upon leaving the ko-
+- **finisher** **[project term]** — the forward solve that resolves ko-sensitive region
+  slots, seeded with certified scores so it terminates upon leaving the ko-
   tangled region. Implemented as bracket-guided alpha-beta (ADR-0010) + MTD
   null-window probes + per-root bounds memo. Its committed outputs are
   UNTRUSTWORTHY until Track A regeneration (ADR-0013).
 - **converge / finalize** **[project term]** — the two retrograde phases:
-  *converge* runs L/H fixpoint sweeps; *finalize* reads out the certified core
-  and (optionally) runs the finisher on the residue. Polynomial in table size;
+  *converge* runs L/H fixpoint sweeps; *finalize* reads out the fresh-start single-score region
+  and (optionally) runs the finisher on the ko-sensitive region. Polynomial in table size;
   the finisher is the expensive part.
 - **kill-X%** **[project term]** — an optional rule: a move capturing > X% of
-  the board's points ends the game immediately. Tested as a residue cure and
-  ABANDONED (it worsens the residue). Retained as an optional play rule.
+  the board's points ends the game immediately. Tested as a ko-sensitive-region cure and
+  ABANDONED (it worsens the ko-sensitive region). Retained as an optional play rule.
 - **fingerprint (dependency)** **[project term]** — a Bloom-style bit-word
-  summarizing the position-set a memo entry's value depends on (Track B / deps
+  summarizing the position-set a memo entry's score depends on (Track B / deps
   mode). Reuse is allowed only when the entry's fingerprint is bit-disjoint from
   the ancestors' OR — proving no ancestor can introduce a new superko ban.
   False positives only forgo reuse, never corrupt.
@@ -242,7 +257,7 @@ TODO: is "residue" used in research papers? If not, we should call it what it is
 - **MTD(f) / MTD null-window** — (Plaat 1996) a best-first search built from
   repeated zero-window alpha-beta probes; used by the finisher. Bare MTD was
   measured WORSE than aspiration-with-bounds-memo here.
-- **aspiration window** — a narrow alpha-beta window around an expected value
+- **aspiration window** — a narrow alpha-beta window around an expected score
   to speed pruning; re-searched wider on failure.
 - **Track A / Track B** **[project term]** — ADR-0013's two routes: **Track A**
   = correctness now (regenerate 2x2..4x4 with memo writes OFF, pass the
@@ -255,8 +270,8 @@ TODO: is "residue" used in research papers? If not, we should call it what it is
 - **ban set / ban-set key** **[project term]** — the set of prior board
   positions forbidden by superko; the `Exact` solver keys memo on it (sound but
   memory-prohibitive >3x3: ~5 MB/state at 4x4).
-- **rule-independent** **[project term]** — a value identical under any cycle
-  convention whose cycle-value lies in [−N,N]; the property of the certified core.
+- **rule-independent** **[project term]** — a score identical under any cycle
+  convention whose cycle-score lies in [−N,N]; the *claimed* property of the single-score region (C2; falsified at 3×2 by T13 — see `status/leak-crisis.md`).
 
 ## weizigo code-specific terms
 
