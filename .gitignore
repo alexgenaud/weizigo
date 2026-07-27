@@ -10,6 +10,11 @@ untracked/
 # compiled binaries (built by agents)
 /retro-e*
 /gtp
+/weizigo
+/weizigo-arena
+/weizigo-oracle
+/weizigo-engine-vs-engine
+/managent
 
 # your personal scrap/notes file — never commit
 /HUMAN.md
