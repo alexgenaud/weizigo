@@ -165,23 +165,36 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 const better = if (maximizing) v > best.value else v < best.value;
                 if (better or (v == best.value and dt < best.dtt)) best = mv;
             }
-            // "always play in the early game": never pass before a stone exists.
-            if (best.cell == null and !S.anyStone(&s.pos)) {
-                if (best_move) |bm| return bm;
-                for (0..n) |p| { // no evaluable move (all UNDEF): play SOMETHING legal
-                    if (s.pos[p] != 0) continue;
-                    const child = R.pos_from_move(&s.pos, side, p) catch continue;
-                    if (s.seen(&child)) continue;
-                    return .{ .cell = p, .value = UNDEF, .dtt = 255 };
+            // "always play in the early game": don't pass before min-stones
+            // (own >= area/4 OR total >= area/2; 4 own / 8 total on 4x4). Past
+            // the early game, pass is an OPTIMAL move - play it whenever it is
+            // the value-best choice (ties by DTT), even if losing: a close
+            // lost endgame passes out rather than drags on, a decisive one
+            // resigns (handled by the caller).
+            if (best.cell == null) {
+                const area: usize = w * h;
+                const min_own: usize = area / 4;
+                const min_total: usize = area / 2;
+                var own: usize = 0;
+                var tot: usize = 0;
+                for (s.pos) |x| {
+                    if (x == 0) continue;
+                    tot += 1;
+                    if ((x > 0) == (side > 0)) own += 1;
+                }
+                if (own < min_own and tot < min_total) { // early game -> always play
+                    if (best_move) |bm| return bm;
+                    for (0..n) |p| { // no evaluable move (all UNDEF): play SOMETHING legal
+                        if (s.pos[p] != 0) continue;
+                        const child = R.pos_from_move(&s.pos, side, p) catch continue;
+                        if (s.seen(&child)) continue;
+                        return .{ .cell = p, .value = UNDEF, .dtt = 255 };
+                    }
                 }
             }
             return best;
         }
 
-        fn anyStone(pos: *const Pos) bool {
-            for (pos) |x| if (x != 0) return true;
-            return false;
-        }
 
         pub fn applyMove(s: *S, side: i8, cell: ?usize) !void {
             if (cell) |p| {
