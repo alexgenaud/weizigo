@@ -1,6 +1,6 @@
 # About this document (the method)
 
-This chapter describes the method behind `PROGRESS.md` and the `docs/` tree.
+This chapter describes the method behind `epistemic/PROGRESS.md` and the `docs/` tree.
 It is itself part of the structure it describes — the living document is
 self-describing and is pruned like everything else.
 
@@ -75,24 +75,24 @@ where it is certain.
 
 ## Roles and conventions
 
-- `PROGRESS.md` — strategic, current-truth overview. The hub. Touched in
+- `epistemic/PROGRESS.md` — strategic, current-truth overview. The hub. Touched in
   essentially every session.
-- `HANDOVER.md` — tactical session continuity (the immediate next task,
+- `status/HANDOVER.md` — tactical session continuity (the immediate next task,
   gotchas). Updated every session. Distinct from PROGRESS.
 - `decisions/` — append-only history; never rewritten. ADRs are the record of
   *why* a decision was made, frozen in time.
 - `research/` — findings, measurements, dead-ends. Historical record.
 - `status/` — current state and live crises (e.g. `leak-crisis.md`).
-- `names.md` — canonical names register.
-- `GLOSSARY.md` — terms; project-invented shorthand marked `[project term]`.
+- `epistemic/names.md` — canonical names register.
+- `epistemic/GLOSSARY.md` — terms; project-invented shorthand marked `[project term]`.
 - `AGENTS.md` (repo root) — agent behavior rules and foreclosures.
 
-Status markers (carry over from the legacy `TODO.md`): `[ ]` todo · `[~]` in
+Status markers (carry over from the legacy `engine/TODO.md`): `[ ]` todo · `[~]` in
 progress · `[x]` done · `[-]` dropped.
 
 ## Related
 
-- `agent-workflow.md` — the broader agent workflow intention
+- `infra/agents/workflow.md` — the broader agent workflow intention
   (pipeline phases, fail-fast subtasks, readiness-for-context-clear,
   parallelization, auditability). This file is the *documentation* method;
   that one is the *agent* method. They compose.

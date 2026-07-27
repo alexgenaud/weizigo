@@ -5,17 +5,26 @@ and any LLM coding agent that honors the emerging AGENTS.md standard. If your
 harness prefers a different filename (CLAUDE.md, .cursorrules), create a thin
 redirect to this file rather than duplicating it.
 
+## Per-board epistemic independence
+
+**Each board size is its own epistemic universe.** A claim that is PROVEN,
+CLAIMED, or FALSE-AS-SCOPED at one size is **not** evidence for the same
+status at any other size. Do not write "this suggests X at larger boards"
+unless you provide a monotonicity theorem; the Boss will reject it.
+
 ## Read order (do this before writing any code)
 
-1. `docs/PROGRESS.md` — the living document: where the project is, globally.
+1. `docs/epistemic/PROGRESS.md` — the living document: where the project is, globally.
    Start here.
-2. `docs/HANDOVER.md` — session-continuity snapshot: tactical state, the
+2. `docs/status/HANDOVER.md` — session-continuity snapshot: tactical state, the
    immediate next task, gotchas. Updated every session.
 3. `AGENTS.md` (this file) — behavior rules and foreclosures.
-4. `docs/ARCHITECTURE.md` — module map and the layer cake.
-5. `docs/TODO.md` — backlog.
-6. `docs/RISKS.md` — known risks, gotchas, smells, bugs. Read before engine edits.
-7. The relevant `docs/decisions/000N-*.md` (ADRs) for whatever you're touching.
+4. For the Boss: `docs/infra/agents/boss-role.md`. For subagents: skip to
+   `docs/infra/subagent.md` (single task) or `docs/infra/sprint.md` (multi-phase).
+5. `docs/engine/ARCHITECTURE.md` — module map and the layer cake.
+6. `docs/engine/TODO.md` — backlog.
+7. `docs/engine/RISKS.md` — known risks, gotchas, smells, bugs. Read before engine edits. (⚠ not yet written)
+8. The relevant `docs/decisions/000N-*.md` (ADRs) for whatever you're touching.
 
 PROGRESS = strategic, long-term, changes when milestones shift.
 HANDOVER = tactical, per-session, changes every session. They are complementary;
@@ -24,10 +33,10 @@ do not let one rot while the other updates.
 ## What this project is
 
 `weizigo` — a provably-correct solver for small Go boards (Weiqi/Baduk) in
-Zig 0.16. Goal: a compressed perfect oracle — the exact game-theoretic value
+Zig 0.16. Goal: a compressed fresh-start oracle — the exact game-theoretic fresh-start score
 of every legal (position, side) — built by retrograde value iteration with
-two-sided (L/H) certification. Boards done through 4x4; aiming at 5x5, then
-6x6, then 7x7. See PROGRESS.md.
+two-sided (L/H) certification. Boards done through 4x4; 5×5+ on hold pending the
+user's decision on the reframe (see `docs/epistemic/PROGRESS.md`).
 
 ## Non-negotiable rules (foreclosures — do NOT relitigate)
 
@@ -38,24 +47,32 @@ act against them.
 - **Positional superko (PSK) is NOT the generation target.** PSK exact-solve
   is intractable even on the EMPTY 2x2 (118M ban-set states). See ADR-0013,
   `research/ruleset-options.md`. Play-time can still enforce PSK for legality.
-- **kill-X% is dead as a residue cure.** It makes the 4x4 residue WORSE
+- **kill-X% is dead as a ko-sensitive-region cure.** It makes the 4x4 ko-sensitive region WORSE
   (21.32% -> 25.01% as the threshold drops). Remains an optional play rule only.
 - **score-on-cycle is provably as hard as PSK.** Byte-identical state counts
   (118,475,182 / 116,114,272). No free lunch. See `research/ruleset-options.md`.
-- **The committed residue values are NOT trustworthy.** `data/oracle-4x4.wzo`
-  and the 2x2/3x2/3x3 residue columns are unverified until Track A regenerates
-  them with `memo_writes=false` and passes the #2 auditor. The certified
-  L==H core IS correct. Do NOT quote a residue value as truth until then.
-- **Never report a single residue number as "the value of the board."** The
-  honest deliverable is the rule-independent certified core + the [L,H]
-  bracket for the residue. A single number is not soundly pinnable by any
-  tractable method we have.
+- **The committed ko-sensitive values are NOT trustworthy.** `data/oracle-4x4.wzo`
+  and the 2x2/3x2/3x3 ko-sensitive columns are unverified until Track A regenerates
+  them with `memo_writes=false` and passes the #2 auditor. The L==H core is **fresh-start correct (C1)**, NOT real-game
+  correct. C2 (single-score history-independence) is **falsified at 3×2** (T13, 2026-07-26; 12 mismatches on 508 non-trivial PSK histories). Do NOT quote a ko-sensitive score as truth until then, and do not call the L==H region a "proven core" or "certified core" in any real-game sense; it is the *fresh-start single-score region*.
+- **Never report any table value as *the* real-game value of the board.** The table
+  holds **fresh-start scores only** (C1); C2 (single-score history-independence) is falsified
+  at 3×2 (T13); C3 (bracket bounds real-game score) is falsified at 3×3 (E2). The honest
+  deliverable is the fresh-start score table + the CLAIMED [L,H] fresh-start bracket, with
+  the explicit non-promise that neither equals nor bounds the real-game PSK score.
 - **The #2 self-consistency auditor is a mandatory pre-commit gate** for any
   change to the finisher, memo logic, or ko/GHI handling. Zero minimax-identity
   violations on 3x2 exhaustive + the deepest-N 4x4 sample. A "sound by
   construction" claim without an auditor run is INSUFFICIENT — the last bug
   (`ko_ref >= d`, ADR-0013) looked obviously correct and was wrong.
-- **Scores are ALWAYS Black-positive.** Side-to-move picks the array
+- **The single-score (L==H) region is NOT history-independent.**
+  T13 falsified C2 at 3×2 (2026-07-26). The L==H values are fresh-start
+  exact (C1), not real-game exact. Do not relitigate "is the L==H region
+  history-independent?" — it is settled false at the smallest testable
+  board. A new ADR with a different representation (e.g. bounded-history
+  state) is the route to a real-game claim, not a re-run of the C2-probe.
+
+- - **Scores are ALWAYS Black-positive.** Side-to-move picks the array
   (vb/vw), never the sign. Black maximizes, White minimizes. Colour inversion:
   value(-pos,-side) == -value(pos,side); for bound tables L(-pos,-side) == -H.
 - **Never call the board index a "rank."** In Go, rank = kyu/dan. Use
@@ -77,9 +94,9 @@ act against them.
   are large and precious. Never overwrite an artifact without an explicit
   instruction; write to a new path and re-hash first.
 - **One writer at a time on the engine.** If sub-agents are spawned, never
-  let two edit `retro.zig`/`oracle.zig`/`rules.zig` concurrently. See RISKS.md.
-- **Update docs as you go.** When a milestone shifts, update PROGRESS.md. At
-  the end of every session, update HANDOVER.md. New decisions get a new ADR
+  let two edit `retro.zig`/`oracle.zig`/`rules.zig` concurrently. See `docs/engine/RISKS.md` (⚠ not yet written).
+- **Update docs as you go.** When a milestone shifts, update `docs/epistemic/PROGRESS.md`. At
+  the end of every session, update `docs/status/HANDOVER.md`. New decisions get a new ADR
   (append-only; supersede, don't rewrite).
 - **Dates are absolute** (e.g. 2026-07-24), never "today."
 - **Numbers cite their run** (command, board size, flags).
@@ -105,7 +122,7 @@ feed input without restarting.
 
 ## Workflow & readiness
 
-The full intention is in `docs/agent-workflow.md` (read it). Summary, in
+The full intention is in `docs/infra/agents/workflow.md` (read it). Summary, in
 spirit not ceremony — the agent chooses how much applies per task:
 
 - **Document before / while / after.** Intent + a falsifiable acceptance test
@@ -162,7 +179,7 @@ and `/tmp`. Light rules; the point is no silent collisions:
   pivot), `methods-and-findings.md` (plain-English narrative),
   `retrograde-3x3.md` / `retrograde-4x4.md` (measurements),
   `consistency-audit.md` (the #2 auditor that convicted the write path).
-- `docs/GLOSSARY.md` — terms.
+- `docs/epistemic/GLOSSARY.md` — terms.
 
 ## Epistemic discipline
 
@@ -171,9 +188,16 @@ and `/tmp`. Light rules; the point is no silent collisions:
   soundness/correctness claims. "This is sound by construction" without a
   passing auditor run is the failure mode that produced the `ko_ref >= d` bug.
 - **Project-invented shorthand is fine, but mark it.** Terms coined in this
-  project (not standard terms of art) live in `docs/GLOSSARY.md` marked
+  project (not standard terms of art) live in `docs/epistemic/GLOSSARY.md` marked
   **[project term]** with a plain-English expansion. Prefer plain English in
   prose; reserve the shorthand for tight contexts and always define on first use.
 - **"sound" is a real formal-methods term** (a method that never returns a wrong
   answer) but has been used loosely here as shorthand for "correct / not GHI-
-  tainted." Use the precise sense; name the specific invariant. See GLOSSARY.md.
+  tainted." Use the precise sense; name the specific invariant. See GLOSSARY.md
+  (`docs/epistemic/GLOSSARY.md`).
+
+## Boss orchestration
+
+See `docs/infra/agents/boss-role.md` for the Boss agent's responsibilities, decision
+hygiene, and delegation protocol.
+

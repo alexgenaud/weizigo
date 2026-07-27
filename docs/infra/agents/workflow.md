@@ -38,7 +38,7 @@ skip it where it doesn't.
 
 ## Document before / while / after
 
-The living document (`PROGRESS.md` + `status/` + `decisions/` + `research/`)
+The living document (`../../epistemic/PROGRESS.md` + `../../status/` + `../../decisions/` + `../../research/`)
 is written **before, during, and after** the work — not merely after.
 
 - **Before:** state intent + the falsifiable acceptance test as a `TODO`.
@@ -70,25 +70,25 @@ is always resumable after a session failure, context clear, context compact,
 or handover. Concretely:
 
 - **Milestones** → committed to git (code + docs).
-- **The current in-flight task** → `status/CURRENT.md` (ephemeral, updated
+- **The current in-flight task** → `../../status/CURRENT.md` (ephemeral, updated
   often): what I am doing right now, the next concrete step, and any partial
-  state not yet committed. A fresh session reads `PROGRESS.md` →
-  `status/leak-crisis.md` → `status/CURRENT.md` and resumes without loss.
-- **Decisions/findings** → ADRs / `research/` (durable).
+  state not yet committed. A fresh session reads `../../epistemic/PROGRESS.md` →
+  `../../status/leak-crisis.md` → `../../status/CURRENT.md` and resumes without loss.
+- **Decisions/findings** → ADRs (`../../decisions/`) / `../../research/` (durable).
 - **Console discussion** → distilled into the tree only when it changes a
-  decision (ADR), reveals a finding (`research/`), or changes the plan
-  (`status/`); else it stays ephemeral.
+  decision (ADR), reveals a finding (`../../research/`), or changes the plan
+  (`../../status/`); else it stays ephemeral.
 
 Aim to **implement → test → stabilize → verify → commit** in small cycles, so
 that at any moment the committed state is coherent and the only thing at risk
-is the current `CURRENT.md` line.
+is the current `../../status/CURRENT.md` line.
 
 ## Parallelization
 
 When a parent task is broken into chunks:
 
 - **Uniquely ID the files/outputs** of each chunk (e.g.
-  `status/e3-lo-fixpoint.md`, not a shared scratch file) so parallel agents
+  `../../status/e3-lo-fixpoint.md`, not a shared scratch file) so parallel agents
   don't collide.
 - **Each task declares its parallelization tolerance** (can run in parallel
   with what? must be serial after what?) — usually decided by the parent that
@@ -107,11 +107,11 @@ without the evidence that makes it so — the `ko_ref >= d` bug and the E2
 sign error both *looked* obviously right and weren't. When a result is
 ambiguous (e.g. E3: valid PSK game + `lo=2` + reached `−9`, but the direct
 `true < lo` check was intractable), **record the ambiguity explicitly** rather
-than forcing a clean story. See `status/leak-crisis.md` for the live example.
+than forcing a clean story. See `../../status/leak-crisis.md` for the live example.
 
 ## How much to use? (the agent's call)
 
-- Trivial fix / doc edit → just do it; one line in `CURRENT.md`.
+- Trivial fix / doc edit → just do it; one line in `../../status/CURRENT.md`.
 - A probe or measurement → spec-line + run + record; no ADR needed.
 - A real decision (ruleset, engine semantics, a new bound claim) → ADR + the
   battery/auditor as the gate.

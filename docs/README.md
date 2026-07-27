@@ -4,35 +4,41 @@ Working notes for the brute-force / perfect small-board Go solver.
 
 ## Read order (start here)
 
-1. `PROGRESS.md` — the living specification: what we know, what we need to
+1. `epistemic/PROGRESS.md` — the living specification: what we know, what we need to
    know, what we need to build. The hub; read it first.
-2. `names.md` — canonical names (the table, the values, the two regions).
+2. `epistemic/names.md` — canonical names (the table, the values, the two regions).
 3. `status/leak-crisis.md` — the current-focus crisis.
 4. `about-this-document.md` — the documentation method.
-5. `agent-workflow.md` — the agent workflow intention (pipeline, readiness,
+5. `infra/agents/workflow.md` — the agent workflow intention (pipeline, readiness,
    parallelization).
-5. `GLOSSARY.md` — terms.
-6. `AGENTS.md` (repo root) — agent behavior rules and foreclosures.
-7. `HANDOVER.md` — tactical session continuity. `ARCHITECTURE.md` — module
-   map. `TODO.md` — legacy backlog (being superseded by PROGRESS + status/).
+6. `epistemic/GLOSSARY.md` — terms.
+7. `AGENTS.md` (repo root) — agent behavior rules and foreclosures.
+8. `epistemic/boards/CONCEPTS.md` — the cross-size concept-inventory (fact-topics
+   every board-size tree must address; definitions only, no status).
+9. `epistemic/boards/4x4/EPISTEMIC.md` — the 4×4 epistemic tree (the active focus).
+10. `status/HANDOVER.md` — tactical session continuity. `engine/ARCHITECTURE.md` — module
+    map. `engine/TODO.md` — legacy backlog (being superseded by PROGRESS + status/).
 
 ## Layout
 
-- `PROGRESS.md` — the living specification (current truth; the hub).
-- `names.md` — canonical names register (proposed; pending propagation).
+- `epistemic/PROGRESS.md` — the living specification (current truth; the hub).
+- `epistemic/names.md` — canonical names register (proposed; pending propagation).
 - `about-this-document.md` — the documentation-as-specification-as-research
   method.
-- `agent-workflow.md` — the agent workflow intention (spirit, not dogma).
+- `infra/agents/workflow.md` — the agent workflow intention (spirit, not dogma).
 - `status/CURRENT.md` — ephemeral in-flight task status (read on resume;
   update continuously).
 - `status/` — current state and live crises (`leak-crisis.md`).
 - `decisions/` — Architecture Decision Records (ADRs), append-only, one
   numbered file per decision. Append new ones; supersede, don't rewrite.
 - `research/` — durable findings, measurements, dead-ends, and lessons.
-- `GLOSSARY.md` — terms and abbreviations. Project-invented shorthand is
+- `epistemic/boards/CONCEPTS.md` — cross-size concept-inventory (fact-topics only).
+- `epistemic/boards/<WxH>/EPISTEMIC.md` — per-board-size epistemic trees (status per
+  claim, falsifiable experiments, current focus).
+- `epistemic/GLOSSARY.md` — terms and abbreviations. Project-invented shorthand is
   marked `[project term]`.
-- `HANDOVER.md` — session-continuity snapshot (tactical; updated every
-  session). `ARCHITECTURE.md` — module map. `TODO.md` — legacy backlog.
+- `status/HANDOVER.md` — session-continuity snapshot (tactical; updated every
+  session). `engine/ARCHITECTURE.md` — module map. `engine/TODO.md` — legacy backlog.
 
 ## Conventions
 

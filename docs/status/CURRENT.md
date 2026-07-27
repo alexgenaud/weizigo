@@ -1,160 +1,246 @@
 # CURRENT — in-flight task status (ephemeral; updated often)
 
 **Purpose:** the single file a fresh session reads to resume *without loss*
-after a context clear / compact / handover. Always reflects what is happening
-right now and the next concrete step. Not durable — milestones live in git +
-`PROGRESS.md` + `decisions/` + `research/`. If this file is stale, read
-`PROGRESS.md` → `status/leak-crisis.md` and rebuild it.
-
-Read order on resume: `PROGRESS.md` → `status/leak-crisis.md` → this file →
-`docs/agent-workflow.md`.
+after a context clear / compact / handover. Not durable — milestones live in git +
+`../epistemic/PROGRESS.md` + `decisions/` + `research/`. If this file is stale, read
+`../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
 ---
 
-## Last update: 2026-07-25 (GLM-Boss review)
+## B44 cleanup DONE (2026-07-27, Pi)
 
-## Active thread: the leak crisis (E-series)
+**B44 DONE:** Piper removed tracked temp-comm (`docs/status/ADVISOR.md` git-rm'd), promoted model-perf ledger to `docs/infra/model-perf.md`, and deleted 57 stale untracked scratch files. 20 files remain in `untracked/` (protected + in-flight + living). See `untracked/B44-cleanup.md` for the full classification table.
 
-The project's focus is the **leak crisis** (`status/leak-crisis.md`). Status of
-the experiments:
+**Out of scope noted:** tracked stray binaries at repo root (`weizigo-arena`, `weizigo-oracle`) left for future gitignore-hygiene task.
 
-- **E1 (diagnostic, DONE):** region-tagged arena diverged events. 2×2:
-  single-score diverged=0; 3×2/3×3: non-zero minority. Diagnostic only — does
-  NOT prove C2 (arena `best` is the fresh-start player's belief, not the true
-  value). Code: `src/arena.zig` E1 counters; rebuild/run command in the doc.
-- **E2 (range-aware self-play, DONE + sanity-checked):**
-  - `RETRO_E2=1 ./retro-e2`: 2×2/3×2 zero leaks; **3×3 25 leaks** (promise 3 →
-    final −9). Code: `src/retro.zig` `e2Board`/`runE2` (Black uses `lo`, White
-    uses `hi` — a sign bug was fixed during the run).
-  - `RETRO_E2SANITY=1 ./retro-e2`: trivially-valid bounds (`lo=−N`/`hi=+N`) →
-    zero leaks on all boards. **Ruled out an E2 policy/wiring bug.** (Caveat:
-    trivial bounds cannot detect a PSK/mechanics bug — that needed E3.)
-- **E3 (exact-solver cross-check + PSK-legality, DONE — INCONCLUSIVE direct,
-  narrowing):**
-  - PROVEN: the leaking 3×3 game is a **VALID PSK game** (0 illegal moves) →
-    ruled out the self-play/PSK mechanics bug.
-  - PROVEN (structure): a valid PSK line from empty 3×3 reaches −9 while the
-    table root `lo=2` (bracket [2,9]); `lo` collapses 3→−9 along the line.
-  - INCONCLUSIVE: direct `true < lo` at the critical plies — **intractable**
-    (the 3×3-exact wall; 2M-node budget exceeded at every early ply). Catch-22:
-    leaks happen on 3×3 (intractable); the tractable boards (2×2/3×2) don't
-    leak.
-  - SURVIVING AMBIGUITY: **(a) C3 genuinely false** (the least-fixpoint `lo`
-    does not bound real PSK values — predicted by the cycle-pessimism-vs-PSK-
-    move-removal gap) vs **(b) a `lo`-converge bug**. (a) favored: `lo=2` is a
-    genuine least fixpoint; the semantics gap predicts it; 2×2/3×2 don't leak.
-  - NOT PROVEN: no direct `true < lo` at any position.
+## Last update: 2026-07-27 (Pi, B43 arena UNDEF guard — DONE)
 
-## State (2026-07-25, GLM-Boss review)
+**B43 DONE:** Pi finished `src/arena.zig` UNDEF guard. Clean leak rate
+on the 4×4 parallel artifact dropped from 45.3% / 144-pt (B39, mostly
+a measurement artifact) to 3.4% / 32-pt (within T06 band). 32.5% of
+games touch a UNDEF slot; only 1 of 1170 tainted games leaked (3 pts).
+E1/C2 falsification unchanged. Details in `untracked/B43-arena-undef.md`
++ appended section in `untracked/B39-arena4x4.md`. Releasing the hold
+on `src/arena.zig`.
 
-Minimax marching orders: `untracked/task-minimax.md` (E3-1 reverted; re-spec B1
-before re-implementing; idle tasks available). Concurrency protocol adopted in
-`AGENTS.md`.
+## Last update: 2026-07-27 (Pi, B43 arena UNDEF guard — starting)
 
-- **Minimax's E3-1 probe was REVERTED** from `src/retro.zig` (it was
-  uncommitted, env-gated, and self-flagged-ambiguous — Minimax didn't verify
-  the V1 fixpoint equation or confirm re-converge reached zero-change). The
-  process slip (implementing before spec'ing) is what `agent-workflow.md`
-  warns against. `src/retro.zig` is now GLM's clean E2/E3 only.
-- **Clean baseline verified:** `zig build-exe` clean; `zig test` **59/59**.
-- Binaries (`retro-e2`/`retro-e3`) and stray empty `HUMAN.md` removed;
-  `/retro-e*` gitignored.
-- GLM's diff committed on a local branch (no push); main untouched.
+**B43 starting:** Pi (the one in the harness) beginning S1 on
+`src/arena.zig` (UNDEF guard for move-enumeration, promise tracking, and
+divergence tally). B40 already exposed `gtp.UNDEF`. Per B43, hold on
+`src/arena.zig` only; safe to run in parallel with B42 (which is already
+DONE per the last update). Details in `untracked/B43-arena-undef.md`.
 
-## Next concrete steps (pick up here)
+**Hold declared:** Pi editing `src/arena.zig` for B43, ~10 min.
 
-- [ ] **`TODO` B1 (re-spec E3-1):** before re-implementing, *specify* the
-      least-fixpoint check (which Bellman equations — V0 AND V1; confirm
-      re-converge hits zero-change; falsifiable acceptance test) and agree it
-      with Boss. Then Minimax may implement. (Don't repeat implement-first.)
-- [ ] **`TODO` B2 (E3-2):** find a leaking 3×3 game whose critical ply is
-      exactly solvable (the `−2` leaks may transition deeper/tractable) for a
-      direct `true < lo`.
-- [ ] If C3 false: re-frame the deliverable (core-only artifact + range-aware
-      player; bracket unsound as a real-game bound).
+---
 
-## State on disk
+## Last update: 2026-07-27 (Kimi, B42 score report — DONE)
 
-- `src/arena.zig` — E1 counters (uncommitted).
-- `src/retro.zig` — `e2Board` / `runE2` / `runE2sanity` / `e3Analyze` +
-  `RETRO_E2` / `RETRO_E2SANITY` env probes (uncommitted). Rebuild:
-  `ZIG_GLOBAL_CACHE_DIR=/tmp/weizigo-zigcache ZIG_LOCAL_CACHE_DIR=/tmp/weizigo-zigcache zig build-exe -O ReleaseFast src/retro.zig -femit-bin=retro-e2`
-  (the binary is removed each session to keep the tree clean; rebuild command
-  above).
-- Docs: `status/leak-crisis.md` (full E1/E2/E3 record), `names.md`,
-  `PROGRESS.md`, `about-this-document.md`, `agent-workflow.md` (new),
-  `AGENTS.md`, `GLOSSARY.md` updated. All uncommitted.
-- Nothing pushed to git; user handles commits.
+**B42 DONE:** Kimi finished `src/score.zig` + `src/gtp.zig` scoring surface.
+Tests pass; both GTP smokes pass; ADR-0014 written. Releasing the holds on
+`src/score.zig` and `src/gtp.zig`. Details in `untracked/B42-score-report.md`.
 
-## Not in flight / parked
+**Sprint B15-B39 complete (50 done, 1 dispatchable).** Multi-model evaluation
+complete (GLM recommended as next Boss). 4×4 parallel artifact produced:
+99.8% complete, 83K unfilled (2-ko+). Board epistemic trees created for
+2×2/3×2/3×3. Innovations catalog (I1-I15). Terminology sweeps complete.
 
-- Track A (regenerate 2×2..4×4 with `memo_writes=false` + #2 auditor) — paused
-  until the crisis resolves; the crisis calls the whole bracket into question
-  first.
-- 5×5 build — explicitly on hold (don't build on an unverified bracket).
-- Canonical-name propagation (`names.md` checklist) — pending the
-  single-value rename to "proven" if E3 confirms C2 holds there.
+**Next Boss (GLM recommended):** read HANDOVER.md for tactical state.
 
-## Gotchas
+**B23 DONE:** Ko census on 3x3 and 4x4. Tool: `src/ko_census.zig`.
+2-ko+ is ~2.0% of ko-sensitive positions on 4x4 — above irrelevance,
+below priority threshold. Results: `untracked/B23-kocensus.md`.
 
-- Zig builds need `ZIG_GLOBAL_CACHE_DIR`/`ZIG_LOCAL_CACHE_DIR` set to a
-  writable dir (sandbox blocks the default global cache). Use `/tmp/weizigo-
-  zigcache`.
-- `sed` in-place on macOS: `&` in the replacement means "the whole match" —
-  use Python for edits containing `&`. (This corrupted an E3 line once.)
-- E2/E3 probes are env-gated (`RETRO_E2` / `RETRO_E2SANITY`); the default
-  `zig run retro.zig` runs the full battery (slow) — always set the env.
+**B15 DONE:** Track A regen of 2×2/3×2 with writes-off finisher. Byte-identical
+match with committed baselines. #2 auditor PASS, bracket containment recorded.
+Results: `untracked/B15-regen.md`.
 
-## 2026-07-25 (Minimax, start) — B1 least-fixpoint spec
+**B09, B12, B13, B14 completed.** B09 auditor sensitivity test: 3 synthetic
+bugs injected, 2 caught, 1 blind spot identified (L/H construction bugs).
+See `untracked/B09-kimi.md`. B12 cleanup. B13 terminology sweep. B14
+experiment design.
 
-Picking the B1 spec task from `untracked/task-minimax.md`. Writing to
-`untracked/b1-spec.md`. No engine edits. Concurrency: posting here.
+**CRITICAL: T13 falsified C2 at 3×2.** Docs reframe applied. **Per-board
+epistemic independence is now explicit:** knowledge at 2×2/3×2/3×3 is not
+evidence for any other size. See `../epistemic/boards/CONCEPTS.md` §"Each board size
+is its own epistemic universe."
 
-## 2026-07-25 (Minimax, B1 spec written)
+**User-decision flags pending:** UD-1, UD-2, UD-3. B05 recommends YES to all.
 
-- **Task:** B1 least-fixpoint spec (per `untracked/task-minimax.md`).
-- **Output:** `untracked/b1-spec.md` (270 lines). Two Bellman equations
-  (V0 + V1) for the L map, three checks (fixpoint-equation,
-  re-converge-from-lower, re-converge-from-upper) with the zero-change
-  precondition. Falsifiable acceptance: zero violations on 2×2/3×2/3×3
-  → (b) converge-bug ruled out. 5 open questions for Boss in §7.
-- **Engine edits:** none. Awaiting Boss sign-off.
-- **Concurrency:** holding all engine files.
+**Concise registry:** `untracked/SUBAGENTS.md`.
 
-## 2026-07-25 (Minimax, T02.2 starting)
+### Current state
 
-- **Task:** T02.2 — implement `RETRO_B1_LOFIX` per `untracked/T02-minimax.md`
-  (Boss-approved; spec at `untracked/b1-spec.md`, V1-equation correction
-  applied in T02.1).
-- **Editing:** `src/retro.zig` only. Adding `e3LofixCheck` + `runE3B1`
-  + `RETRO_B1_LOFIX` env gate (~180–220 lines, est. 15 min wall).
-- **Not touching:** docs/, AGENTS.md, other engine files, branches,
-  git refs. Branch: `glm-boss/e2-e3-docs-baseline`. Uncommitted.
-- **Concurrency:** holding `src/retro.zig` exclusively.
+- **B02 — GLM-5.2** (`untracked/B02-glm.md`): **In progress.** T14.3 auditor +
+  C2-lattice-scope.
+- **B04 — Minimax-m3** (`untracked/B04-minimax.md`): **In progress.** Scratch-
+  file triage.
 
-## 2026-07-25 (Minimax, B1 done) — verdict INCONCLUSIVE on (b)
+### Completed this session (since last update)
 
-- **T02 done.** Results in `untracked/T02-minimax.md`.
-- **Surprise:** the L map has **multiple fixpoints** on 2×2/3×2/3×3
-  (re-converge from `-N+1` and `+N` lands at different fixpoints,
-  all satisfying V0/V1 Bellman equations). The canonical `converge`
-  IS a real fixpoint of the L map, but the L map is not the standard
-  monotone-from-above map the spec assumed. **The map's
-  `cv = q.w0[ci]` reads the OPPONENT's V0, which is updated in the
-  same sweep (Gauss-Seidel); multi-fixpointedness is a real
-  possibility, not a bug.**
-- **For the leak crisis:** (b) "converge is mis-computed" is
-  NOT supported (the canonical IS a fixpoint). (a) "C3 false
-  because the bracket doesn't bound real games" is the more
-- **2026-07-25 B1+audit RESOLUTION:** (b) converge-bug RULED OUT on
-  2×2/3×2/3×3 (canonical `lo` is the true least fixpoint; V0+V1 hold; Knaster-
-  Tarski). (a′) unsound, discarded (Kimi audit, untracked/T02-audit-kimi.md).
-  → the survivor is **(a): C3 false** — the L fixpoint does NOT bound real
-  PSK-game values; the bracket is unsound as a real-game bound. The range-aware
-  player is NOT leak-free (E2). The only candidate sound deliverable is the
-  certified core (`lo==hi`), **contingent on C2** (single-score history-
-  independence, still CLAIMED not proven) — now the load-bearing claim.
-- **Next (decide w/ user):** C2-probe (prove the certified core on 2×2/3×2) >
-  E3-2 (catch-22'd) > re-frame deliverable (core-only; bracket/residue unsound).
-- **Doc-hygiene backlog:** untracked/doc-hygiene.md (AGENTS.md overclaim, broken
-  RISKS.md link, README numbering, GLOSSARY typo, stale HANDOVER, code minors).
+- **B23 — Boss** (`untracked/B23-kocensus.md`): DONE. Ko census on 3x3, 4x4.
+  2-ko+ is ~2.0% of ko-sensitive on 4x4. Tool: `src/ko_census.zig`.
+- **B05 — GLM-5.2** (`untracked/B05-glm.md`): DONE. Reframe plan; 8-edit plan
+  applied by Boss.
+- **B06 — Kimi-k2.7** (`untracked/B06-kimi.md`): DONE. E2 re-run: C3 supported
+  on explored 2×2/3×2 samples (0 leaks), **falsified at 3×3** (50/8000 leaks,
+  max 12 pts). General C3 claim false-as-scoped.
+- **B08 — GLM-5.2** (`untracked/B08-glm.md`): DONE. Onboarding test
+  **PARTIAL PASS**. Found `CURRENT.md` internal inconsistency on B06/B07 status
+  (now fixed in this update) and other minor friction.
+- **B11 — Boss** (`untracked/B11-boss-apply.md`): DONE. Applied B05 doc edits.
+
+### Dispatchable now
+
+**Set A — independent read-only / standalone:**
+```text
+B07: follow untracked/B07-minimax.md
+B10: follow untracked/B10-minimax.md
+```
+
+**Set C — sole `src/retro.zig` owner (do not run with B07 or any engine editor):**
+```text
+B09: follow untracked/B09-kimi.md
+```
+
+**Set B — onboarding (re-run only if needed):**
+```text
+B08: follow untracked/B08-glm.md
+```
+
+### Remaining work
+
+1. B02 reports (T14.3 + C2-lattice-scope).
+2. B04 reports (scratch-file triage).
+3. B07 confirms fresh-start engine sanity.
+4. B09 tests auditor sensitivity (after B07, or instead of B07).
+5. B10 reports 3×2 divergence statistics.
+6. User signs off on UD-1/UD-2/UD-3.
+7. Write ADR on C2 falsification / reframe.
+8. Optionally run Track A 2×2/3×2 regen if UD-1 is YES.
+
+### Doc edits applied this session
+
+See `untracked/SUBAGENTS.md` §"Completed" and `untracked/B11-boss-apply.md`.
+Key: AGENTS.md foreclosures; leak-crisis.md claim table + honest deliverable;
+PROGRESS.md central partition + reframe; EPISTEMIC.md deliverable decision;
+CONCEPTS.md C2 bullets + dependency structure + per-board independence;
+names.md canonical names; GLOSSARY.md certified core / bracket / ko-sensitive
+region + fresh-start score entry.
+
+### B13 terminology sweep applied (DeepSeek-Pro, 2026-07-26)
+
+Option A applied to 5 files:
+- `docs/research/fresh-start-vs-real-game.md` — 5 corrections (duplicate
+  section removed, C3 hedging fixed, generation rule clarified, per-board
+  independence added, honest deliverable framing added)
+- `docs/research/methods-and-findings.md` — "certified core" → "fresh-start
+  single-score region" (4×), epistemic update note appended
+- `docs/research/ruleset-options.md` — "certified core" → "fresh-start
+  single-score region" (8×), RETRO_BRACKET section reframed, epistemic
+  caveat added
+- `docs/research/c2-falsification-3x2.md` — 1 replacement
+- `docs/research/arena-audit.md` — 2 replacements
+- `../epistemic/boards/CONCEPTS.md` — diagram label updated
+
+### B14 engine-vs-engine + KataGo design (DeepSeek-Pro, 2026-07-26)
+
+Three experiments scoped, prioritized, with implementation plans:
+1. Fresh-start vs history-aware exact on 2×2/3×2 (~2h implementation)
+2. Arena with copycat persona across all sizes (~30min code + runtime)
+3. weizigo vs KataGo GTP match (~1h setup + runtime)
+Full design: `untracked/B14-deepseek.md`. All deferred until UD-1/2/3 sign-off.
+
+### Per-board epistemic independence (added this session)
+
+Each board size has its own independent epistemic status. A falsification at
+3×2 does not prove anything about 3×3 or 4×4; a pass at 2×2 does not prove
+anything about 3×2. The project documents each size separately:
+- `../epistemic/boards/CONCEPTS.md` — cross-size definitions and independence rule.
+- `../epistemic/boards/4x4/EPISTEMIC.md` — 4×4 tree.
+- Smaller boards are covered in `leak-crisis.md` and the task
+  outputs (`untracked/T12-minimax.md`, `untracked/T13-minimax.md`,
+  `untracked/B06-kimi.md`).
+
+### Backlog / deferred / moot
+
+- T14.2, T15-impl, T17-impl: deferred until user decisions.
+- T16-content-review: on hold in B01.
+- Cleanup: deferred until B04 and reframe settle.
+
+### Engine edits in progress / recent
+
+- B06 added `RETRO_E2_SEEDS` env-var knob to `src/retro.zig` (no core logic
+  change).
+- T14.1 `bracket_only` param still in `src/retro.zig`.
+- No writes to `data/oracle-*.wzo` or `artifacts/*.wzo`.
+
+## B07-NOTE (2026-07-26, Minimax-m3)
+
+Conventions drift: corrected the B<NN>-<slug>.md convention (user 2026-07-26).
+Recorded in `../infra/agents/boss-role.md` "Bundle filename convention" section. Existing
+B01..B11 filenames NOT renamed (per migration policy: history). Going forward
+all new task/bundle files use `ID-slug.md` where slug is a task hint, not a
+model name. The current B07 work (B07-minimax.md) is the last file with a
+model-name slug; future B-bundles and T-tasks adopt the corrected convention.
+
+## B07-S1 complete (2026-07-26, Minimax-m3)
+
+`#2` auditor results recorded in `untracked/B07-minimax.md`:
+- 2x2: ALL three variants PASS (82 chk, 0 viol).
+- 3x2: writes-on BUGGY (45 viol), soundish PASS, deps PASS.
+- 3x3 (sample=400): ALL three variants PASS.
+
+B07-S2 (bracket containment on T14.1 artifact) and B07-S3 (fresh-start
+repro) still open.
+
+B07 Minimax-m3 editing src/retro.zig to add RETRO_SAVE_2X2_OUT/3X2_OUT/3X3_OUT/4X3_OUT env knobs. No core logic change. ~3 min.
+
+## B07-S2 complete (2026-07-26, Minimax-m3)
+
+Bracket containment on `untracked/oracle-4x4-writesoff-bracket.wzo` (T14.1
+output) — **PASS**: 0 containment failures, 0 flag mismatches, 0 illegal
+fills, 5,183,961 ko-sensitive UNDEF per side (expected for a bracket-only
+artifact). Certified core exact (19,134,204 B + 19,134,204 W = 38,268,408,
+78.68%).
+
+## B07-S3 complete (2026-07-26, Minimax-m3)
+
+Per-slot comparison of `untracked/oracle-{2x2,3x2}-repro.wzo` (current
+writes-off regen) against `artifacts/oracle-{2x2,3x2}.wzo` (committed
+baselines) — **MATCH (byte-identical)** on both boards. SHA256 hashes
+match `artifacts/SHA256SUMS`. Engine is deterministic and stable.
+
+**Engine edit for S3** (additive, src/retro.zig only): 4 env-var knobs
+`RETRO_SAVE_{2X2,3X2,3X3,4X3}_OUT` to redirect `RETRO_SAVE` away from
+`artifacts/oracle-*.wzo` so repros can land in `untracked/` without
+clobbering. Default paths unchanged.
+
+## B07 STATUS — DONE (2026-07-26, Minimax-m3)
+
+All three subtasks complete. **Releasing the `src/retro.zig` write lock.**
+B09 may now begin.
+
+## B09 — Kimi COMPLETE: synthetic-bug injection / auditor-sensitivity test (2026-07-26)
+
+All three bugs injected, tested, reverted. `src/retro.zig` write lock released.
+Results in `untracked/B09-kimi.md`.
+
+
+## Conceptual clarifications added (2026-07-26)
+
+User asked about terminology and real-game play. Boss wrote
+`docs/research/fresh-start-vs-real-game.md` summarizing:
+- The table holds fresh-start scores, not real-game scores.
+- Even L==H positions can be history-dependent under PSK; "ko-sensitive" in
+  the project sense means L < H.
+- The engine is exact only for fresh-start (no history) under basic ko.
+- There is one table per board size, not multiple ruleset tables.
+- Fresh-start scores are still useful for opening/analysis/teaching.
+- Real-game optimal play would need history-aware tables, goal-bounded forward
+  search, or CGT/local decomposition.
+
+Pending bundles for these topics: B13 (terminology sweep + real-game-play
+scope), B14 (engine-vs-engine + KataGo design). Both are optional and await
+human approval.

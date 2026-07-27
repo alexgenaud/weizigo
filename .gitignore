@@ -7,8 +7,10 @@ log/
 # ephemeral scratch / working notes — not tracked
 untracked/
 
-# compiled probe binaries (built by agents)
+# compiled binaries (built by agents)
 /retro-e*
+/gtp
 
 # your personal scrap/notes file — never commit
 /HUMAN.md
+bin/
