@@ -128,22 +128,21 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
 
         /// Best move (or pass) for `side` from the current game state:
         /// fresh-start-optimal among PSK-legal options, value ties broken by
-        /// smallest DTT. Pass is always included as a candidate (the ending
-        /// pass or V1-from-table); when no legal move beats the pass value,
-        /// the engine passes — it never plays a losing move just to stall.
+        /// smallest DTT.
+        ///
+        /// PASS POLICY (user spec): pass only if (a) pass is STRICTLY best —
+        /// every legal move is worse, not merely tied — (b) at least one stone
+        /// has been played, and (c) passing does not concede a loss. The engine
+        /// TRIES TO WIN: it does not pass out a losing position (that would
+        /// assume the opponent plays optimally), and it never passes before a
+        /// stone is on the board. Ties and losing positions both go to a move;
+        /// the engine plays on. Resign (impossible-to-win) is handled by the
+        /// caller before choose runs.
         pub fn choose(s: *const S, side: i8) Choice {
             const maximizing = side > 0;
-            // pass option
-            var best = Choice{
-                .cell = null,
-                .value = if (s.passes >= 1) R.area_score(&s.pos) else s.v1_from_table(&s.pos, -side),
-                // pass is the FASTEST resolution whenever it keeps the value
-                // (dtt 1: if passing is optimal for us, the table-driven
-                // opponent ends or realizes the same value) — a decided
-                // engine passes gracefully instead of playing throw-ins the
-                // opponent must clean up
-                .dtt = if (s.passes >= 1) 0 else 1,
-            };
+            const pass_value: i8 = if (s.passes >= 1) R.area_score(&s.pos) else s.v1_from_table(&s.pos, -side);
+            const pass_dtt: u8 = if (s.passes >= 1) 0 else 1;
+            var best_move: ?Choice = null;
             for (0..n) |p| {
                 if (s.pos[p] != 0) continue;
                 const child = R.pos_from_move(&s.pos, side, p) catch continue;
@@ -151,12 +150,32 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 const v = s.v0(&child, -side);
                 if (v == UNDEF) continue; // unfilled slot (2-ko+): skip, fall back to pass/other moves
                 const dt = s.dtt0(&child, -side);
-                const better = if (maximizing) v > best.value else v < best.value;
-                if (better or (v == best.value and dt < best.dtt)) {
-                    best = .{ .cell = p, .value = v, .dtt = dt };
+                const mv = Choice{ .cell = p, .value = v, .dtt = dt };
+                if (best_move) |bm| {
+                    const better = if (maximizing) v > bm.value else v < bm.value;
+                    if (better or (v == bm.value and dt < bm.dtt)) best_move = mv;
+                } else {
+                    best_move = mv;
                 }
             }
-            return best;
+            if (best_move) |bm| {
+                const pass_strictly_better = if (maximizing) pass_value > bm.value else pass_value < bm.value;
+                const pass_loses = if (maximizing) pass_value < 0 else pass_value > 0;
+                const any = S.anyStone(&s.pos);
+                if (pass_strictly_better and any and !pass_loses) {
+                    return .{ .cell = null, .value = pass_value, .dtt = pass_dtt };
+                }
+                return bm; // move strictly better, ties pass, no stone yet, or pass would lose -> play on
+            }
+            // no legal move (full board / all children UNDEF or PSK-banned):
+            // passing is the only option; a lost settled board is resigned by
+            // the caller before we get here.
+            return .{ .cell = null, .value = pass_value, .dtt = pass_dtt };
+        }
+
+        fn anyStone(pos: *const Pos) bool {
+            for (pos) |x| if (x != 0) return true;
+            return false;
         }
 
         pub fn applyMove(s: *S, side: i8, cell: ?usize) !void {
@@ -445,14 +464,26 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 } else {
                     const stored = s.v0(&s.pos, side);
                     const undef = stored == UNDEF; // unfilled slot (2-ko+ parallel artifact)
-                    // Resign when hopeless: stored value worse than half the board area.
-                    // Scores are Black-positive; Black wants high, White wants low.
-                    // Never resign on the UNDEF sentinel — it is not a real score.
-                    const half_area: i8 = @intCast(w * h / 2);
-                    if (!undef and ((side > 0 and stored < -half_area) or (side < 0 and stored > half_area))) {
+                    // POLICY: resign only when it is IMPOSSIBLE to win — the board
+                    // is settled (is_settled: all stones Benson-alive, no dame, no
+                    // dead stones) and the area score is against us. A settled-
+                    // against position cannot be improved by any move (only
+                    // self-eye-fills, which hurt), so winning is impossible no
+                    // matter how the opponent plays. PROVEN sound. We never resign
+                    // on a bare bad fresh-start value — that assumed OPTIMAL
+                    // opponent play and conceded games the opponent might still
+                    // throw away (the B40-era White-resigns-after-two-stones
+                    // bug). The engine plays on and tries to win until the
+                    // position is truly decided. area_score is a pure board
+                    // function (table-independent), so this is sound even on
+                    // UNDEF slots.
+                    const settled = S.Score.is_definitive(&s.pos);
+                    const area_now: i8 = S.R.area_score(&s.pos);
+                    const behind = if (side > 0) area_now < 0 else area_now > 0;
+                    if (settled and behind) {
                         reply = "resign";
-                        std.debug.print("oracle: {s} -> resign  stored-v0={d} (worse than ±{d})\n", .{ colort, stored, half_area });
-                        log.line("# oracle {s} -> resign  stored-v0={d} (worse than ±{d})", .{ colort, stored, half_area });
+                        std.debug.print("oracle: {s} -> resign  settled, area={d} (impossible to win)\n", .{ colort, area_now });
+                        log.line("# oracle {s} -> resign  settled, area={d} (impossible to win)", .{ colort, area_now });
                     } else {
                         const fl = s.flags0(&s.pos, side);
                         const c = s.choose(side);
