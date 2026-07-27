@@ -4,9 +4,9 @@ Topics to consider — options kept OPEN, deliberately not decided yet. Revisit
 before committing to an engine or data model (candidate for a future ADR).
 
 ## The goal fork — DECIDED 2026-07-16: (b), see ADR-0007
-- (a) PROVE the value of NxN (just the number, e.g. 5x5 = B+25). Cheap;
+- (a) PROVE the score of NxN (just the number, e.g. 5x5 = B+25). Cheap;
   selective search suffices (van der Werf).
-- (b) **CHOSEN.** Build a COMPRESSED PERFECT ORACLE / DAG: value of every
+- (b) **CHOSEN.** Build a COMPRESSED PERFECT ORACLE / DAG: score of every
   (position, side). Expensive but reusable — handicaps, either side to move,
   middle-game entry, teaching. "A highly efficient compressed perfect NxN DAG."
 Consequences (full write-up in ADR-0007): alpha-beta/PN is OUT (goal-(a) only,
@@ -16,10 +16,10 @@ oracle needs checkpointing); the eye-prune (ADR-0006) is in tension with full
 coverage (open). Different goals need different engines — goal now fixed.
 
 ## Search paradigm
-- Forward selective (alpha-beta + proof-number search) — proves the value
+- Forward selective (alpha-beta + proof-number search) — proves the score
   visiting a tiny fraction of positions. Best for goal (a).
 - Backward retrograde (layered tablebase) — build the oracle by propagating
-  values from terminals. Best for goal (b).
+  scores from terminals. Best for goal (b).
 - Current exhaustive forward minimax — least efficient; retire once (a)/(b)
   chosen.
 
@@ -32,7 +32,7 @@ coverage (open). Different goals need different engines — goal now fixed.
   reached directly by enumeration, not by replaying a 200-ply game (it looks like
   "several handicap games at once", which is fine -- it's one enumerable state).
   The optimal-line length stays double-digits (~13-ply PV). RESIDUAL: superko
-  is the ONLY thing that resists collapsing a board to a single node (its value
+  is the ONLY thing that resists collapsing a board to a single node (its score
   can depend on ko-history) -- that's the GHI problem below, and it is the make-
   or-break piece.
 - Store BOTH sides per position (supports handicaps, passes, either-to-move).
@@ -41,18 +41,18 @@ coverage (open). Different goals need different engines — goal now fixed.
   - Captures create BACK-EDGES (k stones -> k-3): not a clean topological order
     -> needs FIXPOINT iteration, not a single forward sweep.
   - Superko makes it not a pure DAG (path-dependent legality, GHI) -> some
-    values are history-conditional.
-- STRUCTURE vs VALUES: enumerating positions + legal moves up to depth N is
-  cheap, correct, reusable NOW. Correct VALUES at depth N are as hard as the
+    scores are history-conditional.
+- STRUCTURE vs SCORES: enumerating positions + legal moves up to depth N is
+  cheap, correct, reusable NOW. Correct SCORES at depth N are as hard as the
   whole game (must propagate from true terminals). "Start in the middle game"
-  works for structure, not for correct values.
+  works for structure, not for correct scores.
 
-## Correctness prerequisites before persisting any VALUES
+## Correctness prerequisites before persisting any SCORES
 1. Fix the `is_settled` terminal bug (see terminal-territory-bug.md).
 2. Superko / GHI clean-vs-tainted caching (ko_ref framework already in solve).
 3. Chinese scoring: terminal score is history-independent (captures irrelevant)
    — OK. Japanese would need capture tracking (later).
-Persist STRUCTURE freely; persist VALUES only after 1–3.
+Persist STRUCTURE freely; persist SCORES only after 1–3.
 
 ## Data model / compression (the potential innovation)
 - Combinatorial ranking / minimal perfect hash: ~1 byte per canonical
@@ -68,7 +68,7 @@ Persist STRUCTURE freely; persist VALUES only after 1–3.
 
 ## Ko / superko in the DAG
 - Positional vs situational superko (project uses PSK). Affects legality and
-  which values are history-independent.
+  which scores are history-independent.
 - Empirically superko is common on 5x5 (see ghi-and-superko.md, ko-examples.md).
 
 ## Future idea: explainability & local evaluation (user goal, 2026-07-16)
@@ -77,7 +77,7 @@ Persist STRUCTURE freely; persist VALUES only after 1–3.
   explanations: save/kill these stones, secure this corner, keep sente,
   "this area is bigger".
 - A PERFECT oracle is the BEST substrate for this (everything is exact, unlike a
-  neural net): per-move exact value deltas (which moves hold +25 vs drop);
+  neural net): per-move exact score deltas (which moves hold +25 vs drop);
   Benson already proves "these stones are unconditionally alive"; life/death of
   a group = a local solve. Endgame sente/gote has a rigorous theory:
   combinatorial game theory (CGT), Berlekamp-Wolfe "Mathematical Go" -- local
@@ -85,15 +85,15 @@ Persist STRUCTURE freely; persist VALUES only after 1–3.
 - CAVEAT: naive sub-board solving is UNSOUND (edge stones keep phantom
   liberties -- see HANDOVER gotchas). Local evaluation must treat the boundary
   as settled/alive (the CGT endgame regime), not a raw sub-array.
-- Research layer on TOP of the oracle; revisit after the value oracle works.
+- Research layer on TOP of the oracle; revisit after the score oracle works.
 
 ## Future idea: hybrid oracle + search for LARGE boards (9x9)
 - For solvable boards (5x5/6x6/7x7) a shallow-perfect + search-below split does
-  NOT give a perfect oracle: correct values propagate from TRUE terminals, so
-  truncating at a ply-K frontier with search values is a strong estimate, not a
+  NOT give a perfect oracle: correct scores propagate from TRUE terminals, so
+  truncating at a ply-K frontier with search scores is a strong estimate, not a
   proof. Use full retrograde there.
 - For 9x9 (perfection out of reach): a perfect/near-perfect OPENING TABLEBASE
-  (structure enumerated to ply K, values as deep as affordable) + ALPHA-BETA to
+  (structure enumerated to ply K, scores as deep as affordable) + ALPHA-BETA to
   termination past the frontier IS the pragmatic engine — alpha-beta returns
   here. A large-board tool, not needed for the solvable sizes. Revisit post-7x7.
 
@@ -120,8 +120,8 @@ Persist STRUCTURE freely; persist VALUES only after 1–3.
 ## Learn from van der Werf / room to innovate
 - Reuse: Benson life (have), symmetry + TT (have), endgame/LD databases,
   selective proof search, provably-correct pruning, ko handling.
-- Beyond him: the compressed perfect ORACLE (not just the value); combinatorial
+- Beyond him: the compressed perfect ORACLE (not just the score); combinatorial
   ranking + retrograde on modern hardware; neural-guided proof search to push
   7x7; a handicap / any-side oracle.
-- "Wasting effort with total coverage?" Only if the goal is just the value. If
+- "Wasting effort with total coverage?" Only if the goal is just the score. If
   the goal is the oracle, coverage IS the point.

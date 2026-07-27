@@ -3,7 +3,7 @@
 5×5 Go is **solved**: with the optimal first move at the **center (c3 / tengen)**,
 **Black wins by 25** (the whole board). Solved by Erik van der Werf in 2002
 (Japanese rules; the whole-board result is the same under Chinese/area). The
-value + best first move are the proven, unambiguous facts. There is **no unique
+score + best first move are the proven, unambiguous facts. There is **no unique
 "perfect game"** — once Black plays the center, every White reply loses, so many
 continuations are equally optimal. Below is *one* published principal variation.
 
@@ -58,12 +58,12 @@ Replayed through `state.armies_from_move` move by move:
 - **no captures** — pure construction, 13 stones placed, 13 on the board;
 - **final occupancy + colors match the published diagram exactly.**
 
-What weizigo could **not** confirm: the **+25 value**. Certifying that requires
+What weizigo could **not** confirm: the **+25 score**. Certifying that requires
 either playing out the capture of the dead White stones to an all-Black terminal
 (needs the full solve, which does not yet complete — see TODO scaling items), or
 a Benson eye-space check that `terminal.is_settled` will not pass while the dead
 White stones are still on the board. So: **legality of the published line is
-engine-verified; the game-theoretic value is cited, not re-proven here.**
+engine-verified; the game-theoretic score is cited, not re-proven here.**
 
 ## Sources
 - Hayward, *Solving Go on Small Boards* (course notes), p. 18 "a 5x5 pv":

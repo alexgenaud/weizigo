@@ -23,7 +23,7 @@ NEW measurements (not published anywhere we know of).
 
 - The legal/canonical ratio converges to ~16 as boards grow (few symmetric
   boards), so **5x5 canonical ~ 414.3e9 / 16 ~ 25.9e9 classes**.
-- At ~1 byte per (canonical position, side): **~52 GB** for a full 5x5 value
+- At ~1 byte per (canonical position, side): **~52 GB** for a full 5x5 score
   oracle before compression — matching the strategy doc's "tens of GB; disk is
   not the constraint".
 
@@ -78,7 +78,7 @@ inverse) between boards and 0..3^n-1:
   retrograde prototype on 3x3 (19,683 slots) / 4x4 (43 MB); the legality (~2x)
   and symmetry (~16x) folds are later density upgrades behind the same
   two-function interface, needed only for 5x5 (raw = 847 GB at 1 B/slot).
-- FORMAT CONTRACT: the layout defines where every stored value lives on disk;
+- FORMAT CONTRACT: the layout defines where every stored score lives on disk;
   version it in the persist header before writing real oracle data.
 
 ### Canonical forms lean EARLY in colex space (measured 2026-07-17)

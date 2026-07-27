@@ -5,8 +5,8 @@ Why superko complicates a transposition table, and how we handle it
 
 ## The problem
 
-A transposition table assumes **value is a pure function of the position**
-(same board + side ⇒ same value, regardless of path). Transpositions merge
+A transposition table assumes **score is a pure function of the position**
+(same board + side ⇒ same score, regardless of path). Transpositions merge
 many parents into one node; the TT is that merge.
 
 **Superko breaks the assumption**: whether a move is legal depends on which
@@ -26,7 +26,7 @@ earlier position X:
 - via X: X already occurred → `m` illegal.
 - via Y: X never occurred → `m` legal.
 
-Same node S, different legal moves → possibly different value. One TT entry
+Same node S, different legal moves → possibly different score. One TT entry
 can't hold both. This is **Graph–History Interaction**. In Go it *is* the ko
 fight: "can I retake the ko now?" depends on the ko-threat/response history.
 
@@ -49,15 +49,15 @@ ko/repetition — most of the 5×5 tree is GHI-free.
 
 ### Caching (persistent TT) — the "null-history" model
 
-- Each position has **at most one unconditional value** (the value when no ko
+- Each position has **at most one unconditional score** (the score when no ko
   constraint bears on its subtree). Many histories reach a position but almost
-  all impose no relevant ban, so they share this one value.
-- **Cache only unconditional values.** If a node's subtree invoked a superko
+  all impose no relevant ban, so they share this one score.
+- **Cache only unconditional scores.** If a node's subtree invoked a superko
   ban referencing an ancestor *above* it, mark it **tainted** and don't cache
   it (recompute on re-encounter). Conservative taint = "any ban fired in the
   subtree" — over-recomputes slightly, correct, simple.
-- Do **not** store position sequences in the TT — only a value + a clean/tainted
-  flag. (Kishimoto–Müller: cache tainted values tagged with the minimal
+- Do **not** store position sequences in the TT — only a score + a clean/tainted
+  flag. (Kishimoto–Müller: cache tainted scores tagged with the minimal
   ancestor dependency set — deferred optimization.)
 
 ## PSK vs SSK cost

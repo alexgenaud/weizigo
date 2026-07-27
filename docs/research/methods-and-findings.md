@@ -23,13 +23,13 @@ We use **Chinese scoring** (you own the stones and the empty points your stones
 surround), **komi 0** (no compensation points for playing second), and the
 **positional superko rule**: *the whole board may never repeat a position that
 has appeared before in the game.* Scores are always written from **Black's
-point of view** — a value of +2 means "Black ends 2 points ahead," −2 means
+point of view** — a score of +2 means "Black ends 2 points ahead," −2 means
 "White ends 2 points ahead."
 
 We have done this **perfectly for boards up to 4×4**. The prize we are working
 toward is **5×5**. Along the way, solving the empty board tells you the single
 most-asked question about a board size: *what is the fair komi?* — because the
-value of the empty board is exactly how much the first player is worth.
+score of the empty board is exactly how much the first player is worth.
 
 A note on honesty about the rules: other researchers have "solved" 5×5 before
 (the answer is Black takes the whole board, +25), **but they used a simpler
@@ -49,16 +49,16 @@ game." A 5×5 board has more distinct legal positions than there are seconds in
 thousands of years. So brute force in the naive sense is out.
 
 **Reason two — the one that has dominated this whole project: *history
-matters.*** In most board games, the value of a position depends only on the
+matters.*** In most board games, the score of a position depends only on the
 stones currently on the board. In Go with the superko rule, **it can also
 depend on which positions have already occurred earlier in the game.** A move
 that would recreate an earlier whole-board position is illegal — so the *same
 stones on the board* can have *different legal moves*, and therefore a
-*different value*, depending on how you got there.
+*different score*, depending on how you got there.
 
 Think of a ko fight. The board looks identical each time you glance at it, but
 whether you are *allowed* to take back depends on the recent history. Superko
-generalises this to the entire board and the entire game. This "the value
+generalises this to the entire board and the entire game. This "the score
 depends on the past, not just the present" phenomenon has a name in the
 research literature: the **graph-history interaction**, or **GHI**. It is the
 central villain of this document.
@@ -72,53 +72,54 @@ central villain of this document.
 Instead of starting from the empty board and looking forward (which drowns in
 the number of games), we start from **finished positions** — boards so full or
 so settled that the score is obvious — and work **backwards**. If you know the
-value of every position that can *follow* a given position, you can work out
-the value of that position: the player to move simply picks the follow-up that
+score of every position that can *follow* a given position, you can work out
+the score of that position: the player to move simply picks the follow-up that
 is best for them. Repeat this, filling in positions with more and more empty
 space, until you reach the empty board. This backwards sweep is called
 **retrograde analysis** (the same technique that built the perfect endgame
 tables for chess).
 
-### The crucial split: a "certain" core and an "uncertain" residue
+### The crucial split: a "certain" core and an "uncertain" ko-sensitive region
 
 Here is the key discovery that makes the whole thing tractable and trustworthy.
 We separate every position into one of two buckets:
 
-- **The certified core.** For most positions, the value turns out **not to
-  depend on history at all.** No repetition rule can come into play in any
-  reasonable line of play, so the answer is just the answer, full stop. These
-  we can compute once and trust forever. **This is the large majority of
-  positions**, and it is cheap and completely sound.
+- **The fresh-start single-score region (L==H).** For most positions, the
+  score under the fresh-start (no prior history) game tree is **unique** — L
+  and H converge to the same integer. These positions were once thought
+  history-independent, but T13 (2026-07-26) falsified that at 3×2. They
+  remain correct as *fresh-start* scores (C1). This is the large majority of
+  positions at every board size.
 
-- **The ko-sensitive residue.** A minority of positions are tangled up in
-  repetition — their value genuinely *can* change depending on the history of
-  the game. These are the hard ones. We call them the **residue**, and almost
+- **The ko-sensitive region.** A minority of positions are tangled up in
+  repetition — their score genuinely *can* change depending on the history of
+  the game. These are the hard ones. We call them the **ko-sensitive region**, and almost
   every dead end in this project has been about handling them correctly.
 
 The great value of the split is that we can be **100% certain about the core**
-while we do careful, expensive, error-prone work on the small residue — and we
+while we do careful, expensive, error-prone work on the small ko-sensitive region — and we
 always know which bucket we are standing in.
 
 ### How we tell the two apart: the low/high bracket
 
 To decide whether a position is "certain" or "ko-sensitive," we compute its
-value **two different ways**:
+score **two different ways**:
 
 - a **pessimistic** way (call it **L**, the *low* estimate), which resolves
   every repetition tangle in the way that is *worst* for Black, and
 - an **optimistic** way (call it **H**, the *high* estimate), which resolves
   every tangle in the way that is *best* for Black.
 
-The true value, whatever the history, is always somewhere **between L and H**.
+The true score, whatever the history, is always somewhere **between L and H**.
 
-- **If L and H come out equal**, there is no room for doubt: the value is
+- **If L and H come out equal**, there is no room for doubt: the score is
   pinned down exactly, history cannot matter, and the position joins the
-  **certified core**.
-- **If L is below H**, the position is **ko-sensitive residue**: the truth lies
+  **fresh-start single-score region**.
+- **If L is below H**, the position is **ko-sensitive region**: the truth lies
   somewhere in the gap, and we need extra work to find exactly where.
 
 This bracket is not just a classifier — it is also a **safety net**. Any later,
-cleverer calculation of a residue value **must** land inside its [L, H]
+cleverer calculation of a ko-sensitive score **must** land inside its [L, H]
 bracket. If it ever lands outside, we know instantly that something is wrong.
 
 ---
@@ -131,15 +132,15 @@ that "we think it's perfect" is not the same as "it is perfect." We now lean on
 several independent checks, each of which can only *catch* errors, never
 *hide* them:
 
-1. **The bracket containment check** (above): every residue answer must sit
+1. **The bracket containment check** (above): every ko-sensitive region answer must sit
    inside its own low/high bracket.
 
 2. **Symmetry.** A Go board has eight mirror/rotation symmetries, and swapping
    the two colours flips the score. Positions that are the same under these
-   symmetries **must** get the same (or mirror-image) value. We check this
+   symmetries **must** get the same (or mirror-image) score. We check this
    exhaustively. A single mismatch is a bug.
 
-3. **Published anchors.** Where other researchers have published values for
+3. **Published anchors.** Where other researchers have published scores for
    certain positions (allowing for the rule differences), our numbers must be
    consistent with theirs.
 
@@ -163,51 +164,51 @@ taught us something that constrains what optimisations are even *possible*.
 The obvious approach. It drowns immediately: from the empty board the number of
 distinct game-lines explodes, and the repetition rule means you cannot safely
 reuse work between lines (see Dead end 3). **Lesson:** you must go backwards,
-and you must exploit the certified/residue split. This is *why* the whole
+and you must exploit the certified/ko-sensitive region split. This is *why* the whole
 architecture is shaped the way it is.
 
-### Dead end 2 — "Reuse a position's value everywhere we see it"
+### Dead end 2 — "Reuse a position's score everywhere we see it"
 The single most tempting optimisation in any game solver: once you've computed
-the value of a position, remember it, and every time that position comes up
+the score of a position, remember it, and every time that position comes up
 again, just look it up. This is called a **transposition table** and it is what
 makes chess engines fast.
 
-**For the ko-sensitive residue, this is fundamentally unsound**, and proving so
+**For the ko-sensitive region, this is fundamentally unsound**, and proving so
 consumed much of this project. The reason is GHI (Section 2): the "same"
-position can have *different* correct values depending on history, so blindly
-reusing one stored value plants a wrong answer that then poisons everything
+position can have *different* correct scores depending on history, so blindly
+reusing one stored score plants a wrong answer that then poisons everything
 computed from it. **Lesson — and this is a hard limit, not a temporary
-obstacle:** you may freely reuse values in the **certified core** (where
-history provably cannot matter), but reuse in the **residue** must be *guarded*
-by tracking exactly what history the stored value depended on. Unguarded reuse
-in the residue is off the table forever.
+obstacle:** you may freely reuse scores in the **fresh-start single-score region** (L==H,
+where the fresh-start score is unique), but reuse in the **ko-sensitive region** must be *guarded*
+by tracking exactly what history the stored score depended on. Unguarded reuse
+in the ko-sensitive region is off the table forever.
 
 ### Dead end 3 — "Reuse it *if the ko stayed local*" (the subtle, seductive bug)
-We tried a clever half-measure: reuse a stored residue value as long as the
+We tried a clever half-measure: reuse a stored ko-sensitive score as long as the
 only repetitions involved happened *within the position's own follow-up tree*,
 not reaching back to earlier history. It sounds airtight. It is not. When the
 same position shows up later via a *different* history, one of its follow-ups
 can collide with the *new* history in a way it never did before — changing its
-legal moves and its value. The stored "it stayed local" value is then wrong.
+legal moves and its score. The stored "it stayed local" score is then wrong.
 
 We suspected this for a long time but could not *prove* which of our competing
 calculations was the faulty one — until the self-consistency auditor (Section
 6) caught it red-handed. **Lesson:** "the ko stayed local this time" does not
 mean "the ko will stay local every time." Only a genuine record of *what the
-value depended on* is safe.
+score depended on* is safe.
 
 ### Dead end 4 — "Judge the hard cases with the slow-but-perfect solver"
-When our fast methods disagreed about a residue value, the natural referee was
-the one method with no shortcuts at all: a solver that keys every stored value
+When our fast methods disagreed about a ko-sensitive score, the natural referee was
+the one method with no shortcuts at all: a solver that keys every stored score
 to the **complete** history so far, making reuse provably safe. It is correct
 by construction — and **hopelessly slow exactly where we need it.** Near the
 end of a game it can occasionally answer; anywhere near the opening it never
 finishes. We ran it against the disputed 3×2 and 4×4 positions and it could not
 resolve a **single** one within any practical budget. **Lesson — an important
-and somewhat philosophical one:** you *cannot* referee the hard residue cases
+and somewhat philosophical one:** you *cannot* referee the hard ko-sensitive region cases
 by brute external check. The brute check is defeated by the very same GHI
 explosion that makes the problem hard in the first place. **Correctness for the
-residue can only come from an algorithm that is provably sound *by design* — not
+ko-sensitive region can only come from an algorithm that is provably sound *by design* — not
 from an oracle we can consult.**
 
 ### Dead end 5 — smaller, practical traps (each a real day lost)
@@ -215,7 +216,7 @@ from an oracle we can consult.**
   hopeless opening positions before ever reaching the tractable ones. Fix:
   always tackle the **fullest, nearest-to-finished positions first**.
 - **A "smarter" search that forgot its work.** A well-known fast search
-  technique (repeatedly asking narrow yes/no questions about the value) actually
+  technique (repeatedly asking narrow yes/no questions about the score) actually
   ran *slower* than the plain method, because it kept re-deriving answers it had
   already found. Fix: let it remember its partial findings between questions.
 - **Writing giant files in one go.** Saving a single multi-gigabyte result file
@@ -237,16 +238,16 @@ assume.** Every one of them looked fine in theory.
 
 ## 6. The breakthrough: the self-consistency auditor
 
-The crisis that stalled this project: three different versions of our residue
+The crisis that stalled this project: three different versions of our ko-sensitive region
 solver gave three different answers for the same positions, and Dead end 4 said
 we could not simply ask a perfect referee which was right.
 
-The way out was to stop asking "what is the true value?" (hard) and start
+The way out was to stop asking "what is the true score?" (hard) and start
 asking **"is this solver even consistent with itself?"** (easy, and enough to
 convict). The test is a rule every correct game solver must obey:
 
-> **Under one fixed history, a position's value must equal the best value among
-> the moves available from it.** If it's Black to move, Black's value can never
+> **Under one fixed history, a position's score must equal the best score among
+> the moves available from it.** If it's Black to move, Black's score can never
 > be *worse* than Black's best reply; if White, never *better* for Black than
 > White's best reply.
 
@@ -283,12 +284,18 @@ The auditor pointed to a clean fix and split the road ahead into two tracks.
 ### Track A — "Be correct now, even if slower"
 Simply **turn off the unsound reuse** and re-compute all our tables (2×2 up to
 4×4) with the cautious solver, then re-run every check. Why we trust this: with
-the reuse off, the only values the solver ever reuses are the ones from the
-**certified core**, which are safe by definition. Everything else it works out
+the reuse off, the only scores the solver ever reuses are the ones from the
+**fresh-start single-score region**, which are safe by definition for fresh-start re-use. Everything else it works out
 afresh, honestly following the real history of the game. In effect it becomes
 the slow-but-correct referee from Dead end 4 — *minus* the one feature that made
 that referee impossibly slow (keying on the entire history). So it is both
 correct **and** fast enough for the small boards.
+
+> **Epistemic update (2026-07-26):** T13 falsified C2 (history-independence
+> of the L==H region) at 3×2 (12/508 mismatches). The "certified core" was
+> renamed to "fresh-start single-score region" to remove the false implication
+> of real-game correctness. Only C1 (fresh-start correctness) survives. See
+> `../epistemic/PROGRESS.md` and `../status/leak-crisis.md`.
 
 The cost: turning off reuse gives up speed. For boards up to 4×4 that is fine.
 The open question is whether it is fast enough for the harder cases — which is
@@ -296,8 +303,8 @@ exactly what Track B addresses.
 
 ### Track B — "Be correct *and* fast, for the big board"
 Bring reuse back, but **safely**: instead of remembering only a position's
-value, also remember **exactly which pieces of history that value depended on.**
-Then reuse the stored value only when the current game's history is compatible
+score, also remember **exactly which pieces of history that score depended on.**
+Then reuse the stored score only when the current game's history is compatible
 with those dependencies. This is a known technique from the research literature
 (the **Kishimoto–Müller** method for exactly this ko/history problem). It is
 sound by construction — it never makes the mistake of Dead end 3, because it
@@ -312,7 +319,7 @@ Track A buys correctness immediately; Track B buys back the speed we'll need for
 works: it is provably sound (passes the consistency auditor) and it produces
 *exactly the same answers* as the cautious method on every board we can check
 (3×2, 3×3, 4×3) — so it is correct, not merely plausible. The trick for
-remembering "what a value depended on" without using enormous memory is a
+remembering "what a score depended on" without using enormous memory is a
 **fingerprint**: a small fixed-size sketch of the set of positions involved,
 like a fuzzy summary. Two positions that are the same leave the same mark on the
 sketch, so if two sketches share no marks at all, the underlying situations
@@ -348,7 +355,7 @@ Some round numbers (approximate, but the conclusion is not close):
 - Folding away the eight board symmetries brings that down to very roughly
   **25–50 billion** distinct positions to store.
 - The final answer table needs on the order of **1–2 bytes per position**
-  (the value for each side), i.e. very roughly **50–150 GB** — and that is just
+  (the score for each side), i.e. very roughly **50–150 GB** — and that is just
   the *finished* table. The *working* data needed *while computing* (the low/high
   brackets, bookkeeping) is several times larger again.
 
@@ -368,10 +375,10 @@ yet been demonstrated, and memory is not the main worry.
 ### The time picture: this is the real unknown
 
 The genuine risk to 5×5 is **not** memory — it is the **size and cost of the
-ko-sensitive residue**. Everything hard in this project lives there. We do not
-yet know how the residue behaves as the board grows, and that single unknown
-dominates the whole feasibility question. If the residue stays a small, cheap
-fraction, 5×5 is very likely reachable. If it grows quickly and the residue
+ko-sensitive region**. Everything hard in this project lives there. We do not
+yet know how the ko-sensitive region behaves as the board grows, and that single unknown
+dominates the whole feasibility question. If the ko-sensitive region stays a small, cheap
+fraction, 5×5 is very likely reachable. If it grows quickly and the ko-sensitive region
 positions become individually expensive, even a perfectly sound and fast solver
 could take impractically long.
 
@@ -403,16 +410,16 @@ needs, because we are missing the measurements that would tell us. Concretely,
 before proposing the final recipe we must measure, across the sizes we can
 already solve (2×2, 3×2, 3×3, 4×4) and project forward:
 
-1. **How fast does the residue grow?** What fraction of positions are
+1. **How fast does the ko-sensitive region grow?** What fraction of positions are
    ko-sensitive at each board size, and is that fraction rising, flat, or
    falling? *This is the single most important number we are missing.*
-2. **How expensive is each residue position to solve**, cautious (Track A) vs.
+2. **How expensive is each ko-sensitive region position to solve**, cautious (Track A) vs.
    guarded-reuse (Track B)? Does guarded reuse actually pay for itself?
 3. **How many backward sweeps** does the low/high calculation need to settle,
    and how costly is each sweep when the table lives on disk instead of in
    memory?
-4. **How well does the table compress?** The values are far from random (nearby
-   positions have similar values), so there is real hope of shrinking the
+4. **How well does the table compress?** The scores are far from random (nearby
+   positions have similar scores), so there is real hope of shrinking the
    on-disk table well below the raw estimate — but this must be tested on the
    4×4 table first.
 5. **Does out-of-core tiling actually work at speed?** The right first
@@ -427,12 +434,12 @@ already solve (2×2, 3×2, 3×3, 4×4) and project forward:
 - **Memory (40–48 GB):** the full table won't fit and was never meant to; as a
   *working buffer* for disk-based computation it is plausibly adequate, but
   unproven.
-- **Feasibility of 5×5 at all:** **not yet answered.** It hinges on the residue,
+- **Feasibility of 5×5 at all:** **not yet answered.** It hinges on the ko-sensitive region,
   which we have not measured beyond 4×4.
 - **Confidence today:** we have a *correct* method (Track A) and a *known route*
   to the speed we'll need (Track B), and we have finally proven where the old
   bug was. What we lack is the handful of growth measurements above. Those
-  measurements — especially the residue growth and the 5×4 out-of-core dress
+  measurements — especially the ko-sensitive-region growth and the 5×4 out-of-core dress
   rehearsal — are the honest prerequisites before anyone should promise a
   superko-perfect 5×5 within any particular time or memory budget.
 
@@ -457,7 +464,7 @@ Two independent facts settled it:
    AlphaGo's famous matches (Lee Sedol, Ke Jie) were played under Chinese
    rules, not superko. Even the strong bots never *compute* superko exactly —
    they show the neural net a short slice of recent history plus an
-   engine-flagged "this move is illegal" hint, and the value they output is an
+   engine-flagged "this move is illegal" hint, and the score they output is an
    *estimate*. Superko's real difficulty is a problem only for someone
    demanding a *proof* — and it turns out that's a self-inflicted wound.
 2. **It is intractable even on the empty 2×2 board** by the sound method
@@ -483,17 +490,17 @@ We tried two ways to make the problem both realistic and solvable:
 ### What we CAN prove — and it's real
 
 Here is the good news, and it's genuinely worth stating plainly. Our backward
-method computes two numbers for every position: a **low** value (assume every
-unresolved cycle goes as badly as possible for Black) and a **high** value
+method computes two numbers for every position: a **low** score (assume every
+unresolved cycle goes as badly as possible for Black) and a **high** score
 (assume every cycle goes as well as possible). Two things follow:
 
-- **Where low equals high, the value is certain — and it doesn't matter which
+- **Where low equals high, the score is certain — and it doesn't matter which
   ko rule you use.** These positions never depend on how a repeat is resolved,
-  so their value is the same under superko, basic ko, the score-on-cycle rule,
+  so their score is the same under superko, basic ko, the score-on-cycle rule,
   anything. That is **66% of 3×3, 74% of 4×3, and about 79% of 4×4** —
   *provably, exactly, permanently* solved.
 - **Where low is below high, we can't name a single number, but we can prove
-  the true value lies between them.** We checked this against the few values
+  the true score lies between them.** We checked this against the few scores
   humans have published (empty 3×3 is +9; it sits at the top of our [2, 9]
   bracket — correct) and it holds.
 
@@ -503,7 +510,7 @@ everyone actually wants a number for — the bracket is wide (e.g. 3×3 is
 cycle-tangled position of all. And a chunk of the hard positions have a bracket
 so wide it says nothing at all. So:
 
-> **We have a genuine partial solution of 4×4: an exact, rule-independent value
+> **We have a genuine partial solution of 4×4: an exact, rule-independent score
 > for ~79% of positions, and honest bounds for the rest. We do NOT have — and
 > cannot get by any fast, provable method we know — a single "Go on 4×4 is a win
 > by N" number under a realistic rule.** Getting that last number would require

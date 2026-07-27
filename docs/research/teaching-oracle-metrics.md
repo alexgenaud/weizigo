@@ -8,25 +8,25 @@ single opponent error."
 
 Guiding constraint (user's own warning): avoid FICTIONS — retroactive
 narrative justifications not grounded in truth. Everything below is pure
-arithmetic over exact oracle values; no narrative generation.
+arithmetic over exact oracle scores; no narrative generation.
 
-## Metrics derivable from a complete value table (no extra solving)
+## Metrics derivable from a complete score table (no extra solving)
 
-For any position P (side s to move), with all successors' values known:
+For any position P (side s to move), with all successors' scores known:
 
-- **move score**: exact value of each legal move (and pass). The base
+- **move score**: exact score of each legal move (and pass). The base
   primitive; sorting gives the complete move ordering. "Optimal move" = any
-  move whose value equals the position value; there may be several.
-- **sharpness / forgiveness**: how many moves preserve the optimal value
+  move whose score equals the position score; there may be several.
+- **sharpness / forgiveness**: how many moves preserve the optimal score
   (1 = "only move"; many = forgiving position).
-- **punishment spread**: value gap between best and second-best move; mean
-  value loss of a uniformly random move (how dangerous the position is).
+- **punishment spread**: score gap between best and second-best move; mean
+  score loss of a uniformly random move (how dangerous the position is).
 - **error-capitalization** (the "complex move" signal): after our move, the
-  distribution of opponent-reply values — a move is *sharp/complex* if most
+  distribution of opponent-reply scores — a move is *sharp/complex* if most
   opponent replies lose big (opponent must find rare exact answers), *simple*
-  if all replies lead to similar values.
+  if all replies lead to similar scores.
 - **sente, operationally defined**: a move retains sente if every
-  value-preserving opponent reply is confined to a small forced set (all other
+  score-preserving opponent reply is confined to a small forced set (all other
   replies lose >= threshold). No shape-narrative needed.
 
 ## Metrics that need ONE extra byte per (position, side): DEPTH
@@ -36,7 +36,7 @@ For any position P (side s to move), with all successors' values known:
   user's "resolves in 3 moves" vs "purpose reveals itself a dozen moves later".
 - **Depth-of-consequence of a move** = DTT(successor) + 1 vs alternatives.
 - The RETROGRADE engine computes DTT essentially FOR FREE: it is the
-  propagation round at which a value resolves.
+  propagation round at which a score resolves.
 
 ## => SCHEMA DECISION, needed BEFORE the format contract freezes
 
@@ -50,14 +50,14 @@ Record in the #6' ADR.
 
 ## Delivery vehicle
 
-Annotated SGF (sgf.zig): trees whose every node carries value, #optimal moves,
+Annotated SGF (sgf.zig): trees whose every node carries score, #optimal moves,
 DTT, sharpness — readable in Sabaki etc. The "total joseki database" is the
 oracle restricted to optimal-play-reachable positions, exported as such trees.
 
 ## Honest limits
 
 - WHY-narratives (shape, influence, direction of play) are not derivable from
-  values alone; generating them risks exactly the fictions the user warns of.
+  scores alone; generating them risks exactly the fictions the user warns of.
   The rigorous subset: CGT (Berlekamp-Wolfe) local game values + temperature
   for decomposed endgames = provable sente/gote/biggest-move statements.
 - KataGo-style "mysterious" moves: an exact oracle can at least bound the
@@ -70,12 +70,12 @@ Which move in a played game is "the most critically worst — the one most
 important to focus on, understand, correct, and learn from"? Four distinct,
 COMPUTABLE criteria, deliberately not collapsed into one number:
 
-1. **Outcome flip** (the game-losing move): the move whose value trajectory
+1. **Outcome flip** (the game-losing move): the move whose score trajectory
    crosses the win/loss boundary (v vs komi). NOT the biggest swing — in the
    B+16 game, Black's C4 lost only 3 points but crossed +2 -> -1 (won game
    -> lost game); D4 lost 17 points but the game was already theoretically
    lost. A review leads with the flip, not the magnitude.
-2. **Magnitude** (points thrown): the raw value swing. Secondary, but the
+2. **Magnitude** (points thrown): the raw score swing. Secondary, but the
    right frame for loss-minimization lessons ("you were losing by 1; D4
    made it 16").
 3. **Learnability** (is there a lesson inside?): a blunder every reply
@@ -101,11 +101,11 @@ What teaching masters actually do (and the engine analogue):
   Engine analogue: principle mining across the player's games; a repeated
   error shape outranks a one-off.
 - Phase distinction is real and computable: OPENING errors are
-  direction-of-play (value drifts while all statuses stay open), MIDDLE
+  direction-of-play (score drifts while all statuses stay open), MIDDLE
   game errors are status changes (the ko-sensitive/fight region — flags
   dense, statuses volatile), ENDGAME errors are counting (inside the
-  certified core, finite DTT). Different faculties, different lessons;
-  segment the review by where the certified/ko-sensitive boundary sits.
+  fresh-start single-score region, finite DTT). Different faculties, different lessons;
+  segment the review by where the single-score/ko-sensitive boundary sits.
 - Convert the scene into a PRACTICE PROBLEM: the position as a
   goal-bounded local puzzle ("Black to play and keep the win") — the
   query-engine's tsumego generator, fed by the player's own games.

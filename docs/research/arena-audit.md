@@ -1,14 +1,14 @@
 # Arena: adversarial self-play audit of the oracle player (2026-07-22)
 
 Instrument: `src/arena.zig` (user-designed methodology). One AUDITED player
-plays fresh-start-optimally but picks RANDOMLY among value-optimal moves
+plays fresh-start-optimally but picks RANDOMLY among score-optimal moves
 (alternative winning lines, not just the fastest); the opponent plays a
 seeded mix — 60% optimal / 25% winning-but-suboptimal / 15% anything-legal
 (human-realistic errors). Colours, seeds, and handicaps (0/1/2 pre-placed
 Black stones) all vary.
 
 THE AUDIT: at every position where the audited player is to move, the
-stored fresh-start value is a PROMISE. A game where the final score falls
+stored fresh-start score is a PROMISE. A game where the final score falls
 short of the strongest promise anywhere in its history is a LEAK. Every
 leaked game is emitted as a replayable move list for the history-exact
 probes (`RETRO_REPLAY` / `RETRO_VERIFY` in retro.zig).
@@ -19,18 +19,18 @@ probes (`RETRO_REPLAY` / `RETRO_VERIFY` in retro.zig).
     LEAKS=25 (8.3%), max 32 pts
     DIVERGED: 112 games (37%), 167 events
 
-- **8.3% of adversarial games leak value** — the fresh-start player's
+- **8.3% of adversarial games leak score** — the fresh-start player's
   exploitability is not a corner case. Max observed leak: 32 points
   (promise W+16, final B+16 — the same full-board swing class as the
   human-discovered "B+16 game", research/retrograde-4x4.md).
 - **37% of games contain a DIVERGED event** (the best achievable child
-  value differs from the audited player's own stored position value —
+  score differs from the audited player's own stored position score —
   the moment the table's promise becomes unkeepable under this game's
   superko bans). Most diverged games do NOT leak (the tangle often
   resolves favourably anyway).
-- **Leaks WITHOUT any diverged event exist** (e.g. seed 42): value
+- **Leaks WITHOUT any diverged event exist** (e.g. seed 42): score
   evaporated through a chain of moves each of which looked
-  value-preserving by stored numbers. Fresh-start values along a real
+  score-preserving by stored numbers. Fresh-start scores along a real
   history are mutually inconsistent — a deeper GHI signature than the
   single-blunder case, and the strongest argument yet for the
   history-perfect player.
@@ -54,7 +54,7 @@ CAVEAT measured 2026-07-22: the assumption-free alternative is often
 INTRACTABLE (juncture 11 of the B+16 game exceeded 4e9 nodes) — Finding 3/7
 all over. So conditional comparison works on the tractable subset, and the
 arena covers the rest statistically. OPEN: the replay probe exposed an
-internal inconsistency (ply-10 value -1 vs ply-11 best-child +1 on the same
+internal inconsistency (ply-10 score -1 vs ply-11 best-child +1 on the same
 position+history) — certified-seed/bracket validity under NONEMPTY prefixes
 is now a live question, distinct from the oracle's fresh-start soundness
 (fresh roots: exhaustively ground-truthed at 2x2/3x2). Adjudication pending
@@ -77,7 +77,7 @@ move — the pure margin-leaker); dan 90/8/2; kyu 60/25/15; novice 30/40/30
 | novice       | 44 (7.3%)  | 32 | 201/293 | 520 |
 
 **The stronger the opponent, the more the fresh-start player leaks** —
-strong opponents steer into the precise ko tangles where fresh-start values
+strong opponents steer into the precise ko tangles where fresh-start scores
 poison; weak opponents stumble back out of them. Against a strictly optimal
 opponent the belief system fails its promise in ~16% of games. This inverts
 the intuition that a perfect-table player is most at risk against tricky
@@ -85,7 +85,7 @@ weak play: it is most at risk against STRENGTH.
 
 AUDIT SEMANTICS (clarified after review): this is a BELIEF audit, not a
 policy audit. The audited player picks randomly among believed-optimal
-moves; if the stored values were true in-game values, ANY such move
+moves; if the stored scores were true in-game scores, ANY such move
 preserves the promise, so randomization cannot cause a leak — every leak
 proves that a move the table called optimal was history-poisoned. The
 randomization only widens coverage of that claim. (A deterministic
@@ -100,12 +100,12 @@ deployed-policy audit — min-DTT tie-break — is a separate, weaker mode.)
    leak is real, certified-seed reuse under prefixes needs a Kishimoto-
    Muller-style dependency guard (the documented fallback).
 3. Scale the arena run (1000+ seeds), add 3x3/2x2 sweeps (cheap, and their
-   values are exhaustively ground-truthed — any leak there is maximally
+   scores are exhaustively ground-truthed — any leak there is maximally
    diagnostic).
 
 ## Contradiction localized (2026-07-22, RETRO_CONTRA complete)
 
-The toggle matrix on the P10 inconsistency (direct value vs max-over-children,
+The toggle matrix on the P10 inconsistency (direct score vs max-over-children,
 same position, same 10-move prefix):
 
     brackets=ON  seeds=ON : A=-1  child-max=+1 (D2)   INCONSISTENT
@@ -113,7 +113,7 @@ same position, same 10-move prefix):
     brackets=OFF seeds=ON : A=-1  child-max=+1 (D2)   INCONSISTENT
     brackets=OFF seeds=OFF: A=budget(>3e9)  child-max=+1 (C1, 6e9 nodes)
 
-VERDICT by elimination + compositionality: a maximizer's value cannot be
+VERDICT by elimination + compositionality: a maximizer's score cannot be
 below its best child, so the DIRECT evaluations (A=-1) are the corrupted
 ones, in every configuration that completed. Brackets and certified seeds
 are exonerated as sole causes; the mechanism present in all affected runs is
@@ -125,7 +125,7 @@ discipline is a heuristic guard, valid empirically at fresh roots
 
 Consequences:
 1. The history-perfect genmove requires a DEPENDENCY-GUARDED memo
-   (Kishimoto-Muller): each entry records the positions its value depends
+   (Kishimoto-Muller): each entry records the positions its score depends
    on; reuse only where the current path cannot invalidate it. Brackets and
    certified seeds may be re-admitted on top only after passing this same
    toggle-matrix test.
@@ -133,7 +133,7 @@ Consequences:
    ko-tangled junctures and must be recomputed after the fix. The coarse
    three-error story of the B+16 game (C4, D4, C1) is corroborated by
    multiple configurations but not yet certified.
-3. Fresh-root oracle values are NOT implicated (empirically validated at
+3. Fresh-root oracle scores are NOT implicated (empirically validated at
    2x2/3x2 exhaustively; 4x4 anchor matches published) — but the same
    theoretical hole exists there, so a 4x4 deep spot-check pass and/or a
    KM-guarded finisher rerun is now a prioritized validation item.
@@ -150,10 +150,10 @@ leak rate range across personas:
 
 THE CONTROL: the 2x2 and 3x2 tables are exhaustively verified against the
 assumption-free ban-set-keyed Exact solver (0 mismatches on every slot) —
-their fresh-start values are CORRECT beyond doubt. Yet the fresh-start
+their fresh-start scores are CORRECT beyond doubt. Yet the fresh-start
 PLAYER leaks there most of all (3x2: nearly half of adversarial games).
 Conclusion: the leak class is entirely the player's history-blindness, not
-table error. Tiny boards are ko machines (residue 72%/39%), so fresh-start
+table error. Tiny boards are ko machines (ko-sensitive region 72%/39%), so fresh-start
 play is most wrong exactly where history matters most.
 
 Timeline honesty: none of this needed a human to be DISCOVERABLE — the
@@ -169,7 +169,7 @@ adversarial play, and "self-play smoke test" is not adversarial.
 
 Regenerating small artifacts (pilot gate) exposed that the current finisher
 disagrees with the committed artifacts. Adjudication made it WORSE, not
-better: three methods give three different values for the empty 3x2 board
+better: three methods give three different scores for the empty 3x2 board
 (idx 0, fresh-start):
 
     old      (aspiration exact-memo finisher)     : +1
@@ -177,12 +177,12 @@ better: three methods give three different values for the empty 3x2 board
     writes-off (bracket-guided, cross-branch      :  0
                 memo writes disabled)
 
-62 of 378 residue (slot,side) pairs differ between writes-off and old.
+62 of 378 ko-sensitive region (slot,side) pairs differ between writes-off and old.
 CONCLUSION we can and cannot draw:
-- We CAN conclude the finisher-produced RESIDUE is unreliable across
+- We CAN conclude the finisher-produced KO-SENSITIVE is unreliable across
   generations — at least two of the three methods are wrong on these slots,
   and possibly all three.
-- We CANNOT yet name the true value. The "writes-off" judge removes the
+- We CANNOT yet name the true score. The "writes-off" judge removes the
   convicted cross-branch memo reuse but still ASSUMES the L/H brackets and
   the certified seeds are sound and that its own search logic is correct —
   none of those is proven; it is the least-assumption-laden of the three,
@@ -193,10 +193,11 @@ CONCLUSION we can and cannot draw:
   the footholds: adjudicate every Exact-reachable disputed slot, see which
   method (if any) it matches.
 
-Scope of the doubt (unchanged): the CERTIFIED CORE (L==H) is not in
-dispute here — every disputed slot is KO_SENSITIVE residue. But residue is
-21-49% of every board and includes the opening, so "the oracle is correct
-on its certified core" is true and "the published 3x2/3x3/4x4 artifacts are
+Scope of the doubt (unchanged): the fresh-start single-score region (L==H)
+is not in dispute here — every disputed slot is KO_SENSITIVE ko-sensitive
+region. But the ko-sensitive region is 21-49% of every board and includes
+the opening, so "the oracle is correct on its fresh-start single-score
+region" is true and "the published 3x2/3x3/4x4 artifacts are
 fully correct" is NOT currently established.
 
 This is the honest state: the two-sided L/H CERTIFICATION is trustworthy;
@@ -208,16 +209,16 @@ pilot-gate byte-identity thereafter.
 ## Foothold adjudication is STRUCTURALLY DEFEATED (2026-07-23)
 
 Attempted #1 (assumption-minimal external adjudication of the disputed
-residue) on both boards. Both failed to produce a SINGLE foothold:
+ko-sensitive region) on both boards. Both failed to produce a SINGLE foothold:
 - 3x2: Exact (ban-set-keyed), most-filled disputed slots, 2e9 then 3e8
   node budget — 0 reached (~2 h).
 - 4x4: Exact is memory-dead (5.38 MB per ban-set key = 3^16 bits); judge =
   O.solve memo=OFF (minimax + real superko history + eye-prune, no
-  cross-branch cache, memory-safe). Most-filled residue, 1.5e9 budget,
+  cross-branch cache, memory-safe). Most-filled ko-sensitive region, 1.5e9 budget,
   ~6.5 h — 0 footholds reached.
 
 WHY (structural, not tuning): the disputed slots ARE the ko-sensitive
-residue, and those are exactly the positions where a capture REOPENS the
+ko-sensitive region, and those are exactly the positions where a capture REOPENS the
 board mid-search (Finding 7), exploding any un-memoized or ban-set-memoized
 solve. Exact memoization is the only thing that could tame it, and its key
 (the full superko ban-set) is what makes it intractable — the graph-history-
@@ -226,17 +227,17 @@ board-size-independent: it defeated 3x2 (a ko machine) AND 4x4 (a square
 target) identically.
 
 CONCLUSION — reframes the correctness strategy:
-- We CANNOT prove the ko-tangled residue correct by EXTERNAL CHECK against a
+- We CANNOT prove the ko-tangled ko-sensitive region correct by EXTERNAL CHECK against a
   brute oracle; that is intractable by the same mechanism the whole project
   exists to circumvent. No current check (Exact-reachable slots, brackets,
   symmetry, bracket-containment) DISCRIMINATES old vs new — they agree on
-  the certified core and are silent on the residue.
-- Therefore residue correctness must come BY CONSTRUCTION: a provably-sound
+  the fresh-start single-score region and are silent on the ko-sensitive region.
+- Therefore ko-sensitive region correctness must come BY CONSTRUCTION: a provably-sound
   finisher (Kishimoto-Muller dependency-guarded memo — a published,
   proven-correct GHI method), whose trust rests on the ALGORITHM, validated
   by determinism (pilot gate), bracket containment, exhaustive symmetry, and
-  agreement with Exact on the reachable (non-residue) slots — NOT on
+  agreement with Exact on the reachable (non-ko-sensitive region) slots — NOT on
   adjudicating individual disputed slots.
-- Honest status: which of old/new is right on the disputed residue is
+- Honest status: which of old/new is right on the disputed ko-sensitive region is
   currently UNDECIDABLE by any tractable external means. Only a from-scratch
   provably-sound recompute settles it. #1 is exhausted.
