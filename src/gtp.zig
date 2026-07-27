@@ -131,29 +131,37 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             return best;
         }
 
-        const Choice = struct { cell: ?usize, value: i8, dtt: u8 };
+        const Choice = struct { cell: ?usize, value: i8, dtt: u8, caps: u16 = 0 };
 
         /// Best move (or pass) for `side` from the current game state:
-        /// fresh-start-optimal among PSK-legal options, value ties broken by
-        /// smallest DTT.
+        /// fresh-start-optimal among PSK-legal options. TIE-BREAK among equal-
+        /// value moves: MORE captures first (finish the game - capture dead
+        /// stones rather than dither; uncaptured dead stones still count for
+        /// the opponent at game-end under area scoring), then smaller DTT.
         ///
-        /// PASS POLICY: pass only when it is OPTIMAL (never suboptimally) -
-        /// ties resolved by smallest DTT. But in the EARLY game the engine
-        /// plays a move even when pass is TIED-optimal ("always play the
-        /// opening"): on 4x4, after a strong 2-stone Black opening White is
-        /// already fresh-start-dead (value 16), so pass is tied-optimal and
-        /// pure-optimal would pass out immediately (game over after 2 stones -
-        /// not a fun opening). Playing a tied-optimal move instead never passes
-        /// suboptimally (consistent with "pass only if optimal") and gives 4x4
-        /// a real opening; resign handles the late hopeless. (Resign is the
-        /// only politeness, handled by the caller before choose runs.)
+        /// PASS POLICY: pass only when it is OPTIMAL (never suboptimally). But
+        /// in the EARLY game the engine plays a move even when pass is TIED-
+        /// optimal ("always play the opening"): on 4x4, after a strong 2-stone
+        /// Black opening White is already fresh-start-dead (value 16), so pass
+        /// is tied-optimal and pure-optimal would pass out immediately (game
+        /// over after 2 stones - not a fun opening). Playing a tied-optimal move
+        /// instead never passes suboptimally (consistent with "pass only if
+        /// optimal") and gives 4x4 a real opening. In the LATE game, when
+        /// winning decisively the engine CAPTURES the dead stones (capture-
+        /// priority) until none remain, after which pass is optimal -> it
+        /// passes -> two passes -> game ends -> Sabaki scores a winner. (Resign
+        /// is the only politeness, handled by the caller before choose runs.)
         pub fn choose(s: *const S, side: i8) Choice {
             const maximizing = side > 0;
-            var best = Choice{
+            const opp: i8 = -side;
+            const opp_before = S.countColor(&s.pos, opp);
+            const pass = Choice{
                 .cell = null,
                 .value = if (s.passes >= 1) R.area_score(&s.pos) else s.v1_from_table(&s.pos, -side),
                 .dtt = if (s.passes >= 1) 0 else 1,
+                .caps = 0,
             };
+            var best: ?Choice = pass; // pass is a candidate
             var best_move: ?Choice = null; // best non-pass candidate (early-game effort)
             for (0..n) |p| {
                 if (s.pos[p] != 0) continue;
@@ -162,17 +170,14 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 const v = s.v0(&child, -side);
                 if (v == UNDEF) continue; // unfilled slot (2-ko+): skip
                 const dt = s.dtt0(&child, -side);
-                const mv = Choice{ .cell = p, .value = v, .dtt = dt };
-                if (best_move) |bm| {
-                    const b = if (maximizing) v > bm.value else v < bm.value;
-                    if (b or (v == bm.value and dt < bm.dtt)) best_move = mv;
-                } else best_move = mv;
-                const better = if (maximizing) v > best.value else v < best.value;
-                if (better or (v == best.value and dt < best.dtt)) best = mv;
+                const caps: u16 = opp_before - S.countColor(&child, opp);
+                const mv = Choice{ .cell = p, .value = v, .dtt = dt, .caps = caps };
+                best_move = S.pick(best_move, mv, maximizing);
+                best = S.pick(best, mv, maximizing);
             }
             // early game (own < area/4 AND total < area/2; 4 own / 8 total on
             // 4x4): if pass would be chosen, play the best move instead.
-            if (best.cell == null) {
+            if (best.?.cell == null) {
                 const area: usize = w * h;
                 const min_own: usize = area / 4;
                 const min_total: usize = area / 2;
@@ -187,7 +192,26 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                     if (best_move) |bm| return bm;
                 }
             }
-            return best;
+            return best.?;
+        }
+
+        /// Tie-break: value (max/min) primary; then MORE captures (finish the
+        /// game); then SMALLER DTT (resolve fast). `cur` may be null (seed).
+        fn pick(cur: ?Choice, mv: Choice, maximizing: bool) ?Choice {
+            if (cur == null) return mv;
+            const c = cur.?;
+            const vbetter = if (maximizing) mv.value > c.value else mv.value < c.value;
+            if (vbetter) return mv;
+            if (mv.value != c.value) return c;
+            if (mv.caps != c.caps) return if (mv.caps > c.caps) mv else c;
+            if (mv.dtt != c.dtt) return if (mv.dtt < c.dtt) mv else c;
+            return c;
+        }
+
+        fn countColor(pos: *const Pos, color: i8) u16 {
+            var c: u16 = 0;
+            for (pos) |x| if (x == color) { c += 1; };
+            return c;
         }
 
 
