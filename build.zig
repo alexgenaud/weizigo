@@ -89,4 +89,27 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+
+    // ── engine-vs-engine ──────────────────────────────────────────
+    const engine_vs_engine_exe = b.addExecutable(.{
+        .name = "weizigo-engine-vs-engine",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/engine-vs-engine.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(engine_vs_engine_exe);
+
+    // ── managent ───────────────────────────────────────────────────
+    const managent_exe = b.addExecutable(.{
+        .name = "managent",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/managent/main.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    b.installArtifact(managent_exe);
 }

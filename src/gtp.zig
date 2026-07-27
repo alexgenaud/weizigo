@@ -28,7 +28,7 @@
 // to a V1 node the artifact does not store; it is recomputed as one ply of
 // V0 lookups (the ADR-0009 Bellman equation).
 //
-// HONESTY (the GHI residue, ADR-0009/0010): stored values are FRESH-START
+// HONESTY (the GHI ko-sensitive region, ADR-0009/0010): stored values are FRESH-START
 // values. In a real game with history, superko bans can make the true
 // optimum differ on KO_SENSITIVE positions. This player filters PSK-illegal
 // moves against the actual game history and otherwise plays the fresh-start
@@ -43,15 +43,24 @@ const std = @import("std");
 const rules = @import("rules.zig");
 const colexmod = @import("colex.zig");
 const artifact = @import("artifact.zig");
+const score = @import("score.zig");
 
 const COLS = "ABCDEFGHJKLMNOPQRSTUVWXYZ"; // GTP letters, no 'I'
 const MAX_HIST = 4096;
+
+/// Sentinel stored in unfilled artifact slots (2-ko+ positions on the 4x4
+/// parallel artifact). The GTP player must NEVER treat this as a real score:
+/// -128 is catastrophic as a fresh-start value (B39: 144-pt leaks). When a
+/// child's stored value is UNDEF, that move is dropped from consideration
+/// and the engine falls back to pass or another filled child.
+pub const UNDEF: i8 = -128;
 
 pub fn Session(comptime w: usize, comptime h: usize) type {
     return struct {
         const S = @This();
         const R = rules.Rules(w, h);
         const X = colexmod.Indexer(w, h);
+        const Score = score.Score(w, h);
         const n = R.n;
         const Pos = R.Pos;
 
@@ -100,6 +109,8 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// V1(pos, side) = value when `side` moves facing one standing pass:
         /// any move -> stored V0(child, -side); pass -> game ends, score now.
         /// One ply of table lookups (the artifact stores V0 only).
+        /// Children whose slot is UNDEF (2-ko+ unfilled) are skipped — the
+        /// pass value (area_score) stands as the fallback.
         pub fn v1_from_table(s: *const S, pos: *const Pos, side: i8) i8 {
             const maximizing = side > 0;
             var best: i8 = R.area_score(pos); // the ending pass
@@ -107,6 +118,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 if (pos[p] != 0) continue;
                 const child = R.pos_from_move(pos, side, p) catch continue;
                 const v = s.v0(&child, -side);
+                if (v == UNDEF) continue; // unfilled slot — fall back to pass/other moves
                 if (if (maximizing) v > best else v < best) best = v;
             }
             return best;
@@ -116,7 +128,9 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
 
         /// Best move (or pass) for `side` from the current game state:
         /// fresh-start-optimal among PSK-legal options, value ties broken by
-        /// smallest DTT. Never resigns — the oracle has nothing to fear.
+        /// smallest DTT. Pass is always included as a candidate (the ending
+        /// pass or V1-from-table); when no legal move beats the pass value,
+        /// the engine passes — it never plays a losing move just to stall.
         pub fn choose(s: *const S, side: i8) Choice {
             const maximizing = side > 0;
             // pass option
@@ -135,6 +149,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 const child = R.pos_from_move(&s.pos, side, p) catch continue;
                 if (s.seen(&child)) continue; // positional superko
                 const v = s.v0(&child, -side);
+                if (v == UNDEF) continue; // unfilled slot (2-ko+): skip, fall back to pass/other moves
                 const dt = s.dtt0(&child, -side);
                 const better = if (maximizing) v > best.value else v < best.value;
                 if (better or (v == best.value and dt < best.dtt)) {
@@ -175,6 +190,98 @@ pub fn cell_from_vertex(token: []const u8, w: usize, h: usize) ?usize {
     return (h - row_num) * w + col;
 }
 
+/// Parse "NxN" or "NxM" board-size shorthand. Returns .{w, h} or null.
+fn parseBoardSize(s: []const u8) ?[2]usize {
+    const x = std.mem.indexOfScalar(u8, s, 'x') orelse return null;
+    const w = std.fmt.parseInt(usize, s[0..x], 10) catch return null;
+    const h = std.fmt.parseInt(usize, s[x + 1 ..], 10) catch return null;
+    if (w == 0 or h == 0 or w > 25 or h > 25) return null;
+    return .{ w, h };
+}
+
+// ---- score-report formatting helpers ----------------------------------------
+
+fn fmtAreaCounts(buf: []u8, area: i8, dame_count: usize, board_n: usize) []u8 {
+    const neutral: i16 = @intCast(dame_count);
+    const a: i16 = @intCast(area);
+    const nn: i16 = @intCast(board_n);
+    const black = @divTrunc(a + nn - neutral, 2);
+    const white = @divTrunc(nn - neutral - a, 2);
+    return std.fmt.bufPrint(buf, "B+{d} / W+{d} (area)", .{ black, white }) catch unreachable;
+}
+
+fn fmtTerritory(buf: []u8, terr: anytype) []u8 {
+    return std.fmt.bufPrint(buf, "territory B+{d}/W+{d}", .{ terr.black, terr.white }) catch unreachable;
+}
+
+fn fmtDame(buf: []u8, count: usize) []u8 {
+    return std.fmt.bufPrint(buf, "dame {d}", .{count}) catch unreachable;
+}
+
+fn fmtDead(buf: []u8, dead: anytype) []u8 {
+    return std.fmt.bufPrint(buf, "dead B+{d}/W+{d}", .{ dead.dead_black_count, dead.dead_white_count }) catch unreachable;
+}
+
+fn fmtVertexList(buf: []u8, points: []const usize, w_arg: usize, h_arg: usize) []u8 {
+    if (points.len == 0) return std.fmt.bufPrint(buf, "none", .{}) catch unreachable;
+    var off: usize = 0;
+    for (points, 0..) |p, k| {
+        if (k != 0) {
+            buf[off] = ',';
+            off += 1;
+            buf[off] = ' ';
+            off += 1;
+        }
+        const v = vertex_from_cell(buf[off..], p, w_arg, h_arg);
+        off += v.len;
+    }
+    return buf[0..off];
+}
+
+/// One artefact load + log setup + dispatch. Shared by main (explicit path
+/// or shorthand) and deferred mode (boardsize-triggered).
+fn loadAndDispatch(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log_dir: ?[]const u8) !void {
+    var dec = artifact.load(io, std.Io.Dir.cwd(), path, gpa) catch |err| {
+        std.debug.print("weizigo-oracle: cannot load artifact '{s}': {t}\n" ++
+            "  hint: when launching from a GUI, pass an ABSOLUTE path to the .wzo file\n", .{ path, err });
+        return err;
+    };
+    defer dec.deinit();
+    std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side)\n", .{
+        path, dec.header.board_w, dec.header.board_h, dec.header.legal_count,
+    });
+
+    const artifact_dir = std.fs.path.dirname(path) orelse ".";
+    const log_dir = opt_log_dir orelse try std.fmt.allocPrint(gpa, "{s}/../log", .{artifact_dir});
+    const dir = std.Io.Dir.cwd();
+    const log_file: ?std.Io.File = blk: {
+        dir.createDirPath(io, log_dir) catch break :blk null;
+        const log_path = try std.fmt.allocPrint(gpa, "{s}/weizigo-{d}.log", .{ log_dir, unix_seconds() });
+        const f = dir.createFile(io, log_path, .{}) catch break :blk null;
+        std.debug.print("weizigo-oracle: transcript -> {s}\n", .{log_path});
+        break :blk f;
+    };
+    const log = LogSink{ .io = io, .file = log_file };
+    log.line("# weizigo-oracle session, artifact {s} ({d}x{d}), unix time {d}", .{
+        path, dec.header.board_w, dec.header.board_h, unix_seconds(),
+    });
+
+    const key = @as(usize, dec.header.board_w) * 100 + dec.header.board_h;
+    switch (key) {
+        202 => try runSession(2, 2, gpa, &dec, &log, &[_]u8{}),
+        302 => try runSession(3, 2, gpa, &dec, &log, &[_]u8{}),
+        303 => try runSession(3, 3, gpa, &dec, &log, &[_]u8{}),
+        403 => try runSession(4, 3, gpa, &dec, &log, &[_]u8{}),
+        404 => try runSession(4, 4, gpa, &dec, &log, &[_]u8{}),
+        603 => try runSession(6, 3, gpa, &dec, &log, &[_]u8{}),
+        505 => try runSession(5, 5, gpa, &dec, &log, &[_]u8{}),
+        else => {
+            std.debug.print("unsupported artifact board {d}x{d}\n", .{ dec.header.board_w, dec.header.board_h });
+            return error.UnsupportedBoard;
+        },
+    }
+}
+
 // ---- session transcript log ---------------------------------------------------
 
 /// Line-flushed transcript of the whole session (commands, responses, oracle
@@ -205,10 +312,11 @@ const KNOWN_COMMANDS = [_][]const u8{
     "protocol_version", "name",        "version",  "known_command", "list_commands",
     "boardsize",        "rectangular_boardsize",    "clear_board",   "komi",
     "play",             "genmove",     "undo",     "showboard",     "final_score",
+    "weizigo_settled",  "weizigo_estimate", "weizigo_score",
     "quit",
 };
 
-fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *const artifact.Decoded, log: *const LogSink) !void {
+fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *const artifact.Decoded, log: *const LogSink, pre: []const u8) !void {
     const S = Session(w, h);
     var s = S{ .d = dec };
 
@@ -223,11 +331,21 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
     var out: std.ArrayList(u8) = .empty;
     defer out.deinit(gpa);
     var vbuf: [8]u8 = undefined;
+    var sbuf: [4096]u8 = undefined;
+
+    var pre_pos: usize = 0;
 
     while (true) {
-        const got = stdin.readStreaming(io, &.{&in_buf}) catch 0;
-        if (got == 0) break; // EOF
-        for (in_buf[0..got]) |ch| {
+        const buf: []const u8 = if (pre_pos < pre.len) blk: {
+            const slice = pre[pre_pos..];
+            pre_pos = pre.len;
+            break :blk slice;
+        } else blk: {
+            const got = stdin.readStreaming(io, &.{&in_buf}) catch 0;
+            if (got == 0) break; // EOF
+            break :blk in_buf[0..got];
+        };
+        for (buf) |ch| {
             if (ch != '\n') {
                 try line.append(gpa, ch);
                 continue;
@@ -322,22 +440,38 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 const side: i8 = if (colort.len > 0 and (colort[0] == 'b' or colort[0] == 'B')) 1 else -1;
                 if (s.passes >= 2) {
                     reply = "pass";
+                    std.debug.print("oracle: {s} -> pass  (two consecutive passes)\n", .{colort});
+                    log.line("# oracle {s} -> pass  (two consecutive passes)", .{colort});
                 } else {
                     const stored = s.v0(&s.pos, side);
-                    const fl = s.flags0(&s.pos, side);
-                    const c = s.choose(side);
-                    s.applyMove(side, c.cell) catch {};
-                    reply = if (c.cell) |cell| vertex_from_cell(&vbuf, cell, w, h) else "pass";
-                    std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s} dtt={d}\n", .{
-                        colort,                reply,                       c.value, stored,
-                        if (c.value != stored) " (HISTORY-DIVERGED)" else "",
-                        if (fl & 1 != 0) " KO_SENSITIVE" else "",         c.dtt,
-                    });
-                    log.line("# oracle {s} -> {s}  child-value={d} stored-v0={d}{s}{s} dtt={d}", .{
-                        colort,                reply,                       c.value, stored,
-                        if (c.value != stored) " (HISTORY-DIVERGED)" else "",
-                        if (fl & 1 != 0) " KO_SENSITIVE" else "",         c.dtt,
-                    });
+                    const undef = stored == UNDEF; // unfilled slot (2-ko+ parallel artifact)
+                    // Resign when hopeless: stored value worse than half the board area.
+                    // Scores are Black-positive; Black wants high, White wants low.
+                    // Never resign on the UNDEF sentinel — it is not a real score.
+                    const half_area: i8 = @intCast(w * h / 2);
+                    if (!undef and ((side > 0 and stored < -half_area) or (side < 0 and stored > half_area))) {
+                        reply = "resign";
+                        std.debug.print("oracle: {s} -> resign  stored-v0={d} (worse than ±{d})\n", .{ colort, stored, half_area });
+                        log.line("# oracle {s} -> resign  stored-v0={d} (worse than ±{d})", .{ colort, stored, half_area });
+                    } else {
+                        const fl = s.flags0(&s.pos, side);
+                        const c = s.choose(side);
+                        s.applyMove(side, c.cell) catch {};
+                        reply = if (c.cell) |cell| vertex_from_cell(&vbuf, cell, w, h) else "pass";
+                        const diverged = !undef and c.value != stored;
+                        std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s} dtt={d}\n", .{
+                            colort,                reply,                       c.value, stored,
+                            if (undef) " (UNDEF slot)" else "",
+                            if (diverged) " (HISTORY-DIVERGED)" else "",
+                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         c.dtt,
+                        });
+                        log.line("# oracle {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s} dtt={d}", .{
+                            colort,                reply,                       c.value, stored,
+                            if (undef) " (UNDEF slot)" else "",
+                            if (diverged) " (HISTORY-DIVERGED)" else "",
+                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         c.dtt,
+                        });
+                    }
                 }
             } else if (std.mem.eql(u8, first, "undo")) {
                 ok = false;
@@ -371,6 +505,59 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     std.fmt.bufPrint(&rbuf, "W+{d}", .{-sc}) catch unreachable
                 else
                     "0";
+                const report = S.Score.make_report(&s.pos);
+                if (!report.definitive) {
+                    std.debug.print("oracle final_score: provisional (dame {d}, contested chains {d}, dead stones counted as alive)\n", .{
+                        report.dame.count, report.dead.contested,
+                    });
+                    log.line("# oracle final_score: provisional (dame {d}, contested chains {d}, dead stones counted as alive)", .{
+                        report.dame.count, report.dead.contested,
+                    });
+                }
+            } else if (std.mem.eql(u8, first, "weizigo_settled")) {
+                reply = if (S.Score.is_definitive(&s.pos)) "yes" else "no";
+            } else if (std.mem.eql(u8, first, "weizigo_estimate")) {
+                const report = S.Score.make_report(&s.pos);
+                const area_s = fmtAreaCounts(&sbuf, report.area, report.dame.count, S.n);
+                const terr_s = fmtTerritory(sbuf[area_s.len..], report.territory);
+                const dame_s = fmtDame(sbuf[area_s.len + terr_s.len ..], report.dame.count);
+                const dead_s = fmtDead(sbuf[area_s.len + terr_s.len + dame_s.len ..], report.dead);
+                const status = if (report.definitive) "definitive" else "provisional";
+                reply = std.fmt.bufPrint(&rbuf, "{s}, {s}, {s}, {s}, {s}", .{
+                    area_s, terr_s, dame_s, dead_s, status,
+                }) catch unreachable;
+            } else if (std.mem.eql(u8, first, "weizigo_score")) {
+                const report = S.Score.make_report(&s.pos);
+                const status = if (report.definitive) "definitive" else "provisional";
+                var off: usize = 0;
+                const area_s = fmtAreaCounts(sbuf[off..], report.area, report.dame.count, S.n);
+                off += area_s.len;
+                sbuf[off] = '\n';
+                off += 1;
+                const terr_s = fmtTerritory(sbuf[off..], report.territory);
+                off += terr_s.len;
+                sbuf[off] = '\n';
+                off += 1;
+                const dame_s = fmtDame(sbuf[off..], report.dame.count);
+                off += dame_s.len;
+                sbuf[off] = '\n';
+                off += 1;
+                const dead_s = fmtDead(sbuf[off..], report.dead);
+                off += dead_s.len;
+                sbuf[off] = '\n';
+                off += 1;
+                const dame_points = fmtVertexList(sbuf[off..], report.dame.points[0..report.dame.count], w, h);
+                off += dame_points.len;
+                off += (std.fmt.bufPrint(sbuf[off..], "\nDead stones: B: ", .{}) catch unreachable).len;
+                const db_list = fmtVertexList(sbuf[off..], report.dead.dead_black[0..report.dead.dead_black_count], w, h);
+                off += db_list.len;
+                off += (std.fmt.bufPrint(sbuf[off..], "; W: ", .{}) catch unreachable).len;
+                const dw_list = fmtVertexList(sbuf[off..], report.dead.dead_white[0..report.dead.dead_white_count], w, h);
+                off += dw_list.len;
+                off += (std.fmt.bufPrint(sbuf[off..], "\nContested chains: {d}\nStatus: {s}", .{
+                    report.dead.contested, status,
+                }) catch unreachable).len;
+                reply = sbuf[0..off];
             } else if (std.mem.eql(u8, first, "quit")) {
                 quit = true;
             } else {
@@ -400,30 +587,26 @@ pub fn main(init: std.process.Init) !void {
     const gpa = std.heap.page_allocator;
     var args = std.process.Args.Iterator.init(init.minimal.args);
     _ = args.next(); // argv0
-    const path = args.next() orelse {
-        std.debug.print("usage: gtp <oracle-artifact.wzo>\n", .{});
-        return error.MissingArtifactPath;
-    };
-
+    const arg1 = args.next();
     const io = init.io;
-    var dec = artifact.load(io, std.Io.Dir.cwd(), path, gpa) catch |err| {
-        // GUIs (Sabaki/gogui) launch engines with THEIR working directory, so
-        // a relative artifact path usually fails there — say so loudly on
-        // stderr (the GUI console) instead of dying with a bare error code.
-        std.debug.print("weizigo-oracle: cannot load artifact '{s}': {t}\n" ++
-            "  hint: when launching from a GUI, pass an ABSOLUTE path to the .wzo file\n", .{ path, err });
-        return err;
-    };
-    defer dec.deinit();
-    std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side)\n", .{
-        path, dec.header.board_w, dec.header.board_h, dec.header.legal_count,
-    });
 
-    // session transcript: optional 2nd argument = log directory; default is
-    // log/ beside the artifact's parent directory (<repo>/log for a
-    // <repo>/data/*.wzo artifact). Open failure disables logging, not play.
-    const artifact_dir = std.fs.path.dirname(path) orelse ".";
-    const log_dir = args.next() orelse try std.fmt.allocPrint(gpa, "{s}/../log", .{artifact_dir});
+    if (arg1) |a| {
+        // Board-size shorthand "NxN" or "NxM" → construct artifact path
+        if (parseBoardSize(a)) |bs| {
+            const path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}.wzo", .{ bs[0], bs[1] });
+            return loadAndDispatch(io, gpa, path, args.next());
+        }
+        // Explicit artifact path (backward compatible)
+        return loadAndDispatch(io, gpa, a, args.next());
+    }
+
+    // No argument: deferred mode — wait for boardsize GTP command
+    try runDeferred(io, gpa, args.next());
+}
+
+/// GTP loop that starts without an artifact; loads it when boardsize arrives.
+fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8) !void {
+    const log_dir = opt_log_dir orelse "log";
     const dir = std.Io.Dir.cwd();
     const log_file: ?std.Io.File = blk: {
         dir.createDirPath(io, log_dir) catch break :blk null;
@@ -433,23 +616,138 @@ pub fn main(init: std.process.Init) !void {
         break :blk f;
     };
     const log = LogSink{ .io = io, .file = log_file };
-    log.line("# weizigo-oracle session, artifact {s} ({d}x{d}), unix time {d}", .{
-        path, dec.header.board_w, dec.header.board_h, unix_seconds(),
-    });
 
-    const key = @as(usize, dec.header.board_w) * 100 + dec.header.board_h;
-    switch (key) {
-        202 => try runSession(2, 2, gpa, &dec, &log),
-        302 => try runSession(3, 2, gpa, &dec, &log),
-        303 => try runSession(3, 3, gpa, &dec, &log),
-        403 => try runSession(4, 3, gpa, &dec, &log),
-        404 => try runSession(4, 4, gpa, &dec, &log),
-        603 => try runSession(6, 3, gpa, &dec, &log),
-        505 => try runSession(5, 5, gpa, &dec, &log),
-        else => {
-            std.debug.print("unsupported artifact board {d}x{d}\n", .{ dec.header.board_w, dec.header.board_h });
-            return error.UnsupportedBoard;
-        },
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    const tio = threaded.io();
+    const stdin = std.Io.File.stdin();
+    const stdout = std.Io.File.stdout();
+
+    var in_buf: [4096]u8 = undefined;
+    var line: std.ArrayList(u8) = .empty;
+    defer line.deinit(gpa);
+    var out: std.ArrayList(u8) = .empty;
+    defer out.deinit(gpa);
+
+    std.debug.print("weizigo-oracle: deferred mode — waiting for boardsize…\n", .{});
+
+    while (true) {
+        const got = stdin.readStreaming(tio, &.{&in_buf}) catch 0;
+        if (got == 0) break;
+        var i: usize = 0;
+        while (i < got) : (i += 1) {
+            const ch = in_buf[i];
+            if (ch != '\n') {
+                try line.append(gpa, ch);
+                continue;
+            }
+            log.line("< {s}", .{std.mem.trim(u8, line.items, " \t\r")});
+            var tokens = std.mem.tokenizeAny(u8, line.items, " \t\r");
+            line.clearRetainingCapacity();
+            var first = tokens.next() orelse continue;
+            var id: []const u8 = "";
+            if (first.len > 0 and std.ascii.isDigit(first[0])) {
+                id = first;
+                first = tokens.next() orelse continue;
+            }
+            out.clearRetainingCapacity();
+            var quit = false;
+            var ok = true;
+            var reply: []const u8 = "";
+            var rbuf: [512]u8 = undefined;
+
+            if (std.mem.eql(u8, first, "protocol_version")) {
+                reply = "2";
+            } else if (std.mem.eql(u8, first, "name")) {
+                reply = "weizigo-oracle";
+            } else if (std.mem.eql(u8, first, "version")) {
+                reply = "deferred";
+            } else if (std.mem.eql(u8, first, "known_command")) {
+                const q = tokens.next() orelse "";
+                reply = "false";
+                for (KNOWN_COMMANDS) |c| {
+                    if (std.mem.eql(u8, c, q)) reply = "true";
+                }
+            } else if (std.mem.eql(u8, first, "list_commands")) {
+                var lb: [256]u8 = undefined;
+                var ll: usize = 0;
+                for (KNOWN_COMMANDS, 0..) |c, k| {
+                    if (k != 0) {
+                        lb[ll] = '\n';
+                        ll += 1;
+                    }
+                    @memcpy(lb[ll .. ll + c.len], c);
+                    ll += c.len;
+                }
+                @memcpy(rbuf[0..ll], lb[0..ll]);
+                reply = rbuf[0..ll];
+            } else if (std.mem.eql(u8, first, "boardsize") or std.mem.eql(u8, first, "rectangular_boardsize")) {
+                const q = tokens.next() orelse "";
+                const want_w = std.fmt.parseInt(usize, q, 10) catch 0;
+                const q2 = tokens.next();
+                const want_h = if (q2) |s2| (std.fmt.parseInt(usize, s2, 10) catch 0) else want_w;
+                if (want_w == 0 or want_h == 0) {
+                    ok = false;
+                    reply = "unacceptable size";
+                } else {
+                    const artifact_path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}.wzo", .{ want_w, want_h });
+                    var load_result = artifact.load(io, std.Io.Dir.cwd(), artifact_path, gpa);
+                    if (load_result) |*dec| {
+                        defer dec.deinit();
+                        std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side)\n", .{
+                            artifact_path, dec.header.board_w, dec.header.board_h, dec.header.legal_count,
+                        });
+                        log.line("# weizigo-oracle session, artifact {s} ({d}x{d}), unix time {d}", .{
+                            artifact_path, dec.header.board_w, dec.header.board_h, unix_seconds(),
+                        });
+
+                        // Send success for boardsize before handing off
+                        try out.appendSlice(gpa, "=");
+                        try out.appendSlice(gpa, id);
+                        try out.appendSlice(gpa, "\n\n");
+                        log.line("> =", .{});
+                        try stdout.writeStreamingAll(tio, out.items);
+
+                        // Feed any leftover bytes from this read into runSession
+                        const remaining = in_buf[i + 1 .. got];
+
+                        const key = @as(usize, dec.header.board_w) * 100 + dec.header.board_h;
+                        switch (key) {
+                            202 => try runSession(2, 2, gpa, dec, &log, remaining),
+                            302 => try runSession(3, 2, gpa, dec, &log, remaining),
+                            303 => try runSession(3, 3, gpa, dec, &log, remaining),
+                            403 => try runSession(4, 3, gpa, dec, &log, remaining),
+                            404 => try runSession(4, 4, gpa, dec, &log, remaining),
+                            603 => try runSession(6, 3, gpa, dec, &log, remaining),
+                            505 => try runSession(5, 5, gpa, dec, &log, remaining),
+                            else => {
+                                std.debug.print("unsupported artifact board {d}x{d}\n", .{ dec.header.board_w, dec.header.board_h });
+                                return error.UnsupportedBoard;
+                            },
+                        }
+                        return; // runSession returned (quit)
+                    } else |_| {
+                        ok = false;
+                        reply = "unacceptable size";
+                    }
+                }
+            } else if (std.mem.eql(u8, first, "quit")) {
+                quit = true;
+            } else {
+                ok = false;
+                reply = "unknown command";
+            }
+
+            try out.appendSlice(gpa, if (ok) "=" else "?");
+            try out.appendSlice(gpa, id);
+            if (reply.len > 0) {
+                try out.appendSlice(gpa, " ");
+                try out.appendSlice(gpa, std.mem.trimEnd(u8, reply, "\n"));
+            }
+            try out.appendSlice(gpa, "\n\n");
+            log.line("> {s}", .{std.mem.trim(u8, out.items, "\n")});
+            try stdout.writeStreamingAll(tio, out.items);
+            if (quit) return;
+        }
     }
 }
 
