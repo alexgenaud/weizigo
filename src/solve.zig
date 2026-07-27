@@ -224,7 +224,7 @@ pub fn solve(
     // the opponent capture the whole group and reopen the board (see
     // docs/decisions/0006). The opponent cannot fill these eyes either (suicide),
     // so a Benson-alive group's eyes are immortal.
-    const own_alive = terminal.pass_alive(pos, to_move);
+    const own_alive = terminal.benson_alive(pos, to_move);
 
     // stone moves
     for (0..25) |p| {
@@ -389,7 +389,7 @@ var tt_history: superko.History = .{};
 
 // Black is unconditionally alive (two real eyes at idx 6 and 18). A single dead
 // white stone sits at idx 8 with one liberty (idx 3). This is NOT settled (the
-// white stone is not pass-alive), so the search must actually play: it captures
+// white stone is not Benson-alive), so the search must actually play: it captures
 // the dead stone and reaches Black+25. The eye-prune is what keeps this bounded
 // -- without it the DFS would fill black's eyes, let white capture the whole
 // group, and reopen the board into an intractable near-empty search.
@@ -429,7 +429,7 @@ test "TT changes nothing vs the no-TT search, and colour symmetry holds" {
 test "eye-prune: a Benson-alive group's own eyes are not playable moves" {
     // idx 6 and 18 are true eyes of the alive black group; the mover must not
     // fill them (that is the move that would eventually reopen the board).
-    const alive = terminal.pass_alive(&dead_white, 1);
+    const alive = terminal.benson_alive(&dead_white, 1);
     try expect(is_own_eye(&dead_white, 6, 1, &alive));
     try expect(is_own_eye(&dead_white, 18, 1, &alive));
     // idx 3 borders the dead white stone, so it is NOT a black eye -> playable

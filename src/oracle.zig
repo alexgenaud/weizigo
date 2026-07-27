@@ -26,7 +26,7 @@
 // recreating any position seen since this start). This matches solve.zig's
 // solve_root and is well-defined for every legal position. For positions
 // arising mid-game with additional ko bans in force the true value can differ;
-// that gap is the GHI residue, MEASURED here (saw_ban fraction), not assumed.
+// that gap is the GHI ko-sensitive region, MEASURED here (saw_ban fraction), not assumed.
 //
 // ENGINE — forward search-to-terminal, the same validated semantics as
 // solve.zig (double-pass/settled terminals, area scoring, positional superko,
@@ -221,7 +221,7 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
             var best: i8 = if (maximizing) -127 else 127;
             var ko_ref: usize = KO_CLEAN;
 
-            const own_alive = R.pass_alive(pos, to_move); // ADR-0006 eye-prune
+            const own_alive = R.benson_alive(pos, to_move); // ADR-0006 eye-prune
             for (0..n) |p| {
                 if (pos[p] != 0) continue;
                 if (R.is_own_eye(pos, p, to_move, &own_alive)) continue;

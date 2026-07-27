@@ -21,10 +21,10 @@
 //   area_score  - Chinese / area score of a snapshot (Tromp-Taylor style):
 //                 black_area - white_area. Assumes on-board stones are alive
 //                 (dead stones are removed by prior play). Pure function.
-//   pass_alive  - Benson's algorithm: which stones of `color` are
+//   benson_alive  - Benson's algorithm: which stones of `color` are
 //                 UNCONDITIONALLY alive (cannot be captured even if the
 //                 defender always passes). Pure function.
-//   is_settled  - conservative terminal test: all stones pass-alive and every
+//   is_settled  - conservative terminal test: all stones Benson-alive and every
 //                 empty region is one colour's eye (no dame, no dead stones).
 //
 // Input boards use sign for colour (>0 black, <0 white, 0 empty); army-flag
@@ -108,8 +108,8 @@ pub fn area_score(board: *const [25]i8) i8 {
 }
 
 /// Benson's algorithm: returns, per intersection, whether the stone of `color`
-/// there is unconditionally alive (pass-alive). Non-`color` points are false.
-pub fn pass_alive(board: *const [25]i8, color: i8) [25]bool {
+/// there is unconditionally alive (Benson-alive). Non-`color` points are false.
+pub fn benson_alive(board: *const [25]i8, color: i8) [25]bool {
     var alive = [_]bool{false} ** 25;
 
     // 1. label friendly chains
@@ -252,7 +252,7 @@ pub fn pass_alive(board: *const [25]i8, color: i8) [25]bool {
 /// Unconditional (Benson) terminal test: the position is *decided* — its area
 /// score cannot change no matter how the opponent plays, even against a passing
 /// defender. Requires:
-///   1. every stone is pass-alive for its colour, AND
+///   1. every stone is Benson-alive for its colour, AND
 ///   2. every empty region touches exactly one colour (no dame), AND
 ///   3. every empty point has a stone neighbour (it is eye-space of the
 ///      surrounding immortal group, not open territory).
@@ -265,8 +265,8 @@ pub fn pass_alive(board: *const [25]i8, color: i8) [25]bool {
 /// play, the search resolves it via its double-pass terminal instead.
 /// See docs/research/terminal-territory-bug.md.
 pub fn is_settled(board: *const [25]i8) bool {
-    const balive = pass_alive(board, 1);
-    const walive = pass_alive(board, -1);
+    const balive = benson_alive(board, 1);
+    const walive = benson_alive(board, -1);
     for (0..25) |p| {
         if (board[p] > 0 and !balive[p]) return false;
         if (board[p] < 0 and !walive[p]) return false;
@@ -341,7 +341,7 @@ test "area score: split board and dame" {
     try expect(area_score(&wall) == 25);
 }
 
-test "benson: two-eye group is pass-alive" {
+test "benson: two-eye group is Benson-alive" {
     const g = [_]i8{
         1, 1, 1, 1, 1,
         1, 0, 1, 0, 1,
@@ -349,7 +349,7 @@ test "benson: two-eye group is pass-alive" {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
     };
-    const alive = pass_alive(&g, 1);
+    const alive = benson_alive(&g, 1);
     for (0..15) |p| {
         if (g[p] == 1) try expect(alive[p]);
     }
@@ -363,12 +363,12 @@ test "benson: one-eye group and lone stone are not alive" {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
     };
-    const a = pass_alive(&one_eye, 1);
+    const a = benson_alive(&one_eye, 1);
     for (0..25) |p| try expect(!a[p]); // single eye -> capturable -> not alive
 
     var lone = [_]i8{0} ** 25;
     lone[12] = 1;
-    const b = pass_alive(&lone, 1);
+    const b = benson_alive(&lone, 1);
     for (0..25) |p| try expect(!b[p]);
 }
 
@@ -421,7 +421,7 @@ test "benson: works for white too (colour symmetry)" {
         0, 0, 0, 0, 0,
         0, 0, 0, 0, 0,
     };
-    const alive = pass_alive(&g, -1);
+    const alive = benson_alive(&g, -1);
     for (0..15) |p| {
         if (g[p] == W) try expect(alive[p]);
     }
@@ -438,7 +438,7 @@ test "scoring/benson ignore army-flag magnitudes" {
         0, 0, 0, 0, 0,
     };
     try expect(area_score(&g) == 25);
-    const alive = pass_alive(&g, 1);
+    const alive = benson_alive(&g, 1);
     for (0..15) |p| {
         if (g[p] > 0) try expect(alive[p]);
     }
@@ -454,5 +454,5 @@ test "not settled: dead stone / contested" {
         0, 0, 0, 0, W,
         0, 0, 0, 0, 0,
     };
-    try expect(!is_settled(&g)); // the white stone is not pass-alive
+    try expect(!is_settled(&g)); // the white stone is not Benson-alive
 }

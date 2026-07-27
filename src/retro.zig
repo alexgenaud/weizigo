@@ -55,14 +55,14 @@
 //   - dihedral transforms never change value or sign.
 //
 // SCHEMA (ADR-0009 decision 4), columnar per (position, side):
-//   value: i8 (UNDEF = illegal slot / unfinished residue)
+//   value: i8 (UNDEF = illegal slot / unfinished ko-sensitive region)
 //   dtt:   u8 (fastest optimal resolution, saturating; DTT_FAR = unknown/far)
 //   flags: u8 (bit0 KO_SENSITIVE, bit1 FROM_FORWARD)
 //
 // Standalone: rules/colex/enumerate/oracle only; per-module `zig test` works.
 // `zig run -O ReleaseFast src/retro.zig` = build + full battery at 2x2, 3x2
 // (exhaustive ground truth vs pure no-memo forward) and 3x3 (anchors,
-// exhaustive symmetry, spot checks, residue stats). Results:
+// exhaustive symmetry, spot checks, ko-sensitive region stats). Results:
 // docs/research/retrograde-3x3.md.
 
 const std = @import("std");
@@ -120,17 +120,17 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             dw: []u8,
             db1: []u8, // dtt of the V1 node (working column for db/dw)
             dw1: []u8,
-            // kill-X% rule (experimental, ABANDONED as a residue lever): an
+            // kill-X% rule (experimental, ABANDONED as a ko-sensitive region lever): an
             // edge whose move captures MORE than kill_pct% of the board's
             // points is treated as terminal, scored by area at the child. 0 =
             // off (pure PSK). Set before converge().
             // CORRECTION (measured, RETRO_KILLCENSUS): an earlier comment here
             // claimed kill edges "contribute identically to L and H -> can only
-            // SHRINK the residue". That is FALSE. A kill edge does not merely
+            // SHRINK the ko-sensitive region". That is FALSE. A kill edge does not merely
             // ADD a history-free option; it REPLACES a move's continuation
             // (a sub-game with its own [L,H] bracket) with a frozen area score,
             // which shifts the L and H fixpoints by different amounts and can
-            // WIDEN a parent's bracket. Net effect on 4x4: residue GREW as the
+            // WIDEN a parent's bracket. Net effect on 4x4: ko-sensitive region GREW as the
             // threshold dropped (kill 0/50/40/30% -> 21.32/21.24/21.63/25.01%),
             // because lower thresholds rewrite far more mid-game positions.
             kill_pct: u8 = 0,
@@ -138,8 +138,8 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             sweeps: usize = 0,
             legal_count: u64 = 0,
             settled_count: u64 = 0,
-            residue_b: u64 = 0,
-            residue_w: u64 = 0,
+            ko_sensitive_b: u64 = 0,
+            ko_sensitive_w: u64 = 0,
 
             pub fn init(gpa: std.mem.Allocator) !Tables {
                 return .{
@@ -265,7 +265,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                     inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
                         const maximizing = comptime (side > 0);
                         var own_alive: [n]bool = undefined;
-                        if (apply_eye_prune) own_alive = R.pass_alive(&pos, side);
+                        if (apply_eye_prune) own_alive = R.benson_alive(&pos, side);
                         var have_move = false;
                         var m: i8 = undefined;
                         for (0..n) |p| {
@@ -336,8 +336,8 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// Certify: where L == H the value is history-free; elsewhere flag
         /// KO_SENSITIVE (value UNDEF until the finisher fills it).
         pub fn finalize(t: *Tables) void {
-            t.residue_b = 0;
-            t.residue_w = 0;
+            t.ko_sensitive_b = 0;
+            t.ko_sensitive_w = 0;
             for (0..total) |i| {
                 if (!t.legal[i]) continue;
                 if (t.settled[i]) {
@@ -349,13 +349,13 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                     t.vb[i] = t.lo.b0[i];
                 } else {
                     t.fb[i] = FLAG_KO_SENSITIVE;
-                    t.residue_b += 1;
+                    t.ko_sensitive_b += 1;
                 }
                 if (t.lo.w0[i] == t.hi.w0[i]) {
                     t.vw[i] = t.lo.w0[i];
                 } else {
                     t.fw[i] = FLAG_KO_SENSITIVE;
-                    t.residue_w += 1;
+                    t.ko_sensitive_w += 1;
                 }
             }
         }
@@ -436,7 +436,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// forward solve with [L,H] cutoffs at EVERY node and bracket-ordered
         /// edges. Same graph, terminals, eye-prune, superko and ko_ref
         /// discipline as O.solve; the brackets add history-free cuts inside
-        /// the residue, where certified-memo cuts cannot fire (Finding 6).
+        /// the ko-sensitive region, where certified-memo cuts cannot fire (Finding 6).
         pub fn ab_solve(
             t: *const Tables,
             ctx: *O.Ctx,
@@ -534,7 +534,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             const Edge = struct { child: Pos, order: i16, pass: bool };
             var edges: [n + 1]Edge = undefined;
             var ne: usize = 0;
-            const own_alive = R.pass_alive(pos, to_move); // ADR-0006 eye-prune
+            const own_alive = R.benson_alive(pos, to_move); // ADR-0006 eye-prune
             for (0..n) |p| {
                 if (pos[p] != 0) continue;
                 if (R.is_own_eye(pos, p, to_move, &own_alive)) continue;
@@ -632,7 +632,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// Exact fresh-start value of a root by NULL-WINDOW binary search
         /// over its own [L,H] bracket (MTD-style). A wide window makes
         /// bracket cutoffs impotent exactly where brackets are wide (the
-        /// deep-residue ko tangles — measured at 4x4: aspiration search
+        /// deep-ko-sensitive region ko tangles — measured at 4x4: aspiration search
         /// blew 20M+ nodes where null-window probes cut everywhere). Each
         /// probe asks "value >= mid?" with a zero-width window, halving the
         /// bracket; ~log2(H-L) probes pin the value. The per-root memo is
@@ -654,6 +654,230 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             return lo;
         }
 
+        // ── single-ko O(1) solver (B32) ───────────────────────────────────
+
+        /// Check if placing `colour` at `p` is a basic ko capture.
+        /// Returns the captured stone's cell if so, null otherwise.
+        fn isKoCapture(pos: *const Pos, p: usize, colour: i8) ?usize {
+            if (pos[p] != 0) return null;
+            const next = R.pos_from_move(pos, colour, p) catch return null;
+            // exactly 1 opponent stone captured
+            var opp_before: u8 = 0;
+            var captured_cell: ?usize = null;
+            for (0..n) |i| {
+                if (pos[i] == -colour) opp_before += 1;
+                if (pos[i] == -colour and next[i] == 0) captured_cell = i;
+            }
+            if (captured_cell == null) return null;
+            // the capturing stone has exactly 1 liberty
+            var nb: [4]usize = undefined;
+            const nc = R.neighbors(p, &nb);
+            var libs: u8 = 0;
+            for (nb[0..nc]) |q| {
+                if (next[q] == 0) libs += 1;
+            }
+            if (libs != 1) return null;
+            return captured_cell;
+        }
+
+        /// Count independent ko captures on the board using the
+        /// same union-find logic as ko_census.zig.
+        fn countKoClusters(pos: *const Pos) u8 {
+            var points: [2 * n]struct { cell: u8, cap: u8 } = undefined;
+            var np: u8 = 0;
+            for (0..n) |p| {
+                inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
+                    if (isKoCapture(pos, p, colour)) |cap| {
+                        if (np >= 2 * n) break;
+                        points[np] = .{ .cell = @intCast(p), .cap = @intCast(cap) };
+                        np += 1;
+                    }
+                }
+            }
+            if (np == 0) return 0;
+
+            // union-find on 1-neighborhood overlap
+            var masks: [2 * n]u32 = undefined;
+            for (0..np) |i| {
+                var mask: u32 = 0;
+                mask |= @as(u32, 1) << @as(u5, @intCast(points[i].cell));
+                mask |= @as(u32, 1) << @as(u5, @intCast(points[i].cap));
+                var nb: [4]usize = undefined;
+                const c1 = R.neighbors(points[i].cell, &nb);
+                for (nb[0..c1]) |q| mask |= @as(u32, 1) << @as(u5, @intCast(q));
+                const c2 = R.neighbors(points[i].cap, &nb);
+                for (nb[0..c2]) |q| mask |= @as(u32, 1) << @as(u5, @intCast(q));
+                masks[i] = mask;
+            }
+            var parent: [2 * n]u8 = undefined;
+            for (0..np) |i| parent[i] = @intCast(i);
+            for (0..np) |i| {
+                for (i + 1..np) |j| {
+                    if (masks[i] & masks[j] != 0) {
+                        var ri: u8 = @intCast(i);
+                        while (parent[ri] != ri) ri = parent[ri];
+                        var rj: u8 = @intCast(j);
+                        while (parent[rj] != rj) rj = parent[rj];
+                        if (ri != rj) parent[ri] = rj;
+                    }
+                }
+            }
+            var roots: u32 = 0;
+            for (0..np) |i| {
+                var r: u8 = @intCast(i);
+                while (parent[r] != r) r = parent[r];
+                roots |= @as(u32, 1) << @as(u5, @intCast(r));
+            }
+            return @popCount(roots);
+        }
+
+        /// Find the single ko-capture cell for `side` at `pos`.
+        /// Returns (capture_cell, pos_after_capture), or null if not
+        /// single-ko or no capture is available for `side`.
+        fn singleKoCapture(pos: *const Pos, side: i8) ?struct { cell: usize, after: Pos } {
+            var found: ?usize = null;
+            for (0..n) |p| {
+                if (isKoCapture(pos, p, side)) |_| {
+                    if (found != null) return null; // > 1 ko capture
+                    found = p;
+                }
+            }
+            const p = found orelse return null;
+            const after = R.pos_from_move(pos, side, p) catch return null;
+            return .{ .cell = p, .after = after };
+        }
+
+        /// Exact value of a single-ko fresh-start position (B32).
+        ///
+        /// Under PSK fresh-start, the ko is a ONE-SHOT capture: the root
+        /// position is always banned, so the recapture is permanently illegal.
+        /// The value is:
+        ///   V = opt( best_nonko_move_value,  value_after_ko_capture )
+        /// where opt = max for Black, min for White, and both values come
+        /// from the certified (L==H) table. The post-capture value is
+        /// computed with the recapture move excluded.
+        ///
+        /// Returns null when the position is NOT single-ko or a non-ko
+        /// move leads to an uncertified position (caller falls back to
+        /// full forward search).
+        pub fn solveSingleKo(t: *const Tables, pos: *const Pos, side: i8) ?i8 {
+            // Env-var kill-switch for correctness comparison.
+            if (std.c.getenv("RETRO_NOSINGLEKO") != null) return null;
+
+            // Must be exactly one independent ko cluster
+            if (countKoClusters(pos) != 1) return null;
+
+            // Find the ko capture
+            const kc = singleKoCapture(pos, side) orelse return null;
+
+            const idx: usize = @intCast(X.colex_from_pos(pos));
+            const cap_idx: usize = @intCast(X.colex_from_pos(&kc.after));
+            const maximizing = side > 0;
+            const opp_side = -side;
+
+            // ── V_other: best value from non-ko moves (including pass) ──
+            // For Black: max over child positions where opponent moves next
+            // For White: min over child positions where opponent moves next
+            var best_other: i8 = -127;
+            var any: bool = false;
+
+            // pass option
+            const pass_val = if (maximizing) t.lo.w1[idx] else t.hi.b1[idx];
+            const pass_cert = if (maximizing) (t.lo.w1[idx] == t.hi.w1[idx]) else (t.lo.b1[idx] == t.hi.b1[idx]);
+            if (pass_cert) {
+                best_other = pass_val;
+                any = true;
+            } else {
+                return null;
+            }
+
+            const own_alive = R.benson_alive(pos, side);
+            for (0..n) |p| {
+                if (pos[p] != 0) continue;
+                if (p == kc.cell) continue; // skip the ko capture
+                if (R.is_own_eye(pos, p, side, &own_alive)) continue;
+                const child = R.pos_from_move(pos, side, p) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (maximizing) {
+                    if (t.lo.w0[ci] == t.hi.w0[ci]) {
+                        if (!any or t.lo.w0[ci] > best_other) best_other = t.lo.w0[ci];
+                        any = true;
+                    } else {
+                        return null;
+                    }
+                } else {
+                    if (t.lo.b0[ci] == t.hi.b0[ci]) {
+                        if (!any or t.lo.b0[ci] < best_other) best_other = t.lo.b0[ci];
+                        any = true;
+                    } else {
+                        return null;
+                    }
+                }
+            }
+            if (!any) return null;
+            const v_other = best_other;
+
+            // ── V_after_capture: value from post-capture position,
+            //    with the ko recapture EXCLUDED (PSK bans it). ──
+            // The opponent moves next from pos_after_capture.
+            var best_cap: i8 = -127;
+            var any_cap: bool = false;
+            const opp_max = opp_side > 0;
+
+            // pass from post-capture position
+            const pass_cap_val = if (opp_max) t.lo.w1[cap_idx] else t.hi.b1[cap_idx];
+            const pass_cap_cert = if (opp_max) (t.lo.w1[cap_idx] == t.hi.w1[cap_idx]) else (t.lo.b1[cap_idx] == t.hi.b1[cap_idx]);
+            if (pass_cap_cert) {
+                best_cap = pass_cap_val;
+                any_cap = true;
+            } else {
+                return null;
+            }
+
+            // Find the ko recapture cell from post-capture (would recreate pos)
+            const recapture_cell: ?usize = blk: {
+                for (0..n) |p| {
+                    if (isKoCapture(&kc.after, p, opp_side)) |_| {
+                        const recaptured = R.pos_from_move(&kc.after, opp_side, p) catch continue;
+                        if (std.mem.eql(i8, &recaptured, pos)) break :blk p;
+                    }
+                }
+                break :blk null;
+            };
+
+            const own_alive2 = R.benson_alive(&kc.after, opp_side);
+            for (0..n) |p| {
+                if (kc.after[p] != 0) continue;
+                if (recapture_cell != null and p == recapture_cell.?) continue; // EXCLUDE recapture
+                if (R.is_own_eye(&kc.after, p, opp_side, &own_alive2)) continue;
+                const child = R.pos_from_move(&kc.after, opp_side, p) catch continue;
+                const ci: usize = @intCast(X.colex_from_pos(&child));
+                if (opp_max) {
+                    if (t.lo.w0[ci] == t.hi.w0[ci]) {
+                        if (!any_cap or t.lo.w0[ci] > best_cap) best_cap = t.lo.w0[ci];
+                        any_cap = true;
+                    } else {
+                        return null;
+                    }
+                } else {
+                    if (t.lo.b0[ci] == t.hi.b0[ci]) {
+                        if (!any_cap or t.lo.b0[ci] < best_cap) best_cap = t.lo.b0[ci];
+                        any_cap = true;
+                    } else {
+                        return null;
+                    }
+                }
+            }
+            if (!any_cap) return null;
+            const v_after_cap = best_cap;
+
+            // One-shot ko under PSK: V = opt(V_other, V_after_capture)
+            return if (maximizing)
+                @max(v_other, v_after_cap)
+            else
+                @min(v_other, v_after_cap);
+        }
+
         pub const FinishStats = struct {
             solved: u64 = 0, // orbit representatives actually solved
             filled: u64 = 0, // slots filled (incl. orbit propagation)
@@ -662,15 +886,16 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             max_nodes: u64 = 0,
             bracket_fail: u64 = 0, // finisher value outside [L, H] (want 0)
             orbit_clash: u64 = 0, // propagation disagreed with a filled slot (want 0)
+            single_ko: u64 = 0, // solved via single-ko O(1) shortcut (B32)
         };
 
-        /// Resolve the KO_SENSITIVE residue: forward fresh-start solve with
+        /// Resolve the KO_SENSITIVE ko-sensitive region: forward fresh-start solve with
         /// the memo PRE-SEEDED with every certified value (marked clean), so
         /// the search terminates at the certified frontier of the ko tangle.
         ///
         /// Each root gets a FRESH copy of the certified baseline: an interior
         /// fresh-start memo value is NOT valid under another root's history
-        /// (the ADR-0008 GHI residue) — carrying ordinary memo writes across
+        /// (the ADR-0008 GHI ko-sensitive region) — carrying ordinary memo writes across
         /// roots was measured ORDER-DEPENDENT (asymmetric tables) at 2x2.
         /// Only ONE representative per symmetry orbit is solved; the orbit is
         /// filled by the proven transforms (dihedral: same value; colour
@@ -690,7 +915,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// solved-or-skipped orbit reps; 0 = silent), layers deepest-first.
         /// `memo_writes` false = SOUND mode (Track A, ADR-0013): no cross-branch
         /// memo/bounds reuse — the `ko_ref >= d` GHI shortcut is disabled, so
-        /// residue values are trustworthy but the search loses the reuse
+        /// ko-sensitive values are trustworthy but the search loses the reuse
         /// accelerant (slower). true = the fast (unsound) legacy path.
         pub fn finishProgress(t: *Tables, gpa: std.mem.Allocator, budget: u64, bracketed: bool, progress_every: u64, memo_writes: bool, deps: bool) !FinishStats {
             var f = try Finisher.init(t, gpa, budget, bracketed, progress_every, memo_writes, deps);
@@ -703,10 +928,10 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             return f.st;
         }
 
-        /// The residue finisher as a resumable, layer-at-a-time engine so a
+        /// The ko-sensitive finisher as a resumable, layer-at-a-time engine so a
         /// driver can CHECKPOINT between layers (hours of 4x4+ work must
         /// survive interruption). Layers are processed deepest-first by the
-        /// callers: residue near the terminal wall is cheap (certified
+        /// callers: ko-sensitive region near the terminal wall is cheap (certified
         /// frontier adjacent); opening roots are the expensive/hopeless tail.
         /// Order-independent by construction: every root starts from the same
         /// certified-only baseline (journal revert; the Finding-2 discipline)
@@ -856,13 +1081,16 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 if (f.ctx.dep_map) |m| m.clearRetainingCapacity();
                 // NOTE: a stone-count shrink of the dependency set (dep_layer_max
                 // = layer) was tried and PROVEN UNSOUND (RETRO_DEPSVAL diverged):
-                // deeper residue positions are re-searched, not leaves, so real
+                // deeper ko-sensitive region positions are re-searched, not leaves, so real
                 // ancestors are NOT bounded by the root's stone count. Left at
                 // 255 (no shrink) -- the full-subtree dependency set is exact.
                 f.ctx.dep_layer_max = 255;
                 f.ctx.nodes = 0;
                 f.ctx.budget = f.budget;
-                const solved: error{Budget}!i8 = if (f.bracketed)
+                const solved: error{Budget}!i8 = if (solveSingleKo(t, pos, side)) |v| blk: {
+                    f.st.single_ko += 1;
+                    break :blk v;
+                } else if (f.bracketed)
                     ab_value_from_root(t, &f.ctx, pos, side, f.hist)
                 else
                     O.value_from_root(&f.ctx, pos, side, f.hist);
@@ -1028,6 +1256,425 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             return out;
         }
 
+        // ── parallel finisher (B31) ────────────────────────────────────────
+
+        /// One unit of work for a parallel-finisher worker thread.
+        pub const WorkItem = struct { idx: u32, side: i8 };
+
+        /// Per-thread output: freshly allocated columns destined for merge.
+        pub const ThreadOut = struct {
+            vb: []i8,
+            vw: []i8,
+            fb: []u8,
+            fw: []u8,
+            st: ParallelStats = .{},
+
+            pub fn deinit(o: *ThreadOut, alloc: std.mem.Allocator) void {
+                alloc.free(o.vb);
+                alloc.free(o.vw);
+                alloc.free(o.fb);
+                alloc.free(o.fw);
+            }
+        };
+
+        pub const ParallelStats = struct {
+            solved: u64 = 0,
+            budget_skipped: u64 = 0,
+            nodes: u64 = 0,
+            max_nodes: u64 = 0,
+            bracket_fail: u64 = 0,
+            filled: u64 = 0,
+            orbit_clash: u64 = 0,
+            single_ko: u64 = 0,
+        };
+
+        /// Shared read-only state visible to every worker.
+        pub const SharedRO = struct {
+            t: *const Tables,
+            budget: u64,
+            bracketed: bool,
+            memo_writes: bool,
+            deps: bool,
+            progress_every: u64,
+            quit: std.atomic.Value(bool) = std.atomic.Value(bool).init(false),
+        };
+
+        /// One worker thread: solves a contiguous slice of work items.
+        fn worker(
+            shared: *SharedRO,
+            work: []WorkItem,
+            thread_id: u8,
+            out: *ThreadOut,
+            gpa: std.mem.Allocator,
+        ) void {
+            const t = shared.t;
+
+            // ── allocate per-thread state ──
+            var ctx = O.Ctx{
+                .vb = gpa.alloc(i8, total) catch @panic("OOM: ctx.vb"),
+                .vw = gpa.alloc(i8, total) catch @panic("OOM: ctx.vw"),
+                .cb = gpa.alloc(bool, total) catch @panic("OOM: ctx.cb"),
+                .cw = gpa.alloc(bool, total) catch @panic("OOM: ctx.cw"),
+                .memo = true,
+                .memo_writes = shared.memo_writes,
+                .deps = shared.deps,
+            };
+            defer {
+                gpa.free(ctx.vb);
+                gpa.free(ctx.vw);
+                gpa.free(ctx.cb);
+                gpa.free(ctx.cw);
+            }
+            ctx.lbb = gpa.alloc(i8, total) catch @panic("OOM: ctx.lbb");
+            ctx.ubb = gpa.alloc(i8, total) catch @panic("OOM: ctx.ubb");
+            ctx.lbw = gpa.alloc(i8, total) catch @panic("OOM: ctx.lbw");
+            ctx.ubw = gpa.alloc(i8, total) catch @panic("OOM: ctx.ubw");
+            defer {
+                gpa.free(ctx.lbb.?);
+                gpa.free(ctx.ubb.?);
+                gpa.free(ctx.lbw.?);
+                gpa.free(ctx.ubw.?);
+            }
+            @memset(ctx.lbb.?, -127);
+            @memset(ctx.ubb.?, 127);
+            @memset(ctx.lbw.?, -127);
+            @memset(ctx.ubw.?, 127);
+
+            // certified-only baseline: copy values from t, exclude finished/ko-sensitive
+            // (same logic as Finisher.init base_* construction)
+            for (0..total) |i| {
+                ctx.vb[i] = if (t.legal[i] and t.vb[i] != UNDEF and t.fb[i] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0) t.vb[i] else UNDEF;
+                ctx.vw[i] = if (t.legal[i] and t.vw[i] != UNDEF and t.fw[i] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0) t.vw[i] else UNDEF;
+                ctx.cb[i] = t.legal[i] and t.vb[i] != UNDEF and t.fb[i] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0;
+                ctx.cw[i] = t.legal[i] and t.vw[i] != UNDEF and t.fw[i] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0;
+            }
+
+            var journal = std.ArrayList(u32).empty;
+            defer journal.deinit(gpa);
+            ctx.journal = &journal;
+            ctx.journal_gpa = gpa;
+
+            var dep_map: O.DepMap = undefined;
+            if (shared.deps) {
+                dep_map = O.DepMap.init(gpa);
+                defer dep_map.deinit();
+            }
+
+            var hist: O.History = .{};
+
+            const start_ms = nowMs();
+            var next_report: u64 = if (shared.progress_every != 0) shared.progress_every else std.math.maxInt(u64);
+
+            // Check both the global SIGINT flag and the programmatic quit.
+            for (work) |item| {
+                if (parallel_interrupt.load(.acquire) or shared.quit.load(.acquire)) {
+                    shared.quit.store(true, .release); // propagate to other workers
+                    break;
+                }
+
+                const i: usize = @intCast(item.idx);
+                var pos = X.pos_from_colex(i);
+
+                journal.clearRetainingCapacity();
+                if (shared.deps) {
+                    if (ctx.dep_map) |m| m.clearRetainingCapacity();
+                    ctx.dep_map = &dep_map;
+                }
+                ctx.dep_layer_max = 255;
+                ctx.nodes = 0;
+                ctx.budget = shared.budget;
+
+                const solved: error{Budget}!i8 = if (solveSingleKo(t, &pos, item.side)) |v| blk: {
+                    out.st.single_ko += 1;
+                    break :blk v;
+                } else if (shared.bracketed)
+                    ab_value_from_root(t, &ctx, &pos, item.side, &hist)
+                else
+                    O.value_from_root(&ctx, &pos, item.side, &hist);
+
+                // revert journal (exact-memo + bounds)
+                for (journal.items) |entry| {
+                    const ji: usize = @intCast(entry & 0x3FFF_FFFF);
+                    const white = entry & (1 << 31) != 0;
+                    if (entry & (1 << 30) != 0) {
+                        if (white) {
+                            ctx.lbw.?[ji] = -127;
+                            ctx.ubw.?[ji] = 127;
+                        } else {
+                            ctx.lbb.?[ji] = -127;
+                            ctx.ubb.?[ji] = 127;
+                        }
+                    } else if (white) {
+                        ctx.vw[ji] = if (t.legal[ji] and t.vw[ji] != UNDEF and t.fw[ji] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0) t.vw[ji] else UNDEF;
+                        ctx.cw[ji] = t.legal[ji] and t.vw[ji] != UNDEF and t.fw[ji] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0;
+                    } else {
+                        ctx.vb[ji] = if (t.legal[ji] and t.vb[ji] != UNDEF and t.fb[ji] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0) t.vb[ji] else UNDEF;
+                        ctx.cb[ji] = t.legal[ji] and t.vb[ji] != UNDEF and t.fb[ji] & (FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD) == 0;
+                    }
+                }
+
+                if (solved) |v| {
+                    out.st.solved += 1;
+                    out.st.nodes += ctx.nodes;
+                    if (ctx.nodes > out.st.max_nodes) out.st.max_nodes = ctx.nodes;
+
+                    // bracket validation
+                    const lo0 = if (item.side > 0) t.lo.b0[i] else t.lo.w0[i];
+                    const hi0 = if (item.side > 0) t.hi.b0[i] else t.hi.w0[i];
+                    if (v < lo0 or v > hi0) out.st.bracket_fail += 1;
+
+                    // orbit fill into per-thread output buffers
+                    inline for (0..E.num_syms) |k| {
+                        const tp = transformed(&pos, &E.sym_perms[k], 1);
+                        const ti: usize = @intCast(X.colex_from_pos(&tp));
+                        const ip = transformed(&pos, &E.sym_perms[k], -1);
+                        const ii: usize = @intCast(X.colex_from_pos(&ip));
+
+                        const same_v = if (item.side > 0) out.vb else out.vw;
+                        const same_f = if (item.side > 0) out.fb else out.fw;
+                        const swap_v = if (item.side > 0) out.vw else out.vb;
+                        const swap_f = if (item.side > 0) out.fw else out.fb;
+
+                        if (same_v[ti] == UNDEF) {
+                            same_v[ti] = v;
+                            out.st.filled += 1;
+                        } else if (same_v[ti] != v) out.st.orbit_clash += 1;
+                        same_f[ti] |= FLAG_FROM_FORWARD;
+
+                        if (swap_v[ii] == UNDEF) {
+                            swap_v[ii] = -v;
+                            out.st.filled += 1;
+                        } else if (swap_v[ii] != -v) out.st.orbit_clash += 1;
+                        swap_f[ii] |= FLAG_FROM_FORWARD;
+                    }
+                } else |_| {
+                    out.st.budget_skipped += 1;
+                    // mark orbit with FLAG_TRIED_SKIP in output
+                    inline for (0..E.num_syms) |k| {
+                        const tp = transformed(&pos, &E.sym_perms[k], 1);
+                        const ti: usize = @intCast(X.colex_from_pos(&tp));
+                        const ip = transformed(&pos, &E.sym_perms[k], -1);
+                        const ii: usize = @intCast(X.colex_from_pos(&ip));
+                        if (item.side > 0) {
+                            out.fb[ti] |= FLAG_TRIED_SKIP;
+                            out.fw[ii] |= FLAG_TRIED_SKIP;
+                        } else {
+                            out.fw[ti] |= FLAG_TRIED_SKIP;
+                            out.fb[ii] |= FLAG_TRIED_SKIP;
+                        }
+                    }
+                }
+
+                if (shared.progress_every != 0 and out.st.solved + out.st.budget_skipped >= next_report) {
+                    next_report += shared.progress_every;
+                    std.debug.print("  [worker {d}] solved={d} skipped={d} nodes={d} max/root={d} ({d}s)\n", .{
+                        thread_id, out.st.solved, out.st.budget_skipped, out.st.nodes,
+                        out.st.max_nodes, (nowMs() - start_ms) / 1000,
+                    });
+                }
+            }
+        }
+
+        /// Parallel writes-off finisher.
+        ///
+        /// Collects all ko-sensitive UNDEF orbit representatives (respecting
+        /// FLAG_FROM_FORWARD / FLAG_TRIED_SKIP from a loaded checkpoint),
+        /// partitions them among N threads, and solves each root
+        /// independently. Per-thread output buffers are merged after all
+        /// workers complete.
+        pub fn finishParallel(
+            t: *Tables,
+            gpa: std.mem.Allocator,
+            budget: u64,
+            bracketed: bool,
+            progress_every: u64,
+            memo_writes: bool,
+            deps: bool,
+            num_threads: u8,
+        ) !FinishStats {
+            const nt: u8 = if (num_threads == 0)
+                @as(u8, @intCast((std.Thread.getCpuCount() catch 1)))
+            else
+                num_threads;
+            if (nt == 0) return error.NoThreads;
+
+            const p = std.debug.print;
+            const t0 = nowMs();
+
+            // ── Step 1: build work list of unique orbit reps ──
+            var done_b = try gpa.alloc(bool, total);
+            defer gpa.free(done_b);
+            var done_w = try gpa.alloc(bool, total);
+            defer gpa.free(done_w);
+            @memset(done_b, false);
+            @memset(done_w, false);
+
+            var work_list = std.ArrayList(WorkItem).empty;
+            defer work_list.deinit(gpa);
+
+            // deepest-first (same order as sequential finisher)
+            var layer: usize = n + 1;
+            while (layer > 0) {
+                layer -= 1;
+                var li: u64 = X.layer_offset[layer];
+                const li_stop = X.layer_offset[layer + 1];
+                while (li < li_stop) : (li += 1) {
+                    const i: usize = @intCast(li);
+                    if (!t.legal[i]) continue;
+                    if (t.fb[i] & FLAG_KO_SENSITIVE == 0 and t.fw[i] & FLAG_KO_SENSITIVE == 0) continue;
+                    var pos = X.pos_from_colex(i);
+                    inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
+                        const flags = if (side > 0) t.fb else t.fw;
+                        const done = if (side > 0) done_b else done_w;
+                        if (flags[i] & FLAG_KO_SENSITIVE != 0 and
+                            flags[i] & (FLAG_FROM_FORWARD | FLAG_TRIED_SKIP) == 0 and !done[i])
+                        {
+                            // mark entire orbit (dedup)
+                            inline for (0..E.num_syms) |k| {
+                                const tp = transformed(&pos, &E.sym_perms[k], 1);
+                                const ti: usize = @intCast(X.colex_from_pos(&tp));
+                                const ip = transformed(&pos, &E.sym_perms[k], -1);
+                                const ii: usize = @intCast(X.colex_from_pos(&ip));
+                                if (side > 0) {
+                                    done_b[ti] = true;
+                                    done_w[ii] = true;
+                                } else {
+                                    done_w[ti] = true;
+                                    done_b[ii] = true;
+                                }
+                            }
+                            work_list.append(gpa, .{ .idx = @intCast(i), .side = side }) catch
+                                @panic("OOM: work list");
+                        }
+                    }
+                }
+            }
+
+            const total_work = work_list.items.len;
+            if (total_work == 0) {
+                p("finishParallel: no work (all ko-sensitive region already solved).\n", .{});
+                return FinishStats{};
+            }
+
+            p("finishParallel: {d} orbit reps -> {d} threads.\n", .{ total_work, nt });
+
+            // ── Step 2: partition work ──
+            const chunk_size = (total_work + nt - 1) / nt;
+
+            // ── Step 3: allocate per-thread output buffers ──
+            var outs = try gpa.alloc(ThreadOut, nt);
+            defer gpa.free(outs);
+            for (0..nt) |tid| {
+                outs[tid] = ThreadOut{
+                    .vb = try gpa.alloc(i8, total),
+                    .vw = try gpa.alloc(i8, total),
+                    .fb = try gpa.alloc(u8, total),
+                    .fw = try gpa.alloc(u8, total),
+                };
+                @memset(outs[tid].vb, UNDEF);
+                @memset(outs[tid].vw, UNDEF);
+                @memset(outs[tid].fb, 0);
+                @memset(outs[tid].fw, 0);
+            }
+            defer for (outs) |*o| o.deinit(gpa);
+
+            // ── Step 4: spawn workers ──
+            var shared = SharedRO{
+                .t = t,
+                .budget = budget,
+                .bracketed = bracketed,
+                .memo_writes = memo_writes,
+                .deps = deps,
+                .progress_every = progress_every,
+            };
+
+            if (nt == 1) {
+                // single-threaded path: no spawn overhead
+                const chunk = work_list.items[0..total_work];
+                worker(&shared, chunk, @as(u8, 0), &outs[0], gpa);
+            } else {
+                var threads = try gpa.alloc(std.Thread, nt - 1);
+                defer gpa.free(threads);
+
+                // spawn workers 1..nt-1 on their own chunks
+                for (1..nt) |tid| {
+                    const start = tid * chunk_size;
+                    if (start >= total_work) {
+                        // fewer work items than threads — this thread gets nothing
+                        threads[tid - 1] = try std.Thread.spawn(.{}, worker, .{
+                            &shared,
+                            work_list.items[0..0], // empty slice
+                            @as(u8, @intCast(tid)),
+                            &outs[tid],
+                            gpa,
+                        });
+                    } else {
+                        const end = @min(start + chunk_size, total_work);
+                        threads[tid - 1] = try std.Thread.spawn(.{}, worker, .{
+                            &shared,
+                            work_list.items[start..end],
+                            @as(u8, @intCast(tid)),
+                            &outs[tid],
+                            gpa,
+                        });
+                    }
+                }
+
+                // worker 0 runs on the calling thread
+                {
+                    const end = @min(chunk_size, total_work);
+                    worker(&shared, work_list.items[0..end], @as(u8, 0), &outs[0], gpa);
+                }
+
+                // join all spawned workers
+                for (0..nt - 1) |j| {
+                    threads[j].join();
+                }
+            }
+
+            if (shared.quit.load(.acquire)) {
+                p("finishParallel: INTERRUPTED — merging partial results.\n", .{});
+            }
+
+            // ── Step 5: merge per-thread outputs into the main table ──
+            var st = FinishStats{};
+            for (0..nt) |tid| {
+                const o = &outs[tid];
+                st.solved += o.st.solved;
+                st.budget_skipped += o.st.budget_skipped;
+                st.nodes += o.st.nodes;
+                if (o.st.max_nodes > st.max_nodes) st.max_nodes = o.st.max_nodes;
+                st.bracket_fail += o.st.bracket_fail;
+                st.single_ko += o.st.single_ko;
+                // merge columns: take non-UNDEF values; count clashes
+                for (0..total) |i| {
+                    if (o.vb[i] != UNDEF) {
+                        if (t.vb[i] == UNDEF) {
+                            t.vb[i] = o.vb[i];
+                            st.filled += 1;
+                        } else if (t.vb[i] != o.vb[i]) {
+                            st.orbit_clash += 1;
+                        }
+                    }
+                    if (o.vw[i] != UNDEF) {
+                        if (t.vw[i] == UNDEF) {
+                            t.vw[i] = o.vw[i];
+                            st.filled += 1;
+                        } else if (t.vw[i] != o.vw[i]) {
+                            st.orbit_clash += 1;
+                        }
+                    }
+                    t.fb[i] |= o.fb[i];
+                    t.fw[i] |= o.fw[i];
+                }
+            }
+
+            p("finishParallel: solved={d} filled={d} skipped={d} single-ko={d} nodes={d} max/root={d} ({d}ms)\n", .{
+                st.solved, st.filled, st.budget_skipped, st.single_ko, st.nodes, st.max_nodes, nowMs() - t0,
+            });
+            return st;
+        }
+
         pub const SymStats = struct {
             inv_fail: u64 = 0, // value(-pos,-side) == -value(pos,side)
             dih_fail: u64 = 0, // value(T(pos),side) == value(pos,side)
@@ -1164,7 +1811,7 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
             nodes: u64 = 0,
             budget: u64 = 0, // 0 = unlimited (shared across roots)
             entry_cap: u32 = 0, // stop INSERTING beyond this (stays sound, just slower)
-            // kill-X% rule (experimental, ABANDONED as a residue lever): a move
+            // kill-X% rule (experimental, ABANDONED as a ko-sensitive region lever): a move
             // capturing MORE than kill_pct% of the board's points ends the
             // game, scored by area. 0 = disabled. See Tables.kill_pct.
             kill_pct: u8 = 0,
@@ -1353,10 +2000,10 @@ fn coreSweep(
 /// LEAN CORE-ONLY census (Option (c), the 5x5 scaling path). Allocates only the
 /// 11 columns seed/converge/core-count need — legal, settled, score, and the
 /// L/H quads [b0,w0,b1,w1]x2 — dropping the 8 finisher/artifact columns
-/// (vb/vw/fb/fw/db/dw/db1/dw1) the certified-core census never reads. ~halves
+/// (vb/vw/fb/fw/db/dw/db1/dw1) the single-score census never reads. ~halves
 /// RAM per index (19 -> 11 bytes): 4x4 = 0.5 GB, 5x4 = 38 GB dense (before
 /// symmetry folding / out-of-core, which 5x5 will require). Reports the
-/// rule-independent certified-core fraction + empty(B) bracket — no finisher,
+/// rule-independent single-score fraction + empty(B) bracket — no finisher,
 /// no ko rule. MUST reproduce the full-Tables (RETRO_BRACKET) numbers exactly.
 fn coreCensus(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
     const R = rules.Rules(w, h);
@@ -1433,22 +2080,22 @@ fn coreCensus(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !voi
     const build_ms = nowMs() - t0;
 
     var certified: u64 = settled_count * 2;
-    var residue: u64 = 0;
+    var ko_sensitive: u64 = 0;
     for (0..total) |i| {
         if (!legal[i] or settled[i]) continue;
-        if (lb0[i] == hb0[i]) certified += 1 else residue += 1;
-        if (lw0[i] == hw0[i]) certified += 1 else residue += 1;
+        if (lb0[i] == hb0[i]) certified += 1 else ko_sensitive += 1;
+        if (lw0[i] == hw0[i]) certified += 1 else ko_sensitive += 1;
     }
     const slots = legal_count * 2;
     const core_pct = @as(f64, @floatFromInt(certified)) * 100.0 / @as(f64, @floatFromInt(slots));
-    const res_pct = @as(f64, @floatFromInt(residue)) * 100.0 / @as(f64, @floatFromInt(slots));
+    const res_pct = @as(f64, @floatFromInt(ko_sensitive)) * 100.0 / @as(f64, @floatFromInt(slots));
 
     const e: usize = @intCast(X.colex_from_pos(&([_]i8{0} ** R.n)));
-    p("  slots={d}  CERTIFIED={d} ({d:.2}%)  residue={d} ({d:.4}%)  sweeps={d}  seed={d}ms build={d}ms\n", .{
-        slots, certified, core_pct, residue, res_pct, sweeps, seed_ms, build_ms,
+    p("  slots={d}  single-score={d} ({d:.2}%)  ko_sensitive={d} ({d:.4}%)  sweeps={d}  seed={d}ms build={d}ms\n", .{
+        slots, certified, core_pct, ko_sensitive, res_pct, sweeps, seed_ms, build_ms,
     });
     if (lb0[e] == hb0[e]) {
-        p("  empty(B) CERTIFIED = {d} (rule-independent)\n", .{lb0[e]});
+        p("  empty(B) single-score = {d} (fresh-start)\n", .{lb0[e]});
     } else {
         p("  empty(B) bracket = [{d}, {d}] (width {d})\n", .{ lb0[e], hb0[e], @as(i16, hb0[e]) - @as(i16, lb0[e]) });
     }
@@ -1456,13 +2103,13 @@ fn coreCensus(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !voi
 
 fn runCore(gpa: std.mem.Allocator) void {
     const p = std.debug.print;
-    p("CORE: lean core-only certified-core census (Option (c), 5x5 path)\n", .{});
+    p("CORE: lean core-only single-score census (Option (c), 5x5 path)\n", .{});
     p("  [validation — must match RETRO_BRACKET: 3x3 65.69%, 4x3 73.53%, 4x4 78.68%]\n", .{});
     coreCensus(3, 3, gpa) catch |e| p("  3x3 FAILED: {t}\n", .{e});
     coreCensus(4, 3, gpa) catch |e| p("  4x3 FAILED: {t}\n", .{e});
     coreCensus(4, 4, gpa) catch |e| p("  4x4 FAILED: {t}\n", .{e});
     if (std.c.getenv("RETRO_CORE_5X4") != null) {
-        p("  [5x4 dress rehearsal — ~38 GB dense, the residue-growth measurement]\n", .{});
+        p("  [5x4 dress rehearsal — ~38 GB dense, the ko-sensitive region-growth measurement]\n", .{});
         coreCensus(5, 4, gpa) catch |e| p("  5x4 FAILED: {t}\n", .{e});
     }
 }
@@ -1473,6 +2120,27 @@ fn nowMs() u64 {
     var ts: std.c.timespec = undefined;
     _ = std.c.clock_gettime(.MONOTONIC, &ts);
     return @as(u64, @intCast(ts.sec)) * 1000 + @as(u64, @intCast(ts.nsec)) / 1_000_000;
+}
+
+/// Global interrupt flag for the parallel finisher (B31). Set by the SIGINT
+/// handler and polled by each worker between root solves.
+var parallel_interrupt: std.atomic.Value(bool) = std.atomic.Value(bool).init(false);
+
+/// SIGINT handler: sets the global interrupt flag so workers can clean up.
+fn parallelSigintHandler(sig: std.posix.SIG) callconv(.c) void {
+    parallel_interrupt.store(true, .release);
+    _ = sig;
+}
+
+/// Install the SIGINT handler. Returns the previous action so the caller can
+/// restore it (or just leave it — process exits shortly after).
+fn installParallelSigint() void {
+    const act = std.posix.Sigaction{
+        .handler = .{ .handler = parallelSigintHandler },
+        .mask = std.posix.sigemptyset(),
+        .flags = 0,
+    };
+    std.posix.sigaction(std.posix.SIG.INT, &act, null);
 }
 
 const RunOpts = struct {
@@ -1493,14 +2161,14 @@ const RunOpts = struct {
     finisher_memo_writes: bool = true, // false = SOUND (Track A): no cross-branch reuse (ADR-0013)
     finisher_deps: bool = false, // true = Track B: fingerprint-guarded reuse (ADR-0013)
     finisher_progress_every: u64 = 0, // heartbeat every N orbit reps (0 = silent)
-    diag: bool = false, // report the residue-orbit census, then CONTINUE
-    diag_only: bool = false, // build + certify + report residue-orbit scale, then stop
+    diag: bool = false, // report the ko-sensitive region-orbit census, then CONTINUE
+    diag_only: bool = false, // build + certify + report ko-sensitive region-orbit scale, then stop
 };
 
-/// Count residue orbit REPRESENTATIVES per side (the number of forward solves
+/// Count ko-sensitive orbit REPRESENTATIVES per side (the number of forward solves
 /// the finisher must actually run — the orbit fills the rest). Cheap: build
 /// + certify only, no solving.
-fn residueDiag(comptime w: usize, comptime h: usize, t: anytype) void {
+fn koSensitiveDiag(comptime w: usize, comptime h: usize, t: anytype) void {
     const RT = Retro(w, h);
     const p = std.debug.print;
     const gpa = std.heap.page_allocator;
@@ -1536,8 +2204,8 @@ fn residueDiag(comptime w: usize, comptime h: usize, t: anytype) void {
             }
         }
     }
-    p("residue-orbit diag: reps to solve B/W = {d}/{d} (from residue {d}/{d}); per-layer reps(B):", .{
-        reps_b, reps_w, t.residue_b, t.residue_w,
+    p("ko-sensitive region-orbit diag: reps to solve B/W = {d}/{d} (from ko-sensitive region {d}/{d}); per-layer reps(B):", .{
+        reps_b, reps_w, t.ko_sensitive_b, t.ko_sensitive_w,
     });
     // per-layer rep counts (B)
     @memset(done_b, false);
@@ -1571,7 +2239,7 @@ fn anchorProbe(gpa: std.mem.Allocator, budget: u64) !void {
     RT.seed(&t);
     RT.converge(&t);
     RT.finalize(&t);
-    p("3x3 anchor probe: build sweeps={d} residue B/W={d}/{d}\n", .{ t.sweeps, t.residue_b, t.residue_w });
+    p("3x3 anchor probe: build sweeps={d} ko-sensitive region B/W={d}/{d}\n", .{ t.sweeps, t.ko_sensitive_b, t.ko_sensitive_w });
 
     // certified-seeded forward context (same construction as finish())
     var ctx = RT.O.Ctx{
@@ -1642,13 +2310,13 @@ fn anchorProbe(gpa: std.mem.Allocator, budget: u64) !void {
             if (!ok) all_ok = false;
             p("  {s:<12} = {d:>3} (want {d:>3}) [{d},{d}] {s} {s}  nodes={d} {d}ms\n", .{
                 a.name, v, a.want, lo0, hi0,
-                if (certified) "CERT" else "residue",
+                if (certified) "CERT" else "ko-sensitive region",
                 if (ok) "OK" else "MISMATCH", ctx.nodes, ms,
             });
         } else |_| {
             all_ok = false;
             p("  {s:<12}  BUDGET-EXCEEDED [{d},{d}] {s}  nodes>{d} {d}ms\n", .{
-                a.name, lo0, hi0, if (certified) "CERT" else "residue", budget, ms,
+                a.name, lo0, hi0, if (certified) "CERT" else "ko-sensitive region", budget, ms,
             });
         }
     }
@@ -1660,7 +2328,7 @@ fn anchorProbe(gpa: std.mem.Allocator, budget: u64) !void {
 /// the loaded bytes: every column identical to the in-memory table, and the
 /// battery's key facts re-checked from the LOADED data (the file, not the
 /// RAM it came from, is what future sessions trust).
-fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, path: []const u8, finisher_budget: u64, progress_every: u64, diag: bool, checkpoint_path: ?[]const u8, memo_writes: bool, deps: bool) !void {
+fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, path: []const u8, finisher_budget: u64, progress_every: u64, diag: bool, checkpoint_path: ?[]const u8, memo_writes: bool, deps: bool, bracket_only: bool) !void {
     const RT = Retro(w, h);
     const p = std.debug.print;
     p("==== artifact {d}x{d} -> {s} ====\n", .{ w, h, path });
@@ -1681,10 +2349,10 @@ fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, pa
     RT.seed(&t);
     RT.converge(&t);
     RT.finalize(&t);
-    p("build: legal={d} settled={d} sweeps={d} residue B/W={d}/{d} ({d} ms)\n", .{
-        t.legal_count, t.settled_count, t.sweeps, t.residue_b, t.residue_w, nowMs() - t0,
+    p("build: legal={d} settled={d} sweeps={d} ko-sensitive region B/W={d}/{d} ({d} ms)\n", .{
+        t.legal_count, t.settled_count, t.sweeps, t.ko_sensitive_b, t.ko_sensitive_w, nowMs() - t0,
     });
-    if (diag) residueDiag(w, h, &t);
+    if (diag) koSensitiveDiag(w, h, &t);
     var hdr = header;
     hdr.legal_count = t.legal_count;
 
@@ -1719,7 +2387,23 @@ fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, pa
 
     const t1 = nowMs();
     var fin: RT.FinishStats = undefined;
-    {
+    if (bracket_only) {
+        // T14.1 (Minimax-m3, 2026-07-26): the bracket-only deliverable per
+        // ADR-0011/0013. The fresh-start single-score region is history-free; the ko-sensitive
+        // region stays FLAG_KO_SENSITIVE / value UNDEF, honestly bracketed [L,H].
+        // No finisher is run; no checkpoint is written. The artifact is sound
+        // and partial by design.
+        p("finisher: SKIPPED (bracket_only=true; build result is the deliverable)\n", .{});
+        fin = .{
+            .solved = 0,
+            .filled = 0,
+            .budget_skipped = 0,
+            .nodes = 0,
+            .max_nodes = 0,
+            .bracket_fail = 0,
+            .orbit_clash = 0,
+        };
+    } else {
         var f = try RT.Finisher.init(&t, gpa, finisher_budget, true, progress_every, memo_writes, deps);
         defer f.deinit();
         var layer: usize = RT.n + 1;
@@ -1740,8 +2424,8 @@ fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, pa
         }
         fin = f.st;
     }
-    p("finisher[bracketed,{s}]: orbits solved={d} skipped={d} nodes={d} max/root={d} ({d} ms)\n", .{
-        if (deps) "deps" else if (memo_writes) "reuse" else "sound", fin.solved, fin.budget_skipped, fin.nodes, fin.max_nodes, nowMs() - t1,
+    p("finisher[bracketed,{s}]: orbits solved={d} skipped={d} single-ko={d} nodes={d} max/root={d} ({d} ms)\n", .{
+        if (deps) "deps" else if (memo_writes) "reuse" else "sound", fin.solved, fin.budget_skipped, fin.single_ko, fin.nodes, fin.max_nodes, nowMs() - t1,
     });
     const t2 = nowMs();
     RT.dttPass(&t);
@@ -1757,13 +2441,16 @@ fn saveArtifact(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, pa
         p("artifact: REFUSED — validation failed\n", .{});
         return error.IncompleteOracle;
     }
-    if (undef_legal != 0) {
-        // incomplete but sound: the tractable residue is solved and
+    if (undef_legal != 0 and !bracket_only) {
+        // incomplete but sound: the tractable ko-sensitive region is solved and
         // persisted in the checkpoint; the remainder stays bracketed [L,H].
-        p("artifact: PARTIAL — {d} legal slots unfilled (budget-skipped opening residue). Checkpoint {s} holds all finished values; no final artifact written (ADR-0011: complete oracles only).\n", .{
+        p("artifact: PARTIAL — {d} legal slots unfilled (budget-skipped opening ko-sensitive region). Checkpoint {s} holds all finished values; no final artifact written (ADR-0011: complete oracles only).\n", .{
             undef_legal, checkpoint_path orelse "(none)",
         });
         return;
+    }
+    if (undef_legal != 0) {
+        p("artifact: BRACKET-ONLY — {d} legal slots remain ko-sensitive (FLAG_KO_SENSITIVE, value UNDEF, bounded by [L,H]). ADR-0011 partial-oracle deliverable, the sound bracket-only result.\n", .{undef_legal});
     }
 
     try artifact.save(io, dir, path, gpa, hdr, .{ .vb = t.vb, .vw = t.vw, .fb = t.fb, .fw = t.fw, .db = t.db, .dw = t.dw });
@@ -1821,12 +2508,12 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
     RT.converge(&t);
     RT.finalize(&t);
     const build_ms = nowMs() - t0;
-    p("build: legal={d} settled={d} sweeps={d} residue B/W={d}/{d} ({d} ms)\n", .{
-        t.legal_count, t.settled_count, t.sweeps, t.residue_b, t.residue_w, build_ms,
+    p("build: legal={d} settled={d} sweeps={d} ko-sensitive region B/W={d}/{d} ({d} ms)\n", .{
+        t.legal_count, t.settled_count, t.sweeps, t.ko_sensitive_b, t.ko_sensitive_w, build_ms,
     });
 
     if (opts.diag or opts.diag_only) {
-        residueDiag(w, h, &t);
+        koSensitiveDiag(w, h, &t);
         if (opts.diag_only) return;
     }
 
@@ -1834,13 +2521,13 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
         const t1 = nowMs();
         const fin = try RT.finishProgress(&t, gpa, opts.finisher_budget, opts.finisher_bracketed, opts.finisher_progress_every, opts.finisher_memo_writes, opts.finisher_deps);
         const fin_ms = nowMs() - t1;
-        p("finisher[{s},{s}]: orbits solved={d} slots filled={d} budget-skipped={d} nodes={d} max/root={d} bracket-fails={d} orbit-clashes={d} ({d} ms)\n", .{
+        p("finisher[{s},{s}]: orbits solved={d} slots filled={d} budget-skipped={d} single-ko={d} nodes={d} max/root={d} bracket-fails={d} orbit-clashes={d} ({d} ms)\n", .{
             if (opts.finisher_bracketed) "bracketed" else "plain",
             if (opts.finisher_memo_writes) "reuse" else "sound",
-            fin.solved, fin.filled, fin.budget_skipped, fin.nodes, fin.max_nodes, fin.bracket_fail, fin.orbit_clash, fin_ms,
+            fin.solved, fin.filled, fin.budget_skipped, fin.single_ko, fin.nodes, fin.max_nodes, fin.bracket_fail, fin.orbit_clash, fin_ms,
         });
     } else {
-        p("finisher: SKIPPED (residue left bracketed [L,H]; see research/retrograde-3x3.md Finding 6)\n", .{});
+        p("finisher: SKIPPED (ko-sensitive region left bracketed [L,H]; see research/retrograde-3x3.md Finding 6)\n", .{});
     }
 
     const t2 = nowMs();
@@ -1874,7 +2561,7 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
         side_b1[7] = 1;
         var corner: RT.Pos = [_]i8{0} ** 9; // bottom-left
         corner[6] = 1;
-        // Anchors are OPENING positions = residue (Finding 6). When the
+        // Anchors are OPENING positions = ko-sensitive region (Finding 6). When the
         // finisher is skipped their value slot is UNDEF; report the [L,H]
         // bracket and whether it CONTAINS the published value (consistent) —
         // an exact match only when a filled value exists.
@@ -1895,7 +2582,7 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
             const contains = a.want >= lo0 and a.want <= hi0;
             if (!contains) anchors_ok = false;
             if (v == UNDEF) {
-                p("  {s:<12} want {d:>3}: bracket [{d},{d}] {s} (residue, unfilled)\n", .{
+                p("  {s:<12} want {d:>3}: bracket [{d},{d}] {s} (ko-sensitive region, unfilled)\n", .{
                     a.name, a.want, lo0, hi0, if (contains) "CONTAINS-ok" else "OUT-OF-BRACKET-FAIL",
                 });
             } else {
@@ -1915,8 +2602,8 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
             if (c != 0) p("{d}:{d} ", .{ @as(i16, @intCast(j)) - 9, c });
         }
         p("\n", .{});
-        // residue per layer
-        p("residue per layer (B-to-move):", .{});
+        // ko-sensitive region per layer
+        p("ko-sensitive region per layer (B-to-move):", .{});
         for (0..RT.n + 1) |k| {
             var c: u64 = 0;
             for (RT.X.layer_offset[k]..RT.X.layer_offset[k + 1]) |ii| {
@@ -1933,12 +2620,12 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
         const gt_ms = nowMs() - t3;
         // SOUNDNESS = every value the exact solver could reach agrees, and
         // sits in [L,H]. COMPLETENESS = nothing left unchecked (shallow roots
-        // the exact solver can't reach + residue the finisher didn't fill).
+        // the exact solver can't reach + ko-sensitive region the finisher didn't fill).
         // The exact solver CANNOT reach shallow roots on ANY board (Finding
         // 3), so anything below full coverage is expected, not a failure.
         const gt_sound = gt.mismatch == 0 and gt.bracket_fail == 0;
         const gt_full = gt_sound and gt.root_skipped == 0 and gt.unfilled == 0;
-        p("GROUND TRUTH (history-exact): {s} checked={d} mismatch={d} bracket-fails={d} exact-unreachable={d} residue-unfilled={d} states={d} ({d} ms)\n", .{
+        p("GROUND TRUTH (history-exact): {s} checked={d} mismatch={d} bracket-fails={d} exact-unreachable={d} ko-sensitive region-unfilled={d} states={d} ({d} ms)\n", .{
             if (!gt_sound) "FAIL (SOUNDNESS)" else if (gt_full) "PASS (complete)" else "SOUND-PARTIAL (coverage bounded by GHI; see ADR-0009)",
             gt.checked, gt.mismatch, gt.bracket_fail, gt.root_skipped, gt.unfilled, gt.states, gt_ms,
         });
@@ -1946,7 +2633,7 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
 
     if (opts.spot_min_layer) |min_layer| {
         // Independent no-memo forward check of CERTIFIED values in deep layers
-        // (near-terminal, so no-memo is tractable). Residue is NOT spot-checked
+        // (near-terminal, so no-memo is tractable). Ko-sensitive region is NOT spot-checked
         // here: forward search cannot tractably reach it (Finding 3/6) — it is
         // validated by the [L,H] brackets + symmetry instead.
         var ctx = RT.O.Ctx{
@@ -2182,7 +2869,7 @@ fn solveNode(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables,
 }
 
 /// Re-seed a per-root memo/bounds context from the finalized table (the exact
-/// state the finisher's runRoot starts each residue root from): certified
+/// state the finisher's runRoot starts each ko-sensitive roots from): certified
 /// slots become clean cutoffs, bounds memo vacuous.
 fn seedCtx(comptime w: usize, comptime h: usize, c: *Retro(w, h).O.Ctx, tt: *const Retro(w, h).Tables) void {
     const RT = Retro(w, h);
@@ -2197,7 +2884,7 @@ fn seedCtx(comptime w: usize, comptime h: usize, c: *Retro(w, h).O.Ctx, tt: *con
     @memset(c.lbw.?, -127);
     @memset(c.ubw.?, 127);
     // certified seeds are history-free: no map entry => empty dependency set,
-    // always reused. Residue slots get a real fp on write; drop the prior
+    // always reused. Ko-sensitive region slots get a real fp on write; drop the prior
     // solve's live entries.
     if (c.dep_map) |m| m.clearRetainingCapacity();
     c.nodes = 0;
@@ -2228,7 +2915,7 @@ fn auditNode(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables,
 
     // opt over PSK-legal, eye-pruned board children under H = [P, c]
     var best: i8 = if (side > 0) -127 else 127;
-    const own_alive = RT.R.pass_alive(&pos, side);
+    const own_alive = RT.R.benson_alive(&pos, side);
     for (0..RT.n) |cell| {
         if (pos[cell] != 0) continue;
         if (RT.R.is_own_eye(&pos, cell, side, &own_alive)) continue;
@@ -2274,9 +2961,18 @@ fn runConsist4(gpa: std.mem.Allocator) void {
     consistBoard(4, 4, gpa, 400) catch |err| std.debug.print("consist4 FAILED: {t}\n", .{err});
 }
 
+fn runConsist2x2(gpa: std.mem.Allocator, max_checks: u64) void {
+    consistBoard(2, 2, gpa, max_checks) catch |err| std.debug.print("consist2x2 FAILED: {t}\n", .{err});
+}
+
+fn runConsist3x3(gpa: std.mem.Allocator, max_checks: u64) void {
+    // 3x3 has 12675 legal slots; deepest-first sample by default.
+    consistBoard(3, 3, gpa, max_checks) catch |err| std.debug.print("consist3x3 FAILED: {t}\n", .{err});
+}
+
 /// #2 SELF-CONSISTENCY AUDITOR (docs/research/next-step-consistency-auditor.md).
 /// Necessary-not-sufficient bug detector: needs no external oracle and never
-/// has to brute-force the ko-tangled residue (that was #1, structurally dead).
+/// has to brute-force the ko-tangled ko-sensitive region (that was #1, structurally dead).
 /// For each variant (memo_writes ON = the committed "new" generation, OFF =
 /// "soundish"), check the minimax identity at every KO_SENSITIVE 3x2 node.
 /// ANY violation is a PROOF that variant is buggy; zero violations is the weak
@@ -2336,7 +3032,7 @@ fn consistBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, ma
         var violations: u64 = 0;
         var skipped: u64 = 0;
         p("=== variant: {s} ===\n", .{V.name});
-        // deepest layer first: near-terminal residue is cheapest to solve, so
+        // deepest layer first: near-terminal ko-sensitive region is cheapest to solve, so
         // a bounded sample gets the most coverage per node.
         var layer: usize = RT.n + 1;
         outer: while (layer > 0) {
@@ -2444,7 +3140,7 @@ fn verify4x4(gpa: std.mem.Allocator) !void {
 }
 
 fn run6x3(gpa: std.mem.Allocator) void {
-    saveArtifact(6, 3, gpa, "data/oracle-6x3.wzo", 20_000_000, 100_000, true, "data/oracle-6x3.checkpoint.wzo", true, false) catch |err| {
+    saveArtifact(6, 3, gpa, "data/oracle-6x3.wzo", 20_000_000, 100_000, true, "data/oracle-6x3.checkpoint.wzo", true, false, false) catch |err| {
         std.debug.print("6x3 run FAILED: {t}\n", .{err});
     };
 }
@@ -2452,7 +3148,7 @@ fn run6x3(gpa: std.mem.Allocator) void {
 fn run4x4(gpa: std.mem.Allocator) void {
     // Finisher mode (ADR-0013): RETRO_DEPS=1 -> Track B fingerprint-guarded
     // reuse (sound AND fast); RETRO_SOUND=1 -> Track A writes-off (sound, slow);
-    // neither -> fast legacy reuse (unsound residue). deps implies writes on.
+    // neither -> fast legacy reuse (unsound ko-sensitive region). deps implies writes on.
     const deps_4x4 = std.c.getenv("RETRO_DEPS") != null;
     const memo_writes_4x4 = deps_4x4 or (std.c.getenv("RETRO_SOUND") == null);
     // per-root node budget (RETRO_BUDGET, default 20M). Higher lets the hard
@@ -2461,23 +3157,255 @@ fn run4x4(gpa: std.mem.Allocator) void {
         (std.fmt.parseInt(u64, std.mem.span(b), 10) catch 20_000_000)
     else
         20_000_000;
+    // T14.1 / T14.2 env overrides (Minimax-m3, 2026-07-26): allow dispatching
+    // a writes-off regen run that does NOT clobber the committed paths.
+    //   RETRO_4X4_OUT        — override the final artifact path (default unchanged)
+    //   RETRO_4X4_CKPT       — override the checkpoint path (default unchanged)
+    //   RETRO_4X4_SKIP_FINISHER=1 — skip the ko-sensitive finisher and persist
+    //                              the build-only bracket artifact (T14.1).
+    const out_path: []const u8 = if (std.c.getenv("RETRO_4X4_OUT")) |p| std.mem.span(p) else "data/oracle-4x4.wzo";
+    const ckpt_path: []const u8 = if (std.c.getenv("RETRO_4X4_CKPT")) |p| std.mem.span(p) else "data/oracle-4x4.checkpoint.wzo";
+    const skip_finisher = std.c.getenv("RETRO_4X4_SKIP_FINISHER") != null;
+    // T14.1 (converge only): the build is the single-score census (no
+    // finisher, no checkpoint loop). fin_budget is set to 1 just so saveArtifact
+    // does not trip the zero-budget guard; SKIP_FINISHER keeps the finisher
+    // entirely out of the pipeline.
+    // T14.2 (finisher chunks): leave RETRO_4X4_SKIP_FINISHER unset, the
+    // original 20M/root budget and per-layer checkpoint apply.
+    const diag = !skip_finisher;
+    const fin_budget: u64 = if (skip_finisher) 1 else budget_4x4;
+    const progress_every: u64 = if (skip_finisher) 0 else 25_000;
+    const ckpt_arg: ?[]const u8 = if (skip_finisher) null else ckpt_path;
     // Full pipeline WITH persistence: a checkpoint after every finished
     // layer (resumable — rerun and it picks up where it stopped), final
     // artifact only if complete. data/ is gitignored (~258 MB files).
     // Budget 20M: MEASURED (2026-07-21) — the empty 4x4 root exceeds 500M
-    // nodes (146 s); deep-opening residue is not crackable by budget at
+    // nodes (146 s); deep-opening ko-sensitive region is not crackable by budget at
     // this size, so hopeless roots must fail FAST (~6 s each). Layers run
     // deepest-first, so the tractable bulk is solved and checkpointed
     // before the opening tail is even attempted.
-    saveArtifact(4, 4, gpa, "data/oracle-4x4.wzo", budget_4x4, 25_000, true, "data/oracle-4x4.checkpoint.wzo", memo_writes_4x4, deps_4x4) catch |err| {
+    saveArtifact(4, 4, gpa, out_path, fin_budget, progress_every, diag, ckpt_arg, memo_writes_4x4, deps_4x4, skip_finisher) catch |err| {
         std.debug.print("4x4 run FAILED: {t}\n", .{err});
     };
+}
+
+/// Parallel writes-off finisher pipeline (B31).
+///
+/// Env vars:
+///   RETRO_PARALLEL=1           — enable parallel mode
+///   RETRO_PARALLEL_THREADS=N   — thread count (default: CPU count)
+///   RETRO_PARALLEL_CKPT=path   — checkpoint path
+///   RETRO_PARALLEL_OUT=path    — output artifact path
+///   RETRO_4X4=1                — run on 4x4 (alongside RETRO_PARALLEL)
+///   RETRO_3X3=1                — run on 3x3 (test: 1 vs N threads)
+///   RETRO_SOUND=1              — Track A writes-off (memo_writes=false)
+///   RETRO_DEPS=1               — Track B dependency-guarded reuse
+///   RETRO_PARALLEL_BUDGET=N    — per-root node budget (default: 20M)
+fn runParallel(gpa: std.mem.Allocator) void {
+    const num_threads: u8 = if (std.c.getenv("RETRO_PARALLEL_THREADS")) |s|
+        @intCast((std.fmt.parseInt(u8, std.mem.span(s), 10) catch 0))
+    else
+        0;
+
+    const deps = std.c.getenv("RETRO_DEPS") != null;
+    const memo_writes = deps or (std.c.getenv("RETRO_SOUND") == null);
+    const budget: u64 = if (std.c.getenv("RETRO_PARALLEL_BUDGET")) |b|
+        (std.fmt.parseInt(u64, std.mem.span(b), 10) catch 20_000_000)
+    else
+        20_000_000;
+    const progress_every: u64 = if (std.c.getenv("RETRO_PARALLEL_PROGRESS")) |s|
+        (std.fmt.parseInt(u64, std.mem.span(s), 10) catch 1000)
+    else
+        1000;
+
+    // Install SIGINT handler for graceful interrupt
+    installParallelSigint();
+
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    const io = threaded.io();
+    const dir = std.Io.Dir.cwd();
+
+    // Dispatch by board size
+    if (std.c.getenv("RETRO_3X3") != null) {
+        parallelBoard(3, 3, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every);
+    } else {
+        parallelBoard(4, 4, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every);
+    }
+}
+
+/// Build + converge + finalize, then run the parallel finisher, checkpoint,
+/// dtt, symmetry, and persist the artifact.
+fn parallelBoard(
+    comptime w: usize,
+    comptime h: usize,
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    dir: std.Io.Dir,
+    budget: u64,
+    memo_writes: bool,
+    deps: bool,
+    num_threads: u8,
+    progress_every: u64,
+) void {
+    const RT = Retro(w, h);
+    const p = std.debug.print;
+
+    const ckpt_path: []const u8 = if (std.c.getenv("RETRO_PARALLEL_CKPT")) |p2|
+        std.mem.span(p2)
+    else blk: {
+        var buf: [64]u8 = undefined;
+        break :blk std.fmt.bufPrint(&buf, "data/oracle-{d}x{d}-parallel.checkpoint.wzo", .{ w, h }) catch unreachable;
+    };
+    const out_path: []const u8 = if (std.c.getenv("RETRO_PARALLEL_OUT")) |p2|
+        std.mem.span(p2)
+    else blk: {
+        var buf: [64]u8 = undefined;
+        break :blk std.fmt.bufPrint(&buf, "data/oracle-{d}x{d}-parallel.wzo", .{ w, h }) catch unreachable;
+    };
+
+    const nt = if (num_threads == 0) @as(u8, @intCast((std.Thread.getCpuCount() catch 1))) else num_threads;
+
+    p("==== parallel artifact {d}x{d} -> {s} ====\n", .{ w, h, out_path });
+    p("  threads={d} budget={d} memo_writes={s} deps={s} ckpt={s}\n", .{
+        nt, budget,
+        if (memo_writes) "reuse" else "sound",
+        if (deps) "yes" else "no",
+        ckpt_path,
+    });
+
+    const header = artifact.Header{
+        .board_w = w,
+        .board_h = h,
+        .total = RT.X.total,
+        .legal_count = 0,
+    };
+
+    var t = RT.Tables.init(gpa) catch {
+        p("parallelBoard: OOM during Tables.init\n", .{});
+        return;
+    };
+    defer t.deinit();
+
+    // -- Build (single-threaded) --
+    const t0 = nowMs();
+    RT.seed(&t);
+    RT.converge(&t);
+    RT.finalize(&t);
+    p("build: legal={d} settled={d} sweeps={d} ko-sensitive B/W={d}/{d} ({d}ms)\n", .{
+        t.legal_count, t.settled_count, t.sweeps, t.ko_sensitive_b, t.ko_sensitive_w, nowMs() - t0,
+    });
+
+    var hdr = header;
+    hdr.legal_count = t.legal_count;
+
+    // -- Checkpoint resume --
+    if (artifact.load(io, dir, ckpt_path, gpa)) |loaded| {
+        var d = loaded;
+        defer d.deinit();
+        if (d.header.board_w == w and d.header.board_h == h) {
+            @memcpy(t.vb, d.vb);
+            @memcpy(t.vw, d.vw);
+            @memcpy(t.fb, d.fb);
+            @memcpy(t.fw, d.fw);
+            // RETRO_PARALLEL_RETRY=1 clears TRIED_SKIP so budget-skipped
+            // positions are re-attempted (e.g. with a larger budget).
+            if (std.c.getenv("RETRO_PARALLEL_RETRY") != null) {
+                for (0..RT.total) |i| {
+                    t.fb[i] &= ~FLAG_TRIED_SKIP;
+                    t.fw[i] &= ~FLAG_TRIED_SKIP;
+                }
+            }
+            var done: u64 = 0;
+            var skipped: u64 = 0;
+            for (0..RT.total) |i| {
+                if (t.fb[i] & FLAG_FROM_FORWARD != 0) done += 1;
+                if (t.fw[i] & FLAG_FROM_FORWARD != 0) done += 1;
+                if (t.fb[i] & FLAG_TRIED_SKIP != 0) skipped += 1;
+                if (t.fw[i] & FLAG_TRIED_SKIP != 0) skipped += 1;
+            }
+            p("resume: {s} loaded — {d} finished, {d} skip-marked\n", .{ ckpt_path, done, skipped });
+        } else {
+            p("resume: {s} board-size mismatch, starting fresh\n", .{ckpt_path});
+        }
+    } else |_| {
+        p("resume: no checkpoint at {s}, starting fresh\n", .{ckpt_path});
+    }
+
+    // -- Parallel finisher --
+    const t1 = nowMs();
+    parallel_interrupt.store(false, .release);
+
+    const fin = RT.finishParallel(&t, gpa, budget, true, progress_every, memo_writes, deps, num_threads) catch |err| {
+        p("finishParallel FAILED: {t}\n", .{err});
+        return;
+    };
+
+    p("finisher[parallel,{s}]: solved={d} filled={d} skipped={d} single-ko={d} nodes={d} max/root={d} ({d}ms)\n", .{
+        if (deps) "deps" else if (memo_writes) "reuse" else "sound",
+        fin.solved, fin.filled, fin.budget_skipped, fin.single_ko, fin.nodes, fin.max_nodes, nowMs() - t1,
+    });
+
+    // -- Checkpoint after finisher --
+    artifact.save(io, dir, ckpt_path, gpa, hdr, .{
+        .vb = t.vb, .vw = t.vw, .fb = t.fb, .fw = t.fw, .db = t.db, .dw = t.dw,
+    }) catch |err| {
+        p("checkpoint save FAILED: {t}\n", .{err});
+    };
+    p("checkpoint: {s} written (solved={d} skipped={d})\n", .{ ckpt_path, fin.solved, fin.budget_skipped });
+
+    if (parallel_interrupt.load(.acquire)) {
+        p("INTERRUPTED — checkpoint saved. Re-run to resume.\n", .{});
+        return;
+    }
+
+    // -- dtt + symmetry + artifact --
+    const t2 = nowMs();
+    RT.dttPass(&t);
+    const sym = RT.checkSymmetry(&t);
+    var undef_legal: u64 = 0;
+    for (0..RT.total) |i| {
+        if (t.legal[i] and (t.vb[i] == UNDEF or t.vw[i] == UNDEF)) undef_legal += 1;
+    }
+    p("validate: bracket-fails={d} orbit-clashes={d} symmetry={s} unfilled={d} (dtt+sym {d}ms)\n", .{
+        fin.bracket_fail, fin.orbit_clash, if (sym.pass()) "PASS" else "FAIL", undef_legal, nowMs() - t2,
+    });
+
+    if (!sym.pass() or fin.bracket_fail != 0 or fin.orbit_clash != 0) {
+        p("artifact: REFUSED — validation failed\n", .{});
+        return;
+    }
+
+    if (undef_legal != 0) {
+        p("artifact: PARTIAL — {d} unfilled. Checkpoint={s}\n", .{ undef_legal, ckpt_path });
+        return;
+    }
+
+    artifact.save(io, dir, out_path, gpa, hdr, .{ .vb = t.vb, .vw = t.vw, .fb = t.fb, .fw = t.fw, .db = t.db, .dw = t.dw }) catch |err| {
+        p("artifact save FAILED: {t}\n", .{err});
+        return;
+    };
+
+    var d = artifact.load(io, dir, out_path, gpa) catch |err| {
+        p("artifact reload FAILED: {t}\n", .{err});
+        return;
+    };
+    defer d.deinit();
+    const identical = std.mem.eql(i8, d.vb, t.vb) and std.mem.eql(i8, d.vw, t.vw) and
+        std.mem.eql(u8, d.fb, t.fb) and std.mem.eql(u8, d.fw, t.fw) and
+        std.mem.eql(u8, d.db, t.db) and std.mem.eql(u8, d.dw, t.dw);
+    p("reload: {s}; artifact OK ({d} bytes)\n\n", .{
+        if (identical) "IDENTICAL" else "MISMATCH",
+        artifact.HEADER_LEN + 6 * RT.total,
+    });
+    if (!identical) {
+        p("artifact: RELOAD MISMATCH!\n", .{});
+    }
 }
 
 /// CENSUS (5x5 projection): build each board through seed+converge+finalize
 /// only (NO finisher — this is the cheap history-free part) and report the
 /// numbers that drive the 5x5 feasibility question: legal-position count
-/// (final table size), certified vs KO_SENSITIVE residue split and its
+/// (final table size), certified vs KO_SENSITIVE ko-sensitive region split and its
 /// fraction (does the hard part grow?), and convergence sweeps + wall time
 /// (out-of-core sweep cost). See docs/research/methods-and-findings.md sec 8.
 fn censusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
@@ -2491,7 +3419,7 @@ fn censusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !vo
     RT.converge(&t);
     RT.finalize(&t);
     const ms = nowMs() - t0;
-    // residue = KO_SENSITIVE slots (per side); certified = legal-but-not-residue
+    // ko-sensitive region = KO_SENSITIVE slots (per side); certified = legal-but-not-ko-sensitive region
     var res_b: u64 = 0;
     var res_w: u64 = 0;
     for (0..RT.total) |i| {
@@ -2505,7 +3433,7 @@ fn censusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !vo
     p("{d}x{d}: raw 3^n={d:>12}  legal={d:>11} ({d:>2}% of raw)  settled={d:>11}\n", .{
         w, h, raw, t.legal_count, t.legal_count * 100 / raw, t.settled_count,
     });
-    p("       side-slots={d:>11}  residue(KO) B/W={d}/{d} = {d} ({d:.4}% of slots)  sweeps={d}  build={d} ms\n", .{
+    p("       side-slots={d:>11}  ko-sensitive region(KO) B/W={d}/{d} = {d} ({d:.4}% of slots)  sweeps={d}  build={d} ms\n", .{
         slots, res_b, res_w, res, pct, t.sweeps, ms,
     });
 }
@@ -2513,10 +3441,10 @@ fn censusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !vo
 /// BRACKET report (Option B, the honest scalable deliverable). After
 /// converge/finalize the L and H fixpoints bracket every node's value under
 /// ANY cycle convention whose cycle-value lies in [-N,N] (PSK, basic-ko,
-/// score-on-cycle-as-is, kill-X%, ...). Where L==H the value is CERTIFIED and
+/// score-on-cycle-as-is, kill-X%, ...). Where L==H the value is a fresh-start single score and
 /// rule-independent (no finisher, no ko rule needed). Where L<H the value is
 /// convention-dependent and provably lies in [L,H]. This reports the certified
-/// core, the empty-board bracket (the headline), and the residue bracket-width
+/// core, the empty-board bracket (the headline), and the ko-sensitive region bracket-width
 /// distribution — all sound, no finisher.
 fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
     const RT = Retro(w, h);
@@ -2530,8 +3458,8 @@ fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !v
     const ms = nowMs() - t0;
 
     var certified: u64 = 0;
-    var residue: u64 = 0;
-    // width histogram: index = hi-lo (0..2N), only residue (width>0) counted
+    var ko_sensitive: u64 = 0;
+    // width histogram: index = hi-lo (0..2N), only ko-sensitive region (width>0) counted
     var width_hist = [_]u64{0} ** (2 * RT.n + 1);
     var max_width: i16 = 0;
     for (0..RT.total) |i| {
@@ -2542,7 +3470,7 @@ fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !v
             if (lo == hi) {
                 certified += 1;
             } else {
-                residue += 1;
+                ko_sensitive += 1;
                 const wdt: usize = @intCast(@as(i16, hi) - @as(i16, lo));
                 width_hist[wdt] += 1;
                 if (@as(i16, hi) - @as(i16, lo) > max_width) max_width = @as(i16, hi) - @as(i16, lo);
@@ -2559,15 +3487,15 @@ fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !v
     const elo = t.lo.b0[e];
     const ehi = t.hi.b0[e];
 
-    p("{d}x{d}: slots={d}  CERTIFIED(core)={d} ({d:.2}%)  residue={d}  sweeps={d}  build={d}ms\n", .{
-        w, h, slots, certified, core_pct, residue, t.sweeps, ms,
+    p("{d}x{d}: slots={d}  single-score={d} ({d:.2}%)  ko_sensitive={d}  sweeps={d}  build={d}ms\n", .{
+        w, h, slots, certified, core_pct, ko_sensitive, t.sweeps, ms,
     });
     if (elo == ehi) {
-        p("       empty(B) CERTIFIED = {d} (rule-independent)\n", .{elo});
+        p("       empty(B) single-score = {d} (fresh-start)\n", .{elo});
     } else {
         p("       empty(B) bracket = [{d}, {d}]  (width {d}; value is convention-dependent)\n", .{ elo, ehi, @as(i16, ehi) - @as(i16, elo) });
     }
-    p("       residue bracket-width histogram (width: count):", .{});
+    p("       ko-sensitive region bracket-width histogram (width: count):", .{});
     for (width_hist, 0..) |cnt, wdt| {
         if (cnt != 0) p(" {d}:{d}", .{ wdt, cnt });
     }
@@ -2576,13 +3504,13 @@ fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !v
 
 fn runBracket(gpa: std.mem.Allocator) void {
     const p = std.debug.print;
-    p("BRACKET: rule-independent certified core + [L,H] residue bracket (no finisher)\n", .{});
+    p("BRACKET: fresh-start single-score region + [L,H] ko-sensitive region bracket (no finisher)\n", .{});
     bracketBoard(3, 3, gpa) catch |e| p("  3x3 FAILED: {t}\n", .{e});
     bracketBoard(4, 3, gpa) catch |e| p("  4x3 FAILED: {t}\n", .{e});
     bracketBoard(4, 4, gpa) catch |e| p("  4x4 FAILED: {t}\n", .{e});
 }
 
-/// FAIL-FAST throughput comparison: build a board once, then run the residue
+/// FAIL-FAST throughput comparison: build a board once, then run the ko-sensitive region
 /// finisher twice on fresh certified tables — fast REUSE path vs SOUND
 /// (writes-off) path — and report wall time, slots filled, and budget-skips.
 /// Quantifies the cost of dropping the (unsound) cross-branch reuse, the
@@ -2781,7 +3709,7 @@ fn runPly(gpa: std.mem.Allocator) void {
 }
 
 /// KILL-CENSUS: retrograde build-only census with a given kill_pct, reporting
-/// how the residue (KO_SENSITIVE) fraction responds to the kill-X% rule. The
+/// how the ko-sensitive region (KO_SENSITIVE) fraction responds to the kill-X% rule. The
 /// retrograde engine is tractable at 4x4 (unlike the exact solver), so this is
 /// how we measure the kill rule where it matters.
 fn killCensusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, kill_pct: u8) !void {
@@ -2804,15 +3732,15 @@ fn killCensusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator,
     const pct = @as(f64, @floatFromInt(res)) * 100.0 / @as(f64, @floatFromInt(slots));
     const e: usize = @intCast(RT.X.colex_from_pos(&([_]i8{0} ** RT.n)));
     const cert = t.fb[e] & FLAG_KO_SENSITIVE == 0;
-    p("{d}x{d} kill={d:>3}%: residue={d}/{d} ({d:.4}%) sweeps={d} empty(B)={s} build={d}ms\n", .{
+    p("{d}x{d} kill={d:>3}%: ko_sensitive={d}/{d} ({d:.4}%) sweeps={d} empty(B)={s} build={d}ms\n", .{
         w, h, kill_pct, res, slots, pct, t.sweeps,
-        if (cert) "certified" else "still-residue", nowMs() - t0,
+        if (cert) "certified" else "still-ko-sensitive region", nowMs() - t0,
     });
 }
 
 fn runKillCensus(gpa: std.mem.Allocator) void {
     const p = std.debug.print;
-    p("KILL-CENSUS 4x4: residue fraction vs kill_pct (kill=0 baseline = 21.32%)\n", .{});
+    p("KILL-CENSUS 4x4: ko-sensitive fraction vs kill_pct (kill=0 baseline = 21.32%)\n", .{});
     inline for (.{ @as(u8, 0), 50, 40, 30 }) |k| {
         killCensusBoard(4, 4, gpa, k) catch |e| p("  4x4 kill={d} FAILED: {t}\n", .{ k, e });
     }
@@ -2820,7 +3748,7 @@ fn runKillCensus(gpa: std.mem.Allocator) void {
 
 fn runCensus(gpa: std.mem.Allocator) void {
     const p = std.debug.print;
-    p("CENSUS: history-free build only (no finisher). Residue = the hard part.\n\n", .{});
+    p("CENSUS: history-free build only (no finisher). Ko-sensitive region = the hard part.\n\n", .{});
     inline for (.{ .{ 2, 2 }, .{ 3, 2 }, .{ 3, 3 }, .{ 4, 3 }, .{ 4, 4 } }) |b| {
         censusBoard(b[0], b[1], gpa) catch |err| p("  {d}x{d} FAILED: {t}\n", .{ b[0], b[1], err });
     }
@@ -3109,10 +4037,14 @@ fn e2Board(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, num_see
 
 fn runE2(gpa: std.mem.Allocator) void {
     const p = std.debug.print;
-    p("E2: range-aware (maximin over lo/hi) self-play; promise = bound of chosen move; acceptance = zero leaks\n", .{});
-    e2Board(2, 2, gpa, 2000, false) catch |e| p("E2 2x2 FAILED: {t}\n", .{e});
-    e2Board(3, 2, gpa, 2000, false) catch |e| p("E2 3x2 FAILED: {t}\n", .{e});
-    e2Board(3, 3, gpa, 2000, false) catch |e| p("E2 3x3 FAILED: {t}\n", .{e});
+    const e2_seeds: u64 = if (std.c.getenv("RETRO_E2_SEEDS")) |s|
+        (std.fmt.parseInt(u64, std.mem.span(s), 10) catch 2000)
+    else
+        2000;
+    p("E2: range-aware (maximin over lo/hi) self-play; seeds={d}; promise = bound of chosen move; acceptance = zero leaks\n", .{e2_seeds});
+    e2Board(2, 2, gpa, e2_seeds, false) catch |e| p("E2 2x2 FAILED: {t}\n", .{e});
+    e2Board(3, 2, gpa, e2_seeds, false) catch |e| p("E2 3x2 FAILED: {t}\n", .{e});
+    e2Board(3, 3, gpa, e2_seeds, false) catch |e| p("E2 3x3 FAILED: {t}\n", .{e});
 }
 
 /// E2 POLICY SANITY CHECK: trivially-valid bounds (lo=-N, hi=+N), no converge,
@@ -3163,11 +4095,11 @@ fn e3LofixCheck(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !v
     var empty_pos: RT.Pos = [_]i8{0} ** n;
     const empty_idx: usize = @intCast(X.colex_from_pos(&empty_pos));
 
-    p("B1 {d}x{d}: canonical sweeps={d}  empty(B) lo=[{d},{d}]  hi=[{d},{d}]  residue_b={d} residue_w={d}\n", .{
+    p("B1 {d}x{d}: canonical sweeps={d}  empty(B) lo=[{d},{d}]  hi=[{d},{d}]  ko_sensitive_b={d} ko_sensitive_w={d}\n", .{
         w, h, t0.sweeps,
         t0.lo.b0[empty_idx], t0.lo.b1[empty_idx],
         t0.hi.b0[empty_idx], t0.hi.b1[empty_idx],
-        t0.residue_b, t0.residue_w,
+        t0.ko_sensitive_b, t0.ko_sensitive_w,
     });
 
     // ---------- (A) V0 fixpoint-equation check ----------
@@ -3428,6 +4360,12 @@ pub fn main() !void {
         thread.join();
         return;
     }
+    if (std.c.getenv("RETRO_PARALLEL") != null) {
+        // B31: parallel writes-off finisher
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runParallel, .{gpa});
+        thread.join();
+        return;
+    }
     if (std.c.getenv("RETRO_RULES") != null) {
         const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runRules, .{gpa});
         thread.join();
@@ -3501,12 +4439,12 @@ pub fn main() !void {
     }
     if (std.c.getenv("RETRO_SAVE") != null) {
         // persist the complete oracles (2x2, 3x2, 3x3) as ADR-0011 artifacts
-        try saveArtifact(2, 2, gpa, "artifacts/oracle-2x2.wzo", 500_000_000, 0, false, null, false, false);
-        try saveArtifact(3, 2, gpa, "artifacts/oracle-3x2.wzo", 500_000_000, 0, false, null, false, false);
-        try saveArtifact(3, 3, gpa, "artifacts/oracle-3x3.wzo", 500_000_000, 0, false, null, false, false);
-        // 4x3 completes fully with the sound (writes-off) finisher (residue is
+        try saveArtifact(2, 2, gpa, (if (std.c.getenv("RETRO_SAVE_2X2_OUT")) |p| std.mem.span(p) else "artifacts/oracle-2x2.wzo"), 500_000_000, 0, false, null, false, false, false);
+        try saveArtifact(3, 2, gpa, (if (std.c.getenv("RETRO_SAVE_3X2_OUT")) |p| std.mem.span(p) else "artifacts/oracle-3x2.wzo"), 500_000_000, 0, false, null, false, false, false);
+        try saveArtifact(3, 3, gpa, (if (std.c.getenv("RETRO_SAVE_3X3_OUT")) |p| std.mem.span(p) else "artifacts/oracle-3x3.wzo"), 500_000_000, 0, false, null, false, false, false);
+        // 4x3 completes fully with the sound (writes-off) finisher (ko-sensitive region is
         // tractable at this size — measured 0 budget-skips); provably correct.
-        try saveArtifact(4, 3, gpa, "artifacts/oracle-4x3.wzo", 2_000_000_000, 0, false, null, false, false);
+        try saveArtifact(4, 3, gpa, (if (std.c.getenv("RETRO_SAVE_4X3_OUT")) |p| std.mem.span(p) else "artifacts/oracle-4x3.wzo"), 2_000_000_000, 0, false, null, false, false, false);
         // external checksums of the files as written (verify independently of
         // the reader: `shasum -a 256 -c artifacts/SHA256SUMS` from repo root)
         try writeChecksums(gpa, "artifacts/SHA256SUMS", &.{
@@ -3531,6 +4469,22 @@ pub fn main() !void {
         thread.join();
         return;
     }
+    if (std.c.getenv("RETRO_CONSIST2") != null) {
+        // B07: #2 auditor on 2x2 (all 41 KO_SENSITIVE slots by default)
+        const max_str: []const u8 = if (std.c.getenv("RETRO_CONSIST_SAMPLE")) |s| std.mem.span(s) else "0";
+        const max_checks: u64 = std.fmt.parseInt(u64, max_str, 10) catch 0;
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runConsist2x2, .{ gpa, max_checks });
+        thread.join();
+        return;
+    }
+    if (std.c.getenv("RETRO_CONSIST3") != null) {
+        // B07: #2 auditor on 3x3 (4349 KO_SENSITIVE slots, sampled by default 400)
+        const max_str: []const u8 = if (std.c.getenv("RETRO_CONSIST_SAMPLE")) |s| std.mem.span(s) else "400";
+        const max_checks: u64 = std.fmt.parseInt(u64, max_str, 10) catch 400;
+        const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runConsist3x3, .{ gpa, max_checks });
+        thread.join();
+        return;
+    }
     if (std.c.getenv("RETRO_VERIFY") != null) {
         const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, runVerify, .{gpa});
         thread.join();
@@ -3552,7 +4506,7 @@ pub fn main() !void {
     if (std.c.getenv("RETRO_4X4") != null) {
         // THE SCALE RUN (ADR-0009/0010 consequences): 3^16 = 43,046,721 slots
         // (~1.3 GB working set). Measures the 5x5 projection numbers: sweep
-        // count, residue fraction, orbit-rep census, bracketed-finisher
+        // count, ko-sensitive fraction, orbit-rep census, bracketed-finisher
         // nodes/root. No ground truth (Finding 3: intractable), no spot
         // checks (each deep no-memo root is expensive; symmetry + brackets +
         // anchors-by-inclusion cover the table). Big-stack thread: finisher
@@ -3592,7 +4546,7 @@ pub fn main() !void {
         return;
     }
     // Bracket-guided (ADR-0010) finisher everywhere: 2x2 and 3x2 complete
-    // against exhaustive ground truth; 3x3 measures the full residue sweep
+    // against exhaustive ground truth; 3x3 measures the full ko-sensitive region sweep
     // that the plain finisher could not reach (Finding 6).
     try runBoard(2, 2, gpa, .{ .ground_truth = true, .finisher_budget = 500_000_000 });
     try runBoard(3, 2, gpa, .{ .ground_truth = true, .finisher_budget = 500_000_000 });
@@ -3637,7 +4591,7 @@ test "2x2 retrograde: converges, L <= H, fixpoints swap under colour inversion" 
     try expect(sym.flag_fail == 0);
 }
 
-test "2x2 bracket-guided finisher completes the whole residue (ADR-0010)" {
+test "2x2 bracket-guided finisher completes the whole ko-sensitive region (ADR-0010)" {
     const RT = Retro(2, 2);
     var t = try RT.Tables.init(std.testing.allocator);
     defer t.deinit();

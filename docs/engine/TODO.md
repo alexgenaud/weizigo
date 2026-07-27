@@ -1,3 +1,14 @@
+# SUPERSEDED — read `../epistemic/PROGRESS.md` + `../epistemic/boards/4x4/EPISTEMIC.md` instead.
+
+**This file is kept as history only.** It is no longer maintained; the
+strategic truth is in `PROGRESS.md`, the per-board-size epistemic status is
+in `../epistemic/boards/4x4/EPISTEMIC.md` (4×4 is the focus; per-claim status,
+falsifiable experiments, current hypotheses), and the live in-flight task is
+in `../status/CURRENT.md`. The backlog items here predate the per-board
+epistemic tree refactor and the 2026-07-25 leak-crisis reset.
+
+---
+
 # TODO
 
 Status legend: [ ] todo · [~] in progress · [x] done · [-] dropped
@@ -16,7 +27,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       - `superko.History.max_len` tracks the deepest game line per run.
       - `main.zig` is now a real solve driver: runs `solve_root` on a spawned
         thread with a 256 MB stack (recursion depth == ply count, not stone
-        count) and reports value + measured max ply. Default = fast dead-stone
+        count) and reports score + measured max ply. Default = fast dead-stone
         demo (Black+25, max ply 2); flip `FULL` to attempt the empty board.
       - NOTE on the 4096 question: recursion depth == **game-line length in
         plies**, which is decoupled from the ~20-stone board ceiling because
@@ -49,7 +60,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       wrapper.
 
 - [ ] **#3 — Per-node redundant recompute (constant-factor win, ~1.3–1.8x,
-      NOT 3x — profile first).** In the hot `solve` loop: `pass_alive` is
+      NOT 3x — profile first).** In the hot `solve` loop: `benson_alive` is
       computed up to 3x/node (`is_settled` does black+white, then `solve` does
       `to_move` again — `solve.zig:222`); `lowest_blind_from_pos` (16 dihedral
       x colour transforms) up to 3x/node (hashable check + `get` + `set`).
@@ -83,18 +94,18 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       Tromp/OEIS A094777: 1x1=1, 2x2=57, 3x3=12,675, 4x4=24,318,165 all PASS
       (~6 s ReleaseFast). NEW data: canonical class counts (4x4: 1,524,805;
       ratio -> ~16) + per-stone-layer censuses => 5x5 oracle ~ 25.9e9 classes
-      ~ 52 GB at 1 B/(class,side). See `research/enumeration-census.md`.
+      ~ 52 GB at 1 B/(class,side). See `../research/enumeration-census.md`.
   - [x] Colex index DONE 2026-07-17: `src/colex.zig` — `colex_from_pos` /
         `pos_from_colex`, raw layered (offset + subset_idx*2^k + colour bits).
         Bijection exhaustively VERIFIED over all boards of 2x2/3x2/3x3/4x4
         (43M, zero collisions, ~5 s ReleaseFast); 5x5 addressing works
         arithmetically (3^25 total; tengen = idx 26). RENAMED from "rank"
         (user decision: in Go, rank = kyu/dan; avoid the term). See
-        `research/enumeration-census.md`.
+        `../research/enumeration-census.md`.
   - [x] Forward fresh-start filling MEASURED INTRACTABLE even at 3x3
         (2026-07-17): single 8-stone roots exceed 10M nodes with 2,100+-ply
         lines; warm bottom-up sweep stuck in layer 8 after 13 min. See
-        `research/oracle-3x3.md` + ADR-0008. `rules.zig` (generic rules,
+        `../research/oracle-3x3.md` + ADR-0008. `rules.zig` (generic rules,
         cross-validated vs 5x5 stack) and `oracle.zig` (solver + full
         validation battery: anchors, exhaustive inversion/dihedral,
         order-independence, spot checks) are DONE and wait for a tractable
@@ -103,35 +114,35 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
         (position, side) store value:i8 + DTT:u8 (depth-to-terminal — the
         retrograde engine computes it for free; unrecoverable later) + flags.
         Teaching metrics derive from these: see
-        `research/teaching-oracle-metrics.md`.
+        `../research/teaching-oracle-metrics.md`.
   - [ ] QUERY ENGINE (design recorded, build after retrograde): goal-bounded
-        forward solver (objective = capture(S)/save(S)/pass_alive(S), terminal
+        forward solver (objective = capture(S)/save(S)/benson_alive(S), terminal
         = objective decided -- tsumego-style, tractable where full solves are
         not) + fact-diff WHY explanations + principle mining + GTP server.
         Store-vs-compute doctrine + query taxonomy:
-        `research/query-engine-and-explanations.md`. Forward engine = live
+        `../research/query-engine-and-explanations.md`. Forward engine = live
         local queries; retrograde = global table; complementary as decided.
   - [x] CRITICAL PATH DONE 2026-07-19/20: the #6' retrograde design ADR
         (**ADR-0009**) + the 3x3 retrograde engine (`src/retro.zig`).
         Successor-sweep value iteration (NO un-capture code — forward move
         generator only), ko handled STRUCTURALLY by TWO-SIDED fixpoint
-        certification (L seeded -n / H seeded +n; where L==H the value is
-        history-free = the ADR-0008 fresh-start value; where L<H the node is
+        certification (L seeded -n / H seeded +n; where L==H the score is
+        history-free = the ADR-0008 fresh-start score; where L<H the node is
         KO_SENSITIVE and resolved by the certified-seeded forward FINISHER).
         NO eye-prune in the retrograde graph (resolves the ADR-0007
         coverage tension: coverage is TOTAL). DTT column computed. Full
         battery: exhaustive history-exact ground truth (`retro.Exact`,
         ban-set-keyed), L/H brackets, exhaustive symmetry (inversion +
         dihedral + L/H-swap + flags), 3x3 anchors, spot checks. Measured
-        results: `research/retrograde-3x3.md`. Wired into `zig build test`
+        results: `../research/retrograde-3x3.md`. Wired into `zig build test`
         (86 tests green). NEXT: see the retrograde follow-ups below.
   - [ ] Retrograde follow-ups (post-ADR-0009):
         - [x] full 3x3 finisher run to completion — DONE 2026-07-21 via
           ADR-0010 bracket-guided alpha-beta finishing: all 622 orbit reps in
           156,178 nodes (~20 ms); 3x3 oracle COMPLETE, anchors PIN
-          (Findings 8–10 in `research/retrograde-3x3.md`).
-        - [x] DTT-through-finisher — resolved as a side effect: with residue
-          values filled, `dttPass` propagates through them (empty 3x3 = 3
+          (Findings 8–10 in `../research/retrograde-3x3.md`).
+        - [x] DTT-through-finisher — resolved as a side effect: with ko-sensitive region
+          scores filled, `dttPass` propagates through them (empty 3x3 = 3
           plies, max finite 16).
         - [x] persist the first real oracle artifact — DONE 2026-07-21
           (ADR-0011): `src/artifact.zig` (WZO1; header versions format +
@@ -140,12 +151,12 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
           verified byte-identical (`RETRO_SAVE=1 zig run -O ReleaseFast
           src/retro.zig`). New data: empty(B) fresh-start = +1 at 2x2 AND 3x2.
         - [x] 4x4 scale run — DONE 2026-07-21, and it COMPLETED the oracle:
-          all 649,517 residue orbit reps solved (0 skips), empty(B) = +2
+          all 649,517 ko-sensitive orbit reps solved (0 skips), empty(B) = +2
           (published anchor MATCH), artifact persisted (data/, 258 MB).
-          Sweeps 19, residue 21.3% — both trends favourable for 5x5. Took
+          Sweeps 19, ko-sensitive region 21.3% — both trends favourable for 5x5. Took
           two finisher rebuilds: deepest-first + checkpoints/resume +
           heartbeat, then MTD null-window + per-root BOUNDS memo (bare MTD
-          is WORSE than aspiration — measured). `research/retrograde-4x4.md`.
+          is WORSE than aspiration — measured). `../research/retrograde-4x4.md`.
         - [ ] 5x5: density folds (legal ~2x, canonical ~8x -> bump
           colex.layout_version) + disk-streamed layer sweeps. Optional 4x5
           shakedown first (published anchor +20). Journal encoding needs
@@ -165,13 +176,13 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       ported as EXHAUSTIVE whole-table checks (not hand-picked). `solve.zig`
       remains the slow forward reference (finisher + ground truth use it).
 
-## Now — CORRECTNESS BUG found 2026-07-15 (fix before persisting any values)
+## Now — CORRECTNESS BUG found 2026-07-15 (fix before persisting any scores)
 
 - [x] **`is_settled` terminal-territory bug** — FIXED (commit b18e49d):
       `is_settled` now requires every empty point to have a stone neighbour
       (eye-space), so it certifies *decided* positions, not merely
       scoring-settled ones. Corrected census: minimal decided terminal = 10
-      stones. See `research/terminal-territory-bug.md`.
+      stones. See `../research/terminal-territory-bug.md`.
 - [x] **Strategy fork — DECIDED 2026-07-16: goal (b) compressed perfect oracle.**
       See ADR-0007. Engine = retrograde/layered fixpoint (alpha-beta scrapped);
       `persist` to be ported; eye-prune-vs-coverage tension open.
@@ -183,8 +194,8 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       8 tests incl. a real ko via `armies_from_move`. (Zobrist filter and
       irreversible-move pruning are deferred optimizations.)
 - [x] **Benson unconditional-life terminal test** — `src/terminal.zig`
-      `pass_alive` + `is_settled` (pure, 8 unit tests). Recognizes settled
-      positions (all groups pass-alive, every empty region owned).
+      `benson_alive` + `is_settled` (pure, 8 unit tests). Recognizes settled
+      positions (all groups Benson-alive, every empty region owned).
 - [x] **Area / Chinese scoring** — `src/terminal.zig` `area_score`
       (Tromp-Taylor style, snapshot-computable, tested).
 - [~] **Integrate into the search** — design in `decisions/0005` (proposed).
@@ -208,7 +219,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
 - [x] **Clean/tainted (GHI)** — done as the `ko_ref` dependency-ply in `solve`
       (a node caches iff every superko ban in its subtree referenced a ply
       within the subtree, i.e. `ko_ref >= d`). See `decisions/0005`,
-      `research/ghi-and-superko.md`.
+      `../research/ghi-and-superko.md`.
 
 ## Now — reach the full-board oracle (the remaining frontier)
 
@@ -233,7 +244,7 @@ in place; scale is the wall (see ADR-0006 "What this does NOT solve"):
 - [ ] Extend plan-A measurements to depth 8+ on the 48 GB machine; record
       time / nodes / redundancy per depth.
 
-## Provable move-prunes (shrink the space; MUST be value-preserving)
+## Provable move-prunes (shrink the space; MUST be score-preserving)
 
 - [ ] **Super-Benson & other PROVABLE dominance prunes.** Extend the eye-prune
       (ADR-0006) with more cheap, local, provably-sound certificates: super-Benson
@@ -249,7 +260,7 @@ in place; scale is the wall (see ADR-0006 "What this does NOT solve"):
 ## Later — tighter data model (plan B / C)
 
 - [ ] Evaluate combinatorial ranking / minimal perfect hash to replace the
-      dense 2^25 blind array (see `research/data-model-and-measurements.md`).
+      dense 2^25 blind array (see `../research/data-model-and-measurements.md`).
 - [ ] Endgame database of settled terminals (doubles as the ranked DB).
 - [ ] Kishimoto–Müller dependency-set caching for ko-tainted nodes (only if
       the simple "don't cache tainted" version proves too slow).
@@ -260,5 +271,5 @@ in place; scale is the wall (see ADR-0006 "What this does NOT solve"):
       first-stored block lands at index 0 which also means "unset" → that
       block is orphaned/recomputed. Reserve index 0 (start at 1).
 - [ ] Optional: gzip layer (std.compress.flate) over the disk codec; and/or
-      score-frequency entropy coding of the value column.
+      score-frequency entropy coding of the score column.
 - [ ] Push commits to origin when ready (nothing pushed since the port began).

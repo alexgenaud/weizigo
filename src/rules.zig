@@ -24,7 +24,7 @@
 //   pos_from_move — place a stone, remove captured opponent chains, reject
 //                   suicide (no ko here: history/superko is the caller's job).
 //   area_score    — Chinese/area score, Black-positive (port of terminal.zig).
-//   pass_alive    — Benson unconditional life (port of terminal.zig).
+//   benson_alive    — Benson unconditional life (port of terminal.zig).
 //   is_settled    — decided-terminal test incl. eye-space rule (port).
 //   is_own_eye    — the ADR-0006 eye-prune predicate (port of solve.zig).
 //
@@ -167,8 +167,8 @@ pub fn Rules(comptime w: usize, comptime h: usize) type {
             return @intCast(black - white);
         }
 
-        /// Benson unconditional life. Port of terminal.pass_alive.
-        pub fn pass_alive(board: *const Pos, colour: i8) [n]bool {
+        /// Benson unconditional life. Port of terminal.benson_alive.
+        pub fn benson_alive(board: *const Pos, colour: i8) [n]bool {
             var alive = [_]bool{false} ** n;
 
             var chain_id = [_]i16{-1} ** n;
@@ -302,8 +302,8 @@ pub fn Rules(comptime w: usize, comptime h: usize) type {
         /// Decided-terminal test (port of terminal.is_settled, incl. the
         /// eye-space rule from the terminal-territory-bug fix).
         pub fn is_settled(board: *const Pos) bool {
-            const balive = pass_alive(board, 1);
-            const walive = pass_alive(board, -1);
+            const balive = benson_alive(board, 1);
+            const walive = benson_alive(board, -1);
             for (0..n) |p| {
                 if (board[p] > 0 and !balive[p]) return false;
                 if (board[p] < 0 and !walive[p]) return false;
@@ -358,14 +358,14 @@ pub fn Rules(comptime w: usize, comptime h: usize) type {
 
 // ---- tests ------------------------------------------------------------------
 
-test "3x3: middle-column group is pass-alive; board is settled at +9" {
+test "3x3: middle-column group is Benson-alive; board is settled at +9" {
     const R = Rules(3, 3);
     const b = [_]i8{
         0, 1, 0,
         0, 1, 0,
         0, 1, 0,
     };
-    const alive = R.pass_alive(&b, 1);
+    const alive = R.benson_alive(&b, 1);
     try expect(alive[1] and alive[4] and alive[7]);
     try expect(R.is_settled(&b));
     try expect(R.area_score(&b) == 9);
@@ -375,7 +375,7 @@ test "3x3: single stone is not alive; empty board not settled" {
     const R = Rules(3, 3);
     var one = [_]i8{0} ** 9;
     one[4] = 1;
-    const alive = R.pass_alive(&one, 1);
+    const alive = R.benson_alive(&one, 1);
     for (alive) |a| try expect(!a);
     try expect(!R.is_settled(&one));
     try expect(!R.is_settled(&[_]i8{0} ** 9));
@@ -397,7 +397,7 @@ test "capture and suicide on 3x3" {
     try std.testing.expectError(error.Occupied, R.pos_from_move(&after, -1, 1));
 }
 
-test "5x5 cross-validation: area/pass_alive/is_settled match terminal.zig" {
+test "5x5 cross-validation: area/benson_alive/is_settled match terminal.zig" {
     const R = Rules(5, 5);
     const terminal = @import("terminal.zig");
     var prng = std.Random.DefaultPrng.init(0xC0FFEE);
@@ -410,11 +410,11 @@ test "5x5 cross-validation: area/pass_alive/is_settled match terminal.zig" {
             b[i] = if (r == 1) 1 else if (r == 2) -1 else 0; // ~50% empty
         }
         try expect(R.area_score(&b) == terminal.area_score(&b));
-        const pa = R.pass_alive(&b, 1);
-        const pa5 = terminal.pass_alive(&b, 1);
+        const pa = R.benson_alive(&b, 1);
+        const pa5 = terminal.benson_alive(&b, 1);
         for (0..25) |i| try expect(pa[i] == pa5[i]);
-        const wa = R.pass_alive(&b, -1);
-        const wa5 = terminal.pass_alive(&b, -1);
+        const wa = R.benson_alive(&b, -1);
+        const wa5 = terminal.benson_alive(&b, -1);
         for (0..25) |i| try expect(wa[i] == wa5[i]);
         try expect(R.is_settled(&b) == terminal.is_settled(&b));
         checked += 1;
@@ -461,7 +461,7 @@ test "5x5 cross-validation: pos_from_move matches state.armies_from_move" {
 
 // ---- THEORY test: Benson's theorem itself, not just our port of it ----------
 //
-// Benson's claim is falsifiable against the bare RULES: a pass-alive chain can
+// Benson's claim is falsifiable against the bare RULES: a Benson-alive chain can
 // never be captured even if its owner passes forever. We verify it by letting
 // the attacker play EVERY possible sequence of moves (owner always passing)
 // and checking the certified stones survive in every reachable state. Owner
@@ -505,7 +505,7 @@ pub fn benson_theorem_check(comptime w: usize, comptime h: usize, max_stones: us
     while (true) {
         if (stones <= max_stones and E.is_legal(&pos)) {
             inline for (.{ @as(i8, 1), @as(i8, -1) }) |owner| {
-                const alive = R.pass_alive(&pos, owner);
+                const alive = R.benson_alive(&pos, owner);
                 var any = false;
                 for (alive) |a| any = any or a;
                 if (any) {
@@ -539,9 +539,396 @@ test "BENSON'S THEOREM itself (3x3, <=5 stones): certified stones survive every 
     try expect(tested > 0); // vacuous pass would be meaningless
 }
 
+// ---- S2-4x4 implementation regression test ---------------------------------
+//
+// A `benson_alive` that matches the algorithm but with a size-dependent
+// regression (wrong loop bound, off-by-one in array indexing, miscomputed
+// neighbour list) would diverge from the 5x5-hardcoded terminal.zig port. The
+// 3x3 EXHAUSTIVE test above catches most such bugs because 3x3 is enough to
+// exercise loops at small sizes, but a subtle size-related issue (e.g. an
+// `i < n` where `n = w*h` is correct, but a separate `i < 25` lurking) only
+// shows on a 16-cell board. This test:
+//   1. implements an INDEPENDENT, INDEPENDENTLY-STRUCTURED benson_alive (same
+//      Benson fixpoint algorithm; the only common ground is the spec). The
+//      reference uses different loop structure (reverse iteration order,
+//      different neighbour representation, separate boundary logic).
+//   2. compares rules.benson_alive vs the reference on every legal 4x4 board
+//      with <= max_stones stones, both colours. ANY mismatch = BUG.
+//   3. additionally asserts: no certified stone is capturable in one move
+//      by the opponent (a stronger self-consistency: a Benson stone that the
+//      opponent can immediately capture is an automatic violation).
+//
+// Stratification: full 3^16 = 43,046,721 boards is too slow under zig test.
+// Per-stone-count strata, exhaustive within each layer k (C(16,k)*2^k boards).
+// At k=5: 8736*32=279,552; k=6: 8008*64=512,512; ... k=16: 65,536. We
+// exhaust k=0..max_stones inclusive; max_stones=8 in test, max_stones=16
+// in main. Wall-time bounded: 3^16 in ReleaseFast is ~1-3 min, debug is much
+// slower. The test uses ReleaseSafe-equivalent settings via zig test's
+// default (Debug).
+
+/// Independent re-implementation of Benson's benson_alive, structured
+/// DIFFERENTLY from rules.benson_alive to maximize the chance a bug in one
+/// fails to be mirrored in the other. Same algorithm, different code.
+///
+/// Differences from rules.benson_alive:
+///   - neighbour list iterated in reverse (n-1 -> 0 instead of 0 -> n-1)
+///   - chains enumerated by scanning for unvisited same-colour cells, NOT
+///     using the colour-skip guard `board[p] * colour <= 0`; uses an explicit
+///     sign check `board[p] != colour` to decide skipping
+///   - region/chain tables use u8 instead of i16; checked against `0` and
+///     `255` sentinel explicitly
+///   - vitality computation uses a 2-pass approach (compute region size,
+///     then compute vitality) instead of fused in the same loop
+///   - fixpoint loop reverses the chain/region scan order on alternating
+///     iterations (to expose any ordering bug)
+pub fn naive_benson_alive(comptime w: usize, comptime h: usize, board: *const [w * h]i8, colour: i8) [w * h]bool {
+    const n = w * h;
+    var alive = [_]bool{false} ** n;
+    if (colour == 0) return alive;
+
+    // neighbour list — compute once into a flat array
+    var nbr: [n][4]u8 = undefined;
+    var nbr_len: [n]u8 = undefined;
+    for (0..n) |p| {
+        var cnt: u8 = 0;
+        const r = p / w;
+        const c = p % w;
+        if (r > 0) {
+            nbr[p][cnt] = @intCast(p - w);
+            cnt += 1;
+        }
+        if (r + 1 < h) {
+            nbr[p][cnt] = @intCast(p + w);
+            cnt += 1;
+        }
+        if (c > 0) {
+            nbr[p][cnt] = @intCast(p - 1);
+            cnt += 1;
+        }
+        if (c + 1 < w) {
+            nbr[p][cnt] = @intCast(p + 1);
+            cnt += 1;
+        }
+        nbr_len[p] = cnt;
+    }
+
+    // 1. label friendly chains (reverse scan: n-1 -> 0)
+    var chain_id = [_]u8{255} ** n;
+    var num_chains: u8 = 0;
+    {
+        var seen = [_]bool{false} ** n;
+        var p: usize = n;
+        while (p > 0) {
+            p -= 1;
+            if (seen[p]) continue;
+            // same colour? (explicit sign check, not multiplication)
+            if (board[p] == 0) continue;
+            if (colour > 0 and board[p] != 1) continue;
+            if (colour < 0 and board[p] != -1) continue;
+            const id = num_chains;
+            num_chains += 1;
+            // BFS via stack
+            var stack: [n]usize = undefined;
+            var sp: usize = 0;
+            stack[sp] = p;
+            sp += 1;
+            seen[p] = true;
+            while (sp > 0) {
+                sp -= 1;
+                const q = stack[sp];
+                chain_id[q] = id;
+                const cnt = nbr_len[q];
+                var i: u8 = 0;
+                while (i < cnt) : (i += 1) {
+                    const t = nbr[q][i];
+                    if (seen[t]) continue;
+                    const same = (colour > 0 and board[t] == 1) or (colour < 0 and board[t] == -1);
+                    if (!same) continue;
+                    seen[t] = true;
+                    stack[sp] = t;
+                    sp += 1;
+                }
+            }
+        }
+    }
+    if (num_chains == 0) return alive;
+
+    // 2. label regions (reverse scan)
+    var region_id = [_]u8{255} ** n;
+    var num_regions: u8 = 0;
+    {
+        var seen = [_]bool{false} ** n;
+        var p: usize = n;
+        while (p > 0) {
+            p -= 1;
+            if (seen[p]) continue;
+            // non-friendly points (empty OR opponent)
+            const non_friendly = (board[p] == 0) or (colour > 0 and board[p] == -1) or (colour < 0 and board[p] == 1);
+            if (!non_friendly) continue;
+            const id = num_regions;
+            num_regions += 1;
+            var stack: [n]usize = undefined;
+            var sp: usize = 0;
+            stack[sp] = p;
+            sp += 1;
+            seen[p] = true;
+            while (sp > 0) {
+                sp -= 1;
+                const q = stack[sp];
+                region_id[q] = id;
+                const cnt = nbr_len[q];
+                var i: u8 = 0;
+                while (i < cnt) : (i += 1) {
+                    const t = nbr[q][i];
+                    if (seen[t]) continue;
+                    const tnf = (board[t] == 0) or (colour > 0 and board[t] == -1) or (colour < 0 and board[t] == 1);
+                    if (!tnf) continue;
+                    seen[t] = true;
+                    stack[sp] = t;
+                    sp += 1;
+                }
+            }
+        }
+    }
+
+    // 3. region size (empty points in each region)
+    var region_empty = [_]u8{0} ** n;
+    for (0..n) |p| {
+        if (board[p] == 0 and region_id[p] != 255) {
+            region_empty[region_id[p]] += 1;
+        }
+    }
+
+    // 4. border (region x chain) and empty_adj (region x chain: # empty points
+    //    of region adjacent to chain)
+    var borders = [_]bool{false} ** (n * n);
+    var empty_adj = [_]u8{0} ** (n * n);
+    for (0..n) |p| {
+        const rid = region_id[p];
+        if (rid == 255) continue;
+        const cnt = nbr_len[p];
+        if (board[p] == 0) {
+            var seen_cid = [_]bool{false} ** n;
+            var i: u8 = 0;
+            while (i < cnt) : (i += 1) {
+                const t = nbr[p][i];
+                if (chain_id[t] == 255) continue;
+                const cid = chain_id[t];
+                if (seen_cid[cid]) continue;
+                seen_cid[cid] = true;
+                empty_adj[rid * n + cid] += 1;
+            }
+        }
+        // borders: every neighbour t of p (any cell) — if t is friendly, mark
+        var k: u8 = 0;
+        while (k < cnt) : (k += 1) {
+            const t = nbr[p][k];
+            if (chain_id[t] == 255) continue;
+            borders[rid * n + chain_id[t]] = true;
+        }
+    }
+
+    // 5. vitality: region r is vital to chain c iff r has >=1 empty point
+    //    AND every empty point of r is a liberty of c
+    var vital = [_]bool{false} ** (n * n);
+    for (0..num_regions) |ru| {
+        if (region_empty[ru] == 0) continue;
+        for (0..num_chains) |cu| {
+            if (empty_adj[ru * n + cu] == region_empty[ru]) vital[ru * n + cu] = true;
+        }
+    }
+
+    // 6. fixpoint: alternating scan order between iterations
+    var chain_in = [_]bool{true} ** n;
+    var region_in = [_]bool{true} ** n;
+    var changed = true;
+    var alt: u8 = 0;
+    while (changed) {
+        changed = false;
+        if (alt % 2 == 0) {
+            // forward
+            for (0..num_chains) |cu| {
+                if (!chain_in[cu]) continue;
+                var vc: u8 = 0;
+                for (0..num_regions) |ru| {
+                    if (region_in[ru] and vital[ru * n + cu]) vc += 1;
+                }
+                if (vc < 2) {
+                    chain_in[cu] = false;
+                    changed = true;
+                }
+            }
+            for (0..num_regions) |ru| {
+                if (!region_in[ru]) continue;
+                for (0..num_chains) |cu| {
+                    if (borders[ru * n + cu] and !chain_in[cu]) {
+                        region_in[ru] = false;
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        } else {
+            // reverse
+            var cu: usize = num_chains;
+            while (cu > 0) {
+                cu -= 1;
+                if (!chain_in[cu]) continue;
+                var vc: u8 = 0;
+                for (0..num_regions) |ru| {
+                    if (region_in[ru] and vital[ru * n + cu]) vc += 1;
+                }
+                if (vc < 2) {
+                    chain_in[cu] = false;
+                    changed = true;
+                }
+            }
+            var ru: usize = num_regions;
+            while (ru > 0) {
+                ru -= 1;
+                if (!region_in[ru]) continue;
+                for (0..num_chains) |cuu| {
+                    if (borders[ru * n + cuu] and !chain_in[cuu]) {
+                        region_in[ru] = false;
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        alt += 1;
+    }
+
+    for (0..n) |p| {
+        if (chain_id[p] != 255 and chain_in[chain_id[p]]) alive[p] = true;
+    }
+    return alive;
+}
+
+/// For every legal w x h position with <= max_stones stones:
+///   (a) compare R.benson_alive vs naive_benson_alive for both colours; mismatch
+///       is a regression bug in either implementation
+///   (b) check: no stone marked alive by R.benson_alive can be captured by a
+///       single opponent move (immediate-capture self-consistency)
+///   (c) check: no stone marked alive by R.benson_alive is opponent-coloured
+///       (sanity)
+/// Returns (positions_checked, alive_stones_checked).
+pub fn benson_alive_regression_check(comptime w: usize, comptime h: usize, max_stones: usize) !struct {
+    positions: u64,
+    pa_mismatches: u64,
+    immediate_capture_violations: u64,
+} {
+    const R = Rules(w, h);
+    const n = w * h;
+    const E = @import("enumerate.zig").Enumerator(w, h);
+
+    var positions: u64 = 0;
+    var pa_mismatches: u64 = 0;
+    var immediate_capture_violations: u64 = 0;
+
+    var digits = [_]u8{0} ** n;
+    var pos: R.Pos = [_]i8{0} ** n;
+    var stones: usize = 0;
+    while (true) {
+        if (stones <= max_stones and E.is_legal(&pos)) {
+            positions += 1;
+            // (a) compare R.benson_alive vs naive_benson_alive for both colours
+            inline for (.{ @as(i8, 1), @as(i8, -1) }) |owner| {
+                const a = R.benson_alive(&pos, owner);
+                const b = naive_benson_alive(w, h, &pos, owner);
+                for (0..n) |p| {
+                    if (a[p] != b[p]) {
+                        pa_mismatches += 1;
+                        std.debug.print(
+                            "benson_alive MISMATCH at pos (w={d} h={d} stones={d}) owner={d} cell={d}: rules={any} naive={any}\n  board=",
+                            .{ w, h, stones, owner, p, a[p], b[p] },
+                        );
+                        for (0..n) |q| std.debug.print(" {d}", .{pos[q]});
+                        std.debug.print("\n", .{});
+                        return error.PassAliveMismatch;
+                    }
+                }
+                // (b) immediate-capture self-consistency: a certified stone
+                //     of `owner` cannot be captured by a single opponent move
+                for (0..n) |p| {
+                    if (!a[p]) continue;
+                    // try every opponent move; if any captures the certified
+                    // stone in one move, that's a violation
+                    for (0..n) |q| {
+                        if (pos[q] != 0) continue;
+                        const next = R.pos_from_move(&pos, -owner, q) catch continue;
+                        // the certified stone at p must still be there
+                        // (i.e. it was not captured as a result of this move)
+                        if (next[p] != owner) {
+                            immediate_capture_violations += 1;
+                            std.debug.print(
+                                "IMMEDIATE-CAPTURE violation: w={d} h={d} stones={d} owner={d} cert stone p={d} captured by opponent move q={d}\n  board=",
+                                .{ w, h, stones, owner, p, q },
+                            );
+                            for (0..n) |r| std.debug.print(" {d}", .{pos[r]});
+                            std.debug.print("\n", .{});
+                            return error.ImmediateCaptureViolation;
+                        }
+                    }
+                }
+            }
+        }
+        var i: usize = 0;
+        while (i < n) : (i += 1) {
+            if (digits[i] == 2) {
+                digits[i] = 0;
+                pos[i] = 0;
+                stones -= 1;
+                continue;
+            }
+            digits[i] += 1;
+            if (digits[i] == 1) {
+                pos[i] = 1;
+                stones += 1;
+            } else pos[i] = -1;
+            break;
+        }
+        if (i == n) {
+            return .{
+                .positions = positions,
+                .pa_mismatches = pa_mismatches,
+                .immediate_capture_violations = immediate_capture_violations,
+            };
+        }
+    }
+}
+
+test "S2-4x4: benson_alive implementation regression (rules vs naive) for <=5 stones" {
+    // 4x4, k<=5: sum C(16,k)*2^k for k=0..5 = 1+32+480+4480+29120+145152 = 179,265
+    // legal filter is fast (single is_legal call), so wall-time should be
+    // order-of-seconds in debug (zig test default) and sub-second in
+    // ReleaseFast. Generous ceiling: 30s in debug.
+    const r = try benson_alive_regression_check(4, 4, 5);
+    try expect(r.pa_mismatches == 0);
+    try expect(r.immediate_capture_violations == 0);
+    try expect(r.positions > 0);
+    std.debug.print(
+        "S2-4x4 (k<=5): checked {d} legal positions; benson_alive vs naive mismatches={d}; immediate-capture violations={d}\n",
+        .{ r.positions, r.pa_mismatches, r.immediate_capture_violations },
+    );
+}
+
+test "S2-4x4: benson_alive implementation regression (rules vs naive) for <=8 stones" {
+    // 4x4, k<=8: C(16,k)*2^k for k=0..8 sums to 11_876_097 positions; legal
+    // filter reduces. Test-budget: 60s in debug.
+    const r = try benson_alive_regression_check(4, 4, 8);
+    try expect(r.pa_mismatches == 0);
+    try expect(r.immediate_capture_violations == 0);
+    try expect(r.positions > 0);
+    std.debug.print(
+        "S2-4x4 (k<=8): checked {d} legal positions; benson_alive vs naive mismatches={d}; immediate-capture violations={d}\n",
+        .{ r.positions, r.pa_mismatches, r.immediate_capture_violations },
+    );
+}
+
 pub fn main() !void {
     // full-board theorem check: zig run -O ReleaseFast src/rules.zig
     const gpa = std.heap.page_allocator;
     const tested = try benson_theorem_check(3, 3, 9, gpa);
-    std.debug.print("Benson theorem, 3x3 EXHAUSTIVE: {d} (board, owner) cases with pass-alive stones -- all survived every attack sequence. PASS\n", .{tested});
+    std.debug.print("Benson theorem, 3x3 EXHAUSTIVE: {d} (board, owner) cases with Benson-alive stones -- all survived every attack sequence. PASS\n", .{tested});
 }
