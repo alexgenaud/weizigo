@@ -893,3 +893,43 @@ test "vertex mapping: A1 is bottom-left, letters skip I, round-trips" {
     try expect(cell_from_vertex("I5", 9, 9) == null);
     try expect(cell_from_vertex("D1", 3, 3) == null); // off-board
 }
+
+test "4x4 regression: user-win B+15.5 (captures, ko replays, end-game)" {
+    // Fixed transcript of a real game (User/Black beat weizigo-oracle/White,
+    // komi 0.5). See regressions/4x4-history-blunder.{gtp,sgf} + README.
+    // Artifact-independent: exercises rules (captures, positional superko,
+    // area scoring) only - the final area score is 16 -> B+15.5 with komi 0.5.
+    // Guards the capture/ko-replay and two-pass end-game scoring path.
+    const R = rules.Rules(4, 4);
+    const Pos = R.Pos;
+    var pos: Pos = [_]i8{0} ** 16;
+    var seen: [64]Pos = undefined;
+    var seen_n: usize = 0;
+    seen[seen_n] = pos;
+    seen_n += 1; // the initial position recurs -> PSK-illegal to recreate
+    const moves = [_]struct { side: i8, v: []const u8 }{
+        .{ .side = 1, .v = "C3" },  .{ .side = -1, .v = "B2" },
+        .{ .side = 1, .v = "C2" },  .{ .side = -1, .v = "B3" },
+        .{ .side = 1, .v = "B1" },  .{ .side = -1, .v = "C4" },
+        .{ .side = 1, .v = "C1" },  .{ .side = -1, .v = "B4" },
+        .{ .side = 1, .v = "D4" },  .{ .side = -1, .v = "D3" },
+        .{ .side = 1, .v = "D2" },  .{ .side = -1, .v = "A2" },
+        .{ .side = 1, .v = "D4" },  .{ .side = -1, .v = "A1" },
+        .{ .side = 1, .v = "A3" },  .{ .side = -1, .v = "A4" },
+        .{ .side = 1, .v = "A3" },  .{ .side = -1, .v = "A4" },
+        .{ .side = 1, .v = "B4" },  .{ .side = -1, .v = "pass" },
+        .{ .side = 1, .v = "pass" },
+    };
+    for (moves) |m| {
+        if (std.mem.eql(u8, m.v, "pass")) continue; // pass: no board change
+        const cell = cell_from_vertex(m.v, 4, 4) orelse return error.BadVertex;
+        const child = try R.pos_from_move(&pos, m.side, cell);
+        for (seen[0..seen_n]) |b| {
+            try expect(!std.mem.eql(i8, &b, &child)); // positional superko
+        }
+        pos = child;
+        seen[seen_n] = pos;
+        seen_n += 1;
+    }
+    try expect(R.area_score(&pos) == 16); // B+16 -> B+15.5 at komi 0.5
+}

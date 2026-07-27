@@ -1,0 +1,26 @@
+komi 0.5
+boardsize 4
+clear_board
+play B C3
+play W B2
+play B C2
+play W B3
+play B B1
+play W C4
+play B C1
+play W B4
+play B D4
+play W D3
+play B D2
+play W A2
+play B D4
+play W A1
+play B A3
+play W A4
+play B A3
+play W A4
+play B B4
+play W pass
+play B pass
+final_score
+quit

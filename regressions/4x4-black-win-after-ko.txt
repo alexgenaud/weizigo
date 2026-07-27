@@ -1,0 +1,89 @@
+weiz4x4> clear_board 
+= 
+○ weiz4x4> play B B2
+= 
+● weiz4x4> genmove W
+= C3
+oracle: W -> C3  child-value=2 stored-v0=2 KO_SENSITIVE dtt=255
+○ weiz4x4> play B D4
+= 
+● weiz4x4> genmove W
+= B3
+oracle: W -> B3  child-value=-16 stored-v0=-16 KO_SENSITIVE dtt=255
+○ weiz4x4> play B C4
+= 
+● weiz4x4> genmove W
+= B4
+oracle: W -> B4  child-value=-16 stored-v0=-16 dtt=255
+○ weiz4x4> play B C2
+= 
+● weiz4x4> genmove W
+= A3
+oracle: W -> A3  child-value=-16 stored-v0=-16 KO_SENSITIVE dtt=255
+○ weiz4x4> play B D2
+= 
+● weiz4x4> genmove W
+= A2
+oracle: W -> A2  child-value=-16 stored-v0=-16 KO_SENSITIVE dtt=255
+○ weiz4x4> play B D3
+= 
+● weiz4x4> genmove W
+= B1
+oracle: W -> B1  child-value=-16 stored-v0=-16 dtt=255
+○ weiz4x4> play B C1
+= 
+● weiz4x4> genmove W
+= D1
+oracle: W -> D1  child-value=-16 stored-v0=-16 dtt=255
+weiz4x4> clear_board 
+= 
+○ weiz4x4> play B B3
+= 
+● weiz4x4> genmove W
+= C2
+oracle: W -> C2  child-value=2 stored-v0=2 KO_SENSITIVE dtt=255
+○ weiz4x4> play B B2
+= 
+● weiz4x4> genmove W
+= C3
+oracle: W -> C3  child-value=2 stored-v0=2 KO_SENSITIVE dtt=255
+○ weiz4x4> play B C1
+= 
+● weiz4x4> genmove W
+= B4
+oracle: W -> B4  child-value=2 stored-v0=2 KO_SENSITIVE dtt=255
+○ weiz4x4> play B B1
+= 
+● weiz4x4> genmove W
+= C4
+oracle: W -> C4  child-value=1 stored-v0=0 (HISTORY-DIVERGED) KO_SENSITIVE dtt=255
+○ weiz4x4> play B A4
+= 
+● weiz4x4> genmove W
+= A3
+oracle: W -> A3  child-value=0 stored-v0=0 KO_SENSITIVE dtt=255
+○ weiz4x4> play B A2
+= 
+● weiz4x4> genmove W
+= D2
+oracle: W -> D2  child-value=-3 stored-v0=-3 KO_SENSITIVE dtt=255
+○ weiz4x4> play B A4
+= 
+● weiz4x4> genmove W
+= D1
+oracle: W -> D1  child-value=-16 stored-v0=-3 (HISTORY-DIVERGED) KO_SENSITIVE dtt=255
+○ weiz4x4> play B D3
+= 
+● weiz4x4> genmove W
+= D4
+oracle: W -> D4  child-value=16 stored-v0=-16 (HISTORY-DIVERGED) KO_SENSITIVE dtt=255
+○ weiz4x4> play B D3
+= 
+● weiz4x4> genmove W
+= B4
+oracle: W -> B4  child-value=16 stored-v0=16 dtt=255
+○ weiz4x4> play B C4
+= 
+● weiz4x4> genmove W
+= pass
+oracle: W -> pass  child-value=16 stored-v0=16 dtt=1
