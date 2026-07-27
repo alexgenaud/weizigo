@@ -63,6 +63,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         const Score = score.Score(w, h);
         const n = R.n;
         const Pos = R.Pos;
+        const SUSTAINED_K: u8 = 3; // polite-resign sustained-loss window (our turns)
 
         d: *const artifact.Decoded,
         pos: Pos = [_]i8{0} ** n,
@@ -70,11 +71,17 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         hist_len: usize = 0,
         passes: u8 = 0,
         komi: f32 = 0,
+        vals_b: [SUSTAINED_K]i8 = [_]i8{0} ** SUSTAINED_K,
+        vals_b_len: u8 = 0,
+        vals_w: [SUSTAINED_K]i8 = [_]i8{0} ** SUSTAINED_K,
+        vals_w_len: u8 = 0,
 
         pub fn reset(s: *S) void {
             s.pos = [_]i8{0} ** n;
             s.hist_len = 0;
             s.passes = 0;
+            s.vals_b_len = 0;
+            s.vals_w_len = 0;
             // the initial position has occurred: recreating it (capturing
             // everything back to an empty board) is PSK-illegal
             s.push(&s.pos);
@@ -130,47 +137,45 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// fresh-start-optimal among PSK-legal options, value ties broken by
         /// smallest DTT.
         ///
-        /// PASS POLICY (user spec): pass only if (a) pass is STRICTLY best —
-        /// every legal move is worse, not merely tied — (b) at least one stone
-        /// has been played, and (c) passing does not concede a loss. The engine
-        /// TRIES TO WIN: it does not pass out a losing position (that would
-        /// assume the opponent plays optimally), and it never passes before a
-        /// stone is on the board. Ties and losing positions both go to a move;
-        /// the engine plays on. Resign (impossible-to-win) is handled by the
-        /// caller before choose runs.
+        /// PASS POLICY: pass is an OPTIMAL move - play it whenever it is the
+        /// value-best choice (ties resolved by smallest DTT, as always). The
+        /// only politeness gate is "always play in the early game": never pass
+        /// before at least one stone is on the board. (Resign is handled by the
+        /// caller before choose runs.)
         pub fn choose(s: *const S, side: i8) Choice {
             const maximizing = side > 0;
-            const pass_value: i8 = if (s.passes >= 1) R.area_score(&s.pos) else s.v1_from_table(&s.pos, -side);
-            const pass_dtt: u8 = if (s.passes >= 1) 0 else 1;
-            var best_move: ?Choice = null;
+            var best = Choice{
+                .cell = null,
+                .value = if (s.passes >= 1) R.area_score(&s.pos) else s.v1_from_table(&s.pos, -side),
+                .dtt = if (s.passes >= 1) 0 else 1,
+            };
+            var best_move: ?Choice = null; // for the early-game "always play" gate
             for (0..n) |p| {
                 if (s.pos[p] != 0) continue;
                 const child = R.pos_from_move(&s.pos, side, p) catch continue;
                 if (s.seen(&child)) continue; // positional superko
                 const v = s.v0(&child, -side);
-                if (v == UNDEF) continue; // unfilled slot (2-ko+): skip, fall back to pass/other moves
+                if (v == UNDEF) continue; // unfilled slot (2-ko+): skip
                 const dt = s.dtt0(&child, -side);
                 const mv = Choice{ .cell = p, .value = v, .dtt = dt };
                 if (best_move) |bm| {
-                    const better = if (maximizing) v > bm.value else v < bm.value;
-                    if (better or (v == bm.value and dt < bm.dtt)) best_move = mv;
-                } else {
-                    best_move = mv;
+                    const b = if (maximizing) v > bm.value else v < bm.value;
+                    if (b or (v == bm.value and dt < bm.dtt)) best_move = mv;
+                } else best_move = mv;
+                const better = if (maximizing) v > best.value else v < best.value;
+                if (better or (v == best.value and dt < best.dtt)) best = mv;
+            }
+            // "always play in the early game": never pass before a stone exists.
+            if (best.cell == null and !S.anyStone(&s.pos)) {
+                if (best_move) |bm| return bm;
+                for (0..n) |p| { // no evaluable move (all UNDEF): play SOMETHING legal
+                    if (s.pos[p] != 0) continue;
+                    const child = R.pos_from_move(&s.pos, side, p) catch continue;
+                    if (s.seen(&child)) continue;
+                    return .{ .cell = p, .value = UNDEF, .dtt = 255 };
                 }
             }
-            if (best_move) |bm| {
-                const pass_strictly_better = if (maximizing) pass_value > bm.value else pass_value < bm.value;
-                const pass_loses = if (maximizing) pass_value < 0 else pass_value > 0;
-                const any = S.anyStone(&s.pos);
-                if (pass_strictly_better and any and !pass_loses) {
-                    return .{ .cell = null, .value = pass_value, .dtt = pass_dtt };
-                }
-                return bm; // move strictly better, ties pass, no stone yet, or pass would lose -> play on
-            }
-            // no legal move (full board / all children UNDEF or PSK-banned):
-            // passing is the only option; a lost settled board is resigned by
-            // the caller before we get here.
-            return .{ .cell = null, .value = pass_value, .dtt = pass_dtt };
+            return best;
         }
 
         fn anyStone(pos: *const Pos) bool {
@@ -464,26 +469,76 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 } else {
                     const stored = s.v0(&s.pos, side);
                     const undef = stored == UNDEF; // unfilled slot (2-ko+ parallel artifact)
-                    // POLICY: resign only when it is IMPOSSIBLE to win — the board
-                    // is settled (is_settled: all stones Benson-alive, no dame, no
-                    // dead stones) and the area score is against us. A settled-
-                    // against position cannot be improved by any move (only
-                    // self-eye-fills, which hurt), so winning is impossible no
-                    // matter how the opponent plays. PROVEN sound. We never resign
-                    // on a bare bad fresh-start value — that assumed OPTIMAL
-                    // opponent play and conceded games the opponent might still
-                    // throw away (the B40-era White-resigns-after-two-stones
-                    // bug). The engine plays on and tries to win until the
-                    // position is truly decided. area_score is a pure board
-                    // function (table-independent), so this is sound even on
-                    // UNDEF slots.
+                    // POLITE RESIGN (CLAIMED convention, tunable; the objective
+                    // eval stays pure in score.zig + the table). Resign only in
+                    // the LATE game, when DECISIVELY losing - never on a bare bad
+                    // fresh-start value (that assumed optimal opponent play).
+                    //   (1) EARLY-GAME GATE ("always play"): don't resign before
+                    //       min-stones (own >= area/4 OR total >= area/2; on 4x4:
+                    //       4 own / 8 total). Tiny boards rarely meet this before
+                    //       the settled backstop - "tiny boards aren't real go",
+                    //       the polite layer is largely inert there (correct).
+                    //   (2) DECISIVE + SUSTAINED: our fresh-start value has been
+                    //       losing by >= half the board for the last SUSTAINED_K of
+                    //       OUR turns (not a single blip), AND the opponent has a
+                    //       Benson-alive (2-eye) group - they secured territory.
+                    //       ("don't drag out a decisive loss".)
+                    //   (3) BACKSTOP (PROVEN): OR the board is settled (is_settled)
+                    //       and the area score is against us - winning is then
+                    //       impossible regardless of opponent play. area_score is
+                    //       a pure board fn, sound even on UNDEF slots.
+                    const area: usize = w * h;
+                    const SUSTAINED_K: u8 = S.SUSTAINED_K; // local alias (decl lives in Session)
+                    const half_i8: i8 = @intCast(area / 2);
+                    const min_own: usize = area / 4;
+                    const min_total: usize = area / 2;
+                    var own_stones: usize = 0;
+                    var total_stones: usize = 0;
+                    for (s.pos) |x| {
+                        if (x == 0) continue;
+                        total_stones += 1;
+                        if ((x > 0) == (side > 0)) own_stones += 1;
+                    }
+                    const early = own_stones < min_own and total_stones < min_total;
+                    // record this turn's value into the sustained-loss FIFO ring
+                    const vals: *[SUSTAINED_K]i8 = if (side > 0) &s.vals_b else &s.vals_w;
+                    const vlen: *u8 = if (side > 0) &s.vals_b_len else &s.vals_w_len;
+                    if (vlen.* < SUSTAINED_K) {
+                        vals[vlen.*] = stored;
+                        vlen.* += 1;
+                    } else {
+                        var i: u8 = 0;
+                        while (i + 1 < SUSTAINED_K) : (i += 1) vals[i] = vals[i + 1];
+                        vals[SUSTAINED_K - 1] = stored;
+                    }
+                    const decisive_now = !undef and (if (side > 0) stored <= -half_i8 else stored >= half_i8);
+                    var sustained = vlen.* >= SUSTAINED_K and decisive_now;
+                    if (sustained) {
+                        var i: u8 = 0;
+                        while (i < SUSTAINED_K) : (i += 1) {
+                            const vv = vals[i];
+                            const d = (vv != UNDEF) and (if (side > 0) vv <= -half_i8 else vv >= half_i8);
+                            if (!d) sustained = false;
+                        }
+                    }
+                    const opp: i8 = -side;
+                    const opp_alive = S.R.benson_alive(&s.pos, opp);
+                    var opp_2eye = false;
+                    for (opp_alive) |a| if (a) { opp_2eye = true; break; };
                     const settled = S.Score.is_definitive(&s.pos);
                     const area_now: i8 = S.R.area_score(&s.pos);
                     const behind = if (side > 0) area_now < 0 else area_now > 0;
-                    if (settled and behind) {
+                    const settled_backstop = settled and behind;
+                    const resign = (!early) and ((sustained and opp_2eye) or settled_backstop);
+                    if (resign) {
                         reply = "resign";
-                        std.debug.print("oracle: {s} -> resign  settled, area={d} (impossible to win)\n", .{ colort, area_now });
-                        log.line("# oracle {s} -> resign  settled, area={d} (impossible to win)", .{ colort, area_now });
+                        if (settled_backstop) {
+                            std.debug.print("oracle: {s} -> resign  settled, area={d} (impossible to win)\n", .{ colort, area_now });
+                            log.line("# oracle {s} -> resign  settled, area={d} (impossible to win)", .{ colort, area_now });
+                        } else {
+                            std.debug.print("oracle: {s} -> resign  decisively lost late (sustained {d} turns, opp 2-eye), area={d}\n", .{ colort, SUSTAINED_K, area_now });
+                            log.line("# oracle {s} -> resign  decisively lost late (sustained {d} turns, opp 2-eye), area={d}", .{ colort, SUSTAINED_K, area_now });
+                        }
                     } else {
                         const fl = s.flags0(&s.pos, side);
                         const c = s.choose(side);
