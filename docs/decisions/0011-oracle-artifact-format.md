@@ -52,7 +52,7 @@ sessions trust the FILE, not the RAM it came from.
     artifacts/oracle-3x3.wzo  118,130 B   empty(B) = +9, dtt 3 (published anchor)
 
 All three: columns IDENTICAL on reload, headers verified. The 2x2/3x2
-empty-board fresh-start values (+1 both) are engine-produced data validated
+empty-board fresh-start scores (+1 both) are engine-produced data validated
 by the exhaustive 2x2/3x2 ground-truth batteries.
 
 ## Consequences

@@ -4,7 +4,7 @@ Date: 2026-07-18 · Status: **accepted** (design); 3x3 prototype this session
 
 The #6' design ADR (ADR-0007 made retrograde the engine; ADR-0008 fixed the
 stored semantics; `research/oracle-3x3.md` measured forward filling intractable
-even at 3x3). This ADR answers the two load-bearing questions: (a) how values
+even at 3x3). This ADR answers the two load-bearing questions: (a) how scores
 propagate backward (predecessor generation vs something else), and (b) how
 ko/superko/GHI is represented without a history parameter. It also freezes the
 oracle record schema and restates the sign conventions.
@@ -12,15 +12,15 @@ oracle record schema and restates the sign conventions.
 ## The graph model
 
 Game states are nodes `(position, side, passes ∈ {0,1})` over LEGAL positions.
-Terminals: `is_settled(pos)` (value = `area_score(pos)`, any side/passes) and
-the second consecutive pass (value = `area_score(pos)`). Edges: board moves
+Terminals: `is_settled(pos)` (score = `area_score(pos)`, any side/passes) and
+the second consecutive pass (score = `area_score(pos)`). Edges: board moves
 (to `(child, -side, 0)`) and pass (to `(pos, -side, passes+1)`). Pass nodes
 are stored, not eliminated; the Bellman equations are
 
     V1(pos,s) = opt_s( { V0(child,-s) }, score(pos) )          // passes=1
     V0(pos,s) = opt_s( { V0(child,-s) }, V1(pos,-s) )          // passes=0
 
-where `opt_s` = max for Black (s>0), min for White. The oracle's stored value
+where `opt_s` = max for Black (s>0), min for White. The oracle's stored score
 is `V0` — exactly ADR-0008's fresh-start query shape. **Superko does not appear
 in the equations at all**; what it would have contributed is captured by the
 certification below.
@@ -43,7 +43,7 @@ so predecessor lists would not even buy a one-sweep guarantee.
 
 Cost: sweeps × nodes × branching. Sweep order is stone-count DESCENDING
 (children of no-capture moves are one layer up, so Gauss–Seidel picks up fresh
-values within a sweep); iteration repeats until a full sweep changes nothing.
+scores within a sweep); iteration repeats until a full sweep changes nothing.
 The sweep count is a MEASURED quantity (3x3 first, then 4x4) — it is the
 scaling number for 5x5, where each sweep must stream layer blocks from disk.
 
@@ -62,14 +62,14 @@ Both iterations are monotone (Bellman is monotone; seeds are below/above), so
 convergence is guaranteed; each converged table is checkable by one
 zero-change sweep.
 
-**Certification: where `L == H`, the value cannot depend on any cycle rule —
+**Certification: where `L == H`, the score cannot depend on any cycle rule —
 in particular not on superko bans or arrival history — so it equals the
-fresh-start value (and the mid-game value under ANY ban set).** These nodes
+fresh-start score (and the mid-game score under ANY ban set).** These nodes
 are the oracle's certified core. Where `L < H` (Black-favoring cycles and
 White-favoring cycles resolve differently), the node is **ko-sensitive**:
-flagged, bounded by `[L, H]`, and its exact fresh-start value is computed by
+flagged, bounded by `[L, H]`, and its exact fresh-start score is computed by
 the **finisher** — a forward fresh-start solve (`oracle.zig`, full history +
-`ko_ref` rule) whose memo is pre-seeded with every certified value. The
+`ko_ref` rule) whose memo is pre-seeded with every certified score. The
 forward search then terminates the moment it leaves the ko-tangled region,
 which is what makes it tractable where the cold forward build was not.
 
@@ -93,7 +93,7 @@ expensive alternative). Per project doctrine the gap is closed EMPIRICALLY:
    full retrograde+finisher table — must be equal on every slot.
 2. **3x3**: published anchors (empty = B+9 centre, 1.B side = +3, 1.B corner
    = −9 — deep, whole-tree checks); no-memo forward spot checks on ≥6-stone
-   roots; the residue set itself spot-checked hardest.
+   roots; the ko-sensitive set itself spot-checked hardest.
 3. `oracle.zig`'s standing battery: exhaustive colour-inversion + dihedral
    symmetry over the final table AND over the flags (ko-sensitivity is
    symmetric), memo-consistency during the finisher (a finisher memo write
@@ -104,7 +104,7 @@ expensive alternative). Per project doctrine the gap is closed EMPIRICALLY:
 Negating colours swaps max/min roles, hence swaps the fixpoints:
 `L(-pos, -side) == -H(pos, side)` — the exhaustive inversion check must pair
 L with H, not L with itself. (Dihedral transforms stay within each table.)
-The final certified/finished values satisfy the plain ADR-0008 identity.
+The final certified/finished scores satisfy the plain ADR-0008 identity.
 
 ## Decision 3: NO eye-prune in the retrograde graph
 
@@ -114,10 +114,10 @@ anything; a capture back-edge is just a table read), so the ADR-0006 prune is
 unnecessary for tractability here. Consequences:
 
 - **Resolves the ADR-0007 eye-prune-vs-coverage tension: coverage is total.**
-  Every legal (position, side) gets a slot and a value; the prune never
+  Every legal (position, side) gets a slot and a score; the prune never
   removes positions from the oracle.
 - The forward cross-checks (finisher, ground truth, spot checks) DO use the
-  prune (they need it, per ADR-0006). Any value disagreement would therefore
+  prune (they need it, per ADR-0006). Any score disagreement would therefore
   falsify ADR-0006's weak-dominance claim — the validation is also a standing
   empirical test of that ADR. A comptime diagnosis flag can re-enable the
   prune in retrograde to isolate any such mismatch.
@@ -129,30 +129,30 @@ Per (position, side), columnar side-by-side arrays (colex-addressed, per
 `research/teaching-oracle-metrics.md`):
 
     value: i8   exact score, Black-positive; UNDEF (-128) = illegal slot /
-                unfinished residue
+                unfinished ko-sensitive region
     dtt:   u8   depth-to-terminal, saturating at 255
-    flags: u8   bit0 KO_SENSITIVE  (L != H at fixpoint; value from finisher)
-                bit1 FROM_FORWARD  (finisher produced the value)
+    flags: u8   bit0 KO_SENSITIVE  (L != H at fixpoint; score from finisher)
+                bit1 FROM_FORWARD  (finisher produced the score)
                 bits 2..7 reserved
 
 **DTT definition (chosen)**: the *fastest optimal resolution* — plies to a
-terminal when BOTH sides play only value-optimal moves and, among those,
+terminal when BOTH sides play only score-optimal moves and, among those,
 cooperate on speed (min over optimal edges). Computed by a monotone-decreasing
-min-sweep after values are final; well-defined on the cyclic graph. This reads
+min-sweep after scores are final; well-defined on the cyclic graph. This reads
 as "this line can resolve in k plies without either side giving anything up" —
 the teaching metric wanted. (The adversarial DTM-style variant — favored side
 minimizes, unfavored maximizes — is a possible later column; DTT lives in a
-side file precisely so it can be redefined without touching values.)
-Residue/unfinished nodes: 255.
+side file precisely so it can be redefined without touching scores.)
+Ko-sensitive region/unfinished nodes: 255.
 
 ## Sign conventions (restated, mandatory — user has been bitten)
 
 - Scores are **always Black-positive**, whoever is to move. Side-to-move picks
-  the ARRAY (`vb`/`vw`), never the sign of the value.
+  the ARRAY (`vb`/`vw`), never the sign of the score.
 - Black maximizes; White minimizes.
-- Colour inversion: `value(-pos, -side) == -value(pos, side)`; for the bound
+- Colour inversion: `score(-pos, -side) == -score(pos, side)`; for the bound
   tables specifically `L(-pos,-side) == -H(pos,side)` (see above).
-- Dihedral transforms never change value or sign.
+- Dihedral transforms never change score or sign.
 - The colour-symmetry checks are ported into the retrograde battery as
   EXHAUSTIVE table-level checks, not hand-picked cases.
 
@@ -160,8 +160,8 @@ Residue/unfinished nodes: 255.
 
 `src/retro.zig` — board-size-generic like the rest of Gen-2, standalone
 `zig test`, `main` = build + full battery at 2x2 / 3x2 (exhaustive ground
-truth) and 3x3 (anchors, symmetry, spot checks, residue stats, sweep counts,
-finisher cost, DTT stats, value histogram). Results recorded in
+truth) and 3x3 (anchors, symmetry, spot checks, ko-sensitive region stats, sweep counts,
+finisher cost, DTT stats, score histogram). Results recorded in
 `research/retrograde-3x3.md`. Engine-vs-engine (validation doctrine level 3):
 forward and retrograde are the two independent algorithms; every comparison
 above is that doctrine executed.
@@ -169,13 +169,13 @@ above is that doctrine executed.
 ## Consequences / next
 
 - 4x4 is the next scale (43M slots × the working arrays — hundreds of MB,
-  still in-RAM; measures sweep-count growth and residue fraction growth).
+  still in-RAM; measures sweep-count growth and ko-sensitive fraction growth).
 - 5x5 needs the density folds (legal ~2x, canonical ~16x) AND disk-streamed
   sweeps; the layered colex layout was designed for exactly that access
   pattern (contiguous layer blocks).
 - DTT comes essentially free at build time and is unrecoverable later without
   re-solving — hence schema-frozen now (ADR-0008's format-contract warning:
   version the layout in the persist header before writing real artifacts).
-- The GHI residue fraction (ko-sensitive nodes) is now a first-class MEASURED
+- The GHI ko-sensitive fraction (ko-sensitive nodes) is now a first-class MEASURED
   quantity per board size — the number that decides whether history-aware
   extensions (Kishimoto–Müller bucketing) are ever needed for real play.

@@ -1,4 +1,4 @@
-# 0007 — Goal: build a compressed perfect oracle (not just the value)
+# 0007 — Goal: build a compressed perfect oracle (not just the score)
 
 Date: 2026-07-16 · Status: **accepted**
 
@@ -8,7 +8,7 @@ Resolves the top open fork in `docs/research/strategy-open-questions.md`
 ## Decision
 
 The project aims for **goal (b): a compressed perfect oracle** — the
-game-theoretic value of **every reachable (position, side-to-move)** — **not**
+game-theoretic score of **every reachable (position, side-to-move)** — **not**
 goal (a) (proving just the single number, e.g. 5×5 = B+25).
 
 Coverage IS the deliverable: handicaps, either side to move, midgame entry,
@@ -21,29 +21,29 @@ enumerated).
 
 ## Consequences (what follows from choosing (b))
 
-### Engine: NO value-based pruning
+### Engine: NO score-based pruning
 - **Alpha-beta / proof-number search is out of scope.** It returns the root
-  value plus only *bounds* for most nodes and prunes whole subtrees unvisited —
+  score plus only *bounds* for most nodes and prunes whole subtrees unvisited —
   it cannot populate an oracle. This **scraps the former TODO #6** (alpha-beta +
   move ordering), which was a goal-(a) tool.
 - The oracle engine is either:
-  - **Retrograde / layered fixpoint** (efficient target): propagate values up
+  - **Retrograde / layered fixpoint** (efficient target): propagate scores up
     from true terminals. Note captures create **back-edges** (k stones → k−3),
     so this is a **fixpoint iteration, not a single topological sweep**.
-  - **Exhaustive forward minimax + exact-value TT** (current `solve.zig`):
+  - **Exhaustive forward minimax + exact-score TT** (current `solve.zig`):
     a valid but inefficient oracle-builder; keep as the reference / cross-check
     until retrograde is built and validated.
 
 ### Eye-prune (ADR-0006) is now in tension — OPEN
 `solve.is_own_eye` is a forward-search device that omits *legal* eye-filled
-positions. A literal "value of every position" oracle would need those too.
+positions. A literal "score of every position" oracle would need those too.
 Resolution deferred: decide whether the oracle is scoped to
 "positions reachable under non-dominated play" (prune stays) or truly every
 legal position (retrograde evaluates them regardless of the forward prune).
-Flag before persisting values.
+Flag before persisting scores.
 
 ### Persistence is now first-class → port `persist.zig`
-The oracle must checkpoint value tables to disk. `persist.zig` (delta+varint
+The oracle must checkpoint score tables to disk. `persist.zig` (delta+varint
 codec) is therefore **worth keeping** — this resolves the open #2 sub-decision
 in favour of **porting `persist` to `solve.Table`** (swap `mm.seq_score` →
 `solve.SeqScore`, `mm.collision_size` → `solve.block_size`; add a round-trip
@@ -54,13 +54,13 @@ Combinatorial ranking / minimal perfect hash: ~1 byte per canonical
 (position, side); the index IS the key. Storage ~tens of GB canonical for 5×5;
 disk is not the constraint. Regenerate + verify; keep the blob out of git.
 
-### Structure vs values
+### Structure vs scores
 Enumerating positions + legal moves ("structure") is cheap, correct, and
-persistable **now**. Correct **values** require propagation from *true*
+persistable **now**. Correct **scores** require propagation from *true*
 terminals + fixpoint over capture back-edges. "Start in the midgame" works for
-structure, not for values.
+structure, not for scores.
 
-## Correctness prerequisites before persisting any VALUES (recap)
+## Correctness prerequisites before persisting any SCORES (recap)
 1. `is_settled` terminal bug — **fixed** (b18e49d, terminal-territory-bug.md).
 2. Superko / GHI clean-vs-tainted caching — `ko_ref` framework in `solve` (ADR-0005).
 3. Chinese/area terminal score is history-independent — OK (Japanese would need

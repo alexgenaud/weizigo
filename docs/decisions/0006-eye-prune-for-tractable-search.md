@@ -22,16 +22,16 @@ Consequences observed:
   with and without the transposition table. The TT memoizes revisits but does
   **not** shorten a single deep line, so it does not help here.
 - With only 25 cells but self-eye-fill allowed, essentially **no** non-settled
-  position is tractable — the value is correct but unreachable.
+  position is tractable — the score is correct but unreachable.
 
 ## Decision: forbid a player from filling its own true eye
 
 In move generation, skip any empty point `p` such that **every orthogonal
 neighbour of `p` is a stone of the mover that is Benson-unconditionally-alive**
-(`terminal.pass_alive(pos, to_move)`), counting edge/corner points by their
+(`terminal.benson_alive(pos, to_move)`), counting edge/corner points by their
 present neighbours. Implemented as `solve.is_own_eye`.
 
-### Why it is sound (does not change the game value)
+### Why it is sound (does not change the game score)
 
 Under **area (Chinese) scoring**, an empty point enclosed by your own *alive*
 stones already counts as your territory. Playing there:
@@ -40,7 +40,7 @@ stones already counts as your territory. Playing there:
 
 So the move is never better than passing (always available) or than any other
 move, and it can never be the unique optimal choice. Removing it cannot lower
-the mover's achievable value. The opponent, meanwhile, already cannot play in
+the mover's achievable score. The opponent, meanwhile, already cannot play in
 those eyes (suicide). Hence a Benson-alive group's eyes are **immortal from both
 sides**, groups stop dying spuriously, and alive regions settle instead of
 reopening.
@@ -50,7 +50,7 @@ what makes it provably safe rather than a heuristic.
 
 ## Cost
 
-`pass_alive(pos, to_move)` (two flood fills + a small fixpoint) runs once per
+`benson_alive(pos, to_move)` (two flood fills + a small fixpoint) runs once per
 node. That is cheap relative to the exponential blow-up it removes: the dead-
 stone endgame drops from stack-overflow to 4 nodes.
 

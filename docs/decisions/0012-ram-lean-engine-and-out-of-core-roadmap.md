@@ -26,8 +26,8 @@ and the finisher's DFS wanders the whole space; random 1-byte reads cost
   - score: RECOMPUTED on the fly (area_score is O(n), cheaper than the move
     loop already run per slot). Optional i8 column if profiling disagrees.
 - Final columns (vb/vw/fb/fw/db/dw) are written to DISK during finalize
-  (sequential stream), never RAM-resident. Certified values need no column
-  at all mid-pipeline: certified iff L==H, value = L — derive, don't store.
+  (sequential stream), never RAM-resident. Certified scores need no column
+  at all mid-pipeline: certified iff L==H, score = L — derive, don't store.
 - 5x4 converge peak: 8 x 3.49 GB + bits ~= 28.8 GB. FITS in 48 GB.
 
 ## Decision 2: sparse per-root finisher scratch (hash maps, not arrays)
@@ -38,7 +38,7 @@ copies, baselines, bounds, tried) yet each root touches 10^3-10^5 slots
 - per-root exact memo + bounds memo: hash maps keyed by (idx, side),
   cleared per root (no journal revert needed — clearing IS the revert).
 - baseline: derived from L/H directly (no base_vb/base_cb arrays).
-- tried/skip marks: hash set over residue reps only.
+- tried/skip marks: hash set over ko-sensitive reps only.
 Finisher RAM: L/H quads (kept for bracket cuts) + O(touched) maps ~= same
 ~29 GB peak. The u32 journal encoding (idx < 2^30) dies with the arrays;
 anything sparse is keyed u64.
@@ -65,9 +65,9 @@ Published anchor to hit: 4x5 = B+20 (van der Werf & Winands 2009).
    cluster in few target tiles; capture back-edges enumerate per tile-pair
    (the endgame-tablebase literature's standard staging).
 3. **Best-effort publication** (already supported by the format): the
-   certified core streams out first; the residue finisher refines the
+   certified core streams out first; the ko-sensitive finisher refines the
    artifact incrementally by layer, checkpointed, forever resumable.
-   A partial 5x5 oracle (certified core + bracketed residue) is a real,
+   A partial 5x5 oracle (certified core + bracketed ko-sensitive region) is a real,
    publishable artifact long before the finisher completes.
 
 ## Test ladder (user requirement: prove RAM strategies on small boards first)
@@ -98,7 +98,7 @@ lookup must stay fast):
 
 1. **V1 is never stored.** V1(pos,s) = opt(children V0, score) — during a
    slot's own update both sides' children are already enumerated, so V1 is
-   recomputed inline. Quad shrinks 4 -> 2 values per fixpoint per slot.
+   recomputed inline. Quad shrinks 4 -> 2 scores per fixpoint per slot.
 2. **L and H as separate runs** halves the live set again: 2 B/slot per run.
    (5x4 converge: 2 B x 3.49e9 = 7 GB. Trivial.)
 3. **Canonical fold AT GENERATION, not by ranking**: sweep only canonical
@@ -109,7 +109,7 @@ lookup must stay fast):
    cost ~0 bits on disk.
 4. **Out-of-core capture edges by bucketing**: stream a layer sequentially;
    no-capture children hit the adjacent layer (resident); capture updates
-   are emitted as (target, value) records bucketed by target tile and
+   are emitted as (target, score) records bucketed by target tile and
    applied per tile — sequential I/O only (classic external-memory value
    iteration).
 5. **Active-set (dirty-tile) sweeps**: L is monotone up, H monotone down —

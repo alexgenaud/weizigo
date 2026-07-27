@@ -15,9 +15,9 @@ bug (`research/transposition-bug-root-cause.md`).
 
 ## Goal
 
-Compute the true game-theoretic value of a position under **Chinese/area +
+Compute the true game-theoretic score of a position under **Chinese/area +
 positional superko** (ADR 0003) by searching to a real terminal, so leaf
-values are depth-independent and the transposition table is sound.
+scores are depth-independent and the transposition table is sound.
 
 ## New module `solve.zig` (do not mutate `minimax.zig` in place)
 
@@ -54,11 +54,11 @@ Sub-board support (`x_width`, `y_height`) is kept for 2×2/3×3 testing.
 ## Terminal condition
 
 A node is terminal when **either**:
-- `terminal.is_settled(pos)` (Benson: all stones pass-alive, every empty region
+- `terminal.is_settled(pos)` (Benson: all stones Benson-alive, every empty region
   one colour) — an early, sound cut; **or**
 - `passes == 2` (both players passed).
 
-Terminal value = `area_score(pos) − komi`. Under optimal area play a player
+Terminal score = `area_score(pos) − komi`. Under optimal area play a player
 only passes when nothing improves, so at a double-pass no dead stones remain and
 `area_score` is exact (Tromp-Taylor semantics).
 
@@ -71,15 +71,15 @@ are near-terminal (≤8 empty points ⇒ shallow subtree) and are searched
 (= `@popCount(blind)`). `collision_size` should drop its `max_depth` argument
 (the value only ever depended on `num_stones`).
 
-## Passing changes the value → don't cache pass-nodes (Phase 2)
+## Passing changes the score → don't cache pass-nodes (Phase 2)
 
-The value of `(board, side)` depends on whether the opponent just passed: if so,
+The score of `(board, side)` depends on whether the opponent just passed: if so,
 you may pass to end immediately. So `(board, side, passes)` is the true state.
 Resolution: **cache only nodes reached with `passes == 0`** (the normal nodes);
 compute `passes == 1` nodes inline (their stone-move children are normal,
 cacheable nodes, so this is cheap). Keeps the key `(board, side)`.
 
-## GHI: cache only history-independent values (Phase 2)
+## GHI: cache only history-independent scores (Phase 2)
 
 Superko makes legality path-dependent (`research/ghi-and-superko.md`). Handle it
 with a per-node **dependency ply**:
@@ -88,9 +88,9 @@ with a per-node **dependency ply**:
   ply that any superko ban in this subtree referenced (a large sentinel if no
   ban fired). `repeats()` is extended to also return the matched history index.
 - A node at ply `d` is **cacheable iff `ko_ref ≥ d`** — every ban it relied on
-  referenced a position within its own subtree, so its value is
+  referenced a position within its own subtree, so its score is
   path-independent. If `ko_ref < d`, a ban referenced an ancestor *above* the
-  node → value is history-conditional → **do not cache**.
+  node → score is history-conditional → **do not cache**.
 - Propagate upward: a cacheable child contributes the sentinel (no taint); a
   non-cacheable child contributes its `ko_ref`; a superko-pruned child
   contributes the matched ply. Parent `ko_ref` = min of these.
@@ -118,8 +118,8 @@ any ban and don't cache tainted — correct but caches less.)
   depth-limited tests stay green meanwhile.
 - `measure.zig`: still measures the old minimax for now; a new measurement mode
   for `solve` comes with Phase 2.
-- `persist.zig`: unaffected (still `{blind, color, seq, score}`; values become
-  terminal values).
+- `persist.zig`: unaffected (still `{blind, color, seq, score}`; scores become
+  terminal scores).
 - New tests live in `solve.zig`.
 
 ## Open questions / risks

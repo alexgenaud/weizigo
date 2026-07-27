@@ -4,7 +4,7 @@ Date: 2026-07-14 · Status: accepted
 
 ## Context
 
-The value of a Go position depends on the ruleset. The solver needs one
+The score of a Go position depends on the ruleset. The solver needs one
 canonical ruleset for the perfect database, but we also want to score real
 games (with real histories) in the traditional way.
 
