@@ -137,15 +137,16 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// fresh-start-optimal among PSK-legal options, value ties broken by
         /// smallest DTT.
         ///
-        /// PASS POLICY: pass is an OPTIMAL move, not a politeness. Play it
-        /// whenever it is the value-best choice (ties resolved by smallest DTT,
-        /// as always); never pass otherwise. (Resign is the only politeness,
-        /// handled by the caller before choose runs.) On a normal board pass is
-        /// rarely optimal early - the opponent passing would hand you the whole
-        /// board, so you almost always have a better move - so the engine
-        /// naturally plays the opening. On a degenerate tiny board where pass
-        /// is tied-optimal from move 2 (e.g. 3x3 after the center), the engine
-        /// passes, because pass IS optimal there.
+        /// PASS POLICY: pass only when it is OPTIMAL (never suboptimally) -
+        /// ties resolved by smallest DTT. But in the EARLY game the engine
+        /// plays a move even when pass is TIED-optimal ("always play the
+        /// opening"): on 4x4, after a strong 2-stone Black opening White is
+        /// already fresh-start-dead (value 16), so pass is tied-optimal and
+        /// pure-optimal would pass out immediately (game over after 2 stones -
+        /// not a fun opening). Playing a tied-optimal move instead never passes
+        /// suboptimally (consistent with "pass only if optimal") and gives 4x4
+        /// a real opening; resign handles the late hopeless. (Resign is the
+        /// only politeness, handled by the caller before choose runs.)
         pub fn choose(s: *const S, side: i8) Choice {
             const maximizing = side > 0;
             var best = Choice{
@@ -153,6 +154,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 .value = if (s.passes >= 1) R.area_score(&s.pos) else s.v1_from_table(&s.pos, -side),
                 .dtt = if (s.passes >= 1) 0 else 1,
             };
+            var best_move: ?Choice = null; // best non-pass candidate (early-game effort)
             for (0..n) |p| {
                 if (s.pos[p] != 0) continue;
                 const child = R.pos_from_move(&s.pos, side, p) catch continue;
@@ -160,9 +162,29 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 const v = s.v0(&child, -side);
                 if (v == UNDEF) continue; // unfilled slot (2-ko+): skip
                 const dt = s.dtt0(&child, -side);
+                const mv = Choice{ .cell = p, .value = v, .dtt = dt };
+                if (best_move) |bm| {
+                    const b = if (maximizing) v > bm.value else v < bm.value;
+                    if (b or (v == bm.value and dt < bm.dtt)) best_move = mv;
+                } else best_move = mv;
                 const better = if (maximizing) v > best.value else v < best.value;
-                if (better or (v == best.value and dt < best.dtt)) {
-                    best = .{ .cell = p, .value = v, .dtt = dt };
+                if (better or (v == best.value and dt < best.dtt)) best = mv;
+            }
+            // early game (own < area/4 AND total < area/2; 4 own / 8 total on
+            // 4x4): if pass would be chosen, play the best move instead.
+            if (best.cell == null) {
+                const area: usize = w * h;
+                const min_own: usize = area / 4;
+                const min_total: usize = area / 2;
+                var own: usize = 0;
+                var tot: usize = 0;
+                for (s.pos) |x| {
+                    if (x == 0) continue;
+                    tot += 1;
+                    if ((x > 0) == (side > 0)) own += 1;
+                }
+                if (own < min_own and tot < min_total) {
+                    if (best_move) |bm| return bm;
                 }
             }
             return best;
