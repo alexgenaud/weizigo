@@ -488,9 +488,10 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     // fresh-start value (that assumed optimal opponent play).
                     //   (1) EARLY-GAME GATE ("always play"): don't resign before
                     //       min-stones (own >= area/4 OR total >= area/2; on 4x4:
-                    //       4 own / 8 total). Tiny boards rarely meet this before
-                    //       the settled backstop - "tiny boards aren't real go",
-                    //       the polite layer is largely inert there (correct).
+                    //       4 own / 8 total). This is a meaningful early/late line on
+                    //       4x4 (8 total is mid-game): the engine always plays the
+                    //       opening and only considers resigning once the board has
+                    //       filled out.
                     //   (2) DECISIVE + SUSTAINED: our fresh-start value has been
                     //       losing by >= half the board for the last SUSTAINED_K of
                     //       OUR turns (not a single blip), AND the opponent has a
@@ -541,7 +542,11 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     const settled = S.Score.is_definitive(&s.pos);
                     const area_now: i8 = S.R.area_score(&s.pos);
                     const behind = if (side > 0) area_now < 0 else area_now > 0;
-                    const settled_backstop = settled and behind;
+                    // backstop only on a DECISIVE settled loss (|>= half the board):
+                    // a close settled loss (e.g. 4x4 B+2) pass-outs instead -
+                    // "don't resign close games".
+                    const decisive_area = if (side > 0) area_now <= -half_i8 else area_now >= half_i8;
+                    const settled_backstop = settled and behind and decisive_area;
                     const resign = (!early) and ((sustained and opp_2eye) or settled_backstop);
                     if (resign) {
                         reply = "resign";
