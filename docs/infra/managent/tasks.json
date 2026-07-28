@@ -1,11 +1,20 @@
 {
+  "EXP-13": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EXP-13-claimlint-rerun.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-28T23:11:28Z",
+    "claimed": null,
+    "done": null
+  },
   "EXP-5": {
     "status": "blocked",
     "bundle": "docs/infra/dispatch/EXP-5.md",
     "set": "A",
     "holds": [],
     "needs": ["EXP-4"],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
@@ -17,7 +26,6 @@
     "set": "A",
     "holds": ["docs/epistemic/PROGRESS.md,docs/status/CURRENT.md"],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T16:48:06Z",
     "claimed": "2026-07-28T12:21:13Z",
     "done": "2026-07-28T12:21:13Z"
@@ -28,7 +36,6 @@
     "set": "A",
     "holds": [],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T12:59:26Z",
     "claimed": null,
     "done": null
@@ -40,7 +47,6 @@
     "set": "A",
     "holds": [],
     "needs": [],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": "2026-07-28T13:42:18Z",
     "done": null
@@ -51,7 +57,6 @@
     "set": "A",
     "holds": [],
     "needs": ["EXP-6"],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
@@ -63,7 +68,6 @@
     "set": "A",
     "holds": ["src/score.zig,src/gtp.zig"],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T16:33:16Z",
     "claimed": "2026-07-27T16:33:16Z",
     "done": "2026-07-27T16:33:16Z"
@@ -75,7 +79,6 @@
     "set": "C",
     "holds": ["src/gtp.zig"],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T15:32:43Z",
     "claimed": "2026-07-27T16:33:16Z",
     "done": "2026-07-27T16:33:16Z"
@@ -86,7 +89,6 @@
     "set": "A",
     "holds": [],
     "needs": ["EXP-5"],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
@@ -97,7 +99,6 @@
     "set": "A",
     "holds": ["docs/decisions/"],
     "needs": [],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
@@ -109,7 +110,6 @@
     "set": "A",
     "holds": ["src/arena.zig"],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T16:33:16Z",
     "claimed": "2026-07-27T16:33:16Z",
     "done": "2026-07-27T16:33:16Z"
@@ -120,7 +120,6 @@
     "set": "A",
     "holds": [],
     "needs": ["EXP-10"],
-    "needs_context": 0,
     "added": "2026-07-28T12:37:14Z",
     "claimed": null,
     "done": null
@@ -131,7 +130,6 @@
     "set": "A",
     "holds": [],
     "needs": ["EXP-2", "EXP-2B"],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
@@ -142,8 +140,17 @@
     "set": "A",
     "holds": [],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T12:59:26Z",
+    "claimed": null,
+    "done": null
+  },
+  "EXP-12": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EXP-12-denominator-sweep.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-28T23:11:28Z",
     "claimed": null,
     "done": null
   },
@@ -154,10 +161,19 @@
     "set": "A",
     "holds": ["docs/infra/model-perf.md"],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T16:33:16Z",
     "claimed": "2026-07-27T16:33:16Z",
     "done": "2026-07-27T16:33:16Z"
+  },
+  "EXP-14": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EXP-14-corrections-cross-check.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-28T23:11:28Z",
+    "claimed": null,
+    "done": null
   },
   "EXP-9": {
     "status": "dispatchable",
@@ -165,7 +181,6 @@
     "set": "A",
     "holds": ["src/gtp.zig"],
     "needs": [],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
@@ -176,8 +191,27 @@
     "set": "A",
     "holds": ["src/qa023_probe.zig"],
     "needs": [],
-    "needs_context": 0,
     "added": "2026-07-28T12:37:14Z",
+    "claimed": null,
+    "done": null
+  },
+  "EXP-15": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EXP-15-hypotheses-reality-check.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-28T23:11:28Z",
+    "claimed": null,
+    "done": null
+  },
+  "EXP-11": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EXP-11-h-recurrence-check.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-28T23:11:28Z",
     "claimed": null,
     "done": null
   },
@@ -187,7 +221,6 @@
     "set": "A",
     "holds": [],
     "needs": [],
-    "needs_context": 500000,
     "added": "2026-07-27T15:35:50Z",
     "claimed": null,
     "done": "2026-07-27T15:35:56Z"
@@ -199,10 +232,19 @@
     "set": "A",
     "holds": [],
     "needs": [],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": "2026-07-28T12:21:13Z",
     "done": "2026-07-28T12:21:13Z"
+  },
+  "EXP-16": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EXP-16-session-choose-audit.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-28T23:11:28Z",
+    "claimed": null,
+    "done": null
   },
   "EXP-8": {
     "status": "dispatchable",
@@ -210,7 +252,6 @@
     "set": "A",
     "holds": ["src/psk_divergence.zig"],
     "needs": [],
-    "needs_context": 0,
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null
