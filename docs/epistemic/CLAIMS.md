@@ -16,6 +16,20 @@ conflicts, and computes consequences. It never resolves a conflict, never
 promotes or demotes a status, and never rules on an inheritance. Those are the
 user's and Opus's calls.
 
+**Amendment, 2026-07-28 — it does now *carry* adjudications made elsewhere.**
+Per §8 ("this file then updates the status and cites the resolution"), a
+promotion pass on 2026-07-28 recorded rulings **D-1** (QA-009 is two runs, not a
+discrepancy), **D-2** (→ ADR-0016), **D-3** (the two H5(a) corrections) and
+**D-5** (→ ADR-0015), plus EXP-3's measured per-board census. Every status this
+changed cites the ruling or the run that changed it, in the row:
+`QA-009` UNTESTED → FALSE (D-1), `GLOBAL.H1-CENSUS` UNTESTED → PROVEN (EXP-3),
+`3x3.H1-CENSUS` / `4x3.H1-CENSUS` new and PROVEN (EXP-3), `QA-015` decided
+(D-2). **No status was changed on this file's own authority, and none was
+changed to improve a linter counter.** Where a promotion needed a judgement
+nobody had made, it was left undone and named: see §5's note on `mixed`, §6-D18,
+and `GLOBAL.F2`, which stays CLAIMED-and-orphaned because ADR-0015 refutes an
+*argument* and does not falsify the finisher.
+
 Conventions inherited from `AGENTS.md`: epistemic tags on every claim; absolute
 dates; every number cites its run; per-board epistemic independence; scores are
 Black-positive; the board index is a **colex index**, never a "rank".
@@ -184,10 +198,14 @@ durable locator.
 
 ## 2. The register
 
-**245 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into §2.11 the same day). Grouped by family for readability; the column set is identical
-throughout. (Count and all edge counts in §3 reproduced 2026-07-28 by
-`awk '/^## 2\. The register/,/^## 3\./' docs/epistemic/CLAIMS.md | grep -c '^| `'`
-and by tallying the `depends-on` column.)
+**253 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
+§2.11 the same day + **8 added later on 2026-07-28** promoting rulings D-1, D-2,
+D-3, D-5 and EXP-3's per-board census: `3x3.E2-RUN1`, `3x3.E2-RUN2`,
+`3x3.H1-CENSUS`, `4x3.H1-CENSUS`, `GLOBAL.H5a-CHILD`, `GLOBAL.H5a-FALLBACK`,
+`GLOBAL.ADR0016-INHERIT`, `GLOBAL.ADR0015-BURDEN`). Grouped by family for
+readability; the column set is identical throughout. (Row count and all edge
+counts in §3 are printed by `bin/weizigo-claimlint` on every run — that print is
+authoritative, this prose is a snapshot of it.)
 
 ### 2.1 Structural (S) — is the engine correct?
 
@@ -256,7 +274,7 @@ and by tallying the `depends-on` column.)
 | `GLOBAL.C3` | C3 | all | The bracket `[L,H]` bounds the real-game score for any history, any cycle rule in `[−n,n]` | FALSE-AS-SCOPED (at 3×3) | `leak-crisis.md:26`; `PROGRESS.md:128`; `CONCEPTS.md:57-61` | `d:GLOBAL.FP2`, `d:GLOBAL.ADR0009-HONESTY` | `GLOBAL.ADR0010-CUT`, `GLOBAL.F2`, all `F2` rows, `GLOBAL.H5c`, every artifact's ko-sensitive column | 2 | ? |
 | `2x2.C3` | C3 | 2×2 | Range-aware player leak-free at 2×2 (0/4000 games) | MEASUREMENT | `leak-crisis.md:72` | `e:2x2.B1` | `GLOBAL.C3` support | 0 | ? |
 | `3x2.C3` | C3 | 3×2 | Range-aware player leak-free at 3×2 (0/4000 games) | MEASUREMENT | `leak-crisis.md:73` | `e:3x2.B1` | `GLOBAL.C3` support | 0 | ? |
-| `3x3.C3` | C3 / E2 | 3×3 | C3 falsified at 3×3: range-aware self-play leaked (promise +3 → final −9, 12-pt leak) | PROVEN (falsification) | `leak-crisis.md:36,74-79`; `4x4/EPISTEMIC.md:55-66` | `e:3x3.B1`, `e:3x3.E3` | `GLOBAL.C3`, `4x4.C3`, `GLOBAL.H5c` | 0 | ? |
+| `3x3.C3` | C3 / E2 | 3×3 | C3 falsified at 3×3: range-aware self-play leaked (promise +3 → final −9, 12-pt leak) | PROVEN (falsification) | `leak-crisis.md:36,74-79`; `4x4/EPISTEMIC.md:55-66` | `e:3x3.B1`, `e:3x3.E3`, `e:3x3.E2-RUN1`, `e:3x3.E2-RUN2` | `GLOBAL.C3`, `4x4.C3`, `GLOBAL.H5c` | 0 | ? |
 | `4x3.C3` | C3 | 4×3 | C3 at 4×3 — explicitly *not* inherited from the 3×3 falsification | UNTESTED | `4x3/EPISTEMIC.md:34` | `d:GLOBAL.C3` | 4×3 bracket claims | 0 | ? |
 | `4x4.C3` | C3 | 4×4 | C3 at 4×4 — "analogy-expected falsified, NOT an open hypothesis"; a 4×4 run would be characterisation only | UNTESTED (status conflict, §6-D2) | `4x4/EPISTEMIC.md:55-66` | `d:GLOBAL.C3`, `e:3x3.C3` (inherited — §5-I9) | 4×4 deliverable decision | 0 | ? |
 | `GLOBAL.C4` | C4 | all | Fresh-start score == real-game score | FALSE-AS-SCOPED | `leak-crisis.md:27`; `PROGRESS.md:129`; `4x4/EPISTEMIC.md:26` | `d:GLOBAL.C2` (single-score half), `d:GLOBAL.P3` (ko-sensitive half) | `GLOBAL.REFRAME`, `4x4.A-2`, GTP player defect | 0 | ? |
@@ -266,6 +284,8 @@ and by tallying the `depends-on` column.)
 | `GLOBAL.E2-SANITY` | E2 sanity | 2×2/3×2/3×3 | With trivial bounds (`lo=−N, hi=+N`) the same range-aware policy is leak-free everywhere → the E2 harness is wired correctly | PROVEN | `leak-crisis.md:48-52` | — | `3x3.C3` | 0 | ? |
 | `GLOBAL.E2-POLICY` | E2 | all | Correct range-aware policy: Black maximizes `lo[child]`, White minimizes `hi[child]`; the first run used `lo` for both and was wrong | PROVEN (bug + fix) | `leak-crisis.md:81-83` | `d:GLOBAL.INVSYM` | `3x3.C3` validity | 0 | ? |
 | `GLOBAL.E2-VERDICT` | (a) | 3×3 | Survivor hypothesis: C3 is genuinely false because `lo` pessimises cycle *resolutions* while PSK *removes* the move — a structural reason, not an implementation accident | CLAIMED | `leak-crisis.md:38-42,66,172-175` | `d:3x3.B1`, `d:3x3.E3`, `d:GLOBAL.E2-SANITY` | `GLOBAL.C3`, `4x4.C3` analogy argument | 0 | ? |
+| `3x3.E2-RUN1` | — | 3×3 | **E2 run 1 (original).** Range-aware self-play at 3×3 leaked **25 of 4,000 games** = 0.625%; worst leak **12 pts** (promise +3 → final −9). Denominator = games played. Added 2026-07-28 promoting ruling **D-1** | MEASUREMENT | `leak-crisis.md:36,74`; `4x4/EPISTEMIC.md:58`; `open-hypotheses:289` | `e:GLOBAL.E2-POLICY`, `e:GLOBAL.E2-SANITY` | `3x3.C3`, `QA-009`, §6-D1 | 0 | ? |
+| `3x3.E2-RUN2` | — | 3×3 | **E2 run 2 (B06 re-run).** Range-aware self-play at 3×3 leaked **50 of 8,000 games** = 0.625%; worst leak **12 pts**. **An independent replication of run 1, not a double-count of it** — ruled 2026-07-28 (D-1, Opus). Kept as a separate row deliberately: collapsing the two into one destroys the replication, which is the evidence | MEASUREMENT | `PROGRESS.md:128`; the D-1 ruling, recorded in §6-D1 of this file. **No run log is committed** — the 8,000-game output exists nowhere in git, so this row is C3-class debt: the number survives, the run does not | `e:GLOBAL.E2-POLICY`, `e:GLOBAL.E2-SANITY` | `3x3.C3`, `QA-009`, §6-D1 | 0 | ? |
 
 ### 2.4 Finisher / engine (F)
 
@@ -277,8 +297,8 @@ and by tallying the `depends-on` column.)
 | `3x2.F1` | F1 | 3×2 | Writes-on finisher unsound at 3×2: **45 of 378** ko-sensitive slots violate the minimax identity; writes-off gives **0** | PROVEN (falsification) | `consistency-audit.md:25-34`; `0013:15-19`; `4x4/EPISTEMIC.md:49-52` | `e:GLOBAL.AUDITOR` | `GLOBAL.F1`, `4x4.F1`, `4x3.F1`, `4x4.M6` reading 2 | 0 | ? |
 | `4x4.F1` | F1 | 4×4 | Writes-on finisher unsound at 4×4 — "the guard is the same code; the bug is structural, not size-dependent"; the 4×4 auditor sample did not finish | CLAIMED | `4x4/EPISTEMIC.md:27-28,49-52` | `n:GLOBAL.F1` (this row asserts the finisher is UNsound — §4.1-O10), `e:3x2.F1` (inherited — §5-I1) | `4x4.C1`, `4x4.M6`, committed 4×4 ko-sensitive column | 0 | ? |
 | `4x3.F1` | F1 | 4×3 | The committed 4×3 artifact was produced by the same unsound writes-on path | CLAIMED | `4x3/EPISTEMIC.md:35,48-50` | `n:GLOBAL.F1` (asserts UNsoundness — §4.1-O10), `e:3x2.F1` (inherited — §5-I2) | `4x3.C1` | 0 | ? |
-| `GLOBAL.F2` | F2 | all | The bracket-guided finisher (ADR-0010) is sound | CLAIMED | `CONCEPTS.md:110-112`; `0010:14-38,70-81` | `d:GLOBAL.C3`, `d:GLOBAL.ADR0009-HONESTY`, `d:GLOBAL.ADR0006-EYE` | all `C1` rows for finisher-produced slots; all shipped ko-sensitive values | 1 | ? |
-| `GLOBAL.ADR0010-CUT` | — | all | Bracket cutoffs "are valid under any ban set (the bracket is)", so they fire deep inside the ko-tangled opening | CLAIMED | `0010:29-30,16-18` | `d:GLOBAL.C3` | `GLOBAL.F2`, `GLOBAL.H5c`, finisher tractability | 0 | ? |
+| `GLOBAL.F2` | F2 | all | The bracket-guided finisher (ADR-0010) is sound. **Orphan confirmed 2026-07-28 (D-5 → ADR-0015): the fresh-start-root defence fails and the burden on ADR-0010 is undischarged. Status left CLAIMED — the ruling refutes the *justification*, it does not falsify the finisher** | CLAIMED | `CONCEPTS.md:110-112`; `0010:14-38,70-81`; `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md` | `d:GLOBAL.C3`, `d:GLOBAL.ADR0009-HONESTY`, `d:GLOBAL.ADR0006-EYE` | all `C1` rows for finisher-produced slots; all shipped ko-sensitive values | 1 | ? |
+| `GLOBAL.ADR0010-CUT` | — | all | Bracket cutoffs "are valid under any ban set (the bracket is)", so they fire deep inside the ko-tangled opening. **ADR-0015 (2026-07-28) supersedes the justification: only the cutoff (ADR-0010 item 1) needs the premise — bracket move ordering and the aspiration window survive as heuristics** | CLAIMED | `0010:29-30,16-18`; `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md` | `d:GLOBAL.C3` | `GLOBAL.F2`, `GLOBAL.H5c`, finisher tractability | 0 | ? |
 | `GLOBAL.ADR0010-SOUND` | — | all | ADR-0010's bracket claim inherits ADR-0009's honesty clause and is closed empirically, not proved | PROVEN (as a statement about the argument) | `0010:70-81` | `d:GLOBAL.ADR0009-HONESTY` | `GLOBAL.F2` | 0 | ? |
 | `2x2.F2` | F2 | 2×2 | Plain and bracketed finishers agree slot-for-slot at 2×2 (0 diffs, both sides) | MEASUREMENT | `retrograde-3x3.md:197-203` | `e:GLOBAL.INVSYM` | `GLOBAL.F2` support | 0 | ? |
 | `3x3.F2` | F2 | 3×3 | Bracket-guided finisher completes all 622 ko-sensitive orbit reps at 3×3; anchors PIN and MATCH | MEASUREMENT | `retrograde-3x3.md:181-196` | `e:3x3.B1`, `e:3x3.ANCHOR` | `3x3.C1` | 0 | ? |
@@ -405,7 +425,9 @@ and by tallying the `depends-on` column.)
 | ID | legacy | board | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate |
 |---|---|---|---|---|---|---|---|---|---|
 | `GLOBAL.H1` | H1 | all | The simple-ko pivot: every symptom follows from **one** mismatch — PSK is non-Markovian while the table is Markovian; under simple ko + long-cycle-ties the state `(position, side, ko_point)` is Markovian and a table over it would be chainable by construction | CLAIMED | `open-hypotheses:30-118`; `PROGRESS.md:169-183` | `n:GLOBAL.C2`, `n:GLOBAL.C3`, `n:GLOBAL.C4` (the pivot is motivated by their falsity), `d:GLOBAL.CHAIN-KO`, `d:GLOBAL.LONGCYCLE` | project direction; a new ADR | 0 | ? |
-| `GLOBAL.H1-CENSUS` | H1 census | 4×4 | Reachable `(position, ko_point, side)` triple count at 4×4 is a small multiple of the 48,636,330 slots (naive dense bound: 3^16 × 17 × 6 B = **4.39 GB**, 17× the current artifact) | UNTESTED | `open-hypotheses:63-88` | — | `GLOBAL.H1` GO/NO-GO | 0 | ? |
+| `GLOBAL.H1-CENSUS` | H1 census | 4×4 | Reachable `(position, ko_point, side)` triple count at 4×4 is a small multiple of the 48,636,330 slots (naive dense bound: 3^16 × 17 × 6 B = **4.39 GB**, 17× the current artifact). **Measured exactly 2026-07-28 (EXP-3): 51,419,046 reachable triples = 1.057× the 48,636,330 slots; 29,497,329 distinct `(b, ko)` addresses = 4.031% of the naive dense 731,794,257; 176,983,974 B = 177 MB at 6 B/address = 0.69× the current PSK artifact; 29 sweeps to fixpoint. GO on dense addressing.** No sampling, no striding | PROVEN | `docs/evidence/GLOBAL.H1-CENSUS/4x4-standard.txt`; `docs/evidence/GLOBAL.H1-CENSUS/PROVENANCE.md`; `kostate-census-2026-07-28.md:23,228-241`; calibration at 4×4: `4x4-ko-disabled.txt` (known-good), `4x4-broken-every_capture.txt` (known-bad, +91%) | `e:GLOBAL.S3a` (the OEIS A094777 legal-count known-good the census reproduces: 24,318,165) | `GLOBAL.H1` GO/NO-GO, `4x4.D3` budget (≤ 32 GB placeholder → measured 177 MB / 354 MB with passes) | 0 | ? |
+| `3x3.H1-CENSUS` | — | 3×3 | Reachable `(position, side, ko_point)` census at **3×3** under the standard basic-ko detector, exact: **22,736** reachable triples, **13,997** distinct `(b, ko)` addresses = **7.111%** of the naive dense 196,830, 83,982 B at 6 B/address, 16 sweeps. `ko_point = none` on 12,101 of 13,997 addresses (86.4%). New row minted 2026-07-28 — the ID was already cited by `docs/infra/dispatch/EXP-3.md` and `docs/status/CURRENT.md` with no register row | PROVEN | `docs/evidence/GLOBAL.H1-CENSUS/3x3-standard.txt`; `docs/evidence/GLOBAL.H1-CENSUS/PROVENANCE.md`; `kostate-census-2026-07-28.md:21,201-218`; calibration at 3×3: `3x3-ko-disabled.txt`, `3x3-broken-every_capture.txt` (+60%), `3x3-broken-every_move.txt` (+84%) | `e:GLOBAL.S3a` (OEIS A094777 known-good reproduced at 3×3: 12,675) | `GLOBAL.H1` GO/NO-GO | 0 | ? |
+| `4x3.H1-CENSUS` | — | 4×3 | Reachable `(position, side, ko_point)` census at **4×3** under the standard basic-ko detector, exact: **638,266** reachable triples, **375,281** distinct `(b, ko)` addresses = **5.432%** of the naive dense, 2,251,686 B at 6 B/address, 25 sweeps. New row minted 2026-07-28; ID previously dangling. **Calibration caveat, stated not hidden:** the broken-detector known-bads were run at 3×3 and 4×4 only, **not at 4×3**, and 4×3's legal-count known-good (321,689) is the project's own ground truth rather than a published figure. The known-bad is inherited as a property of the *detector code* (one binary, board size a compile-time parameter) per **ADR-0016** clause 2 | PROVEN | `docs/evidence/GLOBAL.H1-CENSUS/4x3-standard.txt`; `docs/evidence/GLOBAL.H1-CENSUS/PROVENANCE.md`; `kostate-census-2026-07-28.md:22,220-226` | `e:4x3.S3a` (the 4×3 legal count 321,689, independently reproduced by the census enumerator), `d:GLOBAL.ADR0016-INHERIT` (the calibration inheritance this row relies on) | `GLOBAL.H1` GO/NO-GO | 0 | ? |
 | `GLOBAL.LONGCYCLE` | — | all | "Long cycle = tie" is a loopy-game fixpoint computable by the existing converge machinery — **UNVERIFIED and must not be asserted**; any candidate must resolve cycles without knowing which earlier boards were seen, or it has smuggled score-on-cycle back in | UNTESTED | `open-hypotheses:92-103` | `d:GLOBAL.R2` (the foreclosure constraint) | `GLOBAL.H1`, any simple-ko build | 0 | ? |
 | `GLOBAL.H2` | H2 | 4×4 | The greedy player's loss rate strictly exceeds the arena's random-persona leak rate | UNTESTED | `open-hypotheses:122-166` | `d:4x4.GREEDY-BIAS`, `e:4x4.B43` | relabelling or retiring the 3.4% figure | 0 | ? |
 | `GLOBAL.H3` | H3 | 4×4 | There is an empty-point count below which memo-free, bracket-free, history-exact 4×4 search under the real history is affordable at play time | UNTESTED | `open-hypotheses:170-214` | `n:GLOBAL.F1` (memo-free *because* the sound memo does not exist) | `GLOBAL.H5b` | 0 | ? |
@@ -415,6 +437,8 @@ and by tallying the `depends-on` column.)
 | `GLOBAL.H4b` | H4(b) | 4×4 | Exhaustive (stride 1) chainability sweep at 4×4 | UNTESTED | `open-hypotheses:229-231,236-239` | — | `GLOBAL.H4`, removes `4x4.M4`'s sampling caveat | 0 | ? |
 | `GLOBAL.H5` | H5 | 4×4 | The GTP player can be made to stop asserting mispriced numbers **without resolving any open epistemic question** | CLAIMED | `open-hypotheses:265-313` | `d:4x4.GTP-DEFECT` | deliverable decision | 0 | ? |
 | `GLOBAL.H5a` | H5(a) | 4×4 | Restricting table steering to the chainable L==H region is **sound but weak** — on 4×4 it gives no table guidance from move one | CLAIMED | `open-hypotheses:274-279` | `d:GLOBAL.CHAIN-LH`, `e:4x4.M5` | player fork | 0 | ? |
+| `GLOBAL.H5a-CHILD` | H5(a) correction 1 | 4×4 | **A 1-ply Bellman-identity check at the current node is NOT sufficient** to license table steering — the **chosen child** must be checked too. Ruled 2026-07-28 (D-3, Opus) as a condition of H5(a) shipping. The demonstrating instance is `4x4.A-3`: at ply 14 the node's own V0 was −3 while the child the player chose was −16, so a node-only check passes exactly where the player is about to be wrong. **A claim to be tested — no implementation exists yet** | UNTESTED | ruling D-3, 2026-07-28; `corrections:99-132`; `regressions/4x4-black-win-after-ko.txt:74`; `open-hypotheses:274-279` | `n:4x4.A-3` (the requirement exists *because* "the player is fresh-start-perfect" is false at the chosen child; if `4x4.A-3` were rehabilitated the node-only check would suffice and this row would lose its reason to exist), `e:GLOBAL.CHAIN-LH`, `e:QA-014` | H5(a) implementation, `GLOBAL.H5` player fork | 0 | ? |
+| `GLOBAL.H5a-FALLBACK` | H5(a) correction 2 | all | **"Refuse" must NOT mean pass.** When the identity check fails, the player falls back to a **history-free quantity** — settled area / Benson-alive territory — which is sound by theorem rather than by table lookup. Ruled 2026-07-28 (D-3, Opus) as the second condition of H5(a) shipping. Passing is a *move* with a value; refusing to price a position is not. **A claim to be tested — no implementation exists yet** | UNTESTED | ruling D-3, 2026-07-28; `open-hypotheses:281-284` (the H5(b) history-free-by-theorem argument this reuses); `0004:16-19,31-34` | `d:GLOBAL.S2`, `d:GLOBAL.ADR0004-TERM`, `e:GLOBAL.H5b` | H5(a) implementation, `GLOBAL.H5` player fork, `src/gtp.zig` genmove | 0 | ? |
 | `GLOBAL.H5b` | H5(b) | 4×4 | History-exact search to a Benson-settled horizon is sound (the settled area score is history-free by theorem) | CLAIMED | `open-hypotheses:281-284` | `d:GLOBAL.S2`, `d:GLOBAL.ADR0004-TERM`, `d:GLOBAL.H3` | player fork | 0 | ? |
 | `GLOBAL.H5c` | H5(c) | 4×4 | Bracket-cut search is tractable (≤3.5e5 nodes for the empty 4×4 root vs >5e8) but **NOT shippable as sound** — cutting on `[L,H]` under a real history *is* claim C3 | PROVEN (as an implication) | `open-hypotheses:286-291`; `ko-sensitive-chainability.md:276-281` | `d:GLOBAL.C3`, `e:GLOBAL.FIN-BRACKET` | §4-O1 (this is the edge that orphans the finisher) | 0 | ? |
 | `GLOBAL.H5d` | — | all | Bounded-history state is the representational route to a real-game claim — a new ADR, not a bug fix | CLAIMED | `open-hypotheses:288-289`; `ko-sensitive-chainability.md:288-289`; `AGENTS.md:71-73` | `n:GLOBAL.C2` | future work | 0 | ? |
@@ -449,6 +473,8 @@ and by tallying the `depends-on` column.)
 | `GLOBAL.ADR0007-BACKEDGE` | — | all | Captures create back-edges (k stones → k−3), so retrograde must be a **fixpoint iteration, not a single topological sweep** | PROVEN | `0007:30-33`; `0009:41-46` | — | `GLOBAL.FP3`, the whole out-of-core design | 0 | ? |
 | `GLOBAL.ADR0009-SUCC` | — | all | Values propagate by successor sweeps, never predecessor generation — un-capture inversion is a large unvalidatable kernel and would not buy a one-sweep guarantee anyway | PROVEN (design argument) | `0009:28-46` | `d:GLOBAL.ADR0007-BACKEDGE` | `src/retro.zig` | 0 | ? |
 | `GLOBAL.ADR0014-PURE` | — | all | `score.zig` consults **no oracle values**; every public function carries an epistemic tag; the report does not claim the fresh-start value and does not bound the real-game PSK score | PROVEN | `0014:16-25,65-71` | `d:GLOBAL.ADR0003-AREA`, `d:GLOBAL.S2` | scoring UI | 0 | ? |
+| `GLOBAL.ADR0016-INHERIT` | — | all | **ADR-0016 (D-2, 2026-07-28):** per-board epistemic independence applies to **empirical** claims (never inherit) and not to **structural** ones — code or mathematics — which may inherit **with the inheritance argument written down**; status does not upgrade on inheritance; `mixed` and cross-ruleset are **unruled** and do not inherit. Supersedes the rule as stated in `AGENTS.md` and `CONCEPTS.md:65-71`; the `AGENTS.md` amendment is **outstanding** (another agent owned that file) | CLAIMED (adopted rule — a decision, not a fact) | `docs/decisions/0016-per-board-independence-empirical-vs-structural.md`; `critique-2026-07-28.md:373` | `e:QA-015` | §5 inheritance audit, §6-D2/D3/D4, `4x3.H1-CENSUS` (first application) | 0 | ? |
+| `GLOBAL.ADR0015-BURDEN` | — | all | **ADR-0015 (D-5, 2026-07-28):** ADR-0010's premise that the `[L,H]` bracket "holds under ANY arrival history" is **refuted as stated** — for an empty-board root the finisher's own search path *is* a real game line, so E2's falsifying histories lie inside the family ADR-0010 claims to cover. `GLOBAL.F2` stays orphaned; the burden is on ADR-0010 and is **undischarged**. A ruling about an *argument*, not a new measurement: it does not establish that the bracket fails at any board other than 3×3. **To be challenged, not ratified** (EXP-10) | CLAIMED | `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md`; `0010:16-18,70-93`; `src/retro.zig:464`; `critique-2026-07-28.md:376` | `n:GLOBAL.C3` (the ruling is justified by C3 being FALSE; if C3 were rehabilitated ADR-0010's premise would stand and this ADR would lose its reason to exist), `e:3x3.C3`, `e:QA-019` | `GLOBAL.F2` orphan status, `QA-018`, `GLOBAL.ADR0010-CUT`, artifact promotion, the brackets-off regen decision | 0 | ? |
 | `GLOBAL.ADR0014-DEAD` | — | all | `dead_stone_estimate` and `territory_japanese` are conservative heuristics, deliberately under-claiming; not a life/death oracle | CLAIMED | `0014:37-38,42-48,68-71` | `d:GLOBAL.S2` | scoring UI honesty | 0 | ? |
 | `4x4.D3` | D3 | 4×4 | Writes-off 4×4 tractability — **a measurement, not a truth claim**. Target wall ≤ 8 h, memory ≤ 32 GB (placeholder, unconfirmed with the user) | UNTESTED | `4x4/EPISTEMIC.md:175-183,328` | `e:4x3.M3` (pilot extrapolation) | `4x4.F2`, `4x4.F3`, `4x4.F4`, `GLOBAL.H4a`, `GLOBAL.H1-CENSUS` budget | 0 | ? |
 | `GLOBAL.B15` | B15 | 2×2/3×2 | Track A 2×2/3×2 regen complete and **byte-identical** | CLAIMED | `PROGRESS.md:238-240,244-245` | `d:GLOBAL.F3` | `2x2.C1`, `3x2.C1` (§6-D10) | 0 | ? |
@@ -491,16 +517,16 @@ drift apart.
 | `QA-006` | QA-006 | 4×4 | "The chainability violations are purely definitional" (Opus, earlier) — refuted: writes-off 1.67% vs writes-on 4.08% at two strides. There is a floor **and** an excess | FALSE | `critique-2026-07-28.md:364`; `ko-sensitive-chainability.md:163-197` | `e:4x4.M6` | `4x4.M6-FLOOR`, `4x4.M6-EXCESS` | 0 | ? |
 | `QA-007` | QA-007 | 4×4 | **Alias of `4x4.M6-EXCESS`.** "The excess above the definitional floor is the ADR-0013 `ko_ref ≥ d` bug" — upgrade path is `RETRO_CONSIST` on both artifacts, not a substitute for the auditor | CLAIMED | `critique-2026-07-28.md:365`; `4x4/EPISTEMIC.md:227-231` | `d:4x4.M6-EXCESS` | `4x4.F3` acceptance framing | 0 | ? |
 | `QA-008` | QA-008 | 4×4 | "`untracked/oracle-4x4-writesoff-checkpoint.wzo` is a completed Track A regen" — asked of GLM 2026-07-28, unanswered. Blocks promoting `QA-007` and cheapening F2/F3 | UNTESTED | `critique-2026-07-28.md:366`; `4x4/EPISTEMIC.md:236-242` | `e:4x4.WRITESOFF` | `QA-007`, `4x4.F3` | 0 | ? |
-| `QA-009` | QA-009 | 3×3 | E2's 3×3 leak count: **50/8000** (`PROGRESS.md`) vs **25/4000** (`leak-crisis.md`) — identical rate, different raw counts. Recorded as a DISCREPANCY and not guessed; identical to §6-D1 | UNTESTED | `critique-2026-07-28.md:367`; `PROGRESS.md:128`; `leak-crisis.md:36,74` | — (a conflict between two records, not a claim resting on either) | §6-D1, `3x3.C3`'s run size | 0 | ? |
+| `QA-009` | QA-009 | 3×3 | "E2's 3×3 leak count is a **discrepancy**: 50/8000 (`PROGRESS.md`) vs 25/4000 (`leak-crisis.md`)" — **refuted 2026-07-28 (D-1, Opus): it is not a discrepancy.** They are two real runs: 25/4,000 is the original E2, 50/8,000 is B06's re-run; identical rate (0.625%) and identical maximum (12 pts) because the second **replicated** the first. Both are now separate register rows and neither was collapsed | FALSE | `critique-2026-07-28.md:367`; ruling D-1, 2026-07-28, recorded in §6-D1 of this file | `e:3x3.E2-RUN1`, `e:3x3.E2-RUN2` | §6-D1 (resolved), `3x3.C3`'s run size | 0 | ? |
 | `QA-010` | QA-010 | all | **Alias of `GLOBAL.ONEMISMATCH`.** "PSK's non-Markovian / Markovian mismatch explains C2, C3, C4 and the collapse" — an interpretation, not a theorem | CLAIMED | `critique-2026-07-28.md:368`; `PROGRESS.md:169-183` | `d:GLOBAL.ONEMISMATCH` | framing only | 0 | ? |
 | `QA-011` | QA-011 | all | **Alias of `GLOBAL.H1`.** "Under simple ko the state `(position, side, ko_point)` is Markovian, so the table is chainable by construction" | CLAIMED | `critique-2026-07-28.md:369`; `open-hypotheses:30-118` | `d:GLOBAL.H1` | `QA-023` (the rule-complete restatement) | 0 | ? |
 | `QA-012` | QA-012 | all | Values converge as the ko-history dial `j`/`k` increases, and the `j`→`j+1` delta **measures** residual suboptimality. Requires ≥2 affordable rungs | UNTESTED | `critique-2026-07-28.md:370`; `roadmap-2026-07-28.md:302-307` | `d:QA-023`, `d:QA-026` | the measured-gap deliverable | 0 | ? |
 | `QA-013` | QA-013 | all | **Alias of `GLOBAL.LONGCYCLE`.** "Long cycles under simple ko can be resolved as a loopy-game fixpoint with loops pinned to the tie value" — highest design risk in the roadmap; must not reintroduce score-on-cycle | UNTESTED | `critique-2026-07-28.md:371`; `open-hypotheses:92-103` | `d:GLOBAL.LONGCYCLE` | `QA-023`, `QA-026` | 0 | ? |
 | `QA-014` | QA-014 | 4×4 | A per-node Bellman-identity check (~16 lookups) lets the player refuse **exactly** when its rule is undefined | UNTESTED | `critique-2026-07-28.md:372`; `ko-sensitive-chainability.md:24-33` | `d:GLOBAL.CHAIN-LH`, `e:4x4.GTP-DEFECT` | `GLOBAL.H5` player fork, the certification deliverable | 0 | ? |
-| `QA-015` | QA-015 | n/a | Per-board independence should distinguish *empirical* claims (never inherit) from *structural / code* claims (inherit, with the argument written down) | CLAIMED (PROPOSED — a rule change, not a fact; the user's call) | `critique-2026-07-28.md:373`; `AGENTS.md:8-13` | — | §5 inheritance audit, `AGENTS.md` §"Per-board epistemic independence" | 0 | ? |
+| `QA-015` | QA-015 | n/a | Per-board independence should distinguish *empirical* claims (never inherit) from *structural / code* claims (inherit, with the argument written down) | CLAIMED (**DECIDED 2026-07-28** — D-2, Opus + GLM; the rule now lives in ADR-0016, and `mixed` was **not** ruled on) | `critique-2026-07-28.md:373`; `docs/decisions/0016-per-board-independence-empirical-vs-structural.md` | — | `GLOBAL.ADR0016-INHERIT`, §5 inheritance audit, the pending `AGENTS.md` amendment | 0 | ? |
 | `QA-016` | QA-016 | 4×4 | "`data/oracle-4x4-parallel.checkpoint.wzo` can state the 4×4 answer" — refuted: `vb[empty] = −128` (UNDEF) by byte inspection, the **root** is unfilled. "99.8% complete" measures the wrong thing when the missing slot is the root | FALSE | `critique-2026-07-28.md:374`; `arena-4x4-undef.md:20-26` | `e:4x4.PARALLEL`, `e:CODE.UNDEF` | roadmap §4 P4 (fitness, not percentage) | 0 | ? |
 | `QA-017` | QA-017 | 3×3/4×3/4×4 | The engine steers **into** the unchainable region: `mixed` policy — engine-to-move nodes 21.24% flagged, nodes it *creates* 47.33%; 4×3 31.49/49.13; 3×3 38.76/59.00 | CLAIMED | `critique-2026-07-28.md:375`; `reachable-kosensitivity-2026-07-28.md` | `e:GLOBAL.CHAIN-KO`, `e:4x4.M4` | `4x4.GREEDY-BIAS`, `GLOBAL.H2` | 0 | ? |
-| `QA-018` | QA-018 | all | **Alias of `GLOBAL.F2`.** "The bracket-guided finisher (F2) is sound" — recorded ORPHANED (O1) at source: it derives from "brackets hold under ANY arrival history" (`0010:16-18`, `src/retro.zig:464`), which is C3 | CLAIMED | `critique-2026-07-28.md:376`; `0010:16-18`; `src/retro.zig:464` | `d:GLOBAL.F2` | every shipped ko-sensitive value | 0 | ? |
+| `QA-018` | QA-018 | all | **Alias of `GLOBAL.F2`.** "The bracket-guided finisher (F2) is sound" — recorded ORPHANED (O1) at source: it derives from "brackets hold under ANY arrival history" (`0010:16-18`, `src/retro.zig:464`), which is C3. **Adjudicated 2026-07-28 (D-5, Opus → ADR-0015): the orphan is real — the fresh-start-root defence fails, because the finisher's own search path from an empty-board root is a real game line. The burden is on ADR-0010 and is undischarged; the row stays orphaned** | CLAIMED | `critique-2026-07-28.md:376`; `0010:16-18`; `src/retro.zig:464`; `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md` | `d:GLOBAL.F2`, `e:GLOBAL.ADR0015-BURDEN` | every shipped ko-sensitive value | 0 | ? |
 | `QA-019` | QA-019 | all | "ADR-0013 Track A (`memo_writes=false`) escapes `QA-018`" — refuted: `bracketed` and `memo_writes` are independent and `saveArtifact` hardcodes `bracketed=true`; the 1.67% writes-off floor is **also** bracket-derived | FALSE | `critique-2026-07-28.md:377`; `src/retro.zig:2407` | `e:GLOBAL.F3`, `e:4x4.M6-FLOOR` | Track A scope, `4x4.F3`, artifact promotion | 0 | ? |
 | `QA-020` | QA-020 | 3×3/4×3/4×4 | "The 4×4 engine can certify some of its own moves in self-play" — refuted: **0%**. 14 plies, 7,000/7,000 nodes flagged, one distinct game line, 144 tie-break variants find no certifiable node. Same at 4×3 | FALSE | `critique-2026-07-28.md:378`; `reachable-kosensitivity-2026-07-28.md` | `e:4x4.M5`, `e:GLOBAL.CHAIN-LH` | `GLOBAL.H5a` ("sound but weak"), the certification deliverable | 0 | ? |
 | `QA-021` | QA-021 | 4×4 | FP1 acceptance check 3 passes **exhaustively** at 4×4 on the shipped `vb`/`vw` columns: 48,599,962 slots, 422,990 violations, **all** KO_SENSITIVE, **zero** outside, 87 s. Upgrades `4x4.FP1-C3`'s 1:37 sample. Does **not** cover `lo`/`hi` — WZO1 has no bracket columns | PROVEN | `critique-2026-07-28.md:379`; `ko-sensitive-chainability.md:109,116` | `e:4x4.M4` | `4x4.FP1-C3`, `GLOBAL.H4b` (discharged), `GLOBAL.H4` (gap (b) closed, gap (a) open) | 0 | ? |
@@ -522,8 +548,13 @@ which **117 are `derives-from`** and **114 are `evidenced-by`**. The near
 and half propagates only doubt, and the project had no way to tell them apart.
 
 **Recounted 2026-07-28 by `weizigo-claimlint`, after the `n:` audit, the §2.11
-import and the C5 shadow sweep: 267 edges — 119 `d:`, 134 `e:`, 14 `n:`.** The tool prints this
-line on every run, so it is maintained rather than remembered. Two things moved:
+import and the C5 shadow sweep: 267 edges — 119 `d:`, 134 `e:`, 14 `n:`.**
+**Recounted again the same day after the eight promotion rows were added:
+290 edges — 122 `d:`, 152 `e:`, 16 `n:`** (the two new `n:` edges are
+`GLOBAL.H5a-CHILD n:4x4.A-3` and `GLOBAL.ADR0015-BURDEN n:GLOBAL.C3`, both
+healthy: each parent is FALSE, which is the state that justifies the child).
+The tool prints this line on every run, so it is maintained rather than
+remembered. Two things moved in the first recount:
 the `n:` audit re-labelled **14 `d:` edges on 9 rows** as derives-from-negation
 (they recorded "justified *because* the parent is false" as "derives from the
 parent"), and §2.11 added 35 edges. **The in-degree ranking below is unchanged
@@ -533,8 +564,8 @@ edges between kinds without adding or removing any. What it *did* change is
 standing on a refutation, not on a refuted premise — then rose to **10** when
 the C5 sweep found `3x3.C1`'s real dependency hiding behind a measurement.
 
-The three-way split is now the finding: **119 edges propagate falsification
-forwards, 133 propagate only doubt, and 14 propagate it backwards.** A project
+The three-way split is now the finding: **122 edges propagate falsification
+forwards, 152 propagate only doubt, and 16 propagate it backwards.** A project
 driven by falsifications needs the third kind; without it, every position
 adopted *because* something fell reads as an orphan of the thing it replaced.
 
@@ -756,7 +787,21 @@ is about*, offered as a starting point only:
 - **mixed** — a structural claim whose only evidence is empirical, at other
   sizes.
 
-**No ruling is made.** The user and Opus decide.
+**No ruling is made** on any individual row below. The user and Opus decide.
+
+**2026-07-28 — the *rule* is now ruled on, the rows are not.** D-2 (Opus + GLM)
+found the per-board-independence rule as stated to be **mis-stated**, and
+**ADR-0016** replaces it: *empirical* claims never inherit; *structural*
+claims — code or mathematics — may, **with the inheritance argument written
+down**, and a status does not upgrade on inheritance. The `kind` column below is
+therefore the operative classification rather than a suggestion. Two limits,
+stated because they are easy to over-read:
+
+- **`mixed` was NOT ruled on** (I3, I4, I18, I19) and **cross-ruleset** (I24) was
+  not either. Both fall under the empirical default: no inheritance is licensed.
+- **Each row still needs its argument written down, or its inheritance
+  withdrawn**, by the owner of the board file it lives in. ADR-0016 does not
+  discharge a single row below, and this register still does not adjudicate them.
 
 | # | claim | what was measured, where | what was inherited, to where | kind | self-flagged? |
 |---|---|---|---|---|---|
@@ -792,13 +837,28 @@ is about*, offered as a starting point only:
 
 Every numeric or status conflict found. **None is resolved here.**
 
-**D1 — E2's 3×3 leak count: 50/8000 vs 25/4000.**
+**D1 — E2's 3×3 leak count: 50/8000 vs 25/4000. — RESOLVED 2026-07-28 (D-1, Opus).**
 `PROGRESS.md:128` — "C3 … FALSE-AS-SCOPED at 3×3 (E2: **50/8000** leaks, max 12 pts)".
 `leak-crisis.md:36` — "E2 found 3×3 leaks (**25/4000** games…)", and its table
 at `leak-crisis.md:74` records `3×3 | 4000 | 25`.
 `4x4/EPISTEMIC.md:58` and `open-hypotheses:289` both say **25/4000**.
 The rate is identical (0.625%); the run size is not. Two runs, or one run
 double-counted. Not guessed.
+
+> **Resolution (ruling D-1, Opus, 2026-07-28; retired from the open list).**
+> **It is not a discrepancy. They are two real runs.** 25/4,000 is the original
+> E2; 50/8,000 is B06's re-run. The rate is identical (0.625%) and the maximum
+> is identical (12 pts) **because the second run replicated the first** — which
+> is evidence, not a bookkeeping error. **Both are kept as separate rows**
+> (`3x3.E2-RUN1`, `3x3.E2-RUN2`, §2.3): collapsing them into one number would
+> destroy the independent replication, which is the strongest thing E2 has.
+> `QA-009` — the row that asserted a discrepancy — is now **FALSE**.
+> **What is still open, and it is not the same question:** the 8,000-game run has
+> **no committed output**. Its numbers survive only in `PROGRESS.md:128`. That is
+> C3-class evidence debt on `3x3.E2-RUN2`, recorded in the row.
+> **Not done here:** `PROGRESS.md:128` and `leak-crisis.md:36,74` still each
+> report one run without saying that a second exists. Adding that provenance is
+> the job of those files' owners; this register does not edit them.
 
 **D2 — C3 at 4×4: falsified-by-analogy vs untested.**
 `4x4/EPISTEMIC.md:55-66` files C3 under **Falsifications** ("analogy-expected
@@ -970,6 +1030,31 @@ alone cannot tell which errata are live. `GLOBAL.B-1` (the ADR-0013 Consequences
 bullet) remains **open** by design — ADRs are append-only, so it needs a
 superseding ADR, not an edit.
 
+**D18 — EXP-3's calibration 2 contradicts its own dispatch, and the
+cross-check that settles it is not committed.** Recorded 2026-07-28 when the
+census rows were added; **not resolved here.**
+`docs/infra/dispatch/EXP-3.md` asserts that with the ko dimension forced to
+`none` the reachable count collapses to the `(position, side)` slot counts
+**25,350 / 643,378 / 48,636,330**.
+`kostate-census-2026-07-28.md:104-144` measured **20,888** (3×3) and
+**45,734,854** (4×4) and states plainly that *the dispatch is wrong, not the
+walk*: the dispatch's figures are the **total addressable** `(position, side)`
+space, while the walk counts **reachable from the empty board under alternating
+play** — two different denominators. The census author flagged this himself
+(`kostate-census-2026-07-28.md:260-264`), which is why the row is PROVEN rather
+than held.
+**But the evidence for the explanation is not in git.** The independent
+depth-parity BFS that produced the reconciling number (3×3 has only **11,109**
+`(position, side)` pairs reachable from `(empty, B-to-move)`) was written to
+`/tmp/test_census_pure.zig` and deliberately not committed as "a sanity
+throwaway". `weizigo-claimlint` C2 now reports that path as dangling, reachable
+from all three `H1-CENSUS` rows. **This is the T13 mechanism exactly** — the
+cross-check that makes a calibration disagreement explicable rather than
+alarming, living outside git. The headline census numbers do not depend on it;
+the *dismissal of the calibration mismatch* does.
+Whoever owns `EXP-3.md` should correct the expected figure; whoever can still
+reproduce the BFS should commit it under `docs/evidence/GLOBAL.H1-CENSUS/`.
+
 ---
 
 ## 7. Evidence-integrity note (found while sweeping)
@@ -1034,9 +1119,13 @@ Consequences for the register, stated without recommendation:
   suffered; the check-to-incident map, the calibration cases and the first full
   run are in `claimlint-2026-07-28.md`. **A row it cannot parse exits 3** — the
   parser never skips a row silently, so a malformed edit is loud, not
-  invisible. As of 2026-07-28 the register does not pass its own linter
-  (23 orphans, 11 dangling paths); that is recorded debt, not a reason to
-  soften a status.
+  invisible. As of the last run on 2026-07-28 the register does not pass its own
+  linter: **10 C1a orphans, 0 C1b alarms, 10 C2 dangling evidence paths**
+  (253 rows, 290 edges, exit 1). That is recorded debt, not a reason to soften a
+  status. **Do not copy these numbers into another document** — the run prints
+  them, and the counters move whenever a cited document is edited (they moved
+  three times on 2026-07-28 while `AGENTS.md` was being rewritten in another
+  console). `claimlint-2026-07-28.md` §11 records that volatility.
 - **Two additive columns, `narrowed` and `wrong-answer-pass-rate`,** are defined
   in §1 and populated per `claimlint-2026-07-28.md` §5–§6. New rows must carry
   both (`0`/`?` is an acceptable honest default) or the linter will refuse the

@@ -20,14 +20,24 @@ edge kind (§9); then the corrected sweep exposed a second class, `d:` edges tha
 dead-end on a measurement (§10). Both changed the headline. What follows is the
 corrected state.
 
+**Revised a third time on 2026-07-28**, after the D-1…D-5 promotion pass added
+eight register rows. **The counters below moved, and one of them moved for a
+reason worth knowing: this document's own earlier numbers disagreed with each
+other** (11 vs 12 dangling paths; 61 vs 65 vs 77 vs 51 unreferenced rows). §11 is
+the reconciliation and **the live tool output is the authority — not this
+prose.** Where a number below is a snapshot, it says so.
+
 **Headline: the register does not pass its own standard.** **10** live claims
 derive from a falsified one — 23 before the `n:` audit removed 14 false
 positives, then +1 when the shadow sweep found a real one that had been hidden
-all along. Eight of the ten are one family. **11** cited evidence paths do not
-exist.
-**79 of 79 PROVEN rows — every single one — fail the roadmap's P1 rule that a
-PROVEN claim's evidence must be committed under `docs/evidence/`.** 75 of those
-79 have never had the discriminating power of their test computed.
+all along. Eight of the ten are one family. **10** cited evidence paths are
+dangling (9 missing + 1 that exists but is git-ignored) — see §11 for why this
+was written as 11 and as 12 in different places, and why it is not stable.
+**79 of the register's 82 PROVEN rows fail the roadmap's P1 rule that a PROVEN
+claim's evidence must be committed under `docs/evidence/`.** It was **79 of 79 —
+every single one** — until 2026-07-28, when EXP-3's three `H1-CENSUS` rows became
+the first Tier A entries in the project's history. 78 PROVEN rows have never had
+the discriminating power of their test computed.
 
 ---
 
@@ -135,7 +145,34 @@ is what "the measurement was shadowing the real dependency" means operationally.
 
 ---
 
-## 3. First full run — findings by category
+## 3. Findings by category
+
+**Two runs are quoted in this section.** The **live** one is authoritative; the
+**first** one is kept because the narrative below was written against it and
+because the delta is itself informative. Every number in the prose that follows
+is a snapshot of the first run unless it says otherwise; §11 lists the deltas.
+
+Live run — `bin/weizigo-claimlint`, 2026-07-28 13:2x CEST, after the D-1…D-5
+promotion pass:
+
+```
+weizigo-claimlint — docs/epistemic/CLAIMS.md
+repo index: 449 files · register §2 lines 199–543
+edges: 290 total — 122 `d:` derives-from, 152 `e:` evidenced-by, 16 `n:` derives-from-negation
+
+== SUMMARY ==
+  rows parsed / unparsed        253 / 0
+  C1a orphans / C1b alarms      10 / 0   (FAILS)
+  C2 dangling evidence paths    10   (FAILS)
+  C3 PROVEN w/o committed evid. 79   (debt only, does not fail yet)   [79 of 82; Tier A = 3]
+  C4 dangling IDs / unreferenced 12 / 57   (report only, does not fail yet)
+  C5 shadowed dependencies      4   (report only, does not fail yet)
+  A  repeated-narrowing smells  5   (report only)
+  B  weak-evidence PROVEN rows  78   (report only)
+  calibration                   PASS
+```
+
+First full run, for the delta (2026-07-28, before the promotion pass):
 
 ```
 weizigo-claimlint — docs/epistemic/CLAIMS.md
@@ -146,7 +183,7 @@ edges: 267 total — 119 `d:` derives-from, 134 `e:` evidenced-by, 14 `n:` deriv
   rows parsed / unparsed         245 / 0
   C1a orphans / C1b alarms      10 / 0   (FAILS)
   C2 dangling evidence paths     12   (FAILS)
-  C3 PROVEN w/o committed evid.  79   (debt only, does not fail yet)
+  C3 PROVEN w/o committed evid.  79   (debt only, does not fail yet)   [79 of 79; Tier A = 0]
   C4 dangling IDs / unreferenced 14 / 61   (report only, does not fail yet)
   C5 shadowed dependencies        4   (report only, does not fail yet)
   A  repeated-narrowing smells    5   (report only)
@@ -154,9 +191,10 @@ edges: 267 total — 119 `d:` derives-from, 134 `e:` evidenced-by, 14 `n:` deriv
   calibration                    PASS
 ```
 
-**Exit code 1.** The register does not pass. That is the honest state, and no
-status in it was changed to make the run green — per the dispatch, the status
-calls are the user's and Opus's.
+**Exit code 1 on both.** The register does not pass. That is the honest state,
+and no status in it was changed to make the run green — not at the first run, and
+not in the promotion pass, where every status change cites the ruling or the run
+that made it (`CLAIMS.md` preamble amendment).
 
 ### C1a — 10 orphans (23 → 9 → 10)
 
@@ -206,9 +244,28 @@ healthy state. The check is not vacuous — see M4 in §2, where rehabilitating
 `GLOBAL.C2` fires four alarms, and the synthetic case that runs on every
 invocation.
 
-### C2 — 11 missing paths, 1 git-ignored evidence document, 1 bulk artifact
+### C2 — 9 missing paths live (11 at the first run), 1 git-ignored evidence document, 1 bulk artifact
 
-| missing path | named in | register rows that reach it |
+**The live count is 10** — 9 unique missing paths plus 1 evidence document that
+exists but is git-ignored. The table below is the **first run's 11**; four rows
+have changed status since, and the reasons are worth recording because they show
+what the counter is sensitive to:
+
+- **Gone (3):** `docs/engine/RISKS.md`, `untracked/discussion.md`,
+  `untracked/idea-heap.md`. All three were reported because **`AGENTS.md` cited
+  them**; `AGENTS.md` was rewritten as an 89-line router in another console on
+  2026-07-28 and no longer does. The files are still absent — the *citation* went
+  away, not the file. Fourteen register rows stopped reaching them.
+- **Appeared and vanished within minutes (1):** `dispatch/EXP-N.md`, cited by the
+  rewritten `AGENTS.md` read-order table at 13:0x and absent from it by 13:11.
+  Two runs eleven minutes apart differed by one on this alone.
+- **New (1):** `/tmp/test_census_pure.zig`, named by
+  `kostate-census-2026-07-28.md` and reachable from the three new `H1-CENSUS`
+  rows. It is EXP-3's independent depth-parity BFS — the cross-check that
+  explains away a calibration mismatch — written to `/tmp` and deliberately not
+  committed. **This is the T13 mechanism, live.** Recorded as `CLAIMS.md` §6-D18.
+
+| missing path (first run) | named in | register rows that reach it |
 |---|---|---|
 | `untracked/B05-glm.md` | `4x4/EPISTEMIC.md`, `CONCEPTS.md`, `PROGRESS.md`, `leak-crisis.md` | **95** |
 | `untracked/T07-audit-hypotheses.md` | `4x4/EPISTEMIC.md` | 46 |
@@ -244,18 +301,27 @@ Not counted as failures, reported separately:
 and is marked "⚠ not yet written" in the read-order list. It has fourteen
 register rows citing `AGENTS.md` behind it.
 
-### C3 — 79 of 79 PROVEN rows have no committed evidence. Tier A is empty.
+### C3 — 79 of 82 PROVEN rows have no committed evidence. Tier A is no longer empty.
 
-| tier | meaning | count |
-|---|---|---|
-| **A** | evidence resolves under `docs/evidence/` — compliant with P1 | **0** |
-| **B** | a committed prose document records the result; no re-runnable probe | **79** |
-| **C** | nothing resolves at all | 0 |
+| tier | meaning | first run | live |
+|---|---|---|---|
+| **A** | evidence resolves under `docs/evidence/` — compliant with P1 | **0** | **3** |
+| **B** | a committed prose document records the result; no re-runnable probe | **79** | **79** |
+| **C** | nothing resolves at all | 0 | 0 |
 
-**Zero of the register's 79 PROVEN claims meet the project's own P1 standard.**
-(77 at the first run; §2.11's import added `QA-021` and `QA-025`, both Tier B.)
-Tier C being empty is the one piece of good news: every PROVEN claim can at
-least point at a committed document. But *not one* points at a probe.
+**Zero of the register's 79 PROVEN claims met the project's own P1 standard at
+the first run.** (77 before §2.11's import added `QA-021` and `QA-025`, both
+Tier B.) Tier C being empty is the one piece of good news: every PROVEN claim can
+at least point at a committed document. But at the first run *not one* pointed at
+a probe.
+
+**Tier A became 3 on 2026-07-28** — `GLOBAL.H1-CENSUS`, `3x3.H1-CENSUS` and
+`4x3.H1-CENSUS`, whose evidence resolves to `docs/evidence/GLOBAL.H1-CENSUS/`
+(raw stdout per board, provenance, and the broken-detector calibration runs;
+committed in `286d679`). **These are the first P1-compliant PROVEN rows in the
+project's history.** The debt did not shrink — 79 rows are still non-compliant,
+and the ratio only improved because the denominator grew — but the standard is
+now demonstrably reachable, by an experiment that cost four minutes of CPU.
 
 Ranked by formal in-degree (how much of the graph rests on it), the top of the
 debt list is:
@@ -274,14 +340,28 @@ debt list is:
 
 **The cheapest remediation is real and worth naming:** `docs/evidence/`
 already contains rescued material for `4x4.B43`, `4x4.B43-DIV`, `CODE.UNDEF`,
-`2x2.B1`/`3x2.B1`/`3x3.B1` (method only) and the UD decisions — but **no
-register row cites `docs/evidence/` in its evidence column**, so Tier A reads 0.
-Some of that is a citation update, not new work. The rest — `GLOBAL.AUDITOR`,
-`GLOBAL.INVSYM`, `GLOBAL.S1`, `3x2.C1` — needs somebody to commit the probe and
-its output. This document does not do it: changing an evidence citation changes
-what the register asserts, and that is not this task's call.
+`2x2.B1`/`3x2.B1`/`3x3.B1` (method only) and the UD decisions — but at the first
+run **no register row cited `docs/evidence/` in its evidence column**, which is
+why Tier A read 0. Some of that is a citation update, not new work. The rest —
+`GLOBAL.AUDITOR`, `GLOBAL.INVSYM`, `GLOBAL.S1`, `3x2.C1` — needs somebody to
+commit the probe and its output. This document does not do it: changing an
+evidence citation changes what the register asserts, and that was not the
+first run's call. **The three `H1-CENSUS` rows are the counter-example, and they
+show the pattern:** the citation update was legitimate there only because the run
+that backs it was committed first.
 
-### C4 — 14 dangling IDs, 0 unmodelled `QA-nnn` IDs (was 14), 65 unreferenced rows
+### C4 — 12 dangling IDs live (14 at the first run), 0 unmodelled `QA-nnn` IDs (was 14), 57 unreferenced rows live
+
+**Read the unreferenced number with §11 open.** It has been written in this
+document as 61, 65, 77 and 51 in four different places, all of them honest
+snapshots of a counter that moves whenever a claim ID is mentioned anywhere in
+`docs/` — including in this file. The live figure is **57**; the tool print is the
+authority and this prose is not.
+
+**Two dangling IDs closed:** `3x3.H1-CENSUS` and `4x3.H1-CENSUS` were dangling
+because EXP-3 minted them in flight; both now have register rows (§2.8) carrying
+EXP-3's measured per-board numbers. That is the check working end to end — it
+flagged an ID the graph could not see, and the ID now has a row and edges.
 
 **Dangling — an ID is cited but has no row.** These are broken edges *inside
 the register itself*, and every one is a place a future falsification would
@@ -297,12 +377,14 @@ fail to propagate:
 | `GLOBAL.C1-CALIB` | `CLAIMS.md:193` | no row |
 | `4x4.X1`, `4x4.X2` | `CLAIMS.md:48` (§1's own minting example), `CLAIMS.md:267` | `4x4.X2` is named as a dependent of `4x4.B43` and does not exist |
 | `4x4.S2` | `CLAIMS.md:41` (§1's scope-disambiguation example) | the row is `4x4.S2-impl`; §1's own worked example cites an ID the register does not carry |
-| `3x3.H1-CENSUS`, `4x3.H1-CENSUS` | `docs/infra/dispatch/EXP-3.md:155`, `docs/status/CURRENT.md:25` | in-flight work minting new IDs |
-| `2x2.BASICKO-TIE`, `3x2.BASICKO-TIE` | `docs/infra/dispatch/EXP-4.md:136` | in-flight work minting new IDs |
+| `3x3.H1-CENSUS`, `4x3.H1-CENSUS` | `docs/infra/dispatch/EXP-3.md:155`, `docs/status/CURRENT.md:25` | in-flight work minting new IDs — **CLOSED 2026-07-28: both now have rows in §2.8** |
+| `2x2.BASICKO-TIE`, `3x2.BASICKO-TIE` | `docs/infra/dispatch/EXP-4.md:136` | in-flight work minting new IDs — still dangling (EXP-4 has not landed) |
 
 The last four are the tool working as intended on *live* work: two other
 consoles are creating claims right now, and the register does not know about
-them yet.
+them yet. **Two of the four have since been closed**, which is the check's whole
+purpose: an ID minted in a dispatch brief was caught before it became a second
+graph with no edges.
 
 **A second ID namespace the register does not model.** `roadmap-2026-07-28.md`
 and the dispatch briefs use **14 distinct `QA-nnn` IDs** — `QA-010`, `QA-011`,
@@ -316,16 +398,21 @@ being created right now, faster than the register is being maintained.
 **Recommendation (not a ruling): §1 should either admit `QA-nnn` as a scope or
 the roadmap should stop minting it.**
 
-**Unreferenced — 77 rows** at the first run have no citation outside §2 and no
-incoming edge inside it. Most are terminal MEASUREMENT rows and that is fine.
-A claim nothing rests on is either a fact the project has stopped using, or an
-edge somebody forgot to write.
+**Unreferenced — 77 rows** when the sweep was run *before* this document
+existed: no citation outside §2 and no incoming edge inside it. Most are terminal
+MEASUREMENT rows and that is fine. A claim nothing rests on is either a fact the
+project has stopped using, or an edge somebody forgot to write.
 
 *The metric is live, and publishing this document moved it.* Re-running after
-this file was committed gives **51** unreferenced rows: discussing 26 of them
-here counts as a reference. That sensitivity to prose is a limitation of the
-smell, not a fix for it — the count says "nobody is talking about this claim",
-which is weaker than "nothing depends on this claim". The residue after this
+this file was committed gave **51**: discussing 26 of them here counts as a
+reference. The first-run SUMMARY block above prints **61**, and the live run
+prints **57**. **All four numbers are real and none is wrong** — they are the same
+counter at four different moments, and the moments differ by which documents
+existed and what they mentioned. The lesson is not that the counter is broken; it
+is that **this figure must be read from the tool, never quoted from prose**, and
+§11 says so once for the whole document. That sensitivity to prose is a limitation
+of the smell — the count says "nobody is talking about this claim", which is
+weaker than "nothing depends on this claim". The residue after this
 document is the interesting set; the PROVEN members are
 `GLOBAL.ADR0004-P1`, `GLOBAL.ADR0005-SUBBOARD`, `GLOBAL.ADR0007-AB`,
 `GLOBAL.ADR0009-DTT`, `GLOBAL.ADR0009-SUCC`, `GLOBAL.ADR0012-V1`,
@@ -425,14 +512,19 @@ never narrowed, and recording a narrowing there would have been invention.
 
 ```
   WEAK EVIDENCE — stated rate above 25%:            0
-  WEAK EVIDENCE — rate not computed (`?`):         75 PROVEN rows
+  WEAK EVIDENCE — rate not computed (`?`):         78 PROVEN rows   (75 at the first run)
   discriminating (rate stated and <= 25%):          4
     `GLOBAL.S1`  ~0%      `4x4.S1`   ~0%
     `4x4.S3a`    <0.01%   `4x3.S3a`  <0.1%
 ```
 
-**75 of 79 PROVEN claims have never had the question asked.** That is the
-finding — not the zero in the first line. The critique's proposal was that
+**78 of 82 PROVEN claims have never had the question asked** (75 of 79 at the
+first run). That is the finding — not the zero in the first line. **The three new
+rows made it worse, deliberately:** the `H1-CENSUS` rows carry `?` because EXP-3's
+broken-detector calibration shows the count *is* discriminating (a wrong detector
+moved it by +60%, +84%, +91% and −8%) without anybody computing the probability a
+wrong answer would land on the right number. Writing a figure there would have
+been invention, so the honest cost is three more `?` rows. The critique's proposal was that
 *every* validation state the probability a wrong result would also have passed
 it; the register now has a column for it and it is 95% empty.
 
@@ -519,11 +611,12 @@ Exit codes: `0` clean · `1` C1a/C1b/C2 found something · `2` calibration faile
 could not be parsed. C3, C4, C5, A and B report but do not fail.
 
 **Suggested gate, not yet imposed:** C1 and C2 already exit non-zero, so the
-tool is ready to be a pre-commit check the moment the current 10 + 12 findings
-are adjudicated — and after the `n:` audit those 9 are one coherent question
-(the bracket claim), not a scatter. C3, C4, A and B should stay reporting-only
-until the debt they measure has been worked down — turning a check red on day
-one, when it is red for 79 of 79 rows, trains people to ignore it.
+tool is ready to be a pre-commit check the moment the current **10 orphans + 10
+dangling paths** are adjudicated — and after the `n:` audit the orphans are one
+coherent question (the bracket claim, now ruled on in ADR-0015), not a scatter.
+C3, C4, A and B should stay reporting-only until the debt they measure has been
+worked down — turning a check red on day one, when it is red for 79 of 82 rows,
+trains people to ignore it.
 
 ---
 
@@ -600,7 +693,8 @@ a claim-ID-named evidence directory (`docs/evidence/QA-023/`) — was invisible 
 the graph.
 
 All 28 are now rows in **§2.11**. Namespace coverage went **14 unmodelled → 0**,
-and the register is 217 → **245 rows**.
+and the register is 217 → **245 rows** (and 245 → **253** after the 2026-07-28
+promotion pass — §11).
 
 **Status mapping** (the source tables use words this register does not; nothing
 was re-adjudicated):
@@ -710,6 +804,64 @@ schema change and belongs in a deliberate decision, not in this task.
 
 ---
 
+## 11. Reconciliation — this document contradicted itself, and what the tool actually says
+
+Added 2026-07-28, third revision. **A lint tool whose own report disagrees with
+itself cannot be the source of truth for anything**, and this report did:
+
+| counter | written here as | live |
+|---|---|---|
+| C2 dangling evidence paths | **11** (headline, §3 heading) and **12** (§3 SUMMARY block, and `STATE.md`) | **10** (9 missing + 1 git-ignored) |
+| C4 unreferenced rows | **61** (§3 SUMMARY), **65** (§3 heading), **77** (§3 prose), **51** (§3 prose, post-publication re-run) | **57** |
+| C3 PROVEN without committed evidence | **79 of 79**, Tier A **0** | **79 of 82**, Tier A **3** |
+| B PROVEN rows with `?` rate | **75** | **78** |
+| rows / edges | **245** / **267** | **253** / **290** |
+
+**None of those numbers was fabricated, and that is the point.** Each was a true
+reading at a different moment, and three separate mechanisms move them:
+
+1. **The register changes.** The `n:` audit, the §2.11 import, the C5 shadow fix
+   and the 2026-07-28 promotion pass each added or retargeted rows and edges.
+   245 → 253 rows and 267 → 290 edges are that.
+2. **Documents the register cites change, in other consoles.** The C2 count fell
+   from 12 to 9 missing paths mostly because **`AGENTS.md` was rewritten** as an
+   89-line router while this work was in flight: its citations of
+   `docs/engine/RISKS.md`, `untracked/discussion.md` and `untracked/idea-heap.md`
+   went away, so fourteen register rows stopped reaching three absent files. The
+   files are still absent. Two runs eleven minutes apart on 2026-07-28 differed by
+   one path (`dispatch/EXP-N.md`, cited by the router at 13:0x and gone by 13:11).
+3. **The C4 unreferenced count reads prose.** A row counts as referenced if any
+   document in `docs/` mentions its ID — so *writing about* the unreferenced rows
+   makes them referenced. Publishing this document alone moved the figure by 26.
+
+### The rule this establishes
+
+**Quote the tool, never the prose.** `bin/weizigo-claimlint` prints every counter
+on every run in about a second. Any number in any document is a snapshot with a
+timestamp attached, and a document that repeats a counter in four places will
+drift in at least three of them. Concretely:
+
+- `CLAIMS.md` §8 now says "do not copy these numbers into another document" and
+  names the volatility.
+- The §3 block above is dated and labelled *live*, with the first run kept
+  beside it for the delta rather than merged into it.
+- **C4's unreferenced count should be read as a smell with a moving baseline, not
+  as a metric.** If it is ever wanted as a metric, the fix is to count only
+  *incoming register edges* and drop the prose limb — a tool change, not a
+  documentation change, and not made here.
+
+### What did not move, and why that matters
+
+**C1a orphans: 10, before and after. C1b alarms: 0. Calibration: PASS. Exit: 1.**
+The two checks that actually fail the run were untouched by eight new rows, two
+new `n:` edges and a ruling on the family behind eight of the ten orphans. That is
+the correct behaviour: **ADR-0015 rules that the ADR-0010 bracket justification is
+refuted, which is a reason the orphans are *real*, not a reason to clear them.**
+Adjudicating an orphan does not delete it; only a proof or a status change does,
+and no status was changed to move a counter.
+
+---
+
 Tagged claims: `GLOBAL.CALIB-LESSON` (the calibration requirement this tool
 honours), `GLOBAL.C2`, `GLOBAL.C3`, `GLOBAL.C4`, `GLOBAL.F1`, `GLOBAL.F2`,
 `GLOBAL.REFRAME`, `GLOBAL.H1`, `GLOBAL.H5c`, `3x2.T13`,
@@ -717,4 +869,8 @@ honours), `GLOBAL.C2`, `GLOBAL.C3`, `GLOBAL.C4`, `GLOBAL.F1`, `GLOBAL.F2`,
 `QA-018` (the imported alias that inherited O1), `QA-022` (the evidence-deletion
 incident C2 and C3 exist to prevent recurring), `QA-023` (imported so the
 roadmap's load-bearing claim is finally in the graph), `3x3.C1` and `3x3.F2`
-(the shadowed dependency C5 exists to catch).
+(the shadowed dependency C5 exists to catch), and — added in the third revision —
+`GLOBAL.H1-CENSUS`, `3x3.H1-CENSUS`, `4x3.H1-CENSUS` (Tier A, and the two
+dangling IDs C4 caught), `GLOBAL.ADR0015-BURDEN` (the ruling on the orphan
+family), `GLOBAL.ADR0016-INHERIT`, `QA-009` (the discrepancy that was not one),
+`3x3.E2-RUN1` / `3x3.E2-RUN2`.
