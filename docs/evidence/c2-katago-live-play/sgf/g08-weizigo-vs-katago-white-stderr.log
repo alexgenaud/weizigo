@@ -1,0 +1,96 @@
+>>> boardsize 3
+2026-07-26 22:30:43+0200: Running with following config:
+allowResignation = false
+chosenMoveTemperature = 0
+chosenMoveTemperatureEarly = 0
+dynamicPlayoutDoublingAdvantageCapPerOppLead = 0
+logAllGTPCommunication = true
+logDir = untracked/katago-logs
+logSearchInfo = true
+logSearchInfoForChosenMove = true
+logToStderr = true
+maxVisits = 2000
+numSearchThreads = 2
+ponderingEnabled = false
+resignConsecTurns = 10
+resignThreshold = -0.99
+rules = tromp-taylor
+startupPrintMessageToStderr = true
+
+2026-07-26 22:30:43+0200: GTP Engine starting...
+2026-07-26 22:30:43+0200: KataGo v1.16.5
+2026-07-26 22:30:43+0200: Using TrompTaylor rules initially, unless GTP/GUI overrides this
+2026-07-26 22:30:43+0200: Using 2 CPU thread(s) for search
+2026-07-26 22:30:43+0200: nnRandSeed0 = 7218060658948656399
+2026-07-26 22:30:43+0200: After dedups: nnModelFile0 = /opt/homebrew/Cellar/katago/1.16.5/share/katago/g170-b40c256x2-s5095420928-d1229425124.bin.gz useFP16 auto useNHWC auto
+2026-07-26 22:30:43+0200: Initializing neural net buffer to be size 19 * 19 exactly
+Metal backend 0: GPU mode - using MPSGraph (GPU)
+Metal backend: MPSGraph initialized on Apple M5 Max (mask optimized)
+Metal backend 0: Initialized MPSGraph GPU-only mode
+2026-07-26 22:30:44+0200: Loaded neural net with nnXLen 19 nnYLen 19
+2026-07-26 22:30:44+0200: Initializing board with boardXSize 19 boardYSize 19
+2026-07-26 22:30:44+0200: Loaded config untracked/katago-match.cfg
+2026-07-26 22:30:44+0200: Loaded model /opt/homebrew/Cellar/katago/1.16.5/share/katago/g170-b40c256x2-s5095420928-d1229425124.bin.gz
+2026-07-26 22:30:44+0200: Model name: g170-b40c256x2-s5095420928-d1229425124
+2026-07-26 22:30:44+0200: GTP ready, beginning main protocol loop
+2026-07-26 22:30:44+0200: Controller: boardsize 3
+2026-07-26 22:30:44+0200: GPU -1 finishing, processed 0 rows 0 batches
+2026-07-26 22:30:44+0200: Cleaned up old neural net and bot
+2026-07-26 22:30:44+0200: nnRandSeed0 = 2722703024395754572
+2026-07-26 22:30:44+0200: After dedups: nnModelFile0 = /opt/homebrew/Cellar/katago/1.16.5/share/katago/g170-b40c256x2-s5095420928-d1229425124.bin.gz useFP16 auto useNHWC auto
+2026-07-26 22:30:44+0200: Initializing neural net buffer to be size 3 * 3 exactly
+Metal backend 0: GPU mode - using MPSGraph (GPU)
+Metal backend: MPSGraph initialized on Apple M5 Max (mask optimized)
+Metal backend 0: Initialized MPSGraph GPU-only mode
+2026-07-26 22:30:44+0200: Loaded neural net with nnXLen 3 nnYLen 3
+2026-07-26 22:30:44+0200: Initializing board with boardXSize 3 boardYSize 3
+2026-07-26 22:30:44+0200: = 
+>>> clear_board
+2026-07-26 22:30:44+0200: Controller: clear_board
+2026-07-26 22:30:44+0200: = 
+>>> komi 0
+2026-07-26 22:30:44+0200: Controller: komi 0
+2026-07-26 22:30:44+0200: = 
+>>> play b B2
+2026-07-26 22:30:44+0200: Controller: play b B2
+2026-0>>> genmove w
+7-26 22:30:44+0200: = 
+2026-07-26 22:30:44+0200: Controller: genmove w
+2026-07-26 22:30:47+0200: MoveNum: 1 HASH: BCD32A5AC99A98B88EEACB7AF641CDC5
+   A B C
+ 3 . . .
+ 2 . X1.
+ 1 . . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi0
+Time taken: 2.34873
+Root visits: 2001
+New playouts: 2001
+NN rows: 591
+NN batches: 565
+NN avg batch size: 1.04602
+PV: pass pass
+Tree:
+: T -131.14c W -98.97c S -30.95c ( -9.9 L  -8.7) N    2001  --  pass pass
+---White(^)---
+pss : T -131.55c W -99.15c S -31.50c ( -9.8 L  -8.8) LCB -133.39c P 44.43% WF 1275.0 PSV    1281 N    1281  --  pass pass
+pss pss : T -132.91c W -100.00c S -32.91c ( -9.0 L  -9.0) LCB -132.90c P  8.46% WF 309.4 PSV    1151 N     306  --  pass
+pss A2  : T -131.69c W -99.17c S -31.16c (-10.2 L  -8.8) LCB -128.40c P 25.53% WF 333.0 PSV     333 N     333  --  A2 pass pass
+pss C2  : T -131.55c W -99.12c S -31.09c (-10.2 L  -8.8) LCB -127.91c P 25.54% WF 309.6 PSV     310 N     310  --  C2 pass pass
+pss B3  : T -131.12c W -98.96c S -30.82c (-10.0 L  -8.6) LCB -125.52c P 17.04% WF 169.2 PSV     170 N     170  --  B3 pass pass
+pss B1  : T -131.10c W -98.77c S -31.19c (-10.3 L  -8.8) LCB -124.21c P 14.23% WF 142.3 PSV     143 N     143  --  B1 pass pass
+pss A3  : T -121.45c W -92.71c S -28.99c ( -7.1 L  -6.7) LCB  -60.78c P  2.48% WF  14.3 PSV      15 N      15  --  A3 pass C2 pass
+pss C3  : T -40.56c W -58.68c S  18.12c ( +6.2 L  -2.7) LCB  309.44c P  2.81% WF   0.8 PSV       1 N       1  --  C3
+pss A1  : T -74.18c W -77.12c S   2.94c ( +3.7 L  -2.9) LCB  275.82c P  2.57% WF   0.9 PSV       1 N       1  --  A1
+pss C1  : T -40.56c W -58.68c S  18.12c ( +6.2 L  -2.7) LCB  309.44c P  1.35% WF   0.8 PSV       1 N       1  --  C1
+A2  : T -130.46c W -98.64c S -30.03c (-10.1 L  -8.6) LCB -133.55c P  7.26% WF 710.1 PSV     704 N     704  --  A2 B1 C2 B3 pass C1 pass C3
+A1  : T -132.38c W -99.43c S -31.23c (-10.6 L  -8.9) LCB -136.36c P  0.95% WF  14.9 PSV      15 N      15  --  A1 A2 pass B1 pass pass
+
+2026-07-26 22:30:47+0200: = pass
+>>> final_score
+2026-07-26 22:30:47+0200: Controller: final_score
+2026-07-26 22:30:47+0200: = B+9.0
+>>> quit
+2026-07-26 22:30:47+0200: Controller: quit
+2026-07-26 22:30:47+0200: Quit requested by controller
+2026-07-26 22:30:47+0200: = 

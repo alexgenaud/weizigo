@@ -1,0 +1,269 @@
+arena: data/oracle-4x4-parallel.checkpoint.wzo (4x4), 100 seeds x 2 colours x 3 handicaps
+LEAK 13 pts | persona optimal | seed 0 | audited B | handicap 1 | promise -3 final -16 | diverged-events 2
+  moves: B2 C3 B3 A2 A3 D2 B4 D4 C2 C1 A4 B1 D1 D3 B1 C1 A1 pass D1 pass C4 D4 A2 C3 D2 pass D3 pass D4 pass pass
+LEAK 20 pts | persona winning-slop | seed 1 | audited B | handicap 2 | promise 16 final -4 | diverged-events 5
+  moves: C2 B2 C3 pass D1 B3 B1 C4 D3 pass B4 A3 C4 pass D2 A4 pass pass
+LEAK 9 pts | persona kyu | seed 2 | audited W | handicap 1 | promise -16 final -7 | diverged-events 1
+  moves: B2 D2 C1 C4 B3 B1 A2 B4 C3 C2 A4 D1 D3 A1 D2 pass B1 A3 D1 pass A1 pass pass
+LEAK 9 pts | persona novice | seed 3 | audited B | handicap 2 | promise 16 final 7 | diverged-events 1
+  moves: A2 C2 C4 B4 B1 B2 B3 A3 C1 C3 D3 A1 C4 D2 A2 D4 pass A1 pass C4 A2 A4 pass D3 pass pass
+LEAK 7 pts | persona optimal | seed 5 | audited W | handicap 2 | promise -16 final -9 | diverged-events 1
+  moves: C2 B4 C3 D3 B1 C1 D2 A2 B2 pass A4 A3 B3 A4 D1 pass C4 D3 C1 A3 A1 B4 D4 pass pass
+LEAK 4 pts | persona winning-any | seed 6 | audited B | handicap 2 | promise 3 final -1 | diverged-events 2
+  moves: C3 B4 B3 D3 A4 A3 D2 C1 B1 C2 C4 B2 D3 pass A4 A2 B4 pass pass
+LEAK 2 pts | persona winning-slop | seed 7 | audited B | handicap 2 | promise -1 final -3 | diverged-events 1
+  moves: B2 A2 C4 C2 B3 C3 A3 B4 C1 D2 B1 A1 D1 A4 C4 pass pass
+LEAK 15 pts | persona winning-slop | seed 7 | audited W | handicap 2 | promise -16 final -1 | diverged-events 1
+  moves: B2 C2 B3 D2 C3 B1 A3 D3 A2 A4 C1 D1 B4 B1 A1 pass pass
+LEAK 3 pts | persona optimal | seed 8 | audited W | handicap 2 | promise -16 final -13 | diverged-events 1
+  moves: B3 D2 C3 C2 A3 C4 D3 A2 B1 C1 B2 A4 A2 pass D1 C2 A1 D2 C1 C2 D2 pass B4 D4 C2 pass A4 pass C4 D4 C3 B3 C2 A3 A2 A4 C1 D2 C4 B2 A1 B1 A2 A1 B4 pass A2 A4 D3 B1 B2 A3 D1 pass B3 A4 D4 pass D2 pass A3 pass A1 pass B1 A4 B3 B1 C2 C1 C4 D3 C3 D2 B4 pass A3 pass A2 B2 A1 pass D1 B2 D4 D2 D3 B1 D2 pass C1 B1 pass pass
+LEAK 1 pts | persona winning-any | seed 8 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 C2 C1 C3 B3 B4 D2 B1 A2 B1 C4 D4 A1 A4 D1 pass pass
+LEAK 14 pts | persona novice | seed 8 | audited W | handicap 1 | promise -16 final -2 | diverged-events 1
+  moves: B2 D3 C1 C4 C3 B3 C2 B4 B1 A3 D2 pass A2 pass pass
+LEAK 1 pts | persona optimal | seed 9 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 D1 A3 D4 B1 B3 D3 B4 C1 D2 C2 D2 D1 C3 pass pass
+LEAK 24 pts | persona novice | seed 12 | audited B | handicap 2 | promise 16 final -8 | diverged-events 1
+  moves: C3 B2 C4 C2 B3 A3 D3 D2 B1 C1 B4 A4 A2 D1 B1 B2 D1 C2 D4 A4 C1 pass pass
+LEAK 1 pts | persona winning-slop | seed 13 | audited B | handicap 2 | promise -3 final -4 | diverged-events 2
+  moves: B2 C1 A4 C3 C2 B3 D2 A2 A3 B4 A3 D3 B1 A2 A1 pass A4 pass D1 pass pass
+LEAK 32 pts | persona novice | seed 13 | audited B | handicap 2 | promise 16 final -16 | diverged-events 1
+  moves: C2 A2 A3 A4 B2 B4 C1 B3 C4 C3 pass D2 pass D1 D3 pass C4 B1 D2 pass A3 C3 B3 B4 A2 A1 D1 pass A4 pass B1 pass B4 pass D4 pass pass
+LEAK 1 pts | persona winning-any | seed 20 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 D2 A3 C3 B4 B3 C2 A2 B1 A2 D3 D4 A1 D1 pass D3 A4 pass A2 pass pass
+LEAK 4 pts | persona winning-slop | seed 21 | audited B | handicap 2 | promise 3 final -1 | diverged-events 1
+  moves: C2 B4 C1 C3 B2 B3 D2 A3 D3 A2 C4 pass pass
+LEAK 17 pts | persona winning-slop | seed 21 | audited W | handicap 2 | promise -16 final 1 | diverged-events 1
+  moves: B3 C1 C4 A2 D2 B4 D3 A3 A4 C3 C2 D1 C3 B4 B1 B2 D4 C1 pass pass
+LEAK 15 pts | persona novice | seed 21 | audited W | handicap 2 | promise -16 final -1 | diverged-events 1
+  moves: C2 B1 A3 D2 B4 B3 B2 A2 D3 C4 C1 A4 A1 B4 B1 A2 D1 pass pass
+LEAK 20 pts | persona winning-slop | seed 22 | audited B | handicap 2 | promise 16 final -4 | diverged-events 4
+  moves: B3 A3 D2 B2 C3 C2 A4 D3 C4 B4 D3 C1 A4 pass B4 pass A2 D1 pass pass
+LEAK 15 pts | persona novice | seed 22 | audited W | handicap 0 | promise -16 final -1 | diverged-events 1
+  moves: D4 C3 C1 B1 A2 D1 D3 C4 D2 A4 B2 C2 A1 B4 B1 D1 pass D3 D2 B3 pass pass
+LEAK 11 pts | persona winning-any | seed 23 | audited B | handicap 2 | promise 5 final -6 | diverged-events 2
+  moves: B2 D1 B1 A3 C2 B3 C4 D2 A2 C3 D3 A4 B4 A3 pass pass
+LEAK 7 pts | persona winning-any | seed 23 | audited W | handicap 2 | promise -16 final -9 | diverged-events 1
+  moves: B3 C3 B2 B1 C2 B4 A4 pass D1 pass D3 A2 C4 pass D2 pass D4 A3 C1 A2 A1 B1 B4 pass pass
+LEAK 1 pts | persona winning-slop | seed 23 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 B3 A3 C3 C2 D2 B4 A2 B1 A2 D3 D4 A1 D1 A2 pass pass
+LEAK 5 pts | persona winning-slop | seed 23 | audited B | handicap 2 | promise 3 final -2 | diverged-events 1
+  moves: C2 C3 B2 A3 C4 D2 B4 B3 D3 A2 D1 B1 pass pass
+LEAK 4 pts | persona winning-any | seed 25 | audited B | handicap 1 | promise 3 final -1 | diverged-events 1
+  moves: B2 C4 C1 D1 C3 A2 D2 B4 D4 A3 C2 B3 pass pass
+LEAK 3 pts | persona winning-any | seed 25 | audited B | handicap 2 | promise 1 final -2 | diverged-events 2
+  moves: C3 B2 B3 C2 B1 A3 A2 C4 D2 D1 B4 D3 D2 D3 A4 D4 A3 pass A1 pass pass
+LEAK 1 pts | persona winning-any | seed 26 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 D1 A3 A4 C3 C4 D3 D2 C2 pass B3 A2 D4 C1 B1 A1 A2 D1 D2 pass C1 pass B4 pass A1 pass D1 pass C4 A4 B3 C3 C4 C2 B2 B1 D3 B4 A3 B4 C1 D1 A4 A1 pass C1 pass pass
+LEAK 7 pts | persona kyu | seed 26 | audited W | handicap 1 | promise -16 final -9 | diverged-events 1
+  moves: B2 C4 D3 A3 C3 D1 D2 B1 B3 C1 D4 C2 A2 C1 A1 pass C2 B4 A4 B4 B1 A3 D1 pass pass
+LEAK 32 pts | persona kyu | seed 27 | audited B | handicap 2 | promise 16 final -16 | diverged-events 1
+  moves: C2 A2 C4 C3 B3 A4 B1 B4 D1 pass D2 A3 D3 B2 C4 pass B3 A4 D4 pass A2 B4 A1 pass A3 B4 B2 pass A4 pass C3 pass pass
+LEAK 11 pts | persona winning-any | seed 28 | audited W | handicap 2 | promise -16 final -5 | diverged-events 1
+  moves: B2 D3 C4 B4 B3 D2 C3 A3 C1 pass D1 A2 C2 D3 D4 pass D2 pass pass
+LEAK 4 pts | persona winning-slop | seed 28 | audited B | handicap 2 | promise 3 final -1 | diverged-events 1
+  moves: C3 C1 B4 B2 B3 C2 A3 D2 A2 D3 B1 pass pass
+LEAK 17 pts | persona kyu | seed 29 | audited B | handicap 1 | promise 16 final -1 | diverged-events 2
+  moves: C1 C3 B2 B3 A3 C2 C4 A2 B4 D4 B1 A4 A2 D2 B4 C4 pass pass
+LEAK 17 pts | persona winning-any | seed 31 | audited W | handicap 1 | promise -16 final 1 | diverged-events 2
+  moves: B2 A4 C4 A2 B4 C3 C2 D1 D4 B3 C1 pass pass
+LEAK 19 pts | persona winning-slop | seed 31 | audited B | handicap 2 | promise 16 final -3 | diverged-events 2
+  moves: C3 D3 B1 B3 C2 B2 C4 C1 B4 A3 D2 D4 A4 pass D3 D1 B1 D1 pass pass
+LEAK 15 pts | persona winning-any | seed 33 | audited W | handicap 2 | promise -16 final -1 | diverged-events 1
+  moves: C2 D2 A2 pass B1 A3 C3 D3 A1 C1 B4 B2 B1 A1 C4 B1 D1 D3 D2 A4 D4 pass pass
+LEAK 4 pts | persona winning-slop | seed 33 | audited B | handicap 1 | promise -1 final -5 | diverged-events 3
+  moves: B2 C1 D1 C3 C2 B3 D3 A2 A3 A4 B1 C4 A3 A2 A1 pass A3 B4 pass pass
+LEAK 14 pts | persona dan | seed 34 | audited W | handicap 1 | promise -16 final -2 | diverged-events 1
+  moves: B2 A2 B3 pass C3 A3 C2 A4 B1 pass B4 C4 D4 D2 D3 A1 A2 A4 D1 pass C1 pass A1 pass D2 pass A3 pass C4 A4 B3 pass C4 B2 C2 D4 C3 B4 A1 C1 B1 D2 A3 B4 A4 A2 A1 B1 D3 pass pass
+LEAK 21 pts | persona optimal | seed 35 | audited W | handicap 2 | promise -16 final 5 | diverged-events 2
+  moves: B3 A4 B1 D1 B4 D2 C4 B2 D3 C1 C3 pass C2 B1 A3 pass D4 pass A2 C1 A1 B2 D2 D1 B1 pass A4 D1 B2 pass C1 D1 C2 C3 B2 D4 D2 B3 A3 A4 C1 A2 A1 C4 pass B1 pass pass
+LEAK 5 pts | persona winning-slop | seed 35 | audited B | handicap 2 | promise -1 final -6 | diverged-events 3
+  moves: B3 C1 B4 B2 C3 C2 D2 A3 A4 pass A2 D3 C4 D4 B1 pass pass
+LEAK 4 pts | persona novice | seed 36 | audited B | handicap 1 | promise 3 final -1 | diverged-events 1
+  moves: A3 C3 B2 C2 C1 B1 A2 B3 B4 C4 B1 D2 D4 D3 A4 pass pass
+LEAK 15 pts | persona winning-slop | seed 37 | audited W | handicap 2 | promise -16 final -1 | diverged-events 1
+  moves: B2 C2 B3 D1 A2 C4 A4 C3 D2 pass B1 B4 C1 A3 D1 pass pass
+LEAK 15 pts | persona kyu | seed 38 | audited B | handicap 1 | promise -1 final -16 | diverged-events 1
+  moves: B2 A3 A4 C3 B3 C2 C4 A2 B1 A1 D1 A2 D3 pass A3 A2 C1 pass A1 pass D2 pass D4 pass A2 C3 C2 pass pass
+LEAK(UNDEF) 3 pts | persona novice | seed 38 | audited B | handicap 0 | promise 16 final 13 | undef-tainted plies 1 | diverged-events 1
+  moves: pass D4 C3 D2 B3 B2 C2 B4 D1 B1 A2 C1 D3 A3 A4 pass A3 D1 C4 pass B4 pass A1 B2 D4 B1 C1 pass D2 pass B2 pass B1 D1 C2 A4 C3 pass D4 pass D2 C4 B2 B4 B3 A3 A2 A3 C4 A1 D3 B1 A4 pass A3 pass C1 B1 B4 pass pass
+LEAK 9 pts | persona dan | seed 39 | audited W | handicap 1 | promise -16 final -7 | diverged-events 1
+  moves: B2 D2 D3 A4 A3 C2 B3 B1 C1 pass B4 D1 C3 A2 A4 D4 C1 C2 A1 D1 C4 B1 A2 pass pass
+LEAK 20 pts | persona winning-slop | seed 40 | audited W | handicap 1 | promise -16 final 4 | diverged-events 1
+  moves: B2 D4 A2 B3 A3 C3 C2 D2 D1 A4 C4 B4 pass pass
+LEAK 4 pts | persona winning-slop | seed 42 | audited B | handicap 2 | promise -1 final -5 | diverged-events 1
+  moves: C3 D3 B1 B3 C2 B2 D2 C1 B4 A3 C4 D4 D1 pass D3 pass B1 pass pass
+LEAK 13 pts | persona novice | seed 43 | audited B | handicap 1 | promise -3 final -16 | diverged-events 2
+  moves: B2 pass D1 D2 C3 C4 D3 B3 B1 B4 A3 C2 C1 A4 D2 A2 A3 A2 A1 pass A3 pass D4 pass A4 C4 C2 B4 B3 pass pass
+LEAK 4 pts | persona winning-slop | seed 44 | audited B | handicap 2 | promise 3 final -1 | diverged-events 1
+  moves: B2 B1 D3 B3 C2 C3 A2 D2 A3 C1 D1 C1 B1 B4 D1 D3 C1 pass pass
+LEAK 18 pts | persona dan | seed 44 | audited W | handicap 2 | promise -16 final 2 | diverged-events 1
+  moves: C2 D2 B2 A3 A2 B4 B1 B3 C3 C1 A1 pass pass
+LEAK 11 pts | persona kyu | seed 45 | audited B | handicap 2 | promise 16 final 5 | diverged-events 1
+  moves: B3 B4 C1 C3 pass B2 A2 C4 C2 A3 D1 B3 D3 A4 pass pass
+LEAK 4 pts | persona winning-slop | seed 46 | audited B | handicap 1 | promise 3 final -1 | diverged-events 1
+  moves: B2 D4 C1 B3 B1 C3 A3 C2 D2 B4 A2 D3 pass pass
+LEAK 4 pts | persona winning-slop | seed 47 | audited B | handicap 2 | promise -1 final -5 | diverged-events 4
+  moves: B3 pass A4 B2 C3 C2 A2 D3 C4 A3 D2 D1 C1 A2 pass pass
+LEAK 1 pts | persona dan | seed 48 | audited B | handicap 1 | promise 3 final 2 | diverged-events 1
+  moves: B2 B3 B1 C2 C1 D2 C3 C4 D3 D4 A3 A4 B4 C3 pass pass
+LEAK 17 pts | persona winning-any | seed 49 | audited W | handicap 2 | promise -16 final 1 | diverged-events 1
+  moves: B2 C2 B3 C3 B4 B1 A2 D2 C4 D1 C1 B1 A4 pass pass
+LEAK 14 pts | persona kyu | seed 49 | audited B | handicap 1 | promise 16 final 2 | diverged-events 1
+  moves: A3 C3 B2 C2 A4 D2 B1 C1 D4 B4 B3 C4 pass A2 B3 D3 pass D1 A3 B2 pass A4 A3 B3 pass B1 pass A3 D4 C3 D1 B2 B1 C4 B4 C2 B3 D2 A2 C1 A3 D3 pass pass
+LEAK 2 pts | persona winning-any | seed 50 | audited B | handicap 2 | promise 1 final -1 | diverged-events 2
+  moves: B2 C2 B3 C3 D3 B4 C4 A2 C1 D4 A3 D2 B1 C4 A4 A1 A2 pass pass
+LEAK 7 pts | persona optimal | seed 51 | audited B | handicap 1 | promise -9 final -16 | diverged-events 2
+  moves: B2 B4 D2 C4 B1 A2 A4 D1 A3 A1 C1 D3 B3 pass A2 C2 C3 pass D4 C4 D1 D3 C2 pass D4 pass D3 pass B4 pass C4 pass pass
+LEAK 28 pts | persona winning-slop | seed 51 | audited B | handicap 2 | promise 16 final -12 | diverged-events 3
+  moves: B3 C1 B4 B2 C3 C2 D2 A3 A4 pass A2 D1 A3 D3 B1 C4 D2 D4 pass pass
+LEAK 4 pts | persona kyu | seed 52 | audited B | handicap 1 | promise -3 final -7 | diverged-events 2
+  moves: B2 D1 D3 pass D2 C4 A2 D4 A3 B3 B1 A4 C1 C3 A1 pass B4 pass A4 pass pass
+LEAK 17 pts | persona winning-any | seed 53 | audited W | handicap 2 | promise -16 final 1 | diverged-events 1
+  moves: C3 C1 D3 B2 B3 B4 A2 pass A4 A3 C2 B1 D2 A2 C4 pass pass
+LEAK 14 pts | persona kyu | seed 53 | audited B | handicap 1 | promise 16 final 2 | diverged-events 1
+  moves: D1 C2 B2 C3 B1 B4 B3 A3 pass D2 D3 D4 A2 C1 A4 C4 pass pass
+LEAK 13 pts | persona winning-any | seed 54 | audited B | handicap 1 | promise -3 final -16 | diverged-events 1
+  moves: B2 C4 A3 C3 C2 B3 D1 A2 B1 D3 D2 A2 A1 B4 A4 pass D4 pass pass
+LEAK 7 pts | persona winning-any | seed 56 | audited W | handicap 1 | promise -16 final -9 | diverged-events 1
+  moves: B2 C1 B1 D2 C2 C3 B3 A4 B4 A2 C4 D4 D1 pass A3 A1 A2 C1 D3 pass D1 pass C3 pass A4 pass D2 pass A1 pass C1 D4 C3 C4 D3 D2 B3 A2 D1 B4 B2 A4 A3 D4 B4 pass C2 pass A4 B1 A1 pass D2 A2 C4 pass pass
+LEAK 32 pts | persona optimal | seed 58 | audited W | handicap 2 | promise -16 final 16 | diverged-events 1
+  moves: C2 B4 B3 A3 D3 B2 C3 B1 C4 A2 D4 C1 D2 D1 C2 D3 B3 D2 pass C3 pass pass
+LEAK 1 pts | persona winning-slop | seed 58 | audited B | handicap 2 | promise -1 final -2 | diverged-events 3
+  moves: C2 pass D1 C3 B2 B3 D3 A2 B1 A4 C4 B4 pass pass
+LEAK 11 pts | persona winning-slop | seed 58 | audited W | handicap 1 | promise -16 final -5 | diverged-events 1
+  moves: B2 A4 C1 D2 B1 D1 D3 B3 C3 C4 C2 A3 D2 A2 B4 B3 A2 A3 A1 A4 B4 B3 A4 A3 A4 B4 pass pass
+LEAK 7 pts | persona winning-any | seed 59 | audited W | handicap 2 | promise -16 final -9 | diverged-events 1
+  moves: B2 C4 B3 A3 D2 B4 C3 D3 C2 pass D1 B1 A4 pass D4 C1 A2 B4 A1 B1 D3 A3 C1 pass pass
+LEAK 17 pts | persona winning-any | seed 60 | audited W | handicap 2 | promise -16 final 1 | diverged-events 1
+  moves: C2 B2 C3 A3 B3 D2 C4 C1 B4 B1 D3 pass pass
+LEAK 1 pts | persona winning-slop | seed 60 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 C2 C1 C3 B3 B4 D2 B1 A2 B1 C4 D4 A1 A4 D1 pass pass
+LEAK 15 pts | persona optimal | seed 61 | audited B | handicap 1 | promise -1 final -16 | diverged-events 1
+  moves: B2 A3 B4 D2 B3 A4 C4 D3 D1 C2 A2 B1 C1 B1 C1 D1 A3 pass A1 D4 C1 pass C3 D2 B1 D3 D4 D1 C2 D1 D2 pass D1 pass D3 A4 B3 A1 A2 D4 B4 B1 C3 pass D3 pass D2 B2 C1 A3 D1 pass A2 A3 C2 pass C4 pass A2 pass A1 B2 B1 pass B2 pass A4 pass pass
+LEAK 32 pts | persona dan | seed 61 | audited W | handicap 1 | promise -16 final 16 | diverged-events 1
+  moves: B2 C4 B3 A2 B1 C3 C2 D2 B4 pass A4 C1 A3 A1 pass A2 B4 D1 B2 A3 B1 C2 D3 D4 pass B3 B2 B1 pass D3 pass A4 pass pass
+LEAK 14 pts | persona kyu | seed 61 | audited B | handicap 2 | promise -2 final -16 | diverged-events 1
+  moves: B2 B4 B3 pass C4 C2 A4 C1 B1 C3 B4 A2 A3 D2 D3 A2 D1 pass C2 pass D2 pass C3 pass C1 pass A1 pass pass
+LEAK 5 pts | persona winning-slop | seed 62 | audited B | handicap 1 | promise -1 final -6 | diverged-events 2
+  moves: B2 B4 D1 C2 C3 B3 D2 C4 C1 D3 B1 pass D4 pass A3 pass pass
+LEAK 8 pts | persona kyu | seed 63 | audited B | handicap 2 | promise 3 final -5 | diverged-events 2
+  moves: B3 A4 C3 C2 D3 C4 C1 D2 A2 B2 pass A3 B4 C4 A2 A3 D4 A4 A2 pass A3 D1 pass pass
+LEAK 1 pts | persona winning-any | seed 64 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 C2 C1 C3 B3 B1 A2 B4 D2 B1 C4 D4 A1 A4 pass pass
+LEAK 15 pts | persona novice | seed 64 | audited W | handicap 1 | promise -16 final -1 | diverged-events 1
+  moves: B2 B3 C3 pass B4 D4 A4 C2 D1 B1 A3 C4 C1 D2 C1 D3 A2 B3 B1 pass pass
+LEAK 4 pts | persona winning-slop | seed 65 | audited B | handicap 1 | promise 3 final -1 | diverged-events 1
+  moves: B2 B1 A3 D2 D1 C3 C2 C1 A2 B4 D1 C1 D3 D4 B1 B3 D1 pass C1 D3 pass pass
+LEAK 4 pts | persona winning-slop | seed 67 | audited B | handicap 2 | promise 3 final -1 | diverged-events 2
+  moves: B2 C2 B3 B1 C1 C3 A2 B4 A4 A3 B1 D2 A4 C4 A3 pass pass
+LEAK 14 pts | persona novice | seed 67 | audited W | handicap 2 | promise -16 final -2 | diverged-events 1
+  moves: C2 B4 D3 B1 C1 B2 B3 D1 C4 A3 A4 pass D2 B4 A2 B1 D1 pass A1 B2 pass pass
+LEAK 4 pts | persona winning-slop | seed 68 | audited B | handicap 1 | promise 3 final -1 | diverged-events 1
+  moves: B2 D4 A2 A4 B1 B3 C1 C3 A3 D2 B4 C4 pass C2 pass pass
+LEAK 16 pts | persona novice | seed 68 | audited W | handicap 1 | promise -16 final 0 | diverged-events 1
+  moves: B2 A4 B1 C4 C2 D4 C1 C3 B4 D3 A3 B3 A2 A4 A1 pass pass
+LEAK 3 pts | persona winning-any | seed 69 | audited W | handicap 1 | promise -16 final -13 | diverged-events 1
+  moves: B2 D3 C4 A2 C3 B1 A3 D4 D1 C1 B3 D2 C2 pass D1 A4 B4 D4 B1 A1 C1 D3 A2 pass A1 pass D2 D4 D3 pass A4 D4 C3 A1 D2 pass C4 pass B1 B4 C2 C1 B3 A2 D1 A3 B2 pass A4 pass A1 A2 A3 pass B4 pass A2 pass C1 pass pass
+LEAK 4 pts | persona winning-slop | seed 71 | audited B | handicap 2 | promise 3 final -1 | diverged-events 3
+  moves: C2 D2 A3 C3 B2 B3 A2 B4 D1 C1 B1 pass D1 D3 pass pass
+LEAK 4 pts | persona winning-any | seed 72 | audited B | handicap 2 | promise -1 final -5 | diverged-events 2
+  moves: C3 B4 B2 C4 C1 D3 C2 A3 A2 D2 B3 pass B1 pass A4 pass pass
+LEAK 5 pts | persona kyu | seed 72 | audited B | handicap 1 | promise 3 final -2 | diverged-events 1
+  moves: B2 C2 B3 B4 A4 D2 A2 D4 C1 pass C4 C3 pass pass
+LEAK 16 pts | persona winning-slop | seed 73 | audited B | handicap 1 | promise 16 final 0 | diverged-events 2
+  moves: B2 A3 D1 B3 C3 C2 D2 C4 C1 D3 A4 A2 pass pass
+LEAK 8 pts | persona winning-slop | seed 74 | audited B | handicap 2 | promise 3 final -5 | diverged-events 3
+  moves: B2 B3 C2 C1 D1 C3 A3 D2 A2 B1 D1 C1 B1 B4 D1 pass D3 C4 C1 pass pass
+LEAK 7 pts | persona kyu | seed 74 | audited W | handicap 1 | promise -16 final -9 | diverged-events 1
+  moves: B2 D4 D2 C1 D3 B4 B1 C4 A2 C2 C3 pass B3 A3 D1 C2 A4 B4 D4 pass A1 A3 C1 pass pass
+LEAK 1 pts | persona winning-slop | seed 75 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 D1 A4 C3 B3 C2 C4 B1 A2 D3 C1 B1 A1 C1 D4 pass pass
+LEAK 7 pts | persona winning-slop | seed 75 | audited W | handicap 1 | promise -16 final -9 | diverged-events 1
+  moves: B2 C1 B4 D4 A2 pass C4 pass B3 C2 C3 D3 D1 A4 D2 D3 D4 D2 A3 B1 D1 D2 D3 pass A1 C1 C2 pass pass
+LEAK 32 pts | persona optimal | seed 77 | audited W | handicap 1 | promise -16 final 16 | diverged-events 1
+  moves: B2 B3 C3 D3 D4 C4 C2 C1 A4 B1 D2 A2 B4 D1 C2 A3 pass C3 A4 D4 pass D2 pass B4 pass B2 pass C2 A4 B3 C1 C2 B2 D3 D1 B1 C4 D2 A3 A2 D1 D4 B4 B2 pass A1 pass C3 A4 A3 pass B4 pass A4 pass C1 pass pass
+LEAK 32 pts | persona optimal | seed 77 | audited W | handicap 2 | promise -16 final 16 | diverged-events 1
+  moves: C2 pass B1 B3 B2 C4 A2 C1 A4 D3 B4 D2 C3 A3 B4 A1 C2 C3 B2 A4 A2 B1 C2 B4 pass B2 pass A2 pass pass
+LEAK 8 pts | persona winning-slop | seed 77 | audited B | handicap 1 | promise 3 final -5 | diverged-events 5
+  moves: B2 C1 D1 C3 C2 B3 D3 D2 A3 D4 A2 B4 B1 pass D1 pass D3 C4 pass pass
+LEAK 17 pts | persona dan | seed 77 | audited W | handicap 1 | promise -16 final 1 | diverged-events 1
+  moves: B2 B3 C3 D1 A4 C1 C2 D2 D4 D3 B4 C4 A3 B1 pass pass
+LEAK 32 pts | persona kyu | seed 77 | audited W | handicap 1 | promise -16 final 16 | diverged-events 1
+  moves: B2 D3 C3 C4 A4 D2 B4 A3 C2 D4 B1 C1 A2 B3 pass A1 A4 B4 C2 B2 pass A4 pass C3 pass C2 pass A2 pass pass
+LEAK 1 pts | persona winning-any | seed 78 | audited B | handicap 2 | promise -2 final -3 | diverged-events 1
+  moves: B3 D1 C1 B4 C4 C3 B2 C2 D2 B1 A2 B1 A1 A4 pass C4 D3 pass pass
+LEAK 7 pts | persona kyu | seed 79 | audited B | handicap 2 | promise 16 final 9 | diverged-events 1
+  moves: C2 A4 C3 B3 A2 C4 D3 D1 B2 B1 C1 A3 B1 pass D2 pass B4 A3 A1 B3 D1 D4 A4 pass B3 pass A3 pass C4 D4 C3 pass B4 B2 B1 C2 C1 D2 A1 B3 D3 A4 A2 C4 C3 D3 pass A3 pass D1 B1 C3 A2 pass pass
+LEAK 17 pts | persona winning-slop | seed 80 | audited B | handicap 1 | promise 16 final -1 | diverged-events 1
+  moves: B2 C1 A4 C2 C3 B3 A3 C4 B4 D3 D4 D2 C4 B1 pass pass
+LEAK 15 pts | persona winning-slop | seed 81 | audited B | handicap 1 | promise 16 final 1 | diverged-events 1
+  moves: B2 A3 D1 B3 C3 C2 C1 C4 D2 D3 B1 pass pass
+LEAK 7 pts | persona winning-slop | seed 81 | audited W | handicap 2 | promise -16 final -9 | diverged-events 1
+  moves: B3 B4 C3 B1 C1 pass D3 A4 C4 A2 D4 A3 C2 pass D1 pass B2 B4 B1 A3 A1 pass pass
+LEAK 12 pts | persona novice | seed 82 | audited B | handicap 2 | promise 1 final -11 | diverged-events 2
+  moves: B2 D2 C4 A2 A3 C3 B3 C2 A4 D1 B1 A2 A1 C1 D3 C2 C1 D1 C3 pass A2 pass B4 pass pass
+LEAK 19 pts | persona winning-any | seed 83 | audited W | handicap 1 | promise -16 final 3 | diverged-events 1
+  moves: B2 D1 B4 B1 D2 C2 B3 D3 C3 D2 D4 C4 A3 pass pass
+LEAK 3 pts | persona kyu | seed 84 | audited W | handicap 1 | promise -16 final -13 | diverged-events 1
+  moves: B2 D3 C3 B4 A2 B1 D1 D2 B3 C4 C1 D4 A4 B1 C2 B4 D3 A3 A1 pass D2 D4 A4 pass A3 pass C4 pass B1 pass B4 D4 C3 D1 D2 A1 B2 C4 C2 B4 B1 D3 C1 A2 B3 A3 A4 D4 D1 A3 B4 D3 A2 pass C4 D4 A3 pass A1 pass pass
+LEAK 4 pts | persona winning-slop | seed 85 | audited B | handicap 1 | promise -1 final -5 | diverged-events 1
+  moves: B2 A4 D1 C3 C2 B3 D3 A2 B1 C4 A3 A2 A1 pass D2 pass A3 pass pass
+LEAK 15 pts | persona winning-slop | seed 87 | audited B | handicap 1 | promise 16 final 1 | diverged-events 1
+  moves: B2 A3 D1 B3 C3 C2 C1 C4 D2 D3 B1 pass pass
+LEAK 13 pts | persona kyu | seed 87 | audited B | handicap 2 | promise 16 final 3 | diverged-events 1
+  moves: C3 B4 C2 D2 D1 C4 A4 B3 B2 C1 B1 A2 D1 A3 pass pass
+LEAK 32 pts | persona dan | seed 88 | audited W | handicap 1 | promise -16 final 16 | diverged-events 1
+  moves: B2 B3 C3 D4 D1 C2 D2 C1 B4 B1 A3 D3 D1 A2 D2 B1 A1 pass B3 C2 A4 A2 C1 C2 C1 C4 B4 A1 B3 A3 pass D1 pass C3 B2 C1 pass A4 B4 B3 pass D2 pass pass
+LEAK 7 pts | persona winning-any | seed 89 | audited W | handicap 2 | promise -16 final -9 | diverged-events 1
+  moves: C2 A3 C3 C1 B2 B4 D1 D3 B3 C4 B1 D2 A2 pass A4 B4 D4 D3 A3 C4 A1 pass D4 C4 D2 pass pass
+LEAK 19 pts | persona winning-slop | seed 89 | audited B | handicap 2 | promise 16 final -3 | diverged-events 3
+  moves: B2 B4 D1 C3 C2 B3 A3 B1 D3 pass C1 pass A4 pass A2 A1 pass pass
+LEAK 19 pts | persona dan | seed 89 | audited W | handicap 1 | promise -16 final 3 | diverged-events 1
+  moves: B2 C1 B3 D4 B1 D1 A2 C2 A4 B4 A3 pass D2 pass D3 C3 pass C4 D2 A1 B2 A2 B3 D3 B1 pass A3 A1 A2 pass pass
+LEAK 1 pts | persona winning-any | seed 91 | audited B | handicap 1 | promise -2 final -3 | diverged-events 1
+  moves: B2 B1 C1 B4 A3 D2 D4 C2 C3 C4 A2 B1 B3 D3 A1 D4 D1 pass pass
+LEAK 17 pts | persona winning-slop | seed 92 | audited B | handicap 1 | promise 16 final -1 | diverged-events 1
+  moves: B2 A3 D1 B3 C3 C2 D2 D3 C1 C4 A4 pass pass
+LEAK 1 pts | persona winning-slop | seed 93 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 A4 D1 C3 C2 B3 D3 A2 B1 C4 A3 A2 A1 A3 D4 pass pass
+LEAK 4 pts | persona winning-slop | seed 93 | audited B | handicap 2 | promise -1 final -5 | diverged-events 3
+  moves: C3 C2 B3 pass A4 B2 A2 D3 C4 B1 D2 C1 pass pass
+LEAK 13 pts | persona dan | seed 93 | audited W | handicap 1 | promise -16 final -3 | diverged-events 1
+  moves: B2 B4 D2 A4 D3 C2 B3 D1 C4 A3 A2 A3 B1 C3 D4 A4 A1 B4 C4 pass D3 A3 A4 pass D2 D4 pass pass
+LEAK 1 pts | persona winning-slop | seed 95 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B2 B3 A3 C3 C2 D2 B4 A2 B1 A2 D3 D4 A1 D1 A2 D3 A4 pass pass
+LEAK 17 pts | persona dan | seed 95 | audited W | handicap 2 | promise -16 final 1 | diverged-events 1
+  moves: C2 B2 C3 A3 B1 C4 D3 A4 D1 B3 B4 C4 C1 pass pass
+LEAK 4 pts | persona winning-any | seed 98 | audited B | handicap 2 | promise 3 final -1 | diverged-events 1
+  moves: C2 A3 D2 B2 C3 B3 C1 B4 B1 C4 A2 pass A1 pass pass
+LEAK 4 pts | persona winning-slop | seed 98 | audited B | handicap 2 | promise 3 final -1 | diverged-events 1
+  moves: C2 A3 D2 B2 C3 B3 C1 B4 B1 C4 A2 pass pass
+LEAK 15 pts | persona dan | seed 98 | audited B | handicap 2 | promise -1 final -16 | diverged-events 2
+  moves: C2 D2 B3 pass D3 D1 A4 A3 A2 C3 B2 D3 A3 B4 B1 pass C4 pass B4 pass C1 C3 D1 D3 D2 pass D4 pass D3 pass C3 pass pass
+LEAK 4 pts | persona winning-slop | seed 99 | audited B | handicap 1 | promise -1 final -5 | diverged-events 2
+  moves: B2 C2 C1 C3 B3 B1 C4 D1 A2 B4 C1 B1 A4 D3 A1 pass C1 D2 pass pass
+LEAK 7 pts | persona winning-slop | seed 99 | audited W | handicap 2 | promise -16 final -9 | diverged-events 1
+  moves: C2 C3 B2 C4 D3 A4 C1 B3 A2 D2 A3 D3 B4 pass A4 pass B1 pass D1 C4 C3 D3 B3 pass pass
+LEAK 5 pts | persona kyu | seed 99 | audited B | handicap 2 | promise 3 final -2 | diverged-events 1
+  moves: B2 C3 A3 C2 B1 C1 B3 B4 D2 D3 pass A4 C4 pass pass
+
+arena summary (per opponent persona):
+  optimal       games=  600 capped=0 audited-won=  197 held-exact=  388 CLEAN-LEAKS=10 (max 32) diverged 23/26
+  optimal       E1 diverged: single-score=1  ko-sensitive=25
+  optimal       B43 UNDEF-tainted: games=200  events=200  tainted-leaks=0 (max 0)
+  winning-any   games=  600 capped=0 audited-won=  207 held-exact=  267 CLEAN-LEAKS=26 (max 19) diverged 98/105
+  winning-any   E1 diverged: single-score=52  ko-sensitive=53
+  winning-any   B43 UNDEF-tainted: games=200  events=200  tainted-leaks=0 (max 0)
+  winning-slop  games=  600 capped=0 audited-won=  225 held-exact=  305 CLEAN-LEAKS=46 (max 28) diverged 102/145
+  winning-slop  E1 diverged: single-score=26  ko-sensitive=119
+  winning-slop  B43 UNDEF-tainted: games=200  events=200  tainted-leaks=0 (max 0)
+  dan           games=  600 capped=0 audited-won=  210 held-exact=  347 CLEAN-LEAKS=11 (max 32) diverged 41/42
+  dan           E1 diverged: single-score=22  ko-sensitive=20
+  dan           B43 UNDEF-tainted: games=200  events=200  tainted-leaks=0 (max 0)
+  kyu           games=  600 capped=0 audited-won=  299 held-exact=  331 CLEAN-LEAKS=18 (max 32) diverged 75/83
+  kyu           E1 diverged: single-score=38  ko-sensitive=45
+  kyu           B43 UNDEF-tainted: games=192  events=192  tainted-leaks=0 (max 0)
+  novice        games=  600 capped=0 audited-won=  362 held-exact=  351 CLEAN-LEAKS=12 (max 32) diverged 73/75
+  novice        E1 diverged: single-score=37  ko-sensitive=38
+  novice        B43 UNDEF-tainted: games=178  events=178  tainted-leaks=1 (max 3)

@@ -1,0 +1,11 @@
+>>> boardsize 3
+weizigo-oracle: artifacts/oracle-3x3.wzo (3x3, 12675 legal/side)
+weizigo-oracle: transcript -> artifacts/../log/weizigo-1785097818.log
+>>> clear_board
+>>> komi 0
+>>> genmove b
+oracle: b -> B2  child-value=9 stored-v0=9 KO_SENSITIVE dtt=2
+>>> genmove b
+oracle: b -> pass  child-value=9 stored-v0=9 KO_SENSITIVE dtt=1
+>>> final_score
+>>> quit

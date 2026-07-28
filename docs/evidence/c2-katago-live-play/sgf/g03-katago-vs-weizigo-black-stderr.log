@@ -1,0 +1,225 @@
+>>> boardsize 3
+2026-07-26 22:30:12+0200: Running with following config:
+allowResignation = false
+chosenMoveTemperature = 0
+chosenMoveTemperatureEarly = 0
+dynamicPlayoutDoublingAdvantageCapPerOppLead = 0
+logAllGTPCommunication = true
+logDir = untracked/katago-logs
+logSearchInfo = true
+logSearchInfoForChosenMove = true
+logToStderr = true
+maxVisits = 2000
+numSearchThreads = 2
+ponderingEnabled = false
+resignConsecTurns = 10
+resignThreshold = -0.99
+rules = tromp-taylor
+startupPrintMessageToStderr = true
+
+2026-07-26 22:30:12+0200: GTP Engine starting...
+2026-07-26 22:30:12+0200: KataGo v1.16.5
+2026-07-26 22:30:12+0200: Using TrompTaylor rules initially, unless GTP/GUI overrides this
+2026-07-26 22:30:12+0200: Using 2 CPU thread(s) for search
+2026-07-26 22:30:12+0200: nnRandSeed0 = 14350144684172322996
+2026-07-26 22:30:12+0200: After dedups: nnModelFile0 = /opt/homebrew/Cellar/katago/1.16.5/share/katago/g170-b40c256x2-s5095420928-d1229425124.bin.gz useFP16 auto useNHWC auto
+2026-07-26 22:30:12+0200: Initializing neural net buffer to be size 19 * 19 exactly
+Metal backend 0: GPU mode - using MPSGraph (GPU)
+Metal backend: MPSGraph initialized on Apple M5 Max (mask optimized)
+Metal backend 0: Initialized MPSGraph GPU-only mode
+2026-07-26 22:30:12+0200: Loaded neural net with nnXLen 19 nnYLen 19
+2026-07-26 22:30:12+0200: Initializing board with boardXSize 19 boardYSize 19
+2026-07-26 22:30:12+0200: Loaded config untracked/katago-match.cfg
+2026-07-26 22:30:12+0200: Loaded model /opt/homebrew/Cellar/katago/1.16.5/share/katago/g170-b40c256x2-s5095420928-d1229425124.bin.gz
+2026-07-26 22:30:12+0200: Model name: g170-b40c256x2-s5095420928-d1229425124
+2026-07-26 22:30:12+0200: GTP ready, beginning main protocol loop
+2026-07-26 22:30:12+0200: Controller: boardsize 3
+2026-07-26 22:30:12+0200: GPU -1 finishing, processed 0 rows 0 batches
+2026-07-26 22:30:12+0200: Cleaned up old neural net and bot
+2026-07-26 22:30:12+0200: nnRandSeed0 = 13880265398969853976
+2026-07-26 22:30:12+0200: After dedups: nnModelFile0 = /opt/homebrew/Cellar/katago/1.16.5/share/katago/g170-b40c256x2-s5095420928-d1229425124.bin.gz useFP16 auto useNHWC auto
+2026-07-26 22:30:12+0200: Initializing neural net buffer to be size 3 * 3 exactly
+Metal backend 0: GPU mode - using MPSGraph (GPU)
+Metal backend: MPSGraph initialized on Apple M5 Max (mask optimized)
+Metal backend 0: Initialized MPSGraph GPU-only mode
+2026-07-26 22:30:13+0200: Loaded neural net with nnXLen 3 nnYLen 3
+2026-07-26 22:30:13+0200: Initializing board with boardXSize 3 boardYSize 3
+2026-07-26 22:30:13+0200: = 
+>>> clear_board
+2026-07-26 22:30:13+0200: Controller: clear_board
+2026-07-26>>> komi 0
+ 22:30:13+0200: = 
+2026-07-26 22:30:13+0200: Controller: komi 0
+2026-07-26 22:30:13+0200: = 
+>>> genmove b
+2026-07-26 22:30:13+0200: Controller: genmove b
+2026-07-26 22:30:16+0200: MoveNum: 0 HASH: 710F257116C1B48A7B9876BE820C87F2
+   A B C
+ 3 . . .
+ 2 . @ .
+ 1 . . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi0
+Time taken: 2.52907
+Root visits: 2001
+New playouts: 2001
+NN rows: 626
+NN batches: 604
+NN avg batch size: 1.03642
+PV: B2 C2 A2 pass B3 pass C1 pass B1 pass C3 pass pass
+Tree:
+: T 112.13c W  98.76c S  13.97c (+10.5 L  +8.9) N    2001  --  B2 C2 A2 pass B3 pass C1
+---Black(^)---
+B2  : T 112.26c W  98.86c S  14.01c (+10.5 L  +8.9) LCB  110.01c P 81.34% WF 1997.9 PSV    1997 N    1996  --  B2 C2 A2 pass B3 pass C1 pass
+B2  C2  : T 112.04c W  99.30c S  14.10c (+10.7 L  +9.0) LCB  115.07c P 32.16% WF 772.9 PSV    1065 N     771  --  C2 A2 pass B3 pass C1 pass B1
+B2  A2  : T 110.58c W  98.71c S  13.67c (+10.6 L  +8.8) LCB  115.24c P  7.26% WF 530.1 PSV     521 N     521  --  A2 B1 C2 B3 pass A3 pass A1
+B2  pss : T 115.28c W  98.78c S  14.51c ( +9.7 L  +9.0) LCB  120.47c P 44.43% WF 361.4 PSV     373 N     373  --  pass pass
+B2  B1  : T 110.76c W  97.46c S  14.04c (+10.7 L  +8.8) LCB  120.78c P  1.27% WF 202.5 PSV     200 N     200  --  B1 C2 B3 A2 pass A3 pass C3
+B2  B3  : T 114.28c W  99.35c S  15.04c (+11.0 L  +8.8) LCB  121.76c P  9.92% WF 100.5 PSV     102 N     102  --  B3 C2 pass A2 pass A3 pass C3
+B2  A3  : T 114.56c W  99.46c S  16.02c (+11.4 L  +9.1) LCB  136.03c P  1.99% WF  18.8 PSV      19 N      19  --  A3 B3 pass A2 pass pass
+B2  C3  : T 117.47c W  99.20c S  18.09c (+12.2 L  +9.7) LCB  152.78c P  1.04% WF   6.8 PSV       7 N       7  --  C3 B3 pass
+B2  C1  : T 131.88c W  99.48c S  32.41c (+15.6 L +11.0) LCB  481.88c P  0.98% WF   1.0 PSV       1 N       1  --  C1
+B2  A1  : T 132.57c W  99.78c S  32.79c (+16.1 L +11.8) LCB  482.57c P  0.95% WF   1.0 PSV       1 N       1  --  A1
+C2  : T -125.94c W -93.89c S -32.05c ( -6.4 L  -2.7) LCB -475.94c P  4.86% WF   0.5 PSV       0 N       1  --  C2
+C3  : T -131.71c W -98.01c S -33.69c ( -9.2 L  -8.9) LCB -481.71c P  0.10% WF   0.5 PSV       0 N       1  --  C3
+pss : T -133.63c W -100.00c S -33.64c ( -9.0 L -10.2) LCB -483.63c P  0.00% WF   0.1 PSV       0 N       1  --  pass
+
+2026-07-26 22:30:16+0200: = B2
+>>> genmove b
+2026-07-26 22:30:16+0200: Controller: genmove b
+2026-07-26 22:30:17+0200: MoveNum: 0 HASH: BCD32A5AC99A98B88EEACB7AF641CDC5
+   A B C
+ 3 . . .
+ 2 . X @
+ 1 . . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi0
+Time taken: 1.21594
+Root visits: 2001
+New playouts: 2001
+NN rows: 317
+NN batches: 304
+NN avg batch size: 1.04276
+PV: C2 pass C1 pass B1 pass B3 pass pass
+Tree:
+: T  94.70c W  99.68c S  -0.86c (+10.0 L  +9.0) N    2001  --  C2 pass C1 pass B1 pass B3
+---Black(^)---
+C2  : T  94.81c W  99.76c S  -0.80c (+10.0 L  +9.0) LCB   91.97c P 18.82% WF 1985.2 PSV    1984 N    1984  --  C2 pass C1 pass B1 pass B3 pass
+C2  pss : T  93.95c W  99.81c S  -1.49c ( +9.9 L  +9.0) LCB   95.56c P 44.11% WF 1789.5 PSV    1779 N    1778  --  pass C1 pass B1 pass B3 pass pass
+C2  C1  : T  99.00c W  99.76c S   2.46c (+11.0 L  +9.3) LCB  112.67c P  6.22% WF  36.8 PSV      38 N      38  --  C1 B1 pass pass
+C2  A2  : T 101.81c W  97.16c S   4.27c (+11.6 L  +9.3) LCB  127.81c P  7.85% WF  33.4 PSV      35 N      35  --  A2 B1 pass A1 pass A3 pass pass
+C2  A1  : T 102.76c W  99.77c S   4.68c (+11.7 L  +9.6) LCB  119.11c P  9.00% WF  31.3 PSV      33 N      33  --  A1 B1 pass A2 pass pass
+C2  B3  : T 104.31c W  99.60c S   4.45c (+11.6 L  +9.2) LCB  118.45c P 10.20% WF  30.1 PSV      32 N      32  --  B3 A2 pass A3 pass C3 pass pass
+C2  B1  : T 105.33c W  99.43c S   5.23c (+11.9 L  +9.2) LCB  119.23c P 10.42% WF  28.9 PSV      31 N      31  --  B1 A2 pass C1 pass A1 pass pass
+C2  C3  : T 101.60c W  99.71c S   4.24c (+11.5 L  +9.4) LCB  120.63c P  5.07% WF  20.1 PSV      21 N      21  --  C3 B3 pass pass
+C2  A3  : T 110.43c W  99.62c S   8.04c (+12.9 L  +9.9) LCB  133.38c P  7.13% WF  12.9 PSV      14 N      14  --  A3 A2 pass B3 pass
+C3  : T  78.27c W  88.21c S  -9.14c ( +7.5 L  +7.1) LCB    9.96c P  2.36% WF  13.8 PSV       5 N      15  --  C3 A2 B1 B3 C2 pass
+pss : T  72.64c W  99.50c S -26.86c ( -0.3 L  +3.5) LCB -277.36c P  0.82% WF   0.9 PSV       1 N       1  --  pass
+
+2026-07-26 22:30:17+0200: = C2
+>>> genmove b
+2026-07-26 22:30:17+0200: Controller: genmove b
+2026-07-26 22:30:18+0200: MoveNum: 0 HASH: 6FCA121C6913EEF0BB449D99F881B201
+   A B C
+ 3 . . @
+ 2 . X X
+ 1 . . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi0
+Time taken: 0.612338
+Root visits: 2001
+New playouts: 2001
+NN rows: 160
+NN batches: 153
+NN avg batch size: 1.04575
+PV: C3 pass B3 pass A1 pass B1 pass pass
+Tree:
+: T  90.92c W  99.88c S  -6.08c ( +9.9 L  +9.0) N    2001  --  C3 pass B3 pass A1 pass B1
+---Black(^)---
+C3  : T  91.90c W  99.85c S  -4.89c (+10.1 L  +9.1) LCB   88.33c P  3.29% WF 727.6 PSV    1123 N     719  --  C3 pass B3 pass A1 pass B1 pass
+C3  pss : T  90.94c W  99.88c S  -5.60c (+10.0 L  +9.1) LCB   93.19c P 46.88% WF 622.5 PSV     619 N     618  --  pass B3 pass A1 pass B1 pass pass
+C3  B1  : T  95.90c W  99.67c S  -0.84c (+11.3 L  +9.2) LCB  106.76c P 11.80% WF  31.1 PSV      32 N      32  --  B1 A2 pass A1 pass C1 pass pass
+C3  B3  : T  96.50c W  99.79c S  -3.10c (+10.5 L  +8.6) LCB  112.99c P  6.99% WF  16.5 PSV      17 N      17  --  B3 B1 pass A3 pass A2 pass
+C3  C1  : T  95.39c W  99.82c S  -4.24c (+10.3 L  +8.9) LCB  112.97c P  5.37% WF  16.6 PSV      17 N      17  --  C1 B1 pass B3 pass pass
+C3  A2  : T 101.34c W  99.59c S   1.03c (+12.0 L +10.0) LCB  117.15c P 11.39% WF  15.2 PSV      16 N      16  --  A2 B1 pass A1 pass A3 pass pass
+C3  A3  : T 103.05c W  99.69c S   2.14c (+12.4 L  +9.8) LCB  125.39c P 10.12% WF  10.4 PSV      11 N      11  --  A3 A2 pass B3 pass pass
+C3  A1  : T 108.97c W  99.46c S   5.20c (+13.5 L +10.2) LCB  135.95c P  7.45% WF   5.6 PSV       6 N       6  --  A1 A2 B1
+B3  : T  90.65c W  99.92c S  -6.26c (+10.0 L  +9.0) LCB   86.32c P 19.20% WF 458.4 PSV     425 N     460  --  B3 pass A1 pass A2 pass pass
+A2  : T  89.92c W  99.88c S  -7.60c ( +9.7 L  +8.9) LCB   85.52c P 28.82% WF 429.2 PSV     418 N     434  --  A2 pass pass
+A3  : T  91.56c W  99.86c S  -5.99c ( +9.9 L  +8.8) LCB   86.47c P  6.86% WF 303.6 PSV     302 N     302  --  A3 pass B3 pass pass
+pss : T  86.24c W  99.97c S -13.13c ( +9.4 L  +9.1) LCB   81.69c P 11.73% WF  81.1 PSV      84 N      84  --  pass pass
+
+2026-07-26 22:30:18+0200: = C3
+>>> genmove b
+2026-07-26 22:30:18+0200: Controller: genmove b
+2026-07-26 22:30:18+0200: MoveNum: 0 HASH: 2C9EFEBF8849FE1CDDFF89694CCFB50E
+   A B C
+ 3 . . X
+ 2 . X X
+ 1 @ . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi0
+Time taken: 0.243561
+Root visits: 2001
+New playouts: 2001
+NN rows: 61
+NN batches: 60
+NN avg batch size: 1.01667
+PV: A1 B1 A2 pass C1 pass pass
+Tree:
+: T  93.42c W  99.92c S  -1.23c ( +9.6 L  +9.0) N    2001  --  A1 B1 A2 pass C1 pass pass
+---Black(^)---
+A1  : T  94.21c W  99.85c S  -0.67c ( +9.7 L  +9.0) LCB   90.31c P  9.05% WF 422.3 PSV     951 N     419  --  A1 B1 A2 pass C1 pass pass
+A1  B1  : T  93.44c W  99.88c S  -1.75c ( +9.4 L  +8.9) LCB   97.19c P 16.51% WF 120.6 PSV     238 N     120  --  B1 A2 pass C1 pass pass
+A1  pss : T  94.29c W  99.90c S  -0.28c ( +9.8 L  +9.1) LCB   97.94c P 39.68% WF 177.7 PSV     178 N     178  --  pass A2 pass pass
+A1  A2  : T  92.61c W  99.81c S  -2.02c ( +9.4 L  +9.1) LCB   97.41c P 14.74% WF  81.8 PSV      81 N      81  --  A2 B1 B3 A3 pass pass
+A1  B3  : T  98.06c W  99.77c S   0.73c ( +9.9 L  +8.4) LCB  112.60c P 10.29% WF  15.7 PSV      16 N      16  --  B3 A2 pass A3 pass pass
+A1  A3  : T 101.93c W  99.24c S   5.18c (+11.5 L  +9.3) LCB  121.00c P 10.42% WF  11.6 PSV      12 N      12  --  A3 A2 pass B3 pass
+A1  C1  : T 101.10c W  99.76c S   2.69c (+10.6 L  +9.0) LCB  120.35c P  8.36% WF  10.7 PSV      11 N      11  --  C1 A2 pass B1 pass
+A2  : T  93.17c W  99.94c S  -1.42c ( +9.6 L  +9.0) LCB   89.64c P 37.38% WF 592.4 PSV     594 N     594  --  A2 pass pass
+B3  : T  94.04c W  99.94c S  -0.34c ( +9.7 L  +9.1) LCB   89.97c P 11.77% WF 392.4 PSV     390 N     390  --  B3 B1 A2 pass A1 pass pass
+B1  : T  92.66c W  99.96c S  -1.88c ( +9.5 L  +9.0) LCB   88.64c P 25.62% WF 330.5 PSV     333 N     333  --  B1 pass pass
+A3  : T  93.36c W  99.84c S  -1.76c ( +9.5 L  +8.8) LCB   87.65c P  9.30% WF 142.9 PSV     143 N     143  --  A3 pass pass
+pss : T  91.75c W  99.93c S  -5.11c ( +9.3 L  +9.0) LCB   88.34c P  6.56% WF 119.5 PSV     120 N     121  --  pass pass
+
+2026-07-26 22:30:18+0200: = A1
+>>> genmove b
+2026-07-26 22:30:18+0200: Controller: genmove b
+2026-07-26 22:30:18+0200: MoveNum: 0 HASH: C274C5D54CFF9682036805FC65F178B8
+   A B C
+ 3 . . X
+ 2 . X X
+ 1 X . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi0
+Time taken: 0.131422
+Root visits: 2001
+New playouts: 2001
+NN rows: 33
+NN batches: 32
+NN avg batch size: 1.03125
+PV: pass pass
+Tree:
+: T  95.38c W  99.96c S  -0.21c ( +9.2 L  +9.0) N    2001  --  pass pass
+---Black(^)---
+pss : T  95.22c W  99.93c S  -1.25c ( +9.1 L  +9.0) LCB   94.13c P 20.79% WF 463.6 PSV     745 N     464  --  pass pass
+pss pss : T  94.34c W 100.00c S  -5.66c ( +9.0 L  +9.0) LCB   94.35c P 41.31% WF 388.0 PSV     386 N     386  --  pass
+pss B1  : T  98.26c W  99.81c S   2.79c ( +9.7 L  +9.2) LCB  105.13c P 21.66% WF  37.2 PSV      38 N      38  --  B1 A2 pass C1 pass pass
+pss B3  : T  99.96c W  99.61c S   2.97c ( +9.8 L  +8.3) LCB  115.26c P  8.49% WF  12.7 PSV      13 N      13  --  B3 A3 pass B1 pass
+pss A3  : T 101.05c W  99.17c S   5.29c (+10.6 L  +8.9) LCB  122.30c P  8.25% WF   9.7 PSV      10 N      10  --  A3 A2 pass B3 pass
+pss A2  : T 104.30c W  98.87c S   4.92c (+10.5 L  +8.5) LCB  125.04c P 12.85% WF   8.6 PSV       9 N       9  --  A2 B1 pass A3 pass
+pss C1  : T 102.66c W  99.71c S   5.05c (+10.5 L  +9.0) LCB  129.13c P  7.45% WF   6.8 PSV       7 N       7  --  C1 B1 pass pass
+A2  : T  95.09c W  99.98c S  -0.58c ( +9.1 L  +8.9) LCB   94.12c P 37.19% WF 725.1 PSV     727 N     727  --  A2 pass pass
+B1  : T  95.14c W  99.99c S  -0.64c ( +9.2 L  +9.0) LCB   94.04c P 24.10% WF 492.1 PSV     493 N     493  --  B1 pass pass
+B3  : T  97.08c W  99.93c S   2.22c ( +9.6 L  +9.2) LCB   92.25c P  6.62% WF 173.4 PSV     158 N     171  --  B3 A2 B1 pass A3 pass pass
+C1  : T  96.67c W  99.90c S   1.33c ( +9.4 L  +9.1) LCB   91.05c P  4.84% WF  90.9 PSV      84 N      90  --  C1 A2 A3 pass pass
+A3  : T  95.07c W  99.92c S  -0.40c ( +9.0 L  +8.8) LCB   88.54c P  6.45% WF  54.9 PSV      47 N      55  --  A3 pass pass
+
+2026-07-26 22:30:18+0200: = pass
+>>> final_score
+2026-07-26 22:30:18+0200: Controller: final_score
+2026-07-26 22:30:18+0200: = B+10.0
+>>> quit
+2026-07-26 22:30:18+0200: Controller: quit
+2026-07-26 22:30:18+0200: Quit requested by controller
+2026-07-26 22:30:18+0200: = 

@@ -1,0 +1,55 @@
+arena: artifacts/oracle-3x3.wzo (3x3), 5 seeds x 2 colours x 3 handicaps
+LEAK 10 pts | persona winning-any | seed 0 | audited W | handicap 1 | promise -9 final 1 | diverged-events 1
+  moves: B2 A2 C2 B3 C3 pass pass
+LEAK 1 pts | persona winning-slop | seed 0 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B3 B2 C2 pass C1 A2 A3 pass pass
+LEAK 1 pts | persona winning-slop | seed 0 | audited W | handicap 0 | promise 1 final 2 | diverged-events 1
+  moves: C2 B2 B1 A3 pass A2 C3 pass A1 pass pass
+LEAK 3 pts | persona winning-slop | seed 0 | audited W | handicap 1 | promise -9 final -6 | diverged-events 1
+  moves: B2 B1 A2 C1 C2 C3 C1 A3 B3 pass A3 B1 A1 pass B1 C3 B2 A1 C2 pass A3 B1 A2 pass C1 pass A1 pass pass
+LEAK 1 pts | persona winning-any | seed 1 | audited B | handicap 2 | promise -1 final -2 | diverged-events 1
+  moves: B2 A3 C1 pass B3 A2 B1 A2 A3 pass A1 pass C2 pass A2 C3 A2 B2 B1 B3 C1 pass A3 pass pass
+LEAK 1 pts | persona winning-slop | seed 1 | audited B | handicap 2 | promise -1 final -2 | diverged-events 1
+  moves: B1 B2 A2 B3 C1 pass A3 pass pass
+LEAK 1 pts | persona winning-slop | seed 1 | audited W | handicap 0 | promise 1 final 2 | diverged-events 1
+  moves: A2 B2 B1 C3 A3 C2 C1 pass pass
+LEAK 7 pts | persona dan | seed 1 | audited B | handicap 0 | promise 9 final 2 | diverged-events 1
+  moves: B2 pass C2 C1 C3 A2 B1 B3 pass pass
+LEAK 9 pts | persona dan | seed 1 | audited W | handicap 0 | promise -9 final 0 | diverged-events 1
+  moves: B2 C3 A3 C2 A1 B1 pass pass
+LEAK 7 pts | persona novice | seed 1 | audited B | handicap 1 | promise 9 final 2 | diverged-events 1
+  moves: B2 B3 B1 pass A3 A2 C1 C2 C1 C3 pass B1 pass C1 pass B2 A3 B2 C1 B1 C3 A2 B3 A1 C2 B2 A1 A2 B1 B2 A2 B2 C2 A2 B3 B1 pass C1 pass pass
+LEAK 7 pts | persona optimal | seed 3 | audited W | handicap 0 | promise 2 final 9 | diverged-events 2
+  moves: B2 B1 A2 C3 B3 C2 C1 C2 C3 pass C1 pass C2 pass A1 pass B1 pass pass
+LEAK 1 pts | persona winning-any | seed 3 | audited B | handicap 1 | promise -1 final -2 | diverged-events 1
+  moves: B3 B2 C2 B1 A3 pass C1 pass pass
+LEAK 8 pts | persona winning-slop | seed 3 | audited B | handicap 0 | promise 9 final 1 | diverged-events 1
+  moves: B2 C1 C2 C3 A1 pass B3 A2 A3 pass A2 pass B1 pass C3 C1 B1 B2 C2 A3 pass pass
+LEAK 1 pts | persona winning-slop | seed 4 | audited B | handicap 2 | promise -1 final -2 | diverged-events 1
+  moves: B1 B2 A2 pass C1 B3 A3 pass pass
+LEAK 1 pts | persona winning-slop | seed 4 | audited W | handicap 0 | promise 1 final 2 | diverged-events 1
+  moves: B3 B2 C2 A1 A3 B1 C1 pass pass
+LEAK 1 pts | persona kyu | seed 4 | audited B | handicap 2 | promise -1 final -2 | diverged-events 1
+  moves: B3 B2 C2 A2 C1 pass A3 pass pass
+LEAK 6 pts | persona kyu | seed 4 | audited W | handicap 0 | promise 3 final 9 | diverged-events 1
+  moves: A2 B2 C2 B1 B3 pass C3 pass A1 pass C1 pass pass
+
+arena summary (per opponent persona):
+  optimal       games=   30 capped=0 audited-won=   15 held-exact=   29 CLEAN-LEAKS=1 (max 7) diverged 2/3
+  optimal       E1 diverged: single-score=0  ko-sensitive=3
+  optimal       B43 UNDEF-tainted: games=0  events=0  tainted-leaks=0 (max 0)
+  winning-any   games=   30 capped=0 audited-won=   17 held-exact=   26 CLEAN-LEAKS=3 (max 10) diverged 7/7
+  winning-any   E1 diverged: single-score=0  ko-sensitive=7
+  winning-any   B43 UNDEF-tainted: games=0  events=0  tainted-leaks=0 (max 0)
+  winning-slop  games=   30 capped=0 audited-won=   16 held-exact=   22 CLEAN-LEAKS=8 (max 8) diverged 11/11
+  winning-slop  E1 diverged: single-score=1  ko-sensitive=10
+  winning-slop  B43 UNDEF-tainted: games=0  events=0  tainted-leaks=0 (max 0)
+  dan           games=   30 capped=0 audited-won=   17 held-exact=   27 CLEAN-LEAKS=2 (max 9) diverged 5/5
+  dan           E1 diverged: single-score=0  ko-sensitive=5
+  dan           B43 UNDEF-tainted: games=0  events=0  tainted-leaks=0 (max 0)
+  kyu           games=   30 capped=0 audited-won=   18 held-exact=   26 CLEAN-LEAKS=2 (max 6) diverged 3/3
+  kyu           E1 diverged: single-score=0  ko-sensitive=3
+  kyu           B43 UNDEF-tainted: games=0  events=0  tainted-leaks=0 (max 0)
+  novice        games=   30 capped=0 audited-won=   23 held-exact=   26 CLEAN-LEAKS=1 (max 7) diverged 8/11
+  novice        E1 diverged: single-score=1  ko-sensitive=10
+  novice        B43 UNDEF-tainted: games=0  events=0  tainted-leaks=0 (max 0)

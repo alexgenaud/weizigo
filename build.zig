@@ -101,6 +101,49 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(engine_vs_engine_exe);
 
+    // ── chainability audit ─────────────────────────────────────────
+    // Measures where a .wzo table value may legitimately be compared with its
+    // children's (the history-free Bellman identity). Gates FP1 check 3.
+    const chainability_exe = b.addExecutable(.{
+        .name = "weizigo-chainability",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/chainability.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(chainability_exe);
+
+    // ── reachable ko-sensitivity census ────────────────────────────
+    // Plays whole games from the empty board under several policies and
+    // measures the KO_SENSITIVE fraction over the nodes actually REACHED —
+    // the player-relevant denominator, as opposed to the chainability
+    // audit's slot-uniform one.
+    const reachcensus_exe = b.addExecutable(.{
+        .name = "weizigo-reachcensus",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/reachcensus.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(reachcensus_exe);
+
+    // ── claim-register linter ──────────────────────────────────────
+    // Parses docs/epistemic/CLAIMS.md and the repo, and reports orphaned
+    // claims (a live claim derived from a falsified one), dangling evidence
+    // paths, PROVEN claims whose evidence is not committed, and dangling
+    // claim IDs. Each check maps to a failure this project actually suffered.
+    const claimlint_exe = b.addExecutable(.{
+        .name = "weizigo-claimlint",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/claimlint.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(claimlint_exe);
+
     // ── managent ───────────────────────────────────────────────────
     const managent_exe = b.addExecutable(.{
         .name = "managent",
