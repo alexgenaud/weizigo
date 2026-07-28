@@ -41,7 +41,6 @@ const TaskState = struct {
     set: u8 = 'A', // 'A', 'B', or 'C'
     holds: [][]const u8 = &.{},
     needs: [][]const u8 = &.{},
-    needs_context: u64 = 0,
     added: []const u8 = "", // ISO-8601 timestamp
     claimed: ?[]const u8 = null,
     done: ?[]const u8 = null,
@@ -68,11 +67,11 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const repo_root = try findRepoRoot(io);
     defer alloc.free(repo_root);
 
-    const state_path = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "managent", "tasks.json" });
+    const state_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "tasks.json" });
     defer alloc.free(state_path);
 
     // Ensure the managent directory exists
-    const dir_path = "untracked/managent";
+    const dir_path = "docs/infra/managent";
     std.Io.Dir.cwd().createDirPath(io, dir_path) catch {};
 
     // Determine command
@@ -144,7 +143,6 @@ const BundleMeta = struct {
     set: u8, // 'A', 'B', or 'C'
     holds: [][]const u8,
     needs: [][]const u8,
-    context: u64,
 };
 
 fn findBundle(io: std.Io, repo_root: []const u8, id: []const u8) ![]const u8 {
@@ -232,7 +230,6 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
         .set = 'A',
         .holds = &.{},
         .needs = &.{},
-        .context = 0,
     };
 
     var set_found = false;
@@ -269,7 +266,11 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
                 result.needs = try needs_list.toOwnedSlice(alloc);
             }
         } else if (std.mem.eql(u8, key, "context")) {
-            result.context = parseContextValue(value);
+            // context=… was retired 2026-07-28; the spec rejects it.
+            // A bundle that still carries the key is a stale artefact —
+            // fail loudly so the writer fixes the brief, not silently.
+            std.debug.print("error: 'context=…' key is rejected (retired 2026-07-28); remove it from {s}\n", .{bundle_path});
+            std.process.exit(1);
         }
     }
 
@@ -297,23 +298,6 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
     }
 
     return result;
-}
-
-fn parseContextValue(s: []const u8) u64 {
-    if (s.len == 0) return 0;
-    var num_str = s;
-    var multiplier: u64 = 1;
-
-    const last = s[s.len - 1];
-    if (last == 'k' or last == 'K') {
-        num_str = s[0 .. s.len - 1];
-        multiplier = 1_000;
-    } else if (last == 'M') {
-        num_str = s[0 .. s.len - 1];
-        multiplier = 1_000_000;
-    }
-
-    return (std.fmt.parseUnsigned(u64, num_str, 10) catch 0) * multiplier;
 }
 
 // ── state file ──────────────────────────────────────────────────────────────
@@ -462,9 +446,6 @@ fn parseStateJson(content: []const u8) !StateMap {
                 ts.needs = try list.toOwnedSlice(alloc);
             }
         }
-        if (obj.object.get("needs_context")) |cv| {
-            if (cv == .integer) ts.needs_context = @intCast(cv.integer);
-        }
         if (obj.object.get("added")) |ad| {
             if (ad == .string) ts.added = try alloc.dupe(u8, ad.string);
         }
@@ -529,12 +510,6 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try buf.appendSlice(alloc, "\"");
         }
         try buf.appendSlice(alloc, "]");
-
-        // needs_context as number
-        var ctx_buf: [32]u8 = undefined;
-        const ctx_str = try std.fmt.bufPrint(&ctx_buf, "{}", .{ts.needs_context});
-        try buf.appendSlice(alloc, ",\n    \"needs_context\": ");
-        try buf.appendSlice(alloc, ctx_str);
 
         try buf.appendSlice(alloc, ",\n    \"added\": \"");
         try buf.appendSlice(alloc, ts.added);
@@ -731,7 +706,6 @@ fn cmdAdd(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]c
         .set = meta.set,
         .holds = meta.holds,
         .needs = meta.needs,
-        .needs_context = meta.context,
         .added = now,
         .claimed = null,
         .done = null,
@@ -980,10 +954,6 @@ fn printSection(label: []const u8, ids: []const []const u8, state: *StateMap, re
         // <ID> set <set>, context <ctx>: follow <relpath>
         // Extra metadata appended before ':' if present.
         std.debug.print("    {s} set {c}", .{ tid, ts.set });
-        if (ts.needs_context > 0) {
-            std.debug.print(", context ", .{});
-            printContext(ts.needs_context);
-        }
         if (ts.needs.len > 0) {
             std.debug.print(", needs", .{});
             for (ts.needs) |n| std.debug.print(" {s}", .{n});
@@ -1022,14 +992,10 @@ fn bundleRel(bundle: []const u8, repo_root: []const u8) []const u8 {
 }
 
 fn cmdNext(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
-    var context_limit: u64 = std.math.maxInt(u64);
     var exec_prefix: ?[]const u8 = null;
     var i: usize = 0;
     while (i < args.len) : (i += 1) {
-        if (std.mem.eql(u8, args[i], "--context") and i + 1 < args.len) {
-            i += 1;
-            context_limit = parseContextValue(args[i]);
-        } else if (std.mem.eql(u8, args[i], "--exec") and i + 1 < args.len) {
+        if (std.mem.eql(u8, args[i], "--exec") and i + 1 < args.len) {
             i += 1;
             exec_prefix = args[i];
         }
@@ -1037,14 +1003,13 @@ fn cmdNext(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]
 
     var state = try readState(io, state_path);
 
-    // Find first dispatchable task that meets context requirement
+    // Find first dispatchable task whose phase set is open
     var candidate_id: ?[]const u8 = null;
 
     var it = state.iterator();
     while (it.next()) |entry| {
         const ts = entry.value_ptr.*;
         if (ts.status != .dispatchable) continue;
-        if (ts.needs_context > context_limit) continue;
         if (phaseGate(state, ts.set)) continue;
         if (holdsConflict(state, ts.holds, entry.key_ptr.*) != null) continue;
 
@@ -1134,10 +1099,6 @@ fn cmdShow(io: std.Io, state_path: []const u8, args: [][]const u8) !void {
     }
     std.debug.print("\n", .{});
 
-    std.debug.print("    context:  ", .{});
-    printContext(ts.needs_context);
-    std.debug.print("\n", .{});
-
     std.debug.print("    added:    {s}\n", .{ts.added});
     if (ts.claimed) |c| {
         std.debug.print("    claimed:  {s}\n", .{c});
@@ -1146,20 +1107,6 @@ fn cmdShow(io: std.Io, state_path: []const u8, args: [][]const u8) !void {
         std.debug.print("    done:     {s}\n", .{d});
     }
     std.debug.print("\n", .{});
-}
-
-fn printContext(c: u64) void {
-    if (c > 0) {
-        if (c >= 1_000_000) {
-            std.debug.print("{d}M", .{c / 1_000_000});
-        } else if (c >= 1_000) {
-            std.debug.print("{d}k", .{c / 1_000});
-        } else {
-            std.debug.print("{d}", .{c});
-        }
-    } else {
-        std.debug.print("-", .{});
-    }
 }
 
 fn printHelp() void {
