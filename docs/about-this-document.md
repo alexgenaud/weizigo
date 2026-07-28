@@ -92,10 +92,10 @@ progress · `[x]` done · `[-]` dropped.
 
 ## Related
 
-- `infra/agents/workflow.md` — the broader agent workflow intention
-  (pipeline phases, fail-fast subtasks, readiness-for-context-clear,
-  parallelization, auditability). This file is the *documentation* method;
-  that one is the *agent* method. They compose.
+- `infra/agents/workflow.md` — retired 2026-07-28 to a stub, but still the only home of the
+  *document before / while / after* rule and the "where state lives so context can be cleared"
+  rule. This file is the *documentation* method; that one is the *agent* method. They compose.
+  The rest of the old workflow intention now lives in `AGENTS.md` and `infra/delegation/`.
 - `status/CURRENT.md` — the ephemeral in-flight-task file that makes the
   "always ready to clear context" rule concrete.
 

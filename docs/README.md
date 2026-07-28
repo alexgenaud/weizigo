@@ -9,10 +9,11 @@ Working notes for the brute-force / perfect small-board Go solver.
 2. `epistemic/names.md` — canonical names (the table, the values, the two regions).
 3. `status/leak-crisis.md` — the current-focus crisis.
 4. `about-this-document.md` — the documentation method.
-5. `infra/agents/workflow.md` — the agent workflow intention (pipeline, readiness,
-   parallelization).
+5. `infra/delegation/DELEGATOR.md` (writing a task) or `infra/delegation/DELEGATEE.md`
+   (executing one) — read one, only when it applies to you.
 6. `epistemic/GLOSSARY.md` — terms.
-7. `AGENTS.md` (repo root) — agent behavior rules and foreclosures.
+7. `AGENTS.md` (repo root) — the router: foreclosures, the behaviour rules that bind every
+   agent, and which single process file each role reads.
 8. `epistemic/boards/CONCEPTS.md` — the cross-size concept-inventory (fact-topics
    every board-size tree must address; definitions only, no status).
 9. `epistemic/boards/4x4/EPISTEMIC.md` — the 4×4 epistemic tree (the active focus).
@@ -25,7 +26,11 @@ Working notes for the brute-force / perfect small-board Go solver.
 - `epistemic/names.md` — canonical names register (proposed; pending propagation).
 - `about-this-document.md` — the documentation-as-specification-as-research
   method.
-- `infra/agents/workflow.md` — the agent workflow intention (spirit, not dogma).
+- `infra/delegation/` — `DELEGATOR.md` (how to write a task) and `DELEGATEE.md` (how to
+  execute one). `infra/dispatch/` — one brief per experiment + the dispatch README.
+  `infra/agents/workflow.md`, `infra/sprint.md`, `infra/subagent.md`,
+  `infra/agents/boss-role.md`, `infra/agents/worker-role.md`, `infra/delegation.md` —
+  retired 2026-07-28; each is a stub naming its replacement.
 - `status/CURRENT.md` — ephemeral in-flight task status (read on resume;
   update continuously).
 - `status/` — current state and live crises (`leak-crisis.md`).

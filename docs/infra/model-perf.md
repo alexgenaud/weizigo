@@ -7,6 +7,13 @@ TODO: record the general facts about each model. Then keep notes of each model i
 - GLM-5.2 (worker, boss/orchestrator) — glm-5.2:cloud, context 950 k
 - **Minimax-m3** (worker) — minimax-m3:cloud
 - **Kimi-k2.7** (worker / auditor) — kimi-k2.7-code:cloud, context ~556 k
+- **Opus 5** (overview / adversarial reviewer / brief author, from 2026-07-27) —
+  remit set 2026-07-28 (`untracked/msg/milestone-01-ko-reframe/STATE.md`):
+  grand overview, epistemic tree, adversarial review of load-bearing proofs,
+  ruling on claim semantics; **does not execute mechanical work**.
+- **Fable** (hardest reasoning tasks, documents over implementation) —
+  allocated 2026-07-28 (D-7), **still unused as of 2026-07-28**; STATE.md calls
+  that a gap. EXP-10 (the QA-018 ADR refutation) is its first dispatch.
 
 Small-n, single-session anecdotes per model. Strengths/weaknesses only — speed
 and cost are not differentiators here. Add a dated entry each session.
@@ -664,3 +671,766 @@ Takeaway: MiniMax for thoroughness, DS Flash for speed+fixes, GLM for baseline. 
 **Recommendation:** GLM for Boss (consistent across all skills). MiniMax for audits
 (thoroughness). DS Pro for epistemic verification. DS Flash for speed tasks.
 Kimi for follow-through on existing findings.
+
+---
+
+# Sprint 2026-07-27/28 — the ko-reframe milestone
+
+How to read the rows below. This is a **quality ledger, not a highlight reel**.
+Each entry records what the task cost, what it actually established (with the
+claim IDs it touched), and whether the result survived audit. **The failures are
+the most valuable rows** — two of them (EXP-2 Part A and Part B) cost more than
+everything else in the sprint combined, and the fault for most of Part B is the
+delegator's, not the executor's.
+
+Conventions: **cost signals are quoted only where a source document records
+them**; where none does, the row says "cost not recorded" rather than
+estimating. **No model is named where the sources do not name one** —
+"unattributed subagent" is used, and it is an honest entry, not a placeholder.
+Where two sources disagree on a number, both are recorded and the disagreement
+is flagged; nothing here adjudicates a technical claim or a status.
+
+## Opus 5 — the chainability finding (2026-07-27)
+
+**Task:** review the epistemic tree and find out why the Go Text Protocol (GTP)
+player loses as soon as a ko appears.
+**Output:** `bin/weizigo-chainability` (`src/chainability.zig`), new build
+target, `docs/research/ko-sensitive-chainability.md` Measurements 1–3, the new
+GLOSSARY term **chainable**.
+
+**What it established.** `Session.choose` picks a move by extremum over
+children's *stored* values, which is only defined where the history-free Bellman
+identity holds. Measured, artifact-only:
+
+- **Zero** identity violations *outside* the KO_SENSITIVE flag at 2×2, 3×2, 3×3,
+  4×3 (exhaustive) and 4×4 (`--sample 37`), under both the full and the
+  ADR-0006 eye-pruned move sets. The single-score (L==H) region **is** chainable
+  — the region's first positive property, and FP1 acceptance check 3, which
+  `boards/4x4/EPISTEMIC.md` had carried as untested.
+- Violations are **exactly co-extensive** with the flag: 16/16, 72/72, 688/688,
+  6,092/6,092, and 11,402/11,402 on the 4×4 sample.
+- Worst misprice is **2n exactly** for every n ≥ 6 (12, 18, 24, 32) — the entire
+  board swing, not a rounding effect. **CLAIMED** (four sizes, no proof).
+- Measurement 2: positional-superko (PSK) bans changed the best available value
+  at **0 of 19 plies** in each of the two saved 4×4 regression games. The ko
+  *rule* costs the engine nothing. **PROVEN** for those two games.
+- Measurement 3: the empty 4×4 board is itself KO_SENSITIVE (bracket [−6, +16]),
+  16 of 19 plies of both games are flagged, and the collapse at ply 16 is stored
+  −16 against +16 one ply down. Claims touched: `GLOBAL.CHAIN-KO`,
+  `GLOBAL.CHAIN-KIND`, `4x4.GTP-DEFECT`, `4x4.FP1-C3`/`QA-021`, `QA-002`.
+
+**Cost:** tool written and five artifacts swept in one session (23:51 CEST
+report). Per-run cost not recorded for the 2026-07-27 sampled runs; the
+exhaustive 4×4 re-run the next day is 87 s (see below).
+
+**Outcome quality — held, with two of its own statements later corrected.**
+The out-of-flag zero has survived every subsequent check and was upgraded from
+sample to exhaustive on 2026-07-28. But (a) the 4×4 row was a 1:37 stride
+*sample* quoted as 21.27%, superseded the next day, and (b) a paragraph headed
+"**Not a bug.**" asserting the violations were "not evidence of a generation
+error" was **too strong and is retracted in the same document** by Measurement 4.
+The retraction is in the file rather than quietly edited out, which is the
+behaviour this ledger wants.
+
+## Opus 5 — Measurement 4: writes-off vs writes-on, and its two walk-backs (2026-07-27, extended 2026-07-28)
+
+**Task:** not dispatched — Opus found `untracked/oracle-4x4-writesoff-checkpoint.wzo`
+and swept it with the same tool and flags to separate the definitional part of
+the ko-sensitive misprice rate from the part that is not.
+
+**What it established.** At stride 37: writes-**ON** 4.08% misprice within the
+flag, writes-**OFF** 1.67%, zero outside on both. Reproduced at coprime stride
+997: 3.81% vs 1.47% (397 vs 152 raw violations). A definitional **floor** exists
+and is not zero — a sweep reporting 0% inside the flag would convict the tool,
+not the artifact — and the committed artifact carries an excess above it.
+Claims: `4x4.M6`, `4x4.M6-FLOOR`, `4x4.M6-EXCESS`, `4x4.M6-SCREEN`, `QA-007`.
+
+**Cost:** four strided sweeps of a 258 MB artifact; wall time not recorded
+per run (the document calls the screen "seconds of CPU over a strided read").
+
+**Outcome quality — direction survived, magnitude did not, and the author
+walked it back twice himself.**
+
+1. First framing, "the violations are purely definitional", was **withdrawn** by
+   this very measurement.
+2. The 2.44× ratio was sold in message 001 as evidence for Track A. On
+   2026-07-28 direct byte inspection showed the writes-off artifact's root is
+   UNDEF — **the run never finished** — so the comparison is not like-for-like
+   and the unfinished slots are exactly the hard ones (survivorship confound).
+   A worst-case bound (charge every missing slot to writes-off) gives 2.51% <
+   4.08%, so the **direction is PROVEN robust** and the ratio is **≥1.63×**, but
+   the true value lies somewhere in **[1.63×, 2.44×]** and the sweep cannot
+   narrow it.
+3. **QA-007 remains CLAIMED**, not proven: attribution of the excess to the
+   ADR-0013 `ko_ref >= d` graph-history-interaction (GHI) bug is consistent with
+   the bug but not established. Upgrade path unchanged (`RETRO_CONSIST`), with a
+   *completed* writes-off regen newly named as a prerequisite.
+
+**Number disagreement, flagged:** the ratio is **2.45×** in
+`untracked/msg/milestone-01-ko-reframe/001-opus-to-glm.md` §005 and **2.44×** in
+`docs/research/ko-sensitive-chainability.md` Measurement 4. Both are recorded;
+neither is adjudicated here.
+
+## Opus 5 — the errata ledger, and the one entry that is his own error (2026-07-27)
+
+**Output:** `docs/research/corrections-2026-07-27.md` — five entries: A-1 (wrong
+causal attribution to "the game's PSK history" in commit `753584f` and
+`regressions/README.md:21`), A-2 (category error — the blunder is **not** "C2 in
+action"; every blundering node is L<H, outside C2's scope, so the applicable
+claim is C4 plus unchainability), A-3 ("fresh-start perfect" overstates the
+player — the engine's own log shows stored −3, played −16), B-1 (ADR-0013's
+"the GTP player shares this machinery" is **FALSE** as of the 2026-07-27 code —
+`Session.choose` does table lookups only, and WZO1 carries no bracket columns
+for any player to cut on), and **C-1**.
+
+### C-1 — Opus's own error, caught by calibration and recorded as such
+
+**This is the entry the ledger exists for.** Mid-investigation, Opus read the
+chainability violations in the committed 4×4 artifact as the ADR-0013
+`ko_ref >= d` GHI bug resurfacing in the committed generation. **Calibration
+killed that reading:** the same sweep on `artifacts/oracle-2x2.wzo` and
+`artifacts/oracle-3x2.wzo` — the PROVEN, Track-A-regenerated artifacts the
+suspected bug never touched — produced violations of the same character
+(19.51% and 19.05% within the flag, zero outside). A bug present in the clean
+artifacts is not a bug; the violations are definitional in kind.
+
+**Cost:** two extra sweeps of tiny artifacts. Effectively free, and it is the
+reason a wrong finding was never committed.
+
+**Lesson recorded, and it became a standing project rule
+(`GLOBAL.CALIB-LESSON`):** *an auditor with no **passing** calibration case
+cannot distinguish "bug" from "definition" — every input looks guilty.* The
+calibration also gave the auditor its scope (it judges only outside the flag).
+This rule is cited by `docs/evidence/README.md` step 6 and is check P3 of the
+roadmap; the claim-lint tool below honours it and was caught by it.
+
+**Authorship disagreement, flagged:** `001-opus-to-glm.md` §6 lists
+`corrections-2026-07-27.md` among the files Opus wrote that session, while
+`docs/status/CURRENT.md`'s dirty-tree table labels it "(new, **another
+agent**)". C-1 itself is unambiguous — Opus states the mistake was his own — but
+the file's overall authorship is not settled by the sources.
+
+## Opus 5 — exhaustive 4×4 sweep, denominator reconciliation, and his own tool bug (2026-07-28)
+
+**Task:** close the FP1 check-3 residue (H4) by dropping `--sample`.
+
+**Cost: 87 s wall**, one pass over the 258 MB artifact.
+
+**What it established.** 48,599,962 (position, side) slots checked; **422,990**
+violations under both move sets, **all** KO_SENSITIVE-flagged, **0** outside;
+max gap 32; within-flag misprice **4.08%**. The 1:37 sample had predicted 4.08%
+and 21.27% against an exhaustive 4.08% and 21.33% — **the sample was sound**,
+and the superseded row is kept in the document as the evidence of that rather
+than deleted. `QA-021`/`4x4.FP1-C3` upgraded from sampled to exhaustive.
+Residue that remains open: the `lo`/`hi` **bracket-table** form of check 3 is
+still untested, because WZO1 (ADR-0011) stores no bracket columns.
+
+**A bug of his own, found and fixed in the same pass.** The counter printed as
+`legal, non-settled` was incremented *before* the settled `continue`, so it was
+the plain legal count (24,318,165), not the non-settled count (24,299,981).
+**That mislabelling seeded a three-way percentage confusion across four
+documents.** The tool now prints both lines and directly counts flags on settled
+slots: **0** at 4×4 and 4×3, which converts the denominator reconciliation from
+a cross-instrument inference into a measurement.
+
+**Number disagreement — recorded and reconciled at 4×4 only.** Three 4×4
+ko-sensitive percentages are in circulation and **all three are arithmetically
+correct**; they differ only in denominator:
+
+| figure | numerator / denominator | what it measures |
+|---|---|---|
+| 21.32% | 10,367,922 / 48,636,330 | converge census, over **all legal** slots |
+| 21.33% | 10,367,922 / 48,599,962 | chainability sweep, over **non-settled** slots |
+| 21.27% | 279,323 / 1,313,248 | the **superseded** 1:37 sample estimate |
+
+48,636,330 − 48,599,962 = 36,368 = 18,184 settled positions × 2 sides. **Only
+the 4×4 row of `CLAIMS.md` discrepancy D7 is reconciled; the 2×2 / 3×2 / 3×3 /
+4×3 rows are NOT**, and per-board independence forbids assuming the same cause.
+Standing lesson from this incident, now in STATE.md: **state every denominator.**
+
+## Opus 5 — QA-008 and QA-016 by direct byte inspection (2026-07-28)
+
+**Task:** stop waiting for the Boss to answer "is the writes-off checkpoint
+complete?" and read the bytes.
+
+**Cost:** a three-line `python3` read of three byte offsets. No engine, no tool.
+The cheapest decisive result of the sprint.
+
+**What it established (PROVEN).** `vb[empty]` is at offset 32 in the WZO1
+payload. `data/oracle-4x4.checkpoint.wzo` holds **+2** (the published anchor);
+`data/oracle-4x4-parallel.checkpoint.wzo` and
+`untracked/oracle-4x4-writesoff-checkpoint.wzo` both hold **−128 (UNDEF)**.
+So: **QA-008 answered — the Track A writes-off run did not finish**, closing a
+question that had been open in three documents as "completion unconfirmed"; and
+**QA-016, new — the parallel checkpoint cannot state the 4×4 answer at all.**
+The only 4×4 artifact carrying +2 at the root is the writes-**ON**, i.e.
+ADR-0013-unsound, one.
+
+**Methodological finding worth more than the measurement:** the docs describe
+the parallel checkpoint as "99.8% complete / 83K unfilled", which is
+arithmetically true and operationally misleading when the missing slot is *the*
+slot. **Percentage-filled is not a fitness-for-purpose metric.**
+
+## Unattributed subagent — the reachable certified-fraction baseline (2026-07-28)
+
+**Task:** dispatched by Opus (one of "two agents" named in
+`001-opus-to-glm.md` §004) — measure the KO_SENSITIVE fraction over nodes the
+engine actually *reaches in play*, against the chainability sweep's
+slot-uniform denominator. **No model is named in any source; recorded as
+unattributed.**
+**Output:** `bin/weizigo-reachcensus` (`src/reachcensus.zig`),
+`docs/research/reachable-kosensitivity-2026-07-28.md`.
+
+**Cost: ~0.7 s wall per 4×4 run** for all four policies at 2,000 games — cost
+dominated by loading the 258 MB artifact, i.e. the measurement itself is nearly
+free. Seed 20260728, ply cap 256.
+
+**What it established (PROVEN for these artifacts/policies).** **In 4×4
+engine-vs-engine play the certified fraction is exactly ZERO** — all 14 plies of
+the single self-play line are flagged (28,000/28,000, `distinct game lines: 1`),
+and randomising tie-breaks (144 distinct lines, 27,865/27,865) finds no
+certifiable node either. Same at 4×3 (22,000/22,000). **Not** at 3×3 (42.86%,
+flag clearing from ply 4). The slot-uniform 21.33% understates player exposure
+under every policy measured; the honest answer is a **policy-dependent range
+from 0% to ~78%**, and the document explicitly refuses to let the `mixed` 78.3%
+be quoted as "the" certified fraction. Secondary **CLAIMED** finding
+(`QA-017`): the engine steers *into* the unchainable region — nodes it creates
+for the opponent are flagged roughly twice as often as nodes where it is to move
+(4×4 21.72% vs 47.68%; 4×3 31.49 vs 49.13; 3×3 38.76 vs 59.00).
+
+**Outcome quality — strong, and it is the second-best-calibrated row in the
+sprint after EXP-3.** Reasons: the `oracle` policy was validated **move-for-move
+against the real GTP player** built from the working tree at all three boards;
+the pre-registered sanity check is reported as **INVERTING at 3×3** rather than
+quietly scoped away; ply-cap, settled-stop and three-seed robustness are all
+measured and the settled-stop bias is reported as ≈2 pp *in the direction the
+mechanism predicts*; and the UNDEF path was exercised on the parallel checkpoint
+(100% of games touch UNDEF, statistics undefined) rather than left as dead code.
+It also states plainly what it does **not** check — whether a flagged value is
+also *wrong*.
+
+**Number disagreement, flagged:** the research note gives `mixed` engine-to-move
+**21.72%** and opponent-to-move **47.68%** (2,000 games/policy); Opus's relay in
+`001-opus-to-glm.md` §006 gives **21.24%** and **47.33%** from what it calls "my
+500-game reproduction", while the table in that same message says 21.72%. The
+committed document's figures cite their seed and game count; the message's do
+not fully. Both recorded.
+
+## Unattributed subagent — EXP-1, the PSK binding rate (2026-07-28)
+
+**Task:** EXP-1 of `roadmap-2026-07-28.md` §3 — does positional superko ever
+actually forbid a move basic ko allows, and would a human notice? Claim under
+test: **QA-024**. **No model is named in any source** (there is no `EXP-1.md`
+dispatch brief); Opus relays the result in `001-opus-to-glm.md` §010 and refers
+to the executor only as "the agent".
+**Output:** `--psk-binding` and `--replay` on `bin/weizigo-reachcensus`,
+`docs/research/psk-binding-rate-2026-07-28.md`.
+
+**Cost: ~1 s wall per 4×4 run** (2,000 games × 4 policies), seed 20260728.
+
+**What it established.** **Zero** binding events across **130,171 plies and
+1,015,076 candidate moves** of engine-driven play on 4×4/4×3/3×3, under both
+settled-stop settings. In both recorded human-vs-engine games PSK bound **zero**
+times — the single ban per game is a `d = 2` recapture basic ko forbids anyway.
+Under uniformly random play it *does* bind: 1.326 (4×4) to 8.513 (3×3) per 1,000
+plies, of which 0.329 to 5.445 are silent long-range repeats — and removing the
+settled-stop truncation multiplies the random silent rate by 7–11× while leaving
+the engine policies at exactly zero.
+
+**Outcome quality — high, and the row is here partly for what the agent
+refused to do.** It **declined to report QA-024 as proven unconditionally**,
+because random self-play falsifies "negligible" as an unqualified statement, and
+recommended re-scoping the claim to the policy class it holds over. Two
+verification checks ran *before any number was believed*: a hand-verified
+14-ply 4×4 line (stone-count and suicide argument for why the zero is correct
+rather than a silent instrument failure), and a `--replay` mode that reproduces
+Measurement 2's independently-derived ground truth **exactly** (1 ban, ply 14,
+d=2, both games, including the vertical-mirror relation between them). The
+document also states the limit that matters: **this measures legality along
+played lines, not value** — EXP-8 is still required — and it notes that the
+board-size ordering runs *against* intuition (smaller boards bind more), so it
+must not be read as reassurance about 5×5. Denominator, "isolated"-proxy status
+and the lower-bound direction of the distance convention are all declared.
+
+## Unattributed subagent — the claim register, `docs/epistemic/CLAIMS.md` (2026-07-28)
+
+**Task:** the second of Opus's "two agents" — build the full claim register with
+`derives-from` vs `evidenced-by` edges, an orphaned-claims list and an
+inheritance audit, against a named method fault: *the project has no dependency
+edges between claims*, which is why C2's fall required a manual re-audit.
+**Owner recorded in the file only as "the claims-register agent"; no model
+named.**
+
+**Cost: not recorded.** Size signal: 217 claims / 231 edges at first delivery,
+grown to 245 rows / 267 edges after the `QA-nnn` import.
+
+**What it established.** Three results, all found by the register and two of
+them **outside its brief**:
+
+- **O1 / QA-018 — the deepest orphan in the project.** `GLOBAL.F2` (the
+  bracket-guided finisher behind **every shipped ko-sensitive value**) derives
+  from ADR-0010's claim that brackets "hold under ANY arrival history", which
+  *is* claim `GLOBAL.C3`, **FALSE-AS-SCOPED at 3×3**. The project had written
+  both halves of that sentence in two different documents and not joined them
+  for weeks. Opus then verified an escalation from source that the register did
+  not have: `bracketed` and `memo_writes` are **independent** and `saveArtifact`
+  hardcodes `bracketed = true` (`src/retro.zig:2407`) — so **ADR-0013 Track A
+  does not escape O1**, and the 1.67% "definitional floor" is also
+  bracket-derived. Direct consequence: **do not spend a machine-week on a
+  writes-off regen** (it would settle nothing).
+- **QA-022 — the evidence for T13, T02/B1, T07 and B05 is gone** (see the
+  rescue row below).
+- **Sixteen further discrepancies of the D7 kind**, including D8 (the empty 3×2
+  Black score has *three* values, +1 / −2 / 0, in the same generation) and D9
+  (C1 called "exhaustive ground truth at 2×2/3×2" in four places while
+  `retrograde-3x3.md:50-52` records 8 of 114 and 68 of 600 roots completing).
+
+**Outcome quality — the highest-leverage row in the sprint per unit of cost.**
+It changed the project's priority order. It also **did not** adjudicate anything:
+statuses were left as found, for the user and Opus to call.
+
+**Disagreement it surfaced and did not resolve — QA-009:** `PROGRESS.md:125`
+says E2 leaked "50/8000, max 12 pts"; `leak-crisis.md:36` says "25/4000". Same
+rate (0.625%), same max. Opus ruled on 2026-07-28 (**D-1**) that this is *not* a
+discrepancy — 25/4000 is the original E2 and 50/8000 is B06's re-run — and that
+**both rows must be kept**, because collapsing them destroys the evidence of
+independent replication. GLM concurred and recorded that he had been wrong to
+want one canonical number. **Not yet promoted to `CLAIMS.md`.**
+
+## Unattributed subagent — `weizigo-claimlint`, and its self-eating calibration (2026-07-28)
+
+**Task:** make `CLAIMS.md` check itself. **Owner recorded in the file only as
+"the claimlint agent"; no model named.**
+**Output:** `src/claimlint.zig` / `bin/weizigo-claimlint`,
+`docs/epistemic/claimlint-2026-07-28.md`.
+
+**Cost: ~1 s per run.** 245 rows, 267 edges (119 `d:`, 134 `e:`, 14 `n:`), a
+434-file repo index, 6 checks, 7 calibration cases, 5 mutation tests. Exit 1 on
+the live register.
+
+**What it established.** Every check maps to a **dated incident this project
+actually suffered**, and anything that merely enforces formatting was
+deliberately left out. Headline: **the register does not pass its own standard**
+— 10 live claims derive from a falsified one (8 of them one family, all O1),
+and **79 of 79 PROVEN rows fail the roadmap's own P1 rule** that a PROVEN
+claim's evidence be committed under `docs/evidence/`. Tier A is empty. 75 of the
+79 have never had "what would a wrong answer have scored on this test?"
+computed. Two structural discoveries: the register needed a third edge kind
+(`n:` derives-from-**negation**, for the many positions adopted *because* a claim
+fell — 14 mis-typed edges were producing systematic false orphans), and a
+**shadowed-dependency** class (C5) where a `d:` edge onto a MEASUREMENT row can
+never propagate anything, which is how `3x3.C1` — the 3×3 table's own
+correctness claim, on the exact board where the bracket was falsified — stayed
+invisible since the register was written.
+
+### The failure worth keeping: the calibration ate its own known-bad
+
+C5's first known-bad case was `3x3.C1 d:3x3.F2` — **a real, in-register broken
+edge**. The tool caught it, the edge was then fixed, and on the next run the
+same case was **MISSED** — the calibration had stopped testing anything, because
+the data it calibrated against had improved. **The tool reported
+`calibration: FAIL` and exited 2**, which is the only reason this was noticed
+rather than becoming a silently vacuous check.
+
+**Lesson, now a standing project rule:** *a calibration case that lives in the
+data disappears the moment the data improves — so **fixable known-bads must be
+synthetic**.* C1b's alarm half has the same property (today every `n:` edge
+points at a genuinely false parent, the healthy state), and both now run against
+a four-row synthetic register embedded in the binary, alongside a real-data
+known-good so that a purely synthetic calibration cannot pass while the check
+never touches the real register.
+
+**Outcome quality — strong, and it corrected itself publicly.** It was revised
+**twice on 2026-07-28 after review**, and both revisions changed the headline
+(orphans 23 → 9 → 10). Its §4 first claimed "two independent checks both point
+at the deliverable"; that was **withdrawn** as a false positive of the missing
+edge kind, and the section now says the signal is **one check, not two, and
+should be read as weaker**. Five mutation tests on scratch copies prove the
+checks are data-driven rather than hardcoded (M1 flips `GLOBAL.C3` to PROVEN and
+fires both directions from one mutation; M4 rehabilitates `GLOBAL.C2` and raises
+4 alarms; M5 reverts the C5 fix and the orphan reappears). It changed **no
+status** to make its own run green, and it names its own accepted limitation:
+**nothing in it notices a row that has gone stale** — `QA-023` is the live
+example, and the tool will exit 0 on it and say nothing.
+
+**Internal count disagreements, flagged (the document is inconsistent with
+itself and with STATE.md):** the dangling-evidence figure appears as **11**
+("11 cited evidence paths do not exist" in the headline; "11 missing paths, 1
+git-ignored evidence document, 1 bulk artifact" in §3) and as **12** (the
+SUMMARY block, `STATE.md`, and GLM's message 004). Unreferenced rows appear as
+**61** (SUMMARY), **65** (§C4 heading), **77** ("at the first run") and **51**
+(after this document was itself committed, which the document notes moved its
+own metric). All recorded; none adjudicated.
+
+## Unattributed subagent — the evidence rescue, `docs/evidence/` (2026-07-28)
+
+**Task:** triage-and-rescue sweep over git-ignored `untracked/`, after the
+register found QA-022. **No model named in the source.**
+
+**Cost: not recorded.** Volume: **33 top-level entries / 112 files** inventoried;
+9 entries / 40 files copied (**384 KB** total, nothing over 1 MB); 4 `.wzo`
+artifacts (516.6 MB) **not** copied but hashed and recorded.
+
+**What it established — and this is a record of a loss, not an achievement.**
+On **2026-07-27 a cleanup bundle (B44 S3, executor unattributed) deleted 57
+"folded-done" scratch files** from `untracked/`. Among them was the primary
+evidence for the project's most load-bearing claims. `git log --all
+--diff-filter=A` returns **zero** commits for any of those paths and
+`git stash list` is empty: **they were never in git and are unrecoverable.**
+Seven load-bearing losses are itemised, of which the sharpest is **`3x2.T13`** —
+the C2 falsification the entire current strategy rests on. Its *numbers* survive
+in `docs/research/c2-falsification-3x2.md`, which is why it is still marked
+PROVEN, but the probe source `untracked/c2pilot_3x2.zig` is gone, so **the
+reproduction block inside that file cannot be executed**. Also lost outright:
+B1's least-fixpoint results (the run that removed the re-converge check from
+`4x4.FP1` acceptance), and T07's ~42 KB audit that rewrote the entire 4×4
+epistemic tree — the tree survives as product, the eight findings behind it do
+not.
+
+**Aggravating detail worth recording.** `docs/research/arena-4x4-undef.md:10-18`
+**already documented this exact failure mode happening once** and already drew
+the right lesson ("write durable findings to git `docs/research/` directly"). It
+was never applied retroactively, so it happened again to a bigger target.
+
+**Outcome quality — good work with an honest scope.** It copied and recorded
+only; nothing in `untracked/` was modified or deleted, and no lost experiment
+was re-derived. Every rescued markdown file carries an inline provenance header
+(original path, mtime, sha256, claims supported, citing document); non-markdown
+is byte-identical with a sibling `PROVENANCE.md`. Two rescued items are flagged
+**UNCITED** and explicitly declared not-evidence-for-any-claim — rescued
+deliberately against the letter of the rule, with the note that deleting them
+costs nothing if a reviewer disagrees. `.gitignore` gained a last-position
+`!docs/evidence/` negation so no earlier rule can reach the tree. The standing
+formulation this produced: **a claim whose evidence cannot be retrieved is not
+proven; it is remembered.**
+
+## Minimax-m3 — EXP-3, the `(board, side, ko_point)` census — THE BENCHMARK ROW (2026-07-28)
+
+**Task:** EXP-3 (`docs/infra/dispatch/EXP-3.md`) — exact reachable-state census
+under the standard basic-ko detector, to decide whether the simple-ko reframe is
+addressable. Claim: `GLOBAL.H1-CENSUS`.
+**Output:** `src/kostate_census.zig` (no engine file touched),
+`docs/research/kostate-census-2026-07-28.md`,
+`docs/evidence/GLOBAL.H1-CENSUS/` (PROVENANCE + 8 raw stdout files).
+
+**Cost, recorded per board (single thread, `-O ReleaseFast`, Apple Silicon):**
+3×3 ≈ **0.05 s** / 16 sweeps; 4×3 ≈ **2.2 s** / 25 sweeps; 4×4 ≈ **4 min** / 29
+sweeps. Every number exact — no sampling, no stride. The agent also reported
+*where* the 4 min goes (the `is_legal` check inside the odometer, ~6 s per
+sweep, not the fixpoint) and what would fix it, without acting on it.
+
+**What it established.** 4×4: **51,419,046** reachable `(board, side, ko)`
+triples, **29,497,329** distinct addresses, **4.031%** of naive dense. At 6 B per
+address that is **176,983,974 B = 177 MB — 0.69× the current 258 MB PSK
+artifact** and 30× smaller than naive dense. **GO on dense addressing at 4×4;
+no sparse layer required**, including with `passes` folded (354 MB). This
+retired `ruleset-options.md:76-81`'s prediction that the augmented state would
+break dense colex addressing and force "a substantial engine change" — measured
+false. Combined with EXP-1, **tractability is no longer the blocker; QA-023 is.**
+
+**Outcome quality — this is the standard every other task in the sprint should
+be measured against, and it was achieved unprompted.** Opus's own assessment
+(message 005): "**EXP-3 was exemplary** — broken-variant calibration files,
+OEIS A094777 cross-check, no-ko collapse check, all unprompted. That is the
+calibration discipline I had to *demand* from others."
+
+What specifically makes it the benchmark:
+
+1. **It shipped deliberately-broken variants.** Two wired-in broken detectors
+   (`every_capture`, `every_move`) plus `none`, all four run at the same sweep
+   budget at 3×3, each moving the count in the **predicted direction and
+   magnitude** (+60%, +84%, −8%). The stated principle: *"a counter that returns
+   the same number for a right and a wrong detector is measuring nothing; mine
+   doesn't."* At 4×4 the broken detector's 98,462,452 even exceeds a bound the
+   correct one does not — a different *kind* of wrong that the eye catches.
+2. **It cross-validated against an external published source** (OEIS A094777:
+   3×3 = 12,675, 4×4 = 24,318,165) and said plainly that 4×3 = 321,689 is the
+   project's own ground truth, not published.
+3. **It refused its own dispatch's calibration and said why.** The brief asserted
+   that with ko forced to `none` the count collapses to the known
+   `(position, side)` slot counts (25,350 / 643,378 / 48,636,330). Measured:
+   **20,888** at 3×3 and **45,734,854** at 4×4. The agent wrote *"I think the
+   dispatch's claim is wrong, not my walk"*, built a **separate independent
+   depth-parity BFS** to confirm (3×3: only 11,109 `(position, side)` reachable
+   from `(empty, B-to-move)`), and diagnosed the brief's error as a conflation of
+   *addressable* with *reachable*. It then substituted the correct comparison and
+   reported that the ko dimension adds only ~9–12% on top of the no-ko reachable
+   set — far less than its `n+1` full weight.
+4. **It stayed inside its DO-NOT list**: no engine file, nothing written to
+   `data/` or `artifacts/`, no cross-board inference, **no addressing
+   recommendation** ("the choice is an ADR and belongs to the user"), and no
+   `CLAIMS.md` edit.
+
+**Blemishes, recorded because the row is otherwise a model.** The status it
+proposes and the register disagree: the note says `GLOBAL.H1-CENSUS` is
+**PROVEN**, while `CLAIMS.md:316` still carries it as scoped-to-4×4 and
+**UNTESTED**, and the two IDs it proposes (`3x3.H1-CENSUS`, `4x3.H1-CENSUS`) are
+reported by claim-lint as **dangling** — the tool working as intended on live
+work, and a reminder that owner assignment is a separate step the agent
+correctly did not take. The prose also carries an uncorrected working line in
+the 3×3 narrative ("no, that's not right") and a 4×3 "1.98× / ~98%" ko-overhead
+figure computed against a baseline the same document says was **not measured**
+(the 4×3 no-ko row is blank), which sits oddly next to the 3×3 and 4×4 ratios of
+1.088 and 1.124.
+
+## Minimax-m3 — EXP-2 Part A, the QA-023 proof: UNRESOLVED under audit (2026-07-28)
+
+**Task:** EXP-2 (`docs/infra/dispatch/EXP-2.md`) — the **gate** for the whole
+roadmap. Prove `QA-023`: under basic ko + a fixed-value verdict for long cycles,
+is `(board, side, ko_point, passes)` a sufficient Markovian state?
+**Output:** `docs/evidence/QA-023/proof.md` — 470 lines / 24 KB, written 02:01.
+
+**Cost:** wall/CPU/token cost **not recorded** for Part A. (Part B's cost is
+recorded and is the next row.)
+
+**Verdict: UNRESOLVED** — audited by Opus 5 against criteria **pre-registered in
+`docs/infra/dispatch/EXP-2-AUDIT-PREREG.md` before any result existed.** Not
+FALSE (the approach may be repairable), not PROVEN (the central theorem is wrong
+as stated).
+
+**F1 — the load-bearing theorem is false as stated.** §4.3's `L < H` branch
+opens *"Let `L = L_B(S) < T < H = H_B(S)`. (If `L < T` is not the case, then
+`L = T` and we're done…)"*. **`L < H` does not imply `L < T < H`.** Three
+orderings exist — `L < T < H` (the case argued), **`T < L < H`** and
+**`L < H < T`** (both absent) — and `¬(L < T)` does not give `L = T`. In
+`T < L < H`, Black can secure `L > T` without ever cycling and will never accept
+the tie, so pinning `V = T` is simply wrong. Generally: `L < H` says the value is
+cycle-dependent; it does **not** say which way the dependence resolves, and that
+turns on **who can force the cycle** — information neither fixpoint carries.
+
+**F2 — existence is not equality** (pre-registered reject condition #5). §4.3
+proves `V_A = V_B`: two algorithms agree *with each other*. The link
+`true game value = V_A` rests on a threshold-attractor characterization that is
+**cited, not proved for this class** — and QA-023 is a claim about exactly that
+link. The "Crucial lemma" has the same shape: Knaster–Tarski gives the
+*existence* of a least fixpoint, not its identification with the value of
+cycle-free play. **That identification is the step C3 died on.**
+
+**The convenient-conclusion trap, and it is why the audit was pre-registered.**
+§4.3 concludes "no new fixpoint, no threshold iteration, no retraining of the
+retrograde engine — only a one-line post-processing rule." That is the maximally
+convenient answer, the pre-registration said *"a result that is convenient gets
+more scrutiny than one that is not"*, and **F1 lands squarely on it**: if the
+trichotomy needs a who-can-force-a-cycle computation, the one-line story dies
+and **the cost estimate for the entire reframe currently rests on the broken
+branch of the proof**.
+
+**The positive signal, and it is why Opus argued against retiring this model.**
+**The author flagged that exact area himself, as review item R4** — *"the case
+`L < T < H` requires a careful argument… this is the load-bearing step; if it's
+wrong, the equivalence fails."* He aimed at the right step; the audit's finding
+is strictly stronger (the other two orderings are missing, and in one the
+conclusion is false). Opus's judgement, recorded verbatim in message 005: *"An
+agent who names the weakest link in his own proof is doing the right kind of
+thinking."* **Most of the document survives** — §1 state space, §2 the two
+basic-ko formalisations (examined, choice made), §3 reference class, §5 value
+domain including catching a `TIE = -128` vs `UNDEF` sentinel collision Opus says
+he had not anticipated. A2 and A5 raise genuine ADR-worthy decisions. *"This is
+good work with one wrong theorem in it, not a bad proof."*
+
+**F3 — the adversarial review was never run, and that is a BRIEF defect, not a
+console failure.** §8.1 still reads `*[Filled in by reviewer.]*`, so Part A
+entered the audit unreviewed and **R4 — the item pointing straight at the real
+defect — was never actioned.** But `EXP-2.md` said only *"a second agent must
+attempt to refute the proof before Part B is trusted"* — **passive voice, no
+owner named**, no statement of whether the gated step may proceed while the
+review is pending. Writing the R1–R5 checklist and leaving §8.1 for someone else
+was a *correct* reading of that sentence. Opus **reclassified this finding
+himself after re-reading his own brief**, retracting the original wording that
+had scored it against the console, and filed the fix against the dispatch
+template.
+
+**Status: QA-023 unchanged — CLAIMED, untested. The gate is not passed and
+EXP-4…EXP-8 remain held.**
+
+**Attribution note.** `docs/status/CURRENT.md` records EXP-2 as **Minimax-m3**
+and message 005 discusses the author by that name;
+`004-opus-to-pi.md` is headed "Opus → **Pi/Minimax** (EXP-2 console)" and
+`STATE.md` records the owner only as "user-dispatched console". Recorded as
+Minimax-m3, with the harness ambiguity noted.
+
+## Minimax-m3 (executor) / Opus 5 (fault owner) — EXP-2 Part B: 10h22m for zero output (2026-07-28)
+
+**Cost, and it is the whole point of the row: 10h22m wall / 237 min CPU at
+100%** (PID 68667, `zig test src/qa023_brute_2x2.zig`), **on a four-point
+board**, producing **no output at all**. `DEPTH_LIMIT = 64`, no memoization,
+depth-first search over **paths** carrying full history. It was **thrashing, not
+hung.** Killed by Opus on 2026-07-28 around 12:2x.
+
+**Root cause: a flawed brief written by Opus, and he says so first.** The brief
+asked for "an independent brute-force with full history, compared on every
+state." **There is no such thing:**
+
+- enumerate **paths** → exponential (what actually happened);
+- memoize on `(state, history)` → **that is the PSK blowup the project is trying
+  to escape**;
+- memoize on `state` alone → **assumes the conclusion**.
+
+**Compounding error in the same brief:** the check was specified at **2×2, which
+admits no reachable non-root cycles**, so it **could not test a claim about how
+cycles are valued at all** — it would have passed vacuously and been believed.
+This is the **T12 tautology repeating**: T12 (2026-07-26) already reported
+PARTIAL/tautological for exactly this reason, and the lesson did not reach the
+brief.
+
+**Third compounding error: no heartbeat was required.**
+`docs/research/retrograde-4x4.md` already contains the sentence *"the first 4×4
+attempt ran 4 hours as a black box; never again"* — **and it happened again,
+because the lesson lived in a research note instead of the brief template.** Ten
+hours were indistinguishable from progress because nothing was reporting.
+
+### Fault attribution, recorded as the delegator stated it
+
+> "**Three of the four EXP-2 faults were mine** (uncosted method, degenerate
+> board, no heartbeat, unowned review gate)." — Opus 5,
+> `untracked/msg/milestone-01-ko-reframe/005-opus-to-glm.md`
+
+So: **3 of 4 faults were the delegator's, not the console's.** The executor's
+one real fault is the §4.3 error in Part A — the step he had flagged himself as
+R4. The console *"implemented exactly what I asked for."* Recommendation
+recorded: **reassign, do not retire** — Minimax keeps measurement, census and
+tooling (EXP-3 is the evidence), and the corrected Part B is a
+**history-sensitivity probe modelled on T13** (reach the same state via
+different reachable histories, evaluate with history carried, disagreement
+falsifies) run at **3×2, not 2×2**.
+
+### The five brief rules this failure produced
+
+Written into `docs/infra/delegation/DELEGATOR.md`, with the standing requirement
+that **every rule in that file must have a named incident behind it or be
+deleted**:
+
+1. **Never specify an experiment you have not costed.** If you cannot cost a
+   method, make "cost it" the first deliverable.
+2. **Check the test can fail.** Ask what result on this input would falsify the
+   claim; if none, the input is wrong.
+3. **Name who dispatches the review**, and whether the gated step may proceed
+   while it is pending.
+4. **Require a heartbeat** — a progress line and a node budget on anything that
+   could run more than a minute.
+5. **Give the reviewer less than you gave the worker** — only the artefact, the
+   relevant foreclosures, and "find the flaw; assume one exists."
+
+Plus the standing question for every acceptance criterion: **what would a wrong
+answer score on this test?** Three past validations (anchor agreement,
+cycle-rule insensitivity, bracket containment) would have been passed by a wrong
+result 40–70% of the time and were recorded as confirmation.
+
+## Opus 5 — critique, roadmap and the QA-nnn namespace (2026-07-28)
+
+**Task:** at the user's request — critique the facts, mistakes, motivations, what
+is possible, what is impractical, what to do now and later; then answer which Go
+the project should solve.
+**Output:** `docs/epistemic/critique-2026-07-28.md`,
+`docs/epistemic/roadmap-2026-07-28.md`, EXP-1…EXP-10 dispatch briefs, and the
+`QA-001`…`QA-028` claim namespace (all Q&A recorded as uniquely identified
+claims, per the user's instruction).
+
+**Cost: not recorded.**
+
+**What it established.** An honest eight-item list of what the project actually
+knows, and the observation that *"what is conspicuously absent is any claim of
+the form 'the engine plays optimally under rule R', for any R"* — which is the
+user's actual goal. The reframe that "chainable" and "Markovian" are the same
+property from two sides, and that **a position→score table is the
+smallest-possible Markovian state**, so building one for PSK was a founding
+category error. The correction of his own earlier sloppiness that "MIGOS II is a
+ruleset" (it is a *program*; the ruleset is area scoring + basic ko +
+long-cycle tie). And a **free falsification target** he extracted from the
+project's own docs: a correct basic-ko build must return **0** at 2×2 and 2×3,
+not the PSK-ground-truthed +1 — checkable in seconds on the smallest boards
+before any 4×4 effort is spent.
+
+**A correction of the project's own headline validation, recorded here because
+it downgrades evidence rather than adding any:** "4×4 = +2 matches the published
+anchor", cited in `PROGRESS.md` as validation, is **agreement between two
+different games** on a board where the difference happens not to bite. The
+critique also quantifies it — the 4×4 bracket [−6, 16] spans ~33 values, so a
+**wrong** answer would have hit the anchor ~70% of the time.
+
+**Outcome quality — a self-flagged conflict of interest, handled correctly.**
+`EXP-2.md` records "note who wrote this brief: Opus, who proposed QA-023 and
+wants it" — which is why the audit criteria were pre-registered before any
+result existed, and why the repair order specifies the reviewer sees **only**
+the proof and two foreclosures, *"not the brief, not the roadmap, not the
+critique; I wrote all three and they argue for the conclusion."*
+
+## GLM (Advisor) — machinery, and the promotion debt (2026-07-28)
+
+**Remit (user-set):** project machinery — commits, no stale docs, protocol, the
+managent board, this ledger — plus synthesising direction for the user. Not
+execution.
+
+**Cost: not recorded.**
+
+**What it did.** Committed Opus's session work (`7c71fe5`, `7a0946a`,
+`7869392`) while deliberately leaving the running EXP-2 console's in-flight
+edits uncommitted for it. Acknowledged D-1…D-7 and acted on each: amended
+**EXP-9** with both H5(a) corrections (verify the identity at the current node
+**and** the chosen child, ~2n lookups, because a node-only check warns after you
+are already in trouble; and on refusal fall back to a **history-free** quantity,
+**not** pass — passing in the opening is itself a blunder when 86% of plies 0–3
+are flagged), and re-cast **EXP-10** as an **attempt to refute** Opus's QA-018
+ruling rather than a restatement of it — if the search-path exemption exists,
+F2 is un-orphaned; if not, the ruling stands with the failed refutation as
+evidence. Registered EXP-2…EXP-8 + H5(a) + QA-018 on one board. Accepted the
+split of mechanism (GLM) from brief content (Opus) so the project stops running
+two dispatch systems.
+
+**Recorded self-correction:** GLM withdrew "V0 satisfies the one-ply Bellman
+identity by construction" and the C2 citation for the blunder, accepting
+`corrections-2026-07-27.md` A-2 — *"the correct citation is C4 + unchainability,
+not C2"*. Also withdrew the wish for one canonical E2 number (D-1).
+
+**Outcome quality — the open liability is bookkeeping, and it is named.**
+**`DECISIONS.md` holds D-1…D-7 and none is promoted** to `docs/`. The milestone
+directory is git-ignored, so until promotion happens every one of those rulings
+is one `rm -rf` from the QA-022 failure mode. GLM owns the promotion gate and
+records it as his remit.
+
+## Who ruled what — decisions D-1…D-7 (2026-07-28)
+
+Recorded for attribution only; each is stated in
+`untracked/msg/milestone-01-ko-reframe/DECISIONS.md` with its promotion target,
+and **none is promoted yet**.
+
+| ID | ruling, in one line | ruled by |
+|---|---|---|
+| D-1 | QA-009 is not a discrepancy — keep **both** E2 rows (25/4000 original, 50/8000 B06 re-run); independent replication is the evidence | Opus |
+| D-2 | Per-board independence must split **empirical** (never inherit) from **structural/code-or-maths** (inherit, with the argument written); the rule as written is mis-stated | Opus + GLM |
+| D-3 | H5(a) ships with two corrections: check the chosen **child** too, and "refuse" must not mean **pass** | Opus |
+| D-4 | EXP-8's harness is built **now** — table-agnostic plumbing, holding it buys nothing | Opus + GLM |
+| D-5 | **QA-018: ADR-0010's justification is refuted as stated.** For an empty-board root the finisher's search path *is* a real game line, so E2's falsifying histories lie inside the family ADR-0010 claims to cover. **F2 is orphaned** until someone proves the search-path family exempt | Opus |
+| D-6 | Communication moves to `untracked/msg/milestone_X/` with `STATE.md` as crash anchor; deletion gated on **promotion, not tidiness** | user + Opus |
+| D-7 | **Model allocation:** Fable takes the two hardest reasoning tasks (EXP-2 Part A repair, the QA-018/019 ADR); Opus reviews adversarially and does not execute; everything mechanical goes to lesser models | user + Opus |
+
+## Cross-model takeaway — 2026-07-27/28
+
+- **Minimax-m3 remains the strongest measurement/tooling executor in the
+  project** (EXP-3 is the best-calibrated artifact produced to date, and the
+  calibration was unprompted). It is **not** the model to hand an unowned
+  foundational proof to without a named reviewer — and the EXP-2 failure is
+  mostly evidence about the *brief*, not the model.
+- **Opus 5 is effective in the adversarial-review and epistemic-structure role
+  and has a documented habit of convicting itself** (C-1, the `legal,
+  non-settled` counter bug, the "purely definitional" retraction, the 2.44×
+  magnitude, and the F3 reclassification against his own brief). Its
+  demonstrated weakness is the mirror image: **specifying experiments it has not
+  costed**, which cost the sprint 10h22m of a console and produced nothing.
+- **Cheap instruments beat expensive ones by a wide margin here.** The sprint's
+  most decisive results cost seconds — a three-byte read answered QA-008 and
+  QA-016; an 87 s sweep upgraded QA-021 from sample to exhaustive; ~1 s runs
+  produced EXP-1 and the certified-fraction baseline; 4 min settled the
+  addressing GO/NO-GO. The single most expensive item produced **zero output**.
+  This is the strongest available argument for the fail-fast rule in
+  `AGENTS.md`.
+- **Calibration is now the discriminator between rows in this ledger.** EXP-3
+  shipped broken variants and an external cross-check; claim-lint ships seven
+  calibration cases and five mutation tests and was caught by its own; the
+  chainability tool's scope was *found* by calibrating on known-good artifacts.
+  Every high-quality row in this sprint has a calibration story and every weak
+  one does not.
+- **The project's binding constraint is no longer model capability or
+  tractability.** EXP-1 and EXP-3 removed the practical and the size objections
+  to the basic-ko line; **QA-023 (EXP-2) is the gate**, and 79 of 79 PROVEN
+  claims failing "evidence in git" is the integrity gap behind it.

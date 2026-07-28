@@ -1,11 +1,11 @@
-# DELEGATION — canonical prompt registry
+# DELEGATION — RETIRED 2026-07-28 (dead registry, kept for citation)
 
-**For the Boss.** This is the Kanban board of agent prompts. Precondition
-comments go on the line ABOVE a prompt. Prompt lines are self-contained,
-one-line, ~50 chars, copy-pasteable. Move lines between sections as status
-changes. Do not modify a prompt once dispatched; retire it to DONE. Group
-into parallelizable sets with comments. File names use task-hint slugs (not
-model names), per `agents/boss-role.md` §"Bundle filename convention".
+Replaced by `docs/infra/dispatch/README.md` + `dispatch/EXP-N.md` (the briefs) and `untracked/msg/<milestone>/`
+(live traffic). Writing a task: `delegation/DELEGATOR.md`. Executing one: `delegation/DELEGATEE.md`.
+
+**Everything below is dead and kept only as a record.** `docs/evidence/README.md` cites
+`delegation.md:14-27` as the only surviving evidence that the B01–B14 bundles existed, so the header above is
+sized to keep those line numbers valid. Do not renumber or dispatch anything below — those files are gone.
 
 ---
 
