@@ -7,13 +7,17 @@ TODO: record the general facts about each model. Then keep notes of each model i
 - GLM-5.2 (worker, boss/orchestrator) — glm-5.2:cloud, context 950 k
 - **Minimax-m3** (worker) — minimax-m3:cloud
 - **Kimi-k2.7** (worker / auditor) — kimi-k2.7-code:cloud, context ~556 k
+- **Kimi-k3** (worker, frontier; first dispatch EXP-11 2026-07-28) —
+  first data point below. Not the same model as the k2.7 line; this
+  is the project's first exposure to the k3 frontier. Cost on EXP-11
+  (10–30 min bounded code audit): \$0.23.
 - **Opus 5** (overview / adversarial reviewer / brief author, from 2026-07-27) —
   remit set 2026-07-28 (`untracked/msg/milestone-01-ko-reframe/STATE.md`):
-  grand overview, epistemic tree, adversarial review of load-bearing proofs,
-  ruling on claim semantics; **does not execute mechanical work**.
+  grand overview, epistemic tree, adversarial review of load-load-bearing
+  proofs, ruling on claim semantics; **does not execute mechanical work**.
 - **Fable** (hardest reasoning tasks, documents over implementation) —
-  allocated 2026-07-28 (D-7), **still unused as of 2026-07-28**; STATE.md calls
-  that a gap. EXP-10 (the QA-018 ADR refutation) is its first dispatch.
+  allocated 2026-07-28 (D-7); first dispatch EXP-2 Part A (returned
+  REPAIRABLE-GAPS, repaired, 2026-07-28).
 
 Small-n, single-session anecdotes per model. Strengths/weaknesses only — speed
 and cost are not differentiators here. Add a dated entry each session.
@@ -53,6 +57,43 @@ and cost are not differentiators here. Add a dated entry each session.
   ko_sensitive_b=0 print. Followed instructions to the letter.
 - First impression: excellent at critique/verification; worth using as the
   standing auditor for foundational claims.
+
+## Kimi-K3 (worker, one data point so far — EXP-11, 2026-07-28)
+
+First exposure to the k3 frontier. Different model from the k2.7
+line. Dispatched on a bounded, well-specified ANALYSIS task with a
+falsifiable three-verdict acceptance (the EXP-11 H-recurrence swap
+check, Dabir 011's 10-min question). \$0.23, ~30 min wall.
+
+- **Followed the brief's three-verdict acceptance to the letter** and
+  returned the first verdict ("v1 transcription error only, code is
+  correct") with cited `file:line` for every claim: the single
+  Bellman operator at `src/retro.zig:329`, the side-keyed `comptime
+  (side > 0)` at `:266`, the seed difference at `:238`, and the
+  byte-equivalent lean `coreSweep` (`:1940-1998`, called on both
+  quads at `:2075-2078`). Cited the spec (`docs/decisions/0009-
+  retrograde-value-iteration.md` §"Decision 2") and the proof side
+  (v1 §4.2 swap; v2 §4.1 + §9 item 3 already record it as a
+  superseded v1-only defect). Did not propose a fix because the
+  code does not have a bug; that is the correct answer.
+- **Caught the brief's wrong citation** ("v2 §1.4") and corrected
+  it inline (the note is at §4.1 and §9 item 3; v2 has no §1.4).
+  Substance unaffected, but the worker surfaced the bad pointer
+  rather than papering over it. That is the right hygiene: a worker
+  who quietly uses a wrong citation and ships looks competent in
+  the moment and corrupts the ledger over time.
+- **No engine file touched. No data/ or artifacts/ touched. No
+  fix proposed.** The brief said "read only"; the worker read only.
+- **First impression:** the k3 line inherits k2.7's discipline on
+  bounded audits but is faster and noticeably cheaper at the same
+  task (\$0.23 vs. an unrecorded k2.7 cost). On bounded, well-
+  specified code-audit work the k3 line is a clear win. **Not yet
+  measured on harder reasoning** (proof repair, ADR refutation,
+  claim-semantics adjudication) — Fable holds those per D-7.
+  Worth a follow-up on a non-trivial chainability audit (chunk 1
+  of the Muhtasib plan) and on a H5a-style bounded code change,
+  to see whether the speed/cost advantage holds when the brief
+  is less crisp.
 
 ## Cross-model takeaway (early)
 
@@ -1434,3 +1475,35 @@ and **none is promoted yet**.
   tractability.** EXP-1 and EXP-3 removed the practical and the size objections
   to the basic-ko line; **QA-023 (EXP-2) is the gate**, and 79 of 79 PROVEN
   claims failing "evidence in git" is the integrity gap behind it.
+
+## Task completion — EXP-11 (2026-07-28, Kimi-k3)
+
+Bounded ANALYSIS, 10–30 min, no `holds`. Dabir 011's 10-min question
+("Fable found v1 §4.2's H-recurrence has max/min swapped versus
+ADR-0009. If that is a proof-side transcription error, fine. **If
+the swap is in the code, it is a bug.** Check `src/retro.zig`
+against ADR-0009 and report."). Cost: $0.23.
+
+**Verdict:** "v1 transcription error only, code is correct." The
+engine implements L and H as least/greatest fixpoints of one shared
+Bellman operator (`src/retro.zig:329` calls `sweep(t, &t.lo) +
+sweep(t, &t.hi)`; side-keyed via `comptime (side > 0)` at :266, Black
+max / White min in both; L/H differ only in seed `−N`/`+N` at :238).
+Lean `coreSweep` (lines 1940–1998, called on both quads at 2075–
+2078) is byte-equivalent. ADR-0009 Decision 2 matches character-
+for-character. v1 §4.2's swap is a proof-side transcription error,
+already recorded as superseded in v2 §4.1 and §9 item 3.
+
+**Worker hygiene (the reason this is a good data point, not just
+a result):** the worker caught that the brief cited "v2 §1.4" for
+the swap note, and v2 has no §1.4 — the note is at §4.1 and §9
+item 3. The worker corrected the pointer inline rather than
+quietly using the wrong citation. Substance unaffected; the bad
+citation in the brief is amended for the standing record. A
+worker who papers over a wrong citation looks competent in the
+moment and corrupts the ledger over time.
+
+**No engine file touched. No data/ or artifacts/ touched. No fix
+proposed.** Evidence:
+`docs/evidence/QA-023/h-recurrence-check-2026-07-28.md`
+(commit `650b4f0`).

@@ -206,14 +206,15 @@
     "done": null
   },
   "EXP-11": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "kimi-k3",
     "bundle": "docs/infra/dispatch/EXP-11-h-recurrence-check.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "added": "2026-07-28T23:11:28Z",
-    "claimed": null,
-    "done": null
+    "claimed": "2026-07-28T23:43:49Z",
+    "done": "2026-07-28T23:43:49Z"
   },
   "B41": {
     "status": "done",
