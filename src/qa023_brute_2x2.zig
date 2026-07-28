@@ -16,31 +16,49 @@
 //                                        //
 ////////////////////////////////////////////
 //
-// EXP-2 QA-023 — BRUTE-FORCE GAME-TREE REFERENCE (2x2).
-// (docs/evidence/QA-023/proof.md)
+// EXP-2 QA-023 — 2×2 SMOKE-TEST REFERENCE under basic ko + tie=0.
 //
-// A INDEPENDENT reference implementation of the game value under
-// (board, side, ko_point, passes) state with basic ko (formalization (i))
-// and a constant tie value TIE = 0 for any long cycle.
+// This file is the *source of values* for the 2×2 smoke test
+// (`src/qa023_smoke_2x2.zig`). Per `docs/infra/dispatch/EXP-2.md` Part B
+// (corrected 2026-07-28 by Opus, see `audit-opus-2026-07-28.md`):
 //
-// This is *not* a retrograde / fixpoint computation. It is an EXHAUSTIVE
-// game-tree DFS with full history tracking. When a state is revisited in
-// the history (a cycle), the value is set to TIE. This is the *ground
-// truth* for the 2x2 board under this ruleset.
+//   B1 (smoke, 2×2):   cheap gross-error check on a board with no reachable
+//                      non-root cycles — catches 'implemented PSK by accident'
+//                      and similar wiring errors. NOT evidence for QA-023.
 //
-// The CONVERGE solver (qa023_basic_ko_2x2.zig) and this BRUTE-FORCE
-// reference are cross-checked state-by-state by qa023_compare.zig. They
-// must agree on EVERY reachable (board, side, ko_point, passes) tuple
-// under 2x2.
+//   B2 (probe, 3×2):   history-sensitivity probe; EXP-2B builds its own
+//                      solver from scratch (`src/qa023_probe.zig`).
 //
-// The implementation deliberately uses only the public surface of
-// rules.zig and enumerate.zig (pos_from_move, area_score, is_legal) and
-// does not import retro.zig / oracle.zig / solve.zig.
+// The *original* v0 of EXP-2 Part B instructed the console to 'brute-force
+// the same game by explicit game-tree evaluation carrying full history and
+// compare every state' (i.e. enumerate *paths*, not states, and cross-check
+// a parallel converge solver). That instruction is unsatisfiable — the audit
+// ran the design for 10h22m on a four-point board and produced nothing. The
+// correction in EXP-2.md §B2 is a history-sensitivity probe (reach the same
+// state via different histories, check values agree). The converge/compare
+// files referenced in the comment below do not exist on disk; the converge
+// solver that EXP-2B builds replaces them.
 //
-// Usage:
-//   weizigo-qa023-brute-2x2 > states.txt
-//   weizigo-qa023-converge-2x2 > states.txt
-//   weizigo-qa023-compare states.txt states.txt
+// The IMPLEMENTATION in this file is fine for what it does: a self-contained
+// 2×2 game-value function `value(s: State) i8` under basic ko (formalization
+// (i)) with TIE = 0 for cycles and depth-bound exits. 2×2 has only 1620
+// (board, side, ko, passes) states; a single-state value() call on the
+// 5-state smoke test is well below any time bound.
+//
+// This file deliberately uses only the public surface of rules.zig and
+// enumerate.zig (pos_from_move, area_score, is_legal) and does not import
+// retro.zig / oracle.zig / solve.zig.
+//
+// Not wired into build.zig: run as
+//   zig run src/qa023_smoke_2x2.zig --dep mod -Mmod=src/qa023_brute_2x2.zig
+// (smoke is in the same directory and `@import`s the brute module).
+// A build target for it is the Orchestrator's queue, not Part A's.
+//
+// AUDIT NOTE (2026-07-28, Opus): the *enumeration design* was unsatisfiable
+// (paths × states exponential). The *value function* here is unsound only
+// at depth-bounded exits (which return TIE — i.e. a tied terminal) and
+// only on 2×2 it cannot reach. Do not extend this file to 3×2 or larger
+// without re-reading the audit.
 
 const std = @import("std");
 const expect = std.testing.expect;
@@ -215,20 +233,20 @@ pub fn value(s: State) i8 {
 //   bits:  passes(2) | side(1) | ko(3) | board(7)  (board: 3^4=81, 7 bits)
 //   total: 2 * 2 * 5 * 81 = 1620
 
-pub const TOTAL_STATES: u32 = 81 * 2 * (n + 1) * 3; // = 1620 for 2x2
+pub const TOTAL_STATES: u64 = 81 * 2 * (n + 1) * 3; // = 1620 for 2x2
 
-pub fn global_index(s: State) u32 {
+pub fn global_index(s: State) u64 {
     const ko_idx: u32 = if (s.ko_point == State.KO_NONE) n else @as(u32, s.ko_point);
-    return (@as(u32, s.passes) * 2 * (n + 1) +
-        (if (s.side == 1) @as(u32, 0) else @as(u32, 1)) * (n + 1) + ko_idx) * 81 +
+    return (@as(u64, s.passes) * 2 * (n + 1) +
+        (if (s.side == 1) @as(u64, 0) else @as(u64, 1)) * (n + 1) + ko_idx) * 81 +
         board_index(s.board);
 }
 
-pub fn state_from_index(idx: u32) State {
-    const board_id = idx % 81;
-    const rest = idx / 81;
-    const ko_idx = rest % (n + 1);
-    const side_passes = rest / (n + 1);
+pub fn state_from_index(idx: u64) State {
+    const board_id: u32 = @intCast(idx % 81);
+    const rest: u64 = idx / 81;
+    const ko_idx: u32 = @intCast(rest % (n + 1));
+    const side_passes: u64 = rest / (n + 1);
     const side = if (side_passes % 2 == 0) @as(i8, 1) else @as(i8, -1);
     const passes: u8 = @intCast(side_passes / 2);
     const ko: u8 = if (ko_idx == n) State.KO_NONE else @intCast(ko_idx);
@@ -319,8 +337,8 @@ pub fn main(init: std.process.Init) !void {
     }
 
     // Count legal vs total.
-    var total_visited: u32 = 0;
-    var total_legal: u32 = 0;
+    var total_visited: u64 = 0;
+    var total_legal: u64 = 0;
     var it = visited.iterator(.{});
     while (it.next()) |idx| {
         total_visited += 1;
