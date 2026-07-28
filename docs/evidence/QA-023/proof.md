@@ -1,5 +1,11 @@
 # QA-023 — Proof of Markovian sufficiency under basic ko + fixed-value long cycles
 
+> **SUPERSEDED IN PART (2026-07-28).** §4, §7, §8 of this document are superseded
+> by `proof-v2-2026-07-28.md` (EXP-2A, Fable 5), following the audit verdict in
+> `audit-opus-2026-07-28.md` (F1: §4.3's theorem is false as stated — see
+> v2 §5.2–§5.3 for the corrected rule and a counterexample). §1, §2, §3, §5
+> stand per the audit, with one marginal §5 defect reported in v2 §9.4.
+
 > **Claim.** `QA-023`. Under **basic ko + a fixed-value verdict for long cycles**,
 > the state `(board, side_to_move, ko_point, passes)` is a sufficient
 > **Markovian** state for exact solving. No game history is required.
