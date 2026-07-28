@@ -1,0 +1,51 @@
+weizigo kostate_census (EXP-3 from docs/infra/dispatch/EXP-3.md)
+detector: every_capture  passes_dim: on  max_sweeps: 256
+  legal positions (calibration odometer pass): 24318165
+  sweep 1: +32 new marks
+  sweep 2: +480 new marks
+  sweep 3: +3360 new marks
+  sweep 4: +22048 new marks
+  sweep 5: +92120 new marks
+  sweep 6: +367382 new marks
+  sweep 7: +1023820 new marks
+  sweep 8: +2704718 new marks
+  sweep 9: +5217568 new marks
+  sweep 10: +9536932 new marks
+  sweep 11: +12445798 new marks
+  sweep 12: +16416112 new marks
+  sweep 13: +13618430 new marks
+  sweep 14: +14707984 new marks
+  sweep 15: +7425954 new marks
+  sweep 16: +7572960 new marks
+  sweep 17: +2525678 new marks
+  sweep 18: +2843804 new marks
+  sweep 19: +719690 new marks
+  sweep 20: +831026 new marks
+  sweep 21: +150790 new marks
+  sweep 22: +181780 new marks
+  sweep 23: +21424 new marks
+  sweep 24: +27846 new marks
+  sweep 25: +1906 new marks
+  sweep 26: +2580 new marks
+  sweep 27: +92 new marks
+  sweep 28: +128 new marks
+  sweep 29: +8 new marks
+  sweep 30: +0 new marks
+  converged after 30 sweeps; last sweep added 0 new marks.
+
+=== 4x4 (4x4, detector=every_capture (BROKEN), passes_dim=true) ===
+  raw 3^n              = 43046721
+  legal positions      = 24318165
+  (a) reachable triples (b,side,ko) = 98462452
+  (a') with passes in {0,1} (x2)  = 196924904
+  (b) distinct (b,ko) addresses     = 72097243
+       of which  ko_point = none   = 23546645
+       of which  ko_point = cell   = 48550598
+  (b') with passes (x2)             = 144194486
+  (c) artifact size 6 B/address     = 432583458 B  (current PSK 4x4: 258,280,358 B; naive dense: 4,390,765,542 B)
+  (d) sparse/dense ratio  (b) / (3^n * (n+1))   = 9.852119%
+       numerator   (b)   = 72097243
+       denominator (3^n * (n+1)) = 731794257
+  sweeps to convergence = 30
+  distinct ko_point cells used      = 17 / 17
+  top-10 ko cells by triple count:    ko=16:45466304  ko=0:7039952  ko=3:4301796  ko=12:4284964  ko=2:4109338  ko=4:4105826  ko=1:4034216  ko=8:3913118  ko=10:2878402  ko=14:2680182

@@ -1,0 +1,46 @@
+weizigo kostate_census (EXP-3 from docs/infra/dispatch/EXP-3.md)
+detector: standard  passes_dim: on  max_sweeps: 128
+  legal positions (calibration odometer pass): 321689
+  sweep 1: +24 new marks
+  sweep 2: +264 new marks
+  sweep 3: +1320 new marks
+  sweep 4: +5930 new marks
+  sweep 5: +16912 new marks
+  sweep 6: +41440 new marks
+  sweep 7: +72452 new marks
+  sweep 8: +105408 new marks
+  sweep 9: +114112 new marks
+  sweep 10: +108852 new marks
+  sweep 11: +76512 new marks
+  sweep 12: +46472 new marks
+  sweep 13: +27940 new marks
+  sweep 14: +10084 new marks
+  sweep 15: +7522 new marks
+  sweep 16: +1500 new marks
+  sweep 17: +1240 new marks
+  sweep 18: +144 new marks
+  sweep 19: +88 new marks
+  sweep 20: +8 new marks
+  sweep 21: +8 new marks
+  sweep 22: +16 new marks
+  sweep 23: +8 new marks
+  sweep 24: +8 new marks
+  sweep 25: +0 new marks
+  converged after 25 sweeps; last sweep added 0 new marks.
+
+=== 4x3 (4x3, detector=standard, passes_dim=true) ===
+  raw 3^n              = 531441
+  legal positions      = 321689
+  (a) reachable triples (b,side,ko) = 638266
+  (a') with passes in {0,1} (x2)  = 1276532
+  (b) distinct (b,ko) addresses     = 375281
+       of which  ko_point = none   = 314117
+       of which  ko_point = cell   = 61164
+  (b') with passes (x2)             = 750562
+  (c) artifact size 6 B/address     = 2251686 B
+  (d) sparse/dense ratio  (b) / (3^n * (n+1))   = 5.431980%
+       numerator   (b)   = 375281
+       denominator (3^n * (n+1)) = 6908733
+  sweeps to convergence = 25
+  distinct ko_point cells used      = 13 / 13
+  top-10 ko cells by triple count:    ko=12:577100  ko=0:9078  ko=3:9078  ko=8:9078  ko=11:9078  ko=4:4430  ko=7:4430  ko=1:3746  ko=2:3746  ko=9:3746
