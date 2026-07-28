@@ -16,7 +16,7 @@
 //                                        //
 ////////////////////////////////////////////
 //
-// GTP ORACLE PLAYER — play against a persisted perfect oracle (ADR-0011).
+// GTP ORACLE PLAYER — play against a persisted fresh-start oracle (ADR-0011).
 //
 //   zig build-exe -O ReleaseFast src/gtp.zig && ./gtp artifacts/oracle-3x3.wzo
 //
@@ -24,17 +24,29 @@
 // board size comes from the artifact header and is not negotiable. Move
 // choice per (position, side): among PSK-legal moves (and pass), maximize
 // (Black) / minimize (White) the stored fresh-start child value; break value
-// ties by smallest child DTT (resolve fast). The pass edge at passes=0 leads
-// to a V1 node the artifact does not store; it is recomputed as one ply of
-// V0 lookups (the ADR-0009 Bellman equation).
+// ties by MORE captures, then smaller child DTT (resolve fast). The pass edge
+// at passes=0 leads to a V1 node the artifact does not store; it is recomputed
+// as one ply of V0 lookups (the ADR-0009 Bellman equation — which holds only on
+// the chainable region, see HONESTY below).
 //
-// HONESTY (the GHI ko-sensitive region, ADR-0009/0010): stored values are FRESH-START
-// values. In a real game with history, superko bans can make the true
-// optimum differ on KO_SENSITIVE positions. This player filters PSK-illegal
-// moves against the actual game history and otherwise plays the fresh-start
-// optimum; when the achievable choice differs from the stored value, or the
-// node is flagged KO_SENSITIVE, it says so on stderr. Perfect for smoke
-// testing; ko-fight play is "fresh-start perfect", not "history perfect".
+// HONESTY (measured 2026-07-27; docs/research/ko-sensitive-chainability.md):
+// stored values are FRESH-START values, and this player steers by comparing a
+// node's stored CHILDREN — a well-defined one-ply minimax only where the table
+// is CHAINABLE (the history-free Bellman identity holds; GLOSSARY.md). Measured
+// with bin/weizigo-chainability: the single-score (L==H) region IS chainable —
+// zero violations at 2x2/3x2/3x3/4x3/4x4 (4x4 at a 1:37 sample) — and there this
+// player really is fresh-start-optimal. The KO_SENSITIVE (L<H) region is NOT:
+// each such slot holds an INDEPENDENT fresh-start PSK solve, so V0(P) and one
+// ply of V0(child) are under no obligation to agree (4x4: 4.08% mispriced inside
+// the region, worst disagreement 32 = 2n = the full board swing). There the
+// player is neither history-perfect NOR fresh-start-perfect: it steers by a
+// quantity that is not defined. On 4x4 the EMPTY board is itself KO_SENSITIVE
+// (bracket [-6,+16]), so play STARTS inside that region — 16 of 19 plies are
+// flagged in both saved regression games. Positional-superko bans are NOT the
+// problem: in those games a ban changed the best available value at 0 of 19
+// plies, so the PSK filtering below is correct and cheap; it is the value
+// comparison that is unsound. KO_SENSITIVE / HISTORY-DIVERGED are printed on
+// every such ply — and steered by anyway.
 //
 // Values assume komi 0 and Chinese/area scoring; `final_score` subtracts the
 // GUI's komi from the exact area score (score-optimal play is komi-agnostic).
@@ -118,6 +130,10 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// One ply of table lookups (the artifact stores V0 only).
         /// Children whose slot is UNDEF (2-ko+ unfilled) are skipped — the
         /// pass value (area_score) stands as the fallback.
+        /// SAME CAVEAT AS `choose`: chaining stored V0(child) values this way
+        /// reconstructs V1 only on the CHAINABLE (L==H) region. If any child is
+        /// KO_SENSITIVE, the result mixes independent fresh-start solves and is
+        /// not V1 of anything (docs/research/ko-sensitive-chainability.md).
         pub fn v1_from_table(s: *const S, pos: *const Pos, side: i8) i8 {
             const maximizing = side > 0;
             var best: i8 = R.area_score(pos); // the ending pass
@@ -133,11 +149,25 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
 
         const Choice = struct { cell: ?usize, value: i8, dtt: u8, caps: u16 = 0 };
 
-        /// Best move (or pass) for `side` from the current game state:
-        /// fresh-start-optimal among PSK-legal options. TIE-BREAK among equal-
-        /// value moves: MORE captures first (finish the game - capture dead
-        /// stones rather than dither; uncaptured dead stones still count for
-        /// the opponent at game-end under area scoring), then smaller DTT.
+        /// Best move (or pass) for `side` from the current game state: the max
+        /// (Black) / min (White) STORED CHILD value among PSK-legal options.
+        /// SCOPE OF THAT EXTREMUM (measured 2026-07-27,
+        /// docs/research/ko-sensitive-chainability.md): it is a well-defined
+        /// one-ply minimax — and the pick genuinely fresh-start-optimal — only
+        /// on the CHAINABLE region, i.e. single-score (L==H, no KO_SENSITIVE
+        /// flag) nodes, where zero Bellman-identity violations were found at
+        /// 2x2/3x2/3x3/4x3/4x4. On a KO_SENSITIVE (L<H) node the children hold
+        /// INDEPENDENT fresh-start solves that need not agree with this node or
+        /// with each other, so the comparison below is not an evaluation: the
+        /// move returned is neither history-optimal nor fresh-start-optimal
+        /// (4x4: 4.08% mispriced inside the region, by up to 2n = the whole
+        /// board). Everything from here down is unchanged and still accurate as
+        /// a description of the SELECTION RULE; only its warrant is narrower.
+        ///
+        /// TIE-BREAK among equal-value moves: MORE captures first (finish the
+        /// game - capture dead stones rather than dither; uncaptured dead
+        /// stones still count for the opponent at game-end under area
+        /// scoring), then smaller DTT.
         ///
         /// PASS POLICY: pass only when it is OPTIMAL (never suboptimally). But
         /// in the EARLY game the engine plays a move even when pass is TIED-

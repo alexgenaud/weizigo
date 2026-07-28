@@ -44,12 +44,38 @@ software engineers, and LLM agents. Organized by domain.
 - **SSK — situational superko** — no (position, side-to-move) pair may repeat.
   Stricter than PSK (distinguishes whose turn it is). A play-time option; never
   used for generation here. (KataGo supports {SIMPLE, POSITIONAL, SITUATIONAL}.)
+  Used by real rulesets: **AGA** and **New Zealand** (situational/positional).
+  Tromp–Taylor/PSK is the machine-to-machine convention; Japan and Korea use
+  **no superko at all** (`../research/ruleset-options.md:9-20`).
 - **superko** — generic term for "no board state may repeat" rules (PSK/SSK).
 - **triple ko / eternal life** — longer repetition cycles (3+ positions) that
   basic ko does not forbid. Under basic-ko rules these are *no result*; under
   superko they are illegal. The source of the *ko-sensitive region* difficulty.
 - **no result** — (Japanese rules) a game that cannot finish due to a long
   cycle; voided and replayed. The basic-ko alternative to superko's "illegal."
+- **long-cycle tie / no result (Japanese *mushōbu*)** — the two traditional ways
+  to terminate a repetition longer than a basic ko. Japanese/Korean practice:
+  **no result** — the game is void and replayed (entry above). MIGOS II and
+  solvers generally: a **tie**, a fixed value, because "replay the game" is not
+  a value a table can hold. Design consequence: a tie is not an area score —
+  with komi 0 the area score on an odd-point board is always odd, so at 3x3 a
+  tie of 0 lies outside the natural value set, and the value domain becomes
+  `ℤ ∪ {tie}` with the tie ordered between −1 and +1 (`roadmap-2026-07-28.md`
+  §2). Contrast **score-on-cycle** (`../research/ruleset-options.md`), which
+  scores the cycle by area *at the repeated board* and is therefore
+  path-dependent — foreclosed as being exactly as intractable as PSK.
+- **MIGOS / MIGOS II** — **a program, not a ruleset**; project documents and
+  agent messages have used "MIGOS II" as if it named a ruleset, and that is
+  wrong. MIGOS = "MIni GO Solver", Erik van der Werf's small-board solver;
+  MIGOS II is the version behind van der Werf & Winands, *Solving Go for
+  Rectangular Boards*, ICGA Journal 2009 — the source of every published anchor
+  this project cites (3x3 = +9, 4x4 = +2, 5x5 = +25). Its **ruleset** is area
+  (Chinese) scoring + **basic ko only** ("since superko is not used") +
+  balanced long-cycle repetition scored as a **long-cycle tie**
+  (`../research/retrograde-3x3.md:224-245`). Consequence the project keeps
+  forgetting: weizigo plays PSK, so weizigo and the anchors are **different
+  games** — they agree at 3x3 and 4x4 and provably **disagree** at 2x2 and 2x3
+  (published 0 and 0 vs weizigo's ground-truthed +1 and +1).
 
 ## Go life-and-death and Japanese terms (only those used here)
 
@@ -118,6 +144,54 @@ software engineers, and LLM agents. Organized by domain.
 - **Bellman update / value iteration** — (Richard Bellman; dynamic programming)
   the relaxation step "a state's score = the best one-step successor score"
   applied until convergence. The retrograde engine's core operation.
+- **Markovian** — (standard term; A. Markov) the future depends only on the
+  present **state**, not on the path that reached it. The nuance this project
+  needs: history is not *absent*, it is **encoded in the state** — so any rule
+  can be made Markovian by enlarging the state to carry exactly the history it
+  depends on. The question is never *whether* a rule is Markovian but *how big
+  the state must be* (`roadmap-2026-07-28.md` §1):
+
+  | rule | history the rule needs | state size |
+  |---|---|---|
+  | basic ko | the one forbidden point | ~17x boards |
+  | bounded superko, window `k` | the last `k−1` boards | explodes in `k` |
+  | PSK | **every** board ever seen | 118M ban-sets on a 2x2 |
+
+  Corollary: a position→score table is the *smallest possible* Markovian state
+  (the board alone), and **chainable** (next entry) is the same property seen
+  from the table's side — a table is chainable exactly when its state is
+  Markovian for the rule it was built under.
+- **chainable** **[project term]** — a table region is *chainable* when
+  comparing a position's stored value with its children's stored values is a
+  meaningful one-ply minimax, i.e. the history-free Bellman identity holds
+  there. Choosing a move by "take the best stored child value" — what
+  `Session.choose` in `src/gtp.zig` does — is only defined on a chainable
+  region. Measured (`bin/weizigo-chainability`, 2026-07-27; 4x4 re-run
+  **exhaustively** 2026-07-28): the single-score (L==H) region is chainable
+  with **zero** violations at 2x2/3x2/3x3/4x3/4x4 — at 4x4 that is 0
+  out-of-flag violations over all **48,599,962 non-settled (position, side)
+  slots**, for the shipped `vb`/`vw` columns (the `lo`/`hi` bracket-table form
+  of the check is still untested; WZO1 carries no bracket columns). The
+  ko-sensitive region is **not** chainable, and is mispriced by up to the full
+  board swing (2n) — at 4x4, 422,990 / 10,367,922 = **4.08% of flagged
+  non-settled slots**. Not a bug — each ko-sensitive slot is an independent
+  fresh-start solve — but it is why the GTP player collapses in ko fights. See
+  `../research/ko-sensitive-chainability.md`.
+- **certified fraction** **[project term]** — the share of the positions an
+  engine actually *reaches in play* where its move-selection rule is
+  well-defined, i.e. the decision node is **chainable**; equivalently
+  `1 − (ko-sensitive fraction over reached decision nodes)`. NOT the
+  slot-uniform ko-sensitive fraction, which weights every table slot equally
+  and is the wrong denominator for a player (a player walks lines from the
+  empty board). Measured 2026-07-28 with `bin/weizigo-reachcensus
+  data/oracle-4x4.checkpoint.wzo --games 2000`: at 4x4 the slot-uniform figure
+  is **21.33%** ko-sensitive (10,367,922 / 48,599,962 **non-settled slots**,
+  exhaustive; 21.32% if the denominator is instead all 48,636,330 **legal**
+  slots) but engine self-play is **100%** ko-sensitive over the **decision
+  nodes reached** (28,000/28,000) — a certified fraction of **0%**. The three
+  denominators are reconciled in `../research/ko-sensitive-chainability.md`
+  (end of Measurement 1). See
+  `../research/reachable-kosensitivity-2026-07-28.md`.
 - **MPH — minimal perfect hash** — a collision-free map from a known key set
   onto a dense integer range; the index itself becomes the storage key.
   Candidate data model for the compressed oracle.
@@ -217,8 +291,16 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
 (C2 falsified at 3×2; C3 falsified at 3×3).
 - **ko-sensitive region** **[project term]** — the complement of the
   single-score region: positions where L<H, i.e. the fresh-start score is not
-  unique across cycle conventions. Fraction FALLS with size (72/39/34/21% at
-  2x2/3x2/3x3/4x4) but never vanishes. The bracket `[L,H]` is the **spread of
+  unique across cycle conventions. Fraction FALLS with size — **72/39/34/21% at
+  2x2/3x2/3x3/4x4, denominator = all legal (position, side) slots** (the
+  converge census; at 4x4, 10,367,922 / 48,636,330 = 21.32%) — but never
+  vanishes. **Mind the denominator:** `bin/weizigo-chainability` reports a
+  *different* series (77.36 / 41.18 / 35.04 / 26.60 / 21.33% at
+  2x2/3x2/3x3/4x3/4x4) because it exempts settled positions and divides by
+  **non-settled** slots only. The two series are reconciled **at 4x4 only** (the
+  36,368-slot settled exemption; `../research/ko-sensitive-chainability.md`, end
+  of Measurement 1); the smaller-board rows are `CLAIMS.md` discrepancy D7 and
+  remain unreconciled. The bracket `[L,H]` is the **spread of
   fresh-start fixpoints under different cycle-resolution conventions**; it is a
   CLAIMED fresh-start property, **not** a real-game bound (C3 falsified at
   3×3; see `../status/leak-crisis.md`). See `names.md`.

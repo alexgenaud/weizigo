@@ -63,15 +63,43 @@ The L==H scores are fresh-start exact (C1), not real-game exact.
 
 - **The single-score region** — positions where L==H: the score was *claimed*
   history-independent (a single integer score). ~66 / 74 / 79% of slots at
-  3×3 / 4×3 / 4×4. **Status: FALSE-AS-SCOPED.** T13 (2026-07-26) falsified
-  history-independence at 3×2: reachable non-trivial PSK histories change the
-  score of L==H positions. The L==H scores remain correct as *fresh-start*
-  scores (C1), but they are not real-game scores and must not be called a
-  "proven core".
+  3×3 / 4×3 / 4×4. **Status: FALSE-AS-SCOPED as a real-game claim.** T13
+  (2026-07-26) falsified history-independence at 3×2: reachable non-trivial PSK
+  histories change the score of L==H positions. The L==H scores remain correct
+  as *fresh-start* scores (C1), but they are not real-game scores and must not
+  be called a "proven core". **New (2026-07-27), and the region's first
+  positive property: the single-score region is *chainable*** — the history-free
+  Bellman identity holds there with **zero** violations, so "take the best
+  stored child value" is a defined operation inside it. **PROVEN** at 2×2 / 3×2
+  / 3×3 / 4×3 (exhaustive) and 4×4 (`--sample 37`, 657,566 positions /
+  1,313,248 slots on `data/oracle-4x4.checkpoint.wzo`), under both the full and
+  the ADR-0006 eye-pruned move sets, via `bin/weizigo-chainability`
+  (`src/chainability.zig`). **Scope caveat, carry it:** this validated the
+  shipped `vb`/`vw` columns only — the WZO1 format carries no bracket columns,
+  so the `lo`/`hi` form of the check is still untested — and 4×4 was a sample,
+  not exhaustive. This closes FP1 acceptance check 3 in
+  `boards/4x4/EPISTEMIC.md` (M4), previously listed untested.
+  `../research/ko-sensitive-chainability.md`.
 - **The ko-sensitive region** — positions where L<H: the score depends on
   cycle history; we ship a **ko-sensitive range `[L,H]`**, a *claimed* bound.
   ~34 / 26 / 21%. **Status: claimed bound, not proven the true range.**
   (C3 is additionally falsified at 3×3 by E2; see `../status/leak-crisis.md`.)
+  **It is also not chainable — PROVEN (2026-07-27):** identity violations are
+  *exactly co-extensive* with the KO_SENSITIVE flag (16/16, 72/72, 688/688,
+  6,092/6,092, 11,402/11,402 at 2×2 / 3×2 / 3×3 / 4×3 / 4×4); no unflagged slot
+  ever violates. Misprice rate *within* the flag spans 3.58% (4×3) to 19.51%
+  (2×2) — **not monotone in board size**; 4×4 is 4.08%. Per-size table in the
+  research note. **The violations are not a generation bug *in kind*** — a
+  ko-sensitive slot holds an independent fresh-start PSK solve, so it owes its
+  parent no agreement across a history-free edge; that much is C2 restated
+  per-slot. Their *magnitude* on the committed artifact is a separate question
+  and appears to include a real bug contribution: see M6 in
+  `boards/4x4/EPISTEMIC.md` (writes-off 1.67% vs writes-on 4.08% at 4×4). **CLAIMED:** for
+  every board with n ≥ 6 the worst misprice is exactly **2n** (12, 18, 24, 32) —
+  the full board swing, since area score spans [−n, +n]; 2×2 is the exception
+  (2, not 8). Four sizes, no proof, and per-board independence forbids carrying
+  it to 5×5. Sampling cross-check: the tool reports the 4×4 ko-sensitive
+  fraction as 21.27% against M1's exhaustive 21.32%.
 
 The table entries are **scores** (game-theoretic area scores, Black-positive,
 komi 0) — deterministic final scores under optimal play. **Not** win rates,
@@ -81,14 +109,22 @@ expectations, or probabilities. The table is the **position-to-score table**
 ## The leak crisis (the focus — read `../status/leak-crisis.md`)
 
 The fresh-start player — which reads the table's fresh-start scores and
-plays them as if they were real-game scores — **leaks** (under-delivers on
-its own promises) in 14–46% of games, **even on tables whose fresh-start
-scores are proven correct** (2×2, 3×2). We are **not asserting** whether this
-is a table bug, a player bug, or a false assumption — we are separating the
-claims and testing each:
+plays them as if they were real-game scores — **leaks** on real-game PSK
+histories. On 2×2/3×2 (proven-correct fresh-start tables) the arena leak
+rate is in the T06 baseline band of 8–18%. On the 4×4 parallel artifact
+the **clean** leak rate (excluding games that touch an UNDEF slot) is
+**3.4%**, max 32 pts, after the arena's UNDEF sentinel guard was added
+(B43, 2026-07-27; `../research/arena-4x4-undef.md`). The earlier
+**45.3% / 144-pt figure was a measurement artifact**: the unguarded arena
+read `-128` as a real child/promise value. 32.5% of audited 4×4 games touch
+a UNDEF slot and are **out of scope** of the belief audit (a UNDEF slot
+holds no fresh-start belief).
+
+We are **not asserting** whether this is a table bug, a player bug, or a
+false assumption — we are separating the claims and testing each:
 
 - **C1** fresh-start scores correct as fresh-start scores — **PROVEN** (2×2/3×2).
-- **C2** single-score region is history-independent — **FALSE-AS-SCOPED at 3×2** (T13 falsified it; see `../status/leak-crisis.md`).
+- **C2** single-score region is history-independent — **FALSE-AS-SCOPED at 3×2** (T13 falsified it; see `../status/leak-crisis.md`). 4×4 arena audit corroborates history-dependence at scale after the UNDEF guard (real divergence events remain; see `../research/arena-4x4-undef.md`).
 - **C3** the range `[L,H]` bounds the real-game score — **FALSE-AS-SCOPED at 3×3** (E2: 50/8000 leaks, max 12 pts; `../status/leak-crisis.md`).
 - **C4** fresh-start = real-game — **FALSE** for ko-sensitive (the leak refutes it); false for single-score because C2 is false.
 
@@ -109,6 +145,43 @@ established. **Resolution by reframing: the table is a fresh-start oracle, not a
 strategic fork and the 5×5 build are on hold: the previous "proven real-game
 score" foundation is falsified.
 
+## The GTP player is defective on 4×4 (known problem, 2026-07-27)
+
+`Session.choose` in `src/gtp.zig` picks its move by taking the extremum over
+children's stored values — an operation that is only defined on a *chainable*
+region, and on 4×4 it is almost never in one. **PROVEN (2026-07-27):** the
+empty 4×4 board is itself KO_SENSITIVE (bracket [−6, +16]) and **16 of 19
+plies** in both saved regression games are flagged, so the player does not
+*enter* the unchainable region when a ko appears — it starts there and steers
+by unchainable numbers from move one (it even prints `KO_SENSITIVE` and uses
+the number anyway). **PROVEN (same two games):** positional-superko bans changed
+the best available value at **0 of 19 plies** — the ko *rule* costs the engine
+nothing; chaining unchainable values costs it the game, cashing out as a 32-point
+(= 2n) reversal in a single ply. **CLAIMED:** the greedy extremum systematically
+selects the child whose false premise is most flattering, so the B43 clean arena
+leak rate (3.4%, max 32 pts, `../research/arena-4x4-undef.md`) is a **lower
+bound** on the greedy player's loss rate, not an estimate of it — a falsifiable
+greedy-persona-vs-random-persona arena test is designed and **not yet run**.
+Full analysis, and the fork between a sound-but-mute player and a
+tractable-but-unsound one, in `../research/ko-sensitive-chainability.md`;
+4×4 record: `boards/4x4/EPISTEMIC.md` (M4, M5).
+
+## One mismatch, not five problems (CLAIMED — an interpretation, not a theorem)
+
+The leak crisis, C2, C3, C4 and the chainability collapse are plausibly all
+symptoms of a single mismatch: **positional superko is a non-Markovian rule**
+(legality depends on unbounded history) while the project stores a **Markovian**
+position→score table for it. The table has nowhere to put the information the
+rule depends on, so every "wrong value" result is really the state being the
+wrong *shape*. This is an interpretation offered to organise the findings, not
+a proved theorem. It also names the headline gap: PROGRESS already records
+(2026-07-24) that PSK is abandoned as the generation rule and basic/simple ko
+is the tractable candidate, **but the 4×4 artifact and the GTP player are both
+still PSK.** Nothing here asserts that simple ko will work — the state-space
+census has not been run and the long-cycle resolution rule is an unsettled
+design question. Hypotheses and their falsification tests:
+`../research/open-hypotheses-2026-07-27.md`.
+
 ## What we know (proven — only C1, plus proven falsifications)
 
 - **C1:** fresh-start scores match the history-aware exact solver at 2×2/3×2.
@@ -116,6 +189,15 @@ score" foundation is falsified.
 - **C2:** the single-score (L==H) region is **not** history-independent;
   T13 falsified it at 3×2 (12 mismatches on 508 non-trivial histories).
   The "certified core" is fresh-start correct only.
+- **Chainability (2026-07-27):** the single-score (L==H) region satisfies the
+  history-free Bellman identity with **zero** violations at 2×2/3×2/3×3/4×3
+  (exhaustive) and 4×4 (1:37 sample) — the shipped `vb`/`vw` columns only, not
+  the `lo`/`hi` bracket tables. Violations are exactly co-extensive with the
+  KO_SENSITIVE flag at every size. `bin/weizigo-chainability`;
+  `../research/ko-sensitive-chainability.md`.
+- **The GTP player's move rule is undefined where it mostly operates (4×4):**
+  the empty board is KO_SENSITIVE and 16/19 plies of both regression games are
+  flagged, while superko bans changed the best value at 0/19 plies. See above.
 - The address system (colex) is a verified bijection through 4×4; position
   counts match OEIS A094777 through 4×4.
 - Benson's life theorem is exhaustively falsification-confirmed at 3×3.
@@ -129,59 +211,90 @@ matches as real-game truth — is CLAIMED, listed in the crisis chapter.)
   4×4 parallel artifact is 99.8% complete (83K unfilled, mostly 2-ko+).
 - **`TODO` (C2 at 3×3/4×4):** untested. Falsified at 3×2 (T13), per-board
   independence prevents inheritance.
-- **`TODO` (arena audit):** test the new 4×4 parallel artifact for leaks.
+- **`TODO` (arena audit):** DONE — 4×4 parallel artifact audited with UNDEF guard
+  (B43). Clean leak rate **3.4%** / max 32 pts; 32.5% of games touch UNDEF slots
+  (out of scope). See `../research/arena-4x4-undef.md`.
+- **`TODO` (greedy-vs-random arena):** untested. Acceptance test for the CLAIMED
+  lower-bound reading of 3.4%: run a greedy-max persona and a random persona on
+  the same artifact and compare leak rate and magnitude. If greedy does not leak
+  more, the "flattering false premise" mechanism is falsified.
+- **`TODO` (chainability, remaining scope):** the `lo`/`hi` bracket columns are
+  **not** covered (WZO1 stores none) and 4×4 was a 1:37 sample; an exhaustive
+  4×4 pass and an in-memory bracket-table check would close FP1 check 3 fully.
+- **`TODO` (the PSK gap — headline):** the generation rule is abandoned (PSK)
+  but the shipped 4×4 artifact and the GTP player are both still PSK. No
+  simple-ko state-space census has been run and the long-cycle resolution rule
+  is undecided; **do not assume simple ko works.**
+  `../research/open-hypotheses-2026-07-27.md`, `../research/ruleset-options.md`.
+- **`TODO` (which player to ship):** sound-but-mute (steer only where chainable)
+  vs tractable-but-unsound (bracket cuts = C3, falsified at 3×3) vs
+  bounded-history state (new ADR). User's call; fork laid out in
+  `../research/ko-sensitive-chainability.md`.
 
 ## What we need to build (in order to know)
 
-- **`TODO`:** user-chosen reframe document (e.g. fresh-start-only oracle,
-  approximate play-time rules, or CGT decomposition).
+- **`TODO`:** user-chosen reframe document — **RESOLVED**. The fresh-start-only
+  near-term deliverable was adopted (B05/B11). Track A 2×2/3×2 regen is complete
+  (B15). 4×4 bracket-only artifact produced 2026-07-27 (T14.1). UD-1, UD-2,
+  UD-3 acted on as YES (see `../../untracked/SUBAGENTS.md`). Longer-term options
+  (approximate play-time rules, CGT decomposition) remain research directions,
+  not blocking.
 - **`TODO`:** if the reframe is "fresh-start tables": regenerate 2×2..4×4
-  with the sound finisher setting and pass the #2 auditor (makes
-  fresh-start scores trustworthy). `../decisions/0013-sound-finisher-and-dependency-guarded-memo.md`.
-  **4×4 parallel artifact produced 2026-07-27: 99.8% complete, 83K unfilled (mostly 2-ko+).**
+  with the sound finisher setting and pass the #2 auditor (`../decisions/0013-sound-finisher-and-dependency-guarded-memo.md`).
+  **2×2/3×2 Track A regen complete (B15, byte-identical). 4×4 parallel artifact
+  99.8% complete; 83K unfilled (mostly 2-ko+).**
 
 ## Status
 
 - **Done:** retrograde L/H engine; colex addressing; artifact format WZO1;
-  GTP player; arena audit; ruleset research (PSK/score-on-cycle/kill-X%
-  intractable for exact solve).
-- **In progress (focus):** strategic reframe after T13. C2 is false at 3×2;
-  the core-only deliverable collapses as a "proven real-game score" claim.
-  The active question is what honest deliverable remains.
+  GTP player; arena audit (with UNDEF guard, B43); ruleset research
+  (PSK/score-on-cycle/kill-X% intractability for exact solve); scoring UI
+  (ADR-0014, `src/score.zig`, `weizigo_{settled,estimate,score}` GTP commands);
+  chainability audit (2026-07-27, `bin/weizigo-chainability` /
+  `src/chainability.zig`) — artifact-only, no history, no reference solver.
+- **In progress (focus):** honest packaging of the fresh-start-only deliverable
+  after the C2 falsification and reframe adoption. Two technical gaps now lead:
+  the 4×4 writes-off full artifact (F2/F3), and **the GTP player, which chains
+  unchainable values and is therefore defective on 4×4** (above).
+  Characterisation of C2/C3 leak magnitudes at larger sizes is secondary.
 - **Resolved/falsified:** B1 fixpoint correctness; C3 false at 3×3 (E2);
-  C2 false at 3×2 (T13).
-- **On hold:** strategic fork; 5×5 build (until C2/C3 settle).
+  C2 false at 3×2 (T13); reframe adopted (fresh-start-only, B05/B11);
+  UD-1/UD-2/UD-3 resolved as YES and acted on; FP1 acceptance check 3 **passes**
+  for the shipped single-value columns (M4, 2026-07-27); the ko *rule* is
+  cleared as the cause of the 4×4 regression losses (0/19 plies affected).
+- **On hold:** 5×5 build and alternative reframes until the 4×4 deliverable is
+  finished and the user scopes the next board size.
 - **Stale, not trusted:** committed ko-sensitive single-number scores
   (`data/oracle-4x4.wzo`, small artifacts). The single-score columns are C1-
   level correct as fresh-start scores; C2 is now falsified at 3×2, so they are
   not real-game scores.
 
-## Roadmap (the round trip) — on hold pending reframe
+## Roadmap (the round trip) — fresh-start-only reframe adopted
 
 The previous roadmap (5×5 → 6×6 → 7×7 full tables as provable real-game
 scores) is blocked because the single-score region is not real-game correct.
 B05 scopes option 1 (fresh-start tables) in detail (`untracked/B05-glm.md`
-subtask 2); recommends adopting it as the near-term deliverable. Options 2/3
-remain research directions, not blocking.
-Possible reframes:
+subtask 2); the project adopted it as the near-term deliverable (B05/B11).
+UD-1, UD-2, and UD-3 are resolved as YES and acted on (Track A 2×2/3×2
+regen complete, 4×4 bracket-only artifact produced, fresh-start-only
+near-term deliverable adopted). Options 2/3 remain research directions, not
+blocking.
 
-1. **Fresh-start tables only**: build larger fresh-start oracles, label them
-   honestly as such, and ship them with a bracket for the ko-sensitive region
-   (both labelled CLAIMED, not proven).
-2. **Approximate / play-time rules**: abandon exact-solve as the generation
-   target and build a KataGo-style configurable ruleset + bounded-history
-   engine.
-3. **Combinatorial game theory**: pursue local decomposition / CGT methods
-   that do not rely on a global history-free table.
-
-No new board-size target is committed until the user chooses a reframe.
+No new board-size target is committed until the 4×4 deliverable is finished
+and the user explicitly scopes the next step.
 
 ## Document map
 
 - `boards/CONCEPTS.md` — the cross-size concept-inventory (definitions only).
 - `boards/4x4/EPISTEMIC.md` — the 4×4 epistemic tree (the active focus).
+- `boards/4x3/EPISTEMIC.md` — the 4×3 epistemic tree (now created).
 - `names.md` — canonical names (single scores / ko-sensitive ranges).
 - `../status/leak-crisis.md` — the crisis record (condensed; resolution + C2 open).
+- `../research/ko-sensitive-chainability.md` — why the GTP player loses once
+  there is a ko (2026-07-27); the chainability measurements and the fix fork.
+- `../research/corrections-2026-07-27.md` — corrections to earlier claims.
+- `../research/open-hypotheses-2026-07-27.md` — the non-Markovian-rule framing,
+  the simple-ko question, and their falsification tests.
 - `../about-this-document.md` — the method.
 - `GLOSSARY.md` — terms.
 - `../../AGENTS.md` (repo root) — agent behavior rules and foreclosures.
