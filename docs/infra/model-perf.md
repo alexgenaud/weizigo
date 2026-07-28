@@ -8,9 +8,14 @@ TODO: record the general facts about each model. Then keep notes of each model i
 - **Minimax-m3** (worker) — minimax-m3:cloud
 - **Kimi-k2.7** (worker / auditor) — kimi-k2.7-code:cloud, context ~556 k
 - **Kimi-k3** (worker, frontier; first dispatch EXP-11 2026-07-28) —
-  first data point below. Not the same model as the k2.7 line; this
-  is the project's first exposure to the k3 frontier. Cost on EXP-11
-  (10–30 min bounded code audit): \$0.23.
+  first data points below. Not the same model as the k2.7 line; this
+  is the project's first exposure to the k3 frontier. **Context
+  window: 128k (Kimi-k3 via Ollama in the pi harness only)**, which
+  is sufficient for a single-function audit or a bounded code change
+  but constrains the brief + report shape (a 200-line report is
+  fine; a multi-thousand-line chained audit is not). Cost on EXP-11
+  (10–30 min bounded code audit): \$0.23; cost on EXP-16 (30–60 min
+  bounded code audit): not yet recorded.
 - **Opus 5** (overview / adversarial reviewer / brief author, from 2026-07-27) —
   remit set 2026-07-28 (`untracked/msg/milestone-01-ko-reframe/STATE.md`):
   grand overview, epistemic tree, adversarial review of load-load-bearing
@@ -84,7 +89,7 @@ check, Dabir 011's 10-min question). \$0.23, ~30 min wall.
   the moment and corrupts the ledger over time.
 - **No engine file touched. No data/ or artifacts/ touched. No
   fix proposed.** The brief said "read only"; the worker read only.
-- **First impression:** the k3 line inherits k2.7's discipline on
+- **First impression:** the k3 line inherits k2.7’s discipline on
   bounded audits but is faster and noticeably cheaper at the same
   task (\$0.23 vs. an unrecorded k2.7 cost). On bounded, well-
   specified code-audit work the k3 line is a clear win. **Not yet
@@ -94,6 +99,62 @@ check, Dabir 011's 10-min question). \$0.23, ~30 min wall.
   of the Muhtasib plan) and on a H5a-style bounded code change,
   to see whether the speed/cost advantage holds when the brief
   is less crisp.
+
+### EXP-16 (2026-07-28) — second data point
+
+Same model, same shape (30–60 min bounded code audit, three-
+verdict acceptance, falsifiable). Context window: 128k. Produced
+a 225-line audit plus a `PROVENANCE.md` (per
+`docs/evidence/README.md`) without trouble. Verdict VERIFIED;
+`Session.choose` is a one-ply table extremum only.
+
+- **Decisive structural finding:** `src/gtp.zig` does not import
+  the solver (only rules/colex/artifact/score imports at :55–58),
+  so `solve.zig` / `retro.zig` are unreachable from the GTP
+  player’s `Session` code. A `grep` for `solve|Exact|retro|
+  finisher|arena` hits only comments. That is the kind of
+  evidence a one-line structural check beats a 200-line walk
+  for: the imports *are* the proof.
+- **Caught a substantive secondary finding I missed in the
+  brief:** the claim is **not in AGENTS.md** at any commit (`git
+  log -S` empty); the verbatim form lives in HANDOVER.md
+  §“Gotchas” (:61–63); HANDOVER §“Critical state” does not
+  repeat it. The relying opus verdict is
+  `docs/audits/muhtasib-audit-chunk2-2026-07-28.md:48`
+  (Auditor chunk 2, in flight), not
+  `audit-opus-2026-07-28.md`. This is a real claim-location
+  correction: I cited AGENTS.md in the brief, the claim is in
+  HANDOVER.md, and the worker's audit has to point at the
+  correct file for the calibration check to land.
+- **H5a calibration is the load-bearing part of the audit**
+  (the H5a mitigation in EXP-9 depends on the claim four ways:
+  the ~2n-lookups cost model, A2's "the move choose would
+  return" reproducibility, "no strength lost" on the chainable
+  region, and the −16-child pick at ply 8 of the regression
+  game). Kimi-k3 ran the calibration as a real test, not a
+  ritual: VERIFIED sustains all four. Two wrinkles flagged for
+  the H5a implementer (replicate the early-game override when
+  computing C*; A1 must decide how the v1_from_table-priced
+  pass option enters the node identity) are the kind of
+  hand-off notes a careful auditor produces and a careless one
+  doesn't.
+- **First impression, refined:** the 128k context window is
+  **not** a constraint on the kind of task the project usually
+  calls "bounded code audit." The brief, the read of `src/gtp.zig`
+  + the four callee files, and the 225-line report fit
+  comfortably. The constraint is on the *kind of report*: a
+  multi-thousand-line audit that chains through several files
+  with deep context would be tight. **Use k3 for bounded,
+  well-specified audits; do not use it for an open-ended
+  sweep of a large codebase.**
+- **Comparable-to-Opus-4/5/Fable hypothesis (user's framing):
+  the 128k window is the visible difference, not a competence
+  gap on the task class. On bounded code-audit work, k3 is a
+  clear win at \$0.23 and ~30 min. Whether k3 matches Opus/Fable
+  on harder reasoning (proof repair, ADR refutation) is an open
+  question; Fable holds the harder slots per D-7, and a direct
+  comparison is the right next data point when one of those
+  tasks is dispatchable to a k3-capable console.
 
 ## Cross-model takeaway (early)
 
@@ -1507,3 +1568,49 @@ moment and corrupts the ledger over time.
 proposed.** Evidence:
 `docs/evidence/QA-023/h-recurrence-check-2026-07-28.md`
 (commit `650b4f0`).
+
+## Task completion — EXP-16 (2026-07-28, Kimi-k3)
+
+Second Kimi-k3 data point. Bounded ANALYSIS, 30–60 min, no `holds`.
+Load-bearing consumer: EXP-9 (H5a play-time mitigation), which
+depends on the `Session.choose` claim in four ways. Verdict:
+**VERIFIED** — `Session.choose` is a one-ply table extremum; the
+H5a premise holds.
+
+**Decisive structural evidence:** `src/gtp.zig` does not import
+the solver (only rules/colex/artifact/score imports at :55–58);
+`solve.zig` / `retro.zig` are unreachable from the GTP player. A
+`grep` for solver/finisher/arena hits only comments. The imports
+*are* the proof.
+
+**Substantive secondary finding (worker caught, I missed):** the
+claim is **not in AGENTS.md** at any commit. It lives in HANDOVER.md
+§"Gotchas" (:61–63). The relying opus verdict is
+`docs/audits/muhtasib-audit-chunk2-2026-07-28.md:48` (Auditor
+chunk 2), not `audit-opus-2026-07-28.md`. This is a real claim-
+location correction, not a stylistic nit: AGENTS.md is the
+standing rule-of-everyone; HANDOVER.md is a per-session tactical
+snapshot. The claim should be in AGENTS.md if the project wants
+it to outlive the session, or removed from HANDOVER.md if the
+project wants it to die with the session. The Orchestrator flags
+this for the user; it is a rule placement, not a model finding.
+
+**H5a calibration:** the EXP-9 §"The mitigation" depends on the
+claim four ways (cost model, A2 reproducibility, "no strength
+lost" on chainable, the −16-child pick). VERIFIED sustains all
+four. Two wrinkles flagged for the H5a implementer (replicate
+the early-game override when computing C*; A1 must decide how
+the `v1_from_table`-priced pass option enters the node identity).
+The wrinkles are non-blocking: the audit confirms the premise,
+and the H5a brief can absorb the wrinkles on its way through
+implementation.
+
+**128k context window:** sufficient for the task. The brief, the
+read of `src/gtp.zig` plus four callee files, and a 225-line
+report fit comfortably. The window is a constraint on *report
+shape* (no multi-thousand-line chained audits), not on bounded
+code-audit work generally. Recorded for the standing ledger.
+
+**No engine file touched. No data/ or artifacts/ touched.**
+Evidence: `docs/evidence/GLOBAL.SESSION-CHOOSE/audit-2026-07-28.md`
+(commit `2d872b3`).

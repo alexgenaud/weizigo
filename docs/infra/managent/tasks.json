@@ -238,14 +238,15 @@
     "done": "2026-07-28T12:21:13Z"
   },
   "EXP-16": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "kimi-k3",
     "bundle": "docs/infra/dispatch/EXP-16-session-choose-audit.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "added": "2026-07-28T23:11:28Z",
-    "claimed": null,
-    "done": null
+    "claimed": "2026-07-28T23:56:15Z",
+    "done": "2026-07-28T23:56:15Z"
   },
   "EXP-8": {
     "status": "dispatchable",
