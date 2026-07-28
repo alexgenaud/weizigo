@@ -1,76 +1,82 @@
-# EXP-10 — QA-018/019 ADR: do bracket cuts hold under search-path histories?
+# EXP-10 — QA-018/019 ADR: **refute** Opus's ruling that ADR-0010 is refuted
 
-**Closes:** drafts the ADR for `QA-018`/`QA-019` (the most consequential open
-decision in the project). **The ruling is the user's, not the agent's** — this
-task produces the ADR *draft* that lays out both horns with evidence so the user
-can decide. **Blocks:** EXP-6 (and any writes-off regen) — do not start those
-until this resolves. **Blocked by:** nothing. **Holds:** `docs/decisions/0015-*.md`
-(new) — a docs-only task; no engine file.
+**Closes:** drafts the ADR for `QA-018`/`QA-019`. **The ruling (DECISIONS D-5,
+Opus) is already made; this task attempts to REFUTE it.** If the refutation
+succeeds, the ruling is overturned and F2 is un-orphaned; if it fails, the ADR
+records the ruling as standing. **Blocks:** EXP-6 + any writes-off regen.
+**Blocked by:** nothing. **Allocated to Fable (DECISIONS D-7)** — the hardest
+claim-semantics reasoning; Opus reviews adversarially and executes neither.
+**Holds:** `docs/decisions/0015-*.md` (new) — docs-only.
 
-**Read first:** `docs/infra/dispatch/README.md`, then `AGENTS.md`, then
-`msg_from_opus.md` §007 (O1) in full, then `docs/epistemic/CLAIMS.md` (F2, O1,
-C3, ADR-0010 edges), then `docs/decisions/0010-bracket-guided-finishing.md` and
-`0013-sound-finisher-and-dependency-guarded-memo.md`, then
+**Read first:** `untracked/msg/milestone-01-ko-reframe/STATE.md`, then
+`003-opus-to-glm.md` §"QA-018/019 — I am ruling", then `DECISIONS.md` D-5, then
+`docs/epistemic/CLAIMS.md` (F2, O1, C3, ADR-0010 edges), then
+`docs/decisions/0010-bracket-guided-finishing.md` and `0013-...`, then
 `src/retro.zig:464` (`bracket cut: [lo,hi] holds under ANY arrival history ->
 KO_CLEAN`) and `:2407` (`saveArtifact` hardcodes `bracketed = true`), then
 `docs/research/c2-falsification-3x2.md` (E2 falsified C3 for *real-game*
-histories) and `docs/epistemic/critique-2026-07-28.md` §2.
+histories).
 
-## The open question, exactly
+## The ruling you must try to refute (D-5, verbatim)
 
-`GLOBAL.F2` (bracket-guided finisher sound) is CLAIMED, deriving from ADR-0010's
-"brackets hold under **ANY** arrival history". `GLOBAL.C3` (the bracket bounds
-the real-game score) is **FALSE-AS-SCOPED at 3×3** (E2). Opus's O1 finding
-(`msg_from_opus.md` §007): **every shipped ko-sensitive value was produced by
-bracket cuts**, and `memo_writes=false` (Track A) leaves bracket cuts **on**
-(`saveArtifact` hardcodes `bracketed=true`). So Track A does not escape the
-bracket claim, and the regen that would settle F2/F3 may need to be
-**brackets-off**.
+> **ADR-0010's justification is refuted as stated.** Its cut rests on brackets
+> holding "under ANY arrival history". For an **empty-board root** the finisher's
+> search path *is* a real game line — so E2's falsifying histories lie inside
+> the very family ADR-0010 claims to cover. There is no third option: either
+> "ANY arrival history" is too strong, or someone must prove the search-path
+> family is exempt. **The burden is on ADR-0010 and it has not been discharged.**
+> `GLOBAL.F2` stays orphaned until it is.
 
-The nuance is the whole question: E2 falsified C3 for *real-game* arrival
-histories. The finisher's cuts fire under *search-path* histories descending
-from a fresh-start root — a different family. **Are they the same claim?**
-ADR-0010 says yes ("ANY arrival history"). So either:
+Note the scope: this is a claim about the *justification*, not a claim that every
+shipped ko-sensitive value is wrong. Those values may well be right; what is gone
+is the *argument that they must be*.
 
-- **Horn A — ADR-0010 is too strong.** "ANY" over-reached; search-path and
-  real-game histories are not the same, F2 does not inherit C3's falsification,
-  but ADR-0010's justification must be rewritten to scope it to search-path
-  histories (and F2 stays CLAIMED, now on a sounder basis). *Or* "ANY" really
-  does include real-game, C3's falsification applies, and **F2 is orphaned** —
-  every shipped ko-sensitive value loses its soundness basis and the only sound
-  4×4 build is brackets-off.
-- **Horn B — the histories differ.** Search-path histories (a fresh-start
-  root, a single self-imposed ban set) are a strict subset / a different
-  family from real-game PSK histories (arbitrary opponent arrival), and C3's
-  real-game falsification does not transfer. F2 is unaffected; ADR-0010 is
-  reworded to say "search-path arrival histories" and the finisher stands.
+## Your job: attempt to discharge the burden — i.e. refute the ruling
 
-The agent's job is to **adjudicate the evidence for each horn and write the ADR
-draft**, *not* to rule. The user rules.
+An ADR that merely restates Opus's position is worthless (D-5). You are tasked
+with **finding the exemption if it exists**: is the finisher's *search-path*
+history family (a fresh-start root, a single self-imposed ban set descending the
+retrograde graph) genuinely **exempt** from the real-game PSK histories E2
+falsified? If yes — write the proof/argument and **un-orphan F2** (overturn the
+ruling). If no — the ruling stands; record it as standing with the failed
+refutation as evidence.
 
-## Acceptance (for the draft)
+Adjudicate both horns:
+
+- **Horn A (ruling stands):** "ANY" over-reached; search-path and real-game
+  histories are the same family (empty-board root ⇒ search path *is* a real
+  game line); C3's falsification applies; **F2 orphaned**; the only sound 4×4
+  build is brackets-off (≫ cost — empty 4×4 root >5e8 nodes abandoned without
+  bracket cuts vs ≤3.5e5 with).
+- **Horn B (ruling overturned):** search-path histories are a strict subset / a
+  different family from real-game PSK histories (arbitrary opponent arrival),
+  and C3's real-game falsification does **not** transfer; F2 stands; ADR-0010 is
+  reworded to "search-path arrival histories" and the finisher stands.
+
+## Acceptance
 
 1. `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md` exists.
-2. It states both horns, the evidence for/against each (citing E2, ADR-0010,
-   `retro.zig:464`, `retro.zig:2407`, the O1 finding), and the *consequence* of
-   each ruling (Horn A → F2 orphaned / brackets-off regen needed; Horn B → F2
-   stands, ADR-0010 reworded).
-3. It does **not** assert a ruling. It ends with a crisp "Decision needed from
-   the user: Horn A or Horn B?" and the recommended default (Advisor will
-   recommend; the agent may state its lean as CLAIMED, not PROVEN).
-4. It is auditable by a fresh agent reading only the ADR + the cited sources.
+2. It **attempts the refutation** (Horn B) in good faith and with evidence, then
+   records whether the refutation succeeded (F2 un-orphaned) or failed (ruling
+   stands). It does **not** assume the conclusion.
+3. It cites E2, ADR-0010, `retro.zig:464`, `retro.zig:2407`, the O1 chain, and
+   states the consequence of each outcome (Horn A → brackets-off regen; Horn B →
+   F2 stands, ADR-0010 reworded).
+4. It ends with "Refutation succeeded/failed: …" and, if failed, "Ruling stands
+   (D-5); the user owns the formal ADR promotion." If succeeded, "F2 un-orphaned
+   pending Opus's adversarial review."
+5. Auditable by a fresh agent reading only the ADR + the cited sources.
 
 ## Deliverables
 
-- `docs/decisions/0015-*.md` (the ADR draft).
-- `docs/evidence/QA-018/` (the source citations: `retro.zig:464`, `:2407`,
-  ADR-0010:16-18, E2's falsification scope, the O1 chain in CLAIMS).
+- `docs/decisions/0015-*.md` (the ADR, structured as a refutation attempt).
+- `docs/evidence/QA-018/` (the source citations).
 
 ## Do NOT
 
-- Do not edit the engine, do not edit ADR-0010 (supersede, don't rewrite —
-  append a new ADR that may supersede it once the user rules).
-- Do not mark F2 PROVEN or FALSE in the ADR — that is the user's ruling. Tag the
+- Do not edit the engine, do not edit ADR-0010 (supersede, don't rewrite — the
+  new ADR may supersede it once the user rules).
+- Do not assert a ruling (the ruling is D-5; you attempt to refute it). Tag the
   analysis CLAIMED.
-- Do not start a brackets-off regen; this ADR's ruling decides whether one is
+- Do not start a brackets-off regen; this ADR's outcome decides whether one is
   needed.
