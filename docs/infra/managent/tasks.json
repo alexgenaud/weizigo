@@ -93,6 +93,19 @@
     "dispatched_to": null,
     "note": null
   },
+  "AGENT-IDENTITY": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/AGENT-IDENTITY.md",
+    "set": "Y",
+    "holds": ["src/managent/main.zig"],
+    "needs": ["ORCHA-AUTOMATION"],
+    "added": "2026-07-29T16:21:30Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
   "2B-2": {
     "status": "done",
     "agent": "minimax-m3",
@@ -281,6 +294,19 @@
     "added": "2026-07-29T09:36:47Z",
     "claimed": "2026-07-29T09:36:48Z",
     "done": "2026-07-29T09:36:48Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "WORKER-CHANNEL": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/WORKER-CHANNEL.md",
+    "set": "Z",
+    "holds": ["tools/runner"],
+    "needs": ["AGENT-IDENTITY", "RUNNER-CEILING"],
+    "added": "2026-07-29T16:21:30Z",
+    "claimed": null,
+    "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null
