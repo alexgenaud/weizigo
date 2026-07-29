@@ -50,6 +50,25 @@
 //
 // Values assume komi 0 and Chinese/area scoring; `final_score` subtracts the
 // GUI's komi from the exact area score (score-optimal play is komi-agnostic).
+//
+// H5(a) PLAY-TIME CHAINABILITY CHECK (EXP-9, 2026-07-28): the old
+// `Session.choose` always steers by the extremum over stored V0(child)
+// values. On a CHAINABLE node (L==H, identity holds) that is a sound
+// one-ply minimax and the move is fresh-start-optimal. On an UNCHAINABLE
+// node (L<H; ko-sensitive region) the children are independent fresh-start
+// solves and the comparison is not defined — that is the source of the 32-pt
+// ply-16 collapse on the 4x4 regression games. This file's `genmove` path
+// now runs `Session.choose_with_check`, which performs TWO cheap identity
+// checks per genmove — A1 at the current node, A2 at the chosen child (per
+// D-3: a node-only check warns after the trouble is created, not before) —
+// and REFUSES the V0 comparison when either fails. Refusal is a certification
+// marker: the engine logs `UNCHAINABLE` and picks a history-free move
+// (Benson-alive territory + stones; sound by Benson's theorem). Pass is
+// NEVER the refusal — the brief's "refuse must not mean pass" rule, since
+// passing in the opening is itself a blunder. Net effect: optimal where the
+// table is chainable; visibly refuses (with a sound fallback) where it is
+// not. See `docs/infra/dispatch/EXP-9.md` and
+// `docs/research/h5a-player-mitigation-2026-07-28.md`.
 
 const std = @import("std");
 const rules = @import("rules.zig");
@@ -147,6 +166,147 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             return best;
         }
 
+        // ---- H5(a) play-time chainability check (docs/infra/dispatch/EXP-9.md) ---
+        //
+        // The "chainability" identity at (P, side) is the history-free Bellman
+        // identity that the existing choose() implicitly assumes:
+        //
+        //     V0(P, side) == best_side( { V0(child, -side) : child legal }
+        //                               ∪ { V1(P, -side) } )              [the pass edge]
+        //
+        // It holds provably on the single-score (L==H) region (the chainability
+        // sweep, docs/research/ko-sensitive-chainability.md: 0 violations
+        // outside the KO_SENSITIVE flag at every board size, exhaustive at 4x4
+        // as of 2026-07-28). It does NOT hold in general on the ko-sensitive
+        // region — each such slot holds an INDEPENDENT fresh-start PSK solve,
+        // so V0(P) and a one-ply lookahead over V0(child) are under no
+        // obligation to agree, and the disagreement can be the entire board
+        // swing (32 = 2n on 4x4).
+        //
+        // `Session.choose` ignores this and takes the extremum over V0(child)
+        // values anyway. That's the source of the ply-16 collapse on the 4x4
+        // regression games. This module is the play-time mitigation: refuse
+        // the V0 comparison when the identity fails, and fall back to a
+        // history-free quantity on the resulting child. The refusal IS the
+        // "this move is not certified optimal" signal.
+
+        /// Best-side extremum over LEGAL children of `pos` for `side`,
+        /// including the V1 (pass edge) value. Mirrors the chainability
+        /// tool's RHS exactly: filled-child V0(child, -side), area_score
+        /// fallback for pass, UNDEF-children skipped. **No PSK filter**:
+        /// the chainability tool's verdict (and the underlying claim about
+        /// the table) is PSK-independent — PSK only restricts which child
+        /// `choose` may actually play, it does not change what the table
+        /// says about its own children. Mirrors bin/weizigo-chainability
+        /// (`src/chainability.zig`:rhs).
+        fn rhs_chain(s: *const S, pos: *const Pos, side: i8) i8 {
+            const maximizing = side > 0;
+            // pass edge: V1(pos, -side) — opp's value if current side passes.
+            var best: i8 = s.v1_from_table(pos, -side);
+            for (0..n) |p| {
+                if (pos[p] != 0) continue;
+                const child = R.pos_from_move(pos, side, p) catch continue;
+                const v = s.v0(&child, -side);
+                if (v == UNDEF) continue;
+                if (if (maximizing) v > best else v < best) best = v;
+            }
+            return best;
+        }
+
+        /// Does the chainability identity hold at (pos, side) under the
+        /// session's history? Returns true when the extremum over (filtered)
+        /// children's V0 equals the stored V0(pos, side). Settled positions
+        /// and UNDEF-stored positions are trivially "chainable" (no move
+        /// comparison is performed by `choose` there — V0 = area_score by
+        /// definition, and the pass edge is what `choose` uses).
+        pub fn chainable_at_pos(s: *const S, pos: *const Pos, side: i8) bool {
+            if (R.is_settled(pos)) return true;
+            const stored = s.v0(pos, side);
+            if (stored == UNDEF) return true; // unfilled; nothing to compare
+            const expected = s.rhs_chain(pos, side);
+            return expected == stored;
+        }
+
+        /// Convenience wrapper for the current game state.
+        pub fn chainable_at(s: *const S, side: i8) bool {
+            return s.chainable_at_pos(&s.pos, side);
+        }
+
+        /// History-free score for the refusal fallback: a snapshot-only,
+        /// sound-by-Benson quantity.
+        ///
+        ///   (+1 per own Benson-alive stone) − (+1 per opp Benson-alive stone)
+        /// + (+1 per territory point surrounded only by own Benson-alive groups)
+        /// − (+1 per territory point surrounded only by opp Benson-alive groups)
+        ///
+        /// SOUND by Benson's theorem (rules.zig: a Benson-alive chain cannot
+        /// be captured regardless of opponent play, so the alive-count and
+        /// alive-territory are preserved under any future move sequence).
+        /// History-free: it depends only on the post-move snapshot, not on
+        /// the game's accumulated ban set. This is the certification floor
+        /// for the "refuse V0, fall back" branch — not a strategy, just a
+        /// move-selection signal that does not chain table values.
+        /// Takes no `self`: it reads ONLY the position, never the artifact or
+        /// the game history. That is the whole point (and it lets the
+        /// antisymmetry property be unit-tested without an artifact).
+        pub fn fallback_score(pos: *const Pos, side: i8) i8 {
+            const opp: i8 = -side;
+            const balive = R.benson_alive(pos, side);
+            const walive = R.benson_alive(pos, opp);
+            var acc: i16 = 0;
+            for (0..n) |p| {
+                if (pos[p] == side and balive[p]) acc += 1;
+                if (pos[p] == opp and walive[p]) acc -= 1;
+            }
+            // Territory: flood empty regions. A region contributes +size if it
+            // touches only friendly Benson-alive stones, -size if only enemy
+            // Benson-alive stones, and 0 if it touches any non-alive group
+            // (dame / contested / shared liberty). Same flood as area_score /
+            // territory_japanese; the difference is the *adjacency filter*:
+            // we only credit territory when the bordering stones are
+            // guaranteed-stable by Benson.
+            var visited = [_]bool{false} ** n;
+            for (0..n) |p| {
+                if (pos[p] != 0 or visited[p]) continue;
+                var stack: [n]usize = undefined;
+                var sp: usize = 1;
+                stack[0] = p;
+                visited[p] = true;
+                var size: i16 = 0;
+                var tb = false; // touches only own Benson-alive
+                var tw = false; // touches only opp Benson-alive
+                var mixed = false; // touches both, or a non-alive group
+                while (sp > 0) {
+                    sp -= 1;
+                    const q = stack[sp];
+                    size += 1;
+                    var nb: [4]usize = undefined;
+                    const cnt = R.neighbors(q, &nb);
+                    for (nb[0..cnt]) |r| {
+                        if (pos[r] * side > 0) {
+                            if (balive[r]) {
+                                if (tw) mixed = true;
+                                tb = true;
+                            } else mixed = true; // own stone not alive -> uncertain
+                        } else if (pos[r] * opp > 0) {
+                            if (walive[r]) {
+                                if (tb) mixed = true;
+                                tw = true;
+                            } else mixed = true;
+                        } else if (!visited[r]) {
+                            visited[r] = true;
+                            stack[sp] = r;
+                            sp += 1;
+                        }
+                    }
+                }
+                if (mixed) continue;
+                if (tb and !tw) acc += size;
+                if (tw and !tb) acc -= size;
+            }
+            return @intCast(acc);
+        }
+
         const Choice = struct { cell: ?usize, value: i8, dtt: u8, caps: u16 = 0 };
 
         /// Best move (or pass) for `side` from the current game state: the max
@@ -236,6 +396,124 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             if (mv.caps != c.caps) return if (mv.caps > c.caps) mv else c;
             if (mv.dtt != c.dtt) return if (mv.dtt < c.dtt) mv else c;
             return c;
+        }
+
+        /// H5(a) wrapper around `choose`: do the play-time chainability check
+        /// (A1 at the current node + A2 at the chosen child, EXP-9) and fall
+        /// back to a history-free per-move score when the identity fails.
+        ///
+        /// Returns {choice, refused}:
+        ///   refused == false -> play `choice` exactly as the old engine would
+        ///   refused == true  -> play `choice` (the history-free pick) and
+        ///                       log `UNCHAINABLE` so the operator sees the
+        ///                       refusal; the move is NOT a V0-optimal move,
+        ///                       it is a sound history-free fallback. This
+        ///                       is the certification signal: a refused ply
+        ///                       is a ply where the table does not justify
+        ///                       itself and the engine declines to claim
+        ///                       optimality.
+        /// Which check refused, if any. Reported in the log so an operator can
+        /// tell a node-level refusal (A1: this position's own stored value
+        /// already disagrees with its children) from the D-3 case that matters
+        /// (A2: this node is fine, but the move `choose` wanted to play ENTERS
+        /// an unchainable child). EXP-9 acceptance criterion 4 is specifically
+        /// about A2 firing one ply BEFORE the collapse.
+        pub const Refusal = enum { none, a1_node, a2_child };
+
+        pub const CheckedChoice = struct {
+            choice: Choice,
+            /// Set iff A1 or A2 failed and the engine fell back to the
+            /// history-free per-move score. The "refusal" is the certification
+            /// marker — see EXP-9 acceptance criteria.
+            cause: Refusal,
+
+            pub fn refused(cc: CheckedChoice) bool {
+                return cc.cause != .none;
+            }
+        };
+
+        pub fn choose_with_check(s: *const S, side: i8) CheckedChoice {
+            // A1: chainability at the current node. If the history-free Bellman
+            // identity holds here, choose()'s V0 comparison is meaningful at
+            // THIS ply.
+            const a1 = s.chainable_at(side);
+            if (a1) {
+                // Still need A2: the chosen child must itself be chainable,
+                // otherwise we are walking into an unchainable region one
+                // move at a time. This is the D-3 correction: a node-only
+                // check warns after the trouble is already created.
+                const c = s.choose(side);
+                if (c.cell) |cell| {
+                    // A2 only meaningful for non-pass moves: a pass has no
+                    // child to enter. The pass edge is already covered by A1.
+                    const child = R.pos_from_move(&s.pos, side, cell) catch {
+                        // Should not happen: choose() validated this. Treat
+                        // as refusal-safe: fall through to fallback.
+                        return s.fallback_pick(side, .a2_child);
+                    };
+                    if (s.chainable_at_pos(&child, -side)) {
+                        return .{ .choice = c, .cause = .none };
+                    }
+                    // A2 failed: refuse. Fall back.
+                    return s.fallback_pick(side, .a2_child);
+                }
+                // Pass candidate: A1 already certified; trust the choice.
+                return .{ .choice = c, .cause = .none };
+            }
+            // A1 failed: refuse. Fall back.
+            return s.fallback_pick(side, .a1_node);
+        }
+
+        /// History-free per-move move selection. Used only on refusal.
+        /// For every PSK-legal, non-pass move, evaluate `fallback_score` on
+        /// the resulting child position. Pick the move that MAXIMISES the
+        /// score (Black maximises, White maximises — both sides want a
+        /// higher history-free score, i.e. more own alive territory minus
+        /// opp alive territory).
+        ///
+        /// Tie-break among equal-scoring moves: a) pass is NOT a candidate
+        /// (per EXP-9: "refuse" must not mean pass); b) among equal-scoring
+        /// non-pass moves, prefer the smaller colex cell (deterministic).
+        ///
+        /// If no legal non-pass move exists, fall back to pass (matches the
+        /// existing all-UNDEF behaviour).
+        ///
+        /// SIGN CONVENTION (fixed 2026-07-29 while completing EXP-9):
+        /// `fallback_score` is **side-relative** — it counts the mover's own
+        /// Benson-alive stones/territory as POSITIVE and the opponent's as
+        /// negative, so `fallback_score(pos, +1) == -fallback_score(pos, -1)`.
+        /// Therefore BOTH colours MAXIMISE it (as this function's doc comment
+        /// above always said). The original EXP-9 draft branched on
+        /// `maximizing = side > 0` and minimised for White, which made White
+        /// choose the move WORST for itself on every refusal — inverting the
+        /// fallback exactly where it is supposed to be the sound floor. Do not
+        /// reintroduce a colour branch here: the colour is already inside the
+        /// score.
+        fn fallback_pick(s: *const S, side: i8, cause: Refusal) CheckedChoice {
+            var best: ?Choice = null;
+            for (0..n) |p| {
+                if (s.pos[p] != 0) continue;
+                const child = R.pos_from_move(&s.pos, side, p) catch continue;
+                if (s.seen(&child)) continue; // positional superko
+                const dt = s.dtt0(&child, -side);
+                const sc = S.fallback_score(&child, side);
+                // The "value" of a refused move carries the history-free score
+                // (so the log line can show it) and the existing dtt (so the
+                // engine still records "fastest optimal resolution" where it
+                // was known). caps is left at 0 — captures don't matter to
+                // the refusal path; area-score and chain are the certification
+                // here.
+                const mv = Choice{ .cell = p, .value = sc, .dtt = dt, .caps = 0 };
+                // Primary: maximise fallback_score (both colours — see the
+                // sign-convention note above). Tie-break: smaller colex cell,
+                // which `p` ascending already gives us for free, so a strict
+                // `>` keeps the first (lowest) cell among equals.
+                if (best == null or mv.value > best.?.value) best = mv;
+            }
+            if (best) |bm| return .{ .choice = bm, .cause = cause };
+            // No legal non-pass move: pass. Same backstop as choose().
+            const pass = Choice{ .cell = null, .value = S.fallback_score(&s.pos, side), .dtt = 0, .caps = 0 };
+            return .{ .choice = pass, .cause = cause };
         }
 
         fn countColor(pos: *const Pos, color: i8) u16 {
@@ -399,6 +677,7 @@ const KNOWN_COMMANDS = [_][]const u8{
     "boardsize",        "rectangular_boardsize",    "clear_board",   "komi",
     "play",             "genmove",     "undo",     "showboard",     "final_score",
     "weizigo_settled",  "weizigo_estimate", "weizigo_score",
+    "weizigo_chaincheck",
     "quit",
 };
 
@@ -608,21 +887,41 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                         }
                     } else {
                         const fl = s.flags0(&s.pos, side);
-                        const c = s.choose(side);
+                        // H5(a): do the chainability check (A1 + A2) before
+                        // trusting the V0 comparison (EXP-9). The check
+                        // costs ~2n lookups when both hold; on refusal, the
+                        // engine falls back to a history-free per-move score
+                        // and logs UNCHAINABLE.
+                        const cc = s.choose_with_check(side);
+                        const c = cc.choice;
                         s.applyMove(side, c.cell) catch {};
                         reply = if (c.cell) |cell| vertex_from_cell(&vbuf, cell, w, h) else "pass";
-                        const diverged = !undef and c.value != stored;
-                        std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s} dtt={d}\n", .{
+                        const diverged = !undef and c.value != stored and !cc.refused();
+                        // Log the refused-ply marker. On refusal the "value"
+                        // field carries the history-free score, not V0; the
+                        // suffix names that explicitly so an operator can
+                        // see at a glance which plies the engine declined
+                        // to certify. A1 vs A2 is named because they mean
+                        // different things: A1 = this node's own stored value
+                        // is already incoherent; A2 = this node is fine but
+                        // the V0-optimal move would ENTER an unchainable
+                        // child (the D-3 case, caught one ply early).
+                        const refused_suffix: []const u8 = switch (cc.cause) {
+                            .none => "",
+                            .a1_node => " (UNCHAINABLE A1@node — refused V0 comparison; played history-free fallback)",
+                            .a2_child => " (UNCHAINABLE A2@chosen-child — refused V0 comparison; played history-free fallback)",
+                        };
+                        std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s} dtt={d}\n", .{
                             colort,                reply,                       c.value, stored,
                             if (undef) " (UNDEF slot)" else "",
                             if (diverged) " (HISTORY-DIVERGED)" else "",
-                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         c.dtt,
+                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         refused_suffix, c.dtt,
                         });
-                        log.line("# oracle {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s} dtt={d}", .{
+                        log.line("# oracle {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s} dtt={d}", .{
                             colort,                reply,                       c.value, stored,
                             if (undef) " (UNDEF slot)" else "",
                             if (diverged) " (HISTORY-DIVERGED)" else "",
-                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         c.dtt,
+                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         refused_suffix, c.dtt,
                         });
                     }
                 }
@@ -649,6 +948,31 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 }
                 @memcpy(rbuf[0..bl], bb[0..bl]);
                 reply = rbuf[0..bl];
+            } else if (std.mem.eql(u8, first, "weizigo_chaincheck")) {
+                // EXP-9 introspection: report the two H5(a) checks separately
+                // for `<colour>` to move at the CURRENT position, without
+                // playing anything. Needed to evidence acceptance criterion 4
+                // (A1 holds at ply k while A2 fails, so the engine refuses at
+                // ply k rather than after the collapse at ply k+1) along a
+                // FIXED transcript, where `genmove` would change the line.
+                //   a1=<0|1>  the node's own identity
+                //   a2=<0|1|-> the chosen child's identity ('-' if choose()
+                //              returns pass, which has no child to enter)
+                //   move=<vertex|pass>  what choose() would play
+                const ct = tokens.next() orelse "b";
+                const cs: i8 = if (ct.len > 0 and (ct[0] == 'b' or ct[0] == 'B')) 1 else -1;
+                const a1 = s.chainable_at(cs);
+                const cch = s.choose(cs);
+                var a2buf: [2]u8 = undefined;
+                const a2s: []const u8 = if (cch.cell) |cell| blk: {
+                    const kid = S.R.pos_from_move(&s.pos, cs, cell) catch break :blk "-";
+                    a2buf[0] = if (s.chainable_at_pos(&kid, -cs)) '1' else '0';
+                    break :blk a2buf[0..1];
+                } else "-";
+                const mv: []const u8 = if (cch.cell) |cell| vertex_from_cell(&vbuf, cell, w, h) else "pass";
+                reply = std.fmt.bufPrint(&rbuf, "a1={d} a2={s} move={s} v0={d}", .{
+                    @intFromBool(a1), a2s, mv, s.v0(&s.pos, cs),
+                }) catch "chaincheck error";
             } else if (std.mem.eql(u8, first, "final_score")) {
                 const raw: f32 = @floatFromInt(S.R.area_score(&s.pos));
                 const sc = raw - s.komi;
@@ -962,4 +1286,54 @@ test "4x4 regression: user-win B+15.5 (captures, ko replays, end-game)" {
         seen_n += 1;
     }
     try expect(R.area_score(&pos) == 16); // B+16 -> B+15.5 at komi 0.5
+}
+
+test "H5(a) fallback_score is side-relative (antisymmetric), so both colours maximise it" {
+    // EXP-9. The refusal fallback (`fallback_pick`) must MAXIMISE
+    // `fallback_score` for BOTH colours, because the colour is already baked
+    // into the score: it counts the mover's own Benson-alive stones/territory
+    // as positive and the opponent's as negative. The first EXP-9 draft
+    // branched on `maximizing = side > 0` and minimised for White, which made
+    // White pick the move worst for itself on every refused ply. This test
+    // pins the premise of that fix: score(pos, +1) == -score(pos, -1) for
+    // every position, so there is no colour branch to make.
+    const S = Session(4, 4);
+    const Pos = S.R.Pos;
+
+    // A genuinely Benson-alive Black group: the chain {1,3,4,5,6,7} enclosing
+    // two single-point eyes at cells 0 and 2 (cell = r*4 + c).
+    //
+    //   . X . X      <- cells 0..3  : eyes at 0 and 2
+    //   X X X X      <- cells 4..7  : the chain
+    //   . . . .
+    //   . . . .
+    //
+    // Both eyes are surrounded solely by that one chain, so it is alive by
+    // Benson's theorem, and White has nothing anywhere.
+    var pos: Pos = [_]i8{0} ** 16;
+    for ([_]usize{ 1, 3, 4, 5, 6, 7 }) |p| pos[p] = 1;
+    try expect(S.fallback_score(&pos, 1) == -S.fallback_score(&pos, -1));
+    try expect(S.fallback_score(&pos, 1) > 0); // good for Black
+    try expect(S.fallback_score(&pos, -1) < 0); // ... hence bad for White
+
+    // Antisymmetry must hold for arbitrary positions too, not just the tidy
+    // one above: sweep a deterministic pseudo-random spread of boards.
+    var seed: u32 = 12345;
+    for (0..2000) |_| {
+        var b: Pos = [_]i8{0} ** 16;
+        for (0..16) |p| {
+            seed = seed *% 1664525 +% 1013904223;
+            b[p] = switch ((seed >> 16) % 3) {
+                0 => 0,
+                1 => 1,
+                else => -1,
+            };
+        }
+        try expect(S.fallback_score(&b, 1) == -S.fallback_score(&b, -1));
+    }
+
+    // The empty board has no alive stones and no owned territory: 0 either way.
+    const empty: Pos = [_]i8{0} ** 16;
+    try expect(S.fallback_score(&empty, 1) == 0);
+    try expect(S.fallback_score(&empty, -1) == 0);
 }
