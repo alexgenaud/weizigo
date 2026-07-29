@@ -9,35 +9,50 @@ Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 **2026-07-29 succession + D-8 + EXP-10-done correction by GLM-5.2
 (Orchestrator)** — see the new section at top.
 
-> **⚠ 2026-07-29 — WITHDRAWN: the QA-023 "falsification" is a probe artefact.**
-> The banner that stood here reported 2B-4's 390/1080 disagreements (36.1%),
-> later re-run by 2B-FIX-KO as 454/1133 (40.1%), as a falsification of the
-> keystone claim. **Both numbers are invalid.** `truncated_value` was called
-> with an arrival set containing the target state σ itself, so its opening
-> revisit check matched σ against σ and returned TIE before the terminal check,
-> before `moves()`, before any recursion — **measured: 1,133 σ-in-arrival
-> collisions out of 1,133 evaluations.** "Disagreements" merely counted sampled
-> states whose median fixpoint is non-zero. The tells were in every recorded
-> run: value-agreements **0** and budget-exhausted **0**, at every history
-> depth from 2 to 40, with a flat 34–43% rate. Evidence, worked counterexample
-> and the corrected build:
-> `docs/evidence/QA-023/probe-defect-2026-07-29/README.md` (Orchestrator/Opus 5).
+> # STATE AS OF 2026-07-29 18:35 CEST — `Opus/Orcha`
 >
-> **QA-023 is neither falsified nor cleared — it has not been tested.** The
-> corrected instrument does discriminate (45 value-agreements) and leaves **12
-> disagreements out of 77 within-budget evaluations**, all in the *opposite*
-> direction (truncation has a value, the fixpoint over-pins TIE), with 93% of
-> the sample lost to budget exhaustion. Those 12 bear on **C2** (the
-> `median(L,TIE,H)` formula = `QA-026` / proof-v2 Thm 5.1), **not** on **C1**
-> (Markovian state-sufficiency = what the `QA-023` row asserts). No observation
-> so far contradicts C1. The two have opposite roadmap consequences and must
-> never again be reported as one verdict. **Nothing is absorbed into
-> CLAIMS/PROGRESS.** Gate: `2B-PROBE-FIX` (registered, dispatchable) → `2B-6`.
-> What still stands: the 2B-FIX-KO ko-rule fix (independently verified against
-> Python), the 2B-2 census, and 2B-5's calibration — noting that 2B-5's POS arm
-> exercises a *parallel* PSK code path and so did not cover the defective call
-> site. Attribution: 2B-4 was **DeepSeek Pro** (human-confirmed; the PROVENANCE
-> mis-recorded MiniMax-M3, corrected).
+> **This block supersedes every dated section below.** `docs/status/` is the
+> *tracked* fallback for crash recovery; the live anchor is
+> `untracked/msg/milestone-01-ko-reframe/STATE.md`, which is **gitignored and does
+> not survive a fresh clone**. If you are reading this from a clean checkout, this
+> block plus `bin/managent status` plus `git log` is your recovery path.
+>
+> **The keystone, settled as far as it can be:** the 2B-4 / 2B-FIX-KO probe
+> numbers (390/1080, 454/1133) were **artefacts** — σ was in its own arrival set,
+> 1,133/1,133 collisions, so the evaluator returned TIE on its first node.
+> `2B-PROBE-FIX` fixed it; `2B-6` independently confirmed the adjudication.
+> Corrected measurement: 45 value-agreements · 20 TIE · **12 disagreements / 77
+> within-budget** · 1,056 budget-exhausted.
+>
+> - **C2 — `median(L,TIE,H)` — is FALSIFIED at 3×2.** Six states, all
+>   White-to-move at `passes=1`, no ko, where the pin says TIE=0 and the true value
+>   is the pass-out `area_score` (+1, +3, −6). Hand-verified.
+> - **C1 — Markovian state-sufficiency — is UNTESTED-FOR-WANT-OF-CONTRAST.** The
+>   history generator misses the shortest arrival in 93% of states; histories share
+>   ~62% of prefixes (`2B-3-AUDIT`).
+> - **`QA-023` is NOT falsified** and must not be marked so — its row asserts
+>   sufficiency (C1). Falsified: **`QA-026`**, **`QA-013`**, **`GLOBAL.LONGCYCLE`**
+>   → FALSE-AS-SCOPED (3×2), promoted in `CLAIMS.md`. Orphans 10 → **14**,
+>   including **`GLOBAL.H1`** (the pivot) — split it, do not kill it
+>   (`CLAIMS-SPLIT-CONJUNCTS`).
+>
+> **ADR-0019 (accepted):** first-revisit truncation **is** the rule.
+> **EXP-3's tractability estimate is no longer supported**, so `EXP-4` is gated on
+> `PINRULE-SUFFICIENCY` — which asks whether *any* pointwise function of
+> `(L,TIE,H)` can work. That is the next task by value.
+>
+> **ADR-0006 strengthened:** 0 disagreements at 3×3 exhaustive, calibration passed.
+> It had rested on one position while gating every forward search used as ground
+> truth.
+>
+> **Read next:** `docs/epistemic/qa023-c2-adjudication-2026-07-29.md` ·
+> `docs/decisions/0019-*.md` · `docs/epistemic/knowledge-ladder.md` (PROPOSED) ·
+> `docs/infra/agent-identity-and-worker-channel.md` · `docs/infra/roles/*.md` (101
+> lines, all three) · channel msg **040**.
+>
+> **Known kanban defect:** status is stored, not derived — `needs --add` does not
+> gate an already-dispatchable task (`MANAGENT-DERIVE-STATUS`). Verify `needs` by
+> eye before trusting `dispatchable`.
 
 **Outgoing handover:** `docs/status/handover-minimax-m3-2026-07-29.md`. Read
 that file first on resume; it supersedes this one for the unit-of-recovery

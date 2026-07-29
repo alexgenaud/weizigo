@@ -93,19 +93,6 @@
     "dispatched_to": null,
     "note": null
   },
-  "AGENT-IDENTITY": {
-    "status": "blocked",
-    "bundle": "docs/infra/dispatch/AGENT-IDENTITY.md",
-    "set": "Y",
-    "holds": ["src/managent/main.zig"],
-    "needs": ["ORCHA-AUTOMATION"],
-    "added": "2026-07-29T16:21:30Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
   "2B-2": {
     "status": "done",
     "agent": "minimax-m3",
@@ -119,6 +106,19 @@
     "dispatched": "2026-07-29T10:56:43Z",
     "dispatched_to": "minimax-m3",
     "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
+  },
+  "AGENT-IDENTITY": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/AGENT-IDENTITY.md",
+    "set": "Y",
+    "holds": ["src/managent/main.zig"],
+    "needs": ["ORCHA-AUTOMATION"],
+    "added": "2026-07-29T16:21:30Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
   },
   "2B-5": {
     "status": "done",
