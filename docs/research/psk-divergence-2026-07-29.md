@@ -168,7 +168,7 @@ perturbation is detected and the divergence count increases.  Raw output in
 
 ### Known-good
 
-A fresh-start exact-PSP comparison on L==H slots could **not** be run: the
+A fresh-start exact-PSK comparison on L==H slots could **not** be run: the
 history-free exact solver (`retro.Exact.root`) exceeded the 4 GB RSS cap on
 every non-terminal sampled 2×2 position.  This is the same intractability
 already documented at `docs/research/ruleset-options.md` §RETRO_CYCLE and is
