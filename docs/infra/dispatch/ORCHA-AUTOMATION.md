@@ -31,6 +31,21 @@ Each registers from a template brief with the trigger recorded in the note. Do n
 
 **5. A retrieval surface.** The human's standing complaint is that knowledge cannot be retrieved without sifting kludge. `managent show <id>` should print the task, its deliverables, their commit hashes, and the claims it touched. Consider `managent why <claim-id>` — which tasks produced the evidence behind a claim. Keep it deterministic; no summarisation by model.
 
+## 0. FIRST — managent prints everything to stderr, so none of it can be piped
+
+**All 132 output calls in `src/managent/main.zig` are `std.debug.print`, which in Zig writes to stderr unconditionally. There are zero writes to stdout.** Measured: `managent status 2>/dev/null` emits **0** lines; `2>&1 1>/dev/null` emits **45**.
+
+This blocks everything else in this brief. `audit`, `sync` and `liveness` are only useful if a script can read them, and a pipeline like `managent audit | grep -q REJECTED` **silently succeeds** today — the data bypasses the pipe, the grep matches nothing, and the exit code says all is well. The human hit this from the command line; it has presumably been silently defeating every agent that tried to filter kanban output, and it went unnoticed because habitual `2>&1` masks it.
+
+**Fix with the conventional split, before adding commands:**
+
+- **stdout — the data.** `status`, `show`, `msgs`, `inbox`, `liveness`, `whoami`: anything a caller might parse, filter, or redirect to a file.
+- **stderr — everything else.** Warnings, errors, `REJECTED: holds conflict …`, `warning: already in progress`, progress chatter.
+
+Then a caller can do `managent status | grep 2B` and get the answer, or `managent audit >/dev/null` and still see the complaints. **Add a regression check:** `status 2>/dev/null` must be non-empty and `status 1>/dev/null` must be silent on a clean run. That check is one line and it is the reason this defect survived — nothing asserted which stream the data was on.
+
+Consider `--json` on `status` and `audit` while you are in there; deterministic machine output is what makes the rest of the automation composable, and it is cheap once the streams are split.
+
 ## 6. Replace prescriptions with commands wherever a rule can become a check
 
 The role files state rules an agent must remember. **Every rule that can be a command should become one** — a remembered rule is optional, a non-zero exit is not. Working list, from `ORCHESTRATOR.md` §Prescriptions:
