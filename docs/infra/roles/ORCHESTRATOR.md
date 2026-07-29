@@ -147,6 +147,14 @@ surfaces the board; the channel carries the narrative — keep both current.
 candidate addition; today, `managent status` + `ls -t untracked/msg/<milestone>/`
 is the manual sync.)
 
+## Handing text to the human
+
+You relay more text than any other role — dispatch prompts, mid-flight addenda to live consoles, messages
+between seats. **Bound every copy/paste payload per `AGENTS.md` §"Agent-to-human output":** a prompt
+one-liner is *exactly one line*; multi-line text is fenced by a `---` rule above and below, each on its own
+line with a blank line either side, and **nothing but the payload inside**. The human pastes by hand; if he
+has to infer which paragraphs are the message, a console eventually gets a truncated brief.
+
 ## Proactive duties
 
 This role is proactive, not reactive. Each turn, before the human has to ask:

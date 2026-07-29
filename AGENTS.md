@@ -108,6 +108,24 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
 
+## Agent-to-human output — copy/paste boundaries (user requirement, 2026-07-29)
+
+The human relays text between consoles by hand. **Anything he is meant to copy must be unambiguously
+bounded, so he never has to guess which paragraphs are the payload.** Two forms, and only two:
+
+**1. A prompt one-liner is exactly one line.** No wrapping, no internal newlines, no leading bullet or
+quote marker — it must survive a single select-and-paste. If it does not fit on one line, it is not a
+one-liner; use form 2.
+
+**2. Multi-line copy/paste text is fenced by a `---` horizontal rule above and below, each `---` on its
+own line with a blank line on either side.** So: prose, blank line, `---`, blank line, **the payload**,
+blank line, `---`, blank line, prose. Nothing but payload goes inside the boundaries — no commentary, no
+"note that…", no explanation the receiving console should not read. Put that in the prose outside.
+
+Why: without the rule the human has to infer the subset, and inferring it wrongly means a console gets a
+truncated or contaminated brief. This applies to relay messages, dispatch prompts, commit-message drafts,
+and anything else handed over for pasting — every role, not just the Orchestrator.
+
 ## Agent-to-agent communication
 Cross-agent traffic lives in `untracked/msg/<milestone>/` (max two live): `STATE.md` is the crash-recovery anchor
 (read first; always current, overwritten in place), `NNN-<from>-to-<to>.md` are append-only numbered messages
