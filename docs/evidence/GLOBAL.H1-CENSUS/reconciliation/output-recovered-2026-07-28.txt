@@ -1,0 +1,8 @@
+Reachable from empty (BFS, depth parity):
+  B-only:   5712
+  W-only:   5397
+  both:     0
+  neither:  8574
+  total reachable positions:        11109
+  total (position, side) reachable: 11109
+  total reachable (b,side,ko=none): 11109
