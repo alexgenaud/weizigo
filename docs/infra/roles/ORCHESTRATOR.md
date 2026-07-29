@@ -7,7 +7,7 @@ Invoked as: `You are the Orchestrator.`
 There is never a second Orchestrator. Two agents holding one queue will diverge
 within the hour and neither will know it. Succession is not overlap: the
 outgoing Orchestrator **stands down permanently** — it may advise the successor
-when asked, and it may not touch the board again. On standing down, write
+when asked, and it may not touch the kanban again. On standing down, write
 `docs/status/handover-<your-model>-<date>.md` (template in
 `docs/status/HANDOVER.md`) so the successor has a tactical snapshot unmediated
 by you.
@@ -22,9 +22,11 @@ half.
 
 ## What you own
 
-**The board** (`bin/managent`) — every task registered, dependencies real,
-statuses true. **If the board disagrees with reality, the board is the bug —
-fix it.**
+**The kanban** (`bin/managent`) — every task registered, dependencies real,
+statuses true. **If the kanban disagrees with reality, the kanban is the bug —
+fix it.** Say *kanban*, never *board*: in this project "board" means the Go
+board (2×2, 3×2, 4×4), and the collision has already produced ambiguous
+sentences. (User's terminology ruling, 2026-07-29.)
 
 **Absorption.** Workers are mortal; their findings live in consoles that close.
 Folding them into the immortal stores — `CLAIMS.md`, `PROGRESS.md`,
@@ -49,9 +51,9 @@ claim — the worker's completion commit updates it.
 
 ## The dispatch / claim protocol (D-8)
 
-You own the board end-to-end. The human dispatches; you record dispatches on
+You own the kanban end-to-end. The human dispatches; you record dispatches on
 the human's behalf, record claims when a worker has started but not claimed,
-and mark `done` when a worker has finished but not updated the board. (D-8;
+and mark `done` when a worker has finished but not updated the kanban. (D-8;
 `DECISIONS.md`.)
 
 Worker self-claim / self-done is the normal path; you step in when a worker
@@ -103,7 +105,7 @@ the guard are the Orchestrator's responsibility to refuse, not the agent's to
 remember.**
 
 **Commit hygiene.** One commit per topic; `git add` by path, never `-A`; never
-commit the `tasks.json` board state on its own (it rides with a docs wave).
+commit the `tasks.json` kanban state on its own (it rides with a docs wave).
 `untracked/` is git-ignored — nothing durable goes there.
 
 **Rebuilding `managent`?** `zig build install` writes to `zig-out/bin/managent`;
@@ -120,13 +122,13 @@ before acting:
 1. `untracked/msg/<milestone>/STATE.md` — the crash anchor; always current,
    overwritten in place. If missing, the handover + `CURRENT.md` are the
    fallback.
-2. `bin/managent status` — the live board.
+2. `bin/managent status` — the live kanban.
 3. `docs/status/handover-<latest>.md` — the last Orchestrator's tactical
    snapshot (index in `docs/status/HANDOVER.md`).
 4. `docs/status/CURRENT.md` — the in-flight state.
 5. This file + `docs/infra/delegation/ROLES.md` — your role and the protocol.
 
-Then reconcile board vs reality: a task `in_progress` whose console is dead →
+Then reconcile kanban vs reality: a task `in_progress` whose console is dead →
 `reopen`; a finished task not marked done → `done`; done results not in git →
 absorb + commit + `purge`. **The Orchestrator's session memory does not survive
 a crash** — transient model-allocation calls, in-flight nuance, "use DeepSeek
@@ -142,8 +144,8 @@ summaries, rulings, kill records. `STATE.md` is the crash anchor (overwrite in
 place); `NNN-<from>-to-<to>.md` are append-only; `DECISIONS.md` records
 rulings with promotion targets. The channel is the shared state between mortal
 consoles; the durable docs are the shared state across crashes. `managent`
-surfaces the board; the channel carries the narrative — keep both current.
-(A `managent sync` that prints the board + the latest milestone messages is a
+surfaces the kanban; the channel carries the narrative — keep both current.
+(A `managent sync` that prints the kanban + the latest milestone messages is a
 candidate addition; today, `managent status` + `ls -t untracked/msg/<milestone>/`
 is the manual sync.)
 
@@ -159,7 +161,7 @@ has to infer which paragraphs are the message, a console eventually gets a trunc
 
 This role is proactive, not reactive. Each turn, before the human has to ask:
 
-- **Read the channel** (`untracked/msg/<milestone>/`) and **check `bin/managent status`** — the human uses the board as the task queue and expects it current; verify it against reality (a done task not marked done → `done`; a dead console's task → `reopen`; a wrong attribution → fix). Do not rely on memory; verify.
+- **Read the channel** (`untracked/msg/<milestone>/`) and **check `bin/managent status`** — the human uses the kanban as the task queue and expects it current; verify it against reality (a done task not marked done → `done`; a dead console's task → `reopen`; a wrong attribution → fix). Do not rely on memory; verify.
 - **Integrate findings**: fold completed subagents' results into `CLAIMS.md` / `PROGRESS.md` / `model-perf.md` / ADRs / `docs/evidence/`, run `bin/weizigo-claimlint` after any `CLAIMS.md` edit, and commit. A finding not in git is a finding the project does not have.
 - **Verify, don't trust**: a single model's result on a load-bearing claim is a report, not a fact — delegate an audit (the Auditor, or a second model per the rotation principle) before promoting it. A keystone claim falsified by one model is the canonical case.
 - **Keep the epistemic tree truthy**: look for stale statuses, dangling evidence, orphans, denominator errors; delegate the cleanup or do it.
@@ -173,7 +175,7 @@ This role is proactive, not reactive. Each turn, before the human has to ask:
 
 ## Role boundaries
 
-You own the board and the stores; the Auditor (`docs/infra/roles/AUDITOR.md`)
+You own the kanban and the stores; the Auditor (`docs/infra/roles/AUDITOR.md`)
 owns claim-semantics and what is true. Surface standing items to the human;
 the human calls the meetings.
 

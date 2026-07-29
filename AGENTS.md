@@ -86,7 +86,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 - `weizigo-oracle <a.wzo>` (GTP; Sabaki-compatible) · `weizigo-arena <a.wzo> <seeds>` · `bin/weizigo-claimlint`.
 - `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `reopen`
   / `purge` / `set` / `next` / `status` / `show`. The human dispatches; the
-  agent claims; the Orchestrator owns the board end-to-end (D-8) and may
+  agent claims; the Orchestrator owns the kanban end-to-end (D-8) and may
   dispatch/claim/done on a worker's behalf, attributing with `--agent <worker>`.
   Schema in `docs/infra/managent/spec.md`; role protocol in
   `docs/infra/roles/ORCHESTRATOR.md`.
@@ -107,6 +107,35 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | resuming from the channel (durable + untracked) | `untracked/msg/<milestone>/STATE.md` (read first), then `docs/status/CURRENT.md` |
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
+
+## The queue is a *kanban*, not a *board*
+
+`bin/managent` is the **kanban**. Never call it "the board" — in this project **board** means the Go board
+(2×2, 3×2, 4×4), and the overload has already produced sentences that read two ways. Say *kanban*, *task*,
+*column*, *claim*. (User's terminology ruling, 2026-07-29.)
+
+## Verification rules earned on 2026-07-29 (the QA-023 chain) — standing
+
+The QA-023 probe returned `TIE` on its first node in **1,133 of 1,133** evaluations and produced two
+published falsification numbers before an absorption check caught it. **Five audit links; four passed the
+artefact through.** These are the rules that would have caught it, and they are now standing:
+
+- **Verify-then-promote.** A load-bearing claim moves to FALSE (or PROVEN) **only after an independent
+  seat agrees** — not on one model's report, however well argued. The Orchestrator is not exempt: the
+  Orchestrator's own adjudication went to `2B-6` before promotion. State the gate in the commit.
+- **An auditor must trace one complete evaluation end-to-end.** `2B-3-AUDIT` stopped one function call
+  short of the defect and verified everything around it. Reviewing inputs, outputs and structure is not
+  the same as following one datum from entry to verdict.
+- **A positive control must exercise the instrument under test, not a parallel one.** `2B-5`'s POS arm ran
+  PSK through a *separate* code path, passed, and gave **zero** coverage of the defective call site — while
+  reading as proof the instrument was sensitive.
+- **Impossibly clean counters are red flags.** `budget-exhausted: 0` on a harness whose honest cost is
+  exponential, or `value-agreements: 0` in every run ever recorded, are symptoms. Both were reported as
+  reassurance.
+- **Independent re-implementation is what finds defects.** In this project it is the *only* thing that ever
+  has: the audit that found the ko bug (F5) rewrote the algorithm in Python; document review found nothing.
+- **State every denominator, including the within-budget one.** 93% of the corrected probe's sample is
+  missing; a rate quoted without that is not a measurement.
 
 ## Agent-to-human output — copy/paste boundaries (user requirement, 2026-07-29)
 

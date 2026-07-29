@@ -95,7 +95,7 @@
     "note": null
   },
   "2B-6": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "docs/infra/dispatch/2B-6.md",
     "set": "E",
@@ -103,7 +103,7 @@
     "needs": ["2B-2", "2B-3", "2B-4", "2B-5", "2B-PROBE-FIX"],
     "added": "2026-07-29T09:38:44Z",
     "claimed": "2026-07-29T14:06:30Z",
-    "done": null,
+    "done": "2026-07-29T15:08:35Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -190,7 +190,7 @@
     "note": null
   },
   "EXP-4": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/EXP-4.md",
     "set": "F",
     "holds": [],
@@ -215,6 +215,19 @@
     "dispatched": "2026-07-29T10:56:43Z",
     "dispatched_to": "minimax-m3",
     "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
+  },
+  "NARRATIVE-LAYER": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/NARRATIVE-LAYER.md",
+    "set": "U",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T15:15:20Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
   },
   "2B-5": {
     "status": "done",
@@ -299,13 +312,14 @@
     "note": null
   },
   "ADR0006-FALSIFY": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/ADR0006-FALSIFY.md",
     "set": "M",
     "holds": [],
     "needs": [],
     "added": "2026-07-29T13:30:11Z",
-    "claimed": null,
+    "claimed": "2026-07-29T15:06:01Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,

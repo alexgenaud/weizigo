@@ -29,6 +29,50 @@ value.** White passes out at +1 because Black — the maximiser — prefers +1 t
 TIE=0 repetition and can steer away from cycles. The evaluator is right; the
 fixpoint's TIE pin is wrong. This is a real counterexample, not a third defect.
 
+## 1b. `2B-6` flagged state `(146,1,6,1)`: transcription error, not a third defect — and C2 is stronger than reported
+
+`2B-6` hand-computed `area_score(146) = +1` against a reported `truncated = +3`
+and flagged it. **The flag was correct and the resolution is documentation.**
+
+Decoding each rank directly (base-3 little-endian, 1=Black 2=White; verified
+against `586 → [B,␣,W,␣,B,W]`, which matches the deliverable) and scoring by hand
+on the real geometry (`BOARD_W=3, BOARD_H=2`, row-major):
+
+| rank | board | `area_score` | reported `truncated` | |
+|---|---|---|---|---|
+| 586 | `[B,␣,W,␣,B,W]` | **+1** | +1 | ✓ |
+| 534 | `[␣,B,W,B,␣,W]` | **+1** | +1 | ✓ |
+| 302 | `[W,B,␣,W,␣,B]` | **+1** | +1 | ✓ |
+| 103 | `[B,B,W,␣,B,␣]` | **+3** | +3 | ✓ |
+| 674 | `[W,W,W,␣,W,W]` | **−6** | −6 | ✓ |
+| 566 | `[W,W,W,W,␣,W]` | **−6** | −6 | ✓ |
+| **146** | `[W,␣,B,W,B,␣]` | **+1** | **+3** | ✗ |
+
+The committed primary-run stdout (`probe-fix-2026-07-29.stdout`, 256 samples)
+contains **only** 534 and 586 — matching the probe's own "C2: states … : 2" line.
+`146` and `103` appear in neither that run nor an independent Orchestrator re-run
+at 512 samples / depth 24, which produced 534, 103, 674, 302. `146`'s board string
+is consistent with its rank, so rank and board are both fine; only the *value* is
+wrong, and it is exactly `103`'s. **The §4 table paired 146's row with 103's
+number** — a write-up slip, not a code defect. It was catchable on its face:
+White is to move at `passes == 1`, so White can pass into a terminal worth +1,
+and a minimiser cannot be forced above an option it holds.
+
+**The pattern this exposes matters more than the erratum.** In every verified
+counterexample `truncated == area_score(board)` **exactly** — the correct value is
+obtained by *immediately passing out*, while `L < 0 < H` and the median pins TIE.
+So the median rule over-pins precisely on the states whose true value is the
+static score, and any candidate replacement must at minimum respect the bound
+"at `passes == 1`, the mover can always take `area_score`". That is a concrete,
+cheap repair hypothesis and it belongs in `PINRULE-SUFFICIENCY`: **test whether
+`V = median(L, TIE, H)` clamped to the pass-out bound fixes all known
+counterexamples** — and whether two states can still share `(L, TIE, H)` *and* the
+same pass-out bound while differing in value, which would kill that repair too.
+
+Net effect on the verdict: **C2's falsification is confirmed and broadened** —
+six distinct counterexample states, each independently hand-verified, rather than
+the four claimed.
+
 ## 2. What is falsified
 
 | claim | recommendation | reason |
