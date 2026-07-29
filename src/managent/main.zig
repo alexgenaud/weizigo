@@ -44,6 +44,19 @@ const TaskState = struct {
     added: []const u8 = "", // ISO-8601 timestamp
     claimed: ?[]const u8 = null,
     done: ?[]const u8 = null,
+    // The Orchestrator (or the human via the Orchestrator) records
+    // a dispatch decision: the task is queued for a specific agent.
+    // The task stays in `dispatchable`; the agent still claims it
+    // via `managent claim <id>` per the protocol. This makes the
+    // human→agent dispatching visible in `managent status` instead
+    // of only in the channel.
+    dispatched: ?[]const u8 = null, // ISO-8601 timestamp of the dispatch
+    dispatched_to: ?[]const u8 = null, // agent name (role or model label, never an auth token)
+    // Free-form context. Information, not a substitute for any
+    // dedicated field. Capped at 4 KiB in `cmdDispatch` and
+    // `cmdAdd` (a separate field on the bundle metadata would be
+    // better; this is the schema version, not the design).
+    note: ?[]const u8 = null,
 };
 
 const StateMap = std.StringHashMapUnmanaged(TaskState);
@@ -97,6 +110,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdNext(io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "show")) {
         try cmdShow(io, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "dispatch")) {
+        try cmdDispatch(io, state_path, args);
     } else {
         std.debug.print("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -455,6 +470,15 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("done")) |dn| {
             if (dn == .string) ts.done = try alloc.dupe(u8, dn.string);
         }
+        if (obj.object.get("dispatched")) |dp| {
+            if (dp == .string) ts.dispatched = try alloc.dupe(u8, dp.string);
+        }
+        if (obj.object.get("dispatched_to")) |dt| {
+            if (dt == .string) ts.dispatched_to = try alloc.dupe(u8, dt.string);
+        }
+        if (obj.object.get("note")) |nt| {
+            if (nt == .string) ts.note = try alloc.dupe(u8, nt.string);
+        }
 
         try state.put(alloc, task_id, ts);
     }
@@ -531,6 +555,30 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try buf.appendSlice(alloc, ",\n    \"done\": null");
         }
 
+        if (ts.dispatched) |dp| {
+            try buf.appendSlice(alloc, ",\n    \"dispatched\": \"");
+            try buf.appendSlice(alloc, dp);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"dispatched\": null");
+        }
+
+        if (ts.dispatched_to) |dt| {
+            try buf.appendSlice(alloc, ",\n    \"dispatched_to\": \"");
+            try buf.appendSlice(alloc, dt);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"dispatched_to\": null");
+        }
+
+        if (ts.note) |nt| {
+            try buf.appendSlice(alloc, ",\n    \"note\": \"");
+            try buf.appendSlice(alloc, nt);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"note\": null");
+        }
+
         try buf.appendSlice(alloc, "\n  }");
     }
 
@@ -568,6 +616,14 @@ fn nowMs() u64 {
 fn nowTimestamp() ![]const u8 {
     var ts: std.c.timespec = undefined;
     _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &ts);
+    // ISO-8601 in **UTC**, suffixed with `Z`. The user's `date` shows
+    // local time (CEST, PDT, ...), so on non-UTC hosts the binary's
+    // timestamp will appear to be `local − tz_offset` hours. That is
+    // *correct* (UTC is what a downstream machine-time parser expects)
+    // but reads as a clock-skew bug; we accept that for now rather than
+    // pull in libc's `localtime_r` (Zig 0.16.0 dev does not expose
+    // `std.c.tm`). If a future Zig version makes the local-time path
+    // trivial, switch to it and document the change here.
     const epoch_secs: u64 = @intCast(@max(ts.sec, 0));
     const secs_per_day: u64 = 86400;
     var days = epoch_secs / secs_per_day;
@@ -823,6 +879,80 @@ fn cmdClaim(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][
     }
 }
 
+fn cmdDispatch(io: std.Io, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 3) {
+        std.debug.print("usage: managent dispatch <id> --to <agent> [--note <text>]\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+
+    var to_agent: ?[]const u8 = null;
+    var note_text: ?[]const u8 = null;
+    var i: usize = 3;
+    while (i < args.len) : (i += 1) {
+        if (std.mem.eql(u8, args[i], "--to") and i + 1 < args.len) {
+            i += 1;
+            to_agent = args[i];
+        } else if (std.mem.eql(u8, args[i], "--note") and i + 1 < args.len) {
+            i += 1;
+            note_text = args[i];
+        }
+    }
+
+    if (to_agent == null) {
+        std.debug.print("error: --to <agent> is required\n", .{});
+        std.process.exit(1);
+    }
+    if (note_text) |nt| {
+        if (nt.len > 4096) {
+            std.debug.print("error: --note is 4 KiB max (got {d} bytes)\n", .{nt.len});
+            std.process.exit(1);
+        }
+    }
+
+    var state = try readState(io, state_path);
+
+    const ts_ptr = state.getPtr(id) orelse {
+        std.debug.print("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    // Dispatch is meaningful for any state — the human is *queuing*
+    // the work for a specific agent. If the task is already in_progress
+    // or done, we record the dispatch for the audit trail but warn
+    // (the claim / done lifecycle is separate).
+    if (ts_ptr.status == .done) {
+        std.debug.print("warning: {s} is already done; recording the dispatch anyway\n", .{id});
+    }
+    if (ts_ptr.status == .in_progress) {
+        std.debug.print("warning: {s} is already in progress (by {s}); recording the dispatch anyway\n", .{ id, ts_ptr.agent orelse "unknown" });
+    }
+
+    const now = try nowTimestamp();
+
+    // Free any prior dispatch fields, then write new ones
+    if (ts_ptr.dispatched) |d| alloc.free(d);
+    if (ts_ptr.dispatched_to) |d| alloc.free(d);
+    if (ts_ptr.note) |n| alloc.free(n);
+    ts_ptr.dispatched = try alloc.dupe(u8, now);
+    ts_ptr.dispatched_to = try alloc.dupe(u8, to_agent.?);
+    if (note_text) |nt| {
+        ts_ptr.note = try alloc.dupe(u8, nt);
+    } else {
+        ts_ptr.note = null;
+    }
+
+    try writeState(io, state_path, &state);
+
+    std.debug.print("\n  dispatched {s}  to {s}  [set: {c}]\n", .{ id, to_agent.?, ts_ptr.set });
+    if (ts_ptr.status == .dispatchable) {
+        std.debug.print("  awaiting claim by {s} (or another agent): managent claim {s}\n", .{ to_agent.?, id });
+    }
+    if (note_text != null) {
+        std.debug.print("  note recorded ({d} bytes)\n", .{note_text.?.len});
+    }
+}
+
 fn cmdDone(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = repo_root;
     if (args.len < 3) {
@@ -965,6 +1095,9 @@ fn printSection(label: []const u8, ids: []const []const u8, state: *StateMap, re
         if (ts.agent) |a| {
             std.debug.print(", agent {s}", .{a});
         }
+        if (ts.dispatched_to) |dt| {
+            std.debug.print(", dispatched {s}", .{dt});
+        }
         std.debug.print(": follow {s}\n", .{rel});
     }
 }
@@ -1106,6 +1239,14 @@ fn cmdShow(io: std.Io, state_path: []const u8, args: [][]const u8) !void {
     if (ts.done) |d| {
         std.debug.print("    done:     {s}\n", .{d});
     }
+    if (ts.dispatched) |dp| {
+        std.debug.print("    dispatched: {s}", .{dp});
+        if (ts.dispatched_to) |dt| std.debug.print(" to {s}", .{dt});
+        std.debug.print("\n", .{});
+    }
+    if (ts.note) |nt| {
+        std.debug.print("    note:     {s}\n", .{nt});
+    }
     std.debug.print("\n", .{});
 }
 
@@ -1117,6 +1258,7 @@ fn printHelp() void {
         \\  managent                  show current state (default)
         \\  managent status           show current state
         \\  managent add <id>         register a task from untracked/<id>-*.md
+        \\  managent dispatch <id>    record a human→agent dispatch (task stays dispatchable)
         \\  managent claim <id>       claim a task for execution
         \\  managent done <id>        mark a task complete
         \\  managent done <id> --fail mark a task failed
@@ -1126,6 +1268,8 @@ fn printHelp() void {
         \\
         \\Options:
         \\  --agent <name>           label who claimed (with claim)
+        \\  --to <agent>             agent the task is dispatched to (with dispatch)
+        \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add)
         \\  --bundle <path>          override bundle path (with add)
         \\  --set <A|B|C>            override parallel set (with add)
         \\  --needs <id>             add extra dependency (with add)
@@ -1171,6 +1315,9 @@ fn freeState(state: *StateMap) void {
         alloc.free(ts.added);
         if (ts.claimed) |c| alloc.free(c);
         if (ts.done) |d| alloc.free(d);
+        if (ts.dispatched) |dp| alloc.free(dp);
+        if (ts.dispatched_to) |dt| alloc.free(dt);
+        if (ts.note) |nt| alloc.free(nt);
     }
     state.deinit(alloc);
 }

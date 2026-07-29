@@ -7,10 +7,11 @@ Enforces dependencies, parallel-set exclusion, and engine-file locks.**
 
 ## Interface
 
-Six commands. Four have zero required flags in daily use.
+Seven commands. Five have zero required flags in daily use.
 
 ```
 managent add <id>              register a task
+managent dispatch <id>         record a human→agent dispatch (task stays dispatchable)
 managent claim <id>            claim a task for execution
 managent done <id>             mark a task complete
 managent [status]              show current state (default command)
@@ -113,6 +114,35 @@ $ managent claim B99
 
 Optional: `--agent <name>` to label who claimed it — a role or task label, never a
 model name (`ROLES.md` §2).
+
+### `managent dispatch <id> --to <agent> [--note <text>]`
+
+Records the human→agent dispatch decision: a specific agent is *queued* for
+this task. The task **stays in `dispatchable`**, the agent still claims it
+via `managent claim <id>` per the existing protocol. This makes the dispatch
+visible in `managent status` instead of only in the channel.
+
+```
+$ managent dispatch EXP-2B --to minimax-m3 --note "QA-023 gate computational half."
+
+  dispatched EXP-2B  to minimax-m3  [set: A]
+  awaiting claim by minimax-m3 (or another agent): managent claim EXP-2B
+  note recorded (40 bytes)
+```
+
+**Required:** `--to <agent>`. The agent label is informational; any agent may
+later claim the task via `managent claim <id> --agent <name>`. The dispatch
+is the *queueing* signal, not an authorization.
+
+**Optional:** `--note <text>` (≤ 4 KiB). Free-form context. Information, not a
+substitute for any dedicated field. **Do not** use `--note` to record state
+that has its own field (status, holds, needs, agent, dispatched_to). It is
+for the *why* of the dispatch, recovery shape on resumption, or whatever else
+would otherwise be lost in `untracked/msg/`.
+
+**Warnings, not errors:** dispatching to a task that is `in_progress` or
+`done` is recorded anyway and prints a warning. The audit trail is the
+priority; the lifecycle is the lifecycle.
 
 ---
 
@@ -221,10 +251,36 @@ temp-file + rename.
     "caps": ["reasoning:sustained"],
     "added": "2026-07-26T14:00:00Z",
     "claimed": "2026-07-26T16:00:00Z",
-    "done": null
+    "done": null,
+    "dispatched": "2026-07-26T15:30:00Z",
+    "dispatched_to": "Fable5",
+    "note": "QA-009 cross-check; Opus reviews adversarially."
   }
 }
 ```
+
+### Field semantics
+
+| Field | Set by | When | Meaning |
+|---|---|---|---|
+| `status` | `add`, `claim`, `done` | lifecycle | `dispatchable` / `in_progress` / `done` / `failed` / `blocked` |
+| `agent` | `claim` | when claimed | role or model label of the agent that *claimed* (not the agent that was dispatched) |
+| `bundle` | `add` | registration | path to the brief |
+| `set` | `add` | registration | parallelization group A/B/C |
+| `holds` | `add` | registration | file paths the task writes exclusively |
+| `needs` | `add` | registration | task IDs that must be `done` first |
+| `caps` | `add` | registration | optional capability tokens (see `ROLES.md`) |
+| `added` | `add` | registration | ISO-8601 timestamp |
+| `claimed` | `claim` | when claimed | ISO-8601 timestamp |
+| `done` | `done` | when completed | ISO-8601 timestamp |
+| `dispatched` | `dispatch` | when dispatched | ISO-8601 timestamp of the human→agent dispatch |
+| `dispatched_to` | `dispatch` | when dispatched | agent name (informational; the agent still claims) |
+| `note` | `dispatch`, `add` | when recorded | free-form context, ≤ 4 KiB |
+
+**`dispatched` and `dispatched_to` are not the same as `agent`.** The human
+*dispatches* the task; the agent *claims* it. They may match (the dispatched
+agent actually does the work) or differ (dispatched to X, claimed by Y
+because X was busy / failed / not available). Both records are kept.
 
 ---
 
@@ -263,3 +319,5 @@ State file path: `<root>/docs/infra/managent/tasks.json`.
 11. Two concurrent `claim` for same set: only one succeeds.
 12. `show <id>` prints all fields.
 13. State file survives process crash (atomic write).
+14. `dispatch <id> --to <agent>` records `dispatched` + `dispatched_to`; status stays `dispatchable`.
+15. `dispatch <id> --note <text>` records `note` (≤ 4 KiB) and shows it in `show <id>`.

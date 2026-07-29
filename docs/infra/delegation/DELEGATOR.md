@@ -12,7 +12,17 @@ OWNS:       exact paths — everything else is forbidden
 READS:      the minimum
 ACCEPTANCE: falsifiable, with numbers
 REVIEW:     who dispatches it, and whether work may proceed meanwhile
+DISPATCH:   the agent the human assigned this to; if blank, the Orchestrator
+            queues it without a target and the agent self-claims
 ```
+
+The `DISPATCH` row is *advisory*, not *authoritative*: it is the human's
+preference, and any agent may still claim the task via
+`managent claim <id> --agent <name>`. The pattern is in
+`docs/infra/delegation/ROLES.md` §"Dispatching, claiming, and the
+board" and the schema is in
+`docs/infra/managent/spec.md`. **A delegator does not need to specify a
+model; if you must, give a reason.**
 
 ## Principles
 
@@ -30,7 +40,11 @@ context window can hold is a badly scoped brief.
 
 **Independence.** A reviewer must know less than the worker: give the artefact,
 the relevant foreclosures, and *find the flaw; assume one exists.* Anything
-arguing for the conclusion biases the review.
+arguing for the conclusion biases the review. **Instances are not models**
+(`ROLES.md` §"Instance vs model"): a fresh instance of the same model is
+acceptable for procedural/compliance/calibration review, but for adversarial
+review of load-bearing reasoning prefer a **different model** (shared training
+→ correlated blind spots); disclose same-model review when unavoidable.
 
 **Visibility.** Work that may run past a minute reports progress and carries a
 budget. From outside, silence and progress look identical.

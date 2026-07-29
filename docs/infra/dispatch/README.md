@@ -9,12 +9,17 @@ order below.
 ## Read order for any console (do this first, every time)
 
 1. `AGENTS.md` (repo root) — behaviour rules and foreclosures. Non-negotiable.
-2. `docs/epistemic/roadmap-2026-07-28.md` — which Go we are solving and why.
-3. `docs/epistemic/critique-2026-07-28.md` — what is known-wrong. §4 especially.
-4. `docs/epistemic/CLAIMS.md` — the claim graph. Find the IDs your task closes.
-5. Your brief: `docs/infra/dispatch/EXP-N.md`.
+2. `docs/infra/delegation/DELEGATEE.md` — your worker role: **claim the task on
+   start (`managent claim <id> --agent <name>`), mark `done` on finish
+   (`managent done <id>`, or `--fail`)**, build through `tools/runner`. The
+   word "claim" in your brief means the *epistemic* claim ID (`CLAIMS.md`),
+   not this board action — do both.
+3. `docs/epistemic/roadmap-2026-07-28.md` — which Go we are solving and why.
+4. `docs/epistemic/critique-2026-07-28.md` — what is known-wrong. §4 especially.
+5. `docs/epistemic/CLAIMS.md` — the claim graph. Find the IDs your task closes.
+6. Your brief: `docs/infra/dispatch/EXP-N.md`.
 
-Do not start work before step 5. Several of these experiments have already been
+Do not start work before step 6. Several of these experiments have already been
 run in a different form and **failed**; the briefs say which, and re-running a
 foreclosed variant is the most common way to waste a console.
 
@@ -87,6 +92,12 @@ and produce 258 MB artifacts. Start it, watch the heartbeat, do not restart.
 ---
 
 ## Definition of done — every experiment, no exceptions
+
+**Board lifecycle (operational, do this too):** `managent done <id>` (or
+`--fail`) is run on completion — see `DELEGATEE.md`. Work not marked done is
+work the project cannot see, and it blocks every task that `needs` it. (The
+list below is the *epistemic* definition of done; the board command is the
+*operational* one. Both are required.)
 
 1. **The claim ID it closes** is named, and `CLAIMS.md` is updated (by its
    owner) with the new status.
