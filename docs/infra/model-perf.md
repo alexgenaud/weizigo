@@ -2125,3 +2125,34 @@ where the two figures disagreed.
 **Cost tracking now possible.** `WORKER-CHANNEL` landed: `tools/runner --task-id` writes
 wall time, CPU, peak RSS to `untracked/heartbeat.jsonl` on every exit. Not yet aggregated
 into model-perf — a future standing task could wire it.
+
+### 2026-07-30 (night) — DSPro wave: 10 tasks, 0 rework
+
+Orchestrator session under DSPro/Orcha. Ten DSPro worker tasks landed in one session —
+all ANALYSIS except three noted below. Zero required rework.
+
+**Docs & claims wave (5 tasks, all ANALYSIS):**
+
+| identifier | outcome |
+|---|---|
+| `DSPro/CLAIMS-SPLIT-CONJUNCTS` | Split `GLOBAL.H1`, `QA-011`, `GLOBAL.ONEMISMATCH` — each conjoined a live half with a dead one. 14→10 C1a orphans. All inbound edges re-pointed. Calibration PASS. |
+| `DSPro/NARRATIVE-LAYER` | Rewrote `PROGRESS.md` as cite-tagged through-line. Added claimlint C6 (cite-tag verification) with calibration. Status banners on 14 research docs. Analysis + code in one task. |
+| `DSPro/INDEX-RETRIEVAL` | `INDEX.md` (246 lines — one destination per question, Attic of 20+ superseded docs), claim→evidence and claim→task indices, 10-question retrieval test (all ≤2 hops). |
+| `DSPro/ROLE-NAMES` | 19 files: model names → role names/capabilities. `AGENTS.md`, `ORCHESTRATOR.md`, `ROLES.md`, 16 dispatch briefs. Multi-file terminology sweep — no misses, no overreach. |
+| `DSPro/F1-CENSUS-GAP` | Resolved the +3 gap: seed-count delta (4→1), not ko-rule delta (which removed 60). All three phantom states empty-board, trivially unreachable. 2,583 authoritative. |
+
+**Gate & tooling (5 tasks, 3 MUTATION):**
+
+| identifier | outcome |
+|---|---|
+| `DSPro/QA023-C1-WITNESS` | C1 witness verified by two independent implementations (Zig + Python, zero shared code). 22-node tree agrees node-for-node. Root value −3. |
+| `DSPro/ORCHA-AUTOMATION` | **MUTATION** (held `src/managent/main.zig`). Stdout/stderr split verified, sync exit fix, 6 new audit checks, standing auto-registration, prescription→command retirement. |
+| `DSPro/STREAM-DISCIPLINE` | **MUTATION** (held 8 .zig files). Stdout=data / stderr=diagnostics split across 8 files (445+53 calls). `util.out`/`note`/`warn` helpers. Regression checks pass. |
+| `DSPro/AGENT-IDENTITY` | **MUTATION** (held `src/managent/main.zig`). Derived identifiers, `whoami`, `claim_count`, opaque `T<N>` IDs. Unblocked WORKER-CHANNEL. |
+| `DSPro/EXP-4` | **The falsification gate.** Built standalone solver (`src/exp4_solve.zig`) — both 2×2 and 3×2 return 0 under basic-ko+TIE=0 (not +1 PSK). First non-PSK result. L=H on all reachable states, 0 colour-inversion violations. Unblocked EXP-5. |
+
+**DSPro pattern this session:** handles complex multi-file edits (19 files in ROLE-NAMES),
+produces working Zig when the brief is detailed (MANAGENT-DERIVE-STATUS, F1-SEEDROOTS,
+STREAM-DISCIPLINE, EXP-4 — 4 separate Zig tasks, 0 rework), and can mix analysis + code
+in one task (NARRATIVE-LAYER). The "not DeepSeek for Zig" rule from earlier sessions is
+obsolete — this session alone has more DSPro Zig deliverables than any prior model.
