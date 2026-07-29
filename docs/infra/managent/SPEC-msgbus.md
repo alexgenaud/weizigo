@@ -62,12 +62,39 @@ the index survives as permanent minutes — who discussed what, and when — whi
 transcript goes. That is exactly the human's standing instruction: keep the
 findings, discard the bloody details.
 
+## Task-addressed directives (WORKER-CHANNEL, 2026-07-29)
+
+The msgbus addresses court messages by role.  For one-way control signals
+from the court to a worker, the project uses **directives**, which are
+addressable by task ID and written to `docs/infra/managent/directives.jsonl`
+(a tracked JSONL file beside the kanban).
+
+### Commands
+
+```
+managent tell <target> <directive> [--note <text>] [--from <who>]
+    directive \in {pause, resume, kill, amend, question}
+managent inbox [<target>]
+```
+
+`managent tell` appends a directive to `directives.jsonl`.  The runner checks
+for directives on every invocation and **exits 124 before launching the command**
+when a `pause` or `kill` directive is pending.  `managent claim` prints any
+pending directives for the claimed task.  See `docs/infra/dispatch/WORKER-CHANNEL.md`
+for the full design.
+
+Directives survive a fresh clone (tracked); heartbeats do not (untracked).
+
 ## The honest limitation
 
 **There is no push.** Nothing wakes an agent when mail arrives. The bus works only
 if `managent inbox <role>` is the **first action of every session** — so that
 belongs in the role files and in `AGENTS.md`, not in the tool. What the tool
 provides is that *not having read* becomes visible instead of invisible.
+
+Directives improve on this by hooking into `tools/runner` — a worker cannot
+build through the runner without seeing pending pause/kill directives (§2 of
+`docs/infra/agent-identity-and-worker-channel.md`).
 
 ## Deliberately excluded
 

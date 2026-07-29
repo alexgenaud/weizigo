@@ -55,6 +55,7 @@ exit by default.
 | `--log-rss` | (off) | log per-member RSS every poll (verbose) |
 | `--no-show-peak-on-exit` | (on) | skip the per-member peak log |
 | `--sweep` | (off) | standalone: list top CPU consumers on the host |
+| `--task-id <id>` | (none) | worker/task identifier (e.g. DSPro/2B-5); enables directive checking and heartbeat emission |
 
 ### `--sweep` mode
 
@@ -128,6 +129,34 @@ macOS does not ship `timeout(1)`. The command is part of GNU coreutils
 and is available via Homebrew (`brew install coreutils` → `gtimeout`),
 but is **not** present on a stock macOS install. This runner replaces
 that missing tool for the project. See `docs/infra/host/macos-timeout-gap.md`.
+
+## WORKER-CHANNEL additions (2026-07-29)
+
+### Directive checking
+
+When `--task-id` is set (or `MANAGENT_TASK_ID` env var), the runner reads
+`docs/infra/managent/directives.jsonl` before launching the command and prints
+any pending (unread) directives to stderr.  If a `pause` or `kill` directive
+is pending, the runner **exits 124** without launching the command — the worker
+cannot run while paused or killed.
+
+### Heartbeat emission
+
+On every invocation (including guard kills and directive blocks), the runner
+appends a heartbeat JSON line to `untracked/heartbeat.jsonl`:
+
+```json
+{"command":"echo hello","cpu":0.0,"identifier":"WORKER-CHANNEL","rss_mb":0,"task":"WORKER-CHANNEL","ts":"2026-07-29T23:52:33Z","wall":0.3}
+```
+
+The heartbeat carries wall-clock time, cumulative CPU, peak RSS, command,
+and the task identifier.  These accumulate per task in `heartbeat.jsonl`
+and drive `managent liveness` and the staleness checks in `managent audit`.
+
+### Environment variable
+
+If `--task-id` is not provided, the runner checks the
+`MANAGENT_TASK_ID` environment variable as a fallback.
 
 ## What the runner does NOT do
 

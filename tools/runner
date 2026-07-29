@@ -40,12 +40,19 @@
 # sorted by cumulative CPU time, to help find orphaned zig processes
 # (which compile to anonymous .zig-cache names).  No command needed.
 #
+# WORKER-CHANNEL (2026-07-29): --task-id for identity, heartbeat emission
+# to untracked/heartbeat.jsonl, directive checking via tasks.json.  On every
+# invocation: prints pending directives on stderr, exits non-zero when a
+# `pause` or `kill` directive is pending.  Heartbeat on every exit (success,
+# failure, or guard kill) so liveness shows real runs even if ungraceful.
+#
 # All flags are pass-through except the guard itself.  Exit code 124
 # (timeout convention) on guard kill, or the wrapped command's exit code.
 #
 # Standard library only.  No external dependencies.
 
 import argparse
+import json
 import os
 import re
 import shlex
@@ -127,6 +134,104 @@ def _cpu_time_seconds(pid):
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
         pass
     return None
+
+
+# ── repo root (walk up for .git) ───────────────────────────────────────────
+
+def _find_repo_root():
+    """Walk up from cwd to find the repo root (contains .git)."""
+    current = os.getcwd()
+    while True:
+        if os.path.isdir(os.path.join(current, ".git")):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+# ── directive checking (WORKER-CHANNEL) ────────────────────────────────────
+
+def _check_directives(task_id, repo_root):
+    """Check for pending directives addressed to `task_id`.
+
+    Reads docs/infra/managent/directives.jsonl (one JSON object per line)
+    and looks for unread entries targeting this task.  Prints any pending
+    directives on stderr.  Returns True when a pause or kill directive is
+    pending (caller should exit 124 before launching the command).
+    """
+    if not repo_root or not task_id:
+        return False
+
+    dir_path = os.path.join(repo_root, "docs", "infra", "managent", "directives.jsonl")
+    if not os.path.isfile(dir_path):
+        return False
+
+    try:
+        pending = []
+        with open(dir_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    d = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if d.get("target") == task_id and d.get("read") is False:
+                    pending.append(d)
+    except OSError:
+        return False
+
+    if not pending:
+        return False
+
+    print("[runner] === pending directives ===", file=sys.stderr)
+    for d in pending:
+        directive = d.get("directive", "?")
+        note = d.get("note", "")
+        from_who = d.get("from", "?")
+        print(f"[runner]   {directive.upper()}  from {from_who}", file=sys.stderr)
+        if note:
+            print(f"[runner]     {note}", file=sys.stderr)
+
+    has_stop = any(d.get("directive") in ("pause", "kill") for d in pending)
+    return has_stop
+
+
+# ── heartbeat emission (WORKER-CHANNEL) ────────────────────────────────────
+
+def _emit_heartbeat(task_id, command, wall, cpu, rss_mb, repo_root):
+    """Append a heartbeat line to untracked/heartbeat.jsonl.
+
+    The heartbeat records the runner invocation so `managent liveness`
+    can report per-task liveness.
+    """
+    if not repo_root:
+        return
+
+    hb_dir = os.path.join(repo_root, "untracked")
+    os.makedirs(hb_dir, exist_ok=True)
+    hb_path = os.path.join(hb_dir, "heartbeat.jsonl")
+
+    ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    record = {
+        "identifier": task_id or "unknown/unknown",
+        "task": task_id or "unknown",
+        "ts": ts,
+        "command": command or "",
+        "wall": round(wall, 1) if wall >= 0 else None,
+        "cpu": round(cpu, 1) if cpu >= 0 else None,
+        "rss_mb": round(rss_mb, 1) if rss_mb >= 0 else None,
+    }
+    # Strip None values for brevity
+    record = {k: v for k, v in record.items() if v is not None}
+
+    try:
+        with open(hb_path, "a") as f:
+            f.write(json.dumps(record, sort_keys=True) + "\n")
+    except OSError:
+        pass
 
 
 def prepend_releasefast(argv):
@@ -357,6 +462,9 @@ def main():
                     help="log per-member peak RSS on exit (default true)")
     ap.add_argument("--no-show-peak-on-exit", dest="show_peak", action="store_false",
                     help="do not log per-member peak RSS on exit")
+    ap.add_argument("--task-id", type=str, default=None,
+                    help="worker/task identifier for heartbeat and directive "
+                         "checking, e.g. DSPro/2B-5 or WORKER-CHANNEL")
     ap.add_argument("--sweep", action="store_true",
                     help="standalone: list top CPU consumers on the host "
                          "(no command needed)")
@@ -406,6 +514,18 @@ def main():
     else:
         ceilings.append("cpu off")
     print(f"[runner] ceilings: {', '.join(ceilings)}, poll = {args.poll_ms} ms", file=sys.stderr)
+
+    # ── WORKER-CHANNEL: directive check before launch ──────────────────────
+    repo_root = _find_repo_root()
+    task_identity = args.task_id or os.environ.get("MANAGENT_TASK_ID")
+    if not task_identity:
+        # Fallback: derive from the command (last-resort heuristic)
+        task_identity = f"runner/{os.getpid()}"
+    has_stop_directive = _check_directives(task_identity, repo_root)
+    if has_stop_directive:
+        _emit_heartbeat(task_identity, shlex.join(argv), -1, -1, -1, repo_root)
+        print(f"[runner] exit 124 (directive: pause/kill pending)", file=sys.stderr)
+        sys.exit(124)
 
     t0 = time.monotonic()
     proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
@@ -504,15 +624,29 @@ def main():
                 if args.show_peak:
                     _log_peaks(peak_rss, peak_cpu, t0=t0)
                 logs_done = True
-                print(f"[runner] exit 124 ({kill_reason}) in {time.monotonic() - t0:.1f} s", file=sys.stderr)
+                elapsed = time.monotonic() - t0
+                # Emit heartbeat with final measurements
+                peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
+                total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
+                _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+                print(f"[runner] exit 124 ({kill_reason}) in {elapsed:.1f} s", file=sys.stderr)
                 sys.exit(124)
 
         ret = proc.wait()
+    except Exception as exc:
+        # Ensure heartbeat on unexpected exception
+        elapsed = time.monotonic() - t0
+        _emit_heartbeat(task_identity, shlex.join(argv), elapsed, -1, -1, repo_root)
+        raise
     finally:
         if args.show_peak and not logs_done and (peak_rss or peak_cpu):
             _log_peaks(peak_rss, peak_cpu, t0=t0)
 
-    print(f"[runner] exit {ret} in {time.monotonic() - t0:.1f} s", file=sys.stderr)
+    elapsed = time.monotonic() - t0
+    peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
+    total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
+    _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+    print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)
     sys.exit(ret)
 
 

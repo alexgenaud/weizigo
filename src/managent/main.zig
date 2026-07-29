@@ -83,6 +83,27 @@ const RoleSync = struct {
     last_event_gen: u64 = 0,
 };
 
+// ── directive types (WORKER-CHANNEL) ────────────────────────────────────────
+
+const Directive = struct {
+    id: []const u8,
+    target: []const u8,
+    directive: []const u8,
+    note: ?[]const u8 = null,
+    from: []const u8,
+    ts: []const u8,
+    read: bool = false,
+};
+
+const valid_directives = [_][]const u8{ "pause", "resume", "kill", "amend", "question" };
+
+fn isValidDirective(s: []const u8) bool {
+    for (valid_directives) |d| {
+        if (std.mem.eql(u8, d, s)) return true;
+    }
+    return false;
+}
+
 const StateMap = std.StringHashMapUnmanaged(TaskState);
 
 // ─────────────────────────────────────────────────────────────────── entry
@@ -160,6 +181,14 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdAgent(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "sync")) {
         try cmdSync(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "tell")) {
+        try cmdTell(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "inbox")) {
+        try cmdInbox(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "ping")) {
+        try cmdPing(w, io, repo_root, args);
+    } else if (std.mem.eql(u8, cmd, "liveness")) {
+        try cmdLiveness(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "audit")) {
         try cmdAudit(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "standing")) {
@@ -454,6 +483,7 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
 }
 
 var sys_next_id: u32 = 100; // monotonic task-ID counter, loaded from _sys
+var sys_directive_next: u32 = 1; // monotonic directive-ID counter, loaded from _sys
 
 fn parseStateJson(content: []const u8) !StateMap {
     const trimmed = std.mem.trim(u8, content, " \t\n\r");
@@ -473,11 +503,14 @@ fn parseStateJson(content: []const u8) !StateMap {
 
     if (parsed.value != .object) return state;
 
-    // Load _sys metadata (counter, aliases)
+    // Load _sys metadata (counter, aliases, directive counter)
     if (parsed.value.object.get("_sys")) |sys_val| {
         if (sys_val == .object) {
             if (sys_val.object.get("next_id")) |nv| {
                 if (nv == .integer) sys_next_id = @intCast(nv.integer);
+            }
+            if (sys_val.object.get("directive_next")) |dv| {
+                if (dv == .integer) sys_directive_next = @intCast(dv.integer);
             }
         }
     }
@@ -680,6 +713,8 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
     // _sys metadata
     try buf.appendSlice(alloc, ",\n  \"_sys\": {\n    \"next_id\": ");
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_next_id}));
+    try buf.appendSlice(alloc, ",\n    \"directive_next\": ");
+    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_directive_next}));
     try buf.appendSlice(alloc, "\n  }");
     try buf.appendSlice(alloc, "\n}\n");
 }
@@ -1046,6 +1081,9 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
             w.diag("  follow {s}\n", .{ts_ptr.bundle});
 
+            // WORKER-CHANNEL: print pending directives after claim
+            printPendingDirectives(w, io, repo_root, state_path, id);
+
             if (exec_prefix) |prefix| {
                 const rel = bundleRel(ts_ptr.bundle, repo_root);
                 try execHarness(prefix, rel);
@@ -1087,6 +1125,9 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             const ident = try agentIdentifier(ts_ptr.*, id);
             w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
             w.diag("  follow {s}\n", .{ts_ptr.bundle});
+
+            // WORKER-CHANNEL: print pending directives after claim
+            printPendingDirectives(w, io, repo_root, state_path, id);
 
             if (exec_prefix) |prefix| {
                 const rel = bundleRel(ts_ptr.bundle, repo_root);
@@ -1853,6 +1894,10 @@ fn printHelp(w: Writers) void {
         \\  managent sync <role>      print unread messages; exit non-zero when write owed
         \\  managent audit [--json]   cross-check kanban against reality
         \\  managent whoami <id>       resolve agent identifier for a task
+        \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
+        \\  managent inbox [<target>] show pending directives for a target
+        \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
+        \\  managent liveness         show last heartbeat per in_progress task
         \\  managent standing         register triggered standing-tier tasks
         \\  managent help             show this help
         \\
@@ -1918,6 +1963,169 @@ fn freeState(state: *StateMap) void {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ORCHA-AUTOMATION new commands
 // ═══════════════════════════════════════════════════════════════════════════════
+
+
+// ── directive store (WORKER-CHANNEL) ─────────────────────────────────────────
+
+const DIRECTIVES_FILE = "docs/infra/managent/directives.jsonl";
+
+fn readDirectives(io: std.Io, repo_root: []const u8, state_path: []const u8) !std.ArrayList(Directive) {
+    _ = state_path;
+    var result = std.ArrayList(Directive).empty;
+    errdefer result.deinit(alloc);
+
+    const dir_path = try std.fs.path.join(alloc, &.{ repo_root, DIRECTIVES_FILE });
+    defer alloc.free(dir_path);
+
+    const content = std.Io.Dir.cwd().readFileAlloc(io, dir_path, alloc, .unlimited) catch |err| {
+        if (err == error.FileNotFound) return result;
+        return err;
+    };
+    defer alloc.free(content);
+
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const trimmed = std.mem.trim(u8, line, " \r\n");
+        if (trimmed.len == 0) continue;
+
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+
+        if (parsed.value != .object) continue;
+        const obj = parsed.value.object;
+
+        const d_id = if (obj.get("id")) |v| if (v == .string) v.string else "" else "";
+        const d_target = if (obj.get("target")) |v| if (v == .string) v.string else "" else "";
+        const d_dir = if (obj.get("directive")) |v| if (v == .string) v.string else "" else "";
+        const d_note = if (obj.get("note")) |v| if (v == .string) v.string else "" else null;
+        const d_from = if (obj.get("from")) |v| if (v == .string) v.string else "" else "";
+        const d_ts = if (obj.get("ts")) |v| if (v == .string) v.string else "" else "";
+        const d_read = if (obj.get("read")) |v| if (v == .bool) v.bool else false else false;
+
+        if (d_id.len == 0 or d_target.len == 0) continue;
+
+        try result.append(alloc, Directive{
+            .id = try alloc.dupe(u8, d_id),
+            .target = try alloc.dupe(u8, d_target),
+            .directive = try alloc.dupe(u8, d_dir),
+            .note = if (d_note) |n| try alloc.dupe(u8, n) else null,
+            .from = try alloc.dupe(u8, d_from),
+            .ts = try alloc.dupe(u8, d_ts),
+            .read = d_read,
+        });
+    }
+
+    return result;
+}
+
+fn appendDirective(io: std.Io, repo_root: []const u8, d: Directive) !void {
+    const dir_path = try std.fs.path.join(alloc, &.{ repo_root, DIRECTIVES_FILE });
+    defer alloc.free(dir_path);
+
+    const dirname = std.fs.path.dirname(dir_path) orelse ".";
+    std.Io.Dir.cwd().createDirPath(io, dirname) catch {};
+
+    // Build JSON line
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+
+    try buf.appendSlice(alloc, "{\"id\":\"");
+    try buf.appendSlice(alloc, d.id);
+    try buf.appendSlice(alloc, "\",\"target\":\"");
+    try buf.appendSlice(alloc, d.target);
+    try buf.appendSlice(alloc, "\",\"directive\":\"");
+    try buf.appendSlice(alloc, d.directive);
+    try buf.appendSlice(alloc, "\"");
+    if (d.note) |n| {
+        try buf.appendSlice(alloc, ",\"note\":\"");
+        try buf.appendSlice(alloc, n);
+        try buf.appendSlice(alloc, "\"");
+    }
+    try buf.appendSlice(alloc, ",\"from\":\"");
+    try buf.appendSlice(alloc, d.from);
+    try buf.appendSlice(alloc, "\",\"ts\":\"");
+    try buf.appendSlice(alloc, d.ts);
+    try buf.appendSlice(alloc, "\",\"read\":");
+    if (d.read) {
+        try buf.appendSlice(alloc, "true");
+    } else {
+        try buf.appendSlice(alloc, "false");
+    }
+    try buf.appendSlice(alloc, "}\n");
+
+    // Read existing content + append new line
+    const existing_str = std.Io.Dir.cwd().readFileAlloc(io, dir_path, alloc, .unlimited) catch "";
+    defer if (@intFromPtr(existing_str.ptr) != @intFromPtr("".ptr)) alloc.free(existing_str);
+
+    var out = std.ArrayList(u8).empty;
+    defer out.deinit(alloc);
+    if (existing_str.len > 0) try out.appendSlice(alloc, existing_str);
+    try out.appendSlice(alloc, buf.items);
+
+    const file = try std.Io.Dir.cwd().createFile(io, dir_path, .{});
+    defer file.close(io);
+    try file.writeStreamingAll(io, out.items);
+}
+
+// ── heartbeat reading (WORKER-CHANNEL) ──────────────────────────────────────
+
+const Heartbeat = struct {
+    identifier: []const u8,
+    task: []const u8,
+    ts: []const u8,
+    command: []const u8 = "",
+    wall: f64 = 0.0,
+    cpu: f64 = 0.0,
+    rss_mb: f64 = 0.0,
+};
+
+fn readHeartbeats(io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
+    var result = std.ArrayList(Heartbeat).empty;
+    errdefer result.deinit(alloc);
+
+    const hb_path = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "heartbeat.jsonl" });
+    defer alloc.free(hb_path);
+
+    const content = std.Io.Dir.cwd().readFileAlloc(io, hb_path, alloc, .unlimited) catch |err| {
+        if (err == error.FileNotFound) return result;
+        return err;
+    };
+    defer alloc.free(content);
+
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const trimmed = std.mem.trim(u8, line, " \r\n");
+        if (trimmed.len == 0) continue;
+
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+
+        if (parsed.value != .object) continue;
+        const obj = parsed.value.object;
+
+        const hb_ident = if (obj.get("identifier")) |v| if (v == .string) v.string else "" else "";
+        const hb_task = if (obj.get("task")) |v| if (v == .string) v.string else "" else "";
+        const hb_ts = if (obj.get("ts")) |v| if (v == .string) v.string else "" else "";
+        const hb_cmd = if (obj.get("command")) |v| if (v == .string) v.string else "" else "";
+        const hb_wall = if (obj.get("wall")) |v| if (v == .float) @as(f64, v.float) else if (v == .integer) @as(f64, @floatFromInt(v.integer)) else 0.0 else 0.0;
+        const hb_cpu = if (obj.get("cpu")) |v| if (v == .float) @as(f64, v.float) else if (v == .integer) @as(f64, @floatFromInt(v.integer)) else 0.0 else 0.0;
+        const hb_rss = if (obj.get("rss_mb")) |v| if (v == .float) @as(f64, v.float) else if (v == .integer) @as(f64, @floatFromInt(v.integer)) else 0.0 else 0.0;
+
+        if (hb_ident.len == 0 or hb_task.len == 0) continue;
+
+        try result.append(alloc, Heartbeat{
+            .identifier = try alloc.dupe(u8, hb_ident),
+            .task = try alloc.dupe(u8, hb_task),
+            .ts = try alloc.dupe(u8, hb_ts),
+            .command = try alloc.dupe(u8, hb_cmd),
+            .wall = hb_wall,
+            .cpu = hb_cpu,
+            .rss_mb = hb_rss,
+        });
+    }
+
+    return result;
+}
 
 // ── 1. sync <role> — message-bus sync ───────────────────────────────────────
 
@@ -2316,6 +2524,34 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             if (std.mem.indexOf(u8, ts.note.?, "GATED") != null) {
                 const msg = try std.fmt.allocPrint(alloc, "in_progress but note says GATED — verify premise is still valid", .{});
                 try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
+            }
+        }
+
+        // WORKER-CHANNEL: heartbeat-based staleness check for in_progress
+        if (ts.status == .in_progress) {
+            var hbs = readHeartbeats(io, repo_root) catch null;
+            if (hbs) |*heartbeats| {
+                defer {
+                    for (heartbeats.items) |h| {
+                        alloc.free(h.identifier);
+                        alloc.free(h.task);
+                        alloc.free(h.ts);
+                        alloc.free(h.command);
+                    }
+                    heartbeats.deinit(alloc);
+                }
+                var latest: ?Heartbeat = null;
+                for (heartbeats.items) |hb| {
+                    if (std.mem.eql(u8, hb.task, tid)) {
+                        if (latest == null or std.mem.lessThan(u8, (latest.?).ts, hb.ts)) {
+                            latest = hb;
+                        }
+                    }
+                }
+                if (latest == null) {
+                    const msg = try std.fmt.allocPrint(alloc, "in_progress but no heartbeat ever recorded", .{});
+                    try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
+                }
             }
         }
 
@@ -2807,6 +3043,241 @@ fn persistStandingState(io: std.Io, state_path: []const u8, c3: u64, msg: u64, f
     state_dir.rename(tmp_name, state_dir, basename, io) catch {};
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WORKER-CHANNEL commands (2026-07-29)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── tell <target> <directive> — post a directive to a worker ─────────────────
+
+fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 4) {
+        w.diag("usage: managent tell <target> <pause|resume|kill|amend|question> [--note <text>] [--from <who>]\n", .{});
+        std.process.exit(1);
+    }
+    const target = args[2];
+    const directive = args[3];
+
+    if (!isValidDirective(directive)) {
+        w.diag("error: invalid directive '{s}'\n", .{directive});
+        std.process.exit(1);
+    }
+
+    const note_text = getFlagValue(args, "--note");
+    const from_who = getFlagValue(args, "--from") orelse "unknown";
+
+    // Persist the directive counter by reading and writing state
+    var state_for_counter = try readState(io, state_path);
+    defer freeState(&state_for_counter);
+
+    const d_id = try std.fmt.allocPrint(alloc, "D{d:0>3}", .{sys_directive_next});
+    sys_directive_next += 1;
+
+    const now = try nowTimestamp();
+
+    const d = Directive{
+        .id = try alloc.dupe(u8, d_id),
+        .target = try alloc.dupe(u8, target),
+        .directive = try alloc.dupe(u8, directive),
+        .note = if (note_text) |nt| try alloc.dupe(u8, nt) else null,
+        .from = try alloc.dupe(u8, from_who),
+        .ts = try alloc.dupe(u8, now),
+        .read = false,
+    };
+
+    try appendDirective(io, repo_root, d);
+
+    // Persist the updated directive counter
+    try writeState(io, state_path, &state_for_counter);
+
+    w.diag("\n  told {s} -> {s}\n", .{ target, directive });
+    w.diag("  directive {s}\n", .{ d_id });
+    if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
+}
+
+// ── inbox [<target>] — show pending directives ───────────────────────────────
+
+fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    const target = if (args.len >= 3 and !std.mem.startsWith(u8, args[2], "-"))
+        args[2]
+    else
+        "";
+
+    var directives = try readDirectives(io, repo_root, state_path);
+    defer {
+        for (directives.items) |d| {
+            alloc.free(d.id);
+            alloc.free(d.target);
+            alloc.free(d.directive);
+            if (d.note) |n| alloc.free(n);
+            alloc.free(d.from);
+            alloc.free(d.ts);
+        }
+        directives.deinit(alloc);
+    }
+
+    var found: u32 = 0;
+    // Show unread directives
+    for (directives.items) |d| {
+        if (target.len > 0 and !std.mem.eql(u8, d.target, target)) continue;
+        if (d.read) continue;
+        if (found == 0) {
+            w.data("\n  Directives", .{});
+            if (target.len > 0) w.data(" for '{s}'", .{target});
+            w.data(":\n", .{});
+        }
+        found += 1;
+        w.data("    {s}  {s}  from {s}  at {s}\n", .{ d.id, d.directive, d.from, d.ts });
+        if (d.note) |n| w.data("      note: {s}\n", .{n});
+    }
+    if (found == 0) {
+        w.data("  -- no pending directives --\n", .{});
+    }
+    w.data("\n", .{});
+}
+
+// ── ping [--note <text>] — emit a heartbeat ──────────────────────────────────
+
+fn cmdPing(w: Writers, io: std.Io, repo_root: []const u8, args: [][]const u8) !void {
+    const note_text = getFlagValue(args, "--note");
+
+    const ts = try nowTimestamp();
+    const ident = "unknown/ping";
+
+    // Build heartbeat JSON line
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+
+    try buf.appendSlice(alloc, "{\"identifier\":\"");
+    try buf.appendSlice(alloc, ident);
+    try buf.appendSlice(alloc, "\",\"task\":\"ping\",\"ts\":\"");
+    try buf.appendSlice(alloc, ts);
+    try buf.appendSlice(alloc, "\"");
+    if (note_text) |nt| {
+        try buf.appendSlice(alloc, ",\"note\":\"");
+        try buf.appendSlice(alloc, nt);
+        try buf.appendSlice(alloc, "\"");
+    }
+    try buf.appendSlice(alloc, "}\n");
+
+    const hb_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked" });
+    defer alloc.free(hb_dir);
+    std.Io.Dir.cwd().createDirPath(io, hb_dir) catch {};
+
+    const hb_path = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "heartbeat.jsonl" });
+    defer alloc.free(hb_path);
+
+    // Read existing + append new heartbeat
+    const existing_str = std.Io.Dir.cwd().readFileAlloc(io, hb_path, alloc, .unlimited) catch "";
+    defer if (@intFromPtr(existing_str.ptr) != @intFromPtr("".ptr)) alloc.free(existing_str);
+
+    var out = std.ArrayList(u8).empty;
+    defer out.deinit(alloc);
+    if (existing_str.len > 0) try out.appendSlice(alloc, existing_str);
+    try out.appendSlice(alloc, buf.items);
+
+    const file = try std.Io.Dir.cwd().createFile(io, hb_path, .{});
+    defer file.close(io);
+    try file.writeStreamingAll(io, out.items);
+
+    w.diag("\n  ping: heartbeat recorded\n", .{});
+    if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
+}
+
+// ── liveness — show last heartbeat per in_progress task ──────────────────────
+
+fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = args;
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+
+    var heartbeats = try readHeartbeats(io, repo_root);
+    defer {
+        for (heartbeats.items) |h| {
+            alloc.free(h.identifier);
+            alloc.free(h.task);
+            alloc.free(h.ts);
+            alloc.free(h.command);
+        }
+        heartbeats.deinit(alloc);
+    }
+
+    // For each in_progress task, find latest heartbeat
+    w.data("\n  Liveness (in_progress tasks):\n", .{});
+
+    var it = state.iterator();
+    var found: u32 = 0;
+    while (it.next()) |entry| {
+        const tid = entry.key_ptr.*;
+        const ts = entry.value_ptr.*;
+        if (ts.status != .in_progress) continue;
+
+        found += 1;
+
+        // Find latest heartbeat matching this task
+        var latest: ?Heartbeat = null;
+        for (heartbeats.items) |h| {
+            if (std.mem.eql(u8, h.task, tid)) {
+                if (latest == null or std.mem.lessThan(u8, (latest.?).ts, h.ts)) {
+                    latest = h;
+                }
+            }
+        }
+
+        if (latest) |hb| {
+            w.data("    {s}  [{s}]  last: {s}\n", .{ tid, hb.identifier, hb.ts });
+            const cmd_display = if (hb.command.len > 40)
+                hb.command[0..40]
+            else
+                hb.command;
+            if (cmd_display.len > 0) {
+                w.data("      command: {s}\n", .{cmd_display});
+            }
+            if (hb.wall > 0) {
+                w.data("      wall: {d:.1}s  cpu: {d:.1}s  rss: {d:.0} MB\n", .{ hb.wall, hb.cpu, hb.rss_mb });
+            }
+        } else {
+            w.data("    {s}  [stale: no heartbeat recorded]\n", .{tid});
+        }
+    }
+
+    if (found == 0) {
+        w.data("    -- no in_progress tasks --\n", .{});
+    }
+    w.data("\n", .{});
+}
+
+// ── print pending directives for a claiming task ─────────────────────────────
+
+fn printPendingDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, task_id: []const u8) void {
+    var directives = readDirectives(io, repo_root, state_path) catch return;
+    defer {
+        for (directives.items) |d| {
+            alloc.free(d.id);
+            alloc.free(d.target);
+            alloc.free(d.directive);
+            if (d.note) |n| alloc.free(n);
+            alloc.free(d.from);
+            alloc.free(d.ts);
+        }
+        directives.deinit(alloc);
+    }
+
+    var found: u32 = 0;
+    for (directives.items) |d| {
+        if (!std.mem.eql(u8, d.target, task_id)) continue;
+        if (d.read) continue;
+        if (found == 0) {
+            w.diag("\n  === pending directives ===\n", .{});
+        }
+        found += 1;
+        w.diag("    {s}  {s}  from {s}\n", .{ d.id, d.directive, d.from });
+        if (d.note) |n| w.diag("      {s}\n", .{n});
+    }
+    if (found > 0) {
+        w.diag("\n", .{});
+    }
+}
 // ── run a command and capture stdout ────────────────────────────────────────
 
 fn runCommand(allocator: std.mem.Allocator, io: std.Io, argv: []const []const u8) ![]const u8 {
