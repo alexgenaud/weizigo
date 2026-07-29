@@ -1,7 +1,7 @@
 <!--managent set=J needs=2B-2-->
 # 2B-2-AUDIT — verify the 3×2 cycle census (read-only)
 
-**Role:** Auditor (Kimi-k2.7, read-only — a second pair of eyes, ≠ the m3 author). **User order: audit 2B-2 regardless of its result** — m3 reported being surprised by findings in its own solution, and 2B-4's QA-023 falsification rests on this census.
+**Role:** Auditor (read-only — a second pair of eyes, independent of the 2B-2 author). **User order: audit 2B-2 regardless of its result** — m3 reported being surprised by findings in its own solution, and 2B-4's QA-023 falsification rests on this census.
 
 **Verify, with `file:line` citations:**
 - The **SCC / lowlink caveat** — m3's first implementation over-merged SCCs (lowlink vs index bug); the corrected version uses `lowlink[v]`. Is the 1,696-vertex SCC correct? Reproduce Tarjan's on the 3×2 graph independently if cheap.

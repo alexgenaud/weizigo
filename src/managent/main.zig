@@ -120,6 +120,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdSet(io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "needs")) {
         try cmdNeeds(io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "agent")) {
+        try cmdAgent(io, repo_root, state_path, args);
     } else {
         std.debug.print("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -1224,6 +1226,25 @@ fn cmdNeeds(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][
     for (ts_ptr.needs) |n| std.debug.print(" {s}", .{n});
     if (ts_ptr.needs.len == 0) std.debug.print(" (none)", .{});
     std.debug.print("\n", .{});
+}
+
+fn cmdAgent(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 4) {
+        std.debug.print("usage: managent agent <id> <name>\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    const name = args[3];
+    var state = try readState(io, state_path);
+    const ts_ptr = state.getPtr(id) orelse {
+        std.debug.print("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+    const old = ts_ptr.agent;
+    ts_ptr.agent = try alloc.dupe(u8, name);
+    try writeState(io, state_path, &state);
+    std.debug.print("\n  {s}  agent {s} -> {s}\n", .{ id, old orelse "(none)", name });
 }
 
 fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {

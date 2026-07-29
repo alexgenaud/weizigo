@@ -19,8 +19,7 @@ Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 > its SCC-bug caveat), 2B-5 (calibration — does the probe detect PSK's known
 > sensitivity?), 2B-6 (full auditor review). 2B-2 (PASS, 143,760 cycles) + 2B-3
 > (PASS, vacuity-guard) done; 2B-4 done; 2B-5 dispatchable; 2B-6 blocked on 2B-5.
-> Attribution: the 2B-4 PROVENANCE says **MiniMax-M3** (one paste said DeepSeek
-> Pro) — confirm with the human before the model-perf ledger records it.
+> Attribution: 2B-4 was **DeepSeek Pro** (human-confirmed; the PROVENANCE mis-recorded MiniMax-M3, corrected).
 
 **Outgoing handover:** `docs/status/handover-minimax-m3-2026-07-29.md`. Read
 that file first on resume; it supersedes this one for the unit-of-recovery

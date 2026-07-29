@@ -1,4 +1,4 @@
-Task: 2B-4 · Role: worker · Model: MiniMax-M3 · Date: 2026-07-29
+Task: 2B-4 · Role: worker · Model: DeepSeek-Pro · Date: 2026-07-29
 
 # PROVENANCE — probe-3x2-2026-07-29
 

@@ -1,4 +1,17 @@
 {
+  "2B-FIX-KO": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/2B-FIX-KO.md",
+    "set": "K",
+    "holds": ["src/qa023_brute_2x2.zig,src/qa023_probe.zig"],
+    "needs": ["2B-2-AUDIT-OPUS"],
+    "added": "2026-07-29T11:57:09Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": "2026-07-29T11:57:09Z",
+    "dispatched_to": "minimax-m3",
+    "note": "Opus audit F5: apply_place misses the single-stone ko-capture check (proof-v2 §1.1). Fix it in qa023_brute_2x2.zig, re-run the 3x2 census + probe under the corrected rule, report whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact. This is the gate on the keystone. (Model suggestion only — the human assigns.)"
+  },
   "EXP-5": {
     "status": "blocked",
     "bundle": "docs/infra/dispatch/EXP-5.md",
@@ -13,13 +26,14 @@
     "note": null
   },
   "2B-2-AUDIT": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "kimi-k2.7",
     "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
     "set": "J",
     "holds": [],
     "needs": ["2B-2"],
     "added": "2026-07-29T11:26:48Z",
-    "claimed": null,
+    "claimed": "2026-07-29T11:52:27Z",
     "done": null,
     "dispatched": "2026-07-29T11:26:48Z",
     "dispatched_to": "kimi-k2.7",
@@ -41,7 +55,7 @@
   },
   "2B-4": {
     "status": "done",
-    "agent": "MiniMax-M3",
+    "agent": "DeepSeek-Pro",
     "bundle": "docs/infra/dispatch/2B-4.md",
     "set": "C",
     "holds": ["src/qa023_probe.zig"],
@@ -156,6 +170,20 @@
     "added": "2026-07-29T09:38:44Z",
     "claimed": null,
     "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "2B-2-AUDIT-OPUS": {
+    "status": "done",
+    "agent": "opus-5",
+    "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
+    "set": "J",
+    "holds": [],
+    "needs": ["2B-2"],
+    "added": "2026-07-29T11:57:09Z",
+    "claimed": "2026-07-29T11:57:09Z",
+    "done": "2026-07-29T11:57:09Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
