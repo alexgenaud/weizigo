@@ -45,6 +45,8 @@ The role files state rules an agent must remember. **Every rule that can be a co
 | "read the channel, write when there is news" | `sync` (§1) |
 | "verify, don't trust" | `done` warns when a load-bearing claim's status changed with only one seat's evidence cited |
 | "attribute the worker" | `done` refuses an unset `agent` (§3) |
+| **"verify, don't trust" — the seat's highest-stakes judgement** | **a claim-status change must name the independent seat that agreed.** `audit` flags any `CLAIMS.md` status edit in the working tree whose commit message cites no second task id. This is the guard that would have caught the only Orchestrator error today that reached the durable tree. |
+| **"absorb what workers report"** | **`audit` verifies reported edits exist.** Given a deliverable claiming "banner placed on X", check X actually changed. `DSFlash`-class reporting defects (a banner reported as placed but never written, a stale count quoted as current) are cheap to catch mechanically and expensive to catch by reading. |
 
 Implement the ones that are cheap and unambiguous; **for each one you skip, say why** — an un-automatable rule is a real category and worth naming. Then **delete every prescription the commands now enforce** from `ORCHESTRATOR.md` and cite the command instead. The role file should shrink as a result of this task; if it does not, the automation is not carrying its weight.
 
