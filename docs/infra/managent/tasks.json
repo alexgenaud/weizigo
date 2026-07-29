@@ -54,6 +54,19 @@
     "dispatched_to": null,
     "note": null
   },
+  "RUNNER-CEILING": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/RUNNER-CEILING.md",
+    "set": "O",
+    "holds": ["tools/runner"],
+    "needs": [],
+    "added": "2026-07-29T13:30:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
   "2B-4": {
     "status": "done",
     "agent": "DeepSeek-Pro",
@@ -69,11 +82,11 @@
     "note": null
   },
   "2B-6": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/2B-6.md",
     "set": "E",
     "holds": [],
-    "needs": ["2B-2", "2B-3", "2B-4", "2B-5"],
+    "needs": ["2B-2", "2B-3", "2B-4", "2B-5", "2B-PROBE-FIX"],
     "added": "2026-07-29T09:38:44Z",
     "claimed": null,
     "done": null,
@@ -163,7 +176,7 @@
     "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
   },
   "2B-5": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DeepSeek-Pro",
     "bundle": "docs/infra/dispatch/2B-5.md",
     "set": "D",
@@ -171,7 +184,7 @@
     "needs": ["2B-4"],
     "added": "2026-07-29T09:38:44Z",
     "claimed": "2026-07-29T12:36:42Z",
-    "done": null,
+    "done": "2026-07-29T12:53:22Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -203,5 +216,44 @@
     "dispatched": "2026-07-29T03:42:22Z",
     "dispatched_to": "kimi-k2.7",
     "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
+  },
+  "EVIDENCE-INTEGRITY": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/EVIDENCE-INTEGRITY.md",
+    "set": "N",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": [],
+    "added": "2026-07-29T13:30:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "2B-PROBE-FIX": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/2B-PROBE-FIX.md",
+    "set": "L",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": [],
+    "added": "2026-07-29T13:30:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "ADR0006-FALSIFY": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/ADR0006-FALSIFY.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T13:30:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
   }
 }

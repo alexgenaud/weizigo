@@ -1,0 +1,35 @@
+[depth 2] # samples evaluated: 7
+[depth 2] # value-agreements (v != TIE, v == V): 0
+[depth 2] # TIE-valued (v == TIE): 4
+[depth 2] # budget-exhausted (v == null): 0 / 7
+[depth 2] # disagreements (v != TIE, v != V, v != null): 3
+[depth 4] # samples evaluated: 64
+[depth 4] # value-agreements (v != TIE, v == V): 0
+[depth 4] # TIE-valued (v == TIE): 104
+[depth 4] # budget-exhausted (v == null): 0 / 159
+[depth 4] # disagreements (v != TIE, v != V, v != null): 55
+[depth 6] # samples evaluated: 186
+[depth 6] # value-agreements (v != TIE, v == V): 0
+[depth 6] # TIE-valued (v == TIE): 556
+[depth 6] # budget-exhausted (v == null): 0 / 958
+[depth 6] # disagreements (v != TIE, v != V, v != null): 402
+[depth 8] # samples evaluated: 172
+[depth 8] # value-agreements (v != TIE, v == V): 0
+[depth 8] # TIE-valued (v == TIE): 570
+[depth 8] # budget-exhausted (v == null): 0 / 1043
+[depth 8] # disagreements (v != TIE, v != V, v != null): 473
+[depth 12] # samples evaluated: 128
+[depth 12] # value-agreements (v != TIE, v == V): 0
+[depth 12] # TIE-valued (v == TIE): 509
+[depth 12] # budget-exhausted (v == null): 0 / 837
+[depth 12] # disagreements (v != TIE, v != V, v != null): 328
+[depth 24] # samples evaluated: 156
+[depth 24] # value-agreements (v != TIE, v == V): 0
+[depth 24] # TIE-valued (v == TIE): 588
+[depth 24] # budget-exhausted (v == null): 0 / 1032
+[depth 24] # disagreements (v != TIE, v != V, v != null): 444
+[depth 40] # samples evaluated: 131
+[depth 40] # value-agreements (v != TIE, v == V): 0
+[depth 40] # TIE-valued (v == TIE): 505
+[depth 40] # budget-exhausted (v == null): 0 / 869
+[depth 40] # disagreements (v != TIE, v != V, v != null): 364

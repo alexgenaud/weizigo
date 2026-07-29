@@ -9,17 +9,35 @@ Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 **2026-07-29 succession + D-8 + EXP-10-done correction by GLM-5.2
 (Orchestrator)** — see the new section at top.
 
-> **⚠ 2026-07-29 — QA-023 FALSIFIED at 3×2 (2B-4), PENDING AUDIT.** 2B-4 (the
-> probe run) reports 390/1080 disagreements (36.1%) between the first-revisit
-> truncation evaluator and the median fixpoint — the 3×2 graph is so densely
-> cyclic that every continuation hits a first-revisit before a terminal, so the
-> truncation returns TIE=0 while the fixpoint pins +1..+6. If real, this falsifies
-> the keystone claim (the F2-REMEDY median build's premise). **NOT absorbed into
-> CLAIMS/PROGRESS** until verified: 2B-2-AUDIT (Kimi-k2.7 — m3's cycle census +
-> its SCC-bug caveat), 2B-5 (calibration — does the probe detect PSK's known
-> sensitivity?), 2B-6 (full auditor review). 2B-2 (PASS, 143,760 cycles) + 2B-3
-> (PASS, vacuity-guard) done; 2B-4 done; 2B-5 dispatchable; 2B-6 blocked on 2B-5.
-> Attribution: 2B-4 was **DeepSeek Pro** (human-confirmed; the PROVENANCE mis-recorded MiniMax-M3, corrected).
+> **⚠ 2026-07-29 — WITHDRAWN: the QA-023 "falsification" is a probe artefact.**
+> The banner that stood here reported 2B-4's 390/1080 disagreements (36.1%),
+> later re-run by 2B-FIX-KO as 454/1133 (40.1%), as a falsification of the
+> keystone claim. **Both numbers are invalid.** `truncated_value` was called
+> with an arrival set containing the target state σ itself, so its opening
+> revisit check matched σ against σ and returned TIE before the terminal check,
+> before `moves()`, before any recursion — **measured: 1,133 σ-in-arrival
+> collisions out of 1,133 evaluations.** "Disagreements" merely counted sampled
+> states whose median fixpoint is non-zero. The tells were in every recorded
+> run: value-agreements **0** and budget-exhausted **0**, at every history
+> depth from 2 to 40, with a flat 34–43% rate. Evidence, worked counterexample
+> and the corrected build:
+> `docs/evidence/QA-023/probe-defect-2026-07-29/README.md` (Orchestrator/Opus 5).
+>
+> **QA-023 is neither falsified nor cleared — it has not been tested.** The
+> corrected instrument does discriminate (45 value-agreements) and leaves **12
+> disagreements out of 77 within-budget evaluations**, all in the *opposite*
+> direction (truncation has a value, the fixpoint over-pins TIE), with 93% of
+> the sample lost to budget exhaustion. Those 12 bear on **C2** (the
+> `median(L,TIE,H)` formula = `QA-026` / proof-v2 Thm 5.1), **not** on **C1**
+> (Markovian state-sufficiency = what the `QA-023` row asserts). No observation
+> so far contradicts C1. The two have opposite roadmap consequences and must
+> never again be reported as one verdict. **Nothing is absorbed into
+> CLAIMS/PROGRESS.** Gate: `2B-PROBE-FIX` (registered, dispatchable) → `2B-6`.
+> What still stands: the 2B-FIX-KO ko-rule fix (independently verified against
+> Python), the 2B-2 census, and 2B-5's calibration — noting that 2B-5's POS arm
+> exercises a *parallel* PSK code path and so did not cover the defective call
+> site. Attribution: 2B-4 was **DeepSeek Pro** (human-confirmed; the PROVENANCE
+> mis-recorded MiniMax-M3, corrected).
 
 **Outgoing handover:** `docs/status/handover-minimax-m3-2026-07-29.md`. Read
 that file first on resume; it supersedes this one for the unit-of-recovery

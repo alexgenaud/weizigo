@@ -1,0 +1,66 @@
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/1b1ae79f-da5a-454c-a7e4-a661e0da01c8/scratchpad/probe probe-3x2 --seed 0x2B4DA7A --n-samples 256 --k-histories 8 --history-depth 16
+[runner] rss cap = 4096 MB, poll = 250 ms
+# sweep 2: L_changed=0 H_changed=0
+# sweeps: 2 (final total_changes = 0)
+# pin census:  L==H=948  L<H&pin_T=1532  L<H&pin_L=142  L<H&pin_H=0
+# v1's wrong rule would have given `pin_t + pin_l + pin_h` wrong; v2's rule gives all three correct.
+# qa023 probe — 3x2 HISTORY-SENSITIVITY PROBE (T13-style)
+# params: seed=45406842 n_samples=256 k_histories=8 history_depth=16 budget/history=100000
+# reachable non-terminal states: 1756
+#   L==H: 82  pin_T: 1532  pin_L: 142  pin_H: 0
+# DISAGREE(TIE) #1: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W5 B2 pass B3 pass 
+# DISAGREE(TIE) #2: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W5 B2 W0 B3 pass 
+# DISAGREE(TIE) #3: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W5 B3 pass B2 pass 
+# DISAGREE(TIE) #4: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W0 B2 pass B3 pass 
+# DISAGREE(TIE) #5: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W0 B3 pass B2 pass 
+# sample 8/256: value_agree=0 TIE=43 disagree=24 budget=0
+# sample 16/256: value_agree=0 TIE=56 disagree=40 budget=0
+# sample 24/256: value_agree=0 TIE=88 disagree=48 budget=0
+# sample 32/256: value_agree=0 TIE=96 disagree=82 budget=0
+# sample 40/256: value_agree=0 TIE=122 disagree=106 budget=0
+# sample 48/256: value_agree=0 TIE=137 disagree=114 budget=0
+# sample 56/256: value_agree=0 TIE=155 disagree=144 budget=0
+# sample 64/256: value_agree=0 TIE=171 disagree=152 budget=0
+# sample 72/256: value_agree=0 TIE=195 disagree=164 budget=0
+# sample 80/256: value_agree=0 TIE=214 disagree=188 budget=0
+# sample 88/256: value_agree=0 TIE=234 disagree=196 budget=0
+# sample 96/256: value_agree=0 TIE=251 disagree=200 budget=0
+# sample 104/256: value_agree=0 TIE=291 disagree=216 budget=0
+# sample 112/256: value_agree=0 TIE=305 disagree=230 budget=0
+# sample 120/256: value_agree=0 TIE=310 disagree=242 budget=0
+# sample 128/256: value_agree=0 TIE=326 disagree=242 budget=0
+# sample 136/256: value_agree=0 TIE=352 disagree=242 budget=0
+# sample 144/256: value_agree=0 TIE=376 disagree=257 budget=0
+# sample 152/256: value_agree=0 TIE=410 disagree=273 budget=0
+# sample 160/256: value_agree=0 TIE=419 disagree=289 budget=0
+# sample 168/256: value_agree=0 TIE=447 disagree=289 budget=0
+# sample 176/256: value_agree=0 TIE=462 disagree=289 budget=0
+# sample 184/256: value_agree=0 TIE=480 disagree=313 budget=0
+# sample 192/256: value_agree=0 TIE=511 disagree=321 budget=0
+# sample 200/256: value_agree=0 TIE=543 disagree=339 budget=0
+# sample 208/256: value_agree=0 TIE=567 disagree=347 budget=0
+# sample 216/256: value_agree=0 TIE=575 disagree=363 budget=0
+# sample 224/256: value_agree=0 TIE=583 disagree=396 budget=0
+# sample 232/256: value_agree=0 TIE=601 disagree=412 budget=0
+# sample 240/256: value_agree=0 TIE=623 disagree=430 budget=0
+# sample 248/256: value_agree=0 TIE=651 disagree=446 budget=0
+# === probe verdict ===
+# samples requested: 256
+# samples evaluated: 171
+# === three-way split (ref-semantics §2) ===
+# value-agreements (v != TIE, v == V): 0
+# TIE-valued (v == TIE): 679
+# budget-exhausted (v == null): 0 / 1133
+# disagreements (v != TIE, v != V, v != null): 454
+# samples no arrival history reached target: 85
+# cycle-census states (any history hit TIE leaf): 109
+# sampled-kind counts: L==H=69 pin_T=161 pin_L=26 pin_H=0
+# QA-023: FALSIFIED on this sample. Inspect the disagreements.
+[runner] peak RSS by PID:
+[runner]   pid    8810       0 MB
+[runner] exit 0 in 0.3 s
