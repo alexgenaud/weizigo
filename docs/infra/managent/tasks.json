@@ -12,7 +12,8 @@
     "done": "2026-07-29T17:48:44Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "EXP-5": {
     "status": "blocked",
@@ -26,7 +27,8 @@
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 0
   },
   "F1-SEEDROOTS": {
     "status": "done",
@@ -41,7 +43,8 @@
     "done": "2026-07-29T21:38:22Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "2B-1": {
     "status": "done",
@@ -56,7 +59,8 @@
     "done": "2026-07-29T09:36:48Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "NARRATIVE-LAYER": {
     "status": "done",
@@ -71,7 +75,8 @@
     "done": "2026-07-29T22:56:44Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "2B-4": {
     "status": "done",
@@ -86,7 +91,8 @@
     "done": "2026-07-29T11:02:58Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "ROLE-NAMES": {
     "status": "done",
@@ -101,7 +107,8 @@
     "done": "2026-07-29T23:01:57Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "AUDIT-REF-DSPro": {
     "status": "done",
@@ -116,7 +123,8 @@
     "done": "2026-07-29T22:34:09Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "F1-CENSUS-GAP": {
     "status": "done",
@@ -131,7 +139,8 @@
     "done": "2026-07-29T22:55:11Z",
     "dispatched": "2026-07-29T22:11:14Z",
     "dispatched_to": "kimi-k3",
-    "note": "Kimi-k3 found this gap while reading F1-SEEDROOTS and flagged it unprompted. Not self-review — F1-SEEDROOTS was DSPro's. Good use of a seat idle behind a blocked EXP-4, and it already holds census context."
+    "note": "Kimi-k3 found this gap while reading F1-SEEDROOTS and flagged it unprompted. Not self-review — F1-SEEDROOTS was DSPro's. Good use of a seat idle behind a blocked EXP-4, and it already holds census context.",
+    "claim_count": 1
   },
   "2B-3-AUDIT": {
     "status": "done",
@@ -146,7 +155,8 @@
     "done": "2026-07-29T14:13:29Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "QA023-C1-WITNESS": {
     "status": "done",
@@ -161,21 +171,24 @@
     "done": "2026-07-29T22:55:46Z",
     "dispatched": "2026-07-29T22:11:14Z",
     "dispatched_to": "DSPro",
-    "note": "NOT to Kimi-k3: it found the witness via its own harness (src/qa023_pinrule.zig), and a dump from that harness reproduces the harness. Two-seat rule is already satisfied by K2.7; this is the third check and it must be independent of the producing code. Require node-for-node agreement between in-tree truncated_value and an independent reimplementation. Secondary: K3 already hit context exhaustion once today."
+    "note": "NOT to Kimi-k3: it found the witness via its own harness (src/qa023_pinrule.zig), and a dump from that harness reproduces the harness. Two-seat rule is already satisfied by K2.7; this is the third check and it must be independent of the producing code. Require node-for-node agreement between in-tree truncated_value and an independent reimplementation. Secondary: K3 already hit context exhaustion once today.",
+    "claim_count": 1
   },
   "AGENT-IDENTITY": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/AGENT-IDENTITY.md",
     "set": "Y",
     "holds": ["src/managent/main.zig"],
     "needs": ["ORCHA-AUTOMATION"],
     "caps": [],
     "added": "2026-07-29T16:21:30Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T23:41:03Z",
+    "done": "2026-07-29T23:41:03Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "2B-2": {
     "status": "done",
@@ -190,7 +203,8 @@
     "done": "2026-07-29T10:18:21Z",
     "dispatched": "2026-07-29T10:56:43Z",
     "dispatched_to": "minimax-m3",
-    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
+    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings).",
+    "claim_count": 1
   },
   "2B-5": {
     "status": "done",
@@ -205,7 +219,8 @@
     "done": "2026-07-29T12:53:22Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "2B-2-AUDIT-OPUS": {
     "status": "done",
@@ -220,7 +235,8 @@
     "done": "2026-07-29T11:57:09Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "EXP-2B": {
     "status": "failed",
@@ -235,7 +251,8 @@
     "done": "2026-07-29T09:36:48Z",
     "dispatched": "2026-07-29T03:42:22Z",
     "dispatched_to": "kimi-k2.7",
-    "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
+    "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result.",
+    "claim_count": 1
   },
   "QA023-KERNEL-AUDIT": {
     "status": "done",
@@ -250,7 +267,8 @@
     "done": "2026-07-29T21:48:47Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "2B-PROBE-FIX": {
     "status": "done",
@@ -265,7 +283,8 @@
     "done": "2026-07-29T14:21:40Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "PINRULE-SUFFICIENCY": {
     "status": "done",
@@ -280,7 +299,8 @@
     "done": "2026-07-29T18:09:20Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "2B-FIX-KO": {
     "status": "done",
@@ -295,7 +315,8 @@
     "done": "2026-07-29T12:37:45Z",
     "dispatched": "2026-07-29T12:41:28Z",
     "dispatched_to": "opus-5",
-    "note": "Human dispatched 2B-FIX-KO to Opus 5, incl. potentially additional work suggested by the prior Opus 2B-2 auditor (F5: apply_place single-stone ko-capture check; re-run census + probe; resolve whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact). Model suggestion only — human assigns."
+    "note": "Human dispatched 2B-FIX-KO to Opus 5, incl. potentially additional work suggested by the prior Opus 2B-2 auditor (F5: apply_place single-stone ko-capture check; re-run census + probe; resolve whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact). Model suggestion only — human assigns.",
+    "claim_count": 1
   },
   "2B-2-AUDIT": {
     "status": "done",
@@ -310,7 +331,8 @@
     "done": "2026-07-29T12:06:27Z",
     "dispatched": "2026-07-29T11:26:48Z",
     "dispatched_to": "kimi-k2.7",
-    "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable."
+    "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable.",
+    "claim_count": 1
   },
   "MANAGENT-DERIVE-STATUS": {
     "status": "done",
@@ -325,7 +347,8 @@
     "done": "2026-07-29T21:48:46Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "STANDING-CLEANUP": {
     "status": "done",
@@ -340,7 +363,8 @@
     "done": "2026-07-29T23:22:44Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": "tree dirty across two turns: 12→12 dirty files"
+    "note": "tree dirty across two turns: 12→12 dirty files",
+    "claim_count": 1
   },
   "2B-6": {
     "status": "done",
@@ -355,7 +379,8 @@
     "done": "2026-07-29T15:08:35Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "EXP-7": {
     "status": "blocked",
@@ -369,7 +394,8 @@
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 0
   },
   "EXP-6": {
     "status": "blocked",
@@ -383,7 +409,8 @@
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 0
   },
   "2B-3": {
     "status": "done",
@@ -398,7 +425,8 @@
     "done": "2026-07-29T10:04:35Z",
     "dispatched": "2026-07-29T10:56:43Z",
     "dispatched_to": "deepseek-pro",
-    "note": "User dispatched 2B-3 (history-pair generation at 3x2) to DeepSeek Pro. Reuse play_arrival. Vacuity gate: visit-set-difference count > 0 or escalate."
+    "note": "User dispatched 2B-3 (history-pair generation at 3x2) to DeepSeek Pro. Reuse play_arrival. Vacuity gate: visit-set-difference count > 0 or escalate.",
+    "claim_count": 1
   },
   "2B-0": {
     "status": "done",
@@ -413,10 +441,11 @@
     "done": "2026-07-29T09:36:48Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "WORKER-CHANNEL": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/WORKER-CHANNEL.md",
     "set": "Z",
     "holds": ["tools/runner"],
@@ -427,7 +456,8 @@
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 0
   },
   "EXP-4": {
     "status": "in_progress",
@@ -442,7 +472,8 @@
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
-    "note": "GATED 2026-07-29 by the Orchestrator: EXP-4 builds the new-rule tables on V=median(L,TIE,H), which ADR-0019 falsified at 3x2 (QA-026/GLOBAL.LONGCYCLE FALSE-AS-SCOPED). A replacement value rule is required first; PINRULE-SUFFICIENCY decides whether any pointwise (L,TIE,H) rule can work at all. Status set to blocked by hand because the MANAGENT-DERIVE-STATUS defect means `needs --add` does not re-gate an already-dispatchable task."
+    "note": "GATED 2026-07-29 by the Orchestrator: EXP-4 builds the new-rule tables on V=median(L,TIE,H), which ADR-0019 falsified at 3x2 (QA-026/GLOBAL.LONGCYCLE FALSE-AS-SCOPED). A replacement value rule is required first; PINRULE-SUFFICIENCY decides whether any pointwise (L,TIE,H) rule can work at all. Status set to blocked by hand because the MANAGENT-DERIVE-STATUS defect means `needs --add` does not re-gate an already-dispatchable task.",
+    "claim_count": 1
   },
   "STREAM-DISCIPLINE": {
     "status": "done",
@@ -457,7 +488,8 @@
     "done": "2026-07-29T23:19:33Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "ORCHA-AUTOMATION": {
     "status": "done",
@@ -472,7 +504,8 @@
     "done": "2026-07-29T23:17:49Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "INDEX-RETRIEVAL": {
     "status": "done",
@@ -487,7 +520,8 @@
     "done": "2026-07-29T22:54:10Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "EVIDENCE-INTEGRITY": {
     "status": "done",
@@ -502,7 +536,8 @@
     "done": "2026-07-29T15:19:45Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "REFERENCES": {
     "status": "done",
@@ -517,7 +552,8 @@
     "done": "2026-07-29T17:48:44Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "CLAIMS-SPLIT-CONJUNCTS": {
     "status": "done",
@@ -532,7 +568,8 @@
     "done": "2026-07-29T23:01:48Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "ADR0006-FALSIFY": {
     "status": "done",
@@ -547,7 +584,8 @@
     "done": "2026-07-29T15:19:06Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
   },
   "AUDIT-DSPro": {
     "status": "done",
@@ -562,6 +600,11 @@
     "done": "2026-07-29T22:34:02Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null
+    "note": null,
+    "claim_count": 1
+  }
+,
+  "_sys": {
+    "next_id": 100
   }
 }

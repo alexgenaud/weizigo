@@ -72,6 +72,7 @@ const TaskState = struct {
     dispatched: ?[]const u8 = null,
     dispatched_to: ?[]const u8 = null,
     note: ?[]const u8 = null,
+    claim_count: u32 = 0,
 };
 
 // ── message-bus types ───────────────────────────────────────────────────────
@@ -143,6 +144,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdNext(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "show")) {
         try cmdShow(w, io, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "whoami")) {
+        try cmdWhoami(w, io, state_path, args);
     } else if (std.mem.eql(u8, cmd, "dispatch")) {
         try cmdDispatch(w, io, state_path, args);
     } else if (std.mem.eql(u8, cmd, "reopen")) {
@@ -450,6 +453,8 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
     try state_dir.rename(tmp_name, state_dir, basename, io);
 }
 
+var sys_next_id: u32 = 100; // monotonic task-ID counter, loaded from _sys
+
 fn parseStateJson(content: []const u8) !StateMap {
     const trimmed = std.mem.trim(u8, content, " \t\n\r");
     if (trimmed.len == 0 or std.mem.eql(u8, trimmed, "{}")) {
@@ -467,6 +472,15 @@ fn parseStateJson(content: []const u8) !StateMap {
     defer parsed.deinit();
 
     if (parsed.value != .object) return state;
+
+    // Load _sys metadata (counter, aliases)
+    if (parsed.value.object.get("_sys")) |sys_val| {
+        if (sys_val == .object) {
+            if (sys_val.object.get("next_id")) |nv| {
+                if (nv == .integer) sys_next_id = @intCast(nv.integer);
+            }
+        }
+    }
 
     var it = parsed.value.object.iterator();
     while (it.next()) |entry| {
@@ -543,6 +557,9 @@ fn parseStateJson(content: []const u8) !StateMap {
         }
         if (obj.object.get("note")) |nt| {
             if (nt == .string) ts.note = try alloc.dupe(u8, nt.string);
+        }
+        if (obj.object.get("claim_count")) |cc| {
+            if (cc == .integer) ts.claim_count = @intCast(cc.integer);
         }
 
         try state.put(alloc, task_id, ts);
@@ -653,11 +670,18 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try buf.appendSlice(alloc, ",\n    \"note\": null");
         }
 
+        try buf.appendSlice(alloc, ",\n    \"claim_count\": ");
+        try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.claim_count}));
+
         try buf.appendSlice(alloc, "\n  }");
     }
 
     if (!first) try buf.appendSlice(alloc, "\n");
-    try buf.appendSlice(alloc, "}\n");
+    // _sys metadata
+    try buf.appendSlice(alloc, ",\n  \"_sys\": {\n    \"next_id\": ");
+    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_next_id}));
+    try buf.appendSlice(alloc, "\n  }");
+    try buf.appendSlice(alloc, "\n}\n");
 }
 
 fn parseStatus(s: []const u8) TaskStatus {
@@ -760,16 +784,23 @@ fn migrateState(w: Writers, state: *StateMap) bool {
     while (it.next()) |entry| {
         const id = entry.key_ptr.*;
         const ts = entry.value_ptr;
-        if (ts.status != .dispatchable and ts.status != .blocked) continue;
-        const derived = deriveStatus(state, ts.*);
-        if (ts.status != derived) {
-            const before = statusToString(ts.status);
-            const after = statusToString(derived);
-            w.diag("[migrate] {s}: stored {s} → {s} (needs-derived)\n", .{ id, before, after });
-            ts.status = derived;
+        if (ts.status == .dispatchable or ts.status == .blocked) {
+            const derived = deriveStatus(state, ts.*);
+            if (ts.status != derived) {
+                const before = statusToString(ts.status);
+                const after = statusToString(derived);
+                w.diag("[migrate] {s}: stored {s} → {s} (needs-derived)\n", .{ id, before, after });
+                ts.status = derived;
+                changed = true;
+            }
+        }
+        // Backfill claim_count: if task has an agent and was claimed, set to 1
+        if (ts.claim_count == 0 and ts.agent != null and ts.claimed != null) {
+            ts.claim_count = 1;
             changed = true;
         }
     }
+
     return changed;
 }
 
@@ -801,6 +832,17 @@ fn bundleRel(bundle: []const u8, repo_root: []const u8) []const u8 {
     return bundle;
 }
 
+/// Derive the agent identifier: <agent>/<task-id> or <agent>/<task-id>.<attempt>
+/// When agent is unset, returns "unknown/<task-id>".
+/// The .<attempt> suffix is appended when claim_count > 1.
+fn agentIdentifier(ts: TaskState, task_id: []const u8) ![]const u8 {
+    const model = ts.agent orelse "unknown";
+    if (ts.claim_count <= 1) {
+        return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ model, task_id });
+    }
+    return try std.fmt.allocPrint(alloc, "{s}/{s}.{d}", .{ model, task_id, ts.claim_count });
+}
+
 // ── flag parsing helpers ────────────────────────────────────────────────────
 
 fn hasFlag(args: [][]const u8, flag: []const u8) bool {
@@ -823,17 +865,78 @@ fn getFlagValue(args: [][]const u8, flag: []const u8) ?[]const u8 {
 // ── commands ────────────────────────────────────────────────────────────────
 
 fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
-    if (args.len < 3) {
-        w.diag("usage: managent add <id>\n", .{});
+    const use_auto = hasFlag(args, "--auto");
+
+    if (!use_auto and args.len < 3) {
+        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>]\n", .{});
+        w.diag("       managent add --auto --bundle <path>  (mint opaque T<N> ID)\n", .{});
         std.process.exit(1);
     }
-    const id = args[2];
+    if (use_auto and args.len >= 3 and args[2].len > 0 and !std.mem.startsWith(u8, args[2], "-")) {
+        // --auto with an ID: use it as the bundle slug, generate T<N>
+    }
 
     const bundle_override = getFlagValue(args, "--bundle");
     const set_override = getFlagValue(args, "--set");
     const needs_extra = getFlagValue(args, "--needs");
 
     var state = try readState(io, state_path);
+
+    var id: []const u8 = undefined;
+    var id_owned = false;
+
+    if (use_auto) {
+        // Generate opaque T<N> ID
+        id = try std.fmt.allocPrint(alloc, "T{d:0>3}", .{sys_next_id});
+        id_owned = true;
+
+        const bundle_path = if (bundle_override) |bp|
+            try alloc.dupe(u8, bp)
+        else if (args.len >= 3 and !std.mem.startsWith(u8, args[2], "-"))
+            try findBundle(w, io, repo_root, args[2])
+        else {
+            w.diag("error: --auto needs --bundle <path> or a slug as positional arg\n", .{});
+            std.process.exit(1);
+        };
+        defer alloc.free(bundle_path);
+
+        const meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+
+        const tmp_for_needs = TaskState{ .needs = meta.needs };
+        const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
+
+        const now = try nowTimestamp();
+
+        const ts = TaskState{
+            .status = initial_status,
+            .agent = null,
+            .bundle = bundle_path,
+            .set = meta.set,
+            .holds = meta.holds,
+            .needs = meta.needs,
+            .caps = meta.caps,
+            .added = now,
+            .claimed = null,
+            .done = null,
+        };
+
+        try state.put(alloc, try alloc.dupe(u8, id), ts);
+        sys_next_id += 1;
+        try writeState(io, state_path, &state);
+
+        const set_label = if (meta.holds.len > 0)
+            try std.fmt.allocPrint(alloc, "set: {c}, holds {s}", .{ meta.set, meta.holds[0] })
+        else
+            try std.fmt.allocPrint(alloc, "set: {c}", .{meta.set});
+        defer alloc.free(set_label);
+
+        w.diag("\n  registered {s}  [{s}]  [dispatchable]\n", .{ id, set_label });
+        w.diag("  bundle: {s}\n", .{bundle_path});
+        defer if (id_owned) alloc.free(id);
+        return;
+    }
+
+    id = args[2];
 
     if (state.contains(id)) {
         w.diag("error: task '{s}' already exists\n", .{id});
@@ -916,6 +1019,9 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         std.process.exit(1);
     }
 
+    // Increment claim count before checking status
+    ts_ptr.claim_count += 1;
+
     switch (ts_ptr.status) {
         .blocked => {
             w.diag("\n  (stored blocked, needs met — claiming anyway)", .{});
@@ -936,7 +1042,8 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             ts_ptr.claimed = now;
 
             try writeState(io, state_path, &state);
-            w.diag("\n  claimed {s}  [set: {c}]\n", .{ id, ts_ptr.set });
+            const ident = try agentIdentifier(ts_ptr.*, id);
+            w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
             w.diag("  follow {s}\n", .{ts_ptr.bundle});
 
             if (exec_prefix) |prefix| {
@@ -946,7 +1053,8 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         },
         .in_progress => {
             w.diag("\n  ALREADY CLAIMED: {s} is already in progress", .{id});
-            if (ts_ptr.agent) |a| w.diag(" by {s}", .{a});
+            const ident = try agentIdentifier(ts_ptr.*, id);
+            w.diag(" by {s}", .{ident});
             w.diag("\n", .{});
             std.process.exit(1);
         },
@@ -976,7 +1084,8 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             try writeState(io, state_path, &state);
 
-            w.diag("\n  claimed {s}  [set: {c}]\n", .{ id, ts_ptr.set });
+            const ident = try agentIdentifier(ts_ptr.*, id);
+            w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
             w.diag("  follow {s}\n", .{ts_ptr.bundle});
 
             if (exec_prefix) |prefix| {
@@ -1075,9 +1184,9 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
     if (ts_ptr.agent == null and !is_fail) {
         w.diag("\n  REJECTED: {s} has no agent set.\n", .{id});
-        w.diag("  Every completed task must be attributed to a worker for the model-performance ledger.\n", .{});
-        w.diag("  Use: managent done {s} --agent <worker>\n", .{id});
-        w.diag("  Or set it first: managent agent {s} <worker>\n", .{id});
+        w.diag("  Every completed task must carry an agent for the identifier and model-performance ledger.\n", .{});
+        w.diag("  Use: managent done {s} --agent <model>\n", .{id});
+        w.diag("  Or set it first: managent agent {s} <model>\n", .{id});
         std.process.exit(1);
     }
 
@@ -1475,8 +1584,9 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
             w.data(", holds", .{});
             for (ts.holds) |h| w.data(" {s}", .{h});
         }
-        if (ts.agent) |a| {
-            w.data(", agent {s}", .{a});
+        if (ts.agent) |_| {
+            const ident = agentIdentifier(ts, tid) catch tid;
+            w.data(", {s}", .{ident});
         }
         if (ts.dispatched_to) |dt| {
             w.data(", dispatched {s}", .{dt});
@@ -1497,7 +1607,10 @@ fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
         w.data("\n  {{\"id\":\"{s}\",\"status\":\"{s}\",\"set\":\"{c}\",\"bundle\":\"{s}\"", .{
             entry.key_ptr.*, statusToString(ts.status), ts.set, rel,
         });
-        if (ts.agent) |a| w.data(",\"agent\":\"{s}\"", .{a});
+        if (ts.agent) |_| {
+            const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
+            w.data(",\"identifier\":\"{s}\"", .{ident});
+        }
         if (ts.needs.len > 0) {
             w.data(",\"needs\":[", .{});
             for (ts.needs, 0..) |n, ni| {
@@ -1546,10 +1659,12 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     const now = try nowTimestamp();
     ts_ptr.status = .in_progress;
     ts_ptr.claimed = now;
+    ts_ptr.claim_count += 1;
 
     try writeState(io, state_path, &state);
 
-    w.diag("\n  claimed {s}  [set: {c}]\n", .{ id, ts_ptr.set });
+    const ident = try agentIdentifier(ts_ptr.*, id);
+    w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
     w.diag("  follow {s}\n", .{ts_ptr.bundle});
 
     if (exec_prefix) |prefix| {
@@ -1641,15 +1756,40 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
         if (ts.dispatched_to) |dt| w.data(" to {s}", .{dt});
         w.data("\n", .{});
     }
-    if (ts.agent) |a| {
-        w.data("    agent:    {s}\n", .{a});
+    if (ts.agent) |_| {
+        const ident = try agentIdentifier(ts, id);
+        w.data("    identifier: {s}\n", .{ident});
     } else {
-        w.data("    agent:    -- unset --\n", .{});
+        w.data("    identifier: unknown/{s}\n", .{id});
     }
     if (ts.note) |nt| {
         w.data("    note:     {s}\n", .{nt});
     }
     w.data("\n", .{});
+}
+
+fn cmdWhoami(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 3) {
+        w.diag("usage: managent whoami <id>\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+
+    const ts = state.get(id) orelse {
+        w.diag("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    if (ts.agent == null) {
+        w.diag("  unknown/{s}  (agent unset — claim with --agent <model> to set one)\n", .{id});
+        return;
+    }
+
+    const ident = try agentIdentifier(ts, id);
+    w.data("{s}\n", .{ident});
 }
 
 fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
@@ -1702,7 +1842,7 @@ fn printHelp(w: Writers) void {
         \\Usage:
         \\  managent                  show current state (default)
         \\  managent status [--json]  show current state (--json for machine output)
-        \\  managent add <id>         register a task from untracked/<id>-*.md
+        \\  managent add <id>         register a task (with --auto to mint T<N> ID)
         \\  managent dispatch <id>    record a human→agent dispatch (task stays dispatchable)
         \\  managent claim <id>       claim a task for execution
         \\  managent done <id>        mark a task complete
@@ -1712,13 +1852,15 @@ fn printHelp(w: Writers) void {
         \\  managent why <claim-id>   show tasks that produced evidence for a claim
         \\  managent sync <role>      print unread messages; exit non-zero when write owed
         \\  managent audit [--json]   cross-check kanban against reality
+        \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent standing         register triggered standing-tier tasks
         \\  managent help             show this help
         \\
         \\Options:
-        \\  --agent <name>           label who claimed (with claim / done)
+        \\  --agent <name>           label who claimed — sets the model in the identifier (with claim / done)
         \\  --to <agent>             agent the task is dispatched to (with dispatch)
         \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add)
+        \\  --auto                   auto-generate opaque T<N> task ID (with add)
         \\  --bundle <path>          override bundle path (with add)
         \\  --set <A|B|C>            override parallel set (with add)
         \\  --needs <id>             add extra dependency (with add)
@@ -1729,6 +1871,7 @@ fn printHelp(w: Writers) void {
         \\Examples:
         \\  managent status --json | jq '.[] | select(.status=="blocked")'
         \\  managent audit 2>/dev/null  # see only discrepancies
+        \\  managent whoami 2B-5         # resolve what identifier a task would have
         \\  managent next --exec "pi --provider deepseek --model deepseek-v4-pro"
         \\  managent claim B17 --exec "pi --provider ollama --model glm-5.2:cloud"
         \\

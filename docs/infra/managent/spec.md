@@ -7,11 +7,14 @@ parallel-group label, not a gate.**
 **ORCHA-AUTOMATION (2026-07-30):** stdout/stderr split, `--json`, `sync`, `audit`,
 `standing`, `why`, attribution enforcement. See §"ORCHA-AUTOMATION commands" below.
 
+**AGENT-IDENTITY (2026-07-29):** derived identifier (`<agent>/<task-id>[.attempt]`),
+`whoami` command, identifier display in `status`/`show`/`why`/`--json`.
+
 ---
 
 ## Interface
 
-Sixteen commands. The original eleven plus five from ORCHA-AUTOMATION.
+Eighteen commands.
 
 ```
 managent add <id>              register a task
@@ -23,9 +26,11 @@ managent reopen <id>           reopen a killed in_progress/failed task (→ disp
 managent purge                 purge done/failed tasks (and clean their IDs from remaining needs)
 managent set <id> <A|B|C|…>      reassign a task's phase set (A–Z)
 managent needs <id> [--add…/--rm…]  add/remove dependency edges
+managent agent <id> <name>     set the model/agent for a task
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task
+managent whoami <id>           resolve agent identifier for a task
 managent why <claim-id>        show tasks that produced evidence for a claim
 managent sync <role>           print unread inbox; exit non-zero when write owed
 managent audit [--json]        cross-check kanban against reality; exit non-zero on findings
@@ -99,18 +104,25 @@ for the OVERSEER and ADVISOR; no syntax is invented here.
 
 Registers a task. Finds the bundle file by glob, parses its metadata.
 
+With `--auto`, mints an opaque monotonic `T<N>` ID (e.g. `T099`) from the
+counter stored in `_sys.next_id`, and derives the brief filename from the
+bundle's title. Old-style IDs (non-`T`-prefixed) continue to work; new
+tasks should use `--auto`.
+
 ```
 $ managent add B09
 
   registered B09  [set: C, holds src/retro.zig]  [dispatchable]
 
-$ managent add B10
+$ managent add --auto --bundle docs/infra/dispatch/EXP-17.md --set A
 
-  registered B10  [set: A]  [blocked: needs B07]
+  registered T100  [set: A]  [dispatchable]
+  bundle: docs/infra/dispatch/EXP-17.md
 ```
 
-Optional flags: `--bundle <path>` to override path, `--set <A|B|C>` to
-override the metadata value, `--needs <id>` to add an extra dependency.
+Optional flags: `--auto` (mint opaque T<N> ID), `--bundle <path>` to
+override path, `--set <A|B|C>` to override the metadata value,
+`--needs <id>` to add an extra dependency.
 
 If the task ID already exists: error. If no bundle file found: error.
 
@@ -375,7 +387,7 @@ temp-file + rename.
 | Field | Set by | When | Meaning |
 |---|---|---|---|
 | `status` | `add`, `claim`, `done`, (derived) | lifecycle + load-time migration | `dispatchable` / `in_progress` / `done` / `failed` / `blocked`. **`dispatchable` and `blocked` are derived from `needs` on every read** (see §"Derived vs stored status" above); the stored value may be overwritten by migration on load. `in_progress`, `done`, and `failed` are stored facts. |
-| `agent` | `claim` | when claimed | role or model label of the agent that *claimed* (not the agent that was dispatched) |
+| `agent` | `claim` | when claimed | model name of the agent that *claimed* (not the dispatched agent). Used by `agentIdentifier()` to form `<agent>/<task-id>` |
 | `bundle` | `add` | registration | path to the brief |
 | `set` | `add` | registration | parallelization group A/B/C |
 | `holds` | `add` | registration | file paths the task writes exclusively |
@@ -387,6 +399,12 @@ temp-file + rename.
 | `dispatched` | `dispatch` | when dispatched | ISO-8601 timestamp of the human→agent dispatch |
 | `dispatched_to` | `dispatch` | when dispatched | agent name (informational; the agent still claims) |
 | `note` | `dispatch`, `add` | when recorded | free-form context, ≤ 4 KiB |
+| `claim_count` | `claim` | incremented each claim | number of times claimed; when >1, identifier appends `.N` suffix |
+
+**Identifier.** The agent identifier is derived, not stored: `<agent>/<task-id>`
+(or `<agent>/<task-id>.<claim_count>` when claimed more than once). When `agent`
+is unset the identifier is `unknown/<task-id>`, and `managent done` (non-fail)
+refuses to close. See `managent whoami <id>`.
 
 **`dispatched` and `dispatched_to` are not the same as `agent`.** The human
 *dispatches* the task; the agent *claims* it. They may match (the dispatched

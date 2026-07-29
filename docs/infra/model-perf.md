@@ -2050,15 +2050,16 @@ Registering that is a judgement call for the user; the `managent sync` spec
 separate fresh instance. Agents are expected to declare their own model in the
 result file; `ADR0006-FALSIFY` wrote *"not stated at dispatch"* and was set on the
 kanban via `managent agent`. **`managent done` should refuse an unset `agent`** —
-folded into `ORCHA-AUTOMATION`.
+folded into `ORCHA-AUTOMATION`. Identifiers follow the `<model>/<task-id>`
+convention (`docs/infra/agent-identity-and-worker-channel.md` Part 1).
 
-| task | model | outcome |
-|---|---|---|
-| 2B-3-AUDIT | DSPro | generator functionally correct; found the **93% shortest-path miss / 62% prefix-sharing** sampling bias that reduced C1 from "unrefuted" to *untested*. Independent Python re-implementation. |
-| 2B-PROBE-FIX | DSPro | reproduced the σ defect **before** fixing it, as briefed; fixed both defects; separated exhaustion from scratch overflow; **C2 FALSIFIED**. Proposed marking QA-023 FALSIFIED — overridden. |
-| 2B-6 | DSPro | **independently confirmed the Orchestrator's adjudication** and caught a transcription error in 2B-PROBE-FIX's table. This is the seat that closed the verify-then-promote gate. |
-| EVIDENCE-INTEGRITY | DSPro | B1 downgrades, CANNOT-REPRODUCE banners, 4x4.ANCHOR fixed well (recorded the error rather than silently rewriting). **Reported one banner as placed that was not** (`ARCHITECTURE.md`), and quoted a stale orphan count. |
-| ADR0006-FALSIFY | DSPro | **0 disagreements at 3×3, calibration PASSED after 65 tries.** Materially strengthens ADR-0006, which had been validated on a single position — the eye-prune is a precondition of every forward search used as ground truth. |
+| identifier | outcome |
+|---|---|
+| DSPro/2B-3-AUDIT | generator functionally correct; found the **93% shortest-path miss / 62% prefix-sharing** sampling bias that reduced C1 from "unrefuted" to *untested*. Independent Python re-implementation. |
+| DSPro/2B-PROBE-FIX | reproduced the σ defect **before** fixing it, as briefed; fixed both defects; separated exhaustion from scratch overflow; **C2 FALSIFIED**. Proposed marking QA-023 FALSIFIED — overridden. |
+| DSPro/2B-6 | **independently confirmed the Orchestrator's adjudication** and caught a transcription error in 2B-PROBE-FIX's table. This is the seat that closed the verify-then-promote gate. |
+| DSPro/EVIDENCE-INTEGRITY | B1 downgrades, CANNOT-REPRODUCE banners, 4x4.ANCHOR fixed well (recorded the error rather than silently rewriting). **Reported one banner as placed that was not** (`ARCHITECTURE.md`), and quoted a stale orphan count. |
+| DSPro/ADR0006-FALSIFY | **0 disagreements at 3×3, calibration PASSED after 65 tries.** Materially strengthens ADR-0006, which had been validated on a single position — the eye-prune is a precondition of every forward search used as ground truth. |
 
 **The DSPro fleet performed well**, and the pattern is consistent: given a brief
 that demands independent re-implementation and a stated wrong-answer pass rate,
