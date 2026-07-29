@@ -6,7 +6,9 @@ recorded falsification is cheaper than a repeated investigation.
 
 Each entry: **what was claimed** (quoted, with its location) · **why it is
 wrong** (the measurement) · **corrected statement** · **status** · **what to
-change** (and who owns that file — this note's author owns only this file).
+change** (and who owns that file — this note's author owns only this file) ·
+**remediation** (whether the change was applied in the repo, and at what
+commit; added 2026-07-29 evidence-integrity sweep).
 
 Evidence base for Group A and C: `bin/weizigo-chainability`
 (source `src/chainability.zig`), run 2026-07-27, exhaustive on
@@ -61,7 +63,9 @@ Diagnosis section added 2026-07-27 already states the corrected version — the
 bullet at line 21 still carries the old wording). The commit message is
 immutable; this entry is its erratum.
 
----
+**Remediation:** ✅ **APPLIED** by 2026-07-28 — `regressions/README.md` now
+carries the corrected wording (verified 2026-07-28; `CLAIMS.md` §6-D17). The
+stale line-21 citation is resolved.
 
 ## A-2 — category error: the blunder is not "C2 in action"
 
@@ -93,6 +97,10 @@ outside-the-flag chainability result is **PROVEN** at each size listed, on the
 audited artifact.
 
 **What to change:** `regressions/README.md` (another agent owns it).
+
+**Remediation:** ✅ **APPLIED** — the corrected attribution (C4 + unchainability)
+is stated in `CLAIMS.md`'s `4x4.A-2` row and in the corrections ledger itself.
+`regressions/README.md` was updated as part of the same pass as A-1.
 
 ---
 
@@ -130,6 +138,13 @@ single counter-example sufficient). The per-slot C1 statement is unaffected.
 **What to change:** `regressions/README.md` (another agent owns it); the
 `src/gtp.zig:37` header comment carries the same overstatement and should be
 narrowed when the file next has a single writer.
+
+**Remediation:** ✅ **PARTIALLY APPLIED** — `src/gtp.zig:42` now reads "the
+player is neither history-perfect NOR fresh-start-perfect" (verified
+2026-07-28; `CLAIMS.md` §6-D17). `regressions/README.md:72,81` carries the
+correction. The old `src/gtp.zig:37` citation is stale (the text moved) but
+was corrected. **Not verified as complete:** the `regressions/README.md`
+change is recorded but not independently confirmed in this sweep.
 
 ---
 
@@ -170,6 +185,11 @@ a separate change to the player (see the fork in
 rewritten"). A **superseding ADR or an explicit correction note** is needed to
 retire that Consequences bullet. This entry is the interim record.
 
+**Remediation:** ❌ **NOT APPLIED.** ADR-0013 is append-only; no superseding
+ADR has been written as of 2026-07-29. The `GLOBAL.B-1` register row records
+the falsification. The Consequences bullet at `0013:129-130` remains in the
+ADR as a historical record of what was claimed.
+
 ---
 
 ## C-1 — a correction made mid-investigation: "bug" read where the answer was "definition"
@@ -199,6 +219,12 @@ case cannot distinguish "bug" from "definition" — every input looks guilty.
 Always calibrate an auditor against a known-good artifact before quoting its
 verdict. (Here the calibration also gave the auditor its scope: it judges only
 the region outside the `KO_SENSITIVE` flag, where it does pass.)
+
+**Remediation:** ✅ **APPLIED by construction.** This is a methodological
+finding, not a source-code correction. The lesson ("self-consistency check
+with no passing calibration case cannot distinguish bug from definition") is
+now recorded as `GLOBAL.CALIB-LESSON` (PROVEN) in `CLAIMS.md` §2.9 and is
+applied in the calibrations for EXP-3 and the #2 auditor.
 
 ---
 

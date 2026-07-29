@@ -1,5 +1,21 @@
 # 4x4 scale run: the oracle COMPLETES (2026-07-21)
 
+> **⚠ ERRATUM BANNER (2026-07-29, evidence-integrity sweep).** This document was
+> written before the crisis falsifications (C2 at 3×2, C3 at 3×3, F2 orphaned).
+> Several claims it makes about the 4×4 oracle are now retracted or narrowed
+> elsewhere (see `PROGRESS.md:267-270`, `0013:126-128`, `AGENTS.md:54-57`).
+> Specifically: the "complete, validated 4×4 oracle" was generated with the
+> writes-on (`ko_ref ≥ d`) guard, now known unsound (`GLOBAL.F1`,
+> FALSE-AS-SCOPED); the "history-perfect genmove is trivially affordable"
+> claim at §147-151 used bracket-cut search, which rests on C3 (falsified at
+> 3×3). The anchor-agreement paragraph at §74-84 said "under positional
+> superko" but MIGOS II plays basic ko + long-cycle-ties (`GLOBAL.MIGOS-RULE`);
+> it was corrected 2026-07-29. The 5×5 projections at §18-34 assume a
+> representation (PSK fresh-start) now known not to produce real-game scores.
+> **This document is a historical record, not a current statement of truth.**
+> For current epistemic status see `docs/epistemic/boards/4x4/EPISTEMIC.md` and
+> the claim register (`docs/epistemic/CLAIMS.md`).
+
 The first 4x4 run of the retrograde engine (ADR-0009/0010/0011), and the run
 that forced + validated two engine upgrades (checkpointed deepest-first
 finishing; MTD null-window probing with a per-root bounds memo). End state:
@@ -73,11 +89,14 @@ Operational lessons, also landed in code:
 
 ## Anchors: published 4x4 score MATCHES under positional superko
 
-`empty(B) 4x4 = +2` (dtt 13) — exactly van der Werf & Winands (ICGA 2009,
-B+2, central first move; MIGOS II plays basic-ko + long-cycle-ties, weizigo
-plays PSK — the 4x4 empty-board score is evidently cycle-rule-insensitive,
-unlike 2x2/3x2 where the rulesets diverge by a point; see the ko-rule-variant
-section in `retrograde-3x3.md`).
+`empty(B) 4x4 = +2` (dtt 13) — exactly van der Werf & Winands (ICGA 2009;
+canonical source: van der Werf 2005 PhD thesis §6.4). **MIGOS II plays
+basic-ko + long-cycle-ties, NOT positional superko** (`GLOBAL.MIGOS-RULE`,
+`QA-025`): the 4×4 empty-board agreement is cross-ruleset (the 4x4
+empty-board score is evidently cycle-rule-insensitive, unlike 2x2/3x2 where
+the rulesets diverge by a point; see the ko-rule-variant section in
+`retrograde-3x3.md`). **Corrected 2026-07-29 — the original text claimed
+"under positional superko," which `GLOBAL.MIGOS-RULE` contradicts.**
 
 End-to-end smoke test (gtp.zig on the persisted artifact): a perfect
 self-play game — 15 plies, double pass, **final_score = B+2** — the play

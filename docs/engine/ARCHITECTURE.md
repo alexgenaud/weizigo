@@ -5,6 +5,29 @@ plus tools, presentation, and a documentation system. Goal (ADR-0007): a
 compressed perfect oracle — the exact score of every legal (position, side) —
 for 5x5, then 6x6, aiming at 7x7.
 
+> **⚠ ERRATUM — the goal above predates the 2026-07 crisis and is not the
+> current target.** Added 2026-07-29 by the Orchestrator (Opus 5); the
+> `EVIDENCE-INTEGRITY` pass reported this banner as placed but it had not been.
+>
+> "A compressed perfect oracle … for 5x5, then 6x6, aiming at 7x7" assumes the
+> **PSK fresh-start representation**, which is now known **not** to produce
+> real-game scores: `GLOBAL.C2` is falsified at 3×2 (T13) and `GLOBAL.C3` at 3×3
+> (E2), so the table is a *fresh-start* score table and neither equals nor
+> bounds the real-game PSK score. The bracket premise is orphaned
+> (`GLOBAL.F2` / `QA-018`, ADR-0015/0017/0018). PSK exact-solve is intractable
+> anyway (ADR-0013).
+>
+> **No 5x5 work begins until a working representation is demonstrated at 4x4.**
+> The live target is ADR-0019: exact solving under **basic ko + a fixed-value
+> long-cycle verdict**, with a *measured* divergence from PSK — and as of
+> 2026-07-29 the value rule that was to compute it (`V = median(L, TIE, H)`) is
+> **FALSE-AS-SCOPED at 3×2**, so a replacement is required before any build.
+> Current position: `docs/status/CURRENT.md`, `docs/epistemic/PROGRESS.md`,
+> `docs/epistemic/knowledge-ladder.md` (which rung each claim actually sits on).
+>
+> The 5x5 density folds and projections in §§ below are historical arithmetic,
+> not a plan. `ADR-0012` carries its own erratum.
+
 > **Canonical names.** The table is the **position-to-score table** (artifact
 > format `.wzo`); the table entries are **scores** (game-theoretic area scores, Black-
 > positive, komi 0). Where L==H: **fresh-start single-score region**; where L<H:

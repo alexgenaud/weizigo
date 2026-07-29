@@ -13,6 +13,13 @@ This file was rewritten on 2026-07-26 (GLM-5.2, task T16) to address the eight
 critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
 `[T07-N]` so a fresh auditor can verify the changes.
 
+> **⚠ T07 BASIS UNVERIFIABLE (2026-07-29, evidence-integrity sweep).**
+> `untracked/T07-audit-hypotheses.md` is gone from disk (CLAIMS.md §7).
+> The eight findings that motivated this rewrite cannot be re-examined.
+> The `[T07-N]` tags in this file cite an audit whose primary source is lost.
+> This is recorded debt; the rewrite itself may be correct, but its basis
+> cannot be independently verified.
+
 ## Truths (proven at 4×4)
 - **S1** ✅ colex bijection (exhaustive round-trip through 4×4).
 - **S3a** ✅ move/capture/suicide kernel (24,318,165 legal = OEIS A094777;

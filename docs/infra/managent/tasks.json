@@ -1,30 +1,23 @@
 {
-  "2B-FIX-KO": {
-    "status": "done",
-    "agent": "opus-5",
-    "bundle": "docs/infra/dispatch/2B-FIX-KO.md",
-    "set": "K",
-    "holds": [
-      "src/qa023_brute_2x2.zig,src/qa023_probe.zig"
-    ],
-    "needs": [
-      "2B-2-AUDIT-OPUS"
-    ],
-    "added": "2026-07-29T11:57:09Z",
-    "claimed": "2026-07-29T12:37:45Z",
-    "done": "2026-07-29T12:37:45Z",
-    "dispatched": "2026-07-29T12:41:28Z",
-    "dispatched_to": "opus-5",
-    "note": "Human dispatched 2B-FIX-KO to Opus 5, incl. potentially additional work suggested by the prior Opus 2B-2 auditor (F5: apply_place single-stone ko-capture check; re-run census + probe; resolve whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact). Model suggestion only \u2014 human assigns."
+  "RUNNER-CEILING": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/RUNNER-CEILING.md",
+    "set": "O",
+    "holds": ["tools/runner"],
+    "needs": [],
+    "added": "2026-07-29T13:30:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
   },
   "EXP-5": {
     "status": "blocked",
     "bundle": "docs/infra/dispatch/EXP-5.md",
     "set": "G",
     "holds": [],
-    "needs": [
-      "EXP-4"
-    ],
+    "needs": ["EXP-4"],
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null,
@@ -32,21 +25,18 @@
     "dispatched_to": null,
     "note": null
   },
-  "2B-2-AUDIT": {
-    "status": "done",
-    "agent": "kimi-k2.7",
-    "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
-    "set": "J",
-    "holds": [],
-    "needs": [
-      "2B-2"
-    ],
-    "added": "2026-07-29T11:26:48Z",
-    "claimed": "2026-07-29T11:52:27Z",
-    "done": "2026-07-29T12:06:27Z",
-    "dispatched": "2026-07-29T11:26:48Z",
-    "dispatched_to": "kimi-k2.7",
-    "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable."
+  "F1-SEEDROOTS": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/F1-SEEDROOTS.md",
+    "set": "Q",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": ["2B-PROBE-FIX"],
+    "added": "2026-07-29T13:48:52Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
   },
   "2B-1": {
     "status": "done",
@@ -62,15 +52,13 @@
     "dispatched_to": null,
     "note": null
   },
-  "RUNNER-CEILING": {
+  "NARRATIVE-LAYER": {
     "status": "dispatchable",
-    "bundle": "docs/infra/dispatch/RUNNER-CEILING.md",
-    "set": "O",
-    "holds": [
-      "tools/runner"
-    ],
+    "bundle": "docs/infra/dispatch/NARRATIVE-LAYER.md",
+    "set": "U",
+    "holds": [],
     "needs": [],
-    "added": "2026-07-29T13:30:11Z",
+    "added": "2026-07-29T15:15:20Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -82,13 +70,8 @@
     "agent": "DeepSeek-Pro",
     "bundle": "docs/infra/dispatch/2B-4.md",
     "set": "C",
-    "holds": [
-      "src/qa023_probe.zig"
-    ],
-    "needs": [
-      "2B-2",
-      "2B-3"
-    ],
+    "holds": ["src/qa023_probe.zig"],
+    "needs": ["2B-2", "2B-3"],
     "added": "2026-07-29T09:36:48Z",
     "claimed": "2026-07-29T10:57:13Z",
     "done": "2026-07-29T11:02:58Z",
@@ -96,17 +79,138 @@
     "dispatched_to": null,
     "note": null
   },
-  "F1-SEEDROOTS": {
-    "status": "dispatchable",
-    "bundle": "docs/infra/dispatch/F1-SEEDROOTS.md",
-    "set": "Q",
-    "holds": [
-      "src/qa023_probe.zig"
-    ],
-    "needs": [
-      "2B-PROBE-FIX"
-    ],
+  "2B-3-AUDIT": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "docs/infra/dispatch/2B-3-AUDIT.md",
+    "set": "P",
+    "holds": [],
+    "needs": ["2B-2"],
     "added": "2026-07-29T13:48:52Z",
+    "claimed": "2026-07-29T14:13:29Z",
+    "done": "2026-07-29T14:13:29Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "2B-2": {
+    "status": "done",
+    "agent": "minimax-m3",
+    "bundle": "docs/infra/dispatch/2B-2.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T09:36:48Z",
+    "claimed": "2026-07-29T09:49:11Z",
+    "done": "2026-07-29T10:18:21Z",
+    "dispatched": "2026-07-29T10:56:43Z",
+    "dispatched_to": "minimax-m3",
+    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
+  },
+  "2B-5": {
+    "status": "done",
+    "agent": "DeepSeek-Pro",
+    "bundle": "docs/infra/dispatch/2B-5.md",
+    "set": "D",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": ["2B-4"],
+    "added": "2026-07-29T09:38:44Z",
+    "claimed": "2026-07-29T12:36:42Z",
+    "done": "2026-07-29T12:53:22Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "2B-2-AUDIT-OPUS": {
+    "status": "done",
+    "agent": "opus-5",
+    "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
+    "set": "J",
+    "holds": [],
+    "needs": ["2B-2"],
+    "added": "2026-07-29T11:57:09Z",
+    "claimed": "2026-07-29T11:57:09Z",
+    "done": "2026-07-29T11:57:09Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "EXP-2B": {
+    "status": "failed",
+    "agent": "kimi-k2.7",
+    "bundle": "docs/infra/dispatch/EXP-2B.md",
+    "set": "A",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": [],
+    "added": "2026-07-28T12:37:14Z",
+    "claimed": "2026-07-29T03:44:10Z",
+    "done": "2026-07-29T09:36:48Z",
+    "dispatched": "2026-07-29T03:42:22Z",
+    "dispatched_to": "kimi-k2.7",
+    "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
+  },
+  "2B-PROBE-FIX": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "docs/infra/dispatch/2B-PROBE-FIX.md",
+    "set": "L",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": [],
+    "added": "2026-07-29T13:30:11Z",
+    "claimed": "2026-07-29T14:09:56Z",
+    "done": "2026-07-29T14:21:40Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "PINRULE-SUFFICIENCY": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/PINRULE-SUFFICIENCY.md",
+    "set": "T",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T14:31:12Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "2B-FIX-KO": {
+    "status": "done",
+    "agent": "opus-5",
+    "bundle": "docs/infra/dispatch/2B-FIX-KO.md",
+    "set": "K",
+    "holds": ["src/qa023_brute_2x2.zig,src/qa023_probe.zig"],
+    "needs": ["2B-2-AUDIT-OPUS"],
+    "added": "2026-07-29T11:57:09Z",
+    "claimed": "2026-07-29T12:37:45Z",
+    "done": "2026-07-29T12:37:45Z",
+    "dispatched": "2026-07-29T12:41:28Z",
+    "dispatched_to": "opus-5",
+    "note": "Human dispatched 2B-FIX-KO to Opus 5, incl. potentially additional work suggested by the prior Opus 2B-2 auditor (F5: apply_place single-stone ko-capture check; re-run census + probe; resolve whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact). Model suggestion only — human assigns."
+  },
+  "2B-2-AUDIT": {
+    "status": "done",
+    "agent": "kimi-k2.7",
+    "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
+    "set": "J",
+    "holds": [],
+    "needs": ["2B-2"],
+    "added": "2026-07-29T11:26:48Z",
+    "claimed": "2026-07-29T11:52:27Z",
+    "done": "2026-07-29T12:06:27Z",
+    "dispatched": "2026-07-29T11:26:48Z",
+    "dispatched_to": "kimi-k2.7",
+    "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable."
+  },
+  "MANAGENT-DERIVE-STATUS": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/MANAGENT-DERIVE-STATUS.md",
+    "set": "S",
+    "holds": ["src/managent/main.zig"],
+    "needs": [],
+    "added": "2026-07-29T14:10:18Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -119,13 +223,7 @@
     "bundle": "docs/infra/dispatch/2B-6.md",
     "set": "E",
     "holds": [],
-    "needs": [
-      "2B-2",
-      "2B-3",
-      "2B-4",
-      "2B-5",
-      "2B-PROBE-FIX"
-    ],
+    "needs": ["2B-2", "2B-3", "2B-4", "2B-5", "2B-PROBE-FIX"],
     "added": "2026-07-29T09:38:44Z",
     "claimed": "2026-07-29T14:06:30Z",
     "done": "2026-07-29T15:08:35Z",
@@ -138,9 +236,7 @@
     "bundle": "docs/infra/dispatch/EXP-7.md",
     "set": "I",
     "holds": [],
-    "needs": [
-      "EXP-6"
-    ],
+    "needs": ["EXP-6"],
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null,
@@ -153,25 +249,8 @@
     "bundle": "docs/infra/dispatch/EXP-6.md",
     "set": "H",
     "holds": [],
-    "needs": [
-      "EXP-5"
-    ],
+    "needs": ["EXP-5"],
     "added": "2026-07-28T12:21:13Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "MANAGENT-DERIVE-STATUS": {
-    "status": "dispatchable",
-    "bundle": "docs/infra/dispatch/MANAGENT-DERIVE-STATUS.md",
-    "set": "S",
-    "holds": [
-      "src/managent/main.zig"
-    ],
-    "needs": [],
-    "added": "2026-07-29T14:10:18Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -206,33 +285,12 @@
     "dispatched_to": null,
     "note": null
   },
-  "2B-3-AUDIT": {
-    "status": "done",
-    "agent": "DSPro",
-    "bundle": "docs/infra/dispatch/2B-3-AUDIT.md",
-    "set": "P",
-    "holds": [],
-    "needs": [
-      "2B-2"
-    ],
-    "added": "2026-07-29T13:48:52Z",
-    "claimed": "2026-07-29T14:13:29Z",
-    "done": "2026-07-29T14:13:29Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
   "EXP-4": {
     "status": "blocked",
     "bundle": "docs/infra/dispatch/EXP-4.md",
     "set": "F",
     "holds": [],
-    "needs": [
-      "2B-4",
-      "2B-5",
-      "2B-6",
-      "PINRULE-SUFFICIENCY"
-    ],
+    "needs": ["2B-4", "2B-5", "2B-6", "PINRULE-SUFFICIENCY"],
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null,
@@ -240,110 +298,16 @@
     "dispatched_to": null,
     "note": "GATED 2026-07-29 by the Orchestrator: EXP-4 builds the new-rule tables on V=median(L,TIE,H), which ADR-0019 falsified at 3x2 (QA-026/GLOBAL.LONGCYCLE FALSE-AS-SCOPED). A replacement value rule is required first; PINRULE-SUFFICIENCY decides whether any pointwise (L,TIE,H) rule can work at all. Status set to blocked by hand because the MANAGENT-DERIVE-STATUS defect means `needs --add` does not re-gate an already-dispatchable task."
   },
-  "2B-2": {
-    "status": "done",
-    "agent": "minimax-m3",
-    "bundle": "docs/infra/dispatch/2B-2.md",
-    "set": "B",
-    "holds": [],
-    "needs": [],
-    "added": "2026-07-29T09:36:48Z",
-    "claimed": "2026-07-29T09:49:11Z",
-    "done": "2026-07-29T10:18:21Z",
-    "dispatched": "2026-07-29T10:56:43Z",
-    "dispatched_to": "minimax-m3",
-    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order \u2014 m3 was surprised by its own findings)."
-  },
-  "NARRATIVE-LAYER": {
-    "status": "dispatchable",
-    "bundle": "docs/infra/dispatch/NARRATIVE-LAYER.md",
-    "set": "U",
-    "holds": [],
-    "needs": [],
-    "added": "2026-07-29T15:15:20Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "2B-5": {
-    "status": "done",
-    "agent": "DeepSeek-Pro",
-    "bundle": "docs/infra/dispatch/2B-5.md",
-    "set": "D",
-    "holds": [
-      "src/qa023_probe.zig"
-    ],
-    "needs": [
-      "2B-4"
-    ],
-    "added": "2026-07-29T09:38:44Z",
-    "claimed": "2026-07-29T12:36:42Z",
-    "done": "2026-07-29T12:53:22Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "2B-2-AUDIT-OPUS": {
-    "status": "done",
-    "agent": "opus-5",
-    "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
-    "set": "J",
-    "holds": [],
-    "needs": [
-      "2B-2"
-    ],
-    "added": "2026-07-29T11:57:09Z",
-    "claimed": "2026-07-29T11:57:09Z",
-    "done": "2026-07-29T11:57:09Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "EXP-2B": {
-    "status": "failed",
-    "agent": "kimi-k2.7",
-    "bundle": "docs/infra/dispatch/EXP-2B.md",
-    "set": "A",
-    "holds": [
-      "src/qa023_probe.zig"
-    ],
-    "needs": [],
-    "added": "2026-07-28T12:37:14Z",
-    "claimed": "2026-07-29T03:44:10Z",
-    "done": "2026-07-29T09:36:48Z",
-    "dispatched": "2026-07-29T03:42:22Z",
-    "dispatched_to": "kimi-k2.7",
-    "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice \u2014 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) \u2014 use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance \u2014 EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) \u2014 Opus reviews the result."
-  },
   "EVIDENCE-INTEGRITY": {
-    "status": "dispatchable",
-    "bundle": "docs/infra/dispatch/EVIDENCE-INTEGRITY.md",
-    "set": "N",
-    "holds": [
-      "docs/epistemic/CLAIMS.md"
-    ],
-    "needs": [],
-    "added": "2026-07-29T13:30:11Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "2B-PROBE-FIX": {
     "status": "done",
     "agent": "DSPro",
-    "bundle": "docs/infra/dispatch/2B-PROBE-FIX.md",
-    "set": "L",
-    "holds": [
-      "src/qa023_probe.zig"
-    ],
+    "bundle": "docs/infra/dispatch/EVIDENCE-INTEGRITY.md",
+    "set": "N",
+    "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": [],
     "added": "2026-07-29T13:30:11Z",
-    "claimed": "2026-07-29T14:09:56Z",
-    "done": "2026-07-29T14:21:40Z",
+    "claimed": "2026-07-29T15:19:45Z",
+    "done": "2026-07-29T15:19:45Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -361,8 +325,21 @@
     "dispatched_to": null,
     "note": null
   },
+  "CLAIMS-SPLIT-CONJUNCTS": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md",
+    "set": "V",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": [],
+    "added": "2026-07-29T15:20:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
   "ADR0006-FALSIFY": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "docs/infra/dispatch/ADR0006-FALSIFY.md",
     "set": "M",
@@ -370,20 +347,7 @@
     "needs": [],
     "added": "2026-07-29T13:30:11Z",
     "claimed": "2026-07-29T15:06:01Z",
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "PINRULE-SUFFICIENCY": {
-    "status": "dispatchable",
-    "bundle": "docs/infra/dispatch/PINRULE-SUFFICIENCY.md",
-    "set": "T",
-    "holds": [],
-    "needs": [],
-    "added": "2026-07-29T14:31:12Z",
-    "claimed": null,
-    "done": null,
+    "done": "2026-07-29T15:19:06Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null

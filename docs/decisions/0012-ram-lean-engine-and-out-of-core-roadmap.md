@@ -1,5 +1,17 @@
 # 0012 — RAM-lean engine (5x4 in 48 GB) and the out-of-core road to 5x5
 
+> **⚠ ERRATUM BANNER (2026-07-29, evidence-integrity sweep).** The 5×5
+> feasibility projection (~53e9 canonical-legal slots, ~106 GB working files,
+> ≤40 GB RAM, ~4–6 days on 10 cores) was computed before C2 was falsified at
+> 3×2 (T13, 2026-07-26), before C3 was falsified at 3×3 (E2, 2026-07-26),
+> before F2 was orphaned (ADR-0015, 2026-07-28), and before the bracket premise
+> collapsed. The projection assumes a representation (PSK fresh-start) that
+> does not produce real-game scores. No 5×5 build will proceed until a working
+> representation is demonstrated at 4×4. **This ADR is a historical record of a
+> feasibility argument that predates the crisis.** For current status see
+> `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md` and
+> the audit at `docs/audits/AUDIT-DSPro-2026-07-29.md` §3.2.
+
 Date: 2026-07-23 · Status: **proposed** (design; measurements pending)
 
 The user requirement: reach 5x4, then 5x5. The machine: 48 GB RAM. The naive

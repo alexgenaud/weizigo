@@ -4,6 +4,23 @@
 **Source:** T13 C2-pilot-3×2 (`untracked/T13-minimax.md`)  
 **Status:** PROVEN FALSE-AS-SCOPED
 
+> **⚠ CANNOT REPRODUCE — the probe source is lost.** Added 2026-07-29 by the
+> Orchestrator (Opus 5); `EVIDENCE-INTEGRITY` placed this banner on the
+> `3x2.T13` register row, and it belongs here too, because this file — not the
+> row — is what a reader reaches.
+>
+> The `Source:` line above points at `untracked/T13-minimax.md`, which is
+> **gone**: `untracked/` is git-ignored and was swept. The numbers in this file
+> are the durable record and the claim stands on them, but **the experiment
+> cannot be re-executed** — the probe that produced the 12 mismatches no longer
+> exists. If a future result contradicts T13, the project cannot settle it by
+> re-running the original.
+>
+> This matters more than most lost evidence: T13 is the falsification the entire
+> current strategy rests on. It is the origin of the `AGENTS.md` rule *evidence
+> in git, or the claim is not proven*, which was adopted **after** this loss.
+> See `CLAIMS.md` §7 and `docs/status/evidence-integrity-2026-07-29.md`.
+
 ## Claim
 
 **C2:** the single-score (L==H) region of the retrograde table is
