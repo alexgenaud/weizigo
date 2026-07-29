@@ -7,7 +7,7 @@ Enforces dependencies, parallel-set exclusion, and engine-file locks.**
 
 ## Interface
 
-Ten commands. Five have zero required flags in daily use.
+Eleven commands. Five have zero required flags in daily use.
 
 ```
 managent add <id>              register a task
@@ -16,7 +16,8 @@ managent claim <id>            claim a task for execution
 managent done <id>             mark a task complete
 managent reopen <id>           reopen a killed in_progress/failed task (→ dispatchable)
 managent purge                 purge done/failed tasks (and clean their IDs from remaining needs)
-managent set <id> <A|B|C|…>      reassign a task's phase set (A, B, C, …)
+managent set <id> <A|B|C|…>      reassign a task's phase set (A–Z)
+managent needs <id> [--add…/--rm…]  add/remove dependency edges
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task
@@ -43,7 +44,7 @@ Keys:
 |---|---|---|
 | `set` | yes | Sequential phase: `A`, `B`, `C`, … (any uppercase letter). A task in set N may not start until every task in every earlier set is done/failed; **within a set, tasks run in parallel**, gated only by `needs` and `holds`. Use one set unless a genuine phase boundary exists; express fine dependencies with `needs`. |
 | `holds` | no | Space-separated file paths (relative to repo root) that need exclusive write access. If any `holds` are present, the task is automatically assigned to Set C. |
-| `needs` | no | Space-separated task IDs that must be `done` before this task can be claimed. |
+| `needs` | no | **Comma-separated** task IDs that must be `done` before this task can be claimed (e.g. `needs=2B-2,2B-3`). |
 | `caps` | no | Space-separated capability tokens from the vocabulary in `docs/infra/delegation/ROLES.md` §4: `reasoning:sustained`, `independence:has-not-read-<X>`, `session:persistent`, `sub-delegation:yes`. Informational; used by `next` for filtering. **Most tasks declare none** — specify only what changes the outcome. (`isolation: exclusive <paths>` is not a `caps` token; that is what `holds` is.) |
 
 **Context-window requirements are rejected.** A `context=500k` key lived here
@@ -198,6 +199,21 @@ $ managent purge
   purged 25 task(s): EXP-2 EXP-3 ... EXP-8
   cleaned needs of: EXP-4
 ```
+
+### `managent set <id> <A|B|C|…>`
+
+Reassign a task's phase set (any uppercase letter A–Z). Sets are sequential
+phases: a task in set N may not start until every task in every earlier set
+is done/failed; within a set, tasks run in parallel, gated only by `needs` and
+`holds`. A strict chain gets one set per task (A, B, C, …). Use to fix a
+mislabeled set without re-adding the task.
+
+### `managent needs <id> [--add <dep>...] [--rm <dep>...]`
+
+Add or remove a task's `needs` edges (deduplicated). Use to re-point a
+dependent when the gate changes (e.g. `EXP-4 needs EXP-2B` →
+`needs EXP-4 --rm EXP-2B --add 2B-4 --add 2B-5 --add 2B-6` when the monolithic
+EXP-2B is replaced by the 2B-N micro-tasks).
 
 ---
 

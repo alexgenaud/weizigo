@@ -118,6 +118,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdPurge(io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "set")) {
         try cmdSet(io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "needs")) {
+        try cmdNeeds(io, repo_root, state_path, args);
     } else {
         std.debug.print("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -239,7 +241,8 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
     }
 
     // Parse key=value pairs from the comment
-    // Format: <!--managent set=C holds=src/retro.zig needs=B07 context=500k-->
+    // Format: <!--managent set=C holds=src/retro.zig needs=B07,B10-->
+    // (needs is comma-separated; the set is any uppercase letter A–Z)
     const inner = meta_line.?[marker.len..];
     var inner_trimmed = inner;
     if (std.mem.endsWith(u8, inner_trimmed, "-->")) {
@@ -264,8 +267,8 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
         const value = parts.next() orelse "";
 
         if (std.mem.eql(u8, key, "set")) {
-            if (value.len != 1 or (value[0] != 'A' and value[0] != 'B' and value[0] != 'C')) {
-                std.debug.print("error: invalid set '{s}' in metadata (must be A, B, or C)\n", .{value});
+            if (value.len != 1 or value[0] < 'A' or value[0] > 'Z') {
+                std.debug.print("error: invalid set '{s}' in metadata (must be A–Z)\n", .{value});
                 std.process.exit(1);
             }
             result.set = value[0];
@@ -278,10 +281,11 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
         } else if (std.mem.eql(u8, key, "needs")) {
             if (value.len > 0) {
                 var needs_list = std.ArrayList([]const u8).empty;
-                var needs_split = std.mem.splitScalar(u8, value, ' ');
+                var needs_split = std.mem.splitScalar(u8, value, ',');
                 while (needs_split.next()) |nid| {
-                    if (nid.len > 0) {
-                        try needs_list.append(alloc, try alloc.dupe(u8, nid));
+                    const trimmed = std.mem.trim(u8, nid, " \t");
+                    if (trimmed.len > 0) {
+                        try needs_list.append(alloc, try alloc.dupe(u8, trimmed));
                     }
                 }
                 result.needs = try needs_list.toOwnedSlice(alloc);
@@ -302,8 +306,8 @@ fn parseBundleMeta(io: std.Io, bundle_path: []const u8, set_override: ?[]const u
 
     // Apply overrides
     if (set_override) |s| {
-        if (s.len != 1 or (s[0] != 'A' and s[0] != 'B' and s[0] != 'C')) {
-            std.debug.print("error: invalid --set '{s}' (must be A, B, or C)\n", .{s});
+        if (s.len != 1 or s[0] < 'A' or s[0] > 'Z') {
+            std.debug.print("error: invalid --set '{s}' (must be A–Z)\n", .{s});
             std.process.exit(1);
         }
         result.set = s[0];
@@ -1158,6 +1162,74 @@ fn cmdSet(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]c
     ts_ptr.set = new_set;
     try writeState(io, state_path, &state);
     std.debug.print("\n  {s}  set {c} -> {c}\n", .{ id, old_set, new_set });
+}
+
+fn cmdNeeds(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 3) {
+        std.debug.print("usage: managent needs <id> [--add <dep>...] [--rm <dep>...]\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    var added = std.ArrayList([]const u8).empty;
+    defer added.deinit(alloc);
+    var removed = std.ArrayList([]const u8).empty;
+    defer removed.deinit(alloc);
+    var i: usize = 3;
+    while (i < args.len) : (i += 1) {
+        if (std.mem.eql(u8, args[i], "--add") and i + 1 < args.len) {
+            i += 1;
+            try added.append(alloc, args[i]);
+        } else if (std.mem.eql(u8, args[i], "--rm") and i + 1 < args.len) {
+            i += 1;
+            try removed.append(alloc, args[i]);
+        }
+    }
+    if (added.items.len == 0 and removed.items.len == 0) {
+        std.debug.print("error: give at least one --add or --rm\n", .{});
+        std.process.exit(1);
+    }
+    var state = try readState(io, state_path);
+    const ts_ptr = state.getPtr(id) orelse {
+        std.debug.print("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+    var newneeds = std.ArrayList([]const u8).empty;
+    defer newneeds.deinit(alloc);
+    for (ts_ptr.needs) |n| {
+        var is_removed = false;
+        for (removed.items) |r| {
+            if (std.mem.eql(u8, n, r)) {
+                is_removed = true;
+                break;
+            }
+        }
+        if (is_removed) continue;
+        var dup = false;
+        for (newneeds.items) |k| {
+            if (std.mem.eql(u8, n, k)) {
+                dup = true;
+                break;
+            }
+        }
+        if (!dup) try newneeds.append(alloc, n);
+    }
+    for (added.items) |a| {
+        var dup = false;
+        for (newneeds.items) |k| {
+            if (std.mem.eql(u8, a, k)) {
+                dup = true;
+                break;
+            }
+        }
+        if (!dup) try newneeds.append(alloc, a);
+    }
+    ts_ptr.needs = try newneeds.toOwnedSlice(alloc);
+    try writeState(io, state_path, &state);
+    std.debug.print("\n  {s}  needs:", .{id});
+    for (ts_ptr.needs) |n| std.debug.print(" {s}", .{n});
+    if (ts_ptr.needs.len == 0) std.debug.print(" (none)", .{});
+    std.debug.print("\n", .{});
 }
 
 fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {
