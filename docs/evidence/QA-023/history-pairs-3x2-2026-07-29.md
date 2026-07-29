@@ -1,3 +1,18 @@
+> # ⚠ SUPERSEDED NUMBERS — the verdict stands, the figures do not
+>
+> **Added 2026-07-29 by the Orchestrator (Opus 5).**
+>
+> Computed under the pre-`2B-FIX-KO` ko rule (audit finding F5: `apply_place`
+> did not require the played stone to be a lone stone). Re-run under the
+> corrected rule: **102/102** sampled multi-history states have visit-set-distinct
+> arrival histories, **2,563/2,563** pairs distinct — the 93/93 below becomes
+> 102/102. **VACUITY-GUARD PASS is unaffected.**
+> Source: `ko-fix-rerun-2026-07-29.md` §4.2.
+>
+> **Not yet audited.** This generator had two bugs found and fixed by its own
+> author, and it is an input to the probe; a defect in that fix would corrupt
+> whatever `2B-PROBE-FIX` measures. Task: **`2B-3-AUDIT`**.
+
 Task: 2B-3 · Role: worker · Model: DeepSeek-Pro · Date: 2026-07-29
 
 # QA-023 Part B — history-pair generation at 3×2

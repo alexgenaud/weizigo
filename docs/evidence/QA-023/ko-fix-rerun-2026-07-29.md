@@ -1,3 +1,35 @@
+> # ⚠ PART VALID, PART SUPERSEDED — read this first
+>
+> **Added 2026-07-29 by the Orchestrator (Opus 5).**
+>
+> **STANDS — §1, §2, §3:** the `apply_place` lone-stone ko-capture fix, its
+> justification, and the corrected 3×2 census (V 2,622 · E 5,668 ·
+> cycle-involved 1,676 · cycle-reachable 1,704 · 216,176 cycles at cap 14).
+> The fix was independently cross-verified against a Python implementation
+> stating the condition differently, and the census predictions matched to the
+> digit. This is solid work and the numbers are the ones to cite.
+>
+> **INVALID — §4, and the headline:** the probe re-run inherited a defect in
+> `truncated_value`, which was called with an arrival set containing the target
+> state σ itself and so returned `TIE` on its first node in **1,133 of 1,133**
+> evaluations. Therefore:
+>
+> - **454 disagreements / 1,133 (40.1%), and all 12 seed × depth runs: INVALID.**
+> - **"The falsification is not a wrong-rule artefact": UNSUPPORTED.** Both sides
+>   of that comparison were pinned to TIE, so the comparison could not have come
+>   out any other way — including the count *rising* 390 → 454, which tracks the
+>   pin census the ko fix moved, not history sensitivity.
+> - §5's calibration conclusions about the probe's in-run behaviour inherit the
+>   same defect.
+>
+> **§6.1 and §6.2 were right and remain valuable** — 2B-4's perturbation number
+> was never measured, and `2x2.T12` is false under both rules. §6.1's
+> "structurally unreachable while every evaluation returns TIE" was in fact the
+> first sighting of this defect; the cause was one level deeper.
+>
+> Analysis: `docs/evidence/QA-023/probe-defect-2026-07-29/README.md`.
+> Replacement: **`2B-PROBE-FIX`**.
+
 Task: 2B-FIX-KO · Role: worker · Model: Opus 5 (claude-opus-5[1m]) · Date: 2026-07-29
 
 # 2B-FIX-KO — the single-stone ko-capture rule, fixed; census + probe re-run

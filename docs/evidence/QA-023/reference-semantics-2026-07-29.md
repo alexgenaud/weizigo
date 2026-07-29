@@ -70,8 +70,16 @@ There is **no cheap unconditional reference** for `V(σ | A)`:
   (`median(L, TIE, H)` over the full state graph). At 2×2 this is 2,430
   states (81·2·5·3; note `qa023_brute_2x2.zig:236`'s comment says "= 1620",
   a wrong-arithmetic comment, value unused), milliseconds — measured: 7
-  sweeps, converged, all five anchors OK (2026-07-29). NOT circular *for the smoke's purpose*: 2×2 admits no
-  reachable non-root cycles (`2x2.T12`), and the anchor values are external —
+  sweeps, converged, all five anchors OK (2026-07-29). NOT circular *for the smoke's purpose*: ~~2×2 admits no
+  reachable non-root cycles (`2x2.T12`)~~ **[STRUCK 2026-07-29 — `2x2.T12` is
+  FALSE. The 2×2 reachable graph has a 144-vertex non-trivial SCC under the
+  pre-`2B-FIX-KO` rule and 160 under the corrected rule; every vertex in it lies
+  on a directed cycle. Independently reproduced twice (audit finding F6, then
+  inside the project's own rules code via `ko-fix-rerun-2026-07-29.md` §6.2), and
+  it does not depend on the ko fix. The smoke still passes and still
+  discriminates PSK — but on the second reason below, not this one. `2x2.T12`
+  should be withdrawn or rescoped to PSK; that edit is `EVIDENCE-INTEGRITY`'s,
+  since it holds `CLAIMS.md`.]**, and the anchor values are external —
   MIGOS II publishes **0** for 2×2 basic-ko+TIE at komi 0, where PSK ground
   truth is **+1**. The smoke tests the implementation and the ruleset
   discriminator, not QA-023 (per EXP-2B.md: "2×2 is not evidence").

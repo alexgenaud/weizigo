@@ -2012,3 +2012,31 @@ have passed the artefact through. An audit that re-runs a broken harness
 reproduces the harness.
 
 **Cost/wall still tracked by nobody.** Unchanged from the QA-018 panel's gap.
+
+### Statistics gaps — named, not papered over (2026-07-29, Opus 5)
+
+**What I can record honestly:** outcomes, defects found, defects missed, and
+whether a result survived audit. Those are above, per seat.
+
+**What nobody in this project has ever recorded**, and I am not going to imply
+otherwise:
+
+- **Cost.** Zero seats, across every task in the ledger. The user's impression
+  that some models are expensive in practice is not adjudicated anywhere.
+- **Wall-clock.** Measured once (QA-018 seat A, ~12 min). Not measured for any
+  EXP-2B seat.
+- **Context headroom.** Reported impressionistically ("fit fine", "comfortable").
+
+I can add two observations from my own turn, since I *am* instrumented:
+`2B-PROBE-FIX`-class verification cost ~5 s per `zig build-exe` under
+`tools/runner` (356 MB peak RSS) and 0.3–12 s per probe run; the whole
+probe-defect investigation was ~15 build/run cycles. That is the scale of work
+that overturned the keystone — **the binding constraint was not compute, it was
+someone re-running the thing instead of reading its output.**
+
+**Recommendation for the ledger, not acted on unilaterally:** if cost matters to
+allocation, it has to be captured at dispatch time by the human (who sees the
+billing), not by the agent (which cannot). A `managent done <id> --cost <x>
+--wall <m>` flag would make it a one-token habit instead of a research project.
+Registering that is a judgement call for the user; the `managent sync` spec
+(`SPEC-msgbus.md` + msg 035 §3) is the natural place to fold it in.
