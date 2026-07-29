@@ -2100,10 +2100,14 @@ correct allocation.
 |---|---|
 | `DSFlash/REFERENCES` | `docs/references.md` (468 lines), van der Werf sources archived against URL rot, three citation defects fixed. The brief told it two of the three were narrower than the audit claimed; it respected that. |
 | `DSFlash/RUNNER-CEILING` | `--max-wall`, `--max-cpu`, `--sweep`; RSS guard and ReleaseFast discipline intact. Smoke-tested by the Orchestrator before crediting, since every build in the project depends on this file. |
+| `DSFlash/WORKER-CHANNEL` | Directive checking + heartbeat in `tools/runner` (Python), `managent tell`/`inbox`/`ping`/`liveness` in `src/managent/main.zig` (Zig), directive storage in `directives.jsonl`. Two languages, 672 insertions across 6 files. Landed clean. |
 | `Kimi-k3/PINRULE-SUFFICIENCY` | **Found the `fixpoint_kernel` White-branch guard bug** — the defect that invalidated the C2 falsification its own task was built on. Reported it as HEADLINE 1 *above* its assigned work, with four independent validations (bug-compatible port reproducing the published census exactly, Bellman residuals, inversion violations, controls on all seven adjudicated states). |
 
-**DSFlash is a good fit for bounded, well-specified work** — both tasks were
-mechanical-but-careful and both landed clean. Neither needed the deep-reasoning tier.
+**DSFlash is a good fit for bounded, well-specified work** — three tasks this session
+(REFERENCES, RUNNER-CEILING, WORKER-CHANNEL), all mechanical-but-careful, all landed
+clean. WORKER-CHANNEL was the most complex — Python + Zig across two codebases — and
+required no rework. DSFlash handles multi-file, multi-language tooling work when the
+brief is detailed. Does not need the deep-reasoning tier.
 
 **Kimi-k3's finding is the strongest single result of the day**, and the manner of it
 matters: it was produced *while checkpointing under context pressure*, and it
@@ -2118,5 +2122,6 @@ without compacting**. Treat the harness number as unreliable for this model and 
 an early durable checkpoint rather than trusting a percentage. This is the first seat
 where the two figures disagreed.
 
-**Cost still tracked by nobody** — unchanged. `WORKER-CHANNEL` would supply wall and
-CPU per task from what `tools/runner` already measures.
+**Cost tracking now possible.** `WORKER-CHANNEL` landed: `tools/runner --task-id` writes
+wall time, CPU, peak RSS to `untracked/heartbeat.jsonl` on every exit. Not yet aggregated
+into model-perf — a future standing task could wire it.
