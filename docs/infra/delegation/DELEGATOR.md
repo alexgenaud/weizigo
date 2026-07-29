@@ -38,6 +38,8 @@ about models. A per-task requirement with a stated reason is legitimate; standin
 assignments and the final pick belong to the human. A task that only a huge
 context window can hold is a badly scoped brief.
 
+**Model assignment.** The brief does **not** specify a model — the human invokes the harness session and assigns the model at runtime (the model truth is known only there). You may *suggest* a model in the `DISPATCH` row or a dispatch note, but the choice is the human's. The agent is told its model at launch and writes the **real** model in the deliverable; the Orchestrator records stats and impressions in `docs/infra/model-perf.md`. (Temporary model preferences — e.g. 'use DeepSeek more right now' — are session memory, not disk rules; they change with billing and the human's call.)
+
 **Independence.** A reviewer must know less than the worker: give the artefact,
 the relevant foreclosures, and *find the flaw; assume one exists.* Anything
 arguing for the conclusion biases the review. **Instances are not models**
