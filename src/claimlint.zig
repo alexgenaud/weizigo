@@ -98,6 +98,7 @@
 // usage: weizigo-claimlint [claims.md] [--quiet]
 //   run from the repo root; paths are resolved relative to the working dir.
 const std = @import("std");
+const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
 
@@ -722,7 +723,7 @@ fn citeTagCheck(
 ) !std.ArrayList(CiteMismatch) {
     var out: std.ArrayList(CiteMismatch) = .empty;
     const text = Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch |e| {
-        std.debug.print("  C6: cannot read narrative file {s}: {s} — skipping\n", .{ path, @errorName(e) });
+        util.note("  C6: cannot read narrative file {s}: {s} — skipping\n", .{ path, @errorName(e) });
         return out;
     };
     const tags = try citeTags(gpa, text);
@@ -779,23 +780,23 @@ pub fn main(init: std.process.Init) !void {
     }
 
     const text = Io.Dir.cwd().readFileAlloc(io, claims_path, gpa, .unlimited) catch |e| {
-        std.debug.print("claimlint: cannot read {s}: {s}\n", .{ claims_path, @errorName(e) });
+        util.note("claimlint: cannot read {s}: {s}\n", .{ claims_path, @errorName(e) });
         std.process.exit(3);
     };
 
     var idx = try Index.build(gpa, io);
     var reg = try parseRegister(gpa, text);
 
-    std.debug.print("weizigo-claimlint — {s}\n", .{claims_path});
-    std.debug.print("repo index: {d} files · register §2 lines {d}–{d}\n", .{
+    util.out("weizigo-claimlint — {s}\n", .{claims_path});
+    util.out("repo index: {d} files · register §2 lines {d}–{d}\n", .{
         idx.paths.items.len, reg.sec2_start, reg.sec2_end,
     });
 
     // ── C0 parse ────────────────────────────────────────────────────────────
-    std.debug.print("\n== C0  PARSE ==\n", .{});
-    std.debug.print("rows parsed:   {d}\n", .{reg.rows.items.len});
-    std.debug.print("rows UNPARSED: {d}   <-- must be 0; a linter that skips rows is worse than none\n", .{reg.unparsed.items.len});
-    for (reg.unparsed.items) |u| std.debug.print("  ! {s}\n", .{u});
+    util.out("\n== C0  PARSE ==\n", .{});
+    util.out("rows parsed:   {d}\n", .{reg.rows.items.len});
+    util.out("rows UNPARSED: {d}   <-- must be 0; a linter that skips rows is worse than none\n", .{reg.unparsed.items.len});
+    for (reg.unparsed.items) |u| util.out("  ! {s}\n", .{u});
 
     // formal in-degree, for ranking; and the edge census §3 needs
     var n_d: usize = 0;
@@ -811,23 +812,23 @@ pub fn main(init: std.process.Init) !void {
             if (reg.by_id.get(d.target)) |k| reg.rows.items[k].in_degree += 1;
         }
     }
-    std.debug.print("edges: {d} total — {d} `d:` derives-from, {d} `e:` evidenced-by, {d} `n:` derives-from-negation\n", .{ n_d + n_e + n_n, n_d, n_e, n_n });
+    util.out("edges: {d} total — {d} `d:` derives-from, {d} `e:` evidenced-by, {d} `n:` derives-from-negation\n", .{ n_d + n_e + n_n, n_d, n_e, n_n });
 
     // ── C1 orphan detection ─────────────────────────────────────────────────
-    std.debug.print("\n== C1  ORPHAN DETECTION (fails the run) ==\n", .{});
-    std.debug.print("C1a: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.\n", .{});
-    std.debug.print("`n:` edges are NOT traversed — a claim justified by a refutation does not\n", .{});
-    std.debug.print("inherit the refuted parent's ancestry. C1b below checks them the other way.\n\n", .{});
+    util.out("\n== C1  ORPHAN DETECTION (fails the run) ==\n", .{});
+    util.out("C1a: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.\n", .{});
+    util.out("`n:` edges are NOT traversed — a claim justified by a refutation does not\n", .{});
+    util.out("inherit the refuted parent's ancestry. C1b below checks them the other way.\n\n", .{});
     var c1_count: usize = 0;
     var cal_orphan_hit = false;
     for (reg.rows.items, 0..) |r, i| {
         if (!r.status.isLive()) continue;
         const chain = try shortestFalseChain(gpa, &reg, i) orelse continue;
         c1_count += 1;
-        std.debug.print("  ORPHAN  `{s}` ({s})\n", .{ r.id, r.status_raw });
+        util.out("  ORPHAN  `{s}` ({s})\n", .{ r.id, r.status_raw });
         for (chain.items, 1..) |step, depth| {
             const sr = reg.rows.items[step];
-            std.debug.print("     {s}⟵d `{s}`  [{s}]\n", .{
+            util.out("     {s}⟵d `{s}`  [{s}]\n", .{
                 spaces(depth),
                 sr.id,
                 sr.status.name(),
@@ -839,28 +840,28 @@ pub fn main(init: std.process.Init) !void {
             }
         }
     }
-    if (c1_count == 0) std.debug.print("  (none)\n", .{});
-    std.debug.print("\n  C1a orphans: {d}\n", .{c1_count});
+    if (c1_count == 0) util.out("  (none)\n", .{});
+    util.out("\n  C1a orphans: {d}\n", .{c1_count});
 
     // C1b — the inverse. A claim carrying `n:P` is justified BY P being false.
     // If P is ever rehabilitated the justification evaporates and the child
     // needs re-examining. Nothing else in this repo detects that.
-    std.debug.print("\n  C1b — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.\n", .{});
+    util.out("\n  C1b — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.\n", .{});
     const alarms = try negationAlarms(gpa, &reg);
     for (alarms.items) |a| {
         const child = reg.rows.items[a.child];
         const parent = reg.rows.items[a.parent];
-        std.debug.print("  ALARM   `{s}` ({s})\n", .{ child.id, child.status_raw });
-        std.debug.print("            ⟵n `{s}`  [{s}]  — justified by this parent being FALSE;\n", .{ parent.id, parent.status.name() });
-        std.debug.print("               it is not. The justification has evaporated.\n", .{});
+        util.out("  ALARM   `{s}` ({s})\n", .{ child.id, child.status_raw });
+        util.out("            ⟵n `{s}`  [{s}]  — justified by this parent being FALSE;\n", .{ parent.id, parent.status.name() });
+        util.out("               it is not. The justification has evaporated.\n", .{});
     }
     if (alarms.items.len == 0)
-        std.debug.print("  (none — every `n:` edge points at a parent that is still FALSE)\n", .{});
-    std.debug.print("\n  C1b alarms: {d}\n", .{alarms.items.len});
-    std.debug.print("\n  C1 total: {d}\n", .{c1_count + alarms.items.len});
+        util.out("  (none — every `n:` edge points at a parent that is still FALSE)\n", .{});
+    util.out("\n  C1b alarms: {d}\n", .{alarms.items.len});
+    util.out("\n  C1 total: {d}\n", .{c1_count + alarms.items.len});
 
     // ── C2 dangling evidence ────────────────────────────────────────────────
-    std.debug.print("\n== C2  DANGLING EVIDENCE (fails the run) ==\n", .{});
+    util.out("\n== C2  DANGLING EVIDENCE (fails the run) ==\n", .{});
     var missing: std.ArrayList(Missing) = .empty;
     var seen_missing = std.StringHashMap(usize).init(gpa);
 
@@ -927,7 +928,7 @@ pub fn main(init: std.process.Init) !void {
         }
         if (m.from_column) c2a += 1 else c2b += 1;
     }
-    std.debug.print("\n  missing paths, with the claims that reach them:\n", .{});
+    util.out("\n  missing paths, with the claims that reach them:\n", .{});
     std.mem.sort(Missing, missing.items, {}, missingLess);
     for (missing.items) |m| {
         if (m.bulk) {
@@ -936,67 +937,67 @@ pub fn main(init: std.process.Init) !void {
         }
         if (m.inventoriedOnly()) continue;
         c2_fail += 1;
-        std.debug.print("  MISSING  {s}\n", .{m.path});
-        std.debug.print("           named in:", .{});
+        util.out("  MISSING  {s}\n", .{m.path});
+        util.out("           named in:", .{});
         for (m.vias.items, 0..) |v, k| {
             if (k == 4) {
-                std.debug.print(" …(+{d})", .{m.vias.items.len - k});
+                util.out(" …(+{d})", .{m.vias.items.len - k});
                 break;
             }
-            std.debug.print(" {s}", .{v});
+            util.out(" {s}", .{v});
         }
-        std.debug.print("\n           reachable from {d} register row(s), e.g.", .{m.claims.items.len});
+        util.out("\n           reachable from {d} register row(s), e.g.", .{m.claims.items.len});
         for (m.claims.items, 0..) |cid, k| {
             if (k == 4) break;
-            std.debug.print(" `{s}`", .{cid});
+            util.out(" `{s}`", .{cid});
         }
-        std.debug.print("\n", .{});
+        util.out("\n", .{});
     }
-    if (c2_fail == 0) std.debug.print("  (none)\n", .{});
+    if (c2_fail == 0) util.out("  (none)\n", .{});
     if (c2_bulk > 0) {
-        std.debug.print("\n  bulk .wzo artifacts cited but absent (informational — git-ignored by\n", .{});
-        std.debug.print("  design, hashes recorded in docs/evidence/README.md; does NOT fail):\n", .{});
+        util.out("\n  bulk .wzo artifacts cited but absent (informational — git-ignored by\n", .{});
+        util.out("  design, hashes recorded in docs/evidence/README.md; does NOT fail):\n", .{});
         for (missing.items) |m| {
             if (!m.bulk) continue;
-            std.debug.print("    {s}  (named in {s})\n", .{ m.path, m.vias.items[0] });
+            util.out("    {s}  (named in {s})\n", .{ m.path, m.vias.items[0] });
         }
     }
     if (c2_inventoried > 0) {
-        std.debug.print("\n  already inventoried as CONFIRMED LOST in {s} and named nowhere\n", .{LOSS_INVENTORY});
-        std.debug.print("  else — a recorded loss, not a dangling citation; does NOT fail:\n", .{});
+        util.out("\n  already inventoried as CONFIRMED LOST in {s} and named nowhere\n", .{LOSS_INVENTORY});
+        util.out("  else — a recorded loss, not a dangling citation; does NOT fail:\n", .{});
         for (missing.items) |m| {
             if (m.bulk or !m.inventoriedOnly()) continue;
-            std.debug.print("    {s}\n", .{m.path});
+            util.out("    {s}\n", .{m.path});
         }
     }
 
-    std.debug.print("\n  evidence documents that EXIST but are git-ignored — readable today,\n", .{});
-    std.debug.print("  unrecoverable after the next sweep (roadmap §4 P1; QA-022):\n", .{});
+    util.out("\n  evidence documents that EXIST but are git-ignored — readable today,\n", .{});
+    util.out("  unrecoverable after the next sweep (roadmap §4 P1; QA-022):\n", .{});
     for (notgit.items) |m| {
-        std.debug.print("    NOT IN GIT  {s}   cited by", .{m.path});
+        util.out("    NOT IN GIT  {s}   cited by", .{m.path});
         for (m.claims.items, 0..) |cid, k| {
             if (k == 4) {
-                std.debug.print(" …(+{d})", .{m.claims.items.len - k});
+                util.out(" …(+{d})", .{m.claims.items.len - k});
                 break;
             }
-            std.debug.print(" `{s}`", .{cid});
+            util.out(" `{s}`", .{cid});
         }
-        std.debug.print("\n", .{});
+        util.out("\n", .{});
     }
-    if (notgit.items.len == 0) std.debug.print("    (none)\n", .{});
+    if (notgit.items.len == 0) util.out("    (none)\n", .{});
 
     const c2_total = c2_fail + notgit.items.len;
-    std.debug.print("\n  C2 total: {d}  ({d} unique missing paths — {d} cited by the evidence column\n", .{ c2_total, c2_fail, c2a });
-    std.debug.print("            directly, {d} named inside cited documents — plus {d} git-ignored\n", .{ c2b, notgit.items.len });
-    std.debug.print("            evidence documents; {d} bulk .wzo and {d} already-inventoried\n", .{ c2_bulk, c2_inventoried });
-    std.debug.print("            losses, not counted)\n", .{});
+    util.out("\n  C2 total: {d}  ({d} unique missing paths — {d} cited by the evidence column\n", .{ c2_total, c2_fail, c2a });
+    util.out("            directly, {d} named inside cited documents — plus {d} git-ignored\n", .{ c2b, notgit.items.len });
+    util.out("            evidence documents; {d} bulk .wzo and {d} already-inventoried\n", .{ c2_bulk, c2_inventoried });
+    util.out("            losses, not counted)\n", .{});
 
     // ── C3 proven without committed evidence ────────────────────────────────
-    std.debug.print("\n== C3  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==\n", .{});
-    std.debug.print("roadmap-2026-07-28 §4 P1: a claim is PROVEN only if its probe source and\n", .{});
-    std.debug.print("output are committed under docs/evidence/. Tier C = no committed evidence\n", .{});
-    std.debug.print("at all. Tier B = a committed prose document records the result, but no\n", .{});
-    std.debug.print("re-runnable probe. Tier A = compliant.\n\n", .{});
+    util.out("\n== C3  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==\n", .{});
+    util.out("roadmap-2026-07-28 §4 P1: a claim is PROVEN only if its probe source and\n", .{});
+    util.out("output are committed under docs/evidence/. Tier C = no committed evidence\n", .{});
+    util.out("at all. Tier B = a committed prose document records the result, but no\n", .{});
+    util.out("re-runnable probe. Tier A = compliant.\n\n", .{});
     var tierA: std.ArrayList(usize) = .empty;
     var tierB: std.ArrayList(usize) = .empty;
     var tierC: std.ArrayList(usize) = .empty;
@@ -1035,26 +1036,26 @@ pub fn main(init: std.process.Init) !void {
     };
     std.mem.sort(usize, tierC.items, @as([]const Row, reg.rows.items), byDeg.less);
     std.mem.sort(usize, tierB.items, @as([]const Row, reg.rows.items), byDeg.less);
-    std.debug.print("  TIER C — PROVEN, no committed evidence resolves at all ({d}):\n", .{tierC.items.len});
+    util.out("  TIER C — PROVEN, no committed evidence resolves at all ({d}):\n", .{tierC.items.len});
     for (tierC.items) |i| {
         const r = reg.rows.items[i];
-        std.debug.print("    [in-deg {d:>2}] `{s}` — {s}\n", .{ r.in_degree, r.id, trim(r.evidence) });
+        util.out("    [in-deg {d:>2}] `{s}` — {s}\n", .{ r.in_degree, r.id, trim(r.evidence) });
     }
-    if (tierC.items.len == 0) std.debug.print("    (none)\n", .{});
-    std.debug.print("\n  TIER B — PROVEN, committed prose only, no probe under docs/evidence/ ({d}):\n", .{tierB.items.len});
+    if (tierC.items.len == 0) util.out("    (none)\n", .{});
+    util.out("\n  TIER B — PROVEN, committed prose only, no probe under docs/evidence/ ({d}):\n", .{tierB.items.len});
     for (tierB.items) |i| {
         const r = reg.rows.items[i];
-        std.debug.print("    [in-deg {d:>2}] `{s}`\n", .{ r.in_degree, r.id });
+        util.out("    [in-deg {d:>2}] `{s}`\n", .{ r.in_degree, r.id });
     }
-    std.debug.print("\n  TIER A — compliant (evidence under docs/evidence/): {d}\n", .{tierA.items.len});
-    for (tierA.items) |i| std.debug.print("    `{s}`\n", .{reg.rows.items[i].id});
-    std.debug.print("\n  C3 total PROVEN-without-committed-evidence: {d} of {d} PROVEN rows\n", .{
+    util.out("\n  TIER A — compliant (evidence under docs/evidence/): {d}\n", .{tierA.items.len});
+    for (tierA.items) |i| util.out("    `{s}`\n", .{reg.rows.items[i].id});
+    util.out("\n  C3 total PROVEN-without-committed-evidence: {d} of {d} PROVEN rows\n", .{
         tierB.items.len + tierC.items.len,
         tierA.items.len + tierB.items.len + tierC.items.len,
     });
 
     // ── C4 dangling claim IDs ───────────────────────────────────────────────
-    std.debug.print("\n== C4  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==\n", .{});
+    util.out("\n== C4  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==\n", .{});
     var dangling = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
     var qa = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
     var qa_modelled = std.StringHashMap(void).init(gpa);
@@ -1094,77 +1095,77 @@ pub fn main(init: std.process.Init) !void {
             }
         }
     }
-    std.debug.print("  claim IDs cited in docs/ with NO register row ({d}):\n", .{dangling.count()});
+    util.out("  claim IDs cited in docs/ with NO register row ({d}):\n", .{dangling.count()});
     var dit = dangling.iterator();
     while (dit.next()) |e| {
-        std.debug.print("    `{s}`  cited at", .{e.key_ptr.*});
-        for (e.value_ptr.items) |w| std.debug.print(" {s}", .{w});
-        std.debug.print("\n", .{});
+        util.out("    `{s}`  cited at", .{e.key_ptr.*});
+        for (e.value_ptr.items) |w| util.out(" {s}", .{w});
+        util.out("\n", .{});
     }
-    if (dangling.count() == 0) std.debug.print("    (none)\n", .{});
+    if (dangling.count() == 0) util.out("    (none)\n", .{});
 
     const qa_gap = qa.count() - qa_modelled.count();
-    std.debug.print("\n  `QA-nnn` namespace coverage: {d} distinct IDs cited in docs/, {d} with a\n", .{ qa.count(), qa_modelled.count() });
-    std.debug.print("  register row, {d} without. A falsification cannot propagate to an ID the\n", .{qa_gap});
-    std.debug.print("  graph cannot see:\n", .{});
+    util.out("\n  `QA-nnn` namespace coverage: {d} distinct IDs cited in docs/, {d} with a\n", .{ qa.count(), qa_modelled.count() });
+    util.out("  register row, {d} without. A falsification cannot propagate to an ID the\n", .{qa_gap});
+    util.out("  graph cannot see:\n", .{});
     var qit = qa.iterator();
     while (qit.next()) |e| {
         if (reg.by_id.contains(e.key_ptr.*)) continue;
-        std.debug.print("    UNMODELLED `{s}`  cited at", .{e.key_ptr.*});
-        for (e.value_ptr.items) |w| std.debug.print(" {s}", .{w});
-        std.debug.print("\n", .{});
+        util.out("    UNMODELLED `{s}`  cited at", .{e.key_ptr.*});
+        for (e.value_ptr.items) |w| util.out(" {s}", .{w});
+        util.out("\n", .{});
     }
-    if (qa_gap == 0) std.debug.print("    (none unmodelled)\n", .{});
+    if (qa_gap == 0) util.out("    (none unmodelled)\n", .{});
 
     var unref: usize = 0;
-    std.debug.print("\n  register rows nothing references — no citation outside §2 AND no\n", .{});
-    std.debug.print("  incoming edge inside it (a smell, not an error):\n", .{});
+    util.out("\n  register rows nothing references — no citation outside §2 AND no\n", .{});
+    util.out("  incoming edge inside it (a smell, not an error):\n", .{});
     for (reg.rows.items) |r| {
         if (r.refs_outside > 0 or r.in_degree > 0) continue;
         unref += 1;
-        std.debug.print("    `{s}` [{s}]\n", .{ r.id, r.status.name() });
+        util.out("    `{s}` [{s}]\n", .{ r.id, r.status.name() });
     }
-    if (unref == 0) std.debug.print("    (none)\n", .{});
-    std.debug.print("\n  C4 total: {d} dangling IDs, {d} unmodelled QA-nnn IDs, {d} unreferenced rows\n", .{ dangling.count(), qa.count() - qa_modelled.count(), unref });
+    if (unref == 0) util.out("    (none)\n", .{});
+    util.out("\n  C4 total: {d} dangling IDs, {d} unmodelled QA-nnn IDs, {d} unreferenced rows\n", .{ dangling.count(), qa.count() - qa_modelled.count(), unref });
 
     // ── C5 shadowed dependencies ────────────────────────────────────────────
-    std.debug.print("\n== C5  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==\n", .{});
-    std.debug.print("`d:` edges terminating on a MEASUREMENT or a definition. A measurement says\n", .{});
-    std.debug.print("something happened; a definition cannot be wrong. Neither can ever be FALSE,\n", .{});
-    std.debug.print("so the edge is a dead end: if the claim really needs the SOUNDNESS behind the\n", .{});
-    std.debug.print("measurement, that parent is missing and a falsification cannot reach this row.\n\n", .{});
+    util.out("\n== C5  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==\n", .{});
+    util.out("`d:` edges terminating on a MEASUREMENT or a definition. A measurement says\n", .{});
+    util.out("something happened; a definition cannot be wrong. Neither can ever be FALSE,\n", .{});
+    util.out("so the edge is a dead end: if the claim really needs the SOUNDNESS behind the\n", .{});
+    util.out("measurement, that parent is missing and a falsification cannot reach this row.\n\n", .{});
     const shadows = try shadowedEdges(gpa, &reg);
     for (shadows.items) |sh| {
         const child = reg.rows.items[sh.child];
         const parent = reg.rows.items[sh.parent];
-        std.debug.print("  SHADOWED: `{s}` [{s}]\n", .{ child.id, child.status.name() });
-        std.debug.print("            d: `{s}` [{s}] — a parent that can never be FALSE;\n", .{ parent.id, parent.status.name() });
-        std.debug.print("            completion is not soundness. Is the real parent a soundness claim?\n", .{});
+        util.out("  SHADOWED: `{s}` [{s}]\n", .{ child.id, child.status.name() });
+        util.out("            d: `{s}` [{s}] — a parent that can never be FALSE;\n", .{ parent.id, parent.status.name() });
+        util.out("            completion is not soundness. Is the real parent a soundness claim?\n", .{});
     }
-    if (shadows.items.len == 0) std.debug.print("  (none)\n", .{});
+    if (shadows.items.len == 0) util.out("  (none)\n", .{});
     const c5 = shadows.items.len;
-    std.debug.print("\n  C5 total: {d}\n", .{c5});
+    util.out("\n  C5 total: {d}\n", .{c5});
 
     // ── C6 cite-tag verification ───────────────────────────────────────────
-    std.debug.print("\n== C6  CITE-TAG VERIFICATION (fails the run) ==\n", .{});
-    std.debug.print("Scans the narrative file ({s}) for `[ID:STATUS]` tags\n", .{NARRATIVE_FILE});
-    std.debug.print("and verifies each against the register. A narrative whose\n", .{});
-    std.debug.print("cite-tags do not match the register is hallucination-prone.\n\n", .{});
+    util.out("\n== C6  CITE-TAG VERIFICATION (fails the run) ==\n", .{});
+    util.out("Scans the narrative file ({s}) for `[ID:STATUS]` tags\n", .{NARRATIVE_FILE});
+    util.out("and verifies each against the register. A narrative whose\n", .{});
+    util.out("cite-tags do not match the register is hallucination-prone.\n\n", .{});
     const cite_mismatches = try citeTagCheck(gpa, io, &reg, NARRATIVE_FILE);
     if (cite_mismatches.items.len == 0) {
-        std.debug.print("  (all cite-tags match the register)\n", .{});
+        util.out("  (all cite-tags match the register)\n", .{});
     } else {
         for (cite_mismatches.items) |m| {
-            std.debug.print("  MISMATCH  line {d}: [`{s}:{s}`] — register has [{s}]\n", .{
+            util.out("  MISMATCH  line {d}: [`{s}:{s}`] — register has [{s}]\n", .{
                 m.line, m.id, m.tagged_status, m.register_status,
             });
         }
     }
     const c6 = cite_mismatches.items.len;
-    std.debug.print("\n  C6 cite-tag mismatches: {d}\n", .{c6});
+    util.out("\n  C6 cite-tag mismatches: {d}\n", .{c6});
 
     // ── A  repeated narrowing ───────────────────────────────────────────────
-    std.debug.print("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
+    util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
     var smell_dead: usize = 0;
     var unknown_narrow: usize = 0;
@@ -1173,20 +1174,20 @@ pub fn main(init: std.process.Init) !void {
             if (n < 2) continue;
             smell += 1;
             if (r.status.isFalse()) smell_dead += 1;
-            std.debug.print("  SMELL: repeated narrowing — the representation may be wrong, not the claim.\n", .{});
-            std.debug.print("         `{s}` narrowed {d}× · now {s}\n", .{ r.id, n, r.status_raw });
+            util.out("  SMELL: repeated narrowing — the representation may be wrong, not the claim.\n", .{});
+            util.out("         `{s}` narrowed {d}× · now {s}\n", .{ r.id, n, r.status_raw });
         } else unknown_narrow += 1;
     }
-    if (smell == 0) std.debug.print("  (none)\n", .{});
+    if (smell == 0) util.out("  (none)\n", .{});
     if (smell > 0) {
-        std.debug.print("\n  {d} of {d} repeatedly-narrowed claims are now FALSE. Repeated narrowing has\n", .{ smell_dead, smell });
-        std.debug.print("  so far predicted death in this register; the survivors are the ones to read.\n", .{});
+        util.out("\n  {d} of {d} repeatedly-narrowed claims are now FALSE. Repeated narrowing has\n", .{ smell_dead, smell });
+        util.out("  so far predicted death in this register; the survivors are the ones to read.\n", .{});
     }
-    std.debug.print("\n  A total: {d} flagged, {d} rows with `narrowed` unknown\n", .{ smell, unknown_narrow });
+    util.out("\n  A total: {d} flagged, {d} rows with `narrowed` unknown\n", .{ smell, unknown_narrow });
 
     // ── B  weak evidence ────────────────────────────────────────────────────
-    std.debug.print("\n== B  WEAK EVIDENCE (report only) ==\n", .{});
-    std.debug.print("PROVEN rows whose wrong-answer-pass-rate is unknown or above 25%.\n", .{});
+    util.out("\n== B  WEAK EVIDENCE (report only) ==\n", .{});
+    util.out("PROVEN rows whose wrong-answer-pass-rate is unknown or above 25%.\n", .{});
     var weak_unknown: usize = 0;
     var weak_high: std.ArrayList(usize) = .empty;
     var strong: std.ArrayList(usize) = .empty;
@@ -1196,19 +1197,19 @@ pub fn main(init: std.process.Init) !void {
             if (v > 25.0) try weak_high.append(gpa, i) else try strong.append(gpa, i);
         } else weak_unknown += 1;
     }
-    std.debug.print("\n  WEAK EVIDENCE — stated rate above 25% ({d}):\n", .{weak_high.items.len});
-    for (weak_high.items) |i| std.debug.print("    `{s}`  rate {s}\n", .{ reg.rows.items[i].id, reg.rows.items[i].rate_raw });
-    if (weak_high.items.len == 0) std.debug.print("    (none)\n", .{});
-    std.debug.print("\n  WEAK EVIDENCE — rate not computed (`?`): {d} PROVEN rows\n", .{weak_unknown});
-    std.debug.print("  discriminating (rate stated and <= 25%): {d}\n", .{strong.items.len});
-    for (strong.items) |i| std.debug.print("    `{s}`  rate {s}\n", .{ reg.rows.items[i].id, reg.rows.items[i].rate_raw });
+    util.out("\n  WEAK EVIDENCE — stated rate above 25% ({d}):\n", .{weak_high.items.len});
+    for (weak_high.items) |i| util.out("    `{s}`  rate {s}\n", .{ reg.rows.items[i].id, reg.rows.items[i].rate_raw });
+    if (weak_high.items.len == 0) util.out("    (none)\n", .{});
+    util.out("\n  WEAK EVIDENCE — rate not computed (`?`): {d} PROVEN rows\n", .{weak_unknown});
+    util.out("  discriminating (rate stated and <= 25%): {d}\n", .{strong.items.len});
+    for (strong.items) |i| util.out("    `{s}`  rate {s}\n", .{ reg.rows.items[i].id, reg.rows.items[i].rate_raw });
 
     // ── calibration ─────────────────────────────────────────────────────────
-    std.debug.print("\n== CALIBRATION (GLOBAL.CALIB-LESSON; roadmap §4 P3) ==\n", .{});
-    std.debug.print("A checker with no failing case proves nothing.\n\n", .{});
+    util.out("\n== CALIBRATION (GLOBAL.CALIB-LESSON; roadmap §4 P3) ==\n", .{});
+    util.out("A checker with no failing case proves nothing.\n\n", .{});
     var cal_ok = true;
 
-    std.debug.print("  known-bad 1 (C1): `{s}` must be reported with `{s}` in its chain … {s}\n", .{
+    util.out("  known-bad 1 (C1): `{s}` must be reported with `{s}` in its chain … {s}\n", .{
         CAL_ORPHAN_CHILD, CAL_ORPHAN_ROOT, if (cal_orphan_hit) "CAUGHT" else "MISSED",
     });
     if (!cal_orphan_hit) cal_ok = false;
@@ -1217,7 +1218,7 @@ pub fn main(init: std.process.Init) !void {
     for (missing.items) |m| {
         if (std.mem.eql(u8, m.path, CAL_DANGLING)) cal_dangling_hit = true;
     }
-    std.debug.print("  known-bad 2 (C2): `{s}` must be reported … {s}\n", .{
+    util.out("  known-bad 2 (C2): `{s}` must be reported … {s}\n", .{
         CAL_DANGLING, if (cal_dangling_hit) "CAUGHT" else "MISSED",
     });
     if (!cal_dangling_hit) cal_ok = false;
@@ -1234,7 +1235,7 @@ pub fn main(init: std.process.Init) !void {
         }
         clean_ok = quiet;
     }
-    std.debug.print("  known-good (C1+C2): PROVEN `{s}` with a real evidence path must be silent … {s}\n", .{
+    util.out("  known-good (C1+C2): PROVEN `{s}` with a real evidence path must be silent … {s}\n", .{
         CAL_CLEAN, if (clean_ok) "SILENT (correct)" else "FLAGGED (checker suspect)",
     });
     if (!clean_ok) cal_ok = false;
@@ -1253,7 +1254,7 @@ pub fn main(init: std.process.Init) !void {
         const orphaned = (try shortestFalseChain(gpa, &reg, k)) != null;
         neg_ok_silent = has_n and !alarmed and !orphaned;
     }
-    std.debug.print("  known-good (C1, `n:`): `{s}` — `n:` to a FALSE parent must be silent … {s}\n", .{
+    util.out("  known-good (C1, `n:`): `{s}` — `n:` to a FALSE parent must be silent … {s}\n", .{
         CAL_NEG_OK, if (neg_ok_silent) "SILENT (correct)" else "FLAGGED or has no `n:` edge (checker suspect)",
     });
     if (!neg_ok_silent) cal_ok = false;
@@ -1284,12 +1285,12 @@ pub fn main(init: std.process.Init) !void {
         synth_c5_ok = sreg.unparsed.items.len == 0 and saw_shadow and
             saw_plain_silent and sshadow.items.len == 1;
     }
-    std.debug.print("  known-bad 3 (C1b, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a\n", .{});
-    std.debug.print("                FALSE parent must not … {s}\n", .{if (synth_ok) "CAUGHT (1 alarm, 1 silent)" else "BROKEN"});
+    util.out("  known-bad 3 (C1b, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a\n", .{});
+    util.out("                FALSE parent must not … {s}\n", .{if (synth_ok) "CAUGHT (1 alarm, 1 silent)" else "BROKEN"});
     if (!synth_ok) cal_ok = false;
 
-    std.debug.print("  known-bad 4 (C5, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`\n", .{});
-    std.debug.print("                onto a real claim must not … {s}\n", .{if (synth_c5_ok) "CAUGHT (1 shadow, 1 silent)" else "BROKEN"});
+    util.out("  known-bad 4 (C5, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`\n", .{});
+    util.out("                onto a real claim must not … {s}\n", .{if (synth_c5_ok) "CAUGHT (1 shadow, 1 silent)" else "BROKEN"});
     if (!synth_c5_ok) cal_ok = false;
 
     var shadow_clean = false;
@@ -1304,7 +1305,7 @@ pub fn main(init: std.process.Init) !void {
         }
         shadow_clean = any_d and !any_meas;
     }
-    std.debug.print("  known-good (C5): `{s}` — every `d:` parent is a real claim, must be silent … {s}\n", .{
+    util.out("  known-good (C5): `{s}` — every `d:` parent is a real claim, must be silent … {s}\n", .{
         CAL_SHADOW_CLEAN, if (shadow_clean) "SILENT (correct)" else "FLAGGED (checker suspect)",
     });
     if (!shadow_clean) cal_ok = false;
@@ -1334,23 +1335,23 @@ pub fn main(init: std.process.Init) !void {
         }
         synth_c6_ok = saw_bad and saw_good_a and saw_good_b and !extra and syn_tags.items.len == 3;
     }
-    std.debug.print("  known-bad 5 (C6, synthetic): `[{s}:PROVEN]` (register says FALSE-AS-SCOPED) must\n", .{CAL_CITE_BAD_ID});
-    std.debug.print("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (1 mismatch, 2 silent)" else "BROKEN"});
+    util.out("  known-bad 5 (C6, synthetic): `[{s}:PROVEN]` (register says FALSE-AS-SCOPED) must\n", .{CAL_CITE_BAD_ID});
+    util.out("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (1 mismatch, 2 silent)" else "BROKEN"});
     if (!synth_c6_ok) cal_ok = false;
 
-    std.debug.print("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
+    util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
-    std.debug.print("\n== SUMMARY ==\n", .{});
-    std.debug.print("  rows parsed / unparsed        {d} / {d}\n", .{ reg.rows.items.len, reg.unparsed.items.len });
-    std.debug.print("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)\n", .{ c1_count, alarms.items.len });
-    std.debug.print("  C2 dangling evidence paths    {d}   (FAILS)\n", .{c2_total});
-    std.debug.print("  C3 PROVEN w/o committed evid. {d}   (debt only, does not fail yet)\n", .{tierB.items.len + tierC.items.len});
-    std.debug.print("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)\n", .{ dangling.count(), unref });
-    std.debug.print("  C5 shadowed dependencies      {d}   (report only, does not fail yet)\n", .{c5});
-    std.debug.print("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
-    std.debug.print("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
-    std.debug.print("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
+    util.out("\n== SUMMARY ==\n", .{});
+    util.out("  rows parsed / unparsed        {d} / {d}\n", .{ reg.rows.items.len, reg.unparsed.items.len });
+    util.out("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)\n", .{ c1_count, alarms.items.len });
+    util.out("  C2 dangling evidence paths    {d}   (FAILS)\n", .{c2_total});
+    util.out("  C3 PROVEN w/o committed evid. {d}   (debt only, does not fail yet)\n", .{tierB.items.len + tierC.items.len});
+    util.out("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)\n", .{ dangling.count(), unref });
+    util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)\n", .{c5});
+    util.out("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
+    util.out("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
+    util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);

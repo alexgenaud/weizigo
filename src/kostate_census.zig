@@ -68,6 +68,7 @@
 // Standalone except std.
 
 const std = @import("std");
+const util = @import("util.zig");
 
 /// Which ko detector to use. Standard is the canonical basic-ko shape
 /// (single-stone capture whose capturing stone has exactly one liberty).
@@ -619,7 +620,7 @@ pub fn Census(
 
             // Single odometer pass to count legal positions (calibration).
             const legal_count = count_legal();
-            std.debug.print(
+            util.out(
                 "  legal positions (calibration odometer pass): {d}\n",
                 .{legal_count},
             );
@@ -629,12 +630,12 @@ pub fn Census(
             while (new_marks > 0 and sweep_idx < max_sweeps) {
                 sweep_idx += 1;
                 new_marks = try sweep(gpa, reach, det, per_ko);
-                std.debug.print(
+                util.out(
                     "  sweep {d}: +{d} new marks\n",
                     .{ sweep_idx, new_marks },
                 );
             }
-            std.debug.print(
+            util.out(
                 "  converged after {d} sweep{s}; last sweep added {d} new marks.\n",
                 .{ sweep_idx, if (sweep_idx == 1) "" else "s", new_marks },
             );
@@ -692,35 +693,35 @@ fn report(
         .every_move => "every_move (BROKEN)",
         .none => "none (ko off)",
     };
-    std.debug.print(
+    util.out(
         "\n=== {s} ({d}x{d}, detector={s}, passes_dim={any}) ===\n",
         .{ label, w, h, det_label, passdim },
     );
-    std.debug.print("  raw 3^n              = {d}\n", .{stats.raw_total});
-    std.debug.print("  legal positions      = {d}\n", .{stats.legal_count});
-    std.debug.print("  (a) reachable triples (b,side,ko) = {d}\n", .{stats.triples});
-    std.debug.print("  (a') with passes in {{0,1}} (x2)  = {d}\n", .{stats.triples_with_passes});
-    std.debug.print("  (b) distinct (b,ko) addresses     = {d}\n", .{stats.addresses});
-    std.debug.print("       of which  ko_point = none   = {d}\n", .{stats.addr_none});
-    std.debug.print("       of which  ko_point = cell   = {d}\n", .{stats.addr_some});
-    std.debug.print("  (b') with passes (x2)             = {d}\n", .{stats.addresses_with_passes});
-    std.debug.print("  (c) artifact size 6 B/address     = {d} B", .{stats.addresses * 6});
+    util.out("  raw 3^n              = {d}\n", .{stats.raw_total});
+    util.out("  legal positions      = {d}\n", .{stats.legal_count});
+    util.out("  (a) reachable triples (b,side,ko) = {d}\n", .{stats.triples});
+    util.out("  (a') with passes in {{0,1}} (x2)  = {d}\n", .{stats.triples_with_passes});
+    util.out("  (b) distinct (b,ko) addresses     = {d}\n", .{stats.addresses});
+    util.out("       of which  ko_point = none   = {d}\n", .{stats.addr_none});
+    util.out("       of which  ko_point = cell   = {d}\n", .{stats.addr_some});
+    util.out("  (b') with passes (x2)             = {d}\n", .{stats.addresses_with_passes});
+    util.out("  (c) artifact size 6 B/address     = {d} B", .{stats.addresses * 6});
     if (w * h == 16) {
-        std.debug.print("  (current PSK 4x4: 258,280,358 B; naive dense: 4,390,765,542 B)", .{});
+        util.out("  (current PSK 4x4: 258,280,358 B; naive dense: 4,390,765,542 B)", .{});
     }
-    std.debug.print("\n", .{});
-    std.debug.print("  (d) sparse/dense ratio  (b) / (3^n * (n+1))   = {d:.6}%\n", .{stats.sparse_ratio * 100.0});
-    std.debug.print("       numerator   (b)   = {d}\n", .{stats.addresses});
-    std.debug.print("       denominator (3^n * (n+1)) = {d}\n", .{stats.dense_addresses});
-    std.debug.print("  sweeps to convergence = {d}\n", .{stats.sweeps});
+    util.out("\n", .{});
+    util.out("  (d) sparse/dense ratio  (b) / (3^n * (n+1))   = {d:.6}%\n", .{stats.sparse_ratio * 100.0});
+    util.out("       numerator   (b)   = {d}\n", .{stats.addresses});
+    util.out("       denominator (3^n * (n+1)) = {d}\n", .{stats.dense_addresses});
+    util.out("  sweeps to convergence = {d}\n", .{stats.sweeps});
     // Brief per-ko histogram: ko cells with at least one reachable triple.
     var nk: u64 = 0;
     for (stats.per_ko_count) |c| {
         if (c > 0) nk += 1;
     }
-    std.debug.print("  distinct ko_point cells used      = {d} / {d}\n", .{ nk, C.KO_DIMS });
+    util.out("  distinct ko_point cells used      = {d} / {d}\n", .{ nk, C.KO_DIMS });
     // print top-10 ko cells by count
-    std.debug.print("  top-10 ko cells by triple count:  ", .{});
+    util.out("  top-10 ko cells by triple count:  ", .{});
     // simple insertion sort of top-10
     var top: [10]struct { ko: u16, cnt: u64 } = undefined;
     for (top[0..]) |*t| {
@@ -745,10 +746,10 @@ fn report(
     }
     for (top[0..]) |t| {
         if (t.cnt > 0) {
-            std.debug.print("  ko={d}:{d}", .{ t.ko, t.cnt });
+            util.out("  ko={d}:{d}", .{ t.ko, t.cnt });
         }
     }
-    std.debug.print("\n", .{});
+    util.out("\n", .{});
     gpa.free(stats.per_ko_count);
 }
 
@@ -764,7 +765,7 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, det_arg, "every_capture")) break :blk .every_capture;
         if (std.mem.eql(u8, det_arg, "every_move")) break :blk .every_move;
         if (std.mem.eql(u8, det_arg, "none")) break :blk .none;
-        std.debug.print("unknown detector {s}; use standard|every_capture|every_move|none\n", .{det_arg});
+        util.out("unknown detector {s}; use standard|every_capture|every_move|none\n", .{det_arg});
         return error.BadArgs;
     };
 
@@ -773,8 +774,8 @@ pub fn main(init: std.process.Init) !void {
     const max_sweeps_arg = args.next() orelse "64";
     const max_sweeps = std.fmt.parseInt(u32, max_sweeps_arg, 10) catch 64;
 
-    std.debug.print("weizigo kostate_census (EXP-3 from docs/infra/dispatch/EXP-3.md)\n", .{});
-    std.debug.print("detector: {s}  passes_dim: {s}  max_sweeps: {d}\n", .{ det_arg, passdim_arg, max_sweeps });
+    util.out("weizigo kostate_census (EXP-3 from docs/infra/dispatch/EXP-3.md)\n", .{});
+    util.out("detector: {s}  passes_dim: {s}  max_sweeps: {d}\n", .{ det_arg, passdim_arg, max_sweeps });
 
     // dispatch on (passdim, det) at comptime
     if (std.mem.eql(u8, passdim_arg, "on")) {

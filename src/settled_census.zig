@@ -8,7 +8,8 @@
 // This is the natural home of *minimal* terminals (one player owning the whole
 // board); mixed-colour terminals need two living groups and thus more stones.
 const std = @import("std");
-const p = std.debug.print;
+const util = @import("util.zig");
+const p = util.out;
 const terminal = @import("terminal.zig");
 
 pub fn main() void {

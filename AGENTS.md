@@ -94,6 +94,10 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   dispatch/claim/done on a worker's behalf, attributing with `--agent <worker>`.
   Schema in `docs/infra/managent/spec.md`; role protocol in
   `docs/infra/roles/ORCHESTRATOR.md`.
+- **stdout = data, stderr = diagnostics.** Use `util.out(...)` for parseable/filterable
+  output and `util.note(...)` / `util.warn(...)` for diagnostics. Reference:
+  `src/gtp.zig:691,1056`, helper in `src/util.zig`. Regression check:
+  `<tool> 2>/dev/null` must emit data, `<tool> 1>/dev/null` must be silent.
 
 ## Where to go next — read ONE of these
 | if you are… | read |

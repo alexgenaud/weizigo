@@ -134,6 +134,7 @@
 // With --psk-binding, --trace also annotates each ply with the PSK repeats
 // available there, as `{d=5 d=12}`.
 const std = @import("std");
+const util = @import("util.zig");
 const rules = @import("rules.zig");
 const colexmod = @import("colex.zig");
 const artifact = @import("artifact.zig");
@@ -484,7 +485,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
             psk_binding: bool,
             gpa: std.mem.Allocator,
         ) !Stats {
-            std.debug.print("\n== policy: {s} ==\n", .{policy.label()});
+            util.out("\n== policy: {s} ==\n", .{policy.label()});
             var st = Stats{};
             var s = Self{ .d = d };
             var prng = std.Random.DefaultPrng.init(seed);
@@ -530,7 +531,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
                 var settled_end = false;
                 var dpass_end = false;
                 const tracing = g < trace;
-                if (tracing) std.debug.print("  trace game {d}:", .{g});
+                if (tracing) util.out("  trace game {d}:", .{g});
 
                 while (true) {
                     if (ply >= ply_cap) {
@@ -608,27 +609,27 @@ fn Census(comptime w: usize, comptime h: usize) type {
                         // "*" = KO_SENSITIVE, "?" = UNDEF slot (belief-free)
                         const ko = stored != UNDEF and s.kosens(&s.pos, side);
                         if (ch.cell) |c| {
-                            std.debug.print(" {c}{c}{d}{s}", .{
+                            util.out(" {c}{c}{d}{s}", .{
                                 if (side > 0) @as(u8, 'B') else @as(u8, 'W'),
                                 COLS[c % w],
                                 h - c / w,
                                 if (stored == UNDEF) "?" else if (ko) "*" else "",
                             });
                         } else {
-                            std.debug.print(" {c}pass{s}", .{
+                            util.out(" {c}pass{s}", .{
                                 if (side > 0) @as(u8, 'B') else @as(u8, 'W'),
                                 if (stored == UNDEF) "?" else if (ko) "*" else "",
                             });
                         }
                         if (psk_binding and (scan.ko + scan.short + scan.long) > 0) {
-                            std.debug.print("{{", .{});
+                            util.out("{{", .{});
                             for (0..n) |c| {
                                 if (scan.dist[c] == 0) continue;
-                                std.debug.print("{c}{d}:d={d} ", .{
+                                util.out("{c}{d}:d={d} ", .{
                                     COLS[c % w], h - c / w, scan.dist[c],
                                 });
                             }
-                            std.debug.print("}}", .{});
+                            util.out("}}", .{});
                         }
                     }
 
@@ -657,7 +658,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
                     side = -side;
                 }
 
-                if (tracing) std.debug.print("   [{s}]  (* = KO_SENSITIVE, ? = UNDEF slot)\n", .{
+                if (tracing) util.out("   [{s}]  (* = KO_SENSITIVE, ? = UNDEF slot)\n", .{
                     if (capped) "PLY CAP" else if (dpass_end) "two passes" else "settled",
                 });
 
@@ -704,7 +705,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
         }
 
         fn reportPsk(st: *const Stats) void {
-            const p = std.debug.print;
+            const p = util.out;
             const q = &st.psk;
             const bind = q.rep_short + q.rep_long;
             p("  ---- PSK BINDING BEYOND BASIC KO (all games; legality reads no artifact slot) ----\n", .{});
@@ -779,7 +780,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
         /// distance. No policy, no artifact slot read — pure rules.
         /// Cross-check instrument for ko-sensitive-chainability.md Measurement 2.
         fn replayTranscript(d: *const artifact.Decoded, name: []const u8, text: []const u8) void {
-            const p = std.debug.print;
+            const p = util.out;
             var s = Self{ .d = d };
             s.reset();
             var ply: u64 = 0;
@@ -847,7 +848,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
         }
 
         fn report(policy: Policy, st: *const Stats, distinct: u32, ply_cap: u64) void {
-            const p = std.debug.print;
+            const p = util.out;
             p("  games played:           {d}\n", .{st.games});
             p("  distinct game lines:    {d}\n", .{distinct});
             p("  mean plies/game:        {d:.2}  (max {d})\n", .{
@@ -989,7 +990,7 @@ pub fn main(init: std.process.Init) !void {
     var dec = try artifact.load(io, std.Io.Dir.cwd(), path, gpa);
     defer dec.deinit();
 
-    std.debug.print(
+    util.out(
         \\reachable ko-sensitivity census
         \\  artifact: {s} ({d}x{d}, {d} legal/side)
         \\  games/policy: {d}   seed: {d}   ply cap: {d}   random pass prob: {d}/1000

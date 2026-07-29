@@ -97,6 +97,7 @@
 // `src/qa023_smoke_2x2.zig` and `src/qa023_brute_2x2.zig`.
 
 const std = @import("std");
+const util = @import("util.zig");
 const expect = std.testing.expect;
 
 // ---- 2x2 rules module (Fable's EXP-2A; B1 smoke uses its RULES only) -------
@@ -216,11 +217,11 @@ fn smoke_fixpoint_2x2() Smoke2x2Tables {
 }
 
 fn run_smoke_2x2() void {
-    std.debug.print("# qa023 probe — B1 2x2 smoke (TIE = {d}; evaluator: median fixpoint over {d} states)\n", .{ TIE, Brute2x2.TOTAL_STATES });
+    util.out("# qa023 probe — B1 2x2 smoke (TIE = {d}; evaluator: median fixpoint over {d} states)\n", .{ TIE, Brute2x2.TOTAL_STATES });
     const t = smoke_fixpoint_2x2();
-    std.debug.print("# fixpoint: sweeps = {d}, converged = {}\n", .{ t.sweeps, t.converged });
+    util.out("# fixpoint: sweeps = {d}, converged = {}\n", .{ t.sweeps, t.converged });
     if (!t.converged) {
-        std.debug.print("FAIL — fixpoint did not converge within sweep bound\n", .{});
+        util.out("FAIL — fixpoint did not converge within sweep bound\n", .{});
         return;
     }
     const s_empty_b = Brute2x2.State{ .board = .{ 0, 0, 0, 0 }, .side = 1, .ko_point = Brute2x2.State.KO_NONE, .passes = 0 };
@@ -235,11 +236,11 @@ fn run_smoke_2x2() void {
     const v_pass1 = t.v(s_pass1);
     const v_terminal = t.v(s_terminal);
 
-    std.debug.print("empty B  v = {d:>3}  expected  0   {s}\n", .{ v_empty_b, if (v_empty_b == 0) "OK" else "FAIL (PSK is +1)" });
-    std.debug.print("empty W  v = {d:>3}  expected  0   {s}\n", .{ v_empty_w, if (v_empty_w == 0) "OK" else "FAIL" });
-    std.debug.print("full B   v = {d:>3}  expected +4   {s}\n", .{ v_full_b, if (v_full_b == 4) "OK" else "FAIL" });
-    std.debug.print("passes=1 v = {d:>3}  expected  0   {s}\n", .{ v_pass1, if (v_pass1 == 0) "OK" else "FAIL" });
-    std.debug.print("passes=2 v = {d:>3}  expected  0   {s}\n", .{ v_terminal, if (v_terminal == 0) "OK" else "FAIL" });
+    util.out("empty B  v = {d:>3}  expected  0   {s}\n", .{ v_empty_b, if (v_empty_b == 0) "OK" else "FAIL (PSK is +1)" });
+    util.out("empty W  v = {d:>3}  expected  0   {s}\n", .{ v_empty_w, if (v_empty_w == 0) "OK" else "FAIL" });
+    util.out("full B   v = {d:>3}  expected +4   {s}\n", .{ v_full_b, if (v_full_b == 4) "OK" else "FAIL" });
+    util.out("passes=1 v = {d:>3}  expected  0   {s}\n", .{ v_pass1, if (v_pass1 == 0) "OK" else "FAIL" });
+    util.out("passes=2 v = {d:>3}  expected  0   {s}\n", .{ v_terminal, if (v_terminal == 0) "OK" else "FAIL" });
 }
 
 // ---- SYNTHETIC CALIBRATION (catches the v1 -> v2 fix) ---------------------
@@ -276,9 +277,9 @@ const CalExpected = [CalN]i8{ 1, 1, 1, 3 };
 const CalV1Wrong = [CalN]i8{ 0, 0, 1, 3 }; // what v1's L<H => T would yield
 
 fn run_calibrate() void {
-    std.debug.print("# qa023 probe — synthetic calibration (catches v1 -> v2 fix)\n", .{});
-    std.debug.print("# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = {d}\n", .{TIE});
-    std.debug.print("# L = [any], H = [any], V = median(L, TIE, H)\n", .{});
+    util.out("# qa023 probe — synthetic calibration (catches v1 -> v2 fix)\n", .{});
+    util.out("# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = {d}\n", .{TIE});
+    util.out("# L = [any], H = [any], V = median(L, TIE, H)\n", .{});
     var ok = true;
     for (0..CalN) |i| {
         const Ll = CalL[i];
@@ -290,12 +291,12 @@ fn run_calibrate() void {
         const is_ok = (V_v2 == expected) and (V_v1_wrong == CalV1Wrong[i]);
         if (!is_ok) ok = false;
         const tag: CalState = @enumFromInt(i);
-        std.debug.print(
+        util.out(
             "  state {s}  L={d:>3} H={d:>3}  V(v2 median)={d:>3} V(v1 L<H=>T)={d:>3}  expected V={d:>3}  {s}\n",
             .{ @tagName(tag), Ll, Hh, V_v2, V_v1_wrong, expected, if (is_ok) "OK" else "FAIL" },
         );
     }
-    std.debug.print("# verdict: {s}\n", .{if (ok) "PASS — corrected rule recovers the gadget, broken rule would mis-value" else "FAIL — corrected rule does not match hand computation"});
+    util.out("# verdict: {s}\n", .{if (ok) "PASS — corrected rule recovers the gadget, broken rule would mis-value" else "FAIL — corrected rule does not match hand computation"});
 }
 
 // ---- NEG CALIBRATION (2B-5): perturb a value, confirm detection ------------
@@ -309,9 +310,9 @@ fn run_calibrate() void {
 // but expected = 1, so the calibration MUST report FAIL for s0 (and only s0).
 
 fn run_calibrate_neg() void {
-    std.debug.print("# qa023 probe — NEG calibration (perturb L[s0] 1 → 2)\n", .{});
-    std.debug.print("# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = {d}\n", .{TIE});
-    std.debug.print("# perturbation: L[s0] changed from 1 to 2\n", .{});
+    util.out("# qa023 probe — NEG calibration (perturb L[s0] 1 → 2)\n", .{});
+    util.out("# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = {d}\n", .{TIE});
+    util.out("# perturbation: L[s0] changed from 1 to 2\n", .{});
     var ok = true;
     for (0..CalN) |i| {
         const Ll_orig = CalL[i];
@@ -335,20 +336,20 @@ fn run_calibrate_neg() void {
         const is_ok = (V_v2 == expected_pert);
         if (!is_ok) ok = false;
         const tag: CalState = @enumFromInt(i);
-        std.debug.print(
+        util.out(
             "  state {s}  L={d:>3} H={d:>3}  V(v2 median)={d:>3}  expected={d:>3}  {s}",
             .{ @tagName(tag), Ll, Hh, V_v2, expected_pert, if (is_ok) "OK" else "FAIL — perturbation detected" },
         );
         if (i == 0) {
-            std.debug.print("  (L perturbed 1→2)", .{});
+            util.out("  (L perturbed 1→2)", .{});
         }
-        std.debug.print("\n", .{});
+        util.out("\n", .{});
     }
     // NEG verdict: calibration SHOULD fail because s0 is perturbed.
     // If all OK (which won't happen — s0 expected=2, V_v2=2 so it IS ok
     // with the perturbed L), we need to show the RISE in divergence.
     // Instead: compare against the UNPERTURBED expected value.
-    std.debug.print("# --- cross-check against UNPERTURBED expected ---\n", .{});
+    util.out("# --- cross-check against UNPERTURBED expected ---\n", .{});
     var divergences: u32 = 0;
     for (0..CalN) |i| {
         const Ll: i8 = if (i == 0) 2 else CalL[i];
@@ -359,14 +360,14 @@ fn run_calibrate_neg() void {
         if (V_v2 != unpert_expected) {
             divergences += 1;
             const tag: CalState = @enumFromInt(i);
-            std.debug.print("  state {s}  V={d:>3}  unperturbed-expected={d:>3}  DIVERGENCE\n", .{ @tagName(tag), V_v2, unpert_expected });
+            util.out("  state {s}  V={d:>3}  unperturbed-expected={d:>3}  DIVERGENCE\n", .{ @tagName(tag), V_v2, unpert_expected });
         }
     }
     if (divergences > 0) {
-        std.debug.print("# NEG verdict: PASS — perturbation created {d} divergence(s) vs unperturbed baseline\n", .{divergences});
-        std.debug.print("# (unperturbed baseline had 0 divergences; probe detects the planted wrong value)\n", .{});
+        util.out("# NEG verdict: PASS — perturbation created {d} divergence(s) vs unperturbed baseline\n", .{divergences});
+        util.out("# (unperturbed baseline had 0 divergences; probe detects the planted wrong value)\n", .{});
     } else {
-        std.debug.print("# NEG verdict: FAIL — perturbation did not change any value\n", .{});
+        util.out("# NEG verdict: FAIL — perturbation did not change any value\n", .{});
     }
 }
 
@@ -747,8 +748,8 @@ fn census_sweep(
 }
 
 fn run_census_3x2() !CensusStats {
-    std.debug.print("# qa023 probe — 3x2 census: reachable (board, side, ko, passes)\n", .{});
-    std.debug.print("# total raw states: {d} (3^{d} * 2 * {d} * 3)\n", .{ TOTAL_STATES, n, KO_DIMS });
+    util.out("# qa023 probe — 3x2 census: reachable (board, side, ko, passes)\n", .{});
+    util.out("# total raw states: {d} (3^{d} * 2 * {d} * 3)\n", .{ TOTAL_STATES, n, KO_DIMS });
     const gpa = std.heap.page_allocator;
 
     var reach = try gpa.alloc(u64, ReachWords);
@@ -790,7 +791,7 @@ fn run_census_3x2() !CensusStats {
         try census_sweep(reach, snap, &new_marks);
         sweep_idx += 1;
         if (sweep_idx % 4 == 0 or new_marks == 0) {
-            std.debug.print("# sweep {d}: new_marks = {d}\n", .{ sweep_idx, new_marks });
+            util.out("# sweep {d}: new_marks = {d}\n", .{ sweep_idx, new_marks });
         }
     }
     stats.sweeps = sweep_idx;
@@ -829,12 +830,12 @@ fn run_census_3x2() !CensusStats {
     stats.terminal_marked = terminal_count;
     stats.side_marked = side_count;
 
-    std.debug.print("# total marked: {d}\n", .{total_count});
-    std.debug.print("#   by ko:  ko=none={d}  ko=cells={d}\n", .{ per_ko[KO_DIMS - 1], total_count - per_ko[KO_DIMS - 1] });
-    std.debug.print("#   by side: B={d}  W={d}\n", .{ side_count[0], side_count[1] });
-    std.debug.print("#   terminals (passes=2): {d}\n", .{terminal_count});
-    std.debug.print("# sweeps: {d}\n", .{sweep_idx});
-    std.debug.print("# verdict: census covers {d} (state-tuple) addresses, of which {d} distinct legal boards\n", .{ total_count, legal_count });
+    util.out("# total marked: {d}\n", .{total_count});
+    util.out("#   by ko:  ko=none={d}  ko=cells={d}\n", .{ per_ko[KO_DIMS - 1], total_count - per_ko[KO_DIMS - 1] });
+    util.out("#   by side: B={d}  W={d}\n", .{ side_count[0], side_count[1] });
+    util.out("#   terminals (passes=2): {d}\n", .{terminal_count});
+    util.out("# sweeps: {d}\n", .{sweep_idx});
+    util.out("# verdict: census covers {d} (state-tuple) addresses, of which {d} distinct legal boards\n", .{ total_count, legal_count });
 
     return stats;
 }
@@ -1028,7 +1029,7 @@ fn fixpoint_kernel(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointStats {
         }
         total_changes = l_changed + h_changed;
         if (sweep_idx % 4 == 0 or total_changes == 0) {
-            std.debug.print("# sweep {d}: L_changed={d} H_changed={d}\n", .{ sweep_idx, l_changed, h_changed });
+            util.out("# sweep {d}: L_changed={d} H_changed={d}\n", .{ sweep_idx, l_changed, h_changed });
         }
     }
     // Pin census
@@ -1061,20 +1062,20 @@ fn fixpoint_kernel(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointStats {
             }
         }
     }
-    std.debug.print("# sweeps: {d} (final total_changes = {d})\n", .{ sweep_idx, total_changes });
-    std.debug.print("# pin census:  L==H={d}  L<H&pin_T={d}  L<H&pin_L={d}  L<H&pin_H={d}\n", .{
+    util.out("# sweeps: {d} (final total_changes = {d})\n", .{ sweep_idx, total_changes });
+    util.out("# pin census:  L==H={d}  L<H&pin_T={d}  L<H&pin_L={d}  L<H&pin_H={d}\n", .{
         stats.l_eq_h,
         stats.pin_t,
         stats.pin_l,
         stats.pin_h,
     });
-    std.debug.print("# v1's wrong rule would have given `pin_t + pin_l + pin_h` wrong; v2's rule gives all three correct.\n", .{});
+    util.out("# v1's wrong rule would have given `pin_t + pin_l + pin_h` wrong; v2's rule gives all three correct.\n", .{});
     return stats;
 }
 
 fn run_fixpoint_3x2(reach: []const u64) !FixpointStats {
-    std.debug.print("# qa023 probe — 3x2 two-fixpoint (L, H) and V = median(L, TIE, H)\n", .{});
-    std.debug.print("# TIE = {d}, n = {d}\n", .{ TIE, n });
+    util.out("# qa023 probe — 3x2 two-fixpoint (L, H) and V = median(L, TIE, H)\n", .{});
+    util.out("# TIE = {d}, n = {d}\n", .{ TIE, n });
     const gpa = std.heap.page_allocator;
     const L_tab = try gpa.alloc(i8, TOTAL_STATES);
     defer gpa.free(L_tab);
@@ -1515,8 +1516,8 @@ fn run_probe_3x2(
     H_tab: []const i8,
     params: ProbeParams,
 ) !ProbeOutcome {
-    std.debug.print("# qa023 probe — 3x2 HISTORY-SENSITIVITY PROBE (T13-style)\n", .{});
-    std.debug.print("# params: seed={d} n_samples={d} k_histories={d} history_depth={d} budget/history={d}\n", .{
+    util.out("# qa023 probe — 3x2 HISTORY-SENSITIVITY PROBE (T13-style)\n", .{});
+    util.out("# params: seed={d} n_samples={d} k_histories={d} history_depth={d} budget/history={d}\n", .{
         params.seed,
         params.n_samples,
         params.k_histories,
@@ -1581,8 +1582,8 @@ fn run_probe_3x2(
             }
         }
     }
-    std.debug.print("# reachable non-terminal states: {d}\n", .{reachable_count});
-    std.debug.print("#   L==H: {d}  pin_T: {d}  pin_L: {d}  pin_H: {d}\n", .{
+    util.out("# reachable non-terminal states: {d}\n", .{reachable_count});
+    util.out("#   L==H: {d}  pin_T: {d}  pin_L: {d}  pin_H: {d}\n", .{
         leh_count,
         pin_t_count,
         pin_l_count,
@@ -1695,7 +1696,7 @@ fn run_probe_3x2(
         if (n_collected == 0) {
             outcome.n_unreachable += 1;
             if (sample_idx % 8 == 0 and sample_idx > 0) {
-                std.debug.print("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d}\n", .{
+                util.out("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d}\n", .{
                     sample_idx,
                     params.n_samples,
                     outcome.n_value_agreements,
@@ -1797,23 +1798,23 @@ fn run_probe_3x2(
                     sample_had_disagreement = true;
                     outcome.n_disagreement += 1;
                     if (outcome.n_disagreement <= 100) {
-                        std.debug.print("# DISAGREE(TIE) #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated=TIE arrival_len={d}\n", .{
+                        util.out("# DISAGREE(TIE) #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated=TIE arrival_len={d}\n", .{
                             outcome.n_disagreement,
                             state.board, state.side, state.ko, state.passes,
                             V_fixpoint,
                             arrival_len,
                         });
-                        std.debug.print("#   arrival: ", .{});
+                        util.out("#   arrival: ", .{});
                         var mvi2: u16 = 0;
                         while (mvi2 < hlen) : (mvi2 += 1) {
                             const mv2 = play[mvi2];
                             if (mv2.move_kind == .pass) {
-                                std.debug.print("pass ", .{});
+                                util.out("pass ", .{});
                             } else {
-                                std.debug.print("{s}{d} ", .{ if (mv2.colour > 0) "B" else "W", mv2.cell });
+                                util.out("{s}{d} ", .{ if (mv2.colour > 0) "B" else "W", mv2.cell });
                             }
                         }
-                        std.debug.print("\n", .{});
+                        util.out("\n", .{});
                     }
                 } else {
                     outcome.n_tie_valued += 1;
@@ -1827,24 +1828,24 @@ fn run_probe_3x2(
                 outcome.n_disagreement += 1;
                 // Dump the first 5 disagreements verbatim per 2B-4 acceptance.
                 if (outcome.n_disagreement <= 100) {
-                    std.debug.print("# DISAGREE #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated={d} arrival_len={d}\n", .{
+                    util.out("# DISAGREE #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated={d} arrival_len={d}\n", .{
                         outcome.n_disagreement,
                         state.board, state.side, state.ko, state.passes,
                         V_fixpoint, v.?,
                         arrival_len,
                     });
                     // Replay the arrival moves
-                    std.debug.print("#   arrival: ", .{});
+                    util.out("#   arrival: ", .{});
                     var mvi: u16 = 0;
                     while (mvi < hlen) : (mvi += 1) {
                         const mv = play[mvi];
                         if (mv.move_kind == .pass) {
-                            std.debug.print("pass ", .{});
+                            util.out("pass ", .{});
                         } else {
-                            std.debug.print("{s}{d} ", .{ if (mv.colour > 0) "B" else "W", mv.cell });
+                            util.out("{s}{d} ", .{ if (mv.colour > 0) "B" else "W", mv.cell });
                         }
                     }
-                    std.debug.print("\n", .{});
+                    util.out("\n", .{});
                 }
                 continue;
             }
@@ -1890,7 +1891,7 @@ fn run_probe_3x2(
         }
         if (sample_cycle_mattered) outcome.cycle_census_states += 1;
         if (sample_idx % 8 == 0 and sample_idx > 0) {
-            std.debug.print("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d} scratch={d}\n", .{
+            util.out("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d} scratch={d}\n", .{
                 sample_idx,
                 params.n_samples,
                 outcome.n_value_agreements,
@@ -1902,51 +1903,51 @@ fn run_probe_3x2(
         }
     }
 
-    std.debug.print("# === probe verdict ===\n", .{});
-    std.debug.print("# samples requested: {d}\n", .{params.n_samples});
-    std.debug.print("# samples evaluated: {d}\n", .{outcome.n_evaluated});
-    std.debug.print("# sigma-in-arrival collisions (defect 1, should be 0): {d}\n", .{outcome.sigma_in_arrival_collisions});
-    std.debug.print("# === three-way split (ref-semantics §2) ===\n", .{});
+    util.out("# === probe verdict ===\n", .{});
+    util.out("# samples requested: {d}\n", .{params.n_samples});
+    util.out("# samples evaluated: {d}\n", .{outcome.n_evaluated});
+    util.out("# sigma-in-arrival collisions (defect 1, should be 0): {d}\n", .{outcome.sigma_in_arrival_collisions});
+    util.out("# === three-way split (ref-semantics §2) ===\n", .{});
     const within_budget: u32 = outcome.history_total - outcome.n_budget_exhausted - outcome.n_scratch_overflow;
-    std.debug.print("# value-agreements (v != TIE, v == V): {d}  (/{d} within-budget)\n", .{ outcome.n_value_agreements, within_budget });
-    std.debug.print("# TIE-valued (v == TIE): {d}  (/{d} within-budget)\n", .{ outcome.n_tie_valued, within_budget });
-    std.debug.print("# budget-exhausted (v == null, budget): {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
-    std.debug.print("# scratch-overflow (v == null, scratch): {d} / {d}\n", .{ outcome.n_scratch_overflow, outcome.history_total });
-    std.debug.print("# disagreements (v != TIE, v != V, v != null): {d}  (/{d} within-budget)\n", .{ outcome.n_disagreement, within_budget });
-    std.debug.print("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
-    std.debug.print("# cycle-census states (any history hit TIE leaf): {d}\n", .{outcome.cycle_census_states});
-    std.debug.print("# sampled-kind counts: L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{
+    util.out("# value-agreements (v != TIE, v == V): {d}  (/{d} within-budget)\n", .{ outcome.n_value_agreements, within_budget });
+    util.out("# TIE-valued (v == TIE): {d}  (/{d} within-budget)\n", .{ outcome.n_tie_valued, within_budget });
+    util.out("# budget-exhausted (v == null, budget): {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
+    util.out("# scratch-overflow (v == null, scratch): {d} / {d}\n", .{ outcome.n_scratch_overflow, outcome.history_total });
+    util.out("# disagreements (v != TIE, v != V, v != null): {d}  (/{d} within-budget)\n", .{ outcome.n_disagreement, within_budget });
+    util.out("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
+    util.out("# cycle-census states (any history hit TIE leaf): {d}\n", .{outcome.cycle_census_states});
+    util.out("# sampled-kind counts: L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{
         outcome.l_eq_h_sampled,
         outcome.pin_t_sampled,
         outcome.pin_l_sampled,
         outcome.pin_h_sampled,
     });
-    std.debug.print("# === C1/C2 split (2B-PROBE-FIX) ===\n", .{});
-    std.debug.print("# C1: states with >=2 within-budget evals (can test C1): {d}\n", .{outcome.n_c1_eligible});
-    std.debug.print("# C1: states where within-budget values disagree among themselves: {d}\n", .{outcome.n_c1_failures});
-    std.debug.print("# C2: states with >=1 within-budget eval (can test C2): {d}\n", .{outcome.n_c2_eligible});
-    std.debug.print("# C2: states where all agree but disagree with fixpoint V: {d}\n", .{outcome.n_c2_failures});
+    util.out("# === C1/C2 split (2B-PROBE-FIX) ===\n", .{});
+    util.out("# C1: states with >=2 within-budget evals (can test C1): {d}\n", .{outcome.n_c1_eligible});
+    util.out("# C1: states where within-budget values disagree among themselves: {d}\n", .{outcome.n_c1_failures});
+    util.out("# C2: states with >=1 within-budget eval (can test C2): {d}\n", .{outcome.n_c2_eligible});
+    util.out("# C2: states where all agree but disagree with fixpoint V: {d}\n", .{outcome.n_c2_failures});
     if (outcome.n_c1_failures > 0) {
-        std.debug.print("# C1 VERDICT: FALSIFIED — {d} states show history-dependent truncated values\n", .{outcome.n_c1_failures});
+        util.out("# C1 VERDICT: FALSIFIED — {d} states show history-dependent truncated values\n", .{outcome.n_c1_failures});
     } else if (outcome.n_c1_eligible > 0) {
-        std.debug.print("# C1 VERDICT: no history-dependence among {d} eligible states (histories share ~62% prefixes per 2B-3-AUDIT; short paths systematically missed — UNTESTED-FOR-WANT-OF-CONTRAST, not a clean pass)\n", .{outcome.n_c1_eligible});
+        util.out("# C1 VERDICT: no history-dependence among {d} eligible states (histories share ~62% prefixes per 2B-3-AUDIT; short paths systematically missed — UNTESTED-FOR-WANT-OF-CONTRAST, not a clean pass)\n", .{outcome.n_c1_eligible});
     } else {
-        std.debug.print("# C1 VERDICT: INCONCLUSIVE — no states with >=2 within-budget evals\n", .{});
+        util.out("# C1 VERDICT: INCONCLUSIVE — no states with >=2 within-budget evals\n", .{});
     }
     if (outcome.n_c2_failures > 0) {
-        std.debug.print("# C2 VERDICT: FALSIFIED — {d} states where truncated value != fixpoint V\n", .{outcome.n_c2_failures});
+        util.out("# C2 VERDICT: FALSIFIED — {d} states where truncated value != fixpoint V\n", .{outcome.n_c2_failures});
     } else if (outcome.n_c2_eligible > 0) {
-        std.debug.print("# C2 VERDICT: CONSISTENT on {d} eligible states — all within-budget values match fixpoint\n", .{outcome.n_c2_eligible});
+        util.out("# C2 VERDICT: CONSISTENT on {d} eligible states — all within-budget values match fixpoint\n", .{outcome.n_c2_eligible});
     } else {
-        std.debug.print("# C2 VERDICT: INCONCLUSIVE — no states with >=1 within-budget eval\n", .{});
+        util.out("# C2 VERDICT: INCONCLUSIVE — no states with >=1 within-budget eval\n", .{});
     }
     // Legacy QA-023 summary (OR of C1 and C2)
     if (outcome.n_disagreement == 0 and outcome.n_evaluated > 0) {
-        std.debug.print("# QA-023 (legacy): NOT FALSIFIED on this sample. No arrival history disagreed with V.\n", .{});
+        util.out("# QA-023 (legacy): NOT FALSIFIED on this sample. No arrival history disagreed with V.\n", .{});
     } else if (outcome.n_disagreement > 0) {
-        std.debug.print("# QA-023 (legacy): FALSIFIED on this sample. See C1/C2 split above for which conjunct failed.\n", .{});
+        util.out("# QA-023 (legacy): FALSIFIED on this sample. See C1/C2 split above for which conjunct failed.\n", .{});
     } else {
-        std.debug.print("# QA-023 (legacy): INCONCLUSIVE (no evaluated samples).\n", .{});
+        util.out("# QA-023 (legacy): INCONCLUSIVE (no evaluated samples).\n", .{});
     }
     return outcome;
 }
@@ -2089,7 +2090,7 @@ fn psk_fixpoint(L_tab: []i8, H_tab: []i8) PskFixpointStats {
             }
         }
         if (sweeps % 4 == 0 or any_change == 0) {
-            std.debug.print("# PSK fixpoint sweep {d}: changes={d}\n", .{ sweeps, any_change });
+            util.out("# PSK fixpoint sweep {d}: changes={d}\n", .{ sweeps, any_change });
         }
     }
     // Pin census
@@ -2107,7 +2108,7 @@ fn psk_fixpoint(L_tab: []i8, H_tab: []i8) PskFixpointStats {
             stats.pin_t += 1;
         }
     }
-    std.debug.print("# PSK fixpoint ({d} states): sweeps={d}  L==H={d}  pin_T={d}  pin_L={d}  pin_H={d}\n", .{
+    util.out("# PSK fixpoint ({d} states): sweeps={d}  L==H={d}  pin_T={d}  pin_L={d}  pin_H={d}\n", .{
         PSK_TOTAL, sweeps, stats.l_eq_h, stats.pin_t, stats.pin_l, stats.pin_h,
     });
     return stats;
@@ -2208,11 +2209,11 @@ fn psk_exact_value(
 /// histories with PSK legality, evaluate each with psk_exact_value,
 /// compare against the PSK fixpoint V. Reports disagreements.
 fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
-    std.debug.print("# qa023 probe — 3x2 PSK HISTORY-SENSITIVITY PROBE (T13-style, 2B-5 POS)\n", .{});
-    std.debug.print("# params: seed={d} n_samples={d} k_histories={d} history_depth={d} budget/history={d}\n", .{
+    util.out("# qa023 probe — 3x2 PSK HISTORY-SENSITIVITY PROBE (T13-style, 2B-5 POS)\n", .{});
+    util.out("# params: seed={d} n_samples={d} k_histories={d} history_depth={d} budget/history={d}\n", .{
         params.seed, params.n_samples, params.k_histories, params.history_depth, params.node_budget_per_history,
     });
-    std.debug.print("# TIE is irrelevant under PSK (revisits are illegal, not TIE-valued)\n", .{});
+    util.out("# TIE is irrelevant under PSK (revisits are illegal, not TIE-valued)\n", .{});
 
     const gpa = std.heap.page_allocator;
     var prng = std.Random.DefaultPrng.init(params.seed);
@@ -2247,7 +2248,7 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
         }
     }
     const l_lt_h_total = leh_count + pin_t_count;
-    std.debug.print("# PSK reachable non-terminal states: {d}  (L==H={d}  L<H={d})\n", .{ l_lt_h_total, leh_count, pin_t_count });
+    util.out("# PSK reachable non-terminal states: {d}  (L==H={d}  L<H={d})\n", .{ l_lt_h_total, leh_count, pin_t_count });
 
     // Allocate resources for history enumeration (PSK-specific).
     const path_moves = try gpa.alloc(Move, params.history_depth);
@@ -2312,7 +2313,7 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
         if (n_collected == 0) {
             outcome.n_unreachable += 1;
             if (sample_idx % 8 == 0 and sample_idx > 0) {
-                std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+                util.out("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
                     sample_idx, params.n_samples, outcome.n_value_agreements, outcome.n_disagreement, outcome.n_budget_exhausted,
                 });
             }
@@ -2376,49 +2377,49 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
             if (v.? != V_fixpoint) {
                 outcome.n_disagreement += 1;
                 if (outcome.n_disagreement <= 5) {
-                    std.debug.print("# DISAGREE(PSK) #{d}: state=(board={d},side={d},passes={d}) V_fixpoint={d} psk_exact={d} arrival_len={d}\n", .{
+                    util.out("# DISAGREE(PSK) #{d}: state=(board={d},side={d},passes={d}) V_fixpoint={d} psk_exact={d} arrival_len={d}\n", .{
                         outcome.n_disagreement, dec.board, dec.side, dec.passes, V_fixpoint, v.?, hlen,
                     });
-                    std.debug.print("#   arrival: ", .{});
+                    util.out("#   arrival: ", .{});
                     var mvi2: u16 = 0;
                     while (mvi2 < hlen) : (mvi2 += 1) {
                         const mv2 = play[mvi2];
                         if (mv2.move_kind == .pass) {
-                            std.debug.print("pass ", .{});
+                            util.out("pass ", .{});
                         } else {
-                            std.debug.print("{s}{d} ", .{ if (mv2.colour > 0) "B" else "W", mv2.cell });
+                            util.out("{s}{d} ", .{ if (mv2.colour > 0) "B" else "W", mv2.cell });
                         }
                     }
-                    std.debug.print("\n", .{});
+                    util.out("\n", .{});
                 }
             } else {
                 outcome.n_value_agreements += 1;
             }
         }
         if (sample_idx % 8 == 0 and sample_idx > 0) {
-            std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+            util.out("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
                 sample_idx, params.n_samples, outcome.n_value_agreements, outcome.n_disagreement, outcome.n_budget_exhausted,
             });
         }
     }
 
-    std.debug.print("# === PSK probe verdict ===\n", .{});
-    std.debug.print("# samples requested: {d}\n", .{params.n_samples});
-    std.debug.print("# samples evaluated: {d}\n", .{outcome.n_evaluated});
-    std.debug.print("# value-agreements (psk == V): {d}\n", .{outcome.n_value_agreements});
-    std.debug.print("# budget-exhausted: {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
-    std.debug.print("# disagreements (psk != V, != null): {d}\n", .{outcome.n_disagreement});
-    std.debug.print("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
-    std.debug.print("# sampled-kind counts: L==H={d}  L<H={d}\n", .{ outcome.l_eq_h_sampled, outcome.pin_t_sampled });
+    util.out("# === PSK probe verdict ===\n", .{});
+    util.out("# samples requested: {d}\n", .{params.n_samples});
+    util.out("# samples evaluated: {d}\n", .{outcome.n_evaluated});
+    util.out("# value-agreements (psk == V): {d}\n", .{outcome.n_value_agreements});
+    util.out("# budget-exhausted: {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
+    util.out("# disagreements (psk != V, != null): {d}\n", .{outcome.n_disagreement});
+    util.out("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
+    util.out("# sampled-kind counts: L==H={d}  L<H={d}\n", .{ outcome.l_eq_h_sampled, outcome.pin_t_sampled });
     if (outcome.n_disagreement > 0) {
-        std.debug.print("# POS verdict: PASS — probe detects history-sensitivity under PSK ({d} disagreements)\n", .{outcome.n_disagreement});
-        std.debug.print("# T13 found 12 pointwise mismatches at 3x2; this probe reproduces the phenomenon: stored\n", .{});
-        std.debug.print("#   fresh-start PSK scores disagree with history-aware PSK evaluation.\n", .{});
+        util.out("# POS verdict: PASS — probe detects history-sensitivity under PSK ({d} disagreements)\n", .{outcome.n_disagreement});
+        util.out("# T13 found 12 pointwise mismatches at 3x2; this probe reproduces the phenomenon: stored\n", .{});
+        util.out("#   fresh-start PSK scores disagree with history-aware PSK evaluation.\n", .{});
     } else if (outcome.n_evaluated > 0) {
-        std.debug.print("# POS verdict: INCONCLUSIVE — probe found zero disagreements under PSK\n", .{});
-        std.debug.print("#   This would mean either the probe is too weak, or history-sensitivity is absent.\n", .{});
+        util.out("# POS verdict: INCONCLUSIVE — probe found zero disagreements under PSK\n", .{});
+        util.out("#   This would mean either the probe is too weak, or history-sensitivity is absent.\n", .{});
     } else {
-        std.debug.print("# POS verdict: INCONCLUSIVE (no evaluated samples)\n", .{});
+        util.out("# POS verdict: INCONCLUSIVE (no evaluated samples)\n", .{});
     }
     return outcome;
 }
@@ -2614,8 +2615,8 @@ fn run_history_pairs_3x2(reach: []const u64, L_tab: []const i8, H_tab: []const i
     const history_depth: u16 = 16;
     const seed: u64 = 0x2B3DA7A;
 
-    std.debug.print("# qa023 2B-3 — history-pair generation at 3×2\n", .{});
-    std.debug.print("# params: n_samples={d} k_histories={d} history_depth={d} seed=0x{X}\n", .{
+    util.out("# qa023 2B-3 — history-pair generation at 3×2\n", .{});
+    util.out("# params: n_samples={d} k_histories={d} history_depth={d} seed=0x{X}\n", .{
         n_samples, k_histories, history_depth, seed,
     });
 
@@ -2661,7 +2662,7 @@ fn run_history_pairs_3x2(reach: []const u64, L_tab: []const i8, H_tab: []const i
             }
         }
     }
-    std.debug.print("# reachable non-terminal: pin_T={d} L==H={d} pin_L={d} pin_H={d}\n", .{
+    util.out("# reachable non-terminal: pin_T={d} L==H={d} pin_L={d} pin_H={d}\n", .{
         pin_t_count, leh_count, pin_l_count, pin_h_count,
     });
 
@@ -2751,7 +2752,7 @@ fn run_history_pairs_3x2(reach: []const u64, L_tab: []const i8, H_tab: []const i
         }
 
         if (sample_idx % 8 == 0 and sample_idx > 0) {
-            std.debug.print("# sample {d}/{d}: multi-hist={d} diff-vs={d} pairs={d} diff-pairs={d}\n", .{
+            util.out("# sample {d}/{d}: multi-hist={d} diff-vs={d} pairs={d} diff-pairs={d}\n", .{
                 sample_idx,
                 n_samples,
                 outcome.n_states_with_multi_history,
@@ -2762,18 +2763,18 @@ fn run_history_pairs_3x2(reach: []const u64, L_tab: []const i8, H_tab: []const i
         }
     }
 
-    std.debug.print("# === 2B-3 history-pairs verdict ===\n", .{});
-    std.debug.print("# states sampled: {d}\n", .{outcome.n_states_sampled});
-    std.debug.print("# states with >=2 arrival histories: {d}\n", .{outcome.n_states_with_multi_history});
-    std.debug.print("# states with visit-set-different histories: {d}\n", .{outcome.n_states_with_visit_set_diff});
-    std.debug.print("# total history-pairs compared: {d}\n", .{outcome.total_pairs});
-    std.debug.print("# total visit-set-different pairs: {d}\n", .{outcome.total_visit_set_diff_pairs});
+    util.out("# === 2B-3 history-pairs verdict ===\n", .{});
+    util.out("# states sampled: {d}\n", .{outcome.n_states_sampled});
+    util.out("# states with >=2 arrival histories: {d}\n", .{outcome.n_states_with_multi_history});
+    util.out("# states with visit-set-different histories: {d}\n", .{outcome.n_states_with_visit_set_diff});
+    util.out("# total history-pairs compared: {d}\n", .{outcome.total_pairs});
+    util.out("# total visit-set-different pairs: {d}\n", .{outcome.total_visit_set_diff_pairs});
 
     if (outcome.n_states_with_visit_set_diff == 0) {
-        std.debug.print("# VACUITY-GUARD FAIL: no state has >=2 visit-set-distinct histories.\n", .{});
-        std.debug.print("# ESCALATE: QA-023 probe at 3×2 cannot test history-independence (same trap as 2×2).\n", .{});
+        util.out("# VACUITY-GUARD FAIL: no state has >=2 visit-set-distinct histories.\n", .{});
+        util.out("# ESCALATE: QA-023 probe at 3×2 cannot test history-independence (same trap as 2×2).\n", .{});
     } else {
-        std.debug.print("# VACUITY-GUARD PASS: {d} states have >=2 visit-set-distinct histories → non-vacuous probe.\n", .{outcome.n_states_with_visit_set_diff});
+        util.out("# VACUITY-GUARD PASS: {d} states have >=2 visit-set-distinct histories → non-vacuous probe.\n", .{outcome.n_states_with_visit_set_diff});
     }
     return outcome;
 }
@@ -2846,8 +2847,8 @@ fn run_cycle_census_3x2(
 ) !CycleCensusStats {
     var gpa = std.heap.page_allocator;
 
-    std.debug.print("# qa023 probe — 3x2 cycle census: directed cycles in the reachable legal-move graph\n", .{});
-    std.debug.print("# (TIE constant is irrelevant; this is graph structure, not evaluation.)\n", .{});
+    util.out("# qa023 probe — 3x2 cycle census: directed cycles in the reachable legal-move graph\n", .{});
+    util.out("# (TIE constant is irrelevant; this is graph structure, not evaluation.)\n", .{});
 
     // 1. Build dense vertex map: reachable linear index -> [0..V).
     const vertex_map = try gpa.alloc(u32, TOTAL_STATES);
@@ -2863,7 +2864,7 @@ fn run_cycle_census_3x2(
         vertex_map[linear] = V;
         V += 1;
     }
-    std.debug.print("# cycle census: reachable V = {d}\n", .{V});
+    util.out("# cycle census: reachable V = {d}\n", .{V});
 
     // 2. Build forward adjacency list. Use an ArrayListUnmanaged per vertex
     // so we can grow during the moves enumeration.
@@ -2918,7 +2919,7 @@ fn run_cycle_census_3x2(
             E += 1;
         }
     }
-    std.debug.print("# cycle census: directed edges E = {d}\n", .{E});
+    util.out("# cycle census: directed edges E = {d}\n", .{E});
 
     // 3. Tarjan's SCC.  Iterative form to avoid recursion-depth issues.
     // index[v] = -1 means "unvisited".  Standard textbook algorithm.
@@ -3207,32 +3208,32 @@ fn run_cycle_census_3x2(
     }
 
     // 8. Report.
-    std.debug.print("# SCCs: total = {d}, non-trivial (size >= 2) = {d}, max size = {d}\n", .{ scc_count, scc_nontrivial, scc_max_size });
-    std.debug.print("# SCC size histogram (size 0..14, index 15 = size >= 15):\n", .{});
+    util.out("# SCCs: total = {d}, non-trivial (size >= 2) = {d}, max size = {d}\n", .{ scc_count, scc_nontrivial, scc_max_size });
+    util.out("# SCC size histogram (size 0..14, index 15 = size >= 15):\n", .{});
     {
         var si: usize = 0;
         while (si < scc_size_hist.len) : (si += 1) {
             if (scc_size_hist[si] > 0) {
-                std.debug.print("#   size {d}", .{si});
-                if (si == scc_size_hist.len - 1) std.debug.print("+", .{});
-                std.debug.print(": {d} SCCs\n", .{scc_size_hist[si]});
+                util.out("#   size {d}", .{si});
+                if (si == scc_size_hist.len - 1) util.out("+", .{});
+                util.out(": {d} SCCs\n", .{scc_size_hist[si]});
             }
         }
     }
-    std.debug.print("# cycle-involved vertices (lie on a directed cycle): {d}\n", .{cycle_involved_count});
-    std.debug.print("# cycle-REACHABLE vertices (forward-reachable set touches a cycle): {d}\n", .{cycle_reachable});
-    std.debug.print("# simple directed cycles found (cycle-length cap = {d}, total cap = {d}): {d}{s}\n", .{
+    util.out("# cycle-involved vertices (lie on a directed cycle): {d}\n", .{cycle_involved_count});
+    util.out("# cycle-REACHABLE vertices (forward-reachable set touches a cycle): {d}\n", .{cycle_reachable});
+    util.out("# simple directed cycles found (cycle-length cap = {d}, total cap = {d}): {d}{s}\n", .{
         max_cycle_len,
         max_cycles,
         cycles_found,
         if (cycles_capped) " (CAPPED — counted only)" else "",
     });
     if (max_len_found > 0) {
-        std.debug.print("# max cycle length observed: {d}\n", .{max_len_found});
+        util.out("# max cycle length observed: {d}\n", .{max_len_found});
     } else {
-        std.debug.print("# max cycle length observed: 0 (no cycles)\n", .{});
+        util.out("# max cycle length observed: 0 (no cycles)\n", .{});
     }
-    std.debug.print("# cycle histogram by length (length 2..{d}; index {d} = length >= {d}):\n", .{
+    util.out("# cycle histogram by length (length 2..{d}; index {d} = length >= {d}):\n", .{
         max_cycle_len,
         max_cycle_len - 1,
         max_cycle_len,
@@ -3248,11 +3249,11 @@ fn run_cycle_census_3x2(
             const idxj: usize = @intCast(@min(lj - 2, 12));
             if (idxj != idx_h) break;
         }
-        std.debug.print("#   length {d}", .{li});
+        util.out("#   length {d}", .{li});
         if (lj > li + 1) {
-            std.debug.print("..{d}", .{lj - 1});
+            util.out("..{d}", .{lj - 1});
         }
-        std.debug.print(": {d}\n", .{histogram[idx_h]});
+        util.out(": {d}\n", .{histogram[idx_h]});
         last_printed_idx = idx_h;
     }
 
@@ -3262,18 +3263,18 @@ fn run_cycle_census_3x2(
     for (sample_storage[0..7], 0..) |s, i| {
         if (s.len > 0) {
             sample_count += 1;
-            std.debug.print("# sample cycle (length {d}): [", .{sample_len_for_idx[i]});
+            util.out("# sample cycle (length {d}): [", .{sample_len_for_idx[i]});
             for (s, 0..) |v, k| {
-                if (k > 0) std.debug.print(", ", .{});
-                std.debug.print("{d}", .{v});
+                if (k > 0) util.out(", ", .{});
+                util.out("{d}", .{v});
             }
-            std.debug.print("]\n", .{});
+            util.out("]\n", .{});
         }
     }
 
     // 9. Final verdict for claim 3x2.QA023.B-VACUITY.
-    std.debug.print("# === 2B-2 cycle-census verdict ===\n", .{});
-    std.debug.print("# reachable V = {d}, E = {d}, non-trivial SCCs = {d}, cycles_found = {d}, cycle-involved = {d}, cycle-reachable = {d}\n", .{
+    util.out("# === 2B-2 cycle-census verdict ===\n", .{});
+    util.out("# reachable V = {d}, E = {d}, non-trivial SCCs = {d}, cycles_found = {d}, cycle-involved = {d}, cycle-reachable = {d}\n", .{
         V,
         E,
         scc_nontrivial,
@@ -3282,10 +3283,10 @@ fn run_cycle_census_3x2(
         cycle_reachable,
     });
     if (cycles_found > 0) {
-        std.debug.print("# CLAIM 3x2.QA023.B-VACUITY: PASS — reachable directed cycles > 0 (3x2 IS a non-trivial test surface)\n", .{});
+        util.out("# CLAIM 3x2.QA023.B-VACUITY: PASS — reachable directed cycles > 0 (3x2 IS a non-trivial test surface)\n", .{});
     } else {
-        std.debug.print("# CLAIM 3x2.QA023.B-VACUITY: FAIL — zero reachable directed cycles at 3x2\n", .{});
-        std.debug.print("# ESCALATE: 3x2 cannot host a non-trivial QA-023 test. Move to 3x3.\n", .{});
+        util.out("# CLAIM 3x2.QA023.B-VACUITY: FAIL — zero reachable directed cycles at 3x2\n", .{});
+        util.out("# ESCALATE: 3x2 cannot host a non-trivial QA-023 test. Move to 3x3.\n", .{});
     }
 
     return CycleCensusStats{
@@ -3435,7 +3436,7 @@ pub fn main(init: std.process.Init) !void {
             try census_sweep(reach, snap, &new_marks);
         }
         _ = run_fixpoint_3x2(reach) catch return error.OutOfMemory;
-        std.debug.print("# (run `zig run ... probe-3x2 -- --seed N --n-samples N --k-histories N --history-depth N` for the history-sensitivity check)\n", .{});
+        util.out("# (run `zig run ... probe-3x2 -- --seed N --n-samples N --k-histories N --history-depth N` for the history-sensitivity check)\n", .{});
     } else if (std.mem.eql(u8, mode, "calibrate-neg")) {
         run_calibrate_neg();
     } else if (std.mem.eql(u8, mode, "psk-test")) {
@@ -3445,7 +3446,7 @@ pub fn main(init: std.process.Init) !void {
         var budget: u64 = 10_000_000;
         const board: Pos = [_]i8{0} ** n;
         const v = psk_exact_value(&board, 0, 0, &seen, &seen_cnt, &budget, -6, 6, 0, 8);
-        std.debug.print("empty 3x2 B-to-move PSK exact(depth 8): v={?d} budget_left={d}\n", .{ v, budget });
+        util.out("empty 3x2 B-to-move PSK exact(depth 8): v={?d} budget_left={d}\n", .{ v, budget });
     } else if (std.mem.eql(u8, mode, "probe-psk-3x2")) {
         var seed: u64 = 0xC0FFEE5;
         var n_samples: u32 = 64;
@@ -3471,7 +3472,7 @@ pub fn main(init: std.process.Init) !void {
         };
         _ = run_probe_psk_3x2(params) catch return error.OutOfMemory;
     } else {
-        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|calibrate-neg|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2 [--seed N] [--n-samples N] [--k-histories N] [--history-depth N] [--node-budget N]|probe-psk-3x2|all] [flags]\n", .{});
+        util.out("usage: qa023_probe [smoke-2x2|calibrate|calibrate-neg|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2 [--seed N] [--n-samples N] [--k-histories N] [--history-depth N] [--node-budget N]|probe-psk-3x2|all] [flags]\n", .{});
         return error.UnknownMode;
     }
 }

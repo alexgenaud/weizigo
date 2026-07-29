@@ -82,6 +82,7 @@
 //   pinrule-diag6    the seven adjudicated states fully decoded
 //
 const std = @import("std");
+const util = @import("util.zig");
 
 const BOARD_W: usize = 3;
 const BOARD_H: usize = 2;
@@ -1131,13 +1132,13 @@ fn arrival_valid(buf: []const HistoryEntry) u16 {
 
 /// Print an arrival as a move sequence (B0/W2/pass ...) for hand checking.
 fn print_arrival_moves(buf: []const HistoryEntry) void {
-    std.debug.print("#   arrival moves: ", .{});
+    util.out("#   arrival moves: ", .{});
     var i: usize = 1;
     while (i < buf.len) : (i += 1) {
         const prev = buf[i - 1].state;
         const cur = buf[i].state;
         if (cur.board == prev.board) {
-            std.debug.print("pass ", .{});
+            util.out("pass ", .{});
         } else {
             const pb = unrank_board(prev.board);
             const cb = unrank_board(cur.board);
@@ -1149,10 +1150,10 @@ fn print_arrival_moves(buf: []const HistoryEntry) void {
                 }
             }
             const mover: u8 = if (prev.side == 0) 'B' else 'W';
-            std.debug.print("{c}{d} ", .{ mover, cell });
+            util.out("{c}{d} ", .{ mover, cell });
         }
     }
-    std.debug.print("\n", .{});
+    util.out("\n", .{});
 }
 
 // ---- the seven hand-adjudicated control states ------------------------------
@@ -1192,7 +1193,7 @@ fn group_key(l: i8, h: i8) usize {
 
 fn run_diag6(reach: []const u64, L_s: []const i8, H_s: []const i8, L_c: []const i8, H_c: []const i8) void {
     _ = reach;
-    std.debug.print("# pinrule-diag6 — the seven hand-adjudicated states\n", .{});
+    util.out("# pinrule-diag6 — the seven hand-adjudicated states\n", .{});
     for (CONTROLS) |c| {
         const st = StateIdx{ .board = c.board, .side = c.side, .ko = c.ko, .passes = c.passes };
         const lin = st.linear();
@@ -1205,17 +1206,17 @@ fn run_diag6(reach: []const u64, L_s: []const i8, H_s: []const i8, L_c: []const 
         for (0..m) |k| {
             if (is_legal(&succ_boards[k])) legal_cnt += 1;
         }
-        std.debug.print("CTRL board[{s}] state=({d},{d},{d},{d}) area={d} hand_value={d}\n", .{
+        util.out("CTRL board[{s}] state=({d},{d},{d},{d}) area={d} hand_value={d}\n", .{
             board_string(b, &sbuf), c.board, c.side, c.ko, c.passes, area_score(&b), c.value,
         });
-        std.debug.print("  as-shipped: L={d} H={d} median={d} | corrected: L={d} H={d} median={d} | legal_succs={d}\n", .{
+        util.out("  as-shipped: L={d} H={d} median={d} | corrected: L={d} H={d} median={d} | legal_succs={d}\n", .{
             L_s[lin],       H_s[lin],       @max(L_s[lin], @min(TIE, H_s[lin])),
             L_c[lin],       H_c[lin],       @max(L_c[lin], @min(TIE, H_c[lin])),
             legal_cnt,
         });
         for (0..m) |k| {
             if (!is_legal(&succ_boards[k])) continue;
-            std.debug.print("    -> ({d},{d},{d},{d}) pass={}\n", .{
+            util.out("    -> ({d},{d},{d},{d}) pass={}\n", .{
                 succs[k].board, succs[k].side, succs[k].ko, succs[k].passes, succs[k].board == st.board,
             });
         }
@@ -1223,7 +1224,7 @@ fn run_diag6(reach: []const u64, L_s: []const i8, H_s: []const i8, L_c: []const 
 }
 
 fn run_census_mode(gpa: std.mem.Allocator) !void {
-    std.debug.print("# pinrule-census — census, both fixpoints, validations V0..V3, group distribution\n", .{});
+    util.out("# pinrule-census — census, both fixpoints, validations V0..V3, group distribution\n", .{});
     const reach = try build_reach(gpa);
     var total_reach: u64 = 0;
     var non_terminal: u64 = 0;
@@ -1236,9 +1237,9 @@ fn run_census_mode(gpa: std.mem.Allocator) !void {
         side_count[st.side] += 1;
         if (st.passes != 2) non_terminal += 1;
     }
-    std.debug.print("# census: total reachable = {d} (published: 2622)\n", .{total_reach});
-    std.debug.print("# census: non-terminal = {d} (published: 1756)  terminals = {d} (published: 866)\n", .{ non_terminal, total_reach - non_terminal });
-    std.debug.print("# census: by side B={d} W={d}\n", .{ side_count[0], side_count[1] });
+    util.out("# census: total reachable = {d} (published: 2622)\n", .{total_reach});
+    util.out("# census: non-terminal = {d} (published: 1756)  terminals = {d} (published: 866)\n", .{ non_terminal, total_reach - non_terminal });
+    util.out("# census: by side B={d} W={d}\n", .{ side_count[0], side_count[1] });
 
     const L_s = try gpa.alloc(i8, TOTAL_STATES);
     const H_s = try gpa.alloc(i8, TOTAL_STATES);
@@ -1246,16 +1247,16 @@ fn run_census_mode(gpa: std.mem.Allocator) !void {
     const H_c = try gpa.alloc(i8, TOTAL_STATES);
     const sw_s = fixpoint_as_shipped(reach, L_s, H_s);
     const sw_c = fixpoint_corrected(reach, L_c, H_c);
-    std.debug.print("# fixpoint sweeps: as-shipped={d} corrected={d}\n", .{ sw_s, sw_c });
+    util.out("# fixpoint sweeps: as-shipped={d} corrected={d}\n", .{ sw_s, sw_c });
 
     const pc_s_all = pin_census(reach, L_s, H_s, false);
     const pc_c_all = pin_census(reach, L_c, H_c, false);
     const pc_s_nt = pin_census(reach, L_s, H_s, true);
     const pc_c_nt = pin_census(reach, L_c, H_c, true);
-    std.debug.print("# V0 as-shipped pin census (all):  L==H={d} pin_T={d} pin_L={d} pin_H={d}  (published: 948/1532/142/0)\n", .{ pc_s_all.l_eq_h, pc_s_all.pin_t, pc_s_all.pin_l, pc_s_all.pin_h });
-    std.debug.print("# V0 as-shipped pin census (non-term): L==H={d} pin_T={d} pin_L={d} pin_H={d}  (published: 82/1532/142/0)\n", .{ pc_s_nt.l_eq_h, pc_s_nt.pin_t, pc_s_nt.pin_l, pc_s_nt.pin_h });
-    std.debug.print("#    corrected pin census (all):  L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{ pc_c_all.l_eq_h, pc_c_all.pin_t, pc_c_all.pin_l, pc_c_all.pin_h });
-    std.debug.print("#    corrected pin census (non-term): L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{ pc_c_nt.l_eq_h, pc_c_nt.pin_t, pc_c_nt.pin_l, pc_c_nt.pin_h });
+    util.out("# V0 as-shipped pin census (all):  L==H={d} pin_T={d} pin_L={d} pin_H={d}  (published: 948/1532/142/0)\n", .{ pc_s_all.l_eq_h, pc_s_all.pin_t, pc_s_all.pin_l, pc_s_all.pin_h });
+    util.out("# V0 as-shipped pin census (non-term): L==H={d} pin_T={d} pin_L={d} pin_H={d}  (published: 82/1532/142/0)\n", .{ pc_s_nt.l_eq_h, pc_s_nt.pin_t, pc_s_nt.pin_l, pc_s_nt.pin_h });
+    util.out("#    corrected pin census (all):  L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{ pc_c_all.l_eq_h, pc_c_all.pin_t, pc_c_all.pin_l, pc_c_all.pin_h });
+    util.out("#    corrected pin census (non-term): L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{ pc_c_nt.l_eq_h, pc_c_nt.pin_t, pc_c_nt.pin_l, pc_c_nt.pin_h });
 
     // White-node freeze check on as-shipped: count White non-terminals with L==-6 and H==+6
     var white_frozen: u64 = 0;
@@ -1268,35 +1269,35 @@ fn run_census_mode(gpa: std.mem.Allocator) !void {
         white_nt += 1;
         if (L_s[li] == -6 and H_s[li] == 6) white_frozen += 1;
     }
-    std.debug.print("# as-shipped White-to-move non-terminals: {d}, of which pinned at seed (-6,+6): {d}\n", .{ white_nt, white_frozen });
+    util.out("# as-shipped White-to-move non-terminals: {d}, of which pinned at seed (-6,+6): {d}\n", .{ white_nt, white_frozen });
 
     // V1 Bellman residuals
     const res_s_L = bellman_residual(reach, L_s);
     const res_s_H = bellman_residual(reach, H_s);
     const res_c_L = bellman_residual(reach, L_c);
     const res_c_H = bellman_residual(reach, H_c);
-    std.debug.print("# V1 Bellman residual (states where table != Phi(table)):\n", .{});
-    std.debug.print("#    as-shipped: L residual={d}  H residual={d}\n", .{ res_s_L, res_s_H });
-    std.debug.print("#    corrected:  L residual={d}  H residual={d}\n", .{ res_c_L, res_c_H });
+    util.out("# V1 Bellman residual (states where table != Phi(table)):\n", .{});
+    util.out("#    as-shipped: L residual={d}  H residual={d}\n", .{ res_s_L, res_s_H });
+    util.out("#    corrected:  L residual={d}  H residual={d}\n", .{ res_c_L, res_c_H });
 
     // V2 inversion symmetry
     const inv_s = inversion_violations(reach, L_s, H_s);
     const inv_c = inversion_violations(reach, L_c, H_c);
-    std.debug.print("# V2 inversion violations (L(-S) != -H(S) or mirror unreachable): as-shipped={d} corrected={d}\n", .{ inv_s, inv_c });
+    util.out("# V2 inversion violations (L(-S) != -H(S) or mirror unreachable): as-shipped={d} corrected={d}\n", .{ inv_s, inv_c });
 
     // V3 controls
-    std.debug.print("# V3 controls (corrected L==H==hand value required):\n", .{});
+    util.out("# V3 controls (corrected L==H==hand value required):\n", .{});
     var v3_pass: u32 = 0;
     for (CONTROLS) |c| {
         const st = StateIdx{ .board = c.board, .side = c.side, .ko = c.ko, .passes = c.passes };
         const lin = st.linear();
         const ok = (L_c[lin] == c.value and H_c[lin] == c.value);
         if (ok) v3_pass += 1;
-        std.debug.print("#    ({d},{d},{d},{d}): corrected L={d} H={d} expected={d} {s}\n", .{
+        util.out("#    ({d},{d},{d},{d}): corrected L={d} H={d} expected={d} {s}\n", .{
             c.board, c.side, c.ko, c.passes, L_c[lin], H_c[lin], c.value, if (ok) "OK" else "** MISMATCH **",
         });
     }
-    std.debug.print("# V3: {d}/{d} controls pass\n", .{ v3_pass, CONTROLS.len });
+    util.out("# V3: {d}/{d} controls pass\n", .{ v3_pass, CONTROLS.len });
 
     // Group distribution on corrected tables (reachable non-terminal states)
     var size_by_group = [_]u64{0} ** GROUPS;
@@ -1327,19 +1328,19 @@ fn run_census_mode(gpa: std.mem.Allocator) !void {
         }
         hist[@as(usize, @intCast(@min(s, 63)))] += 1;
     }
-    std.debug.print("# corrected (L,H) groups: {d} non-empty over {d} non-terminal states\n", .{ n_groups, non_terminal });
-    std.debug.print("#   groups of size >= 2: {d}, containing {d} states ({d} size-1 groups untestable)\n", .{ n_groups_ge2, states_in_ge2, n_groups - n_groups_ge2 });
-    std.debug.print("#   biggest group: (L={d},H={d}) size={d}\n", .{ @as(i8, @intCast(biggest_key / 14)) - 7, @as(i8, @intCast(biggest_key % 14)) - 7, biggest });
-    std.debug.print("# group-size histogram (size -> #groups; 63 = size>=63):\n", .{});
+    util.out("# corrected (L,H) groups: {d} non-empty over {d} non-terminal states\n", .{ n_groups, non_terminal });
+    util.out("#   groups of size >= 2: {d}, containing {d} states ({d} size-1 groups untestable)\n", .{ n_groups_ge2, states_in_ge2, n_groups - n_groups_ge2 });
+    util.out("#   biggest group: (L={d},H={d}) size={d}\n", .{ @as(i8, @intCast(biggest_key / 14)) - 7, @as(i8, @intCast(biggest_key % 14)) - 7, biggest });
+    util.out("# group-size histogram (size -> #groups; 63 = size>=63):\n", .{});
     for (1..64) |s| {
-        if (hist[s] > 0) std.debug.print("#   size {d}{s}: {d} groups\n", .{ s, if (s == 63) "+" else "", hist[s] });
+        if (hist[s] > 0) util.out("#   size {d}{s}: {d} groups\n", .{ s, if (s == 63) "+" else "", hist[s] });
     }
     // full group list
-    std.debug.print("# group list (corrected tables), format L H size:\n", .{});
+    util.out("# group list (corrected tables), format L H size:\n", .{});
     for (0..GROUPS) |g| {
         const s = size_by_group[g];
         if (s == 0) continue;
-        std.debug.print("GROUP L={d} H={d} size={d}\n", .{ @as(i8, @intCast(g / 14)) - 7, @as(i8, @intCast(g % 14)) - 7, s });
+        util.out("GROUP L={d} H={d} size={d}\n", .{ @as(i8, @intCast(g / 14)) - 7, @as(i8, @intCast(g % 14)) - 7, s });
     }
     // as-shipped comparison: the giant degenerate group
     var s_group_sizes = [_]u64{0} ** GROUPS;
@@ -1363,7 +1364,7 @@ fn run_census_mode(gpa: std.mem.Allocator) !void {
             s_bigkey = g;
         }
     }
-    std.debug.print("# as-shipped (L,H) groups: {d} non-empty, {d} of size>=2; biggest (L={d},H={d}) size={d} (the degenerate White-frozen pool)\n", .{ s_groups, s_ge2, @as(i8, @intCast(s_bigkey / 14)) - 7, @as(i8, @intCast(s_bigkey % 14)) - 7, s_big });
+    util.out("# as-shipped (L,H) groups: {d} non-empty, {d} of size>=2; biggest (L={d},H={d}) size={d} (the degenerate White-frozen pool)\n", .{ s_groups, s_ge2, @as(i8, @intCast(s_bigkey / 14)) - 7, @as(i8, @intCast(s_bigkey % 14)) - 7, s_big });
 }
 
 // -----------------------------------------------------------------------------
@@ -1401,9 +1402,9 @@ fn eval_t1(state: StateIdx, board: *const Pos, arrival: []const HistoryEntry, no
 }
 
 fn run_battery(gpa: std.mem.Allocator, seed: u64, sample: u32, budget: u64) !void {
-    std.debug.print("# pinrule-battery — evaluator tier agreement (V4)\n", .{});
-    std.debug.print("# tiers: T1 probe-exact port (linear scans), T2 bitset minimax, T3 bitset alpha-beta\n", .{});
-    std.debug.print("# budget per (state,history): {d}\n", .{budget});
+    util.out("# pinrule-battery — evaluator tier agreement (V4)\n", .{});
+    util.out("# tiers: T1 probe-exact port (linear scans), T2 bitset minimax, T3 bitset alpha-beta\n", .{});
+    util.out("# budget per (state,history): {d}\n", .{budget});
     const reach = try build_reach(gpa);
     const parent = try gpa.alloc(u32, TOTAL_STATES);
     const pmk = try gpa.alloc(u8, TOTAL_STATES);
@@ -1418,14 +1419,14 @@ fn run_battery(gpa: std.mem.Allocator, seed: u64, sample: u32, budget: u64) !voi
     var partial: u64 = 0; // some tiers exhausted
 
     // Part 1: the seven controls, BFS-short arrival, all three tiers.
-    std.debug.print("# battery part 1: seven controls x BFS-short arrival\n", .{});
+    util.out("# battery part 1: seven controls x BFS-short arrival\n", .{});
     for (CONTROLS) |c| {
         const st = StateIdx{ .board = c.board, .side = c.side, .ko = c.ko, .passes = c.passes };
         const lin = st.linear();
         var abuf: [MAX_PATH]HistoryEntry = undefined;
         const alen = arrival_from_parents(parent, lin, &abuf);
         if (alen < 2) {
-            std.debug.print("#   CTRL ({d},{d},{d},{d}): no BFS arrival?! len={d}\n", .{ c.board, c.side, c.ko, c.passes, alen });
+            util.out("#   CTRL ({d},{d},{d},{d}): no BFS arrival?! len={d}\n", .{ c.board, c.side, c.ko, c.passes, alen });
             continue;
         }
         // arrival exclusive of sigma: drop the last entry
@@ -1439,8 +1440,8 @@ fn run_battery(gpa: std.mem.Allocator, seed: u64, sample: u32, budget: u64) !voi
         const ok23 = (r2.value == null and r3.value == null) or (r2.value != null and r3.value != null and r2.value.? == r3.value.?);
         const okval = (r3.value != null and r3.value.? == c.value);
         if (ok12 and ok23) agree += 1 else disagree += 1;
-        if (!ok12 or !ok23) std.debug.print("#   ** TIER DISAGREEMENT **\n", .{});
-        std.debug.print("CTRL-BATT ({d},{d},{d},{d}) alen={d} T1={?d}({d}n) T2={?d}({d}n) T3={?d}({d}n) expected={d} {s}\n", .{
+        if (!ok12 or !ok23) util.out("#   ** TIER DISAGREEMENT **\n", .{});
+        util.out("CTRL-BATT ({d},{d},{d},{d}) alen={d} T1={?d}({d}n) T2={?d}({d}n) T3={?d}({d}n) expected={d} {s}\n", .{
             c.board, c.side, c.ko, c.passes, alen - 1,
             r1.value, r1.nodes_used, r2.value, r2.nodes_used, r3.value, r3.nodes_used,
             c.value, if (okval) "VALUE-OK" else "** VALUE MISMATCH **",
@@ -1448,7 +1449,7 @@ fn run_battery(gpa: std.mem.Allocator, seed: u64, sample: u32, budget: u64) !voi
     }
 
     // Part 2: random reachable non-terminal states, BFS-short arrival.
-    std.debug.print("# battery part 2: {d} random non-terminal states\n", .{sample});
+    util.out("# battery part 2: {d} random non-terminal states\n", .{sample});
     const nt_list = try gpa.alloc(u64, TOTAL_STATES);
     var nt_count: u64 = 0;
     var li: u64 = 0;
@@ -1477,19 +1478,19 @@ fn run_battery(gpa: std.mem.Allocator, seed: u64, sample: u32, budget: u64) !voi
         const both23 = r2.value != null and r3.value != null;
         if ((both12 and r1.value.? != r2.value.?) or (both23 and r2.value.? != r3.value.?)) {
             disagree += 1;
-            std.debug.print("BATT-DISAGREE ({d},{d},{d},{d}) T1={?d} T2={?d} T3={?d}\n", .{ st.board, st.side, st.ko, st.passes, r1.value, r2.value, r3.value });
+            util.out("BATT-DISAGREE ({d},{d},{d},{d}) T1={?d} T2={?d} T3={?d}\n", .{ st.board, st.side, st.ko, st.passes, r1.value, r2.value, r3.value });
         } else if (!both12 or !both23) {
             partial += 1;
         } else {
             agree += 1;
         }
     }
-    std.debug.print("# battery: checked={d} full-agree={d} disagree={d} partial(some tier exhausted)={d}\n", .{ checked, agree, disagree, partial });
+    util.out("# battery: checked={d} full-agree={d} disagree={d} partial(some tier exhausted)={d}\n", .{ checked, agree, disagree, partial });
 }
 
 fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u32, max_states: u32, cross_every: u32) !void {
-    std.debug.print("# pinrule-eval — the experiment (corrected tables)\n", .{});
-    std.debug.print("# params: seed={d} node_budget={d} k_long={d} max_states={d} cross_every={d}\n", .{ seed, node_budget, k_long, max_states, cross_every });
+    util.out("# pinrule-eval — the experiment (corrected tables)\n", .{});
+    util.out("# params: seed={d} node_budget={d} k_long={d} max_states={d} cross_every={d}\n", .{ seed, node_budget, k_long, max_states, cross_every });
     const reach = try build_reach(gpa);
     const L_c = try gpa.alloc(i8, TOTAL_STATES);
     const H_c = try gpa.alloc(i8, TOTAL_STATES);
@@ -1567,7 +1568,7 @@ fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u3
                 const bad = arrival_valid(abuf[0..alen]);
                 if (bad != 0) {
                     arrival_bad += 1;
-                    std.debug.print("# ** ARRIVAL-BAD (bfs) at ({d},{d},{d},{d}) step={d} **\n", .{ st.board, st.side, st.ko, st.passes, bad });
+                    util.out("# ** ARRIVAL-BAD (bfs) at ({d},{d},{d},{d}) step={d} **\n", .{ st.board, st.side, st.ko, st.passes, bad });
                     continue;
                 }
                 const arrival = abuf[0 .. alen - 1];
@@ -1591,12 +1592,12 @@ fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u3
                     cross_checked += 1;
                     if (r2.value != null and r2.value.? != r3.value.?) {
                         cross_disagree += 1;
-                        std.debug.print("# ** CROSS DISAGREE T3={d} T2={d} at ({d},{d},{d},{d}) **\n", .{ r3.value.?, r2.value.?, st.board, st.side, st.ko, st.passes });
+                        util.out("# ** CROSS DISAGREE T3={d} T2={d} at ({d},{d},{d},{d}) **\n", .{ r3.value.?, r2.value.?, st.board, st.side, st.ko, st.passes });
                     }
                 }
-                std.debug.print("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=bfs len={d} val={?d} nodes={d}\n", .{ st.board, st.side, st.ko, st.passes, gl, gh, alen - 1, r3.value, r3.nodes_used });
+                util.out("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=bfs len={d} val={?d} nodes={d}\n", .{ st.board, st.side, st.ko, st.passes, gl, gh, alen - 1, r3.value, r3.nodes_used });
             } else {
-                std.debug.print("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=bfs ARRIVAL-MISSING\n", .{ st.board, st.side, st.ko, st.passes, gl, gh });
+                util.out("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=bfs ARRIVAL-MISSING\n", .{ st.board, st.side, st.ko, st.passes, gl, gh });
             }
             // h1..: randomized DFS long histories
             var lj: u32 = 0;
@@ -1610,7 +1611,7 @@ fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u3
                 var plen: u16 = 0;
                 collect_histories_dfs(root, &root_board, lin, 0, 24, &cbudget, path_moves, &plen, visited_states, collected_moves, collected_lens, &cc, 1, 64, &rand);
                 if (cc == 0) {
-                    std.debug.print("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=dfs{d} UNAVAILABLE\n", .{ st.board, st.side, st.ko, st.passes, gl, gh, lj + 1 });
+                    util.out("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=dfs{d} UNAVAILABLE\n", .{ st.board, st.side, st.ko, st.passes, gl, gh, lj + 1 });
                     continue;
                 }
                 const hlen = collected_lens[0];
@@ -1620,7 +1621,7 @@ fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u3
                 const bad = arrival_valid(rbuf[0..rlen]);
                 if (bad != 0 or !state_eq(rbuf[rlen - 1].state, st)) {
                     arrival_bad += 1;
-                    std.debug.print("# ** ARRIVAL-BAD (dfs) at ({d},{d},{d},{d}) step={d} ends-at-sigma={} **\n", .{ st.board, st.side, st.ko, st.passes, bad, state_eq(rbuf[rlen - 1].state, st) });
+                    util.out("# ** ARRIVAL-BAD (dfs) at ({d},{d},{d},{d}) step={d} ends-at-sigma={} **\n", .{ st.board, st.side, st.ko, st.passes, bad, state_eq(rbuf[rlen - 1].state, st) });
                     continue;
                 }
                 const arrival = rbuf[0 .. rlen - 1];
@@ -1640,24 +1641,24 @@ fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u3
                 } else {
                     evals_exhausted += 1;
                 }
-                std.debug.print("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=dfs{d} len={d} val={?d} nodes={d}\n", .{ st.board, st.side, st.ko, st.passes, gl, gh, lj + 1, hlen, r3.value, r3.nodes_used });
+                util.out("EVAL state=({d},{d},{d},{d}) L={d} H={d} hist=dfs{d} len={d} val={?d} nodes={d}\n", .{ st.board, st.side, st.ko, st.passes, gl, gh, lj + 1, hlen, r3.value, r3.nodes_used });
             }
             if (recs[lin].evals_done > 0) states_with_value += 1;
             if (recs[lin].multi_val) {
                 c1_witnesses += 1;
-                std.debug.print("# ** C1-WITNESS: state ({d},{d},{d},{d}) evaluates to different values under different genuine arrivals: bfs={?d} long=[{?d},{?d},{?d},{?d}] **\n", .{
+                util.out("# ** C1-WITNESS: state ({d},{d},{d},{d}) evaluates to different values under different genuine arrivals: bfs={?d} long=[{?d},{?d},{?d},{?d}] **\n", .{
                     st.board, st.side, st.ko, st.passes, recs[lin].bfs_val, recs[lin].long_vals[0], recs[lin].long_vals[1], recs[lin].long_vals[2], recs[lin].long_vals[3],
                 });
             }
             if (states_attempted % 100 == 0) {
                 ticks += 1;
-                std.debug.print("# progress: {d} states, {d}/{d} evals within budget, {d} states w/ value, {d}M nodes (x100 block {d})\n", .{ states_attempted, evals_within, evals_total, states_with_value, nodes_spent / 1_000_000, ticks });
+                util.out("# progress: {d} states, {d}/{d} evals within budget, {d} states w/ value, {d}M nodes (x100 block {d})\n", .{ states_attempted, evals_within, evals_total, states_with_value, nodes_spent / 1_000_000, ticks });
             }
         }
     }
 
     // per-group witness analysis
-    std.debug.print("# === per-group analysis (corrected (L,H) groups of size >= 2) ===\n", .{});
+    util.out("# === per-group analysis (corrected (L,H) groups of size >= 2) ===\n", .{});
     var groups_testable: u64 = 0;
     var groups_with_any_value: u64 = 0;
     var groups_total_ge2: u64 = 0;
@@ -1690,42 +1691,42 @@ fn run_eval_mode(gpa: std.mem.Allocator, seed: u64, node_budget: u64, k_long: u3
                 vlen += sv.len;
             }
         }
-        std.debug.print("GROUP-SUM L={d} H={d} size={d} states_with_value={d} distinct_values={d} values=[{s}]\n", .{ gl, gh, members[g].items.len, states_with_val, distinct, vbuf[0..vlen] });
+        util.out("GROUP-SUM L={d} H={d} size={d} states_with_value={d} distinct_values={d} values=[{s}]\n", .{ gl, gh, members[g].items.len, states_with_val, distinct, vbuf[0..vlen] });
         if (distinct >= 2) {
             witness_groups += 1;
-            std.debug.print("# ** WITNESS GROUP (L={d},H={d}): {d} distinct within-budget truncation values **\n", .{ gl, gh, distinct });
+            util.out("# ** WITNESS GROUP (L={d},H={d}): {d} distinct within-budget truncation values **\n", .{ gl, gh, distinct });
             for (members[g].items) |lin| {
                 if (recs[lin].any_val == null) continue;
                 const st = decode_linear(lin);
                 const bb = unrank_board(st.board);
                 var sbuf: [2 * n]u8 = undefined;
-                std.debug.print("#    member ({d},{d},{d},{d}) board[{s}] value={d} bfs_nodes={d}\n", .{ st.board, st.side, st.ko, st.passes, board_string(bb, &sbuf), recs[lin].any_val.?, recs[lin].bfs_nodes });
+                util.out("#    member ({d},{d},{d},{d}) board[{s}] value={d} bfs_nodes={d}\n", .{ st.board, st.side, st.ko, st.passes, board_string(bb, &sbuf), recs[lin].any_val.?, recs[lin].bfs_nodes });
             }
         }
     }
-    std.debug.print("# === coverage ===\n", .{});
-    std.debug.print("# states attempted (in corrected groups >=2): {d}\n", .{states_attempted});
-    std.debug.print("# evaluations: total={d} within-budget={d} exhausted={d}  (exhaustion rate {d:.2}%)\n", .{ evals_total, evals_within, evals_exhausted, if (evals_total > 0) @as(f64, @floatFromInt(evals_exhausted)) * 100.0 / @as(f64, @floatFromInt(evals_total)) else 0.0 });
-    std.debug.print("# states with >=1 within-budget value: {d} / {d} attempted\n", .{ states_with_value, states_attempted });
-    std.debug.print("# groups size>=2: {d}; with >=1 valued state: {d}; TESTABLE (>=2 valued states): {d}\n", .{ groups_total_ge2, groups_with_any_value, groups_testable });
-    std.debug.print("# C1 witnesses (same state, two arrivals, two values): {d}\n", .{c1_witnesses});
-    std.debug.print("# ARRIVAL-BAD (instrument self-check, must be 0): {d}\n", .{arrival_bad});
-    std.debug.print("# WITNESS GROUPS (distinct values inside one (L,H) group): {d} / {d} testable\n", .{ witness_groups, groups_testable });
-    std.debug.print("# cross-checks T3-vs-T2: {d} checked, {d} disagreements\n", .{ cross_checked, cross_disagree });
-    std.debug.print("# nodes spent: {d}\n", .{nodes_spent});
+    util.out("# === coverage ===\n", .{});
+    util.out("# states attempted (in corrected groups >=2): {d}\n", .{states_attempted});
+    util.out("# evaluations: total={d} within-budget={d} exhausted={d}  (exhaustion rate {d:.2}%)\n", .{ evals_total, evals_within, evals_exhausted, if (evals_total > 0) @as(f64, @floatFromInt(evals_exhausted)) * 100.0 / @as(f64, @floatFromInt(evals_total)) else 0.0 });
+    util.out("# states with >=1 within-budget value: {d} / {d} attempted\n", .{ states_with_value, states_attempted });
+    util.out("# groups size>=2: {d}; with >=1 valued state: {d}; TESTABLE (>=2 valued states): {d}\n", .{ groups_total_ge2, groups_with_any_value, groups_testable });
+    util.out("# C1 witnesses (same state, two arrivals, two values): {d}\n", .{c1_witnesses});
+    util.out("# ARRIVAL-BAD (instrument self-check, must be 0): {d}\n", .{arrival_bad});
+    util.out("# WITNESS GROUPS (distinct values inside one (L,H) group): {d} / {d} testable\n", .{ witness_groups, groups_testable });
+    util.out("# cross-checks T3-vs-T2: {d} checked, {d} disagreements\n", .{ cross_checked, cross_disagree });
+    util.out("# nodes spent: {d}\n", .{nodes_spent});
     if (witness_groups > 0 or c1_witnesses > 0) {
-        std.debug.print("# VERDICT: YES — obstruction found; no pointwise function of (L,TIE,H) can be correct on these groups (see member dumps above).\n", .{});
+        util.out("# VERDICT: YES — obstruction found; no pointwise function of (L,TIE,H) can be correct on these groups (see member dumps above).\n", .{});
     } else if (groups_testable > 0) {
-        std.debug.print("# VERDICT: NO obstruction found within budget — on {d} testable groups, all within-budget truncation values agreed inside each group. NOT a proof: coverage and exhaustion above.\n", .{groups_testable});
+        util.out("# VERDICT: NO obstruction found within budget — on {d} testable groups, all within-budget truncation values agreed inside each group. NOT a proof: coverage and exhaustion above.\n", .{groups_testable});
     } else {
-        std.debug.print("# VERDICT: INCONCLUSIVE — no group had >=2 within-budget evaluations.\n", .{});
+        util.out("# VERDICT: INCONCLUSIVE — no group had >=2 within-budget evaluations.\n", .{});
     }
 }
 
 // ---- per-state deep-dive mode ------------------------------------------------
 
 fn run_state_mode(gpa: std.mem.Allocator, b_in: u32, s_in: u8, k_in: u16, p_in: u8, seed: u64, budget: u64, k_long: u32) !void {
-    std.debug.print("# pinrule-state — deep dive on ({d},{d},{d},{d})\n", .{ b_in, s_in, k_in, p_in });
+    util.out("# pinrule-state — deep dive on ({d},{d},{d},{d})\n", .{ b_in, s_in, k_in, p_in });
     const reach = try build_reach(gpa);
     const L_c = try gpa.alloc(i8, TOTAL_STATES);
     const H_c = try gpa.alloc(i8, TOTAL_STATES);
@@ -1734,7 +1735,7 @@ fn run_state_mode(gpa: std.mem.Allocator, b_in: u32, s_in: u8, k_in: u16, p_in: 
     const lin = st.linear();
     const b = unrank_board(b_in);
     var sbuf: [2 * n]u8 = undefined;
-    std.debug.print("# board[{s}] reachable={} area={d} corrected L={d} H={d} median={d}\n", .{
+    util.out("# board[{s}] reachable={} area={d} corrected L={d} H={d} median={d}\n", .{
         board_string(b, &sbuf),
         reach[lin >> 6] & (@as(u64, 1) << @intCast(lin & 63)) != 0,
         area_score(&b),
@@ -1754,15 +1755,15 @@ fn run_state_mode(gpa: std.mem.Allocator, b_in: u32, s_in: u8, k_in: u16, p_in: 
         const alen = arrival_from_parents(parent, lin, &abuf);
         if (alen >= 2) {
             const bad = arrival_valid(abuf[0..alen]);
-            std.debug.print("# BFS arrival len={d} valid={d} (0=valid)\n", .{ alen, bad });
+            util.out("# BFS arrival len={d} valid={d} (0=valid)\n", .{ alen, bad });
             print_arrival_moves(abuf[0..alen]);
             const arrival = abuf[0 .. alen - 1];
             const r1 = eval_t1(st, &b, arrival, budget, scratch);
             const r2 = eval_t2(st, &b, arrival, budget);
             const r3 = eval_t3(st, &b, arrival, budget);
-            std.debug.print("#   values: T1={?d}({d}n) T2={?d}({d}n) T3={?d}({d}n)\n", .{ r1.value, r1.nodes_used, r2.value, r2.nodes_used, r3.value, r3.nodes_used });
+            util.out("#   values: T1={?d}({d}n) T2={?d}({d}n) T3={?d}({d}n)\n", .{ r1.value, r1.nodes_used, r2.value, r2.nodes_used, r3.value, r3.nodes_used });
         } else {
-            std.debug.print("# BFS arrival: unreachable (len={d})\n", .{alen});
+            util.out("# BFS arrival: unreachable (len={d})\n", .{alen});
         }
     }
     // DFS long arrivals
@@ -1782,25 +1783,25 @@ fn run_state_mode(gpa: std.mem.Allocator, b_in: u32, s_in: u8, k_in: u16, p_in: 
         var plen: u16 = 0;
         collect_histories_dfs(root, &root_board, lin, 0, 24, &cbudget, path_moves, &plen, visited_states, collected_moves, collected_lens, &cc, 1, 64, &rand);
         if (cc == 0) {
-            std.debug.print("# dfs{d}: no history found\n", .{lj + 1});
+            util.out("# dfs{d}: no history found\n", .{lj + 1});
             continue;
         }
         const hlen = collected_lens[0];
         var rbuf: [80]HistoryEntry = undefined;
         const rlen = replay_arrival(collected_moves[0..hlen], &rbuf);
         if (rlen < 2) {
-            std.debug.print("# dfs{d}: replay failed (hlen={d} rlen={d})\n", .{ lj + 1, hlen, rlen });
+            util.out("# dfs{d}: replay failed (hlen={d} rlen={d})\n", .{ lj + 1, hlen, rlen });
             continue;
         }
         const final_ok = state_eq(rbuf[rlen - 1].state, st);
         const bad = arrival_valid(rbuf[0..rlen]);
-        std.debug.print("# dfs{d} arrival len={d} ends-at-sigma={} valid={d} (0=valid)\n", .{ lj + 1, rlen, final_ok, bad });
+        util.out("# dfs{d} arrival len={d} ends-at-sigma={} valid={d} (0=valid)\n", .{ lj + 1, rlen, final_ok, bad });
         print_arrival_moves(rbuf[0..rlen]);
         const arrival = rbuf[0 .. rlen - 1];
         const r1 = eval_t1(st, &b, arrival, budget, scratch);
         const r2 = eval_t2(st, &b, arrival, budget);
         const r3 = eval_t3(st, &b, arrival, budget);
-        std.debug.print("#   values: T1={?d}({d}n) T2={?d}({d}n) T3={?d}({d}n)\n", .{ r1.value, r1.nodes_used, r2.value, r2.nodes_used, r3.value, r3.nodes_used });
+        util.out("#   values: T1={?d}({d}n) T2={?d}({d}n) T3={?d}({d}n)\n", .{ r1.value, r1.nodes_used, r2.value, r2.nodes_used, r3.value, r3.nodes_used });
     }
 }
 
@@ -1875,7 +1876,7 @@ pub fn main(init: std.process.Init) !void {
         }
         try run_state_mode(gpa, b_in, s_in, k_in, p_in, seed, budget, k_long);
     } else {
-        std.debug.print("usage: qa023_pinrule [pinrule-census|pinrule-diag6|pinrule-battery|pinrule-eval|pinrule-state] [flags]\n", .{});
+        util.out("usage: qa023_pinrule [pinrule-census|pinrule-diag6|pinrule-battery|pinrule-eval|pinrule-state] [flags]\n", .{});
         return error.UnknownMode;
     }
 }

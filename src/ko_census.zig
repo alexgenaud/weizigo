@@ -34,6 +34,7 @@
 // Usage: zig run -O ReleaseFast src/ko_census.zig -- <artifact.wzo>
 
 const std = @import("std");
+const util = @import("util.zig");
 const artifact = @import("artifact.zig");
 const colex = @import("colex.zig");
 
@@ -181,7 +182,7 @@ fn census(comptime w: comptime_int, comptime h: comptime_int, d: *const artifact
             const pct = total_legal * 100 / (2 * d.header.legal_count);
             if (pct >= last_pct + 5) {
                 last_pct = pct;
-                std.debug.print("  progress: {d}% legal scanned, {d} ko-sens found\n", .{ pct, total_ko_sens });
+                util.out("  progress: {d}% legal scanned, {d} ko-sens found\n", .{ pct, total_ko_sens });
             }
         }
 
@@ -206,18 +207,18 @@ fn census(comptime w: comptime_int, comptime h: comptime_int, d: *const artifact
         }
     }
 
-    std.debug.print("\n{d}x{d}:\n", .{ w, h });
-    std.debug.print("  total-legal: {d:>12}\n", .{total_legal});
-    std.debug.print("  ko-sens:     {d:>12}\n", .{total_ko_sens});
-    std.debug.print("  0-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[0], asPct(counts[0], total_ko_sens) });
-    std.debug.print("  1-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[1], asPct(counts[1], total_ko_sens) });
-    std.debug.print("  2-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[2], asPct(counts[2], total_ko_sens) });
-    std.debug.print("  3-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[3], asPct(counts[3], total_ko_sens) });
-    std.debug.print("  4-ko+:       {d:>12}  ({d:.1}%)\n", .{ counts[4], asPct(counts[4], total_ko_sens) });
+    util.out("\n{d}x{d}:\n", .{ w, h });
+    util.out("  total-legal: {d:>12}\n", .{total_legal});
+    util.out("  ko-sens:     {d:>12}\n", .{total_ko_sens});
+    util.out("  0-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[0], asPct(counts[0], total_ko_sens) });
+    util.out("  1-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[1], asPct(counts[1], total_ko_sens) });
+    util.out("  2-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[2], asPct(counts[2], total_ko_sens) });
+    util.out("  3-ko:        {d:>12}  ({d:.1}%)\n", .{ counts[3], asPct(counts[3], total_ko_sens) });
+    util.out("  4-ko+:       {d:>12}  ({d:.1}%)\n", .{ counts[4], asPct(counts[4], total_ko_sens) });
 
     // Verify sum
     const sum = counts[0] + counts[1] + counts[2] + counts[3] + counts[4];
-    std.debug.print("  sum check:   {d:>12}  (want {d})\n", .{ sum, total_ko_sens });
+    util.out("  sum check:   {d:>12}  (want {d})\n", .{ sum, total_ko_sens });
 }
 
 fn asPct(part: u64, total: u64) f64 {
@@ -231,8 +232,8 @@ pub fn main(init: std.process.Init) !void {
     var args = std.process.Args.Iterator.init(init.minimal.args);
     _ = args.next(); // skip program name
     const path = args.next() orelse {
-        std.debug.print("usage: ko_census <artifact.wzo>\n", .{});
-        std.debug.print("  e.g.: zig run -O ReleaseFast src/ko_census.zig -- artifacts/oracle-3x3.wzo\n", .{});
+        util.out("usage: ko_census <artifact.wzo>\n", .{});
+        util.out("  e.g.: zig run -O ReleaseFast src/ko_census.zig -- artifacts/oracle-3x3.wzo\n", .{});
         return;
     };
 
@@ -242,7 +243,7 @@ pub fn main(init: std.process.Init) !void {
     const w = decoded.header.board_w;
     const h = decoded.header.board_h;
 
-    std.debug.print("ko_census: {d}x{d}  total slots={d}  legal_count={d}\n\n", .{
+    util.out("ko_census: {d}x{d}  total slots={d}  legal_count={d}\n\n", .{
         w, h, decoded.header.total, decoded.header.legal_count,
     });
 
@@ -251,6 +252,6 @@ pub fn main(init: std.process.Init) !void {
     } else if (w == 4 and h == 4) {
         try census(4, 4, &decoded, gpa);
     } else {
-        std.debug.print("unsupported board size {d}x{d}\n", .{ w, h });
+        util.out("unsupported board size {d}x{d}\n", .{ w, h });
     }
 }
