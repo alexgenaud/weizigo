@@ -1831,3 +1831,138 @@ have larger context windows in the project's pi harness.
 function, ~200-line report, three-verdict acceptance)**
 where the 128k window is plenty and the speed/cost
 advantage is the value.
+
+## Role allocation — Dabir / Orcha / Auditor / workers (2026-07-29, Fable 5, user-corrected)
+
+Written at the user's request by Fable 5 (seated as Dabir this session).
+Sources: this ledger end-to-end, plus direct observation of the 2026-07-29
+panic-recovery turn, plus **four operational reports from the user
+(2026-07-29)** that override earlier ledger inferences:
+
+1. **Minimax-m3 in the Orcha seat asks far too many questions and does not
+   decide.** Note the inversion: the same trait is praised in this ledger as
+   a *worker* virtue ("self-flagged ambiguity, asked before interpreting").
+   A virtue in the executor seat is a failure in the queue-keeper seat,
+   where decisions ARE the job.
+2. **GLM-5.2 was the better Orcha experience but is slow** (wall-clock).
+3. **Kimi-k3 is very expensive in practice** — user report, in tension with
+   the $0.23 / $0.76 EXP-11/16 data points above. Both recorded; cost data
+   should adjudicate. Until then, do not treat "cheap" as k3's selling point.
+4. **DeepSeek is excellent and cheap but on a limited billing schedule**,
+   unlike the other open models available via Ollama — i.e. its constraint
+   is *availability budget*, not quality.
+
+### The allocation
+
+| Role | Model | Why |
+|---|---|---|
+| **Dabir** | **DeepSeek-Pro** | The seat is episodic (counsel on demand, short high-leverage sessions) — the shape that fits a limited billing window. Skills match: best epistemic discipline (B38), 1M-context ingestion, structured decision briefs. Known weakness (low initiative) is the smallest Dabir risk; the big ones — hallucinated recall, drift into execution — are covered by its discipline record. |
+| **Orcha** | **GLM-5.2** | User was happier with it in this seat; most consistent composite (B34–B38); held Boss well twice (delegation, rollback, bookkeeping). Slowness is tolerable in an absorption/bookkeeping role that runs alongside the human rather than gating them. Standing reminder: short volleys. |
+| **Auditor** | **Kimi-k2.7** | Settled by T13 + the (a′) conviction + EXP-15. Keep two fence-posts in every audit brief: explicit no-edit constraint (B33 violation), and route *proof-design* review to Opus (B35 weakness). |
+| **Workers (default)** | **Minimax-m3** | Back to its benchmark slot (EXP-3): measurement, census, tooling, spec-first implementation. Pair theory-adjacent output with a Kimi audit. Its ask-first habit is a feature here. |
+| Workers (aux) | DS Flash — speed tasks, rigor not load-bearing. Kimi-k3 — bounded single-function code audits ONLY when k2.7's window/queue makes it worth the cost (see #3). DeepSeek-Pro — reserve billing for Dabir. |
+| Reserved | **Opus 5** — adversarial review of load-bearing proofs, claim semantics, completing subtle code under review (EXP-9: found the sign inversion the draft carried). Enforce the five DELEGATOR rules on every Opus-authored brief. **Fable** — D-7 slots only (proof repair, ADR refutation = EXP-10, claim-semantics adjudication) plus evidence-scattered forensics (the 2026-07-29 panic diagnosis). Dispatch as bounded tasks; do not seat where it idles. |
+
+### Session-fresh evidence behind the two changes from the 2026-07-28 takeaway
+
+- **Minimax out of Orcha:** beyond the user's report, 017 (Orcha-as-Minimax)
+  ranked panic root causes confidently without the decisive evidence
+  (stopped at a sudo prompt; missed the Jetsam file), then absorbed the
+  correction exemplarily in 019/020. Absorption is the larger half of the
+  role, but triage-ahead-of-evidence is the flaw the queue cannot carry —
+  and it matches B34–B38 (4th on judgment/triage).
+- **Fable not Dabir:** capability invites execution. Msg 018 (Fable-as-Dabir
+  running crash forensics) was flagged by Orcha as role collapse; it paid
+  off that once because the forensics were the day's hardest task, but the
+  Dabir seat wants a disciplined high-context reader, not a reasoner
+  looking for work.
+
+## Sprint 2026-07-29 — Orchestrator succession + the QA-018 panel (GLM-5.2, Orchestrator)
+
+The role allocation above (Fable 5, seated as Dabir) is the standing map;
+this section records the 2026-07-29 events the ledger still lacked and flags
+the open data point the panel is designed to close. **Impressions, not
+science** — run-stats land when the panel reports.
+
+### Events the ledger now reflects
+
+- **EXP-9 closed (Opus 5).** H5a `Session.choose` mitigation shipped: child-
+  side refuse-on-divergence + settled-area fallback in `src/gtp.zig`; a sign
+  inversion in the draft was found and fixed (pinned by a new antisymmetry
+  test); +6.8%/genmove. Acceptance 4 PARTIAL — the A2 mechanism fires at ply
+  13 not ply 7 (structural, `h5a-player-mitigation-2026-07-28.md` §5).
+  **Data point:** Opus 5 *did* execute bounded mechanical code work (despite
+  its "does not execute mechanical work" remit), and did it well — the sign
+  defect is the kind of subtle catch the "completing subtle code under review"
+  reservation predicts. The remit line is softer in practice than it reads.
+- **EXP-10 closed — refutation FAILED (Fable 5).** ADR-0017 adjudicates five
+  defences of ADR-0010; the search-path family is **not** exempt (T13's 12
+  pointwise mismatches at 3×2 ride the finisher's search-shaped histories,
+  8/12 empty-rooted). ADR-0015 stands, strengthened. **Data point:** Fable on
+  the D-7 hardest-reasoning slot produced a *failed* refutation that is a
+  full deliverable — the failure is the result, adjudicated as five strongest
+  defences. Hours of wall; the attempt is the work. This is the second Fable
+  data point (after EXP-2A) and both are at the ceiling of the project's
+  task difficulty.
+- **F2-REMEDY design done (Fable 5)** — the third Fable ceiling-difficulty
+  data point. The design **dissolves F2 rather than rehabilitating it**: the
+  sound finisher is *no finisher* — rebuild the L/H fixpoints with `converge`
+  on `(board, side, ko_point, passes)` under basic ko + constant tie `T`,
+  then `V = median(L, T, H)` (proof-v2 Thm 5.1, proven-as-scoped, contingent
+  on EXP-2B). Notable: Fable **corrected QA-026's wording** — the registered
+  "pin to the tie value" is v1's falsified `L<H ⇒ V=T` (the proof-v2 §5.3
+  gadget is the counterexample); the median is the right pin, and that gadget
+  becomes the auditor's calibration known-bad. Closed the CERTCORE channel by
+  absence (no seed inheritance). Recorded window ~8 min (claimed→done); cost
+  not tracked. **Data point:** Fable on D-7 proof-repair / claim-semantics
+  continues to produce load-bearing, self-correcting work — it caught and
+  fixed a registered claim's error mid-design.
+- **EXP-8 dispatched to Kimi-k2.7 (worker).** k2.7 outside its Auditor slot
+  on a measurement-harness task (the EXP-8 brief names T13 — k2.7's own
+  probe — as the template). **Data point pending** the run; tests whether the
+  k2.7 line's falsification discipline transfers to a build-and-measure task.
+- **D-8 (user):** the "Orchestrator does not claim" rule rescinded as
+  ceremony. First application: marked EXP-10 `done` (Fable had filed
+  ADR-0017 + evidence + msg 025 but not run `managent done`), unblocking
+  `QA-018-RULING`. Not a model data point; a process one.
+
+### RESULT — the head-to-head landed, unanimously (2026-07-29)
+
+All three seats returned **Verdict A: ADR-0017's "refutation failed" is
+SOUND; ADR-0015 STANDS** (seat B: "stands, strengthened"). **All three
+convicted both planted calibration defences** (6 MTD self-verification, 7
+`bracket_fail` gate) as WRONG, with the same structural flaws. This **closes
+the open question at line ~97**: GLM-5.2, DeepSeek Pro, and Kimi-k2.7 **all
+held the claim-semantics / proof-design class** that only Fable and Opus had
+held before — and held it with calibration conviction, unanimously. The
+human ruled (ADR-0018): ADR-0015 confirmed; F2 orphaned; remedy = new task
+(`F2-REMEDY`), not a brackets-off regen.
+
+Run stats (per each seat's `## Run stats` block):
+
+| seat | model | wall | cost | context | calibration |
+|---|---|---|---|---|---|
+| A | GLM-5.2 (fresh worker, ≠ Orchestrator instance) | ~12 min | not tracked | packet ~30 KB + `retro.zig` ~600 lines — comfortable | both defences convicted (WRONG) |
+| B | DeepSeek Pro | not measured | unknown | ~35–45k tokens; fit fine | both defences convicted (WRONG) |
+| C | Kimi-k2.7 (console ≠ EXP-8 worker) | not measured | not tracked | ~40K words; fit | both defences convicted (WRONG) |
+
+**Ledger gaps to name, not paper over:** wall-clock was measured only by
+seat A (~12 min); cost was tracked by **none** (the user's report that
+Kimi-k3 is expensive in practice is not adjudicated here — no k3 seat ran).
+Seat B noted a labeling wrinkle: the user's opening line named "Kimi K2.7"
+for seat B, but the seat-B brief and deliverable paths were DeepSeek Pro;
+the seat followed the brief. **The substantive finding — three independent
+models unanimously upholding a claim-semantics ruling and unanimously
+catching a planted calibration — stands regardless of the cost/wall gaps.**
+A calibration the seats *bless* would have discounted the verdict; none did.
+
+### Absorption note
+
+CLAIMS.md was stale on EXP-9/EXP-10/EXP-2A/EXP-2B as of this turn:
+`GLOBAL.H5a-CHILD`/`FALLBACK` still read "no implementation exists yet"
+(UNTESTED) though EXP-9 shipped; `GLOBAL.ADR0015-BURDEN`/`QA-018` still
+read "to be challenged (EXP-10)" though the challenge failed. Folded this
+turn (2026-07-29, GLM-5.2) — statuses recorded with citations, not
+adjudicated, per the CLAIMS.md amendment. **PROGRESS.md (the durable hub)
+is still not current** through the 2026-07-29 events; that is the next
+absorption pass.

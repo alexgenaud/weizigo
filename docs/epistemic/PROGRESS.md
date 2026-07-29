@@ -246,17 +246,56 @@ matches as real-game truth — is CLAIMED, listed in the crisis chapter.)
 
 ## Status
 
+**2026-07-29 update (supersedes the bullets below where they conflict):**
+
+- **Host panic + runner.** A 2026-07-29 02:37 kernel panic (a `zig build-exe
+  -O Debug` blew 12.5 GB RSS) is the precedent for `tools/runner` (B-2), the
+  standing RSS-guard wrapper every `zig` build goes through. Full record:
+  `docs/infra/host/incident-2026-07-29.md`.
+- **EXP-9 (Opus 5) done** — H5a `Session.choose` mitigation shipped
+  (child-side refuse-on-divergence + settled-area fallback; a sign defect in
+  the draft was found and fixed; +6.8%/genmove; acceptance 4 PARTIAL). The
+  GTP-player defect below is **mitigated, CLAIMED not verified-optimal**.
+- **EXP-10 / ADR-0017 (Fable 5) done** — the refutation of ADR-0015 was
+  attempted and **failed**: the search-path family is not exempt (T13's 12
+  pointwise mismatches at 3×2 ride the finisher's search-shaped histories).
+  ADR-0015 stands, strengthened.
+- **QA-018 resolved — unanimous three-seat blind review + ADR-0018.** GLM-5.2,
+  DeepSeek Pro, Kimi-k2.7 all returned ADR-0015 STANDS and convicted both
+  planted calibration defences. **F2 is confirmed orphaned; the finisher
+  remedy is a new task, not a brackets-off regen** (which inherits the premise
+  via CERTCORE-dependent seeds — ADR-0017 finding 2).
+- **F2-REMEDY design (Fable 5) done** — the sound finisher is *no finisher*:
+  rebuild the L/H fixpoints with `converge` on `(board, side, ko_point, passes)`
+  under basic ko + constant tie `T`, then `V = median(L, T, H)` (proof-v2
+  Thm 5.1, proven-as-scoped, contingent on EXP-2B). QA-026's "pin to tie"
+  wording corrected to the median (v1's `L<H ⇒ V=T` was false). Design only;
+  gated on EXP-2B + EXP-4. `docs/research/f2-remedy-design-2026-07-29.md`.
+- **EXP-2A done / EXP-2B in flight** — QA-023 Part A (the proof) done (Fable
+  5); the computational half (3×2, Minimax-m3, gated on `tools/runner`) is the
+  load-bearing gate for the whole roadmap.
+- **EXP-8 in flight** — the PSK-divergence harness (Kimi-k2.7); the value
+  complement to EXP-1's legality result.
+- **D-8 (user)** — the Orchestrator owns delegation status end-to-end
+  (dispatch/claim/done), rescinding the "Orchestrator does not claim" ceremony.
+- **Role reallocation (Fable-as-Dabir, user-corrected)** — Dabir=DeepSeek-Pro,
+  Orcha=GLM-5.2, Auditor=Kimi-k2.7, Workers=Minimax-m3; Opus reserved for
+  adversarial review, Fable for D-7 hardest reasoning. See
+  `docs/infra/model-perf.md` §"Role allocation".
+
 - **Done:** retrograde L/H engine; colex addressing; artifact format WZO1;
   GTP player; arena audit (with UNDEF guard, B43); ruleset research
   (PSK/score-on-cycle/kill-X% intractability for exact solve); scoring UI
   (ADR-0014, `src/score.zig`, `weizigo_{settled,estimate,score}` GTP commands);
   chainability audit (2026-07-27, `bin/weizigo-chainability` /
   `src/chainability.zig`) — artifact-only, no history, no reference solver.
-- **In progress (focus):** honest packaging of the fresh-start-only deliverable
-  after the C2 falsification and reframe adoption. Two technical gaps now lead:
-  the 4×4 writes-off full artifact (F2/F3), and **the GTP player, which chains
-  unchainable values and is therefore defective on 4×4** (above).
-  Characterisation of C2/C3 leak magnitudes at larger sizes is secondary.
+- **In progress (focus):** the honest fresh-start-only deliverable, now re-gated
+  on **EXP-2B** (the QA-023 computational half, 3×2). The 4×4 writes-off full
+  artifact (F2/F3) is **no longer the path** — ADR-0018 foreclosed a
+  brackets-off regen as the F2 remedy (it inherits the falsified premise via
+  CERTCORE seeds); the remedy is the **F2-REMEDY median build** (above), gated
+  on EXP-2B. The GTP-player defect is mitigated by EXP-9 (CLAIMED, not
+  verified-optimal). Characterisation of C2/C3 leak magnitudes is secondary.
 - **Resolved/falsified:** B1 fixpoint correctness; C3 false at 3×3 (E2);
   C2 false at 3×2 (T13); reframe adopted (fresh-start-only, B05/B11);
   UD-1/UD-2/UD-3 resolved as YES and acted on; FP1 acceptance check 3 **passes**

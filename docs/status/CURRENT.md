@@ -5,9 +5,245 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
-Last refreshed **2026-07-27 ~23:55**.
+Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
+**2026-07-29 succession + D-8 + EXP-10-done correction by GLM-5.2
+(Orchestrator)** — see the new section at top.
+
+**Outgoing handover:** `docs/status/handover-minimax-m3-2026-07-29.md`. Read
+that file first on resume; it supersedes this one for the unit-of-recovery
+view. The 2026-07-29 / 2026-07-28 sections below are durable; the 2026-07-27
+section is historical context.
+
+## 2026-07-29 — Orchestrator succession (GLM-5.2)
+
+Took the Orchestrator role from MiniMax-M3 (context full; handover above).
+
+**Board at succession:** EXP-2B (minimax-m3), EXP-10 (fable-5), EXP-8
+(kimi-k2.7) all in progress; 0 dispatchable; 5 blocked; 17 done.
+
+**D-8 — dispatch/claim protocol simplified (user ruling).** The 2026-07-29
+"Orchestrator does not claim on the agent's behalf" rule is **rescinded** as
+ceremony that blocked the Orchestrator from keeping the board honest. The
+Orchestrator owns delegation status end-to-end: it records dispatches on the
+human's behalf, records claims when a worker has started but not claimed, and
+marks `done` when a worker has finished but not updated the board —
+attributing claims with `--agent <worker>` (never its own name). Worker
+self-claim / self-done remain the normal path. Edited:
+`docs/infra/roles/ORCHESTRATOR.md`, `docs/infra/delegation/ROLES.md`,
+`DELEGATOR.md`, `DELEGATEE.md`; recorded in `DECISIONS.md` D-8 and `STATE.md`.
+`managent/spec.md` needed no change (already neutral on who runs the
+commands). The stale rule in `handover-minimax-m3-2026-07-29.md` is annotated,
+not rewritten.
+
+**EXP-8 model pick:** Kimi-k2.7 (worker), per the EXP-8 brief naming T13's
+C2-falsification probe as the harness template; GLM-5.2 (worker) the
+documented alternative. All three dispatchable ran in parallel (no shared
+`holds`); EXP-8's 4×4 measurement defers until EXP-6 lands.
+
+**EXP-10 board corrected (D-8 in action).** On succession I found EXP-10 had
+landed — Fable 5 filed
+`docs/decisions/0017-bracket-cut-refutation-attempt-failed.md` +
+`docs/evidence/QA-018/` + message 025, and updated CURRENT.md — but never ran
+`managent done EXP-10`, so the board still read `in_progress` and
+`QA-018-RULING` stayed blocked. Verified deliverables on disk and marked
+EXP-10 done. **QA-018-RULING is now dispatchable.** Verdict: the D-5
+refutation **failed** — the search-path family is not exempt (T13's 12
+pointwise mismatches ride the finisher's own search-shaped histories, 8/12
+empty-rooted), so ADR-0015 stands, strengthened. Per Fable's 025, adversarial
+review of QA-018-RULING must go to a **third party, not Opus**.
+
+**QA-018 RESOLVED 2026-07-29 (unanimous three-seat review + human ruling).**
+The blind panel (`QA-018-REVIEW-A/B/C`: GLM-5.2, DeepSeek Pro, Kimi-k2.7)
+returned unanimously that ADR-0017's "refutation failed" verdict is SOUND
+and ADR-0015 STANDS; all three convicted the two planted calibration
+defences (6 MTD self-verification, 7 `bracket_fail` gate) as WRONG. The
+human ruled (ADR-0018): **ADR-0015 confirmed; F2 remains orphaned; the
+finisher remedy is a new task (`F2-REMEDY`), not a brackets-off regen**
+(which inherits the same premise through CERTCORE-dependent seeds). Board:
+QA-018-REVIEW-A/B/C + QA-018-RULING marked done; QA-018-REVIEW (single) closed
+as superseded. CLAIMS.md `QA-018` / `GLOBAL.ADR0015-BURDEN` updated to cite
+ADR-0018. `F2-REMEDY` registered (design task, ANALYSIS, gated on `QA-023`).
+
+## 2026-07-29 — EXP-10 done (Fable 5): D-5 refutation attempted, FAILED
+
+The QA-018/019 refutation ADR is filed:
+`docs/decisions/0017-bracket-cut-refutation-attempt-failed.md` + evidence in
+`docs/evidence/QA-018/`. Verdict: the search-path family is **not** exempt —
+T13's 12 pointwise mismatches at 3×2 ride exactly the finisher's search-shaped
+histories (8/12 empty-rooted), so ADR-0015 stands, strengthened. New:
+E2 is an outcome-level falsification (the pointwise one is T13), and a
+**brackets-off regen is not sufficient** — all modes read CERTCORE-dependent
+certified seeds (empty fingerprint passes `fpDisjoint` under deps). Adversarial
+review must go to a **third party, not Opus** (`QA-018-RULING.md`); then the
+human ruling QA-018-RULING is unblocked. Details:
+`untracked/msg/milestone-01-ko-reframe/025-fable-to-all.md`.
+
+## 2026-07-29 — host-panic-recovery session (MiniMax-M3, Orchestrator)
+
+**EXP-8:** `kimi-k2.7` owns `src/psk_divergence.zig` for the PSK-divergence harness (set A); no engine files, no `data/`/`artifacts/` writes.
+
+**Stand down reason:** context full. The outgoing handover is
+`docs/status/handover-minimax-m3-2026-07-29.md`; the crash-anchor is
+`untracked/msg/milestone-01-ko-reframe/STATE.md` (overwritten in place,
+always current). Per the standing rule, this Orchestrator does not touch
+the board again.
+
+### What happened this turn
+
+1. **2026-07-29 02:35:57 host kernel panic on cpu 0** — `watchdog timeout:
+   no checkins from watchdogd in 91 seconds`. **Root cause** (corrected in
+   019 from 017's initial wrong-but-honest guess): a `zig build-exe -O Debug`
+   of `src/oracle.zig` (or similar) blew 12.5 GB RSS / 21.8 GB peak while
+   the compressor was at 100% of segment limit. Jetsam demonstrably does
+   not act before the kernel watchdog does. **`bin/weizigo-oracle.dSYM`
+   (left on disk) is the tell** — there is no oracle target in `build.zig`;
+   it's always an ad-hoc `zig build-exe`, and `tools/play_oracle.py` uses
+   `-O ReleaseFast`. The dead agent used Debug. **Full record:**
+   `docs/infra/host/incident-2026-07-29.md` (durable in git) +
+   `/Library/Logs/DiagnosticReports/Retired/panic-full-2026-07-29-023700.0002.panic`
+   + `JetsamEvent-2026-07-29-023323.ips`.
+2. **The fix: B-2 RSS runner** — `tools/runner` (Python, stdlib only,
+   12 KB executable) + `docs/infra/runner.md` (the brief). Auto-adds
+   `-O ReleaseFast` (or `-Doptimize=ReleaseFast` for `zig build`) to every
+   `zig` invocation that lacks an optimize flag; SIGKILLs the process
+   group on a 4 GB RSS breach. Test: 100 MB cap kills a 509 MB Python
+   bytearray in 0.1 s with exit 124. Opus 5 used this pattern in EXP-9
+   and the panic did not recur.
+3. **The dispatch gap in `managent`** — schema had `added`, `claimed`,
+   `done` but no field for the moment the human dispatched. The
+   `managent dispatch <id> --to <agent> [--note <text>]` command plus
+   three new schema fields (`dispatched`, `dispatched_to`, `note`) close
+   the gap. The task stays `dispatchable` per the existing claim
+   protocol; the dispatch is the queueing signal, the claim is the
+   start signal, the done is the completion signal. **The Orchestrator
+   does not claim on the agent's behalf.** *(Rescinded later 2026-07-29
+   by D-8; see the GLM-5.2 section above.)* Schema in
+   `docs/infra/managent/spec.md`; protocol in
+   `docs/infra/roles/ORCHESTRATOR.md` §"The dispatch / claim protocol".
+4. **EXP-9 (Opus 5) closed** — H5a `Session.choose` mitigation
+   complete, sign defect fixed (and pinned by a new antisymmetry
+   test), `weizigo_chaincheck` GTP introspection command added, +6.8%
+   per-genmove cost, ply-7 prediction of the brief honestly falsified
+   (A2 mechanism is real but fires at ply 13, not ply 7; structural
+   reason named in §5 of the deliverable). **CLAIMED, not
+   verified-optimal.** Deliverable:
+   `docs/research/h5a-player-mitigation-2026-07-28.md`.
+5. **EXP-12 (Kimi-k3) closed** — denominator sweep across
+   `docs/research/*.md`; deliverables
+   (`docs/evidence/GLOBAL.DENOMINATORS/sweep-2026-07-28.md` and
+   `PROVENANCE.md`) were on disk at 02:23 — 10 minutes before the
+   panic. The h5a-player-mitigation addendum was swept on resume (2 %
+   tokens, both PASS). **"The crash took the report, not the work."**
+   Headline: 14 research-tree FAILs + 2 PROGRESS annex FAILs; the
+   pattern is "measurement tables clean, every failure is prose
+   re-quoting a number at a distance." Worst: `kostate:224`'s "+98%"
+   (wrong denominator, flips a conclusion) and the phantom "21–49%" /
+   "8–18%" bounds with no committed source. Kimi-k3 flagged the
+   `CLAIMS.md` status update as the file-owner's call (GLM).
+6. **EXP-2 brief retired** — the work is in `EXP-2A` (done 2026-07-28,
+   Fable 5) + `EXP-2B` (dispatchable, holds `src/qa023_probe.zig`,
+   the 3×2 history-sensitivity probe — the actual computational half
+   of the QA-023 gate). Board `EXP-2.status = done, done:
+   2026-07-28T23:50:00Z`.
+7. **EXP-2B dispatched to Minimax-m3** per the human's 03:50 ruling.
+   `managent dispatch EXP-2B --to minimax-m3 --note "QA-023 gate
+   computational half. … B-2 RSS runner (tools/runner) is the
+   precondition. …"`. The agent claims when ready.
+8. **Instruction files updated** — `AGENTS.md` (Build / test / run +
+   Where-to-go-next tables mention `tools/runner`, `managent
+   dispatch`, `docs/infra/runner.md`); `ORCHESTRATOR.md` (new
+   "Dispatch / claim protocol" + "Ad-hoc builds go through
+   `tools/runner`" + "Do not schedule the human into multi-party
+   conversations"); `ROLES.md` (new "Dispatching, claiming, and the
+   human/agent boundary"); `DELEGATOR.md` (new `DISPATCH:` row in
+   the header); `DELEGATEE.md` (new "The first thing you do: claim
+   the task" + "Builds go through `tools/runner`" + "Writing to the
+   board"); `EXP-2B.md` (new "Build precondition" section calling
+   out the runner).
+
+### What was **not** done (deferred to the successor)
+
+- **The EXP-10 dispatch** — held for Fable per D-7; the user / Dabir
+  call, not mine. The board has `EXP-10.dispatchable, agent: null,
+  holds: docs/decisions/`. **Do not pre-empt.**
+- **The Fable-channel question** — 018 (Fable 5 as Dabir) and 010
+  (Fable 5 as Opus) are role collapses. I am absorbing 018's content
+  (correct) but not ratifying the form. **Dabir + the user rule on
+  whether the proposals log (Dabir's `SPEC-msgbus.md`) is the place
+  to settle it.** See 023 §4 for the three explicit questions.
+- **The docs wave commit** — 31 files uncommitted; the host incident
+  doc, the runner, the h5a deliverable, the EXP-12 evidence, the
+  managent schema + binary, the dispatch field, the instruction-file
+  updates, this handover. **The standing rule: never commit the
+  dispatch field on its own** — it goes in with the docs wave per
+  the `managent` spec ("the board does not survive a fresh clone,"
+  D-2 residue). One commit per topic; `git add` by path, never `-A`.
+- **The 022 §B.4 four-part EXP-2 agenda is withdrawn.** The human
+  said "I have no idea what you are talking about" on 2026-07-29
+  03:50. The brief is retired, the gate is EXP-2B, and everything
+  else is on a clear dispatch path. The four parts remain as
+  standing items; they resolve when the human brings them up, not
+  on my schedule.
+
+### The board at 04:00
+
+```
+$ bin/managent status
+  dispatchable (3)
+    EXP-2B  set A, holds src/qa023_probe.zig, dispatched minimax-m3
+    EXP-8   set A, holds src/psk_divergence.zig
+    EXP-10  set A, holds docs/decisions/  (Fable per D-7; dispatch is the user / Dabir call)
+  in progress (0)
+  blocked (5)
+    EXP-4←EXP-2,EXP-2B
+    EXP-5←EXP-4
+    EXP-6←EXP-5
+    EXP-7←EXP-6
+    QA-018-RULING←EXP-10
+  done (17)
+    B34 B35 B40 B41 B42 B43 B44 B45 EXP-2 EXP-3 EXP-9 EXP-11 EXP-12
+    EXP-13 EXP-14 EXP-15 EXP-16
+```
 
 ---
+
+## EXP-2A (Fable 5) — EXP-2 Part A trichotomy repair — DONE 2026-07-28, ownership cleared
+
+- **Result:** corrected rule `V = max(L, min(T, H)) = median(L, T, H)`; v1's
+  "`L<H ⇒ V=T`" is FALSE (counterexample committed); `L`/`H` proven to *be*
+  the threshold-attractor values, so no computation beyond the two existing
+  sweeps is needed — the reframe's cost story survives with the corrected
+  line. Adversarial review (independence condition honored, verdict verbatim
+  in the proof §10.1): **REPAIRABLE-GAPS — "every theorem as literally stated
+  withstood attack"**; all six findings repaired, none changed a theorem.
+- **Deliverables:** `docs/evidence/QA-023/proof-v2-2026-07-28.md` (proof of
+  record), `docs/research/qa023-basicko-markovian-2026-07-28.md` (findings +
+  re-cost + EXP-4 spec + CLAIMS one-liners), supersession pointer atop
+  `docs/evidence/QA-023/proof.md`, msg `010-fable-to-opus.md`.
+- **QA-023 status: CLAIMED** — Part A repaired+reviewed; gate still needs
+  EXP-2B (3×2 probe, non-zero cycle census). New sub-claims QA-023.M1/M2
+  (MIGOS ruleset match; adjudication-trigger equivalence) — UNTESTED.
+- **Needs from others:** commit of the two new docs (durability); CLAIMS
+  owner folds §3 of the research doc (incl. QA-026 wording = FALSE as it
+  stands); roadmap §2 sentence correction by its owner; EXP-2B told: no
+  state-keyed memo on truncated values, truncation keys on the full tuple.
+
+### Dispatch record (was: IN PROGRESS)
+
+- **Agent: Fable 5 (claude-fable-5)**, dispatched by the user per DECISIONS D-7 /
+  msg 008 §1. Board ID is `EXP-2` Part A (msg 009 kept the stable ID; the user's
+  dispatch name is `EXP-2A`; no routing brief exists — content lives in
+  `untracked/msg/milestone-01-ko-reframe/004-opus-to-pi.md` §"Repair order",
+  `005` §"Fable policy", `008` §1, and `docs/evidence/QA-023/audit-opus-2026-07-28.md`
+  §"What would repair it").
+- **Owns** (docs only, ~2 h): `docs/evidence/QA-023/proof-v2-2026-07-28.md` (new),
+  a 3-line supersession pointer at the top of `docs/evidence/QA-023/proof.md`,
+  `docs/research/qa023-basicko-markovian-2026-07-28.md` (new), this entry.
+  Does NOT own `src/qa023_*.zig` (EXP-2B / Minimax holds those per msg 009) and
+  touches no engine file, no `data/`, no `artifacts/`, no `CLAIMS.md`.
+- The "EXP-2 (Minimax-m3) — claiming work" entry below is **stale for Part A**:
+  Part A doc ownership passed to this console per msg 007 Q1 / 009 ruling;
+  Minimax keeps Part B (`src/qa023_probe.zig`).
 
 ## EXP-3 (Minimax-m3) — DONE 2026-07-28
 
@@ -164,3 +400,47 @@ No engine file is currently claimed.
   `docs/epistemic/boards/4x3/EPISTEMIC.md`; UD-1/2/3 resolved; docs-only.
 - **B43/B44** — arena UNDEF guard (clean 4×4 leak rate **3.4%**, max 32 pts;
   `../research/arena-4x4-undef.md`) and repo cleanup.
+
+## Completed 2026-07-28
+
+- **EXP-2A (Fable 5)** — Part A proof of state sufficiency under basic ko
+  + fixed tie, REPAIRABLE-GAPS → repaired, all six findings accepted;
+  proof of record at `docs/evidence/QA-023/proof-v2-2026-07-28.md`. See
+  `010-fable-to-opus.md` in the milestone.
+- **EXP-3 (Minimax-m3)** — kostate census at 3×3/4×3/4×4; **GO on dense
+  addressing at 4×4** under the D3 placeholder (≤ 32 GB); 177 MB at 4×4.
+  Source `src/kostate_census.zig`; research note
+  `docs/research/kostate-census-2026-07-28.md`. AGENTS.md: H1-CENSUS
+  PROVEN.
+
+## Completed 2026-07-29 (host-panic-recovery session)
+
+- **EXP-9 (Opus 5)** — H5a `Session.choose` mitigation; sign defect
+  fixed (pinned by a new antisymmetry test); `weizigo_chaincheck` GTP
+  command added; +6.8% per-genmove cost; ply-7 prediction honestly
+  falsified (A2 fires at ply 13, not ply 7; structural reason in §5).
+  **CLAIMED, not verified-optimal.** Deliverable
+  `docs/research/h5a-player-mitigation-2026-07-28.md`.
+- **EXP-12 (Kimi-k3)** — denominator sweep across
+  `docs/research/*.md`; 14 research-tree FAILs + 2 PROGRESS annex
+  FAILs; "the crash took the report, not the work" (deliverables
+  were on disk 10 min before the panic). Deliverables
+  `docs/evidence/GLOBAL.DENOMINATORS/{sweep,PROVENANCE}.md`.
+- **`managent` schema + command** — three new fields (`dispatched`,
+  `dispatched_to`, `note`); new command
+  `managent dispatch <id> --to <agent> [--note <text>]`. Closes the
+  dispatch gap. Spec in `docs/infra/managent/spec.md`; protocol in
+  `docs/infra/roles/ORCHESTRATOR.md`.
+- **B-2 RSS runner** — `tools/runner` (Python, stdlib only) +
+  `docs/infra/runner.md`. Auto-adds `-O ReleaseFast` /
+  `-Doptimize=ReleaseFast`; SIGKILLs the process group on a 4 GB
+  RSS breach. Prevents the 02:37 panic class.
+- **Host incident record** — `docs/infra/host/incident-2026-07-29.md`
+  (durable in git). Corrected root cause; the four follow-ups
+  (B-1 done, B-2 done, B-3 Dabir's call, B-4 Dabir's call).
+- **EXP-2 brief retired**; the work is in `EXP-2A` (done) +
+  `EXP-2B` (dispatchable, dispatched to Minimax-m3, gated on the
+  runner).
+- **Instruction files updated** — `AGENTS.md`, `ORCHESTRATOR.md`,
+  `ROLES.md`, `DELEGATOR.md`, `DELEGATEE.md`, `EXP-2B.md` all
+  mention the dispatch/claim protocol and `tools/runner`.

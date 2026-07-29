@@ -4,16 +4,25 @@ Tactical, per-session snapshot. Strategy lives in `../epistemic/PROGRESS.md`;
 in-flight task state lives in `CURRENT.md`. This file answers: what just
 happened, what will bite you, what to do next.
 
+**Historical record.** This file describes the 2026-07-27 chainability
+session. **The current handover is `handover-minimax-m3-2026-07-29.md`**
+(the 2026-07-29 02:37 host-panic-recovery session, including the EXP-2A /
+EXP-9 / EXP-12 closures, the dispatch-gap fix in `managent`, the B-2
+RSS runner, and the EXP-2B dispatch to Minimax-m3). **Read the
+current one first on resume.**
+
 ## Read order
 
-1. `../epistemic/PROGRESS.md` — strategic overview (refreshed 2026-07-27).
-2. `CURRENT.md` — live state, uncommitted-work table, next actions by cost.
-3. `../research/ko-sensitive-chainability.md` — **the finding of this session.**
-4. `../../AGENTS.md` — behavior rules and foreclosures.
-5. `../research/corrections-2026-07-27.md` — errata: statements already in the
+1. **`handover-minimax-m3-2026-07-29.md`** — the current handover. The
+   2026-07-29 host-panic-recovery session is the unit of recovery.
+2. `../epistemic/PROGRESS.md` — strategic overview (refreshed 2026-07-27).
+3. `CURRENT.md` — live state, uncommitted-work table, next actions by cost.
+4. `../research/ko-sensitive-chainability.md` — **the finding of this session.**
+5. `../../AGENTS.md` — behavior rules and foreclosures.
+6. `../research/corrections-2026-07-27.md` — errata: statements already in the
    repo that are wrong. Read before quoting commit `753584f` or
    `regressions/README.md`.
-6. `../research/open-hypotheses-2026-07-27.md` — the open-work queue (H1–H5).
+7. `../research/open-hypotheses-2026-07-27.md` — the open-work queue (H1–H5).
    Written by a concurrent agent on 2026-07-27; if it is absent, the same queue
    is summarised in `CURRENT.md`.
 
