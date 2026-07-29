@@ -1,0 +1,82 @@
+# Building 3x2 reachable graph...
+# reachable states: 2622
+# reachable non-terminals: 1756
+
+# --- as-shipped fixpoint_kernel ---
+# sweeps=2 final_changes=0
+# pin census: L==H=948 pin_T=1532 pin_L=142 pin_H=0
+# Bellman residual: L=58 H=453
+# colour-inversion violations: 453
+# White non-terminals: 878; pinned at (-n,+n): 878
+
+# --- corrected fixpoint_kernel ---
+# sweeps=10 final_changes=0
+# pin census: L==H=2232 pin_T=322 pin_L=34 pin_H=34
+# Bellman residual: L=0 H=0
+# colour-inversion violations: 0
+
+# corrected (L,H) group count: 24
+  (L= -6,H= -6)  619  inversion-pair (6, 6)=619
+  (L= -6,H= -3)    6  inversion-pair (3, 6)=6
+  (L= -6,H= -2)    6  inversion-pair (2, 6)=6
+  (L= -6,H= -1)   22  inversion-pair (1, 6)=22
+  (L= -6,H=  0)   21  inversion-pair (0, 6)=21
+  (L= -6,H=  1)   14  inversion-pair (-1, 6)=14
+  (L= -6,H=  2)   10  inversion-pair (-2, 6)=10
+  (L= -6,H=  3)    8  inversion-pair (-3, 6)=8
+  (L= -6,H=  6)  216  inversion-pair (-6, 6)=216
+  (L= -3,H= -3)   20  inversion-pair (3, 3)=20
+  (L= -3,H=  6)    8  inversion-pair (-6, 3)=8
+  (L= -2,H= -2)    8  inversion-pair (2, 2)=8
+  (L= -2,H=  6)   10  inversion-pair (-6, 2)=10
+  (L= -1,H= -1)   20  inversion-pair (1, 1)=20
+  (L= -1,H=  6)   14  inversion-pair (-6, 1)=14
+  (L=  0,H=  0)   32  inversion-pair (0, 0)=32
+  (L=  0,H=  6)   21  inversion-pair (-6, 0)=21
+  (L=  1,H=  1)   20  inversion-pair (-1, -1)=20
+  (L=  1,H=  6)   22  inversion-pair (-6, -1)=22
+  (L=  2,H=  2)    8  inversion-pair (-2, -2)=8
+  (L=  2,H=  6)    6  inversion-pair (-6, -2)=6
+  (L=  3,H=  3)   20  inversion-pair (-3, -3)=20
+  (L=  3,H=  6)    6  inversion-pair (-6, -3)=6
+  (L=  6,H=  6)  619  inversion-pair (-6, -6)=619
+
+# --- seven hand-adjudicated C2 states (single-successor check) ---
+  rank=586 board=[B.W .BW] area_score=  1 expected= +1 succs=1
+    -> rank=586 side=B passes=2
+  rank=534 board=[.BW B.W] area_score=  1 expected= +1 succs=1
+    -> rank=534 side=B passes=2
+  rank=302 board=[WB. W.B] area_score=  1 expected= +1 succs=1
+    -> rank=302 side=B passes=2
+  rank=146 board=[W.B WB.] area_score=  1 expected= +1 succs=1
+    -> rank=146 side=B passes=2
+  rank=103 board=[BBW .B.] area_score=  3 expected= +3 succs=1
+    -> rank=103 side=B passes=2
+  rank=674 board=[WWW .WW] area_score= -6 expected= -6 succs=1
+    -> rank=674 side=B passes=2
+  rank=566 board=[WWW W.W] area_score= -6 expected= -6 succs=1
+    -> rank=566 side=B passes=2
+
+# --- spot truncated evaluation of the seven states ---
+  rank=586 truncated=       1 nodes=2 expected=+1
+  rank=534 truncated=       1 nodes=2 expected=+1
+  rank=302 truncated=       1 nodes=2 expected=+1
+  rank=146 truncated=       1 nodes=2 expected=+1
+  rank=103 truncated=       3 nodes=2 expected=+3
+  rank=674 truncated=      -6 nodes=2 expected=-6
+  rank=566 truncated=      -6 nodes=2 expected=-6
+
+# --- C1 witness (178,0,6,0) ---
+# target state rank=178 board=[BWB .W.] area_score=0
+# corrected kernel L=-6 H=-6 median=-6
+  Arrival A: value=-3 nodes=22 history_size=22
+  Arrival B: value=-6 nodes=33 history_size=24
+
+# --- 2x2 corrected fixpoint full-space (reference cross-check) ---
+# total raw states: 2430  sweeps=4
+# pin census over REACHABLE: L==H=158 pin_T=108 pin_L=8 pin_H=8
+  empty B      v=  0 expected=  0 OK
+  empty W      v=  0 expected=  0 OK
+  full B       v=  4 expected=  4 OK
+  passes=1     v=  0 expected=  0 OK
+  passes=2     v=  0 expected=  0 OK

@@ -27,14 +27,15 @@
     "note": null
   },
   "F1-SEEDROOTS": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/F1",
     "bundle": "docs/infra/dispatch/F1-SEEDROOTS.md",
     "set": "Q",
     "holds": ["src/qa023_probe.zig"],
     "needs": ["2B-PROBE-FIX"],
     "added": "2026-07-29T13:48:52Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T21:38:22Z",
+    "done": "2026-07-29T21:38:22Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -103,6 +104,19 @@
     "added": "2026-07-29T13:48:52Z",
     "claimed": "2026-07-29T14:13:29Z",
     "done": "2026-07-29T14:13:29Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "QA023-C1-WITNESS": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/QA023-C1-WITNESS.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T21:48:47Z",
+    "claimed": null,
+    "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -177,14 +191,15 @@
     "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
   },
   "QA023-KERNEL-AUDIT": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "kimi-k2.7",
     "bundle": "docs/infra/dispatch/QA023-KERNEL-AUDIT.md",
     "set": "B",
     "holds": [],
     "needs": [],
     "added": "2026-07-29T17:49:00Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T21:48:47Z",
+    "done": "2026-07-29T21:48:47Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -246,14 +261,15 @@
     "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable."
   },
   "MANAGENT-DERIVE-STATUS": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/MANAGENT-DERIVE-STATUS.md",
     "set": "S",
     "holds": ["src/managent/main.zig"],
     "needs": [],
     "added": "2026-07-29T14:10:18Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T21:48:46Z",
+    "done": "2026-07-29T21:48:46Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -340,11 +356,11 @@
     "note": null
   },
   "EXP-4": {
-    "status": "dispatchable",
+    "status": "blocked",
     "bundle": "docs/infra/dispatch/EXP-4.md",
     "set": "F",
     "holds": [],
-    "needs": ["2B-4", "2B-5", "2B-6", "PINRULE-SUFFICIENCY"],
+    "needs": ["2B-4", "2B-5", "2B-6", "PINRULE-SUFFICIENCY", "QA023-C1-WITNESS"],
     "added": "2026-07-28T12:21:13Z",
     "claimed": null,
     "done": null,
@@ -353,7 +369,7 @@
     "note": "GATED 2026-07-29 by the Orchestrator: EXP-4 builds the new-rule tables on V=median(L,TIE,H), which ADR-0019 falsified at 3x2 (QA-026/GLOBAL.LONGCYCLE FALSE-AS-SCOPED). A replacement value rule is required first; PINRULE-SUFFICIENCY decides whether any pointwise (L,TIE,H) rule can work at all. Status set to blocked by hand because the MANAGENT-DERIVE-STATUS defect means `needs --add` does not re-gate an already-dispatchable task."
   },
   "ORCHA-AUTOMATION": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/ORCHA-AUTOMATION.md",
     "set": "W",
     "holds": ["src/managent/main.zig"],

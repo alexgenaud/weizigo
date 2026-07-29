@@ -278,7 +278,43 @@ $ managent show B09
 
 ---
 
-## Task lifecycle
+## Task lifecycle (derived vs stored status)
+
+```
+  blocked ──→ dispatchable ──→ in_progress ──→ done
+      ↑              │               │
+      │              │               └── failed
+      └── needs unmet
+```
+
+**`dispatchable` and `blocked` are derived from `needs`, not stored.**
+After the `MANAGENT-DERIVE-STATUS` fix (2026-07-29), every invocation of
+managent re-derives these two statuses from the needs graph.  They are
+stored in `tasks.json` for display and persistence across commands, but
+the authoritative value is computed by `deriveStatus()` on every read.
+
+**`in_progress`, `done`, and `failed` are stored facts** — a claim happened
+or a completion happened.  They are never derived from the graph.
+
+### Warning for in-progress with unmet needs
+
+If a task is `in_progress` but its `needs` are not all `done` (e.g. a
+dependency was added via `needs --add` while the task was claimed), the
+`status` command prints a loud warning:
+
+```
+  !! Unmet-dependency warnings (in_progress tasks):
+     EXP-2B in progress but needs 2B-PROBE-FIX=done UNMETA=unknown
+```
+
+The task stays `in_progress` — we do not silently un-claim a live
+console — but the board says so out loud.
+
+### Migration on load
+
+Every invocation runs a one-time migration that corrects any stored
+`dispatchable`/`blocked` that disagrees with the needs graph.  Rows
+that changed are printed on stderr:
 
 ```
   blocked ──→ dispatchable ──→ in_progress ──→ done
@@ -319,7 +355,7 @@ temp-file + rename.
 
 | Field | Set by | When | Meaning |
 |---|---|---|---|
-| `status` | `add`, `claim`, `done` | lifecycle | `dispatchable` / `in_progress` / `done` / `failed` / `blocked` |
+| `status` | `add`, `claim`, `done`, (derived) | lifecycle + load-time migration | `dispatchable` / `in_progress` / `done` / `failed` / `blocked`. **`dispatchable` and `blocked` are derived from `needs` on every read** (see §"Derived vs stored status" above); the stored value may be overwritten by migration on load. `in_progress`, `done`, and `failed` are stored facts. |
 | `agent` | `claim` | when claimed | role or model label of the agent that *claimed* (not the agent that was dispatched) |
 | `bundle` | `add` | registration | path to the brief |
 | `set` | `add` | registration | parallelization group A/B/C |

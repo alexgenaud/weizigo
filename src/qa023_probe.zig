@@ -758,17 +758,20 @@ fn run_census_3x2() !CensusStats {
     const snap = try gpa.alloc(u64, ReachWords);
     defer gpa.free(snap);
 
-    // Seed: empty board (board=0) with both sides, all ko values, all
-    // pass counts. These are the four roots: empty B (passes 0, 1, 2) and
-    // empty W (passes 0, 1, 2). The brief: "for every legal start state".
+    // Seed: the four true game roots — empty board × side (B,W) × passes (0,1),
+    // all with ko = KO_NONE (n). A ko point can only be set by a single-stone
+    // capture (apply_place: exactly one opponent stone captured AND the placed
+    // stone is a lone stone with one liberty); the empty board has no stones,
+    // so no capture is possible from any root, and therefore no root can carry
+    // a non-NONE ko point. The 36 phantom empty-board-with-a-ko-point seeds
+    // (2 sides × 3 passes × 6 non-NONE ko values) were unreachable. passes=2
+    // is a terminal state reachable by two consecutive passes; the sweep
+    // discovers it — seeding it directly is redundant.
     for ([_]u8{ 0, 1 }) |side| {
-        for ([_]u8{ 0, 1, 2 }) |passes| {
-            for (0..KO_DIMS) |ko_u| {
-                const ko: u16 = @intCast(ko_u);
-                const root = StateIdx{ .board = 0, .side = side, .ko = ko, .passes = passes };
-                const lin = root.linear();
-                reach[lin >> 6] |= @as(u64, 1) << @intCast(lin & 63);
-            }
+        for ([_]u8{ 0, 1 }) |passes| {
+            const root = StateIdx{ .board = 0, .side = side, .ko = @as(u16, n), .passes = passes };
+            const lin = root.linear();
+            reach[lin >> 6] |= @as(u64, 1) << @intCast(lin & 63);
         }
     }
 
@@ -3473,19 +3476,21 @@ pub fn main(init: std.process.Init) !void {
     }
 }
 
-/// Seed the four roots (empty board, both sides, all ko values, all
-/// pass counts) into a reach bitset. The four roots are the only state
-/// tuples with `passes = 2` reachable in a no-move tree; everything
-/// else gets in through the legal-move graph.
+/// Seed the four true game roots: empty board × side (B,W) × passes (0,1),
+/// all with ko = KO_NONE (n, the encoding sentinel). A ko point can only be
+/// set by a single-stone capture (§1.1, apply_place); the empty board
+/// contains no stones, so no capture is possible from any root, and
+/// therefore no root can carry a non-NONE ko point. The 36 phantom
+/// empty-board-with-a-ko-point seeds (2 sides × 3 passes × 6 non-NONE ko
+/// values) were unreachable and inflated the published V/E/real-ko counts.
+/// passes=2 is a terminal state reachable by two consecutive passes; the
+/// sweep discovers it — seeding it directly is redundant.
 fn seed_roots(reach: []u64) void {
     for ([_]u8{ 0, 1 }) |side| {
-        for ([_]u8{ 0, 1, 2 }) |passes| {
-            for (0..KO_DIMS) |ko_u| {
-                const ko: u16 = @intCast(ko_u);
-                const root = StateIdx{ .board = 0, .side = side, .ko = ko, .passes = passes };
-                const lin = root.linear();
-                reach[lin >> 6] |= @as(u64, 1) << @intCast(lin & 63);
-            }
+        for ([_]u8{ 0, 1 }) |passes| {
+            const root = StateIdx{ .board = 0, .side = side, .ko = @as(u16, n), .passes = passes };
+            const lin = root.linear();
+            reach[lin >> 6] |= @as(u64, 1) << @intCast(lin & 63);
         }
     }
 }

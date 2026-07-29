@@ -87,6 +87,20 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const dir_path = "docs/infra/managent";
     std.Io.Dir.cwd().createDirPath(io, dir_path) catch {};
 
+    // Migration: on every invocation, re-derive dispatchable/blocked statuses
+    // from the needs graph and correct any that drifted.  This is the single
+    // load-time fix for the MANAGENT-DERIVE-STATUS defect — in normal operation
+    // after the first run, every stored status should agree with its derived
+    // value, so the migration is a no-op.  It still runs once per invocation
+    // for robustness against manual edits to tasks.json.
+    {
+        var st = try readState(io, state_path);
+        if (migrateState(&st)) {
+            try writeState(io, state_path, &st);
+        }
+        freeState(&st);
+    }
+
     // Determine command
     const cmd: []const u8 = if (args.len >= 2 and !std.mem.startsWith(u8, args[1], "-")) args[1] else "status";
 
@@ -689,6 +703,49 @@ fn phaseGate(state: StateMap, set: u8) bool {
     return false;
 }
 
+// Returns true when every task listed in `ts.needs` has status `done`.
+// A task with no needs always counts as "met".
+fn needsMet(state: *const StateMap, ts: TaskState) bool {
+    if (ts.needs.len == 0) return true;
+    for (ts.needs) |n| {
+        const nts = state.get(n);
+        if (nts == null or nts.?.status != .done) return false;
+    }
+    return true;
+}
+
+// Derive the effective status for a task: `dispatchable`/`blocked` are
+// computed from `needsMet`; `in_progress`/`done`/`failed` are stored facts
+// and returned as-is.
+fn deriveStatus(state: *const StateMap, ts: TaskState) TaskStatus {
+    return switch (ts.status) {
+        .in_progress, .done, .failed => ts.status,
+        .dispatchable, .blocked => if (needsMet(state, ts)) .dispatchable else .blocked,
+    };
+}
+
+// Migrate stored `dispatchable`/`blocked` statuses to agree with
+// `deriveStatus`.  Returns true if any row changed (caller may write back).
+// Reports every changed row on stderr so the operator sees the correction.
+fn migrateState(state: *StateMap) bool {
+    var changed = false;
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const id = entry.key_ptr.*;
+        const ts = entry.value_ptr;
+        if (ts.status != .dispatchable and ts.status != .blocked) continue;
+        const derived = deriveStatus(state, ts.*);
+        if (ts.status != derived) {
+            const before = statusToString(ts.status);
+            const after = statusToString(derived);
+            std.debug.print("[migrate] {s}: stored {s} → {s} (needs-derived)\n", .{ id, before, after });
+            ts.status = derived;
+            changed = true;
+        }
+    }
+    return changed;
+}
+
 // Returns the ID of an in-progress task (in any set) that holds any of the same files.
 fn holdsConflict(state: StateMap, holds: []const []const u8, exclude_id: []const u8) ?[]const u8 {
     if (holds.len == 0) return null;
@@ -752,13 +809,10 @@ fn cmdAdd(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]c
 
     const meta = try parseBundleMeta(io, bundle_path, set_override, needs_extra);
 
-    // Compute initial status: blocked if needs unmet or phase gate not open
-    const phase_open = !phaseGate(state, meta.set);
-    const needs_met = meta.needs.len == 0 or for (meta.needs) |n| {
-        const nts = state.get(n);
-        if (nts == null or nts.?.status != .done) break false;
-    } else true;
-    const initial_status: TaskStatus = if (needs_met and phase_open) .dispatchable else .blocked;
+    // Compute initial status — derive from needs (the only gate; phase gates are retired)
+    const phase_open = true; // dead — phase gates are retired; kept for the never-taken branch below
+    const tmp_for_needs = TaskState{ .needs = meta.needs };
+    const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
 
     const now = try nowTimestamp();
 
@@ -825,20 +879,51 @@ fn cmdClaim(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][
         std.process.exit(1);
     };
 
+    // Derived-status gate: reject if needs are unmet, regardless of stored status.
+    // This is the fix for the MANAGENT-DERIVE-STATUS defect: a task with unmet
+    // needs cannot be claimed even if the stored status says dispatchable.
+    if (!needsMet(&state, ts_ptr.*)) {
+        std.debug.print("\n  UNMET NEEDS: {s}", .{id});
+        for (ts_ptr.needs) |n| {
+            const nts = state.get(n);
+            const need_status: []const u8 = if (nts) |ntsv| statusToString(ntsv.status) else "unknown";
+            std.debug.print(" {s}={s}", .{ n, need_status });
+        }
+        std.debug.print("\n", .{});
+        std.process.exit(1);
+    }
+
     switch (ts_ptr.status) {
         .blocked => {
-            std.debug.print("\n  BLOCKED: {s}", .{id});
-            if (ts_ptr.needs.len > 0) {
-                std.debug.print(" needs", .{});
-                for (ts_ptr.needs) |n| {
-                    const need_ts = state.get(n);
-                    const need_status: []const u8 = if (need_ts) |nts| statusToString(nts.status) else "unknown";
-                    std.debug.print(" {s}={s}", .{ n, need_status });
-                }
+            // needs are met (we checked above) but stored status is blocked.
+            // This should not happen after migration, but handle gracefully.
+            std.debug.print("\n  (stored blocked, needs met — claiming anyway)", .{});
+
+            // Phase gate: all prior sets must be done
+            if (phaseGate(state, ts_ptr.set)) {
+                std.debug.print("\n  REJECTED: phase gate — prior set not yet complete\n", .{});
+                std.process.exit(1);
             }
-            if (phaseGate(state, ts_ptr.set)) std.debug.print(" phase {c}", .{ts_ptr.set});
-            std.debug.print("\n", .{});
-            std.process.exit(1);
+
+            // Cross-set file-lock: no in-progress task may hold the same file
+            if (holdsConflict(state, ts_ptr.holds, id)) |holder| {
+                std.debug.print("\n  REJECTED: holds conflict on file — {s} is in progress\n", .{holder});
+                std.process.exit(1);
+            }
+
+            const now = try nowTimestamp();
+            ts_ptr.status = .in_progress;
+            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else null;
+            ts_ptr.claimed = now;
+
+            try writeState(io, state_path, &state);
+            std.debug.print("\n  claimed {s}  [set: {c}]\n", .{ id, ts_ptr.set });
+            std.debug.print("  follow {s}\n", .{ts_ptr.bundle});
+
+            if (exec_prefix) |prefix| {
+                const rel = bundleRel(ts_ptr.bundle, repo_root);
+                try execHarness(prefix, rel);
+            }
         },
         .in_progress => {
             std.debug.print("\n  ALREADY CLAIMED: {s} is already in progress", .{id});
@@ -1003,14 +1088,7 @@ fn cmdDone(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]
             const dep_ts = entry.value_ptr.*;
             if (dep_ts.status != .blocked) continue;
 
-            const needs_met = dep_ts.needs.len == 0 or for (dep_ts.needs) |n| {
-                const nts = state.get(n);
-                if (nts == null or nts.?.status != .done) break false;
-            } else true;
-
-            const gate_open = !phaseGate(state, dep_ts.set);
-
-            if (needs_met and gate_open) {
+            if (deriveStatus(&state, dep_ts) == .dispatchable) {
                 const dep_ptr = state.getPtr(entry.key_ptr.*).?;
                 dep_ptr.status = .dispatchable;
                 try unblocked.append(alloc, entry.key_ptr.*);
@@ -1053,7 +1131,10 @@ fn cmdReopen(io: std.Io, repo_root: []const u8, state_path: []const u8, args: []
         std.process.exit(1);
     }
 
-    ts_ptr.status = .dispatchable;
+    // Derive new status from needs, ignoring the old stored status.
+    // `deriveStatus` would return the old stored fact (failed/in_progress) for
+    // a task in that state, which is wrong — reopen is moving past the stored fact.
+    ts_ptr.status = if (needsMet(&state, ts_ptr.*)) .dispatchable else .blocked;
     ts_ptr.agent = null;
     ts_ptr.claimed = null;
     ts_ptr.done = null;
@@ -1062,7 +1143,8 @@ fn cmdReopen(io: std.Io, repo_root: []const u8, state_path: []const u8, args: []
     try writeState(io, state_path, &state);
 
     const prev_str: []const u8 = if (prev == .in_progress) "in_progress" else "failed";
-    std.debug.print("\n  reopened {s}  [set: {c}]  (was {s})\n", .{ id, ts_ptr.set, prev_str });
+    const status_str: []const u8 = statusToString(ts_ptr.status);
+    std.debug.print("\n  reopened {s}  [set: {c}]  (was {s}, now {s})\n", .{ id, ts_ptr.set, prev_str, status_str });
     std.debug.print("  follow {s}\n", .{ts_ptr.bundle});
 }
 
@@ -1221,11 +1303,26 @@ fn cmdNeeds(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][
         if (!dup) try newneeds.append(alloc, a);
     }
     ts_ptr.needs = try newneeds.toOwnedSlice(alloc);
+
+    // Re-evaluate status before writeState so the correction is persisted.
+    const old_status = ts_ptr.status;
+    const derived = deriveStatus(&state, ts_ptr.*);
+    if (derived != old_status) {
+        ts_ptr.status = derived;
+    }
+
     try writeState(io, state_path, &state);
+
+    const from_str = statusToString(old_status);
+    const to_str = statusToString(derived);
     std.debug.print("\n  {s}  needs:", .{id});
     for (ts_ptr.needs) |n| std.debug.print(" {s}", .{n});
     if (ts_ptr.needs.len == 0) std.debug.print(" (none)", .{});
-    std.debug.print("\n", .{});
+    if (derived != old_status) {
+        std.debug.print("  [{s} -> {s}]\n", .{ from_str, to_str });
+    } else {
+        std.debug.print("  [{s}]\n", .{from_str});
+    }
 }
 
 fn cmdAgent(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
@@ -1285,6 +1382,28 @@ fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {
 
     printSection("dispatchable", dispatchable.items, &state, repo_root);
     printSection("in progress", in_progress.items, &state, repo_root);
+    // Warnings for in_progress tasks whose needs are no longer met.
+    // This is the state the project is in right now if a dependency was
+    // added to a task already in progress — the task stays claimed but
+    // the board must say so out loud.
+    var warned = false;
+    for (in_progress.items) |tid| {
+        const ts = state.get(tid).?;
+        if (!needsMet(&state, ts)) {
+            if (!warned) {
+                std.debug.print("  !! Unmet-dependency warnings (in_progress tasks):\n", .{});
+                warned = true;
+            }
+            std.debug.print("     {s} in progress but needs", .{tid});
+            for (ts.needs) |n| {
+                const nts = state.get(n);
+                const ns = if (nts) |ntsv| statusToString(ntsv.status) else "unknown";
+                std.debug.print(" {s}={s}", .{ n, ns });
+            }
+            std.debug.print("\n", .{});
+        }
+    }
+    if (warned) std.debug.print("\n", .{});
     printSection("blocked", blocked.items, &state, repo_root);
     printSection("done", done.items, &state, repo_root);
     printSection("failed", failed.items, &state, repo_root);
@@ -1357,13 +1476,15 @@ fn cmdNext(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]
 
     var state = try readState(io, state_path);
 
-    // Find first dispatchable task whose phase set is open
+    // Find first dispatchable task (derived from needs, not stored) whose phase set is open
     var candidate_id: ?[]const u8 = null;
 
     var it = state.iterator();
     while (it.next()) |entry| {
         const ts = entry.value_ptr.*;
-        if (ts.status != .dispatchable) continue;
+        // Derive status rather than reading stored — a task whose needs were
+        // modified after migration still shows the correct gate.
+        if (deriveStatus(&state, ts) != .dispatchable) continue;
         if (phaseGate(state, ts.set)) continue;
         if (holdsConflict(state, ts.holds, entry.key_ptr.*) != null) continue;
 
