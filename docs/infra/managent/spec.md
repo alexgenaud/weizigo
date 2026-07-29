@@ -7,13 +7,15 @@ Enforces dependencies, parallel-set exclusion, and engine-file locks.**
 
 ## Interface
 
-Seven commands. Five have zero required flags in daily use.
+Nine commands. Five have zero required flags in daily use.
 
 ```
 managent add <id>              register a task
 managent dispatch <id>         record a human→agent dispatch (task stays dispatchable)
 managent claim <id>            claim a task for execution
 managent done <id>             mark a task complete
+managent reopen <id>           reopen a killed in_progress/failed task (→ dispatchable)
+managent purge                 purge done/failed tasks (and clean their IDs from remaining needs)
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task
@@ -158,6 +160,42 @@ $ managent done B09
 $ managent done B09 --fail
 
   B09 failed  [set: C released]
+```
+
+### `managent reopen <id>`
+
+Reopens a task that was killed mid-attempt (status `in_progress` or `failed`)
+back to `dispatchable`: clears `agent`/`claimed`/`done`, keeps
+`dispatched`/`dispatched_to`/`note` as the audit trail (a re-dispatch
+overwrites `dispatched_to`). The Orchestrator's D-8 tool for re-queueing a
+console that was terminated without completing — the alternative (fail +
+re-add) would orphan the `needs` edges of dependents. Not allowed on `done`
+(a real completion is not re-queueable; mint a new task), `dispatchable`
+(already claimable), or `blocked` (dependencies unmet).
+
+```
+$ managent reopen EXP-2B
+
+  reopened EXP-2B  [set: A]  (was in_progress)
+  follow docs/infra/dispatch/EXP-2B.md
+```
+
+### `managent purge`
+
+Removes every `done` and `failed` task from the state file, and **removes the
+purged IDs from every remaining task's `needs`** — so a dependent waiting on a
+now-done prerequisite no longer displays or blocks on it (e.g. `EXP-4` with
+`needs EXP-2 EXP-2B` becomes `needs EXP-2B` once `EXP-2` is done and purged).
+The Orchestrator's D-8 declutter tool: done results are absorbed into the
+durable docs (`CLAIMS.md` / `PROGRESS.md` / `model-perf.md`) and committed
+before purging, so the task entry is no longer needed. Prints the purged IDs
+and the tasks whose `needs` were cleaned. Run after a wave of completions.
+
+```
+$ managent purge
+
+  purged 25 task(s): EXP-2 EXP-3 ... EXP-8
+  cleaned needs of: EXP-4
 ```
 
 ---

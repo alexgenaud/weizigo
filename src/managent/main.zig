@@ -112,6 +112,10 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdShow(io, state_path, args);
     } else if (std.mem.eql(u8, cmd, "dispatch")) {
         try cmdDispatch(io, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "reopen")) {
+        try cmdReopen(io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "purge")) {
+        try cmdPurge(io, repo_root, state_path, args);
     } else {
         std.debug.print("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -1025,6 +1029,111 @@ fn cmdDone(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]
     }
 }
 
+fn cmdReopen(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 3) {
+        std.debug.print("usage: managent reopen <id>\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+
+    var state = try readState(io, state_path);
+
+    const ts_ptr = state.getPtr(id) orelse {
+        std.debug.print("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    const prev = ts_ptr.status;
+    if (prev != .in_progress and prev != .failed) {
+        std.debug.print("error: task '{s}' is {s} (reopen is for in_progress/failed tasks killed mid-attempt)\n", .{ id, statusToString(prev) });
+        std.process.exit(1);
+    }
+
+    ts_ptr.status = .dispatchable;
+    ts_ptr.agent = null;
+    ts_ptr.claimed = null;
+    ts_ptr.done = null;
+    // dispatched / dispatched_to / note kept as the audit trail; a re-dispatch overwrites dispatched_to.
+
+    try writeState(io, state_path, &state);
+
+    const prev_str: []const u8 = if (prev == .in_progress) "in_progress" else "failed";
+    std.debug.print("\n  reopened {s}  [set: {c}]  (was {s})\n", .{ id, ts_ptr.set, prev_str });
+    std.debug.print("  follow {s}\n", .{ts_ptr.bundle});
+}
+
+fn cmdPurge(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    _ = args;
+    var state = try readState(io, state_path);
+
+    // 1. collect done/failed keys
+    var purged = std.ArrayList([]const u8).empty;
+    defer purged.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const st = entry.value_ptr.*.status;
+            if (st == .done or st == .failed) try purged.append(alloc, entry.key_ptr.*);
+        }
+    }
+
+    if (purged.items.len == 0) {
+        std.debug.print("\n  nothing to purge (no done/failed tasks)\n", .{});
+        return;
+    }
+
+    // 2. clean needs of remaining tasks (drop references to purged IDs)
+    var cleaned = std.ArrayList([]const u8).empty;
+    defer cleaned.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const ts_ptr = entry.value_ptr;
+            if (ts_ptr.needs.len == 0) continue;
+            var kept = std.ArrayList([]const u8).empty;
+            var removed_any = false;
+            for (ts_ptr.needs) |n| {
+                var is_purged = false;
+                for (purged.items) |p| {
+                    if (std.mem.eql(u8, n, p)) {
+                        is_purged = true;
+                        break;
+                    }
+                }
+                if (!is_purged) {
+                    try kept.append(alloc, n);
+                } else {
+                    removed_any = true;
+                }
+            }
+            if (removed_any) {
+                ts_ptr.needs = try kept.toOwnedSlice(alloc);
+                try cleaned.append(alloc, entry.key_ptr.*);
+            } else {
+                kept.deinit(alloc);
+            }
+        }
+    }
+
+    // 3. remove purged tasks from the map
+    for (purged.items) |p| {
+        _ = state.remove(p);
+    }
+
+    try writeState(io, state_path, &state);
+
+    std.debug.print("\n  purged {d} task(s):", .{purged.items.len});
+    for (purged.items) |p| std.debug.print(" {s}", .{p});
+    std.debug.print("\n", .{});
+    if (cleaned.items.len > 0) {
+        std.debug.print("  cleaned needs of:", .{});
+        for (cleaned.items) |c| std.debug.print(" {s}", .{c});
+        std.debug.print("\n", .{});
+    }
+}
+
 fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {
     var state = try readState(io, state_path);
     defer freeState(&state);
@@ -1063,8 +1172,10 @@ fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {
 
     std.debug.print("\n", .{});
     printSection("dispatchable", dispatchable.items, &state, repo_root);
+    std.debug.print("\n", .{});
     printSection("in progress", in_progress.items, &state, repo_root);
     printSection("blocked", blocked.items, &state, repo_root);
+    std.debug.print("\n", .{});
     printSection("done", done.items, &state, repo_root);
     printSection("failed", failed.items, &state, repo_root);
     std.debug.print("\n", .{});
