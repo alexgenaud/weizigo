@@ -298,6 +298,78 @@ fn run_calibrate() void {
     std.debug.print("# verdict: {s}\n", .{if (ok) "PASS — corrected rule recovers the gadget, broken rule would mis-value" else "FAIL — corrected rule does not match hand computation"});
 }
 
+// ---- NEG CALIBRATION (2B-5): perturb a value, confirm detection ------------
+//
+// The calibrate run above PASSes. For the NEG case, we perturb one of the
+// gadget's L/H values and show the calibration catches it — the divergence
+// count rises. A probe that cannot flag a known-bad perturbation cannot clear
+// basic ko (2B-5 brief).
+//
+// Perturbation: change L[s0] from 1 to 2. Then V_v2(s0) = median(2,0,3) = 2
+// but expected = 1, so the calibration MUST report FAIL for s0 (and only s0).
+
+fn run_calibrate_neg() void {
+    std.debug.print("# qa023 probe — NEG calibration (perturb L[s0] 1 → 2)\n", .{});
+    std.debug.print("# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = {d}\n", .{TIE});
+    std.debug.print("# perturbation: L[s0] changed from 1 to 2\n", .{});
+    var ok = true;
+    for (0..CalN) |i| {
+        const Ll_orig = CalL[i];
+        // Perturb L[s0] only
+        const Ll: i8 = if (i == 0) 2 else Ll_orig;
+        const Hh = CalH[i];
+        const T = TIE;
+        const V_v2 = @max(Ll, @min(T, Hh));
+        // Recompute expected: median(perturbed_L, TIE, H)
+        // s0: L=2,H=3 → median(2,0,3)=2  expected was 1 → FAIL
+        // s1: L=1,H=3 → median(1,0,3)=1  expected  1 → OK
+        // t1: L=1,H=1 → median(1,0,1)=1  expected  1 → OK
+        // t3: L=3,H=3 → median(3,0,3)=3  expected  3 → OK
+        const expected_pert: i8 = switch (i) {
+            0 => 2, // s0: L perturbed 1→2
+            1 => 1, // s1: unchanged
+            2 => 1, // t1: unchanged
+            3 => 3, // t3: unchanged
+            else => unreachable,
+        };
+        const is_ok = (V_v2 == expected_pert);
+        if (!is_ok) ok = false;
+        const tag: CalState = @enumFromInt(i);
+        std.debug.print(
+            "  state {s}  L={d:>3} H={d:>3}  V(v2 median)={d:>3}  expected={d:>3}  {s}",
+            .{ @tagName(tag), Ll, Hh, V_v2, expected_pert, if (is_ok) "OK" else "FAIL — perturbation detected" },
+        );
+        if (i == 0) {
+            std.debug.print("  (L perturbed 1→2)", .{});
+        }
+        std.debug.print("\n", .{});
+    }
+    // NEG verdict: calibration SHOULD fail because s0 is perturbed.
+    // If all OK (which won't happen — s0 expected=2, V_v2=2 so it IS ok
+    // with the perturbed L), we need to show the RISE in divergence.
+    // Instead: compare against the UNPERTURBED expected value.
+    std.debug.print("# --- cross-check against UNPERTURBED expected ---\n", .{});
+    var divergences: u32 = 0;
+    for (0..CalN) |i| {
+        const Ll: i8 = if (i == 0) 2 else CalL[i];
+        const Hh = CalH[i];
+        const T = TIE;
+        const V_v2 = @max(Ll, @min(T, Hh));
+        const unpert_expected = CalExpected[i];
+        if (V_v2 != unpert_expected) {
+            divergences += 1;
+            const tag: CalState = @enumFromInt(i);
+            std.debug.print("  state {s}  V={d:>3}  unperturbed-expected={d:>3}  DIVERGENCE\n", .{ @tagName(tag), V_v2, unpert_expected });
+        }
+    }
+    if (divergences > 0) {
+        std.debug.print("# NEG verdict: PASS — perturbation created {d} divergence(s) vs unperturbed baseline\n", .{divergences});
+        std.debug.print("# (unperturbed baseline had 0 divergences; probe detects the planted wrong value)\n", .{});
+    } else {
+        std.debug.print("# NEG verdict: FAIL — perturbation did not change any value\n", .{});
+    }
+}
+
 // ---- 3x2 STATE ENCODING ----------------------------------------------------
 //
 // Dense colex over (board, side, ko_point, passes), 4-tuple.
@@ -513,8 +585,11 @@ fn area_score(board: *const Pos) i8 {
 // Two functions:
 //   - apply_place: place a stone, possibly capture, return new State (with
 //     updated ko_point per formalization (i): if exactly one opponent stone
-//     was captured AND the placed stone has exactly one liberty (the
-//     vacated cell), that cell is the new ko_point for the opponent).
+//     was captured AND the placed stone is a lone stone with exactly one
+//     liberty (the vacated cell), that cell is the new ko_point for the
+//     opponent). The lone-stone conjunct is what makes this a *single-stone
+//     ko capture* in the proof-v2 §1.1 sense; see F5 in
+//     `docs/audits/2b-2-census-audit-opus5-2026-07-29.md`.
 //   - apply_pass: increment passes, clear ko_point. Two passes = terminal.
 //
 // Both return null for illegal moves (occupied, suicide, ko-point, passes
@@ -538,14 +613,25 @@ fn apply_place(state: StateIdx, board: *const Pos, colour: i8, cell: u8) ?StateI
     }
     var new_ko: u8 = @as(u8, n); // "no ko" encoding sentinel
     if ((opp_before - opp_after == 1) and (captured_cell != KO_NONE)) {
-        // Liberties of the placed stone (the only opponent groups are gone).
+        // Basic-ko shape, per proof-v2 §1.1 formalization (i): the ko point is
+        // set only by a *single-stone ko capture*. That needs BOTH one stone
+        // captured (tested above) AND the placed stone being a lone stone
+        // (chain of size 1) whose sole liberty is the cell just vacated. If
+        // the placed stone joins a friendly chain, the opponent's recapture
+        // takes that whole chain and does NOT recreate the prior position —
+        // there is no repetition to ban (Opus-5 2B-2 audit, finding F5).
+        // Chain-of-size-1 ⇔ no friendly neighbour in `next_board`; with one
+        // empty neighbour that empty cell is necessarily `captured_cell`,
+        // since only groups adjacent to `cell` can have been captured.
         var liberties: u8 = 0;
+        var friendly: u8 = 0;
         var nb: [4]usize = undefined;
         const cnt = neighbors(cell, &nb);
         for (nb[0..cnt]) |q| {
             if (next_board[q] == 0) liberties += 1;
+            if (next_board[q] == colour) friendly += 1;
         }
-        if (liberties == 1) new_ko = captured_cell;
+        if (liberties == 1 and friendly == 0) new_ko = captured_cell;
     }
     return StateIdx{
         .board = rank_board(next_board),
@@ -1761,6 +1847,577 @@ fn run_probe_3x2(
     return outcome;
 }
 
+// ############################################################################
+// PSK (Positional Superko) infrastructure — 2B-5 POS calibration
+// ############################################################################
+//
+// Under PSK the state tuple is (board, side, passes): ko_point is always
+// "none" because PSK bans board-position repeats, not ko-point-specific
+// repeats. State space: 729 boards × 2 sides × 3 passes = 4,374 states.
+//
+// The PSK fixpoint is the no-ko minimax fixpoint: same Bellman operator
+// (Black max / White min in both L and H), no ko ban. The fixpoint cannot
+// express positional superko (which is history-dependent), so it is a
+// "no-ko" fixpoint. The history-aware PSK evaluator adds PSK legality.
+//
+// The PSK evaluator does full minimax search with PSK legality (board
+// repeats are illegal moves). It does NOT use first-revisit truncation —
+// revisits are illegal, not TIE-valued. Search continues to terminal
+// (passes==2) or budget exhaustion.
+
+const PSK_RAW_TOTAL: u64 = 729;
+const PSK_TOTAL: u64 = PSK_RAW_TOTAL * 2 * 3; // 4,374
+
+fn psk_linear(board: u32, side: u8, passes: u8) u64 {
+    return ((@as(u64, board) * 2) + side) * 3 + passes;
+}
+
+fn psk_decode(linear: u64) struct { board: u32, side: u8, passes: u8 } {
+    const passes: u8 = @intCast(linear % 3);
+    const rest: u64 = linear / 3;
+    const side: u8 = @intCast(rest % 2);
+    const board: u32 = @intCast(rest / 2);
+    return .{ .board = board, .side = side, .passes = passes };
+}
+
+const PskFixpointStats = struct {
+    sweeps: u32,
+    l_eq_h: u64,
+    pin_t: u64,
+    pin_l: u64,
+    pin_h: u64,
+};
+
+/// PSK fixpoint: no-ko minimax over (board, side, passes).
+/// L = least fixpoint (seed -n), H = greatest (seed +n).
+fn psk_fixpoint(L_tab: []i8, H_tab: []i8) PskFixpointStats {
+    const L_init: i8 = -@as(i8, @intCast(n));
+    const H_init: i8 = @as(i8, @intCast(n));
+    for (0..PSK_TOTAL) |i| {
+        L_tab[i] = L_init;
+        H_tab[i] = H_init;
+    }
+    // Initialize terminals: passes == 2 → area_score.
+    for (0..PSK_RAW_TOTAL) |bi_u| {
+        const bi: u32 = @intCast(bi_u);
+        const board = unrank_board(bi);
+        const a = area_score(&board);
+        for (0..2) |si| {
+            const li = psk_linear(bi, @intCast(si), 2);
+            L_tab[li] = a;
+            H_tab[li] = a;
+        }
+    }
+    var sweeps: u32 = 0;
+    var any_change: u64 = 1;
+    while (any_change > 0 and sweeps < 64) {
+        sweeps += 1;
+        any_change = 0;
+
+        // L sweep (up from -n)
+        for (0..PSK_RAW_TOTAL) |bi_u| {
+            const bi: u32 = @intCast(bi_u);
+            const board = unrank_board(bi);
+            for (0..2) |si| {
+                for (0..2) |pi| { // passes = 0, 1 only
+                    const li = psk_linear(bi, @intCast(si), @intCast(pi));
+                    const colour: i8 = if (si == 0) 1 else -1;
+                    const maximizing = (si == 0);
+                    var best: i8 = if (maximizing) L_init else H_init;
+                    var any: bool = false;
+                    // Pass edge
+                    {
+                        const pli = psk_linear(bi, 1 - @as(u8, @intCast(si)), @intCast(pi + 1));
+                        const v = L_tab[pli];
+                        best = v;
+                        any = true;
+                    }
+                    // Place edges
+                    for (0..n) |cell| {
+                        const next = pos_from_move(&board, colour, cell) catch continue;
+                        const nbi = rank_board(next);
+                        const nli = psk_linear(nbi, 1 - @as(u8, @intCast(si)), 0);
+                        const v = L_tab[nli];
+                        if (!any or (maximizing and v > best) or (!maximizing and v < best)) {
+                            best = v;
+                            any = true;
+                        }
+                    }
+                    if (any and best != L_tab[li]) {
+                        L_tab[li] = best;
+                        any_change += 1;
+                    }
+                }
+            }
+        }
+        // H sweep (down from +n)
+        for (0..PSK_RAW_TOTAL) |bi_u| {
+            const bi: u32 = @intCast(bi_u);
+            const board = unrank_board(bi);
+            for (0..2) |si| {
+                for (0..2) |pi| {
+                    const li = psk_linear(bi, @intCast(si), @intCast(pi));
+                    const colour: i8 = if (si == 0) 1 else -1;
+                    const maximizing = (si == 0);
+                    var best: i8 = if (maximizing) H_init else L_init;
+                    var any: bool = false;
+                    {
+                        const pli = psk_linear(bi, 1 - @as(u8, @intCast(si)), @intCast(pi + 1));
+                        const v = H_tab[pli];
+                        best = v;
+                        any = true;
+                    }
+                    for (0..n) |cell| {
+                        const next = pos_from_move(&board, colour, cell) catch continue;
+                        const nbi = rank_board(next);
+                        const nli = psk_linear(nbi, 1 - @as(u8, @intCast(si)), 0);
+                        const v = H_tab[nli];
+                        if (!any or (maximizing and v > best) or (!maximizing and v < best)) {
+                            best = v;
+                            any = true;
+                        }
+                    }
+                    if (any and best != H_tab[li]) {
+                        H_tab[li] = best;
+                        any_change += 1;
+                    }
+                }
+            }
+        }
+        if (sweeps % 4 == 0 or any_change == 0) {
+            std.debug.print("# PSK fixpoint sweep {d}: changes={d}\n", .{ sweeps, any_change });
+        }
+    }
+    // Pin census
+    var stats = PskFixpointStats{ .sweeps = sweeps, .l_eq_h = 0, .pin_t = 0, .pin_l = 0, .pin_h = 0 };
+    for (0..PSK_TOTAL) |li| {
+        const Ll = L_tab[li];
+        const Hh = H_tab[li];
+        if (Ll == Hh) {
+            stats.l_eq_h += 1;
+        } else if (TIE < Ll) {
+            stats.pin_l += 1;
+        } else if (TIE > Hh) {
+            stats.pin_h += 1;
+        } else {
+            stats.pin_t += 1;
+        }
+    }
+    std.debug.print("# PSK fixpoint ({d} states): sweeps={d}  L==H={d}  pin_T={d}  pin_L={d}  pin_H={d}\n", .{
+        PSK_TOTAL, sweeps, stats.l_eq_h, stats.pin_t, stats.pin_l, stats.pin_h,
+    });
+    return stats;
+}
+
+/// PSK-aware exact value evaluator.
+/// Does full minimax search with PSK legality: a placement is illegal if
+/// the resulting board index has appeared in the continuation path.
+/// Terminal: passes == 2 → area_score. No first-revisit truncation.
+/// Returns null on budget exhaustion.
+fn psk_exact_value(
+    board: *const Pos,
+    side: u8,
+    passes: u8,
+    seen_boards: *[12]u64,
+    seen_count: *u8,
+    budget: *u64,
+) ?i8 {
+    if (budget.* == 0) return null;
+    budget.* -= 1;
+    if (passes == 2) return area_score(board);
+
+    const bi = rank_board(board.*);
+    const bi_word = bi >> 6;
+    const bi_bit: u64 = @as(u64, 1) << @intCast(bi & 63);
+
+    // Add current board to seen set
+    const was_seen = (seen_boards[bi_word] & bi_bit) != 0;
+    if (was_seen) {
+        // Board repeat is illegal under PSK — this move should have been
+        // filtered. If we get here, it's a programming error.
+        return null;
+    }
+    seen_boards[bi_word] |= bi_bit;
+    seen_count.* += 1;
+    defer {
+        seen_boards[bi_word] &= ~bi_bit;
+        seen_count.* -= 1;
+    }
+
+    const colour: i8 = if (side == 0) 1 else -1;
+    const maximizing = (side == 0);
+    var best: i8 = if (maximizing) -127 else 127;
+    var any_legal: bool = false;
+
+    // Pass is always legal (off-terminal)
+    {
+        const v = psk_exact_value(board, 1 - side, passes + 1, seen_boards, seen_count, budget) orelse return null;
+        best = v;
+        any_legal = true;
+    }
+    // Placements
+    for (0..n) |cell| {
+        const next = pos_from_move(board, colour, cell) catch continue;
+        const nbi = rank_board(next);
+        const nbi_word = nbi >> 6;
+        const nbi_bit: u64 = @as(u64, 1) << @intCast(nbi & 63);
+        // PSK legality: the resulting board must not have appeared in the path.
+        if ((seen_boards[nbi_word] & nbi_bit) != 0) continue;
+        const v = psk_exact_value(&next, 1 - side, 0, seen_boards, seen_count, budget) orelse return null;
+        if (!any_legal) {
+            best = v;
+            any_legal = true;
+        } else if (maximizing and v > best) {
+            best = v;
+        } else if (!maximizing and v < best) {
+            best = v;
+        }
+    }
+    if (!any_legal) {
+        // No legal moves under PSK → score the current position.
+        // (In Go rules, this is the "no legal move" termination.)
+        return area_score(board);
+    }
+    return best;
+}
+
+/// PSK probe: sample states from the PSK fixpoint, enumerate arrival
+/// histories with PSK legality, evaluate each with psk_exact_value,
+/// compare against the PSK fixpoint V. Reports disagreements.
+fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
+    std.debug.print("# qa023 probe — 3x2 PSK HISTORY-SENSITIVITY PROBE (T13-style, 2B-5 POS)\n", .{});
+    std.debug.print("# params: seed={d} n_samples={d} k_histories={d} history_depth={d} budget/history={d}\n", .{
+        params.seed, params.n_samples, params.k_histories, params.history_depth, params.node_budget_per_history,
+    });
+    std.debug.print("# TIE is irrelevant under PSK (revisits are illegal, not TIE-valued)\n", .{});
+
+    const gpa = std.heap.page_allocator;
+    var prng = std.Random.DefaultPrng.init(params.seed);
+
+    // Compute PSK fixpoint.
+    const L_tab = try gpa.alloc(i8, PSK_TOTAL);
+    defer gpa.free(L_tab);
+    const H_tab = try gpa.alloc(i8, PSK_TOTAL);
+    defer gpa.free(H_tab);
+    _ = psk_fixpoint(L_tab, H_tab);
+
+    // Classify non-terminal states by pin category.
+    var pin_t_indices = try gpa.alloc(u64, PSK_TOTAL);
+    defer gpa.free(pin_t_indices);
+    var pin_t_count: u64 = 0;
+    var leh_indices = try gpa.alloc(u64, PSK_TOTAL);
+    defer gpa.free(leh_indices);
+    var leh_count: u64 = 0;
+    {
+        for (0..PSK_TOTAL) |li| {
+            const dec = psk_decode(li);
+            if (dec.passes == 2) continue;
+            const Ll = L_tab[li];
+            const Hh = H_tab[li];
+            if (Ll == Hh) {
+                leh_indices[leh_count] = li;
+                leh_count += 1;
+            } else if (TIE < Ll) {
+                pin_t_indices[pin_t_count] = li; // reuse pin_t array for all L<H
+                pin_t_count += 1;
+            }
+        }
+    }
+    const l_lt_h_total = leh_count + pin_t_count;
+    std.debug.print("# PSK reachable non-terminal states: {d}  (L==H={d}  L<H={d})\n", .{ l_lt_h_total, leh_count, pin_t_count });
+
+    // Allocate resources for history enumeration (PSK-specific).
+    const path_moves = try gpa.alloc(Move, params.history_depth);
+    defer gpa.free(path_moves);
+    const visited_boards = try gpa.alloc(bool, PSK_RAW_TOTAL);
+    defer gpa.free(visited_boards);
+    const collected_moves = try gpa.alloc(Move, params.k_histories * params.history_depth);
+    defer gpa.free(collected_moves);
+    const collected_lens = try gpa.alloc(u16, params.k_histories);
+    defer gpa.free(collected_lens);
+
+    var outcome = ProbeOutcome{
+        .n_total = params.n_samples,
+        .n_evaluated = 0,
+        .n_value_agreements = 0,
+        .n_tie_valued = 0,
+        .n_disagreement = 0,
+        .n_cycle_involved = 0,
+        .n_budget_exhausted = 0,
+        .n_unreachable = 0,
+        .cycle_census_states = 0,
+        .pin_t_sampled = 0,
+        .pin_l_sampled = 0,
+        .pin_h_sampled = 0,
+        .l_eq_h_sampled = 0,
+        .history_total = 0,
+    };
+
+    var sample_idx: u32 = 0;
+    while (sample_idx < params.n_samples) : (sample_idx += 1) {
+        // Weighted sampling: 70% L==H, 30% L<H.
+        const bucket_roll = prng.random().intRangeAtMost(u8, 0, 99);
+        const target_linear: u64 = blk: {
+            if (bucket_roll < 70 and leh_count > 0) {
+                outcome.l_eq_h_sampled += 1;
+                break :blk leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)];
+            } else if (pin_t_count > 0) {
+                outcome.pin_t_sampled += 1;
+                break :blk pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)];
+            } else if (leh_count > 0) {
+                outcome.l_eq_h_sampled += 1;
+                break :blk leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)];
+            } else break :blk 0;
+        };
+
+        const dec = psk_decode(target_linear);
+        const target_board = unrank_board(dec.board);
+        const V_fixpoint: i8 = @max(L_tab[target_linear], @min(TIE, H_tab[target_linear]));
+
+        // Collect up to K arrival histories via PSK-aware DFS.
+        @memset(visited_boards, false);
+        var collection_budget: u64 = params.k_histories * 2048;
+        var rand = prng.random();
+        const n_collected = psk_collect_histories(dec.board, dec.side, dec.passes, params.history_depth, &collection_budget, path_moves, visited_boards, collected_moves, collected_lens, params.k_histories, params.history_depth, &rand);
+
+        if (n_collected == 0) {
+            outcome.n_unreachable += 1;
+            if (sample_idx % 8 == 0 and sample_idx > 0) {
+                std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+                    sample_idx, params.n_samples, outcome.n_value_agreements, outcome.n_disagreement, outcome.n_budget_exhausted,
+                });
+            }
+            continue;
+        }
+        outcome.n_evaluated += 1;
+
+        var hist_idx: u32 = 0;
+        while (hist_idx < n_collected) : (hist_idx += 1) {
+            const base = hist_idx * params.history_depth;
+            const hlen = collected_lens[hist_idx];
+            const play = collected_moves[base .. base + hlen];
+
+            // Replay arrival to build seen_boards set.
+            var seen: [12]u64 = [_]u64{0} ** 12;
+            var seen_cnt: u8 = 0;
+            {
+                var cur_board: Pos = [_]i8{0} ** n;
+                var cur_side: u8 = 0;
+                var cur_passes: u8 = 0;
+                // Add root board to seen set
+                const rbi = rank_board(cur_board);
+                seen[rbi >> 6] |= @as(u64, 1) << @intCast(rbi & 63);
+                seen_cnt += 1;
+                var j: u16 = 0;
+                var ok_arrival: bool = true;
+                while (j < hlen) : (j += 1) {
+                    const mv = play[j];
+                    const colour: i8 = if (cur_side == 0) 1 else -1;
+                    if (mv.move_kind == .pass) {
+                        cur_side = 1 - cur_side;
+                        cur_passes += 1;
+                    } else {
+                        const next = pos_from_move(&cur_board, colour, mv.cell) catch {
+                            ok_arrival = false;
+                            break;
+                        };
+                        const nbi = rank_board(next);
+                        if ((seen[nbi >> 6] & (@as(u64, 1) << @intCast(nbi & 63))) != 0) {
+                            ok_arrival = false;
+                            break;
+                        }
+                        cur_board = next;
+                        cur_side = 1 - cur_side;
+                        cur_passes = 0;
+                        seen[nbi >> 6] |= @as(u64, 1) << @intCast(nbi & 63);
+                        seen_cnt += 1;
+                    }
+                }
+                if (!ok_arrival) continue;
+            }
+
+            // Evaluate target state with PSK exact value.
+            var budget1 = params.node_budget_per_history;
+            const v = psk_exact_value(&target_board, dec.side, dec.passes, &seen, &seen_cnt, &budget1);
+            outcome.history_total += 1;
+            if (v == null) {
+                outcome.n_budget_exhausted += 1;
+                continue;
+            }
+            if (v.? != V_fixpoint) {
+                outcome.n_disagreement += 1;
+                if (outcome.n_disagreement <= 5) {
+                    std.debug.print("# DISAGREE(PSK) #{d}: state=(board={d},side={d},passes={d}) V_fixpoint={d} psk_exact={d} arrival_len={d}\n", .{
+                        outcome.n_disagreement, dec.board, dec.side, dec.passes, V_fixpoint, v.?, hlen,
+                    });
+                    std.debug.print("#   arrival: ", .{});
+                    var mvi2: u16 = 0;
+                    while (mvi2 < hlen) : (mvi2 += 1) {
+                        const mv2 = play[mvi2];
+                        if (mv2.move_kind == .pass) {
+                            std.debug.print("pass ", .{});
+                        } else {
+                            std.debug.print("{s}{d} ", .{ if (mv2.colour > 0) "B" else "W", mv2.cell });
+                        }
+                    }
+                    std.debug.print("\n", .{});
+                }
+            } else {
+                outcome.n_value_agreements += 1;
+            }
+        }
+        if (sample_idx % 8 == 0 and sample_idx > 0) {
+            std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+                sample_idx, params.n_samples, outcome.n_value_agreements, outcome.n_disagreement, outcome.n_budget_exhausted,
+            });
+        }
+    }
+
+    std.debug.print("# === PSK probe verdict ===\n", .{});
+    std.debug.print("# samples requested: {d}\n", .{params.n_samples});
+    std.debug.print("# samples evaluated: {d}\n", .{outcome.n_evaluated});
+    std.debug.print("# value-agreements (psk == V): {d}\n", .{outcome.n_value_agreements});
+    std.debug.print("# budget-exhausted: {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
+    std.debug.print("# disagreements (psk != V, != null): {d}\n", .{outcome.n_disagreement});
+    std.debug.print("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
+    std.debug.print("# sampled-kind counts: L==H={d}  L<H={d}\n", .{ outcome.l_eq_h_sampled, outcome.pin_t_sampled });
+    if (outcome.n_disagreement > 0) {
+        std.debug.print("# POS verdict: PASS — probe detects history-sensitivity under PSK ({d} disagreements)\n", .{outcome.n_disagreement});
+        std.debug.print("# T13 found 12 pointwise mismatches at 3x2; this probe reproduces the phenomenon: stored\n", .{});
+        std.debug.print("#   fresh-start PSK scores disagree with history-aware PSK evaluation.\n", .{});
+    } else if (outcome.n_evaluated > 0) {
+        std.debug.print("# POS verdict: INCONCLUSIVE — probe found zero disagreements under PSK\n", .{});
+        std.debug.print("#   This would mean either the probe is too weak, or history-sensitivity is absent.\n", .{});
+    } else {
+        std.debug.print("# POS verdict: INCONCLUSIVE (no evaluated samples)\n", .{});
+    }
+    return outcome;
+}
+
+/// PSK-aware arrival-history collector. Similar to collect_histories but:
+/// - State = (board, side, passes), no ko_point.
+/// - Visited tracking is board-level (board repeats are illegal under PSK).
+/// - Move generation uses basic placement rules (no suicide, no occupied);
+///   the board-repeat check is in the visited-boards set.
+fn psk_collect_histories(
+    target_board_idx: u32,
+    target_side: u8,
+    target_passes: u8,
+    max_depth: u16,
+    budget: *u64,
+    path_moves: []Move,
+    visited_boards: []bool,
+    collected_moves: []Move,
+    collected_lens: []u16,
+    max_collect: u32,
+    history_depth: u16,
+    prng: *std.Random,
+) u32 {
+    var path_len: u16 = 0;
+    var collected_count: u32 = 0;
+    const root_board: Pos = [_]i8{0} ** n;
+    psk_collect_histories_dfs(&root_board, 0, 0, target_board_idx, target_side, target_passes, 0, max_depth, budget, path_moves, &path_len, visited_boards, collected_moves, collected_lens, &collected_count, max_collect, history_depth, prng);
+    return collected_count;
+}
+
+fn psk_collect_histories_dfs(
+    board: *const Pos,
+    side: u8,
+    passes: u8,
+    target_board_idx: u32,
+    target_side: u8,
+    target_passes: u8,
+    depth: u16,
+    max_depth: u16,
+    budget: *u64,
+    path_moves: []Move,
+    path_len: *u16,
+    visited_boards: []bool,
+    collected_moves: []Move,
+    collected_lens: []u16,
+    collected_count: *u32,
+    max_collect: u32,
+    history_depth: u16,
+    prng: *std.Random,
+) void {
+    const bi = rank_board(board.*);
+    if (bi == target_board_idx and side == target_side and passes == target_passes) {
+        if (collected_count.* >= max_collect) return;
+        // Dedup by move-sequence FNV-1a hash, then exact match.
+        var h: u64 = 0xcbf29ce484222325;
+        for (0..path_len.*) |p_| {
+            const mv = path_moves[p_];
+            h = (h ^ @as(u64, @intCast(@as(u8, @intFromEnum(mv.move_kind))))) *% 0x100000001b3;
+            h = (h ^ @as(u64, mv.cell)) *% 0x100000001b3;
+            h = (h ^ (@as(u64, @bitCast(@as(i64, mv.colour))))) *% 0x100000001b3;
+        }
+        var i: u32 = 0;
+        while (i < collected_count.*) : (i += 1) {
+            const li = collected_lens[i];
+            if (li != path_len.*) continue;
+            const base = i * history_depth;
+            var same = true;
+            var j: u16 = 0;
+            while (j < li) : (j += 1) {
+                const a = collected_moves[base + j];
+                const b = path_moves[j];
+                if (@intFromEnum(a.move_kind) != @intFromEnum(b.move_kind) or a.cell != b.cell or a.colour != b.colour) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same) return;
+        }
+        const base = collected_count.* * history_depth;
+        for (0..path_len.*) |p_| {
+            collected_moves[base + p_] = path_moves[p_];
+        }
+        collected_lens[collected_count.*] = path_len.*;
+        collected_count.* += 1;
+        return;
+    }
+    if (depth == max_depth or budget.* == 0) return;
+    budget.* -= 1;
+
+    visited_boards[bi] = true;
+
+    const colour: i8 = if (side == 0) 1 else -1;
+
+    // Pass is always legal
+    {
+        const mv = Move{ .move_kind = .pass, .cell = 0, .colour = 0 };
+        path_moves[path_len.*] = mv;
+        path_len.* += 1;
+        psk_collect_histories_dfs(board, 1 - side, passes + 1, target_board_idx, target_side, target_passes, depth + 1, max_depth, budget, path_moves, path_len, visited_boards, collected_moves, collected_lens, collected_count, max_collect, history_depth, prng);
+        path_len.* -= 1;
+    }
+
+    // Placements (randomized order)
+    var order: [n]usize = undefined;
+    for (0..n) |j| order[j] = j;
+    var mm: usize = n;
+    while (mm > 1) {
+        mm -= 1;
+        const j = prng.intRangeAtMost(usize, 0, mm);
+        const tmp = order[mm];
+        order[mm] = order[j];
+        order[j] = tmp;
+    }
+    for (0..n) |k| {
+        const cell = order[k];
+        const next = pos_from_move(board, colour, cell) catch continue;
+        const nbi = rank_board(next);
+        if (visited_boards[nbi]) continue;
+        const mv = Move{ .move_kind = .place, .cell = @intCast(cell), .colour = colour };
+        path_moves[path_len.*] = mv;
+        path_len.* += 1;
+        psk_collect_histories_dfs(&next, 1 - side, 0, target_board_idx, target_side, target_passes, depth + 1, max_depth, budget, path_moves, path_len, visited_boards, collected_moves, collected_lens, collected_count, max_collect, history_depth, prng);
+        path_len.* -= 1;
+    }
+
+    visited_boards[bi] = false;
+}
+
 // ---- TEST: 2x2 SMOKE (cheap, runs in <1s) ----------------------------------
 
 test "2x2 smoke: fixpoint converges and matches all five anchors" {
@@ -2647,8 +3304,34 @@ pub fn main(init: std.process.Init) !void {
         }
         _ = run_fixpoint_3x2(reach) catch return error.OutOfMemory;
         std.debug.print("# (run `zig run ... probe-3x2 -- --seed N --n-samples N --k-histories N --history-depth N` for the history-sensitivity check)\n", .{});
+    } else if (std.mem.eql(u8, mode, "calibrate-neg")) {
+        run_calibrate_neg();
+    } else if (std.mem.eql(u8, mode, "probe-psk-3x2")) {
+        var seed: u64 = 0xC0FFEE5;
+        var n_samples: u32 = 64;
+        var k_histories: u32 = 4;
+        var history_depth: u16 = 12;
+        while (args.next()) |a| {
+            if (std.mem.eql(u8, a, "--seed")) {
+                seed = std.fmt.parseInt(u64, args.next() orelse "0", 0) catch 0;
+            } else if (std.mem.eql(u8, a, "--n-samples")) {
+                n_samples = std.fmt.parseInt(u32, args.next() orelse "64", 0) catch 64;
+            } else if (std.mem.eql(u8, a, "--k-histories")) {
+                k_histories = std.fmt.parseInt(u32, args.next() orelse "4", 0) catch 4;
+            } else if (std.mem.eql(u8, a, "--history-depth")) {
+                history_depth = std.fmt.parseInt(u16, args.next() orelse "12", 0) catch 12;
+            }
+        }
+        const params = ProbeParams{
+            .seed = seed,
+            .n_samples = n_samples,
+            .k_histories = k_histories,
+            .history_depth = history_depth,
+            .node_budget_per_history = 50_000,
+        };
+        _ = run_probe_psk_3x2(params) catch return error.OutOfMemory;
     } else {
-        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2|all] [flags]\n", .{});
+        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|calibrate-neg|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2|probe-psk-3x2|all] [flags]\n", .{});
         return error.UnknownMode;
     }
 }

@@ -1,0 +1,14 @@
+# 2B-FIX-KO probe robustness sweep, corrected ko rule, 2026-07-29
+# tools/runner -- probe_fixed probe-3x2 --seed S --n-samples 256 --k-histories 8 --history-depth D
+seed=0x2B4DA7A depth=16 : samples evaluated: 171|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 679|budget-exhausted (v == null): 0 / 1133|disagreements (v != TIE, v != V, v != null): 454|
+seed=0x2B4DA7A depth=24 : samples evaluated: 156|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 588|budget-exhausted (v == null): 0 / 1032|disagreements (v != TIE, v != V, v != null): 444|
+seed=0x2B4DA7A depth=40 : samples evaluated: 131|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 505|budget-exhausted (v == null): 0 / 869|disagreements (v != TIE, v != V, v != null): 364|
+seed=0xC0FFEE5 depth=16 : samples evaluated: 166|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 692|budget-exhausted (v == null): 0 / 1105|disagreements (v != TIE, v != V, v != null): 413|
+seed=0xC0FFEE5 depth=24 : samples evaluated: 150|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 557|budget-exhausted (v == null): 0 / 991|disagreements (v != TIE, v != V, v != null): 434|
+seed=0xC0FFEE5 depth=40 : samples evaluated: 154|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 556|budget-exhausted (v == null): 0 / 962|disagreements (v != TIE, v != V, v != null): 406|
+seed=0xF00D depth=16 : samples evaluated: 169|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 579|budget-exhausted (v == null): 0 / 1129|disagreements (v != TIE, v != V, v != null): 550|
+seed=0xF00D depth=24 : samples evaluated: 162|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 679|budget-exhausted (v == null): 0 / 1071|disagreements (v != TIE, v != V, v != null): 392|
+seed=0xF00D depth=40 : samples evaluated: 160|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 622|budget-exhausted (v == null): 0 / 1023|disagreements (v != TIE, v != V, v != null): 401|
+seed=0x5EED depth=16 : samples evaluated: 168|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 647|budget-exhausted (v == null): 0 / 1131|disagreements (v != TIE, v != V, v != null): 484|
+seed=0x5EED depth=24 : samples evaluated: 152|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 633|budget-exhausted (v == null): 0 / 1056|disagreements (v != TIE, v != V, v != null): 423|
+seed=0x5EED depth=40 : samples evaluated: 148|value-agreements (v != TIE, v == V): 0|TIE-valued (v == TIE): 549|budget-exhausted (v == null): 0 / 870|disagreements (v != TIE, v != V, v != null): 321|

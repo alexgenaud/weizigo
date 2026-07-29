@@ -1,0 +1,40 @@
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed cycle-census-3x2 --max-cycle-len 16 --max-cycles 100000000000
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — 3x2 cycle census: directed cycles in the reachable legal-move graph
+# (TIE constant is irrelevant; this is graph structure, not evaluation.)
+# cycle census: reachable V = 2622
+# cycle census: directed edges E = 5668
+# SCCs: total = 947, non-trivial (size >= 2) = 1, max size = 1676
+# SCC size histogram (size 0..14, index 15 = size >= 15):
+#   size 1: 946 SCCs
+#   size 15+: 1 SCCs
+# cycle-involved vertices (lie on a directed cycle): 1676
+# cycle-REACHABLE vertices (forward-reachable set touches a cycle): 1704
+# simple directed cycles found (cycle-length cap = 16, total cap = 100000000000): 802552
+# max cycle length observed: 16
+# cycle histogram by length (length 2..16; index 15 = length >= 16):
+#   length 2: 0
+#   length 3: 0
+#   length 4: 0
+#   length 5: 0
+#   length 6: 16
+#   length 7: 0
+#   length 8: 1296
+#   length 9: 0
+#   length 10: 15212
+#   length 11: 0
+#   length 12: 35548
+#   length 13: 0
+#   length 14..16: 750480
+# sample cycle (length 6): [49, 503, 142, 600, 413, 486]
+# sample cycle (length 8): [3, 1575, 76, 583, 123, 698, 239, 705]
+# sample cycle (length 14): [1, 1424, 114, 532, 965, 533, 966, 558, 991, 729, 21, 468, 901, 530]
+# === 2B-2 cycle-census verdict ===
+# reachable V = 2622, E = 5668, non-trivial SCCs = 1, cycles_found = 802552, cycle-involved = 1676, cycle-reachable = 1704
+# CLAIM 3x2.QA023.B-VACUITY: PASS — reachable directed cycles > 0 (3x2 IS a non-trivial test surface)
+[runner] peak RSS by PID:
+[runner]   pid   96694      44 MB
+[runner] exit 0 in 1.9 s
+real 1.91
+user 1.85
+sys 0.11

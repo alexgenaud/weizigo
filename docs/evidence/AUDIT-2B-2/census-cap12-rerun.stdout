@@ -1,0 +1,34 @@
+[runner] argv = zig run -O ReleaseFast src/qa023_probe.zig -- cycle-census-3x2 --max-cycle-len 12 --max-cycles 100000
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — 3x2 cycle census: directed cycles in the reachable legal-move graph
+# (TIE constant is irrelevant; this is graph structure, not evaluation.)
+# cycle census: reachable V = 2682
+# cycle census: directed edges E = 5744
+# SCCs: total = 987, non-trivial (size >= 2) = 1, max size = 1696
+# SCC size histogram (size 0..14, index 15 = size >= 15):
+#   size 1: 986 SCCs
+#   size 15+: 1 SCCs
+# cycle-involved vertices (lie on a directed cycle): 1686
+# cycle-REACHABLE vertices (forward-reachable set touches a cycle): 1724
+# simple directed cycles found (cycle-length cap = 12, total cap = 100000): 37376
+# max cycle length observed: 12
+# cycle histogram by length (length 2..12; index 11 = length >= 12):
+#   length 2: 0
+#   length 3: 0
+#   length 4: 0
+#   length 5: 0
+#   length 6: 16
+#   length 7: 0
+#   length 8: 1296
+#   length 9: 0
+#   length 10: 11004
+#   length 11: 0
+#   length 12: 25060
+# sample cycle (length 6): [79, 563, 172, 660, 443, 546]
+# sample cycle (length 8): [3, 687, 209, 700, 223, 1564, 160, 649]
+# === 2B-2 cycle-census verdict ===
+# reachable V = 2682, E = 5744, non-trivial SCCs = 1, cycles_found = 37376, cycle-involved = 1686, cycle-reachable = 1724
+# CLAIM 3x2.QA023.B-VACUITY: PASS — reachable directed cycles > 0 (3x2 IS a non-trivial test surface)
+[runner] peak RSS by PID:
+[runner]   pid   90266       0 MB
+[runner] exit 0 in 0.3 s

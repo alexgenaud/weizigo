@@ -118,15 +118,23 @@ pub const State = struct {
         const single_capture = (opp_before - opp_after == 1) and (captured_cell != KO_NONE);
         var new_ko: u8 = KO_NONE;
         if (single_capture) {
-            // Check that the placed stone has exactly one liberty (the
-            // captured cell) — the basic-ko shape.
+            // Basic-ko shape, per proof-v2 §1.1 formalization (i): the ko
+            // point is set only by a *single-stone ko capture* — one stone
+            // captured (tested above) AND the placed stone a lone stone
+            // (chain of size 1) whose sole liberty is the vacated cell. If
+            // the placed stone joins a friendly chain, the recapture takes
+            // that whole chain and does not recreate the prior position, so
+            // there is nothing to ban (Opus-5 2B-2 audit, finding F5).
+            // Chain-of-size-1 ⇔ no friendly neighbour in `next_board`.
             var liberties: u8 = 0;
+            var friendly: u8 = 0;
             var nb: [4]usize = undefined;
             const cnt = R.neighbors(cell, &nb);
             for (nb[0..cnt]) |q| {
                 if (next_board[q] == 0) liberties += 1;
+                if (next_board[q] == s.side) friendly += 1;
             }
-            if (liberties == 1) new_ko = captured_cell;
+            if (liberties == 1 and friendly == 0) new_ko = captured_cell;
         }
         return State{
             .board = next_board,

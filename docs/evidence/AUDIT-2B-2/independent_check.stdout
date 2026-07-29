@@ -1,0 +1,15 @@
+Building 3x2 legal-move graph...
+Reachable V = 2682
+Directed edges E = 5744
+Distinct legal boards = 489
+Terminals (passes==2) = 866
+By side: B=1341 W=1341
+By ko: none=2562 real=120
+SCCs total = 987
+Non-trivial SCCs = 1
+Largest SCC size = 1696
+Cycle-involved vertices = 1696 (entire SCC)
+Cycle-reachable vertices = 1724
+Sample cycle length 6: VALID
+Sample cycle length 8: VALID
+Sample cycle length 14: VALID

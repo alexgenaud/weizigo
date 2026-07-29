@@ -1,0 +1,205 @@
+### 2B-FIX-KO — all runs, corrected single-stone ko rule, 2026-07-29
+### git HEAD at run time: 45ed0f318ed116efa7af24b225628029d7ef8294
+### zig 0.16.0
+
+### === smoke-2x2 ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed smoke-2x2
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — B1 2x2 smoke (TIE = 0; evaluator: median fixpoint over 2430 states)
+# fixpoint: sweeps = 4, converged = true
+empty B  v =  +0  expected  0   OK
+empty W  v =  +0  expected  0   OK
+full B   v =  +4  expected +4   OK
+passes=1 v =  +0  expected  0   OK
+passes=2 v =  +0  expected  0   OK
+[runner] peak RSS by PID:
+[runner]   pid   97723       0 MB
+[runner] exit 0 in 0.3 s
+
+### === calibrate ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed calibrate
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — synthetic calibration (catches v1 -> v2 fix)
+# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = 0
+# L = [any], H = [any], V = median(L, TIE, H)
+  state s0  L= +1 H= +3  V(v2 median)= +1 V(v1 L<H=>T)= +0  expected V= +1  OK
+  state s1  L= +1 H= +3  V(v2 median)= +1 V(v1 L<H=>T)= +0  expected V= +1  OK
+  state t1  L= +1 H= +1  V(v2 median)= +1 V(v1 L<H=>T)= +1  expected V= +1  OK
+  state t3  L= +3 H= +3  V(v2 median)= +3 V(v1 L<H=>T)= +3  expected V= +3  OK
+# verdict: PASS — corrected rule recovers the gadget, broken rule would mis-value
+[runner] peak RSS by PID:
+[runner]   pid   97729       0 MB
+[runner] exit 0 in 0.3 s
+
+### === census-3x2 ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed census-3x2
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — 3x2 census: reachable (board, side, ko, passes)
+# total raw states: 30618 (3^6 * 2 * 7 * 3)
+# sweep 4: new_marks = 454
+# sweep 8: new_marks = 214
+# sweep 12: new_marks = 0
+# total marked: 2622
+#   by ko:  ko=none=2562  ko=cells=60
+#   by side: B=1311  W=1311
+#   terminals (passes=2): 866
+# sweeps: 12
+# verdict: census covers 2622 (state-tuple) addresses, of which 489 distinct legal boards
+[runner] peak RSS by PID:
+[runner]   pid   97735       0 MB
+[runner] exit 0 in 0.3 s
+
+### === fixpoint-3x2 ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed fixpoint-3x2
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — 3x2 two-fixpoint (L, H) and V = median(L, TIE, H)
+# TIE = 0, n = 6
+# sweep 2: L_changed=0 H_changed=0
+# sweeps: 2 (final total_changes = 0)
+# pin census:  L==H=948  L<H&pin_T=1532  L<H&pin_L=142  L<H&pin_H=0
+# v1's wrong rule would have given `pin_t + pin_l + pin_h` wrong; v2's rule gives all three correct.
+[runner] peak RSS by PID:
+[runner]   pid   97741       0 MB
+[runner] exit 0 in 0.3 s
+
+### === history-pairs-3x2 ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed history-pairs-3x2
+[runner] rss cap = 4096 MB, poll = 250 ms
+# sweep 2: L_changed=0 H_changed=0
+# sweeps: 2 (final total_changes = 0)
+# pin census:  L==H=948  L<H&pin_T=1532  L<H&pin_L=142  L<H&pin_H=0
+# v1's wrong rule would have given `pin_t + pin_l + pin_h` wrong; v2's rule gives all three correct.
+# qa023 2B-3 — history-pair generation at 3×2
+# params: n_samples=128 k_histories=8 history_depth=16 seed=0x2B3DA7A
+# reachable non-terminal: pin_T=1532 L==H=82 pin_L=142 pin_H=0
+# sample 8/128: multi-hist=4 diff-vs=4 pairs=105 diff-pairs=105
+# sample 16/128: multi-hist=10 diff-vs=10 pairs=248 diff-pairs=248
+# sample 24/128: multi-hist=17 diff-vs=17 pairs=437 diff-pairs=437
+# sample 32/128: multi-hist=23 diff-vs=23 pairs=605 diff-pairs=605
+# sample 48/128: multi-hist=36 diff-vs=36 pairs=917 diff-pairs=917
+# sample 56/128: multi-hist=43 diff-vs=43 pairs=1054 diff-pairs=1054
+# sample 64/128: multi-hist=51 diff-vs=51 pairs=1253 diff-pairs=1253
+# sample 72/128: multi-hist=56 diff-vs=56 pairs=1368 diff-pairs=1368
+# sample 80/128: multi-hist=64 diff-vs=64 pairs=1565 diff-pairs=1565
+# sample 88/128: multi-hist=71 diff-vs=71 pairs=1748 diff-pairs=1748
+# sample 96/128: multi-hist=78 diff-vs=78 pairs=1931 diff-pairs=1931
+# sample 104/128: multi-hist=85 diff-vs=85 pairs=2087 diff-pairs=2087
+# sample 112/128: multi-hist=92 diff-vs=92 pairs=2283 diff-pairs=2283
+# sample 120/128: multi-hist=98 diff-vs=98 pairs=2451 diff-pairs=2451
+# === 2B-3 history-pairs verdict ===
+# states sampled: 128
+# states with >=2 arrival histories: 102
+# states with visit-set-different histories: 102
+# total history-pairs compared: 2563
+# total visit-set-different pairs: 2563
+# VACUITY-GUARD PASS: 102 states have >=2 visit-set-distinct histories → non-vacuous probe.
+[runner] peak RSS by PID:
+[runner]   pid   97747       0 MB
+[runner] exit 0 in 0.3 s
+
+### === cycle-census-3x2 --max-cycle-len 14 --max-cycles 1000000000 ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed cycle-census-3x2 --max-cycle-len 14 --max-cycles 1000000000
+[runner] rss cap = 4096 MB, poll = 250 ms
+# qa023 probe — 3x2 cycle census: directed cycles in the reachable legal-move graph
+# (TIE constant is irrelevant; this is graph structure, not evaluation.)
+# cycle census: reachable V = 2622
+# cycle census: directed edges E = 5668
+# SCCs: total = 947, non-trivial (size >= 2) = 1, max size = 1676
+# SCC size histogram (size 0..14, index 15 = size >= 15):
+#   size 1: 946 SCCs
+#   size 15+: 1 SCCs
+# cycle-involved vertices (lie on a directed cycle): 1676
+# cycle-REACHABLE vertices (forward-reachable set touches a cycle): 1704
+# simple directed cycles found (cycle-length cap = 14, total cap = 1000000000): 216176
+# max cycle length observed: 14
+# cycle histogram by length (length 2..14; index 13 = length >= 14):
+#   length 2: 0
+#   length 3: 0
+#   length 4: 0
+#   length 5: 0
+#   length 6: 16
+#   length 7: 0
+#   length 8: 1296
+#   length 9: 0
+#   length 10: 15212
+#   length 11: 0
+#   length 12: 35548
+#   length 13: 0
+#   length 14: 164104
+# sample cycle (length 6): [49, 503, 142, 600, 413, 486]
+# sample cycle (length 8): [3, 1575, 76, 583, 123, 698, 239, 705]
+# sample cycle (length 14): [1, 1424, 114, 532, 965, 533, 966, 558, 991, 729, 21, 468, 901, 530]
+# === 2B-2 cycle-census verdict ===
+# reachable V = 2622, E = 5668, non-trivial SCCs = 1, cycles_found = 216176, cycle-involved = 1676, cycle-reachable = 1704
+# CLAIM 3x2.QA023.B-VACUITY: PASS — reachable directed cycles > 0 (3x2 IS a non-trivial test surface)
+[runner] peak RSS by PID:
+[runner]   pid   97756      44 MB
+[runner] exit 0 in 0.5 s
+
+### === probe-3x2 --seed 0x2B4DA7A --n-samples 256 --k-histories 8 --history-depth 16 (2B-4 parameters, verbatim) ===
+[runner] argv = /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/aebf32d7-d185-47fe-bef8-6c135108d087/scratchpad/probe_fixed probe-3x2 --seed 0x2B4DA7A --n-samples 256 --k-histories 8 --history-depth 16
+[runner] rss cap = 4096 MB, poll = 250 ms
+# sweep 2: L_changed=0 H_changed=0
+# sweeps: 2 (final total_changes = 0)
+# pin census:  L==H=948  L<H&pin_T=1532  L<H&pin_L=142  L<H&pin_H=0
+# v1's wrong rule would have given `pin_t + pin_l + pin_h` wrong; v2's rule gives all three correct.
+# qa023 probe — 3x2 HISTORY-SENSITIVITY PROBE (T13-style)
+# params: seed=45406842 n_samples=256 k_histories=8 history_depth=16 budget/history=100000
+# reachable non-terminal states: 1756
+#   L==H: 82  pin_T: 1532  pin_L: 142  pin_H: 0
+# DISAGREE(TIE) #1: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W5 B2 pass B3 pass 
+# DISAGREE(TIE) #2: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W5 B2 W0 B3 pass 
+# DISAGREE(TIE) #3: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W5 B3 pass B2 pass 
+# DISAGREE(TIE) #4: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W0 B2 pass B3 pass 
+# DISAGREE(TIE) #5: state=(120,0,6,1) V_fixpoint=6 truncated=TIE arrival_len=17
+#   arrival: B0 W5 B3 pass B1 pass B4 W2 B4 pass B1 W0 B3 pass B2 pass 
+# sample 8/256: value_agree=0 TIE=43 disagree=24 budget=0
+# sample 16/256: value_agree=0 TIE=56 disagree=40 budget=0
+# sample 24/256: value_agree=0 TIE=88 disagree=48 budget=0
+# sample 32/256: value_agree=0 TIE=96 disagree=82 budget=0
+# sample 40/256: value_agree=0 TIE=122 disagree=106 budget=0
+# sample 48/256: value_agree=0 TIE=137 disagree=114 budget=0
+# sample 56/256: value_agree=0 TIE=155 disagree=144 budget=0
+# sample 64/256: value_agree=0 TIE=171 disagree=152 budget=0
+# sample 72/256: value_agree=0 TIE=195 disagree=164 budget=0
+# sample 80/256: value_agree=0 TIE=214 disagree=188 budget=0
+# sample 88/256: value_agree=0 TIE=234 disagree=196 budget=0
+# sample 96/256: value_agree=0 TIE=251 disagree=200 budget=0
+# sample 104/256: value_agree=0 TIE=291 disagree=216 budget=0
+# sample 112/256: value_agree=0 TIE=305 disagree=230 budget=0
+# sample 120/256: value_agree=0 TIE=310 disagree=242 budget=0
+# sample 128/256: value_agree=0 TIE=326 disagree=242 budget=0
+# sample 136/256: value_agree=0 TIE=352 disagree=242 budget=0
+# sample 144/256: value_agree=0 TIE=376 disagree=257 budget=0
+# sample 152/256: value_agree=0 TIE=410 disagree=273 budget=0
+# sample 160/256: value_agree=0 TIE=419 disagree=289 budget=0
+# sample 168/256: value_agree=0 TIE=447 disagree=289 budget=0
+# sample 176/256: value_agree=0 TIE=462 disagree=289 budget=0
+# sample 184/256: value_agree=0 TIE=480 disagree=313 budget=0
+# sample 192/256: value_agree=0 TIE=511 disagree=321 budget=0
+# sample 200/256: value_agree=0 TIE=543 disagree=339 budget=0
+# sample 208/256: value_agree=0 TIE=567 disagree=347 budget=0
+# sample 216/256: value_agree=0 TIE=575 disagree=363 budget=0
+# sample 224/256: value_agree=0 TIE=583 disagree=396 budget=0
+# sample 232/256: value_agree=0 TIE=601 disagree=412 budget=0
+# sample 240/256: value_agree=0 TIE=623 disagree=430 budget=0
+# sample 248/256: value_agree=0 TIE=651 disagree=446 budget=0
+# === probe verdict ===
+# samples requested: 256
+# samples evaluated: 171
+# === three-way split (ref-semantics §2) ===
+# value-agreements (v != TIE, v == V): 0
+# TIE-valued (v == TIE): 679
+# budget-exhausted (v == null): 0 / 1133
+# disagreements (v != TIE, v != V, v != null): 454
+# samples no arrival history reached target: 85
+# cycle-census states (any history hit TIE leaf): 109
+# sampled-kind counts: L==H=69 pin_T=161 pin_L=26 pin_H=0
+# QA-023: FALSIFIED on this sample. Inspect the disagreements.
+[runner] peak RSS by PID:
+[runner]   pid   97766       0 MB
+[runner] exit 0 in 0.3 s
