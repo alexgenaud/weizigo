@@ -1177,6 +1177,7 @@ fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {
     printSection("blocked", blocked.items, &state, repo_root);
     std.debug.print("\n", .{});
     printSection("done", done.items, &state, repo_root);
+    std.debug.print("\n", .{});
     printSection("failed", failed.items, &state, repo_root);
     std.debug.print("\n", .{});
 }
