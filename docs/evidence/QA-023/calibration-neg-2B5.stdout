@@ -1,0 +1,11 @@
+# qa023 probe — NEG calibration (perturb L[s0] 1 → 2)
+# graph: S0 (B) -> t1(+1), S0 -> S1, S1 (W) -> S0, S1 -> t3(+3); TIE = 0
+# perturbation: L[s0] changed from 1 to 2
+  state s0  L= +2 H= +3  V(v2 median)= +2  expected= +2  OK  (L perturbed 1→2)
+  state s1  L= +1 H= +3  V(v2 median)= +1  expected= +1  OK
+  state t1  L= +1 H= +1  V(v2 median)= +1  expected= +1  OK
+  state t3  L= +3 H= +3  V(v2 median)= +3  expected= +3  OK
+# --- cross-check against UNPERTURBED expected ---
+  state s0  V= +2  unperturbed-expected= +1  DIVERGENCE
+# NEG verdict: PASS — perturbation created 1 divergence(s) vs unperturbed baseline
+# (unperturbed baseline had 0 divergences; probe detects the planted wrong value)

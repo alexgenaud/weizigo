@@ -1,0 +1,60 @@
+# qa023 probe — 3x2 PSK HISTORY-SENSITIVITY PROBE (T13-style, 2B-5 POS)
+# params: seed=202374885 n_samples=256 k_histories=4 history_depth=16 budget/history=500000
+# TIE is irrelevant under PSK (revisits are illegal, not TIE-valued)
+# PSK fixpoint sweep 4: changes=462
+# PSK fixpoint sweep 8: changes=55
+# PSK fixpoint sweep 11: changes=0
+# PSK fixpoint (4374 states): sweeps=11  L==H=3332  pin_T=798  pin_L=122  pin_H=122
+# PSK reachable non-terminal states: 1996  (L==H=1874  L<H=122)
+# sample 8/256: agree=12 disagree=0 budget=0
+# sample 16/256: agree=36 disagree=0 budget=0
+# DISAGREE(PSK) #1: state=(board=535,side=0,passes=1) V_fixpoint=3 psk_exact=1 arrival_len=16
+#   arrival: pass pass pass pass pass pass pass pass pass pass B3 W5 B1 W2 B0 pass 
+# DISAGREE(PSK) #2: state=(board=535,side=0,passes=1) V_fixpoint=3 psk_exact=1 arrival_len=16
+#   arrival: pass pass pass pass pass pass pass pass pass pass B3 W5 B0 W2 B1 pass 
+# DISAGREE(PSK) #3: state=(board=535,side=0,passes=1) V_fixpoint=3 psk_exact=1 arrival_len=16
+#   arrival: pass pass pass pass pass pass pass pass pass pass B3 W2 B1 W5 B0 pass 
+# DISAGREE(PSK) #4: state=(board=535,side=0,passes=1) V_fixpoint=3 psk_exact=1 arrival_len=16
+#   arrival: pass pass pass pass pass pass pass pass pass pass B3 W2 B0 W5 B1 pass 
+# DISAGREE(PSK) #5: state=(board=538,side=0,passes=0) V_fixpoint=3 psk_exact=0 arrival_len=16
+#   arrival: pass pass pass pass pass pass pass pass pass pass pass W5 B0 W1 B3 W2 
+# sample 24/256: agree=53 disagree=8 budget=0
+# sample 32/256: agree=68 disagree=8 budget=0
+# sample 40/256: agree=87 disagree=8 budget=0
+# sample 48/256: agree=109 disagree=8 budget=0
+# sample 56/256: agree=123 disagree=10 budget=0
+# sample 64/256: agree=135 disagree=10 budget=0
+# sample 72/256: agree=153 disagree=12 budget=0
+# sample 80/256: agree=169 disagree=12 budget=0
+# sample 88/256: agree=183 disagree=20 budget=0
+# sample 96/256: agree=188 disagree=20 budget=0
+# sample 104/256: agree=208 disagree=24 budget=0
+# sample 112/256: agree=214 disagree=30 budget=0
+# sample 120/256: agree=224 disagree=36 budget=0
+# sample 128/256: agree=242 disagree=36 budget=0
+# sample 136/256: agree=258 disagree=36 budget=0
+# sample 144/256: agree=262 disagree=36 budget=0
+# sample 152/256: agree=270 disagree=36 budget=0
+# sample 160/256: agree=289 disagree=36 budget=0
+# sample 168/256: agree=297 disagree=36 budget=0
+# sample 176/256: agree=313 disagree=36 budget=0
+# sample 184/256: agree=329 disagree=36 budget=0
+# sample 192/256: agree=348 disagree=36 budget=0
+# sample 200/256: agree=364 disagree=36 budget=0
+# sample 208/256: agree=372 disagree=40 budget=0
+# sample 216/256: agree=392 disagree=40 budget=0
+# sample 224/256: agree=407 disagree=40 budget=0
+# sample 232/256: agree=418 disagree=40 budget=0
+# sample 240/256: agree=425 disagree=40 budget=0
+# sample 248/256: agree=437 disagree=44 budget=0
+# === PSK probe verdict ===
+# samples requested: 256
+# samples evaluated: 131
+# value-agreements (psk == V): 457
+# budget-exhausted: 0 / 505
+# disagreements (psk != V, != null): 48
+# samples no arrival history reached target: 125
+# sampled-kind counts: L==H=170  L<H=86
+# POS verdict: PASS — probe detects history-sensitivity under PSK (48 disagreements)
+# T13 found 12 pointwise mismatches at 3x2; this probe reproduces the phenomenon: stored
+#   fresh-start PSK scores disagree with history-aware PSK evaluation.

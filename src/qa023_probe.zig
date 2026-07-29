@@ -2009,10 +2009,11 @@ fn psk_fixpoint(L_tab: []i8, H_tab: []i8) PskFixpointStats {
     return stats;
 }
 
-/// PSK-aware exact value evaluator.
+/// PSK-aware exact value evaluator with alpha-beta pruning and depth limit.
 /// Does full minimax search with PSK legality: a placement is illegal if
 /// the resulting board index has appeared in the continuation path.
-/// Terminal: passes == 2 → area_score. No first-revisit truncation.
+/// Terminal: passes == 2 → area_score. Depth limit: if depth >= max_depth,
+/// returns area_score (truncation — the position is too deep to search).
 /// Returns null on budget exhaustion.
 fn psk_exact_value(
     board: *const Pos,
@@ -2021,22 +2022,24 @@ fn psk_exact_value(
     seen_boards: *[12]u64,
     seen_count: *u8,
     budget: *u64,
+    alpha: i8,
+    beta: i8,
+    depth: u8,
+    max_depth: u8,
 ) ?i8 {
     if (budget.* == 0) return null;
     budget.* -= 1;
     if (passes == 2) return area_score(board);
+    if (depth >= max_depth) return area_score(board);
 
     const bi = rank_board(board.*);
     const bi_word = bi >> 6;
     const bi_bit: u64 = @as(u64, 1) << @intCast(bi & 63);
 
-    // Add current board to seen set
-    const was_seen = (seen_boards[bi_word] & bi_bit) != 0;
-    if (was_seen) {
-        // Board repeat is illegal under PSK — this move should have been
-        // filtered. If we get here, it's a programming error.
-        return null;
-    }
+    // Add current board to seen set (it's the position we're AT — repeats
+    // are only illegal for MOVES, i.e., children can't go back to a seen board).
+    // The arrival-history boards are legitimately in seen; the current board
+    // may already be there (it's the last board of the arrival).
     seen_boards[bi_word] |= bi_bit;
     seen_count.* += 1;
     defer {
@@ -2048,22 +2051,39 @@ fn psk_exact_value(
     const maximizing = (side == 0);
     var best: i8 = if (maximizing) -127 else 127;
     var any_legal: bool = false;
+    var a = alpha;
+    var b = beta;
 
-    // Pass is always legal (off-terminal)
-    {
-        const v = psk_exact_value(board, 1 - side, passes + 1, seen_boards, seen_count, budget) orelse return null;
-        best = v;
-        any_legal = true;
-    }
-    // Placements
+    // Placements first (better for alpha-beta: aggressive moves give bounds),
+    // pass last (the fallback).
     for (0..n) |cell| {
+        if (a >= b) break;
         const next = pos_from_move(board, colour, cell) catch continue;
         const nbi = rank_board(next);
         const nbi_word = nbi >> 6;
         const nbi_bit: u64 = @as(u64, 1) << @intCast(nbi & 63);
-        // PSK legality: the resulting board must not have appeared in the path.
         if ((seen_boards[nbi_word] & nbi_bit) != 0) continue;
-        const v = psk_exact_value(&next, 1 - side, 0, seen_boards, seen_count, budget) orelse return null;
+        const v = psk_exact_value(&next, 1 - side, 0, seen_boards, seen_count, budget, a, b, depth + 1, max_depth) orelse return null;
+        if (!any_legal) {
+            best = v;
+            any_legal = true;
+        } else if (maximizing and v > best) {
+            best = v;
+        } else if (!maximizing and v < best) {
+            best = v;
+        }
+        if (maximizing) {
+            if (v > a) a = v;
+        } else {
+            if (v < b) b = v;
+        }
+        // Early termination: if we found a winning move, skip pass.
+        if (maximizing and best >= @as(i8, @intCast(n))) break;
+        if (!maximizing and best <= -@as(i8, @intCast(n))) break;
+    }
+    // Pass is always legal (off-terminal) — evaluate only if needed.
+    if (a < b) {
+        const v = psk_exact_value(board, 1 - side, passes + 1, seen_boards, seen_count, budget, a, b, depth + 1, max_depth) orelse return null;
         if (!any_legal) {
             best = v;
             any_legal = true;
@@ -2075,7 +2095,6 @@ fn psk_exact_value(
     }
     if (!any_legal) {
         // No legal moves under PSK → score the current position.
-        // (In Go rules, this is the "no legal move" termination.)
         return area_score(board);
     }
     return best;
@@ -2236,9 +2255,9 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
                 if (!ok_arrival) continue;
             }
 
-            // Evaluate target state with PSK exact value.
+            // Evaluate target state with PSK exact value (alpha-beta, depth-limited).
             var budget1 = params.node_budget_per_history;
-            const v = psk_exact_value(&target_board, dec.side, dec.passes, &seen, &seen_cnt, &budget1);
+            const v = psk_exact_value(&target_board, dec.side, dec.passes, &seen, &seen_cnt, &budget1, -@as(i8, @intCast(n)), @as(i8, @intCast(n)), 0, 8);
             outcome.history_total += 1;
             if (v == null) {
                 outcome.n_budget_exhausted += 1;
@@ -3306,11 +3325,19 @@ pub fn main(init: std.process.Init) !void {
         std.debug.print("# (run `zig run ... probe-3x2 -- --seed N --n-samples N --k-histories N --history-depth N` for the history-sensitivity check)\n", .{});
     } else if (std.mem.eql(u8, mode, "calibrate-neg")) {
         run_calibrate_neg();
+    } else if (std.mem.eql(u8, mode, "psk-test")) {
+        // Quick debug: evaluate empty 3x2 board, Black to move, empty history
+        var seen: [12]u64 = [_]u64{0} ** 12;
+        var seen_cnt: u8 = 0;
+        var budget: u64 = 10_000_000;
+        const board: Pos = [_]i8{0} ** n;
+        const v = psk_exact_value(&board, 0, 0, &seen, &seen_cnt, &budget, -6, 6, 0, 8);
+        std.debug.print("empty 3x2 B-to-move PSK exact(depth 8): v={?d} budget_left={d}\n", .{ v, budget });
     } else if (std.mem.eql(u8, mode, "probe-psk-3x2")) {
         var seed: u64 = 0xC0FFEE5;
         var n_samples: u32 = 64;
         var k_histories: u32 = 4;
-        var history_depth: u16 = 12;
+        var history_depth: u16 = 16;
         while (args.next()) |a| {
             if (std.mem.eql(u8, a, "--seed")) {
                 seed = std.fmt.parseInt(u64, args.next() orelse "0", 0) catch 0;
@@ -3327,7 +3354,7 @@ pub fn main(init: std.process.Init) !void {
             .n_samples = n_samples,
             .k_histories = k_histories,
             .history_depth = history_depth,
-            .node_budget_per_history = 50_000,
+            .node_budget_per_history = 500_000,
         };
         _ = run_probe_psk_3x2(params) catch return error.OutOfMemory;
     } else {
