@@ -1,3 +1,5 @@
+<!--managent set=A-->
+
 # EXP-9 — H5(a): play-time chainability-check mitigation (weaker-but-honest player)
 
 **Closes:** none (a stop-gap, not a fix). **Bears on:** QA-002, the user's

@@ -1,3 +1,5 @@
+<!--managent set=A needs=EXP-4-->
+
 # EXP-5 — 3×3 under the new rule: the first legitimate anchor comparison
 
 **Closes:** the 3×3 result under the new rule; corroborates `QA-025` and

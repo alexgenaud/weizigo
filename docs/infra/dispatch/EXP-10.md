@@ -1,3 +1,5 @@
+<!--managent set=A caps=reasoning:sustained,independence:has-not-read-roadmap-critique-adr0015-->
+
 # EXP-10 — QA-018/019 ADR: **refute** Opus's ruling that ADR-0010 is refuted
 
 **Closes:** drafts the ADR for `QA-018`/`QA-019`. **The ruling (DECISIONS D-5,

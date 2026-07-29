@@ -1,3 +1,5 @@
+<!--managent set=A needs=EXP-6-->
+
 # EXP-7 — the certified fraction under the new rule: a falsification test
 
 **Closes:** `QA-027` ("under a Markovian rule the certified fraction is 100% by

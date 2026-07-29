@@ -1,3 +1,5 @@
+<!--managent set=A caps=reasoning:sustained-->
+
 # EXP-2 — Prove or kill QA-023 (THE GATE)
 
 **Closes:** `QA-023` (and refines `QA-026`). **Blocks:** EXP-4, EXP-5, EXP-6,
@@ -139,14 +141,63 @@ Implement the rule in a new standalone file (do NOT touch `src/retro.zig`,
 record explicitly that it **cannot** exercise the cycle semantics, and do not
 count it as evidence for QA-023.
 
+> **HARD CONSTRAINT 2026-07-29 (post-thrash, Dabir msg 030).** B1 must **not**
+> path-enumerate. Do NOT use `qa023_brute_2x2.brute_value` or any full-history
+> game-tree DFS for the 2x2 smoke — it enumerates *paths, not states* and has
+> thrashed twice (75 min CPU at the 2026-07-29 02:37 panic; 87 min CPU on
+> 2026-07-29 ~05:3x), both killed with zero output. For B1 use the probe's own
+> **state-space value iteration** (the Part-A fixpoint on the 2x2 graph) or a
+> **full-tuple memo** on `(board, side, ko, passes)` — never a path DFS, never a
+> state-only memo (that assumes the conclusion). Run under `tools/runner` with an
+> explicit **node budget that fails loudly** on exhaustion (the thrash was
+> RSS-flat at 1.7 MB, so the runner's RSS guard alone cannot catch it — the node
+> budget is mandatory) and a **heartbeat** (>=1 line/min). **Do not pipe through
+> `head -20`** — it swallows output and masks a thrash as silence. Expected 2x2
+> value is **0**, not +1.
+
 **B2 — 3×2 is the real check.** 3×2 *does* admit non-trivial cycles — T13 found
 508 reachable non-trivial PSK histories there (`docs/research/c2-falsification-3x2.md`),
 which is why 3×2 and not 2×2 was where C2 actually fell.
 
 1. Enumerate all reachable `(board, side, ko_point, passes)` states at 3×2.
 2. Solve by the Part-A algorithm.
-3. **Independently** brute-force the same game by explicit game-tree evaluation
-   carrying full history under the same rule, and compare **every state**.
+3. **Independently check the claim with a HISTORY-SENSITIVITY PROBE — not an
+   exhaustive brute force.**
+
+> **CORRECTED 2026-07-28 (Opus). This step previously said "brute-force the same
+> game by explicit game-tree evaluation carrying full history and compare every
+> state." That instruction was wrong, and it burned a console for 10 hours.**
+>
+> A full-history game-tree DFS enumerates **paths, not states**. Cycle detection
+> gives termination but not tractability: the number of distinct simple paths in
+> a ~2,400-state graph with branching ~5 is astronomically large. The first
+> attempt (`src/qa023_brute_2x2.zig`, `DEPTH_LIMIT = 64`, no memoization) ran
+> 10h22m wall / 237 min CPU at 100% on a **four-point board** and produced
+> nothing. It was not hung; it was thrashing through a space it could never
+> finish. Memoizing does not rescue it either — memoizing on `(state, history)`
+> is exactly the PSK blowup, and memoizing on `state` alone *assumes the
+> conclusion*.
+>
+> **The claim does not require exhaustive enumeration.** QA-023 says the value is
+> independent of history. The direct test is therefore: reach the *same state*
+> via *different* histories and check the value agrees.
+
+   **The probe (model it on T13, which did exactly this for C2 —
+   `docs/research/c2-falsification-3x2.md`):**
+   - Sample N states at 3×2, biased toward those the cycle census says are
+     cycle-involved (a state no cycle can reach cannot falsify the claim).
+   - For each, enumerate K **distinct reachable histories** arriving at it —
+     including at least one trivial (fresh-start) and several non-trivial.
+   - Evaluate the state under each history with history **carried** (bounded
+     search with an explicit node budget; report budget exhaustion, never
+     silently treat it as agreement).
+   - **Any two histories yielding different values falsifies QA-023.**
+   - Report N, K, the total history count, and the budget-exhaustion count.
+     T13's scale is the reference point: it found 12 mismatches on 508
+     non-trivial histories.
+
+   Then compare the Part-A fixpoint value against the probe's value at every
+   sampled state.
 4. **Report the cycle census:** how many states are only resolved by the
    fixed-value verdict — i.e. how many would be unpinned without it. **If that
    count is zero, the check is vacuous and 3×2 is not sufficient either** —

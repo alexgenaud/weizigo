@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+# weizigo agent runner — guarded execution wrapper for zig/agent builds.
+#
+#   tools/runner [options] -- <command> [args...]
+#
+# Wraps a command in an RSS guard + zig optimization discipline, the
+# minimum stand on the 2026-07-29 host panic (see
+# docs/infra/host/incident-2026-07-29.md §B-2). The pattern is
+# Opus 5's from the EXP-9 close-out: ReleaseFast by default, SIGKILL
+# the process group at the RSS ceiling, no leaks.
+#
+# Why this exists. The 2026-07-29 02:37 host kernel panic was caused
+# by a `zig build-exe -O Debug` of `src/oracle.zig` (or similar)
+# ballooning to 12.5 GB RSS / 21.8 GB peak while the compressor was
+# already at 100 % of its segments limit. Jetsam did not act in time;
+# `watchdogd` starved 91 s; the kernel panicked on core 0. The fix is
+# not "be more careful" — the fix is a guard that does not depend on
+# the agent's discipline.
+#
+#   -O ReleaseFast          (the LLVM path is the memory hog; Debug is
+#                            not justified for any agent build)
+#   --rss-cap-mb <N>        default 4096; SIGKILL the process group
+#                            when any member exceeds it
+#   --poll-ms <N>           default 250; check interval
+#   --prepend-zig-releasefast  if `zig build`/`build-exe` is in the
+#                            command and the user did not pass -O, add
+#                            -O ReleaseFast before any other args
+#   --no-prepend-zig       disable the zig auto-flag (advanced)
+#
+# All flags are pass-through except the guard itself, which kills the
+# group on threshold. Exit code 124 (timeout convention) on guard kill.
+# Logs the peak RSS for every member of the group on exit.
+#
+# Standard library only. No external dependencies.
+
+import argparse
+import os
+import shlex
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def prepend_releasefast(argv):
+    """Auto-add an optimize flag for `zig` invocations if missing.
+
+    The 2026-07-29 host panic was caused by `zig build-exe` running in Debug
+    (LLVM path is the memory hog). The fix: ensure every zig invocation in
+    the runner has an explicit -O / -Doptimize, defaulting to ReleaseFast.
+
+      zig build / build install   -> -Doptimize=ReleaseFast (project option)
+      zig build-exe / build-lib / build-obj / test / run / install
+                                   -> -O ReleaseFast (command-level option)
+    """
+    if not argv:
+        return argv
+    if Path(argv[0]).name != "zig":
+        return argv
+    if "-O" in argv or "-Doptimize" in argv:
+        return argv
+    if len(argv) < 2:
+        return argv
+    sub = argv[1]
+    if sub in ("build",):
+        return [argv[0], sub, "-Doptimize=ReleaseFast", *argv[2:]]
+    if sub in ("build-exe", "build-lib", "build-obj", "test", "run", "install"):
+        return [argv[0], sub, "-O", "ReleaseFast", *argv[2:]]
+    return argv
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="tools/runner",
+        description="Guarded runner for weizigo agent builds. "
+                    "Default -O ReleaseFast; SIGKILL the group at the RSS ceiling.",
+    )
+    ap.add_argument("--rss-cap-mb", type=int, default=4096,
+                    help="kill the process group when any member exceeds this RSS in MB (default 4096)")
+    ap.add_argument("--poll-ms", type=int, default=250,
+                    help="RSS check interval in ms (default 250)")
+    ap.add_argument("--no-prepend-zig", action="store_true",
+                    help="do not auto-add -O ReleaseFast to zig commands")
+    ap.add_argument("--log-rss", action="store_true",
+                    help="log per-member RSS every poll (verbose)")
+    ap.add_argument("--show-peak-on-exit", dest="show_peak", action="store_true", default=True,
+                    help="log per-member peak RSS on exit (default true)")
+    ap.add_argument("--no-show-peak-on-exit", dest="show_peak", action="store_false",
+                    help="do not log per-member peak RSS on exit")
+    ap.add_argument("rest", nargs=argparse.REMAINDER,
+                    help="command and arguments after `--`")
+    args = ap.parse_args()
+
+    # argparse.REMAINDER includes the leading `--` if present; strip it
+    if not args.rest:
+        ap.error("missing command; pass `-- <command> [args...]`")
+    if args.rest[0] == "--":
+        argv = args.rest[1:]
+    else:
+        argv = args.rest
+    if not argv:
+        ap.error("missing command after `--`")
+
+    if not args.no_prepend_zig:
+        argv = prepend_releasefast(argv)
+
+    cap_bytes = args.rss_cap_mb * 1024 * 1024
+    poll_s = args.poll_ms / 1000.0
+
+    # New process group so SIGKILL reaches the whole tree, not just the
+    # wrapper's child. (The child becomes its own session leader; the
+    # group ID == its PID.)
+    preexec_fn = lambda: os.setsid() if hasattr(os, "setsid") else None
+
+    print(f"[runner] argv = {shlex.join(argv)}", file=sys.stderr)
+    print(f"[runner] rss cap = {args.rss_cap_mb} MB, poll = {args.poll_ms} ms", file=sys.stderr)
+
+    t0 = time.monotonic()
+    proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
+    sys.stderr.flush()
+
+    peak_rss = {}  # pid -> max RSS bytes
+
+    try:
+        while True:
+            ret = proc.poll()
+            if ret is not None:
+                break
+            time.sleep(poll_s)
+
+            # Walk the process tree by walking /proc/<pid>/status (Linux)
+            # or ps (macOS). We try Linux first because it is exact;
+            # fall back to ps on macOS / BSD.
+            try:
+                pids = _descendant_pids_linux(proc.pid)
+            except (FileNotFoundError, NotImplementedError, OSError) as e:
+                if args.log_rss:
+                    print(f"[runner] linux walker failed ({type(e).__name__}), falling back to ps", file=sys.stderr)
+                pids = _descendant_pids_ps(proc.pid)
+
+            over = False
+            for pid in pids:
+                try:
+                    rss = _rss_bytes(pid)
+                except (FileNotFoundError, ProcessLookupError):
+                    continue
+                if rss is None:
+                    continue
+                if rss == "NOPROC":
+                    # The walker returned this pid (e.g. from ps) but
+                    # _rss_bytes is on a host with no /proc — try the
+                    # macOS path even though the caller is on Linux. In
+                    # practice this branch is unreachable from the macOS
+                    # walker (which already used ps), so it's defensive.
+                    try:
+                        out = subprocess.run(
+                            ["ps", "-o", "rss=", "-p", str(pid)],
+                            capture_output=True, text=True, timeout=0.5,
+                        )
+                        if out.returncode == 0 and out.stdout.strip():
+                            rss = int(out.stdout.strip()) * 1024
+                        else:
+                            continue
+                    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+                        continue
+                peak_rss[pid] = max(peak_rss.get(pid, 0), rss)
+                if rss > cap_bytes:
+                    over = True
+                    if not args.log_rss:
+                        print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB > cap {args.rss_cap_mb} MB", file=sys.stderr)
+                    break
+                if args.log_rss:
+                    print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB", file=sys.stderr)
+            sys.stderr.flush()
+
+            if over:
+                print(f"[runner] RSS cap exceeded; SIGKILL pgid {proc.pid}", file=sys.stderr)
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                # Give it a moment to die, then reap
+                try:
+                    proc.wait(timeout=2.0)
+                except subprocess.TimeoutExpired:
+                    pass
+                if args.show_peak:
+                    _log_peaks(peak_rss)
+                print(f"[runner] exit 124 (RSS cap, {args.rss_cap_mb} MB) in {time.monotonic() - t0:.1f} s", file=sys.stderr)
+                sys.exit(124)
+
+        ret = proc.wait()
+    finally:
+        if args.show_peak and peak_rss:
+            _log_peaks(peak_rss)
+
+    print(f"[runner] exit {ret} in {time.monotonic() - t0:.1f} s", file=sys.stderr)
+    sys.exit(ret)
+
+
+def _rss_bytes(pid):
+    """Return RSS in bytes for `pid`, or None on any read failure.
+
+    Linux: read VmRSS from /proc/<pid>/status (kB → bytes).
+    macOS: `ps -o rss= -p <pid>` (kB → bytes, on macOS this is 1024-byte
+    pages reported as kB; rounding is fine for the cap check).
+
+    The platform split is per *pid*, not per process invocation: a runner
+    that itself runs on Linux must still tolerate a macOS-style ps when
+    /proc is unavailable (containers, chroots, etc.). The Linux branch
+    returns the bytes; if /proc is not present it returns the macOS-style
+    sentinel `'NOPROC'` and the caller falls through to ps. The function
+    does NOT return None for "platform unsupported" — None is for "I tried
+    everything and the pid is gone or unreadable."
+    """
+    # Linux: /proc/<pid>/status has VmRSS in kB. If /proc itself does not
+    # exist (macOS / BSD), signal the caller to try the ps path.
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) * 1024
+    except FileNotFoundError as e:
+        # /proc may not exist on this host (macOS, BSD, some containers).
+        # Distinguish "no /proc" from "pid is gone": the former opens the
+        # directory and raises ENOENT for the *directory*, the latter is
+        # the file. We treat "no /proc" as the platform signal.
+        if "/proc" in str(e):
+            return "NOPROC"
+        return None
+    except (ProcessLookupError, PermissionError):
+        return None
+
+    # macOS / BSD: ps -o rss= -p <pid> gives RSS in kB.
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "rss=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=0.5,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return int(out.stdout.strip()) * 1024
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
+def _descendant_pids_linux(root_pid):
+    """Walk /proc and return root_pid + all descendants (Linux)."""
+    pids = set()
+    children = {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        pid = int(entry)
+        try:
+            with open(f"/proc/{pid}/status") as f:
+                ppid = None
+                for line in f:
+                    if line.startswith("PPid:"):
+                        ppid = int(line.split()[1])
+                        break
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            continue
+        if ppid is not None:
+            children.setdefault(ppid, []).append(pid)
+    # BFS from root_pid
+    stack = [root_pid]
+    while stack:
+        pid = stack.pop()
+        pids.add(pid)
+        stack.extend(children.get(pid, []))
+    return pids
+
+
+def _descendant_pids_ps(root_pid):
+    """Walk via `ps` and return root_pid + all descendants (macOS / BSD)."""
+    out = subprocess.run(
+        ["ps", "-axo", "pid=,ppid="], capture_output=True, text=True, timeout=2.0,
+    )
+    children = {}
+    for line in out.stdout.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        try:
+            pid, ppid = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        children.setdefault(ppid, []).append(pid)
+    pids = set()
+    stack = [root_pid]
+    while stack:
+        pid = stack.pop()
+        pids.add(pid)
+        stack.extend(children.get(pid, []))
+    return pids
+
+
+def _log_peaks(peak_rss):
+    print(f"[runner] peak RSS by PID:", file=sys.stderr)
+    for pid in sorted(peak_rss, key=lambda p: -peak_rss[p]):
+        mb = peak_rss[pid] // (1024 * 1024)
+        print(f"[runner]   pid {pid:>7d}  {mb:>6d} MB", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

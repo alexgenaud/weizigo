@@ -1,3 +1,5 @@
+<!--managent set=A needs=EXP-6-->
+
 # EXP-8 — the PSK divergence measurement (strategy S2)
 
 **Closes:** `QA-012` as scoped to the endpoint comparison (new rule ↔ exact

@@ -1,3 +1,5 @@
+<!--managent set=A needs=EXP-2-->
+
 # EXP-4 — 2×2 and 3×2 under the new rule: THE falsification gate
 
 **Closes:** `QA-026` as scoped to 2×2 and 3×2 (the L/H-machinery-reuse claim);

@@ -1,3 +1,5 @@
+<!--managent set=A-->
+
 # EXP-3 — the `(board, side, ko_point)` reachable-state census
 
 **Closes:** `GLOBAL.H1-CENSUS` (at 4×4 — it is scoped to 4×4 and UNTESTED,

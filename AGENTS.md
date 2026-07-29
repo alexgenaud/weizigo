@@ -74,9 +74,22 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 ## Build / test / run
 - Build `zig build` · suite `zig build test` · per-module `zig test src/<file>.zig` (avoids the dyld mega-
   binary quirk). Correctness runs use `-Doptimize=ReleaseSafe` — asserts are no-ops in ReleaseFast.
+- **Ad-hoc builds run under `tools/runner`**, which auto-adds `-O ReleaseFast` (or
+  `-Doptimize=ReleaseFast` for `zig build`) and SIGKILLs the process group on a
+  4 GB RSS breach. The 2026-07-29 02:37 host kernel panic
+  (`docs/infra/host/incident-2026-07-29.md`) is the precedent; the runner is
+  `docs/infra/runner.md`; the source is `tools/runner` (Python, stdlib only).
+  **Builds without the guard on a host with a recent compressor incident are
+  the Orchestrator's responsibility to refuse, not the agent's to remember.**
 - Retrograde build + battery: `RETRO_SAVE=1 zig run -O ReleaseFast src/retro.zig`. Long runs (258 MB, 19 sweeps)
   need a persistent session: start it, watch the heartbeat, never restart. Caches under `/tmp/weizigo-zigcache`.
 - `weizigo-oracle <a.wzo>` (GTP; Sabaki-compatible) · `weizigo-arena <a.wzo> <seeds>` · `bin/weizigo-claimlint`.
+- `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `next` /
+  `status` / `show`. **The human dispatches; the agent claims; the
+  Orchestrator does not claim on the agent's behalf** — `managent dispatch
+  <id> --to <agent> [--note <text>]` records the queueing; the task stays
+  `dispatchable` until the agent runs `managent claim <id>`. Schema in
+  `docs/infra/managent/spec.md`.
 
 ## Where to go next — read ONE of these
 | if you are… | read |
@@ -90,7 +103,9 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | after the living overview | `docs/epistemic/PROGRESS.md` — the durable hub. The two dated docs below are depth it is meant to absorb; if they disagree with it, PROGRESS is stale and that is a bug to file |
 | after which ruleset we solve, and how | `docs/epistemic/roadmap-2026-07-28.md` |
 | after what is known-wrong | `docs/epistemic/critique-2026-07-28.md` (§4 especially) |
-| resuming cold | `docs/status/CURRENT.md`, then `docs/status/HANDOVER.md` |
+| resuming cold (durable in git) | `docs/status/CURRENT.md`, then `docs/status/HANDOVER.md` |
+| resuming from the channel (durable + untracked) | `untracked/msg/<milestone>/STATE.md` (read first), then `docs/status/CURRENT.md` |
+| running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
 
 ## Agent-to-agent communication
