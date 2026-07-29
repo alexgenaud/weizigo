@@ -1,7 +1,7 @@
 <!--managent set=S holds=src/managent/main.zig-->
 # MANAGENT-DERIVE-STATUS — a gated task stayed claimable; status must be derived from `needs`, not stored
 
-**Opened by:** the human, 2026-07-29, reading `managent status` and asking whether two listed tasks could actually run in parallel. They could not. The board was wrong, and the Orchestrator had made it wrong an hour earlier.
+**Opened by:** the human, 2026-07-29, reading `managent status` and asking whether two listed tasks could actually run in parallel. They could not. The kanban was wrong, and the Orchestrator had made it wrong an hour earlier.
 
 ## What happened
 
@@ -39,6 +39,6 @@ The consequence is not cosmetic. `claim` only permits `.dispatchable` (`:857`), 
 
 ## Deliverable
 
-`src/managent/main.zig` (modified), `bin/managent` refreshed, and a short note in `docs/infra/managent/spec.md` stating that `dispatchable`/`blocked` are derived and `in_progress`/`done`/`failed` are stored. **Holds `src/managent/main.zig`** — the board is the single source of truth for the queue; land it in one commit.
+`src/managent/main.zig` (modified), `bin/managent` refreshed, and a short note in `docs/infra/managent/spec.md` stating that `dispatchable`/`blocked` are derived and `in_progress`/`done`/`failed` are stored. **Holds `src/managent/main.zig`** — the kanban is the single source of truth for the queue; land it in one commit.
 
 **Read first:** `docs/infra/managent/spec.md`, `src/managent/main.zig:693` (`holdsConflict`), `:759-761` (`add`), `:1015` (`done`), `:1056` (`reopen`), `:857-872` (`claim`).

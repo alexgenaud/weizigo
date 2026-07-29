@@ -5,7 +5,7 @@
 
 ## Why
 
-253+ claims, 34 source files and ~60 documents cite external work, and **no single file collects any of it**. The nearest thing is five incomplete entries in `GLOSSARY.md`. For a project whose output is meant to be defensible — and which the reference audit judges close to publishable — that is the cheapest structural gap on the board.
+253+ claims, 34 source files and ~60 documents cite external work, and **no single file collects any of it**. The nearest thing is five incomplete entries in `GLOSSARY.md`. For a project whose output is meant to be defensible — and which the reference audit judges close to publishable — that is the cheapest structural gap on the kanban.
 
 ## The task
 

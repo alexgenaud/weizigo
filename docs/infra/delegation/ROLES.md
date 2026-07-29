@@ -101,10 +101,10 @@ So the practical limit on analysis is consoles and cost, not the board.
 
 ## Dispatching, claiming, and the board
 
-The Orchestrator owns the board end-to-end: it records dispatches on the
+The Orchestrator owns the kanban end-to-end: it records dispatches on the
 human's behalf, records claims when a worker has started but not claimed, and
-marks `done` when a worker has finished but not updated the board.
-**The board is the bug when it disagrees with reality.** (The prior
+marks `done` when a worker has finished but not updated the kanban.
+**The kanban is the bug when it disagrees with reality.** (The prior
 "Orchestrator does not claim on the agent's behalf" rule was rescinded
 2026-07-29 by D-8.)
 

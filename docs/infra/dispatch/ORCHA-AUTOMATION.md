@@ -31,6 +31,23 @@ Each registers from a template brief with the trigger recorded in the note. Do n
 
 **5. A retrieval surface.** The human's standing complaint is that knowledge cannot be retrieved without sifting kludge. `managent show <id>` should print the task, its deliverables, their commit hashes, and the claims it touched. Consider `managent why <claim-id>` — which tasks produced the evidence behind a claim. Keep it deterministic; no summarisation by model.
 
+## 6. Replace prescriptions with commands wherever a rule can become a check
+
+The role files state rules an agent must remember. **Every rule that can be a command should become one** — a remembered rule is optional, a non-zero exit is not. Working list, from `ORCHESTRATOR.md` §Prescriptions:
+
+| prescription today | command that would retire it |
+|---|---|
+| "commit before purge" | `purge` refuses a task whose deliverables are not in `git ls-files` |
+| "protect untracked in-flight source" | `audit` lists untracked `src/*.zig` held by an `in_progress` task |
+| "all ad-hoc builds through `tools/runner`" | `audit` warns when a build artefact is newer than its source with no runner log |
+| "rebuilt managent? `cp` it" | `managent` warns when `zig-out/bin/managent` is newer than `bin/managent` |
+| "register the standing tier unprompted" | `standing` (§4) |
+| "read the channel, write when there is news" | `sync` (§1) |
+| "verify, don't trust" | `done` warns when a load-bearing claim's status changed with only one seat's evidence cited |
+| "attribute the worker" | `done` refuses an unset `agent` (§3) |
+
+Implement the ones that are cheap and unambiguous; **for each one you skip, say why** — an un-automatable rule is a real category and worth naming. Then **delete every prescription the commands now enforce** from `ORCHESTRATOR.md` and cite the command instead. The role file should shrink as a result of this task; if it does not, the automation is not carrying its weight.
+
 ## Acceptance
 
 - Each command demonstrated against the live `tasks.json`, with output shown.

@@ -3,7 +3,7 @@
 
 **Opened by:** the Orchestrator, reading `2B-PROBE-FIX`'s C2 falsification (`docs/epistemic/qa023-c2-adjudication-2026-07-29.md` §4). ANALYSIS, read-only, no file conflicts — it can run immediately and alongside anything.
 
-## The question, and why it is the highest-value cheap experiment on the board
+## The question, and why it is the highest-value cheap experiment on the kanban
 
 `2B-PROBE-FIX` falsified `V = median(L, TIE, H)` at 3×2: four states where the median pins TIE = 0 while the history-conditioned value is +1 or +3. On each, `L < 0 < H` — the truth lies inside the bracket but is not what the median selects.
 

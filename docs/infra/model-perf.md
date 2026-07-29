@@ -1527,7 +1527,7 @@ critique; I wrote all three and they argue for the conclusion."*
 ## GLM (Advisor) — machinery, and the promotion debt (2026-07-28)
 
 **Remit (user-set):** project machinery — commits, no stale docs, protocol, the
-managent board, this ledger — plus synthesising direction for the user. Not
+managent kanban, this ledger — plus synthesising direction for the user. Not
 execution.
 
 **Cost: not recorded.**

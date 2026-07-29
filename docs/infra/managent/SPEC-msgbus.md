@@ -17,7 +17,7 @@ The bodies stay where they are. What is missing is an index.
 ## Model
 
 **Messages are files. managent holds the index.** The index is a second queue,
-independent of the task board — the board holds *status*, the bus holds
+independent of the kanban — the kanban holds *status*, the bus holds
 *conversation*. Nothing on the bus has a status beyond read/unread; anything that
 needs one is a task, not a message.
 
@@ -32,7 +32,7 @@ managent read <msg-id> --as <role>    # mark read
 
 ## Record
 
-Stored beside the task board, in the **tracked** state file:
+Stored beside the kanban, in the **tracked** state file:
 
 ```json
 { "id": "M017",

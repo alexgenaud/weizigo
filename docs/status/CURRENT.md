@@ -56,7 +56,7 @@ Took the Orchestrator role from MiniMax-M3 (context full; handover above).
 ceremony that blocked the Orchestrator from keeping the board honest. The
 Orchestrator owns delegation status end-to-end: it records dispatches on the
 human's behalf, records claims when a worker has started but not claimed, and
-marks `done` when a worker has finished but not updated the board —
+marks `done` when a worker has finished but not updated the kanban —
 attributing claims with `--agent <worker>` (never its own name). Worker
 self-claim / self-done remain the normal path. Edited:
 `docs/infra/roles/ORCHESTRATOR.md`, `docs/infra/delegation/ROLES.md`,
@@ -145,7 +145,7 @@ re-run command once new-rule tables exist.
 `docs/status/handover-minimax-m3-2026-07-29.md`; the crash-anchor is
 `untracked/msg/milestone-01-ko-reframe/STATE.md` (overwritten in place,
 always current). Per the standing rule, this Orchestrator does not touch
-the board again.
+the kanban again.
 
 ### What happened this turn
 
@@ -244,7 +244,7 @@ the board again.
   standing items; they resolve when the human brings them up, not
   on my schedule.
 
-### The board at 04:00
+### The kanban at 04:00
 
 ```
 $ bin/managent status
@@ -414,7 +414,7 @@ untested), and 4×4 was a 1:37 stride sample, not exhaustive.
 1. **H1 first experiment — simple-ko reachable-state census at 4×4.** Count
    reachable `(position, ko_point, side)` triples. This is a counting job, not a
    solve, and it is the one number that says whether the simple-ko pivot is
-   tractable at all. Highest value per hour on the board. Do **not** start a
+   tractable at all. Highest value per hour on the kanban. Do **not** start a
    simple-ko generation run before this number exists.
 2. **Commit the chainability work.** `src/chainability.zig`, `build.zig`,
    `docs/research/ko-sensitive-chainability.md`, `GLOSSARY.md`,

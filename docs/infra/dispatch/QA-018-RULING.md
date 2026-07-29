@@ -7,7 +7,7 @@ refutation ADR-0017) **and** `QA-018-REVIEW` (the third-party adversarial
 review — dispatch it first; this ruling is not ready to be made until it
 lands).
 
-Not an agent task. This is the human's decision, on the board so that it is
+Not an agent task. This is the human's decision, on the kanban so that it is
 **visible rather than an invisible manual gate**.
 
 **The question.** ADR-0010 justifies the finisher's cuts on brackets holding
