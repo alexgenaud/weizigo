@@ -8,33 +8,34 @@ EXP-8 PSK divergence harness
   PSK exact solver budget: 200000000 nodes   entry cap: 1000000
   ply cap: 256   settled stop: on
 
+=
 == EXP-8 divergence: frame A, policy random, board 3x2 ==
-games:                 20
-distinct lines:        20
-decision nodes observed: 186
-sampled for PSK solve:   130
-  solved:                3
-  budget-excluded:       19
+games:                 100
+distinct lines:        99
+decision nodes observed: 1198
+sampled for PSK solve:   488
+  solved:                80
+  budget-excluded:       321
   OOM-excluded:          0
   UNDEF-excluded:        0
-value divergence:        3/3    95% CI: [0.4385, 1.0000]  (rule-of-3 upper 1.0000)
+value divergence:        5/80    95% CI: [0.0270, 0.1381]  (rule-of-3 upper 0.0375)
 
-  move divergence:        0/3
-  suboptimal moves:      0/3
+  move divergence:        0/80
+  suboptimal moves:      0/80
   mean PSK-value loss:   0.00
-  KO_SENSITIVE among solved: 20/3; value-div among them: 3
+  KO_SENSITIVE among solved: 178/80; value-div among them: 5
 
   PSK-value-loss histogram (points):
     (no suboptimal moves)
 
 == empties-vs-solvability curve (3x2) ==
 empties  sampled  solved  budget  oom   value_div  move_div  subopt
-      1       22      3     19    0         3        0       0
-      2       40      0      0    0         0        0       0
-      3       33      0      0    0         0        0       0
-      4       23      0      0    0         0        0       0
-      5       10      0      0    0         0        0       0
+      1       94     12     82    0         5        0       0
+      2      177     63    114    0         0        0       0
+      3      130      5    125    0         0        0       0
+      4       69      0      0    0         0        0       0
+      5       16      0      0    0         0        0       0
       6        2      0      0    0         0        0       0
-[runner] peak RSS by PID:
+ak RSS by PID:
 [runner]   pid   46080       2 MB
 [runner] exit 0 in 544.0 s
