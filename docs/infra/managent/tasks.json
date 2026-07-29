@@ -1,13 +1,14 @@
 {
   "EXP-13": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "minimax",
     "bundle": "docs/infra/dispatch/EXP-13-claimlint-rerun.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "added": "2026-07-28T23:11:28Z",
-    "claimed": null,
-    "done": null
+    "claimed": "2026-07-29T00:17:56Z",
+    "done": "2026-07-29T00:17:56Z"
   },
   "EXP-5": {
     "status": "blocked",
@@ -166,14 +167,15 @@
     "done": "2026-07-27T16:33:16Z"
   },
   "EXP-14": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "glm",
     "bundle": "docs/infra/dispatch/EXP-14-corrections-cross-check.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "added": "2026-07-28T23:11:28Z",
-    "claimed": null,
-    "done": null
+    "claimed": "2026-07-29T00:17:56Z",
+    "done": "2026-07-29T00:17:56Z"
   },
   "EXP-9": {
     "status": "dispatchable",
@@ -196,14 +198,15 @@
     "done": null
   },
   "EXP-15": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "kimi-k2.7",
     "bundle": "docs/infra/dispatch/EXP-15-hypotheses-reality-check.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "added": "2026-07-28T23:11:28Z",
-    "claimed": null,
-    "done": null
+    "claimed": "2026-07-29T00:17:56Z",
+    "done": "2026-07-29T00:17:56Z"
   },
   "EXP-11": {
     "status": "done",

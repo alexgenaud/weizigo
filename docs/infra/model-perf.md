@@ -162,6 +162,73 @@ a 225-line audit plus a `PROVENANCE.md` (per
   workhorse but benefits from a theory audit. Pattern: Minimax implements →
   Kimi audits → GLM-Boss adjudicates & integrates. Worth measuring more.
 
+## Cross-model takeaway — 2026-07-28 (post standing-tier wave)
+
+The 2026-07-28 standing-tier audit wave (EXP-13 Minimax-m3,
+EXP-14 GLM-5.2, EXP-15 Kimi-k2.7, EXP-11/16 Kimi-k3) tests the
+above pattern on three different task shapes:
+
+- **Reading + cataloging (EXP-13, Minimax-m3):** re-run a tool,
+  parse stdout, build a per-finding table with one-line
+  remediations. **Minimax-m3 nailed the shape.** 438-line report,
+  verbatim stdout captured (15 KB sibling), calibration PASS on 7
+  cases, per-finding table with owner-of-record, DECISIONS.md
+  residue items mapped to lint findings, honest negatives named.
+  No CLAIMS.md edited (audit, not edit). **This is the strongest
+  case for Minimax as the standing measurement executor.**
+- **Verifying someone else's record (EXP-14, GLM-5.2):** audit
+  the corrections ledger against cited sources-of-truth at
+  eebe3c2. **GLM-5.2 nailed the shape.** All 5 corrections
+  audited; 2 VERIFIED, 3 PARTIAL, 0 WRONG, 0 to retract. The
+  PARTIAL verdicts are the test: the worker distinguished
+  *substance right, citation stale* from *substance wrong* and
+  recommended annotation over retraction. B-1 (the ADR-0013
+  closing-line-is-still-wrong finding) is the most consequential
+  load-bearing correction in the ledger; EXP-9's division of
+  labour with Track A depends on it. **GLM-5.2 in the Boss
+  role reviewing a prior session's record is the right slot.**
+- **Grading findings (EXP-15, Kimi-k2.7):** 13 hypothesis rows
+  tagged CLOSED/IN PROGRESS/OPEN/REJECTED with evidence
+  pointers. **Kimi-k2.7 nailed the shape.** Two CLOSED closures
+  (H1-CENSUS by EXP-3; H4b by the 2026-07-28 exhaustive
+  chainability sweep), one REJECTED (H5c = C3, falsified at
+  3×3), and a "what to dispatch next" list as the standing-tier
+  queue feed. The deliverable's provenance cites the commits,
+  not the file mtimes (correct; mtimes are not durable). **Kimi-
+  k2.7 in the standing-auditor role continues to be a strong
+  fit.**
+- **Bounded code audit (EXP-11/16, Kimi-k3):** two data points
+  now. Both VERIFIED verdicts, both ~30 min, both $0.23 / $0.76
+  cost. The 128k context window is sufficient for a single-
+  function audit but constrains multi-thousand-line chained
+  reports. Kimi-k3 inherits Kimi-k2.7's discipline on bounded
+  audits and is faster and cheaper. **Bounded code-audit work
+  is now Kimi-k3's standing slot; do not use it for open-ended
+  sweeps.**
+
+The pattern holds: Minimax measures, Kimi-k2.7 grades, GLM-5.2
+reviews, Kimi-k3 audits. **Bounded code audits are now Kimi-k3's
+slot; Fable and Opus hold the harder reasoning per D-7 and
+MSG 008.**
+
+## Cross-model takeaway — Opus-4/5/Fable comparable-to-Kimi-k3 (open)
+
+User's framing: Kimi-k3 should be comparable to Opus-4 (and
+perhaps Opus-5 and Fable, to be seen). On the bounded code-audit
+task class (single function, ~200-line report, three-verdict
+acceptance, falsifiable), Kimi-k3 is *clearly* faster and
+cheaper than the Fable data point (Fable's EXP-2 Part A ran on
+the order of hours; Kimi-k3 ran EXP-11 in ~30 min for $0.23).
+**Whether Kimi-k3 matches Opus-4/5/Fable on harder reasoning
+(proof repair, ADR refutation, claim-semantics adjudication)
+is an open question** — the harder slots are reserved for
+Fable per D-7, and no direct comparison has been run. When
+one of the harder tasks (EXP-10 QA-018 ADR refutation, the
+next Muhtasib chunk 2) is dispatchable to a k3-capable console
+in parallel with the Fable/Opus run, a head-to-head becomes
+the right next data point. **Until then, the trend on bounded
+code audits is the only signal we have.**
+
 ## Kimi-k2.7-code (new Boss, 2026-07-25)
 
 Taking over as Boss from GLM-5.2. First task was to ingest the full epistemic
@@ -1614,3 +1681,153 @@ code-audit work generally. Recorded for the standing ledger.
 **No engine file touched. No data/ or artifacts/ touched.**
 Evidence: `docs/evidence/GLOBAL.SESSION-CHOOSE/audit-2026-07-28.md`
 (commit `2d872b3`).
+
+## Task completion — EXP-13 (2026-07-28, Minimax-m3)
+
+Bounded ANALYSIS, ~1 h, no `holds`. The `bin/weizigo-claimlint`
+re-run + orphan catalog. Per the brief: capture the raw output,
+build a per-finding table with one-line remediations and
+owner-of-record, name the diff vs the prior run, map DECISIONS.md
+residue items to lint findings.
+
+**Live numbers (at 4fca047, 2026-07-28):** C1a orphans 10 (Δ 0),
+C2 dangling 9 (Δ −3, three closed by 7a0946a regressions/README
+rewrite), C3 PROVEN-w/o-evidence 79 of 82 (Tier A = 3; Δ 0),
+C4 dangling IDs 12 (Δ 0) / unreferenced 54 (Δ −3), C5 shadowed
+4 (Δ 0), A smells 5 (Δ 0), B ?-PROVEN 78 (Δ 0), calibration
+PASS on 7 cases (4 known-bad CAUGHT, 3 known-good SILENT).
+
+**Worker hygiene:** captured the raw stdout verbatim (`stdout.txt`
+sibling, 15 KB); embedded the provenance block at the top of
+the report (the brief asked for a `PROVENANCE.md` sibling; the
+worker put the same metadata inline — same effect, acceptable
+variant). Per-finding table has one-line remediation + owner
+for every C1a, C2, C4, C5 finding. DECISIONS.md residue items
+mapped: D18 → C2 dangling #7 (T13-class, partially recovered);
+QA-018 ruling → C1a orphan #10 (EXP-10 adjudicates); D-1, D-2,
+D-6, D-7, ADR-0015/0017 numbering, mixed inheritance, D17 → "not
+a lint concern."
+
+**Two findings named for the standing-tier queue:** (1) D18 —
+`/tmp/test_census_pure.zig` is still reported as C2-missing
+even though EXP-3's owner partially recovered it under
+`docs/evidence/GLOBAL.H1-CENSUS/reconciliation/`. The C2
+resolver matches path-as-cited; the lint will not clear until
+`kostate-census-2026-07-28.md` cites the rescued path. Owner:
+EXP-3 owner (Minimax per CURRENT.md). One-line edit. (2)
+`src/claimlint.zig:89` source-header staleness: comment says
+"FIVE named calibration cases" but the code has SEVEN
+(4 known-bad + 3 known-good). Behavioural risk: zero (the
+binary runs all seven). Documentation drift, future-revision
+fix.
+
+**Counts by owner:** ~41 actionable C1a+C2+C4+C5 findings
+(2 human, ~39 agent); 78 weak-evidence rows are auditor work;
+dabir has none; orchestrator absorbs. **No engine code touched;
+no CLAIMS.md edited (this was an audit, per the brief).**
+
+Evidence: `docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md`
++ `stdout.txt` (commit `f1f5c25`).
+
+## Task completion — EXP-14 (2026-07-28, GLM-5.2)
+
+Bounded ANALYSIS, ~1 h, no `holds`. The corrections-ledger
+cross-check. Per the brief: for each correction in
+`docs/research/corrections-2026-07-27.md`, find the cited
+source-of-truth and verify at eebe3c2 / 4fca047. Verdicts:
+VERIFIED / STALE / WRONG / PARTIAL.
+
+**Verdicts:** 2 VERIFIED (B-1: ADR-0013:129–130 is unchanged
+since 4d4a9a1 and is still FALSE — `gtp.zig` imports no
+`retro.zig`, `Session.choose` is a one-ply table lookup, WZO1
+has 6 columns no lo/hi. **EXP-16 corroborates this**, q.v.
+C-1: both calibration artifacts exist; chainability doc records
+19.51% / 19.05% misprice-within-ko, 0 outside, on the proven
+Track-A artifacts). 3 PARTIAL (A-1/A-2/A-3: the commit-message
+errata are immutable and stand; the `regressions/README.md` and
+`src/gtp.zig` HONESTY header were fixed by 7a0946a — *cited
+file:line is stale, substance right*). 0 STALE standalone.
+0 WRONG. **No correction to retract.** The right action on the
+A-corrections is to annotate them to point only at the commit
+messages, not to retract.
+
+**Two most consequential corrections, named for the user:**
+(1) B-1 — guards the Track-A / EXP-9 division of labour (a
+false "the player inherits the finisher fix" would silently
+leave ko-fight losses after Track A). **EXP-16 corroborates
+B-1.** (2) A-2 — guards the regression's epistemic framing
+(C4+unchainability, not C2); a wrong A-2 would misattribute
+the blunder to the L==H region that the sweep shows is clean.
+
+**Calibration done by hand:** the worker re-derived A-1
+(Measurement 2 ban table), B-1 (full source read of `gtp.zig`
++ `artifact.zig`), and C-1 (artifact existence + Measurement 1
+numbers) from primary sources. Non-zero findings, so not the
+empty bucket the brief warns about.
+
+**No cited source was edited; no engine file was touched.**
+Evidence: `docs/evidence/GLOBAL.CORRECTIONS/cross-check-2026-07-28.md`
++ `PROVENANCE.md` (commit `f1f5c25`).
+
+## Task completion — EXP-15 (2026-07-28, Kimi-k2.7)
+
+Bounded ANALYSIS, ~1 h, no `holds`. The H1..H5 + sub-hypotheses
+reality check. Per the brief: tag each hypothesis CLOSED /
+IN PROGRESS / OPEN / STALE / REJECTED with evidence pointer;
+produce a "what to dispatch next" list as the standing-tier
+queue feed.
+
+**Verdicts (13 rows):** 2 CLOSED (H1-CENSUS by EXP-3:
+51,419,046 reachable `(position, side, ko_point)` triples at
+4×4, 29,497,329 distinct addresses, 177 MB dense — GO on
+addressing. H4b by the 2026-07-28 exhaustive chainability
+sweep: zero violations outside KO_SENSITIVE across all
+non-settled slots). 1 IN PROGRESS. 9 OPEN. 1 REJECTED (H5c
+bracket-cut search — exactly C3, falsified at 3×3).
+
+**Key OPEN hypotheses:** H1 itself (the long-cycle tie rule
+is still unverified; the census only answers addressing).
+H2 (greedy-vs-random arena) and H3 (history-exact crossover)
+are designed but not run. H4a (lo/hi bracket-table identity)
+should ride along with the next 4×4 writes-off regen. H5
+player-hardening options OPEN pending user choice.
+
+**Honest negatives:** did not inspect the live `bin/managent`
+board; verdicts rely on committed documents and
+`docs/status/CURRENT.md`. No executable was run; all numbers
+are citations of already-committed evidence.
+
+**What to dispatch next (the deliverable's feed):**
+1. H2 — run the two `weizigo-arena` commands in
+   `open-hypotheses-2026-07-27.md` and compare leak rates.
+2. H1-LONGCYCLE — a 2×2/3×2 simple-ko + long-cycle-ties
+   pilot before any 4×4 generation.
+3. H3 — build the instrumented history-exact search to
+   gate H5b.
+4. H5a — implement the D-3 child-check / history-free
+   fallback guard in `src/gtp.zig` (now unblocked by EXP-16).
+
+**No source document was edited.** Evidence:
+`docs/evidence/GLOBAL.HYPOTHESES/reality-check-2026-07-28.md`
++ `PROVENANCE.md` (commit `f1f5c25`).
+
+## Kimi-k3 — EXP-12 (denominator sweep) PARTIAL (2026-07-28)
+
+Kimi-k3 dispatched on EXP-12 (denominator sweep across
+`docs/research/*.md`). ~48% / 128k context window reached
+mid-run; user reported 87% at the last two big files; 97%
+on the 4×3 reachcensus re-check. All headline figures
+reproduced; the run was in progress when the user
+reported. **EXP-12 is still in flight on Kimi-k3; not yet
+durable in git; will be folded in when the worker reports.**
+
+Standing-tier note: 128k is sufficient for a per-document
+sweep but tight on the chained audit + reproduction. The
+recommendation is *not* to push k3 further on this kind of
+sweep; future sweeps of similar shape go to Minimax-m3
+(measurement executor) or Kimi-k2.7 (auditor) — both
+have larger context windows in the project's pi harness.
+**Kimi-k3's slot remains bounded code audits (single
+function, ~200-line report, three-verdict acceptance)**
+where the 128k window is plenty and the speed/cost
+advantage is the value.
