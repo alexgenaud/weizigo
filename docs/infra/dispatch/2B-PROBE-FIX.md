@@ -23,6 +23,38 @@ A worked counterexample is in §4 of the evidence README: a 4-move arrival where
    - **C2 (the median formula, `QA-026` / proof-v2 Thm 5.1):** does the common value equal `median(L, TIE, H)`? The corrected run shows **12 disagreements out of 77 within-budget evaluations**, all in the **over-pinning** direction (fixpoint pins TIE where truncation has a value), on a graph where the median rule pins TIE at 1,532 of 1,756 non-terminal states. Adjudicate each of the 12 by hand.
    - Report which conjunct fell. A single within-budget C1 counterexample falsifies QA-023 as stated in `CLAIMS.md`; a C2-only failure falsifies `QA-026` and leaves the state representation intact. **These have opposite roadmap consequences — do not report "QA-023 falsified" without saying which.**
 
+## ⚠ ADDENDUM 2026-07-29 (added mid-flight) — `2B-3-AUDIT` has landed and it changes item 5
+
+`docs/audits/2b-3-history-pairs-audit-2026-07-29.md` (DSPro, independent Python
+re-implementation) verifies the generator is **correct** but finds a **systematic
+sampling bias** that bears directly on the C1 half of this task. Measured on 30
+states with in-degree ≥ 2:
+
+| metric | value |
+|---|---|
+| states where the DFS **misses the shortest path entirely** | **28/30 (93%)** |
+| states where it includes **any** shortest path | **0/30 (0%)** |
+| avg shortest-path length vs avg collected length | **5.1 vs 14.8 moves** |
+| avg pairwise shared-prefix fraction | **62%** |
+
+And short paths are the *most* visit-set-diverse: every sampled target with ≥2
+shortest paths has visit-set-distinct ones. **The generator systematically misses
+exactly the contrast C1 needs.**
+
+Consequence for your item 5: **a C1-negative result from the existing generator
+does not mean "no history-dependence".** It means "no history-dependence among
+histories that share ~62% of their prefixes and sit at depth ≥ 13" — which is a
+much weaker statement, and it is the statement the Orchestrator's own "nothing
+observed contradicts C1" was resting on. Do not inherit that overstatement.
+
+**So C1 needs a generator change, not just a probe fix.** The audit's recipe:
+two-phase collection — (1) BFS for all shortest paths, guaranteed most diverse;
+(2) DFS for long detour paths — then **pair short-vs-long deliberately** for
+maximum contrast. If you would rather scope that out, say so explicitly and
+report C1 as **UNTESTED-FOR-WANT-OF-CONTRAST** rather than as passing; an
+honest "not tested" is worth more here than a weak pass, and the project has
+been burned precisely by weak passes read as confirmations.
+
 ## Acceptance
 
 - The collision count, independently reproduced (or a reasoned refutation).

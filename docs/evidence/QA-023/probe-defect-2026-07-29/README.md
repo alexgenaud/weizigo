@@ -183,9 +183,22 @@ distinguish them:
 
 - **C1 — Markovian state-sufficiency.** This is what the `QA-023` row in
   `CLAIMS.md` actually asserts, and it is what the roadmap needs. **Not one
-  observation contradicts it.** Every corrected disagreement is invariant across
-  the histories sampled for that state; the as-published run is invariant too,
-  vacuously.
+  observation contradicts it** — but see the qualification below, which is
+  load-bearing. Every corrected disagreement is invariant across the histories
+  sampled for that state; the as-published run is invariant too, vacuously.
+
+  **QUALIFIED 2026-07-29 by `2B-3-AUDIT`** (`docs/audits/2b-3-history-pairs-audit-2026-07-29.md`,
+  DSPro, independent Python re-implementation): the history generator has a
+  systematic bias — on 30 sampled states it **misses the shortest arrival path
+  entirely in 28 (93%)** and includes any shortest path in **0**, collecting
+  paths averaging 14.8 moves where the shortest average 5.1, with **62% pairwise
+  shared prefix**. Short paths are the most visit-set-diverse. So "no
+  observation contradicts C1" means *no observation among highly correlated
+  near-max-depth histories* — the short-vs-long contrast that would actually
+  test C1 was never sampled. **C1 is better described as UNTESTED than as
+  unrefuted**, and testing it needs a two-phase generator (BFS shortest paths +
+  DFS detours, paired short-vs-long), not merely the probe fix. Folded into the
+  `2B-PROBE-FIX` brief as a mid-flight addendum.
 - **C2 — the median formula.** This is `QA-026` / proof-v2 Thm 5.1. The 12
   residual disagreements are all C2 failures, all in the over-pinning direction
   (fixpoint TIE where truncation has a value), on a graph where the median rule

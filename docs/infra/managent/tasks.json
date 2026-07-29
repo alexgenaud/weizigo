@@ -176,14 +176,15 @@
     "note": null
   },
   "2B-3-AUDIT": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/2B-3-AUDIT.md",
     "set": "P",
     "holds": [],
     "needs": ["2B-2"],
     "added": "2026-07-29T13:48:52Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T14:13:29Z",
+    "done": "2026-07-29T14:13:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
