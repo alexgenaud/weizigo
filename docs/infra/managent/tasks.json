@@ -16,7 +16,7 @@
     "claim_count": 1
   },
   "EXP-5": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/EXP-5.md",
     "set": "G",
     "holds": [],
@@ -445,22 +445,23 @@
     "claim_count": 1
   },
   "WORKER-CHANNEL": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSFlash",
     "bundle": "docs/infra/dispatch/WORKER-CHANNEL.md",
     "set": "Z",
     "holds": ["tools/runner"],
     "needs": ["AGENT-IDENTITY", "RUNNER-CEILING"],
     "caps": [],
     "added": "2026-07-29T16:21:30Z",
-    "claimed": null,
+    "claimed": "2026-07-29T23:41:54Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "EXP-4": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "docs/infra/dispatch/EXP-4.md",
     "set": "F",
@@ -469,7 +470,7 @@
     "caps": [],
     "added": "2026-07-28T12:21:13Z",
     "claimed": "2026-07-29T23:10:32Z",
-    "done": null,
+    "done": "2026-07-29T23:44:27Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "GATED 2026-07-29 by the Orchestrator: EXP-4 builds the new-rule tables on V=median(L,TIE,H), which ADR-0019 falsified at 3x2 (QA-026/GLOBAL.LONGCYCLE FALSE-AS-SCOPED). A replacement value rule is required first; PINRULE-SUFFICIENCY decides whether any pointwise (L,TIE,H) rule can work at all. Status set to blocked by hand because the MANAGENT-DERIVE-STATUS defect means `needs --add` does not re-gate an already-dispatchable task.",

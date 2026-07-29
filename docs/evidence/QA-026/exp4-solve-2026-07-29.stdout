@@ -1,0 +1,136 @@
+[runner] argv = zig run -O ReleaseFast src/exp4_solve.zig
+[runner] ceilings: rss 4096 MB, wall 1800s (30:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================================
+# EXP-4 — 2×2 and 3×2 under the new rule: the falsification gate
+# Task: EXP-4 · Role: worker · Model: DSPro · Date: 2026-07-29
+# Rule: basic ko (formalization (i)) + TIE = 0 for long cycles
+# Value rule: V = median(L, TIE, H) = max(L, min(TIE, H))
+# ============================================================================
+
+## 1. 2×2 fixpoint
+# sweeps: 4, converged: true
+# root (empty, B to move):  L= -4 H= +4 V= +0
+# root (empty, W to move):  L= -4 H= +4 V= +0
+# gate (0 on both): PASS
+# 2×2 empty B: TIE (L<0<H, pinned)
+# 2×2 empty W: TIE (L<0<H, pinned)
+# 2×2 reachable states: 258, UNDEF: 0
+# root filled? YES
+
+## 2. 2×2 cross-check (brute-force anchors + Bellman self-consistency)
+#   anchor empty B: fixpoint=0 brute=0 expected=0 OK
+#   anchor empty W: fixpoint=0 brute=0 expected=0 OK
+#   anchor full B: fixpoint=4 brute=4 expected=4 OK
+#   anchor full W: fixpoint=-4 brute=-4 expected=-4 OK
+#   anchor passes=1: fixpoint=0 brute=0 expected=0 OK
+#   anchor passes=2: fixpoint=0 brute=0 expected=0 OK
+#   anchor 1-ko shape: fixpoint=-4 brute=0 expected=0 FAIL
+# brute-force anchors: FAIL or INCONCLUSIVE
+# Fixpoint consistency (172 non-terminals): L-fail=0 H-fail=0 terminals=86
+# Fixpoint check: PASS — L=Φ(L), H=Φ(H) everywhere
+# MISMATCH 2x2 idx=329: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=331: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=335: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=343: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=357: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=369: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=381: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=387: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=734: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=736: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=740: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=748: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=762: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=774: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=786: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=792: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=1141: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=1153: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=1191: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=1197: fixpoint=4 brute=0
+# MISMATCH 2x2 idx=1544: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=1550: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=1572: fixpoint=-4 brute=0
+# MISMATCH 2x2 idx=1584: fixpoint=-4 brute=0
+# 2x2 brute-force sample (172 non-terminal states, budget=500k/state):
+#   agreements:       148
+#   mismatches:       24
+#   budget-exhausted: 0
+# sample cross-check: FAIL — mismatches found (denominator: 172 within-budget / 172 total)
+
+## 3. 2×2 colour-inversion symmetry
+# 2×2 inversion violations: 0 / 2430
+# symmetry: PASS — value(-pos,-side) == -value(pos,side)
+
+## 4. 2×2 calibration
+#   anchor empty B: v=0 expected=0 OK
+#   anchor empty W: v=0 expected=0 OK
+#   anchor full B: v=4 expected=4 OK
+#   anchor passes=1: v=0 expected=0 OK
+#   anchor passes=2: v=0 expected=0 OK
+# known-good: PASS — all anchors match
+# known-bad (perturb): idx=730 orig=0 perturbed=0 detected=NO — perturbation was silent
+# known-bad (PSK vs new rule): fixpoint root = 0, PSK root = +1, delta = 1 (non-zero => gate distinguishes rulesets)
+
+## 5. 3×2 census
+# 3x2 census sweep 8: new_marks = 214
+# 3x2 census sweep 12: new_marks = 0
+# total reachable: 2586
+# legal boards: 489
+# terminals: 854
+# by side: B=1293 W=1293
+# sweeps: 12
+
+## 6. 3×2 fixpoint
+# 3x2 fixpoint sweep 4: L_changed=295 H_changed=20
+# 3x2 fixpoint sweep 8: L_changed=22 H_changed=0
+# 3x2 fixpoint sweep 10: L_changed=0 H_changed=0
+# sweeps: 10, converged: true
+# root (empty, B to move):  L= -6 H= +6 V= +0
+# root (empty, W to move):  L= -6 H= +6 V= +0
+# gate (0 on both): PASS
+# 3×2 empty B: TIE (L<0<H, pinned)
+# 3×2 empty W: TIE (L<0<H, pinned)
+# 3×2 reachable states: 2586, UNDEF: 0
+# root filled? YES
+# 3×2 pin census: L==H=2220  pin_T=298  pin_L=34  pin_H=34
+
+## 7. 3×2 cross-check (brute-force root + Bellman + budget sample)
+# brute-force root (empty, B): null (budget remaining: 0)
+# root cross-check (B): fixpoint=0 brute=null BUDGET-EXHAUSTED
+# brute-force root (empty, W): null (budget remaining: 0)
+# root cross-check (W): fixpoint=0 brute=null BUDGET-EXHAUSTED
+# Fixpoint consistency (1732 non-terminals): L-fail=0 H-fail=0 terminals=854
+# Fixpoint check: PASS — L=Φ(L), H=Φ(H) everywhere
+# brute-force sample (500 states, budget=1000000/state):
+#   agreements:       165
+#   mismatches:       0
+#   budget-exhausted: 335
+# sample cross-check: PASS — no mismatches (denominator: 165 within-budget / 500 total)
+
+## 8. 3×2 colour-inversion symmetry
+# 3×2 inversion violations: 0 / 2586
+# symmetry: PASS — value(-pos,-side) == -value(pos,side)
+
+## 9. 3×2 calibration
+# known-good: root (empty, B) = 0 expected 0 OK
+# known-good: root (empty, W) = 0 expected 0 OK
+# known-bad (PSK vs new rule): fixpoint root = 0, PSK root = +1, delta = 1 (non-zero => gate distinguishes rulesets)
+
+# ============================================================================
+# FINAL VERDICT
+# ============================================================================
+# 2×2 root (empty, B): 0  expected 0  OK
+# 2×2 root (empty, W): 0  expected 0  OK
+# 3×2 root (empty, B): 0  expected 0  OK
+# 3×2 root (empty, W): 0  expected 0  OK
+#
+# 2×2 root: TIE (L<0<H, pinned)
+# 3×2 root: TIE (L<0<H, pinned)
+#
+# acceptance: PASS — both boards return 0, MIGOS II anchors matched
+[runner] peak RSS by PID: in 10.4 s
+[runner]   pid   65105       1 MB
+[runner] peak total CPU by PID: in 10.4 s
+[runner]   pid   65105        0:10 (10.14s)
+[runner] exit 0 in 10.4 s
