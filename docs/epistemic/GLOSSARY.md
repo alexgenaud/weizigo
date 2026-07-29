@@ -1,5 +1,7 @@
 # Glossary
 
+**Status: living reference. [Current.]**
+
 Terms used across this project's code and docs. Three audiences: Go players,
 software engineers, and LLM agents. Organized by domain.
 

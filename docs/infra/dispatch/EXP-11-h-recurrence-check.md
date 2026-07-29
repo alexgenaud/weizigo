@@ -2,7 +2,7 @@
 
 # EXP-11 — H-recurrence swap check (Dabir 011's 10-minute question)
 
-**Closes:** an open question from the Dabir's standing brief: "Fable
+**Closes:** an open question from the Dabir's standing brief: "EXP-2A
 found v1 §4.2's H-recurrence has max/min swapped versus ADR-0009. If
 that is a proof-side transcription error, fine. **If the swap is in
 the code, it is a bug.** Check `src/retro.zig` against ADR-0009 and
@@ -12,7 +12,7 @@ report." (Source: `untracked/msg/milestone-01-ko-reframe/011-dabir-to-orchestrat
 **Read first:** `AGENTS.md` (foreclosures), then
 `docs/decisions/0009-retrograde-value-iteration.md` (the recurrence
 ADR), then `docs/evidence/QA-023/proof-v2-2026-07-28.md` §1.4 and §9.3
-(Fable's note that v1's §4.2 has the swap), then `src/retro.zig` —
+(EXP-2A's note that v1's §4.2 has the swap), then `src/retro.zig` —
 specifically the H-recurrence code (search for `H_B`, `H_W`, or the
 Bellman update for H in the file).
 
@@ -20,7 +20,7 @@ Bellman update for H in the file).
 recurrence match ADR-0009's specification? Specifically: ADR-0009
 defines H as the *greatest* fixpoint of the *same* operator used for L
 (Black maximises, White minimises, both sides alternate). v1 §4.2 of
-the QA-023 proof had max/min **swapped** in the H-recurrence; Fable's
+the QA-023 proof had max/min **swapped** in the H-recurrence; EXP-2A's
 v2 §1.4 confirmed the swap. **Is the swap confined to v1's proof
 document, or did it propagate into the code?**
 

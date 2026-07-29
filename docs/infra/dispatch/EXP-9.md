@@ -5,7 +5,7 @@
 **Closes:** none (a stop-gap, not a fix). **Bears on:** QA-002, the user's
 "know when the play is optimal and when it's not." **Blocks:** nothing —
 parallel to EXP-2/3, no new artifact, no ruleset change. **Holds:** `src/gtp.zig`
-only. **Corrected per DECISIONS D-3** (Opus): a node-only check is insufficient,
+only. **Corrected per DECISIONS D-3**: a node-only check is insufficient,
 and "refuse" must not mean pass.
 
 **Read first:** `untracked/msg/milestone-01-ko-reframe/STATE.md`, then
@@ -34,7 +34,7 @@ the current node AND at the chosen child** (~`2n` lookups; still cheap).
 - **A2 — check the chosen child** `C*` (the move `choose` would return): the
   identity must hold at `C*` too. **This is the correction:** the identity
   holding at P certifies only that `V0(P)` agrees with its children; it says
-  nothing about whether the child you move into is itself chainable. Opus's trace:
+  nothing about whether the child you move into is itself chainable. The D-3 trace:
   plies 1–7 pass, and the ply-8 failure was *created by* moves 1–7 — a node-only
   check warns after you are already in trouble. Checking the chosen child catches
   the move that *would* enter the unchainable region.

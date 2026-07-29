@@ -1,5 +1,7 @@
 # Discuss — structured relay protocol
 
+**Status: living protocol. [Current.]**
+
 **A cross-harness discussion skill. Read this, then adopt the protocol.**
 
 ## Goal

@@ -25,7 +25,7 @@ A worked counterexample is in §4 of the evidence README: a 4-move arrival where
 
 ## ⚠ ADDENDUM 2026-07-29 (added mid-flight) — `2B-3-AUDIT` has landed and it changes item 5
 
-`docs/audits/2b-3-history-pairs-audit-2026-07-29.md` (DSPro, independent Python
+`docs/audits/2b-3-history-pairs-audit-2026-07-29.md` (independent Python
 re-implementation) verifies the generator is **correct** but finds a **systematic
 sampling bias** that bears directly on the C1 half of this task. Measured on 30
 states with in-degree ≥ 2:

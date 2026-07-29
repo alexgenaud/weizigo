@@ -1,5 +1,5 @@
 <!--managent set=A needs=EXP-10 caps=reasoning:sustained-->
-# QA-018-REVIEW-B — panel seat B: DeepSeek Pro adversarial review of ADR-0017
+# QA-018-REVIEW-B — panel seat B: adversarial review of ADR-0017
 
 **You are seat B of a three-seat blind panel.** Read, in this order:
 
@@ -15,11 +15,11 @@
 
 ## Seat identity
 
-- Model: **DeepSeek Pro**.
+- Model: as assigned at dispatch.
 - Your writes, and only these (panel protocol §2):
-  - `docs/evidence/QA-018/review-b-deepseek/report.md` (+ `PROVENANCE.md`
+  - `docs/evidence/QA-018/review-b/report.md` (+ `PROVENANCE.md`
     beside it)
-  - `untracked/msg/milestone-01-ko-reframe/028-deepseek-review-to-all.md`
+  - `untracked/msg/milestone-01-ko-reframe/028-review-b-to-all.md`
 - Do not run `managent`; the Orchestrator records your claim/done (D-8).
 
 ## Seat B note

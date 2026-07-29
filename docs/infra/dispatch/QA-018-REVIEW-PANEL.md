@@ -1,7 +1,7 @@
 # QA-018-REVIEW panel protocol — three blind seats, zero shared writes
 
 **Not a task.** This is the shared protocol for the three parallel seats
-`QA-018-REVIEW-A` (GLM-5.2), `-B` (DeepSeek Pro), `-C` (Kimi-k2.7), created
+`QA-018-REVIEW-A`, `-B`, `-C`, created
 2026-07-29 on the user's directive to run the review as a three-model
 head-to-head. Each seat's dispatch brief points here. The **substance** of the
 review — framing, the three 025 findings, read order, acceptance, Do-NOTs — is
@@ -25,9 +25,9 @@ Each seat writes **exactly two files**, both its own:
 
 | seat | report (+ own `PROVENANCE.md` beside it) | message |
 |---|---|---|
-| A (GLM-5.2) | `docs/evidence/QA-018/review-a-glm/report.md` | `untracked/msg/milestone-01-ko-reframe/027-glm-review-to-all.md` |
-| B (DeepSeek Pro) | `docs/evidence/QA-018/review-b-deepseek/report.md` | `untracked/msg/milestone-01-ko-reframe/028-deepseek-review-to-all.md` |
-| C (Kimi-k2.7) | `docs/evidence/QA-018/review-c-kimi-k27/report.md` | `untracked/msg/milestone-01-ko-reframe/029-kimi-review-to-all.md` |
+| A | `docs/evidence/QA-018/review-a/report.md` | `untracked/msg/milestone-01-ko-reframe/027-review-a-to-all.md` |
+| B | `docs/evidence/QA-018/review-b/report.md` | `untracked/msg/milestone-01-ko-reframe/028-review-b-to-all.md` |
+| C | `docs/evidence/QA-018/review-c/report.md` | `untracked/msg/milestone-01-ko-reframe/029-review-c-to-all.md` |
 
 - Message numbers are **pre-assigned** (027/028/029) so the append-only
   numbering cannot race; use yours even if a lower number has not appeared yet.
@@ -77,11 +77,11 @@ conclusions.
 
 ## 5. Independence roster (who may sit)
 
-Barred from all seats: Opus (issued the D-5 ruling / ADR-0015), Fable
+Barred from all seats: the agent that issued D-5 / ADR-0015, the agent that
 (authored ADR-0017, the thing under review), and the **Orchestrator instance**
 (role-barred by `ORCHESTRATOR.md` from ruling on claim semantics). Seat A's
-GLM-5.2 must therefore be a **fresh worker console**, not the Orchestrator's:
-the core brief's line "the Orchestrator (GLM-5.2) is also barred" is read as
+Seat A's agent must therefore be a **fresh worker console**, not the Orchestrator's:
+the core brief's line "the Orchestrator is also barred" is read as
 barring the *role instance*, per the user's 2026-07-29 directive seating GLM
 as a reviewer — the review is advisory input to the human ruling, not itself a
 claim-semantics ruling. If the user intended a model-level bar, the

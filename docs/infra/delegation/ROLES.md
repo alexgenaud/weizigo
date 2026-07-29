@@ -146,8 +146,9 @@ So the independence a fresh instance buys is **procedural, not epistemic**:
   / calibration checks (did the worker follow the brief, cite real paths, run
   the calibration).
 - **For adversarial review of load-bearing reasoning, prefer a different
-  model.** That is what the three-seat blind panel bought (GLM / DeepSeek-Pro /
-  Kimi-k2.7 on the QA-018 review) — independent training, not just independent
+  model.** That is what the three-seat blind panel bought for the QA-018 review
+  in 2026-07-29 — independent training, not just independent instances.
+  (Historical: the panel comprised GLM-5.2, DeepSeek-Pro, and Kimi-k2.7.)
   instances.
 - **If only the same model is available, disclose it.** A same-model review of
   load-bearing reasoning must say so loudly; its verdict is procedural

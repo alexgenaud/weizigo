@@ -122,7 +122,7 @@ list below is the *epistemic* definition of done; the board command is the
 
 ## Escalation
 
-- **EXP-2 fails** → stop everything downstream. Escalate to the user and Opus.
+- **EXP-2 fails** → stop everything downstream. Escalate to the user and the Auditor.
 - **A foreclosure looks wrong** → write an ADR that supersedes it with evidence.
   Do not just act against it.
 - **A number disagrees with a committed document** → stop and report the

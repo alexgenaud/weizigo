@@ -1,5 +1,7 @@
 # About this document (the method)
 
+**Status: living method document. [Current.]**
+
 This chapter describes the method behind `epistemic/PROGRESS.md` and the `docs/` tree.
 It is itself part of the structure it describes — the living document is
 self-describing and is pruned like everything else.

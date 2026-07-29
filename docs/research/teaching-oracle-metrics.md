@@ -1,5 +1,7 @@
 # Teaching oracle: explaining optimality without fiction (2026-07-18)
 
+**Status: historical (2026-07-18).** Requirements document. [Historical.]
+
 User goal: solved 5x5 as a TEACHING GUIDE / total holistic joseki database.
 The engine should say things like: "this move is optimal, complex, guaranteed
 +8 if played perfectly; that one is simpler, resolves in capture in 3 moves,

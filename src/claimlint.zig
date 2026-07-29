@@ -133,6 +133,10 @@ const SCOPES = [_][]const u8{
     "GLOBAL", "CODE", "2x2", "3x2", "3x3", "4x3", "4x4", "5x3", "5x4", "5x5", "6x3",
 };
 
+/// The narrative file cite-tagged against the register. C6 scans this for
+/// `[ID:STATUS]` tags and verifies each against the register.
+const NARRATIVE_FILE = "docs/epistemic/PROGRESS.md";
+
 // ── calibration cases ────────────────────────────────────────────────────────
 // Named here, checked at the end of every run. If the checker stops catching
 // these, the checker is broken — not the register.
@@ -146,6 +150,22 @@ const CAL_NEG_OK = "GLOBAL.REFRAME"; // carries `n:` to a FALSE parent — must 
 /// get fixed — and went MISSED the moment the fix landed. A calibration case
 /// that disappears when the register improves is not a calibration case.
 const CAL_SHADOW_CLEAN = "GLOBAL.F2"; // real-data known-good: `d:` only to real claims
+/// C6 calibration — a synthetic narrative text with one wrong-status tag and
+/// two correct-status tags. The wrong one must be caught, the right ones must
+/// pass silently. The known-bad uses a real ID with a deliberately wrong status.
+const CAL_SYNTHETIC_CITETAG =
+    \\## C6 calibration narrative
+    \\
+    \\PSK is intractable for exact solve [GLOBAL.R1:PROVEN] and this is a
+    \\structural result. The claim [GLOBAL.C2:PROVEN] is deliberately wrong —
+    \\C2 is FALSE-AS-SCOPED, not PROVEN. Meanwhile [QA-023:CLAIMED] is the
+    \\correct status for the state-sufficiency claim.
+    \\
+    \\## end
+;
+const CAL_CITE_BAD_ID = "GLOBAL.C2"; // tagged PROVEN, actually FALSE-AS-SCOPED
+const CAL_CITE_GOOD_A = "GLOBAL.R1"; // tagged PROVEN, actually PROVEN
+const CAL_CITE_GOOD_B = "QA-023";    // tagged CLAIMED, actually CLAIMED
 
 /// The ALARM half of the `n:` calibration cannot be exercised by real data:
 /// today every `n:` edge points at a parent that really is false, which is the
@@ -624,6 +644,112 @@ fn pathTokens(gpa: Allocator, text: []const u8, out: *std.ArrayList([]const u8))
     }
 }
 
+// ── cite-tag extraction (C6) ────────────────────────────────────────────────
+
+/// A cite-tag found in a narrative document: `[ID:STATUS]`.
+const CiteTag = struct {
+    id: []const u8,
+    status: []const u8,
+    line: usize,
+};
+
+/// A cite-tag mismatch between the narrative and the register.
+const CiteMismatch = struct {
+    id: []const u8,
+    tagged_status: []const u8,
+    register_status: []const u8,
+    line: usize,
+};
+
+/// Extract every `[ID:STATUS]` tag from `text`. A cite-tag is a claim ID
+/// followed by `:` and a status string, wrapped in `[]`. The ID must match the
+/// claim-ID token pattern (scope-prefixed or QA-nnn), and the status must be
+/// one of the recognised status words.
+fn citeTags(gpa: Allocator, text: []const u8) !std.ArrayList(CiteTag) {
+    var out: std.ArrayList(CiteTag) = .empty;
+    var lineno: usize = 1;
+    var i: usize = 0;
+    while (i < text.len) : (i += 1) {
+        if (text[i] == '\n') {
+            lineno += 1;
+            continue;
+        }
+        if (text[i] != '[') continue;
+        const start = i + 1;
+        const colon = std.mem.indexOfScalarPos(u8, text, start, ':') orelse {
+            i = start;
+            continue;
+        };
+        const close = std.mem.indexOfScalarPos(u8, text, colon + 1, ']') orelse {
+            i = start;
+            continue;
+        };
+        // Reject if the span is too long (heuristic: max 80 chars for ID + status)
+        if (close - start > 80) {
+            i = close;
+            continue;
+        }
+        const id_part = trim(text[start..colon]);
+        if (!isClaimIdToken(id_part)) {
+            i = close;
+            continue;
+        }
+        const status_part = trim(text[colon + 1 .. close]);
+        // Validate that status_part is a recognised status word
+        if (parseStatus(status_part) == .unparsed) {
+            i = close;
+            continue;
+        }
+        try out.append(gpa, .{
+            .id = id_part,
+            .status = status_part,
+            .line = lineno,
+        });
+        i = close;
+    }
+    return out;
+}
+
+/// Run C6: scan a narrative file for cite-tags and verify each against the
+/// register. Returns mismatches — tags whose stated status disagrees with the
+/// register. A tag whose ID is not in the register is also a mismatch (reported
+/// with register_status = "NO SUCH ID").
+fn citeTagCheck(
+    gpa: Allocator,
+    io: Io,
+    reg: *Register,
+    path: []const u8,
+) !std.ArrayList(CiteMismatch) {
+    var out: std.ArrayList(CiteMismatch) = .empty;
+    const text = Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch |e| {
+        std.debug.print("  C6: cannot read narrative file {s}: {s} — skipping\n", .{ path, @errorName(e) });
+        return out;
+    };
+    const tags = try citeTags(gpa, text);
+    for (tags.items) |tag| {
+        const slot = reg.by_id.get(tag.id) orelse {
+            try out.append(gpa, .{
+                .id = tag.id,
+                .tagged_status = tag.status,
+                .register_status = "NO SUCH ID",
+                .line = tag.line,
+            });
+            continue;
+        };
+        const reg_row = reg.rows.items[slot];
+        const tagged = parseStatus(tag.status);
+        if (tagged != reg_row.status) {
+            try out.append(gpa, .{
+                .id = tag.id,
+                .tagged_status = tag.status,
+                .register_status = reg_row.status.name(),
+                .line = tag.line,
+            });
+        }
+    }
+    return out;
+}
+
 // ── report state ─────────────────────────────────────────────────────────────
 
 
@@ -1019,6 +1145,24 @@ pub fn main(init: std.process.Init) !void {
     const c5 = shadows.items.len;
     std.debug.print("\n  C5 total: {d}\n", .{c5});
 
+    // ── C6 cite-tag verification ───────────────────────────────────────────
+    std.debug.print("\n== C6  CITE-TAG VERIFICATION (fails the run) ==\n", .{});
+    std.debug.print("Scans the narrative file ({s}) for `[ID:STATUS]` tags\n", .{NARRATIVE_FILE});
+    std.debug.print("and verifies each against the register. A narrative whose\n", .{});
+    std.debug.print("cite-tags do not match the register is hallucination-prone.\n\n", .{});
+    const cite_mismatches = try citeTagCheck(gpa, io, &reg, NARRATIVE_FILE);
+    if (cite_mismatches.items.len == 0) {
+        std.debug.print("  (all cite-tags match the register)\n", .{});
+    } else {
+        for (cite_mismatches.items) |m| {
+            std.debug.print("  MISMATCH  line {d}: [`{s}:{s}`] — register has [{s}]\n", .{
+                m.line, m.id, m.tagged_status, m.register_status,
+            });
+        }
+    }
+    const c6 = cite_mismatches.items.len;
+    std.debug.print("\n  C6 cite-tag mismatches: {d}\n", .{c6});
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     std.debug.print("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -1165,6 +1309,35 @@ pub fn main(init: std.process.Init) !void {
     });
     if (!shadow_clean) cal_ok = false;
 
+    // C6 calibration — process the synthetic narrative through citeTagCheck.
+    // It must catch the wrong-status tag and pass the correct-status ones.
+    var synth_c6_ok = false;
+    {
+        const syn_tags = try citeTags(gpa, CAL_SYNTHETIC_CITETAG);
+        var saw_bad = false;
+        var saw_good_a = false;
+        var saw_good_b = false;
+        var extra = false;
+        for (syn_tags.items) |tag| {
+            const slot = reg.by_id.get(tag.id) orelse {
+                extra = true;
+                continue;
+            };
+            const expected = reg.rows.items[slot].status;
+            const tagged = parseStatus(tag.status);
+            if (tagged != expected) {
+                if (std.mem.eql(u8, tag.id, CAL_CITE_BAD_ID)) saw_bad = true;
+            } else {
+                if (std.mem.eql(u8, tag.id, CAL_CITE_GOOD_A)) saw_good_a = true;
+                if (std.mem.eql(u8, tag.id, CAL_CITE_GOOD_B)) saw_good_b = true;
+            }
+        }
+        synth_c6_ok = saw_bad and saw_good_a and saw_good_b and !extra and syn_tags.items.len == 3;
+    }
+    std.debug.print("  known-bad 5 (C6, synthetic): `[{s}:PROVEN]` (register says FALSE-AS-SCOPED) must\n", .{CAL_CITE_BAD_ID});
+    std.debug.print("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (1 mismatch, 2 silent)" else "BROKEN"});
+    if (!synth_c6_ok) cal_ok = false;
+
     std.debug.print("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -1176,12 +1349,12 @@ pub fn main(init: std.process.Init) !void {
     std.debug.print("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)\n", .{ dangling.count(), unref });
     std.debug.print("  C5 shadowed dependencies      {d}   (report only, does not fail yet)\n", .{c5});
     std.debug.print("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
-    std.debug.print("  B  weak-evidence PROVEN rows  {d}   (report only)\n", .{weak_high.items.len + weak_unknown});
+    std.debug.print("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
     std.debug.print("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);
-    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0) std.process.exit(1);
+    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0 or c6 > 0) std.process.exit(1);
     std.process.exit(0);
 }
 

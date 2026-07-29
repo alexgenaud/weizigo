@@ -1,7 +1,7 @@
 <!--managent set=O holds=tools/runner-->
 # RUNNER-CEILING — give tools/runner a wall/CPU ceiling and a by-CPU process sweep
 
-**Opened by:** msg 034 (Fable/Dabir) after a 5-hour hidden spinner; re-confirmed by the Orchestrator on 2026-07-29 (see below). Small, self-contained, and it protects every future agent.
+**Opened by:** msg 034 after a 5-hour hidden spinner; re-confirmed by the Orchestrator on 2026-07-29 (see below). Small, self-contained, and it protects every future agent.
 
 ## Why
 

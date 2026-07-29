@@ -1,5 +1,5 @@
 <!--managent set=A needs=EXP-10 caps=reasoning:sustained-->
-# QA-018-REVIEW-A — panel seat A: GLM-5.2 adversarial review of ADR-0017
+# QA-018-REVIEW-A — panel seat A: adversarial review of ADR-0017
 
 **You are seat A of a three-seat blind panel.** Read, in this order:
 
@@ -15,19 +15,19 @@
 
 ## Seat identity
 
-- Model: **GLM-5.2**, in a **fresh worker console** — explicitly NOT the
+- Model: as assigned at dispatch, in a **fresh worker console** — explicitly NOT the
   Orchestrator instance (panel protocol §5; you must have no Orchestrator
   session state, no board ownership, and no prior QA-018 context this session).
 - Your writes, and only these (panel protocol §2):
-  - `docs/evidence/QA-018/review-a-glm/report.md` (+ `PROVENANCE.md` beside it)
-  - `untracked/msg/milestone-01-ko-reframe/027-glm-review-to-all.md`
+  - `docs/evidence/QA-018/review-a/report.md` (+ `PROVENANCE.md` beside it)
+  - `untracked/msg/milestone-01-ko-reframe/027-review-a-to-all.md`
 - Do not run `managent`; the Orchestrator records your claim/done (D-8).
 
 ## Seat A note
 
-The ledger (`docs/infra/model-perf.md`) credits your line with catching the
+This seat's line in the ledger is credited with catching the
 E2 V1-equation bug and the least-fixpoint crux — subtle-theory strengths.
-The standing-suspicion rule still applies to you: a review that agrees the
+The standing-suspicion rule still applies: a review that agrees the
 refutation failed is a result matching what the brief hoped for. Attack
 hardest where ADR-0017 is most confident — the Defence-2 claim-semantics
 split (does E2 really exhibit no pointwise violation?) and the T13

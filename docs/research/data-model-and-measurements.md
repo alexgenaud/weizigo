@@ -1,5 +1,7 @@
 # Data model efficiency and plan-A measurements
 
+**Status: historical (2026-07-14).** Pre-dates ADR-0009's six-column schema and the writes-off finisher. [Historical.]
+
 ## Is `blind` + `u16 seq` a good model up to 16 stones?
 
 Clever through ~8–10 stones; increasingly over-provisioned toward 16.

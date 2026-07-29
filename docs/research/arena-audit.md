@@ -1,5 +1,7 @@
 # Arena: adversarial self-play audit of the oracle player (2026-07-22)
 
+**Status: historical (2026-07-22).** Superseded by `docs/research/arena-4x4-undef.md` (2026-07-27), which fixed the UNDEF-sentinel poisoning that invalidated the original 45.3% leak rate. [Historical.]
+
 Instrument: `src/arena.zig` (user-designed methodology). One AUDITED player
 plays fresh-start-optimally but picks RANDOMLY among score-optimal moves
 (alternative winning lines, not just the fastest); the opponent plays a

@@ -1,6 +1,6 @@
 # EXP-2 audit — PRE-REGISTERED acceptance criteria
 
-**Written 2026-07-28 by Opus, BEFORE any EXP-2 result exists.** That is the
+**Written 2026-07-28, pre-registered BEFORE any EXP-2 result exists.** That is the
 point of the document: I proposed QA-023 and I want it to be true, so the
 criteria for believing it must be fixed before I can see whether they were met.
 If a later audit relaxes anything here, that relaxation must be recorded as a

@@ -4,17 +4,21 @@
 Enforces dependencies (`needs`) and engine-file locks (`holds`); `set` is a
 parallel-group label, not a gate.**
 
+**ORCHA-AUTOMATION (2026-07-30):** stdout/stderr split, `--json`, `sync`, `audit`,
+`standing`, `why`, attribution enforcement. See §"ORCHA-AUTOMATION commands" below.
+
 ---
 
 ## Interface
 
-Eleven commands. Five have zero required flags in daily use.
+Sixteen commands. The original eleven plus five from ORCHA-AUTOMATION.
 
 ```
 managent add <id>              register a task
 managent dispatch <id>         record a human→agent dispatch (task stays dispatchable)
 managent claim <id>            claim a task for execution
 managent done <id>             mark a task complete
+managent done <id> --fail      mark a task failed
 managent reopen <id>           reopen a killed in_progress/failed task (→ dispatchable)
 managent purge                 purge done/failed tasks (and clean their IDs from remaining needs)
 managent set <id> <A|B|C|…>      reassign a task's phase set (A–Z)
@@ -22,7 +26,22 @@ managent needs <id> [--add…/--rm…]  add/remove dependency edges
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task
+managent why <claim-id>        show tasks that produced evidence for a claim
+managent sync <role>           print unread inbox; exit non-zero when write owed
+managent audit [--json]        cross-check kanban against reality; exit non-zero on findings
+managent standing              print standing-tier triggers and task status
 ```
+
+### Output streams
+
+**stdout = data.** `status`, `show`, `why`, `sync`, `audit`, `standing` write
+their payload to stdout — anything a caller might parse, filter, or redirect.
+
+**stderr = diagnostics.** Warnings, errors, `REJECTED`, `BLOCKED`, migration
+notices, and progress chatter go to stderr.
+
+Regression check: `status 2>/dev/null` is non-empty; `status 1>/dev/null` is
+silent on a clean run.
 
 ---
 
@@ -392,6 +411,80 @@ State file path: `<root>/docs/infra/managent/tasks.json`.
 - Does NOT import any weizigo module.
 - Does NOT know about user decisions (UD-1, UD-2, …); those stay in
   `docs/infra/delegation.md`.
+
+---
+
+## ORCHA-AUTOMATION commands (2026-07-30)
+
+### `managent sync <role>`
+
+Scans `untracked/msg/<milestone>/` for message files, prints the inbox
+(unread messages addressed to `<role>` or `all`), prints the last message
+`<role>` posted and the event count since, and exits non-zero when the gap
+exceeds a threshold — "you owe a write."
+
+```
+$ managent sync orchestrator
+
+  INBOX for 'orchestrator' (unread messages):
+    M046  from dabir  to all
+           subject line here
+
+  LAST POSTED by 'orchestrator': M45
+  events since: 1 new messages
+
+  SYNC: 1 unread, 1 events since last post — you owe a write.
+```
+
+Read state is persisted in the `_sync` key of `tasks.json`.
+
+### `managent audit [--json]`
+
+Cross-checks the kanban against reality. Reports discrepancies:
+
+- `done` task with `agent == null` → **attribute it**
+- `done` task whose `holds` paths are not in `git ls-files` → **commit these**
+- `in_progress` task with no matching live process → **reopen** (heuristic)
+- `dispatchable` task with unmet `needs` → **gate it**
+- `blocked` task with all needs met → should be dispatchable
+- Task note mentions claim-status change but cites no second seat → **warn**
+
+Exits non-zero when FIX-level findings exist. `--json` outputs a JSON array
+of findings.
+
+### `managent standing`
+
+Prints the four standing-tier triggers and whether the corresponding tasks
+are registered:
+
+- **STANDING-HOLISTIC-AUDIT** — milestone shape changes
+- **STANDING-CLEANUP** — tree dirty across two turns
+- **STANDING-REEVIDENCE** — claimlint C3 debt grows
+- **STANDING-CONSOLIDATE** — any falsification occurred
+
+### `managent why <claim-id>`
+
+Search the kanban for tasks that reference a claim ID (in their bundle path,
+note, or task ID). Prints each task's status, agent, bundle, and completion
+ timestamp. Deterministic; no summarisation by model.
+
+### Attribution enforcement
+
+`managent done <id>` **refuses** (exits non-zero) when `agent` is unset.
+The caller must either have claimed with `--agent <worker>`, or supply
+`--agent <worker>` on the `done` command. `--fail` is exempt (a failed
+task may not have been attributed).
+
+### Commit-before-purge guard
+
+`managent purge` refuses if any `done`/`failed` task's `holds` paths are
+not tracked by git (`git ls-files`). The Orchestrator must commit before
+purging — the guard makes the prescription mechanical.
+
+### `--json` flag
+
+`status --json` and `audit --json` output JSON arrays to stdout for
+machine consumption.
 
 ---
 

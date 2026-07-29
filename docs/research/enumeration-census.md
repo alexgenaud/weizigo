@@ -1,5 +1,7 @@
 # Position enumeration census (2026-07-16)
 
+**Status: historical measurement (2026-07-16).** The legal-position enumerator. Results still valid; OEIS A094777 cross-validation is cited throughout CLAIMS.md. [Historical base — data still current.]
+
 `src/enumerate.zig` — board-size-agnostic legal-position enumerator (STRUCTURE
 only; ADR-0007). Validates against published counts, and produces the canonical
 class counts the compressed-oracle data model needs.

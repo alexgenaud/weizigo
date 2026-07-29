@@ -64,14 +64,15 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   ownership in `docs/status/CURRENT.md`, clear it when done; concurrent edits corrupt silently.
 - **Dates are absolute** (2026-07-28), never "today." **Numbers cite their run** (command, flags, board
   size) and state their **denominator**.
-- **Know your identifier and write it into every file you produce.** It is `<model>/<role>` for court
-  seats (`Opus/Orcha`, `DSPro/Dabir`) and `<model>/<task-id>` for workers (`DSPro/2B-5`) — a model name
-  alone names a *kind* of worker, not a worker, and five instances of one model ran five tasks on
-  2026-07-29. In full at first use, abbreviated after. `unknown/<task-id>` if you were not told your
-  model, **never a guess**; otherwise the model-performance ledger can attribute nothing.
-  Scheme and edge cases: `docs/infra/agent-identity-and-worker-channel.md`.
+- **Know your identifier and write it into every file you produce.** Court seats use the role name
+  (`Orchestrator`, `Dabir`); workers use their task ID (`2B-5`, `EXP-4`). A model name alone names a
+  *kind* of worker, not a worker, and five instances of one model ran five tasks on 2026-07-29. In full
+  at first use, abbreviated after. `unknown/<task-id>` if you were not told your model, **never a guess**;
+  otherwise the model-performance ledger can attribute nothing. The model is recorded at dispatch time
+  in `managent`'s `agent` field and in `model-perf.md`; it does not belong in the identifier. Scheme and
+  edge cases: `docs/infra/agent-identity-and-worker-channel.md`.
 - **Workers are identified by task ID** (`EXP-4`, `B99`), never by model name; thinking managers are
-  addressed by ROLE — OVERSEER / ADVISOR / THEORIST. Who is who, what may be specified in a brief, and how
+  addressed by ROLE — Orchestrator / Dabir / Auditor. Who is who, what may be specified in a brief, and how
   many agents may run at once: `docs/infra/delegation/ROLES.md`.
 
 ## Build / test / run

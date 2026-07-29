@@ -107,7 +107,7 @@ Another ADR-worthy decision.
 
 **Review requirement — and the independence condition matters more than the
 review.** A second agent must attempt to **refute** the proof before Part B is
-trusted. But note who wrote this brief: Opus, who proposed QA-023 and wants it
+trusted. But note who wrote this brief: the proposer of QA-023, who wants it
 true. A reviewer who reads this document inherits that framing.
 
 So the reviewer must be given **only**: the proof from A1-A5, the two
@@ -126,7 +126,7 @@ obviously correct and was wrong."
 
 ## Part B — the computational check
 
-> **CORRECTED 2026-07-28 (Opus).** An earlier revision of this brief specified
+> **CORRECTED 2026-07-28.** An earlier revision of this brief specified
 > the check at **2×2 only**. That was wrong and would have produced a *vacuous
 > pass*: **2×2 admits no reachable non-root cycles** (`CLAIMS.md:159`,
 > `2x2.T12`; `4x4/EPISTEMIC.md:401`). QA-023 is a claim about how **long cycles**
@@ -164,7 +164,7 @@ which is why 3×2 and not 2×2 was where C2 actually fell.
 3. **Independently check the claim with a HISTORY-SENSITIVITY PROBE — not an
    exhaustive brute force.**
 
-> **CORRECTED 2026-07-28 (Opus). This step previously said "brute-force the same
+> **CORRECTED 2026-07-28. This step previously said "brute-force the same
 > game by explicit game-tree evaluation carrying full history and compare every
 > state." That instruction was wrong, and it burned a console for 10 hours.**
 >

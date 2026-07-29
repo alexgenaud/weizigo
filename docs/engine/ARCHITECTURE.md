@@ -1,5 +1,7 @@
 # weizigo architecture
 
+**Status: living document (updated 2026-07-20). [Current.]**
+
 Updated 2026-07-20. ~6,200 lines of Zig across 16 modules, in TWO GENERATIONS
 plus tools, presentation, and a documentation system. Goal (ADR-0007): a
 compressed perfect oracle — the exact score of every legal (position, side) —

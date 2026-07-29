@@ -1,7 +1,7 @@
 <!--managent set=E-->
 # F1-CENSUS-GAP — trace the residual +3 in the corrected 3×2 census
 
-**Opened by:** `Kimi-k3`, which spotted it while reading `F1-SEEDROOTS` and flagged it unprompted: *"census V: 2,622 → 2,586. A residual +3 gap vs the Python-port true-root prediction of 2,583 is softly reconciled but not traced."* ANALYSIS, read-only.
+**Opened by:** the kernel auditor, which spotted it while reading `F1-SEEDROOTS` and flagged it unprompted: *"census V: 2,622 → 2,586. A residual +3 gap vs the Python-port true-root prediction of 2,583 is softly reconciled but not traced."* ANALYSIS, read-only.
 
 ## Why bother with three states
 
@@ -12,7 +12,7 @@ Two independent predictions of the corrected true-root reachable count disagree:
 | source | V |
 |---|---|
 | `2B-FIX-KO`'s Python port, corrected ko rule + single true root | **2,583** |
-| `F1-SEEDROOTS` (DSPro, Zig, in-tree, seeds 42 → 4) | **2,586** |
+| `F1-SEEDROOTS` (in-tree Zig, seeds 42 → 4) | **2,586** |
 
 Three states. Either the Python port over-trimmed, or the Zig still seeds something unreachable, or the two are counting different sets (e.g. terminals, or `passes` variants). **Name the three states.**
 
@@ -34,6 +34,6 @@ Three states. Either the Python port over-trimmed, or the Zig still seeds someth
 
 `docs/evidence/QA-023/f1-census-gap-<date>.md`. **Read-only on `src/`** — if you need a diff harness, put it in a new file and say so. Do not edit `CLAIMS.md` or any deliverable.
 
-**Suggested seat:** `Kimi-k3` — it found the gap, it already holds the census context, and this is **not** self-review (`F1-SEEDROOTS` was DSPro's work). A good use of a seat that is otherwise idle behind a blocked `EXP-4`.
+**Suggested seat:** the kernel auditor — it found the gap, it already holds the census context, and this is **not** self-review (`F1-SEEDROOTS` was a different worker's work). A good use of a seat that is otherwise idle behind a blocked `EXP-4`.
 
 **Read first:** `docs/evidence/QA-023/f1-seedroots-2026-07-29.md`, `docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md` §7 (the 2,583 prediction), `docs/audits/2b-2-census-audit-opus5-2026-07-29.md` (finding F1).

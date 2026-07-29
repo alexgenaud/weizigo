@@ -1,7 +1,7 @@
 <!--managent set=Q holds=src/qa023_probe.zig needs=2B-PROBE-FIX-->
 # F1-SEEDROOTS — the census seeds 42 roots, not 4; three published numbers move
 
-**Opened by:** the Opus 5 audit of 2B-2, finding **F1** — explicitly left open by `2B-FIX-KO` §7 as out of its scope, and never registered since.
+**Opened by:** the audit of 2B-2, finding **F1** — explicitly left open by `2B-FIX-KO` §7 as out of its scope, and never registered since.
 
 ## The defect
 

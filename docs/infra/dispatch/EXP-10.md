@@ -1,13 +1,12 @@
 <!--managent set=A caps=reasoning:sustained,independence:has-not-read-roadmap-critique-adr0015-->
 
-# EXP-10 — QA-018/019 ADR: **refute** Opus's ruling that ADR-0010 is refuted
+# EXP-10 — QA-018/019 ADR: **refute** the D-5 ruling that ADR-0010 is refuted
 
-**Closes:** drafts the ADR for `QA-018`/`QA-019`. **The ruling (DECISIONS D-5,
-Opus) is already made; this task attempts to REFUTE it.** If the refutation
+**Closes:** drafts the ADR for `QA-018`/`QA-019`. **The ruling (DECISIONS D-5) is already made; this task attempts to REFUTE it.** If the refutation
 succeeds, the ruling is overturned and F2 is un-orphaned; if it fails, the ADR
 records the ruling as standing. **Blocks:** EXP-6 + any writes-off regen.
-**Blocked by:** nothing. **Allocated to Fable (DECISIONS D-7)** — the hardest
-claim-semantics reasoning; Opus reviews adversarially and executes neither.
+**Blocked by:** nothing. **Allocated per DECISIONS D-7** — the hardest
+claim-semantics reasoning; an independent seat reviews adversarially and executes neither.
 **Holds:** `docs/decisions/0015-*.md` (new) — docs-only.
 
 **Read first:** `untracked/msg/milestone-01-ko-reframe/STATE.md`, then
@@ -35,7 +34,7 @@ is the *argument that they must be*.
 
 ## Your job: attempt to discharge the burden — i.e. refute the ruling
 
-An ADR that merely restates Opus's position is worthless (D-5). You are tasked
+An ADR that merely restates the D-5 position is worthless (D-5). You are tasked
 with **finding the exemption if it exists**: is the finisher's *search-path*
 history family (a fresh-start root, a single self-imposed ban set descending the
 retrograde graph) genuinely **exempt** from the real-game PSK histories E2
@@ -66,7 +65,7 @@ Adjudicate both horns:
    F2 stands, ADR-0010 reworded).
 4. It ends with "Refutation succeeded/failed: …" and, if failed, "Ruling stands
    (D-5); the user owns the formal ADR promotion." If succeeded, "F2 un-orphaned
-   pending Opus's adversarial review."
+   pending independent adversarial review."
 5. Auditable by a fresh agent reading only the ADR + the cited sources.
 
 ## Deliverables

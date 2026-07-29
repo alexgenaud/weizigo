@@ -1,5 +1,7 @@
 # Strategy & open questions (2026-07-15)
 
+**Status: historical (2026-07-15).** Superseded by `docs/epistemic/roadmap-2026-07-28.md` and the decisions that closed these questions. [Historical.]
+
 Topics to consider — options kept OPEN, deliberately not decided yet. Revisit
 before committing to an engine or data model (candidate for a future ADR).
 

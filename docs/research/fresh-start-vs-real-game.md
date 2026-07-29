@@ -1,5 +1,7 @@
 # Fresh-start scores vs real-game scores
 
+**Status: historical (2026-07-26).** Superseded by `docs/status/leak-crisis.md` (the consolidated crisis narrative) and `docs/epistemic/PROGRESS.md`. [Historical.]
+
 **Date:** 2026-07-26  
 **Status:** conceptual clarification following T13 and user questions.
 

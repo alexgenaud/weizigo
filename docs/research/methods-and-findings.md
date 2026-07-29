@@ -1,5 +1,7 @@
 # How we solve small Go boards — what worked, what didn't, and how we know
 
+**Status: historical overview (2026-07-17).** The living specification is now `docs/epistemic/PROGRESS.md`. [Historical.]
+
 *Written for a curious reader who plays a little Go (say 20 kyu) but is not a
 programmer or mathematician. No formulas, no code. If a term is unavoidable it
 is explained the first time it appears.*

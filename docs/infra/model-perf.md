@@ -1,5 +1,7 @@
 # Model-performance observations (untracked scratch — impressions, not science)
 
+**Status: living scratchpad. [Current.]**
+
 TODO: record the general facts about each model. Then keep notes of each model in different contexts or with different tasks.
 
 ## Model versions (record here as they change)

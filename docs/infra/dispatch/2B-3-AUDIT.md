@@ -1,7 +1,7 @@
 <!--managent set=P needs=2B-2-->
 # 2B-3-AUDIT — audit the history-pair generator (an unaudited input to every probe result)
 
-**Opened by:** GLM-5.2's handover (msg 037-glm) named this and it was never registered; the Orchestrator is registering it because `2B-PROBE-FIX` will consume this generator's output. ANALYSIS — read-only, no file conflicts.
+**Opened by:** the Orchestrator's handover (msg 037) named this and it was never registered; the Orchestrator is registering it because `2B-PROBE-FIX` will consume this generator's output. ANALYSIS — read-only, no file conflicts.
 
 ## Why
 

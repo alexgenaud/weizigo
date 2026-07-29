@@ -1,5 +1,7 @@
 # GHI (Graph History Interaction) and superko implementation
 
+**Status: historical (pre-ADR-0013).** The `ko_ref ≥ d` rule described here was falsified by ADR-0013. Current truth: `docs/decisions/0013`. [Historical.]
+
 Why superko complicates a transposition table, and how we handle it
 (`decisions/0004`).
 

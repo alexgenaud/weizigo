@@ -23,24 +23,24 @@ EXP-10 attempted to **refute** ADR-0015 (the OVERSEER's ruling that ADR-0010's
 "brackets hold under ANY arrival history" is false as stated for an empty-board
 root, because the finisher's search path *is* a real game line and E2's
 falsifying histories lie inside the family ADR-0010 claims to cover). EXP-10
-**failed** to refute it (Fable 5, message 025, ADR-0017): the search-path
+**failed** to refute it (message 025, ADR-0017): the search-path
 family is not exempt — T13's 12 pointwise mismatches at 3×2 ride exactly the
 finisher's search-shaped histories (8/12 empty-rooted).
 
-Your job is **not** to re-argue ADR-0015. The ruling party (Opus) cannot
-review its own ruling, and the refuter (Fable) cannot review its own attempt.
+Your job is **not** to re-argue ADR-0015. The ruling party cannot
+review its own ruling, and the refuter cannot review its own attempt.
 You are the **third party**. The question is narrower and sharper:
 
-> **Is ADR-0017's "refutation failed" verdict sound — or did Fable miss an
+> **Is ADR-0017's "refutation failed" verdict sound — or did the refutation miss an
 > exemption argument that would let the search-path family off the hook?**
 
 Two outcomes, both full deliverables:
 
 - **Verdict A — sound.** ADR-0015 stands (and is strengthened). You must name
-  the *specific* exemption argument Fable would have needed, and show why it
+  the *specific* exemption argument the refutation would have needed, and show why it
   fails. "I can't find an exemption either" is not enough — name what an
   exemption would have to look like and why it is unavailable.
-- **Verdict B — Fable missed something.** ADR-0015 is weakened or overturned.
+- **Verdict B — the refutation missed something.** ADR-0015 is weakened or overturned.
   You must **write the exemption argument out** — the theorem or construction
   that separates the finisher's search-path family from the real-game
   histories that falsify the bracket. If you cannot write it, you are in
@@ -48,7 +48,7 @@ Two outcomes, both full deliverables:
 
 ## The three findings in 025 you must adjudicate individually
 
-Fable's 025 raised three findings beyond the OVERSEER's original ruling.
+Message 025 raised three findings beyond the D-5 ruling.
 Grade each **SOUND / OVERSTATED / WRONG** with the reason:
 
 1. **E2 is outcome-level, not pointwise.** That E2's leak is a policy-play
@@ -60,13 +60,13 @@ Grade each **SOUND / OVERSTATED / WRONG** with the reason:
    so a brackets-off rebuild does not escape the bracket cut by construction.
    (This bears on whether Track A *or any regen* can close F2/F3 — a strong
    claim. Check it against `src/retro.zig` read-only.)
-3. **Third-party review, not Opus.** Procedural — you are that third party;
+3. **Third-party review, not the ruling party.** Procedural — you are that third party;
    confirm or qualify the requirement.
 
 ## Independence (mandatory)
 
-You must be a **third party**: not the model that issued ADR-0015 (Opus), not
-the model that attempted the refutation (Fable). The Orchestrator (GLM-5.2)
+You must be a **third party**: not the agent that issued ADR-0015, not
+the agent that attempted the refutation. The Orchestrator
 is also barred — `ORCHESTRATOR.md` "What you do not do" forbids the
 Orchestrator from ruling on claim semantics. Come at ADR-0017 as a skeptic
 who has not internalised ADR-0015's framing: read ADR-0017 *first*, decide
@@ -79,7 +79,7 @@ verdict survives seeing the ruling.
    (claim on start, `managent done` on finish — both required).
 2. `docs/decisions/0017-bracket-cut-refutation-attempt-failed.md` (the thing
    under review).
-3. `docs/evidence/QA-018/refutation-attempt-2026-07-29.md` (Fable's verbatim
+3. `docs/evidence/QA-018/refutation-attempt-2026-07-29.md` (the refutation attempt's verbatim
    citations).
 4. `untracked/msg/milestone-01-ko-reframe/025-fable-to-all.md` (the three
    findings above, in context).

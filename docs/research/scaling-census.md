@@ -1,5 +1,7 @@
 # Scaling census — the numbers that decide 5×5 feasibility
 
+**Status: historical measurement (2026-07-16).** Pre-dates ADR-0013 and the writes-off finisher. Current 5×5 projections: `docs/decisions/0012` and `docs/research/kostate-census-2026-07-28.md`. [Historical.]
+
 Measured by `RETRO_CENSUS` (retro.zig): build each board through
 seed+converge+finalize only — the **history-free** part (L/H iteration +
 certified/ko-sensitive region classification), NO finisher. This is the cheap, provably

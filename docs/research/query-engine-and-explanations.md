@@ -1,6 +1,8 @@
 # The query engine: definitive local questions & non-fiction explanations
 (2026-07-18; user requirements session)
 
+**Status: historical (2026-07-18).** Requirements document; current implementation status differs. [Historical.]
+
 The oracle answers ONE question: exact score of (position, side). The user
 requires a family of LOCAL, HUMAN-MEANINGFUL questions with DEFINITIVE answers
 — or an honest "no definitive answer beyond: it leads to the optimal outcome."

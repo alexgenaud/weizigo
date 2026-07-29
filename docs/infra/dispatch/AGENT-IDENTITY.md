@@ -9,9 +9,9 @@ The project names agents by **model**, which is a kind of worker and not a worke
 
 ## The scheme
 
-- **court:** `<model>/<role>` — `Opus/Orcha`, `DSPro/Dabir` (each role is singleton by rule)
-- **worker:** `<model>/<task-id>` — `DSPro/2B-5` (a task has one claimant at a time)
-- re-attempt after reopen: **`DSPro/2B-5.2`** — minted by `managent` from the claim count, never by the agent
+- **court:** `<role>` — `Orchestrator`, `Dabir`, `Auditor` (each role is singleton by rule)
+- **worker:** `<task-id>` — `2B-5` (a task has one claimant at a time)
+- re-attempt after reopen: **`2B-5.2`** — minted by `managent` from the claim count, never by the agent
 - undeclared model: `unknown/<task-id>`, and `done` refuses it
 - sub-delegation: `<model>/<task-id>+<n>`
 
@@ -22,8 +22,8 @@ The project names agents by **model**, which is a kind of worker and not a worke
 1. **A derived accessor** in `src/managent/main.zig` — one function returning the identifier for a task, with the `.2` attempt suffix when the claim count exceeds one. Use it in `status`, `show`, and every message the tool prints.
 2. **`managent whoami <task-id>`** (or equivalent) so an agent can resolve its own identifier rather than guess it.
 3. **Print identifiers, not models,** wherever the tool names an agent today.
-4. **Update the convention in `AGENTS.md`:** an agent writes its **identifier** into every artefact it produces, in full at first use, abbreviated thereafter — the project's existing expand-at-first-use rule. Amend the current wording (which asks only for the model) rather than adding a second rule beside it.
-5. **Backfill `model-perf.md`'s 2026-07-29 rows** with identifiers now that they can be stated: `DSPro/2B-3-AUDIT`, `DSPro/2B-PROBE-FIX`, `DSPro/2B-6`, `DSPro/EVIDENCE-INTEGRITY`, `DSPro/ADR0006-FALSIFY`.
+4. **Check `AGENTS.md`** — it was updated by `ROLE-NAMES` to the role/task-id convention. If anything remains that asks for the model in the identifier, amend it rather than adding a second rule beside it.
+5. **Backfill `model-perf.md`'s 2026-07-29 rows** with task identifiers: `2B-3-AUDIT`, `2B-PROBE-FIX`, `2B-6`, `EVIDENCE-INTEGRITY`, `ADR0006-FALSIFY`. The model is already recorded in the `agent` field; the identifier carries the task, not the model (per `ROLE-NAMES`).
 
 ## Part 3 — opaque task IDs for new tasks
 

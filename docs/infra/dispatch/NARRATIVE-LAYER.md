@@ -1,7 +1,7 @@
 <!--managent set=U-->
 # NARRATIVE-LAYER — a human-readable through-line that is a verified projection of the tree, not an agent's invention
 
-**Opened by:** GLM-5.2's retirement assessment (2026-07-29) and the user's question "is the tree human-friendly? can narratives be generated without hallucination?" Answer to both today: **no**, and **yes but only with cite-back discipline**. This task builds the discipline.
+**Opened by:** the Orchestrator's retirement assessment (2026-07-29) and the user's question "is the tree human-friendly? can narratives be generated without hallucination?" Answer to both today: **no**, and **yes but only with cite-back discipline**. This task builds the discipline.
 
 ## The problem, stated precisely
 
