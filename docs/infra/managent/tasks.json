@@ -1,16 +1,17 @@
 {
   "2B-FIX-KO": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "opus-5",
     "bundle": "docs/infra/dispatch/2B-FIX-KO.md",
     "set": "K",
     "holds": ["src/qa023_brute_2x2.zig,src/qa023_probe.zig"],
     "needs": ["2B-2-AUDIT-OPUS"],
     "added": "2026-07-29T11:57:09Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": "2026-07-29T11:57:09Z",
-    "dispatched_to": "minimax-m3",
-    "note": "Opus audit F5: apply_place misses the single-stone ko-capture check (proof-v2 §1.1). Fix it in qa023_brute_2x2.zig, re-run the 3x2 census + probe under the corrected rule, report whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact. This is the gate on the keystone. (Model suggestion only — the human assigns.)"
+    "claimed": "2026-07-29T12:37:45Z",
+    "done": "2026-07-29T12:37:45Z",
+    "dispatched": "2026-07-29T12:41:28Z",
+    "dispatched_to": "opus-5",
+    "note": "Human dispatched 2B-FIX-KO to Opus 5, incl. potentially additional work suggested by the prior Opus 2B-2 auditor (F5: apply_place single-stone ko-capture check; re-run census + probe; resolve whether 2B-4's QA-023 falsification holds or was a wrong-rule artefact). Model suggestion only — human assigns."
   },
   "EXP-5": {
     "status": "blocked",
@@ -26,7 +27,7 @@
     "note": null
   },
   "2B-2-AUDIT": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "kimi-k2.7",
     "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
     "set": "J",
@@ -34,7 +35,7 @@
     "needs": ["2B-2"],
     "added": "2026-07-29T11:26:48Z",
     "claimed": "2026-07-29T11:52:27Z",
-    "done": null,
+    "done": "2026-07-29T12:06:27Z",
     "dispatched": "2026-07-29T11:26:48Z",
     "dispatched_to": "kimi-k2.7",
     "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable."
@@ -162,13 +163,14 @@
     "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
   },
   "2B-5": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DeepSeek-Pro",
     "bundle": "docs/infra/dispatch/2B-5.md",
     "set": "D",
     "holds": ["src/qa023_probe.zig"],
     "needs": ["2B-4"],
     "added": "2026-07-29T09:38:44Z",
-    "claimed": null,
+    "claimed": "2026-07-29T12:36:42Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,

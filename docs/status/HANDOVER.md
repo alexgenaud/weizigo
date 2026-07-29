@@ -5,11 +5,12 @@ in-flight task state lives in `CURRENT.md`. This file answers: what just
 happened, what will bite you, what to do next.
 
 **Historical record.** This file describes the 2026-07-27 chainability
-session. **The current handover is `handover-minimax-m3-2026-07-29.md`**
-(the 2026-07-29 02:37 host-panic-recovery session, including the EXP-2A /
-EXP-9 / EXP-12 closures, the dispatch-gap fix in `managent`, the B-2
-RSS runner, and the EXP-2B dispatch to Minimax-m3). **Read the
-current one first on resume.**
+session. **The current handover is `handover-glm-5.2-2026-07-29.md`**
+(the 2026-07-29 Orchestrator handover GLM-5.2 → Opus 5; the QA-023
+falsification pending audit, the 2B-0…2B-6 + 2B-FIX-KO restructure, D-8,
+the proactive-duties + anti-spin-out encoding). **Read the current one
+first on resume.** The prior handover (`handover-minimax-m3-2026-07-29.md`,
+the 2026-07-29 host-panic-recovery session) is the predecessor.
 
 ## Read order
 
