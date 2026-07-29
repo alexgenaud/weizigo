@@ -84,7 +84,7 @@
 //   zig run -O ReleaseFast src/qa023_probe.zig -- calibrate
 //   zig run -O ReleaseFast src/qa023_probe.zig -- census-3x2
 //   zig run -O ReleaseFast src/qa023_probe.zig -- fixpoint-3x2
-//   zig run -O ReleaseFast src/qa023_probe.zig -- probe-3x2 [--seed N] [--n-samples N] [--k-histories N] [--history-depth N]
+//   zig run -O ReleaseFast src/qa023_probe.zig -- probe-3x2 [--seed N] [--n-samples N] [--k-histories N] [--history-depth N] [--node-budget N]
 //   zig run -O ReleaseFast src/qa023_probe.zig -- all
 //
 // Output goes to stdout; the same lines are the "evidence" for
@@ -1144,7 +1144,10 @@ fn fp_eq(a: HistoryEntry, b: HistoryEntry) bool {
 }
 /// `path` is the arrival history; this function builds the continuation
 /// tree from `state`, scoring revisits within the continuation as TIE.
-/// Returns the value, or `null` if the node budget was exhausted.
+/// Returns the value, or `null` if exhausted (budget or scratch).
+/// `scratch_full` is set to true on scratch overflow, false on budget exhaustion.
+/// `collision_count` is incremented when the arrival set contains the target
+/// state σ itself (defect 1 in probe-defect-2026-07-29); caller zeroes it.
 fn truncated_value(
     state: StateIdx,
     board: *const Pos,
@@ -1154,9 +1157,25 @@ fn truncated_value(
     scratch: []HistoryEntry,
     scratch_top: *u16,
     tie_value: i8,
+    scratch_full: *bool,
+    collision_count: *u64,
 ) ?i8 {
     if (budget.* == 0) return null;
     budget.* -= 1;
+    // Independent defect verification: is σ itself in the arrival set?
+    // Per reference-semantics §1, the arrival set is exclusive of σ.
+    // If arrival_len > 0 and arrival[arrival_len-1] matches the current
+    // (state, board), that is a σ-in-arrival collision.
+    // ONLY count at the top-level call (scratch_top == 0) — recursive
+    // matches against the arrival prefix are normal and not the defect.
+    if (scratch_top.* == 0 and arrival_len > 0) {
+        const last = arrival[arrival_len - 1];
+        if (last.state.board == state.board and last.state.side == state.side and
+            last.state.ko == state.ko and last.state.passes == state.passes)
+        {
+            collision_count.* += 1;
+        }
+    }
     // Cycle check: has `state` appeared in the arrival prefix OR in the
     // continuation-so-far (entries 0..arrival_len-1 plus scratch[0..*scratch_top])?
     var i: u16 = 0;
@@ -1195,7 +1214,10 @@ fn truncated_value(
     for (0..m) |k| {
         if (!is_legal(&succ_boards[k])) continue;
         // Push this state onto scratch, recurse, then pop.
-        if (scratch_top.* >= scratch.len) return null; // scratch overflow: budget
+        if (scratch_top.* >= scratch.len) {
+            scratch_full.* = true;
+            return null;
+        }
         scratch[scratch_top.*] = .{
             .state = state,
             .board = board.*,
@@ -1207,7 +1229,7 @@ fn truncated_value(
         };
         scratch_top.* += 1;
         const child = succs[k];
-        const v = truncated_value(child, &succ_boards[k], arrival, arrival_len, budget, scratch, scratch_top, tie_value) orelse return null;
+        const v = truncated_value(child, &succ_boards[k], arrival, arrival_len, budget, scratch, scratch_top, tie_value, scratch_full, collision_count) orelse return null;
         scratch_top.* -= 1;
         if (maximizing) {
             if (v > best) best = v;
@@ -1325,6 +1347,7 @@ const ProbeOutcome = struct {
     n_disagreement: u32,
     n_cycle_involved: u32,
     n_budget_exhausted: u32,
+    n_scratch_overflow: u32,
     n_unreachable: u32,
     cycle_census_states: u32, // states that any arrival-history evaluator saw a cycle in
     pin_t_sampled: u32,
@@ -1332,6 +1355,12 @@ const ProbeOutcome = struct {
     pin_h_sampled: u32,
     l_eq_h_sampled: u32,
     history_total: u32,
+    // C1/C2 split (2B-PROBE-FIX)
+    n_c1_failures: u32, // within-budget evaluations disagree among themselves (C1 falsified)
+    n_c2_failures: u32, // within-budget evaluations agree among themselves but disagree with fixpoint
+    n_c1_eligible: u32, // states with >=2 within-budget evaluations (can test C1)
+    n_c2_eligible: u32, // states with >=1 within-budget evaluation (can test C2)
+    sigma_in_arrival_collisions: u64, // independent reproduction of defect 1
 };
 
 /// Collect up to `max_collect` distinct arrival histories from the empty
@@ -1570,6 +1599,7 @@ fn run_probe_3x2(
         .n_disagreement = 0,
         .n_cycle_involved = 0,
         .n_budget_exhausted = 0,
+        .n_scratch_overflow = 0,
         .n_unreachable = 0,
         .cycle_census_states = 0,
         .pin_t_sampled = 0,
@@ -1577,6 +1607,11 @@ fn run_probe_3x2(
         .pin_h_sampled = 0,
         .l_eq_h_sampled = 0,
         .history_total = 0,
+        .n_c1_failures = 0,
+        .n_c2_failures = 0,
+        .n_c1_eligible = 0,
+        .n_c2_eligible = 0,
+        .sigma_in_arrival_collisions = 0,
     };
 
     // DFS resources for collecting distinct simple-path arrival histories.
@@ -1589,10 +1624,13 @@ fn run_probe_3x2(
     const collected_lens = try gpa.alloc(u16, params.k_histories);
     defer gpa.free(collected_lens);
 
-    // Scratch for the truncated evaluator
-    const scratch = try gpa.alloc(HistoryEntry, params.history_depth + 4);
+    // Scratch for the truncated evaluator — continuation depth is bounded by
+    // the reachable state count (~2,622 at 3×2), NOT by arrival depth. A
+    // scratch sized `history_depth + 4` overflows silently (defect 2 in
+    // probe-defect-2026-07-29). 4096 is a safe over-provision for 3×2.
+    const scratch = try gpa.alloc(HistoryEntry, 4096);
     defer gpa.free(scratch);
-    const arrival_buf = try gpa.alloc(HistoryEntry, params.history_depth + 4);
+    const arrival_buf = try gpa.alloc(HistoryEntry, 4096);
     defer gpa.free(arrival_buf);
 
     const TIE_PERTURB: i8 = if (TIE == 0) 1 else 0;
@@ -1670,6 +1708,10 @@ fn run_probe_3x2(
         var sample_had_disagreement: bool = false;
         var sample_had_successful_eval: bool = false;
         var sample_cycle_mattered: bool = false;
+        // C1/C2 tracking (2B-PROBE-FIX): per-sample, per-history within-budget vals
+        var c1_first_val: ?i8 = null;
+        var c1_all_agree: bool = true;
+        var c1_within_budget_count: u32 = 0;
         var hist_idx: u32 = 0;
         while (hist_idx < n_collected) : (hist_idx += 1) {
             const base = hist_idx * params.history_depth;
@@ -1718,13 +1760,28 @@ fn run_probe_3x2(
             // Evaluate S with first-revisit truncation.
             var budget1 = params.node_budget_per_history;
             var scratch_top1: u16 = 0;
-            const v = truncated_value(state, &target_board, arrival_buf[0..arrival_len], arrival_len, &budget1, scratch, &scratch_top1, TIE);
+            var scratch_full1: bool = false;
+            var collision_count1: u64 = 0;
+            const v = truncated_value(state, &target_board, arrival_buf[0..arrival_len - 1], arrival_len - 1, &budget1, scratch, &scratch_top1, TIE, &scratch_full1, &collision_count1);
+            outcome.sigma_in_arrival_collisions += collision_count1;
             outcome.history_total += 1;
             if (v == null) {
-                outcome.n_budget_exhausted += 1;
+                if (scratch_full1) {
+                    outcome.n_scratch_overflow += 1;
+                } else {
+                    outcome.n_budget_exhausted += 1;
+                }
                 continue;
             }
             sample_had_successful_eval = true;
+
+            // C1/C2 tracking (2B-PROBE-FIX): record within-budget truncated value
+            c1_within_budget_count += 1;
+            if (c1_first_val == null) {
+                c1_first_val = v.?;
+            } else if (c1_first_val.? != v.?) {
+                c1_all_agree = false;
+            }
 
             // Three-way split per reference-semantics §2:
             //   value (v != TIE) / TIE (v == TIE) / BUDGET-EXHAUSTED (v == null)
@@ -1736,7 +1793,7 @@ fn run_probe_3x2(
                 if (v.? != V_fixpoint) {
                     sample_had_disagreement = true;
                     outcome.n_disagreement += 1;
-                    if (outcome.n_disagreement <= 5) {
+                    if (outcome.n_disagreement <= 100) {
                         std.debug.print("# DISAGREE(TIE) #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated=TIE arrival_len={d}\n", .{
                             outcome.n_disagreement,
                             state.board, state.side, state.ko, state.passes,
@@ -1766,7 +1823,7 @@ fn run_probe_3x2(
                 sample_had_disagreement = true;
                 outcome.n_disagreement += 1;
                 // Dump the first 5 disagreements verbatim per 2B-4 acceptance.
-                if (outcome.n_disagreement <= 5) {
+                if (outcome.n_disagreement <= 100) {
                     std.debug.print("# DISAGREE #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated={d} arrival_len={d}\n", .{
                         outcome.n_disagreement,
                         state.board, state.side, state.ko, state.passes,
@@ -1793,9 +1850,16 @@ fn run_probe_3x2(
             // value, then a truncated-leaf TIE was on the optimal line.
             var budget2 = params.node_budget_per_history;
             var scratch_top2: u16 = 0;
-            const v_perturb = truncated_value(state, &target_board, arrival_buf[0..arrival_len], arrival_len, &budget2, scratch, &scratch_top2, TIE_PERTURB);
+            var scratch_full2: bool = false;
+            var collision_count2: u64 = 0;
+            const v_perturb = truncated_value(state, &target_board, arrival_buf[0..arrival_len - 1], arrival_len - 1, &budget2, scratch, &scratch_top2, TIE_PERTURB, &scratch_full2, &collision_count2);
+            outcome.sigma_in_arrival_collisions += collision_count2;
             if (v_perturb == null) {
-                outcome.n_budget_exhausted += 1;
+                if (scratch_full2) {
+                    outcome.n_scratch_overflow += 1;
+                } else {
+                    outcome.n_budget_exhausted += 1;
+                }
                 continue;
             }
             if (v_perturb.? != v.?) {
@@ -1808,15 +1872,29 @@ fn run_probe_3x2(
         } else if (sample_had_successful_eval) {
             // at least one history agreed and none disagreed
         }
+        // Per-sample C1/C2 adjudication (2B-PROBE-FIX)
+        if (c1_within_budget_count >= 2) {
+            outcome.n_c1_eligible += 1;
+            if (!c1_all_agree) {
+                outcome.n_c1_failures += 1;
+            }
+        }
+        if (c1_within_budget_count >= 1) {
+            outcome.n_c2_eligible += 1;
+            if (c1_all_agree and c1_first_val != null and c1_first_val.? != V_fixpoint) {
+                outcome.n_c2_failures += 1;
+            }
+        }
         if (sample_cycle_mattered) outcome.cycle_census_states += 1;
         if (sample_idx % 8 == 0 and sample_idx > 0) {
-            std.debug.print("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d}\n", .{
+            std.debug.print("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d} scratch={d}\n", .{
                 sample_idx,
                 params.n_samples,
                 outcome.n_value_agreements,
                 outcome.n_tie_valued,
                 outcome.n_disagreement,
                 outcome.n_budget_exhausted,
+                outcome.n_scratch_overflow,
             });
         }
     }
@@ -1824,11 +1902,14 @@ fn run_probe_3x2(
     std.debug.print("# === probe verdict ===\n", .{});
     std.debug.print("# samples requested: {d}\n", .{params.n_samples});
     std.debug.print("# samples evaluated: {d}\n", .{outcome.n_evaluated});
+    std.debug.print("# sigma-in-arrival collisions (defect 1, should be 0): {d}\n", .{outcome.sigma_in_arrival_collisions});
     std.debug.print("# === three-way split (ref-semantics §2) ===\n", .{});
-    std.debug.print("# value-agreements (v != TIE, v == V): {d}\n", .{outcome.n_value_agreements});
-    std.debug.print("# TIE-valued (v == TIE): {d}\n", .{outcome.n_tie_valued});
-    std.debug.print("# budget-exhausted (v == null): {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
-    std.debug.print("# disagreements (v != TIE, v != V, v != null): {d}\n", .{outcome.n_disagreement});
+    const within_budget: u32 = outcome.history_total - outcome.n_budget_exhausted - outcome.n_scratch_overflow;
+    std.debug.print("# value-agreements (v != TIE, v == V): {d}  (/{d} within-budget)\n", .{ outcome.n_value_agreements, within_budget });
+    std.debug.print("# TIE-valued (v == TIE): {d}  (/{d} within-budget)\n", .{ outcome.n_tie_valued, within_budget });
+    std.debug.print("# budget-exhausted (v == null, budget): {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
+    std.debug.print("# scratch-overflow (v == null, scratch): {d} / {d}\n", .{ outcome.n_scratch_overflow, outcome.history_total });
+    std.debug.print("# disagreements (v != TIE, v != V, v != null): {d}  (/{d} within-budget)\n", .{ outcome.n_disagreement, within_budget });
     std.debug.print("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
     std.debug.print("# cycle-census states (any history hit TIE leaf): {d}\n", .{outcome.cycle_census_states});
     std.debug.print("# sampled-kind counts: L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{
@@ -1837,12 +1918,32 @@ fn run_probe_3x2(
         outcome.pin_l_sampled,
         outcome.pin_h_sampled,
     });
-    if (outcome.n_disagreement == 0 and outcome.n_evaluated > 0) {
-        std.debug.print("# QA-023: NOT FALSIFIED on this sample. No arrival history disagreed with V.\n", .{});
-    } else if (outcome.n_disagreement > 0) {
-        std.debug.print("# QA-023: FALSIFIED on this sample. Inspect the disagreements.\n", .{});
+    std.debug.print("# === C1/C2 split (2B-PROBE-FIX) ===\n", .{});
+    std.debug.print("# C1: states with >=2 within-budget evals (can test C1): {d}\n", .{outcome.n_c1_eligible});
+    std.debug.print("# C1: states where within-budget values disagree among themselves: {d}\n", .{outcome.n_c1_failures});
+    std.debug.print("# C2: states with >=1 within-budget eval (can test C2): {d}\n", .{outcome.n_c2_eligible});
+    std.debug.print("# C2: states where all agree but disagree with fixpoint V: {d}\n", .{outcome.n_c2_failures});
+    if (outcome.n_c1_failures > 0) {
+        std.debug.print("# C1 VERDICT: FALSIFIED — {d} states show history-dependent truncated values\n", .{outcome.n_c1_failures});
+    } else if (outcome.n_c1_eligible > 0) {
+        std.debug.print("# C1 VERDICT: no history-dependence among {d} eligible states (histories share ~62% prefixes per 2B-3-AUDIT; short paths systematically missed — UNTESTED-FOR-WANT-OF-CONTRAST, not a clean pass)\n", .{outcome.n_c1_eligible});
     } else {
-        std.debug.print("# QA-023: INCONCLUSIVE (no evaluated samples).\n", .{});
+        std.debug.print("# C1 VERDICT: INCONCLUSIVE — no states with >=2 within-budget evals\n", .{});
+    }
+    if (outcome.n_c2_failures > 0) {
+        std.debug.print("# C2 VERDICT: FALSIFIED — {d} states where truncated value != fixpoint V\n", .{outcome.n_c2_failures});
+    } else if (outcome.n_c2_eligible > 0) {
+        std.debug.print("# C2 VERDICT: CONSISTENT on {d} eligible states — all within-budget values match fixpoint\n", .{outcome.n_c2_eligible});
+    } else {
+        std.debug.print("# C2 VERDICT: INCONCLUSIVE — no states with >=1 within-budget eval\n", .{});
+    }
+    // Legacy QA-023 summary (OR of C1 and C2)
+    if (outcome.n_disagreement == 0 and outcome.n_evaluated > 0) {
+        std.debug.print("# QA-023 (legacy): NOT FALSIFIED on this sample. No arrival history disagreed with V.\n", .{});
+    } else if (outcome.n_disagreement > 0) {
+        std.debug.print("# QA-023 (legacy): FALSIFIED on this sample. See C1/C2 split above for which conjunct failed.\n", .{});
+    } else {
+        std.debug.print("# QA-023 (legacy): INCONCLUSIVE (no evaluated samples).\n", .{});
     }
     return outcome;
 }
@@ -2163,6 +2264,7 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
         .n_disagreement = 0,
         .n_cycle_involved = 0,
         .n_budget_exhausted = 0,
+        .n_scratch_overflow = 0,
         .n_unreachable = 0,
         .cycle_census_states = 0,
         .pin_t_sampled = 0,
@@ -2170,6 +2272,11 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
         .pin_h_sampled = 0,
         .l_eq_h_sampled = 0,
         .history_total = 0,
+        .n_c1_failures = 0,
+        .n_c2_failures = 0,
+        .n_c1_eligible = 0,
+        .n_c2_eligible = 0,
+        .sigma_in_arrival_collisions = 0,
     };
 
     var sample_idx: u32 = 0;
@@ -3263,11 +3370,12 @@ pub fn main(init: std.process.Init) !void {
         _ = fixpoint_kernel(reach, L_tab, H_tab);
         _ = run_history_pairs_3x2(reach, L_tab, H_tab) catch return error.OutOfMemory;
     } else if (std.mem.eql(u8, mode, "probe-3x2")) {
-        // Parse --seed, --n-samples, --k-histories, --history-depth.
+        // Parse --seed, --n-samples, --k-histories, --history-depth, --node-budget.
         var seed: u64 = 0xC0FFEE5;
         var n_samples: u32 = 64;
         var k_histories: u32 = 8;
         var history_depth: u16 = 16;
+        var node_budget: u64 = 100_000;
         while (args.next()) |a| {
             if (std.mem.eql(u8, a, "--seed")) {
                 seed = std.fmt.parseInt(u64, args.next() orelse "0", 0) catch 0;
@@ -3277,6 +3385,8 @@ pub fn main(init: std.process.Init) !void {
                 k_histories = std.fmt.parseInt(u32, args.next() orelse "8", 0) catch 8;
             } else if (std.mem.eql(u8, a, "--history-depth")) {
                 history_depth = std.fmt.parseInt(u16, args.next() orelse "16", 0) catch 16;
+            } else if (std.mem.eql(u8, a, "--node-budget")) {
+                node_budget = std.fmt.parseInt(u64, args.next() orelse "100000", 0) catch 100_000;
             }
         }
         const params = ProbeParams{
@@ -3284,7 +3394,7 @@ pub fn main(init: std.process.Init) !void {
             .n_samples = n_samples,
             .k_histories = k_histories,
             .history_depth = history_depth,
-            .node_budget_per_history = 100_000,
+            .node_budget_per_history = node_budget,
         };
         // Build reach + run L/H fixpoint, then probe.
         const gpa = std.heap.page_allocator;
@@ -3358,7 +3468,7 @@ pub fn main(init: std.process.Init) !void {
         };
         _ = run_probe_psk_3x2(params) catch return error.OutOfMemory;
     } else {
-        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|calibrate-neg|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2|probe-psk-3x2|all] [flags]\n", .{});
+        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|calibrate-neg|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2 [--seed N] [--n-samples N] [--k-histories N] [--history-depth N] [--node-budget N]|probe-psk-3x2|all] [flags]\n", .{});
         return error.UnknownMode;
     }
 }

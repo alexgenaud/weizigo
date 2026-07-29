@@ -82,7 +82,7 @@
     "note": null
   },
   "F1-SEEDROOTS": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/F1-SEEDROOTS.md",
     "set": "Q",
     "holds": ["src/qa023_probe.zig"],
@@ -272,7 +272,7 @@
     "note": null
   },
   "2B-PROBE-FIX": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "docs/infra/dispatch/2B-PROBE-FIX.md",
     "set": "L",
@@ -280,7 +280,7 @@
     "needs": [],
     "added": "2026-07-29T13:30:11Z",
     "claimed": "2026-07-29T14:09:56Z",
-    "done": null,
+    "done": "2026-07-29T14:21:40Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -305,6 +305,19 @@
     "holds": [],
     "needs": [],
     "added": "2026-07-29T13:30:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "PINRULE-SUFFICIENCY": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/PINRULE-SUFFICIENCY.md",
+    "set": "T",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T14:31:12Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
