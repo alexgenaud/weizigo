@@ -78,6 +78,35 @@ review must go to a **third party, not Opus** (`QA-018-RULING.md`); then the
 human ruling QA-018-RULING is unblocked. Details:
 `untracked/msg/milestone-01-ko-reframe/025-fable-to-all.md`.
 
+## 2026-07-29 — EXP-8 set A done (Kimi-k2.7): harness built, partial run, blocker recorded
+
+**Owned:** `src/psk_divergence.zig` (new file; no engine files, no `data/`/`artifacts/` writes).  
+**Deliverables:**
+- `src/psk_divergence.zig` — generic PSK-divergence harness; compares loaded
+  table value/move against history-exact PSK (`retro.Retro(w,h).O.solve`,
+  `memo=false`, `brackets=false`).
+- `docs/evidence/QA-012/` — raw stdout, SHA-256 sums, `PROVENANCE.md`.
+- `docs/research/psk-divergence-2026-07-29.md` — findings and explicit blocker.
+
+**Findings:**
+- 2×2 frame A (`random`, 200 games): 56 PSK-solved positions, 28 value
+  divergences (50%, 95% CI [0.3733, 0.6267]), 31 budget exclusions.
+- 2×2 `mixed` (100 games): 49 solved, 22 value divergences (44.9%, CI
+  [0.3185, 0.5869]).
+- 3×2 (20 games, max-empties 1): only 3/130 sampled positions solved; exact
+  PSK under reachable histories is already largely intractable.
+- Known-bad synthetic calibration: perturbing `vb[0]` on 2×2 from +1 to 0
+  increases the divergence count, confirming the harness detects mismatches.
+
+**Blocker / honest negative:** the actual new-rule-vs-PSK divergence cannot be
+measured because new-rule (basic-ko + long-cycle tie) tables do not exist;
+EXP-4/5/6 are blocked behind EXP-2B.  The numbers above compare the existing PSK
+tables against history-exact PSK, quantifying the `C2` gap in reachable play,
+not the rule-divergence gap.  The research note labels this and states the
+re-run command once new-rule tables exist.
+
+**Ownership cleared.**
+
 ## 2026-07-29 — host-panic-recovery session (MiniMax-M3, Orchestrator)
 
 **EXP-8:** `kimi-k2.7` owns `src/psk_divergence.zig` for the PSK-divergence harness (set A); no engine files, no `data/`/`artifacts/` writes.

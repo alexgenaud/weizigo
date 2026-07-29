@@ -274,8 +274,13 @@ matches as real-game truth — is CLAIMED, listed in the crisis chapter.)
 - **EXP-2A done / EXP-2B in flight** — QA-023 Part A (the proof) done (Fable
   5); the computational half (3×2, Minimax-m3, gated on `tools/runner`) is the
   load-bearing gate for the whole roadmap.
-- **EXP-8 in flight** — the PSK-divergence harness (Kimi-k2.7); the value
-  complement to EXP-1's legality result.
+- **EXP-8 done (Kimi-k2.7)** — built the PSK-divergence harness +
+  calibration (`docs/research/psk-divergence-2026-07-29.md`), but the
+  new-rule-vs-PSK value divergence is **BLOCKED on the new-rule tables**
+  (EXP-4/5/6, behind EXP-2B); the numbers it produced (2×2 random: 28/56
+  value divergences, 50% CI [0.37,0.63]) compare the existing PSK table
+  against history-exact PSK — the C2 history-dependence gap in reachable
+  play, NOT the rule-divergence gap. Commits d78480a, 0878c9e.
 - **D-8 (user)** — the Orchestrator owns delegation status end-to-end
   (dispatch/claim/done), rescinding the "Orchestrator does not claim" ceremony.
 - **Role reallocation (Fable-as-Dabir, user-corrected)** — Dabir=DeepSeek-Pro,

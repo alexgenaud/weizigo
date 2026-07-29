@@ -1848,9 +1848,7 @@ panic-recovery turn, plus **four operational reports from the user
 3. **Kimi-k3 is very expensive in practice** — user report, in tension with
    the $0.23 / $0.76 EXP-11/16 data points above. Both recorded; cost data
    should adjudicate. Until then, do not treat "cheap" as k3's selling point.
-4. **DeepSeek is excellent and cheap but on a limited billing schedule**,
-   unlike the other open models available via Ollama — i.e. its constraint
-   is *availability budget*, not quality.
+4. **DeepSeek (Pro and Flash) is excellent** — Pro: high-context ingestion, precise multi-file edits, strong epistemic discipline (B12/B13/B38, panel seat B); Flash: fast, good for scaffolding/sweeps where rigor isn't load-bearing (B33/B37). (Whether to spend DeepSeek vs Ollama-model budget in a given session is an Orchestrator session-memory call, not a recorded rule — it changes with billing/usage windows.)
 
 ### The allocation
 
@@ -1860,7 +1858,7 @@ panic-recovery turn, plus **four operational reports from the user
 | **Orcha** | **GLM-5.2** | User was happier with it in this seat; most consistent composite (B34–B38); held Boss well twice (delegation, rollback, bookkeeping). Slowness is tolerable in an absorption/bookkeeping role that runs alongside the human rather than gating them. Standing reminder: short volleys. |
 | **Auditor** | **Kimi-k2.7** | Settled by T13 + the (a′) conviction + EXP-15. Keep two fence-posts in every audit brief: explicit no-edit constraint (B33 violation), and route *proof-design* review to Opus (B35 weakness). |
 | **Workers (default)** | **Minimax-m3** | Back to its benchmark slot (EXP-3): measurement, census, tooling, spec-first implementation. Pair theory-adjacent output with a Kimi audit. Its ask-first habit is a feature here. |
-| Workers (aux) | DS Flash — speed tasks, rigor not load-bearing. Kimi-k3 — bounded single-function code audits ONLY when k2.7's window/queue makes it worth the cost (see #3). DeepSeek-Pro — reserve billing for Dabir. |
+| Workers (aux) | **DS Flash — speed / sweep / scaffolding / multi-file edits where rigor is not load-bearing** (B33/B37). **DeepSeek-Pro — high-context absorption/integration, design briefs, multi-file terminology sweeps, claim-semantics review** (proven, panel seat B, 2026-07-29). Kimi-k3 — bounded single-function code audits. |
 | Reserved | **Opus 5** — adversarial review of load-bearing proofs, claim semantics, completing subtle code under review (EXP-9: found the sign inversion the draft carried). Enforce the five DELEGATOR rules on every Opus-authored brief. **Fable** — D-7 slots only (proof repair, ADR refutation = EXP-10, claim-semantics adjudication) plus evidence-scattered forensics (the 2026-07-29 panic diagnosis). Dispatch as bounded tasks; do not seat where it idles. |
 
 ### Session-fresh evidence behind the two changes from the 2026-07-28 takeaway
@@ -1917,10 +1915,18 @@ science** — run-stats land when the panel reports.
   not tracked. **Data point:** Fable on D-7 proof-repair / claim-semantics
   continues to produce load-bearing, self-correcting work — it caught and
   fixed a registered claim's error mid-design.
-- **EXP-8 dispatched to Kimi-k2.7 (worker).** k2.7 outside its Auditor slot
-  on a measurement-harness task (the EXP-8 brief names T13 — k2.7's own
-  probe — as the template). **Data point pending** the run; tests whether the
-  k2.7 line's falsification discipline transfers to a build-and-measure task.
+- **EXP-8 done (Kimi-k2.7, worker).** k2.7 outside its Auditor slot on a
+  build-and-measure task (the brief named T13 — k2.7's own probe — as the
+  template). Built a clean generic PSK-divergence harness (`src/psk_divergence.zig`),
+  ran it with CIs + a power argument + perturbation calibration, and shipped an
+  **honest blocker**: the new-rule-vs-PSK value divergence can't be measured yet
+  (new-rule tables don't exist — EXP-4/5/6, behind EXP-2B), so the numbers it did
+  produce (2×2 random: 28/56 value divergences, 50% CI [0.37,0.63]) compare the
+  existing PSK table against history-exact PSK — i.e. the C2 history-dependence
+  gap in reachable play, NOT the rule-divergence gap. **Data point: the k2.7
+  falsification discipline transferred to build-and-measure** — the honest
+  blocker (refusing to overclaim the C2-gap numbers as the rule-divergence) is
+  exactly the discipline. Commits d78480a, 0878c9e.
 - **D-8 (user):** the "Orchestrator does not claim" rule rescinded as
   ceremony. First application: marked EXP-10 `done` (Fable had filed
   ADR-0017 + evidence + msg 025 but not run `managent done`), unblocking
