@@ -84,12 +84,12 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 - Retrograde build + battery: `RETRO_SAVE=1 zig run -O ReleaseFast src/retro.zig`. Long runs (258 MB, 19 sweeps)
   need a persistent session: start it, watch the heartbeat, never restart. Caches under `/tmp/weizigo-zigcache`.
 - `weizigo-oracle <a.wzo>` (GTP; Sabaki-compatible) · `weizigo-arena <a.wzo> <seeds>` · `bin/weizigo-claimlint`.
-- `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `next` /
-  `status` / `show`. **The human dispatches; the agent claims; the
-  Orchestrator does not claim on the agent's behalf** — `managent dispatch
-  <id> --to <agent> [--note <text>]` records the queueing; the task stays
-  `dispatchable` until the agent runs `managent claim <id>`. Schema in
-  `docs/infra/managent/spec.md`.
+- `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `reopen`
+  / `purge` / `set` / `next` / `status` / `show`. The human dispatches; the
+  agent claims; the Orchestrator owns the board end-to-end (D-8) and may
+  dispatch/claim/done on a worker's behalf, attributing with `--agent <worker>`.
+  Schema in `docs/infra/managent/spec.md`; role protocol in
+  `docs/infra/roles/ORCHESTRATOR.md`.
 
 ## Where to go next — read ONE of these
 | if you are… | read |
