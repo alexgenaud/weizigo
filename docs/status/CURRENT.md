@@ -9,6 +9,19 @@ Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 **2026-07-29 succession + D-8 + EXP-10-done correction by GLM-5.2
 (Orchestrator)** — see the new section at top.
 
+> **⚠ 2026-07-29 — QA-023 FALSIFIED at 3×2 (2B-4), PENDING AUDIT.** 2B-4 (the
+> probe run) reports 390/1080 disagreements (36.1%) between the first-revisit
+> truncation evaluator and the median fixpoint — the 3×2 graph is so densely
+> cyclic that every continuation hits a first-revisit before a terminal, so the
+> truncation returns TIE=0 while the fixpoint pins +1..+6. If real, this falsifies
+> the keystone claim (the F2-REMEDY median build's premise). **NOT absorbed into
+> CLAIMS/PROGRESS** until verified: 2B-2-AUDIT (Kimi-k2.7 — m3's cycle census +
+> its SCC-bug caveat), 2B-5 (calibration — does the probe detect PSK's known
+> sensitivity?), 2B-6 (full auditor review). 2B-2 (PASS, 143,760 cycles) + 2B-3
+> (PASS, vacuity-guard) done; 2B-4 done; 2B-5 dispatchable; 2B-6 blocked on 2B-5.
+> Attribution: the 2B-4 PROVENANCE says **MiniMax-M3** (one paste said DeepSeek
+> Pro) — confirm with the human before the model-perf ledger records it.
+
 **Outgoing handover:** `docs/status/handover-minimax-m3-2026-07-29.md`. Read
 that file first on resume; it supersedes this one for the unit-of-recovery
 view. The 2026-07-29 / 2026-07-28 sections below are durable; the 2026-07-27

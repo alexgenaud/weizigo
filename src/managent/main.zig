@@ -678,18 +678,12 @@ fn isLeapYear(y: u64) bool {
 
 // Returns true if any task in a prior set (A < B < C) is not yet done.
 fn phaseGate(state: StateMap, set: u8) bool {
-    // Sets are sequential phases labelled A, B, C, …: a task in set N may not
-    // start until every task in every earlier set is done (or failed). Within a
-    // set, tasks run in parallel, gated only by `needs` and `holds`. Comparison
-    // is by letter, so any uppercase letter works (not just A/B/C).
-    if (set <= 'A') return false; // set A (or earlier) has no prior set
-
-    var it = state.iterator();
-    while (it.next()) |entry| {
-        const ts = entry.value_ptr.*;
-        if (ts.status == .done or ts.status == .failed) continue;
-        if (ts.set < set) return true; // a task in an earlier set is not done
-    }
+    _ = state;
+    _ = set;
+    // Sets are parallel-group labels (arbitrary unique names); `needs` and
+    // `holds` are the only gates. The lexicographic phase gate was retired —
+    // it over-constrained (a task could wait on an unrelated earlier-set task)
+    // and forced bureaucratic set-naming. A task waits exactly on its `needs`.
     return false;
 }
 

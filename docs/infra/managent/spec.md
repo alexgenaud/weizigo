@@ -1,7 +1,8 @@
 # managent — agent-manager specification
 
 **A CLI tool for registering, claiming, and tracking subagent tasks.
-Enforces dependencies, parallel-set exclusion, and engine-file locks.**
+Enforces dependencies (`needs`) and engine-file locks (`holds`); `set` is a
+parallel-group label, not a gate.**
 
 ---
 
@@ -42,7 +43,7 @@ Keys:
 
 | Key | Required | Meaning |
 |---|---|---|
-| `set` | yes | Sequential phase: `A`, `B`, `C`, … (any uppercase letter). A task in set N may not start until every task in every earlier set is done/failed; **within a set, tasks run in parallel**, gated only by `needs` and `holds`. Use one set unless a genuine phase boundary exists; express fine dependencies with `needs`. |
+| `set` | yes | **Parallel-group label** (any uppercase letter A–Z, arbitrary unique name). The only gates are `needs` and `holds`; sets do not order or gate (the lexicographic phase gate is retired). Use one set per parallel group; express all sequencing with `needs`. |
 | `holds` | no | Space-separated file paths (relative to repo root) that need exclusive write access. If any `holds` are present, the task is automatically assigned to Set C. |
 | `needs` | no | **Comma-separated** task IDs that must be `done` before this task can be claimed (e.g. `needs=2B-2,2B-3`). |
 | `caps` | no | Space-separated capability tokens from the vocabulary in `docs/infra/delegation/ROLES.md` §4: `reasoning:sustained`, `independence:has-not-read-<X>`, `session:persistent`, `sub-delegation:yes`. Informational; used by `next` for filtering. **Most tasks declare none** — specify only what changes the outcome. (`isolation: exclusive <paths>` is not a `caps` token; that is what `holds` is.) |

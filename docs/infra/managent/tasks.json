@@ -12,18 +12,18 @@
     "dispatched_to": null,
     "note": null
   },
-  "2B-5": {
-    "status": "blocked",
-    "bundle": "docs/infra/dispatch/2B-5.md",
-    "set": "D",
-    "holds": ["src/qa023_probe.zig"],
-    "needs": ["2B-4"],
-    "added": "2026-07-29T09:38:44Z",
+  "2B-2-AUDIT": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/2B-2-AUDIT.md",
+    "set": "J",
+    "holds": [],
+    "needs": ["2B-2"],
+    "added": "2026-07-29T11:26:48Z",
     "claimed": null,
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
+    "dispatched": "2026-07-29T11:26:48Z",
+    "dispatched_to": "kimi-k2.7",
+    "note": "User order: audit 2B-2 regardless of result (m3 surprised by own findings; 2B-4's QA-023 falsification rests on this census + its SCC-bug caveat). Read-only; verify the SCC, the cycle count, the 1,724 cycle-reachable."
   },
   "2B-1": {
     "status": "done",
@@ -39,27 +39,27 @@
     "dispatched_to": null,
     "note": null
   },
-  "EXP-2B": {
-    "status": "failed",
-    "agent": "kimi-k2.7",
-    "bundle": "docs/infra/dispatch/EXP-2B.md",
-    "set": "A",
-    "holds": ["src/qa023_probe.zig"],
-    "needs": [],
-    "added": "2026-07-28T12:37:14Z",
-    "claimed": "2026-07-29T03:44:10Z",
-    "done": "2026-07-29T09:36:48Z",
-    "dispatched": "2026-07-29T03:42:22Z",
-    "dispatched_to": "kimi-k2.7",
-    "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
-  },
   "2B-4": {
-    "status": "blocked",
+    "status": "done",
+    "agent": "MiniMax-M3",
     "bundle": "docs/infra/dispatch/2B-4.md",
     "set": "C",
     "holds": ["src/qa023_probe.zig"],
     "needs": ["2B-2", "2B-3"],
     "added": "2026-07-29T09:36:48Z",
+    "claimed": "2026-07-29T10:57:13Z",
+    "done": "2026-07-29T11:02:58Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "2B-6": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/2B-6.md",
+    "set": "E",
+    "holds": [],
+    "needs": ["2B-2", "2B-3", "2B-4", "2B-5"],
+    "added": "2026-07-29T09:38:44Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -73,19 +73,6 @@
     "holds": [],
     "needs": ["EXP-6"],
     "added": "2026-07-28T12:21:13Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
-  },
-  "2B-6": {
-    "status": "blocked",
-    "bundle": "docs/infra/dispatch/2B-6.md",
-    "set": "E",
-    "holds": [],
-    "needs": ["2B-2", "2B-3", "2B-4", "2B-5"],
-    "added": "2026-07-29T09:38:44Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -106,17 +93,18 @@
     "note": null
   },
   "2B-3": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DeepSeek-Pro",
     "bundle": "docs/infra/dispatch/2B-3.md",
     "set": "B",
     "holds": [],
     "needs": [],
     "added": "2026-07-29T09:36:48Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
+    "claimed": "2026-07-29T09:49:24Z",
+    "done": "2026-07-29T10:04:35Z",
+    "dispatched": "2026-07-29T10:56:43Z",
+    "dispatched_to": "deepseek-pro",
+    "note": "User dispatched 2B-3 (history-pair generation at 3x2) to DeepSeek Pro. Reuse play_arrival. Vacuity gate: visit-set-difference count > 0 or escalate."
   },
   "2B-0": {
     "status": "done",
@@ -146,16 +134,44 @@
     "note": null
   },
   "2B-2": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "minimax-m3",
     "bundle": "docs/infra/dispatch/2B-2.md",
     "set": "B",
     "holds": [],
     "needs": [],
     "added": "2026-07-29T09:36:48Z",
+    "claimed": "2026-07-29T09:49:11Z",
+    "done": "2026-07-29T10:18:21Z",
+    "dispatched": "2026-07-29T10:56:43Z",
+    "dispatched_to": "minimax-m3",
+    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
+  },
+  "2B-5": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/2B-5.md",
+    "set": "D",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": ["2B-4"],
+    "added": "2026-07-29T09:38:44Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null
+  },
+  "EXP-2B": {
+    "status": "failed",
+    "agent": "kimi-k2.7",
+    "bundle": "docs/infra/dispatch/EXP-2B.md",
+    "set": "A",
+    "holds": ["src/qa023_probe.zig"],
+    "needs": [],
+    "added": "2026-07-28T12:37:14Z",
+    "claimed": "2026-07-29T03:44:10Z",
+    "done": "2026-07-29T09:36:48Z",
+    "dispatched": "2026-07-29T03:42:22Z",
+    "dispatched_to": "kimi-k2.7",
+    "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
   }
 }
