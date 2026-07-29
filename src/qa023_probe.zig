@@ -1152,6 +1152,71 @@ fn play_arrival(play: []const Move, play_len: u16) ?struct { state: StateIdx, bo
     return .{ .state = state, .board = board };
 }
 
+/// Replay a move sequence and collect all visited state linear indices
+/// as a sorted, deduplicated visit-set. The visit-set includes the root
+/// (empty board) and every intermediate state up to and including the
+/// final state. `set` must have capacity `max_visit`; on return
+/// `set_len` is the number of distinct states visited.
+fn visit_set_of_arrival(
+    play: []const Move,
+    play_len: u16,
+    set: []u64,
+    set_len: *u16,
+) bool {
+    var state = StateIdx{ .board = 0, .side = 0, .ko = @as(u16, n), .passes = 0 };
+    var board: Pos = [_]i8{0} ** n;
+    var raw: [32]u64 = undefined;
+    raw[0] = state.linear();
+    var raw_len: u16 = 1;
+    var i: u16 = 0;
+    while (i < play_len) : (i += 1) {
+        const mv = play[i];
+        const next = switch (mv.move_kind) {
+            .place => apply_place(state, &board, mv.colour, mv.cell),
+            .pass => apply_pass(state),
+        };
+        const ns = next orelse {
+            set_len.* = 0;
+            return false;
+        };
+        state = ns;
+        board = unrank_board(state.board);
+        raw[raw_len] = state.linear();
+        raw_len += 1;
+    }
+    // insertion-sort the raw indices, dedup into `set`
+    var j: u16 = 1;
+    while (j < raw_len) : (j += 1) {
+        const key = raw[j];
+        var k: i16 = @intCast(j);
+        while (k > 0 and raw[@intCast(k - 1)] > key) : (k -= 1) {
+            raw[@intCast(k)] = raw[@intCast(k - 1)];
+        }
+        raw[@intCast(k)] = key;
+    }
+    set[0] = raw[0];
+    set_len.* = 1;
+    j = 1;
+    while (j < raw_len) : (j += 1) {
+        if (raw[j] != set[set_len.* - 1]) {
+            if (set_len.* >= set.len) return false;
+            set[set_len.*] = raw[j];
+            set_len.* += 1;
+        }
+    }
+    return true;
+}
+
+/// Returns true iff two visit-sets differ. Both are assumed sorted+dedup.
+fn visit_sets_differ(a: []const u64, a_len: u16, b: []const u64, b_len: u16) bool {
+    if (a_len != b_len) return true;
+    var i: u16 = 0;
+    while (i < a_len) : (i += 1) {
+        if (a[i] != b[i]) return true;
+    }
+    return false;
+}
+
 const Move = struct {
     move_kind: enum { place, pass },
     cell: u8, // for place; ignored for pass
@@ -1264,16 +1329,32 @@ fn collect_histories_dfs_impl(
         const child_linear = child.linear();
         if (visited[child_linear]) continue;
 
-        const mv = if (child.passes != state.passes)
+        // A pass never changes the board; a place move always does.
+        const mv = if (child.board == state.board)
             Move{ .move_kind = .pass, .cell = 0, .colour = 0 }
         else blk: {
             const next_b = succ_boards[idx];
+            // Find the PLACED cell: the one that changed from empty (0) to occupied.
+            // Captures change non-zero to 0; the placed stone changes 0 to non-zero.
             var cell: u8 = 0;
+            var found: bool = false;
             var c: usize = 0;
             while (c < n) : (c += 1) {
-                if (board[c] != next_b[c]) {
+                if (board[c] == 0 and next_b[c] != 0) {
                     cell = @intCast(c);
+                    found = true;
                     break;
+                }
+            }
+            // Fallback: if no empty→occupied change (e.g., a capture that exactly
+            // clears a cell while the placed stone fills another), scan any diff.
+            if (!found) {
+                c = 0;
+                while (c < n) : (c += 1) {
+                    if (board[c] != next_b[c]) {
+                        cell = @intCast(c);
+                        break;
+                    }
                 }
             }
             const colour: i8 = if (state.side == 0) 1 else -1;
@@ -1668,6 +1749,713 @@ test "3x2: median rule on the calibration gadget" {
     try expect(V_v2 == 1);
 }
 
+// ---- 3x2 HISTORY-PAIR GENERATION (2B-3) -----------------------------------
+//
+// For each sampled 3×2 state, enumerate K distinct bounded arrival
+// histories, compute the visit-set of each, and report how many state/
+// history-pairs carry different visit-sets.  The vacuity guard: if no
+// cycle-eligible state has ≥2 visit-set-distinct histories, escalate —
+// the QA-023 probe cannot test history-independence (the same trap that
+// made 2×2 void).
+
+fn run_history_pairs_3x2(reach: []const u64, L_tab: []const i8, H_tab: []const i8) !HistoryPairsOutcome {
+    // Parameters for 2B-3 (tunable; defaults are sensible for a <10 min run)
+    const n_samples: u32 = 128;
+    const k_histories: u32 = 8;
+    const history_depth: u16 = 16;
+    const seed: u64 = 0x2B3DA7A;
+
+    std.debug.print("# qa023 2B-3 — history-pair generation at 3×2\n", .{});
+    std.debug.print("# params: n_samples={d} k_histories={d} history_depth={d} seed=0x{X}\n", .{
+        n_samples, k_histories, history_depth, seed,
+    });
+
+    const gpa = std.heap.page_allocator;
+    var prng = std.Random.DefaultPrng.init(seed);
+
+    // Build the reachable non-terminal index lists (same as probe).
+    // Bias sampling: 70% from pin_T (L<T<H), 15% L==H, 7.5% each pin_L/pin_H.
+    var pin_t_indices = try gpa.alloc(u64, TOTAL_STATES);
+    defer gpa.free(pin_t_indices);
+    var pin_t_count: u64 = 0;
+    var leh_indices = try gpa.alloc(u64, TOTAL_STATES);
+    defer gpa.free(leh_indices);
+    var leh_count: u64 = 0;
+    var pin_l_indices = try gpa.alloc(u64, TOTAL_STATES);
+    defer gpa.free(pin_l_indices);
+    var pin_l_count: u64 = 0;
+    var pin_h_indices = try gpa.alloc(u64, TOTAL_STATES);
+    defer gpa.free(pin_h_indices);
+    var pin_h_count: u64 = 0;
+    {
+        var linear: u64 = 0;
+        while (linear < TOTAL_STATES) : (linear += 1) {
+            const word = linear >> 6;
+            const bit: u64 = @as(u64, 1) << @intCast(linear & 63);
+            if (reach[word] & bit == 0) continue;
+            const passes: u8 = @intCast(linear / (2 * KO_DIMS * RAW_TOTAL));
+            if (passes == 2) continue;
+            const Ll = L_tab[linear];
+            const Hh = H_tab[linear];
+            if (Ll == Hh) {
+                leh_indices[leh_count] = linear;
+                leh_count += 1;
+            } else if (TIE < Ll) {
+                pin_l_indices[pin_l_count] = linear;
+                pin_l_count += 1;
+            } else if (TIE > Hh) {
+                pin_h_indices[pin_h_count] = linear;
+                pin_h_count += 1;
+            } else {
+                pin_t_indices[pin_t_count] = linear;
+                pin_t_count += 1;
+            }
+        }
+    }
+    std.debug.print("# reachable non-terminal: pin_T={d} L==H={d} pin_L={d} pin_H={d}\n", .{
+        pin_t_count, leh_count, pin_l_count, pin_h_count,
+    });
+
+    // Allocate DFS resources
+    const path_moves = try gpa.alloc(Move, history_depth);
+    defer gpa.free(path_moves);
+    const visited_states = try gpa.alloc(bool, TOTAL_STATES);
+    defer gpa.free(visited_states);
+    const collected_moves = try gpa.alloc(Move, k_histories * history_depth);
+    defer gpa.free(collected_moves);
+    const collected_lens = try gpa.alloc(u16, k_histories);
+    defer gpa.free(collected_lens);
+
+    // Per-history visit-set storage: at most k_histories sets of up to
+    // history_depth+1 elements each.
+    const max_visit_elems: u16 = history_depth + 2; // root + up to depth moves + 1
+    const visit_sets_storage = try gpa.alloc(u64, k_histories * max_visit_elems);
+    defer gpa.free(visit_sets_storage);
+    var visit_set_lens = try gpa.alloc(u16, k_histories);
+    defer gpa.free(visit_set_lens);
+    @memset(visit_set_lens, 0);
+
+    var outcome = HistoryPairsOutcome{
+        .n_states_sampled = n_samples,
+        .n_states_with_multi_history = 0,
+        .n_states_with_visit_set_diff = 0,
+        .total_pairs = 0,
+        .total_visit_set_diff_pairs = 0,
+    };
+
+    var sample_idx: u32 = 0;
+    while (sample_idx < n_samples) : (sample_idx += 1) {
+        const bucket_roll = prng.random().intRangeAtMost(u8, 0, 99);
+        const target_linear: u64 = blk: {
+            if (bucket_roll < 70 and pin_t_count > 0) {
+                break :blk pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)];
+            } else if (bucket_roll < 85 and leh_count > 0) {
+                break :blk leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)];
+            } else if (bucket_roll < 92 and pin_l_count > 0) {
+                break :blk pin_l_indices[prng.random().intRangeAtMost(u64, 0, pin_l_count - 1)];
+            } else if (pin_h_count > 0) {
+                break :blk pin_h_indices[prng.random().intRangeAtMost(u64, 0, pin_h_count - 1)];
+            } else if (pin_t_count > 0) {
+                break :blk pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)];
+            } else if (leh_count > 0) {
+                break :blk leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)];
+            } else break :blk 0;
+        };
+
+        // Collect K arrival histories to this state
+        @memset(visited_states, false);
+        var collection_budget: u64 = k_histories * 2048;
+        var rand = prng.random();
+        const n_collected = collect_histories(target_linear, history_depth, &collection_budget, path_moves, visited_states, collected_moves, collected_lens, k_histories, history_depth, &rand);
+
+        if (n_collected < 2) continue;
+        outcome.n_states_with_multi_history += 1;
+
+        // Compute visit-set for each history
+        var h: u32 = 0;
+        while (h < n_collected) : (h += 1) {
+            const base = h * history_depth;
+            const hlen = collected_lens[h];
+            const vs_slice = visit_sets_storage[h * max_visit_elems .. (h + 1) * max_visit_elems];
+            _ = visit_set_of_arrival(collected_moves[base .. base + hlen], hlen, vs_slice, &visit_set_lens[h]);
+        }
+
+        // Compare all pairs of visit-sets
+        var pair_count: u32 = 0;
+        var diff_count: u32 = 0;
+        var a: u32 = 0;
+        while (a < n_collected) : (a += 1) {
+            var b: u32 = a + 1;
+            while (b < n_collected) : (b += 1) {
+                pair_count += 1;
+                const vs_a = visit_sets_storage[a * max_visit_elems .. (a + 1) * max_visit_elems];
+                const vs_b = visit_sets_storage[b * max_visit_elems .. (b + 1) * max_visit_elems];
+                if (visit_sets_differ(vs_a, visit_set_lens[a], vs_b, visit_set_lens[b])) {
+                    diff_count += 1;
+                }
+            }
+        }
+        outcome.total_pairs += pair_count;
+        outcome.total_visit_set_diff_pairs += diff_count;
+        if (diff_count > 0) {
+            outcome.n_states_with_visit_set_diff += 1;
+        }
+
+        if (sample_idx % 8 == 0 and sample_idx > 0) {
+            std.debug.print("# sample {d}/{d}: multi-hist={d} diff-vs={d} pairs={d} diff-pairs={d}\n", .{
+                sample_idx,
+                n_samples,
+                outcome.n_states_with_multi_history,
+                outcome.n_states_with_visit_set_diff,
+                outcome.total_pairs,
+                outcome.total_visit_set_diff_pairs,
+            });
+        }
+    }
+
+    std.debug.print("# === 2B-3 history-pairs verdict ===\n", .{});
+    std.debug.print("# states sampled: {d}\n", .{outcome.n_states_sampled});
+    std.debug.print("# states with >=2 arrival histories: {d}\n", .{outcome.n_states_with_multi_history});
+    std.debug.print("# states with visit-set-different histories: {d}\n", .{outcome.n_states_with_visit_set_diff});
+    std.debug.print("# total history-pairs compared: {d}\n", .{outcome.total_pairs});
+    std.debug.print("# total visit-set-different pairs: {d}\n", .{outcome.total_visit_set_diff_pairs});
+
+    if (outcome.n_states_with_visit_set_diff == 0) {
+        std.debug.print("# VACUITY-GUARD FAIL: no state has >=2 visit-set-distinct histories.\n", .{});
+        std.debug.print("# ESCALATE: QA-023 probe at 3×2 cannot test history-independence (same trap as 2×2).\n", .{});
+    } else {
+        std.debug.print("# VACUITY-GUARD PASS: {d} states have >=2 visit-set-distinct histories → non-vacuous probe.\n", .{outcome.n_states_with_visit_set_diff});
+    }
+    return outcome;
+}
+
+const HistoryPairsOutcome = struct {
+    n_states_sampled: u32,
+    n_states_with_multi_history: u32,
+    n_states_with_visit_set_diff: u32,
+    total_pairs: u32,
+    total_visit_set_diff_pairs: u32,
+};
+
+// ---- 3x2 CYCLE CENSUS (2B-2) ----------------------------------------------
+//
+// Counts *directed* simple cycles in the legal-move graph on the reachable
+// `(board, side, ko_point, passes)` state graph. Cycle-involved states are
+// those that lie on at least one directed cycle (Tarjan's SCC, then
+// per-SCC cycle enumeration). A state can be reached via >1 arrival
+// history iff the graph has at least one directed cycle that returns to it
+// (or to a state reachable from it via paths that share the target).
+//
+// For QA-023 specifically: a cycle-involved state is one where the
+// history-carried evaluator (`truncated_value`) can encounter a first-revisit
+// during the search, and the visit-set it produces depends on the arrival.
+//
+// Method:
+//   1. Reuse the reachability fixpoint (census_3x2 machinery).
+//   2. Build a dense vertex map (reachable linear index -> [0..V)) and
+//      forward adjacency list.
+//   3. Tarjan's SCC, O(V+E).  Non-trivial SCCs (size >= 2) admit cycles.
+//   4. Per non-trivial SCC, enumerate simple directed cycles by bounded
+//      DFS that maintains a vertex-ordering invariant (only search from
+//      v through vertices w with id >= v, so each cycle is found exactly
+//      once).  Bounded by --max-cycle-len (default 12) and a total cap
+//      (--max-cycles, default 100000) to guard against pathological inputs.
+//   5. Mark all vertices on any cycle as cycle-involved.
+//   6. Report: V, E, SCC counts, cycle counts, cycle-involved vertex count,
+//      the partition by SCC size, and a few sample cycles (length 2, 3, 4).
+//
+// Cycle-involved = "lies on a directed cycle" (definition 2B-2 §headline).
+// We additionally report "cycle-REACHABLE" states (state σ such that some
+// σ' in σ's forward-reachable set lies on a cycle) — this is the broader
+// notion (siblings of cycles; can be visited via paths that pass through
+// a cycle), and is what the probe sampler (2B-4) should bias toward.
+//
+// The TIE constant is irrelevant here — we're counting graph structure, not
+// evaluating.  No probe/truncated evaluator is called.
+
+const CycleCensusStats = struct {
+    v: u32, // number of reachable vertices
+    e: u32, // number of directed edges (legal moves within reachable set)
+    scc_total: u32, // total SCCs
+    scc_nontrivial: u32, // SCCs of size >= 2
+    scc_max_size: u32, // size of the largest SCC
+    cycles_found: u64, // total simple directed cycles enumerated (capped)
+    cycles_capped: bool, // true iff the cycle cap was hit
+    cycle_involved: u32, // reachable vertices on at least one directed cycle
+    cycle_reachable: u32, // reachable vertices whose forward-reachable set
+    //                                       intersects a cycle-involved SCC
+    max_cycle_len: u32, // longest cycle length found
+    histogram_by_len: [13]u64, // cycles by length (length 2..12; index 12 = length >= 12)
+    sample_cycles: [3][]u32, // one sample cycle per length 2/3/4 (if any)
+    sample_cycles_count: u32,
+};
+
+fn run_cycle_census_3x2(
+    reach: []const u64,
+    max_cycle_len: u32,
+    max_cycles: u64,
+) !CycleCensusStats {
+    var gpa = std.heap.page_allocator;
+
+    std.debug.print("# qa023 probe — 3x2 cycle census: directed cycles in the reachable legal-move graph\n", .{});
+    std.debug.print("# (TIE constant is irrelevant; this is graph structure, not evaluation.)\n", .{});
+
+    // 1. Build dense vertex map: reachable linear index -> [0..V).
+    const vertex_map = try gpa.alloc(u32, TOTAL_STATES);
+    defer gpa.free(vertex_map);
+    @memset(vertex_map, 0xFFFFFFFF);
+
+    var V: u32 = 0;
+    var linear: u64 = 0;
+    while (linear < TOTAL_STATES) : (linear += 1) {
+        const word = linear >> 6;
+        const bit: u64 = @as(u64, 1) << @intCast(linear & 63);
+        if (reach[word] & bit == 0) continue;
+        vertex_map[linear] = V;
+        V += 1;
+    }
+    std.debug.print("# cycle census: reachable V = {d}\n", .{V});
+
+    // 2. Build forward adjacency list. Use an ArrayListUnmanaged per vertex
+    // so we can grow during the moves enumeration.
+    var adj = try gpa.alloc(std.ArrayListUnmanaged(u32), V);
+    defer {
+        for (adj[0..V]) |*al| al.deinit(gpa);
+        gpa.free(adj);
+    }
+    for (0..V) |i| {
+        adj[i] = .{ .items = &.{}, .capacity = 0 };
+    }
+
+    var E: u32 = 0;
+    linear = 0;
+    while (linear < TOTAL_STATES) : (linear += 1) {
+        const word = linear >> 6;
+        const bit: u64 = @as(u64, 1) << @intCast(linear & 63);
+        if (reach[word] & bit == 0) continue;
+        const v = vertex_map[linear];
+
+        // Decode the linear index into (board, side, ko, passes) so we can
+        // enumerate its legal moves.
+        const passes: u8 = @intCast(linear / (2 * KO_DIMS * RAW_TOTAL));
+        const rest: u64 = linear % (2 * KO_DIMS * RAW_TOTAL);
+        const side: u8 = @intCast(rest / (KO_DIMS * RAW_TOTAL));
+        const rest2: u64 = rest % (KO_DIMS * RAW_TOTAL);
+        const ko: u16 = @intCast(rest2 / RAW_TOTAL);
+        const board: u32 = @intCast(rest2 % RAW_TOTAL);
+
+        const state = StateIdx{ .board = board, .side = side, .ko = ko, .passes = passes };
+
+        // Terminal states (passes == 2) have no successors; adjacency stays empty.
+        if (passes == 2) continue;
+
+        // Build the actual board so we can reuse `moves()`.  We need the
+        // board array (not just the dense index) because moves() uses
+        // `apply_place` which reads the actual board.
+        // (moves() re-unranks internally; no work needed here.)
+
+        var succ_boards: [n + 1]Pos = undefined;
+        var succs: [n + 1]StateIdx = undefined;
+        const m = moves(state, &succ_boards, &succs);
+        for (0..m) |k| {
+            const child = succs[k];
+            const child_linear = child.linear();
+            const child_word = child_linear >> 6;
+            const child_bit: u64 = @as(u64, 1) << @intCast(child_linear & 63);
+            if (reach[child_word] & child_bit == 0) continue;
+            const w = vertex_map[child_linear];
+            if (w == 0xFFFFFFFF) continue;
+            try adj[v].append(gpa, w);
+            E += 1;
+        }
+    }
+    std.debug.print("# cycle census: directed edges E = {d}\n", .{E});
+
+    // 3. Tarjan's SCC.  Iterative form to avoid recursion-depth issues.
+    // index[v] = -1 means "unvisited".  Standard textbook algorithm.
+    const index_arr = try gpa.alloc(i32, V);
+    defer gpa.free(index_arr);
+    const lowlink = try gpa.alloc(u32, V);
+    defer gpa.free(lowlink);
+    const on_stack = try gpa.alloc(u8, V);
+    defer gpa.free(on_stack);
+    const scc_id = try gpa.alloc(u32, V);
+    defer gpa.free(scc_id);
+    @memset(index_arr, -1);
+    @memset(on_stack, 0);
+    @memset(scc_id, 0);
+
+    var idx: u32 = 0;
+    var scc_count: u32 = 0;
+    var scc_max_size: u32 = 0;
+    // Tarjan's SCC stack (separate adjacency DFS stack).
+    var scc_stack = try std.ArrayListUnmanaged(u32).initCapacity(gpa, V);
+    defer scc_stack.deinit(gpa);
+
+    // Iterative Tarjan's: a separate DFS stack holds (vertex, next_child_idx)
+    // frames.  On visiting a new vertex, we push a frame.  When we finish
+    // exploring all neighbors, we either pop the SCC (if lowlink == index)
+    // or backtrack to the parent.  Recursive Tarjan's is O(V) but Zig
+    // function closures can't capture outer mutable state without explicit
+    // pointers; the iterative form is the standard workaround.
+    const DFSFrame = struct { v: u32, next_child: u32 };
+    var dfs_stack = try std.ArrayListUnmanaged(DFSFrame).initCapacity(gpa, V);
+    defer dfs_stack.deinit(gpa);
+
+    var s_root: u32 = 0;
+    while (s_root < V) : (s_root += 1) {
+        if (index_arr[s_root] != -1) continue;
+
+        // Root: push.
+        index_arr[s_root] = @intCast(idx);
+        lowlink[s_root] = idx;
+        idx += 1;
+        scc_stack.append(gpa, s_root) catch unreachable;
+        on_stack[s_root] = 1;
+        dfs_stack.append(gpa, .{ .v = s_root, .next_child = 0 }) catch unreachable;
+
+        while (dfs_stack.items.len > 0) {
+            const top = &dfs_stack.items[dfs_stack.items.len - 1];
+            const v = top.v;
+            const nbrs = adj[v].items;
+            if (top.next_child < nbrs.len) {
+                const w = nbrs[top.next_child];
+                top.next_child += 1;
+                if (index_arr[w] == -1) {
+                    // New vertex: recurse.
+                    index_arr[w] = @intCast(idx);
+                    lowlink[w] = idx;
+                    idx += 1;
+                    scc_stack.append(gpa, w) catch unreachable;
+                    on_stack[w] = 1;
+                    dfs_stack.append(gpa, .{ .v = w, .next_child = 0 }) catch unreachable;
+                } else if (on_stack[w] == 1) {
+                    // Back edge to ancestor on the stack.
+                    if (index_arr[w] < lowlink[v]) lowlink[v] = @intCast(index_arr[w]);
+                }
+                // If w is fully visited and not on stack, it's a cross edge
+                // — ignore (it doesn't affect SCC membership).
+            } else {
+                // All neighbors explored. Pop frame.
+                if (lowlink[v] == index_arr[v]) {
+                    // v is SCC root: pop everything down to v.
+                    var size: u32 = 0;
+                    while (true) {
+                        const w = scc_stack.pop().?;
+                        on_stack[w] = 0;
+                        scc_id[w] = scc_count;
+                        size += 1;
+                        if (w == v) break;
+                    }
+                    if (size > scc_max_size) scc_max_size = size;
+                    scc_count += 1;
+                }
+                _ = dfs_stack.pop();
+                // Backtrack: update parent's lowlink.
+                if (dfs_stack.items.len > 0) {
+                    const parent = dfs_stack.items[dfs_stack.items.len - 1].v;
+                    if (lowlink[v] < lowlink[parent]) lowlink[parent] = lowlink[v];
+                }
+            }
+        }
+    }
+
+    // 4. Per-SCC cycle enumeration within non-trivial SCCs.
+    // Use a bounded DFS that, for each vertex v in SCC, looks for paths
+    // v -> ... -> v using only vertices w with id >= v's SCC-internal order.
+    // Cap cycle length at max_cycle_len and total cycles at max_cycles.
+    const cycle_involved_flag = try gpa.alloc(u8, V);
+    defer gpa.free(cycle_involved_flag);
+    @memset(cycle_involved_flag, 0);
+
+    // For each SCC, compute its vertex list.
+    var scc_vertices = try std.ArrayListUnmanaged(std.ArrayListUnmanaged(u32)).initCapacity(gpa, scc_count);
+    defer {
+        for (scc_vertices.items) |*al| al.deinit(gpa);
+        scc_vertices.deinit(gpa);
+    }
+    for (0..scc_count) |_| {
+        scc_vertices.append(gpa, .{ .items = &.{}, .capacity = 0 }) catch unreachable;
+    }
+    for (0..V) |v| {
+        scc_vertices.items[scc_id[v]].append(gpa, @intCast(v)) catch unreachable;
+    }
+
+    var histogram = [_]u64{0} ** 13;
+    var cycles_found: u64 = 0;
+    var max_len_found: u32 = 0;
+    var cycles_capped: bool = false;
+    // We keep a copy of the path when we hit a new length for the first
+    // time.  Storage slots: [0..3] for lengths 2, 3, 4, 5; [4] for length
+    // 6; [5] for length 8; [6] for length 14.  (Length 7 is odd -> 0 by
+    // parity; same for length 5, 9, 11, 13.)  The intent is to give a
+    // human reader a few concrete cycles to verify non-triviality.
+    var sample_storage = try gpa.alloc([]u32, 7);
+    defer {
+        for (sample_storage[0..]) |s| gpa.free(s);
+        gpa.free(sample_storage);
+    }
+    for (sample_storage[0..]) |*s| s.* = &[_]u32{};
+    var sample_filled = [_]bool{ false, false, false, false, false, false, false };
+
+    // DFS scratch
+    var path = try std.ArrayListUnmanaged(u32).initCapacity(gpa, max_cycle_len);
+    defer path.deinit(gpa);
+    var on_path = try gpa.alloc(u8, V);
+    defer gpa.free(on_path);
+    @memset(on_path, 0);
+
+    // Cycle enumeration, per non-trivial SCC.
+    for (0..scc_count) |s| {
+        const verts = scc_vertices.items[s].items;
+        if (verts.len < 2) continue;
+
+        // Enumerate cycles starting from each vertex v in the SCC, looking
+        // for paths back to v using only vertices with SCC-internal id >= v.
+        // Sort verts so we know the relative order (we will reuse idx).
+        // We need a per-SCC "rank" mapping.
+        const rank_in_scc = try gpa.alloc(u32, V);
+        defer gpa.free(rank_in_scc);
+        @memset(rank_in_scc, 0xFFFFFFFF);
+        for (verts, 0..) |v, k| rank_in_scc[v] = @intCast(k);
+
+        // Outer loop: enumerate cycles starting from `start`.
+        for (verts) |start| {
+            // DFS through neighbors with rank >= rank_in_scc[start].
+            @memset(on_path, 0);
+            path.clearRetainingCapacity();
+            path.append(gpa, start) catch unreachable;
+            on_path[start] = 1;
+
+            // Iterative DFS using a struct frame { v, next_child }.
+            const FrameCycle = struct { v: u32, next_child: u32 };
+            var dfs_stack_cycle = try std.ArrayListUnmanaged(FrameCycle).initCapacity(gpa, max_cycle_len + 1);
+            defer dfs_stack_cycle.deinit(gpa);
+            dfs_stack_cycle.append(gpa, .{ .v = start, .next_child = 0 }) catch unreachable;
+
+            while (dfs_stack_cycle.items.len > 0) {
+                if (cycles_found >= max_cycles) {
+                    cycles_capped = true;
+                    break;
+                }
+                var top = &dfs_stack_cycle.items[dfs_stack_cycle.items.len - 1];
+                const v = top.v;
+                const nbrs = adj[v].items;
+                if (top.next_child < nbrs.len) {
+                    const w = nbrs[top.next_child];
+                    top.next_child += 1;
+                    if (rank_in_scc[w] < rank_in_scc[start]) continue;
+                    if (w == start) {
+                        // Cycle closure: start is on the path; only count
+                        // if path has at least one edge (len >= 2).
+                        if (path.items.len >= 2) {
+                            const len = path.items.len;
+                            if (len <= max_cycle_len) {
+                                cycles_found += 1;
+                                histogram[@intCast(@min(len - 2, 12))] += 1;
+                                if (len > max_len_found) max_len_found = @intCast(len);
+                                for (path.items) |cv| cycle_involved_flag[cv] = 1;
+                                if (len <= 4 and !sample_filled[len - 2]) {
+                                    sample_storage[len - 2] = try gpa.alloc(u32, len);
+                                    @memcpy(sample_storage[len - 2][0..len], path.items);
+                                    sample_filled[len - 2] = true;
+                                } else if (len == 6 and !sample_filled[4]) {
+                                    sample_storage[4] = try gpa.alloc(u32, len);
+                                    @memcpy(sample_storage[4][0..len], path.items);
+                                    sample_filled[4] = true;
+                                } else if (len == 8 and !sample_filled[5]) {
+                                    sample_storage[5] = try gpa.alloc(u32, len);
+                                    @memcpy(sample_storage[5][0..len], path.items);
+                                    sample_filled[5] = true;
+                                } else if (len == 14 and !sample_filled[6]) {
+                                    sample_storage[6] = try gpa.alloc(u32, len);
+                                    @memcpy(sample_storage[6][0..len], path.items);
+                                    sample_filled[6] = true;
+                                }
+                            }
+                        }
+                        // closing edge: do not descend.
+                        continue;
+                    }
+                    if (on_path[w] == 1) continue; // would create a non-simple cycle through w
+                    if (path.items.len < max_cycle_len) {
+                        path.append(gpa, w) catch unreachable;
+                        on_path[w] = 1;
+                        dfs_stack_cycle.append(gpa, .{ .v = w, .next_child = 0 }) catch unreachable;
+                    }
+                } else {
+                    // pop
+                    on_path[v] = 0;
+                    _ = path.pop();
+                    _ = dfs_stack_cycle.pop();
+                }
+            }
+            if (cycles_capped) break;
+        }
+        if (cycles_capped) break;
+    }
+
+    // 5. cycle-REACHABLE (broader): a state is cycle-reachable iff some
+    // state in its forward-reachable set is cycle-involved.  Compute by
+    // reverse-BFS from the cycle-involved set.
+    var cycle_reachable: u32 = 0;
+    {
+        // Build reverse adjacency list.
+        var radj = try gpa.alloc(std.ArrayListUnmanaged(u32), V);
+        defer {
+            for (radj[0..V]) |*al| al.deinit(gpa);
+            gpa.free(radj);
+        }
+        for (0..V) |i| radj[i] = .{ .items = &.{}, .capacity = 0 };
+        for (0..V) |v| {
+            for (adj[v].items) |w| {
+                radj[w].append(gpa, @intCast(v)) catch unreachable;
+            }
+        }
+        var visited = try gpa.alloc(u8, V);
+        defer gpa.free(visited);
+        @memset(visited, 0);
+        var bfs = try std.ArrayListUnmanaged(u32).initCapacity(gpa, V);
+        defer bfs.deinit(gpa);
+        // seed: every cycle-involved vertex
+        for (0..V) |v| {
+            if (cycle_involved_flag[v] == 1) {
+                visited[v] = 1;
+                bfs.append(gpa, @intCast(v)) catch unreachable;
+            }
+        }
+        while (bfs.items.len > 0) {
+            const v = bfs.orderedRemove(0);
+            for (radj[v].items) |u| {
+                if (visited[u] == 0) {
+                    visited[u] = 1;
+                    bfs.append(gpa, u) catch unreachable;
+                }
+            }
+        }
+        for (0..V) |v| {
+            if (visited[v] == 1) cycle_reachable += 1;
+        }
+    }
+
+    // 6. Tally cycle-involved count (over the whole reachable set).
+    var cycle_involved_count: u32 = 0;
+    for (0..V) |v| {
+        if (cycle_involved_flag[v] == 1) cycle_involved_count += 1;
+    }
+
+    // 7. Count non-trivial SCCs and tally SCC size histogram.
+    var scc_nontrivial: u32 = 0;
+    var scc_size_hist: [16]u64 = [_]u64{0} ** 16;
+    for (0..scc_count) |s| {
+        const sz = scc_vertices.items[s].items.len;
+        if (sz >= scc_size_hist.len) {
+            scc_size_hist[scc_size_hist.len - 1] += 1;
+        } else {
+            scc_size_hist[sz] += 1;
+        }
+        if (sz >= 2) scc_nontrivial += 1;
+    }
+
+    // 8. Report.
+    std.debug.print("# SCCs: total = {d}, non-trivial (size >= 2) = {d}, max size = {d}\n", .{ scc_count, scc_nontrivial, scc_max_size });
+    std.debug.print("# SCC size histogram (size 0..14, index 15 = size >= 15):\n", .{});
+    {
+        var si: usize = 0;
+        while (si < scc_size_hist.len) : (si += 1) {
+            if (scc_size_hist[si] > 0) {
+                std.debug.print("#   size {d}", .{si});
+                if (si == scc_size_hist.len - 1) std.debug.print("+", .{});
+                std.debug.print(": {d} SCCs\n", .{scc_size_hist[si]});
+            }
+        }
+    }
+    std.debug.print("# cycle-involved vertices (lie on a directed cycle): {d}\n", .{cycle_involved_count});
+    std.debug.print("# cycle-REACHABLE vertices (forward-reachable set touches a cycle): {d}\n", .{cycle_reachable});
+    std.debug.print("# simple directed cycles found (cycle-length cap = {d}, total cap = {d}): {d}{s}\n", .{
+        max_cycle_len,
+        max_cycles,
+        cycles_found,
+        if (cycles_capped) " (CAPPED — counted only)" else "",
+    });
+    if (max_len_found > 0) {
+        std.debug.print("# max cycle length observed: {d}\n", .{max_len_found});
+    } else {
+        std.debug.print("# max cycle length observed: 0 (no cycles)\n", .{});
+    }
+    std.debug.print("# cycle histogram by length (length 2..{d}; index {d} = length >= {d}):\n", .{
+        max_cycle_len,
+        max_cycle_len - 1,
+        max_cycle_len,
+    });
+    var last_printed_idx: usize = 0xFFFFFFFF;
+    var li: u32 = 2;
+    while (li <= max_cycle_len) : (li += 1) {
+        const idx_h: usize = @intCast(@min(li - 2, 12));
+        if (idx_h == last_printed_idx) continue; // already covered by a prior range bucket
+        // Find the end of this bucket.
+        var lj: u32 = li + 1;
+        while (lj <= max_cycle_len) : (lj += 1) {
+            const idxj: usize = @intCast(@min(lj - 2, 12));
+            if (idxj != idx_h) break;
+        }
+        std.debug.print("#   length {d}", .{li});
+        if (lj > li + 1) {
+            std.debug.print("..{d}", .{lj - 1});
+        }
+        std.debug.print(": {d}\n", .{histogram[idx_h]});
+        last_printed_idx = idx_h;
+    }
+
+    // Sample cycles.  Index -> length: 0->2, 1->3, 2->4, 3->5, 4->6, 5->8, 6->14.
+    const sample_len_for_idx = [_]u32{ 2, 3, 4, 5, 6, 8, 14 };
+    var sample_count: u32 = 0;
+    for (sample_storage[0..7], 0..) |s, i| {
+        if (s.len > 0) {
+            sample_count += 1;
+            std.debug.print("# sample cycle (length {d}): [", .{sample_len_for_idx[i]});
+            for (s, 0..) |v, k| {
+                if (k > 0) std.debug.print(", ", .{});
+                std.debug.print("{d}", .{v});
+            }
+            std.debug.print("]\n", .{});
+        }
+    }
+
+    // 9. Final verdict for claim 3x2.QA023.B-VACUITY.
+    std.debug.print("# === 2B-2 cycle-census verdict ===\n", .{});
+    std.debug.print("# reachable V = {d}, E = {d}, non-trivial SCCs = {d}, cycles_found = {d}, cycle-involved = {d}, cycle-reachable = {d}\n", .{
+        V,
+        E,
+        scc_nontrivial,
+        cycles_found,
+        cycle_involved_count,
+        cycle_reachable,
+    });
+    if (cycles_found > 0) {
+        std.debug.print("# CLAIM 3x2.QA023.B-VACUITY: PASS — reachable directed cycles > 0 (3x2 IS a non-trivial test surface)\n", .{});
+    } else {
+        std.debug.print("# CLAIM 3x2.QA023.B-VACUITY: FAIL — zero reachable directed cycles at 3x2\n", .{});
+        std.debug.print("# ESCALATE: 3x2 cannot host a non-trivial QA-023 test. Move to 3x3.\n", .{});
+    }
+
+    return CycleCensusStats{
+        .v = V,
+        .e = E,
+        .scc_total = scc_count,
+        .scc_nontrivial = scc_nontrivial,
+        .scc_max_size = scc_max_size,
+        .cycles_found = cycles_found,
+        .cycles_capped = cycles_capped,
+        .cycle_involved = cycle_involved_count,
+        .cycle_reachable = cycle_reachable,
+        .max_cycle_len = max_len_found,
+        .histogram_by_len = histogram,
+        .sample_cycles = undefined,
+        .sample_cycles_count = sample_count,
+    };
+}
+
 // ---- main -----------------------------------------------------------------
 
 pub fn main(init: std.process.Init) !void {
@@ -1694,6 +2482,47 @@ pub fn main(init: std.process.Init) !void {
             try census_sweep(reach, snap, &new_marks);
         }
         _ = run_fixpoint_3x2(reach) catch return error.OutOfMemory;
+    } else if (std.mem.eql(u8, mode, "cycle-census-3x2")) {
+        // Parse --max-cycle-len, --max-cycles.
+        var max_cycle_len: u32 = 12;
+        var max_cycles: u64 = 100_000;
+        while (args.next()) |a| {
+            if (std.mem.eql(u8, a, "--max-cycle-len")) {
+                max_cycle_len = std.fmt.parseInt(u32, args.next() orelse "12", 0) catch 12;
+            } else if (std.mem.eql(u8, a, "--max-cycles")) {
+                max_cycles = std.fmt.parseInt(u64, args.next() orelse "100000", 0) catch 100_000;
+            }
+        }
+        const gpa = std.heap.page_allocator;
+        const reach = try gpa.alloc(u64, ReachWords);
+        defer gpa.free(reach);
+        @memset(reach, 0);
+        seed_roots(reach);
+        const snap = try gpa.alloc(u64, ReachWords);
+        defer gpa.free(snap);
+        var new_marks: u64 = 1;
+        while (new_marks > 0) {
+            try census_sweep(reach, snap, &new_marks);
+        }
+        _ = run_cycle_census_3x2(reach, max_cycle_len, max_cycles) catch return error.OutOfMemory;
+    } else if (std.mem.eql(u8, mode, "history-pairs-3x2")) {
+        const gpa = std.heap.page_allocator;
+        const reach = try gpa.alloc(u64, ReachWords);
+        defer gpa.free(reach);
+        @memset(reach, 0);
+        seed_roots(reach);
+        const snap = try gpa.alloc(u64, ReachWords);
+        defer gpa.free(snap);
+        var new_marks: u64 = 1;
+        while (new_marks > 0) {
+            try census_sweep(reach, snap, &new_marks);
+        }
+        const L_tab = try gpa.alloc(i8, TOTAL_STATES);
+        defer gpa.free(L_tab);
+        const H_tab = try gpa.alloc(i8, TOTAL_STATES);
+        defer gpa.free(H_tab);
+        _ = fixpoint_kernel(reach, L_tab, H_tab);
+        _ = run_history_pairs_3x2(reach, L_tab, H_tab) catch return error.OutOfMemory;
     } else if (std.mem.eql(u8, mode, "probe-3x2")) {
         // Parse --seed, --n-samples, --k-histories, --history-depth.
         var seed: u64 = 0xC0FFEE5;
@@ -1756,7 +2585,7 @@ pub fn main(init: std.process.Init) !void {
         _ = run_fixpoint_3x2(reach) catch return error.OutOfMemory;
         std.debug.print("# (run `zig run ... probe-3x2 -- --seed N --n-samples N --k-histories N --history-depth N` for the history-sensitivity check)\n", .{});
     } else {
-        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|census-3x2|fixpoint-3x2|probe-3x2|all] [flags]\n", .{});
+        std.debug.print("usage: qa023_probe [smoke-2x2|calibrate|census-3x2|cycle-census-3x2|fixpoint-3x2|history-pairs-3x2|probe-3x2|all] [flags]\n", .{});
         return error.UnknownMode;
     }
 }
