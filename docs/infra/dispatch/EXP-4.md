@@ -1,4 +1,4 @@
-<!--managent set=A needs=EXP-2-->
+<!--managent set=B needs=EXP-2B-->
 
 # EXP-4 — 2×2 and 3×2 under the new rule: THE falsification gate
 

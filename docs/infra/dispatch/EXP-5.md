@@ -1,4 +1,4 @@
-<!--managent set=A needs=EXP-4-->
+<!--managent set=C needs=EXP-4-->
 
 # EXP-5 — 3×3 under the new rule: the first legitimate anchor comparison
 

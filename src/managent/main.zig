@@ -116,6 +116,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdReopen(io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "purge")) {
         try cmdPurge(io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "set")) {
+        try cmdSet(io, repo_root, state_path, args);
     } else {
         std.debug.print("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -672,16 +674,17 @@ fn isLeapYear(y: u64) bool {
 
 // Returns true if any task in a prior set (A < B < C) is not yet done.
 fn phaseGate(state: StateMap, set: u8) bool {
-    const set_order = "ABC";
-    const my_idx = std.mem.indexOfScalar(u8, set_order, set) orelse return false;
-    if (my_idx == 0) return false; // Set A has no prior set
+    // Sets are sequential phases labelled A, B, C, …: a task in set N may not
+    // start until every task in every earlier set is done (or failed). Within a
+    // set, tasks run in parallel, gated only by `needs` and `holds`. Comparison
+    // is by letter, so any uppercase letter works (not just A/B/C).
+    if (set <= 'A') return false; // set A (or earlier) has no prior set
 
     var it = state.iterator();
     while (it.next()) |entry| {
         const ts = entry.value_ptr.*;
         if (ts.status == .done or ts.status == .failed) continue;
-        const ts_idx = std.mem.indexOfScalar(u8, set_order, ts.set) orelse continue;
-        if (ts_idx < my_idx) return true; // prior-set task not done
+        if (ts.set < set) return true; // a task in an earlier set is not done
     }
     return false;
 }
@@ -1132,6 +1135,29 @@ fn cmdPurge(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][
         for (cleaned.items) |c| std.debug.print(" {s}", .{c});
         std.debug.print("\n", .{});
     }
+}
+
+fn cmdSet(io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 4 or args[3].len == 0) {
+        std.debug.print("usage: managent set <id> <A|B|C|…>\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    const new_set = args[3][0];
+    if (new_set < 'A' or new_set > 'Z') {
+        std.debug.print("error: set must be an uppercase letter A–Z, got '{c}'\n", .{new_set});
+        std.process.exit(1);
+    }
+    var state = try readState(io, state_path);
+    const ts_ptr = state.getPtr(id) orelse {
+        std.debug.print("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+    const old_set = ts_ptr.set;
+    ts_ptr.set = new_set;
+    try writeState(io, state_path, &state);
+    std.debug.print("\n  {s}  set {c} -> {c}\n", .{ id, old_set, new_set });
 }
 
 fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {

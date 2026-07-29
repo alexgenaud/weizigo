@@ -1,4 +1,4 @@
-<!--managent set=A needs=EXP-6-->
+<!--managent set=E needs=EXP-6-->
 
 # EXP-7 — the certified fraction under the new rule: a falsification test
 

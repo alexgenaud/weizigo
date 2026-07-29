@@ -1,4 +1,4 @@
-<!--managent set=A needs=EXP-5-->
+<!--managent set=D needs=EXP-5-->
 
 # EXP-6 — 4×4 under the new rule: +2, and a root that can say so
 

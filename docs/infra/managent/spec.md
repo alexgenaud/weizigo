@@ -7,7 +7,7 @@ Enforces dependencies, parallel-set exclusion, and engine-file locks.**
 
 ## Interface
 
-Nine commands. Five have zero required flags in daily use.
+Ten commands. Five have zero required flags in daily use.
 
 ```
 managent add <id>              register a task
@@ -16,6 +16,7 @@ managent claim <id>            claim a task for execution
 managent done <id>             mark a task complete
 managent reopen <id>           reopen a killed in_progress/failed task (→ dispatchable)
 managent purge                 purge done/failed tasks (and clean their IDs from remaining needs)
+managent set <id> <A|B|C|…>      reassign a task's phase set (A, B, C, …)
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task
@@ -40,7 +41,7 @@ Keys:
 
 | Key | Required | Meaning |
 |---|---|---|
-| `set` | yes | Parallelization group: `A`, `B`, or `C`. Only one task per set may be in-progress. |
+| `set` | yes | Sequential phase: `A`, `B`, `C`, … (any uppercase letter). A task in set N may not start until every task in every earlier set is done/failed; **within a set, tasks run in parallel**, gated only by `needs` and `holds`. Use one set unless a genuine phase boundary exists; express fine dependencies with `needs`. |
 | `holds` | no | Space-separated file paths (relative to repo root) that need exclusive write access. If any `holds` are present, the task is automatically assigned to Set C. |
 | `needs` | no | Space-separated task IDs that must be `done` before this task can be claimed. |
 | `caps` | no | Space-separated capability tokens from the vocabulary in `docs/infra/delegation/ROLES.md` §4: `reasoning:sustained`, `independence:has-not-read-<X>`, `session:persistent`, `sub-delegation:yes`. Informational; used by `next` for filtering. **Most tasks declare none** — specify only what changes the outcome. (`isolation: exclusive <paths>` is not a `caps` token; that is what `holds` is.) |
