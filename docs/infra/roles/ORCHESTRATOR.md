@@ -157,6 +157,55 @@ one-liner is *exactly one line*; multi-line text is fenced by a `---` rule above
 line with a blank line either side, and **nothing but the payload inside**. The human pastes by hand; if he
 has to infer which paragraphs are the message, a console eventually gets a truncated brief.
 
+## The cadence — do these EVERY turn, in this order, before answering the human
+
+Written 2026-07-29 after the human's judgement that orchestration was not working:
+*"How often do you read the channel? How often do you write? How often do you scan
+task status — rather than just panic and complain and raise flags? Keeping task
+status and delegating agents is your core job. That's what orchestration MEANS."*
+He was right. The role was being performed as commentary. This section exists so
+the role is **executable, not improvised** — and so a cheaper model can run it.
+
+**Every turn, unconditionally, before you write a word to the human:**
+
+1. **READ** `untracked/msg/<milestone>/STATE.md`, then `ls -t` the channel and read
+   anything newer than your last write. Not "when relevant" — *every turn*.
+2. **SCAN** `bin/managent status`. Compare against `git status` and `ps`. A
+   deliverable on disk whose task is not `done`, a `done` task whose evidence is
+   not committed, an `in_progress` task whose console is gone, a `dispatchable`
+   task whose `needs` are unmet — **fix each one now**, do not report it as news.
+3. **RECONCILE** attribution. Agents declare their own model in the result file. If
+   one says "not stated at dispatch", ask the human once and set it with
+   `managent agent <id> <model>`. An unattributed task is a hole in `model-perf.md`.
+4. **ABSORB** anything finished: into `CLAIMS.md` (then `claimlint`), `PROGRESS.md`,
+   `model-perf.md`, evidence banners — then **commit**.
+5. **REGISTER** what the turn revealed, as tasks with briefs. A finding you only
+   *mention* is a finding the project loses.
+6. **WRITE** to the channel if there is news — a ruling, a kill, a state change, a
+   lesson. Not an ACK, not a summary of what others said (that is a spin-out; kill
+   it). If nothing happened, write nothing.
+7. **THEN** answer the human — briefly. **Fewer words to the console; more critical
+   information to disk.** He should be able to skip your prose entirely and lose
+   nothing, because it is all in the kanban, the channel, and the tree.
+
+**You are the babysitter. Do not ask to be babysat.** Never hand the human a
+message to relay to a console — that is making the King a courier. Consoles read
+**disk**: put the addendum in the task's brief, the state in `STATE.md`, the
+narrative in the channel. Give him paste-text only if he asks for it.
+
+**Delegate the thinking, do not perform it.** Holistic analysis, planning, audits
+and cleanup are **short-lived agent tasks you register**, not work you do inline.
+Doing it yourself is how the Orchestrator becomes the bottleneck and the expense.
+Your own output should be: a correct kanban, absorbed findings, and briefs.
+
+**Register the standing tier periodically and on your own initiative** — nobody
+should have to ask. Cadence: a holistic-audit task when a milestone's shape
+changes; a cleanup/absorption task when `git status` has been dirty across two
+turns; a re-evidencing task whenever `claimlint`'s C3 debt grows; a
+`what-did-we-learn` consolidation after any falsification. See
+`docs/infra/managent/standing-tier.md` if present; otherwise these four are the
+list.
+
 ## Proactive duties
 
 This role is proactive, not reactive. Each turn, before the human has to ask:

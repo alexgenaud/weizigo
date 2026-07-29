@@ -298,6 +298,32 @@
     "dispatched_to": null,
     "note": "GATED 2026-07-29 by the Orchestrator: EXP-4 builds the new-rule tables on V=median(L,TIE,H), which ADR-0019 falsified at 3x2 (QA-026/GLOBAL.LONGCYCLE FALSE-AS-SCOPED). A replacement value rule is required first; PINRULE-SUFFICIENCY decides whether any pointwise (L,TIE,H) rule can work at all. Status set to blocked by hand because the MANAGENT-DERIVE-STATUS defect means `needs --add` does not re-gate an already-dispatchable task."
   },
+  "ORCHA-AUTOMATION": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/ORCHA-AUTOMATION.md",
+    "set": "W",
+    "holds": ["src/managent/main.zig"],
+    "needs": ["MANAGENT-DERIVE-STATUS"],
+    "added": "2026-07-29T15:51:06Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
+  "INDEX-RETRIEVAL": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/INDEX-RETRIEVAL.md",
+    "set": "X",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T15:51:06Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
   "EVIDENCE-INTEGRITY": {
     "status": "done",
     "agent": "DSPro",

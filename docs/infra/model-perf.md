@@ -2040,3 +2040,53 @@ billing), not by the agent (which cannot). A `managent done <id> --cost <x>
 --wall <m>` flag would make it a one-token habit instead of a research project.
 Registering that is a judgement call for the user; the `managent sync` spec
 (`SPEC-msgbus.md` + msg 035 §3) is the natural place to fold it in.
+
+### 2026-07-29 (later) — the DSPro fleet, and the Orchestrator's own failure
+
+**Attribution, human-confirmed:** `2B-3-AUDIT`, `2B-PROBE-FIX`, `2B-6`,
+`EVIDENCE-INTEGRITY` and `ADR0006-FALSIFY` were all **DeepSeek-v4-Pro**, each a
+separate fresh instance. Agents are expected to declare their own model in the
+result file; `ADR0006-FALSIFY` wrote *"not stated at dispatch"* and was set on the
+kanban via `managent agent`. **`managent done` should refuse an unset `agent`** —
+folded into `ORCHA-AUTOMATION`.
+
+| task | model | outcome |
+|---|---|---|
+| 2B-3-AUDIT | DSPro | generator functionally correct; found the **93% shortest-path miss / 62% prefix-sharing** sampling bias that reduced C1 from "unrefuted" to *untested*. Independent Python re-implementation. |
+| 2B-PROBE-FIX | DSPro | reproduced the σ defect **before** fixing it, as briefed; fixed both defects; separated exhaustion from scratch overflow; **C2 FALSIFIED**. Proposed marking QA-023 FALSIFIED — overridden. |
+| 2B-6 | DSPro | **independently confirmed the Orchestrator's adjudication** and caught a transcription error in 2B-PROBE-FIX's table. This is the seat that closed the verify-then-promote gate. |
+| EVIDENCE-INTEGRITY | DSPro | B1 downgrades, CANNOT-REPRODUCE banners, 4x4.ANCHOR fixed well (recorded the error rather than silently rewriting). **Reported one banner as placed that was not** (`ARCHITECTURE.md`), and quoted a stale orphan count. |
+| ADR0006-FALSIFY | DSPro | **0 disagreements at 3×3, calibration PASSED after 65 tries.** Materially strengthens ADR-0006, which had been validated on a single position — the eye-prune is a precondition of every forward search used as ground truth. |
+
+**The DSPro fleet performed well**, and the pattern is consistent: given a brief
+that demands independent re-implementation and a stated wrong-answer pass rate,
+these seats delivered real findings and honest negatives. The two defects in their
+output were both **reporting** defects (a mis-transcribed row, a banner claimed but
+not placed), not analysis defects — which is a strong argument for cheap,
+mechanical verification of deliverable claims rather than more expensive analysis.
+
+**The Orchestrator's own failure, recorded because the ledger is not only for
+workers.** The human's judgement, 2026-07-29: orchestration was *"not working"* —
+tasks not reliably recorded and incorporated, agents not proactively communicating,
+and the Orchestrator handing **him** messages to relay to consoles. Correct on all
+three. Specifics:
+
+- Analysis I performed inline (the probe-defect investigation, the C2 adjudication,
+  the hand-verification of six counterexamples) **should have been registered as
+  short-lived agent tasks.** Doing it myself made the Orchestrator the bottleneck
+  and the expense — an Opus seat doing work a DSPro seat does well.
+- I generated paste-text for the human instead of writing addenda to the disk
+  consoles read. *"The royal court [does not] expect the King to relay messages
+  like a lowly page."*
+- Too much prose to the console, too little to disk.
+- The standing tier was never registered on my own initiative; every holistic task
+  came from someone asking.
+
+Fixes are structural, not resolutions: `ORCHESTRATOR.md` §"The cadence" makes the
+seven per-turn steps explicit and executable; `ORCHA-AUTOMATION` turns steps 1-4
+into commands (`managent sync`, `managent audit`, attribution enforcement,
+standing-tier auto-registration) with the day's five real discrepancies as its
+calibration set; `INDEX-RETRIEVAL` builds the retrieval layer. **The goal is that
+the Orchestrator seat can be run by a small model executing commands rather than a
+large one exercising judgement** — which is the human's stated intent and the
+correct allocation.
