@@ -94,6 +94,19 @@
     "dispatched_to": null,
     "note": null
   },
+  "F1-CENSUS-GAP": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/F1-CENSUS-GAP.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T22:11:14Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": "2026-07-29T22:11:14Z",
+    "dispatched_to": "kimi-k3",
+    "note": "Kimi-k3 found this gap while reading F1-SEEDROOTS and flagged it unprompted. Not self-review — F1-SEEDROOTS was DSPro's. Good use of a seat idle behind a blocked EXP-4, and it already holds census context."
+  },
   "2B-3-AUDIT": {
     "status": "done",
     "agent": "DSPro",
@@ -117,6 +130,19 @@
     "added": "2026-07-29T21:48:47Z",
     "claimed": null,
     "done": null,
+    "dispatched": "2026-07-29T22:11:14Z",
+    "dispatched_to": "DSPro",
+    "note": "NOT to Kimi-k3: it found the witness via its own harness (src/qa023_pinrule.zig), and a dump from that harness reproduces the harness. Two-seat rule is already satisfied by K2.7; this is the third check and it must be independent of the producing code. Require node-for-node agreement between in-tree truncated_value and an independent reimplementation. Secondary: K3 already hit context exhaustion once today."
+  },
+  "AGENT-IDENTITY": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/AGENT-IDENTITY.md",
+    "set": "Y",
+    "holds": ["src/managent/main.zig"],
+    "needs": ["ORCHA-AUTOMATION"],
+    "added": "2026-07-29T16:21:30Z",
+    "claimed": null,
+    "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -134,19 +160,6 @@
     "dispatched": "2026-07-29T10:56:43Z",
     "dispatched_to": "minimax-m3",
     "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings)."
-  },
-  "AGENT-IDENTITY": {
-    "status": "blocked",
-    "bundle": "docs/infra/dispatch/AGENT-IDENTITY.md",
-    "set": "Y",
-    "holds": ["src/managent/main.zig"],
-    "needs": ["ORCHA-AUTOMATION"],
-    "added": "2026-07-29T16:21:30Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null
   },
   "2B-5": {
     "status": "done",

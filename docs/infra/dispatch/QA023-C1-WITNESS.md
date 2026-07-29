@@ -11,6 +11,21 @@ Two independent implementations agree (`Kimi-k3/PINRULE-SUFFICIENCY` found it; `
 
 **But this project has mistaken an instrument artefact for a result three times in one day** — σ-in-arrival, a mis-transcribed table row, and the kernel guards. Each survived because nobody traced a single evaluation end-to-end. The witness tree is ~22 nodes. **Dump it and read it.**
 
+## Dispatch ruling (Orchestrator, 2026-07-29)
+
+**Not to `Kimi-k3`, which found the witness — and not for the reason it expects.** K3 is right that the two-seat rule is already satisfied (`Kimi-k2.7` reproduced the witness from scratch in Python), so ordinary independence is not the objection. The objection is narrower and it is the failure mode that has burned this project three times today:
+
+**the dump must not come from the harness that produced the finding.** The witness surfaced through `src/qa023_pinrule.zig` — K3's own file, which K3 wrote and holds. A dump from that harness reproduces the harness, not the truth. `2B-FIX-KO` re-ran a broken harness and confirmed it; `2B-3-AUDIT` verified everything around a defect and stopped one call short; four separate seats cited stdout containing `value-agreements: 0` without remarking on it.
+
+So: **fresh seat, and the tree must be produced twice by independent paths.**
+
+1. The **in-tree** evaluator — `truncated_value` in `src/qa023_probe.zig`, post-`2B-PROBE-FIX` (σ excluded, scratch sized, counters separated).
+2. An **independent reimplementation** — your own, or `Kimi-k2.7`'s Python verifier (`docs/audits/qa023-kernel-audit-2026-07-29.py`).
+
+**They must agree node for node.** At ~22 nodes that is cheap, and it is precisely the check that would have caught all three earlier defects. Any disagreement is the finding.
+
+Secondary reason: `Kimi-k3` hit context exhaustion once already today, mid-`PINRULE-SUFFICIENCY`, and checkpointed under pressure. Handing it a second load is an avoidable risk on the task that decides `QA-023`.
+
 ## The task
 
 1. **Dump the full arrival-A evaluation tree** for `(178,0,6,0)`: every node, its state tuple, whether it was scored as revisit / terminal / recursion, and the value returned. ~22 nodes; print all of them.
