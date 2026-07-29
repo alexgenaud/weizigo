@@ -20,7 +20,9 @@
 - `docs/research/retrograde-4x4.md` — the "complete, validated 4×4 oracle" claim.
 - Each banner: what was assumed, what falsified it, and where the current position is stated.
 
-**4. Add a remediation column to the corrections ledger** (§2.5). `corrections-2026-07-27.md` lists A-1 and A-3 as open, addressed to other agents, but both were already fixed in the repo at the time of the sweep. Give each entry an applied/not-applied state and the commit that applied it. A ledger that cannot be read without a manual diff against the repo cannot do its job.
+**4. Fix the `4x4.ANCHOR` citation defect** (`AUDIT-REF-DSPro-2026-07-29.md` §1, severity HIGH). `CLAIMS.md:401` and `docs/research/retrograde-4x4.md:76` say the anchor "matches van der Werf & Winands **under PSK**". MIGOS II does **not** use PSK — and the register already knows this, because `QA-025` ("MIGOS II is Chinese area scoring + basic ko + long-cycle ties") is **PROVEN**. So the register contradicts itself in prose, where the linter cannot see it. Correct both sites, and check whether any inference drawn from that anchor assumed PSK agreement. While there: the audit reports the van der Werf **2005 PhD thesis** is the canonical MIGOS source and is cited nowhere.
+
+**5. Add a remediation column to the corrections ledger** (§2.5). `corrections-2026-07-27.md` lists A-1 and A-3 as open, addressed to other agents, but both were already fixed in the repo at the time of the sweep. Give each entry an applied/not-applied state and the commit that applied it. A ledger that cannot be read without a manual diff against the repo cannot do its job.
 
 ## Acceptance
 

@@ -1972,3 +1972,43 @@ turn (2026-07-29, GLM-5.2) — statuses recorded with citations, not
 adjudicated, per the CLAIMS.md amendment. **PROGRESS.md (the durable hub)
 is still not current** through the 2026-07-29 events; that is the next
 absorption pass.
+
+---
+
+## 2026-07-29 — EXP-2B micro-tasks (2B-0 … 2B-FIX-KO, 2B-5) + two project audits
+
+Recorded by the Orchestrator (Opus 5) on taking the seat. GLM-5.2's handover
+named these as owed; the probe-defect finding (below) changes how two of them
+should be read.
+
+| task | model | outcome | note |
+|---|---|---|---|
+| 2B-0, 2B-1 | Fable 5 | reference semantics + B1 smoke rewrite | the semantics doc is what made the probe defect *findable* — §1 states the arrival set is exclusive of σ, which is precisely what the code got wrong. A spec worth its cost. |
+| 2B-2 | MiniMax-M3 | 3×2 cycle census; B-VACUITY PASS | self-reported an SCC `lowlink` bug it had found and fixed. Census **stands** (independently reproduced twice). Its three "honest caveats" about cap-hitting were all false (audit F2). |
+| 2B-3 | DeepSeek-Pro | history-pair vacuity guard PASS | found + fixed two bugs in its own generator. **Never audited** — an input to 2B-4, still open. |
+| 2B-4 | DeepSeek-Pro | reported QA-023 FALSIFIED, 390/1080 | **INVALID** — the probe was vacuous (see below). Also published a perturbation result (“116/177”) that was two unrelated stdout lines read as one, i.e. a number with no run behind it. |
+| 2B-2-AUDIT | Kimi-k2.7 | second independent 2B-2 audit | model comparison against the Opus audit; census confirmed. |
+| 2B-2-AUDIT-OPUS | Opus 5 | census reproduced in Python + C; found **F5** | F5 (the `apply_place` lone-stone ko bug) was real and load-bearing. Predicted the corrected census to the digit *before* the code was touched — the strongest single result in the sequence. |
+| 2B-FIX-KO | Opus 5 | ko fix **stands**; re-run **INVALID** | the fix is independently verified. Its re-run inherited the probe defect, so its headline ("the falsification is not a wrong-rule artefact") is unsupported. It *did* catch 2B-4's fake perturbation number and that `2x2.T12` is false under both rules. |
+| 2B-5 | DeepSeek-Pro | NEG + POS calibration both PASS | **the pivotal task.** Establishing that the machinery *can* detect known sensitivity (68/48 vs T13's 12) is what made "value-agreements 0, ever" an anomaly rather than a plausible zero. Gap: the POS arm exercises a *parallel* PSK code path, so it did not cover the defective call site. |
+| AUDIT-DSPro | DeepSeek-Pro | project-wide audit | ADR-0006 (§2.6) is the best catch — a precondition of every forward-search ground truth with one position tested. Its headline recommendation was overtaken mid-write; §5.4 ("stop writing measurement tools") is rejected — 2B-5 is such a tool and it is why the artefact surfaced today. |
+| AUDIT-REF-DSPro | DeepSeek-Pro | external-reference audit | found `4x4.ANCHOR`'s "under PSK" claim contradicting the already-PROVEN QA-025, in prose the linter cannot reach. Console closed leaving it untracked. |
+| ORCHESTRATOR-VERIFY | Opus 5 | the probe never ran | σ was in its own arrival set: 1,133/1,133 collisions. `docs/evidence/QA-023/probe-defect-2026-07-29/`. |
+
+### What this says about allocation, not about models
+
+**The result that mattered came from re-running, not from reading.** Four seats
+(2B-4, 2B-2-AUDIT, 2B-FIX-KO, and an audit that read the deliverables) all
+passed over `value-agreements: 0` and `budget-exhausted: 0` in the very stdout
+they were citing. The Opus audit that *did* catch a real bug (F5) caught it by
+writing an independent implementation in another language. **Independent
+re-implementation found defects; document review did not.** That is an argument
+about method, not about which model is smarter — and it is the cheapest lever
+the project has.
+
+**Verify-don't-trust has to include the audit chain.** The chain here was
+2B-4 → 2B-2-AUDIT → 2B-FIX-KO → 2B-5 → 2B-6, and four of its five links would
+have passed the artefact through. An audit that re-runs a broken harness
+reproduces the harness.
+
+**Cost/wall still tracked by nobody.** Unchanged from the QA-018 panel's gap.
