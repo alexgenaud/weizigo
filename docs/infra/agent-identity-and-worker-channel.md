@@ -175,3 +175,51 @@ Both touch contended files: `src/managent/main.zig` is held by
 `RUNNER-CEILING`. Sequence behind them via `needs` — and note that
 `WORKER-CHANNEL`'s runner hook and `RUNNER-CEILING`'s CPU ceiling are the same
 edit to the same function, so they should land in that order rather than race.
+
+---
+
+# Part 3 — Opaque task IDs (human proposal, 2026-07-29; for new tasks)
+
+## The proposal
+
+Task IDs become opaque and monotonic — `T099` — and the human-readable name moves
+into the filename as a hint: `T099-runner-ceiling.md`. Agent identifiers then read
+`DSPro/T099`, `DSFlash/T101`.
+
+## Why this is right
+
+Today's IDs each encode a claim about structure, and the structure moves:
+
+- `2B-5` encodes milestone + phase + index — and `EXP-2B` was **re-cut** into
+  `2B-0…2B-6` mid-flight, so the numbering already survives a scheme that changed.
+- `ADR0006-FALSIFY` encodes its target; if the target is renumbered the ID lies.
+- `MANAGENT-DERIVE-STATUS` is a sentence, and sentences get edited.
+- `EXP-4`, `F1-SEEDROOTS`, `QA-018-RULING` are four different naming conventions
+  in one kanban.
+
+An opaque ID cannot go stale because it asserts nothing. The slug carries the
+meaning, and **a slug may be rewritten without breaking a single reference** —
+which is the whole point.
+
+## The one design question, and a recommendation
+
+The proposal shows `T099`, `X123`, `Y234` — different letters. **Recommend a single
+namespace letter** (`T` for task) rather than a class prefix. A class prefix
+re-encodes semantics into the ID, which is the problem opaque IDs exist to solve;
+and `managent` already uses **A–Z for sets**, so a letter that means something else
+invites exactly the ambiguity the kanban/board rename just removed.
+
+## Migration: alias, do not rename
+
+Existing IDs are cited in ~60 documents, in commit messages, in evidence directory
+names, and in `needs` edges. **Renaming them would break committed history**, which
+the project cannot rewrite and should not try to. So:
+
+- **New tasks get `T<n>`.** The counter lives in the kanban and `managent add` mints it.
+- **Existing tasks keep their IDs**, with an alias table so both resolve — `2B-5`
+  and its `T` number reach the same task.
+- The slug is **display only**: never a lookup key, never in a `needs` edge.
+- `managent add` derives the filename `T<n>-<slug>.md` from the brief's title, so
+  the two cannot drift apart.
+
+Registered as Part 3 of `AGENT-IDENTITY`.

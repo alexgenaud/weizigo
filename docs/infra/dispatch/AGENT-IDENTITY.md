@@ -25,6 +25,14 @@ The project names agents by **model**, which is a kind of worker and not a worke
 4. **Update the convention in `AGENTS.md`:** an agent writes its **identifier** into every artefact it produces, in full at first use, abbreviated thereafter — the project's existing expand-at-first-use rule. Amend the current wording (which asks only for the model) rather than adding a second rule beside it.
 5. **Backfill `model-perf.md`'s 2026-07-29 rows** with identifiers now that they can be stated: `DSPro/2B-3-AUDIT`, `DSPro/2B-PROBE-FIX`, `DSPro/2B-6`, `DSPro/EVIDENCE-INTEGRITY`, `DSPro/ADR0006-FALSIFY`.
 
+## Part 3 — opaque task IDs for new tasks
+
+Design: `docs/infra/agent-identity-and-worker-channel.md` Part 3.
+
+6. **`managent add` mints an opaque monotonic ID** — `T099` — and derives the brief filename `T<n>-<slug>.md` from the title, so ID and slug cannot drift. The slug is **display only**: never a lookup key, never in a `needs` edge.
+7. **Alias, do not rename.** Existing IDs are cited across ~60 documents, commit messages and evidence directory names; renaming breaks committed history. Keep them, add an alias table, and resolve both forms.
+8. **One namespace letter (`T`), not a class prefix** — a class prefix re-encodes semantics into the ID, which is what opaque IDs are for, and `managent` already uses A–Z for sets.
+
 ## Acceptance
 
 - Every place the tool named a model now names an identifier.

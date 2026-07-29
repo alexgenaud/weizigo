@@ -2090,3 +2090,30 @@ calibration set; `INDEX-RETRIEVAL` builds the retrieval layer. **The goal is tha
 the Orchestrator seat can be run by a small model executing commands rather than a
 large one exercising judgement** — which is the human's stated intent and the
 correct allocation.
+
+### 2026-07-29 (evening) — DSFlash pair, and Kimi-k3 finds the defect under its own task
+
+| identifier | outcome |
+|---|---|
+| `DSFlash/REFERENCES` | `docs/references.md` (468 lines), van der Werf sources archived against URL rot, three citation defects fixed. The brief told it two of the three were narrower than the audit claimed; it respected that. |
+| `DSFlash/RUNNER-CEILING` | `--max-wall`, `--max-cpu`, `--sweep`; RSS guard and ReleaseFast discipline intact. Smoke-tested by the Orchestrator before crediting, since every build in the project depends on this file. |
+| `Kimi-k3/PINRULE-SUFFICIENCY` | **Found the `fixpoint_kernel` White-branch guard bug** — the defect that invalidated the C2 falsification its own task was built on. Reported it as HEADLINE 1 *above* its assigned work, with four independent validations (bug-compatible port reproducing the published census exactly, Bellman residuals, inversion violations, controls on all seven adjudicated states). |
+
+**DSFlash is a good fit for bounded, well-specified work** — both tasks were
+mechanical-but-careful and both landed clean. Neither needed the deep-reasoning tier.
+
+**Kimi-k3's finding is the strongest single result of the day**, and the manner of it
+matters: it was produced *while checkpointing under context pressure*, and it
+contradicted the premise of its own brief. An agent that reports "the task you gave me
+rests on a defect" rather than completing the task as written is doing the job. The
+brief asked for the wrong-answer pass rate of its own check; it went further and
+questioned the input.
+
+**Operational note on Kimi-k3, for allocation.** Ollama reported a 1M context window
+while the Pi harness reported 128k; the console ran past **106% of the harness figure
+without compacting**. Treat the harness number as unreliable for this model and ask for
+an early durable checkpoint rather than trusting a percentage. This is the first seat
+where the two figures disagreed.
+
+**Cost still tracked by nobody** — unchanged. `WORKER-CHANNEL` would supply wall and
+CPU per task from what `tools/runner` already measures.
