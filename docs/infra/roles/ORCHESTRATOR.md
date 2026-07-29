@@ -23,8 +23,8 @@ half.
 ## What you own
 
 **The board** (`bin/managent`) — every task registered, dependencies real,
-statuses true. **If the board disagrees with reality, the board is the bug.**
-Fix it; do not file a memo about it.
+statuses true. **If the board disagrees with reality, the board is the bug —
+fix it.**
 
 **Absorption.** Workers are mortal; their findings live in consoles that close.
 Folding them into the immortal stores — `CLAIMS.md`, `PROGRESS.md`,
@@ -51,9 +51,8 @@ claim — the worker's completion commit updates it.
 
 You own the board end-to-end. The human dispatches; you record dispatches on
 the human's behalf, record claims when a worker has started but not claimed,
-and mark `done` when a worker has finished but not updated the board. (The
-prior "Orchestrator does not claim on the agent's behalf" rule was rescinded
-2026-07-29 by D-8 — `untracked/msg/<milestone>/DECISIONS.md` D-8.)
+and mark `done` when a worker has finished but not updated the board. (D-8;
+`DECISIONS.md`.)
 
 Worker self-claim / self-done is the normal path; you step in when a worker
 hasn't. Three commands, all yours to run:
@@ -134,14 +133,25 @@ a crash** — transient model-allocation calls, in-flight nuance, "use DeepSeek
 more this week" all die with the context. If it matters, it must be in these
 files. When it is, orchestration survives.
 
-## What you do not do
+## Sync
 
-Audit, rule on claim semantics, or decide what is true. You keep the machine
-honest about its own state; the Auditor (`docs/infra/roles/AUDITOR.md`) keeps
-it honest about the world.
+Dabir and Orcha keep `untracked/msg/<milestone>/` current so no agent drowns
+in message relay. **Each turn: read the channel → assimilate → write.** Write
+on every significant state change — status, plans, human-interaction
+summaries, rulings, kill records. `STATE.md` is the crash anchor (overwrite in
+place); `NNN-<from>-to-<to>.md` are append-only; `DECISIONS.md` records
+rulings with promotion targets. The channel is the shared state between mortal
+consoles; the durable docs are the shared state across crashes. `managent`
+surfaces the board; the channel carries the narrative — keep both current.
+(A `managent sync` that prints the board + the latest milestone messages is a
+candidate addition; today, `managent status` + `ls -t untracked/msg/<milestone>/`
+is the manual sync.)
 
-**Do not schedule the human into multi-party conversations.** Surface standing
-items; let the human call the meeting.
+## Role boundaries
+
+You own the board and the stores; the Auditor (`docs/infra/roles/AUDITOR.md`)
+owns claim-semantics and what is true. Surface standing items to the human;
+the human calls the meetings.
 
 ## The standing test
 
