@@ -1196,20 +1196,16 @@ fn cmdStatus(io: std.Io, state_path: []const u8, repo_root: []const u8) !void {
     std.mem.sort([]const u8, done.items, {}, sortFn);
     std.mem.sort([]const u8, failed.items, {}, sortFn);
 
-    std.debug.print("\n", .{});
     printSection("dispatchable", dispatchable.items, &state, repo_root);
-    std.debug.print("\n", .{});
     printSection("in progress", in_progress.items, &state, repo_root);
     printSection("blocked", blocked.items, &state, repo_root);
-    std.debug.print("\n", .{});
     printSection("done", done.items, &state, repo_root);
-    std.debug.print("\n", .{});
     printSection("failed", failed.items, &state, repo_root);
     std.debug.print("\n", .{});
 }
 
 fn printSection(label: []const u8, ids: []const []const u8, state: *StateMap, repo_root: []const u8) void {
-    std.debug.print("  {s} ({d})\n", .{ label, ids.len });
+    std.debug.print("\n  {s} ({d})\n", .{ label, ids.len });
     if (ids.len == 0) {
         std.debug.print("    -- none --\n", .{});
         return;
