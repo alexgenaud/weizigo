@@ -1,13 +1,14 @@
 {
   "RUNNER-CEILING": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSFlash",
     "bundle": "docs/infra/dispatch/RUNNER-CEILING.md",
     "set": "O",
     "holds": ["tools/runner"],
     "needs": [],
     "added": "2026-07-29T13:30:11Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T17:48:44Z",
+    "done": "2026-07-29T17:48:44Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null
@@ -162,6 +163,19 @@
     "dispatched_to": "kimi-k2.7",
     "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result."
   },
+  "QA023-KERNEL-AUDIT": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/QA023-KERNEL-AUDIT.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "added": "2026-07-29T17:49:00Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null
+  },
   "2B-PROBE-FIX": {
     "status": "done",
     "agent": "DSPro",
@@ -177,13 +191,14 @@
     "note": null
   },
   "PINRULE-SUFFICIENCY": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "kimi-k3",
     "bundle": "docs/infra/dispatch/PINRULE-SUFFICIENCY.md",
     "set": "T",
     "holds": [],
     "needs": [],
     "added": "2026-07-29T14:31:12Z",
-    "claimed": null,
+    "claimed": "2026-07-29T16:41:09Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
@@ -365,14 +380,15 @@
     "note": null
   },
   "REFERENCES": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSFlash",
     "bundle": "docs/infra/dispatch/REFERENCES.md",
     "set": "R",
     "holds": [],
     "needs": [],
     "added": "2026-07-29T13:48:52Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-29T17:48:44Z",
+    "done": "2026-07-29T17:48:44Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null

@@ -24,9 +24,13 @@ Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 > Corrected measurement: 45 value-agreements · 20 TIE · **12 disagreements / 77
 > within-budget** · 1,056 budget-exhausted.
 >
-> - **C2 — `median(L,TIE,H)` — is FALSIFIED at 3×2.** Six states, all
->   White-to-move at `passes=1`, no ko, where the pin says TIE=0 and the true value
->   is the pass-out `area_score` (+1, +3, −6). Hand-verified.
+> - **C2 — `median(L,TIE,H)` — is UNKNOWN.** Its falsification was **withdrawn** the
+>   same day: `fixpoint_kernel` never updates White-to-move states (`L_tab` seeded
+>   −6, `H_tab` +6, White guards `best < L_tab` / `best > H_tab` cannot fire), so all
+>   878 White-to-move non-terminals keep (−6,+6) and `median = 0` by construction.
+>   Every "counterexample" was White-to-move. Tell, printed in every run:
+>   `pin_L=142` vs `pin_H=0`, violating `AGENTS.md:46`. Audit:
+>   **`QA023-KERNEL-AUDIT`**; found by `Kimi-k3/PINRULE-SUFFICIENCY`.
 > - **C1 — Markovian state-sufficiency — is UNTESTED-FOR-WANT-OF-CONTRAST.** The
 >   history generator misses the shortest arrival in 93% of states; histories share
 >   ~62% of prefixes (`2B-3-AUDIT`).

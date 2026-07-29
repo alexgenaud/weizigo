@@ -1,7 +1,24 @@
 # ADR-0019 — First-revisit truncation is the rule; the median pin rule is falsified
 
 **Date:** 2026-07-29
-**Status:** ACCEPTED
+**Status:** ACCEPTED **as a ruleset decision** · **its measurement premise is WITHDRAWN 2026-07-29 (later)**
+
+> **⚠ The factual premise of this ADR — that `median(L,TIE,H)` was falsified at 3×2 — is withdrawn.**
+> `Kimi-k3/PINRULE-SUFFICIENCY` found, and the Orchestrator confirmed at the code, that
+> `fixpoint_kernel` never updates White-to-move states: `L_tab` is seeded to −6 and `H_tab` to +6
+> (`src/qa023_probe.zig:881-885`), while the White branches update only on `best < L_tab` (`:961`)
+> and `best > H_tab` (`:1020`) — guards that cannot fire. All 878 White-to-move reachable
+> non-terminals therefore keep (−6,+6), and `median(−6,TIE,+6) = 0` **by construction**. Every C2
+> counterexample was White-to-move. `QA-026`, `QA-013` and `GLOBAL.LONGCYCLE` are reverted to their
+> prior statuses; **C2 is UNKNOWN pending re-measurement**. Audit: `QA023-KERNEL-AUDIT`.
+>
+> **What still stands: the ruleset decision.** §Decision's choice — first-revisit truncation *is*
+> the rule, and the loopy-game fixpoint value is not permitted to define the rule by construction —
+> was a semantics ruling, not a measurement, and the reasoning in §"Why not the alternative" is
+> unaffected. **What lapses:** consequence 1 (the three falsifications), consequence 3 (EXP-3's
+> tractability estimate is unsupported), and consequence 4's premise that a replacement value rule
+> is required. `EXP-4` stays gated on `PINRULE-SUFFICIENCY` regardless — its input tables came
+> through the defective kernel.
 **Decider:** the user (ruleset adjudication). Recorded by the Orchestrator (Opus 5) under
 explicit delegation — the user, having read the fork as posed in
 `docs/epistemic/qa023-c2-adjudication-2026-07-29.md` §6, directed that the decision be

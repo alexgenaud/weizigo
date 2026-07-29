@@ -212,9 +212,13 @@ Results (`RETRO_BRACKET`, no finisher):
 | 4×3 | 643,378 | 473,102 (73.5%) | 170,276 | [−1, 12] w13 | +4 ✓ in-bracket |
 | 4×4 | 48,636,330 | 38,268,408 (78.68%) | 10,367,922 | [−6, 16] w22 | +2 (PSK/vdWerf) ✓ in-bracket |
 
-**Soundness confirmed:** every known anchor score falls inside its bracket
+**Soundness confirmed (but weak evidence — see erratum):** every known anchor score falls inside its bracket
 (4×4 ko-sensitive count 10,367,922 matches the kill=0 census exactly — regression
-check). The 4×4 ko-sensitive region histogram has a **3,702,442-slot spike at width 32** =
+check). **Critical caveat (AUDIT-REF-DSPro-2026-07-29 §1.3, `critique-2026-07-28.md:107`):**
+bracket-containment is NOT soundness — a wrong answer passes this test ~42–70% of the time
+(3×3: ~42%, 4×3: ~56%, 4×4: ~70%). The `4x4.BRACKET` and `3x3.BRACKET` register entries
+carry these pass rates; this caption was written before the critique and overstates the
+evidence. The 4×4 ko-sensitive region histogram has a **3,702,442-slot spike at width 32** =
 the full [−16, 16] range: over a third of the ko-sensitive region is deep-tangle where L/H
 carries zero information. The empty 4×4 bracket [−6, 16] contains the published
 PSK score +2 but is 22 wide out of 32 — the single-number question is

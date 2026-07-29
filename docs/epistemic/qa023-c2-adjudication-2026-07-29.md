@@ -4,6 +4,22 @@ and the user owns ruleset adjudication (`ORCHESTRATOR.md` §Role boundaries).
 No `CLAIMS.md` row is edited by this file. `EVIDENCE-INTEGRITY` holds that file
 and should carry the wording in §5.
 
+> **⚠ THE C2 HALF OF THIS DOCUMENT IS WITHDRAWN (2026-07-29, later).**
+> `Kimi-k3/PINRULE-SUFFICIENCY` found, and the Orchestrator confirmed at the code, that
+> `fixpoint_kernel` never updates White-to-move states — `L_tab` seeded −6, `H_tab` seeded +6,
+> White branches guarded on `best < L_tab` / `best > H_tab`, which cannot fire. All 878
+> White-to-move reachable non-terminals keep (−6,+6), so `median = 0` **by construction**.
+> **Every counterexample in §1b and §2 was White-to-move**, and all seven are
+> forced-single-successor states where correct Bellman gives `L == H == area_score` — exactly the
+> values I hand-verified. My hand-verification confirmed the *truncated* side and silently assumed
+> the *fixpoint* side; that is the error. The `pin_L=142` vs `pin_H=0` asymmetry in every run I ran
+> violates `AGENTS.md:46`'s invariant and I did not read it.
+>
+> **§3 stands and is strengthened:** `QA-023` must not be marked FALSE, and the C1/C2 distinction is
+> exactly what kept the register from recording a falsification that did not exist. **§2 and §1b are
+> withdrawn**; `QA-026`, `QA-013`, `GLOBAL.LONGCYCLE` are reverted to prior statuses. C2 is UNKNOWN.
+> Audit: `QA023-KERNEL-AUDIT`.
+
 # What 2B-PROBE-FIX falsified, what it did not, and why the difference decides the roadmap
 
 `2B-PROBE-FIX` (DSPro) proposes marking **`QA-023` FALSIFIED**. **Do not.** That

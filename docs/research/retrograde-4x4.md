@@ -87,7 +87,7 @@ Operational lessons, also landed in code:
 - The per-root **undo journal** (replacing an O(total) memcpy per root) is
   what made 43M-slot finishing feasible at all.
 
-## Anchors: published 4x4 score MATCHES under positional superko
+## Anchors: published 4x4 score MATCHES (cross-ruleset — MIGOS II is basic-ko, not PSK)
 
 `empty(B) 4x4 = +2` (dtt 13) — exactly van der Werf & Winands (ICGA 2009;
 canonical source: van der Werf 2005 PhD thesis §6.4). **MIGOS II plays
@@ -166,7 +166,12 @@ fired at exactly this moment but the player had no better number to act on.
 Cost of knowing better (measured): the history-exact solves took 65k nodes
 at ply 1 and monotonically fewer later (sub-1k from ply 7; 0 nodes where the
 bracket is already tight). A HISTORY-PERFECT genmove — live history-exact
-solve per move — is therefore trivially affordable at 4x4. Black's C4 and
+solve per move — is therefore trivially affordable at 4x4 (but note: this
+cost was measured with bracket-cut search per ADR-0010, which rests on C3
+— falsified at 3×3; see `PROGRESS.md:267-270` and the erratum banner above.
+The *finisher* cost is genuine and does not depend on C3, but the
+bracket-cut pruning that made it cheap assumes bracketed scores bound
+real-game scores, which C3 falsifies). Black's C4 and
 D4 remain genuine errors under BOTH accountings (+2 -> -1 -> -16).
 
 Consequences:

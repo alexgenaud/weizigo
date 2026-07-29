@@ -1,46 +1,132 @@
 #!/usr/bin/env python3
 # weizigo agent runner — guarded execution wrapper for zig/agent builds.
 #
-#   tools/runner [options] -- <command> [args...]
+#   tools/runner [options] [--] <command> [args...]
+#   tools/runner --sweep                   (standalone sweep, no command)
 #
-# Wraps a command in an RSS guard + zig optimization discipline, the
-# minimum stand on the 2026-07-29 host panic (see
-# docs/infra/host/incident-2026-07-29.md §B-2). The pattern is
-# Opus 5's from the EXP-9 close-out: ReleaseFast by default, SIGKILL
-# the process group at the RSS ceiling, no leaks.
+# Wraps a command in an RSS guard + wall/CPU ceiling + zig optimization
+# discipline.  The minimum stand on the 2026-07-29 host panic (see
+# docs/infra/host/incident-2026-07-29.md).  The pattern is Opus 5's from
+# the EXP-9 close-out: ReleaseFast by default, SIGKILL the process group
+# at any ceiling breach, clear reporting on stderr, exit 124.
 #
-# Why this exists. The 2026-07-29 02:37 host kernel panic was caused
-# by a `zig build-exe -O Debug` of `src/oracle.zig` (or similar)
-# ballooning to 12.5 GB RSS / 21.8 GB peak while the compressor was
-# already at 100 % of its segments limit. Jetsam did not act in time;
-# `watchdogd` starved 91 s; the kernel panicked on core 0. The fix is
-# not "be more careful" — the fix is a guard that does not depend on
-# the agent's discipline.
+# Three ceilings, all default-on:
+#   --rss-cap-mb 4096   SIGKILL the process group when any member exceeds
+#                       this RSS.  Protects against compiler blowups that
+#                       Jetsam does not catch before the watchdog fires.
+#   --max-wall 1800     SIGKILL the process group after this many seconds
+#                       of wall-clock time.  Protects against compute loops
+#                       that do not allocate, so RSS never fires.
+#                       macOS does not have timeout(1), so this is the
+#                       project's only reliable wall-time backstop.
+#   --max-cpu 3600      SIGKILL the process group when the sum of
+#                       cumulative CPU seconds across ALL descendants
+#                       exceeds this.  Protects against multi-process
+#                       spin loops where no single child shows alarming
+#                       RSS or wall time.  Reported per-PID on exit.
 #
-#   -O ReleaseFast          (the LLVM path is the memory hog; Debug is
-#                            not justified for any agent build)
-#   --rss-cap-mb <N>        default 4096; SIGKILL the process group
-#                            when any member exceeds it
-#   --poll-ms <N>           default 250; check interval
-#   --prepend-zig-releasefast  if `zig build`/`build-exe` is in the
-#                            command and the user did not pass -O, add
-#                            -O ReleaseFast before any other args
-#   --no-prepend-zig       disable the zig auto-flag (advanced)
+# Why three ceilings?  The 2026-07-29 panic proved that a single guard
+# (RSS) is not enough.  A `zig test` binary spinning at 0% RSS sat
+# undetected for 5 hours because name-based greps missed the anonymous
+# process.  The wall ceiling catches the long-duration case; the CPU
+# ceiling catches the high-throughput case regardless of process name.
 #
-# All flags are pass-through except the guard itself, which kills the
-# group on threshold. Exit code 124 (timeout convention) on guard kill.
-# Logs the peak RSS for every member of the group on exit.
+# macOS timeout(1) gap.  macOS ships no `timeout` utility (it is
+# Linux-only / coreutils-only).  Agents reaching for `timeout` to bound
+# a run silently get no bound.  This runner replaces that missing tool
+# for the project — documented in docs/infra/host/macos-timeout-gap.md.
 #
-# Standard library only. No external dependencies.
+# --sweep mode.  Standalone: lists the top CPU consumers on the host,
+# sorted by cumulative CPU time, to help find orphaned zig processes
+# (which compile to anonymous .zig-cache names).  No command needed.
+#
+# All flags are pass-through except the guard itself.  Exit code 124
+# (timeout convention) on guard kill, or the wrapped command's exit code.
+#
+# Standard library only.  No external dependencies.
 
 import argparse
 import os
+import re
 import shlex
 import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+
+# ── helpers ──────────────────────────────────────────────────────────
+
+def _parse_cputime(s):
+    """Parse a ps-style CPU time string to total seconds (float).
+
+    Accepts formats (all three from macOS / Linux `ps`):
+      [[hh:]mm:]ss          (Linux, whole seconds)
+      [[hh:]mm:]ss.cc       (macOS, centiseconds suffix)
+      [dd-]hh:mm:ss[.cc]    (days-hours:minutes:seconds[.centiseconds])
+      0                     (single digit, edge case)
+    """
+    s = s.strip()
+    if not s:
+        return 0.0
+    # Days prefix: "dd-hh:mm:ss" or "dd-hh:mm:ss.cc"
+    if '-' in s:
+        days_part, rest = s.split('-', 1)
+        try:
+            days = int(days_part)
+        except ValueError:
+            return 0.0
+        return days * 86400 + _parse_hms(rest)
+    # [[hh:]mm:]ss or [[hh:]mm:]ss.cc
+    return _parse_hms(s)
+
+
+def _parse_hms(s):
+    """Parse [[hh:]mm:]ss[.cc] to float seconds."""
+    parts = s.split(':') if ':' in s else ['0', s]
+    try:
+        if len(parts) == 3:
+            h, m, rest = parts
+            secs = float(rest) if '.' in rest else int(rest)
+            return int(h) * 3600 + int(m) * 60 + secs
+        if len(parts) == 2:
+            m, rest = parts
+            secs = float(rest) if '.' in rest else int(rest)
+            return int(m) * 60 + secs
+        if len(parts) == 1:
+            return float(parts[0]) if '.' in parts[0] else int(parts[0])
+    except ValueError:
+        return 0.0
+    return 0.0
+
+
+def _format_clock(secs):
+    """Format seconds as [H:]M:SS for human-readable output."""
+    secs = int(secs)
+    h, r = divmod(secs, 3600)
+    m, s = divmod(r, 60)
+    if h:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m}:{s:02d}"
+
+
+def _cpu_time_seconds(pid):
+    """Return cumulative CPU time in seconds for `pid`, or None.
+
+    Uses the `time` column (total CPU = user + system) from `ps`.
+    On macOS the format is [[hh:]mm:]ss.cc; on Linux [[hh:]mm:]ss.
+    """
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "time=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=0.5,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return _parse_cputime(out.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
 
 
 def prepend_releasefast(argv):
@@ -70,180 +156,60 @@ def prepend_releasefast(argv):
     return argv
 
 
-def main():
-    ap = argparse.ArgumentParser(
-        prog="tools/runner",
-        description="Guarded runner for weizigo agent builds. "
-                    "Default -O ReleaseFast; SIGKILL the group at the RSS ceiling.",
-    )
-    ap.add_argument("--rss-cap-mb", type=int, default=4096,
-                    help="kill the process group when any member exceeds this RSS in MB (default 4096)")
-    ap.add_argument("--poll-ms", type=int, default=250,
-                    help="RSS check interval in ms (default 250)")
-    ap.add_argument("--no-prepend-zig", action="store_true",
-                    help="do not auto-add -O ReleaseFast to zig commands")
-    ap.add_argument("--log-rss", action="store_true",
-                    help="log per-member RSS every poll (verbose)")
-    ap.add_argument("--show-peak-on-exit", dest="show_peak", action="store_true", default=True,
-                    help="log per-member peak RSS on exit (default true)")
-    ap.add_argument("--no-show-peak-on-exit", dest="show_peak", action="store_false",
-                    help="do not log per-member peak RSS on exit")
-    ap.add_argument("rest", nargs=argparse.REMAINDER,
-                    help="command and arguments after `--`")
-    args = ap.parse_args()
+# ── sweep (standalone) ───────────────────────────────────────────────
 
-    # argparse.REMAINDER includes the leading `--` if present; strip it
-    if not args.rest:
-        ap.error("missing command; pass `-- <command> [args...]`")
-    if args.rest[0] == "--":
-        argv = args.rest[1:]
-    else:
-        argv = args.rest
-    if not argv:
-        ap.error("missing command after `--`")
+def sweep():
+    """List top CPU consumers on the host (finding orphan zig processes).
 
-    if not args.no_prepend_zig:
-        argv = prepend_releasefast(argv)
-
-    cap_bytes = args.rss_cap_mb * 1024 * 1024
-    poll_s = args.poll_ms / 1000.0
-
-    # New process group so SIGKILL reaches the whole tree, not just the
-    # wrapper's child. (The child becomes its own session leader; the
-    # group ID == its PID.)
-    preexec_fn = lambda: os.setsid() if hasattr(os, "setsid") else None
-
-    print(f"[runner] argv = {shlex.join(argv)}", file=sys.stderr)
-    print(f"[runner] rss cap = {args.rss_cap_mb} MB, poll = {args.poll_ms} ms", file=sys.stderr)
-
-    t0 = time.monotonic()
-    proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
-    sys.stderr.flush()
-
-    peak_rss = {}  # pid -> max RSS bytes
-
-    try:
-        while True:
-            ret = proc.poll()
-            if ret is not None:
-                break
-            time.sleep(poll_s)
-
-            # Walk the process tree by walking /proc/<pid>/status (Linux)
-            # or ps (macOS). We try Linux first because it is exact;
-            # fall back to ps on macOS / BSD.
-            try:
-                pids = _descendant_pids_linux(proc.pid)
-            except (FileNotFoundError, NotImplementedError, OSError) as e:
-                if args.log_rss:
-                    print(f"[runner] linux walker failed ({type(e).__name__}), falling back to ps", file=sys.stderr)
-                pids = _descendant_pids_ps(proc.pid)
-
-            over = False
-            for pid in pids:
-                try:
-                    rss = _rss_bytes(pid)
-                except (FileNotFoundError, ProcessLookupError):
-                    continue
-                if rss is None:
-                    continue
-                if rss == "NOPROC":
-                    # The walker returned this pid (e.g. from ps) but
-                    # _rss_bytes is on a host with no /proc — try the
-                    # macOS path even though the caller is on Linux. In
-                    # practice this branch is unreachable from the macOS
-                    # walker (which already used ps), so it's defensive.
-                    try:
-                        out = subprocess.run(
-                            ["ps", "-o", "rss=", "-p", str(pid)],
-                            capture_output=True, text=True, timeout=0.5,
-                        )
-                        if out.returncode == 0 and out.stdout.strip():
-                            rss = int(out.stdout.strip()) * 1024
-                        else:
-                            continue
-                    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
-                        continue
-                peak_rss[pid] = max(peak_rss.get(pid, 0), rss)
-                if rss > cap_bytes:
-                    over = True
-                    if not args.log_rss:
-                        print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB > cap {args.rss_cap_mb} MB", file=sys.stderr)
-                    break
-                if args.log_rss:
-                    print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB", file=sys.stderr)
-            sys.stderr.flush()
-
-            if over:
-                print(f"[runner] RSS cap exceeded; SIGKILL pgid {proc.pid}", file=sys.stderr)
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                # Give it a moment to die, then reap
-                try:
-                    proc.wait(timeout=2.0)
-                except subprocess.TimeoutExpired:
-                    pass
-                if args.show_peak:
-                    _log_peaks(peak_rss)
-                print(f"[runner] exit 124 (RSS cap, {args.rss_cap_mb} MB) in {time.monotonic() - t0:.1f} s", file=sys.stderr)
-                sys.exit(124)
-
-        ret = proc.wait()
-    finally:
-        if args.show_peak and peak_rss:
-            _log_peaks(peak_rss)
-
-    print(f"[runner] exit {ret} in {time.monotonic() - t0:.1f} s", file=sys.stderr)
-    sys.exit(ret)
-
-
-def _rss_bytes(pid):
-    """Return RSS in bytes for `pid`, or None on any read failure.
-
-    Linux: read VmRSS from /proc/<pid>/status (kB → bytes).
-    macOS: `ps -o rss= -p <pid>` (kB → bytes, on macOS this is 1024-byte
-    pages reported as kB; rounding is fine for the cap check).
-
-    The platform split is per *pid*, not per process invocation: a runner
-    that itself runs on Linux must still tolerate a macOS-style ps when
-    /proc is unavailable (containers, chroots, etc.). The Linux branch
-    returns the bytes; if /proc is not present it returns the macOS-style
-    sentinel `'NOPROC'` and the caller falls through to ps. The function
-    does NOT return None for "platform unsupported" — None is for "I tried
-    everything and the pid is gone or unreadable."
+    Orphaned `zig test` / `zig build-exe` binaries compile to anonymous
+    paths under .zig-cache/ and are invisible to name-based greps.  This
+    mode lists every process by cumulative CPU time, so the human or a
+    follow-up agent can identify spinners.
     """
-    # Linux: /proc/<pid>/status has VmRSS in kB. If /proc itself does not
-    # exist (macOS / BSD), signal the caller to try the ps path.
-    try:
-        with open(f"/proc/{pid}/status") as f:
-            for line in f:
-                if line.startswith("VmRSS:"):
-                    return int(line.split()[1]) * 1024
-    except FileNotFoundError as e:
-        # /proc may not exist on this host (macOS, BSD, some containers).
-        # Distinguish "no /proc" from "pid is gone": the former opens the
-        # directory and raises ENOENT for the *directory*, the latter is
-        # the file. We treat "no /proc" as the platform signal.
-        if "/proc" in str(e):
-            return "NOPROC"
-        return None
-    except (ProcessLookupError, PermissionError):
-        return None
-
-    # macOS / BSD: ps -o rss= -p <pid> gives RSS in kB.
+    print("[runner] === SWEEP: top processes by CPU time ===", file=sys.stderr)
     try:
         out = subprocess.run(
-            ["ps", "-o", "rss=", "-p", str(pid)],
-            capture_output=True, text=True, timeout=0.5,
+            ["ps", "-axo", "pid=,etime=,cputime=,command="],
+            capture_output=True, text=True, timeout=5.0,
         )
-        if out.returncode == 0 and out.stdout.strip():
-            return int(out.stdout.strip()) * 1024
-    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
-        pass
-    return None
+    except FileNotFoundError:
+        print("[runner] SWEEP failed: `ps` not found", file=sys.stderr)
+        sys.exit(1)
+    except subprocess.TimeoutExpired:
+        print("[runner] SWEEP failed: `ps` timed out", file=sys.stderr)
+        sys.exit(1)
 
+    lines = out.stdout.splitlines()
+    if not lines:
+        print("[runner] SWEEP: no processes", file=sys.stderr)
+        sys.exit(0)
+
+    def sort_key(line):
+        # cputime is the third whitespace-delimited column after pid, etime
+        parts = line.split(None, 3)
+        if len(parts) >= 3:
+            return _parse_cputime(parts[2])
+        return 0
+
+    data = sorted(lines, key=sort_key, reverse=True)
+    header = data[0] if data else ""
+    body = data[1:] if len(data) > 1 else []
+    n_show = min(20, len(body))
+
+    print(f"  PID  ETIME      CPUTIME    COMMAND", file=sys.stderr)
+    print(f"  ---  -----      -------    -------", file=sys.stderr)
+    for line in body[:n_show]:
+        parts = line.split(None, 3)
+        if len(parts) >= 4:
+            pid, etime, cputime, cmd = parts
+            print(f"  {pid:<5s} {etime:<10s} {cputime:<10s} {cmd}", file=sys.stderr)
+        else:
+            print(f"  {line}", file=sys.stderr)
+    print(f"[runner] === {len(body)} processes total, showing top {n_show} ===", file=sys.stderr)
+    sys.exit(0)
+
+
+# ── process tree walking ─────────────────────────────────────────────
 
 def _descendant_pids_linux(root_pid):
     """Walk /proc and return root_pid + all descendants (Linux)."""
@@ -297,11 +263,257 @@ def _descendant_pids_ps(root_pid):
     return pids
 
 
-def _log_peaks(peak_rss):
-    print(f"[runner] peak RSS by PID:", file=sys.stderr)
+# ── RSS reading ──────────────────────────────────────────────────────
+
+def _rss_bytes(pid):
+    """Return RSS in bytes for `pid`, or None on any read failure.
+
+    Linux: read VmRSS from /proc/<pid>/status (kB -> bytes).
+    macOS: `ps -o rss= -p <pid>` (kB -> bytes, on macOS this is 1024-byte
+    pages reported as kB; rounding is fine for the cap check).
+
+    The platform split is per *pid*, not per process invocation: a runner
+    that itself runs on Linux must still tolerate a macOS-style ps when
+    /proc is unavailable (containers, chroots, etc.). The Linux branch
+    returns the bytes; if /proc is not present it returns the macOS-style
+    sentinel `'NOPROC'` and the caller falls through to ps. The function
+    does NOT return None for "platform unsupported" — None is for "I tried
+    everything and the pid is gone or unreadable."
+    """
+    # Linux: /proc/<pid>/status has VmRSS in kB. If /proc itself does not
+    # exist (macOS / BSD), signal the caller to try the ps path.
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) * 1024
+    except FileNotFoundError as e:
+        # /proc may not exist on this host (macOS, BSD, some containers).
+        # Distinguish "no /proc" from "pid is gone": the former opens the
+        # directory and raises ENOENT for the *directory*, the latter is
+        # the file. We treat "no /proc" as the platform signal.
+        if "/proc" in str(e):
+            return "NOPROC"
+        return None
+    except (ProcessLookupError, PermissionError):
+        return None
+
+    # macOS / BSD: ps -o rss= -p <pid> gives RSS in kB.
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "rss=", "-p", str(pid)],
+            capture_output=True, text=True, timeout=0.5,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return int(out.stdout.strip()) * 1024
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
+# ── logging ──────────────────────────────────────────────────────────
+
+def _log_peaks(peak_rss, peak_cpu=None, t0=None):
+    elapsed = f" in {time.monotonic() - t0:.1f} s" if t0 else ""
+    print(f"[runner] peak RSS by PID:{elapsed}", file=sys.stderr)
     for pid in sorted(peak_rss, key=lambda p: -peak_rss[p]):
         mb = peak_rss[pid] // (1024 * 1024)
         print(f"[runner]   pid {pid:>7d}  {mb:>6d} MB", file=sys.stderr)
+    if peak_cpu:
+        print(f"[runner] peak total CPU by PID:{elapsed}", file=sys.stderr)
+        for pid in sorted(peak_cpu, key=lambda p: -peak_cpu[p]):
+            secs = peak_cpu[pid]
+            print(f"[runner]   pid {pid:>7d}  {_format_clock(secs):>10s} ({secs}s)", file=sys.stderr)
+
+
+# ── main ─────────────────────────────────────────────────────────────
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="tools/runner",
+        description="Guarded runner for weizigo agent builds. "
+                    "Default -O ReleaseFast; SIGKILL the group at the "
+                    "RSS / wall / CPU ceiling.  Also: --sweep for "
+                    "orphan-zig detection.",
+    )
+    ap.add_argument("--rss-cap-mb", type=int, default=4096,
+                    help="kill the process group when any member exceeds "
+                         "this RSS in MB (default 4096)")
+    ap.add_argument("--max-wall", type=int, default=1800,
+                    help="SIGKILL the process group after this many "
+                         "seconds of wall time (default 1800 = 30 min; "
+                         "0 to disable)")
+    ap.add_argument("--max-cpu", type=int, default=3600,
+                    help="SIGKILL the process group when cumulative CPU "
+                         "seconds across all descendants exceeds this "
+                         "(default 3600 = 1h; 0 to disable)")
+    ap.add_argument("--poll-ms", type=int, default=250,
+                    help="RSS / CPU / wall check interval in ms (default 250)")
+    ap.add_argument("--no-prepend-zig", action="store_true",
+                    help="do not auto-add -O ReleaseFast to zig commands")
+    ap.add_argument("--log-rss", action="store_true",
+                    help="log per-member RSS every poll (verbose)")
+    ap.add_argument("--show-peak-on-exit", dest="show_peak", action="store_true", default=True,
+                    help="log per-member peak RSS on exit (default true)")
+    ap.add_argument("--no-show-peak-on-exit", dest="show_peak", action="store_false",
+                    help="do not log per-member peak RSS on exit")
+    ap.add_argument("--sweep", action="store_true",
+                    help="standalone: list top CPU consumers on the host "
+                         "(no command needed)")
+    ap.add_argument("rest", nargs=argparse.REMAINDER,
+                    help="command and arguments after `--`")
+    args = ap.parse_args()
+
+    # Handle --sweep (standalone)
+    if args.sweep:
+        sweep()
+        # sweep() calls sys.exit, but be safe:
+        return
+
+    # argparse.REMAINDER includes the leading `--` if present; strip it
+    if not args.rest:
+        ap.error("missing command; pass `-- <command> [args...]` or use `--sweep`")
+    if args.rest[0] == "--":
+        argv = args.rest[1:]
+    else:
+        argv = args.rest
+    if not argv:
+        ap.error("missing command after `--`")
+
+    if not args.no_prepend_zig:
+        argv = prepend_releasefast(argv)
+
+    cap_bytes = args.rss_cap_mb * 1024 * 1024
+    poll_s = args.poll_ms / 1000.0
+
+    # New process group so SIGKILL reaches the whole tree, not just the
+    # wrapper's child. (The child becomes its own session leader; the
+    # group ID == its PID.)
+    preexec_fn = lambda: os.setsid() if hasattr(os, "setsid") else None
+
+    print(f"[runner] argv = {shlex.join(argv)}", file=sys.stderr)
+    ceilings = []
+    if args.rss_cap_mb:
+        ceilings.append(f"rss {args.rss_cap_mb} MB")
+    else:
+        ceilings.append("rss off")
+    if args.max_wall:
+        ceilings.append(f"wall {args.max_wall}s ({_format_clock(args.max_wall)})")
+    else:
+        ceilings.append("wall off")
+    if args.max_cpu:
+        ceilings.append(f"cpu {args.max_cpu}s ({_format_clock(args.max_cpu)})")
+    else:
+        ceilings.append("cpu off")
+    print(f"[runner] ceilings: {', '.join(ceilings)}, poll = {args.poll_ms} ms", file=sys.stderr)
+
+    t0 = time.monotonic()
+    proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
+    sys.stderr.flush()
+
+    peak_rss = {}   # pid -> max RSS bytes
+    peak_cpu = {}   # pid -> cumulative CPU seconds (peak snapshot per PID)
+
+    logs_done = False  # suppress finally-block logging if kill path already did it
+
+    try:
+        while True:
+            ret = proc.poll()
+            if ret is not None:
+                break
+            time.sleep(poll_s)
+
+            elapsed = time.monotonic() - t0
+
+            # Walk descendants
+            try:
+                pids = _descendant_pids_linux(proc.pid)
+            except (FileNotFoundError, NotImplementedError, OSError) as e:
+                if args.log_rss:
+                    print(f"[runner] linux walker failed ({type(e).__name__}), falling back to ps", file=sys.stderr)
+                pids = _descendant_pids_ps(proc.pid)
+
+            total_cpu = 0.0
+            over_rss = False
+            over_cpu = False
+
+            for pid in pids:
+                # -- RSS check (existing) --
+                try:
+                    rss = _rss_bytes(pid)
+                except (FileNotFoundError, ProcessLookupError):
+                    continue
+                if rss is None:
+                    continue
+                if rss == "NOPROC":
+                    try:
+                        out = subprocess.run(
+                            ["ps", "-o", "rss=", "-p", str(pid)],
+                            capture_output=True, text=True, timeout=0.5,
+                        )
+                        if out.returncode == 0 and out.stdout.strip():
+                            rss = int(out.stdout.strip()) * 1024
+                        else:
+                            continue
+                    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+                        continue
+                peak_rss[pid] = max(peak_rss.get(pid, 0), rss)
+                if args.rss_cap_mb and rss > cap_bytes:
+                    over_rss = True
+                    if not args.log_rss:
+                        print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB > cap {args.rss_cap_mb} MB", file=sys.stderr)
+                    break
+
+                # -- CPU check (new) --
+                if args.max_cpu:
+                    cpu = _cpu_time_seconds(pid)
+                    if cpu is not None:
+                        total_cpu += cpu
+                        peak_cpu[pid] = max(peak_cpu.get(pid, 0.0), cpu)
+
+                if args.log_rss:
+                    extra = ""
+                    if not over_rss:
+                        extra = f", RSS {rss // (1024*1024)} MB"
+                    print(f"[runner] PID {pid}{extra}", file=sys.stderr)
+            sys.stderr.flush()
+
+            # Check ceilings
+            kill_reason = None
+
+            if over_rss:
+                kill_reason = f"RSS cap {args.rss_cap_mb} MB exceeded"
+            elif args.max_wall and elapsed >= args.max_wall:
+                kill_reason = f"wall ceiling {args.max_wall}s ({_format_clock(args.max_wall)}) reached " \
+                              f"at {elapsed:.1f}s elapsed"
+            elif args.max_cpu and total_cpu >= args.max_cpu:
+                kill_reason = f"CPU ceiling {args.max_cpu}s ({_format_clock(args.max_cpu)}) exceeded " \
+                              f"({total_cpu:.1f}s total)"
+
+            if kill_reason:
+                print(f"[runner] KILL: {kill_reason}", file=sys.stderr)
+                print(f"[runner] SIGKILL pgid {proc.pid}", file=sys.stderr)
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                try:
+                    proc.wait(timeout=2.0)
+                except subprocess.TimeoutExpired:
+                    pass
+                if args.show_peak:
+                    _log_peaks(peak_rss, peak_cpu, t0=t0)
+                logs_done = True
+                print(f"[runner] exit 124 ({kill_reason}) in {time.monotonic() - t0:.1f} s", file=sys.stderr)
+                sys.exit(124)
+
+        ret = proc.wait()
+    finally:
+        if args.show_peak and not logs_done and (peak_rss or peak_cpu):
+            _log_peaks(peak_rss, peak_cpu, t0=t0)
+
+    print(f"[runner] exit {ret} in {time.monotonic() - t0:.1f} s", file=sys.stderr)
+    sys.exit(ret)
 
 
 if __name__ == "__main__":
