@@ -1234,7 +1234,8 @@ const ProbeParams = struct {
 const ProbeOutcome = struct {
     n_total: u32,
     n_evaluated: u32,
-    n_agreement: u32,
+    n_value_agreements: u32, // v != TIE, v == V_fixpoint  (reached a terminal, agrees with fixpoint)
+    n_tie_valued: u32, // v == TIE  (first-revisit truncation)
     n_disagreement: u32,
     n_cycle_involved: u32,
     n_budget_exhausted: u32,
@@ -1478,7 +1479,8 @@ fn run_probe_3x2(
     var outcome = ProbeOutcome{
         .n_total = params.n_samples,
         .n_evaluated = 0,
-        .n_agreement = 0,
+        .n_value_agreements = 0,
+        .n_tie_valued = 0,
         .n_disagreement = 0,
         .n_cycle_involved = 0,
         .n_budget_exhausted = 0,
@@ -1566,10 +1568,11 @@ fn run_probe_3x2(
         if (n_collected == 0) {
             outcome.n_unreachable += 1;
             if (sample_idx % 8 == 0 and sample_idx > 0) {
-                std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+                std.debug.print("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d}\n", .{
                     sample_idx,
                     params.n_samples,
-                    outcome.n_agreement,
+                    outcome.n_value_agreements,
+                    outcome.n_tie_valued,
                     outcome.n_disagreement,
                     outcome.n_budget_exhausted,
                 });
@@ -1637,9 +1640,66 @@ fn run_probe_3x2(
             }
             sample_had_successful_eval = true;
 
+            // Three-way split per reference-semantics §2:
+            //   value (v != TIE) / TIE (v == TIE) / BUDGET-EXHAUSTED (v == null)
+            if (v.? == TIE) {
+                // The evaluator hit a first-revisit and returned TIE.
+                // Per QA-023, the fixpoint V must also equal TIE here (if not,
+                // this is a disagreement — the median rule should have pinned
+                // TIE if the truncated evaluator saw a cycle).
+                if (v.? != V_fixpoint) {
+                    sample_had_disagreement = true;
+                    outcome.n_disagreement += 1;
+                    if (outcome.n_disagreement <= 5) {
+                        std.debug.print("# DISAGREE(TIE) #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated=TIE arrival_len={d}\n", .{
+                            outcome.n_disagreement,
+                            state.board, state.side, state.ko, state.passes,
+                            V_fixpoint,
+                            arrival_len,
+                        });
+                        std.debug.print("#   arrival: ", .{});
+                        var mvi2: u16 = 0;
+                        while (mvi2 < hlen) : (mvi2 += 1) {
+                            const mv2 = play[mvi2];
+                            if (mv2.move_kind == .pass) {
+                                std.debug.print("pass ", .{});
+                            } else {
+                                std.debug.print("{s}{d} ", .{ if (mv2.colour > 0) "B" else "W", mv2.cell });
+                            }
+                        }
+                        std.debug.print("\n", .{});
+                    }
+                } else {
+                    outcome.n_tie_valued += 1;
+                    sample_cycle_mattered = true;
+                }
+                continue;
+            }
+
             if (v.? != V_fixpoint) {
                 sample_had_disagreement = true;
                 outcome.n_disagreement += 1;
+                // Dump the first 5 disagreements verbatim per 2B-4 acceptance.
+                if (outcome.n_disagreement <= 5) {
+                    std.debug.print("# DISAGREE #{d}: state=({d},{d},{d},{d}) V_fixpoint={d} truncated={d} arrival_len={d}\n", .{
+                        outcome.n_disagreement,
+                        state.board, state.side, state.ko, state.passes,
+                        V_fixpoint, v.?,
+                        arrival_len,
+                    });
+                    // Replay the arrival moves
+                    std.debug.print("#   arrival: ", .{});
+                    var mvi: u16 = 0;
+                    while (mvi < hlen) : (mvi += 1) {
+                        const mv = play[mvi];
+                        if (mv.move_kind == .pass) {
+                            std.debug.print("pass ", .{});
+                        } else {
+                            std.debug.print("{s}{d} ", .{ if (mv.colour > 0) "B" else "W", mv.cell });
+                        }
+                    }
+                    std.debug.print("\n", .{});
+                }
                 continue;
             }
 
@@ -1655,7 +1715,7 @@ fn run_probe_3x2(
             if (v_perturb.? != v.?) {
                 sample_cycle_mattered = true;
             }
-            outcome.n_agreement += 1;
+            outcome.n_value_agreements += 1;
         }
         if (sample_had_disagreement) {
             // already counted per-history in n_disagreement; sample-level count is implicit
@@ -1664,10 +1724,11 @@ fn run_probe_3x2(
         }
         if (sample_cycle_mattered) outcome.cycle_census_states += 1;
         if (sample_idx % 8 == 0 and sample_idx > 0) {
-            std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+            std.debug.print("# sample {d}/{d}: value_agree={d} TIE={d} disagree={d} budget={d}\n", .{
                 sample_idx,
                 params.n_samples,
-                outcome.n_agreement,
+                outcome.n_value_agreements,
+                outcome.n_tie_valued,
                 outcome.n_disagreement,
                 outcome.n_budget_exhausted,
             });
@@ -1677,10 +1738,12 @@ fn run_probe_3x2(
     std.debug.print("# === probe verdict ===\n", .{});
     std.debug.print("# samples requested: {d}\n", .{params.n_samples});
     std.debug.print("# samples evaluated: {d}\n", .{outcome.n_evaluated});
-    std.debug.print("# samples all-arrivals-agree: {d}\n", .{outcome.n_agreement});
-    std.debug.print("# samples with any disagreement: {d}\n", .{outcome.n_disagreement});
+    std.debug.print("# === three-way split (ref-semantics §2) ===\n", .{});
+    std.debug.print("# value-agreements (v != TIE, v == V): {d}\n", .{outcome.n_value_agreements});
+    std.debug.print("# TIE-valued (v == TIE): {d}\n", .{outcome.n_tie_valued});
+    std.debug.print("# budget-exhausted (v == null): {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
+    std.debug.print("# disagreements (v != TIE, v != V, v != null): {d}\n", .{outcome.n_disagreement});
     std.debug.print("# samples no arrival history reached target: {d}\n", .{outcome.n_unreachable});
-    std.debug.print("# budget-exhausted arrival-evaluations: {d} / {d}\n", .{ outcome.n_budget_exhausted, outcome.history_total });
     std.debug.print("# cycle-census states (any history hit TIE leaf): {d}\n", .{outcome.cycle_census_states});
     std.debug.print("# sampled-kind counts: L==H={d} pin_T={d} pin_L={d} pin_H={d}\n", .{
         outcome.l_eq_h_sampled,
