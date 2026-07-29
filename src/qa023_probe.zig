@@ -29,10 +29,13 @@
 //
 // What this file does:
 //
-//   1. A 2x2 smoke test (B1) re-using the existing `qa023_brute_2x2.zig`
-//      module's value function. The 2x2 = 0 cross-check (PSK is +1, basic
-//      ko + TIE=0 is 0 per MIGOS II) must pass; if it returns +1 we have
-//      implemented PSK by accident.
+//   1. A 2x2 smoke test (B1) re-using `qa023_brute_2x2.zig`'s RULES
+//      (State/apply_place/apply_pass) with a median-fixpoint EVALUATOR
+//      (2B-1, 2026-07-29 — never Brute2x2.value: path enumeration, four
+//      thrash incidents; see docs/evidence/QA-023/
+//      reference-semantics-2026-07-29.md). The 2x2 = 0 cross-check (PSK
+//      is +1, basic ko + TIE=0 is 0 per MIGOS II) must pass; if it
+//      returns +1 we have implemented PSK by accident.
 //   2. A synthetic calibration graph (the v2 proof's §5.3 four-state
 //      gadget, with L=1, T=0, H=3, true V=1 — NOT 0). The corrected median
 //      rule V = max(L, min(T, H)) must return 1; the v1 wrong rule
@@ -96,10 +99,11 @@
 const std = @import("std");
 const expect = std.testing.expect;
 
-// ---- 2x2 reference (Fable's EXP-2A, B1 smoke) ------------------------------
-// Re-used verbatim per the brief: B1 is a smoke test on a board that cannot
-// test QA-023 (no reachable non-root cycles). It catches 'implemented PSK
-// by accident' if it returns +1 instead of 0.
+// ---- 2x2 rules module (Fable's EXP-2A; B1 smoke uses its RULES only) -------
+// Imported for State/apply_place/apply_pass/global_index — the ruleset of
+// record for 2x2 basic ko. Its `value`/`brute_value` (path enumeration) is
+// BANNED from this pipeline (EXP-2B.md hard constraint; done-check:
+// `grep -n "Brute2x2\.value\|brute_value" src/qa023_probe.zig` -> 0 hits).
 const Brute2x2 = @import("qa023_brute_2x2.zig");
 
 // ---- 3x2 parameters (the actual probe board) ------------------------------
@@ -116,45 +120,120 @@ const TIE: i8 = 0;
 // v2 proof's clamp-robustness to hold without sentinel algebra.
 
 // ---- 2x2 SMOKE TEST (B1) ---------------------------------------------------
+//
+// 2B-1 rewrite (Fable 5, 2026-07-29, per EXP-2B.md "B1 smoke — hard
+// constraint" and docs/evidence/QA-023/reference-semantics-2026-07-29.md §2):
+// the evaluator is the Part-A MEDIAN FIXPOINT over the full 2x2 state graph
+// (Brute2x2.TOTAL_STATES = 1620), NOT the path-enumerating brute. The brute
+// thrashed four times on this exact call (10h22m, 75/87+11/33 min CPU); a
+// path DFS enumerates paths, not states. The fixpoint runs in milliseconds.
+// Rules are re-used from Brute2x2 (apply_place/apply_pass — Fable's EXP-2A
+// artifact, read-only import); only the EVALUATOR changed. The smoke tests
+// the implementation + the PSK discriminator (empty 2x2 = 0, PSK = +1), not
+// QA-023 (2x2 has no reachable non-root cycles, 2x2.T12 — "not evidence").
+
+const Smoke2x2Tables = struct {
+    L: [Brute2x2.TOTAL_STATES]i8,
+    H: [Brute2x2.TOTAL_STATES]i8,
+    sweeps: u32,
+    converged: bool,
+
+    fn v(t: *const Smoke2x2Tables, s: Brute2x2.State) i8 {
+        const i = Brute2x2.global_index(s);
+        // V = median(L, TIE, H) = max(L, min(TIE, H)) when L <= H.
+        return @max(t.L[i], @min(TIE, t.H[i]));
+    }
+};
+
+/// Median-rule fixpoint over the entire 2x2 (board, side, ko, passes) space.
+/// Sweeping unreachable/illegal states alongside legal ones is harmless: a
+/// state's value depends only on its descendants, and apply_place/apply_pass
+/// only ever produce rule-legal successors. L = least fixpoint (seed -n),
+/// H = greatest (seed +n), same Bellman operator (ADR-0009: Black max /
+/// White min in both).
+fn smoke_fixpoint_2x2() Smoke2x2Tables {
+    const N2: usize = Brute2x2.TOTAL_STATES;
+    var t = Smoke2x2Tables{
+        .L = [_]i8{-4} ** N2,
+        .H = [_]i8{4} ** N2,
+        .sweeps = 0,
+        .converged = false,
+    };
+    // Terminals: passes == 2 -> area score in both tables.
+    for (0..N2) |i| {
+        const s = Brute2x2.state_from_index(i);
+        if (s.passes == 2) {
+            const a = s.terminal_value();
+            t.L[i] = a;
+            t.H[i] = a;
+        }
+    }
+    const MAX_SWEEPS: u32 = 64;
+    while (t.sweeps < MAX_SWEEPS) {
+        t.sweeps += 1;
+        var changed: u64 = 0;
+        for (0..N2) |i| {
+            const s = Brute2x2.state_from_index(i);
+            if (s.passes == 2) continue;
+            const maximizing = s.side > 0;
+            var bl: ?i8 = null;
+            var bh: ?i8 = null;
+            var succs: [5]Brute2x2.State = undefined;
+            var m: usize = 0;
+            if (Brute2x2.State.apply_pass(s)) |ns| {
+                succs[m] = ns;
+                m += 1;
+            }
+            for (0..4) |cell| {
+                if (Brute2x2.State.apply_place(s, @intCast(cell))) |ns| {
+                    succs[m] = ns;
+                    m += 1;
+                }
+            }
+            for (succs[0..m]) |ns| {
+                const ci = Brute2x2.global_index(ns);
+                const vl = t.L[ci];
+                const vh = t.H[ci];
+                if (bl == null or (if (maximizing) vl > bl.? else vl < bl.?)) bl = vl;
+                if (bh == null or (if (maximizing) vh > bh.? else vh < bh.?)) bh = vh;
+            }
+            // Pass is always legal off-terminal, so m >= 1 and bl/bh are set.
+            if (bl.? != t.L[i]) {
+                t.L[i] = bl.?;
+                changed += 1;
+            }
+            if (bh.? != t.H[i]) {
+                t.H[i] = bh.?;
+                changed += 1;
+            }
+        }
+        if (changed == 0) {
+            t.converged = true;
+            break;
+        }
+    }
+    return t;
+}
 
 fn run_smoke_2x2() void {
-    std.debug.print("# qa023 probe — B1 2x2 smoke (TIE = {d})\n", .{TIE});
-    const s_empty_b = Brute2x2.State{
-        .board = .{ 0, 0, 0, 0 },
-        .side = 1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 0,
-    };
-    const s_empty_w = Brute2x2.State{
-        .board = .{ 0, 0, 0, 0 },
-        .side = -1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 0,
-    };
-    const s_full_b = Brute2x2.State{
-        .board = .{ 1, 1, 1, 1 },
-        .side = 1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 0,
-    };
-    const s_pass1 = Brute2x2.State{
-        .board = .{ 0, 0, 0, 0 },
-        .side = -1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 1,
-    };
-    const s_terminal = Brute2x2.State{
-        .board = .{ 0, 0, 0, 0 },
-        .side = 1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 2,
-    };
+    std.debug.print("# qa023 probe — B1 2x2 smoke (TIE = {d}; evaluator: median fixpoint over {d} states)\n", .{ TIE, Brute2x2.TOTAL_STATES });
+    const t = smoke_fixpoint_2x2();
+    std.debug.print("# fixpoint: sweeps = {d}, converged = {}\n", .{ t.sweeps, t.converged });
+    if (!t.converged) {
+        std.debug.print("FAIL — fixpoint did not converge within sweep bound\n", .{});
+        return;
+    }
+    const s_empty_b = Brute2x2.State{ .board = .{ 0, 0, 0, 0 }, .side = 1, .ko_point = Brute2x2.State.KO_NONE, .passes = 0 };
+    const s_empty_w = Brute2x2.State{ .board = .{ 0, 0, 0, 0 }, .side = -1, .ko_point = Brute2x2.State.KO_NONE, .passes = 0 };
+    const s_full_b = Brute2x2.State{ .board = .{ 1, 1, 1, 1 }, .side = 1, .ko_point = Brute2x2.State.KO_NONE, .passes = 0 };
+    const s_pass1 = Brute2x2.State{ .board = .{ 0, 0, 0, 0 }, .side = -1, .ko_point = Brute2x2.State.KO_NONE, .passes = 1 };
+    const s_terminal = Brute2x2.State{ .board = .{ 0, 0, 0, 0 }, .side = 1, .ko_point = Brute2x2.State.KO_NONE, .passes = 2 };
 
-    const v_empty_b = Brute2x2.value(s_empty_b);
-    const v_empty_w = Brute2x2.value(s_empty_w);
-    const v_full_b = Brute2x2.value(s_full_b);
-    const v_pass1 = Brute2x2.value(s_pass1);
-    const v_terminal = Brute2x2.value(s_terminal);
+    const v_empty_b = t.v(s_empty_b);
+    const v_empty_w = t.v(s_empty_w);
+    const v_full_b = t.v(s_full_b);
+    const v_pass1 = t.v(s_pass1);
+    const v_terminal = t.v(s_terminal);
 
     std.debug.print("empty B  v = {d:>3}  expected  0   {s}\n", .{ v_empty_b, if (v_empty_b == 0) "OK" else "FAIL (PSK is +1)" });
     std.debug.print("empty W  v = {d:>3}  expected  0   {s}\n", .{ v_empty_w, if (v_empty_w == 0) "OK" else "FAIL" });
@@ -324,6 +403,7 @@ fn chain_captured(pos: *const Pos, seed: usize, chain: *[n]usize, chain_len: *us
             } else if ((pos[r] > 0) == (colour > 0) and pos[r] != 0 and !visited[r]) {
                 visited[r] = true;
                 stack[sp] = r;
+                sp += 1;
                 chain[len] = r;
                 len += 1;
             }
@@ -374,6 +454,7 @@ fn is_legal(pos: *const Pos) bool {
                 } else if (pos[r] == colour and !visited[r]) {
                     visited[r] = true;
                     stack[sp] = r;
+                    sp += 1;
                 }
             }
         }
@@ -417,6 +498,7 @@ fn area_score(board: *const Pos) i8 {
                 } else if (!visited[r]) {
                     visited[r] = true;
                     stack[sp] = r;
+                    sp += 1;
                 }
             }
         }
@@ -442,7 +524,7 @@ fn area_score(board: *const Pos) i8 {
 
 fn apply_place(state: StateIdx, board: *const Pos, colour: i8, cell: u8) ?StateIdx {
     if (board[cell] != 0) return null;
-    if (state.ko != KO_NONE and cell == state.ko) return null; // basic-ko (i) ban
+    if (state.ko != n and cell == state.ko) return null; // basic-ko (i) ban
     const next_board = pos_from_move(board, colour, cell) catch return null;
     // Determine new ko_point: was this a single-stone capture where the
     // placed stone has exactly one liberty (the captured cell)?
@@ -454,7 +536,7 @@ fn apply_place(state: StateIdx, board: *const Pos, colour: i8, cell: u8) ?StateI
         if (next_board[i] == -colour) opp_after += 1;
         if (board[i] == -colour and next_board[i] == 0) captured_cell = @intCast(i);
     }
-    var new_ko: u8 = KO_NONE;
+    var new_ko: u8 = @as(u8, n); // "no ko" encoding sentinel
     if ((opp_before - opp_after == 1) and (captured_cell != KO_NONE)) {
         // Liberties of the placed stone (the only opponent groups are gone).
         var liberties: u8 = 0;
@@ -478,7 +560,7 @@ fn apply_pass(state: StateIdx) ?StateIdx {
     return StateIdx{
         .board = state.board,
         .side = 1 - state.side,
-        .ko = KO_NONE,
+        .ko = @as(u16, n), // encoding sentinel for "no ko" is n, not 255
         .passes = state.passes + 1,
     };
 }
@@ -539,12 +621,10 @@ fn census_sweep(
     reach: []u64,
     snap: []u64,
     new_marks: *u64,
-    legal_seen: []u64,
 ) !void {
     // copy reach -> snap (parent snapshot for the Bellman fixpoint)
     @memcpy(snap, reach);
     new_marks.* = 0;
-    @memset(legal_seen, 0);
 
     var linear: u64 = 0;
     while (linear < TOTAL_STATES) : (linear += 1) {
@@ -575,10 +655,6 @@ fn census_sweep(
             if (reach[child_word] & child_bit == 0) {
                 reach[child_word] |= child_bit;
                 new_marks.* += 1;
-                // only count distinct (child_board, legal) — this is just
-                // legal_seen for the calibration check (matches T13's
-                // legal_position count: 3x2 has 489 legal positions).
-                legal_seen[child.board] += 1;
             }
         }
     }
@@ -595,10 +671,6 @@ fn run_census_3x2() !CensusStats {
 
     const snap = try gpa.alloc(u64, ReachWords);
     defer gpa.free(snap);
-
-    const legal_seen = try gpa.alloc(u64, RAW_TOTAL);
-    defer gpa.free(legal_seen);
-    @memset(legal_seen, 0);
 
     // Seed: empty board (board=0) with both sides, all ko values, all
     // pass counts. These are the four roots: empty B (passes 0, 1, 2) and
@@ -626,7 +698,7 @@ fn run_census_3x2() !CensusStats {
     var sweep_idx: u32 = 0;
     const MAX_SWEEPS: u32 = 64;
     while (new_marks > 0 and sweep_idx < MAX_SWEEPS) {
-        try census_sweep(reach, snap, &new_marks, legal_seen);
+        try census_sweep(reach, snap, &new_marks);
         sweep_idx += 1;
         if (sweep_idx % 4 == 0 or new_marks == 0) {
             std.debug.print("# sweep {d}: new_marks = {d}\n", .{ sweep_idx, new_marks });
@@ -640,6 +712,7 @@ fn run_census_3x2() !CensusStats {
     var terminal_count: u64 = 0;
     var legal_count: u64 = 0;
     var total_count: u64 = 0;
+    var seen_boards = [_]bool{false} ** RAW_TOTAL;
     var linear: u64 = 0;
     while (linear < TOTAL_STATES) : (linear += 1) {
         const word = linear >> 6;
@@ -656,7 +729,10 @@ fn run_census_3x2() !CensusStats {
         per_ko[ko] += 1;
         side_count[side] += 1;
         if (passes == 2) terminal_count += 1;
-        if (legal_seen[board] > 0) legal_count += 1;
+        if (is_legal(&unrank_board(board)) and !seen_boards[board]) {
+            seen_boards[board] = true;
+            legal_count += 1;
+        }
     }
     stats.total_marked = total_count;
     stats.legal_marked = legal_count;
@@ -991,6 +1067,7 @@ fn truncated_value(
     budget: *u64,
     scratch: []HistoryEntry,
     scratch_top: *u16,
+    tie_value: i8,
 ) ?i8 {
     if (budget.* == 0) return null;
     budget.* -= 1;
@@ -1006,7 +1083,7 @@ fn truncated_value(
             .cell = 0,
             .move_board = undefined,
             .depth = 0,
-        })) return TIE;
+        })) return tie_value;
     }
     i = 0;
     while (i < scratch_top.*) : (i += 1) {
@@ -1018,7 +1095,7 @@ fn truncated_value(
             .cell = 0,
             .move_board = undefined,
             .depth = 0,
-        })) return TIE;
+        })) return tie_value;
     }
     // Terminal
     if (state.passes == 2) return area_score(board);
@@ -1044,7 +1121,7 @@ fn truncated_value(
         };
         scratch_top.* += 1;
         const child = succs[k];
-        const v = truncated_value(child, &succ_boards[k], arrival, arrival_len, budget, scratch, scratch_top) orelse return null;
+        const v = truncated_value(child, &succ_boards[k], arrival, arrival_len, budget, scratch, scratch_top, tie_value) orelse return null;
         scratch_top.* -= 1;
         if (maximizing) {
             if (v > best) best = v;
@@ -1059,7 +1136,7 @@ fn truncated_value(
 /// sequence of `(move_kind, cell)` moves, return the final state. Returns null
 /// if any move is illegal at the current state.
 fn play_arrival(play: []const Move, play_len: u16) ?struct { state: StateIdx, board: Pos } {
-    var state = StateIdx{ .board = 0, .side = 0, .ko = KO_NONE, .passes = 0 };
+    var state = StateIdx{ .board = 0, .side = 0, .ko = @as(u16, n), .passes = 0 };
     var board: Pos = [_]i8{0} ** n;
     var i: u16 = 0;
     while (i < play_len) : (i += 1) {
@@ -1104,6 +1181,133 @@ const ProbeOutcome = struct {
     l_eq_h_sampled: u32,
     history_total: u32,
 };
+
+/// Collect up to `max_collect` distinct arrival histories from the empty
+/// board root to `target_linear` using depth-first search over simple paths
+/// (no repeated states on the arrival prefix).  `budget` limits the total
+/// nodes explored; exhaustion is reported by the caller.  Histories are
+/// deduplicated by FNV-1a hash of their move sequence.
+fn collect_histories_dfs_impl(
+    state: StateIdx,
+    board: *const Pos,
+    target_linear: u64,
+    depth: u16,
+    max_depth: u16,
+    budget: *u64,
+    path_moves: []Move,
+    path_len: *u16,
+    visited: []bool,
+    collected_moves: []Move,
+    collected_lens: []u16,
+    collected_count: *u32,
+    max_collect: u32,
+    history_depth: u16,
+    prng: *std.Random,
+) void {
+    const linear = state.linear();
+    if (linear == target_linear) {
+        if (collected_count.* >= max_collect) return;
+        var h: u64 = 0xcbf29ce484222325;
+        for (0..path_len.*) |p_| {
+            const mv = path_moves[p_];
+            h = (h ^ @as(u64, @intCast(@as(u8, @intFromEnum(mv.move_kind))))) *% 0x100000001b3;
+            h = (h ^ @as(u64, mv.cell)) *% 0x100000001b3;
+            h = (h ^ (@as(u64, @bitCast(@as(i64, mv.colour))))) *% 0x100000001b3;
+        }
+        var i: u32 = 0;
+        while (i < collected_count.*) : (i += 1) {
+            const li = collected_lens[i];
+            if (li != path_len.*) continue;
+            const base = i * history_depth;
+            var same = true;
+            var j: u16 = 0;
+            while (j < li) : (j += 1) {
+                const a = collected_moves[base + j];
+                const b = path_moves[j];
+                if (@intFromEnum(a.move_kind) != @intFromEnum(b.move_kind) or a.cell != b.cell or a.colour != b.colour) {
+                    same = false;
+                    break;
+                }
+            }
+            if (same) return;
+        }
+        const base = collected_count.* * history_depth;
+        for (0..path_len.*) |p_| {
+            collected_moves[base + p_] = path_moves[p_];
+        }
+        collected_lens[collected_count.*] = path_len.*;
+        collected_count.* += 1;
+        return;
+    }
+    if (depth == max_depth or budget.* == 0) return;
+    budget.* -= 1;
+
+    visited[linear] = true;
+
+    var succ_boards: [n + 1]Pos = undefined;
+    var succs: [n + 1]StateIdx = undefined;
+    const m = moves(state, &succ_boards, &succs);
+    var order: [n + 1]usize = undefined;
+    for (0..m) |j| order[j] = j;
+    var mm = m;
+    while (mm > 1) {
+        mm -= 1;
+        const j = prng.intRangeAtMost(usize, 0, mm);
+        const tmp = order[mm];
+        order[mm] = order[j];
+        order[j] = tmp;
+    }
+
+    for (0..m) |k| {
+        const idx = order[k];
+        const child = succs[idx];
+        const child_linear = child.linear();
+        if (visited[child_linear]) continue;
+
+        const mv = if (child.passes != state.passes)
+            Move{ .move_kind = .pass, .cell = 0, .colour = 0 }
+        else blk: {
+            const next_b = succ_boards[idx];
+            var cell: u8 = 0;
+            var c: usize = 0;
+            while (c < n) : (c += 1) {
+                if (board[c] != next_b[c]) {
+                    cell = @intCast(c);
+                    break;
+                }
+            }
+            const colour: i8 = if (state.side == 0) 1 else -1;
+            break :blk Move{ .move_kind = .place, .cell = cell, .colour = colour };
+        };
+
+        path_moves[path_len.*] = mv;
+        path_len.* += 1;
+        collect_histories_dfs_impl(child, &succ_boards[idx], target_linear, depth + 1, max_depth, budget, path_moves, path_len, visited, collected_moves, collected_lens, collected_count, max_collect, history_depth, prng);
+        path_len.* -= 1;
+    }
+
+    visited[linear] = false;
+}
+
+fn collect_histories(
+    target_linear: u64,
+    max_depth: u16,
+    budget: *u64,
+    path_moves: []Move,
+    visited: []bool,
+    collected_moves: []Move,
+    collected_lens: []u16,
+    max_collect: u32,
+    history_depth: u16,
+    prng: *std.Random,
+) u32 {
+    var path_len: u16 = 0;
+    var collected_count: u32 = 0;
+    const root = StateIdx{ .board = 0, .side = 0, .ko = @as(u16, n), .passes = 0 };
+    const root_board: Pos = [_]i8{0} ** n;
+    collect_histories_dfs_impl(root, &root_board, target_linear, 0, max_depth, budget, path_moves, &path_len, visited, collected_moves, collected_lens, &collected_count, max_collect, history_depth, prng);
+    return collected_count;
+}
 
 fn run_probe_3x2(
     reach: []const u64,
@@ -1206,41 +1410,56 @@ fn run_probe_3x2(
         .history_total = 0,
     };
 
+    // DFS resources for collecting distinct simple-path arrival histories.
+    const path_moves = try gpa.alloc(Move, params.history_depth);
+    defer gpa.free(path_moves);
+    const visited_states = try gpa.alloc(bool, TOTAL_STATES);
+    defer gpa.free(visited_states);
+    const collected_moves = try gpa.alloc(Move, params.k_histories * params.history_depth);
+    defer gpa.free(collected_moves);
+    const collected_lens = try gpa.alloc(u16, params.k_histories);
+    defer gpa.free(collected_lens);
+
     // Scratch for the truncated evaluator
     const scratch = try gpa.alloc(HistoryEntry, params.history_depth + 4);
     defer gpa.free(scratch);
     const arrival_buf = try gpa.alloc(HistoryEntry, params.history_depth + 4);
     defer gpa.free(arrival_buf);
 
+    const TIE_PERTURB: i8 = if (TIE == 0) 1 else 0;
+
     var sample_idx: u32 = 0;
     while (sample_idx < params.n_samples) : (sample_idx += 1) {
-        // Pick a bucket by weighted dice
+        // Pick a bucket by weighted dice, then sample an index, recording
+        // the kind only after a successful draw.
         const bucket_roll = prng.random().intRangeAtMost(u8, 0, 99);
-        const chosen: struct { idx: u64, kind: u8 } = blk: {
+        const target_linear: u64 = blk: {
             if (bucket_roll < 50 and pin_t_count > 0) {
-                break :blk .{ .idx = pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)], .kind = 0 };
+                outcome.pin_t_sampled += 1;
+                break :blk pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)];
             } else if (bucket_roll < 75 and leh_count > 0) {
                 outcome.l_eq_h_sampled += 1;
-                break :blk .{ .idx = leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)], .kind = 1 };
+                break :blk leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)];
             } else if (bucket_roll < 87 and pin_l_count > 0) {
                 outcome.pin_l_sampled += 1;
-                break :blk .{ .idx = pin_l_indices[prng.random().intRangeAtMost(u64, 0, pin_l_count - 1)], .kind = 2 };
+                break :blk pin_l_indices[prng.random().intRangeAtMost(u64, 0, pin_l_count - 1)];
             } else if (pin_h_count > 0) {
                 outcome.pin_h_sampled += 1;
-                break :blk .{ .idx = pin_h_indices[prng.random().intRangeAtMost(u64, 0, pin_h_count - 1)], .kind = 3 };
+                break :blk pin_h_indices[prng.random().intRangeAtMost(u64, 0, pin_h_count - 1)];
             } else {
-                // fall back to L==H or pin_T
+                // fall back to any non-empty bucket
                 if (pin_t_count > 0) {
-                    break :blk .{ .idx = pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)], .kind = 0 };
+                    outcome.pin_t_sampled += 1;
+                    break :blk pin_t_indices[prng.random().intRangeAtMost(u64, 0, pin_t_count - 1)];
                 } else if (leh_count > 0) {
                     outcome.l_eq_h_sampled += 1;
-                    break :blk .{ .idx = leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)], .kind = 1 };
-                } else break :blk .{ .idx = 0, .kind = 0 };
+                    break :blk leh_indices[prng.random().intRangeAtMost(u64, 0, leh_count - 1)];
+                } else if (pin_l_count > 0) {
+                    outcome.pin_l_sampled += 1;
+                    break :blk pin_l_indices[prng.random().intRangeAtMost(u64, 0, pin_l_count - 1)];
+                } else break :blk 0;
             }
         };
-        const target_linear = chosen.idx;
-        const kind = chosen.kind;
-        _ = kind;
 
         // Decode the state
         const passes: u8 = @intCast(target_linear / (2 * KO_DIMS * RAW_TOTAL));
@@ -1257,111 +1476,40 @@ fn run_probe_3x2(
         const Hh = H_tab[target_linear];
         const V_fixpoint: i8 = @max(Ll, @min(TIE, Hh));
 
-        // Enumerate K distinct arrival histories. Each history is a
-        // sequence of moves from the empty board to the target state.
-        // Distinction: we treat two histories as distinct if they differ
-        // in any move, or in the order of moves. A trivial (depth 0)
-        // history is included if the target IS a root (it is, in the
-        // empty-board case); otherwise all histories are non-trivial.
-        var history_v_count: u32 = 0;
-        var history_agreement: u32 = 0;
-        var history_disagreement: u32 = 0;
-        var history_budget: u32 = 0;
-        const history_cycle: u32 = 0;
-        var attempt: u32 = 0;
-        var k_unique: u32 = 0;
-        var seen_moves: [16]u64 = undefined; // bitmask per move slot to dedupe
-        @memset(&seen_moves, 0);
-        const max_attempts = params.k_histories * 8;
-        while (k_unique < params.k_histories and attempt < max_attempts) {
-            attempt += 1;
-            // Generate a random walk from empty board. The walk must end
-            // at the target state. To bias toward the target: play
-            // reverse moves. Since the game graph is undirected on the
-            // placement edge, we play forward and only keep the walk if
-            // the final state is the target.
-            var play: [128]Move = undefined;
-            var play_len: u16 = 0;
-            var cur = StateIdx{ .board = 0, .side = 0, .ko = KO_NONE, .passes = 0 };
-            var cur_board: Pos = [_]i8{0} ** n;
-            var placed: u8 = 0; // moves played so far
-            var cur_passes: u8 = 0;
-            var found_target = false;
-            // Heuristic: with high probability, take a pass edge or a
-            // random placement each ply. Stop when the state matches the
-            // target, or after `history_depth` moves.
-            var ply: u16 = 0;
-            while (ply < params.history_depth) : (ply += 1) {
-                // determine the legal moves from `cur`
-                var succ_boards: [n + 1]Pos = undefined;
-                var succs: [n + 1]StateIdx = undefined;
-                const m = moves(cur, &succ_boards, &succs);
-                if (m == 0) break; // terminal
-                // dedupe helper: try each child in random order; keep the
-                // one whose state matches the target.
-                var order: [n + 1]usize = undefined;
-                for (0..m) |j| order[j] = j;
-                // Fisher-Yates shuffle (small, no allocation)
-                var mm: usize = m;
-                while (mm > 1) {
-                    mm -= 1;
-                    const j = prng.random().intRangeAtMost(usize, 0, mm);
-                    const tmp = order[mm];
-                    order[mm] = order[j];
-                    order[j] = tmp;
-                }
-                // We want a history that ENDS at the target. The cheapest
-                // way: at each ply, prefer the child that brings us closer
-                // to the target (i.e., whose state has the same board
-                // contents on the placed cells, etc.). But for the probe,
-                // we want DIVERSE histories. So: pick a random child, with
-                // a (decreasing) probability of "shooting" for the target.
-                const pick = order[prng.random().intRangeAtMost(usize, 0, m - 1)];
-                const child = succs[pick];
-                // classify the move: was it a pass?
-                if (child.passes != cur.passes) {
-                    play[play_len] = .{ .move_kind = .pass, .cell = 0, .colour = 0 };
-                } else {
-                    // find the cell that changed
-                    var cell: u8 = 0;
-                    const next_b = unrank_board(child.board);
-                    for (0..n) |c| {
-                        if (cur_board[c] != next_b[c]) {
-                            cell = @intCast(c);
-                            break;
-                        }
-                    }
-                    const colour: i8 = if (cur.side == 0) 1 else -1;
-                    play[play_len] = .{ .move_kind = .place, .cell = cell, .colour = colour };
-                    placed += 1;
-                }
-                play_len += 1;
-                cur = child;
-                cur_board = unrank_board(cur.board);
-                cur_passes = cur.passes;
-                if (cur.linear() == target_linear) {
-                    found_target = true;
-                    break;
-                }
-            }
-            if (!found_target) continue;
-            // dedupe by move sequence (simple hash: FNV-1a over bytes)
-            var h: u64 = 0xcbf29ce484222325;
-            for (0..play_len) |p_| {
-                const mv = play[p_];
-                h = (h ^ @as(u64, @intCast(@as(u8, @intFromEnum(mv.move_kind))))) *% 0x100000001b3;
-                h = (h ^ @as(u64, mv.cell)) *% 0x100000001b3;
-                h = (h ^ (@as(u64, @bitCast(@as(i64, mv.colour))))) *% 0x100000001b3;
-            }
-            const slot = h % 16;
-            if (seen_moves[slot] == h) continue;
-            seen_moves[slot] = h;
-            k_unique += 1;
+        // Collect up to K distinct simple-path arrival histories via DFS.
+        @memset(visited_states, false);
+        var collection_budget: u64 = params.k_histories * 1024;
+        var rand = prng.random();
+        const n_collected = collect_histories(target_linear, params.history_depth, &collection_budget, path_moves, visited_states, collected_moves, collected_lens, params.k_histories, params.history_depth, &rand);
 
-            // Build the arrival path (state + board) entries
+        if (n_collected == 0) {
+            outcome.n_unreachable += 1;
+            if (sample_idx % 8 == 0 and sample_idx > 0) {
+                std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
+                    sample_idx,
+                    params.n_samples,
+                    outcome.n_agreement,
+                    outcome.n_disagreement,
+                    outcome.n_budget_exhausted,
+                });
+            }
+            continue;
+        }
+
+        outcome.n_evaluated += 1;
+        var sample_had_disagreement: bool = false;
+        var sample_had_successful_eval: bool = false;
+        var sample_cycle_mattered: bool = false;
+        var hist_idx: u32 = 0;
+        while (hist_idx < n_collected) : (hist_idx += 1) {
+            const base = hist_idx * params.history_depth;
+            const hlen = collected_lens[hist_idx];
+            const play = collected_moves[base .. base + hlen];
+
+            // Build arrival path by replaying the move sequence.
             var arrival_len: u16 = 0;
             arrival_buf[arrival_len] = .{
-                .state = .{ .board = 0, .side = 0, .ko = KO_NONE, .passes = 0 },
+                .state = .{ .board = 0, .side = 0, .ko = @as(u16, n), .passes = 0 },
                 .board = [_]i8{0} ** n,
                 .parent_idx = 0,
                 .kind = .pass,
@@ -1371,10 +1519,10 @@ fn run_probe_3x2(
             };
             arrival_len += 1;
             {
-                var cur2 = StateIdx{ .board = 0, .side = 0, .ko = KO_NONE, .passes = 0 };
+                var cur2 = StateIdx{ .board = 0, .side = 0, .ko = @as(u16, n), .passes = 0 };
                 var cur_b: Pos = [_]i8{0} ** n;
                 var j: u16 = 0;
-                while (j < play_len) : (j += 1) {
+                while (j < hlen) : (j += 1) {
                     const mv = play[j];
                     const next = switch (mv.move_kind) {
                         .place => apply_place(cur2, &cur_b, mv.colour, mv.cell),
@@ -1397,57 +1545,43 @@ fn run_probe_3x2(
                 }
             }
 
-            // Evaluate S with first-revisit truncation
-            var budget = params.node_budget_per_history;
-            var scratch_top: u16 = 0;
-            const v = truncated_value(state, &target_board, arrival_buf[0..arrival_len], arrival_len, &budget, scratch, &scratch_top);
-            history_v_count += 1;
+            // Evaluate S with first-revisit truncation.
+            var budget1 = params.node_budget_per_history;
+            var scratch_top1: u16 = 0;
+            const v = truncated_value(state, &target_board, arrival_buf[0..arrival_len], arrival_len, &budget1, scratch, &scratch_top1, TIE);
             outcome.history_total += 1;
             if (v == null) {
-                history_budget += 1;
                 outcome.n_budget_exhausted += 1;
                 continue;
             }
-            // Detect if this history was cycle-involved: re-evaluate
-            // with TIE_BIAS = 1; if the result changes, the original
-            // evaluation must have hit a TIE leaf. (Cheap proxy: a
-            // cycle was involved iff a truncated-leaf TIE mattered for
-            // the minimax.)
-            const v_tie: ?i8 = if (TIE != 1) blk: {
-                const budget2 = params.node_budget_per_history;
-                const scratch_top2: u16 = 0;
-                // The TIE value is read directly from the global; we use
-                // a stub here. For correctness of the cycle-detection
-                // proxy, we instead count how many leaves the search
-                // visited that were TIE; that requires changing the
-                // signature. Skip the proxy here and just count budget
-                // exhaustions as the cycle proxy.
-                _ = scratch_top2;
-                _ = budget2;
-                break :blk v;
-            } else v;
-            _ = v_tie;
+            sample_had_successful_eval = true;
 
-            if (v.? == V_fixpoint) {
-                history_agreement += 1;
-            } else {
-                history_disagreement += 1;
-            }
-            if (history_disagreement > 0 and history_v_count > 1) {
-                // we can stop early: any disagreement falsifies
-            }
-        }
-        if (history_v_count == 0) {
-            outcome.n_unreachable += 1;
-        } else {
-            outcome.n_evaluated += 1;
-            if (history_agreement == history_v_count) {
-                outcome.n_agreement += 1;
-            } else {
+            if (v.? != V_fixpoint) {
+                sample_had_disagreement = true;
                 outcome.n_disagreement += 1;
+                continue;
             }
+
+            // Perturbation test: if changing the tie value changes the root
+            // value, then a truncated-leaf TIE was on the optimal line.
+            var budget2 = params.node_budget_per_history;
+            var scratch_top2: u16 = 0;
+            const v_perturb = truncated_value(state, &target_board, arrival_buf[0..arrival_len], arrival_len, &budget2, scratch, &scratch_top2, TIE_PERTURB);
+            if (v_perturb == null) {
+                outcome.n_budget_exhausted += 1;
+                continue;
+            }
+            if (v_perturb.? != v.?) {
+                sample_cycle_mattered = true;
+            }
+            outcome.n_agreement += 1;
         }
-        if (history_cycle > 0) outcome.cycle_census_states += 1;
+        if (sample_had_disagreement) {
+            // already counted per-history in n_disagreement; sample-level count is implicit
+        } else if (sample_had_successful_eval) {
+            // at least one history agreed and none disagreed
+        }
+        if (sample_cycle_mattered) outcome.cycle_census_states += 1;
         if (sample_idx % 8 == 0 and sample_idx > 0) {
             std.debug.print("# sample {d}/{d}: agree={d} disagree={d} budget={d}\n", .{
                 sample_idx,
@@ -1485,34 +1619,17 @@ fn run_probe_3x2(
 
 // ---- TEST: 2x2 SMOKE (cheap, runs in <1s) ----------------------------------
 
-test "2x2 smoke: empty B -> 0" {
-    const s = Brute2x2.State{
-        .board = .{ 0, 0, 0, 0 },
-        .side = 1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 0,
-    };
-    try expect(Brute2x2.value(s) == 0);
-}
-
-test "2x2 smoke: empty W -> 0" {
-    const s = Brute2x2.State{
-        .board = .{ 0, 0, 0, 0 },
-        .side = -1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 0,
-    };
-    try expect(Brute2x2.value(s) == 0);
-}
-
-test "2x2 smoke: full B -> +4" {
-    const s = Brute2x2.State{
-        .board = .{ 1, 1, 1, 1 },
-        .side = 1,
-        .ko_point = Brute2x2.State.KO_NONE,
-        .passes = 0,
-    };
-    try expect(Brute2x2.value(s) == 4);
+test "2x2 smoke: fixpoint converges and matches all five anchors" {
+    // 2B-1: evaluator is the median fixpoint (reference-semantics doc §2),
+    // never Brute2x2.value (path enumeration; four thrash incidents).
+    const t = smoke_fixpoint_2x2();
+    try expect(t.converged);
+    const KO_NONE_2 = Brute2x2.State.KO_NONE;
+    try expect(t.v(.{ .board = .{ 0, 0, 0, 0 }, .side = 1, .ko_point = KO_NONE_2, .passes = 0 }) == 0); // PSK would be +1
+    try expect(t.v(.{ .board = .{ 0, 0, 0, 0 }, .side = -1, .ko_point = KO_NONE_2, .passes = 0 }) == 0);
+    try expect(t.v(.{ .board = .{ 1, 1, 1, 1 }, .side = 1, .ko_point = KO_NONE_2, .passes = 0 }) == 4);
+    try expect(t.v(.{ .board = .{ 0, 0, 0, 0 }, .side = -1, .ko_point = KO_NONE_2, .passes = 1 }) == 0);
+    try expect(t.v(.{ .board = .{ 0, 0, 0, 0 }, .side = 1, .ko_point = KO_NONE_2, .passes = 2 }) == 0);
 }
 
 // ---- TEST: 3x2 primitives ------------------------------------------------
@@ -1572,12 +1689,9 @@ pub fn main(init: std.process.Init) !void {
         seed_roots(reach);
         const snap = try gpa.alloc(u64, ReachWords);
         defer gpa.free(snap);
-        const legal_seen = try gpa.alloc(u64, RAW_TOTAL);
-        defer gpa.free(legal_seen);
-        @memset(legal_seen, 0);
         var new_marks: u64 = 1;
         while (new_marks > 0) {
-            try census_sweep(reach, snap, &new_marks, legal_seen);
+            try census_sweep(reach, snap, &new_marks);
         }
         _ = run_fixpoint_3x2(reach) catch return error.OutOfMemory;
     } else if (std.mem.eql(u8, mode, "probe-3x2")) {
@@ -1612,12 +1726,9 @@ pub fn main(init: std.process.Init) !void {
         seed_roots(reach);
         const snap = try gpa.alloc(u64, ReachWords);
         defer gpa.free(snap);
-        const legal_seen = try gpa.alloc(u64, RAW_TOTAL);
-        defer gpa.free(legal_seen);
-        @memset(legal_seen, 0);
         var new_marks: u64 = 1;
         while (new_marks > 0) {
-            try census_sweep(reach, snap, &new_marks, legal_seen);
+            try census_sweep(reach, snap, &new_marks);
         }
         const L_tab = try gpa.alloc(i8, TOTAL_STATES);
         defer gpa.free(L_tab);
@@ -1638,12 +1749,9 @@ pub fn main(init: std.process.Init) !void {
         seed_roots(reach);
         const snap = try gpa.alloc(u64, ReachWords);
         defer gpa.free(snap);
-        const legal_seen = try gpa.alloc(u64, RAW_TOTAL);
-        defer gpa.free(legal_seen);
-        @memset(legal_seen, 0);
         var new_marks: u64 = 1;
         while (new_marks > 0) {
-            try census_sweep(reach, snap, &new_marks, legal_seen);
+            try census_sweep(reach, snap, &new_marks);
         }
         _ = run_fixpoint_3x2(reach) catch return error.OutOfMemory;
         std.debug.print("# (run `zig run ... probe-3x2 -- --seed N --n-samples N --k-histories N --history-depth N` for the history-sensitivity check)\n", .{});
