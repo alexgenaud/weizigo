@@ -442,25 +442,33 @@ Read state is persisted in the `_sync` key of `tasks.json`.
 
 Cross-checks the kanban against reality. Reports discrepancies:
 
+- `in_progress`/`done` task with currently unmet `needs` → **gate it** (was claimed over an unmet dependency)
 - `done` task with `agent == null` → **attribute it**
 - `done` task whose `holds` paths are not in `git ls-files` → **commit these**
-- `in_progress` task with no matching live process → **reopen** (heuristic)
+- `done` task claimed before a dependency was `done` (timestamp comparison) → **warn**: gated claim
+- `in_progress` task with note containing "GATED" → **verify premise is still valid**
+- `in_progress` task holding untracked `src/*.zig` → **snapshot before git clean -x**
 - `dispatchable` task with unmet `needs` → **gate it**
 - `blocked` task with all needs met → should be dispatchable
 - Task note mentions claim-status change but cites no second seat → **warn**
+- `zig-out/bin/managent` newer than `bin/managent` → **cp it**
+- `CLAIMS.md` has uncommitted changes but last commit cites no second seat → **verify before commit**
 
 Exits non-zero when FIX-level findings exist. `--json` outputs a JSON array
 of findings.
 
 ### `managent standing`
 
-Prints the four standing-tier triggers and whether the corresponding tasks
-are registered:
+Checks the four standing-tier triggers and **auto-registers** any that fired
+(creating the brief file and adding the task to the kanban). Triggers:
 
-- **STANDING-HOLISTIC-AUDIT** — milestone shape changes
-- **STANDING-CLEANUP** — tree dirty across two turns
+- **STANDING-HOLISTIC-AUDIT** — milestone shape changes (new message directory)
+- **STANDING-CLEANUP** — tree dirty across two turns (git diff --stat > 0 on consecutive runs)
 - **STANDING-REEVIDENCE** — claimlint C3 debt grows
-- **STANDING-CONSOLIDATE** — any falsification occurred
+- **STANDING-CONSOLIDATE** — any new falsification (FALSE-AS-SCOPED count increased)
+
+Trigger state is persisted in the `_standing` key of `tasks.json`. Each
+template brief lives in `docs/infra/dispatch/STANDING-*.md`.
 
 ### `managent why <claim-id>`
 
