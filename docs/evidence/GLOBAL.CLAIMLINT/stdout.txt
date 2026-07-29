@@ -1,0 +1,356 @@
+weizigo-claimlint — docs/epistemic/CLAIMS.md
+repo index: 498 files · register §2 lines 199–543
+
+== C0  PARSE ==
+rows parsed:   253
+rows UNPARSED: 0   <-- must be 0; a linter that skips rows is worse than none
+edges: 290 total — 122 `d:` derives-from, 152 `e:` evidenced-by, 16 `n:` derives-from-negation
+
+== C1  ORPHAN DETECTION (fails the run) ==
+C1a: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.
+`n:` edges are NOT traversed — a claim justified by a refutation does not
+inherit the refuted parent's ancestry. C1b below checks them the other way.
+
+  ORPHAN  `3x3.C1` (CLAIMED)
+       ⟵d `GLOBAL.F2`  [CLAIMED]
+         ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `4x3.C1` (CLAIMED)
+       ⟵d `GLOBAL.F1`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.F2` (CLAIMED)
+       ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.ADR0010-CUT` (CLAIMED)
+       ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.F3` (CLAIMED)
+       ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.F4` (PROVEN (argument) + MEASUREMENT)
+       ⟵d `GLOBAL.F3`  [CLAIMED]
+         ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.H5c` (PROVEN (as an implication))
+       ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.ADR0012-GATE` (CLAIMED)
+       ⟵d `4x4.COMPLETE-2026-07-21`  [FALSE-AS-SCOPED]
+  ORPHAN  `GLOBAL.B15` (CLAIMED)
+       ⟵d `GLOBAL.F3`  [CLAIMED]
+         ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+  ORPHAN  `QA-018` (CLAIMED)
+       ⟵d `GLOBAL.F2`  [CLAIMED]
+         ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+
+  C1a orphans: 10
+
+  C1b — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.
+  (none — every `n:` edge points at a parent that is still FALSE)
+
+  C1b alarms: 0
+
+  C1 total: 10
+
+== C2  DANGLING EVIDENCE (fails the run) ==
+
+  missing paths, with the claims that reach them:
+  MISSING  untracked/B05-glm.md
+           named in: docs/epistemic/boards/4x4/EPISTEMIC.md docs/epistemic/boards/CONCEPTS.md docs/epistemic/PROGRESS.md docs/status/leak-crisis.md …(+1)
+           reachable from 102 register row(s), e.g. `GLOBAL.S1` `4x4.S1` `GLOBAL.S2` `3x3.S2-impl`
+  MISSING  untracked/T07-audit-hypotheses.md
+           named in: docs/epistemic/boards/4x4/EPISTEMIC.md docs/evidence/README.md
+           reachable from 51 register row(s), e.g. `GLOBAL.S1` `4x4.S1` `4x4.S2-impl` `GLOBAL.S3a`
+  MISSING  untracked/T02-audit-kimi.md
+           named in: docs/status/leak-crisis.md docs/evidence/README.md
+           reachable from 24 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  MISSING  untracked/T02-minimax.md
+           named in: docs/status/leak-crisis.md docs/evidence/README.md
+           reachable from 24 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  MISSING  untracked/T13-minimax.md
+           named in: docs/status/leak-crisis.md docs/research/c2-falsification-3x2.md docs/evidence/README.md
+           reachable from 24 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  MISSING  untracked/B39-arena4x4.md
+           named in: docs/research/arena-4x4-undef.md docs/evidence/README.md
+           reachable from 8 register row(s), e.g. `4x4.C2` `4x4.B39` `4x4.B43` `4x4.B43-DIV`
+  MISSING  /tmp/test_census_pure.zig
+           named in: docs/research/kostate-census-2026-07-28.md
+           reachable from 3 register row(s), e.g. `GLOBAL.H1-CENSUS` `3x3.H1-CENSUS` `4x3.H1-CENSUS`
+  MISSING  untracked/c2pilot_3x2.zig
+           named in: docs/research/c2-falsification-3x2.md docs/evidence/README.md
+           reachable from 3 register row(s), e.g. `3x2.C1` `3x2.T13` `QA-022`
+
+  bulk .wzo artifacts cited but absent (informational — git-ignored by
+  design, hashes recorded in docs/evidence/README.md; does NOT fail):
+    data/oracle-4x4.wzo  (named in docs/epistemic/boards/4x4/EPISTEMIC.md)
+
+  already inventoried as CONFIRMED LOST in docs/evidence/README.md and named nowhere
+  else — a recorded loss, not a dangling citation; does NOT fail:
+    untracked/B09-kimi.md
+    untracked/B23-kocensus.md
+    untracked/T12-minimax.md
+    untracked/T15-kimi.md
+    untracked/T15-review-kimi.md
+    untracked/T16-glm.md
+    untracked/T99-tripleko.md
+    untracked/c2pilot_2x2.zig
+    untracked/delegation-prompts-2026-07-26.md
+    untracked/discussion.md
+    untracked/idea-heap.md
+    untracked/model-perf.md
+    untracked/task-minimax.md
+
+  evidence documents that EXIST but are git-ignored — readable today,
+  unrecoverable after the next sweep (roadmap §4 P1; QA-022):
+    NOT IN GIT  untracked/SUBAGENTS.md   cited by `GLOBAL.UD-1`
+
+  C2 total: 9  (8 unique missing paths — 0 cited by the evidence column
+            directly, 8 named inside cited documents — plus 1 git-ignored
+            evidence documents; 1 bulk .wzo and 13 already-inventoried
+            losses, not counted)
+
+== C3  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==
+roadmap-2026-07-28 §4 P1: a claim is PROVEN only if its probe source and
+output are committed under docs/evidence/. Tier C = no committed evidence
+at all. Tier B = a committed prose document records the result, but no
+re-runnable probe. Tier A = compliant.
+
+  TIER C — PROVEN, no committed evidence resolves at all (0):
+    (none)
+
+  TIER B — PROVEN, committed prose only, no probe under docs/evidence/ (79):
+    [in-deg 10] `GLOBAL.S2`
+    [in-deg  9] `GLOBAL.INVSYM`
+    [in-deg  8] `GLOBAL.FP1`
+    [in-deg  5] `GLOBAL.S4`
+    [in-deg  5] `3x3.B1`
+    [in-deg  5] `GLOBAL.AUDITOR`
+    [in-deg  4] `GLOBAL.S3a`
+    [in-deg  4] `GLOBAL.FP3`
+    [in-deg  4] `3x2.C1`
+    [in-deg  4] `4x4.M5`
+    [in-deg  4] `GLOBAL.CHAIN-LH`
+    [in-deg  4] `GLOBAL.CHAIN-KO`
+    [in-deg  3] `GLOBAL.S1`
+    [in-deg  3] `GLOBAL.ADR0009-HONESTY`
+    [in-deg  3] `2x2.C1`
+    [in-deg  3] `GLOBAL.E2-SANITY`
+    [in-deg  3] `4x4.GTP-DEFECT`
+    [in-deg  3] `GLOBAL.R1`
+    [in-deg  3] `GLOBAL.MIGOS-RULE`
+    [in-deg  2] `4x4.S3a`
+    [in-deg  2] `4x3.S3a`
+    [in-deg  2] `2x2.B1`
+    [in-deg  2] `3x2.B1`
+    [in-deg  2] `3x2.T13`
+    [in-deg  2] `3x3.C3`
+    [in-deg  2] `3x3.E3`
+    [in-deg  2] `GLOBAL.E2-POLICY`
+    [in-deg  2] `3x2.F1`
+    [in-deg  2] `GLOBAL.F4`
+    [in-deg  2] `GLOBAL.ADR0004-TERM`
+    [in-deg  2] `GLOBAL.P2`
+    [in-deg  2] `4x4.KO-RULE-NULL`
+    [in-deg  2] `CODE.UNDEF`
+    [in-deg  2] `GLOBAL.R2`
+    [in-deg  1] `4x4.S1`
+    [in-deg  1] `4x4.FP1-C3`
+    [in-deg  1] `GLOBAL.LEAK`
+    [in-deg  1] `GLOBAL.ADR0009-NOEYE`
+    [in-deg  1] `GLOBAL.ADR0005-PASS`
+    [in-deg  1] `GLOBAL.ADR0003-AREA`
+    [in-deg  1] `GLOBAL.RPLY`
+    [in-deg  1] `GLOBAL.RPLY-TRAP`
+    [in-deg  1] `GLOBAL.CHAIN-KIND`
+    [in-deg  1] `4x4.M6-FLOOR`
+    [in-deg  1] `CODE.ADR0011-GATE`
+    [in-deg  1] `GLOBAL.ADR0007-BACKEDGE`
+    [in-deg  0] `4x3.S1`
+    [in-deg  0] `3x3.S2-impl`
+    [in-deg  0] `4x3.S2`
+    [in-deg  0] `GLOBAL.B1-AUDIT`
+    [in-deg  0] `4x3.FP3`
+    [in-deg  0] `GLOBAL.E1`
+    [in-deg  0] `GLOBAL.ADR0008-HOLE`
+    [in-deg  0] `GLOBAL.ADR0010-SOUND`
+    [in-deg  0] `3x2.F3`
+    [in-deg  0] `3x2.F4`
+    [in-deg  0] `3x3.F4`
+    [in-deg  0] `4x3.F4`
+    [in-deg  0] `GLOBAL.MEMO-XROOT`
+    [in-deg  0] `GLOBAL.ADR0006-TEST`
+    [in-deg  0] `GLOBAL.ADR0004-P1`
+    [in-deg  0] `GLOBAL.ADR0005-SUBBOARD`
+    [in-deg  0] `4x4.REGR-SYM`
+    [in-deg  0] `4x4.R3`
+    [in-deg  0] `GLOBAL.RNPLY-FORBID`
+    [in-deg  0] `GLOBAL.PSK-GAP`
+    [in-deg  0] `GLOBAL.FWD-INTRACT`
+    [in-deg  0] `GLOBAL.H5c`
+    [in-deg  0] `GLOBAL.CALIB-LESSON`
+    [in-deg  0] `CODE.ADR0011-FMT`
+    [in-deg  0] `GLOBAL.ADR0009-DTT`
+    [in-deg  0] `GLOBAL.ADR0012-LAYER`
+    [in-deg  0] `GLOBAL.ADR0012-V1`
+    [in-deg  0] `GLOBAL.ADR0007-AB`
+    [in-deg  0] `GLOBAL.ADR0009-SUCC`
+    [in-deg  0] `GLOBAL.ADR0014-PURE`
+    [in-deg  0] `GLOBAL.RELEASEFAST`
+    [in-deg  0] `QA-021`
+    [in-deg  0] `QA-025`
+
+  TIER A — compliant (evidence under docs/evidence/): 3
+    `GLOBAL.H1-CENSUS`
+    `3x3.H1-CENSUS`
+    `4x3.H1-CENSUS`
+
+  C3 total PROVEN-without-committed-evidence: 79 of 82 PROVEN rows
+
+== C4  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==
+  claim IDs cited in docs/ with NO register row (12):
+    `4x3.ANCHOR`  cited at docs/epistemic/claimlint-2026-07-28.md:372 docs/epistemic/CLAIMS.md:266 docs/epistemic/CLAIMS.md:635
+    `4x4.ARENA-DIV`  cited at docs/epistemic/claimlint-2026-07-28.md:374 docs/epistemic/CLAIMS.md:273
+    `2x2.C4`  cited at docs/epistemic/claimlint-2026-07-28.md:375 docs/epistemic/CLAIMS.md:263
+    `3x2.C4`  cited at docs/epistemic/claimlint-2026-07-28.md:375 docs/epistemic/CLAIMS.md:264
+    `4x4.S2`  cited at docs/epistemic/claimlint-2026-07-28.md:379 docs/epistemic/CLAIMS.md:55
+    `4x4.X1`  cited at docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/CLAIMS.md:62
+    `3x2.BASICKO-TIE`  cited at docs/infra/dispatch/EXP-4.md:138 docs/epistemic/claimlint-2026-07-28.md:381
+    `4x4.CHAIN-KO`  cited at docs/epistemic/claimlint-2026-07-28.md:373 docs/epistemic/CLAIMS.md:343
+    `4x4.X2`  cited at docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/CLAIMS.md:339
+    `GLOBAL.BRACKET`  cited at docs/epistemic/claimlint-2026-07-28.md:376 docs/epistemic/CLAIMS.md:237
+    `2x2.BASICKO-TIE`  cited at docs/infra/dispatch/EXP-4.md:138 docs/epistemic/claimlint-2026-07-28.md:381
+    `GLOBAL.C1-CALIB`  cited at docs/epistemic/claimlint-2026-07-28.md:377 docs/epistemic/CLAIMS.md:263
+
+  `QA-nnn` namespace coverage: 28 distinct IDs cited in docs/, 28 with a
+  register row, 0 without. A falsification cannot propagate to an ID the
+  graph cannot see:
+    (none unmodelled)
+
+  register rows nothing references — no citation outside §2 AND no
+  incoming edge inside it (a smell, not an error):
+    `3x3.S2-impl` [PROVEN]
+    `4x3.S3b` [UNTESTED]
+    `CODE.S4-XVAL` [MEASUREMENT]
+    `GLOBAL.FP2-general` [INTRACTABLE]
+    `3x3.C2` [UNTESTED]
+    `4x3.C2` [UNTESTED]
+    `2x2.C3` [MEASUREMENT]
+    `3x2.C3` [MEASUREMENT]
+    `4x3.C3` [UNTESTED]
+    `GLOBAL.E1` [PROVEN]
+    `GLOBAL.E2-VERDICT` [CLAIMED]
+    `GLOBAL.ADR0010-SOUND` [PROVEN]
+    `2x2.F2` [MEASUREMENT]
+    `3x2.F3` [PROVEN]
+    `3x2.F4` [PROVEN]
+    `3x3.F4` [PROVEN]
+    `4x3.F4` [PROVEN]
+    `GLOBAL.MEMO-XROOT` [PROVEN]
+    `GLOBAL.ADR0006-TEST` [PROVEN]
+    `GLOBAL.ADR0007-TENSION` [CLAIMED]
+    `GLOBAL.ADR0005-DBLPASS` [CLAIMED]
+    `GLOBAL.T06` [MEASUREMENT]
+    `4x4.REGR-CLIFF` [MEASUREMENT]
+    `4x4.B16-GAME` [MEASUREMENT]
+    `4x4.HISTPERF-CHEAP` [MEASUREMENT]
+    `GLOBAL.R3` [FALSE-AS-SCOPED]
+    `4x4.R3` [PROVEN]
+    `2x2.R3` [MEASUREMENT]
+    `3x2.R3` [MEASUREMENT]
+    `GLOBAL.RPLY-RETRO` [CLAIMED]
+    `GLOBAL.ANCHOR-DELTA` [CLAIMED]
+    `GLOBAL.PSK-GAP` [PROVEN]
+    `GLOBAL.CHAIN-DEF` [(definition)]
+    `3x3.M4` [MEASUREMENT]
+    `4x3.M4` [MEASUREMENT]
+    `4x4.TANGLE` [MEASUREMENT]
+    `4x4.VALBATTERY` [MEASUREMENT]
+    `4x3.M2` [MEASUREMENT]
+    `4x3.TANGLE` [MEASUREMENT]
+    `3x3.FWD-SPOT` [MEASUREMENT]
+    `GLOBAL.FWD-INTRACT` [PROVEN]
+    `GLOBAL.FIN-NEARTERM` [MEASUREMENT]
+    `4x4.DRIVER` [MEASUREMENT]
+    `GLOBAL.H2` [UNTESTED]
+    `GLOBAL.H3-LOWERBOUND` [MEASUREMENT]
+    `GLOBAL.H5` [CLAIMED]
+    `4x4.A-1` [FALSE-AS-SCOPED]
+    `GLOBAL.C-1` [FALSE-AS-SCOPED]
+    `GLOBAL.ADR0002-SEQ` [UNTESTED]
+    `GLOBAL.ADR0014-DEAD` [CLAIMED]
+    `QA-004` [FALSE]
+    `QA-005` [FALSE]
+    `QA-006` [FALSE]
+    `QA-008` [UNTESTED]
+
+  C4 total: 12 dangling IDs, 0 unmodelled QA-nnn IDs, 54 unreferenced rows
+
+== C5  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==
+`d:` edges terminating on a MEASUREMENT or a definition. A measurement says
+something happened; a definition cannot be wrong. Neither can ever be FALSE,
+so the edge is a dead end: if the claim really needs the SOUNDNESS behind the
+measurement, that parent is missing and a falsification cannot reach this row.
+
+  SHADOWED: `4x4.M6-SCREEN` [CLAIMED]
+            d: `4x4.M6` [MEASUREMENT] — a parent that can never be FALSE;
+            completion is not soundness. Is the real parent a soundness claim?
+  SHADOWED: `4x4.COMPLETE-2026-07-21` [FALSE-AS-SCOPED]
+            d: `GLOBAL.C1` [(definition)] — a parent that can never be FALSE;
+            completion is not soundness. Is the real parent a soundness claim?
+  SHADOWED: `GLOBAL.ADR0012-5X5` [CLAIMED]
+            d: `GLOBAL.SWEEPS` [MEASUREMENT] — a parent that can never be FALSE;
+            completion is not soundness. Is the real parent a soundness claim?
+  SHADOWED: `GLOBAL.ADR0012-5X5` [CLAIMED]
+            d: `GLOBAL.F4-COST` [MEASUREMENT] — a parent that can never be FALSE;
+            completion is not soundness. Is the real parent a soundness claim?
+
+  C5 total: 4
+
+== A  SMELL: repeated narrowing (report only) ==
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.FP2-bounded` narrowed 2× · now FALSE-AS-SCOPED (at 3×2)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.CERTCORE` narrowed 2× · now FALSE-AS-SCOPED
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.C2` narrowed 2× · now FALSE-AS-SCOPED (at 3×2)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.C3` narrowed 2× · now FALSE-AS-SCOPED (at 3×3)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.REFRAME` narrowed 3× · now CLAIMED (adopted decision)
+
+  4 of 5 repeatedly-narrowed claims are now FALSE. Repeated narrowing has
+  so far predicted death in this register; the survivors are the ones to read.
+
+  A total: 5 flagged, 2 rows with `narrowed` unknown
+
+== B  WEAK EVIDENCE (report only) ==
+PROVEN rows whose wrong-answer-pass-rate is unknown or above 25%.
+
+  WEAK EVIDENCE — stated rate above 25% (0):
+    (none)
+
+  WEAK EVIDENCE — rate not computed (`?`): 78 PROVEN rows
+  discriminating (rate stated and <= 25%): 4
+    `GLOBAL.S1`  rate ~0%
+    `4x4.S1`  rate ~0%
+    `4x4.S3a`  rate <0.01%
+    `4x3.S3a`  rate <0.1%
+
+== CALIBRATION (GLOBAL.CALIB-LESSON; roadmap §4 P3) ==
+A checker with no failing case proves nothing.
+
+  known-bad 1 (C1): `GLOBAL.F2` must be reported with `GLOBAL.C3` in its chain … CAUGHT
+  known-bad 2 (C2): `untracked/c2pilot_3x2.zig` must be reported … CAUGHT
+  known-good (C1+C2): PROVEN `GLOBAL.ADR0003-AREA` with a real evidence path must be silent … SILENT (correct)
+  known-good (C1, `n:`): `GLOBAL.REFRAME` — `n:` to a FALSE parent must be silent … SILENT (correct)
+  known-bad 3 (C1b, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a
+                FALSE parent must not … CAUGHT (1 alarm, 1 silent)
+  known-bad 4 (C5, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`
+                onto a real claim must not … CAUGHT (1 shadow, 1 silent)
+  known-good (C5): `GLOBAL.F2` — every `d:` parent is a real claim, must be silent … SILENT (correct)
+
+  calibration: PASS
+
+== SUMMARY ==
+  rows parsed / unparsed        253 / 0
+  C1a orphans / C1b alarms      10 / 0   (FAILS)
+  C2 dangling evidence paths    9   (FAILS)
+  C3 PROVEN w/o committed evid. 79   (debt only, does not fail yet)
+  C4 dangling IDs / unreferenced 12 / 54   (report only, does not fail yet)
+  C5 shadowed dependencies      4   (report only, does not fail yet)
+  A  repeated-narrowing smells  5   (report only)
+  B  weak-evidence PROVEN rows  78   (report only)
+  calibration                   PASS
