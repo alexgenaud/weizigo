@@ -1,0 +1,40 @@
+[runner] argv = /tmp/weizigo-psk-divergence artifacts/oracle-3x2.wzo --games 20 --max-empties 1 --budget 200000000 --policy random --seed 20260729
+[runner] rss cap = 4096 MB, poll = 250 ms
+
+EXP-8 PSK divergence harness
+  artifact: artifacts/oracle-3x2.wzo (3x2, 489 legal/side)
+  frame: A (reachable play)
+  games/policy: 20   seed: 20260729   max empties: 1
+  PSK exact solver budget: 200000000 nodes   entry cap: 1000000
+  ply cap: 256   settled stop: on
+
+== EXP-8 divergence: frame A, policy random, board 3x2 ==
+games:                 20
+distinct lines:        20
+decision nodes observed: 186
+sampled for PSK solve:   130
+  solved:                3
+  budget-excluded:       19
+  OOM-excluded:          0
+  UNDEF-excluded:        0
+value divergence:        3/3    95% CI: [0.4385, 1.0000]  (rule-of-3 upper 1.0000)
+
+  move divergence:        0/3
+  suboptimal moves:      0/3
+  mean PSK-value loss:   0.00
+  KO_SENSITIVE among solved: 20/3; value-div among them: 3
+
+  PSK-value-loss histogram (points):
+    (no suboptimal moves)
+
+== empties-vs-solvability curve (3x2) ==
+empties  sampled  solved  budget  oom   value_div  move_div  subopt
+      1       22      3     19    0         3        0       0
+      2       40      0      0    0         0        0       0
+      3       33      0      0    0         0        0       0
+      4       23      0      0    0         0        0       0
+      5       10      0      0    0         0        0       0
+      6        2      0      0    0         0        0       0
+[runner] peak RSS by PID:
+[runner]   pid   46080       2 MB
+[runner] exit 0 in 544.0 s
