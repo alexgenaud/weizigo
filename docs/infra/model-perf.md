@@ -2223,6 +2223,23 @@ Mechanical verification, executed correctly. Second Kimi-k2.7 task this session
 scope note. Theorem is board-shape-agnostic; lifts to every finite board.
 Hand-off to S2-impl rows documented. Purely documentation — no build.
 
+**DSFlash / T109:** runner auto-claim/done — two insertions. On launch: runs
+`managent claim <id> --agent $PI_MODEL`. On success: runs `managent done <id>`.
+DSFlash now 5/5 this session.
+
+**DSPro / T108:** managent add race fix — root cause fsync before atomic rename,
+defense-in-depth retry-on-verify. The 40% silent-failure bug is closed.
+
+**Kimi-k3 / T111:** GLOBAL.INVSYM proof — colour-inversion commutation for the
+loopy-game fixpoint operator. Commutation lemma algebra, theorem direction
+matches claim row exactly (ν(H)=L), dihedral scoping correct. Three Kimi-k3
+tasks this session, all three delivered: empirical audit (T104), mathematical
+proof (T105), mathematical proof (T111).
+
+**DSPro / T112:** GLOBAL.S4 evidence — independent Python Tromp-Taylor area
+scorer. 27/27 terminal corpus passed, Zig test suites all pass. QA-023 method:
+independent re-implementation. Discharges GLOBAL.S4 + dependent per-board rows.
+
 **Opus 5 / T102 spillover:** the buffer-aliasing pattern is in brute-force
 cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
 EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
