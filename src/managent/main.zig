@@ -475,6 +475,10 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
         const tmp_file = try std.Io.Dir.cwd().createFile(io, tmp_path, .{});
         defer tmp_file.close(io);
         try tmp_file.writeStreamingAll(io, buf.items);
+        // T108: sync before close — the rename below is a synchronous syscall
+        // that can beat the IO thread's write/flush, causing the ~40% silent
+        // write-loss race. fsync ensures data is on disk before the rename.
+        try tmp_file.sync(io);
     }
 
     const state_dir = try std.Io.Dir.cwd().openDir(io, dirname, .{});
@@ -957,7 +961,36 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
 
         try state.put(alloc, try alloc.dupe(u8, id), ts);
         sys_next_id += 1;
-        try writeState(io, state_path, &state);
+
+        // T108: retry-on-verify (same race as non-auto path)
+        const max_retries = 3;
+        var attempt: u8 = 0;
+        var written_ok = false;
+        while (attempt < max_retries) : (attempt += 1) {
+            try writeState(io, state_path, &state);
+            var verify_state = try readState(io, state_path);
+            defer freeState(&verify_state);
+            if (verify_state.contains(id)) {
+                written_ok = true;
+                break;
+            }
+            if (attempt + 1 < max_retries) {
+                const backoff_ms: u64 = @as(u64, 1) << @intCast(attempt * 3);
+                const req: std.c.timespec = .{
+                    .sec = @intCast(backoff_ms / 1000),
+                    .nsec = @intCast((backoff_ms % 1000) * std.time.ns_per_ms),
+                };
+                _ = std.c.nanosleep(&req, null);
+                w.diag("[T108] add {s} not found after write (attempt {d}); retrying\n", .{ id, attempt + 1 });
+                try state.put(alloc, try alloc.dupe(u8, id), ts);
+            }
+        }
+        if (!written_ok) {
+            w.diag("\n  FATAL: {s} registered to memory but failed to persist to tasks.json after {d} retries\n", .{ id, max_retries });
+            w.diag("  tasks.json may be corrupted or the filesystem is not accepting writes.\n", .{});
+            w.diag("  Do NOT dispatch this task — it will vanish on the next read.\n", .{});
+            std.process.exit(1);
+        }
 
         const set_label = if (meta.holds.len > 0)
             try std.fmt.allocPrint(alloc, "set: {c}, holds {s}", .{ meta.set, meta.holds[0] })
@@ -1006,7 +1039,40 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     };
 
     try state.put(alloc, try alloc.dupe(u8, id), ts);
-    try writeState(io, state_path, &state);
+
+    // T108: retry-on-verify — writeState's atomic rename can lose the write
+    // under heavy IO-thread contention. Verify the task actually persisted;
+    // retry with backoff up to 3 times before failing loudly.
+    const max_retries = 3;
+    var attempt: u8 = 0;
+    var written_ok = false;
+    while (attempt < max_retries) : (attempt += 1) {
+        try writeState(io, state_path, &state);
+        // Re-read and verify the task exists
+        var verify_state = try readState(io, state_path);
+        defer freeState(&verify_state);
+        if (verify_state.contains(id)) {
+            written_ok = true;
+            break;
+        }
+        if (attempt + 1 < max_retries) {
+            const backoff_ms: u64 = @as(u64, 1) << @intCast(attempt * 3); // 1, 8, 64 ms
+            const req: std.c.timespec = .{
+                .sec = @intCast(backoff_ms / 1000),
+                .nsec = @intCast((backoff_ms % 1000) * std.time.ns_per_ms),
+            };
+            _ = std.c.nanosleep(&req, null);
+            w.diag("[T108] add {s} not found after write (attempt {d}); retrying\n", .{ id, attempt + 1 });
+            // Re-insert into state in case the prior put was lost (belt-and-suspenders)
+            try state.put(alloc, try alloc.dupe(u8, id), ts);
+        }
+    }
+    if (!written_ok) {
+        w.diag("\n  FATAL: {s} registered to memory but failed to persist to tasks.json after {d} retries\n", .{ id, max_retries });
+        w.diag("  tasks.json may be corrupted or the filesystem is not accepting writes.\n", .{});
+        w.diag("  Do NOT dispatch this task — it will vanish on the next read.\n", .{});
+        std.process.exit(1);
+    }
 
     const set_label = if (meta.holds.len > 0)
         try std.fmt.allocPrint(alloc, "set: {c}, holds {s}", .{ meta.set, meta.holds[0] })

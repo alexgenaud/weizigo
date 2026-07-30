@@ -527,6 +527,12 @@ def main():
         print(f"[runner] exit 124 (directive: pause/kill pending)", file=sys.stderr)
         sys.exit(124)
 
+    # ── WORKER-CHANNEL: auto-claim via managent ──────────────────────────
+    if args.task_id:
+        model = os.environ.get("PI_MODEL", "unknown")
+        managent = os.path.join(repo_root, "bin", "managent") if repo_root else "bin/managent"
+        subprocess.run([managent, "claim", args.task_id, "--agent", model], capture_output=True)
+
     t0 = time.monotonic()
     proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
     sys.stderr.flush()
@@ -647,6 +653,12 @@ def main():
     total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
     _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)
+
+    # ── WORKER-CHANNEL: auto-done on success ─────────────────────────────
+    if ret == 0 and args.task_id:
+        managent = os.path.join(repo_root, "bin", "managent") if repo_root else "bin/managent"
+        subprocess.run([managent, "done", args.task_id], capture_output=True)
+
     sys.exit(ret)
 
 
