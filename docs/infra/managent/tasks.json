@@ -287,6 +287,38 @@
     "note": "Re-dispatched 2026-07-29 per Dabir msg 031: the Minimax-m3 console was terminated (the B1 smoke thrashed twice — 75 min at the 02:37 panic, 87 min on 05:3x; see msg 030). FRESH Kimi-k2.7 instance, distinct from the EXP-8 worker (instances are not models). Brief fixed: B1 must not path-enumerate (no qa023_brute_2x2.brute_value) — use state-space value iteration or full-tuple memo (board,side,ko,passes); node budget that fails loudly + heartbeat; no head -20 pipe. tools/runner is the precondition. T13 provenance — EXP-2B is a T13-style probe. Opus does NOT execute (advocacy conflict: QA-023 is Opus's proposal) — Opus reviews the result.",
     "claim_count": 1
   },
+  "T107": {
+    "status": "in_progress",
+    "agent": "DSPro",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T107-s2-evidence.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T14:49:48Z",
+    "claimed": "2026-07-30T14:49:48Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
+  "T105": {
+    "status": "in_progress",
+    "agent": "kimi-k3",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T105-fp1-proof.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T14:50:00Z",
+    "claimed": "2026-07-30T14:50:09Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "QA023-KERNEL-AUDIT": {
     "status": "done",
     "agent": "kimi-k2.7",
@@ -413,6 +445,22 @@
     "dispatched": null,
     "dispatched_to": null,
     "note": "tree dirty across two turns: 12→12 dirty files",
+    "claim_count": 1
+  },
+  "T106": {
+    "status": "in_progress",
+    "agent": "kimi-k2.7",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T106-auditor-evidence.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T14:50:06Z",
+    "claimed": "2026-07-30T14:50:09Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
     "claim_count": 1
   },
   "2B-6": {
