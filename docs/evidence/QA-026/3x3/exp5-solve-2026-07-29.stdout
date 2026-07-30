@@ -1,0 +1,109 @@
+[runner] argv = zig run -O ReleaseFast src/exp5_solve.zig
+[runner] ceilings: rss 4096 MB, wall 1800s (30:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================================
+# EXP-5 — 3×3 under the new rule: the first legitimate anchor comparison
+# Task: EXP-5 · Role: worker · Model: DSPro · Date: 2026-07-29
+# Rule: basic ko (formalization (i)) + TIE = 0 for long cycles
+# Value rule: V = median(L, TIE, H) = max(L, min(TIE, H))
+# ============================================================================
+
+## 0. 2×2 / 3×2 GATE (re-run from this binary — EXP-4's falsification gate)
+# 2×2 gate: root B=0 W=0 -> PASS (0)
+# 3x2 census sweep 8: new_marks = 214
+# 3x2 census sweep 12: new_marks = 0
+# 3x2 fixpoint sweep 4: L_changed=295 H_changed=20
+# 3x2 fixpoint sweep 8: L_changed=22 H_changed=0
+# 3x2 fixpoint sweep 10: L_changed=0 H_changed=0
+# 3×2 gate: root B=0 W=0 -> PASS (0)
+# Gate: PASS — both boards return 0, binary is not PSK
+
+## 1. 3×3 census
+# 3x3 census sweep 4: new_marks = 2624
+# 3x3 census sweep 8: new_marks = 13976
+# 3x3 census sweep 12: new_marks = 2648
+# 3x3 census sweep 16: new_marks = 66
+# 3x3 census sweep 18: new_marks = 0
+# total reachable: 73758
+# non-terminal: 49428
+# legal boards: 12675
+# terminals (passes=2): 24330
+# by side: B=36879 W=36879
+# census sweeps: 18
+
+## 2. 3×3 fixpoint
+# 3x3 fixpoint sweep 4: L_changed=14447 H_changed=1220
+# 3x3 fixpoint sweep 8: L_changed=1535 H_changed=0
+# 3x3 fixpoint sweep 12: L_changed=1546 H_changed=0
+# 3x3 fixpoint sweep 16: L_changed=0 H_changed=0
+# fixpoint sweeps: 16, converged: true
+# root (empty, B to move):  L= +9 H= +9 V= +9
+# root (empty, W to move):  L= -9 H= -9 V= -9
+# anchor (+9): MATCH
+# 3×3 empty B: scored +9 (L==H==9)
+# 3×3 empty W: scored -9 (L==H==-9)
+
+## 3. Root filled + UNDEF check
+# reachable states: 73758, UNDEF: 0
+# root filled? YES
+
+## 4. Tie census (3×3: area scores are odd, TIE=0 is outside natural set)
+# total reachable: 73758
+# states with V == TIE (0): 5738
+# root is TIE? NO
+# pin census: L==H=68350  pin_T=1248  pin_L=2080  pin_H=2080
+# TIE fraction: 5738/73758 (7.78%)
+
+## 5. Fixpoint self-consistency
+# Fixpoint consistency (49428 non-terminals): L-fail=0 H-fail=0 terminals=24330
+# Fixpoint check: PASS — L=Φ(L), H=Φ(H) everywhere
+
+## 6. Colour-inversion symmetry
+# 3×3 inversion violations: 0 / 73758
+# symmetry: PASS — value(-pos,-side) == -value(pos,side)
+
+## 7. Brute-force cross-check (late positions, few empty points)
+# BF-SAMPLE lin=1180974: empty=1 passes=2 side=1 ko=9
+# BF-SAMPLE lin=1180974: AGREEMENT fixpoint=-6 brute=-6
+# BF-SAMPLE lin=1180972: empty=1 passes=2 side=1 ko=9
+# BF-SAMPLE lin=1180972: AGREEMENT fixpoint=-6 brute=-6
+# BF-SAMPLE lin=1180965: empty=1 passes=2 side=1 ko=9
+# BF-SAMPLE lin=1180965: AGREEMENT fixpoint=-4 brute=-4
+# brute-force sample: 50 states with ≤1 empty points, budget=50000000/state
+#   agreements:       50
+#   mismatches:       0
+#   budget-exhausted: 0
+# sample cross-check: PASS — no mismatches (denominator: 50 within-budget / 50 total)
+
+## 8. Calibration
+# known-good (gate): 2×2=0/0 OK, 3×2=0/0 OK
+# known-bad (perturb): lin=150 L==H orig=9 perturbed=10, inversion violations found=2/73758
+# known-bad (PSK artifact): structural — both roots are +9 (coincidence),
+#   but the PSK artifact has 8,698 ko-sensitive slots (L≠H, bracket-valued)
+#   while our fixpoint resolves all ko-sensitive states to single values via median-pin.
+#   The tables differ below the root; a root-only check cannot tell them apart.
+
+## 9. Differential against PSK 3×3 artifact
+# The PSK artifact at artifacts/oracle-3x3.wzo is 65.7% single-score,
+# 8,698 ko-sensitive slots (ruleset-options.md:209-213).
+# Our fixpoint+median produces a value for every reachable state.
+# Both roots are +9 by coincidence — the differential is below the root.
+
+# ============================================================================
+# FINAL VERDICT — EXP-5 3×3
+# ============================================================================
+# root (empty, B): V=9  expected +9  OK
+# root (empty, W): V=-9  expected -9  OK
+# 2×2 gate: 0  PASS
+# 3×2 gate: 0  PASS
+#
+# root filled? YES
+# anchor matched? YES
+# gate passed? YES
+#
+# 3×3 empty B: scored +9 (L==H==9)
+# 3×3 empty W: scored -9 (L==H==-9)
+[runner] peak RSS by PID: in 1.1 s
+[runner]   pid   70708       4 MB
+[runner] peak total CPU by PID: in 1.1 s
+[runner]   pid   70708        0:00 (0.81s)
+[runner] exit 0 in 1.1 s

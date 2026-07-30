@@ -16,7 +16,7 @@
     "claim_count": 1
   },
   "EXP-5": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro/EXP-5",
     "bundle": "docs/infra/dispatch/EXP-5.md",
     "set": "G",
@@ -25,7 +25,7 @@
     "caps": [],
     "added": "2026-07-28T12:21:13Z",
     "claimed": "2026-07-29T23:46:11Z",
-    "done": null,
+    "done": "2026-07-29T23:59:16Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -399,7 +399,7 @@
     "claim_count": 0
   },
   "EXP-6": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/EXP-6.md",
     "set": "H",
     "holds": [],
@@ -573,6 +573,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T100": {
+    "status": "done",
+    "agent": "fable-5",
+    "bundle": "docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-29T23:56:20Z",
+    "claimed": "2026-07-29T23:56:25Z",
+    "done": "2026-07-29T23:56:25Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "ADR0006-FALSIFY": {
     "status": "done",
     "agent": "DSPro",
@@ -607,7 +623,7 @@
   }
 ,
   "_sys": {
-    "next_id": 100,
+    "next_id": 101,
     "directive_next": 7
   }
 }
