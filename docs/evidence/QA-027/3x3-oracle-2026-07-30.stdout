@@ -1,0 +1,52 @@
+[runner] argv = zig run -O ReleaseFast src/exp7_census.zig -- 3 --games 2000 --seed 20260728 --policy oracle
+[runner] ceilings: rss 4096 MB, wall 60s (1:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================================
+# EXP-7 — certified fraction under basic-ko + TIE=0 — 3×3
+# Task: EXP-7 · Role: worker · Model: not stated at dispatch · Date: 2026-07-30
+# Rule: basic ko (single-stone capture prohibition) + TIE=0 for long cycles
+# Legality: basic ko (no PSK) — playout uses the new rule's own move generator
+# Value domain: integers + TIE (TIE between -1 and +1 per EXP-2 A5)
+# Direct-identity check: V(state) == best_child({V(child)}) at every decision node
+# Long cycles: detected via (board, side, ko) repetition; terminate game, score as TIE
+# Denominator: visited decision nodes (position, side-to-move)
+# ============================================================================
+
+## Phase 1: Fixpoint computation
+# 3x3 census sweep 4: new_marks = 2624
+# 3x3 census sweep 8: new_marks = 13976
+# 3x3 census sweep 12: new_marks = 2648
+# 3x3 census sweep 16: new_marks = 66
+# 3x3 census sweep 18: new_marks = 0
+# 3x3 fixpoint sweep 4: L_changed=11759 H_changed=10876
+# 3x3 fixpoint sweep 8: L_changed=1511 H_changed=1220
+# 3x3 fixpoint sweep 12: L_changed=1546 H_changed=1416
+# 3x3 fixpoint sweep 16: L_changed=0 H_changed=0
+# fixpoint: 16 sweeps, converged=true, reachable=73758
+# root (empty, B): V=9 L=9 H=9
+# root (empty, W): V=-9 L=-9 H=-9
+# root filled: true (B), true (W)
+
+## Phase 2: Playout census — policy=oracle, games=2000, seed=20260728
+== policy: oracle ==
+  games played:           2000
+  distinct game lines:    1
+  mean plies/game:        3.00
+  max plies:              3
+  two-pass terminations:  2000
+  cycle terminations:     0
+  games touching UNDEF:   0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 8000
+  Bellman MATCH:          8000
+  Bellman VIOLATION:      0
+  Bellman TIE_CHILD:      0
+  Bellman CYCLE nodes:    0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     100.00% (8000/8000)
+  verdict: PASS — zero Bellman-identity violations
+[runner] peak RSS by PID: in 1.1 s
+[runner]   pid   99241       4 MB
+[runner] peak total CPU by PID: in 1.1 s
+[runner]   pid   99241        0:00 (0.81s)
+[runner] exit 0 in 1.1 s

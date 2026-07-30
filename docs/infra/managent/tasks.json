@@ -400,19 +400,20 @@
     "claim_count": 1
   },
   "EXP-7": {
-    "status": "dispatchable",
+    "status": "failed",
+    "agent": "EXP-7",
     "bundle": "docs/infra/dispatch/EXP-7.md",
     "set": "I",
     "holds": [],
     "needs": ["EXP-6"],
     "caps": [],
     "added": "2026-07-28T12:21:13Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-30T10:09:54Z",
+    "done": "2026-07-30T10:29:38Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "EXP-6": {
     "status": "done",
