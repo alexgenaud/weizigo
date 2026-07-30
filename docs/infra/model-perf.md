@@ -2240,6 +2240,12 @@ proof (T105), mathematical proof (T111).
 scorer. 27/27 terminal corpus passed, Zig test suites all pass. QA-023 method:
 independent re-implementation. Discharges GLOBAL.S4 + dependent per-board rows.
 
+**DSFlash / T115:** CLAIMS.md evidence columns updated for GLOBAL.FP1, AUDITOR,
+S2, INVSYM, S4 — all five T101A punchlist rows. DSFlash now 6/6 this session.
+
+**DSPro / T116:** EXP-7 4×4 re-run dispatch brief written at
+docs/infra/dispatch/EXP-7-4x4-rerun.md. Ready when T113 lands.
+
 **Opus 5 / T102 spillover:** the buffer-aliasing pattern is in brute-force
 cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
 EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
