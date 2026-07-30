@@ -2261,11 +2261,20 @@ audit: 3 of 7 "lost" items recoverable from committed code. Asymmetry:
 code-derived results recoverable, human reasoning not. (3) ADR0006-FALSIFY
 decontamination: T13 struck from contamination list.
 
-**Kimi-k2.7 / T118:** duplicate dispatch of T13 probe (T110). Wrote
-probe-v2-2026-07-30.py into same directory. Same semantic choices as Opus
-(independent corroboration). Ran 62 min without completion; stopped. Both-sides
-serial design needs >1h. Coordination failure: dispatched 28 min after T110
-with no awareness of it. Second Kimi-k2.7 task this session.
+**Kimi-k2.7 / T118:** duplicate dispatch of T13 probe (T110). Confirmed structural
+dead end: ordered-history memo key yields 0 cache hits (400,001 lookups, 0 hits).
+11/12 T13 histories exhausted 200k-node budget; only 1 solved (near-terminal).
+Independently corroborates Opus T120 assessment. Cleaned up temp files.
+
+**Opus 5 / T120:** absorption audit of all 60 done/failed tasks + kanban/goban
+terminology sweep. Found absorption gap: T100-T119 wave reached model-perf but
+not CLAIMS.md/PROGRESS.md/CURRENT.md. Purged kanban, registered T121-T129 against
+gaps. Terminology sweep: "board" retired from prose in both senses across all
+files.
+
+**DSPro / T123:** absorbed Opus T114 ADR-0006 findings into CLAIMS.md: 5 rows
+(GLOBAL.ADR0006-PRED/LEMMAS/TEST/PRUNEALL proven, GLOBAL.ADR0006-EYE evidence
+updated). claimlint: 259 rows, 0 new orphans.
 
 **Opus 5 / T110:** T13 probe re-implemented from method description (not ported from
 lost code — stronger evidence). All 12 recorded mismatches re-execute exactly.
