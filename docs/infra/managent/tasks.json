@@ -62,19 +62,20 @@
     "claim_count": 1
   },
   "T124": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/T124-t13-row-rewrite.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": ["T123"],
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
-    "claimed": null,
+    "claimed": "2026-07-30T23:47:46Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T126": {
     "status": "blocked",

@@ -269,7 +269,7 @@ authoritative, this prose is a snapshot of it.)
 | `4x4.C1` | C1 | 4×4 | Fresh-start scores correct at 4×4 — "SUPPORTED, not PROVEN"; no exhaustive ground truth exists | UNTESTED | `4x4/EPISTEMIC.md:141-147`; `PROGRESS.md:210-211` | `d:4x4.F2`, `d:GLOBAL.F1`, `e:4x4.ANCHOR`, `e:GLOBAL.INVSYM`, `e:4x4.S3a` | the whole 4×4 deliverable, `4x4.M4`, `4x4.M6`, GTP player | ? | ? |
 | `GLOBAL.C2` | C2 | all | Single-score (L==H) positions are history-independent | FALSE-AS-SCOPED (at 3×2) | `leak-crisis.md:25`; `PROGRESS.md:127`; `AGENTS.md:68-73` | `d:GLOBAL.FP2-bounded` | `GLOBAL.C4`, `GLOBAL.CERTCORE`, deliverable options 1/2, `4x4.M4` interpretation | 2 | ? |
 | `2x2.T12` | T12 | 2×2 | C2-pilot at 2×2 is **tautological** — 2×2 admits no reachable non-root cycles | MEASUREMENT | `4x4/EPISTEMIC.md:255-257,287-288` | `e:2x2.EXACT` | `3x2.T13` design calibration | 0 | ? |
-| `3x2.T13` | T13 | 3×2 | C2 falsified at 3×2: 12 verified mismatches on 508 non-trivial reachable PSK histories over L==H slots (0/540 fresh-start sanity mismatches) | PROVEN (falsification) | `c2-falsification-3x2.md:15-16,45-95`; `leak-crisis.md:106-121`. **⚠ CANNOT REPRODUCE — probe source (`untracked/c2pilot_3x2.zig`) and raw output (`untracked/T13-minimax.md`) are lost. The durable summary at `docs/research/c2-falsification-3x2.md` preserves the numbers and method, so the claim stands; the reproduction block cannot be executed. 2026-07-29 evidence-integrity sweep.** | `e:3x2.C1`, `e:3x2.EXACT` | `GLOBAL.C2`, `GLOBAL.C4`, `4x4.C2`, `GLOBAL.REFRAME`, `GLOBAL.H1` | 0 | ? |
+| `3x2.T13` | T13 | 3×2 | C2 falsified at 3×2: **154 of the 508 reachable L==H slots (30.3%, over 132 distinct positions) have at least one reachable PSK history whose exact value differs from the stored fresh-start value** — 4,432 falsifying (slot, history) pairs of 134,504 tested (all reachable histories, order-independent). The 2026-07-26 run sampled one history per slot and recorded **12** of these; that count is traversal-dependent and understates by >10×. 0/540 fresh-start sanity mismatches. | PROVEN (falsification) | `docs/evidence/T13/probe-reimplementation-2026-07-30.md` §4,§8; `docs/evidence/T13/t13_probe.py`, `zig_t13_replay.zig`; `docs/research/c2-falsification-3x2.md:15-16,45-95` | `e:3x2.C1`, `e:3x2.EXACT` | `GLOBAL.C2`, `GLOBAL.C4`, `4x4.C2`, `GLOBAL.REFRAME`, `GLOBAL.H1` | 0 | ? |
 | `3x3.C2` | C2 | 3×3 | C2 at 3×3 | UNTESTED | `PROGRESS.md:212-213` | `d:GLOBAL.FP2-bounded` | 3×3 real-game claims | 0 | ? |
 | `4x3.C2` | C2 | 4×3 | C2 at 4×3 — explicitly *not* inherited from the 3×2 falsification | UNTESTED | `4x3/EPISTEMIC.md:33` | `d:GLOBAL.FP2-bounded` | 4×3 real-game claims | 0 | ? |
 | `4x4.C2` | C2 / FP2 | 4×4 | C2 at 4×4 — "falsification is analogy-expected, not an open hypothesis" | UNTESTED (status conflict, §6-D3) | `4x4/EPISTEMIC.md:46,98-110`; `PROGRESS.md:212-213`; `arena-4x4-undef.md:87-91` | `d:GLOBAL.FP2-bounded`, `e:3x2.T13` (inherited — §5-I10), `e:4x4.ARENA-DIV` | 4×4 deliverable decision | 0 | ? |
@@ -1085,11 +1085,17 @@ the following cited files **do not exist on disk**:
 
 Consequences for the register, stated without recommendation:
 
-- **`3x2.T13` is not reproducible.** Its numbers, method, ban-set distribution
-  and all 12 contradiction lines survive in git at
-  `docs/research/c2-falsification-3x2.md` — that durable copy is why the row is
-  marked PROVEN — but the probe source is gone, so the reproduction block at
-  `c2-falsification-3x2.md:124-129` cannot be executed.
+- **`3x2.T13` was not reproducible at the time of the sweep (2026-07-28).**
+  It has since been independently re-implemented from the method description
+  (2026-07-30, `docs/evidence/T13/probe-reimplementation-2026-07-30.md`,
+  `docs/evidence/T13/t13_probe.py`, `docs/evidence/T13/zig_t13_replay.zig`).
+  All twelve recorded contradiction lines re-execute exactly; all census
+  numbers match. The original probe source (`untracked/c2pilot_3x2.zig`) and
+  raw output (`untracked/T13-minimax.md`) remain lost — the re-implementation
+  is independent evidence, not a recovery — so `QA-022` is unchanged. The
+  order-independent measurement (§8 of the re-implementation report) shows the
+  falsification is over 10× broader than the original 12-mismatch count
+  suggested: 154 of 508 reachable L==H slots (30.3%) are history-sensitive.
 - **`2x2.B1` / `3x2.B1` / `3x3.B1` have no durable evidence file.** Their only
   surviving record is the summary at `leak-crisis.md:86-101`. They are the
   parents of `GLOBAL.B1-AUDIT`, which is what removed the re-converge check from
