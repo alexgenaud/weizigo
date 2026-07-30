@@ -127,6 +127,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T101": {
+    "status": "done",
+    "agent": "fable-5",
+    "bundle": "docs/audits/epistemic-tree-shake-fable-2026-07-30.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T00:25:35Z",
+    "claimed": "2026-07-30T00:25:42Z",
+    "done": "2026-07-30T00:25:42Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "F1-CENSUS-GAP": {
     "status": "done",
     "agent": "DSPro/F1-CENSUS-GAP",
@@ -399,19 +415,20 @@
     "claim_count": 0
   },
   "EXP-6": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro/EXP-6",
     "bundle": "docs/infra/dispatch/EXP-6.md",
     "set": "H",
     "holds": [],
     "needs": ["EXP-5"],
     "caps": [],
     "added": "2026-07-28T12:21:13Z",
-    "claimed": null,
+    "claimed": "2026-07-30T00:03:19Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "2B-3": {
     "status": "done",
@@ -639,7 +656,7 @@
   }
 ,
   "_sys": {
-    "next_id": 101,
+    "next_id": 102,
     "directive_next": 7
   }
 }

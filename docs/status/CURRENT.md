@@ -5,6 +5,8 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
+**EXP-6 active:** DSPro/EXP-6 owns `src/exp6_solve.zig` for the 4×4 build under basic-ko + TIE=0. ~2-4 h.
+
 Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 **2026-07-29 succession + D-8 + EXP-10-done correction by GLM-5.2
 (Orchestrator)** — see the new section at top.
