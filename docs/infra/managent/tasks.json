@@ -509,6 +509,22 @@
     "note": null,
     "claim_count": 1
   },
+  "AUDIT-TRAJECTORY": {
+    "status": "done",
+    "agent": "fable-5",
+    "bundle": "docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T00:00:36Z",
+    "claimed": "2026-07-30T00:00:36Z",
+    "done": "2026-07-30T00:00:36Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "INDEX-RETRIEVAL": {
     "status": "done",
     "agent": "DSPro/INDEX-RETRIEVAL",
