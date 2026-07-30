@@ -46,22 +46,23 @@
     "claim_count": 0
   },
   "T123": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/T123-absorb-adr0006-rows.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": [],
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-30T23:40:04Z",
+    "done": "2026-07-30T23:40:04Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T124": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/T124-t13-row-rewrite.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
