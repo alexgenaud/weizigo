@@ -590,6 +590,12 @@ All five are in git under `docs/evidence/T13/`:
 | `diff_zig_tables.py` | the port diff itself |
 | `probe-reimplementation-2026-07-30.md` | this report |
 
+A sixth file, **`probe-v2-2026-07-30.py`, is not mine** — it is
+`Kimi-k2.7/T118`, an independently dispatched second re-implementation of the
+same experiment that appeared in this directory while T110 was running (see the
+duplicate-dispatch note below). It is not cited as evidence by this report and
+its results are T118's to report.
+
 - Claims supported: `3x2.T13`, and by inheritance `GLOBAL.C2`
 - Durable predecessor: `docs/research/c2-falsification-3x2.md`
 - Lost originals: `untracked/c2pilot_3x2.zig`, `untracked/T13-minimax.md`
@@ -627,3 +633,41 @@ nothing outside this repository. That is deliberate: T13 was lost because its
 evidence was a Zig file in a git-ignored directory that had to be compiled
 against a moving `src/retro.zig` to say anything. This one is a single
 committed script that runs on its own.
+
+## 11. Duplicate dispatch: T110 and T118 were given the same task
+
+`T110` (this file, Opus 5) was registered at **15:55Z** and claimed at 15:55Z.
+`T118` (Kimi-k2.7) was registered at **16:23Z** — 28 minutes later — and is an
+independent re-implementation of the same experiment. Both were `in_progress`
+simultaneously; neither brief mentions the other; both wrote into
+`docs/evidence/T13/`. This was discovered only because the second worker's file
+appeared in a directory listing.
+
+**For this claim the collision is fortunate rather than wasteful.** `3x2.T13`
+is the falsification the whole reframe rests on, and two independent
+implementations agreeing is worth more here than almost anywhere else in the
+project. From reading `probe-v2-2026-07-30.py`, T118 makes the same two
+semantic calls this file argues for — no eye-prune in line generation, eye-prune
+in the solver — which is itself corroboration of §6, arrived at separately.
+
+**But the coordination failure is real and is not a T13 problem.** Two workers
+spent an afternoon each on one task, on the register's most load-bearing row,
+without either being told. Worth checking how both dispatches were issued
+before the next parallel wave.
+
+**The cross-check is left open, deliberately.** T118's numbers are T118's
+deliverable to report, and this file does not preempt them. When both land, the
+comparison that matters is not the headline count — T118 enumerates from
+**both** root sides and tests every distinct history, where T13 and §6 take one
+history per slot from Black-first roots, so the counts *should* differ and a
+mismatch there would prove nothing. Compare instead:
+
+1. the census (489 / 30 / 189 / 189 / 540 stored slots),
+2. the fresh-start arm (0 mismatches),
+3. whether T118's falsifying-slot set is a **superset** of §8's 154 — it
+   enumerates a strictly larger population, so anything less is a real
+   disagreement worth adjudicating,
+4. per-slot values on the twelve recorded lines.
+
+Whoever absorbs both tasks should run that comparison rather than treating the
+two reports as interchangeable.

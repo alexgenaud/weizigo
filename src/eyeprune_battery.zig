@@ -220,19 +220,15 @@ fn Battery(comptime w: usize, comptime h: usize) type {
 
         const ExactKey = struct { set: u64, idx: u32, side: u8, passes: u8 };
 
-        /// Per-position random words for the order-independent (XOR) set hash.
-        const zob: [X.total]u64 = blk: {
-            @setEvalBranchQuota(20 * X.total + 10_000);
-            var t: [X.total]u64 = undefined;
-            var x: u64 = 0x9E3779B97F4A7C15;
-            for (0..X.total) |i| {
-                x ^= x << 13;
-                x ^= x >> 7;
-                x ^= x << 17;
-                t[i] = x;
-            }
-            break :blk t;
-        };
+        /// Per-position random word for the order-independent (XOR) set hash.
+        /// Computed (splitmix64) rather than tabulated: a table would be
+        /// 3^16 u64 at 4x4 and blows up the compiler.
+        fn zobOf(idx: u64) u64 {
+            var z = idx +% 0x9E3779B97F4A7C15;
+            z = (z ^ (z >> 30)) *% 0xBF58476D1CE4E5B9;
+            z = (z ^ (z >> 27)) *% 0x94D049BB133111EB;
+            return z ^ (z >> 31);
+        }
 
         const Solver = struct {
             memo: []i8, // X.total * 2 entries, indexed (colex, side) -- flat rules
@@ -296,7 +292,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
                         continue;
                     }
                     self.hist.push(&child);
-                    const cz = zob[@intCast(X.colex_from_pos(&child))];
+                    const cz = zobOf(X.colex_from_pos(&child));
                     self.set_hash ^= cz;
                     const r = self.solve(&child, -to_move, 0);
                     self.set_hash ^= cz;
@@ -346,7 +342,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
                 if (!self.share_memo) self.clear();
                 self.hist.len = 0;
                 self.hist.push(pos);
-                self.set_hash = zob[@intCast(X.colex_from_pos(pos))];
+                self.set_hash = zobOf(X.colex_from_pos(pos));
                 self.aborted = false;
                 const saved = self.nodes;
                 self.budget = saved + PER_ROOT_BUDGET;
@@ -456,48 +452,62 @@ fn Battery(comptime w: usize, comptime h: usize) type {
             settled: u64 = 0, // settled positions overall
         };
 
+        /// Streaming (no storage) so it reaches 4x4. Positions with no
+        /// candidate eye cannot have a pruned move, so Benson is skipped there.
         fn classScan(alloc: std.mem.Allocator) !ClassScan {
+            _ = alloc;
             var s = ClassScan{};
-            var list = try allLegal(alloc);
-            defer list.deinit(alloc);
-            s.positions = list.items.len;
             var shown: u32 = 0;
-            for (list.items) |pos| {
-                const settled = R.is_settled(&pos);
-                if (settled) s.settled += 1;
-                {
-                    var has_eye = false;
-                    inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
-                        const m = pruneMask(&pos, colour, .adr0006);
-                        for (m) |b| {
-                            if (b) has_eye = true;
-                        }
-                    }
-                    if (has_eye) {
-                        s.eyepos += 1;
-                        if (settled) s.eyepos_settled += 1;
-                    }
-                }
-                inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
-                    const mc = moveCensus(&pos, colour);
-                    s.pairs += 1;
-                    if (mc.pruned == 0) {
-                        s.prune_none += 1;
-                    } else if (mc.pruned < mc.legal) {
-                        s.prune_some += 1;
+            var digits = [_]u8{0} ** n;
+            var pos: Pos = [_]i8{0} ** n;
+            while (true) {
+                if (E.is_legal(&pos)) {
+                    s.positions += 1;
+                    s.pairs += 2;
+                    if (!maybeHasEye(&pos)) {
+                        s.prune_none += 2;
                     } else {
-                        s.prune_all += 1;
-                        if (settled) s.prune_all_settled += 1 else {
-                            s.prune_all_live += 1;
-                            if (shown < 8) {
-                                var buf: [64]u8 = undefined;
-                                print("      PRUNE-ALL & NOT settled: {s}  {s} to move ({d} legal, all eyes)\n", .{ boardStr(&pos, &buf), if (colour > 0) "Black" else "White", mc.legal });
-                                shown += 1;
+                        const settled = R.is_settled(&pos);
+                        var has_eye = false;
+                        inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
+                            const mc = moveCensus(&pos, colour);
+                            if (mc.pruned > 0) has_eye = true;
+                            if (mc.pruned == 0) {
+                                s.prune_none += 1;
+                            } else if (mc.pruned < mc.legal) {
+                                s.prune_some += 1;
+                            } else {
+                                s.prune_all += 1;
+                                if (settled) s.prune_all_settled += 1 else {
+                                    s.prune_all_live += 1;
+                                    if (shown < 8) {
+                                        var buf: [64]u8 = undefined;
+                                        print("      PRUNE-ALL & NOT settled: {s}  {s} to move ({d} legal, all eyes)\n", .{ boardStr(&pos, &buf), if (colour > 0) "Black" else "White", mc.legal });
+                                        shown += 1;
+                                    }
+                                }
                             }
+                            if (!settled and mc.pruned > 0) s.nonvacuous += 1;
                         }
+                        if (has_eye) {
+                            s.eyepos += 1;
+                            if (settled) s.eyepos_settled += 1;
+                        }
+                        if (settled) s.settled += 1;
                     }
-                    if (!settled and mc.pruned > 0) s.nonvacuous += 1;
                 }
+                var i: usize = 0;
+                while (i < n) : (i += 1) {
+                    if (digits[i] == 2) {
+                        digits[i] = 0;
+                        pos[i] = 0;
+                        continue;
+                    }
+                    digits[i] += 1;
+                    pos[i] = if (digits[i] == 1) 1 else -1;
+                    break;
+                }
+                if (i == n) break;
             }
             return s;
         }
@@ -824,6 +834,81 @@ fn Battery(comptime w: usize, comptime h: usize) type {
             return out;
         }
 
+        // ---- SECTION J: the live PRUNE-ALL class, valued ------------------------
+        //
+        // Section C finds (position, side) pairs where the prune removes EVERY
+        // legal board move at a node that is NOT an is_settled terminal. There
+        // the pruned search has only the pass edge. This scan values each such
+        // pair with the eye-pruned forward search and compares it against the
+        // unpruned retrograde table -- the one class where "the prune removed
+        // the only move" could actually change an answer.
+
+        const LiveScan = struct {
+            live_pairs: u64 = 0,
+            comparable: u64 = 0, // non-KO_SENSITIVE, non-FROM_FORWARD, defined
+            disagree: u64 = 0,
+            unresolved: u64 = 0,
+            skipped_ko: u64 = 0,
+            skipped_undef: u64 = 0,
+        };
+
+        fn livePruneAllScan(
+            alloc: std.mem.Allocator,
+            dec: *const @import("artifact.zig").Decoded,
+        ) !LiveScan {
+            var out = LiveScan{};
+            const fwd = try makeSolver(alloc, .adr0006, .koref, true);
+            defer freeSolver(alloc, fwd);
+
+            var reported: u32 = 0;
+            var digits = [_]u8{0} ** n;
+            var pos: Pos = [_]i8{0} ** n;
+            while (true) {
+                if (E.is_legal(&pos) and maybeHasEye(&pos) and !R.is_settled(&pos)) {
+                    inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
+                        const mc = moveCensus(&pos, colour);
+                        if (mc.pruned > 0 and mc.pruned == mc.legal) {
+                            out.live_pairs += 1;
+                            const idx: usize = @intCast(X.colex_from_pos(&pos));
+                            const stored = if (colour > 0) dec.vb[idx] else dec.vw[idx];
+                            const flags = if (colour > 0) dec.fb[idx] else dec.fw[idx];
+                            var buf: [64]u8 = undefined;
+                            if (stored == UNDEF) {
+                                out.skipped_undef += 1;
+                            } else if (flags & 3 != 0) {
+                                out.skipped_ko += 1;
+                            } else {
+                                const v = fwd.value(&pos, colour);
+                                out.comparable += 1;
+                                if (v == null) {
+                                    out.unresolved += 1;
+                                } else if (v.? != stored) {
+                                    out.disagree += 1;
+                                    print("      DISAGREE {s}  {s} to move  retrograde={d}  eye-pruned forward={d}\n", .{ boardStr(&pos, &buf), if (colour > 0) "Black" else "White", stored, v.? });
+                                } else if (reported < 6) {
+                                    print("      ok  {s}  {s} to move  {d} legal moves, all pruned -> pass only; both = {d}\n", .{ boardStr(&pos, &buf), if (colour > 0) "Black" else "White", mc.legal, stored });
+                                    reported += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                var i: usize = 0;
+                while (i < n) : (i += 1) {
+                    if (digits[i] == 2) {
+                        digits[i] = 0;
+                        pos[i] = 0;
+                        continue;
+                    }
+                    digits[i] += 1;
+                    pos[i] = if (digits[i] == 1) 1 else -1;
+                    break;
+                }
+                if (i == n) break;
+            }
+            return out;
+        }
+
         // ---- SECTION E: memo soundness -------------------------------------------
 
         /// Does the 2026-07-29 harness's unconditional memo change any answer
@@ -1102,6 +1187,7 @@ pub fn main(init: std.process.Init) !void {
     var want_h = true;
     var want_i = true;
     var h_only_4x3 = false;
+    var want_j = true;
     {
         var args = std.process.Args.Iterator.init(init.minimal.args);
         _ = args.next();
@@ -1113,6 +1199,7 @@ pub fn main(init: std.process.Init) !void {
         var g = false;
         var hh = false;
         var ii = false;
+        var jj = false;
         while (args.next()) |a| {
             any = true;
             if (std.mem.indexOfScalar(u8, a, 'C') != null) c = true;
@@ -1122,6 +1209,7 @@ pub fn main(init: std.process.Init) !void {
             if (std.mem.indexOfScalar(u8, a, 'G') != null) g = true;
             if (std.mem.indexOfScalar(u8, a, 'H') != null) hh = true;
             if (std.mem.indexOfScalar(u8, a, 'I') != null) ii = true;
+            if (std.mem.indexOfScalar(u8, a, 'J') != null) jj = true;
             if (std.mem.indexOfScalar(u8, a, '4') != null) h_only_4x3 = true;
         }
         if (any) {
@@ -1132,6 +1220,7 @@ pub fn main(init: std.process.Init) !void {
             want_g = g;
             want_h = hh;
             want_i = ii;
+            want_j = jj;
         }
     }
 
@@ -1152,14 +1241,14 @@ pub fn main(init: std.process.Init) !void {
         print("  For every legal position x side: how many legal board moves the\n", .{});
         print("  shipped prune removes. PRUNE-ALL = self-eye-fill is the ONLY legal\n", .{});
         print("  board move -- the known-bad class T114 asks for.\n\n", .{});
-        inline for (.{ B22, B32, B33 }) |B| {
+        inline for (.{ B22, B32, B33, Battery(4, 3), Battery(4, 4) }) |B| {
             const s = try B.classScan(alloc);
             print("  [{s}] legal positions {d}, (position,side) pairs {d}\n", .{ B.label, s.positions, s.pairs });
             print("      prune removes nothing : {d}\n", .{s.prune_none});
             print("      prune removes some    : {d}\n", .{s.prune_some});
             print("      PRUNE-ALL             : {d}  (settled {d} / NOT settled {d})\n", .{ s.prune_all, s.prune_all_settled, s.prune_all_live });
             print("      non-vacuous pairs     : {d}  (not settled AND prune removes >=1 root move)\n", .{s.nonvacuous});
-            print("      settled positions     : {d}\n", .{s.settled});
+            print("      settled positions     : {d}  (among eye-candidate positions only)\n", .{s.settled});
             print("      positions with >=1 eye: {d}  (of which settled: {d} -> comparison vacuous there)\n\n", .{ s.eyepos, s.eyepos_settled });
         }
     }
@@ -1257,6 +1346,28 @@ pub fn main(init: std.process.Init) !void {
                 print("  {s:<10} {s:<32} {d:>10} {d:>10}   {d:>6} {d:>6} {d:>6} {d:>6} {d:>6} {d:>6}\n", .{ B.label, pr.name(), r.eye_positions, r.eyes, r.l1, r.l2, r.l3, r.l4, r.l7, r.l8 });
             }
             print("\n", .{});
+        }
+    }
+
+    if (want_j) {
+        const artifact = @import("artifact.zig");
+        print("\n=== SECTION J — the live PRUNE-ALL class at 4x4, valued ===\n", .{});
+        print("  Pairs where the prune removes EVERY legal board move at a node\n", .{});
+        print("  that is NOT an is_settled terminal: the pruned search has only\n", .{});
+        print("  the pass edge there. Valued and compared against the unpruned\n", .{});
+        print("  retrograde table.\n\n", .{});
+        const path = "data/oracle-4x4-parallel.checkpoint.wzo";
+        if (artifact.load(init.io, std.Io.Dir.cwd(), path, alloc)) |loaded| {
+            var dec = loaded;
+            defer dec.deinit();
+            const t0 = nowMs();
+            const r = try Battery(4, 4).livePruneAllScan(alloc, &dec);
+            const secs = @as(f64, @floatFromInt(nowMs() - t0)) / 1000.0;
+            print("\n  {s}\n", .{path});
+            print("    live PRUNE-ALL pairs {d}   comparable {d}   (UNDEF {d}, KO/FROM_FORWARD {d})\n", .{ r.live_pairs, r.comparable, r.skipped_undef, r.skipped_ko });
+            print("    DISAGREEMENTS {d}   unresolved {d}   {d:.1}s\n", .{ r.disagree, r.unresolved, secs });
+        } else |err| {
+            print("  {s}: LOAD FAILED ({s}) -- skipped\n", .{ path, @errorName(err) });
         }
     }
 

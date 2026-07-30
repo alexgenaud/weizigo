@@ -18,10 +18,11 @@ and the earlier evidence is corrected in three specific ways.**
 | | |
 |---|---|
 | **Falsified?** | No. For the shipped predicate: zero disagreements and zero lemma violations in every section. |
-| **New coverage** | Six structural premises of the ADR's soundness argument now hold **exhaustively at 4×4** (1,362,424 eyes over 909,540 eye-positions) — the first ADR-0006 evidence at the frontier board. |
+| **New coverage** | Six structural premises of the ADR's soundness argument now hold **exhaustively at 4×4** (1,362,424 eyes over 909,540 eye-positions) — the first ADR-0006 evidence at the frontier board. The prune class scan is also exhaustive to 4×4. |
+| **New sound test** | The eye-pruned forward search was run against the **unpruned** retrograde table: **4,212 slots resolved across 2×2/3×2/3×3/4×3, 0 disagreements**, plus all **96** 4×4 live PRUNE-ALL pairs. This is the standing ADR-0009 test, executed for the first time with denominators. |
 | **Correction 1** | The 2026-07-29 denominator of 1050 is inflated: **226 of those 1050 positions are `is_settled`**, where both arms return before move generation. The non-vacuous denominator at 3×3 is **824**. |
 | **Correction 2** | The 2026-07-29 **control arm is not the unpruned game value.** Its memo caches every `(pos, side, passes)` node under positional superko, which is unsound; the sound version does not terminate (32/32 roots unresolved at **3×2**, 6 cells). |
-| **Correction 3** | The known-bad class this task asked for — "self-eye-fill is the only legal move" — **exists but is entirely absorbed by `is_settled`** at every board tested (4/4, 20/20, 106/106). The prune has never yet produced an empty move list in a live node. |
+| **Correction 3** | The known-bad class this task asked for — "self-eye-fill is the only legal move" — is **empty through 4×3 and live at 4×4** (96 pairs). There the prune empties the move list at a node the search must evaluate; the pass edge carries it. This class had never been identified. |
 | **Residual risk** | The *strong* test (fresh-start value with vs without the prune, computed soundly) is **not computable by forward search at any board size**, including 2×2. What replaces it is §6: the unpruned retrograde table as the control. |
 
 The blast radius W1 describes is real, and this battery narrows it without
@@ -52,19 +53,20 @@ Three gaps in that evidence, each addressed below:
 
 ## 2. Battery design
 
-Eight sections, all in `src/eyeprune_battery.zig`, run through `tools/runner`:
+Nine sections, all in `src/eyeprune_battery.zig`, run through `tools/runner`:
 
 | § | Section | Question | Board coverage |
 |---|---|---|---|
 | A | Predicate fixtures | Does the predicate fire on genuine eyes and *not* fire on false eyes, one-eye groups, big-eye space, opponent eyes? | hand-built 3×3 + 5×5 |
 | B | Cross-implementation | Do the project's **two** copies of the predicate agree? | 5×5, 4.0 M empty cells |
-| C | Class scan | How many legal moves does the prune remove, and is there any position where it removes *all* of them? | exhaustive 2×2/3×2/3×3 |
+| C | Class scan | How many legal moves does the prune remove, and is there any position where it removes *all* of them? | exhaustive to **4×4** |
 | D | Score equivalence | With vs without the prune, sound memo | exhaustive 3×2; 3×3 |
 | E | Memo soundness | Did the 2026-07-29 caching rule change any answer? | exhaustive 3×2/3×3 |
 | F | Mutant score calibration | Would the score comparison catch four *plausible* wrong predicates? | exhaustive 2×2/3×2 |
 | G | Structural lemmas | Do the ADR's stated premises hold, position by position? | exhaustive to **4×4**, sampled 5×5 |
 | H | Sound control | Does the eye-pruned forward search agree with the **unpruned retrograde table**? | 2×2/3×2 exhaustive; 3×3/4×3 scoped |
 | I | **Lemma calibration** | Do §G's lemmas actually *fire* when the predicate is wrong? | exhaustive 3×3/4×3 |
+| J | Live PRUNE-ALL | Are the 96 4×4 pairs where the prune empties the move list valued correctly? | 4×4 |
 
 Rules throughout: area (Chinese) scoring, Black-positive, positional superko
 (pass exempt), terminal on double pass or `is_settled` — i.e. `oracle.zig`
@@ -111,27 +113,60 @@ detects indexing divergence between the engines, not a defect shared by both.)
 
 For every legal position × side, how many legal board moves the prune removes:
 
-| board | legal positions | pairs | removes nothing | removes some | **PRUNE-ALL** | of which `is_settled` | **live PRUNE-ALL** |
+| board | legal positions | pairs | removes nothing | removes some | **PRUNE-ALL** | settled | **live PRUNE-ALL** |
 |---|---|---|---|---|---|---|---|
 | 2×2 | 57 | 114 | 110 | 0 | 4 | 4 | **0** |
 | 3×2 | 489 | 978 | 918 | 40 | 20 | 20 | **0** |
 | 3×3 | 12,675 | 25,350 | 24,300 | 944 | 106 | 106 | **0** |
+| 4×3 | 321,689 | 643,378 | 627,244 | 15,702 | 432 | 432 | **0** |
+| **4×4** | **24,318,165** | **48,636,330** | 47,726,466 | 907,262 | **2,602** | 2,506 | **96** |
 
-**The known-bad class is non-empty but unreachable by move generation.** Every
-position at which self-eye-fill is the mover's *only* legal board move is
-already an `is_settled` terminal, so the solver returns `area_score` before it
-ever builds a move list. The prune therefore never yields an empty move list at
-a live node on any board tested — the failure mode "prune removes every move,
-search has nothing to do" does not occur.
+**The class is empty through 4×3 and non-empty at 4×4.** Below 4×4, every
+position at which self-eye-fill is the mover's only legal board move is already
+an `is_settled` terminal, so the solver returns `area_score` before it builds a
+move list. **At 4×4 that stops being true: 96 pairs are live.** In each, the
+prune removes every legal board move at a node the search must actually
+evaluate, leaving the pass edge as the only continuation.
 
-Why this is structural rather than lucky: for the prune to remove *every* legal
-move, every empty point must be either the mover's own true eye or illegal for
-the mover. Illegal-for-the-mover means suicide, which means enclosure by living
-opponent stones. A board partitioned into two such regions with no dame and no
-non-alive stone satisfies all three `is_settled` conditions. Breaking
-`is_settled` requires a dead stone or a dame, and either one hands the mover a
-legal non-eye move. **The exhaustive scan confirms this holds at 2×2, 3×2 and
-3×3; it is not proved for larger boards.**
+A representative one (Black to move, both legal moves are Black's own eyes):
+
+```
+. O X .      Black is Benson-alive on rows 2-3 with eyes at (3,1) and (3,3).
+O O O O      (0,0) is suicide for Black.
+X X X X      (0,3) is suicide too: it would join the dead Black stone at
+X . X .      (0,2) into a chain with no liberty, and captures nothing.
+```
+
+`is_settled` is false because the Black stone at (0,2) is not Benson-alive, so
+the search cannot short-circuit — and with the prune, Black's move list is
+empty. Nothing crashes: the pass edge is generated unconditionally, outside the
+board-move loop (`solve.zig:252`, and likewise in this harness).
+
+**§J — all 96 valued, all correct.** Each of the 96 was solved by the eye-pruned
+forward search and compared against the 4×4 retrograde table
+(`data/oracle-4x4-parallel.checkpoint.wzo`):
+
+| | |
+|---|---|
+| live PRUNE-ALL pairs | **96** |
+| comparable (defined, not KO_SENSITIVE, not FROM_FORWARD) | **96 — all of them** |
+| unresolved | **0** |
+| **disagreements** | **0** |
+
+Every one has exactly 2 legal board moves, both the mover's own eyes, and both
+arms score it 0. So the class exists, the prune does empty the move list there,
+and the pass fallback gives the same answer the unpruned table does. This is the
+one hazard the task named, found on the board where it first appears, and it is
+clean. (Caveat: the 4×4 checkpoint's own provenance is a separate open question
+— tree-shake W5/D16.)
+
+**I had drawn the opposite conclusion from 2×2/3×2/3×3 alone**, with a
+structural sketch for why the class must be absorbed by `is_settled`. The sketch
+was wrong: it assumed the only way to break `is_settled` was a dame or a dead
+stone that hands the mover a legal non-eye move, and 4×4 is the first board with
+room for a dead stone whose every adjacent point is *also* illegal for the
+mover. This is exactly the failure mode `AGENTS.md` per-board independence
+exists to catch, reproduced here on a claim of my own.
 
 **Vacuity correction.** The same scan gives the denominator the 2026-07-29 run
 should have quoted:
@@ -141,6 +176,8 @@ should have quoted:
 | 2×2 | 4 | 4 | **0** |
 | 3×2 | 60 | 28 | 32 |
 | 3×3 | **1,050** | **226** | **824** |
+| 4×3 | 16,132 | 1,424 | 14,708 |
+| 4×4 | 909,540 | 16,252 | 893,512 |
 
 The 1050 figure reproduces exactly, which cross-validates both enumerations.
 But 226 of those positions are settled, so the with/without comparison there is
@@ -230,6 +267,12 @@ is what marks anything the eye-pruned finisher wrote.)
 | `oracle-2x2.wzo` | 114 | 82 | 0 | 32 (all non-KO) | 8 | **0** |
 | `oracle-3x2.wzo` | 978 | 378 | 0 | 600 (all non-KO) | 168 | **0** |
 | `oracle-3x3.wzo` | 25,350 | 8,698 | 0 | 1,050 (prune-touched) | **858** | **0** |
+| `oracle-4x3.wzo` | 95,508 | 22,030 | 0 | 3,830 (prune-touched, 1-in-8 colex sample) | **3,178** | **0** |
+
+Totals: **4,212 slots resolved against an unpruned control, 0 disagreements**,
+across four board sizes. 4×3 is a 1-in-8 colex sample — the exhaustive pass
+exceeded the runner's 1700 s wall ceiling and was not completed; the sample is
+reported as a sample.
 
 The unresolved remainder is the forward search timing out, not a disagreement.
 Note the shape of what resolves: the eye-pruned forward search terminates on
@@ -380,9 +423,9 @@ Ranked by what the battery could not reach:
    address that. **This is the open hole.** A targeted experiment: for
    ko-sensitive slots, run the finisher twice, with and without the prune, and
    compare brackets.
-2. **A live PRUNE-ALL position on a board larger than 3×3.** §4's argument for
-   why the class is absorbed by `is_settled` is a sketch, not a proof. Cheap to
-   extend: the class scan at 4×3 and 4×4 costs a single pass.
+2. **The live PRUNE-ALL class above 4×4.** §4 found it empty through 4×3 and
+   live at 4×4 (96 pairs, valued in §J). 5×5 is not enumerable, so whether the
+   class grows — and whether it stays confined to pass-only nodes — is open.
 3. **A 4×4 or 5×5 lemma violation** — the L-battery already covers 4×4
    exhaustively and 5×5 by sampling; exhaustive 5×5 is out of reach (3²⁵).
 4. **A divergence between the two predicate implementations on a board shape
@@ -398,7 +441,8 @@ Ranked by what the battery could not reach:
 | `GLOBAL.ADR0006-EYE` | — | all | Forbidding a player from filling its own Benson-alive true eye does not change the game score (weak dominance under area scoring) | CLAIMED | `0006:27-49`; `docs/audits/eye-prune-validation-2026-07-30.md` | `d:GLOBAL.S2`, `d:GLOBAL.S4` | (unchanged) | ? | ? |
 | `GLOBAL.ADR0006-PRED` | — | all | The shipped eye-prune predicate fires on genuine eyes of Benson-alive groups and never on false eyes, one-eye groups, big-eye space or opponent eyes; both implementations agree | PROVEN | `eye-prune-validation-2026-07-30.md` §3 (17/17 fixtures; 0/3,999,936 cross-impl mismatches) | `e:GLOBAL.S2` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
 | `GLOBAL.ADR0006-LEMMAS` | — | 2×2/3×2/3×3/4×3/4×4 | The six premises of ADR-0006's soundness argument (fill legal, area invariant, opponent-suicide, no capture, no new life either side) hold for every own true eye | PROVEN (per board listed) | `eye-prune-validation-2026-07-30.md` §8 (0 violations; 1,362,424 eyes at 4×4) | `e:GLOBAL.S2`, `e:GLOBAL.S4` | `GLOBAL.ADR0006-EYE` | 0 | n/a (exact) |
-| `GLOBAL.ADR0006-TEST` | — | 2×2/3×2 | The eye-pruned forward search agrees with the unpruned retrograde table on every non-KO_SENSITIVE, non-FROM_FORWARD slot it can resolve | PROVEN (executed 2026-07-30, scoped) | `eye-prune-validation-2026-07-30.md` §6 | `d:GLOBAL.ADR0009-NOEYE` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
+| `GLOBAL.ADR0006-TEST` | — | 2×2/3×2/3×3/4×3 | The eye-pruned forward search agrees with the unpruned retrograde table on every non-KO_SENSITIVE, non-FROM_FORWARD slot it can resolve (4,212 slots, 0 disagreements; 4×3 is a 1-in-8 sample) | PROVEN (executed 2026-07-30, scoped) | `eye-prune-validation-2026-07-30.md` §6 | `d:GLOBAL.ADR0009-NOEYE` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
+| `GLOBAL.ADR0006-PRUNEALL` | — | 2×2/3×2/3×3/4×3/4×4 | Positions where the prune removes every legal board move are `is_settled` terminals below 4×4; at 4×4 there are 96 live such pairs, all valued identically by the eye-pruned forward search and the unpruned retrograde table | PROVEN (per board listed) | `eye-prune-validation-2026-07-30.md` §4, §J | `d:GLOBAL.ADR0006-EYE`, `e:4x4` checkpoint | `GLOBAL.F3` (empty-move-list handling) | 0 | n/a (exact) |
 ```
 
 `GLOBAL.ADR0006-EYE` should **stay CLAIMED**. Nothing here promotes it: the
@@ -422,8 +466,13 @@ Two further register notes:
 ```sh
 zig build-exe -O ReleaseFast src/eyeprune_battery.zig -femit-bin=./weizigo-eyeprune-battery
 tools/runner -- ./weizigo-eyeprune-battery          # everything
-tools/runner -- ./weizigo-eyeprune-battery G        # a single section (C D E F G H)
+tools/runner -- ./weizigo-eyeprune-battery G        # one section: C D E F G H I J
+tools/runner -- ./weizigo-eyeprune-battery H4      # Section H, 4x3 only
 ```
 
-Sections A, B, C and G are seconds-to-minutes. D, E, F and H are budget-bounded
-and report `unresolved` counts rather than silently truncating.
+Sections A, B, C, G, I and J are seconds-to-minutes (C to 4×4 is ~6 min).
+D, E, F and H are budget-bounded (2 M nodes / 2 M memo entries per root) and
+report `unresolved` counts rather than silently truncating. Section J needs
+`data/oracle-4x4-parallel.checkpoint.wzo`; Section H needs `artifacts/*.wzo`.
+Building this file needs a higher RSS ceiling than the runner's default:
+`tools/runner --rss-cap-mb 12000 -- zig build-exe ...`.

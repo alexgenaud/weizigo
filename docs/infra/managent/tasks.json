@@ -448,7 +448,7 @@
     "claim_count": 1
   },
   "T118": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "kimi-k2.7",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T118-brief.md",
     "set": "A",
@@ -457,7 +457,7 @@
     "caps": [],
     "added": "2026-07-30T16:23:32Z",
     "claimed": "2026-07-30T16:23:36Z",
-    "done": null,
+    "done": "2026-07-30T17:19:25Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -848,7 +848,7 @@
     "claim_count": 1
   },
   "T110": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "Opus-5",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T110-t13-probe.md",
     "set": "A",
@@ -857,7 +857,7 @@
     "caps": [],
     "added": "2026-07-30T15:55:33Z",
     "claimed": "2026-07-30T15:55:35Z",
-    "done": null,
+    "done": "2026-07-30T17:19:25Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
