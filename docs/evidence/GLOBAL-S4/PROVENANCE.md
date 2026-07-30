@@ -68,14 +68,28 @@ Raw output committed as `verify-2026-07-30.log`.
 
 ## Results
 
+### Layer 1 — hand-picked terminal corpus (committed in the scorer)
+
 ```
 27/27 passed
 ```
 
-Zero failures. The independent Python re-implementation agrees with every
-expected score in the committed corpus.
+### Layer 2 — direct cross-validation: Python vs Zig on random boards
 
-## Zig test suite — collateral confirmation
+120 random boards (seed `0xC0FFEE`, the project's own cross-validation
+seed), stratified across 6 sizes (2×2, 3×2, 3×3, 4×3, 4×4, 5×5).  Each
+board was scored by the Python `area_score` and the expected score
+embedded as an assertion against `rules.Rules(w,h).area_score()` in a Zig
+test.  Result:
+
+```
+1/56 xval_s4_test.test.GLOBAL.S4 cross-val: Python vs Zig on 120 random boards (seed 0xC0FFEE)...OK
+```
+
+**120/120 match exactly.**  Zero discrepancies between the independent
+Python re-implementation and the Zig engine.
+
+### Layer 3 — Zig internal cross-validation (collateral)
 
 The project's own area-score tests pass on this date (same host, same
 compiler, unmodified source):
@@ -83,13 +97,13 @@ compiler, unmodified source):
 ```
 $ zig test src/terminal.zig   # 9/9 passed, including area score tests
 $ zig test src/score.zig      # 61/61 passed
-$ zig test src/rules.zig      # 55/55 passed (includes 5x5 cross-validation)
+$ zig test src/rules.zig      # 55/55 passed (includes 500-random-board cross-validation)
 ```
 
-The Python scorer independently reproduces all the same expected values,
-confirming that `src/rules.zig:area_score`, `src/score.zig:chinese_area`,
-and `src/terminal.zig:area_score` all implement the Tromp–Taylor algorithm
-correctly.
+The three layers together confirm: the Python scorer, `src/rules.zig:area_score`,
+`src/score.zig:chinese_area`, and `src/terminal.zig:area_score` all implement
+the Tromp–Taylor algorithm identically — every path through the corpus and
+every random board produces the same result.
 
 ## Honest scope limits
 

@@ -163,6 +163,29 @@ Why: without the rule the human has to infer the subset, and inferring it wrongl
 truncated or contaminated brief. This applies to relay messages, dispatch prompts, commit-message drafts,
 and anything else handed over for pasting — every role, not just the Orchestrator.
 
+## Untracked directories — two types, never conflat
+
+There are exactly two places for files that must not enter git, and their purposes are distinct:
+
+| directory | purpose | lifetime | examples |
+|---|---|---|---|
+| `ephemeral/` → `/tmp/weizigo/` | **disposable outputs** — build artifacts, test runs, zig caches, scratch files you would not mind losing on reboot | reboot = gone; fine | `/tmp/weizigo-zigcache`, compiled binaries, `heartbeat.jsonl` |
+| `untracked/` (project-local, gitignored) | **important but untracked** — agent-to-agent comms, large `.wzo` artifacts too big for git, in-progress task bundles | must survive across sessions; survives clone only on the host that created it | `msg/`, `managent/tasks.json`, `*.wzo` |
+
+**Rule: never put disposable scratch in `untracked/`.** The B44 cleanup swept evidence because `untracked/` held
+both scratch and load-bearing files and the cleaner could not tell them apart. If it goes to `/tmp/weizigo/` it will
+never be cited as evidence; if it is in `untracked/` someone may need it next month. Choose deliberately.
+
+To create the ephemeral symlink (once per clone):
+```sh
+mkdir -p /tmp/weizigo && ln -s /tmp/weizigo ephemeral
+```
+
+Agent-to-agent comms and task state belong in `untracked/`, under documented subdirectories:
+- `untracked/msg/<milestone>/` — cross-agent messages (see below)
+- `untracked/managent/` — kanban state (`bin/managent` writes here)
+- `untracked/*.wzo` — large oracle artifacts that are cited but not in git (hashes recorded in `docs/evidence/README.md`)
+
 ## Agent-to-agent communication
 Cross-agent traffic lives in `untracked/msg/<milestone>/` (max two live): `STATE.md` is the crash-recovery anchor
 (read first; always current, overwritten in place), `NNN-<from>-to-<to>.md` are append-only numbered messages

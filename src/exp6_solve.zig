@@ -32,6 +32,7 @@
 //   tools/runner --rss-cap-mb 8192 --max-wall 14400 -- zig run -O ReleaseFast src/exp6_solve.zig
 
 const std = @import("std");
+const artifact = @import("artifact.zig");
 
 // =========================================================================
 // Constants
@@ -1285,6 +1286,109 @@ fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Result
         }
     }
 
+    // =====================================================================
+    // WZO serialization — write fixpoint to data/oracle-4x4-basicko-tie-area.wzo
+    // =====================================================================
+    std.debug.print("# WZO: allocating {d} columns...\n", .{RAW_TOTAL4});
+
+    const vb = try gpa.alloc(i8, RAW_TOTAL4);
+    defer gpa.free(vb);
+    const vw = try gpa.alloc(i8, RAW_TOTAL4);
+    defer gpa.free(vw);
+    const fb = try gpa.alloc(u8, RAW_TOTAL4);
+    defer gpa.free(fb);
+    const fw = try gpa.alloc(u8, RAW_TOTAL4);
+    defer gpa.free(fw);
+    const db = try gpa.alloc(u8, RAW_TOTAL4);
+    defer gpa.free(db);
+    const dw = try gpa.alloc(u8, RAW_TOTAL4);
+    defer gpa.free(dw);
+
+    @memset(vb, UNDEF);
+    @memset(vw, UNDEF);
+    @memset(fb, 0);
+    @memset(fw, 0);
+    @memset(db, 255); // FAR
+    @memset(dw, 255); // FAR
+
+    std.debug.print("# WZO: filling columns from compact data...\n", .{});
+
+    var fresh_state_count: u64 = 0;
+    for (compact_list.items) |dense_idx| {
+        const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
+        if (passes != 0) continue;
+        const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
+        const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
+        const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
+        const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
+        if (ko != KO_NONE4) continue;
+        const board: u32 = @intCast(rest2 % RAW_TOTAL4);
+        const ci = map.get(dense_idx).?;
+        const Lv = L_tab[ci];
+        const Hv = H_tab[ci];
+        const V = @max(Lv, @min(TIE, Hv));
+
+        if (side == 0) {
+            vb[board] = V;
+            if (Lv < Hv) fb[board] |= 1;
+        } else {
+            vw[board] = V;
+            if (Lv < Hv) fw[board] |= 1;
+        }
+        fresh_state_count += 1;
+    }
+
+    std.debug.print("# WZO: fresh-start states found: {d}\n", .{fresh_state_count});
+
+    var legal_count: u64 = 0;
+    for (0..RAW_TOTAL4) |i| {
+        if (vb[i] != UNDEF or vw[i] != UNDEF) legal_count += 1;
+    }
+    std.debug.print("# WZO: positions with at least one side valued: {d}\n", .{legal_count});
+
+    const header = artifact.Header{
+        .board_w = 4,
+        .board_h = 4,
+        .total = RAW_TOTAL4,
+        .legal_count = legal_count,
+    };
+    const cols = artifact.Columns{
+        .vb = vb,
+        .vw = vw,
+        .fb = fb,
+        .fw = fw,
+        .db = db,
+        .dw = dw,
+    };
+
+    const wzo_path = "data/oracle-4x4-basicko-tie-area.wzo";
+    std.debug.print("# WZO: encoding and writing {s}...\n", .{wzo_path});
+
+    const wzo_bytes = try artifact.encode(gpa, header, cols);
+    defer gpa.free(wzo_bytes);
+
+    // Override rules_id from PSK (1) to basic-ko+TIE (2) — artifact.encode hardcodes 1.
+    // rules_id=2 means: Chinese area, komi 0, basic ko, TIE=0 for long cycles.
+    wzo_bytes[9] = 2;
+
+    // Write in chunks (file >2 GiB would exceed macOS single-write limit)
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const dir = std.Io.Dir.cwd();
+    try dir.createDirPath(io, "data");
+    var file = try dir.createFile(io, wzo_path, .{});
+    defer file.close(io);
+    const CHUNK: usize = 1 << 30; // 1 GiB
+    var off: u64 = 0;
+    while (off < wzo_bytes.len) {
+        const end = @min(off + CHUNK, wzo_bytes.len);
+        try file.writePositionalAll(io, wzo_bytes[@intCast(off)..@intCast(end)], off);
+        off = end;
+    }
+
+    std.debug.print("# WZO: done — {s} ({d} bytes)\n", .{ wzo_path, wzo_bytes.len });
+
     return Fixpoint4Result{
         .sweeps = sweep_idx,
         .converged = total_changes == 0,
@@ -1396,7 +1500,6 @@ pub fn main() !void {
     std.debug.print("\n## 4×4 census (frontier BFS, dense bitset)\n", .{});
 
     const reach4 = try gpa.alloc(u64, ReachWords4);
-    defer gpa.free(reach4);
 
     const census4 = try run_census_4x4(gpa, reach4);
     std.debug.print("# 4x4 total reachable (all passes): {d}\n", .{census4.total_marked});
@@ -1457,6 +1560,9 @@ pub fn main() !void {
         const root_filled = v4_b != UNDEF;
         std.debug.print("# root filled? {s}\n", .{if (root_filled) "YES" else "NO"});
     }
+
+    // Free reach4 before WZO serialization (large alloc coming)
+    gpa.free(reach4);
 
     // =====================================================================
     // FINAL VERDICT

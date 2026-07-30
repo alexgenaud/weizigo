@@ -35,6 +35,14 @@ structural.
 
 **A claim whose evidence cannot be retrieved is not proven; it is remembered.**
 
+**Update 2026-07-30 (T110/T119):** T13's probe source has been independently
+re-implemented and committed here (`docs/evidence/T13/`). The committed engine
+(`src/retro.zig`) was never lost — only the convenience driver was. A systematic
+recoverability audit of every CONFIRMED LOST item is at
+`docs/evidence/ADR0006-FALSIFY/recoverability-audit-2026-07-30.md`.
+Three of the seven load-bearing losses are RECOVERABLE from committed code;
+four are LOST (reasoning/discussion, not code).
+
 ## Scope of the 2026-07-28 sweep
 
 This sweep **copied and recorded only**. Nothing in `untracked/` was modified or
@@ -108,16 +116,15 @@ were never in git at any point, so they are not recoverable from history, and
 | `untracked/B05-glm.md` (the reframe scope) | `docs/epistemic/PROGRESS.md:277`; `docs/status/leak-crisis.md:146,151`; `docs/epistemic/boards/4x4/EPISTEMIC.md:330`; `docs/epistemic/boards/CONCEPTS.md:104` | **Summary only** — `CLAIMS.md:258` (`GLOBAL.REFRAME`) and the paraphrase at `leak-crisis.md:146`. |
 
 **T13, specifically.** Its numbers survive at `docs/research/c2-falsification-3x2.md`,
-but the probe source `untracked/c2pilot_3x2.zig` does not. The reproduction
-block at `c2-falsification-3x2.md:124-129` —
-
-```
-zig build-exe -O ReleaseSafe --dep retro -Mmain=untracked/c2pilot_3x2.zig -Mretro=src/retro.zig -femit-bin=/tmp/c2pilot_3x2
-```
-
-— **cannot be executed.** Its `-Mmain=` input does not exist. `3x2.T13` is the
-parent of `GLOBAL.C2`, `GLOBAL.C4`, `4x4.C2`, `GLOBAL.REFRAME` and `GLOBAL.H1`;
-the whole reframe rests on a falsification that can be read but not re-run.
+and the probe was independently re-implemented 2026-07-30 (T110) in both Python
+(`docs/evidence/T13/t13_probe.py`) and Zig (`docs/evidence/T13/zig_t13_replay.zig`)
+against the committed `src/retro.zig`. All 12 recorded contradiction lines
+re-execute exactly; all census numbers match. The original probe source
+`untracked/c2pilot_3x2.zig` was deleted in the B44 sweep, but the committed
+engine (`retro.ab_solve`, the L/H tables, the move/capture/suicide kernel) was
+never lost — only the driver was. The reproduction block at
+`c2-falsification-3x2.md:124-129` should now point at the committed
+re-implementation, not the lost original.
 
 ### Also cited-but-missing (found during this sweep)
 
@@ -126,7 +133,7 @@ the whole reframe rests on a falsification that can be read but not re-run.
 | `untracked/B09-kimi.md` | `docs/research/auditor-sensitivity.md:3` (**Source:**) | Yes — `auditor-sensitivity.md` is the promoted finding (`GLOBAL.AUDITOR` blindness to L/H construction bugs). |
 | `untracked/B23-kocensus.md` | `docs/research/ko-census.md:3` (**Source:**) | Yes — `ko-census.md` (65/33/2/0.0025% multi-ko frequency, `innovations.md` I8). |
 | `untracked/B39-arena4x4.md` | `docs/research/arena-4x4-undef.md:11-14`, which records its own deletion by B44 | Yes — `arena-4x4-undef.md:27-44` (`4x4.B39`, now retracted). |
-| `untracked/c2pilot_2x2.zig` (T12 probe source) | `docs/infra/model-perf.md:320` | **No.** |
+| `untracked/c2pilot_2x2.zig` (T12 probe source) | `docs/infra/model-perf.md:320` | **No.** **Recoverable** — the committed engine (`src/retro.zig`) + parameterisation to 2×2 suffices; same primitives as T13, simpler board. See `docs/evidence/ADR0006-FALSIFY/recoverability-audit-2026-07-30.md`. |
 | `untracked/T15-kimi.md` (capture-all design), `untracked/T15-review-kimi.md` (defer verdict) | `docs/infra/model-perf.md:272`; `untracked/T15-impl-minimax.md` | **No.** T15 was deferred, so nothing depends on them today. |
 | `untracked/T16-glm.md` | `docs/infra/model-perf.md:207` | Product only — the EPISTEMIC/CONCEPTS rewrite itself. |
 | `untracked/delegation-prompts-2026-07-26.md` | `docs/infra/model-perf.md:236,305` | **No.** Process only. |

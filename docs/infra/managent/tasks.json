@@ -95,6 +95,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T119": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T119-brief.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T17:18:54Z",
+    "claimed": "2026-07-30T17:18:54Z",
+    "done": "2026-07-30T17:18:54Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "F1-CENSUS-GAP": {
     "status": "done",
     "agent": "DSPro/F1-CENSUS-GAP",
@@ -143,20 +159,20 @@
     "note": "NOT to Kimi-k3: it found the witness via its own harness (src/qa023_pinrule.zig), and a dump from that harness reproduces the harness. Two-seat rule is already satisfied by K2.7; this is the third check and it must be independent of the producing code. Require node-for-node agreement between in-tree truncated_value and an independent reimplementation. Secondary: K3 already hit context exhaustion once today.",
     "claim_count": 1
   },
-  "2B-2": {
-    "status": "done",
-    "agent": "minimax-m3",
-    "bundle": "docs/infra/dispatch/2B-2.md",
-    "set": "B",
+  "T105": {
+    "status": "in_progress",
+    "agent": "kimi-k3",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T105-fp1-proof.md",
+    "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-07-29T09:36:48Z",
-    "claimed": "2026-07-29T09:49:11Z",
-    "done": "2026-07-29T10:18:21Z",
-    "dispatched": "2026-07-29T10:56:43Z",
-    "dispatched_to": "minimax-m3",
-    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings).",
+    "added": "2026-07-30T14:50:00Z",
+    "claimed": "2026-07-30T14:50:09Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
     "claim_count": 1
   },
   "T101A": {
@@ -175,20 +191,20 @@
     "note": null,
     "claim_count": 1
   },
-  "T105": {
-    "status": "in_progress",
-    "agent": "kimi-k3",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T105-fp1-proof.md",
-    "set": "A",
+  "2B-2": {
+    "status": "done",
+    "agent": "minimax-m3",
+    "bundle": "docs/infra/dispatch/2B-2.md",
+    "set": "B",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-07-30T14:50:00Z",
-    "claimed": "2026-07-30T14:50:09Z",
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
+    "added": "2026-07-29T09:36:48Z",
+    "claimed": "2026-07-29T09:49:11Z",
+    "done": "2026-07-29T10:18:21Z",
+    "dispatched": "2026-07-29T10:56:43Z",
+    "dispatched_to": "minimax-m3",
+    "note": "User dispatched 2B-2 (3x2 census + cycle census) to Minimax-m3. Reuse run_census_3x2 in src/qa023_probe.zig. Vacuity gate: cycle count > 0 or escalate board size. Audit will follow regardless of result (user order — m3 was surprised by its own findings).",
     "claim_count": 1
   },
   "T107": {
@@ -320,19 +336,20 @@
     "claim_count": 1
   },
   "T113": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSFlash",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T113-exp6-wzo.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-30T15:55:11Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-30T17:18:58Z",
+    "done": "2026-07-30T17:18:58Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T103": {
     "status": "done",
@@ -751,7 +768,7 @@
     "claim_count": 1
   },
   "T117": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T117-brief.md",
     "set": "A",
@@ -760,7 +777,7 @@
     "caps": [],
     "added": "2026-07-30T16:23:32Z",
     "claimed": "2026-07-30T16:23:36Z",
-    "done": null,
+    "done": "2026-07-30T17:18:54Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -863,19 +880,20 @@
     "claim_count": 1
   },
   "T114": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "Opus5",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T114-eye-prune.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-30T15:55:34Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-30T16:43:29Z",
+    "done": "2026-07-30T17:19:05Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T109": {
     "status": "done",

@@ -4,7 +4,13 @@ zig-out/
 data/
 log/
 
-# ephemeral scratch / working notes — not tracked
+# ephemeral scratch — disposable outputs, symlinked to /tmp/weizigo/
+# (or just use /tmp/weizigo/ directly — this line guards the symlink)
+ephemeral/
+
+# important but untracked artifacts — agent-to-agent comms, large .wzo
+# files, in-progress task bundles. Must survive across sessions.
+# NEVER use for disposable scratch — that goes to ephemeral/ -> /tmp/weizigo/
 untracked/
 
 # compiled binaries (built by agents)
