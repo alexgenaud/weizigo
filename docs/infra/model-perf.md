@@ -2151,6 +2151,7 @@ all ANALYSIS except three noted below. Zero required rework.
 | `DSPro/AGENT-IDENTITY` | **MUTATION** (held `src/managent/main.zig`). Derived identifiers, `whoami`, `claim_count`, opaque `T<N>` IDs. Unblocked WORKER-CHANNEL. |
 | `DSPro/EXP-4` | **The falsification gate.** Built standalone solver (`src/exp4_solve.zig`) — both 2×2 and 3×2 return 0 under basic-ko+TIE=0 (not +1 PSK). First non-PSK result. L=H on all reachable states, 0 colour-inversion violations. Unblocked EXP-5. |
 | `DSPro/EXP-5` | 3×3 root=+9 (L=H=9, scored). Matches MIGOS II. 73,758 states, 0 UNDEF, colour-symmetric, 50/50 brute-force. |
+| `DSPro/EXP-6` | 4×4 root V=+1 (bracket [+1,+16]), NOT the expected +2. 147M states, 31 sweeps, 53 min, 3.1 GB peak. Root is ko-sensitive, not single-score. H-propagation audit deferred — H stuck at +16; unclear if genuine or bug. |
 
 **DSPro pattern this session:** handles complex multi-file edits (19 files in ROLE-NAMES),
 produces working Zig when the brief is detailed (MANAGENT-DERIVE-STATUS, F1-SEEDROOTS,
