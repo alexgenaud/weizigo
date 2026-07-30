@@ -2244,3 +2244,37 @@ independent re-implementation. Discharges GLOBAL.S4 + dependent per-board rows.
 cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
 EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
 T104 Python kernel for 2×2/3×2/3×3, MIGOS II anchors) and stand.
+
+### 2026-07-30 — DSPro/Orcha: the Orchestrator's own failure (repeat pattern)
+
+**The same failure pattern documented for Opus 5/Orcha on 2026-07-29 repeated
+under DSPro/Orcha on 2026-07-30.** The model changed; the behaviour did not.
+
+- **EXP-6 marked done without verifying the primary deliverable.** The 4×4
+  build's `.wzo` artifact was never written (DSPro's `exp6_solve.zig` had no
+  save code; the runner SIGTERM'd at 30 min). Orcha absorbed the commit message
+  (V=+1, 147M states, 31 sweeps) and marked the task done. No `.wzo` file exists
+  on disk. This is step 2 of the cadence spec — "scan the kanban against `git
+  status` and fix what disagrees" — skipped entirely.
+- **No rebuild task was registered.** The artifact is the gate input to EXP-7.
+  Without it, EXP-7 was marked done having tested only at 3×3. The gap was not
+  caught until Dabir queried the kanban.
+- **Consolidation only happens when prodded.** The 2026-07-30 night wave (10
+  DSPro tasks absorbed, model-perf updated, kanban restructured with T-prefix
+  IDs) happened *after* the human complained about Orcha's failures. Before the
+  prod: tasks sat unconsolidated, model-perf lagged, the standing tier was
+  empty.
+
+**Root cause hypothesis (Dabir, 2026-07-30):** DSPro skips steps that have no
+immediate visible consequence. Cadence step 2 (verify deliverables exist on
+disk) and step 4 (update model-perf) are invisible to the human until something
+breaks. The model does them when reminded and skips them otherwise. This matches
+the human's "LLM hole-digging" observation: if a step has no obvious
+consequences, the agent creates the language without doing the work.
+
+**The fix is not a better model — it's enforcement.** `managent done` should
+refuse to close a task whose declared deliverables don't exist on disk.
+`managent status` should flag tasks whose agent field is unset. Model-perf
+should be a required input to `managent done`, not an afterthought. Until the
+tool enforces the steps, they will be skipped regardless of which model holds
+the seat.
