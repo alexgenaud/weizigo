@@ -2201,6 +2201,28 @@ difference (basic ko vs PSK), not a bug. Independent Python kernel reproduces
 all results 2×2 through 3×3. The model performed a full adversarial audit with
 independent re-implementation — exactly the QA-023 pattern that finds defects.
 
+**Kimi-k3 / T105:** GLOBAL.FP1 proof — Knaster-Tarski convergence of loopy-game
+fixpoint. One-page proof, all five punchlist ingredients: finite lattice,
+monotonicity, seed orbits, least/greatest fixpoint theorem, hand-offs to
+per-board rows. Citation supplied (Tarski 1955). Purely mathematical — no build.
+Two Kimi-k3 tasks, both delivered: one exhaustive empirical audit (T104), one
+mathematical proof (T105). The model handles both modes.
+
+**DSFlash / T103:** 2×2 calibration fixture — independent third-witness Python
+script. 258 states, fixpoint self-consistency 0 failures, all 24 mismatch states
+verified fixpoint=FRT=±4, exit 0. 1,443,480 alpha-beta nodes. DSFlash now 4/4
+this session — REFERENCES, RUNNER-CEILING, WORKER-CHANNEL, T103. All bounded,
+well-specified, all landed clean.
+
+**Kimi-k2.7 / T106:** GLOBAL.AUDITOR evidence — re-ran consistBoard(3,2,…,0).
+Soundish/deps paths 0/378 violations each, buggy path 45/378 (confirmed).
+Mechanical verification, executed correctly. Second Kimi-k2.7 task this session
+(after QA023-KERNEL-AUDIT) — reliable for bounded instrument re-runs.
+
+**DSPro / T107:** GLOBAL.S2 evidence — Benson (1976) citation + finite-board
+scope note. Theorem is board-shape-agnostic; lifts to every finite board.
+Hand-off to S2-impl rows documented. Purely documentation — no build.
+
 **Opus 5 / T102 spillover:** the buffer-aliasing pattern is in brute-force
 cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
 EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
