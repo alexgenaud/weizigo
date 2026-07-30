@@ -2351,3 +2351,181 @@ Additional Orcha failures beyond those Dabir diagnosed: T110 marked done ~90 min
 early while Opus monitors still running (didn't read file). T114 absorbed with
 stale snapshot, needed re-commit. T118 duplicate dispatch — no cross-check
 before registering.
+
+---
+
+# T120 — absorption audit of the full `done` ledger, and the purge (Opus/T120, 2026-07-30)
+
+The kanban held **58 done + 2 failed** tasks spanning 2026-07-29 and 2026-07-30.
+This section is the ledger of record for all 60 before `managent purge` removed
+them. Method: for each task, resolve its brief, confirm the deliverable exists
+on disk, spot-verify the headline numbers *inside the deliverable* (not in the
+commit message), then grep `CLAIMS.md` / `PROGRESS.md` / `CURRENT.md` /
+`HANDOVER.md` for the task ID and the deliverable's path. Full working notes:
+`/tmp/t120-notes.md`.
+
+## Attribution — canonical tally over all 60 purged tasks
+
+Normalised from the raw `agent` fields, which carried session labels and three
+spellings of the same model (`opus-5`, `Opus-5`, `Opus5`; `DeepSeek-Pro`,
+`DSPro`; and identifiers like `DSPro/U-NARRATIVE-LAYER`). Any `group by agent`
+over the raw ledger is wrong; this is the corrected count.
+
+| model | tasks | of which failed |
+|---|---|---|
+| DSPro | 31 | 0 |
+| DSFlash | 7 | 0 |
+| Fable 5 | 5 (**4 unique** — see below) | 0 |
+| Kimi-k2.7 | 5 | 1 (EXP-2B) |
+| Opus 5 | 5 | 0 |
+| Kimi-k3 | 4 | 0 |
+| GLM 5.2 | 1 | 0 |
+| Minimax-m3 | 1 | 0 |
+| **unattributed** | **1** | 1 (EXP-7, `agent` field held the task ID) |
+
+`AUDIT-TRAJECTORY` and `T100` are the **same work** — identical bundle
+(`docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md`), same agent.
+Fable's honest unique count is 4, and the total is 59 unique work items, not 60.
+The prior session summary's "32 tasks across 7 models" counted the 2026-07-30
+wave only; this table is the whole purged ledger.
+
+## Verification result: the work is real, the absorption is not
+
+**Every deliverable exists on disk. Every headline number spot-checked is real
+and matches its source.** Verified directly: T110's 5,868/5,868 cell agreement
+and 154/508 measurement; T114's 1,362,424 eyes / 0 violations, 4,212 slots / 0
+disagreements, 96 live 4×4 pairs, 1,032 naive-eye calibration violations;
+T104's 0 violations over 99,133,036 states; T117's 99.997% single-ko and 256
+3-ko side-positions; T102's 24→0 over 172 non-terminals; T113's artifact
+(258,280,358 bytes, SHA-256 `edd9f68e…`).
+
+The absorption is one-sided. The 2026-07-30 wave went into `model-perf.md` and
+nowhere else:
+
+| store | T100–T119 coverage |
+|---|---|
+| `model-perf.md` | complete — every task has a dated paragraph |
+| `CLAIMS.md` | **only T115** — the one task whose deliverable *was* a CLAIMS.md edit |
+| `PROGRESS.md` | **zero** — header still `Date: 2026-07-29` |
+| `CURRENT.md` | **zero** — top block still `2026-07-29 18:35`, and it claims to supersede everything below it |
+| `HANDOVER.md` | **zero** |
+
+Nine deliverable paths — T110's T13 reproduction, T114's eye-prune battery,
+T117's census, T102's audit, T104's audit, T119's two evidence files,
+F1-CENSUS-GAP, and the 4×4 `.wzo` — are cited in **none** of the four stores.
+
+Six gaps were registered as **T123–T128**; the two most consequential:
+
+- **`3x2.T13` still carries a CANNOT REPRODUCE warning** on the register's most
+  load-bearing falsification, twenty-four hours after T110 reproduced it. The
+  same row states "12 mismatches" where T110 measured 154 of 508 (30.3%).
+- **T114 wrote five `CLAIMS.md` rows, pre-formatted for insertion**
+  (`eye-prune-validation-2026-07-30.md:441-445`). None were pasted. The worker
+  did the register seat's typing for it and the register seat still did not
+  paste.
+
+Also unassigned: `3x3.BASICKO-TIE` and `4x4.BASICKO-TIE`, proposed in their own
+PROVENANCE files. **The 4×4 root value — the project's frontier result — has no
+row in the claim register.**
+
+## Model impressions from reading the deliverables
+
+**Opus 5 (5 tasks).** Three of the five corrected prior work rather than adding
+to it, which is the shape worth reserving the seat for. T102 was asked to check
+3 mismatch states, checked all 172, and found the fault was in the *checker* —
+retiring a whole class of corroboration rather than confirming a divergence.
+T114 is the best-formed deliverable in the wave: it corrected three errors in
+the evidence it was auditing, found a new hazard class, and wrote its own
+register rows. T110's methodological point is the durable one — rebuilding the
+probe *from the method description* rather than porting the lost code makes it
+independent evidence rather than a copy, and it is what let T110 discover the
+"12" was a >10× understatement. The weakness is not in the work: all three
+findings ended up parked outside the register.
+
+**DSPro (31 tasks, over half the ledger).** Reliability holds at volume —
+0 rework across five separate Zig deliverables, and 19-file terminology sweeps
+without misses. The "not DeepSeek for Zig" rule is dead. Two structural
+weaknesses, both visible only in aggregate. First, DSPro documents the boundary
+of its work conscientiously and then stops at it: its PROVENANCE files *propose*
+claim IDs and rely on a downstream seat to assign them — a hand-off that failed
+three times, leaving the frontier result out of the register. Second, EXP-6
+closed without writing its artifact, which is why T113 had to exist. **The
+pattern: DSPro completes the task as specified and does not notice when the
+specification has a hole in it.**
+
+**DSFlash (7 tasks, 7/7 clean).** Every one bounded and well-specified, every
+one landed. The instructive detail is T115 — "update five CLAIMS.md evidence
+columns" — the **only** task in the entire wave whose output reached
+`CLAIMS.md`, and it got there because the edit *was* the deliverable rather
+than a consequence of it. That is a finding about task design, not about
+DSFlash: work that must be absorbed by a second seat mostly is not.
+
+**Kimi-k3 (4 tasks).** Two modes, both delivered. T104 ran an exhaustive
+empirical audit with an independent Python kernel reproducing 2×2 through 3×3 —
+the QA-023 pattern, applied without being asked. T105 and T111 are one-page
+mathematical proofs with correct citations. The 128k window did not bind on any
+of the four; the earlier "bounded audits only" scoping is looking conservative.
+
+**Fable 5 (4 unique, retired).** T100 and T101 remain the only documents that
+changed what the project thinks it knows rather than adding to it. T101's eight
+weakest joints and twelve costed leaves are still the best available work
+queue — W1 became T114, W2 is now T128, and W3–W8 are untouched. **Retiring the
+seat while its punchlist is live leaves the queue with no source of structural
+findings**; every task registered since has been repair, not survey.
+
+**Kimi-k2.7 (5 tasks, 1 failed).** T106 executed correctly. T118 is the wave's
+process casualty and not the model's fault: dispatched 28 minutes after T110 on
+the same problem, ran 62 minutes, stopped incomplete. Its output independently
+reproduces Opus's semantic choices, which is real corroborative value. Grading
+the model on a duplicate dispatch would be grading the wrong seat.
+
+**GLM 5.2 (1 task).** T101A ranked the five evidence-free PROVEN rows by
+in-degree and costed them at ~1 seat-day. All five closed within the wave and
+were absorbed by T115. **The only chain in the wave that ran end to end
+including absorption** — and the shortest.
+
+## Two tool defects found while auditing, both registered
+
+Neither is a model finding; both are why the cadence has been unenforceable.
+
+- **`managent audit` bus-errors** (`src/managent/main.zig:2534`): the cleanup
+  frees `f.level`, which is always a string literal. It crashes after printing,
+  so the *findings* survive but the *exit code* does not — and
+  `ORCHESTRATOR.md` step 2 reads "Non-zero exit = FIX-level findings exist".
+  That signal has been meaningless. **T122.**
+- **`managent status` prints corrupt output** — fragments out of order, or
+  nothing at all, non-deterministically across identical runs; `--json` emits
+  `]` before a truncated object. `tasks.json` is intact, so it is output-path
+  only. Suspect `STREAM-DISCIPLINE`'s stdout/stderr split, whose regression
+  checks passed without covering this. **T122.**
+
+Also fixed in passing: `2B-FIX-KO.holds` was a single element containing a
+comma, so `audit` checked a path that could not exist and emitted a spurious
+FIX for two files that were tracked all along. And `_sys.next_id` was 102 —
+after the purge, `add --auto` would have silently minted a **second** T102,
+colliding with an ID that is already in git history and cited throughout this
+file. Bumped to 130.
+
+## The seat, not the models
+
+Third consecutive session with the same Orchestrator failure — Opus/Orcha
+2026-07-29, DSPro/Orcha 2026-07-30, and this wave. Three different models
+produced it, so it is not a model property.
+
+The enforcement proposal recorded above ("`managent done` should refuse to close
+a task whose declared deliverables don't exist on disk") **would not have caught
+any of T123–T127.** Every deliverable here exists. The missing check runs the
+other direction: *a deliverable that proposes a register row which no register
+row cites.* T114's five formatted rows and the two orphaned `BASICKO-TIE`
+proposals would all have tripped it; a `grep` for proposed-ID markers across
+`docs/evidence/*/PROVENANCE*.md` and audit documents is most of the
+implementation.
+
+The invariant worth stating plainly, because three sessions have now violated
+it in the same direction: **findings reach `model-perf.md`, which is *about* the
+work, and not `CLAIMS.md`, which *is* the work.** `model-perf.md` is the easy
+half — it is append-only prose with no lint, no dependency graph and no
+consistency obligation. The register is the hard half, and it is the half that
+gets skipped. A session that updates this file and not the register has
+recorded that it did the work, which is the precise failure mode the file's own
+header warns against.
