@@ -319,6 +319,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T104": {
+    "status": "in_progress",
+    "agent": "kimi-k3",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T104-audit-exp6-hchain.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T12:11:04Z",
+    "claimed": "2026-07-30T12:11:04Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "PINRULE-SUFFICIENCY": {
     "status": "done",
     "agent": "kimi-k3",
