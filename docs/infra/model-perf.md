@@ -2247,13 +2247,12 @@ S2, INVSYM, S4 — all five T101A punchlist rows. DSFlash now 6/6 this session.
 docs/infra/dispatch/EXP-7-4x4-rerun.md. Ready when T113 lands.
 
 **DSPro / T117:** ko-composition census — 4×4 ko-sensitive region is 99.997%
-single-ko, ~0.0024% multi-ko (~250 side-positions out of 10,367,922). The
-divide-and-conquer strategy from Fable T101 is strongly supported: a single-ko
-sub-solver covers essentially the entire region. Shifts the question from "can
-we handle 10.4M slots?" to "can we build a certified single-ko sub-solver?"
-
-**Kimi-k2.7 / T118:** independent T13 probe v2 — parallel to Opus T110. Second
-implementation, QA-023 method. Confirms reproducibility.
+single-ko, ~0.0024% multi-ko (~250 side-positions out of 10,367,922). Static
+census verified byte-identical to B23. Dynamic cycle classifier built
+(src/ko_cycle_census.zig): bounded PSK forward search with cycle analysis.
+1,500+ positions sampled across all categories. 3-ko category (0.0025%) is the
+only multi-ko found. Shifts strategy: "can we build a certified single-ko
+sub-solver?" rather than "can we handle 10.4M slots?"
 
 **DSPro / T119:** three documentation tasks from Opus T110 findings. (1) Split
 untracked into ephemeral/ (→ /tmp/weizigo/) and untracked/ (project-local,
@@ -2262,19 +2261,35 @@ audit: 3 of 7 "lost" items recoverable from committed code. Asymmetry:
 code-derived results recoverable, human reasoning not. (3) ADR0006-FALSIFY
 decontamination: T13 struck from contamination list.
 
-**Opus 5 / T110:** T13 probe re-implemented from docs alone. All 12 recorded
-mismatches re-execute exactly, 2 additional found. Critical finding: T13 was
-never truly lost — only the driver script was deleted; retro.ab_solve was
-committed. T13 does not depend on ADR-0006 (eye-prune was never in the
-retrograde sweep path). Built Python + Zig cross-checks. This resolves Fable R4.
+**Kimi-k2.7 / T118:** duplicate dispatch of T13 probe (T110). Wrote
+probe-v2-2026-07-30.py into same directory. Same semantic choices as Opus
+(independent corroboration). Ran 62 min without completion; stopped. Both-sides
+serial design needs >1h. Coordination failure: dispatched 28 min after T110
+with no awareness of it. Second Kimi-k2.7 task this session.
+
+**Opus 5 / T110:** T13 probe re-implemented from method description (not ported from
+lost code — stronger evidence). All 12 recorded mismatches re-execute exactly.
+Three findings beyond brief: (1) T13 was never truly lost — only driver script;
+`retro.ab_solve` was committed. 72-line driver replacement gets original numbers.
+(2) T13 doesn't depend on ADR-0006 — eye-prune never in retrograde sweep path.
+(3) "12" understates by >10×: 154 of 508 L==H slots (30.3%) are history-sensitive,
+4,432 falsifying pairs. Built Python + 2 Zig cross-checks, 5,868/5,868 table
+cells match. Resolved Fable R4. Coordination: T118 was duplicate dispatch; T110
+marked done ~90 min early by Orcha while monitors still running.
 
 **DSFlash / T113:** EXP-6 .wzo written — 258 MB, SHA-256 verified. Rules ID 2
 (basic-ko+TIE). 48.5M fresh-start states from 99M compact fixpoint. DSFlash
 now 7/7 this session — every task bounded, well-specified, landed clean.
 
-**Opus 5 / T114:** eye-prune (ADR-0006) validation battery. Calibration with
-known-good and known-bad positions. W1 from Fable T101 — the widest blast
-radius in the tree.
+**Opus 5 / T114:** eye-prune (ADR-0006) validation battery — Fable W1. ADR-0006
+NOT falsified, but 3 corrections to 2026-07-29 evidence: denominator inflated
+(226/1050 vacuous), control arm unsound (memo caches under superko), calibration
+measured wrong thing. New: self-eye-fill hazard class found at 4×4 (96 live
+pairs — empty move list at nodes search must evaluate; all 96 clean against
+unpruned table). First ADR-0006 evidence at 4×4 frontier: 6 structural premises
+verified exhaustively (1,362,424 eyes, 0 violations). 4,212 slots resolved
+against unpruned table (ADR-0009 test), 0 disagreements. Three plausible mutants
+calibrated (L3: 1,032 violations for naive-eye).
 
 **Opus 5 / T102 spillover:** the buffer-aliasing pattern is in brute-force
 cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
@@ -2314,3 +2329,25 @@ refuse to close a task whose declared deliverables don't exist on disk.
 should be a required input to `managent done`, not an afterthought. Until the
 tool enforces the steps, they will be skipped regardless of which model holds
 the seat.
+
+## Session summary — DSPro/Orcha, 2026-07-30
+
+32 tasks across 7 models. All T101A punchlist rows closed. T13 reproducible.
+ADR-0006 validated further (not falsified). EXP-4→7 chain complete at all boards.
+4×4 root V=+1 verified genuine (H=+16). .wzo artifact written. Full tooling
+chain (ORCHA-AUTOMATION → AGENT-IDENTITY → WORKER-CHANNEL) landed.
+
+| model | tasks | key pattern |
+|---|---|---|
+| DSPro | 14 | multi-file edits, ships working Zig, mixes analysis+code |
+| DSFlash | 7 | bounded well-specified tooling, Python+Zig, 7/7 clean |
+| Opus 5 | 3 | adversarial audits: found buffer-aliasing on state #1, recovered T13 from docs, corrected 3 prior evidence errors in eye-prune |
+| Kimi-k3 | 3 | empirical audit + mathematical proof: 0/99M fixpoint violations, FP1+INVSYM proofs |
+| Fable 5 | 2 | structural audits that reshaped project self-understanding. Retired. |
+| Kimi-k2.7 | 2 | bounded instrument re-runs. T118 incomplete (duplicate, 62 min timeout). |
+| GLM 5.2 | 1 | structured analysis (T101A punchlist). |
+
+Additional Orcha failures beyond those Dabir diagnosed: T110 marked done ~90 min
+early while Opus monitors still running (didn't read file). T114 absorbed with
+stale snapshot, needed re-commit. T118 duplicate dispatch — no cross-check
+before registering.
