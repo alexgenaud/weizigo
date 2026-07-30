@@ -655,6 +655,15 @@ spent an afternoon each on one task, on the register's most load-bearing row,
 without either being told. Worth checking how both dispatches were issued
 before the next parallel wave.
 
+**One practical observation for whoever runs it.** `probe-v2-2026-07-30.py` was
+executed here for **62 minutes without completing**, and was then stopped — it
+buffers all output to the end, so a killed run yields nothing at all. The cause
+is design, not a defect: it enumerates from both root sides (~542k prefixes
+against §6's 271k), tests every distinct history rather than one per slot, is
+single-process, and caches nothing across queries. Budget an hour-plus, redirect
+to a file, and prefer flushing incrementally. For comparison, §8's parallel pass
+covers the Black-first half in 4m37s.
+
 **The cross-check is left open, deliberately.** T118's numbers are T118's
 deliverable to report, and this file does not preempt them. When both land, the
 comparison that matters is not the headline count — T118 enumerates from

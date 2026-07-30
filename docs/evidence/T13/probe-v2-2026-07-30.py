@@ -491,10 +491,49 @@ def build_tables():
 # Faithful to src/retro.zig ab_solve with memo=false, brackets=false.
 
 
-def ab_solve(pos: tuple[int, ...], side: int, passes: int, alpha: int, beta: int, history: list):
-    """Return exact value under the given PSK history."""
+def ab_solve(pos: tuple[int, ...], side: int, passes: int, alpha: int, beta: int, history: list, memo: dict | None = None):
+    """Return exact value under the given PSK history.
+
+    Uses fail-soft alpha-beta and an optional per-history memo keyed by
+    (idx, side, passes, history_tuple).  The memo is sound for a fixed
+    history because the ban set is exactly the positions seen on the path.
+    With memo=None the function falls back to plain alpha-beta.
+
+    !! DEFECT, measured 2026-07-30 (T120 absorption audit).  The memo never
+    fires, and if it ever did it would be unsound.  Do not trust it and do not
+    "fix" it by widening its scope.
+
+      * Zero hits.  `history` is the ORDERED path, so the key uniquely
+        identifies a node of the DFS tree; a node is expanded once, and both
+        call sites pass memo=None so the dict is per-query anyway.  Measured
+        over the first 400,001 lookups from the legal-root sweep:
+        400,001 lookups, 0 hits (0.00000000%).
+      * Net cost, not net saving.  Every node pays an O(depth) tuple(history)
+        construction, a hash, and a dict store, and the dict grows without
+        bound for the life of the query.  This makes the 62-minute
+        non-completion recorded in probe-reimplementation-2026-07-30.md worse,
+        not better.
+      * Latent unsoundness.  The obvious "fix" -- share one memo across
+        queries to get hits -- breaks correctness.  `best` is a FAIL-SOFT
+        value: on the `a >= b` cutoff below it is only a bound, not the exact
+        value.  It is stored here with no bound flag, and (alpha, beta) is not
+        part of the key, so a later lookup under a wider window would return a
+        wrong value.  A shared memo needs (lower, upper) bound pairs, not a
+        scalar.
+
+    The correct reading: run this solver with the memo removed.  It is
+    equivalent to memo=None today, which is what the two call sites use, which
+    is why the numbers this file has produced are unaffected.
+    """
+    if memo is None:
+        memo = {}
     if passes >= 2 or is_settled(pos):
         return area_score(pos)
+
+    idx = COLEX_OF_POS[pos]
+    key = (idx, side, passes, tuple(history))
+    if key in memo:
+        return memo[key]
 
     maximizing = side > 0
     best = -127 if maximizing else 127
@@ -515,7 +554,7 @@ def ab_solve(pos: tuple[int, ...], side: int, passes: int, alpha: int, beta: int
         if ci in history:
             continue  # positional superko ban
         history.append(ci)
-        v = ab_solve(child, -side, 0, a, b, history)
+        v = ab_solve(child, -side, 0, a, b, history, memo)
         history.pop()
         if maximizing:
             if v > best:
@@ -531,13 +570,14 @@ def ab_solve(pos: tuple[int, ...], side: int, passes: int, alpha: int, beta: int
             break
 
     # pass option
-    v = ab_solve(pos, -side, passes + 1, a, b, history)
+    v = ab_solve(pos, -side, passes + 1, a, b, history, memo)
     if maximizing:
         if v > best:
             best = v
     else:
         if v < best:
             best = v
+    memo[key] = best
     return best
 
 
