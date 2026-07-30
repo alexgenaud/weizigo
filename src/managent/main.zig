@@ -35,11 +35,20 @@ const Writers = struct {
     io: std.Io,
 
     /// Write data to stdout — anything a caller might parse, filter, or redirect.
+    /// Uses synchronous posix write (not threaded IO) to avoid stack-buffer
+    /// use-after-free races. T122 confirms: the threaded writer with a local
+    /// 4096 B buffer produced non-deterministic corruption under flush.
     fn data(self: Writers, comptime fmt: []const u8, args: anytype) void {
-        var buf: [4096]u8 = undefined;
-        var w = std.Io.File.stdout().writer(self.io, &buf);
-        w.interface.print(fmt, args) catch {};
-        w.flush() catch {};
+        _ = self;
+        var buf: [8192]u8 = undefined;
+        const msg = std.fmt.bufPrint(&buf, fmt, args) catch blk: {
+            // Message too large for stack buffer — allocate
+            const big = std.fmt.allocPrint(alloc, fmt, args) catch return;
+            defer alloc.free(big);
+            _ = std.posix.write(std.posix.STDOUT_FILENO, big) catch {};
+            break :blk;
+        };
+        _ = std.posix.write(std.posix.STDOUT_FILENO, msg) catch {};
     }
 
     /// Write diagnostics to stderr — warnings, errors, progress chatter.
@@ -2531,7 +2540,6 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     var findings = std.ArrayList(Finding).empty;
     defer {
         for (findings.items) |f| {
-            alloc.free(f.level);
             alloc.free(f.msg);
         }
         findings.deinit(alloc);

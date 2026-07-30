@@ -37,6 +37,30 @@ Run:
 Output is written to stdout; redirect to docs/evidence/T13/verify-*.log.
 """
 
+# -----------------------------------------------------------------------------
+# CROSS-READ MEMO — DSPro/T121, 2026-07-30
+#
+# This file is an incomplete duplicate of T110 (Opus 5). T110 had already
+# produced the working re-implementation (t13_probe.py and the accompanying
+# probe-reimplementation-2026-07-30.md report) when T118 (Kimi-k2.7) was
+# dispatched independently on the same task, 28 minutes later. The duplicate
+# was discovered only when both files appeared in the same directory.
+#
+# This script was executed here for 62 minutes without completing and was
+# then stopped. The cause is design, not a defect: it enumerates from both
+# root sides (~542k prefixes), tests every distinct history rather than one
+# per slot, is single-process, and caches nothing across queries. Its
+# ordered-history memo also cannot produce useful cache hits on a problem
+# whose exact state space is 116M states (see T120 absorption audit:
+# 400,001 lookups, 0 hits).
+#
+# T110's report notes that the two implementations independently agree on
+# the core semantic calls (no eye-prune in line generation, eye-prune in
+# the solver), which is itself corroboration. But this file's numbers are
+# T118's to report; the authoritative T13 re-implementation is T110's
+# t13_probe.py and probe-reimplementation-2026-07-30.md.
+# -----------------------------------------------------------------------------
+
 from __future__ import annotations
 
 import sys
