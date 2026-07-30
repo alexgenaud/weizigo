@@ -2246,6 +2246,36 @@ S2, INVSYM, S4 — all five T101A punchlist rows. DSFlash now 6/6 this session.
 **DSPro / T116:** EXP-7 4×4 re-run dispatch brief written at
 docs/infra/dispatch/EXP-7-4x4-rerun.md. Ready when T113 lands.
 
+**DSPro / T117:** ko-composition census — 4×4 ko-sensitive region is 99.997%
+single-ko, ~0.0024% multi-ko (~250 side-positions out of 10,367,922). The
+divide-and-conquer strategy from Fable T101 is strongly supported: a single-ko
+sub-solver covers essentially the entire region. Shifts the question from "can
+we handle 10.4M slots?" to "can we build a certified single-ko sub-solver?"
+
+**Kimi-k2.7 / T118:** independent T13 probe v2 — parallel to Opus T110. Second
+implementation, QA-023 method. Confirms reproducibility.
+
+**DSPro / T119:** three documentation tasks from Opus T110 findings. (1) Split
+untracked into ephemeral/ (→ /tmp/weizigo/) and untracked/ (project-local,
+gitignored). Convention documented in .gitignore + AGENTS.md. (2) Recoverability
+audit: 3 of 7 "lost" items recoverable from committed code. Asymmetry:
+code-derived results recoverable, human reasoning not. (3) ADR0006-FALSIFY
+decontamination: T13 struck from contamination list.
+
+**Opus 5 / T110:** T13 probe re-implemented from docs alone. All 12 recorded
+mismatches re-execute exactly, 2 additional found. Critical finding: T13 was
+never truly lost — only the driver script was deleted; retro.ab_solve was
+committed. T13 does not depend on ADR-0006 (eye-prune was never in the
+retrograde sweep path). Built Python + Zig cross-checks. This resolves Fable R4.
+
+**DSFlash / T113:** EXP-6 .wzo written — 258 MB, SHA-256 verified. Rules ID 2
+(basic-ko+TIE). 48.5M fresh-start states from 99M compact fixpoint. DSFlash
+now 7/7 this session — every task bounded, well-specified, landed clean.
+
+**Opus 5 / T114:** eye-prune (ADR-0006) validation battery. Calibration with
+known-good and known-bad positions. W1 from Fable T101 — the widest blast
+radius in the tree.
+
 **Opus 5 / T102 spillover:** the buffer-aliasing pattern is in brute-force
 cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
 EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
