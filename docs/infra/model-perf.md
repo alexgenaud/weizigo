@@ -2158,8 +2158,8 @@ STREAM-DISCIPLINE, EXP-4, EXP-5 — 5 separate Zig tasks, 0 rework), and can mix
 in one task (NARRATIVE-LAYER). The "not DeepSeek for Zig" rule from earlier sessions is
 obsolete — this session alone has more DSPro Zig deliverables than any prior model.
 
-**Fable 5 / Auditor:** epistemic trajectory audit (unprompted, `AUDIT-TRAJECTORY`) —
-verdict: spiral, not circle. Identified the live semantic-fork risk in the EXP ladder
-(loopy-game fixpoint vs ADR-0019 truncation) and the T13 evidence gap. Four concrete
-recommendations. The model found a project-level structural problem that no other seat
-had flagged.
+**Fable 5 / Auditor:** epistemic trajectory audit (T100, unprompted) —
+verdict: spiral, not circle. Identified the live semantic-fork risk and T13 gap.
+Tree-shake audit (T101, companion) — region map of knowledge quality: under PSK
+with real histories, every region caps at K4; no real-game perfect play exists
+anywhere in the shipped tables. Two structural audits, zero rework.
