@@ -2150,9 +2150,16 @@ all ANALYSIS except three noted below. Zero required rework.
 | `DSPro/STREAM-DISCIPLINE` | **MUTATION** (held 8 .zig files). Stdout=data / stderr=diagnostics split across 8 files (445+53 calls). `util.out`/`note`/`warn` helpers. Regression checks pass. |
 | `DSPro/AGENT-IDENTITY` | **MUTATION** (held `src/managent/main.zig`). Derived identifiers, `whoami`, `claim_count`, opaque `T<N>` IDs. Unblocked WORKER-CHANNEL. |
 | `DSPro/EXP-4` | **The falsification gate.** Built standalone solver (`src/exp4_solve.zig`) — both 2×2 and 3×2 return 0 under basic-ko+TIE=0 (not +1 PSK). First non-PSK result. L=H on all reachable states, 0 colour-inversion violations. Unblocked EXP-5. |
+| `DSPro/EXP-5` | 3×3 root=+9 (L=H=9, scored). Matches MIGOS II. 73,758 states, 0 UNDEF, colour-symmetric, 50/50 brute-force. |
 
 **DSPro pattern this session:** handles complex multi-file edits (19 files in ROLE-NAMES),
 produces working Zig when the brief is detailed (MANAGENT-DERIVE-STATUS, F1-SEEDROOTS,
-STREAM-DISCIPLINE, EXP-4 — 4 separate Zig tasks, 0 rework), and can mix analysis + code
+STREAM-DISCIPLINE, EXP-4, EXP-5 — 5 separate Zig tasks, 0 rework), and can mix analysis + code
 in one task (NARRATIVE-LAYER). The "not DeepSeek for Zig" rule from earlier sessions is
 obsolete — this session alone has more DSPro Zig deliverables than any prior model.
+
+**Fable 5 / Auditor:** epistemic trajectory audit (unprompted, `AUDIT-TRAJECTORY`) —
+verdict: spiral, not circle. Identified the live semantic-fork risk in the EXP ladder
+(loopy-game fixpoint vs ADR-0019 truncation) and the T13 evidence gap. Four concrete
+recommendations. The model found a project-level structural problem that no other seat
+had flagged.
