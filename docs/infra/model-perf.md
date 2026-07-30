@@ -2164,3 +2164,12 @@ verdict: spiral, not circle. Identified the live semantic-fork risk and T13 gap.
 Tree-shake audit (T101, companion) — region map of knowledge quality: under PSK
 with real histories, every region caps at K4; no real-game perfect play exists
 anywhere in the shipped tables. Two structural audits, zero rework.
+
+**Opus 5 / T102:** audit of EXP-4 2×2 mismatches — found buffer-aliasing bug in
+`brute_value_2x2`. Fixpoint and truncation agree on all 172 2×2 states. The 24
+mismatches were an artefact; the semantic divergence Fable flagged at 2×2 does not
+exist. Built independent Zig + Python verification. The model did what it's best at.
+
+**GLM 5.2 / T101A:** punchlist of top-5 evidence-free PROVEN rows (follow-up to T101).
+Ranked by in-degree: GLOBAL.S2 (10), GLOBAL.INVSYM (9), GLOBAL.FP1 (8), GLOBAL.S4 (5),
+GLOBAL.AUDITOR (5). All five fixable without builds. Total cost ~1 seat-day.
