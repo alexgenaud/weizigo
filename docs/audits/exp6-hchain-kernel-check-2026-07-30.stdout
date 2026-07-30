@@ -1,0 +1,29 @@
+# AUDIT-EXP6-HCHAIN kernel check against /tmp/exp6-hchain-audit-2026-07-30.log
+# parsed: DUMP2=2430 DUMP32=2586 DUMP3=73758
+
+## 2x2 — full raw space (harness sweeps ALL 2,430 quadruples)
+#   python total_states=2430 dump_states=2430
+#   python fixpoint sweeps=4
+#   mismatches: 0/2430
+#   python root_B(L=-4,H=4) root_W(L=-4,H=4)
+#   zig    root_B(L=-4,H=4) root_W(L=-4,H=4)
+
+## 3x2 — reachable census + fixpoint (dump covers reachable states only)
+#   python reachable=2586 dump_states=2586
+#   reachable-only-in-python=0 dumped-only-in-zig=0
+#   python fixpoint sweeps=10
+#   value mismatches: 0/2586
+#   python root_B(L=-6,H=6) root_W(L=-6,H=6)  V_B=0 V_W=0
+#   python white-to-move passes=1 with-white-stone H==top: 0  (MUST be 0)
+#   python inversion violations=0/2586 inverse-misses=0
+
+## 3x3 — reachable census + fixpoint (dump covers reachable states only)
+#   python reachable=73758 dump_states=73758
+#   reachable-only-in-python=0 dumped-only-in-zig=0
+#   python fixpoint sweeps=17
+#   value mismatches: 0/73758
+#   python root_B(L=9,H=9) root_W(L=-9,H=-9)  V_B=9 V_W=-9
+#   python white-to-move passes=1 with-white-stone H==top: 0  (MUST be 0)
+#   python inversion violations=0/73758 inverse-misses=0
+
+## VERDICT  2x2=PASS  3x2=PASS  3x3=PASS
