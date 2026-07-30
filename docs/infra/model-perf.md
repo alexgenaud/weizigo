@@ -1861,7 +1861,7 @@ panic-recovery turn, plus **four operational reports from the user
 | **Auditor** | **Kimi-k2.7** | Settled by T13 + the (a′) conviction + EXP-15. Keep two fence-posts in every audit brief: explicit no-edit constraint (B33 violation), and route *proof-design* review to Opus (B35 weakness). |
 | **Workers (default)** | **Minimax-m3** | Back to its benchmark slot (EXP-3): measurement, census, tooling, spec-first implementation. Pair theory-adjacent output with a Kimi audit. Its ask-first habit is a feature here. |
 | Workers (aux) | **DS Flash — speed / sweep / scaffolding / multi-file edits where rigor is not load-bearing** (B33/B37). **DeepSeek-Pro — high-context absorption/integration, design briefs, multi-file terminology sweeps, claim-semantics review** (proven, panel seat B, 2026-07-29). Kimi-k3 — bounded single-function code audits. |
-| Reserved | **Opus 5** — adversarial review of load-bearing proofs, claim semantics, completing subtle code under review (EXP-9: found the sign inversion the draft carried). Enforce the five DELEGATOR rules on every Opus-authored brief. **Fable** — D-7 slots only (proof repair, ADR refutation = EXP-10, claim-semantics adjudication) plus evidence-scattered forensics (the 2026-07-29 panic diagnosis). Dispatch as bounded tasks; do not seat where it idles. |
+| Reserved | **Opus 5** — adversarial review of load-bearing proofs, claim semantics, completing subtle code under review (EXP-9: found the sign inversion the draft carried). Enforce the five DELEGATOR rules on every Opus-authored brief. **Fable** — RETIRED as Grand Auditor 2026-07-30. Two structural audits (T100, T101) that reshaped the project's epistemic self-understanding. Available on call for structural/architectural tasks; no longer holds a standing seat. |
 
 ### Session-fresh evidence behind the two changes from the 2026-07-28 takeaway
 
@@ -2159,11 +2159,31 @@ STREAM-DISCIPLINE, EXP-4, EXP-5 — 5 separate Zig tasks, 0 rework), and can mix
 in one task (NARRATIVE-LAYER). The "not DeepSeek for Zig" rule from earlier sessions is
 obsolete — this session alone has more DSPro Zig deliverables than any prior model.
 
-**Fable 5 / Auditor:** epistemic trajectory audit (T100, unprompted) —
-verdict: spiral, not circle. Identified the live semantic-fork risk and T13 gap.
-Tree-shake audit (T101, companion) — region map of knowledge quality: under PSK
+**Fable 5 / Grand Auditor — RETIRED 2026-07-30.** Two structural audits that reshaped
+the project's understanding of its own knowledge. Retired by the user after T101.
+
+- **T100 (trajectory audit, unprompted):** verdict: spiral, not circle. Identified
+the live semantic-fork risk (loopy-game fixpoint vs ADR-0019 truncation), the T13
+evidence gap, and the meta-work ratio at ceiling. Four concrete recommendations.
+Found a project-level structural problem no other seat had flagged — the EXP ladder
+was about to commit to a 4×4 build with an unadjudicated rule identity.
+- **T101 (tree-shake, companion to T100):** region map of knowledge quality across
+all board sizes, two layers (fresh-start vs real-game). Sharp finding: under PSK
 with real histories, every region caps at K4; no real-game perfect play exists
-anywhere in the shipped tables. Two structural audits, zero rework.
+anywhere in the shipped tables. Eight weakest joints ranked (W1 eye-prune blast
+radius, W2 untracked evidence graveyard, W3 O1 orphan chain, W4 4×4.M4 single-
+sourcing, W5–W8 cross-board contradictions). Twelve costed leaves to fill (L1–L12),
+cheapest wave hours/no-builds. Divide-and-conquer strategy: 10.4M ko-sensitive
+slots, not 48.6M; four orthogonal divisions.
+- Earlier: 2B-0/2B-1 (reference semantics doc that made the probe defect findable),
+EXP-10 (ADR-0017 refutation attempt — FAILED, ADR-0015 strengthened), F2-REMEDY
+design, 2026-07-29 kernel panic diagnosis.
+
+**Fable's signature:** structural thinking across the whole tree. Produced documents
+that changed the project's self-understanding (the knowledge ladder, the region map,
+the trajectory verdict). Found problems by reading the whole register, not by running
+code. The model's limitation was the same as its strength — it reasoned about the
+system rather than implementing within it. Best deployed as Auditor, not worker.
 
 **Opus 5 / T102:** audit of EXP-4 2×2 mismatches — found buffer-aliasing bug in
 `brute_value_2x2`. Fixpoint and truncation agree on all 172 2×2 states. The 24
