@@ -5,7 +5,7 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
-**EXP-6 active:** DSPro/EXP-6 owns `src/exp6_solve.zig` for the 4×4 build under basic-ko + TIE=0. ~2-4 h.
+**EXP-6 complete:** DSPro/EXP-6 — 4×4 build under basic-ko + TIE=0. Result: V=+1 (not the expected +2). Root filled, gate chain passed, fixpoint converged in 31 sweeps. See `docs/research/newrule-4x4-2026-07-28.md`. Ownership of `src/exp6_solve.zig` cleared.
 
 Last refreshed **2026-07-29 04:00** (MiniMax-M3 host-panic-recovery session);
 **2026-07-29 succession + D-8 + EXP-10-done correction by GLM-5.2
