@@ -35,20 +35,15 @@ const Writers = struct {
     io: std.Io,
 
     /// Write data to stdout — anything a caller might parse, filter, or redirect.
-    /// Uses synchronous posix write (not threaded IO) to avoid stack-buffer
-    /// use-after-free races. T122 confirms: the threaded writer with a local
-    /// 4096 B buffer produced non-deterministic corruption under flush.
+    /// Uses `writeStreamingAll` (direct streaming write) instead of creating a
+    /// `File.Writer` with a local 4096 B buffer; the writer goes through a
+    /// positional→streaming fallback on every call when stdout is a pipe,
+    /// and under certain conditions the positional retry path produces
+    /// truncated and reordered output (T122).
     fn data(self: Writers, comptime fmt: []const u8, args: anytype) void {
-        _ = self;
-        var buf: [8192]u8 = undefined;
-        const msg = std.fmt.bufPrint(&buf, fmt, args) catch blk: {
-            // Message too large for stack buffer — allocate
-            const big = std.fmt.allocPrint(alloc, fmt, args) catch return;
-            defer alloc.free(big);
-            _ = std.posix.write(std.posix.STDOUT_FILENO, big) catch {};
-            break :blk;
-        };
-        _ = std.posix.write(std.posix.STDOUT_FILENO, msg) catch {};
+        const buf = std.fmt.allocPrint(alloc, fmt, args) catch return;
+        defer alloc.free(buf);
+        std.Io.File.stdout().writeStreamingAll(self.io, buf) catch {};
     }
 
     /// Write diagnostics to stderr — warnings, errors, progress chatter.

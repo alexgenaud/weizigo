@@ -31,7 +31,7 @@
     "claim_count": 1
   },
   "T125": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/T125-basicko-tie-and-aliasing.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
@@ -62,7 +62,7 @@
     "claim_count": 1
   },
   "T124": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "docs/infra/dispatch/T124-t13-row-rewrite.md",
     "set": "A",
@@ -71,7 +71,7 @@
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
     "claimed": "2026-07-30T23:47:46Z",
-    "done": null,
+    "done": "2026-07-30T23:47:47Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,

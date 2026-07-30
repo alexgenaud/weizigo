@@ -33,7 +33,7 @@ managent show <id>             show details for one task
 managent whoami <id>           resolve agent identifier for a task
 managent why <claim-id>        show tasks that produced evidence for a claim
 managent sync <role>           print unread inbox; exit non-zero when write owed
-managent audit [--json]        cross-check kanban against reality; exit non-zero on findings
+managent audit [--json]        cross-check kanban against reality; exit 1 if FIX findings, 0 otherwise (WARN-only / clean)
 managent standing              print standing-tier triggers and task status
 ```
 
