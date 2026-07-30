@@ -1,0 +1,45 @@
+[runner] argv = zig run -O ReleaseFast src/audit_2x2_mismatch.zig
+[runner] ceilings: rss 4096 MB, wall 1800s (30:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================
+# AUDIT-2X2-MISMATCH — shared vs per-frame successor buffer
+# Opus 5 · 2026-07-30 · cross-check of EXP-4 (DSPro)
+# ============================================================
+# fixpoint: sweeps=4 converged=true
+# per-state table (only rows where some evaluator disagrees with the fixpoint)
+# idx= 329 WB/.. side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=26775  shared-buffer-artifact
+# idx= 331 BW/.. side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=44723  shared-buffer-artifact
+# idx= 335 W./B. side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=20895  shared-buffer-artifact
+# idx= 343 B./W. side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=97528  shared-buffer-artifact
+# idx= 357 .W/.B side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=64464  shared-buffer-artifact
+# idx= 369 ../WB side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=68146  shared-buffer-artifact
+# idx= 381 .B/.W side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=67498  shared-buffer-artifact
+# idx= 387 ../BW side=B passes=0  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=49323  shared-buffer-artifact
+# idx= 734 WB/.. side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=44723  shared-buffer-artifact
+# idx= 736 BW/.. side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=26775  shared-buffer-artifact
+# idx= 740 W./B. side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=97528  shared-buffer-artifact
+# idx= 748 B./W. side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=20895  shared-buffer-artifact
+# idx= 762 .W/.B side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=67498  shared-buffer-artifact
+# idx= 774 ../WB side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=49323  shared-buffer-artifact
+# idx= 786 .B/.W side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=64464  shared-buffer-artifact
+# idx= 792 ../BW side=W passes=0  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=68146  shared-buffer-artifact
+# idx=1141 BW/.. side=B passes=1  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=76819  shared-buffer-artifact
+# idx=1153 B./W. side=B passes=1  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=95169  shared-buffer-artifact
+# idx=1191 .B/.W side=B passes=1  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=64323  shared-buffer-artifact
+# idx=1197 ../BW side=B passes=1  L=+4 H=+4 V=+4  shared=0 plain=null ab=4 ab_nodes=46077  shared-buffer-artifact
+# idx=1544 WB/.. side=W passes=1  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=76819  shared-buffer-artifact
+# idx=1550 W./B. side=W passes=1  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=95169  shared-buffer-artifact
+# idx=1572 .W/.B side=W passes=1  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=64323  shared-buffer-artifact
+# idx=1584 ../WB side=W passes=1  L=-4 H=-4 V=-4  shared=0 plain=null ab=-4 ab_nodes=46077  shared-buffer-artifact
+#
+# non-terminal reachable states: 172
+# (A) shared buffer, budget 500000 [exp4 as committed]: disagreements=24 exhausted=0
+# (B) per-frame buffer, budget 500000:                  disagreements=164 exhausted=164
+# (C) per-frame buffer + alpha-beta, budget 2000000000: disagreements=0 exhausted=0
+#     alpha-beta nodes: total=20527408 max-per-state=339959
+#
+# VERDICT: EXP-4's 24 mismatches are a shared-buffer aliasing artifact — the exact first-revisit-truncation value agrees with the fixpoint on ALL states
+[runner] peak RSS by PID: in 5.2 s
+[runner]   pid   38120     281 MB
+[runner] peak total CPU by PID: in 5.2 s
+[runner]   pid   38120        0:04 (4.58s)
+[runner] exit 0 in 5.2 s

@@ -1,0 +1,101 @@
+# AUDIT-2X2-MISMATCH — independent Python verifier
+# Opus 5 · 2026-07-30 · cross-check of EXP-4 (DSPro) 2x2 mismatches
+
+## 0. encoding round-trip over all 2430 indices: OK
+## 1. reachable states: 258  (non-terminal 172, terminal 86)
+#    EXP-4 reported: 258 (172 non-terminal, 86 terminal)  -> MATCH
+## 2. fixpoint converged in 4 sweeps
+#    root empty B: L=-4 H=+4 V=+0
+#    root empty W: L=-4 H=+4 V=+0
+#    self-consistency: L=Phi(L) failures=0  H=Phi(H) failures=0
+
+## 3a. plain (un-pruned, exp4 move order) FRT at exp4's own 500k budget
+#    exhausted 500k nodes on 164 of 172 non-terminal states
+#    -> EXP-4 reported '2x2 budget-exhausted: 0' at this very budget.
+#       A correctly-implemented first-revisit-truncation search cannot
+#       resolve these states within it; the shared buffer was collapsing
+#       the tree as well as corrupting the values.
+
+## 3b. exact FRT (alpha-beta) vs fixpoint (all 172 non-terminals)
+#    nodes visited: 20527408
+#    budget-exhausted: 0
+#    mismatches: 0
+
+## 4. shared-successor-buffer emulation vs fixpoint
+#    nodes visited: 9654854
+#    mismatches: 24  (EXP-4 reported 24)
+#    index set identical to EXP-4's: True
+#    per-state values identical to EXP-4's (fixpoint=+-4, brute=0): True
+#      idx=329 WB/.. side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=331 BW/.. side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=335 W./B. side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=343 B./W. side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=357 .W/.B side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=369 ../WB side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=381 .B/.W side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=387 ../BW side=B passes=0  fixpoint=+4 buggy_brute=+0
+#      idx=734 WB/.. side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=736 BW/.. side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=740 W./B. side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=748 B./W. side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=762 .W/.B side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=774 ../WB side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=786 .B/.W side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=792 ../BW side=W passes=0  fixpoint=-4 buggy_brute=+0
+#      idx=1141 BW/.. side=B passes=1  fixpoint=+4 buggy_brute=+0
+#      idx=1153 B./W. side=B passes=1  fixpoint=+4 buggy_brute=+0
+#      idx=1191 .B/.W side=B passes=1  fixpoint=+4 buggy_brute=+0
+#      idx=1197 ../BW side=B passes=1  fixpoint=+4 buggy_brute=+0
+#      idx=1544 WB/.. side=W passes=1  fixpoint=-4 buggy_brute=+0
+#      idx=1550 W./B. side=W passes=1  fixpoint=-4 buggy_brute=+0
+#      idx=1572 .W/.B side=W passes=1  fixpoint=-4 buggy_brute=+0
+#      idx=1584 ../WB side=W passes=1  fixpoint=-4 buggy_brute=+0
+
+## TRACE idx=329  board=WB/..  side=B  ko=none  passes=0
+#    L=+4 H=+4 V=median=+4   |   FRT(exact)=+4
+#    FRT(shared-buffer emulation)=+0
+#    children (exp4 move order):
+#      pass      -> WB/.. side=W ko=none passes=1  V=-4 FRT=-4
+#      place 2   -> .B/B. side=W ko=none passes=0  V=+4 FRT=+4
+#      place 3   -> WB/.B side=W ko=none passes=0  V=+0 FRT=+0
+#    principal variation (exact FRT):
+#      B plays place 2   -> .B/B. passes=0  (value +4)
+#      W plays pass      -> .B/B. passes=1  (value +4)
+#      B plays pass      -> .B/B. passes=2  (value +4)
+#      terminal area score = +4
+#    CHECKPOINT idx=329 verified
+
+## TRACE idx=734  board=WB/..  side=W  ko=none  passes=0
+#    L=-4 H=-4 V=median=-4   |   FRT(exact)=-4
+#    FRT(shared-buffer emulation)=+0
+#    children (exp4 move order):
+#      pass      -> WB/.. side=B ko=none passes=1  V=+4 FRT=+4
+#      place 2   -> WB/W. side=B ko=none passes=0  V=+0 FRT=+0
+#      place 3   -> W./.W side=B ko=none passes=0  V=-4 FRT=-4
+#    principal variation (exact FRT):
+#      W plays place 3   -> W./.W passes=0  (value -4)
+#      B plays pass      -> W./.W passes=1  (value -4)
+#      W plays pass      -> W./.W passes=2  (value -4)
+#      terminal area score = -4
+#    CHECKPOINT idx=734 verified
+
+## TRACE idx=1141  board=BW/..  side=B  ko=none  passes=1
+#    L=+4 H=+4 V=median=+4   |   FRT(exact)=+4
+#    FRT(shared-buffer emulation)=+0
+#    children (exp4 move order):
+#      pass      -> BW/.. side=W ko=none passes=2  V=+0 FRT=+0
+#      place 2   -> BW/B. side=W ko=none passes=0  V=+0 FRT=+0
+#      place 3   -> B./.B side=W ko=none passes=0  V=+4 FRT=+4
+#    principal variation (exact FRT):
+#      B plays place 3   -> B./.B passes=0  (value +4)
+#      W plays pass      -> B./.B passes=1  (value +4)
+#      B plays pass      -> B./.B passes=2  (value +4)
+#      terminal area score = +4
+#    CHECKPOINT idx=1141 verified
+
+## 5. the '1-ko shape' anchor asserted as 0 in src/qa023_brute_2x2.zig
+#    board=W B/. . side=W passes=0 -> idx=734
+#    fixpoint V=-4   exact FRT=-4   asserted expectation=0
+
+# VERDICT: exact-FRT vs fixpoint mismatches = 0 (budget-exhausted 0);
+#          shared-buffer-FRT vs fixpoint mismatches = 24 (index set match: True)
