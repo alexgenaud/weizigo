@@ -21,14 +21,14 @@
 // "Colex" (co-lexicographic) is the subset ordering used for the occupied
 // cells: subsets are grouped by their HIGHEST cell, so all subsets confined to
 // cells 0..m-1 precede any subset touching cell m. Consequence: a subset's
-// colex number depends only on the cells it uses, never on the board size —
-// the index space simply extends as the board grows. The project uses "colex"
+// colex number depends only on the cells it uses, never on the goban size —
+// the index space simply extends as the goban grows. The project uses "colex"
 // as shorthand for the whole layered address below.
 //
-// A board's colex index is its SERIAL NUMBER in a fixed enumeration order —
+// A goban's colex index is its SERIAL NUMBER in a fixed enumeration order —
 // an ADDRESS, never a score. `colex_from_pos` and `pos_from_colex` form a
 // collision-free bijection (a minimal perfect hash with an inverse) between
-// boards and the dense integers 0 .. 3^n - 1:
+// gobans and the dense integers 0 .. 3^n - 1:
 //
 //   value_table[colex_from_pos(p)] = score of p   (score: i8, -25..+25,
 //                                                 Black-positive, stored later)
@@ -39,7 +39,7 @@
 // Layout — LAYERED by stone count k (also the retrograde solver's layer order;
 // each layer is a contiguous, independently storable block):
 //
-//   idx  = layer_offset[k]                        // all boards with < k stones
+//   idx  = layer_offset[k]                        // all gobans with < k stones
 //        + subset_idx(occupied cells) * 2^k       // which cells hold stones
 //        + colour_bits                            // who owns them (1 = black),
 //                                                 // bit j = j-th cell ascending
@@ -54,7 +54,7 @@
 // form is preferred because stone count = retrograde processing order, and the
 // subset component is where the later density folds attach.)
 //
-// "RAW" = the address space includes illegal and non-canonical boards (wasted
+// "RAW" = the address space includes illegal and non-canonical gobans (wasted
 // slots). That is deliberate: raw indexing is simple, O(stones) both ways, and
 // fully sufficient to build + validate the retrograde oracle on 3x3 / 4x4
 // (3^9 = 19_683 slots; 3^16 = 43 MB at 1 B/slot). Density upgrades (legal-only
@@ -95,7 +95,7 @@ pub fn Indexer(comptime w: usize, comptime h: usize) type {
             break :blk c;
         };
 
-        /// layer_offset[k] = number of boards with fewer than k stones;
+        /// layer_offset[k] = number of gobans with fewer than k stones;
         /// layer_offset[n+1] = 3^n (the total address-space size).
         pub const layer_offset: [n + 2]u64 = blk: {
             var off: [n + 2]u64 = undefined;
@@ -108,8 +108,8 @@ pub fn Indexer(comptime w: usize, comptime h: usize) type {
 
         pub const total: u64 = layer_offset[n + 1]; // == 3^n
 
-        /// The board's serial number (address) in 0 .. 3^n - 1. Pure encoding
-        /// of WHICH board this is — never a score.
+        /// The goban's serial number (address) in 0 .. 3^n - 1. Pure encoding
+        /// of WHICH goban this is — never a score.
         pub fn colex_from_pos(pos: *const Pos) u64 {
             var k: usize = 0; // stones seen so far
             var subset: u64 = 0; // combinatorial number system index
@@ -153,7 +153,7 @@ pub fn Indexer(comptime w: usize, comptime h: usize) type {
 // ---- runner: exhaustive bijection verification --------------------------------
 
 /// Verify colex_from_pos / pos_from_colex is a bijection over the ENTIRE 3^n space of a board:
-/// every board round-trips, every index is in range and hit exactly once.
+/// every goban round-trips, every index is in range and hit exactly once.
 fn verify(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
     const R = Indexer(w, h);
     const words = (R.total + 63) / 64;
@@ -198,7 +198,7 @@ pub fn main() !void {
     try verify(2, 2, gpa);
     try verify(3, 3, gpa);
     try verify(3, 2, gpa);
-    try verify(4, 4, gpa); // 43M boards, ~seconds in ReleaseFast
+    try verify(4, 4, gpa); // 43M gobans, ~seconds in ReleaseFast
 
     // 5x5 addresses work arithmetically NOW (no enumeration needed) --
     // only the 847 GB value ARRAY needs the legality/symmetry folds first.

@@ -48,7 +48,7 @@ Independent results on the graph **as implemented**:
 | SCCs total / non-trivial / max | 987 / 1 / 1,696 | **987 / 1 / 1,696** | ✅ |
 | cycle-involved | 1,696 | **1,696** | ✅ |
 | cycle-reachable | 1,724 | **1,724** | ✅ |
-| distinct legal boards | 489 | **489** (all 489 legal) | ✅ |
+| distinct legal gobans | 489 | **489** (all 489 legal) | ✅ |
 | ko=none / ko=cell | 2,562 / 120 | **2,562 / 120** | ✅ |
 | side B / W, terminals | 1,341 / 1,341, 866 | **1,341 / 1,341, 866** | ✅ |
 | cycles at cap 12 | 37,376 | **37,376** | ✅ |
@@ -65,7 +65,7 @@ stdout exactly. (`[runner]` reported 362 MB / 5.4 s against the deliverable's
 compile cache, not a discrepancy in the result.)
 
 **Semantic validation, which the deliverable did not do.** The deliverable
-declines to decode its own samples ("These are NOT human-readable board
+declines to decode its own samples ("These are NOT human-readable goban
 sequences", `:75`). I decoded all three back into move sequences and checked
 every edge against the rules and that the cycle closes on the same
 `(board, side, ko, passes)` tuple. All three are genuine legal Go cycles. The
@@ -173,13 +173,13 @@ Reproduced exactly. Two problems with it as the population 2B-4 samples from.
 **F1 (implementation, material — inherited, not m3's). The seed set contains
 36 states that cannot occur in any game, and "reachable" is therefore not
 what the census counts.** `seed_roots` (`src/qa023_probe.zig:2660-2671`) and
-the identical block in `run_census_3x2` (`:675-687`) seed the empty board
+the identical block in `run_census_3x2` (`:675-687`) seed the empty goban
 across 2 sides × 3 pass-counts × **all 7 ko values** = 42 states. Both call
 this "the four roots" in comment and prose (`:2656-2659`, `:675-677`;
 repeated at `census-3x2-2026-07-29.md:94-96`) — it is neither four nor
-confined to coherent states. An empty board can never carry a ko point: a ko
+confined to coherent states. An empty goban can never carry a ko point: a ko
 point is set only by a capture, and a capture always leaves the capturing
-stone on the board. 36 of the 42 seeds are unreachable positions.
+stone on the goban. 36 of the 42 seeds are unreachable positions.
 
 Measured effect (my implementation, same rules, varying only the seeds):
 
@@ -200,13 +200,13 @@ states.
 
 **F4 (documentation, minor). The account of the residual 92 states is
 false.** `:162-164` describes "the 92 reachable states that are in
-unreachable positions (posts, not in the 489 distinct legal boards)". The
+unreachable positions (posts, not in the 489 distinct legal gobans)". The
 number is right — 2,682 = 1,724 cycle-reachable + 866 terminals + 92 — but
-the explanation is not. All 92 have legal boards drawn from the same 489; I
+the explanation is not. All 92 have legal gobans drawn from the same 489; I
 checked each. They are 12 near-full positions whose only move is a pass
 (e.g. `.OO/OOO`, Black to move, ko=a1, out-degree 1) plus 80 `passes = 1`
 states, all of which drain to a terminal without meeting a cycle. There is no
-such thing here as a reachable state with an illegal board.
+such thing here as a reachable state with an illegal goban.
 
 ## Item 4 — the no-escalate decision: VERIFIED and robust
 
@@ -276,14 +276,14 @@ rule.
 ## What a wrong answer would have scored
 
 Per `AUDITOR.md`: the deliverable's own validation is the five `zig test`
-cases plus the 489-board agreement with T13. I confirmed 5/5 pass
+cases plus the 489-goban agreement with T13. I confirmed 5/5 pass
 (`--test-filter "2x2 smoke" --test-filter "3x2"`, as the hazard note requires)
 — and **none of the five touches the cycle census.** They cover rank/unrank
-round-tripping, `area_score` on three boards, and the calibration gadget
-(`src/qa023_probe.zig:1766-1822`). The 489-board check constrains only the
-board enumeration, which is upstream of everything the census computes. A
+round-tripping, `area_score` on three gobans, and the calibration gadget
+(`src/qa023_probe.zig:1766-1822`). The 489-goban check constrains only the
+goban enumeration, which is upstream of everything the census computes. A
 census that returned the over-split max-SCC-of-7 from m3's own first attempt
-would have scored 5/5 and matched T13 on 489 boards. The cycle census has
+would have scored 5/5 and matched T13 on 489 gobans. The cycle census has
 **no test that a wrong cycle census would fail**; its correctness rested
 entirely on there being a second implementation, which until now there wasn't.
 
@@ -385,10 +385,10 @@ about the basic-ko graph. The deliverable transported a PSK-scoped claim onto
 the basic-ko graph and marked it confirmed.
 
 This propagates into the deliverable's status header (`:6-9`), which invokes
-"per-board epistemic independence" to explain why "the 2×2 `2x2.T12` no-cycle
+"per-goban epistemic independence" to explain why "the 2×2 `2x2.T12` no-cycle
 falsification does not transfer". The real reason it does not transfer is the
-**rule set**, not the board size — and, on my check, 2×2 basic ko has cycles
-too, so there was never a tension for board-independence to resolve. This is
+**rule set**, not the goban size — and, on my check, 2×2 basic ko has cycles
+too, so there was never a tension for goban-independence to resolve. This is
 the definition-shift-between-documents residue `AUDITOR.md` asks for, and it
 is the finding I would most want a second opinion on, since it rests on my
 transposition of the rules to 2×2 rather than on any code in the repo (there

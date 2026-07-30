@@ -16,7 +16,7 @@ The #2 self-consistency auditor (`RETRO_CONSIST`, docs/research/
 consistency-audit.md) **proved** the committed finisher generation is buggy:
 on 3×2 it violates the minimax identity at 45 of 378 ko-sensitive slots. Turning
 the cross-branch memo writes off (`memo_writes = false`) yields zero
-violations. The empty board is among the 45 (Black score −2 recorded, but its
+violations. The empty goban is among the 45 (Black score −2 recorded, but its
 own best child says 0 — the published score).
 
 ## The bug (exact site)
@@ -69,7 +69,7 @@ finish is impractical, Track B becomes blocking rather than a follow-up.
 Restore sound reuse. The Kishimoto–Müller idea: a memo entry is reusable at a
 new arrival only when the new search path cannot introduce or remove a
 repetition the stored score relied on. Concretely, an entry's score depends on
-the set of board positions its subtree touched (call it D); reuse is safe iff
+the set of goban positions its subtree touched (call it D); reuse is safe iff
 none of the current search-path ancestors is in D (a disjoint ancestor set
 cannot create a new superko ban inside the subtree, so the score is unchanged).
 

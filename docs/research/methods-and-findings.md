@@ -1,4 +1,4 @@
-# How we solve small Go boards — what worked, what didn't, and how we know
+# How we solve small Go gobans — what worked, what didn't, and how we know
 
 **Status: historical overview (2026-07-17).** The living specification is now `docs/epistemic/PROGRESS.md`. [Historical.]
 
@@ -10,7 +10,7 @@ is explained the first time it appears.*
 
 ## 1. What we are trying to accomplish
 
-We are building a **perfect player** for small Go boards. "Perfect" has a
+We are building a **perfect player** for small Go gobans. "Perfect" has a
 precise meaning here: from **any** position, for **either** colour to move, the
 program knows
 
@@ -23,20 +23,20 @@ chess position.
 
 We use **Chinese scoring** (you own the stones and the empty points your stones
 surround), **komi 0** (no compensation points for playing second), and the
-**positional superko rule**: *the whole board may never repeat a position that
+**positional superko rule**: *the whole goban may never repeat a position that
 has appeared before in the game.* Scores are always written from **Black's
 point of view** — a score of +2 means "Black ends 2 points ahead," −2 means
 "White ends 2 points ahead."
 
-We have done this **perfectly for boards up to 4×4**. The prize we are working
-toward is **5×5**. Along the way, solving the empty board tells you the single
-most-asked question about a board size: *what is the fair komi?* — because the
-score of the empty board is exactly how much the first player is worth.
+We have done this **perfectly for gobans up to 4×4**. The prize we are working
+toward is **5×5**. Along the way, solving the empty goban tells you the single
+most-asked question about a goban size: *what is the fair komi?* — because the
+score of the empty goban is exactly how much the first player is worth.
 
 A note on honesty about the rules: other researchers have "solved" 5×5 before
-(the answer is Black takes the whole board, +25), **but they used a simpler
+(the answer is Black takes the whole goban, +25), **but they used a simpler
 repetition rule than ours.** Our positional-superko rule is stricter and, as
-this document will explain, dramatically harder. On the very smallest boards
+this document will explain, dramatically harder. On the very smallest gobans
 our answers already differ from the published ones *because* of this rule
 difference. So a superko-perfect 5×5 is genuinely new territory, not a re-run
 of old work.
@@ -45,22 +45,22 @@ of old work.
 
 ## 2. Why this is hard
 
-**Reason one: the sheer number of games.** Even on a tiny board the number of
+**Reason one: the sheer number of games.** Even on a tiny goban the number of
 possible ways a game can go is astronomical. You cannot simply "try every
-game." A 5×5 board has more distinct legal positions than there are seconds in
+game." A 5×5 goban has more distinct legal positions than there are seconds in
 thousands of years. So brute force in the naive sense is out.
 
 **Reason two — the one that has dominated this whole project: *history
-matters.*** In most board games, the score of a position depends only on the
-stones currently on the board. In Go with the superko rule, **it can also
+matters.*** In most goban games, the score of a position depends only on the
+stones currently on the goban. In Go with the superko rule, **it can also
 depend on which positions have already occurred earlier in the game.** A move
-that would recreate an earlier whole-board position is illegal — so the *same
-stones on the board* can have *different legal moves*, and therefore a
+that would recreate an earlier whole-goban position is illegal — so the *same
+stones on the goban* can have *different legal moves*, and therefore a
 *different score*, depending on how you got there.
 
-Think of a ko fight. The board looks identical each time you glance at it, but
+Think of a ko fight. The goban looks identical each time you glance at it, but
 whether you are *allowed* to take back depends on the recent history. Superko
-generalises this to the entire board and the entire game. This "the score
+generalises this to the entire goban and the entire game. This "the score
 depends on the past, not just the present" phenomenon has a name in the
 research literature: the **graph-history interaction**, or **GHI**. It is the
 central villain of this document.
@@ -71,13 +71,13 @@ central villain of this document.
 
 ### Work backwards from finished games
 
-Instead of starting from the empty board and looking forward (which drowns in
-the number of games), we start from **finished positions** — boards so full or
+Instead of starting from the empty goban and looking forward (which drowns in
+the number of games), we start from **finished positions** — gobans so full or
 so settled that the score is obvious — and work **backwards**. If you know the
 score of every position that can *follow* a given position, you can work out
 the score of that position: the player to move simply picks the follow-up that
 is best for them. Repeat this, filling in positions with more and more empty
-space, until you reach the empty board. This backwards sweep is called
+space, until you reach the empty goban. This backwards sweep is called
 **retrograde analysis** (the same technique that built the perfect endgame
 tables for chess).
 
@@ -91,7 +91,7 @@ We separate every position into one of two buckets:
   and H converge to the same integer. These positions were once thought
   history-independent, but T13 (2026-07-26) falsified that at 3×2. They
   remain correct as *fresh-start* scores (C1). This is the large majority of
-  positions at every board size.
+  positions at every goban size.
 
 - **The ko-sensitive region.** A minority of positions are tangled up in
   repetition — their score genuinely *can* change depending on the history of
@@ -137,7 +137,7 @@ several independent checks, each of which can only *catch* errors, never
 1. **The bracket containment check** (above): every ko-sensitive region answer must sit
    inside its own low/high bracket.
 
-2. **Symmetry.** A Go board has eight mirror/rotation symmetries, and swapping
+2. **Symmetry.** A Go goban has eight mirror/rotation symmetries, and swapping
    the two colours flips the score. Positions that are the same under these
    symmetries **must** get the same (or mirror-image) score. We check this
    exhaustively. A single mismatch is a bug.
@@ -162,8 +162,8 @@ cannot compare against plain truth is a speed trick you cannot trust.
 This is the part most worth recording. Each of these cost real effort, and each
 taught us something that constrains what optimisations are even *possible*.
 
-### Dead end 1 — "Just play forwards from the empty board"
-The obvious approach. It drowns immediately: from the empty board the number of
+### Dead end 1 — "Just play forwards from the empty goban"
+The obvious approach. It drowns immediately: from the empty goban the number of
 distinct game-lines explodes, and the repetition rule means you cannot safely
 reuse work between lines (see Dead end 3). **Lesson:** you must go backwards,
 and you must exploit the certified/ko-sensitive region split. This is *why* the whole
@@ -262,7 +262,7 @@ every ko-sensitive position of the 3×2 board:
 
 - The **fast** solver — the one with the seductive "ko stayed local" reuse
   (Dead end 3) — contradicted itself on **45 of 378** positions. **Proven
-  buggy.** The empty board was among them: it claimed Black was 2 points behind,
+  buggy.** The empty goban was among them: it claimed Black was 2 points behind,
   while its *own* best opening move showed the game is even (0) — the known
   correct answer.
 - The **cautious** solver — the same engine with that reuse switched **off** —
@@ -291,7 +291,7 @@ the reuse off, the only scores the solver ever reuses are the ones from the
 afresh, honestly following the real history of the game. In effect it becomes
 the slow-but-correct referee from Dead end 4 — *minus* the one feature that made
 that referee impossibly slow (keying on the entire history). So it is both
-correct **and** fast enough for the small boards.
+correct **and** fast enough for the small gobans.
 
 > **Epistemic update (2026-07-26):** T13 falsified C2 (history-independence
 > of the L==H region) at 3×2 (12/508 mismatches). The "certified core" was
@@ -299,11 +299,11 @@ correct **and** fast enough for the small boards.
 > of real-game correctness. Only C1 (fresh-start correctness) survives. See
 > `../epistemic/PROGRESS.md` and `../status/leak-crisis.md`.
 
-The cost: turning off reuse gives up speed. For boards up to 4×4 that is fine.
+The cost: turning off reuse gives up speed. For gobans up to 4×4 that is fine.
 The open question is whether it is fast enough for the harder cases — which is
 exactly what Track B addresses.
 
-### Track B — "Be correct *and* fast, for the big board"
+### Track B — "Be correct *and* fast, for the big goban"
 Bring reuse back, but **safely**: instead of remembering only a position's
 score, also remember **exactly which pieces of history that score depended on.**
 Then reuse the stored score only when the current game's history is compatible
@@ -313,13 +313,13 @@ sound by construction — it never makes the mistake of Dead end 3, because it
 *checks* its dependencies instead of *assuming* they don't matter.
 
 Track B is more work, and it is only *needed* when the cautious solver of Track
-A becomes too slow — which we expect to happen as boards grow. **In short:
+A becomes too slow — which we expect to happen as gobans grow. **In short:
 Track A buys correctness immediately; Track B buys back the speed we'll need for
 5×5.**
 
 **What we found when we built Track B.** We implemented the safe reuse and it
 works: it is provably sound (passes the consistency auditor) and it produces
-*exactly the same answers* as the cautious method on every board we can check
+*exactly the same answers* as the cautious method on every goban we can check
 (3×2, 3×3, 4×3) — so it is correct, not merely plausible. The trick for
 remembering "what a score depended on" without using enormous memory is a
 **fingerprint**: a small fixed-size sketch of the set of positions involved,
@@ -335,9 +335,9 @@ overlap," so almost no reuse is recovered. Widening the fingerprint recovers
 much more reuse (at 4096 bits we got back most of it and ran roughly twice as
 fast as the cautious method) — but a wider fingerprint costs more memory per
 stored position. **This memory-for-reuse trade is the real obstacle for 5×5:**
-the board has so many positions that a fingerprint big enough to avoid
+the goban has so many positions that a fingerprint big enough to avoid
 saturation, times billions of positions, is far more memory than any machine
-has. So Track B clearly helps at small boards, but making it help *enough* at
+has. So Track B clearly helps at small gobans, but making it help *enough* at
 5×5 is an unsolved problem — and an honest one to record.
 
 ---
@@ -352,9 +352,9 @@ parts, because there are two different resources at stake: **memory** and
 
 Some round numbers (approximate, but the conclusion is not close):
 
-- A 5×5 board has about **850 billion** possible stone-arrangements. Slightly
+- A 5×5 goban has about **850 billion** possible stone-arrangements. Slightly
   under half of those — about **410 billion** — are legal positions.
-- Folding away the eight board symmetries brings that down to very roughly
+- Folding away the eight goban symmetries brings that down to very roughly
   **25–50 billion** distinct positions to store.
 - The final answer table needs on the order of **1–2 bytes per position**
   (the score for each side), i.e. very roughly **50–150 GB** — and that is just
@@ -378,7 +378,7 @@ yet been demonstrated, and memory is not the main worry.
 
 The genuine risk to 5×5 is **not** memory — it is the **size and cost of the
 ko-sensitive region**. Everything hard in this project lives there. We do not
-yet know how the ko-sensitive region behaves as the board grows, and that single unknown
+yet know how the ko-sensitive region behaves as the goban grows, and that single unknown
 dominates the whole feasibility question. If the ko-sensitive region stays a small, cheap
 fraction, 5×5 is very likely reachable. If it grows quickly and the ko-sensitive region
 positions become individually expensive, even a perfectly sound and fast solver
@@ -386,11 +386,11 @@ could take impractically long.
 
 ### First measurements are in — and they are mostly encouraging
 
-We have now measured the "history-free" part of every board we can build
+We have now measured the "history-free" part of every goban we can build
 (2×2 through 4×4). See `scaling-census.md` for the table. Two things stand out:
 
 - **The hard fraction is shrinking.** The share of positions that are
-  ko-sensitive falls steadily as the board grows: about 72% on 2×2, down to
+  ko-sensitive falls steadily as the goban grows: about 72% on 2×2, down to
   **21% on 4×4**. The easy, provably-certain core keeps growing to dominate.
   That is the best possible news about the *shape* of the problem.
 - **But the hard *count* is large and growing.** 4×4 has **10.4 million**
@@ -413,7 +413,7 @@ before proposing the final recipe we must measure, across the sizes we can
 already solve (2×2, 3×2, 3×3, 4×4) and project forward:
 
 1. **How fast does the ko-sensitive region grow?** What fraction of positions are
-   ko-sensitive at each board size, and is that fraction rising, flat, or
+   ko-sensitive at each goban size, and is that fraction rising, flat, or
    falling? *This is the single most important number we are missing.*
 2. **How expensive is each ko-sensitive region position to solve**, cautious (Track A) vs.
    guarded-reuse (Track B)? Does guarded reuse actually pay for itself?
@@ -425,7 +425,7 @@ already solve (2×2, 3×2, 3×3, 4×4) and project forward:
    on-disk table well below the raw estimate — but this must be tested on the
    4×4 table first.
 5. **Does out-of-core tiling actually work at speed?** The right first
-   experiment is not 5×5 but the in-between rectangular board **5×4** — big
+   experiment is not 5×5 but the in-between rectangular goban **5×4** — big
    enough to force disk-based, tiled computation, small enough to finish and
    check. It is the true dress rehearsal.
 6. **Does guarded reuse (Track B) pass the consistency auditor** on 4×4 before
@@ -452,7 +452,7 @@ already solve (2×2, 3×2, 3×3, 4×4) and project forward:
 ## 2026-07-24 UPDATE — the superko story ended, and what we learned
 
 Everything above assumes we were going to solve Go on 4×4 *exactly under
-positional superko* (the strict "you may never repeat any past whole-board
+positional superko* (the strict "you may never repeat any past whole-goban
 position" rule). We have now stopped chasing that, for good reasons, and the
 honest picture is both smaller and cleaner than we hoped.
 
@@ -469,7 +469,7 @@ Two independent facts settled it:
    engine-flagged "this move is illegal" hint, and the score they output is an
    *estimate*. Superko's real difficulty is a problem only for someone
    demanding a *proof* — and it turns out that's a self-inflicted wound.
-2. **It is intractable even on the empty 2×2 board** by the sound method
+2. **It is intractable even on the empty 2×2 goban** by the sound method
    (the exact solver drowns in the bookkeeping of "every past position").
 
 ### The two rescue ideas we tested — and what happened
@@ -477,11 +477,11 @@ Two independent facts settled it:
 We tried two ways to make the problem both realistic and solvable:
 
 - **"Kill rule" (a big capture ends the game):** measured directly on the full
-  4×4 board. It did **not** help — it left the hard fraction essentially
+  4×4 goban. It did **not** help — it left the hard fraction essentially
   unchanged, and stricter versions made it *worse* (25% hard instead of 21%),
-  because ending games early mid-board just creates more awkward boundary
+  because ending games early mid-goban just creates more awkward boundary
   positions. Abandoned.
-- **"Basic ko + score the board if a long cycle happens":** this is the rule
+- **"Basic ko + score the goban if a long cycle happens":** this is the rule
   closest to how humans actually play. But we proved it runs into *exactly the
   same wall* as superko. The reason is subtle but decisive: whether a move
   "closes a cycle" depends on the entire history of the game, so the computer
@@ -506,9 +506,9 @@ unresolved cycle goes as badly as possible for Black) and a **high** score
   humans have published (empty 3×3 is +9; it sits at the top of our [2, 9]
   bracket — correct) and it holds.
 
-The catch, stated honestly: for the *empty board specifically* — the position
+The catch, stated honestly: for the *empty goban specifically* — the position
 everyone actually wants a number for — the bracket is wide (e.g. 3×3 is
-"somewhere between +2 and +9"), because the empty board is the most
+"somewhere between +2 and +9"), because the empty goban is the most
 cycle-tangled position of all. And a chunk of the hard positions have a bracket
 so wide it says nothing at all. So:
 

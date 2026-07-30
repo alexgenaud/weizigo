@@ -18,12 +18,12 @@ and the earlier evidence is corrected in three specific ways.**
 | | |
 |---|---|
 | **Falsified?** | No. For the shipped predicate: zero disagreements and zero lemma violations in every section. |
-| **New coverage** | Six structural premises of the ADR's soundness argument now hold **exhaustively at 4×4** (1,362,424 eyes over 909,540 eye-positions) — the first ADR-0006 evidence at the frontier board. The prune class scan is also exhaustive to 4×4. |
+| **New coverage** | Six structural premises of the ADR's soundness argument now hold **exhaustively at 4×4** (1,362,424 eyes over 909,540 eye-positions) — the first ADR-0006 evidence at the frontier goban. The prune class scan is also exhaustive to 4×4. |
 | **New sound test** | The eye-pruned forward search was run against the **unpruned** retrograde table: **4,212 slots resolved across 2×2/3×2/3×3/4×3, 0 disagreements**, plus all **96** 4×4 live PRUNE-ALL pairs. This is the standing ADR-0009 test, executed for the first time with denominators. |
 | **Correction 1** | The 2026-07-29 denominator of 1050 is inflated: **226 of those 1050 positions are `is_settled`**, where both arms return before move generation. The non-vacuous denominator at 3×3 is **824**. |
 | **Correction 2** | The 2026-07-29 **control arm is not the unpruned game value.** Its memo caches every `(pos, side, passes)` node under positional superko, which is unsound; the sound version does not terminate (32/32 roots unresolved at **3×2**, 6 cells). |
 | **Correction 3** | The known-bad class this task asked for — "self-eye-fill is the only legal move" — is **empty through 4×3 and live at 4×4** (96 pairs). There the prune empties the move list at a node the search must evaluate; the pass edge carries it. This class had never been identified. |
-| **Residual risk** | The *strong* test (fresh-start value with vs without the prune, computed soundly) is **not computable by forward search at any board size**, including 2×2. What replaces it is §6: the unpruned retrograde table as the control. |
+| **Residual risk** | The *strong* test (fresh-start value with vs without the prune, computed soundly) is **not computable by forward search at any goban size**, including 2×2. What replaces it is §6: the unpruned retrograde table as the control. |
 
 The blast radius W1 describes is real, and this battery narrows it without
 closing it. What is now well-supported is the **predicate** and the **local
@@ -55,7 +55,7 @@ Three gaps in that evidence, each addressed below:
 
 Nine sections, all in `src/eyeprune_battery.zig`, run through `tools/runner`:
 
-| § | Section | Question | Board coverage |
+| § | Section | Question | Goban coverage |
 |---|---|---|---|
 | A | Predicate fixtures | Does the predicate fire on genuine eyes and *not* fire on false eyes, one-eye groups, big-eye space, opponent eyes? | hand-built 3×3 + 5×5 |
 | B | Cross-implementation | Do the project's **two** copies of the predicate agree? | 5×5, 4.0 M empty cells |
@@ -103,7 +103,7 @@ and it is now pinned by tests rather than by argument.
 the predicate hard-coded to a 5-wide grid; `rules.zig:348` has the generic one.
 They are never compared in the test suite. Transcribing `solve.zig`'s verbatim
 and differentially testing it against `rules.zig` over 200,000 random dense 5×5
-boards — **3,999,936 empty cells compared, 21,828 eyes found, 0 mismatches.**
+gobans — **3,999,936 empty cells compared, 21,828 eyes found, 0 mismatches.**
 (Limitation: this compares a transcript, because the original is not `pub`. It
 detects indexing divergence between the engines, not a defect shared by both.)
 
@@ -111,9 +111,9 @@ detects indexing divergence between the engines, not a defect shared by both.)
 
 ## 4. §C — the class scan, and the known-bad class T114 asked for
 
-For every legal position × side, how many legal board moves the prune removes:
+For every legal position × side, how many legal goban moves the prune removes:
 
-| board | legal positions | pairs | removes nothing | removes some | **PRUNE-ALL** | settled | **live PRUNE-ALL** |
+| goban | legal positions | pairs | removes nothing | removes some | **PRUNE-ALL** | settled | **live PRUNE-ALL** |
 |---|---|---|---|---|---|---|---|
 | 2×2 | 57 | 114 | 110 | 0 | 4 | 4 | **0** |
 | 3×2 | 489 | 978 | 918 | 40 | 20 | 20 | **0** |
@@ -122,10 +122,10 @@ For every legal position × side, how many legal board moves the prune removes:
 | **4×4** | **24,318,165** | **48,636,330** | 47,726,466 | 907,262 | **2,602** | 2,506 | **96** |
 
 **The class is empty through 4×3 and non-empty at 4×4.** Below 4×4, every
-position at which self-eye-fill is the mover's only legal board move is already
+position at which self-eye-fill is the mover's only legal goban move is already
 an `is_settled` terminal, so the solver returns `area_score` before it builds a
 move list. **At 4×4 that stops being true: 96 pairs are live.** In each, the
-prune removes every legal board move at a node the search must actually
+prune removes every legal goban move at a node the search must actually
 evaluate, leaving the pass edge as the only continuation.
 
 A representative one (Black to move, both legal moves are Black's own eyes):
@@ -140,7 +140,7 @@ X . X .      (0,2) into a chain with no liberty, and captures nothing.
 `is_settled` is false because the Black stone at (0,2) is not Benson-alive, so
 the search cannot short-circuit — and with the prune, Black's move list is
 empty. Nothing crashes: the pass edge is generated unconditionally, outside the
-board-move loop (`solve.zig:252`, and likewise in this harness).
+goban-move loop (`solve.zig:252`, and likewise in this harness).
 
 **§J — all 96 valued, all correct.** Each of the 96 was solved by the eye-pruned
 forward search and compared against the 4×4 retrograde table
@@ -153,25 +153,25 @@ forward search and compared against the 4×4 retrograde table
 | unresolved | **0** |
 | **disagreements** | **0** |
 
-Every one has exactly 2 legal board moves, both the mover's own eyes, and both
+Every one has exactly 2 legal goban moves, both the mover's own eyes, and both
 arms score it 0. So the class exists, the prune does empty the move list there,
 and the pass fallback gives the same answer the unpruned table does. This is the
-one hazard the task named, found on the board where it first appears, and it is
+one hazard the task named, found on the goban where it first appears, and it is
 clean. (Caveat: the 4×4 checkpoint's own provenance is a separate open question
 — tree-shake W5/D16.)
 
 **I had drawn the opposite conclusion from 2×2/3×2/3×3 alone**, with a
 structural sketch for why the class must be absorbed by `is_settled`. The sketch
 was wrong: it assumed the only way to break `is_settled` was a dame or a dead
-stone that hands the mover a legal non-eye move, and 4×4 is the first board with
+stone that hands the mover a legal non-eye move, and 4×4 is the first goban with
 room for a dead stone whose every adjacent point is *also* illegal for the
-mover. This is exactly the failure mode `AGENTS.md` per-board independence
+mover. This is exactly the failure mode `AGENTS.md` per-goban independence
 exists to catch, reproduced here on a claim of my own.
 
 **Vacuity correction.** The same scan gives the denominator the 2026-07-29 run
 should have quoted:
 
-| board | positions with ≥1 eye | of which `is_settled` | non-vacuous pairs |
+| goban | positions with ≥1 eye | of which `is_settled` | non-vacuous pairs |
 |---|---|---|---|
 | 2×2 | 4 | 4 | **0** |
 | 3×2 | 60 | 28 | 32 |
@@ -194,19 +194,19 @@ superko: the key includes an order-independent hash of the **full set** of
 positions in the game line, so a cached value is only ever reused under an
 identical superko constraint set.
 
-| board | pairs checked | disagreements | **unresolved** | nodes (control / pruned) |
+| goban | pairs checked | disagreements | **unresolved** | nodes (control / pruned) |
 |---|---|---|---|---|
 | 2×2 | 0 (no live pairs) | 0 | 0 | — |
 | 3×2 | 32 | 0 | **32 (all)** | 64,000,032 / **128** |
 | 3×3 | 824 | 0 | **824 (all)** | 1,648,000,824 / 384,004,560 |
 
-Section D returns **no positive information at any board size**: the sound
+Section D returns **no positive information at any goban size**: the sound
 control resolved zero of the 856 pairs. Its value is the negative result.
 
 At 3×2 — **six cells** — the unpruned control exhausts a 2,000,000-node budget
 on *every one* of the 32 roots, while the pruned arm answers all 32 in 128 nodes
 total. `solve.zig`'s production `ko_ref` rule fares no better: in §6 it leaves 24 of
-32 2×2 slots unresolved even *with* the prune, because on sparse boards the
+32 2×2 slots unresolved even *with* the prune, because on sparse gobans the
 prune barely fires and the pruned search is the unpruned search.
 This is not a budget that wants raising: under positional superko the value of a
 node depends on the set of positions already played, and without the prune that
@@ -225,7 +225,7 @@ certifying.
 Section E measures whether the three caching rules disagree **on the pruned
 arm**, where all three are tractable:
 
-| board | comparison | pairs | differences |
+| goban | comparison | pairs | differences |
 |---|---|---|---|
 | 3×2 | `solve.zig` ko_ref vs 2026-07-29 always-cache | 32 | **0** |
 | 3×2 | exact history-set vs `solve.zig` ko_ref | 32 | **0** |
@@ -259,7 +259,7 @@ explicit denominators.**
 
 (Assumption: the committed `artifacts/oracle-*.wzo` are the output of that
 value-iteration pipeline. `retro.zig:98` sets `apply_eye_prune = false` for the
-sweep, and the `FROM_FORWARD` flag — zero on all three small-board artifacts —
+sweep, and the `FROM_FORWARD` flag — zero on all three small-goban artifacts —
 is what marks anything the eye-pruned finisher wrote.)
 
 | artifact | slots | KO_SENSITIVE | FROM_FORWARD | checked | resolved | **disagreements** |
@@ -270,14 +270,14 @@ is what marks anything the eye-pruned finisher wrote.)
 | `oracle-4x3.wzo` | 95,508 | 22,030 | 0 | 3,830 (prune-touched, 1-in-8 colex sample) | **3,178** | **0** |
 
 Totals: **4,212 slots resolved against an unpruned control, 0 disagreements**,
-across four board sizes. 4×3 is a 1-in-8 colex sample — the exhaustive pass
+across four goban sizes. 4×3 is a 1-in-8 colex sample — the exhaustive pass
 exceeded the runner's 1700 s wall ceiling and was not completed; the sample is
 reported as a sample.
 
 The unresolved remainder is the forward search timing out, not a disagreement.
 Note the shape of what resolves: the eye-pruned forward search terminates on
 *dense* positions and not on sparse ones — exactly the regime ADR-0006 claims
-for itself ("eye-pruning tames endgames … it does not make the empty-board full
+for itself ("eye-pruning tames endgames … it does not make the empty-goban full
 solve cheap"). The prune's own scope statement predicts this coverage pattern.
 
 **Caveat on inheritance.** This test inherits each artifact's provenance. For
@@ -310,7 +310,7 @@ for `is_own_eye` instead:
 §8's zeroes are only evidence if the same lemmas fire on a wrong predicate.
 Each mutant was substituted and the whole scan re-run. **Violation counts:**
 
-| board | predicate | eye-positions | eyes | L1 | L2 | L3 | L4 | L7 | L8 |
+| goban | predicate | eye-positions | eyes | L1 | L2 | L3 | L4 | L7 | L8 |
 |---|---|---|---|---|---|---|---|---|---|
 | 3×3 | **ADR-0006 (shipped)** | 1,050 | 1,414 | **0** | **0** | **0** | **0** | **0** | **0** |
 | 3×3 | M1 naive-eye | 4,120 | 5,032 | 274 | 0 | **1,032** | 0 | 144 | 72 |
@@ -344,7 +344,7 @@ The score-based arm can only be run where a tractable baseline exists, so it
 uses the **shipped** arm as baseline (the no-prune control is not computable,
 §5) and is limited to 2×2/3×2.
 
-| board | mutant | checked | resolved | **detected** |
+| goban | mutant | checked | resolved | **detected** |
 |---|---|---|---|---|
 | 2×2 | all four | 0 | 0 | — (no live pairs at 2×2, §4) |
 | 3×2 | M1 naive-eye | 88 | 32 | **0** |
@@ -382,7 +382,7 @@ evaluated for every own true eye of every legal position:
 
 **Violations, exhaustive enumeration of every legal position:**
 
-| board | eye-positions | eyes checked | L1 | L2 | L3 | L4 | L7 | L8 |
+| goban | eye-positions | eyes checked | L1 | L2 | L3 | L4 | L7 | L8 |
 |---|---|---|---|---|---|---|---|---|
 | 2×2 | 4 | 8 | 0 | 0 | 0 | 0 | 0 | 0 |
 | 3×2 | 60 | 84 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -396,15 +396,15 @@ evaluated for every own true eye of every legal position:
 This is the first evidence for ADR-0006 at 4×4 and 5×5 of any kind. It is
 **not** the game-score claim — L1–L8 are the premises, and premises holding does
 not make the conclusion true. What it does rule out is every failure mode in
-which the prune removes a move that *changes the board's account*: nothing is
+which the prune removes a move that *changes the goban's account*: nothing is
 captured, no point of area changes hands, the opponent genuinely cannot enter,
 and — the load-bearing one — **filling an eye never manufactures unconditional
 life**, so the move can never be the mover's uniquely best resource on those
 grounds. Combined with the fact that passing is always legal, this is the ADR's
 argument made checkable, and it checks out on 1.36 M 4×4 eyes.
 
-Per `AGENTS.md` per-board epistemic independence, each row stands for its own
-board size. The 4×4 row is new; it does not inherit from 3×3 and 3×3 does not
+Per `AGENTS.md` per-goban epistemic independence, each row stands for its own
+goban size. The 4×4 row is new; it does not inherit from 3×3 and 3×3 does not
 inherit from it.
 
 ---
@@ -428,7 +428,7 @@ Ranked by what the battery could not reach:
    class grows — and whether it stays confined to pass-only nodes — is open.
 3. **A 4×4 or 5×5 lemma violation** — the L-battery already covers 4×4
    exhaustively and 5×5 by sampling; exhaustive 5×5 is out of reach (3²⁵).
-4. **A divergence between the two predicate implementations on a board shape
+4. **A divergence between the two predicate implementations on a goban shape
    the random sampler misses.** §B is random, not exhaustive.
 
 ---

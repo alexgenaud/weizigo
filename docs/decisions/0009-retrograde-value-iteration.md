@@ -13,7 +13,7 @@ oracle record schema and restates the sign conventions.
 
 Game states are nodes `(position, side, passes ∈ {0,1})` over LEGAL positions.
 Terminals: `is_settled(pos)` (score = `area_score(pos)`, any side/passes) and
-the second consecutive pass (score = `area_score(pos)`). Edges: board moves
+the second consecutive pass (score = `area_score(pos)`). Edges: goban moves
 (to `(child, -side, 0)`) and pass (to `(pos, -side, passes+1)`). Pass nodes
 are stored, not eliminated; the Bellman equations are
 
@@ -158,7 +158,7 @@ Ko-sensitive region/unfinished nodes: 255.
 
 ## Implementation & validation plan
 
-`src/retro.zig` — board-size-generic like the rest of Gen-2, standalone
+`src/retro.zig` — goban-size-generic like the rest of Gen-2, standalone
 `zig test`, `main` = build + full battery at 2x2 / 3x2 (exhaustive ground
 truth) and 3x3 (anchors, symmetry, spot checks, ko-sensitive region stats, sweep counts,
 finisher cost, DTT stats, score histogram). Results recorded in
@@ -177,5 +177,5 @@ above is that doctrine executed.
   re-solving — hence schema-frozen now (ADR-0008's format-contract warning:
   version the layout in the persist header before writing real artifacts).
 - The GHI ko-sensitive fraction (ko-sensitive nodes) is now a first-class MEASURED
-  quantity per board size — the number that decides whether history-aware
+  quantity per goban size — the number that decides whether history-aware
   extensions (Kishimoto–Müller bucketing) are ever needed for real play.

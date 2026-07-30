@@ -99,7 +99,7 @@ Filed against the dispatch template, not against the console.
 ## Part B — void, and my fault not the console's
 
 Part B ran `src/qa023_brute_2x2.zig` for 10h22m wall / 237min CPU at 100% on a
-four-point board and produced nothing. `DEPTH_LIMIT = 64`, no memoization, DFS
+four-point goban and produced nothing. `DEPTH_LIMIT = 64`, no memoization, DFS
 over **paths** carrying full history. Killed 2026-07-28 12:2x.
 
 It was thrashing, not hung, and the design was unsatisfiable as I specified it:

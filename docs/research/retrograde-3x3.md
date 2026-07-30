@@ -5,11 +5,11 @@ value iteration with two-sided (L/H) certification, ko-sensitive region
 finisher, DTT, and the validation battery. All numbers ReleaseFast on the dev
 machine; reproduce with `zig run -O ReleaseFast src/retro.zig` (env
 `RETRO_DIAG=1` for the ko-sensitive region-orbit census, `RETRO_ANCHOR=1` for the 3x3
-anchor probe, `RETRO_3X3=1` for the 3x3 board alone).
+anchor probe, `RETRO_3X3=1` for the 3x3 goban alone).
 
 ## Finding 1: the retrograde core is FAST and converges in a handful of sweeps
 
-| board | slots | legal | settled | sweeps | build+certify |
+| goban | slots | legal | settled | sweeps | build+certify |
 |---|---|---|---|---|---|
 | 2x2 | 81 | 57 | 4 | 2 | <1 ms |
 | 3x2 | 729 | 489 | 30 | 6 | 1 ms |
@@ -30,7 +30,7 @@ ADR-0008 GHI ko-sensitive region), even when each score is individually "clean".
 ko-sensitive roots gets a fresh copy of the certified-only baseline, and only one
 representative per symmetry orbit is solved (the orbit is filled by the proven
 transforms). After the fix: symmetry PASS (0 failures across inversion,
-dihedral, L/H-swap, flags at every board), orbit-clashes 0, bracket-fails 0.
+dihedral, L/H-swap, flags at every goban), orbit-clashes 0, bracket-fails 0.
 
 Consequence for any future engine work: NEVER share ko_ref-clean memo entries
 between roots. Within one root it is the validated solve.zig discipline;
@@ -57,16 +57,16 @@ some cleverer exact-forward scheme could have built the oracle — the exact
 state space explodes before the position space does. Nodal certification +
 bounded finishing (ADR-0009) is not an optimization but the only viable route.
 
-## Finding 4: the ko-sensitive region is LARGE on toy boards but SHRINKS
+## Finding 4: the ko-sensitive region is LARGE on toy gobans but SHRINKS
 
-| board | legal/side | ko-sensitive region/side | fraction | orbit reps (B/W) |
+| goban | legal/side | ko-sensitive region/side | fraction | orbit reps (B/W) |
 |---|---|---|---|---|
 | 2x2 | 57 | 41 | 72% | 6 / 3 |
 | 3x2 | 489 | 189 | 39% | 33 / 24 |
 | 3x3 | 12,675 | 4,349 | 34% | 375 / 247 |
 
-Tiny boards are almost pure ko machines (little is Benson-settled, captures
-recur constantly), so L/H certifies less there. The fraction FALLS with board
+Tiny gobans are almost pure ko machines (little is Benson-settled, captures
+recur constantly), so L/H certifies less there. The fraction FALLS with goban
 size; the 3x3 ko-sensitive region concentrates toward the middle layers (per-layer B-side
 reps: k0:1 k1:18 k2:94 k3:356 k4:820 k5:1204 k6:1010 k7:548 k8:298), i.e. the
 mid-game ko fights, not the near-terminal endgame.
@@ -74,7 +74,7 @@ mid-game ko fights, not the near-terminal endgame.
 ## Finding 5: 2x2 is COMPLETELY solved; the finisher works there
 
 At 2x2 the certified-seeded finisher resolves EVERY ko-sensitive roots — including
-the empty board (max 2.85e8 nodes, well under the 500M budget): 9 orbit
+the empty goban (max 2.85e8 nodes, well under the 500M budget): 9 orbit
 representatives solved, 82 slots filled by symmetry, total 1.7e9 nodes / ~78 s.
 Every finisher score inside its [L,H] bracket (0 bracket-fails), orbit
 propagation never disagreed with a filled slot (0 orbit-clashes), final table
@@ -115,7 +115,7 @@ even where it cannot PIN it. Honest status of the 3x3 table:
   plus symmetry + sampled forward spot checks + bracketed anchors).
 - Near-terminal ko-sensitive region — resolvable by the finisher with enough budget,
   bracket-checked (demonstrated fully at 2x2).
-- **Deep-opening ko-sensitive region (incl. the empty-board anchor) is an OPEN frontier**
+- **Deep-opening ko-sensitive region (incl. the empty-goban anchor) is an OPEN frontier**
   — needs history-aware treatment (Kishimoto–Müller dependency buckets) or an
   iterated/stronger opening solver. This is the same irreducible GHI core
   flagged in ADR-0009's honesty clause, now LOCALIZED to the opening and a
@@ -139,8 +139,8 @@ exist, now visible even on positions with only 3–6 empty cells.
 | claim | mechanism | result |
 |---|---|---|
 | scores sound | history-exact ground truth (2x2/3x2, reachable roots) | 0 mismatch (8, 68 roots) |
-| scores in range | [L,H] brackets (all boards, all finished/exact roots) | 0 bracket-fails |
-| colour + dihedral symmetry | exhaustive whole-table (incl. L/H-swap + flags) | PASS all boards |
+| scores in range | [L,H] brackets (all gobans, all finished/exact roots) | 0 bracket-fails |
+| colour + dihedral symmetry | exhaustive whole-table (incl. L/H-swap + flags) | PASS all gobans |
 | published anchors (3x3) | bracket-contains-published | PASS (all 5) |
 | certified deep scores | sampled no-memo forward (3x3) | 105/105 match |
 | complete pipeline | 2x2 full build→finish→validate | complete oracle |
@@ -152,7 +152,7 @@ exist, now visible even on positions with only 3–6 empty cells.
 - 3x3 fresh-start single-score region (8,326 of 12,675 legal positions per side); score
   histogram (Black to move) over the fresh-start single-score region: −9:2018, −2:20, 0:32,
   2:12, 9:6244 — i.e. the certified 3x3 endgame is overwhelmingly ±9 (whole
-  board to one side) with a thin band of close/seki-like scores.
+  goban to one side) with a thin band of close/seki-like scores.
 
 # Bracket-guided finishing measured (2026-07-21, ADR-0010)
 
@@ -166,7 +166,7 @@ root's own bracket. Design + soundness discipline: `decisions/0010`.
 
 Same battery, same budgets, plain (ADR-0009) vs bracketed (ADR-0010) finisher:
 
-| board | reps  | plain                          | bracketed                      |
+| goban | reps  | plain                          | bracketed                      |
 |---|---|---|---|
 | 2x2 | 9   | 1.7e9 nodes, max 285M/root, ~78 s | 6,033 nodes, max 1,175/root, 1 ms |
 | 3x2 | 57  | 0 of 57 solved at 40M/root        | all 57: 29,482 nodes, max 2,597, 2 ms |
@@ -178,7 +178,7 @@ aspiration window inside [L,H], almost every child's bracket already lies
 outside the window, so whole subtrees return as one table lookup; the search
 only descends where brackets genuinely overlap the disputed range.
 
-## Finding 9: the 3x3 oracle is COMPLETE (first board beyond 2x2)
+## Finding 9: the 3x3 oracle is COMPLETE (first goban beyond 2x2)
 
 All 622 ko-sensitive orbit reps solved -> every legal (position, side) has an
 exact fresh-start score. The standing battery, all green:
@@ -199,14 +199,14 @@ certified-with-FAR = 0.
 Engine-vs-engine (`RETRO_PLAIN=1` runs both on fresh tables and diffs
 in-process): final tables IDENTICAL — 0 diffs across all legal slots, both
 sides (plain 1,718,995,756 nodes vs bracketed 6,033 — 285,000x on the one
-board where both complete).
+goban where both complete).
 
 ## Open questions carried forward
 
 1. ~~Resolve the deep-opening ko-sensitive region~~ — DONE (ADR-0010, Findings 8–10).
    Iterated finishing and Kishimoto–Müller buckets were NOT needed; the
    fallback (KM dependency buckets) stays documented in ADR-0010 in case a
-   larger board defeats bracket cuts.
+   larger goban defeats bracket cuts.
 2. ~~DTT through the finisher~~ — resolved as a side effect: with ko-sensitive region
    scores filled, `dttPass` propagates through them (empty 3x3 = 3 plies).
    The V1-finishing variant is no longer blocking anything.
@@ -221,7 +221,7 @@ board where both complete).
 
 ## Published anchors vs the PSK ruleset (the ko-rule variant delta)
 
-Van der Werf & Winands, "Solving Go for Rectangular Boards" (ICGA Journal
+Van der Werf & Winands, "Solving Go for Rectangular Gobans" (ICGA Journal
 2009), Chinese rules, gives: 2x2 = 0 (any first move), 2x3 = 0, 3x3 = +9,
 2x4 = +8, 3x4 = +4, 3x5 = +15, **4x4 = +2 (central first move)**, 4x5 = +20,
 5x5 = +25. CRITICAL CONTEXT for comparing: **MIGOS II does NOT use superko**
@@ -230,12 +230,12 @@ repetition ... is scored as a long-cycle-tie" (basic ko in the hash, cycle
 ties handled specially). weizigo plays POSITIONAL SUPERKO, where those
 cycles are banned moves instead of ties.
 
-Consequence: on cycle-dominated toy boards the two rulesets legitimately
+Consequence: on cycle-dominated toy gobans the two rulesets legitimately
 DISAGREE — published 2x2 = 0 and 2x3 = 0 vs weizigo's exhaustively
 ground-truthed PSK scores of +1 and +1 (under PSK the cycles that would tie
 are banned, and Black extracts a point). Where the score does not hinge on
 long cycles the rulesets agree (3x3 = +9 matches exactly, all five anchor
 positions). So: published scores remain the anchor where they match; a
-mismatch on a small board is FIRST a ko-rule-variant question, only then a
-bug hunt. The 4x4 run's empty-board score should be compared against +2
+mismatch on a small goban is FIRST a ko-rule-variant question, only then a
+bug hunt. The 4x4 run's empty-goban score should be compared against +2
 with this lens.

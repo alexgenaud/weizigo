@@ -5,7 +5,7 @@ Auto-registered standing task. Trigger: milestone shape changed (new message dir
 
 ## Task
 
-Run a full cross-check of all claims, evidence, and board state for the current milestone.
+Run a full cross-check of all claims, evidence, and goban state for the current milestone.
 Read `docs/epistemic/CLAIMS.md`, `docs/epistemic/PROGRESS.md`, and all channel messages.
 Verify that every claim's status matches its evidence.
 Verify that every completed task's findings have been absorbed into durable docs.

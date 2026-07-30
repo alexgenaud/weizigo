@@ -15,7 +15,7 @@ produced its evidence. Status is from the kanban (`./bin/managent status`).
 | claim ID | task(s) | task status | relationship |
 |---|---|---|---|
 | `QA-023` | EXP-2, 2B-0…2B-6, 2B-FIX-KO, 2B-PROBE-FIX, PINRULE-SUFFICIENCY, QA023-C1-WITNESS, QA023-KERNEL-AUDIT | mixed (most done; QA023-C1-WITNESS in-progress) | closes / bears on |
-| `QA-026` | EXP-4 (2×2/3×2), EXP-5 (3×3), EXP-6 (4×4) | blocked | closes (scoped to each board) |
+| `QA-026` | EXP-4 (2×2/3×2), EXP-5 (3×3), EXP-6 (4×4) | blocked | closes (scoped to each goban) |
 | `QA-027` | EXP-7 | blocked | closes |
 | `QA-012` | EXP-8 | blocked | closes |
 | `QA-024` | EXP-1 (legality), EXP-8 (value) | done / blocked | supplies halves |

@@ -68,9 +68,9 @@ produced, and the 1.67% writes-off chainability floor is itself bracket-derived.
 **The scoping defence fails, and ADR-0010's justification is refuted as
 stated.**
 
-Take the finisher at an **empty-board root**. It expands moves from the empty
+Take the finisher at an **empty-goban root**. It expands moves from the empty
 position, accumulating an arrival history as it descends — that history *is a
-real game line*: a legal sequence of moves from the empty board. At depth *d*
+real game line*: a legal sequence of moves from the empty goban. At depth *d*
 inside that search, the node the finisher is about to cut on has arrived by a
 real history, and the bracket is being asked to bound its value **under that
 history**. That is not a fresh-start question; the fresh-start framing describes
@@ -78,9 +78,9 @@ how the *root* was chosen, not what the arrival history at an interior cut site
 is.
 
 Therefore **E2's falsifying histories lie inside the very family ADR-0010 claims
-to cover.** E2's leaking line is a legal move sequence from the empty 3×3 board;
+to cover.** E2's leaking line is a legal move sequence from the empty 3×3 goban;
 the finisher's search path from the empty 3×3 root ranges over legal move
-sequences from the empty 3×3 board. The two families are not disjoint, and
+sequences from the empty 3×3 goban. The two families are not disjoint, and
 ADR-0010 asserts its bracket over "ANY arrival history", which subsumes both.
 
 Consequently:
@@ -100,7 +100,7 @@ Consequently:
    conclusion; it does **not** establish that the bracket fails at 4×4, or at
    4×3, or at 2×2. `GLOBAL.C3` remains FALSE-AS-SCOPED **at 3×3** and `4x4.C3`
    remains UNTESTED. Per ADR-0016, the *argument* above is structural (it is
-   about what `retro.finish` does), so it carries to every board size; the
+   about what `retro.finish` does), so it carries to every goban size; the
    *falsification* it feeds on is empirical at 3×3 and carries nowhere.
 
 ## Consequences
@@ -108,7 +108,7 @@ Consequently:
 These replace ADR-0010's Consequences section, which assumed the premise.
 
 - **No shipped ko-sensitive value may be quoted as sound.** Every such value at
-  every board size is bracket-cut produced. This is `AGENTS.md`'s standing
+  every goban size is bracket-cut produced. This is `AGENTS.md`'s standing
   foreclosure ("the committed ko-sensitive values are NOT trustworthy") and this
   ADR is now its justification of record.
 - **The claims that stay orphaned:** `GLOBAL.F2`, `GLOBAL.F3`,
@@ -141,7 +141,7 @@ Any one of the following discharges the burden and supersedes this ADR:
    argument), or that the fail-soft window makes the returned bound valid even
    when the bracket is not. This is a proof obligation about `src/retro.zig`, not
    a measurement.
-2. **An exhaustive 3×3 cut-site check, on the board where C3 is false.** Log
+2. **An exhaustive 3×3 cut-site check, on the goban where C3 is false.** Log
    every bracket cut the finisher takes over all 622 ko-sensitive orbit
    representatives at 3×3, and compare each cut's returned bound against the
    history-exact value at that node under its real arrival history. **Zero
@@ -161,5 +161,5 @@ What does **not** falsify it: another measurement showing history-exact scores
 falling inside their brackets at 2×2/3×2 (ADR-0010's "Finding 3"). That is the
 evidence ADR-0010 already had when C3 was falsified at 3×3, and a wrong bracket
 claim passes it — `4x4.BRACKET`'s wrong-answer-pass-rate is ~70%
-(`claimlint-2026-07-28.md` §6). Per ADR-0016 and per-board independence,
+(`claimlint-2026-07-28.md` §6). Per ADR-0016 and per-goban independence,
 2×2/3×2 containment is empirical and does not carry to 3×3, let alone to 4×4.

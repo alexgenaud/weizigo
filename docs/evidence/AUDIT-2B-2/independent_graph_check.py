@@ -166,7 +166,7 @@ def legal_moves(state):
 def build_graph():
     visited = bytearray(TOTAL)
     q = deque()
-    # seed the same roots as the Zig code: empty board, both sides, all ko, passes 0..2
+    # seed the same roots as the Zig code: empty goban, both sides, all ko, passes 0..2
     roots = []
     for side in (0, 1):
         for passes in (0, 1, 2):

@@ -6,7 +6,7 @@
 
 ## Acceptance criterion
 
-+9, exactly, for Black on the empty 3×3 board, plus:
++9, exactly, for Black on the empty 3×3 goban, plus:
 - Root filled (no UNDEF)
 - Colour-inversion symmetry exhaustive
 - 2×2/3×2 gate passes from same binary

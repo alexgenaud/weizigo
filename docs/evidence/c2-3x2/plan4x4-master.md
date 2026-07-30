@@ -22,10 +22,10 @@
 
 ## 1. The principle
 
-A proof, falsification, or hypothesis at one board size is NOT evidence at
+A proof, falsification, or hypothesis at one goban size is NOT evidence at
 another. The leak crisis proved this: C3 was *supported* at 2×2/3×2 and
-*falsified* at 3×3. Each board size gets its own isolated epistemic tree,
-populated by experiments run *at that size*. Small boards are concept
+*falsified* at 3×3. Each goban size gets its own isolated epistemic tree,
+populated by experiments run *at that size*. Small gobans are concept
 laboratories and tool testbeds — sources of fact-topics (what to check), not
 donors of proof status.
 
@@ -191,8 +191,8 @@ E5 (anchors) ── alongside, as consistency labeling
 
 ## 6. What we explicitly do NOT do
 
-- Do NOT inherit small-board proof status into the 4×4 tree.
-- Do NOT run new small-board experiments to support 4×4.
+- Do NOT inherit small-goban proof status into the 4×4 tree.
+- Do NOT run new small-goban experiments to support 4×4.
 - Do NOT relitigate foreclosures (PSK, score-on-cycle, kill-X%, ko_ref bug).
 - Do NOT assert the 4×4 certified core is "proven" until C2/FP2 at 4×4 resolves.
 - Do NOT build 5×5 on the 4×4 tree until 4×4's C2/C3 have a status.
@@ -222,7 +222,7 @@ docs/boards/
 ```
 
 Each `EPISTEMIC.md` is self-contained: a fresh agent reading only that file
-can audit that board size's knowledge state. Trees reference each other only
+can audit that goban size's knowledge state. Trees reference each other only
 for cross-size observations ("same claim-type, differently resolved"), never
 for proof.
 
@@ -231,7 +231,7 @@ for proof.
 1. **Create `docs/boards/CONCEPTS.md`** — the inventory in §2 (no status).
 2. **Create `docs/boards/4x4/EPISTEMIC.md`** — the 4×4 tree in §3 (honest
    status, all red/unknown nodes labelled).
-3. **Mine small-board trees** from existing research (no new runs; just
+3. **Mine small-goban trees** from existing research (no new runs; just
    re-organize findings into the per-size format).
 4. **Spec E0 (B1-4×4)** — the fixpoint check, cheapest foundation. Then
    implement and run.

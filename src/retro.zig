@@ -121,7 +121,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             db1: []u8, // dtt of the V1 node (working column for db/dw)
             dw1: []u8,
             // kill-X% rule (experimental, ABANDONED as a ko-sensitive region lever): an
-            // edge whose move captures MORE than kill_pct% of the board's
+            // edge whose move captures MORE than kill_pct% of the goban's
             // points is treated as terminal, scored by area at the child. 0 =
             // off (pure PSK). Set before converge().
             // CORRECTION (measured, RETRO_KILLCENSUS): an earlier comment here
@@ -274,7 +274,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                             const child = R.pos_from_move(&pos, side, p) catch continue;
                             const ci: usize = @intCast(X.colex_from_pos(&child));
                             // kill-X%: a move capturing > kill_pct% of the
-                            // board's points ends the game (scored by area);
+                            // goban's points ends the game (scored by area);
                             // the child is NOT expanded, so no kill-refill cycle.
                             const cv = blk: {
                                 if (t.kill_pct != 0) {
@@ -379,7 +379,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// fingerprint is F, then fpDisjoint(F, fpBits(A)) is false.
         /// Contrapositive gives the sound reuse test: fpDisjoint(entry_fp,
         /// ancestor_bits) proves no ancestor is in the dependency set. Hashes
-        /// the board cells directly (no colex needed).
+        /// the goban cells directly (no colex needed).
         fn fpBits(pos: *const Pos) O.Fp {
             var x: u64 = 1469598103934665603; // FNV-1a offset basis
             for (pos) |c| {
@@ -530,7 +530,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             var ko_ref: usize = O.KO_CLEAN;
             var sub_fp: O.Fp = self_fp; // this node + everything its value touches
 
-            // gather legal edges (board moves + pass), bracket-scored
+            // gather legal edges (goban moves + pass), bracket-scored
             const Edge = struct { child: Pos, order: i16, pass: bool };
             var edges: [n + 1]Edge = undefined;
             var ne: usize = 0;
@@ -680,7 +680,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             return captured_cell;
         }
 
-        /// Count independent ko captures on the board using the
+        /// Count independent ko captures on the goban using the
         /// same union-find logic as ko_census.zig.
         fn countKoClusters(pos: *const Pos) u8 {
             var points: [2 * n]struct { cell: u8, cap: u8 } = undefined;
@@ -1726,7 +1726,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             nodes: u64 = 0,
         };
 
-        /// GROUND TRUTH (small boards): HISTORY-EXACT forward fresh-start
+        /// GROUND TRUTH (small gobans): HISTORY-EXACT forward fresh-start
         /// solve of every legal (position, side), compared slot-for-slot
         /// against the final retrograde table. The gold standard: sound by
         /// construction, no ko_ref rule, no eye-prune, no GHI assumption
@@ -1734,7 +1734,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
         /// sound because the ban set is part of the key.
         ///
         /// Roots are checked DEEPEST LAYER FIRST with a PER-ROOT node budget:
-        /// exact solving explodes toward the empty board (MEASURED at 2x2:
+        /// exact solving explodes toward the empty goban (MEASURED at 2x2:
         /// the empty root alone exceeds 4e9 nodes / 3e7 exact states — nearly
         /// every path is a unique ban set, so the memo barely reuses), and
         /// coverage must not be destroyed by the monster roots. Skipped
@@ -1783,7 +1783,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
 
 // ---- build + validation battery ------------------------------------------------
 
-/// HISTORY-EXACT forward solver — the gold standard for SMALL boards. The
+/// HISTORY-EXACT forward solver — the gold standard for SMALL gobans. The
 /// memo key includes the FULL positional-superko ban set (a bitset over the
 /// whole colex space), so memoization is sound BY CONSTRUCTION: no ko_ref
 /// cleanliness rule, no GHI assumption, no eye-prune, and one map may be
@@ -1797,7 +1797,7 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
         pub const X = colexmod.Indexer(w, h);
         pub const total: usize = @intCast(X.total);
         pub const Bans = std.StaticBitSet(total);
-        /// N-ply ko window: the up-to-MAX_KO_PLY most recent board indices,
+        /// N-ply ko window: the up-to-MAX_KO_PLY most recent goban indices,
         /// most-recent first, sentinel-padded. See Ctx.ko_ply.
         pub const MAX_KO_PLY = 8;
         pub const KO_NONE: u32 = std.math.maxInt(u32);
@@ -1812,19 +1812,19 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
             budget: u64 = 0, // 0 = unlimited (shared across roots)
             entry_cap: u32 = 0, // stop INSERTING beyond this (stays sound, just slower)
             // kill-X% rule (experimental, ABANDONED as a ko-sensitive region lever): a move
-            // capturing MORE than kill_pct% of the board's points ends the
+            // capturing MORE than kill_pct% of the goban's points ends the
             // game, scored by area. 0 = disabled. See Tables.kill_pct.
             kill_pct: u8 = 0,
             // N-ply superko + score-on-cycle (the bounded-history family that
             // interpolates basic ko -> PSK). When cycle_score is set, positional
             // superko is REPLACED by: (a) a move may not recreate any of the
-            // last `ko_ply` board positions (the bounded ko WINDOW; ko_ply=1 =
+            // last `ko_ply` goban positions (the bounded ko WINDOW; ko_ply=1 =
             // basic ko); (b) a repeat OLDER than the window (a longer cycle the
             // window can't forbid) ENDS the game, scored by area AS-IS. This
             // makes every N-ply rule terminate and interpolate basic ko (N=1)
             // -> PSK (N large enough that no repeat is ever "older"). The value
             // depends on the window + full history, so `win` and `bans` are
-            // both in the memo key -> a small-board VALUES/tractability probe,
+            // both in the memo key -> a small-goban VALUES/tractability probe,
             // not a generation method. false = pure PSK.
             cycle_score: bool = false,
             ko_ply: usize = 1, // window depth N (1..MAX_KO_PLY); used iff cycle_score
@@ -1877,7 +1877,7 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
                 const child = R.pos_from_move(pos, side, p) catch continue;
                 const ci: usize = @intCast(X.colex_from_pos(&child));
                 if (ctx.cycle_score) {
-                    // N-ply ko: may not recreate any of the last ko_ply boards.
+                    // N-ply ko: may not recreate any of the last ko_ply gobans.
                     if (inWindow(&win, ctx.ko_ply, ci)) continue;
                     // repeat OLDER than the window (a longer cycle the window
                     // can't forbid): the game ends now, scored by area AS-IS.
@@ -1889,7 +1889,7 @@ pub fn Exact(comptime w: usize, comptime h: usize) type {
                         continue;
                     }
                 } else if (bans.isSet(ci)) continue; // positional superko
-                // kill-X%: if this move captured > kill_pct% of the board's
+                // kill-X%: if this move captured > kill_pct% of the goban's
                 // points worth of opponent stones, the game ends now (scored
                 // by area). Terminal -> no recursion, so no kill-refill cycle.
                 if (ctx.kill_pct != 0) {
@@ -2144,7 +2144,7 @@ fn installParallelSigint() void {
 }
 
 const RunOpts = struct {
-    ground_truth: bool = false, // exhaustive history-exact compare (small boards only)
+    ground_truth: bool = false, // exhaustive history-exact compare (small gobans only)
     gt_root_budget: u64 = 3_000_000, // per-root node allowance (deepest layers first;
     // exact roots are bimodal — near-terminal ones finish far under this,
     // reopening ones would not finish at 1000x it, MEASURED at 2x2 — so a
@@ -2323,7 +2323,7 @@ fn anchorProbe(gpa: std.mem.Allocator, budget: u64) !void {
     p("anchor probe: {s}\n", .{if (all_ok) "PASS" else "INCOMPLETE/FAIL"});
 }
 
-/// Build the COMPLETE oracle for a board (iterate -> certify -> finish ->
+/// Build the COMPLETE oracle for a goban (iterate -> certify -> finish ->
 /// dtt), persist it as an ADR-0011 artifact, then RELOAD the file and verify
 /// the loaded bytes: every column identical to the in-memory table, and the
 /// battery's key facts re-checked from the LOADED data (the file, not the
@@ -2554,7 +2554,7 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
     });
 
     if (w == 3 and h == 3) {
-        // published anchors (Hayward, Solving Go on Small Boards)
+        // published anchors (Hayward, Solving Go on Small Gobans)
         var centre: RT.Pos = [_]i8{0} ** 9;
         centre[4] = 1;
         var side_b1: RT.Pos = [_]i8{0} ** 9; // bottom-centre
@@ -2621,7 +2621,7 @@ fn runBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, opts: 
         // SOUNDNESS = every value the exact solver could reach agrees, and
         // sits in [L,H]. COMPLETENESS = nothing left unchecked (shallow roots
         // the exact solver can't reach + ko-sensitive region the finisher didn't fill).
-        // The exact solver CANNOT reach shallow roots on ANY board (Finding
+        // The exact solver CANNOT reach shallow roots on ANY goban (Finding
         // 3), so anything below full coverage is expected, not a failure.
         const gt_sound = gt.mismatch == 0 and gt.bracket_fail == 0;
         const gt_full = gt_sound and gt.root_skipped == 0 and gt.unfilled == 0;
@@ -2722,7 +2722,7 @@ fn runReplay(gpa: std.mem.Allocator) void {
 fn replay4x4(gpa: std.mem.Allocator) !void {
     const RT = Retro(4, 4);
     const p = std.debug.print;
-    // the B+16 game, board moves only (final two passes omitted)
+    // the B+16 game, goban moves only (final two passes omitted)
     const game = "C3 B2 B3 C2 A2 D3 C4 A3 A4 B1 D4 A1 D2 C1 D1 B2 B1 C2 C1 B2 C2";
 
     var t = try RT.Tables.init(gpa);
@@ -2899,7 +2899,7 @@ const ConsistOutcome = struct {
 /// Audit ONE node against the minimax identity under a FIXED history H=[P]:
 ///   V(P, side, [P]) == opt_side( { V(c, -side, [P,c]) : c legal }, pass )
 /// where the pass branch is V(P, -side, [P]) at passes=1. Parent, every
-/// board child, and the pass branch are each solved as INDEPENDENT roots with
+/// goban child, and the pass branch are each solved as INDEPENDENT roots with
 /// a freshly re-seeded ctx (so the check compares final exact values, not the
 /// search's fail-soft internals). A maximizer's parent below its best option
 /// (or a minimizer's above) is an outright PROOF of a bug in this variant.
@@ -2913,7 +2913,7 @@ fn auditNode(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables,
     hist.push(&pos);
     const parent = solveNode(w, h, t, ctx, &pos, side, 0, hist) catch return .{ .status = .skipped };
 
-    // opt over PSK-legal, eye-pruned board children under H = [P, c]
+    // opt over PSK-legal, eye-pruned goban children under H = [P, c]
     var best: i8 = if (side > 0) -127 else 127;
     const own_alive = RT.R.benson_alive(&pos, side);
     for (0..RT.n) |cell| {
@@ -3225,7 +3225,7 @@ fn runParallel(gpa: std.mem.Allocator) void {
     const io = threaded.io();
     const dir = std.Io.Dir.cwd();
 
-    // Dispatch by board size
+    // Dispatch by goban size
     if (std.c.getenv("RETRO_3X3") != null) {
         parallelBoard(3, 3, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every);
     } else {
@@ -3402,7 +3402,7 @@ fn parallelBoard(
     }
 }
 
-/// CENSUS (5x5 projection): build each board through seed+converge+finalize
+/// CENSUS (5x5 projection): build each goban through seed+converge+finalize
 /// only (NO finisher — this is the cheap history-free part) and report the
 /// numbers that drive the 5x5 feasibility question: legal-position count
 /// (final table size), certified vs KO_SENSITIVE ko-sensitive region split and its
@@ -3444,7 +3444,7 @@ fn censusBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !vo
 /// score-on-cycle-as-is, kill-X%, ...). Where L==H the value is a fresh-start single score and
 /// rule-independent (no finisher, no ko rule needed). Where L<H the value is
 /// convention-dependent and provably lies in [L,H]. This reports the certified
-/// core, the empty-board bracket (the headline), and the ko-sensitive region bracket-width
+/// core, the empty-goban bracket (the headline), and the ko-sensitive region bracket-width
 /// distribution — all sound, no finisher.
 fn bracketBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
     const RT = Retro(w, h);
@@ -3510,7 +3510,7 @@ fn runBracket(gpa: std.mem.Allocator) void {
     bracketBoard(4, 4, gpa) catch |e| p("  4x4 FAILED: {t}\n", .{e});
 }
 
-/// FAIL-FAST throughput comparison: build a board once, then run the ko-sensitive region
+/// FAIL-FAST throughput comparison: build a goban once, then run the ko-sensitive region
 /// finisher twice on fresh certified tables — fast REUSE path vs SOUND
 /// (writes-off) path — and report wall time, slots filled, and budget-skips.
 /// Quantifies the cost of dropping the (unsound) cross-branch reuse, the
@@ -3548,7 +3548,7 @@ fn runCompare(gpa: std.mem.Allocator) void {
     finishCompare(4, 3, gpa, 200_000_000) catch |e| std.debug.print("cmp 4x3 FAILED: {t}\n", .{e});
 }
 
-/// CORRECTNESS gate for Track B: finish the same board two ways — sound
+/// CORRECTNESS gate for Track B: finish the same goban two ways — sound
 /// (writes-off) and deps (fingerprint-guarded reuse) — and compare every
 /// filled value slot. They MUST be identical: deps is only sound if it
 /// reproduces the writes-off values exactly. (The auditor proves
@@ -3597,11 +3597,11 @@ fn runDepsVal(gpa: std.mem.Allocator) void {
     depsValidate(4, 3, gpa, 200_000_000) catch |e| std.debug.print("depsval 4x3 FAILED: {t}\n", .{e});
 }
 
-/// RULES experiment (sanity tier): solve the EMPTY board with the exact
+/// RULES experiment (sanity tier): solve the EMPTY goban with the exact
 /// PSK solver, kill_pct = 0 (pure PSK) vs 50 (kill->immediate scored end), and
 /// report the value + search size. Answers: (a) does kill-50 change the true
 /// value? (b) does the kill rule make the otherwise-explosive exact solve
-/// terminate? Tiny boards only (exact PSK is intractable beyond ~3x3).
+/// terminate? Tiny gobans only (exact PSK is intractable beyond ~3x3).
 fn rulesBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) void {
     const EX = Exact(w, h);
     const p = std.debug.print;
@@ -3630,9 +3630,9 @@ fn runRules(gpa: std.mem.Allocator) void {
     rulesBoard(4, 3, gpa, 200_000_000);
 }
 
-/// Option B probe: exact empty-board value under basic-ko + score-on-cycle
+/// Option B probe: exact empty-goban value under basic-ko + score-on-cycle
 /// (the game ends and is scored AS-IS the first time a longer cycle would
-/// repeat an earlier board). Reported side by side with pure PSK so we can
+/// repeat an earlier goban). Reported side by side with pure PSK so we can
 /// see (a) whether the rule changes the value and (b) whether it is any more
 /// tractable than PSK. History-dependent, so a values probe, not generation.
 fn cycleBoard(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, budget: u64) void {
@@ -3662,9 +3662,9 @@ fn runCycle(gpa: std.mem.Allocator) void {
     cycleBoard(4, 3, gpa, 200_000_000);
 }
 
-/// N-PLY SWEEP (the agreed experiment): exact empty-board value + tractability
+/// N-PLY SWEEP (the agreed experiment): exact empty-goban value + tractability
 /// under the bounded-history superko family. For each N in {1,2,4,6,8} a move
-/// may not recreate any of the last N boards, and a repeat OLDER than the
+/// may not recreate any of the last N gobans, and a repeat OLDER than the
 /// window ends the game scored by area. N=1 is basic ko; large N approaches
 /// PSK. We watch two things: (1) does the VALUE converge toward the PSK anchor
 /// as N grows? (2) does small N stay TRACTABLE (score-on-cycle ends games
@@ -3757,7 +3757,7 @@ fn runCensus(gpa: std.mem.Allocator) void {
 
 /// E2 (leak-crisis, 2026-07-25): range-aware self-play. Both players play the
 /// lo-game (Black maximizes lo[child], White minimizes lo[child]) with REAL
-/// PSK legality (a move recreating any prior board is illegal). The audited
+/// PSK legality (a move recreating any prior goban is illegal). The audited
 /// colour records a promise = the lo-floor of the move it chose; a game leaks
 /// if the final score is worse than the strongest promise. Zero leaks => lo is
 /// a true lower bound (C3 supported). In-memory converge (no artifact: the
@@ -3781,7 +3781,7 @@ fn e3Analyze(comptime w: usize, comptime h: usize, t: *const Retro(w, h).Tables,
 
     p("E3 audit: promise {d} at ply {d}/{d}\n", .{ promise, promise_ply, ply });
     // PSK-legality scan: replay the WHOLE game, verify no move recreated a
-    // prior board (the self-play `seen` filter must match this). Any illegal
+    // prior goban (the self-play `seen` filter must match this). Any illegal
     // move => the leak is a self-play/PSK wiring bug, not a bound failure.
     {
         var lp: Pos = [_]i8{0} ** n;
@@ -4497,7 +4497,7 @@ pub fn main() !void {
         return;
     }
     if (std.c.getenv("RETRO_6X3") != null) {
-        // 3^18 = 387,420,489 slots (~16 GB peak) — the largest in-RAM board
+        // 3^18 = 387,420,489 slots (~16 GB peak) — the largest in-RAM goban
         // on this machine; published anchor: 3x6 = B+18 (van der Werf).
         const thread = try std.Thread.spawn(.{ .stack_size = 1 << 28 }, run6x3, .{gpa});
         thread.join();
@@ -4518,7 +4518,7 @@ pub fn main() !void {
     }
     if (std.c.getenv("RETRO_PLAIN") != null) {
         // engine-vs-engine: plain ADR-0009 finisher vs bracketed ADR-0010,
-        // 2x2 only (the one board plain completes — Finding 5/6). The two
+        // 2x2 only (the one goban plain completes — Finding 5/6). The two
         // final tables must be IDENTICAL slot-for-slot.
         const RT = Retro(2, 2);
         var ta = try RT.Tables.init(gpa);
@@ -4599,7 +4599,7 @@ test "2x2 bracket-guided finisher completes the whole ko-sensitive region (ADR-0
     RT.converge(&t);
     RT.finalize(&t);
     // modest per-root budget: bracket cuts must make every root small (the
-    // PLAIN finisher needed up to 285M nodes on this board — Finding 5)
+    // PLAIN finisher needed up to 285M nodes on this goban — Finding 5)
     const fin = try RT.finish(&t, std.testing.allocator, 2_000_000, true);
     try expect(fin.budget_skipped == 0);
     try expect(fin.bracket_fail == 0);

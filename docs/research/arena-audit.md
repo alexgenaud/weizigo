@@ -23,7 +23,7 @@ probes (`RETRO_REPLAY` / `RETRO_VERIFY` in retro.zig).
 
 - **8.3% of adversarial games leak score** — the fresh-start player's
   exploitability is not a corner case. Max observed leak: 32 points
-  (promise W+16, final B+16 — the same full-board swing class as the
+  (promise W+16, final B+16 — the same full-goban swing class as the
   human-discovered "B+16 game", research/retrograde-4x4.md).
 - **37% of games contain a DIVERGED event** (the best achievable child
   score differs from the audited player's own stored position score —
@@ -140,9 +140,9 @@ Consequences:
    theoretical hole exists there, so a 4x4 deep spot-check pass and/or a
    KM-guarded finisher rerun is now a prioritized validation item.
 
-## Cross-board sweeps (2026-07-22): leaks everywhere, and the decisive control
+## Cross-goban sweeps (2026-07-22): leaks everywhere, and the decisive control
 
-3,600 games per board (100 seeds x 2 colours x 3 handicaps x 6 personas),
+3,600 games per goban (100 seeds x 2 colours x 3 handicaps x 6 personas),
 leak rate range across personas:
 
     2x2: 14-17% of games leak (max 2 pts)   <- table PROVEN correct
@@ -155,11 +155,11 @@ assumption-free ban-set-keyed Exact solver (0 mismatches on every slot) —
 their fresh-start scores are CORRECT beyond doubt. Yet the fresh-start
 PLAYER leaks there most of all (3x2: nearly half of adversarial games).
 Conclusion: the leak class is entirely the player's history-blindness, not
-table error. Tiny boards are ko machines (ko-sensitive region 72%/39%), so fresh-start
+table error. Tiny gobans are ko machines (ko-sensitive region 72%/39%), so fresh-start
 play is most wrong exactly where history matters most.
 
 Timeline honesty: none of this needed a human to be DISCOVERABLE — the
-arena finds it in seconds at every board size. It needed a human to think
+arena finds it in seconds at every goban size. It needed a human to think
 of PLAYING ADVERSARIALLY at all: before the B+16 game, validation was
 static (symmetry, brackets, anchors, ground truth) plus one deterministic
 self-play line, which cannot diverge because both sides follow the same
@@ -171,7 +171,7 @@ adversarial play, and "self-play smoke test" is not adversarial.
 
 Regenerating small artifacts (pilot gate) exposed that the current finisher
 disagrees with the committed artifacts. Adjudication made it WORSE, not
-better: three methods give three different scores for the empty 3x2 board
+better: three methods give three different scores for the empty 3x2 goban
 (idx 0, fresh-start):
 
     old      (aspiration exact-memo finisher)     : +1
@@ -190,14 +190,14 @@ CONCLUSION we can and cannot draw:
   none of those is proven; it is the least-assumption-laden of the three,
   not an oracle.
 - The ONLY assumption-free judge is Exact(w,h) (ban-set-keyed, sound by
-  construction). It is intractable on the empty board (Finding 3) but IS
+  construction). It is intractable on the empty goban (Finding 3) but IS
   tractable on near-terminal disputed slots (high stone count). Those are
   the footholds: adjudicate every Exact-reachable disputed slot, see which
   method (if any) it matches.
 
 Scope of the doubt (unchanged): the fresh-start single-score region (L==H)
 is not in dispute here — every disputed slot is KO_SENSITIVE ko-sensitive
-region. But the ko-sensitive region is 21-49% of every board and includes
+region. But the ko-sensitive region is 21-49% of every goban and includes
 the opening, so "the oracle is correct on its fresh-start single-score
 region" is true and "the published 3x2/3x3/4x4 artifacts are
 fully correct" is NOT currently established.
@@ -211,7 +211,7 @@ pilot-gate byte-identity thereafter.
 ## Foothold adjudication is STRUCTURALLY DEFEATED (2026-07-23)
 
 Attempted #1 (assumption-minimal external adjudication of the disputed
-ko-sensitive region) on both boards. Both failed to produce a SINGLE foothold:
+ko-sensitive region) on both gobans. Both failed to produce a SINGLE foothold:
 - 3x2: Exact (ban-set-keyed), most-filled disputed slots, 2e9 then 3e8
   node budget — 0 reached (~2 h).
 - 4x4: Exact is memory-dead (5.38 MB per ban-set key = 3^16 bits); judge =
@@ -221,11 +221,11 @@ ko-sensitive region) on both boards. Both failed to produce a SINGLE foothold:
 
 WHY (structural, not tuning): the disputed slots ARE the ko-sensitive
 ko-sensitive region, and those are exactly the positions where a capture REOPENS the
-board mid-search (Finding 7), exploding any un-memoized or ban-set-memoized
+goban mid-search (Finding 7), exploding any un-memoized or ban-set-memoized
 solve. Exact memoization is the only thing that could tame it, and its key
 (the full superko ban-set) is what makes it intractable — the graph-history-
 interaction cost IS the whole cost (Finding 3, restated). This is
-board-size-independent: it defeated 3x2 (a ko machine) AND 4x4 (a square
+goban-size-independent: it defeated 3x2 (a ko machine) AND 4x4 (a square
 target) identically.
 
 CONCLUSION — reframes the correctness strategy:

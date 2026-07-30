@@ -23,12 +23,12 @@
 // (position, side) in the table counts once, at a colex stride. That is the
 // right denominator for auditing the artifact and the WRONG denominator for a
 // player, because a player never samples slots uniformly — it walks game lines
-// from the empty board. Slot-uniform ko-sensitivity at 4x4 is 21.27%
+// from the empty goban. Slot-uniform ko-sensitivity at 4x4 is 21.27%
 // (bin/weizigo-chainability data/oracle-4x4.checkpoint.wzo --sample 37), yet
 // 16 of 19 plies (84%) of both saved 4x4 regression games are KO_SENSITIVE.
 // This tool measures the second quantity directly.
 //
-// WHAT IS MEASURED. A game is played out from the empty board under a policy.
+// WHAT IS MEASURED. A game is played out from the empty goban under a policy.
 // Every DECISION NODE — the (position, side-to-move) pair standing at each ply,
 // before the move is made — is one observation. The reported fraction is the
 // share of those nodes whose artifact slot carries the KO_SENSITIVE flag
@@ -43,7 +43,7 @@
 //             distinct lines so this cannot be misread.
 //   random -- both sides uniform over PSK-legal moves, plus pass with a small
 //             fixed probability. The "what does the space look like from the
-//             empty board" control.
+//             empty goban" control.
 //   mixed  -- one side oracle, one side random; the side assignment alternates
 //             by game index. This is the realistic human-vs-engine case and is
 //             what the saved regression games are.
@@ -71,7 +71,7 @@
 // FRACTION UPWARD. `--no-settled-stop` disables it, for the sensitivity check.
 //
 // LEGALITY is the real thing: positional superko against the actual game
-// history (every position that has occurred, empty board included), plus
+// history (every position that has occurred, empty goban included), plus
 // rules.Rules(w,h) suicide/occupancy. No eye-prune — the players do not use one.
 //
 // ---------------------------------------------------------------------------
@@ -84,16 +84,16 @@
 // question is not "is PSK solvable" but "does PSK ever actually bind?"
 //
 // DEFINITIONS USED HERE (stated because they are choices, not facts):
-//   * history is indexed by PLY. Ply 0 = the empty board. A pass re-records the
-//     unchanged board at the next ply index, so `bply[k]` is always the board
+//   * history is indexed by PLY. Ply 0 = the empty goban. A pass re-records the
+//     unchanged goban at the next ply index, so `bply[k]` is always the goban
 //     after k plies.
 //   * a candidate move made at a node where `k` plies have been played produces
-//     a child board that would sit at ply index `k+1`.
+//     a child goban that would sit at ply index `k+1`.
 //   * DISTANCE d = (k+1) - j, where j is the LARGEST (most recent) ply index
-//     whose board equals the child. Most-recent is the conservative choice: it
+//     whose goban equals the child. Most-recent is the conservative choice: it
 //     minimises d, so it under-counts the "silent long-range" bucket.
 //   * BASIC KO forbids only the recreation of the position one ply ago, i.e.
-//     exactly d == 2. (d == 1 is impossible: a move always changes the board.)
+//     exactly d == 2. (d == 1 is impossible: a move always changes the goban.)
 //   * PSK forbids d >= 2 of any size.
 //   * therefore PSK-BINDING = PSK-illegal AND d >= 3: legal under basic ko,
 //     illegal under PSK. Three buckets:
@@ -162,8 +162,8 @@ const Policy = enum {
 const Driver = enum { engine, rand };
 
 /// Which repetition rule a legality test enforces.
-///   psk      -- positional superko: no board that has EVER occurred.
-///   basic_ko -- only the board one ply ago is forbidden.
+///   psk      -- positional superko: no goban that has EVER occurred.
+///   basic_ko -- only the goban one ply ago is forbidden.
 const Legality = enum { psk, basic_ko };
 
 /// Distances are tallied into a histogram clamped at this index.
@@ -218,7 +218,7 @@ const Stats = struct {
     bucket_ko: [NBUCKET]u64 = [_]u64{0} ** NBUCKET,
 
     max_plies: u64 = 0,
-    ply1_ko: u64 = 0, // clean games whose ply-1 (empty board, Black) node is flagged
+    ply1_ko: u64 = 0, // clean games whose ply-1 (empty goban, Black) node is flagged
 
     psk: PskStats = .{},
 };
@@ -242,8 +242,8 @@ fn Census(comptime w: usize, comptime h: usize) type {
         hist: [MAXCAP + 4]Pos = undefined,
         hist_len: usize = 0,
         passes: u8 = 0,
-        /// Ply-indexed board record: `bply[k]` is the board after k plies.
-        /// Passes re-record the unchanged board, so the index is a true ply
+        /// Ply-indexed goban record: `bply[k]` is the goban after k plies.
+        /// Passes re-record the unchanged goban, so the index is a true ply
         /// index (unlike `hist`, which only grows on stone placements).
         /// Used only for PSK-binding distances; legality still goes via `hist`.
         bply: [MAXCAP + 4]Pos = undefined,
@@ -278,18 +278,18 @@ fn Census(comptime w: usize, comptime h: usize) type {
             s.hist_len = 0;
             s.passes = 0;
             s.ply = 0;
-            s.push(&s.pos); // the empty board has occurred (mirrors gtp.Session.reset)
+            s.push(&s.pos); // the empty goban has occurred (mirrors gtp.Session.reset)
             s.bply[0] = s.pos;
         }
 
-        /// Record the board reached after `s.ply` plies. Call after `s.ply` has
+        /// Record the goban reached after `s.ply` plies. Call after `s.ply` has
         /// been incremented, for moves AND passes.
         fn recordPly(s: *Self) void {
             if (s.ply >= s.bply.len) @panic("reachcensus: ply record overflow");
             s.bply[s.ply] = s.pos;
         }
 
-        /// The MOST RECENT ply index whose board equals `p`, or null. Used for
+        /// The MOST RECENT ply index whose goban equals `p`, or null. Used for
         /// the PSK repeat distance; most-recent minimises the distance, which
         /// is the conservative choice for the "silent long-range" bucket.
         fn matchPly(s: *const Self, p: *const Pos) ?u64 {
@@ -321,7 +321,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
         };
 
         /// Enumerate every rules-legal move at the current node and classify
-        /// its whole-board repeat, if any. Reads no artifact slot.
+        /// its whole-goban repeat, if any. Reads no artifact slot.
         fn scanNode(s: *const Self, side: i8, st: *PskStats) NodeScan {
             var r = NodeScan{};
             for (0..n) |p| {
@@ -776,7 +776,7 @@ fn Census(comptime w: usize, comptime h: usize) type {
 
         /// Replay a FIXED line (a GTP transcript; only `play <colour> <vertex>`
         /// lines are read, everything else ignored) and print, ply by ply,
-        /// every whole-board repeat that positional superko forbids, with its
+        /// every whole-goban repeat that positional superko forbids, with its
         /// distance. No policy, no artifact slot read — pure rules.
         /// Cross-check instrument for ko-sensitive-chainability.md Measurement 2.
         fn replayTranscript(d: *const artifact.Decoded, name: []const u8, text: []const u8) void {

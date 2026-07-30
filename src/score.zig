@@ -19,7 +19,7 @@
 // BOARD-SNAPSHOT SCORING — pure geometry, no oracle, no history.
 //
 // Provides Chinese area, Japanese-style territory, dame (no-man's-land)
-// regions, and a conservative dead-stone estimate for a single board
+// regions, and a conservative dead-stone estimate for a single goban
 // snapshot.  Every public claim is tagged PROVEN, CLAIMED, or CLAIMED heuristic
 // in its doc comment; this module does NOT consult the oracle/fresh-start
 // table.
@@ -27,7 +27,7 @@
 const std = @import("std");
 const rules = @import("rules.zig");
 
-/// Pure board-snapshot scoring namespace for a fixed board size.
+/// Pure goban-snapshot scoring namespace for a fixed goban size.
 /// All returned values are Black-positive; side-to-move is irrelevant.
 ///
 /// **Epistemic scope:** PROVEN functions depend only on Benson's life theorem
@@ -464,7 +464,7 @@ test "settled 3x3 middle column: definitive, no dame, territory matches area" {
 test "obvious dame: shared empty region" {
     const S = Score(3, 3);
     // Black at 0, White at 1; every empty point is 4-connected to the rest
-    // of the board and the region touches both colours, so all 7 empty points
+    // of the goban and the region touches both colours, so all 7 empty points
     // are dame.
     const b = [_]i8{
         1, -1, 0,
@@ -480,7 +480,7 @@ test "dead stone: lone white stone surrounded by black Benson-alive wall" {
     // Black ring around the centre: cells 1,3,4,5,7 are black with two eyes
     // at 0 and 8 (and at 2,6? actually 4 is centre black too).  White plays
     // into the centre (cell 4)? No — centre is part of the black group.
-    // Instead, place White at the very centre of a 3x3 black-filled board
+    // Instead, place White at the very centre of a 3x3 black-filled goban
     // with eyes.  Board:
     //   . X .
     //   X O X

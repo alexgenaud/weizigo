@@ -25,11 +25,11 @@ heartbeat, do not restart** (README, "Long runs need a persistent session").
 
 Under the rule EXP-2 pinned down and EXP-4/EXP-5 validated — area scoring,
 komi 0, basic ko, fixed-value long-cycle verdict — what is the value of the
-empty 4×4 board?
+empty 4×4 goban?
 
 ## Acceptance criterion — both halves, no substitutes
 
-**1. The value is +2** (Black, empty board, central first move), matching van
+**1. The value is +2** (Black, empty goban, central first move), matching van
 der Werf & Winands (`retrograde-3x3.md:224-245`; `QA-025`).
 
 **2. The root is FILLED.** `vb[empty] ≠ -128`. Read the byte and print it.
@@ -137,7 +137,7 @@ Both runs committed.
 
 ## Deliverables
 
-- `docs/evidence/QA-026/4x4/` (or the per-board ID the `CLAIMS.md` owner
+- `docs/evidence/QA-026/4x4/` (or the per-goban ID the `CLAIMS.md` owner
   assigns) — solver source, the raw build log including the heartbeat, the gate
   chain output, the UNDEF/symmetry/tie sweeps, the root byte read, both
   calibration runs, and `PROVENANCE.md` per `docs/evidence/README.md`.
@@ -160,7 +160,7 @@ Both runs committed.
   matched? gate passed?
 - Do **not** report a bracket or "in-bracket" as meeting the criterion.
 - Do **not** claim 4×4 from 3×3, or let 4×4 evidence anything at 5×5
-  (`AGENTS.md`, per-board epistemic independence). 5×5 is explicitly Phase 3
+  (`AGENTS.md`, per-goban epistemic independence). 5×5 is explicitly Phase 3
   and explicitly not now.
 - Do **not** start EXP-7 or EXP-8's measurement from a partial checkpoint. Both
   need the finished table; EXP-7 in particular would read UNDEF slots and

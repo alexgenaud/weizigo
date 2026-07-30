@@ -27,7 +27,7 @@ Consequences, stated plainly:
 ## What the run was
 
 `katago-match.py` alternates colours between `bin/weizigo-oracle` (the GTP
-oracle player) and KataGo over N games on a small board, writing one SGF plus
+oracle player) and KataGo over N games on a small goban, writing one SGF plus
 two stderr transcripts per game. The weizigo-side stderr transcripts contain the
 engine's own per-move diagnostics (including the `HISTORY-DIVERGED` line added
 for the UNDEF/divergence work), which is where a live-play C2 divergence would

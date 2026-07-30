@@ -8,7 +8,7 @@ On 2026-07-27 `bin/weizigo-chainability` measured that the committed tables are
 ∪ {V1(P,-s)})` holds — with **zero** violations outside the KO_SENSITIVE flag at
 2×2/3×2/3×3/4×3/4×4, and that every violation inside the flag is one of the
 independent fresh-start solves that C2's falsification predicts (max gap = 2n =
-the whole board swing). The same session found that on 4×4 the empty board is
+the whole goban swing). The same session found that on 4×4 the empty goban is
 *itself* KO_SENSITIVE and 16 of 19 plies of both saved regression games are
 flagged, while positional-superko bans changed the best available value at 0 of
 19 plies. Together those two facts move the diagnosis: the GTP player is not
@@ -99,7 +99,7 @@ representation candidate is.
 > — `RETRO_CYCLE` measured byte-identical state counts to PSK (118,475,182 at
 > 2×2; 116,114,272 at 3×2; `docs/research/ruleset-options.md`), so it is exactly
 > as hard as PSK. A "long-cycle tie" rule must resolve the cycle **without
-> needing to know which earlier boards were seen**, or it has smuggled
+> needing to know which earlier gobans were seen**, or it has smuggled
 > score-on-cycle back in and is dead on arrival.
 
 **Cost.** Census tool: ~200 lines on top of `src/ko_census.zig` /
@@ -196,7 +196,7 @@ histories, 19 plies each.
 **Acceptance.** Report the empty-point count at which **median wall time crosses
 1 s** and at which it crosses **10 s**, with node counts alongside. If the 1 s
 crossover sits at **≥ 8 empty points**, a hybrid player — table on the chainable
-(L==H) region, exact search once the board is empty-poor — is buildable as a
+(L==H) region, exact search once the goban is empty-poor — is buildable as a
 stop-gap and **should be proposed** to the user as H5(b)'s concrete form. Below 8,
 report the number and say so plainly; do not dress up a negative.
 
@@ -208,7 +208,7 @@ cannot turn the sweep into a black box.
 
 **Depends on.** Nothing to start. **Gates H5(b).**
 
-**Do NOT conclude** anything about 5×5 — per-board epistemic independence. Also
+**Do NOT conclude** anything about 5×5 — per-goban epistemic independence. Also
 do not conclude that a favourable crossover makes the *table* sound; it makes a
 *player* sound on the searched region only.
 
@@ -273,7 +273,7 @@ deliverable decision, not an engineering one.
 values only where the flag is clear; elsewhere use a history-free quantity
 (settled area score, or Benson-alive territory via `src/rules.zig` /
 `src/terminal.zig`). *Sound* — M4 measured zero identity violations outside the
-flag. *Weak* — on 4×4 the empty board is itself KO_SENSITIVE (M5), so this player
+flag. *Weak* — on 4×4 the empty goban is itself KO_SENSITIVE (M5), so this player
 has **no table guidance from move one**. That is the honest consequence of a
 fresh-start-only deliverable, not a bug in the option.
 *Cost:* low; a guard in `Session.choose` plus a fallback evaluator, ~1 day.

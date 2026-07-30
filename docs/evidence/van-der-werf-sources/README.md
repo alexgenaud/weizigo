@@ -19,7 +19,7 @@ The erikvanderwerf.tengen.nl domain is still live (returns 403 on root) but its
 
 - 5x5 solved page:
   https://web.archive.org/web/20250209110156/https://erikvanderwerf.tengen.nl/5x5/5x5solved.html
-- Solving Go on Small Boards paper:
+- Solving Go on Small Gobans paper:
   https://web.archive.org/web/20251204235049/http://erikvanderwerf.tengen.nl/pubdown/solving_go_on_small_boards.pdf
 
 ## Files that cite these sources

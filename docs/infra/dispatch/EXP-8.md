@@ -65,9 +65,9 @@ against exact PSK on **two** quantities, reported separately:
 
 ## What "where PSK is computable" actually means — the hard constraint
 
-Exact PSK is intractable **from the empty board on a 2×2**: 118,475,182 ban-set
+Exact PSK is intractable **from the empty goban on a 2×2**: 118,475,182 ban-set
 states at a 200M-node budget (`ruleset-options.md:157-165`). There is no "small
-board" escape — the escape is **depth**.
+goban" escape — the escape is **depth**.
 
 The exact solver is `Exact(w, h)` at `src/retro.zig:1794` (`Ctx`, `Key =
 {idx, side, passes, win, bans}`, `solve()` at `:1859`), budget- and
@@ -96,7 +96,7 @@ itself a first-class deliverable:
 They answer different questions and must not be pooled.
 
 - **(A) Reachable-play frame.** Positions drawn from playouts from the empty
-  board (the `oracle` / `oracle-rt` / `mixed` / `random` policies of
+  goban (the `oracle` / `oracle-rt` / `mixed` / `random` policies of
   `src/reachcensus.zig`). Answers *"does it matter in play?"* — the frame the
   user's metric lives in.
 - **(B) Uniform-over-slots frame.** Positions drawn uniformly from legal slots
@@ -107,7 +107,7 @@ They answer different questions and must not be pooled.
 
 ## Acceptance criterion
 
-A **divergence rate with a stated sample size and a power argument**, per board
+A **divergence rate with a stated sample size and a power argument**, per goban
 and per frame, no pooling:
 
 - For each of 3×3 and 4×4 (and 2×2 / 3×2 while the harness is being built),
@@ -120,7 +120,7 @@ and per frame, no pooling:
   an `n` is not a result.
 - If `d > 0`: the magnitude distribution and ≥ 3 worked examples (position, both
   values, the move each rule prefers, the PSK-value loss).
-- A one-sentence headline: *"On <board>, frame <A|B>, the new-rule table
+- A one-sentence headline: *"On <goban>, frame <A|B>, the new-rule table
   diverges from exact PSK in `d`/`n` sampled positions (95% CI …), `k` excluded
   for budget exhaustion."*
 
@@ -141,7 +141,7 @@ the user asked to have measured rather than assumed.
    model for your harness. Read it. It is **not** a result about the new rule,
    and its probe source is lost, so you are rebuilding, not reusing.
 3. **kill-50% at 2×2 returned +1, "score unchanged" from PSK**
-   (`ruleset-options.md:91-98`). One position, one board, a third rule. Not
+   (`ruleset-options.md:91-98`). One position, one goban, a third rule. Not
    evidence of anything here.
 4. **`QA-012` is UNTESTED and was posed as adjacent ladder rungs** (`j` vs
    `j+1`). You measure the endpoints instead, because there is exactly one
@@ -169,13 +169,13 @@ Both runs committed.
 ## Deliverables
 
 - `docs/evidence/QA-012/` — harness source (the PSK driver **and** the sampler),
-  raw output per board and per frame with commands, seeds, artifact paths and
+  raw output per goban and per frame with commands, seeds, artifact paths and
   sha256s, budget/entry caps, the empties-vs-solvability curve, both
   calibration runs, and `PROVENANCE.md` per `docs/evidence/README.md`.
 - `docs/research/psk-divergence-2026-07-28.md` — the rates with CIs and power
   argument, the exclusion accounting and its bias direction, the worked
   examples, the explicit statement that no monotonicity between the rules is
-  claimed, every claim tagged. Per-board sections.
+  claimed, every claim tagged. Per-goban sections.
 - One-line status for the `CLAIMS.md` owner (`QA-012`, and the value half of
   `QA-024`). **Do not edit `CLAIMS.md`.**
 
@@ -194,7 +194,7 @@ Both runs committed.
   direction. Both players gain options under the weaker rule.
 - Do **not** cite EXP-1's zero as evidence that the values agree. That
   conflation is the specific error this brief exists to prevent.
-- Do **not** pool frames A and B, or pool boards (`AGENTS.md`).
+- Do **not** pool frames A and B, or pool gobans (`AGENTS.md`).
 - Do **not** conclude "the new rule is PSK-perfect" from a zero rate. Zero
   divergence on the computable subset is **evidence, never proof**, and that
   subset is biased toward agreement. The roadmap says this (§2, S2); keep it

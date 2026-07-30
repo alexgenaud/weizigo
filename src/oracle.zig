@@ -17,7 +17,7 @@
 ////////////////////////////////////////////
 //
 // ORACLE BUILDER (prototype scale) — fills the value of EVERY legal
-// (position, side-to-move) of a small board into a flat colex-addressed array:
+// (position, side-to-move) of a small goban into a flat colex-addressed array:
 // the first actual oracle artifact (ADR-0007 goal b; semantics in ADR-0008).
 //
 // SEMANTICS — "fresh-start value": oracle[pos][side] is the optimal area score
@@ -30,7 +30,7 @@
 //
 // ENGINE — forward search-to-terminal, the same validated semantics as
 // solve.zig (double-pass/settled terminals, area scoring, positional superko,
-// the ko_ref GHI cacheability rule, the ADR-0006 eye-prune), but board-size-
+// the ko_ref GHI cacheability rule, the ADR-0006 eye-prune), but goban-size-
 // generic (rules.zig) and memoized directly in the RAW COLEX ARRAY — the memo
 // table IS the oracle output. Only `passes == 0`, `ko_ref >= d` (clean) values
 // are memoized; every legal position gets a root solve, so the sweep fills the
@@ -182,7 +182,7 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
         // Bloom fingerprint width, in 64-bit words (Track B, ADR-0013). Wider
         // = less saturation = more safe reuse recovered, at more memory per
         // memo entry (8*FP_WORDS bytes) and a wider Result. Tunable to
-        // characterize the saturation/reuse tradeoff vs board size.
+        // characterize the saturation/reuse tradeoff vs goban size.
         pub const FP_WORDS = 32;
         pub const Fp = [FP_WORDS]u64;
         pub const fp_zero: Fp = [_]u64{0} ** FP_WORDS;
@@ -194,7 +194,7 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
             return (@as(u64, idx) << 1) | @intFromBool(to_move <= 0);
         }
 
-        // `fp` (Track B): a Bloom fingerprint of the set of board positions the
+        // `fp` (Track B): a Bloom fingerprint of the set of goban positions the
         // value depends on (every position visited in the node's subtree). Used
         // by the dependency-guarded memo to decide safe reuse. Default empty
         // (KO_CLEAN early-exits set it to the node's own bits).
@@ -241,7 +241,7 @@ pub fn Oracle(comptime w: usize, comptime h: usize) type {
                     if (r.value < best) best = r.value;
                 }
             }
-            // pass (board unchanged, exempt from superko)
+            // pass (goban unchanged, exempt from superko)
             const rp = try solve(ctx, pos, -to_move, passes + 1, hist);
             if (rp.ko_ref < ko_ref) ko_ref = rp.ko_ref;
             if (maximizing) {
@@ -293,7 +293,7 @@ fn newCtx(gpa: std.mem.Allocator, memo: bool) !O.Ctx {
 /// Sweep every legal position (both sides) as a fresh-start root, layers
 /// BOTTOM-UP (most stones first): endgame roots are cheap and their clean
 /// values warm the memo before the ko-heavy opening roots. (An ascending
-/// cold-start sweep — empty board first — was measured impractically slow:
+/// cold-start sweep — empty goban first — was measured impractically slow:
 /// the empty root alone re-searches the GHI-tainted opening unmemoized, the
 /// forward-solve wall of docs/research/forward-solve-scaling.md in miniature.)
 /// `within_desc` flips the within-layer order (order-independence probe).

@@ -23,16 +23,16 @@ node at depth `d` is exactly `{root, move1, move2, …, move_d}`, with PSK
 bans enforced against it. This is precisely the definition of a real game
 line played from the root with positional superko.
 
-For the **empty-board root** the identification is total: every PSK-legal
-placement sequence from the empty board is a candidate search path and vice
+For the **empty-goban root** the identification is total: every PSK-legal
+placement sequence from the empty goban is a candidate search path and vice
 versa. ADR-0015's core sentence — "the finisher's search path *is* a real
 game line" — is confirmed at the code level. Per ADR-0016 the argument is
-structural and carries to every board size.
+structural and carries to every goban size.
 
 **Why it fails, empirically.** T13 (`docs/research/c2-falsification-3x2.md`)
 exhibits 12 pointwise mismatches at 3×2 where `V(P,h) ≠ stored L==H score`
 under histories of exactly the search-path shape (root + placement path,
-PSK-legal). Eight of twelve are rooted at the empty board (index 0). An
+PSK-legal). Eight of twelve are rooted at the empty goban (index 0). An
 L==H slot has the point bracket `[s,s]`, so each mismatch is a node where
 `V(P,h) ∉ [lo,hi]` with `h` inside the search-path family. The universal
 claim "brackets hold under ANY arrival history" is falsified in the sub-case
@@ -248,7 +248,7 @@ this seat grades both independently on the evidence.
    strengthening, demoting it back to ADR-0015's burden-only position.
 
 2. **An exhaustive 3×2 cut-site audit** (ADR-0015's falsifier 2, at the
-   board where the pointwise premise is testable) logging every fired
+   goban where the pointwise premise is testable) logging every fired
    bracket cut and comparing each returned bound against the history-exact
    value at that node. Zero mismatches over every cut site at 3×2 would
    constitute empirical evidence that — at least at 3×2 — no *fired* cut

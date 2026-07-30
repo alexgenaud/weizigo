@@ -54,7 +54,7 @@ Decoding each rank directly (base-3 little-endian, 1=Black 2=White; verified
 against `586 → [B,␣,W,␣,B,W]`, which matches the deliverable) and scoring by hand
 on the real geometry (`BOARD_W=3, BOARD_H=2`, row-major):
 
-| rank | board | `area_score` | reported `truncated` | |
+| rank | goban | `area_score` | reported `truncated` | |
 |---|---|---|---|---|
 | 586 | `[B,␣,W,␣,B,W]` | **+1** | +1 | ✓ |
 | 534 | `[␣,B,W,B,␣,W]` | **+1** | +1 | ✓ |
@@ -67,8 +67,8 @@ on the real geometry (`BOARD_W=3, BOARD_H=2`, row-major):
 The committed primary-run stdout (`probe-fix-2026-07-29.stdout`, 256 samples)
 contains **only** 534 and 586 — matching the probe's own "C2: states … : 2" line.
 `146` and `103` appear in neither that run nor an independent Orchestrator re-run
-at 512 samples / depth 24, which produced 534, 103, 674, 302. `146`'s board string
-is consistent with its rank, so rank and board are both fine; only the *value* is
+at 512 samples / depth 24, which produced 534, 103, 674, 302. `146`'s goban string
+is consistent with its rank, so rank and goban are both fine; only the *value* is
 wrong, and it is exactly `103`'s. **The §4 table paired 146's row with 103's
 number** — a write-up slip, not a code defect. It was catchable on its face:
 White is to move at `passes == 1`, so White can pass into a terminal worth +1,

@@ -77,7 +77,7 @@ DSPro is correct that the **§1 restatement** is falsified — it is a conjuncti
 
 ### 2.1 State (586,1,6,1) — VERIFIED
 
-Board colex 586 on 3×2 (base-3, cells 0–5):
+Goban colex 586 on 3×2 (base-3, cells 0–5):
 
 ```
 586 = 2·3⁵ + 1·3⁴ + 0·3³ + 2·3² + 0·3¹ + 1·3⁰
@@ -85,7 +85,7 @@ Board colex 586 on 3×2 (base-3, cells 0–5):
 cell 5=W, cell 4=B, cell 3=␣, cell 2=W, cell 1=␣, cell 0=B
 ```
 
-Board layout (3 cols × 2 rows, 0–2 top, 3–5 bottom):
+Goban layout (3 cols × 2 rows, 0–2 top, 3–5 bottom):
 
 ```
 B ␣ W   (top)
@@ -197,11 +197,11 @@ touches only Black stones with other liberties. White's only legal move is pass
    512-sample run's table. A copy-paste error moving numbers from a depth-24
    run into the §4 table is the most common failure mode in this chain.
 
-2. **I decoded the board incorrectly.** The `unrank_board` function in
+2. **I decoded the goban incorrectly.** The `unrank_board` function in
    `qa023_probe.zig` may use a different colex ordering (e.g. cell-major rather
-   than position-major, or reversed digit significance). If the actual board
+   than position-major, or reversed digit significance). If the actual goban
    differs from my decoding, the area_score could be +3. This would make the
-   counterexample valid but for a different board than the one I computed.
+   counterexample valid but for a different goban than the one I computed.
 
 3. **The evaluator found a non-pass continuation at depth > 1 where Black
    forces a higher score.** This is unlikely given the suicide analysis but
@@ -209,8 +209,8 @@ touches only Black stones with other liberties. White's only legal move is pass
    state.
 
 **Recommendation:** re-run the 512-sample probe and dump the arrival sequences
-for (146,1,6,1) to verify the board encoding and the evaluator's continuation
-tree. Also verify `unrank_board` produces the board I decoded above. **Do not
+for (146,1,6,1) to verify the goban encoding and the evaluator's continuation
+tree. Also verify `unrank_board` produces the goban I decoded above. **Do not
 cite (146,1,6,1) as a C2 counterexample until this discrepancy is resolved.**
 
 ### 2.5 Summary of counterexample verification
@@ -443,7 +443,7 @@ labelled "design calibration", not "instrument calibration".
 
 **3. The `probe-defect` README should become a standing test.** Add a
 hardcoded test case to `qa023_probe.zig` that evaluates a state of known value
-(like the §4 worked counterexample: board 586, White to move, passes=1,
+(like the §4 worked counterexample: goban 586, White to move, passes=1,
 expects +1 not TIE). Run it in `zig test`. A probe that returns TIE on that
 state is broken. This would have caught the defect in CI, not in an absorption
 check at the promotion gate.

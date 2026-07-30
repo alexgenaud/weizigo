@@ -40,14 +40,14 @@ for 5x5, then 6x6, aiming at 7x7.
 
 ### Generation 1 — the 5x5-hardcoded stack (validated reference)
 
-Fixed `[25]i8` boards; sign = colour, magnitude = army flag. This stack is the
+Fixed `[25]i8` gobans; sign = colour, magnitude = army flag. This stack is the
 project's PROVEN core: it found and fixed the terminal-territory bug, carries
 the ko/GHI machinery, and now serves as the ground-truth reference the generic
 stack is cross-validated against.
 
 | module | lines | concern |
 |---|---|---|
-| `state.zig` | 1290 | board representation & move application (army flags), symmetries (`lowest_blind_from_pos` = canonical form), encodings: `blind` (25-bit occupancy), `seq` (colour bits), `view` (u40 base-3) |
+| `state.zig` | 1290 | goban representation & move application (army flags), symmetries (`lowest_blind_from_pos` = canonical form), encodings: `blind` (25-bit occupancy), `seq` (colour bits), `view` (u40 base-3) |
 | `terminal.zig` | 458 | scoring & life: `area_score` (Chinese), `benson_alive` (Benson), `is_settled` (decided-terminal incl. eye-space rule) |
 | `superko.zig` | 255 | positional-superko `History` (game-line stack, `repeatsIndex` for GHI, `max_len` diagnostic, always-live MAX_LINE panic) |
 | `solve.zig` | 438 | THE validated forward search: to-terminal minimax + superko + Benson/double-pass terminals + `ko_ref` GHI caching rule + ADR-0006 eye-prune + `(blind,seq)` transposition table |
@@ -58,7 +58,7 @@ stack is cross-validated against.
 Retired (ADR-0007, commit b1b6cea): `minimax.zig` (old depth-limited search),
 `measure.zig` (its instrumentation).
 
-### Generation 2 — the board-size-generic oracle stack (comptime w x h)
+### Generation 2 — the goban-size-generic oracle stack (comptime w x h)
 
 Everything parameterized `(comptime w, comptime h)`; pure sign domain (no army
 flags); each module standalone/dependency-light (per-module `zig test` always
@@ -66,9 +66,9 @@ works). This is where the oracle is being built.
 
 | module | lines | concern |
 |---|---|---|
-| `rules.zig` | 547 | THE RULES KERNEL: move/capture/suicide, area score, Benson, settled, eye-prune predicate. Cross-validated vs Gen-1 (500 random boards vs terminal.zig, 1000 random moves vs state.zig — exact match). Also hosts the Benson THEOREM check (exhaustive adversarial falsification at 3x3) |
+| `rules.zig` | 547 | THE RULES KERNEL: move/capture/suicide, area score, Benson, settled, eye-prune predicate. Cross-validated vs Gen-1 (500 random gobans vs terminal.zig, 1000 random moves vs state.zig — exact match). Also hosts the Benson THEOREM check (exhaustive adversarial falsification at 3x3) |
 | `enumerate.zig` | 317 | STRUCTURE census: legality + canonical-representative tests, exhaustive per-layer counts. Validated against Tromp/OEIS published counts (1x1..4x4 all PASS) |
-| `colex.zig` | 264 | THE ADDRESS SYSTEM: `colex_from_pos` / `pos_from_colex`, a collision-free bijection boards <-> 0..3^n-1, layered by stone count. Exhaustively verified bijective through 4x4. The layout is the future on-disk FORMAT CONTRACT |
+| `colex.zig` | 264 | THE ADDRESS SYSTEM: `colex_from_pos` / `pos_from_colex`, a collision-free bijection gobans <-> 0..3^n-1, layered by stone count. Exhaustively verified bijective through 4x4. The layout is the future on-disk FORMAT CONTRACT |
 | `oracle.zig` | 392 | forward oracle builder (fresh-start score; measured INTRACTABLE to build cold) + validation battery. Now the RETROGRADE ENGINE'S FINISHER and cross-check: `retro.zig` reuses its `Oracle().solve` for the certified-seeded ko ko-sensitive region and forward spot checks |
 | `retro.zig` | ~1000 | **THE RETROGRADE ENGINE (ADR-0009)**: successor-sweep value iteration (forward move generator only — no un-capture) with two-sided (L/H) fixpoint certification for ko/GHI, the certified-seeded FINISHER for the ko-sensitive region, DTT, and the full battery. Hosts `Retro(w,h)` (the engine) and `Exact(w,h)` (ban-set-keyed history-exact gold-standard forward solver). Converges 2/6/12 sweeps at 2x2/3x2/3x3 |
 | `artifact.zig` | ~300 | **THE ORACLE ARTIFACT (ADR-0011, WZO1)**: dense colex-addressed on-disk oracle — header versions the format AND `colex.layout_version` (the format contract), payload = the six frozen schema columns (vb/vw/fb/fw/db/dw), CRC-checked. Distinct from `persist.zig` (the TT *checkpoint*); this file IS the product. First real artifacts: `artifacts/oracle-{2x2,3x2,3x3}.wzo` |
@@ -127,7 +127,7 @@ arithmetic. Gen-1 and Gen-2 touch only in cross-validation TESTS.
 
 CAVEAT (recorded): 3x3-exhaustive results validate implementations and theory
 *at that scale*; game scores and tractability do NOT generalize upward — each
-board size is its own wall, measured separately.
+goban size is its own wall, measured separately.
 
 ## Where the frontier is
 

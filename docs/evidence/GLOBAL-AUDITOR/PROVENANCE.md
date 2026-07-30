@@ -12,7 +12,7 @@ The `RETRO_CONSIST` self-consistency auditor (`consistBoard` in `src/retro.zig`,
 
     V(P, side, [P]) == opt_side( { V(c, -side, [P,c]) : c legal } ∪ { pass } )
 
-at every `KO_SENSITIVE` `(position, side)` slot on a chosen board, solving parent, children, and pass branch as **independent roots** with freshly re-seeded per-root memos.  A violation is a **proof** that the tested variant is buggy; zero violations is only a **necessary** pass, not a sufficiency witness.  This is exactly the instrument that caught the `ko_ref ≥ d` cross-branch write bug (`ADR-0013`).
+at every `KO_SENSITIVE` `(position, side)` slot on a chosen goban, solving parent, children, and pass branch as **independent roots** with freshly re-seeded per-root memos.  A violation is a **proof** that the tested variant is buggy; zero violations is only a **necessary** pass, not a sufficiency witness.  This is exactly the instrument that caught the `ko_ref ≥ d` cross-branch write bug (`ADR-0013`).
 
 Scope asserted by this evidence: the **instrument itself** is durable and re-runnable; the run does **not** certify any particular artifact as correct, and it does not close the 4×4 deepest-N sample unless that sample is run separately.
 

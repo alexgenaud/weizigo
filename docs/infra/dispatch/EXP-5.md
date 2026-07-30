@@ -20,11 +20,11 @@ returned +1, the build is PSK and 3×3 would be meaningless.
 
 Under the same rule EXP-2 pinned down and EXP-4 validated — area scoring, komi
 0, basic ko, fixed-value long-cycle verdict — what is the value of the empty
-3×3 board?
+3×3 goban?
 
 ## Acceptance criterion
 
-**+9**, exactly, for Black on the empty board, plus:
+**+9**, exactly, for Black on the empty goban, plus:
 
 - **Root filled.** No UNDEF (`-128`) at the root or anywhere. Report
   `root filled? anchor matched? gate passed?` — not a fill percentage (roadmap
@@ -33,7 +33,7 @@ Under the same rule EXP-2 pinned down and EXP-4 validated — area scoring, komi
   slots: `value(-pos, -side) == -value(pos, side)` (`AGENTS.md`). Free at this
   size; run it.
 - **The 2×2/3×2 gate still passes** from the same binary. Re-run EXP-4's two
-  boards after any change to the solver and paste the output. A 3×3 run from a
+  gobans after any change to the solver and paste the output. A 3×3 run from a
   binary that has silently drifted back toward PSK would go undetected —
   +9 is an *agreeing* anchor, so it cannot catch drift the way 0-vs-+1 can.
 - **Tie-vs-score disambiguation.** 3×3 has 9 points; with komi 0 the area score
@@ -50,7 +50,7 @@ presented as strong**. `critique-2026-07-28.md` §3, verbatim in substance:
 weizigo plays PSK, MIGOS II plays basic ko + long-cycle ties, these are
 *different games*, they happen to agree at 3×3 and 4×4, and they **provably
 disagree at 2×2 and 2×3**. So "3×3 = +9 matches the published anchor" has,
-until now, been agreement between two different games on a board where the
+until now, been agreement between two different games on a goban where the
 difference does not bite.
 
 **EXP-5 is different in kind, not in degree.** If EXP-2 and EXP-4 hold, we
@@ -73,10 +73,10 @@ write-up:
 ## Prior attempts this must distinguish itself from
 
 1. **RETRO_BRACKET already "matched" +9 at 3×3 — by containment, not
-   computation.** `ruleset-options.md:209-213`: 3×3 empty-board bracket
+   computation.** `ruleset-options.md:209-213`: 3×3 empty-goban bracket
    **[2, 9]**, width 7, marked "✓ in-bracket" against the +9 anchor. That is a
    bracket 7 wide out of a 25-point range containing the anchor; `ruleset-
-   options.md:223-227` states outright that the empty-board bracket is WIDE and
+   options.md:223-227` states outright that the empty-goban bracket is WIDE and
    that the L/H method "says little about *it specifically*". **Containing +9
    is not computing +9.** If your run produces a bracket rather than a value,
    you have not met the acceptance criterion.
@@ -93,7 +93,7 @@ write-up:
 
 ## Method
 
-1. Take EXP-4's solver unchanged if it is board-size-generic; otherwise extend
+1. Take EXP-4's solver unchanged if it is goban-size-generic; otherwise extend
    it minimally. New file, new binary `weizigo-exp5-<console-id>`, caches under
    `/tmp/weizigo-zigcache` (README, build isolation).
 2. Run the 2×2 and 3×2 gate first, from the binary you are about to use for
@@ -105,7 +105,7 @@ write-up:
    densely and say so.
 4. Exhaustive symmetry check. Exhaustive UNDEF check.
 5. Cross-check as deep as is affordable: a full-history brute-force under the
-   same rule is *not* expected to be feasible from the empty 3×3 board — say so
+   same rule is *not* expected to be feasible from the empty 3×3 goban — say so
    explicitly rather than quietly skipping it — but it **is** feasible from
    late positions with few empty points. Do that, on a stated sample, and
    report the sample size.
@@ -127,7 +127,7 @@ write-up:
 
 ## Deliverables
 
-- `docs/evidence/QA-026/3x3/` (or a per-board ID directory once the `CLAIMS.md`
+- `docs/evidence/QA-026/3x3/` (or a per-goban ID directory once the `CLAIMS.md`
   owner assigns one) — solver source, raw run output with command/flags/build
   mode, the re-run 2×2/3×2 gate output, the symmetry and UNDEF sweeps, both
   calibration runs, `PROVENANCE.md` per `docs/evidence/README.md`.
@@ -147,7 +147,7 @@ write-up:
   `artifacts/` or `data/`.
 - Do **not** proceed to 4×4. That is EXP-6.
 - Do **not** infer 3×3 from 2×2/3×2, or claim 3×3 evidences anything at 4×4
-  (`AGENTS.md`, per-board epistemic independence).
+  (`AGENTS.md`, per-goban epistemic independence).
 - Do **not** report a bracket, a range, or "in-bracket" as satisfying the
   acceptance criterion. The criterion is the number +9.
 - Do **not** report a fill percentage in place of `root filled? anchor matched?

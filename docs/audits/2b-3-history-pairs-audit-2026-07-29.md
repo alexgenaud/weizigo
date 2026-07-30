@@ -68,7 +68,7 @@ Single run, seed `0x2B3DA7A`, 50 states sampled (in-degree ≥ 2), K=8, depth=16
 | fraction pairs different | **2,563/2,563 (100%)** | **1,112/1,112 (100%)** |
 
 *\*Python uses the single true root (empty B ko=none passes=0), not the 42-state `seed_roots` —
-audit finding F1. The Zig seeds empty-board × side × ko × passes = 42 root states, inflating
+audit finding F1. The Zig seeds empty-goban × side × ko × passes = 42 root states, inflating
 V by 39 unreachable-from-the-game states. The SCC and cycle-involved counts are identical
 either way; F1 only trims phantom tail states.*
 
@@ -82,7 +82,7 @@ strategies, same result.
 ## §1 — Legality and reachability: VERIFIED
 
 Every history collected by `collect_histories_dfs_impl` is a sequence of legal moves
-from the empty-board root under the corrected basic-ko rule. The argument has three
+from the empty-goban root under the corrected basic-ko rule. The argument has three
 independent legs:
 
 ### 1a. Move generation uses the corrected rules
@@ -103,16 +103,16 @@ the ko-point-setting block correctly implements the single-stone ko capture conj
 
 The `visited` boolean set is indexed by `state.linear()` — the dense colex encoding
 of the full `(board, side, ko, passes)` tuple. Two states are considered equal iff
-they share the same board, side, ko point, and pass count. This is the correct
+they share the same goban, side, ko point, and pass count. This is the correct
 state-identity predicate for basic-ko Go.
 
 The DFS marks `visited[child_linear]` before recursing and clears it after, so no
 state tuple repeats on any path. This gives simple paths.
 
-### 1c. Root is the true empty-board start
+### 1c. Root is the true empty-goban start
 
 `collect_histories` starts from `StateIdx{ .board = 0, .side = 0, .ko = n, .passes = 0 }`
-— empty board, Black to move, no ko, zero passes. This is the genuine game root.
+— empty goban, Black to move, no ko, zero passes. This is the genuine game root.
 
 **Verdict: VERIFIED.** All histories are legal, reachable, and correctly start from the game root.
 
@@ -271,7 +271,7 @@ finding is real; the caveat is *what it doesn't collect*, not what it collects.
 placement occurs, the child has `passes == 0`. The old heuristic `child.passes != state.passes`
 (`1 != 0` → true) classified this as a pass — wrong.
 
-**The fix.** `child.board == state.board` — a pass never changes the board index; a
+**The fix.** `child.board == state.board` — a pass never changes the goban index; a
 placement always does. This is a **definitional test** (it's what "pass" means in Go),
 not a heuristic. The fix is at line ~1340 in the current `qa023_probe.zig`.
 
@@ -279,7 +279,7 @@ not a heuristic. The fix is at line ~1340 in the current `qa023_probe.zig`.
 correctly classify pass-after-placement but would misclassify placement-after-pass (both
 reset passes to 0, so `0 > 1` = false → classified as placement, which is correct but
 only by coincidence for the pass-after case; for pass-after-two-passes it would fail).
-The board-identity test is invariant-correct.
+The goban-identity test is invariant-correct.
 
 ### 5b. Bug 2: Placed-cell detection (old: "first differing cell")
 

@@ -271,7 +271,7 @@ def reachable():
 #   SUCC[idx]  = tuple of child indices, in exp4_solve.zig's move order
 #   MOVE[idx]  = tuple of matching move names
 #   TERM[idx]  = True if passes == 2
-#   AREA[idx]  = area score of the board
+#   AREA[idx]  = area score of the goban
 #   MAXING[idx]= True if Black (maximizer) to move
 # ---------------------------------------------------------------------------
 SUCC = [()] * TOTAL_STATES
@@ -421,7 +421,7 @@ def fresh():
 #     value is ever reused across paths. With a full window the root value
 #     is exact whatever the move order; ordering only changes node count.
 #     Children are tried most-material-favourable first -- a heuristic read
-#     off the board alone, independent of the fixpoint tables.
+#     off the goban alone, independent of the fixpoint tables.
 # ---------------------------------------------------------------------------
 MATERIAL = [0] * TOTAL_STATES
 ORDERED = [()] * TOTAL_STATES

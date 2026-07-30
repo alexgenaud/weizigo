@@ -25,7 +25,7 @@ dispatched agent is wrong, the human can re-dispatch; **you claiming does
 not override the human's choice**, it just starts the work.
 
 If you forget, the Orchestrator may claim on your behalf with your `--agent`
-name — the board must match reality, and a stale `dispatchable` row is the
+name — the kanban must match reality, and a stale `dispatchable` row is the
 Orchestrator's to fix. Self-claiming is still the normal path: it is how
 `managent next` self-services and how your work is attributed to you in the
 performance ledger.
@@ -68,7 +68,7 @@ nothing.
 
 **Precision.** Every number cites its run and states its denominator. Every claim
 carries a status: PROVEN / CLAIMED / FALSE-AS-SCOPED / UNTESTED. No result at one
-board size is evidence at another.
+goban size is evidence at another.
 
 **Candour.** State what you could not establish. Mark an unproven step unproven
 rather than smoothing it over. Flag what you judged borderline and left alone.
@@ -76,7 +76,7 @@ rather than smoothing it over. Flag what you judged borderline and left alone.
 **Suspicion.** A result matching exactly what the brief hoped for is the one to
 examine hardest.
 
-**Writing to the board.** `managent done <id>` on completion; `managent done
+**Writing to the kanban.** `managent done <id>` on completion; `managent done
 <id> --fail` if you stopped because the brief was wrong. **Do not edit
 `docs/infra/managent/tasks.json` directly**; the binary is the only writer.
 If a `note` is warranted (recovery shape, dual-authorship, why the brief was

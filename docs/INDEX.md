@@ -159,7 +159,7 @@ file a bug.
 
 → `AGENTS.md` (repo root) §"Non-negotiable rules" — the complete, authoritative list
 
-## Where are the per-board epistemic trees?
+## Where are the per-goban epistemic trees?
 
 → `docs/epistemic/boards/2x2/EPISTEMIC.md`
 → `docs/epistemic/boards/3x2/EPISTEMIC.md`
@@ -238,7 +238,7 @@ the same question, one is listed here as the authority.
 |---|---|---|
 | what the project is and its rules | `AGENTS.md` (root) | `docs/AGENTS.md` (stray fragment) |
 | the living specification | `docs/epistemic/PROGRESS.md` | `docs/engine/TODO.md` (superseded) |
-| every claim's status | `docs/epistemic/CLAIMS.md` | per-board EPISTEMIC files (may lag) |
+| every claim's status | `docs/epistemic/CLAIMS.md` | per-goban EPISTEMIC files (may lag) |
 | how to dispatch | `docs/infra/dispatch/README.md` | `docs/infra/delegation.md` (retired) |
 | how to execute a task | `docs/infra/delegation/DELEGATEE.md` | `docs/infra/agents/worker-role.md` (retired) |
 | the reframe deliverable | `AGENTS.md` foreclosures + `docs/epistemic/roadmap-2026-07-28.md` | — |

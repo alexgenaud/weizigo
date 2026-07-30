@@ -280,7 +280,7 @@ about not drifting into implementation while orchestrating.
 ### First impression as Boss
 
 The documentation tree is genuinely usable for a fresh handover —
-`PROGRESS.md` + `status/CURRENT.md` gave the live state, and the per-board
+`PROGRESS.md` + `status/CURRENT.md` gave the live state, and the per-goban
 `EPISTEMIC.md` gave the precise claim map. The biggest friction was the
 sheer number of untracked scratch files; a consolidated index or a
 "last N completed tasks" section in `CURRENT.md` would speed up resumption.
@@ -372,7 +372,7 @@ This feedback was applied to `docs/status/CURRENT.md`, all task files, and the p
   100–200M/root, peak 3–5 GiB. Provided clear chunked plan and risk list.
   Quality: excellent measurement + honest uncertainty quantification.
 
-## User correction — small-board C2 is not evidence for 4×4 (2026-07-26)
+## User correction — small-goban C2 is not evidence for 4×4 (2026-07-26)
 
 User rejected the framing that a C2-pilot on 2×2/3×2 constitutes evidence for
 4×4. It is strictly a **falsification test / method calibration**:
@@ -733,9 +733,9 @@ status, parallel/serial sets. Created `untracked/SUBAGENTS.md` as the canonical
 registry. Updated `docs/status/CURRENT.md` to reference it. The human keeps
 `HUMAN.md` separately; SUBAGENTS.md is the Boss-managed counterpart.
 
-## Boss correction — per-board epistemic independence (2026-07-26)
+## Boss correction — per-goban epistemic independence (2026-07-26)
 
-User emphasized that each board size is its own epistemic universe: 2×2/3×2
+User emphasized that each goban size is its own epistemic universe: 2×2/3×2
 results are not evidence for 3×3/4×4. Added explicit sections to:
 - `AGENTS.md` (root)
 - `docs/PROGRESS.md`
@@ -780,7 +780,7 @@ Dispatched three bundles in separate sessions by the human:
   cleanly. B13's terminology sweep hit 5 files with precise replacements;
   no unintended changes. B14 produced a structured design doc with concrete
   wall-time estimates and safety constraints.
-- **Follows conventions:** read AGENTS.md read-order, respected per-board
+- **Follows conventions:** read AGENTS.md read-order, respected per-goban
   epistemic independence, cited sources, produced properly structured output
   files. No convention violations.
 - **Honest epistemic framing:** the B14 design explicitly notes that
@@ -827,7 +827,7 @@ Takeaway: MiniMax for thoroughness, DS Flash for speed+fixes, GLM for baseline. 
 | B35 — Proof design (I1) | DS Flash | GLM | DS Flash attempted 5-lemma proof; GLM identified the critical gap (Lemma B) |
 | B36 — Judgment/triage | GLM, DS Flash | — | All 5 converged on #1 = complete 4x4 finisher |
 | B37 — Delegation design | DS Flash, MiniMax | GLM | DS Pro + Kimi wrote to console not file (need explicit write instruction in bundle) |
-| B38 — Epistemic discipline | DS Pro | GLM, Kimi | DS Pro alone strictly applied per-board independence (#5 = UNKNOWN). MiniMax erred on #7 |
+| B38 — Epistemic discipline | DS Pro | GLM, Kimi | DS Pro alone strictly applied per-goban independence (#5 = UNKNOWN). MiniMax erred on #7 |
 
 ### Composite Boss evaluation (B34-B38)
 
@@ -881,11 +881,11 @@ identity holds. Measured, artifact-only:
 - Violations are **exactly co-extensive** with the flag: 16/16, 72/72, 688/688,
   6,092/6,092, and 11,402/11,402 on the 4×4 sample.
 - Worst misprice is **2n exactly** for every n ≥ 6 (12, 18, 24, 32) — the entire
-  board swing, not a rounding effect. **CLAIMED** (four sizes, no proof).
+  goban swing, not a rounding effect. **CLAIMED** (four sizes, no proof).
 - Measurement 2: positional-superko (PSK) bans changed the best available value
   at **0 of 19 plies** in each of the two saved 4×4 regression games. The ko
   *rule* costs the engine nothing. **PROVEN** for those two games.
-- Measurement 3: the empty 4×4 board is itself KO_SENSITIVE (bracket [−6, +16]),
+- Measurement 3: the empty 4×4 goban is itself KO_SENSITIVE (bracket [−6, +16]),
   16 of 19 plies of both games are flagged, and the collapse at ply 16 is stored
   −16 against +16 one ply down. Claims touched: `GLOBAL.CHAIN-KO`,
   `GLOBAL.CHAIN-KIND`, `4x4.GTP-DEFECT`, `4x4.FP1-C3`/`QA-021`, `QA-002`.
@@ -1016,7 +1016,7 @@ correct**; they differ only in denominator:
 
 48,636,330 − 48,599,962 = 36,368 = 18,184 settled positions × 2 sides. **Only
 the 4×4 row of `CLAIMS.md` discrepancy D7 is reconciled; the 2×2 / 3×2 / 3×3 /
-4×3 rows are NOT**, and per-board independence forbids assuming the same cause.
+4×3 rows are NOT**, and per-goban independence forbids assuming the same cause.
 Standing lesson from this incident, now in STATE.md: **state every denominator.**
 
 ## Opus 5 — QA-008 and QA-016 by direct byte inspection (2026-07-28)
@@ -1071,7 +1071,7 @@ for the opponent are flagged roughly twice as often as nodes where it is to move
 
 **Outcome quality — strong, and it is the second-best-calibrated row in the
 sprint after EXP-3.** Reasons: the `oracle` policy was validated **move-for-move
-against the real GTP player** built from the working tree at all three boards;
+against the real GTP player** built from the working tree at all three gobans;
 the pre-registered sanity check is reported as **INVERTING at 3×3** rather than
 quietly scoped away; ply-cap, settled-stop and three-seed robustness are all
 measured and the settled-stop bias is reported as ≈2 pp *in the direction the
@@ -1119,7 +1119,7 @@ Measurement 2's independently-derived ground truth **exactly** (1 ban, ply 14,
 d=2, both games, including the vertical-mirror relation between them). The
 document also states the limit that matters: **this measures legality along
 played lines, not value** — EXP-8 is still required — and it notes that the
-board-size ordering runs *against* intuition (smaller boards bind more), so it
+goban-size ordering runs *against* intuition (smaller gobans bind more), so it
 must not be read as reassurance about 5×5. Denominator, "isolated"-proxy status
 and the lower-bound direction of the distance convention are all declared.
 
@@ -1191,7 +1191,7 @@ computed. Two structural discoveries: the register needed a third edge kind
 fell — 14 mis-typed edges were producing systematic false orphans), and a
 **shadowed-dependency** class (C5) where a `d:` edge onto a MEASUREMENT row can
 never propagate anything, which is how `3x3.C1` — the 3×3 table's own
-correctness claim, on the exact board where the bracket was falsified — stayed
+correctness claim, on the exact goban where the bracket was falsified — stayed
 invisible since the register was written.
 
 ### The failure worth keeping: the calibration ate its own known-bad
@@ -1284,7 +1284,7 @@ addressable. Claim: `GLOBAL.H1-CENSUS`.
 `docs/research/kostate-census-2026-07-28.md`,
 `docs/evidence/GLOBAL.H1-CENSUS/` (PROVENANCE + 8 raw stdout files).
 
-**Cost, recorded per board (single thread, `-O ReleaseFast`, Apple Silicon):**
+**Cost, recorded per goban (single thread, `-O ReleaseFast`, Apple Silicon):**
 3×3 ≈ **0.05 s** / 16 sweeps; 4×3 ≈ **2.2 s** / 25 sweeps; 4×4 ≈ **4 min** / 29
 sweeps. Every number exact — no sampling, no stride. The agent also reported
 *where* the 4 min goes (the `is_legal` check inside the odometer, ~6 s per
@@ -1328,7 +1328,7 @@ What specifically makes it the benchmark:
    reported that the ko dimension adds only ~9–12% on top of the no-ko reachable
    set — far less than its `n+1` full weight.
 4. **It stayed inside its DO-NOT list**: no engine file, nothing written to
-   `data/` or `artifacts/`, no cross-board inference, **no addressing
+   `data/` or `artifacts/`, no cross-goban inference, **no addressing
    recommendation** ("the choice is an ADR and belongs to the user"), and no
    `CLAIMS.md` edit.
 
@@ -1424,7 +1424,7 @@ Minimax-m3, with the harness ambiguity noted.
 
 **Cost, and it is the whole point of the row: 10h22m wall / 237 min CPU at
 100%** (PID 68667, `zig test src/qa023_brute_2x2.zig`), **on a four-point
-board**, producing **no output at all**. `DEPTH_LIMIT = 64`, no memoization,
+goban**, producing **no output at all**. `DEPTH_LIMIT = 64`, no memoization,
 depth-first search over **paths** carrying full history. It was **thrashing, not
 hung.** Killed by Opus on 2026-07-28 around 12:2x.
 
@@ -1453,7 +1453,7 @@ hours were indistinguishable from progress because nothing was reporting.
 ### Fault attribution, recorded as the delegator stated it
 
 > "**Three of the four EXP-2 faults were mine** (uncosted method, degenerate
-> board, no heartbeat, unowned review gate)." — Opus 5,
+> goban, no heartbeat, unowned review gate)." — Opus 5,
 > `untracked/msg/milestone-01-ko-reframe/005-opus-to-glm.md`
 
 So: **3 of 4 faults were the delegator's, not the console's.** The executor's
@@ -1509,13 +1509,13 @@ category error. The correction of his own earlier sloppiness that "MIGOS II is a
 ruleset" (it is a *program*; the ruleset is area scoring + basic ko +
 long-cycle tie). And a **free falsification target** he extracted from the
 project's own docs: a correct basic-ko build must return **0** at 2×2 and 2×3,
-not the PSK-ground-truthed +1 — checkable in seconds on the smallest boards
+not the PSK-ground-truthed +1 — checkable in seconds on the smallest gobans
 before any 4×4 effort is spent.
 
 **A correction of the project's own headline validation, recorded here because
 it downgrades evidence rather than adding any:** "4×4 = +2 matches the published
 anchor", cited in `PROGRESS.md` as validation, is **agreement between two
-different games** on a board where the difference happens not to bite. The
+different games** on a goban where the difference happens not to bite. The
 critique also quantifies it — the 4×4 bracket [−6, 16] spans ~33 values, so a
 **wrong** answer would have hit the anchor ~70% of the time.
 
@@ -1544,7 +1544,7 @@ are already in trouble; and on refusal fall back to a **history-free** quantity,
 are flagged), and re-cast **EXP-10** as an **attempt to refute** Opus's QA-018
 ruling rather than a restatement of it — if the search-path exemption exists,
 F2 is un-orphaned; if not, the ruling stands with the failed refutation as
-evidence. Registered EXP-2…EXP-8 + H5(a) + QA-018 on one board. Accepted the
+evidence. Registered EXP-2…EXP-8 + H5(a) + QA-018 on one goban. Accepted the
 split of mechanism (GLM) from brief content (Opus) so the project stops running
 two dispatch systems.
 
@@ -1568,10 +1568,10 @@ and **none is promoted yet**.
 | ID | ruling, in one line | ruled by |
 |---|---|---|
 | D-1 | QA-009 is not a discrepancy — keep **both** E2 rows (25/4000 original, 50/8000 B06 re-run); independent replication is the evidence | Opus |
-| D-2 | Per-board independence must split **empirical** (never inherit) from **structural/code-or-maths** (inherit, with the argument written); the rule as written is mis-stated | Opus + GLM |
+| D-2 | Per-goban independence must split **empirical** (never inherit) from **structural/code-or-maths** (inherit, with the argument written); the rule as written is mis-stated | Opus + GLM |
 | D-3 | H5(a) ships with two corrections: check the chosen **child** too, and "refuse" must not mean **pass** | Opus |
 | D-4 | EXP-8's harness is built **now** — table-agnostic plumbing, holding it buys nothing | Opus + GLM |
-| D-5 | **QA-018: ADR-0010's justification is refuted as stated.** For an empty-board root the finisher's search path *is* a real game line, so E2's falsifying histories lie inside the family ADR-0010 claims to cover. **F2 is orphaned** until someone proves the search-path family exempt | Opus |
+| D-5 | **QA-018: ADR-0010's justification is refuted as stated.** For an empty-goban root the finisher's search path *is* a real game line, so E2's falsifying histories lie inside the family ADR-0010 claims to cover. **F2 is orphaned** until someone proves the search-path family exempt | Opus |
 | D-6 | Communication moves to `untracked/msg/milestone_X/` with `STATE.md` as crash anchor; deletion gated on **promotion, not tidiness** | user + Opus |
 | D-7 | **Model allocation:** Fable takes the two hardest reasoning tasks (EXP-2 Part A repair, the QA-018/019 ADR); Opus reviews adversarially and does not execute; everything mechanical goes to lesser models | user + Opus |
 
@@ -1795,7 +1795,7 @@ should ride along with the next 4×4 writes-off regen. H5
 player-hardening options OPEN pending user choice.
 
 **Honest negatives:** did not inspect the live `bin/managent`
-board; verdicts rely on committed documents and
+goban; verdicts rely on committed documents and
 `docs/status/CURRENT.md`. No executable was run; all numbers
 are citations of already-committed evidence.
 
@@ -2139,7 +2139,7 @@ all ANALYSIS except three noted below. Zero required rework.
 | `DSPro/NARRATIVE-LAYER` | Rewrote `PROGRESS.md` as cite-tagged through-line. Added claimlint C6 (cite-tag verification) with calibration. Status banners on 14 research docs. Analysis + code in one task. |
 | `DSPro/INDEX-RETRIEVAL` | `INDEX.md` (246 lines — one destination per question, Attic of 20+ superseded docs), claim→evidence and claim→task indices, 10-question retrieval test (all ≤2 hops). |
 | `DSPro/ROLE-NAMES` | 19 files: model names → role names/capabilities. `AGENTS.md`, `ORCHESTRATOR.md`, `ROLES.md`, 16 dispatch briefs. Multi-file terminology sweep — no misses, no overreach. |
-| `DSPro/F1-CENSUS-GAP` | Resolved the +3 gap: seed-count delta (4→1), not ko-rule delta (which removed 60). All three phantom states empty-board, trivially unreachable. 2,583 authoritative. |
+| `DSPro/F1-CENSUS-GAP` | Resolved the +3 gap: seed-count delta (4→1), not ko-rule delta (which removed 60). All three phantom states empty-goban, trivially unreachable. 2,583 authoritative. |
 
 **Gate & tooling (5 tasks, 3 MUTATION):**
 
@@ -2168,11 +2168,11 @@ evidence gap, and the meta-work ratio at ceiling. Four concrete recommendations.
 Found a project-level structural problem no other seat had flagged — the EXP ladder
 was about to commit to a 4×4 build with an unadjudicated rule identity.
 - **T101 (tree-shake, companion to T100):** region map of knowledge quality across
-all board sizes, two layers (fresh-start vs real-game). Sharp finding: under PSK
+all goban sizes, two layers (fresh-start vs real-game). Sharp finding: under PSK
 with real histories, every region caps at K4; no real-game perfect play exists
 anywhere in the shipped tables. Eight weakest joints ranked (W1 eye-prune blast
 radius, W2 untracked evidence graveyard, W3 O1 orphan chain, W4 4×4.M4 single-
-sourcing, W5–W8 cross-board contradictions). Twelve costed leaves to fill (L1–L12),
+sourcing, W5–W8 cross-goban contradictions). Twelve costed leaves to fill (L1–L12),
 cheapest wave hours/no-builds. Divide-and-conquer strategy: 10.4M ko-sensitive
 slots, not 48.6M; four orthogonal divisions.
 - Earlier: 2B-0/2B-1 (reference semantics doc that made the probe defect findable),
@@ -2204,7 +2204,7 @@ independent re-implementation — exactly the QA-023 pattern that finds defects.
 **Kimi-k3 / T105:** GLOBAL.FP1 proof — Knaster-Tarski convergence of loopy-game
 fixpoint. One-page proof, all five punchlist ingredients: finite lattice,
 monotonicity, seed orbits, least/greatest fixpoint theorem, hand-offs to
-per-board rows. Citation supplied (Tarski 1955). Purely mathematical — no build.
+per-goban rows. Citation supplied (Tarski 1955). Purely mathematical — no build.
 Two Kimi-k3 tasks, both delivered: one exhaustive empirical audit (T104), one
 mathematical proof (T105). The model handles both modes.
 
@@ -2219,8 +2219,8 @@ Soundish/deps paths 0/378 violations each, buggy path 45/378 (confirmed).
 Mechanical verification, executed correctly. Second Kimi-k2.7 task this session
 (after QA023-KERNEL-AUDIT) — reliable for bounded instrument re-runs.
 
-**DSPro / T107:** GLOBAL.S2 evidence — Benson (1976) citation + finite-board
-scope note. Theorem is board-shape-agnostic; lifts to every finite board.
+**DSPro / T107:** GLOBAL.S2 evidence — Benson (1976) citation + finite-goban
+scope note. Theorem is goban-shape-agnostic; lifts to every finite goban.
 Hand-off to S2-impl rows documented. Purely documentation — no build.
 
 **DSFlash / T109:** runner auto-claim/done — two insertions. On launch: runs
@@ -2238,7 +2238,7 @@ proof (T105), mathematical proof (T111).
 
 **DSPro / T112:** GLOBAL.S4 evidence — independent Python Tromp-Taylor area
 scorer. 27/27 terminal corpus passed, Zig test suites all pass. QA-023 method:
-independent re-implementation. Discharges GLOBAL.S4 + dependent per-board rows.
+independent re-implementation. Discharges GLOBAL.S4 + dependent per-goban rows.
 
 **DSFlash / T115:** CLAIMS.md evidence columns updated for GLOBAL.FP1, AUDITOR,
 S2, INVSYM, S4 — all five T101A punchlist rows. DSFlash now 6/6 this session.
@@ -2333,7 +2333,7 @@ the seat.
 ## Session summary — DSPro/Orcha, 2026-07-30
 
 32 tasks across 7 models. All T101A punchlist rows closed. T13 reproducible.
-ADR-0006 validated further (not falsified). EXP-4→7 chain complete at all boards.
+ADR-0006 validated further (not falsified). EXP-4→7 chain complete at all gobans.
 4×4 root V=+1 verified genuine (H=+16). .wzo artifact written. Full tooling
 chain (ORCHA-AUTOMATION → AGENT-IDENTITY → WORKER-CHANNEL) landed.
 

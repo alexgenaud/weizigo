@@ -6,14 +6,14 @@ Extends ADR-0005 (search integration). Discovered while validating Phase 2.
 
 ## Context: the search-to-terminal is intractable without move pruning
 
-Phase 1 already noted that "a capture can reopen the board." Phase 2 pinned down
+Phase 1 already noted that "a capture can reopen the goban." Phase 2 pinned down
 *why every non-trivial position* hits this, not just contrived ones:
 
 A Benson-alive group is alive only because it *keeps* its eyes. But **filling
 your own eye is a legal move** (it is not suicide as long as the group still has
 another liberty). The brute-force DFS therefore explores a live group filling
 its own eyes one by one, down to a single liberty — at which point the opponent
-plays that liberty and **captures the entire group**, reopening the board into a
+plays that liberty and **captures the entire group**, reopening the goban into a
 near-empty position whose subtree is the whole game again.
 
 Consequences observed:
@@ -64,7 +64,7 @@ stone endgame drops from stack-overflow to 4 nodes.
 ## What this does NOT solve (open, see TODO)
 
 Eye-pruning tames *endgames* (positions with alive groups). It does **not** make
-the **empty-board full solve** cheap: the opening/midgame with ≤16 stones is the
+the **empty-goban full solve** cheap: the opening/midgame with ≤16 stones is the
 inherently large part, and that is exactly the regime the TT caches. Reaching
 the global oracle (5×5 = Black+25 from empty) still depends on:
 - **Line length**: positional superko lines can be long; recursion depth =

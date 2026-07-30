@@ -1,6 +1,6 @@
 # How much of the engine's own play is certifiable? — the reachable ko-sensitivity census (4×4, 4×3, 3×3)
 
-**Date:** 2026-07-28. **Boards:** 4×4, 4×3, 3×3, each measured independently.
+**Date:** 2026-07-28. **Gobans:** 4×4, 4×3, 3×3, each measured independently.
 **Tool:** `bin/weizigo-reachcensus` (new; `src/reachcensus.zig`, build target
 `weizigo-reachcensus`). **Status of every claim tagged inline.** Every number
 cites its command and seed.
@@ -47,7 +47,7 @@ form changes nothing below.
 Uniform-over-slots is simply the wrong denominator for a player: it weights
 every legal (position, side) equally, and the table is overwhelmingly made of
 crowded late-game positions a game rarely visits. A player walks lines from the
-empty board. This note measures that measure.
+empty goban. This note measures that measure.
 
 ## Term
 
@@ -59,13 +59,13 @@ denominator is decision nodes, not table slots.
 ## The instrument
 
 `src/reachcensus.zig` loads a `.wzo` artifact, plays complete games from the
-empty board, and reports the KO_SENSITIVE fraction (bit 0 of `fb`/`fw`, i.e.
-L < H) over the decision nodes visited. Board size comes from the artifact
+empty goban, and reports the KO_SENSITIVE fraction (bit 0 of `fb`/`fw`, i.e.
+L < H) over the decision nodes visited. Goban size comes from the artifact
 header and dispatches 2×2/3×2/3×3/4×3/4×4 exactly as `src/chainability.zig`
 does. It reads the artifact only — no search, no reference solver.
 
 - **Legality is the real thing.** Positional superko is enforced against the
-  actual game history (every position that has occurred, empty board included,
+  actual game history (every position that has occurred, empty goban included,
   mirroring `Session.reset`), plus `rules.Rules(w,h)` occupancy/suicide. No
   eye-prune — neither player uses one.
 - **Termination:** two consecutive passes, a settled position (`R.is_settled`),
@@ -105,12 +105,12 @@ backstop policy that `src/gtp.zig` applies *above* `choose`, and its
 a single move choice, so its absence lengthens some lines and cannot alter which
 region a chosen move sits in.
 
-**Mirror validated move-for-move (PROVEN, these three boards, 2026-07-28).**
+**Mirror validated move-for-move (PROVEN, these three gobans, 2026-07-28).**
 The census `oracle` line was compared against the real GTP player built from the
 working-tree `src/gtp.zig` (`zig build-exe -O ReleaseFast src/gtp.zig`, then
 alternating `genmove b` / `genmove w`):
 
-| board | census `--trace 1` line | real GTP player |
+| goban | census `--trace 1` line | real GTP player |
 |---|---|---|
 | 4×4 | B3 C2 C3 B2 A2 A3 A4 D3 B1 C4 C1 D2 pass pass | identical, 14 plies |
 | 4×3 | B2 C2 C3 C1 D2 B3 A3 B1 A2 pass pass | identical, 11 plies |
@@ -199,15 +199,15 @@ and is **NOT reconciled**.
   (28,000/28,000 nodes; `distinct game lines: 1`). Randomising tie-breaks
   (`oracle-rt`, 144 distinct lines) does not find a single certifiable node
   either: 27,865/27,865. The engine starts the 4×4 game inside the region where
-  its own rule is undefined — the empty board is flagged in 2000/2000 games —
+  its own rule is undefined — the empty goban is flagged in 2000/2000 games —
   and, playing itself, **never leaves it**. This is the reachable-measure
   restatement of Measurement 3's "it starts the game there."
 - **The same holds at 4×3** (100.00%, 22,000/22,000, both oracle policies).
   At **3×3** it does not: the engine's 7-ply line is 42.86% KO_SENSITIVE, and
   the flag clears completely from ply 4 onward (bucket 4–7 is 0.00%).
-  Per-board independence: these are three separate results, not a trend.
+  Per-goban independence: these are three separate results, not a trend.
 - **The 21.33% slot-uniform figure badly understates the player's exposure**
-  under every policy measured, at every board measured: 4×4 21.33% → 28.90%
+  under every policy measured, at every goban measured: 4×4 21.33% → 28.90%
   (random) / 34.41% (mixed) / 100% (oracle); 4×3 26.60% → 38.11 / 40.01 / 100;
   3×3 35.04% → 52.14 / 48.45 / 42.86. It is a fine artifact statistic and a
   misleading player statistic. (Slot-uniform figures over non-settled slots;
@@ -224,7 +224,7 @@ verdict.) **Reported honestly: the check
 inverts at 3×3** (random 52.14% is 17.10 pp from slot-uniform 35.04%, oracle
 42.86% is 7.82 pp), because the 3×3 oracle line settles in 7 plies and leaves
 the flagged region, while random play wanders in it for 20. The check was
-specified at 4×4 and is a property of that board's policies, not a law.
+specified at 4×4 and is a property of that goban's policies, not a law.
 
 ### The headline number, and why it is not one number
 
@@ -258,10 +258,10 @@ opponents.** Three reasons, all load-bearing:
 
 ### Secondary finding — the engine steers *into* the unchainable region
 
-**CLAIMED (2026-07-28, all three boards, `mixed` policy).** Splitting the
+**CLAIMED (2026-07-28, all three gobans, `mixed` policy).** Splitting the
 `mixed` nodes by who is to move:
 
-| board | engine-to-move nodes flagged | opponent-to-move nodes flagged |
+| goban | engine-to-move nodes flagged | opponent-to-move nodes flagged |
 |---|---|---|
 | 4×4 | 21.72% (4,941/22,750) | **47.68%** (10,373/21,754) |
 | 4×3 | 31.49% (4,780/15,178) | **49.13%** (6,969/14,184) |
@@ -322,10 +322,10 @@ construction.
 excluded and the belief statistics use 100% of games. The UNDEF path was
 exercised on the *other* 4×4 artifact,
 `data/oracle-4x4-parallel.checkpoint.wzo`: **100.00% of games touch UNDEF, 0
-clean games, statistics undefined.** `--trace 1` shows why — the **empty-board
+clean games, statistics undefined.** `--trace 1` shows why — the **empty-goban
 root slot itself is UNDEF** on that artifact (`BA4?` at ply 0). **PROVEN
 (2026-07-28, that artifact):** the parallel checkpoint supports no belief
-statistic at all from the empty board, and a player using it steers from move
+statistic at all from the empty goban, and a player using it steers from move
 one with no stored value at the root. That artifact is not used for any number
 in this note.
 
@@ -335,7 +335,7 @@ in this note.
   play.** There is no claim about the measure induced by any other opponent,
   and in particular none about strong human play beyond the two-game regression
   evidence cited above.
-- **Per-board independence (AGENTS.md).** 4×4, 4×3 and 3×3 are three separate
+- **Per-goban independence (AGENTS.md).** 4×4, 4×3 and 3×3 are three separate
   results. The 4×4 "0% certified in self-play" says nothing about 5×5, and the
   fact that 3×3 escapes the flagged region by ply 4 while 4×4 never does is
   precisely why extrapolation is forbidden here. No monotonicity argument is

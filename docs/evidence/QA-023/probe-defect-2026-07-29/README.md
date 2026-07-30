@@ -19,7 +19,7 @@ localise to a different claim. See §5.
 `docs/evidence/QA-023/reference-semantics-2026-07-29.md` §1 defines the
 arrival history as:
 
-> `h` = the sequence of states from the empty-board root to σ
+> `h` = the sequence of states from the empty-goban root to σ
 > (**exclusive of σ**)
 
 The probe builds it inclusive. At `src/qa023_probe.zig:1681-1712` the arrival
@@ -111,7 +111,7 @@ arrival: B4 pass B3 pass
 
 `ko=6` is the "no ko" sentinel (`= n`, 3×2 has 6 cells); `passes=1`; Black to
 move. Replaying the arrival: Black 4, White pass, Black 3, White pass. The
-board holds two Black stones and no White stone, so under Tromp–Taylor area
+goban holds two Black stones and no White stone, so under Tromp–Taylor area
 scoring every empty cell reaches only Black: `area_score = +6`.
 
 Black is to move at `passes == 1`. **Black passes; `passes` becomes 2; the game

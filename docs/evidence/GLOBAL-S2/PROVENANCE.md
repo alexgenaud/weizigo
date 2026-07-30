@@ -2,9 +2,9 @@
 
 **Author:** DSPro/T107 (documentation-task worker)
 **Date:** 2026-07-30
-**Claim closed:** `GLOBAL.S2` — Benson's unconditional-life theorem holds on every finite board
+**Claim closed:** `GLOBAL.S2` — Benson's unconditional-life theorem holds on every finite goban
 **Status:** PROVEN (external mathematical theorem; cited, not proved here)
-**Acceptance criterion:** A committed literature note establishing the theorem statement, the paper, and the finite-board scope argument. No build, no probe, no artefact.
+**Acceptance criterion:** A committed literature note establishing the theorem statement, the paper, and the finite-goban scope argument. No build, no probe, no artefact.
 
 ---
 
@@ -12,9 +12,9 @@
 
 **Benson's unconditional-life theorem** (Benson 1976, Theorems 1–3):
 
-Let a finite Go board be given. For a set of stones of one colour:
+Let a finite Go goban be given. For a set of stones of one colour:
 
-1.  Partition the board into the stones, the empty points, and the opponent's stones.
+1.  Partition the goban into the stones, the empty points, and the opponent's stones.
 2.  For each empty region (connected component of empty points) that borders the
     given stone-set, call that region a **vital region** if all empty points in it
     are adjacent only to stones of the given set (i.e. the opponent has no
@@ -59,15 +59,15 @@ rests on it.
 
 ---
 
-## 3. Finite-board applicability (scope argument)
+## 3. Finite-goban applicability (scope argument)
 
-The theorem applies to **every finite Go board**, and the argument is
+The theorem applies to **every finite Go goban**, and the argument is
 structural, not empirical:
 
 - **Benson's test is local.** It examines a specific stone-set and its adjacent
-  empty regions — it never references the global board size or shape, and it
-  does not care how many other stones are elsewhere on the board. It only
-  requires that the board is a finite graph of intersections, each connected
+  empty regions — it never references the global goban size or shape, and it
+  does not care how many other stones are elsewhere on the goban. It only
+  requires that the goban is a finite graph of intersections, each connected
   to its four (or fewer) orthogonal neighbours.
 
 - **The Safety proof (Theorem 1) is by induction on captures.** Any capture
@@ -78,24 +78,24 @@ structural, not empirical:
   of a chain that borders that vital region without first breaking through.
   The two vital regions guarantee the attacker cannot reduce either chain to
   zero liberties without the defender ever playing. The proof never depends
-  on board size or boundary shape; it only needs finiteness so the induction
+  on goban size or boundary shape; it only needs finiteness so the induction
   terminates.
 
 - **The Completeness proof (Theorems 2–3) constructs the vital regions for any
   unconditionally-alive set.** The construction partitions empty points by
   adjacency to the stone-set and shows that if the set is unconditionally
   alive, at least two such regions are vital. The proof is graph-theoretic;
-  the graph is the adjacency graph of the board; finiteness of the board is
+  the graph is the adjacency graph of the goban; finiteness of the goban is
   the only precondition.
 
 - **No size-dependent step.** Unlike a retrograde sweep, a minimax search, or
   a ko-legality test, Benson's algorithm has no parameter that scales with
-  board size — it runs in time linear in the number of board intersections,
+  goban size — it runs in time linear in the number of goban intersections,
   and its correctness proof is invariant under adding or removing intersections
-  from the board.
+  from the goban.
 
-**Conclusion:** Benson's theorem is board-shape-agnostic. It holds on every
-finite board — including 2×2, 3×2, 3×3, 4×3, 4×4, 5×5, and every rectangular
+**Conclusion:** Benson's theorem is goban-shape-agnostic. It holds on every
+finite goban — including 2×2, 3×2, 3×3, 4×3, 4×4, 5×5, and every rectangular
 or irregular finite grid. The theorem does not need to be re-proven at each
 size.
 
@@ -104,12 +104,12 @@ size.
 ## 4. Hand-off — what `GLOBAL.S2` is and is not
 
 **`GLOBAL.S2` is the *theorem*.** It states: Benson's unconditional-life
-theorem (as proved in Benson 1976) applies to every finite board. This is a
+theorem (as proved in Benson 1976) applies to every finite goban. This is a
 mathematical truth claim, discharged by the literature citation and scope
 argument above.
 
 **`GLOBAL.S2` is NOT the correctness of the `rules.zig` Benson implementation.**
-That is the separate family of `S2-impl` rows, one per board size:
+That is the separate family of `S2-impl` rows, one per goban size:
 
 | claim | status | what it asserts |
 |---|---|---|
@@ -133,7 +133,7 @@ recommended companion wave — a Benson regression battery at 4×4 and 4×3.
 - `GLOBAL.ADR0014-DEAD` — `dead_stone_estimate` is a conservative heuristic
 
 None of these depend on the *correctness of the implementation* at a specific
-board size; they depend on the *theorem* being mathematically true. The
+goban size; they depend on the *theorem* being mathematically true. The
 implementation's correctness at each size is the `S2-impl` family's concern.
 
 ---
@@ -150,7 +150,7 @@ implementation's correctness at each size is the `S2-impl` family's concern.
   `I` note and the `S2-impl` rows simultaneously — that is the tree-shake's
   L4 recommendation.
 - **No reproduction of the Benson proof.** The theorem is accepted from the
-  primary literature. The finite-board scope argument in §3 is the only
+  primary literature. The finite-goban scope argument in §3 is the only
   original reasoning in this note, and it is a one-paragraph observation,
   not a re-proof.
 

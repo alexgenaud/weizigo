@@ -89,7 +89,7 @@ falsifies the outcome reading of C3, not the pointwise reading the cut needs.
 - Method (`:19-43`): enumerate **PSK-legal placement-only game lines** (≤10
   ply, from every legal start position); for each line ending at an `L==H`
   slot run `retro.ab_solve` with `memo=false`, `brackets=false`, full window,
-  `O.History` pre-populated with every board of the line. "Alpha-beta without
+  `O.History` pre-populated with every goban of the line. "Alpha-beta without
   memo and without brackets is exact."
 - Result (`:15-17, 45-59`): 508 non-trivial histories, **12 mismatches**;
   fresh-start sanity 0/540.
@@ -97,7 +97,7 @@ falsifies the outcome reading of C3, not the pointwise reading the cut needs.
 
       idx=314 side=B depth=9 expected=+6 got=-6  history=0 2 26 40 110 278 57 154 314
 
-  Eight of twelve histories are rooted at index 0 (the empty board):
+  Eight of twelve histories are rooted at index 0 (the empty goban):
   idx 314, 413, 410, 459, 267, 433, 237, 273. The remaining four are rooted at
   legal positions idx 1, 2 (two lines), 4 — each with initial ban `{root}`,
   the fresh-start-root shape.

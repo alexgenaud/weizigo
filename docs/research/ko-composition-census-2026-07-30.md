@@ -36,7 +36,7 @@ kos involved in cycles, or only one.
 **Instrument:** `src/ko_cycle_census.zig` — bounded PSK forward search with
 cycle classification. For each sampled ko-sensitive (position, side) pair, the
 tool performs DFS under positional superko (no eye-prune, max depth 12–14, max
-nodes 5,000–20,000). When a board repetition is detected, the full cycle is
+nodes 5,000–20,000). When a goban repetition is detected, the full cycle is
 analysed: all positions along the cycle path are scanned for basic-ko shapes,
 which are union-find clustered by neighbourhood overlap. The number of
 independent ko clusters involved in each cycle is recorded.
@@ -137,8 +137,8 @@ beyond the search bounds. The argument that this is unlikely rests on:
 
 ## 5. Caveats
 
-- **Per-board independence (AGENTS.md).** This result is specific to 4×4. It
-  implies nothing about 4×3, 5×5, or any other board.
+- **Per-goban independence (AGENTS.md).** This result is specific to 4×4. It
+  implies nothing about 4×3, 5×5, or any other goban.
 - **PSK only.** The cycles analysed are under positional superko. Under basic
   ko or simple ko, the cycle structure differs and this census does not
   transfer.

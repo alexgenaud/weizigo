@@ -23,7 +23,7 @@ User (Black) beat weizigo-oracle (White) on 4×4.
   move, `W A4`): the table's stored value for that node is **−16** (White
   winning by 16) while the best child value in the *same* table is **+16** —
   a 32-point gap.
-- **Companion game:** `4x4-black-win-after-ko.txt` is the same game up to board
+- **Companion game:** `4x4-black-win-after-ko.txt` is the same game up to goban
   symmetry through ply 17 (verified move-by-move under the vertical mirror,
   column c ↦ 3−c; value and area traces identical throughout). Ply 18 differs —
   a tied-value choice broken differently.
@@ -41,12 +41,12 @@ User (Black) beat weizigo-oracle (White) on 4×4.
   and a one-ply lookahead over `V0(child)` are under no obligation to agree.
   `Session.choose` takes an extremum over stored child values anyway, so it is
   steering by a quantity that is not defined there. At ply 16 the disagreement
-  is the full board swing: 32 = 2n.
+  is the full goban swing: 32 = 2n.
 - Ko/PSK **is** ultimately why the region is unchainable — the bans live deep
   inside each slot's own subtree. What is false is the narrower claim that the
   *game's* history removed a move at that node.
 - **16 of 19 plies are KO_SENSITIVE-flagged, including ply 1** — the empty 4×4
-  board itself (bracket [−6, +16], i.e. L < H). On 4×4 the engine does not
+  goban itself (bracket [−6, +16], i.e. L < H). On 4×4 the engine does not
   *enter* the unchainable region when a ko appears; it starts the game there.
 - Sweep (`bin/weizigo-chainability <artifact>`, 2026-07-27; exhaustive at
   2×2/3×2/3×3/4×3, `--sample 37` at 4×4 on `data/oracle-4x4.checkpoint.wzo` =
@@ -55,7 +55,7 @@ User (Black) beat weizigo-oracle (White) on 4×4.
   19.51 / 19.05 / 7.91 / 3.58 / 4.08 %, max |stored − bellman|
   2 / 12 / 18 / 24 / 32. Max misprice = **2n exactly** for n ≥ 6 (the full area
   swing over [−n, +n]); 2×2 is the exception. **CLAIMED** — an observed
-  regularity over four sizes, no proof offered, and per-board epistemic
+  regularity over four sizes, no proof offered, and per-goban epistemic
   independence forbids extrapolating it.
 
 ### Epistemic status

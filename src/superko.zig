@@ -18,18 +18,18 @@
 //
 // Positional superko (see docs/research/ghi-and-superko.md).
 //
-// A `History` is the stack of whole-board positions along the current game
+// A `History` is the stack of whole-goban positions along the current game
 // line. During search: reset() once, then push() / pop() around each move, and
 // reject any candidate for which repeats() is true.
 //
-//   "the exact board position may never repeat in the same game" (PSK)
+//   "the exact goban position may never repeat in the same game" (PSK)
 //
 // Positions are compared by COLOUR (sign), not army-flag magnitude, so the
 // same configuration reached via different move orders compares equal. A
 // separate Zobrist hash filter could be layered on for speed later; for 5x5
 // the lines are short enough that exact comparison is fine.
 //
-// Optimisation: a whole-board position can only recur after a capture (in
+// Optimisation: a whole-goban position can only recur after a capture (in
 // capture-free play the stone count strictly increases). So `armed` tracks
 // whether any capture has occurred at/before each ply, and repeats() skips the
 // scan entirely for a plain stone-adding move while the line is still growing.
@@ -98,7 +98,7 @@ pub const History = struct {
         return self.len > 0 and self.armed[self.len - 1];
     }
 
-    /// Positional superko: would arriving at board `b` recreate a position
+    /// Positional superko: would arriving at goban `b` recreate a position
     /// already on this line? (`b` is a candidate not yet pushed.)
     pub fn repeats(self: *const History, b: *const [25]i8) bool {
         return self.repeatsIndex(b) != null;

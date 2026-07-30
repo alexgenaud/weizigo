@@ -17,7 +17,7 @@ equals `ko_point` (formalization (i)); pass is always legal, clears
 area score. This is exactly `qa023_brute_2x2.zig` `State.apply_place` /
 `apply_pass` (2×2) and `qa023_probe.zig` `moves()` (3×2).
 
-**Arrival history.** `h` = the sequence of states from the empty-board root
+**Arrival history.** `h` = the sequence of states from the empty-goban root
 to σ (exclusive of σ). Only the **visit-set** `set(h)` matters: the
 adjudication rule below consults membership only, never order —
 order-irrelevance is immediate from the recursion (every reference to `h` is
@@ -43,7 +43,7 @@ so depth ≤ |reachable states|.
 **QA-023 (Part B restated).** For every reachable σ and every two arrival
 histories `h₁, h₂`: `V(σ | set(h₁)) = V(σ | set(h₂))` — and this common value
 equals the Part-A fixpoint `median(L(σ), TIE, H(σ))` (proof-v2 Theorem 5.1).
-A single within-budget counterexample falsifies QA-023 at that board size.
+A single within-budget counterexample falsifies QA-023 at that goban size.
 
 ## 2. The evaluator trilemma, and the honest evaluator
 
@@ -90,7 +90,7 @@ There is **no cheap unconditional reference** for `V(σ | A)`:
 |---|---|---|
 | empty, B to move | **0** | +1 ⇒ PSK implemented by accident |
 | empty, W to move | 0 | colour symmetry |
-| all-black board, B to move | +4 | area scoring path |
+| all-black goban, B to move | +4 | area scoring path |
 | empty, W to move, passes=1 | 0 | pass bookkeeping |
 | empty, passes=2 | 0 | terminal scoring |
 
@@ -117,7 +117,7 @@ There is **no cheap unconditional reference** for `V(σ | A)`:
 ## 4. Proposed claim rows (CLAIMS owner folds; not edited here)
 
 - `3x2.QA023.B-VACUITY` — reachable directed cycles exist at 3×2 under basic
-  ko (non-zero cycle census). If zero: the board cannot test QA-023;
+  ko (non-zero cycle census). If zero: the goban cannot test QA-023;
   escalate, do not pass. UNTESTED.
 - `3x2.QA023.B-PROBE` — zero within-budget disagreements across sampled
   (state, history-pair) evaluations; reported with the three-way
@@ -131,4 +131,4 @@ There is **no cheap unconditional reference** for `V(σ | A)`:
   detect PSK's proven sensitivity cannot clear basic ko. UNTESTED — this row
   is the strongest addition over the prior design.
 
-Per-board independence applies: every row is 3×2-scoped.
+Per-goban independence applies: every row is 3×2-scoped.

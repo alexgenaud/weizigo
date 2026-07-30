@@ -54,7 +54,7 @@ recovery (item 1) is stronger than the original since it is independent.
 | **Classification** | **RECOVERABLE** |
 | **Committed algorithms** | Same as T13 (`src/retro.zig`, `src/colex.zig`, `src/rules.zig`), applied at 2×2 |
 | **What survives** | One-line result in `dispatch-registry/SUBAGENTS.md`: "C2-pilot-2×2 PARTIAL/tautological, no non-root cycles" |
-| **Recovery effort** | **Minimal.** The T110 re-implementation (`t13_probe.py`) parameterises board size; setting `(2,2)` and running `census`/`sanity`/`search` would regenerate the result in seconds. A 2×2 board has 4 cells and 64 states — far simpler than 3×2. |
+| **Recovery effort** | **Minimal.** The T110 re-implementation (`t13_probe.py`) parameterises goban size; setting `(2,2)` and running `census`/`sanity`/`search` would regenerate the result in seconds. A 2×2 goban has 4 cells and 64 states — far simpler than 3×2. |
 | **Verification target** | The claim: at 2×2, PSK never fires during placement-only lines, so every history-aware query reduces to fresh-start. |
 
 **What was lost:** a driver file even simpler than T13's.

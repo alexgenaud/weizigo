@@ -85,7 +85,7 @@ orbit propagation.
 - `retro.finish` gains a comptime `bracketed` switch; the plain path is kept
   as the cross-check engine (engine-vs-engine doctrine).
 - If the 3x3 ko-sensitive region sweep completes under budget, the 3x3 oracle is COMPLETE
-  (first board where certification + finishing covers every slot beyond 2x2).
+  (first goban where certification + finishing covers every slot beyond 2x2).
 - 4x4/5x5 scaling of the finisher becomes a measurable quantity again
   (nodes per opening root with bracket cuts, vs Finding 6's blowup).
 - DTT-through-finisher (open question 2) remains separate; V1 finishing now

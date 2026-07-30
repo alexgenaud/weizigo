@@ -22,7 +22,7 @@
 // (`src/qa023_smoke_2x2.zig`). Per `docs/infra/dispatch/EXP-2.md` Part B
 // (corrected 2026-07-28 by Opus, see `audit-opus-2026-07-28.md`):
 //
-//   B1 (smoke, 2×2):   cheap gross-error check on a board with no reachable
+//   B1 (smoke, 2×2):   cheap gross-error check on a goban with no reachable
 //                      non-root cycles — catches 'implemented PSK by accident'
 //                      and similar wiring errors. NOT evidence for QA-023.
 //
@@ -33,7 +33,7 @@
 // the same game by explicit game-tree evaluation carrying full history and
 // compare every state' (i.e. enumerate *paths*, not states, and cross-check
 // a parallel converge solver). That instruction is unsatisfiable — the audit
-// ran the design for 10h22m on a four-point board and produced nothing. The
+// ran the design for 10h22m on a four-point goban and produced nothing. The
 // correction in EXP-2.md §B2 is a history-sensitivity probe (reach the same
 // state via different histories, check values agree). The converge/compare
 // files referenced in the comment below do not exist on disk; the converge
@@ -238,7 +238,7 @@ pub fn value(s: State) i8 {
 // ---- state encoding / decoding ----------------------------------------------
 //
 // Global state index for a 2x2 board:
-//   bits:  passes(2) | side(1) | ko(3) | board(7)  (board: 3^4=81, 7 bits)
+//   bits:  passes(2) | side(1) | ko(3) | goban(7)  (board: 3^4=81, 7 bits)
 //   total: 2 * 2 * 5 * 81 = 1620
 
 pub const TOTAL_STATES: u64 = 81 * 2 * (n + 1) * 3; // = 1620 for 2x2
@@ -327,9 +327,9 @@ pub fn main(init: std.process.Init) !void {
     var visited = try std.DynamicBitSetUnmanaged.initEmpty(gpa, TOTAL_STATES);
     defer visited.deinit(gpa);
 
-    // Reachability: start from the empty board in all (side, ko, passes)
+    // Reachability: start from the empty goban in all (side, ko, passes)
     // combinations, plus any state that might be a root. The four roots
-    // are: empty board + Black-to-move, empty board + White-to-move.
+    // are: empty goban + Black-to-move, empty goban + White-to-move.
     const empty_board = [_]i8{0} ** n;
     const sides: [2]i8 = .{ 1, -1 };
     const passes_arr: [3]u8 = .{ 0, 1, 2 };
@@ -473,7 +473,7 @@ test "smoke: 1-ko shape: B captures 1 W stone, the ko point forbids the snapback
     //   Position: W[0], B[1]. Black plays cell 3. B[3] has neighbors
     //   1 (B), 2 (empty) — TWO liberties, not 1. No ko.
     //  So on 2x2, basic-ko with formalization (i) NEVER fires! The
-    //  2x2 board is too small for the ko shape to occur.
+    //  2x2 goban is too small for the ko shape to occur.
     //  This is the trivial-coincidence case for A2.
     //  (The 2x2 result must still be 0; this test asserts it.)
     const s = State{

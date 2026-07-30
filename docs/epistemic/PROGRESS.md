@@ -19,10 +19,10 @@ what is open, and what it means.
 
 ## 1. The project and the goal
 
-`weizigo` set out to build a **provably-correct solver for small Go boards** —
+`weizigo` set out to build a **provably-correct solver for small Go gobans** —
 a position-to-score table giving the game-theoretic score of every legal
 position for either side to move, built by retrograde value iteration, then
-extended to larger boards. The target was *provable knowledge*: not the
+extended to larger gobans. The target was *provable knowledge*: not the
 strongest player, not the best heuristic, but a verified account of the game
 under a stated ruleset.
 
@@ -34,7 +34,7 @@ the intended near-term deliverable `[GLOBAL.REFRAME:CLAIMED]`.
 Play-time can enforce any ko rule; the generation rule is chosen for
 tractability, not fidelity `[GLOBAL.PSK-GAP:PROVEN]`.
 
-Each board size is its own epistemic universe `[GLOBAL.ADR0016-INHERIT:CLAIMED]`.
+Each goban size is its own epistemic universe `[GLOBAL.ADR0016-INHERIT:CLAIMED]`.
 A result at 2×2 says nothing about 3×3 unless a monotonicity theorem is
 provided — and none exists in this project.
 
@@ -48,7 +48,7 @@ is a **measured result about the problem**, not a failure of imagination.
 
 ### 2.1 Positional superko is intractable for exact solve `[GLOBAL.R1:PROVEN]`
 
-Exact PSK solving — storing every encountered board position in the memo key to
+Exact PSK solving — storing every encountered goban position in the memo key to
 distinguish identical positions reached via different histories — exceeds a
 200M-node budget even on the **empty** 2×2 board: 118,475,182 ban-set states
 at 2×2 `[2x2.R1:MEASUREMENT]`, 116,114,272 at 3×2 `[3x2.R1:MEASUREMENT]`.
@@ -66,7 +66,7 @@ into the memo key `[GLOBAL.RPLY-TRAP:PROVEN]`. No free lunch.
 ### 2.3 Bounded N-ply superko is intractable for every N `[GLOBAL.RPLY:PROVEN]`
 
 The RETRO_PLY probe tested every N from 1 (basic ko) up through PSK on exact
-solving from the empty board at 2×2 and 3×2. Every row hit the 200M-node
+solving from the empty goban at 2×2 and 3×2. Every row hit the 200M-node
 budget. Bounded-history N-ply is bounded only for *legality*; the score
 terminal re-introduces the full history into the key. A forbid-only variant
 (ban the last N positions, no cycle scoring) does not terminate — a cycle
@@ -87,13 +87,13 @@ was uncertain. kill-X% remains an optional play rule only.
 The project shipped a 4×4 position-to-score table, compared it to published
 anchors, and claimed success. The table is a **fresh-start oracle**: it stores,
 for each position, the game-theoretic score under optimal play *from an empty
-history* (C1: definition, not itself a testable claim — its per-board rows `[2x2.C1:PROVEN]` `[3x2.C1:PROVEN]` carry the verification). It does not store, and cannot store, the score
+history* (C1: definition, not itself a testable claim — its per-goban rows `[2x2.C1:PROVEN]` `[3x2.C1:PROVEN]` carry the verification). It does not store, and cannot store, the score
 under the real PSK history of a game in progress.
 
 ### 3.1 C2 — the single-score region is not history-independent `[GLOBAL.C2:FALSE-AS-SCOPED]`
 
 The L==H region — where the least and greatest fixpoints agree, covering
-~66–79% of slots depending on board size — was called the "certified core"
+~66–79% of slots depending on goban size — was called the "certified core"
 and claimed to be history-independent. **T13 falsified this at 3×2**
 (2026-07-26): 12 verified mismatches on 508 non-trivial PSK histories over
 L==H slots, with 0/540 fresh-start sanity mismatches `[3x2.T13:PROVEN]`.
@@ -124,7 +124,7 @@ The bracket-guided finisher (ADR-0010) — the forward search that fills
 ko-sensitive slots by cutting on [L,H] — rests on the claim that the bracket
 holds under *any* arrival history. That claim **is** C3, which is
 FALSE-AS-SCOPED at 3×3. The orphan was confirmed by ADR-0015 (2026-07-28):
-for an empty-board root, the finisher's own search path *is* a real game line,
+for an empty-goban root, the finisher's own search path *is* a real game line,
 so E2's falsifying histories are within the family ADR-0010 claims to cover.
 ADR-0017 (2026-07-29) attempted to refute ADR-0015 and **failed** — T13's 12
 pointwise mismatches at 3×2 ride exactly the finisher's search-shaped histories.
@@ -182,7 +182,7 @@ Bellman residuals 0/0, colour-inversion violations 0.
 
 - **Under history-conditioned semantics** (first-revisit truncation, ADR-0019):
   **the state is NOT sufficient at 3×2.** A concrete C1 witness exists:
-  state `(178,0,6,0)`, board `[B,W,B,_,W,_]`, Black to move — two valid
+  state `(178,0,6,0)`, goban `[B,W,B,_,W,_]`, Black to move — two valid
   arrivals give truncation values −3 and −6 while the corrected fixpoint gives
   L=H=−6. `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`
 
@@ -274,7 +274,7 @@ and the state must carry more information.
 
 The GTP player's move rule (`Session.choose` — extremum over stored child
 values) is undefined in the ko-sensitive region, which on 4×4 includes the
-empty board itself `[4x4.GTP-DEFECT:PROVEN]` `[4x4.M5:PROVEN]`. EXP-9 (Opus 5,
+empty goban itself `[4x4.GTP-DEFECT:PROVEN]` `[4x4.M5:PROVEN]`. EXP-9 (Opus 5,
 2026-07-29) shipped a mitigation: child-side refuse-on-divergence + settled-area
 fallback; +6.8%/genmove; PARTIAL acceptance — the mechanism fires at ply 13 not
 ply 7 `[GLOBAL.H5a-CHILD:CLAIMED]` `[GLOBAL.H5a-FALLBACK:CLAIMED]`.

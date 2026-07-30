@@ -126,7 +126,7 @@ const Solver = struct {
                 if (v < best) best = v;
             }
         }
-        // pass (board unchanged, exempt from superko — standard Go rules)
+        // pass (goban unchanged, exempt from superko — standard Go rules)
         {
             const vp = self.solve(pos, -to_move, passes + 1, hist);
             if (maximizing) {
@@ -140,7 +140,7 @@ const Solver = struct {
         return best;
     }
 
-    /// Fresh-start value: root board in history, no passes, side to move.
+    /// Fresh-start value: root goban in history, no passes, side to move.
     fn value(self: *Solver, pos: *const Pos, to_move: i8) i8 {
         var hist = History{};
         hist.push(pos);

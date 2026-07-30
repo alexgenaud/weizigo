@@ -21,7 +21,7 @@ histories).
 ## The ruling you must try to refute (D-5, verbatim)
 
 > **ADR-0010's justification is refuted as stated.** Its cut rests on brackets
-> holding "under ANY arrival history". For an **empty-board root** the finisher's
+> holding "under ANY arrival history". For an **empty-goban root** the finisher's
 > search path *is* a real game line — so E2's falsifying histories lie inside
 > the very family ADR-0010 claims to cover. There is no third option: either
 > "ANY arrival history" is too strong, or someone must prove the search-path
@@ -45,7 +45,7 @@ refutation as evidence.
 Adjudicate both horns:
 
 - **Horn A (ruling stands):** "ANY" over-reached; search-path and real-game
-  histories are the same family (empty-board root ⇒ search path *is* a real
+  histories are the same family (empty-goban root ⇒ search path *is* a real
   game line); C3's falsification applies; **F2 orphaned**; the only sound 4×4
   build is brackets-off (≫ cost — empty 4×4 root >5e8 nodes abandoned without
   bracket cuts vs ≤3.5e5 with).

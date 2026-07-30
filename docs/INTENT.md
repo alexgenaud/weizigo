@@ -30,11 +30,11 @@ beats an unexamined hope.
 
 ## Ambition and realism, held together
 
-The vision is unlimited: provably perfect play, on ever larger boards.
+The vision is unlimited: provably perfect play, on ever larger gobans.
 
 The practice is unsentimental. **4×4 now** — optimal to best play, while still
 reaching for provable perfection rather than settling for adequacy. **5×5 and
-beyond** afterwards, provably. Each board is its own problem and earns its own
+beyond** afterwards, provably. Each goban is its own problem and earns its own
 proof; none inherits another's.
 
 Where a rule cannot be solved exactly, relax it deliberately, say so plainly, and

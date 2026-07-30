@@ -1,4 +1,4 @@
-# ADR-0014: Board-snapshot scoring UI for GTP
+# ADR-0014: Goban-snapshot scoring UI for GTP
 
 Status: accepted
 Date: 2026-07-27
@@ -9,12 +9,12 @@ Relates to: ADR-0003 (Chinese area scoring), ADR-0011 (artifact format)
 
 The GTP oracle player (`src/gtp.zig`) answers `final_score` with a single
 `B+X`/`W+X`/`0` string derived from Chinese/area scoring.  That number counts
-*every on-board stone as alive* and silently omits dame ("no man's land"),
+*every on-goban stone as alive* and silently omits dame ("no man's land"),
 which is misleading for humans mid-game.  We want a score report that is:
 
-1. **Honest:** labels the number as definitive only when the board is settled,
+1. **Honest:** labels the number as definitive only when the goban is settled,
    and provisional otherwise.
-2. **Pure:** computed from the board snapshot only, with no dependency on the
+2. **Pure:** computed from the goban snapshot only, with no dependency on the
    oracle's fresh-start / GHI caveats.
 3. **Legible:** breaks the score into area, Japanese-style territory, dame,
    and a conservative dead-stone estimate.
@@ -24,10 +24,10 @@ which is misleading for humans mid-game.  We want a score report that is:
 Add a new pure module `src/score.zig` and three new GTP commands.  No oracle
 values are consulted.  Every public function carries an epistemic tag.
 
-### `src/score.zig` — pure board-snapshot scoring
+### `src/score.zig` — pure goban-snapshot scoring
 
 `Score(comptime w, comptime h)` returns a namespace of pure functions for a
-fixed board size:
+fixed goban size:
 
 | Function | Returns | Tag |
 |---|---|---|
@@ -58,12 +58,12 @@ them:
   dame-point vertices, dead-stone vertices, contested-chain count, and status.
 
 `final_score` keeps its existing Sabaki-compatible single-string reply.  When
-the board is not settled it prints a stderr/log warning:
+the goban is not settled it prints a stderr/log warning:
 `# provisional: N dame, M non-alive chains (dead stones counted as alive)`.
 
 ## Non-promises
 
-- The score report is **board-only**.  It does not claim the fresh-start oracle
+- The score report is **goban-only**.  It does not claim the fresh-start oracle
   value and does not bound the real-game PSK score.
 - `territory_japanese` is intentionally incomplete Japanese scoring: it does
   not remove dead stones and may under-count because Benson-alive is

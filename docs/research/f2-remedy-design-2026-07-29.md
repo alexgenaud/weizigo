@@ -29,7 +29,7 @@ Every claim in this document carries a tag. The load-bearing ones:
 | # | claim | tag |
 |---|---|---|
 | D1 | `V = median(L, T, H)` equals the game value under basic ko + constant-`T` infinite-play verdict, on the `(board, side, ko_point, passes)` graph | **PROVEN-as-scoped** — `docs/evidence/QA-023/proof-v2-2026-07-28.md` Thm 5.1, adversarially reviewed (verdict REPAIRABLE-GAPS, all repairs applied, no theorem statement changed). Scope: conditional on hypotheses (A1-legal/term/ko/passes); **QA-023 overall stays CLAIMED until EXP-2B passes** |
-| D2 | The build path below never consults history and never detects a repeated board | **PROVEN-as-scoped** (by construction of the operator — §5; the argument is structural in the ADR-0016 sense) |
+| D2 | The build path below never consults history and never detects a repeated goban | **PROVEN-as-scoped** (by construction of the operator — §5; the argument is structural in the ADR-0016 sense) |
 | D3 | The build path below reads no prior artifact and no certified seed, hence cannot inherit the CERTCORE premise (ADR-0017 finding 2 does not apply) | **PROVEN-as-scoped** (by construction — §3.4) |
 | D4 | Cost at 4×4: ≤ 354 MB artifact, build working set ~350 MB (sparse) and wall clock of the same order as EXP-3's census (~4 min) × a small sweep-count factor | **CLAIMED** — estimate, not a measurement; costing is deliverable 1 of the implementation task (§7) |
 | D5 | Anchors under this rule: 2×2 = 0, 2×3 = 0, 3×3 = +9, 4×4 = +2 | **CLAIMED** — and 2×2/2×3 are the falsification gate (EXP-4), not evidence; also gated on QA-023.M1 (that MIGOS II's rule is in fact value-equal — UNTESTED) |
@@ -75,7 +75,7 @@ user ADR, proof-v2 §9.6), Chinese area scoring, suicide forbidden, and a
 throughout, pending the user's A3-sub ADR (proof-v2 §9.5); nothing below
 depends on the specific value except `−n ≤ T ≤ +n` (needed by Theorem 5.1's
 clamp robustness) and the reporting convention for ties (no sentinel needed
-— 0 is inside the terminal value set even on odd boards, because neutral
+— 0 is inside the terminal value set even on odd gobans, because neutral
 regions exist; proof-v2 §9.4).
 
 **The rule has no in-game repetition trigger** (proof-v2 §1.2 Remark):
@@ -96,7 +96,7 @@ Since a pass clears the ko point, the `passes = 1` slice carries
 Census (EXP-3, `docs/research/kostate-census-2026-07-28.md`, exact, no
 sampling; denominators as stated there):
 
-| board | reachable `(b,side,ko)` | with passes (a′) | distinct `(b,ko)` | sparse/dense | artifact 6 B/addr |
+| goban | reachable `(b,side,ko)` | with passes (a′) | distinct `(b,ko)` | sparse/dense | artifact 6 B/addr |
 |---|---|---|---|---|---|
 | 3×3 | 22,736 | 45,472 | 13,997 | 7.111% | 84 KB |
 | 4×3 | 638,266 | 1,276,532 | 375,281 | 5.432% | 2.25 MB |
@@ -109,7 +109,7 @@ defers the decision):
 - **Dense** `(colex(board) × ko × side)` planes + a ko-free `passes = 1`
   plane. At 3×3/4×3 this is trivially fine. At 4×4 the working set is
   `24.3M legal × 17 × 2 sides × 2 fixpoints × 1 B ≈ 1.65 GB` on legal
-  boards, ~2.9 GB if allocated over raw `3^16` — at or over the
+  gobans, ~2.9 GB if allocated over raw `3^16` — at or over the
   `tools/runner` 4 GB kill line once legality maps and the passes plane are
   added. **Not recommended at 4×4.**
 - **Reachable-sparse (recommended at 4×4):** a `(b, ko)` reachability bitset
@@ -128,12 +128,12 @@ Exactly ADR-0009's operator, re-hosted on the new graph — Black max / White
 min **in both fixpoints** (proof-v2 §9.3 records v1's swapped-max/min
 transcription error so nobody copies it):
 
-- Successors of `(b, side, ko, 0)`: every legal board move (full move set,
+- Successors of `(b, side, ko, 0)`: every legal goban move (full move set,
   **no eye-prune**, matching ADR-0009 Decision 3 *and* hypothesis (A1-legal)
   — the retrograde sweep has no reopening problem and the proof's graph is
   the true rule's graph) with the child's `ko_point` computed by the
   `isKoCapture` shape, plus pass → `(b, -side, none, 1)`.
-- Successors of `(b, side, none, 1)`: board moves (child passes = 0) plus
+- Successors of `(b, side, none, 1)`: goban moves (child passes = 0) plus
   pass → terminal with payoff `area_score(b)`.
 - `L` seeded −n on non-terminals, swept up to the least fixpoint; `H` seeded
   +n, swept down to the greatest. Monotone, so convergence is guaranteed;
@@ -142,12 +142,12 @@ transcription error so nobody copies it):
   nothing else).
 
 **Deliberate deviation from the current engine, flagged:** the current graph
-treats Benson-settled boards as terminals for both sides (`is_settled`,
+treats Benson-settled gobans as terminals for both sides (`is_settled`,
 ADR-0009 seed). Theorem 3.1 is proven for `Terminal(S) ⇔ passes = 2` only.
 The v0 build must therefore use **pass-pass terminals only**, exactly the
 proven graph. Re-adding settled-terminals is an optimization that changes
 the graph and needs its own equivalence argument (GLOBAL.ADR0004-TERM covers
-the *score* of a settled board, not the removal of its out-edges from this
+the *score* of a settled goban, not the removal of its out-edges from this
 rule's game graph with a tie in the value domain) — **UNTESTED; do not fold
 into v0**. Same discipline for any eye-prune in forward cross-check tools:
 the cross-checks keep ADR-0006's prune per that ADR, and any disagreement is
@@ -172,7 +172,7 @@ build.
 Flags to keep (reporting metadata, not semantics): bit for `L < H`
 ("loop-valued under this rule"), and the trichotomy bucket
 (`T < L` / `T ∈ [L,H]` / `H < T`) — the **pin census** EXP-4 must report per
-board, because a zero outer bucket is exactly where v1's false rule would
+goban, because a zero outer bucket is exactly where v1's false rule would
 have silently coincided.
 
 ### 3.4 Seeds — the answer to "how are certified seeds produced without the bracket cut"
@@ -251,7 +251,7 @@ The arena plays full games and must **end** them; the one game-ending
 trigger proven value-equal to the solved game is **first revisit of the
 full `(board, side, ko_point, passes)` tuple within the game, scored `T`**
 (Theorem 6.1; the game root is the fresh start, so the whole game is the
-continuation). Board-keyed or `(board, side)`-keyed triggers are a
+continuation). Goban-keyed or `(board, side)`-keyed triggers are a
 *different game* with **unproven** value-equality (QA-023.M2, UNTESTED) —
 the arena must not use them, however natural they look. The arena already
 tracks seen positions; the change is keying that set on the full tuple and
@@ -275,16 +275,16 @@ needs no such cache.
 
 **Why the tie-pinned loop is a constant verdict (R2).** `T` is one global
 constant. `V(S) = median(L(S), T, H(S))` consults the state's own two
-fixpoint values and the constant — never the identity of a repeated board.
+fixpoint values and the constant — never the identity of a repeated goban.
 Contrast score-on-cycle, where the verdict is `area_score(repeated board)`,
-a function of which board recurred: that is what made it byte-identical to
+a function of which goban recurred: that is what made it byte-identical to
 PSK (`GLOBAL.R2`). Nothing in §3 evaluates a cycle at all: infinite play
 enters the value only through the trap lemmas, which are global properties
 of the graph computed by the sweeps (proof-v2 §8). [D2,
 PROVEN-as-scoped — structural.]
 
 **Why the key stays history-free (RPLY-TRAP).** The RPLY trap was: a cycle
-*terminal* forces cycle *detection*, which drags every seen board into the
+*terminal* forces cycle *detection*, which drags every seen goban into the
 memo key. Here (a) the generation path has **no memo and no search** — a
 table sweep has no key beyond the state address; (b) the play-time lookup
 key is the state tuple; (c) the only component that ever detects a repeat
@@ -293,17 +293,17 @@ a referee does — it ends the game — and feeds nothing back into any stored
 value; and (d) the one place history could sneak back in — memoizing
 truncated forward values — is foreclosed by name (§4.4). [D2.]
 
-## 6. Per-board independence (ADR-0016 discipline, constraint 4)
+## 6. Per-goban independence (ADR-0016 discipline, constraint 4)
 
 **Structural (inherits, with the argument):** Theorems 3.1/4.1/5.1/6.1 are
 pure finite-graph game theory; their hypotheses (A1-*) are per-*rule*, not
-per-board (proof-v2 §1.1 makes this explicit). D1–D3 above therefore carry
-to every board size *conditional on the hypotheses*.
+per-goban (proof-v2 §1.1 makes this explicit). D1–D3 above therefore carry
+to every goban size *conditional on the hypotheses*.
 
 **Empirical (never inherits):** every number — census counts, sweep counts,
 wall clock, pin census, anchor matches, EXP-2B's (A1)-conformance check,
 EXP-7's certified fraction, EXP-8's PSK divergence. In particular: EXP-2B
-passing at 3×2 checks the (A1) hypotheses *there*; the per-board gates
+passing at 3×2 checks the (A1) hypotheses *there*; the per-goban gates
 (EXP-4: 2×2/2×3 = 0; EXP-5: 3×3 = +9; EXP-6: 4×4 = +2 with a filled root)
 plus the auditor (§8) are what stand in for it at each size. No anchor
 match at one size is evidence at another.

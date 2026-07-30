@@ -5,7 +5,7 @@ Task: F1-SEEDROOTS · Role: worker · Model: DSPro/F1 · Date: 2026-07-29
 ## What was asked
 
 Fix `seed_roots` in `src/qa023_probe.zig` to seed only genuinely reachable
-roots (4: empty board × side × passes), re-run the census + history-pair guard +
+roots (4: empty goban × side × passes), re-run the census + history-pair guard +
 fixpoint, state whether any verdict moves, and check other census files for the
 same phantom-seed pattern.
 
@@ -14,17 +14,17 @@ same phantom-seed pattern.
 ### 1. Identified the defect
 
 Two seed sites in `src/qa023_probe.zig` looped over all `ko_u` (0..KO_DIMS = 7)
-when seeding the empty-board roots:
+when seeding the empty-goban roots:
 
 - **Inlined seed loop** in `run_census_3x2` (line ~761)
 - **`seed_roots()` function** (line ~3476), called from `fixpoint-3x2`,
   `cycle-census-3x2`, `history-pairs-3x2`, `probe-3x2`, and `all` modes
 
 Both seeded 2 sides × 3 passes × 7 ko = 42 states, of which only 2 sides ×
-2 passes × 1 ko = 4 are genuinely reachable. The 36 empty-board-with-a-ko-point
+2 passes × 1 ko = 4 are genuinely reachable. The 36 empty-goban-with-a-ko-point
 states are unreachable: a ko point can only be set by a single-stone capture
 (apply_place: exactly one opponent stone captured AND the placed stone forms a
-lone-stone chain whose sole liberty is the captured cell). The empty board has
+lone-stone chain whose sole liberty is the captured cell). The empty goban has
 no stones, so no capture — and therefore no ko point — can exist on it.
 
 ### 2. Applied the fix
@@ -38,7 +38,7 @@ passes; the sweep discovers it — seeding it directly is redundant.
 A ko point `k ≠ KO_NONE` means the opponent's next move at cell `k` is illegal
 (basic-ko ban). `apply_place` sets `new_ko = captured_cell` only when: (a) exactly
 one opponent stone was captured, AND (b) the placed stone is a lone stone with
-exactly one liberty. The empty board satisfies neither precondition: no stones
+exactly one liberty. The empty goban satisfies neither precondition: no stones
 exist to capture. Therefore every root state must have `ko = KO_NONE`.
 
 ### 4. Re-ran the battery (all through `tools/runner`)
@@ -54,7 +54,7 @@ All commands: `zig run -O ReleaseFast src/qa023_probe.zig -- <mode>`
 | ko=none | 2,562 | 2,562 | 0 |
 | B / W | 1,311 / 1,311 | 1,293 / 1,293 | −18 each |
 | terminals (passes=2) | 866 | 854 | −12 |
-| distinct legal boards | 489 | 489 | 0 |
+| distinct legal gobans | 489 | 489 | 0 |
 | sweeps | 12 | 12 | 0 |
 
 The −36 is exactly the 6 non-NONE ko values × 2 sides × 3 passes that were
@@ -118,7 +118,7 @@ passes=1, V_fixpoint=0, truncated=1.
 | file | phantom-seed pattern? |
 |---|---|
 | `src/kostate_census.zig` | **No** — `seed_root` correctly seeds only `ko_point = KO_NONE` |
-| `src/reachcensus.zig` | **No** — no ko seed loop; builds from empty board position |
+| `src/reachcensus.zig` | **No** — no ko seed loop; builds from empty goban position |
 | `src/ko_census.zig` | **No** — loads WZO1 artifact, no census seed loop |
 
 None of the other census files have the phantom-seed defect.
@@ -126,8 +126,8 @@ None of the other census files have the phantom-seed defect.
 ## What I found
 
 1. **The 36 phantom states are gone.** V drops from 2,622 to 2,586; ko=cells
-   from 60 to 24. The legal-board count (489) is unchanged — no legal boards
-   were phantom-seeded, only unreachable ko variants of legal boards.
+   from 60 to 24. The legal-goban count (489) is unchanged — no legal gobans
+   were phantom-seeded, only unreachable ko variants of legal gobans.
 2. **No verdict moves.** C2 remains falsified (1 state). C1 remains not
    falsified (0 of 9 eligible). The SCC, pin census, and disagreement pattern
    are identical. `B-VACUITY` PASS.
@@ -171,7 +171,7 @@ Three headline numbers move; the cycle-census counters shift proportionally.
 | cycle-reachable | 1,704 | 1,680 | 1,678 |
 | non-trivial SCCs | 1 | 1 | 1 |
 | max SCC size | 1,676 | 1,666 | — |
-| distinct legal boards | 489 | 489 | 489 |
+| distinct legal gobans | 489 | 489 | 489 |
 
 *ko-fix numbers from 2B-FIX-KO brief; not independently verified here.
 

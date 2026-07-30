@@ -98,7 +98,7 @@ separately (`docs/infra/dispatch/F2-REMEDY.md`).
 4. **Track A (`memo_writes=false`) does not escape this** (ADR-0017 finding 2,
    confirmed by all seats). The orphan is not a writes-on/writes-off
    distinction; it is a bracket premise distinction.
-5. **Per-board epistemic independence holds.** This ruling is justified at
+5. **Per-goban epistemic independence holds.** This ruling is justified at
    3×2 / 3×3; it does not transfer to 4×4 by assertion (ADR-0016). The
    orphan's *scope* (which shipped values rest on the premise) is a separate
    computation, not re-litigated here.

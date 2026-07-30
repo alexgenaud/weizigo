@@ -26,7 +26,7 @@
 //     plus pass. Black maximizes, White minimizes.
 //
 // Phase 2 adds a transposition table so the search is tractable (a single
-// capture can reopen the board into a near-empty position whose subtree is
+// capture can reopen the goban into a near-empty position whose subtree is
 // exponential without memoization). Three rules keep the TT sound:
 //
 //   1. Key = (blind, seq) + side, canonicalized by state.lowest_blind_from_pos
@@ -42,7 +42,7 @@
 //      returns `ko_ref` = the shallowest game-line ply any ban referenced; a
 //      node at ply `d` is cacheable iff `ko_ref >= d`.
 //
-// Full-board (5x5) only: restricting to a sub-region of the 25-cell array is
+// Full-goban (5x5) only: restricting to a sub-region of the 25-cell array is
 // unsound (edge stones keep phantom liberties into the unplayable cells).
 //
 // Invariant: when solve() is entered, `pos` is already the top of `history`.
@@ -106,7 +106,7 @@ pub const Table = struct {
         const low = state.lowest_blind_from_pos(pos);
         if (low.num_stones > MAX_HASH_STONES) return null;
         // Fold black/white inversion into the side key: value(pos, t) equals
-        // -value(inverse(pos), -t), so an inverted board keys on the opposite
+        // -value(inverse(pos), -t), so an inverted goban keys on the opposite
         // side and negates the stored (canonical-frame) score.
         const key_side = if (low.is_inverse) -to_move else to_move;
         const tbl = if (key_side > 0) self.black else self.white;
@@ -221,7 +221,7 @@ pub fn solve(
     // is already its territory, and filling only risks the group's life. Pruning
     // these moves is sound AND essential for tractability -- without it the DFS
     // explores a live group filling its own eyes down to one liberty, letting
-    // the opponent capture the whole group and reopen the board (see
+    // the opponent capture the whole group and reopen the goban (see
     // docs/decisions/0006). The opponent cannot fill these eyes either (suicide),
     // so a Benson-alive group's eyes are immortal.
     const own_alive = terminal.benson_alive(pos, to_move);
@@ -248,7 +248,7 @@ pub fn solve(
         }
     }
 
-    // pass move (board unchanged: not pushed to history, exempt from superko)
+    // pass move (goban unchanged: not pushed to history, exempt from superko)
     const rp = solve(pos, -to_move, passes + 1, history, table, komi);
     if (rp.ko_ref < ko_ref) ko_ref = rp.ko_ref;
     if (maximizing) {
@@ -392,7 +392,7 @@ var tt_history: superko.History = .{};
 // white stone is not Benson-alive), so the search must actually play: it captures
 // the dead stone and reaches Black+25. The eye-prune is what keeps this bounded
 // -- without it the DFS would fill black's eyes, let white capture the whole
-// group, and reopen the board into an intractable near-empty search.
+// group, and reopen the goban into an intractable near-empty search.
 const dead_white = [_]i8{
     1, 1, 1, 0, 1,
     1, 0, 1, -1, 1,
@@ -428,7 +428,7 @@ test "TT changes nothing vs the no-TT search, and colour symmetry holds" {
 
 test "eye-prune: a Benson-alive group's own eyes are not playable moves" {
     // idx 6 and 18 are true eyes of the alive black group; the mover must not
-    // fill them (that is the move that would eventually reopen the board).
+    // fill them (that is the move that would eventually reopen the goban).
     const alive = terminal.benson_alive(&dead_white, 1);
     try expect(is_own_eye(&dead_white, 6, 1, &alive));
     try expect(is_own_eye(&dead_white, 18, 1, &alive));

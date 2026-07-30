@@ -584,7 +584,7 @@ class Solver:
             return t.score[idx]
 
         maximizing = to_move > 0
-        # gather edges: board moves (PSK-legal, eye-pruned) + the pass edge
+        # gather edges: goban moves (PSK-legal, eye-pruned) + the pass edge
         edges = []
         own_alive = benson_alive(pos, to_move) if self.eye_prune else None
         for p in range(N):
@@ -1076,7 +1076,7 @@ def self_test():
     assert len(seen) == TOTAL
     print(f"self-test: colex bijection over all {TOTAL} boards OK")
 
-    # colour-bit convention from src/colex.zig's own test, on this board
+    # colour-bit convention from src/colex.zig's own test, on this goban
     assert colex_from_pos((0,) * N) == 0
     ww = colex_from_pos((-1, -1, 0, 0, 0, 0))
     bw = colex_from_pos((1, -1, 0, 0, 0, 0))
@@ -1096,7 +1096,7 @@ def self_test():
     assert pos_from_move(b, -1, 0) is None
     print("self-test: capture / suicide OK")
 
-    # area score: a lone Black stone owns the whole 3x2 board
+    # area score: a lone Black stone owns the whole 3x2 goban
     one = (0, 1, 0, 0, 0, 0)
     assert area_score(one) == N, area_score(one)
     assert area_score(EMPTY) == 0

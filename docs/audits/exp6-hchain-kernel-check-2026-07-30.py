@@ -8,9 +8,9 @@ Re-derives, with NO Zig code imported, the loopy-game fixpoint (ADR-0020)
 under area scoring / komi 0 / basic ko (formalization i) and diffs every
 (state, L, H) tuple dumped by the Zig audit harness:
 
-    #DUMP2  <board> <side(+1/-1)> <ko_point raw (255=NONE)> <passes> <L> <H>
-    #DUMP32 <board> <side(0=B)> <ko (6=NONE)> <passes> <L> <H>   (reachable only)
-    #DUMP3  <board> <side(0=B)> <ko (9=NONE)> <passes> <L> <H>   (reachable only)
+    #DUMP2  <goban> <side(+1/-1)> <ko_point raw (255=NONE)> <passes> <L> <H>
+    #DUMP32 <goban> <side(0=B)> <ko (6=NONE)> <passes> <L> <H>   (reachable only)
+    #DUMP3  <goban> <side(0=B)> <ko (9=NONE)> <passes> <L> <H>   (reachable only)
 
 The rules core (Rules/GameGraph/StateSpace/FixpointKernel.corrected) is the
 independent re-implementation proven in the QA023 kernel audit
@@ -345,7 +345,7 @@ def parse_dumps(path: str):
 
 
 # ---------------------------------------------------------------------------
-# Per-board checks
+# Per-goban checks
 # ---------------------------------------------------------------------------
 
 def check_2x2(d2) -> bool:
@@ -414,7 +414,7 @@ def check_board(name: str, w: int, h: int, dump) -> bool:
     print(f"#   value mismatches: {mism}/{len(dump)}")
     print(f"#   python root_B(L={L[root_b]},H={H[root_b]}) root_W(L={L[root_w]},H={H[root_w]})  "
           f"V_B={max(L[root_b], min(0, H[root_b]))} V_W={max(L[root_w], min(0, H[root_w]))}")
-    # phenomenon census: white-to-move, passes==1, white stone on board, H==top
+    # phenomenon census: white-to-move, passes==1, white stone on goban, H==top
     top = rules.n
     bad = 0
     for li in reach:

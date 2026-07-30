@@ -3,10 +3,10 @@
 // decided ones (see docs/research/terminal-territory-bug.md). Re-run after
 // is_settled is fixed to get the true minimal-DECIDED terminal + honest %.
 //
-// Census: over every single-colour (all-black) occupancy of the 5x5 board
+// Census: over every single-colour (all-black) occupancy of the 5x5 goban
 // (all 2^25 blinds), how many are Benson-settled, broken down by stone count?
 // This is the natural home of *minimal* terminals (one player owning the whole
-// board); mixed-colour terminals need two living groups and thus more stones.
+// goban); mixed-colour terminals need two living groups and thus more stones.
 const std = @import("std");
 const util = @import("util.zig");
 const p = util.out;

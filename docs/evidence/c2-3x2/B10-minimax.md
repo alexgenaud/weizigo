@@ -270,12 +270,12 @@ predictor on its own.
 
 **Recommendation: DO NOT replicate this at 4×4 by sampling.** The
 3×2 finding already falsifies C2 (T13), C3 (here), and parts of H1/H2
-at the smallest testable board. The hypothesis that "sampling
+at the smallest testable goban. The hypothesis that "sampling
 4×4 will reveal finer-grained empirical structure that 3×2 hides"
 has weak support from the present data:
 
 - H1 (LH diverges less) held at 3×2 in a 2.6×-strength sense; the
-  analogous claim at 4×4 would just re-state T13's per-board
+  analogous claim at 4×4 would just re-state T13's per-goban
   falsification with more noise. Not a fresh datum.
 - H2 (bracket bounds) is already falsified at 3×2 with width=3
   giving 12-pt divergence; 4×4 has wider brackets (4×4 measured

@@ -31,7 +31,7 @@ I read `src/qa023_probe.zig:880-1070` independently. The L sweep initializes `be
 
 **Status: VERIFIED.**
 
-My verifier builds the 3×2 reachable graph from the same seeds as `run_census_3x2` (empty board, both sides, all ko values, passes `0/1/2`), yielding `2622` reachable states (`1756` non-terminals). The as-shipped kernel reports `453` colour-inversion violations and `pin_L=142, pin_H=0`. The corrected kernel reports `0` violations and `pin_L=pin_H=34`. The corrected `(L,H)` group distribution is exactly inversion-symmetric (`(L,H)` size equals `(−H,−L)` size for every group); see §4. The premise — the reachable set is inversion-symmetric — holds because every legal position has a colour-flipped partner reached by the same move sequence with colours swapped.
+My verifier builds the 3×2 reachable graph from the same seeds as `run_census_3x2` (empty goban, both sides, all ko values, passes `0/1/2`), yielding `2622` reachable states (`1756` non-terminals). The as-shipped kernel reports `453` colour-inversion violations and `pin_L=142, pin_H=0`. The corrected kernel reports `0` violations and `pin_L=pin_H=34`. The corrected `(L,H)` group distribution is exactly inversion-symmetric (`(L,H)` size equals `(−H,−L)` size for every group); see §4. The premise — the reachable set is inversion-symmetric — holds because every legal position has a colour-flipped partner reached by the same move sequence with colours swapped.
 
 ### 1.3 Line 3 — the seven hand-adjudicated C2 states are forced-single-successor
 
@@ -93,7 +93,7 @@ The seven hand-adjudicated states are no longer counterexamples under the correc
 
 I independently reproduced a genuine C1 witness:
 
-- State `(178,0,6,0)` = board `[B W B . W .]`, Black to move, no ko, passes=0.
+- State `(178,0,6,0)` = goban `[B W B . W .]`, Black to move, no ko, passes=0.
 - Corrected fixpoint: `L = H = −6`, so `median = −6`.
 - Arrival A (`B2 W3 B1 W4 B5 pass B0 pass B3 W4 pass W5 B0 W3 pass W1 pass W2 B0 W1 B2 W4`): first-revisit-truncation value = **−3**, `22` nodes.
 - Arrival B (`B3 W1 pass W5 pass W4 pass W0 pass W3 B2 W3 B5 pass B0 W4 B1 pass B3 W4 B0 pass B2 W1`): first-revisit-truncation value = **−6**, `33` nodes.

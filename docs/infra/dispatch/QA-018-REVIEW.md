@@ -20,7 +20,7 @@ parallelises with EXP-2B and EXP-8 without limit.
 ## The framing, which the review must carry
 
 EXP-10 attempted to **refute** ADR-0015 (the OVERSEER's ruling that ADR-0010's
-"brackets hold under ANY arrival history" is false as stated for an empty-board
+"brackets hold under ANY arrival history" is false as stated for an empty-goban
 root, because the finisher's search path *is* a real game line and E2's
 falsifying histories lie inside the family ADR-0010 claims to cover). EXP-10
 **failed** to refute it (message 025, ADR-0017): the search-path
@@ -120,5 +120,5 @@ verdict survives seeing the ruling.
   (`DELEGATEE.md`) cuts both ways: a refutation that fails *and* a review that
   agrees it failed are both "results matching what the brief hoped for" —
   examine the failure hardest.
-- Do not pool this with any other board's evidence (`AGENTS.md`, per-board
+- Do not pool this with any other goban's evidence (`AGENTS.md`, per-goban
   epistemic independence). The ruling is at 3×2; it does not transfer.

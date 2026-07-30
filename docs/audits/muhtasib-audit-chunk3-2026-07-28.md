@@ -21,7 +21,7 @@ zig build-exe -O ReleaseFast --name weizigo-exp3-minimax src/kostate_census.zig
 
 ### Standard detector — headline numbers
 
-| board | command | legal positions | (a) triples | (b) addresses | sparse ratio | sweeps | wall time observed |
+| goban | command | legal positions | (a) triples | (b) addresses | sparse ratio | sweeps | wall time observed |
 |---|---|---:|---:|---:|---:|---:|---|
 | 3×3 | `./weizigo-exp3-minimax 3x3 standard on 64` | 12,675 | 22,736 | 13,997 | 7.111213% | 16 | <1 s |
 | 4×3 | `./weizigo-exp3-minimax 4x3 standard on 64` | 321,689 | 638,266 | 375,281 | 5.431980% | 25 | ~1 s |
@@ -29,7 +29,7 @@ zig build-exe -O ReleaseFast --name weizigo-exp3-minimax src/kostate_census.zig
 
 ### Calibration — ko-disabled (`none`) detector
 
-| board | command | (a) triples | (b) addresses | notes |
+| goban | command | (a) triples | (b) addresses | notes |
 |---|---|---:|---:|---|
 | 3×3 | `./weizigo-exp3-minimax 3x3 none on 64` | 20,888 | 12,149 | matches published caveat |
 | 4×4 | `./weizigo-exp3-minimax 4x4 none on 64` | 45,734,854 | 23,813,121 | matches published caveat |
@@ -84,7 +84,7 @@ The counter does not return the same number for right and wrong detectors; the s
 ## Caveats
 
 1. **This is a state-space census, not a solve.** It counts reachable states under basic ko; it does not compute values or prove tractability of a full retrograde build. The D3 placeholder is about addressing cost, not build time.
-2. **Per-board independence applies.** The 4×4 GO result does not imply 5×5 will fit the same budget.
+2. **Per-goban independence applies.** The 4×4 GO result does not imply 5×5 will fit the same budget.
 3. **The `passes` dimension is folded by simple doubling in the report.** The code's `passdim` flag sets `triples_with_passes = triples * 2`. This is a sizing estimate, not a separate measurement of the reachable `(board, side, ko, passes)` set. The research doc presents it as an upper bound; it should not be read as an exact reachable count.
 
 ## Overall chunk verdict

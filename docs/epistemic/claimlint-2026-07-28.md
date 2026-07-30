@@ -212,14 +212,14 @@ orphan that a measurement had been hiding since the register was written.
 
 **`3x3.C1` is the headline, not a footnote.** "Fresh-start scores correct at
 3×3" is CLAIMED, the 3×3 table is bracket-cut-produced, and **3×3 is the exact
-board where the bracket was shown not to bound** (E2, `3x3.C3`). The register's
+goban where the bracket was shown not to bound** (E2, `3x3.C3`). The register's
 own §4.1-O3 calls this the sharpest instance and notes that `PROGRESS.md:210`
 still lists 3×3 C1 as a `TODO` to *promote*, not as debt. It took a structural
 check to make it visible, because the chain ran through a measurement.
 
 **Eight of ten are the O1 family.** After the correction the orphan report is
 no longer a list of loosely-related debris; it says one thing: *the bracket
-claim is falsified and the entire finisher, at every board size, still stands on
+claim is falsified and the entire finisher, at every goban size, still stands on
 it.* That is `critique-2026-07-28.md` §4 M-F0 and it is unresolved. The
 remaining two are `4x3.C1` (whose own row already admits "same buggy finisher
 path") and the sha256 regression gate that targets an artifact built with the
@@ -317,7 +317,7 @@ a probe.
 
 **Tier A became 3 on 2026-07-28** — `GLOBAL.H1-CENSUS`, `3x3.H1-CENSUS` and
 `4x3.H1-CENSUS`, whose evidence resolves to `docs/evidence/GLOBAL.H1-CENSUS/`
-(raw stdout per board, provenance, and the broken-detector calibration runs;
+(raw stdout per goban, provenance, and the broken-detector calibration runs;
 committed in `286d679`). **These are the first P1-compliant PROVEN rows in the
 project's history.** The debt did not shrink — 79 rows are still non-compliant,
 and the ratio only improved because the denominator grew — but the standard is
@@ -360,7 +360,7 @@ authority and this prose is not.
 
 **Two dangling IDs closed:** `3x3.H1-CENSUS` and `4x3.H1-CENSUS` were dangling
 because EXP-3 minted them in flight; both now have register rows (§2.8) carrying
-EXP-3's measured per-board numbers. That is the check working end to end — it
+EXP-3's measured per-goban numbers. That is the check working end to end — it
 flagged an ID the graph could not see, and the ID now has a row and edges.
 
 **Dangling — an ID is cited but has no row.** These are broken edges *inside
@@ -372,7 +372,7 @@ fail to propagate:
 | `4x3.ANCHOR` | `CLAIMS.md:196` (`4x3.C1`'s `e:` edge), `CLAIMS.md:479` (§4.1 O2 prose) | no such row exists; the 4×3 anchor lives inside `4x3.BRACKET` |
 | `4x4.CHAIN-KO` | `CLAIMS.md:271` (`4x4.GTP-DEFECT`'s `d:` edge) | almost certainly `GLOBAL.CHAIN-KO` |
 | `4x4.ARENA-DIV` | `CLAIMS.md:203` (`4x4.C2`'s `e:` edge) | almost certainly `4x4.B43-DIV` |
-| `2x2.C4`, `3x2.C4` | `CLAIMS.md:193-194` (dependents of `2x2.C1`/`3x2.C1`) | no per-board C4 rows exist; only `GLOBAL.C4` |
+| `2x2.C4`, `3x2.C4` | `CLAIMS.md:193-194` (dependents of `2x2.C1`/`3x2.C1`) | no per-goban C4 rows exist; only `GLOBAL.C4` |
 | `GLOBAL.BRACKET` | `CLAIMS.md:167` (`GLOBAL.FP1`'s dependents) | no row |
 | `GLOBAL.C1-CALIB` | `CLAIMS.md:193` | no row |
 | `4x4.X1`, `4x4.X2` | `CLAIMS.md:48` (§1's own minting example), `CLAIMS.md:267` | `4x4.X2` is named as a dependent of `4x4.B43` and does not exist |
@@ -536,11 +536,11 @@ bracket-containment table):
 | `3x3.BRACKET`, `3x3.ANCHOR` | ~42% | bracket [2,9], ~19 plausible values; the anchor +9 is *the bracket's own upper endpoint* |
 | `4x3.BRACKET` | ~56% | bracket [−1,12] of ~25 values, anchor +4 |
 | `4x4.BRACKET`, `4x4.ANCHOR` | ~70% | bracket [−6,16] of ~33 values, anchor +2. A test a wrong answer passes 70% of the time is close to unfalsifiable |
-| `4x4.CYCLE-INSENS` | ~70% | rests on that same single 4×4 agreement, cross-*ruleset* rather than cross-board |
+| `4x4.CYCLE-INSENS` | ~70% | rests on that same single 4×4 agreement, cross-*ruleset* rather than cross-goban |
 
 **Populated where the figure is arithmetically obvious** (the four rows that
 clear the bar): `GLOBAL.S1` / `4x4.S1` at `~0%` — an exhaustive round-trip over
-the whole 3^16 board space; a non-bijection collides with certainty.
+the whole 3^16 goban space; a non-bijection collides with certainty.
 `4x4.S3a` at `<0.01%` and `4x3.S3a` at `<0.1%` — a wrong move/capture kernel
 reproducing an externally published count (24,318,165 and 321,689, OEIS
 A094777) by chance.

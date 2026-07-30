@@ -30,7 +30,7 @@ report.**
 `oracle.zig`, `rules.zig`, `solve.zig`.
 
 **ACCEPTANCE:** per EXP-2.md Part B — agreement across histories at every sampled
-3×2 state, a **non-zero** cycle census (if zero, the board cannot test the claim:
+3×2 state, a **non-zero** cycle census (if zero, the goban cannot test the claim:
 escalate, do not report a pass), and a passing calibration case. 2×2 is a smoke
 test only and is not evidence.
 
@@ -45,7 +45,7 @@ failure mode EXP-2.md Part B §B2 warns against. **Do not repeat it.**
 - **B1 must not path-enumerate.** Do NOT use `qa023_brute_2x2.brute_value` or
   any full-history game-tree DFS for the 2×2 smoke. A path DFS enumerates
   *paths, not states*; cycle detection gives termination but not tractability,
-  and it will thrash forever on a four-point board. For B1 use either (a) the
+  and it will thrash forever on a four-point goban. For B1 use either (a) the
   probe's own **state-space value iteration** (the Part-A fixpoint on the 2×2
   `(board, side, ko, passes)` graph), or (b) a **full-tuple memo** on
   `(board, side, ko, passes)` — never a path DFS, never a state-only memo

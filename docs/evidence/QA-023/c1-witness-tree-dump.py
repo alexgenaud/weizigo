@@ -15,7 +15,7 @@ import sys
 from typing import Tuple, List, Optional, Set, Dict
 
 # ---------------------------------------------------------------------------
-# 3x2 board geometry & rules
+# 3x2 goban geometry & rules
 # ---------------------------------------------------------------------------
 W, H = 3, 2
 N = W * H  # 6

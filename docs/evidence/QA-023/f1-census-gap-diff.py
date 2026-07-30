@@ -74,14 +74,14 @@ def reach_from(roots, successors_fn, legality_filter=True):
 
 
 # ── Seed sets ──────────────────────────────────────────────────────────────
-# 4 seeds: empty board × side (B,W) × passes (0,1) × KO_NONE (F1-SEEDROOTS)
+# 4 seeds: empty goban × side (B,W) × passes (0,1) × KO_NONE (F1-SEEDROOTS)
 ROOTS_4 = [M.linear(0, s, M.KO_NONE, p) for s in (0, 1) for p in (0, 1)]
 
 # 1 seed: empty, Black, KO_NONE, passes=0 (single true game root)
 ROOTS_1 = [M.linear(0, 0, M.KO_NONE, 0)]
 
 
-# ── Board display ──────────────────────────────────────────────────────────
+# ── Goban display ──────────────────────────────────────────────────────────
 def board_str(board_rank):
     """Return something like '.XO/XX.' for a 3×2 board."""
     b = M.unrank(board_rank)

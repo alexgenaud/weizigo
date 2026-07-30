@@ -36,8 +36,8 @@
 //      bitset. `(P, side, none)` is marked for every non-ko move / root.
 //   3. iterates to a fixpoint over the legal-move graph (captures create
 //      back-edges), reporting the number of sweeps until convergence;
-//   4. reports the four acceptance numbers per board separately (3×3, 4×3,
-//      4×4 — three independent measurements, per AGENTS.md per-board
+//   4. reports the four acceptance numbers per goban separately (3×3, 4×3,
+//      4×4 — three independent measurements, per AGENTS.md per-goban
 //      epistemic independence).
 //
 // Calibration is mandatory per the dispatch:
@@ -59,8 +59,8 @@
 // under /tmp/weizigo-zigcache-exp3 (override with
 // ZIG_LOCAL_CACHE_DIR/ZIG_GLOBAL_CACHE_DIR as needed).
 //
-// Usage: zig run -O ReleaseFast src/kostate_census.zig -- <board-tag>
-//   board-tag ∈ {3x3, 4x3, 4x4, all}
+// Usage: zig run -O ReleaseFast src/kostate_census.zig -- <goban-tag>
+//   goban-tag ∈ {3x3, 4x3, 4x4, all}
 //   --calib-over: deliberately broken detector (every capture is a ko point)
 //   --calib-noko: ko dimension forced to none (recover known (pos,side) counts)
 //   --max-sweeps N: stop after N sweeps even if not converged (default 64)
@@ -555,7 +555,7 @@ pub fn Census(
             }
         }
 
-        /// First sweep also seeds the root (empty board) for both sides with
+        /// First sweep also seeds the root (empty goban) for both sides with
         /// ko_point = none. Subsequent sweeps only add children of already-
         /// marked triples.
         fn seed_root(reach: []u64) void {
@@ -580,7 +580,7 @@ pub fn Census(
             var total: u64 = 0;
             var with_ko: u64 = 0;
             var none: u64 = 0;
-            // iterate ko (0..=n) and board p (0..raw_total)
+            // iterate ko (0..=n) and goban p (0..raw_total)
             for (0..KO_DIMS) |k_| {
                 const k: u64 = @intCast(k_);
                 for (0..raw_total) |p| {

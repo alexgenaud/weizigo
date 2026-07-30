@@ -75,7 +75,7 @@ question vacuous. Reported for comparison only.)
 
 ## 3. The experiment (step 3): arrivals, evaluators, calibration
 
-- Arrivals per state: **h0 = BFS-shortest** from the empty-board root (the
+- Arrivals per state: **h0 = BFS-shortest** from the empty-goban root (the
   class the probe's DFS generator systematically misses — 2B-3-AUDIT) +
   **h1,h2 = randomized DFS simple paths, depth 24** (probe-equivalent
   generator). Every arrival validated: root-anchored, consecutive states
@@ -210,7 +210,7 @@ fail-soft bound) are consistent.
   remaining 1,360 states (only 396 within budget).
 - Whether even SHORTER/"canonical" histories (or empty-arrival root games)
   deviate anywhere — no deviation found, but 396/1756 coverage.
-- 4x4: per-board epistemic independence — nothing here transfers.
+- 4x4: per-goban epistemic independence — nothing here transfers.
 
 ## 9. Files
 

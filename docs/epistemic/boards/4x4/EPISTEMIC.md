@@ -2,7 +2,7 @@
 
 **Read this first for 4×4.** Status is *at 4×4* unless explicitly tagged
 `INHERITED-*`. Inherited facts are flagged because the project forbids
-silent inheritance: smaller-board proof does **not** constitute a 4×4
+silent inheritance: smaller-goban proof does **not** constitute a 4×4
 proof. See `boards/CONCEPTS.md` for definitions (incl.
 `C2-bounded` vs `C2-general`).
 
@@ -37,7 +37,7 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
   not yet re-confirmed at 4×4, but the guard is the same code).
 
 ### Inherited-but-not-reproven at 4×4 `[T07-2]` `[T07-3]`
-- **S4** ⬜ᴵᴺᴴ area scoring — currently inherited from S3's smaller-board
+- **S4** ⬜ᴵᴺᴴ area scoring — currently inherited from S3's smaller-goban
   validation, **not re-reproven at 4×4.** Honest options: (i) downgrade to
   `⬜ᴵᴺᴴ` (this file's choice), or (ii) add a falsifiable 4×4 test (a small
   hand-picked 4×4 position battery replayed against a reference area scorer).
@@ -168,7 +168,7 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
 - **C2-general** ⛔(possibly) — the unbounded-history version of C2 (any
   past or future repetition could change the score). `[T07-7, T07-10]`
   Distinct from **C2-bounded** (above). The user's "any previous or future
-  position could repeat, on a large enough board" worry is a *structural*
+  position could repeat, on a large enough goban" worry is a *structural*
   claim about the table's information content: the table has no
   representation of the future and cannot, in principle, rule out a future
   cycle changing the score. The honest framing is **C2-general is possibly
@@ -177,7 +177,7 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
   the deliverable (per user direction 2026-07-26).
 - **S2** ⬜ Benson-alive implementation correct at 4×4 — **NOT a
   theorem check, an implementation regression test.** `[T07-7]` The Benson
-  *theorem* is board-structure and inherits; the 4×4 question is whether
+  *theorem* is goban-structure and inherits; the 4×4 question is whether
   the `rules.zig` implementation regresses in a size-dependent way (e.g. an
   uninitialized size-dependent array). The 3×3 exhaustive adversarial
   falsification validated the implementation at 3×3, not at 4×4. Experiment:
@@ -216,7 +216,7 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
   artifact for the shipped `vb`/`vw` columns — see the FP1 entry above,
   including the still-untested `lo`/`hi` bracket form. Within the ko-sensitive
   region the misprice rate is 422,990 / 10,367,922 = **4.08%** and the max gap
-  is **32 points = 2n, the full board swing**. Ko-sensitive violations are
+  is **32 points = 2n, the full goban swing**. Ko-sensitive violations are
   *expected* (each such slot is an independent fresh-start solve; C2 restated
   per-slot), not a generation bug.
 
@@ -239,14 +239,14 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
   21.33% (0.06 pp), and sample within-flag 4.08% vs exhaustive 4.08%, is direct
   evidence the 1:37 sampling was sound. **Scope: the 4×4 row of D7 only.** The
   2×2/3×2/3×3/4×3 rows of D7 are **unreconciled**; the settled-exemption cause
-  is *likely* the same there but has **NOT been checked**, and per-board
+  is *likely* the same there but has **NOT been checked**, and per-goban
   independence forbids assuming it.
 
   How we know: `bin/weizigo-chainability data/oracle-4x4.checkpoint.wzo
   --examples 0` (exhaustive, 87 s, re-run and output-matched 2026-07-28); the
   superseded sample was the same tool with `--sample 37`.
   Durable record: `../../../research/ko-sensitive-chainability.md`.
-- **M5** (2026-07-27) the empty 4×4 board is itself KO_SENSITIVE (bracket
+- **M5** (2026-07-27) the empty 4×4 goban is itself KO_SENSITIVE (bracket
   [−6, +16]), and **16 of 19 plies** in both saved regression games are
   KO_SENSITIVE-flagged. On 4×4 the GTP player does not *enter* the unchainable
   region when a ko appears — it starts there. Meanwhile positional-superko bans
@@ -294,7 +294,7 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
   run, no reference solver. New capability for Track A validation; a screen, not
   a gate.
   **Update 2026-07-28 — the writes-off run is CONFIRMED INCOMPLETE.** Direct
-  byte read of the empty-board root slot (colex index 0; `vb` at byte offset 32
+  byte read of the empty-goban root slot (colex index 0; `vb` at byte offset 32
   of the WZO1 payload — 32-byte header, then `vb`/`vw`/`fb` columns of `3^16 =
   43,046,721` bytes each):
 
@@ -331,16 +331,16 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
   and is not promoted to `data/`/`artifacts/`; **this M6 comparison is sampled**
   at 4×4 (1:37, 1:997), not exhaustive — M4's single-artifact 4×4 sweep became
   exhaustive on 2026-07-28 but the writes-off artifact has never been swept
-  exhaustively, so the comparison is still a sample; and per-board independence
+  exhaustively, so the comparison is still a sample; and per-goban independence
   forbids carrying the ratio to any other size — it is a 4×4 measurement only.
   How we know: `bin/weizigo-chainability <artifact> --sample 37 --examples 0`
   and `--sample 997 --examples 0`, all four runs re-reproduced 2026-07-27; the
   root-slot bytes read directly 2026-07-28.
   Durable record: `../../../research/ko-sensitive-chainability.md` (Measurement 4).
-- **M7** (2026-07-28) **empty-board root slot across the three 4×4 artifacts.**
+- **M7** (2026-07-28) **empty-goban root slot across the three 4×4 artifacts.**
   Direct byte inspection, no engine: the WZO1 payload is a 32-byte header then
   the `vb`, `vw`, `fb` columns of `3^16 = 43,046,721` bytes each; the empty
-  board is colex index 0, so `vb[empty]` is at offset 32, `vw[empty]` at
+  goban is colex index 0, so `vb[empty]` is at offset 32, `vw[empty]` at
   32 + 3^16, `fb[empty]` at 32 + 2·3^16.
 
   | artifact | `vb[empty]` | `vw[empty]` | `fb` bit0 (KO_SENSITIVE) |

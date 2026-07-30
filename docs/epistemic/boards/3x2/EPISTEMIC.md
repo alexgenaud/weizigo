@@ -1,6 +1,6 @@
 # 3×2 epistemic tree
 
-**Status:** smallest board with non-trivial PSK histories. First board where C2 was falsified.
+**Status:** smallest goban with non-trivial PSK histories. First goban where C2 was falsified.
 
 ## Claims
 

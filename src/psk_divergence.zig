@@ -29,11 +29,11 @@
 //
 // Frames implemented:
 //   (A) reachable-play  -- positions observed in playouts from the empty
-//                            board under the same policies as reachcensus.
+//                            goban under the same policies as reachcensus.
 //   (B) uniform-over-empties -- legal positions with a given empty-count,
 //                            sampled uniformly over slots.  (placeholder)
 //
-// Output: per-board, per-policy divergence counts, PSK-value-loss histogram,
+// Output: per-goban, per-policy divergence counts, PSK-value-loss histogram,
 // exclusion accounting, and an empties-vs-solvability curve.
 //
 // IMPORTANT LIMITATION of this run (2026-07-29): new-rule (basic-ko + tie)

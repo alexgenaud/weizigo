@@ -9,7 +9,7 @@ ADR-0006 claims that forbidding a player from filling their own Benson-alive tru
 
 **T13 is NOT contaminated** (verified 2026-07-30, T110): the retrograde sweep that produces the stored L==H values never applied the eye-prune (`src/retro.zig:98`, `apply_eye_prune = false`), and re-solving all twelve recorded contradiction lines with the prune disabled returns bit-identical values. See `docs/evidence/ADR0006-FALSIFY/t13-decontamination-2026-07-30.md`.
 
-The only direct validation on record is a **single position** (`dead_white`, Black +25, `0006:59-61`). The standing indirect test (ADR-0009:118-123, retrograde-vs-forward disagreement) has never fired — but the forward searches use the prune and the retrograde does not, and they agree only *where both have been run* (small boards, near-terminal). Agreement on the tested subset is not soundness on the untested superset. This is standing rule 4: ask what a wrong answer would have scored.
+The only direct validation on record is a **single position** (`dead_white`, Black +25, `0006:59-61`). The standing indirect test (ADR-0009:118-123, retrograde-vs-forward disagreement) has never fired — but the forward searches use the prune and the retrograde does not, and they agree only *where both have been run* (small gobans, near-terminal). Agreement on the tested subset is not soundness on the untested superset. This is standing rule 4: ask what a wrong answer would have scored.
 
 ## The task
 

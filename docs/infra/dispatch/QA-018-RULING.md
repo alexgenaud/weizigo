@@ -12,7 +12,7 @@ Not an agent task. This is the human's decision, on the kanban so that it is
 
 **The question.** ADR-0010 justifies the finisher's cuts on brackets holding
 "under ANY arrival history". The OVERSEER ruled (ADR-0015) that this is refuted as
-stated: for an empty-board root the finisher's search path *is* a real game line,
+stated: for an empty-goban root the finisher's search path *is* a real game line,
 so E2's falsifying histories lie inside the family ADR-0010 claims to cover.
 EXP-10 attempts to refute that ruling.
 

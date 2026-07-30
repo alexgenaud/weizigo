@@ -97,7 +97,7 @@ The documents are internally consistent. The proof-v2 text:
 
 ### 15. The 5×5 anchor "known Black +25" in GLOSSARY.md / PROGRESS.md
 
-**Source:** `docs/epistemic/GLOSSARY.md` ("Board-size facts"), `docs/epistemic/PROGRESS.md` ("What the project is").  
+**Source:** `docs/epistemic/GLOSSARY.md` ("Goban-size facts"), `docs/epistemic/PROGRESS.md` ("What the project is").  
 **Verdict: VERIFIED as stated, with caveats carried.** Both documents note that the 5×5 anchor is under a "simpler repetition rule" / "different ruleset" and that 5×5 is not yet reached here. No overreach.
 
 ## Summary table

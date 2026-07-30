@@ -69,12 +69,12 @@ section is historical context.
 
 Took the Orchestrator role from MiniMax-M3 (context full; handover above).
 
-**Board at succession:** EXP-2B (minimax-m3), EXP-10 (fable-5), EXP-8
+**Kanban at succession:** EXP-2B (minimax-m3), EXP-10 (fable-5), EXP-8
 (kimi-k2.7) all in progress; 0 dispatchable; 5 blocked; 17 done.
 
 **D-8 — dispatch/claim protocol simplified (user ruling).** The 2026-07-29
 "Orchestrator does not claim on the agent's behalf" rule is **rescinded** as
-ceremony that blocked the Orchestrator from keeping the board honest. The
+ceremony that blocked the Orchestrator from keeping the kanban honest. The
 Orchestrator owns delegation status end-to-end: it records dispatches on the
 human's behalf, records claims when a worker has started but not claimed, and
 marks `done` when a worker has finished but not updated the kanban —
@@ -91,11 +91,11 @@ C2-falsification probe as the harness template; GLM-5.2 (worker) the
 documented alternative. All three dispatchable ran in parallel (no shared
 `holds`); EXP-8's 4×4 measurement defers until EXP-6 lands.
 
-**EXP-10 board corrected (D-8 in action).** On succession I found EXP-10 had
+**EXP-10 kanban corrected (D-8 in action).** On succession I found EXP-10 had
 landed — Fable 5 filed
 `docs/decisions/0017-bracket-cut-refutation-attempt-failed.md` +
 `docs/evidence/QA-018/` + message 025, and updated CURRENT.md — but never ran
-`managent done EXP-10`, so the board still read `in_progress` and
+`managent done EXP-10`, so the kanban still read `in_progress` and
 `QA-018-RULING` stayed blocked. Verified deliverables on disk and marked
 EXP-10 done. **QA-018-RULING is now dispatchable.** Verdict: the D-5
 refutation **failed** — the search-path family is not exempt (T13's 12
@@ -223,7 +223,7 @@ the kanban again.
 6. **EXP-2 brief retired** — the work is in `EXP-2A` (done 2026-07-28,
    Fable 5) + `EXP-2B` (dispatchable, holds `src/qa023_probe.zig`,
    the 3×2 history-sensitivity probe — the actual computational half
-   of the QA-023 gate). Board `EXP-2.status = done, done:
+   of the QA-023 gate). Goban `EXP-2.status = done, done:
    2026-07-28T23:50:00Z`.
 7. **EXP-2B dispatched to Minimax-m3** per the human's 03:50 ruling.
    `managent dispatch EXP-2B --to minimax-m3 --note "QA-023 gate
@@ -238,13 +238,13 @@ the kanban again.
    human/agent boundary"); `DELEGATOR.md` (new `DISPATCH:` row in
    the header); `DELEGATEE.md` (new "The first thing you do: claim
    the task" + "Builds go through `tools/runner`" + "Writing to the
-   board"); `EXP-2B.md` (new "Build precondition" section calling
+   goban"); `EXP-2B.md` (new "Build precondition" section calling
    out the runner).
 
 ### What was **not** done (deferred to the successor)
 
 - **The EXP-10 dispatch** — held for Fable per D-7; the user / Dabir
-  call, not mine. The board has `EXP-10.dispatchable, agent: null,
+  call, not mine. The kanban has `EXP-10.dispatchable, agent: null,
   holds: docs/decisions/`. **Do not pre-empt.**
 - **The Fable-channel question** — 018 (Fable 5 as Dabir) and 010
   (Fable 5 as Opus) are role collapses. I am absorbing 018's content
@@ -256,7 +256,7 @@ the kanban again.
   managent schema + binary, the dispatch field, the instruction-file
   updates, this handover. **The standing rule: never commit the
   dispatch field on its own** — it goes in with the docs wave per
-  the `managent` spec ("the board does not survive a fresh clone,"
+  the `managent` spec ("the kanban does not survive a fresh clone,"
   D-2 residue). One commit per topic; `git add` by path, never `-A`.
 - **The 022 §B.4 four-part EXP-2 agenda is withdrawn.** The human
   said "I have no idea what you are talking about" on 2026-07-29
@@ -311,7 +311,7 @@ $ bin/managent status
 ### Dispatch record (was: IN PROGRESS)
 
 - **Agent: Fable 5 (claude-fable-5)**, dispatched by the user per DECISIONS D-7 /
-  msg 008 §1. Board ID is `EXP-2` Part A (msg 009 kept the stable ID; the user's
+  msg 008 §1. Goban ID is `EXP-2` Part A (msg 009 kept the stable ID; the user's
   dispatch name is `EXP-2A`; no routing brief exists — content lives in
   `untracked/msg/milestone-01-ko-reframe/004-opus-to-pi.md` §"Repair order",
   `005` §"Fable policy", `008` §1, and `docs/evidence/QA-023/audit-opus-2026-07-28.md`
@@ -351,11 +351,11 @@ $ bin/managent status
   - `src/kostate_census.zig`
   - `docs/evidence/GLOBAL.H1-CENSUS/PROVENANCE.md` + 8 raw stdout files
   - `docs/research/kostate-census-2026-07-28.md` (the four numbers per
-    board, the addressing GO/NO-GO, every claim tagged, calibration
+    goban, the addressing GO/NO-GO, every claim tagged, calibration
     caveat stated up front)
 - **Status update for CLAIMS.md (owner folds):** `GLOBAL.H1-CENSUS` (4×4)
   was UNTESTED → **PROVEN** with this census + calibration runs. Proposed
-  per-board IDs `3x3.H1-CENSUS` and `4x3.H1-CENSUS` → owner assigns. (I
+  per-goban IDs `3x3.H1-CENSUS` and `4x3.H1-CENSUS` → owner assigns. (I
   did not edit CLAIMS.md per dispatch.)
 
 ## EXP-2 (Minimax-m3) — claiming work
@@ -381,7 +381,7 @@ The 2026-07-27 evening session produced one finding that reorders the queue:
   2×2/3×2/3×3/4×3 (exhaustive) and 4×4 (`--sample 37`). The single-score (L==H)
   region *is* chainable. Violations are exactly co-extensive with the flag
   (16/16, 72/72, 688/688, 6,092/6,092, 11,402/11,402).
-- **PROVEN (same run):** the empty 4×4 board is itself KO_SENSITIVE (bracket
+- **PROVEN (same run):** the empty 4×4 goban is itself KO_SENSITIVE (bracket
   [−6, +16]), and 16 of 19 plies of both saved regression games are flagged. On
   4×4 the player never has table guidance it is entitled to chain.
 - **PROVEN (two saved 4×4 games):** positional-superko bans changed the best

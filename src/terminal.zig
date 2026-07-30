@@ -19,7 +19,7 @@
 // Terminal detection and scoring (see docs/decisions/0004).
 //
 //   area_score  - Chinese / area score of a snapshot (Tromp-Taylor style):
-//                 black_area - white_area. Assumes on-board stones are alive
+//                 black_area - white_area. Assumes on-goban stones are alive
 //                 (dead stones are removed by prior play). Pure function.
 //   benson_alive  - Benson's algorithm: which stones of `color` are
 //                 UNCONDITIONALLY alive (cannot be captured even if the
@@ -27,8 +27,8 @@
 //   is_settled  - conservative terminal test: all stones Benson-alive and every
 //                 empty region is one colour's eye (no dame, no dead stones).
 //
-// Input boards use sign for colour (>0 black, <0 white, 0 empty); army-flag
-// magnitudes are ignored, so raw +/-1 boards and armies() output both work.
+// Input gobans use sign for colour (>0 black, <0 white, 0 empty); army-flag
+// magnitudes are ignored, so raw +/-1 gobans and armies() output both work.
 
 const std = @import("std");
 const expect = std.testing.expect;
@@ -102,7 +102,7 @@ pub fn area_score(board: *const [25]i8) i8 {
         }
         if (touches_black and !touches_white) black += size;
         if (touches_white and !touches_black) white += size;
-        // touching both (dame) or neither (bare board) is neutral
+        // touching both (dame) or neither (bare goban) is neutral
     }
     return @intCast(black - white);
 }
@@ -304,7 +304,7 @@ pub fn is_settled(board: *const [25]i8) bool {
             // -> the opponent could invade and live -> not a decided terminal.
             if (!stone_nbr) return false;
         }
-        if (touches_black == touches_white) return false; // dame, or bare board
+        if (touches_black == touches_white) return false; // dame, or bare goban
     }
     return true;
 }
@@ -315,7 +315,7 @@ test "area score: empty, full, single stone" {
     try expect(area_score(&[_]i8{0} ** 25) == 0);
     try expect(area_score(&[_]i8{1} ** 25) == 25);
     try expect(area_score(&[_]i8{-1} ** 25) == -25);
-    // one black stone owns the whole board under area scoring
+    // one black stone owns the whole goban under area scoring
     var one = [_]i8{0} ** 25;
     one[0] = 1;
     try expect(area_score(&one) == 25);
@@ -329,7 +329,7 @@ test "area score: split board and dame" {
     split[24] = W;
     try expect(area_score(&split) == 0);
 
-    // a black wall down the middle column splits the board
+    // a black wall down the middle column splits the goban
     const wall = [_]i8{
         0, 0, 1, 0, 0,
         0, 0, 1, 0, 0,
@@ -384,7 +384,7 @@ test "settled requires eye-space, not just Benson-alive stones" {
     };
     try expect(!is_settled(&open));
 
-    // Black actually owning the whole board (every empty point is eye-space
+    // Black actually owning the whole goban (every empty point is eye-space
     // adjacent to the immortal group) IS decided.
     const owned = [_]i8{
         1, 1, 1, 1, 1,
@@ -398,7 +398,7 @@ test "settled requires eye-space, not just Benson-alive stones" {
 }
 
 test "not settled: a live group on a wide-open board" {
-    // 6 stones, two eyes (A1,C1), rest of the board empty. Benson says the
+    // 6 stones, two eyes (A1,C1), rest of the goban empty. Benson says the
     // stones live, but is_settled must NOT call this decided -- White can invade
     // the open space and live. (This is the census's spurious "6-stone terminal";
     // see docs/research/terminal-territory-bug.md.)

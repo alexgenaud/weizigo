@@ -207,7 +207,7 @@ The proposal shows `T099`, `X123`, `Y234` — different letters. **Recommend a s
 namespace letter** (`T` for task) rather than a class prefix. A class prefix
 re-encodes semantics into the ID, which is the problem opaque IDs exist to solve;
 and `managent` already uses **A–Z for sets**, so a letter that means something else
-invites exactly the ambiguity the kanban/board rename just removed.
+invites exactly the ambiguity the kanban/goban rename just removed.
 
 ## Migration: alias, do not rename
 

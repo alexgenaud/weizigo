@@ -1,7 +1,7 @@
 # Handover — MiniMax-M3 (Orchestrator), 2026-07-29 04:00 (context full)
 
 **Read first on resume:** `untracked/msg/milestone-01-ko-reframe/STATE.md` (crash
-anchor, git-ignored, current), then `bin/managent status` (the agreed board),
+anchor, git-ignored, current), then `bin/managent status` (the agreed kanban),
 then this file. The strategic hub is `../epistemic/PROGRESS.md`; the
 in-flight task state is `CURRENT.md`. This file answers: what just happened,
 what will bite you, what to do next.
@@ -62,7 +62,7 @@ The role stack as I left it:
 `STATE.md`; the channel index runs 001–023; the rulings live in
 `DECISIONS.md` with promotion targets in `docs/`. **Deletion gate:** every
 D-1..D-7 ruling promoted before the directory dies. The D-2 and D-6 edits
-to `AGENTS.md` are now committed; D-2 (per-board-independence split) is
+to `AGENTS.md` are now committed; D-2 (per-goban-independence split) is
 captured in `docs/decisions/0016-…`; D-6 (the protocol section) is captured
 in `AGENTS.md` §"Agent-to-agent communication" as of `62f60b0`.
 
@@ -120,7 +120,7 @@ in §1.
    `managent dispatch EXP-2B --to minimax-m3 --note "QA-023 gate
    computational half. … B-2 RSS runner (tools/runner) is the
    precondition. …"`; the task is `dispatchable, dispatched minimax-m3`
-   in the board. **The agent claims when ready; the Orchestrator did
+   in the kanban. **The agent claims when ready; the Orchestrator did
    not claim on its behalf.**
 7. **Wrote the host incident record** at
    `docs/infra/host/incident-2026-07-29.md` with the corrected root
@@ -141,15 +141,15 @@ in §1.
    header);
    `docs/infra/delegation/DELEGATEE.md` (new "The first thing you do:
    claim the task" + "Builds go through `tools/runner`" + "Writing to
-   the board" principles);
+   the kanban" principles);
    `docs/infra/dispatch/EXP-2B.md` (new "Build precondition" section
    calling out the runner).
 9. **Wrote 019, 020, 022, 023 to the channel.** 017 is marked
    SUPERSEDED at the top with a pointer to 019 (corrected root cause);
-   020 board updates; 022 the route-map for the four sub-questions;
+   020 goban updates; 022 the route-map for the four sub-questions;
    023 the dispatch-gap fix and the Fable-channel question for Dabir.
 
-## The `managent` board at 04:00
+## The `managent` kanban at 04:00
 
 ```
 $ bin/managent status
@@ -228,7 +228,7 @@ process group on a 4 GB RSS breach. Full record in
   sufficiency under basic ko + fixed tie).
 - **QA-023** CLAIMED, gate is the EXP-2B probe. If EXP-2B returns
   a non-zero cycle census AND agreement across histories at every
-  sampled 3×2 state, QA-023 is PROVEN at 3×2; per-board
+  sampled 3×2 state, QA-023 is PROVEN at 3×2; per-goban
   epistemic independence forbids generalising to 4×4 without a
   monotonicity theorem.
 - **EXP-9** done (Opus 5, sign defect fixed, +6.8% per-genmove, ply-7
@@ -256,7 +256,7 @@ process group on a 4 GB RSS breach. Full record in
 - Working tree is **dirty** — the docs wave is the right commit
   boundary. The standing rule: never commit the dispatch field on
   its own — it goes in with the docs wave per the `managent` spec
-  ("the board does not survive a fresh clone," D-2 residue).
+  ("the kanban does not survive a fresh clone," D-2 residue).
 
 ## What to do next (in standing order)
 
@@ -281,7 +281,7 @@ process group on a 4 GB RSS breach. Full record in
    h5a deliverable, the EXP-12 evidence, the managent schema +
    binary, the dispatch field, the instruction-file updates, this
    handover). One commit per topic; `git add` by path, never `-A`.
-   The standing rule from `managent` spec: "the board does not
+   The standing rule from `managent` spec: "the kanban does not
    survive a fresh clone" — never commit the dispatch field on its
    own.
 5. **Wait for the user / Dabir on the Fable-channel question** (023
@@ -341,10 +341,10 @@ process group on a 4 GB RSS breach. Full record in
    `untracked/msg/<milestone>/STATE.md`.
 4. Post a final message to the channel
    (`untracked/msg/<milestone>/<NNN>-orchestrator-to-all.md`) with
-   the board state, the next dispatchable, and the standing-tier
+   the kanban state, the next dispatchable, and the standing-tier
    queue. **Do not pre-empt the Fable-channel question or any
    other Dabir / user ruling.**
-5. Stand down. **Do not touch the board again.** The successor
+5. Stand down. **Do not touch the kanban again.** The successor
    may ask you to advise; you may not act.
 
 — MiniMax-M3 (Orchestrator), 2026-07-29 04:00

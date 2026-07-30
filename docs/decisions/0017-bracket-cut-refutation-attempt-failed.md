@@ -23,7 +23,7 @@ numbering, the user renumbers.
 ## The ruling under attack (D-5, verbatim)
 
 > **ADR-0010's justification is refuted as stated.** Its cut rests on brackets
-> holding "under ANY arrival history". For an **empty-board root** the
+> holding "under ANY arrival history". For an **empty-goban root** the
 > finisher's search path *is* a real game line — so E2's falsifying histories
 > lie inside the very family ADR-0010 claims to cover. There is no third
 > option: either "ANY arrival history" is too strong, or someone must prove
@@ -77,11 +77,11 @@ cover.
 an interior node is a PSK-legal move sequence from the root with initial ban
 set `{root}` — precisely the definition of a real game line played from that
 root. For the **empty root** the identification is total: every legal game
-line from the empty board is a candidate search path and vice versa. D-5's
+line from the empty goban is a candidate search path and vice versa. D-5's
 core sentence is confirmed at the code level, and it extends beyond the empty
 root: a fresh-start root at any position `P` with ban `{P}` generates the same
 family shape. Per ADR-0016 this argument is **structural** (it is about what
-`ab_solve` does) and carries to every board size.
+`ab_solve` does) and carries to every goban size.
 
 ### Defence 2 — claim semantics: "E2 falsified a different claim than the one the cut needs"
 
@@ -110,7 +110,7 @@ score and the history-exact `ab_solve` value (`memo=false, brackets=false`)
 under **reachable PSK-legal placement-only lines** at 3×2 — e.g. idx=314,
 Black to move, stored **+6**, history-exact **−6** under history
 `0 2 26 40 110 278 57 154 314`. Eight of the twelve lines are rooted at
-**index 0, the empty board**; the other four are rooted at a legal position
+**index 0, the empty goban**; the other four are rooted at a legal position
 `P` with initial ban `{P}` — both shapes are *literally the finisher's own
 search-path family* under Defence 1's identification. An `L==H` slot has the
 point bracket `[s,s]`, so each mismatch is a node where `V(P,h) ∉ [lo,hi]`
@@ -129,7 +129,7 @@ Caveats, stated honestly: (i) T13's probe source is deleted
 `c2-falsification-3x2.md`, but whether each arrival line respects the
 eye-pruned move generator cannot be re-verified without re-running the probe.
 (ii) The falsification is **empirical at 3×2** and does not carry to any other
-board (ADR-0016); what carries is the structural family identification and the
+goban (ADR-0016); what carries is the structural family identification and the
 death of the universal "ANY arrival history" claim — a universal falsified at
 3×2 is false.
 
@@ -171,7 +171,7 @@ the theorem in 2026-07-21; T13 measured its failure in 2026-07-26.
 the ruling's evidence chain and in doing so closes the last escape route:
 Horn B's proposed rewording of ADR-0010 to "search-path arrival histories" is
 not available, because that restricted claim is itself falsified at 3×2 by
-T13's empty-board-rooted counterexamples. `GLOBAL.F2` stays orphaned via the
+T13's empty-goban-rooted counterexamples. `GLOBAL.F2` stays orphaned via the
 O1 chain (`CLAIMS.md` §4.1-O1: `F2 ⟵d ADR0010-CUT ⟵d C3`); `QA-018` stays
 orphaned with it.
 

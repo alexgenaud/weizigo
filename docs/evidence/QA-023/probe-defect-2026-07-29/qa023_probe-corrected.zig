@@ -107,7 +107,7 @@ const expect = std.testing.expect;
 // `grep -n "Brute2x2\.value\|brute_value" src/qa023_probe.zig` -> 0 hits).
 const Brute2x2 = @import("qa023_brute_2x2.zig");
 
-// ---- 3x2 parameters (the actual probe board) ------------------------------
+// ---- 3x2 parameters (the actual probe goban) ------------------------------
 
 const BOARD_W: usize = 3;
 const BOARD_H: usize = 2;
@@ -656,8 +656,8 @@ fn apply_pass(state: StateIdx) ?StateIdx {
 /// Pass is always legal in non-terminal states, so every non-terminal has
 /// at least one successor. The returned `successor_boards` align 1:1 with
 /// the returned `successors`: for each successor at index `i`, the
-/// successor's board is `successor_boards[i]` (a copy — this is the only
-/// way the caller has to know the next board, since `StateIdx.board` is
+/// successor's goban is `successor_boards[i]` (a copy — this is the only
+/// way the caller has to know the next goban, since `StateIdx.board` is
 /// the dense colex index, not the actual `[n]i8`).
 fn moves(state: StateIdx, successor_boards: *[n + 1]Pos, successors: *[(n + 1)]StateIdx) usize {
     if (state.passes == 2) return 0;
@@ -685,7 +685,7 @@ fn moves(state: StateIdx, successor_boards: *[n + 1]Pos, successors: *[(n + 1)]S
 
 // ---- 3x2 CENSUS: reachable (board, side, ko_point, passes) ----------------
 //
-// Mark every state reachable from the four roots (empty board x side x
+// Mark every state reachable from the four roots (empty goban x side x
 // passes = 0,1,2). Seeds the bitset with the roots and sweeps to fixpoint
 // over the legal-move graph. `passes = 2` is a "terminal" state (no
 // successors), so it can only appear as a root (two passes from the root
@@ -697,7 +697,7 @@ const ReachWords: u64 = (TOTAL_STATES + 63) / 64;
 
 const ReachCensus = struct {
     total_marked: u64,
-    legal_marked: u64, // subset of marked where board is legal
+    legal_marked: u64, // subset of marked where goban is legal
     per_ko_count: [KO_DIMS]u64, // histogram by ko_point
     sweeps: u32,
     terminal_marked: u64, // passes == 2
@@ -734,7 +734,7 @@ fn census_sweep(
         const m = moves(state, &succ_boards, &succs);
         for (0..m) |k| {
             const child = succs[k];
-            // legality: only mark if the child board is legal (Tromp-Taylor)
+            // legality: only mark if the child goban is legal (Tromp-Taylor)
             if (!is_legal(&succ_boards[k])) continue;
             const child_linear = child.linear();
             const child_word = child_linear >> 6;
@@ -759,7 +759,7 @@ fn run_census_3x2() !CensusStats {
     const snap = try gpa.alloc(u64, ReachWords);
     defer gpa.free(snap);
 
-    // Seed: empty board (board=0) with both sides, all ko values, all
+    // Seed: empty goban (board=0) with both sides, all ko values, all
     // pass counts. These are the four roots: empty B (passes 0, 1, 2) and
     // empty W (passes 0, 1, 2). The brief: "for every legal start state".
     for ([_]u8{ 0, 1 }) |side| {
@@ -852,7 +852,7 @@ const CensusStats = struct {
 // marked reachable in the census are excluded; we sweep over the marked set
 // using the bitset as a worklist.) The Bellman operator is:
 //
-//   (Phi X)(S) = area_score(board)                       if S is terminal
+//   (Phi X)(S) = area_score(goban)                       if S is terminal
 //             = max over successors X(S')                if S is Black to move
 //             = min over successors X(S')                if S is White to move
 //
@@ -1099,7 +1099,7 @@ const FixpointStats = struct {
 //
 //   1. Enumerate up to K distinct reachable ARRIVAL HISTORIES ending at the
 //      state S. An arrival history is a sequence of legal placements + passes
-//      (with full state tuple as the fingerprint) from the empty-board root
+//      (with full state tuple as the fingerprint) from the empty-goban root
 //      to S. Two histories are "distinct" if the multiset of moves played
 //      differs (i.e. not a simple re-ordering of the same moves).
 //   2. For each arrival history, evaluate S with FIRST-REVISIT TRUNCATION
@@ -1124,7 +1124,7 @@ const HistoryEntry = struct {
     parent_idx: u32, // index into the path; 0xFFFFFFFF = root
     kind: HistoryKind,
     cell: u8, // for place; 0 for pass
-    move_board: Pos, // the board AFTER the move that led here (for fingerprint use)
+    move_board: Pos, // the goban AFTER the move that led here (for fingerprint use)
     depth: u16,
 };
 
@@ -1190,7 +1190,7 @@ fn truncated_value(
     var succ_boards: [n + 1]Pos = undefined;
     var succs: [n + 1]StateIdx = undefined;
     const m = moves(state, &succ_boards, &succs);
-    if (m == 0) return area_score(board); // defensive: no legal moves => score the current board
+    if (m == 0) return area_score(board); // defensive: no legal moves => score the current goban
     const maximizing: bool = (state.side == 0); // Black maximizes
     var best: i8 = if (maximizing) -127 else 127;
     for (0..m) |k| {
@@ -1219,7 +1219,7 @@ fn truncated_value(
     return best;
 }
 
-/// Walk one arrival history: start at the empty board (root), play the
+/// Walk one arrival history: start at the empty goban (root), play the
 /// sequence of `(move_kind, cell)` moves, return the final state. Returns null
 /// if any move is illegal at the current state.
 fn play_arrival(play: []const Move, play_len: u16) ?struct { state: StateIdx, board: Pos } {
@@ -1241,7 +1241,7 @@ fn play_arrival(play: []const Move, play_len: u16) ?struct { state: StateIdx, bo
 
 /// Replay a move sequence and collect all visited state linear indices
 /// as a sorted, deduplicated visit-set. The visit-set includes the root
-/// (empty board) and every intermediate state up to and including the
+/// (empty goban) and every intermediate state up to and including the
 /// final state. `set` must have capacity `max_visit`; on return
 /// `set_len` is the number of distinct states visited.
 fn visit_set_of_arrival(
@@ -1336,7 +1336,7 @@ const ProbeOutcome = struct {
 };
 
 /// Collect up to `max_collect` distinct arrival histories from the empty
-/// board root to `target_linear` using depth-first search over simple paths
+/// goban root to `target_linear` using depth-first search over simple paths
 /// (no repeated states on the arrival prefix).  `budget` limits the total
 /// nodes explored; exhaustion is reported by the caller.  Histories are
 /// deduplicated by FNV-1a hash of their move sequence.
@@ -1417,7 +1417,7 @@ fn collect_histories_dfs_impl(
         const child_linear = child.linear();
         if (visited[child_linear]) continue;
 
-        // A pass never changes the board; a place move always does.
+        // A pass never changes the goban; a place move always does.
         const mv = if (child.board == state.board)
             Move{ .move_kind = .pass, .cell = 0, .colour = 0 }
         else blk: {
@@ -1870,15 +1870,15 @@ fn run_probe_3x2(
 // ############################################################################
 //
 // Under PSK the state tuple is (board, side, passes): ko_point is always
-// "none" because PSK bans board-position repeats, not ko-point-specific
-// repeats. State space: 729 boards × 2 sides × 3 passes = 4,374 states.
+// "none" because PSK bans goban-position repeats, not ko-point-specific
+// repeats. State space: 729 gobans × 2 sides × 3 passes = 4,374 states.
 //
 // The PSK fixpoint is the no-ko minimax fixpoint: same Bellman operator
 // (Black max / White min in both L and H), no ko ban. The fixpoint cannot
 // express positional superko (which is history-dependent), so it is a
 // "no-ko" fixpoint. The history-aware PSK evaluator adds PSK legality.
 //
-// The PSK evaluator does full minimax search with PSK legality (board
+// The PSK evaluator does full minimax search with PSK legality (goban
 // repeats are illegal moves). It does NOT use first-revisit truncation —
 // revisits are illegal, not TIE-valued. Search continues to terminal
 // (passes==2) or budget exhaustion.
@@ -2029,7 +2029,7 @@ fn psk_fixpoint(L_tab: []i8, H_tab: []i8) PskFixpointStats {
 
 /// PSK-aware exact value evaluator with alpha-beta pruning and depth limit.
 /// Does full minimax search with PSK legality: a placement is illegal if
-/// the resulting board index has appeared in the continuation path.
+/// the resulting goban index has appeared in the continuation path.
 /// Terminal: passes == 2 → area_score. Depth limit: if depth >= max_depth,
 /// returns area_score (truncation — the position is too deep to search).
 /// Returns null on budget exhaustion.
@@ -2054,10 +2054,10 @@ fn psk_exact_value(
     const bi_word = bi >> 6;
     const bi_bit: u64 = @as(u64, 1) << @intCast(bi & 63);
 
-    // Add current board to seen set (it's the position we're AT — repeats
-    // are only illegal for MOVES, i.e., children can't go back to a seen board).
-    // The arrival-history boards are legitimately in seen; the current board
-    // may already be there (it's the last board of the arrival).
+    // Add current goban to seen set (it's the position we're AT — repeats
+    // are only illegal for MOVES, i.e., children can't go back to a seen goban).
+    // The arrival-history gobans are legitimately in seen; the current goban
+    // may already be there (it's the last goban of the arrival).
     seen_boards[bi_word] |= bi_bit;
     seen_count.* += 1;
     defer {
@@ -2241,7 +2241,7 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
                 var cur_board: Pos = [_]i8{0} ** n;
                 var cur_side: u8 = 0;
                 var cur_passes: u8 = 0;
-                // Add root board to seen set
+                // Add root goban to seen set
                 const rbi = rank_board(cur_board);
                 seen[rbi >> 6] |= @as(u64, 1) << @intCast(rbi & 63);
                 seen_cnt += 1;
@@ -2333,9 +2333,9 @@ fn run_probe_psk_3x2(params: ProbeParams) !ProbeOutcome {
 
 /// PSK-aware arrival-history collector. Similar to collect_histories but:
 /// - State = (board, side, passes), no ko_point.
-/// - Visited tracking is board-level (board repeats are illegal under PSK).
+/// - Visited tracking is goban-level (goban repeats are illegal under PSK).
 /// - Move generation uses basic placement rules (no suicide, no occupied);
-///   the board-repeat check is in the visited-boards set.
+///   the goban-repeat check is in the visited-gobans set.
 fn psk_collect_histories(
     target_board_idx: u32,
     target_side: u8,
@@ -2806,9 +2806,9 @@ fn run_cycle_census_3x2(
         // Terminal states (passes == 2) have no successors; adjacency stays empty.
         if (passes == 2) continue;
 
-        // Build the actual board so we can reuse `moves()`.  We need the
-        // board array (not just the dense index) because moves() uses
-        // `apply_place` which reads the actual board.
+        // Build the actual goban so we can reuse `moves()`.  We need the
+        // goban array (not just the dense index) because moves() uses
+        // `apply_place` which reads the actual goban.
         // (moves() re-unranks internally; no work needed here.)
 
         var succ_boards: [n + 1]Pos = undefined;
@@ -3344,7 +3344,7 @@ pub fn main(init: std.process.Init) !void {
     } else if (std.mem.eql(u8, mode, "calibrate-neg")) {
         run_calibrate_neg();
     } else if (std.mem.eql(u8, mode, "psk-test")) {
-        // Quick debug: evaluate empty 3x2 board, Black to move, empty history
+        // Quick debug: evaluate empty 3x2 goban, Black to move, empty history
         var seen: [12]u64 = [_]u64{0} ** 12;
         var seen_cnt: u8 = 0;
         var budget: u64 = 10_000_000;
@@ -3381,7 +3381,7 @@ pub fn main(init: std.process.Init) !void {
     }
 }
 
-/// Seed the four roots (empty board, both sides, all ko values, all
+/// Seed the four roots (empty goban, both sides, all ko values, all
 /// pass counts) into a reach bitset. The four roots are the only state
 /// tuples with `passes = 2` reachable in a no-move tree; everything
 /// else gets in through the legal-move graph.

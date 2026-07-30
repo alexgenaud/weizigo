@@ -16,17 +16,17 @@
 //                                        //
 ////////////////////////////////////////////
 //
-// Board-size-agnostic LEGAL-POSITION enumerator — STRUCTURE only, no values
+// Goban-size-agnostic LEGAL-POSITION enumerator — STRUCTURE only, no values
 // (ADR-0007: enumerating positions is cheap and correct now; correct VALUES
 // need the retrograde engine). This module is the foundation for the oracle's
 // position set and the combinatorial-ranking data model.
 //
 //   legal position  = every chain (connected same-colour group) has >= 1
 //                     liberty (Tromp-Taylor: no stone without liberty may
-//                     remain on the board).
-//   canonical       = the lexicographically-least board among the dihedral
+//                     remain on the goban).
+//   canonical       = the lexicographically-least goban among the dihedral
 //                     symmetries x colour inversion (16 variants on a square
-//                     board). One canonical representative per equivalence
+//                     goban). One canonical representative per equivalence
 //                     class; the oracle stores one value per class per side.
 //
 // Validation targets (published, John Tromp / OEIS A094777, legal positions
@@ -36,7 +36,7 @@
 // Enumeration is a base-3 odometer over all 3^n colourings — exact and simple.
 // Practical up to 4x4 (3^16 = 43M). 5x5 (3^25 = 8.5e11) needs the layered /
 // ranked enumeration (or a long ReleaseFast run) — deliberately deferred; this
-// module establishes the machinery + the small-board ground truth first.
+// module establishes the machinery + the small-goban ground truth first.
 //
 // Deliberately standalone: no imports from state.zig (5x5-specific) or
 // zobrist.zig (huge tables; dyld gotcha). Only std.
@@ -44,7 +44,7 @@
 const std = @import("std");
 const expect = std.testing.expect;
 
-/// Legal-position machinery for a w x h board. Cells are i8: 0 empty,
+/// Legal-position machinery for a w x h goban. Cells are i8: 0 empty,
 /// +1 black, -1 white (matching the project's sign convention).
 pub fn Enumerator(comptime w: usize, comptime h: usize) type {
     return struct {
@@ -52,7 +52,7 @@ pub fn Enumerator(comptime w: usize, comptime h: usize) type {
         pub const Pos = [n]i8;
 
         // ---- symmetry permutations (comptime) -------------------------------
-        // Square boards get the full dihedral group (8); rectangles get the
+        // Square gobans get the full dihedral group (8); rectangles get the
         // Klein group (4: identity, horizontal flip, vertical flip, 180).
         pub const num_syms = if (w == h) 8 else 4;
 
@@ -203,7 +203,7 @@ pub fn Enumerator(comptime w: usize, comptime h: usize) type {
 
 // ---- runner -------------------------------------------------------------------
 
-/// Published legal-position counts on square boards (Tromp; OEIS A094777).
+/// Published legal-position counts on square gobans (Tromp; OEIS A094777).
 pub const known_legal = [_]u64{ 1, 57, 12_675, 24_318_165, 414_295_148_741 };
 
 fn report(comptime size: usize, expected: ?u64) void {
@@ -283,9 +283,9 @@ test "legality: full board is illegal, single stone is legal" {
 
 test "canonical: exactly one representative per symmetry class" {
     const E = Enumerator(2, 2);
-    // all eight single-stone boards (4 cells x 2 colours) form ONE class under
+    // all eight single-stone gobans (4 cells x 2 colours) form ONE class under
     // dihedral x colour-inversion -> exactly one canonical representative.
-    // (With lex order -1 < 0 < 1 the representative is a WHITE-stone board.)
+    // (With lex order -1 < 0 < 1 the representative is a WHITE-stone goban.)
     var count: u64 = 0;
     for (0..4) |p| {
         inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {

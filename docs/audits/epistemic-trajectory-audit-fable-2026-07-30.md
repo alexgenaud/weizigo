@@ -165,7 +165,7 @@ worry about.
 
 Near zero, and the tree says so itself. The GTP player still consults
 fresh-start PSK tables and is **K5 (guess)** in the ko-sensitive region,
-which at 4×4 includes the empty board — so it is K5 from move one. EXP-9's
+which at 4×4 includes the empty goban — so it is K5 from move one. EXP-9's
 H5a mitigation is real but PARTIAL (fires at ply 13, not the predicted 7;
 +6.8% per genmove; CLAIMED, not verified-optimal). No playing-strength change
 since.

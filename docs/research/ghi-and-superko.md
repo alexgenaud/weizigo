@@ -8,7 +8,7 @@ Why superko complicates a transposition table, and how we handle it
 ## The problem
 
 A transposition table assumes **score is a pure function of the position**
-(same board + side ⇒ same score, regardless of path). Transpositions merge
+(same goban + side ⇒ same score, regardless of path). Transpositions merge
 many parents into one node; the TT is that merge.
 
 **Superko breaks the assumption**: whether a move is legal depends on which
@@ -41,8 +41,8 @@ ko/repetition — most of the 5×5 tree is GHI-free.
 
 - Keep a **path-set of Zobrist hashes** of ancestor positions (reuse
   `zobrist.zig`); push on descend, pop on ascend.
-- A move is superko-illegal iff its resulting board hash is already in the set.
-- PSK ⇒ hash the **board only**. (SSK ⇒ hash (board, side); one extra bit.)
+- A move is superko-illegal iff its resulting goban hash is already in the set.
+- PSK ⇒ hash the **goban only**. (SSK ⇒ hash (board, side); one extra bit.)
 - The set is empty until the first capture (no repetition possible before
   then), and can be **pruned at irreversible moves**: once a stone is
   unconditionally alive (Benson), every prior position lacking it can never
@@ -74,7 +74,7 @@ Confirmed with `src/ko_probe.zig`, a self-contained walker over legal 5x5 lines
 that classifies each repetition ban by cycle length
 `dist = history.len - matched_ply` (`dist == 2` = simple ko, `dist >= 3` =
 genuine superko only the whole-history rule catches). A depth-capped 40M-node
-sample from the empty board hit **13,908 simple-ko** and **414 genuine superko**
+sample from the empty goban hit **13,908 simple-ko** and **414 genuine superko**
 bans (cycles of 3–5 plies). Superko events are a normal feature of legal play,
 not an edge case, so a simple-ko rule would NOT guarantee termination on 5x5 —
 PSK is necessary, not just tidy. Twelve replay-verified example games (6 superko

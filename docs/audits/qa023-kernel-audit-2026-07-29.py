@@ -23,7 +23,7 @@ from collections import deque
 from typing import List, Tuple, Optional, Set, Dict
 
 # ---------------------------------------------------------------------------
-# Board geometry helpers (parameterised by width, height)
+# Goban geometry helpers (parameterised by width, height)
 # ---------------------------------------------------------------------------
 
 class Rules:
@@ -262,7 +262,7 @@ class GameGraph:
     def reachable(self, roots: Optional[List[int]] = None) -> Tuple[Set[int], Dict[int, List[int]]]:
         if roots is None:
             # Match src/qa023_probe.zig run_census_3x2 seeds:
-            # empty board (board=0), both sides, all ko values, passes 0/1/2.
+            # empty goban (board=0), both sides, all ko values, passes 0/1/2.
             empty = self.r.rank_board(tuple([0] * self.r.n))
             roots = []
             for side in (0, 1):

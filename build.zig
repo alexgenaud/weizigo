@@ -115,7 +115,7 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(chainability_exe);
 
     // ── reachable ko-sensitivity census ────────────────────────────
-    // Plays whole games from the empty board under several policies and
+    // Plays whole games from the empty goban under several policies and
     // measures the KO_SENSITIVE fraction over the nodes actually REACHED —
     // the player-relevant denominator, as opposed to the chainability
     // audit's slot-uniform one.

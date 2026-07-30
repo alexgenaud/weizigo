@@ -165,19 +165,19 @@ corrected rule:
 | all-seed (empty × side × ko × passes) | old | 290 | 516 | 32 |
 | all-seed | **corrected** | **282** | **508** | **0** |
 
-**(b) An exhaustive enumeration of every 2×2 placement** (all 3⁴ boards × 2
+**(b) An exhaustive enumeration of every 2×2 placement** (all 3⁴ gobans × 2
 sides × empty cells, `ko-fix-2026-07-29/ko2x2.py`): the old rule sets a ko
 point on **16** placements; the corrected rule sets one on **0**.
 
 That second result is worth stating plainly, because
 `qa023_brute_2x2.zig:475-477` asserts the opposite of what the code did:
 
-> "So on 2x2, basic-ko with formalization (i) NEVER fires! The 2x2 board is
+> "So on 2x2, basic-ko with formalization (i) NEVER fires! The 2x2 goban is
 > too small for the ko shape to occur."
 
 That comment was **false as written** — the shipped rule fired on 16 of the
 2×2 placements — and the fix makes it true. Worked example, from the
-enumeration: board `B W / B .` (cells 0,1 / 2,3), Black plays cell 3 and
+enumeration: goban `B W / B .` (cells 0,1 / 2,3), Black plays cell 3 and
 captures the lone White stone at 1, whose only two neighbours are now Black.
 Cell 3 has exactly one empty neighbour afterwards (cell 1), so the old rule
 set a ko point there. But the played stone is not alone: it joins the Black
@@ -202,7 +202,7 @@ audit finding F1 is a separate defect and is still open; see §7).
 | max SCC = cycle-involved | 1,696 | **1,676** | 1,676 ✓ |
 | cycle-reachable | 1,724 | **1,704** | 1,704 ✓ |
 | simple cycles, cap 14 | 143,760 | **216,176** | 216,176 ✓ |
-| distinct legal boards | 489 | **489** | (T13 cross-check holds) |
+| distinct legal gobans | 489 | **489** | (T13 cross-check holds) |
 | non-terminal states | 1,816 | **1,756** | — |
 
 Cycle histogram at cap 14, corrected — still all-even, as the parity argument
@@ -318,12 +318,12 @@ falsifies.
 - **2B-3 (history-pair vacuity), corrected rule:** 102/102 sampled multi-history
   states have visit-set-distinct arrival histories, 2,563/2,563 pairs distinct.
   **VACUITY-GUARD PASS** (was 93/93).
-- **`census-3x2`:** 2,622 states, 489 distinct legal boards — still matches the
+- **`census-3x2`:** 2,622 states, 489 distinct legal gobans — still matches the
   T13 reference. 866 terminals.
 - **`fixpoint-3x2`:** converges in 2 sweeps. Pin census
   `L==H = 948 · pin_T = 1,532 · pin_L = 142 · pin_H = 0` (pin_T fell from
   1,592; the other three are unchanged).
-- **`smoke-2x2`:** 5/5 anchors OK. Empty-board Black is still **0**, not +1, so
+- **`smoke-2x2`:** 5/5 anchors OK. Empty-goban Black is still **0**, not +1, so
   the PSK discriminator still discriminates.
 - **`zig test --test-filter "2x2 smoke" --test-filter "3x2" src/qa023_probe.zig`:**
   5/5 pass. (As the 2B-2 audit noted, none of the five touches the census.)
@@ -410,7 +410,7 @@ L < H, and TIE genuinely participates.
 
 **The smoke still passes and still discriminates** — all five B1 anchors hold
 under the corrected rule in both the Zig and the independent Python, and
-empty-board-Black is 0 where PSK would give +1. But §2's *stated reason* for
+empty-goban-Black is 0 where PSK would give +1. But §2's *stated reason* for
 it not being circular is not a true statement about the graph, and should be
 replaced with the reason that is true: the five anchors are externally
 published values (MIGOS II), and external anchors do not become circular just
@@ -421,7 +421,7 @@ because the graph has cycles.
 ## 7. What this task did not do
 
 - **F1 (`seed_roots` seeds 42 states, not four) is untouched.** The 36
-  empty-board-with-a-ko-point seeds are still in the reachable set; 2,622 and
+  empty-goban-with-a-ko-point seeds are still in the reachable set; 2,622 and
   1,704 still include them. Measured with the corrected ko rule *and* the
   single true game root (empty, Black, ko = none, passes = 0): **V = 2,583,
   E = 5,510, real-ko states 24, cycle-involved 1,676, cycle-reachable 1,678**.

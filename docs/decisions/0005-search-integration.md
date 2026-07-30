@@ -2,10 +2,10 @@
 
 Date: 2026-07-14 · Status: **accepted**
 
-Refinement on implementation: `solve` is **full-board (5×5) only**. Restricting
+Refinement on implementation: `solve` is **full-goban (5×5) only**. Restricting
 moves to a sub-region of the 25-cell array is unsound — stones on the region
 edge keep phantom liberties into the unplayable empty cells and can never be
-captured. So Phase-1 validation uses **near-terminal full-board positions**
+captured. So Phase-1 validation uses **near-terminal full-goban positions**
 (few empty points → small tree, correct geometry) rather than 2×2/3×3 solves.
 `x_width`/`y_height` params are dropped.
 
@@ -39,17 +39,17 @@ Phase 2.
 
 ## Move generation
 
-Legal moves = every legal stone placement in the sub-board **plus pass**:
+Legal moves = every legal stone placement in the sub-goban **plus pass**:
 
 - Stone move: `child = armies_from_move(pos, to_move, p)`; skip on `Suicide`;
   **skip if `history.repeats(&child)`** (superko). Then `history.push(&child)`,
   recurse with `to_move` negated and `passes = 0`, `history.pop()`.
-- **Pass**: board unchanged, do NOT push history, do NOT run `repeats` (passes
+- **Pass**: goban unchanged, do NOT push history, do NOT run `repeats` (passes
   are exempt from superko). Recurse with `to_move` negated and `passes + 1`.
 - Pass is always available, so there is always ≥1 move — the old
   "no children" case is subsumed by passing.
 
-Sub-board support (`x_width`, `y_height`) is kept for 2×2/3×3 testing.
+Sub-goban support (`x_width`, `y_height`) is kept for 2×2/3×3 testing.
 
 ## Terminal condition
 
@@ -103,10 +103,10 @@ any ban and don't cache tainted — correct but caches less.)
 
 - **Phase 1 — correctness, no TT.** `solve` with superko + pass + Benson/double
   -pass terminal + area scoring. **DONE** (`src/solve.zig`). Finding: without a
-  TT, any non-settled position can reopen the board (a capture removes a whole
-  group → near-empty board → explosive deep search), so Phase 1 can only
+  TT, any non-settled position can reopen the goban (a capture removes a whole
+  group → near-empty goban → explosive deep search), so Phase 1 can only
   validate the terminal / scoring / pass paths (settled positions, komi, colour
-  symmetry, full-board double-pass). Deep capture & superko *search* validation
+  symmetry, full-goban double-pass). Deep capture & superko *search* validation
   is intractable without memoization → moves to Phase 2.
 - **Phase 2 — TT + GHI, scale to 5×5.** Add the `(blind,seq)` cache with the
   `num_stones ≤ 16` cutoff, the `passes == 0`-only rule, and the `ko_ref`

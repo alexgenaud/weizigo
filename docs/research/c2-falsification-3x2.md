@@ -49,7 +49,7 @@ Standalone probe `untracked/c2pilot_3x2.zig`:
    - `brackets=false` — no history-free L/H cuts, so the solver returns the
      true score under the current history;
    - full alpha-beta window `[-127, 127]`;
-   - an `O.History` pre-populated with every board of the line (including P
+   - an `O.History` pre-populated with every goban of the line (including P
      as the most recent element, so basic ko and all PSK repeats are
      forbidden).
 5. Compare the returned score with the stored L==H score.
@@ -63,7 +63,7 @@ game tree up to alpha-beta pruning, which does not change the score.
 
 | metric | value |
 |---|---|
-| Board | 3×2 |
+| Goban | 3×2 |
 | Legal positions | 489 |
 | Settled positions | 30 |
 | Ko-sensitive slots | 189 B / 189 W |

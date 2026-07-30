@@ -4,8 +4,8 @@
 
 ## Claim IDs
 
-- **2x2.BASICKO-TIE** — fresh-start value of 2×2 empty board under basic ko + TIE=0 = 0 (PROVEN)
-- **3x2.BASICKO-TIE** — fresh-start value of 3×2 empty board under basic ko + TIE=0 = 0 (PROVEN)
+- **2x2.BASICKO-TIE** — fresh-start value of 2×2 empty goban under basic ko + TIE=0 = 0 (PROVEN)
+- **3x2.BASICKO-TIE** — fresh-start value of 3×2 empty goban under basic ko + TIE=0 = 0 (PROVEN)
 
 Both proposed; owner `CLAIMS.md` assigns IDs.
 

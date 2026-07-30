@@ -1,6 +1,6 @@
 # How often does positional superko actually forbid a move that basic ko allows? — EXP-1
 
-**Date:** 2026-07-28. **Boards:** 4×4, 4×3, 3×3, each measured independently.
+**Date:** 2026-07-28. **Gobans:** 4×4, 4×3, 3×3, each measured independently.
 **Task:** EXP-1 of `docs/epistemic/roadmap-2026-07-28.md` §3; the claim under test
 is **QA-024**.
 **Tool:** `bin/weizigo-reachcensus --psk-binding` (new flag; source
@@ -9,7 +9,7 @@ is **QA-024**.
 
 ## The question, and why it is decision-relevant
 
-Positional superko (PSK) — "no whole-board position may ever recur" — is a
+Positional superko (PSK) — "no whole-goban position may ever recur" — is a
 *computer* convention. Japan and Korea play basic ko and give **no result** for
 long cycles; China adjudicates rather than mechanically enforcing; the AlphaGo
 matches were Chinese rules, not PSK (`docs/research/ruleset-options.md:9-20`,
@@ -30,29 +30,29 @@ The measurement is only as meaningful as its definitions, and several are
 judgement calls. All of them are implemented exactly as written here
 (`src/reachcensus.zig`, `scanNode` / `matchPly` / `repForbidden`).
 
-1. **History is indexed by ply.** Ply 0 is the empty board. A pass re-records
-   the unchanged board at the next ply index, so `bply[k]` is always "the board
+1. **History is indexed by ply.** Ply 0 is the empty goban. A pass re-records
+   the unchanged goban at the next ply index, so `bply[k]` is always "the goban
    after k plies". (The legality history the players use, `hist`, only grows on
-   stone placements; the two describe the same *set* of boards, so legality is
+   stone placements; the two describe the same *set* of gobans, so legality is
    unaffected — the ply index exists only so distances are in plies.)
 2. **A candidate move at a node where `k` plies have been played** produces a
-   child board that would sit at ply index `k+1`.
+   child goban that would sit at ply index `k+1`.
 3. **Distance `d` = `(k+1) − j`**, where `j` is the **most recent** ply index
-   whose board equals the child. Most-recent is chosen deliberately: it
+   whose goban equals the child. Most-recent is chosen deliberately: it
    *minimises* `d`, so it moves events out of the long-range bucket and into the
    short one. The headline "silent long-range" count is therefore a **lower
    bound** under this convention. `d = 1` is impossible (a move always changes
-   the board), so `d ≥ 2` always.
+   the goban), so `d ≥ 2` always.
 4. **Basic ko** = forbid exactly the recreation of the position one ply ago,
    i.e. exactly `d == 2`. (This is the definition the task specifies. It is
    *positional* one-ply repetition, not the "ko point" formulation; on these
-   boards the two coincide for the recapture case.)
+   gobans the two coincide for the recapture case.)
 5. **PSK** = forbid any `d ≥ 2`.
 6. **PSK-BINDING** = PSK-illegal **and** `d ≥ 3`: legal under basic ko, illegal
    under PSK. Buckets:
    - `d == 2` — **ko-cycle repeat.** Basic ko already forbids it. *Not binding.*
    - `3 ≤ d ≤ 6` — **short-cycle repeat.** Double/triple-ko territory; still
-     visible at the board.
+     visible at the goban.
    - `d > 6` — **silent long-range repeat.** The category that matters.
 7. **"Not part of a recognisable cycle"** has no clean formal definition, so the
    tool reports an explicit **proxy** rather than pretending to one: a `d > 6`
@@ -103,7 +103,7 @@ trace game 0: BB3* WC2* BC3* WB2* BA2* WA3* BA4* WD3* BB1* WC4* BC1* WD2* Bpass*
   PSK-repeat candidates:    0   = d==2 0 | d 3-6 0 | d>6 0   (max d = 0)
 ```
 
-The tool reports **zero** whole-board repeats available at any of the 14
+The tool reports **zero** whole-goban repeats available at any of the 14
 decision nodes. Hand trace confirming it (Black-positive convention is
 irrelevant here — no score is read):
 
@@ -117,11 +117,11 @@ irrelevant here — no score is read):
   0,1,2,3,4,5,6,**6**,7,8,9,10,11,11,11 after plies 0…14 (the two trailing
   passes leave it at 11). A repeat requires equal stone counts.
 - Node-by-node: plies 1–6 have no group in atari for the side to move, so every
-  child has a strictly new (larger) stone count — no earlier board can match.
+  child has a strictly new (larger) stone count — no earlier goban can match.
   At ply 7 the only capturing move is `B A4`; its child has 6 stones, the only
-  earlier 6-stone board is the ply-6 board `{B3,C3,A2 | C2,B2,A3}`, and the
+  earlier 6-stone goban is the ply-6 goban `{B3,C3,A2 | C2,B2,A3}`, and the
   child is `{B3,C3,A2,A4 | C2,B2}` — different. At ply 8 the one move that could
-  recreate the ply-6 board, `W A3`, is **suicide** (its neighbours A4, A2, B3
+  recreate the ply-6 goban, `W A3`, is **suicide** (its neighbours A4, A2, B3
   are all Black and it captures nothing) and so is not even a rules-legal
   candidate. At plies 9–14 no group of the opponent has fewer than two
   liberties, so no capturing move exists and every child again has a strictly
@@ -194,7 +194,7 @@ the real GTP player.
 
 ### (A) All candidates — rate per 1,000 plies
 
-**PROVEN** for each board separately (these artifacts, this seed, these
+**PROVEN** for each goban separately (these artifacts, this seed, these
 policies, 2026-07-28). Counts are raw event counts; rates are per 1,000 plies.
 
 #### 4×4 — `data/oracle-4x4.checkpoint.wzo`
@@ -237,7 +237,7 @@ basic ko already handles: 4×4 89.1% (random) / 93.5% (mixed); 4×3 80.2% / 92.5
 One-ply counterfactual, separate RNG. A `d == 2` event can never appear here
 because the counterfactual itself enforces basic ko.
 
-| board | policy | counterfactual nodes | chosen move PSK-illegal | of which `d` 3–6 / `d>6` | **rate /1k plies** | games where PSK changed ≥1 played move |
+| goban | policy | counterfactual nodes | chosen move PSK-illegal | of which `d` 3–6 / `d>6` | **rate /1k plies** | games where PSK changed ≥1 played move |
 |---|---|---|---|---|---|---|
 | 4×4 | `oracle`    | 28,000 | 0   | 0 / 0 | **0** | 0/2000 (0.000%) |
 | 4×4 | `oracle-rt` | 27,865 | 0   | 0 / 0 | **0** | 0/2000 (0.000%) |
@@ -265,8 +265,8 @@ then a large tail 11–40+ (max `d = 56`). 4×4 `mixed`: `d=2` 619, `d=3` 39,
 
 There is no middle ground: a repeat is either an immediate recapture, or it is
 tens of plies away. **CLAIMED (these runs):** the mechanism is that only mass
-capture can undo enough stones to revisit an old board, and on these boards mass
-capture happens only after the board has filled and been wiped — which random
+capture can undo enough stones to revisit an old goban, and on these gobans mass
+capture happens only after the goban has filled and been wiped — which random
 play does repeatedly and the engine does never.
 
 ### What a silent long-range repeat actually looks like
@@ -279,11 +279,11 @@ BA1 WC1 BA3 WC2 BB2 WB1 BC3 WB1 BB3 WC1 BC2 WB1 BA2 WC1 BC3 WC2 BB2 WA3
 BB3 WA1 BA2 WC1 BA3 Wpass BC2 WB1 BA1 WC1{B1:d=15} BB1 WC1 BB2{A1:d=29} WC2 ...
 ```
 
-At ply 28 (White to move) the move `B1` would recreate the whole-board position
+At ply 28 (White to move) the move `B1` would recreate the whole-goban position
 of **ply 13**, fifteen plies earlier. At ply 31 (Black to move) the move `A1`
 would recreate the position of **ply 2** — **twenty-nine plies earlier**. Both
 are isolated by the §7 proxy. **These are exactly the events no human player or
-judge would notice.** They are also embedded in a game where a 9-point board has
+judge would notice.** They are also embedded in a game where a 9-point goban has
 been captured out and refilled repeatedly — a position where Japanese/Korean
 practice would already have declared *no result* and Chinese practice would have
 adjudicated (`ruleset-options.md:9-20`). **Flagged as judgement, not
@@ -299,7 +299,7 @@ ko-sensitivity fraction (which the truncation biases *up*) this truncation biase
 the binding rate **down**. Measured
 (`--games 2000 --psk-binding --no-settled-stop --ply-cap 1024`, same master seed):
 
-| board | policy | mean plies (on → off) | binding /1k (on → off) | silent /1k (on → off) | games with ≥1 silent (on → off) |
+| goban | policy | mean plies (on → off) | binding /1k (on → off) | silent /1k (on → off) | games with ≥1 silent (on → off) |
 |---|---|---|---|---|---|
 | 4×4 | `oracle`    | 14.00 → 14.00   | 0 → **0** | 0 → **0** | 0 → **0**/2000 |
 | 4×4 | `oracle-rt` | 13.93 → 13.93   | 0 → **0** | 0 → **0** | 0 → **0**/2000 |
@@ -317,8 +317,8 @@ the binding rate **down**. Measured
 **This is the most important robustness result in the note, and it cuts both
 ways.** Removing the truncation multiplies the `random` silent rate by 7–11×
 (4×4: 0.329 → 3.518 per 1k plies; 3×3: 5.445 → 32.847). But it does so by
-letting random games run to a mean of **75–115 plies on boards of 9–16 points** —
-a regime in which the board is captured out and refilled many times over. It
+letting random games run to a mean of **75–115 plies on gobans of 9–16 points** —
+a regime in which the goban is captured out and refilled many times over. It
 changes the two engine-driven policies almost not at all (`oracle`/`oracle-rt`
 stay at exactly **zero**; `mixed` moves by ≤0.7 pp on the games-with-silent
 figure and the 4×4 `mixed` silent count goes from 1 event to 2). **The
@@ -327,14 +327,14 @@ not" is the whole finding**, and it is robust to the truncation choice.
 
 ### Seed robustness (settled-stop on, 2,000 games/policy)
 
-| board | policy | seed 20260728 | seed 1 | seed 999331 |
+| goban | policy | seed 20260728 | seed 1 | seed 999331 |
 |---|---|---|---|---|
 | 4×4 | `random` binding / silent | 1.326 / 0.329 | 1.331 / 0.312 | 1.324 / 0.274 |
 | 4×4 | `mixed` binding / silent  | 0.966 / 0.022 | 0.895 / 0.000 | 0.703 / 0.000 |
 | 3×3 | `random` binding / silent | 8.513 / 5.445 | 7.830 / 4.894 | 8.270 / 5.295 |
 | 3×3 | `mixed` binding / silent  | 3.602 / 1.778 | 3.289 / 1.690 | 3.776 / 1.638 |
 
-`oracle` and `oracle-rt` are 0 at every seed and every board. The `random`
+`oracle` and `oracle-rt` are 0 at every seed and every goban. The `random`
 figures are stable to ≲8% relative. The 4×4 `mixed` silent figure is 0–1 events
 in 2,000 games and is **not** a stable estimate — read it as "at most about one
 event per 44,000 plies", not as 0.022.
@@ -352,14 +352,14 @@ legality reads no artifact slot — so no game is excluded and all statistics us
 > **Does PSK bind beyond basic ko in real play, and if so, is it in ways a human
 > would notice?**
 >
-> **In engine self-play on all three boards measured, no — not once, in 130,171
+> **In engine self-play on all three gobans measured, no — not once, in 130,171
 > plies and 1,015,076 candidate moves: PSK forbade nothing that basic ko allowed,
 > and forbade nothing at all. In the project's two recorded human-vs-engine
 > games, PSK bound zero times (its single ban per game is an ordinary `d = 2` ko
 > recapture that basic ko forbids too). Against a uniformly random opponent it
 > does bind — 1.3 (4×4) to 8.5 (3×3) times per 1,000 plies, of which 0.3 (4×4) to
 > 5.4 (3×3) per 1,000 plies are silent long-range repeats no human would notice —
-> but essentially all of those occur in games where the small board has already
+> but essentially all of those occur in games where the small goban has already
 > been captured out and refilled, exactly the regime a human judge would have
 > ruled *no result* long before.**
 
@@ -382,28 +382,28 @@ real play, for repeats that are not ko cycles"):
 
 The mechanism behind the split is visible in the data and is worth stating
 because it is the thing that would or would not survive to a larger board:
-**a whole-board repeat requires undoing stones, which requires mass capture.**
+**a whole-goban repeat requires undoing stones, which requires mass capture.**
 Play that is trying to finish the game captures once or twice and then fills;
-play that is not recycles the board indefinitely. The 4×4 `oracle` line contains
+play that is not recycles the goban indefinitely. The 4×4 `oracle` line contains
 exactly **one** capture in 14 plies and therefore cannot repeat anything.
 
 ## Caveats — all load-bearing
 
-- **This measures these policies on these boards with these artifacts.** There
+- **This measures these policies on these gobans with these artifacts.** There
   is no claim about any other opponent distribution, and in particular none
   about strong human play beyond the two recorded games — which is two games.
-- **Per-board independence (AGENTS.md).** 4×4, 4×3 and 3×3 are three separate
+- **Per-goban independence (AGENTS.md).** 4×4, 4×3 and 3×3 are three separate
   results. Note that they do **not** even move in the same direction as size:
   the silent rate under `random` is 0.329 (4×4), 1.415 (4×3), 5.445 (3×3) per
-  1,000 plies — *smaller* boards bind *more*. Nothing here licenses a statement
+  1,000 plies — *smaller* gobans bind *more*. Nothing here licenses a statement
   about 5×5 or 19×19, in either direction, and no monotonicity argument is
   offered.
-- **OPEN QUESTION, explicitly not answered here.** On larger boards, games are
+- **OPEN QUESTION, explicitly not answered here.** On larger gobans, games are
   longer (more plies, more chances for a repeat) but also have more points, more
   stones, and far more ways for the position to diverge irreversibly. Those two
   effects push opposite ways and this measurement cannot distinguish them. The
-  observed *smaller-board-binds-more* ordering is a hint in the second
-  direction and nothing more; the honest position is that the larger-board rate
+  observed *smaller-goban-binds-more* ordering is a hint in the second
+  direction and nothing more; the honest position is that the larger-goban rate
   is unmeasured.
 - **The counterfactual in (B) is one ply deep.** It answers "would PSK have
   forbidden the move this policy picks *here*", not "how would a basic-ko game
@@ -413,7 +413,7 @@ exactly **one** capture in 14 plies and therefore cannot repeat anything.
   isolated count is context.
 - **The most-recent-match distance convention under-counts long-range events**
   (§3). The silent-repeat rates are lower bounds under that convention.
-- **`oracle` is one line per board.** 2,000 `oracle` games at 4×4 are 2,000
+- **`oracle` is one line per goban.** 2,000 `oracle` games at 4×4 are 2,000
   copies of one 14-ply game (`distinct game lines: 1`). `oracle-rt` (144
   distinct lines at 4×4, 753 at 3×3) is the evidence that the zero is not an
   artifact of the cell-order tie-break; it is not an independent sample of

@@ -58,9 +58,9 @@ def tarjan(verts, adj):
     return comp, ncomp[0]
 
 
-# The true game root only: empty board, Black to move, no ko, 0 passes.
+# The true game root only: empty goban, Black to move, no ko, 0 passes.
 TRUE_ROOT = [(0, 0, KO_NONE, 0)]
-# The seed set the code actually uses at 3x2 (empty board x side x passes x ko).
+# The seed set the code actually uses at 3x2 (empty goban x side x passes x ko).
 SEEDS_ALL = [(0, s, k, p) for s in (0, 1) for k in range(N + 1) for p in (0, 1, 2)]
 
 for label, roots in (("true root", TRUE_ROOT), ("all-seed", SEEDS_ALL)):

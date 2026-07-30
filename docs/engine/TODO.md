@@ -1,10 +1,10 @@
 # SUPERSEDED — read `../epistemic/PROGRESS.md` + `../epistemic/boards/4x4/EPISTEMIC.md` instead.
 
 **This file is kept as history only.** It is no longer maintained; the
-strategic truth is in `PROGRESS.md`, the per-board-size epistemic status is
+strategic truth is in `PROGRESS.md`, the per-goban-size epistemic status is
 in `../epistemic/boards/4x4/EPISTEMIC.md` (4×4 is the focus; per-claim status,
 falsifiable experiments, current hypotheses), and the live in-flight task is
-in `../status/CURRENT.md`. The backlog items here predate the per-board
+in `../status/CURRENT.md`. The backlog items here predate the per-goban
 epistemic tree refactor and the 2026-07-25 leak-crisis reset.
 
 ---
@@ -28,9 +28,9 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       - `main.zig` is now a real solve driver: runs `solve_root` on a spawned
         thread with a 256 MB stack (recursion depth == ply count, not stone
         count) and reports score + measured max ply. Default = fast dead-stone
-        demo (Black+25, max ply 2); flip `FULL` to attempt the empty board.
+        demo (Black+25, max ply 2); flip `FULL` to attempt the empty goban.
       - NOTE on the 4096 question: recursion depth == **game-line length in
-        plies**, which is decoupled from the ~20-stone board ceiling because
+        plies**, which is decoupled from the ~20-stone goban ceiling because
         captures let a line keep changing without net stone growth. `MAX_LINE`
         is headroom, not a proof; the theoretical ceiling is the count of legal
         5x5 positions (~4.1e11). Realistic lines are almost certainly short
@@ -38,7 +38,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
         true max (needs the TT wired+sized first; see #1-followup).
       - [x] #1-followup DONE 2026-07-16: wired + sized a TT into the `FULL` path
             (256 MB blind arrays + 2 GB seq) and measured. RESULT: the forward
-            solve does NOT converge on the empty board — DFS descends 200+ plies
+            solve does NOT converge on the empty goban — DFS descends 200+ plies
             while the TT caches nothing (GHI-tainted opening). Not a route to the
             oracle by itself; strong support for the retrograde/enumeration
             engine. Write-up: `docs/research/forward-solve-scaling.md`. `FULL`
@@ -89,7 +89,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       if the goal ever reverts to (a), this is the path.
 
 - [~] **Position enumerator (oracle foundation) — STARTED 2026-07-16.**
-      `src/enumerate.zig`: board-size-agnostic legal-position enumerator
+      `src/enumerate.zig`: goban-size-agnostic legal-position enumerator
       (structure only; standalone, no state/zobrist imports). VALIDATED against
       Tromp/OEIS A094777: 1x1=1, 2x2=57, 3x3=12,675, 4x4=24,318,165 all PASS
       (~6 s ReleaseFast). NEW data: canonical class counts (4x4: 1,524,805;
@@ -97,7 +97,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       ~ 52 GB at 1 B/(class,side). See `../research/enumeration-census.md`.
   - [x] Colex index DONE 2026-07-17: `src/colex.zig` — `colex_from_pos` /
         `pos_from_colex`, raw layered (offset + subset_idx*2^k + colour bits).
-        Bijection exhaustively VERIFIED over all boards of 2x2/3x2/3x3/4x4
+        Bijection exhaustively VERIFIED over all gobans of 2x2/3x2/3x3/4x4
         (43M, zero collisions, ~5 s ReleaseFast); 5x5 addressing works
         arithmetically (3^25 total; tengen = idx 26). RENAMED from "rank"
         (user decision: in Go, rank = kyu/dan; avoid the term). See
@@ -203,7 +203,7 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
       area scoring. Phased:
   - [x] Phase 1: `src/solve.zig` search-to-terminal + superko + pass +
         Benson/double-pass + area scoring (4 tests). FINDING: without a TT,
-        any non-settled position can reopen the board via a capture and
+        any non-settled position can reopen the goban via a capture and
         explode, so Phase 1 only validates the terminal / scoring / pass
         paths. Deep capture & superko *search* validation needs Phase 2.
   - [x] Phase 2: `(blind,seq)` TT with num_stones<=16 cutoff, passes==0-only
@@ -214,22 +214,22 @@ Prioritized recommendations from a full read of the engine core. #1 is DONE
         colour symmetry, TT == no-TT.
   - [x] **Eye-fill pruning** (`solve.is_own_eye`, ADR-0006) — REQUIRED for
         tractability: the DFS was filling a live group's own eyes, letting the
-        opponent capture it and reopen the board (stack overflow even on a
+        opponent capture it and reopen the goban (stack overflow even on a
         3-empty endgame). Skipping self-eye-fills is sound under area scoring.
 - [x] **Clean/tainted (GHI)** — done as the `ko_ref` dependency-ply in `solve`
       (a node caches iff every superko ban in its subtree referenced a ply
       within the subtree, i.e. `ko_ref >= d`). See `decisions/0005`,
       `../research/ghi-and-superko.md`.
 
-## Now — reach the full-board oracle (the remaining frontier)
+## Now — reach the full-goban oracle (the remaining frontier)
 
-The empty-board full solve (5x5 = Black+25) is NOT yet reached. Correctness is
+The empty-goban full solve (5x5 = Black+25) is NOT yet reached. Correctness is
 in place; scale is the wall (see ADR-0006 "What this does NOT solve"):
 
 - [ ] **Line length / recursion depth.** Positional-superko lines can be long;
       recursion depth == line length. `MAX_LINE` raised 2048->4096 as headroom,
       but confirm a real bound for 5x5 and make the depth stack-safe (larger
-      stack, or restructure). A first empty-board run was launched and did not
+      stack, or restructure). A first empty-goban run was launched and did not
       complete quickly (~min, ~320 MB RSS, growing) — instrument and bound it.
 - [ ] Measured `collision_size` for 9–16 stones + matching `seq_table_size` for
       a full run (still the ADR-0005 open sizing question).

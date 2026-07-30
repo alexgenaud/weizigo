@@ -8,7 +8,7 @@ EXP-5 (3×3 +9 matches MIGOS II), PINRULE-SUFFICIENCY (no pointwise function of
 
 ## Context
 
-ADR-0019 chose first-revisit truncation as the rule: when a board position
+ADR-0019 chose first-revisit truncation as the rule: when a goban position
 reappeared, the game terminated with a fixed tie value (TIE=0). That rule is
 well-defined and human-playable, but it makes the game non-Markovian on
 `(board, side, ko_point, passes)` — the value at a state depends on *how* the

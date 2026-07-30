@@ -11,7 +11,7 @@
 
 Read-only audit of the history-pair generation path in `src/qa023_probe.zig` (`collect_histories`, `collect_histories_dfs_impl`, the visit-set construction) and of the 2B-3 deliverable:
 
-1. **Are the collected histories legal and reachable?** Each must be a real move sequence from the empty-board root under the corrected (post-`2B-FIX-KO`) ko rule.
+1. **Are the collected histories legal and reachable?** Each must be a real move sequence from the empty-goban root under the corrected (post-`2B-FIX-KO`) ko rule.
 2. **Are they *simple* paths, and is that the intended semantics?** Reference-semantics §1 keys on the visit-**set**; check what the code actually guarantees and whether duplicates or self-intersections can occur.
 3. **Are the pairs genuinely visit-set-distinct?** The deliverable claims 93/93 (102/102 corrected). Reproduce independently — a different implementation, not a re-run.
 4. **What is the sampling bias?** The collector is a DFS with a budget that takes the first K paths it finds. Quantify: how correlated are the K histories for one state (shared prefixes), and does the collector systematically miss short arrivals? This bears directly on whether the probe can ever detect C1 (history-dependence), since detecting it requires *contrasting* histories at the same state.

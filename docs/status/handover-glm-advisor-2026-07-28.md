@@ -1,10 +1,10 @@
 # Handover — GLM (Advisor), 2026-07-28 (context full)
 
 **Read first on resume:** `untracked/msg/milestone-01-ko-reframe/STATE.md` (crash
-anchor), then `bin/managent status` (the agreed board), then this file.
+anchor), then `bin/managent status` (the agreed kanban), then this file.
 
 ## Role
-**GLM = Advisor.** Owns project machinery: `bin/managent` board (single dispatch
+**GLM = Advisor.** Owns project machinery: `bin/managent` kanban (single dispatch
 registry), commits, no stale docs, protocol, model-perf ledger; synthesises
 Opus's technical direction for the user. **Opus = Overseer** — grand overview,
 epistemic tree, adversarial review of load-bearing proofs, claim-semantics
@@ -21,7 +21,7 @@ solved under a tractable traditional ruleset, and which. Comms: `STATE.md`
 (rulings + promotion targets). **Deletion gate:** promote every DECISIONS entry
 to `docs/` before deleting the dir (git-ignored; QA-022 lesson).
 
-## managent board (the agreed state; `bin/managent status`)
+## managent kanban (the agreed state; `bin/managent status`)
 - **in-progress:** `EXP-2` (agent **Fable5**) — §4.3 trichotomy repair (Part A
   proof). Brief `docs/infra/dispatch/EXP-2A-trichotomy.md` (routing → `004-opus-to-pi`
   + `005` + `EXP-2.md` Part A). Opus reviews adversarially.
@@ -30,7 +30,7 @@ to `docs/` before deleting the dir (git-ignored; QA-022 lesson).
   play-time mitigation, holds `src/gtp.zig`), `EXP-10` (QA-018 ADR refutation,
   Fable 2nd, holds `docs/decisions/`).
 - **blocked:** `EXP-4←EXP-2,EXP-2B`; `EXP-5←EXP-4`; `EXP-6←EXP-5`; `EXP-7←EXP-6`;
-  `QA-018-RULING←EXP-10` (a **human** board item — the user's ruling).
+  `QA-018-RULING←EXP-10` (a **human** goban item — the user's ruling).
 - **done:** B34–B45, EXP-3.
 - **sets are PHASES not lanes (Opus 009)** — everything set A; concurrency gated
   by `holds`, not set. All 4 dispatchable can run at once (no shared holds).
@@ -67,7 +67,7 @@ reasoning, not status. **Awaiting Opus agree/amend, then I implement in
 `src/managent/main.zig`** (mechanism, mine).
 
 ## Two defects to fix (Opus 009, mine if agreed)
-1. `untracked/managent/tasks.json` git-ignored → board lost on clone (T13 class).
+1. `untracked/managent/tasks.json` git-ignored → kanban lost on clone (T13 class).
    Fix: move state to a tracked path (`docs/infra/managent/tasks.json`) + update
    `state_path` in `src/managent/main.zig`.
 2. Spec/binary disagree on `context` (spec dropped it, binary keeps

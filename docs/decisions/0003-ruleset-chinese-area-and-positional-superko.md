@@ -14,7 +14,7 @@ games (with real histories) in the traditional way.
   function of the terminal snapshot (each point counts for whoever's stones
   or sole-reaching territory it is), so no history is needed — the natural
   fit for a position database.
-- **Ko rule: positional superko (PSK)** — "no whole-board position may ever
+- **Ko rule: positional superko (PSK)** — "no whole-goban position may ever
   recur". This is the rule the project has always used; it guarantees finite
   games and matches Tromp-Taylor / the setting in which 5×5 is known solved
   (Black wins by 25), giving a correctness oracle.

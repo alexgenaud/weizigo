@@ -48,12 +48,37 @@ that "pass" are cases where the skipped move was off the optimal line.
 
 **ADR-0006 eye-prune passes exhaustive 3×3 — no score changes detected.**
 
-The prune is safe at this board size under positional superko, area scoring.
+The prune is safe at this goban size under positional superko, area scoring.
 
 ## Caveats (scoped to 3×3 only)
 
-Per `AGENTS.md` per-board epistemic independence: **this result at 3×3 is
+Per `AGENTS.md` per-goban epistemic independence: **this result at 3×3 is
 not evidence at 4×4 or above**.
+
+## ERRATA (2026-07-30 — T114 battery, §4/§5)
+
+**Correction 1 — denominator.** Of the 1,050 eye-positions, **226 are `is_settled`**
+— settled positions where both arms return `area_score` before move generation,
+and the with/without comparison is `area_score == area_score` (it cannot fail).
+The non-vacuous denominator at 3×3 is **824 live pairs**, not 1,050. The 0/1050
+result is 0/824 on the live subset.
+
+**Correction 2 — control arm.** The 2026-07-29 control arm caches every `(pos,
+side, passes)` node unconditionally with no history awareness. This is **not the
+unpruned game value** under positional superko. The sound control (history-set
+memo key) does not terminate at any goban size. The result compares the pruned
+search against an approximation, not ground truth. The replaced sound test is
+`GLOBAL.ADR0006-TEST` at `eye-prune-validation-2026-07-30.md` §6.
+
+**Correction 3 — calibration.** Pruning a random non-eye cell (22.5% wrong-prune
+pass rate) is not how this code fails. A predicate that returned `false`
+everywhere would have scored 0 disagreements too. The proper calibration — four
+plausible wrong predicates benchmarked by the battery's §G/§I — is in
+`eye-prune-validation-2026-07-30.md` §7.
+
+The numbers above are **retained as originally published**; the corrections are
+the authoritative update. See `docs/audits/eye-prune-validation-2026-07-30.md`
+§4–§7 for the full account.
 
 ### 4×4 cost estimate
 

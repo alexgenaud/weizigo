@@ -18,7 +18,7 @@ Task: 2B-3 · Role: worker · Model: DeepSeek-Pro · Date: 2026-07-29
 # QA-023 Part B — history-pair generation at 3×2
 
 **Status: CLAIMED** (run data below).  Promotes `3x2.QA023.B-VACUITY` to
-**PROVEN** — the 3×2 board is non-vacuous for history-sensitivity probing.
+**PROVEN** — the 3×2 goban is non-vacuous for history-sensitivity probing.
 
 ## 1. What was asked
 
@@ -53,7 +53,7 @@ Extended `src/qa023_probe.zig` with a new mode `history-pairs-3x2` that:
 
 **Bug fixes to pre-existing code** (all in `collect_histories_dfs_impl`):
 - **Pass detection** (line ~1330): replaced `child.passes != state.passes`
-  with `child.board == state.board`.  A pass never changes the board
+  with `child.board == state.board`.  A pass never changes the goban
   index; a place move always does.  The old heuristic fails when
   `state.passes == 1` and a place move resets passes to 0.
 - **Placed-cell detection** (line ~1340): replaced "first differing cell"

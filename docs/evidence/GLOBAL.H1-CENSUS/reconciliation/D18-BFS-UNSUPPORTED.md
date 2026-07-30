@@ -12,7 +12,7 @@ committed** ("a sanity throwaway").
 The BFS established that the dispatch's expected reachable counts (25,350 at
 3×3, 643,378 at 4×3, 48,636,330 at 4×4) were the **total addressable**
 `(position, side)` space, while the census walk counts **reachable from the
-empty board under alternating play** — two different denominators. The BFS
+empty goban under alternating play** — two different denominators. The BFS
 produced the reconciling number (3×3 has only 11,109 `(position, side)` pairs
 reachable from `(empty, B-to-move)`), which explained the mismatch.
 

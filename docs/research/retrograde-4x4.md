@@ -73,7 +73,7 @@ Three root-driver generations, measured on the SAME workload:
    window, writes classify against the narrowed entry window (a fail against
    a narrowed window is never stored exact), journal-reverted per root.
    Result: 2x fewer nodes than aspiration at 3x3, and at 4x4 the ENTIRE
-   ko-sensitive region — all 649,517 reps including the empty board — solves with ZERO
+   ko-sensitive region — all 649,517 reps including the empty goban — solves with ZERO
    budget skips in 6.1 minutes. The empty root went from >5e8 nodes
    (abandoned) to <=3.5e5: over 1,400x on the hardest case.
 
@@ -92,8 +92,8 @@ Operational lessons, also landed in code:
 `empty(B) 4x4 = +2` (dtt 13) — exactly van der Werf & Winands (ICGA 2009;
 canonical source: van der Werf 2005 PhD thesis §6.4). **MIGOS II plays
 basic-ko + long-cycle-ties, NOT positional superko** (`GLOBAL.MIGOS-RULE`,
-`QA-025`): the 4×4 empty-board agreement is cross-ruleset (the 4x4
-empty-board score is evidently cycle-rule-insensitive, unlike 2x2/3x2 where
+`QA-025`): the 4×4 empty-goban agreement is cross-ruleset (the 4x4
+empty-goban score is evidently cycle-rule-insensitive, unlike 2x2/3x2 where
 the rulesets diverge by a point; see the ko-rule-variant section in
 `retrograde-3x3.md`). **Corrected 2026-07-29 — the original text claimed
 "under positional superko," which `GLOBAL.MIGOS-RULE` contradicts.**
@@ -136,7 +136,7 @@ game. Replaying the game with diagnostics gives the full score trajectory
                           -> engine flag: HISTORY-DIVERGED
 
 The 32-point cliff: White's winning continuation required recreating a
-whole-board position this game had already visited — banned by positional
+whole-goban position this game had already visited — banned by positional
 superko (PSK). The stored score is the ADR-0008 FRESH-START score; on
 KO_SENSITIVE positions (every early position in this game carried the flag)
 the in-game score under the actual ban set can differ arbitrarily. This is

@@ -24,7 +24,7 @@ inversion arithmetic is consistent. The real cause is **repetition + horizon**.
   has no depth, so the two writes collide.
 
 Captures are the enabler: they decouple stone-count from ply-depth,
-letting the same low-stone board recur at different plies.
+letting the same low-stone goban recur at different plies.
 
 **Fix.** P2 → score at true settled terminals (Benson + area), depth-
 independent. P1 → positional superko (finite, acyclic-enough tree).

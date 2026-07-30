@@ -32,7 +32,7 @@ performed. `src/gtp.zig`'s last change is commit `7a0946a` (2026-07-28
 - Characterized callees by reading `src/rules.zig:101 pos_from_move`,
   `:125 area_score`, `:171 benson_alive`, `:304 is_settled`, and
   `src/score.zig:88 is_definitive`, `src/colex.zig:113 colex_from_pos` — all
-  fixed-work single-board functions; none walks the game tree or opens the
+  fixed-work single-goban functions; none walks the game tree or opens the
   artifact.
 - Dependents swept with `grep -rn "Session.choose\|choose" docs/ AGENTS.md`.
 

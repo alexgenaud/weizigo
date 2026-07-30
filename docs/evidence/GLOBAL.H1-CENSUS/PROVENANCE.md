@@ -5,9 +5,9 @@
 **Run date:** 2026-07-28.
 **Claim ID(s) closed:** `GLOBAL.H1-CENSUS` (4×4 — was UNTESTED,
 `CLAIMS.md:316`); proposes `3x3.H1-CENSUS` and `4x3.H1-CENSUS` for the
-per-board rows, **owner assigns IDs**.
+per-goban rows, **owner assigns IDs**.
 **Acceptance criterion (from dispatch):** for **each** of 3×3, 4×3, 4×4, all
-four numbers exact, no estimates, no sampling, no cross-board extrapolation.
+four numbers exact, no estimates, no sampling, no cross-goban extrapolation.
 Plus a GO/NO-GO on dense addressing at 4×4 with the D3 budget
 placeholder (≤ 32 GB, "confirm with user") as the threshold.
 
@@ -90,7 +90,7 @@ addressable** `(position, side)` space, not the **reachable from
 B-to-move** space; an independent depth-parity BFS confirms 3×3 has
 only 11,109 `(position, side)` reachable from `(empty, B)`, far less
 than 25,350. The fixpoint walk's no-ko count of 20,888 ≈ 2 × 11,109 (the
-2× comes from the conservative W seed on the empty board, which the
+2× comes from the conservative W seed on the empty goban, which the
 walk also seeds). The 4×4 number 45,734,854 vs 48,636,330 is a 6% gap,
 explained by the same parity issue at scale.
 

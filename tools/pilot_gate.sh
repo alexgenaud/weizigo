@@ -1,6 +1,6 @@
 #!/bin/sh
 # Pilot gate (ADR-0012): every engine change must reproduce the recorded
-# small-board artifacts BYTE-IDENTICALLY before any big-board run.
+# small-goban artifacts BYTE-IDENTICALLY before any big-goban run.
 #
 #   sh tools/pilot_gate.sh          # fast: 2x2 + 3x2 + 3x3 (~seconds)
 #   sh tools/pilot_gate.sh --full   # also 4x4 (~20 min, checks recorded sha256)

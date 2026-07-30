@@ -64,7 +64,7 @@ ranking the reasons.
 
 STORE at build time (global, unrecoverable later without re-solving):
   - value: i8 per (position, side) — the oracle.
-  - DTT: u8 — depth to FULL-BOARD terminal under optimal play.
+  - DTT: u8 — depth to FULL-GOBAN terminal under optimal play.
   - flags: ko/history-sensitivity bit (from the retrograde ADR).
 
 COMPUTE at query time (local, cheap, no storage):
@@ -144,7 +144,7 @@ chosen move against the table — "suboptimal at P" becomes a checkable theorem.
   ONLY if it held a theoretically >= drawn position (at fair komi 25, yes);
   and a win never proves OUR perfection — only the validation battery +
   engine-vs-engine agreement do that.
-- Novelty: plausibly the first published exhaustive small-board audit of a
+- Novelty: plausibly the first published exhaustive small-goban audit of a
   neural engine against a proven oracle — needs a literature check before
   claiming (adjacent: Expected Work Search 5x5 2024; 7x7 killall studies).
 - TWO perfection criteria (2026-07-18, after reviewing KataGo's objectives):
@@ -278,7 +278,7 @@ and is never stored.
 ## Viewer strategy (Mac; user has SmartGo One, PVGo, Go Zen)
 
 - Encode annotations in PLAIN SGF so every viewer renders them: C[] comments,
-  LB[] point labels (e.g. per-move scores on the board), TB[]/TW[] territory
+  LB[] point labels (e.g. per-move scores on the goban), TB[]/TW[] territory
   marks, TR/SQ/MA shape marks. Verified: oracle-5x5-pv.sgf opens in SmartGo
   One; same file works in Sabaki (open source, variation trees).
 - Standardize on ONE primary tool: Sabaki — it also HOSTS GTP engines, so the

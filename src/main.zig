@@ -21,7 +21,7 @@ const superko = @import("superko.zig");
 const solve = @import("solve.zig");
 
 // Recursion depth in `solve` equals the game-line length (one frame per ply),
-// which is bounded above by superko.MAX_LINE, not by the ~20-stone board ceiling
+// which is bounded above by superko.MAX_LINE, not by the ~20-stone goban ceiling
 // (captures let a line keep changing without adding net stones). Give the solve
 // its own thread with a generous stack so a deep line cannot overflow the
 // default 8 MB main-thread stack. For a one-time PERFECT computation, correctness
@@ -43,7 +43,7 @@ const demo = [_]i8{
 
 const empty = [_]i8{0} ** 25;
 
-// Flip to `true` to attempt the empty-board full solve (the scaling frontier).
+// Flip to `true` to attempt the empty-goban full solve (the scaling frontier).
 // MEASURED 2026-07-16 (docs/research/forward-solve-scaling.md): it does NOT
 // converge -- the DFS descends 200+ plies while the TT caches nothing, so keep
 // the default `false` (the quick dead-stone demo). A runtime flag is avoided:

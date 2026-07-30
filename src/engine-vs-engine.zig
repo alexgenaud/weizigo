@@ -72,7 +72,7 @@ fn isKoCapture(comptime R: type, pos: *const R.Pos, p: usize, colour: i8) ?usize
     return captured_cell;
 }
 
-/// Build a list of all ko points on the board.
+/// Build a list of all ko points on the goban.
 /// (Inlined from ko_census.zig — B23.)
 fn findAllKoPoints(comptime R: type, pos: *const R.Pos, list: *std.ArrayListUnmanaged(KoPoint), gpa: std.mem.Allocator) !void {
     for (0..R.n) |p| {
@@ -473,7 +473,7 @@ pub fn main(init: std.process.Init) !void {
     };
     defer dec2.deinit();
 
-    // Validate same board size
+    // Validate same goban size
     if (dec1.header.board_w != dec2.header.board_w or dec1.header.board_h != dec2.header.board_h) {
         std.debug.print("error: artifacts have different board sizes ({d}x{d} vs {d}x{d})\n", .{
             dec1.header.board_w, dec1.header.board_h,

@@ -78,7 +78,7 @@ policy, master seed **20260728**, ply cap 256, settled-stop on. Denominator =
 **decision nodes** *[project term]*, i.e. `(position, side-to-move)` observed
 before the move is made — not table slots.
 
-| board | policy | nodes | KO_SENS (node-wtd) | ⇒ certified today |
+| goban | policy | nodes | KO_SENS (node-wtd) | ⇒ certified today |
 |---|---|---|---|---|
 | 4×4 | `oracle` | 28,000 | 100.00% | **0%** |
 | 4×4 | `oracle-rt` | 27,865 | 100.00% | **0%** |
@@ -96,7 +96,7 @@ is wrong (`QA-020` is scoped to 4×4 and 4×3). And the artifacts:
 
 ## Acceptance criterion
 
-For **each** board separately — 3×3, 4×3, 4×4 — on the new-rule tables from
+For **each** goban separately — 3×3, 4×3, 4×4 — on the new-rule tables from
 EXP-5 and EXP-6:
 
 - **Direct-identity certified fraction = 100.00%**, i.e. **zero** Bellman-identity
@@ -112,7 +112,7 @@ EXP-5 and EXP-6:
   but 100% under `oracle` with a low figure under `random` is suspicious and
   must be explained.
 
-**Any violation, at any board, under any policy ⇒ `QA-023`/`QA-027` are false
+**Any violation, at any goban, under any policy ⇒ `QA-023`/`QA-027` are false
 ⇒ STOP and escalate.** Record the violating node, its stored value, and the
 child values, exactly as `bin/weizigo-chainability` does for the PSK table.
 
@@ -148,13 +148,13 @@ Both runs committed.
 ## Deliverables
 
 - `docs/evidence/QA-027/` — the modified/new census source, the raw stdout of
-  every run (command, artifact path + sha256, board, seed, games, policy,
+  every run (command, artifact path + sha256, goban, seed, games, policy,
   build mode), both calibration runs, and `PROVENANCE.md` per
   `docs/evidence/README.md`.
 - `docs/research/newrule-certified-fraction-2026-07-28.md` — the fractions per
-  board with denominators, the direct-identity vs flag-read comparison, the
-  cycle-termination accounting, and every claim tagged. Per-board sections.
-- One-line status per board for the `CLAIMS.md` owner (`QA-027`, and `QA-020`
+  goban with denominators, the direct-identity vs flag-read comparison, the
+  cycle-termination accounting, and every claim tagged. Per-goban sections.
+- One-line status per goban for the `CLAIMS.md` owner (`QA-027`, and `QA-020`
   re-tested under the new rule). **Do not edit `CLAIMS.md`.**
 
 ## Do NOT
@@ -172,6 +172,6 @@ Both runs committed.
 - Do **not** round a non-100% result up, re-tune, or re-seed until it passes.
   Re-seeding to change an answer is falsification laundering; if you re-seed,
   report **every** seed you ran (the baseline does: 20260728, 1, 999331).
-- Do **not** claim a result at one board evidences another (`AGENTS.md`).
+- Do **not** claim a result at one goban evidences another (`AGENTS.md`).
 - Do **not** treat 100% as confirming `QA-023`. It is consistent with it. The
   proof is EXP-2's job; this experiment can only falsify.

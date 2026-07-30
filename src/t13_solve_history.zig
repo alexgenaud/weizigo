@@ -7,7 +7,7 @@ const colex = @import("colex.zig");
 //   side passes idx0 idx1 idx2 ... idxN
 // side: 1 = Black to move at the final position, -1 = White.
 // passes: consecutive passes already made (0 for a fresh move arrival).
-// The final board index is the LAST index in the list.
+// The final goban index is the LAST index in the list.
 // Output (stdout): value (Black-positive), followed by a newline.
 
 pub fn main(init: std.process.Init) !void {

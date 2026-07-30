@@ -23,7 +23,7 @@ where the history-free Bellman identity holds. In the ko-sensitive (`L < H`)
 region each slot holds an **independent fresh-start PSK solve**, so adjacent
 slots answer questions under mutually inconsistent premises and the extremum
 compares incommensurable quantities. On 4×4 the disagreement reaches the full
-board swing, `32 = 2n`.
+goban swing, `32 = 2n`.
 
 This change does **not** fix that. The fix is the ruleset/representation change
 (EXP-2..8). What this does is stop the player from *acting* on the incoherent
@@ -93,7 +93,7 @@ Fixed: there is no colour branch in `fallback_pick`; the colour is already
 inside the score. The premise is now pinned by a unit test,
 `"H5(a) fallback_score is side-relative (antisymmetric), so both colours
 maximise it"`, which checks a Benson-alive example plus antisymmetry over 2 000
-pseudo-random boards.
+pseudo-random gobans.
 
 (On the specific game measured in §4 the two variants happen to pick the same
 move — White's candidate scores are all equal there and the colex tie-break
@@ -230,7 +230,7 @@ indexing than the committed regression transcript.
 - What *is* sound by theorem: the refusal fallback quantity (Benson) and the
   claim that a refused ply is one the engine declines to certify.
 - Measured outcomes (§4) are single-line observations on 4×4 with one artifact.
-  Per-board epistemic independence forbids extrapolating them to other sizes.
+  Per-goban epistemic independence forbids extrapolating them to other sizes.
 - Not attempted here: bracket cuts on `[L, H]` (that is H5(c)/C3, falsified at
   3×3), and any change to the ruleset, the engine core, or the artifacts.
 

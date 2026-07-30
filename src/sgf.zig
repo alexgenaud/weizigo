@@ -18,7 +18,7 @@
 //
 // SGF (Smart Game Format) EXPORT — the bridge to existing visualization
 // tools. Presentation is deliberately DELEGATED: weizigo produces .sgf files;
-// Sabaki / GoGui / CGoban / any online SGF editor renders boards, variation
+// Sabaki / GoGui / CGoban / any online SGF editor renders gobans, variation
 // trees, per-node comments, and territory marks. No GUI code here, ever.
 //
 // Coordinates: SGF uses two lowercase letters, column then row, both from the

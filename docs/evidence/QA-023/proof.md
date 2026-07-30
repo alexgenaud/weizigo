@@ -12,12 +12,12 @@
 >
 > The "fixed-value verdict" is the **tie value** `T` (or **no-result value**,
 > which for a solver is the same thing: a constant that does not depend on
-> which earlier board was reached). This is the MIGOS II ruleset (van der Werf
+> which earlier goban was reached). This is the MIGOS II ruleset (van der Werf
 > & Winands, ICGA 2009), area scoring + basic ko + long-cycle tie.
 
 **Status at end of this document.** PROVEN for 2×2 (exhaustive comparison
 against a brute-force game-tree evaluation with full history) and **argued** in
-general — the structure of the argument is in §3 below. Per-board epistemic
+general — the structure of the argument is in §3 below. Per-goban epistemic
 independence (`AGENTS.md`): the 2×2 result is one data point; the proof in §3
 is the load-bearing claim and is reviewed adversarially in §5.
 
@@ -43,7 +43,7 @@ where:
   means the previous two consecutive moves were passes, and the game is
   **terminal**.
 
-For a board of size `n`, the state space is at most `3^n × 2 × (n+1) × 3`,
+For a goban of size `n`, the state space is at most `3^n × 2 × (n+1) × 3`,
 which for 2×2 is `81 × 2 × 5 × 3 = 2430` raw states; after the legality and
 in-game constraints the count is smaller. The values for 2×2 are reported in
 `exp2-results-2x2.md`.
@@ -70,8 +70,8 @@ circulation:
   the project's `ko_census.zig:isKoCapture` already detects and is the
   Japanese/Korean basic-ko rule in its textbook form.
 
-- **(ii) May not recreate the board as it stood one ply ago.** Any move that
-  results in a board equal to the board one ply ago is illegal — the "1-ply
+- **(ii) May not recreate the goban as it stood one ply ago.** Any move that
+  results in a goban equal to the goban one ply ago is illegal — the "1-ply
   positional superko" rule. This is the *snapshot* formalization.
 
 ### Are they equivalent?
@@ -83,7 +83,7 @@ they can diverge:
 Consider a position P0, with a 1-ko shape: Black played, captured one White
 stone at `c` (vacated). Black's stone at the capture point has its one liberty
 at `c`. Under (i), White's immediate reply to `c` is forbidden. Under (ii),
-White's move to recreate the 1-ply-ago board is forbidden.
+White's move to recreate the 1-ply-ago goban is forbidden.
 
 Now consider the following sequence (this is the divergence):
 1. **P0**: position after Black's capture; ko_point = `c`. Black to move
@@ -102,7 +102,7 @@ Now consider the following sequence (this is the divergence):
 So under (i) Black can play to recreate; under (ii) Black cannot. The
 divergence is real.
 
-**On a 2×2 board, the divergence does not arise** because there are no
+**On a 2×2 goban, the divergence does not arise** because there are no
 sequences of length ≥ 3 from a 1-ko shape that can recreate a 1-ply-ago
 position without going through the ko point. The 2×2 test in Part B therefore
 cannot distinguish the two formalizations; **it confirms the formalization
@@ -156,7 +156,7 @@ the integer-valued case (Tromp's `DGame` formulation and Fraenkel–Simonson's
 chess endgames have a *three-valued* W/D/L domain with a *constant* draw
 value. Our setting is the *integer-valued* generalization with a *constant*
 tie value, where `T` may be anywhere in the integer lattice and the value
-domain is `ℤ` (or `ℤ ∪ {T}` on odd boards, see §5). The proof techniques
+domain is `ℤ` (or `ℤ ∪ {T}` on odd gobans, see §5). The proof techniques
 generalize: threshold-attractor decomposition in `ℤ` is standard
 (Fraenkel–Simonson 1993 *Geography*; cf. Etessami & Yannakakis 2005 for the
 recursive stochastic game generalization). The result we use is:
@@ -187,12 +187,12 @@ from **score-on-cycle** (which the project's R2 finding showed is exactly as
 intractable as PSK)?
 
 - **score-on-cycle**: when a cycle is detected, the value of the cycle is
-  `area_score(repeated_board)`. This **is a function of the repeated board**,
+  `area_score(repeated_board)`. This **is a function of the repeated goban**,
   i.e. **path-dependent** — the same legal-move-graph state can be reached
   via different game paths, and the *value of being in that state* depends
   on which path led there. The full history is dragged back into the key.
 - **constant tie**: when a cycle is detected, the value is `T`, **a constant
-  independent of the repeated board**. The value is determined by the *graph
+  independent of the repeated goban**. The value is determined by the *graph
   state* and the *threshold*, not by *which earlier state was reached*.
 
 The reason constant tie is not path-dependent is **subtle but exact**: the
@@ -200,7 +200,7 @@ cycle value `T` does not depend on the path *to* the cycle; it depends only
 on the *fact* that a cycle is possible. The game value `V(S)` is then a
 *function of the state alone*, and the threshold-attractor decomposition
 gives a Markovian state and a Markovian value. **Score-on-cycle has no such
-decomposition** because the cycle value depends on the specific board reached.
+decomposition** because the cycle value depends on the specific goban reached.
 
 ## 4. A4 — The algorithm (and the brief's correction of `roadmap-2026-07-28.md`)
 
@@ -217,7 +217,7 @@ and prove their equivalence.
 ### 4.1 Algorithm A — threshold-attractor decomposition
 
 For each integer threshold `v` in the value domain (the achievable area
-scores: `{-n, -n+2, …, n-2, n}` for an `n`-cell board under area scoring
+scores: `{-n, -n+2, …, n-2, n}` for an `n`-cell goban under area scoring
 without komi — every step is `±2` because adding one stone increments one
 side and decreases nothing), the algorithm proceeds from high to low:
 
@@ -331,19 +331,19 @@ post-processing rule "L == H ⇒ V = L; L < H ⇒ V = T."
 
 ## 5. A5 — The value domain
 
-### Domain on even-point boards (2×2, 4×4)
+### Domain on even-point gobans (2×2, 4×4)
 
-For an `n`-cell board with `n` even, the area score is always an **even
+For an `n`-cell goban with `n` even, the area score is always an **even
 integer in `[-n, n]`** (since B + W ≤ n and the score B − W has the same
 parity as B + W). For 2×2 (`n = 4`), the value domain is `{-4, -2, 0, +2,
 +4}`. The tie value `T = 0` is *within* this domain — 0 is an achievable
-area score (e.g., the empty board with two passes). So on 2×2 the value
+area score (e.g., the empty goban with two passes). So on 2×2 the value
 domain is just `ℤ ∩ [-n, n]` with the natural ordering; no special "tie"
 sentinel is needed.
 
-### Domain on odd-point boards (3×3, 5×5)
+### Domain on odd-point gobans (3×3, 5×5)
 
-For an `n`-cell board with `n` odd, the area score is always **odd** (B − W
+For an `n`-cell goban with `n` odd, the area score is always **odd** (B − W
 is odd because B + W ≤ n is odd). The value domain is `{-n, -n+2, …, n-2,
 n}` — all odd. The value `0` is *not* in this domain. If the game value is
 "a tie" (no player can force a win), there is no natural area-score value
@@ -379,13 +379,13 @@ must be made before EXP-5 (3×3 build) under the new rule:
   distinction is moot, because PSK forbids the snapshot at any distance.)
 
 - **A5 decision**: what is the encoding of the "tie" value in a 1-byte
-  column for odd boards? Recommend reserving `i8 = -128` (the same sentinel
+  column for odd gobans? Recommend reserving `i8 = -128` (the same sentinel
   as `CODE.UNDEF` and the "unfilled slot" in `.wzo` artifacts). Naming
   would need to disambiguate "tie" from "UNDEF / no value" — they are
   different concepts. Suggest `TIE = -128`, `UNDEF = -127` or similar.
 
 - **A3 sub-decision**: what is the constant `T`? For komi 0, the natural
-  choice is `T = 0` (a "tie" = the empty board's value under passes). For
+  choice is `T = 0` (a "tie" = the empty goban's value under passes). For
   komi 7.5, the natural choice is `T = +7.5` (Black + 7.5 = the area-score
   value that both sides can force). For the MIGOS II ruleset, the published
   anchors suggest `T = 0` with komi 0 (3×3 = +9 Black wins by 9, 4×4 = +2
@@ -453,7 +453,7 @@ this document in §8.1 when received.
 ## 9. References
 
 - van der Werf, E. C. D. & Winands, M. H. M. (2009). *Solving Go for
-  Rectangular Boards*. ICGA Journal.
+  Rectangular Gobans*. ICGA Journal.
 - Fraenkel, A. S. & Simonson, D. (1993). *Geography*. Theoretical Computer
   Science 114, 233–245. (Threshold-attractor decomposition for loopy
   combinatorial games.)

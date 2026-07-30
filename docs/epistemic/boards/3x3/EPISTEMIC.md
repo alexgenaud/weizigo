@@ -1,13 +1,13 @@
 # 3×3 epistemic tree
 
-**Status:** smallest square board with meaningful Go gameplay. First board where C3 was falsified.
+**Status:** smallest square goban with meaningful Go gameplay. First goban where C3 was falsified.
 
 ## Claims
 
 | Claim | Status | Evidence |
 |---|---|---|
 | C1 — fresh-start correct | **CLAIMED** | Anchors match (Hayward +9, etc.), symmetry passes, but no exhaustive exact-solver ground truth. Not yet writes-off regen. |
-| C2 — L==H history-independent | **UNKNOWN at 3×3** | Falsified at 3×2 (T13), but per-board independence applies. No 3×3 C2 probe run. |
+| C2 — L==H history-independent | **UNKNOWN at 3×3** | Falsified at 3×2 (T13), but per-goban independence applies. No 3×3 C2 probe run. |
 | C3 — [L,H] bounds real PSK score | **FALSE-AS-SCOPED** | E2 (B06): 50/8000 leaks, max 12 pts. Promise +3 → final −9. |
 | Colex addressing | **PROVEN** | Exhaustive round-trip |
 | Benson-alive | **PROVEN** | Exhaustive falsification-confirmed |
@@ -23,4 +23,4 @@
 ## Open
 
 - C1 at 3×3 needs writes-off regen + exact-solver ground truth
-- C2 at 3×3 untested (per-board independence)
+- C2 at 3×3 untested (per-goban independence)

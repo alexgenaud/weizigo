@@ -23,7 +23,7 @@
 // Per `docs/infra/dispatch/EXP-4.md`:
 //   Under area scoring, komi 0, basic ko, and a fixed-value verdict for
 //   long cycles (TIE = 0) — the rule EXP-2 pinned down — what is the
-//   game-theoretic value of the empty board at 2×2 and at 3×2?
+//   game-theoretic value of the empty goban at 2×2 and at 3×2?
 //
 // Both must return 0 (MIGOS II published anchors; PSK returns +1).
 //

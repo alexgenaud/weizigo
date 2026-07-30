@@ -13,7 +13,7 @@ order below.
    start (`managent claim <id> --agent <name>`), mark `done` on finish
    (`managent done <id>`, or `--fail`)**, build through `tools/runner`. The
    word "claim" in your brief means the *epistemic* claim ID (`CLAIMS.md`),
-   not this board action — do both.
+   not this goban action — do both.
 3. `docs/epistemic/roadmap-2026-07-28.md` — which Go we are solving and why.
 4. `docs/epistemic/critique-2026-07-28.md` — what is known-wrong. §4 especially.
 5. `docs/epistemic/CLAIMS.md` — the claim graph. Find the IDs your task closes.
@@ -93,10 +93,10 @@ and produce 258 MB artifacts. Start it, watch the heartbeat, do not restart.
 
 ## Definition of done — every experiment, no exceptions
 
-**Board lifecycle (operational, do this too):** `managent done <id>` (or
+**Kanban lifecycle (operational, do this too):** `managent done <id>` (or
 `--fail`) is run on completion — see `DELEGATEE.md`. Work not marked done is
 work the project cannot see, and it blocks every task that `needs` it. (The
-list below is the *epistemic* definition of done; the board command is the
+list below is the *epistemic* definition of done; the kanban command is the
 *operational* one. Both are required.)
 
 1. **The claim ID it closes** is named, and `CLAIMS.md` is updated (by its
@@ -112,10 +112,10 @@ list below is the *epistemic* definition of done; the board command is the
 4. **Every checker ships with calibration** — a known-good case it passes and a
    known-bad case it catches. An auditor with no passing case cannot tell "bug"
    from "definition"; this has already cost the project once.
-5. **Numbers cite their run** — command, flags, seed, board size. And state the
+5. **Numbers cite their run** — command, flags, seed, goban size. And state the
    **denominator**: a mislabelled counter in `weizigo-chainability` seeded a
    three-way percentage confusion across four documents.
-6. **No cross-board extrapolation.** Per-board epistemic independence. If you
+6. **No cross-goban extrapolation.** Per-goban epistemic independence. If you
    want to claim it transfers, supply a monotonicity argument.
 
 ---

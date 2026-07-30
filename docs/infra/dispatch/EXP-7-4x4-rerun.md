@@ -194,12 +194,12 @@ Both calibration runs committed.
 ## Deliverables
 
 - `docs/evidence/QA-027/` — add the 4×4 runs: raw stdout of every run (command,
-  artifact path + sha256, board, seed, games, policy, build mode), all
+  artifact path + sha256, goban, seed, games, policy, build mode), all
   calibration runs, and an update to `PROVENANCE.md` recording the 4×4 results.
   **Do not overwrite the 3×3 files.**
 - `docs/research/newrule-certified-fraction-2026-07-30.md` — append the 4×4
   section (or, if the file has been promoted, write a new dated addendum). The
-  fractions per board with denominators, the direct-identity vs flag-read
+  fractions per goban with denominators, the direct-identity vs flag-read
   comparison, the cycle-termination accounting, every claim tagged.
 - One-line status for the `CLAIMS.md` owner (`QA-027` and `QA-020` at 4×4).
   **Do not edit `CLAIMS.md`.**
@@ -218,7 +218,7 @@ Both calibration runs committed.
 - Do **not** report 100% without the direct identity check, the denominator,
   the seed and the game count.
 - Do **not** round a non-100% result up, re-tune, or re-seed.
-- Do **not** claim the 4×4 result evidences anything at any other board.
+- Do **not** claim the 4×4 result evidences anything at any other goban.
 - Do **not** treat 100% as confirming `QA-023`. It is consistent with it. The
   proof is EXP-2's job; this experiment can only falsify.
 - Do **not** re-run 3×3. It is done. This re-run is 4×4 only.

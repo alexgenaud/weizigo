@@ -58,7 +58,7 @@ not apply) and every percentage in the table below is over the **non-settled
 slots. At 4×4 that is 48,599,962 of the 48,636,330 legal slots; the 36,368-slot
 difference is exactly 18,184 settled positions × 2 sides.
 
-| board | n | ko-sensitive, % of **non-settled checked slots** | misprice rate *within* ko-sensitive | max \|stored − bellman\| | violations *outside* ko-sensitive |
+| goban | n | ko-sensitive, % of **non-settled checked slots** | misprice rate *within* ko-sensitive | max \|stored − bellman\| | violations *outside* ko-sensitive |
 |---|---|---|---|---|---|
 | 2×2 | 4  | 77.36% | 19.51% | 2  | **0** |
 | 3×2 | 6  | 41.18% | 19.05% | 12 | **0** |
@@ -101,7 +101,7 @@ the actual denominator.
 
 **PROVEN (at each size listed, on the audited artifact):**
 
-- **Zero** identity violations outside the ko-sensitive region, at every board
+- **Zero** identity violations outside the ko-sensitive region, at every goban
   size, under both move sets (full and ADR-0006 eye-pruned). The single-score
   (L==H) region *is* chainable. This is FP1 acceptance check 3 from
   `docs/epistemic/boards/4x4/EPISTEMIC.md`, previously listed ⬜ untested — it
@@ -158,7 +158,7 @@ discrepancy D7, "ko-sensitive fractions disagree between the census and the
 chainability sweep at every size"). The **2×2 / 3×2 / 3×3 / 4×3 rows remain
 unreconciled.** The settled-exemption mechanism above is the *likely* same
 cause at those sizes — but that has **NOT been checked**, no settled counts for
-them are quoted here, and per-board independence (AGENTS.md) forbids treating
+them are quoted here, and per-goban independence (AGENTS.md) forbids treating
 the 4×4 reconciliation as evidence for any other size.
 
 **Definitional in KIND — but, on this artifact, not wholly definitional in
@@ -184,13 +184,13 @@ artifact appears to include a bug contribution on top of that floor.* See
 Measurement 4 for the numbers, the reasoning, and what would upgrade the excess
 claim from CLAIMED to PROVEN.
 
-**The magnitude is maximal, not marginal.** For every board with n ≥ 6 the
+**The magnitude is maximal, not marginal.** For every goban with n ≥ 6 the
 worst misprice equals **2n exactly** — 12, 18, 24, 32 for n = 6, 9, 12, 16.
-Since the area score spans [−n, +n], the worst case is the *entire board
+Since the area score spans [−n, +n], the worst case is the *entire goban
 swing*: the table can say "I own everything" where one ply of its own values
 says "the opponent owns everything". (2×2 is the exception at 2, not 8.)
 **CLAIMED** — an observed regularity across four sizes with no proof offered;
-per-board epistemic independence forbids extrapolating it to 5×5.
+per-goban epistemic independence forbids extrapolating it to 5×5.
 
 ## Measurement 2 — the ko *rule* costs the engine nothing in these games
 
@@ -211,7 +211,7 @@ losing because ko legality took its moves away.
 
 ## Measurement 3 — what actually happens in the regression games
 
-The two regressions are **the same game up to board symmetry** through ply 17
+The two regressions are **the same game up to goban symmetry** through ply 17
 (verified move-by-move under the vertical mirror col c ↦ 3−c), after which the
 engine breaks a tied-value choice differently. Value traces are identical
 throughout. White (the engine) sees:
@@ -223,12 +223,12 @@ throughout. White (the engine) sees:
 
 - Plies 1–7 are correct and stable at the published anchor **+2**.
 - **16 of 19 plies are KO_SENSITIVE-flagged, including ply 1** — the empty 4×4
-  board itself, whose bracket is [−6, +16] (L < H). On 4×4 the engine does not
+  goban itself, whose bracket is [−6, +16] (L < H). On 4×4 the engine does not
   "enter" the unchainable region when a ko appears: it **starts the game there**
   and never leaves until the position is decided.
 - Plies 8, 14, 15, 16 are exactly the identity violations of Measurement 1.
 - Ply 16 is the collapse: stored −16 (White winning by 16) versus +16 (Black
-  winning by 16) one ply down. **32 points = 2n = the full board swing**, the
+  winning by 16) one ply down. **32 points = 2n = the full goban swing**, the
   measured worst case.
 
 ### The mechanism
@@ -306,10 +306,10 @@ sample figure.
 The ratio reproduces: 4.08/1.67 = 2.44× at stride 37, 3.81/1.47 = 2.59× at
 stride 997 (397/152 = 2.61× by raw violation count).
 
-### The empty-board root slot, by direct byte inspection (2026-07-28)
+### The empty-goban root slot, by direct byte inspection (2026-07-28)
 
 The WZO1 payload is a 32-byte header, then the `vb` column of `3^16 =
-43,046,721` bytes, then `vw`, then `fb`. The empty board is colex index 0, so
+43,046,721` bytes, then `vw`, then `fb`. The empty goban is colex index 0, so
 `vb[empty]` is byte offset 32, `vw[empty]` is 32 + 3^16, `fb[empty]` is
 32 + 2·3^16. Read those three bytes directly (no tool, no engine):
 
@@ -442,7 +442,7 @@ the auditor remains the thing that decides.
 
 - **The writes-off run is CONFIRMED INCOMPLETE** (2026-07-28; was "completion
   NOT confirmed" in the 2026-07-27 revision). Evidence: `vb[empty]` = −128
-  (UNDEF) by direct byte read at offset 32 — the empty-board root is unsolved.
+  (UNDEF) by direct byte read at offset 32 — the empty-goban root is unsolved.
   The two artifacts differ by 2,394 filled slots at stride 37 (1,313,248 vs
   1,310,854 — 0.18%). A 0.18% shortfall cannot arithmetically explain 4.08% →
   1.67%, and Reading 3 now bounds the residual bias (worst case 2.51%, ratio
@@ -459,7 +459,7 @@ the auditor remains the thing that decides.
   1:997 colex strides, on both artifacts. (Measurement 1's single-artifact 4×4
   sweep *is* exhaustive as of 2026-07-28; that does not make this comparison
   exhaustive, because no exhaustive sweep of the writes-off artifact exists.)
-- **Per-board independence (AGENTS.md).** The ratio — 2.44× as measured, **[1.63×,
+- **Per-goban independence (AGENTS.md).** The ratio — 2.44× as measured, **[1.63×,
   2.44×]** once the incompleteness bound of Reading 3 is applied — is measured
   **at 4×4 only**. Do not carry it to 4×3, 5×5, or anywhere else; no monotonicity
   argument is offered and none is implied.
@@ -515,7 +515,7 @@ bin/weizigo-chainability data/oracle-4x4.checkpoint.wzo                --sample 
 bin/weizigo-chainability untracked/oracle-4x4-writesoff-checkpoint.wzo --sample 997 --examples 0
 ```
 
-Empty-board root slot, by direct byte read (2026-07-28; no engine involved):
+Empty-goban root slot, by direct byte read (2026-07-28; no engine involved):
 
 ```
 python3 -c "

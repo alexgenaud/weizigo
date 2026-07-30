@@ -20,7 +20,7 @@ the dyld test discipline).
 
 Little-endian, 32 bytes: magic "WZO1", format_version, **colex_layout**
 (= `colex.layout_version`, new constant owned by colex.zig — the module whose
-ordering IS the contract), board w/h, value_semantics (1 = fresh-start,
+ordering IS the contract), goban w/h, value_semantics (1 = fresh-start,
 ADR-0008), rules_id (1 = Chinese area, komi 0, positional superko,
 Benson/double-pass terminal), column_count, total (u64, must equal 3^(w*h)),
 legal_count (provenance/sanity), CRC-32 of the payload. A reader REFUSES a
@@ -52,7 +52,7 @@ sessions trust the FILE, not the RAM it came from.
     artifacts/oracle-3x3.wzo  118,130 B   empty(B) = +9, dtt 3 (published anchor)
 
 All three: columns IDENTICAL on reload, headers verified. The 2x2/3x2
-empty-board fresh-start scores (+1 both) are engine-produced data validated
+empty-goban fresh-start scores (+1 both) are engine-produced data validated
 by the exhaustive 2x2/3x2 ground-truth batteries.
 
 ## Consequences

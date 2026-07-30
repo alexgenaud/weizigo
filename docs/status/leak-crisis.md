@@ -2,7 +2,7 @@
 
 **Status (2026-07-26: T13 falsified C2 at 3×2.)** The (a)/(b) axis is
 resolved. C2 — the last load-bearing claim — is now **false** at the smallest
-board where a non-trivial PSK history exists. Condensed from the long
+goban where a non-trivial PSK history exists. Condensed from the long
 E1/E2/E3/T13 narrative;
 history is in git. The active follow-up is the **C2-probe** (see §"Next").
 
@@ -67,7 +67,7 @@ deliverable is the **certified core (`lo==hi`)**, contingent on C2.
 
 ## E2 findings (the decisive leak)
 
-| board | games | leaks (range-aware) | leaks (trivial bounds sanity) | verdict |
+| goban | games | leaks (range-aware) | leaks (trivial bounds sanity) | verdict |
 |---|---|---|---|---|
 | 2×2 | 4000 | 0 | 0 | C3 supported on explored lines |
 | 3×2 | 4000 | 0 | 0 | C3 supported on explored lines |
@@ -88,9 +88,9 @@ B1 (Minimax `RETRO_B1_LOFIX` probe, plus Kimi independent audit) on
 2×2/3×2/3×3:
 
 - **Fixpoint equation holds (zero violations)**: V0 and V1 Bellman
-  equations hold at every legal non-settled (i, side) on all three boards.
+  equations hold at every legal non-settled (i, side) on all three gobans.
   The canonical `converge` is producing a true fixpoint of the L map.
-- **Re-converge from `−N+1` lands ABOVE canonical** on all three boards
+- **Re-converge from `−N+1` lands ABOVE canonical** on all three gobans
   (2×2: −3 vs −4 canonical; 3×2: −5 vs −6; 3×3: +2 vs +2 — equal).
   Re-converge from `+N` lands further above (2×2: +4; 3×2: +6; 3×3: +9).
   Both re-converges report zero-change — they reach genuine fixpoints, not
@@ -106,7 +106,7 @@ Audit details: `untracked/T02-minimax.md` (results) and
 ## T13 findings (2026-07-26)
 
 The C2-probe ran on 3×2 (`untracked/T13-minimax.md`). 3×2 is the smallest
-board that admits reachable non-trivial PSK histories. Result:
+goban that admits reachable non-trivial PSK histories. Result:
 
 - **508 non-trivial histories** tested on L==H positions.
 - **12 verified mismatches** between the stored L==H score and the

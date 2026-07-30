@@ -11,8 +11,8 @@
 // in `qa023_brute_2x2.zig`. The expected outputs (per the brief and the
 // published MIGOS II anchor) are:
 //
-//   empty B (B to move, empty board)        v =  0   (anchor)
-//   empty W (W to move, empty board)        v =  0   (symmetric)
+//   empty B (B to move, empty goban)        v =  0   (anchor)
+//   empty W (W to move, empty goban)        v =  0   (symmetric)
 //   full B  (B to move, all 4 cells Black)  v = +4   (area_score)
 //   passes=1 (W to move, empty, 1 pass in)  v =  0   (anchor; tie or
 //                                                    area, equal at 2×2)

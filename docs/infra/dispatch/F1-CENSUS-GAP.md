@@ -18,8 +18,8 @@ Three states. Either the Python port over-trimmed, or the Zig still seeds someth
 
 ## The task
 
-1. **Enumerate both reachable sets and diff them.** Print the symmetric difference as explicit `(board, side, ko, passes)` tuples — decoded to boards, not just ranks.
-2. **For each of the three, decide reachability from first principles**: is there a legal move sequence from the empty-board root under the corrected ko rule reaching it? Show the sequence, or show why none exists.
+1. **Enumerate both reachable sets and diff them.** Print the symmetric difference as explicit `(board, side, ko, passes)` tuples — decoded to gobans, not just ranks.
+2. **For each of the three, decide reachability from first principles**: is there a legal move sequence from the empty-goban root under the corrected ko rule reaching it? Show the sequence, or show why none exists.
 3. **Say which count is right**, and correct the other side — or state that they measure different sets and define both.
 4. **Check whether the discrepancy touches any published number.** The corrected census feeds `B-VACUITY`, the cycle counts, the pin census and `PINRULE-SUFFICIENCY`'s group structure. If three states move a headline figure, say which.
 5. **State the wrong-answer pass rate of your own check**, and whether a "softly reconciled" discrepancy of this size could hide a systematic error rather than three isolated states.

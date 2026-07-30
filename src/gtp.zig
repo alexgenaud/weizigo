@@ -21,7 +21,7 @@
 //   zig build-exe -O ReleaseFast src/gtp.zig && ./gtp artifacts/oracle-3x3.wzo
 //
 // Speaks enough GTP (Go Text Protocol v2) for Sabaki / gogui / gogui-twogtp:
-// board size comes from the artifact header and is not negotiable. Move
+// goban size comes from the artifact header and is not negotiable. Move
 // choice per (position, side): among PSK-legal moves (and pass), maximize
 // (Black) / minimize (White) the stored fresh-start child value; break value
 // ties by MORE captures, then smaller child DTT (resolve fast). The pass edge
@@ -38,9 +38,9 @@
 // player really is fresh-start-optimal. The KO_SENSITIVE (L<H) region is NOT:
 // each such slot holds an INDEPENDENT fresh-start PSK solve, so V0(P) and one
 // ply of V0(child) are under no obligation to agree (4x4: 4.08% mispriced inside
-// the region, worst disagreement 32 = 2n = the full board swing). There the
+// the region, worst disagreement 32 = 2n = the full goban swing). There the
 // player is neither history-perfect NOR fresh-start-perfect: it steers by a
-// quantity that is not defined. On 4x4 the EMPTY board is itself KO_SENSITIVE
+// quantity that is not defined. On 4x4 the EMPTY goban is itself KO_SENSITIVE
 // (bracket [-6,+16]), so play STARTS inside that region — 16 of 19 plies are
 // flagged in both saved regression games. Positional-superko bans are NOT the
 // problem: in those games a ban changed the best available value at 0 of 19
@@ -114,7 +114,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             s.vals_b_len = 0;
             s.vals_w_len = 0;
             // the initial position has occurred: recreating it (capturing
-            // everything back to an empty board) is PSK-illegal
+            // everything back to an empty goban) is PSK-illegal
             s.push(&s.pos);
         }
 
@@ -176,11 +176,11 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         //
         // It holds provably on the single-score (L==H) region (the chainability
         // sweep, docs/research/ko-sensitive-chainability.md: 0 violations
-        // outside the KO_SENSITIVE flag at every board size, exhaustive at 4x4
+        // outside the KO_SENSITIVE flag at every goban size, exhaustive at 4x4
         // as of 2026-07-28). It does NOT hold in general on the ko-sensitive
         // region — each such slot holds an INDEPENDENT fresh-start PSK solve,
         // so V0(P) and a one-ply lookahead over V0(child) are under no
-        // obligation to agree, and the disagreement can be the entire board
+        // obligation to agree, and the disagreement can be the entire goban
         // swing (32 = 2n on 4x4).
         //
         // `Session.choose` ignores this and takes the extremum over V0(child)
@@ -321,7 +321,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// with each other, so the comparison below is not an evaluation: the
         /// move returned is neither history-optimal nor fresh-start-optimal
         /// (4x4: 4.08% mispriced inside the region, by up to 2n = the whole
-        /// board). Everything from here down is unchanged and still accurate as
+        /// goban). Everything from here down is unchanged and still accurate as
         /// a description of the SELECTION RULE; only its warrant is narrower.
         ///
         /// TIE-BREAK among equal-value moves: MORE captures first (finish the
@@ -554,7 +554,7 @@ pub fn cell_from_vertex(token: []const u8, w: usize, h: usize) ?usize {
     return (h - row_num) * w + col;
 }
 
-/// Parse "NxN" or "NxM" board-size shorthand. Returns .{w, h} or null.
+/// Parse "NxN" or "NxM" goban-size shorthand. Returns .{w, h} or null.
 fn parseBoardSize(s: []const u8) ?[2]usize {
     const x = std.mem.indexOfScalar(u8, s, 'x') orelse return null;
     const w = std.fmt.parseInt(usize, s[0..x], 10) catch return null;
@@ -757,11 +757,11 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 @memcpy(rbuf[0..ll], lb[0..ll]);
                 reply = rbuf[0..ll];
             } else if (std.mem.eql(u8, first, "boardsize") or std.mem.eql(u8, first, "rectangular_boardsize")) {
-                // Square GTP is "boardsize N"; for non-square boards Sabaki
+                // Square GTP is "boardsize N"; for non-square gobans Sabaki
                 // sends "rectangular_boardsize W H" (and detects support via
                 // known_command, so it MUST be listed). Either way: first token
                 // = width, optional second = height (defaults to width). The
-                // board is fixed by the artifact; accept only an exact match.
+                // goban is fixed by the artifact; accept only an exact match.
                 const q = tokens.next() orelse "";
                 const want_w = std.fmt.parseInt(usize, q, 10) catch 0;
                 const q2 = tokens.next();
@@ -785,7 +785,7 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     s.applyMove(side, null) catch {};
                 } else if (cell_from_vertex(vert, w, h)) |cell| {
                     // enforce OUR rules regardless of the GUI: positional
-                    // superko — no whole-board position may ever recur
+                    // superko — no whole-goban position may ever recur
                     const child = S.R.pos_from_move(&s.pos, side, cell) catch null;
                     if (child != null and s.seen(&child.?)) {
                         ok = false;
@@ -818,17 +818,17 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     //       min-stones (own >= area/4 OR total >= area/2; on 4x4:
                     //       4 own / 8 total). This is a meaningful early/late line on
                     //       4x4 (8 total is mid-game): the engine always plays the
-                    //       opening and only considers resigning once the board has
+                    //       opening and only considers resigning once the goban has
                     //       filled out.
                     //   (2) DECISIVE + SUSTAINED: our fresh-start value has been
-                    //       losing by >= half the board for the last SUSTAINED_K of
+                    //       losing by >= half the goban for the last SUSTAINED_K of
                     //       OUR turns (not a single blip), AND the opponent has a
                     //       Benson-alive (2-eye) group - they secured territory.
                     //       ("don't drag out a decisive loss".)
-                    //   (3) BACKSTOP (PROVEN): OR the board is settled (is_settled)
+                    //   (3) BACKSTOP (PROVEN): OR the goban is settled (is_settled)
                     //       and the area score is against us - winning is then
                     //       impossible regardless of opponent play. area_score is
-                    //       a pure board fn, sound even on UNDEF slots.
+                    //       a pure goban fn, sound even on UNDEF slots.
                     const area: usize = w * h;
                     const SUSTAINED_K: u8 = S.SUSTAINED_K; // local alias (decl lives in Session)
                     const half_i8: i8 = @intCast(area / 2);
@@ -870,7 +870,7 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     const settled = S.Score.is_definitive(&s.pos);
                     const area_now: i8 = S.R.area_score(&s.pos);
                     const behind = if (side > 0) area_now < 0 else area_now > 0;
-                    // backstop only on a DECISIVE settled loss (|>= half the board):
+                    // backstop only on a DECISIVE settled loss (|>= half the goban):
                     // a close settled loss (e.g. 4x4 B+2) pass-outs instead -
                     // "don't resign close games".
                     const decisive_area = if (side > 0) area_now <= -half_i8 else area_now >= half_i8;
@@ -932,7 +932,7 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 var bb: [512]u8 = undefined;
                 var bl: usize = 0;
                 // start the block on its own line: the "= " response prefix
-                // must not indent the first board row
+                // must not indent the first goban row
                 bb[bl] = '\n';
                 bl += 1;
                 for (0..h) |r| {
@@ -1068,7 +1068,7 @@ pub fn main(init: std.process.Init) !void {
     const io = init.io;
 
     if (arg1) |a| {
-        // Board-size shorthand "NxN" or "NxM" → construct artifact path
+        // Goban-size shorthand "NxN" or "NxM" → construct artifact path
         if (parseBoardSize(a)) |bs| {
             const path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}.wzo", .{ bs[0], bs[1] });
             return loadAndDispatch(io, gpa, path, args.next());
@@ -1245,7 +1245,7 @@ test "vertex mapping: A1 is bottom-left, letters skip I, round-trips" {
     }
     try expect(cell_from_vertex("J9", 9, 9) != null); // I skipped -> col 8
     try expect(cell_from_vertex("I5", 9, 9) == null);
-    try expect(cell_from_vertex("D1", 3, 3) == null); // off-board
+    try expect(cell_from_vertex("D1", 3, 3) == null); // off-goban
 }
 
 test "4x4 regression: user-win B+15.5 (captures, ko replays, end-game)" {
@@ -1275,7 +1275,7 @@ test "4x4 regression: user-win B+15.5 (captures, ko replays, end-game)" {
         .{ .side = 1, .v = "pass" },
     };
     for (moves) |m| {
-        if (std.mem.eql(u8, m.v, "pass")) continue; // pass: no board change
+        if (std.mem.eql(u8, m.v, "pass")) continue; // pass: no goban change
         const cell = cell_from_vertex(m.v, 4, 4) orelse return error.BadVertex;
         const child = try R.pos_from_move(&pos, m.side, cell);
         for (seen[0..seen_n]) |b| {
@@ -1317,7 +1317,7 @@ test "H5(a) fallback_score is side-relative (antisymmetric), so both colours max
     try expect(S.fallback_score(&pos, -1) < 0); // ... hence bad for White
 
     // Antisymmetry must hold for arbitrary positions too, not just the tidy
-    // one above: sweep a deterministic pseudo-random spread of boards.
+    // one above: sweep a deterministic pseudo-random spread of gobans.
     var seed: u32 = 12345;
     for (0..2000) |_| {
         var b: Pos = [_]i8{0} ** 16;
@@ -1332,7 +1332,7 @@ test "H5(a) fallback_score is side-relative (antisymmetric), so both colours max
         try expect(S.fallback_score(&b, 1) == -S.fallback_score(&b, -1));
     }
 
-    // The empty board has no alive stones and no owned territory: 0 either way.
+    // The empty goban has no alive stones and no owned territory: 0 either way.
     const empty: Pos = [_]i8{0} ** 16;
     try expect(S.fallback_score(&empty, 1) == 0);
     try expect(S.fallback_score(&empty, -1) == 0);

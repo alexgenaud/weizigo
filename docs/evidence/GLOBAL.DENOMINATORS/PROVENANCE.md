@@ -95,7 +95,7 @@ No `data/`, `artifacts/`, or engine file was written; nothing outside
 ## Calibration of the sweep itself (per README P3)
 
 - **Known-good it must pass:** the three reconciliation rows
-  (`ko-sensitive-chainability.md:142–144`) with full `n/d`; the small-board
+  (`ko-sensitive-chainability.md:142–144`) with full `n/d`; the small-goban
   chainability table (`:63–67`); the reachcensus headline rows
   (`reachable-…:147–150, :182–185`); the B43 3.4% = 123/3,600. The sweep
   passes all of them, and for six of the seven instrument runs the pass is
@@ -113,7 +113,7 @@ The first pass of this audit (sweep + this file) was written to the working
 tree 2026-07-29 ~02:23 local; the host kernel-panicked minutes later (Jetsam
 event 02:33:23, per `untracked/msg/milestone-01-ko-reframe/019` and
 `docs/infra/host/incident-2026-07-29.md`) before the worker reported
-completion, so the board showed EXP-12 "dispatchable" and the model-perf
+completion, so the goban showed EXP-12 "dispatchable" and the model-perf
 ledger recorded a PARTIAL — both superseded by the deliverables on disk.
 
 **Done on resumption (Kimi K3, fresh context):**

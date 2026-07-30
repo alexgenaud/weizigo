@@ -111,7 +111,7 @@ pub fn update_rotate(armies: *[25]i8) void {
     //armies[12] = armies[12];
 }
 
-// returns a unique board view
+// returns a unique goban view
 // 0 = empty to 3^25-1 = fully white
 //  2^40 > 3^25 > 2^39
 //  1 TB > 847 GB > 550 GB
@@ -357,7 +357,7 @@ pub fn update_armies(armies: *[25]i8) void {
 }
 
 // negative are to white advantage,
-// zero when black and white have equal stones on the board
+// zero when black and white have equal stones on the goban
 // positive is to black advantage.
 // If 10 black and 5 white, then return +5
 pub fn stone_diff_from_pos(pos: *const [25]i8) i8 {

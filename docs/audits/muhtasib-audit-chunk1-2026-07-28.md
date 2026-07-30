@@ -6,7 +6,7 @@
 
 ## What was checked
 
-| artifact | board | legal/side | non-settled positions | slots checked | violations (BOTH) | all flagged? | outside-flag violations | ko-sensitive % of checked | within-flag misprice | max gap |
+| artifact | goban | legal/side | non-settled positions | slots checked | violations (BOTH) | all flagged? | outside-flag violations | ko-sensitive % of checked | within-flag misprice | max gap |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|
 | `artifacts/oracle-2x2.wzo` | 2×2 | 57 | 53 | 106 | 16 | yes | 0 | 77.36% | 19.51% | 2 |
 | `artifacts/oracle-3x2.wzo` | 3×2 | 489 | 459 | 918 | 72 | yes | 0 | 41.18% | 19.05% | 12 |
@@ -75,7 +75,7 @@ The implementation matches the documented semantics.
 
 3. **The tool's verdict logic was verified by source inspection, but no independent test of the tool itself was run.** I did not, for example, inject a deliberately inconsistent artifact to confirm it would report FAIL. This is acceptable for a fast first audit, but a deeper audit could add a synthetic failure-mode test.
 
-4. **Per-board independence applies.** Verification at these five sizes does not imply anything about 5×5 or any other board.
+4. **Per-goban independence applies.** Verification at these five sizes does not imply anything about 5×5 or any other goban.
 
 ## Overall chunk verdict
 

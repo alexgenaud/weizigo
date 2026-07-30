@@ -37,7 +37,7 @@ the 2026-07-29 host-panic-recovery session) is the predecessor.
   657,566 positions, 1,313,248 slots). Headline: **zero** violations outside the
   KO_SENSITIVE flag at every size (the L==H region *is* chainable — FP1
   acceptance check 3, previously untested); violations exactly co-extensive with
-  the flag; the empty 4×4 board is itself KO_SENSITIVE (bracket [−6, +16]).
+  the flag; the empty 4×4 goban is itself KO_SENSITIVE (bracket [−6, +16]).
   Sampling cross-check: ko-sensitive fraction 21.27% vs M1's exhaustive 21.32%.
 - Established that the ko *rule* is innocent: positional-superko bans changed
   the best available value at **0 of 19 plies** in both saved 4×4 games.
@@ -71,7 +71,7 @@ user's call; any change to the ko/finisher path is gated on the #2 auditor.
 - **`Session.choose` in `src/gtp.zig` never searches** — it is table lookups
   only. ADR-0013's closing line claiming the GTP player inherits the finisher's
   fix is false; do not rely on it.
-- **Per-board epistemic independence.** Nothing measured at 4×3 or 4×4 is
+- **Per-goban epistemic independence.** Nothing measured at 4×3 or 4×4 is
   evidence for 5×5. The 2n-misprice regularity is CLAIMED across four sizes with
   no proof.
 - **Scope of the chainability PROVEN claim:** shipped `vb`/`vw` columns only

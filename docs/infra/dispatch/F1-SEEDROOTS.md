@@ -5,7 +5,7 @@
 
 ## The defect
 
-`seed_roots` in `src/qa023_probe.zig` seeds **42** states rather than the four true game roots (empty board × side × passes). The extra 36 are **empty-board-with-a-ko-point** states, which no legal game can reach: a ko point can only be created by a capture, and the empty board has no stones. They are inside every published reachable count.
+`seed_roots` in `src/qa023_probe.zig` seeds **42** states rather than the four true game roots (empty goban × side × passes). The extra 36 are **empty-goban-with-a-ko-point** states, which no legal game can reach: a ko point can only be created by a capture, and the empty goban has no stones. They are inside every published reachable count.
 
 Measured (by 2B-FIX-KO, corrected ko rule, single true root): **V = 2,583, E = 5,510, real-ko states 24, cycle-involved 1,676, cycle-reachable 1,678** — versus the 2,622 / 5,668 / 60 / 1,676 / 1,704 currently published.
 

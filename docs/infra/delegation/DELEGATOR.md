@@ -20,7 +20,7 @@ The `DISPATCH` row is *advisory*, not *authoritative*: it is the human's
 preference, and any agent may still claim the task via
 `managent claim <id> --agent <name>`. The pattern is in
 `docs/infra/delegation/ROLES.md` §"Dispatching, claiming, and the
-board" and the schema is in
+goban" and the schema is in
 `docs/infra/managent/spec.md`. **A delegator does not need to specify a
 model; if you must, give a reason.**
 

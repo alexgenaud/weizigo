@@ -8,14 +8,14 @@
 ## What the table contains
 
 The weizigo artifacts hold **fresh-start scores**: the exact game-theoretic
-score of each `(position, side)` reached from an **empty board with no prior
+score of each `(position, side)` reached from an **empty goban with no prior
 history**, under **basic ko** (the generation rule), with the sound finisher config
 (`memo_writes=false`, bracket-guided alpha-beta).
 
 C1 says these fresh-start scores are correct at 2×2/3×2. The claim is **not**
 that the same scores are correct when the position is reached after a real
-ko-history. Per-board epistemic independence applies: verification at one
-board size does **not** transfer to another.
+ko-history. Per-goban epistemic independence applies: verification at one
+goban size does **not** transfer to another.
 
 ## Ko-sensitive vs history-dependent
 
@@ -36,7 +36,7 @@ L < H. The single-score region is not provably history-independent.
 
 - **Generation rule:** basic ko (one-ply repetition ban). This is tractable.
   The table is exact for fresh-start positions under this rule.
-- **Play-time / real-game rule tested:** positional superko (PSK), no whole-board
+- **Play-time / real-game rule tested:** positional superko (PSK), no whole-goban
   position may repeat. This is what made C2 false at 3×2.
 - **SSK** (situational superko, no `(position, side)` repeat) is stricter than
   PSK and has not been the focus.
@@ -47,7 +47,7 @@ It is exact only for the fresh-start game tree.
 
 ## Are there multiple tables per ruleset?
 
-No. Building one full table per board size is already expensive. The project
+No. Building one full table per goban size is already expensive. The project
 has one table per size, generated under basic ko, with play-time legality
 optionally enforced by PSK/SSK. The table does not distinguish histories.
 
@@ -59,8 +59,8 @@ ban_set)` triples. Possible directions:
   from the current position with the real ban set, using the table scores as
   heuristics / bounds.
 - **History-aware tables:** store scores keyed by ban set. Intractable beyond
-  small boards.
-- **CGT / local decomposition:** give up on full-board tables and compute
+  small gobans.
+- **CGT / local decomposition:** give up on full-goban tables and compute
   local values with loopy combinatorial game theory.
 
 None of these are currently implemented.
@@ -77,7 +77,7 @@ A `[L,H]` interval is a **range of scores** or just a **range**. Reserve
 values (numbers, infinitesimals, loopy games) to local positions and combines
 them. For Go, CGT is the research-grade route to exact ko values: it handles
 long cycles and *loopy games* with values beyond simple integers. The project
-has not built CGT support; the current engine uses full-board fixpoint
+has not built CGT support; the current engine uses full-goban fixpoint
 iteration instead.
 
 ## Why fresh-start scores are useful

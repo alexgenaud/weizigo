@@ -66,7 +66,7 @@ structure, not for scores.
 3. Chinese/area terminal score is history-independent — OK (Japanese would need
    capture tracking, later).
 
-## Board-size frontier
+## Goban-size frontier
 5×5 (B+25) first, then 6×6 (B+4), aim at 7×7 (aspirational). 8×8 out of reach.
 
 ## Disk / git policy (unchanged)

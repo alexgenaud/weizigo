@@ -17,13 +17,13 @@ been vacuous). A console that started before that correction may report a
 
 1. **The computational check was run at 2×2 only.** 2×2 admits no reachable
    non-root cycles (`CLAIMS.md:159` `2x2.T12`; `4x4/EPISTEMIC.md:401`). QA-023
-   is a claim about how long cycles are valued, so a board without them cannot
+   is a claim about how long cycles are valued, so a goban without them cannot
    test it. A 2×2 pass is *not evidence*; it is the T12 tautology again.
    → Verdict: **INCOMPLETE**, not FAIL. Part A may still be good. Re-run Part B
    at 3×2.
 2. **The cycle census is zero or unreported.** If no state required the
    fixed-value verdict to resolve, the machinery under test was never exercised
-   and the board is too small. → **INCOMPLETE**; escalate to 3×3.
+   and the goban is too small. → **INCOMPLETE**; escalate to 3×3.
 3. **No calibration case**, or a calibration case the checker failed to catch.
 4. **No independent brute-force comparison** — a solver agreeing with itself is
    not a check.

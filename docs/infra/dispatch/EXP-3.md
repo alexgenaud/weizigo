@@ -21,7 +21,7 @@ whole reason this experiment exists.
 
 ## The question, stated precisely
 
-For each board **independently** — 3×3, 4×3, 4×4 — count:
+For each goban **independently** — 3×3, 4×3, 4×4 — count:
 
 - **(a)** the exact number of **reachable** `(board, side_to_move, ko_point)`
   triples, where `ko_point ∈ {none} ∪ {the n points}`;
@@ -33,7 +33,7 @@ For each board **independently** — 3×3, 4×3, 4×4 — count:
   count `3^(w·h) × (n+1)`.
 
 Reachable means: arising after some sequence of legal basic-ko moves from the
-empty board. `ko_point = none` for every position reachable by a non-ko move or
+empty goban. `ko_point = none` for every position reachable by a non-ko move or
 as a root; `ko_point = p` exactly when the immediately preceding move captured
 exactly one stone and the capturing stone then has exactly one liberty, the
 vacated cell `p` — the basic-ko shape `src/ko_census.zig` already detects.
@@ -100,18 +100,18 @@ as `weizigo-exp3-<console-id>`, caches under `/tmp/weizigo-zigcache`.
 2. For every legal position `Q` and every basic-ko-legal move by either colour:
    compute the child `P`, decide whether the move left a basic-ko shape, and
    mark `(P, side, ko_point)` reachable in a bitset. Mark `(P, side, none)` for
-   every position reachable by a non-ko move, and for the empty board as a root.
+   every position reachable by a non-ko move, and for the empty goban as a root.
 3. Iterate to a fixpoint if your marking is not single-pass — reachability is
    over the *legal-move graph* and captures create back-edges
    (`GLOBAL.ADR0007-BACKEDGE`). **Do not assume one sweep suffices.** State how
    many sweeps you needed and how you knew you had converged.
-4. Report (a)–(d) **per board, separately**. Run 3×3, then 4×3, then 4×4 —
+4. Report (a)–(d) **per goban, separately**. Run 3×3, then 4×3, then 4×4 —
    three independent measurements.
 
 ## Acceptance criterion
 
 For **each** of 3×3, 4×3 and 4×4, all four numbers, exact (no estimates, no
-sampling, no extrapolation between boards):
+sampling, no extrapolation between gobans):
 
 - (a) reachable triples — an exact integer;
 - (b) distinct `(board, ko_point)` addresses — an exact integer;
@@ -147,13 +147,13 @@ Both calibration runs are committed deliverables, not notes.
 ## Deliverables
 
 - `docs/evidence/GLOBAL.H1-CENSUS/` — census source, raw stdout of every run
-  (command, board, flags, build mode), both calibration runs, and a
+  (command, goban, flags, build mode), both calibration runs, and a
   `PROVENANCE.md` per `docs/evidence/README.md` (claim IDs, acceptance
   criterion, date, run commands, calibration cases).
-- `docs/research/kostate-census-2026-07-28.md` — the four numbers per board,
+- `docs/research/kostate-census-2026-07-28.md` — the four numbers per goban,
   the addressing GO/NO-GO, every claim tagged.
-- One-line status per board for the `CLAIMS.md` owner. `GLOBAL.H1-CENSUS` is
-  scoped to 4×4; 3×3 and 4×3 need **their own rows** under per-board
+- One-line status per goban for the `CLAIMS.md` owner. `GLOBAL.H1-CENSUS` is
+  scoped to 4×4; 3×3 and 4×3 need **their own rows** under per-goban
   independence — propose IDs (e.g. `3x3.H1-CENSUS`, `4x3.H1-CENSUS`) and let
   the owner assign them. **Do not edit `CLAIMS.md`.**
 
@@ -164,7 +164,7 @@ Both calibration runs are committed deliverables, not notes.
   `docs/status/CURRENT.md` first. You need none of them; write a new file.
   Read-only imports are fine.
 - Do **not** write to `data/` or `artifacts/`. This produces no artifact.
-- Do **not** infer one board's count from another's (`AGENTS.md`, per-board
+- Do **not** infer one goban's count from another's (`AGENTS.md`, per-goban
   epistemic independence).
 - Do **not** recommend or implement an addressing scheme. Report each option's
   cost; the choice is an ADR and belongs to the user.

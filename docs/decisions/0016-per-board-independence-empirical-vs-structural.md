@@ -1,8 +1,8 @@
-# ADR-0015: Per-board epistemic independence splits *empirical* from *structural*
+# ADR-0015: Per-goban epistemic independence splits *empirical* from *structural*
 
 Status: accepted (ruling D-2, Opus + GLM, 2026-07-28)
 Date: 2026-07-28
-Supersedes: the **per-board epistemic independence rule as stated** in
+Supersedes: the **per-goban epistemic independence rule as stated** in
 `AGENTS.md` §"Behaviour — every agent, every task" and in
 `docs/epistemic/boards/CONCEPTS.md:65-71`. Both state the rule without the
 empirical/structural distinction, and the ruling is that the rule as written is
@@ -20,11 +20,11 @@ ADR is the authority; `AGENTS.md` is stale on this point.
 
 The rule, as it has stood:
 
-> **Per-board epistemic independence.** Each board size is its own epistemic
+> **Per-goban epistemic independence.** Each goban size is its own epistemic
 > universe: PROVEN / CLAIMED / FALSE-AS-SCOPED at one size is **not** evidence
 > at any other size, absent a monotonicity theorem.
 
-It exists for a real reason. The project has repeatedly asserted a board-scoped
+It exists for a real reason. The project has repeatedly asserted a goban-scoped
 empirical result at another size and then reasoned from it: `4x4.C3`
 ("analogy-expected falsified" from E2 at 3×3), `4x4.C2` (from T13 at 3×2),
 `GLOBAL.ADR0012-5X5` (a 5×5 feasibility projection built on the 2×2→4×4 sweep
@@ -32,15 +32,15 @@ trend). `CLAIMS.md` §5 records 25 such inheritances.
 
 But the rule as written is **not the rule the project actually follows, and it
 should not be.** The same §5 audit shows the project inheriting when the
-inherited thing is *not about a board at all*:
+inherited thing is *not about a goban at all*:
 
 - `4x3.S2` — Benson's unconditional-life **theorem**. Mathematics on any finite
-  board. `CONCEPTS.md:10-12` already authorises theorem inheritance explicitly.
+  goban. `CONCEPTS.md:10-12` already authorises theorem inheritance explicitly.
 - `4x3.S1` — the colex mixed-radix bijection. A property of a mixed-radix
   layout, size-generic by construction.
 - `4x4.F1` / `4x3.F1` — the `ko_ref >= d` memo guard is **the same source-level
   guard** at every size; the 45/378 auditor violations at 3×2 (ADR-0013,
-  `consistency-audit.md:25-34`) convict the code, not the 3×2 board.
+  `consistency-audit.md:25-34`) convict the code, not the 3×2 goban.
 - `4x3.FP3` — Knaster–Tarski on a finite lattice.
 
 Read literally, the rule forbids all four. Applied literally, it would also
@@ -53,34 +53,34 @@ agents, one rule, opposite statuses.
 
 ## Decision
 
-**Per-board epistemic independence applies to *empirical* claims. It does not
+**Per-goban epistemic independence applies to *empirical* claims. It does not
 apply to *structural* claims — claims about code or about mathematics — which
-may be inherited across board sizes, but only with the inheritance argument
+may be inherited across goban sizes, but only with the inheritance argument
 written down.**
 
-1. **Empirical claim** — the claim is *about a board*: a count, a rate, a
+1. **Empirical claim** — the claim is *about a goban*: a count, a rate, a
    measured score, a sweep result, a falsification exhibited by a game on that
-   board. **Never inherits.** A result at one size is not evidence at any other
+   goban. **Never inherits.** A result at one size is not evidence at any other
    size, absent a monotonicity theorem. This is the rule as it stood, unchanged,
    and it remains the default for anything not clearly structural.
 
 2. **Structural claim** — the claim is *about code or about mathematics*: a
-   theorem on finite boards, a property of a source-level guard, an addressing
+   theorem on finite gobans, a property of a source-level guard, an addressing
    scheme, a data-format invariant, a logical implication. **May inherit**, and
    the inheriting row must carry:
-   - the **argument** for why board size is not the right unit of scope for this
+   - the **argument** for why goban size is not the right unit of scope for this
      particular claim (one sentence is enough; "same code path", "theorem on any
-     finite board", "arithmetic"), and
+     finite goban", "arithmetic"), and
    - the **origin** — where the structural fact was established, by size.
 
    An inheritance with no written argument is not licensed by this ADR. Silence
    is the empirical default: never inherit.
 
 3. **The status does not upgrade on inheritance.** A structural claim inherited
-   into a board's tree carries the status its *argument* supports, not the status
+   into a goban's tree carries the status its *argument* supports, not the status
    of the row it came from. Inheriting `GLOBAL.S2` (PROVEN, mathematics) makes
    `4x3.S2` PROVEN because the theorem covers 4×3; inheriting a code claim whose
-   only evidence is one board's auditor run gives a CLAIMED, not a PROVEN — the
+   only evidence is one goban's auditor run gives a CLAIMED, not a PROVEN — the
    argument is structural, the evidence is not.
 
 4. **`mixed` is NOT ruled on and does not inherit.** `CLAIMS.md` §5 defines a
@@ -90,12 +90,12 @@ written down.**
    ruling exists for `mixed`.** Until one does, `mixed` falls under the
    empirical default and this ADR licenses nothing for it. A fourth kind,
    **cross-ruleset** inheritance (`I24` `4x4.CYCLE-INSENS`), is likewise
-   unruled and is not a board-independence question at all.
+   unruled and is not a goban-independence question at all.
 
 5. **This ADR rules on the rule, not on the rows.** It does not resolve any
    entry in `CLAIMS.md` §5 and does not change any claim's status. Each §5 row
    still needs its argument written down or its inheritance withdrawn, by the
-   owner of the board file it lives in.
+   owner of the goban file it lives in.
 
 ## Consequences
 
@@ -108,7 +108,7 @@ written down.**
   unambiguously so: `4x4.C3` (§5-I9), `4x4.C2` (§5-I10), `4x4.S4` (I5),
   `4x3.S4` (I6), `4x4.P3` (I13), `GLOBAL.MAXGAP` (I16), `GLOBAL.SWEEPS` /
   `GLOBAL.ADR0012-5X5` (I17), `3x2.T13 → GLOBAL.C2` (I23). §6-D2 and §6-D3 —
-  two board files applying opposite rules to the same inheritance — are now
+  two goban files applying opposite rules to the same inheritance — are now
   resolvable by whoever owns those files; this ADR does not do it for them.
 - §6-D4 (FP3 PROVEN at 4×3, inherited-untested at 4×4) is resolvable: FP3 is
   mathematics, the 4×3 handling is correct under this ADR, and the 4×4 tree may
@@ -117,7 +117,7 @@ written down.**
   4×3 census number is exact and native to 4×3, so it is empirical and does not
   inherit anything — but EXP-3's **broken-detector calibration** was run at 3×3
   and 4×4 only. That calibration is a property of the *detector code* (one
-  binary, board size a compile-time parameter), so it inherits to 4×3 under
+  binary, goban size a compile-time parameter), so it inherits to 4×3 under
   clause 2 with the argument written into the row. The `4x3.H1-CENSUS` row
   states exactly that, and states that no known-bad was run at 4×3.
 - The `AGENTS.md` amendment is **outstanding** (see the header note). Until it
@@ -126,8 +126,8 @@ written down.**
 ## What would falsify this ADR
 
 A case where a claim correctly classified **structural** — same code path, or
-mathematics on any finite board — and inherited with a written argument, turns
-out to hold at one board size and fail at another. The sharpest available test
+mathematics on any finite goban — and inherited with a written argument, turns
+out to hold at one goban size and fail at another. The sharpest available test
 is the project's own worked example: `4x4.F1` asserts the `ko_ref >= d` guard is
 unsound at 4×4 because it is *the same guard* that produced 45/378 auditor
 violations at 3×2. **If a 4×4 `RETRO_CONSIST` run on the writes-on artifact

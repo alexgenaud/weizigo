@@ -5,7 +5,7 @@
 
 ## Why this is worth a task
 
-`QA-023` is being marked FALSE-AS-SCOPED on **one witness**: state `(178,0,6,0)` — board `[B,W,B,␣,W,␣]`, Black to move, no ko, `passes=0` — where two valid arrivals give first-revisit-truncation values **−3** and **−6** while the corrected fixpoint gives `L=H=−6`.
+`QA-023` is being marked FALSE-AS-SCOPED on **one witness**: state `(178,0,6,0)` — goban `[B,W,B,␣,W,␣]`, Black to move, no ko, `passes=0` — where two valid arrivals give first-revisit-truncation values **−3** and **−6** while the corrected fixpoint gives `L=H=−6`.
 
 Two independent implementations agree (`PINRULE-SUFFICIENCY` found it; the kernel auditor reproduced it from scratch in Python with no Zig imported), and the corrected kernel is validated three ways — against `smoke_fixpoint_2x2`, zero Bellman residuals, zero colour-inversion violations. That satisfies the two-seat rule.
 
@@ -30,7 +30,7 @@ Secondary reason: the PINRULE-SUFFICIENCY worker hit context exhaustion once alr
 
 1. **Dump the full arrival-A evaluation tree** for `(178,0,6,0)`: every node, its state tuple, whether it was scored as revisit / terminal / recursion, and the value returned. ~22 nodes; print all of them.
 2. **Hand-check each leaf.** A revisit leaf must name the state it revisits *and* where that state entered the visit set (arrival prefix or continuation). A terminal leaf must show `passes == 2` and its `area_score`, computed by hand on the 3×2 geometry (`BOARD_W=3, BOARD_H=2`, row-major).
-3. **Confirm both arrivals are legal and reachable** from the empty-board root under the corrected ko rule, and that their visit-sets genuinely differ. Print both move sequences.
+3. **Confirm both arrivals are legal and reachable** from the empty-goban root under the corrected ko rule, and that their visit-sets genuinely differ. Print both move sequences.
 4. **Confirm the two values are within budget** — neither truncated by node budget nor by scratch overflow. The counters are separate since `2B-PROBE-FIX`; report both.
 5. **Explain the mechanism in one paragraph.** Why does arrival A yield −3 where arrival B yields −6? The expected shape: A's visit-set makes some continuation a revisit (valued TIE=0) that B's does not, changing what Black can force. **If you cannot explain the difference mechanically, say so — an unexplained witness is not a falsification**, and that is the finding.
 6. **State whether `−3` is reachable at all** under arrival A by an explicit line. `−6` is the fixpoint value and `0` would be a revisit; `−3` is neither, so it must come from a terminal. Name it.

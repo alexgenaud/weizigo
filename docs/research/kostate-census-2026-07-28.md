@@ -3,7 +3,7 @@
 **Author:** Minimax-m3, 2026-07-28.
 **Dispatch:** `docs/infra/dispatch/EXP-3.md`.
 **Claim closed:** `GLOBAL.H1-CENSUS` (at 4×4 — it is scoped to 4×4 and UNTESTED,
-`CLAIMS.md:316`); 3×3 and 4×3 each get their own per-board claim row, proposed
+`CLAIMS.md:316`); 3×3 and 4×3 each get their own per-goban claim row, proposed
 IDs `3x3.H1-CENSUS` and `4x3.H1-CENSUS` — owner to assign.
 **Build:** `src/kostate_census.zig`, binary `weizigo-exp3-minimax`, caches under
 `/tmp/weizigo-zigcache-exp3`. **No engine file touched.**
@@ -11,18 +11,18 @@ IDs `3x3.H1-CENSUS` and `4x3.H1-CENSUS` — owner to assign.
 
 ---
 
-## TL;DR — the four numbers, per board, exact
+## TL;DR — the four numbers, per goban, exact
 
 Standard basic-ko detector, no `passes` dimension folded (a) and the secondary
 (a′) that folds it.  All exact (no sampling).
 
-| board | raw `3^n` | legal pos. | (a) reachable (b,side,ko) | (a′) with passes | (b) distinct (b,ko) | (b′) with passes | (c) 6 B/addr | (d) sparse / dense | sweeps |
+| goban | raw `3^n` | legal pos. | (a) reachable (b,side,ko) | (a′) with passes | (b) distinct (b,ko) | (b′) with passes | (c) 6 B/addr | (d) sparse / dense | sweeps |
 |---|---|---|---|---|---|---|---|---|---|
 | **3×3** | 19,683 | 12,675 | **22,736** | 45,472 | **13,997** | 27,994 | 83,982 B | **7.111%** | 16 |
 | **4×3** | 531,441 | 321,689 | **638,266** | 1,276,532 | **375,281** | 750,562 | 2,251,686 B | **5.432%** | 25 |
 | **4×4** | 43,046,721 | 24,318,165 | **51,419,046** | 102,838,092 | **29,497,329** | 58,994,658 | **176,983,974 B** | **4.031%** | 29 |
 
-**Numbers cite their run.** Commands, build mode, board size, flags, full stdout
+**Numbers cite their run.** Commands, build mode, goban size, flags, full stdout
 are in `docs/evidence/GLOBAL.H1-CENSUS/`. Wall time on this machine
 (Apple Silicon, single thread, `-O ReleaseFast`): 3×3 ≈ 0.05 s, 4×3 ≈ 2.2 s,
 4×4 ≈ **4 min**.
@@ -55,11 +55,11 @@ remains a choice that trades engineering complexity for file size.
 ## What "reachable" means here, precisely
 
 `(P, side, ko_point)` is reachable iff there exists a sequence of legal
-basic-ko moves from the empty board that ends in P, with `side` the side to
+basic-ko moves from the empty goban that ends in P, with `side` the side to
 move, and `ko_point` either the cell vacated by the immediately preceding
 single-stone capture whose capturing stone has exactly one liberty (the basic-
 ko shape) — or `ko_point = none` when the immediately preceding move was not
-a basic-ko capture, or there is no preceding move (the empty board root).
+a basic-ko capture, or there is no preceding move (the empty goban root).
 
 Algorithm: enumerate every legal position `Q` via the base-3 odometer
 (`src/enumerate.zig` style); for every legal `Q` already marked reachable as
@@ -95,7 +95,7 @@ enumerate.zig` does not list 4×3 in its `known_legal` array but its
 
 Result:
 
-| board | my count | published | match |
+| goban | my count | published | match |
 |---|---|---|---|
 | 3×3 | 12,675 | 12,675 | ✓ |
 | 4×3 | 321,689 | (project's own ground truth; not in `known_legal`) | ✓ (internal) |
@@ -111,7 +111,7 @@ expectation**, and I think the dispatch's claim is wrong, not my walk.
 Measured with the `none` detector (every reachable triple has `ko_point =
 none`):
 
-| board | my reachable (b, side, ko=none) | dispatch's expected (b, side) all | ratio |
+| goban | my reachable (b, side, ko=none) | dispatch's expected (b, side) all | ratio |
 |---|---|---|---|
 | 3×3 | 20,888 | 25,350 | 0.824 |
 | 4×4 | 45,734,854 | 48,636,330 | 0.940 |
@@ -127,7 +127,7 @@ positions are reachable with both sides to move.
 The 25,350 figure is the **total addressable** `(position, side)` space — all
 legal positions × 2 colours, regardless of whether they are reachable. The
 dispatch's calibration statement was a *conflation* of "all legal"
-(addressable) with "reachable from the empty board" (what the walk actually
+(addressable) with "reachable from the empty goban" (what the walk actually
 computes). For a Markovian rule from `(empty, B-to-move)` under alternating
 play, not every `(position, side)` pair is reachable: most positions are
 reachable with exactly one side, and a small fraction of legal positions
@@ -145,7 +145,7 @@ to see how much the ko dimension adds.
 
 Comparison:
 
-| board | no-ko reachable | standard-detector reachable | ratio (with-ko / no-ko) |
+| goban | no-ko reachable | standard-detector reachable | ratio (with-ko / no-ko) |
 |---|---|---|---|
 | 3×3 | 20,888 | 22,736 | 1.088 |
 | 4×3 | (not measured; quick skip) | 638,266 | — |
@@ -196,7 +196,7 @@ which the standard's 29,497,329 do not. A wrong detector that returned
 double", which is also wrong but a different kind of wrong that the eye-
 test catches immediately.
 
-## Per-board numbers in narrative
+## Per-goban numbers in narrative
 
 ### 3×3
 
@@ -208,13 +208,13 @@ of naive dense.
 Convergence: 16 sweeps, exponential-decay pattern (18 → 144 → 504 → 1500 →
 2932 → 4344 → 4788 → 3950 → 2642 → 1044 → 636 → 128 → 72 → 16 → 16 → 0). The
 plateau at 16 = 2n_stones_max = 2·8 hints that the deepest cycles have a
-characteristic length tied to board-stone-count, not the cell count, which is
+characteristic length tied to goban-stone-count, not the cell count, which is
 a structural feature of the 3×3 state graph.
 
 `ko_point = none` dominates (12,101 of 13,997 addresses = 86.4%): most reachable
 states were reached via a non-ko move. The 1,896 `ko_point = cell` addresses
 break down as: corners (0, 2, 6, 8) each ~322, edges (1, 3, 5, 7) each
-~150, center (4) only 8 — symmetry of the 3×3 board is reflected in the ko-
+~150, center (4) only 8 — symmetry of the 3×3 goban is reflected in the ko-
 cell usage.
 
 ### 4×3
@@ -222,7 +222,7 @@ cell usage.
 638,266 triples, 375,281 addresses, 5.43% of naive dense. Converged in 25
 sweeps. Wall time 2.2 s. The (a) value is 1.98 × the no-ko reachable (not
 measured here; expected ~322k), so the ko dimension adds about 98% — higher
-than 3×3's 9%, consistent with the 4×3 board having more reachable ko
+than 3×3's 9%, consistent with the 4×3 goban having more reachable ko
 configurations per cell.
 
 ### 4×4
@@ -237,8 +237,8 @@ budget placeholder (≤ 32 GB, "confirm with user") accommodates the
 required at 4×4 for the placeholder budget.**
 
 The (a) value is 1.124 × the no-ko reachable (45,734,854). 4×4 has the
-smallest ko-overhead ratio of the three boards measured — possibly because
-the larger board has more non-ko moves per ko cell, diluting the ko fraction.
+smallest ko-overhead ratio of the three gobans measured — possibly because
+the larger goban has more non-ko moves per ko cell, diluting the ko fraction.
 
 ## What the run does NOT do (per dispatch DO-NOT)
 
@@ -248,7 +248,7 @@ the larger board has more non-ko moves per ko cell, diluting the ko fraction.
   reimplemented to make this file standalone (per the dispatch's "no transitive
   engine dependency" intent).
 - It writes nothing to `data/` or `artifacts/`.
-- It does not infer one board's count from another's — each board is measured
+- It does not infer one goban's count from another's — each goban is measured
   independently.
 - It does not recommend an addressing scheme. The cost table above is for
   decision; the decision is the user's.
@@ -267,7 +267,7 @@ the larger board has more non-ko moves per ko cell, diluting the ko fraction.
    `ko_census` counts *independent ko clusters* on ko-sensitive positions of a
    loaded artifact (B23, 65/33/2/0.0025% multi-ko frequencies). This census
    counts reachable `(b, side, ko_point)` triples over the legal-move graph
-   from the empty board. They are different counts on different objects; the
+   from the empty goban. They are different counts on different objects; the
    detector algorithm is shared (the same `is_basic_ko` shape test) but the
    denominators are not the same.
 

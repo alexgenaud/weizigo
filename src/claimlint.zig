@@ -64,7 +64,7 @@
 //       correct at 3×3") carried `d:3x3.F2`, and `3x3.F2` measures only that
 //       the finisher COMPLETED all 622 orbit reps. Completion is not soundness.
 //       The real parent is `GLOBAL.F2` (the finisher is *sound*), which is
-//       orphaned via `GLOBAL.C3` — falsified at 3×3, the very board. The
+//       orphaned via `GLOBAL.C3` — falsified at 3×3, the very goban. The
 //       measurement sat in the chain and stopped the falsification propagating,
 //       so C1a never saw the case CLAIMS.md §4.1-O3 calls the sharpest.
 //

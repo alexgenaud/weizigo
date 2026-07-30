@@ -2,14 +2,14 @@
 
 **Status: historical measurement (2026-07-16).** Pre-dates ADR-0013 and the writes-off finisher. Current 5×5 projections: `docs/decisions/0012` and `docs/research/kostate-census-2026-07-28.md`. [Historical.]
 
-Measured by `RETRO_CENSUS` (retro.zig): build each board through
+Measured by `RETRO_CENSUS` (retro.zig): build each goban through
 seed+converge+finalize only — the **history-free** part (L/H iteration +
 certified/ko-sensitive region classification), NO finisher. This is the cheap, provably
 sound stage. Run 2026-07-23, in-RAM, single machine.
 
 ## Raw data
 
-| board | raw 3ⁿ | legal | legal % | side-slots | ko-sensitive region (KO) | ko-sensitive region % | sweeps | build |
+| goban | raw 3ⁿ | legal | legal % | side-slots | ko-sensitive region (KO) | ko-sensitive region % | sweeps | build |
 |---|---|---|---|---|---|---|---|---|
 | 2×2 | 81 | 57 | 70% | 114 | 82 | 71.93% | 2 | 0 ms |
 | 3×2 | 729 | 489 | 67% | 978 | 378 | 38.65% | 6 | 2 ms |
@@ -29,7 +29,7 @@ convergence.
    *This is the single most encouraging number in the project.*
 
 2. **Ko-sensitive region ABSOLUTE count grows roughly with the table** (82 → 378 → 8.7k →
-   170k → **10.4M**). After folding the 8 board symmetries, 4×4 still has on the
+   170k → **10.4M**). After folding the 8 goban symmetries, 4×4 still has on the
    order of **~1.3M distinct ko-sensitive region positions** that the finisher must solve
    as independent ko-searches. This — not memory — is the cost wall.
 
@@ -72,21 +72,21 @@ The ko-sensitive count reframes Track A vs Track B:
   for 4×4** to finish in reasonable time, not just for 5×5. It is on the
   critical path, not a follow-up.
 - Track A remains the correctness baseline and the way to ship provably-correct
-  **small** boards (2×2, 3×2, 3×3) immediately and to validate the auditor on
+  **small** gobans (2×2, 3×2, 3×3) immediately and to validate the auditor on
   regenerated artifacts.
 
 ## Finisher throughput: reuse vs sound (RETRO_CMP)
 
-Build a board, then run the ko-sensitive finisher twice on fresh certified tables —
+Build a goban, then run the ko-sensitive finisher twice on fresh certified tables —
 fast (unsound) reuse path vs sound (writes-off) — and compare. Both fill 100%
 of ko-sensitive region at these sizes (no budget-skips).
 
-| board | reuse | sound | slowdown | nodes reuse→sound | worst root reuse→sound |
+| goban | reuse | sound | slowdown | nodes reuse→sound | worst root reuse→sound |
 |---|---|---|---|---|---|
 | 3×3 | 11 ms | 35 ms | 3.2× | 79k → 316k (4.0×) | 1.3k → 29k (22×) |
 | 4×3 | 2.59 s | 31.1 s | 12× | 11.0M → 183.1M (16.6×) | 56k → 1.59M (28×) |
 
-**The slowdown factor grows with board size** (3.2× → 12×), and the single
+**The slowdown factor grows with goban size** (3.2× → 12×), and the single
 hardest root's node count blows up even faster (22× → 28×). The reuse the
 auditor convicted is not merely an accelerant: it is what keeps the expensive
 opening roots *under any fixed per-root budget*. Removing it (Track A) both
@@ -94,7 +94,7 @@ slows the whole finish and pushes the hardest roots over budget — so a
 writes-off 4×4 is expected to leave more opening ko-sensitive region **unfilled** than the
 reuse path did, not merely take longer. **Conclusion: Track B (Kishimoto–Müller
 *sound* reuse) is on the critical path for a COMPLETE 4×4, not only for 5×5.**
-Track A remains correct and complete for boards through ~4×3 and is the
+Track A remains correct and complete for gobans through ~4×3 and is the
 validated baseline (small artifacts already regenerated and anchor-checked).
 
 ## Sparse fingerprints solve the memory wall — but a tractability wall remains
@@ -108,7 +108,7 @@ as precision needs.
 **But sound reuse does not tame the capture-reopening roots.** Even at
 near-terminal layer 15 (one empty point), a few ko-sensitive roots blow the 500M
 budget, each taking 3–6 minutes. These are capture-reopening tangles: filling
-the last point captures a large group and reopens the board into a long
+the last point captures a large group and reopens the goban into a long
 superko cycle. The *unsound* legacy reuse tamed them (it memoized across the
 cycle regardless of history — fast, and mostly-but-not-always correct); *sound*
 reuse cannot memoize across a history-dependent cycle, so the search explodes.

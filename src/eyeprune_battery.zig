@@ -29,8 +29,8 @@
 //   B. A transcription cross-check of the SECOND implementation of the
 //      predicate (solve.zig's private is_own_eye) against rules.zig's.
 //   C. An exhaustive class scan: for every legal position and side, how many
-//      legal board moves the prune removes -- in particular the PRUNE-ALL
-//      class (self-eye-fill is the ONLY legal board move), and how many of
+//      legal goban moves the prune removes -- in particular the PRUNE-ALL
+//      class (self-eye-fill is the ONLY legal goban move), and how many of
 //      those are already is_settled terminals (where the comparison is
 //      vacuous).
 //   D. Score equivalence with vs without the prune, over an explicitly
@@ -76,7 +76,7 @@ const Prune = enum {
     }
 };
 
-// ---- per-board-size battery -------------------------------------------------
+// ---- per-goban-size battery -------------------------------------------------
 
 fn Battery(comptime w: usize, comptime h: usize) type {
     return struct {
@@ -306,7 +306,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
                     }
                 }
 
-                // pass: board unchanged, exempt from superko
+                // pass: goban unchanged, exempt from superko
                 {
                     const rp = self.solve(pos, -to_move, passes + 1);
                     if (self.aborted) return .{ .value = 0, .ko_ref = 0 };
@@ -401,7 +401,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
             return out;
         }
 
-        /// Legal board moves for `colour`, and how many of them the shipped
+        /// Legal goban moves for `colour`, and how many of them the shipped
         /// prune removes. Superko is not applied (fresh position, no history).
         fn moveCensus(pos: *const Pos, colour: i8) struct { legal: u32, pruned: u32 } {
             const mask = pruneMask(pos, colour, .adr0006);
@@ -443,7 +443,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
             pairs: u64 = 0,
             prune_none: u64 = 0, // prune removes nothing
             prune_some: u64 = 0, // prune removes some but not all legal moves
-            prune_all: u64 = 0, // EVERY legal board move is an own-eye fill
+            prune_all: u64 = 0, // EVERY legal goban move is an own-eye fill
             prune_all_settled: u64 = 0, // ...and is_settled already fired
             prune_all_live: u64 = 0, // ...and it did NOT (the live known-bad class)
             nonvacuous: u64 = 0, // !settled and prune removes >= 1 move at root
@@ -587,7 +587,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
         // sound control is intractable above a handful of stones. These lemmas
         // are the premises ADR-0006's soundness argument actually rests on, and
         // each is exactly checkable per position with NO search -- so they run
-        // exhaustively on boards where Section D cannot, including 4x4.
+        // exhaustively on gobans where Section D cannot, including 4x4.
         //
         //   L1  the eye fill is a legal move for the mover
         //       (if it were not, the prune would be removing nothing)
@@ -730,7 +730,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
             return s;
         }
 
-        /// Random-sample scan, for boards too large to enumerate (5x5).
+        /// Random-sample scan, for gobans too large to enumerate (5x5).
         fn lemmaScanSampled(pr: Prune, samples: u64, seed: u64) LemmaScan {
             var s = LemmaScan{};
             var prng = std.Random.DefaultPrng.init(seed);
@@ -837,7 +837,7 @@ fn Battery(comptime w: usize, comptime h: usize) type {
         // ---- SECTION J: the live PRUNE-ALL class, valued ------------------------
         //
         // Section C finds (position, side) pairs where the prune removes EVERY
-        // legal board move at a node that is NOT an is_settled terminal. There
+        // legal goban move at a node that is NOT an is_settled terminal. There
         // the pruned search has only the pass edge. This scan values each such
         // pair with the eye-pruned forward search and compares it against the
         // unpruned retrograde table -- the one class where "the prune removed
@@ -1151,7 +1151,7 @@ fn sectionB() void {
             }
         }
     }
-    // and the fixtures, which are far more eye-dense than random boards
+    // and the fixtures, which are far more eye-dense than random gobans
     for ([_][25]i8{dead_white}) |b| {
         inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
             const alive = R5.benson_alive(&b, colour);
@@ -1379,7 +1379,7 @@ pub fn main(init: std.process.Init) !void {
         print("  is an exact unpruned fresh-start score. Comparing the eye-pruned\n", .{});
         print("  forward search against those slots is the sound ADR-0006 test --\n", .{});
         print("  the standing test of ADR-0009:118-123, actually executed.\n\n", .{});
-        // arg "4" restricts Section H to the 4x3 artifact (the slowest board).
+        // arg "4" restricts Section H to the 4x3 artifact (the slowest goban).
         const all_paths = [_][]const u8{
             "artifacts/oracle-2x2.wzo",
             "artifacts/oracle-3x2.wzo",
@@ -1396,7 +1396,7 @@ pub fn main(init: std.process.Init) !void {
             defer dec.deinit();
             const t0 = nowMs();
             // 4x3 is restricted to slots the prune actually touches at the root;
-            // the smaller boards are exhaustive over every non-KO_SENSITIVE slot.
+            // the smaller gobans are exhaustive over every non-KO_SENSITIVE slot.
             // 2x2/3x2: every non-KO slot. 3x3/4x3: restricted to slots where the
             // prune removes a move at the root -- exhaustive coverage there costs
             // more than the forward search can pay.

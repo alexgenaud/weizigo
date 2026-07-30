@@ -273,7 +273,7 @@ def main():
     board_size = args.board
     num_games = args.games
 
-    # Resolve artifact for the requested board size
+    # Resolve artifact for the requested goban size
     artifact = args.weizigo_artifact
     if not os.path.exists(artifact):
         # Try to find one

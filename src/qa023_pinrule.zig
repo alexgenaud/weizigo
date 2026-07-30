@@ -67,7 +67,7 @@
 //       loudly.
 //
 // Arrival histories per target state:
-//   h0  BFS-shortest path from the empty-board root (guaranteed; the class
+//   h0  BFS-shortest path from the empty-goban root (guaranteed; the class
 //       of arrival the probe's DFS generator systematically MISSES —
 //       2B-3-AUDIT found the shortest path missed in 93% of states);
 //   h1.. randomized DFS long histories (probe-equivalent generator,
@@ -638,7 +638,7 @@ fn bellman_residual(reach: []const u64, tab: []const i8) u64 {
     return bad;
 }
 
-/// Colour-inversion mirror of a state: negate the board, flip the side;
+/// Colour-inversion mirror of a state: negate the goban, flip the side;
 /// ko cell and passes unchanged. The game graph is invariant under this map.
 fn mirror_linear(linear: u64) u64 {
     const st = decode_linear(linear);
@@ -701,7 +701,7 @@ const HistoryEntry = struct {
     board: Pos,
 };
 
-/// BFS shortest arrival paths from the empty-board root to every reachable
+/// BFS shortest arrival paths from the empty-goban root to every reachable
 /// state. parent[lin] = parent linear (0xFFFFFFFF = none); pmove_cell /
 /// pmove_kind describe the edge parent -> lin.
 fn bfs_parents(
@@ -1099,7 +1099,7 @@ fn truncated_value_t3(
     }
 }
 
-/// Verify an arrival entry chain: buf[0] must be the empty-board root;
+/// Verify an arrival entry chain: buf[0] must be the empty-goban root;
 /// each consecutive pair must be one legal move apart (and the chain must
 /// be a simple path — no repeated state tuple). Returns 0 on valid, else
 /// the 1-based index of the first bad step (or 0xFFFF for bad root).
@@ -1857,7 +1857,7 @@ pub fn main(init: std.process.Init) !void {
         }
         try run_eval_mode(gpa, seed, node_budget, k_long, max_states, cross_every);
     } else if (std.mem.eql(u8, mode, "pinrule-state")) {
-        // pinrule-state <board> <side> <ko> <passes> [--seed N] [--node-budget N] [--k-long N]
+        // pinrule-state <goban> <side> <ko> <passes> [--seed N] [--node-budget N] [--k-long N]
         const b_in = std.fmt.parseInt(u32, args.next() orelse "0", 0) catch 0;
         const s_in = std.fmt.parseInt(u8, args.next() orelse "0", 0) catch 0;
         const k_in = std.fmt.parseInt(u16, args.next() orelse "6", 0) catch 6;

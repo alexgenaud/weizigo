@@ -1,9 +1,9 @@
-# Innovations — concepts, proofs, and board-size coverage
+# Innovations — concepts, proofs, and goban-size coverage
 
 **Date:** 2026-07-27  **Status:** living document
 
 Project-invented concepts with IDs. Each is PROVEN, CLAIMED, or
-IMPLEMENTED on specific board sizes. Cross-references to the research
+IMPLEMENTED on specific goban sizes. Cross-references to the research
 notes and bundle files that contain the evidence.
 
 ---
@@ -28,7 +28,7 @@ notes and bundle files that contain the evidence.
 | **I14** | L/H two-sided fixpoint certification | Algorithm | Backward Bellman sweeps seeded from +n and -n converge to greatest (H) and least (L) fixpoints. L==H defines the single-score region, L<H the ko-sensitive region. The core engine that produces the brackets everything else consumes. | ADR-0009, retro.zig |
 | **I15** | DTT (non-adversarial depth-to-terminal) | Metric | Fastest optimal resolution when both sides cooperate on speed among score-optimal moves. Frozen column in WZO1 artifacts. Distinct from adversarial DTM. | ADR-0009, teaching-oracle-metrics.md |
 
-## Adoption per board size
+## Adoption per goban size
 
 | ID | 2×2 | 3×2 | 3×3 | 4×3 | 4×4 | 5×4 | 5×5 | 6×6 |
 |---|---|---|---|---|---|---|---|---|

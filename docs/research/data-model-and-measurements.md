@@ -6,10 +6,10 @@
 
 Clever through ~8–10 stones; increasingly over-provisioned toward 16.
 
-- `(blind, seq)` is a *re-encoding* of the ternary board, not inherently
+- `(blind, seq)` is a *re-encoding* of the ternary goban, not inherently
   smaller: `Σ_blind 2^popcount(blind) = 3^25` exactly. Its power is sparsity +
   per-blind block sizing, not key width.
-- `3^25 = 847_288_609_443 ≈ 2^39.6` counts all ternary boards. `C(25,k)·2^k`
+- `3^25 = 847_288_609_443 ≈ 2^39.6` counts all ternary gobans. `C(25,k)·2^k`
   peaks at **k ≈ 16.3**, so "≤16 stones" is *roughly half* of 3^25 —
   restricting to 16 stones saves ~2×, not orders of magnitude.
 - Legal 5×5 positions (all k) = **414_295_148_741 ≈ 2^38.6** (Tromp). After

@@ -202,7 +202,7 @@ def state_from_index(idx):
 
 
 # ---------------------------------------------------------------------------
-# Reachability — from both roots (Black and White to move on the empty board)
+# Reachability — from both roots (Black and White to move on the empty goban)
 # ---------------------------------------------------------------------------
 EMPTY_BOARD = (EMPTY,) * N
 ROOT_B = (EMPTY_BOARD, BLACK, KO_NONE, 0)
@@ -309,7 +309,7 @@ def V(L, H):
 #
 # Alpha-beta is sound here because FRT is plain minimax over a (path, state)
 # tree with no transposition table. The full window [-5, +5] guarantees an
-# exact root value. Move ordering uses material count (board sum) to reduce
+# exact root value. Move ordering uses material count (goban sum) to reduce
 # node count; it does not reference the fixpoint tables.
 # ---------------------------------------------------------------------------
 def material_of(board):

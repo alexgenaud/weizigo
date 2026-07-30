@@ -1,7 +1,7 @@
 # Forward full-solve of empty 5x5: measured intractable (2026-07-16)
 
 **Dead-end.** The naive approach (forward exhaustive minimax + transposition
-table from the empty board) is not a route to the oracle.
+table from the empty goban) is not a route to the oracle.
 
 **How we know.** `src/main.zig` with `FULL=true`, `-Doptimize=ReleaseSafe`,
 wired+sized TT (256 MB blind arrays + 2 GB seq; ~2.3 GB resident). After

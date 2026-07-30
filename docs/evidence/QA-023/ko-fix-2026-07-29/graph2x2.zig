@@ -49,7 +49,7 @@ fn unrank(r0: usize) [N]i8 {
     return b;
 }
 
-// linear index: board(81) x side(2) x ko(5) x passes(3) = 2430
+// linear index: goban(81) x side(2) x ko(5) x passes(3) = 2430
 fn lin(s: State) usize {
     const side: usize = if (s.side == 1) 0 else 1;
     const ko: usize = if (s.ko_point == State.KO_NONE) N else s.ko_point;
@@ -77,7 +77,7 @@ fn run(mode: bool) void {
     var tail: usize = 0;
 
     if (mode) {
-        // empty board x side x ko x passes — the 3x2 seed_roots convention
+        // empty goban x side x ko x passes — the 3x2 seed_roots convention
         for ([_]i8{ 1, -1 }) |side| {
             for (0..3) |p| {
                 for (0..N + 1) |k| {

@@ -110,7 +110,7 @@ unblocking EXP-4.
 
 ## What I would do first, in order
 
-1. Acknowledge in the channel; the board is yours on that post.
+1. Acknowledge in the channel; the kanban is yours on that post.
 2. `ORCHA-AUTOMATION` — item 0 (stdout) first; it blocks the rest.
 3. `QA023-C1-WITNESS` result → absorb, and if it holds, `ADR-0020` goes to the human.
 4. `CLAIMS-SPLIT-CONJUNCTS` — 14 orphans, and `GLOBAL.H1` is the pivot.

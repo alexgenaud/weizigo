@@ -10,7 +10,7 @@ the minimax identity at every node:
 
     V(P, side, [P])  ==  opt_side( { V(c, -side, [P,c]) : c legal },  pass )
 
-Parent, each board child, and the pass branch (`V(P, -side, [P])` at
+Parent, each goban child, and the pass branch (`V(P, -side, [P])` at
 `passes = 1`) are each solved as an **independent root** with a freshly
 re-seeded per-root memo — so the check compares final exact scores, not the
 search's fail-soft internals. A maximizer whose parent score is strictly below
@@ -29,7 +29,7 @@ to **eliminate** buggy generations and as the standing acceptance test for #3.
 | `new` (committed artifact generation) | ON | 378 | **45** | **PROVABLY BUGGY** |
 | `soundish` | OFF | 378 | **0** | self-consistent (necessary pass) |
 
-The empty board is among the 45: `new` reports Black-score **−2**, yet its own
+The empty goban is among the 45: `new` reports Black-score **−2**, yet its own
 best child (solved independently under the same history) is **0** — the
 published 3×2 score. White mirrors (+2 vs −1... best option is the child).
 

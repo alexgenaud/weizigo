@@ -24,7 +24,7 @@ The project references **seven distinct external knowledge families**:
 
 | family | sources | how used | status |
 |---|---|---|---|
-| van der Werf / MIGOS anchors | 2003, 2005, 2009 | empty-board scores as validation targets | correctly identified as different ruleset; previously misused as PSK validation |
+| van der Werf / MIGOS anchors | 2003, 2005, 2009 | empty-goban scores as validation targets | correctly identified as different ruleset; previously misused as PSK validation |
 | Benson unconditional life | Benson 1976 | terminal detection, eye-prune precondition | correctly cited; theorem sound; implementation independently verified |
 | Kishimoto–Müller GHI solution | Kishimoto & Müller 2004, 2005 | dependency-guarded memo (ADR-0013 Track B) | correctly cited but incomplete; project's Bloom-fingerprint variant is a simplification |
 | Tromp–Taylor / OEIS A094777 | Tromp (OEIS) | legal-position count validation | correctly cited; independently reproduced |
@@ -45,7 +45,7 @@ approximation, and it has five entries with incomplete citation data.
 The project cites these anchors pervasively. The clearest statement is at
 `docs/research/retrograde-3x3.md:224-241`:
 
-> Van der Werf & Winands, "Solving Go for Rectangular Boards" (ICGA Journal
+> Van der Werf & Winands, "Solving Go for Rectangular Gobans" (ICGA Journal
 > 2009), Chinese rules, gives: 2x2 = 0 (any first move), 2x3 = 0, 3x3 = +9,
 > 2x4 = +8, 3x4 = +4, 3x5 = +15, **4x4 = +2 (central first move)**, 4x5 = +20,
 > 5x5 = +25. CRITICAL CONTEXT for comparing: **MIGOS II does NOT use superko**
@@ -58,7 +58,7 @@ The project cites these anchors pervasively. The clearest statement is at
 
 **Verified.** The paper is:
 - van der Werf, E.C.D. & Winands, M.H.M. (2009). "Solving Go for Rectangular
-  Boards." *ICGA Journal*, Vol. 32, No. 2, pp. 77–88.
+  Gobans." *ICGA Journal*, Vol. 32, No. 2, pp. 77–88.
   DOI: [10.3233/icg-2009-32203](https://doi.org/10.3233/icg-2009-32203).
 
 The anchor values cited by weizigo match the paper's Table 1 exactly. The
@@ -88,7 +88,7 @@ answer passes that test ~70% of the time at 4×4.
 
 The original 5×5 solution was published in:
 - van der Werf, E.C.D., van den Herik, H.J., & Uiterwijk, J.W.H.M. (2003).
-  "Solving Go on Small Boards." *ICGA Journal*, Vol. 26, No. 2, pp. 92–107.
+  "Solving Go on Small Gobans." *ICGA Journal*, Vol. 26, No. 2, pp. 92–107.
 
 The project references this indirectly via `oracle-5x5-pv.md` (through
 Hayward's course notes) and `go-rules-ko-and-scoring.md` ("van der Werf &
@@ -103,7 +103,7 @@ The project does not cite van der Werf's 2005 PhD thesis ("AI Techniques for
 the Game of Go," Maastricht University), which contains the full MIGOS
 architecture, the Benson integration, the solving methodology, and the
 bounded-history discussion. This is the canonically correct source for MIGOS
-II's ruleset and method. The ICGA 2009 paper is a summary with new board-size
+II's ruleset and method. The ICGA 2009 paper is a summary with new goban-size
 results. The thesis is freely available and should be the primary citation for
 the MIGOS method.
 
@@ -289,12 +289,12 @@ fallback, this deserves a formal entry.
 > Published legal counts: John Tromp (OEIS A094777).
 
 `src/enumerate.zig:206`:
-> Published legal-position counts on square boards (Tromp; OEIS A094777).
+> Published legal-position counts on square gobans (Tromp; OEIS A094777).
 
 ### 5.2 What the source actually is
 
 **Verified.** OEIS entry A094777: "Number of legal positions in Go on an n×n
-board." The sequence is 1, 57, 12,675, 24,318,165 for n = 1, 2, 3, 4.
+goban." The sequence is 1, 57, 12,675, 24,318,165 for n = 1, 2, 3, 4.
 Values through n=4 were computed by John Tromp. The project independently
 verifies these counts through `enumerate.zig` and cross-validates the
 move-generation kernel.
@@ -400,11 +400,11 @@ should be cited.
 ### 8.1 What the project says
 
 `docs/research/oracle-5x5-pv.md:69-74`:
-> - Hayward, *Solving Go on Small Boards* (course notes), p. 18 "a 5x5 pv":
+> - Hayward, *Solving Go on Small Gobans* (course notes), p. 18 "a 5x5 pv":
 >   https://webdocs.cs.ualberta.ca/~hayward/355/ssgo.pdf
 > - Van der Werf, *5×5 Go solved* (animated optimal play, 3 strongest openings):
 >   http://erikvanderwerf.tengen.nl/5x5/5x5solved.html
-> - Van der Werf, *Solving Go on Small Boards* (paper):
+> - Van der Werf, *Solving Go on Small Gobans* (paper):
 >   http://erikvanderwerf.tengen.nl/pubdown/solving_go_on_small_boards.pdf
 
 ### 8.2 What the sources actually are
@@ -450,7 +450,7 @@ innovation worth naming, but the prior art should be acknowledged.
 
 van den Herik, Uiterwijk, & van Rijswijck (2002). "Games Solved: Now and in
 the Future." *Artificial Intelligence*, 134(1–2), 277–311. This is the
-canonical survey of solved games, including Go on small boards. The project's
+canonical survey of solved games, including Go on small gobans. The project's
 5×5 anchor appears in it. The project does not cite this survey.
 
 ### 9.3 AlphaGo / KataGo / Leela — approximate methods
@@ -493,7 +493,7 @@ scaffold). This should be acknowledged.
 Until the Opus critique of 2026-07-28, the project treated anchor matches
 as validation: "empty 3×3 = +9 matches the published anchor" → the table is
 correct. The critique's §3 quantified that bracket containment passes a wrong
-answer ~42–70% of the time depending on board size, making it weak evidence.
+answer ~42–70% of the time depending on goban size, making it weak evidence.
 
 ### 10.2 The ruleset mismatch
 
@@ -501,7 +501,7 @@ The published anchors (van der Werf & Winands 2009) are for **Chinese area
 scoring + basic ko + long-cycle ties**. The project's tables are for
 **Chinese area scoring + positional superko**. These are different games:
 
-| board | MIGOS II | weizigo PSK | agreement? |
+| goban | MIGOS II | weizigo PSK | agreement? |
 |---|---|---|---|
 | 2×2 | 0 | +1 | **NO** |
 | 2×3 | 0 | +1 | **NO** |
@@ -510,7 +510,7 @@ scoring + basic ko + long-cycle ties**. The project's tables are for
 
 The disagreement at 2×2 and 2×3 is correctly identified as a ruleset-variant
 difference (`GLOBAL.ANCHOR-DELTA`, CLAIMED). The agreement at 3×3 and 4×4 is
-**not** evidence of PSK correctness — it is evidence that on these boards the
+**not** evidence of PSK correctness — it is evidence that on these gobans the
 two rulesets happen to coincide.
 
 ### 10.3 The cascade effect

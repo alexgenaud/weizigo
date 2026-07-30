@@ -251,7 +251,7 @@ EXP-2B is replaced by the 2B-N micro-tasks).
 
 ### `managent` or `managent status`
 
-Prints the current board. No arguments.
+Prints the current kanban. No arguments.
 
 ```
 $ managent
@@ -339,7 +339,7 @@ dependency was added via `needs --add` while the task was claimed), the
 ```
 
 The task stays `in_progress` — we do not silently un-claim a live
-console — but the board says so out loud.
+console — but the kanban says so out loud.
 
 ### Migration on load
 

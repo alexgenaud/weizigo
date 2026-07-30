@@ -8,7 +8,7 @@ Task: user-dispatched tree-shake · Role: Auditor · Model: Fable 5 · Date: 202
 and shake it. Where are the connections weakest? Where do we need to fill in
 leaves (add proofs, confirm, retest, rewrite tests in another language)? Do we
 have table regions of perfect play, of optimal, of good, of guesses? Can we
-divide and conquer the regions of uncertainty rather than the entire board and
+divide and conquer the regions of uncertainty rather than the entire goban and
 all table regions?
 
 **Companion piece** to `epistemic-trajectory-audit-fable-2026-07-30.md` (T100),
@@ -27,19 +27,19 @@ wrong-answer-pass-rate).
 
 ## 1. The region map — what kind of knowledge covers which slots
 
-The table is not uniformly known. Every board decomposes into three regions,
+The table is not uniformly known. Every goban decomposes into three regions,
 and the regions have sharply different epistemic quality. Rungs are the
 knowledge-ladder's (K0 certified … K5 guess).
 
 ### 1.1 Fresh-start knowledge (the question the tables actually answer)
 
-| board | settled / terminal | single-score (L==H) | ko-sensitive |
+| goban | settled / terminal | single-score (L==H) | ko-sensitive |
 |---|---|---|---|
 | 2×2 | K1 | **K0/K1** — exact-solver match, writes-off artifact, byte-identical repro | trivial (no reachable non-root cycles) |
 | 3×2 | K1 | **K1** — 540/540 L==H slots, 0 mismatches vs exact solver | **K4** — 378 slots (38.65%); generated under the falsified F1 guard |
 | 3×3 | K1 | **CLAIMED only** — anchors + symmetry; artifact is the writes-ON (buggy-path) build; no exact-solver ground truth | **K4** — 8,698 slots (34.3%) |
 | 4×3 | K1ᴵᴺᴴ (S4 inherited, not re-proven) | **CLAIMED/inferred** — writes-ON artifact, no ground truth | **K4** — 170,276 slots (26.47%) |
-| 4×4 | K1ᴵᴺᴴ (S4 inherited) | **K3/K4** — Bellman-self-consistent EXHAUSTIVELY (M4: 0 violations over 48.6M slots, vb/vw form) but **no independent ground truth exists or can exist** (C1 untested; exact solve intractable) | **K4/K5** — 10,367,922 slots (21.32%), **including the empty board** (bracket [−6,+16]) |
+| 4×4 | K1ᴵᴺᴴ (S4 inherited) | **K3/K4** — Bellman-self-consistent EXHAUSTIVELY (M4: 0 violations over 48.6M slots, vb/vw form) but **no independent ground truth exists or can exist** (C1 untested; exact solve intractable) | **K4/K5** — 10,367,922 slots (21.32%), **including the empty goban** (bracket [−6,+16]) |
 
 ### 1.2 Real-game knowledge (any history) — the honest row
 
@@ -54,7 +54,7 @@ pending.
 
 The ko-sensitive region is 21.32% of 4×4 slots but carries most of the *play*:
 M5 shows 16 of 19 plies in both saved regression games are KO_SENSITIVE, and
-the empty board itself is. **Region size understates region importance by
+the empty goban itself is. **Region size understates region importance by
 roughly 4×.** Any divide-and-conquer plan must weight regions by reachability
 and play frequency, not slot count — certifying 78.68% of slots certifies a
 minority of actual game states visited.
@@ -131,14 +131,14 @@ defect in that single tool silently corrupts nine rows. No independent
 re-implementation of the Bellman-identity checker exists — and independent
 re-implementation is the only method that has ever found a defect here.
 
-**W6 — Contradictory statuses between board files (D2/D3/D4/D6).** C3-at-4×4:
+**W6 — Contradictory statuses between goban files (D2/D3/D4/D6).** C3-at-4×4:
 "falsified by analogy, not open" in the 4×4 file; the identical inference
 *refused* at 4×3. FP3: ⬜ᴵᴺᴴ at 4×4, ✅ PROVEN at 4×3, same theorem, same
 justification. S2 means the theorem in one file and the implementation in
 another, with a 4×3 note claiming an S2-4×4 pass that the 4×4 file says never
 ran. ADR-0016 ruled on the inheritance *rule*; **zero of the 25 audited
 inheritance rows (I1–I25) have had their argument written down or withdrawn.**
-The tree's cross-board grafts are all unglued.
+The tree's cross-goban grafts are all unglued.
 
 **W7 — The ledger's own hygiene: failing and drifting.** 10 C1a orphans + 11
 dangling paths (FAILING now), 76/256 PROVEN rows with no committed evidence,
@@ -148,8 +148,8 @@ rung" is stated but unenforced — the linter does not yet demote.
 
 **W8 — D7's unreconciled denominators below 4×4.** The census-vs-sweep
 ko-sensitive gap is reconciled at 4×4 only (settled-slot exemption); at 2×2 the
-gap is 5.36 pp and unexplained. Small boards are the calibration set for every
-big-board instrument — a 5 pp unexplained disagreement in the calibration set
+gap is 5.36 pp and unexplained. Small gobans are the calibration set for every
+big-goban instrument — a 5 pp unexplained disagreement in the calibration set
 is not cosmetic.
 
 ---
@@ -169,14 +169,14 @@ here).
 | L2 | D18 BFS | re-derive and **commit** the H1-CENSUS reconciling BFS | hours | stops the T13 mechanism recurring; un-dangles 3 rows |
 | L3 | claimlint red | fix 10 orphans + 11 dangling paths | hours | ledger back to green; mechanical |
 | L4 | `S2-impl` at 4×4 and 4×3 | Benson implementation regression battery | cheap | resolves D6; Wave-0 item, artifact-independent |
-| L5 | `S4` at 4×4/4×3 | area-scoring battery vs an **independent reference scorer** (tiny Tromp–Taylor scorer in another language) | cheap | removes the ⬜ᴵᴺᴴ under every terminal value on the two biggest boards |
+| L5 | `S4` at 4×4/4×3 | area-scoring battery vs an **independent reference scorer** (tiny Tromp–Taylor scorer in another language) | cheap | removes the ⬜ᴵᴺᴴ under every terminal value on the two biggest gobans |
 | L6 | **T13 re-implementation** (Python or other) | rebuild the C2 probe from the surviving spec in `c2-falsification-3x2.md`, reproduce the 12/508 | medium | restores the keystone falsification to reproducible; trajectory-audit R4 |
 | L7 | **EXP-4 divergence tracer** (Python) | trace 1–3 of the 24 mismatched 2×2 states end-to-end under both semantics | medium | feeds the R1 semantics adjudication with facts; EXP-4 §10 asks for exactly this |
 | L8 | independent chainability checker | re-implement the Bellman-identity sweep in another language, run on the same checkpoint | medium | de-single-sources `4x4.M4` and the nine rows on it (W5) |
 | L9 | `ADR0006-FALSIFY` | direct eye-prune falsification battery (retrograde-vs-forward disagreement harness already sketched in ADR-0009) | medium | W1 — the widest blast radius in the tree |
 | L10 | ko-composition census at 4×4 | measure single-ko vs multi-ko fraction of the 10.4M ko-sensitive slots (B23 found 0% multi-ko at 3×3; B32's single-ko solver was byte-identical at 3×3) | cheap run | the enabling measurement for §4's divide-and-conquer |
 | L11 | `4x4.S3b` test design | ko-legality-under-history: the only top-5 load-bearing unknown with **no experiment designed at all** | design work | closes the "no test even on paper" hole |
-| L12 | D7 small-board reconciliation | one settled-slot count per small board | cheap | W8 |
+| L12 | D7 small-goban reconciliation | one settled-slot count per small goban | cheap | W8 |
 
 ### 3.2 Prune (dead or superseded leaves — decide, don't drift)
 
@@ -192,19 +192,19 @@ here).
   sha256 gate targets the buggy artifact's hash. Both are one-paragraph fixes.
 - **I1–I25**: each inheritance row gets its structural argument written down
   (per ADR-0016) or its inherited status withdrawn. Bulk documentation pass,
-  parallelisable per board file.
+  parallelisable per goban file.
 
 ---
 
 ## 4. Divide and conquer — yes, and the tree already knows how
 
-The uncertainty is **not** uniformly smeared over the board or the table. It
+The uncertainty is **not** uniformly smeared over the goban or the table. It
 is concentrated, flagged per-slot, and decomposable. Four divisions, in order
 of leverage:
 
 **4.1 Divide by slot flag (already computed).** The KO_SENSITIVE bit
 partitions every table today. The single-score region is exhaustively
-Bellman-chainable (M4: zero violations outside the flag, all five boards) —
+Bellman-chainable (M4: zero violations outside the flag, all five gobans) —
 uncertainty about *fresh-start* values lives entirely inside the flag. The
 attack surface is 10.4M slots at 4×4, not 48.6M.
 
@@ -229,7 +229,7 @@ an explicit "verified only in regions (a)/(b)" scope line on every claim.
 
 **4.4 Divide by play-reachability, not colex order.** §1.3's trap inverted
 into a strategy: certify slots in order of *game relevance* — the reachable
-set from the empty board under alternating play (the kostate census machinery
+set from the empty goban under alternating play (the kostate census machinery
 already computes this: 45.7M of 48.6M at 4×4) intersected with the ko region,
 stratified by depth. A table that is K1 on every state reachable in ≤N plies
 of optimal play is a stronger *play* deliverable than one that is K1 on 90% of

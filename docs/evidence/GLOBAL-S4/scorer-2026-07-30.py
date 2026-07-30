@@ -58,7 +58,7 @@ def area_score(board, w, h):
 # Sources: src/terminal.zig, src/rules.zig, src/score.zig — exact values.
 # Adds 2×2, 3×2, 4×4 terminals to cover the size-agnostic claim.
 
-# sparse boards defined up front so the corpus is a clean list
+# sparse gobans defined up front so the corpus is a clean list
 _SPLIT_5X5 = [0] * 25; _SPLIT_5X5[0] = 1; _SPLIT_5X5[24] = -1
 
 CORPUS = [
@@ -80,7 +80,7 @@ CORPUS = [
     ("3x3/center-b",       [0,0,0, 0,1,0, 0,0,0],                     3,3,  9),
     ("3x3/bw-adjacent",    [1,-1,0, 0,0,0, 0,0,0],                    3,3,  0),
 
-    # ── 4×4 (added; max solved board) ──
+    # ── 4×4 (added; max solved goban) ──
     ("4x4/empty",          [0]*16,                                     4,4,  0),
     ("4x4/all-black",      [1]*16,                                     4,4, 16),
     ("4x4/all-white",      [-1]*16,                                    4,4,-16),

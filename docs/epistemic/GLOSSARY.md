@@ -17,19 +17,19 @@ software engineers, and LLM agents. Organized by domain.
 
 ## Go rules and scoring
 
-- **area scoring (Chinese)** — your score = your stones on the board + empty
+- **area scoring (Chinese)** — your score = your stones on the goban + empty
   points your stones surround. This project's canonical scoring. Komi applied by
   the caller. Compare *territory scoring*.
 - **territory scoring (Japanese)** — your score = surrounded empty points +
   captured prisoners. Needs capture tracking; not used for solving here. Usually
   agrees with area scoring within ~1 point.
 - **komi** — points added to White's score to offset Black's first-move
-  advantage. This project uses komi 0; the empty-board score IS the fair komi.
+  advantage. This project uses komi 0; the empty-goban score IS the fair komi.
 - **Black-positive** — this project's sign convention: scores are always written
   from Black's point of view. +2 = Black ends 2 ahead; −2 = White ends 2 ahead.
   Side-to-move selects which array slot (vb/vw) to read, never the sign.
 - **annihilation** — optimal play in which one color ends up owning the entire
-  board (5x5 = Black +25). From 6x6 up, both colors survive.
+  goban (5x5 = Black +25). From 6x6 up, both colors survive.
 
 ## Repetition and ko (the central difficulty)
 
@@ -39,7 +39,7 @@ software engineers, and LLM agents. Organized by domain.
   superko restriction. Japan/Korea pro rules; long cycles (triple ko, eternal
   life) lead to *no result* and the game is replayed. The leading tractable
   *generation* rule candidate (see `research/ruleset-options.md`).
-- **PSK — positional superko** — no whole-board *position* may ever repeat in a
+- **PSK — positional superko** — no whole-goban *position* may ever repeat in a
   game. AGA/New Zealand/Tromp-Taylor/computer rule. This project's historical
   solving rule (`superko.zig`); **abandoned as the generation target** because
   exact-solve is intractable even on the empty 2x2. Kept for play-time legality.
@@ -49,7 +49,7 @@ software engineers, and LLM agents. Organized by domain.
   Used by real rulesets: **AGA** and **New Zealand** (situational/positional).
   Tromp–Taylor/PSK is the machine-to-machine convention; Japan and Korea use
   **no superko at all** (`../research/ruleset-options.md:9-20`).
-- **superko** — generic term for "no board state may repeat" rules (PSK/SSK).
+- **superko** — generic term for "no goban state may repeat" rules (PSK/SSK).
 - **triple ko / eternal life** — longer repetition cycles (3+ positions) that
   basic ko does not forbid. Under basic-ko rules these are *no result*; under
   superko they are illegal. The source of the *ko-sensitive region* difficulty.
@@ -60,17 +60,17 @@ software engineers, and LLM agents. Organized by domain.
   **no result** — the game is void and replayed (entry above). MIGOS II and
   solvers generally: a **tie**, a fixed value, because "replay the game" is not
   a value a table can hold. Design consequence: a tie is not an area score —
-  with komi 0 the area score on an odd-point board is always odd, so at 3x3 a
+  with komi 0 the area score on an odd-point goban is always odd, so at 3x3 a
   tie of 0 lies outside the natural value set, and the value domain becomes
   `ℤ ∪ {tie}` with the tie ordered between −1 and +1 (`roadmap-2026-07-28.md`
   §2). Contrast **score-on-cycle** (`../research/ruleset-options.md`), which
-  scores the cycle by area *at the repeated board* and is therefore
+  scores the cycle by area *at the repeated goban* and is therefore
   path-dependent — foreclosed as being exactly as intractable as PSK.
 - **MIGOS / MIGOS II** — **a program, not a ruleset**; project documents and
   agent messages have used "MIGOS II" as if it named a ruleset, and that is
-  wrong. MIGOS = "MIni GO Solver", Erik van der Werf's small-board solver;
+  wrong. MIGOS = "MIni GO Solver", Erik van der Werf's small-goban solver;
   MIGOS II is the version behind van der Werf & Winands, *Solving Go for
-  Rectangular Boards*, ICGA Journal 2009 — the source of every published anchor
+  Rectangular Gobans*, ICGA Journal 2009 — the source of every published anchor
   this project cites (3x3 = +9, 4x4 = +2, 5x5 = +25). Its **ruleset** is area
   (Chinese) scoring + **basic ko only** ("since superko is not used") +
   balanced long-cycle repetition scored as a **long-cycle tie**
@@ -96,20 +96,20 @@ software engineers, and LLM agents. Organized by domain.
 - **sente / gote** — (Japanese) sente = a move keeping the initiative (opponent
   must respond); gote = a move that yields the initiative. Formalized by CGT.
 - **tsumego** — (Japanese) a life-and-death problem; local, tractable where
-  full-board solves are not. The model for the planned *query engine*
+  full-goban solves are not. The model for the planned *query engine*
   (goal-bounded forward solver).
 - **tesuji** — (Japanese) a skillful, locally-best move/tactic.
 - **joseki** — (Japanese) an established, locally-optimal opening sequence.
   Used here only as a comparison concept; not stored or generated.
 - **honte** — (Japanese) the "proper"/solid move; used in the query-engine
   design as a quadrant label for moves that reinforce rather than attack.
-- **tengen** — the center point of the board (the optimal 5x5 first move, c3).
+- **tengen** — the center point of the goban (the optimal 5x5 first move, c3).
 
 ## Game-graph and search terms
 
 - **game line / line of play** — a SEQUENCE of moves/positions from a starting
-  board. What `superko.MAX_LINE` bounds and `History` records; its length is
-  measured in **plies** (one ply = one move by one side). NOT the board's "third
+  goban. What `superko.MAX_LINE` bounds and `History` records; its length is
+  measured in **plies** (one ply = one move by one side). NOT the goban's "third
   line from the edge"; NOT a serial-number "line in a listing."
 - **ply** — one move (half a move-pair). Recursion depth in the forward solver
   equals game-line length in plies, which is decoupled from stone count because
@@ -155,12 +155,12 @@ software engineers, and LLM agents. Organized by domain.
 
   | rule | history the rule needs | state size |
   |---|---|---|
-  | basic ko | the one forbidden point | ~17x boards |
-  | bounded superko, window `k` | the last `k−1` boards | explodes in `k` |
-  | PSK | **every** board ever seen | 118M ban-sets on a 2x2 |
+  | basic ko | the one forbidden point | ~17x gobans |
+  | bounded superko, window `k` | the last `k−1` gobans | explodes in `k` |
+  | PSK | **every** goban ever seen | 118M ban-sets on a 2x2 |
 
   Corollary: a position→score table is the *smallest possible* Markovian state
-  (the board alone), and **chainable** (next entry) is the same property seen
+  (the goban alone), and **chainable** (next entry) is the same property seen
   from the table's side — a table is chainable exactly when its state is
   Markovian for the rule it was built under.
 - **chainable** **[project term]** — a table region is *chainable* when
@@ -175,7 +175,7 @@ software engineers, and LLM agents. Organized by domain.
   slots**, for the shipped `vb`/`vw` columns (the `lo`/`hi` bracket-table form
   of the check is still untested; WZO1 carries no bracket columns). The
   ko-sensitive region is **not** chainable, and is mispriced by up to the full
-  board swing (2n) — at 4x4, 422,990 / 10,367,922 = **4.08% of flagged
+  goban swing (2n) — at 4x4, 422,990 / 10,367,922 = **4.08% of flagged
   non-settled slots**. Not a bug — each ko-sensitive slot is an independent
   fresh-start solve — but it is why the GTP player collapses in ko fights. See
   `../research/ko-sensitive-chainability.md`.
@@ -185,7 +185,7 @@ software engineers, and LLM agents. Organized by domain.
   `1 − (ko-sensitive fraction over reached decision nodes)`. NOT the
   slot-uniform ko-sensitive fraction, which weights every table slot equally
   and is the wrong denominator for a player (a player walks lines from the
-  empty board). Measured 2026-07-28 with `bin/weizigo-reachcensus
+  empty goban). Measured 2026-07-28 with `bin/weizigo-reachcensus
   data/oracle-4x4.checkpoint.wzo --games 2000`: at 4x4 the slot-uniform figure
   is **21.33%** ko-sensitive (10,367,922 / 48,599,962 **non-settled slots**,
   exhaustive; 21.32% if the denominator is instead all 48,636,330 **legal**
@@ -197,13 +197,13 @@ software engineers, and LLM agents. Organized by domain.
 - **MPH — minimal perfect hash** — a collision-free map from a known key set
   onto a dense integer range; the index itself becomes the storage key.
   Candidate data model for the compressed oracle.
-- **canonical form / equivalence class** — the 16 variants of a board (8
+- **canonical form / equivalence class** — the 16 variants of a goban (8
   dihedral symmetries × colour inversion) all share one fate (colour swap
   negates the score), forming ONE equivalence class storing ONE score. The
   *canonical* form is the class's designated representative (here the
   lexicographically-least variant, with −1 < 0 < 1).
-- **colex index (layered colex)** — a board's serial number in a fixed
-  enumeration: a collision-free bijection between boards and dense integers
+- **colex index (layered colex)** — a goban's serial number in a fixed
+  enumeration: a collision-free bijection between gobans and dense integers
   0..3^n−1, computed both ways (`colex_from_pos`/`pos_from_colex` in
   `src/colex.zig`). An ADDRESS, never a score — the score is what the oracle
   stores AT `values[idx]`. Layered layout: layer_offset[stones] +
@@ -227,7 +227,7 @@ software engineers, and LLM agents. Organized by domain.
   Used here as the rules reference; position-count anchors (OEIS A094777) are
   Tromp's.
 - **van der Werf & Winands** — (van der Werf, Winands et al.) authors of
-  published small-board Go results used as anchors: 3x3 = +9, 4x4 = +2 (under
+  published small-goban Go results used as anchors: 3x3 = +9, 4x4 = +2 (under
   basic-ko/PSK-compatible rules). 2009.
 - **Kishimoto–Müller (dependency-guarded memo)** — (A. Kishimoto; M. Müller) the
   sound solution to GHI in transposition tables: a memo entry records the
@@ -242,7 +242,7 @@ software engineers, and LLM agents. Organized by domain.
 - **Spight** — (T. Spight) a ruleset family for bounded ko with "repeat-twice-
   since-last-pass → no result"; the SIMPLE-ko model KataGo uses.
 - **OEIS A094777** — the On-Line Encyclopedia of Integer Sequences entry for
-  legal Go position counts by board size; the external anchor `enumerate.zig`
+  legal Go position counts by goban size; the external anchor `enumerate.zig`
   is validated against (1x1..4x4 all pass).
 
 ## Correctness / verification terms (and a note on "sound")
@@ -271,7 +271,7 @@ software engineers, and LLM agents. Organized by domain.
 ## weizigo engine concepts (project jargon — defined, not standard)
 
 - **fresh-start score** **[project term]** — the score of a position assuming
-  the game history is empty (no prior boards to forbid). The ADR-0008 oracle
+  the game history is empty (no prior gobans to forbid). The ADR-0008 oracle
   semantics. Equals the history-free score where the fresh-start single-score region holds.
 - **L / H (two-sided certification)** **[project term]** — two fixpoints of the
   retrograde value iteration: **L** seeded −n (cycles scored maximally anti-
@@ -286,7 +286,7 @@ software engineers, and LLM agents. Organized by domain.
 
 ## fresh-start score
 
-[project term] The score of a (position, side) reached from the empty board
+[project term] The score of a (position, side) reached from the empty goban
 with no prior history, played out under the generation rule (basic ko +
 bracket-guided finisher, `memo_writes=false`). The table holds fresh-start
 scores (C1). A fresh-start score is **not** a real-game score under PSK
@@ -301,7 +301,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
   2x2/3x2/3x3/4x3/4x4) because it exempts settled positions and divides by
   **non-settled** slots only. The two series are reconciled **at 4x4 only** (the
   36,368-slot settled exemption; `../research/ko-sensitive-chainability.md`, end
-  of Measurement 1); the smaller-board rows are `CLAIMS.md` discrepancy D7 and
+  of Measurement 1); the smaller-goban rows are `CLAIMS.md` discrepancy D7 and
   remain unreconciled. The bracket `[L,H]` is the **spread of
   fresh-start fixpoints under different cycle-resolution conventions**; it is a
   CLAIMED fresh-start property, **not** a real-game bound (C3 falsified at
@@ -328,7 +328,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
   and (optionally) runs the finisher on the ko-sensitive region. Polynomial in table size;
   the finisher is the expensive part.
 - **kill-X%** **[project term]** — an optional rule: a move capturing > X% of
-  the board's points ends the game immediately. Tested as a ko-sensitive-region cure and
+  the goban's points ends the game immediately. Tested as a ko-sensitive-region cure and
   ABANDONED (it worsens the ko-sensitive region). Retained as an optional play rule.
 - **fingerprint (dependency)** **[project term]** — a Bloom-style bit-word
   summarizing the position-set a memo entry's score depends on (Track B / deps
@@ -351,7 +351,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
   dependency-guarded memo (fingerprints). Sound and byte-identical to writes-off
   on 3x2/3x3/4x3 (validated), faster than writes-off but slower than the unsound
   path.
-- **ban set / ban-set key** **[project term]** — the set of prior board
+- **ban set / ban-set key** **[project term]** — the set of prior goban
   positions forbidden by superko; the `Exact` solver keys memo on it (sound but
   memory-prohibitive >3x3: ~5 MB/state at 4x4).
 - **rule-independent** **[project term]** — a score identical under any cycle
@@ -359,7 +359,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
 
 ## weizigo code-specific terms
 
-- **position (`pos`)** — a `[n]i8` board; sign = colour (>0 black, <0 white,
+- **position (`pos`)** — a `[n]i8` goban; sign = colour (>0 black, <0 white,
   0 empty). Magnitudes are *army-flag* ids, ignored when comparing colours.
 - **army flag** — the positive/negative magnitude labelling which connected
   group (chain) a stone belongs to; assigned by `state.update_armies` (Gen-1).
@@ -371,7 +371,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
 - **lowest / canonical form** — the representative of a position under the 8
   dihedral symmetries × black/white inversion; the TT key.
   `state.lowest_blind_from_pos`.
-- **is_settled** — fast-path terminal test: whole board decided (all stones
+- **is_settled** — fast-path terminal test: whole goban decided (all stones
   Benson-alive, every empty region one color's eye-space, no open interior).
   `terminal.is_settled` / `rules.is_settled`.
 - **double-pass terminal** — the general game-end condition (two passes in a
@@ -396,7 +396,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
 
 - **GTP — Go Text Protocol** — the standard protocol for Go engine↔GUI
   communication (Sabaki, gogui, etc.). `src/gtp.zig` implements it; the oracle
-  plays via GTP. Supports `rectangular_boardsize W H` for non-square boards.
+  plays via GTP. Supports `rectangular_boardsize W H` for non-square gobans.
 - **SGF — Smart Game Format** — the standard text format for recording Go
   games/problems. `src/sgf.zig` writes it; rendering is delegated to external
   tools (Sabaki, SmartGo One). No GUI code in this repo, ever.
@@ -409,7 +409,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
   design decision, its context, and consequences. Kept in `docs/decisions/`,
   append-only (supersede, don't rewrite). 0001..0013 so far.
 
-## Board-size facts (see `research/strategy-open-questions.md`)
+## Goban-size facts (see `research/strategy-open-questions.md`)
 
 - 2x2: empty(B) = +1 (fresh-start). 3x2: +1. 4x3: +4 (perfect).
 - 3x3: +9 (PSK, matches van der Werf & Winands). 4x4: +2 (PSK, matches anchor).
@@ -417,5 +417,5 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
   rule than this project's; not yet reached here.
 - 6x6: expected Black +4 (both colors survive, ~20/16); not rigorously solved.
 - 7x7: fair komi ≈ 9; near-balanced; not rigorously solved. 8x8+: unsolved.
-- **5x5 is the largest board on which optimal play annihilates one side; from
+- **5x5 is the largest goban on which optimal play annihilates one side; from
   6x6 up both players live.**

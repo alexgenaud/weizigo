@@ -13,7 +13,7 @@ Each entry carries a **verification status** for weizigo:
 
 ---
 
-## 1. Small-board Go solving — van der Werf / MIGOS
+## 1. Small-goban Go solving — van der Werf / MIGOS
 
 ### 1.1 MIGOS II anchor scores (primary: printed results)
 
@@ -25,7 +25,7 @@ Each entry carries a **verification status** for weizigo:
 are cited as published anchors and used as cross-reference for weizigo's
 fresh-start tables. weizigo does not re-run MIGOS II. Critical context: MIGOS II
 plays Chinese area scoring + **basic ko + long-cycle ties**, not positional
-superko (PSK) — see `GLOBAL.MIGOS-RULE`. The 3×3 and 4×4 empty-board scores
+superko (PSK) — see `GLOBAL.MIGOS-RULE`. The 3×3 and 4×4 empty-goban scores
 agree with weizigo's PSK tables; the 2×2 and 2×3 scores do not (ruleset
 divergence).
 
@@ -42,7 +42,7 @@ cycle-rule sensitivity.
 **Verification:** C (cited without reproduction). The thesis contains the full
 MIGOS architecture description (Benson integration, solving methodology,
 bounded-history ruleset discussion, and the experimental apparatus behind the
-2009 ICGA paper). The 2009 paper is a summary with new board-size results; the
+2009 ICGA paper). The 2009 paper is a summary with new goban-size results; the
 thesis is the canonically correct source for the MIGOS method and ruleset
 details.
 
@@ -344,7 +344,7 @@ generation (ADR-0009 Decision 1, "no un-capture code").
 
 **Relevance:** Prior art for the retrograde approach. The project's retrograde
 engine is the same technique applied to a different game with a different
-state-space structure (Go's empty-board → played → terminal direction vs.
+state-space structure (Go's empty-goban → played → terminal direction vs.
 checkers' populated → capture → empty direction). The successor-sweep innovation
 is independently motivated by Go's asymmetry (moves add stones, never remove
 them on their own).
@@ -356,7 +356,7 @@ them on their own).
 > DOI: [10.1016/S0004-3702(01)00152-9](https://doi.org/10.1016/S0004-3702(01)00152-9).
 
 **Verification:** C. The canonical survey of solved games, including Go on small
-boards. The project's 5×5 anchor appears in this survey.
+gobans. The project's 5×5 anchor appears in this survey.
 
 **Relevance:** Establishes the solved-games landscape into which weizigo's
 results fit. The survey covers through 2001; weizigo extends the Go-solving

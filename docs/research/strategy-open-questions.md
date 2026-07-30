@@ -27,14 +27,14 @@ coverage (open). Different goals need different engines — goal now fixed.
 
 ## BFS / layered vs DFS (user's proposal — sound, with caveats)
 - **Depth is a DFS path-artifact (user insight, 2026-07-16).** The measured
-  200+-ply lines (forward-solve-scaling.md) are the SAME boards re-derived via
+  200+-ply lines (forward-solve-scaling.md) are the SAME gobans re-derived via
   long silly paths. A POSITION-INDEXED solver (BFS-layered / retrograde) visits
-  each distinct board ONCE regardless of how deep some path to it is -- the
-  "depth" problem dissolves; a mid-game board with dead clumps is just a config,
+  each distinct goban ONCE regardless of how deep some path to it is -- the
+  "depth" problem dissolves; a mid-game goban with dead clumps is just a config,
   reached directly by enumeration, not by replaying a 200-ply game (it looks like
   "several handicap games at once", which is fine -- it's one enumerable state).
   The optimal-line length stays double-digits (~13-ply PV). RESIDUAL: superko
-  is the ONLY thing that resists collapsing a board to a single node (its score
+  is the ONLY thing that resists collapsing a goban to a single node (its score
   can depend on ko-history) -- that's the GHI problem below, and it is the make-
   or-break piece.
 - Store BOTH sides per position (supports handicaps, passes, either-to-move).
@@ -84,40 +84,40 @@ Persist STRUCTURE freely; persist SCORES only after 1–3.
   a group = a local solve. Endgame sente/gote has a rigorous theory:
   combinatorial game theory (CGT), Berlekamp-Wolfe "Mathematical Go" -- local
   game values + temperature explain "play the biggest first" = why keep sente.
-- CAVEAT: naive sub-board solving is UNSOUND (edge stones keep phantom
+- CAVEAT: naive sub-goban solving is UNSOUND (edge stones keep phantom
   liberties -- see HANDOVER gotchas). Local evaluation must treat the boundary
   as settled/alive (the CGT endgame regime), not a raw sub-array.
 - Research layer on TOP of the oracle; revisit after the score oracle works.
 
-## Future idea: hybrid oracle + search for LARGE boards (9x9)
-- For solvable boards (5x5/6x6/7x7) a shallow-perfect + search-below split does
+## Future idea: hybrid oracle + search for LARGE gobans (9x9)
+- For solvable gobans (5x5/6x6/7x7) a shallow-perfect + search-below split does
   NOT give a perfect oracle: correct scores propagate from TRUE terminals, so
   truncating at a ply-K frontier with search scores is a strong estimate, not a
   proof. Use full retrograde there.
 - For 9x9 (perfection out of reach): a perfect/near-perfect OPENING TABLEBASE
   (structure enumerated to ply K, scores as deep as affordable) + ALPHA-BETA to
   termination past the frontier IS the pragmatic engine — alpha-beta returns
-  here. A large-board tool, not needed for the solvable sizes. Revisit post-7x7.
+  here. A large-goban tool, not needed for the solvable sizes. Revisit post-7x7.
 
-## Board-size frontier (facts, corrected 2026-07-16)
-- 5x5: SOLVED, B+25 = total annihilation (whole board Black).
-- van der Werf rigorously solved rectangular boards up to 30 cells (i.e. up to
+## Goban-size frontier (facts, corrected 2026-07-16)
+- 5x5: SOLVED, B+25 = total annihilation (whole goban Black).
+- van der Werf rigorously solved rectangular gobans up to 30 cells (i.e. up to
   5x6); **6x6 (36 cells) is NOT among them.** 6x6 is widely EXPECTED B+4 under
   area rules (vdW 2008 estimate) but not a rigorous solve-from-empty. B+4 on 36
   points => B 20 / W 16, so both colours survive.
 - 7x7: fair komi ~9 (high confidence from strong-bot self-play); near-balanced
   at fair komi => both colours keep large territory. NOT rigorously solved.
 - 8x8: unsolved; NOT realistic with known methods.
-- Annihilation pattern: 5x5 is the largest SQUARE board confirmed to end with
+- Annihilation pattern: 5x5 is the largest SQUARE goban confirmed to end with
   one colour owning everything; from 6x6 up both players live. (3x3 centre
   opening is also 9-0; the exact 4x4 margin is not reliably sourced -- literature
   conflates it with the 3x3 side result.)
 - Realistic reach: correct + compressed 5x5, then attempt 6x6, aim at 7x7.
 - **User goal (2026-07-16):** after solving 5x5, aim for 6x6 then 7x7. In the
-  user's experience **7x7 is the minimal "interesting" board for actual play**;
+  user's experience **7x7 is the minimal "interesting" goban for actual play**;
   a perfect 5x5 oracle *may* be interesting but that's not yet certain. So 5x5
   is the correctness proving-ground; 6x6/7x7 are the payoff. Keep the engine and
-  data model board-size-agnostic (parameterize N) so 6x6/7x7 need no rewrite.
+  data model goban-size-agnostic (parameterize N) so 6x6/7x7 need no rewrite.
 
 ## Learn from van der Werf / room to innovate
 - Reuse: Benson life (have), symmetry + TT (have), endgame/LD databases,

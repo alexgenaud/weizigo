@@ -1,184 +1,158 @@
 {
- "T129": {
-  "status": "blocked",
-  "bundle": "docs/infra/dispatch/T129-exp7-4x4-rerun.md",
-  "set": "D",
-  "holds": [],
-  "needs": [
-   "T126"
-  ],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T120": {
-  "status": "dispatchable",
-  "bundle": "docs/infra/dispatch/T120-terminology-sweep.md",
-  "set": "A",
-  "holds": [],
-  "needs": [],
-  "caps": [],
-  "added": "2026-07-30T21:10:39Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T125": {
-  "status": "blocked",
-  "bundle": "docs/infra/dispatch/T125-basicko-tie-and-aliasing.md",
-  "set": "A",
-  "holds": [
-   "docs/epistemic/CLAIMS.md"
-  ],
-  "needs": [
-   "T124"
-  ],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T123": {
-  "status": "dispatchable",
-  "bundle": "docs/infra/dispatch/T123-absorb-adr0006-rows.md",
-  "set": "A",
-  "holds": [
-   "docs/epistemic/CLAIMS.md"
-  ],
-  "needs": [],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T124": {
-  "status": "blocked",
-  "bundle": "docs/infra/dispatch/T124-t13-row-rewrite.md",
-  "set": "A",
-  "holds": [
-   "docs/epistemic/CLAIMS.md"
-  ],
-  "needs": [
-   "T123"
-  ],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T126": {
-  "status": "blocked",
-  "bundle": "docs/infra/dispatch/T126-ko-census-and-wzo-provenance.md",
-  "set": "A",
-  "holds": [
-   "docs/epistemic/CLAIMS.md"
-  ],
-  "needs": [
-   "T125"
-  ],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T121": {
-  "status": "dispatchable",
-  "bundle": "docs/infra/dispatch/T121-probe-v2-memo.md",
-  "set": "A",
-  "holds": [
-   "docs/evidence/T13/probe-v2-2026-07-30.py"
-  ],
-  "needs": [],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T122": {
-  "status": "dispatchable",
-  "bundle": "docs/infra/dispatch/T122-managent-memory-safety.md",
-  "set": "A",
-  "holds": [
-   "src/managent/main.zig"
-  ],
-  "needs": [],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T128": {
-  "status": "dispatchable",
-  "bundle": "docs/infra/dispatch/T128-claimlint-dangling-retire.md",
-  "set": "C",
-  "holds": [],
-  "needs": [],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "T127": {
-  "status": "blocked",
-  "bundle": "docs/infra/dispatch/T127-refresh-progress-current.md",
-  "set": "B",
-  "holds": [
-   "docs/epistemic/PROGRESS.md",
-   "docs/status/CURRENT.md"
-  ],
-  "needs": [
-   "T123",
-   "T124",
-   "T125",
-   "T126"
-  ],
-  "caps": [],
-  "added": "2026-07-30T21:54:41Z",
-  "claimed": null,
-  "done": null,
-  "dispatched": null,
-  "dispatched_to": null,
-  "note": null,
-  "claim_count": 0
- },
- "_sys": {
-  "next_id": 130,
-  "directive_next": 7
- }
+  "T129": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/T129-exp7-4x4-rerun.md",
+    "set": "D",
+    "holds": [],
+    "needs": ["T126"],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T120": {
+    "status": "in_progress",
+    "agent": "opus-5",
+    "bundle": "docs/infra/dispatch/T120-terminology-sweep.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T21:10:39Z",
+    "claimed": "2026-07-30T23:28:07Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
+  "T125": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/T125-basicko-tie-and-aliasing.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": ["T124"],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T123": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/T123-absorb-adr0006-rows.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T124": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/T124-t13-row-rewrite.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": ["T123"],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T126": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/T126-ko-census-and-wzo-provenance.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": ["T125"],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T121": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/T121-probe-v2-memo.md",
+    "set": "A",
+    "holds": ["docs/evidence/T13/probe-v2-2026-07-30.py"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T122": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/T122-managent-memory-safety.md",
+    "set": "A",
+    "holds": ["src/managent/main.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T128": {
+    "status": "dispatchable",
+    "bundle": "docs/infra/dispatch/T128-claimlint-dangling-retire.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T127": {
+    "status": "blocked",
+    "bundle": "docs/infra/dispatch/T127-refresh-progress-current.md",
+    "set": "B",
+    "holds": ["docs/epistemic/PROGRESS.md", "docs/status/CURRENT.md"],
+    "needs": ["T123", "T124", "T125", "T126"],
+    "caps": [],
+    "added": "2026-07-30T21:54:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  }
+,
+  "_sys": {
+    "next_id": 130,
+    "directive_next": 7
+  }
 }

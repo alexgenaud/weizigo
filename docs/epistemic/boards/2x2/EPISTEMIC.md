@@ -1,6 +1,6 @@
 # 2×2 epistemic tree
 
-**Status:** tiny board, fully solved. Used as tooling validation, not Go knowledge.
+**Status:** tiny goban, fully solved. Used as tooling validation, not Go knowledge.
 
 ## Claims
 

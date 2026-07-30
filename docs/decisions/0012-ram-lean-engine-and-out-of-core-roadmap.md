@@ -82,11 +82,11 @@ Published anchor to hit: 4x5 = B+20 (van der Werf & Winands 2009).
    A partial 5x5 oracle (certified core + bracketed ko-sensitive region) is a real,
    publishable artifact long before the finisher completes.
 
-## Test ladder (user requirement: prove RAM strategies on small boards first)
+## Test ladder (user requirement: prove RAM strategies on small gobans first)
 
 1. Lean engine on 3x3/4x4: byte-identical artifacts, identical stats.
 2. 6x3 (in flight on the fat engine) re-run lean: identical artifact —
-   the first same-board fat-vs-lean engine-vs-engine comparison at scale.
+   the first same-goban fat-vs-lean engine-vs-engine comparison at scale.
 3. 5x4 on the lean engine (the 48 GB proof).
 4. Fold + tiling prototypes measured at 4x4/5x4 densities before 5x5.
 
@@ -144,7 +144,7 @@ proving step; 6x3 (in flight) doubles as the fat-vs-lean cross-check.
 
 ## Operational requirements for long generation runs (user requirements, 2026-07-23)
 
-Big-board generation must be INTERRUPTIBLE, VERIFIABLE IN PARTS, and
+Big-goban generation must be INTERRUPTIBLE, VERIFIABLE IN PARTS, and
 FAIL-FAST — never boil the pond for days before a logic error surfaces.
 
 1. **The unit of work is the (fixpoint, sweep, tile)**: tile files on disk
@@ -165,9 +165,9 @@ FAIL-FAST — never boil the pond for days before a logic error surfaces.
    - settled-seed and symmetry spot samples per sweep;
    - changes-per-sweep trend on the heartbeat (should decay geometrically;
      anomaly = stop and look).
-4. **Pilot-board regression gate before every big run**: any engine change
+4. **Pilot-goban regression gate before every big run**: any engine change
    must first reproduce the recorded sha256 artifacts end-to-end on
-   3x3 / 4x4 / 6x3 (minutes). No green gate, no big board.
+   3x3 / 4x4 / 6x3 (minutes). No green gate, no big goban.
 5. **Parallelism unit = the tile** (a dozen+ cores). Note: parallel tiles
    relax Gauss-Seidel to Jacobi-ish ordering, so INTERMEDIATE sweeps are
    schedule-dependent — but the least/greatest fixpoints are unique, so the

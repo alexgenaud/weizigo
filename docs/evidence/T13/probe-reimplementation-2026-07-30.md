@@ -3,7 +3,7 @@ Task: T110 · Role: worker · Model: Opus 5 (`claude-opus-5[1m]`) · Date: 2026-
 # T13 re-implemented: the C2 falsification at 3×2 is reproducible again
 
 **Headline: `3x2.T13` reproduces. All twelve recorded contradiction lines
-re-execute exactly — same board, same stored L==H value, same history-aware
+re-execute exactly — same goban, same stored L==H value, same history-aware
 value — under an independent Python re-implementation built from the durable
 descriptions alone. Every census number matches (489 legal / 30 settled /
 189+189 ko-sensitive / 540 L==H slots / 508 histories tested / 0 fresh-start
@@ -18,7 +18,7 @@ The corollary is uncomfortable: the loss was a convenience script, and the
 register recorded it as the loss of the experiment.
 
 **One correction to how T13 should be read.** Its "12 mismatches" is not an
-invariant of the board — it is a count of falsifying *(slot, history)* pairs in
+invariant of the goban — it is a count of falsifying *(slot, history)* pairs in
 an order-dependent sample of one history per slot. A re-run whose enumeration
 visits lines in a different order finds the same *slots* through different
 lines and reports a different number (this re-implementation's own search
@@ -77,14 +77,14 @@ decisions marked **[R]**:
 3. Enumerate short PSK-legal placement-only game lines up to 10 ply from every
    legal start position, global line budget 2,000,000 nodes.
    **[R]** "placement-only" = no pass edges in the enumerated line; "10 ply" =
-   at most 10 boards in the line including the start; the first mover from
+   at most 10 gobans in the line including the start; the first mover from
    every start is **Black** (forced by the parity of all twelve recorded
    lines — see §4); and the move generator here is **not** eye-pruned, since
    ADR-0006 constrains optimal play and not reachability (§6 — three of T13's
    own lines fill an eye).
 4. For each line ending at an L==H position, run `ab_solve` with `memo=false`,
    `brackets=false`, window `[-127,127]`, and the history pre-populated with
-   every board of the line including the endpoint.
+   every goban of the line including the endpoint.
 5. Compare against the stored L==H score.
    **[R]** one history per slot — see §6.
 6. Fresh-start sanity: the same solver on every L==H slot with the history
@@ -128,9 +128,9 @@ them would give 600.
 
 **508 was reproduced independently, and is a structural fact.** 508 of the 540
 L==H slots are reachable as the endpoint of a placement-only PSK line of ≤ 10
-boards from some legal start with Black moving first; the other 32 are not.
+gobans from some legal start with Black moving first; the other 32 are not.
 This re-implementation's enumeration differs from the original's in both order
-and scope (§6) and still lands on exactly 508 — so 508 measures the board, not
+and scope (§6) and still lands on exactly 508 — so 508 measures the goban, not
 the traversal.
 The 32 slots with a ban-set of size 1 in the distribution table are the starts
 themselves, tested with a trivial history; the write-up's own label calls
@@ -146,7 +146,7 @@ PSK line with the recorded parity, and re-solved.
 $ python3 docs/evidence/T13/t13_probe.py replay
 ```
 
-| idx | side | depth | board | L==H | stored | T13 expected | T13 got | re-impl got | fresh-start | line legal |
+| idx | side | depth | goban | L==H | stored | T13 expected | T13 got | re-impl got | fresh-start | line legal |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 314 | B | 9 | `BWW/..W` | yes | +6 | +6 | −6 | **−6** | +6 | yes |
 | 413 | B | 9 | `.WW/.BW` | yes | +6 | +6 | +1 | **+1** | +6 | yes |
@@ -191,8 +191,8 @@ liberty is cell 0. Black plays 0, captures all three, and owns the board:
 `area_score = +6`. That is exactly the stored fresh-start value, and the
 re-implementation confirms it (`fresh-start = +6`).
 
-But the post-capture board is `B../.B.` — **colex 40, the fourth entry of this
-very history**. Positional superko forbids it. Black's board-winning move does
+But the post-capture goban is `B../.B.` — **colex 40, the fourth entry of this
+very history**. Positional superko forbids it. Black's goban-winning move does
 not exist in this game, and the true value collapses to **+1**.
 
 Nothing about this requires trusting either implementation: the chain, its
@@ -283,7 +283,7 @@ history-aware mismatch: 14
 histories differ from T13's — same slots, same depths, different lines — which
 is expected of any traversal with a different visit order. All twelve of T13's
 own histories are *members* of the population enumerated here (§4 checks each
-one: legal start, placement-only, PSK-clean, Black-first parity, ≤10 boards);
+one: legal start, placement-only, PSK-clean, Black-first parity, ≤10 gobans);
 they are simply not the member each slot was assigned first.
 
 And the ban-set distribution now agrees **in every bucket**:
@@ -333,10 +333,10 @@ switch on `enumerate_lines` so the wrong answer can be reproduced deliberately.
 
 ### Two numbers still do not reconcile, and one of them is "12"
 
-**"12" is a property of a traversal, not of the board.** T13 tests one history
+**"12" is a property of a traversal, not of the goban.** T13 tests one history
 per L==H slot, so its count is over 508 draws — one per slot — with each draw
 fixed by visit order. This run, walking the same population in a different
-order, draws 14. Neither number measures the 3×2 board; §8 does. "12" should
+order, draws 14. Neither number measures the 3×2 goban; §8 does. "12" should
 not have entered `CLAIMS.md` phrased as though it were a property of the game.
 
 **`153,613` lines is unreconciled.** A line count is order-invariant, so the
@@ -345,7 +345,7 @@ and it does not close under any natural reading:
 
 | reading of "game lines examined" | count |
 |---|---|
-| all prefixes, Black first, ≤10 boards, no eye-prune (this run) | 271,057 |
+| all prefixes, Black first, ≤10 gobans, no eye-prune (this run) | 271,057 |
 | …counting only maximal lines | 141,570 |
 | …with the ADR-0006 eye-prune wrongly applied | 190,647 |
 | …enumerating both sides to move from each start | 542,114 |
@@ -402,8 +402,8 @@ finisher are untouched by this and remain exposed.
 **Not in conflict with T114.** `docs/audits/eye-prune-validation-2026-07-30.md`
 (T114, same date) reports that the sound unpruned control "does not terminate
 (32/32 roots unresolved at **3×2**)". That is about **fresh-start roots from a
-near-empty board**, where the unpruned tree is the whole game. The twelve
-positions here carry 4–6 stones and sit under a 9–10 board ban set, so their
+near-empty goban**, where the unpruned tree is the whole game. The twelve
+positions here carry 4–6 stones and sit under a 9–10 goban ban set, so their
 remaining trees are small and both arms finish in about a second. Both
 statements are true of different searches; a reader meeting them side by side
 should not conclude either is wrong. T114's verdict — ADR-0006 not falsified,
@@ -429,10 +429,10 @@ L==H slots with >=1 falsifying history : 154  (30.3% of reached)
 distinct falsifying values seen : -6, -3, -1, +0, +1, +3, +6
 ```
 
-**154 of the 508 reachable L==H slots — 30.3%, spread over 132 distinct board
+**154 of the 508 reachable L==H slots — 30.3%, spread over 132 distinct goban
 positions — have at least one reachable PSK history under which the true value
 differs from the stored fresh-start value.** That is the number that measures
-the board. It does not depend on visit order, on which history a slot is
+the goban. It does not depend on visit order, on which history a slot is
 assigned, or on where a traversal chose to stop, because every pair is tested.
 
 Containment checks, both clean:
@@ -447,7 +447,7 @@ Containment checks, both clean:
 | distinct positions involved | 132 |
 | falsifying (slot, history) pairs | 4,432 of 134,504 (3.3%) |
 | slots admitting >1 distinct falsifying value | 62 |
-| shortest falsifying history | **5 boards** (4 moves), for 12 slots |
+| shortest falsifying history | **5 gobans** (4 moves), for 12 slots |
 | stored value on falsifying slots | +6 on 112, −6 on 38, **0 on 4** |
 
 Three things in that table are worth pulling out.
@@ -459,7 +459,7 @@ actually reach. The "certified core" framing was withdrawn on the strength of
 12 counterexamples, and the withdrawal was right by a much larger margin than
 the evidence then showed.
 
-**It fails early.** Twelve slots are falsified by a history of only five boards
+**It fails early.** Twelve slots are falsified by a history of only five gobans
 — four moves from a legal start. History-sensitivity is not a deep-endgame
 phenomenon that a shallow search would be safe from.
 
@@ -468,7 +468,7 @@ phenomenon that a shallow search would be safe from.
 twelve; false in general. Four slots (`350` and `355`, both sides — `B.W/B.W`
 and `W.B/W.B`) carry a stored value of **0** and are falsified anyway. Any
 downstream reasoning that treated "±6" as the signature of C2 failure — a
-saturated-bracket heuristic, say — rests on the sample and not on the board.
+saturated-bracket heuristic, say — rests on the sample and not on the goban.
 
 This corroborates, from a different direction, the only other surviving 3×2
 C2-divergence measurement: `docs/evidence/c2-3x2/B10-minimax.md` found 138
@@ -505,7 +505,7 @@ and the Auditor owns claim semantics. This file edits nothing. Recommended:
   histories tested; 4,432 falsifying (slot, history) pairs of 134,504). The
   2026-07-26 run sampled one history per slot and recorded 12 of these; that
   count is traversal-dependent and should not be cited as a property of the
-  board. 0/540 fresh-start sanity mismatches."*
+  goban. 0/540 fresh-start sanity mismatches."*
 - **`c2-falsification-3x2.md` — retract one sentence.** *"Every mismatch is on
   a position whose stored L==H score is ±6"* is true of the twelve and false in
   general (§8: four falsifying slots carry a stored value of 0). It reads as a
@@ -545,7 +545,7 @@ and the Auditor owns claim semantics. This file edits nothing. Recommended:
   with a different walk order can land below it, and a weak probe can land
   above it. If that calibration is re-run, the bar should be *"finds ≥ K of the
   known falsifying slots"* against the slot list in §8 — a property of the
-  board, checkable per-slot.
+  goban, checkable per-slot.
 - Run `bin/weizigo-claimlint` after every edit — **and read the next paragraph
   first.**
 

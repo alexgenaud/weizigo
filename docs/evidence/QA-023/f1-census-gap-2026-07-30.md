@@ -78,15 +78,15 @@ seed fix alone, computed on the already-corrected ko rule. The subsequent
 comparison to 2,583 (new+1) attributed the residual +3 to the ko-rule fix,
 which is factually incorrect: it is the seed-count delta.
 
-### Finding 2: The three states are empty-board seeds/terminals, all trivially unreachable from the true game root
+### Finding 2: The three states are empty-goban seeds/terminals, all trivially unreachable from the true game root
 
 The symmetric difference `new+4 \ new+1` (states in the 4-seed census but not
 in the single-true-root census) is exactly three states. All have the empty
-3×2 board (`......`, rank 0), ko = none:
+3×2 goban (`......`, rank 0), ko = none:
 
 | # | state | linear | kind | reachability verdict |
 |---|---|---|---|---|
-| 1 | (empty, **W**, none, passes=**0**) | 9,477 | seed | **Unreachable from true root.** W cannot be to move on an empty board with passes=0: any path from the true root (empty, B, none, 0) that reaches empty-board-W-to-move must pass through a prior pass, which increments passes to at least 1. Stone placement never returns to an empty board. |
+| 1 | (empty, **W**, none, passes=**0**) | 9,477 | seed | **Unreachable from true root.** W cannot be to move on an empty goban with passes=0: any path from the true root (empty, B, none, 0) that reaches empty-goban-W-to-move must pass through a prior pass, which increments passes to at least 1. Stone placement never returns to an empty goban. |
 | 2 | (empty, **B**, none, passes=**1**) | 14,580 | seed | **Unreachable from true root.** B-to-move with passes=1 requires W to have passed from (empty, B, none, 0), but W is not to move there. From the true root the only pass is B's: B pass → (empty, W, none, 1), and no sequence reaches (empty, B, none, 1). |
 | 3 | (empty, **W**, none, passes=**2**) | 29,889 | cascaded from seed #2 | **Unreachable from true root.** This is the terminal reached by B passing from state #2: (empty, B, none, 1) → B pass → (empty, W, none, 2). The true root's reachable terminal is (empty, B, none, 2) via B-pass, W-pass. |
 
@@ -95,10 +95,10 @@ in the single-true-root census) is exactly three states. All have the empty
 **State 1 — (empty, W, none, 0).** The true game root is (empty, B, none, 0).
 Every move flips `side`. Every place resets `passes` to 0. Every pass
 increments `passes`. Starting from (empty, B, none, 0):
-- B places a stone → `passes=0`, `side=W`, board not empty. Cannot return to
+- B places a stone → `passes=0`, `side=W`, goban not empty. Cannot return to
   empty via placement (captures leave capturing stones).
 - B passes → (empty, W, none, 1). `passes=1`. Cannot reach `passes=0` except
-  via placement, which leaves the board non-empty.
+  via placement, which leaves the goban non-empty.
 Therefore (empty, W, none, 0) is unreachable from the true game root.
 **Verdict: UNREACHABLE — phantom seed.**
 
@@ -106,12 +106,12 @@ Therefore (empty, W, none, 0) is unreachable from the true game root.
 (empty, W, none, 1). To reach B-to-move-with-passes=1, W must pass from a
 B-to-move state, but the only B-to-move state reachable from the root without
 placing stones is the root itself (passes=0). W is not to move there.
-Any placement leaves the board non-empty. Therefore (empty, B, none, 1) is
+Any placement leaves the goban non-empty. Therefore (empty, B, none, 1) is
 unreachable from the true game root.
 **Verdict: UNREACHABLE — phantom seed.**
 
 **State 3 — (empty, W, none, 2).** Terminal. Reachable only via two
-consecutive passes from an empty-board B-to-move state with passes=0.
+consecutive passes from an empty-goban B-to-move state with passes=0.
 The true root → B pass → (empty, W, none, 1) → W pass → (empty, B, none, 2).
 The W-to-move terminal requires B-to-move with passes≥1, which is state #2
 (phantom). Therefore unreachable.
@@ -137,7 +137,7 @@ of precision that ±3 matters.
 
 **2,583 is the authoritative count of genuinely reachable 3×2 states under the
 corrected basic-ko rule.** It counts only states reachable from the single true
-game root (empty board, Black to move, no ko point, zero passes), which is the
+game root (empty goban, Black to move, no ko point, zero passes), which is the
 only state that can occur at the start of a real game.
 
 2,586 overcounts by 3: it includes two phantom seeds and one cascaded terminal
@@ -162,7 +162,7 @@ phantom states; the other two are not.
 | terminals (passes=2) | **yes** | 854 → 853 (−1; the W-to-move terminal is phantom) |
 | cycle-involved (SCC) | **no** | 1,666 unchanged; phantom states are trivial SCCs |
 | cycle-reachable | **no** | 1,680 unchanged |
-| distinct legal boards | **no** | 489 unchanged |
+| distinct legal gobans | **no** | 489 unchanged |
 | B-VACUITY | **no** | cycles > 0 regardless |
 | pin_T / pin_L / pin_H | **minimal** | pin_T shifts by at most 3 |
 | ko=cells (real-ko states) | **no** | 24 unchanged; all three phantoms have ko=none |
@@ -189,21 +189,21 @@ at V=2,586, which constrains the combined system (Python rules × Python
 reachability) but does not independently verify the diff computation.
 
 **Wrong-answer pass rate: unknown but low-probability for the specific claim.**
-The three states are all empty-board states that differ only in `side` and
+The three states are all empty-goban states that differ only in `side` and
 `passes`, and the reachability argument from first principles (Finding 2) does
 not depend on the Python implementation at all — it is a direct graph-distance
 argument over the move rules. The claim that these three states are unreachable
 from the single true root follows from: (a) every move flips side, (b) every
-place leaves a non-empty board, (c) every pass increments passes. These are
+place leaves a non-empty goban, (c) every pass increments passes. These are
 true under any correct transcription of the basic-ko rules.
 
 ## Could a "softly reconciled" discrepancy of this size hide a systematic error?
 
 **No, the +3 does not hide a systematic error.** It is exactly three isolated
-states, all empty-board variants, all trivial in the graph structure. A
+states, all empty-goban variants, all trivial in the graph structure. A
 systematic error would manifest as a pattern across many states (like the 60
 ko-rule states, which form a regular pattern of spurious ko bans across 30
-Black and 30 White states in symmetrical board positions).
+Black and 30 White states in symmetrical goban positions).
 
 That said, the "soft reconciliation" narrative in F1-SEEDROOTS *was* a
 systematic error of a different kind: it attributed the wrong cause to the

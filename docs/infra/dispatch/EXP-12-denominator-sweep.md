@@ -76,6 +76,6 @@ are separate work for the owners of each file.
 - The summary table (above).
 - The PASS/FAIL counts and the kind breakdown.
 - A short paragraph on what the FAILs have in common
-  (single-board vs cross-board; L==H vs ko-sensitive; etc.).
+  (single-goban vs cross-goban; L==H vs ko-sensitive; etc.).
 - An "honest negatives" paragraph: percentages the worker
   judged borderline and left alone, with the reason.

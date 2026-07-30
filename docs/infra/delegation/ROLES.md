@@ -86,7 +86,7 @@ analysis agents can feed one serial queue. If the queue is the bottleneck, batch
 related recommendations into a single mutation — do not parallelise the queue.
 
 **Every task is registered in `bin/managent`**, and the human dispatches only from
-its dispatchable set. The board already expresses both kinds, verified against
+its dispatchable set. The kanban already expresses both kinds, verified against
 `src/managent/main.zig`:
 
 - `holds=<paths>` is the concurrency gate — two in-progress tasks conflict only
@@ -97,9 +97,9 @@ its dispatchable set. The board already expresses both kinds, verified against
   every task in every prior set is done. Use one set unless a genuine phase
   boundary exists, and express real dependencies with `needs=`.
 
-So the practical limit on analysis is consoles and cost, not the board.
+So the practical limit on analysis is consoles and cost, not the kanban.
 
-## Dispatching, claiming, and the board
+## Dispatching, claiming, and the kanban
 
 The Orchestrator owns the kanban end-to-end: it records dispatches on the
 human's behalf, records claims when a worker has started but not claimed, and

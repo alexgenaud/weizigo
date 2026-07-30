@@ -43,7 +43,7 @@ compromise, not a theorem. Probes in the 3x3 build:
 2. **No-memo spot checks**: >= 6-stone roots re-solved with memoization
    disabled (node-budgeted) and compared.
 3. **Published anchors**: empty 3x3 = B+9 (centre); 1.B side = +3; 1.B corner
-   = -9 (Hayward, *Solving Go on Small Boards*).
+   = -9 (Hayward, *Solving Go on Small Gobans*).
 4. **Exhaustive symmetry**: colour-inversion (`score(-pos,-side) ==
    -score(pos,side)`) and all 8 dihedral transforms, over EVERY legal position
    — replacing the hand-picked inversion unit tests the user does not fully
@@ -61,9 +61,9 @@ compromise, not a theorem. Probes in the 3x3 build:
 
 ## Implementation
 
-- `src/rules.zig` — board-size-generic rules (move/capture/suicide, area score,
+- `src/rules.zig` — goban-size-generic rules (move/capture/suicide, area score,
   Benson `benson_alive`, `is_settled`, eye-prune predicate). Cross-validated
-  against the 5x5 stack: 500 random boards vs `terminal.zig` (score, Benson,
+  against the 5x5 stack: 500 random gobans vs `terminal.zig` (score, Benson,
   settled) and 1000 random moves vs `state.armies_from_move` — all equal.
 - `src/oracle.zig` — generic solver (superko History + `ko_ref` GHI rule +
   ADR-0006 eye-prune) + the 3x3 build-and-validate `main`.
@@ -75,6 +75,6 @@ compromise, not a theorem. Probes in the 3x3 build:
   built backward, must match byte-for-byte).
 - 4x4 is the next prototype scale (43 MB raw); 5x5 needs the density folds
   (legality ~2x, canonical ~16x) per ADR-0007.
-- If the forward fresh-start build is too slow already at 3x3 (the empty-board
+- If the forward fresh-start build is too slow already at 3x3 (the empty-goban
   root re-searches ko-tainted regions), that is *additional* evidence for
   retrograde — record the cost either way.

@@ -19,7 +19,7 @@
 // ORACLE ARTIFACT (ADR-0011) — the persisted perfect oracle itself.
 //
 // Distinct from persist.zig (the forward-search TT *checkpoint*): this file
-// IS the product — the complete value/dtt/flags table of a solved board,
+// IS the product — the complete value/dtt/flags table of a solved goban,
 // colex-addressed (ADR-0007/0009). The payload is the six frozen schema
 // columns (ADR-0009 decision 4), dense over the RAW colex address space,
 // in this order:
@@ -223,7 +223,7 @@ pub fn save(io: std.Io, dir: std.Io.Dir, sub_path: []const u8, gpa: Allocator, h
     var file = try dir.createFile(io, sub_path, .{});
     defer file.close(io);
     // CHUNKED write: a single write() of a >2 GiB buffer fails on macOS
-    // (error.Unexpected). Boards >= 6x3 exceed that; write in <=1 GiB pieces
+    // (error.Unexpected). Gobans >= 6x3 exceed that; write in <=1 GiB pieces
     // at explicit offsets so every artifact size is handled uniformly.
     const CHUNK: usize = 1 << 30;
     var off: u64 = 0;

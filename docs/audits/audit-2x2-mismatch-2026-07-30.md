@@ -114,7 +114,7 @@ a (path, state) tree, pruning only skips subtrees, and there is **no
 transposition table**, so no path-dependent value is ever reused across paths.
 With a full window the root value is exact whatever the move order; ordering
 (most-favourable-material first) only changes the node count and is computed
-from the board alone, independent of the fixpoint tables.
+from the goban alone, independent of the fixpoint tables.
 
 Total alpha-beta cost: 20,527,408 nodes over 172 states, max 339,959 for a
 single state.
@@ -142,7 +142,7 @@ mismatches, and nothing less than that explains them.
 
 ## 4. The three hand-verified states
 
-Board geometry. 2×2, cells row-major
+Goban geometry. 2×2, cells row-major
 
 ```
 0 1
@@ -154,14 +154,14 @@ adjacent**. Consequence: any two *adjacent* cells holding opposite colours put
 both stones in atari simultaneously — W at 0 has only liberty 2, B at 1 has
 only liberty 3 — so whoever moves captures. All 24 mismatch states are exactly
 this shape (4 adjacent pairs × 2 colour orders × relevant `passes` values), and
-the capture takes the whole board.
+the capture takes the whole goban.
 
 ### idx=329 — `WB/..`, Black to move, ko none, passes 0 → **+4**
 
 Black's legal moves: `pass`, `place 2`, `place 3`.
 
-1. **Black `place 2`.** Board becomes `WBB.`; W's chain {0} now has neighbours
-   1(B) and 2(B), no liberty → removed. Board `.B/B.`. The placed stone at 2 is
+1. **Black `place 2`.** Goban becomes `WBB.`; W's chain {0} now has neighbours
+   1(B) and 2(B), no liberty → removed. Goban `.B/B.`. The placed stone at 2 is
    a lone stone (1 and 2 are diagonal, so no friendly connection) with
    liberties 0 and 3 → not suicide, legal.
    Ko test: `opp_before − opp_after = 1`, `captured_cell = 0`, but the placed
@@ -231,7 +231,7 @@ That is idx=734. Its value is **−4**, by hand in §4 and by both machine
 evaluators. The test's own comment reasons correctly that basic-ko
 formalization (i) never fires on 2×2 — that part is right — and then
 concludes "*(The 2x2 result must still be 0; this test asserts it.)*" That is a
-non-sequitur: 0 is the value of the **empty-board root**, not of an arbitrary
+non-sequitur: 0 is the value of the **empty-goban root**, not of an arbitrary
 non-root position. `W B/. .` with White to move is a won game for White.
 
 This matters beyond the test, because EXP-4 §3 recorded the disagreement as
@@ -260,7 +260,7 @@ function:
 | `src/exp6_hchain_audit.zig` | `brute_value` | 829-867 |
 
 These are **worse** than the 2×2 case, because they also filter on the
-clobbered board buffer:
+clobbered goban buffer:
 
 ```zig
 for (0..m) |k| {

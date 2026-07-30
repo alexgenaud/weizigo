@@ -4,7 +4,7 @@
 **Subject:** `src/exp6_solve.zig` (DSPro/EXP-6, 2026-07-29) — 4×4 under basic ko + TIE=0,
 loopy-game fixpoint (ADR-0020). Fixpoint converged (31 sweeps); root B = L+1 / H+16 → V=+1
 (median pin), expected anchor +2.
-**Question:** is H=+16 at the empty-board root *genuine* (White cannot force the
+**Question:** is H=+16 at the empty-goban root *genuine* (White cannot force the
 greatest-fixpoint bound below +16 under optimal Black play) or a propagation bug?
 
 ---
@@ -44,13 +44,13 @@ The audit instrument's first-move dump is the decisive new datum:
 | Black's first move (1B@k, White to move) | L | H | reading |
 |---|---|---|---|
 | **centre 2×2: k ∈ {5,6,9,10}** | **+1** | **+16** | bracket [+1,+16] — only non-losing opening |
-| corners: k ∈ {0,3,12,15} | −16 | −16 | **single-score −16: White force-wins the whole board** |
+| corners: k ∈ {0,3,12,15} | −16 | −16 | **single-score −16: White force-wins the whole goban** |
 | edges: k ∈ {1,2,4,7,8,11,13,14} | −16 | −16 | same |
 
 The root value is `max` over those children: L(root)=+1 and H(root)=+16 are
 inherited **entirely from the four centre openings**. Under both fixpoints
 (L==H, single-score), any corner or edge first move loses the entire 16-point
-board with White to move. This is exactly the qualitative structure 4×4 theory
+goban with White to move. This is exactly the qualitative structure 4×4 theory
 requires — the acceptance criterion's own parenthetical "*central first move*"
 (`docs/infra/dispatch/EXP-6.md`) is corroborated by construction: the centre
 2×2 is the unique opening class that does not immediately lose. A propagation
@@ -62,15 +62,15 @@ bug would have no reason to produce this Go-correct class pattern, with perfect
 The gfp H is the **safety-game bound**: {s : H(s)=16} is the greatest set closed
 under [Black-to-move: ∃ child in set or terminal scoring 16; White-to-move: ∀
 children in set or scoring 16]. A Go terminal requires two consecutive passes;
-the second pass is Black's choice. Every non-empty all-Black board scores
+the second pass is Black's choice. Every non-empty all-Black goban scores
 exactly +16 under TT area scoring (any empty region then touches only Black;
 b + (16−b) = 16). Black under H-optimal play simply never passes except from
-such boards; basic ko (1-ply recapture ban) permits infinite recapture cycles,
+such gobans; basic ko (1-ply recapture ban) permits infinite recapture cycles,
 so Black can keep play alive forever. White can *never* force the game to end —
 hence never force a terminal below +16 against correct Black play. The gfp at
 root is therefore +16 as a **ruleset fact**, not an artefact.
 
-The same phenomenon appears at the smaller boards where ground truth is
+The same phenomenon appears at the smaller gobans where ground truth is
 independently known and my independent kernel reproduces it exactly (§4):
 3×2 root = bracket [−6,+6] pinned to V=0 (EXP-4's history-exact brute force
 confirms 0); 3×3 root = L==H==+9 (MIGOS anchor). **H residing at the lattice
@@ -102,8 +102,8 @@ TOTAL4−1 exactly; ReachWords4 = 68,605,712 ✓ matches log). V =
 
 4×4 path is sparse: frontier-BFS census into a 549 MB dense bitset
 (`run_census_4x4`; legality filter on passes==0 children only — correct: pass
-edges preserve the parent's legal board, and `genericPosFromMove` cannot
-produce an illegal board from a legal one), compact list of reachable
+edges preserve the parent's legal goban, and `genericPosFromMove` cannot
+produce an illegal goban from a legal one), compact list of reachable
 passes∈{0,1} states (line 1096), AutoHashMap dense→compact (line 1114),
 Gauss-Seidel L sweep (line 1154) and H sweep (line 1201); terminal children
 scored on the fly (lines 1225-1230), non-terminal children via `map.get`
@@ -124,7 +124,7 @@ fixpoint itself is the deliverable (ADR-0020).
  at every White-to-move state, the computed min equals the stored H.
 
 One falsifiable structural corollary, verified with denominator:
-**white-to-move states with a White stone on board and passes==1 must never
+**white-to-move states with a White stone on goban and passes==1 must never
 have H==16** (their pass child is a terminal scoring <16, and White minimises).
 Population over 99,133,036: white-to-move H==16 = 8,223,118; with a White
 stone = 8,158,215; of those passes==1 = **0** ✓. Mirror check (Black, L==−16):
@@ -133,7 +133,7 @@ stone = 8,158,215; of those passes==1 = **0** ✓. Mirror check (Black, L==−16
 
 ## 3. Traced H-update path, terminal → root (the required end-to-end trace)
 
-Witness chain, B first move to centre cell 5 (board rank 3^5 = 243), executed
+Witness chain, B first move to centre cell 5 (goban rank 3^5 = 243), executed
 by the instrument (Trace A) against the converged tables:
 
 1. **Leaf** T = (243, W, ko=NONE, passes=2): not compact (terminals excluded),
@@ -146,7 +146,7 @@ by the instrument (Trace A) against the converged tables:
    non-terminal.
 3. **S0 = (243, W, ko=NONE, passes=0)** — **minimizing**: H(S0)=16 requires
    ALL children at 16. Trace A enumerated all 16: pass child (S1) at (+16,+16);
-   14 of 15 placement children (1B1W boards, B to move) are single-score
+   14 of 15 placement children (1B1W gobans, B to move) are single-score
    (+16,+16) — Black finitely force-captures the lone invader; the 15th
    (White replies at centre cell 10) holds bracket (+1,+16). **0 children with
    H<16 → min = 16 = stored ✓.**
@@ -157,7 +157,7 @@ by the instrument (Trace A) against the converged tables:
 
 Trace B (White always passes — her purest attempt to drag the game to a
 sub-16 terminal) from all three first-move classes: all three lines end at
-`TERMINAL: bstones=15 wstones=0 area_score=16` — Black fills the board and
+`TERMINAL: bstones=15 wstones=0 area_score=16` — Black fills the goban and
 passes out for +16. From corner/edge starts the stored value is −16, so those
 lines demonstrate the recovery under a White blunder (they do not witness
 H=16 there); from the centre start the premise H=16 holds at every node on the
@@ -178,7 +178,7 @@ kernel audit — the instrument class that found F5; satisfies "independent
 re-implementation is what finds defects") vs the harness's dumped tables.
 Output committed at `docs/audits/exp6-hchain-kernel-check-2026-07-30.stdout`:
 
-| board | denominator | reach-set equality | value mismatches | inversion | white p=1 mixed H==top |
+| goban | denominator | reach-set equality | value mismatches | inversion | white p=1 mixed H==top |
 |---|---|---|---|---|---|
 | 2×2 (full raw space) | 2,430 | n/a (bijection, no dup keys) | **0** | n/a | n/a |
 | 3×2 (reachable) | 2,586 | **exact** (0 either direction) | **0** | **0** | **0** |
@@ -253,7 +253,7 @@ values, now measured by this audit's run: (1B@0,W,0) = (−16,−16);
   gfp H=+16, median pin); the +2-anchor failure is a **ruleset** difference
   (basic ko vs PSK-class cycle handling), not a propagation defect. Structural
   finding attached: centre 2×2 openings are the unique non-losing class;
-  corner/edge openings are single-score −16. **CLAIMED** at 4×4 (per-board
+  corner/edge openings are single-score −16. **CLAIMED** at 4×4 (per-goban
   independence; residuals §7).
 - `QA-026` (4×4 scope) — L/H converge machinery + H-propagation: **CLAIMED**;
   this audit supplies the deferred H-propagation audit (EXP-6 report §13, item

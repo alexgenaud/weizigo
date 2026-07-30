@@ -1,13 +1,13 @@
 # Concept-inventory — the cross-size claim-types
 
-Definitions only. No status — status lives in each board's `EPISTEMIC.md`.
-These are the fact-topics every board-size tree must address. Mined from the
+Definitions only. No status — status lives in each goban's `EPISTEMIC.md`.
+These are the fact-topics every goban-size tree must address. Mined from the
 project's failures (each was assumed-true at one size and broke at another).
 
 ## Structural (S) — the engine is correct
 
 - **S1** colex bijection collision-free. Prove: exhaustive round-trip at size.
-- **S2** Benson-alive **theorem** holds (board-structure; inherits to
+- **S2** Benson-alive **theorem** holds (goban-structure; inherits to
   every size) — distinct from **S2-impl**, the `rules.zig` *implementation*
   regression check, which must be re-falsified at each size.
 - **S3** rules kernel correct. **Split into sub-claims `[T07-1]`:**
@@ -62,22 +62,22 @@ project's failures (each was assumed-true at one size and broke at another).
 - **C4** fresh-start == real-game. (FALSE for ko-sensitive by construction;
   TRUE for single-score only if C2-bounded holds.)
 
-## Per-board epistemic independence
+## Per-goban epistemic independence
 
-**Each board size is its own epistemic universe.** A claim that is PROVEN,
+**Each goban size is its own epistemic universe.** A claim that is PROVEN,
 CLAIMED, or FALSE-AS-SCOPED at one size is **not** evidence for the same
 status at any other size. There is no monotonicity theorem that lets a 2×2
 result imply anything about 3×2, or a 3×2 result imply anything about 3×3 or
 4×4.
 
-This is why every board size needs its own epistemic record:
+This is why every goban size needs its own epistemic record:
 - `docs/boards/<size>/EPISTEMIC.md` for the active sizes (currently 4×4).
 - `docs/status/leak-crisis.md` for the cross-size crisis claims and their
-  per-board status.
+  per-goban status.
 - Task outputs in `untracked/` for the exact evidence at each size.
 
-When a subagent reports a result, it must state the board size explicitly
-and avoid phrases like "this suggests X at larger boards" unless a
+When a subagent reports a result, it must state the goban size explicitly
+and avoid phrases like "this suggests X at larger gobans" unless a
 monotonicity theorem is supplied. The Boss will reject any such inference.
 
 ## The user's unbounded-history worry (recorded verbatim, not resolved) `[T07-7, T07-10]`
@@ -85,15 +85,15 @@ monotonicity theorem is supplied. The Boss will reject any such inference.
 > I am not convinced there is a distinction between single-score range and a
 > bracketed ko-sensitive range. If we do not forbid nor declare winner on
 > huge army death or if we allow numerous passes or we allow arbitrary
-> handicap count and stone-placement, then any board could have repeated in
+> handicap count and stone-placement, then any goban could have repeated in
 > the past or future. Thus I assume (unproven yet unfalsified) every single
-> board state (position) could have been seen before — which is the same as
+> goban state (position) could have been seen before — which is the same as
 > saying "could be seen again in the future". Otherwise, can we prove that
 > single-score range could never have repeated before or after? Or that
 > repetition has no impact on the score? And I should be careful: whether
 > THIS position can repeat is not even the issue, but rather whether any
 > PREVIOUS or FUTURE position BEFORE or AFTER THIS position could repeat. On
-> a sufficiently large board any repetition could have happened without trace
+> a sufficiently large goban any repetition could have happened without trace
 > (the eyes could have been filled and the blob army destroyed and
 > repopulated).
 

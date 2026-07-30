@@ -30,7 +30,7 @@ from functools import lru_cache
 from itertools import product
 
 # -----------------------------------------------------------------------------
-# Board geometry
+# Goban geometry
 W, H = 3, 2
 N = W * H
 

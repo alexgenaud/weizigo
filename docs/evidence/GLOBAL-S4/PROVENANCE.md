@@ -3,7 +3,7 @@
 **Author:** DSPro/T112, 2026-07-30.  
 **Dispatch:** direct evidence task from `docs/audits/t101-punchlist-2026-07-30.md` row 4 / `docs/epistemic/CLAIMS.md` row `GLOBAL.S4`.  
 **Run date:** 2026-07-30.  
-**Claim ID(s) closed:** `GLOBAL.S4` primarily; the evidence also discharges `4x4.S4` and `4x3.S4` (both `⬜ᴵᴺᴴ`, self-declared inheritance from `GLOBAL.S4`) because a Tromp–Taylor area scorer is board-size-agnostic by construction — a single size-stratified corpus at 2×2 through 5×5 covers every finite board size at once.  
+**Claim ID(s) closed:** `GLOBAL.S4` primarily; the evidence also discharges `4x4.S4` and `4x3.S4` (both `⬜ᴵᴺᴴ`, self-declared inheritance from `GLOBAL.S4`) because a Tromp–Taylor area scorer is goban-size-agnostic by construction — a single size-stratified corpus at 2×2 through 5×5 covers every finite goban size at once.  
 **Acceptance criterion (from the punchlist, Option B):** an independent ~40-line Python re-implementation of the Tromp–Taylor area scoring algorithm, verified against a size-stratified terminal corpus drawn from the project's existing test fixtures.
 
 ## What is being proven
@@ -11,7 +11,7 @@
 The claim (`CLAIMS.md` §2.1, row `GLOBAL.S4`): "Area (Chinese) scoring is
 implemented correctly; the score is a pure function of the terminal snapshot."
 The implementation is `area_score` in `src/rules.zig:124–166` (parametric over
-board size) and `src/score.zig:chinese_area` (thin wrapper). The reference
+goban size) and `src/score.zig:chinese_area` (thin wrapper). The reference
 independent implementation is `docs/evidence/GLOBAL-S4/scorer-2026-07-30.py`,
 written in Python by a different author (DSPro/T112) from scratch with no
 access to the Zig source during composition — only the Tromp–Taylor algorithm
@@ -34,26 +34,26 @@ committed corpus and the test harness is ~100 lines.
 ## Corpus
 
 27 terminal snapshots drawn from the project's existing test fixtures plus
-additional boards at sizes not directly covered by committed tests:
+additional gobans at sizes not directly covered by committed tests:
 
 | size | count | source |
 |---|---|---|
-| 2×2 | 5 | added (calibration; smallest board) |
+| 2×2 | 5 | added (calibration; smallest goban) |
 | 3×2 | 3 | added (rectangular, asymmetric) |
 | 3×3 | 4 | `src/rules.zig` tests (middle column, centre stone, bw-adjacent), `src/score.zig` tests (empty) |
-| 4×4 | 6 | added (max solved board; includes chessboard, split-wall, ring) |
+| 4×4 | 6 | added (max solved goban; includes chessboard, split-wall, ring) |
 | 5×5 | 9 | `src/terminal.zig` tests (empty, full, one-stone, split-corners, wall, white-2eye, army-flags, owned-settled) |
 
 Every expected score in the corpus is the score reported by the Zig test
 suite (`src/terminal.zig`, `src/rules.zig`, `src/score.zig`), which passed all
 area-score tests on this date.  The 5×5 cross-validation test in `rules.zig`
-(500 random boards, seed `0xC0FFEE`) also passed.
+(500 random gobans, seed `0xC0FFEE`) also passed.
 
 The corpus exercises every scoring rule path:
 - **Stones only** — all-black, all-white (all sizes)
-- **Empty territory** — lone stone owns the board (all sizes)
+- **Empty territory** — lone stone owns the goban (all sizes)
 - **Dame (both)** — B/W diagonal, adjacent, chessboard, split corners
-- **Dame (neither)** — empty board (all sizes)
+- **Dame (neither)** — empty goban (all sizes)
 - **One-sided flood** — black wall, black ring, white two-eye
 - **Army-flag robustness** — `5x5/army-flags` (magnitudes >1, sign-only scoring)
 - **Settled/owned terminals** — `5x5/owned-settled`
@@ -74,11 +74,11 @@ Raw output committed as `verify-2026-07-30.log`.
 27/27 passed
 ```
 
-### Layer 2 — direct cross-validation: Python vs Zig on random boards
+### Layer 2 — direct cross-validation: Python vs Zig on random gobans
 
-120 random boards (seed `0xC0FFEE`, the project's own cross-validation
+120 random gobans (seed `0xC0FFEE`, the project's own cross-validation
 seed), stratified across 6 sizes (2×2, 3×2, 3×3, 4×3, 4×4, 5×5).  Each
-board was scored by the Python `area_score` and the expected score
+goban was scored by the Python `area_score` and the expected score
 embedded as an assertion against `rules.Rules(w,h).area_score()` in a Zig
 test.  Result:
 
@@ -103,7 +103,7 @@ $ zig test src/rules.zig      # 55/55 passed (includes 500-random-board cross-va
 The three layers together confirm: the Python scorer, `src/rules.zig:area_score`,
 `src/score.zig:chinese_area`, and `src/terminal.zig:area_score` all implement
 the Tromp–Taylor algorithm identically — every path through the corpus and
-every random board produces the same result.
+every random goban produces the same result.
 
 ## Honest scope limits
 
@@ -112,15 +112,15 @@ every random board produces the same result.
   are correct (that is the retrograde/finisher correctness, separate rows),
   nor that the terminal-detection logic (`is_settled`, Benson) is correct
   (those are `GLOBAL.S2` and `S2-impl` rows).
-- The scorer is board-size-agnostic by construction (the algorithm only
+- The scorer is goban-size-agnostic by construction (the algorithm only
   depends on the grid dimensions and 4-connectivity).  A single
   size-stratified corpus covering 2×2 through 5×5 is sufficient to claim
-  correctness at every finite board size, because the algorithm has no
+  correctness at every finite goban size, because the algorithm has no
   size-dependent branches.
-- The corpus is hand-picked, not exhaustive — 27 boards calibrate the
+- The corpus is hand-picked, not exhaustive — 27 gobans calibrate the
   algorithm's decision points (stone-count, empty-region flood, one-sided vs.
-  both-sided vs. neither-sided touch) but do not exhaust the 3^25 board
-  space.  The 5×5 500-random-board cross-validation inside the Zig test suite
+  both-sided vs. neither-sided touch) but do not exhaust the 3^25 goban
+  space.  The 5×5 500-random-goban cross-validation inside the Zig test suite
   (`rules.zig`, seed `0xC0FFEE`) provides the broader spot-check.
 
 ## Files in this directory

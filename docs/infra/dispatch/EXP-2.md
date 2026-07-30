@@ -39,14 +39,14 @@ not, and understanding exactly why is the substance of this task.
    including N=1, blew the budget.
 
 Both were run with a cycle verdict of **score-on-cycle** — the game ends *scored
-by area at the board that repeated*. That verdict is a **function of which board
+by area at the goban that repeated*. That verdict is a **function of which goban
 you cycled back to**, so it is genuinely path-dependent, and the full history is
 dragged into the key. The documented reason for RETRO_PLY's failure is exactly
 this: *"to give a bounded rule a terminal verdict on longer cycles you must
-detect those cycles, which requires remembering every board seen."*
+detect those cycles, which requires remembering every goban seen."*
 
 **The hypothesis is that a CONSTANT verdict breaks that chain.** A fixed tie
-value does not depend on which board repeated, so there is nothing for history
+value does not depend on which goban repeated, so there is nothing for history
 to determine.
 
 **The obvious objection, which you must answer head-on:** *you still have to
@@ -74,7 +74,7 @@ about what `ko_point` means.
 formalisations in circulation:
    - (i) after a capture of exactly one stone, the capturing point is forbidden
      to the opponent's immediate reply;
-   - (ii) a move may not recreate the whole board as it stood one ply ago.
+   - (ii) a move may not recreate the whole goban as it stood one ply ago.
 
 They coincide in almost all cases. *Almost* is not good enough for a solver.
 Determine whether they are exactly equivalent given the rest of this project's
@@ -100,7 +100,7 @@ argue it correct.** If it does turn out that iterating L/H and pinning `L≠H`
 states to `T` is equivalent, prove that; do not assume it.
 
 **A5. The value domain.** A tie is not an area score. With komi 0 the area score
-on an odd-point board is always odd, so at 3×3 a tie of 0 lies outside the
+on an odd-point goban is always odd, so at 3×3 a tie of 0 lies outside the
 natural value set. Specify the domain (`ℤ ∪ {tie}`, tie ordered between −1 and
 +1, or an alternative) and how it is represented in a byte-per-slot column.
 Another ADR-worthy decision.
@@ -130,7 +130,7 @@ obviously correct and was wrong."
 > the check at **2×2 only**. That was wrong and would have produced a *vacuous
 > pass*: **2×2 admits no reachable non-root cycles** (`CLAIMS.md:159`,
 > `2x2.T12`; `4x4/EPISTEMIC.md:401`). QA-023 is a claim about how **long cycles**
-> are valued — so a board with no long cycles cannot test it. The project has
+> are valued — so a goban with no long cycles cannot test it. The project has
 > already been caught by exactly this once: T12, the C2-pilot at 2×2, came back
 > "PARTIAL/tautological" for the same reason. **Do not repeat it.**
 
@@ -172,7 +172,7 @@ which is why 3×2 and not 2×2 was where C2 actually fell.
 > gives termination but not tractability: the number of distinct simple paths in
 > a ~2,400-state graph with branching ~5 is astronomically large. The first
 > attempt (`src/qa023_brute_2x2.zig`, `DEPTH_LIMIT = 64`, no memoization) ran
-> 10h22m wall / 237 min CPU at 100% on a **four-point board** and produced
+> 10h22m wall / 237 min CPU at 100% on a **four-point goban** and produced
 > nothing. It was not hung; it was thrashing through a space it could never
 > finish. Memoizing does not rescue it either — memoizing on `(state, history)`
 > is exactly the PSK blowup, and memoizing on `state` alone *assumes the
@@ -239,5 +239,5 @@ else.
   Your job is to show this rule is *different*, not that they were wrong.
 - Do not proceed to 3×3 or 4×4. That is EXP-4/5/6 and it is gated on this.
 - Do not report success on the 2×2 check alone. Without Part A it is one data
-  point on a four-point board, and this project has been burned by exactly that
+  point on a four-point goban, and this project has been burned by exactly that
   kind of evidence before.

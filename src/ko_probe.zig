@@ -20,13 +20,13 @@
 // the solver). It walks legal 5x5 game lines with a positional-superko history
 // and classifies every repetition ban by cycle length:
 //
-//   dist = history.len - matched_ply    (the banned board would sit at len)
+//   dist = history.len - matched_ply    (the banned goban would sit at len)
 //     dist == 2  -> simple ko    (the position before the opponent's last move;
 //                                  a simple-ko rule already forbids it)
 //     dist >= 3  -> SUPERKO      (only the whole-history rule catches it)
 //
 // It also captures a few replayable example games (reconstructed as move lists
-// from the board history) and re-plays each independently through the engine to
+// from the goban history) and re-plays each independently through the engine to
 // prove the banned move truly recreates an earlier position.
 //
 // Run:  zig build-exe -O ReleaseFast src/ko_probe.zig
@@ -68,7 +68,7 @@ var superko_examples: [MAX_EACH]KoExample = undefined;
 var n_simple: usize = 0;
 var n_superko: usize = 0;
 
-/// The single point added going from board `a` to `b` (captures only remove
+/// The single point added going from goban `a` to `b` (captures only remove
 /// stones, so the added stone is unique). 25 if none (never for a real move).
 fn added_point(a: *const [25]i8, b: *const [25]i8) u8 {
     for (0..25) |i| {
@@ -99,7 +99,7 @@ fn record(banned_p: u8, to_move: i8, dist: usize) void {
     if (is_super) n_superko += 1 else n_simple += 1;
 }
 
-/// Depth-first walk of legal stone plays (passes never repeat a board, so they
+/// Depth-first walk of legal stone plays (passes never repeat a goban, so they
 /// are irrelevant to ko detection and omitted). `pos` is the top of `history`.
 fn explore(pos: *const [25]i8, to_move: i8, depth: usize) void {
     nodes += 1;
@@ -132,7 +132,7 @@ fn same_pos(a: *const [25]i8, b: *const [25]i8) bool {
 }
 
 /// Replay an example through the engine and confirm the banned move recreates
-/// the board exactly `dist` plies back.
+/// the goban exactly `dist` plies back.
 fn verify(ex: *const KoExample) bool {
     var line: [MAX_EX_MOVES + 1][25]i8 = undefined;
     line[0] = ex.start;

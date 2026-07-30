@@ -1,6 +1,6 @@
 # weizigo docs
 
-Working notes for the brute-force / perfect small-board Go solver.
+Working notes for the brute-force / perfect small-goban Go solver.
 
 ## Read order (start here)
 
@@ -15,7 +15,7 @@ Working notes for the brute-force / perfect small-board Go solver.
 7. `AGENTS.md` (repo root) — the router: foreclosures, the behaviour rules that bind every
    agent, and which single process file each role reads.
 8. `epistemic/boards/CONCEPTS.md` — the cross-size concept-inventory (fact-topics
-   every board-size tree must address; definitions only, no status).
+   every goban-size tree must address; definitions only, no status).
 9. `epistemic/boards/4x4/EPISTEMIC.md` — the 4×4 epistemic tree (the active focus).
 10. `status/HANDOVER.md` — tactical session continuity. `engine/ARCHITECTURE.md` — module
     map. `engine/TODO.md` — legacy backlog (being superseded by PROGRESS + status/).
@@ -38,7 +38,7 @@ Working notes for the brute-force / perfect small-board Go solver.
   numbered file per decision. Append new ones; supersede, don't rewrite.
 - `research/` — durable findings, measurements, dead-ends, and lessons.
 - `epistemic/boards/CONCEPTS.md` — cross-size concept-inventory (fact-topics only).
-- `epistemic/boards/<WxH>/EPISTEMIC.md` — per-board-size epistemic trees (status per
+- `epistemic/boards/<WxH>/EPISTEMIC.md` — per-goban-size epistemic trees (status per
   claim, falsifiable experiments, current focus).
 - `epistemic/GLOSSARY.md` — terms and abbreviations. Project-invented shorthand is
   marked `[project term]`.
@@ -49,7 +49,7 @@ Working notes for the brute-force / perfect small-board Go solver.
 
 - Dates are absolute (e.g. 2026-07-24), never "today."
 - Numbers that came from a run include how they were produced (command,
-  board size, flags).
+  goban size, flags).
 - When a research note drives a decision, link them by filename.
 - Status markers: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` dropped.
 - The document state and the code state are coupled: both inch toward the

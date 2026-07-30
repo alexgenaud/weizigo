@@ -19,7 +19,7 @@ Benson gives live *stones*, not uninvadable *territory*.
 point to have a stone neighbour (Benson vitality condition). Sound even
 against a passing defender; the double-pass path backstops territory that
 is a player's only under alternating play. Tests added (6-stone open
-board and open "two eyes" board → false; full two-eye board → true).
+goban and open "two eyes" goban → false; full two-eye goban → true).
 Corrected census: minimal decided single-colour terminal is now 10
 stones (two full rows walled), not the spurious 6.
 

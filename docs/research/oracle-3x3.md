@@ -10,10 +10,10 @@ oracle.zig prototype, with the validated solve.zig semantics) is not tractable.
   (826 CPU-s) still inside layer 8 (the 402 8-stone roots). Killed.
 - Single-root probes (10M-node budget): the first two legal 8-stone roots
   each exceeded 10M nodes (~7 s apiece), with search lines reaching
-  2,186 and 1,958 plies deep on a 9-cell board.
+  2,186 and 1,958 plies deep on a 9-cell goban.
 
 **Why.** An "endgame" root is not small: its best line often captures and
-reopens the board (the ADR-0006 eye-prune only protects Benson-alive
+reopens the goban (the ADR-0006 eye-prune only protects Benson-alive
 groups). The reopened subtree is the whole game; its ko-affected core is
 GHI-tainted so the memo never keeps it; every root pays it again. Under
 positional superko, individual lines are legal for thousands of plies

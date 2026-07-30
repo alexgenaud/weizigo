@@ -3,7 +3,7 @@
 # EXP-4 — 2×2 and 3×2 under the new rule: THE falsification gate
 
 **Closes:** `QA-026` as scoped to 2×2 and 3×2 (the L/H-machinery-reuse claim);
-produces the first per-board result rows under the new rule. **Blocks:** EXP-5,
+produces the first per-goban result rows under the new rule. **Blocks:** EXP-5,
 and therefore EXP-6, EXP-7, EXP-8. **Blocked by: EXP-2.** Do not start the
 build until EXP-2 has passed and its adversarial proof review is recorded. If
 EXP-2 failed, stop — the whole line is dead and a workaround is not wanted.
@@ -18,7 +18,7 @@ delta. Then `docs/research/ruleset-options.md` §RETRO_PLY and §kill-X%, the tw
 near-misses below.
 
 **Naming:** the published literature says "2×3"; this repo says **3×2**. Same
-6-point board, `artifacts/oracle-3x2.wzo`. Use the repo name in code and say so
+6-point goban, `artifacts/oracle-3x2.wzo`. Use the repo name in code and say so
 once in the write-up.
 
 ---
@@ -27,28 +27,28 @@ once in the write-up.
 
 Under **area scoring, komi 0, basic ko, and a fixed-value verdict for long
 cycles** — the rule EXP-2 pinned down — what is the game-theoretic value of the
-empty board at 2×2 and at 3×2?
+empty goban at 2×2 and at 3×2?
 
 ## The acceptance criterion
 
-**Both boards must return 0.**
+**Both gobans must return 0.**
 
-| board | published (MIGOS II, this ruleset) | weizigo's PSK value | source |
+| goban | published (MIGOS II, this ruleset) | weizigo's PSK value | source |
 |---|---|---|---|
 | 2×2 | **0** | **+1** | `retrograde-3x3.md:224-245` |
 | 3×2 (published "2×3") | **0** | **+1** | `retrograde-3x3.md:224-245` |
 
-These two rulesets **provably disagree** on exactly these two boards
+These two rulesets **provably disagree** on exactly these two gobans
 (`critique-2026-07-28.md` §3). That is what makes this the cheapest correctness
 gate in the project:
 
 > **A build that returns +1 has implemented PSK by accident.**
 
 Not "is approximately right", not "is in the bracket" — **0, exactly, on both
-boards, or the build is wrong.** Check it before you check anything else, and
+gobans, or the build is wrong.** Check it before you check anything else, and
 before you write a line of the 3×3 driver.
 
-Secondary acceptance, both boards:
+Secondary acceptance, both gobans:
 
 - **Every** state's value is defined. No UNDEF (`-128`) anywhere, including the
   root. Report `root filled? anchor matched? gate passed?`, not a fill
@@ -56,9 +56,9 @@ Secondary acceptance, both boards:
 - The value domain behaves as EXP-2's A5 specified. On 2×2 (4 points, even) and
   3×2 (6 points, even) a 0 area score is *inside* the natural value set, so the
   tie value and a genuine 0 are **indistinguishable by the number alone**.
-  **You must report, separately, whether the empty-board 0 is a scored 0 or the
+  **You must report, separately, whether the empty-goban 0 is a scored 0 or the
   long-cycle tie.** If EXP-2's domain makes them the same symbol, say so and
-  explain what that costs; the distinction matters at 3×3 (odd board, EXP-5).
+  explain what that costs; the distinction matters at 3×3 (odd goban, EXP-5).
 - Colour-inversion symmetry holds: `value(-pos, -side) == -value(pos, side)`
   (`AGENTS.md`). Exhaustive at these sizes; it is free.
 
@@ -81,7 +81,7 @@ one is a way to get a plausible-looking number that is not this experiment.
    corroboration — it is the opposite: it is the documented signature of a rule
    in which the cycles that should tie do not.
 3. **The RETRO_BRACKET deliverable is not an answer.** The existing 2×2/3×2
-   fresh-start empty-board score is **+1** at both sizes, finisher-produced and
+   fresh-start empty-goban score is **+1** at both sizes, finisher-produced and
    inside its bracket (`retrograde-3x3.md:215-220`). It is PSK, it is
    fresh-start-only, and `AGENTS.md` forbids quoting it as a real-game value.
    Do not compare against it as if it were ground truth; compare against it as
@@ -98,8 +98,8 @@ one is a way to get a plausible-looking number that is not this experiment.
 2. **2×2 first.** Reproduce EXP-2's 2×2 result exactly, state for state, before
    extending. If you cannot reproduce it, that disagreement is the finding —
    report it, do not paper over it (README, Escalation).
-3. **Then 3×2.** New board, new measurement, no inheritance.
-4. **Independent cross-check at both sizes.** These boards are small enough for
+3. **Then 3×2.** New goban, new measurement, no inheritance.
+4. **Independent cross-check at both sizes.** These gobans are small enough for
    a full-history brute-force game-tree evaluation under the *same* rule. Run
    it and compare **every state**, not just the root. EXP-2 built this
    reference for 2×2; extend it to 3×2.
@@ -133,8 +133,8 @@ Both runs are committed deliverables.
   commands, calibration cases).
 - `docs/research/newrule-2x2-3x2-2026-07-28.md` — the two values, the
   scored-0-vs-tie determination, the symmetry check, the brute-force agreement,
-  and every claim tagged. Per-board sections; no shared conclusions.
-- One-line status per board for the `CLAIMS.md` owner. Propose per-board IDs
+  and every claim tagged. Per-goban sections; no shared conclusions.
+- One-line status per goban for the `CLAIMS.md` owner. Propose per-goban IDs
   (e.g. `2x2.BASICKO-TIE`, `3x2.BASICKO-TIE`); let the owner assign them.
   **Do not edit `CLAIMS.md`.**
 
@@ -146,7 +146,7 @@ Both runs are committed deliverables.
 - Do **not** overwrite anything in `data/` or `artifacts/`. New rule → new
   file → new name, tagged by `(size, ruleset)` (`ruleset-options.md:38-40`).
 - Do **not** proceed to 3×3. That is EXP-5 and it is gated on this returning 0
-  on both boards.
+  on both gobans.
 - Do **not** report "+1, but the ruleset difference explains it." It does not.
   +1 **is** the PSK answer and returning it means you solved PSK. Escalate.
 - Do **not** infer 3×2 from 2×2, in either direction, for any quantity.

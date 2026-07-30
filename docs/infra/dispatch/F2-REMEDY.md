@@ -15,7 +15,7 @@ shared, parallelises without limit.
 `GLOBAL.F2` (the bracket-guided finisher is sound) is **orphaned and
 confirmed** (ADR-0018, unanimous three-seat review): ADR-0010's premise that
 the `[L,H]` bracket "holds under ANY arrival history" is refuted as stated —
-for an empty-board root the finisher's own search path *is* a real game line,
+for an empty-goban root the finisher's own search path *is* a real game line,
 so the falsifying histories lie inside the family the bracket claims to cover.
 Every shipped ko-sensitive value rests on this undischarged premise.
 
@@ -44,10 +44,10 @@ and how the result is consumed by `Session.choose` and the arena.
    3×2 → the remedy is X instead." Do not assert QA-023.
 2. **Must not reintroduce score-on-cycle (`GLOBAL.R2`)** — which is provably as
    hard as PSK. A tie-pinned loop must be a *constant* verdict, not a function
-   of which board repeated.
+   of which goban repeated.
 3. **Must not fall into the reply-trap (`GLOBAL.RPLY-TRAP`)** — the cycle
    terminal must not drag the full history back into the memo key.
-4. **Per-board epistemic independence (ADR-0016).** A design argued at one size
+4. **Per-goban epistemic independence (ADR-0016).** A design argued at one size
    does not transfer; say what is structural (may inherit, with the argument)
    vs empirical (never inherits).
 5. **Cost/tractability.** The whole project's premise is tractability; a
@@ -101,4 +101,4 @@ A design document that delivers, each tagged CLAIMED/PROVEN-as-scoped:
 - Do not assert QA-023, and do not assert the remedy is sound without the
   argument — that is the exact error ADR-0018 exists to prevent recurring.
 - Do not propose a brackets-off regen as the remedy. It is foreclosed above.
-- Do not generalize across board sizes without the ADR-0016 argument.
+- Do not generalize across goban sizes without the ADR-0016 argument.

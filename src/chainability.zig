@@ -47,7 +47,7 @@
 //     find contradicted, and `max |stored - bellman|` is how badly.
 //
 // Two move sets are reported, because the generator uses both:
-//   full     -- every legal board move (retrograde `converge`)
+//   full     -- every legal goban move (retrograde `converge`)
 //   eyeprune -- ADR-0006 own-true-eye moves dropped (the forward finisher)
 // A slot counted under BOTH is unambiguously mispriced under either reading.
 //

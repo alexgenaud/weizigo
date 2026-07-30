@@ -53,7 +53,7 @@ Propagation checklist below — completed 2026-07-26 (B13).
 ## Why "scores" and not "win rates"
 
 The scores are deterministic final scores under perfect play — integers in
-[−n, +n] for an n-point board. A win rate would be a probability/expectation
+[−n, +n] for an n-point goban. A win rate would be a probability/expectation
 over stochastic play; we have none. The ko-sensitive `[L,H]` is a **range of
 possible scores**, not a confidence interval or expectation.
 

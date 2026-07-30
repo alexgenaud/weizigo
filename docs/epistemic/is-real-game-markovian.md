@@ -40,7 +40,7 @@ enlarging the state a little; it is what the rule says.
 ### 3. Value — **not** Markovian, and this is now measured too
 
 `QA023-KERNEL-AUDIT` (2026-07-29), reproducing `PINRULE-SUFFICIENCY`: state
-`(178,0,6,0)` — board `[B,W,B,␣,W,␣]`, Black to move, `passes=0`, **no ko point
+`(178,0,6,0)` — goban `[B,W,B,␣,W,␣]`, Black to move, `passes=0`, **no ko point
 active** — has two valid arrivals giving first-revisit-truncation values **−3** and
 **−6**, while the corrected fixpoint gives `L=H=−6`. Two histories, one tuple, two
 values.
@@ -48,11 +48,11 @@ values.
 ## Why "complex 2+ko cycles" is the wrong mental model
 
 **That witness is not a multi-ko position, and it could not be one.** It sits on a
-**6-cell board** with two empty points and no active ko. 3×2 is too small to hold two
+**6-cell goban** with two empty points and no active ko. 3×2 is too small to hold two
 independent ko fights. If non-Markovianity of value required 2+ko structure, it could
 not appear there at all.
 
-It appears at the smallest board that has *any* cycle structure: 3×2 carries **216,176
+It appears at the smallest goban that has *any* cycle structure: 3×2 carries **216,176
 simple cycles** at length cap 14 over **1,676 cycle-involved** vertices (`2B-2`,
 corrected). The mechanism is **repetition in general**, not multi-ko in particular —
 capture/recapture patterns and pass sequences generate cycles densely.
@@ -66,7 +66,7 @@ what EXP-1 measured for legality.
 
 The natural repair — carry more history — has been tried and closed:
 
-- **RETRO_PLY** (ban the last N boards): the memo key still requires the full
+- **RETRO_PLY** (ban the last N gobans): the memo key still requires the full
   history. Measured, foreclosed (`GLOBAL.RPLY`).
 - **Score-on-cycle**: byte-identical state counts to PSK (118,475,182 / 116,114,272).
   Provably as hard (`GLOBAL.R2`).

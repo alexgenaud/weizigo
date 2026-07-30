@@ -25,7 +25,7 @@ would need a proof of **one** of:
 
 - **(E1) Disjointness.** The set of arrival histories the finisher's search
   presents to a bracket cut is disjoint from the real-game histories that
-  falsify the bracket. — **Unavailable.** At an empty-board root, every
+  falsify the bracket. — **Unavailable.** At an empty-goban root, every
   PSK-legal move sequence from the root is a candidate search path *and* a real
   game line; the two sets coincide. The code confirms the identification:
   `ab_value_from_root` seeds `hist = {root}` (`src/retro.zig:648-649`:
@@ -34,7 +34,7 @@ would need a proof of **one** of:
   (`src/retro.zig:542-548`). So the arrival history at any interior node is
   exactly `root + search path` with ban set `{root}∪path` — the definition of a
   real game whose first position is the root. This is ADR-0017 Defence 1 and it
-  is structural (per ADR-0016 it carries to every board size).
+  is structural (per ADR-0016 it carries to every goban size).
 - **(E2) Holds-on-the-family.** The bracket provably bounds `V(P,h)` for every
   `(P,h)` in the search-path family even though it fails elsewhere — i.e. a
   ban-set-emptiness or window-soundness proof at the cut site. — **Unavailable,
@@ -47,7 +47,7 @@ would need a proof of **one** of:
   (`docs/research/c2-falsification-3x2.md:76-95`) exhibits 12 pointwise
   mismatches — stored `L==H` score vs. history-exact `ab_solve`
   (`memo=false, brackets=false`) under reachable PSK-legal placement lines, 8
-  of 12 rooted at index 0 (the empty board). An `L==H` slot has point bracket
+  of 12 rooted at index 0 (the empty goban). An `L==H` slot has point bracket
   `[s,s]`, so each mismatch is a node `(P,h)` with `V(P,h) ∉ [lo,hi]` and `h` in
   the search-path family. The restricted claim "brackets hold on the
   search-path family" is therefore not merely undischarged — it is false at 3×2
@@ -125,7 +125,7 @@ split is correct and is the strongest genuine finding of the attempt. SOUND.
 
 (One scoping nuance, not a demotion: T13 is at **3×2**, E2 at **3×3**. Finding
 1's "T13 is the load-bearing in-family pointwise falsification" is load-bearing
-*at 3×2*. Per-board epistemic independence (`AGENTS.md`), the 3×2 pointwise
+*at 3×2*. Per-goban epistemic independence (`AGENTS.md`), the 3×2 pointwise
 falsification does not transfer to 3×3 as a measurement; what transfers is the
 structural family identification (ADR-0016). The 3×3 pointwise question
 remains the open ADR-0015 falsifier 2 — the exhaustive 3×3 cut-site check. I
@@ -195,7 +195,7 @@ refutation attempt (`ADR-0017`), so Fable cannot review its own attempt. The
 panel protocol (`QA-018-REVIEW-PANEL.md` §5) bars both, plus the Orchestrator
 role-instance, and seats three fresh third parties. I am one such third party
 (seat A); I confirm the requirement and that I satisfy it — no Orchestrator
-session state, no board ownership, no prior QA-018 context this session.
+session state, no goban ownership, no prior QA-018 context this session.
 
 ## Calibration defences (disclosed, panel protocol §3)
 
@@ -284,7 +284,7 @@ missed an exemption** is:
    history, and find **zero mismatches**. That is positive evidence that no
    *fired* cut on the *eye-pruned* search-path family is violated — the
    narrowed form of ADR-0017's falsifier 1. It would not prove the universal,
-   but it would be the first real evidence for the exemption at the board where
+   but it would be the first real evidence for the exemption at the goban where
    `C3` is false, and would weaken ADR-0015 from "burden undischarged" toward
    "exemption holds in practice at 3×3." (Today: not run. The 0.625% E2 leak
    rate means a *sample* is not enough — the denominator must be all cut
@@ -317,7 +317,7 @@ note that ADR-0017 itself names it (falsifier 1 collapsed into falsifier 2).
   that nothing here shows any shipped value *is* wrong; `4x4.C3`-pointwise
   remains UNTESTED at 3×3/4×4. My verdict is about the *justification* and the
   *refutation attempt*, not about any 4×4 number, and it does not transfer
-  (`AGENTS.md` per-board epistemic independence).
+  (`AGENTS.md` per-goban epistemic independence).
 - That the MTD driver and `bracket_fail` gate are the *only* structural
   certifications available; the panel protocol presented exactly these two as
   the calibration set, and I adjudicated both.

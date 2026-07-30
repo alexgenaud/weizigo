@@ -8,7 +8,7 @@
 2. `docs/infra/dispatch/QA-018-REVIEW.md` — the core brief: framing, the
    question, the three 025 findings to grade, packet read order, acceptance,
    Do-NOTs. It applies verbatim except where the panel protocol overrides it
-   (deliverable paths and board bookkeeping).
+   (deliverable paths and goban bookkeeping).
 
 **Closes:** nothing directly. **Enables:** `QA-018-RULING` (with seats B/C).
 **KIND:** ANALYSIS — writes exactly two files, nothing shared.
@@ -17,7 +17,7 @@
 
 - Model: as assigned at dispatch, in a **fresh worker console** — explicitly NOT the
   Orchestrator instance (panel protocol §5; you must have no Orchestrator
-  session state, no board ownership, and no prior QA-018 context this session).
+  session state, no goban ownership, and no prior QA-018 context this session).
 - Your writes, and only these (panel protocol §2):
   - `docs/evidence/QA-018/review-a/report.md` (+ `PROVENANCE.md` beside it)
   - `untracked/msg/milestone-01-ko-reframe/027-review-a-to-all.md`

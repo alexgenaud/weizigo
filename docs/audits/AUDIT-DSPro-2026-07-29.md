@@ -59,7 +59,7 @@ converge:
    bracket premise is orphaned (F2/QA-018), and the median-build remedy is
    gated on a claim (QA-023) that may be false. The user's goal — "play the
    optimal game of Go, know when it is optimal, shrink suboptimal play toward
-   zero" — is not met at any board size under any stated rule.
+   zero" — is not met at any goban size under any stated rule.
 
 **The one recommendation that matters most:** audit 2B-4 before doing anything
 else. If QA-023 falls, every task from EXP-4 through EXP-8 is building on a
@@ -170,7 +170,7 @@ project retreated because it had nowhere to advance.
 not foreclosed.** It is also the one QA-023 may have just falsified. If it falls,
 the project has **no known tractable representation** for any rule that a human
 would recognize as Go, and the honest answer to the user is: "PSK is intractable
-for exact solve on any nontrivial board; every alternative we have tested is
+for exact solve on any nontrivial goban; every alternative we have tested is
 either intractable or disagrees with the ground truth." That is a publishable
 result — and the project should be prepared to state it.
 
@@ -254,7 +254,7 @@ The only direct validation cited is a single position (`dead_white`, Black +25,
 `0006:59-61`). The standing indirect test (ADR-0009:118-123 — retrograde-vs-forward
 disagreement) has never fired, which is weak evidence: the forward searches use
 the eye-prune, the retrograde does not, and they agree *where they have both been
-run* (small boards, near-terminal positions). Agreement on the tested subset does
+run* (small gobans, near-terminal positions). Agreement on the tested subset does
 not prove the prune is sound on the untested superset.
 
 **Recommendation:** design a direct falsification test for ADR-0006. The test:
@@ -366,7 +366,7 @@ it is worth naming.
    falls, the roadmap changes. If it stands (probe bug), fix the probe and
    re-run. Do not dispatch EXP-4, EXP-5, EXP-6, EXP-7, or EXP-8 until this is
    resolved. The 2B-5 calibration task and 2B-6 auditor review are the correct
-   next steps; they are already on the board.
+   next steps; they are already on the goban.
 
 2. **Commit the dangling BFS from D18.** The T13 mechanism is repeating in real
    time. Whoever has the `/tmp/test_census_pure.zig` context should commit it
@@ -475,7 +475,7 @@ crises are real and honestly reported.
 **The project is also at a decision point it may not survive in its current
 form.** If QA-023 is falsified, the only known tractable representation collapses,
 and the user's goal — "play optimal Go, know when it is optimal, shrink
-suboptimal play toward zero" — has no known path on any board larger than 3×2.
+suboptimal play toward zero" — has no known path on any goban larger than 3×2.
 That outcome would not be a failure of the project; it would be a discovery about
 the problem. The project should prepare for it.
 

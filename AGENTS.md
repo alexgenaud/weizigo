@@ -4,9 +4,9 @@
 read only what they need, when they need it. Harness prefers `CLAUDE.md`/`.cursorrules`? Redirect, don't copy.
 
 ## What this project is
-`weizigo` — a provably-correct solver for small Go boards (Weiqi/Baduk) in Zig 0.16. Goal: a compressed
+`weizigo` — a provably-correct solver for small Go gobans (Weiqi/Baduk) in Zig 0.16. Goal: a compressed
 fresh-start oracle: the exact game-theoretic fresh-start score of every legal (position, side), by
-retrograde value iteration with two-sided (L/H) certification. Boards done through 4x4; ruleset in reframe.
+retrograde value iteration with two-sided (L/H) certification. Gobans done through 4x4; ruleset in reframe.
 
 ## Non-negotiable rules (foreclosures — do NOT relitigate)
 Settled — reopening one wastes a session. To overturn one, write an ADR superseding it with evidence; never act against one silently.
@@ -27,7 +27,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   history-independence) is **falsified at 3×2** (T13, 2026-07-26; 12 mismatches on 508 non-trivial PSK
   histories). Do NOT quote a ko-sensitive score as truth until then, and do not call the L==H region a
   "proven core" or "certified core" in any real-game sense; it is the *fresh-start single-score region*.
-- **Never report any table value as *the* real-game value of the board.** The table holds **fresh-start
+- **Never report any table value as *the* real-game value of the goban.** The table holds **fresh-start
   scores only** (C1); C2 (single-score history-independence) is falsified at 3×2 (T13); C3 (bracket bounds
   real-game score) is falsified at 3×3 (E2). The honest deliverable is the fresh-start score table + the
   CLAIMED [L,H] fresh-start bracket, with the explicit non-promise that neither equals nor bounds the
@@ -38,21 +38,21 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   (`ko_ref >= d`, ADR-0013) looked obviously correct and was wrong.
 - **The single-score (L==H) region is NOT history-independent.** T13 falsified C2 at 3×2 (2026-07-26). The
   L==H values are fresh-start exact (C1), not real-game exact. Do not relitigate "is the L==H region
-  history-independent?" — it is settled false at the smallest testable board. A new ADR with a different
+  history-independent?" — it is settled false at the smallest testable goban. A new ADR with a different
   representation (e.g. bounded-history state) is the route to a real-game claim, not a re-run of the
   C2-probe.
 - **Scores are ALWAYS Black-positive.** Side-to-move picks the array (vb/vw), never the sign. Black
   maximizes, White minimizes. Colour inversion: value(-pos,-side) == -value(pos,side); for bound tables
   L(-pos,-side) == -H.
-- **Never call the board index a "rank."** In Go, rank = kyu/dan. Use "colex index" or just "index." (User
+- **Never call the goban index a "rank."** In Go, rank = kyu/dan. Use "colex index" or just "index." (User
   decision; you will be corrected.)
-- **No sub-board solving.** Restricting moves to a region of the board is unsound (edge stones keep
-  phantom liberties). Search is full-board only.
-- **Do not remove the eye-prune from the forward search.** Self-eye-fill reopens the board and explodes the
+- **No sub-goban solving.** Restricting moves to a region of the goban is unsound (edge stones keep
+  phantom liberties). Search is full-goban only.
+- **Do not remove the eye-prune from the forward search.** Self-eye-fill reopens the goban and explodes the
   DFS (ADR-0006). The retrograde engine uses the full move set by design; the forward cross-checks use eye-prune.
 
 ## Behaviour — every agent, every task
-- **Per-board epistemic independence.** Each board size is its own epistemic universe: PROVEN / CLAIMED /
+- **Per-goban epistemic independence.** Each goban size is its own epistemic universe: PROVEN / CLAIMED /
   FALSE-AS-SCOPED at one size is **not** evidence at any other size, absent a monotonicity theorem.
 - **Evidence in git, or the claim is not proven** — under `docs/evidence/<claim-id>/`, never `untracked/`:
   that is how T13's probe source, the falsification the strategy rests on, was destroyed. **Every claim
@@ -62,7 +62,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   overwrite a `.wzo` or `artifacts/SHA256SUMS`.
 - **One writer per engine file** (`src/retro.zig`, `oracle.zig`, `rules.zig`, `solve.zig`). Declare
   ownership in `docs/status/CURRENT.md`, clear it when done; concurrent edits corrupt silently.
-- **Dates are absolute** (2026-07-28), never "today." **Numbers cite their run** (command, flags, board
+- **Dates are absolute** (2026-07-28), never "today." **Numbers cite their run** (command, flags, goban
   size) and state their **denominator**.
 - **Know your identifier and write it into every file you produce.** Court seats use the role name
   (`Orchestrator`, `Dabir`); workers use their task ID (`2B-5`, `EXP-4`). A model name alone names a
@@ -116,11 +116,18 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
 
-## The queue is a *kanban*, not a *board*
+## The queue is a *kanban*; the playing surface is a *goban*
 
-`bin/managent` is the **kanban**. Never call it "the board" — in this project **board** means the Go board
-(2×2, 3×2, 4×4), and the overload has already produced sentences that read two ways. Say *kanban*, *task*,
-*column*, *claim*. (User's terminology ruling, 2026-07-29.)
+Two words, no overlap, and **neither of them is "board."**
+
+- `bin/managent` is the **kanban** — tasks, sets, holds, needs, claims, columns.
+- The Go playing surface is the **goban** (2×2, 3×2, 4×4) — goban size, goban state, per-goban independence.
+
+"Board" served both and produced sentences that read two ways, so it is retired from prose in both senses.
+Leave it untouched only where it is not prose: the GTP `boardsize` command, code identifiers, `boards/`
+path segments, captured `.stdout` output, quoted third-party titles ("Solving Go for Rectangular Boards"),
+and English idioms ("across the board"). (User's terminology ruling, 2026-07-29; extended to *goban*
+2026-07-31, swept by T120.)
 
 ## Verification rules earned on 2026-07-29 (the QA-023 chain) — standing
 

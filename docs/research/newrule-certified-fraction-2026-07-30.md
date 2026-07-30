@@ -32,7 +32,7 @@ root W = −9 (L==H==−9). Exact reproduction of EXP-5 (`docs/research/newrule-
 
 **The self-play line** (identical across all 2,000 games): B plays B2, W
 passes, B passes. Game ends by two consecutive passes with area score +9.
-Under area scoring on a 3×3 board, a single Black stone at B2 claims all
+Under area scoring on a 3×3 goban, a single Black stone at B2 claims all
 8 empty points as Black territory (no White stones are present), yielding
 B+9 exactly.
 
@@ -54,7 +54,7 @@ that game, not a defect in this one.
 
 | metric | PSK (baseline) | new rule (this run) |
 |---|---|---|
-| board | 3×3 | 3×3 |
+| goban | 3×3 | 3×3 |
 | policy | oracle | oracle |
 | seed | 20260728 | 20260728 |
 | games | 2,000 | 2,000 |
@@ -204,5 +204,5 @@ Two required cases are not run:
   not run. 4×4 and 4×3 not tested (no artifacts).
 - **QA-020 (re-tested under new rule at 3×3):** was FALSE at 0% for PSK 4×4
   and 4×3; under the new rule at 3×3, the certified fraction is 100%. The
-  new rule resolves the chainability crisis at this board. Per-board
+  new rule resolves the chainability crisis at this goban. Per-goban
   independence: 3×3 result does not transfer to other sizes.

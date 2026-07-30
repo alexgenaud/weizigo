@@ -33,8 +33,8 @@ Each seat writes **exactly two files**, both its own:
   numbering cannot race; use yours even if a lower number has not appeared yet.
 - Everything else is **read-only**, per the core brief: no edits to
   `CLAIMS.md`, any ADR, `src/`, the core brief, this file, other seats' paths,
-  `docs/status/*`, or the board files.
-- **Board bookkeeping is serialized through the Orchestrator** (D-8): the
+  `docs/status/*`, or the kanban files.
+- **Kanban bookkeeping is serialized through the Orchestrator** (D-8): the
   Orchestrator records dispatch/claim/done for all three seats with
   `--agent <seat-model>`. Seats do **not** run `managent` themselves — three
   consoles writing `tasks.json` concurrently is the exact overwrite risk this

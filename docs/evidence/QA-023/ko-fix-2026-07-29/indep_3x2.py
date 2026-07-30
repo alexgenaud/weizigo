@@ -20,7 +20,7 @@ KO_DIMS = N + 1        # 7
 RAW = 3 ** N           # 729
 TOTAL = RAW * 2 * KO_DIMS * 3   # 30618
 
-# ---- board (de)ranking: digit i (base 3, little-endian) 0=empty 1=black 2=white
+# ---- goban (de)ranking: digit i (base 3, little-endian) 0=empty 1=black 2=white
 def unrank(idx):
     b = []
     v = idx
@@ -168,7 +168,7 @@ def reach_from(roots, legality_filter=True):
 
 # the 42 seeds actually used by seed_roots()/run_census_3x2()
 ROOTS_42 = [linear(0, s, k, p) for s in (0, 1) for p in (0, 1, 2) for k in range(KO_DIMS)]
-# the semantically coherent subset: empty board can never carry a ko point
+# the semantically coherent subset: empty goban can never carry a ko point
 ROOTS_6 = [linear(0, s, KO_NONE, p) for s in (0, 1) for p in (0, 1, 2)]
 # the single true game root
 ROOTS_1 = [linear(0, 0, KO_NONE, 0)]

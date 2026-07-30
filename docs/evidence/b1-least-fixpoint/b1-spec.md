@@ -36,7 +36,7 @@ table `lo=2`) leaves two survivors in `status/leak-crisis.md`:
   fixpoint is ≤ −9 (or wherever the leak's critical ply's `true` actually
   sits).
 
-B1's purpose is to *rule out* (b) on tractable boards — i.e. confirm that the
+B1's purpose is to *rule out* (b) on tractable gobans — i.e. confirm that the
 canonical `converge` does land at the true least fixpoint of the L map it
 applies. It does NOT prove (a) false; even a perfect least-fixpoint
 computation would not refute a semantics gap. It is the cheap, decisive half
@@ -159,21 +159,21 @@ must be read directly from `t.lo`).
 
 **What this decides:**
 
-- **All four acceptances hold → (b) is RULED OUT on this board.** The
+- **All four acceptances hold → (b) is RULED OUT on this goban.** The
   canonical `converge` lands at the true least fixpoint of the L map.
   Whatever the E2 leak means, it is NOT a `converge` bug. C3's failure
   must be (a) — semantics gap — or some other cause.
 - **Any V0 or V1 violation OR any re-converge element above canonical →
-  (b) is PLAUSIBLE on this board.** Record the count, the magnitude, the
+  (b) is PLAUSIBLE on this goban.** Record the count, the magnitude, the
   positions. Decide whether to dig into the engine or treat the leak as
   dual-caused.
 - **Re-converge fails to reach `c == 0` in `MAX_SWEEPS`** → report and treat
   as inconclusive. The probe must not silently cap.
 
-**Boards to run:** 2×2 (ground truth), 3×2 (ground truth), 3×3 (the crisis
-board). Do NOT run 4×4 — the 4×4 state space is large and the re-converge
+**Gobans to run:** 2×2 (ground truth), 3×2 (ground truth), 3×3 (the crisis
+goban). Do NOT run 4×4 — the 4×4 state space is large and the re-converge
 cost will dominate. The 3×3 result is what matters for the crisis; 2×2/3×2
-are sanity checks (the canonical fixpoint must be correct on boards that
+are sanity checks (the canonical fixpoint must be correct on gobans that
 have no ko-sensitive region, since the L=H=score on every position).
 
 **A second-decision rule on (a) vs not-(a):** B1 does NOT distinguish (a)
@@ -198,7 +198,7 @@ be cured by fixing `converge`.
      compares elementwise to canonical.
   4. §3-C check: copies `t.lo`, re-seeds upper columns to `+N`, runs
      `converge`, asserts `sweep(t, &t.lo) == 0` after, compares.
-  5. Prints a one-line verdict per board and a per-board table of violation
+  5. Prints a one-line verdict per goban and a per-goban table of violation
      counts.
 - Build: `ZIG_GLOBAL_CACHE_DIR=/tmp/weizigo-zigcache
   ZIG_LOCAL_CACHE_DIR=/tmp/weizigo-zigcache zig build-exe -O ReleaseFast
@@ -226,7 +226,7 @@ write-targets are inside `src/retro.zig` and the build binary.
   to. Easy to misread as "area of child." (I had it right in the prior
   probe via the `score[i]` reference; will re-confirm in the
   implementation.)
-- **`t.score[i]` may be 0 (empty board, no stones) and the area score
+- **`t.score[i]` may be 0 (empty goban, no stones) and the area score
   at V1 of empty is 0.** That is correct. The V1 of empty is the
   area score if both players pass from empty — 0. Not a bug.
 - **Re-converge from `+N` may be slow on 3×3** if the chaotic iteration

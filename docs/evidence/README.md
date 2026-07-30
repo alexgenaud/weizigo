@@ -71,7 +71,7 @@ No file over 1 MB was copied; the largest rescued file is
 | `arena-4x4-undef/3x3-postfix.txt` | Raw arena stdout, 3×3, **post**-guard | `4x4.B43` (calibration) | `untracked/B43-baselines/3x3-postfix.txt` |
 | `arena-4x4-undef/4x4-postfix.txt` | Raw arena stdout, 4×4, post-guard — the run the 3.4% figure is computed from; per-game `promise`/`final` (Black-positive) and full move sequences | `4x4.B43`, `4x4.B43-DIV` | `untracked/B43-baselines/4x4-postfix.txt` |
 | `b1-least-fixpoint/b1-spec.md` | The **specification** of the `RETRO_B1_LOFIX` least-fixpoint probe (V0+V1 Bellman checks, the T02.1 `oppV0[child]` correction). **Method only — the results file is lost.** | `2x2.B1`, `3x2.B1`, `3x3.B1`, `GLOBAL.B1-MULTIFIX`, `GLOBAL.B1-AUDIT` | `untracked/b1-spec.md` |
-| `c2-3x2/plan4x4-master.md` | The C2-probe design and the per-board-size isolated-epistemic-tree principle | `3x2.T13` (design), `GLOBAL.C2`, `4x4.C2`, `4x4.C3` | `untracked/plan4x4-master.md` |
+| `c2-3x2/plan4x4-master.md` | The C2-probe design and the per-goban-size isolated-epistemic-tree principle | `3x2.T13` (design), `GLOBAL.C2`, `4x4.C2`, `4x4.C3` | `untracked/plan4x4-master.md` |
 | `c2-3x2/B10-minimax.md` | 3×2 C2-divergence empirics (H1 supported, **H2 falsified** — divergence magnitude is *not* bounded by bracket width, H3 inconclusive, H4 falsified). **UNCITED** — see caveat below. | corroboration for `GLOBAL.C2` / `3x2.T13`; cites no claim yet | `untracked/B10-minimax.md` |
 | `c2-katago-live-play/katago-match.py` + `.cfg` + `sgf/` (30 files) | Probe source and raw game records for the B22 weizigo-vs-KataGo live-play run. **UNCITED** — see caveat below. | none | `untracked/katago-match.{py,cfg}`, `untracked/sgf/` |
 | `dispatch-registry/SUBAGENTS.md` | The dispatch registry: the **only surviving record** of the one-line results of T04/T09/T10/T11/**T12**/**T13**/T14.1/T15/T16, and the file `PROGRESS.md:239` points at for the UD-1/2/3 decisions | `GLOBAL.UD-1`, `GLOBAL.UD-2`, `GLOBAL.UD-3`, `GLOBAL.T14.1`; secondary record for `2x2.T12`, `3x2.T13` | `untracked/SUBAGENTS.md` |
@@ -133,7 +133,7 @@ re-implementation, not the lost original.
 | `untracked/B09-kimi.md` | `docs/research/auditor-sensitivity.md:3` (**Source:**) | Yes — `auditor-sensitivity.md` is the promoted finding (`GLOBAL.AUDITOR` blindness to L/H construction bugs). |
 | `untracked/B23-kocensus.md` | `docs/research/ko-census.md:3` (**Source:**) | Yes — `ko-census.md` (65/33/2/0.0025% multi-ko frequency, `innovations.md` I8). |
 | `untracked/B39-arena4x4.md` | `docs/research/arena-4x4-undef.md:11-14`, which records its own deletion by B44 | Yes — `arena-4x4-undef.md:27-44` (`4x4.B39`, now retracted). |
-| `untracked/c2pilot_2x2.zig` (T12 probe source) | `docs/infra/model-perf.md:320` | **No.** **Recoverable** — the committed engine (`src/retro.zig`) + parameterisation to 2×2 suffices; same primitives as T13, simpler board. See `docs/evidence/ADR0006-FALSIFY/recoverability-audit-2026-07-30.md`. |
+| `untracked/c2pilot_2x2.zig` (T12 probe source) | `docs/infra/model-perf.md:320` | **No.** **Recoverable** — the committed engine (`src/retro.zig`) + parameterisation to 2×2 suffices; same primitives as T13, simpler goban. See `docs/evidence/ADR0006-FALSIFY/recoverability-audit-2026-07-30.md`. |
 | `untracked/T15-kimi.md` (capture-all design), `untracked/T15-review-kimi.md` (defer verdict) | `docs/infra/model-perf.md:272`; `untracked/T15-impl-minimax.md` | **No.** T15 was deferred, so nothing depends on them today. |
 | `untracked/T16-glm.md` | `docs/infra/model-perf.md:207` | Product only — the EPISTEMIC/CONCEPTS rewrite itself. |
 | `untracked/delegation-prompts-2026-07-26.md` | `docs/infra/model-perf.md:236,305` | **No.** Process only. |
@@ -221,7 +221,7 @@ git-ignored.
    the number, not a description of it. This is the part that was lost in every
    case above.
 4. **Commit the raw output**, unedited, exactly as the run emitted it. Include
-   the command line, board size, flags, artifact path and artifact sha256.
+   the command line, goban size, flags, artifact path and artifact sha256.
 5. **Commit a `PROVENANCE.md`** naming: the claim ID(s), the acceptance
    criterion, the date, the run command, and — per P3 — the checker's
    **calibration case**: one known-good input it passes and one known-bad input

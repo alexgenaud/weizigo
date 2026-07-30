@@ -28,7 +28,7 @@ one-line evidence pointer. Verdicts:
 - **CLOSED**: a finding exists, an artifact exists, or a doc
   records the answer. Cite the artifact / doc.
 - **IN PROGRESS**: a worker is on it, the brief exists, the
-  `bin/managent` board says so. Cite the task id.
+  `bin/managent` kanban says so. Cite the task id.
 - **OPEN**: no worker, no finding, the hypothesis stands.
 - **STALE**: the hypothesis's premise no longer holds (e.g. the
   artifact was regenerated, the rule was rejected, the doc was

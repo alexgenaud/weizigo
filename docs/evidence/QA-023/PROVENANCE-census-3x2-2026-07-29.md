@@ -40,7 +40,7 @@ tools/runner -- zig run -O ReleaseFast src/qa023_probe.zig -- cycle-census-3x2 -
 
 ## Cross-checks (no regressions)
 
-- `census-3x2` mode: 2,682 reachable states, 489 distinct legal boards
+- `census-3x2` mode: 2,682 reachable states, 489 distinct legal gobans
   (matches T13 reference).
 - `smoke-2x2` mode: 5/5 anchors OK (B1 smoke).
 - `calibrate` mode: PASS (the v2 median rule).

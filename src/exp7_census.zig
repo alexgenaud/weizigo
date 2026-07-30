@@ -22,13 +22,13 @@
 //
 // Measures the certified fraction under the new (Markovian) rule: basic ko +
 // TIE=0 for long cycles, area scoring, komi 0.  Runs the fixpoint in-memory
-// (no .wzo file needed), then plays self-play games from the empty board under
+// (no .wzo file needed), then plays self-play games from the empty goban under
 // the new rule's legality, checking the one-ply Bellman identity directly at
 // every visited decision node.
 //
 // Build:
 //   tools/runner --rss-cap-mb 8192 --max-wall 14400 -- \
-//     zig run -O ReleaseFast src/exp7_census.zig -- <board> [flags]
+//     zig run -O ReleaseFast src/exp7_census.zig -- <goban> [flags]
 //
 // Boards: 3 (3×3), 4 (4×4 — needs the sparse fixpoint from exp6_solve.zig)
 
@@ -38,7 +38,7 @@ const TIE: i8 = 0;
 const UNDEF: i8 = -128;
 
 // =========================================================================
-// Generic board operations (shared across all sizes)
+// Generic goban operations (shared across all sizes)
 // =========================================================================
 
 fn genericNeighbors(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
@@ -291,7 +291,7 @@ fn runFixpoint3(gpa: std.mem.Allocator) !struct {
     const snap = try gpa.alloc(u64, ReachWords3);
     defer gpa.free(snap);
 
-    // Census BFS from empty board
+    // Census BFS from empty goban
     for ([_]u8{ 0, 1 }) |side| {
         const root = StateIdx3{ .board = 0, .side = side, .ko = KO_NONE3, .passes = 0 };
         const lin = root.linear();
@@ -632,7 +632,7 @@ fn selectOracleMove3(
         const child_lin = child.linear();
 
         // Check cycle: only for PLACE moves, not passes.
-        // A pass child repeats the board, so it will always match the
+        // A pass child repeats the goban, so it will always match the
         // state before the opponent's last placement — that's normal play,
         // not a long cycle. Long cycles only arise from capture-recapture loops.
         if (child.board != state.board) {

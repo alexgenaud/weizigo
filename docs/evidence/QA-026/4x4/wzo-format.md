@@ -39,7 +39,7 @@ Benson/double-pass terminal). This file uses **rules ID 2**, defined as:
 
 - **Scoring:** Chinese area scoring, komi 0
 - **Ko rule:** Basic ko (formalisation (i) in ADR-0013): a move that would repeat the
-  immediately-preceding board position is illegal (single-point ko, no superko)
+  immediately-preceding goban position is illegal (single-point ko, no superko)
 - **Long cycles:** Value = TIE (= 0) for any state that repeats within the search
   (i.e., encountered on the current DFS path). This replaces PSK's global ban-set.
 - **Terminal:** Two consecutive passes end the game; the position is scored by area.
@@ -58,10 +58,10 @@ byte 9 to 1 before calling `decode()`, or use a decoder that accepts rules_id 2.
 | db | u8 | dtt, Black to move (all 255 = FAR) |
 | dw | u8 | dtt, White to move (all 255 = FAR) |
 
-**Addressing:** colex RAW index `0..(3¹⁶-1)` over the 4×4 board. `genericIsLegal` is
+**Addressing:** colex RAW index `0..(3¹⁶-1)` over the 4×4 goban. `genericIsLegal` is
 NOT applied — unreachable or illegal colex slots store UNDEF(-128). A slot is
 "valued" iff the fresh-start state (passes=0, ko=KO_NONE, side=side) is reachable
-from the empty board under basic ko and appears in the compact fixpoint.
+from the empty goban under basic ko and appears in the compact fixpoint.
 
 **Value rule:** `V = median(L, TIE, H) = max(L, min(TIE, H))` where TIE = 0.
 This is the EXP-6/ADR-0013 convention: L and H bracket the exact value under

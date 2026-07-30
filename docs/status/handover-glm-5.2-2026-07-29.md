@@ -5,13 +5,13 @@ anchor), then `bin/managent status`, then **`untracked/msg/milestone-01-ko-refra
 
 ## Role
 
-**GLM-5.2 = outgoing Orchestrator** (standing down permanently). **Opus 5 = incoming Orchestrator** (the human's nomination). GLM-5.2 transitions to **Q&A-only**, as Opus 5 and the human coordinate. Per `ORCHESTRATOR.md` "Exactly one, ever" — there is never a second Orchestrator; the outgoing stands down and may not touch the board again (may advise when asked).
+**GLM-5.2 = outgoing Orchestrator** (standing down permanently). **Opus 5 = incoming Orchestrator** (the human's nomination). GLM-5.2 transitions to **Q&A-only**, as Opus 5 and the human coordinate. Per `ORCHESTRATOR.md` "Exactly one, ever" — there is never a second Orchestrator; the outgoing stands down and may not touch the kanban again (may advise when asked).
 
 ## The one thing that matters most
 
 **2B-4 reports QA-023 FALSIFIED at 3×2 — pending the audit chain, NOT in CLAIMS.** The Opus 5 audit of 2B-2 found F5 (an `apply_place` ko-rule bug), so 2B-FIX-KO (DONE, Opus 5) was the gate; read its deliverable for whether the falsification holds under the corrected rule. The audit chain: 2B-2-AUDIT (Kimi, DONE) → 2B-5 (in progress, DeepSeek-Pro) → 2B-6 (blocked). 2B-3 audit suggested but not registered.
 
-## Board at handover
+## Kanban at handover
 
 ```
 dispatchable (0)
@@ -25,7 +25,7 @@ failed (1):       EXP-2B (superseded by 2B-0…2B-6)
 
 ## What this session encoded (load-bearing — see ORCHESTRATOR.md)
 
-D-8 (Orchestrator owns the board end-to-end: dispatch/claim/done/reopen/purge/set/needs/agent); proactive duties (read channel + check board + integrate + verify-don't-trust + commit); anti-spin-out (manic-catch-killer); model-in-brief (briefs don't specify models; human assigns; agent records; log to model-perf); bin/managent SSOT (sets are parallel-group labels; needs+holds are the gates); all builds through `tools/runner`; run `bin/weizigo-claimlint` after any CLAIMS edit; `cp zig-out/bin/managent bin/managent` after a rebuild.
+D-8 (Orchestrator owns the kanban end-to-end: dispatch/claim/done/reopen/purge/set/needs/agent); proactive duties (read channel + check kanban + integrate + verify-don't-trust + commit); anti-spin-out (manic-catch-killer); model-in-brief (briefs don't specify models; human assigns; agent records; log to model-perf); bin/managent SSOT (sets are parallel-group labels; needs+holds are the gates); all builds through `tools/runner`; run `bin/weizigo-claimlint` after any CLAIMS edit; `cp zig-out/bin/managent bin/managent` after a rebuild.
 
 ## Loose ends for Opus 5
 

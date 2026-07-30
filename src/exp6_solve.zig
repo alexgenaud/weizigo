@@ -22,9 +22,9 @@
 //
 // Per `docs/infra/dispatch/EXP-6.md`:
 //   Under area scoring, komi 0, basic ko, and a fixed-value verdict for
-//   long cycles (TIE = 0), what is the value of the empty 4×4 board?
+//   long cycles (TIE = 0), what is the value of the empty 4×4 goban?
 //
-// Acceptance: +2 (Black, empty board, central first move), matching
+// Acceptance: +2 (Black, empty goban, central first move), matching
 // van der Werf & Winands (ICGA 2009). Root FILLED (vb[empty] ≠ -128).
 // Full gate chain: 2×2 = 0, 3×2 = 0, 3×3 = +9.
 //
@@ -119,7 +119,7 @@ fn invert_state_2x2(s: Brute2x2.State) Brute2x2.State {
 }
 
 // =========================================================================
-// Generic board-ops helper: returns neighbours for a grid cell
+// Generic goban-ops helper: returns neighbours for a grid cell
 // =========================================================================
 fn genericNeighbors(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
     var cnt: usize = 0;
@@ -872,7 +872,7 @@ const N4: usize = 16;
 const KO_DIMS4: u64 = N4 + 1; // 17
 const RAW_TOTAL4: u64 = 43046721; // 3^16
 
-// Dense linear index space: (passes * 2 + side) * KO_DIMS * RAW_TOTAL + ko * RAW_TOTAL + board
+// Dense linear index space: (passes * 2 + side) * KO_DIMS * RAW_TOTAL + ko * RAW_TOTAL + goban
 // where passes ∈ {0,1,2}, side ∈ {0,1}, ko ∈ {0..16}
 // Total: 2 * KO_DIMS4 * 3 * RAW_TOTAL4
 const TOTAL4: u64 = RAW_TOTAL4 * 2 * KO_DIMS4 * 3;
@@ -996,7 +996,7 @@ fn run_census_4x4(gpa: std.mem.Allocator, reach: []u64) !struct { total_marked: 
     std.debug.print("# 4x4 census: frontier allocated\n", .{});
     defer frontier.deinit(gpa);
 
-    // Seed: empty board, both sides, passes=0.
+    // Seed: empty goban, both sides, passes=0.
     // Store ENCODED states in frontier, not linear indices.
     for ([_]u1{ 0, 1 }) |side| {
         const enc = encodeState4(0, side, KO_NONE4, 0);
@@ -1043,7 +1043,7 @@ fn run_census_4x4(gpa: std.mem.Allocator, reach: []u64) !struct { total_marked: 
                 const word = child_lin >> 6;
                 const bit: u64 = @as(u64, 1) << @intCast(child_lin & 63);
                 if (reach[word] & bit == 0) {
-                    // Check board legality for place moves (passes==0 children)
+                    // Check goban legality for place moves (passes==0 children)
                     const child_passes = decodePasses4(child_enc);
                     if (child_passes == 0) {
                         const child_board_idx = decodeBoard4(child_enc);
@@ -1263,21 +1263,21 @@ fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Result
         if (map.get(pass_child_lin_w)) |pw_ci| {
             std.debug.print("# 4x4 fixpoint DEBUG: pass_child(empty,B,1) L={d} H={d}\n", .{ L_tab[pw_ci], H_tab[pw_ci] });
         }
-        // Check board with one Black stone (rank=1), White to move, passes=0
+        // Check goban with one Black stone (rank=1), White to move, passes=0
         const b1w0_lin = linearIndex4(1, 1, KO_NONE4, 0);
         if (map.get(b1w0_lin)) |ci| {
             std.debug.print("# 4x4 fixpoint DEBUG: (1B,W,0) L={d} H={d}\n", .{ L_tab[ci], H_tab[ci] });
         } else {
             std.debug.print("# 4x4 fixpoint DEBUG: (1B,W,0) NOT in hash map!\n", .{});
         }
-        // Check board with B at 0 and W at 1 (rank=7), Black to move, passes=0
+        // Check goban with B at 0 and W at 1 (rank=7), Black to move, passes=0
         const b1w1_b0_lin = linearIndex4(7, 0, KO_NONE4, 0);
         if (map.get(b1w1_b0_lin)) |ci| {
             std.debug.print("# 4x4 fixpoint DEBUG: (1B1W,B,0) L={d} H={d}\n", .{ L_tab[ci], H_tab[ci] });
         } else {
             std.debug.print("# 4x4 fixpoint DEBUG: (1B1W,B,0) NOT in hash map!\n", .{});
         }
-        // Check board with B at 0 and W at 1, White to move, passes=1
+        // Check goban with B at 0 and W at 1, White to move, passes=1
         const b1w1_w1_lin = linearIndex4(7, 1, KO_NONE4, 1);
         if (map.get(b1w1_w1_lin)) |ci| {
             std.debug.print("# 4x4 fixpoint DEBUG: (1B1W,W,1) L={d} H={d}\n", .{ L_tab[ci], H_tab[ci] });
@@ -1555,7 +1555,7 @@ pub fn main() !void {
         // Count UNDEF across all reachable states (all passes)
         // We need to re-run the hash map to check. We'll check root specifically above.
         // For full UNDEF sweep, we need the L/H values for pass=2 too.
-        // The pass=2 values are area_score(board) by construction.
+        // The pass=2 values are area_score(goban) by construction.
         // We check: is the root filled? vb[empty] ≠ -128?
         const root_filled = v4_b != UNDEF;
         std.debug.print("# root filled? {s}\n", .{if (root_filled) "YES" else "NO"});

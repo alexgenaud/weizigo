@@ -466,7 +466,7 @@ test "5x5 cross-validation: pos_from_move matches state.armies_from_move" {
 // the attacker play EVERY possible sequence of moves (owner always passing)
 // and checking the certified stones survive in every reachable state. Owner
 // never moves, so attacker stones only accumulate / owner stones only shrink:
-// no cycles, plain DFS over reachable boards, memoized by colex index.
+// no cycles, plain DFS over reachable gobans, memoized by colex index.
 
 fn benson_attack_dfs(
     comptime R: type,
@@ -490,7 +490,7 @@ fn benson_attack_dfs(
     }
 }
 
-/// Exhaustive theorem check over all legal w x h boards with <= max_stones.
+/// Exhaustive theorem check over all legal w x h gobans with <= max_stones.
 pub fn benson_theorem_check(comptime w: usize, comptime h: usize, max_stones: usize, gpa: std.mem.Allocator) !u64 {
     const R = Rules(w, h);
     const X = @import("colex.zig").Indexer(w, h);
@@ -547,19 +547,19 @@ test "BENSON'S THEOREM itself (3x3, <=5 stones): certified stones survive every 
 // 3x3 EXHAUSTIVE test above catches most such bugs because 3x3 is enough to
 // exercise loops at small sizes, but a subtle size-related issue (e.g. an
 // `i < n` where `n = w*h` is correct, but a separate `i < 25` lurking) only
-// shows on a 16-cell board. This test:
+// shows on a 16-cell goban. This test:
 //   1. implements an INDEPENDENT, INDEPENDENTLY-STRUCTURED benson_alive (same
 //      Benson fixpoint algorithm; the only common ground is the spec). The
 //      reference uses different loop structure (reverse iteration order,
 //      different neighbour representation, separate boundary logic).
-//   2. compares rules.benson_alive vs the reference on every legal 4x4 board
+//   2. compares rules.benson_alive vs the reference on every legal 4x4 goban
 //      with <= max_stones stones, both colours. ANY mismatch = BUG.
 //   3. additionally asserts: no certified stone is capturable in one move
 //      by the opponent (a stronger self-consistency: a Benson stone that the
 //      opponent can immediately capture is an automatic violation).
 //
-// Stratification: full 3^16 = 43,046,721 boards is too slow under zig test.
-// Per-stone-count strata, exhaustive within each layer k (C(16,k)*2^k boards).
+// Stratification: full 3^16 = 43,046,721 gobans is too slow under zig test.
+// Per-stone-count strata, exhaustive within each layer k (C(16,k)*2^k gobans).
 // At k=5: 8736*32=279,552; k=6: 8008*64=512,512; ... k=16: 65,536. We
 // exhaust k=0..max_stones inclusive; max_stones=8 in test, max_stones=16
 // in main. Wall-time bounded: 3^16 in ReleaseFast is ~1-3 min, debug is much
@@ -927,7 +927,7 @@ test "S2-4x4: benson_alive implementation regression (rules vs naive) for <=8 st
 }
 
 pub fn main() !void {
-    // full-board theorem check: zig run -O ReleaseFast src/rules.zig
+    // full-goban theorem check: zig run -O ReleaseFast src/rules.zig
     const gpa = std.heap.page_allocator;
     const tested = try benson_theorem_check(3, 3, 9, gpa);
     std.debug.print("Benson theorem, 3x3 EXHAUSTIVE: {d} (board, owner) cases with Benson-alive stones -- all survived every attack sequence. PASS\n", .{tested});

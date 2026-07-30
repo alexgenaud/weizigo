@@ -214,7 +214,7 @@ fn brute_local(
 //     is ever reused across paths. With a full window the root value is
 //     exact regardless of move order; ordering only changes the node count.
 //     Children are tried most-material-favourable first, a heuristic
-//     computed from the board alone and independent of the fixpoint tables.
+//     computed from the goban alone and independent of the fixpoint tables.
 // =========================================================================
 fn material(board: [4]i8) i8 {
     var m: i8 = 0;

@@ -19,10 +19,10 @@
 // ko_census — B23: count independent ko points on ko-sensitive positions.
 //
 // Loads a WZO1 artifact; for every ko-sensitive position (L<H, fresh-start),
-// analyzes the board to count how many independent ko clusters exist.
+// analyzes the goban to count how many independent ko clusters exist.
 // Outputs a table:
 //
-//   board   total-legal   ko-sens    0-ko    1-ko    2-ko    3-ko    4-ko+
+//   goban   total-legal   ko-sens    0-ko    1-ko    2-ko    3-ko    4-ko+
 //   3x3     12,675        8,698      ...     ...     ...     ...     ...
 //   4x4     24,318,165    5,183,961  ...     ...     ...     ...     ...
 //
@@ -72,7 +72,7 @@ fn isKoCapture(comptime R: type, pos: *const R.Pos, p: usize, colour: i8) ?usize
     return captured_cell;
 }
 
-/// Build a list of all ko points on the board.
+/// Build a list of all ko points on the goban.
 /// Each ko point is (cell, captured_cell).
 fn findAllKoPoints(comptime R: type, pos: *const R.Pos, list: *std.ArrayListUnmanaged(KoPoint), gpa: std.mem.Allocator) !void {
     for (0..R.n) |p| {
@@ -161,7 +161,7 @@ fn census(comptime w: comptime_int, comptime h: comptime_int, d: *const artifact
     defer ko_points.deinit(gpa);
 
     var last_pct: u64 = 0;
-    // Cache the ko-point analysis per unique board (lazily computed)
+    // Cache the ko-point analysis per unique goban (lazily computed)
     var board_done = try std.DynamicBitSetUnmanaged.initEmpty(gpa, t);
     defer board_done.deinit(gpa);
     var board_n_ko = try gpa.alloc(u8, t);
@@ -186,7 +186,7 @@ fn census(comptime w: comptime_int, comptime h: comptime_int, d: *const artifact
             }
         }
 
-        // Compute ko-point count for this board (once)
+        // Compute ko-point count for this goban (once)
         const nko: u8 = if (board_n_ko[idx] != 255) board_n_ko[idx] else blk: {
             const pos = X.pos_from_colex(idx);
             ko_points.clearRetainingCapacity();

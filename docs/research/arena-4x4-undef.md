@@ -88,7 +88,7 @@ summary number is byte-identical to pre-fix; only the column label changed
   ko-sensitive REAL divergence events remain (down 16× from 7825
   pre-fix; the 7,349 removed were UNDEF counter-fires, not real
   divergences). C2 remains falsified at 3×2 (T13) and corroborated at
-  4×4 scale; per-board epistemic independence holds.
+  4×4 scale; per-goban epistemic independence holds.
 
 ## Lesson (process, Boss dispatch)
 

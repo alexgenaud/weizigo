@@ -8,7 +8,7 @@
 2. `docs/infra/dispatch/QA-018-REVIEW.md` — the core brief: framing, the
    question, the three 025 findings to grade, packet read order, acceptance,
    Do-NOTs. It applies verbatim except where the panel protocol overrides it
-   (deliverable paths and board bookkeeping).
+   (deliverable paths and goban bookkeeping).
 
 **Closes:** nothing directly. **Enables:** `QA-018-RULING` (with seats A/C).
 **KIND:** ANALYSIS — writes exactly two files, nothing shared.

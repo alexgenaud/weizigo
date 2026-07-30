@@ -22,9 +22,9 @@
 //
 // Per `docs/infra/dispatch/EXP-5.md`:
 //   Under area scoring, komi 0, basic ko, and a fixed-value verdict for
-//   long cycles (TIE = 0), what is the value of the empty 3×3 board?
+//   long cycles (TIE = 0), what is the value of the empty 3×3 goban?
 //
-// Acceptance criterion: +9, exactly, for Black on the empty board.
+// Acceptance criterion: +9, exactly, for Black on the empty goban.
 // Plus: root filled, colour-inversion symmetry, 2×2/3×2 gate passes,
 // tie-vs-score disambiguation.
 //
@@ -802,7 +802,7 @@ fn run_census_3x3(gpa: std.mem.Allocator, reach: []u64) !CensusResult {
     const snap = try gpa.alloc(u64, ReachWords);
     defer gpa.free(snap);
 
-    // Seed: empty board, both sides to move, passes=0.
+    // Seed: empty goban, both sides to move, passes=0.
     for ([_]u8{ 0, 1 }) |side| {
         const root = StateIdx{ .board = 0, .side = side, .ko = KO_NONE, .passes = 0 };
         const lin = root.linear();
@@ -1370,7 +1370,7 @@ pub fn main() !void {
         const SAMPLE_MAX: u64 = 50;
         const MAX_EMPTY: u8 = 1; // positions with ≤1 empty point (near-terminal)
 
-        // Search from high indices (dense boards) downward.
+        // Search from high indices (dense gobans) downward.
         var lin: u64 = TOTAL;
         while (lin > 0 and sample_count < SAMPLE_MAX) {
             lin -= 1;

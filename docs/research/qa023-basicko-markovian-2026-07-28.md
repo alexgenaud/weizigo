@@ -1,7 +1,7 @@
 # QA-023 — basic ko + constant tie is Markovian: Part A repaired, reviewed, re-costed
 
 ```
-Task: EXP-2 Part A (board ID EXP-2; dispatched to this console as "EXP-2A")
+Task: EXP-2 Part A (kanban ID EXP-2; dispatched to this console as "EXP-2A")
 Role: worker · Model: Fable 5 (claude-fable-5) · Date: 2026-07-28
 ```
 
@@ -45,8 +45,8 @@ than citing a characterization.
 
 A four-state graph with `L = 1`, `H = 3`, `T = 0` has true value `1`; v1's
 rule returns `0`. v1's rule is correct exactly when `T ∈ [L, H]`. How often
-`T ∉ [L, H] ∧ L < H` occurs on real boards is an open empirical number — the
-**pin census** (below) that EXP-4/5/6 must now report per board.
+`T ∉ [L, H] ∧ L < H` occurs on real gobans is an open empirical number — the
+**pin census** (below) that EXP-4/5/6 must now report per goban.
 
 ### 1.3 The adversarial review (audit F3 closed)
 **[Run 2026-07-28; verdict verbatim in proof-v2 §10.1]**
@@ -70,7 +70,7 @@ valuable and are now load-bearing guidance:
   the EXP-2B probe and any spot-checker must run memo-free.
 - **F2:** the rule has **no in-game repetition trigger** — `T` is the value
   of *infinite plays*; the proven-sound evaluator truncates on full
-  `(board, side, ko_point, passes)` revisits only. Board-keyed triggers are
+  `(board, side, ko_point, passes)` revisits only. Goban-keyed triggers are
   a *different game*, equivalence unproven → new sub-claims QA-023.M1/M2
   (§3 below).
 
@@ -80,11 +80,11 @@ valuable and are now load-bearing guidance:
 - v1 §4.2 states the H-recurrence with max/min **swapped** relative to
   ADR-0009 (H is the greatest fixpoint of the *same* operator, Black max /
   White min). Any implementation copied from v1 §4.2 would be wrong.
-- v1 §5's parity premise ("area score on an odd-point board is always odd")
+- v1 §5's parity premise ("area score on an odd-point goban is always odd")
   is false: area scoring admits neutral regions (`src/rules.zig:125`);
   witness: 3×3 terminal B a1 / W c3 / rest empty (reachable via
   B a1, W c3, pass, pass) scores 0. Consequence: with `T = 0`,
-  `V ∈ ℤ ∩ [−n, n]` on **every** board and no sentinel encoding is needed in
+  `V ∈ ℤ ∩ [−n, n]` on **every** goban and no sentinel encoding is needed in
   the value column; the A5 ADR should be drafted on the corrected premise.
 
 ## 2. Re-cost of the reframe (the audit's direct demand)
@@ -120,7 +120,7 @@ did find are recorded above rather than smoothed over.
   the published MIGOS II anchors, including *what their long-cycle verdict
   triggered on*. Must be verified before EXP-5/6 treat anchors as truth.
 - `QA-023.M2` (new, UNTESTED) — play-time tie adjudication triggers
-  (board-keyed repetition etc.) are value-equal to the infinite-play-valued
+  (goban-keyed repetition etc.) are value-equal to the infinite-play-valued
   game. Proven only for full-tuple first-revisit truncation (Theorem 6.1).
 - v1 §4.2 H-recurrence and v1 §5 parity premise — two recorded v1 defects
   (§1.4) for the errata trail.

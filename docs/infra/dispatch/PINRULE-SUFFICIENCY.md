@@ -19,7 +19,7 @@ At 3×2, under the corrected ko rule (post-`2B-FIX-KO`):
 2. **Group states by their exact `(L, H)` pair.** Report the group-size distribution.
 3. **Within each group of size ≥ 2, compare history-conditioned truncation values** using the *fixed* probe (`truncated_value` post-`2B-PROBE-FIX`, σ excluded, separate exhaustion counters). Note that ~93% of evaluations exhaust at the default 100,000-node budget: use `--node-budget` generously and **report the within-budget denominator per group**.
 4. **The finding:** does any `(L, H)` group contain two states with *different* within-budget truncation values?
-   - **Yes** → no pointwise pin rule can work. Report the smallest witness pair in full (both boards, both values, both arrival histories). This is a **stronger falsification than C2** and it forecloses a whole family of repairs.
+   - **Yes** → no pointwise pin rule can work. Report the smallest witness pair in full (both gobans, both values, both arrival histories). This is a **stronger falsification than C2** and it forecloses a whole family of repairs.
    - **No** (across everything within budget) → a pointwise rule remains *possible*; then **characterise the correct one** on the four known counterexample states, and say what it would have to return where the median returns TIE. Do **not** claim a rule works — claim only that the obstruction was not found, and state the coverage.
 5. **Report the coverage honestly.** With 93% budget exhaustion this experiment is easy to run vacuously. State how many groups had ≥2 states with ≥1 within-budget evaluation each — that count is the real denominator, and if it is tiny, say so and say the experiment was inconclusive.
 

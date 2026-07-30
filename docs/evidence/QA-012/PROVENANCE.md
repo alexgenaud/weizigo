@@ -47,12 +47,12 @@ The harness uses `retro.Retro(w,h).O.solve` with:
 
 This is the same history-exact discipline as the 3×2 C2 falsification probe
 (`docs/research/c2-falsification-3x2.md`).  It is **not** `retro.Exact` fresh-start
-root solving; fresh-start exact PSK on non-terminal small boards exceeded the
+root solving; fresh-start exact PSK on non-terminal small gobans exceeded the
 available 4 GB RSS cap even at 2×2/1-empty (see research note).
 
 ## Calibration
 
-- **Known-bad (synthetic):** perturb `vb[0]` (empty board, Black to move) from
+- **Known-bad (synthetic):** perturb `vb[0]` (empty goban, Black to move) from
   the known PSK value +1 to 0.  The harness reports increased value divergence,
   confirming it detects table-vs-PSK mismatches.
 - **Known-good:** a fresh-start exact-PSK known-good run on L==H slots could not

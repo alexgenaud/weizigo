@@ -79,7 +79,7 @@ it is OUT OF SCOPE for the belief audit. Treat it that way.
   claim. It fixes a *measurement tool* so the audit numbers are honest.
 - Tag every changed metric's meaning in code comments. The re-measured
   numbers are the new ground truth for the 4×4 parallel artifact's leak rate;
-  record them with the run command and board size.
+  record them with the run command and goban size.
 - Scores are Black-positive. "colex index," not "rank."
 
 ## Subtasks (serial; one agent; one session)

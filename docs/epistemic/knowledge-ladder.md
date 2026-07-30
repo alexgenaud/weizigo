@@ -37,7 +37,7 @@ Six rungs. Each requires everything above it plus one more thing.
 | rung | name | requires | what you may say |
 |---|---|---|---|
 | **K0** | **Certified** | exact value under an **explicitly stated** rule · evidence committed to git · **independently reproduced by a different implementation** | "this is the value, and here is how to check it" |
-| **K1** | **Proven-as-scoped** | exact under a stated rule, evidence committed, **one** implementation | "this is the value, on the boards and positions enumerated" |
+| **K1** | **Proven-as-scoped** | exact under a stated rule, evidence committed, **one** implementation | "this is the value, on the gobans and positions enumerated" |
 | **K2** | **Optimal under a different rule, gap measured** | exact under rule R′ while the game played is R · **the R↔R′ divergence is measured** | "optimal under R′, and it differs from R by *this much*" |
 | **K3** | **Optimal under a different rule, gap unmeasured** | exact under R′, no measurement of how R′ differs from R | "optimal under R′. We cannot say how wrong that is for R." |
 | **K4** | **Best available, uncertified** | a value from machinery whose premise is orphaned, falsified-as-scoped, or applied outside its validated scope | "our best number. It may be right. We cannot defend it." |
@@ -88,7 +88,7 @@ a decision can be revisited; a discovery is a constraint.** Marked accordingly.
 | 2 | **Score-on-cycle → constant tie value** | **decision, forced** by R2 (score-on-cycle ≡ PSK in hardness) | the value on a repetition is now a stipulation, not a computation |
 | 3 | **Real-game oracle → fresh-start oracle** | **discovery, not chosen** — surfaced by C2/C3 falsification. The "three retreats." | the largest single loss, and it was *implicit* until caught |
 | 4 | **5×5/6×6/7×7 → 4×4 only** | **decision** | fine — but `ARCHITECTURE.md` and `ADR-0012-5X5` still state the old ambition (erratum pending in `EVIDENCE-INTEGRITY`) |
-| 5 | **All positions → root + a reachable subset** | **decision** (scope) | claims are per-board and per-region; the register enforces this well |
+| 5 | **All positions → root + a reachable subset** | **decision** (scope) | claims are per-goban and per-region; the register enforces this well |
 | 6 | **Eye-prune soundness assumed** | **drift** — never explicitly agreed | contaminates every forward-search ground truth if wrong |
 | 7 | **"Certified" redefined as self-consistency** | **drift** | a metric that cannot fail in the way a reader assumes it can |
 | 8 | Komi 0, Tromp–Taylor area scoring | **decision** | benign, but it is a choice and belongs stated |

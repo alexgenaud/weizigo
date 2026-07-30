@@ -4,7 +4,7 @@
 
 ## Claim IDs
 
-- **4x4.BASICKO-TIE** — fresh-start value of 4×4 empty board under basic ko + TIE=0 = +1 (NOT the expected +2 anchor). Proposed; owner `CLAIMS.md` assigns ID.
+- **4x4.BASICKO-TIE** — fresh-start value of 4×4 empty goban under basic ko + TIE=0 = +1 (NOT the expected +2 anchor). Proposed; owner `CLAIMS.md` assigns ID.
 
 ## Run command
 
