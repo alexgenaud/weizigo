@@ -2173,3 +2173,15 @@ exist. Built independent Zig + Python verification. The model did what it's best
 **GLM 5.2 / T101A:** punchlist of top-5 evidence-free PROVEN rows (follow-up to T101).
 Ranked by in-degree: GLOBAL.S2 (10), GLOBAL.INVSYM (9), GLOBAL.FP1 (8), GLOBAL.S4 (5),
 GLOBAL.AUDITOR (5). All five fixable without builds. Total cost ~1 seat-day.
+
+**Kimi-k3 / T104:** EXP-6 H-chain audit — H=+16 at 4×4 root GENUINE. Exhaustive
+post-convergence verification: 0/99,133,036 fixpoint violations, 0 map misses,
+exhaustive inversion 0. V=+1 is faithful loopy-fixpoint value; +2 gap is ruleset
+difference (basic ko vs PSK), not a bug. Independent Python kernel reproduces
+all results 2×2 through 3×3. The model performed a full adversarial audit with
+independent re-implementation — exactly the QA-023 pattern that finds defects.
+
+**Opus 5 / T102 spillover:** the buffer-aliasing pattern is in brute-force
+cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
+EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
+T104 Python kernel for 2×2/3×2/3×3, MIGOS II anchors) and stand.
