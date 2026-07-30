@@ -1,7 +1,7 @@
 # ADR-0019 — First-revisit truncation is the rule; the median pin rule is falsified
 
 **Date:** 2026-07-29
-**Status:** ACCEPTED **as a ruleset decision** · **its measurement premise is WITHDRAWN 2026-07-29 (later)**
+**Status:** **SUPERSEDED by ADR-0020 (2026-07-30).** Loopy-game fixpoint semantics replaces first-revisit truncation as the target rule. Truncation is demoted to a reference probe.
 
 > **⚠ The factual premise of this ADR — that `median(L,TIE,H)` was falsified at 3×2 — is withdrawn.**
 > `Kimi-k3/PINRULE-SUFFICIENCY` found, and the Orchestrator confirmed at the code, that
