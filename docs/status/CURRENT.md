@@ -5,12 +5,49 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
-Last refreshed **2026-07-31 (late)** (Fable/Consul — sprint state + absorption
-catch-up, after the 39-task absorption audit).
+Last refreshed **2026-08-01** (Fable/T177 — P2 absorption; earlier 2026-07-31
+Fable/Consul sprint-state rewrite).
 
-# STATE AS OF 2026-07-31 (late) — Fable/Consul
+# STATE AS OF 2026-08-01 — Fable/T177
 
-## Two Tier-A sprints in flight — both M1 designs at G2 (human ratification pending)
+## P2 absorbed: both sprints are CODE-COMPLETE, RUN-PENDING
+
+G2 cleared; the post-G2 build lanes (T165–T172) ran 2026-07-31 and delivered
+~5,000 lines of committed code with **zero executions**. Absorbed into the
+register 2026-08-01 (Fable/T177, 6 new rows; see `PROGRESS.md` §7.4a):
+
+- **oracle-v2**: no `.wzo2` artifact exists — the builder compiled but never
+  ran; `docs/evidence/ORACLE-V2/` was never created; the G-bracket, F2
+  byte-budget and DTT-clamp predictions are all still untested
+  `[CODE.WZO2-UNRUN:PROVEN]`. Inspection defects: the WZO2 GTP path
+  short-circuits chainability to `true` (refusal rate = 0 by fiat,
+  spec A1 unfalsifiable) `[CODE.WZO2-CHAINSHORT:PROVEN]`; the M4a
+  acceptance harness is orphaned from the build graph and its A6 positive
+  control tests uncorrupted data `[CODE.M4A-HARNESS:PROVEN]`.
+- **verify-battery**: harness not wired to any invariant module (all 12
+  checks are stubs, zero real runs, 36 module-local tests unreachable from
+  `zig build test`) `[CODE.VB-STUBS:PROVEN]`; I5 calibration PARTIAL — node
+  counts exact, edge counts +30–34% off, 3×2 gate self-calibrated against
+  an uncommitted reference `[3x2.I5-CAL:MEASUREMENT]`; five blind spec gaps,
+  **GAP-5 CRITICAL: the I11 solver-dump format is specified nowhere** and
+  V-8 stubbed I11 instead of resolving it `[CODE.VB-BLINDGAPS:PROVEN]`.
+- P2 run logs + the T172 blind analysis rescued from git-ignored
+  `untracked/` into the verify-battery sprint archive (`fb3166e`).
+
+**Follow-up work to register (P3, in dependency order):** (1) amend
+spec/design for GAP-5 (define the I11 dump format — also unblocks the
+WZO1-brackets decision's dump option) and dispose GAP-1..4; (2) fix
+`CODE.WZO2-CHAINSHORT` — replace the short-circuit with a real Bellman
+check or an honest "unverified" flag, and count/log lookup-miss fallbacks;
+(3) wire `oracle_v2_accept.zig` into the build graph, fix the A6 fixture
+(c), re-verify M2a byte-identity; (4) **run the WZO2 builder under the
+runner** (RSS cap 4096; the untested memory plan is the suspected blocker)
+and commit `docs/evidence/ORACLE-V2/`; (5) run M4a against the artifact;
+(6) wire the battery harness to the invariant modules, reconcile the I5
+edge-count discrepancy against a committed reference, implement RSS
+high-water-mark measurement.
+
+## Sprint docs (both M1 designs G2-ratified; state above supersedes)
 
 **Doc convention** (`docs/infra/sprint.md` rev 5, PROPOSED — rev 4 was
 RATIFIED `d53c2a8`; rev 5 adds the epic tree per human directive):
@@ -39,19 +76,19 @@ and the epic move of 2026-07-31).
 
 ## Decisions the human owes
 
-1. **G2 ratification ×2** — both design-M1 docs above.
-2. **WZO1 cannot answer bracket invariants**: every committed artifact stores
+1. **WZO1 cannot answer bracket invariants**: every committed artifact stores
    the TIE-resolved pin (single V), not `[L,H]` — so `L ≤ H`, median-pin and
    L/H-residual checks are uncomputable from committed evidence and 10 of the
-   60 fleet-matrix cells are unreachable until WZO2 exists. Options on the
-   table (verify-battery `pass0/design-M1.md` §agenda): wait-for-WZO2 vs a
-   ~250–350-line solver-side L/H dump.
-3. **ADR-0020 amendment (G1)**: the "24 mismatch states as permanent
-   calibration fixture" clause was withdrawn by `GLOBAL.BRUTE-ALIASING`
-   (T102: all 24 were checker artifacts; true gap **0/172** — the fixture
-   should be an *agreement* fixture). Flagged independently by T133, T136,
-   T137. Amendment text is **drafted, uncommitted** in the working tree
-   (Orcha) — needs your ruling before it lands.
+   60 fleet-matrix cells are unreachable until WZO2 exists. Options: wait for
+   the WZO2 artifact (now blocked only on running the builder), or the
+   ~250–350-line solver-side L/H dump — **whose format is GAP-5's missing
+   spec (`CODE.VB-BLINDGAPS`), so the dump option requires the GAP-5
+   amendment first either way.**
+2. **sprint.md rev 5** (epic tree, plan.md rename) — PROPOSED, awaiting
+   ratification.
+
+Resolved since the last refresh: G2 ×2 (cleared; P2 built on it) and the
+ADR-0020 amendment (ratified, committed `0c3c3ac`).
 
 ## PROPOSED specs awaiting their spec gate
 

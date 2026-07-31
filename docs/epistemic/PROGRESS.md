@@ -357,6 +357,38 @@ the fraction is 100.00%. Evidence: `docs/evidence/QA-027/4x4/`,
 Brute-force cross-check is withdrawn across the entire chain (T102)
 `[GLOBAL.BRUTE-ALIASING:FALSE]`; fixpoint results stand independently.
 
+### 7.4a Oracle-v2 / verify-battery P2 (2026-07-31) — code-complete, RUN-PENDING
+
+The post-G2 build lanes (T165–T172) delivered ~5,000 lines of committed,
+compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
+
+- **Oracle-v2** (M2b builder, M3 GTP wiring, M4a acceptance harness): no
+  `.wzo2` artifact exists; the builder compiled but never ran; the
+  spec-mandated `docs/evidence/ORACLE-V2/` directory was never created.
+  Every register prediction — the G bracket, the F2 byte budget, the DTT
+  254-clamp question — remains untested `[CODE.WZO2-UNRUN:PROVEN]`.
+  Two defects are visible by inspection: the WZO2 GTP path short-circuits
+  the chainability check to `true`, making the refusal rate unmeasurable by
+  construction `[CODE.WZO2-CHAINSHORT:PROVEN]`, and the acceptance harness
+  is orphaned from the build graph with a broken A6 positive control
+  `[CODE.M4A-HARNESS:PROVEN]`.
+- **Verify-battery** (harness + three invariant modules): 36 unit tests
+  (module-local, not reachable from `zig build test`), harness not wired to
+  any invariant module — every check is a stub, zero verification runs
+  `[CODE.VB-STUBS:PROVEN]`. T171's I5 Tarjan calibration is **partial**:
+  node counts exact, edge counts +30–34% off the committed references, and
+  the 3×2 test gate is self-calibrated against an uncommitted number
+  `[3x2.I5-CAL:MEASUREMENT]`. T172's blind reimplementation found five spec
+  gaps, one critical: **the I11 solver-dump format is specified nowhere**,
+  and V-8 shipped I11 as a permanent not-applicable stub instead of
+  resolving it `[CODE.VB-BLINDGAPS:PROVEN]`.
+- The lesson of the wave: **"done" in the kanban meant code-written, not
+  code-run.** Nothing in P2 can support a PROVEN claim about any artifact
+  until the builder runs, the acceptance harness joins the build graph, and
+  the battery is wired end-to-end. Run logs and the blind analysis were
+  rescued from git-ignored `untracked/` into the sprint archive before they
+  could repeat the B44 evidence loss.
+
 ### 7.5 Other open items
 
 - **4×4 writes-off regen** (D3): untested, the single gate on Track A

@@ -2886,7 +2886,7 @@ shows T159 `dispatchable`, never claimed, never done.
    and then only as a carried finding. The T152 recommendation — Opus audits,
    DSPro implements — is the allocation that produced the highest-yield rounds.
 
-**DSPro / T165 (oracle-v2 M2b):** WZO2 artifact builder — `src/artifact2.zig` (WZO2 format: L/H stored separately, full (goban,side,ko,passes) key, SHA-256 header) and `src/oracle_v2_build.zig` (rules_id=2 basic-ko+TIE). Built from exposed fixpoint (T140/T155).
+**DSPro / T165 (oracle-v2 M2b):** WZO2 artifact builder — `src/artifact2.zig` (WZO2 format: L/H stored separately, full (goban,side,ko,passes) key, SHA-256 header) and `src/oracle_v2_build.zig` (rules_id=3 `RULES_BASICKO_LH_AREA` per `src/artifact2.zig:42` and design §263 — this entry originally said 2, which is the v1 override; corrected by T177). Built from exposed fixpoint (T140/T155). **T177 correction: builder compiled but never executed — no artifact, no acceptance run, see `CODE.WZO2-UNRUN`.**
 
 **DSPro / T166 (oracle-v2 M3):** GTP engine wired to WZO2. `Enforcement` enum (basic_ko/psk), WZO2 lookup with area-score fallback, tie-break among equal-value moves.
 
