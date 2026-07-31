@@ -45,6 +45,13 @@
 //   8  1  value_semantics   = 1  (fresh-start value, ADR-0008)
 //   9  1  rules_id          = 1  (Chinese area, komi 0, positional superko,
 //                                 Benson/double-pass terminal)
+//                             = 2  (Chinese area, komi 0, basic ko, TIE=0 on
+//                                 cycles — ADR-0020. NOTE: the payload is the
+//                                 `ko == NONE, passes == 0` slice of that
+//                                 solve; the key has no room for a ko point,
+//                                 so a stored value never knows a ko is
+//                                 pending. See docs/decisions/ADR-0020 and
+//                                 channel msg 059.)
 //  10  1  column_count      = 6  (the schema above, in that order)
 //  11  1  reserved          = 0
 //  12  8  total             u64, == 3^(w*h) (raw layered colex space)
@@ -67,14 +74,27 @@ pub const MAGIC = [4]u8{ 'W', 'Z', 'O', '1' };
 pub const FORMAT_VERSION: u8 = 1;
 pub const VALUE_SEMANTICS_FRESH_START: u8 = 1; // ADR-0008
 pub const RULES_CHINESE_PSK: u8 = 1;
+pub const RULES_BASICKO_TIE_AREA: u8 = 2; // ADR-0020
 pub const COLUMN_COUNT: u8 = 6;
 pub const HEADER_LEN: usize = 32;
+
+/// Human-readable name for a `rules_id`, for load banners and diagnostics.
+pub fn rulesName(rules_id: u8) []const u8 {
+    return switch (rules_id) {
+        RULES_CHINESE_PSK => "Chinese area, komi 0, positional superko",
+        RULES_BASICKO_TIE_AREA => "Chinese area, komi 0, basic ko, TIE=0 on cycles",
+        else => "unknown",
+    };
+}
 
 pub const Header = struct {
     board_w: u8,
     board_h: u8,
     total: u64, // == 3^(board_w*board_h)
     legal_count: u64,
+    /// Defaulted so existing writers (retro.zig) keep producing PSK artifacts
+    /// without edits; `decode` always reports what was actually on disk.
+    rules_id: u8 = RULES_CHINESE_PSK,
 };
 
 /// The six schema columns, each exactly `total` bytes. `encode` borrows,
@@ -144,7 +164,7 @@ pub fn encode(gpa: Allocator, header: Header, cols: Columns) Allocator.Error![]u
     out[6] = header.board_w;
     out[7] = header.board_h;
     out[8] = VALUE_SEMANTICS_FRESH_START;
-    out[9] = RULES_CHINESE_PSK;
+    out[9] = header.rules_id;
     out[10] = COLUMN_COUNT;
     out[11] = 0;
     writeU64(out[12..20], header.total);
@@ -167,13 +187,15 @@ pub fn decode(gpa: Allocator, bytes: []const u8) (Error || Allocator.Error)!Deco
     if (!std.mem.eql(u8, bytes[0..4], &MAGIC)) return Error.BadMagic;
     if (bytes[4] != FORMAT_VERSION) return Error.BadVersion;
     if (bytes[5] != colex.layout_version) return Error.BadLayout;
-    if (bytes[8] != VALUE_SEMANTICS_FRESH_START or bytes[9] != RULES_CHINESE_PSK) return Error.BadSemantics;
+    if (bytes[8] != VALUE_SEMANTICS_FRESH_START) return Error.BadSemantics;
+    if (bytes[9] != RULES_CHINESE_PSK and bytes[9] != RULES_BASICKO_TIE_AREA) return Error.BadSemantics;
     if (bytes[10] != COLUMN_COUNT) return Error.BadVersion;
     const header = Header{
         .board_w = bytes[6],
         .board_h = bytes[7],
         .total = std.mem.readInt(u64, bytes[12..20], .little),
         .legal_count = std.mem.readInt(u64, bytes[20..28], .little),
+        .rules_id = bytes[9],
     };
     const n_cells = @as(u16, header.board_w) * @as(u16, header.board_h);
     if (n_cells == 0 or n_cells > 40 or header.total != pow3(@intCast(n_cells))) return Error.BadTotal;

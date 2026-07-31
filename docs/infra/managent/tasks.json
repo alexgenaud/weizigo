@@ -1,18 +1,19 @@
 {
   "T129": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/T129",
     "bundle": "docs/infra/dispatch/T129-exp7-4x4-rerun.md",
     "set": "D",
     "holds": [],
     "needs": ["T126"],
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T00:17:41Z",
+    "done": "2026-07-31T00:33:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T120": {
     "status": "done",
@@ -143,19 +144,20 @@
     "claim_count": 1
   },
   "T127": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/T127-refresh-progress-current.md",
     "set": "B",
     "holds": ["docs/epistemic/PROGRESS.md", "docs/status/CURRENT.md"],
     "needs": ["T123", "T124", "T125", "T126"],
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T01:34:08Z",
+    "done": "2026-07-31T01:34:08Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   }
 ,
   "_sys": {

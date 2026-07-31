@@ -1,0 +1,104 @@
+[runner] argv = /tmp/t129_exp7_4x4 4 --wzo data/oracle-4x4-basicko-tie-area.wzo --games 2000 --seed 20260728
+[runner] ceilings: rss 4096 MB, wall 300s (5:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================================
+# T129 — EXP-7 4×4 re-run — certified fraction under basic-ko + TIE=0
+# Task: T129 · Role: worker · Model: DSPro · Date: 2026-07-31
+# Artifact: data/oracle-4x4-basicko-tie-area.wzo
+# SHA256: edd9f68ef243f67de21152432f9e8f521536317527d425208e6901f90b11c0cc
+# Rule: basic ko (single-stone capture prohibition) + TIE=0 for long cycles
+# Legality: basic ko (no PSK) — playout uses the new rule's own move generator
+# Value domain: integers + TIE (TIE between -1 and +1 per EXP-2 A5)
+# Direct-identity check: V(state) == best_child({V(child)}) at every decision node
+# Long cycles: detected via (board, side, ko) repetition; terminate game, score as TIE
+# Denominator: visited decision nodes (position, side-to-move)
+# Flag-read fraction: reported alongside but DEGENERATE (all-zero under this rule)
+# ============================================================================
+
+## Loading artifact...
+# WZO1: 4x4, rules_id=2, total=43046721, legal_count=24318165, CRC OK
+# root (empty, B): V=1 bracket=1
+# root (empty, W): V=-1 bracket=1
+# root filled: true (B), true (W)
+# table: 43046721 slots, 24318165 valued (56.49%), 18728556 UNDEF
+# bracket slots: B=981071, W=981071
+
+## Playout census — policy=oracle, games=2000, seed=20260728
+== policy: oracle ==
+  games played:           2000
+  two-pass terminations:  2000
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 34000
+  Bellman MATCH:          3000
+  Bellman VIOLATION:      25000
+  Bellman TIE_CHILD:      0
+  error (no children):    0
+  violations via UNDEF:   0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     10.71% (3000/28000)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 8.82% (3000/34000)
+  VERDICT: 25000 Bellman-identity violations found
+
+## Playout census — policy=oracle-rt, games=2000, seed=20260728
+== policy: oracle-rt ==
+  games played:           2000
+  two-pass terminations:  2000
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 34000
+  Bellman MATCH:          3000
+  Bellman VIOLATION:      25000
+  Bellman TIE_CHILD:      0
+  error (no children):    0
+  violations via UNDEF:   0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     10.71% (3000/28000)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 8.82% (3000/34000)
+  VERDICT: 25000 Bellman-identity violations found
+
+## Playout census — policy=random, games=2000, seed=20260728
+== policy: random ==
+  games played:           2000
+  two-pass terminations:  2000
+  cycle terminations:     0
+  UNDEF nodes:            19830
+  ---
+  visited decision nodes: 52702
+  Bellman MATCH:          11746
+  Bellman VIOLATION:      30145
+  Bellman TIE_CHILD:      295
+  error (no children):    0
+  violations via UNDEF:   15086
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     27.84% (11746/42186)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 7.75% (4085/52702)
+  VERDICT: 30145 Bellman-identity violations found
+
+## Playout census — policy=mixed, games=2000, seed=20260728
+== policy: mixed ==
+  games played:           2000
+  two-pass terminations:  1886
+  cycle terminations:     114
+  UNDEF nodes:            1179
+  ---
+  visited decision nodes: 39132
+  Bellman MATCH:          7291
+  Bellman VIOLATION:      25221
+  Bellman TIE_CHILD:      452
+  error (no children):    0
+  violations via UNDEF:   1137
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     22.12% (7291/32964)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 8.82% (3453/39132)
+  VERDICT: 25221 Bellman-identity violations found
+[runner] peak RSS by PID: in 0.8 s
+[runner]   pid   26596     520 MB
+[runner] peak total CPU by PID: in 0.8 s
+[runner]   pid   26596        0:00 (0.55s)
+[runner] exit 0 in 0.8 s

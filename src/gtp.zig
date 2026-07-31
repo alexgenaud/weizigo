@@ -614,6 +614,19 @@ fn loadAndDispatch(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log
     std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side)\n", .{
         path, dec.header.board_w, dec.header.board_h, dec.header.legal_count,
     });
+    std.debug.print("weizigo-oracle: table rules_id={d} — {s}\n", .{
+        dec.header.rules_id, artifact.rulesName(dec.header.rules_id),
+    });
+    // The table is keyed on (pattern, side) only: no ko point, no pass count.
+    // Move selection below enforces positional superko regardless. Say so out
+    // loud — a silent mismatch between the table's rule and the player's rule
+    // is exactly the class of defect this project keeps paying for.
+    if (dec.header.rules_id != artifact.RULES_CHINESE_PSK) {
+        std.debug.print("weizigo-oracle: WARNING — move selection enforces positional superko, " ++
+            "but this table was solved under a different rule.\n" ++
+            "weizigo-oracle: WARNING — stored values assume NO ko pending and NO prior pass; " ++
+            "expect misplay in live ko and in the endgame.\n", .{});
+    }
 
     const artifact_dir = std.fs.path.dirname(path) orelse ".";
     const log_dir = opt_log_dir orelse try std.fmt.allocPrint(gpa, "{s}/../log", .{artifact_dir});

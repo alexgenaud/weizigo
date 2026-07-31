@@ -1,0 +1,138 @@
+docs/research/newrule-certified-fraction-2026-07-30.md:  experiment was designed to test, and it remains untested.
+docs/research/open-hypotheses-2026-07-27.md:This file is a **work queue**. Each entry is designed to be actionable by a fresh
+docs/research/f2-remedy-design-2026-07-29.md:# F2-REMEDY — design of a sound finisher that does not depend on the bracket premise
+docs/research/f2-remedy-design-2026-07-29.md:**Kind:** ANALYSIS — this is a design, not a proof and not an implementation.
+docs/research/f2-remedy-design-2026-07-29.md:is refuted as stated and the burden undischarged. This design does not
+docs/research/f2-remedy-design-2026-07-29.md:claim about the shipped PSK-era artifacts, which this design supersedes
+docs/research/f2-remedy-design-2026-07-29.md:## 2. The rule being solved (inputs this design takes as given)
+docs/research/f2-remedy-design-2026-07-29.md:is a user ADR — this design gives its recommendation and the reasoning, and
+docs/research/f2-remedy-design-2026-07-29.md:**DTT semantics change and must be redefined [CLAIMED, design decision for
+docs/research/f2-remedy-design-2026-07-29.md:(neutral regions). The value column does not distinguish them — by design
+docs/research/f2-remedy-design-2026-07-29.md:  section and triggers re-design of the addressing before any long run.
+docs/research/f2-remedy-design-2026-07-29.md:**If QA-023 holds** (EXP-2B passes): this design proceeds as written;
+docs/research/f2-remedy-design-2026-07-29.md:  re-run; the design is untouched. This must be ruled out first
+docs/research/f2-remedy-design-2026-07-29.md:  re-derive the addressing. The design's shape survives with a bigger key.
+docs/research/f2-remedy-design-2026-07-29.md:  claim at all — sound and partial by design), and (X2) scope
+docs/research/f2-remedy-design-2026-07-29.md:  design supersedes rather than rehabilitates; scope note "applies to
+docs/research/f2-remedy-design-2026-07-29.md:  forward search, no brackets, no seed inheritance. **CLAIMED** — design
+docs/research/f2-remedy-design-2026-07-29.md:  only (`docs/research/f2-remedy-design-2026-07-29.md`); `d:QA-023`,
+docs/research/f2-remedy-design-2026-07-29.md:   user's, pending; this design parameterizes over both.
+docs/research/f2-remedy-design-2026-07-29.md:   plan's first measurement, and this design's cost section falls if it
+docs/research/arena-audit.md:Instrument: `src/arena.zig` (user-designed methodology). One AUDITED player
+docs/infra/managent/spec.md:wrongly serialise an analysis into Set C. Closing that gap is a design decision
+docs/infra/dispatch/EXP-7-4x4-rerun.md:design constraints and acceptance criterion, scoped to 4×4 only), then
+docs/infra/dispatch/EXP-7.md:Because a by-construction claim is cheap to confirm accidentally, the design
+docs/infra/sprint.md:pass0-directory layout, the per-phase files (`scope.md`, `design.md`, `plan.md`, `build.md`,
+docs/infra/model-perf.md:claims in `docs/boards/4x4/EPISTEMIC.md` and the experiment plan; grade design,
+docs/infra/model-perf.md:also audit experiment design. The pattern is becoming: **Minimax specs/
+docs/infra/model-perf.md:- Capture-all: wait for T15 design before deciding.
+docs/infra/model-perf.md:- **Kimi-k2.7 — T15 capture-all design:** completed. Produced a concise design
+docs/infra/model-perf.md:- **GLM-5.2 — T17 F4-4×4 KM deps design:** completed. Produced detailed design
+docs/infra/model-perf.md:## Kimi-k2.7 — T15 capture-all design review (2026-07-26)
+docs/infra/model-perf.md:**Task:** read-only review of the capture-all kill-probe design in
+docs/infra/model-perf.md:brief, not just an opinion. Worth using Kimi for similar design-to-go/no-go
+docs/infra/model-perf.md:- None significant; the task was calibrated exactly as designed.
+docs/infra/model-perf.md:- **B14** — engine-vs-engine + KataGo probe design (3 experiments scoped,
+docs/infra/model-perf.md:  no unintended changes. B14 produced a structured design doc with concrete
+docs/infra/model-perf.md:- **Honest epistemic framing:** the B14 design explicitly notes that
+docs/infra/model-perf.md:executes multi-file edits precisely, produces structured designs, and
+docs/infra/model-perf.md:sweeps, design scoping, high-context decision briefs. The existing pattern
+docs/infra/model-perf.md:## Multi-model comparison — B35 (proof design) to B38 (epistemic discipline)
+docs/infra/model-perf.md:| B35 — Proof design (I1) | DS Flash | GLM | DS Flash attempted 5-lemma proof; GLM identified the critical gap (Lemma B) |
+docs/infra/model-perf.md:| B37 — Delegation design | DS Flash, MiniMax | GLM | DS Pro + Kimi wrote to console not file (need explicit write instruction in bundle) |
+docs/infra/model-perf.md:are designed but not run. H4a (lo/hi bracket-table identity)
+docs/infra/model-perf.md:| **Auditor** | **Kimi-k2.7** | Settled by T13 + the (a′) conviction + EXP-15. Keep two fence-posts in every audit brief: explicit no-edit constraint (B33 violation), and route *proof-design* review to Opus (B35 weakness). |
+docs/infra/model-perf.md:| Workers (aux) | **DS Flash — speed / sweep / scaffolding / multi-file edits where rigor is not load-bearing** (B33/B37). **DeepSeek-Pro — high-context absorption/integration, design briefs, multi-file terminology sweeps, claim-semantics review** (proven, panel seat B, 2026-07-29). Kimi-k3 — bounded single-function code audits. |
+docs/infra/model-perf.md:the open data point the panel is designed to close. **Impressions, not
+docs/infra/model-perf.md:- **F2-REMEDY design done (Fable 5)** — the third Fable ceiling-difficulty
+docs/infra/model-perf.md:  data point. The design **dissolves F2 rather than rehabilitating it**: the
+docs/infra/model-perf.md:  fixed a registered claim's error mid-design.
+docs/infra/model-perf.md:held the claim-semantics / proof-design class** that only Fable and Opus had
+docs/infra/model-perf.md:design, 2026-07-29 kernel panic diagnosis.
+docs/infra/model-perf.md:than a consequence of it. That is a finding about task design, not about
+docs/evidence/GLOBAL.DENOMINATORS/sweep-2026-07-28.md:| :6 | 60 / 25 / 15% | opponent policy mix (sums to 100) | same — a design parameter | CFG | — |
+docs/evidence/QA-023/proof.md:integers. The 3×3 question (EXP-5) is where this becomes a real design
+docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:a design choice, and the spec wins.
+docs/evidence/README.md:| `c2-3x2/plan4x4-master.md` | The C2-probe design and the per-goban-size isolated-epistemic-tree principle | `3x2.T13` (design), `GLOBAL.C2`, `4x4.C2`, `4x4.C3` | `untracked/plan4x4-master.md` |
+docs/evidence/README.md:| `untracked/T15-kimi.md` (capture-all design), `untracked/T15-review-kimi.md` (defer verdict) | `docs/infra/model-perf.md:272`; `untracked/T15-impl-minimax.md` | **No.** T15 was deferred, so nothing depends on them today. |
+docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:| 10 | `QA-018` | `CLAIMS.md:589` | `d:GLOBAL.F2` → `d:GLOBAL.C3`. Imported alias that **inherited the orphan by design** (`claimlint-2026-07-28.md` §9.3) — the import mechanism is working | Update `QA-018` status to **ORPHANED** (the source word in the roadmap) once EXP-10 lands; the **human** rules on QA-018 (per `DECISIONS.md` D-5 / handover "Open human rulings") | **human** (ruling on QA-018, then CLAIMS owner applies) |
+docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:  design, hash in README "BULK" table.
+docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:| **QA-018 ruling (D-5)** | **#10 orphan** in §3.1 — `QA-018`'s `d:GLOBAL.F2` derives from the falsified `GLOBAL.C3`. The orphan exists *because of* the import in `claimlint-2026-07-28.md` §9.3 (a healthy QA-018 propagates from F2, and F2 propagates from C3). **EXP-10 lands and adjudicates this.** | **orphan (C1a)** — exactly the mechanism the import was designed to exercise |
+docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md:| **Recommended disposition** | CLAIMED-and-orphaned is correct. Track A (`memo_writes=false`) partially mitigates the practical concern — `3x2.F3` (0/378 auditor violations) shows the writes-off path is self-consistent at 3×2 — but the bracket-derived seed inheritance (CERTCORE) still depends on C3. The `F2-REMEDY` design (median build) is the cure path. |
+docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md:| **Recommended disposition** | CLAIMED-and-orphaned. The `F2-REMEDY` design (median build) supersedes the bracket-dependent finisher logic. Until that build is done, F3 remains the best available finisher but its justification is refuted. |
+docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md:| **Recommended disposition** | Keep as-is. The orphan status is structural (the `d:` edge); the PROVEN argument and measurements stand on their own. Do not downgrade to CLAIMED — the KM design is mathematically correct regardless of F3's status. The orphan flag is correct but not actionable. |
+docs/evidence/ADR0006-FALSIFY/recoverability-audit-2026-07-30.md:**LOST.** Capture-all design discussion. T15 was deferred, so nothing depends on them.
+docs/evidence/T13/probe-reimplementation-2026-07-30.md:is design, not a defect: it enumerates from both root sides (~542k prefixes
+docs/evidence/GLOBAL.HYPOTHESES/reality-check-2026-07-28.md:| **H1-LONGCYCLE** | "Long cycle = tie" is a loopy-game fixpoint computable by the existing converge machinery. | **OPEN** | `docs/research/open-hypotheses-2026-07-27.md:92-103` flags this as the unsettled design question; `docs/epistemic/CLAIMS.md` `GLOBAL.LONGCYCLE` is UNTESTED. | Derive or falsify a fixed-value cycle terminal before any simple-ko generation build starts; the constraint is that it must not need to know which earlier gobans were seen. |
+docs/evidence/GLOBAL.HYPOTHESES/reality-check-2026-07-28.md:| **H2** | The greedy GTP player's loss rate strictly exceeds the arena's random-persona clean leak rate (3.4% / max 32 pts). | **OPEN** | The test is designed in `docs/research/open-hypotheses-2026-07-27.md:122-166`; the B43 measurement lives in `docs/research/arena-4x4-undef.md`; no greedy-vs-random run has been performed. | Run `bin/weizigo-arena data/oracle-4x4-parallel.checkpoint.wzo 100` and the same with `det` on the same artifact/seed set; compare CLEAN-LEAK rate and max leak magnitude. |
+docs/evidence/GLOBAL.HYPOTHESES/reality-check-2026-07-28.md:| **H5d** | Bounded-history state is the representational route to a real-game claim. | **OPEN** | `docs/research/open-hypotheses-2026-07-27.md:288-289`; `docs/epistemic/CLAIMS.md` `GLOBAL.H5d` is CLAIMED. | User scopes a new ADR; this is a design decision, not an engineering task. |
+docs/epistemic/critique-2026-07-28.md:  biggest open design risk in the proposal. `score-on-cycle` is foreclosed as
+docs/epistemic/critique-2026-07-28.md:| QA-013 | Long cycles under simple ko can be resolved as a loopy-game fixpoint with loops pinned to the tie value | Opus | **UNTESTED**, highest design risk in §5 | Needs an ADR and probably a proof; must not reintroduce score-on-cycle |
+docs/epistemic/claimlint-2026-07-28.md:  disk. `.wzo` files are git-ignored by design and their hashes are recorded in
+docs/epistemic/claimlint-2026-07-28.md:`4x4.REGR-SYM` — nine ADR design decisions and one measurement, none of which
+docs/epistemic/CLAIMS.md:| `2x2.T12` | T12 | 2×2 | C2-pilot at 2×2 is **tautological** — 2×2 admits no reachable non-root cycles | MEASUREMENT | `4x4/EPISTEMIC.md:255-257,287-288` | `e:2x2.EXACT` | `3x2.T13` design calibration | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.MEMO-XROOT` | Finding 2 | 2×2 | Cross-root memo reuse is order-dependent and **unsound**: at 2×2 it produced 116 dihedral-symmetry failures. NEVER share `ko_ref`-clean memo entries between roots | PROVEN (falsification) | `retrograde-3x3.md:23-37`; `0010:63-66` | `e:GLOBAL.INVSYM` | `GLOBAL.F1`, `GLOBAL.F2` design, `GLOBAL.ADR0010-CUT` | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.R1` | R1 | all | Exact PSK solving is intractable | PROVEN (structural) | `CONCEPTS.md:129`; `AGENTS.md:47-49`; `ruleset-options.md:95-97` | `d:GLOBAL.S3b`, `e:2x2.R1`, `e:3x2.R1` | `GLOBAL.REFRAME`, the whole retrograde design, `GLOBAL.H1` | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.FWD-INTRACT` | Finding 1/3 | 3×3 | Forward fresh-start filling of the 3×3 table was measured INTRACTABLE (years); the exact state space explodes before the position space does | PROVEN | `retrograde-3x3.md:17-21,39-58` | `d:GLOBAL.R1` | the retrograde design | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.ADR0007-AB` | — | all | Alpha-beta / proof-number search cannot populate an oracle — it returns the root score plus bounds and prunes whole subtrees unvisited | PROVEN | `0007:25-28` | — | the retrograde design | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.ADR0007-BACKEDGE` | — | all | Captures create back-edges (k stones → k−3), so retrograde must be a **fixpoint iteration, not a single topological sweep** | PROVEN | `0007:30-33`; `0009:41-46` | — | `GLOBAL.FP3`, the whole out-of-core design | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.ADR0009-SUCC` | — | all | Values propagate by successor sweeps, never predecessor generation — un-capture inversion is a large unvalidatable kernel and would not buy a one-sweep guarantee anyway | PROVEN (design argument) | `0009:28-46` | `d:GLOBAL.ADR0007-BACKEDGE` | `src/retro.zig` | 0 | ? |
+docs/epistemic/CLAIMS.md:| `GLOBAL.F2-REMEDY` | — | all | The finisher-replacement is the **median build**: `converge` on `(board, side, ko_point, passes)` under basic ko + constant tie `T`, then `V = median(L, T, H)` (proof-v2 Thm 5.1); no forward search, no brackets, no seed inheritance — F2 is **dissolved, not rehabilitated** (the F2 relationship is *supersession*, recorded here, not a graph edge). **Design only** (`docs/research/f2-remedy-design-2026-07-29.md`, Fable 5, 2026-07-29); gated on EXP-2B (the QA-023 computational half) and EXP-4 (2×2/2×3 = 0 falsifier). | CLAIMED | `docs/research/f2-remedy-design-2026-07-29.md`; `docs/evidence/QA-023/proof-v2-2026-07-28.md`; `docs/decisions/0018-bracket-cut-confirmed-unanimous-review-f2-remedy-is-new-task.md` | `d:QA-023`, `d:QA-023.M1` | the new-rule build (EXP-4/5/6), the certified-fraction measurement (EXP-7), the PSK divergence (EXP-8 under the new rule) | 0 | ? |
+docs/epistemic/CLAIMS.md:| `QA-013` | QA-013 | all | **Alias of `GLOBAL.LONGCYCLE`.** "Long cycles under simple ko can be resolved as a loopy-game fixpoint with loops pinned to the tie value" — highest design risk in the roadmap; must not reintroduce score-on-cycle. **FALSIFIED at 3x2 2026-07-29: the tie-pinned loopy-game fixpoint over-pins TIE where the true value is the static pass-out score. The register's own 'highest design risk' annotation was correct.** **⚠ 2026-07-29 (night) — SCOPE SPLIT. `fixpoint_kernel`'s White-branch defect is VERIFIED by two independent seats (`Kimi-k3/PINRULE-SUFFICIENCY` found it; `Kimi-k2.7/QA023-KERNEL-AUDIT` reproduced all three evidence lines from scratch in Python, no Zig imported). Corrected kernel validated three ways: agrees with `smoke_fixpoint_2x2`, Bellman residuals 0/0, colour-inversion violations 0. Corrected 3x2 census `2232/322/34/34` replaces the buggy `948/1532/142/0`. **On the CORRECTED kernel the verdict differs by semantics:** for the **history-conditioned** rule (first-revisit truncation, ADR-0019) this is **FALSE at 3x2** — C1 witness `(178,0,6,0)`, goban `[B,W,B,_,W,_]`, Black to move: two valid arrivals give truncation values **-3** and **-6** while the corrected fixpoint gives `L=H=-6`. For **fresh-start (shortest-arrival)** semantics the corrected tables remain consistent (`396/396` agreements in PINRULE-SUFFICIENCY; spot-checked independently) — a different object, and **UNTESTED** rather than true. Remaining gap, named by the auditor itself: the ~22-node witness tree was **not dumped and hand-verified** — task `QA023-C1-WITNESS`. Evidence: `docs/audits/qa023-kernel-audit-2026-07-29.md`, `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`.** | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `critique-2026-07-28.md:371`; `open-hypotheses:92-103` | `d:GLOBAL.LONGCYCLE` | `QA-023`, `QA-026` | 0 | ? |
+docs/epistemic/CLAIMS.md:| `QA-026` | QA-026 | all | The existing L/H `converge` machinery is directly reusable under a fixed-value cycle rule, with loops pinned by **`V = median(L, T, H)`** — not v1's false `L<H ⇒ V=T` (the proof-v2 §5.3 gadget falsifies it; corrected in the F2-REMEDY design, 2026-07-29). **FALSIFIED at 3x2 2026-07-29 (2B-PROBE-FIX, independently confirmed by 2B-6): six states — all White-to-move, passes=1, no ko — where `median(L,TIE,H)` pins TIE=0 while the history-conditioned value is the pass-out `area_score` (+1, +3 or -6). proof-v2 Thm 5.1 is therefore FALSE as stated. Per-goban scope: 3x2.** **⚠ 2026-07-29 (night) — SCOPE SPLIT. `fixpoint_kernel`'s White-branch defect is VERIFIED by two independent seats (`Kimi-k3/PINRULE-SUFFICIENCY` found it; `Kimi-k2.7/QA023-KERNEL-AUDIT` reproduced all three evidence lines from scratch in Python, no Zig imported). Corrected kernel validated three ways: agrees with `smoke_fixpoint_2x2`, Bellman residuals 0/0, colour-inversion violations 0. Corrected 3x2 census `2232/322/34/34` replaces the buggy `948/1532/142/0`. **On the CORRECTED kernel the verdict differs by semantics:** for the **history-conditioned** rule (first-revisit truncation, ADR-0019) this is **FALSE at 3x2** — C1 witness `(178,0,6,0)`, goban `[B,W,B,_,W,_]`, Black to move: two valid arrivals give truncation values **-3** and **-6** while the corrected fixpoint gives `L=H=-6`. For **fresh-start (shortest-arrival)** semantics the corrected tables remain consistent (`396/396` agreements in PINRULE-SUFFICIENCY; spot-checked independently) — a different object, and **UNTESTED** rather than true. Remaining gap, named by the auditor itself: the ~22-node witness tree was **not dumped and hand-verified** — task `QA023-C1-WITNESS`. Evidence: `docs/audits/qa023-kernel-audit-2026-07-29.md`, `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`.** | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `roadmap-2026-07-28.md:305`; `docs/research/f2-remedy-design-2026-07-29.md`; `docs/evidence/QA-023/proof-v2-2026-07-28.md` | `d:QA-023`, `d:GLOBAL.LONGCYCLE`, `e:docs/evidence/QA-023/proof-v2-2026-07-28.md` | EXP-4, any simple-ko build, the F2-REMEDY median build | 0 | ? |
+docs/epistemic/CLAIMS.md:| 4 | `4x4.S3b` — ko-legality under PSK history at 4×4 | UNTESTED | 5: `4x4.R1`, `4x4.C1`, `4x4.C2`, `4x4.C3`, `4x4.M1` | The load-bearing sub-claim that separates a legal-*position* count from a legal-(position, history)-*pair* count. OEIS A094777 does **not** attest it (`4x4/EPISTEMIC.md:135-140`), and **no falsification test is designed yet** — the only top-5 entry with no experiment on paper |
+docs/epistemic/CLAIMS.md:bullet) remains **open** by design — ADRs are append-only, so it needs a
+docs/audits/AUDIT-DSPro-2026-07-29.md:`f2-remedy-design-2026-07-29.md`. I also examined the source tree layout.
+docs/audits/AUDIT-DSPro-2026-07-29.md:3. **The project has no working player.** The GTP player is defective-by-design
+docs/audits/AUDIT-DSPro-2026-07-29.md:all gated on QA-023. The F2-REMEDY design document (`f2-remedy-design-2026-07-29.md`)
+docs/audits/AUDIT-DSPro-2026-07-29.md:**Recommendation:** design a direct falsification test for ADR-0006. The test:
+docs/audits/AUDIT-DSPro-2026-07-29.md:The F2-REMEDY design is elegant: rebuild L/H on the larger state space, pin
+docs/audits/AUDIT-DSPro-2026-07-29.md:| GLOBAL.LONGCYCLE: tie-pinned loops are computable by converge | UNTESTED | "highest design risk" per critique |
+docs/audits/AUDIT-DSPro-2026-07-29.md:falsified.** The median build is the right design — it is the only surviving
+docs/audits/AUDIT-DSPro-2026-07-29.md:   as designed. If QA-023 falls and the state tuple can be repaired (branch (b)
+docs/audits/AUDIT-DSPro-2026-07-29.md:   in `f2-remedy-design` §9), do so and re-run. If QA-023 falls irreparably
+docs/audits/AUDIT-DSPro-2026-07-29.md:   (honest, partial, sound by design) or adopt the Kishimoto–Müller
+docs/audits/AUDIT-DSPro-2026-07-29.md:   The F2-REMEDY design estimates "tens of minutes at 4×4" based on the census
+docs/audits/AUDIT-DSPro-2026-07-29.md:well-designed, and reuses the proven L/H machinery on a larger but tractable
+docs/audits/eye-prune-validation-2026-07-30.md:## 2. Battery design
+docs/audits/epistemic-tree-shake-fable-2026-07-30.md:| L11 | `4x4.S3b` test design | ko-legality-under-history: the only top-5 load-bearing unknown with **no experiment designed at all** | design work | closes the "no test even on paper" hole |
+docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md:didn't bite. The gate was designed to be falsifiable (0-vs-+1) and it passed.
+docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md:designed — keep it. Add a third calibration: the 24 known 2×2
+docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md:| Go-playing progress | **~None since 2026-07-27**, by design; routed through EXP-6, two gates away. Say so plainly when reporting. |
+docs/audits/muhtasib-audit-chunk1-2026-07-28.md:**Status: VERIFIED for the `vb`/`vw` single-value columns.** The first clause is demonstrated by the zero out-of-flag violations. The second clause is demonstrated by the nonzero in-flag violations and the tool's own documentation that such violations are expected by design. The claim is **not** proven for the separate `lo`/`hi` bracket tables (see Caveat 1).
+docs/INDEX.md:→ `docs/research/f2-remedy-design-2026-07-29.md` — the design
+src/claimlint.zig:/// design*. A path named ONLY there is a recorded loss, not a dangling
+src/claimlint.zig:        util.out("  design, hashes recorded in docs/evidence/README.md; does NOT fail):\n", .{});
+untracked/msg/milestone-01-ko-reframe/057-navigator-to-dabir-orcha.md:  redesign: 055 criterion 4 says *"the anchor gap explained **or** recorded as
+untracked/msg/milestone-01-ko-reframe/054-navigator-to-orcha-dabir.md:- The structural theorem in §2 and its cross-check design.
+untracked/msg/milestone-01-ko-reframe/002-glm-to-opus.md:   (you designed the chainability test); I'll route the proof-of-concept to you.
+untracked/msg/milestone-01-ko-reframe/056-navigator-to-dabir-orcha.md:### 3.2 The single most important design decision
+untracked/msg/milestone-01-ko-reframe/014-orchestrator-to-all.md:   msg channel is the reasoning. **This is what the design
+untracked/msg/milestone-01-ko-reframe/014-orchestrator-to-all.md:  docs/infra/managent/CONSENSUS-SURFACE.md (my design doc for 4b)
+untracked/msg/milestone-01-ko-reframe/014-orchestrator-to-all.md:  actions / roadmap) is on my queue. The design doc
+untracked/msg/milestone-01-ko-reframe/054-dabir-to-all.md:hacking. The human wants a diligent agent to spec → research → design → plan.
+untracked/msg/milestone-01-ko-reframe/022-orchestrator-to-all.md:the design is independent of the EXP-9 hold). Dabir + the user
+untracked/msg/milestone-01-ko-reframe/022-orchestrator-to-all.md:  the consensus-surface design (Dabir's call).
+untracked/msg/milestone-01-ko-reframe/015-dabir-to-orchestrator.md:`docs/infra/managent/SPEC-msgbus.md` — written to the human's design: bodies stay
+untracked/msg/milestone-01-ko-reframe/001-opus-to-glm.md:2. **Long cycles are the real design risk** (QA-013). Simple ko does not
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:algorithms. Spec, research the code, scope (divide and conquer), design, plan,
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:spec, no design note, and no audit. The human had authorised a rush draft, so
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:| 3 | **Design** | How, and why this way rather than the alternatives? | `design.md` — algorithm, state representation, complexity, failure modes, **alternatives rejected and why** |
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:| **B — light** | extending an already-reviewed instrument to a new goban size or a new invocation | spec + design note + tests + eval; one audit, at eval |
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:- **(b)** keep it and retro-document as a Tier-A bundle: spec, design note,
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:gets the full treatment — spec, survey, design, adversarial design review, tests
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:`V`), and DTT actually computed. That is four Tier-A designs, and 056 §3.2's rule
+untracked/msg/milestone-01-ko-reframe/061-navigator-to-dabir-orcha.md:`docs/design/<task-id>/` in git, since `untracked/` is where evidence goes to
+untracked/T14-minimax.md:  (capture-all design) after T11.
+untracked/B44-cleanup.md:| `B14-deepseek.md` | delete | DONE — design doc (deferred, optional) |
+untracked/B44-cleanup.md:| `B14-glm-output.md` | delete | DONE — B14 output (design in docs) |
+untracked/B44-cleanup.md:| `B35-proof-I1.md` | **keep** | open master file (proof design task) |
+untracked/B44-cleanup.md:| `T15-kimi.md` | delete | DONE — capture-all design |
+untracked/B44-cleanup.md:| `T15-review-kimi.md` | delete | DONE — design review |
+untracked/B44-cleanup.md:| `T17-plan-glm.md` | delete | DONE — design complete (design in docs) |
+untracked/B44-cleanup.md:| `b1-spec.md` | **keep** | historical spec reference (design rationale) |
+untracked/B42-score-report.md:records the design and non-promises.  No artifact or `data/` files were
+untracked/B42-score-report.md:- The design (pure module + additive GTP commands).
+untracked/B42-score-report.md:design without reading the code.
+untracked/B42-score-report.md:- Wrote `docs/decisions/0014-scoring-ui.md` documenting design, epistemic tags,
+untracked/muhtasib-audit-chunk1-2026-07-28.md:**Status: VERIFIED for the `vb`/`vw` single-value columns.** The first clause is demonstrated by the zero out-of-flag violations. The second clause is demonstrated by the nonzero in-flag violations and the tool's own documentation that such violations are expected by design. The claim is **not** proven for the separate `lo`/`hi` bracket tables (see Caveat 1).

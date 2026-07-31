@@ -1,0 +1,30 @@
+[runner] argv = /tmp/t129_exp7_4x4 3 --games 2000 --seed 20260728 --policy oracle
+[runner] ceilings: rss 4096 MB, wall 60s (1:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================================
+# T129 — calibration known-good — 3×3 fixpoint + playout
+# Task: T129 · Role: worker · Model: DSPro · Date: 2026-07-31
+# ============================================================================
+
+## Phase 1: Fixpoint computation
+# fixpoint: 16 sweeps
+# root (empty, B): V=9 L=9 H=9
+
+## Phase 2: Playout — policy=oracle, games=2000, seed=20260728
+== policy: oracle ==
+  games played:           2000
+  two-pass terminations:  2000
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 8000
+  Bellman MATCH:          8000
+  Bellman VIOLATION:      0
+  Bellman TIE_CHILD:      0
+  error (no children):    0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     100.00% (8000/8000)
+[runner] peak RSS by PID: in 1.1 s
+[runner]   pid   26609       4 MB
+[runner] peak total CPU by PID: in 1.1 s
+[runner]   pid   26609        0:00 (0.82s)
+[runner] exit 0 in 1.1 s

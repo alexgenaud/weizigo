@@ -1,0 +1,104 @@
+[runner] argv = /tmp/t129_exp7_4x4 4 --wzo /tmp/t129_perturbed_psk.wzo --games 100 --seed 20260728
+[runner] ceilings: rss 4096 MB, wall 60s (1:00), cpu 3600s (1:00:00), poll = 250 ms
+# ============================================================================
+# T129 — EXP-7 4×4 re-run — certified fraction under basic-ko + TIE=0
+# Task: T129 · Role: worker · Model: DSPro · Date: 2026-07-31
+# Artifact: /tmp/t129_perturbed_psk.wzo
+# SHA256: f734d564454eb0b66e425dbf023188040e3c5216238a6488358702f96a5dfb12
+# Rule: basic ko (single-stone capture prohibition) + TIE=0 for long cycles
+# Legality: basic ko (no PSK) — playout uses the new rule's own move generator
+# Value domain: integers + TIE (TIE between -1 and +1 per EXP-2 A5)
+# Direct-identity check: V(state) == best_child({V(child)}) at every decision node
+# Long cycles: detected via (board, side, ko) repetition; terminate game, score as TIE
+# Denominator: visited decision nodes (position, side-to-move)
+# Flag-read fraction: reported alongside but DEGENERATE (all-zero under this rule)
+# ============================================================================
+
+## Loading artifact...
+# WZO1: 4x4, rules_id=1, total=43046721, legal_count=24318165, CRC OK
+# root (empty, B): V=10 bracket=1
+# root (empty, W): V=-2 bracket=1
+# root filled: true (B), true (W)
+# table: 43046721 slots, 24318165 valued (56.49%), 18728556 UNDEF
+# bracket slots: B=5183961, W=5183961
+
+## Playout census — policy=oracle, games=100, seed=20260728
+== policy: oracle ==
+  games played:           100
+  two-pass terminations:  100
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 1500
+  Bellman MATCH:          1250
+  Bellman VIOLATION:      50
+  Bellman TIE_CHILD:      0
+  error (no children):    0
+  violations via UNDEF:   0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     96.15% (1250/1300)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 100.00% (1500/1500)
+  VERDICT: 50 Bellman-identity violations found
+
+## Playout census — policy=oracle-rt, games=100, seed=20260728
+== policy: oracle-rt ==
+  games played:           100
+  two-pass terminations:  100
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 1500
+  Bellman MATCH:          1250
+  Bellman VIOLATION:      50
+  Bellman TIE_CHILD:      0
+  error (no children):    0
+  violations via UNDEF:   0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     96.15% (1250/1300)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 100.00% (1500/1500)
+  VERDICT: 50 Bellman-identity violations found
+
+## Playout census — policy=random, games=100, seed=20260728
+== policy: random ==
+  games played:           100
+  two-pass terminations:  100
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 2516
+  Bellman MATCH:          1864
+  Bellman VIOLATION:      142
+  Bellman TIE_CHILD:      2
+  error (no children):    0
+  violations via UNDEF:   0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     92.83% (1864/2008)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 35.77% (900/2516)
+  VERDICT: 142 Bellman-identity violations found
+
+## Playout census — policy=mixed, games=100, seed=20260728
+== policy: mixed ==
+  games played:           100
+  two-pass terminations:  100
+  cycle terminations:     0
+  UNDEF nodes:            0
+  ---
+  visited decision nodes: 3427
+  Bellman MATCH:          2678
+  Bellman VIOLATION:      119
+  Bellman TIE_CHILD:      1
+  error (no children):    0
+  violations via UNDEF:   0
+  ---- DIRECT-IDENTITY CERTIFIED FRACTION ----
+  certified fraction:     95.71% (2678/2798)
+  ---- FLAG-READ FRACTION (degenerate under this rule) ----
+  flag-read bracket frac: 46.45% (1592/3427)
+  VERDICT: 119 Bellman-identity violations found
+[runner] peak RSS by PID: in 0.8 s
+[runner]   pid   26623     504 MB
+[runner] peak total CPU by PID: in 0.8 s
+[runner]   pid   26623        0:00 (0.54s)
+[runner] exit 0 in 0.8 s

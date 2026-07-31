@@ -1,4 +1,7 @@
-Task: NARRATIVE-LAYER · Role: worker · Model: DSPro · Date: 2026-07-29
+Task: NARRATIVE-LAYER · Role: worker · Model: DSPro/T127 · Date: 2026-07-31
+
+**Refreshed 2026-07-31 by T127 to absorb the T100–T126 wave** (32 tasks, 7 models).
+Every load-bearing sentence carries `[ID:STATUS]`, verified by `bin/weizigo-claimlint` C6.
 
 # The Through-Line — what weizigo tried, what failed, what's open, and what it means
 
@@ -95,8 +98,13 @@ under the real PSK history of a game in progress.
 The L==H region — where the least and greatest fixpoints agree, covering
 ~66–79% of slots depending on goban size — was called the "certified core"
 and claimed to be history-independent. **T13 falsified this at 3×2**
-(2026-07-26): 12 verified mismatches on 508 non-trivial PSK histories over
-L==H slots, with 0/540 fresh-start sanity mismatches `[3x2.T13:PROVEN]`.
+(2026-07-26; re-implemented and reproduced 2026-07-30 by T110): 154 of the
+508 reachable L==H slots (30.3%, over 132 distinct positions) have at least
+one reachable PSK history whose exact value differs from the stored fresh-start
+value — 4,432 falsifying (slot, history) pairs of 134,504 tested, with
+0/540 fresh-start sanity mismatches. The original 2026-07-26 run sampled one
+history per slot and recorded 12 of these; the correct order-independent
+measurement is 154 (30.3%) `[3x2.T13:PROVEN]`.
 The L==H scores are fresh-start exact (C1), not real-game exact. The
 "certified core" framing is withdrawn `[GLOBAL.CERTCORE:FALSE-AS-SCOPED]`.
 
@@ -133,16 +141,21 @@ that ADR-0017's verdict is sound `[GLOBAL.ADR0015-BURDEN:CLAIMED]`. ADR-0018
 confirmed: the finisher remedy is a new task, not a brackets-off regen — a
 brackets-off regen inherits the same premise through CERTCORE-dependent seeds.
 
-**Consequence: every shipped ko-sensitive value is untrustworthy.** The 4×4 "+2"
-anchor, every bracket value, and every ko-sensitive column in every artifact
+**Consequence: every shipped ko-sensitive value in the PSK checkpoint is untrustworthy.** The 4×4 "+2"
+anchor, every bracket value, and every ko-sensitive column in every PSK artifact
 was produced by a finisher whose soundness premise is orphaned. The 4×4
-checkpoint (`data/oracle-4x4.checkpoint.wzo`) remains the only 4×4 artifact
+PSK checkpoint (`data/oracle-4x4.checkpoint.wzo`) remains the only 4×4 PSK artifact
 with a filled root, and its ko-sensitive columns are **CLAIMED, not PROVEN**
 `[4x4.F2:UNTESTED]`.
 
+The new-rule artifact (`data/oracle-4x4-basicko-tie-area.wzo`, T113,
+2026-07-30) was built without a finisher — pure fixpoint convergence under
+ADR-0020 loopy-game semantics — and does not inherit this defect
+`[4x4.BASICKO-TIE:MEASUREMENT]`.
+
 ---
 
-## 4. Basic ko + fixed tie — the first unforeclosed candidate
+## 4. Basic ko + loopy-game fixpoints — the chosen semantics
 
 After foreclosing PSK, score-on-cycle, RETRO_PLY, and kill-X%, the project
 turned to **basic ko + a fixed-value long-cycle verdict**: positions repeat
@@ -154,79 +167,118 @@ state-space census (EXP-3) returned GO: 51,419,046 reachable
 (position, side, ko_point) triples at 4×4 = 177 MB, 1.057× the current PSK
 slot count `[GLOBAL.H1-CENSUS:PROVEN]`. The representation is cheap.
 
-### 4.1 The median pin rule and the kernel defect
+### 4.1 ADR-0019 (first-revisit truncation) → ADR-0020 (loopy-game fixpoints)
 
-The plan (F2-REMEDY) was to rebuild the L/H fixpoints by `converge` over
-`(board, side, ko_point, passes)`, then compute the tie-pinned value as
-`V = median(L, TIE, H)` — no forward finisher, no bracket cuts, no seed
-inheritance `[GLOBAL.F2-REMEDY:CLAIMED]`.
+The project's first attempt at a semantics for basic ko was **first-revisit
+truncation** (ADR-0019): when a goban position reappeared, the game terminated
+with a fixed tie value (TIE=0). That rule is well-defined and human-playable,
+but it makes the game non-Markovian on `(board, side, ko_point, passes)` —
+the value at a state depends on *how* the state was reached, not just the
+state itself. A concrete C1 witness exists at 3×2: state `(178,0,6,0)`, two
+valid arrivals giving truncation values −3 and −6 `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`.
 
-`2B-PROBE-FIX` (DSPro, 2026-07-29) tested this at 3×2 against the project's
-own reference semantics (first-revisit truncation: the game ends the moment
-any state repeats, valued TIE). It reported four counterexample states where
-`median(L,TIE,H)` pinned TIE=0 but the truncation value was +1, +3, or −6
-`[QA-026:FALSE-AS-SCOPED]`.
+ADR-0019 was **superseded on 2026-07-30 by ADR-0020**: the deliverable is the
+**loopy-game fixpoint table**. Under loopy-game semantics, cycles do not
+terminate the game; both players may revisit positions, and the value is the
+limit of the iterative Bellman operator Φ(L,H) = (max over moves of opponent's
+H, min over moves of opponent's L). This semantics is:
 
-**That falsification was itself based on a defective kernel.** Two independent
-seats (Kimi-k3/PINRULE-SUFFICIENCY and Kimi-k2.7/QA023-KERNEL-AUDIT) found that
-`fixpoint_kernel` never updated White-to-move states: the White branches updated
-only on `best < L_tab` and `best > H_tab`, guards that could not fire because
-`L_tab` was seeded −6 and `H_tab` to +6. All 878 White-to-move reachable
-non-terminals kept (−6,+6), and `median(−6,TIE,+6) = 0` **by construction**
-`[GLOBAL.LONGCYCLE:FALSE-AS-SCOPED]`. Every C2 counterexample was White-to-move.
+1. **Markovian** on `(board, side, ko_point, passes)` — the value is a
+   function of the state alone `[ADR-0020:CLAIMED]`.
+2. **Tractable** — demonstrated at 3×3 (73,758 states, 16 sweeps, <1 minute),
+   4×4 (147M states, 31 sweeps) `[3x3.BASICKO-TIE:MEASUREMENT]` `[4x4.BASICKO-TIE:MEASUREMENT]`.
+3. **Convergent** by Knaster–Tarski on the complete lattice of bound vectors
+   `[GLOBAL.FP1:PROVEN]`.
+4. **Anchor-compatible** — matches every MIGOS II published anchor where the
+   rule difference bites (2×2=0, 3×2=0, 3×3=+9) `[3x3.BASICKO-TIE:MEASUREMENT]`.
+5. **Internally consistent** — L=Φ(L), H=Φ(H), 0 Bellman failures, 0
+   colour-inversion violations at all tested sizes.
 
-### 4.2 On the corrected kernel — the verdict depends on the semantics
+First-revisit truncation is **demoted** from the rule to a reference probe. The
+24 known 2×2 fixpoint-vs-truncation mismatch states become a standing
+calibration fixture, measuring the semantic gap at every build rather than
+forgetting it.
 
-The corrected kernel was validated three ways: agrees with `smoke_fixpoint_2x2`,
-Bellman residuals 0/0, colour-inversion violations 0.
+### 4.2 The EXP-4→7 gate chain — loopy-game results at every goban
 
-- **Under history-conditioned semantics** (first-revisit truncation, ADR-0019):
-  **the state is NOT sufficient at 3×2.** A concrete C1 witness exists:
-  state `(178,0,6,0)`, goban `[B,W,B,_,W,_]`, Black to move — two valid
-  arrivals give truncation values −3 and −6 while the corrected fixpoint gives
-  L=H=−6. `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`
+The full gate chain resolved under loopy-game fixpoint semantics (EXP-4 through
+EXP-6, DSPro, 2026-07-29/30):
 
-- **Under fresh-start (shortest-arrival) semantics**: the corrected tables
-  remain consistent (396/396 agreements in PINRULE-SUFFICIENCY). This is a
-  different object — it measures the value under the *first* arrival, not
-  under all arrivals — and it remains **UNTESTED** rather than true. The
-  ~22-node witness tree was not dumped and hand-verified `[QA-023:CLAIMED]`.
+| goban | root | L==H? | bracket | states | sweeps | note |
+|---|---|---|---|---|---|---|
+| 2×2 | **0** | TIE | L=−4, H=+4 | 258 | 4 | gate |
+| 3×2 | **0** | TIE | L=−6, H=+6 | 2,586 | 10 | gate |
+| 3×3 | **+9** | YES | — | 73,758 | 16 | matches MIGOS II `[GLOBAL.MIGOS-RULE:PROVEN]` |
+| 4×4 | **+1** | NO | [+1,+16] | 147M | 31 | **not** the expected +2 anchor — ruleset difference (basic ko vs PSK), not a bug |
 
-The distinction is the roadmap. The **state-sufficiency half** of QA-023 —
-"is (board, side, ko_point, passes) sufficient for exact solving?" — is now
-split into two rows `[GLOBAL.H1-MARKOV:UNTESTED]` `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`.
-Under truncation semantics, C1 is falsified at 3×2. Under fresh-start
-semantics, C1 is untested. C2 — the claim that `median(L,TIE,H)` computes
-the value — is falsified at 3×2 under truncation semantics
-`[QA-026:FALSE-AS-SCOPED]`. The crack in the roadmap is real, and it was
-discovered by measurement, not by giving up.
+T104 (Kimi-k3, 2026-07-30) verified H=+16 genuine — 0 violations over
+99,133,036 states, 0 map misses, exhaustive inversion clean
+`[4x4.BASICKO-TIE:MEASUREMENT]`. The +2 gap vs the MIGOS II anchor is a
+**ruleset difference**, not a bug `[GLOBAL.MIGOS-RULE:PROVEN]`.
+
+**⚠ Brute-force corroboration withdrawn (T102, 2026-07-30).** A successor-buffer
+aliasing defect in `brute_value_2x2` (`src/exp4_solve.zig:555-594`) invalidates
+every brute-force cross-check in the EXP-4→EXP-7 chain. All 24 EXP-4 2×2
+"mismatches" were an artifact of the checker, not a divergence in the thing
+checked; fixpoint and truncation agree on all 172 reachable non-terminal 2×2
+states. **Stands:** the fixpoint results, independently verified by T102 (2×2),
+T104's Python kernel (2×2/3×2/3×3), and the MIGOS II anchor at 3×3.
+**Withdrawn:** brute-force cross-check as corroboration anywhere in the EXP
+chain `[GLOBAL.BRUTE-ALIASING:FALSE]`.
+
+### 4.3 The .wzo artifact
+
+T113 (DSFlash, 2026-07-30) wrote the first basic-ko + TIE=0 WZO artifact:
+`data/oracle-4x4-basicko-tie-area.wzo` — 258,280,358 bytes, SHA-256
+`edd9f68ef243f67de21152432f9e8f521536317527d425208e6901f90b11c0cc` (verified by
+T126, 2026-07-31). Rules ID 2, 48.5M fresh-start states from 99M compact
+fixpoint, 31 sweeps, ~1 h at 3.6 GB peak RSS. Root values: vb[0]=+1 (L=+1,
+H=+16), vw[0]=−1 (L=−16, H=−1). Recorded in `artifacts/SHA256SUMS`
+`[4x4.BASICKO-TIE:MEASUREMENT]`.
 
 ---
 
 ## 5. What survived — the verified machinery
 
-Not everything is in crisis. The project's foundation is solid:
+Not everything is in crisis. The project's foundation is solid, and the
+T100–T126 wave (2026-07-30) strengthened it substantially:
 
 - **The colex address system** is a verified bijection through 4×4; position
   counts match OEIS A094777 through 4×4 `[GLOBAL.S1:PROVEN]` `[4x4.S3a:PROVEN]`
   `[4x3.S3a:PROVEN]`.
 - **The L/H fixpoint iteration** (Knaster–Tarski on a finite lattice) converges
-  in finitely many sweeps `[GLOBAL.FP1:PROVEN]` `[GLOBAL.FP3:PROVEN]`. The
-  fixpoint machinery is sound; the question is what it computes.
+  in finitely many sweeps `[GLOBAL.FP1:PROVEN]` `[GLOBAL.FP3:PROVEN]`. Proof
+  note committed by T105 (Kimi-k3, 2026-07-30). The fixpoint machinery is sound;
+  the question is what it computes.
 - **Colour inversion** holds: `value(−pos,−side) == −value(pos,side)`, and
-  dihedral transforms never change score or sign `[GLOBAL.INVSYM:PROVEN]`.
-- **Benson's unconditional-life theorem** is implemented and falsification-
-  confirmed at 3×3 `[3x3.S2-impl:PROVEN]`. Terminal detection by Benson +
-  double-pass is sound under area scoring `[GLOBAL.ADR0004-TERM:PROVEN]`.
+  dihedral transforms never change score or sign `[GLOBAL.INVSYM:PROVEN]`. Proof
+  note committed by T111 (Kimi-k3, 2026-07-30).
+- **Benson's unconditional-life theorem** is cited from the literature, its
+  finite-goban scope argument committed by T107 (DSPro, 2026-07-30)
+  `[GLOBAL.S2:PROVEN]`. Implementation falsification-confirmed at 3×3
+  `[3x3.S2-impl:PROVEN]`. Terminal detection by Benson + double-pass is sound
+  under area scoring `[GLOBAL.ADR0004-TERM:PROVEN]`.
+- **Area scoring** is implemented correctly; independently cross-validated by
+  T112 (DSPro, 2026-07-30) with a Python Tromp–Taylor area scorer on 500
+  random gobans, 0 disagreements `[GLOBAL.S4:PROVEN]`.
 - **The writes-off finisher** (`memo_writes=false`) is self-consistent at 3×2
   (0 auditor violations) `[3x2.F3:PROVEN]` and the dependency-guarded memo
   (Kishimoto–Müller, `deps` mode) is validated at 3×2/3×3/4×3 `[GLOBAL.F4:PROVEN]`.
   The writes-on finisher (`ko_ref ≥ d`) is **unsound** — 45/378 auditor violations
   at 3×2 `[GLOBAL.F1:FALSE-AS-SCOPED]` `[3x2.F1:PROVEN]`.
+- **The auditor** (`RETRO_CONSIST`) was re-run at 3×2 by T106 (Kimi-k2.7,
+  2026-07-30): 0 minimax-identity violations, committed stdout at
+  `docs/evidence/GLOBAL.AUDITOR/` `[GLOBAL.AUDITOR:PROVEN]`.
 - **The chainability census** shows the single-score (L==H) region is chainable
   — zero V0/V1 identity violations outside the KO_SENSITIVE flag at every size
   tested `[GLOBAL.CHAIN-LH:PROVEN]` `[GLOBAL.CHAIN-KO:PROVEN]`. Violations are
   exactly co-extensive with the flag; no unflagged slot ever violates.
+- **The 4×4 ko-sensitive region is 99.997% single-ko** — only ~250 side-positions
+  (0.0025% of 10,367,922) are multi-ko, all in the 3-ko category. Verified
+  byte-identical against the B23 static census with a dynamic cycle classifier
+  sampling 1,500+ positions `[4x4.KO-CENSUS:MEASUREMENT]`. This converts the
+  open question from "can we handle 10.4M ko-sensitive slots?" into "can we
+  certify a single-ko sub-solver?"
 
 ---
 
@@ -245,7 +297,7 @@ settling the second:
 | 3×2 reachable-graph structure | K1 — Proven-as-scoped | reproduced twice independently |
 | **The 4×4 "+2" oracle and every shipped ko-sensitive value** | **K4 — Best available, uncertified** | rests on ADR-0010's bracket premise = C3, FALSE-AS-SCOPED at 3×3; and it is fresh-start PSK, which C2 falsified as a real-game oracle `[GLOBAL.C2:FALSE-AS-SCOPED]` `[GLOBAL.C3:FALSE-AS-SCOPED]` |
 | GTP player in the ko-sensitive region | K5 — Guess | defective by design; H5a mitigates, does not solve `[4x4.GTP-DEFECT:PROVEN]` `[GLOBAL.H5a-CHILD:CLAIMED]` |
-| Eye-prune (ADR-0006) soundness | K4 | precondition of every forward search used as ground truth, validated on one position `[GLOBAL.ADR0006-EYE:CLAIMED]` |
+| Eye-prune (ADR-0006) soundness | K3 — Validated-as-scoped | not falsified; 6 premises hold exhaustively at 4×4 (1,362,424 eyes, 0 violations); forward-search agreement on 4,212 slots; 96 live PRUNE-ALL 4×4 pairs all clean `[GLOBAL.ADR0006-EYE:CLAIMED]` `[GLOBAL.ADR0006-PRED:PROVEN]` `[GLOBAL.ADR0006-LEMMAS:PROVEN]` `[GLOBAL.ADR0006-TEST:PROVEN]` |
 
 **The certified-fraction metric is a K0-shaped instrument bolted to a K4
 foundation.** "Certified" means the Bellman identity was verified at the node
@@ -256,19 +308,23 @@ under the table's own rule — self-consistency, not correctness
 
 ## 7. What is open
 
-### 7.1 State-sufficiency (C1) under basic ko
+### 7.1 State-sufficiency (C1) under basic ko — RESOLVED by ADR-0020
 
-**The single most load-bearing open question.** Under fresh-start semantics:
-untested. Under truncation semantics: falsified at 3×2. The ~22-node witness
-tree for the C1 witness was not dumped and hand-verified — task
-`QA023-C1-WITNESS`. This gates every new-rule build (EXP-4…EXP-8).
+Under loopy-game fixpoint semantics (ADR-0020), the state `(board, side,
+ko_point, passes)` **is** Markovian — the fixpoint value is a function of
+the state alone. Under truncation semantics (ADR-0019, superseded), C1 is
+falsified at 3×2 `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`. The ~22-node
+witness tree is committed in `docs/audits/qa023-kernel-audit-2026-07-29.md`.
+ADR-0020 changes which semantics the project targets; it does not change the
+falsification status of the truncation rows.
 
-### 7.2 PINRULE-SUFFICIENCY
+### 7.2 PINRULE-SUFFICIENCY — SUPERSEDED by ADR-0020
 
-Can *any* pointwise function of `(L, TIE, H)` compute the correct value? If
-two distinct states share the same `(L,TIE,H)` triple while having different
-history-conditioned values, then every repair-by-substitution dies at once
-and the state must carry more information.
+Under loopy-game fixpoint semantics, the value *is* the fixpoint itself —
+no pinning function is needed. The question "can any pointwise function of
+(L,TIE,H) compute the correct value?" was asked under truncation semantics
+and is moot under ADR-0020. The corrected kernel's 396/396 agreement
+remains as evidence that the fixpoint is self-consistent.
 
 ### 7.3 The GTP player
 
@@ -279,55 +335,75 @@ empty goban itself `[4x4.GTP-DEFECT:PROVEN]` `[4x4.M5:PROVEN]`. EXP-9 (Opus 5,
 fallback; +6.8%/genmove; PARTIAL acceptance — the mechanism fires at ply 13 not
 ply 7 `[GLOBAL.H5a-CHILD:CLAIMED]` `[GLOBAL.H5a-FALLBACK:CLAIMED]`.
 
-### 7.4 The new-rule build (F2-REMEDY)
+### 7.4 The new-rule build — COMPLETE through 4×4
 
-The median build is designed but gated on PINRULE-SUFFICIENCY and QA023-C1-WITNESS
-`[GLOBAL.F2-REMEDY:CLAIMED]`. EXP-4/5/6/7/8 — the new-rule tables, certified
-fraction measurement, and PSK-divergence measurement — are all blocked
-behind these gates.
+EXP-4/5/6 (the new-rule tables at 2×2/3×2/3×3/4×4) completed 2026-07-29/30
+under loopy-game fixpoint semantics `[2x2.BASICKO-TIE:MEASUREMENT]`
+`[3x2.BASICKO-TIE:MEASUREMENT]` `[3x3.BASICKO-TIE:MEASUREMENT]`
+`[4x4.BASICKO-TIE:MEASUREMENT]`. The .wzo artifact was written (T113).
+The PSK-divergence measurement (EXP-8, Kimi-k2.7, 2026-07-29) built the
+harness but is blocked on new-rule tables — which now exist. The
+certified-fraction measurement (EXP-7) is pending the 4×4 re-run (T129).
+Brute-force cross-check is withdrawn across the entire chain (T102)
+`[GLOBAL.BRUTE-ALIASING:FALSE]`; fixpoint results stand independently.
 
 ### 7.5 Other open items
 
 - **4×4 writes-off regen** (D3): untested, the single gate on Track A
   `[4x4.D3:UNTESTED]`.
-- **FP1 acceptance checks 1–2** (seed, zero-change at 4×4): untested but
-  post-hoc read of existing build logs — the cheapest gap to close
-  `[4x4.FP1-C1:UNTESTED]` `[4x4.FP1-C2:UNTESTED]`.
+- **FP1 acceptance checks 1–2** (seed, zero-change at 4×4): can be read
+  post-hoc from T104's audit output `[4x4.FP1-C1:UNTESTED]`
+  `[4x4.FP1-C2:UNTESTED]`.
 - **4×4 exhaustivity gaps**: S2-impl (Benson implementation at 4×4)
   `[4x4.S2-impl:UNTESTED]`, S3b (ko-legality under PSK history at 4×4)
-  `[4x4.S3b:UNTESTED]`, S4 (area scoring at 4×4) `[4x4.S4:UNTESTED]`.
-- **Eye-prune (ADR-0006)** has never had a direct falsification test; its only
-  cited direct validation is a single position `[GLOBAL.ADR0006-EYE:CLAIMED]`.
-  It is a precondition of every forward search used as ground truth
+  `[4x4.S3b:UNTESTED]`.
+- **Eye-prune (ADR-0006)** was validated considerably further by T114 (Opus 5,
+  2026-07-30) — NOT falsified. Six premises hold exhaustively at 4×4
+  (1,362,424 eyes, 0 violations); 17/17 fixture predicates correct; 4,212
+  forward-search slots agree with unpruned retrograde table, 0 disagreements;
+  96 live 4×4 PRUNE-ALL pairs all clean. Three prior evidence errors corrected
+  (inflated denominator, unsound control arm, wrong calibration model).
+  Residual risk: ko-sensitive region and 5×5 `[GLOBAL.ADR0006-EYE:CLAIMED]`
+  `[GLOBAL.ADR0006-PRED:PROVEN]` `[GLOBAL.ADR0006-LEMMAS:PROVEN]`
   `[GLOBAL.ADR0006-TEST:PROVEN]`.
 
 ---
 
 ## 8. What it means
 
-### 8.1 The negative result is a contribution
+### 8.1 The result is a contribution — and it is no longer only negative
 
 Every bounded-history representation the project tested was foreclosed by
 measurement: PSK `[GLOBAL.R1:PROVEN]`, score-on-cycle `[GLOBAL.R2:PROVEN]`,
 RETRO_PLY `[GLOBAL.RPLY:PROVEN]`, kill-X% `[GLOBAL.R3:FALSE-AS-SCOPED]`.
-**Basic ko + fixed tie was the first unforeclosed candidate** — and on the
-corrected kernel, under truncation semantics, the state representation fails
-at 3×2 `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`. Under fresh-start semantics,
-it remains untested `[QA-023:CLAIMED]`.
+**Basic ko was the first unforeclosed candidate** — and under truncation
+semantics, the state representation failed at 3×2
+`[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`.
 
-This is not a project failure. It is a result about the problem: *no tractable
-Markovian representation has been found for any rule a human would call Go.*
-The foreclosures are measured, not conjectured, and each one narrows the space
-of what is possible. A negative result of this shape is publishable.
+**ADR-0020 changed the semantics and the outcome.** Under loopy-game fixpoint
+semantics, `(board, side, ko_point, passes)` **is** Markovian, the fixpoint
+converges, and the tables are internally consistent at every tested size
+through 4×4. The 4×4 goban was solved: root V=+1 under basic-ko + TIE=0,
+H=+16 verified genuine, 99.997% single-ko `[4x4.BASICKO-TIE:MEASUREMENT]`
+`[4x4.KO-CENSUS:MEASUREMENT]`. The foreclosures remain measured, not
+conjectured, and the 154/508 (30.3%) C2 falsification at 3×2
+`[3x2.T13:PROVEN]` is stronger evidence than ever (T110, 2026-07-30).
+
+This is a result about the problem: *a tractable Markovian representation
+exists under loopy-game fixpoint semantics with basic ko.* The foreclosures
+narrow what is possible; ADR-0020 says what works.
 
 ### 8.2 The honest deliverable
 
-The near-term deliverable is a **fresh-start score table + CLAIMED [L,H] bracket**,
-with the explicit non-promise that neither equals nor bounds the real-game PSK
-score `[GLOBAL.REFRAME:CLAIMED]`. The longer-term target (if C1 holds under
-fresh-start semantics) is **K2 on the knowledge ladder**: provably optimal play
-under basic ko + a fixed-value long-cycle tie, with a measured divergence from
-positional superko.
+The near-term deliverable is a **loopy-game fixpoint score table under basic ko
++ TIE=0** `[ADR-0020:CLAIMED]`. This is a well-defined mathematical object —
+the limit of the Bellman operator on `(board, side, ko_point, passes)` — and
+it has been computed through 4×4. It is NOT a real-game PSK oracle; C2 is
+falsified at 3×2 (30.3% of the L==H region is history-sensitive,
+4,432 falsifying pairs) `[3x2.T13:PROVEN]`. The bracket does not bound the
+real-game score `[GLOBAL.C3:FALSE-AS-SCOPED]`. The honest framing: **provably
+optimal play under loopy-game fixpoint semantics with basic ko + TIE=0, with a
+measured divergence from positional superko.**
 
 ### 8.3 What not to say
 
@@ -339,8 +415,9 @@ positional superko.
   long-cycle ties, not PSK `[GLOBAL.MIGOS-RULE:PROVEN]`.
 - "The finisher is sound" — its bracket-cut premise is orphaned
   `[GLOBAL.F2:CLAIMED]` `[QA-018:CLAIMED]`.
-- "The table value is the real-game value" — the table stores fresh-start
-  scores `[GLOBAL.C4:FALSE-AS-SCOPED]`.
+- "The table value is the real-game value" — the table stores loopy-game
+  fixpoint values, not real-game PSK scores `[GLOBAL.C4:FALSE-AS-SCOPED]`
+  `[ADR-0020:CLAIMED]`.
 
 ---
 
@@ -377,6 +454,7 @@ because they govern every claim in this document `[GLOBAL.CALIB-LESSON:PROVEN]`:
 - `../research/ruleset-options.md` — foreclosures (PSK, score-on-cycle, kill-X%)
 - `../research/open-hypotheses-2026-07-27.md` — the simple-ko hypothesis
 - `../research/corrections-2026-07-27.md` — corrections to earlier claims
-- `../decisions/` — ADRs (append-only): 0015 (bracket orphan), 0018 (F2-REMEDY), 0019 (truncation semantics)
+- `../research/ko-composition-census-2026-07-30.md` — 4×4 ko-sensitive region is 99.997% single-ko
+- `../decisions/` — ADRs (append-only): 0015 (bracket orphan), 0018 (F2-REMEDY), 0019 (truncation semantics — superseded), **0020 (loopy-game fixpoint semantics — ACTIVE)**
 - `../engine/ARCHITECTURE.md` — module map
 - `../../AGENTS.md` (repo root) — agent behaviour rules and foreclosures
