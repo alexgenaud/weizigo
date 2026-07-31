@@ -2276,6 +2276,19 @@ files.
 (GLOBAL.ADR0006-PRED/LEMMAS/TEST/PRUNEALL proven, GLOBAL.ADR0006-EYE evidence
 updated). claimlint: 259 rows, 0 new orphans.
 
+**DSPro / T139 (O-3):** oracle-v2 M1 format design — WZO2 key encoding (51.4M
+triples, passes NOT folded), L/H column schema, header layout, byte budget
+derived, naming convention. 30 min. First design task to land under the new
+sprint process.
+
+**DSPro / T140 (O-5a):** oracle-v2 M2a fixpoint interface exposure — pub-only
+refactor of src/exp6_solve.zig. Zero behavioural change, byte-identical output.
+Unblocks M2b (solver build).
+
+**DSPro / T141 (V-4):** verify-battery M1 harness design — CLI contract (3 exit
+classes), result schema (§6a cell coordinates, proposed-row format), artifact
+loading with SHA-256 verification path, R8-compliant (no src/ imports).
+
 **Opus 5 / T110:** T13 probe re-implemented from method description (not ported from
 lost code — stronger evidence). All 12 recorded mismatches re-execute exactly.
 Three findings beyond brief: (1) T13 was never truly lost — only driver script;
@@ -2336,10 +2349,10 @@ consequences, the agent creates the language without doing the work.
 refuse to close a task whose declared deliverables don't exist on disk.
 `managent status` should flag tasks whose agent field is unset. Model-perf
 should be a required input to `managent done`, not an afterthought. Until the
-tool enforces the steps, they will be skipped regardless of which model holds
-the seat.
-
-## Session summary — DSPro/Orcha, 2026-07-30
+**Subdelegation live.** `docs/infra/agents/subdelegation.md` documents that
+`odeeppi` and `oflashpi` can spawn subagents as shell commands. DSPro can now
+self-audit by spawning a fresh-instance subagent — design + audit in one
+console, different model for load-bearing reasoning per ROLES.md.
 
 32 tasks across 7 models. All T101A punchlist rows closed. T13 reproducible.
 ADR-0006 validated further (not falsified). EXP-4→7 chain complete at all gobans.
@@ -2538,3 +2551,22 @@ consistency obligation. The register is the hard half, and it is the half that
 gets skipped. A session that updates this file and not the register has
 recorded that it did the work, which is the precise failure mode the file's own
 header warns against.
+
+## Session summary — DSPro/Orcha, 2026-07-30 through 2026-07-31
+
+40+ tasks across 7 models. EXP-4→7 chain complete at all goban sizes. 4×4 root
+V=+1 verified genuine. T101A punchlist closed. T13 reproducible. ADR-0006
+validated. Ko-composition 99.997% single-ko. .wzo artifact written.
+Full tooling chain landed. Kanban terminology sweep done (T120). CLAIMS.md
+absorption chain complete (T121-T129). Oracle-v2 and verify-battery sprint
+specs + audits + design tasks underway. Subdelegation live.
+
+| model | tasks | key pattern |
+|---|---|---|
+| DSPro | 20+ | multi-file edits, ships working Zig, mixes analysis+code+design. Subdelegation capable. |
+| DSFlash | 7 | bounded well-specified tooling, Python+Zig, 7/7 clean |
+| Opus 5 | 5 | adversarial audits, strategy, specs. Found buffer-aliasing on state #1. |
+| Kimi-k3 | 3 | empirical audit + mathematical proof. 0/99M fixpoint violations. |
+| Fable 5 | 4 | structural audits (T100/T101), strategy docs, spec revisions. Retired as Grand Auditor. |
+| Kimi-k2.7 | 2 | bounded instrument re-runs. T118 incomplete (duplicate). |
+| GLM 5.2 | 1 | structured analysis (T101A punchlist). |
