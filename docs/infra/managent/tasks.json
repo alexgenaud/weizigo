@@ -1,4 +1,19 @@
 {
+  "T138": {
+    "status": "dispatchable",
+    "bundle": "untracked/T138-3x2-census-reconciliation.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T02:52:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T129": {
     "status": "done",
     "agent": "DSPro/T129",
@@ -32,19 +47,20 @@
     "claim_count": 1
   },
   "T135": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "untracked/T135-spec-audit-oracle-v2-pass1.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T02:44:05Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T02:56:02Z",
+    "done": "2026-07-31T02:56:02Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T124": {
     "status": "done",
@@ -158,6 +174,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T136": {
+    "status": "done",
+    "agent": "fable-5",
+    "bundle": "untracked/T136-verify-battery-pass1-revision.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T02:48:44Z",
+    "claimed": "2026-07-31T02:48:44Z",
+    "done": "2026-07-31T02:52:11Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "T123": {
     "status": "done",
     "agent": "DSPro",
@@ -205,6 +237,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T137": {
+    "status": "dispatchable",
+    "bundle": "untracked/T137-verify-battery-pass1-audit.md",
+    "set": "A",
+    "holds": [],
+    "needs": ["T136"],
+    "caps": [],
+    "added": "2026-07-31T02:52:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T122": {
     "status": "done",
@@ -256,7 +303,7 @@
   }
 ,
   "_sys": {
-    "next_id": 136,
+    "next_id": 139,
     "directive_next": 7
   }
 }
