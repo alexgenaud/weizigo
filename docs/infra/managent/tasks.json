@@ -63,19 +63,20 @@
     "claim_count": 0
   },
   "T164": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T164-model-perf-backfill.md",
     "set": "A",
     "holds": ["docs/infra/model-perf.md"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T15:10:22Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T15:35:32Z",
+    "done": "2026-07-31T15:35:32Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T165": {
     "status": "dispatchable",
@@ -123,19 +124,20 @@
     "claim_count": 0
   },
   "T163": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T163-claims-absorption.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T15:10:22Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T15:35:32Z",
+    "done": "2026-07-31T15:35:32Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T162": {
     "status": "done",
