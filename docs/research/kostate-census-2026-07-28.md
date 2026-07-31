@@ -117,9 +117,12 @@ none`):
 | 4×4 | 45,734,854 | 48,636,330 | 0.940 |
 
 **The discrepancy is real and explanatory, not a bug.** A separate
-independent BFS (a depth-parity BFS from `(empty, B)` only, in
-`/tmp/test_census_pure.zig`; not committed because it is a sanity throwaway
-that the dispatch's calibration is *meant* to replace) confirms 3×3 has only
+independent BFS (a depth-parity BFS from `(empty, B)` only; a sanity
+throwaway, never committed and now gone — its function is discharged by the
+committed three-detector calibration suite at
+`docs/evidence/GLOBAL.H1-CENSUS/`, per the T128 triage
+`docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md` §8) confirms
+3×3 has only
 **11,109** `(position, side)` reachable from `(empty, B-to-move)` under
 alternating-play basic-ko — far less than 25,350, and 0 of the reachable
 positions are reachable with both sides to move.

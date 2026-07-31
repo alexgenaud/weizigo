@@ -4,7 +4,7 @@
 Author:   DSPro/T134 (V-1) · 2026-07-31
 Status:   DELIVERED — for V-2 (spec revision, resolves B2 and C2)
 Brief:    untracked/T134-i5-feasibility.md
-Inputs:   pass0/strategy.md §P0 (V-1) · pass0/spec-audit.md (B2, C2)
+Inputs:   `docs/epic-01-markovian/sprints/verify-battery/pass0/plan.md` §P0 (V-1) · `docs/epic-01-markovian/sprints/verify-battery/archive/spec.audit-0.md` (B2, C2) — links updated at the 2026-07-31 epic move (originals were relative to the pre-move tree)
           Wave 1 SCC-2x2 (scc2x2.py) · SCC-3x2 (2B-2 corrected, F1-SEEDROOTS)
           EXP-3 kostate census (51,419,046 triples)
 ```

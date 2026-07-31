@@ -4,6 +4,14 @@
 **Source:** T13 C2-pilot-3×2 (`untracked/T13-minimax.md`)  
 **Status:** PROVEN FALSE-AS-SCOPED
 
+> **✓ SUPERSEDED 2026-07-31 — the probe is RECOVERED.** T110 (2026-07-30)
+> re-implemented it independently in Python and Zig (`docs/evidence/T13/`):
+> all 12 contradiction lines re-execute exactly, 5,868/5,868 cell values
+> match. The register row's banner was removed by T124; this one is kept,
+> struck through in substance, as the record of the loss window
+> (2026-07-26 → 2026-07-30). Disposition: T128 triage
+> (`docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md` §1–2).
+>
 > **⚠ CANNOT REPRODUCE — the probe source is lost.** Added 2026-07-29 by the
 > Orchestrator (Opus 5); `EVIDENCE-INTEGRITY` placed this banner on the
 > `3x2.T13` register row, and it belongs here too, because this file — not the
@@ -147,6 +155,8 @@ zig build-exe -O ReleaseSafe --dep retro -Mmain=untracked/c2pilot_3x2.zig -Mretr
 
 ## Files
 
-- Probe: `untracked/c2pilot_3x2.zig`
-- Task record: `untracked/T13-minimax.md`
+- Probe: `untracked/c2pilot_3x2.zig` (original swept; recovered as
+  `docs/evidence/T13/t13_probe.py`, `docs/evidence/T13/zig_t13_replay.zig`)
+- Task record: `untracked/T13-minimax.md` (original swept; raw output
+  recovered under `docs/evidence/T13/`)
 - Durable finding: `docs/research/c2-falsification-3x2.md` (this file)

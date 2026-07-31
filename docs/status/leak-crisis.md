@@ -22,7 +22,7 @@ can test each.
 | # | claim | status | how to prove / falsify |
 |---|---|---|---|
 | C1 | Fresh-start scores correct as fresh-start scores (2×2, 3×2) | **PROVEN** (vs history-aware exact solver) | already done |
-| C2 | Single-score (L==H) positions are history-independent | **FALSE-AS-SCOPED at 3×2** (falsified by T13; see below) | T13 `untracked/T13-minimax.md` |
+| C2 | Single-score (L==H) positions are history-independent | **FALSE-AS-SCOPED at 3×2** (falsified by T13; see below) | T13 — durable record `docs/research/c2-falsification-3x2.md`; probe recovered at `docs/evidence/T13/` (T110) |
 | C3 | The range `[L,H]` bounds the real-game score for any history, any cycle rule in [−n,n] | **CLAIMED, falsified at 3×3** | E2 (below): 3×3 leaks with promise +3 → final −9 |
 | C4 | Fresh-start score == real-game score | **FALSE** for *both* regions. Ko-sensitive: false by the leak. Single-score: false because C2 is falsified at 3×2 (T13) — fresh-start ≠ real-game even where L==H. | consequence of C2 + T13 |
 
@@ -105,7 +105,8 @@ Audit details: `untracked/T02-minimax.md` (results) and
 
 ## T13 findings (2026-07-26)
 
-The C2-probe ran on 3×2 (`untracked/T13-minimax.md`). 3×2 is the smallest
+The C2-probe ran on 3×2 (raw stdout formerly untracked, swept; recovered at
+`docs/evidence/T13/` by T110). 3×2 is the smallest
 goban that admits reachable non-trivial PSK histories. Result:
 
 - **508 non-trivial histories** tested on L==H positions.
