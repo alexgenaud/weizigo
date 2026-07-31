@@ -1,7 +1,7 @@
 # Sprint — phased delegated development with subagent orchestration
 
 ```
-Revision: 3
+Revision: 4
 Status: PROPOSED
 Rev 2 per msg 064 §4 (eight edits), 067 §2 (per-pass layout), rulings D-9…D-15.
 Rev 3 per T154 round-1 fresh-seat review of rev 2 @ 6f8a53b. Dispositions,
@@ -9,6 +9,11 @@ all fixed / none rejected / none escalated: F1 design-<milestone>.md
 exception stated; F2 external approval declared at spec ratification;
 F3 human checkpoints defined as pass boundaries; F4 strategy named in the
 phase list; F5 default gate-holder named; F6 role pointer added.
+Rev 4 per T154 round-2 review of rev 3 @ 1a231f0 (5/6 RESOLVED): residual
+must finding fixed — interrupt 2 broadened from weight escalation to
+strategy amendment, covering mid-pass phase-skip re-ratification. Two-round
+cap reached; this fix rides the ratification diff to the human gate per the
+routing ladder — no round three.
 ```
 
 The intent, in one line: flexibility, transparency, and accountability,
@@ -52,8 +57,10 @@ A closed interrupt list must reach the human immediately at any point, with
 no copy/paste relay:
 
 1. **Premise reversal** — the veracity of a critical claim flips.
-2. **Weight escalation** — a task turns out to be a sprint, or a pass's
-   scope balloons beyond its strategy.
+2. **Strategy amendment** — a task turns out to be a sprint, a pass's
+   scope balloons beyond its ratified strategy, or the builder wants to
+   drop a phase the strategy promised. The ratified strategy is a
+   contract; amending it in either direction reaches the human.
 3. **Audit-cap residue** that needs a human ruling (see the routing ladder
    below).
 
@@ -119,7 +126,9 @@ The builder reads the spec, then writes `strategy.md`. Answers:
 
 The builder stops. The human ratifies or corrects, then says "proceed." If
 the builder later wants to skip a phase it promised, it must update
-`strategy.md` and get re-ratification.
+`strategy.md` and get re-ratification — a strategy amendment, interrupt 2
+in the checkpoint model, which is how a human touchpoint can occur
+mid-pass.
 
 ### Why tests are written before implementation
 
