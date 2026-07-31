@@ -2,7 +2,7 @@
 # O-3 — oracle-v2 M1 format design
 
 **Gated on:** G1 (human ratification of oracle-v2 spec pass 1)
-**Deliverable:** `docs/design/oracle-v2/pass1/design-M1.md`
+**Deliverable:** `docs/epic-01-markovian/sprints/oracle-v2/archive/design-M1.md`
 **Time box:** ≤ 30 min
 
 ## What to produce
@@ -19,10 +19,10 @@ Must contain:
 
 ## Read first
 
-- `docs/infra/oracle-v2/spec.md` (the ratified spec)
-- `docs/infra/oracle-v2/strategy.md` §P1
-- `docs/design/oracle-v2/pass1/spec-audit.md`
-- `docs/design/oracle-v2/pass0/spec.md` (frozen pass-0 for context)
+- `docs/epic-01-markovian/sprints/oracle-v2/spec.md` (the ratified spec)
+- `docs/epic-01-markovian/sprints/oracle-v2/plan.md` §P1
+- `docs/epic-01-markovian/sprints/oracle-v2/archive/spec-audit.md`
+- `docs/epic-01-markovian/sprints/oracle-v2/archive/spec.md` (frozen pass-0 for context)
 
 ## Rules
 

@@ -10,6 +10,13 @@ Process:  docs/infra/sprint.md @ 45deb10 (Revision 4, RATIFIED G-human
 External approval beyond the human: NOT required. Dabir wrote the request
           (068) and is therefore not an independent approver of the spec that
           restates it. One fresh-seat spec audit per the sprint.md Spec gate.
+Note:     Item 1 (epic/sprint directory hierarchy) was PRE-EMPTED by direct
+          human directive 2026-07-31 — executed by Fable/Navigator (this
+          commit): all five sprints moved to
+          docs/epic-01-markovian/sprints/<sprint>/, ephemera to sibling
+          archive/, strategy.md renamed plan.md, sprint.md at rev 5.
+          The plan phase should re-scope item 1 to verification/residue
+          only. Items 2 (epistemic tree) and 3 (channel org) unaffected.
 ```
 
 The human wants the project tree reorganized. Three items, one sprint. **"Do
@@ -48,9 +55,9 @@ docs/epic-01-markovian/
         verify-battery/pass0/...
 ```
 
-Existing sprint artifacts under `docs/infra/oracle-v2/`,
-`docs/infra/verify-battery/`, `docs/design/oracle-v2/` and
-`docs/design/verify-battery/` migrate into it.
+Existing sprint artifacts under `docs/epic-01-markovian/sprints/oracle-v2/`,
+`docs/epic-01-markovian/sprints/verify-battery/`, `docs/epic-01-markovian/sprints/oracle-v2/archive/` and
+`docs/epic-01-markovian/sprints/verify-battery/archive/` migrate into it.
 
 ### What the spec requires of whatever design is chosen
 
@@ -74,7 +81,7 @@ Existing sprint artifacts under `docs/infra/oracle-v2/`,
   spec.md would be an empty directory placeholder, the hierarchy buys nothing
   this pass. Either write it (from those three sources, and say in it which
   parts were absorbed) or descope item 1.
-- **R1-4 — this sprint's own documents move too.** `docs/infra/project-restructure/`
+- **R1-4 — this sprint's own documents move too.** `docs/epic-01-markovian/sprints/project-restructure/`
   is the current ratified location, so this spec was written there. If item 1
   lands, this sprint's pass0 directory migrates with the others, and this
   spec's own header path reference is updated in the same commit.
@@ -245,7 +252,7 @@ Named here so the boundary is a decision and not an oversight:
 
 1. **Three items, one pass, and item 2 is the expensive one.** Items 1 and 3 are
    mechanical once named. Item 2 touches 890 references, a compiled linter and
-   the git-ignore invariant that protects the evidence store. `strategy.md`
+   the git-ignore invariant that protects the evidence store. `plan.md`
    should expect to sequence item 2 last, or scope it to indices-only and defer
    relocation to pass 1.
 2. **A restructuring sweep is the ideal cover for a silent semantic edit.** A7
@@ -262,7 +269,7 @@ Named here so the boundary is a decision and not an oversight:
 
 ---
 
-**Next phase:** `strategy.md` — per sprint.md, the builder restates this spec in
+**Next phase:** `plan.md` — per sprint.md, the builder restates this spec in
 its own words, declares which phases this pass needs, which get fresh audit and
 with what instrument, and what may run in parallel. Spec ratification comes
 first; the Spec gate is document review by a fresh seat against the human intent

@@ -4,12 +4,12 @@
 Author:   DSPro/T149 · 2026-07-31
 Status:   PROPOSED (rev 2) — resolves rev-1 re-audit (T147/Opus 5): 1 critical,
           4 must-fix
-Inputs:   docs/infra/verify-battery/spec.md (rev 1) ·
-          docs/infra/verify-battery/strategy.md (rev 1) ·
-          docs/design/verify-battery/pass1/spec-audit.md (T137) ·
-          docs/design/verify-battery/pass1/i5-feasibility.md (DSPro/T134) ·
-          docs/design/verify-battery/pass1/design-M1-audit.md (Opus 5/V-5) ·
-          docs/design/verify-battery/pass1/design-M1-audit-rev1.md (T147/Opus 5)
+Inputs:   docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md (rev 1) ·
+          docs/epic-01-markovian/sprints/verify-battery/pass0/plan.md (rev 1) ·
+          docs/epic-01-markovian/sprints/verify-battery/archive/spec-audit.md (T137) ·
+          docs/epic-01-markovian/sprints/verify-battery/archive/i5-feasibility.md (DSPro/T134) ·
+          docs/epic-01-markovian/sprints/verify-battery/archive/design-M1-audit.md (Opus 5/V-5) ·
+          docs/epic-01-markovian/sprints/verify-battery/archive/design-M1-audit-rev1.md (T147/Opus 5)
 ```
 
 ## 1. Overview
@@ -1506,7 +1506,7 @@ This revision resolves the rev-1 re-audit (T147/Opus 5, NEEDS-FIX). Changes:
 Author:   DSPro/T156 · 2026-07-31
 Status:   PROPOSED (rev 3) — resolves rev-2 re-audit (T151) should-fix
           carry-overs AC-S2, AC-S5 before Gate 2 freeze.
-Inputs:   docs/design/verify-battery/archive/design-M1-audit-rev2.md (T151) §4
+Inputs:   docs/epic-01-markovian/sprints/verify-battery/archive/design-M1-audit-rev2.md (T151) §4
 ```
 
 This revision resolves five should-fix carry-overs from the rev-2 re-audit

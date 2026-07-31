@@ -7,7 +7,7 @@ Revised:  Fable/Navigator (claude-fable-5) · 2026-07-31 — resolves pass-0
           audit F1–F6 (BLOCKER + 5 MUST); adopts F7 (M4 split), F8 (R8
           baseline), F9 (naming). Revised in place (original text: git show
           56950a1:docs/design/oracle-v2/pass0/spec.md; audit:
-          docs/design/oracle-v2/archive/spec.audit-1.md). Each resolution is
+          docs/epic-01-markovian/sprints/oracle-v2/archive/spec.audit-1.md). Each resolution is
           tagged [Fn].
 Process:  docs/infra/sprint.md (un-retirement proposed in channel msg 062)
 Tier:     A — new state representation + format contract + verifier changes
@@ -165,7 +165,7 @@ different agents concurrently under the one-writer rule.
 
 | id | module | owns | depends on |
 |---|---|---|---|
-| **M1** | **Format.** The WZO2 key encoding, column schema (`L`, `H`, DTT, flags), header, `encode`/`decode`, round-trip tests. Includes the R8 baseline inventory and the F2 byte-budget derivation. | `src/artifact2.zig` (new), `docs/infra/oracle-v2/format.md` (new) | — |
+| **M1** | **Format.** The WZO2 key encoding, column schema (`L`, `H`, DTT, flags), header, `encode`/`decode`, round-trip tests. Includes the R8 baseline inventory and the F2 byte-budget derivation. | `src/artifact2.zig` (new), `docs/epic-01-markovian/sprints/oracle-v2/format.md` (new) | — |
 | **M2a** | **Fixpoint interface exposure [F1].** `src/exp6_solve.zig` has no importable interface today — its sole `pub` is `main()`; `StateIdx32` (line 266), the reachability pass, and the fixpoint are file-private. M2a marks `pub` exactly what M2b needs to obtain the converged `(L, H)` tables in memory: the state encoding (`StateIdx32`, rank/unrank, `moves32`/4×4 analogue), the reachability builder, and the fixpoint entry points. **No behavioural change.** Acceptance: v1 pipeline still builds; A7 gate chain reproduces; 3×3 v1 artifact byte-identical. | `src/exp6_solve.zig` | ratified spec only — not M1; runs concurrent with format design |
 | **M2b** | **Builder.** Import the exposed fixpoint read-only; compute DTT (R3, anchored per R10); serialise the full key with no projection. **M2b does not re-solve from scratch** — the fixpoint comes from M2a's interface. | `src/oracle_v2_build.zig` (new) | M1 design ratified + M2a reviewed |
 | **M3** | **Engine side.** Reader integration; track `ko_point` and `passes` at play time; full-key lookup; the §3.1 enforcement modes. | `src/gtp.zig` | M1 design ratified |
@@ -185,7 +185,7 @@ M3 touches `src/gtp.zig`, which is therefore held for the duration and must
 not be given to another sprint.
 
 **Overlap declared:** M4 duplicates invariants that `verify-battery`
-(`docs/infra/verify-battery/spec.md`) will also implement. This is deliberate
+(`docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md`) will also implement. This is deliberate
 and time-boxed — coupling the two sprints would serialise them. A later task
 merges M4's checks into the battery; that task is out of scope here.
 
@@ -223,9 +223,9 @@ Stated so the audit can check that success is not tautological:
 
 Per `DELEGATOR.md` rule 5 you should know less than the author. Grade findings
 **blocker / critical / must / should / could**; return **PASS / NEEDS-FIX /
-REDO**. Write to `docs/design/oracle-v2/archive/spec.audit-2.md` (done; PASS).
+REDO**. Write to `docs/epic-01-markovian/sprints/oracle-v2/archive/spec.audit-2.md` (done; PASS).
 The original text and its audit are at `git show 56950a1:docs/design/oracle-v2/pass0/spec.md`
-and `docs/design/oracle-v2/archive/spec.audit-1.md` — verify each tagged
+and `docs/epic-01-markovian/sprints/oracle-v2/archive/spec.audit-1.md` — verify each tagged
 resolution `[F1]`–`[F9]` actually discharges its finding, not merely mentions it.
 
 Questions worth asking, offered without answers:

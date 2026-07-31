@@ -6,7 +6,7 @@ Author:   Opus 5 (claude-opus-5[1m]) · 2026-07-31
 Source:   untracked/msg/milestone-01-ko-reframe/067-dabir-to-orchestrator.md
           (Dabir/DeepSeek-v4-Pro) — the human's request, relayed
 Process:  docs/infra/sprint.md rev 4, RATIFIED (d53c2a8). Canonical phase docs
-          in docs/infra/argus/pass0/; numbered ephemera in docs/design/argus/,
+          in docs/epic-01-markovian/sprints/argus/pass0/; numbered ephemera in docs/epic-01-markovian/sprints/argus/archive/,
           deleted at the gate commit (D-11, D-14)
 Approval: human only. No external approver beyond the human is required for
           this sprint — declared here per sprint.md @ 45deb10:44-48. Rationale:
@@ -17,7 +17,7 @@ Tier:     B — read-only, cannot corrupt the register or the kanban. But Argus
           because nobody checked" (docs/infra/roles/AUDITOR.md @ 45deb10:7) is
           this project's documented failure mode. An instrument built on a
           cheap model needs the same calibration discipline as an expensive one
-Audit:    this document, before strategy.md is written. Instrument: document
+Audit:    this document, before plan.md is written. Instrument: document
           review, fresh seat (sprint.md @ 45deb10:147)
 ```
 
@@ -163,8 +163,8 @@ Each states what a **wrong** Argus scores.
 | id | module | owns | depends on |
 |---|---|---|---|
 | **M1** | **Role definition.** `ARGUS.md` in the same voice as its siblings: what the seat is for, the R3 write allowlist and forbidden verbs verbatim, the advisory boundary, the Auditor/Orcha/Argus boundary, and the on-resume read order. | `docs/infra/roles/ARGUS.md` (new) | ratified spec only — concurrent with M2 |
-| **M2** | **Output format.** Log line grammar (fields, order, timestamp format, grades), the append-only mechanism, the summary layout, and the recomputability contract A4 tests. | `docs/infra/argus/pass0/design.md` | ratified spec |
-| **M3** | **Checklist registry.** The five seed slugs mechanized as exact commands, baselines re-measured and dated, the R11 growth rule, and the R9 regression semantics per slug. | a tracked registry file under `docs/infra/argus/` (path is M2/M3's choice) | M2 format ratified |
+| **M2** | **Output format.** Log line grammar (fields, order, timestamp format, grades), the append-only mechanism, the summary layout, and the recomputability contract A4 tests. | `docs/epic-01-markovian/sprints/argus/pass0/design.md` | ratified spec |
+| **M3** | **Checklist registry.** The five seed slugs mechanized as exact commands, baselines re-measured and dated, the R11 growth rule, and the R9 regression semantics per slug. | a tracked registry file under `docs/epic-01-markovian/sprints/argus/` (path is M2/M3's choice) | M2 format ratified |
 | **M4** | **Calibration fixtures and the first live run.** A1's three seeded defects, A2's adjudicated sweep, A3/A4/A5 mechanical checks, A6 with Orcha, A7's numbers. | `docs/evidence/ARGUS/` | M3 |
 
 **M2 blocks M3 and M4 and must not be parallelised with them.** Two agents
@@ -246,7 +246,7 @@ materialize, §8's last bullet is the exit.
 Per `DELEGATOR.md` rule 5 you should know less than the author. Grade findings
 **blocker / critical / must / should / could**; return **PASS /
 PASS-WITH-EDITS / NEEDS-FIX / REDO**. Write to
-`docs/design/argus/spec-audit-1.md`. Hygiene: cite file+line against the
+`docs/epic-01-markovian/sprints/argus/archive/spec.audit-1.md`. Hygiene: cite file+line against the
 *current* text, and cite acceptance criteria by slug (`A2`), never bare number.
 
 Questions worth asking, offered without answers:

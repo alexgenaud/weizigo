@@ -2,10 +2,10 @@
 
 ```
 Task:    T148 (rev 2, DSPro) · rev 3: Fable/Navigator (claude-fable-5) · Date: 2026-07-31
-Deliverable: docs/infra/oracle-v2/pass0/design-M1.md
+Deliverable: docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md
 Status:   PROPOSED (rev 3) — all T146 + T150 findings dispositioned; awaiting
           G2 human ratification (diff-scoped review recommended, no fourth audit round)
-Target:   docs/infra/oracle-v2/pass0/spec.md (ratified G1)
+Target:   docs/epic-01-markovian/sprints/oracle-v2/pass0/spec.md (ratified G1)
 Audit:    T146 (Opus 5) — NEW-2/3/4/7/8 resolved. T150 (DSPro) — NEW-1, NEW-5,
           NEW-9 resolved in rev 3; RV2-1 no-change-needed (see §11)
 ```
@@ -433,7 +433,7 @@ verify-battery spec §6a. This section maps every acceptance criterion
 
 ### 7.1 Acceptance criteria (A1–A9)
 
-**A-numbers below follow spec §4 verbatim** (`docs/infra/oracle-v2/pass0/spec.md` §4, A-table);
+**A-numbers below follow spec §4 verbatim** (`docs/epic-01-markovian/sprints/oracle-v2/pass0/spec.md` §4, A-table);
 I-numbers follow the verify-battery inventory. The `L ≤ H` and UNDEF-census
 checks formerly listed here as A-criteria are I-checks (I3, I6) and live in
 §7.2/§7.3 where they always appeared.

@@ -5,17 +5,17 @@ Status:   PROPOSED (rev 1) — pass-0 strategy-audit findings resolved;
           awaiting pass-1 audit, then human ratification
 Author:   Fable/Navigator (claude-fable-5) · 2026-07-31
 Revised:  Fable/T136 · 2026-07-31 — live copy; the pass-0 original is
-          frozen at docs/design/verify-battery/pass0/strategy.md. Resolves
+          frozen at docs/epic-01-markovian/sprints/verify-battery/archive/plan.md. Resolves
           strategy-audit SB1–SB2, SC1–SC3, SM1–SM5, SS1–SS3, SO1–SO2
           (pass0/strategy-audit.md, Opus/T133, NEEDS-FIX). Each resolution
           is tagged [Xn]. Companion to the pass-1 spec revision at
-          docs/infra/verify-battery/spec.md.
+          docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md.
 Process:  human-gated checkpoints under the delegation regime
           (docs/infra/delegation/ — DELEGATOR / DELEGATEE / ROLES).
           docs/infra/sprint.md is RETIRED 2026-07-28; G1–G3 below are
           human-ratification points and need none of its machinery. The
           proposed un-retirement is on G1's agenda, not assumed. [SM1]
-Inputs:   pass0/spec.md · pass0/spec-audit.md · pass0/strategy.md ·
+Inputs:   pass0/spec.md · pass0/spec-audit.md · pass0/plan.md ·
           pass0/strategy-audit.md · pass1/i5-feasibility.md (DSPro/T134)
 Audit:    pass-1 audit covers this document and the revised spec together
 ```
@@ -44,9 +44,9 @@ Audit:    pass-1 audit covers this document and the revised spec together
 
 | id | kanban | kind | deliverable | holds | needs |
 |---|---|---|---|---|---|
-| **V-1** | T134 — **done** | ANALYSIS | I5 feasibility memo → `docs/design/verify-battery/pass1/i5-feasibility.md` (peak ≈ 1.2–1.5 GB at 4×4, tiered fallbacks, corrupt-one-slot fixture, calibration targets) | — | — |
-| **V-2** | T136 — **this revision** | MUTATION | pass-1 spec + strategy: `docs/infra/verify-battery/spec.md`, `docs/infra/verify-battery/strategy.md`. Resolves B1–B2, C1–C3, M1–M7, S1–S4, O1–O4, SB1–SB2, SC1–SC3, SM1–SM5, SS1–SS3, SO1–SO2. | `docs/infra/verify-battery/spec.md` `docs/infra/verify-battery/strategy.md` | V-1 |
-| **V-3** | T137 | ANALYSIS | pass-1 audit of both documents → `docs/design/verify-battery/pass1/spec-audit.md` — independent seat, not the T133 auditor and not the reviser | — | V-2 |
+| **V-1** | T134 — **done** | ANALYSIS | I5 feasibility memo → `docs/epic-01-markovian/sprints/verify-battery/archive/i5-feasibility.md` (peak ≈ 1.2–1.5 GB at 4×4, tiered fallbacks, corrupt-one-slot fixture, calibration targets) | — | — |
+| **V-2** | T136 — **this revision** | MUTATION | pass-1 spec + strategy: `docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md`, `docs/epic-01-markovian/sprints/verify-battery/pass0/plan.md`. Resolves B1–B2, C1–C3, M1–M7, S1–S4, O1–O4, SB1–SB2, SC1–SC3, SM1–SM5, SS1–SS3, SO1–SO2. | `docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md` `docs/epic-01-markovian/sprints/verify-battery/pass0/plan.md` | V-1 |
+| **V-3** | T137 | ANALYSIS | pass-1 audit of both documents → `docs/epic-01-markovian/sprints/verify-battery/archive/spec-audit.md` — independent seat, not the T133 auditor and not the reviser | — | V-2 |
 | **V-R** | T138 | ANALYSIS | 3×2 reconciliation memo → `docs/evidence/QA-023/census-reconciliation.md`: confirm (or refute) the 36-phantom identity behind the 2,586/2,622 census split and the 1,724/1,704/1,678 cycle-reachable spread; states the phantom-exclusion convention I5 adopts [SC2, SB2] | `docs/evidence/QA-023/census-reconciliation.md` | — |
 
 What changed against pass 0 [SB1, SB2, SC1, SC2]: V-2's starting positions
@@ -72,8 +72,8 @@ must land before V-10 gates on A3.
 
 | id | kanban | kind | deliverable | holds | needs |
 |---|---|---|---|---|---|
-| **V-4** | at dispatch | ANALYSIS | M1 design → `docs/design/verify-battery/pass1/design-M1.md`: CLI, result schema (three exit classes per R6, denominators, §6a cell coordinates, proposed-row format), artifact loading per R8 | — | G1 |
-| **V-5** | at dispatch | ANALYSIS | M1 design audit → `docs/design/verify-battery/pass1/design-M1-audit.md` | — | V-4 |
+| **V-4** | at dispatch | ANALYSIS | M1 design → `docs/epic-01-markovian/sprints/verify-battery/archive/design-M1.md`: CLI, result schema (three exit classes per R6, denominators, §6a cell coordinates, proposed-row format), artifact loading per R8 | — | G1 |
+| **V-5** | at dispatch | ANALYSIS | M1 design audit → `docs/epic-01-markovian/sprints/verify-battery/archive/design-M1-audit.md` | — | V-4 |
 
 M4's design does **not** wait here — the feasibility memo is its design
 seed; only its output fields bind to V-4's schema.
@@ -175,7 +175,7 @@ a commit-before-V-6 ordering rather than a shared directory [SC3, SM3]. Use
   [SM5].
 - **Shared RSS meter** as in §1/P4: two 4×4-scale invocations project-wide,
   owned by Orcha; oracle-v2's strategy declares the same meter
-  (`docs/infra/oracle-v2/pass0/strategy.md`).
+  (`docs/epic-01-markovian/sprints/oracle-v2/pass0/plan.md`).
 - **No file contention:** the battery touches no solver-held path and never
   `src/gtp.zig` (held by oracle-v2 M3 for its sprint duration).
 
@@ -202,7 +202,7 @@ a commit-before-V-6 ordering rather than a shared directory [SC3, SM3]. Use
 ## 5. For the pass-1 auditor
 
 Grade **blocker / critical / must / should / could**; verdict **PASS /
-NEEDS-FIX / REDO**. Write to `docs/design/verify-battery/pass1/spec-audit.md`
+NEEDS-FIX / REDO**. Write to `docs/epic-01-markovian/sprints/verify-battery/archive/spec-audit.md`
 (one audit covers the revised spec and this document).
 
 1. V-6 now needs V-11's commit [SM3]. That puts a blind ANALYSIS task ahead

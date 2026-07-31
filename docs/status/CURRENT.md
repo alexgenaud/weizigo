@@ -12,14 +12,18 @@ catch-up, after the 39-task absorption audit).
 
 ## Two Tier-A sprints in flight — both M1 designs at G2 (human ratification pending)
 
-**Doc convention** (`docs/infra/sprint.md` rev 4, **RATIFIED** `d53c2a8`):
-canonical unsuffixed docs live in `docs/infra/<sprint>/pass0/`; audit/revision
-ephemera in `docs/design/<sprint>/archive/`; ephemera deleted or archived at
-gate commits. Older documents may cite pre-reorg paths — the moves were all
-`git mv` (`e6c6bf9`, `45deb10`).
+**Doc convention** (`docs/infra/sprint.md` rev 5, PROPOSED — rev 4 was
+RATIFIED `d53c2a8`; rev 5 adds the epic tree per human directive):
+canonical unsuffixed docs live in
+`docs/epic-NN-<slug>/sprints/<sprint>/passN/` (this epic:
+`docs/epic-01-markovian/sprints/`); audit/revision ephemera in the sprint's
+sibling `archive/`; ephemera deleted or archived at gate commits. The
+strategy phase doc is renamed `plan.md` (imperative). Older documents may
+cite pre-reorg paths — the moves were all `git mv` (`e6c6bf9`, `45deb10`,
+and the epic move of 2026-07-31).
 
 - **oracle-v2** (ko-aware rebuild, WZO2 bracket-carrying format):
-  `docs/infra/oracle-v2/pass0/{spec,strategy,design-M1}.md`. design-M1 at
+  `docs/epic-01-markovian/sprints/oracle-v2/pass0/{spec,plan,design-M1}.md`. design-M1 at
   **rev 3** after three audit rounds (T142/T146/T150); G2 = diff review, no
   fourth round. Spec A6 amended in place, amendment rides the same G2.
   **M2a is done**: `src/exp6_solve.zig` now exposes a public fixpoint
@@ -27,7 +31,7 @@ gate commits. Older documents may cite pre-reorg paths — the moves were all
   seat T155 — gate chain 2×2=0, 3×2=0, 3×3=+9 reproduced, 4×4 census
   identical). M2b dispatchable the moment G2 clears.
 - **verify-battery** (fleet re-verification instrument):
-  `docs/infra/verify-battery/pass0/{spec,strategy,design-M1,i5-feasibility}.md`.
+  `docs/epic-01-markovian/sprints/verify-battery/pass0/{spec,strategy,design-M1,i5-feasibility}.md`.
   design-M1 at **rev 2 + rev-3 patch** (T156 schema-field closures), audit
   T151 **PASS**; the JSON-Lines result schema freezes at G2. Acceptance
   criteria AC-S1 / AC-S3 / AC-S4 are still open and tracked only in the
@@ -51,14 +55,14 @@ gate commits. Older documents may cite pre-reorg paths — the moves were all
 
 ## PROPOSED specs awaiting their spec gate
 
-- **orcha-tools** — `docs/infra/orcha-tools/pass0/spec.md`. **Implemented**
+- **orcha-tools** — `docs/epic-01-markovian/sprints/orcha-tools/pass0/spec.md`. **Implemented**
   (T159, absorbed `082433e`): `managent suggest`, done-deliverable check,
   audit cross-citation flag; reviewed T160. Its A3 acceptance fixture was the
   QA-027-not-absorbed defect, which is now fixed (`622275f`) — the tools
   exist to catch the next one.
-- **argus** — `docs/infra/argus/pass0/spec.md` (read-only watchdog, 14
+- **argus** — `docs/epic-01-markovian/sprints/argus/pass0/spec.md` (read-only watchdog, 14
   requirements, cheap-tier). Spec audited T161.
-- **project-restructure** — `docs/infra/project-restructure/pass0/spec.md`
+- **project-restructure** — `docs/epic-01-markovian/sprints/project-restructure/pass0/spec.md`
   (3 items, "do nothing" explicitly acceptable). Spec audited T162 (PASS).
   Item 2 touches ~890 references to the epistemic tree — see spec §risks
   before any ratification.

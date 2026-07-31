@@ -5,7 +5,7 @@ Status:   PROPOSED (rev 1) — pass-0 audit findings resolved; awaiting
           pass-1 audit (V-3), then human ratification (G1)
 Author:   Opus/Navigator (claude-opus-5[1m]) · 2026-07-31
 Revised:  Fable/T136 · 2026-07-31 — live copy; the pass-0 original is
-          frozen at docs/design/verify-battery/pass0/spec.md. Resolves
+          frozen at docs/epic-01-markovian/sprints/verify-battery/archive/spec.md. Resolves
           spec-audit B1–B2, C1–C3, M1–M7, S1–S4, O1–O4 and the
           strategy-audit's inherited-fact corrections SB1, SB2, SC1, SC2,
           SM4, SM5, SO2. Each resolution is tagged [Xn].
@@ -17,8 +17,8 @@ Process:  human-gated checkpoints (spec → strategy → acceptance) under the
           proposed sprint un-retirement is a G1 agenda item, not an
           assumption of this spec. [SM1]
 Tier:     A — one instrument, run ~60 times; a defect in it is invisible
-Inputs:   docs/design/verify-battery/pass0/{spec,spec-audit,strategy,
-          strategy-audit}.md · docs/design/verify-battery/pass1/
+Inputs:   docs/epic-01-markovian/sprints/verify-battery/archive/{spec,spec-audit,strategy,
+          strategy-audit}.md · docs/epic-01-markovian/sprints/verify-battery/archive/
           i5-feasibility.md (DSPro/T134)
 Audit:    this revision, before any design task is dispatched
 ```
@@ -56,7 +56,7 @@ of invariants and emits a machine-readable result plus proposed claim rows.
 
 **This spec does not choose the implementation, the output format, or the
 invariant algorithms.** Those are `design.md` (V-4). The I5 memory plan is
-already costed in `docs/design/verify-battery/pass1/i5-feasibility.md` [B2].
+already costed in `docs/epic-01-markovian/sprints/verify-battery/archive/i5-feasibility.md` [B2].
 
 ## 3. Requirements
 
@@ -214,7 +214,7 @@ else.
 ## 8. For the pass-1 auditor
 
 Grade **blocker / critical / must / should / could**; return **PASS /
-NEEDS-FIX / REDO**. Write to `docs/design/verify-battery/pass1/spec-audit.md`.
+NEEDS-FIX / REDO**. Write to `docs/epic-01-markovian/sprints/verify-battery/archive/spec-audit.md`.
 
 Questions worth asking:
 
