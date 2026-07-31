@@ -31,6 +31,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T159": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T159-orcha-tools-build.md",
+    "set": "A",
+    "holds": ["src/managent/main.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T14:42:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T149": {
     "status": "done",
     "agent": "DSPro",
@@ -319,6 +334,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T161": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T161-argus-audit.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T14:42:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T146": {
     "status": "done",
     "agent": "DSPro",
@@ -430,6 +460,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T160": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T160-orcha-tools-review.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T14:42:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T144": {
     "status": "done",
@@ -574,6 +619,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T162": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T162-restructure-audit.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T14:42:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T133": {
     "status": "done",
