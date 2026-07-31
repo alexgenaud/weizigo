@@ -45,9 +45,11 @@ This semantics is:
    colour-inversion violations at all tested sizes.
 
 First-revisit truncation is **demoted** from the rule to a reference probe. It
-remains valuable: the 24 known 2×2 fixpoint-vs-truncation mismatch states
-become a standing calibration fixture, measuring the semantic gap at every
-build rather than forgetting it (per AUDIT-TRAJECTORY R2).
+remains valuable: the 24 2×2 states that formerly appeared mismatched (T102:
+all 24 were checker artifacts; true gap 0/172 reachable non-terminals, T103)
+become a standing agreement fixture — both evaluators must return identical
+values, verifying the semantic gap is zero at every build (per
+AUDIT-TRAJECTORY R2).
 
 ## Consequences
 
@@ -59,8 +61,9 @@ build rather than forgetting it (per AUDIT-TRAJECTORY R2).
 - The K2 deliverable narrows: *provably optimal 4×4 play under loopy-game
   fixpoint semantics with basic ko + TIE=0, with a measured divergence from
   positional superko.*
-- The 24 2×2 mismatch states are a permanent calibration fixture. Every future
-  build must report the semantic gap against truncation.
+- The 24 2×2 agreement states are a permanent calibration fixture (gap = 0/172,
+  T102/T103). Every future build must verify agreement against truncation
+  semantics.
 - `CLAIMS.md` rows scoped under ADR-0019's truncation semantics (QA-026,
   GLOBAL.H1-COMPUTABLE, GLOBAL.LONGCYCLE) remain FALSE-AS-SCOPED for
   truncation, and this ADR does not change their status — it changes which
