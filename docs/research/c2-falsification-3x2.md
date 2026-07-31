@@ -1,33 +1,20 @@
 # C2 falsified at 3×2
 
 **Date:** 2026-07-26  
-**Source:** T13 C2-pilot-3×2 (`untracked/T13-minimax.md`)  
+**Source:** T13 C2-pilot-3×2 (original: `untracked/T13-minimax.md`, lost; re-implemented at `docs/evidence/T13/`)  
 **Status:** PROVEN FALSE-AS-SCOPED
 
-> **✓ SUPERSEDED 2026-07-31 — the probe is RECOVERED.** T110 (2026-07-30)
-> re-implemented it independently in Python and Zig (`docs/evidence/T13/`):
-> all 12 contradiction lines re-execute exactly, 5,868/5,868 cell values
-> match. The register row's banner was removed by T124; this one is kept,
-> struck through in substance, as the record of the loss window
-> (2026-07-26 → 2026-07-30). Disposition: T128 triage
-> (`docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md` §1–2).
->
-> **⚠ CANNOT REPRODUCE — the probe source is lost.** Added 2026-07-29 by the
-> Orchestrator (Opus 5); `EVIDENCE-INTEGRITY` placed this banner on the
-> `3x2.T13` register row, and it belongs here too, because this file — not the
-> row — is what a reader reaches.
->
-> The `Source:` line above points at `untracked/T13-minimax.md`, which is
-> **gone**: `untracked/` is git-ignored and was swept. The numbers in this file
-> are the durable record and the claim stands on them, but **the experiment
-> cannot be re-executed** — the probe that produced the 12 mismatches no longer
-> exists. If a future result contradicts T13, the project cannot settle it by
-> re-running the original.
->
-> This matters more than most lost evidence: T13 is the falsification the entire
-> current strategy rests on. It is the origin of the `AGENTS.md` rule *evidence
-> in git, or the claim is not proven*, which was adopted **after** this loss.
-> See `CLAIMS.md` §7 and `docs/status/evidence-integrity-2026-07-29.md`.
+> **✓ RECOVERED (T110, 2026-07-30).** The probe was independently
+> re-implemented in Python and Zig (`docs/evidence/T13/`): all 12
+> contradiction lines re-execute exactly, 5,868/5,868 cell values match
+> between the two implementations. This banner replaces the "CANNOT
+> REPRODUCE" warning placed here 2026-07-29 (evidence-integrity sweep);
+> the warning is now stale. The register row's banner was removed by T124.
+> The original source (`untracked/c2pilot_3x2.zig`) and raw output
+> (`untracked/T13-minimax.md`) remain lost — the re-implementation is
+> independent evidence, not a recovery — but the experiment is now fully
+> re-executable from committed code. T128 triage §1–2
+> (`docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md`).
 
 ## Claim
 

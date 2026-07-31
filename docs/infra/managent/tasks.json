@@ -1,18 +1,19 @@
 {
   "T175": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T175-i5-rows.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T17:01:08Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T19:57:10Z",
+    "done": "2026-07-31T19:57:10Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T159": {
     "status": "done",
@@ -111,19 +112,20 @@
     "claim_count": 1
   },
   "T170": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/T173",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T170-vb-fixpoint.md",
     "set": "A",
     "holds": ["src/vb_fixpoint.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T16:11:26Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T19:50:01Z",
+    "done": "2026-07-31T19:55:03Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T166": {
     "status": "done",
@@ -158,19 +160,20 @@
     "claim_count": 1
   },
   "T171": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/T173",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T171-vb-graph.md",
     "set": "A",
     "holds": ["src/vb_graph.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T16:11:26Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T17:24:44Z",
+    "done": "2026-07-31T17:24:44Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T162": {
     "status": "done",
@@ -221,19 +224,20 @@
     "claim_count": 1
   },
   "T174": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T174-t128-triage.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T17:01:08Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T19:57:10Z",
+    "done": "2026-07-31T19:57:10Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T167": {
     "status": "done",
@@ -252,19 +256,20 @@
     "claim_count": 1
   },
   "T176": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T176-census-sha256.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T17:01:08Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T19:57:10Z",
+    "done": "2026-07-31T19:57:10Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   }
 ,
   "_sys": {

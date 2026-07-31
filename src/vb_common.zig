@@ -402,5 +402,6 @@ pub const CheckOptions = struct {
 // ═══════════════════════════════════════════════════════════════════════════
 
 pub fn writeJsonRecord(writer: anytype, value: anytype) !void {
-    try writer.print("{f}\n", .{std.json.fmt(value, .{})});
+    try std.json.value(value, .{}, writer);
+    try writer.writeByte('\n');
 }

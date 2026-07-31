@@ -110,10 +110,10 @@ were never in git at any point, so they are not recoverable from history, and
 | `untracked/T13-minimax.md` | `docs/status/leak-crisis.md:25,108`; `docs/research/c2-falsification-3x2.md:4,134`; `docs/infra/model-perf.md:207` | **Yes — RECOVERED (T110, 2026-07-30).** `docs/research/c2-falsification-3x2.md` holds the method, the ban-set distribution, all 12 contradiction lines and the 0/540 fresh-start sanity result; the raw output is regenerated under `docs/evidence/T13/`. See the T13 note below. T128 triage §1: re-pointed. |
 | `untracked/c2pilot_3x2.zig` (the C2-probe source) | `docs/research/c2-falsification-3x2.md:21,127,133` | **RECOVERED by re-implementation (T110):** `docs/evidence/T13/t13_probe.py`, `docs/evidence/T13/zig_t13_replay.zig` — strict supersets of the original. NOTE: this literal path is `weizigo-claimlint`'s known-bad C2 calibration fixture; its citation in `c2-falsification-3x2.md` is deliberately left in place (T128 trap flagged 2026-07-31). |
 | `untracked/T12-minimax.md` (C2-pilot-2×2) | `docs/epistemic/boards/4x4/EPISTEMIC.md:287-288`; `docs/infra/model-perf.md:206` | **One line only** — "C2-pilot-2×2 PARTIAL/tautological, no non-root cycles" in the rescued `dispatch-registry/SUBAGENTS.md`, plus the `2x2.T12` row in `CLAIMS.md:159`. |
-| `untracked/T02-minimax.md` (B1 least-fixpoint results) | `docs/status/leak-crisis.md:103,180` | **Summary only** — `leak-crisis.md:86-101`. The *method* survives here as `b1-least-fixpoint/b1-spec.md`; the numbers do not. |
-| `untracked/T02-audit-kimi.md` (the Kimi audit convicting the (a′) variation) | `docs/status/leak-crisis.md:104,180` | **Summary only** — `leak-crisis.md:99-101` and `CLAIMS.md:132` (`GLOBAL.B1-AUDIT`). This audit is what removed the re-converge-from-`+N` check from `4x4.FP1` acceptance; the reasoning behind that removal exists now only as a two-line paraphrase. |
-| `untracked/T07-audit-hypotheses.md` (~42 KB, the eight findings that rewrote the 4×4 tree) | `docs/epistemic/boards/4x4/EPISTEMIC.md:13`; `docs/infra/model-perf.md:118` | **Product only.** `4x4/EPISTEMIC.md` *is* the rewritten tree, but the eight findings are not itemised anywhere; `EPISTEMIC.md:13` names the audit and not its content. |
-| `untracked/B05-glm.md` (the reframe scope) | `docs/epistemic/PROGRESS.md:277`; `docs/status/leak-crisis.md:146,151`; `docs/epistemic/boards/4x4/EPISTEMIC.md:330`; `docs/epistemic/boards/CONCEPTS.md:104` | **Summary only** — `CLAIMS.md:258` (`GLOBAL.REFRAME`) and the paraphrase at `leak-crisis.md:146`. |
+| `untracked/T02-minimax.md` (B1 least-fixpoint results) | `docs/status/leak-crisis.md:103,180` | **RECOVERABLE** — method survives at `b1-least-fixpoint/b1-spec.md`; numbers at `leak-crisis.md:86-101` need regeneration. T128 triage §3. |
+| `untracked/T02-audit-kimi.md` (the Kimi audit convicting the (a′) variation) | `docs/status/leak-crisis.md:104,180` | **LOST** — two-line paraphrase at `leak-crisis.md:99-101` and `CLAIMS.md:132` (`GLOBAL.B1-AUDIT`). Decision survives; audit reasoning does not. T128 triage §4. |
+| `untracked/T07-audit-hypotheses.md` (~42 KB, the eight findings that rewrote the 4×4 tree) | `docs/epistemic/boards/4x4/EPISTEMIC.md:13`; `docs/infra/model-perf.md:118` | **LOST** — product is `4x4/EPISTEMIC.md` (the rewritten tree); the eight itemised findings are gone. T128 triage §5. |
+| `untracked/B05-glm.md` (the reframe scope) | `docs/epistemic/PROGRESS.md:277`; `docs/status/leak-crisis.md:146,151`; `docs/epistemic/boards/4x4/EPISTEMIC.md:330`; `docs/epistemic/boards/CONCEPTS.md:104` | **LOST** (durable summary exists) — decision fully documented at `GLOBAL.REFRAME` and `leak-crisis.md:146`. The discussion that shaped it is gone. T128 triage §6. |
 
 **T13, specifically.** Its numbers survive at `docs/research/c2-falsification-3x2.md`,
 and the probe was independently re-implemented 2026-07-30 (T110) in both Python
@@ -122,9 +122,10 @@ against the committed `src/retro.zig`. All 12 recorded contradiction lines
 re-execute exactly; all census numbers match. The original probe source
 `untracked/c2pilot_3x2.zig` was deleted in the B44 sweep, but the committed
 engine (`retro.ab_solve`, the L/H tables, the move/capture/suicide kernel) was
-never lost — only the driver was. The reproduction block at
-`c2-falsification-3x2.md:124-129` should now point at the committed
-re-implementation, not the lost original.
+never lost — only the driver was. The original reproduction block at
+`c2-falsification-3x2.md:138-141` is kept as a historical record of the lost
+command; the T110 re-implementations at `docs/evidence/T13/` are the current
+re-executable probes (T128 triage, 2026-07-31).
 
 ### Also cited-but-missing (found during this sweep)
 
