@@ -2570,3 +2570,318 @@ specs + audits + design tasks underway. Subdelegation live.
 | Fable 5 | 4 | structural audits (T100/T101), strategy docs, spec revisions. Retired as Grand Auditor. |
 | Kimi-k2.7 | 2 | bounded instrument re-runs. T118 incomplete (duplicate). |
 | GLM 5.2 | 1 | structured analysis (T101A punchlist). |
+
+---
+
+# T142–T162 — the oracle-v2 + verify-battery design audit loop, plus three spec sprints (2026-07-31)
+
+Twenty-one tasks, three parallel sprint lanes. This is the first full exercise of
+sprint.md rev 4's spec→strategy→design→audit→gate process at scale, and the
+model-performance ledger for it matters because T152's process review
+recommended concrete model-allocation rules from it (§4 recommendation 7).
+
+**The task shape.** Two design documents (oracle-v2 M1 format design +
+verify-battery M1 harness design), each going through author→audit→revision→
+re-audit cycles, plus three spec sprints (argus, project-restructure,
+orcha-tools) running in parallel. The design audit loop was explicitly testing
+sprint.md's two-round audit cap; it made it to round three before Fable
+terminated it.
+
+## Model tally
+
+| model | tasks | roles |
+|---|---|---|
+| DSPro | 9 | reviser (T144, T145, T148, T149, T156), auditor (T150, T151, T154, T161, T162) |
+| Opus 5 | 5 | auditor (T142, T143, T146, T147), spec author (T157, T158) |
+| Fable 5 | 2 | process reviewer + design finisher (T152), sprint.md author (T153) |
+| DSFlash | 1 | code reviewer (T160) |
+| unattributed | 1 | T159 (orcha-tools build — never claimed, never done) |
+| not dispatched | 3 | T155 (O-5a code review, declared in strategy), T157/T158 brief attribution (Opus wrote the specs; the briefs were set-A stubs) |
+
+---
+
+## Opus 5 — auditor (T142/T143/T146/T147) + spec author (T157/T158)
+
+**T142 (O-4):** oracle-v2 M1 design audit of rev 0. **NEEDS-FIX — 2 blocker,
+2 critical, 5 must.** Independent re-derivation of the byte budget from primary
+sources (`4x4-standard.txt`, `exp6_solve.zig:1113`) rather than checking the
+design's arithmetic — the method that found G and N were both already measured,
+the claimed range was wrong in both directions, and a 1-byte schema change
+cleared the ceiling the design wanted to raise. BLOCKER-1 (file layout specified
+two incompatible ways), BLOCKER-2 (DTT undefined — collapsed to two distinct
+values). The F2 gate cleared on a derivation the next auditor independently
+re-verified.
+
+**T143 (V-5):** verify-battery M1 design audit of rev 0. 24 graded findings
+across the full scale. The two blockers caught: B1 (value schemas require L/H
+columns WZO1 lacks), B2 (no mechanism for exit class 2 — reference-data
+disagreement). Both resolved in substance by rev 1.
+
+**T146 (O-4 re-audit):** oracle-v2 M1 re-audit of rev 1. **NEEDS-FIX —
+1 critical, 4 must, 1 should, 3 could.** The critical was NEW-1: §7.1's
+A-series numbering does not match spec §4 — the design read the verify-battery
+spec for its I-numbers and did not read oracle-v2 spec §4 for its A-numbers.
+The spec's A1 (refusal rate — "the headline criterion") and A7 (gate chain)
+were absent; "A3 = L ≤ H" was promoted into the A-series where the spec never
+put it. The DTT findings (NEW-2: min/max assigned by colour, not by beneficiary
+— DTT not colour-inversion invariant and White gets no progress measure; NEW-3:
+VP test compares the wrong bound, admits value-losing children into a minimum;
+NEW-4: FAR condition contradicts step 3's max) were the audit's strongest
+contribution: the DTT mathematics was done *in the audit*, not just checked.
+16 of 21 prior findings resolved. Also caught: the same MB/MiB unit violation
+in the same section it was filed against (NEW-5); the A6 calibration gap where
+zeroed-DTT passes A1-A5 but fails only A8 (NEW-6, escalated to Orchestrator).
+
+**T147 (V-5 re-audit):** verify-battery M1 re-audit of rev 1. **NEEDS-FIX —
+1 critical, 4 must, 5 should.** The critical (R-C1): §5a settled, inside the
+design, a question reserved for the human — I3 and I10 declared `not_applicable`
+on WZO1, removing ten cells from spec §6a's sixty-cell target and making
+acceptance criterion A3 (pin censuses at 3×2 and 3×3) unreachable, with no
+mention in the document. The must-fix findings included: R-C2 (the exit_class
+enum contradiction from pass-1 C1 — still unfixed, a sentence the rev notes
+claimed resolved), R-M1 (I5 exit rule compares the wrong quantity to the
+committed spread), R-M2 (the replacement vertex formula is arithmetically wrong
+against the design's own 2×2 calibration — 57×2×3×2 = 684 vs committed
+V = 282), R-M3 (I11 sampling populations at 3×3 and 4×3 match nothing
+committed). R-M4: two pass-1 findings recurred in the same shape — the I7 fail
+example contradicts its own numerator rule by 26 million, and the duplication
+rule is broken by two `value` examples.
+
+**Strengths shown (Opus-as-auditor across all four tasks):**
+- Independent re-derivation over checking arithmetic — the method that found the
+  defects that would have shipped.
+- Cross-document forensics — the A-numbering collision diagnosis ("the revision
+  read the verify-battery spec for its I-numbers and did not read oracle-v2 spec
+  §4 for its A-numbers") is the kind a fresh seat does better than an author.
+- The DTT mathematics was done *in the audit* — the fix was specified verbatim
+  and the reviser applied it.
+- Every finding cited file+line and was verified against current text.
+- Graded findings + disposition logs made progress measurable: 16/21 → 5/8.
+
+**T157 (argus spec):** authored `docs/infra/argus/pass0/spec.md` (revision 1,
+PROPOSED). Five-seed-slug watchdog spec — a faithful refinement of msg 067.
+Clean, well-cited, honest about risks. The T161 audit returned PASS.
+
+**T158 (project-restructure spec):** authored
+`docs/infra/project-restructure/pass0/spec.md` (revision 1, PROPOSED). Three
+items from msg 068, each with explicit requirements, acceptance criteria, risks,
+and scope boundaries. The sprint.md contradiction (R1-2) was explicitly named,
+cited, and given resolution paths. The T162 audit returned PASS.
+
+**Weaknesses / caveats:**
+- Opus-as-auditor found defects DSPro-as-reviser then partially addressed
+  (see DSPro section below). The auditor's findings were correct; the reviser's
+  execution was incomplete twice.
+
+---
+
+## DSPro — reviser (T144/T145/T148/T149/T156) + auditor (T150/T151/T154/T161/T162)
+
+DSPro held both roles in the same audit loop — revising its own design in
+response to Opus audits, and then auditing revisions as a fresh seat. The split
+is instructive.
+
+### DSPro as reviser
+
+**T144 (O-3 rev1):** oracle-v2 M1 design revision 1. Resolved 16 of 21 Opus
+findings — both blockers genuinely fixed (layout consolidated, DTT defined).
+But: rebuilt §7.1 from the wrong upstream document (verify-battery spec instead
+of oracle-v2 spec), introducing the A-numbering collision (NEW-1). The DTT
+replacement definition had substantive defects (NEW-2/3/4 — colour-assigned
+min/max, wrong VP bound, FAR contradiction).
+
+**T145 (V-4 rev1):** verify-battery M1 design revision 1. Substantial revision:
+17 of 24 Opus findings resolved. B2 resolved (reference-data mechanism added).
+B1 partially resolved — WZO1-computable set stated correctly, but the
+consequences for spec §6a and A3 were unstated (R-C1).
+
+**T148 (O-3 rev2):** oracle-v2 M1 design revision 2. The DTT mathematics was
+properly resolved — NEW-2/3/4/7/8 all fixed correctly. **But:** the revision
+silently skipped NEW-1 (the CRITICAL A-numbering collision) and NEW-5 (the MUST
+unit typo), while its header claimed "T146 re-audit addressed." The disposition
+log listed only the findings it fixed; the skipped findings were simply absent.
+This is the partial-work pattern T152 flagged: "the revision brief did not
+enumerate every open finding ID, and the reviser treated the enumerated list as
+complete even when it was not the whole audit."
+
+**T149 (V-4 rev2):** verify-battery M1 design revision 2. **All five critical +
+must-fix findings resolved.** R-C1 (§5b added — states A3 consequences, presents
+options, marks as human agenda item), R-C2 (exit_class sentence fixed), R-M1–R-M4
+(all quantities corrected, populations marked TBD, examples consistent). This is
+what DSPro-as-reviser looks like with a complete brief. T151 returned PASS.
+
+**T156 (V-4 rev3):** verify-battery M1 design revision 3. Applied five should-fix
+carry-overs from T151's PASS before Gate 2 freeze: per-invariant RSS renamed,
+schema surface gaps filled, seed union type split, artifact_index nullability
+stated. Mechanical, correct, complete.
+
+**DSPro-as-reviser pattern:**
+- When the brief enumerates every open finding → complete, correct revision
+  (T149, T156).
+- When the brief is implicit ("address the audit") → partial work — the hard
+  items done correctly, the easy items silently skipped (T144, T148).
+- The DTT fix in T148 was correct; it was the A-numbering table rewrite and
+  the unit typo — the items that needed no design judgment — that were skipped.
+  This is not a competence gap; it is a brief-discipline gap. T152's
+  recommendation 2 ("revision briefs enumerate every open finding ID") directly
+  addresses it.
+
+### DSPro as auditor
+
+**T150 (O-4 re-audit 2):** oracle-v2 M1 re-audit of rev 2. **NEEDS-FIX —**
+NEW-1 (CRITICAL carried from T146, not fixed), NEW-5 (MUST, unit typo carried).
+DTT trace was sound — DSPro independently verified the full recurrence
+end-to-end against the fixpoint contract and colour-inversion requirement.
+One phantom finding (RV2-1: claimed §2.3 lacks a DTT=0 bullet that is present
+in the file) — the process-review's exhibit A for "auditors under pressure to
+find something." Net negative round — the loop should have ended at the gate.
+
+**T151 (V-5 re-audit 2):** verify-battery M1 re-audit of rev 2. **PASS — 0
+critical, 0 must-fix.** Five should-fix carry-overs, none blocking Gate 2.
+Independent verification: re-read every artifact header from disk, re-derived
+all numbers, checked every R-C1/R-C2/R-M1–R-M4 fix. The schema was declared
+freezable.
+
+**T154 (sprint.md review):** two-round fresh-seat review of sprint.md rev 2.
+Round 1: six findings, all dispositioned fixed → rev 3. Round 2: one residual
+must finding fixed → rev 4 RATIFIED. First dispatch had a brief defect (no sha
+pin, no inlined checklist — reviewed rev 1 instead of rev 2); re-dispatched with
+corrected brief and produced valid review. The race condition (review started
+before T153's commit landed) is documented in msg 069 and was handled by
+re-dispatch — the process's first test of the sha-pinning rule, and it worked.
+
+**T161 (argus spec audit):** audit of `docs/infra/argus/pass0/spec.md` against
+msg 067. **PASS — 2 should, 3 could.** Every commit-pinned reference verified
+against text at 45deb10; every baseline cross-checked against live tool output
+at HEAD. Caught: A5's `git status --porcelain` test suppresses gitignored files
+(S1), single-sweep phantom gate is coarse (S2). Both are design-phase concerns.
+
+**T162 (project-restructure spec audit):** audit of
+`docs/infra/project-restructure/pass0/spec.md` against msg 068. **PASS —
+1 should (F1).** The sprint.md contradiction (R1-2) was correctly identified
+as handled: the spec names it, cites the exact source, provides two resolution
+paths, forbids the wrong outcome, ties it to A4-process-coherence. One should-fix:
+INDEX.md attic marks sprint.md as RETIRED (2026-07-28) but it is RATIFIED
+(2026-07-31) — stale entry.
+
+**DSPro-as-auditor pattern:**
+- Sound on mechanical verification — DTT trace, artifact headers, commit-pinned
+  references, live tool output. Every independent check was correct.
+- The phantom finding (RV2-1) appeared in round three, when real defects ran
+  out. T152's recommendation 3 ("audit briefs must state that zero findings is
+  an acceptable PASS") would have headed it off.
+- DSPro auditor + DSPro reviser on the same document is not independent — the
+  A-numbering collision survived two revisions because the reviser never read
+  the upstream spec differently than the auditor did. T152's recommendation:
+  different model for design vs audit (Opus audits, DSPro implements).
+
+---
+
+## Fable 5 — process reviewer + design finisher (T152) + sprint.md author (T153)
+
+**T152 (Fable/Navigator):** two deliverables in one task:
+1. Oracle-v2 M1 design revision 3 — applied the already-written fixes from T150
+   (the A-numbering table rewrite, the unit typo). The design reached its final
+   PROPOSED state.
+2. **Process review** (`docs/design/oracle-v2/process-review-fable.md`) — the
+   sprint's meta-audit, using oracle-v2 as the evidence base for sprint.md rev 4
+   itself. This is the document whose model-allocation findings the user wanted
+   recorded (§4 recommendation 7):
+
+> **Model allocation, from observed performance in this sprint:**
+> - *Opus* for load-bearing audits and design mathematics — O-4/T146 caught
+>   every real blocker and effectively dictated the DTT fix.
+> - *DSPro* for implementation against a frozen contract and for checklist-style
+>   verification (its DTT trace in T150 was sound), with the rule-2 brief
+>   discipline, since as reviser it twice did partial work.
+> - *Fable* sparingly: gate decisions, loop termination, cross-corpus
+>   consistency — the places where the whole document set must be in one head.
+> - Keep the cheapest models off critical-path transcription; the two cheapest
+>   tasks in this sprint (apply enumerated fixes) were the ones that failed
+>   twice.
+
+The process review also recommended (and sprint.md rev 4 adopted):
+PASS-WITH-EDITS verdict (auditor supplies exact edits, no re-audit cycle for
+editorial findings), two-round audit cap, revision briefs that enumerate every
+open finding ID, acceptance criteria cited by slug not bare number, audit briefs
+stating zero findings is a praised PASS, and replacing passN/ snapshots with
+commit-pinned references.
+
+**T153 (Fable/Consul):** sprint.md revision 2. Applied eight edits from msg 064
+§4 (ladder, directory tree, phase verbs, subdelegation deferral, audit cap,
+budget shift, standing rules pointer) plus 067 §2 (per-pass layout). The
+revision that the T154 two-round review then tested.
+
+**Fable pattern (consistent with earlier ledger):**
+- Structural findings that change what the project thinks it knows, not what it
+  adds to the pile.
+- Gate decisions and loop termination — the process review is what stopped the
+  oracle-v2 design audit at round three instead of letting it cycle.
+- Cross-corpus consistency — the process review read every audit, every
+  revision, and the sprint.md process document, and found the structural
+  failures (no severity valve, partial revisions regenerate the loop, auditors
+  under pressure to find something, bare numbers as cross-document foreign keys,
+  nobody owned convergence).
+
+---
+
+## DSFlash — code reviewer (T160)
+
+**T160 (orcha-tools review):** code review of T159 (orcha-tools build).
+**NEEDS-FIX — no implementation exists.** Source grep, live binary probes,
+and git history all agree: the command dispatch table has no `suggest` branch,
+`cmdDone` discards the repo root and never checks deliverable existence,
+`cmdAudit` never reads CLAIMS.md/PROGRESS.md content. The held file
+(`src/managent/main.zig`) is byte-identical to the pre-task HEAD. The kanban
+shows T159 `dispatchable`, never claimed, never done.
+
+**Strengths shown:**
+- Traced one complete evaluation end-to-end: dispatch table → source grep →
+  live binary → git history → kanban state. Five independent instruments agree.
+- Stopped when the finding was decisive — "re-verifying absence in more ways
+  would manufacture ceremony."
+- Concrete fix: re-dispatch T159 with brief enumerating R1-R3 and A1-A3
+  verbatim, require one commit, rerun this review.
+
+---
+
+## Cross-model takeaway — the oracle-v2 evidence base
+
+1. **Opus for load-bearing audits.** The four Opus audits (T142, T143, T146,
+   T147) caught every real blocker and critical in the sprint. The DTT
+   mathematics was done *in the audit* — the auditor specified the fix and the
+   reviser applied it. Independent re-derivation (not checking arithmetic) was
+   the method that found the defects that would have shipped.
+
+2. **DSPro for implementation against a frozen contract — with disciplined
+   briefs.** DSPro's revisions were complete and correct when every open finding
+   was enumerated (T149, T156); partial when the brief was implicit (T144,
+   T148). Its audits were mechanically sound (DTT trace, artifact headers,
+   commit-pinned references) but produced a phantom finding in round three.
+   DSPro auditor + DSPro reviser on the same document is not independent — the
+   A-numbering collision survived two revisions.
+
+3. **Fable for gate decisions and loop termination.** The process review is the
+   document that stopped the audit loop and proposed the rules (PASS-WITH-EDITS,
+   two-round cap, enumerated briefs) that sprint.md rev 4 adopted. Fable's
+   pattern — structural findings, cross-corpus consistency, knowing when to
+   stop — is consistent with the earlier ledger (T100/T101).
+
+4. **Cheapest models off critical path.** Both instances of partial work in this
+   sprint (T148 skipping NEW-1/NEW-5, the not-yet-dispatched T159) were on the
+   cheapest-available path — DSPro as reviser with an implicit brief, and an
+   unattributed build task that was never claimed. The two most expensive tasks
+   in the sprint (Opus audits) were also the highest-yield.
+
+5. **The audit loop earned its cost in rounds one and two.** Round one caught
+   BLOCKER-1/2 and CRITICAL-1/2 before M2b/M3 were dispatched to separate
+   agents — exactly the failure mode the project paid for once already. Round
+   two caught the DTT mathematics defects and the A-numbering collision. Round
+   three was net-negative (one real finding, one phantom). The two-round cap
+   T152 recommended is evidence-based from this sprint.
+
+6. **Different model for design vs audit.** The most consequential finding
+   (the A-numbering collision) was caught by Opus auditing DSPro's revision.
+   DSPro auditing its own revision (T150) did not catch it until round three,
+   and then only as a carried finding. The T152 recommendation — Opus audits,
+   DSPro implements — is the allocation that produced the highest-yield rounds.
