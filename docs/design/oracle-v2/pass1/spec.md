@@ -1,3 +1,8 @@
+> **Pass-1 snapshot (frozen).** Exact text of `docs/infra/oracle-v2/spec.md`
+> as dispatched to the pass-1 audit (2026-07-31). Revisions land in the live
+> spec under `docs/infra/`; this copy does not change, so the audit's
+> references stay resolvable.
+
 # oracle-v2 — SPEC
 
 ```

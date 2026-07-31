@@ -31,6 +31,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T135": {
+    "status": "dispatchable",
+    "bundle": "untracked/T135-spec-audit-oracle-v2-pass1.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T02:44:05Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T124": {
     "status": "done",
     "agent": "DSPro",
@@ -241,7 +256,7 @@
   }
 ,
   "_sys": {
-    "next_id": 132,
+    "next_id": 136,
     "directive_next": 7
   }
 }
