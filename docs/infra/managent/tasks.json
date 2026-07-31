@@ -463,6 +463,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T152": {
+    "status": "done",
+    "agent": "fable-5",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T152-fable-o3-rev3.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T12:03:29Z",
+    "claimed": "2026-07-31T12:03:29Z",
+    "done": "2026-07-31T12:03:29Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "T133": {
     "status": "done",
     "agent": "opus-5",

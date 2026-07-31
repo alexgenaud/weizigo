@@ -1,11 +1,13 @@
-# oracle-v2 M1 — WZO2 format design (rev 2)
+# oracle-v2 M1 — WZO2 format design (rev 3)
 
 ```
-Task:    T148 · Role: worker · Model: DSPro/T148 · Date: 2026-07-31
+Task:    T148 (rev 2, DSPro) · rev 3: Fable/Navigator (claude-fable-5) · Date: 2026-07-31
 Deliverable: docs/design/oracle-v2/pass1/design-M1.md
-Status:   PROPOSED (rev 2) — T146 re-audit addressed; awaiting G2 human ratification
+Status:   PROPOSED (rev 3) — all T146 + T150 findings dispositioned; awaiting
+          G2 human ratification (diff-scoped review recommended, no fourth audit round)
 Target:   docs/infra/oracle-v2/spec.md (pass 1, ratified G1)
-Audit:    T146 (Opus 5, 2026-07-31) — NEW-2/3/4/7/8 resolved (see §11)
+Audit:    T146 (Opus 5) — NEW-2/3/4/7/8 resolved. T150 (DSPro) — NEW-1, NEW-5,
+          NEW-9 resolved in rev 3; RV2-1 no-change-needed (see §11)
 ```
 
 ## 1. Design overview
@@ -89,7 +91,7 @@ Bit layout (MSB→LSB):
 
 | field | bits | values | notes |
 |---|---|---|---|
-| `terminal` | 1 (LSB) | 0 = has legal placement, 1 = no legal placement | §3.2 |
+| `terminal` | 1 (LSB) | 0 = has legal placement, 1 = no legal placement | §3 |
 | `side` | 1 | 0=Black, 1=White | |
 | `ko_point` | ceil(log₂(n+1)) | 0…n-1 = cell, n = none | n = w·h |
 | `passes` | 1 (MSB of used bits) | 0, 1 | 2 is terminal — handled by reader, not stored (§2.3) |
@@ -163,12 +165,13 @@ Per spec R2 (separate L/H) and R3 (computed DTT).
 | `key_byte` | u8 | 1 B | — | side + ko_point + passes + terminal (see §2.2) |
 | `L` | i8 | 1 B | [−n, +n] | lower bound (Black-positive convention) |
 | `H` | i8 | 1 B | [−n, +n] | upper bound (Black-positive convention) |
-| `DTT` | u8 | 1 B | 0–254 = steps, 255 = FAR | depth-to-terminal (see §3.2) |
+| `DTT` | u8 | 1 B | 0–254 = steps, 255 = FAR | depth-to-terminal (see §3.1) |
 
 **Total per entry: 4 bytes** (1 key + 3 value columns).
 
 The `L`/`H` range of `[−n, +n]` for an n-cell goban fits in `i8` for all
-gobans through 5×5 (n=25). For 4×4, range is [−16, +16] = 33 values.
+gobans through 5×5 (n=25) — though the u32 colex caps the format itself at
+20 cells (§2.1). For 4×4, range is [−16, +16] = 33 values.
 
 **KO_SENSITIVE is not stored as a flag.** It is computed by the reader as
 `L != H`. Storing it redundantly would cost `N` bytes (~99 MB at 4×4) for a
@@ -239,6 +242,12 @@ cycle-free states. The writer clamps computed DTT at 254 and reserves 255
 strictly for the cycle sentinel (§3.1 step 5). The only loss is DTT
 precision on very deep states, not correctness.
 
+**Algorithm ownership.** This section specifies the recurrence, not the
+computation. The algorithm that evaluates it — e.g. backward breadth-first
+search from the passes=2 terminals with the value-preservation filter
+applied per edge — is **M2b's choice**, within R9's shared 4-hour wall
+budget. The format contract constrains only the stored result.
+
 ## 4. Header layout
 
 128 bytes, fixed size. All multi-byte integers are **little-endian**. u64
@@ -296,7 +305,7 @@ The hash is computed by M2b after the file is fully written:
 This is distinct from R7's recorded hash — R7's is of the *finished file
 including* the embedded slot. The two digests differ; both are reproducible.
 
-**Load-time verification** (§4.3 step 6): full-file SHA-256 verification is
+**Load-time verification** (§4.3 step 10): full-file SHA-256 verification is
 a command-line option (`--verify-hash`), not mandatory on every load
 (computing a hash over 600 MB defeats the mmap-lazy design for interactive
 use). It is mandatory in M4a's A6 fixture path and in the verify-battery.
@@ -308,12 +317,16 @@ use). It is mandatory in M4a's A6 fixture path and in the verify-battery.
 3. `w` and `h` match the engine's goban size — mismatch → fatal
 4. `entry_size` == 4 — mismatch → fatal, "corrupt or unsupported entry size"
 5. `group_header_size` == 5 — mismatch → fatal
-6. File size == `data_offset + n_groups × 5 + n_entries × entry_size`
-7. `rules_id` == 3 — mismatch → fatal or warn per spec §3.1
+6. `ko_bits` == ceil(log₂(w·h+1)) — mismatch → fatal, "ko_bits does not
+   match goban size" (prevents misinterpreting the key_byte layout)
+7. `hdr_flags` bit 0 (`PASSES_2_OMITTED`) == 1 — mismatch → fatal (this
+   format version always omits passes=2 by contract, §2.3)
+8. File size == `data_offset + n_groups × 5 + n_entries × entry_size`
+9. `rules_id` == 3 — mismatch → fatal or warn per spec §3.1
    (`RULES-MISMATCH-FATAL`). The reader compares against its own compiled
    rules_id; a v1 engine loading a v2 artifact must refuse.
-8. `--verify-hash`: SHA-256 of file with hash slot zeroed matches `sha256`
-   — mismatch → fatal, "checksum failure"
+10. `--verify-hash`: SHA-256 of file with hash slot zeroed matches `sha256`
+    — mismatch → fatal, "checksum failure"
 
 ## 5. F2 byte budget
 
@@ -381,11 +394,11 @@ Group headers: 23.80–24.32M × 5 = 119.0–121.6 MB.
 The engine also needs cumulative entry offsets for the linear scan within
 groups (Appendix A). Rather than storing a full `G × 4` byte offset array
 (~95–97 MB), the engine stores a sparse prefix sum: the cumulative entry
-index every 256th group (`G/256 × 4 ≈ 372 KB`). At lookup time it sums at
+index every 256th group (`G/256 × 4 ≈ 380 KB`). At lookup time it sums at
 most 255 count bytes from the nearest checkpoint — all from the group index
 already in cache. Total load-time allocation: **~120 MB**.
 
-Entry data (N × 4 ≈ 378 MB virtual) is mmap'd; only faulted pages consume
+Entry data (N × 4 ≈ 397 MB virtual) is mmap'd; only faulted pages consume
 RSS. The engine's working set is well within the host's 4 GB RSS cap.
 
 ## 6. Artifact naming convention
@@ -420,15 +433,20 @@ verify-battery spec §6a. This section maps every acceptance criterion
 
 ### 7.1 Acceptance criteria (A1–A9)
 
+**A-numbers below follow spec §4 verbatim** (`docs/infra/oracle-v2/spec.md:118-126`);
+I-numbers follow the verify-battery inventory. The `L ≤ H` and UNDEF-census
+checks formerly listed here as A-criteria are I-checks (I3, I6) and live in
+§7.2/§7.3 where they always appeared.
+
 | criterion | format support | notes |
 |---|---|---|
-| **A1 (pin census)** | **Format-supported.** `L == H` vs `L < H` computed from stored L/H columns. `pin_T` = count where `L == H`. KO_SENSITIVE recomputed per lookup, not stored. | |
-| **A2 (colour inversion)** | **Format-supported.** Keys are explicit. For every stored entry `(colex, s, ko, p)` the inverted key is `(colour_flip(colex), 1-s, ko, p)`. Check `L(pos, side) == -H(inverted)`. Requires battery to compute colour-flip of colex. | |
-| **A3 (L ≤ H)** | **Format-supported.** `L` and `H` stored per entry; exhaustive scan. | |
-| **A4 (Bellman residual)** | **Format-supported.** Keys are explicit. Battery reconstructs state, generates children via its own move engine (R8), checks `L = Φ(L)`, `H = Φ(H)`. | |
+| **A1 (refusal rate)** | **Format-supported — this is what the format exists for.** The full key (§2) gives every reachable `(goban, side, ko, passes)` state a stored entry, removing the v1 `UNCHAINABLE` substitutions. §2.3's reader contract answers passes=2 game-over states without a lookup, so terminal states cannot refuse. The ≥ 100-query pinned-seed sample is M4b harness work, not a format concern. | headline criterion |
+| **A2 (Bellman residual after decode round-trip)** | **Format-supported.** Keys are explicit. Battery reconstructs state, generates children via its own move engine (R8), checks `L = Φ(L)`, `H = Φ(H)` on *decoded* values. | soundness gate |
+| **A3 (colour inversion, exhaustive)** | **Format-supported.** For every stored entry `(colex, s, ko, p)` the inverted key is `(colour_flip(colex), 1-s, ko, p)`. Check `L(pos, side) == -H(inverted)` and `H(pos, side) == -L(inverted)`. Requires battery to compute colour-flip of colex. | = I2 |
+| **A4 (pin census)** | **Format-supported.** `L == H` vs `L < H` computed from stored L/H columns; `pin_T`, `pin_L`, `pin_H` counted, `pin_L == pin_H` checked. KO_SENSITIVE recomputed per lookup, not stored. | = I1 |
 | **A5 (round-trip identity)** | **Format-supported.** `decode(encode(key)) == key` for all entries. Key encoding is lossless by construction (colex + key_byte), but the check verifies writer/reader agreement on bit packing. | |
-| **A6 (known-bad calibration)** | **Partially format-supported.** Three named corruptions: (a) *one perturbed value* → caught by SHA-256 (full-file, `--verify-hash`) or I4 (Bellman); (b) *one dropped ko state* → caught by I6 (UNDEF census) since `n_entries` would be wrong; (c) *one zeroed DTT column* → caught by I7. SHA-256 is the only check that names all three at format level; the other two need the battery. | |
-| **A7 (UNDEF census)** | **Format-supported.** Every legal position has a determinable lookup. Battery enumerates all legal positions and checks coverage (found in-artifact or UNDEF). | |
+| **A6 (known-bad calibration)** | **Partially format-supported.** Three named corruptions: (a) *one perturbed value* → caught by SHA-256 (full-file, `--verify-hash`) or I4 (Bellman); (b) *one dropped ko state* → caught by I6 (UNDEF census) since `n_entries` would be wrong; (c) *one zeroed DTT column* → caught by I7/A8. SHA-256 is the only check that names all three at format level; the other two need the battery. **Spec-text gap (T146 NEW-6, escalated):** the zeroed-DTT corruption passes the spec's "fails A1–A5" as literally written and fails only A8; proposed amendment "fails A1–A5 or A8" is pending G2. | |
+| **A7 (gate chain reproduced)** | **Format-supported by construction.** The same writer and decoder serve 2×2, 3×2, 3×3, and 4×4; the published anchors (2×2 = 0, 3×2 = 0, 3×3 = +9) are read back through this format and checked as I9 anchor values. A pipeline that cannot reproduce them is not trusted at 4×4. | = I9 at small gobans |
 | **A8 (DTT is non-constant)** | **Format-supported.** DTT column is stored; check that non-terminal non-FAR entries span > 1 distinct value. The DTT recurrence (mover-minimises: `1 + min` over the mover's value-preserving children) ensures the column carries real information, not the pass-pass collapse described in BLOCKER-2, and is colour-inversion invariant. | |
 | **A9 (reproducibility)** | **Format-supported by construction.** Determinism contract: (a) all reserved bytes zeroed (§4); (b) canonical sort order: groups strictly increasing colex, entries per §2.4; (c) no timestamps or build metadata; (d) SHA-256 slot zeroed before hash, then written in place (§4.2). A byte-identical rebuild is possible from the same solver inputs. | |
 
@@ -566,7 +584,7 @@ means both approaches produce the same result.
 | MUST-3 (rules_id) | **Fixed.** §4.1: id = 3 allocated, source file corrected to `artifact.zig`, validation step added (§4.3 step 7). |
 | MUST-4 (header inconsistency) | **Fixed.** `ko_bits` type corrected to u8/size=1. u64 fields moved to 8-byte-aligned offsets (16, 24, 32). `group_header_size` added at offset 12. |
 | MUST-5 (R8 omits A1–A9) | **Fixed.** §7 restructured: §7.1 maps A1–A9 explicitly, §7.2 covers format-level checks, §7.3 state-level. |
-| SHOULD-1 (load-RAM contradiction) | **Fixed.** §5.3 uses sparse prefix sum (every 256th group, ~372 KB) instead of full offset array. Appendix A updated. |
+| SHOULD-1 (load-RAM contradiction) | **Fixed.** §5.3 uses sparse prefix sum (every 256th group, ~380 KB) instead of full offset array. Appendix A updated. |
 | SHOULD-2 (BE colex buys nothing) | **Fixed.** D4: LE adopted throughout (§2.1, §8). |
 | SHOULD-3 (ordering prose) | **Fixed.** §2.4 rewritten for multi-ko groups. |
 | SHOULD-4 (side-dependent area score) | **Fixed.** §2.3: side-dependence removed; provenance cited (`exp6_solve.zig:457-459,485`). |
@@ -588,13 +606,28 @@ means both approaches produce the same result.
 | NEW-7 (duplicate `reserved` field name) | **Fixed.** `reserved0` at offset 15, `reserved1` at offset 72. |
 | NEW-8 (`rules_id` u16 vs u8) | **Fixed.** §4.1 and §10 note header stores u16, low byte from `artifact.zig`'s `u8` constant, high byte zero. |
 
+### T150 re-audit (2026-07-31) — resolved in rev 3
+
+| finding | disposition |
+|---|---|
+| NEW-1, CRITICAL (§7.1 A-series ≠ spec §4; carried from T146) | **Fixed.** §7.1 criterion column rewritten against spec §4 verbatim: A1 = refusal rate (headline), A2 = post-round-trip Bellman, A3 = colour inversion, A4 = pin census, A7 = gate chain. The former `L ≤ H` and UNDEF-census rows were I-checks (I3, I6) and remain in §7.2/§7.3 under their true numbers. §7.1 now states its numbering source. |
+| NEW-5, MUST (MiB figures in §5.3; carried from T146) | **Fixed.** §5.3: "378 MB" → "397 MB" (396,532,144 bytes); "372 KB" → "380 KB" in §5.3 and Appendix A. |
+| RV2-1, MUST (§2.3 omits DTT=0) | **No change needed — finding is not reproducible.** §2.3's bullet list already contains "`DTT = 0`" (present in rev 2 as audited, between the area-score and terminal-flag bullets). |
+| NEW-6, SHOULD (spec A6 unsatisfiable for zeroed-DTT; carried) | **Escalated, not an M1 edit.** Amendment "fails A1–A5 **or A8**" applied to the live spec tagged *pending G2 ratification*; §7.1's A6 row records the gap. |
+| NEW-9.1, COULD (i8 "through 5×5" vs 20-cell format ceiling) | **Fixed.** §3 cross-references the §2.1 ceiling. |
+| NEW-9.2, COULD (§4.3 omits ko_bits and hdr_flags checks) | **Fixed.** §4.3 steps 6–7 added; list renumbered to 10 steps; §4.2's step reference corrected. |
+| NEW-9.3, COULD (`terminalRow(colex, side)` takes irrelevant side) | **Fixed.** Appendix A: `terminalRow(colex)`; side-independence noted per §2.3. |
+| — (T146 "could not establish" #1: whose choice is the DTT algorithm) | **Fixed.** §3.1 "Algorithm ownership": the recurrence is the contract; the algorithm is M2b's, within R9. |
+| — (editorial) | Stale `§3.2` reference in §2.2's table corrected to `§3` (rev 2 merged old §3.2 into §3). |
+
 ## A. Example lookup pseudocode
 
 ```zig
 fn lookup(artifact: []const u8, colex: u32, side: Side, ko: u8, passes: u2) ?Row {
     // Terminal shortcut — passes=2 is not stored (§2.3)
     if (passes == 2) {
-        return terminalRow(colex, side); // area score, DTT=0, terminal=1
+        // Area score is side-independent (§2.3); DTT=0, terminal=1
+        return terminalRow(colex);
     }
 
     const header = parseHeader(artifact[0..128]);
@@ -651,6 +684,6 @@ fn lookup(artifact: []const u8, colex: u32, side: Side, ko: u8, passes: u2) ?Row
 
 The sparse prefix-sum array `entry_checkpoints` and the per-group count
 array `group_counts` are built at load time in one pass over the group
-index (O(G)). The checkpoint array is `G/256 × 4 ≈ 372 KB` at 4×4;
+index (O(G)). The checkpoint array is `G/256 × 4 ≈ 380 KB` at 4×4;
 the count array is `G × 1 ≈ 24 MB` (the group index, already in memory).
 Total additional allocation beyond the group index: **< 1 MB**.

@@ -120,7 +120,7 @@ nothing on its own.
 | **A3** | **Colour inversion, exhaustive:** `L(−pos, −side) == −H(pos, side)` and `H(−pos, −side) == −L(pos, side)` for every stored state. | untestable — `L`/`H` not stored |
 | **A4** | **Pin census reported:** `L==H`, `pin_T`, `pin_L`, `pin_H`, with `pin_L == pin_H`. | never run at 4×4. The invariant whose violation (`pin_L=142, pin_H=0`) exposed the `fixpoint_kernel` bug |
 | **A5** | **Round-trip identity:** `decode(encode(x)) == x` for every state, exhaustively at 2×2/3×2/3×3, sampled with a stated denominator at 4×4. | passes trivially for v1 — proves nothing about R1 |
-| **A6** | **Known-bad calibration:** a deliberately corrupted artifact (one perturbed value, one dropped ko state, one zeroed DTT column) **fails** A1–A5, and the failure is named. | not run |
+| **A6** | **Known-bad calibration:** a deliberately corrupted artifact (one perturbed value, one dropped ko state, one zeroed DTT column) **fails** A1–A5 **or A8**, and the failure is named. *[Amendment pending G2 ratification, per M1 audit T146 NEW-6: the zeroed-DTT corruption passes A1–A5 as originally written and is detectable only by A8.]* | not run |
 | **A7** | **Gate chain reproduced** from the new pipeline end to end: 2×2 = 0, 3×2 = 0, 3×3 = +9. A pipeline that cannot reproduce known anchors is not trusted at 4×4. | v1 passes — carry it forward, do not treat as new evidence |
 | **A8** | **DTT is non-constant** and consistent: terminals have DTT 0, and every non-terminal's DTT exceeds at least one child's. Report the distribution. | **1 distinct value across 43,046,721 slots — FAIL** |
 | **A9** | **Reproducibility:** clean clone → documented command → SHA-256 match. | never attempted |
