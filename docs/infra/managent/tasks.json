@@ -63,6 +63,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T140": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T140-o5a-fixpoint.md",
+    "set": "A",
+    "holds": ["src/exp6_solve.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T03:07:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T124": {
     "status": "done",
     "agent": "DSPro",
@@ -94,6 +109,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T139": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T139-o3-m1-format.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T03:07:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T128": {
     "status": "done",
@@ -270,6 +300,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T141": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T141-v4-harness.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T03:07:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T133": {
     "status": "done",
