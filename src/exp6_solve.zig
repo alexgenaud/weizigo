@@ -37,28 +37,28 @@ const artifact = @import("artifact.zig");
 // =========================================================================
 // Constants
 // =========================================================================
-const TIE: i8 = 0;
-const UNDEF: i8 = -128;
+pub const TIE: i8 = 0;
+pub const UNDEF: i8 = -128;
 
 // =========================================================================
 // 2×2 solver — reusing Brute2x2 from EXP-4/EXP-5
 // =========================================================================
 const Brute2x2 = @import("qa023_brute_2x2.zig");
-const N2_TOTAL: usize = Brute2x2.TOTAL_STATES;
-const N2_N: usize = 4;
+pub const N2_TOTAL: usize = Brute2x2.TOTAL_STATES;
+pub const N2_N: usize = 4;
 
-const Fixpoint2x2 = struct {
+pub const Fixpoint2x2 = struct {
     L: [N2_TOTAL]i8,
     H: [N2_TOTAL]i8,
     sweeps: u32,
     converged: bool,
 
-    fn v(t: *const @This(), idx: usize) i8 {
+    pub fn v(t: *const @This(), idx: usize) i8 {
         return @max(t.L[idx], @min(TIE, t.H[idx]));
     }
 };
 
-fn run_fixpoint_2x2() Fixpoint2x2 {
+pub fn run_fixpoint_2x2() Fixpoint2x2 {
     var t = Fixpoint2x2{
         .L = [_]i8{-4} ** N2_TOTAL,
         .H = [_]i8{4} ** N2_TOTAL,
@@ -107,7 +107,7 @@ fn run_fixpoint_2x2() Fixpoint2x2 {
     return t;
 }
 
-fn invert_state_2x2(s: Brute2x2.State) Brute2x2.State {
+pub fn invert_state_2x2(s: Brute2x2.State) Brute2x2.State {
     var inv_board: [N2_N]i8 = undefined;
     for (0..N2_N) |i| inv_board[i] = -s.board[i];
     return Brute2x2.State{
@@ -121,7 +121,7 @@ fn invert_state_2x2(s: Brute2x2.State) Brute2x2.State {
 // =========================================================================
 // Generic goban-ops helper: returns neighbours for a grid cell
 // =========================================================================
-fn genericNeighbors(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
+pub fn genericNeighbors(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
     var cnt: usize = 0;
     const r = p / w;
     const c = p % w;
@@ -132,7 +132,7 @@ fn genericNeighbors(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
     return cnt;
 }
 
-fn genericChainCaptured(comptime n_cells: usize, pos: []const i8, seed: usize, w: usize, h: usize, chain: *[n_cells]usize, chain_len: *usize) bool {
+pub fn genericChainCaptured(comptime n_cells: usize, pos: []const i8, seed: usize, w: usize, h: usize, chain: *[n_cells]usize, chain_len: *usize) bool {
     const colour: i8 = if (pos[seed] > 0) 1 else -1;
     var visited = [_]bool{false} ** n_cells;
     var stack: [n_cells]usize = undefined;
@@ -163,7 +163,7 @@ fn genericChainCaptured(comptime n_cells: usize, pos: []const i8, seed: usize, w
     return !has_liberty;
 }
 
-fn genericPosFromMove(comptime n_cells: usize, pos: []i8, colour: i8, cell: usize, w: usize, h: usize) !void {
+pub fn genericPosFromMove(comptime n_cells: usize, pos: []i8, colour: i8, cell: usize, w: usize, h: usize) !void {
     // pos is modified in-place; caller copies if needed
     if (pos[cell] != 0) return error.Occupied;
     pos[cell] = colour;
@@ -181,7 +181,7 @@ fn genericPosFromMove(comptime n_cells: usize, pos: []i8, colour: i8, cell: usiz
     if (genericChainCaptured(n_cells, pos, cell, w, h, &chain, &chain_len)) return error.Suicide;
 }
 
-fn genericIsLegal(comptime n_cells: usize, pos: []const i8, w: usize, h: usize) bool {
+pub fn genericIsLegal(comptime n_cells: usize, pos: []const i8, w: usize, h: usize) bool {
     var visited = [_]bool{false} ** n_cells;
     for (0..n_cells) |p| {
         if (pos[p] == 0 or visited[p]) continue;
@@ -211,7 +211,7 @@ fn genericIsLegal(comptime n_cells: usize, pos: []const i8, w: usize, h: usize) 
     return true;
 }
 
-fn genericAreaScore(comptime n_cells: usize, board: []const i8, w: usize, h: usize) i8 {
+pub fn genericAreaScore(comptime n_cells: usize, board: []const i8, w: usize, h: usize) i8 {
     var black: i16 = 0;
     var white: i16 = 0;
     var visited = [_]bool{false} ** n_cells;
@@ -252,29 +252,29 @@ fn genericAreaScore(comptime n_cells: usize, board: []const i8, w: usize, h: usi
 // 3×2 solver — self-contained dense gate check (from EXP-5)
 // =========================================================================
 
-const W32: usize = 3;
-const H32: usize = 2;
-const n32: usize = W32 * H32;
-const KO_DIMS32: usize = n32 + 1;
-const RAW_TOTAL32: u64 = 729;
-const TOTAL32: u64 = RAW_TOTAL32 * 2 * KO_DIMS32 * 3;
+pub const W32: usize = 3;
+pub const H32: usize = 2;
+pub const n32: usize = W32 * H32;
+pub const KO_DIMS32: usize = n32 + 1;
+pub const RAW_TOTAL32: u64 = 729;
+pub const TOTAL32: u64 = RAW_TOTAL32 * 2 * KO_DIMS32 * 3;
 
-const Pos32 = [n32]i8;
-const KO_NONE32: u16 = @intCast(n32);
-const ReachWords32: u64 = (TOTAL32 + 63) / 64;
+pub const Pos32 = [n32]i8;
+pub const KO_NONE32: u16 = @intCast(n32);
+pub const ReachWords32: u64 = (TOTAL32 + 63) / 64;
 
-const StateIdx32 = packed struct {
+pub const StateIdx32 = packed struct {
     board: u32,
     side: u8,
     ko: u16,
     passes: u8,
 
-    fn linear(self: StateIdx32) u64 {
+    pub fn linear(self: StateIdx32) u64 {
         return (((@as(u64, self.passes) * 2) + @as(u64, self.side)) * KO_DIMS32 + @as(u64, self.ko)) * RAW_TOTAL32 + self.board;
     }
 };
 
-fn unrank_board32(idx: u32) Pos32 {
+pub fn unrank_board32(idx: u32) Pos32 {
     var board: Pos32 = [_]i8{0} ** n32;
     var v: u32 = idx;
     for (0..n32) |i| {
@@ -285,7 +285,7 @@ fn unrank_board32(idx: u32) Pos32 {
     return board;
 }
 
-fn rank_board32(board: Pos32) u32 {
+pub fn rank_board32(board: Pos32) u32 {
     var idx: u32 = 0;
     var mult: u32 = 1;
     for (board) |c| {
@@ -296,7 +296,7 @@ fn rank_board32(board: Pos32) u32 {
     return idx;
 }
 
-fn apply_place32(state: StateIdx32, board: *const Pos32, colour: i8, cell: u8) ?StateIdx32 {
+pub fn apply_place32(state: StateIdx32, board: *const Pos32, colour: i8, cell: u8) ?StateIdx32 {
     if (board[cell] != 0) return null;
     if (state.ko != n32 and cell == state.ko) return null;
     var next = board.*;
@@ -329,7 +329,7 @@ fn apply_place32(state: StateIdx32, board: *const Pos32, colour: i8, cell: u8) ?
     };
 }
 
-fn apply_pass32(state: StateIdx32) ?StateIdx32 {
+pub fn apply_pass32(state: StateIdx32) ?StateIdx32 {
     if (state.passes >= 2) return null;
     return StateIdx32{
         .board = state.board,
@@ -339,7 +339,7 @@ fn apply_pass32(state: StateIdx32) ?StateIdx32 {
     };
 }
 
-fn moves32(state: StateIdx32, succ_boards: *[n32 + 1]Pos32, succs: *[n32 + 1]StateIdx32) usize {
+pub fn moves32(state: StateIdx32, succ_boards: *[n32 + 1]Pos32, succs: *[n32 + 1]StateIdx32) usize {
     if (state.passes == 2) return 0;
     const board = unrank_board32(state.board);
     const colour: i8 = if (state.side == 0) 1 else -1;
@@ -360,9 +360,9 @@ fn moves32(state: StateIdx32, succ_boards: *[n32 + 1]Pos32, succs: *[n32 + 1]Sta
     return count;
 }
 
-const CensusResult32 = struct { total_marked: u64, legal_boards: u64, terminal_marked: u64, side_marked: [2]u64, sweeps: u32 };
+pub const CensusResult32 = struct { total_marked: u64, legal_boards: u64, terminal_marked: u64, side_marked: [2]u64, sweeps: u32 };
 
-fn run_census_3x2(gpa: std.mem.Allocator, reach: []u64) !CensusResult32 {
+pub fn run_census_3x2(gpa: std.mem.Allocator, reach: []u64) !CensusResult32 {
     @memset(reach, 0);
     const snap = try gpa.alloc(u64, ReachWords32);
     defer gpa.free(snap);
@@ -437,11 +437,11 @@ fn run_census_3x2(gpa: std.mem.Allocator, reach: []u64) !CensusResult32 {
     return CensusResult32{ .total_marked = total_marked, .legal_boards = legal_boards, .terminal_marked = terminal_marked, .side_marked = side_marked, .sweeps = sweep_idx };
 }
 
-fn median32(Lv: i8, Hv: i8) i8 { return @max(Lv, @min(TIE, Hv)); }
+pub fn median32(Lv: i8, Hv: i8) i8 { return @max(Lv, @min(TIE, Hv)); }
 
-const FixpointResult32 = struct { sweeps: u32, converged: bool };
+pub const FixpointResult32 = struct { sweeps: u32, converged: bool };
 
-fn run_fixpoint_3x2(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointResult32 {
+pub fn run_fixpoint_3x2(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointResult32 {
     const L_init: i8 = -@as(i8, @intCast(n32));
     const H_init: i8 = @as(i8, @intCast(n32));
     for (0..TOTAL32) |i| { L_tab[i] = L_init; H_tab[i] = H_init; }
@@ -531,7 +531,7 @@ fn run_fixpoint_3x2(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointResult
     return FixpointResult32{ .sweeps = sweep_idx, .converged = total_changes == 0 };
 }
 
-fn invert_state32(s: StateIdx32) StateIdx32 {
+pub fn invert_state32(s: StateIdx32) StateIdx32 {
     const board = unrank_board32(s.board);
     var inv_board: Pos32 = undefined;
     for (0..n32) |i| inv_board[i] = -board[i];
@@ -542,29 +542,29 @@ fn invert_state32(s: StateIdx32) StateIdx32 {
 // 3×3 solver — dense (from EXP-5)
 // =========================================================================
 
-const W: usize = 3;
-const H: usize = 3;
-const N: usize = W * H;
-const KO_DIMS: usize = N + 1;
-const RAW_TOTAL: u64 = 19683;
-const TOTAL: u64 = RAW_TOTAL * 2 * KO_DIMS * 3;
+pub const W: usize = 3;
+pub const H: usize = 3;
+pub const N: usize = W * H;
+pub const KO_DIMS: usize = N + 1;
+pub const RAW_TOTAL: u64 = 19683;
+pub const TOTAL: u64 = RAW_TOTAL * 2 * KO_DIMS * 3;
 
-const Pos3 = [N]i8;
-const KO_NONE: u16 = @intCast(N);
-const ReachWords: u64 = (TOTAL + 63) / 64;
+pub const Pos3 = [N]i8;
+pub const KO_NONE: u16 = @intCast(N);
+pub const ReachWords: u64 = (TOTAL + 63) / 64;
 
-const StateIdx = packed struct {
+pub const StateIdx = packed struct {
     board: u32,
     side: u8,
     ko: u16,
     passes: u8,
 
-    fn linear(self: StateIdx) u64 {
+    pub fn linear(self: StateIdx) u64 {
         return (((@as(u64, self.passes) * 2) + @as(u64, self.side)) * KO_DIMS + @as(u64, self.ko)) * RAW_TOTAL + self.board;
     }
 };
 
-fn unrank_board(idx: u32) Pos3 {
+pub fn unrank_board(idx: u32) Pos3 {
     var board: Pos3 = [_]i8{0} ** N;
     var v: u32 = idx;
     for (0..N) |i| {
@@ -575,7 +575,7 @@ fn unrank_board(idx: u32) Pos3 {
     return board;
 }
 
-fn rank_board(board: Pos3) u32 {
+pub fn rank_board(board: Pos3) u32 {
     var idx: u32 = 0;
     var mult: u32 = 1;
     for (board) |c| {
@@ -586,7 +586,7 @@ fn rank_board(board: Pos3) u32 {
     return idx;
 }
 
-fn apply_place(state: StateIdx, board: *const Pos3, colour: i8, cell: u8) ?StateIdx {
+pub fn apply_place(state: StateIdx, board: *const Pos3, colour: i8, cell: u8) ?StateIdx {
     if (board[cell] != 0) return null;
     if (state.ko != N and cell == state.ko) return null;
     var next = board.*;
@@ -619,12 +619,12 @@ fn apply_place(state: StateIdx, board: *const Pos3, colour: i8, cell: u8) ?State
     };
 }
 
-fn apply_pass(state: StateIdx) ?StateIdx {
+pub fn apply_pass(state: StateIdx) ?StateIdx {
     if (state.passes >= 2) return null;
     return StateIdx{ .board = state.board, .side = 1 - state.side, .ko = KO_NONE, .passes = state.passes + 1 };
 }
 
-fn moves(state: StateIdx, succ_boards: *[N + 1]Pos3, succs: *[N + 1]StateIdx) usize {
+pub fn moves(state: StateIdx, succ_boards: *[N + 1]Pos3, succs: *[N + 1]StateIdx) usize {
     if (state.passes == 2) return 0;
     const board = unrank_board(state.board);
     const colour: i8 = if (state.side == 0) 1 else -1;
@@ -645,9 +645,9 @@ fn moves(state: StateIdx, succ_boards: *[N + 1]Pos3, succs: *[N + 1]StateIdx) us
     return count;
 }
 
-const CensusResult = struct { total_marked: u64, legal_boards: u64, terminal_marked: u64, side_marked: [2]u64, sweeps: u32 };
+pub const CensusResult = struct { total_marked: u64, legal_boards: u64, terminal_marked: u64, side_marked: [2]u64, sweeps: u32 };
 
-fn run_census_3x3(gpa: std.mem.Allocator, reach: []u64) !CensusResult {
+pub fn run_census_3x3(gpa: std.mem.Allocator, reach: []u64) !CensusResult {
     @memset(reach, 0);
     const snap = try gpa.alloc(u64, ReachWords);
     defer gpa.free(snap);
@@ -720,11 +720,11 @@ fn run_census_3x3(gpa: std.mem.Allocator, reach: []u64) !CensusResult {
     return CensusResult{ .total_marked = total_marked, .legal_boards = legal_boards, .terminal_marked = terminal_marked, .side_marked = side_marked, .sweeps = sweep_idx };
 }
 
-fn median(Lv: i8, Hv: i8) i8 { return @max(Lv, @min(TIE, Hv)); }
+pub fn median(Lv: i8, Hv: i8) i8 { return @max(Lv, @min(TIE, Hv)); }
 
-const FixpointResult = struct { sweeps: u32, converged: bool };
+pub const FixpointResult = struct { sweeps: u32, converged: bool };
 
-fn run_fixpoint_3x3(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointResult {
+pub fn run_fixpoint_3x3(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointResult {
     const L_init: i8 = -@as(i8, @intCast(N));
     const H_init: i8 = @as(i8, @intCast(N));
     for (0..TOTAL) |i| { L_tab[i] = L_init; H_tab[i] = H_init; }
@@ -814,7 +814,7 @@ fn run_fixpoint_3x3(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointResult
     return FixpointResult{ .sweeps = sweep_idx, .converged = total_changes == 0 };
 }
 
-fn invert_state(s: StateIdx) StateIdx {
+pub fn invert_state(s: StateIdx) StateIdx {
     const board = unrank_board(s.board);
     var inv_board: Pos3 = undefined;
     for (0..N) |i| inv_board[i] = -board[i];
@@ -822,7 +822,7 @@ fn invert_state(s: StateIdx) StateIdx {
 }
 
 // 3×3 brute-force
-fn brute_value(
+pub fn brute_value(
     state: StateIdx,
     history_set: []u64,
     depth: u32,
@@ -866,39 +866,39 @@ fn brute_value(
 // 4×4 solver — SPARSE (frontier BFS + hash map child lookup)
 // =========================================================================
 
-const W4: usize = 4;
-const H4: usize = 4;
-const N4: usize = 16;
-const KO_DIMS4: u64 = N4 + 1; // 17
-const RAW_TOTAL4: u64 = 43046721; // 3^16
+pub const W4: usize = 4;
+pub const H4: usize = 4;
+pub const N4: usize = 16;
+pub const KO_DIMS4: u64 = N4 + 1; // 17
+pub const RAW_TOTAL4: u64 = 43046721; // 3^16
 
 // Dense linear index space: (passes * 2 + side) * KO_DIMS * RAW_TOTAL + ko * RAW_TOTAL + goban
 // where passes ∈ {0,1,2}, side ∈ {0,1}, ko ∈ {0..16}
 // Total: 2 * KO_DIMS4 * 3 * RAW_TOTAL4
-const TOTAL4: u64 = RAW_TOTAL4 * 2 * KO_DIMS4 * 3;
+pub const TOTAL4: u64 = RAW_TOTAL4 * 2 * KO_DIMS4 * 3;
 
-const ReachWords4: u64 = (TOTAL4 + 63) / 64;
+pub const ReachWords4: u64 = (TOTAL4 + 63) / 64;
 
-const KO_NONE4: u5 = @intCast(N4);
+pub const KO_NONE4: u5 = @intCast(N4);
 
-const Pos4 = [N4]i8;
+pub const Pos4 = [N4]i8;
 
 // Packed state encoding for 4×4 (40 bits in u64)
-fn encodeState4(board: u32, side: u1, ko: u5, passes: u2) u64 {
+pub fn encodeState4(board: u32, side: u1, ko: u5, passes: u2) u64 {
     // Layout: [passes:2][ko:5][side:1][board:32] = 40 bits
     return (@as(u64, passes) << 38) | (@as(u64, ko) << 33) | (@as(u64, side) << 32) | @as(u64, board);
 }
 
-fn decodeBoard4(s: u64) u32 { return @intCast(s & 0xFFFFFFFF); }
-fn decodeSide4(s: u64) u1 { return @intCast((s >> 32) & 1); }
-fn decodeKo4(s: u64) u5 { return @intCast((s >> 33) & 0x1F); }
-fn decodePasses4(s: u64) u2 { return @intCast((s >> 38) & 3); }
+pub fn decodeBoard4(s: u64) u32 { return @intCast(s & 0xFFFFFFFF); }
+pub fn decodeSide4(s: u64) u1 { return @intCast((s >> 32) & 1); }
+pub fn decodeKo4(s: u64) u5 { return @intCast((s >> 33) & 0x1F); }
+pub fn decodePasses4(s: u64) u2 { return @intCast((s >> 38) & 3); }
 
-fn linearIndex4(board: u32, side: u1, ko: u5, passes: u2) u64 {
+pub fn linearIndex4(board: u32, side: u1, ko: u5, passes: u2) u64 {
     return ((@as(u64, passes) * 2 + @as(u64, side)) * KO_DIMS4 + @as(u64, ko)) * RAW_TOTAL4 + board;
 }
 
-fn unrank_board4(idx: u32) Pos4 {
+pub fn unrank_board4(idx: u32) Pos4 {
     var board: Pos4 = [_]i8{0} ** N4;
     var v: u32 = idx;
     for (0..N4) |i| {
@@ -909,7 +909,7 @@ fn unrank_board4(idx: u32) Pos4 {
     return board;
 }
 
-fn rank_board4(board: Pos4) u32 {
+pub fn rank_board4(board: Pos4) u32 {
     var idx: u32 = 0;
     var mult: u32 = 1;
     for (board) |c| {
@@ -920,7 +920,7 @@ fn rank_board4(board: Pos4) u32 {
     return idx;
 }
 
-fn apply_place4(board: *const Pos4, colour: i8, cell: u8, ko_forbid: u5) ?struct { board: Pos4, new_ko: u5 } {
+pub fn apply_place4(board: *const Pos4, colour: i8, cell: u8, ko_forbid: u5) ?struct { board: Pos4, new_ko: u5 } {
     if (board[cell] != 0) return null;
     if (ko_forbid != KO_NONE4 and @as(u8, @intCast(ko_forbid)) == cell) return null;
     var next = board.*;
@@ -948,7 +948,7 @@ fn apply_place4(board: *const Pos4, colour: i8, cell: u8, ko_forbid: u5) ?struct
     return .{ .board = next, .new_ko = new_ko };
 }
 
-fn genChildren4(enc: u64, child_indices: *[N4 + 1]u64, child_count: *usize) void {
+pub fn genChildren4(enc: u64, child_indices: *[N4 + 1]u64, child_count: *usize) void {
     const board_idx = decodeBoard4(enc);
     const side = decodeSide4(enc);
     const ko = decodeKo4(enc);
@@ -979,7 +979,7 @@ fn genChildren4(enc: u64, child_indices: *[N4 + 1]u64, child_count: *usize) void
 }
 
 // Census BFS for 4×4: frontier-based, writes to the dense reachability bitset
-fn run_census_4x4(gpa: std.mem.Allocator, reach: []u64) !struct { total_marked: u64, sweeps: u32 } {
+pub fn run_census_4x4(gpa: std.mem.Allocator, reach: []u64) !struct { total_marked: u64, sweeps: u32 } {
     std.debug.print("# 4x4 census: TOTAL4={d} ReachWords4={d} bitset_bytes={d}\n", .{ TOTAL4, ReachWords4, ReachWords4 * 8 });
 
     // Verify the slice
@@ -1080,7 +1080,7 @@ fn run_census_4x4(gpa: std.mem.Allocator, reach: []u64) !struct { total_marked: 
     return .{ .total_marked = total_marked, .sweeps = sweep_idx };
 }
 
-const Fixpoint4Result = struct {
+pub const Fixpoint4Result = struct {
     sweeps: u32,
     converged: bool,
     compact_count: u32, // number of non-terminal reachable states
@@ -1093,7 +1093,7 @@ const Fixpoint4Result = struct {
 };
 
 // 4×4 fixpoint: uses compact arrays for L/H, hash map for child lookups
-fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Result {
+pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Result {
     // Phase 1: build compact array of reachable non-terminal states (passes ∈ {0,1})
     var compact_list = try std.ArrayListUnmanaged(u64).initCapacity(gpa, 0);
     defer compact_list.deinit(gpa);
