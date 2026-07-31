@@ -127,6 +127,22 @@
     "note": null,
     "claim_count": 1
   },
+  "T155": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T155-o5ar-review.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T13:01:23Z",
+    "claimed": "2026-07-31T13:01:23Z",
+    "done": "2026-07-31T13:01:23Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "T150": {
     "status": "done",
     "agent": "DSPro",
@@ -237,6 +253,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T154": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T154-sprint-review.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T12:59:09Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T146": {
     "status": "done",
