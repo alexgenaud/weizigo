@@ -76,28 +76,41 @@ findings never pushed into CLAIMS/PROGRESS/CURRENT). Recovery in flight:
   T129 measured certified fraction 10.71%, the median-pinned V is not
   Bellman-chainable at bracket-valued states; `QA-020` gained the new-rule
   re-test datum; PROGRESS.md §6/§7.4 updated and cite-tagged.
-- **T163 (Orcha, holds `docs/epistemic/CLAIMS.md`)**: mechanical register
-  batch — T138 census annotations (36-phantom identity on the four
-  `2232/322/34/34` rows; new rows for 1,678 cycle-reachable / 1,676 max-SCC),
-  `GLOBAL.H1-CENSUS` ×2-arithmetic caveat, `4x3.S3a` A094777-is-square-only
-  caveat, T134 I5-feasibility row (~1.2–1.5 GB peak vs 4 GB cap), the
-  `passes ≥ 1 ⇒ ko_point = none` invariant row, G-at-4×4 bracket row
-  (23,802,969–24,318,165), T128 triage application, checkpoint SHA-256s.
-  **Caution:** `untracked/c2pilot_3x2.zig` is claimlint's known-bad C2
-  calibration fixture — applying T128's re-point recommendation to it would
-  break the calibration suite.
-- **T164 (Orcha, holds `docs/infra/model-perf.md`)**: backfill T142–T158,
-  including T152's model-allocation findings.
-- **Claimlint gate**: run `bin/weizigo-claimlint` after every CLAIMS.md edit.
-  Current state: C6 = 0 (clean); pre-existing FAILS are 10 C1a orphans +
-  13 C2 dangling paths — that is exactly the T128 debt T163 clears.
+- **T163 DONE** (`7868108`, Orcha): T138 census annotations, H1-CENSUS
+  caveat, QA-027/census-reconciliation citations. **T164 DONE** (`f597c3d`):
+  model-perf backfilled T142–T158 incl. T152 model-allocation findings.
+- **Catch-up remainder DONE (Fable, `9fde18d`)**: 3 new rows —
+  `GLOBAL.PASS-NOKO` (passes ≥ 1 ⇒ ko = none, PROVEN), `4x4.G-CENSUS`
+  (G bracketed 23,802,969–24,318,165, three witnesses), `4x4.I5-FEAS`
+  (Tarjan fits the 4 GB cap; carries the 1,678/1,676 I5 reference
+  denominators). Plus: `4x3.S3a` A094777-square-only caveat, `GLOBAL.B15`
+  action/premise decoupling, T128 triage dispositions applied (T13 probe
+  banner superseded — RECOVERED by T110), SHA-256 recorded for both 4×4
+  checkpoints (same 258,280,358 bytes, **different** content), epic-move
+  link rot fixed in census-reconciliation.md / i5-feasibility.md.
+  **Standing trap:** `untracked/c2pilot_3x2.zig`'s citation is claimlint's
+  known-bad C2 calibration fixture — never "fix" it.
+- **Claimlint state**: 268 rows, C6 = 0, calibration PASS. C2 = 12 and
+  C1a = 10 are **accepted honest debt** per the T128 triage (LOST records,
+  the fixture, frozen /tmp mentions; orphans structurally correct-as-is) —
+  do not chase them to zero. Citing archive ephemera or PROPOSED designs
+  from register rows drags their internal paths into C2 scope — cite
+  canonical pass0 docs and evidence files instead.
+- **Open follow-up (unregistered)**: regenerate the B1 least-fixpoint
+  outputs (T128 triage §3: RECOVERABLE, < 1 h — driver for `RETRO_B1_LOFIX`
+  at 2×2/3×2/3×3, target `docs/evidence/B1/`, verification target = zero
+  violations per the leak-crisis prose). Register in the kanban when it
+  reopens for real tasks.
 
 ## Concurrency — live file owners
 
-- `docs/epistemic/CLAIMS.md` — **T163** (uncommitted edits in the tree now).
-- `docs/infra/model-perf.md` — **T164**.
-- `docs/status/CURRENT.md` — this rewrite (Fable/Consul).
+- `docs/epistemic/CLAIMS.md` — T163 hold released (`7868108`); Fable's
+  catch-up landed at `9fde18d`. No live owner.
+- `docs/infra/model-perf.md` — T164 hold released (`f597c3d`). No live owner.
+- `docs/status/CURRENT.md` — no live owner.
 - `src/managent/main.zig` — T159 hold cleared at `082433e`.
+- `docs/decisions/ADR-0020-...md` — **amendment drafted, uncommitted in the
+  working tree**, awaiting the human G1 ruling. Do not commit or revert it.
 - Kanban caution: T140/T141/T144/T145/T146 in the *current* queue are
   orcha-tools **test fixtures** with reused IDs, not the historical tasks of
   the same numbers.
