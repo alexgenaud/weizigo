@@ -114,6 +114,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | resuming cold (durable in git) | `docs/status/CURRENT.md`, then `docs/status/HANDOVER.md` |
 | resuming from the channel (durable + untracked) | `untracked/msg/<milestone>/STATE.md` (read first), then `docs/status/CURRENT.md` |
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
+| delegating to a DeepSeek subagent | `docs/infra/agents/subdelegation.md` — `odeeppi` (Pro) and `oflashpi` (Flash) shell commands |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
 
 ## The queue is a *kanban*; the playing surface is a *goban*
