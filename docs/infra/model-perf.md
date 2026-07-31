@@ -2893,3 +2893,15 @@ shows T159 `dispatchable`, never claimed, never done.
 **DSPro / T167 (oracle-v2 M4a):** Acceptance harness (1,178 lines). A3 colour-inversion, A5 round-trip, A6 calibration, A9 SHA-256 reproducibility.
 
 **Oracle-v2 P2 post-mortem:** three DSPro instances ran M2b/M3/M4a concurrently against frozen design-M1. 3,105 lines of Zig across 6 files, zero rework, zero cross-task conflicts. The freeze-at-design strategy worked.
+
+**Verify-battery P2 post-mortem (DSPro builder + subagents):**
+- T168 (V-6 harness): Zig 0.16 port, CLI works, artifact loading, 8+ API fixes
+- T169 (V-7 table): vb_table.zig — 19/19 tests against real 2×2/3×2 artifacts
+- T170 (V-8 fixpoint): vb_fixpoint.zig — 7/7 tests, I4 0 violations, I7 catches v1 defect, I9 anchors pass
+- T171 (V-9 graph): vb_graph.zig — 8/8 tests, V=255/2583 calibrated, maxSCC ~1000
+- T172 (V-11 blind): 5 gaps found (GAP-5 critical: I11 dump format)
+- T174-T176: CLAIMS.md rows (I5, passes≥1, G-bracket), census annotations, SHA-256s, T128 triage
+
+Builder subdelegation worked: 5 subagents spawned, all delivered, findings captured in untracked/.
+vb_common.zig shared module handled correctly. One calibration bug caught and fixed (T171 basic-ko engine).
+Zig 0.16 API surface was the primary friction point.
