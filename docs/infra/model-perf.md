@@ -2885,3 +2885,11 @@ shows T159 `dispatchable`, never claimed, never done.
    DSPro auditing its own revision (T150) did not catch it until round three,
    and then only as a carried finding. The T152 recommendation — Opus audits,
    DSPro implements — is the allocation that produced the highest-yield rounds.
+
+**DSPro / T165 (oracle-v2 M2b):** WZO2 artifact builder — `src/artifact2.zig` (WZO2 format: L/H stored separately, full (goban,side,ko,passes) key, SHA-256 header) and `src/oracle_v2_build.zig` (rules_id=2 basic-ko+TIE). Built from exposed fixpoint (T140/T155).
+
+**DSPro / T166 (oracle-v2 M3):** GTP engine wired to WZO2. `Enforcement` enum (basic_ko/psk), WZO2 lookup with area-score fallback, tie-break among equal-value moves.
+
+**DSPro / T167 (oracle-v2 M4a):** Acceptance harness (1,178 lines). A3 colour-inversion, A5 round-trip, A6 calibration, A9 SHA-256 reproducibility.
+
+**Oracle-v2 P2 post-mortem:** three DSPro instances ran M2b/M3/M4a concurrently against frozen design-M1. 3,105 lines of Zig across 6 files, zero rework, zero cross-task conflicts. The freeze-at-design strategy worked.
