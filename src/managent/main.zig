@@ -199,6 +199,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdStanding(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "why")) {
         try cmdWhy(w, io, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "suggest")) {
+        try cmdSuggest(w, io, repo_root, state_path, args);
     } else {
         w.diag("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -1266,8 +1268,184 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
     }
 }
 
+// ── suggest — mint a T-ID, create bundle, output prompt (ORCHA-TOOLS R1) ───
+
+fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 3) {
+        w.diag("usage: managent suggest <slug> [--model <name>] [--set <A-Z>]\n", .{});
+        std.process.exit(1);
+    }
+    const slug = args[2];
+
+    // Model: --model flag, or PI_MODEL env var, or "unknown"
+    const model_flag = getFlagValue(args, "--model");
+    var model_owned = false;
+    const model: []const u8 = if (model_flag) |m| blk: {
+        model_owned = true;
+        break :blk try alloc.dupe(u8, m);
+    } else if (std.c.getenv("PI_MODEL")) |ptr|
+        std.mem.sliceTo(ptr, 0)
+    else blk2: {
+        model_owned = true;
+        break :blk2 try alloc.dupe(u8, "unknown");
+    };
+    defer if (model_owned) alloc.free(model);
+
+    const set_override = getFlagValue(args, "--set");
+
+    // Read current state to get sys_next_id
+    var state = try readState(io, state_path);
+
+    // Mint the ID
+    const id = try std.fmt.allocPrint(alloc, "T{d:0>3}", .{sys_next_id});
+    defer alloc.free(id);
+
+    // Create the bundle file
+    const bundle_name = try std.fmt.allocPrint(alloc, "{s}-{s}.md", .{ id, slug });
+    defer alloc.free(bundle_name);
+    const bundle_path = try std.fs.path.join(alloc, &.{ repo_root, "untracked", bundle_name });
+    defer alloc.free(bundle_path);
+
+    // Ensure untracked/ exists
+    const untracked_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked" });
+    defer alloc.free(untracked_dir);
+    std.Io.Dir.cwd().createDirPath(io, untracked_dir) catch {};
+
+    // Determine set: --set flag, else default A
+    const set: u8 = if (set_override) |s| blk2: {
+        if (s.len != 1 or s[0] < 'A' or s[0] > 'Z') {
+            w.diag("error: invalid --set '{s}' (must be A–Z)\n", .{s});
+            std.process.exit(1);
+        }
+        break :blk2 s[0];
+    } else 'A';
+
+    // Write the bundle template
+    {
+        const file = try std.Io.Dir.cwd().createFile(io, bundle_path, .{});
+        defer file.close(io);
+        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c}-->\n", .{set});
+        defer alloc.free(meta);
+        try file.writeStreamingAll(io, meta);
+        const heading = try std.fmt.allocPrint(alloc, "# {s} — {s}\n", .{ id, slug });
+        defer alloc.free(heading);
+        try file.writeStreamingAll(io, heading);
+    }
+
+    // Register the task in state
+    const now = try nowTimestamp();
+    const rel_bundle = try std.fmt.allocPrint(alloc, "untracked/{s}", .{bundle_name});
+    defer alloc.free(rel_bundle);
+
+    const ts = TaskState{
+        .status = .dispatchable,
+        .agent = null,
+        .bundle = rel_bundle,
+        .set = set,
+        .holds = &.{},
+        .needs = &.{},
+        .caps = &.{},
+        .added = now,
+        .claimed = null,
+        .done = null,
+    };
+    try state.put(alloc, try alloc.dupe(u8, id), ts);
+    sys_next_id += 1;
+    try writeState(io, state_path, &state);
+
+    w.diag("\n  suggested {s}  [set: {c}]  [dispatchable]\n", .{ id, set });
+    w.diag("  bundle: untracked/{s}\n", .{bundle_name});
+
+    // ── stdout: the prompt one-liner (AGENTS.md copy/paste boundaries) ──
+    w.data("You are {s}/{s}. {s}\n", .{ model, id, slug });
+}
+
+// ── parseDeliverablesFromBundle — extract deliverable paths from bundle body ─
+
+fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, holds: []const []const u8) ![]const []const u8 {
+    _ = w;
+    var result = std.ArrayList([]const u8).empty;
+    errdefer {
+        for (result.items) |d| alloc.free(d);
+        result.deinit(alloc);
+    }
+
+    // Try to parse "Deliverables:" section from bundle body
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch {
+        // Can't read bundle — fall back to holds
+        for (holds) |h| {
+            try result.append(alloc, try alloc.dupe(u8, h));
+        }
+        return try result.toOwnedSlice(alloc);
+    };
+    defer alloc.free(content);
+
+    // Look for "Deliverables:" marker
+    const marker = "Deliverables:";
+    const marker_idx = std.mem.indexOf(u8, content, marker);
+
+    if (marker_idx == null) {
+        // No explicit deliverables section — use holds
+        for (holds) |h| {
+            try result.append(alloc, try alloc.dupe(u8, h));
+        }
+        return try result.toOwnedSlice(alloc);
+    }
+
+    // Extract text from after "Deliverables:" to end of paragraph (blank line)
+    const after = std.mem.trimStart(u8, content[marker_idx.? + marker.len ..], " \t\r\n");
+    var para_end: usize = after.len;
+    {
+        var lines = std.mem.splitScalar(u8, after, '\n');
+        var consumed: usize = 0;
+        while (lines.next()) |line| {
+            const trimmed = std.mem.trim(u8, line, " \t\r");
+            consumed += line.len + 1; // +1 for the newline
+            if (trimmed.len == 0) {
+                para_end = consumed - 1; // exclude the blank line
+                break;
+            }
+        }
+        if (para_end > after.len) para_end = after.len;
+    }
+    const para = after[0..para_end];
+
+    // Split on commas to get individual path entries
+    var parts = std.mem.splitScalar(u8, para, ',');
+    while (parts.next()) |part| {
+        var trimmed = std.mem.trim(u8, part, " \t\r\n");
+        if (trimmed.len == 0) continue;
+
+        // Take the first whitespace-delimited token as the path
+        // (strips parenthetical annotations like "(revised in place)")
+        const first_token = if (std.mem.indexOfScalar(u8, trimmed, ' ')) |space_idx|
+            trimmed[0..space_idx]
+        else
+            trimmed;
+
+        // Remove trailing period
+        var token = first_token;
+        if (token.len > 1 and token[token.len - 1] == '.') {
+            token = token[0 .. token.len - 1];
+        }
+        token = std.mem.trim(u8, token, " \t");
+
+        if (token.len > 0) {
+            try result.append(alloc, try alloc.dupe(u8, token));
+        }
+    }
+
+    // If no paths found from body, fall back to holds
+    if (result.items.len == 0) {
+        for (holds) |h| {
+            try result.append(alloc, try alloc.dupe(u8, h));
+        }
+    }
+
+    return try result.toOwnedSlice(alloc);
+}
+
 fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
-    _ = repo_root;
     if (args.len < 3) {
         w.diag("usage: managent done <id> [--fail] [--agent <name>]\n", .{});
         std.process.exit(1);
@@ -1299,6 +1477,40 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         w.diag("  Use: managent done {s} --agent <model>\n", .{id});
         w.diag("  Or set it first: managent agent {s} <model>\n", .{id});
         std.process.exit(1);
+    }
+
+    // ── deliverable verification (ORCHA-TOOLS R2) ──
+    if (!is_fail) {
+        const bundle_abs = if (std.fs.path.isAbsolute(ts_ptr.bundle))
+            try alloc.dupe(u8, ts_ptr.bundle)
+        else
+            try std.fs.path.join(alloc, &.{ repo_root, ts_ptr.bundle });
+        defer alloc.free(bundle_abs);
+        const deliverables = try parseDeliverablesFromBundle(w, io, bundle_abs, ts_ptr.holds);
+        defer {
+            for (deliverables) |d| alloc.free(d);
+            alloc.free(deliverables);
+        }
+        var missing = std.ArrayList([]const u8).empty;
+        defer missing.deinit(alloc);
+        for (deliverables) |d| {
+            const d_abs = if (std.fs.path.isAbsolute(d))
+                try alloc.dupe(u8, d)
+            else
+                try std.fs.path.join(alloc, &.{ repo_root, d });
+            defer alloc.free(d_abs);
+            if (std.Io.Dir.cwd().statFile(io, d_abs, .{})) |_| {} else |_| {
+                try missing.append(alloc, d);
+            }
+        }
+        if (missing.items.len > 0) {
+            w.diag("\n  REJECTED: {s} has {d} missing deliverable(s):\n", .{ id, missing.items.len });
+            for (missing.items) |m| {
+                w.diag("    - {s}\n", .{m});
+            }
+            w.diag("  Task stays in_progress. Create the file(s) or use --fail.\n", .{});
+            std.process.exit(1);
+        }
     }
 
     const now = try nowTimestamp();
@@ -1954,6 +2166,7 @@ fn printHelp(w: Writers) void {
         \\  managent                  show current state (default)
         \\  managent status [--json]  show current state (--json for machine output)
         \\  managent add <id>         register a task (with --auto to mint T<N> ID)
+        \\  managent suggest <slug>   mint T-ID, create bundle, print dispatch prompt
         \\  managent dispatch <id>    record a human→agent dispatch (task stays dispatchable)
         \\  managent claim <id>       claim a task for execution
         \\  managent done <id>        mark a task complete
@@ -1977,8 +2190,9 @@ fn printHelp(w: Writers) void {
         \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add)
         \\  --auto                   auto-generate opaque T<N> task ID (with add)
         \\  --bundle <path>          override bundle path (with add)
-        \\  --set <A|B|C>            override parallel set (with add)
+        \\  --set <A|B|C>            override parallel set (with add / suggest)
         \\  --needs <id>             add extra dependency (with add)
+        \\  --model <name>           set model for prompt line (with suggest)
         \\  --exec <prefix>          claim and exec into harness (with claim / next)
         \\  --json                   machine-readable output (with status / audit)
         \\  -h, --help               show this help
@@ -2526,6 +2740,28 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
     }
 
+    // ── ORCHA-TOOLS R3: read CLAIMS.md and PROGRESS.md for citation checks ──
+    var claims_content: []const u8 = "";
+    var progress_content: []const u8 = "";
+    var claims_owned = false;
+    var progress_owned = false;
+    {
+        const claims_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "epistemic", "CLAIMS.md" });
+        defer alloc.free(claims_path);
+        claims_content = std.Io.Dir.cwd().readFileAlloc(io, claims_path, alloc, .unlimited) catch "";
+        if (claims_content.len > 0) claims_owned = true;
+    }
+    {
+        const progress_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "epistemic", "PROGRESS.md" });
+        defer alloc.free(progress_path);
+        progress_content = std.Io.Dir.cwd().readFileAlloc(io, progress_path, alloc, .unlimited) catch "";
+        if (progress_content.len > 0) progress_owned = true;
+    }
+    defer {
+        if (claims_owned) alloc.free(claims_content);
+        if (progress_owned) alloc.free(progress_content);
+    }
+
     const Finding = struct {
         level: []const u8,
         id: []const u8,
@@ -2632,7 +2868,42 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                     try findings.append(alloc, .{ .level = "FIX", .id = tid, .msg = msg });
                 }
 
-                // 2. done task whose holds paths are not in git ls-files → commit these
+                // 2. done task whose path is not cited in CLAIMS.md or PROGRESS.md (ORCHA-TOOLS R3)
+                {
+                    const bundle_abs2 = if (std.fs.path.isAbsolute(ts.bundle))
+                        try alloc.dupe(u8, ts.bundle)
+                    else
+                        try std.fs.path.join(alloc, &.{ repo_root, ts.bundle });
+                    defer alloc.free(bundle_abs2);
+                    const bundle_deliverables = try parseDeliverablesFromBundle(w, io, bundle_abs2, ts.holds);
+                    defer {
+                        for (bundle_deliverables) |d| alloc.free(d);
+                        alloc.free(bundle_deliverables);
+                    }
+                    var any_cited = false;
+                    // Check if task ID or any deliverable path appears in CLAIMS.md or PROGRESS.md
+                    if (std.mem.indexOf(u8, claims_content, tid) != null or
+                        std.mem.indexOf(u8, progress_content, tid) != null)
+                    {
+                        any_cited = true;
+                    }
+                    if (!any_cited) {
+                        for (bundle_deliverables) |d| {
+                            if (std.mem.indexOf(u8, claims_content, d) != null or
+                                std.mem.indexOf(u8, progress_content, d) != null)
+                            {
+                                any_cited = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!any_cited) {
+                        const msg = try std.fmt.allocPrint(alloc, "done but deliverables not cited in CLAIMS.md or PROGRESS.md — promote or cite", .{});
+                        try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
+                    }
+                }
+
+                // 3. done task whose holds paths are not in git ls-files → commit these
                 for (ts.holds) |h| {
                     var found_in_git = false;
                     for (git_files.items) |gf| {
