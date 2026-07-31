@@ -1,6 +1,6 @@
 {
   "T129": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/T129-exp7-4x4-rerun.md",
     "set": "D",
     "holds": [],
@@ -79,19 +79,20 @@
     "claim_count": 1
   },
   "T126": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/T126-ko-census-and-wzo-provenance.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": ["T125"],
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T00:15:06Z",
+    "done": "2026-07-31T00:15:07Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T121": {
     "status": "done",
@@ -142,7 +143,7 @@
     "claim_count": 1
   },
   "T127": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/T127-refresh-progress-current.md",
     "set": "B",
     "holds": ["docs/epistemic/PROGRESS.md", "docs/status/CURRENT.md"],

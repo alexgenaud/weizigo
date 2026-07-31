@@ -198,7 +198,7 @@ durable locator.
 
 ## 2. The register
 
-**264 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
+**265 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
 §2.11 the same day + **8 added later on 2026-07-28** promoting rulings D-1, D-2,
 D-3, D-5 and EXP-3's per-goban census: `3x3.E2-RUN1`, `3x3.E2-RUN2`,
 `3x3.H1-CENSUS`, `4x3.H1-CENSUS`, `GLOBAL.H5a-CHILD`, `GLOBAL.H5a-FALLBACK`,
@@ -207,7 +207,8 @@ absorbing T114 ADR-0006 validation (`GLOBAL.ADR0006-PRED`,
 `GLOBAL.ADR0006-LEMMAS`, `GLOBAL.ADR0006-PRUNEALL`) + **5 added 2026-07-30 (T125)**
 absorbing the QA-026 BASICKO-TIE results (`2x2.BASICKO-TIE`, `3x2.BASICKO-TIE`,
 `3x3.BASICKO-TIE`, `4x4.BASICKO-TIE`) and the T102 buffer-aliasing withdrawal
-(`GLOBAL.BRUTE-ALIASING`). Grouped by family for
+(`GLOBAL.BRUTE-ALIASING`) + **1 added 2026-07-31 (T126)**
+absorbing the ko-composition census (`4x4.KO-CENSUS`). Grouped by family for
 readability; the column set is identical throughout. (Row count and all edge
 counts in §3 are printed by `bin/weizigo-claimlint` on every run — that print is
 authoritative, this prose is a snapshot of it.)
@@ -402,6 +403,7 @@ authoritative, this prose is a snapshot of it.)
 | `4x4.M6-SCREEN` | — | 4×4 | The ko-sensitive misprice rate is a **cheap artifact-only discriminator** between sound and unsound generation — a screen, not a gate | CLAIMED | `4x4/EPISTEMIC.md:232-235`; `ko-sensitive-chainability.md:236-244` | `d:4x4.M6` | Track A validation workflow | 1 | ? |
 | `4x4.WRITESOFF` | — | 4×4 | `untracked/oracle-4x4-writesoff-checkpoint.wzo` exists but its **build completion is NOT confirmed**; it is uncommitted and differs from the committed artifact by 2,394 filled slots (0.18%) at stride 37 | MEASUREMENT | `4x4/EPISTEMIC.md:236-242`; `ko-sensitive-chainability.md:246-254` | — | `4x4.M6`, `4x4.F3` | 0 | ? |
 | `4x4.M1` | M1 | 4×4 | Ko-sensitive region = 10,367,922 / 48,636,330 = **21.32%** (exhaustive) | MEASUREMENT | `4x4/EPISTEMIC.md:186`; `ruleset-options.md:116` | `e:4x4.S3a`, `e:GLOBAL.ADR0009-NOEYE` | `4x4.R3`, `4x4.M4` cross-check | 0 | ? |
+| `4x4.KO-CENSUS` | — | 4×4 | Ko-sensitive region is **99.997% single-ko** by static + bounded-dynamic census: 0-ko (65.0%), 1-ko (32.9%), 2-ko (2.04%) all single-ko on 1,500+ sampled positions; multi-ko concentrated in the 3-ko category (~250 side-positions, 0.0025% of 10,367,922). Verified byte-identical against B23 static census; dynamic cycle classifier (`src/ko_cycle_census.zig`) sampled every static-ko category with budget scaling (5K→20K nodes, 12→14 depth) and a positive control (3-ko = 94.4% multi-ko). Converts the open question from "can we handle 10.4M ko-sensitive slots?" into "can we certify a single-ko sub-solver?" | MEASUREMENT | `docs/research/ko-composition-census-2026-07-30.md`; `src/ko_cycle_census.zig` | `e:4x4.M1` (reads the same checkpoint) | `GLOBAL.H1`, Track A single-ko sub-solver strategy, `4x4.D3` scope | 0 | ? |
 | `4x4.M2` | M2 | 4×4 | 19 sweeps to fixpoint at 4×4 (the measurement; `4x4.FP3` is the theorem) | MEASUREMENT | `4x4/EPISTEMIC.md:246-247`; `retrograde-4x4.md:21` | — | `4x4.FP1-C2`, 5×5 projection | 0 | ? |
 | `4x4.M3` | M3 | 4×4 | 649,517 ko-sensitive orbit reps; finisher 6.1 min; ~1,663 nodes/rep avg; max/root 349,349; total 1,080,118,252 nodes | MEASUREMENT | `4x4/EPISTEMIC.md:248`; `retrograde-4x4.md:23-25,33-34` | `e:GLOBAL.F1` (measured on the **writes-on** config) | `GLOBAL.H5c` cost, 5×5 projection | 0 | ? |
 | `4x4.BRACKET` | — | 4×4 | Empty 4×4 bracket = **[−6, +16]** (22 wide out of 32); the published anchor +2 is in-bracket | MEASUREMENT | `4x4/EPISTEMIC.md:249`; `ruleset-options.md:213` | `e:4x4.FP1` | `4x4.M5`, `4x4.ANCHOR` | 0 | ~70% |
