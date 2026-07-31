@@ -48,19 +48,20 @@
     "claim_count": 1
   },
   "T169": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/T169-w2",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T169-vb-table.md",
     "set": "A",
     "holds": ["src/vb_table.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T16:11:26Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T16:42:36Z",
+    "done": "2026-07-31T16:42:36Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T164": {
     "status": "done",
