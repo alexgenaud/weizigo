@@ -1,4 +1,19 @@
 {
+  "T175": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T175-i5-rows.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T17:01:08Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T159": {
     "status": "done",
     "agent": "DSPro",
@@ -190,8 +205,8 @@
     "claim_count": 1
   },
   "T168": {
-    "status": "in_progress",
-    "agent": "DSPro/T168-w2",
+    "status": "done",
+    "agent": "DSPro/T173",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T168-vb-harness.md",
     "set": "A",
     "holds": ["src/verify_battery.zig"],
@@ -199,11 +214,26 @@
     "caps": [],
     "added": "2026-07-31T16:11:26Z",
     "claimed": "2026-07-31T16:32:45Z",
-    "done": null,
+    "done": "2026-07-31T16:57:50Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T174": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T174-t128-triage.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T17:01:08Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T167": {
     "status": "done",
@@ -220,6 +250,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T176": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T176-census-sha256.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T17:01:08Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   }
 ,
   "_sys": {
