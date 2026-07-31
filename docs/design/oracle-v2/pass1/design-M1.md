@@ -1,11 +1,11 @@
-# oracle-v2 M1 — WZO2 format design (rev 1)
+# oracle-v2 M1 — WZO2 format design (rev 2)
 
 ```
-Task:    O-3-rev1 · Role: worker · Model: DSPro/O-3-rev1 · Date: 2026-07-31
+Task:    T148 · Role: worker · Model: DSPro/T148 · Date: 2026-07-31
 Deliverable: docs/design/oracle-v2/pass1/design-M1.md
-Status:   PROPOSED (rev 1) — O-4 audit addressed; awaiting G2 human ratification
+Status:   PROPOSED (rev 2) — T146 re-audit addressed; awaiting G2 human ratification
 Target:   docs/infra/oracle-v2/spec.md (pass 1, ratified G1)
-Audit:    O-4 (Opus 5, 2026-07-31) — all BLOCKER/CRITICAL/MUST findings resolved (see §11)
+Audit:    T146 (Opus 5, 2026-07-31) — NEW-2/3/4/7/8 resolved (see §11)
 ```
 
 ## 1. Design overview
@@ -195,20 +195,24 @@ R3).
 2. **Value-preserving placements:** Let `P` be the set of legal non-pass
    moves (placements) from `s`. A placement child `c` is *value-preserving*
    if the moving side can still achieve its current bound in `c`:
-   - Black (maximizer): `H(c) ≥ L(s)`
-   - White (minimizer): `L(c) ≤ H(s)`
+   - Black (maximizer): `L(c) ≥ L(s)`
+   - White (minimizer): `H(c) ≤ H(s)`
 
 3. **Recurrence — placements exist:** If the set `VP` of value-preserving
    placements is non-empty:
-   - Black: `DTT(s) = 1 + min_{c ∈ VP} DTT(c)`
-   - White: `DTT(s) = 1 + max_{c ∈ VP} DTT(c)`
+   `DTT(s) = 1 + min_{c ∈ VP} DTT(c)`
 
-4. **Recurrence — no value-preserving placement:** If `VP` is empty, the
-   only value-preserving move is to pass:
-   `DTT(s) = 1 + DTT(pass_child(s))`
+4. **Recurrence — no legal placement:** If the side has no legal placement
+   (`terminal` = 1): pass is the only move and is value-preserving by
+   construction, so `DTT(s) = 1 + DTT(pass_child(s))`. For states with
+   legal placements, `VP` is always non-empty under step 2's strict test
+   (the argmax/argmin placements of the fixpoint satisfy the bound).
 
 5. **Cycle sentinel:** If no value-preserving path reaches a passes=2
    terminal (the state is in a cycle-affected region), DTT = 255 (FAR).
+   The writer clamps computed DTT at 254, reserving 255 strictly as the
+   cycle sentinel; the recurrence cannot produce 255 arithmetically
+   (`1 + 254 = 255` is clamped to 254 rather than colliding with FAR).
 
 **Encoding:**
 
@@ -226,15 +230,14 @@ passes=2 absorbing terminals only.
 **Invariants (for I7 / A8):**
 - Terminal (passes=2): DTT = 0 by definition.
 - Non-terminal, non-cycle: DTT > 0 and DTT ≤ 254.
-- For any non-terminal non-FAR state, `DTT(s) = 1 + opt_{c ∈ VP(s)} DTT(c)`
-  where opt is min for Black, max for White.
+- For any non-terminal non-FAR state, `DTT(s) = 1 + min_{c ∈ VP(s)} DTT(c)`.
 - States in cycle-affected regions where no value-preserving path to
   terminal exists: DTT = 255.
 
 **DTT maximum:** Empirical 3×3 data suggests DTT stays well under 254 for
-cycle-free states. If 4×4 exceeds 254 on some state, the 255 sentinel
-handles it — the only loss is DTT precision on very deep states, not
-correctness.
+cycle-free states. The writer clamps computed DTT at 254 and reserves 255
+strictly for the cycle sentinel (§3.1 step 5). The only loss is DTT
+precision on very deep states, not correctness.
 
 ## 4. Header layout
 
@@ -253,12 +256,12 @@ overlay the header directly.
 | 12 | 1 | `group_header_size` | u8 | bytes per group header = 5 |
 | 13 | 1 | `ko_bits` | u8 | ceil(log₂(w·h+1)) bits used for ko in key_byte |
 | 14 | 1 | `hdr_flags` | u8 | bit 0 = `PASSES_2_OMITTED` (passes=2 not stored; §2.3) |
-| 15 | 1 | `reserved` | u8 | zero |
+| 15 | 1 | `reserved0` | u8 | zero |
 | 16 | 8 | `n_groups` | u64 | number of goban groups |
 | 24 | 8 | `n_entries` | u64 | total entries (passes∈{0,1}) |
 | 32 | 8 | `data_offset` | u64 | byte offset to first group = 128 |
 | 40 | 32 | `sha256` | u8[32] | SHA-256 of file with this field zeroed (§4.2) |
-| 72 | 56 | `reserved` | u8[56] | zero; available for future header extensions |
+| 72 | 56 | `reserved1` | u8[56] | zero; available for future header extensions |
 
 ### 4.1 Rules identifier
 
@@ -275,7 +278,9 @@ The `rules_id` belongs to `src/artifact.zig`'s enumeration (`:76-77`), not
 `src/rules.zig`. M3 must add the arm for id 3 to `artifact.zig`'s
 `rulesName` switch (`:82-88`) and the load validation in `:191`. The
 existing v1 loader rejects unknown ids — id 3 will be caught until M3
-updates it.
+updates it. The header stores `rules_id` as u16; the writer fills the low
+byte from `artifact.zig`'s `u8` constant and zeroes the high byte. The
+reader validates only the low byte.
 
 ### 4.2 SHA-256 integrity
 
@@ -424,7 +429,7 @@ verify-battery spec §6a. This section maps every acceptance criterion
 | **A5 (round-trip identity)** | **Format-supported.** `decode(encode(key)) == key` for all entries. Key encoding is lossless by construction (colex + key_byte), but the check verifies writer/reader agreement on bit packing. | |
 | **A6 (known-bad calibration)** | **Partially format-supported.** Three named corruptions: (a) *one perturbed value* → caught by SHA-256 (full-file, `--verify-hash`) or I4 (Bellman); (b) *one dropped ko state* → caught by I6 (UNDEF census) since `n_entries` would be wrong; (c) *one zeroed DTT column* → caught by I7. SHA-256 is the only check that names all three at format level; the other two need the battery. | |
 | **A7 (UNDEF census)** | **Format-supported.** Every legal position has a determinable lookup. Battery enumerates all legal positions and checks coverage (found in-artifact or UNDEF). | |
-| **A8 (DTT is non-constant)** | **Format-supported.** DTT column is stored; check that non-terminal non-FAR entries span > 1 distinct value. The DTT recurrence (min for Black, max for White) ensures the column carries real information, not the pass-pass collapse described in BLOCKER-2. | |
+| **A8 (DTT is non-constant)** | **Format-supported.** DTT column is stored; check that non-terminal non-FAR entries span > 1 distinct value. The DTT recurrence (mover-minimises: `1 + min` over the mover's value-preserving children) ensures the column carries real information, not the pass-pass collapse described in BLOCKER-2, and is colour-inversion invariant. | |
 | **A9 (reproducibility)** | **Format-supported by construction.** Determinism contract: (a) all reserved bytes zeroed (§4); (b) canonical sort order: groups strictly increasing colex, entries per §2.4; (c) no timestamps or build metadata; (d) SHA-256 slot zeroed before hash, then written in place (§4.2). A byte-identical rebuild is possible from the same solver inputs. | |
 
 ### 7.2 Format-level checks (valid on any artifact, no fixpoint needed)
@@ -454,7 +459,7 @@ verify-battery spec §6a. This section maps every acceptance criterion
 |---|---|
 | **Bellman residual (I4)** | Keys are explicit. Battery reconstructs state, generates children via its own move engine (R8). |
 | **Pin census (I1)** | Computed from stored L/H; `pin_T` = count where `L == H`. |
-| **DTT sanity (I7)** | DTT column stored. Absorbing terminals (passes=2) have DTT=0. Non-terminals without KO_SENSITIVE must have 0 < DTT ≤ 254 and DTT(s) = 1 + opt(child DTT). |
+| **DTT sanity (I7)** | DTT column stored. Absorbing terminals (passes=2) have DTT=0. Non-terminals without KO_SENSITIVE must have 0 < DTT ≤ 254 and DTT(s) = 1 + min_{c ∈ VP(s)} DTT(c). |
 | **KO_SENSITIVE ⊆ cycle-reachable (I5)** | Computed as `L != H`. Battery computes SCCs on its own move graph and verifies containment. |
 | **UNDEF census (I6)** | Every legal position has a determinable lookup; battery checks coverage. |
 | **Anchor values (I9)** | Specific keys' L/H values must match committed anchors. Keys are explicit. |
@@ -522,8 +527,8 @@ means both approaches produce the same result.
 
 2. **DTT maximum value.** It is possible that 1 byte is insufficient if the
    longest value-preserving path to terminal exceeds 254 plies. Empirical
-   3×3 data suggests DTT stays well under 100. If 4×4 exceeds 254, the FAR
-   sentinel (255) handles it — the only loss is DTT precision on very deep
+   3×3 data suggests DTT stays well under 100. The writer clamps computed
+   DTT at 254 (§3.1 step 5); the only loss is DTT precision on very deep
    states, not correctness. The verifier's I7 check must accept 255 as a
    valid non-error value for cycle-affected states.
 
@@ -542,14 +547,18 @@ means both approaches produce the same result.
 3. **M3 header struct alignment** — verify the `extern struct` overlay
    matches this document's header layout byte-for-byte.
 4. **artifact.zig** — add `RULES_BASICKO_LH_AREA: u8 = 3` and the
-   corresponding `rulesName` arm and load-validation acceptance.
+   corresponding `rulesName` arm and load-validation acceptance. The
+   header `rules_id` is u16 (low byte = the `u8` constant, high byte = 0);
+   M2b and M3 must agree on this width.
 
 ## 11. Audit resolution log
+
+### O-4 audit (2026-07-31)
 
 | finding | disposition |
 |---|---|
 | BLOCKER-1 (layout two ways) | **Fixed.** §1.1 diagram redrawn as segregated; three regions with byte extents stated in §1 table. |
-| BLOCKER-2 (DTT undefined) | **Fixed.** DTT recurrence stated in §3.1: base case, value-preserving constraint, adversarial min/max, cycle sentinel. DTT=0 reserved for absorbing terminals. |
+| BLOCKER-2 (DTT undefined) | **Fixed — see T146 re-audit below.** DTT recurrence stated in §3.1: base case, value-preserving constraint, adversarial min/max, cycle sentinel. DTT=0 reserved for absorbing terminals. Defects in the replacement definition addressed in rev 2. |
 | CRITICAL-1 (SHA-256 covers 40 B) | **Fixed.** §4.2: hash covers entire file with slot zeroed. `--verify-hash` load-time option; mandatory in A6/M4a path. |
 | CRITICAL-2 (re-scope over 1-byte fix) | **Fixed.** 4-byte entries adopted (§3). `flags` byte dropped; `terminal` in key_byte LSB; `KO_SENSITIVE` = `L != H`. Budget: 515.5–518.1 MB, under ceiling by 82 MB. |
 | MUST-1 (G and N unmeasured) | **Fixed.** §5.1 replaced with measured bracket from census evidence files. §9.1 deleted. |
@@ -568,6 +577,16 @@ means both approaches produce the same result.
 | COULD-3 (interval typo) | **Fixed.** §2.1: `[0, 3^(w·h) − 1]`. |
 | COULD-4 (group header size) | **Fixed.** `group_header_size = 5` in header at offset 12; validation step 5. |
 | COULD-5 (passes=2 omission flag) | **Fixed.** `hdr_flags` bit 0 = `PASSES_2_OMITTED` at header offset 14. |
+
+### T146 re-audit (2026-07-31)
+
+| finding | disposition |
+|---|---|
+| NEW-2 (DTT min/max by colour) | **Fixed.** §3.1 step 3: mover-minimises (`1 + min` regardless of colour). Invariant list, §7.1 A8, and §7.3 I7 updated. Colour-inversion invariant. |
+| NEW-3 (VP test wrong bound) | **Fixed.** §3.1 step 2: Black `L(c) ≥ L(s)`, White `H(c) ≤ H(s)`. Sets are non-empty by the Bellman fixpoint; step 4's pass-fallback triggers only for `terminal`=1 states. |
+| NEW-4 (FAR contradiction; 255 overload) | **Fixed.** Mover-minimises (NEW-2) resolves the max/FAR contradiction. Writer clamps at 254, reserving 255 strictly for the cycle sentinel (§3.1 step 5, DTT maximum paragraph). |
+| NEW-7 (duplicate `reserved` field name) | **Fixed.** `reserved0` at offset 15, `reserved1` at offset 72. |
+| NEW-8 (`rules_id` u16 vs u8) | **Fixed.** §4.1 and §10 note header stores u16, low byte from `artifact.zig`'s `u8` constant, high byte zero. |
 
 ## A. Example lookup pseudocode
 

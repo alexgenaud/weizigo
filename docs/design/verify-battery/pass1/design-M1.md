@@ -1,14 +1,15 @@
 # verify-battery M1 — harness design
 
 ```
-Author:   DSPro/V-4-rev1 · 2026-07-31
-Status:   PROPOSED (rev 1) — resolves pass-1 audit (V-5): 2 blockers,
-          4 critical, 8 must-fix, 10 should-fix
+Author:   DSPro/T149 · 2026-07-31
+Status:   PROPOSED (rev 2) — resolves rev-1 re-audit (T147/Opus 5): 1 critical,
+          4 must-fix
 Inputs:   docs/infra/verify-battery/spec.md (rev 1) ·
           docs/infra/verify-battery/strategy.md (rev 1) ·
           docs/design/verify-battery/pass1/spec-audit.md (T137) ·
           docs/design/verify-battery/pass1/i5-feasibility.md (DSPro/T134) ·
-          docs/design/verify-battery/pass1/design-M1-audit.md (Opus 5/V-5)
+          docs/design/verify-battery/pass1/design-M1-audit.md (Opus 5/V-5) ·
+          docs/design/verify-battery/pass1/design-M1-audit-rev1.md (T147/Opus 5)
 ```
 
 ## 1. Overview
@@ -88,7 +89,7 @@ Per spec R6, three non-zero exit classes, distinguishable by machine:
 
 | code | class | meaning |
 |---|---|---|
-| **0** | pass | All requested invariants completed; every result has `exit_class` = `pass` or `skipped` or `not-applicable`. |
+| **0** | pass | All requested invariants completed; every result has `exit_class: "pass"` (including results whose `status` is `skipped` or `not_applicable`). |
 | **1** | artifact-bad | At least one invariant computed cleanly and the artifact violates it. The invariant's `value` object carries the violation details. |
 | **2** | reference-bad | At least one invariant computed cleanly and disagrees with a committed register figure. No artifact-bad results are present (artifact-bad takes precedence — see below). The invariant's `value` object carries the expected and actual values. |
 | **3** | battery-bad | The harness could not complete: artifact load error, SHA-256 mismatch, OOM, stack overflow, internal assertion failure, or any invariant returned `status: "error"`. Results for invariants that DID complete before the failure are still emitted. |
@@ -117,7 +118,7 @@ The `--output` flag redirects the data stream; stderr is unchanged.
 stderr line of the form `FAIL <invariant> <exit_class> <summary>` before the
 result record is written, so monitoring tools can alert on the failure without
 parsing JSON. Example: `FAIL I7 artifact-bad DTT uniform including terminals:
-42910761/99133036`.
+16543210/99133036`.
 
 ### 2.5 Reference data
 
@@ -612,7 +613,6 @@ artifact, or no artifact at all for `--i5-graph all-legal`).
 {
   "numerator": 0,
   "denominator": 203,
-  "i5_graph": "all-legal",
   "nodes": 282,
   "edges": 508,
   "sccs_total": 123,
@@ -661,8 +661,9 @@ For 3×2 `--i5-graph all-legal`, `calibration.max_scc_expected` = 1,676
 
 1. `max_scc_size` mismatch with calibration → `battery-bad` (implementation wrong, not the artifact).
 2. `nodes`/`edges` mismatch with calibration → `battery-bad` (graph construction wrong).
-3. `ko_sensitive_not_cycle_reachable > 0` at any goban whose value matches a committed spread (3×2: 1,724/1,704/1,678) → `reference-bad` with notes identifying the spread.
-4. `ko_sensitive_not_cycle_reachable > 0` at 3×2 that is **outside** the known spread → `artifact-bad`, escalate per spec §7 (finding larger than sprint).
+3. `ko_sensitive_not_cycle_reachable > 0` at 3×2 AND `cycle_reachable` matches a member of the committed spread (1,724/1,704/1,678 — **cycle-reachable set sizes** under three seeding conventions; spec §4:120-124, `ko-fix-rerun-2026-07-29.stdout:133`) → `reference-bad` with notes identifying which spread member matched.
+4. `ko_sensitive_not_cycle_reachable > 0` at 3×2 AND `cycle_reachable` is **outside** the known spread → `artifact-bad`, escalate per spec §7 (finding larger than sprint).
+   *Note: the spread values are `cycle_reachable` counts, not `ko_sensitive_not_cycle_reachable` counts. Rule 3 tests `cycle_reachable` (a graph-shape metric reported in the `value` object) against the spread; `ko_sensitive_not_cycle_reachable > 0` is the gate condition for both rules 3 and 4.*
 5. `ko_sensitive_not_cycle_reachable > 0` at 2×2 → `artifact-bad`.
 6. `ko_sensitive_not_cycle_reachable > 0` at 3×3, 4×3, 4×4 → `artifact-bad`.
 
@@ -732,10 +733,10 @@ Computable on both WZO1 and WZO2. Reads `db`/`dw` columns (DTT).
 
 ```json
 {
-  "numerator": 42910761,
+  "numerator": 16543210,
   "denominator": 99133036,
   "terminals_with_dtt_neq_0": 16543210,
-  "non_terminals_with_dtt_255": 82599826,
+  "non_terminals_with_dtt_255": 82589826,
   "terminals_total": 16543210,
   "uniform_count": 99133036,
   "uniform_value": 255,
@@ -830,12 +831,10 @@ Computable on both WZO1 and WZO2.
 {
   "numerator": 0,
   "denominator": 500,
-  "sample_size": 500,
-  "sample_seed": 31337,
   "mismatches": 0,
   "mismatch_examples": [],
   "solver_dump_path": "docs/evidence/BATTERY/move-dump-3x3.wzo",
-  "note": "sampled at 3×3 per §6a (3×3 population = 73,674)"
+  "note": "sampled at 3×3 per §6a (3×3 population TBD in V-8 — see §5 item 5)"
 }
 ```
 
@@ -845,8 +844,10 @@ when exhaustive. `numerator` = `mismatches`.
 `mismatches`: count of states where the battery's legal-move set differs from
 the solver engine's legal-move set (via solver-side dump).
 
-**§6a modes:** exhaustive at 2×2/3×2; sampled at 3×3+ (population = 73,674 at
-3×3, 2,009,694 at 4×3, 99,133,036 at 4×4; default sample sizes TBD in V-8).
+**§6a modes:** exhaustive at 2×2/3×2; sampled at 3×3+ (population TBD in V-8 at
+3×3 and 4×3; at 4×4 = 99,133,036 compact slots
+`[4x4.BASICKO-TIE:MEASUREMENT]` per `i5-feasibility.md` §2;
+default sample sizes TBD in V-8).
 
 #### I12 — score range
 
@@ -1111,15 +1112,22 @@ The goban size argument `2x2`–`4x4` is parsed at startup and drives:
 2. **Total address space:** `total = 3^(w×h)` — validates against artifact header.
 3. **§6a matrix:** which invariants are applicable, and which mode (E/S/G/n/a),
    **further resolved by `artifact_kind`** (see §5a).
-4. **I5 graph size:** node count varies by goban. For `all-legal`: vertices =
-   legal positions × 2 (sides) × 3 (ko_points: NONE, black's last, white's last)
-   × 2 (passes ∈ {0,1}) — the graph closure over `(board, side, ko_point, passes)`
-   per `i5-feasibility.md` §2. At 2×2, committed all-seed V = 282, E = 508
-   (`docs/evidence/QA-023/ko-fix-2026-07-29/scc2x2.py`). At 4×4, ~99,133,036
-   vertices (the compact slot count). See `i5-feasibility.md` §2 and §9 for the
-   full definition.
+4. **I5 graph size:** vertices = `(board, side, ko_point)` reachable triples,
+   per `i5-feasibility.md` §2 **option A** (the spec's adopted budget). Pass
+   edges are terminal-only cut-edges: pass transitions always increase the pass
+   counter and never create cycles, so cutting the graph at passes≥1 preserves
+   cycle-reachable classification. At 2×2, committed all-seed V = 282, E = 508
+   (`docs/evidence/QA-023/ko-fix-2026-07-29/scc2x2.py`). At 4×4, **51,419,046**
+   vertices `[GLOBAL.H1-CENSUS:PROVEN]`. The 99,133,036 compact-slot count
+   (option B, with passes folded in) is twice the budget; the spec and the memo
+   both adopt option A. See `i5-feasibility.md` §2, §4, and §9 for the full
+   definition, memory plan, and the 3×2 validation gate (compare options A and
+   B, confirm identical cycle-reachable sets).
 5. **I11 sampling threshold:** exhaustive at 2×2/3×2; sampled at ≥3×3
-   (population = 73,674 at 3×3, 2,009,694 at 4×3, 99,133,036 at 4×4).
+   (population TBD in V-8 at 3×3 and 4×3 — no committed census figure matches
+   the I11 state-set definition; the 4×4 figure, 99,133,036 compact slots
+   `[4x4.BASICKO-TIE:MEASUREMENT]`, is the only calibrated population and
+   comes from `i5-feasibility.md` §2).
 6. **I8 applicability:** 2×2 only.
 
 The harness resolves invariants for a goban by consulting the §6a matrix at
@@ -1146,6 +1154,42 @@ The following invariants report a reduced value set on WZO1:
 | **I4** (Bellman residual) | Residual restricted to KO_SENSITIVE-clear slots only. KO_SENSITIVE-set slots excluded (no L/H to compute residual against). |
 
 All twelve invariants are fully computable on WZO2 (`artifact_kind: "bracket"`).
+
+### 5b. Consequences for the spec and acceptance criteria
+
+§5a settles, inside the design, that I3 and I10 are `not_applicable` on WZO1.
+This has implications the design must state plainly rather than absorb silently:
+
+**Spec §6a impact.** The spec's sixty-cell matrix (12 invariants × 5 gobans)
+marks I3 and I10 as **E** (exhaustive) at all five gobans. On the A2 artifact
+set — every in-scope artifact is WZO1 (verified, §1) — those ten cells are
+unreachable. I1's five cells are reachable but report `L_eq_H` only, not
+`pin_T`/`pin_L`/`pin_H`. The reachable cell count on WZO1 is **50** (60 − 10
+for I3/I10), of which I1's five are reduced-value. The spec's "sixty cells"
+count and its §6a I1/I3/I10 rows require amendment for the WZO1 sprint, or the
+battery must declare a WZO2 dependency for those rows.
+
+**Acceptance criterion A3.** A3(a) requires `L==H=2220, pin_T=298, pin_L=34,
+pin_H=34` over 2,586 states and `2232/322/34/34` over 2,622 states at 3×2.
+A3(b) requires `L==H=68,350, pin_T=1,248, pin_L=2,080, pin_H=2,080` at 3×3.
+Under §5a the battery can produce `L_eq_H` at both gobans but **none of the
+three pin figures** — `pin_T`, `pin_L`, `pin_H` require L/H bracket columns
+that WZO1 does not store. A3(a) and A3(b) as written are unachievable against
+the A2 artifact set. The `L_eq_H` component is the only reproducible part.
+
+**Two options, neither of which this design chooses:**
+
+| option | what | cost | when |
+|---|---|---|---|
+| **Wait for WZO2** | Defer I3, I10, and the full I1 pin census to the sprint where oracle-v2 ships bracket artifacts. The WZO1 battery reports `not_applicable` for I3/I10 and `L_eq_H`-only for I1. A3(a)/(b) pin figures are deferred. | No new code; A3(a)/(b) become WZO2-gated acceptance criteria. | WZO2 sprint. |
+| **Solver-side L/H dump** | Run the retrograde solver in a dump mode that emits L/H values for every legal slot into a sidecar file (the same shape as I11's `solver_dump_path`). The battery loads this sidecar alongside the WZO1 artifact and computes the full pin census and I3/I10 from it. | ~150–250 lines in the battery (sidecar loader, same format as I11's dump) + a solver dump mode (~100 lines). | M2/V-7 (table invariants) would need the sidecar path. |
+
+**This is a G1/G2 agenda item for the human, not a design decision.** The
+battery's schema (§3.6) already defines all WZO2 fields; no unfreeze is needed
+either way. The choice affects which acceptance criteria are applicable at
+sprint review and whether V-7 needs a sidecar path. Until the human rules, the
+battery ships with §5a's resolution: I3/I10 `not_applicable`, I1 `L_eq_H`
+only.
 
 ## 6. Invariant dispatch
 
@@ -1406,3 +1450,42 @@ This revision resolves the pass-1 audit (Opus 5/V-5, NEEDS-FIX). Changes:
 - **Cf3:** `--version` flag added.
 - **Cf4:** I5 `calibration` extended with `nodes_expected`, `edges_expected`,
   and 3×2 `max_scc_expected: 1676` each with citation.
+
+## 14. Revision notes (rev 2 vs rev 1)
+
+This revision resolves the rev-1 re-audit (T147/Opus 5, NEEDS-FIX). Changes:
+
+**Critical resolved:**
+- **R-C1:** §5b added — consequences for spec §6a and acceptance criterion A3.
+  States plainly that A3(a)/(b) pin figures are unachievable on WZO1, names the
+  reachable cell count (50 on WZO1), presents two options (wait for WZO2, or
+  solver-side L/H dump) with cost estimates, and marks the choice as a G1/G2
+  agenda item for the human.
+
+**Must-fix resolved:**
+- **R-C2:** §2.3 exit-0 row corrected: `exit_class` values `skipped` and
+  `not-applicable` (which are `status` values, not `exit_class` values) removed;
+  the row now says every result has `exit_class: "pass"` with the parenthetical
+  noting status mapping.
+- **R-M1:** I5 exit rule 3 now correctly tests `cycle_reachable` against the
+  committed spread (1,724/1,704/1,678 — cycle-reachable set sizes), not
+  `ko_sensitive_not_cycle_reachable`. A note explains that the spread values are
+  `cycle_reachable` counts and that `ko_sensitive_not_cycle_reachable > 0` is
+  the gate condition for both rules 3 and 4.
+- **R-M2:** §5 item 4 rewritten — deleted the arithmetically-wrong
+  multiplicative formula (57×2×3×2 = 684 ≠ 282); states vertices by definition
+  as `(board, side, ko_point)` reachable triples per `i5-feasibility.md` §2
+  option A; cites the spec-adopted 51,419,046 budget
+  `[GLOBAL.H1-CENSUS:PROVEN]`; notes option B (99,133,036) is twice the budget
+  and rejected by both spec and memo. §7's memory prediction already references
+  `i5-feasibility.md` §5.2 which uses option A's budget.
+- **R-M3:** I11 population figures at 3×3 (73,674) and 4×3 (2,009,694) replaced
+  with "TBD in V-8" — neither matches a committed census figure under any
+  natural state-set definition. The 4×4 figure (99,133,036) is retained with its
+  provenance citation.
+- **R-M4:** (a) I7 fail example recomputed from a single consistent scenario:
+  `numerator` = `terminals_with_dtt_neq_0` = 16,543,210;
+  `non_terminals_with_dtt_255` = 99,133,036 − 16,543,210 = 82,589,826. §2.4
+  stderr example updated to match (16,543,210/99,133,036). (b) Duplication rule
+  enforced: `i5_graph` removed from I5's `value` object, `sample_size` /
+  `sample_seed` removed from I11's `value` object.
