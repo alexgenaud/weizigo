@@ -191,6 +191,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T177": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T177-absorb-p2.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T23:41:27Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T161": {
     "status": "done",
     "agent": "DSPro",
