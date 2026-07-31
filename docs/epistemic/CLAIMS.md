@@ -198,13 +198,16 @@ durable locator.
 
 ## 2. The register
 
-**259 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
+**264 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
 §2.11 the same day + **8 added later on 2026-07-28** promoting rulings D-1, D-2,
 D-3, D-5 and EXP-3's per-goban census: `3x3.E2-RUN1`, `3x3.E2-RUN2`,
 `3x3.H1-CENSUS`, `4x3.H1-CENSUS`, `GLOBAL.H5a-CHILD`, `GLOBAL.H5a-FALLBACK`,
 `GLOBAL.ADR0016-INHERIT`, `GLOBAL.ADR0015-BURDEN`) + **3 added 2026-07-30**
 absorbing T114 ADR-0006 validation (`GLOBAL.ADR0006-PRED`,
-`GLOBAL.ADR0006-LEMMAS`, `GLOBAL.ADR0006-PRUNEALL`). Grouped by family for
+`GLOBAL.ADR0006-LEMMAS`, `GLOBAL.ADR0006-PRUNEALL`) + **5 added 2026-07-30 (T125)**
+absorbing the QA-026 BASICKO-TIE results (`2x2.BASICKO-TIE`, `3x2.BASICKO-TIE`,
+`3x3.BASICKO-TIE`, `4x4.BASICKO-TIE`) and the T102 buffer-aliasing withdrawal
+(`GLOBAL.BRUTE-ALIASING`). Grouped by family for
 readability; the column set is identical throughout. (Row count and all edge
 counts in §3 are printed by `bin/weizigo-claimlint` on every run — that print is
 authoritative, this prose is a snapshot of it.)
@@ -282,6 +285,7 @@ authoritative, this prose is a snapshot of it.)
 | `GLOBAL.C4` | C4 | all | Fresh-start score == real-game score | FALSE-AS-SCOPED | `leak-crisis.md:27`; `PROGRESS.md:129`; `4x4/EPISTEMIC.md:26` | `d:GLOBAL.C2` (single-score half), `d:GLOBAL.P3` (ko-sensitive half) | `GLOBAL.REFRAME`, `4x4.A-2`, GTP player defect | 0 | ? |
 | `GLOBAL.LEAK` | — | all | The fresh-start player leaks on real-game PSK histories; "leak" = final score short of the strongest promise made in that game | PROVEN | `leak-crisis.md:9-14`; `PROGRESS.md:110-121` | `n:GLOBAL.C4` | `GLOBAL.P3`, `4x4.B43` | 0 | ? |
 | `GLOBAL.E1` | E1 | 2×2/3×2 | E1 as first written was **confounded** — it read the fresh-start child's fresh-start score, so it diagnoses where the plan breaks, it does not falsify C2 | PROVEN (methodological) | `leak-crisis.md:164-168` | — | `3x2.T13` (the replacement experiment) | 0 | ? |
+| `GLOBAL.BRUTE-ALIASING` | — | all | T102 audit (2026-07-30): a successor-buffer aliasing defect in `brute_value_2x2` (`src/exp4_solve.zig:555-594`) invalidates **every brute-force cross-check in the EXP-4 → EXP-7 chain**. All 24 EXP-4 2×2 "mismatches" were an artifact of the checker, not a divergence in the thing checked; fixpoint and FRT agree on all 172 reachable non-terminal 2×2 states. The same defect pattern recurs in `exp4_solve.zig` (3×2), `exp5_solve.zig` (3×3), `exp6_solve.zig` (4×4), and `exp6_hchain_audit.zig` — none re-verified. **Stands:** fixpoint results, independently verified by T102 (2×2), T104's Python kernel (2×2/3×2/3×3), and the MIGOS II anchor at 3×3. **Withdrawn:** brute-force cross-check as corroboration anywhere in the EXP chain | FALSE (methodological) | `docs/audits/audit-2x2-mismatch-2026-07-30.md` §1,§6; `docs/audits/audit-2x2-mismatch-2026-07-30.py` | — | `2x2.EXACT`, `3x2.EXACT`, `3x3.FWD-SPOT`, all EXP-4…EXP-7 brute-force corroboration claims, `QA-026` calibration | 0 | ? |
 | `3x3.E3` | E3 | 3×3 | The 3×3 leaking game is a VALID PSK game (0 illegal moves in 17 plies) — failure mode (c) ruled out | PROVEN | `leak-crisis.md:54-55` | — | `3x3.C3` | 0 | ? |
 | `GLOBAL.E2-SANITY` | E2 sanity | 2×2/3×2/3×3 | With trivial bounds (`lo=−N, hi=+N`) the same range-aware policy is leak-free everywhere → the E2 harness is wired correctly | PROVEN | `leak-crisis.md:48-52` | — | `3x3.C3` | 0 | ? |
 | `GLOBAL.E2-POLICY` | E2 | all | Correct range-aware policy: Black maximizes `lo[child]`, White minimizes `hi[child]`; the first run used `lo` for both and was wrong | PROVEN (bug + fix) | `leak-crisis.md:81-83` | `d:GLOBAL.INVSYM` | `3x3.C3` validity | 0 | ? |
@@ -424,6 +428,15 @@ authoritative, this prose is a snapshot of it.)
 | `GLOBAL.FIN-NEARTERM` | Finding 6 | 3×3 | The plain (ADR-0009) finisher rescues near-terminal ko-sensitive slots, **not** the opening: empty(B) 3×3 exceeded 2.0e9 nodes seeded with all 8,326 certified scores | MEASUREMENT | `retrograde-3x3.md:84-100` | — | `GLOBAL.ADR0010-CUT` motivation | 0 | ? |
 | `GLOBAL.FIN-BRACKET` | Finding 8 | 2×2/3×2/3×3 | Bracket cutoffs collapse the finisher by ~6 orders of magnitude; empty(B) 3×3 pins in 1,854 nodes | MEASUREMENT | `retrograde-3x3.md:165-179` | `e:GLOBAL.ADR0010-CUT` | `GLOBAL.H5c` | 0 | ? |
 | `4x4.DRIVER` | — | 4×4 | Driver saga: aspiration dies on wide brackets (>5e8 nodes, abandoned on the empty root); bare MTD is worse; MTD + per-root bounds memo solves all 649,517 reps with zero skips | MEASUREMENT | `retrograde-4x4.md:36-62` | — | `4x4.M3`, `GLOBAL.H3` context | 0 | ? |
+
+### 2.7a Basic-ko + TIE=0 fresh-start results (QA-026 / EXP-4/5/6, DSPro, 2026-07-29)
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate |
+|---|---|---|---|---|---|---|---|---|---|
+| `2x2.BASICKO-TIE` | — | 2×2 | Fresh-start value of 2×2 under basic-ko + TIE=0: root = 0 (TIE, L=−4 H=+4), 258 reachable states, 4 sweeps, L=Φ(L)/H=Φ(H) 0 failures, colour-inversion 0/2430. **Brute-force cross-check in the calibration section of the PROVENANCE is withdrawn (T102 buffer-aliasing, `GLOBAL.BRUTE-ALIASING`); fixpoint results independently verified by T102 and T104** | MEASUREMENT | `docs/evidence/QA-026/PROVENANCE.md`; `docs/evidence/QA-026/exp4-solve-2026-07-29.stdout`; `docs/audits/audit-2x2-mismatch-2026-07-30.md` | `e:GLOBAL.INVSYM`, `n:GLOBAL.BRUTE-ALIASING` | `QA-026` | 0 | ? |
+| `3x2.BASICKO-TIE` | — | 3×2 | Fresh-start value of 3×2 under basic-ko + TIE=0: root = 0 (TIE, L=−6 H=+6), 2,586 reachable states, 10 sweeps, L=Φ(L)/H=Φ(H) 0 failures, colour-inversion 0/2586. **Brute-force cross-check withdrawn (T102 buffer-aliasing)** | MEASUREMENT | `docs/evidence/QA-026/PROVENANCE.md`; `docs/evidence/QA-026/exp4-solve-2026-07-29.stdout`; `docs/audits/audit-2x2-mismatch-2026-07-30.md` | `e:GLOBAL.INVSYM`, `n:GLOBAL.BRUTE-ALIASING` | `QA-026` | 0 | ? |
+| `3x3.BASICKO-TIE` | — | 3×3 | Fresh-start value of 3×3 under basic-ko + TIE=0: root = **+9** (L==H==9), matches the MIGOS II anchor, 73,758 reachable states, 0 UNDEF, 16 sweeps, colour-symmetric. Root is NOT TIE — scored +9, L==H==9. **Brute-force cross-check in stdout §7 withdrawn (T102 buffer-aliasing); fixpoint independently verified** | MEASUREMENT | `docs/evidence/QA-026/3x3/PROVENANCE.md`; `docs/evidence/QA-026/3x3/exp5-solve-2026-07-29.stdout`; `docs/audits/audit-2x2-mismatch-2026-07-30.md` | `e:GLOBAL.INVSYM`, `e:GLOBAL.MIGOS-RULE`, `n:GLOBAL.BRUTE-ALIASING` | `QA-026`, `3x3.ANCHOR` | 0 | ? |
+| `4x4.BASICKO-TIE` | — | 4×4 | Fresh-start value of 4×4 under basic-ko + TIE=0: root = **+1**, bracket **[+1,+16]**, 147M states, 31 sweeps. T104 verified H=+16 genuine — 0 violations over 99,133,036 states, 0 map misses, exhaustive inversion clean — and concluded the +2 gap vs the MIGOS II anchor is a **ruleset difference (basic ko vs PSK)**, not a bug. Record +1 as the reading; do not record it as contradicting the +2 anchor without the ruleset difference | MEASUREMENT | `docs/evidence/QA-026/4x4/PROVENANCE.md`; `docs/evidence/QA-026/4x4/exp6-solve-2026-07-29.stdout` | `e:GLOBAL.MIGOS-RULE`, `e:4x4.BRACKET` | `QA-026`, `4x4.ANCHOR`, `GLOBAL.H1` | 0 | ? |
 
 ### 2.8 Open hypotheses (H) — the 2026-07-27 register
 

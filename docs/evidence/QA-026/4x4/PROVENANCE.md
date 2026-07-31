@@ -23,6 +23,12 @@ tools/runner --rss-cap-mb 8192 --max-wall 14400 --max-cpu 28800 -- \
 
 ## Calibration
 
+**⚠ 2026-07-30 (T125, T102): This solver imports `qa023_brute_2x2.zig` for
+the 2×2 gate only, but `src/exp6_solve.zig` itself carries the same
+successor-buffer aliasing defect pattern (`brute_value` at line 824-862,
+identified in T102 audit §6). Any brute-force cross-check in this solver or
+its derivatives is affected. See `GLOBAL.BRUTE-ALIASING`.**
+
 - **Known-good:** gate chain re-run from this binary — 2×2=0, 3×2=0, 3×3=+9. All pass.
 - **Known-bad 1 (QA-016):** NOT RUN — deferred (see research note §9)
 - **Known-bad 2 (perturbation):** NOT RUN — deferred

@@ -35,8 +35,17 @@ No engine files touched. Caches under `/tmp/weizigo-zigcache`.
 
 ## Calibration
 
+**⚠ 2026-07-30 (T125, T102): The brute-force cross-check in stdout §7
+("Brute-force cross-check (late positions, few empty points)") was produced by
+a defective evaluator with a successor-buffer aliasing bug that affects
+every solver in the EXP-4→EXP-7 chain. The 50/50 agreements are not evidence.
+The gate chain (2×2/3×2 re-run from this binary), Bellman self-consistency,
+and colour-inversion symmetry are independently verified. See
+`docs/audits/audit-2x2-mismatch-2026-07-30.md` and `GLOBAL.BRUTE-ALIASING`.**
+
 ### Known-good
-2×2 root = 0, 3×2 root = 0, re-run from this binary. Both pass.
+2×2 root = 0, 3×2 root = 0, re-run from this binary. Both pass. **Brute-force
+cross-check in stdout §7 is withdrawn (T102 buffer-aliasing).**
 
 ### Known-bad 1 (perturbation)
 Perturbed state lin=150 (L==H=9) to L=H=10. Symmetry checker found 2 inversion violations / 73,758. A root-only check would not have detected this — the perturbation was on a non-root state.

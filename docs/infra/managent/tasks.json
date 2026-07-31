@@ -31,19 +31,20 @@
     "claim_count": 1
   },
   "T125": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "docs/infra/dispatch/T125-basicko-tie-and-aliasing.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": ["T124"],
     "caps": [],
     "added": "2026-07-30T21:54:41Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T00:05:26Z",
+    "done": "2026-07-31T00:05:26Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T123": {
     "status": "done",
@@ -78,7 +79,7 @@
     "claim_count": 1
   },
   "T126": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "docs/infra/dispatch/T126-ko-census-and-wzo-provenance.md",
     "set": "A",
     "holds": ["docs/epistemic/CLAIMS.md"],

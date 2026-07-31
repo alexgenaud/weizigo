@@ -25,7 +25,17 @@ tools/runner -- zig run -O ReleaseFast src/exp4_solve.zig
 
 ## Calibration
 
-- **Known-good:** 2×2 five-anchor smoke test (empty-B, empty-W, full-B, passes=1, passes=2) — all match expected values
+**⚠ 2026-07-30 (T125, T102): Brute-force cross-check withdrawn.**
+The "brute-force anchors" and "brute-force sample" sections in the stdout
+(§2, §7) were produced by a defective evaluator with a successor-buffer
+aliasing bug (`src/exp4_solve.zig:555-594`, T102 audit). All 24 mismatches
+were an artifact of the checker; fixpoint and exact FRT agree on all 172
+reachable non-terminal 2×2 states. The fixpoint results (anchors tested
+against the fixpoint, Bellman self-consistency, colour-inversion) are
+independently verified by T102 (Zig + Python) and T104 (Python kernel).
+See `docs/audits/audit-2x2-mismatch-2026-07-30.md` and `GLOBAL.BRUTE-ALIASING`.
+
+- **Known-good:** 2×2 five-anchor smoke test (empty-B, empty-W, full-B, passes=1, passes=2) — all match expected values **via fixpoint**. The brute-force corroboration in the stdout §2 is withdrawn
 - **Known-bad 1:** PSK vs new-rule root comparison — fixpoint root=0, PSK root=+1, delta=1 (non-zero ⇒ gate distinguishes rulesets)
 - **Known-bad 2:** 2×2 state perturbation test — L value perturbed; detection confirmed via value change (note: the perturbation target idx was on a state where V=0 and perturbation of L by +1 did not change V — this is a calibration weakness, see report)
 
