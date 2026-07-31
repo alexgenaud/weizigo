@@ -15,21 +15,20 @@
     "note": null,
     "claim_count": 1
   },
-  "T140": {
-    "status": "in_progress",
-    "agent": "DSPro",
-    "bundle": "untracked/T140-missing-deliverable-test.md",
+  "T166": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T166-oracle-v2-m3.md",
     "set": "A",
-    "holds": ["nonexistent/file.txt"],
+    "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-07-31T14:52:17Z",
-    "claimed": "2026-07-31T14:52:20Z",
+    "added": "2026-07-31T15:59:57Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 1
+    "claim_count": 0
   },
   "T160": {
     "status": "done",
@@ -46,82 +45,6 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
-  },
-  "T144": {
-    "status": "dispatchable",
-    "bundle": "untracked/T144-test-r1.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-07-31T14:55:46Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 0
-  },
-  "T164": {
-    "status": "done",
-    "agent": "DSPro",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T164-model-perf-backfill.md",
-    "set": "A",
-    "holds": ["docs/infra/model-perf.md"],
-    "needs": [],
-    "caps": [],
-    "added": "2026-07-31T15:10:22Z",
-    "claimed": "2026-07-31T15:35:32Z",
-    "done": "2026-07-31T15:35:32Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 1
-  },
-  "T165": {
-    "status": "dispatchable",
-    "bundle": "untracked/T165-test.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-07-31T15:15:28Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 0
-  },
-  "T145": {
-    "status": "dispatchable",
-    "bundle": "untracked/T145-test-r1b.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-07-31T14:55:46Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 0
-  },
-  "T141": {
-    "status": "dispatchable",
-    "bundle": "untracked/T141-test-r1.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-07-31T14:55:21Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 0
   },
   "T163": {
     "status": "done",
@@ -171,14 +94,30 @@
     "note": null,
     "claim_count": 1
   },
-  "T146": {
-    "status": "dispatchable",
-    "bundle": "untracked/T146-test-full.md",
+  "T164": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T164-model-perf-backfill.md",
     "set": "A",
-    "holds": [],
+    "holds": ["docs/infra/model-perf.md"],
     "needs": [],
     "caps": [],
-    "added": "2026-07-31T14:56:07Z",
+    "added": "2026-07-31T15:10:22Z",
+    "claimed": "2026-07-31T15:35:32Z",
+    "done": "2026-07-31T15:35:32Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
+  "T165": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T165-oracle-v2-m2b.md",
+    "set": "A",
+    "holds": ["src/exp6_solve.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T15:59:57Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -186,14 +125,14 @@
     "note": null,
     "claim_count": 0
   },
-  "T147": {
+  "T167": {
     "status": "dispatchable",
-    "bundle": "untracked/T147-test-slug.md",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T167-oracle-v2-m4a.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-07-31T15:15:22Z",
+    "added": "2026-07-31T15:59:57Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -203,7 +142,7 @@
   }
 ,
   "_sys": {
-    "next_id": 166,
+    "next_id": 165,
     "directive_next": 7
   }
 }
