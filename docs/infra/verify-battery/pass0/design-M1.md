@@ -229,7 +229,8 @@ schema versions in effect.
 | `reference_sha256` | string | yes | SHA-256 of the reference file. `null` if no reference file was loaded. |
 | `timestamp` | string | no | ISO-8601 UTC timestamp at startup. |
 | `argv` | [string] | no | The full command-line argument vector, for exact replay. |
-| `seed` | u64\|string | no | The seed in effect. The string `"auto"` if `--seed auto` was passed (PID+time). |
+| `seed` | u64 | no | The seed in effect. When `--seed auto` was passed, the PID+time-derived u64 is stored here; `seed_source` records how it was obtained. |
+| `seed_source` | string | no | `"fixed"` (explicit `--seed` or default 31337) or `"auto"` (`--seed auto`). |
 | `invariants_requested` | [string] | no | The list of invariants actually selected, after resolving `--invariants`, `--i5-only`, and the §6a applicability matrix. |
 | `i5_graph` | string | yes | `"all-legal"` or `"reachable"`. Present only when I5 is in `invariants_requested`; `null` otherwise. |
 
@@ -259,6 +260,7 @@ are emitted; everything else is `null`:
   "timestamp": "2026-07-31T14:22:00Z",
   "argv": ["verify-battery", "4x4", "data/nonexistent.wzo", "--reference", "data/battery-references.json"],
   "seed": 31337,
+  "seed_source": "fixed",
   "invariants_requested": [],
   "i5_graph": null
 }
@@ -286,6 +288,7 @@ are emitted; everything else is `null`:
   "timestamp": "2026-07-31T14:22:00Z",
   "argv": ["verify-battery", "3x2", "artifacts/oracle-3x2.wzo", "--reference", "data/battery-references.json"],
   "seed": 31337,
+  "seed_source": "fixed",
   "invariants_requested": ["I1","I2","I4","I5","I6","I7","I9","I11","I12"],
   "i5_graph": "all-legal"
 }
@@ -315,7 +318,7 @@ One per invariant run. Common fields for all invariants:
   "status": "pass",
   "exit_class": "pass",
   "duration_ms": 1234,
-  "peak_rss_mb": 45.2,
+  "rss_hwm_after_mb": 45.2,
   "seed": null,
   "sample_size": null,
   "sample_denominator": null,
@@ -341,11 +344,13 @@ One per invariant run. Common fields for all invariants:
 | `status` | string | no | `pass` — invariant holds. `fail` — invariant violated cleanly (artifact-bad). `reference-disagreement` — invariant holds but the computed value disagrees with a committed register figure (reference-bad). `skipped` — invariant not selected by `--invariants`. `not_applicable` — invariant doesn't apply to this goban or artifact kind (e.g. I3 on WZO1, I8 at 3×2+). `error` — invariant could not complete (resource, internal bug). |
 | `exit_class` | string | no | `pass`, `artifact-bad`, `reference-bad`, `battery-bad`. The per-result classification. |
 | `duration_ms` | u64 | no | Wall-clock duration of this invariant in milliseconds. |
-| `peak_rss_mb` | f64 | yes | Peak RSS in MiB during this invariant (A6). `null` if not measured. |
+| `rss_hwm_after_mb` | f64 | yes | Process RSS high-water mark in MiB after this invariant completed. This is a running maximum — for invariant *n* the value is max(HWM over invariants 1..*n*), not the per-invariant peak. `null` if not measured. |
 | `seed` | u64 | yes | Seed used for this invariant, if sampled; `null` otherwise. |
 | `sample_size` | u64 | yes | Sample size drawn, if sampled; `null` otherwise. |
 | `sample_denominator` | u64 | yes | Total population size, if sampled (per R3: within-budget denominator). `null` for exhaustive. |
 | `value` | object | yes | Invariant-specific result data (see §3.6). `null` when `status` is `error`, `skipped`, or `not_applicable`. |
+| `deviation` | string | yes | Present only when `mode_actual ≠ mode_declared` and `status` is not `error`. Carries the fallback reason code (e.g. `"memory-budget-fallback-F3"`). |
+| `error` | object | yes | Present only when `status` is `error`. Carries error details (see §3.7). |
 
 **`status` vs `exit_class`:**
 
@@ -391,7 +396,7 @@ trailer means the run died mid-stream.
   "kind": "trailer",
   "exit_code": 0,
   "total_duration_ms": 45231,
-  "peak_rss_mb": 1247.3,
+  "rss_hwm_after_mb": 1247.3,
   "result_counts": {
     "pass": 8,
     "fail": 0,
@@ -409,14 +414,14 @@ trailer means the run died mid-stream.
 }
 ```
 
-| field | type | description |
-|---|---|---|
-| `kind` | string | Always `"trailer"`. |
-| `exit_code` | u8 | The overall exit code (0–3) the process will return. |
-| `total_duration_ms` | u64 | Wall-clock duration of the entire invocation in milliseconds. |
-| `peak_rss_mb` | f64 | Peak RSS of the entire process in MiB (invocation-level peak, per A6). `null` if not measured. |
-| `result_counts` | object | Counts by `status` value. |
-| `exit_class_counts` | object | Counts by `exit_class` value. |
+| field | type | nullable | description |
+|---|---|---|---|
+| `kind` | string | no | Always `"trailer"`. |
+| `exit_code` | u8 | no | The overall exit code (0–3) the process will return. |
+| `total_duration_ms` | u64 | no | Wall-clock duration of the entire invocation in milliseconds. |
+| `rss_hwm_after_mb` | f64 | yes | Process RSS high-water mark in MiB at exit (invocation-level peak, per A6). `null` if not measured. |
+| `result_counts` | object | no | Counts by `status` value. |
+| `exit_class_counts` | object | no | Counts by `exit_class` value. |
 
 ### 3.5 Proposed-row format
 
@@ -462,7 +467,7 @@ V-13 (the fleet run). Each proposed row carries `artifacts_in_scope` and
 | `artifact` | string | yes | The artifact path. `null` for I5 once-per-goban runs with no artifact. |
 | `artifact_sha256` | string | yes | As in result record. |
 | `artifacts_in_scope` | u8 | no | How many artifacts are in scope for this goban (from spec A2's enumerated list). |
-| `artifact_index` | u8 | no | Which artifact in the scope list this row represents (0-indexed). |
+| `artifact_index` | u8 | yes | Which artifact in the scope list this row represents (0-indexed). `null` for I5 once-per-goban rows (which have no artifact). |
 | `status` | string | no | `pass`, `fail`, `reference-disagreement`, `skipped`, `not_applicable`, `error`. |
 | `claim_text` | string | no | A human-readable one-liner describing what was tested and the result, suitable for the `claim` column of CLAIMS.md. |
 | `evidence_path` | string | no | Where the evidence lives (always under `docs/evidence/BATTERY/`). |
@@ -889,7 +894,7 @@ replaced by an `error` object:
   "status": "error",
   "exit_class": "battery-bad",
   "duration_ms": 45000,
-  "peak_rss_mb": 3950.1,
+  "rss_hwm_after_mb": 3950.1,
   "seed": 31337,
   "sample_size": null,
   "sample_denominator": null,
@@ -1258,13 +1263,18 @@ Per spec A6, the battery reports peak RSS per invocation and per invariant.
 (maximum resident set size reached).
 
 If RSS measurement fails (non-Linux, non-macOS, or permission denied),
-`peak_rss_mb` is `null` — this is not an error.
+`rss_hwm_after_mb` is `null` — this is not an error.
 
-The harness samples the HWM before and after each invariant; the post-invariant
-reading is recorded as `peak_rss_mb` in the result record (the HWM is monotonic,
-so the post-reading captures the peak during the invariant). After all
-invariants complete, the final HWM is recorded as the invocation-level
-`peak_rss_mb` in the trailer record (§3.4).
+The harness reads the HWM before the first invariant and after each
+invariant. The post-invariant HWM is recorded as `rss_hwm_after_mb` in the
+result record. **This is a running maximum, not a per-invariant peak:** the
+HWM is monotonic, so the value after invariant *n* is the maximum over
+invariants 1..*n*, not the peak of invariant *n* alone. A consumer wishing to
+estimate invariant *n*'s contribution should compute the delta:
+`hwm_after[n] − hwm_after[n−1]` (with `hwm_after[0]` = the baseline reading
+before the first invariant). After all invariants complete, the final HWM is
+recorded as the invocation-level `rss_hwm_after_mb` in the trailer record
+(§3.4).
 
 The battery should also **predict** its I5 allocation before Phase 3 (per
 `i5-feasibility.md` §5.2) and refuse to start if the prediction exceeds the
@@ -1489,3 +1499,34 @@ This revision resolves the rev-1 re-audit (T147/Opus 5, NEEDS-FIX). Changes:
   stderr example updated to match (16,543,210/99,133,036). (b) Duplication rule
   enforced: `i5_graph` removed from I5's `value` object, `sample_size` /
   `sample_seed` removed from I11's `value` object.
+
+## 15. Revision notes (rev 3 vs rev 2)
+
+```
+Author:   DSPro/T156 · 2026-07-31
+Status:   PROPOSED (rev 3) — resolves rev-2 re-audit (T151) should-fix
+          carry-overs AC-S2, AC-S5 before Gate 2 freeze.
+Inputs:   docs/design/verify-battery/archive/design-M1-audit-rev2.md (T151) §4
+```
+
+This revision resolves five should-fix carry-overs from the rev-2 re-audit
+(T151, PASS with AC-S2/S5 before Gate 2 freeze). Changes:
+
+**Should-fix resolved:**
+- **AC-S2:** Per-invariant RSS field renamed `peak_rss_mb` → `rss_hwm_after_mb`
+  in all schema locations (result record, trailer, error result, field tables).
+  §7 prose rewritten — states clearly that `rss_hwm_after_mb` is a running
+  maximum (monotonic HWM), not a per-invariant peak, and documents the delta
+  formula (`hwm_after[n] − hwm_after[n−1]`) for consumers who need
+  per-invariant estimates.
+- **AC-S5a:** `deviation` and `error` fields added to §3.3 common field table
+  with types and nullability.
+- **AC-S5b:** Trailer field table (§3.4) gained a `nullable` column. All rows
+  populated; `rss_hwm_after_mb` marked `yes`.
+- **AC-S5c:** `seed` type changed from `u64|string` to `u64` in the header
+  field table. New `seed_source: "fixed"|"auto"` field added so consumers do
+  not branch on the JSON type of `seed`. Header JSON examples (minimal and
+  full) updated with `"seed_source": "fixed"`.
+- **AC-S5d:** `artifact_index` in §3.5 proposed-row field table changed from
+  `no` to `yes` (nullable); description updated to state `null` for I5
+  once-per-goban rows (which have no artifact).
