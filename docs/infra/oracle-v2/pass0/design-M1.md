@@ -2,7 +2,7 @@
 
 ```
 Task:    T148 (rev 2, DSPro) · rev 3: Fable/Navigator (claude-fable-5) · Date: 2026-07-31
-Deliverable: docs/design/oracle-v2/design-M1.md
+Deliverable: docs/infra/oracle-v2/pass0/design-M1.md
 Status:   PROPOSED (rev 3) — all T146 + T150 findings dispositioned; awaiting
           G2 human ratification (diff-scoped review recommended, no fourth audit round)
 Target:   docs/infra/oracle-v2/pass0/spec.md (ratified G1)
