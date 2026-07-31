@@ -1,8 +1,10 @@
 # Subdelegation — dispatching work to DeepSeek Pro/Flash subagents
 
-**Commands:**
+**Commands (DeepSeek models only):**
 - `pi --provider deepseek --model deepseek-v4-pro -p "prompt"` — DeepSeek-v4-Pro subagent
 - `pi --provider deepseek --model deepseek-v4-flash -p "prompt"` — DeepSeek-v4-Flash subagent
+
+These work from DeepSeek sessions invoked via `odeeppi` or `oflashpi`. They do not work from Opus, Fable, or Ollama models. Opus and Fable in Claude Code have their own subagent capabilities.
 
 API key is already exported in the parent shell. Subagents run in the same Pi harness as the parent. Output returns to stdout. Subagents share the project directory and can read/write files.
 
