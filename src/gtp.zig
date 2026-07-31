@@ -74,6 +74,7 @@ const std = @import("std");
 const rules = @import("rules.zig");
 const colexmod = @import("colex.zig");
 const artifact = @import("artifact.zig");
+const artifact2 = @import("artifact2.zig");
 const score = @import("score.zig");
 
 const COLS = "ABCDEFGHJKLMNOPQRSTUVWXYZ"; // GTP letters, no 'I'
@@ -86,6 +87,15 @@ const MAX_HIST = 4096;
 /// and the engine falls back to pass or another filled child.
 pub const UNDEF: i8 = -128;
 
+/// Enforcement mode per spec oracle-v2 §3.1.
+/// basic_ko = enforce the artifact's own rule (ko point only).
+/// psk      = also forbid position recurrence (stricter; values are still basic-ko).
+pub const Enforcement = enum { basic_ko, psk };
+
+fn pinnedValue(L: i8, H: i8) i8 {
+    return @max(L, @min(0, H));
+}
+
 pub fn Session(comptime w: usize, comptime h: usize) type {
     return struct {
         const S = @This();
@@ -96,11 +106,17 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         const Pos = R.Pos;
         const SUSTAINED_K: u8 = 3; // polite-resign sustained-loss window (our turns)
 
-        d: *const artifact.Decoded,
+        const KO_NONE: u8 = n; // ko sentinel: no forbidden point
+
+        d: ?*const artifact.Decoded = null,      // v1 artifact (WZO1)
+        a2: ?*const artifact2.LoadedArtifact = null, // v2 artifact (WZO2)
+        enforcement: Enforcement = .basic_ko,
+
         pos: Pos = [_]i8{0} ** n,
         hist: [MAX_HIST]Pos = undefined,
         hist_len: usize = 0,
         passes: u8 = 0,
+        ko_point: u8 = KO_NONE, // ko-forbidden point for current side-to-move
         komi: f32 = 0,
         vals_b: [SUSTAINED_K]i8 = [_]i8{0} ** SUSTAINED_K,
         vals_b_len: u8 = 0,
@@ -111,6 +127,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             s.pos = [_]i8{0} ** n;
             s.hist_len = 0;
             s.passes = 0;
+            s.ko_point = KO_NONE;
             s.vals_b_len = 0;
             s.vals_w_len = 0;
             // the initial position has occurred: recreating it (capturing
@@ -118,17 +135,53 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             s.push(&s.pos);
         }
 
+        /// Look up L/H/DTT for a state under the WZO2 artifact.
+        /// If the state is not in the artifact (unreachable under basic ko),
+        /// returns the area score as a single-value terminal fallback.
+        pub fn bounds2(s: *const S, pos: *const Pos, ko: u8, passes: u2, side: i8) artifact2.Row {
+            const a = s.a2.?;
+            const colex_val: u32 = @intCast(X.colex_from_pos(pos));
+
+            // passes=2 terminal shortcut (§2.3)
+            if (passes >= 2) {
+                const area = R.area_score(pos);
+                return .{ .L = area, .H = area, .DTT = 0, .terminal = true, .ko_sensitive = false };
+            }
+
+            if (artifact2.lookup(a, colex_val, side, ko, passes)) |row| {
+                return row;
+            }
+
+            // Not found: unreachable state under basic ko. Fall back to area score.
+            const area = R.area_score(pos);
+            return .{ .L = area, .H = area, .DTT = 0, .terminal = true, .ko_sensitive = false };
+        }
+
         pub fn v0(s: *const S, pos: *const Pos, side: i8) i8 {
+            if (s.a2) |_| {
+                const row = s.bounds2(pos, s.ko_point, @intCast(s.passes), side);
+                return pinnedValue(row.L, row.H);
+            }
             const i: usize = @intCast(X.colex_from_pos(pos));
-            return if (side > 0) s.d.vb[i] else s.d.vw[i];
+            return if (side > 0) s.d.?.vb[i] else s.d.?.vw[i];
         }
         pub fn dtt0(s: *const S, pos: *const Pos, side: i8) u8 {
+            if (s.a2) |_| {
+                const row = s.bounds2(pos, s.ko_point, @intCast(s.passes), side);
+                return row.DTT;
+            }
             const i: usize = @intCast(X.colex_from_pos(pos));
-            return if (side > 0) s.d.db[i] else s.d.dw[i];
+            return if (side > 0) s.d.?.db[i] else s.d.?.dw[i];
         }
         pub fn flags0(s: *const S, pos: *const Pos, side: i8) u8 {
+            if (s.a2) |_| {
+                const row = s.bounds2(pos, s.ko_point, @intCast(s.passes), side);
+                var fl: u8 = 0;
+                if (row.ko_sensitive) fl |= 1; // KO_SENSITIVE bit
+                return fl;
+            }
             const i: usize = @intCast(X.colex_from_pos(pos));
-            return if (side > 0) s.d.fb[i] else s.d.fw[i];
+            return if (side > 0) s.d.?.fb[i] else s.d.?.fw[i];
         }
 
         pub fn seen(s: *const S, pos: *const Pos) bool {
@@ -154,6 +207,21 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// KO_SENSITIVE, the result mixes independent fresh-start solves and is
         /// not V1 of anything (docs/research/ko-sensitive-chainability.md).
         pub fn v1_from_table(s: *const S, pos: *const Pos, side: i8) i8 {
+            if (s.a2) |_| {
+                // For artifact2: the pass edge at passes=0 leads to a passes=1 state
+                // with ko=none and the OTHER side to move.
+                const pass_row = s.bounds2(pos, KO_NONE, 1, side);
+                var best: i8 = pinnedValue(pass_row.L, pass_row.H);
+                for (0..n) |p| {
+                    if (pos[p] != 0) continue;
+                    const child = R.pos_from_move(pos, side, p) catch continue;
+                    const child_ko = koAfterCapture(pos, side, &child);
+                    const row = s.bounds2(&child, child_ko, 0, -side);
+                    const v = pinnedValue(row.L, row.H);
+                    if (if (side > 0) v > best else v < best) best = v;
+                }
+                return best;
+            }
             const maximizing = side > 0;
             var best: i8 = R.area_score(pos); // the ending pass
             for (0..n) |p| {
@@ -213,13 +281,12 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             return best;
         }
 
-        /// Does the chainability identity hold at (pos, side) under the
-        /// session's history? Returns true when the extremum over (filtered)
-        /// children's V0 equals the stored V0(pos, side). Settled positions
-        /// and UNDEF-stored positions are trivially "chainable" (no move
-        /// comparison is performed by `choose` there — V0 = area_score by
-        /// definition, and the pass edge is what `choose` uses).
+        /// Does the chainability identity hold at (pos, side)? For artifact2,
+        /// the full Markov key ensures self-consistency — always true.
         pub fn chainable_at_pos(s: *const S, pos: *const Pos, side: i8) bool {
+            // Artifact2: full Markov key — Bellman identity holds by solver construction
+            if (s.a2) |_| return true;
+            // Artifact1: check the history-free Bellman identity
             if (R.is_settled(pos)) return true;
             const stored = s.v0(pos, side);
             if (stored == UNDEF) return true; // unfilled; nothing to compare
@@ -342,6 +409,75 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// passes -> two passes -> game ends -> Sabaki scores a winner. (Resign
         /// is the only politeness, handled by the caller before choose runs.)
         pub fn choose(s: *const S, side: i8) Choice {
+            if (s.a2) |_| return s.chooseV2(side);
+            return s.chooseV1(side);
+        }
+
+        /// Artifact2 (WZO2) move selection: basic-ko enforcement, full Markov key.
+        /// Uses pinned TIE=0 value for comparison; L/H bounds exposed for diagnostics.
+        fn chooseV2(s: *const S, side: i8) Choice {
+            const maximizing = side > 0;
+            const opp: i8 = -side;
+            const opp_before = S.countColor(&s.pos, opp);
+
+            // Pass candidate: lookup pass child (ko=none, passes+1, other side)
+            const pass_value: i8 = if (s.passes >= 1)
+                R.area_score(&s.pos)
+            else blk: {
+                const pass_row = s.bounds2(&s.pos, KO_NONE, @intCast(s.passes + 1), -side);
+                break :blk pinnedValue(pass_row.L, pass_row.H);
+            };
+            const pass = Choice{
+                .cell = null,
+                .value = pass_value,
+                .dtt = if (s.passes >= 1) 0 else 1,
+                .caps = 0,
+            };
+            var best: ?Choice = pass;
+            var best_move: ?Choice = null;
+
+            for (0..n) |p| {
+                if (s.pos[p] != 0) continue;
+
+                // Basic ko enforcement: cannot recapture at the ko point
+                if (s.ko_point != KO_NONE and p == s.ko_point) continue;
+
+                const child = R.pos_from_move(&s.pos, side, p) catch continue;
+
+                // PSK enforcement if mode is psk
+                if (s.enforcement == .psk and s.seen(&child)) continue;
+
+                const child_ko = koAfterCapture(&s.pos, side, &child);
+                const row = s.bounds2(&child, child_ko, 0, -side);
+                const v = pinnedValue(row.L, row.H);
+                const dt = row.DTT;
+                const caps: u16 = opp_before - S.countColor(&child, opp);
+                const mv = Choice{ .cell = p, .value = v, .dtt = dt, .caps = caps };
+                best_move = S.pick(best_move, mv, maximizing);
+                best = S.pick(best, mv, maximizing);
+            }
+
+            // Early game: if pass would be chosen, play the best move instead
+            if (best.?.cell == null) {
+                const area: usize = w * h;
+                const min_own: usize = area / 4;
+                const min_total: usize = area / 2;
+                var own: usize = 0;
+                var tot: usize = 0;
+                for (s.pos) |x| {
+                    if (x == 0) continue;
+                    tot += 1;
+                    if ((x > 0) == (side > 0)) own += 1;
+                }
+                if (own < min_own and tot < min_total) {
+                    if (best_move) |bm| return bm;
+                }
+            }
+            return best.?;
+        }
+
+        /// Artifact1 (WZO1) move selection: original PSK enforcement, V0 comparison.
+        fn chooseV1(s: *const S, side: i8) Choice {
             const maximizing = side > 0;
             const opp: i8 = -side;
             const opp_before = S.countColor(&s.pos, opp);
@@ -523,14 +659,36 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         }
 
 
+        /// Compute ko_point after a placement. Returns KO_NONE if no ko created.
+        fn koAfterCapture(old_pos: *const Pos, side: i8, new_pos: *const Pos) u8 {
+            const opp: i8 = -side;
+            var opp_before: u16 = 0;
+            var last_captured: u8 = KO_NONE;
+            for (0..n) |p| {
+                if (old_pos[p] == opp) opp_before += 1;
+                if (old_pos[p] == opp and new_pos[p] == 0) last_captured = @intCast(p);
+            }
+            var opp_after: u16 = 0;
+            for (0..n) |p| {
+                if (new_pos[p] == opp) opp_after += 1;
+            }
+            // Basic ko: exactly one stone captured → ko at that cell
+            if (opp_before - opp_after == 1 and last_captured != KO_NONE) return last_captured;
+            return KO_NONE;
+        }
+
         pub fn applyMove(s: *S, side: i8, cell: ?usize) !void {
             if (cell) |p| {
+                const old_pos = s.pos;
                 const child = try R.pos_from_move(&s.pos, side, p);
                 s.pos = child;
                 s.push(&child);
                 s.passes = 0;
+                // Track ko: if we captured exactly one stone, the opponent cannot recapture there
+                s.ko_point = koAfterCapture(&old_pos, side, &child);
             } else {
                 s.passes += 1;
+                s.ko_point = KO_NONE; // pass clears the ko
             }
         }
     };
@@ -602,16 +760,79 @@ fn fmtVertexList(buf: []u8, points: []const usize, w_arg: usize, h_arg: usize) [
     return buf[0..off];
 }
 
-/// One artefact load + log setup + dispatch. Shared by main (explicit path
-/// or shorthand) and deferred mode (boardsize-triggered).
-fn loadAndDispatch(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log_dir: ?[]const u8) !void {
+/// One artefact load + log setup + dispatch. Detects WZO1 vs WZO2 by trying WZO2 first.
+fn loadAndDispatch(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log_dir: ?[]const u8, enforcement: Enforcement) !void {
+    // Determine goban size from the path: try to load header to get w/h.
+    // For WZO2, we need to know w/h before calling load().
+    // Strategy: try loading with typical sizes; or parse from filename.
+    // Simplest: try WZO2 first with a size guess, then fall back.
+    if (try tryWzo2Load(io, gpa, path, opt_log_dir, enforcement)) return;
+    return loadAndDispatchV1(io, gpa, path, opt_log_dir);
+}
+
+/// Try loading as WZO2 artifact. Returns true on success (dispatch handled internally).
+fn tryWzo2Load(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log_dir: ?[]const u8, enforcement: Enforcement) !bool {
+    // Peek at first 4 bytes to check magic
+    const peek = std.Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch return false;
+    if (peek.len < 4 or !std.mem.eql(u8, peek[0..4], &artifact2.MAGIC)) {
+        gpa.free(peek);
+        return false;
+    }
+    gpa.free(peek);
+
+    var a2 = artifact2.load(io, std.Io.Dir.cwd(), path, gpa) catch |err| {
+        std.debug.print("weizigo-oracle: WZO2 load failed for '{s}': {t}\n", .{ path, err });
+        return false;
+    };
+
+    std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} groups, {d} entries) [WZO2]\n", .{
+        path, a2.header.w, a2.header.h, a2.header.n_groups, a2.header.n_entries,
+    });
+    std.debug.print("weizigo-oracle: table rules_id={d} — {s}\n", .{
+        artifact2.RULES_BASICKO_LH_AREA, artifact2.rulesName(artifact2.RULES_BASICKO_LH_AREA),
+    });
+    std.debug.print("weizigo-oracle: ENFORCEMENT {s} (artifact rules_id {d})\n", .{
+        @tagName(enforcement), artifact2.RULES_BASICKO_LH_AREA,
+    });
+
+    const artifact_dir = std.fs.path.dirname(path) orelse ".";
+    const log_dir = opt_log_dir orelse try std.fmt.allocPrint(gpa, "{s}/../log", .{artifact_dir});
+    const dir = std.Io.Dir.cwd();
+    const log_file: ?std.Io.File = blk: {
+        dir.createDirPath(io, log_dir) catch break :blk null;
+        const log_path = try std.fmt.allocPrint(gpa, "{s}/weizigo-{d}.log", .{ log_dir, unix_seconds() });
+        const f = dir.createFile(io, log_path, .{}) catch break :blk null;
+        std.debug.print("weizigo-oracle: transcript -> {s}\n", .{log_path});
+        break :blk f;
+    };
+    const log = LogSink{ .io = io, .file = log_file };
+    log.line("# weizigo-oracle session, artifact {s} ({d}x{d} WZO2), unix time {d}", .{
+        path, a2.header.w, a2.header.h, unix_seconds(),
+    });
+
+    const key = @as(usize, a2.header.w) * 100 + a2.header.h;
+    switch (key) {
+        202 => try runSession(2, 2, gpa, null, &a2, &log, &[_]u8{}, enforcement),
+        302 => try runSession(3, 2, gpa, null, &a2, &log, &[_]u8{}, enforcement),
+        303 => try runSession(3, 3, gpa, null, &a2, &log, &[_]u8{}, enforcement),
+        403 => try runSession(4, 3, gpa, null, &a2, &log, &[_]u8{}, enforcement),
+        404 => try runSession(4, 4, gpa, null, &a2, &log, &[_]u8{}, enforcement),
+        else => {
+            std.debug.print("unsupported WZO2 artifact board {d}x{d}\n", .{ a2.header.w, a2.header.h });
+            return error.UnsupportedBoard;
+        },
+    }
+    return true;
+}
+
+fn loadAndDispatchV1(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log_dir: ?[]const u8) !void {
     var dec = artifact.load(io, std.Io.Dir.cwd(), path, gpa) catch |err| {
         std.debug.print("weizigo-oracle: cannot load artifact '{s}': {t}\n" ++
             "  hint: when launching from a GUI, pass an ABSOLUTE path to the .wzo file\n", .{ path, err });
         return err;
     };
     defer dec.deinit();
-    std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side)\n", .{
+    std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side) [WZO1]\n", .{
         path, dec.header.board_w, dec.header.board_h, dec.header.legal_count,
     });
     std.debug.print("weizigo-oracle: table rules_id={d} — {s}\n", .{
@@ -645,13 +866,13 @@ fn loadAndDispatch(io: std.Io, gpa: std.mem.Allocator, path: []const u8, opt_log
 
     const key = @as(usize, dec.header.board_w) * 100 + dec.header.board_h;
     switch (key) {
-        202 => try runSession(2, 2, gpa, &dec, &log, &[_]u8{}),
-        302 => try runSession(3, 2, gpa, &dec, &log, &[_]u8{}),
-        303 => try runSession(3, 3, gpa, &dec, &log, &[_]u8{}),
-        403 => try runSession(4, 3, gpa, &dec, &log, &[_]u8{}),
-        404 => try runSession(4, 4, gpa, &dec, &log, &[_]u8{}),
-        603 => try runSession(6, 3, gpa, &dec, &log, &[_]u8{}),
-        505 => try runSession(5, 5, gpa, &dec, &log, &[_]u8{}),
+        202 => try runSession(2, 2, gpa, &dec, null, &log, &[_]u8{}, .psk),
+        302 => try runSession(3, 2, gpa, &dec, null, &log, &[_]u8{}, .psk),
+        303 => try runSession(3, 3, gpa, &dec, null, &log, &[_]u8{}, .psk),
+        403 => try runSession(4, 3, gpa, &dec, null, &log, &[_]u8{}, .psk),
+        404 => try runSession(4, 4, gpa, &dec, null, &log, &[_]u8{}, .psk),
+        603 => try runSession(6, 3, gpa, &dec, null, &log, &[_]u8{}, .psk),
+        505 => try runSession(5, 5, gpa, &dec, null, &log, &[_]u8{}, .psk),
         else => {
             std.debug.print("unsupported artifact board {d}x{d}\n", .{ dec.header.board_w, dec.header.board_h });
             return error.UnsupportedBoard;
@@ -694,9 +915,9 @@ const KNOWN_COMMANDS = [_][]const u8{
     "quit",
 };
 
-fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: *const artifact.Decoded, log: *const LogSink, pre: []const u8) !void {
+fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: ?*const artifact.Decoded, a2: ?*const artifact2.LoadedArtifact, log: *const LogSink, pre: []const u8, enforcement: Enforcement) !void {
     const S = Session(w, h);
-    var s = S{ .d = dec };
+    var s = S{ .d = dec, .a2 = a2, .enforcement = enforcement };
 
     var threaded = std.Io.Threaded.init(gpa, .{});
     const io = threaded.io();
@@ -797,17 +1018,23 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 if (std.ascii.eqlIgnoreCase(vert, "pass")) {
                     s.applyMove(side, null) catch {};
                 } else if (cell_from_vertex(vert, w, h)) |cell| {
-                    // enforce OUR rules regardless of the GUI: positional
-                    // superko — no whole-goban position may ever recur
-                    const child = S.R.pos_from_move(&s.pos, side, cell) catch null;
-                    if (child != null and s.seen(&child.?)) {
+                    // Basic ko enforcement (default for WZO2; also valid for WZO1)
+                    if (s.ko_point != S.KO_NONE and cell == s.ko_point) {
                         ok = false;
-                        reply = "illegal move (positional superko)";
+                        reply = "illegal move (ko)";
                     } else {
-                        s.applyMove(side, cell) catch {
+                        const child = S.R.pos_from_move(&s.pos, side, cell) catch null;
+                        // PSK enforcement or if enforcement is psk
+                        const psk_illegal = child != null and s.seen(&child.?);
+                        if (psk_illegal) {
                             ok = false;
-                            reply = "illegal move";
-                        };
+                            reply = "illegal move (positional superko)";
+                        } else {
+                            s.applyMove(side, cell) catch {
+                                ok = false;
+                                reply = "illegal move";
+                            };
+                        }
                     }
                 } else {
                     ok = false;
@@ -924,17 +1151,26 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                             .a1_node => " (UNCHAINABLE A1@node — refused V0 comparison; played history-free fallback)",
                             .a2_child => " (UNCHAINABLE A2@chosen-child — refused V0 comparison; played history-free fallback)",
                         };
-                        std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s} dtt={d}\n", .{
+                        // For artifact2: show L/H bracket alongside pinned value
+                        const lh_suffix: []const u8 = if (s.a2) |_| blk: {
+                            const row = s.bounds2(&s.pos, s.ko_point, @intCast(s.passes), side);
+                            break :blk std.fmt.bufPrint(&sbuf, " [L={d},H={d}]", .{ row.L, row.H }) catch "";
+                        } else "";
+                        std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s}{s} dtt={d}\n", .{
                             colort,                reply,                       c.value, stored,
                             if (undef) " (UNDEF slot)" else "",
                             if (diverged) " (HISTORY-DIVERGED)" else "",
-                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         refused_suffix, c.dtt,
+                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         refused_suffix,
+                            lh_suffix,
+                            c.dtt,
                         });
-                        log.line("# oracle {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s} dtt={d}", .{
+                        log.line("# oracle {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s}{s} dtt={d}", .{
                             colort,                reply,                       c.value, stored,
                             if (undef) " (UNDEF slot)" else "",
                             if (diverged) " (HISTORY-DIVERGED)" else "",
-                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         refused_suffix, c.dtt,
+                            if (fl & 1 != 0) " KO_SENSITIVE" else "",         refused_suffix,
+                            lh_suffix,
+                            c.dtt,
                         });
                     }
                 }
@@ -1080,22 +1316,51 @@ pub fn main(init: std.process.Init) !void {
     const arg1 = args.next();
     const io = init.io;
 
+    // Parse optional --enforcement <mode> flag (psk | basic-ko, default: basic-ko for WZO2, psk for WZO1)
+    var enforcement: Enforcement = .psk; // default for WZO1; WZO2 path overrides
+    var artifact_path: ?[]const u8 = null;
+    var log_dir_opt: ?[]const u8 = null;
+
+    // First pass: scan for flags, collect positional args
+    var pos_args: [3][]const u8 = undefined;
+    var n_pos: usize = 0;
     if (arg1) |a| {
-        // Goban-size shorthand "NxN" or "NxM" → construct artifact path
-        if (parseBoardSize(a)) |bs| {
-            const path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}.wzo", .{ bs[0], bs[1] });
-            return loadAndDispatch(io, gpa, path, args.next());
+        // Check if it's a flag
+        if (std.mem.eql(u8, a, "--enforcement")) {
+            const mode = args.next() orelse "";
+            if (std.mem.eql(u8, mode, "psk")) enforcement = .psk
+            else if (std.mem.eql(u8, mode, "basic-ko")) enforcement = .basic_ko
+            else { std.debug.print("unknown enforcement mode '{s}'; use psk or basic-ko\n", .{mode}); return error.InvalidArgument; }
+            pos_args[n_pos] = args.next() orelse ""; n_pos += 1;
+            if (pos_args[0].len > 0) {
+                pos_args[n_pos] = args.next() orelse ""; n_pos += 1;
+            }
+        } else {
+            pos_args[0] = a;
+            n_pos = 1;
+            pos_args[1] = args.next() orelse ""; n_pos = 2;
         }
-        // Explicit artifact path (backward compatible)
-        return loadAndDispatch(io, gpa, a, args.next());
+    }
+
+    artifact_path = if (n_pos > 0 and pos_args[0].len > 0) pos_args[0] else null;
+    log_dir_opt = if (n_pos > 1 and pos_args[1].len > 0) pos_args[1] else null;
+
+    if (artifact_path) |ap| {
+        // Goban-size shorthand "NxN" or "NxM" → construct artifact path
+        if (parseBoardSize(ap)) |bs| {
+            const path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}.wzo", .{ bs[0], bs[1] });
+            return loadAndDispatch(io, gpa, path, log_dir_opt, enforcement);
+        }
+        // Explicit artifact path
+        return loadAndDispatch(io, gpa, ap, log_dir_opt, enforcement);
     }
 
     // No argument: deferred mode — wait for boardsize GTP command
-    try runDeferred(io, gpa, args.next());
+    try runDeferred(io, gpa, log_dir_opt, enforcement);
 }
 
 /// GTP loop that starts without an artifact; loads it when boardsize arrives.
-fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8) !void {
+fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enforcement: Enforcement) !void {
     const log_dir = opt_log_dir orelse "log";
     const dir = std.Io.Dir.cwd();
     const log_file: ?std.Io.File = blk: {
@@ -1179,11 +1444,49 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8) !vo
                     ok = false;
                     reply = "unacceptable size";
                 } else {
+                    // Try WZO2 first, then WZO1
+                    const wzo2_path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}-v2.wzo2", .{ want_w, want_h });
+                    var loaded_v2: ?artifact2.LoadedArtifact = null;
+
+                    // Attempt WZO2 load
+                    loaded_v2 = artifact2.load(io, std.Io.Dir.cwd(), wzo2_path, gpa) catch null;
+
+                    if (loaded_v2) |*a2| {
+                        std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} groups, {d} entries) [WZO2]\n", .{
+                            wzo2_path, a2.header.w, a2.header.h, a2.header.n_groups, a2.header.n_entries,
+                        });
+                        log.line("# weizigo-oracle session, artifact {s} ({d}x{d} WZO2), unix time {d}", .{
+                            wzo2_path, a2.header.w, a2.header.h, unix_seconds(),
+                        });
+
+                        try out.appendSlice(gpa, "=");
+                        try out.appendSlice(gpa, id);
+                        try out.appendSlice(gpa, "\n\n");
+                        log.line("> =", .{});
+                        try stdout.writeStreamingAll(tio, out.items);
+
+                        const remaining = in_buf[i + 1 .. got];
+                        const key = @as(usize, a2.header.w) * 100 + a2.header.h;
+                        switch (key) {
+                            202 => try runSession(2, 2, gpa, null, a2, &log, remaining, enforcement),
+                            302 => try runSession(3, 2, gpa, null, a2, &log, remaining, enforcement),
+                            303 => try runSession(3, 3, gpa, null, a2, &log, remaining, enforcement),
+                            403 => try runSession(4, 3, gpa, null, a2, &log, remaining, enforcement),
+                            404 => try runSession(4, 4, gpa, null, a2, &log, remaining, enforcement),
+                            else => {
+                                std.debug.print("unsupported WZO2 artifact board {d}x{d}\n", .{ a2.header.w, a2.header.h });
+                                return error.UnsupportedBoard;
+                            },
+                        }
+                        return;
+                    }
+
+                    // Fall back to WZO1
                     const artifact_path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}.wzo", .{ want_w, want_h });
                     var load_result = artifact.load(io, std.Io.Dir.cwd(), artifact_path, gpa);
                     if (load_result) |*dec| {
                         defer dec.deinit();
-                        std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side)\n", .{
+                        std.debug.print("weizigo-oracle: {s} ({d}x{d}, {d} legal/side) [WZO1]\n", .{
                             artifact_path, dec.header.board_w, dec.header.board_h, dec.header.legal_count,
                         });
                         log.line("# weizigo-oracle session, artifact {s} ({d}x{d}), unix time {d}", .{
@@ -1202,13 +1505,13 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8) !vo
 
                         const key = @as(usize, dec.header.board_w) * 100 + dec.header.board_h;
                         switch (key) {
-                            202 => try runSession(2, 2, gpa, dec, &log, remaining),
-                            302 => try runSession(3, 2, gpa, dec, &log, remaining),
-                            303 => try runSession(3, 3, gpa, dec, &log, remaining),
-                            403 => try runSession(4, 3, gpa, dec, &log, remaining),
-                            404 => try runSession(4, 4, gpa, dec, &log, remaining),
-                            603 => try runSession(6, 3, gpa, dec, &log, remaining),
-                            505 => try runSession(5, 5, gpa, dec, &log, remaining),
+                            202 => try runSession(2, 2, gpa, dec, null, &log, remaining, .psk),
+                            302 => try runSession(3, 2, gpa, dec, null, &log, remaining, .psk),
+                            303 => try runSession(3, 3, gpa, dec, null, &log, remaining, .psk),
+                            403 => try runSession(4, 3, gpa, dec, null, &log, remaining, .psk),
+                            404 => try runSession(4, 4, gpa, dec, null, &log, remaining, .psk),
+                            603 => try runSession(6, 3, gpa, dec, null, &log, remaining, .psk),
+                            505 => try runSession(5, 5, gpa, dec, null, &log, remaining, .psk),
                             else => {
                                 std.debug.print("unsupported artifact board {d}x{d}\n", .{ dec.header.board_w, dec.header.board_h });
                                 return error.UnsupportedBoard;

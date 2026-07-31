@@ -16,19 +16,20 @@
     "claim_count": 1
   },
   "T172": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/T172-w1",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T172-vb-blind.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T16:11:26Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T16:15:29Z",
+    "done": "2026-07-31T16:21:15Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T160": {
     "status": "done",
@@ -78,7 +79,7 @@
     "claim_count": 1
   },
   "T165": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T165-oracle-v2-m2b.md",
     "set": "A",
@@ -87,7 +88,7 @@
     "caps": [],
     "added": "2026-07-31T15:59:57Z",
     "claimed": "2026-07-31T16:09:15Z",
-    "done": null,
+    "done": "2026-07-31T16:35:41Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -109,7 +110,7 @@
     "claim_count": 0
   },
   "T166": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T166-oracle-v2-m3.md",
     "set": "A",
@@ -118,7 +119,7 @@
     "caps": [],
     "added": "2026-07-31T15:59:57Z",
     "claimed": "2026-07-31T16:09:15Z",
-    "done": null,
+    "done": "2026-07-31T16:35:41Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -188,22 +189,23 @@
     "claim_count": 1
   },
   "T168": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro/T168-w2",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T168-vb-harness.md",
     "set": "A",
     "holds": ["src/verify_battery.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T16:11:26Z",
-    "claimed": null,
+    "claimed": "2026-07-31T16:32:45Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T167": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T167-oracle-v2-m4a.md",
     "set": "A",
@@ -212,7 +214,7 @@
     "caps": [],
     "added": "2026-07-31T15:59:57Z",
     "claimed": "2026-07-31T16:09:15Z",
-    "done": null,
+    "done": "2026-07-31T16:35:41Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,

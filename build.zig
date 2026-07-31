@@ -155,4 +155,15 @@ pub fn build(b: *std.Build) void {
         }),
     });
     b.installArtifact(managent_exe);
+
+    // ── oracle-v2 builder (M2b, T165) ─────────────────────────────
+    const oracle_v2_build_exe = b.addExecutable(.{
+        .name = "weizigo-oracle-v2-build",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/oracle_v2_build.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(oracle_v2_build_exe);
 }

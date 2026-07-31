@@ -161,6 +161,7 @@ test {
     _ = @import("sgf.zig");
     _ = @import("retro.zig");
     _ = @import("artifact.zig");
+    _ = @import("artifact2.zig");
     _ = @import("gtp.zig");
     _ = @import("arena.zig");
 }

@@ -43,7 +43,7 @@ pub const UNDEF: i8 = -128;
 // =========================================================================
 // 2×2 solver — reusing Brute2x2 from EXP-4/EXP-5
 // =========================================================================
-const Brute2x2 = @import("qa023_brute_2x2.zig");
+pub const Brute2x2 = @import("qa023_brute_2x2.zig");
 pub const N2_TOTAL: usize = Brute2x2.TOTAL_STATES;
 pub const N2_N: usize = 4;
 
@@ -1092,11 +1092,35 @@ pub const Fixpoint4Result = struct {
     root_w_H: i8,
 };
 
-// 4×4 fixpoint: uses compact arrays for L/H, hash map for child lookups
-pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Result {
+/// Owns the fixpoint tables (L, H, compact list, hash map) for M2b consumption.
+/// Caller must call deinit() when done.
+pub const Fixpoint4Data = struct {
+    gpa: std.mem.Allocator,
+    compact_list: []u64, // dense linear indices, sorted; owned
+    L_tab: []i8, // lower bounds; owned
+    H_tab: []i8, // upper bounds; owned
+    map: std.AutoHashMap(u64, u32), // dense linear index → compact index; owned
+
+    pub fn deinit(self: *Fixpoint4Data) void {
+        self.gpa.free(self.compact_list);
+        self.gpa.free(self.L_tab);
+        self.gpa.free(self.H_tab);
+        self.map.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Result of run_fixpoint_4x4: summary + owned tables.
+pub const Fixpoint4Output = struct {
+    result: Fixpoint4Result,
+    data: Fixpoint4Data,
+};
+
+// 4×4 fixpoint: uses compact arrays for L/H, hash map for child lookups.
+// Returns both the summary result and the owned tables (for M2b consumption).
+pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Output {
     // Phase 1: build compact array of reachable non-terminal states (passes ∈ {0,1})
     var compact_list = try std.ArrayListUnmanaged(u64).initCapacity(gpa, 0);
-    defer compact_list.deinit(gpa);
 
     var lin: u64 = 0;
     while (lin < TOTAL4) : (lin += 1) {
@@ -1115,7 +1139,6 @@ pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Re
     // Phase 2: build hash map from dense linear index → compact index
     std.debug.print("# 4x4 fixpoint: building hash map for {d} states...\n", .{compact_count});
     var map = std.AutoHashMap(u64, u32).init(gpa);
-    defer map.deinit();
     try map.ensureTotalCapacity(compact_count);
     std.debug.print("# 4x4 fixpoint: hash map capacity reserved, inserting...\n", .{});
 
@@ -1124,11 +1147,9 @@ pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Re
     }
     std.debug.print("# 4x4 fixpoint: hash map built, {d} entries\n", .{map.count()});
 
-    // Phase 3: allocate L and H arrays
+    // Phase 3: allocate L and H arrays (owned, returned to caller)
     const L_tab = try gpa.alloc(i8, compact_count);
-    defer gpa.free(L_tab);
     const H_tab = try gpa.alloc(i8, compact_count);
-    defer gpa.free(H_tab);
 
     const L_init: i8 = -16; // -N4
     const H_init: i8 = 16;
@@ -1286,119 +1307,29 @@ pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Re
         }
     }
 
-    // =====================================================================
-    // WZO serialization — write fixpoint to data/oracle-4x4-basicko-tie-area.wzo
-    // =====================================================================
-    std.debug.print("# WZO: allocating {d} columns...\n", .{RAW_TOTAL4});
+    // Transfer ownership: take the ArrayList's items slice + drop the list wrapper.
+    // After toOwnedSlice, compact_list is a zero-length list (no need to deinit).
+    const compact_slice = try compact_list.toOwnedSlice(gpa);
 
-    const vb = try gpa.alloc(i8, RAW_TOTAL4);
-    defer gpa.free(vb);
-    const vw = try gpa.alloc(i8, RAW_TOTAL4);
-    defer gpa.free(vw);
-    const fb = try gpa.alloc(u8, RAW_TOTAL4);
-    defer gpa.free(fb);
-    const fw = try gpa.alloc(u8, RAW_TOTAL4);
-    defer gpa.free(fw);
-    const db = try gpa.alloc(u8, RAW_TOTAL4);
-    defer gpa.free(db);
-    const dw = try gpa.alloc(u8, RAW_TOTAL4);
-    defer gpa.free(dw);
-
-    @memset(vb, UNDEF);
-    @memset(vw, UNDEF);
-    @memset(fb, 0);
-    @memset(fw, 0);
-    @memset(db, 255); // FAR
-    @memset(dw, 255); // FAR
-
-    std.debug.print("# WZO: filling columns from compact data...\n", .{});
-
-    var fresh_state_count: u64 = 0;
-    for (compact_list.items) |dense_idx| {
-        const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
-        if (passes != 0) continue;
-        const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
-        const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
-        const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
-        const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
-        if (ko != KO_NONE4) continue;
-        const board: u32 = @intCast(rest2 % RAW_TOTAL4);
-        const ci = map.get(dense_idx).?;
-        const Lv = L_tab[ci];
-        const Hv = H_tab[ci];
-        const V = @max(Lv, @min(TIE, Hv));
-
-        if (side == 0) {
-            vb[board] = V;
-            if (Lv < Hv) fb[board] |= 1;
-        } else {
-            vw[board] = V;
-            if (Lv < Hv) fw[board] |= 1;
-        }
-        fresh_state_count += 1;
-    }
-
-    std.debug.print("# WZO: fresh-start states found: {d}\n", .{fresh_state_count});
-
-    var legal_count: u64 = 0;
-    for (0..RAW_TOTAL4) |i| {
-        if (vb[i] != UNDEF or vw[i] != UNDEF) legal_count += 1;
-    }
-    std.debug.print("# WZO: positions with at least one side valued: {d}\n", .{legal_count});
-
-    const header = artifact.Header{
-        .board_w = 4,
-        .board_h = 4,
-        .total = RAW_TOTAL4,
-        .legal_count = legal_count,
-    };
-    const cols = artifact.Columns{
-        .vb = vb,
-        .vw = vw,
-        .fb = fb,
-        .fw = fw,
-        .db = db,
-        .dw = dw,
-    };
-
-    const wzo_path = "data/oracle-4x4-basicko-tie-area.wzo";
-    std.debug.print("# WZO: encoding and writing {s}...\n", .{wzo_path});
-
-    const wzo_bytes = try artifact.encode(gpa, header, cols);
-    defer gpa.free(wzo_bytes);
-
-    // Override rules_id from PSK (1) to basic-ko+TIE (2) — artifact.encode hardcodes 1.
-    // rules_id=2 means: Chinese area, komi 0, basic ko, TIE=0 for long cycles.
-    wzo_bytes[9] = 2;
-
-    // Write in chunks (file >2 GiB would exceed macOS single-write limit)
-    var threaded = std.Io.Threaded.init(gpa, .{});
-    defer threaded.deinit();
-    const io = threaded.io();
-    const dir = std.Io.Dir.cwd();
-    try dir.createDirPath(io, "data");
-    var file = try dir.createFile(io, wzo_path, .{});
-    defer file.close(io);
-    const CHUNK: usize = 1 << 30; // 1 GiB
-    var off: u64 = 0;
-    while (off < wzo_bytes.len) {
-        const end = @min(off + CHUNK, wzo_bytes.len);
-        try file.writePositionalAll(io, wzo_bytes[@intCast(off)..@intCast(end)], off);
-        off = end;
-    }
-
-    std.debug.print("# WZO: done — {s} ({d} bytes)\n", .{ wzo_path, wzo_bytes.len });
-
-    return Fixpoint4Result{
-        .sweeps = sweep_idx,
-        .converged = total_changes == 0,
-        .compact_count = compact_count,
-        .root_b_compact = root_b_compact,
-        .root_w_compact = root_w_compact,
-        .root_b_L = L_tab[root_b_compact],
-        .root_b_H = H_tab[root_b_compact],
-        .root_w_L = L_tab[root_w_compact],
-        .root_w_H = H_tab[root_w_compact],
+    return Fixpoint4Output{
+        .result = Fixpoint4Result{
+            .sweeps = sweep_idx,
+            .converged = total_changes == 0,
+            .compact_count = compact_count,
+            .root_b_compact = root_b_compact,
+            .root_w_compact = root_w_compact,
+            .root_b_L = L_tab[root_b_compact],
+            .root_b_H = H_tab[root_b_compact],
+            .root_w_L = L_tab[root_w_compact],
+            .root_w_H = H_tab[root_w_compact],
+        },
+        .data = Fixpoint4Data{
+            .gpa = gpa,
+            .compact_list = compact_slice,
+            .L_tab = L_tab,
+            .H_tab = H_tab,
+            .map = map,
+        },
     };
 }
 
@@ -1510,7 +1441,8 @@ pub fn main() !void {
     // =====================================================================
     std.debug.print("\n## 4×4 fixpoint (sparse, compact arrays + hash map)\n", .{});
 
-    const fp4 = try run_fixpoint_4x4(gpa, reach4);
+    const fp4_out = try run_fixpoint_4x4(gpa, reach4);
+    const fp4 = fp4_out.result;
 
     const v4_b = median(fp4.root_b_L, fp4.root_b_H);
     const v4_w = median(fp4.root_w_L, fp4.root_w_H);
@@ -1561,8 +1493,116 @@ pub fn main() !void {
         std.debug.print("# root filled? {s}\n", .{if (root_filled) "YES" else "NO"});
     }
 
-    // Free reach4 before WZO serialization (large alloc coming)
+    // Free reach4 before WZO serialization (free memory for the large allocs below)
     gpa.free(reach4);
+
+    // =====================================================================
+    // WZO v1 serialization — write fixpoint to data/oracle-4x4-basicko-tie-area.wzo
+    // =====================================================================
+    {
+        std.debug.print("# WZO: allocating {d} columns...\n", .{RAW_TOTAL4});
+
+        const vb = try gpa.alloc(i8, RAW_TOTAL4);
+        defer gpa.free(vb);
+        const vw = try gpa.alloc(i8, RAW_TOTAL4);
+        defer gpa.free(vw);
+        const fb = try gpa.alloc(u8, RAW_TOTAL4);
+        defer gpa.free(fb);
+        const fw = try gpa.alloc(u8, RAW_TOTAL4);
+        defer gpa.free(fw);
+        const db = try gpa.alloc(u8, RAW_TOTAL4);
+        defer gpa.free(db);
+        const dw = try gpa.alloc(u8, RAW_TOTAL4);
+        defer gpa.free(dw);
+
+        @memset(vb, UNDEF);
+        @memset(vw, UNDEF);
+        @memset(fb, 0);
+        @memset(fw, 0);
+        @memset(db, 255); // FAR
+        @memset(dw, 255); // FAR
+
+        std.debug.print("# WZO: filling columns from compact data...\n", .{});
+
+        var fresh_state_count: u64 = 0;
+        for (fp4_out.data.compact_list) |dense_idx| {
+            const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
+            if (passes != 0) continue;
+            const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
+            const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
+            const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
+            const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
+            if (ko != KO_NONE4) continue;
+            const board: u32 = @intCast(rest2 % RAW_TOTAL4);
+            const ci = fp4_out.data.map.get(dense_idx).?;
+            const Lv = fp4_out.data.L_tab[ci];
+            const Hv = fp4_out.data.H_tab[ci];
+            const V = @max(Lv, @min(TIE, Hv));
+
+            if (side == 0) {
+                vb[board] = V;
+                if (Lv < Hv) fb[board] |= 1;
+            } else {
+                vw[board] = V;
+                if (Lv < Hv) fw[board] |= 1;
+            }
+            fresh_state_count += 1;
+        }
+
+        std.debug.print("# WZO: fresh-start states found: {d}\n", .{fresh_state_count});
+
+        var legal_count: u64 = 0;
+        for (0..RAW_TOTAL4) |i| {
+            if (vb[i] != UNDEF or vw[i] != UNDEF) legal_count += 1;
+        }
+        std.debug.print("# WZO: positions with at least one side valued: {d}\n", .{legal_count});
+
+        const header = artifact.Header{
+            .board_w = 4,
+            .board_h = 4,
+            .total = RAW_TOTAL4,
+            .legal_count = legal_count,
+        };
+        const cols = artifact.Columns{
+            .vb = vb,
+            .vw = vw,
+            .fb = fb,
+            .fw = fw,
+            .db = db,
+            .dw = dw,
+        };
+
+        const wzo_path = "data/oracle-4x4-basicko-tie-area.wzo";
+        std.debug.print("# WZO: encoding and writing {s}...\n", .{wzo_path});
+
+        const wzo_bytes = try artifact.encode(gpa, header, cols);
+        defer gpa.free(wzo_bytes);
+
+        // Override rules_id from PSK (1) to basic-ko+TIE (2) — artifact.encode hardcodes 1.
+        // rules_id=2 means: Chinese area, komi 0, basic ko, TIE=0 for long cycles.
+        wzo_bytes[9] = 2;
+
+        // Write in chunks (file >2 GiB would exceed macOS single-write limit)
+        var threaded = std.Io.Threaded.init(gpa, .{});
+        defer threaded.deinit();
+        const io = threaded.io();
+        const dir = std.Io.Dir.cwd();
+        try dir.createDirPath(io, "data");
+        var file = try dir.createFile(io, wzo_path, .{});
+        defer file.close(io);
+        const CHUNK: usize = 1 << 30; // 1 GiB
+        var off: u64 = 0;
+        while (off < wzo_bytes.len) {
+            const end = @min(off + CHUNK, wzo_bytes.len);
+            try file.writePositionalAll(io, wzo_bytes[@intCast(off)..@intCast(end)], off);
+            off = end;
+        }
+
+        std.debug.print("# WZO: done — {s} ({d} bytes)\n", .{ wzo_path, wzo_bytes.len });
+    }
+
+    // Free fixpoint data (no longer needed after WZO v1 write)
+    fp4_out.data.deinit();
 
     // =====================================================================
     // FINAL VERDICT
