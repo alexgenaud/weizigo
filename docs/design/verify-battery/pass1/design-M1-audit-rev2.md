@@ -91,7 +91,53 @@ None has increased in severity; none blocks Gate 2.
 
 ---
 
-## 4. Requirement and acceptance re-check
+## 4. Acceptance criteria for should-fix carry-overs
+
+Each carry-over item is stated as a concrete pass/fail test, independent of
+implementation, that the reviewer can check post-build. The first column is a
+short ID for a task tracker.
+
+### AC-S1 — I6 field naming (owner: V-7)
+
+| # | test | pass condition |
+|---|---|---|
+| AC-S1.1 | Read the I6 `value` object emitted for a 4×4 WZO1 artifact. List its top-level keys. | No key is named `illegal` unless the design's §3.6 I6 schema is amended to define what it counts and carry T137's uncited-split flag in the field's `note`. If the field is renamed, `illegal` must not appear. |
+| AC-S1.2 | Sum the three components (`illegal` + `legal_both_sides` + `legal_one_side_only`). Compare to `legal_positions_total`. | The sum equals `legal_positions_total`. If renamed, the new component names make the arithmetic self-documenting without a note. |
+
+### AC-S2 — per-invariant RSS field (owner: M1 harness)
+
+| # | test | pass condition |
+|---|---|---|
+| AC-S2.1 | Run the battery with at least two invariants where the second uses more memory than the first. Examine the per-result `peak_rss_mb` (or renamed field). | The field for the lighter invariant does not report the heavier invariant's peak. If the field is `rss_hwm_after_mb`, the prose in §7 states clearly that it is a running maximum, not a per-invariant peak. If the field is `rss_growth_mb` (delta), the value for the first invariant is non-negative and the prose defines it. |
+| AC-S2.2 | Check the field name in the frozen schema (§3.3 common field table). | The name does not contain the word "peak" unless the value is actually the per-invariant peak. Suggested: `rss_hwm_after_mb` or `rss_growth_mb`. |
+
+### AC-S3 — invariants_requested completeness (owner: M1 harness)
+
+| # | test | pass condition |
+|---|---|---|
+| AC-S3.1 | Run the battery on a 3×2 WZO1 artifact with default flags. Count the entries in the header's `invariants_requested` array. Count the result records emitted (excluding header and trailer). | The two counts differ by exactly the number of `not_applicable` results. The consumer can derive the total record count without guessing. |
+| AC-S3.2 | Check the header record for a field that names the not-applicable invariants. | One of the following holds: (a) a field `invariants_not_applicable` lists them, (b) `invariants_requested` includes them with a separate `invariants_skipped` for `--invariants` omissions, or (c) no result records are emitted for not-applicable invariants and the design states this. |
+
+### AC-S4 — I5-only all-legal 0/0 result (owner: M1 harness + V-9)
+
+| # | test | pass condition |
+|---|---|---|
+| AC-S4.1 | Invoke `verify-battery 2x2 "" --i5-only --i5-graph all-legal`. Examine the I5 result record. | The record has `status` defined (not absent, not "error"). `value.denominator` is `0`. `value.numerator` is `0`. The design §6.3 or the result's `note` field states that `0/0` means calibration-only and this run does not settle the §6a I5 cell. |
+| AC-S4.2 | Same invocation. Check the `exit_class` on the I5 result and the overall exit code. | If calibration gates pass: `exit_class: "pass"`, exit code 0. If calibration fails: `exit_class: "battery-bad"`, exit code 3. The 0/0 ratio itself is not treated as a violation. |
+
+### AC-S5(a–d) — schema surface completeness (owner: M1 harness)
+
+| # | test | pass condition |
+|---|---|---|
+| AC-S5a.1 | Run the battery with `--sample-size` on a §6a-exhaustive cell without `--allow-mode-deviation`. Examine the result record. | A `deviation` field is present. The field name is listed in §3.3's common field table with type and nullability. |
+| AC-S5a.2 | Run the battery on a 4×4 artifact that triggers an I5 memory fallback. Examine the I5 result record. | An `error` object is present. The `error` key is listed in §3.3's common field table as nullable, type `object`. |
+| AC-S5b.1 | Check §3.4's trailer field table. | The `peak_rss_mb` row has a nullable column (value `yes` or `no`), matching the prose "`null` if not measured". |
+| AC-S5c.1 | Check the header field table (§3.2.1) for `seed`. | The type is `u64` or `string`, not a union `u64\|string`. If the auto path must be a string, it is a separate field (`seed_source: "fixed"\|"auto"`). Consumers do not branch on the JSON type of `seed`. |
+| AC-S5d.1 | Invoke I5 once-per-goban (any goban). Examine the proposed-row record. | `artifact_index` has a defined value. If `null`, the field table says it is nullable. If `0`, the prose explains that 0 means "not per-artifact". The value is not absent and not undefined. |
+
+---
+
+## 5. Requirement and acceptance re-check
 
 | id | rev 1 | rev 2 | note |
 |---|---|---|---|
@@ -105,7 +151,7 @@ None has increased in severity; none blocks Gate 2.
 
 ---
 
-## 5. Verdict
+## 6. Verdict
 
 **PASS.**
 
