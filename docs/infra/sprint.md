@@ -2,7 +2,7 @@
 
 ```
 Revision: 4
-Status: PROPOSED
+Status: RATIFIED (G-human, 2026-07-31, c8d666a)
 Rev 2 per msg 064 §4 (eight edits), 067 §2 (per-pass layout), rulings D-9…D-15.
 Rev 3 per T154 round-1 fresh-seat review of rev 2 @ 6f8a53b. Dispositions,
 all fixed / none rejected / none escalated: F1 design-<milestone>.md
