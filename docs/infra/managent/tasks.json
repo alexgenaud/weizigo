@@ -96,19 +96,19 @@
     "claim_count": 1
   },
   "T178": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T178-consumer-load.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T23:45:48Z",
-    "claimed": null,
+    "claimed": "2026-07-31T23:50:55Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T165": {
     "status": "done",
@@ -220,6 +220,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T179": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T179-subagent-harness.md",
+    "set": "A",
+    "holds": ["docs/infra/agents/subdelegation.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T23:53:56Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T161": {
     "status": "done",
