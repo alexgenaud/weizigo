@@ -1,9 +1,14 @@
 # Sprint — phased delegated development with subagent orchestration
 
 ```
-Revision: 2
+Revision: 3
 Status: PROPOSED
 Rev 2 per msg 064 §4 (eight edits), 067 §2 (per-pass layout), rulings D-9…D-15.
+Rev 3 per T154 round-1 fresh-seat review of rev 2 @ 6f8a53b. Dispositions,
+all fixed / none rejected / none escalated: F1 design-<milestone>.md
+exception stated; F2 external approval declared at spec ratification;
+F3 human checkpoints defined as pass boundaries; F4 strategy named in the
+phase list; F5 default gate-holder named; F6 role pointer added.
 ```
 
 The intent, in one line: flexibility, transparency, and accountability,
@@ -30,13 +35,19 @@ de-escalate. The human ratifies.
 Every sprint has **spec**, **strategy**, and **acceptance**. The spec is
 usually written or drafted before delegation. A large sprint is also
 approved externally — human, Dabir, Grand Auditor, or an agent product
-owner. The bookends — `spec.md` ("what do we want?") and `accept.md` ("did
-we achieve it?") — must always be understandable, writable, and ratifiable
-by the human.
+owner (seats and role definitions live in the active milestone channel's
+`STATE.md`). There is no numeric threshold for "large": whether a sprint
+needs external approval beyond the human is declared in `spec.md` and
+settled when the spec is ratified. The bookends — `spec.md` ("what do we
+want?") and `accept.md` ("did we achieve it?") — must always be
+understandable, writable, and ratifiable by the human.
 
-**Human checkpoint model.** The human observes and redirects **between
-passes**, not between phases. Within a pass, agents decide when they have
-collected sufficient evidence. Dabir reads phase documents and summarizes.
+**Human checkpoint model.** The human's checkpoints sit at pass
+boundaries: ratifying `spec.md` and `strategy.md` as a pass opens,
+`accept.md` as it closes. Between those bookends the human observes and
+redirects **between passes**, not between phases — within a pass, agents
+decide when they have collected sufficient evidence. Dabir reads phase
+documents and summarizes.
 A closed interrupt list must reach the human immediately at any point, with
 no copy/paste relay:
 
@@ -65,8 +76,12 @@ docs/design/<sprint>/          ← ephemera: audits, notes, drafts — numbered,
 ```
 
 Canonical docs are in git, never in `untracked/` — that is where evidence
-goes to die (T13's probe source, `2x2.T12`'s census). One canonical
-document per phase: the unsuffixed file, revised in place, carrying
+goes to die (T13's probe source, `2x2.T12`'s census). "Unsuffixed" bans
+revision and audit suffixes (`-rev2`, `-audit-1`), not deliverable names:
+a pass whose design spans several milestones carries one canonical doc per
+deliverable (`design-M1.md`, `design-M2a.md` — the `design*.md` in the tree
+above), each revised in place. One canonical document per phase
+deliverable: the unsuffixed file, revised in place, carrying
 `Revision: N` and `Status: PROPOSED | RATIFIED (Gn, date, sha)` in its
 header. Audits and drafts are numbered ephemera under
 `docs/design/<sprint>/`, absorbed into the canonical doc's disposition log
@@ -75,8 +90,9 @@ and deleted at the gate commit. Line references pin commits
 
 ## Phases within a pass
 
-Phase documents are imperative verbs: `spec`, `scope`, `design`, `test`,
-`plan`, `build`, `accept`. Strategy may add, skip, merge, resequence,
+Phase documents are one-word imperatives — `spec`, `scope`, `design`,
+`test`, `plan`, `build`, `accept` — plus `strategy`, the one noun.
+Strategy may add, skip, merge, resequence,
 expand or shrink phases — the bookends are the invariant. Work one phase
 at a time unless `strategy.md` explicitly parallelizes.
 
@@ -149,6 +165,7 @@ If the audit returns blocker, critical, or MUST findings:
 | **Judgment** | Goes to the gate as a checklist; the gate-holder accepts with rationale or orders **REDO** — a fresh writer and fresh brief, a different instrument than round three of the same loop |
 | **Structural** (real, but fixing it would balloon this pass) | **Descoped**: named in this pass's `accept.md` as a known limitation, first item in the next pass's `scope.md` |
 
+Unless `strategy.md` names another seat, the gate-holder is the human.
 Passes are the escape valve the audit cap needs; a sprint that can iterate
 doesn't have to loop. The cap never forces acceptance of a broken document.
 
