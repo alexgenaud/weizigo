@@ -1,6 +1,7 @@
 Task: NARRATIVE-LAYER · Role: worker · Model: DSPro/T127 · Date: 2026-07-31
 
 **Refreshed 2026-07-31 by T127 to absorb the T100–T126 wave** (32 tasks, 7 models).
+T129 (EXP-7 4×4, QA-027 falsified) absorbed 2026-07-31 by Fable/Consul.
 Every load-bearing sentence carries `[ID:STATUS]`, verified by `bin/weizigo-claimlint` C6.
 
 # The Through-Line — what weizigo tried, what failed, what's open, and what it means
@@ -301,8 +302,10 @@ settling the second:
 
 **The certified-fraction metric is a K0-shaped instrument bolted to a K4
 foundation.** "Certified" means the Bellman identity was verified at the node
-under the table's own rule — self-consistency, not correctness
-`[QA-027:CLAIMED]`.
+under the table's own rule — self-consistency, not correctness. And at 4×4
+the new-rule table fails even that: the median-pinned V violates its own
+Bellman identity at 89.29% of visited fresh-start nodes (T129, 2026-07-31)
+`[QA-027:FALSE-AS-SCOPED]`.
 
 ---
 
@@ -343,7 +346,14 @@ under loopy-game fixpoint semantics `[2x2.BASICKO-TIE:MEASUREMENT]`
 `[4x4.BASICKO-TIE:MEASUREMENT]`. The .wzo artifact was written (T113).
 The PSK-divergence measurement (EXP-8, Kimi-k2.7, 2026-07-29) built the
 harness but is blocked on new-rule tables — which now exist. The
-certified-fraction measurement (EXP-7) is pending the 4×4 re-run (T129).
+certified-fraction measurement (EXP-7) **completed at 4×4** (DSPro/T129,
+2026-07-31): certified fraction **10.71%** (3,000/28,000 fresh-start nodes),
+falsifying QA-027 at that goban `[QA-027:FALSE-AS-SCOPED]` — the L/H
+fixpoint converged but the pinned `V = median(L, TIE, H)` does not satisfy
+the V-domain Bellman identity at bracket-valued states (the empty-goban root
+`[L=+1, H=+16]` violates directly). At 3×3, where the root is single-valued,
+the fraction is 100.00%. Evidence: `docs/evidence/QA-027/4x4/`,
+`docs/research/newrule-certified-fraction-4x4-2026-07-31.md`.
 Brute-force cross-check is withdrawn across the entire chain (T102)
 `[GLOBAL.BRUTE-ALIASING:FALSE]`; fixpoint results stand independently.
 
