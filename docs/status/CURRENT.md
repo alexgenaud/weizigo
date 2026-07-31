@@ -5,12 +5,106 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
-Last refreshed **2026-07-31** (DSPro/T127 — T100–T126 wave absorption; DSPro/T129 — EXP-7 4×4 re-run DONE).
+Last refreshed **2026-07-31 (late)** (Fable/Consul — sprint state + absorption
+catch-up, after the 39-task absorption audit).
+
+# STATE AS OF 2026-07-31 (late) — Fable/Consul
+
+## Two Tier-A sprints in flight — both M1 designs at G2 (human ratification pending)
+
+**Doc convention** (`docs/infra/sprint.md` rev 4, **RATIFIED** `d53c2a8`):
+canonical unsuffixed docs live in `docs/infra/<sprint>/pass0/`; audit/revision
+ephemera in `docs/design/<sprint>/archive/`; ephemera deleted or archived at
+gate commits. Older documents may cite pre-reorg paths — the moves were all
+`git mv` (`e6c6bf9`, `45deb10`).
+
+- **oracle-v2** (ko-aware rebuild, WZO2 bracket-carrying format):
+  `docs/infra/oracle-v2/pass0/{spec,strategy,design-M1}.md`. design-M1 at
+  **rev 3** after three audit rounds (T142/T146/T150); G2 = diff review, no
+  fourth round. Spec A6 amended in place, amendment rides the same G2.
+  **M2a is done**: `src/exp6_solve.zig` now exposes a public fixpoint
+  interface (T140, 79 `pub` decorations; verified byte-identical by fresh
+  seat T155 — gate chain 2×2=0, 3×2=0, 3×3=+9 reproduced, 4×4 census
+  identical). M2b dispatchable the moment G2 clears.
+- **verify-battery** (fleet re-verification instrument):
+  `docs/infra/verify-battery/pass0/{spec,strategy,design-M1,i5-feasibility}.md`.
+  design-M1 at **rev 2 + rev-3 patch** (T156 schema-field closures), audit
+  T151 **PASS**; the JSON-Lines result schema freezes at G2. Acceptance
+  criteria AC-S1 / AC-S3 / AC-S4 are still open and tracked only in the
+  archived audit — carry them into the G2 review.
+
+## Decisions the human owes
+
+1. **G2 ratification ×2** — both design-M1 docs above.
+2. **WZO1 cannot answer bracket invariants**: every committed artifact stores
+   the TIE-resolved pin (single V), not `[L,H]` — so `L ≤ H`, median-pin and
+   L/H-residual checks are uncomputable from committed evidence and 10 of the
+   60 fleet-matrix cells are unreachable until WZO2 exists. Options on the
+   table (verify-battery `pass0/design-M1.md` §agenda): wait-for-WZO2 vs a
+   ~250–350-line solver-side L/H dump.
+3. **ADR-0020 amendment (G1)**: the "24 mismatch states as permanent
+   calibration fixture" clause was withdrawn by `GLOBAL.BRUTE-ALIASING`
+   (T102: all 24 were checker artifacts; true gap **0/172** — the fixture
+   should be an *agreement* fixture). Flagged independently by T133, T136,
+   T137. Amendment text is **drafted, uncommitted** in the working tree
+   (Orcha) — needs your ruling before it lands.
+
+## PROPOSED specs awaiting their spec gate
+
+- **orcha-tools** — `docs/infra/orcha-tools/pass0/spec.md`. **Implemented**
+  (T159, absorbed `082433e`): `managent suggest`, done-deliverable check,
+  audit cross-citation flag; reviewed T160. Its A3 acceptance fixture was the
+  QA-027-not-absorbed defect, which is now fixed (`622275f`) — the tools
+  exist to catch the next one.
+- **argus** — `docs/infra/argus/pass0/spec.md` (read-only watchdog, 14
+  requirements, cheap-tier). Spec audited T161.
+- **project-restructure** — `docs/infra/project-restructure/pass0/spec.md`
+  (3 items, "do nothing" explicitly acceptable). Spec audited T162 (PASS).
+  Item 2 touches ~890 references to the epistemic tree — see spec §risks
+  before any ratification.
+
+## Absorption catch-up (per the 2026-07-31 Fable audit of all 39 DONE tasks)
+
+The audit found everything after T129 was commit-only (deliverables committed,
+findings never pushed into CLAIMS/PROGRESS/CURRENT). Recovery in flight:
+
+- **Done (Fable, `622275f`)**: `QA-027` → **FALSE-AS-SCOPED (at 4×4)** —
+  T129 measured certified fraction 10.71%, the median-pinned V is not
+  Bellman-chainable at bracket-valued states; `QA-020` gained the new-rule
+  re-test datum; PROGRESS.md §6/§7.4 updated and cite-tagged.
+- **T163 (Orcha, holds `docs/epistemic/CLAIMS.md`)**: mechanical register
+  batch — T138 census annotations (36-phantom identity on the four
+  `2232/322/34/34` rows; new rows for 1,678 cycle-reachable / 1,676 max-SCC),
+  `GLOBAL.H1-CENSUS` ×2-arithmetic caveat, `4x3.S3a` A094777-is-square-only
+  caveat, T134 I5-feasibility row (~1.2–1.5 GB peak vs 4 GB cap), the
+  `passes ≥ 1 ⇒ ko_point = none` invariant row, G-at-4×4 bracket row
+  (23,802,969–24,318,165), T128 triage application, checkpoint SHA-256s.
+  **Caution:** `untracked/c2pilot_3x2.zig` is claimlint's known-bad C2
+  calibration fixture — applying T128's re-point recommendation to it would
+  break the calibration suite.
+- **T164 (Orcha, holds `docs/infra/model-perf.md`)**: backfill T142–T158,
+  including T152's model-allocation findings.
+- **Claimlint gate**: run `bin/weizigo-claimlint` after every CLAIMS.md edit.
+  Current state: C6 = 0 (clean); pre-existing FAILS are 10 C1a orphans +
+  13 C2 dangling paths — that is exactly the T128 debt T163 clears.
+
+## Concurrency — live file owners
+
+- `docs/epistemic/CLAIMS.md` — **T163** (uncommitted edits in the tree now).
+- `docs/infra/model-perf.md` — **T164**.
+- `docs/status/CURRENT.md` — this rewrite (Fable/Consul).
+- `src/managent/main.zig` — T159 hold cleared at `082433e`.
+- Kanban caution: T140/T141/T144/T145/T146 in the *current* queue are
+  orcha-tools **test fixtures** with reused IDs, not the historical tasks of
+  the same numbers.
+
+---
 
 ## T129 (DSPro/T129) — EXP-7 4×4 re-run — DONE 2026-07-31
 
 Result: certified fraction = 10.71% (3,000/28,000 fresh-start nodes) under oracle.
-QA-027 is FALSE at 4×4. V-domain Bellman identity fails at bracket-valued states.
+QA-027 is FALSE at 4×4 `[QA-027:FALSE-AS-SCOPED]` — absorbed into the register
+at `622275f`. V-domain Bellman identity fails at bracket-valued states.
 Deliverables: docs/evidence/QA-027/4x4/, docs/research/newrule-certified-fraction-4x4-2026-07-31.md.
 Ownership of src/t129_exp7_4x4.zig cleared.
 
@@ -70,18 +164,15 @@ Ownership of src/t129_exp7_4x4.zig cleared.
 > Rules ID 2 (basic-ko + TIE=0). 48.5M fresh-start states, 31 sweeps.
 > PROVENANCE: `docs/evidence/QA-026/4x4/ARTIFACT-PROVENANCE.md`.
 >
-> ## Open items (post-T126)
+> ## Open items (post-T126) — **superseded 2026-07-31 (late)**
 >
-> - **T128** — claimlint dangling-retire sweep (CLAIMS.md rows with no
->   document citation)
-> - **T129** — EXP-7 4×4 re-run (certified-fraction measurement) using the
->   .wzo artifact
-> - **4×4 writes-off regen** (D3): untested `[4x4.D3:UNTESTED]`
-> - **FP1 acceptance checks 1–2**: can read post-hoc from T104 output
-> - **PSK-divergence measurement** (EXP-8): harness built, blocked on
->   new-rule tables — which now exist
-> - **4×4 S2-impl / S3b**: untested
-> - **ADR-0006 residual**: ko-sensitive region and 5×5
+> T128 and T129 are DONE (see above). The surviving open items, restated:
+> **4×4 writes-off regen** (D3) `[4x4.D3:UNTESTED]` · **FP1 acceptance
+> checks 1–2** (post-hoc from T104 output) · **PSK-divergence measurement**
+> (EXP-8: harness built, new-rule tables now exist) · **4×4 S2-impl / S3b**
+> untested · **ADR-0006 residual** (ko-sensitive region and 5×5 — note the
+> WZO2 u32-colex format caps at 20 cells, so 5×5 needs a format change) ·
+> plus the sprint/gate items in the top block.
 >
 > ## Read next
 >
@@ -93,11 +184,10 @@ Ownership of src/t129_exp7_4x4.zig cleared.
 > `docs/audits/audit-2x2-mismatch-2026-07-30.md` ·
 > `docs/infra/model-perf.md` (T100–T126 per-task ledger)
 >
-> ## Concurrency — no active file owners
+> ## Concurrency — **superseded 2026-07-31 (late)**
 >
-> No engine file is currently claimed. Check `bin/managent status` for
-> in-progress tasks before touching `src/retro.zig` / `oracle.zig` /
-> `rules.zig` / `solve.zig`.
+> See "Concurrency — live file owners" in the top block. Check
+> `bin/managent status` before touching any held file.
 >
 > ## Claimlint
 >
