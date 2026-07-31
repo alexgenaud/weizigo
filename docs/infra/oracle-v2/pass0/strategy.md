@@ -4,17 +4,17 @@
 Status:   PROPOSED (rev 1) — pass-0 strategy-audit findings resolved;
           awaiting human ratification
 Author:   Fable/Navigator (claude-fable-5) · 2026-07-31
-Revised:  Fable/Navigator · 2026-07-31 — live copy; the pass-0 original is
-          frozen at docs/design/oracle-v2/pass0/strategy.md. Resolves
-          strategy-audit F1–F6 (2 MUST, 2 SHOULD, 2 COULD;
-          pass0/strategy-audit.md, DSPro/T132). Each resolution is tagged
-          [SFn]. Also absorbs the spec's pass-1 M2a/M2b split (spec-audit F1
-          resolution) into the task tables.
+Revised:  Fable/Navigator · 2026-07-31 — canonical, revised in place (rev 0
+          text: git show 56950a1:docs/design/oracle-v2/pass0/strategy.md).
+          Resolves strategy-audit F1–F6 (2 MUST, 2 SHOULD, 2 COULD;
+          docs/design/oracle-v2/archive/strategy.audit-1.md, DSPro/T132).
+          Each resolution is tagged [SFn]. Also absorbs the spec's M2a/M2b
+          split (spec-audit F1 resolution) into the task tables.
 Process:  sprint checkpoints (spec → strategy → acceptance) per docs/infra/sprint.md;
           execution per docs/infra/delegation/ (DELEGATOR / DELEGATEE / ROLES)
-Inputs:   pass0/spec.md (frozen snapshot) · pass0/spec-audit.md (NEEDS-FIX)
-          pass0/strategy-audit.md (NEEDS-FIX: 2 must, 2 should, 2 could)
-          docs/infra/oracle-v2/spec.md (pass-1 revision, 2026-07-31)
+Inputs:   docs/infra/oracle-v2/pass0/spec.md (canonical revision, 2026-07-31)
+          docs/design/oracle-v2/archive/spec.audit-1.md · spec.audit-2.md (PASS)
+          docs/design/oracle-v2/archive/strategy.audit-1.md (NEEDS-FIX: 2 must)
 ```
 
 ## 0. Standing assumptions
@@ -79,8 +79,8 @@ Per-review foci (the brief carries these verbatim):
 
 | id | kind | deliverable | holds | needs | box |
 |---|---|---|---|---|---|
-| **O-1** | MUTATION | spec revision resolving F1–F6 (F7–F9 at reviser's discretion) | `docs/infra/oracle-v2/spec.md` | — | ≤ 2 h [SF3] |
-| **O-2** | ANALYSIS | pass-1 spec audit → `docs/design/oracle-v2/pass1/spec-audit.md` | — | O-1 | — |
+| **O-1** | MUTATION | spec revision resolving F1–F6 (F7–F9 at reviser's discretion) | `docs/infra/oracle-v2/pass0/spec.md` | — | ≤ 2 h [SF3] |
+| **O-2** | ANALYSIS | spec audit → `docs/design/oracle-v2/archive/spec.audit-2.md` | — | O-1 | — |
 
 If O-1 exceeds its box, the Orchestrator checks for scope creep — O-1's job
 is to resolve F1–F6, not to perfect the spec [SF3].
@@ -97,8 +97,8 @@ is to resolve F1–F6, not to perfect the spec [SF3].
 
 | id | kind | deliverable | holds | needs | box |
 |---|---|---|---|---|---|
-| **O-3** | ANALYSIS | M1 design → `docs/design/oracle-v2/pass1/design-M1.md` | — | G1 | ≤ 30 min |
-| **O-4** | ANALYSIS | M1 design audit → `pass1/design-M1-audit.md` | — | O-3 | — |
+| **O-3** | ANALYSIS | M1 design → `docs/design/oracle-v2/design-M1.md` | — | G1 | ≤ 30 min |
+| **O-4** | ANALYSIS | M1 design audit → `archive/design-M1.audit-1.md` | — | O-3 | — |
 | **O-5a** | MUTATION | M2a: expose the fixpoint interface (`pub` only, no behavioural change; spec §5 M2a) | `src/exp6_solve.zig` | G1 | ≤ 1 h |
 | **O-5ar** | ANALYSIS | M2a code review, fresh seat | — | O-5a | — |
 
@@ -212,7 +212,7 @@ boundary here that `needs=` does not already encode.
 
 ## 5. Audit record
 
-The pass-0 strategy audit (`docs/design/oracle-v2/pass0/strategy-audit.md`,
+The strategy audit (`docs/design/oracle-v2/archive/strategy.audit-1.md`,
 DSPro/T132, 2026-07-31) returned NEEDS-FIX: F1/F2 MUST, F3/F4 SHOULD, F5/F6
 COULD; all five of the strategy's self-audit questions answered in the
 strategy's favour. Resolutions in this revision:

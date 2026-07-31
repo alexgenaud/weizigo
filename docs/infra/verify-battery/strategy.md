@@ -175,7 +175,7 @@ a commit-before-V-6 ordering rather than a shared directory [SC3, SM3]. Use
   [SM5].
 - **Shared RSS meter** as in §1/P4: two 4×4-scale invocations project-wide,
   owned by Orcha; oracle-v2's strategy declares the same meter
-  (`docs/infra/oracle-v2/strategy.md`).
+  (`docs/infra/oracle-v2/pass0/strategy.md`).
 - **No file contention:** the battery touches no solver-held path and never
   `src/gtp.zig` (held by oracle-v2 M3 for its sprint duration).
 

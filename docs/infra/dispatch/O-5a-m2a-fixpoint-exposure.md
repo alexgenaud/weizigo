@@ -22,9 +22,9 @@ Expose the fixpoint algorithm from `src/exp6_solve.zig` as a public interface. C
 ## Read first
 
 - `src/exp6_solve.zig` (the file you hold)
-- `docs/infra/oracle-v2/spec.md` §5 M2a
-- `docs/infra/oracle-v2/strategy.md` §P1
-- `docs/design/oracle-v2/pass1/spec-audit.md` (F1 resolution)
+- `docs/infra/oracle-v2/pass0/spec.md` §5 M2a
+- `docs/infra/oracle-v2/pass0/strategy.md` §P1
+- `docs/design/oracle-v2/archive/spec.audit-2.md` (F1 resolution)
 
 ## Rules
 
