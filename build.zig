@@ -156,6 +156,18 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(managent_exe);
 
+    // ── verify-battery (M1 harness, T168) ──────────────────────────
+    const verify_battery_exe = b.addExecutable(.{
+        .name = "verify-battery",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/verify_battery.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    b.installArtifact(verify_battery_exe);
+
     // ── oracle-v2 builder (M2b, T165) ─────────────────────────────
     const oracle_v2_build_exe = b.addExecutable(.{
         .name = "weizigo-oracle-v2-build",

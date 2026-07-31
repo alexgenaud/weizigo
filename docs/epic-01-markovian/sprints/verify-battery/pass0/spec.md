@@ -9,13 +9,8 @@ Revised:  Fable/T136 · 2026-07-31 — live copy; the pass-0 original is
           spec-audit B1–B2, C1–C3, M1–M7, S1–S4, O1–O4 and the
           strategy-audit's inherited-fact corrections SB1, SB2, SC1, SC2,
           SM4, SM5, SO2. Each resolution is tagged [Xn].
-Process:  human-gated checkpoints (spec → strategy → acceptance) under the
-          delegation regime (docs/infra/delegation/ — DELEGATOR / DELEGATEE
-          / ROLES). docs/infra/sprint.md is RETIRED 2026-07-28; its audit
-          grading scale (blocker/critical/must/should/could,
-          PASS/NEEDS-FIX/REDO) remains the reference for audit format. The
-          proposed sprint un-retirement is a G1 agenda item, not an
-          assumption of this spec. [SM1]
+Process:  docs/infra/sprint.md · audit grading: blocker/critical/must/should/could,
+          PASS/NEEDS-FIX/REDO [SM1]
 Tier:     A — one instrument, run ~60 times; a defect in it is invisible
 Inputs:   docs/epic-01-markovian/sprints/verify-battery/archive/{spec,spec-audit,strategy,
           strategy-audit}.md · docs/epic-01-markovian/sprints/verify-battery/archive/
