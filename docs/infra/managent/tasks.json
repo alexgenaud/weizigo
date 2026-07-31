@@ -207,6 +207,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T153": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T153-sprint-rev2.md",
+    "set": "A",
+    "holds": ["docs/infra/sprint.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T12:22:57Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T122": {
     "status": "done",
     "agent": "DSFlash",
