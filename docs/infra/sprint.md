@@ -1,84 +1,109 @@
 # Sprint — phased delegated development with subagent orchestration
 
-**For algorithmic work: new state representations, verifier/format/rule changes,
-and anything producing a publishable number.** Everything else uses the
-`DELEGATOR.md` brief header. The strategy phase decides the intensity.
-
-A **sprint** is one or more passes to complete a deliverable. A **pass** is a
-single iteration (pass0 = MVP, pass1 = improvements). A **phase** is one unit
-within a pass producing a single finalized document (`spec.md`, `design.md`,
-etc.). Each phase has a writer and independent auditor subagents.
-
-## When to sprint
-
-| tier | trigger | intensity |
-|---|---|---|
-| **Heavy** | new algorithm, new state representation, change to a verifier/format contract/rule | full pipeline, all audit gates |
-| **Light** | extending a reviewed instrument to a new goban size | spec + design note + tests + eval; one audit at eval |
-| **Custom** | anything else the builder judges needs more than a brief | decided in strategy, ratified by human |
-
-The builder declares the tier in `strategy.md`. A worker may escalate a tier
-on discovering the work is harder than specified — that is a finding. A worker
-may never de-escalate. The human ratifies.
-
-## Three required checkpoints
-
-| checkpoint | written by | ratified by |
-|---|---|---|
-| **Spec** | Human or Dabir (or builder if not provided) | Human |
-| **Strategy** | Builder | Human |
-| **Acceptance** | Builder | Human |
-
-## Passes and directories
-
-A sprint has one or more passes. Pass artifacts live in git under
-`docs/design/<sprint>/pass0/`. They are not in `untracked/` — that is
-where evidence goes to die (T13's probe source, `2x2.T12`'s census).
-
 ```
-docs/design/<sprint>/spec.md          ← Spec (human, Dabir, or builder)
-docs/design/<sprint>/pass0/           ← All phase deliverables
-  strategy.md                         ← REQUIRED (first phase)
-  scope.md                            ← if strategy calls for it
-  design.md                           ← if strategy calls for it
-  plan.md                             ← if strategy calls for it
-  tests.md                            ← REQUIRED (written before implementation)
-  build.md                            ← build log
-  eval.md                             ← findings, denominators, known-bad pass
-  *-audit.md                          ← auditor writes these
+Revision: 2
+Status: PROPOSED
+Rev 2 per msg 064 §4 (eight edits), 067 §2 (per-pass layout), rulings D-9…D-15.
 ```
 
-## Spec
+The intent, in one line: flexibility, transparency, and accountability,
+leading efficiently to robust reliable results — not bureaucracy, not
+ceremony, not manic hacking either. The phase documents exist so agents
+actually perform the phases their own strategy promised; the audits exist
+because they demonstrably catch defects early.
 
-Written before anything else. Ratified by the human before strategy begins.
+## The ladder: task, sprint, epic
+
+A **task** is lightweight — a `DELEGATOR.md` brief, no sprint. A **sprint**
+is a coherent collection of ideas, specs, tasks or a project vision with a
+**defined goal but no predetermined plan**, reached through one or more
+passes. An **epic** has no well-defined goal yet — its goal emerges from
+completed sprints.
+
+This paragraph is the scope boundary. A worker may escalate a rung on
+discovering the work is harder than specified — a task that is really a
+sprint — and that is a finding, not a failure. A worker may never
+de-escalate. The human ratifies.
+
+## Bookends and checkpoints
+
+Every sprint has **spec**, **strategy**, and **acceptance**. The spec is
+usually written or drafted before delegation. A large sprint is also
+approved externally — human, Dabir, Grand Auditor, or an agent product
+owner. The bookends — `spec.md` ("what do we want?") and `accept.md` ("did
+we achieve it?") — must always be understandable, writable, and ratifiable
+by the human.
+
+**Human checkpoint model.** The human observes and redirects **between
+passes**, not between phases. Within a pass, agents decide when they have
+collected sufficient evidence. Dabir reads phase documents and summarizes.
+A closed interrupt list must reach the human immediately at any point, with
+no copy/paste relay:
+
+1. **Premise reversal** — the veracity of a critical claim flips.
+2. **Weight escalation** — a task turns out to be a sprint, or a pass's
+   scope balloons beyond its strategy.
+3. **Audit-cap residue** that needs a human ruling (see the routing ladder
+   below).
+
+## Passes, revisions, and directories
+
+A **pass is an iteration of the deliverable**: pass0 ships the MVP; pass1
+takes what pass0's spec ambitioned but its `scope.md` explicitly deferred,
+or reacts to a failed smoke test. Passes are healthy and are the human's
+observation points. A **revision is the same document changing in place**
+inside an audit loop — it never mints a file or a directory. Frozen
+revision snapshots wearing pass clothing are the disease the oracle-v2
+process review diagnosed: copies drift, and agents re-fix resolved findings.
+
+```
+docs/infra/<sprint>/passN/     ← ALL canonical phase docs, unsuffixed:
+                                 spec.md strategy.md scope.md design*.md
+                                 test.md plan.md build.md accept.md
+docs/design/<sprint>/          ← ephemera: audits, notes, drafts — numbered,
+                                 absorbed at the gate, then deleted
+```
+
+Canonical docs are in git, never in `untracked/` — that is where evidence
+goes to die (T13's probe source, `2x2.T12`'s census). One canonical
+document per phase: the unsuffixed file, revised in place, carrying
+`Revision: N` and `Status: PROPOSED | RATIFIED (Gn, date, sha)` in its
+header. Audits and drafts are numbered ephemera under
+`docs/design/<sprint>/`, absorbed into the canonical doc's disposition log
+and deleted at the gate commit. Line references pin commits
+(`spec.md @ 7ba70b7:118`), never frozen copies.
+
+## Phases within a pass
+
+Phase documents are imperative verbs: `spec`, `scope`, `design`, `test`,
+`plan`, `build`, `accept`. Strategy may add, skip, merge, resequence,
+expand or shrink phases — the bookends are the invariant. Work one phase
+at a time unless `strategy.md` explicitly parallelizes.
+
+| phase | file | when |
+|---|---|---|
+| Spec | `spec.md` | REQUIRED bookend. What do we want? Ratified before strategy begins |
+| Strategy | `strategy.md` | REQUIRED (first phase after spec) |
+| Scope | `scope.md` | MoSCoW: what's in this pass, what's deferred |
+| Design | `design.md` | Data structures, state machine, file format, errors, alternatives rejected and why |
+| Plan | `plan.md` | Implementation order, which files to create |
+| Test | `test.md` | Acceptance tests + known-bad calibration fixtures. **Written before any implementation** |
+| Build | `build.md` | Build log: decisions made, deviations from design |
+| Accept | `accept.md` | REQUIRED bookend. Findings, denominators stated, calibration results, known limitations (descoped residue) |
 
 ## Strategy — the builder's instructions to itself
 
 The builder reads the spec, then writes `strategy.md`. Answers:
 
 - What are we building? (restate spec in own words)
-- What tier: heavy, light, or custom?
-- What phases does this pass need? Which can be skipped?
+- What phases does this pass need? Which are skipped or merged, and why?
 - Which phases get independent fresh audit? What audit instrument?
 - Can any phases run in parallel via subagents?
 - Effort estimate per phase.
 
-The builder stops. The human ratifies or corrects, then says "proceed." If the
-builder later wants to skip a phase it promised, it must update `strategy.md`
-and get re-ratification.
-
-## Phases within a pass
-
-Work one phase at a time unless `strategy.md` explicitly parallelizes.
-
-| phase | file | when |
-|---|---|---|
-| Scope | `scope.md` | MoSCoW: what's in this pass, what's deferred |
-| Design | `design.md` | Data structures, state machine, file format, errors, alternatives rejected and why |
-| Plan | `plan.md` | Implementation order, which files to create |
-| Tests | `tests.md` | Acceptance tests + known-bad calibration fixtures. **Written before any implementation.** |
-| Build | `build.md` | Build log: decisions made, deviations from design |
-| Eval | `eval.md` | Findings, denominators stated, calibration results, wrong-answer pass rate |
+The builder stops. The human ratifies or corrects, then says "proceed." If
+the builder later wants to skip a phase it promised, it must update
+`strategy.md` and get re-ratification.
 
 ### Why tests are written before implementation
 
@@ -97,52 +122,47 @@ paid for (061 §0). The audit instrument must match the risk.
 | **Spec** | Document review, fresh session | Different seat reads spec against human intent |
 | **Strategy** | Document review, fresh session | Strategy is the builder's contract — an auditor checks it for completeness and soundness |
 | **Design** | **Adversarial** review | The auditor must attempt refutation and state a verdict. Per the EXP-2A precedent |
-| **Tests** (before build) | Review tests **without reading the implementation** | Ensures tests are shaped to the spec, not the code |
+| **Test** (before build) | Review tests **without reading the implementation** | Ensures tests are shaped to the spec, not the code |
 | **After build** | **Independent re-implementation** of the core check | Different model, ideally different language. This is the only instrument that has found every real defect here |
-| **Eval** | Numbers audit | Denominators stated, known-bad fixture passes, standing rules 3–6 |
+| **Accept** | Numbers audit | Denominators stated, known-bad fixture passes, standing epistemic rules 3–6 (carried today in the active milestone channel's `STATE.md`, §"Standing epistemic rules") |
 
-The build gate is the expensive one and non-negotiable for heavy tier.
+The build gate is the expensive one and non-negotiable for a full-pipeline
+sprint. After design freeze, the audit budget shifts from prose to code —
+the acceptance harness and independent re-implementation, not another
+reading.
 
-## Subagent orchestration
+## Audit loop — two-round cap and the routing ladder
 
-The parent agent uses shell commands to dispatch phase writers and auditors.
-See `docs/infra/agents/subdelegation.md` for the command reference.
+For document review the loop is capped at **two rounds**. The oracle-v2
+evidence: round one was sprint-saving, round two still positive, round
+three net-negative (one typo, one phantom finding, re-verification tax).
+If the audit returns blocker, critical, or MUST findings:
 
-### Pattern: write a phase with audit loop
+1. Author incorporates findings into the canonical doc (revision in place).
+2. A **fresh** auditor (not the same instance) re-audits. That is round two.
+3. After round two, residue **routes** — it does not loop:
 
-```
-# Parent dispatches the phase writer
-pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/sprint-id. Read docs/design/<sprint>/pass0/spec.md and strategy.md. Write docs/design/<sprint>/pass0/design.md. Do not edit any other file."
+| residue | route |
+|---|---|
+| **Premise reversal or new genuine blocker** | Escalates to the human immediately, **at any round** — the cap governs residue, not discoveries |
+| **Editorial** | Rides PASS-WITH-EDITS into the gate as a diff |
+| **Judgment** | Goes to the gate as a checklist; the gate-holder accepts with rationale or orders **REDO** — a fresh writer and fresh brief, a different instrument than round three of the same loop |
+| **Structural** (real, but fixing it would balloon this pass) | **Descoped**: named in this pass's `accept.md` as a known limitation, first item in the next pass's `scope.md` |
 
-# Parent dispatches an independent auditor
-pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/sprint-id-audit. Read docs/design/<sprint>/pass0/design.md and spec.md. Audit for blockers, critical, must, should, could. Write findings to docs/design/<sprint>/pass0/design-audit.md. You are a fresh instance — do not read any prior audit of this file."
-```
+Passes are the escape valve the audit cap needs; a sprint that can iterate
+doesn't have to loop. The cap never forces acceptance of a broken document.
 
-### Audit loop (up to three rounds)
+**Caveat:** the evidence base is spec and design phases of one sprint.
+Build and accept gates use different instruments (re-implementation,
+harnesses, smoke tests) whose loop behavior we have not observed. The
+two-round cap is the default for *document review*; for other gates it is
+provisional guidance.
 
-If the audit returns blockers, critical, or MUST findings:
+**Disposition-log-as-acceptance.** A revision is incomplete unless every
+open finding ID has a disposition — fixed / rejected-with-reason /
+escalated. A skipped ID is a failed task.
 
-1. Parent reads the audit, incorporates findings into the phase document
-2. Parent dispatches a **fresh** subagent auditor (not the same instance)
-3. Repeat until no blockers, critical, or MUST findings remain
-4. Maximum three rounds — if findings persist after three, escalate to human
-
-### Parallel phases
-
-When strategy.md permits parallelism, the parent dispatches writers
-simultaneously. Example: scope and design can sometimes run in parallel if
-the spec is tight. The parent collects results and sequences audits.
-
-### Pattern: parallel audits of the same phase
-
-```
-# Two independent auditors, different models, run in parallel
-pi --provider deepseek --model deepseek-v4-pro -p "Audit design.md..." &
-pi --provider deepseek --model deepseek-v4-flash -p "Audit design.md..." &
-wait
-```
-
-## Audit-finding grades
+## Audit-finding grades and verdicts
 
 | grade | meaning |
 |---|---|
@@ -152,15 +172,39 @@ wait
 | **should** | Should fix — improves quality, not blocking |
 | **could** | Optional — nice to have |
 
-Verdict: **PASS** (no blocker/critical/must) / **NEEDS-FIX** / **REDO**.
+Verdicts:
 
-The auditor is a **fresh session with no shared context**. Per DELEGATOR.md
-rule 5: give the reviewer less than you gave the worker.
+- **PASS** — no blocker/critical/must findings. Zero new findings is an
+  acceptable — praised — PASS.
+- **PASS-WITH-EDITS** — the auditor supplies exact edits for editorial
+  findings; the author applies them; the gate ratifies the diff.
+- **NEEDS-FIX** — reserved for findings requiring design judgment.
+- **REDO** — fresh writer, fresh brief.
+
+**Auditor briefs are minimal**, and state the hygiene rules explicitly:
+scope (which directory or phase, against which spec), the grading scale,
+and nothing more. A fresh auditor audits one phase or the pass so far —
+never the global project. No channel access, no prior audits, no author
+framing. Per DELEGATOR.md rule 5: give the reviewer less than you gave the
+worker. Hygiene: every finding cites file+line verified against the
+*current* text (the RV2-1 phantom rule); acceptance criteria are cited by
+slug (`A1-refusal`) or verbatim quote, never bare number.
+
+## Subagent orchestration
+
+Dispatch per `docs/infra/agents/subdelegation.md` — model choice, provider
+commands, and dispatch mechanics live there and only there; they are
+model-specific and churn.
+
+When `strategy.md` permits parallelism, the parent dispatches phase writers
+simultaneously, collects results, and sequences audits — respecting
+subdelegation.md's max-two-concurrent rule.
 
 ## Final acceptance
 
-1. All tests from `tests.md` pass, including known-bad calibration fixtures
-2. All audit gates pass (no blocker/critical/must findings open)
+1. All tests from `test.md` pass, including known-bad calibration fixtures
+2. All audit gates pass (no blocker/critical/must findings open; every
+   finding ID dispositioned)
 3. End-to-end smoke test: the consumer loads the artifact
 4. Human ratifies
 
