@@ -1,4 +1,20 @@
 {
+  "T131": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T131-audit-verify-battery.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T01:58:15Z",
+    "claimed": "2026-07-31T01:58:15Z",
+    "done": "2026-07-31T01:58:15Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
   "T129": {
     "status": "done",
     "agent": "DSPro/T129",
@@ -42,6 +58,22 @@
     "added": "2026-07-30T21:54:41Z",
     "claimed": "2026-07-31T00:05:26Z",
     "done": "2026-07-31T00:05:26Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
+  "T130": {
+    "status": "done",
+    "agent": "DSPro",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T130-audit-oracle-v2.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-07-31T01:58:10Z",
+    "claimed": "2026-07-31T01:58:10Z",
+    "done": "2026-07-31T01:58:10Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
