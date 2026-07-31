@@ -94,8 +94,8 @@ The phantom-exclusion convention it adopts is:
 > **Calibration target at 3×2: cycle-reachable = 1,678** (true game root,
 > phantoms excluded, corrected ko rule).
 
-This convention is stated in `docs/infra/verify-battery/spec.md:123` and
-resolves the SC2 audit finding (`docs/design/verify-battery/pass0/strategy-audit.md:61`).
+This convention is stated in `docs/infra/verify-battery/pass0/spec.md:123` and
+resolves the SC2 audit finding (`docs/design/verify-battery/archive/strategy-audit.md:61`).
 
 An I5 disagreement at 3×2 that matches the spread (1,724 or 1,704) is
 **reference-bad** — the cycle-reachable set was measured from an incorrect
@@ -140,6 +140,6 @@ seed convention. Only 1,678 is the authoritative denominator.
 | `docs/infra/dispatch/F1-SEEDROOTS.md` | True-game-root measurement (1,678) |
 | `docs/evidence/QA-023/f1-seedroots-2026-07-29.md` | F1 empirical confirmation |
 | `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md` | Corrected kernel, C1 witnesses |
-| `docs/infra/verify-battery/spec.md` | Phantom-exclusion convention for I5 |
-| `docs/design/verify-battery/pass0/strategy-audit.md` | SC2 finding (the audit that raised this) |
+| `docs/infra/verify-battery/pass0/spec.md` | Phantom-exclusion convention for I5 |
+| `docs/design/verify-battery/archive/strategy-audit.md` | SC2 finding (the audit that raised this) |
 | `src/qa023_probe.zig` | seed_roots fix (line 3489), reachability argument in doc comment |
