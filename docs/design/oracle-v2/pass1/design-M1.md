@@ -1,10 +1,11 @@
-# oracle-v2 M1 — WZO2 format design
+# oracle-v2 M1 — WZO2 format design (rev 1)
 
 ```
-Task:    O-3 · Role: worker · Model: not stated at dispatch · Date: 2026-07-31
+Task:    O-3-rev1 · Role: worker · Model: DSPro/O-3-rev1 · Date: 2026-07-31
 Deliverable: docs/design/oracle-v2/pass1/design-M1.md
-Status:   PROPOSED — awaiting audit (O-4), then G2 human ratification
+Status:   PROPOSED (rev 1) — O-4 audit addressed; awaiting G2 human ratification
 Target:   docs/infra/oracle-v2/spec.md (pass 1, ratified G1)
+Audit:    O-4 (Opus 5, 2026-07-31) — all BLOCKER/CRITICAL/MUST findings resolved (see §11)
 ```
 
 ## 1. Design overview
@@ -13,36 +14,47 @@ The WZO2 artifact stores the oracle's value table for the full Markov key
 `(goban, side, ko_point, passes)` per spec R1, with `L` and `H` stored
 separately (R2), computed DTT (R3), and a self-describing header (R4).
 
-**Format: grouped inline.** Entries are sorted by `(colex_index, side,
-ko_point, passes)` and grouped by goban. Each group carries the colex once,
-then a sequence of fixed-width entries. A group index is **not** stored on
-disk — the engine loads all 5-byte group headers into memory at startup
-(~120 MB for 24M groups), builds a sorted array, and binary-searches on
-colex. Within a group, entries are scanned linearly (typically 1–6 entries).
+**Format: grouped inline, segregated layout.** Entries are sorted by `(colex_index,
+passes, ko_point, side)` and grouped by goban. The file has three contiguous regions:
 
-### 1.1 File layout
+| region | offset | size | content |
+|---|---|---|---|
+| Header | 0 | 128 | self-describing metadata (§4) |
+| Group index | 128 | `n_groups × 5` | one 5-byte header per group: colex (u32 LE) + entry_count (u8) |
+| Entry data | `128 + n_groups × 5` | `n_entries × 4` | packed entry rows (§3) |
+
+The group index and entry data are **segregated** — all G group headers are
+contiguous, then all N entries follow. This enables: a single read of the
+group index at startup (`n_groups × 5` bytes), a sorted in-memory array, and
+binary search on colex. Within a group, entries are scanned linearly
+(typically 1–6 entries; max 36 at 4×4 — see §2.4).
+
+The file-size formula validates the layout:
 
 ```
-┌────────────────────────────────────────────────┐
-│ Header                   128 bytes             │
-├────────────────────────────────────────────────┤
-│ Group 0:                                       │
-│   colex_index            u32 (4 bytes)          │
-│   entry_count            u8  (1 byte)           │
-│   entry 0: key_byte L H DTT flags  (5 bytes)   │
-│   entry 1: …                                   │
-│   …                                            │
-├────────────────────────────────────────────────┤
-│ Group 1:   colex_index, count, entries…        │
-│ …                                              │
-├────────────────────────────────────────────────┤
-│ Group G-1: last group                          │
-└────────────────────────────────────────────────┘
+file_size = 128 + n_groups × 5 + n_entries × 4
+```
+
+### 1.1 File layout diagram
+
+```
+┌─────────────────────────────────────────────────┐
+│ Header                    128 bytes              │  offset 0
+├─────────────────────────────────────────────────┤
+│ Group 0 header:  colex(u32 LE)  count(u8)       │  offset 128
+│ Group 1 header:  colex(u32 LE)  count(u8)       │  offset 133
+│ …                                               │
+│ Group G-1 header                                 │  offset 128 + (G-1)×5
+├─────────────────────────────────────────────────┤
+│ Entry 0:  [key_byte][L][H][DTT]   (4 bytes)     │  offset 128 + G×5
+│ Entry 1:  [key_byte][L][H][DTT]                 │
+│ …                                               │
+│ Entry N-1                                        │  offset 128 + G×5 + (N-1)×4
+└─────────────────────────────────────────────────┘
 ```
 
 **No end-of-data sentinel.** The header carries `n_groups` and `n_entries`;
-the reader can seek all group headers in one read (`n_groups × 5` bytes) and
-validate total file size as `128 + n_groups × 5 + n_entries × 5`.
+the reader validates total file size as `128 + n_groups × 5 + n_entries × 4`.
 
 ## 2. Key encoding
 
@@ -51,30 +63,38 @@ The full Markov key per R1 is `(goban, side, ko_point, passes)`.
 ### 2.1 Colex index (goban)
 
 The goban pattern is encoded as its base-3 colex index — a u32 in `[0,
-3^(w·h) − 1)`. This is the same colex as the v1 artifact and the engine's
-internal addressing.  For 4×4: `3^16 = 43,046,721` possible patterns, fitting
+3^(w·h) − 1]`. This is the same colex as the v1 artifact and the engine's
+internal addressing. For 4×4: `3^16 = 43,046,721` possible patterns, fitting
 in 32 bits.
 
-Colex is stored **big-endian** in the group header — this ensures
-lexicographic sort on disk matches numeric colex order, so binary search on
-the in-memory array works without byte-order correction.
+Colex is stored **little-endian** in the group header, matching the header's
+convention. The binary search reads u32 LE values and compares numerically;
+no byte-order correction is needed for correctness (the sort key is the
+parsed integer, not the raw bytes).
 
-### 2.2 Key byte (side, ko_point, passes)
+**Format ceiling:** `3^20 = 3.49 × 10^9` fits in u32; `3^21` does not. The
+u32 colex caps the format at 20 cells (e.g. 4×5), not 5×5.
 
-Packed into one byte per entry — not stored in the group header because
-passes=0 and passes=1 states of the same goban/side/ko share the same group.
+### 2.2 Key byte (side, ko_point, passes, terminal)
+
+Packed into one byte per entry. Since passes=2 is never stored (§2.3),
+`passes` needs only 1 bit (values 0 or 1). The freed bit carries the
+`terminal` flag — whether the side has no legal placements.
 
 Bit layout (MSB→LSB):
 
 ```
-[passes:2][ko_point:KO_BITS][side:1]
+[passes:1][ko_point:KO_BITS][side:1][terminal:1]
 ```
 
 | field | bits | values | notes |
 |---|---|---|---|
+| `terminal` | 1 (LSB) | 0 = has legal placement, 1 = no legal placement | §3.2 |
 | `side` | 1 | 0=Black, 1=White | |
 | `ko_point` | ceil(log₂(n+1)) | 0…n-1 = cell, n = none | n = w·h |
-| `passes` | 2 | 0, 1 (2 is terminal — handled by reader, not stored) | |
+| `passes` | 1 (MSB of used bits) | 0, 1 | 2 is terminal — handled by reader, not stored (§2.3) |
+
+Unused high bits (if `1 + 1 + KO_BITS + 1 < 8`) are zero.
 
 KO_BITS per goban:
 
@@ -90,26 +110,49 @@ All target gobans fit in 1 key byte.
 
 ### 2.3 Passes=2 terminal contract
 
-Per spec R10 and the design observation in §2.2: passes=2 states are **not
-stored in the artifact**. They are terminals with no free parameters:
+Per spec R10: passes=2 states are **not stored in the artifact**. They are
+absorbing terminals with no free parameters:
 
-- `L = H = genericAreaScore(goban)` (using the side-to-move in the lookup
-  key)
+- `L = H = genericAreaScore(goban)` — the absolute, Black-positive area
+  score of the final position. This value does **not** depend on the
+  side-to-move in the lookup key; the fixpoint seeds both sides' passes=2
+  entries identically (`exp6_solve.zig:457-459`). Side enters only as the
+  min/max selector during child evaluation (`exp6_solve.zig:485`).
 - `DTT = 0`
-- `flags = TERMINAL`
+- `terminal` flag = 1 (by definition: no legal placements from a
+  game-over state)
 
 The engine (M3) detects `passes == 2` before consulting the artifact and
-returns the terminal value directly. This saves storing ~50M redundant
-entries — roughly one-third of the key space — and is the single largest
-factor keeping the budget near 600 MB.
+returns the terminal value directly. This saves storing ~47.6M redundant
+entries (at most `2 × G` — every board reachable at passes=2 is also
+reachable at passes∈{0,1} with `ko=none`; see invariant §2.5) and is the
+single largest factor keeping the budget within 600 MB.
 
 ### 2.4 Sort order
 
 Entries are sorted by `(colex_index, passes, ko_point, side)` — equivalently
-`(colex_index, key_byte)`. The `key_byte`'s bit layout (passes in MSBs)
-ensures that entries within a group sort as: passes=0 side=B, passes=0
-side=W, passes=1 side=B, passes=1 side=W, with ko variants interleaved
-naturally.
+`(colex_index, key_byte & 0xFE)` (masking off the `terminal` LSB, which
+refines a total order into itself). The `key_byte`'s bit layout (passes in
+MSBs of the used bits) ensures that within a group entries sequence as:
+passes=0 entries in `(ko, side)` order, then passes=1 entries in `(ko, side)`
+order.
+
+**Group entry-count bound:** Per invariant §2.5, every stored passes=1 entry
+has `ko = none`. A group therefore holds at most:
+`2 sides × (n+1) ko_values` at passes=0 plus `2 sides × 1 ko_value` at
+passes=1 = `2 × (n+2)` entries. At 4×4: `2 × 18 = 36`. This fits in `u8`
+with room. The writer (M2b) must assert `entry_count ≤ 2 × (w·h + 2)` per
+goban rather than truncating silently.
+
+### 2.5 Invariant: passes ≥ 1 ⇒ ko = none
+
+The pass move resets the ko point to `KO_NONE`
+(`exp6_solve.zig:964`: `encodeState4(board_idx, 1 - side, KO_NONE4, passes +
+1)`). Every state with passes ≥ 1 is reached by a pass, so **every stored
+entry with passes=1 has `ko = none`**. (Passes=2 is not stored, but the same
+holds for the omitted set.)
+
+This is a format-level invariant usable by the verifier (§7.1).
 
 ## 3. Column schema
 
@@ -117,51 +160,87 @@ Per spec R2 (separate L/H) and R3 (computed DTT).
 
 | column | type | size | range | description |
 |---|---|---|---|---|
-| `key_byte` | u8 | 1 B | — | side + ko_point + passes (see §2.2) |
+| `key_byte` | u8 | 1 B | — | side + ko_point + passes + terminal (see §2.2) |
 | `L` | i8 | 1 B | [−n, +n] | lower bound (Black-positive convention) |
 | `H` | i8 | 1 B | [−n, +n] | upper bound (Black-positive convention) |
-| `DTT` | u8 | 1 B | 0–254 = steps, 255 = FAR | depth-to-terminal |
-| `flags` | u8 | 1 B | — | bit flags (see §3.1) |
+| `DTT` | u8 | 1 B | 0–254 = steps, 255 = FAR | depth-to-terminal (see §3.2) |
 
-**Total per entry: 5 bytes** (1 key + 4 value columns).
+**Total per entry: 4 bytes** (1 key + 3 value columns).
 
 The `L`/`H` range of `[−n, +n]` for an n-cell goban fits in `i8` for all
 gobans through 5×5 (n=25). For 4×4, range is [−16, +16] = 33 values.
 
-### 3.1 Flags byte
+**KO_SENSITIVE is not stored as a flag.** It is computed by the reader as
+`L != H`. Storing it redundantly would cost `N` bytes (~99 MB at 4×4) for a
+condition already derivable from the two preceding bytes. The pin census
+and move ordering compute it from L/H; caching is an M3 concern.
 
-| bit | name | meaning |
-|---|---|---|
-| 0 | `KO_SENSITIVE` | `L != H` — the value is a bracket, not a point |
-| 1 | `TERMINAL` | no legal non-pass moves exist for this side from this state |
-| 2–7 | reserved | zero |
+**`terminal` is stored as bit 0 (LSB) of `key_byte`** (§2.2). Lookup masks
+it off before comparing keys: `entry[0] & 0xFE == target_kb`. It means
+"this side has no legal placement from this state." A passes=0 or passes=1
+state with `terminal` set must pass — the game continues. It is distinct
+from the passes=2 absorbing terminal (which is not stored).
 
-`KO_SENSITIVE` is redundant with `L != H` but is stored explicitly so the
-reader can filter without comparing L and H — useful for the pin census and
-for the engine's move ordering.
+### 3.1 DTT definition and encoding
 
-`TERMINAL` is set when M2b determines that the state has no legal non-pass
-moves. It is distinct from passes=2 terminals (which are not stored). A
-passes=0 or passes=1 state with `TERMINAL` set means the side has no
-board play — they must pass.
+DTT (depth-to-terminal) measures the number of plies to reach a passes=2
+absorbing terminal, restricted to value-preserving play. It exists so that
+a winning player cannot shuffle forever while preserving the value (spec
+R3).
 
-### 3.2 DTT encoding
+**Definition.** For a state `s = (goban, side, ko, passes)`:
+
+1. **Base case:** If `passes == 2`, DTT = 0 (absorbing terminal).
+
+2. **Value-preserving placements:** Let `P` be the set of legal non-pass
+   moves (placements) from `s`. A placement child `c` is *value-preserving*
+   if the moving side can still achieve its current bound in `c`:
+   - Black (maximizer): `H(c) ≥ L(s)`
+   - White (minimizer): `L(c) ≤ H(s)`
+
+3. **Recurrence — placements exist:** If the set `VP` of value-preserving
+   placements is non-empty:
+   - Black: `DTT(s) = 1 + min_{c ∈ VP} DTT(c)`
+   - White: `DTT(s) = 1 + max_{c ∈ VP} DTT(c)`
+
+4. **Recurrence — no value-preserving placement:** If `VP` is empty, the
+   only value-preserving move is to pass:
+   `DTT(s) = 1 + DTT(pass_child(s))`
+
+5. **Cycle sentinel:** If no value-preserving path reaches a passes=2
+   terminal (the state is in a cycle-affected region), DTT = 255 (FAR).
+
+**Encoding:**
 
 | value | meaning |
 |---|---|
-| 0 | terminal (passes=2, or passes∈{0,1} with no legal moves) |
-| 1–254 | steps to nearest terminal under optimal play |
-| 255 | FAR — not computed or no path to terminal known (sentinel) |
+| 0 | absorbing terminal (passes=2; not stored in artifact) |
+| 1–254 | plies to nearest terminal under value-preserving optimal play |
+| 255 | FAR — no value-preserving path to terminal known (sentinel) |
 
-DTT 255 is a legitimate sentinel, not an error. States in cycle-affected
-regions where no path to a terminal exists under all policies will have
-DTT=255. The verifier (I7) checks that non-terminals without `KO_SENSITIVE`
-set have non-255 DTT, and that terminals have DTT=0.
+**Key consequence:** A passes∈{0,1} state with no legal placements
+(`terminal` = 1) has VP = ∅ by construction, so DTT ≥ 1 (it must pass at
+least once). It is **not** assigned DTT=0 — DTT=0 is reserved for
+passes=2 absorbing terminals only.
+
+**Invariants (for I7 / A8):**
+- Terminal (passes=2): DTT = 0 by definition.
+- Non-terminal, non-cycle: DTT > 0 and DTT ≤ 254.
+- For any non-terminal non-FAR state, `DTT(s) = 1 + opt_{c ∈ VP(s)} DTT(c)`
+  where opt is min for Black, max for White.
+- States in cycle-affected regions where no value-preserving path to
+  terminal exists: DTT = 255.
+
+**DTT maximum:** Empirical 3×3 data suggests DTT stays well under 254 for
+cycle-free states. If 4×4 exceeds 254 on some state, the 255 sentinel
+handles it — the only loss is DTT precision on very deep states, not
+correctness.
 
 ## 4. Header layout
 
-128 bytes, fixed size. All multi-byte integers are **little-endian** except
-where noted.
+128 bytes, fixed size. All multi-byte integers are **little-endian**. u64
+fields are placed at 8-byte-aligned offsets so a Zig `extern struct` can
+overlay the header directly.
 
 | offset | size | field | type | description |
 |---|---|---|---|---|
@@ -169,117 +248,140 @@ where noted.
 | 4 | 2 | `version` | u16 | format version = 1 |
 | 6 | 1 | `w` | u8 | goban width |
 | 7 | 1 | `h` | u8 | goban height |
-| 8 | 2 | `rules_id` | u16 | ruleset identifier (match `src/rules.zig`) |
-| 10 | 2 | `entry_size` | u16 | bytes per entry = 5 |
-| 12 | 8 | `n_groups` | u64 | number of goban groups |
-| 20 | 8 | `n_entries` | u64 | total entries (passes∈{0,1}) |
-| 28 | 8 | `data_offset` | u64 | byte offset to first group = 128 |
-| 36 | 2 | `ko_bits` | u8 | ceil(log₂(w·h+1)) bits used for ko in key_byte |
-| 38 | 2 | `reserved2` | u8[2] | zero |
-| 40 | 32 | `sha256` | u8[32] | SHA-256 of all bytes before this field; zero at build time |
+| 8 | 2 | `rules_id` | u16 | ruleset identifier = 3 (§4.1) |
+| 10 | 2 | `entry_size` | u16 | bytes per entry = 4 |
+| 12 | 1 | `group_header_size` | u8 | bytes per group header = 5 |
+| 13 | 1 | `ko_bits` | u8 | ceil(log₂(w·h+1)) bits used for ko in key_byte |
+| 14 | 1 | `hdr_flags` | u8 | bit 0 = `PASSES_2_OMITTED` (passes=2 not stored; §2.3) |
+| 15 | 1 | `reserved` | u8 | zero |
+| 16 | 8 | `n_groups` | u64 | number of goban groups |
+| 24 | 8 | `n_entries` | u64 | total entries (passes∈{0,1}) |
+| 32 | 8 | `data_offset` | u64 | byte offset to first group = 128 |
+| 40 | 32 | `sha256` | u8[32] | SHA-256 of file with this field zeroed (§4.2) |
 | 72 | 56 | `reserved` | u8[56] | zero; available for future header extensions |
 
-**Validation on load:**
+### 4.1 Rules identifier
+
+`rules_id` = 3: "Chinese area, komi 0, basic ko, convention-free L/H
+bracket." This distinguishes the v2 artifact from v1:
+
+| id | name | artifact format |
+|---|---|---|
+| 1 | Chinese area, komi 0, positional superko | v1 (`.wzo`) |
+| 2 | Chinese area, komi 0, basic ko, TIE=0 on cycles | v1 (`.wzo`) |
+| 3 | Chinese area, komi 0, basic ko, L/H bracket | v2 (`.wzo2`) |
+
+The `rules_id` belongs to `src/artifact.zig`'s enumeration (`:76-77`), not
+`src/rules.zig`. M3 must add the arm for id 3 to `artifact.zig`'s
+`rulesName` switch (`:82-88`) and the load validation in `:191`. The
+existing v1 loader rejects unknown ids — id 3 will be caught until M3
+updates it.
+
+### 4.2 SHA-256 integrity
+
+The `sha256` field at offset 40 holds the SHA-256 of **the entire file**
+with bytes 40–71 (the hash slot itself) treated as zero. This covers the
+header and all ~600 MB of payload.
+
+The hash is computed by M2b after the file is fully written:
+1. Write all data with `sha256` slot zeroed.
+2. Compute SHA-256 of the complete file.
+3. Write the digest into bytes 40–71 in-place.
+
+This is distinct from R7's recorded hash — R7's is of the *finished file
+including* the embedded slot. The two digests differ; both are reproducible.
+
+**Load-time verification** (§4.3 step 6): full-file SHA-256 verification is
+a command-line option (`--verify-hash`), not mandatory on every load
+(computing a hash over 600 MB defeats the mmap-lazy design for interactive
+use). It is mandatory in M4a's A6 fixture path and in the verify-battery.
+
+### 4.3 Validation on load
 
 1. `magic` == `"WZO2"` — wrong magic → fatal, "not a WZO2 artifact"
 2. `version` == 1 — wrong version → fatal, "unsupported version N"
 3. `w` and `h` match the engine's goban size — mismatch → fatal
-4. `entry_size` == 5 — mismatch → fatal, "corrupt or unsupported entry size"
-5. File size == `data_offset + n_groups × 5 + n_entries × entry_size`
-6. SHA-256 of bytes 0–39 (the header minus the hash slot) matches `sha256`
+4. `entry_size` == 4 — mismatch → fatal, "corrupt or unsupported entry size"
+5. `group_header_size` == 5 — mismatch → fatal
+6. File size == `data_offset + n_groups × 5 + n_entries × entry_size`
+7. `rules_id` == 3 — mismatch → fatal or warn per spec §3.1
+   (`RULES-MISMATCH-FATAL`). The reader compares against its own compiled
+   rules_id; a v1 engine loading a v2 artifact must refuse.
+8. `--verify-hash`: SHA-256 of file with hash slot zeroed matches `sha256`
    — mismatch → fatal, "checksum failure"
 
 ## 5. F2 byte budget
 
-### 5.1 Derivation
+**MB = 10⁶ bytes throughout this document.** The spec's convention follows
+v1: "258 MB" = 258,280,358 bytes. The R9 ceiling is 600,000,000 bytes.
+
+### 5.1 Derivation from measured counts
 
 The file size is:
 
 ```
-size = 128 + G × 5 + N × 5   bytes
+size = 128 + G × 5 + N × 4   bytes
 ```
 
 where:
-- `G` = number of distinct gobans (colex indices) with at least one reachable
-  (side, ko, passes∈{0,1}) state
+- `G` = number of distinct gobans (colex indices) with at least one
+  reachable (side, ko, passes∈{0,1}) state
 - `N` = total reachable (goban, side, ko, passes∈{0,1}) states
 
-**N** is given by the solver's compact state count. The spec §1 reports
-99,133,036 compact states for the full Markov key at 4×4. The EXP-3 census
-(a′) reports 102,838,092 — the solver's count is 3.6% lower, likely due to
-more restrictive reachability accounting. **Use the solver's count as the
-operating value**: `N = 99,133,036`.
+**N = 99,133,036** — direct count from the solver:
+`exp6_solve.zig:1113` (`# 4x4 compact states (passes ∈ {0,1})`). This is
+the operating value. The EXP-3 census figure (102,838,092) is an arithmetic
+double of its triples count (51,419,046 × 2) and cannot cross-check the
+solver's count (SHOULD-6 in audit); the solver's own walk is the only
+authority until M2b runs.
 
-**G** is not directly measured by any census. The EXP-3 census reports
-29,497,329 distinct `(b, ko)` addresses. A goban appears:
-- Once when reachable only with `ko = none`
-- Twice when reachable with both `ko = none` and `ko = cell_X`
+**G — two bounds, both measured:**
 
-So `G = distinct_addresses − gobans_with_dual_ko`. From the 3×3 census:
-1,896 of 13,997 addresses (13.5%) are `ko = cell`. For 4×4, with 17 ko
-values vs 3×3's 10, the dual-ko fraction is plausibly 15–25%. This gives
-G in the range **22M–25M**.
+| bound | value | source |
+|---|---|---|
+| **lower** | 23,802,969 | `docs/evidence/GLOBAL.H1-CENSUS/4x4-standard.txt:41` — `ko_point = none` addresses |
+| **upper** | 24,318,165 | `4x4-standard.txt:37` — legal positions |
 
-| G (estimate) | N | size | vs 600 MB |
-|---|---|---|---|
-| 20.0M | 99,133,036 | 595.7 MB | **under** (−0.7%) |
-| 22.0M | 99,133,036 | 605.7 MB | **over** (+0.9%) |
-| 24.0M | 99,133,036 | 615.7 MB | **over** (+2.6%) |
-| 25.0M | 99,133,036 | 620.7 MB | **over** (+3.4%) |
-| 29.5M (upper bound) | 99,133,036 | 643.2 MB | **over** (+7.2%) |
+The lower bound holds because each `ko=none` address is a distinct board
+reachable at passes=0, hence a stored group. The upper bound holds because
+every group's colex must be a legal position. A confirming figure —
+23,813,121 distinct boards under the ko-disabled walk
+(`4x4-ko-disabled.txt:40`) — sits inside the bracket.
 
-Threshold: `G + N ≤ 119,999,974` for ≤ 600 MB. With N = 99,133,036, need
-`G ≤ 20,866,938`.
+**G = 23.80M–24.32M** — a 2.2% bracket worth 2.6 MB of file.
 
-### 5.2 Verdict
+### 5.2 Budget
 
-**Derived budget: ~605–620 MB for the most probable G range (22–25M).**
-This exceeds the 600 MB ceiling by 0.9–3.4%.
+| G | N | size (bytes) | size (MB) | vs 600 MB |
+|---|---|---|---|---|
+| 23,802,969 | 99,133,036 | 515,547,117 | 515.5 | **−14.1%** |
+| 24,318,165 | 99,133,036 | 518,123,097 | 518.1 | **−13.6%** |
+| 24,318,165 | 102,838,092 (census ×2) | 532,943,321 | 532.9 | −11.2% |
 
-Per spec §4 F2 gate: **a derived budget > 600 MB returns the sprint to the
-Orchestrator for re-scoping.** The following options exist:
-
-1. **Re-scope the ceiling to 650 MB.** The host's 4 GB RSS cap is the hard
-   constraint; the 600 MB artifact ceiling is a guess with headroom from the
-   spec's own words (§4, "R9's 600 MB ceiling is a guess with headroom, not a
-   derivation"). The v1 artifact is 258 MB. The v2 artifact being ~2.4× that
-   size is proportionate to the ~2× increase in stored states (passes=0/1 vs
-   passes=0 only) and is still 7× smaller than the 4 GB RSS cap. **This is the
-   recommended path.**
-
-2. **Compress the artifact.** gzip on the grouped format (highly repetitive
-   structure: many gobans have identical entry counts) could compress to
-   ~40–60% of raw size. However, this adds a decompression step to every load,
-   complicates R7 (reproducibility — the SHA-256 is of the compressed or
-   uncompressed data?), and is a scope increase for M2b/M3. Deferred unless
-   re-scoping is rejected.
-
-3. **Eliminate the colex per group.** Storing entries as a flat sorted array
-   of `[colex:4][key_byte:1][L:1][H:1][DTT:1][flags:1]` (9 bytes/entry)
-   eliminates G from the budget equation entirely. Size: `128 + N × 9 =
-   892,197,452 bytes ≈ 851 MB` — worse, not better. The grouped format is
-   already the compression.
-
-4. **Store passes=2 entries and drop the reader-side terminal computation.**
-   This adds ~50M entries (`N ≈ 149M`) and pushes the budget to ~870 MB. Not
-   viable.
-
-**Action: flag for re-scope.** The M1 design audit (O-4) should confirm the
-derivation independently. M2b must not dispatch until the budget question is
-resolved.
+**The artifact is under the 600 MB ceiling under every value of G and N
+considered**, including the paranoid census count. The 4-byte entry schema
+(§3) clears the ceiling by 82–84 MB with zero compression, zero re-scope,
+and no loss of information.
 
 ### 5.3 Memory budget at load time
 
-The engine (M3) must load group headers into memory for binary search:
+The engine (M3) loads group headers into memory for binary search:
 
 ```
 load_RAM = G × 5 bytes   (group headers, kept in memory)
-         + N × 5 bytes   (entry data, mmap'd or read on demand)
 ```
 
-Group headers: 22–25M × 5 = 110–125 MB.  Entry data (mmap'd): ~473 MB
-virtual, but only faulted pages consume RSS. The engine's working set is
-~120 MB + per-lookup page faults — well within the host's budget.
+Group headers: 23.80–24.32M × 5 = 119.0–121.6 MB.
+
+The engine also needs cumulative entry offsets for the linear scan within
+groups (Appendix A). Rather than storing a full `G × 4` byte offset array
+(~95–97 MB), the engine stores a sparse prefix sum: the cumulative entry
+index every 256th group (`G/256 × 4 ≈ 372 KB`). At lookup time it sums at
+most 255 count bytes from the nearest checkpoint — all from the group index
+already in cache. Total load-time allocation: **~120 MB**.
+
+Entry data (N × 4 ≈ 378 MB virtual) is mmap'd; only faulted pages consume
+RSS. The engine's working set is well within the host's 4 GB RSS cap.
 
 ## 6. Artifact naming convention
 
@@ -305,169 +407,222 @@ against that hash before deployment.
 The `.wzo2` extension distinguishes the v2 format from v1 `.wzo` artifacts.
 Both formats may coexist in `data/`.
 
-## 7. R8 baseline inventory
+## 7. R8 baseline inventory — acceptance criteria coverage
 
-Per spec R8 (format must support reader/verifier checks) and the verify-battery
-spec §6a. The format contract enables the following checks. Any relaxation of
-these in M3's reader or the verify-battery must be called out explicitly.
+Per spec R8 (format must support reader/verifier checks) and the
+verify-battery spec §6a. This section maps every acceptance criterion
+(A1–A9) and invariant check (I-series) to the format's support.
 
-### 7.1 Format-level checks (valid on any artifact, no fixpoint needed)
+### 7.1 Acceptance criteria (A1–A9)
+
+| criterion | format support | notes |
+|---|---|---|
+| **A1 (pin census)** | **Format-supported.** `L == H` vs `L < H` computed from stored L/H columns. `pin_T` = count where `L == H`. KO_SENSITIVE recomputed per lookup, not stored. | |
+| **A2 (colour inversion)** | **Format-supported.** Keys are explicit. For every stored entry `(colex, s, ko, p)` the inverted key is `(colour_flip(colex), 1-s, ko, p)`. Check `L(pos, side) == -H(inverted)`. Requires battery to compute colour-flip of colex. | |
+| **A3 (L ≤ H)** | **Format-supported.** `L` and `H` stored per entry; exhaustive scan. | |
+| **A4 (Bellman residual)** | **Format-supported.** Keys are explicit. Battery reconstructs state, generates children via its own move engine (R8), checks `L = Φ(L)`, `H = Φ(H)`. | |
+| **A5 (round-trip identity)** | **Format-supported.** `decode(encode(key)) == key` for all entries. Key encoding is lossless by construction (colex + key_byte), but the check verifies writer/reader agreement on bit packing. | |
+| **A6 (known-bad calibration)** | **Partially format-supported.** Three named corruptions: (a) *one perturbed value* → caught by SHA-256 (full-file, `--verify-hash`) or I4 (Bellman); (b) *one dropped ko state* → caught by I6 (UNDEF census) since `n_entries` would be wrong; (c) *one zeroed DTT column* → caught by I7. SHA-256 is the only check that names all three at format level; the other two need the battery. | |
+| **A7 (UNDEF census)** | **Format-supported.** Every legal position has a determinable lookup. Battery enumerates all legal positions and checks coverage (found in-artifact or UNDEF). | |
+| **A8 (DTT is non-constant)** | **Format-supported.** DTT column is stored; check that non-terminal non-FAR entries span > 1 distinct value. The DTT recurrence (min for Black, max for White) ensures the column carries real information, not the pass-pass collapse described in BLOCKER-2. | |
+| **A9 (reproducibility)** | **Format-supported by construction.** Determinism contract: (a) all reserved bytes zeroed (§4); (b) canonical sort order: groups strictly increasing colex, entries per §2.4; (c) no timestamps or build metadata; (d) SHA-256 slot zeroed before hash, then written in place (§4.2). A byte-identical rebuild is possible from the same solver inputs. | |
+
+### 7.2 Format-level checks (valid on any artifact, no fixpoint needed)
 
 | check | how the format supports it |
 |---|---|
-| **Magic + version** | Fixed-offset magic field `WZO2` at byte 0; version at byte 4. Checked on every load. |
+| **Magic + version** | Fixed-offset magic `WZO2` at byte 0; version at byte 4. Checked on every load. |
 | **Goban size match** | `w` and `h` at bytes 6–7. Checked on load; mismatch → fatal. |
-| **SHA-256 integrity** | 32-byte slot at offset 40. Covers bytes 0–39. Computed post-build by M2b and verified on load. |
-| **File size consistency** | `size == data_offset + n_groups × 5 + n_entries × entry_size`. Verifies no truncation or appendage. |
-| **Entry size invariant** | `entry_size == 5`. Guards against future format changes that the reader doesn't support. |
-| **Colour inversion (I2)** | Keys are explicit. For every stored entry `(colex, s, ko, p)` the inverted key is `(colour_flip(colex), 1-s, ko, p)`. Check `L(pos, side) == -H(inverted)`. Requires the battery to compute colour-flip of colex (rank from inverted position); doable with the independent re-implementation (R8). |
-| **L ≤ H (I3)** | `L` and `H` are stored per entry; check on every row. |
-| **Score range (I12)** | `L, H ∈ [−n, +n]` where `n = w·h`. Exhaustive scan. |
-| **Round-trip identity (A5)** | `decode(encode(key)) == key` and `decode(encode(cols)) == cols` for all entries. The key encoding is lossless by construction (colex + key_byte), but the check verifies that the writer and reader agree on endianness and bit packing. |
+| **SHA-256 integrity** | 32-byte slot at offset 40. Covers entire file with slot zeroed (§4.2). Verified on `--verify-hash`. |
+| **File size consistency** | `size == data_offset + n_groups × 5 + n_entries × entry_size`. |
+| **Entry size invariant** | `entry_size == 4`. Guards against future format changes. |
+| **Group header size invariant** | `group_header_size == 5`. |
 | **Ko bits match goban size** | `ko_bits == ceil(log₂(w·h+1))`. Prevents misinterpretation of key_byte. |
 | **Group order** | Groups must appear in strictly increasing colex order. A single backward step invalidates binary search. |
+| **Colour inversion (I2)** | Keys are explicit; battery computes colour-flip of colex and checks `L(pos, side) == -H(inverted)`. |
+| **L ≤ H (I3)** | Stored per entry; check on every row. |
+| **Score range (I12)** | `L, H ∈ [−n, +n]` where `n = w·h`. Exhaustive scan. |
+| **Round-trip identity (A5)** | `decode(encode(key)) == key` for all entries; verifies bit-packing agreement. |
+| **Passes-ko invariant** | No stored entry has `passes=1` and `ko ≠ none` (§2.5). One mask per row. |
+| **Entry count bound** | No group's `entry_count` exceeds `2 × (w·h + 2)` (§2.4). |
+| **Key byte unused bits** | Unused MSBs in key_byte must be zero. |
+| **Passes=2 omission flag** | `hdr_flags` bit 0 = 1 confirms passes=2 is omitted by contract (§2.3, COULD-5). |
 
-### 7.2 State-level checks (require fixpoint or move relation)
+### 7.3 State-level checks (require fixpoint or move relation)
 
 | check | how the format supports it |
 |---|---|
-| **Bellman residual (I4)** | Keys are explicit. Battery reconstructs the state from key, generates children via its own move engine (R8), and checks `L = Φ(L)`, `H = Φ(H)`. |
-| **Pin census (I1)** | `L == H` vs `L < H` computed from stored L/H. `pin_T` = states where `TIE_pin` matches 0 (or the selected convention). |
-| **DTT sanity (I7)** | DTT column is stored. Terminals must have DTT=0. Non-terminals with paths to terminal must have DTT > 0 and ≤ a child's DTT+1. |
-| **KO_SENSITIVE ⊆ cycle-reachable (I5)** | Flags.`KO_SENSITIVE` is stored. Battery computes SCCs on its own move graph and verifies containment. |
-| **UNDEF census (I6)** | Every legal position has a determinable lookup: in-artifact (found) or not (UNDEF). Battery enumerates all legal positions and checks coverage. |
-| **Anchor values (I9)** | Specific keys' L/H values must match committed anchors. Keys are explicit — the battery looks up the known root state. |
-| **Terminal flag consistency** | Flags.`TERMINAL` must match the condition "no legal non-pass moves for this side." Battery computes move set independently and checks. |
+| **Bellman residual (I4)** | Keys are explicit. Battery reconstructs state, generates children via its own move engine (R8). |
+| **Pin census (I1)** | Computed from stored L/H; `pin_T` = count where `L == H`. |
+| **DTT sanity (I7)** | DTT column stored. Absorbing terminals (passes=2) have DTT=0. Non-terminals without KO_SENSITIVE must have 0 < DTT ≤ 254 and DTT(s) = 1 + opt(child DTT). |
+| **KO_SENSITIVE ⊆ cycle-reachable (I5)** | Computed as `L != H`. Battery computes SCCs on its own move graph and verifies containment. |
+| **UNDEF census (I6)** | Every legal position has a determinable lookup; battery checks coverage. |
+| **Anchor values (I9)** | Specific keys' L/H values must match committed anchors. Keys are explicit. |
+| **Terminal flag consistency** | `terminal` bit in key_byte must match "no legal placement for this side." Battery computes move set independently. |
+| **Truncation-gap regression (I8)** | 2×2 only; the 24 formerly-mismatched states must be pinned and checked. |
 
-### 7.3 Checks the format does NOT support alone
-
-These require the fixpoint solver's cooperation (M2a/M2b) and are included for
-completeness — the verifier must coordinate:
+### 7.4 Checks the format does NOT support alone
 
 | check | what's needed beyond the format |
 |---|---|
 | **Move-set consistency (I11)** | M2b must emit a sidecar dump of the legal-move set used during the fixpoint, for the battery's independent move engine to compare against. Not a format requirement — an M2b deliverable. |
-| **Truncation-gap regression (I8)** | 2×2 only; the 24 formerly-mismatched states must be pinned in the format as entries and their values compared. The format carries the values; the battery checks them. |
-| **TIE median (I10)** | The artifact stores L and H, not TIE. TIE is computed by the reader as `median(L, convention, H)`. The battery checks this by recomputing TIE from stored L/H and verifying `TIE ∈ [L, H]`. |
+| **TIE median (I10)** | Artifact stores L and H, not TIE. TIE is computed by the reader as `median(L, convention, H)`. Battery checks `TIE ∈ [L, H]`. |
 
 ## 8. Design decisions and rationale
 
-**D1: Grouped inline, not a separate group index.** A separate group index
-(adds 8 bytes per group: 4 colex + 4 offset) costs ~200 MB at G=25M, pushing
-the file over 800 MB. Storing colex inline with the group header (5 bytes
-per group, including the count byte) saves ~3 bytes/group and keeps the
-budget near 600 MB. The trade: the engine must read all group headers into
-memory (~120 MB) for binary search, which is acceptable given the host's
-4 GB RSS cap.
+**D1: Grouped inline, segregated layout.** A separate group index (8 bytes
+per group: 4 colex + 4 offset) would cost ~200 MB at G=24M. The segregated
+inline layout — all group headers contiguous, then all entries — saves
+~3 bytes/group and enables a single read of all group headers at startup
+(~120 MB). Binary search on the in-memory array, then linear scan within
+the group.
 
 **D2: Passes=2 terminal computation in the reader, not stored.** R10 defines
-passes=2 states as terminals with no free parameters. Storing them would add
-~50M redundant entries (~250 MB). The reader (M3) handles passes=2 by
-computing area score on the fly. This is a pure format-design decision and
-does not affect the solver (which already excludes passes=2 from its compact
-working array).
+passes=2 states as absorbing terminals with no free parameters. Storing them
+would add at most `2 × G` (~47.6M) redundant entries (~190 MB). The reader
+(M3) handles passes=2 by computing area score on the fly. This does not
+affect the solver (which already seeds passes=2 but excludes it from the
+compact working array).
 
 **D3: i8 for L and H, not a packed narrower type.** L and H for 4×4 need 6
 bits each (33 values, [−16, +16]). Packing them into 12 bits would save 4
-bits per entry (~50 MB total) but would require bit-shift operations on every
-lookup, complicate the column layout, and break byte-alignment for the other
-columns. The simpler byte-aligned layout is preferred for debuggability and
-code simplicity. The 50 MB savings are not worth the complexity given the
-budget is already near 600 MB (and would be ~550 MB with packing — still
-close to the line).
+bits per entry (~50 MB) but would break byte-alignment for DTT and require
+bit-shift operations on every lookup. The 4-byte layout is already 82 MB
+under the 600 MB ceiling — packing is unnecessary complexity.
 
-**D4: colex stored big-endian in groups.** Ensures the on-disk sort matches
-the in-memory sort without byte-swap during binary search.
+**D4: Little-endian throughout.** All multi-byte fields (colex in group
+headers, u16/u64 in the file header) use LE, matching Zig's native byte
+order. Binary search reads u32 LE and compares numerically; correctness
+does not depend on on-disk byte order, only on the writer writing colex in
+strictly increasing order — which it does, since it iterates colex in order.
 
-**D5: Little-endian header (except colex).** The header's multi-byte fields
-(u16, u64) use LE per the Zig convention. The colex is explicitly BE for
-sort-order correctness. This is a deliberate inconsistency — each field uses
-the endianness that makes its primary consumer correct.
+**D5: No `KO_SENSITIVE` flag.** `L != H` is a single byte comparison per
+lookup. Storing it as a flag costs `N` bytes (99 MB at 4×4) for a
+computation the reader already performs. The pin census and move ordering
+derive it from L/H.
 
-**D6: No compression.** The format is uncompressed so that (a) the SHA-256 in
-the header covers the exact bytes the reader reads, (b) the reader can mmap
-and seek without a decompression step, and (c) the reproducibility command
-(R7) is a single `zig build` invocation, not a pipeline with an external
-compressor. If the budget requires compression, that is a separate decision
-to be made at re-scope.
+**D6: No compression.** The format is uncompressed so that (a) the SHA-256
+covers the exact bytes the reader reads, (b) the reader can mmap and seek
+without a decompression step, and (c) the reproducibility command (R7) is a
+single `zig build` invocation, not a pipeline with an external compressor.
+
+**D7: Aligned header for struct overlay.** u64 fields are placed at 8-byte
+offsets (16, 24, 32) so a Zig `extern struct` can overlay the mmap'd header
+directly. The builder and reader may use accessors as well; the alignment
+means both approaches produce the same result.
 
 ## 9. What I could not establish
 
-1. **The exact distinct goban count G for 4×4.** The EXP-3 census reports
-   distinct `(b, ko)` addresses (29,497,329) but not distinct gobans. The
-   budget derivation uses an estimated range (22–25M). M2a's reachability
-   builder will produce the exact count; until then the budget is a range,
-   not a point estimate.
+1. **Whether M2b's entry count will match 99,133,036.** The solver's own
+   compact-state walk (`exp6_solve.zig:1113`) is the only authority. The
+   EXP-3 census's "with passes" figure is an arithmetic double (51,419,046
+   × 2) and does not bound the solver's count in either direction (audit
+   SHOULD-6). The budget's sensitivity is low — ±1M entries is ±4 MB — and
+   the 82 MB of headroom absorbs it.
 
-2. **Whether the solver's compact count (99,133,036) exactly matches the
-   number of entries M2b will produce.** The solver excludes some states
-   (e.g., unreachable under its narrower walk), and M2b will follow the
-   same reachability. The census count (102,838,092) is an upper bound. The
-   exact N is an M2b output.
+2. **DTT maximum value.** It is possible that 1 byte is insufficient if the
+   longest value-preserving path to terminal exceeds 254 plies. Empirical
+   3×3 data suggests DTT stays well under 100. If 4×4 exceeds 254, the FAR
+   sentinel (255) handles it — the only loss is DTT precision on very deep
+   states, not correctness. The verifier's I7 check must accept 255 as a
+   valid non-error value for cycle-affected states.
 
-3. **DTT maximum value.** It is possible that 1 byte is insufficient if the
-   longest path to terminal exceeds 254 steps. For a state graph with ~100M
-   nodes, the longest simple path could be large, but DTT is the *shortest*
-   path to terminal, which is bounded by the number of states in the
-   cycle-free portion. Empirical data from the 3×3 solve suggests DTT stays
-   under 100. If 4×4 exceeds 254, the FAR sentinel (255) handles it
-   gracefully — the only loss is DTT precision on very deep states, not
-   correctness.
-
-4. **The F2 resolution.** The derived budget exceeds 600 MB per the spec's
-   own gate. The recommended re-scope is to raise the ceiling to 650 MB.
+3. **The exact distinct goban count G under M2b's walk.** The census lower
+   bound (23,802,969) is safe — the census's reachable set is a subset of
+   the solver's. The upper bound (24,318,165) is the unconditional
+   legal-position count. M2a's reachability builder will produce the exact
+   count; until then the bracket is 23.80M–24.32M, worth ±2.6 MB of file.
 
 ## 10. What to check next
 
-1. **O-4 audit** — independently verify the byte budget derivation and the
-   key encoding.
-2. **M2a reachability builder** — produces the exact G and N counts. Until
-   then the budget remains a range.
-3. **M2b start gate** — do not dispatch until the F2 budget question is
-   resolved (re-scope decision from Orchestrator).
+1. **G2 human ratification** — the revised design must pass the F2 gate
+   (derived budget < 600 MB) and all five brief-mandated checks.
+2. **M2b start gate** — the F2 budget question is resolved (515.5–518.1 MB,
+   no re-scope needed). M2b may dispatch.
+3. **M3 header struct alignment** — verify the `extern struct` overlay
+   matches this document's header layout byte-for-byte.
+4. **artifact.zig** — add `RULES_BASICKO_LH_AREA: u8 = 3` and the
+   corresponding `rulesName` arm and load-validation acceptance.
+
+## 11. Audit resolution log
+
+| finding | disposition |
+|---|---|
+| BLOCKER-1 (layout two ways) | **Fixed.** §1.1 diagram redrawn as segregated; three regions with byte extents stated in §1 table. |
+| BLOCKER-2 (DTT undefined) | **Fixed.** DTT recurrence stated in §3.1: base case, value-preserving constraint, adversarial min/max, cycle sentinel. DTT=0 reserved for absorbing terminals. |
+| CRITICAL-1 (SHA-256 covers 40 B) | **Fixed.** §4.2: hash covers entire file with slot zeroed. `--verify-hash` load-time option; mandatory in A6/M4a path. |
+| CRITICAL-2 (re-scope over 1-byte fix) | **Fixed.** 4-byte entries adopted (§3). `flags` byte dropped; `terminal` in key_byte LSB; `KO_SENSITIVE` = `L != H`. Budget: 515.5–518.1 MB, under ceiling by 82 MB. |
+| MUST-1 (G and N unmeasured) | **Fixed.** §5.1 replaced with measured bracket from census evidence files. §9.1 deleted. |
+| MUST-2 (MB vs MiB) | **Fixed.** §5 header states "MB = 10⁶ bytes"; §5.3 figures corrected. |
+| MUST-3 (rules_id) | **Fixed.** §4.1: id = 3 allocated, source file corrected to `artifact.zig`, validation step added (§4.3 step 7). |
+| MUST-4 (header inconsistency) | **Fixed.** `ko_bits` type corrected to u8/size=1. u64 fields moved to 8-byte-aligned offsets (16, 24, 32). `group_header_size` added at offset 12. |
+| MUST-5 (R8 omits A1–A9) | **Fixed.** §7 restructured: §7.1 maps A1–A9 explicitly, §7.2 covers format-level checks, §7.3 state-level. |
+| SHOULD-1 (load-RAM contradiction) | **Fixed.** §5.3 uses sparse prefix sum (every 256th group, ~372 KB) instead of full offset array. Appendix A updated. |
+| SHOULD-2 (BE colex buys nothing) | **Fixed.** D4: LE adopted throughout (§2.1, §8). |
+| SHOULD-3 (ordering prose) | **Fixed.** §2.4 rewritten for multi-ko groups. |
+| SHOULD-4 (side-dependent area score) | **Fixed.** §2.3: side-dependence removed; provenance cited (`exp6_solve.zig:457-459,485`). |
+| SHOULD-5 (passes≥1 ⇒ ko=none) | **Fixed.** §2.5 added as invariant; used in group bound (§2.4), format checks (§7.2), and D2 sizing. |
+| SHOULD-6 (N justification) | **Fixed.** §5.1 cites `exp6_solve.zig:1113` directly; notes census ×2 is arithmetic, not a bound. |
+| COULD-1 (entry-count bound) | **Fixed.** §2.4: max = `2 × (w·h + 2)`; writer assert stated. |
+| COULD-2 (u32 colex cap) | **Fixed.** §2.1: "format ceiling: 20 cells." |
+| COULD-3 (interval typo) | **Fixed.** §2.1: `[0, 3^(w·h) − 1]`. |
+| COULD-4 (group header size) | **Fixed.** `group_header_size = 5` in header at offset 12; validation step 5. |
+| COULD-5 (passes=2 omission flag) | **Fixed.** `hdr_flags` bit 0 = `PASSES_2_OMITTED` at header offset 14. |
 
 ## A. Example lookup pseudocode
 
 ```zig
 fn lookup(artifact: []const u8, colex: u32, side: Side, ko: u8, passes: u2) ?Row {
-    // Terminal shortcut
+    // Terminal shortcut — passes=2 is not stored (§2.3)
     if (passes == 2) {
-        return terminalRow(colex, side); // area score, DTT=0, TERMINAL flag
+        return terminalRow(colex, side); // area score, DTT=0, terminal=1
     }
 
     const header = parseHeader(artifact[0..128]);
 
-    // Binary search groups on colex_index (big-endian)
-    const groups = artifact[header.data_offset..];
+    // Binary search groups on colex_index (little-endian)
+    const group_base: usize = header.data_offset;
+    const groups = artifact[group_base .. group_base + header.n_groups * 5];
     var lo: usize = 0;
     var hi: usize = header.n_groups;
     while (lo < hi) {
         const mid = lo + (hi - lo) / 2;
-        const mid_colex = readU32BE(groups[mid * 5 ..][0..4]);
+        const mid_colex = std.mem.readInt(u32, groups[mid * 5 ..][0..4], .little);
         if (mid_colex < colex) lo = mid + 1
         else if (mid_colex > colex) hi = mid
         else { lo = mid; break; }
     }
     if (lo >= header.n_groups) return null;
-    const grp_colex = readU32BE(groups[lo * 5 ..][0..4]);
+    const grp_colex = std.mem.readInt(u32, groups[lo * 5 ..][0..4], .little);
     if (grp_colex != colex) return null;
 
     const count: u8 = groups[lo * 5 + 4];
+
+    // Build target key_byte (terminal bit = 0 for lookup; masked off during scan)
     const target_kb = encodeKeyByte(side, ko, passes, header.ko_bits);
 
-    // Linear scan within group
-    const entry_base = header.data_offset +
-        header.n_groups * 5 +  // skip all group headers
-        (entries_before_group) * 5;  // prefix sum of counts
+    // Sparse prefix sum: cumulative entry index at every 256th group
+    const checkpoint_idx = lo >> 8;
+    const entry_offset = entry_checkpoints[checkpoint_idx];
+    var offset: usize = entry_offset;
+    for (checkpoint_idx * 256 .. lo) |g| {
+        offset += group_counts[g];
+    }
 
+    // Entry data begins after all G group headers
+    const entry_base = group_base + header.n_groups * 5;
+
+    // Linear scan within group
     for (0..count) |i| {
-        const entry = artifact[entry_base + i * 5 ..][0..5];
-        if (entry[0] == target_kb) {
+        const entry = artifact[entry_base + (offset + i) * 4 ..][0..4];
+        // Mask off terminal LSB before comparing keys
+        if (entry[0] & 0xFE == target_kb) {
             return Row{
                 .L = @bitCast(entry[1]),
                 .H = @bitCast(entry[2]),
                 .DTT = entry[3],
-                .flags = entry[4],
+                .terminal = (entry[0] & 1) != 0,
+                .ko_sensitive = (entry[1] != entry[2]),
             };
         }
     }
@@ -475,10 +630,8 @@ fn lookup(artifact: []const u8, colex: u32, side: Side, ko: u8, passes: u2) ?Row
 }
 ```
 
-Note: `entries_before_group` requires a prefix sum over group counts. This can
-be precomputed at load time (one pass, O(G)) and cached alongside the group
-headers, or computed on the fly with a cumulative scan during binary search.
-The cost is marginal (~25M additions at load, <0.1s) and the array of offsets
-adds `G × 4` bytes (~100 MB) to the load-time memory. If memory pressure is a
-concern, the engine can compute the prefix sum regionally (per page of groups)
-rather than caching the full offset array.
+The sparse prefix-sum array `entry_checkpoints` and the per-group count
+array `group_counts` are built at load time in one pass over the group
+index (O(G)). The checkpoint array is `G/256 × 4 ≈ 372 KB` at 4×4;
+the count array is `G × 1 ≈ 24 MB` (the group index, already in memory).
+Total additional allocation beyond the group index: **< 1 MB**.
