@@ -160,19 +160,20 @@
     "claim_count": 1
   },
   "T132": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro/T132",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T132-strategy-audit-oracle-v2.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T02:20:36Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T02:30:37Z",
+    "done": "2026-07-31T02:30:37Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T122": {
     "status": "done",
