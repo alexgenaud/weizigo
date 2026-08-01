@@ -151,6 +151,25 @@
     "verdict_note": null,
     "claim_count": 1
   },
+  "T225": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T225-differential-oracle-harness.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T19:08:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0
+  },
   "T224": {
     "status": "dispatchable",
     "agent": null,
@@ -266,7 +285,7 @@
     "claim_count": 1
   },
   "T212": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "model": null,
     "bundle": "untracked/T212-wzo2-rebuild-remeasure.md",
@@ -276,11 +295,11 @@
     "caps": [],
     "added": "2026-08-01T11:15:21Z",
     "claimed": "2026-08-01T11:22:42Z",
-    "done": null,
+    "done": "2026-08-01T17:38:23Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1
   },
