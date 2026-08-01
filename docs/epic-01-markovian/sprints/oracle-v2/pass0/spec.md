@@ -1,7 +1,7 @@
 # oracle-v2 — SPEC
 
 ```
-Status:   PROPOSED (pass 1) — awaiting pass-1 audit, then human ratification
+Status:   RATIFIED (G1, 2026-07-31) — pass-1 audit PASS (T135, spec.audit-2.md)
 Author:   Opus/Navigator (claude-opus-5[1m]) · 2026-07-31
 Revised:  Fable/Navigator (claude-fable-5) · 2026-07-31 — resolves pass-0
           audit F1–F6 (BLOCKER + 5 MUST); adopts F7 (M4 split), F8 (R8
@@ -9,7 +9,8 @@ Revised:  Fable/Navigator (claude-fable-5) · 2026-07-31 — resolves pass-0
           56950a1:docs/design/oracle-v2/pass0/spec.md; audit:
           docs/epic-01-markovian/sprints/oracle-v2/archive/spec.audit-1.md). Each resolution is
           tagged [Fn].
-Process:  docs/infra/sprint.md (un-retirement proposed in channel msg 062)
+Process:  docs/infra/sprint.md (RATIFIED rev 4 d53c2a8; rewritten 200b974 —
+          substance = DECISIONS.md D-16…D-20)
 Tier:     A — new state representation + format contract + verifier changes
 Audit:    this document, before any design task is dispatched
 ```

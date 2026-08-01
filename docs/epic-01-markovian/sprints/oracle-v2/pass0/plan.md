@@ -1,8 +1,8 @@
 # oracle-v2 — STRATEGY
 
 ```
-Status:   PROPOSED (rev 1) — pass-0 strategy-audit findings resolved;
-          awaiting human ratification
+Status:   RATIFIED (G2, 2026-07-31) — executed through P3-E (T184); T193
+          (M4a run) and G3 open
 Author:   Fable/Navigator (claude-fable-5) · 2026-07-31
 Revised:  Fable/Navigator · 2026-07-31 — canonical, revised in place (rev 0
           text: git show 56950a1:docs/design/oracle-v2/pass0/strategy.md).

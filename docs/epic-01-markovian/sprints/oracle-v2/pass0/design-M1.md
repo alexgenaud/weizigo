@@ -3,8 +3,7 @@
 ```
 Task:    T148 (rev 2, DSPro) · rev 3: Fable/Navigator (claude-fable-5) · Date: 2026-07-31
 Deliverable: docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md
-Status:   PROPOSED (rev 3) — all T146 + T150 findings dispositioned; awaiting
-          G2 human ratification (diff-scoped review recommended, no fourth audit round)
+Status:   RATIFIED (G2, 2026-07-31) — built T165–T167
 Target:   docs/epic-01-markovian/sprints/oracle-v2/pass0/spec.md (ratified G1)
 Audit:    T146 (Opus 5) — NEW-2/3/4/7/8 resolved. T150 (DSPro) — NEW-1, NEW-5,
           NEW-9 resolved in rev 3; RV2-1 no-change-needed (see §11)

@@ -5,19 +5,49 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
-Last refreshed **2026-08-01** (Fable/T177 — P2 absorption; earlier 2026-07-31
-Fable/Consul sprint-state rewrite).
+Last refreshed **2026-08-01 (T205/DSFlash — audit remediation)**.
 
-# STATE AS OF 2026-08-01 — Fable/T177
+# STATE AS OF 2026-08-01 (T205 refresh) — audit remediation in flight
+
+The coherence audit (`docs/audits/coherence-audit-2026-08-01.md`, `653f157`)
+found every read-first surface stale (CA-2) and the stand-down handover
+missing (CA-3). Phase 1 landed 2026-08-01: **T204 done** (`a98bf04` —
+managent `next_id` root fix + `sync --peek`). The Phase-2 bundles T205–T208
+are unblocked; T209 (dispatch ergonomics) waits on T206+T207.
+
+- **WZO2 artifact EXISTS**: `untracked/oracle-v2/oracle-4x4-v2.wzo2`,
+  518.1 MB (518,123,097 bytes), SHA-256
+  `a892d689856de7fdbbe3504c693e910c10f9baf49e6e97424cf6a1327e9ea57d`,
+  recorded in `artifacts/SHA256SUMS` at `f851102` (T192: OOM fix, 64MiB
+  chunk, free before alloc; builder ran under the runner, peak RSS
+  3887 MB < 4 GB cap).
+- **`docs/evidence/ORACLE-V2/` EXISTS** (5 files): consumer-load-T178,
+  build-T184 (report + `.stdout`), m2a-reverify-T183, accept-wire-T182.
+- **Open on the kanban**: T193 (M4a acceptance run — dispatchable), T205
+  (this task — in progress, DSFlash), T206 (in progress, DSPro), T207/T208
+  (dispatchable), T203 (pass1 relocation — blocked on T205–T208 per D-D),
+  T209 (blocked on T206+T207), G3 ×2 (oracle-v2 accept, verify-battery
+  accept).
+- **Orcha seat vacant** — D-C (roadmap-audit-remediation) rules Opus or
+  Fable, seated after the Phase-1 gate (now passed); reactivation per
+  `docs/status/roadmap-audit-remediation-2026-08-01.md` §Phase 3.
+
+---
+
+> # STATE AS OF 2026-08-01 — Fable/T177 — **superseded by the top block**
+> (kept as history; the P2→P3 follow-ups it lists were executed T180–T192)
 
 ## P2 absorbed: both sprints are CODE-COMPLETE, RUN-PENDING
 
 G2 cleared; the post-G2 build lanes (T165–T172) ran 2026-07-31 and delivered
-~5,000 lines of committed code with **zero executions**. Absorbed into the
+~5,000 lines of committed code — **unexecuted at that point**; the build
+lanes ran 2026-08-01 via T178–T192 (see top block). Absorbed into the
 register 2026-08-01 (Fable/T177, 6 new rows; see `PROGRESS.md` §7.4a):
 
-- **oracle-v2**: no `.wzo2` artifact exists — the builder compiled but never
-  ran; `docs/evidence/ORACLE-V2/` was never created; the G-bracket, F2
+- **oracle-v2**: at the time, no `.wzo2` artifact existed and
+  `docs/evidence/ORACLE-V2/` was not yet created — **both are now in place**
+  (artifact `untracked/oracle-v2/oracle-4x4-v2.wzo2`, SHA-256 `a892d689…`,
+  recorded `f851102`; evidence dir has 5 files); the G-bracket, F2
   byte-budget and DTT-clamp predictions are all still untested
   `[CODE.WZO2-UNRUN:PROVEN]`. Inspection defects: the WZO2 GTP path
   short-circuits chainability to `true` (refusal rate = 0 by fiat,
@@ -42,15 +72,17 @@ check or an honest "unverified" flag, and count/log lookup-miss fallbacks;
 (3) wire `oracle_v2_accept.zig` into the build graph, fix the A6 fixture
 (c), re-verify M2a byte-identity; (4) **run the WZO2 builder under the
 runner** (RSS cap 4096; the untested memory plan is the suspected blocker)
-and commit `docs/evidence/ORACLE-V2/`; (5) run M4a against the artifact;
+and commit `docs/evidence/ORACLE-V2/` — **DONE** (T184 built under the
+runner; T192 fixed the OOM; artifact + SHA recorded `f851102`); (5) run M4a
+against the artifact — **open as T193**;
 (6) wire the battery harness to the invariant modules, reconcile the I5
 edge-count discrepancy against a committed reference, implement RSS
 high-water-mark measurement.
 
 ## Sprint docs (both M1 designs G2-ratified; state above supersedes)
 
-**Doc convention** (`docs/infra/sprint.md` rev 5, PROPOSED — rev 4 was
-RATIFIED `d53c2a8`; rev 5 adds the epic tree per human directive):
+**Doc convention** (`docs/infra/sprint.md` RATIFIED rev 4 `d53c2a8`;
+rewritten `200b974` — substance = DECISIONS.md D-16…D-20):
 canonical unsuffixed docs live in
 `docs/epic-NN-<slug>/sprints/<sprint>/passN/` (this epic:
 `docs/epic-01-markovian/sprints/`); audit/revision ephemera in the sprint's
@@ -68,7 +100,9 @@ and the epic move of 2026-07-31).
   seat T155 — gate chain 2×2=0, 3×2=0, 3×3=+9 reproduced, 4×4 census
   identical). M2b dispatchable the moment G2 clears.
 - **verify-battery** (fleet re-verification instrument):
-  `docs/epic-01-markovian/sprints/verify-battery/pass0/{spec,strategy,design-M1,i5-feasibility}.md`.
+  `docs/epic-01-markovian/sprints/verify-battery/pass0/{spec,plan,design-M1}.md`
+  (i5-feasibility lives in the sprint `archive/`; `strategy.md` was renamed
+  `plan.md`).
   design-M1 at **rev 2 + rev-3 patch** (T156 schema-field closures), audit
   T151 **PASS**; the JSON-Lines result schema freezes at G2. Acceptance
   criteria AC-S1 / AC-S3 / AC-S4 are still open and tracked only in the
@@ -76,16 +110,17 @@ and the epic move of 2026-07-31).
 
 ## Decisions the human owes
 
-1. **WZO1 cannot answer bracket invariants**: every committed artifact stores
-   the TIE-resolved pin (single V), not `[L,H]` — so `L ≤ H`, median-pin and
-   L/H-residual checks are uncomputable from committed evidence and 10 of the
-   60 fleet-matrix cells are unreachable until WZO2 exists. Options: wait for
-   the WZO2 artifact (now blocked only on running the builder), or the
-   ~250–350-line solver-side L/H dump — **whose format is GAP-5's missing
-   spec (`CODE.VB-BLINDGAPS`), so the dump option requires the GAP-5
-   amendment first either way.**
-2. **sprint.md rev 5** (epic tree, plan.md rename) — PROPOSED, awaiting
-   ratification.
+1. **WZO1 cannot answer bracket invariants**: every committed WZO1 artifact
+   stores the TIE-resolved pin (single V), not `[L,H]` — so `L ≤ H`,
+   median-pin and L/H-residual checks are uncomputable from committed WZO1
+   evidence. **WZO2 now exists** (`untracked/oracle-v2/oracle-4x4-v2.wzo2`,
+   `f851102`), so the wait option is executable once the M4a acceptance run
+   (T193) passes; the ~250–350-line solver-side L/H dump remains an option —
+   GAP-5's missing format spec was resolved by the T180 spec surgery. Still
+   a human decision.
+2. ~~**sprint.md rev 5** (epic tree, plan.md rename) — PROPOSED, awaiting
+   ratification~~ — **closed by supersession**: `200b974` rewrote sprint.md;
+   the rev-5 substance survives as DECISIONS.md D-16…D-20.
 
 Resolved since the last refresh: G2 ×2 (cleared; P2 built on it) and the
 ADR-0020 amendment (ratified, committed `0c3c3ac`).
@@ -144,10 +179,10 @@ findings never pushed into CLAIMS/PROGRESS/CURRENT). Recovery in flight:
 - `docs/epistemic/CLAIMS.md` — T163 hold released (`7868108`); Fable's
   catch-up landed at `9fde18d`. No live owner.
 - `docs/infra/model-perf.md` — T164 hold released (`f597c3d`). No live owner.
-- `docs/status/CURRENT.md` — no live owner.
-- `src/managent/main.zig` — T159 hold cleared at `082433e`.
-- `docs/decisions/ADR-0020-...md` — **amendment drafted, uncommitted in the
-  working tree**, awaiting the human G1 ruling. Do not commit or revert it.
+- `docs/status/CURRENT.md` — T205 (this refresh).
+- `src/managent/main.zig` — T159 hold cleared at `082433e`; T204 landed `a98bf04`.
+- `docs/decisions/ADR-0020-...md` — amendment **ratified and committed
+  `0c3c3ac`** (G1); no longer uncommitted.
 - Kanban caution: T140/T141/T144/T145/T146 in the *current* queue are
   orcha-tools **test fixtures** with reused IDs, not the historical tasks of
   the same numbers.

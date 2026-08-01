@@ -23,7 +23,7 @@ Working notes for the brute-force / perfect small-goban Go solver.
 ## Layout
 
 - `epistemic/PROGRESS.md` — the living specification (current truth; the hub).
-- `epistemic/names.md` — canonical names register (proposed; pending propagation).
+- `epistemic/names.md` — canonical names register (DECIDED 2026-07-25, propagated).
 - `about-this-document.md` — the documentation-as-specification-as-research
   method.
 - `infra/delegation/` — `DELEGATOR.md` (how to write a task) and `DELEGATEE.md` (how to

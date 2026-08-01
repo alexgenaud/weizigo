@@ -1,8 +1,8 @@
 # verify-battery — STRATEGY
 
 ```
-Status:   PROPOSED (rev 1) — pass-0 strategy-audit findings resolved;
-          awaiting pass-1 audit, then human ratification
+Status:   RATIFIED (G2, 2026-07-31) — executed through P3-H (T168–T187);
+          open: V-13 fleet run, V-14 absorption (G3)
 Author:   Fable/Navigator (claude-fable-5) · 2026-07-31
 Revised:  Fable/T136 · 2026-07-31 — live copy; the pass-0 original is
           frozen at docs/epic-01-markovian/sprints/verify-battery/archive/plan.md. Resolves
@@ -12,9 +12,9 @@ Revised:  Fable/T136 · 2026-07-31 — live copy; the pass-0 original is
           docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md.
 Process:  human-gated checkpoints under the delegation regime
           (docs/infra/delegation/ — DELEGATOR / DELEGATEE / ROLES).
-          docs/infra/sprint.md is RETIRED 2026-07-28; G1–G3 below are
-          human-ratification points and need none of its machinery. The
-          proposed un-retirement is on G1's agenda, not assumed. [SM1]
+          docs/infra/sprint.md is RATIFIED rev 4 (d53c2a8) and rewritten
+          200b974 (substance D-16…D-20) — the un-retirement happened; G1–G3
+          below are human-ratification points. [SM1]
 Inputs:   pass0/spec.md · pass0/spec-audit.md · pass0/plan.md ·
           pass0/strategy-audit.md · pass1/i5-feasibility.md (DSPro/T134)
 Audit:    pass-1 audit covers this document and the revised spec together

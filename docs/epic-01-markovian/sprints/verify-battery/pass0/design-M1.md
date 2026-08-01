@@ -2,8 +2,8 @@
 
 ```
 Author:   DSPro/T149 · 2026-07-31
-Status:   PROPOSED (rev 2) — resolves rev-1 re-audit (T147/Opus 5): 1 critical,
-          4 must-fix
+Status:   RATIFIED (rev 4, G2 2026-07-31) — P3-A spec surgery (T180) resolves
+          GAP-1…GAP-5; built T168–T172
 Inputs:   docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md (rev 1) ·
           docs/epic-01-markovian/sprints/verify-battery/pass0/plan.md (rev 1) ·
           docs/epic-01-markovian/sprints/verify-battery/archive/spec-audit.md (T137) ·

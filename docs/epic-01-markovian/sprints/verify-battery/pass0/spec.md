@@ -1,8 +1,8 @@
 # verify-battery — SPEC
 
 ```
-Status:   PROPOSED (rev 1) — pass-0 audit findings resolved; awaiting
-          pass-1 audit (V-3), then human ratification (G1)
+Status:   RATIFIED (G1, 2026-07-31) — executed through P3-H (T168–T187);
+          G3 open (V-13 fleet run, V-14 absorption)
 Author:   Opus/Navigator (claude-opus-5[1m]) · 2026-07-31
 Revised:  Fable/T136 · 2026-07-31 — live copy; the pass-0 original is
           frozen at docs/epic-01-markovian/sprints/verify-battery/archive/spec.md. Resolves

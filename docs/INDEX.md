@@ -41,11 +41,12 @@ file a bug.
 
 → `docs/epistemic/CLAIMS.md` — find the claim row; its `evidence` column lists source documents
 → `docs/evidence/<claim-id>/` — committed probe source and output (if it exists)
-→ `docs/evidence/INDEX.md` — generated directory listing (one line per claim ID → its evidence files)
+→ `docs/evidence/INDEX.md` — generated directory listing (**not yet generated** — deferred, project-restructure pass0 accept.md R2-1-EVIDENCE-INDEX; use INDEX-claim-evidence.md)
 → `docs/INDEX-claim-evidence.md` — generated claim→evidence cross-reference (regenerated 2026-08-01)
 → `docs/INDEX-claim-deps.md` — claim dependency tree: "what else falls if X is false" (new 2026-08-01)
 → `docs/INDEX-claim-task.md` — claim→task cross-reference
 → `bin/weizigo-claimlint` — parses CLAIMS.md and reports dangling evidence paths (C2 check)
+→ `findings/` — machine-readable task findings (knowledge capture; claimlint C7 gate; schema in `findings/README.md`)
 
 ## What did model Z / task T produce? Is it still standing?
 
@@ -220,7 +221,7 @@ at its top stating its status. **Do not rely on these for current truth.**
 | `docs/infra/agents/boss-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATOR.md` |
 | `docs/infra/agents/worker-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATEE.md` |
 | `docs/infra/delegation.md` | RETIRED 2026-07-28 | `docs/infra/dispatch/README.md` |
-| `docs/infra/sprint.md` | RETIRED 2026-07-28 | `docs/infra/dispatch/README.md` |
+| `docs/infra/sprint.md` | RATIFIED rev 4 (d53c2a8); rewritten 200b974 (substance = D-16…D-20) | `docs/infra/dispatch/README.md` |
 | `docs/infra/subagent.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATEE.md` |
 | `docs/research/next-step-consistency-auditor.md` | SUPERSEDED | `docs/research/consistency-audit.md` |
 | `docs/research/oracle-3x3.md` | historical dead-end | `docs/research/retrograde-3x3.md` |
