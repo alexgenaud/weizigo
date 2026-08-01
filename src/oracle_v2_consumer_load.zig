@@ -41,6 +41,18 @@
 // Build / run (must go through tools/runner):
 //   tools/runner -- zig run -O ReleaseFast src/oracle_v2_consumer_load.zig
 //
+// KEYING-CONVENTION NOTE (T178 finding, 2026-07-31): this harness keys WZO2
+// groups by exp6's base-3 board rank, DELIBERATELY mirroring oracle_v2_build.zig
+// (M2b) — the pipeline as it stands. The frozen format contract (design-M1 §2.1)
+// and every consumer (src/colex.zig, gtp.zig, oracle_v2_accept.zig flipColex)
+// address the artifact by the combinatorial colex of src/colex.zig. The two
+// bijections agree only at index 0 (the empty goban) — which is why the
+// empty-board anchors PASS here while the engine's non-empty lookups FAIL
+// (measured 7/9 one-stone children misread at 3×3; see
+// docs/evidence/ORACLE-V2/consumer-load-T178-2026-07-31.md). When the builder
+// is fixed to convert rank→colex, this harness's group keys must be converted
+// in lockstep — same pipeline step, same convention.
+//
 // stdout = data (per-query verdicts + overall verdict), stderr = diagnostics.
 
 const std = @import("std");
