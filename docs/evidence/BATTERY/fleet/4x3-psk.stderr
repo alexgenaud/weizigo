@@ -1,0 +1,78 @@
+[runner] argv = ./zig-out/bin/verify-battery 4x3 artifacts/oracle-4x3.wzo --output docs/evidence/BATTERY/fleet/4x3-psk.jsonl
+[runner] guards: rss 4096 MB, progress-timeout 600s (10:00), fallback: wall 1800s cpu 3600s (silent children), poll = 250 ms
+artifact: artifacts/oracle-4x3.wzo  4x3  total=531441  legal=321689  rules=Chinese area, komi 0, positional superko  sha256=5316f428ad821c79c5dcd62188c648d6455ffd2e698e9b5d49db93ae0a6ecad1
+[I5] all-legal seeds: 321689 legal positions × 2 sides = 643378 root nodes
+[I5] BFS: V=1953602 nodes, E=9761788 edges  (p0=666846 p1=643378 p2=643378)
+[I5] Tarjan: SCCs total=34741 non-trivial=1 maxSize=666844 cycleInvolved=666844 cycleReachable=1943408
+[I5] KO_SENSITIVE flags: 170276 total, 0 NOT cycle-reachable
+error(DebugAllocator): memory address 0x100860200 leaked: 
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:661:52: 0x100658e33 in toOwnedSlice (verify-battery)
+            const new_memory = try gpa.alignedAlloc(T, alignment, self.items.len);
+                                                   ^
+/Users/alex/Project/Zig/weizigo/src/verify_battery.zig:430:29: 0x10060ca2f in resolveInvariants (verify-battery)
+    return list.toOwnedSlice(allocator);
+                            ^
+/Users/alex/Project/Zig/weizigo/src/verify_battery.zig:799:41: 0x10060db8b in main (verify-battery)
+    const invariants = resolveInvariants(&cfg, allocator) catch { note("error: can't resolve invariants\n", .{}); return 3; };
+                                        ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:737:30: 0x100605dc3 in callMain (verify-battery)
+    return wrapMain(root.main(.{
+                             ^
+???:?:?: 0x18b497dff in start (/usr/lib/dyld)
+
+error(DebugAllocator): memory address 0x1052a0200 leaked: 
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:1235:56: 0x10065847f in ensureTotalCapacityPrecise (verify-battery)
+                const new_memory = try gpa.alignedAlloc(T, alignment, new_capacity);
+                                                       ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:1211:51: 0x100667527 in ensureTotalCapacity (verify-battery)
+            return self.ensureTotalCapacityPrecise(gpa, growCapacity(new_capacity));
+                                                  ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:1265:41: 0x100667373 in addOne (verify-battery)
+            try self.ensureTotalCapacity(gpa, newlen);
+                                        ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:904:49: 0x100667197 in append (verify-battery)
+            const new_item_ptr = try self.addOne(gpa);
+                                                ^
+/Users/alex/Project/Zig/weizigo/src/verify_battery.zig:686:25: 0x10060d46b in main (verify-battery)
+        args_list.append(allocator, std.mem.span(arg_ptr)) catch return 3;
+                        ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:737:30: 0x100605dc3 in callMain (verify-battery)
+    return wrapMain(root.main(.{
+                             ^
+(additional stack frames may have been skipped...)
+
+error(DebugAllocator): memory address 0x1052a0400 leaked: 
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:1235:56: 0x10065847f in ensureTotalCapacityPrecise (verify-battery)
+
+                                                       ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:606:48: 0x100658123 in initCapacity (verify-battery)
+            try self.ensureTotalCapacityPrecise(gpa, num);
+                                               ^
+/Users/alex/Project/Zig/weizigo/src/verify_battery.zig:800:60: 0x10060ebbf in main (verify-battery)
+    var inv_labels = std.ArrayList([]const u8).initCapacity(allocator, invariants.len) catch { note("error: oom\n", .{}); return 3; };
+                                                           ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:737:30: 0x100605dc3 in callMain (verify-battery)
+    return wrapMain(root.main(.{
+                             ^
+???:?:?: 0x18b497dff in start (/usr/lib/dyld)
+
+error(DebugAllocator): memory address 0x105321000 leaked: 
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:1235:56: 0x100655997 in ensureTotalCapacityPrecise (verify-battery)
+                const new_memory = try gpa.alignedAlloc(T, alignment, new_capacity);
+                                                       ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/array_list.zig:606:48: 0x10065552b in initCapacity (verify-battery)
+            try self.ensureTotalCapacityPrecise(gpa, num);
+                                               ^
+/Users/alex/Project/Zig/weizigo/src/verify_battery.zig:821:61: 0x10060f2a3 in main (verify-battery)
+    var results = std.ArrayList(vb.CheckResult).initCapacity(allocator, invariants.len) catch { note("error: oom\n", .{}); return 3; };
+                                                            ^
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:737:30: 0x100605dc3 in callMain (verify-battery)
+    return wrapMain(root.main(.{
+                             ^
+???:?:?: 0x18b497dff in start (/usr/lib/dyld)
+
+[runner] peak RSS by PID: in 146.0 s
+[runner]   pid   87107    1660 MB
+[runner] peak total CPU by PID: in 146.0 s
+[runner]   pid   87107        2:25 (145.94s)
+[runner] exit 1 in 146.0 s

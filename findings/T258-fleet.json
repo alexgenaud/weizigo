@@ -1,0 +1,74 @@
+[
+  {
+    "id": "T258-F1",
+    "severity": "must",
+    "invariant": "I5",
+    "goban": "2x2",
+    "title": "I5 maxSCC mismatch vs QA-023 calibration targets",
+    "description": "Battery reports maxSCC=112 (all-legal graph). QA-023 reports maxSCC=160 (true root / all-seed). These are different graph conventions. The battery's I5 result has no calibration check against a committed reference.",
+    "recommendation": "Add battery-specific calibration targets for the all-legal graph convention, or implement the reachable-from-empty graph mode and calibrate against the QA-023 true-root figures."
+  },
+  {
+    "id": "T258-F2",
+    "severity": "must",
+    "invariant": "I5",
+    "goban": "3x2",
+    "title": "I5 cycleReachable exceeds committed spread",
+    "description": "Battery reports cycleReachable=2,886 (all-legal). Committed spread is 1,724/1,704/1,678 (game-root-seeded with phantom-exclusion). All-legal enumeration produces a larger graph by construction. Not directly comparable to registered targets.",
+    "recommendation": "Provide reachable-from-empty calibration targets or document the expected all-legal graph metrics as separate register entries."
+  },
+  {
+    "id": "T258-F3",
+    "severity": "blocker",
+    "invariant": "I4,I7",
+    "goban": "4x4",
+    "title": "I4/I7 unimplemented at 4×4 — A4 sensitivity failure",
+    "description": "vb_fixpoint.zig does not implement BasicKo(4,4). checkI4/checkI7 fall through to 'unsupported goban' for 4×4. The v1 DTT defect (A4) cannot be detected — the battery is not sensitive per the acceptance criterion. Three 4×4 cells report battery-bad instead of pass/fail.",
+    "recommendation": "Implement BasicKo(4,4) in vb_fixpoint.zig or extend comptime dispatch to handle 4×4. Until then, the battery cannot claim A4 compliance."
+  },
+  {
+    "id": "T258-F4",
+    "severity": "must",
+    "invariant": "I5",
+    "goban": "4x4",
+    "title": "I5 unimplemented at 4×4 — bitset BFS needed",
+    "description": "vb_graph.zig detects 4×4 exceeds hash-map approach and errors correctly. The rank-support bitset approach outlined in i5-feasibility.md (~1.2 GB RSS) is not yet implemented.",
+    "recommendation": "Implement bitset-based BFS for 4×4 I5 as described in the feasibility memo."
+  },
+  {
+    "id": "T258-F5",
+    "severity": "must",
+    "invariant": "ALL",
+    "goban": "ALL",
+    "title": "value field not serialized in JSON output",
+    "description": "writeResult() emits 'value':null unconditionally. The CheckResult.value field (numerator/denominator per invariant) is never serialized. Diagnostic detail (DTT terminal counts, colour-inversion violation counts, UNDEF census breakdowns) is lost in the JSON output. The check functions compute these values but they are discarded.",
+    "recommendation": "Fix writeResult() to serialize value.numerator and value.denominator when present."
+  },
+  {
+    "id": "T258-F6",
+    "severity": "must",
+    "invariant": "I6",
+    "goban": "4x4",
+    "title": "I6 legal-count mismatch on parallel checkpoint",
+    "description": "data/oracle-4x4-parallel.checkpoint.wzo fails I6: legal-positions-total from column scan does not match header.legal_count.",
+    "recommendation": "Audit the parallel checkpoint artifact — the header may have been written incorrectly during the parallel build, or the artifact may be corrupted."
+  },
+  {
+    "id": "T258-F7",
+    "severity": "must",
+    "invariant": "I2",
+    "goban": "4x4",
+    "title": "I2 colour-inversion violations on basic-ko artifact",
+    "description": "data/oracle-4x4-basicko-tie-area.wzo fails I2: colour inversion V(-pos,-side) == -V(pos,side) is violated. The count of violations is not captured in JSON output (F5). This is a potential artifact defect in the basic-ko 4×4 values.",
+    "recommendation": "Investigate with fixed JSON output to determine violation count and whether this is a real value defect or a checker bug. The basic-ko artifact is the project's primary 4×4 reference and this finding is significant."
+  },
+  {
+    "id": "T258-F8",
+    "severity": "should",
+    "invariant": "I9",
+    "goban": "2x2,4x4",
+    "title": "I9 anchor mismatches are ruleset-dependent",
+    "description": "2×2 PSK root ≠ 0; 4×4 PSK checkpoint roots ≠ +1. The spec defines anchors for basic-ko (4×4 +1) but the 2×2/3×2/3×3 anchors may also be basic-ko-specific. PSK artifacts produce different root values.",
+    "recommendation": "Document ruleset-specific anchors or scope I9 to basic-ko artifacts only."
+  }
+]

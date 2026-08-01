@@ -25,6 +25,9 @@
 
 const std = @import("std");
 const vb = @import("vb_common.zig");
+const vbt = @import("vb_table.zig");
+const vbf = @import("vb_fixpoint.zig");
+const vbg = @import("vb_graph.zig");
 
 const VERSION = "1.0.0";
 const SCHEMA_VERSION = "1.0.0";
@@ -428,25 +431,225 @@ fn resolveInvariants(cfg: *const CliConfig, allocator: std.mem.Allocator) ![]con
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Stub check
+// Real invariant dispatch
 // ═══════════════════════════════════════════════════════════════════════════
 
-fn stubCheck(inv: vb.Invariant, gs: vb.GobanSize, ak: ?vb.ArtifactKind) vb.CheckResult {
-    var mode = vb.modeForCell(inv, gs);
-    if (ak != null and ak.? == .@"pinned-v" and vb.notApplicableOnWZO1(inv)) mode = .@"not-applicable";
-    const s: vb.CheckStatus = if (mode == .@"not-applicable") .@"not-applicable" else .skipped;
+/// Holds all loaded representations of an artifact for dispatch.
+const RunCtx = struct {
+    gs: vb.GobanSize,
+    ak: ?vb.ArtifactKind,
+    art_hdr: ?[]const u8,
+    art_sha256: ?[]const u8,
+    /// vb_common decoder (used by harness + vb_fixpoint checks)
+    dec: ?*const vb.WZO1Decoded = null,
+    /// vb_table artifact (owns its own copies)
+    vbt_art: ?*const vbt.VBArtifact = null,
+    /// vb_graph artifact (owns its own copies, I5 only)
+    vbg_art: ?*const vbg.VBArtifact = null,
+    /// allocator (for I5 which needs heap)
+    gpa: std.mem.Allocator,
+    /// I5 graph mode
+    i5_graph: []const u8 = "all-legal",
+};
+
+fn runCheck(ctx: *const RunCtx, inv: vb.Invariant) vb.CheckResult {
+    const gs = ctx.gs;
+    const ak = ctx.ak;
+    const mode_declared = vb.modeForCell(inv, gs);
+    const scope_once = inv == .I5;
+
+    // Not-applicable on WZO1: I3, I10
+    if (ak != null and ak.? == .@"pinned-v" and vb.notApplicableOnWZO1(inv)) {
+        return vb.CheckResult{
+            .invariant = inv, .goban = gs, .artifact_kind = ak,
+            .format = .WZO1, .format_version = 1,
+            .artifact = ctx.art_hdr, .artifact_sha256 = ctx.art_sha256,
+            .mode_declared = mode_declared, .mode_actual = .@"not-applicable",
+            .scope_once_per_goban = scope_once,
+            .status = .@"not-applicable", .exit_class = .pass,
+            .duration_ms = 0, .rss_hwm_after_mb = null,
+            .seed = null, .sample_size = null, .sample_denominator = null,
+            .value = null, .deviation = null, .@"error" = null,
+        };
+    }
+
+    // I8 is 2×2 only
+    if (inv == .I8 and !(gs.w == 2 and gs.h == 2)) {
+        return vb.CheckResult{
+            .invariant = inv, .goban = gs, .artifact_kind = ak,
+            .format = .WZO1, .format_version = 1,
+            .artifact = ctx.art_hdr, .artifact_sha256 = ctx.art_sha256,
+            .mode_declared = mode_declared, .mode_actual = .@"not-applicable",
+            .scope_once_per_goban = scope_once,
+            .status = .@"not-applicable", .exit_class = .pass,
+            .duration_ms = 0, .rss_hwm_after_mb = null,
+            .seed = null, .sample_size = null, .sample_denominator = null,
+            .value = null, .deviation = null, .@"error" = null,
+        };
+    }
+
+    // I5: graph invariant (once per goban, uses vbg artifact)
+    if (inv == .I5) return runI5(ctx);
+
+    // I4, I7, I9, I11: fixpoint invariants — use vb_common decoder + vbf
+    if (inv == .I4 or inv == .I7 or inv == .I9 or inv == .I11) return runFixpoint(ctx, inv);
+
+    // I8 at 2×2: fixpoint
+    if (inv == .I8) return runFixpoint(ctx, inv);
+
+    // I1, I2, I3, I6, I10, I12: table invariants — use vb_table artifact
+    return runTable(ctx, inv);
+}
+
+fn runTable(ctx: *const RunCtx, inv: vb.Invariant) vb.CheckResult {
+    const art = ctx.vbt_art orelse return errResult(inv, ctx.gs, ctx.ak, ctx.art_hdr, ctx.art_sha256, "vbt_artifact_not_loaded");
+    switch (inv) {
+        .I1 => return mapI1(vbt.checkI1(art), ctx),
+        .I2 => return mapI2(vbt.checkI2(art), ctx),
+        .I3 => return mapI3(vbt.checkI3(), ctx),
+        .I6 => return mapI6(vbt.checkI6(art), ctx),
+        .I10 => return mapI10(vbt.checkI10(), ctx),
+        .I12 => return mapI12(vbt.checkI12(art), ctx),
+        else => unreachable,
+    }
+}
+
+fn runFixpoint(ctx: *const RunCtx, inv: vb.Invariant) vb.CheckResult {
+    const dec = ctx.dec orelse return errResult(inv, ctx.gs, ctx.ak, ctx.art_hdr, ctx.art_sha256, "dec_not_loaded");
+    switch (inv) {
+        .I4 => return mapI4(vbf.checkI4(dec, ctx.gs), ctx),
+        .I7 => return mapI7(vbf.checkI7(dec, ctx.gs), ctx),
+        .I8 => return mapI8(vbf.checkI8(), ctx),
+        .I9 => return mapI9(vbf.checkI9(dec, ctx.gs), ctx),
+        .I11 => return mapI11(vbf.checkI11(), ctx),
+        else => unreachable,
+    }
+}
+
+fn runI5(ctx: *const RunCtx) vb.CheckResult {
+    const graph_kind: vbg.I5Graph = if (std.mem.eql(u8, ctx.i5_graph, "reachable")) .reachable else .all_legal;
+    const vbg_gs = vbg.GobanSize{ .w = ctx.gs.w, .h = ctx.gs.h };
+    const result = vbg.checkI5(ctx.gpa, vbg_gs, ctx.vbg_art, .{ .graph = graph_kind }) catch |e| {
+        return vb.CheckResult{
+            .invariant = .I5, .goban = ctx.gs, .artifact_kind = ctx.ak,
+            .format = if (ctx.ak != null) .WZO1 else null, .format_version = if (ctx.ak != null) @as(u8, 1) else null,
+            .artifact = ctx.art_hdr, .artifact_sha256 = ctx.art_sha256,
+            .mode_declared = .exhaustive, .mode_actual = .exhaustive,
+            .scope_once_per_goban = true,
+            .status = .@"error", .exit_class = .@"battery-bad",
+            .duration_ms = 0, .rss_hwm_after_mb = null,
+            .seed = null, .sample_size = null, .sample_denominator = null,
+            .value = null, .deviation = null,
+            .@"error" = vb.ErrorInfo{ .kind = .internal, .message = @errorName(e) },
+        };
+    };
+    return mapI5(result, ctx);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Result mappers: module-specific types → vb.CheckResult
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn baseResult(inv: vb.Invariant, ctx: *const RunCtx) vb.CheckResult {
     return vb.CheckResult{
-        .invariant = inv, .goban = gs, .artifact_kind = ak,
-        .format = if (ak != null) .WZO1 else null,
-        .format_version = if (ak != null) @as(u8, 1) else null,
-        .artifact = null, .artifact_sha256 = null,
-        .mode_declared = vb.modeForCell(inv, gs),
-        .mode_actual = mode, .scope_once_per_goban = (inv == .I5),
-        .status = s, .exit_class = .pass,
+        .invariant = inv, .goban = ctx.gs, .artifact_kind = ctx.ak,
+        .format = if (ctx.ak != null) .WZO1 else null,
+        .format_version = if (ctx.ak != null) @as(u8, 1) else null,
+        .artifact = ctx.art_hdr, .artifact_sha256 = ctx.art_sha256,
+        .mode_declared = vb.modeForCell(inv, ctx.gs),
+        .mode_actual = vb.modeForCell(inv, ctx.gs),
+        .scope_once_per_goban = inv == .I5,
+        .status = undefined, .exit_class = undefined,
         .duration_ms = 0, .rss_hwm_after_mb = null,
         .seed = null, .sample_size = null, .sample_denominator = null,
         .value = null, .deviation = null, .@"error" = null,
     };
+}
+
+fn toStatus(s: vbt.InvariantStatus) vb.CheckStatus {
+    return switch (s) { .pass => .pass, .fail => .fail, .not_applicable => .@"not-applicable", .err => .@"error" };
+}
+fn toExit(s: vb.CheckStatus) vb.ExitClass {
+    return switch (s) { .pass, .@"not-applicable", .skipped => .pass, .fail => .@"artifact-bad", .@"reference-disagreement" => .@"reference-bad", .@"error" => .@"battery-bad" };
+}
+fn toFixStatus(s: vbf.FixpointStatus) vb.CheckStatus {
+    return switch (s) { .pass => .pass, .fail => .fail, .not_applicable => .@"not-applicable", .err => .@"error" };
+}
+fn toI5Status(s: vbg.I5Status) vb.CheckStatus {
+    return switch (s) { .pass => .pass, .fail => .fail, .err => .@"error" };
+}
+
+fn errResult(inv: vb.Invariant, gs: vb.GobanSize, ak: ?vb.ArtifactKind, art: ?[]const u8, art_sha: ?[]const u8, msg: []const u8) vb.CheckResult {
+    return vb.CheckResult{
+        .invariant = inv, .goban = gs, .artifact_kind = ak,
+        .format = if (ak != null) .WZO1 else null, .format_version = if (ak != null) @as(u8, 1) else null,
+        .artifact = art, .artifact_sha256 = art_sha,
+        .mode_declared = vb.modeForCell(inv, gs),
+        .mode_actual = .exhaustive, .scope_once_per_goban = inv == .I5,
+        .status = .@"error", .exit_class = .@"battery-bad",
+        .duration_ms = 0, .rss_hwm_after_mb = null,
+        .seed = null, .sample_size = null, .sample_denominator = null,
+        .value = null, .deviation = null,
+        .@"error" = vb.ErrorInfo{ .kind = .internal, .message = msg },
+    };
+}
+
+fn mapI1(r: vbt.I1Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I1, ctx); b.status = toStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.L_eq_H, .denominator = r.denominator };
+    return b;
+}
+fn mapI2(r: vbt.I2Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I2, ctx); b.status = toStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.violations, .denominator = r.denominator };
+    return b;
+}
+fn mapI3(r: vbt.I3Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I3, ctx); b.status = toStatus(r.status); b.exit_class = toExit(b.status);
+    return b;
+}
+fn mapI6(r: vbt.I6Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I6, ctx); b.status = toStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.legal_positions_total, .denominator = r.denominator };
+    return b;
+}
+fn mapI10(r: vbt.I10Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I10, ctx); b.status = toStatus(r.status); b.exit_class = toExit(b.status);
+    return b;
+}
+fn mapI12(r: vbt.I12Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I12, ctx); b.status = toStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.violations, .denominator = r.denominator };
+    return b;
+}
+fn mapI4(r: vbf.I4Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I4, ctx); b.status = toFixStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.numerator, .denominator = r.denominator };
+    return b;
+}
+fn mapI7(r: vbf.I7Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I7, ctx); b.status = toFixStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.terminals_with_dtt_neq_0, .denominator = r.denominator };
+    return b;
+}
+fn mapI8(r: vbf.I8Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I8, ctx); b.status = toFixStatus(r.status); b.exit_class = toExit(b.status);
+    return b;
+}
+fn mapI9(r: vbf.I9Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I9, ctx); b.status = toFixStatus(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.numerator, .denominator = r.denominator };
+    if (r.note) |n| b.deviation = n;
+    return b;
+}
+fn mapI11(r: vbf.I11Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I11, ctx); b.status = toFixStatus(r.status); b.exit_class = toExit(b.status);
+    return b;
+}
+fn mapI5(r: vbg.I5Result, ctx: *const RunCtx) vb.CheckResult {
+    var b = baseResult(.I5, ctx); b.status = toI5Status(r.status); b.exit_class = toExit(b.status);
+    b.value = .{ .numerator = r.ko_sensitive_not_cycle_reachable, .denominator = r.ko_sensitive_flags };
+    return b;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -525,15 +728,27 @@ pub fn main(init: std.process.Init) u8 {
         ref_sha_hex = &ref_sha_buf;
     }
 
+    // ── Artifact loading ─────────────────────────────────────────
+    var art_bytes: ?[]u8 = null;
+    var dec_opt: ?vb.WZO1Decoded = null;
+    var vbt_art_opt: ?vbt.VBArtifact = null;
+    var vbg_art_opt: ?vbg.VBArtifact = null;
+    defer {
+        if (vbg_art_opt) |*a| a.deinit(allocator);
+        if (vbt_art_opt) |*a| a.deinit(allocator);
+        if (dec_opt) |*d| d.deinit();
+        if (art_bytes) |b| allocator.free(b);
+    }
+
     const art_hdr: ?[]const u8 = cfg.artifact_path;
     if (need_artifact and cfg.artifact_path != null) {
         const ap = cfg.artifact_path.?;
-        const bytes = readFilePath(allocator, ap, 512 * 1024 * 1024) catch |e| {
+        art_bytes = readFilePath(allocator, ap, 512 * 1024 * 1024) catch |e| {
             note("error: artifact '{s}': {}\n", .{ ap, e });
             emitError(out, &cfg, gs, art_hdr, null, null, null, timestamp, start_ms, "artifact_load", "Cannot read artifact");
             return 3;
         };
-        defer allocator.free(bytes);
+        const bytes = art_bytes.?;
 
         sha256Hex(bytes, &art_sha_buf);
         art_sha_hex = &art_sha_buf;
@@ -546,12 +761,26 @@ pub fn main(init: std.process.Init) u8 {
             }
         }
 
-        var dec = vb.decodeWZO1(allocator, bytes) catch |e| {
+        dec_opt = vb.decodeWZO1(allocator, bytes) catch |e| {
             note("error: artifact decode: {}\n", .{e});
             emitError(out, &cfg, gs, art_hdr, art_sha_hex, null, null, timestamp, start_ms, "artifact_load", @errorName(e));
             return 3;
         };
-        defer dec.deinit();
+        const dec = &dec_opt.?;
+
+        // Load vb_table artifact from shared bytes
+        vbt_art_opt = vbt.loadArtifact(allocator, bytes) catch |e| {
+            note("error: vbt artifact load: {}\n", .{e});
+            emitError(out, &cfg, gs, art_hdr, art_sha_hex, null, null, timestamp, start_ms, "artifact_load", @errorName(e));
+            return 3;
+        };
+
+        // Load vb_graph artifact from shared bytes (I5 uses fb/fw only)
+        vbg_art_opt = vbg.loadArtifact(allocator, bytes) catch |e| {
+            note("error: vbg artifact load: {}\n", .{e});
+            emitError(out, &cfg, gs, art_hdr, art_sha_hex, null, null, timestamp, start_ms, "artifact_load", @errorName(e));
+            return 3;
+        };
 
         artifact_kind = .@"pinned-v";
         artifact_format = .WZO1;
@@ -577,6 +806,17 @@ pub fn main(init: std.process.Init) u8 {
     // Header
     writeHeader(out, &cfg, gs, art_hdr, art_sha_hex, art_total, art_legal, art_rules_id, art_rules_name, cfg.reference_path, ref_sha_hex, timestamp, args, cfg.seed, ssLabel(cfg.seed_source), inv_labels.items, i5g);
 
+    // ── Build dispatch context ───────────────────────────────────
+    const dec_ptr: ?*const vb.WZO1Decoded = if (dec_opt) |*d| d else null;
+    const vbt_ptr: ?*const vbt.VBArtifact = if (vbt_art_opt) |*a| a else null;
+    const vbg_ptr: ?*const vbg.VBArtifact = if (vbg_art_opt) |*a| a else null;
+    var run_ctx = RunCtx{
+        .gs = gs, .ak = artifact_kind,
+        .art_hdr = art_hdr, .art_sha256 = art_sha_hex,
+        .dec = dec_ptr, .vbt_art = vbt_ptr, .vbg_art = vbg_ptr,
+        .gpa = allocator, .i5_graph = i5g orelse "all-legal",
+    };
+
     // Run invariants
     var results = std.ArrayList(vb.CheckResult).initCapacity(allocator, invariants.len) catch { note("error: oom\n", .{}); return 3; };
     var n_pass: u32 = 0; var n_fail: u32 = 0; var n_rd: u32 = 0;
@@ -591,9 +831,7 @@ pub fn main(init: std.process.Init) u8 {
 
     for (invariants) |inv| {
         const inv_start = nowMs();
-        var result = stubCheck(inv, gs, artifact_kind);
-        result.artifact = art_hdr;
-        result.artifact_sha256 = art_sha_hex;
+        var result = runCheck(&run_ctx, inv);
         result.duration_ms = @intCast(nowMs() - inv_start);
 
         switch (result.status) {
