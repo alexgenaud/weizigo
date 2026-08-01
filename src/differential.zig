@@ -29,7 +29,6 @@ fn Board(comptime n_cells: usize) type {
 fn Impl(comptime n_cells: usize, comptime T: type) type {
     return struct {
         name: []const u8,
-        file: []const u8,
         func: *const fn (board: Board(n_cells)) T,
     };
 }
@@ -73,15 +72,11 @@ pub fn compare(
     impls: []const Impl(n_cells, T),
     boards: []const Board(n_cells),
 ) !Comparison(n_cells, T) {
+    // F1 (P1-design-audit-1): empty impls are a QA-023-class footgun.
+    // A comptime error producing an empty slice silently reports perfect
+    // agreement.  Reject early rather than returning vacuously.
     if (impls.len == 0) {
-        return .{
-            .operation = operation,
-            .size_label = size_label,
-            .impls = impls,
-            .total_boards = boards.len,
-            .agreements = boards.len, // vacuously true
-            .disagreements = &.{},
-        };
+        return error.EmptyImpls;
     }
 
     var disagreement_list: std.ArrayList(Disagreement(n_cells, T)) = .empty;
@@ -156,8 +151,8 @@ fn plusOne(board: Board(4)) i8 { return board[0] + board[1] + board[2] + board[3
 test "null control: same impl twice → perfect agreement" {
     const alloc = std.testing.allocator;
     const impls = [_]Impl(4, i8){
-        .{ .name = "zero", .file = "test", .func = alwaysZero },
-        .{ .name = "zero_copy", .file = "test", .func = alwaysZero },
+        .{ .name = "zero", .func = alwaysZero },
+        .{ .name = "zero_copy", .func = alwaysZero },
     };
     const boards = [_]Board(4){
         .{ 0, 0, 0, 0 },
@@ -177,8 +172,8 @@ test "seeded-defect control: mutant caught with witnesses" {
     const alloc = std.testing.allocator;
     // alwaysZero and alwaysOne are a one-character mutation apart
     const impls = [_]Impl(4, i8){
-        .{ .name = "zero", .file = "test", .func = alwaysZero },
-        .{ .name = "one", .file = "test", .func = alwaysOne }, // mutant: returns 1 instead of 0
+        .{ .name = "zero", .func = alwaysZero },
+        .{ .name = "one", .func = alwaysOne }, // MUTANT — DO NOT MAKE RETURN 0
     };
     const boards = [_]Board(4){
         .{ 0, 0, 0, 0 },
@@ -198,9 +193,9 @@ test "seeded-defect control: mutant caught with witnesses" {
 test "known-bad fixture: three impls, one disagrees, witnesses correct" {
     const alloc = std.testing.allocator;
     const impls = [_]Impl(4, i8){
-        .{ .name = "zero", .file = "test", .func = alwaysZero },
-        .{ .name = "mutant_one", .file = "test", .func = alwaysOne },
-        .{ .name = "zero_copy", .file = "test", .func = alwaysZeroCopy },
+        .{ .name = "zero", .func = alwaysZero },
+        .{ .name = "mutant_one", .func = alwaysOne },
+        .{ .name = "zero_copy", .func = alwaysZeroCopy },
     };
     const boards = [_]Board(4){
         .{ 0, 0, 0, 0 }, // zero=0, mutant=1, copy=0 → disagreement
@@ -243,8 +238,8 @@ pub fn main() !void {
     // 2×2: compare exp6 vs Rules — expected identical (they're clones)
     {
         const impls = [_]Impl(4, i8){
-            .{ .name = "exp6.genericAreaScore", .file = "src/exp6_solve.zig", .func = areaScoreExp6_2x2 },
-            .{ .name = "rules.Rules(2,2).area_score", .file = "src/rules.zig", .func = areaScoreRules_2x2 },
+            .{ .name = "exp6.genericAreaScore", .func = areaScoreExp6_2x2 },
+            .{ .name = "rules.Rules(2,2).area_score", .func = areaScoreRules_2x2 },
         };
         const boards = try enumerateBoards(4, alloc);
         defer alloc.free(boards);
@@ -276,10 +271,10 @@ pub fn main() !void {
     // 3×2: same comparison
     {
         const impls = [_]Impl(6, i8){
-            .{ .name = "exp6.genericAreaScore", .file = "src/exp6_solve.zig", .func = struct {
+            .{ .name = "exp6.genericAreaScore", .func = struct {
                 fn f(board: Board(6)) i8 { return exp6.genericAreaScore(6, &board, 3, 2); }
             }.f },
-            .{ .name = "rules.Rules(3,2).area_score", .file = "src/rules.zig", .func = struct {
+            .{ .name = "rules.Rules(3,2).area_score", .func = struct {
                 fn f(board: Board(6)) i8 {
                     const R = rules_mod.Rules(3, 2);
                     return R.area_score(&board);
