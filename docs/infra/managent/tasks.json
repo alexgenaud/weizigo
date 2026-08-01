@@ -14,6 +14,22 @@
     "note": null,
     "claim_count": 0
   },
+  "STANDING-CLEANUP": {
+    "status": "done",
+    "agent": "opus-5",
+    "bundle": "/Users/alex/Project/Zig/weizigo/docs/infra/dispatch/STANDING-CLEANUP.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T10:55:32Z",
+    "claimed": "2026-08-01T10:56:57Z",
+    "done": "2026-08-01T10:56:57Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "tree dirty across two turns: 2→2 dirty files",
+    "claim_count": 1
+  },
   "T192": {
     "status": "done",
     "agent": "DSPro",
@@ -78,6 +94,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T210": {
+    "status": "dispatchable",
+    "bundle": "untracked/T210-managent-hygiene.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T10:58:07Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T208": {
     "status": "done",
     "agent": "DSPro",
@@ -125,6 +156,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T211": {
+    "status": "dispatchable",
+    "bundle": "untracked/T211-argus-baseline-disposition.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T10:58:07Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T209": {
     "status": "dispatchable",
     "bundle": "untracked/T209-dispatch-ergonomics.md",
@@ -142,7 +188,7 @@
   }
 ,
   "_sys": {
-    "next_id": 210,
+    "next_id": 211,
     "directive_next": 7
   }
 }
