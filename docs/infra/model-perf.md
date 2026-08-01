@@ -2913,3 +2913,74 @@ status.
 
 **DSPro / T185:** colex fix — exp6 rank → combinatorial colex conversion in WZO2 builder. Non-empty
 lookups verified against fixpoint values. T178 CRITICAL resolved. Unblocked 4×4 build.
+
+## Session — Opus/Orcha, 2026-08-01 (T192–T211)
+
+Absorbed 2026-08-01 by Opus/Orcha. Nine tasks; DSPro on seven, DSFlash on two.
+
+**DSPro / T192:** WZO2 OOM fix (64 MiB chunking, three free sites) and the
+first 4×4 artifact build — 518.1 MB, peak RSS 3887 MB under the 4 GB cap.
+Absorbed at the time as a success. It was not: the artifact was invalid (see
+T193). The build succeeded; the *deliverable* was wrong, and nothing in the
+pipeline distinguished the two. This is the session's most expensive lesson
+and it is not a model failure — no acceptance check was wired to the task.
+
+**DSPro / T193 — the standout.** Ran M4a against the T192 artifact and it
+FAILED: A3 colour inversion 16,314,978 / 99,133,036 (16.5%), A9 24,252,631
+entry-order violations. Read the root cause out of the source
+(`oracle_v2_build.zig:387`, `passes=1` encoded as `passes=0`, colliding both
+pass classes at one sort key), then **ran the 3×3 artifact as a control** —
+all four checks pass — which is what localises the defect to the 4×4 builder
+rather than the harness. Unprompted control-group reasoning; exactly the
+discipline PROGRESS.md §9 asks for. One-character fix. Did not commit and did
+not self-report; Orcha committed at `5deec6b`.
+
+**DSPro / T204:** managent integrity — `next_id` max-reconcile, `sync --peek`,
+regression test written before the fix as briefed. Phase-1 gate 3/3 + 8/8.
+
+**DSFlash / T205:** status surfaces + handover backfill (CA-2/CA-3/CA-14).
+Six sprint headers, three read-first surfaces, one handover reconstructed
+from msg 074. Doc-sweep work continues to be DSFlash's strength.
+
+**DSPro / T206:** tooling seams — runner returncode, gen-indices regex, absorb
+deployment.
+
+**DSFlash / T207:** process-doc sweep across six documents (CA-4/10/12/13/16/18).
+Clean, but two of its CA items went uncited in the commit message, so
+verifying coverage meant re-reading the files rather than the log.
+
+**DSPro / T208:** evidence promotion + Argus triage. The orphan-gate
+re-baseline reached only one of Argus's two modes; the disagreement (4 vs 1 in
+checklist, 3 vs 17 in sweep) surfaced on the next Orcha cadence and became
+T211. Partial fixes to watchdog baselines are worth flagging as a class: the
+gate looks green in whichever mode the fixer ran.
+
+**DSPro / T209:** dispatch ergonomics. Bound model identity at dispatch time
+rather than claim time — the right call, backed by a harness self-report test
+showing only Pi is honest about its own model. Deleted the commit-draft ferry
+convention. Its own bundle then failed `managent done` for want of the
+`deliverables=` field it had just introduced; fixed by hand rather than
+bypassed with `--fail`.
+
+**DSPro / T210 and T211 — the lifecycle worked for the first time.** Both
+committed their own deliverables and closed their own tasks. T210 fixed three
+audit/standing defects (citable surfaces widened to DECISIONS.md +
+docs/status/ + docs/audits/, tasks.json excluded from the dirty-tree trigger,
+`--help` short-circuited). T211 reconciled the Argus baselines and made
+claimlint grade against the honest-debt floor instead of against green, so the
+checklist is meaningful again.
+
+### What the wave says about the process, not the models
+
+- **Diagnostic quality is high and is not the bottleneck.** T178's colex catch,
+  T193's passes-bit catch with a control group — the workers find real defects
+  fast when the brief points them at something runnable.
+- **The lifecycle only closed itself once briefs said so explicitly *and* T209
+  had landed.** T193 and T209 needed Orcha to commit and close them; T210 and
+  T211 did it themselves. Cheap fix, immediate effect.
+- **No task heartbeated, all session.** `managent liveness` exists and nothing
+  feeds it; T214 routes runner progress lines into it.
+- **`done` carries no verdict.** T193 — an acceptance run that failed — is
+  recorded with the same token as a clean pass. T213 fixes the vocabulary.
+- **Absorption lags.** This ledger sat nine tasks stale until the human asked;
+  T193 reached the status surfaces hours before it reached the register.
