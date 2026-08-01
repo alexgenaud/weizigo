@@ -2905,3 +2905,11 @@ shows T159 `dispatchable`, never claimed, never done.
 Builder subdelegation worked: 5 subagents spawned, all delivered, findings captured in untracked/.
 vb_common.zig shared module handled correctly. One calibration bug caught and fixed (T171 basic-ko engine).
 Zig 0.16 API surface was the primary friction point.
+
+**DSFlash / T178:** consumer-load test — found CRITICAL colex mismatch (exp6 rank vs combinatorial
+colex, agree only at index 0). 058-class catch: 7/9 one-stone children misread. Four seconds proved
+the builder was wrong. DSFlash now 8/8 this session. The consumer-load test earned its non-negotiable
+status.
+
+**DSPro / T185:** colex fix — exp6 rank → combinatorial colex conversion in WZO2 builder. Non-empty
+lookups verified against fixpoint values. T178 CRITICAL resolved. Unblocked 4×4 build.
