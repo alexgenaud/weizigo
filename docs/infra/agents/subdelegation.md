@@ -4,9 +4,11 @@
 - `pi --provider deepseek --model deepseek-v4-pro -p "prompt"` — DeepSeek-v4-Pro subagent
 - `pi --provider deepseek --model deepseek-v4-flash -p "prompt"` — DeepSeek-v4-Flash subagent
 
-These work from DeepSeek sessions invoked via `odeeppi` or `oflashpi`. They do not work from Opus, Fable, or Ollama models. Opus and Fable in Claude Code have their own subagent capabilities.
+**Use the full `pi …` command above, never the `odeeppi`/`oflashpi` aliases.** Those are interactive-shell aliases: they do not exist in any non-interactive shell, so an agent dispatching `odeeppi -p "…"` from a tool-run shell gets `command not found` every time. Verified 2026-08-01 in both bash and zsh. This one line cost the project its entire autonomous-subdelegation capability — T226 could not dispatch a single audit subagent, fell back to doing every phase itself, and did not escalate.
 
-API key is already exported in the parent shell. Subagents run in the same Pi harness as the parent. Output returns to stdout. Subagents share the project directory and can read/write files.
+Corrected 2026-08-01: an earlier version of this file claimed these commands "do not work from Opus, Fable, or Ollama models". **False.** `pi --provider deepseek --model deepseek-v4-pro -p "Reply with exactly the word OK"` was run from an Opus/Claude Code session in a non-interactive shell and returned `OK`, exit 0, in 1.8 s, peak RSS 194 MB. Any seat can subdelegate.
+
+`DEEPSEEK_API_KEY` is exported and visible to non-interactive shells (verified). Subagents run in the same Pi harness as the parent, share the project directory, can read and write files, and return output on stdout. Dispatch under `tools/runner` so a hung subagent hits a guard instead of blocking the parent forever.
 
 ## When to use
 
@@ -86,7 +88,7 @@ WHEN DONE — before any other output:
 
 ### Rules
 
-1. **The wrapper is mandatory.** Every `odeeppi -p` or `oflashpi -p` dispatch uses it. No bare prompts.
+1. **The wrapper is mandatory.** Every dispatch uses the bundle-reference form below. No bare prompts. Invoke it with the full `pi --provider deepseek --model …  -p` command — **not** the `odeeppi`/`oflashpi` aliases, which do not exist in non-interactive shells.
 2. **The dispatch line is minimal.** The bundle carries everything — task ID, model, slug, lifecycle commands, deliverables, and acceptance criteria. The worker reads the bundle, not the prompt line.
 3. **The separator is a horizontal rule.** `---` on its own line, blank line above and below, exactly as shown. The payload (actual task prompt) goes below it.
 4. **The subagent writes findings before `done`.** If the findings write fails for any reason, the subagent must NOT mark the task done — the manager must know the task is incomplete.
