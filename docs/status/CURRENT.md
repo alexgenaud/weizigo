@@ -11,26 +11,31 @@ Last refreshed **2026-08-01 (T205/DSFlash — audit remediation)**.
 
 The coherence audit (`docs/audits/coherence-audit-2026-08-01.md`, `653f157`)
 found every read-first surface stale (CA-2) and the stand-down handover
-missing (CA-3). Phase 1 landed 2026-08-01: **T204 done** (`a98bf04` —
-managent `next_id` root fix + `sync --peek`). The Phase-2 bundles T205–T208
-are unblocked; T209 (dispatch ergonomics) waits on T206+T207.
+missing (CA-3). Remediation **Phases 1+2 complete** (T204–T208, exit checks
+verified at `c820f23`); **Phase 3 open — Opus seated as Orcha 2026-08-01**
+under the D-C ruling.
 
-- **WZO2 artifact EXISTS**: `untracked/oracle-v2/oracle-4x4-v2.wzo2`,
-  518.1 MB (518,123,097 bytes), SHA-256
-  `a892d689856de7fdbbe3504c693e910c10f9baf49e6e97424cf6a1327e9ea57d`,
-  recorded in `artifacts/SHA256SUMS` at `f851102` (T192: OOM fix, 64MiB
-  chunk, free before alloc; builder ran under the runner, peak RSS
-  3887 MB < 4 GB cap).
-- **`docs/evidence/ORACLE-V2/` EXISTS** (5 files): consumer-load-T178,
-  build-T184 (report + `.stdout`), m2a-reverify-T183, accept-wire-T182.
-- **Open on the kanban**: T193 (M4a acceptance run — dispatchable), T205
-  (this task — in progress, DSFlash), T206 (in progress, DSPro), T207/T208
-  (dispatchable), T203 (pass1 relocation — blocked on T205–T208 per D-D),
-  T209 (blocked on T206+T207), G3 ×2 (oracle-v2 accept, verify-battery
-  accept).
-- **Orcha seat vacant** — D-C (roadmap-audit-remediation) rules Opus or
-  Fable, seated after the Phase-1 gate (now passed); reactivation per
-  `docs/status/roadmap-audit-remediation-2026-08-01.md` §Phase 3.
+- **The 4×4 WZO2 artifact is INVALID.** T193 ran M4a acceptance against
+  `untracked/oracle-v2/oracle-4x4-v2.wzo2` (518.1 MB, SHA-256
+  `a892d689…`, built by T192 at `f851102`) and it **FAILED**: A3 colour
+  inversion 16,314,978 violations / 99,133,036 (16.5%), A9 reproducibility
+  24,252,631 entry-order violations; A5 and A6 PASS. Root cause is a
+  builder bug — `src/oracle_v2_build.zig:387` encoded passes=1 entries with
+  `passes=0` in the key_byte, colliding both classes at one sort key. Fixed
+  (one character) at `5deec6b`. **The artifact must be rebuilt and M4a
+  re-run before any oracle-v2 G3** — registered as T212. The 3×3 artifact
+  passes all four checks, confining the bug to the 4×4 path. Evidence:
+  `docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.md`.
+- **`docs/evidence/ORACLE-V2/` EXISTS** (7 files): consumer-load-T178,
+  build-T184 (report + `.stdout`), m2a-reverify-T183, accept-wire-T182,
+  m4a-accept-T193 (report + `.stdout`).
+- **Open on the kanban**: T212 (rebuild + re-run M4a — gates oracle-v2 G3),
+  T210 (managent hygiene) and T211 (Argus baselines) in progress, T203
+  (pass1 relocation — dispatchable, imposes a task freeze so it runs
+  alone), G3 ×2 (oracle-v2 accept, verify-battery accept), verify-battery
+  V-13 fleet run / V-14 absorption.
+- **D-E open** — closure of dogfoods #1/#2 awaits the human's word; both
+  the audit §6 and msg 074 §6 recommend closing them.
 
 ---
 
