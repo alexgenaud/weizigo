@@ -1,0 +1,8 @@
+{
+  "task_id": "T254",
+  "date": "2026-08-01",
+  "model": "DSPro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "P0 build audit: all four acceptance-check defects (signal-killed PASS, deliverables= truncation, empty skip-acceptance rejection, acceptance serialization) confirmed FIXED. Regression tests pass (0/3 failures). Evidence in docs/epic-01-markovian/sprints/engine-unification/pass0/P0-build-audit-1.md."
+}

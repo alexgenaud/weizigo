@@ -1,0 +1,7 @@
+{
+  "task_id": "T253",
+  "date": "2026-08-01",
+  "model": "DSFlash",
+  "claims": [],
+  "notes": "Document review of pass0 spec+plan (T226). Verdict: NEEDS-FIX. Blocker F2: plan.md:38-40 prescribes P0's own `managent done --status pass` with a SIGKILLed acceptance= command, which AC-S1 (spec.md:84-85) requires managent to reject — P0 cannot complete as written, and the acceptance would wrongly pass a broken fix (QA-023 class). Must F1: plan.md:83 budget '120 s sampled' contradicts AC-S5's 60-second budget (spec.md:95). Five shoulds (AC-S5 omits encode/decode; non-goal 'evidence files' vs in-scope matrix; undefined 4x4 sample procedure; 24-vs-172 ADR-0020 denominator; P2 commit/done procedure and P1 synthetic-fixture constraint) and three coulds. Sequencing of P0->P1->P2 dependencies and the max-2-subagent/disjoint-files concurrency constraint are correct; AC-S1..S4, S6..S9 are falsifiable as written. Full findings: docs/epic-01-markovian/sprints/engine-unification/pass0/P0-spec-audit-1.md."
+}

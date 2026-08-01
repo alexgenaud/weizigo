@@ -1,0 +1,8 @@
+{
+  "task_id": "T257",
+  "date": "2026-08-02",
+  "model": "DSPro (subagent) + manual completion",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Subagent wired adapters for legality, capture, double-pass, encode/decode in src/differential.zig. Sprint manager fixed compilation and ran the matrix. All 5 operations × 3 sizes = 15 comparisons: ALL AGREE. ADR-0020: 716/1620 L≠H gaps at 2×2 — ESCALATED. Matrix files written to docs/evidence/GLOBAL.DIFFERENTIAL/."
+}

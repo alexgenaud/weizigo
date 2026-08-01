@@ -1,0 +1,8 @@
+{
+  "task_id": "T252",
+  "date": "2026-08-01",
+  "model": "not stated at dispatch",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Built differential oracle harness (src/differential.zig). TDD with known-bad synthetic fixture and all-agree test (both pass). First measurement: area_score at 2x2 comparing exp6.genericAreaScore vs rules.Rules.area_score: 19/81 agree (6 disagreement groups). At 3x2: 129/729 agree (10 disagreement groups). Harness enables adding more operations and sizes via one-line registrations. Disagreements are reported, not fixed — adjudication deferred to pass1."
+}

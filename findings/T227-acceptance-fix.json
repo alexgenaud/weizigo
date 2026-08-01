@@ -1,0 +1,8 @@
+{
+  "task_id": "T227",
+  "date": "2026-08-01",
+  "model": "not stated at dispatch",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Fixed four defects in managent acceptance machinery: (1) signal-killed commands reported PASS — switch on Child.Term union now catches .signal/.stopped/.unknown; (2) deliverables= parser swallowed subsequent key= tokens — now truncates at next key= pattern; (3) --skip-acceptance accepted empty reason — now rejects zero-length; (4) acceptance and skip_acceptance_reason fields were read from JSON but never written — added to writeState serialization. Regression tests in tools/regression-T227.sh: 3/3 passing. Also added deploy-managent build step to keep bin/managent in sync with zig-out."
+}

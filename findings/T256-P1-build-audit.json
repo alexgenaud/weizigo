@@ -1,0 +1,8 @@
+{
+  "task_id": "T256",
+  "date": "2026-08-01",
+  "model": "DSFlash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "P1 build audit of src/differential.zig (engine-unification pass0). Verdict: PASS. zig test 3/3 pass; tools/runner -- zig run reports area_score ALL AGREE at 2x2 (81/81) and 3x2 (729/729, exact 3^n denominators); known-bad recalibration confirms non-vacuity (mutating alwaysOne to return 0 makes the known-bad test fail with expected 0 found 2, and the seeded-defect control fail with expected 0 found 1, while null control still passes; temp copy deleted, no committed file modified); null control and seeded-defect witness values (0/1) verified. Evidence: docs/epic-01-markovian/sprints/engine-unification/pass0/P1-build-audit-1.md."
+}
