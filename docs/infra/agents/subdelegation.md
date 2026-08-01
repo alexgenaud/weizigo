@@ -10,16 +10,20 @@ bin/subagent <T-ID> --dry-run       # print the command, run nothing
 
 Max two concurrent. `&` them and `wait`.
 
-The script resolves the bundle, builds the claim/findings/done wrapper, and
-runs under `tools/runner`. Do not hand-write `pi` invocations and never use the
-`odeeppi`/`oflashpi` aliases — they do not exist in non-interactive shells.
+The script resolves the bundle, builds the claim/findings/done wrapper, runs
+under `tools/runner`, and stamps `WEIZIGO_AGENT_DEPTH` on the child.
+
+**Depth cap.** Manager = 1, worker = 2, and `bin/subagent` refuses at 2. A
+worker cannot dispatch: it writes a file or returns output to its manager and
+stops. Unset means manager, so a human-launched console dispatches workers who
+dispatch nothing.
 
 ## When to use
 
 | scenario | subagent |
 |---|---|
-| Parallel independent audit (different instance, same model) | `pi --provider deepseek --model deepseek-v4-pro` |
-| Cheap mechanical sweep, terminology, formatting | `pi --provider deepseek --model deepseek-v4-flash` |
+| Parallel independent audit (different instance, same model) | `bin/subagent <T-ID>` |
+| Cheap mechanical sweep, terminology, formatting | `bin/subagent <T-ID> --flash` |
 | Run two measurements at different goban sizes simultaneously | either |
 | Adversarial review — must be a different instance, ideally different model | Pro reviews Pro, or Flash reviews Pro |
 

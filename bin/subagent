@@ -8,6 +8,8 @@ import glob, os, re, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
+DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
+MAX_DEPTH = 2  # 1 = manager (dispatches workers), 2 = worker (dispatches nothing)
 
 
 def main(argv):
@@ -16,6 +18,15 @@ def main(argv):
     if len(args) != 1:
         sys.exit(__doc__)
     target = args[0]
+
+    depth = int(os.environ.get(DEPTH_VAR, "1"))  # unset = manager
+    if depth >= MAX_DEPTH:
+        sys.exit(
+            f"subagent: REFUSED — you are a worker (depth {depth}), workers do not "
+            f"dispatch.\nWrite your output to a file or return it to your manager, "
+            f"then stop.\nIf this task genuinely needs delegating, say so and let "
+            f"your manager decide."
+        )
     model = MODEL["flash" if "--flash" in flags else "pro"]
     wall = next((f.split("=")[1] for f in flags if f.startswith("--wall=")), "1800")
 
@@ -41,10 +52,12 @@ def main(argv):
 
     cmd = ["tools/runner", "--max-wall", wall, "--",
            "pi", "--provider", "deepseek", "--model", model, "-p", prompt]
+    env = dict(os.environ, **{DEPTH_VAR: str(depth + 1)})
     if "--dry-run" in flags:
-        print(" ".join(repr(c) if "\n" in c else c for c in cmd))
+        print(f"{DEPTH_VAR}={depth + 1} " +
+              " ".join(repr(c) if "\n" in c else c for c in cmd))
         return 0
-    return subprocess.call(cmd, cwd=ROOT)
+    return subprocess.call(cmd, cwd=ROOT, env=env)
 
 
 if __name__ == "__main__":
