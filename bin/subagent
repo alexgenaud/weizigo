@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Dispatch a DeepSeek subagent.  bin/subagent <T-ID|bundle-path> [--flash] [--wall N]
+
+T-ID      -> reads untracked/<T-ID>-*.md, wraps with claim/findings/done lifecycle
+path      -> dispatches that file bare, no kanban lifecycle
+"""
+import glob, os, re, subprocess, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL = {"pro": "deepseek-v4-pro", "flash": "deepseek-v4-flash"}
+
+
+def main(argv):
+    args = [a for a in argv if not a.startswith("--")]
+    flags = [a for a in argv if a.startswith("--")]
+    if len(args) != 1:
+        sys.exit(__doc__)
+    target = args[0]
+    model = MODEL["flash" if "--flash" in flags else "pro"]
+    wall = next((f.split("=")[1] for f in flags if f.startswith("--wall=")), "1800")
+
+    if re.fullmatch(r"T\d+", target):
+        hits = glob.glob(os.path.join(ROOT, "untracked", f"{target}-*.md"))
+        if len(hits) != 1:
+            sys.exit(f"subagent: expected one bundle for {target}, found {len(hits)}")
+        bundle = os.path.relpath(hits[0], ROOT)
+        slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
+        prompt = (
+            f"Follow {bundle}\n\n"
+            f"FIRST: bin/managent claim {target}\n"
+            f"The brief carries everything. Do not ask for more.\n\n"
+            f"WHEN DONE, before any other output:\n"
+            f"  1. Write findings/{target}-{slug}.json per findings/README.md\n"
+            f"  2. bin/managent done {target} --status <pass|pass-with-findings|"
+            f"fail-found|blocked|abandoned> --note <one line>\n"
+        )
+    elif os.path.isfile(target):
+        prompt = f"Follow {os.path.relpath(os.path.abspath(target), ROOT)}\n"
+    else:
+        sys.exit(f"subagent: no such task or file: {target}")
+
+    cmd = ["tools/runner", "--max-wall", wall, "--",
+           "pi", "--provider", "deepseek", "--model", model, "-p", prompt]
+    if "--dry-run" in flags:
+        print(" ".join(repr(c) if "\n" in c else c for c in cmd))
+        return 0
+    return subprocess.call(cmd, cwd=ROOT)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

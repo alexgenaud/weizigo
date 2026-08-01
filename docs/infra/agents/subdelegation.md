@@ -1,14 +1,18 @@
-# Subdelegation — dispatching work to DeepSeek Pro/Flash subagents
+# Subdelegation
 
-**Commands (DeepSeek models only):**
-- `pi --provider deepseek --model deepseek-v4-pro -p "prompt"` — DeepSeek-v4-Pro subagent
-- `pi --provider deepseek --model deepseek-v4-flash -p "prompt"` — DeepSeek-v4-Flash subagent
+```sh
+bin/subagent <T-ID>                 # DeepSeek-v4-Pro, full lifecycle
+bin/subagent <T-ID> --flash         # DeepSeek-v4-Flash
+bin/subagent <T-ID> --wall=900      # wall-clock guard, default 1800s
+bin/subagent <path.md>              # bare dispatch, no kanban lifecycle
+bin/subagent <T-ID> --dry-run       # print the command, run nothing
+```
 
-**Use the full `pi …` command above, never the `odeeppi`/`oflashpi` aliases.** Those are interactive-shell aliases: they do not exist in any non-interactive shell, so an agent dispatching `odeeppi -p "…"` from a tool-run shell gets `command not found` every time. Verified 2026-08-01 in both bash and zsh. This one line cost the project its entire autonomous-subdelegation capability — T226 could not dispatch a single audit subagent, fell back to doing every phase itself, and did not escalate.
+Max two concurrent. `&` them and `wait`.
 
-Corrected 2026-08-01: an earlier version of this file claimed these commands "do not work from Opus, Fable, or Ollama models". **False.** `pi --provider deepseek --model deepseek-v4-pro -p "Reply with exactly the word OK"` was run from an Opus/Claude Code session in a non-interactive shell and returned `OK`, exit 0, in 1.8 s, peak RSS 194 MB. Any seat can subdelegate.
-
-`DEEPSEEK_API_KEY` is exported and visible to non-interactive shells (verified). Subagents run in the same Pi harness as the parent, share the project directory, can read and write files, and return output on stdout. Dispatch under `tools/runner` so a hung subagent hits a guard instead of blocking the parent forever.
+The script resolves the bundle, builds the claim/findings/done wrapper, and
+runs under `tools/runner`. Do not hand-write `pi` invocations and never use the
+`odeeppi`/`oflashpi` aliases — they do not exist in non-interactive shells.
 
 ## When to use
 
@@ -31,68 +35,20 @@ Corrected 2026-08-01: an earlier version of this file claimed these commands "do
    risk race conditions and rate limiting. This cap is a rate-limit scope on pi-subagents only — the
    concurrency authority is `docs/infra/delegation/ROLES.md` §Concurrency (analysis unlimited, mutation serial).
 
-## Pattern: independent audit
+## Patterns
 
 ```sh
-# Parent dispatches an audit subagent
-# First create the task:
-bin/managent suggest audit-spec --model DSPro
-# Fill in the bundle with the task description, then dispatch:
-pi --provider deepseek --model deepseek-v4-pro -p "Follow untracked/T<ID>-audit-spec.md"
-```
-
-## Pattern: parallel measurements
-
-```sh
-# First create the tasks:
-bin/managent suggest SCC-3x3 --model DSPro
-bin/managent suggest SCC-4x3 --model DSFlash
-# Fill in bundles, then dispatch:
-pi --provider deepseek --model deepseek-v4-pro -p "Follow untracked/T<ID>-SCC-3x3.md" &
-pi --provider deepseek --model deepseek-v4-flash -p "Follow untracked/T<ID>-SCC-4x3.md" &
-wait
+bin/subagent T180                                  # audit
+bin/subagent T181 & bin/subagent T182 --flash & wait   # parallel
 ```
 
 ## Recording
 
 Subagent work is recorded in `model-perf.md` under the parent task, with a note that it was subdelegated. The subagent's model is stated.
 
-## Prompt wrapper — dispatch / claim / findings / done
+## Prompt wrapper
 
-Every subagent dispatch **must** use the wrapper below. The wrapper enforces the lifecycle: read the bundle, claim the task, produce findings, mark done. The manager replaces `<PLACEHOLDERS>` before dispatch.
-
-### Wrapper template
-
-```
-Follow untracked/<TASK-ID>-<slug>.md
-
-FIRST — claim your task:
-  bin/managent claim <TASK-ID>
-
-Read your brief at untracked/<TASK-ID>-<slug>.md — it carries everything.
-
-WHEN DONE — before any other output:
-  1. Write your findings to findings/<TASK-ID>-<slug>.json per the schema at findings/README.md.
-  2. Run `bin/managent done <TASK-ID>`.
-
----
-<actual task prompt here>
-```
-
-**Placeholders:**
-| placeholder | fill with | example |
-|---|---|---|
-| `<TASK-ID>` | kanban task ID | `T180`, `EXP-5` |
-| `<slug>` | task slug (from bundle path) | `audit-verify` |
-| `<actual task prompt here>` | the real prompt (after the `---` separator) | `Audit the spec at docs/... Accept/Reject with gaps.` |
-
-### Rules
-
-1. **The wrapper is mandatory.** Every dispatch uses the bundle-reference form below. No bare prompts. Invoke it with the full `pi --provider deepseek --model …  -p` command — **not** the `odeeppi`/`oflashpi` aliases, which do not exist in non-interactive shells.
-2. **The dispatch line is minimal.** The bundle carries everything — task ID, model, slug, lifecycle commands, deliverables, and acceptance criteria. The worker reads the bundle, not the prompt line.
-3. **The separator is a horizontal rule.** `---` on its own line, blank line above and below, exactly as shown. The payload (actual task prompt) goes below it.
-4. **The subagent writes findings before `done`.** If the findings write fails for any reason, the subagent must NOT mark the task done — the manager must know the task is incomplete.
-5. **`claim` needs no `--agent`.** The model was stored at suggest/dispatch time; `claim` picks it up automatically.
+`bin/subagent` builds it. The bundle carries everything else.
 
 ## Findings schema
 
