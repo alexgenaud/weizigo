@@ -48,15 +48,14 @@
     "claim_count": 1
   },
   "T184": {
-    "status": "in_progress",
-    "agent": "DSPro/T184",
+    "status": "dispatchable",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T184-p3e-wzo2-build.md",
     "set": "A",
     "holds": ["src/oracle_v2_build.zig"],
-    "needs": [],
+    "needs": ["T185"],
     "caps": [],
     "added": "2026-08-01T00:24:16Z",
-    "claimed": "2026-08-01T00:40:48Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
@@ -368,19 +367,20 @@
     "claim_count": 1
   },
   "T185": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T185-colex-fix.md",
     "set": "A",
     "holds": ["src/oracle_v2_build.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T00:40:48Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T00:53:16Z",
+    "done": "2026-08-01T00:54:27Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T162": {
     "status": "done",

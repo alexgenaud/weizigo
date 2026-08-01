@@ -34,6 +34,13 @@
 const std = @import("std");
 const exp6 = @import("exp6_solve.zig");
 const artifact2 = @import("artifact2.zig");
+const colex = @import("colex.zig");
+
+const GroupBuilder4 = struct {
+    rank: u32, // exp6 base-3 rank (for linearIndex4 lookups)
+    colex_val: u32, // combinatorial colex (for artifact group header)
+    count: u8,
+};
 
 const gpa = std.heap.page_allocator;
 
@@ -304,9 +311,10 @@ pub fn main() !void {
         board_counts[board] += 1;
     }
 
-    // Phase 2: collect boards with entries into a sorted list
-    var group_list = try std.ArrayListUnmanaged(artifact2.GroupHeader).initCapacity(gpa, 0);
-    defer group_list.deinit(gpa);
+    // Phase 2: collect boards with entries, convert exp6 rank → colex, sort by colex
+    const CR4 = colex.Indexer(4, 4);
+    var group_builders = try std.ArrayListUnmanaged(GroupBuilder4).initCapacity(gpa, 0);
+    defer group_builders.deinit(gpa);
 
     var n_entries_total: u64 = 0;
     for (board_counts, 0..) |count, board| {
@@ -315,14 +323,24 @@ pub fn main() !void {
             std.debug.print("# PANIC: board {d} has {d} entries, max is {d}\n", .{ board, count, max_per_group });
             return error.EntryCountExceedsMax;
         }
-        group_list.append(gpa, .{
-            .colex = @intCast(board),
-            .entry_count = count,
+        const pos4 = exp6.unrank_board4(@intCast(board));
+        const colex_idx: u32 = @intCast(CR4.colex_from_pos(&pos4));
+        group_builders.append(gpa, .{
+            .rank = @intCast(board),
+            .colex_val = colex_idx,
+            .count = count,
         }) catch unreachable;
         n_entries_total += count;
     }
 
-    const n_groups: u64 = group_list.items.len;
+    // Sort by combinatorial colex (artifact format contract §2.1)
+    std.mem.sort(GroupBuilder4, group_builders.items, {}, struct {
+        fn lt(_: void, a: GroupBuilder4, b: GroupBuilder4) bool {
+            return a.colex_val < b.colex_val;
+        }
+    }.lt);
+
+    const n_groups: u64 = group_builders.items.len;
 
     // board_counts no longer needed
     gpa.free(board_counts);
@@ -334,17 +352,12 @@ pub fn main() !void {
         @as(f64, @floatFromInt(artifact2.HEADER_LEN + n_groups * 5 + n_entries_total * 4)) / 1_000_000.0,
     });
 
-    // Phase 3: build entry rows in WZO2 order
+    // Phase 3: build entry rows in WZO2 order (sorted by colex)
     var entry_rows = try std.ArrayListUnmanaged(artifact2.EntryRow).initCapacity(gpa, @intCast(n_entries_total));
     defer entry_rows.deinit(gpa);
 
-    // We iterate over groups and, for each board, generate entries in
-    // the canonical order: passes=0 (all ko, all side), then passes=1 (ko=KO_NONE, all side).
-
-    // We iterate over groups and, for each board, generate entries in
-    // the canonical order: passes=0 (all ko, all side), then passes=1 (ko=KO_NONE, all side).
-    for (group_list.items) |gh| {
-        const board: u32 = gh.colex;
+    for (group_builders.items) |gb| {
+        const board: u32 = gb.rank; // exp6 rank for linearIndex4 lookups
 
         // passes=0: all ko values, both sides
         for (0..exp6.KO_DIMS4) |ko_u| {
@@ -392,8 +405,8 @@ pub fn main() !void {
 
         var entry_idx: usize = 0;
         var terminal_set: u64 = 0;
-        for (group_list.items) |gh| {
-            const board: u32 = gh.colex;
+        for (group_builders.items) |gb| {
+            const board: u32 = gb.rank; // exp6 rank for lookups
 
             // passes=0: all ko values, both sides
             for (0..exp6.KO_DIMS4) |ko_u| {
@@ -440,6 +453,16 @@ pub fn main() !void {
     // =====================================================================
     std.debug.print("\n## Writing WZO2 artifact\n", .{});
 
+    // Build final GroupHeader list (with colex values, not exp6 ranks)
+    var group_headers = try std.ArrayListUnmanaged(artifact2.GroupHeader).initCapacity(gpa, @intCast(n_groups));
+    defer group_headers.deinit(gpa);
+    for (group_builders.items) |gb| {
+        group_headers.append(gpa, .{
+            .colex = gb.colex_val,
+            .entry_count = gb.count,
+        }) catch unreachable;
+    }
+
     const art = artifact2.Artifact{
         .header = artifact2.Header{
             .w = w,
@@ -449,7 +472,7 @@ pub fn main() !void {
             .n_entries = n_entries_total,
             .sha256 = [_]u8{0} ** artifact2.HASH_LEN,
         },
-        .group_headers = group_list.items,
+        .group_headers = group_headers.items,
         .entry_rows = entry_rows.items,
     };
 

@@ -59,6 +59,13 @@ const std = @import("std");
 const util = @import("util.zig");
 const exp6 = @import("exp6_solve.zig");
 const artifact2 = @import("artifact2.zig");
+const colex = @import("colex.zig");
+
+const GroupBuilder3 = struct {
+    rank: u32, // exp6 base-3 rank (for StateIdx lookups)
+    colex_val: u32, // combinatorial colex (for artifact group header)
+    count: u8,
+};
 
 const gpa = std.heap.page_allocator;
 
@@ -222,15 +229,33 @@ pub fn main() !void {
     const none: u8 = @intCast(exp6.KO_NONE);
     const max_per_group = artifact2.maxEntriesPerGroup(w, h);
 
-    var groups = std.ArrayListUnmanaged(artifact2.GroupHeader).empty;
-    defer groups.deinit(gpa);
-    var rows = std.ArrayListUnmanaged(artifact2.EntryRow).empty;
-    defer rows.deinit(gpa);
+    // Phase A: collect entries per board (by exp6 rank), then convert to colex and sort
+    const CR3 = colex.Indexer(3, 3);
+    var group_builders = std.ArrayListUnmanaged(GroupBuilder3).empty;
+    defer group_builders.deinit(gpa);
+
+    // First pass: collect row data per exp6 board rank
+    const BoardRows = struct {
+        rows: std.ArrayListUnmanaged(artifact2.EntryRow),
+        terminal_count: u64,
+    };
+    var board_data = try gpa.alloc(?BoardRows, exp6.RAW_TOTAL);
+    defer {
+        for (board_data) |*bd| {
+            if (bd.*) |*br| br.*.rows.deinit(gpa);
+        }
+        gpa.free(board_data);
+    }
+    @memset(board_data, null);
 
     var terminal_count: u64 = 0;
     var board_idx: u32 = 0;
     while (board_idx < exp6.RAW_TOTAL) : (board_idx += 1) {
         var group_count: u8 = 0;
+        var bd = BoardRows{
+            .rows = std.ArrayListUnmanaged(artifact2.EntryRow).empty,
+            .terminal_count = 0,
+        };
 
         // passes=0: all ko values, both sides (ko-major, side-minor order)
         var ko_u: u16 = 0;
@@ -238,12 +263,11 @@ pub fn main() !void {
             for ([_]u1{ 0, 1 }) |side| {
                 const lin = (exp6.StateIdx{ .board = board_idx, .side = side, .ko = ko_u, .passes = 0 }).linear();
                 if (reach[lin >> 6] & (@as(u64, 1) << @intCast(lin & 63)) == 0) continue;
-                // terminal flag: side has no legal placement (only the pass child)
                 const state = exp6.StateIdx{ .board = board_idx, .side = side, .ko = ko_u, .passes = 0 };
                 const m = exp6.moves(state, &child_boards, &child_states);
                 const terminal: u1 = if (m == 1) 1 else 0;
-                if (terminal == 1) terminal_count += 1;
-                rows.append(gpa, .{
+                if (terminal == 1) bd.terminal_count += 1;
+                bd.rows.append(gpa, .{
                     .key_byte = artifact2.encodeKeyByte(side, @intCast(ko_u), 0, terminal, kb),
                     .L = L_tab[lin],
                     .H = H_tab[lin],
@@ -260,8 +284,8 @@ pub fn main() !void {
             const state = exp6.StateIdx{ .board = board_idx, .side = side, .ko = exp6.KO_NONE, .passes = 1 };
             const m = exp6.moves(state, &child_boards, &child_states);
             const terminal: u1 = if (m == 1) 1 else 0;
-            if (terminal == 1) terminal_count += 1;
-            rows.append(gpa, .{
+            if (terminal == 1) bd.terminal_count += 1;
+            bd.rows.append(gpa, .{
                 .key_byte = artifact2.encodeKeyByte(side, none, 1, terminal, kb),
                 .L = L_tab[lin],
                 .H = H_tab[lin],
@@ -275,14 +299,43 @@ pub fn main() !void {
                 std.debug.print("# PANIC: board {d} has {d} entries, max is {d}\n", .{ board_idx, group_count, max_per_group });
                 return error.EntryCountExceedsMax;
             }
-            groups.append(gpa, .{ .colex = board_idx, .entry_count = group_count }) catch unreachable;
+            const pos3 = exp6.unrank_board(board_idx);
+            const colex_idx: u32 = @intCast(CR3.colex_from_pos(&pos3));
+            group_builders.append(gpa, .{
+                .rank = board_idx,
+                .colex_val = colex_idx,
+                .count = group_count,
+            }) catch unreachable;
+            terminal_count += bd.terminal_count;
+            board_data[board_idx] = bd;
         }
     }
 
+    // Sort by combinatorial colex (artifact format contract §2.1)
+    std.mem.sort(GroupBuilder3, group_builders.items, {}, struct {
+        fn lt(_: void, a: GroupBuilder3, b: GroupBuilder3) bool {
+            return a.colex_val < b.colex_val;
+        }
+    }.lt);
+
+    // Phase B: build sorted GroupHeader list and flattened EntryRow list
+    var groups = std.ArrayListUnmanaged(artifact2.GroupHeader).empty;
+    defer groups.deinit(gpa);
+    var rows = std.ArrayListUnmanaged(artifact2.EntryRow).empty;
+    defer rows.deinit(gpa);
+
+    for (group_builders.items) |gb| {
+        groups.append(gpa, .{ .colex = gb.colex_val, .entry_count = gb.count }) catch unreachable;
+        const bd = board_data[gb.rank].?;
+        rows.appendSlice(gpa, bd.rows.items) catch unreachable;
+    }
+
     std.debug.print("# terminal flags set: {d}\n", .{terminal_count});
-    std.debug.print("# groups: {d}, entries: {d}, file bytes: {d}\n", .{
+    std.debug.print("# groups: {d}, entries: {d} (sorted by colex, not exp6 rank)\n", .{
         groups.items.len,
         rows.items.len,
+    });
+    std.debug.print("# file bytes: {d}\n", .{
         artifact2.HEADER_LEN + groups.items.len * 5 + rows.items.len * 4,
     });
 
@@ -391,6 +444,74 @@ pub fn main() !void {
         }
     }
 
+    // --- one-stone children: the key colex-mismatch test (T178 CRITICAL) ---
+    // Before fix: non-empty board lookups returned null (exp6 rank ≠ colex),
+    // causing the GTP engine to fall back to area score. After fix: must
+    // return correct fixpoint values.
+    {
+        // Black places at cell 4 (3×3 center). Board: exp6 rank = 1*3^4 = 81.
+        // colex = layer_offset[1] + C(4,1)*2^1 + colour_bit = 1 + 4*2 + 1 = 10.
+        // Result state: White to move, ko=none, passes=0.
+        const pos3_center: exp6.Pos3 = [_]i8{0} ** exp6.N;
+        var pos3_mut = pos3_center;
+        pos3_mut[4] = 1; // Black stone at center
+        const colex_center: u32 = @intCast(CR3.colex_from_pos(&pos3_mut));
+        const exp6_rank: u32 = exp6.rank_board(pos3_mut);
+        const fix_lin = (exp6.StateIdx{ .board = exp6_rank, .side = 1, .ko = exp6.KO_NONE, .passes = 0 }).linear();
+        const fix_L = L_tab[fix_lin];
+        const fix_H = H_tab[fix_lin];
+
+        const row = artifact2.lookup(&loaded, colex_center, -1, none, 0);
+        if (row) |r| {
+            const v = tie_pin(r.L, r.H);
+            const area_score: i8 = 1; // one Black stone, area score = 1
+            const not_fallback = r.L != area_score or r.H != area_score;
+            const matches_fixpoint = r.L == fix_L and r.H == fix_H;
+            const ok = not_fallback and matches_fixpoint;
+            if (!ok) failures += 1;
+            std.debug.print("# one-stone center (colex={d}): L={d} H={d} V={d} fixpoint(L={d},H={d}) area={d} not-fallback={} matches={} → {s}\n", .{
+                colex_center, r.L, r.H, v, fix_L, fix_H, area_score, not_fallback, matches_fixpoint, if (ok) "PASS" else "FAIL",
+            });
+            util.out("CONSUMER-LOAD 3x3 one-stone-center colex={d} L={d} H={d} fixpoint(L={d},H={d}) not-fallback={} {s}\n", .{
+                colex_center, r.L, r.H, fix_L, fix_H, not_fallback, if (ok) "PASS" else "FAIL",
+            });
+        } else {
+            failures += 1;
+            std.debug.print("# QUERY one-stone center colex={d}: MISSING ENTRY → FAIL (colex mismatch not fixed?)\n", .{colex_center});
+            util.out("CONSUMER-LOAD 3x3 one-stone-center colex={d} MISSING → FAIL\n", .{colex_center});
+        }
+    }
+
+    // --- second one-stone child: corner cell 0 ---
+    {
+        var pos3_corner: exp6.Pos3 = [_]i8{0} ** exp6.N;
+        pos3_corner[0] = 1;
+        const colex_corner: u32 = @intCast(CR3.colex_from_pos(&pos3_corner));
+        const exp6_rank: u32 = exp6.rank_board(pos3_corner);
+        const fix_lin = (exp6.StateIdx{ .board = exp6_rank, .side = 1, .ko = exp6.KO_NONE, .passes = 0 }).linear();
+        const fix_L = L_tab[fix_lin];
+        const fix_H = H_tab[fix_lin];
+
+        const row = artifact2.lookup(&loaded, colex_corner, -1, none, 0);
+        if (row) |r| {
+            const v = tie_pin(r.L, r.H);
+            const area_score: i8 = 1;
+            const not_fallback = r.L != area_score or r.H != area_score;
+            const matches_fixpoint = r.L == fix_L and r.H == fix_H;
+            const ok = not_fallback and matches_fixpoint;
+            if (!ok) failures += 1;
+            std.debug.print("# one-stone corner (colex={d}): L={d} H={d} V={d} fixpoint(L={d},H={d}) area={d} not-fallback={} matches={} → {s}\n", .{
+                colex_corner, r.L, r.H, v, fix_L, fix_H, area_score, not_fallback, matches_fixpoint, if (ok) "PASS" else "FAIL",
+            });
+            util.out("CONSUMER-LOAD 3x3 one-stone-corner colex={d} L={d} H={d} fixpoint(L={d},H={d}) not-fallback={} {s}\n", .{
+                colex_corner, r.L, r.H, fix_L, fix_H, not_fallback, if (ok) "PASS" else "FAIL",
+            });
+        } else {
+            failures += 1;
+            std.debug.print("# QUERY one-stone corner colex={d}: MISSING ENTRY → FAIL (colex mismatch not fixed?)\n", .{colex_corner});
+            util.out("CONSUMER-LOAD 3x3 one-stone-corner colex={d} MISSING → FAIL\n", .{colex_corner});
+        }
+    }
     const elapsed = nowMs() - t0;
     const verdict = if (failures == 0) "PASS" else "FAIL";
     std.debug.print("# elapsed: {d} ms\n", .{elapsed});
