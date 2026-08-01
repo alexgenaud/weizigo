@@ -55,24 +55,20 @@ def main(argv):
     else:
         sys.exit(f"subagent: no such task or file: {target}")
 
-    # The way, removed. pi needs the credential, the worker must not have it, so
-    # it travels by argv (which pi consumes) and never by env (which the worker's
-    # shell inherits). Residual: argv is readable via ps by an agent that goes
-    # looking. That is a deliberate act, not an eager one.
-    key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if not key:
+    # Credential travels by environment, NOT argv. tools/runner echoes argv and
+    # the heartbeat writer records it, so an --api-key flag leaks the key into
+    # logs and evidence on every dispatch (observed 2026-08-02, redacted). The
+    # depth cap below is a SAFETY mechanism against accidental recursion; it is
+    # not a security boundary, and same-user isolation is not achievable here.
+    if not os.environ.get("DEEPSEEK_API_KEY"):
         sys.exit("subagent: DEEPSEEK_API_KEY is not set")
-    env = {k: v for k, v in os.environ.items() if not k.endswith("_API_KEY")}
-    env[DEPTH_VAR] = str(WORKER_DEPTH)
+    env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
 
     cmd = ["tools/runner", "--max-wall", wall, "--",
-           "pi", "--provider", "deepseek", "--model", model,
-           "--api-key", key, "-p", prompt]
+           "pi", "--provider", "deepseek", "--model", model, "-p", prompt]
     if "--dry-run" in flags:
-        stripped = sorted(k for k in os.environ if k.endswith("_API_KEY"))
-        print(f"{DEPTH_VAR}={WORKER_DEPTH}  env keys stripped: {stripped or 'none'}")
-        print(" ".join(repr(c) if "\n" in c else c
-                       for c in (["<KEY>" if c == key else c for c in cmd])))
+        print(f"{DEPTH_VAR}={WORKER_DEPTH}")
+        print(" ".join(repr(c) if "\n" in c else c for c in cmd))
         return 0
     return subprocess.call(cmd, cwd=ROOT, env=env)
 

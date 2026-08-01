@@ -18,15 +18,21 @@ Max two concurrent. `&` them and `wait`.
 The script resolves the bundle, builds the claim/findings/done wrapper, runs
 under `tools/runner`, and stamps `WEIZIGO_AGENT_DEPTH` on the child.
 
-**Workers cannot dispatch, by construction.** Children run at depth 2 with
-`WEIZIGO_AGENT_DEPTH` stamped and **every `*_API_KEY` stripped from their
-environment** — `bin/subagent` refuses at depth 2, and a hand-written `pi` call
-dies with `No API key found`. The credential reaches `pi` by argv, which it
-consumes and the worker's shell never sees. Verified: a worker reports
-`depth=2 key=[] ollama=[]` and still functions.
+**Depth cap — a safety mechanism, not a security boundary.** Children run at
+depth 2 with `WEIZIGO_AGENT_DEPTH` stamped, and `bin/subagent` refuses at 2: a
+worker writes a file or returns output to its manager and stops.
 
-Residual hole: argv is readable via `ps` by an agent that goes looking. That is
-a deliberate act, not an eager one.
+It stops accidental and eager recursion. It cannot stop a determined agent: on
+a single-user machine any process running as that user can reach the
+credential, and hiding it from a same-user child is not achievable in the
+shell. Real containment needs OS-level separation — a separate user, a
+container, or a broker holding the key. Do not trust this further than it
+claims.
+
+The credential travels by environment, never by argv: `tools/runner` echoes
+argv and the heartbeat writer records it, so an `--api-key` flag leaks the key
+into logs and evidence on every dispatch. Observed and redacted 2026-08-02;
+never committed.
 
 ## When to use
 
