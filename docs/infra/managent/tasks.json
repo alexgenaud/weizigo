@@ -1,12 +1,10 @@
 {
   "T193": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T193-p3f-m4a-run.md",
     "set": "A",
     "holds": [],
-    "needs": [
-      "T192"
-    ],
+    "needs": ["T192"],
     "caps": [],
     "added": "2026-08-01T06:56:19Z",
     "claimed": null,
@@ -32,22 +30,22 @@
     "claim_count": 0
   },
   "T192": {
-    "status": "in_progress",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T192-wzo2-oom-fix.md",
     "set": "A",
-    "holds": [
-      "src/oracle_v2_build.zig"
-    ],
+    "holds": ["src/oracle_v2_build.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T06:48:31Z",
     "claimed": "2026-08-01T07:53:10Z",
-    "done": null,
+    "done": "2026-08-01T09:20:18Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
-  },
+  }
+,
   "_sys": {
     "next_id": 203,
     "directive_next": 7
