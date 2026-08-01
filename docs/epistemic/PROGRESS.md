@@ -372,6 +372,17 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   construction `[CODE.WZO2-CHAINSHORT:PROVEN]`, and the acceptance harness
   is orphaned from the build graph with a broken A6 positive control
   `[CODE.M4A-HARNESS:PROVEN]`.
+  **Overtaken 2026-08-01 (later the same day):** the artifact was built
+  (T192, 518.1 MB, peak RSS 3887 MB — the memory hazard discharged) and M4a
+  finally ran (T193). It **failed**: the builder encoded `passes=1` entries
+  with `passes=0` in the key_byte, colliding both pass classes at one sort
+  key, so A3 colour inversion failed on 16.5% of 99,133,036 checks and A9
+  reported 24,252,631 entry-order violations `[CODE.WZO2-PASSBIT:PROVEN]`.
+  The 3×3 artifact passes all four checks, which is what localises the
+  defect to the 4×4 builder rather than the harness. One character, fixed
+  at `5deec6b`; rebuild and re-run are T212, and oracle-v2 G3 is unreachable
+  until they pass. The row that predicted this — "kanban *done* here means
+  code written, not run" — was right, and cost 518 MB to confirm.
 - **Verify-battery** (harness + three invariant modules): 36 unit tests
   (module-local, not reachable from `zig build test`), harness not wired to
   any invariant module — every check is a stub, zero verification runs
