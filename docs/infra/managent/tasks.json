@@ -31,7 +31,7 @@
     "claim_count": 1
   },
   "T206": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "untracked/T206-tooling-seams-code.md",
     "set": "B",
     "holds": [],
@@ -46,7 +46,7 @@
     "claim_count": 0
   },
   "T207": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "untracked/T207-process-doc-sweep.md",
     "set": "B",
     "holds": [],
@@ -61,7 +61,7 @@
     "claim_count": 0
   },
   "T205": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "untracked/T205-status-surfaces-handover.md",
     "set": "B",
     "holds": [],
@@ -76,7 +76,7 @@
     "claim_count": 0
   },
   "T208": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "untracked/T208-evidence-argus-triage.md",
     "set": "B",
     "holds": [],
@@ -106,13 +106,29 @@
     "claim_count": 0
   },
   "T204": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "untracked/T204-managent-integrity.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T10:03:13Z",
+    "claimed": "2026-08-01T10:23:38Z",
+    "done": "2026-08-01T10:24:06Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
+  "T209": {
+    "status": "blocked",
+    "bundle": "untracked/T209-dispatch-ergonomics.md",
+    "set": "C",
+    "holds": [],
+    "needs": ["T206", "T207"],
+    "caps": [],
+    "added": "2026-08-01T10:24:39Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -122,7 +138,7 @@
   }
 ,
   "_sys": {
-    "next_id": 209,
+    "next_id": 210,
     "directive_next": 7
   }
 }
