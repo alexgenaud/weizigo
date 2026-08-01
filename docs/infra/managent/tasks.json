@@ -76,8 +76,8 @@
     "claim_count": 1
   },
   "T220": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T220-argus-learns-today.md",
     "set": "C",
@@ -85,18 +85,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:53:18Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Stood down 2026-08-01: MORE, not BETTER. Brief retained; revisit after engine-unification",
+    "claim_count": 1
   },
   "T222": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T222-evidence-stdout-integrity.md",
     "set": "C",
@@ -104,14 +104,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T17:07:31Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Absorbed into engine-unification sprint (T226); brief retained on disk as sprint input",
+    "claim_count": 1
   },
   "T216": {
     "status": "done",
@@ -152,8 +152,8 @@
     "claim_count": 1
   },
   "T225": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T225-differential-oracle-harness.md",
     "set": "C",
@@ -161,18 +161,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T19:08:41Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Absorbed into engine-unification sprint (T226); brief retained on disk as sprint input",
+    "claim_count": 1
   },
   "T224": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T224-progress-timeout-measurement.md",
     "set": "C",
@@ -180,14 +180,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T17:07:32Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Stood down 2026-08-01: MORE, not BETTER. Brief retained; revisit after engine-unification",
+    "claim_count": 1
   },
   "T203": {
     "status": "dispatchable",
@@ -199,6 +199,25 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T08:08:28Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0
+  },
+  "T226": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T226-engine-unification-sprint.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T19:36:29Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -228,8 +247,8 @@
     "claim_count": 1
   },
   "T218": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T218-closeout-protocol.md",
     "set": "C",
@@ -237,14 +256,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:53:18Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Stood down 2026-08-01: MORE, not BETTER. Brief retained; revisit after engine-unification",
+    "claim_count": 1
   },
   "T213": {
     "status": "done",
@@ -304,8 +323,8 @@
     "claim_count": 1
   },
   "T221": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T221-acceptance-check-correctness.md",
     "set": "C",
@@ -313,14 +332,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T17:07:31Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Absorbed into engine-unification sprint (T226); brief retained on disk as sprint input",
+    "claim_count": 1
   },
   "T210": {
     "status": "done",
@@ -361,8 +380,8 @@
     "claim_count": 1
   },
   "T223": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "orcha",
     "model": null,
     "bundle": "untracked/T223-encoder-duplication.md",
     "set": "C",
@@ -370,18 +389,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T17:07:32Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T19:36:29Z",
+    "done": "2026-08-01T19:36:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0
+    "verdict": "abandoned",
+    "verdict_note": "Absorbed into engine-unification sprint (T226); brief retained on disk as sprint input",
+    "claim_count": 1
   }
 ,
   "_sys": {
-    "next_id": 225,
+    "next_id": 227,
     "directive_next": 7
   }
 }
