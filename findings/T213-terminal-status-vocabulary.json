@@ -1,0 +1,8 @@
+{
+  "task_id": "T213",
+  "date": "2026-08-01",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Built terminal status vocabulary for managent. Added --status <verdict> to cmdDone with closed vocabulary (pass, pass-with-findings, fail-found, blocked, abandoned). Non-pass verdicts require --note. --fail backward compat sets verdict=blocked with auto-note. Added verdict command for backfill/correction. cmdAudit flags pass-with-findings/fail-found without T-reference in verdict_note. Backfilled T193 (fail-found), T209 (pass-with-findings), T210/T211 (pass). Updated spec.md and extended regression tests with 4 new checks. All 9 regression checks green, ReleaseFast build clean."
+}
