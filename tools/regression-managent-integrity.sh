@@ -189,10 +189,135 @@ else
     FAIL=1
 fi
 
+# ── Check 6: T213 — done --status pass (default) ──────────────────────────
+echo "        6. T213: done --status pass (default verdict)"
+
+# Create a task, claim it, and done it with default verdict
+SUGGEST_OUT3=$(cd "$TMPDIR" && "$MG" suggest "t213-pass" --model DSPro 2>/dev/null)
+T213_TID=$(echo "$SUGGEST_OUT3" | sed 's/.*T\([0-9]*\).*/\1/')
+# Create deliverable file so done-check passes
+BUNDLE_PATH="$TMPDIR/untracked/T${T213_TID}-t213-pass.md"
+echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH"
+echo "# T$T213_TID — t213-pass" >> "$BUNDLE_PATH"
+(cd "$TMPDIR" && "$MG" claim "T$T213_TID" 2>/dev/null)
+DONE_OUT=$(cd "$TMPDIR" && "$MG" done "T$T213_TID" 2>&1)
+if echo "$DONE_OUT" | grep -q 'verdict: pass'; then
+    echo "           PASS: default verdict is pass"
+else
+    echo "           FAIL: expected verdict pass, got: $DONE_OUT"
+    FAIL=1
+fi
+
+# ── Check 7: T213 — done --fail backward compat ────────────────────────────
+echo "        7. T213: done --fail backward compat sets verdict=blocked"
+
+SUGGEST_OUT4=$(cd "$TMPDIR" && "$MG" suggest "t213-fail" --model DSPro 2>/dev/null)
+T213_TID2=$(echo "$SUGGEST_OUT4" | sed 's/.*T\([0-9]*\).*/\1/')
+BUNDLE_PATH2="$TMPDIR/untracked/T${T213_TID2}-t213-fail.md"
+echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH2"
+echo "# T$T213_TID2 — t213-fail" >> "$BUNDLE_PATH2"
+(cd "$TMPDIR" && "$MG" claim "T$T213_TID2" 2>/dev/null)
+DONE_OUT2=$(cd "$TMPDIR" && "$MG" done "T$T213_TID2" --fail 2>&1)
+if echo "$DONE_OUT2" | grep -q 'verdict: blocked'; then
+    echo "           PASS: --fail sets verdict=blocked"
+else
+    echo "           FAIL: expected verdict blocked, got: $DONE_OUT2"
+    FAIL=1
+fi
+
+# ── Check 8: T213 — reject non-pass without --note ─────────────────────────
+echo "        8. T213: reject non-pass verdict without --note"
+
+SUGGEST_OUT5=$(cd "$TMPDIR" && "$MG" suggest "t213-nonote" --model DSPro 2>/dev/null)
+T213_TID3=$(echo "$SUGGEST_OUT5" | sed 's/.*T\([0-9]*\).*/\1/')
+BUNDLE_PATH3="$TMPDIR/untracked/T${T213_TID3}-t213-nonote.md"
+echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH3"
+echo "# T$T213_TID3 — t213-nonote" >> "$BUNDLE_PATH3"
+(cd "$TMPDIR" && "$MG" claim "T$T213_TID3" 2>/dev/null)
+if (cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass-with-findings 2>&1); then
+    echo "           FAIL: pass-with-findings without --note should be rejected"
+    FAIL=1
+else
+    echo "           PASS: pass-with-findings without --note rejected"
+fi
+
+# ── Check 9: T213 — verdict command backfill ───────────────────────────────
+echo "        9. T213: verdict command backfills verdict on done task"
+
+(cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass --note "temp" 2>/dev/null)
+(cd "$TMPDIR" && "$MG" verdict "T$T213_TID3" pass-with-findings --note "gap X, follow-up T999" 2>/dev/null)
+SHOW_OUT=$(cd "$TMPDIR" && "$MG" show "T$T213_TID3" 2>/dev/null)
+if echo "$SHOW_OUT" | grep -q 'verdict:  pass-with-findings' && echo "$SHOW_OUT" | grep -q 'follow-up T999'; then
+    echo "           PASS: verdict command backfills correctly"
+else
+    echo "           FAIL: verdict backfill not reflected in show"
+    FAIL=1
+fi
+
+# ── Check 10: T217 — done with acceptance= (passing command) ──────────────
+echo "        10. T217: acceptance=true passes and task closes"
+
+cat > "$TMPDIR/untracked/TA217-pass-test.md" <<'BEOF'
+<!--managent set=A acceptance=true-->
+# TA217 — acceptance pass test
+BEOF
+# Seed task directly with acceptance field set
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA217":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"true","claim_count":1}}
+JSONEOF
+DONE_OUT10=$(cd "$TMPDIR" && "$MG" done TA217 2>&1)
+if echo "$DONE_OUT10" | grep -q 'verdict: pass' && echo "$DONE_OUT10" | grep -q 'acceptance: true OK'; then
+    echo "           PASS: acceptance executed and task closed with pass"
+else
+    echo "           FAIL: acceptance did not run or task did not close: $DONE_OUT10"
+    FAIL=1
+fi
+
+# ── Check 11: T217 — done with acceptance=false (failing command) ──────────
+echo "        11. T217: acceptance=false rejects and task stays in_progress"
+
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA218":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"false","claim_count":1}}
+JSONEOF
+if (cd "$TMPDIR" && "$MG" done TA218 2>&1); then
+    echo "           FAIL: acceptance=false should have REJECTED"
+    FAIL=1
+else
+    echo "           PASS: acceptance=false rejected, task stayed in_progress"
+fi
+
+# ── Check 12: T217 — --skip-acceptance bypasses acceptance ────────────────
+echo "        12. T217: --skip-acceptance bypasses command and closes task"
+
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA219":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"false","claim_count":1}}
+JSONEOF
+DONE_OUT12=$(cd "$TMPDIR" && "$MG" done TA219 --skip-acceptance "acceptance run takes 4 hours" 2>&1)
+if echo "$DONE_OUT12" | grep -q 'ACCEPTANCE SKIPPED' && echo "$DONE_OUT12" | grep -q 'verdict: pass'; then
+    echo "           PASS: --skip-acceptance recorded reason and closed task"
+else
+    echo "           FAIL: --skip-acceptance did not work: $DONE_OUT12"
+    FAIL=1
+fi
+
+# ── Check 13: T217 — audit flags done task with no acceptance= ────────────
+echo "        13. T217: audit warns on done task with no acceptance= declared"
+
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA220":{"status":"done","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","claim_count":1}}
+JSONEOF
+AUDIT_T217=$(cd "$TMPDIR" && "$MG" audit 2>&1)
+if echo "$AUDIT_T217" | grep -q "no acceptance= declared"; then
+    echo "           PASS: audit warned about missing acceptance"
+else
+    echo "           FAIL: audit did not warn about missing acceptance"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
-    echo "  T204/T209: ALL CHECKS PASS"
+    echo "  T204/T209/T213/T217: ALL CHECKS PASS"
 else
-    echo "  T204/T209: SOME CHECKS FAILED"
+    echo "  T204/T209/T213/T217: SOME CHECKS FAILED"
 fi
 exit "$FAIL"

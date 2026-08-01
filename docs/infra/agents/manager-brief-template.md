@@ -58,7 +58,11 @@ A task bundle created by `managent suggest` starts with:
 
 The human (or manager) fills in:
 - **`deliverables=`** — comma-separated paths in the meta header (machine-readable, checked by `managent done`)
-- **Body** — task description, acceptance criteria, calibation, prior art, etc.
+- **`acceptance=`** (optional) — a shell command that must exit zero before `managent done` closes the task.
+  Put it last in the meta header (it consumes the rest of the line). Example:
+  `acceptance=tools/runner -- zig build test`
+  Skip with `managent done <id> --skip-acceptance <reason>`; the reason is recorded and surfaced by audit. (T217)
+- **Body** — task description, acceptance criteria, calibration, prior art, etc.
 
 ### Worker lifecycle (automatic)
 

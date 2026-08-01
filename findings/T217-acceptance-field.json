@@ -1,0 +1,8 @@
+{
+  "task_id": "T217",
+  "date": "2026-08-01",
+  "model": "unknown/T217",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Added acceptance= bundle field: every task can declare its own green condition as a shell command. managent done runs it before closing and refuses on non-zero exit. --skip-acceptance <reason> bypasses with mandatory reason recorded. audit warns on done tasks without acceptance= (WARN, not FIX — optional field). Updated spec, manager-brief-template, and regression test (checks 10-13). Design: acceptance= must be the last key in the meta header (consumes the rest of the line). Multiple commands can be chained with && or ;."
+}

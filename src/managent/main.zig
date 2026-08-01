@@ -77,8 +77,21 @@ const TaskState = struct {
     dispatched: ?[]const u8 = null,
     dispatched_to: ?[]const u8 = null,
     note: ?[]const u8 = null,
+    verdict: ?[]const u8 = null,
+    verdict_note: ?[]const u8 = null,
+    acceptance: ?[]const u8 = null,
+    skip_acceptance_reason: ?[]const u8 = null,
     claim_count: u32 = 0,
 };
+
+const valid_verdicts = [_][]const u8{ "pass", "pass-with-findings", "fail-found", "blocked", "abandoned" };
+
+fn isValidVerdict(s: []const u8) bool {
+    for (valid_verdicts) |v| {
+        if (std.mem.eql(u8, v, s)) return true;
+    }
+    return false;
+}
 
 // ── message-bus types ───────────────────────────────────────────────────────
 
@@ -189,6 +202,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdNeeds(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "agent")) {
         try cmdAgent(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "verdict")) {
+        try cmdVerdict(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "sync")) {
         try cmdSync(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "tell")) {
@@ -251,6 +266,7 @@ const BundleMeta = struct {
     holds: [][]const u8,
     needs: [][]const u8,
     caps: [][]const u8,
+    acceptance: ?[]const u8 = null,
 };
 
 fn findBundle(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8) ![]const u8 {
@@ -386,6 +402,19 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
         } else if (std.mem.eql(u8, key, "context")) {
             w.diag("error: 'context=…' key is rejected (retired 2026-07-28); remove it from {s}\n", .{bundle_path});
             std.process.exit(1);
+        }
+    }
+
+    // T217: acceptance= takes the rest of the meta line (allows spaces in the command).
+    // It must be the LAST key in the header.
+    if (std.mem.indexOf(u8, inner_trimmed, "acceptance=")) |acc_start| {
+        const val_start = acc_start + "acceptance=".len;
+        const val_end = inner_trimmed.len;
+        if (val_end > val_start) {
+            const acc_value = std.mem.trim(u8, inner_trimmed[val_start..val_end], " \t");
+            if (acc_value.len > 0) {
+                result.acceptance = try alloc.dupe(u8, acc_value);
+            }
         }
     }
 
@@ -620,6 +649,18 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("note")) |nt| {
             if (nt == .string) ts.note = try alloc.dupe(u8, nt.string);
         }
+        if (obj.object.get("verdict")) |vd| {
+            if (vd == .string) ts.verdict = try alloc.dupe(u8, vd.string);
+        }
+        if (obj.object.get("verdict_note")) |vn| {
+            if (vn == .string) ts.verdict_note = try alloc.dupe(u8, vn.string);
+        }
+        if (obj.object.get("acceptance")) |ac| {
+            if (ac == .string) ts.acceptance = try alloc.dupe(u8, ac.string);
+        }
+        if (obj.object.get("skip_acceptance_reason")) |sr| {
+            if (sr == .string) ts.skip_acceptance_reason = try alloc.dupe(u8, sr.string);
+        }
         if (obj.object.get("claim_count")) |cc| {
             if (cc == .integer) ts.claim_count = @intCast(cc.integer);
         }
@@ -746,6 +787,22 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try buf.appendSlice(alloc, "\"");
         } else {
             try buf.appendSlice(alloc, ",\n    \"note\": null");
+        }
+
+        if (ts.verdict) |vd| {
+            try buf.appendSlice(alloc, ",\n    \"verdict\": \"");
+            try buf.appendSlice(alloc, vd);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"verdict\": null");
+        }
+
+        if (ts.verdict_note) |vn| {
+            try buf.appendSlice(alloc, ",\n    \"verdict_note\": \"");
+            try buf.appendSlice(alloc, vn);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"verdict_note\": null");
         }
 
         try buf.appendSlice(alloc, ",\n    \"claim_count\": ");
@@ -995,6 +1052,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .holds = meta.holds,
             .needs = meta.needs,
             .caps = meta.caps,
+            .acceptance = meta.acceptance,
             .added = now,
             .claimed = null,
             .done = null,
@@ -1074,6 +1132,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .holds = meta.holds,
         .needs = meta.needs,
         .caps = meta.caps,
+        .acceptance = meta.acceptance,
         .added = now,
         .claimed = null,
         .done = null,
@@ -1529,12 +1588,48 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
 
 fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
-        w.diag("usage: managent done <id> [--fail] [--agent <name>]\n", .{});
+        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--skip-acceptance <reason>]\n", .{});
+        w.diag("       --fail (backward compat, sets verdict=blocked)\n", .{});
+        w.diag("       --status defaults to 'pass'; --note required for non-pass verdicts\n", .{});
+        w.diag("       --skip-acceptance bypasses the acceptance= command (reason mandatory)\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
     const is_fail = hasFlag(args, "--fail");
+    const status_override = getFlagValue(args, "--status");
+    const note_override = getFlagValue(args, "--note");
     const agent_override = getFlagValue(args, "--agent");
+    const skip_acceptance_reason = getFlagValue(args, "--skip-acceptance");
+
+    // T213: resolve verdict — --status flag, or --fail backward compat, or default "pass"
+    const verdict_str: []const u8 = if (status_override) |s|
+        s
+    else if (is_fail)
+        "blocked"
+    else
+        "pass";
+
+    // Validate verdict
+    if (!isValidVerdict(verdict_str)) {
+        w.diag("error: invalid verdict '{s}'. Valid: ", .{verdict_str});
+        for (valid_verdicts, 0..) |v, vi| {
+            if (vi > 0) w.diag(", ", .{});
+            w.diag("{s}", .{v});
+        }
+        w.diag("\n", .{});
+        std.process.exit(1);
+    }
+
+    // Non-pass verdicts require a note; --fail auto-generates one for backward compat
+    var verdict_note_str: ?[]const u8 = if (note_override) |n| n else null;
+    if (is_fail and verdict_note_str == null) {
+        verdict_note_str = "--fail (no note provided)";
+    }
+    if (!std.mem.eql(u8, verdict_str, "pass") and verdict_note_str == null) {
+        w.diag("\n  REJECTED: verdict '{s}' requires --note <text>\n", .{verdict_str});
+        w.diag("  A verdict with no reason is the same information vacuum as bare 'done'.\n", .{});
+        std.process.exit(1);
+    }
 
     var state = try readState(io, state_path);
 
@@ -1554,7 +1649,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         if (ts_ptr.agent) |old| alloc.free(old);
         ts_ptr.agent = try alloc.dupe(u8, a);
     }
-    if (ts_ptr.agent == null and ts_ptr.model == null and !is_fail) {
+    if (ts_ptr.agent == null and ts_ptr.model == null) {
         w.diag("\n  REJECTED: {s} has no agent or model set.\n", .{id});
         w.diag("  Every completed task must carry an agent for the identifier and model-performance ledger.\n", .{});
         w.diag("  Use: managent done {s} --agent <model>\n", .{id});
@@ -1563,7 +1658,8 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
 
     // ── deliverable verification (ORCHA-TOOLS R2) ──
-    if (!is_fail) {
+    // T213: deliverable check for all non-blocked/abandoned verdicts
+    if (!std.mem.eql(u8, verdict_str, "blocked") and !std.mem.eql(u8, verdict_str, "abandoned")) {
         const bundle_abs = if (std.fs.path.isAbsolute(ts_ptr.bundle))
             try alloc.dupe(u8, ts_ptr.bundle)
         else
@@ -1591,50 +1687,89 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             for (missing.items) |m| {
                 w.diag("    - {s}\n", .{m});
             }
-            w.diag("  Task stays in_progress. Create the file(s) or use --fail.\n", .{});
+            w.diag("  Task stays in_progress. Create the file(s) or use --status blocked.\n", .{});
             std.process.exit(1);
+        }
+    }
+
+    // ── acceptance run (T217) — task declares its own green condition ──
+    // Only for pass / pass-with-findings verdicts; blocked/abandoned/fail-found skip.
+    if (std.mem.eql(u8, verdict_str, "pass") or std.mem.eql(u8, verdict_str, "pass-with-findings")) {
+        if (ts_ptr.acceptance) |acc_cmd| {
+            if (skip_acceptance_reason) |reason| {
+                // --skip-acceptance used: store the reason and bypass the check
+                if (ts_ptr.skip_acceptance_reason) |old| alloc.free(old);
+                ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
+                w.diag("\n  ACCEPTANCE SKIPPED: {s}\n    reason: {s}\n", .{ id, reason });
+            } else {
+                // Run the acceptance command via /bin/sh -c
+                const acc_result = std.process.run(alloc, io, .{
+                    .argv = &.{ "/bin/sh", "-c", acc_cmd },
+                    .cwd = .{ .path = repo_root },
+                }) catch |err| {
+                    w.diag("\n  REJECTED: {s} acceptance command failed to spawn: {}\n", .{ id, err });
+                    w.diag("  command: {s}\n", .{acc_cmd});
+                    std.process.exit(1);
+                };
+                defer alloc.free(acc_result.stdout);
+                defer alloc.free(acc_result.stderr);
+                if (acc_result.term.exited != 0) {
+                    const last_output = if (acc_result.stderr.len > 0) acc_result.stderr else acc_result.stdout;
+                    w.diag("\n  REJECTED: {s} acceptance command failed (exit {d})\n", .{ id, acc_result.term.exited });
+                    w.diag("  command: {s}\n", .{acc_cmd});
+                    if (last_output.len > 0) {
+                        w.diag("  last output: {s}\n", .{last_output});
+                    }
+                    w.diag("  Task stays in_progress. Fix the issue or use --skip-acceptance <reason>.\n", .{});
+                    std.process.exit(1);
+                }
+                w.diag("\n  acceptance: {s} OK\n", .{acc_cmd});
+            }
         }
     }
 
     const now = try nowTimestamp();
 
-    if (is_fail) {
-        ts_ptr.status = .failed;
-        ts_ptr.done = now;
-        try writeState(io, state_path, &state);
-        w.diag("\n  {s} failed  [set: {c}]\n", .{ id, ts_ptr.set });
-    } else {
-        ts_ptr.status = .done;
-        ts_ptr.done = now;
-
-        var unblocked = std.ArrayList([]const u8).empty;
-        defer unblocked.deinit(alloc);
-
-        var it = state.iterator();
-        while (it.next()) |entry| {
-            const dep_ts = entry.value_ptr.*;
-            if (dep_ts.status != .blocked) continue;
-
-            if (deriveStatus(&state, dep_ts) == .dispatchable) {
-                const dep_ptr = state.getPtr(entry.key_ptr.*).?;
-                dep_ptr.status = .dispatchable;
-                try unblocked.append(alloc, entry.key_ptr.*);
-            }
-        }
-
-        try writeState(io, state_path, &state);
-
-        w.diag("\n  {s} done  [set: {c}]", .{ id, ts_ptr.set });
-        if (unblocked.items.len > 0) {
-            w.diag("  [unblocks:", .{});
-            for (unblocked.items) |ub| {
-                w.diag(" {s}", .{ub});
-            }
-            w.diag("]\n", .{});
-        } else {
-            w.diag("\n", .{});
+    // T213: all terminal tasks use status=.done; verdict carries the flavour
+    ts_ptr.status = .done;
+    ts_ptr.done = now;
+    ts_ptr.verdict = try alloc.dupe(u8, verdict_str);
+    if (verdict_note_str) |vn| {
+        ts_ptr.verdict_note = try alloc.dupe(u8, vn);
+    }
+    // T217: record --skip-acceptance reason on the task
+    if (skip_acceptance_reason) |reason| {
+        if (ts_ptr.skip_acceptance_reason == null) {
+            ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
         }
     }
+
+    var unblocked = std.ArrayList([]const u8).empty;
+    defer unblocked.deinit(alloc);
+
+    var it2 = state.iterator();
+    while (it2.next()) |entry| {
+        const dep_ts = entry.value_ptr.*;
+        if (dep_ts.status != .blocked) continue;
+
+        if (deriveStatus(&state, dep_ts) == .dispatchable) {
+            const dep_ptr = state.getPtr(entry.key_ptr.*).?;
+            dep_ptr.status = .dispatchable;
+            try unblocked.append(alloc, entry.key_ptr.*);
+        }
+    }
+
+    try writeState(io, state_path, &state);
+
+    w.diag("\n  {s} done  [set: {c}]  [verdict: {s}]", .{ id, ts_ptr.set, verdict_str });
+    if (unblocked.items.len > 0) {
+        w.diag("  [unblocks:", .{});
+        for (unblocked.items) |ub| {
+            w.diag(" {s}", .{ub});
+        }
+        w.diag("]", .{});
+    }
+    w.diag("\n", .{});
 }
 
 fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
@@ -1653,8 +1788,11 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     };
 
     const prev = ts_ptr.status;
-    if (prev != .in_progress and prev != .failed) {
-        w.diag("error: task '{s}' is {s} (reopen is for in_progress/failed tasks killed mid-attempt)\n", .{ id, statusToString(prev) });
+    // T213: also allow done tasks with blocked/abandoned verdict to be reopened
+    const is_blocked_done = prev == .done and ts_ptr.verdict != null and
+        (std.mem.eql(u8, ts_ptr.verdict.?, "blocked") or std.mem.eql(u8, ts_ptr.verdict.?, "abandoned"));
+    if (prev != .in_progress and prev != .failed and !is_blocked_done) {
+        w.diag("error: task '{s}' is {s} (reopen is for in_progress/failed/blocked tasks killed mid-attempt)\n", .{ id, statusToString(prev) });
         std.process.exit(1);
     }
 
@@ -1662,10 +1800,12 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     ts_ptr.agent = null;
     ts_ptr.claimed = null;
     ts_ptr.done = null;
+    if (ts_ptr.verdict) |v| { alloc.free(v); ts_ptr.verdict = null; }
+    if (ts_ptr.verdict_note) |vn| { alloc.free(vn); ts_ptr.verdict_note = null; }
 
     try writeState(io, state_path, &state);
 
-    const prev_str: []const u8 = if (prev == .in_progress) "in_progress" else "failed";
+    const prev_str: []const u8 = if (prev == .in_progress) "in_progress" else if (prev == .failed) "failed" else "done";
     const status_str: []const u8 = statusToString(ts_ptr.status);
     w.diag("\n  reopened {s}  [set: {c}]  (was {s}, now {s})\n", .{ id, ts_ptr.set, prev_str, status_str });
     w.diag("  follow {s}\n", .{ts_ptr.bundle});
@@ -1899,6 +2039,58 @@ fn cmdAgent(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     w.diag("\n  {s}  agent {s} -> {s}\n", .{ id, old orelse "(none)", name });
 }
 
+// ── verdict — set verdict on a done task (backfill / correction) ─────────────
+
+fn cmdVerdict(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 4) {
+        w.diag("usage: managent verdict <id> <verdict> [--note <text>]\n", .{});
+        w.diag("       valid verdicts: pass pass-with-findings fail-found blocked abandoned\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    const verdict_str = args[3];
+    const note_override = getFlagValue(args, "--note");
+
+    if (!isValidVerdict(verdict_str)) {
+        w.diag("error: invalid verdict '{s}'. Valid: ", .{verdict_str});
+        for (valid_verdicts, 0..) |v, vi| {
+            if (vi > 0) w.diag(", ", .{});
+            w.diag("{s}", .{v});
+        }
+        w.diag("\n", .{});
+        std.process.exit(1);
+    }
+
+    if (!std.mem.eql(u8, verdict_str, "pass") and note_override == null) {
+        w.diag("\n  REJECTED: verdict '{s}' requires --note <text>\n", .{verdict_str});
+        std.process.exit(1);
+    }
+
+    var state = try readState(io, state_path);
+    const ts_ptr = state.getPtr(id) orelse {
+        w.diag("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    if (ts_ptr.status != .done and ts_ptr.status != .failed) {
+        w.diag("error: task '{s}' is {s} — verdict can only be set on done/failed tasks\n", .{ id, statusToString(ts_ptr.status) });
+        std.process.exit(1);
+    }
+
+    if (ts_ptr.verdict) |old| alloc.free(old);
+    ts_ptr.verdict = try alloc.dupe(u8, verdict_str);
+    if (note_override) |n| {
+        if (ts_ptr.verdict_note) |old| alloc.free(old);
+        ts_ptr.verdict_note = try alloc.dupe(u8, n);
+    }
+
+    try writeState(io, state_path, &state);
+    w.diag("\n  {s}  verdict -> {s}", .{ id, verdict_str });
+    if (ts_ptr.verdict_note) |vn| w.diag("  (note: {s})", .{vn});
+    w.diag("\n", .{});
+}
+
 fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const u8, args: [][]const u8) !void {
     const use_json = hasFlag(args, "--json");
 
@@ -1997,6 +2189,9 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
         if (ts.dispatched_to) |dt| {
             w.data(", dispatched {s}", .{dt});
         }
+        if (ts.verdict) |v| {
+            w.data(", verdict={s}", .{v});
+        }
         w.data(": follow {s}\n", .{rel});
     }
 }
@@ -2037,6 +2232,7 @@ fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
             w.data("]", .{});
         }
         if (ts.dispatched_to) |dt| w.data(",\"dispatched_to\":\"{s}\"", .{dt});
+        if (ts.verdict) |v| w.data(",\"verdict\":\"{s}\"", .{v});
         w.data("}}", .{});
     }
     if (!first) w.data("\n", .{});
@@ -2178,6 +2374,18 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
     }
     if (ts.note) |nt| {
         w.data("    note:     {s}\n", .{nt});
+    }
+    if (ts.verdict) |v| {
+        w.data("    verdict:  {s}\n", .{v});
+    }
+    if (ts.verdict_note) |vn| {
+        w.data("    verdict_note: {s}\n", .{vn});
+    }
+    if (ts.acceptance) |ac| {
+        w.data("    acceptance: {s}\n", .{ac});
+    }
+    if (ts.skip_acceptance_reason) |sr| {
+        w.data("    skip_acceptance_reason: {s}\n", .{sr});
     }
     w.data("\n", .{});
 }
@@ -2333,6 +2541,10 @@ fn freeState(state: *StateMap) void {
         if (ts.dispatched) |dp| alloc.free(dp);
         if (ts.dispatched_to) |dt| alloc.free(dt);
         if (ts.note) |nt| alloc.free(nt);
+        if (ts.verdict) |v| alloc.free(v);
+        if (ts.verdict_note) |vn| alloc.free(vn);
+        if (ts.acceptance) |ac| alloc.free(ac);
+        if (ts.skip_acceptance_reason) |sr| alloc.free(sr);
     }
     state.deinit(alloc);
 }
@@ -3149,6 +3361,12 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                         }
                     }
                 }
+
+                // T217: done task with no acceptance= declared — WARN
+                if (ts.acceptance == null and ts.skip_acceptance_reason == null) {
+                    const msg = try std.fmt.allocPrint(alloc, "done but no acceptance= declared — task had no runnable green condition", .{});
+                    try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
+                }
             },
             .in_progress => {
                 // 3. in_progress: protect untracked src/*.zig held by this task
@@ -3194,6 +3412,27 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                     std.mem.indexOf(u8, note, "audit") == null)
                 {
                     const msg = try std.fmt.allocPrint(alloc, "claim-status change noted but no independent seat cited", .{});
+                    try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
+                }
+            }
+        }
+
+        // ── T213: verdict audit — pass-with-findings or fail-found must name a follow-up task ──
+        if (ts.verdict) |v| {
+            if (std.mem.eql(u8, v, "pass-with-findings") or std.mem.eql(u8, v, "fail-found")) {
+                const note_text = ts.verdict_note orelse "";
+                // Check for a T-reference (T followed by digits)
+                var has_followup = false;
+                var ci: usize = 0;
+                while (ci < note_text.len) {
+                    if (note_text[ci] == 'T' and ci + 1 < note_text.len and note_text[ci + 1] >= '0' and note_text[ci + 1] <= '9') {
+                        has_followup = true;
+                        break;
+                    }
+                    ci += 1;
+                }
+                if (!has_followup) {
+                    const msg = try std.fmt.allocPrint(alloc, "verdict '{s}' but verdict_note names no follow-up task (no T-reference) — finding may be lost", .{v});
                     try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
                 }
             }

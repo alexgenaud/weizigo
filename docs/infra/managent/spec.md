@@ -20,9 +20,10 @@ Eighteen commands.
 managent add <id>              register a task
 managent dispatch <id>         record a human→agent dispatch (task stays dispatchable)
 managent claim <id>            claim a task for execution
-managent done <id>             mark a task complete
-managent done <id> --fail      mark a task failed
-managent reopen <id>           reopen a killed in_progress/failed task (→ dispatchable)
+managent done <id>             mark a task complete (default verdict: pass)
+managent done <id> --status <v> --note <text>  mark with terminal verdict
+managent verdict <id> <v>      backfill/correct verdict on a done task
+managent reopen <id>           reopen a killed in_progress/failed/blocked task (→ dispatchable)
 managent purge                 purge done/failed tasks (and clean their IDs from remaining needs)
 managent set <id> <A|B|C|…>      reassign a task's phase set (A–Z)
 managent needs <id> [--add…/--rm…]  add/remove dependency edges
@@ -74,6 +75,8 @@ Keys:
 | `holds` | no | Space-separated file paths (relative to repo root) that need exclusive write access. If any `holds` are present, the task is automatically assigned to Set C. |
 | `needs` | no | **Comma-separated** task IDs that must be `done` before this task can be claimed (e.g. `needs=2B-2,2B-3`). |
 | `caps` | no | Space-separated capability tokens from the vocabulary in `docs/infra/delegation/ROLES.md` §4: `reasoning:sustained`, `independence:has-not-read-<X>`, `session:persistent`, `sub-delegation:yes`. Informational; used by `next` for filtering. **Most tasks declare none** — specify only what changes the outcome. (`isolation: exclusive <paths>` is not a `caps` token; that is what `holds` is.) |
+| `deliverables` | no | Comma-separated file paths the task promises to produce. `managent done` checks each exists (T209). |
+| `acceptance` | no | Shell command that must exit zero before `managent done` closes the task. **Must be the last key** in the meta header (consumes the rest of the line). Bypass with `--skip-acceptance <reason>`. (T217) |
 
 **Context-window requirements are rejected.** A `context=500k` key lived here
 until 2026-07-28; it specified nothing that changes an outcome, and it produced an
@@ -187,17 +190,42 @@ priority; the lifecycle is the lifecycle.
 
 ### `managent done <id>`
 
-Reports task completion. Releases the set lock. Unblocks dependents.
+Reports task completion with a terminal verdict. Releases the set lock. Unblocks dependents.
+
+**Before closing**, runs the task's `acceptance=` command (if declared) and refuses to close if
+it exits non-zero. Bypass with `--skip-acceptance <reason>` — the reason is recorded on the
+task and surfaced by `audit`. Only applies to `pass` and `pass-with-findings` verdicts;
+`blocked`/`abandoned`/`fail-found` skip the acceptance check. (T217)
 
 ```
-$ managent done B09
+$ managent done B09 --status pass
 
-  B09 done  [set: C released]  [unblocks: B10]
+  B09 done  [set: C]  [verdict: pass]
+
+$ managent done B09 --status pass-with-findings --note "gap X, follow-up T999"
+
+  B09 done  [set: C]  [verdict: pass-with-findings]
 
 $ managent done B09 --fail
 
-  B09 failed  [set: C released]
+  B09 done  [set: C]  [verdict: blocked]
 ```
+
+**Verdict vocabulary (--status):**
+
+| verdict | meaning | requires --note? |
+|---|---|---|
+| `pass` | did what the brief asked, all checks green | no |
+| `pass-with-findings` | deliverables landed, but work surfaced defects/gaps another task must own | yes |
+| `fail-found` | task executed correctly, its *subject* failed (instrument succeeded) | yes |
+| `blocked` | could not complete; names what blocks it | yes |
+| `abandoned` | superseded or no longer wanted | yes |
+
+Default (no `--status`): `pass`. `--fail` backward compat: sets verdict to `blocked`
+with auto-note `--fail (no note provided)`.
+
+`managent audit` flags any task closed `pass-with-findings` or `fail-found`
+whose verdict note names no follow-up task (no `T`-reference).
 
 ### `managent reopen <id>`
 
@@ -315,10 +343,10 @@ $ managent show B09
 ## Task lifecycle (derived vs stored status)
 
 ```
-  blocked ──→ dispatchable ──→ in_progress ──→ done
+  blocked ──→ dispatchable ──→ in_progress ──→ done (+ verdict)
       ↑              │               │
-      │              │               └── failed
-      └── needs unmet
+      │              │               └── (no separate failed state;
+      └── needs unmet                    verdict carries the flavour)
 ```
 
 **`dispatchable` and `blocked` are derived from `needs`, not stored.**
@@ -327,8 +355,13 @@ managent re-derives these two statuses from the needs graph.  They are
 stored in `tasks.json` for display and persistence across commands, but
 the authoritative value is computed by `deriveStatus()` on every read.
 
-**`in_progress`, `done`, and `failed` are stored facts** — a claim happened
+**`in_progress` and `done` are stored facts** — a claim happened
 or a completion happened.  They are never derived from the graph.
+
+**Terminal verdict (T213).** All terminal tasks use `status: done`; the
+verdict field carries the flavour (`pass`, `pass-with-findings`,
+`fail-found`, `blocked`, `abandoned`). The legacy `failed` status is
+accepted on read for backward compat but not written by new code.
 
 ### Warning for in-progress with unmet needs
 
@@ -402,6 +435,10 @@ temp-file + rename.
 | `dispatched` | `dispatch` | when dispatched | ISO-8601 timestamp of the human→agent dispatch |
 | `dispatched_to` | `dispatch` | when dispatched | agent name (informational; the agent still claims) |
 | `note` | `dispatch`, `add` | when recorded | free-form context, ≤ 4 KiB |
+| `verdict` | `done`, `verdict` | when completed or backfilled | terminal verdict: `pass`, `pass-with-findings`, `fail-found`, `blocked`, `abandoned` |
+| `verdict_note` | `done`, `verdict` | when completed or backfilled | required one-line explanation for non-`pass` verdicts |
+| `acceptance` | `add` (from bundle meta) | registration | shell command that must exit zero before `done` closes (T217) |
+| `skip_acceptance_reason` | `done` | when `--skip-acceptance` used | mandatory reason for bypassing the acceptance check |
 | `claim_count` | `claim` | incremented each claim | number of times claimed; when >1, identifier appends `.N` suffix |
 
 **Identifier.** The agent identifier is derived, not stored: `<agent>/<task-id>`
@@ -478,6 +515,7 @@ Cross-checks the kanban against reality. Reports discrepancies:
   Citable surfaces: `CLAIMS.md`, `PROGRESS.md`, `DECISIONS.md` (all msg dirs),
   `docs/status/*.md`, `docs/audits/*.md`. (T210 D1: widened from
   CLAIMS.md+PROGRESS.md to include process/infra surfaces.)
+- `done` task with no `acceptance=` declared → **WARN**: task had no runnable green condition (T217)
 
 Exits non-zero when FIX-level findings exist. `--json` outputs a JSON array
 of findings.
@@ -530,8 +568,11 @@ machine consumption.
 3. `claim <id>` succeeds for dispatchable task; prints bundle path.
 4. `claim <id>` fails with "BLOCKED" when dependency not done.
 5. `claim <id>` fails with "REJECTED" when set locked.
-6. `done <id>` releases set; dependents become dispatchable.
-7. `done --fail` releases set; dependents stay blocked.
+6. `done <id> --status pass` releases set; dependents become dispatchable.
+7. `done <id> --fail` (backward compat) → verdict `blocked`; releases set.
+7a. `done <id> --status pass-with-findings --note <text>` records verdict and note.
+7b. `done <id> --status fail-found` without `--note` is rejected.
+7c. `verdict <id> <verdict> --note <text>` backfills/corrects verdict on a done task.
 8. `managent` (no args) prints human-readable status.
 9. `next --caps reasoning:sustained` claims a task requiring
    `caps=reasoning:sustained` and skips one requiring `caps=session:persistent`.
