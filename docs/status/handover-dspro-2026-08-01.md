@@ -74,18 +74,20 @@ recorded in `artifacts/SHA256SUMS` at `f851102`).
 
 ## Critical state
 
-- WZO2 artifact exists but is **not yet accepted**: the M4a acceptance run
-  (T193) is the oldest real deliverable still parked.
+- The WZO2 artifact was built (T184/T192, `f851102`) but **failed M4a
+  acceptance**: T193 verdict=fail-found (artifact invalid), follow-up T212
+  (rebuild-remeasure) in progress. Do not cite the artifact as accepted.
 - G3 ×2 open (oracle-v2 accept, verify-battery accept); verify-battery
   V-13 fleet run / V-14 absorption open.
 
 ## Immediate next task
 
 Read msg 074 + the coherence audit + DECISIONS.md D-16…D-20; adopt Argus as
-cadence step 0; dispatch **T193** (M4a acceptance run); dispatch T203 once
-its Phase-2 needs clear (D-D); resume sprint flow (verify-battery V-13 /
-V-14, oracle-v2 G3). D-C rules the next Orcha is **Opus or Fable** (human's
-call), seated after the Phase-1 gate.
+cadence step 0; follow **T212** (WZO2 rebuild-remeasure — the T193
+fail-found follow-up in progress); dispatch T203 once pass1 gets the human
+go-ahead (D-D); resume sprint flow (verify-battery V-13 / V-14, oracle-v2
+G3). D-C rules the next Orcha is **Opus or Fable** (human's call), seated
+after the Phase-1 gate.
 
 ## Read next
 
