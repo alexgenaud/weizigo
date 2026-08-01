@@ -514,6 +514,9 @@ fn parseStateJson(content: []const u8) !StateMap {
     if (parsed.value != .object) return state;
 
     // Load _sys metadata (counter, aliases, directive counter)
+    // T204: track max parsed T<N> ID to catch next_id ≤ existing task
+    var max_parsed_id: u32 = 0;
+
     if (parsed.value.object.get("_sys")) |sys_val| {
         if (sys_val == .object) {
             if (sys_val.object.get("next_id")) |nv| {
@@ -530,6 +533,13 @@ fn parseStateJson(content: []const u8) !StateMap {
         const key = entry.key_ptr.*;
         // Skip metadata keys (prefixed with _)
         if (std.mem.startsWith(u8, key, "_")) continue;
+
+        // T204: track max parsed T<N> ID
+        if (std.mem.startsWith(u8, key, "T")) {
+            const num_part = key[1..];
+            const parsed_num = std.fmt.parseInt(u32, num_part, 10) catch 0;
+            if (parsed_num > max_parsed_id) max_parsed_id = parsed_num;
+        }
 
         const task_id = try alloc.dupe(u8, key);
         const obj = entry.value_ptr.*;
@@ -606,6 +616,11 @@ fn parseStateJson(content: []const u8) !StateMap {
         }
 
         try state.put(alloc, task_id, ts);
+    }
+
+    // T204: ensure next_id strictly exceeds all existing T<N> IDs
+    if (max_parsed_id > 0 and sys_next_id <= max_parsed_id) {
+        sys_next_id = max_parsed_id + 1;
     }
 
     return state;
@@ -2174,8 +2189,9 @@ fn printHelp(w: Writers) void {
         \\  managent next             claim the next available task
         \\  managent show <id>        show details for one task
         \\  managent why <claim-id>   show tasks that produced evidence for a claim
-        \\  managent sync <role>      print unread messages; exit non-zero when write owed
+        \\  managent sync <role> [--peek]  print unread messages; exit non-zero when write owed; --peek skips _sync write
         \\  managent audit [--json]   cross-check kanban against reality
+        \\  managent agent <id> <name> set the agent model for a task
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent inbox [<target>] show pending directives for a target
@@ -2415,10 +2431,22 @@ fn readHeartbeats(io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
 
 fn cmdSync(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
-        w.diag("usage: managent sync <role>\n", .{});
+        w.diag("usage: managent sync <role> [--peek]\n", .{});
         std.process.exit(1);
     }
-    const role = args[2];
+    const peek_only = hasFlag(args, "--peek");
+    // Find the role: first positional arg after "sync" that is not a flag
+    var role: []const u8 = "";
+    for (args[2..]) |a| {
+        if (!std.mem.startsWith(u8, a, "-")) {
+            role = a;
+            break;
+        }
+    }
+    if (role.len == 0) {
+        w.diag("usage: managent sync <role> [--peek]\n", .{});
+        std.process.exit(1);
+    }
 
     // Scan message directories
     const msg_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "msg" });
@@ -2564,8 +2592,8 @@ fn cmdSync(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         std.process.exit(1);
     }
 
-    // Update read state
-    {
+    // Update read state (skip with --peek: read-only, does not write _sync cursor)
+    if (!peek_only) {
         var st = try readState(io, state_path);
         const new_rs = RoleSync{
             .last_read_msg = max_num,
@@ -2574,6 +2602,8 @@ fn cmdSync(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         };
         try writeSyncData(io, state_path, &st, role_lower, new_rs);
         freeState(&st);
+    } else {
+        w.diag("  (--peek: read-only, _sync cursor not updated)\n", .{});
     }
 
     w.data("\n", .{});
@@ -2774,6 +2804,23 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             alloc.free(f.msg);
         }
         findings.deinit(alloc);
+    }
+
+    // T204: check next_id ≤ max(T-ID) — a collision waiting to happen
+    {
+        var max_tid: u32 = 0;
+        var it0 = state.iterator();
+        while (it0.next()) |entry0| {
+            const k = entry0.key_ptr.*;
+            if (std.mem.startsWith(u8, k, "T")) {
+                const num = std.fmt.parseInt(u32, k[1..], 10) catch 0;
+                if (num > max_tid) max_tid = num;
+            }
+        }
+        if (max_tid > 0 and sys_next_id <= max_tid) {
+            const msg = try std.fmt.allocPrint(alloc, "_sys.next_id ({d}) ≤ max T-ID (T{d}) — next suggest/add will clobber", .{ sys_next_id, max_tid });
+            try findings.append(alloc, .{ .level = "FIX", .id = "_sys", .msg = msg });
+        }
     }
 
     var it = state.iterator();
