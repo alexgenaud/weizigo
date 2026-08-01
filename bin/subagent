@@ -5,8 +5,9 @@
   --dsflash   DeepSeek-v4-Flash        --dry-run   print the command, spawn nothing
 
 DeepSeek dispatches DeepSeek only. Claude seats use the Claude Code harness.
-Children are workers: depth 2, no API keys, cannot dispatch. Managers are
-launched by the human.
+Children run at depth 2 and cannot dispatch further. Managers are launched by
+the human. The depth cap stops accidental recursion; it is not a security
+boundary — see docs/infra/agents/subdelegation.md.
 """
 import glob, os, re, subprocess, sys
 
@@ -14,15 +15,21 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 WORKER_DEPTH = 2
 MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
+KNOWN = set(MODELS) | {"--dry-run"}
 
 
 def main(argv):
     args = [a for a in argv if not a.startswith("--")]
     flags = [a for a in argv if a.startswith("--")]
-    if len(args) != 1:
-        sys.exit(__doc__)
+    unknown = [f for f in flags if f not in KNOWN and not f.startswith("--wall=")]
+    if len(args) != 1 or unknown:
+        sys.exit((f"subagent: unknown flag(s) {' '.join(unknown)}\n" if unknown else "")
+                 + __doc__)
 
-    depth = int(os.environ.get(DEPTH_VAR, "1"))
+    try:  # fail closed: an unreadable depth is treated as a worker
+        depth = int(os.environ.get(DEPTH_VAR, "1"))
+    except ValueError:
+        depth = WORKER_DEPTH
     if depth >= WORKER_DEPTH:
         sys.exit(f"subagent: REFUSED — you are a worker (depth {depth}). Workers do "
                  f"not dispatch.\nWrite your output to a file or return it to your "
@@ -55,11 +62,9 @@ def main(argv):
     else:
         sys.exit(f"subagent: no such task or file: {target}")
 
-    # Credential travels by environment, NOT argv. tools/runner echoes argv and
-    # the heartbeat writer records it, so an --api-key flag leaks the key into
-    # logs and evidence on every dispatch (observed 2026-08-02, redacted). The
-    # depth cap below is a SAFETY mechanism against accidental recursion; it is
-    # not a security boundary, and same-user isolation is not achievable here.
+    # Credential by environment, never argv: tools/runner echoes argv and the
+    # heartbeat writer records it, so --api-key would leak the key into logs and
+    # evidence on every dispatch.
     if not os.environ.get("DEEPSEEK_API_KEY"):
         sys.exit("subagent: DEEPSEEK_API_KEY is not set")
     env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
