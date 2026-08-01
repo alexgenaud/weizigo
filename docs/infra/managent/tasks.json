@@ -223,19 +223,20 @@
     "claim_count": 1
   },
   "T179": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T179-subagent-harness.md",
     "set": "A",
     "holds": ["docs/infra/agents/subdelegation.md"],
     "needs": [],
     "caps": [],
     "added": "2026-07-31T23:53:56Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-07-31T23:54:39Z",
+    "done": "2026-07-31T23:56:41Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T161": {
     "status": "done",
