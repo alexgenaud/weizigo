@@ -3,8 +3,13 @@
 ```
 Author: Fable (auditor seat) · Date: 2026-08-01 · HEAD: bb8029e (+2 uncommitted)
 Source: docs/audits/coherence-audit-2026-08-01.md (CA-1…CA-19)
-Status: ACTIVE — D-A…D-D ruled by the human 2026-08-01 (recorded below);
-  D-E (dogfoods) still open.
+Status: PHASES 1+2 COMPLETE (2026-08-01, exit checks verified by Fable:
+  T204 a98bf04 gate 3/3+8/8; T205 99dcdcf, T206 88a657a, T207 c9cf609,
+  T208 b5352b9; claimlint at floor C2=12/C1a=10; QA-023 restored to task
+  index; Argus CRITICAL diagnosed transient runner-ceiling, no regression).
+  Phase 3 (Orcha seating) is next. D-E (dogfoods) still open.
+  Sequencing note: T203's task freeze means T193/T209 run BEFORE T203,
+  never alongside it.
 Lifecycle: ephemeral planning doc; delete once Phase 3 closes (the durable
   record is the audit, DECISIONS.md, and the kanban history).
 ```
