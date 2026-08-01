@@ -100,10 +100,12 @@ sprint.md describes the tree that exists (Channel section added).
 INDEX.md describes the tree that exists (new indices, channel routing,
 boards authority).
 
-**Partial gap:** sprint.md rev 5 is still PROPOSED (Navigator, 41000c6).
-The human must ratify it. This sprint's Channel section is an addition
-on top of the proposed rev 5. Until ratification, the process document
-is technically still proposed. Recorded as open dependency.
+**Resolved 2026-08-01:** sprint.md rev 5 was superseded by commit 200b974,
+which rewrote the document wholesale (280→133 lines) and deleted the
+Revision:/Status: header block entirely. The rev-5 substance survives as
+D-16…D-20 in DECISIONS.md. The human confirms: "Consider it ratified if
+you need." This sprint's Channel section was added on top of the 200b974
+rewrite and is the only live revision. No ratification gap remains.
 
 ## A5 — History
 
@@ -130,7 +132,7 @@ No Zig source changed. claimlint calibration: PASS. A8 satisfied.
 
 | # | what | who | impact |
 |---|---|---|---|
-| D1 | sprint.md rev 5 ratification (PROPOSED → RATIFIED) | Human | A4 partially unsatisfied until ratified |
+| D1 | ~~sprint.md rev 5 ratification~~ | ~~Human~~ | **CLOSED 2026-08-01.** sprint.md rewritten at 200b974; rev-5 substance in DECISIONS.md D-16…D-20. Human confirms no ratification needed. |
 | D2 | Epic spec.md (R1-3) | pass 1 (or human) | Deferred "Should have" |
 | D3 | Pass 1 relocation sprint | Orchestrator | Executes the target-state layout designed in design.md §1.4 |
 
