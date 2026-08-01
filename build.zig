@@ -211,6 +211,12 @@ pub fn build(b: *std.Build) void {
     }));
     b.installArtifact(absorb_exe);
 
+    // ── deploy absorb to bin/ (post-install copy step) ────────────
+    const absorb_deploy = b.addSystemCommand(&.{ "cp", "zig-out/bin/weizigo-absorb", "bin/weizigo-absorb" });
+    absorb_deploy.step.dependOn(b.getInstallStep());
+    const deploy_absorb_step = b.step("deploy-absorb", "Copy weizigo-absorb to bin/");
+    deploy_absorb_step.dependOn(&absorb_deploy.step);
+
     // ── managent ───────────────────────────────────────────────────
     const managent_exe = b.addExecutable(.{
         .name = "managent",

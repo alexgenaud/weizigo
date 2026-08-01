@@ -531,7 +531,13 @@ def main():
     if args.task_id:
         model = os.environ.get("PI_MODEL", "unknown")
         managent = os.path.join(repo_root, "bin", "managent") if repo_root else "bin/managent"
-        subprocess.run([managent, "claim", args.task_id, "--agent", model], capture_output=True)
+        result = subprocess.run([managent, "claim", args.task_id, "--agent", model], capture_output=True, text=True)
+        if result.returncode != 0:
+            stderr_text = result.stderr.strip()
+            if not stderr_text:
+                stderr_text = result.stdout.strip()
+            print(f"[runner] manage claim FAILED (exit {result.returncode}): {stderr_text}", file=sys.stderr)
+            sys.exit(1)
 
     t0 = time.monotonic()
     proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
@@ -657,7 +663,14 @@ def main():
     # ── WORKER-CHANNEL: auto-done on success ─────────────────────────────
     if ret == 0 and args.task_id:
         managent = os.path.join(repo_root, "bin", "managent") if repo_root else "bin/managent"
-        subprocess.run([managent, "done", args.task_id], capture_output=True)
+        result = subprocess.run([managent, "done", args.task_id], capture_output=True, text=True)
+        if result.returncode != 0:
+            stderr_text = result.stderr.strip()
+            if not stderr_text:
+                stderr_text = result.stdout.strip()
+            print(f"[runner] manage done FAILED (exit {result.returncode}): {stderr_text}", file=sys.stderr)
+            print(f"[runner] exit 1 (manage done rejected)", file=sys.stderr)
+            sys.exit(1)
 
     sys.exit(ret)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate INDEX-claim-evidence.md, INDEX-claim-task.md, INDEX-claim-deps.md from CLAIMS.md."""
-import re, os, subprocess, json
+import re, os, json
 from datetime import date
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -163,14 +163,6 @@ def gen_claim_task_index():
     """Regenerate INDEX-claim-task.md from dispatch briefs — lightweight update."""
     today = date.today().isoformat()
     
-    # Try to get current kanban state
-    try:
-        result = subprocess.run([f'{ROOT}/bin/managent', 'status'], 
-                              capture_output=True, text=True, cwd=ROOT)
-        kanban = result.stdout
-    except:
-        kanban = '(kanban unavailable)'
-    
     lines = []
     lines.append('# INDEX — claim-to-task cross-reference (generated)')
     lines.append('')
@@ -189,8 +181,8 @@ def gen_claim_task_index():
     lines.append('')
     lines.append('## Claim → task mapping')
     lines.append('')
-    lines.append('| claim ID | task(s) | task status | relationship |')
-    lines.append('|---|---|---|---|')
+    lines.append('| claim ID | task(s) | task status |')
+    lines.append('|---|---|---|')
     
     # Scan dispatch briefs for claim references
     dispatch_dir = f'{ROOT}/docs/infra/dispatch'
@@ -203,8 +195,8 @@ def gen_claim_task_index():
             try:
                 with open(fpath) as f:
                     content = f.read()
-                # Find claim ID references (GLOBAL.X, NxN.X, QA-NNN, CODE.X patterns)
-                found = set(re.findall(r'`?((?:GLOBAL|CODE|QA-\d+|\d+x\d+)\.[A-Za-z0-9_-]+)`?', content))
+                # Find claim ID references (GLOBAL.X, NxN.X, QA-NNN, QA-NNN.X, CODE.X patterns)
+                found = set(re.findall(r'`?((?:GLOBAL|CODE|\d+x\d+)\.[A-Za-z0-9_-]+|QA-\d+(?:\.[A-Za-z0-9_-]+)?)`?', content))
                 for cid in found:
                     if cid not in claim_task_map:
                         claim_task_map[cid] = []
@@ -219,19 +211,13 @@ def gen_claim_task_index():
         tasks_str = ', '.join(tasks[:5])
         if len(tasks) > 5:
             tasks_str += f' … (+{len(tasks)-5})'
-        lines.append(f'| `{cid}` | {tasks_str} | see kanban | bears on / produced evidence |')
+        lines.append(f'| `{cid}` | {tasks_str} | see kanban |')
     
     if not claim_task_map:
-        lines.append('| (no mappings found) | — | — | re-run after dispatch briefs are populated |')
+        lines.append('| (no mappings found) | — | — |')
     
     lines.append('')
     lines.append(f'*{len(claim_task_map)} claims mapped to tasks.*')
-    lines.append('')
-    lines.append('## Kanban state (live)')
-    lines.append('')
-    lines.append('```')
-    lines.append(kanban.strip())
-    lines.append('```')
     
     return '\n'.join(lines)
 

@@ -38,6 +38,31 @@ const Io = std.Io;
 const ABSORPTION_LOG = "untracked/absorption.md";
 const CLAIMS_PATH = "docs/epistemic/CLAIMS.md";
 
+/// Walk up from cwd to find the repo root (contains .git).
+fn findRepoRoot(io: Io) ![]const u8 {
+    var buf: [std.fs.max_path_bytes]u8 = undefined;
+    const cwd = std.c.getcwd(&buf, buf.len) orelse return error.CwdTooLong;
+    const cwd_slice = std.mem.sliceTo(cwd, 0);
+
+    var current: []const u8 = cwd_slice;
+    while (true) {
+        var dir = try Io.Dir.openDirAbsolute(io, current, .{});
+        defer dir.close(io);
+
+        if (dir.access(io, ".git", .{})) |_| {
+            return std.heap.page_allocator.dupe(u8, current);
+        } else |_| {}
+
+        const parent = std.fs.path.dirname(current) orelse {
+            return error.NoGitRepo;
+        };
+        if (std.mem.eql(u8, parent, current)) {
+            return error.NoGitRepo;
+        }
+        current = parent;
+    }
+}
+
 // ── findings model ──────────────────────────────────────────────────────────
 
 const FindingClaim = struct {
@@ -435,16 +460,38 @@ pub fn main(init: std.process.Init) !void {
         std.process.exit(1);
     };
 
-    // Read findings JSON
-    const fjson = Io.Dir.cwd().readFileAlloc(io, fpath, gpa, .unlimited) catch |e| {
-        util.note("absorb: cannot read {s}: {s}\n", .{ fpath, @errorName(e) });
+    // Find repo root and resolve paths relative to it
+    const repo_root = findRepoRoot(io) catch {
+        util.note("absorb: cannot find repo root (no .git found)\n", .{});
+        std.process.exit(1);
+    };
+    defer gpa.free(repo_root);
+
+    const claims_path = try std.fs.path.join(gpa, &.{ repo_root, CLAIMS_PATH });
+    defer gpa.free(claims_path);
+    const absorption_log = try std.fs.path.join(gpa, &.{ repo_root, ABSORPTION_LOG });
+    defer gpa.free(absorption_log);
+
+    // Read findings JSON — resolve relative paths against cwd (not repo root)
+    const fpath_abs = if (std.fs.path.isAbsolute(fpath))
+        try gpa.dupe(u8, fpath)
+    else blk: {
+        var cwd_buf: [std.fs.max_path_bytes]u8 = undefined;
+        const cwd_ptr = std.c.getcwd(&cwd_buf, cwd_buf.len);
+        if (cwd_ptr == null) break :blk try gpa.dupe(u8, fpath);
+        break :blk try std.fs.path.join(gpa, &.{ std.mem.sliceTo(cwd_ptr.?, 0), fpath });
+    };
+    defer gpa.free(fpath_abs);
+
+    const fjson = Io.Dir.cwd().readFileAlloc(io, fpath_abs, gpa, .unlimited) catch |e| {
+        util.note("absorb: cannot read {s}: {s}\n", .{ fpath_abs, @errorName(e) });
         std.process.exit(1);
     };
     const finding = try parseFindingsJson(gpa, fjson);
 
     // Read CLAIMS.md
-    const claims_text = Io.Dir.cwd().readFileAlloc(io, CLAIMS_PATH, gpa, .unlimited) catch |e| {
-        util.note("absorb: cannot read {s}: {s}\n", .{ CLAIMS_PATH, @errorName(e) });
+    const claims_text = Io.Dir.cwd().readFileAlloc(io, claims_path, gpa, .unlimited) catch |e| {
+        util.note("absorb: cannot read {s}: {s}\n", .{ claims_path, @errorName(e) });
         std.process.exit(1);
     };
     var reg = try cr.parseRegister(gpa, claims_text);
@@ -530,9 +577,9 @@ pub fn main(init: std.process.Init) !void {
         });
 
         // Append to untracked/absorption.md — read existing, rewrite with new line
-        const existing = Io.Dir.cwd().readFileAlloc(io, ABSORPTION_LOG, gpa, .unlimited) catch "";
+        const existing = Io.Dir.cwd().readFileAlloc(io, absorption_log, gpa, .unlimited) catch "";
         const combined = try std.fmt.allocPrint(gpa, "{s}{s}", .{ existing, log_line });
-        try Io.Dir.cwd().writeFile(io, .{ .sub_path = ABSORPTION_LOG, .data = combined });
+        try Io.Dir.cwd().writeFile(io, .{ .sub_path = absorption_log, .data = combined });
     }
 }
 
