@@ -112,7 +112,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | after which ruleset we solve, and how | `docs/epistemic/roadmap-2026-07-28.md` |
 | after what is known-wrong | `docs/epistemic/critique-2026-07-28.md` (§4 especially) |
 | resuming cold (durable in git) | `docs/status/CURRENT.md`, then `docs/status/HANDOVER.md` |
-| resuming from the channel (durable + untracked) | `untracked/msg/<milestone>/STATE.md` (read first), then `docs/status/CURRENT.md` |
+| resuming from the channel (durable + untracked) | `untracked/msg/<epic>/STATE.md` (read first), then `docs/status/CURRENT.md` |
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | delegating to a DeepSeek subagent | `docs/infra/agents/subdelegation.md` — `odeeppi` (Pro) and `oflashpi` (Flash) shell commands |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
@@ -178,7 +178,7 @@ There are exactly two places for files that must not enter git, and their purpos
 | directory | purpose | lifetime | examples |
 |---|---|---|---|
 | `ephemeral/` → `/tmp/weizigo/` | **disposable outputs** — build artifacts, test runs, zig caches, scratch files you would not mind losing on reboot | reboot = gone; fine | `/tmp/weizigo-zigcache`, compiled binaries, `heartbeat.jsonl` |
-| `untracked/` (project-local, gitignored) | **important but untracked** — agent-to-agent comms, large `.wzo` artifacts too big for git, in-progress task bundles | must survive across sessions; survives clone only on the host that created it | `msg/`, `managent/tasks.json`, `*.wzo` |
+| `untracked/` (project-local, gitignored) | **important but untracked** — agent-to-agent comms, large `.wzo` artifacts too big for git, in-progress task bundles | must survive across sessions; survives clone only on the host that created it | `msg/`, `managent/` (tombstone), `*.wzo` |
 
 **Rule: never put disposable scratch in `untracked/`.** The B44 cleanup swept evidence because `untracked/` held
 both scratch and load-bearing files and the cleaner could not tell them apart. If it goes to `/tmp/weizigo/` it will
@@ -190,13 +190,17 @@ mkdir -p /tmp/weizigo && ln -s /tmp/weizigo ephemeral
 ```
 
 Agent-to-agent comms and task state belong in `untracked/`, under documented subdirectories:
-- `untracked/msg/<milestone>/` — cross-agent messages (see below)
-- `untracked/managent/` — kanban state (`bin/managent` writes here)
+- `untracked/msg/<epic>/` — cross-agent messages (see below)
+- `untracked/managent/` — tombstone only; the live kanban store is `docs/infra/managent/tasks.json` (`bin/managent` writes there)
 - `untracked/*.wzo` — large oracle artifacts that are cited but not in git (hashes recorded in `docs/evidence/README.md`)
 
 ## Agent-to-agent communication
-Cross-agent traffic lives in `untracked/msg/<milestone>/` (max two live): `STATE.md` is the crash-recovery anchor
+Cross-agent traffic lives in `untracked/msg/<epic>/` (max two live): `STATE.md` is the crash-recovery anchor
 (read first; always current, overwritten in place), `NNN-<from>-to-<to>.md` are append-only numbered messages
 (never edit an old one), `DECISIONS.md` records every ruling with its promotion target in `docs/`. **Delete the
 directory only once every decision is promoted** — `untracked/` is git-ignored, so it dies on a fresh clone; that
 is how T13's evidence was destroyed. Promotion is the gate, not tidiness.
+
+The legacy directory `untracked/msg/milestone-01-ko-reframe/` persists as the channel name for epic-01-markovian:
+"milestone" is retired for new documents, but the directory name stays to avoid breaking existing references
+(see `docs/infra/channel.md`).

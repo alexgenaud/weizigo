@@ -21,15 +21,19 @@ API key is already exported in the parent shell. Subagents run in the same Pi ha
 
 1. **Give the subagent a bounded task.** One file to read, one question to answer, one deliverable. A subagent with an open-ended brief is a lost session.
 2. **State the deliverable path.** The subagent must write its output to a specific file. The parent reads it after the subagent exits.
-3. **Subagents never edit shared state.** No `CLAIMS.md`, no `CURRENT.md`, no `tasks.json`, no channel messages. Output goes to `untracked/` or a dedicated evidence path.
+3. **Subagents never edit shared state *directly*.** No `CLAIMS.md`, no `CURRENT.md`, no channel messages.
+   Kanban writes happen only via `bin/managent` (`claim` / `done` — the wrapper below enforces both).
+   Output goes to `findings/` or a dedicated evidence path.
 4. **Independent re-implementation is the highest-value use.** The only instrument that has found every real defect in this project is an independent seat. Subagents make this cheap.
-5. **Max two subagents at once.** They share the same filesystem and API key. Three concurrent subagents risk race conditions and rate limiting.
+5. **Max two DeepSeek pi-subagents at once.** They share the same filesystem and API key; three concurrent
+   risk race conditions and rate limiting. This cap is a rate-limit scope on pi-subagents only — the
+   concurrency authority is `docs/infra/delegation/ROLES.md` §Concurrency (analysis unlimited, mutation serial).
 
 ## Pattern: independent audit
 
 ```sh
 # Parent dispatches an audit subagent
-pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/T999-audit. Read docs/design/foo/pass0/spec.md. Audit it against the acceptance criteria in the same file. Write your verdict and findings to untracked/T999-audit.md. Do not edit the spec."
+pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/T999-audit. Read docs/epic-01-markovian/sprints/foo/pass0/spec.md. Audit it against the acceptance criteria in the same file. Write your verdict and findings to untracked/T999-audit.md. Do not edit the spec."
 ```
 
 ## Pattern: parallel measurements
@@ -62,7 +66,7 @@ FIRST — claim your task:
 Read your brief at <BRIEF-PATH>.
 
 WHEN DONE — before any other output:
-  1. Write your findings to untracked/<TASK-ID>-findings.json per the schema at docs/infra/agents/findings-schema.json.
+  1. Write your findings to findings/<TASK-ID>-<slug>.json per the schema at findings/README.md.
   2. Run `bin/managent done <TASK-ID>`.
 
 ---
@@ -86,7 +90,13 @@ WHEN DONE — before any other output:
 
 ## Findings schema
 
-Every subagent writes one findings file at `untracked/<TASK-ID>-findings.json`. The machine-readable schema is at `docs/infra/agents/findings-schema.json`. Required fields: `task_id`, `date`, `model`, `summary`. All other fields are optional but should be filled when relevant.
+Every subagent writes one findings file at `findings/<TASK-ID>-<slug>.json`.
+The canonical schema and field semantics are at **`findings/README.md`**; the
+machine-readable copy is `docs/infra/agents/findings-schema.json` (same schema).
+Required fields: `task_id`, `date`, `model`, `claims`. `new_rows` only when the
+task proposes new CLAIMS.md register rows. `findings/*.json` is what absorb and
+claimlint C7 consume — a findings file written anywhere else silently bypasses
+absorption.
 
 ### Minimal valid findings file
 
@@ -95,7 +105,8 @@ Every subagent writes one findings file at `untracked/<TASK-ID>-findings.json`. 
   "task_id": "T180",
   "date": "2026-07-31",
   "model": "DSPro",
-  "summary": "Audited spec X: 1 gap found, otherwise consistent."
+  "claims": [],
+  "notes": "Audited spec X: 1 gap found, otherwise consistent."
 }
 ```
 
@@ -106,24 +117,16 @@ Every subagent writes one findings file at `untracked/<TASK-ID>-findings.json`. 
   "task_id": "T172",
   "date": "2026-07-31",
   "model": "DSPro",
-  "summary": "Blind re-implementation analysis: 5 gaps found (GAP-5 CRITICAL), 12 invariants consistent with design.",
-  "claims_touched": [],
-  "proposed_status": "none",
-  "evidence_path": "untracked/T172-blind-analysis.md",
-  "gaps_found": [
+  "claims": [
     {
-      "id": "GAP-5",
-      "severity": "CRITICAL",
-      "description": "I11 dump format unspecified — V-8 cannot implement I11 without it.",
-      "blocks": "T169"
-    },
-    {
-      "id": "GAP-3",
-      "severity": "Moderate",
-      "description": "I7 missing DTT recurrence check in value schema."
+      "id": "CODE.VB-BLINDGAPS",
+      "proposed_status": "PROVEN",
+      "rationale": "Blind re-implementation of the verify-battery design found five spec gaps (GAP-5 CRITICAL).",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/archive/T172-blind-analysis.md"
     }
   ],
-  "next_steps": "Resolve GAP-5 before dispatching V-8; GAP-3 can be resolved during implementation."
+  "new_rows": [],
+  "notes": "GAP-5: invariant I11 requires a solver-side dump file whose format is defined nowhere — V-8 cannot implement I11 without it."
 }
 ```
 
@@ -134,31 +137,18 @@ Every subagent writes one findings file at `untracked/<TASK-ID>-findings.json`. 
   "task_id": "T169",
   "date": "2026-07-31",
   "model": "DSPro",
-  "summary": "Built vb_table.zig: 6 invariants (I1,I2,I3,I6,I10,I12), 19/19 tests passing, WZO1 only.",
-  "claims_touched": [],
-  "proposed_status": "none",
-  "evidence_path": "untracked/T169-notes.md",
-  "artifacts_produced": ["src/vb_table.zig"],
-  "verification": {
-    "tests_passed": 19,
-    "tests_total": 19,
-    "calibrations_passed": ["I2=0/57 at 2x2", "I2=0/489 at 3x2", "I12 all legal slots in [-area,+area]"],
-    "calibrations_failed": []
-  },
-  "builds": true,
-  "next_steps": "Ready for merge into vb_common.zig when T168 lands."
+  "claims": [],
+  "new_rows": [],
+  "notes": "Built vb_table.zig: 6 invariants (I1,I2,I3,I6,I10,I12), 19/19 tests passing, WZO1 only. Calibrations: I2=0/57 at 2x2, I2=0/489 at 3x2, I12 all legal slots in [-area,+area]. Ready for merge into vb_common.zig when T168 lands."
 }
 ```
 
 ## Manager absorption handoff
 
-After all subagents in a batch finish, the manager (builder) aggregates findings into one file:
-
-```
-untracked/absorption-<YYYY-MM-DD>.json
-```
-
-This is a JSON array of all subagent findings objects, plus a header:
+After all subagents in a batch finish, the manager (builder) aggregates findings into one file.
+**Load-bearing findings (claim status changes, new rows, anything cited downstream) go to
+`docs/evidence/absorption/<YYYY-MM-DD>.json`** — evidence in git, or the claim is not proven.
+`untracked/absorption-<YYYY-MM-DD>.json` is only for pure-mechanical batches that touch no claims.
 
 ```json
 {
@@ -175,4 +165,6 @@ This is a JSON array of all subagent findings objects, plus a header:
 }
 ```
 
-The absorption file is the single source of truth for what the batch produced. Claimlint can diff `claims_touched` + `proposed_status` against `CLAIMS.md` to detect unabsorbed findings.
+The absorption file is the single source of truth for what the batch produced. Claimlint C7 diffs
+`findings/*.json` (`claims[].id` + `proposed_status` + `new_rows`) against `CLAIMS.md` to detect
+unabsorbed findings; `weizigo-absorb` turns them into edit directives.

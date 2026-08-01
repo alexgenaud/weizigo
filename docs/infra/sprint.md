@@ -51,8 +51,14 @@ docs/epic-NN-slug/
         archive/             ← audits, drafts — absorbed then deleted at gate
 ```
 
-Canonical docs are unsuffixed, revised in place, carrying `Revision: N` and
-`Status: PROPOSED | RATIFIED (date, sha)` in the header. Everything lives in
+**Archive gate exemption:** a file in `archive/` that the register (CLAIMS.md) cites must be promoted to
+`docs/evidence/<claim-id>/` before the gate deletes the archive — claimlint C2 enforces this. `archive/`
+is deletable; `docs/evidence/` is not. (CA-5: `sprints/verify-battery/archive/T172-blind-analysis.md` is the
+standing example.)
+
+Canonical phase docs (passN/) are unsuffixed, revised in place, carrying `Revision: N` and
+`Status: PROPOSED | RATIFIED (date, sha)` in the header. (The rule is for phase documents; process docs
+like this one may carry a lighter header.) Everything lives in
 git — `untracked/` is where evidence goes to die.
 
 ## Channel
@@ -123,8 +129,10 @@ finding cites file+line against current text.
 ## Subagents
 
 Dispatch per `docs/infra/agents/subdelegation.md` — commands and model
-mechanics live there. Max two concurrent. Plan.md declares what runs in
-parallel.
+mechanics live there. Max two concurrent **DeepSeek pi-subagents** (API rate
+limit); analysis is otherwise unlimited and mutation serial per
+`docs/infra/delegation/ROLES.md` §Concurrency — the concurrency authority.
+Plan.md declares what runs in parallel.
 
 ## Acceptance
 

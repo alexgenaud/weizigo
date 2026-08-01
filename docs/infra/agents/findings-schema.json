@@ -1,105 +1,98 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Subagent Findings",
-  "description": "Standardized findings output from a subagent dispatched via odeeppi/oflashpi. One file per task at untracked/T<id>-findings.json.",
+  "title": "Findings file — knowledge-capture format",
+  "description": "Machine-readable copy of the canonical schema at findings/README.md (findings/README.md is the authority; this file must not diverge). One file per task at findings/<TASKID>-<slug>.json. Immutable once the Orchestrator ratifies absorption.",
   "type": "object",
-  "required": ["task_id", "date", "model", "summary"],
+  "required": ["task_id", "date", "model", "claims"],
   "properties": {
     "task_id": {
       "type": "string",
-      "description": "Task identifier — e.g. T169, T172, EXP-4. Must match the kanban task ID."
+      "description": "managent task identifier — e.g. T129, T172. Must match the kanban task ID."
     },
     "date": {
       "type": "string",
-      "description": "ISO-8601 date — e.g. 2026-07-31."
+      "description": "ISO-8601 date when the finding was produced — e.g. 2026-08-01."
     },
     "model": {
       "type": "string",
-      "description": "Model that executed the task — e.g. DSPro, DSFlash. Use the short form from subdelegation.md."
+      "description": "Model that executed the task — e.g. DSPro, DSFlash, Fable, Consul."
     },
-    "summary": {
-      "type": "string",
-      "description": "One-line summary of what was found or built. Manager-facing; keep it under 120 characters."
-    },
-    "claims_touched": {
+    "claims": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "List of CLAIMS.md claim IDs that this task touches (read, verified, falsified, or created). Empty array if none.",
-      "default": []
-    },
-    "proposed_status": {
-      "type": "string",
-      "enum": ["PROVEN", "CLAIMED", "FALSE-AS-SCOPED", "none"],
-      "description": "Proposed epistemic status for the touched claims, if any. 'none' when no claims are touched.",
-      "default": "none"
-    },
-    "evidence_path": {
-      "type": "string",
-      "description": "Path to the detailed evidence or notes file, relative to project root — e.g. untracked/T169-notes.md."
-    },
-    "artifacts_produced": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "Paths to files produced by this task, relative to project root.",
-      "default": []
-    },
-    "gaps_found": {
-      "type": "array",
+      "description": "Claim status changes proposed by this task. Empty array when none are touched.",
       "items": {
         "type": "object",
-        "required": ["id", "severity", "description"],
+        "required": ["id", "proposed_status", "rationale", "evidence_path"],
         "properties": {
           "id": {
             "type": "string",
-            "description": "Short gap identifier — e.g. GAP-1, GAP-dump-format."
+            "description": "Claim ID as registered in CLAIMS.md §2, e.g. QA-027."
           },
-          "severity": {
+          "proposed_status": {
             "type": "string",
-            "enum": ["CRITICAL", "HIGH", "Moderate", "Minor"],
-            "description": "CRITICAL blocks downstream tasks. HIGH is a likely correctness issue. Moderate needs resolution before ship. Minor is a documentation/clarity gap."
+            "enum": ["PROVEN", "CLAIMED", "FALSE-AS-SCOPED", "FALSE", "UNTESTED", "INTRACTABLE", "MEASUREMENT"],
+            "description": "Proposed epistemic status. The (definition) pseudo-status is not valid."
           },
-          "description": {
+          "rationale": {
             "type": "string",
-            "description": "One-paragraph description of the gap."
+            "description": "One-sentence justification for the status change."
           },
-          "blocks": {
+          "evidence_path": {
             "type": "string",
-            "description": "Comma-separated task IDs blocked by this gap, or null."
+            "description": "Path to evidence file (relative to repo root), typically a PROVENANCE.md."
           }
-        }
-      },
-      "description": "Gaps or issues discovered during the task. Empty array if none.",
-      "default": []
-    },
-    "verification": {
-      "type": "object",
-      "description": "Self-verification results — tests, calibrations, and cross-checks.",
-      "properties": {
-        "tests_passed": { "type": "integer" },
-        "tests_total": { "type": "integer" },
-        "calibrations_passed": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Names of calibration targets met — e.g. 'maxSCC=160 at 2x2'."
-        },
-        "calibrations_failed": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Names of calibration targets missed."
         }
       }
     },
-    "builds": {
-      "type": "boolean",
-      "description": "Whether the produced code compiles successfully. null if the task produces no code."
+    "new_rows": {
+      "type": "array",
+      "description": "New CLAIMS.md rows proposed by this task. Omit or leave empty when none.",
+      "items": {
+        "type": "object",
+        "required": ["id", "legacy", "goban", "claim", "status", "evidence", "depends_on", "narrowed", "wrong_answer_pass_rate"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Proposed claim ID (must follow the CLAIMS.md §1 ID scheme)."
+          },
+          "legacy": {
+            "type": "string",
+            "description": "Legacy ID, or \"—\" if minted."
+          },
+          "goban": {
+            "type": "string",
+            "description": "Goban scope: \"all\", \"n/a\", \"2x2\", etc."
+          },
+          "claim": {
+            "type": "string",
+            "description": "The claim text (may contain markdown)."
+          },
+          "status": {
+            "type": "string",
+            "description": "Proposed status."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Evidence path(s)."
+          },
+          "depends_on": {
+            "type": "string",
+            "description": "Edge list, same format as CLAIMS.md depends-on column."
+          },
+          "narrowed": {
+            "type": "number",
+            "description": "Narrowing count (0 for new rows)."
+          },
+          "wrong_answer_pass_rate": {
+            "type": "string",
+            "description": "Rate or \"?\"."
+          }
+        }
+      }
     },
-    "next_steps": {
+    "notes": {
       "type": "string",
-      "description": "Recommended next actions for the manager — one sentence."
-    },
-    "note": {
-      "type": "string",
-      "description": "Extended notes. Use sparingly; prefer the evidence_path file for detail."
+      "description": "Extended notes — gaps, verification, next steps. Optional; prefer the evidence path for detail."
     }
   }
 }

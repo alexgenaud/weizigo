@@ -38,8 +38,10 @@ agent, using demonstrated strengths as a tie-breaker rather than a default.
 ## Kept: worktree policy (still current)
 
 Worktrees are **not used**. One-writer-per-engine-file, unique binary names, and
-`/tmp/weizigo-zigcache` isolation suffice for ≤3 agents. **Reconsider if:** the team scales past
-3 active agents; two agents need long engine builds on different branches at once; or we need to
+`/tmp/weizigo-zigcache` isolation suffice for ≤3 concurrent mutation/build agents (analysis
+parallelises without limit — see `docs/infra/delegation/ROLES.md` §Concurrency). **Reconsider if:**
+the team scales past 3 concurrent mutation/build agents; two agents need long engine builds on
+different branches at once; or we need to
 compare byte-identical artifact outputs side by side. If adopted, use a shared read-only artifact
 cache so 258 MB `.wzo` files are not duplicated.
 

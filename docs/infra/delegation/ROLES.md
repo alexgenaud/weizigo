@@ -99,6 +99,10 @@ its dispatchable set. The kanban already expresses both kinds, verified against
 
 So the practical limit on analysis is consoles and cost, not the kanban.
 
+**This section is the concurrency authority.** `sprint.md`, `subdelegation.md` and
+`manager-brief-template.md` defer to it; their "max two" caps apply only to DeepSeek
+pi-subagents (API rate limit), never to analysis generally.
+
 ## Dispatching, claiming, and the kanban
 
 The Orchestrator owns the kanban end-to-end: it records dispatches on the
@@ -149,7 +153,6 @@ So the independence a fresh instance buys is **procedural, not epistemic**:
   model.** That is what the three-seat blind panel bought for the QA-018 review
   in 2026-07-29 — independent training, not just independent instances.
   (Historical: the panel comprised GLM-5.2, DeepSeek-Pro, and Kimi-k2.7.)
-  instances.
 - **If only the same model is available, disclose it.** A same-model review of
   load-bearing reasoning must say so loudly; its verdict is procedural
   confirmation, not independent adjudication.

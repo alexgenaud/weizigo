@@ -40,7 +40,10 @@ Argus writes to exactly two files, and nothing else:
 Read-only `managent` verbs are permitted: `status`, `show`, `audit`,
 `liveness`, `why`, `inbox`.
 
-## Two modes — one per invocation
+## Two modes
+
+Each invocation runs one mode. A standard pass runs both, in sequence — checklist first
+(regressions against stored baselines), then sweep (one walk, coverage denominator); see "On resume".
 
 **Mode 1 — sweep.** Walk the project and ask what looks wrong. One pass, state
 coverage denominator. The sweep runs a reference scanner over `docs/` (checking

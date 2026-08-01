@@ -19,7 +19,7 @@ Each row is one subagent dispatch. Fill in the brief path for each.
 | `<TASK-2>` | `<path-to-brief-2>` | `<model>` | `<paths>` | `<notes>` |
 | ... | ... | ... | ... | ... |
 
-**Concurrency limit:** `<N>` subagents at once (see `docs/infra/delegation/ROLES.md` — max 2 for DeepSeek, unlimited for read-only analysis).
+**Concurrency limit:** `<N>` subagents at once (see `docs/infra/agents/subdelegation.md` rule 5 — max 2 for DeepSeek pi-subagents, API rate limit; the authority on parallelism is `docs/infra/delegation/ROLES.md` §Concurrency — analysis unlimited, mutation serial).
 
 **Model guidance:** Use DSPro for reasoning-heavy tasks (audits, re-implementation, spec analysis).
 Use DSFlash for mechanical sweeps, terminology, formatting, and census runs. Specify only when it
@@ -42,7 +42,7 @@ FIRST — claim your task:
 Read your brief at <BRIEF-PATH>.
 
 WHEN DONE — before any other output:
-  1. Write your findings to untracked/<TASK-ID>-findings.json per the schema at docs/infra/agents/findings-schema.json.
+  1. Write your findings to findings/<TASK-ID>-<slug>.json per the schema at findings/README.md.
   2. Run `bin/managent done <TASK-ID>`.
 
 ---
@@ -64,28 +64,28 @@ pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/T999-audit.
 FIRST — claim your task:
   bin/managent claim T999-audit --agent DSPro
 
-Read your brief at docs/design/foo/pass0/spec.md.
+Read your brief at docs/epic-01-markovian/sprints/foo/pass0/spec.md.
 
 WHEN DONE — before any other output:
-  1. Write your findings to untracked/T999-audit-findings.json per the schema at docs/infra/agents/findings-schema.json.
+  1. Write your findings to findings/T999-audit-<slug>.json per the schema at findings/README.md.
   2. Run `bin/managent done T999-audit`.
 
 ---
-Audit docs/design/foo/pass0/spec.md against its acceptance criteria. Report every gap with severity and which tasks it blocks. Write detailed analysis to untracked/T999-audit.md. Do not edit the spec."
+Audit docs/epic-01-markovian/sprints/foo/pass0/spec.md against its acceptance criteria. Report every gap with severity and which tasks it blocks. Write detailed analysis to untracked/T999-audit.md. Do not edit the spec."
 ```
 
 ## 3. Findings collection
 
-After all subagents finish, collect their `untracked/T<id>-findings.json` files. Verify each one:
+After all subagents finish, collect their `findings/<TASK-ID>-<slug>.json` files. Verify each one:
 
 1. **File exists** — if missing, the subagent may have crashed before writing findings; check `bin/managent status` to see if it claimed but never `done`d.
 2. **Valid JSON** — parse it. If malformed, the subagent hallucinated the schema; re-dispatch or hand-fix.
-3. **Required fields present** — `task_id`, `date`, `model`, `summary` must be non-empty.
-4. **Claims touched match reality** — if the task edited `CLAIMS.md`, `claims_touched` must list the claim IDs.
+3. **Required fields present** — `task_id`, `date`, `model` and the `claims` array must be non-empty per `findings/README.md`.
+4. **Claims touched match reality** — `claims[].id` and `proposed_status` must use the `findings/README.md` status vocabulary, and `new_rows` must carry every row the task proposes for CLAIMS.md.
 
 ## 4. Gap flagging
 
-Scan all findings files for `gaps_found` entries. For each gap:
+Scan all findings files for gap mentions (in `notes`, or the evidence file cited by `claims[].evidence_path`). For each gap:
 
 1. **Record it in the absorption file** — the gap object copies verbatim from the findings.
 2. **If severity is CRITICAL:** halt the sprint until the gap is resolved. CRITICAL means a downstream task cannot start.
@@ -100,10 +100,10 @@ Scan all findings files for `gaps_found` entries. For each gap:
 
 ## 5. Absorption handoff
 
-After all subagents finish and gaps are triaged, write one absorption file:
+After all subagents finish and gaps are triaged, write one absorption file. **Load-bearing findings (claim status changes, new rows, anything cited downstream) go to `docs/evidence/absorption/<YYYY-MM-DD>.json`** — evidence in git, or the claim is not proven. `untracked/absorption-<YYYY-MM-DD>.json` is only for pure-mechanical batches that touch no claims.
 
 ```
-untracked/absorption-<YYYY-MM-DD>.json
+docs/evidence/absorption/<YYYY-MM-DD>.json
 ```
 
 ### Format
@@ -121,7 +121,7 @@ untracked/absorption-<YYYY-MM-DD>.json
   "gaps_moderate": <N>,
   "gaps_minor": <N>,
   "findings": [
-    { "...": "copy of T<id>-findings.json contents" },
+    { "...": "copy of findings/<TASK-ID>-<slug>.json contents" },
     { "...": "next subagent findings" }
   ],
   "summary": "<one-paragraph summary of what the batch produced>"
@@ -147,13 +147,9 @@ untracked/absorption-<YYYY-MM-DD>.json
       "task_id": "T168",
       "date": "2026-07-31",
       "model": "DSPro",
-      "summary": "Built vb_common.zig and verify_battery.zig harness — compiles, JSON output works.",
-      "claims_touched": [],
-      "proposed_status": "none",
-      "evidence_path": "untracked/T168-notes.md",
-      "artifacts_produced": ["src/vb_common.zig", "src/verify_battery.zig"],
-      "builds": true,
-      "next_steps": "Ready for T169-T171 to write invariant modules against."
+      "claims": [],
+      "new_rows": [],
+      "notes": "Built vb_common.zig and verify_battery.zig harness — compiles, JSON output works. Ready for T169-T171 to write invariant modules against."
     }
   ],
   "summary": "All four verify-battery subagents completed. M1 harness builds and runs. M2 table invariants pass 19/19 tests. M3 fixpoint invariants pass 7/7 tests. M4 graph I5 calibrates. One moderate gap (I7 recurrence check deferred). Sprint ready for integration."
@@ -162,7 +158,7 @@ untracked/absorption-<YYYY-MM-DD>.json
 
 ## 6. Post-absorption
 
-1. **Commit the absorption file** to git (it lives in `untracked/`, which is git-ignored — the absorption file SHOULD be committed to `docs/evidence/` if it contains load-bearing findings).
+1. **Commit the absorption file.** Load-bearing findings live at `docs/evidence/absorption/<date>.json`, which is tracked — committed to git before anything downstream cites it. A pure-mechanical batch may keep its file in `untracked/`, but never put load-bearing findings there: `untracked/` is git-ignored, which is how evidence dies.
 2. **Update `docs/status/CURRENT.md`** with the batch result.
-3. **If any `claims_touched` entries exist:** file a follow-up task for the Orchestrator/claimlint to absorb them into `CLAIMS.md`.
-4. **If any `gaps_found` entries exist:** file follow-up tasks for resolution in the next sprint, unless the gap is CRITICAL (handle immediately).
+3. **If any `claims[]` or `new_rows` entries exist:** file a follow-up task for the Orchestrator/claimlint (or run `weizigo-absorb`) to absorb them into `CLAIMS.md`.
+4. **If any gap mentions exist:** file follow-up tasks for resolution in the next sprint, unless the gap is CRITICAL (handle immediately).

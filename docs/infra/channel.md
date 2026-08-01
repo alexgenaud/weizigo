@@ -27,11 +27,11 @@ untracked/msg/
 │   └── DECISIONS.md         ← epic-level rulings
 ```
 
-**Current channel:** `untracked/msg/milestone-01-ko-reframe/` (93 files).
-This is a frozen historical record. Its directory name (`milestone-01-ko-reframe`)
+**Current channel:** `untracked/msg/milestone-01-ko-reframe/` — the live epic channel for
+`epic-01-markovian`. Its directory name (`milestone-01-ko-reframe`)
 is a historical alias for `epic-01-markovian`. The term "milestone" is retired
 in favor of "epic" for new documents; the directory name is preserved as-is
-to avoid breaking references in 93 untracked files.
+to avoid breaking existing references.
 
 **New sprints** use `untracked/msg/epic-01-markovian/<sprint>/`.
 

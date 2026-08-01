@@ -1,7 +1,9 @@
 # SPEC — managent as message bus
 
-**Status:** specified 2026-07-29 by the Dabir, at the human's request. To be
-implemented by a worker the Orchestrator dispatches. Not yet built.
+**Status:** **BUILT AND IN USE.** The role-addressed read/unread index ships as `managent sync <role>`;
+worker control as `managent tell` / `inbox`; heartbeats as `managent ping` / `liveness`; directives live in
+the tracked `docs/infra/managent/directives.jsonl`. (The command surface below is the original design; the
+shipped surface is the one in `docs/infra/agent-identity-and-worker-channel.md`.)
 
 ## Why
 

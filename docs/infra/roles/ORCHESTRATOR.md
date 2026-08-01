@@ -10,7 +10,12 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 
 ## Cadence — every turn, in order, before you answer the human
 
-1. **Read** `untracked/msg/<milestone>/STATE.md`, then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
+0. **Run Argus.** `bin/argus --mode checklist`, then `--mode sweep` when anything regressed — the watchdog
+   catches drift cheaply, and nothing else routes its findings (CA-11). Read
+   `untracked/watchdog-summary.md`; register its findings as briefed tasks per `docs/infra/roles/ARGUS.md`
+   (Argus never writes the queue — you do).
+1. **Read** `untracked/msg/<epic>/STATE.md` (legacy name: `untracked/msg/milestone-01-ko-reframe/` for
+   epic-01-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
 2. **Scan** `managent audit` — every discrepancy it finds, fix now rather than reporting it. If the kanban disagrees with reality, the kanban is the bug. Non-zero exit = FIX-level findings exist.
 3. **Reconcile attribution.** Agents declare their own model; `managent agent <id> <model>` when one didn't. An unattributed task is a hole in `model-perf.md`. `managent audit` flags these.
 4. **Absorb** finished work into `CLAIMS.md` (then `bin/weizigo-claimlint`), `PROGRESS.md`, `model-perf.md`, `CURRENT.md`, ADRs, `docs/evidence/` — then **commit**.
@@ -21,7 +26,7 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 ## Prescriptions
 
 - **Delegate the thinking.** Analysis, planning, audits and cleanup are short-lived agent tasks you register, not work you do inline. Your own output is a correct kanban, absorbed findings, and briefs.
-- **Route each message by its reader.** The inner court — Orchestrator, Dabir, Auditor — talks through `untracked/msg/<milestone>/`. Worker consoles are reached by the human, who is the only mechanism there is: put the durable version in the task's brief, and hand him paste-text bounded per `AGENTS.md` §"Agent-to-human output".
+- **Route each message by its reader.** The inner court — Orchestrator, Dabir, Auditor — talks through `untracked/msg/<epic>/`. Worker consoles are reached by the human, who is the only mechanism there is: put the durable version in the task's brief, and hand him paste-text bounded per `AGENTS.md` §"Agent-to-human output".
 - **Register the standing tier unprompted.** `managent standing` shows the triggers and auto-registers any that fired — run it every turn.
 - **Concurrency comes from `holds`, not sets.** Tasks sharing no file run together; express sequencing with `needs`.
 - **Commit before purge** — enforced: `managent purge` refuses when deliverables are untracked.

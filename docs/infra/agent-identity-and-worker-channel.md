@@ -1,6 +1,8 @@
 Author: Orchestrator (Opus 5, claude-opus-5[1m]) · Date: 2026-07-29
-Status: **DESIGN — specified, not built.** Implementation registered as
-`AGENT-IDENTITY` then `WORKER-CHANNEL`. Extends
+Status: **BUILT AND IN USE.** `managent` ships the identity accessors (`claim --agent`, `agent`,
+`whoami`) and the worker channel (`tell` / `inbox` / `ping` / `liveness`); `tools/runner` checks pending
+directives on every invocation and exits 124 when a `pause`/`kill` is pending. Registered and implemented
+as `AGENT-IDENTITY` then `WORKER-CHANNEL`. Extends
 `docs/infra/managent/SPEC-msgbus.md` (role-addressed bus); does not replace it.
 
 # Agent identity, and a channel workers actually read
