@@ -288,34 +288,36 @@
     "claim_count": 1
   },
   "T187": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T187-p3g-battery-run.md",
     "set": "A",
     "holds": ["src/verify_battery.zig"],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T01:41:22Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T01:51:05Z",
+    "done": "2026-08-01T01:51:05Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T189": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T189-argus-builder.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T01:43:19Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T01:51:05Z",
+    "done": "2026-08-01T01:51:05Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T182": {
     "status": "done",
