@@ -41,6 +41,10 @@
       "note": "DTT is non-constant at both gobans (range 1-64 on 3x3, 1-64 on 4x4). DTT consistency (1 + min_child_DTT == parent_DTT) shows systematic violations: stored DTT is typically 2 less than expected, suggesting the artifact's DTT computation may exclude pass edges or use a different value-preserving definition."
     }
   },
+  "dtt_column_validated": {
+    "verdict": "DTT column contains real data (not the v1 empty column of all-255)",
+    "detail": "I7 fleet run found v1 DTT uniformly 255 (never populated). Both WZO2 artifacts validated here have FAR=0: 3x3 dist [1..4]=25500 [5..16]=23928; 4x4 dist [1..4]=23119236 [5..16]=76013400 [17..64]=400. A8 measures a populated column — passing would be meaningful (it fails)."
+  },
   "CODE_WZO2_CHAINSHORT": {
     "verdict": "RESOLVED — not an issue for this module",
     "detail": "The brief warned the WZO2 GTP path may short-circuit chainability to true. Inspection of gtp.zig shows chainable_at_pos (P3-B fix, line ~330) properly checks the Markov-key Bellman identity for WZO2 artifacts — no short-circuit. Additionally, this module does its own direct artifact lookup and self-play, bypassing gtp.zig entirely. A1 IS falsifiable: it correctly detects refusals on both artifacts."
