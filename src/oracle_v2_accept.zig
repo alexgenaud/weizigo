@@ -19,7 +19,7 @@
 // ORACLE-V2 ACCEPTANCE — M4a (decoupled): A3 colour-inversion, A5 round-trip,
 // A6 calibration, A9 reproducibility.
 //
-// Task:  T167 · Worker: DSPro/T167 · Date: 2026-07-31
+// Task:  T182 · Worker: DSPro/T182 · Date: 2026-08-01
 // File:  src/oracle_v2_accept.zig (new)
 // Owner: M4a (holds until O-7r review PASS)
 //
@@ -491,6 +491,7 @@ fn checkA5(header: Wzo2Header, entries: []const u8) A5Result {
 
     // For 4×4, sample rather than exhaust (99M entries is slow in debug).
     const stride: u64 = if (n_entries > 10_000_000) 97 else 1; // prime stride for sampling
+    const denominator = n_entries;
 
     var ei: u64 = 0;
     while (ei < n_entries) : (ei += stride) {
@@ -522,12 +523,14 @@ fn checkA5(header: Wzo2Header, entries: []const u8) A5Result {
         checked += 1;
     }
 
-    return A5Result{ .checked = checked, .mismatches = mismatches };
+    return A5Result{ .checked = checked, .mismatches = mismatches, .stride = stride, .denominator = denominator };
 }
 
 const A5Result = struct {
     checked: u64,
     mismatches: u64,
+    stride: u64,
+    denominator: u64,
 };
 
 // =========================================================================
@@ -561,7 +564,6 @@ const A6Fixture = struct {
 fn checkA6(
     original_bytes: []const u8,
     header: Wzo2Header,
-    entries: []const u8,
     gpa: std.mem.Allocator,
 ) ![]A6Fixture {
     const fixtures_len: usize = 3;
@@ -625,7 +627,8 @@ fn checkA6(
         }
         // Check that DTT is non-constant (A8) — if all DTT values are 0,
         // the artefact's DTT column has only 1 distinct value → FAIL.
-        const caught = checkDttNonConstant(entries, header);
+        const corrupted_entries = corrupted[entry_base..][0..n_entries * WZO2_ENTRY_SIZE];
+        const caught = checkDttNonConstant(corrupted_entries, header);
         fixtures[2] = .{
             .name = "c: zeroed DTT column (all DTT bytes = 0)",
             .corruption = .zeroed_dtt,
@@ -675,25 +678,72 @@ fn checkDttNonConstant(entries: []const u8, header: Wzo2Header) bool {
 // A9 — reproducibility
 // =========================================================================
 //
-// Clean clone → documented command → SHA-256 match.
-// This check verifies the embedded SHA-256 of the artifact against a
-// separately computed hash of the file (with hash slot zeroed).
+// Clean clone → documented command → SHA-256 match (spec §4, M1 design §7.1).
+// Verifies the determinism contract:
+//   (a) all reserved bytes zeroed (§4) — checked by parseHeader
+//   (b) canonical sort order: groups strictly increasing colex (§2.4) —
+//       checked by readGroupIndex; entries per §2.4 — checked here
+//   (c) no timestamps or build metadata — checked by parseHeader (fixed fields)
+//   (d) SHA-256 slot zeroed before hash, then written in place (§4.2)
 
-fn checkA9(bytes: []const u8, header: Wzo2Header) A9Result {
-    // Compute SHA-256 of file with hash slot zeroed
+fn checkA9(
+    bytes: []const u8,
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) A9Result {
+    // (d) SHA-256 self-consistency
     const gpa = std.heap.page_allocator;
-    var to_hash = gpa.dupe(u8, bytes) catch return .{ .passed = false, .embedded_hash = [_]u8{0}**32, .computed_hash = [_]u8{0}**32 };
+    var to_hash = gpa.dupe(u8, bytes) catch return .{
+        .passed = false,
+        .sha256_ok = false,
+        .groups_sorted = true,  // readGroupIndex already verified
+        .entries_sorted = true,
+        .entry_order_violations = 0,
+        .embedded_hash = [_]u8{0} ** 32,
+        .computed_hash = [_]u8{0} ** 32,
+    };
     defer gpa.free(to_hash);
 
-    // Zero out the hash slot
     @memset(to_hash[HDR_OFF_SHA256..][0..32], 0);
-
     var digest: [32]u8 = undefined;
     std.crypto.hash.sha2.Sha256.hash(to_hash, &digest, .{});
+    const sha256_ok = std.mem.eql(u8, &digest, &header.sha256);
 
-    const passed = std.mem.eql(u8, &digest, &header.sha256);
+    // (b) Entry sort order within each group
+    var entry_order_violations: u64 = 0;
+    for (groups) |group| {
+        const start: usize = @intCast(group.entry_offset);
+        const end: usize = @intCast(group.entry_offset + group.entry_count);
+        if (end <= start + 1) continue;
+
+        var prev_kb_lookup: u8 = entries[start * WZO2_ENTRY_SIZE] & KEY_BYTE_LOOKUP_MASK;
+        var ei: usize = start + 1;
+        while (ei < end) : (ei += 1) {
+            const curr_kb_lookup = entries[ei * WZO2_ENTRY_SIZE] & KEY_BYTE_LOOKUP_MASK;
+            if (curr_kb_lookup < prev_kb_lookup) {
+                entry_order_violations += 1;
+                if (entry_order_violations <= 10) {
+                    util.warn("A9 ENTRY ORDER: group colex={d} entry {d} kb_lookup=0x{X:0>2} < prev=0x{X:0>2}\n", .{
+                        group.colex, ei - start, curr_kb_lookup, prev_kb_lookup,
+                    });
+                }
+            }
+            prev_kb_lookup = curr_kb_lookup;
+        }
+    }
+    const entries_sorted = entry_order_violations == 0;
+
+    // (a) reserved bytes + (c) metadata already verified by parseHeader
+    // (b) group order already verified by readGroupIndex
+    const passed = sha256_ok and entries_sorted;
+
     return A9Result{
         .passed = passed,
+        .sha256_ok = sha256_ok,
+        .groups_sorted = true, // readGroupIndex verified
+        .entries_sorted = entries_sorted,
+        .entry_order_violations = entry_order_violations,
         .embedded_hash = header.sha256,
         .computed_hash = digest,
     };
@@ -701,6 +751,10 @@ fn checkA9(bytes: []const u8, header: Wzo2Header) A9Result {
 
 const A9Result = struct {
     passed: bool,
+    sha256_ok: bool,
+    groups_sorted: bool,
+    entries_sorted: bool,
+    entry_order_violations: u64,
     embedded_hash: [32]u8,
     computed_hash: [32]u8,
 };
@@ -778,8 +832,8 @@ pub fn main(init: std.process.Init) !void {
     if (run_all or std.mem.eql(u8, check_filter.?, "a5")) {
         util.note("--- A5: round-trip identity ---\n", .{});
         const result = checkA5(header, entries);
-        util.out("A5 round-trip: checked={d}  mismatches={d}\n", .{
-            result.checked, result.mismatches,
+        util.out("A5 round-trip: checked={d}  mismatches={d}  stride={d}  denominator={d}\n", .{
+            result.checked, result.mismatches, result.stride, result.denominator,
         });
         const pass = result.mismatches == 0;
         util.out("A5 VERDICT: {s}\n", .{if (pass) "PASS" else "FAIL"});
@@ -789,7 +843,7 @@ pub fn main(init: std.process.Init) !void {
     // --- A6: calibration ---
     if (run_all or std.mem.eql(u8, check_filter.?, "a6")) {
         util.note("--- A6: calibration ---\n", .{});
-        const fixtures = try checkA6(bytes, header, entries, gpa);
+        const fixtures = try checkA6(bytes, header, gpa);
         defer gpa.free(fixtures);
 
         var all_caught = true;
@@ -807,9 +861,12 @@ pub fn main(init: std.process.Init) !void {
     // --- A9: reproducibility ---
     if (run_all or std.mem.eql(u8, check_filter.?, "a9")) {
         util.note("--- A9: reproducibility ---\n", .{});
-        const result = checkA9(bytes, header);
-        util.out("A9 SHA-256: embedded={s}  computed={s}\n", .{
-            formatSha256(result.embedded_hash), formatSha256(result.computed_hash),
+        const result = checkA9(bytes, header, groups, entries);
+        util.out("A9 SHA-256: embedded={s}  computed={s}  ok={}\n", .{
+            formatSha256(result.embedded_hash), formatSha256(result.computed_hash), result.sha256_ok,
+        });
+        util.out("A9 sort-order: groups_sorted={}  entries_sorted={}  entry_order_violations={d}\n", .{
+            result.groups_sorted, result.entries_sorted, result.entry_order_violations,
         });
         util.out("A9 VERDICT: {s}\n", .{if (result.passed) "PASS" else "FAIL"});
         if (!result.passed) any_fail = true;

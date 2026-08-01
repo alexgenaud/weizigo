@@ -90,6 +90,17 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
 
+    // ── oracle-v2 acceptance tests (M4a, T182) ────────────────────
+    const oracle_v2_accept_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/oracle_v2_accept.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_oracle_v2_accept_tests = b.addRunArtifact(oracle_v2_accept_tests);
+    test_step.dependOn(&run_oracle_v2_accept_tests.step);
+
     // ── engine-vs-engine ──────────────────────────────────────────
     const engine_vs_engine_exe = b.addExecutable(.{
         .name = "weizigo-engine-vs-engine",

@@ -693,13 +693,13 @@ appropriate reference.
   "numerator": 24318165,
   "denominator": 43046721,
   "illegal": 24187097,
-  "legal_both_sides": 65534,
-  "legal_one_side_only": 65534,
+  "legal_black": 65534,
+  "legal_white": 65534,
   "legal_positions_total": 24318165,
   "oeis_legal_reference": 24318165,
   "oeis_citation": "OEIS A094777",
   "legal_matches_oeis": true,
-  "note": "denominator = total address space 3^(w×h). legal_positions_total = illegal + legal_both_sides + legal_one_side_only."
+  "note": "denominator = total address space 3^(w×h). legal_black = |{idx: vb[idx] != -128}| (per-side count, NOT a partition). legal_white = |{idx: vw[idx] != -128}|. By symmetry legal_black == legal_white. legal_positions_total = illegal + legal_black + legal_white (double-counts the overlap on positions legal for both sides, producing the OEIS total). T172/T180 GAP-2: fields renamed from legal_both_sides/legal_one_side_only for clarity."
 }
 ```
 
@@ -707,9 +707,17 @@ appropriate reference.
 count). All I6 counts are in this unit. The `numerator` is
 `legal_positions_total`.
 
-`legal_positions_total`: sum of `illegal + legal_both_sides + legal_one_side_only`.
-This is the count of legal positions for one side; it should equal
-`artifact_legal_count` from the header.
+`legal_black`: count of colex indices where `vb[idx] != -128` — i.e., positions
+legal when Black to move. This is a per-side count.
+
+`legal_white`: count of colex indices where `vw[idx] != -128` — i.e., positions
+legal when White to move. By symmetry `legal_black == legal_white`.
+
+**These are per-side counts, NOT a partition.** A position legal for both sides
+appears in both `legal_black` and `legal_white`. `legal_positions_total` =
+`illegal + legal_black + legal_white` double-counts the overlap, producing
+the OEIS total. (T172/T180 GAP-2: fields renamed from `legal_both_sides` /
+`legal_one_side_only` which misleadingly suggested mutually exclusive categories.)
 
 `oeis_legal_reference`: `null` at 3×2 and 4×3 (OEIS A094777 is n×n only).
 `oeis_citation`: `"OEIS A094777"` at square gobans; at 3×2 and 4×3 carries
@@ -726,11 +734,12 @@ Computable on both WZO1 and WZO2. Reads `db`/`dw` columns (DTT).
   "numerator": 0,
   "denominator": 99133036,
   "terminals_with_dtt_neq_0": 0,
+  "dtt_recurrence_violations": 0,
   "non_terminals_with_dtt_255": 41234567,
   "terminals_total": 16543210,
   "uniform_count": null,
   "uniform_value": null,
-  "note": "denominator = compact slot count. terminals_with_dtt_neq_0 = 0 is the pass condition. non_terminals_with_dtt_255 reports far-count for distribution. uniform_count is null on pass."
+  "note": "denominator = compact slot count. terminals_with_dtt_neq_0 = 0 is the primary pass condition. dtt_recurrence_violations = count of non-terminals where DTT(state) != 1 + min(DTT(children)) — null if not computed (T172/T180 GAP-3). non_terminals_with_dtt_255 reports far-count for distribution. uniform_count is null on pass."
 }
 ```
 
@@ -741,17 +750,24 @@ Computable on both WZO1 and WZO2. Reads `db`/`dw` columns (DTT).
   "numerator": 16543210,
   "denominator": 99133036,
   "terminals_with_dtt_neq_0": 16543210,
+  "dtt_recurrence_violations": null,
   "non_terminals_with_dtt_255": 82589826,
   "terminals_total": 16543210,
   "uniform_count": 99133036,
   "uniform_value": 255,
-  "note": "FAIL: numerator = terminals_with_dtt_neq_0. DTT uniformly 255 across all slots including terminals. 255 = DTT_FAR sentinel — legitimate on far states, but terminals must be 0."
+  "note": "FAIL: numerator = terminals_with_dtt_neq_0. DTT uniformly 255 across all slots including terminals. 255 = DTT_FAR sentinel — legitimate on far states, but terminals must be 0. dtt_recurrence_violations is null (not computed — uniform-255 makes recurrence meaningless; every terminal already fails the simpler check)."
 }
 ```
 
-**`numerator`** = `terminals_with_dtt_neq_0`. Should be 0.
+**`numerator`** = `terminals_with_dtt_neq_0 + (dtt_recurrence_violations ?? 0)`. Should be 0.
 
 **`denominator`** = compact slot count (passes ∈ {0,1}).
+
+`dtt_recurrence_violations`: count of non-terminal legal slots where
+`DTT(state) != 1 + min(DTT(children))` — the recurrence property from spec §4.
+Requires the rules engine for child generation (M3 scope). `null` when not
+computed (deferred to WZO2 or rules engine unavailable). When non-null and
+> 0, the invariant is artifact-bad. T172/T180 GAP-3.
 
 `uniform_count` and `uniform_value`: reported only when the column is uniform
 across all slots; `null` otherwise. The defect signature is uniformity
@@ -826,7 +842,11 @@ which are not stored. `value: null`.
 
 `violations` = `tie_below_L + tie_above_H + tie_not_median`.
 `tie_not_median`: TIE ≠ median(L, TIE, H) — i.e. TIE within [L,H] but not the
-median — this is the QA-023 failure shape (wrong values, sane histogram).
+median of the three values. **Under the three-value median definition,
+`tie_not_median` is always 0**: when TIE ∈ [L, H], median(L, TIE, H) = TIE
+trivially. The field is retained for forward compatibility with a future
+distribution-median check. The operational pass condition is
+`tie_below_L == 0 AND tie_above_H == 0`. T172/T180 GAP-4.
 
 #### I11 — move-set consistency
 
@@ -838,8 +858,10 @@ Computable on both WZO1 and WZO2.
   "denominator": 500,
   "mismatches": 0,
   "mismatch_examples": [],
-  "solver_dump_path": "docs/evidence/BATTERY/move-dump-3x3.wzo",
-  "note": "sampled at 3×3 per §6a (3×3 population TBD in V-8 — see §5 item 5)"
+  "solver_dump_path": "docs/evidence/BATTERY/move-dump-3x3.smd1",
+  "solver_dump_format": "SMD1",
+  "solver_dump_sha256": "a1b2c3...",
+  "note": "sampled at 3×3 per §6a (3×3 population TBD in V-8 — see §5 item 5). Dump format: SMD1 binary (§4.6)."
 }
 ```
 
@@ -1108,6 +1130,134 @@ code 3. The `error` object carries:
 
 When an artifact load error occurs before any invariants run, the battery emits
 the minimal header record (§3.2.2), the error result, the trailer, and exits 3.
+
+### 4.6 SMD1 solver-dump format (I11)
+
+**Status: DEFINED by T172/T180 GAP-5 resolution.** This section specifies the
+binary format the solver-side dump utility writes and the battery's I11 reader
+parses. The format is complete enough for independent implementation of both
+sides.
+
+#### 4.6.1 File structure
+
+```
+┌──────────────────┐
+│  Header (28 B)   │
+├──────────────────┤
+│  Record 0        │
+├──────────────────┤
+│  Record 1        │
+├──────────────────┤
+│  ...             │
+├──────────────────┤
+│  Record N-1      │
+├──────────────────┤
+│  CRC-32 (4 B)    │  ← CRC of all records only (not the header)
+└──────────────────┘
+```
+
+Records are sorted by `(colex_idx, side)` ascending. The CRC-32 is ISO-HDLC
+(`0xEDB88320`), same polynomial as the WZO1 artifact's payload CRC.
+
+#### 4.6.2 Header (28 bytes, little-endian)
+
+| offset | size | field | description |
+|---|---|---|---|
+| 0 | 4 | magic | ASCII `SMD1` |
+| 4 | 1 | version | `1` |
+| 5 | 1 | w | goban width |
+| 6 | 1 | h | goban height |
+| 7 | 1 | colex_bytes | bytes per colex index (1–8). `1` when 3^(w×h) ≤ 255; `4` up to 4×3; `8` for 4×4. |
+| 8 | 1 | moves_bytes | bytes per move bitmap = `ceil((w×h + 1) / 8)`. The `+1` is for the pass bit. |
+| 9 | 3 | reserved | zero |
+| 12 | 4 | record_count | u32 LE, number of position records |
+| 16 | 4 | slice_ko | u8 LE, ko point at this slice (always `255` = NONE for artifact-slice dumps). Padding: 3 zero bytes. |
+| 20 | 4 | slice_passes | u8 LE, passes counter at this slice (always `0` for artifact-slice dumps). Padding: 3 zero bytes. |
+| 24 | 4 | payload_crc32 | u32 LE, CRC-32 of all records (bytes from offset 28 to end−4) |
+
+#### 4.6.3 Record format
+
+Each record describes the legal-move set for one (position, side) pair at the
+nominated slice (ko=NONE, passes=0 — the artifact slot).
+
+| offset | size | field | description |
+|---|---|---|---|
+| 0 | colex_bytes | colex_idx | u64 LE, colex index of the position |
+| colex_bytes | 1 | side | `1` = Black to move, `2` = White to move |
+| colex_bytes+1 | moves_bytes | move_bitmap | bit `i` = 1 iff moving to cell `i` is legal. Bit `w×h` = pass is legal. Bits beyond `w×h+1` are zero. |
+
+**Record size** = `colex_bytes + 1 + moves_bytes`.
+
+**Move bitmap encoding:** cells are numbered 0..w×h−1 in row-major order
+(row 0, cells 0..w−1; row 1, cells w..2w−1; etc.). Bit 0 is the LSB of
+byte 0. Pass is bit `w×h`. A position with only the pass bit set (no stone
+placements legal AND pass legal) is distinct from one with no bits set
+(neither placements nor pass legal — this shouldn't occur for legal positions
+under basic-ko rules, since pass is always legal after the opponent has not
+just passed; but the format does not enforce this).
+
+**Example:** 2×2 goban, w×h = 4, moves_bytes = ceil(5/8) = 1 byte.
+- Bit 0 = cell 0 (top-left)
+- Bit 1 = cell 1 (top-right)
+- Bit 2 = cell 2 (bottom-left)
+- Bit 3 = cell 3 (bottom-right)
+- Bit 4 = pass
+- Bits 5–7 = zero
+
+#### 4.6.4 Dump scope and slicing
+
+The dump records positions at the **artifact slice**: `ko = NONE (255), passes = 0`.
+This is the same slice the artifact's stored values live at (§4.2). For each
+position in the dump, the legal-move set is generated with no ko-forbidden
+point (since the artifact slot has `ko=NONE`).
+
+For exhaustive dumps (2×2, 3×2 per §6a), every legal position for each side
+is included. For sampled dumps (3×3+), the positions are drawn from the
+compact slot set (passes ∈ {0,1}) at the `ko=NONE, passes=0` slice.
+
+#### 4.6.5 Solver-side generation
+
+The solver's dump utility generates this file by:
+1. Iterating over legal positions for each side at the artifact slice.
+2. For each position: generate legal moves using the solver's basic-ko rules
+   engine (the same code path the solver uses during retrograde fixpoint).
+3. Write the record to the output file.
+4. After all records: compute and append the CRC-32.
+
+The solver dump utility is a separate invocation mode of the retrograde
+solver, not part of the battery. It shares the solver's move-generation code
+(the code being tested) and can therefore be written quickly (~50–100 lines).
+
+#### 4.6.6 Battery-side reading
+
+The battery's I11 reader:
+1. Opens the dump file, verifies magic `SMD1`, version `1`.
+2. Verifies `w`, `h` match the goban under test.
+3. Verifies `slice_ko == 255`, `slice_passes == 0`.
+4. Reads and CRC-validates all records.
+5. For each record: decodes the colex index, generates the battery's own
+   legal-move set (using its independently re-implemented rules engine per R8),
+   and compares the two bitmaps.
+6. Records any mismatches with example colex indices.
+
+**Comparison:** two move bitmaps are equal when all bits 0..w×h match. Extra
+bits (beyond w×h+1) in either bitmap are ignored. If the battery's bitmap has
+bits set that the solver's doesn't (or vice versa), it's a mismatch.
+
+#### 4.6.7 File naming and provenance
+
+Dump files are named `<descriptor>-<goban>.smd1`, e.g.:
+- `oracle-3x2-exhaustive.smd1` — 3×2 exhaustive dump against `artifacts/oracle-3x2.wzo`
+- `oracle-4x4-sample-s31337-n50000.smd1` — 4×4 sample (seed=31337, n=50000)
+
+The dump file's complete provenance (solver binary version, artifact
+SHA-256, invocation arguments, seed, sample size) is recorded in a
+sidecar JSON file with the same stem (`.smd1.json`). The battery's
+header record reports `solver_dump_sha256` and `solver_dump_format: "SMD1"`.
+
+The battery does NOT generate dump files — it only reads them. The dump
+generation is the solver maintainer's responsibility; the format defined
+here is the contract between the two components.
 
 ## 5. Goban size parameterisation
 
@@ -1530,3 +1680,53 @@ This revision resolves five should-fix carry-overs from the rev-2 re-audit
 - **AC-S5d:** `artifact_index` in §3.5 proposed-row field table changed from
   `no` to `yes` (nullable); description updated to state `null` for I5
   once-per-goban rows (which have no artifact).
+
+## 16. Revision notes (rev 4 vs rev 3)
+
+```
+Author:   DSPro/T180 · 2026-08-01
+Status:   PROPOSED (rev 4) — P3-A spec surgery: resolves GAP-1 through GAP-5
+          from T172 blind re-implementation analysis.
+Inputs:   untracked/T172-blind-analysis.md (DSPro/T172-w1) ·
+          docs/epic-01-markovian/sprints/verify-battery/archive/T180-disposition.md
+```
+
+This revision resolves five gaps identified by the independent re-implementation
+audit (T172, DELIVERED 2026-07-31). The companion spec amendment (rev 1→rev 2)
+addresses GAP-1/3/4/5 in the invariant descriptions. Changes:
+
+**GAP-2 (Minor — I6 field semantics):**
+- I6 value schema fields renamed: `legal_both_sides` → `legal_black`,
+  `legal_one_side_only` → `legal_white`. The old names misleadingly suggested
+  mutually exclusive categories; the fields are per-side legality counts.
+- I6 prose rewritten: explicit note that these are per-side counts, not a
+  partition, and that `legal_positions_total` double-counts the overlap.
+
+**GAP-3 (Moderate — I7 missing recurrence check):**
+- Added `dtt_recurrence_violations: u64|null` field to I7 value schema.
+- Pass example updated to include `dtt_recurrence_violations: 0`.
+- Fail example updated with `dtt_recurrence_violations: null` (not computed —
+  uniform-255 makes recurrence meaningless).
+- Prose: `numerator` redefined as `terminals_with_dtt_neq_0 +
+  (dtt_recurrence_violations ?? 0)`. Field is `null` when not computed.
+
+**GAP-4 (Minor — I10 `tie_not_median` logically impossible):**
+- I10 schema note replaced: documents that `tie_not_median` is always 0 under
+  the three-value median definition (when TIE ∈ [L,H], median(L,TIE,H) = TIE
+  trivially). Field retained for forward compatibility with a future
+  distribution-median check.
+- Pass condition clarified: `tie_below_L == 0 AND tie_above_H == 0`.
+
+**GAP-5 (Critical — I11 dump format unspecified):**
+- New §4.6: SMD1 solver-dump format specification. Complete binary format
+  definition: header (28 bytes), per-position records (colex_idx + side +
+  move_bitmap), CRC-32 footer. Specifies file structure, field layout,
+  move-bitmap encoding, dump scope (artifact slice), solver-side generation
+  procedure, and battery-side reading procedure.
+- I11 value schema: added `solver_dump_format: "SMD1"` and
+  `solver_dump_sha256` fields. Example path updated to `.smd1` extension.
+
+**GAP-1 (Moderate — I4 WZO1 limitation):**
+- Resolved in the companion spec amendment (I4 row now carries a parenthetical
+  noting the KO_SENSITIVE child contamination limitation). No design change
+  needed — the limitation was already acknowledged in the I4 `note` field.

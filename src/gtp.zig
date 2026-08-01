@@ -87,6 +87,12 @@ const MAX_HIST = 4096;
 /// and the engine falls back to pass or another filled child.
 pub const UNDEF: i8 = -128;
 
+/// P3-B: counter for silent bounds2 lookup-miss area-score fallback.
+/// Incremented each time bounds2 can't find a state in the artifact and
+/// falls back to area score. Module-level static: bounds2 takes *const S,
+/// and the counter must survive per-session. Printed at session end.
+var bounds2_lookup_miss_count: u64 = 0;
+
 /// Enforcement mode per spec oracle-v2 §3.1.
 /// basic_ko = enforce the artifact's own rule (ko point only).
 /// psk      = also forbid position recurrence (stricter; values are still basic-ko).
@@ -153,7 +159,9 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             }
 
             // Not found: unreachable state under basic ko. Fall back to area score.
+            bounds2_lookup_miss_count += 1;
             const area = R.area_score(pos);
+            std.debug.print("weizigo-oracle: WARNING bounds2 lookup-miss #{d} — state colex={d} side={d} ko={d} passes={d} not in artifact, fell back to area score {d}\n", .{ bounds2_lookup_miss_count, colex_val, side, ko, passes, area });
             return .{ .L = area, .H = area, .DTT = 0, .terminal = true, .ko_sensitive = false };
         }
 
@@ -281,12 +289,46 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             return best;
         }
 
-        /// Does the chainability identity hold at (pos, side)? For artifact2,
-        /// the full Markov key ensures self-consistency — always true.
-        pub fn chainable_at_pos(s: *const S, pos: *const Pos, side: i8) bool {
-            // Artifact2: full Markov key — Bellman identity holds by solver construction
-            if (s.a2) |_| return true;
-            // Artifact1: check the history-free Bellman identity
+        /// WZO2 single-ply Bellman RHS for the full Markov key (P3-B fix).
+        /// Computes best_side({ V0(child, child_ko, 0, -side) : child legal }
+        /// ∪ { V0(pos, KO_NONE, passes+1, -side) }). Uses explicit ko/passes
+        /// rather than s.ko_point/s.passes so that child positions can be
+        /// checked with their own ko state. Basic-ko recapture is enforced
+        /// (matches the stored V0's computation).
+        fn rhs_chain_v2(s: *const S, pos: *const Pos, side: i8, ko: u8, passes: u2) i8 {
+            const maximizing = side > 0;
+            // Pass edge: side passes → ko cleared, passes+1, opponent to move.
+            const pass_row = s.bounds2(pos, KO_NONE, passes + 1, -side);
+            var best: i8 = pinnedValue(pass_row.L, pass_row.H);
+            for (0..n) |p| {
+                if (pos[p] != 0) continue;
+                // Basic ko enforcement: cannot recapture at the ko point.
+                // The stored V0 was computed with this constraint; RHS must match.
+                if (ko != KO_NONE and p == ko) continue;
+                const child = R.pos_from_move(pos, side, p) catch continue;
+                const child_ko = koAfterCapture(pos, side, &child);
+                const row = s.bounds2(&child, child_ko, 0, -side);
+                const v = pinnedValue(row.L, row.H);
+                if (if (maximizing) v > best else v < best) best = v;
+            }
+            return best;
+        }
+
+        /// Does the chainability identity hold at (pos, side)?
+        /// For artifact2 (WZO2): checks the Markov-key Bellman identity
+        /// with explicit ko/passes rather than the session's current state.
+        /// For artifact1 (WZO1): checks the history-free Bellman identity.
+        /// P3-B: no longer short-circuits to true for WZO2 — the check is
+        /// now falsifiable and will refuse on corrupted artifacts.
+        pub fn chainable_at_pos(s: *const S, pos: *const Pos, side: i8, ko: u8, passes: u2) bool {
+            if (s.a2) |_| {
+                // Artifact2 (WZO2): Markov-key Bellman identity.
+                const stored_row = s.bounds2(pos, ko, passes, side);
+                const stored = pinnedValue(stored_row.L, stored_row.H);
+                const expected = s.rhs_chain_v2(pos, side, ko, passes);
+                return expected == stored;
+            }
+            // Artifact1 (WZO1): check the history-free Bellman identity
             if (R.is_settled(pos)) return true;
             const stored = s.v0(pos, side);
             if (stored == UNDEF) return true; // unfilled; nothing to compare
@@ -296,7 +338,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
 
         /// Convenience wrapper for the current game state.
         pub fn chainable_at(s: *const S, side: i8) bool {
-            return s.chainable_at_pos(&s.pos, side);
+            return s.chainable_at_pos(&s.pos, side, s.ko_point, @intCast(s.passes));
         }
 
         /// History-free score for the refusal fallback: a snapshot-only,
@@ -587,7 +629,11 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                         // as refusal-safe: fall through to fallback.
                         return s.fallback_pick(side, .a2_child);
                     };
-                    if (s.chainable_at_pos(&child, -side)) {
+                    // Compute child's ko for correct WZO2 Markov-key lookup.
+                    // applyMove hasn't been called yet, so s.ko_point is the
+                    // parent's ko; the child's ko is koAfterCapture from parent.
+                    const child_ko = koAfterCapture(&s.pos, side, &child);
+                    if (s.chainable_at_pos(&child, -side, child_ko, 0)) {
                         return .{ .choice = c, .cause = .none };
                     }
                     // A2 failed: refuse. Fall back.
@@ -1215,7 +1261,8 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 var a2buf: [2]u8 = undefined;
                 const a2s: []const u8 = if (cch.cell) |cell| blk: {
                     const kid = S.R.pos_from_move(&s.pos, cs, cell) catch break :blk "-";
-                    a2buf[0] = if (s.chainable_at_pos(&kid, -cs)) '1' else '0';
+                    const kid_ko = S.koAfterCapture(&s.pos, cs, &kid);
+                    a2buf[0] = if (s.chainable_at_pos(&kid, -cs, kid_ko, 0)) '1' else '0';
                     break :blk a2buf[0..1];
                 } else "-";
                 const mv: []const u8 = if (cch.cell) |cell| vertex_from_cell(&vbuf, cell, w, h) else "pass";
