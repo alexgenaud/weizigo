@@ -131,6 +131,40 @@ fn encodeKeyByte(side: u1, ko_point: u8, passes: u2, terminal: bool, ko_bits: u8
 const KEY_BYTE_LOOKUP_MASK: u8 = 0xFE;
 
 // =========================================================================
+// Helpers — pinned value, PRNG, ko-after-capture
+// =========================================================================
+
+/// TIE=0 pinned value from an L/H bracket: max(L, min(0, H)).
+fn pinnedValue(L: i8, H: i8) i8 {
+    return @max(L, @min(@as(i8, 0), H));
+}
+
+/// Simple LCG PRNG for reproducible self-play (glibc-style).
+fn prngNext(state: *u64) usize {
+    state.* = state.* *% 6364136223846793005 +% 1442695040888963407;
+    return @intCast((state.* >> 33) & 0x7FFFFFFF);
+}
+
+/// Compute ko_point after a placement. Returns KO_NONE (= n) if no ko created.
+/// Mirrors gtp.zig:S.koAfterCapture.
+fn koAfterCapture(old_pos: anytype, side: i8, new_pos: anytype, ko_none: u8) u8 {
+    const opp: i8 = -side;
+    var opp_before: u16 = 0;
+    var last_captured: u8 = ko_none;
+    const n: usize = old_pos.len;
+    for (0..n) |p| {
+        if (old_pos[p] == opp) opp_before += 1;
+        if (old_pos[p] == opp and new_pos[p] == 0) last_captured = @intCast(p);
+    }
+    var opp_after: u16 = 0;
+    for (0..n) |p| {
+        if (new_pos[p] == opp) opp_after += 1;
+    }
+    if (opp_before - opp_after == 1 and last_captured != ko_none) return last_captured;
+    return ko_none;
+}
+
+// =========================================================================
 // WZO2 header parsing
 // =========================================================================
 
@@ -476,6 +510,623 @@ const A3Result = struct {
 };
 
 // =========================================================================
+// A1 — pinned-seed self-play refusal rate
+// =========================================================================
+//
+// Random self-play with a pinned PRNG seed. At each ply the harness looks up
+// the current state in the artifact; a null return is a refusal (= the v1
+// UNCHAINABLE symptom). Move selection is random (same PRNG). Denominator ≥
+// 100 oracle queries. The seed is recorded here for reproducibility.
+
+const SELFPLAY_SEED: u64 = 0x57A1_4E27_0D97;
+
+fn checkA1(
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) !A1Result {
+    const w = header.w;
+    const h = header.h;
+    return switch (w) {
+        2 => switch (h) {
+            2 => checkA1Inner(2, 2, header, groups, entries),
+            3 => checkA1Inner(2, 3, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        3 => switch (h) {
+            2 => checkA1Inner(3, 2, header, groups, entries),
+            3 => checkA1Inner(3, 3, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        4 => switch (h) {
+            3 => checkA1Inner(4, 3, header, groups, entries),
+            4 => checkA1Inner(4, 4, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        else => error.UnsupportedGoban,
+    };
+}
+
+fn checkA1Inner(
+    comptime w: usize,
+    comptime h: usize,
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) !A1Result {
+    const R = colex.Indexer(w, h);
+    const Rules = rules.Rules(w, h);
+    const ko_bits = header.ko_bits;
+    const ko_none: u8 = @intCast(w * h);
+    const n_cells = w * h;
+
+    var rng: u64 = SELFPLAY_SEED;
+    var queries: u64 = 0;
+    var refusals: u64 = 0;
+    var games: u64 = 0;
+    var max_plies: u64 = 0;
+
+    // Play games until we have ≥ 100 oracle queries, max 20 games
+    while (queries < 100 and games < 20) : (games += 1) {
+        var pos: R.Pos = [_]i8{0} ** (w * h);
+        var side: i8 = 1; // Black to move
+        var ko: u8 = ko_none;
+        var passes: u2 = 0;
+        var plies: u64 = 0;
+
+        while (plies < 200) : (plies += 1) {
+            if (passes >= 2) break; // game over (double pass)
+            queries += 1;
+
+            // Oracle query: look up current state
+            const colex_val: u32 = @intCast(R.colex_from_pos(&pos));
+            const group_idx = findGroup(groups, colex_val);
+            if (group_idx == null) {
+                refusals += 1;
+                if (refusals <= 5) {
+                    util.warn("A1 REFUSAL: colex={d} side={d} ko={d} passes={d} group not found\n", .{ colex_val, side, ko, passes });
+                }
+                break;
+            }
+            const group = groups[group_idx.?];
+            const target_kb = encodeKeyByte(if (side > 0) @as(u1, 0) else @as(u1, 1), ko, @intCast(passes), false, ko_bits);
+            const entry = lookupInGroup(entries, group, target_kb & KEY_BYTE_LOOKUP_MASK);
+            if (entry == null) {
+                refusals += 1;
+                if (refusals <= 5) {
+                    util.warn("A1 REFUSAL: colex={d} side={d} ko={d} passes={d} entry not found\n", .{ colex_val, side, ko, passes });
+                }
+                break;
+            }
+
+            // Collect legal moves (non-pass)
+            var legal_moves: [n_cells]usize = undefined;
+            var nmoves: usize = 0;
+            for (0..n_cells) |p| {
+                if (pos[p] != 0) continue;
+                if (ko != ko_none and p == ko) continue; // basic ko
+                _ = Rules.pos_from_move(&pos, side, p) catch continue; // suicide/occupied
+                legal_moves[nmoves] = p;
+                nmoves += 1;
+            }
+
+            if (nmoves == 0) {
+                // No legal placements — must pass
+                passes += 1;
+                ko = ko_none; // pass clears ko
+                side = -side;
+                continue;
+            }
+
+            // Pick a random move using PRNG
+            const pick = prngNext(&rng) % nmoves;
+            const mp = legal_moves[pick];
+
+            // Apply the move
+            const child_pos = Rules.pos_from_move(&pos, side, mp) catch continue;
+            const child_ko = koAfterCapture(&pos, side, &child_pos, ko_none);
+            pos = child_pos;
+            ko = child_ko;
+            passes = 0; // placement resets passes
+            side = -side;
+        }
+        if (plies > max_plies) max_plies = plies;
+    }
+
+    return A1Result{
+        .queries = queries,
+        .refusals = refusals,
+        .games = games,
+        .max_plies = max_plies,
+        .seed = SELFPLAY_SEED,
+    };
+}
+
+const A1Result = struct {
+    queries: u64,
+    refusals: u64,
+    games: u64,
+    max_plies: u64,
+    seed: u64,
+};
+
+// =========================================================================
+// A4 — pin census
+// =========================================================================
+//
+// Count entries by pin category: L==H (pin_T), L<H with L>0 (pin_L — TIE=0
+// would select L), L<H with H<0 (pin_H — TIE=0 would select H). Invariant:
+// pin_L == pin_H (colour-inversion symmetry). Also report L<H with L≤0≤H
+// (straddle-zero, TIE=0 picks 0).
+
+fn checkA4(_: Wzo2Header, groups: []const Wzo2Group, entries: []const u8) A4Result {
+    var pin_T: u64 = 0; // L == H
+    var pin_L: u64 = 0; // L < H, L > 0 (TIE=0 picks L)
+    var pin_H: u64 = 0; // L < H, H < 0 (TIE=0 picks H)
+    var pin_0: u64 = 0; // L < H, L <= 0 <= H (TIE=0 picks 0 at the boundary)
+    var total: u64 = 0;
+
+    // Iterate all entries
+    var group_idx: usize = 0;
+    while (group_idx < groups.len) : (group_idx += 1) {
+        const group = groups[group_idx];
+        const start: usize = @intCast(group.entry_offset);
+        const end: usize = @intCast(group.entry_offset + group.entry_count);
+
+        var ei: usize = start;
+        while (ei < end) : (ei += 1) {
+            const entry = entries[ei * WZO2_ENTRY_SIZE ..][0..WZO2_ENTRY_SIZE];
+            const L: i8 = @bitCast(entry[1]);
+            const H: i8 = @bitCast(entry[2]);
+            total += 1;
+
+            if (L == H) {
+                pin_T += 1;
+            } else if (L > 0) {
+                pin_L += 1;
+            } else if (H < 0) {
+                pin_H += 1;
+            } else {
+                pin_0 += 1; // L <= 0 <= H, L < H
+            }
+        }
+    }
+
+    const pin_LH_ok = pin_L == pin_H;
+
+    return A4Result{
+        .total = total,
+        .pin_T = pin_T,
+        .pin_L = pin_L,
+        .pin_H = pin_H,
+        .pin_0 = pin_0,
+        .pin_LH_ok = pin_LH_ok,
+    };
+}
+
+const A4Result = struct {
+    total: u64,
+    pin_T: u64,
+    pin_L: u64,
+    pin_H: u64,
+    pin_0: u64,
+    pin_LH_ok: bool,
+};
+
+// =========================================================================
+// A2 — post-round-trip Bellman residual
+// =========================================================================
+//
+// For every stored entry, reconstruct the state, generate all children
+// (legal placements + pass), look up child values, and verify the Bellman
+// operator is a fixpoint:
+//   L(parent) == best_side({L(child), ...})
+//   H(parent) == best_side({H(child), ...})
+// where best_side = max for Black, min for White.
+//
+// Passes=2 children (absorbing terminals per R10) are not in the artifact;
+// plug them as L=H=area_score(pos), DTT=0, terminal=true.
+//
+// Exhaustive at 2x2/3x2/3x3, sampled with prime stride at 4x4.
+
+fn checkA2(
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) !A2Result {
+    const w = header.w;
+    const h = header.h;
+    return switch (w) {
+        2 => switch (h) {
+            2 => checkA2Inner(2, 2, header, groups, entries),
+            3 => checkA2Inner(2, 3, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        3 => switch (h) {
+            2 => checkA2Inner(3, 2, header, groups, entries),
+            3 => checkA2Inner(3, 3, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        4 => switch (h) {
+            3 => checkA2Inner(4, 3, header, groups, entries),
+            4 => checkA2Inner(4, 4, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        else => error.UnsupportedGoban,
+    };
+}
+
+fn checkA2Inner(
+    comptime w: usize,
+    comptime h: usize,
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) !A2Result {
+    const R = colex.Indexer(w, h);
+    const Rules = rules.Rules(w, h);
+    const ko_bits = header.ko_bits;
+    const ko_none: u8 = @intCast(w * h);
+    const n_cells = w * h;
+    const n_entries = header.n_entries;
+
+    // Stride: exhaustive for small gobans, prime-stride sample for 4x4
+    const stride: u64 = if (n_entries > 5_000_000) 997 else 1;
+    const denominator = n_entries;
+
+    var checked: u64 = 0;
+    var L_violations: u64 = 0;
+    var H_violations: u64 = 0;
+    var missing_child: u64 = 0;
+
+    var group_idx: usize = 0;
+    var entry_global: u64 = 0;
+    while (group_idx < groups.len) : (group_idx += 1) {
+        const group = groups[group_idx];
+        const colex_val = group.colex;
+        const start: usize = @intCast(group.entry_offset);
+        const end: usize = @intCast(group.entry_offset + group.entry_count);
+
+        // Reconstruct the goban position for this group
+        const pos = R.pos_from_colex(colex_val);
+
+        var ei: usize = start;
+        while (ei < end) : (ei += 1) {
+            defer entry_global += 1;
+            if (entry_global % stride != 0) continue;
+
+            const entry = entries[ei * WZO2_ENTRY_SIZE ..][0..WZO2_ENTRY_SIZE];
+            const kb = entry[0];
+            const L: i8 = @bitCast(entry[1]);
+            const H: i8 = @bitCast(entry[2]);
+
+            const side_u1 = keyByteSide(kb);
+            const side: i8 = if (side_u1 == 0) @as(i8, 1) else @as(i8, -1);
+            const ko_point = keyByteKoPoint(kb, ko_bits);
+            const passes: u2 = keyBytePasses(kb, ko_bits);
+            _ = keyByteTerminal(kb);
+
+            const maximizing = side > 0;
+
+            // Accumulate child values
+            var best_L: i8 = if (maximizing) -128 else 127;
+            var best_H: i8 = if (maximizing) -128 else 127;
+            var any_child = false;
+
+            // Pass edge: (same pos, -side, ko=none, passes+1)
+            {
+                const child_passes = passes + 1;
+                if (child_passes >= 2) {
+                    // Absorbing terminal (R10): L=H=area_score(pos)
+                    const ascore = Rules.area_score(&pos);
+                    const cl: i8 = ascore;
+                    const ch: i8 = ascore;
+                    if (if (maximizing) cl > best_L else cl < best_L) best_L = cl;
+                    if (if (maximizing) ch > best_H else ch < best_H) best_H = ch;
+                    any_child = true;
+                } else {
+                    const pass_kb = encodeKeyByte(1 - side_u1, ko_none, @intCast(child_passes), false, ko_bits);
+                    const pass_group_idx = findGroup(groups, colex_val); // same colex
+                    if (pass_group_idx != null) {
+                        const pass_row = lookupInGroup(entries, groups[pass_group_idx.?], pass_kb & KEY_BYTE_LOOKUP_MASK);
+                        if (pass_row != null) {
+                            if (if (maximizing) pass_row.?.L > best_L else pass_row.?.L < best_L) best_L = pass_row.?.L;
+                            if (if (maximizing) pass_row.?.H > best_H else pass_row.?.H < best_H) best_H = pass_row.?.H;
+                            any_child = true;
+                        } else {
+                            missing_child += 1;
+                        }
+                    } else {
+                        missing_child += 1;
+                    }
+                }
+            }
+
+            // Placement children
+            for (0..n_cells) |p| {
+                if (pos[p] != 0) continue;
+                if (ko_point != ko_none and p == ko_point) continue; // basic ko
+                const child_pos = Rules.pos_from_move(&pos, side, p) catch continue;
+                const child_ko = koAfterCapture(&pos, side, &child_pos, ko_none);
+                const child_colex: u32 = @intCast(R.colex_from_pos(&child_pos));
+                const child_kb = encodeKeyByte(1 - side_u1, child_ko, 0, false, ko_bits); // passes resets to 0
+
+                const child_group_idx = findGroup(groups, child_colex);
+                if (child_group_idx == null) {
+                    missing_child += 1;
+                    continue;
+                }
+                const child_row = lookupInGroup(entries, groups[child_group_idx.?], child_kb & KEY_BYTE_LOOKUP_MASK);
+                if (child_row == null) {
+                    missing_child += 1;
+                    continue;
+                }
+                if (if (maximizing) child_row.?.L > best_L else child_row.?.L < best_L) best_L = child_row.?.L;
+                if (if (maximizing) child_row.?.H > best_H else child_row.?.H < best_H) best_H = child_row.?.H;
+                any_child = true;
+            }
+
+            // If terminal (no legal placements), the pass edge is the only child.
+            // `any_child` covers this since the pass edge is always generated.
+            // If somehow no children at all, skip the check.
+            if (!any_child) {
+                missing_child += 1;
+                checked += 1;
+                continue;
+            }
+
+            // Bellman identity check
+            if (L != best_L) {
+                L_violations += 1;
+                if (L_violations <= 10) {
+                    util.warn("A2 L-VIOLATION: colex={d} side={d} ko={d} p={d}  stored L={d} expected L={d}\n", .{ colex_val, side, ko_point, passes, L, best_L });
+                }
+            }
+            if (H != best_H) {
+                H_violations += 1;
+                if (H_violations <= 10) {
+                    util.warn("A2 H-VIOLATION: colex={d} side={d} ko={d} p={d}  stored H={d} expected H={d}\n", .{ colex_val, side, ko_point, passes, H, best_H });
+                }
+            }
+            checked += 1;
+        }
+    }
+
+    return A2Result{
+        .checked = checked,
+        .L_violations = L_violations,
+        .H_violations = H_violations,
+        .missing_child = missing_child,
+        .stride = stride,
+        .denominator = denominator,
+    };
+}
+
+const A2Result = struct {
+    checked: u64,
+    L_violations: u64,
+    H_violations: u64,
+    missing_child: u64,
+    stride: u64,
+    denominator: u64,
+};
+
+// =========================================================================
+// A8 — DTT non-constant, consistency, distribution
+// =========================================================================
+//
+// DTT is non-constant (≥ 2 distinct non-FAR values), terminals have DTT≥1
+// (stored; passes=2 terminals with DTT=0 are not in artifact), and for each
+// non-terminal non-FAR entry, DTT > min_{c ∈ VP(s)} DTT(c).
+// Reports the distribution (histogram buckets).
+
+fn checkA8(
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) !A8Result {
+    const w = header.w;
+    const h = header.h;
+    return switch (w) {
+        2 => switch (h) {
+            2 => checkA8Inner(2, 2, header, groups, entries),
+            3 => checkA8Inner(2, 3, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        3 => switch (h) {
+            2 => checkA8Inner(3, 2, header, groups, entries),
+            3 => checkA8Inner(3, 3, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        4 => switch (h) {
+            3 => checkA8Inner(4, 3, header, groups, entries),
+            4 => checkA8Inner(4, 4, header, groups, entries),
+            else => error.UnsupportedGoban,
+        },
+        else => error.UnsupportedGoban,
+    };
+}
+
+fn checkA8Inner(
+    comptime w: usize,
+    comptime h: usize,
+    header: Wzo2Header,
+    groups: []const Wzo2Group,
+    entries: []const u8,
+) !A8Result {
+    const R = colex.Indexer(w, h);
+    const Rules = rules.Rules(w, h);
+    const ko_bits = header.ko_bits;
+    const ko_none: u8 = @intCast(w * h);
+    const n_cells = w * h;
+
+    // Distribution buckets: [0]=0, [1]=1..4, [2]=5..16, [3]=17..64, [4]=65..254, [5]=FAR(255)
+    var dist: [6]u64 = [_]u64{0} ** 6;
+    var total: u64 = 0;
+    var far_count: u64 = 0;
+    var terminal_with_dtt0: u64 = 0; // ERROR: terminal flag set but DTT=0
+    var dtt_consistency_checked: u64 = 0;
+    var dtt_consistency_violations: u64 = 0;
+
+    // For DTT non-constant: track first non-FAR DTT value
+    var first_dtt: ?u8 = null;
+    var non_constant_ok = false;
+
+    // Stride for DTT consistency (expensive: requires child generation)
+    const n_entries = header.n_entries;
+    const dtt_stride: u64 = if (n_entries > 1_000_000) 1999 else 1;
+
+    var group_idx: usize = 0;
+    var entry_global: u64 = 0;
+    while (group_idx < groups.len) : (group_idx += 1) {
+        const group = groups[group_idx];
+        const colex_val = group.colex;
+        const start: usize = @intCast(group.entry_offset);
+        const end: usize = @intCast(group.entry_offset + group.entry_count);
+
+        const pos = R.pos_from_colex(colex_val);
+
+        var ei: usize = start;
+        while (ei < end) : (ei += 1) {
+            defer entry_global += 1;
+            const entry = entries[ei * WZO2_ENTRY_SIZE ..][0..WZO2_ENTRY_SIZE];
+            const kb = entry[0];
+            const L: i8 = @bitCast(entry[1]);
+            const H: i8 = @bitCast(entry[2]);
+            const DTT = entry[3];
+
+            const side_u1 = keyByteSide(kb);
+            const side: i8 = if (side_u1 == 0) @as(i8, 1) else @as(i8, -1);
+            const ko_point = keyByteKoPoint(kb, ko_bits);
+            const passes: u2 = keyBytePasses(kb, ko_bits);
+            const terminal = keyByteTerminal(kb);
+
+            total += 1;
+
+            // Distribution
+            if (DTT == 255) {
+                dist[5] += 1;
+                far_count += 1;
+            } else if (DTT == 0) {
+                dist[0] += 1;
+                if (terminal) terminal_with_dtt0 += 1;
+                if (first_dtt == null) first_dtt = 0;
+                if (first_dtt.? != 0) non_constant_ok = true;
+            } else if (DTT <= 4) {
+                dist[1] += 1;
+                if (first_dtt == null) first_dtt = DTT;
+                if (first_dtt.? != DTT) non_constant_ok = true;
+            } else if (DTT <= 16) {
+                dist[2] += 1;
+                if (first_dtt == null) first_dtt = DTT;
+                if (first_dtt.? != DTT) non_constant_ok = true;
+            } else if (DTT <= 64) {
+                dist[3] += 1;
+                if (first_dtt == null) first_dtt = DTT;
+                if (first_dtt.? != DTT) non_constant_ok = true;
+            } else {
+                dist[4] += 1;
+                if (first_dtt == null) first_dtt = DTT;
+                if (first_dtt.? != DTT) non_constant_ok = true;
+            }
+
+            // DTT consistency check (sampled for 4x4)
+            if (entry_global % dtt_stride != 0) continue;
+            if (terminal or DTT == 255) {
+                dtt_consistency_checked += 1;
+                continue; // terminals have no placements; FAR has no guaranteed child path
+            }
+
+            // For each stored state, find value-preserving children and check
+            // DTT > min(DTT(VP child))
+            const maximizing = side > 0;
+            var min_child_dtt: u8 = 255;
+            var any_vp_child = false;
+
+            // Pass edge
+            {
+                const child_passes = passes + 1;
+                if (child_passes >= 2) {
+                    // passes=2 terminal: DTT=0, value = area_score
+                    const ascore = Rules.area_score(&pos);
+                    const vp = if (maximizing) ascore >= L else ascore <= H;
+                    if (vp) {
+                        min_child_dtt = 0;
+                        any_vp_child = true;
+                    }
+                } else {
+                    const pass_kb = encodeKeyByte(1 - side_u1, ko_none, @intCast(child_passes), false, ko_bits);
+                    const pass_group_idx = findGroup(groups, colex_val);
+                    if (pass_group_idx != null) {
+                        const pass_row = lookupInGroup(entries, groups[pass_group_idx.?], pass_kb & KEY_BYTE_LOOKUP_MASK);
+                        if (pass_row != null) {
+                            const vp = if (maximizing) pass_row.?.L >= L else pass_row.?.H <= H;
+                            if (vp) {
+                                if (pass_row.?.DTT < min_child_dtt and pass_row.?.DTT != 255) min_child_dtt = pass_row.?.DTT;
+                                any_vp_child = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Placement children
+            for (0..n_cells) |p| {
+                if (pos[p] != 0) continue;
+                if (ko_point != ko_none and p == ko_point) continue;
+                const child_pos = Rules.pos_from_move(&pos, side, p) catch continue;
+                const child_ko = koAfterCapture(&pos, side, &child_pos, ko_none);
+                const child_colex: u32 = @intCast(R.colex_from_pos(&child_pos));
+                const child_kb = encodeKeyByte(1 - side_u1, child_ko, 0, false, ko_bits);
+
+                const child_group_idx = findGroup(groups, child_colex);
+                if (child_group_idx == null) continue;
+                const child_row = lookupInGroup(entries, groups[child_group_idx.?], child_kb & KEY_BYTE_LOOKUP_MASK);
+                if (child_row == null) continue;
+
+                const vp = if (maximizing) child_row.?.L >= L else child_row.?.H <= H;
+                if (vp) {
+                    if (child_row.?.DTT < min_child_dtt and child_row.?.DTT != 255) min_child_dtt = child_row.?.DTT;
+                    any_vp_child = true;
+                }
+            }
+
+            if (any_vp_child and min_child_dtt != 255) {
+                if (DTT != min_child_dtt + 1) {
+                    dtt_consistency_violations += 1;
+                    if (dtt_consistency_violations <= 10) {
+                        util.warn("A8 DTT VIOLATION: colex={d} side={d} ko={d} p={d}  DTT={d} expected={d} (min_child={d})\n", .{ colex_val, side, ko_point, passes, DTT, min_child_dtt + 1, min_child_dtt });
+                    }
+                }
+            }
+            dtt_consistency_checked += 1;
+        }
+    }
+
+    return A8Result{
+        .total = total,
+        .dist = dist,
+        .far_count = far_count,
+        .non_constant_ok = non_constant_ok,
+        .terminal_dtt0_errs = terminal_with_dtt0,
+        .dtt_consistency_checked = dtt_consistency_checked,
+        .dtt_consistency_violations = dtt_consistency_violations,
+        .dtt_stride = dtt_stride,
+    };
+}
+
+const A8Result = struct {
+    total: u64,
+    dist: [6]u64,
+    far_count: u64,
+    non_constant_ok: bool,
+    terminal_dtt0_errs: u64,
+    dtt_consistency_checked: u64,
+    dtt_consistency_violations: u64,
+    dtt_stride: u64,
+};
+
+// =========================================================================
 // A5 — round-trip identity
 // =========================================================================
 //
@@ -780,7 +1431,7 @@ pub fn main(init: std.process.Init) !void {
 
     const path_opt = args.next();
     if (path_opt == null) {
-        util.warn("usage: oracle-v2-accept <path-to-wzo2> [a3|a5|a6|a9]\n", .{});
+        util.warn("usage: oracle-v2-accept <path-to-wzo2> [a1|a2|a3|a4|a5|a6|a8|a9]\n", .{});
         util.warn("  default: all checks\n", .{});
         std.process.exit(2);
     }
@@ -816,6 +1467,42 @@ pub fn main(init: std.process.Init) !void {
     var any_fail = false;
     const run_all = check_filter == null;
 
+    // --- A1: self-play refusal rate ---
+    if (run_all or std.mem.eql(u8, check_filter.?, "a1")) {
+        util.note("--- A1: pinned-seed self-play ---\n", .{});
+        const result = try checkA1(header, groups, entries);
+        util.out("A1 self-play: queries={d}  refusals={d}  games={d}  max_plies={d}  seed=0x{X:0>16}\n", .{
+            result.queries, result.refusals, result.games, result.max_plies, result.seed,
+        });
+        const pass = result.refusals == 0;
+        util.out("A1 VERDICT: {s}\n", .{if (pass) "PASS" else "FAIL"});
+        if (!pass) any_fail = true;
+    }
+
+    // --- A4: pin census ---
+    if (run_all or std.mem.eql(u8, check_filter.?, "a4")) {
+        util.note("--- A4: pin census ---\n", .{});
+        const result = checkA4(header, groups, entries);
+        util.out("A4 pin-census: total={d}  pin_T={d}  pin_L={d}  pin_H={d}  pin_0={d}  pin_L==pin_H={}\n", .{
+            result.total, result.pin_T, result.pin_L, result.pin_H, result.pin_0, result.pin_LH_ok,
+        });
+        const pass = result.pin_LH_ok;
+        util.out("A4 VERDICT: {s}\n", .{if (pass) "PASS" else "FAIL"});
+        if (!pass) any_fail = true;
+    }
+
+    // --- A2: post-round-trip Bellman ---
+    if (run_all or std.mem.eql(u8, check_filter.?, "a2")) {
+        util.note("--- A2: Bellman residual ---\n", .{});
+        const result = try checkA2(header, groups, entries);
+        util.out("A2 Bellman: checked={d}  L_violations={d}  H_violations={d}  missing_child={d}  stride={d}  denominator={d}\n", .{
+            result.checked, result.L_violations, result.H_violations, result.missing_child, result.stride, result.denominator,
+        });
+        const pass = result.L_violations == 0 and result.H_violations == 0;
+        util.out("A2 VERDICT: {s}\n", .{if (pass) "PASS" else "FAIL"});
+        if (!pass) any_fail = true;
+    }
+
     // --- A3: colour inversion ---
     if (run_all or std.mem.eql(u8, check_filter.?, "a3")) {
         util.note("--- A3: colour inversion ---\n", .{});
@@ -837,6 +1524,24 @@ pub fn main(init: std.process.Init) !void {
         });
         const pass = result.mismatches == 0;
         util.out("A5 VERDICT: {s}\n", .{if (pass) "PASS" else "FAIL"});
+        if (!pass) any_fail = true;
+    }
+
+    // --- A8: DTT distribution and consistency ---
+    if (run_all or std.mem.eql(u8, check_filter.?, "a8")) {
+        util.note("--- A8: DTT ---\n", .{});
+        const result = try checkA8(header, groups, entries);
+        util.out("A8 DTT: total={d}  far={d}  non_constant={}  terminal_dtt0_errs={d}\n", .{
+            result.total, result.far_count, result.non_constant_ok, result.terminal_dtt0_errs,
+        });
+        util.out("A8 DTT dist: [0]={d} [1..4]={d} [5..16]={d} [17..64]={d} [65..254]={d} [FAR]={d}\n", .{
+            result.dist[0], result.dist[1], result.dist[2], result.dist[3], result.dist[4], result.dist[5],
+        });
+        util.out("A8 DTT consistency: checked={d}  violations={d}  stride={d}\n", .{
+            result.dtt_consistency_checked, result.dtt_consistency_violations, result.dtt_stride,
+        });
+        const pass = result.non_constant_ok and result.terminal_dtt0_errs == 0 and result.dtt_consistency_violations == 0;
+        util.out("A8 VERDICT: {s}\n", .{if (pass) "PASS" else "FAIL"});
         if (!pass) any_fail = true;
     }
 
@@ -1232,4 +1937,374 @@ test "header parse: rejects non-zero reserved bytes" {
     buf[15] = 0;
     buf[100] = 1; // reserved1 non-zero
     try std.testing.expectError(error.BadReserved, parseHeader(&buf));
+}
+
+// =========================================================================
+// A1 tests — self-play helpers and synthetic artifact coverage
+// =========================================================================
+
+test "A1 PRNG determinism" {
+    var rng: u64 = SELFPLAY_SEED;
+    const first = prngNext(&rng);
+    const second = prngNext(&rng);
+    // Reset, verify reproducibility
+    rng = SELFPLAY_SEED;
+    try std.testing.expectEqual(first, prngNext(&rng));
+    try std.testing.expectEqual(second, prngNext(&rng));
+}
+
+test "A1 PRNG produces varied output" {
+    var rng: u64 = SELFPLAY_SEED;
+    var seen = std.StaticBitSet(1024).initEmpty();
+    for (0..200) |_| {
+        const v = prngNext(&rng) % 1024;
+        seen.set(v);
+    }
+    // Should visit many distinct values (probabilistic; > 100 distinct)
+    try std.testing.expect(seen.count() > 100);
+}
+
+test "A1 self-play on synthetic 2x2 artifact: detects refusals on incomplete data" {
+    // Build a minimal 2x2 artifact with only a few entries.
+    // The self-play will quickly wander into positions not in the artifact,
+    // producing refusals. This verifies the refusal-counting mechanism works.
+    const gpa = std.testing.allocator;
+    const w: u8 = 2;
+    const h: u8 = 2;
+    const kb = koBitsForSize(w, h);
+    const none: u8 = 4;
+
+    const colex0_kb_B = encodeKeyByte(0, none, 0, false, kb);
+    const colex0_kb_W = encodeKeyByte(1, none, 0, false, kb);
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 2, .entry_offset = 0 },
+    };
+
+    const n_entries: u64 = 2;
+    const entries_buf = try gpa.alloc(u8, @intCast(n_entries * WZO2_ENTRY_SIZE));
+    defer gpa.free(entries_buf);
+    @memset(entries_buf, 0);
+
+    entries_buf[0] = colex0_kb_B; entries_buf[1] = 0; entries_buf[2] = 0; entries_buf[3] = 5;
+    entries_buf[4] = colex0_kb_W; entries_buf[5] = 0; entries_buf[6] = 0; entries_buf[7] = 5;
+
+    const header = Wzo2Header{
+        .version = 1, .w = w, .h = h, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = kb, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = groups.len, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = try checkA1(header, &groups, entries_buf);
+    // Incomplete artifact → refusals once the self-play moves beyond empty goban.
+    // The sparse artifact may not allow 100 queries before hitting game caps;
+    // we verify the mechanism works (refusals detected).
+    try std.testing.expect(result.refusals > 0);
+    try std.testing.expect(result.queries > 0);
+}
+
+// =========================================================================
+// A4 tests — pin census
+// =========================================================================
+
+test "A4 pin census: counts correctly" {
+    const n_entries: u64 = 8;
+    var entries_buf: [8 * 4]u8 = undefined;
+    @memset(&entries_buf, 0);
+
+    // pin_T: L==H
+    entries_buf[0] = 0x04; entries_buf[1] = @bitCast(@as(i8, 0)); entries_buf[2] = @bitCast(@as(i8, 0)); // L=H=0 → pin_T
+    entries_buf[4] = 0x04; entries_buf[5] = @bitCast(@as(i8, 5)); entries_buf[6] = @bitCast(@as(i8, 5)); // L=H=5 → pin_T
+    // pin_L: L<H, L>0
+    entries_buf[8] = 0x04; entries_buf[9] = @bitCast(@as(i8, 3)); entries_buf[10] = @bitCast(@as(i8, 7)); // L=3,H=7 → pin_L
+    // pin_H: L<H, H<0
+    entries_buf[12] = 0x04; entries_buf[13] = @bitCast(@as(i8, -7)); entries_buf[14] = @bitCast(@as(i8, -3)); // L=-7,H=-3 → pin_H
+    // pin_0: L<=0<=H, L<H
+    entries_buf[16] = 0x04; entries_buf[17] = @bitCast(@as(i8, -2)); entries_buf[18] = @bitCast(@as(i8, 3)); // L=-2,H=3 → pin_0
+    entries_buf[20] = 0x04; entries_buf[21] = @bitCast(@as(i8, 0)); entries_buf[22] = @bitCast(@as(i8, 5)); // L=0,H=5 → pin_0 (L≤0≤H)
+    // More pin_T and pin_L to test counts
+    entries_buf[24] = 0x04; entries_buf[25] = @bitCast(@as(i8, -1)); entries_buf[26] = @bitCast(@as(i8, -1)); // L=H=-1 → pin_T
+    entries_buf[28] = 0x04; entries_buf[29] = @bitCast(@as(i8, 1)); entries_buf[30] = @bitCast(@as(i8, 4)); // L=1,H=4 → pin_L
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 8, .entry_offset = 0 },
+    };
+    const header = Wzo2Header{
+        .version = 1, .w = 2, .h = 2, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = 3, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = 1, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = checkA4(header, &groups, &entries_buf);
+    try std.testing.expectEqual(@as(u64, 8), result.total);
+    try std.testing.expectEqual(@as(u64, 3), result.pin_T); // (0,0), (5,5), (-1,-1)
+    try std.testing.expectEqual(@as(u64, 2), result.pin_L); // (3,7), (1,4)
+    try std.testing.expectEqual(@as(u64, 1), result.pin_H); // (-7,-3)
+    try std.testing.expectEqual(@as(u64, 2), result.pin_0); // (-2,3), (0,5)
+    // pin_L != pin_H in this synthetic case (2 vs 1)
+    try std.testing.expect(!result.pin_LH_ok);
+}
+
+test "A4 pin census: symmetric data has pin_L == pin_H" {
+    // Create entries where L values are symmetric with H values under colour flip
+    // pin_L conditions: L<H, L>0; pin_H conditions: L<H, H<0
+    // For symmetry, we need one pin_L for each pin_H and vice versa
+    const n_entries: u64 = 4;
+    var entries_buf: [4 * 4]u8 = undefined;
+    @memset(&entries_buf, 0);
+
+    // pin_L: (2, 4)
+    entries_buf[0] = 0x04; entries_buf[1] = @bitCast(@as(i8, 2)); entries_buf[2] = @bitCast(@as(i8, 4));
+    // pin_H: (-4, -2) — colour-inverted counterpart of (2, 4)
+    entries_buf[4] = 0x04; entries_buf[5] = @bitCast(@as(i8, -4)); entries_buf[6] = @bitCast(@as(i8, -2));
+    // pin_T for balance
+    entries_buf[8] = 0x04; entries_buf[9] = @bitCast(@as(i8, 0)); entries_buf[10] = @bitCast(@as(i8, 0));
+    entries_buf[12] = 0x04; entries_buf[13] = @bitCast(@as(i8, 5)); entries_buf[14] = @bitCast(@as(i8, 5));
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 4, .entry_offset = 0 },
+    };
+    const header = Wzo2Header{
+        .version = 1, .w = 2, .h = 2, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = 3, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = 1, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = checkA4(header, &groups, &entries_buf);
+    try std.testing.expectEqual(@as(u64, 1), result.pin_L);
+    try std.testing.expectEqual(@as(u64, 1), result.pin_H);
+    try std.testing.expect(result.pin_LH_ok);
+}
+
+// =========================================================================
+// A2 tests — Bellman residual
+// =========================================================================
+
+test "A2 Bellman: koAfterCapture detects single capture" {
+    const none: u8 = 4; // 2x2
+
+    // Old position: Black at 0, White at 1. Black captures at 2?
+    // Actually let's use a simple case: Black captures a single White stone
+    var old_pos = [_]i8{ 1, -1, 0, 0 }; // Black at 0, White at 1
+    var new_pos = [_]i8{ 1, 0, 0, 0 }; // White stone removed
+    const ko = koAfterCapture(&old_pos, 1, &new_pos, none);
+    try std.testing.expectEqual(@as(u8, 1), ko); // ko at captured cell
+}
+
+test "A2 Bellman: koAfterCapture returns none for multi-capture" {
+    const none: u8 = 4;
+    var old_pos = [_]i8{ -1, -1, 0, 0 }; // two White stones
+    var new_pos = [_]i8{ 0, 0, 0, 0 }; // both captured
+    const ko = koAfterCapture(&old_pos, 1, &new_pos, none);
+    try std.testing.expectEqual(none, ko);
+}
+
+test "A2 Bellman: pinnedValue" {
+    try std.testing.expectEqual(@as(i8, 5), pinnedValue(5, 5)); // L==H
+    try std.testing.expectEqual(@as(i8, 3), pinnedValue(3, 7)); // L>0 → L
+    try std.testing.expectEqual(@as(i8, -2), pinnedValue(-5, -2)); // H<0 → H
+    try std.testing.expectEqual(@as(i8, 0), pinnedValue(-3, 5)); // straddle 0 → 0
+    try std.testing.expectEqual(@as(i8, 0), pinnedValue(0, 0)); // exact zero
+}
+
+test "A2 Bellman: synthetic 2x2 fixpoint identity passes" {
+    // Build a minimal self-consistent artifact
+    const gpa = std.testing.allocator;
+    const w: u8 = 2;
+    const h: u8 = 2;
+    const kb = koBitsForSize(w, h);
+    const none: u8 = 4;
+
+    // colex=0: empty goban
+    // - Black ko=none p=0: children are Black plays at 0,1,2,3 + pass
+    // - White ko=none p=0: children are White plays at 0,1,2,3 + pass
+    // For the Bellman identity to hold, values must be consistent.
+    // We'll create a tiny fixpoint where all values are 0 (trivial: area=0 on empty)
+
+    const colex0_B_kb = encodeKeyByte(0, none, 0, false, kb);
+    const colex0_W_kb = encodeKeyByte(1, none, 0, false, kb);
+    // After Black plays at cell 0 → colex 3 (Black at 0)
+    // All values are 0
+    const colex0_B_p1_kb = encodeKeyByte(0, none, 1, false, kb);
+    const colex0_W_p1_kb = encodeKeyByte(1, none, 1, false, kb);
+
+    // Children after Black plays at cell 0 (colex=3): White to move
+    const colex3_W_kb = encodeKeyByte(1, none, 0, false, kb);
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 4, .entry_offset = 0 },
+        .{ .colex = 3, .entry_count = 1, .entry_offset = 4 },
+    };
+
+    const n_entries: u64 = 5;
+    const entries_buf = try gpa.alloc(u8, @intCast(n_entries * WZO2_ENTRY_SIZE));
+    defer gpa.free(entries_buf);
+    @memset(entries_buf, 0);
+
+    // All values = 0; DTT artificial
+    entries_buf[0] = colex0_B_kb; entries_buf[1] = 0; entries_buf[2] = 0; entries_buf[3] = 5;
+    entries_buf[4] = colex0_W_kb; entries_buf[5] = 0; entries_buf[6] = 0; entries_buf[7] = 5;
+    entries_buf[8] = colex0_B_p1_kb; entries_buf[9] = 0; entries_buf[10] = 0; entries_buf[11] = 3;
+    entries_buf[12] = colex0_W_p1_kb; entries_buf[13] = 0; entries_buf[14] = 0; entries_buf[15] = 3;
+    entries_buf[16] = colex3_W_kb; entries_buf[17] = 0; entries_buf[18] = 0; entries_buf[19] = 1;
+
+    const header = Wzo2Header{
+        .version = 1, .w = w, .h = h, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = kb, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = groups.len, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    // This will miss some children (since the artifact is minimal) —
+    // missing_child will be non-zero, but L/H violations should be 0
+    // because the values we stored (0) happen to match the pass-edge
+    // value (0 from area_score when passes=2).
+    const result = try checkA2(header, &groups, entries_buf);
+    // We expect L/H violations = 0 (the pass edge gives 0, and there are
+    // no other placed children with entries, which skip).
+    try std.testing.expectEqual(@as(u64, 0), result.L_violations);
+    try std.testing.expectEqual(@as(u64, 0), result.H_violations);
+}
+
+test "A2 Bellman: detects L violation on synthetic data" {
+    // Store a wrong L value and verify A2 catches it.
+    // Use passes=1 state so pass edge goes directly to passes=2 terminal
+    // (area_score), which is computed without needing another artifact entry.
+    const gpa = std.testing.allocator;
+    const w: u8 = 2;
+    const h: u8 = 2;
+    const kb = koBitsForSize(w, h);
+    const none: u8 = 4;
+
+    // Black, passes=1, empty goban. Pass edge → passes=2 → area_score(empty)=0.
+    // Expected Bellman: max(0) = 0. If we store L=99, we get a violation.
+    const colex0_B_p1_kb = encodeKeyByte(0, none, 1, false, kb);
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 1, .entry_offset = 0 },
+    };
+
+    const n_entries: u64 = 1;
+    const entries_buf = try gpa.alloc(u8, @intCast(n_entries * WZO2_ENTRY_SIZE));
+    defer gpa.free(entries_buf);
+
+    entries_buf[0] = colex0_B_p1_kb;
+    entries_buf[1] = @bitCast(@as(i8, 99));
+    entries_buf[2] = @bitCast(@as(i8, 99));
+    entries_buf[3] = 3;
+
+    const header = Wzo2Header{
+        .version = 1, .w = w, .h = h, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = kb, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = groups.len, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = try checkA2(header, &groups, entries_buf);
+    // L should be 99 but expected is 0 (pass edge → passes=2 terminal) → L violation
+    try std.testing.expect(result.L_violations > 0);
+}
+
+// =========================================================================
+// A8 tests — DTT
+// =========================================================================
+
+test "A8 DTT: non-constant detection" {
+    const n_entries: u64 = 4;
+    var entries_buf: [4 * 4]u8 = undefined;
+    @memset(&entries_buf, 0);
+
+    // All DTT=5 (constant, non-constant should be false)
+    for (0..4) |i| {
+        entries_buf[i * 4 + 0] = 0x04;
+        entries_buf[i * 4 + 1] = @bitCast(@as(i8, 0));
+        entries_buf[i * 4 + 2] = @bitCast(@as(i8, 0));
+        entries_buf[i * 4 + 3] = 5;
+    }
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 4, .entry_offset = 0 },
+    };
+    const header = Wzo2Header{
+        .version = 1, .w = 2, .h = 2, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = 3, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = 1, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = try checkA8(header, &groups, &entries_buf);
+    try std.testing.expect(!result.non_constant_ok); // all same DTT
+}
+
+test "A8 DTT: non-constant passes with variety" {
+    const n_entries: u64 = 4;
+    var entries_buf: [4 * 4]u8 = undefined;
+    @memset(&entries_buf, 0);
+
+    // Varying DTT values
+    const dtts = [_]u8{ 1, 3, 7, 15 };
+    for (0..4) |i| {
+        entries_buf[i * 4 + 0] = 0x04;
+        entries_buf[i * 4 + 1] = @bitCast(@as(i8, 0));
+        entries_buf[i * 4 + 2] = @bitCast(@as(i8, 0));
+        entries_buf[i * 4 + 3] = dtts[i];
+    }
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 4, .entry_offset = 0 },
+    };
+    const header = Wzo2Header{
+        .version = 1, .w = 2, .h = 2, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = 3, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = 1, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = try checkA8(header, &groups, &entries_buf);
+    try std.testing.expect(result.non_constant_ok);
+}
+
+test "A8 DTT: terminal with DTT=0 is flagged" {
+    const n_entries: u64 = 2;
+    var entries_buf: [2 * 4]u8 = undefined;
+    @memset(&entries_buf, 0);
+
+    const none: u8 = 4;
+    const kb = koBitsForSize(2, 2);
+
+    // Entry 0: non-terminal, DTT=5
+    entries_buf[0] = encodeKeyByte(0, none, 0, false, kb);
+    entries_buf[1] = @bitCast(@as(i8, 0));
+    entries_buf[2] = @bitCast(@as(i8, 0));
+    entries_buf[3] = 5;
+
+    // Entry 1: terminal flag set, DTT=0 → ERROR
+    entries_buf[4] = encodeKeyByte(0, none, 0, false, kb) | 1; // terminal bit set
+    entries_buf[5] = @bitCast(@as(i8, 0));
+    entries_buf[6] = @bitCast(@as(i8, 0));
+    entries_buf[7] = 0; // DTT=0 with terminal flag → should be flagged
+
+    const groups = [_]Wzo2Group{
+        .{ .colex = 0, .entry_count = 2, .entry_offset = 0 },
+    };
+    const header = Wzo2Header{
+        .version = 1, .w = 2, .h = 2, .rules_id = WZO2_RULES_ID,
+        .entry_size = WZO2_ENTRY_SIZE, .group_header_size = WZO2_GROUP_HEADER_SIZE,
+        .ko_bits = kb, .hdr_flags = WZO2_HDR_FLAG_PASSES_2_OMITTED,
+        .n_groups = 1, .n_entries = n_entries, .data_offset = WZO2_HEADER_LEN,
+        .sha256 = [_]u8{0} ** 32,
+    };
+
+    const result = try checkA8(header, &groups, &entries_buf);
+    try std.testing.expectEqual(@as(u64, 1), result.terminal_dtt0_errs);
 }

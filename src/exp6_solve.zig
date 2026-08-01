@@ -123,14 +123,8 @@ pub fn invert_state_2x2(s: Brute2x2.State) Brute2x2.State {
 // Generic goban-ops helper: returns neighbours for a grid cell
 // =========================================================================
 pub fn genericNeighbors(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
-    var cnt: usize = 0;
-    const r = p / w;
-    const c = p % w;
-    if (r > 0) { buf[cnt] = p - w; cnt += 1; }
-    if (r + 1 < h) { buf[cnt] = p + w; cnt += 1; }
-    if (c > 0) { buf[cnt] = p - 1; cnt += 1; }
-    if (c + 1 < w) { buf[cnt] = p + 1; cnt += 1; }
-    return cnt;
+    _ = .{ w, h };
+    return rules_mod.neighborsRt(p, w, h, buf);
 }
 
 pub fn genericChainCaptured(comptime n_cells: usize, pos: []const i8, seed: usize, w: usize, h: usize, chain: *[n_cells]usize, chain_len: *usize) bool {
