@@ -48,19 +48,20 @@
     "claim_count": 1
   },
   "T184": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T184-p3e-wzo2-build.md",
     "set": "A",
     "holds": ["src/oracle_v2_build.zig"],
     "needs": ["T185"],
     "caps": [],
     "added": "2026-08-01T00:24:16Z",
-    "claimed": null,
+    "claimed": "2026-08-01T01:41:16Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 1
+    "claim_count": 2
   },
   "T169": {
     "status": "done",
@@ -239,19 +240,20 @@
     "claim_count": 1
   },
   "T186": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T186-p3h-i5-calibrate.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T01:39:24Z",
-    "claimed": null,
+    "claimed": "2026-08-01T01:41:02Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T160": {
     "status": "done",
@@ -268,6 +270,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T187": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T187-p3g-battery-run.md",
+    "set": "A",
+    "holds": ["src/verify_battery.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T01:41:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T182": {
     "status": "done",
