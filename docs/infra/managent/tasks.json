@@ -4,7 +4,9 @@
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T193-p3f-m4a-run.md",
     "set": "A",
     "holds": [],
-    "needs": ["T192"],
+    "needs": [
+      "T192"
+    ],
     "caps": [],
     "added": "2026-08-01T06:56:19Z",
     "claimed": null,
@@ -14,14 +16,14 @@
     "note": null,
     "claim_count": 0
   },
-  "T201": {
+  "T203": {
     "status": "dispatchable",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T201-design-audit.md",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T203-pass1-relocation.md",
     "set": "A",
     "holds": [],
-    "needs": ["T200"],
+    "needs": [],
     "caps": [],
-    "added": "2026-08-01T07:53:35Z",
+    "added": "2026-08-01T08:08:28Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -33,7 +35,9 @@
     "status": "in_progress",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T192-wzo2-oom-fix.md",
     "set": "A",
-    "holds": ["src/oracle_v2_build.zig"],
+    "holds": [
+      "src/oracle_v2_build.zig"
+    ],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T06:48:31Z",
@@ -44,70 +48,6 @@
     "note": null,
     "claim_count": 1
   },
-  "T202": {
-    "status": "dispatchable",
-    "bundle": "untracked/T202-test-fix.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-08-01T08:03:25Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 0
-  },
-  "T199": {
-    "status": "done",
-    "agent": "DSPro",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T199-argus-implement.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-08-01T07:29:54Z",
-    "claimed": "2026-08-01T08:03:49Z",
-    "done": "2026-08-01T08:03:49Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 1
-  },
-  "T198": {
-    "status": "done",
-    "agent": "DSPro",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T198-c7-backlog.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-08-01T07:29:54Z",
-    "claimed": "2026-08-01T08:05:28Z",
-    "done": "2026-08-01T08:05:28Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 1
-  },
-  "T200": {
-    "status": "done",
-    "agent": "DSPro",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T200-project-restructure-manager.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-08-01T07:29:54Z",
-    "claimed": "2026-08-01T07:52:52Z",
-    "done": "2026-08-01T08:00:40Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 1
-  }
-,
   "_sys": {
     "next_id": 203,
     "directive_next": 7
