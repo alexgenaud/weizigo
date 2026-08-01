@@ -1,0 +1,38 @@
+WZO2 artifact: 4x4  groups=24318165  entries=99133036  size=518123097
+--- A3: colour inversion ---
+A3 VIOLATION: colex=74 side=0 ko=16 passes=0  L=0 H=0  inv_L=16 inv_H=16
+A3 VIOLATION: colex=75 side=1 ko=16 passes=0  L=0 H=0  inv_L=-16 inv_H=-16
+A3 VIOLATION: colex=82 side=0 ko=16 passes=0  L=0 H=1  inv_L=-1 inv_H=16
+A3 VIOLATION: colex=83 side=1 ko=16 passes=0  L=-1 H=0  inv_L=-16 inv_H=1
+A3 VIOLATION: colex=86 side=0 ko=16 passes=0  L=0 H=0  inv_L=16 inv_H=16
+A3 VIOLATION: colex=87 side=1 ko=16 passes=0  L=0 H=0  inv_L=-16 inv_H=-16
+A3 VIOLATION: colex=94 side=0 ko=16 passes=0  L=0 H=0  inv_L=16 inv_H=16
+A3 VIOLATION: colex=95 side=1 ko=16 passes=0  L=0 H=0  inv_L=-16 inv_H=-16
+A3 VIOLATION: colex=98 side=0 ko=16 passes=0  L=0 H=1  inv_L=-1 inv_H=16
+A3 VIOLATION: colex=99 side=1 ko=16 passes=0  L=-1 H=0  inv_L=-16 inv_H=1
+A3 colour-inversion: checked=99133036  violations=16314978  not_found=0
+A3 VERDICT: FAIL
+--- A5: round-trip identity ---
+A5 round-trip: checked=1021991  mismatches=0  stride=97  denominator=99133036
+A5 VERDICT: PASS
+--- A6: calibration ---
+A6 fixture 'a: perturbed value (first entry L ^= 1)': catcher='SHA-256' caught=true → OK
+A6 fixture 'b: dropped ko state (n_entries -= 1)': catcher='file-size consistency' caught=true → OK
+A6 fixture 'c: zeroed DTT column (all DTT bytes = 0)': catcher='A8 (DTT non-constant)' caught=true → OK
+A6 VERDICT: PASS
+--- A9: reproducibility ---
+A9 ENTRY ORDER: group colex=0 entry 2 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=2 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=4 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=6 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=8 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=10 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=12 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=14 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=16 entry 1 kb_lookup=0x40 < prev=0x42
+A9 ENTRY ORDER: group colex=18 entry 1 kb_lookup=0x40 < prev=0x42
+A9 SHA-256: embedded=eb70bb8213e4fc4a30a5ed8275077b534bdb5723a8e76b55c0a830c6c2b3f7ab  computed=eb70bb8213e4fc4a30a5ed8275077b534bdb5723a8e76b55c0a830c6c2b3f7ab  ok=true
+A9 sort-order: groups_sorted=true  entries_sorted=false  entry_order_violations=24252631
+A9 VERDICT: FAIL
+
+OVERALL VERDICT: FAIL

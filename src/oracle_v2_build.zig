@@ -384,7 +384,7 @@ pub fn main() !void {
             if (data.map.get(lin)) |ci| {
                 const Lv = data.L_tab[ci];
                 const Hv = data.H_tab[ci];
-                const kb_val = artifact2.encodeKeyByte(side, exp6.KO_NONE4, 0, 0, kb);
+                const kb_val = artifact2.encodeKeyByte(side, exp6.KO_NONE4, 1, 0, kb);
                 entry_rows.append(gpa, .{
                     .key_byte = kb_val,
                     .L = Lv,
