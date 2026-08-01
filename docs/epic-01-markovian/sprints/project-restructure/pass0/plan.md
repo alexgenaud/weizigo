@@ -1,9 +1,10 @@
 # project-restructure pass0 — PLAN
 
 ```
-Revision: 1
+Revision: 2
 Status:   PROPOSED
 Author:   DSPro/T190 (project-restructure builder) · 2026-08-01
+Audit:    T191 (DSPro, fresh seat) · PASS-WITH-EDITS · 7 findings · 2026-08-01
 Source:   spec.md (Revision 1, PROPOSED)
 ```
 
@@ -35,6 +36,10 @@ links green — provenance text is frozen (R2-2). Every move uses `git mv`
 | Test | `test.md` | Baseline claimlint run + link check scripts + known-bad calibration. |
 | Build | `build.md` | Execution log: moves, rewrites, script runs. |
 | Accept | `accept.md` | Verdict per item, denominators, claimlint comparison, calibration. |
+
+**Halt conditions** per sprint.md §Bookends: the sprint halts only on premise
+reversal, plan amendment, or audit-cap residue. The builder escalates if any
+fires; otherwise work proceeds without ceremonial sign-off.
 
 **What this pass does NOT need:**
 - No adversarial design review (no algorithm change; the design is a layout
@@ -72,13 +77,13 @@ No subagent parallelism. The entire pass is one builder, one sequence.
 
 ### Item 1 — verification & residue
 
-Navigator's tree move executed the directory hierarchy. My job is:
+Navigator's tree move (d51a068, 41000c6) executed the directory hierarchy. My job is:
 
 **V1 — Verification (confirm what Navigator did):**
-- Confirm all five sprints live at `docs/epic-01-markovian/sprints/<sprint>/`
+- Confirm all sprints live at `docs/epic-01-markovian/sprints/<sprint>/` (seven at plan-time: argus, knowledge-capture, oracle-v2, orcha-tools, project-restructure, subagent-harness, verify-battery)
 - Confirm `docs/infra/<sprint>/` and `docs/design/<sprint>/` are gone
 - Confirm `strategy.md` → `plan.md` rename is complete across tracked files
-- Confirm sprint.md is at rev 5 (PROPOSED) and describes the tree that exists
+- Confirm sprint.md describes the tree that exists (note: sprint.md at HEAD has no revision header — rewritten 200b974; substance intact, header absent)
 - Confirm `git log --follow` works for every moved file
 
 **V2 — Residue (what the tree move deliberately left for this sprint):**
@@ -87,7 +92,7 @@ Navigator's tree move executed the directory hierarchy. My job is:
   defect (spec §R1-1). Options: (a) rename the channel directory, (b) rename
   the epic tree directory, (c) document the alias and move on. The design
   chooses one and the sweep applies it. Also settle "epic" vs "milestone" —
-  sprint.md rev 5 uses "epic." The channel and INDEX.md use "milestone." Pick
+  sprint.md uses "epic." The channel and INDEX.md use "milestone." Pick
   one word.
 - R1-3: write the epic `spec.md`. This is the hierarchy's value — the document
   at its root. Content to absorb from `docs/INTENT.md`,
@@ -114,9 +119,11 @@ layout, then execute.** The key principle from the spec: retrieval is the
 acceptance criterion, relocation is a means (R2-1).
 
 **Phase A — Backlog (due regardless of layout):**
-- Take the claimlint output (10 C1a orphans, 12 C2 dangling paths, 79 C3
-  PROVEN-without-evidence rows, 30 C4 dangling IDs, 4 C5 shadowed, 5
-  repeated-narrowing smells) and produce a dispositioned list.
+- Take the claimlint output at HEAD: 10 C1a orphans, 12 C2 dangling paths, 79
+  C3 PROVEN-without-evidence rows, 30 C4 dangling IDs, 4 C5 shadowed, 5
+  repeated-narrowing smells. (Note: the spec, written at 45deb10, reported 13
+  C2 and 73 C3. These counters are dynamic — the backlog uses the live run,
+  not the spec's snapshot.) Produce a dispositioned list.
 - Every row gets: owner, disposition (*fix now / backlog with task ID / demote
   status / accept with reason*), and a one-line rationale.
 - Output: committed document(s) under this sprint's pass0 or archive.
@@ -235,6 +242,9 @@ split question, and if relocation is chosen, execute it.**
 4. **sprint.md rev 5 ratification is external.** The human must flip the
    status. If it remains PROPOSED at accept.md time, I record it as an
    open dependency — process-coherence (A4) is partially unsatisfied.
+   Note: sprint.md at HEAD (200b974) has no revision header — the
+   rewrite removed it. The substance (phases, gates, halt conditions)
+   remains intact regardless.
 
 5. **Channel directory rename touches 92 files.** If R1-1 chooses to rename
    the channel from `milestone-01-ko-reframe` to `epic-01-markovian`, that's

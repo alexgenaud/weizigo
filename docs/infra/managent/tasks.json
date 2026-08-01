@@ -48,7 +48,7 @@
     "claim_count": 1
   },
   "T184": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T184-p3e-wzo2-build.md",
     "set": "A",
@@ -57,7 +57,7 @@
     "caps": [],
     "added": "2026-08-01T00:24:16Z",
     "claimed": "2026-08-01T01:41:16Z",
-    "done": null,
+    "done": "2026-08-01T02:48:08Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -496,7 +496,7 @@
     "claim_count": 1
   },
   "T191": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "untracked/T191-audit-spec-plan.md",
     "set": "A",
@@ -505,7 +505,7 @@
     "caps": [],
     "added": "2026-08-01T01:54:28Z",
     "claimed": "2026-08-01T01:56:54Z",
-    "done": null,
+    "done": "2026-08-01T02:01:11Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,

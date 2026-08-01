@@ -1,0 +1,170 @@
+[runner] argv = zig run -O ReleaseFast src/oracle_v2_build.zig
+[runner] ceilings: rss 4096 MB, wall 14400s (4:00:00), cpu off, poll = 250 ms
+# ============================================================================
+# oracle-v2 M2b — Build WZO2 artifact from exposed fixpoint
+# Task: T165 · Model: DSPro · Date: 2026-07-31
+# ============================================================================
+
+## GATE CHAIN (from exp6_solve)
+# 2×2: B=0 W=0 → PASS (0)
+# 3x2 census sweep 8: new_marks = 214
+# 3x2 census sweep 12: new_marks = 0
+# 3x2 fixpoint sweep 4: L_changed=295 H_changed=20
+# 3x2 fixpoint sweep 8: L_changed=22 H_changed=0
+# 3x2 fixpoint sweep 10: L_changed=0 H_changed=0
+# 3×2: B=0 W=0 → PASS (0)
+# 3x3 census sweep 4: new_marks = 2624
+# 3x3 census sweep 8: new_marks = 13976
+# 3x3 census sweep 12: new_marks = 2648
+# 3x3 census sweep 16: new_marks = 66
+# 3x3 census sweep 18: new_marks = 0
+# 3x3 fixpoint sweep 4: L_changed=14447 H_changed=1220
+# 3x3 fixpoint sweep 8: L_changed=1535 H_changed=0
+# 3x3 fixpoint sweep 12: L_changed=1546 H_changed=0
+# 3x3 fixpoint sweep 16: L_changed=0 H_changed=0
+# 3×3: B=9 W=-9 → PASS (+9)
+
+# Gate chain: PASS — 2×2=0, 3×2=0, 3×3=+9.
+
+## 4×4 census
+# 4x4 census: TOTAL4=4390765542 ReachWords4=68605712 bitset_bytes=548845696
+# 4x4 census: reach.ptr=u64@105638000 reach.len=68605712 expected=68605712
+# 4x4 census: memset done, reach.len=68605712
+# 4x4 census: frontier allocated
+# 4x4 census: roots seeded, frontier.len=2
+# 4x4 census: entering BFS loop...
+# 4x4 census sweep 1: frontier=2
+# 4x4 census sweep 2: frontier=34
+# 4x4 census sweep 3: frontier=514
+# 4x4 census sweep 4: frontier=4104
+# 4x4 census sweep 4: frontier_size=29056 new_marks=29056
+# 4x4 census sweep 5: frontier=29056
+# 4x4 census sweep 6: frontier=129448
+# 4x4 census sweep 7: frontier=530464
+# 4x4 census sweep 8: frontier=1512860
+# 4x4 census sweep 8: frontier_size=3963008 new_marks=3963008
+# 4x4 census sweep 9: frontier=3963008
+# 4x4 census sweep 10: frontier=7593912
+# 4x4 census sweep 11: frontier=13377228
+# 4x4 census sweep 12: frontier=17645156
+# 4x4 census sweep 12: frontier_size=21828328 new_marks=21828328
+# 4x4 census sweep 13: frontier=21828328
+# 4x4 census sweep 14: frontier=20415432
+# 4x4 census sweep 15: frontier=19139468
+# 4x4 census sweep 16: frontier=13619208
+# 4x4 census sweep 16: frontier_size=10937916 new_marks=10937916
+# 4x4 census sweep 17: frontier=10937916
+# 4x4 census sweep 18: frontier=6465988
+# 4x4 census sweep 19: frontier=4805836
+# 4x4 census sweep 20: frontier=2425584
+# 4x4 census sweep 20: frontier_size=1685296 new_marks=1685296
+# 4x4 census sweep 21: frontier=1685296
+# 4x4 census sweep 22: frontier=726088
+# 4x4 census sweep 23: frontier=470928
+# 4x4 census sweep 24: frontier=172756
+# 4x4 census sweep 24: frontier_size=103320 new_marks=103320
+# 4x4 census sweep 25: frontier=103320
+# 4x4 census sweep 26: frontier=32128
+# 4x4 census sweep 27: frontier=17116
+# 4x4 census sweep 28: frontier=4528
+# 4x4 census sweep 28: frontier_size=1968 new_marks=1968
+# 4x4 census sweep 29: frontier=1968
+# 4x4 census sweep 30: frontier=464
+# 4x4 census sweep 31: frontier=128
+# 4x4 census sweep 32: frontier=32
+# 4x4 census sweep 32: frontier_size=0 new_marks=0
+# 4x4 census BFS done, counting marked states...
+# 4x4 total reachable (all passes): 147638298
+# 4x4 census sweeps: 32
+
+## 4×4 fixpoint
+# 4x4 compact states (passes ∈ {0,1}): 99133036
+# 4x4 fixpoint: building hash map for 99133036 states...
+# 4x4 fixpoint: hash map capacity reserved, inserting...
+# 4x4 fixpoint: hash map built, 99133036 entries
+# 4x4 fixpoint sweep 1: L_changed=24365875 H_changed=24365875 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 2: L_changed=2033463 H_changed=2838037 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 3: L_changed=9153859 H_changed=9613364 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 4: L_changed=18230840 H_changed=17772184 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 4: L_changed=18230840 H_changed=17772184
+# 4x4 fixpoint sweep 5: L_changed=25116684 H_changed=23874059 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 6: L_changed=28717001 H_changed=27021377 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 7: L_changed=29485530 H_changed=27101908 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 8: L_changed=27021046 H_changed=24028802 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 8: L_changed=27021046 H_changed=24028802
+# 4x4 fixpoint sweep 9: L_changed=21594498 H_changed=18527846 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 10: L_changed=14889513 H_changed=12201664 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 11: L_changed=8687096 H_changed=6697432 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 12: L_changed=4216702 H_changed=3007237 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 12: L_changed=4216702 H_changed=3007237
+# 4x4 fixpoint sweep 13: L_changed=1684863 H_changed=1104822 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 14: L_changed=570644 H_changed=355536 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 15: L_changed=172858 H_changed=100360 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 16: L_changed=48397 H_changed=26101 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 16: L_changed=48397 H_changed=26101
+# 4x4 fixpoint sweep 17: L_changed=13808 H_changed=8116 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 18: L_changed=5208 H_changed=5874 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 19: L_changed=4409 H_changed=3737 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 20: L_changed=6220 H_changed=3896 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 20: L_changed=6220 H_changed=3896
+# 4x4 fixpoint sweep 21: L_changed=6352 H_changed=5756 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 22: L_changed=3280 H_changed=4424 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 23: L_changed=2052 H_changed=1492 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 24: L_changed=5980 H_changed=2632 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 24: L_changed=5980 H_changed=2632
+# 4x4 fixpoint sweep 25: L_changed=13944 H_changed=9064 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 26: L_changed=12676 H_changed=15588 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 27: L_changed=5384 H_changed=9900 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 28: L_changed=1532 H_changed=2648 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 28: L_changed=1532 H_changed=2648
+# 4x4 fixpoint sweep 29: L_changed=252 H_changed=624 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 30: L_changed=16 H_changed=40 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 31: L_changed=0 H_changed=0 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 31: L_changed=0 H_changed=0
+# 4x4 fixpoint DEBUG: pass_child(empty,W,1) L=-16 H=-1
+# 4x4 fixpoint DEBUG: pass_child(empty,B,1) L=1 H=16
+# 4x4 fixpoint DEBUG: (1B,W,0) L=-16 H=-16
+# 4x4 fixpoint DEBUG: (1B1W,B,0) L=1 H=16
+# 4x4 fixpoint DEBUG: (1B1W,W,1) L=-16 H=-16
+# root (empty, B to move):  L= +1 H=+16
+# root (empty, W to move):  L=-16 H= -1
+# fixpoint sweeps: 31, converged: true
+# compact states (passes ∈ {0,1}): 99133036
+
+## DTT computation
+# DTT: iterative relaxation (max 254 sweeps)...
+# DTT sweep 10: changed=0
+# DTT: 10 sweeps, final changes=0
+# DTT distribution: FAR(255)=0 non-FAR-distinct=18
+#   DTT=1: 17050674
+#   DTT=2: 195854
+#   DTT=3: 2918468
+#   DTT=4: 2954240
+#   DTT=5: 20959172
+#   DTT=6: 9921168
+#   DTT=7: 30441614
+#   DTT=8: 5041700
+#   DTT=9: 8518316
+#   DTT=10: 470622
+#   DTT=11: 519544
+#   DTT=12: 63912
+#   DTT=13: 56632
+#   DTT=14: 11792
+#   DTT=15: 7920
+#   DTT=16: 1008
+#   DTT=17: 384
+#   DTT=18: 16
+
+## Building WZO2 artifact
+# groups: 24318165
+# entries: 99133036
+# file size: 518123097 bytes (518.1 MB)
+# terminal flags set: 516242
+
+## Writing WZO2 artifact
+[runner] PID 48208 RSS 4473 MB > cap 4096 MB
+[runner] KILL: RSS cap 4096 MB exceeded
+[runner] SIGKILL pgid 48208
+[runner] peak RSS by PID: in 3901.6 s
+[runner]   pid   48208    4473 MB
+[runner] exit 124 (RSS cap 4096 MB exceeded) in 3901.6 s
