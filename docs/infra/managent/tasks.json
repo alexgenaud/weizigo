@@ -247,7 +247,7 @@
     "claim_count": 1
   },
   "T219": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSFlash",
     "model": null,
     "bundle": "untracked/T219-sprint-bookend-disposition.md",
@@ -257,12 +257,12 @@
     "caps": [],
     "added": "2026-08-01T16:53:18Z",
     "claimed": "2026-08-01T17:02:20Z",
-    "done": null,
+    "done": "2026-08-01T17:09:56Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "Disposition report: argus NOT CLOSEABLE (A1/A2/A4/A5/A7 + G1 unrecorded), knowledge-capture CLOSEABLE, orcha-tools CLOSEABLE (A1 discharged by T204), subagent-harness NOT CLOSEABLE (A4 partial). Proposed header texts for Orcha.",
     "claim_count": 1
   },
   "T212": {
