@@ -141,6 +141,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T198": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T198-c7-backlog.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T07:29:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T178": {
     "status": "done",
     "agent": "DSFlash/T178",
@@ -413,6 +428,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T199": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T199-argus-implement.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T07:29:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T164": {
     "status": "done",
     "agent": "DSPro",
@@ -604,6 +634,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T200": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T200-project-restructure-manager.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T07:29:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   }
 ,
   "_sys": {
