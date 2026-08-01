@@ -63,6 +63,21 @@
     "note": null,
     "claim_count": 2
   },
+  "T188": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T188-knowledge-capture-builder.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T01:43:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T169": {
     "status": "done",
     "agent": "DSPro/T169-w2",
@@ -279,6 +294,21 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T01:41:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T189": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T189-argus-builder.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T01:43:19Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
