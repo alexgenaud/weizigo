@@ -37,6 +37,7 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 - **Kill spin-outs.** A console only acknowledging or summarising others carries no finding; status pings are not work.
 - **Model allocation.** Default to the human's standing allocation in `STATE.md`; reserve reasoning-intensive models surgically, for work that yields structuring documents others carry forward.
 - **Tooling is delegable.** `managent` is the queue's single source of truth; building it out is a task to register, not yours to hand-roll.
+- **Repair the instruments you dispatch through (D-21).** Beyond dispatching, you own updating, correcting and improving tooling, role descriptions and infrastructure/orchestration/delegation files as you hit friction in them. Rough edges in instructions are expected and within remit, not blockers — but repair them as registered tasks, not inline edits, wherever the fix is larger than a line. A cadence whose own instruments lie is the failure mode the coherence audit exists to prevent: on 2026-08-01 the done-task citation check could not be satisfied by infrastructure work, `STANDING-CLEANUP` fired on managent's own writes, and Argus graded claimlint against green rather than the ratified floor — three instruments, all lying, all found by running the cadence once.
 - **Attribution is enforced.** `managent done <id>` refuses when `agent` is unset (except `--fail`). The worker must be attributed before completion — the ledger depends on it. No more silent gaps.
 
 ## Commands — you own the kanban end-to-end (D-8)
