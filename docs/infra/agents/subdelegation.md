@@ -1,22 +1,32 @@
 # Subdelegation
 
 ```sh
-bin/subagent <T-ID>                 # DeepSeek-v4-Pro, full lifecycle
-bin/subagent <T-ID> --flash         # DeepSeek-v4-Flash
-bin/subagent <T-ID> --wall=900      # wall-clock guard, default 1800s
-bin/subagent <path.md>              # bare dispatch, no kanban lifecycle
-bin/subagent <T-ID> --dry-run       # print the command, run nothing
+bin/subagent <T-ID> --dspro         # DeepSeek-v4-Pro worker
+bin/subagent <T-ID> --dsflash       # DeepSeek-v4-Flash worker
+bin/subagent <T-ID> --dspro --wall=900     # wall guard, default 1800s
+bin/subagent <T-ID> --dspro --dry-run      # print the command, spawn nothing
+bin/subagent <path.md> --dsflash    # bare dispatch, no kanban lifecycle
 ```
+
+No default model — name one. Max two concurrent; `&` them and `wait`.
+
+DeepSeek dispatches DeepSeek only. Claude seats use the Claude Code harness and
+do not need this tool.
 
 Max two concurrent. `&` them and `wait`.
 
 The script resolves the bundle, builds the claim/findings/done wrapper, runs
 under `tools/runner`, and stamps `WEIZIGO_AGENT_DEPTH` on the child.
 
-**Depth cap.** Manager = 1, worker = 2, and `bin/subagent` refuses at 2. A
-worker cannot dispatch: it writes a file or returns output to its manager and
-stops. Unset means manager, so a human-launched console dispatches workers who
-dispatch nothing.
+**Workers cannot dispatch, by construction.** Children run at depth 2 with
+`WEIZIGO_AGENT_DEPTH` stamped and **every `*_API_KEY` stripped from their
+environment** — `bin/subagent` refuses at depth 2, and a hand-written `pi` call
+dies with `No API key found`. The credential reaches `pi` by argv, which it
+consumes and the worker's shell never sees. Verified: a worker reports
+`depth=2 key=[] ollama=[]` and still functions.
+
+Residual hole: argv is readable via `ps` by an agent that goes looking. That is
+a deliberate act, not an eager one.
 
 ## When to use
 
