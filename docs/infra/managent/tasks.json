@@ -33,22 +33,22 @@
     "note": null,
     "claim_count": 0
   },
-  "T212": {
-    "status": "in_progress",
-    "agent": "DSPro",
+  "T214": {
+    "status": "dispatchable",
+    "agent": null,
     "model": null,
-    "bundle": "untracked/T212-wzo2-rebuild-remeasure.md",
-    "set": "A",
+    "bundle": "untracked/T214-progress-not-ceilings.md",
+    "set": "C",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-01T11:15:21Z",
-    "claimed": "2026-08-01T11:22:42Z",
+    "added": "2026-08-01T16:16:32Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 1
+    "claim_count": 0
   },
   "STANDING-CLEANUP": {
     "status": "failed",
@@ -67,22 +67,39 @@
     "note": "tree dirty across two turns: 1→1 dirty files",
     "claim_count": 1
   },
-  "T214": {
+  "T215": {
     "status": "dispatchable",
     "agent": null,
     "model": null,
-    "bundle": "untracked/T214-progress-not-ceilings.md",
+    "bundle": "untracked/T215-keybyte-same-class-sweep.md",
     "set": "C",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-01T16:16:32Z",
+    "added": "2026-08-01T16:28:01Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "claim_count": 0
+  },
+  "T212": {
+    "status": "in_progress",
+    "agent": "DSPro",
+    "model": null,
+    "bundle": "untracked/T212-wzo2-rebuild-remeasure.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T11:15:21Z",
+    "claimed": "2026-08-01T11:22:42Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
   },
   "T210": {
     "status": "done",
@@ -117,6 +134,23 @@
     "dispatched_to": "DSPro",
     "note": null,
     "claim_count": 1
+  },
+  "T216": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T216-artifact-loadable-recheck.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T16:28:01Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T203": {
     "status": "dispatchable",
@@ -154,7 +188,7 @@
   }
 ,
   "_sys": {
-    "next_id": 214,
+    "next_id": 216,
     "directive_next": 7
   }
 }
