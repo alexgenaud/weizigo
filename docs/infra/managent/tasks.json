@@ -79,6 +79,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T182": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T182-p3c-accept-wire.md",
+    "set": "A",
+    "holds": ["src/oracle_v2_accept.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T00:04:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T164": {
     "status": "done",
     "agent": "DSPro",
@@ -96,7 +111,8 @@
     "claim_count": 1
   },
   "T178": {
-    "status": "in_progress",
+    "status": "done",
+    "agent": "DSFlash/T178",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T178-consumer-load.md",
     "set": "A",
     "holds": [],
@@ -104,7 +120,7 @@
     "caps": [],
     "added": "2026-07-31T23:45:48Z",
     "claimed": "2026-07-31T23:50:55Z",
-    "done": null,
+    "done": "2026-08-01T00:04:06Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -125,6 +141,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T181": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T181-p3b-chain-short.md",
+    "set": "A",
+    "holds": ["src/gtp.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T00:04:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T170": {
     "status": "done",
@@ -222,6 +253,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T180": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T180-p3a-spec-surgery.md",
+    "set": "A",
+    "holds": ["docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T00:04:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T179": {
     "status": "done",
     "agent": "DSPro",
@@ -317,6 +363,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T183": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T183-p3d-m2a-reverify.md",
+    "set": "A",
+    "holds": ["src/exp6_solve.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T00:04:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   }
 ,
   "_sys": {
