@@ -19,8 +19,8 @@
     "claim_count": 1
   },
   "T214": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "DSPro",
     "model": null,
     "bundle": "untracked/T214-progress-not-ceilings.md",
     "set": "C",
@@ -28,18 +28,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:16:32Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T16:54:22Z",
+    "done": "2026-08-01T16:54:22Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T215": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "DSPro",
     "model": null,
     "bundle": "untracked/T215-keybyte-same-class-sweep.md",
     "set": "C",
@@ -47,14 +47,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:28:01Z",
-    "claimed": null,
+    "claimed": "2026-08-01T17:07:45Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "STANDING-CLEANUP": {
     "status": "failed",
@@ -85,6 +85,25 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:53:18Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0
+  },
+  "T222": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T222-evidence-stdout-integrity.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T17:07:31Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -131,6 +150,25 @@
     "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1
+  },
+  "T224": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T224-progress-timeout-measurement.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T17:07:32Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0
   },
   "T203": {
     "status": "dispatchable",
@@ -209,8 +247,8 @@
     "claim_count": 1
   },
   "T219": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "DSFlash",
     "model": null,
     "bundle": "untracked/T219-sprint-bookend-disposition.md",
     "set": "C",
@@ -218,14 +256,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:53:18Z",
-    "claimed": null,
+    "claimed": "2026-08-01T17:02:20Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T212": {
     "status": "in_progress",
@@ -245,6 +283,25 @@
     "verdict": null,
     "verdict_note": null,
     "claim_count": 1
+  },
+  "T221": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T221-acceptance-check-correctness.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T17:07:31Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0
   },
   "T210": {
     "status": "done",
@@ -283,10 +340,29 @@
     "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1
+  },
+  "T223": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T223-encoder-duplication.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T17:07:32Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0
   }
 ,
   "_sys": {
-    "next_id": 220,
+    "next_id": 225,
     "directive_next": 7
   }
 }
