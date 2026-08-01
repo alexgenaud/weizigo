@@ -35,6 +35,9 @@ managent why <claim-id>        show tasks that produced evidence for a claim
 managent sync <role>           print unread inbox; exit non-zero when write owed
 managent audit [--json]        cross-check kanban against reality; exit 1 if FIX findings, 0 otherwise (WARN-only / clean)
 managent standing              print standing-tier triggers and task status
+
+Global options:
+  -h, --help                  print help (works with any verb, e.g. `managent standing --help`)
 ```
 
 ### Output streams
@@ -471,6 +474,10 @@ Cross-checks the kanban against reality. Reports discrepancies:
 - Task note mentions claim-status change but cites no second seat → **warn**
 - `zig-out/bin/managent` newer than `bin/managent` → **cp it**
 - `CLAIMS.md` has uncommitted changes but last commit cites no second seat → **verify before commit**
+- `done` task whose deliverables are not cited in any citable surface → **promote or cite**
+  Citable surfaces: `CLAIMS.md`, `PROGRESS.md`, `DECISIONS.md` (all msg dirs),
+  `docs/status/*.md`, `docs/audits/*.md`. (T210 D1: widened from
+  CLAIMS.md+PROGRESS.md to include process/infra surfaces.)
 
 Exits non-zero when FIX-level findings exist. `--json` outputs a JSON array
 of findings.
@@ -481,7 +488,9 @@ Checks the four standing-tier triggers and **auto-registers** any that fired
 (creating the brief file and adding the task to the kanban). Triggers:
 
 - **STANDING-HOLISTIC-AUDIT** — milestone shape changes (new message directory)
-- **STANDING-CLEANUP** — tree dirty across two turns (git diff --stat > 0 on consecutive runs)
+- **STANDING-CLEANUP** — tree dirty across two turns (`git diff --stat` line count on consecutive
+  runs, excluding `docs/infra/managent/tasks.json` — managent's own sync/standing
+  writes). (T210 D2)
 - **STANDING-REEVIDENCE** — claimlint C3 debt grows
 - **STANDING-CONSOLIDATE** — any new falsification (FALSE-AS-SCOPED count increased)
 

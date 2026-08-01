@@ -1,0 +1,8 @@
+{
+  "task_id": "T210",
+  "date": "2026-08-01",
+  "model": "unknown/T210",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Defect 2: STANDING-CLEANUP dirty-tree count now excludes tasks.json from git diff --stat. The summary line is detected by absence of '|', and any line containing 'tasks.json' is filtered out. This prevents managent's own sync/standing writes from triggering a false STANDING-CLEANUP."
+}

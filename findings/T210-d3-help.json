@@ -1,0 +1,8 @@
+{
+  "task_id": "T210",
+  "date": "2026-08-01",
+  "model": "unknown/T210",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Defect 3: --help/-h now short-circuits before any side effect (migration, state writes). Previously only checked args[1]; now scans all args for -h/--help, and also handles the 'help' command. managent standing --help, managent sync -h, etc. now print help without executing the verb or writing to tasks.json."
+}

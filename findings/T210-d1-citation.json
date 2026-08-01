@@ -1,0 +1,8 @@
+{
+  "task_id": "T210",
+  "date": "2026-08-01",
+  "model": "unknown/T210",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Defect 1: widened audit citation check from CLAIMS.md+PROGRESS.md only to also include DECISIONS.md, docs/status/*.md, and docs/audits/*.md. Process/infrastructure tasks (T204-T208, T210) now satisfy the citation check when their task ID or deliverables appear in any of these surfaces. Chose option (b) from the brief: widen citable surfaces rather than exempting a whole class from accountability."
+}

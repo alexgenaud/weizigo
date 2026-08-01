@@ -2864,9 +2864,97 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         progress_content = std.Io.Dir.cwd().readFileAlloc(io, progress_path, alloc, .unlimited) catch "";
         if (progress_content.len > 0) progress_owned = true;
     }
+    // ── T210 D1: widen citable surfaces to DECISIONS.md, docs/status/, docs/audits/ ──
+    var decisions_content: []const u8 = "";
+    var status_content: []const u8 = "";
+    var audits_content: []const u8 = "";
+    var decisions_owned = false;
+    var status_owned = false;
+    var audits_owned = false;
+    {
+        // Read all DECISIONS.md files from untracked/msg/*/ directories
+        var decisions_buf = std.ArrayList(u8).empty;
+        const msg_base = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "msg" });
+        defer alloc.free(msg_base);
+        var msg_root = std.Io.Dir.cwd().openDir(io, msg_base, .{}) catch null;
+        if (msg_root) |*dir| {
+            defer dir.close(io);
+            var iter = dir.iterate();
+            while (try iter.next(io)) |entry| {
+                if (entry.kind == .directory) {
+                    const dec_path = try std.fs.path.join(alloc, &.{ msg_base, entry.name, "DECISIONS.md" });
+                    defer alloc.free(dec_path);
+                    const dec_content = std.Io.Dir.cwd().readFileAlloc(io, dec_path, alloc, .unlimited) catch "";
+                    if (dec_content.len > 0) {
+                        try decisions_buf.appendSlice(alloc, dec_content);
+                        alloc.free(dec_content);
+                    }
+                }
+            }
+        }
+        if (decisions_buf.items.len > 0) {
+            decisions_content = try decisions_buf.toOwnedSlice(alloc);
+            decisions_owned = true;
+        }
+    }
+    {
+        // Read all *.md files from docs/status/
+        var status_buf = std.ArrayList(u8).empty;
+        const status_base = try std.fs.path.join(alloc, &.{ repo_root, "docs", "status" });
+        defer alloc.free(status_base);
+        var status_root = std.Io.Dir.cwd().openDir(io, status_base, .{}) catch null;
+        if (status_root) |*dir| {
+            defer dir.close(io);
+            var iter = dir.iterate();
+            while (try iter.next(io)) |entry| {
+                if (entry.kind == .file and std.mem.endsWith(u8, entry.name, ".md")) {
+                    const sp = try std.fs.path.join(alloc, &.{ status_base, entry.name });
+                    defer alloc.free(sp);
+                    const sc = std.Io.Dir.cwd().readFileAlloc(io, sp, alloc, .unlimited) catch "";
+                    if (sc.len > 0) {
+                        try status_buf.appendSlice(alloc, sc);
+                        alloc.free(sc);
+                    }
+                }
+            }
+        }
+        if (status_buf.items.len > 0) {
+            status_content = try status_buf.toOwnedSlice(alloc);
+            status_owned = true;
+        }
+    }
+    {
+        // Read all *.md files from docs/audits/
+        var audits_buf = std.ArrayList(u8).empty;
+        const audits_base = try std.fs.path.join(alloc, &.{ repo_root, "docs", "audits" });
+        defer alloc.free(audits_base);
+        var audits_root = std.Io.Dir.cwd().openDir(io, audits_base, .{}) catch null;
+        if (audits_root) |*dir| {
+            defer dir.close(io);
+            var iter = dir.iterate();
+            while (try iter.next(io)) |entry| {
+                if (entry.kind == .file and std.mem.endsWith(u8, entry.name, ".md")) {
+                    const ap = try std.fs.path.join(alloc, &.{ audits_base, entry.name });
+                    defer alloc.free(ap);
+                    const ac = std.Io.Dir.cwd().readFileAlloc(io, ap, alloc, .unlimited) catch "";
+                    if (ac.len > 0) {
+                        try audits_buf.appendSlice(alloc, ac);
+                        alloc.free(ac);
+                    }
+                }
+            }
+        }
+        if (audits_buf.items.len > 0) {
+            audits_content = try audits_buf.toOwnedSlice(alloc);
+            audits_owned = true;
+        }
+    }
     defer {
         if (claims_owned) alloc.free(claims_content);
         if (progress_owned) alloc.free(progress_content);
+        if (decisions_owned) alloc.free(decisions_content);
+        if (status_owned) alloc.free(status_content);
+        if (audits_owned) alloc.free(audits_content);
     }
 
     const Finding = struct {
