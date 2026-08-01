@@ -1,0 +1,255 @@
+#!/usr/bin/env python3
+"""Generate INDEX-claim-evidence.md, INDEX-claim-task.md, INDEX-claim-deps.md from CLAIMS.md."""
+import re, os, subprocess, json
+from datetime import date
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def parse_claims():
+    """Parse CLAIMS.md into claim dicts."""
+    with open(f'{ROOT}/docs/epistemic/CLAIMS.md') as f:
+        text = f.read()
+    
+    claims = {}
+    for line in text.split('\n'):
+        if not line.startswith('| `'):
+            continue
+        parts = [p.strip() for p in line.split('|')]
+        if len(parts) < 12:
+            continue
+        cid = parts[1].strip('`')
+        label = parts[2]
+        scope = parts[3]
+        desc = parts[4]
+        status = parts[5]
+        evidence = parts[6]
+        edge_str = parts[7]
+        deps_str = parts[8]
+        
+        # Parse edges
+        parents = []
+        if edge_str != '—' and edge_str:
+            clean = edge_str.replace('`', '')
+            for tok in clean.split(';'):
+                tok = tok.strip()
+                m = re.match(r'([dne]):(\S+)', tok)
+                if m:
+                    parents.append((m.group(1), m.group(2)))
+        
+        claims[cid] = {
+            'label': label, 'scope': scope, 'desc': desc,
+            'status': status, 'evidence': evidence,
+            'parents': parents, 'deps': deps_str
+        }
+    
+    # Build reverse edges
+    for cid, info in claims.items():
+        info['children'] = []
+    for cid, info in claims.items():
+        for rel, parent in info['parents']:
+            if parent in claims:
+                claims[parent]['children'].append((rel, cid))
+    
+    return claims
+
+def gen_claim_evidence_index(claims):
+    """Generate INDEX-claim-evidence.md."""
+    today = date.today().isoformat()
+    
+    lines = []
+    lines.append('# INDEX — claim-to-evidence cross-reference (generated)')
+    lines.append('')
+    lines.append(f'```')
+    lines.append(f'Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: {today}')
+    lines.append(f'Sprint: project-restructure pass0 (T200)')
+    lines.append(f'Source: docs/epistemic/CLAIMS.md (274 claims)')
+    lines.append(f'```')
+    lines.append('')
+    lines.append('**Generated from `docs/epistemic/CLAIMS.md`.** Reproduce with:')
+    lines.append('')
+    lines.append('    zig build && ./zig-out/bin/weizigo-claimlint')
+    lines.append('')
+    lines.append('---')
+    lines.append('')
+    lines.append('## How to use this')
+    lines.append('')
+    lines.append('1. Find your claim ID below')
+    lines.append('2. Status + evidence paths are listed directly')
+    lines.append('3. For the full dependency graph (edges to parent/child claims), see [INDEX-claim-deps.md](INDEX-claim-deps.md)')
+    lines.append('4. For task→claim mapping, see [INDEX-claim-task.md](INDEX-claim-task.md)')
+    lines.append('5. Run `bin/weizigo-claimlint` for machine-readable dependency analysis')
+    lines.append('')
+    lines.append('---')
+    lines.append('')
+    lines.append('## Claim → evidence')
+    lines.append('')
+    lines.append('| claim ID | status | evidence |')
+    lines.append('|---|---|---|')
+    
+    for cid in sorted(claims.keys()):
+        info = claims[cid]
+        ev = info['evidence'].replace('|', '\\|')
+        lines.append(f'| `{cid}` | {info["status"]} | {ev} |')
+    
+    lines.append('')
+    lines.append(f'*{len(claims)} claims indexed.*')
+    
+    return '\n'.join(lines)
+
+def gen_claim_deps_index(claims):
+    """Generate INDEX-claim-deps.md — the dependency tree."""
+    today = date.today().isoformat()
+    
+    lines = []
+    lines.append('# INDEX — claim dependency tree (generated)')
+    lines.append('')
+    lines.append(f'```')
+    lines.append(f'Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: {today}')
+    lines.append(f'Sprint: project-restructure pass0 (T200)')
+    lines.append(f'Source: docs/epistemic/CLAIMS.md edges (97 d:, 11 n:, 91 e:)')
+    lines.append(f'```')
+    lines.append('')
+    lines.append('**Generated from `docs/epistemic/CLAIMS.md` edge columns.**')
+    lines.append('Answers "what else falls if X is false" in one hop.')
+    lines.append('')
+    lines.append('---')
+    lines.append('')
+    lines.append('## How to use this')
+    lines.append('')
+    lines.append('- **Parents** — claims this one depends on (if any parent is FALSE, this claim is orphaned)')
+    lines.append('- **Children** — claims that depend on this one (if this is FALSE, all children are orphaned)')
+    lines.append('- `d:` = derives-from (logical consequence)')
+    lines.append('- `n:` = derives-from-negation (justified by parent being FALSE)')
+    lines.append('- `e:` = evidenced-by')
+    lines.append('')
+    lines.append('---')
+    lines.append('')
+    
+    # Claims with edges, sorted by dependency depth (most depended-upon first)
+    has_edges = [(cid, info) for cid, info in claims.items() if info['parents'] or info['children']]
+    has_edges.sort(key=lambda kv: len(kv[1]['children']), reverse=True)
+    
+    lines.append(f'## Claims with dependencies ({len(has_edges)} of {len(claims)})')
+    lines.append('')
+    lines.append('| claim ID | status | parents (why this depends) | children (what depends on this) |')
+    lines.append('|---|---|---|---|')
+    
+    for cid, info in has_edges:
+        parent_str = ' · '.join(f'`{r}:{p}`' for r, p in info['parents']) or '—'
+        child_str = ' · '.join(f'`{r}:{c}`' for r, c in info['children']) or '—'
+        lines.append(f'| `{cid}` | {info["status"]} | {parent_str} | {child_str} |')
+    
+    lines.append('')
+    
+    # Isolated claims
+    isolated = [(cid, info) for cid, info in claims.items() if not info['parents'] and not info['children']]
+    lines.append(f'## Isolated claims ({len(isolated)} of {len(claims)})')
+    lines.append('')
+    lines.append('These claims have no recorded edges. They are either foundational')
+    lines.append('(nothing they depend on, nothing depends on them) or their edges')
+    lines.append('have not been recorded in the register.')
+    lines.append('')
+    lines.append('| claim ID | status |')
+    lines.append('|---|---|')
+    for cid, info in sorted(isolated):
+        lines.append(f'| `{cid}` | {info["status"]} |')
+    
+    lines.append('')
+    lines.append(f'*{len(claims)} claims total; {len(has_edges)} with edges; {len(isolated)} isolated.*')
+    
+    return '\n'.join(lines)
+
+def gen_claim_task_index():
+    """Regenerate INDEX-claim-task.md from dispatch briefs — lightweight update."""
+    today = date.today().isoformat()
+    
+    # Try to get current kanban state
+    try:
+        result = subprocess.run([f'{ROOT}/bin/managent', 'status'], 
+                              capture_output=True, text=True, cwd=ROOT)
+        kanban = result.stdout
+    except:
+        kanban = '(kanban unavailable)'
+    
+    lines = []
+    lines.append('# INDEX — claim-to-task cross-reference (generated)')
+    lines.append('')
+    lines.append(f'```')
+    lines.append(f'Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: {today}')
+    lines.append(f'Sprint: project-restructure pass0 (T200)')
+    lines.append(f'```')
+    lines.append('')
+    lines.append('**Generated from `docs/infra/dispatch/*.md` briefs and `docs/epistemic/CLAIMS.md`.**')
+    lines.append('Reproduce by running `./bin/managent status` and scanning dispatch briefs.')
+    lines.append('')
+    lines.append('Each entry maps a claim ID to the task(s) that close it, bear on it, or')
+    lines.append('produced its evidence. Status is from the kanban (`./bin/managent status`).')
+    lines.append('')
+    lines.append('---')
+    lines.append('')
+    lines.append('## Claim → task mapping')
+    lines.append('')
+    lines.append('| claim ID | task(s) | task status | relationship |')
+    lines.append('|---|---|---|---|')
+    
+    # Scan dispatch briefs for claim references
+    dispatch_dir = f'{ROOT}/docs/infra/dispatch'
+    claim_task_map = {}
+    if os.path.isdir(dispatch_dir):
+        for fname in sorted(os.listdir(dispatch_dir)):
+            if not fname.endswith('.md'):
+                continue
+            fpath = os.path.join(dispatch_dir, fname)
+            try:
+                with open(fpath) as f:
+                    content = f.read()
+                # Find claim ID references (GLOBAL.X, NxN.X, QA-NNN, CODE.X patterns)
+                found = set(re.findall(r'`?((?:GLOBAL|CODE|QA-\d+|\d+x\d+)\.[A-Za-z0-9_-]+)`?', content))
+                for cid in found:
+                    if cid not in claim_task_map:
+                        claim_task_map[cid] = []
+                    task_id = fname.replace('.md', '')
+                    claim_task_map[cid].append(task_id)
+            except:
+                pass
+    
+    # Also scan managent 'why' output if available
+    for cid in sorted(claim_task_map.keys()):
+        tasks = claim_task_map[cid]
+        tasks_str = ', '.join(tasks[:5])
+        if len(tasks) > 5:
+            tasks_str += f' … (+{len(tasks)-5})'
+        lines.append(f'| `{cid}` | {tasks_str} | see kanban | bears on / produced evidence |')
+    
+    if not claim_task_map:
+        lines.append('| (no mappings found) | — | — | re-run after dispatch briefs are populated |')
+    
+    lines.append('')
+    lines.append(f'*{len(claim_task_map)} claims mapped to tasks.*')
+    lines.append('')
+    lines.append('## Kanban state (live)')
+    lines.append('')
+    lines.append('```')
+    lines.append(kanban.strip())
+    lines.append('```')
+    
+    return '\n'.join(lines)
+
+
+if __name__ == '__main__':
+    claims = parse_claims()
+    
+    # Generate claim-evidence index
+    with open(f'{ROOT}/docs/INDEX-claim-evidence.md', 'w') as f:
+        f.write(gen_claim_evidence_index(claims))
+    print('Wrote docs/INDEX-claim-evidence.md')
+    
+    # Generate dependency-tree index
+    with open(f'{ROOT}/docs/INDEX-claim-deps.md', 'w') as f:
+        f.write(gen_claim_deps_index(claims))
+    print('Wrote docs/INDEX-claim-deps.md')
+    
+    # Generate claim-task index
+    with open(f'{ROOT}/docs/INDEX-claim-task.md', 'w') as f:
+        f.write(gen_claim_task_index())
+    print('Wrote docs/INDEX-claim-task.md')

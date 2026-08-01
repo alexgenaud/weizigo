@@ -55,6 +55,15 @@ Canonical docs are unsuffixed, revised in place, carrying `Revision: N` and
 `Status: PROPOSED | RATIFIED (date, sha)` in the header. Everything lives in
 git — `untracked/` is where evidence goes to die.
 
+## Channel
+
+Cross-agent traffic lives under `untracked/msg/<epic>/<sprint>/` — never
+a git-ignored directory under `docs/` (the evidence-store invariant).
+Layout, pruning rule, and addressee convention are in
+`docs/infra/channel.md`. The pruning rule authorizes deletion of a sprint's
+channel directory once its `accept.md` is ratified; the epic-level channel
+is pruned only when the epic closes, by human decision.
+
 ## Phases
 
 One-word imperatives. The plan may add, skip, merge, or resequence.

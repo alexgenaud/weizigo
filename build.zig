@@ -192,6 +192,25 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(claimlint_exe);
 
+    // ── absorption tool ────────────────────────────────────────────
+    // Reads a findings JSON file and CLAIMS.md, outputs JSON-Lines edit
+    // directives. The mechanical half of knowledge-capture absorption.
+    const absorb_exe = b.addExecutable(.{
+        .name = "weizigo-absorb",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/absorb.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    absorb_exe.root_module.addImport("claims_register", b.createModule(.{
+        .root_source_file = b.path("src/claims_register.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
+    b.installArtifact(absorb_exe);
+
     // ── managent ───────────────────────────────────────────────────
     const managent_exe = b.addExecutable(.{
         .name = "managent",

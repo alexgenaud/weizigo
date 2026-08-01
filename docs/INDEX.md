@@ -20,7 +20,8 @@ file a bug.
 → `docs/status/CURRENT.md` — in-flight task status (ephemeral; updated often)
 → `docs/status/HANDOVER.md` — tactical session-continuity snapshot
 → `docs/epistemic/PROGRESS.md` — strategic truth: what we know, what we need to know
-→ `untracked/msg/<milestone>/STATE.md` — crash-recovery anchor for live cross-agent traffic
+→ `untracked/msg/<epic>/<sprint>/STATE.md` — crash-recovery anchor for live cross-agent traffic
+→ `docs/infra/channel.md` — channel layout, pruning rule, and addressee convention
 
 ## What is known / what failed / what's open?
 
@@ -40,7 +41,10 @@ file a bug.
 
 → `docs/epistemic/CLAIMS.md` — find the claim row; its `evidence` column lists source documents
 → `docs/evidence/<claim-id>/` — committed probe source and output (if it exists)
-→ `docs/INDEX-claim-evidence.md` — generated claim→evidence cross-reference
+→ `docs/evidence/INDEX.md` — generated directory listing (one line per claim ID → its evidence files)
+→ `docs/INDEX-claim-evidence.md` — generated claim→evidence cross-reference (regenerated 2026-08-01)
+→ `docs/INDEX-claim-deps.md` — claim dependency tree: "what else falls if X is false" (new 2026-08-01)
+→ `docs/INDEX-claim-task.md` — claim→task cross-reference
 → `bin/weizigo-claimlint` — parses CLAIMS.md and reports dangling evidence paths (C2 check)
 
 ## What did model Z / task T produce? Is it still standing?
@@ -167,6 +171,11 @@ file a bug.
 → `docs/epistemic/boards/4x3/EPISTEMIC.md`
 → `docs/epistemic/boards/4x4/EPISTEMIC.md`
 → `docs/epistemic/boards/CONCEPTS.md` — cross-size concept-inventory
+
+**Note:** The per-goban EPISTEMIC.md files are secondary narrative summaries.
+`docs/epistemic/CLAIMS.md` is the authoritative claim register. Any conflict
+between a board EPISTEMIC.md and CLAIMS.md is resolved in favor of CLAIMS.md.
+(design.md §1.5, 2026-08-01)
 
 ## What ADRs exist and what did they decide?
 

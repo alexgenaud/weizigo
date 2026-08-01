@@ -168,6 +168,39 @@ const CAL_CITE_BAD_ID = "GLOBAL.C2"; // tagged PROVEN, actually FALSE-AS-SCOPED
 const CAL_CITE_GOOD_A = "GLOBAL.R1"; // tagged PROVEN, actually PROVEN
 const CAL_CITE_GOOD_B = "QA-023";    // tagged CLAIMED, actually CLAIMED
 
+/// C7 calibration — findings/ directory scanned for unabsorbed claims.
+/// Synthetic findings JSON + extended synthetic register with one mismatch.
+const FINDINGS_DIR = "findings";
+const CAL_SYNTHETIC_C7_JSON =
+    \\{
+    \\  "task_id": "T999",
+    \\  "date": "2026-08-01",
+    \\  "model": "TestModel",
+    \\  "claims": [
+    \\    {
+    \\      "id": "GLOBAL.CALPARENT-DEAD",
+    \\      "proposed_status": "FALSE-AS-SCOPED",
+    \\      "rationale": "Synthetic calibration — already absorbed",
+    \\      "evidence_path": "none"
+    \\    },
+    \\    {
+    \\      "id": "GLOBAL.CAL-SHOULDBE-FALSE",
+    \\      "proposed_status": "FALSE-AS-SCOPED",
+    \\      "rationale": "Synthetic calibration — status mismatch",
+    \\      "evidence_path": "none"
+    \\    }
+    \\  ]
+    \\}
+;
+/// Two extra rows grafted onto CAL_SYNTHETIC for C7 calibration.
+/// GLOBAL.CALPARENT-DEAD is already in the synthethic register as FALSE-AS-SCOPED
+/// — the finding proposes FALSE-AS-SCOPED (match, absorbed).
+/// GLOBAL.CAL-SHOULDBE-FALSE is in this extended register as PROVEN — the finding
+/// proposes FALSE-AS-SCOPED (mismatch, must be caught).
+const CAL_SYNTHETIC_C7_EXTRA =
+    \\| `GLOBAL.CAL-SHOULDBE-FALSE` | — | all | synthetic: deliberately PROVEN in register, finding says FALSE-AS-SCOPED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+;
+
 /// The ALARM half of the `n:` calibration cannot be exercised by real data:
 /// today every `n:` edge points at a parent that really is false, which is the
 /// healthy state. So the tool carries a two-row synthetic register and runs the
@@ -1164,6 +1197,28 @@ pub fn main(init: std.process.Init) !void {
     const c6 = cite_mismatches.items.len;
     util.out("\n  C6 cite-tag mismatches: {d}\n", .{c6});
 
+    // ── C7 unabsorbed findings ────────────────────────────────────────────
+    util.out("\n== C7  UNABSORBED FINDINGS (fails the run) ==\n", .{});
+    util.out("Scans {s}/*.json for claim status changes not reflected in the register.\n", .{FINDINGS_DIR});
+    util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md.\n\n", .{});
+    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR);
+    const c7: usize = c7_results.unabsorbed;
+    util.out("  files scanned: {d}\n", .{c7_results.files});
+    util.out("  claims touched: {d}\n", .{c7_results.claims_total});
+    util.out("  new-rows touched: {d}\n", .{c7_results.new_rows_total});
+    if (c7_results.unabsorbed == 0) {
+        util.out("  unabsorbed: 0 (all findings reflected in the register)\n", .{});
+    } else {
+        util.out("  unabsorbed: {d}\n", .{c7_results.unabsorbed});
+        for (c7_results.items.items) |item| {
+            util.out("  UNABSORBED  `{s}` — findings says `{s}`, register says `{s}`\n", .{
+                item.id, item.proposed, item.actual,
+            });
+            if (item.file) |f| util.out("              in {s}\n", .{f});
+        }
+    }
+    util.out("\n  C7 unabsorbed findings: {d}\n", .{c7});
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -1339,6 +1394,30 @@ pub fn main(init: std.process.Init) !void {
     util.out("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (1 mismatch, 2 silent)" else "BROKEN"});
     if (!synth_c6_ok) cal_ok = false;
 
+    // C7 calibration — synthetic findings JSON parsed in-memory against the
+    // synthetic register extended with one deliberately-mismatched row.
+    var synth_c7_ok = false;
+    {
+        const synth_ext = try std.fmt.allocPrint(gpa, "{s}{s}{s}", .{ CAL_SYNTHETIC, CAL_SYNTHETIC_C7_EXTRA, "\\n## 3. end\\n" });
+        var sreg = try parseRegister(gpa, synth_ext);
+        // Parse the synthetic findings JSON directly in-memory — no temp files.
+        // parseFindingsFile takes the JSON byte slice and the register.
+        const c7cal = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg);
+        var saw_mismatch = false;
+        var saw_silent = false;
+        for (c7cal.items.items) |item| {
+            if (std.mem.eql(u8, item.id, "GLOBAL.CAL-SHOULDBE-FALSE")) saw_mismatch = true;
+            if (std.mem.eql(u8, item.id, "GLOBAL.CALPARENT-DEAD")) saw_silent = true;
+        }
+        synth_c7_ok = c7cal.unabsorbed == 1 and saw_mismatch and !saw_silent and
+            c7cal.files == 1 and c7cal.claims_total == 2;
+    }
+    util.out("  known-bad 6 (C7, synthetic): findings JSON with 2 claims — 1 absorbed\n", .{});
+    util.out("                (GLOBAL.CALPARENT-DEAD matches), 1 unabsorbed status\n", .{});
+    util.out("                mismatch (GLOBAL.CAL-SHOULDBE-FALSE: findings says\n", .{});
+    util.out("                FALSE-AS-SCOPED, register says PROVEN) … {s}\n", .{if (synth_c7_ok) "CAUGHT (1 unabsorbed, 1 silent)" else "BROKEN"});
+    if (!synth_c7_ok) cal_ok = false;
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -1351,11 +1430,12 @@ pub fn main(init: std.process.Init) !void {
     util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)\n", .{c5});
     util.out("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
     util.out("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
+    util.out("  C7 unabsorbed findings         {d}   (FAILS)\n", .{c7});
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);
-    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0 or c6 > 0) std.process.exit(1);
+    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0 or c6 > 0 or c7 > 0) std.process.exit(1);
     std.process.exit(0);
 }
 
@@ -1404,6 +1484,319 @@ fn noteMissing(
         .from_column = from_column,
     });
     try seen.put(owned, list.items.len - 1);
+}
+
+// ── C7 findings checking ───────────────────────────────────────────────────
+
+const C7Unabsorbed = struct { id: []const u8, proposed: []const u8, actual: []const u8, file: ?[]const u8 };
+
+const C7Result = struct {
+    files: usize,
+    claims_total: usize,
+    new_rows_total: usize,
+    unabsorbed: usize,
+    items: std.ArrayList(C7Unabsorbed),
+};
+
+/// JSON tokenizer for the flat findings format. Extracts a single string value
+/// for a given key from a JSON object. Returns null if the key is not found or
+/// the value is not a string. Handles escaped quotes and backslashes minimally
+/// (enough for the findings schema, which has no embedded JSON strings).
+fn jsonStringValue(gpa: Allocator, json: []const u8, key: []const u8, out: *std.ArrayList(u8)) !bool {
+    out.clearRetainingCapacity();
+    var i: usize = 0;
+    while (i < json.len) {
+        if (json[i] != '"') { i += 1; continue; }
+        const key_start = i + 1;
+        const key_end = std.mem.indexOfScalarPos(u8, json, key_start, '"') orelse return false;
+        const found_key = json[key_start..key_end];
+        i = key_end + 1;
+        // skip whitespace and colon
+        while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r')) : (i += 1) {}
+        if (i >= json.len or json[i] != ':') continue;
+        i += 1;
+        while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r')) : (i += 1) {}
+        if (i >= json.len) return false;
+        if (!std.mem.eql(u8, found_key, key)) continue;
+        if (json[i] != '"') return false; // non-string value for a string field
+        i += 1;
+        while (i < json.len) {
+            if (json[i] == '\\' and i + 1 < json.len) {
+                try out.append(gpa, json[i + 1]);
+                i += 2;
+                continue;
+            }
+            if (json[i] == '"') {
+                i += 1;
+                return true;
+            }
+            try out.append(gpa, json[i]);
+            i += 1;
+        }
+        return false;
+    }
+    return false;
+}
+
+/// Parse a single findings JSON file. Returns a C7Result with the claims and
+/// new_rows extracted. The caller must compare these against the register.
+fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, reg: *Register) !C7Result {
+    var result: C7Result = .{
+        .files = 1,
+        .claims_total = 0,
+        .new_rows_total = 0,
+        .unabsorbed = 0,
+        .items = .empty,
+    };
+
+    var buf: std.ArrayList(u8) = .empty;
+    defer buf.deinit(gpa);
+
+    // Extract task_id (for reporting)
+    _ = try jsonStringValue(gpa, json, "task_id", &buf);
+
+    // Count claims[] entries and check each against the register.
+    // We look for "id" fields inside objects within the "claims" array.
+    var in_claims = false;
+    var i: usize = 0;
+    while (i < json.len) : (i += 1) {
+        if (json[i] != '"') continue;
+        const ks = i + 1;
+        const ke = std.mem.indexOfScalarPos(u8, json, ks, '"') orelse break;
+        const k = json[ks..ke];
+        i = ke + 1;
+        if (std.mem.eql(u8, k, "claims")) {
+            // skip to opening [
+            while (i < json.len and json[i] != '[') : (i += 1) {}
+            if (i >= json.len) break;
+            in_claims = true;
+            continue;
+        }
+        if (in_claims and std.mem.eql(u8, k, "id")) {
+            // skip whitespace, colon, whitespace
+            while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r' or json[i] == ':')) : (i += 1) {}
+            if (i < json.len and json[i] == '"') {
+                buf.clearRetainingCapacity();
+                i += 1;
+                while (i < json.len) {
+                    if (json[i] == '\\' and i + 1 < json.len) {
+                        try buf.append(gpa, json[i + 1]);
+                        i += 2;
+                        continue;
+                    }
+                    if (json[i] == '"') break;
+                    try buf.append(gpa, json[i]);
+                    i += 1;
+                }
+                const claim_id = try gpa.dupe(u8, buf.items);
+
+                // Now find the proposed_status for this claim
+                var proposed: []const u8 = "?";
+                var j = i + 1;
+                while (j < json.len) {
+                    if (json[j] != '"') { j += 1; continue; }
+                    const pks = j + 1;
+                    const pke = std.mem.indexOfScalarPos(u8, json, pks, '"') orelse break;
+                    const pk = json[pks..pke];
+                    j = pke + 1;
+                    if (std.mem.eql(u8, pk, "proposed_status")) {
+                        while (j < json.len and (json[j] == ' ' or json[j] == '\t' or json[j] == '\n' or json[j] == '\r' or json[j] == ':')) : (j += 1) {}
+                        if (j < json.len and json[j] == '"') {
+                            j += 1;
+                            var pbuf: std.ArrayList(u8) = .empty;
+                            defer pbuf.deinit(gpa);
+                            while (j < json.len) {
+                                if (json[j] == '\\' and j + 1 < json.len) {
+                                    try pbuf.append(gpa, json[j + 1]);
+                                    j += 2;
+                                    continue;
+                                }
+                                if (json[j] == '"') break;
+                                try pbuf.append(gpa, json[j]);
+                                j += 1;
+                            }
+                            proposed = try gpa.dupe(u8, pbuf.items);
+                        }
+                        break;
+                    }
+                    // skip past nested objects/arrays
+                    if (json[j] == '{') {
+                        var depth: usize = 1;
+                        j += 1;
+                        while (j < json.len and depth > 0) : (j += 1) {
+                            if (json[j] == '{') depth += 1;
+                            if (json[j] == '}') depth -= 1;
+                        }
+                        continue;
+                    }
+                }
+
+                result.claims_total += 1;
+
+                // Check against register
+                if (reg.by_id.get(claim_id)) |slot| {
+                    const r = reg.rows.items[slot];
+                    const ps = parseStatus(proposed);
+                    if (ps != .unparsed and ps != r.status) {
+                        result.unabsorbed += 1;
+                        try result.items.append(gpa, .{
+                            .id = claim_id,
+                            .proposed = proposed,
+                            .actual = r.status.name(),
+                            .file = file_path,
+                        });
+                    }
+                } else {
+                    // Claim ID not in register — report as unabsorbed
+                    result.unabsorbed += 1;
+                    try result.items.append(gpa, .{
+                        .id = claim_id,
+                        .proposed = proposed,
+                        .actual = "NO SUCH ID",
+                        .file = file_path,
+                    });
+                }
+            }
+        }
+        if (in_claims and std.mem.eql(u8, k, "new_rows")) {
+            // Count new-rows entries. For each new-row, check if the ID exists
+            // in the register with the proposed status.
+            var nr_depth: usize = 0;
+            var nr_count: usize = 0;
+            var nr_i = i + 1;
+            while (nr_i < json.len) : (nr_i += 1) {
+                if (json[nr_i] == '{') nr_depth += 1;
+                if (json[nr_i] == '}') {
+                    if (nr_depth > 0) nr_depth -= 1;
+                    if (nr_depth == 0 and nr_count > 0) break;
+                }
+                if (nr_depth == 1 and json[nr_i] == '"') {
+                    const nks = nr_i + 1;
+                    const nke = std.mem.indexOfScalarPos(u8, json, nks, '"') orelse break;
+                    const nk = json[nks..nke];
+                    nr_i = nke;
+                    if (std.mem.eql(u8, nk, "id")) {
+                        nr_count += 1;
+                        result.new_rows_total += 1;
+                        // Extract the new-row id and status
+                        while (nr_i < json.len and (json[nr_i] == ' ' or json[nr_i] == '\t' or json[nr_i] == '\n' or json[nr_i] == '\r' or json[nr_i] == ':' or json[nr_i] == '"')) : (nr_i += 1) {}
+                        var nid_buf: std.ArrayList(u8) = .empty;
+                        defer nid_buf.deinit(gpa);
+                        while (nr_i < json.len) {
+                            if (json[nr_i] == '\\' and nr_i + 1 < json.len) {
+                                try nid_buf.append(gpa, json[nr_i + 1]);
+                                nr_i += 2;
+                                continue;
+                            }
+                            if (json[nr_i] == '"') break;
+                            try nid_buf.append(gpa, json[nr_i]);
+                            nr_i += 1;
+                        }
+                        const nr_id = try gpa.dupe(u8, nid_buf.items);
+
+                        // Find "status" field within this new-row object
+                        var nr_proposed: []const u8 = "?";
+                        var ns = nr_i + 1;
+                        var ns_depth: usize = 1;
+                        while (ns < json.len) : (ns += 1) {
+                            if (json[ns] == '{') ns_depth += 1;
+                            if (json[ns] == '}') {
+                                ns_depth -= 1;
+                                if (ns_depth == 0) break;
+                            }
+                            if (json[ns] != '"') continue;
+                            const sks = ns + 1;
+                            const ske = std.mem.indexOfScalarPos(u8, json, sks, '"') orelse break;
+                            const sk = json[sks..ske];
+                            ns = ske;
+                            if (std.mem.eql(u8, sk, "status")) {
+                                while (ns < json.len and (json[ns] == ' ' or json[ns] == '\t' or json[ns] == '\n' or json[ns] == '\r' or json[ns] == ':')) : (ns += 1) {}
+                                if (ns < json.len and json[ns] == '"') {
+                                    ns += 1;
+                                    var sbuf: std.ArrayList(u8) = .empty;
+                                    defer sbuf.deinit(gpa);
+                                    while (ns < json.len) {
+                                        if (json[ns] == '\\' and ns + 1 < json.len) {
+                                            try sbuf.append(gpa, json[ns + 1]);
+                                            ns += 2;
+                                            continue;
+                                        }
+                                        if (json[ns] == '"') break;
+                                        try sbuf.append(gpa, json[ns]);
+                                        ns += 1;
+                                    }
+                                    nr_proposed = try gpa.dupe(u8, sbuf.items);
+                                }
+                                break;
+                            }
+                        }
+
+                        // Check if the new-row ID is in the register
+                        if (reg.by_id.get(nr_id)) |slot| {
+                            const r = reg.rows.items[slot];
+                            const nps = parseStatus(nr_proposed);
+                            if (nps != .unparsed and nps != r.status) {
+                                result.unabsorbed += 1;
+                                try result.items.append(gpa, .{
+                                    .id = nr_id,
+                                    .proposed = nr_proposed,
+                                    .actual = r.status.name(),
+                                    .file = file_path,
+                                });
+                            }
+                        } else {
+                            // New row never added — unabsorbed
+                            result.unabsorbed += 1;
+                            try result.items.append(gpa, .{
+                                .id = nr_id,
+                                .proposed = nr_proposed,
+                                .actual = "MISSING (row never added)",
+                                .file = file_path,
+                            });
+                        }
+                    }
+                }
+            }
+            in_claims = false; // past claims[] now
+        }
+    }
+
+    return result;
+}
+
+/// Scan findings/*.json and check every claim against the register.
+/// Returns a C7Result with counts and unabsorbed items.
+fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8) !C7Result {
+    var result: C7Result = .{
+        .files = 0,
+        .claims_total = 0,
+        .new_rows_total = 0,
+        .unabsorbed = 0,
+        .items = .empty,
+    };
+
+    var dir = Io.Dir.cwd().openDir(io, dir_path, .{ .iterate = true }) catch |e| {
+        if (e == error.FileNotFound) return result;
+        return e;
+    };
+    defer dir.close(io);
+
+    var w = try dir.walkSelectively(gpa);
+    defer w.deinit();
+    while (try w.next(io)) |e| {
+        if (e.kind != .file) continue;
+        if (!std.mem.endsWith(u8, e.basename, ".json")) continue;
+        // e.path is relative to the walked dir; read via dir, not cwd
+        const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch continue;
+        const fr = try parseFindingsFile(gpa, body, e.path, reg);
+        result.files += 1;
+        result.claims_total += fr.claims_total;
+        result.new_rows_total += fr.new_rows_total;
+        result.unabsorbed += fr.unabsorbed;
+        try result.items.appendSlice(gpa, fr.items.items);
+    }
+
+    return result;
 }
 
 const Alarm = struct { child: usize, parent: usize };

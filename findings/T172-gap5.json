@@ -1,0 +1,20 @@
+{
+  "task_id": "T172",
+  "date": "2026-07-31",
+  "model": "DSPro",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "CODE.VB-BLINDGAPS",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "T172's blind reimplementation of the verify-battery design found five specification gaps (verdict: \"YES, with five documented gaps\"; analysis rescued to the sprint archive). GAP-5, CRITICAL: invariant I11 (move-set consistency) requires a solver-side dump file whose format is specified NOWHERE — the design schema names solver_dump_path but never defines the format, and design §5's L/H-dump paragraph defines itself circularly as \"the same shape as I11's dump\"; I11 cannot be independently re-implemented.",
+      "status": "PROVEN",
+      "evidence": "docs/epic-01-markovian/sprints/verify-battery/archive/T172-blind-analysis.md; src/vb_fixpoint.zig:545-547",
+      "depends_on": "",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "GAP-5 is the critical gap: I11 cannot be independently re-implemented because the solver dump format is undefined. T172 recommended resolving GAP-5 before V-8; it was not honoured."
+}

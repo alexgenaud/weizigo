@@ -60,19 +60,20 @@
     "claim_count": 0
   },
   "T199": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T199-argus-implement.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T07:29:54Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T08:03:49Z",
+    "done": "2026-08-01T08:03:49Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T198": {
     "status": "dispatchable",

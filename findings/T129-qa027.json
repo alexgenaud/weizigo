@@ -1,0 +1,14 @@
+{
+  "task_id": "T129",
+  "date": "2026-07-31",
+  "model": "DSPro",
+  "claims": [
+    {
+      "id": "QA-027",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "Falsified at 4×4: certified fraction = 10.71%, not 100% by construction. The L/H fixpoint converged but V = median(L,TIE,H) does not distribute over best_child at bracket-valued states. At 3×3 the root is single-valued and measured 100.00%.",
+      "evidence_path": "docs/evidence/QA-027/4x4/PROVENANCE.md"
+    }
+  ],
+  "notes": "The 100%-by-construction claim failed exactly where brackets appear. Flag-read fraction is non-degenerate (8.82%), contrary to the brief's all-zero expectation. Calibration: known-good 3×3 reproduces 100.00%; known-bad perturbation detected (100% → 96.15%); PSK-table-under-new-rule known-bad INCONCLUSIVE (returned 100%)."
+}

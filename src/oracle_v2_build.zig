@@ -108,7 +108,7 @@ pub fn main() !void {
     std.debug.print("\n## 4×4 census\n", .{});
 
     const reach4 = try gpa.alloc(u64, exp6.ReachWords4);
-    defer gpa.free(reach4);
+    // freed explicitly before WZO2 write to reduce peak RSS (T192)
 
     const census4 = try exp6.run_census_4x4(gpa, reach4);
     std.debug.print("# 4x4 total reachable (all passes): {d}\n", .{census4.total_marked});
@@ -117,7 +117,7 @@ pub fn main() !void {
     std.debug.print("\n## 4×4 fixpoint\n", .{});
 
     var fp4_out = try exp6.run_fixpoint_4x4(gpa, reach4);
-    defer fp4_out.data.deinit();
+    // freed explicitly before WZO2 write to reduce peak RSS (T192)
 
     const fp4 = fp4_out.result;
     const data = fp4_out.data;
@@ -447,6 +447,12 @@ pub fn main() !void {
         }
         std.debug.print("# terminal flags set: {d}\n", .{terminal_set});
     }
+
+    // Free large no-longer-needed structures before allocating file_bytes (T192 OOM fix)
+    // reach4: ~550 MB census bitset; fp4_out.data: ~2 GB hash map + L/H tables
+    gpa.free(reach4);
+    fp4_out.data.deinit();
+    // dtt already freed above in terminal-flag block
 
     // =====================================================================
     // WRITE WZO2 FILE
