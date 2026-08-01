@@ -114,9 +114,6 @@ pub fn main() !void {
     std.debug.print("# 4x4 total reachable (all passes): {d}\n", .{census4.total_marked});
     std.debug.print("# 4x4 census sweeps: {d}\n", .{census4.sweeps});
 
-    // T214: progress report — census done
-    std.debug.print("[progress] census {d} sweeps\n", .{census4.sweeps});
-
     std.debug.print("\n## 4×4 fixpoint\n", .{});
 
     var fp4_out = try exp6.run_fixpoint_4x4(gpa, reach4);
@@ -124,9 +121,6 @@ pub fn main() !void {
 
     const fp4 = fp4_out.result;
     const data = fp4_out.data;
-
-    // T214: progress — fixpoint done
-    std.debug.print("[progress] fixpoint {d} sweeps converged={}\n", .{ fp4.sweeps, fp4.converged });
 
     std.debug.print("# root (empty, B to move):  L={d:>3} H={d:>3}\n", .{ fp4.root_b_L, fp4.root_b_H });
     std.debug.print("# root (empty, W to move):  L={d:>3} H={d:>3}\n", .{ fp4.root_w_L, fp4.root_w_H });
@@ -270,13 +264,9 @@ pub fn main() !void {
 
         if (dtt_sweep % 16 == 0 or dtt_changed == 0) {
             std.debug.print("# DTT sweep {d}: changed={d}\n", .{ dtt_sweep, dtt_changed });
-            // T214: progress on every 16th sweep
-            std.debug.print("[progress] dtt sweep {d}/{d} changed={d}\n", .{ dtt_sweep, MAX_DTT_SWEEPS, dtt_changed });
         }
     }
     std.debug.print("# DTT: {d} sweeps, final changes={d}\n", .{ dtt_sweep, dtt_changed });
-    // T214: DTT complete
-    std.debug.print("[progress] dtt done {d} sweeps\n", .{dtt_sweep});
 
     // DTT stats
     {
@@ -357,8 +347,6 @@ pub fn main() !void {
 
     std.debug.print("# groups: {d}\n", .{n_groups});
     std.debug.print("# entries: {d}\n", .{n_entries_total});
-    // T214: group build done
-    std.debug.print("[progress] groups {d} entries {d}\n", .{ n_groups, n_entries_total });
     std.debug.print("# file size: {d} bytes ({d:.1} MB)\n", .{
         artifact2.HEADER_LEN + n_groups * 5 + n_entries_total * 4,
         @as(f64, @floatFromInt(artifact2.HEADER_LEN + n_groups * 5 + n_entries_total * 4)) / 1_000_000.0,
@@ -525,15 +513,10 @@ pub fn main() !void {
     // Write in 64 MiB chunks (T192 OOM fix)
     const CHUNK: usize = 1 << 26;
     var off: u64 = 0;
-    var chunk_n: u64 = 0;
-    const total_chunks = (file_bytes.len + CHUNK - 1) / CHUNK;
     while (off < file_bytes.len) {
         const end = @min(off + CHUNK, file_bytes.len);
         try file.writePositionalAll(io, file_bytes[@intCast(off)..@intCast(end)], off);
         off = end;
-        chunk_n += 1;
-        // T214: progress every chunk
-        std.debug.print("[progress] write chunk {d}/{d} {d:.0} MB\n", .{ chunk_n, total_chunks, @as(f64, @floatFromInt(end)) / 1_000_000.0 });
     }
 
     std.debug.print("# WZO2 artifact written: {s} ({d} bytes, {d:.1} MB)\n", .{
