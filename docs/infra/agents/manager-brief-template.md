@@ -1,6 +1,6 @@
 # Manager brief template — dispatch + absorption
 
-**Author:** DSPro/T179 · 2026-07-31
+**Author:** T209 · 2026-08-01
 **Status:** LIVING — replace placeholders, do not edit structure.
 
 A manager brief is what a builder/manager agent reads before spawning subagents. It is the single
@@ -27,52 +27,70 @@ changes the outcome (per ROLES.md "Specification restraint").
 
 ## 2. Dispatch instructions
 
-For each task in the table above, construct the dispatch prompt using the **prompt wrapper** from
-`docs/infra/agents/subdelegation.md` (the "Prompt wrapper" section). Copy the wrapper, replace the
-four placeholders, then append the task-specific prompt below the `---` separator.
+### Creating a task (human or manager)
 
-### Dispatch template (one per subagent)
-
-```
-pi --provider deepseek --model <deepseek-model> -p "You are <MODEL>/<TASK-ID>.
-
-FIRST — claim your task:
-  bin/managent claim <TASK-ID> --agent <MODEL>
-
-Read your brief at <BRIEF-PATH>.
-
-WHEN DONE — before any other output:
-  1. Write your findings to findings/<TASK-ID>-<slug>.json per the schema at findings/README.md.
-  2. Run `bin/managent done <TASK-ID>`.
-
----
-<actual task prompt here>"
+```sh
+bin/managent suggest <slug> --model <model> [--set <A-Z>]
 ```
 
-### Task-specific prompt guidelines
+This prints a one-line dispatch prompt (`Follow untracked/T<ID>-<slug>.md`), creates the bundle
+template, and stores the model on the task record. The bundle carries everything the worker needs.
 
-- **One bounded task per subagent.** One file to read, one question to answer, one deliverable.
-- **State the deliverable path explicitly.** The subagent must know where to write its output.
-- **Include the calibration gate if applicable.** "Before reporting success, reproduce X at Y size."
-- **State the acceptance test.** "You have succeeded when file Z exists and passes its tests."
+### Dispatching (one line)
 
-### Example (audit subagent)
+The worker's harness receives exactly one line:
 
 ```
-pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/T999-audit.
-
-FIRST — claim your task:
-  bin/managent claim T999-audit --agent DSPro
-
-Read your brief at docs/epic-01-markovian/sprints/foo/pass0/spec.md.
-
-WHEN DONE — before any other output:
-  1. Write your findings to findings/T999-audit-<slug>.json per the schema at findings/README.md.
-  2. Run `bin/managent done T999-audit`.
-
----
-Audit docs/epic-01-markovian/sprints/foo/pass0/spec.md against its acceptance criteria. Report every gap with severity and which tasks it blocks. Write detailed analysis to untracked/T999-audit.md. Do not edit the spec."
+Follow untracked/T<ID>-<slug>.md
 ```
+
+The bundle at that path carries the task ID, slug, and everything else the worker needs (lifecycle
+commands, deliverables, acceptance criteria). The worker reads the bundle and proceeds.
+
+### The bundle carries everything
+
+A task bundle created by `managent suggest` starts with:
+
+```
+<!--managent set=X deliverables=-->
+# T<ID> — <slug>
+```
+
+The human (or manager) fills in:
+- **`deliverables=`** — comma-separated paths in the meta header (machine-readable, checked by `managent done`)
+- **Body** — task description, acceptance criteria, calibation, prior art, etc.
+
+### Worker lifecycle (automatic)
+
+The worker follows the bundle. At startup it runs:
+
+```sh
+bin/managent claim T<ID>
+```
+
+The `--agent` flag is optional — `claim` uses the model stored at suggest/dispatch time. On
+completion:
+
+```sh
+bin/managent done T<ID>
+```
+
+The `done` command checks that every path in `deliverables=` exists on disk before marking the task
+done. If a deliverable was committed but moved, update the meta header.
+
+**The human does not ferry information between seats.** The worker self-claims, self-reports, and
+commits its own work. The delegator verifies via `bin/managent status` + `git log`, never via
+pasted console transcripts.
+
+### Mechanical dispatch (preferred path)
+
+For fully mechanical launch, `--exec` chains claim + harness invocation:
+
+```sh
+bin/managent claim T<ID> --exec "pi --provider deepseek --model deepseek-v4-pro"
+```
+
+This runs the harness with the bundle path injected (`pi -p "follow untracked/T<ID>-<slug>.md"`).
 
 ## 3. Findings collection
 
@@ -125,34 +143,6 @@ docs/evidence/absorption/<YYYY-MM-DD>.json
     { "...": "next subagent findings" }
   ],
   "summary": "<one-paragraph summary of what the batch produced>"
-}
-```
-
-### Example
-
-```json
-{
-  "date": "2026-07-31",
-  "manager_task": "T173",
-  "manager_model": "DSPro",
-  "sprint": "verify-battery",
-  "subagent_count": 4,
-  "all_done": true,
-  "gaps_critical": 0,
-  "gaps_high": 0,
-  "gaps_moderate": 1,
-  "gaps_minor": 2,
-  "findings": [
-    {
-      "task_id": "T168",
-      "date": "2026-07-31",
-      "model": "DSPro",
-      "claims": [],
-      "new_rows": [],
-      "notes": "Built vb_common.zig and verify_battery.zig harness — compiles, JSON output works. Ready for T169-T171 to write invariant modules against."
-    }
-  ],
-  "summary": "All four verify-battery subagents completed. M1 harness builds and runs. M2 table invariants pass 19/19 tests. M3 fixpoint invariants pass 7/7 tests. M4 graph I5 calibrates. One moderate gap (I7 recurrence check deferred). Sprint ready for integration."
 }
 ```
 

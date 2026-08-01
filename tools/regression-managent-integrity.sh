@@ -162,10 +162,37 @@ else
     FAIL=1
 fi
 
+# ── Check 4: T209 — suggest output is minimal dispatch line ────────────────
+echo "        4. T209: suggest prints minimal dispatch line"
+
+SUGGEST_OUT2=$(cd "$TMPDIR" && "$MG" suggest "t209-test" --model DSPro 2>/dev/null)
+echo "           suggest output: $SUGGEST_OUT2"
+
+if echo "$SUGGEST_OUT2" | grep -qE '^Follow untracked/T[0-9]+-t209-test\.md$'; then
+    echo "           PASS: suggest prints 'Follow untracked/T<ID>-<slug>.md'"
+else
+    echo "           FAIL: suggest output did not match expected format"
+    FAIL=1
+fi
+
+# ── Check 5: T209 — bundle template has deliverables= in meta header ───────
+echo "        5. T209: bundle template has deliverables= in meta header"
+
+LATEST_BUNDLE=$(cd "$TMPDIR" && ls untracked/T???-t209-test.md | tail -1)
+META_LINE=$(head -1 "$TMPDIR/$LATEST_BUNDLE" 2>/dev/null)
+echo "           meta: $META_LINE"
+
+if echo "$META_LINE" | grep -q 'deliverables='; then
+    echo "           PASS: bundle meta contains deliverables="
+else
+    echo "           FAIL: bundle meta missing deliverables=: $META_LINE"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
-    echo "  T204: ALL CHECKS PASS"
+    echo "  T204/T209: ALL CHECKS PASS"
 else
-    echo "  T204: SOME CHECKS FAILED"
+    echo "  T204/T209: SOME CHECKS FAILED"
 fi
 exit "$FAIL"

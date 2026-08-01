@@ -65,6 +65,7 @@ const TaskStatus = enum {
 const TaskState = struct {
     status: TaskStatus = .dispatchable,
     agent: ?[]const u8 = null,
+    model: ?[]const u8 = null,
     bundle: []const u8 = "",
     set: u8 = 'A',
     holds: [][]const u8 = &.{},
@@ -137,6 +138,22 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const dir_path = "docs/infra/managent";
     std.Io.Dir.cwd().createDirPath(io, dir_path) catch {};
 
+    // Determine command (first non-flag arg, or "status")
+    const cmd: []const u8 = if (args.len >= 2 and !std.mem.startsWith(u8, args[1], "-")) args[1] else "status";
+
+    // Help flags — short-circuit BEFORE any side effect (T210 D3)
+    // Match: managent help, managent standing --help, managent --help, etc.
+    if (std.mem.eql(u8, cmd, "help")) {
+        printHelp(w);
+        return;
+    }
+    for (args[1..]) |arg| {
+        if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
+            printHelp(w);
+            return;
+        }
+    }
+
     // Migration: on every invocation, re-derive dispatchable/blocked statuses
     {
         var st = try readState(io, state_path);
@@ -144,17 +161,6 @@ pub fn main(init: std.process.Init.Minimal) !void {
             try writeState(io, state_path, &st);
         }
         freeState(&st);
-    }
-
-    // Determine command
-    const cmd: []const u8 = if (args.len >= 2 and !std.mem.startsWith(u8, args[1], "-")) args[1] else "status";
-
-    // Help flags
-    if (args.len >= 2) {
-        if (std.mem.eql(u8, args[1], "-h") or std.mem.eql(u8, args[1], "--help") or std.mem.eql(u8, cmd, "help")) {
-            printHelp(w);
-            return;
-        }
     }
 
     if (std.mem.eql(u8, cmd, "add")) {
@@ -554,6 +560,9 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("agent")) |av| {
             if (av == .string) ts.agent = try alloc.dupe(u8, av.string);
         }
+        if (obj.object.get("model")) |mv| {
+            if (mv == .string) ts.model = try alloc.dupe(u8, mv.string);
+        }
         if (obj.object.get("bundle")) |bv| {
             if (bv == .string) ts.bundle = try alloc.dupe(u8, bv.string);
         }
@@ -648,7 +657,18 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try buf.appendSlice(alloc, ",\n    \"agent\": \"");
             try buf.appendSlice(alloc, a);
             try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"agent\": null");
         }
+
+        if (ts.model) |m| {
+            try buf.appendSlice(alloc, ",\n    \"model\": \"");
+            try buf.appendSlice(alloc, m);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"model\": null");
+        }
+
         try buf.appendSlice(alloc, ",\n    \"bundle\": \"");
         try buf.appendSlice(alloc, ts.bundle);
         try buf.appendSlice(alloc, "\"");
@@ -896,7 +916,7 @@ fn bundleRel(bundle: []const u8, repo_root: []const u8) []const u8 {
 /// When agent is unset, returns "unknown/<task-id>".
 /// The .<attempt> suffix is appended when claim_count > 1.
 fn agentIdentifier(ts: TaskState, task_id: []const u8) ![]const u8 {
-    const model = ts.agent orelse "unknown";
+    const model = ts.agent orelse ts.model orelse "unknown";
     if (ts.claim_count <= 1) {
         return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ model, task_id });
     }
@@ -1116,6 +1136,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
 fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
         w.diag("usage: managent claim <id> [--agent <name>] [--exec <prefix>]\n", .{});
+        w.diag("       --agent defaults to model stored at suggest/dispatch time\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
@@ -1160,7 +1181,10 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             const now = try nowTimestamp();
             ts_ptr.status = .in_progress;
-            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else null;
+            // T209: fall back to model stored at suggest/dispatch time
+            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a)
+                else if (ts_ptr.model) |m| try alloc.dupe(u8, m)
+                else null;
             ts_ptr.claimed = now;
 
             try writeState(io, state_path, &state);
@@ -1204,7 +1228,10 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             const now = try nowTimestamp();
             ts_ptr.status = .in_progress;
-            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else null;
+            // T209: fall back to model stored at suggest/dispatch time
+            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a)
+                else if (ts_ptr.model) |m| try alloc.dupe(u8, m)
+                else null;
             ts_ptr.claimed = now;
 
             try writeState(io, state_path, &state);
@@ -1288,6 +1315,8 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
 fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
         w.diag("usage: managent suggest <slug> [--model <name>] [--set <A-Z>]\n", .{});
+        w.diag("       prints a one-line dispatch: 'Follow untracked/T<ID>-<slug>.md'\n", .{});
+        w.diag("       --model is stored on the task; claim picks it up automatically\n", .{});
         std.process.exit(1);
     }
     const slug = args[2];
@@ -1339,7 +1368,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     {
         const file = try std.Io.Dir.cwd().createFile(io, bundle_path, .{});
         defer file.close(io);
-        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c}-->\n", .{set});
+        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c} deliverables=-->\n", .{set});
         defer alloc.free(meta);
         try file.writeStreamingAll(io, meta);
         const heading = try std.fmt.allocPrint(alloc, "# {s} — {s}\n", .{ id, slug });
@@ -1352,9 +1381,15 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     const rel_bundle = try std.fmt.allocPrint(alloc, "untracked/{s}", .{bundle_name});
     defer alloc.free(rel_bundle);
 
+    // Store model on task: the model is bound at dispatch/suggest time, not claim time.
+    const model_for_task: ?[]const u8 = if (model_flag) |m| try alloc.dupe(u8, m)
+        else if (std.c.getenv("PI_MODEL")) |ptr| try alloc.dupe(u8, std.mem.sliceTo(ptr, 0))
+        else null;
+
     const ts = TaskState{
         .status = .dispatchable,
         .agent = null,
+        .model = model_for_task,
         .bundle = rel_bundle,
         .set = set,
         .holds = &.{},
@@ -1372,7 +1407,8 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     w.diag("  bundle: untracked/{s}\n", .{bundle_name});
 
     // ── stdout: the prompt one-liner (AGENTS.md copy/paste boundaries) ──
-    w.data("You are {s}/{s}. {s}\n", .{ model, id, slug });
+    // T209: dispatch line is just the bundle path — the bundle carries everything.
+    w.data("Follow untracked/{s}\n", .{bundle_name});
 }
 
 // ── parseDeliverablesFromBundle — extract deliverable paths from bundle body ─
@@ -1385,7 +1421,6 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
         result.deinit(alloc);
     }
 
-    // Try to parse "Deliverables:" section from bundle body
     const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch {
         // Can't read bundle — fall back to holds
         for (holds) |h| {
@@ -1395,7 +1430,39 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
     };
     defer alloc.free(content);
 
-    // Look for "Deliverables:" marker
+    // T209: first, try the machine-readable meta header
+    // <!--managent set=X deliverables=path1,path2-->
+    const meta_start = "<!--managent ";
+    const dl_key = "deliverables=";
+    if (std.mem.startsWith(u8, content, meta_start)) {
+        // Find end of the comment line
+        const newline_idx = std.mem.indexOfScalar(u8, content, '\n') orelse content.len;
+        const meta_line = content[0..newline_idx];
+        if (std.mem.indexOf(u8, meta_line, dl_key)) |dl_start| {
+            const val_start = dl_start + dl_key.len;
+            // Value runs until "-->" or end of line
+            const end_marker = "-->";
+            const val_end = if (std.mem.indexOf(u8, meta_line[val_start..], end_marker)) |em|
+                val_start + em
+            else
+                newline_idx;
+            const dl_value = std.mem.trim(u8, meta_line[val_start..val_end], " \t\r\n");
+            if (dl_value.len > 0) {
+                var parts = std.mem.splitScalar(u8, dl_value, ',');
+                while (parts.next()) |part| {
+                    const trimmed = std.mem.trim(u8, part, " \t\r\n");
+                    if (trimmed.len > 0) {
+                        try result.append(alloc, try alloc.dupe(u8, trimmed));
+                    }
+                }
+                if (result.items.len > 0) {
+                    return try result.toOwnedSlice(alloc);
+                }
+            }
+        }
+    }
+
+    // Fall back: parse "Deliverables:" paragraph
     const marker = "Deliverables:";
     const marker_idx = std.mem.indexOf(u8, content, marker);
 
@@ -1482,12 +1549,13 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
 
     // ── attribution enforcement (ORCHA-AUTOMATION item 3) ──
+    // T209: model (set at suggest/dispatch) is sufficient when agent is unset.
     if (agent_override) |a| {
         if (ts_ptr.agent) |old| alloc.free(old);
         ts_ptr.agent = try alloc.dupe(u8, a);
     }
-    if (ts_ptr.agent == null and !is_fail) {
-        w.diag("\n  REJECTED: {s} has no agent set.\n", .{id});
+    if (ts_ptr.agent == null and ts_ptr.model == null and !is_fail) {
+        w.diag("\n  REJECTED: {s} has no agent or model set.\n", .{id});
         w.diag("  Every completed task must carry an agent for the identifier and model-performance ledger.\n", .{});
         w.diag("  Use: managent done {s} --agent <model>\n", .{id});
         w.diag("  Or set it first: managent agent {s} <model>\n", .{id});
@@ -1945,6 +2013,9 @@ fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
         w.data("\n  {{\"id\":\"{s}\",\"status\":\"{s}\",\"set\":\"{c}\",\"bundle\":\"{s}\"", .{
             entry.key_ptr.*, statusToString(ts.status), ts.set, rel,
         });
+        if (ts.model) |m| {
+            w.data(",\"model\":\"{s}\"", .{m});
+        }
         if (ts.agent) |_| {
             const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
             w.data(",\"identifier\":\"{s}\"", .{ident});
@@ -1996,6 +2067,8 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 
     const now = try nowTimestamp();
     ts_ptr.status = .in_progress;
+    // T209: use model stored at suggest/dispatch time as agent
+    ts_ptr.agent = if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
     ts_ptr.claimed = now;
     ts_ptr.claim_count += 1;
 
@@ -2093,6 +2166,9 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
         w.data("    dispatched: {s}", .{dp});
         if (ts.dispatched_to) |dt| w.data(" to {s}", .{dt});
         w.data("\n", .{});
+    }
+    if (ts.model) |m| {
+        w.data("    model:    {s}\n", .{m});
     }
     if (ts.agent) |_| {
         const ident = try agentIdentifier(ts, id);
@@ -2244,6 +2320,7 @@ fn freeState(state: *StateMap) void {
         const ts = entry.value_ptr.*;
         alloc.free(ts.bundle);
         if (ts.agent) |a| alloc.free(a);
+        if (ts.model) |m| alloc.free(m);
         for (ts.holds) |h| alloc.free(h);
         alloc.free(ts.holds);
         for (ts.needs) |n| alloc.free(n);
@@ -2928,16 +3005,23 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                         alloc.free(bundle_deliverables);
                     }
                     var any_cited = false;
-                    // Check if task ID or any deliverable path appears in CLAIMS.md or PROGRESS.md
+                    // Check if task ID or any deliverable path appears in citable surfaces
+                    // (CLAIMS.md, PROGRESS.md, DECISIONS.md, docs/status/*.md, docs/audits/*.md — T210 D1)
                     if (std.mem.indexOf(u8, claims_content, tid) != null or
-                        std.mem.indexOf(u8, progress_content, tid) != null)
+                        std.mem.indexOf(u8, progress_content, tid) != null or
+                        std.mem.indexOf(u8, decisions_content, tid) != null or
+                        std.mem.indexOf(u8, status_content, tid) != null or
+                        std.mem.indexOf(u8, audits_content, tid) != null)
                     {
                         any_cited = true;
                     }
                     if (!any_cited) {
                         for (bundle_deliverables) |d| {
                             if (std.mem.indexOf(u8, claims_content, d) != null or
-                                std.mem.indexOf(u8, progress_content, d) != null)
+                                std.mem.indexOf(u8, progress_content, d) != null or
+                                std.mem.indexOf(u8, decisions_content, d) != null or
+                                std.mem.indexOf(u8, status_content, d) != null or
+                                std.mem.indexOf(u8, audits_content, d) != null)
                             {
                                 any_cited = true;
                                 break;
@@ -2945,7 +3029,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                         }
                     }
                     if (!any_cited) {
-                        const msg = try std.fmt.allocPrint(alloc, "done but deliverables not cited in CLAIMS.md or PROGRESS.md — promote or cite", .{});
+                        const msg = try std.fmt.allocPrint(alloc, "done but deliverables not cited in CLAIMS.md, PROGRESS.md, DECISIONS.md, docs/status/ or docs/audits/ — promote or cite", .{});
                         try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
                     }
                 }
@@ -3223,17 +3307,21 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
         }
     }
 
-    // Trigger 4: tree dirty — git diff --stat line count
+    // Trigger 4: tree dirty — git diff --stat line count (T210 D2: exclude tasks.json)
     var dirty_files: u64 = 0;
     var dirty_prior: u64 = 0;
     {
         const diff_result = try runCommand(alloc, io, &.{ "git", "-C", repo_root, "diff", "--stat" });
         defer alloc.free(diff_result);
         var dlines = std.mem.splitScalar(u8, diff_result, '\n');
-        while (dlines.next()) |_| {
+        while (dlines.next()) |line| {
+            if (line.len == 0) continue;
+            // Summary line has no "|" (e.g. " 3 files changed, 12 insertions(+)")
+            if (std.mem.indexOf(u8, line, "|") == null) continue;
+            // Exclude managent's own writes to tasks.json (sync, standing)
+            if (std.mem.indexOf(u8, line, "tasks.json") != null) continue;
             dirty_files += 1;
         }
-        if (dirty_files > 0) dirty_files -= 1; // last line is summary
     }
     {
         const content = std.Io.Dir.cwd().readFileAlloc(io, state_path, alloc, .unlimited) catch "";

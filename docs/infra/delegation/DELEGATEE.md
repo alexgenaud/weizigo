@@ -16,19 +16,16 @@ corrupts it.
 
 ## The first thing you do
 
-**Claim the task.** `managent claim <id> --agent <name>` transitions the task
-from `dispatchable` to `in_progress` and records your name. The dispatch
-field on the task (`dispatched_to`, set by the human via
-`managent dispatch`) is *advisory* — you may still claim any
-`dispatchable` task — but you should know who the human wanted. If the
-dispatched agent is wrong, the human can re-dispatch; **you claiming does
-not override the human's choice**, it just starts the work.
+**Claim the task.** `managent claim <id>` transitions the task from
+`dispatchable` to `in_progress`. The `--agent` flag is optional — the model
+was stored at suggest/dispatch time on the task record, and `claim` picks it up
+automatically. You only need `--agent` if the stored model is wrong and you
+need to correct it.
 
-If you forget, the Orchestrator may claim on your behalf with your `--agent`
-name — the kanban must match reality, and a stale `dispatchable` row is the
-Orchestrator's to fix. Self-claiming is still the normal path: it is how
-`managent next` self-services and how your work is attributed to you in the
-performance ledger.
+If you forget, the Orchestrator may claim on your behalf — the kanban must
+match reality, and a stale `dispatchable` row is the Orchestrator's to fix.
+Self-claiming is still the normal path: it is how `managent next`
+self-services and how your work is attributed to you in the performance ledger.
 
 If you are not running under the Orchestrator (e.g. an ad-hoc experiment
 from a console), claim via `managent next` to take the first eligible task.
@@ -77,11 +74,13 @@ rather than smoothing it over. Flag what you judged borderline and left alone.
 examine hardest.
 
 **Writing to the kanban.** `managent done <id>` on completion; `managent done
-<id> --fail` if you stopped because the brief was wrong. **Do not edit
-`docs/infra/managent/tasks.json` directly**; the binary is the only writer.
-If a `note` is warranted (recovery shape, dual-authorship, why the brief was
-wrong), record it via `managent dispatch <id> --note <text>` (the dispatcher
-records notes; if you are the worker, ask the Orchestrator to add the note).
+<id> --fail` if you stopped because the brief was wrong. The `done` command
+checks that every file listed in the bundle's `deliverables=` meta header exists
+on disk. **Do not edit `docs/infra/managent/tasks.json` directly**; the binary
+is the only writer. If a `note` is warranted (recovery shape, dual-authorship,
+why the brief was wrong), record it via `managent dispatch <id> --note <text>`
+(the dispatcher records notes; if you are the worker, ask the Orchestrator to
+add the note).
 
 ## Reporting
 

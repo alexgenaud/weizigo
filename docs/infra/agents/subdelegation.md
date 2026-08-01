@@ -33,15 +33,21 @@ API key is already exported in the parent shell. Subagents run in the same Pi ha
 
 ```sh
 # Parent dispatches an audit subagent
-pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/T999-audit. Read docs/epic-01-markovian/sprints/foo/pass0/spec.md. Audit it against the acceptance criteria in the same file. Write your verdict and findings to untracked/T999-audit.md. Do not edit the spec."
+# First create the task:
+bin/managent suggest audit-spec --model DSPro
+# Fill in the bundle with the task description, then dispatch:
+pi --provider deepseek --model deepseek-v4-pro -p "Follow untracked/T<ID>-audit-spec.md"
 ```
 
 ## Pattern: parallel measurements
 
 ```sh
-# Run SCC census at two goban sizes in parallel
-pi --provider deepseek --model deepseek-v4-pro -p "You are DSPro/SCC-3x3. Read docs/infra/dispatch/SCC-3x3.md. Run the census. Write results to docs/evidence/SCC/3x3.md." &
-pi --provider deepseek --model deepseek-v4-flash -p "You are DSFlash/SCC-4x3. Read docs/infra/dispatch/SCC-4x3.md. Run the census. Write results to docs/evidence/SCC/4x3.md." &
+# First create the tasks:
+bin/managent suggest SCC-3x3 --model DSPro
+bin/managent suggest SCC-4x3 --model DSFlash
+# Fill in bundles, then dispatch:
+pi --provider deepseek --model deepseek-v4-pro -p "Follow untracked/T<ID>-SCC-3x3.md" &
+pi --provider deepseek --model deepseek-v4-flash -p "Follow untracked/T<ID>-SCC-4x3.md" &
 wait
 ```
 
@@ -49,21 +55,19 @@ wait
 
 Subagent work is recorded in `model-perf.md` under the parent task, with a note that it was subdelegated. The subagent's model is stated.
 
-## Prompt wrapper — claim / findings / done
+## Prompt wrapper — dispatch / claim / findings / done
 
-Every subagent dispatch **must** use the wrapper below. The wrapper enforces three lifecycle steps the subagent does not know about on its own: claim the task before starting, write a standardized findings file, and mark the task done. The manager replaces `<PLACEHOLDERS>` before dispatch.
+Every subagent dispatch **must** use the wrapper below. The wrapper enforces the lifecycle: read the bundle, claim the task, produce findings, mark done. The manager replaces `<PLACEHOLDERS>` before dispatch.
 
 ### Wrapper template
 
-Copy this block verbatim, replace the four placeholders, then append the actual task prompt after the separator.
-
 ```
-You are <MODEL>/<TASK-ID>.
+Follow untracked/<TASK-ID>-<slug>.md
 
 FIRST — claim your task:
-  bin/managent claim <TASK-ID> --agent <MODEL>
+  bin/managent claim <TASK-ID>
 
-Read your brief at <BRIEF-PATH>.
+Read your brief at untracked/<TASK-ID>-<slug>.md — it carries everything.
 
 WHEN DONE — before any other output:
   1. Write your findings to findings/<TASK-ID>-<slug>.json per the schema at findings/README.md.
@@ -76,17 +80,17 @@ WHEN DONE — before any other output:
 **Placeholders:**
 | placeholder | fill with | example |
 |---|---|---|
-| `<MODEL>` | short model name | `DSPro`, `DSFlash` |
 | `<TASK-ID>` | kanban task ID | `T180`, `EXP-5` |
-| `<BRIEF-PATH>` | path to the task brief | `untracked/T180-audit.md` |
+| `<slug>` | task slug (from bundle path) | `audit-verify` |
 | `<actual task prompt here>` | the real prompt (after the `---` separator) | `Audit the spec at docs/... Accept/Reject with gaps.` |
 
 ### Rules
 
 1. **The wrapper is mandatory.** Every `odeeppi -p` or `oflashpi -p` dispatch uses it. No bare prompts.
-2. **The separator is a horizontal rule.** `---` on its own line, blank line above and below, exactly as shown. The payload (actual task prompt) goes below it.
-3. **The subagent writes findings before `done`.** If the findings write fails for any reason, the subagent must NOT mark the task done — the manager must know the task is incomplete.
-4. **The `--agent` flag on claim** must match the model in the wrapper. This feeds `model-perf.md` attribution.
+2. **The dispatch line is minimal.** The bundle carries everything — task ID, model, slug, lifecycle commands, deliverables, and acceptance criteria. The worker reads the bundle, not the prompt line.
+3. **The separator is a horizontal rule.** `---` on its own line, blank line above and below, exactly as shown. The payload (actual task prompt) goes below it.
+4. **The subagent writes findings before `done`.** If the findings write fails for any reason, the subagent must NOT mark the task done — the manager must know the task is incomplete.
+5. **`claim` needs no `--agent`.** The model was stored at suggest/dispatch time; `claim` picks it up automatically.
 
 ## Findings schema
 
