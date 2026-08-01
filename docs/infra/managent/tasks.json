@@ -460,6 +460,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T190": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T190-project-restructure-builder.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T01:45:26Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T167": {
     "status": "done",
     "agent": "DSPro",
