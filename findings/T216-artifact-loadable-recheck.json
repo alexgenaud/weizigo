@@ -1,0 +1,8 @@
+{
+  "task_id": "T216",
+  "date": "2026-08-01",
+  "model": "DSPro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Artifact-loadable re-check — 10 artifacts tested under tools/runner with generous ceilings (--max-cpu 21600 --max-wall 21600). All 9 .wzo artifacts load correctly (exit 0, SHA-256 verified, wall ≤ 0.6s, RSS ≤ 248 MB). The .wzo2 artifact fails with BadMagic (expected — wrong loader). T208's runner-ceiling diagnosis confirmed; no artifact regression. Argus fix: exclude .wzo2 from the weizigo-oracle load check; no ceiling change needed."
+}
