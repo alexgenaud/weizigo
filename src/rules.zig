@@ -932,3 +932,19 @@ pub fn main() !void {
     const tested = try benson_theorem_check(3, 3, 9, gpa);
     std.debug.print("Benson theorem, 3x3 EXHAUSTIVE: {d} (board, owner) cases with Benson-alive stones -- all survived every attack sequence. PASS\n", .{tested});
 }
+
+// ── runtime dispatcher for callers that need runtime w/h (A4: engine unification) ──
+
+/// Call Rules(w,h).area_score with runtime dimensions.
+/// Panics on unsupported goban sizes.
+pub fn areaScore(board: []const i8, w: usize, h: usize) i8 {
+    const n = w * h;
+    return switch (n) {
+        4 => Rules(2, 2).area_score(@ptrCast(board.ptr)),
+        6 => Rules(3, 2).area_score(@ptrCast(board.ptr)),
+        9 => Rules(3, 3).area_score(@ptrCast(board.ptr)),
+        12 => Rules(4, 3).area_score(@ptrCast(board.ptr)),
+        16 => Rules(4, 4).area_score(@ptrCast(board.ptr)),
+        else => @panic("areaScore: unsupported goban size"),
+    };
+}

@@ -144,12 +144,20 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const repo_root = try findRepoRoot(w, io);
     defer alloc.free(repo_root);
 
-    const state_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "tasks.json" });
+    // MANAGENT_STORE env var overrides the default state path (A3: substrate isolation)
+    const store_env_ptr = std.c.getenv("MANAGENT_STORE");
+    const store_env: ?[]const u8 = if (store_env_ptr) |p| std.mem.span(p) else null;
+    const state_path = if (store_env) |se|
+        try alloc.dupe(u8, se)
+    else
+        try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "tasks.json" });
     defer alloc.free(state_path);
 
-    // Ensure the managent directory exists
-    const dir_path = "docs/infra/managent";
-    std.Io.Dir.cwd().createDirPath(io, dir_path) catch {};
+    // Ensure the managent directory exists (only for default store)
+    if (store_env == null) {
+        const dir_path = "docs/infra/managent";
+        std.Io.Dir.cwd().createDirPath(io, dir_path) catch {};
+    }
 
     // Determine command (first non-flag arg, or "status")
     const cmd: []const u8 = if (args.len >= 2 and !std.mem.startsWith(u8, args[1], "-")) args[1] else "status";

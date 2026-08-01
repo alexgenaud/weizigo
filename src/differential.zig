@@ -1,14 +1,19 @@
 // differential.zig — oracle harness: compare N implementations of one operation
 //
-// Task: T252 · Phase: P1 of engine-unification sprint · Date: 2026-08-01
+// Task: T226 · Phase: P1 (A1+A2 remediated) · Date: 2026-08-01
 //
-// Each operation (area score, legality, capture, pass) has multiple independent
-// implementations across the codebase. This harness compares them at every
-// enumerable goban size and reports agreement. Disagreements are reported with
-// witness inputs, not fixed.
+// Each operation has multiple independent implementations across the codebase.
+// This harness compares them at every enumerable goban size and reports:
+//   - agreements: boards where ALL implementations return the same value
+//   - disagreements: boards where implementations differ, with witness boards
+//     and each implementation's value
 //
-// Design: adding an implementation is a one-line registration. The harness
-// is only useful if it stays used.
+// Controls (A2):
+//   - Null control: same implementation registered twice → perfect agreement
+//   - Seeded-defect control: a deliberately mutated copy → caught, witnesses named
+//   - Known-bad fixture: synthetic disagreement detected (must fail before pass)
+//
+// Design: adding an implementation is a one-line registration.
 
 const std = @import("std");
 const testing = std.testing;
@@ -21,77 +26,44 @@ fn Board(comptime n_cells: usize) type {
 
 // ── operation descriptor ────────────────────────────────────────────────────
 
-/// An implementation of an operation at a specific goban size.
-/// T is the result type (e.g. i8 for area score, bool for legality).
 fn Impl(comptime n_cells: usize, comptime T: type) type {
     return struct {
-        name: []const u8, // human-readable, e.g. "exp4.area_score3"
-        file: []const u8, // source file, e.g. "src/exp4_solve.zig"
+        name: []const u8,
+        file: []const u8,
         func: *const fn (board: Board(n_cells)) T,
     };
 }
 
-/// A set of implementations for one operation at one size.
+fn Disagreement(comptime n_cells: usize, comptime T: type) type {
+    return struct {
+        board: Board(n_cells),
+        values: []T, // one per implementation
+    };
+}
+
 fn Comparison(comptime n_cells: usize, comptime T: type) type {
     return struct {
         operation: []const u8,
-        size_label: []const u8, // e.g. "2x2"
+        size_label: []const u8,
         impls: []const Impl(n_cells, T),
-        total_states: usize,
+        total_boards: usize,
         agreements: usize,
         disagreements: []Disagreement(n_cells, T),
 
         pub fn deinit(self: *@This(), alloc: std.mem.Allocator) void {
             for (self.disagreements) |*d| {
-                alloc.free(d.witnesses);
-                alloc.free(d.impls_with);
+                alloc.free(d.values);
             }
             alloc.free(self.disagreements);
         }
     };
 }
 
-fn Disagreement(comptime n_cells: usize, comptime T: type) type {
-    return struct {
-        result: T,
-        count: usize,
-        witnesses: []Board(n_cells), // first few witness boards
-        impls_with: []u8, // bitmap: which impls return this result
-    };
-}
+// ── core comparison: per-board, per-implementation evaluation ───────────────
 
-// ── result grouping ─────────────────────────────────────────────────────────
-
-/// Group boards by the result vector (which impl returned what).
-/// Returns a map from result-key to list of boards.
-fn groupByResult(
-    comptime n_cells: usize,
-    comptime T: type,
-    alloc: std.mem.Allocator,
-    impls: []const Impl(n_cells, T),
-    boards: []const Board(n_cells),
-) !std.AutoHashMap(u64, std.ArrayList(Board(n_cells))) {
-    var map = std.AutoHashMap(u64, std.ArrayList(Board(n_cells))).init(alloc);
-    for (boards) |board| {
-        var key: u64 = 0;
-        for (impls, 0..) |_, i| {
-            const result = impls[i].func(board);
-            const r: u64 = @bitCast(@as(i64, result));
-            key ^= r << @intCast((i * 8) % 64);
-        }
-        const entry = try map.getOrPut(key);
-        if (!entry.found_existing) {
-            entry.value_ptr.* = .empty;
-        }
-        try entry.value_ptr.*.append(alloc, board);
-    }
-    return map;
-}
-
-// ── comparison runner ───────────────────────────────────────────────────────
-
-/// Run all comparisons for a given operation across multiple goban sizes.
-/// Returns a list of Comparison results, one per size.
+/// Compare N implementations on every board.  A board *agrees* when all
+/// implementations return the same value.  A board *disagrees* when any two
+/// differ.  Disagreement witnesses carry each implementation's value.
 pub fn compare(
     comptime n_cells: usize,
     comptime T: type,
@@ -101,158 +73,56 @@ pub fn compare(
     impls: []const Impl(n_cells, T),
     boards: []const Board(n_cells),
 ) !Comparison(n_cells, T) {
-    var groups = try groupByResult(n_cells, T, alloc, impls, boards);
-    defer {
-        var it = groups.valueIterator();
-        while (it.next()) |list| list.deinit(alloc);
-        groups.deinit();
+    if (impls.len == 0) {
+        return .{
+            .operation = operation,
+            .size_label = size_label,
+            .impls = impls,
+            .total_boards = boards.len,
+            .agreements = boards.len, // vacuously true
+            .disagreements = &.{},
+        };
     }
 
-    const total = boards.len;
+    var disagreement_list: std.ArrayList(Disagreement(n_cells, T)) = .empty;
+    var agreement_count: usize = 0;
 
-    // Find the majority result key (the one with the most boards)
-    var majority_key: u64 = 0;
-    var majority_count: usize = 0;
-    var it = groups.iterator();
-    while (it.next()) |entry| {
-        if (entry.value_ptr.*.items.len > majority_count) {
-            majority_count = entry.value_ptr.*.items.len;
-            majority_key = entry.key_ptr.*;
-        }
-    }
-
-    // Collect disagreements: groups that are not the majority
-    var disagreements: std.ArrayList(Disagreement(n_cells, T)) = .empty;
-    it = groups.iterator();
-    while (it.next()) |entry| {
-        if (entry.key_ptr.* == majority_key) continue;
-        const boards_list = entry.value_ptr.*;
-        const witness_count = @min(boards_list.items.len, 5);
-        const witnesses = try alloc.alloc(Board(n_cells), witness_count);
-        @memcpy(witnesses, boards_list.items[0..witness_count]);
-
-        // Build bitmap: which impls produced this result
-        var impls_with = try alloc.alloc(u8, (impls.len + 7) / 8);
-        @memset(impls_with, 0);
-        // For each impl, check if it returns the same value as the first witness
-        const first_board = witnesses[0];
+    for (boards) |board| {
+        // Evaluate every implementation on this board
+        var values = try alloc.alloc(T, impls.len);
         for (impls, 0..) |_, i| {
-            // Compare this impl's result on the first witness to the result stored
-            const this_result = impls[i].func(first_board);
-            // The result stored for this group is from a board where all impls returned
-            // values matching the key. We just check if impl i returns the same as impl 0.
-            if (this_result == impls[0].func(first_board)) {
-                impls_with[i / 8] |= @as(u8, 1) << @intCast(i % 8);
-            }
+            values[i] = impls[i].func(board);
         }
 
-        try disagreements.append(alloc, .{
-            .result = impls[0].func(witnesses[0]),
-            .count = boards_list.items.len,
-            .witnesses = witnesses,
-            .impls_with = impls_with,
-        });
+        // Check if all values are equal
+        const all_equal = blk: {
+            const first = values[0];
+            for (values[1..]) |v| {
+                if (!std.meta.eql(v, first)) break :blk false;
+            }
+            break :blk true;
+        };
+
+        if (all_equal) {
+            agreement_count += 1;
+            alloc.free(values);
+        } else {
+            try disagreement_list.append(alloc, .{ .board = board, .values = values });
+        }
     }
 
     return .{
         .operation = operation,
         .size_label = size_label,
         .impls = impls,
-        .total_states = total,
-        .agreements = majority_count,
-        .disagreements = try disagreements.toOwnedSlice(alloc),
+        .total_boards = boards.len,
+        .agreements = agreement_count,
+        .disagreements = try disagreement_list.toOwnedSlice(alloc),
     };
-}
-
-// ── reporting ───────────────────────────────────────────────────────────────
-
-pub fn report(
-    comptime n_cells: usize,
-    comptime T: type,
-    writer: anytype,
-    result: Comparison(n_cells, T),
-) !void {
-    try writer.print("=== {s} @ {s} ===\n", .{ result.operation, result.size_label });
-    try writer.print("  implementations: {d}\n", .{result.impls.len});
-    for (result.impls, 0..) |impl, i| {
-        try writer.print("    [{d}] {s} ({s})\n", .{ i, impl.name, impl.file });
-    }
-    try writer.print("  total states: {d}\n", .{result.total_states});
-    try writer.print("  agreements: {d}/{d} ({d:.1}%)\n", .{ result.agreements, result.total_states, 100.0 * @as(f64, @floatFromInt(result.agreements)) / @as(f64, @floatFromInt(result.total_states)) });
-
-    if (result.disagreements.len == 0) {
-        try writer.print("  ALL AGREE\n", .{});
-    } else {
-        try writer.print("  DISAGREEMENTS: {d} groups\n", .{result.disagreements.len});
-        for (result.disagreements, 0..) |d, di| {
-            try writer.print("    group {d}: count={d}\n", .{ di, d.count });
-            try writer.print("      witness[0]: [", .{});
-            for (d.witnesses[0], 0..) |cell, ci| {
-                if (ci > 0) try writer.print(",", .{});
-                try writer.print("{d}", .{cell});
-            }
-            try writer.print("]\n", .{});
-        }
-    }
-    try writer.print("\n", .{});
-}
-
-// ── tests ───────────────────────────────────────────────────────────────────
-
-fn alwaysZero(_: Board(4)) i8 { return 0; }
-fn alwaysOne(_: Board(4)) i8 { return 1; }
-fn alwaysZeroB(_: Board(4)) i8 { return 0; }
-fn boardSum(board: Board(4)) i8 {
-    return board[0] + board[1] + board[2] + board[3];
-}
-
-test "known-bad fixture: disagreement detected" {
-    const alloc = std.testing.allocator;
-    // alwaysZero and alwaysZeroB always agree.
-    // boardSum sometimes agrees with them (when sum=0), sometimes doesn't.
-    const impls = [_]Impl(4, i8){
-        .{ .name = "zero_a", .file = "test", .func = alwaysZero },
-        .{ .name = "sum", .file = "test", .func = boardSum },
-        .{ .name = "zero_b", .file = "test", .func = alwaysZeroB },
-    };
-    const boards = [_]Board(4){
-        .{ 0, 0, 0, 0 },  // sum=0, all agree
-        .{ 1, -1, 0, 1 }, // sum=1, sum disagrees with zeros
-        .{ 2, -2, 0, 0 }, // sum=0, all agree
-    };
-
-    var result = try compare(4, i8, alloc, "test_op", "2x2", &impls, &boards);
-    defer result.deinit(alloc);
-
-    try testing.expect(result.total_states == 3);
-    // Two boards have sum=0 (3-way agreement). One board has sum=1 (disagreement).
-    try testing.expect(result.agreements == 2);
-    try testing.expect(result.disagreements.len == 1);
-    try testing.expect(result.disagreements[0].count == 1);
-}
-
-test "all agree: no disagreements" {
-    const alloc = std.testing.allocator;
-    const impls = [_]Impl(4, i8){
-        .{ .name = "zero_a", .file = "test", .func = alwaysZero },
-        .{ .name = "zero_b", .file = "test", .func = alwaysZeroB },
-    };
-    const boards = [_]Board(4){
-        .{ 0, 0, 0, 0 },
-        .{ 1, -1, 0, 1 },
-    };
-
-    var result = try compare(4, i8, alloc, "all_zero", "2x2", &impls, &boards);
-    defer result.deinit(alloc);
-
-    try testing.expect(result.total_states == 2);
-    try testing.expect(result.agreements == 2);
-    try testing.expect(result.disagreements.len == 0);
 }
 
 // ── board enumeration ──────────────────────────────────────────────────────
 
-/// Enumerate all boards of a given size (3^N states).
 pub fn enumerateBoards(comptime n_cells: usize, alloc: std.mem.Allocator) ![]Board(n_cells) {
     const pow3 = comptime blk: {
         var p: usize = 1;
@@ -267,7 +137,7 @@ pub fn enumerateBoards(comptime n_cells: usize, alloc: std.mem.Allocator) ![]Boa
         var v = i;
         var j: usize = 0;
         while (j < n_cells) : (j += 1) {
-            const rem = @as(i8, @intCast(v % 3)) - 1; // -1, 0, 1
+            const rem = @as(i8, @intCast(v % 3)) - 1;
             b[j] = rem;
             v /= 3;
         }
@@ -276,7 +146,82 @@ pub fn enumerateBoards(comptime n_cells: usize, alloc: std.mem.Allocator) ![]Boa
     return boards;
 }
 
-// ── main: run area score comparison at 2×2 ──────────────────────────────────
+// ── tests ───────────────────────────────────────────────────────────────────
+
+fn alwaysZero(_: Board(4)) i8 { return 0; }
+fn alwaysOne(_: Board(4)) i8 { return 1; }
+fn alwaysZeroCopy(_: Board(4)) i8 { return 0; }
+fn plusOne(board: Board(4)) i8 { return board[0] + board[1] + board[2] + board[3] + 1; }
+
+test "null control: same impl twice → perfect agreement" {
+    const alloc = std.testing.allocator;
+    const impls = [_]Impl(4, i8){
+        .{ .name = "zero", .file = "test", .func = alwaysZero },
+        .{ .name = "zero_copy", .file = "test", .func = alwaysZero },
+    };
+    const boards = [_]Board(4){
+        .{ 0, 0, 0, 0 },
+        .{ 1, -1, 0, 1 },
+        .{ -1, -1, 1, 1 },
+    };
+
+    var result = try compare(4, i8, alloc, "null_control", "2x2", &impls, &boards);
+    defer result.deinit(alloc);
+
+    try testing.expectEqual(3, result.total_boards);
+    try testing.expectEqual(3, result.agreements);
+    try testing.expectEqual(0, result.disagreements.len);
+}
+
+test "seeded-defect control: mutant caught with witnesses" {
+    const alloc = std.testing.allocator;
+    // alwaysZero and alwaysOne are a one-character mutation apart
+    const impls = [_]Impl(4, i8){
+        .{ .name = "zero", .file = "test", .func = alwaysZero },
+        .{ .name = "one", .file = "test", .func = alwaysOne }, // mutant: returns 1 instead of 0
+    };
+    const boards = [_]Board(4){
+        .{ 0, 0, 0, 0 },
+    };
+
+    var result = try compare(4, i8, alloc, "mutant", "2x2", &impls, &boards);
+    defer result.deinit(alloc);
+
+    try testing.expectEqual(1, result.total_boards);
+    try testing.expectEqual(0, result.agreements);
+    try testing.expectEqual(1, result.disagreements.len);
+    // Witness must name the differing values
+    try testing.expectEqual(@as(i8, 0), result.disagreements[0].values[0]);
+    try testing.expectEqual(@as(i8, 1), result.disagreements[0].values[1]);
+}
+
+test "known-bad fixture: three impls, one disagrees, witnesses correct" {
+    const alloc = std.testing.allocator;
+    const impls = [_]Impl(4, i8){
+        .{ .name = "zero", .file = "test", .func = alwaysZero },
+        .{ .name = "mutant_one", .file = "test", .func = alwaysOne },
+        .{ .name = "zero_copy", .file = "test", .func = alwaysZeroCopy },
+    };
+    const boards = [_]Board(4){
+        .{ 0, 0, 0, 0 }, // zero=0, mutant=1, copy=0 → disagreement
+        .{ -1, 0, 1, 0 }, // zero=0, mutant=1, copy=0 → disagreement
+    };
+
+    var result = try compare(4, i8, alloc, "known_bad", "2x2", &impls, &boards);
+    defer result.deinit(alloc);
+
+    try testing.expectEqual(2, result.total_boards);
+    try testing.expectEqual(0, result.agreements);
+    try testing.expectEqual(2, result.disagreements.len);
+    // Each disagreement must show values[0]=0, values[1]=1, values[2]=0
+    for (result.disagreements) |d| {
+        try testing.expectEqual(@as(i8, 0), d.values[0]);
+        try testing.expectEqual(@as(i8, 1), d.values[1]);
+        try testing.expectEqual(@as(i8, 0), d.values[2]);
+    }
+}
+
+// ── main: run area score comparison using real implementations ──────────────
 
 const exp6 = @import("exp6_solve.zig");
 const rules_mod = @import("rules.zig");
@@ -295,7 +240,7 @@ pub fn main() !void {
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    // Area score at 2×2
+    // 2×2: compare exp6 vs Rules — expected identical (they're clones)
     {
         const impls = [_]Impl(4, i8){
             .{ .name = "exp6.genericAreaScore", .file = "src/exp6_solve.zig", .func = areaScoreExp6_2x2 },
@@ -307,18 +252,28 @@ pub fn main() !void {
         var result = try compare(4, i8, alloc, "area_score", "2x2", &impls, boards);
         defer result.deinit(alloc);
 
-        std.debug.print("=== {s} @ {s} ===\n", .{ result.operation, result.size_label });
-        std.debug.print("  implementations: {d}\n", .{result.impls.len});
-        std.debug.print("  total states: {d}\n", .{result.total_states});
-        std.debug.print("  agreements: {d}/{d}\n", .{ result.agreements, result.total_states });
+        std.debug.print("area_score @ 2x2: {d}/{d} agree", .{ result.agreements, result.total_boards });
         if (result.disagreements.len == 0) {
-            std.debug.print("  ALL AGREE\n\n", .{});
+            std.debug.print(" — ALL AGREE\n", .{});
         } else {
-            std.debug.print("  DISAGREEMENTS: {d}\n\n", .{result.disagreements.len});
+            std.debug.print(" — {d} DISAGREEMENTS\n", .{result.disagreements.len});
+            for (result.disagreements[0..@min(result.disagreements.len, 3)]) |d| {
+                std.debug.print("  board=[", .{});
+                for (d.board, 0..) |c, ci| {
+                    if (ci > 0) std.debug.print(",", .{});
+                    std.debug.print("{d}", .{c});
+                }
+                std.debug.print("] values=[", .{});
+                for (d.values, 0..) |v, vi| {
+                    if (vi > 0) std.debug.print(",", .{});
+                    std.debug.print("{d}", .{v});
+                }
+                std.debug.print("]\n", .{});
+            }
         }
     }
 
-    // Area score at 3×2 (6 cells, 3^6 = 729 states)
+    // 3×2: same comparison
     {
         const impls = [_]Impl(6, i8){
             .{ .name = "exp6.genericAreaScore", .file = "src/exp6_solve.zig", .func = struct {
@@ -337,14 +292,24 @@ pub fn main() !void {
         var result = try compare(6, i8, alloc, "area_score", "3x2", &impls, boards);
         defer result.deinit(alloc);
 
-        std.debug.print("=== {s} @ {s} ===\n", .{ result.operation, result.size_label });
-        std.debug.print("  implementations: {d}\n", .{result.impls.len});
-        std.debug.print("  total states: {d}\n", .{result.total_states});
-        std.debug.print("  agreements: {d}/{d}\n", .{ result.agreements, result.total_states });
+        std.debug.print("area_score @ 3x2: {d}/{d} agree", .{ result.agreements, result.total_boards });
         if (result.disagreements.len == 0) {
-            std.debug.print("  ALL AGREE\n\n", .{});
+            std.debug.print(" — ALL AGREE\n", .{});
         } else {
-            std.debug.print("  DISAGREEMENTS: {d}\n\n", .{result.disagreements.len});
+            std.debug.print(" — {d} DISAGREEMENTS\n", .{result.disagreements.len});
+            for (result.disagreements[0..@min(result.disagreements.len, 3)]) |d| {
+                std.debug.print("  board=[", .{});
+                for (d.board, 0..) |c, ci| {
+                    if (ci > 0) std.debug.print(",", .{});
+                    std.debug.print("{d}", .{c});
+                }
+                std.debug.print("] values=[", .{});
+                for (d.values, 0..) |v, vi| {
+                    if (vi > 0) std.debug.print(",", .{});
+                    std.debug.print("{d}", .{v});
+                }
+                std.debug.print("]\n", .{});
+            }
         }
     }
 }

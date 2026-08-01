@@ -33,6 +33,7 @@
 
 const std = @import("std");
 const artifact = @import("artifact.zig");
+const rules_mod = @import("rules.zig");
 
 // =========================================================================
 // Constants
@@ -212,40 +213,8 @@ pub fn genericIsLegal(comptime n_cells: usize, pos: []const i8, w: usize, h: usi
 }
 
 pub fn genericAreaScore(comptime n_cells: usize, board: []const i8, w: usize, h: usize) i8 {
-    var black: i16 = 0;
-    var white: i16 = 0;
-    var visited = [_]bool{false} ** n_cells;
-    for (0..n_cells) |p| {
-        if (board[p] > 0) { black += 1; continue; }
-        if (board[p] < 0) { white += 1; continue; }
-        if (visited[p]) continue;
-        var stack: [n_cells]usize = undefined;
-        var sp: usize = 1;
-        stack[0] = p;
-        visited[p] = true;
-        var size: i16 = 0;
-        var tb = false;
-        var tw = false;
-        while (sp > 0) {
-            sp -= 1;
-            const q = stack[sp];
-            size += 1;
-            var nb: [4]usize = undefined;
-            const cnt = genericNeighbors(q, w, h, &nb);
-            for (nb[0..cnt]) |r| {
-                if (board[r] > 0) tb = true
-                else if (board[r] < 0) tw = true
-                else if (!visited[r]) {
-                    visited[r] = true;
-                    stack[sp] = r;
-                    sp += 1;
-                }
-            }
-        }
-        if (tb and !tw) black += size;
-        if (tw and !tb) white += size;
-    }
-    return @intCast(black - white);
+    _ = n_cells;
+    return rules_mod.areaScore(board, w, h);
 }
 
 // =========================================================================
