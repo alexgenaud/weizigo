@@ -948,3 +948,62 @@ pub fn areaScore(board: []const i8, w: usize, h: usize) i8 {
         else => @panic("areaScore: unsupported goban size"),
     };
 }
+
+/// Call Rules(w,h).neighbors with runtime dimensions.
+pub fn neighborsRt(p: usize, w: usize, h: usize, buf: *[4]usize) usize {
+    const n = w * h;
+    _ = n;
+    return switch (w * h) {
+        4 => Rules(2, 2).neighbors(p, buf),
+        6 => Rules(3, 2).neighbors(p, buf),
+        9 => Rules(3, 3).neighbors(p, buf),
+        12 => Rules(4, 3).neighbors(p, buf),
+        16 => Rules(4, 4).neighbors(p, buf),
+        else => @panic("neighbors: unsupported goban size"),
+    };
+}
+
+test "neighborsRt runtime dispatcher matches comptime Rules" {
+    // 2x2: corner cell has 2 neighbors
+    {
+        var buf: [4]usize = undefined;
+        const rt = neighborsRt(0, 2, 2, &buf);
+        var buf2: [4]usize = undefined;
+        const ct = Rules(2, 2).neighbors(0, &buf2);
+        try std.testing.expectEqual(ct, rt);
+        try std.testing.expectEqual(@as(usize, 2), rt); // corner: right + down
+    }
+    // 3x3: center cell has 4 neighbors
+    {
+        var buf: [4]usize = undefined;
+        const rt = neighborsRt(4, 3, 3, &buf);
+        var buf2: [4]usize = undefined;
+        const ct = Rules(3, 3).neighbors(4, &buf2);
+        try std.testing.expectEqual(ct, rt);
+        try std.testing.expectEqual(@as(usize, 4), rt); // center: all 4
+    }
+}
+
+test "areaScore runtime dispatcher matches comptime Rules" {
+    // 2x2: empty board
+    {
+        const board = [_]i8{0} ** 4;
+        const runtime = areaScore(&board, 2, 2);
+        const comptime_val = Rules(2, 2).area_score(&board);
+        try std.testing.expectEqual(comptime_val, runtime);
+    }
+    // 3x2: all black
+    {
+        const board = [_]i8{1} ** 6;
+        const runtime = areaScore(&board, 3, 2);
+        const comptime_val = Rules(3, 2).area_score(&board);
+        try std.testing.expectEqual(comptime_val, runtime);
+    }
+    // 3x3: alternating
+    {
+        const board = [_]i8{ 1, -1, 0, -1, 1, 0, 0, 0, 0 };
+        const runtime = areaScore(&board, 3, 3);
+        const comptime_val = Rules(3, 3).area_score(&board);
+        try std.testing.expectEqual(comptime_val, runtime);
+    }
+}
