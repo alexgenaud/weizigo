@@ -63,6 +63,21 @@
     "note": null,
     "claim_count": 2
   },
+  "T192": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T192-wzo2-oom-fix.md",
+    "set": "A",
+    "holds": ["src/oracle_v2_build.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T06:48:31Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T188": {
     "status": "done",
     "agent": "DSPro",
