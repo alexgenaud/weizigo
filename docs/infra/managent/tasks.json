@@ -1,18 +1,19 @@
 {
   "T193": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T193-p3f-m4a-run.md",
     "set": "A",
     "holds": [],
     "needs": ["T192"],
     "caps": [],
     "added": "2026-08-01T06:56:19Z",
-    "claimed": null,
+    "claimed": "2026-08-01T11:03:43Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
+    "dispatched": "2026-08-01T11:03:43Z",
+    "dispatched_to": "DSPro",
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "STANDING-CLEANUP": {
     "status": "done",
@@ -172,23 +173,24 @@
     "claim_count": 0
   },
   "T209": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "untracked/T209-dispatch-ergonomics.md",
     "set": "C",
     "holds": [],
     "needs": ["T206", "T207"],
     "caps": [],
     "added": "2026-08-01T10:24:39Z",
-    "claimed": null,
+    "claimed": "2026-08-01T11:03:43Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
+    "dispatched": "2026-08-01T11:03:43Z",
+    "dispatched_to": "DSPro",
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   }
 ,
   "_sys": {
-    "next_id": 211,
+    "next_id": 212,
     "directive_next": 7
   }
 }
