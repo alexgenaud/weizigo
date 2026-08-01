@@ -14,21 +14,6 @@
     "note": null,
     "claim_count": 0
   },
-  "T203": {
-    "status": "dispatchable",
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T203-pass1-relocation.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-08-01T08:08:28Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "claim_count": 0
-  },
   "T192": {
     "status": "done",
     "agent": "DSPro",
@@ -44,10 +29,100 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T206": {
+    "status": "blocked",
+    "bundle": "untracked/T206-tooling-seams-code.md",
+    "set": "B",
+    "holds": [],
+    "needs": ["T204"],
+    "caps": [],
+    "added": "2026-08-01T10:03:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T207": {
+    "status": "blocked",
+    "bundle": "untracked/T207-process-doc-sweep.md",
+    "set": "B",
+    "holds": [],
+    "needs": ["T204"],
+    "caps": [],
+    "added": "2026-08-01T10:03:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T205": {
+    "status": "blocked",
+    "bundle": "untracked/T205-status-surfaces-handover.md",
+    "set": "B",
+    "holds": [],
+    "needs": ["T204"],
+    "caps": [],
+    "added": "2026-08-01T10:03:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T208": {
+    "status": "blocked",
+    "bundle": "untracked/T208-evidence-argus-triage.md",
+    "set": "B",
+    "holds": [],
+    "needs": ["T204"],
+    "caps": [],
+    "added": "2026-08-01T10:03:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T203": {
+    "status": "blocked",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T203-pass1-relocation.md",
+    "set": "A",
+    "holds": [],
+    "needs": ["T205", "T206", "T207", "T208"],
+    "caps": [],
+    "added": "2026-08-01T08:08:28Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
+  "T204": {
+    "status": "dispatchable",
+    "bundle": "untracked/T204-managent-integrity.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T10:03:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   }
 ,
   "_sys": {
-    "next_id": 204,
+    "next_id": 209,
     "directive_next": 7
   }
 }
