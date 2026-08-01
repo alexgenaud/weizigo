@@ -1,4 +1,19 @@
 {
+  "T193": {
+    "status": "blocked",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T193-p3f-m4a-run.md",
+    "set": "A",
+    "holds": [],
+    "needs": ["T192"],
+    "caps": [],
+    "added": "2026-08-01T06:56:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T175": {
     "status": "done",
     "agent": "DSPro",
@@ -93,6 +108,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T195": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T195-argus-build.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T06:56:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T169": {
     "status": "done",
@@ -286,6 +316,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T196": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T196-orcha-tools-accept.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T06:56:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T160": {
     "status": "done",
     "agent": "DSPro",
@@ -349,6 +394,21 @@
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
+  },
+  "T194": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T194-kc-build.md",
+    "set": "A",
+    "holds": ["src/claimlint.zig"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T06:56:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
   },
   "T164": {
     "status": "done",
@@ -478,8 +538,23 @@
     "note": null,
     "claim_count": 1
   },
+  "T197": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T197-project-restructure-scope.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T06:56:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T190": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T190-project-restructure-builder.md",
     "set": "A",
@@ -488,7 +563,7 @@
     "caps": [],
     "added": "2026-08-01T01:45:26Z",
     "claimed": "2026-08-01T01:57:44Z",
-    "done": null,
+    "done": "2026-08-01T06:56:19Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
