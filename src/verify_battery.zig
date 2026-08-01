@@ -87,6 +87,53 @@ fn openOutput(path: ?[]const u8) Output {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RSS High Water Mark
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Returns peak RSS in megabytes, or null if unavailable.
+fn rssHwmMb() ?f64 {
+    // Linux: parse VmHWM from /proc/self/status (kernel-maintained peak RSS).
+    const status_fd = std.c.open("/proc/self/status", std.c.O{ .ACCMODE = .RDONLY });
+    if (status_fd >= 0) {
+        defer _ = std.c.close(status_fd);
+        var buf: [4096]u8 = undefined;
+        const n = std.c.read(status_fd, &buf, buf.len);
+        if (n > 0) {
+            const content = buf[0..@intCast(n)];
+            var lines = std.mem.splitScalar(u8, content, '\n');
+            while (lines.next()) |line| {
+                if (std.mem.startsWith(u8, line, "VmHWM:")) {
+                    // Format: "VmHWM:    12345 kB"
+                    var parts = std.mem.tokenizeScalar(u8, line, ' ');
+                    _ = parts.next(); // "VmHWM:"
+                    if (parts.next()) |kb_str| {
+                        if (std.fmt.parseUnsigned(u64, kb_str, 10)) |kb| {
+                            return @as(f64, @floatFromInt(kb)) / 1024.0;
+                        } else |_| {}
+                    }
+                }
+            }
+        }
+    }
+
+    // macOS/Linux fallback: getrusage(RUSAGE_SELF) — ru_maxrss in KB (Linux) or bytes (macOS).
+    // RUSAGE_SELF is 0 on both platforms.
+    var ru: std.c.rusage = undefined;
+    if (std.c.getrusage(0, &ru) == 0) {
+        if (ru.maxrss > 0) {
+            // On macOS ru_maxrss is bytes; on Linux it's KB.
+            // Detect: if value > 1_000_000, assume bytes (macOS).
+            if (ru.maxrss > 1_000_000) {
+                return @as(f64, @floatFromInt(ru.maxrss)) / (1024.0 * 1024.0);
+            } else {
+                return @as(f64, @floatFromInt(ru.maxrss)) / 1024.0;
+            }
+        }
+    }
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -147,10 +194,32 @@ fn akLabel(ak: vb.ArtifactKind) []const u8 { return @tagName(ak); }
 fn afLabel(af: vb.ArtifactFormat) []const u8 { return @tagName(af); }
 fn ssLabel(ss: vb.SeedSource) []const u8 { return @tagName(ss); }
 
-fn quoteJson(s: []const u8) []const u8 {
-    // Simple quoted-string, enough for artifact paths and invariant labels
-    // Returns stack-allocated; caller must use immediately
-    return s; // For now; real escaping needed for production
+fn escapeJsonToBuf(s: []const u8, buf: []u8) []const u8 {
+    // Proper JSON string escaping per RFC 8259 §7.
+    // Returns a slice of buf (stack-allocated; caller must use immediately).
+    var wi: usize = 0;
+    for (s) |c| {
+        switch (c) {
+            '"' => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = '\"'; wi += 2; },
+            '\\' => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = '\\'; wi += 2; },
+            0x08 => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = 'b'; wi += 2; },
+            0x0C => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = 'f'; wi += 2; },
+            '\n' => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = 'n'; wi += 2; },
+            '\r' => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = 'r'; wi += 2; },
+            '\t' => { if (wi + 2 > buf.len) break; buf[wi] = '\\'; buf[wi + 1] = 't'; wi += 2; },
+            0x00...0x07, 0x0B, 0x0E...0x1F => {
+                if (wi + 6 > buf.len) break;
+                buf[wi] = '\\'; buf[wi + 1] = 'u'; buf[wi + 2] = '0'; buf[wi + 3] = '0';
+                const hi = (c >> 4) & 0xF;
+                const lo = c & 0xF;
+                buf[wi + 4] = if (hi < 10) '0' + hi else 'a' + (hi - 10);
+                buf[wi + 5] = if (lo < 10) '0' + lo else 'a' + (lo - 10);
+                wi += 6;
+            },
+            else => { if (wi + 1 > buf.len) break; buf[wi] = c; wi += 1; },
+        }
+    }
+    return buf[0..wi];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -184,7 +253,8 @@ fn writeHeader(out: Output, _: *const CliConfig, gs: ?vb.GobanSize, art_path: ?[
     out.write("}\n");
 }
 
-fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af: ?[]const u8, afv: ?u8, art: ?[]const u8, art_sha: ?[]const u8, md_decl: []const u8, md_act: []const u8, scope: bool, status: []const u8, ec: []const u8, dur: u64, rss: ?f64, seed: ?u64, ss: ?u64, sden: ?u64, ek: ?[]const u8, em: ?[]const u8) void {
+fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af: ?[]const u8, afv: ?u8, art: ?[]const u8, art_sha: ?[]const u8, md_decl: []const u8, md_act: []const u8, scope: bool, status: []const u8, ec: []const u8, dur: u64, _: ?f64, seed: ?u64, ss: ?u64, sden: ?u64, ek: ?[]const u8, em: ?[]const u8) void {
+    const rss_mb = rssHwmMb();
     out.write("{\"kind\":\"result\"");
     writeStr(out, "invariant", inv);
     writeStr(out, "goban", gs);
@@ -199,7 +269,7 @@ fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af
     writeStr(out, "status", status);
     writeStr(out, "exit_class", ec);
     writeNum(out, "duration_ms", dur);
-    writeOptFloat(out, "rss_hwm_after_mb", rss);
+    writeOptFloat(out, "rss_hwm_after_mb", rss_mb);
     writeOptNum(out, "seed", seed);
     writeOptNum(out, "sample_size", ss);
     writeOptNum(out, "sample_denominator", sden);
@@ -213,9 +283,10 @@ fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af
     out.write("}\n");
 }
 
-fn writeTrailer(out: Output, exit_code: u8, dur: u64, rss: ?f64, pass: u32, fail: u32, rd: u32, skip: u32, na: u32, err: u32, ec_pass: u32, ec_ab: u32, ec_rb: u32, ec_bb: u32) void {
+fn writeTrailer(out: Output, exit_code: u8, dur: u64, _: ?f64, pass: u32, fail: u32, rd: u32, skip: u32, na: u32, err: u32, ec_pass: u32, ec_ab: u32, ec_rb: u32, ec_bb: u32) void {
+    const rss_mb = rssHwmMb();
     out.writeFmt("{{\"kind\":\"trailer\",\"exit_code\":{d},\"total_duration_ms\":{d}", .{ exit_code, dur });
-    writeOptFloat(out, "rss_hwm_after_mb", rss);
+    writeOptFloat(out, "rss_hwm_after_mb", rss_mb);
     out.writeFmt(",\"result_counts\":{{\"pass\":{d},\"fail\":{d},\"reference_disagreement\":{d},\"skipped\":{d},\"not_applicable\":{d},\"error\":{d}}}", .{ pass, fail, rd, skip, na, err });
     out.writeFmt(",\"exit_class_counts\":{{\"pass\":{d},\"artifact_bad\":{d},\"reference_bad\":{d},\"battery_bad\":{d}}}", .{ ec_pass, ec_ab, ec_rb, ec_bb });
     out.write("}\n");
@@ -235,12 +306,16 @@ fn emitError(out: Output, cfg: *const CliConfig, gs: ?vb.GobanSize, art_path: ?[
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn writeStr(out: Output, key: []const u8, val: []const u8) void {
-    out.writeFmt(",\"{s}\":\"{s}\"", .{ key, val });
+    var ebuf: [4096]u8 = undefined;
+    const escaped = escapeJsonToBuf(val, &ebuf);
+    out.writeFmt(",\"{s}\":\"{s}\"", .{ key, escaped });
 }
 
 fn writeOptStr(out: Output, key: []const u8, val: ?[]const u8) void {
     if (val) |v| {
-        out.writeFmt(",\"{s}\":\"{s}\"", .{ key, v });
+        var ebuf: [4096]u8 = undefined;
+        const escaped = escapeJsonToBuf(v, &ebuf);
+        out.writeFmt(",\"{s}\":\"{s}\"", .{ key, escaped });
     } else {
         out.writeFmt(",\"{s}\":null", .{key});
     }
@@ -282,7 +357,9 @@ fn writeStrArray(out: Output, key: []const u8, vals: []const []const u8) void {
     out.writeFmt(",\"{s}\":[", .{key});
     for (vals, 0..) |v, idx| {
         if (idx > 0) out.write(",");
-        out.writeFmt("\"{s}\"", .{v});
+        var ebuf: [4096]u8 = undefined;
+        const escaped = escapeJsonToBuf(v, &ebuf);
+        out.writeFmt("\"{s}\"", .{escaped});
     }
     out.write("]");
 }
@@ -540,6 +617,9 @@ pub fn main(init: std.process.Init) u8 {
 
     const ec = computeExitCode(results.items);
     const dur: u64 = @intCast(nowMs() - start_ms);
+    const rss_end = rssHwmMb();
+    // Note: rssHwmMb called once here; writeTrailer calls again — duplicate but harmless.
+    _ = rss_end;
     writeTrailer(out, ec, dur, null, n_pass, n_fail, n_rd, n_skip, n_na, n_err, ec_p, ec_ab, ec_rb, ec_bb);
     return ec;
 }

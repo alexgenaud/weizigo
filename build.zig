@@ -101,6 +101,43 @@ pub fn build(b: *std.Build) void {
     const run_oracle_v2_accept_tests = b.addRunArtifact(oracle_v2_accept_tests);
     test_step.dependOn(&run_oracle_v2_accept_tests.step);
 
+    // ── verify-battery: table invariants (vb_table) ──────────────
+    const vb_table_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_table.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_table_tests.root_module.import_table = .{};
+    const run_vb_table_tests = b.addRunArtifact(vb_table_tests);
+    run_vb_table_tests.cwd = b.path("."); // tests need artifacts/ from project root
+    test_step.dependOn(&run_vb_table_tests.step);
+
+    // ── verify-battery: fixpoint invariants (vb_fixpoint) ────────
+    const vb_fixpoint_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_fixpoint.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_vb_fixpoint_tests = b.addRunArtifact(vb_fixpoint_tests);
+    run_vb_fixpoint_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_fixpoint_tests.step);
+
+    // ── verify-battery: graph invariants (vb_graph) ──────────────
+    const vb_graph_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_graph.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_vb_graph_tests = b.addRunArtifact(vb_graph_tests);
+    run_vb_graph_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_graph_tests.step);
+
     // ── engine-vs-engine ──────────────────────────────────────────
     const engine_vs_engine_exe = b.addExecutable(.{
         .name = "weizigo-engine-vs-engine",

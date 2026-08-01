@@ -64,19 +64,20 @@
     "claim_count": 2
   },
   "T188": {
-    "status": "dispatchable",
+    "status": "done",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T188-knowledge-capture-builder.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T01:43:19Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-01T01:50:08Z",
+    "done": "2026-08-01T01:50:08Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T169": {
     "status": "done",
