@@ -38,7 +38,7 @@
     "claim_count": 1
   },
   "T215": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "model": null,
     "bundle": "untracked/T215-keybyte-same-class-sweep.md",
@@ -48,12 +48,12 @@
     "caps": [],
     "added": "2026-08-01T16:28:01Z",
     "claimed": "2026-08-01T17:07:45Z",
-    "done": null,
+    "done": "2026-08-01T17:07:51Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "Clean sweep: all 5 encodeKeyByte call sites correct after T193 fix; hazards routed to T223",
     "claim_count": 1
   },
   "STANDING-CLEANUP": {
