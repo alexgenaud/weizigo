@@ -354,7 +354,7 @@ pub fn main() !void {
 
     // Phase 3: build entry rows in WZO2 order (sorted by colex)
     var entry_rows = try std.ArrayListUnmanaged(artifact2.EntryRow).initCapacity(gpa, @intCast(n_entries_total));
-    defer entry_rows.deinit(gpa);
+    // freed explicitly after buildFile to reduce peak RSS
 
     for (group_builders.items) |gb| {
         const board: u32 = gb.rank; // exp6 rank for linearIndex4 lookups
@@ -455,7 +455,7 @@ pub fn main() !void {
 
     // Build final GroupHeader list (with colex values, not exp6 ranks)
     var group_headers = try std.ArrayListUnmanaged(artifact2.GroupHeader).initCapacity(gpa, @intCast(n_groups));
-    defer group_headers.deinit(gpa);
+    // freed explicitly after buildFile to reduce peak RSS
     for (group_builders.items) |gb| {
         group_headers.append(gpa, .{
             .colex = gb.colex_val,
@@ -479,6 +479,10 @@ pub fn main() !void {
     const file_bytes = try artifact2.buildFile(gpa, &art);
     defer gpa.free(file_bytes);
 
+    // Free entry_rows and group_headers now that file_bytes is built (T192 OOM fix: ~464 MB savings at peak)
+    entry_rows.deinit(gpa);
+    group_headers.deinit(gpa);
+
     // Verify hash self-check
     std.debug.print("# SHA-256 self-check...\n", .{});
     artifact2.verifyHash(file_bytes) catch {
@@ -500,8 +504,8 @@ pub fn main() !void {
     var file = try dir.createFile(io, out_path, .{});
     defer file.close(io);
 
-    // Write in 1 GiB chunks
-    const CHUNK: usize = 1 << 30;
+    // Write in 64 MiB chunks (T192 OOM fix)
+    const CHUNK: usize = 1 << 26;
     var off: u64 = 0;
     while (off < file_bytes.len) {
         const end = @min(off + CHUNK, file_bytes.len);
