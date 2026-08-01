@@ -46,6 +46,19 @@
 # `pause` or `kill` directive is pending.  Heartbeat on every exit (success,
 # failure, or guard kill) so liveness shows real runs even if ungraceful.
 #
+# T214 (2026-08-01): progress watchdog replaces wall/CPU ceilings.
+# The RSS cap is the one safety-critical guard (memory exhaustion panics the
+# host).  Wall and CPU ceilings are bad stuck-detectors — they kill correct
+# long-running jobs.
+#
+# Two tiers:
+#   1. RSS cap (--rss-cap-mb 4096) — always on, hard kill.  No progress earns
+#      an exemption from a memory-exhaustion kill.
+#   2. Progress watchdog (--progress-timeout 600) — kills when the child emits
+#      no [progress] line for N seconds.  A child that reports every few
+#      minutes runs as long as it needs.  Fallback: when no progress lines are
+#      ever seen, the traditional --max-cpu / --max-wall ceilings apply.
+#
 # All flags are pass-through except the guard itself.  Exit code 124
 # (timeout convention) on guard kill, or the wrapped command's exit code.
 #
@@ -55,6 +68,7 @@ import argparse
 import json
 import os
 import re
+import select
 import shlex
 import signal
 import subprocess
@@ -433,6 +447,27 @@ def _log_peaks(peak_rss, peak_cpu=None, t0=None):
 
 # ── main ─────────────────────────────────────────────────────────────
 
+def _drain_stderr(proc, progress_seen, last_progress_time, task_identity, command, repo_root):
+    """Read any remaining stderr from the child after it exits.
+
+    Forwards lines to the runner's stderr, checks for [progress] markers,
+    and emits a heartbeat on each one found.
+    """
+    try:
+        import fcntl as _fcntl
+        fd = proc.stderr.fileno()
+        fl = _fcntl.fcntl(fd, _fcntl.F_GETFL)
+        _fcntl.fcntl(fd, _fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
+        remaining = proc.stderr.read()
+        if remaining:
+            for line in remaining.splitlines():
+                print(line, file=sys.stderr)
+                if '[progress]' in line:
+                    _emit_heartbeat(task_identity, command, time.monotonic(), -1, -1, repo_root)
+    except (ValueError, OSError):
+        pass
+
+
 def main():
     ap = argparse.ArgumentParser(
         prog="tools/runner",
@@ -445,13 +480,18 @@ def main():
                     help="kill the process group when any member exceeds "
                          "this RSS in MB (default 4096)")
     ap.add_argument("--max-wall", type=int, default=1800,
-                    help="SIGKILL the process group after this many "
-                         "seconds of wall time (default 1800 = 30 min; "
-                         "0 to disable)")
+                    help="(fallback for silent children) SIGKILL after this "
+                         "many wall seconds if no [progress] lines seen "
+                         "(default 1800 = 30 min; 0 to disable)")
     ap.add_argument("--max-cpu", type=int, default=3600,
-                    help="SIGKILL the process group when cumulative CPU "
-                         "seconds across all descendants exceeds this "
-                         "(default 3600 = 1h; 0 to disable)")
+                    help="(fallback for silent children) SIGKILL when "
+                         "cumulative CPU exceeds this if no [progress] lines "
+                         "seen (default 3600 = 1h; 0 to disable)")
+    ap.add_argument("--progress-timeout", type=int, default=600,
+                    help="SIGKILL when child emits no [progress] line for "
+                         "this many seconds (default 600 = 10 min). "
+                         "Set 0 to disable progress watchdog (fallback "
+                         "ceilings still apply).")
     ap.add_argument("--poll-ms", type=int, default=250,
                     help="RSS / CPU / wall check interval in ms (default 250)")
     ap.add_argument("--no-prepend-zig", action="store_true",
@@ -500,20 +540,17 @@ def main():
     preexec_fn = lambda: os.setsid() if hasattr(os, "setsid") else None
 
     print(f"[runner] argv = {shlex.join(argv)}", file=sys.stderr)
-    ceilings = []
+    guards = []
     if args.rss_cap_mb:
-        ceilings.append(f"rss {args.rss_cap_mb} MB")
+        guards.append(f"rss {args.rss_cap_mb} MB")
     else:
-        ceilings.append("rss off")
-    if args.max_wall:
-        ceilings.append(f"wall {args.max_wall}s ({_format_clock(args.max_wall)})")
+        guards.append("rss off")
+    if args.progress_timeout:
+        guards.append(f"progress-timeout {args.progress_timeout}s ({_format_clock(args.progress_timeout)})")
     else:
-        ceilings.append("wall off")
-    if args.max_cpu:
-        ceilings.append(f"cpu {args.max_cpu}s ({_format_clock(args.max_cpu)})")
-    else:
-        ceilings.append("cpu off")
-    print(f"[runner] ceilings: {', '.join(ceilings)}, poll = {args.poll_ms} ms", file=sys.stderr)
+        guards.append("progress-timeout off")
+    guards.append(f"fallback: wall {args.max_wall}s cpu {args.max_cpu}s (silent children)")
+    print(f"[runner] guards: {', '.join(guards)}, poll = {args.poll_ms} ms", file=sys.stderr)
 
     # ── WORKER-CHANNEL: directive check before launch ──────────────────────
     repo_root = _find_repo_root()
@@ -540,11 +577,23 @@ def main():
             sys.exit(1)
 
     t0 = time.monotonic()
-    proc = subprocess.Popen(argv, preexec_fn=preexec_fn)
+    proc = subprocess.Popen(argv, preexec_fn=preexec_fn, stderr=subprocess.PIPE, text=True)
     sys.stderr.flush()
+
+    # Make stderr non-blocking for select-based reading
+    import fcntl
+    fd = proc.stderr.fileno()
+    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
     peak_rss = {}   # pid -> max RSS bytes
     peak_cpu = {}   # pid -> cumulative CPU seconds (peak snapshot per PID)
+
+    # Progress watchdog state
+    last_progress_time = t0  # time of last [progress] line seen
+    progress_seen = False     # True if at least one [progress] line parsed
+    progress_summary = None   # last progress summary for diagnostics
+    stderr_buf = ""           # partial-line buffer
 
     logs_done = False  # suppress finally-block logging if kill path already did it
 
@@ -552,12 +601,41 @@ def main():
         while True:
             ret = proc.poll()
             if ret is not None:
+                # Read any remaining stderr before exiting loop
+                _drain_stderr(proc, progress_seen, last_progress_time,
+                              task_identity, shlex.join(argv), repo_root)
                 break
-            time.sleep(poll_s)
 
             elapsed = time.monotonic() - t0
 
-            # Walk descendants
+            # ── read child stderr (non-blocking via select) ────────────
+            try:
+                r, _, _ = select.select([proc.stderr], [], [], poll_s)
+                if proc.stderr in r:
+                    chunk = proc.stderr.read()
+                    if chunk:
+                        stderr_buf += chunk
+                        # Process complete lines
+                        while '\n' in stderr_buf:
+                            line, stderr_buf = stderr_buf.split('\n', 1)
+                            # Forward to runner's stderr
+                            print(line, file=sys.stderr)
+                            # Check for progress marker
+                            if '[progress]' in line:
+                                last_progress_time = time.monotonic()
+                                if not progress_seen:
+                                    progress_seen = True
+                                    print(f"[runner] progress watchdog active (first [progress] line seen)", file=sys.stderr)
+                                progress_summary = line.strip()
+                                # ── emit heartbeat on progress ──────────
+                                _emit_heartbeat(
+                                    task_identity, shlex.join(argv),
+                                    elapsed, -1, -1, repo_root,
+                                )
+            except (ValueError, OSError):
+                pass  # stderr closed or select interrupted
+
+            # ── RSS check (always on, no exemption) ────────────────────
             try:
                 pids = _descendant_pids_linux(proc.pid)
             except (FileNotFoundError, NotImplementedError, OSError) as e:
@@ -567,10 +645,9 @@ def main():
 
             total_cpu = 0.0
             over_rss = False
-            over_cpu = False
 
             for pid in pids:
-                # -- RSS check (existing) --
+                # RSS check
                 try:
                     rss = _rss_bytes(pid)
                 except (FileNotFoundError, ProcessLookupError):
@@ -596,12 +673,11 @@ def main():
                         print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB > cap {args.rss_cap_mb} MB", file=sys.stderr)
                     break
 
-                # -- CPU check (new) --
-                if args.max_cpu:
-                    cpu = _cpu_time_seconds(pid)
-                    if cpu is not None:
-                        total_cpu += cpu
-                        peak_cpu[pid] = max(peak_cpu.get(pid, 0.0), cpu)
+                # CPU tracking (for fallback ceiling, always collected)
+                cpu = _cpu_time_seconds(pid)
+                if cpu is not None:
+                    total_cpu += cpu
+                    peak_cpu[pid] = max(peak_cpu.get(pid, 0.0), cpu)
 
                 if args.log_rss:
                     extra = ""
@@ -610,17 +686,36 @@ def main():
                     print(f"[runner] PID {pid}{extra}", file=sys.stderr)
             sys.stderr.flush()
 
-            # Check ceilings
+            # ── kill decisions ────────────────────────────────────────
             kill_reason = None
 
             if over_rss:
                 kill_reason = f"RSS cap {args.rss_cap_mb} MB exceeded"
-            elif args.max_wall and elapsed >= args.max_wall:
-                kill_reason = f"wall ceiling {args.max_wall}s ({_format_clock(args.max_wall)}) reached " \
-                              f"at {elapsed:.1f}s elapsed"
-            elif args.max_cpu and total_cpu >= args.max_cpu:
-                kill_reason = f"CPU ceiling {args.max_cpu}s ({_format_clock(args.max_cpu)}) exceeded " \
-                              f"({total_cpu:.1f}s total)"
+            elif progress_seen:
+                # Progress watchdog: kill if no progress for --progress-timeout
+                if args.progress_timeout > 0:
+                    since_progress = time.monotonic() - last_progress_time
+                    if since_progress >= args.progress_timeout:
+                        kill_reason = (
+                            f"progress timeout {args.progress_timeout}s "
+                            f"({_format_clock(args.progress_timeout)}) — "
+                            f"no [progress] for {since_progress:.0f}s"
+                        )
+            else:
+                # Fallback: silent child — use traditional wall/CPU ceilings
+                progress_notice_printed = False  # kept in outer scope for diagnostics
+                if args.max_wall and elapsed >= args.max_wall:
+                    kill_reason = (
+                        f"wall ceiling {args.max_wall}s "
+                        f"({_format_clock(args.max_wall)}) reached "
+                        f"at {elapsed:.1f}s elapsed (no [progress] lines seen)"
+                    )
+                elif args.max_cpu and total_cpu >= args.max_cpu:
+                    kill_reason = (
+                        f"CPU ceiling {args.max_cpu}s "
+                        f"({_format_clock(args.max_cpu)}) exceeded "
+                        f"({total_cpu:.1f}s total) (no [progress] lines seen)"
+                    )
 
             if kill_reason:
                 print(f"[runner] KILL: {kill_reason}", file=sys.stderr)
@@ -637,7 +732,6 @@ def main():
                     _log_peaks(peak_rss, peak_cpu, t0=t0)
                 logs_done = True
                 elapsed = time.monotonic() - t0
-                # Emit heartbeat with final measurements
                 peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
                 total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
                 _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
@@ -646,7 +740,6 @@ def main():
 
         ret = proc.wait()
     except Exception as exc:
-        # Ensure heartbeat on unexpected exception
         elapsed = time.monotonic() - t0
         _emit_heartbeat(task_identity, shlex.join(argv), elapsed, -1, -1, repo_root)
         raise
