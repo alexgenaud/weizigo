@@ -1,0 +1,13 @@
+A3 colour-inversion: checked=99133036  violations=0  not_found=0
+A3 VERDICT: PASS
+A5 round-trip: checked=1021991  mismatches=0  stride=97  denominator=99133036
+A5 VERDICT: PASS
+A6 fixture 'a: perturbed value (first entry L ^= 1)': catcher='SHA-256' caught=true → OK
+A6 fixture 'b: dropped ko state (n_entries -= 1)': catcher='file-size consistency' caught=true → OK
+A6 fixture 'c: zeroed DTT column (all DTT bytes = 0)': catcher='A8 (DTT non-constant)' caught=true → OK
+A6 VERDICT: PASS
+A9 SHA-256: embedded=57009d93463ccaceb1d8121c757f825690bacdb19ddf73d2374d5577d250e877  computed=57009d93463ccaceb1d8121c757f825690bacdb19ddf73d2374d5577d250e877  ok=true
+A9 sort-order: groups_sorted=true  entries_sorted=true  entry_order_violations=0
+A9 VERDICT: PASS
+
+OVERALL VERDICT: PASS

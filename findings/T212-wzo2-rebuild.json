@@ -1,0 +1,21 @@
+{
+  "task_id": "T212",
+  "date": "2026-08-01",
+  "model": "not stated at dispatch",
+  "claims": [
+    {
+      "id": "SPRINT-M4a-ACCEPT",
+      "proposed_status": "PROVEN",
+      "rationale": "M4a acceptance (A3/A5/A6/A9) passes on rebuilt 4x4 WZO2 artifact with passes-bit fix; all four checks PASS, reversing T193's FAIL",
+      "evidence_path": "docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md"
+    },
+    {
+      "id": "WZO2-4X4-VALID",
+      "proposed_status": "PROVEN",
+      "rationale": "The 4x4 WZO2 artifact at SHA-256 0c3366f0… passes M4a acceptance; prior artifact a892d689… is INVALID due to passes-bit collision bug (T193)",
+      "evidence_path": "docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md"
+    }
+  ],
+  "new_rows": [],
+  "notes": "Run-1 hit runner CPU ceiling (3600s default) during DTT computation; run-2 used --max-cpu 21600 --max-wall 21600. Peak RSS 3887 MB matches T192 exactly. Fixpoint converged in 31 sweeps; root values unchanged from T192 (empty B: L=+1 H=+16, empty W: L=-16 H=-1). Artifact size 518123097 bytes matches T192 exactly."
+}
