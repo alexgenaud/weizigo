@@ -31,7 +31,7 @@
     "claim_count": 1
   },
   "T206": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "untracked/T206-tooling-seams-code.md",
     "set": "B",
@@ -39,15 +39,15 @@
     "needs": ["T204"],
     "caps": [],
     "added": "2026-08-01T10:03:13Z",
-    "claimed": "2026-08-01T10:38:13Z",
-    "done": null,
+    "claimed": "2026-08-01T10:38:34Z",
+    "done": "2026-08-01T10:38:34Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 2
+    "claim_count": 3
   },
   "T207": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSFlash",
     "bundle": "untracked/T207-process-doc-sweep.md",
     "set": "B",
@@ -56,14 +56,14 @@
     "caps": [],
     "added": "2026-08-01T10:03:13Z",
     "claimed": "2026-08-01T10:32:43Z",
-    "done": null,
+    "done": "2026-08-01T10:38:39Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "claim_count": 1
   },
   "T205": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSFlash",
     "bundle": "untracked/T205-status-surfaces-handover.md",
     "set": "B",
@@ -72,7 +72,7 @@
     "caps": [],
     "added": "2026-08-01T10:03:13Z",
     "claimed": "2026-08-01T10:32:23Z",
-    "done": null,
+    "done": "2026-08-01T10:39:43Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
@@ -95,7 +95,7 @@
     "claim_count": 1
   },
   "T203": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T203-pass1-relocation.md",
     "set": "A",
     "holds": [],
@@ -126,7 +126,7 @@
     "claim_count": 1
   },
   "T209": {
-    "status": "blocked",
+    "status": "dispatchable",
     "bundle": "untracked/T209-dispatch-ergonomics.md",
     "set": "C",
     "holds": [],
