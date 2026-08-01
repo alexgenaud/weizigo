@@ -808,6 +808,22 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         try buf.appendSlice(alloc, ",\n    \"claim_count\": ");
         try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.claim_count}));
 
+        if (ts.acceptance) |ac| {
+            try buf.appendSlice(alloc, ",\n    \"acceptance\": \"");
+            try buf.appendSlice(alloc, ac);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"acceptance\": null");
+        }
+
+        if (ts.skip_acceptance_reason) |sr| {
+            try buf.appendSlice(alloc, ",\n    \"skip_acceptance_reason\": \"");
+            try buf.appendSlice(alloc, sr);
+            try buf.appendSlice(alloc, "\"");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"skip_acceptance_reason\": null");
+        }
+
         try buf.appendSlice(alloc, "\n  }");
     }
 
@@ -1505,7 +1521,30 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
                 val_start + em
             else
                 newline_idx;
-            const dl_value = std.mem.trim(u8, meta_line[val_start..val_end], " \t\r\n");
+            var dl_value = std.mem.trim(u8, meta_line[val_start..val_end], " \t\r\n");
+            // Defect 2 fix (T227): truncate at next key= token.
+            // The value "path1,path2 acceptance=cmd" should stop at the space
+            // before acceptance=.  Scan for "=" preceded by whitespace.
+            if (dl_value.len > 0) {
+                var truncate_at: ?usize = null;
+                var scan: usize = 0;
+                while (scan < dl_value.len) : (scan += 1) {
+                    if (dl_value[scan] == ' ' or dl_value[scan] == '\t') {
+                        // skip leading whitespace manually (avoid trimStart which may not exist in zig 0.16)
+var rest_start: usize = 0;
+while (rest_start < dl_value[scan..].len and (dl_value[scan..][rest_start] == ' ' or dl_value[scan..][rest_start] == '\t')) : (rest_start += 1) {}
+const rest = dl_value[scan..][rest_start..];
+                        if (std.mem.indexOfScalar(u8, rest, '=')) |eq_idx| {
+                            if (eq_idx > 0) {
+                                truncate_at = scan;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (truncate_at) |t| {
+                    dl_value = dl_value[0..t];
+                }
             if (dl_value.len > 0) {
                 var parts = std.mem.splitScalar(u8, dl_value, ',');
                 while (parts.next()) |part| {
@@ -1518,6 +1557,7 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
                     return try result.toOwnedSlice(alloc);
                 }
             }
+            } // close outer dl_value.len > 0 (Defect 2 truncation guard)
         }
     }
 
@@ -1697,6 +1737,11 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (std.mem.eql(u8, verdict_str, "pass") or std.mem.eql(u8, verdict_str, "pass-with-findings")) {
         if (ts_ptr.acceptance) |acc_cmd| {
             if (skip_acceptance_reason) |reason| {
+                // Defect 3 fix (T227): reject empty reason.
+                if (reason.len == 0) {
+                    w.diag("\n  REJECTED: {s} --skip-acceptance requires a non-empty reason\n", .{id});
+                    std.process.exit(1);
+                }
                 // --skip-acceptance used: store the reason and bypass the check
                 if (ts_ptr.skip_acceptance_reason) |old| alloc.free(old);
                 ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
@@ -1713,9 +1758,25 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
                 };
                 defer alloc.free(acc_result.stdout);
                 defer alloc.free(acc_result.stderr);
-                if (acc_result.term.exited != 0) {
+                // Defect 1 fix (T227): .exited reads 0 on signalled children.
+                // Switch on the active union field; only .exited==0 is success.
+                const passed = switch (acc_result.term) {
+                    .exited => |code| code == 0,
+                    .signal => |sig| blk: {
+                        w.diag("\n  REJECTED: {s} acceptance command killed by signal {d}\n", .{ id, sig });
+                        break :blk false;
+                    },
+                    .stopped => blk: {
+                        w.diag("\n  REJECTED: {s} acceptance command stopped\n", .{ id });
+                        break :blk false;
+                    },
+                    .unknown => blk: {
+                        w.diag("\n  REJECTED: {s} acceptance command terminated with unknown status\n", .{ id });
+                        break :blk false;
+                    },
+                };
+                if (!passed) {
                     const last_output = if (acc_result.stderr.len > 0) acc_result.stderr else acc_result.stdout;
-                    w.diag("\n  REJECTED: {s} acceptance command failed (exit {d})\n", .{ id, acc_result.term.exited });
                     w.diag("  command: {s}\n", .{acc_cmd});
                     if (last_output.len > 0) {
                         w.diag("  last output: {s}\n", .{last_output});
