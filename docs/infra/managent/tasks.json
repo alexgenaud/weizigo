@@ -238,6 +238,21 @@
     "note": null,
     "claim_count": 1
   },
+  "T186": {
+    "status": "dispatchable",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T186-p3h-i5-calibrate.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T01:39:24Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 0
+  },
   "T160": {
     "status": "done",
     "agent": "DSPro",
