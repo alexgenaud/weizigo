@@ -255,7 +255,7 @@
     "claim_count": 1
   },
   "T186": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T186-p3h-i5-calibrate.md",
     "set": "A",
@@ -264,7 +264,7 @@
     "caps": [],
     "added": "2026-08-01T01:39:24Z",
     "claimed": "2026-08-01T01:41:02Z",
-    "done": null,
+    "done": "2026-08-01T01:48:06Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,

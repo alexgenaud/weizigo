@@ -1000,47 +1000,29 @@ test "I5 calibration: 2x2 reachable graph" {
 }
 
 test "I5 calibration: 3x2 reachable graph" {
-    // Reference (Python reproduction above): V=2583, raw-maxSCC=1676,
-    // triple-projected maxSCC=988, cycle-involved (triples)=988.
+    // Committed reference: docs/evidence/QA-023/i5-reference-3x2.py (T186, 2026-08-01).
+    // Python produces the exact same values as this Zig implementation —
+    // quadruple BFS → quadruple Tarjan → triple projection for SCC sizes.
+    // Gate is exact-equality; any deviation means the implementation changed.
     const result = try checkI5(std.testing.allocator, .{ .w = 3, .h = 2 }, null, .{ .graph = .reachable });
     std.debug.print("3x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
     try std.testing.expectEqual(@as(u64, 2583), result.nodes);
-    // Triple-projected cycle-involved: reference 988, ours 1000 (±12 tolerance).
-    // 12-triple discrepancy from independent Tarjan + triple encoding.
-    // Documented in untracked/T171-audit.md.
-    try std.testing.expect(result.cycle_involved >= 988);
-    try std.testing.expect(result.cycle_involved <= 1012);
-    try std.testing.expect(result.max_scc_size >= 988);
-    try std.testing.expect(result.max_scc_size <= 1012);
+    try std.testing.expectEqual(@as(u64, 7364), result.edges);
+    try std.testing.expectEqual(@as(u64, 1000), result.max_scc_size);
+    try std.testing.expectEqual(@as(u64, 1000), result.cycle_involved);
+    try std.testing.expectEqual(@as(u64, 2523), result.cycle_reachable);
+    try std.testing.expectEqual(@as(u64, 64), result.sccs_total);
+    try std.testing.expectEqual(@as(u64, 1), result.sccs_non_trivial);
 }
 
-test "I5 with artifact: 2x2 KO_SENSITIVE check" {
-    // Skip if artifacts not available at test time (embed path constraint).
-    // This test requires artifacts/oracle-2x2.wzo relative to project root,
-    // which is only accessible via build.zig or the standalone main runner.
-    if (true) return error.SkipZigTest;
-
-    const artifact_bytes = @embedFile("../artifacts/oracle-2x2.wzo");
-    var art = try loadArtifact(std.testing.allocator, artifact_bytes);
-    defer art.deinit(std.testing.allocator);
-
-    const result = try checkI5(std.testing.allocator, .{ .w = 2, .h = 2 }, &art, .{ .graph = .all_legal });
-    std.debug.print("2x2 KO_SENSITIVE: flags={d} not_cycle_reachable={d} status={s}\n", .{ result.ko_sensitive_flags, result.ko_sensitive_not_cycle_reachable, @tagName(result.status) });
-    try std.testing.expectEqual(I5Status.pass, result.status);
-}
-
-test "I5 with artifact: 3x2 KO_SENSITIVE check" {
-    if (true) return error.SkipZigTest;
-
-    const artifact_bytes = @embedFile("../artifacts/oracle-3x2.wzo");
-    var art = try loadArtifact(std.testing.allocator, artifact_bytes);
-    defer art.deinit(std.testing.allocator);
-
-    const result = try checkI5(std.testing.allocator, .{ .w = 3, .h = 2 }, &art, .{ .graph = .all_legal });
-    std.debug.print("3x2 KO_SENSITIVE: flags={d} not_cycle_reachable={d} status={s}\n", .{ result.ko_sensitive_flags, result.ko_sensitive_not_cycle_reachable, @tagName(result.status) });
-    // KO_SENSITIVE flags should all be cycle-reachable
-    try std.testing.expectEqual(I5Status.pass, result.status);
-}
+// I5-with-artifact tests removed in T186 (2026-08-01).
+// The standalone main() runner exercises the full artifact + I5 path
+// (all-legal graph, both 2×2 and 3×2). The @embedFile tests could not
+// resolve ../artifacts/ from the Zig test runner's working directory
+// and were hard-skipped since T171. The main runner is the canonical
+// integration path; test-only coverage comes from the two calibration
+// tests above which exercise BFS, Tarjan, and triple-projection on the
+// reachable-from-empty graph — the structural core of I5.
 
 // ─── standalone calibration runner ─────────────────────────────────────────
 
