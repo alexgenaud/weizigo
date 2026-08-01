@@ -464,19 +464,20 @@
     "claim_count": 1
   },
   "T190": {
-    "status": "dispatchable",
+    "status": "in_progress",
+    "agent": "DSPro",
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T190-project-restructure-builder.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
     "added": "2026-08-01T01:45:26Z",
-    "claimed": null,
+    "claimed": "2026-08-01T01:57:44Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "claim_count": 1
   },
   "T167": {
     "status": "done",
@@ -489,6 +490,22 @@
     "added": "2026-07-31T15:59:57Z",
     "claimed": "2026-07-31T16:09:15Z",
     "done": "2026-07-31T16:35:41Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "claim_count": 1
+  },
+  "T191": {
+    "status": "in_progress",
+    "agent": "DSPro",
+    "bundle": "untracked/T191-audit-spec-plan.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T01:54:28Z",
+    "claimed": "2026-08-01T01:56:54Z",
+    "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
