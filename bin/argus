@@ -1,0 +1,1169 @@
+#!/usr/bin/env python3
+"""argus — read-only watchdog for weizigo project state.
+
+Two modes (R5: one per invocation):
+  --mode checklist    Run mechanized checks from the registry, compare to baselines.
+  --mode sweep        Walk the project, record findings with evidence, state coverage.
+
+Writes exactly two files (R3 write allowlist):
+  untracked/watchdog.md          Append-only JSON Lines log (R7)
+  untracked/watchdog-summary.md  Overwritten Markdown summary (R8), recomputable
+                                 from the log alone (A4)
+
+Identifier: DSPro/T195 · 2026-08-01
+"""
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+# ── helpers ──────────────────────────────────────────────────────────
+
+def _repo_root():
+    """Walk up from this script to find the repo root (contains .git)."""
+    d = Path(__file__).resolve().parent.parent
+    while d != d.parent:
+        if (d / ".git").is_dir():
+            return d
+        d = d.parent
+    return Path.cwd()
+
+
+def _utc_iso(ts=None):
+    """ISO-8601 UTC with seconds: YYYY-MM-DDTHH:MM:SSZ."""
+    t = ts if ts is not None else time.time()
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+
+
+def _utc_compact(ts=None):
+    """ISO-8601 basic UTC: YYYYMMDDTHHMMSS."""
+    t = ts if ts is not None else time.time()
+    return time.strftime("%Y%m%dT%H%M%S", time.gmtime(t))
+
+
+def _run(cmd, timeout=30, cwd=None):
+    """Run a command, return (exit_code, stdout, stderr)."""
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd)
+        return r.returncode, r.stdout.rstrip(), r.stderr.rstrip()
+    except FileNotFoundError:
+        return -1, "", f"command not found: {cmd[0]}"
+    except subprocess.TimeoutExpired:
+        return 124, "", f"timeout after {timeout}s"
+
+
+def _extract_command(check_text):
+    """Extract a shell command from a registry check field.
+
+    The check field may be: `bin/weizigo-claimlint` — description
+    or: bin/managent liveness + bin/managent status — description
+    Returns the command string (without backticks or description).
+    """
+    # Strip backtick-quoted command
+    m = re.match(r'`([^`]+)`', check_text)
+    if m:
+        return m.group(1).strip()
+    # Strip description after em-dash or hyphen-space
+    for sep in (' — ', ' - ', '\u2014'):
+        if sep in check_text:
+            return check_text.split(sep)[0].strip()
+    return check_text.strip()
+
+
+def _append_json_line(path, obj):
+    """Append one JSON line to a file. Creates parent dirs if needed."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(obj, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def _read_json_lines(path):
+    """Read JSON Lines file, return list of parsed objects. Skip unparseable lines."""
+    objs = []
+    if not os.path.isfile(path):
+        return objs
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                objs.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    return objs
+
+
+def _fmt_relative(path, root):
+    """Format a path relative to root, falling back to absolute."""
+    try:
+        return str(Path(path).relative_to(root))
+    except ValueError:
+        return str(path)
+
+
+# ── checklist registry parser ────────────────────────────────────────
+
+def parse_checklist_registry(path):
+    """Parse the checklist Markdown registry into a list of slug dicts.
+
+    Returns list of dicts with keys: slug, check, baseline, baseline_date,
+    baseline_run, grade, first_seen, citations.
+    """
+    if not os.path.isfile(path):
+        return []
+
+    with open(path) as f:
+        text = f.read()
+
+    slugs = []
+
+    # Parse the markdown table — find the header row first
+    in_table = False
+    cols = None
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("| slug |"):
+            # Header row — extract column names
+            cols = [c.strip() for c in line.split("|")[1:-1]]
+            in_table = True
+            continue
+        if in_table and line.startswith("|---"):
+            continue
+        if in_table and line.startswith("|") and cols:
+            values = [c.strip() for c in line.split("|")[1:-1]]
+            if len(values) >= len(cols):
+                slug = {}
+                for i, col in enumerate(cols):
+                    if i < len(values):
+                        slug[col] = values[i]
+                if slug.get("slug"):
+                    slugs.append(slug)
+            continue
+        # Stop at next heading or empty section
+        if in_table and (line.startswith("#") or (line == "" and not line.startswith("|"))):
+            # Actually, blank lines are fine in the table section. Just stop at headings.
+            pass
+        if in_table and line.startswith("#"):
+            break
+
+    return slugs
+
+
+def parse_registry_metadata(path):
+    """Extract the YAML-like metadata block from the registry."""
+    if not os.path.isfile(path):
+        return {}
+    with open(path) as f:
+        text = f.read()
+    # Find fenced block
+    m = re.search(r'```\s*\n(.*?)\n```', text, re.DOTALL)
+    if not m:
+        return {}
+    meta = {}
+    for line in m.group(1).strip().splitlines():
+        line = line.strip()
+        if ':' in line:
+            k, v = line.split(":", 1)
+            meta[k.strip()] = v.strip().strip('"')
+    return meta
+
+
+# ── finding emitter ──────────────────────────────────────────────────
+
+class ArgusRun:
+    """Encapsulates a single Argus invocation."""
+
+    def __init__(self, args, root):
+        self.args = args
+        self.root = root
+        self.mode = args.mode
+        self.ts = time.time()
+        self.run_id = args.run_id
+        if not self.run_id:
+            ts_str = _utc_compact(self.ts)
+            self.run_id = f"{ts_str}Z-{self.mode}"
+        self.findings = []
+        self.checks_run = 0
+        self.checks_skipped = 0
+        self.checks_skipped_reasons = {}
+        self.sweep_files_visited = 0
+        self.sweep_files_total = 0
+
+    def emit_run_marker(self):
+        """Write the run-marker line."""
+        marker = {
+            "kind": "run-marker",
+            "run": self.run_id,
+            "timestamp": _utc_iso(self.ts),
+            "mode": self.mode,
+            "checks_run": self.checks_run if self.mode == "checklist" else None,
+            "checks_skipped": self.checks_skipped if self.mode == "checklist" else None,
+            "checks_skipped_reasons": self.checks_skipped_reasons if (self.mode == "checklist" and self.checks_skipped_reasons) else {},
+            "sweep_files_visited": self.sweep_files_visited if self.mode == "sweep" else None,
+            "sweep_files_total": self.sweep_files_total if self.mode == "sweep" else None,
+        }
+        # Strip keys with None or empty-dict values expected to be null
+        for k in list(marker):
+            if marker[k] is None:
+                marker[k] = None  # JSON null
+        _append_json_line(self.args.log, marker)
+
+    def finding(self, grade, text, *, slug=None, evidence_kind=None,
+                evidence_command=None, evidence_exit=None, evidence_output=None,
+                source_file=None, source_line=None, value=None, baseline=None,
+                proposed_task=False, proposed_brief=None):
+        """Emit a finding — validate R6 evidence rule, append to log."""
+        # R6: enforce evidence
+        if evidence_kind not in ("command", "file-line"):
+            grade = "unverified"
+
+        finding = {
+            "kind": "finding",
+            "run": self.run_id,
+            "timestamp": _utc_iso(time.time()),
+            "mode": self.mode,
+            "slug": slug,
+            "grade": grade,
+            "finding": text,
+            "evidence_kind": evidence_kind or "command",
+            "evidence_command": evidence_command,
+            "evidence_exit": evidence_exit,
+            "evidence_output": evidence_output,
+            "source_file": source_file,
+            "source_line": source_line,
+            "value": value,
+            "baseline": baseline,
+            "proposed_task": proposed_task,
+        }
+        if proposed_task and proposed_brief:
+            finding["proposed_brief"] = proposed_brief
+
+        # Strip None values for compactness
+        finding = {k: v for k, v in finding.items() if v is not None}
+
+        _append_json_line(self.args.log, finding)
+        self.findings.append(finding)
+
+    # ── checklist mode ───────────────────────────────────────────────
+
+    def run_checklist(self, slugs):
+        """Run each slug's check, compare to baseline, emit findings."""
+        self.checks_run = len(slugs)
+        self.checks_skipped = 0
+
+        for s in slugs:
+            slug_name = s.get("slug", "")
+            check_raw = s.get("check", "")
+            check_cmd = _extract_command(check_raw)
+            baseline_val = s.get("baseline", "")
+            grade = s.get("grade", "must")
+
+            try:
+                self._run_slug(slug_name, check_cmd, baseline_val, grade)
+            except Exception as e:
+                self.finding(
+                    "must",
+                    f"Slug '{slug_name}' check threw an exception: {e}",
+                    slug=slug_name,
+                    evidence_kind="command",
+                    evidence_command=check_cmd,
+                    evidence_exit=-1,
+                    evidence_output=str(e),
+                    value=f"error: {e}",
+                    baseline=baseline_val,
+                )
+
+    def _run_slug(self, slug_name, check_cmd, baseline_val, grade):
+        """Execute one checklist slug."""
+
+        if slug_name == "claimlint-green":
+            self._check_claimlint(slug_name, check_cmd, baseline_val, grade)
+        elif slug_name == "stale-in-progress":
+            self._check_stale_in_progress(slug_name, check_cmd, baseline_val, grade)
+        elif slug_name == "artifact-loadable":
+            self._check_artifact_loadable(slug_name, check_cmd, baseline_val, grade)
+        elif slug_name == "orphan-gate":
+            self._check_orphan_gate(slug_name, check_cmd, baseline_val, grade)
+        elif slug_name == "ephemera-creep":
+            self._check_ephemera_creep(slug_name, check_cmd, baseline_val, grade)
+        else:
+            # Generic command check
+            self._check_generic(slug_name, check_cmd, baseline_val, grade)
+
+    # Floor values for claimlint — the ratified honest-debt floor from the
+    # Phase-2 exit check (see ARGUS.md §Floor-grading rule). Violation only
+    # when counts exceed the floor; at the floor is green.
+    CLAIMLINT_FLOOR = {"C1a": 10, "C2": 12, "C6": 0}
+
+    def _check_claimlint(self, slug_name, check_cmd, baseline_val, grade):
+        """Run claimlint and parse structured output.
+
+        Graded against the floor (ARGUS.md §Floor-grading rule):
+        violation only when counts *exceed* the recorded floor. At the floor
+        is green — the floor is a ratified debt, not a regression.
+        """
+        cmd_parts = check_cmd.split()
+        exit_code, stdout, stderr = _run(cmd_parts, timeout=30)
+
+        # Parse C1a, C1b, C2, C6, calibration from stdout
+        c1a = None
+        c1b = None
+        c2 = None
+        c6 = None
+        cal = None
+
+        for line in stdout.splitlines():
+            m = re.search(r'C1a orphans:\s*(\d+)', line)
+            if m: c1a = int(m.group(1))
+            m = re.search(r'C1b alarms:\s*(\d+)', line)
+            if m: c1b = int(m.group(1))
+            m = re.search(r'C2 total:\s*(\d+)', line)
+            if m: c2 = int(m.group(1))
+            m = re.search(r'C6 cite-tag mismatches:\s*(\d+)', line)
+            if m: c6 = int(m.group(1))
+            if "calibration: PASS" in line:
+                cal = "PASS"
+            elif "calibration: FAIL" in line:
+                cal = "FAIL"
+
+        # Compare against floor (violation only when exceeding floor)
+        violations = []
+        for key, floor in self.CLAIMLINT_FLOOR.items():
+            val = {"C1a": c1a, "C2": c2, "C6": c6}.get(key)
+            if val is not None and val > floor:
+                violations.append(f"{key}={val} (floor={floor})")
+
+        current = f"C1a={c1a}, C1b={c1b}, C2={c2}, C6={c6}, cal={cal}"
+        if violations:
+            self.finding(
+                grade,
+                f"claimlint: {current} — EXCEEDS FLOOR: {'; '.join(violations)} (exit {exit_code})",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command=check_cmd,
+                evidence_exit=exit_code,
+                evidence_output=f"{current}",
+                value=current,
+                baseline=baseline_val,
+            )
+        else:
+            self.finding(
+                "could",
+                f"claimlint: {current} — at or below floor (exit {exit_code})",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command=check_cmd,
+                evidence_exit=exit_code,
+                evidence_output=f"{current}",
+                value=current,
+                baseline=baseline_val,
+            )
+
+    def _check_stale_in_progress(self, slug_name, check_cmd, baseline_val, grade):
+        """Check for stale in_progress tasks."""
+        # Run managent liveness
+        exit_code, stdout, stderr = _run(["bin/managent", "liveness"], timeout=10)
+        # Run managent status for in_progress count
+        _, status_out, _ = _run(["bin/managent", "status"], timeout=10)
+
+        in_progress_count = 0
+        for line in status_out.splitlines():
+            if "in progress" in line.lower():
+                m = re.search(r'\((\d+)\)', line)
+                if m:
+                    in_progress_count = int(m.group(1))
+
+        current = f"{in_progress_count} tasks in_progress"
+        if in_progress_count > 0:
+            self.finding(
+                grade,
+                f"Tasks in_progress: {current} (baseline: {baseline_val})",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command="bin/managent status",
+                evidence_exit=0,
+                evidence_output=stdout if stdout else current,
+                value=current,
+                baseline=baseline_val,
+                proposed_task=True,
+                proposed_brief=f"{in_progress_count} task(s) in_progress. Verify consoles are alive; reopen if dead.",
+            )
+        else:
+            self.finding(
+                "could",
+                f"stale-in-progress: {current} — clean",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command="bin/managent status",
+                evidence_exit=0,
+                evidence_output=current,
+                value=current,
+                baseline=baseline_val,
+            )
+
+    def _check_artifact_loadable(self, slug_name, check_cmd, baseline_val, grade):
+        """Check that key .wzo artifacts are loadable."""
+        artifacts = []
+        artifacts_dir = self.root / "artifacts"
+        if artifacts_dir.is_dir():
+            for f in artifacts_dir.glob("*.wzo"):
+                artifacts.append(str(f))
+        data_dir = self.root / "data"
+        if data_dir.is_dir():
+            for f in data_dir.glob("*.wzo"):
+                artifacts.append(str(f))
+
+        results = []
+        for path in artifacts:
+            exit_code, stdout, stderr = _run(
+                ["bin/weizigo-oracle", path], timeout=60
+            )
+            rel = _fmt_relative(path, self.root)
+            status = "PASS" if exit_code == 0 else f"FAIL(exit={exit_code})"
+            results.append(f"{rel}={status}")
+
+        current = ", ".join(results) if results else "no artifacts found"
+        any_fail = any("FAIL" in r for r in results)
+
+        self.finding(
+            grade if any_fail else "could",
+            f"artifact-loadable: {len(results)} artifacts checked, {'FAILURES' if any_fail else 'all pass'}",
+            slug=slug_name,
+            evidence_kind="command",
+            evidence_command=check_cmd,
+            evidence_exit=1 if any_fail else 0,
+            evidence_output=current[:500],
+            value=current[:200],
+            baseline=baseline_val,
+            proposed_task=any_fail,
+            proposed_brief="Artifact load failures detected. Investigate and restore or update evidence." if any_fail else None,
+        )
+
+    def _check_orphan_gate(self, slug_name, check_cmd, baseline_val, grade):
+        """Run managent audit and check for orphan findings.
+
+        Compares current finding count against the baseline count.
+        Only fires when count exceeds baseline.
+        """
+        exit_code, stdout, stderr = _run(["bin/managent", "audit"], timeout=10)
+
+        # Count findings
+        finding_count = 0
+        for line in stdout.splitlines():
+            if re.search(r'\[WARN\]|\[ERR\]|\[FIX\]', line):
+                finding_count += 1
+
+        # Parse baseline finding count
+        baseline_count = None
+        m = re.search(r'findings=(\d+)', baseline_val)
+        if m:
+            baseline_count = int(m.group(1))
+
+        current = f"exit={exit_code}, findings={finding_count}"
+        # Violation: exit non-zero, or findings exceed baseline
+        exceeded = (baseline_count is not None and finding_count > baseline_count)
+        if exit_code != 0 or exceeded:
+            self.finding(
+                grade,
+                f"orphan-gate: {current} (baseline: {baseline_val})",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command=check_cmd,
+                evidence_exit=exit_code,
+                evidence_output=stdout[:1000] if stdout else current,
+                value=current,
+                baseline=baseline_val,
+            )
+        else:
+            self.finding(
+                "could",
+                f"orphan-gate: {current} — at or below baseline",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command=check_cmd,
+                evidence_exit=exit_code,
+                evidence_output=current,
+                value=current,
+                baseline=baseline_val,
+            )
+
+    def _check_ephemera_creep(self, slug_name, check_cmd, baseline_val, grade):
+        """Check untracked/ size and large files.
+
+        Retention rule (ARGUS.md §Untracked-artifact retention rule):
+        WZO/WZO2 artifacts recorded in artifacts/SHA256SUMS are exempt from
+        ephemera-creep — they are pinned deliverables. Only unaccounted
+        large files fire.
+        """
+        untracked = self.root / "untracked"
+        if not untracked.is_dir():
+            self.finding(
+                "could",
+                "ephemera-creep: untracked/ does not exist",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command="du -sh untracked/",
+                evidence_exit=0,
+                evidence_output="untracked/ not found",
+                value="N/A",
+                baseline=baseline_val,
+            )
+            return
+
+        # Load SHA256SUMS to identify pinned deliverables
+        sha256sums_path = self.root / "artifacts" / "SHA256SUMS"
+        pinned_paths = set()
+        if sha256sums_path.is_file():
+            with open(sha256sums_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    parts = line.split(None, 1)
+                    if len(parts) == 2:
+                        pinned_paths.add(parts[1])
+
+        exit_code, stdout, stderr = _run(["du", "-sh", str(untracked)], timeout=30)
+        size_str = stdout.split()[0] if stdout else "?"
+
+        # Find files >10MB, exclude SHA256SUMS-pinned deliverables
+        large_files = []
+        pinned_large = []
+        for f in untracked.rglob("*"):
+            if f.is_file() and f.stat().st_size > 10 * 1024 * 1024:
+                rel = _fmt_relative(f, self.root)
+                if rel in pinned_paths:
+                    pinned_large.append((rel, f.stat().st_size))
+                else:
+                    large_files.append((rel, f.stat().st_size))
+
+        total_large = len(large_files) + len(pinned_large)
+        current = f"{size_str}, {total_large} files >10MB"
+        if pinned_large:
+            current += f" ({len(pinned_large)} SHA256SUMS-pinned, excluded from creep)"
+        if large_files:
+            current += " [UNPINNED: " + ", ".join(f"{n}({s//(1024*1024)}MB)" for n, s in large_files[:5]) + "]"
+
+        # Only fire if there are unpinned large files (not SHA256SUMS-tracked)
+        if large_files:
+            self.finding(
+                "should",
+                f"ephemera-creep: {current}",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command="du -sh untracked/",
+                evidence_exit=0,
+                evidence_output=current,
+                value=current,
+                baseline=baseline_val,
+            )
+        else:
+            self.finding(
+                "could",
+                f"ephemera-creep: {current} — all large files are SHA256SUMS-pinned",
+                slug=slug_name,
+                evidence_kind="command",
+                evidence_command="du -sh untracked/",
+                evidence_exit=0,
+                evidence_output=current,
+                value=current,
+                baseline=baseline_val,
+            )
+
+    def _check_generic(self, slug_name, check_cmd, baseline_val, grade):
+        """Run a generic shell command check."""
+        cmd_parts = check_cmd.split()
+        exit_code, stdout, stderr = _run(cmd_parts, timeout=30)
+
+        output = stdout or stderr
+        current = f"exit={exit_code}"
+
+        self.finding(
+            grade if exit_code != 0 else "could",
+            f"{slug_name}: {current}",
+            slug=slug_name,
+            evidence_kind="command",
+            evidence_command=check_cmd,
+            evidence_exit=exit_code,
+            evidence_output=output[:500] if output else current,
+            value=current,
+            baseline=baseline_val,
+        )
+
+    # ── sweep mode ───────────────────────────────────────────────────
+
+    def run_sweep(self):
+        """Walk the project and record findings with evidence."""
+        # Phase 1: walk docs/
+        docs_dir = self.root / "docs"
+        if docs_dir.is_dir():
+            for f in docs_dir.rglob("*.md"):
+                self.sweep_files_visited += 1
+                # Limit reference scanning to avoid runaway runs
+                if self.sweep_files_visited > 500:
+                    break
+                self._sweep_doc_file(f)
+
+        # Phase 2: check untracked/
+        self._sweep_untracked()
+
+        # Phase 3: kanban sweep
+        self._sweep_kanban()
+
+        # Phase 4: claimlint
+        self._sweep_claimlint()
+
+        # Phase 5: git status
+        self._sweep_git()
+
+    def _sweep_doc_file(self, path):
+        """Sweep one docs/ file for issues."""
+        try:
+            with open(path) as f:
+                content = f.read()
+        except (OSError, UnicodeDecodeError):
+            return
+
+        rel = _fmt_relative(path, self.root)
+        lines = content.splitlines()
+
+        broken_refs = []
+        in_code_block = False
+        for i, line in enumerate(lines, 1):
+            # Track code blocks — don't scan inside them
+            if line.strip().startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+
+            # Check for references to non-existent files.
+            # Pattern: `path/.../file.ext` inside backticks.
+            m = re.search(r'`([^`]*?/[^`]*?\.(?:md|zig|wzo|py|sh|jsonl|json))`', line)
+            if m:
+                ref = m.group(1)
+                if '/' not in ref:
+                    continue
+                if self._ref_exists(ref, path):
+                    continue
+                broken_refs.append(ref)
+
+        if broken_refs:
+            # Collapse: one finding per source file with a count.
+            sample = ', '.join(broken_refs[:5])
+            if len(broken_refs) > 5:
+                sample += f', ... ({len(broken_refs)} total)'
+            self.finding(
+                "could",
+                f"{len(broken_refs)} broken reference(s) in {rel}: {sample}",
+                evidence_kind="file-line",
+                source_file=rel,
+                source_line=0,
+                evidence_output=sample[:200],
+            )
+
+    def _ref_exists(self, ref, doc_path):
+        """Check if a backtick-quoted reference resolves to an existing file."""
+        # Skip known ephemeral patterns
+        if "/tmp/" in ref or ref.startswith("untracked/"):
+            return True
+        # Skip template paths (contain <...> or * wildcards)
+        if '<' in ref or '>' in ref or '*' in ref:
+            return True
+        # Skip command examples
+        if ref.startswith(('bin/', 'sha256sum ', 'grep ', 'zig ', 'RETRO_SAVE=', 'cp ', 'ls ', 'du ')):
+            return True
+        # If ref contains spaces, it's a command line, not a path
+        if ' ' in ref:
+            return True
+        # Try repo-root first (most cross-references are from repo root)
+        ref_path = (self.root / ref).resolve()
+        if ref_path.exists():
+            return True
+        # Try doc-relative
+        ref_path2 = (doc_path.parent / ref).resolve()
+        if ref_path2.exists():
+            return True
+        # If parent directory exists at either location, the file is a planned
+        # deliverable — not a broken reference.
+        if ref_path.parent.exists() or ref_path2.parent.exists():
+            return True
+        # Try stripping to just the filename and check src/
+        bare = Path(ref).name
+        for search_dir in [self.root / "src", self.root]:
+            if (search_dir / bare).exists():
+                return True
+        return False
+
+    def _sweep_untracked(self):
+        """Sweep untracked/ for issues.
+
+        Applies the retention rule (ARGUS.md §Untracked-artifact retention
+        rule): SHA256SUMS-pinned files are exempt.
+        """
+        untracked = self.root / "untracked"
+        if not untracked.is_dir():
+            return
+
+        # Load SHA256SUMS to identify pinned deliverables
+        sha256sums_path = self.root / "artifacts" / "SHA256SUMS"
+        pinned_paths = set()
+        if sha256sums_path.is_file():
+            with open(sha256sums_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    parts = line.split(None, 1)
+                    if len(parts) == 2:
+                        pinned_paths.add(parts[1])
+
+        exit_code, stdout, stderr = _run(["du", "-sh", str(untracked)], timeout=30)
+        size_str = stdout.split()[0] if stdout else "?"
+
+        # Count large files, exclude SHA256SUMS-pinned
+        large_count = 0
+        pinned_count = 0
+        large_list = []
+        for f in untracked.rglob("*"):
+            if f.is_file():
+                try:
+                    sz = f.stat().st_size
+                except OSError:
+                    continue
+                if sz > 10 * 1024 * 1024:
+                    rel = _fmt_relative(f, self.root)
+                    if rel in pinned_paths:
+                        pinned_count += 1
+                    else:
+                        large_count += 1
+                        large_list.append(f"{rel} ({sz // (1024*1024)} MB)")
+
+        if large_list:
+            self.finding(
+                "should",
+                f"untracked/ large files: {size_str} total, {large_count} unpinned files >10MB"
+                f" ({pinned_count} SHA256SUMS-pinned exempt): {'; '.join(large_list[:5])}",
+                evidence_kind="command",
+                evidence_command="du -sh untracked/ && find untracked/ -size +10M",
+                evidence_exit=0,
+                evidence_output="\n".join(large_list[:5]),
+            )
+
+    def _sweep_kanban(self):
+        """Sweep the kanban for stale/orphan tasks."""
+        exit_code, stdout, stderr = _run(["bin/managent", "status"], timeout=10)
+
+        # Check for blocked tasks
+        in_blocked = False
+        blocked_count = 0
+        for line in stdout.splitlines():
+            if "blocked" in line.lower():
+                in_blocked = True
+                m = re.search(r'\((\d+)\)', line)
+                if m:
+                    blocked_count = int(m.group(1))
+                continue
+            if in_blocked and line.strip().startswith(("dispatchable", "in progress", "done")):
+                in_blocked = False
+
+        if blocked_count > 0:
+            self.finding(
+                "could",
+                f"Kanban: {blocked_count} blocked task(s). Verify needs are actionable.",
+                evidence_kind="command",
+                evidence_command="bin/managent status",
+                evidence_exit=exit_code,
+                evidence_output=stdout[:500],
+            )
+
+        # Check for done tasks not promoted (delegate to managent audit)
+        exit_code2, stdout2, stderr2 = _run(["bin/managent", "audit"], timeout=10)
+        finding_count = 0
+        for line in stdout2.splitlines():
+            if re.search(r'\[WARN\]|\[ERR\]', line):
+                finding_count += 1
+
+        if finding_count > 10:
+            self.finding(
+                "should",
+                f"Kanban audit: {finding_count} WARN/ERR findings — promotion backlog may be growing",
+                evidence_kind="command",
+                evidence_command="bin/managent audit",
+                evidence_exit=exit_code2,
+                evidence_output=f"{finding_count} findings",
+            )
+
+    def _sweep_claimlint(self):
+        """Run claimlint as a sweep check.
+
+        Graded against the floor (ARGUS.md §Floor-grading rule):
+        violation only when counts *exceed* the recorded floor.
+        """
+        exit_code, stdout, stderr = _run(["bin/weizigo-claimlint"], timeout=30)
+
+        c1a = c2 = c6 = 0
+        for line in stdout.splitlines():
+            m = re.search(r'C1a orphans:\s*(\d+)', line)
+            if m: c1a = int(m.group(1))
+            m = re.search(r'C2 total:\s*(\d+)', line)
+            if m: c2 = int(m.group(1))
+            m = re.search(r'C6 cite-tag mismatches:\s*(\d+)', line)
+            if m: c6 = int(m.group(1))
+
+        floor = self.CLAIMLINT_FLOOR
+        if c1a > floor.get("C1a", 0):
+            self.finding(
+                "must",
+                f"claimlint C1a: {c1a} orphan(s) — EXCEEDS FLOOR ({floor['C1a']})",
+                evidence_kind="command",
+                evidence_command="bin/weizigo-claimlint",
+                evidence_exit=exit_code,
+                evidence_output=f"C1a orphans: {c1a}",
+            )
+        if c2 > floor.get("C2", 0):
+            self.finding(
+                "must",
+                f"claimlint C2: {c2} dangling evidence path(s) — EXCEEDS FLOOR ({floor['C2']})",
+                evidence_kind="command",
+                evidence_command="bin/weizigo-claimlint",
+                evidence_exit=exit_code,
+                evidence_output=f"C2 total: {c2}",
+            )
+        if c6 > floor.get("C6", 0):
+            self.finding(
+                "must",
+                f"claimlint C6: {c6} cite-tag mismatch(es)",
+                evidence_kind="command",
+                evidence_command="bin/weizigo-claimlint",
+                evidence_exit=exit_code,
+                evidence_output=f"C6 cite-tag mismatches: {c6}",
+            )
+
+    def _sweep_git(self):
+        """Check git status for uncommitted changes to tracked files."""
+        exit_code, stdout, stderr = _run(
+            ["git", "status", "--porcelain"], timeout=10,
+            cwd=str(self.root),
+        )
+
+        if not stdout:
+            return
+
+        modified = []
+        untracked_new = []
+        for line in stdout.splitlines():
+            if not line.strip():
+                continue
+            if line.startswith("??"):
+                # Untracked file
+                fpath = line[3:].strip()
+                if fpath not in ("untracked/watchdog.md", "untracked/watchdog-summary.md"):
+                    untracked_new.append(fpath)
+            elif line[0] in " MARC":
+                modified.append(line[3:].strip())
+
+        if modified:
+            self.finding(
+                "could",
+                f"Git: {len(modified)} modified tracked file(s): {', '.join(modified[:5])}",
+                evidence_kind="command",
+                evidence_command="git status --porcelain",
+                evidence_exit=exit_code,
+                evidence_output="\n".join(modified[:5]),
+            )
+
+    # ── summary ──────────────────────────────────────────────────────
+
+    def write_summary(self):
+        """Recompute and overwrite the summary from the log (A4)."""
+        log_entries = _read_json_lines(self.args.log)
+        if not log_entries:
+            self._write_empty_summary()
+            return
+
+        # Find run markers
+        run_markers = [e for e in log_entries if e.get("kind") == "run-marker"]
+        findings = [e for e in log_entries if e.get("kind") == "finding"]
+
+        if not run_markers:
+            self._write_empty_summary()
+            return
+
+        last_run = run_markers[-1]
+        last_ts = last_run.get("timestamp", "?")
+        last_mode = last_run.get("mode", "?")
+        last_run_id = last_run.get("run", "?")
+
+        # Findings from the last run
+        last_findings = [f for f in findings if f.get("run") == last_run_id]
+
+        # Count by grade for last run
+        grade_counts = {}
+        for f in last_findings:
+            g = f.get("grade", "unverified")
+            grade_counts[g] = grade_counts.get(g, 0) + 1
+
+        # Violations (must + critical + should) in last 24h
+        now = time.time()
+        violations_24h = []
+        violations_7d = []
+        for f in findings:
+            ts_str = f.get("timestamp", "")
+            try:
+                ft = time.mktime(time.strptime(ts_str, "%Y-%m-%dT%H:%M:%SZ"))
+            except (ValueError, OSError):
+                continue
+            if now - ft <= 86400:
+                violations_24h.append(f)
+            if now - ft <= 7 * 86400:
+                violations_7d.append(f)
+
+        # Per-slug violation table — track most-recent values, not first-seen
+        slug_violations = {}
+        slug_all = {}  # collect all findings per slug, then pick most-recent
+        for f in violations_24h:
+            slug = f.get("slug", "(sweep)")
+            g = f.get("grade", "unverified")
+            if g in ("must", "critical", "should"):
+                if slug not in slug_all:
+                    slug_all[slug] = []
+                slug_all[slug].append(f)
+        for slug, findings in slug_all.items():
+            # Use the most-recent finding for current/baseline/grade display
+            newest = max(findings, key=lambda f: f.get("timestamp", ""))
+            slug_violations[slug] = {
+                "grade": newest.get("grade", "unverified"),
+                "current": newest.get("value", ""),
+                "baseline": newest.get("baseline", ""),
+                "last_seen": newest.get("timestamp", ""),
+                "count_24h": len(findings),
+                "count_7d": 0,
+            }
+
+        for f in violations_7d:
+            slug = f.get("slug", "(sweep)")
+            g = f.get("grade", "unverified")
+            if g not in ("must", "critical", "should"):
+                continue
+            if slug in slug_violations:
+                slug_violations[slug]["count_7d"] += 1
+            elif slug not in slug_violations:
+                slug_violations[slug] = {
+                    "grade": g,
+                    "current": f.get("value", ""),
+                    "baseline": f.get("baseline", ""),
+                    "last_seen": f.get("timestamp", ""),
+                    "count_24h": 0,
+                    "count_7d": 1,
+                }
+
+        # Sweep — most recent sweep run
+        sweep_runs = [r for r in run_markers if r.get("mode") == "sweep"]
+        last_sweep = sweep_runs[-1] if sweep_runs else None
+        sweep_findings = []
+        sweep_visited = 0
+        if last_sweep:
+            sweep_run_id = last_sweep.get("run")
+            sweep_findings = [f for f in findings if f.get("run") == sweep_run_id]
+            # Count distinct source files visited (more accurate than marker)
+            sweep_sources = set()
+            for f in sweep_findings:
+                sf = f.get("source_file")
+                if sf:
+                    sweep_sources.add(sf)
+            sweep_visited = last_sweep.get("sweep_files_visited", 0) or len(sweep_sources)
+
+        # Proposed tasks from last 24h — deduplicate by slug, keep most recent
+        proposed = {}
+        for f in violations_24h:
+            if f.get("proposed_task"):
+                slug = f.get("slug", "(sweep)")
+                if slug not in proposed or f.get("timestamp", "") > proposed[slug].get("timestamp", ""):
+                    proposed[slug] = f
+        proposed = list(proposed.values())
+
+        # Build summary Markdown
+        lines = [
+            "# Argus watchdog — summary",
+            "",
+            f"**Last run:** {last_ts} ({last_mode}) · **Run ID:** `{last_run_id}`",
+        ]
+
+        checks_run = last_run.get("checks_run")
+        checks_skipped = last_run.get("checks_skipped")
+        if checks_run is not None:
+            grade_str = ", ".join(f"{v} {k}" for k, v in sorted(grade_counts.items()))
+            lines.append(f"**Checks run:** {checks_run} · **Skipped:** {checks_skipped} · **Findings this run:** {len(last_findings)} ({grade_str})")
+
+        lines.extend([
+            "",
+            "---",
+            "",
+            "## Violations — past 24h",
+            "",
+        ])
+
+        if slug_violations:
+            lines.append("| slug | grade | current | baseline | last seen | 24h | 7d |")
+            lines.append("|---|---|---|---|---|---|---|")
+            for slug in sorted(slug_violations):
+                sv = slug_violations[slug]
+                lines.append(
+                    f"| {slug} | {sv['grade']} | {sv['current'][:50]} | {sv['baseline'][:50]} | "
+                    f"{sv['last_seen'][:16]} | {sv['count_24h']} | {sv['count_7d']} |"
+                )
+        else:
+            lines.append("*No violations in past 24h.*")
+
+        lines.extend([
+            "",
+            "---",
+            "",
+            "## Sweep — most recent",
+            "",
+        ])
+
+        if last_sweep:
+            sv = last_sweep.get("sweep_files_visited", 0) or sweep_visited
+            st = last_sweep.get("sweep_files_total", 0)
+            pct = f"{100*sv/st:.1f}%" if st else "?"
+            sweep_must = sum(1 for f in sweep_findings if f.get("grade") in ("must", "critical"))
+            sweep_could = sum(1 for f in sweep_findings if f.get("grade") == "could")
+            sweep_unver = sum(1 for f in sweep_findings if f.get("grade") == "unverified")
+            lines.append(
+                f"**Run:** `{last_sweep.get('run')}` · "
+                f"**Files visited:** {sv} of {st} under `docs/` ({pct})"
+            )
+            lines.append(
+                f"**Findings:** {sweep_must} must/critical, {sweep_could} could, "
+                f"{sweep_unver} unverified"
+            )
+        else:
+            lines.append("*No sweep run recorded yet.*")
+
+        lines.extend([
+            "",
+            "---",
+            "",
+            "## Proposed tasks",
+            "",
+        ])
+
+        if proposed:
+            for f in proposed:
+                brief = f.get("proposed_brief", f.get("finding", ""))
+                lines.append(f"- [ ] **{f.get('slug', 'sweep')}** — {brief[:200]}")
+        else:
+            lines.append("*(none)*")
+
+        lines.extend([
+            "",
+            "---",
+            "",
+            f"*Summary recomputable from `{_fmt_relative(self.args.log, self.root)}` "
+            f"({len(log_entries)} lines, {len(run_markers)} runs).*",
+        ])
+
+        os.makedirs(os.path.dirname(self.args.summary), exist_ok=True)
+        with open(self.args.summary, "w") as f:
+            f.write("\n".join(lines) + "\n")
+
+    def _write_empty_summary(self):
+        """Write a minimal summary for an empty log."""
+        lines = [
+            "# Argus watchdog — summary",
+            "",
+            f"**Last run:** {_utc_iso(self.ts)} ({self.mode}) · **Run ID:** `{self.run_id}`",
+            "",
+            "*No prior runs recorded. Log is empty.*",
+        ]
+        os.makedirs(os.path.dirname(self.args.summary), exist_ok=True)
+        with open(self.args.summary, "w") as f:
+            f.write("\n".join(lines) + "\n")
+
+
+# ── main ─────────────────────────────────────────────────────────────
+
+def main():
+    ap = argparse.ArgumentParser(
+        prog="argus",
+        description="Argus watchdog — read-only project state monitor (T195).",
+    )
+    ap.add_argument("--mode", required=True, choices=["sweep", "checklist"],
+                    help="One mode per invocation (R5)")
+    ap.add_argument("--log", default=None,
+                    help="Path to watchdog log (default: untracked/watchdog.md)")
+    ap.add_argument("--summary", default=None,
+                    help="Path to summary (default: untracked/watchdog-summary.md)")
+    ap.add_argument("--checklist", default=None,
+                    help="Path to checklist registry (default: docs/epic-01-markovian/sprints/argus/checklist.md)")
+    ap.add_argument("--run-id", default=None,
+                    help="Override run ID (default: auto-generated from timestamp)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="Print findings to stdout, do not write files")
+    args = ap.parse_args()
+
+    root = _repo_root()
+
+    # Set default paths relative to repo root
+    if args.log is None:
+        args.log = str(root / "untracked" / "watchdog.md")
+    if args.summary is None:
+        args.summary = str(root / "untracked" / "watchdog-summary.md")
+    if args.checklist is None:
+        args.checklist = str(root / "docs" / "epic-01-markovian" / "sprints" / "argus" / "checklist.md")
+
+    if args.dry_run:
+        args.log = "/tmp/argus-dryrun-watchdog.md"
+        args.summary = "/tmp/argus-dryrun-summary.md"
+
+    run = ArgusRun(args, root)
+
+    if args.mode == "checklist":
+        slugs = parse_checklist_registry(args.checklist)
+        if not slugs:
+            print(f"argus: no checklist slugs found in {args.checklist}", file=sys.stderr)
+            sys.exit(1)
+        # Count slugs before marker so checks_run is correct (R8 denominators)
+        run.checks_run = len(slugs)
+        run.emit_run_marker()
+        run.run_checklist(slugs)
+    if args.mode == "sweep":
+        # Count total files before emitting marker so denominators are correct
+        docs_dir = root / "docs"
+        docs_files = list(docs_dir.rglob("*.md")) if docs_dir.is_dir() else []
+        run.sweep_files_total = len(docs_files)
+        run.emit_run_marker()
+        run.run_sweep()
+
+    run.write_summary()
+
+    # Report findings to stderr
+    violations = [f for f in run.findings if f.get("grade") in ("must", "critical", "should")]
+    if violations:
+        print(f"argus: {len(violations)} violation(s) logged", file=sys.stderr)
+        for f in violations:
+            print(f"  [{f.get('grade')}] {f.get('finding', '')[:120]}", file=sys.stderr)
+    else:
+        print("argus: clean — no violations", file=sys.stderr)
+
+    if args.dry_run:
+        print("\n--- dry-run log ---", file=sys.stderr)
+        for entry in _read_json_lines(args.log):
+            print(json.dumps(entry, sort_keys=True), file=sys.stderr)
+        print("\n--- dry-run summary ---", file=sys.stderr)
+        if os.path.isfile(args.summary):
+            with open(args.summary) as f:
+                print(f.read(), file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

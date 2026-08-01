@@ -1,0 +1,8 @@
+{
+  "task_id": "T211",
+  "date": "2026-08-01",
+  "model": "unknown/T211",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Argus baseline disposition — three known conditions re-flagged every run, fixed by reconciling modes, implementing retention rule, and grading claimlint against the floor. Changes: (1) orphan-gate: summary code uses most-recent baseline, checklist compares structurally against baseline count; baseline reconciled to findings=1. (2) ephemera-creep: retention rule implemented — SHA256SUMS-pinned artifacts exempt; writes-off WZOs added to SHA256SUMS pinning. (3) claimlint-green: graded against floor (C1a=10, C2=12, C6=0); violation only when counts exceed floor; at floor grades 'could'. ARGUS.md updated with Floor-grading rule and Untracked-artifact retention rule. Post-fix checklist: 1 violation (stale-in-progress, T211 itself); sweep: clean."
+}

@@ -75,6 +75,41 @@ made mechanical.
 | `could` | observation, suggestion, or minor inconsistency | no (logged, not counted) |
 | `unverified` | R6 evidence rule not met | no (logged, not counted) |
 
+## Floor-grading rule (T211)
+
+Some checks measure a condition that cannot reach zero without further work —
+the floor is a *ratified honest debt*, recorded in the roadmap's Phase-2 exit
+check. For these checks, the violation threshold is **above the floor**, not at
+zero.
+
+| check | floor | source |
+|---|---|---|
+| claimlint C1a orphans | 10 | Phase-2 exit check (EXP-13) |
+| claimlint C2 dangling evidence | 12 | Phase-2 exit check (EXP-13) |
+| claimlint C6 cite-tag mismatches | 0 | must stay at zero |
+
+**Rule:** A claimlint check fires `must` only when its count **exceeds** the
+recorded floor. At the floor, it grades `could` — the floor is debt, not
+regression. The floor may be lowered only by the Orchestrator on evidence of a
+committed fix (a claimlint run at a new lower count, with the diff documented).
+
+## Untracked-artifact retention rule (T211)
+
+Solver artifacts (`.wzo`, `.wzo2`) under `untracked/` are legitimate
+project deliverables, not ephemeral creep, when they meet **all** of:
+
+1. **Pinned** — the file's SHA-256 is recorded in `artifacts/SHA256SUMS`.
+2. **Cited** — at least one document under `docs/` references the artifact.
+3. **Size-bounded** — the artifact is no larger than the largest committed
+   `.wzo` (currently 258 MB for writes-off checkpoint), or a documented
+   justification exists for its size.
+
+Argus's `ephemera-creep` check exempts SHA256SUMS-pinned files from the
+large-file count. Files not meeting the retention rule remain subject to the
+size check. A retention-rule file that is no longer cited should have its
+SHA256SUMS entry removed (by the Orchestrator) and will then be flagged as
+creep.
+
 ## Pacing
 
 Prod-driven — Argus does not self-schedule. Target cadence: every ~10 minutes
