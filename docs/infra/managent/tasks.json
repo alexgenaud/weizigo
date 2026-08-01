@@ -14,10 +14,12 @@
     "dispatched": "2026-08-01T11:03:43Z",
     "dispatched_to": "DSPro",
     "note": null,
+    "verdict": "fail-found",
+    "verdict_note": "artifact invalid, follow-up T212",
     "claim_count": 1
   },
   "T213": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T213-terminal-status-vocabulary.md",
@@ -26,12 +28,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T11:31:45Z",
-    "claimed": null,
+    "claimed": "2026-08-01T16:31:10Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "claim_count": 0
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 1
   },
   "T214": {
     "status": "dispatchable",
@@ -48,6 +52,8 @@
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
+    "verdict": null,
+    "verdict_note": null,
     "claim_count": 0
   },
   "STANDING-CLEANUP": {
@@ -65,6 +71,8 @@
     "dispatched": null,
     "dispatched_to": null,
     "note": "tree dirty across two turns: 1→1 dirty files",
+    "verdict": null,
+    "verdict_note": null,
     "claim_count": 1
   },
   "T215": {
@@ -82,6 +90,8 @@
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
+    "verdict": null,
+    "verdict_note": null,
     "claim_count": 0
   },
   "T212": {
@@ -99,6 +109,8 @@
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
+    "verdict": null,
+    "verdict_note": null,
     "claim_count": 1
   },
   "T210": {
@@ -116,6 +128,8 @@
     "dispatched": "2026-08-01T11:13:42Z",
     "dispatched_to": "DSPro",
     "note": null,
+    "verdict": "pass",
+    "verdict_note": null,
     "claim_count": 1
   },
   "T211": {
@@ -133,11 +147,13 @@
     "dispatched": "2026-08-01T11:13:42Z",
     "dispatched_to": "DSPro",
     "note": null,
+    "verdict": "pass",
+    "verdict_note": null,
     "claim_count": 1
   },
   "T216": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "DSPro",
     "model": null,
     "bundle": "untracked/T216-artifact-loadable-recheck.md",
     "set": "C",
@@ -145,11 +161,32 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-01T16:28:01Z",
+    "claimed": "2026-08-01T16:30:04Z",
+    "done": "2026-08-01T16:31:47Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 1
+  },
+  "T217": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T217-acceptance-field.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T16:36:08Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
+    "verdict": null,
+    "verdict_note": null,
     "claim_count": 0
   },
   "T203": {
@@ -167,6 +204,8 @@
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
+    "verdict": null,
+    "verdict_note": null,
     "claim_count": 0
   },
   "T209": {
@@ -184,11 +223,13 @@
     "dispatched": "2026-08-01T11:03:43Z",
     "dispatched_to": "DSPro",
     "note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "own bundle failed done-check for want of deliverables= field it introduced",
     "claim_count": 1
   }
 ,
   "_sys": {
-    "next_id": 216,
+    "next_id": 217,
     "directive_next": 7
   }
 }
