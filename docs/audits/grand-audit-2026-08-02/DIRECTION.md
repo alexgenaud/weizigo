@@ -147,11 +147,29 @@ improvable. Not before.
 
 ---
 
-## Amendment 1 — PROPOSED 2026-08-03 by the Orchestrator, **awaiting human ratification**
+## Amendment 1 — **RATIFIED 2026-08-03**
 
-This document was ratified by the human, so it is not edited silently; §3's rule that a
-direction change is a *recorded event* applies to the direction itself. What follows is a
-proposal, marked as such until the human rules. Nothing acts on it yet.
+Ratified by the human on the grounds that established software-testing practice settles
+it rather than project judgment — the human asked whether research answered the question,
+and it does. The practice has names, and per the standing rule (name methods after cited
+prior art, not coinages) they are:
+
+- **Seeded synthetic defects = mutation testing** — DeMillo, Lipton & Sayward, "Hints on
+  Test Data Selection" (1978); survey: Jia & Harman, "An Analysis and Survey of the
+  Development of Mutation Testing" (2011). The measurement is whether the check *kills*
+  the mutant. A check that cannot kill a seeded mutant is blind, and mutants are
+  synthetic precisely so they stay available: the standard argument against using
+  historical bugs as negative fixtures is that fixing the bug silently empties the test.
+- **Live-artifact baselines = golden master / characterization testing** — Feathers,
+  *Working Effectively with Legacy Code* (2004); also called approval testing. Its pass
+  condition is **"unchanged from the recorded baseline"**, never "fails".
+
+So the two instruments are distinct in the literature, not merely in our opinion, and
+§5's original instruction asked one artifact to serve as both. `DELEGATEE.md` already
+carried the mutation-testing half of this rule; the amendment finishes the thought.
+
+Below is the proposal as written on 2026-08-03, unchanged, since the reasoning is what
+was ratified.
 
 **What §5 says.** Phase 1 nominates the live `0c3366f0` artifact as "a certified-defective
 calibration input: the battery must fail it; a battery that passes an artifact known to be

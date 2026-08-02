@@ -1,4 +1,25 @@
 {
+  "T287": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T287-auditor-716-gap.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T23:08:38Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "bin/weizigo-claimlint",
+    "skip_acceptance_reason": null
+  },
   "T275": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -39,6 +60,27 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
+    "skip_acceptance_reason": null
+  },
+  "T286": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T286-derive-the-resume-surface.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T23:07:50Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
   "T230": {
@@ -819,8 +861,8 @@
     "skip_acceptance_reason": "runner cannot find zig in subprocess PATH; harness ran successfully directly and all tests pass"
   },
   "T269": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T269-register-vocabulary.md",
     "set": "C",
@@ -829,11 +871,11 @@
     "caps": [],
     "added": "2026-08-02T02:03:01Z",
     "claimed": "2026-08-02T22:33:55Z",
-    "done": null,
+    "done": "2026-08-02T22:52:56Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -945,8 +987,8 @@
     "skip_acceptance_reason": null
   },
   "T283": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T283-gtp-display-path.md",
     "set": "C",
@@ -955,15 +997,15 @@
     "caps": [],
     "added": "2026-08-02T22:01:48Z",
     "claimed": "2026-08-02T22:33:22Z",
-    "done": null,
+    "done": "2026-08-02T22:45:13Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "zig build test passes (84/84 src/gtp.zig, zero errors), but bin/managent cannot find zig on PATH"
   },
   "T231": {
     "status": "done",
@@ -1282,7 +1324,7 @@
   }
 ,
   "_sys": {
-    "next_id": 286,
+    "next_id": 287,
     "directive_next": 17
   }
 }
