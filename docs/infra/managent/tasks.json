@@ -336,7 +336,7 @@
     "skip_acceptance_reason": null
   },
   "T280": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T280-install-and-control-the-gate.md",
@@ -345,14 +345,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T21:03:40Z",
-    "claimed": null,
+    "claimed": "2026-08-02T21:32:10Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "sh tools/regression-precommit.sh",
     "skip_acceptance_reason": null
   },
@@ -378,7 +378,7 @@
     "skip_acceptance_reason": null
   },
   "T277": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T277-verify-incompleteness-refutation.md",
@@ -387,14 +387,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T20:59:22Z",
-    "claimed": null,
+    "claimed": "2026-08-02T21:31:36Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -588,7 +588,7 @@
     "skip_acceptance_reason": "zig build test passes via tools/runner (zig not on PATH from managent subprocess)"
   },
   "T278": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T278-fleet-git-isolation.md",
@@ -597,14 +597,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T21:01:15Z",
-    "claimed": null,
+    "claimed": "2026-08-02T21:32:12Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -1178,6 +1178,6 @@
 ,
   "_sys": {
     "next_id": 281,
-    "directive_next": 16
+    "directive_next": 17
   }
 }

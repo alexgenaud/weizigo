@@ -24,6 +24,31 @@ kanban" and the schema is in
 `docs/infra/managent/spec.md`. **A delegator does not need to specify a
 model; if you must, give a reason.**
 
+## The bundle meta line — what `managent` enforces for you
+
+Every bundle opens with `<!--managent set=X deliverables=… [holds=…] [acceptance=…]-->`,
+and `managent done` refuses to close while a declared deliverable is missing. That
+makes the meta line the only part of a brief a worker cannot skip, so put the
+non-negotiables there rather than in prose:
+
+- **The findings file, by exact path** — `findings/<id>-<slug>.json`, not a glob. A
+  brief that says "findings to `findings/T2xx-*.json`" in prose gets a task that closes
+  without one; T275 did exactly that on 2026-08-02.
+- **The context dump, by exact path** — `findings/<id>-context.json`. Asking for it in
+  the closing prompt works only if someone remembers to ask; declaring it means the
+  dump exists *before* the task can close, and the dump is where two P0 defects came
+  from. The shape is specified once, in `DELEGATEE.md` §Reporting.
+- **`holds=`** for any single-owner file (`docs/epistemic/CLAIMS.md` above all) — the
+  hold conflicts with a second task declaring the same path, which is cheaper than
+  discovering the race afterwards.
+- **`acceptance=`** whenever a runnable green condition exists. `managent audit` warns
+  on every done task that never had one.
+
+Note the gap this does *not* close: the check asks whether the file **exists**, not
+whether it is committed — T272 closed `pass` on 2026-08-02 with every deliverable
+untracked. T278 owns the fix; until it lands, verify with `git status` yourself before
+accepting a close.
+
 ## Principles
 
 **Falsifiability.** Name the result that would falsify the claim. If none would,
