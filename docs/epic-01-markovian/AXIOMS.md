@@ -1,6 +1,6 @@
 # AXIOMS — epic-01-markovian: theorem, axioms, and requirement tree
 
-Task: T271 · Role: worker · Model: not stated at dispatch · Date: 2026-08-02
+Task: T271 · Role: worker · Model: DSPro/T271 · Date: 2026-08-02
 
 **This file gates all later decomposition.** It states the theorem (Z), the
 ruleset axioms (A) from which Z is derived, the requirement tree from Z down to
@@ -83,13 +83,13 @@ A freshly written axiom is CLAIMED, not PROVEN, until verified end-to-end.
 | `GLOBAL.AXIOM-STONE` | **A2 — Stone placement and alternation.** Black and White alternate placing stones on empty points. Black plays first from the fresh-start root. Komi is 0. |
 | `GLOBAL.AXIOM-CAPTURE` | **A3 — Capture.** After a stone is placed, any opposing group with zero liberties is removed from the goban. Liberties are empty orthogonally adjacent points. A group is a maximal connected set of same-colour stones. |
 | `GLOBAL.AXIOM-SUICIDE` | **A4 — Suicide prohibition.** A move is illegal if, after capture, the placed stone's own group has zero liberties. ("Capture" in A3 is applied first.) |
-| `GLOBAL.AXIOM-PASS` | **A5 — Pass.** A player may pass instead of placing a stone. Pass is always legal. A pass does not change the goban, does not capture, does not affect ko. Pass is exempt from ko restrictions. |
+| `GLOBAL.AXIOM-PASS` | **A5 — Pass.** A player may pass instead of placing a stone. Pass is always legal. A pass does not change the goban, does not capture. A pass clears the ko point (sets it to `none`). Pass is exempt from ko restrictions. |
 
 ### B — Basic ko (k=1)
 
 | ID | axiom |
 |---|---|
-| `GLOBAL.AXIOM-BASICKO` | **B1 — Basic ko rule (k=1).** A move is illegal if it would capture exactly one opposing stone AND the capturing stone would itself have exactly one liberty after capture AND the resulting goban position would be identical to the goban position one ply earlier (the ko point is the point of the captured stone). |
+| `GLOBAL.AXIOM-BASICKO` | **B1 — Basic ko rule (k=1).** A move is illegal if it would capture exactly one opposing stone AND the capturing stone would itself have exactly one liberty after capture AND the resulting goban position would be identical to the goban position two plies earlier — the position before the opponent's capture that created the ko shape (the ko point is the point of the captured stone). |
 | `GLOBAL.AXIOM-KOSTATE` | **B2 — Ko state encoding.** The ko point is the forbidden recapture point, or `none`. It is set to the point of the single captured stone when B1 fires; it is cleared (set to `none`) on every pass and on every non-ko-capture move. |
 | `GLOBAL.AXIOM-KOPASS` | **B3 — Ko–pass interaction.** A pass clears the ko point. Since pass is always legal (A5) and pass clears ko, a player can always break a ko cycle by passing — the opponent then faces no ko restriction. |
 
@@ -344,42 +344,47 @@ the gap if the tie semantics are first aligned.
 
 ### 4.3 Adjudication
 
-**Candidate 1 (TIE=0 vs MIGOS tie semantics) is the surviving explanation.**
+**The +1-vs-+2 miss is unexplained.**
 
 The "basic ko vs PSK" explanation in `4x4.BASICKO-TIE` and `PROGRESS.md` §4.2
 is **falsified by the register's own PROVEN row** `GLOBAL.MIGOS-RULE`. MIGOS
-plays basic ko, not PSK. Both our build and MIGOS play basic ko.
+plays basic ko, not PSK. Both our build and MIGOS play basic ko, so "basic ko
+vs PSK" cannot explain a basic-ko-vs-basic-ko discrepancy.
 
-The surviving explanation is that our TIE=0 differs from MIGOS's
-implementation-specific long-cycle-tie value. The +1 vs +2 gap is a ruleset
-difference — not in the ko rule (both use basic ko), but in the *tie semantics*
-(both use ties on long cycles, but the tie value differs).
+The **leading hypothesis** is tie semantics: our TIE=0 differs from MIGOS's
+implementation-specific long-cycle-tie value `[GLOBAL.TIE-MIGOS:CLAIMED]`.
+The **live alternative** is a defect in our build — one of the two
+implementations does not compute its own declared value correctly — which is
+Candidate 2's branch (b) `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]`. Neither
+hypothesis has been eliminated; the miss has not been explained.
 
-**Consequence:** The statement "ruleset difference (basic ko vs PSK), not a
-bug" must be corrected everywhere it appears: `4x4.BASICKO-TIE` in CLAIMS.md
-and `PROGRESS.md` §4.2 (table + prose). The corrected statement is:
+The roadmap's **+2 acceptance criterion is not met**
+(`roadmap-2026-07-28.md:227-232`): +2 was the condition for a "finally
+legitimate comparison," and the 4×4 root is +1, not +2. Until the gap is
+explained, the build does not pass its own acceptance gate.
 
-> "ruleset difference (TIE=0 vs MIGOS's implementation-specific long-cycle-tie
-> value), not a bug"
+**Falsification test for `GLOBAL.TIE-MIGOS`** (registered as T274, not run
+here): re-run the 4×4 root with only the tie constant changed, and read van
+der Werf's thesis §6.4 for MIGOS's actual long-cycle resolution. If a
+different tie constant reproduces +2, the tie-semantics hypothesis is
+confirmed. If no tie value reproduces +2, Candidate 2(b) — a defect —
+is what remains.
+
+The statement "not a bug" is withdrawn from both `PROGRESS.md` locations. It
+rested on `GLOBAL.TIE-MIGOS:CLAIMED` as if CLAIMED were PROVEN, repeating
+exactly the shape GRAND-AUDIT §1d objected to. A CLAIMED hypothesis does not
+support a "not a bug" disposition.
 
 ### 4.4 Disposition of PROGRESS.md lines 213, 218
 
-Both lines are addressed in this task, not deferred. The corrections are made
-in the same commit as this file. PROGRESS.md currently says:
+**Corrected by T271 (2026-08-02):** the "basic ko vs PSK" explanation was
+replaced with the tie-resolution explanation and `GLOBAL.TIE-MIGOS` /
+`GLOBAL.FIXPOINT-VS-SEARCH` citations.
 
-- **Line 213 (table):** "**not** the expected +2 anchor — ruleset difference
-  (basic ko vs PSK), not a bug"
-- **Line 218 (prose):** "The +2 gap vs the MIGOS II anchor is a **ruleset
-  difference**, not a bug `[GLOBAL.MIGOS-RULE:PROVEN]`."
-
-The table cell is incorrect (basic ko vs PSK). The prose line cites
-`GLOBAL.MIGOS-RULE` as support, which is a non-sequitur — `GLOBAL.MIGOS-RULE`
-establishes MIGOS plays basic ko, which *contradicts* the "basic ko vs PSK"
-explanation, not supports it.
-
-**Correction:** Both references are changed to cite `GLOBAL.TIE-MIGOS` and to
-say "ruleset difference in tie resolution (TIE=0 vs MIGOS's long-cycle-tie
-value)" instead of "basic ko vs PSK."
+**Further corrected by T275 (2026-08-02, Amendment 1):** "not a bug" is
+withdrawn — it rested on `GLOBAL.TIE-MIGOS:CLAIMED` as if CLAIMED were PROVEN.
+The miss is now recorded as unexplained, with the leading hypothesis and live
+alternative both stated. The +2 acceptance criterion is noted as unmet (T274).
 
 ---
 
@@ -423,3 +428,26 @@ adjudication rows are CLAIMED pending independent verification.
   the tree (follows in its own task); any code change, battery, or kernel
   extraction (Phases 1–4); re-auditing the register; claimlint fix (separate);
   regenerating claimlint calibration (baseline recorded before edits).
+
+---
+
+## 7. Amendment log
+
+### Amendment 1 — 2026-08-02 (dspro/T275, Orcha verification)
+
+Three defects found by reading the axioms against each other and against the
+register. Fixes:
+
+1. **A5 — "does not affect ko" → "clears the ko point."** A5 contradicted
+   B2/B3, which correctly state that a pass clears ko
+   `[GLOBAL.PASS-NOKO:PROVEN]`. A5 now says a pass clears the ko point (sets
+   it to `none`).
+2. **B1 — "one ply earlier" → "two plies earlier."** A basic-ko recapture
+   recreates the goban position from two plies earlier (before the opponent's
+   capture), not one. The ko-defect precedent (ADR-0013) makes this class of
+   error load-bearing.
+3. **§4.3 — "not a bug" withdrawn.** The +1-vs-+2 miss is unexplained; the
+   leading hypothesis is tie semantics `[GLOBAL.TIE-MIGOS:CLAIMED]`, the live
+   alternative is a defect `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]` candidate
+   (b). The +2 acceptance criterion is not met. Falsification test registered
+   as T274.
