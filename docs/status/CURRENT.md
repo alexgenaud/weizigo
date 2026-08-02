@@ -29,7 +29,34 @@ bug (`CODE.GTP-LHSIDE`, fix `T283`) and a fourth unfixed copy of the ko rule ins
 the acceptance harness (`CODE.ACCEPT-KOKEY`, `oracle_v2_accept.zig:150-165`, fix
 `T273`) — which means A1/A2/A8 have been measuring their own off-manifold walk.
 
-## The gate is INSTALLED (T281, Orchestrator, 2026-08-02)
+## THE GATE IS NOT INSTALLED, AND THE FLOOR IS BREACHED (2026-08-03)
+
+Supersedes the T281 block below. Two facts, in order of consequence:
+
+1. **The register is above its floor.** After T279's absorption: C1a **13** (floor 10),
+   C2 **17** (floor 14), C6 **4** (floor 0). C7 improved 13 → 7, so the absorption
+   itself was real work — but its three new PROVEN rows (`CODE.WZO2-PASS1-LAW`,
+   `CODE.ACCEPT-KOKEY`, `CODE.GTP-LHSIDE`) land as orphans, their evidence cites dangle,
+   and claimlint now scans `AXIOMS.md` as a second narrative file (T272 item 3), so
+   T279's status changes no longer match the cite-tags there. T279 closed `pass`
+   breaching three of the four bars its own brief set; its dump does not mention them.
+2. **`core.hooksPath` is unset again** — found unset after being installed and verified
+   at T281, with **no tracked tooling that unsets it and no dump claiming it**. Cause
+   unattributed. T273 saw the resulting red suite and read it as "a pre-existing env
+   issue".
+
+**`zig build test` is RED for exactly one reason**: `regression-precommit.sh` fails its
+installed-ness check while the gate is uninstalled. That is the mechanism working, not
+an env quirk.
+
+**T284 is the unblocking row** and holds `CLAIMS.md`: repair the three orphans, the
+three dangling paths and the four cite-tag mismatches, then re-install and prove a
+refusal. **The floor does not rise to accommodate this** — ARGUS.md permits *lowering*
+it on evidence of a committed fix; raising it would make it a high-water mark. Until
+T284 lands, run `bin/weizigo-claimlint` by hand before committing, and do not read a
+green suite as a clean register.
+
+## The gate was installed and verified (T281, Orchestrator, 2026-08-02) — since unset
 
 `core.hooksPath = tools/hooks`. `sh tools/regression-precommit.sh` exits 0 —
 installed-ness PASS, null control PASS (a commit at floor is allowed),
@@ -112,10 +139,10 @@ the four `arm-*.md` files are reference depth. Nothing in flight; clean tree.
 - **I2 is clean on WZO2** (T270: 0/99,133,036 at 4×4, 0/49,428 at 3×3, independently
   re-implemented) **and blind to the completeness question** — the missingness is
   colour-symmetric.
-- **The claimlint gate is still not installed.** T272 closed `pass` with its
-  deliverable outside git; landed at `f9469d1` as preserved-not-accepted, with its
-  seeded-defect control exercising claimlint instead of the hook. **T280** installs it
-  after fixing the controls. `core.hooksPath` is unset — there is no gate today.
+- **The claimlint gate: built (T272), controls fixed (T280), installed and verified
+  (T281), and found unset again (2026-08-03).** There is no gate right now, and the
+  floor is breached — see the block at the top of this file; **T284** repairs and
+  re-installs.
 - **T267 verified pass, with one residue.** `src/differential.zig` is in the test
   graph (`build.zig:165-176`), the tautological T265 test is gone —
   `engineKoNewGeneric` (`differential.zig:276`) is an independent re-implementation
