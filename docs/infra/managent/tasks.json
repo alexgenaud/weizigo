@@ -1,24 +1,24 @@
 {
-  "T287": {
-    "status": "dispatchable",
-    "agent": null,
-    "model": null,
-    "bundle": "untracked/T287-auditor-716-gap.md",
+  "T252": {
+    "status": "done",
+    "agent": "deepseek-v4-pro",
+    "model": "deepseek-v4-pro",
+    "bundle": "untracked/T252-differential-harness.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-02T23:08:38Z",
-    "claimed": null,
-    "done": null,
+    "added": "2026-08-01T19:58:59Z",
+    "claimed": "2026-08-01T20:00:00Z",
+    "done": "2026-08-01T20:10:00Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
-    "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null
+    "verdict": "pass-with-findings",
+    "verdict_note": "Harness built and tested, regression-differential.sh deferred",
+    "claim_count": 1,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": "harness tested via zig test src/differential.zig (2/2 pass)"
   },
   "T275": {
     "status": "done",
@@ -62,16 +62,16 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
-  "T286": {
+  "T288": {
     "status": "dispatchable",
     "agent": null,
     "model": null,
-    "bundle": "untracked/T286-derive-the-resume-surface.md",
-    "set": "B",
-    "holds": [],
+    "bundle": "untracked/T288-absorb-and-fix-the-pass-condition.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
     "needs": [],
     "caps": [],
-    "added": "2026-08-02T23:07:50Z",
+    "added": "2026-08-02T23:39:05Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -80,8 +80,29 @@
     "verdict": null,
     "verdict_note": null,
     "claim_count": 0,
-    "acceptance": "zig build test",
+    "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": null
+  },
+  "T286": {
+    "status": "done",
+    "agent": "deepseek-v4-flash",
+    "model": null,
+    "bundle": "untracked/T286-derive-the-resume-surface.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T23:07:50Z",
+    "claimed": "2026-08-02T23:16:52Z",
+    "done": "2026-08-02T23:36:21Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": "resume surface: bin/managent resume (dbc82b3) + CURRENT.md deleted (f7edcf9); binary built to zig-out, NOT deployed to bin/ — deploy left to Orcha (D018, fleet live)",
+    "claim_count": 1,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": "zig build test verified green by direct run at dbc82b3+f7edcf9: exit 0, Build Summary 15/15 steps succeeded, 342/342 tests passed, regression-precommit + regression-managent-resume ALL CONTROLS PASSED. managent's /bin/sh acceptance spawn lacks zig on PATH (sanitized PATH /usr/gnu/bin:/usr/local/bin:/bin:/usr/bin:.) — same known quirk as T267"
   },
   "T230": {
     "status": "done",
@@ -756,8 +777,8 @@
     "skip_acceptance_reason": "zig build test passes; regression controls green; run from a shell where zig is on PATH"
   },
   "T285": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T285-forced-pass-axiom-and-terminology.md",
     "set": "A",
@@ -765,16 +786,16 @@
     "needs": ["T284"],
     "caps": [],
     "added": "2026-08-02T22:39:27Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-02T23:15:49Z",
+    "done": "2026-08-02T23:22:02Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "claimlint binary is dirty due to uncommitted kanban files (docs/infra/managent/tasks.json, directives.jsonl); claimlint output is at floor: rows=309, C1a=10, C2=14, C6=0, calibration PASS"
   },
   "T229": {
     "status": "done",
@@ -903,8 +924,8 @@
     "skip_acceptance_reason": null
   },
   "T282": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T282-wrapper-followups.md",
     "set": "B",
@@ -912,14 +933,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T21:51:54Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-02T23:18:19Z",
+    "done": "2026-08-02T23:27:29Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -1280,6 +1301,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T289": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T289-deployed-binary-guard.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T23:39:05Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
   "T279": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -1301,30 +1343,30 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
-  "T252": {
+  "T287": {
     "status": "done",
     "agent": "deepseek-v4-pro",
-    "model": "deepseek-v4-pro",
-    "bundle": "untracked/T252-differential-harness.md",
+    "model": null,
+    "bundle": "untracked/T287-auditor-716-gap.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-01T19:58:59Z",
-    "claimed": "2026-08-01T20:00:00Z",
-    "done": "2026-08-01T20:10:00Z",
+    "added": "2026-08-02T23:08:38Z",
+    "claimed": "2026-08-02T23:16:24Z",
+    "done": "2026-08-02T23:28:12Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": "pass-with-findings",
-    "verdict_note": "Harness built and tested, regression-differential.sh deferred",
+    "verdict": "pass",
+    "verdict_note": null,
     "claim_count": 1,
-    "acceptance": "zig build test",
-    "skip_acceptance_reason": "harness tested via zig test src/differential.zig (2/2 pass)"
+    "acceptance": "bin/weizigo-claimlint",
+    "skip_acceptance_reason": "claimlint fails at HEAD on pre-existing debt (C1a=10, C2=14, C7=8); no regression from T287 changes. The acceptance gate is unreachable without fixing debt outside this task's scope."
   }
 ,
   "_sys": {
-    "next_id": 287,
-    "directive_next": 17
+    "next_id": 289,
+    "directive_next": 19
   }
 }
