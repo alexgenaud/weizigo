@@ -144,3 +144,43 @@ state their denominator; evidence committed under `docs/evidence/` or the claim 
 
 When we reliably know what we know — what is solved and what is not — the gaps become
 improvable. Not before.
+
+---
+
+## Amendment 1 — PROPOSED 2026-08-03 by the Orchestrator, **awaiting human ratification**
+
+This document was ratified by the human, so it is not edited silently; §3's rule that a
+direction change is a *recorded event* applies to the direction itself. What follows is a
+proposal, marked as such until the human rules. Nothing acts on it yet.
+
+**What §5 says.** Phase 1 nominates the live `0c3366f0` artifact as "a certified-defective
+calibration input: the battery must fail it; a battery that passes an artifact known to be
+broken is itself broken."
+
+**Why it is now unfollowable.** The defect that made `0c3366f0` certified-defective was
+`CODE.WZO2-INCOMPLETE`, and it is refuted — measured by T266, independently re-derived by
+T277 with fresh instruments, absorbed by T279. The 131,068 absent `passes=1` entries are
+provably unreachable. A completeness check written to *fail* that artifact would therefore
+hard-code a false alarm, and it would pass its own calibration by being wrong.
+
+**It also contradicts a rule we already hold.** `DELEGATEE.md` §Principles: draw known-bads
+from synthetic fixtures, not live data — "live faults get fixed, and the check then silently
+tests nothing." §5's instruction is the exact pattern that rule forbids, and this will recur
+for **every** Phase 1 check, not only completeness: any live artifact nominated as a
+known-bad becomes a false alarm the moment its defect is repaired.
+
+**Proposed amendment** (T266's, and it is right):
+
+> Phase 1's battery is calibrated on **synthetic** defects seeded from the historical defect
+> catalogue — T178/T193/T265 key mismatches, the passes-bit collision, inversion violations,
+> the stubbed battery, and the incompleteness *as T261 described it* (a real historical
+> reading, now known to be a sampling artifact, and none the worse as a seeded fixture).
+> `0c3366f0` is a **regression input**: the battery must not newly fail it, and any new
+> failure against it is a finding to adjudicate rather than an expected result.
+
+The distinction that matters: a known-bad must fail (or the instrument is blind), a
+regression input must not newly fail (or something changed underneath us). Conflating them
+is how an instrument comes to certify its own error.
+
+**Consequence if ratified:** Phase 1 task briefs say "seed a synthetic defect" rather than
+"fail `0c3366f0`", and `docs/epic-01-markovian/PHASES.md` records the split G3 gate below.

@@ -52,6 +52,24 @@ hand-refreshing `docs/status/CURRENT.md`) and **prescription 4** (the two lying
 generators, the missing `ephemeral` symlink) are unregistered infra awaiting the
 human's word on scope.
 
+## The G3 gate is split (Orchestrator ruling, 2026-08-03)
+
+G3 was one undifferentiated blocker on oracle-v2, so refuting `CODE.WZO2-INCOMPLETE`
+reads as clearing far more than it does. T266 established **one** of the two things G3
+was standing for. Split, and each half discharges separately:
+
+| gate | what it asserts | state |
+|---|---|---|
+| **G3a — structural completeness** | The artifact holds the right *set* of entries: every reachable (position, side, ko, passes) present, none extra, all well-formed, group index and entry order consistent | **dischargeable now.** T266 measured it, T277 re-derived it independently, T279 absorbed it. `CODE.WZO2-PASS1-LAW:PROVEN` |
+| **G3b — value correctness** | The L/H values *inside* those entries are the fixpoint values of ruleset R — closure under the Bellman operator, no fabricated or fallback rows | **untouched.** The real closure checks (C-A1/C-A2) are specified and unrun; they need the Phase 2 kernel. Two known defects sit in the way: `CODE.ACCEPT-KOKEY` (T273) and `CODE.GTP-LHSIDE` (T283) |
+
+Nothing about G3a implies G3b. The artifact holding exactly the right *slots* says nothing
+about the *numbers* in them, and the acceptance harness that was supposed to check the
+numbers had its own divergent ko rule (`CODE.ACCEPT-KOKEY`) — so A1/A2/A8 were walking
+off-manifold while reporting passes. **Do not describe the 4×4 as solved, verified, or
+G3-clear on the strength of G3a.** The honest sentence is: structurally complete,
+value-unverified.
+
 ## Standing constraints on this phase plan
 
 - **Every gate is mechanized the day it is declared** (DIRECTION §5). A rule that

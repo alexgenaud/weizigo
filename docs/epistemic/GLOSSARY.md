@@ -419,3 +419,24 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
 - 7x7: fair komi ≈ 9; near-balanced; not rigorously solved. 8x8+: unsolved.
 - **5x5 is the largest goban on which optimal play annihilates one side; from
   6x6 up both players live.**
+
+## single-colour goban `[project term]`
+
+A position with **at least one stone, all stones the same colour, and any number of
+empty points.** The goban after Black's opening stone is a single-colour goban; so is
+one with fifteen black stones and one empty point.
+
+Ruling by the Orchestrator, 2026-08-03, replacing **"monochrome"**, which T266 used for
+this concept in `docs/evidence/ORACLE-V2/incompleteness-T266.md` and
+`findings/T266-incompleteness.json`. "Monochrome" reads as "no empty points" — the
+opposite of what is meant — and the whole T266 result rests on the reader getting this
+right: a `(position, side, ko=none, passes=1)` state is unreachable exactly when the
+position is single-colour **in the side's opposing colour**, because the only way into
+`passes=1` is a pass from `passes=0`, and `passes=0` is only entered by a placement,
+which always leaves a stone of the mover's colour. 131,068 such states at 4×4, all
+correctly absent.
+
+The findings file keeps the old word: findings are immutable once absorbed (T279
+absorbed it on 2026-08-03), so the correction propagates forward into the register row
+and the evidence document rather than backward into the record. Superseding a term is
+not licence to rewrite what was written.
