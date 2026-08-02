@@ -711,37 +711,10 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
 
 
         /// Compute ko_point after a placement. Returns KO_NONE if no ko created.
-        /// Must match the solver's rule: ko exists only when exactly one stone is
-        /// captured AND the capturer is itself in atari with no friendly neighbours
-        /// (liberties==1, friendly==0). See T265.
+        /// Delegates to rules.koAfterCapture — the single production ko rule
+        /// (Phase 2 kernel, T273). [GLOBAL.AXIOM-BASICKO:CLAIMED]
         fn koAfterCapture(old_pos: *const Pos, side: i8, new_pos: *const Pos) u8 {
-            const opp: i8 = -side;
-            var opp_before: u16 = 0;
-            var last_captured: u8 = KO_NONE;
-            var played_cell: u8 = KO_NONE;
-            for (0..n) |p| {
-                if (old_pos[p] == opp) opp_before += 1;
-                if (old_pos[p] == opp and new_pos[p] == 0) last_captured = @intCast(p);
-                if (old_pos[p] == 0 and new_pos[p] == side) played_cell = @intCast(p);
-            }
-            var opp_after: u16 = 0;
-            for (0..n) |p| {
-                if (new_pos[p] == opp) opp_after += 1;
-            }
-            // Exactly one stone captured: candidate ko point.
-            if (opp_before - opp_after == 1 and last_captured != KO_NONE) {
-                // Match solver rule: capturer must be in atari with no friends.
-                var liberties: u8 = 0;
-                var friendly: u8 = 0;
-                var nb: [4]usize = undefined;
-                const cnt = R.neighbors(played_cell, &nb);
-                for (nb[0..cnt]) |q| {
-                    if (new_pos[q] == 0) liberties += 1;
-                    if (new_pos[q] == side) friendly += 1;
-                }
-                if (liberties == 1 and friendly == 0) return last_captured;
-            }
-            return KO_NONE;
+            return rules.koAfterCapture(old_pos, new_pos, side, w, h, KO_NONE);
         }
 
         pub fn applyMove(s: *S, side: i8, cell: ?usize) !void {

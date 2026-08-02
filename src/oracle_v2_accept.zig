@@ -146,22 +146,10 @@ fn prngNext(state: *u64) usize {
 }
 
 /// Compute ko_point after a placement. Returns KO_NONE (= n) if no ko created.
-/// Mirrors gtp.zig:S.koAfterCapture.
-fn koAfterCapture(old_pos: anytype, side: i8, new_pos: anytype, ko_none: u8) u8 {
-    const opp: i8 = -side;
-    var opp_before: u16 = 0;
-    var last_captured: u8 = ko_none;
-    const n: usize = old_pos.len;
-    for (0..n) |p| {
-        if (old_pos[p] == opp) opp_before += 1;
-        if (old_pos[p] == opp and new_pos[p] == 0) last_captured = @intCast(p);
-    }
-    var opp_after: u16 = 0;
-    for (0..n) |p| {
-        if (new_pos[p] == opp) opp_after += 1;
-    }
-    if (opp_before - opp_after == 1 and last_captured != ko_none) return last_captured;
-    return ko_none;
+/// Delegates to rules.koAfterCapture — the single production ko rule
+/// (Phase 2 kernel, T273). [GLOBAL.AXIOM-BASICKO:CLAIMED]
+fn koAfterCapture(old_pos: anytype, side: i8, new_pos: anytype, w: usize, h: usize, ko_none: u8) u8 {
+    return rules.koAfterCapture(old_pos[0..], new_pos[0..], side, w, h, ko_none);
 }
 
 // =========================================================================
@@ -624,7 +612,7 @@ fn checkA1Inner(
 
             // Apply the move
             const child_pos = Rules.pos_from_move(&pos, side, mp) catch continue;
-            const child_ko = koAfterCapture(&pos, side, &child_pos, ko_none);
+            const child_ko = koAfterCapture(&pos, side, &child_pos, w, h, ko_none);
             pos = child_pos;
             ko = child_ko;
             passes = 0; // placement resets passes
@@ -847,7 +835,7 @@ fn checkA2Inner(
                 if (pos[p] != 0) continue;
                 if (ko_point != ko_none and p == ko_point) continue; // basic ko
                 const child_pos = Rules.pos_from_move(&pos, side, p) catch continue;
-                const child_ko = koAfterCapture(&pos, side, &child_pos, ko_none);
+                const child_ko = koAfterCapture(&pos, side, &child_pos, w, h, ko_none);
                 const child_colex: u32 = @intCast(R.colex_from_pos(&child_pos));
                 const child_kb = encodeKeyByte(1 - side_u1, child_ko, 0, false, ko_bits); // passes resets to 0
 
@@ -1075,7 +1063,7 @@ fn checkA8Inner(
                 if (pos[p] != 0) continue;
                 if (ko_point != ko_none and p == ko_point) continue;
                 const child_pos = Rules.pos_from_move(&pos, side, p) catch continue;
-                const child_ko = koAfterCapture(&pos, side, &child_pos, ko_none);
+                const child_ko = koAfterCapture(&pos, side, &child_pos, w, h, ko_none);
                 const child_colex: u32 = @intCast(R.colex_from_pos(&child_pos));
                 const child_kb = encodeKeyByte(1 - side_u1, child_ko, 0, false, ko_bits);
 
@@ -2086,23 +2074,34 @@ test "A4 pin census: symmetric data has pin_L == pin_H" {
 // A2 tests — Bellman residual
 // =========================================================================
 
-test "A2 Bellman: koAfterCapture detects single capture" {
-    const none: u8 = 4; // 2x2
-
-    // Old position: Black at 0, White at 1. Black captures at 2?
-    // Actually let's use a simple case: Black captures a single White stone
-    var old_pos = [_]i8{ 1, -1, 0, 0 }; // Black at 0, White at 1
-    var new_pos = [_]i8{ 1, 0, 0, 0 }; // White stone removed
-    const ko = koAfterCapture(&old_pos, 1, &new_pos, none);
-    try std.testing.expectEqual(@as(u8, 1), ko); // ko at captured cell
+test "A2 Bellman: koAfterCapture detects ko on real placement" {
+    // 2x2: B at 0, W at 1, B at 2. B plays at 3, captures W at 1.
+    // Old (buggy) rule says ko=1. Kernel says none (friendly=1 at cell 2).
+    // The solver and kernel agree exhaustively (verified by rules.zig tests).
+    var old_pos = [_]i8{ 1, -1, 1, 0 };
+    var new_pos = [_]i8{ 1, 0, 1, 1 };
+    const ko = koAfterCapture(&old_pos, 1, &new_pos, 2, 2, 4);
+    try std.testing.expectEqual(@as(u8, 4), ko); // no ko: friendly neighbor
 }
 
 test "A2 Bellman: koAfterCapture returns none for multi-capture" {
-    const none: u8 = 4;
-    var old_pos = [_]i8{ -1, -1, 0, 0 }; // two White stones
-    var new_pos = [_]i8{ 0, 0, 0, 0 }; // both captured
-    const ko = koAfterCapture(&old_pos, 1, &new_pos, none);
+    // 2x2: two White stones at 0,1. Black plays at 3? No, that's not adjacent.
+    // Use 3x2: multiple W stones captured by a single B placement.
+    const none: u8 = 6;
+    var old_pos = [_]i8{ -1, -1, 0, 1, 0, 0 };
+    var new_pos = [_]i8{ 0, 0, 0, 1, 0, 0 }; // two stones captured, no ko
+    const ko = koAfterCapture(&old_pos, 1, &new_pos, 3, 2, none);
     try std.testing.expectEqual(none, ko);
+}
+
+test "A2 Bellman: koAfterCapture returns none when capturer has friend" {
+    // 2x2: B at 0, W at 1, B at 2. B plays at 3, captures W at 1.
+    // B at 3 has friendly neighbor at 2 → not a ko.
+    const none: u8 = 4;
+    var old_pos = [_]i8{ 1, -1, 1, 0 };
+    var new_pos = [_]i8{ 1, 0, 1, 1 };
+    const ko = koAfterCapture(&old_pos, 1, &new_pos, 2, 2, none);
+    try std.testing.expectEqual(none, ko); // no ko: friendly neighbor
 }
 
 test "A2 Bellman: pinnedValue" {

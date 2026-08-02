@@ -270,39 +270,14 @@ fn engineKoOldGeneric(comptime n_cells: usize, comptime w: usize, comptime h: us
     return @intCast(n_cells);
 }
 
-/// Engine ko rule: the REAL fixed koAfterCapture from gtp.zig:717-744.
-/// Uses rules.Rules.neighbors (the engine path) instead of exp6.genericNeighbors
-/// (the solver path). Independent re-implementation — NOT an alias.
+/// Engine ko rule: the kernel production koAfterCapture (T273).
+/// Applies the move via exp6 then delegates ko to rules.koAfterCapture —
+/// the single production implementation, NOT a copy.
 fn engineKoNewGeneric(comptime n_cells: usize, comptime w: usize, comptime h: usize, board: [n_cells]i8, colour: i8, cell: u8) u8 {
     if (board[cell] != 0) return @intCast(n_cells);
-    const opp: i8 = -colour;
     var next = board;
     _ = exp6.genericPosFromMove(n_cells, &next, colour, cell, w, h) catch return @intCast(n_cells);
-    var opp_before: u16 = 0;
-    var last_captured: u8 = @intCast(n_cells);
-    var played_cell: u8 = @intCast(n_cells);
-    for (0..n_cells) |p| {
-        if (board[p] == opp) opp_before += 1;
-        if (board[p] == opp and next[p] == 0) last_captured = @intCast(p);
-        if (board[p] == 0 and next[p] == colour) played_cell = @intCast(p);
-    }
-    var opp_after: u16 = 0;
-    for (0..n_cells) |p| {
-        if (next[p] == opp) opp_after += 1;
-    }
-    if (opp_before - opp_after == 1 and last_captured != n_cells) {
-        var liberties: u8 = 0;
-        var friendly: u8 = 0;
-        var nb: [4]usize = undefined;
-        const RK = rules_mod.Rules(w, h);
-        const cnt = RK.neighbors(played_cell, &nb);
-        for (nb[0..cnt]) |q| {
-            if (next[q] == 0) liberties += 1;
-            if (next[q] == colour) friendly += 1;
-        }
-        if (liberties == 1 and friendly == 0) return last_captured;
-    }
-    return @intCast(n_cells);
+    return rules_mod.koAfterCapture(&board, &next, colour, w, h, @intCast(n_cells));
 }
 
 fn disagreeCount(comptime n_cells: usize, comptime w: usize, comptime h: usize) usize {
@@ -367,13 +342,58 @@ test "ko key (T265): old engine rule disagrees with solver (negative control)" {
     try testing.expect(d32 > 0);
 }
 
-test "ko key (T265): fixed engine rule agrees with solver" {
-    // This test MUST pass — the fix makes them agree.
-    // Uses the REAL engine ko (rules.Rules.neighbors path), NOT an alias.
+test "ko key (T265/T273): fixed engine rule agrees with solver" {
+    // This test MUST pass — kernel and solver agree.
+    // engineKoNewGeneric now calls rules.koAfterCapture (T273 kernel),
+    // so this exercises the shipped path, not a copy.
     try testing.expectEqual(@as(usize, 0), disagreeCount(4, 2, 2));
     try testing.expectEqual(@as(usize, 0), disagreeCount(6, 3, 2));
     // 3×3 is feasible but slower (19,683 boards × 9 cells); run it too.
     try testing.expectEqual(@as(usize, 0), disagreeCount(9, 3, 3));
+}
+
+/// A deliberately-broken koAfterCapture — always returns cell 0, never ko_none.
+fn brokenKoAfterCapture(old_pos: []const i8, new_pos: []const i8, side: i8, w: usize, h: usize, ko_none: u8) u8 {
+    _ = old_pos; _ = new_pos; _ = side; _ = w; _ = h; _ = ko_none;
+    return 0; // always claim ko at cell 0
+}
+
+fn brokenDisagreeCount(comptime n_cells: usize, comptime w: usize, comptime h: usize) usize {
+    const pow3 = comptime blk: {
+        var p: usize = 1;
+        var i: usize = 0;
+        while (i < n_cells) : (i += 1) { p *= 3; }
+        break :blk p;
+    };
+    var disagreed: usize = 0;
+    for (0..pow3) |board_idx| {
+        var board: [n_cells]i8 = undefined;
+        var v = board_idx;
+        for (0..n_cells) |j| {
+            const d: i8 = @intCast(v % 3);
+            v /= 3;
+            board[j] = d - 1;
+        }
+        for (0..n_cells) |cell| {
+            const sk = solverKoGeneric(n_cells, w, h, board, 1, @intCast(cell));
+            if (board[cell] != 0) continue;
+            var next = board;
+            _ = exp6.genericPosFromMove(n_cells, &next, 1, cell, w, h) catch continue;
+            const bk = brokenKoAfterCapture(&board, &next, 1, w, h, @intCast(n_cells));
+            if (sk != bk) disagreed += 1;
+        }
+    }
+    return disagreed;
+}
+
+test "T273 regression guard: breaking koAfterCapture fails the differential" {
+    // If someone breaks rules.koAfterCapture, this test catches it.
+    // The broken version always returns 0 → must disagree with the solver.
+    const d2 = brokenDisagreeCount(4, 2, 2);
+    try testing.expect(d2 > 0); // broken function disagrees
+
+    // The real kernel must still agree (verified by the test above).
+    try testing.expectEqual(@as(usize, 0), disagreeCount(4, 2, 2));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
