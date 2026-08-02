@@ -365,10 +365,10 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   `.wzo2` artifact exists; the builder compiled but never ran; the
   spec-mandated `docs/evidence/ORACLE-V2/` directory was never created.
   Every register prediction — the G bracket, the F2 byte budget, the DTT
-  254-clamp question — remains untested `[CODE.WZO2-UNRUN:PROVEN]`.
+  254-clamp question — remains untested `[CODE.WZO2-UNRUN:SUPERSEDED]`.
   Two defects are visible by inspection: the WZO2 GTP path short-circuits
   the chainability check to `true`, making the refusal rate unmeasurable by
-  construction `[CODE.WZO2-CHAINSHORT:PROVEN]`, and the acceptance harness
+  construction `[CODE.WZO2-CHAINSHORT:SUPERSEDED]`, and the acceptance harness
   is orphaned from the build graph with a broken A6 positive control
   `[CODE.M4A-HARNESS:PROVEN]`.
   **Overtaken 2026-08-01 (later the same day):** the artifact was built

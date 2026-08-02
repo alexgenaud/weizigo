@@ -190,9 +190,20 @@ const CAL_SYNTHETIC_CITETAG_2 =
 const CAL_CITE_BAD_ID2 = "GLOBAL.C4"; // tagged FALSE, actually FALSE-AS-SCOPED
 const CAL_CITE_GOOD_C = "CODE.BATTERY-STUBBED"; // tagged PROVEN, actually PROVEN
 
-/// C7 rejection registry — findings that were considered and correctly refuted
-/// by the register, with the refuting row named. Read at each invocation; a
-/// finding in this file does NOT count as unabsorbed (T272).
+/// C7 rejection registry — findings that were considered and correctly
+/// dispositioned, with the reason. Read at each invocation; a finding in this
+/// file does NOT count as unabsorbed (T272, extended T269). Three dispositions:
+///   rejected-by-register       — the register refutes the finding; `refuting_row`
+///                                names the row/evidence that rejects it (T272).
+///   not-a-register-claim       — the finding's ID is not a register claim at all
+///                                (e.g. an infra statement about tooling); the
+///                                reason is carried in `rationale`, which is
+///                                MANDATORY — an entry without it is invalid and
+///                                does not silence (T269 part 1).
+///   absorbed-under-register-id — the finding used a task ID / alias instead of
+///                                the register ID; `refuting_row` names the actual
+///                                register row the content was absorbed under
+///                                (T269 part 1).
 const REJECTIONS_FILE = "findings/rejections.json";
 
 /// C7 calibration — findings/ directory scanned for unabsorbed claims.
@@ -228,6 +239,84 @@ const CAL_SYNTHETIC_C7_EXTRA =
     \\| `GLOBAL.CAL-SHOULDBE-FALSE` | — | all | synthetic: deliberately PROVEN in register, finding says FALSE-AS-SCOPED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
 ;
 
+/// C7 multi-row calibration — the T266 defect (T269): C7 read only the FIRST
+/// `new_rows` entry per findings file and mis-parsed its status, so rows 2..N
+/// silently vanished from the absorption queue. Two new_rows: row 1 matches the
+/// register (PROVEN — must stay silent), row 2 is a status mismatch (findings
+/// CLAIMED, register PROVEN — must be caught). The pre-fix parser surfaced
+/// exactly one row with status ": " and reported 0 mismatches, so this case
+/// fails on the old code and passes on the fix.
+const CAL_SYNTHETIC_C7_MULTIROW =
+    \\{
+    \\  "task_id": "T269CAL",
+    \\  "date": "2026-08-03",
+    \\  "model": "TestModel",
+    \\  "claims": [],
+    \\  "new_rows": [
+    \\    {
+    \\      "id": "GLOBAL.CAL-NEWROW-1",
+    \\      "legacy": "—",
+    \\      "goban": "all",
+    \\      "claim": "synthetic new row 1 — must be absorbed (register says PROVEN)",
+    \\      "status": "PROVEN",
+    \\      "evidence": "AGENTS.md:1",
+    \\      "depends_on": "—",
+    \\      "narrowed": 0,
+    \\      "wrong_answer_pass_rate": "?"
+    \\    },
+    \\    {
+    \\      "id": "GLOBAL.CAL-NEWROW-2",
+    \\      "legacy": "—",
+    \\      "goban": "all",
+    \\      "claim": "synthetic new row 2 — status mismatch (register says PROVEN)",
+    \\      "status": "CLAIMED",
+    \\      "evidence": "AGENTS.md:1",
+    \\      "depends_on": "—",
+    \\      "narrowed": 0,
+    \\      "wrong_answer_pass_rate": "?"
+    \\    }
+    \\  ]
+    \\}
+;
+/// The two register rows the multi-row calibration compares against.
+const CAL_SYNTHETIC_C7_MULTIROW_EXTRA =
+    \\| `GLOBAL.CAL-NEWROW-1` | — | all | synthetic: absorbed row | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+    \\| `GLOBAL.CAL-NEWROW-2` | — | all | synthetic: deliberately PROVEN in register, findings says CLAIMED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+;
+
+/// C7 not-a-register-claim calibration (T269 part 1): a finding whose ID has no
+/// register row, dispositioned via a rejection entry with disposition
+/// `not-a-register-claim` and a mandatory reason. Must go silent ONLY when the
+/// entry carries the reason; an entry missing it must NOT silence (the reason is
+/// mandatory — a silent skip is how a real finding gets lost).
+const CAL_SYNTHETIC_C7_INFRA =
+    \\{
+    \\  "task_id": "T269INFRA",
+    \\  "date": "2026-08-03",
+    \\  "model": "TestModel",
+    \\  "claims": [
+    \\    {
+    \\      "id": "GLOBAL.CAL-NOID",
+    \\      "proposed_status": "CLAIMED",
+    \\      "rationale": "Synthetic infra statement — no register row exists",
+    \\      "evidence_path": "none"
+    \\    }
+    \\  ],
+    \\  "new_rows": []
+    \\}
+;
+
+/// Build a synthetic register = CAL_SYNTHETIC's rows with `extra_rows` grafted
+/// in BEFORE the "## 3. end" footer, so the extra rows are inside §2. (Appending
+/// after the footer leaves them outside §2 where parseRegister never sees them —
+/// a latent calibration weakness that made the old C7 known-bad pass for the
+/// wrong reason.)
+fn synthRegister(gpa: Allocator, extra_rows: []const u8) ![]u8 {
+    const footer = "## 3. end";
+    const idx = std.mem.lastIndexOf(u8, CAL_SYNTHETIC, footer) orelse return error.NoFooter;
+    return std.fmt.allocPrint(gpa, "{s}{s}\n{s}\n", .{ CAL_SYNTHETIC[0..idx], extra_rows, footer });
+}
+
 /// The ALARM half of the `n:` calibration cannot be exercised by real data:
 /// today every `n:` edge points at a parent that really is false, which is the
 /// healthy state. So the tool carries a two-row synthetic register and runs the
@@ -260,6 +349,14 @@ const Status = enum {
     intractable,
     measurement,
     definition,
+    /// "true when written, overtaken by events" (T269): the claim was correct
+    /// when made, but the world moved on. Not FALSE (the statement was never
+    /// wrong) and not live (it no longer describes reality). Superseded rows
+    /// are invisible to C1a/C3/B — they can never be FALSE, so no falsification
+    /// travels through them, and they owe no committed evidence for a claim
+    /// they no longer make. Existing instances: `CODE.WZO2-UNRUN`,
+    /// `CODE.WZO2-CHAINSHORT`.
+    superseded,
     unparsed,
 
     fn isLive(s: Status) bool {
@@ -278,6 +375,7 @@ const Status = enum {
             .intractable => "INTRACTABLE",
             .measurement => "MEASUREMENT",
             .definition => "(definition)",
+            .superseded => "SUPERSEDED",
             .unparsed => "??",
         };
     }
@@ -488,6 +586,7 @@ fn parseStatus(raw: []const u8) Status {
     if (std.mem.startsWith(u8, s, "FALSE")) return .false_flat;
     if (std.mem.startsWith(u8, s, "PROVEN")) return .proven;
     if (std.mem.startsWith(u8, s, "CLAIMED")) return .claimed;
+    if (std.mem.startsWith(u8, s, "SUPERSEDED")) return .superseded;
     if (std.mem.startsWith(u8, s, "UNTESTED")) return .untested;
     if (std.mem.startsWith(u8, s, "INTRACTABLE")) return .intractable;
     if (std.mem.startsWith(u8, s, "MEASUREMENT")) return .measurement;
@@ -1239,22 +1338,52 @@ pub fn main(init: std.process.Init) !void {
     util.out("\n== C7  UNABSORBED FINDINGS (fails the run) ==\n", .{});
     util.out("Scans {s}/*.json for claim status changes not reflected in the register.\n", .{FINDINGS_DIR});
     util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md\n", .{});
-    util.out("AND it is not in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
+    util.out("AND it is not dispositioned in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
     // Load the rejection registry once, so C7 can filter.
     const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
     const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx);
     const c7: usize = c7_results.unabsorbed;
     util.out("  files scanned: {d}\n", .{c7_results.files});
+    if (c7_results.nonconforming > 0) {
+        util.out("  non-conforming (REPORTED, not silently skipped — GRAND-AUDIT §2): {d}\n", .{c7_results.nonconforming});
+        for (c7_results.conform_issues.items) |ci| {
+            util.out("  NON-CONFORMING  {s} — {s}\n", .{ ci.file, ci.reason });
+        }
+    } else {
+        util.out("  non-conforming: 0 (all files conform to the findings schema)\n", .{});
+    }
+    if (rejection_idx.invalid.items.len > 0) {
+        util.out("  INVALID rejection entries (NOT honoured — a disposition must carry its reason):\n", .{});
+        for (rejection_idx.invalid.items) |why| util.out("    ! {s}\n", .{why});
+    }
     util.out("  claims touched: {d}\n", .{c7_results.claims_total});
     util.out("  new-rows touched: {d}\n", .{c7_results.new_rows_total});
     if (c7_results.rejected > 0) {
-        util.out("  rejected (absorbed-with-rejection): {d}\n", .{c7_results.rejected});
+        util.out("  dispositioned (reason-carrying): {d}\n", .{c7_results.rejected});
         for (c7_results.rejected_items.items) |item| {
-            util.out("  REJECTED  `{s}` — findings proposed `{s}`, register says `{s}`\n", .{
-                item.id, item.proposed, item.actual,
-            });
-            util.out("            refuted by register row.\n", .{});
+            switch (item.disposition) {
+                .rejected_by_register => {
+                    util.out("  REJECTED  `{s}` — findings proposed `{s}`, register says `{s}`\n", .{
+                        item.id, item.proposed, item.actual,
+                    });
+                    util.out("            refuted by register row: {s}\n", .{item.refuting_row});
+                },
+                .not_a_register_claim => {
+                    util.out("  OUT OF REGISTER SCOPE  `{s}` — not a register claim; reason: {s}\n", .{
+                        item.id, item.rationale,
+                    });
+                },
+                .absorbed_under_register_id => {
+                    util.out("  ABSORBED UNDER REGISTER ID  `{s}` → `{s}`; reason: {s}\n", .{
+                        item.id, item.refuting_row, item.rationale,
+                    });
+                },
+                .unparsed => {},
+            }
+            if (item.file) |f| util.out("            in {s}\n", .{f});
         }
+    } else {
+        util.out("  dispositioned: 0\n", .{});
     }
     if (c7_results.unabsorbed == 0) {
         util.out("  unabsorbed: 0 (all findings reflected in the register)\n", .{});
@@ -1478,9 +1607,9 @@ pub fn main(init: std.process.Init) !void {
     // row must still be reported).
     var synth_c7_ok = false;
     {
-        const synth_ext = try std.fmt.allocPrint(gpa, "{s}{s}{s}", .{ CAL_SYNTHETIC, CAL_SYNTHETIC_C7_EXTRA, "\\n## 3. end\\n" });
+        const synth_ext = try synthRegister(gpa, CAL_SYNTHETIC_C7_EXTRA);
         var sreg = try parseRegister(gpa, synth_ext);
-        var empty_rej: RejectionIndex = .{ .entries = std.StringHashMap([]const u8).init(gpa) };
+        var empty_rej: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
         defer empty_rej.entries.deinit();
         // Known-bad 6a: parse without rejections — CAL-SHOULDBE-FALSE must
         // be unabsorbed (status mismatch), CALPARENT-DEAD must be silent (matched).
@@ -1492,14 +1621,21 @@ pub fn main(init: std.process.Init) !void {
             if (std.mem.eql(u8, item.id, "GLOBAL.CALPARENT-DEAD")) saw_silent = true;
         }
         const base_ok = c7cal.unabsorbed == 1 and saw_mismatch and !saw_silent and
-            c7cal.files == 1 and c7cal.claims_total == 2 and c7cal.rejected == 0;
+            c7cal.files == 1 and c7cal.conforming == 1 and c7cal.nonconforming == 0 and
+            c7cal.claims_total == 2 and c7cal.rejected == 0;
         if (!base_ok) synth_c7_ok = false;
 
         // Known-good C7: add a rejection entry for CAL-SHOULDBE-FALSE with a
         // refuting row. Now it must go silent (absorbed-with-rejection).
-        var rej_with: RejectionIndex = .{ .entries = std.StringHashMap([]const u8).init(gpa) };
+        var rej_with: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
         defer rej_with.entries.deinit();
-        try rej_with.entries.put("GLOBAL.CAL-SHOULDBE-FALSE\x00T999-cal.json", "GLOBAL.CALREFUTE");
+        try rej_with.entries.put("GLOBAL.CAL-SHOULDBE-FALSE\x00T999-cal.json", .{
+            .disposition = .rejected_by_register,
+            .refuting_row = "GLOBAL.CALREFUTE",
+            .rationale = "synthetic refutation",
+            .valid = true,
+            .invalid_reason = "",
+        });
         const c7cal_rej = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &rej_with);
         var rej_saw_rejected = false;
         var rej_saw_unabsorbed = false;
@@ -1520,6 +1656,102 @@ pub fn main(init: std.process.Init) !void {
     util.out("                naming a refuting row — must go silent … {s}\n", .{if (synth_c7_ok) "SILENT (absorbed-with-rejection)" else "BROKEN"});
     if (!synth_c7_ok) cal_ok = false;
 
+    // C7 multi-row calibration (T269 part 3) — the T266 defect: the old parser
+    // read only the FIRST new_rows entry per file and mis-parsed its status (it
+    // read ": " for every value), so rows 2..N never reached the absorption
+    // queue and "C7 clean" was a floor, not a census. Two new_rows: row 1
+    // matches the register (PROVEN — must stay silent), row 2 mismatches
+    // (CLAIMED vs PROVEN — must be caught). Both must be COUNTED: the old
+    // parser counted 1 and reported 0 mismatches, so this case fails there.
+    var synth_c7_multirow_ok = false;
+    {
+        const synth_ext2 = try synthRegister(gpa, CAL_SYNTHETIC_C7_MULTIROW_EXTRA);
+        var sreg2 = try parseRegister(gpa, synth_ext2);
+        var empty_rej2: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
+        defer empty_rej2.entries.deinit();
+        const c7cal2 = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_MULTIROW, "calibration/T269cal-multirow.json", &sreg2, &empty_rej2);
+        var saw_row1_unabsorbed = false;
+        var saw_row2_mismatch = false;
+        for (c7cal2.items.items) |item| {
+            if (std.mem.eql(u8, item.id, "GLOBAL.CAL-NEWROW-1")) saw_row1_unabsorbed = true;
+            if (std.mem.eql(u8, item.id, "GLOBAL.CAL-NEWROW-2")) saw_row2_mismatch = true;
+        }
+        synth_c7_multirow_ok = c7cal2.new_rows_total == 2 and c7cal2.claims_total == 0 and
+            c7cal2.unabsorbed == 1 and saw_row2_mismatch and !saw_row1_unabsorbed and
+            c7cal2.rejected == 0 and c7cal2.files == 1;
+    }
+    util.out("  known-bad 8 (C7, synthetic): multi-row findings file — the T266 defect.\n", .{});
+    util.out("                Row 1 (PROVEN, matches register) must stay silent, row 2\n", .{});
+    util.out("                (CLAIMED vs PROVEN) must be caught, and BOTH counted\n", .{});
+    util.out("                (new-rows touched = 2 — the old parser saw 1) … {s}\n", .{if (synth_c7_multirow_ok) "CAUGHT (2 rows counted, 1 mismatch, 1 silent)" else "BROKEN"});
+    if (!synth_c7_multirow_ok) cal_ok = false;
+
+    // C7 non-conforming-file calibration (T269 part 4, GRAND-AUDIT §2): a file
+    // that is not a findings file (missing required keys, not an object) must
+    // be REPORTED, not silently skipped — the exact sin C0's banner denounces.
+    var synth_c7_nonconf_ok = false;
+    {
+        var empty_rej3: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
+        defer empty_rej3.entries.deinit();
+        const bad = try parseFindingsFile(gpa, "{\"foo\": 1}", "calibration/T269cal-bad.json", &reg, &empty_rej3);
+        const good = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T269cal-good.json", &reg, &empty_rej3);
+        synth_c7_nonconf_ok = bad.nonconforming == 1 and bad.conform_issues.items.len == 1 and
+            bad.conforming == 0 and bad.claims_total == 0 and bad.unabsorbed == 0 and
+            good.nonconforming == 0 and good.conforming == 1;
+    }
+    util.out("  known-bad 9 (C7, synthetic): a non-findings JSON must be REPORTED, not\n", .{});
+    util.out("                silently skipped (GRAND-AUDIT §2) … {s}\n", .{if (synth_c7_nonconf_ok) "CAUGHT (reported non-conforming)" else "BROKEN"});
+    if (!synth_c7_nonconf_ok) cal_ok = false;
+
+    // C7 disposition calibration (T269 part 1): a rejection entry with
+    // disposition not-a-register-claim + its mandatory reason silences a
+    // finding whose ID has no register row; the same entry WITHOUT the reason
+    // is invalid and must NOT silence — the reason is mandatory, a silent skip
+    // is how a real finding gets lost.
+    var synth_c7_disposition_ok = false;
+    {
+        var rej_infra: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
+        defer rej_infra.entries.deinit();
+        try rej_infra.entries.put("GLOBAL.CAL-NOID\x00T269cal-infra.json", .{
+            .disposition = .not_a_register_claim,
+            .refuting_row = "—",
+            .rationale = "synthetic infra statement about tooling, not an epistemic claim about Go",
+            .valid = true,
+            .invalid_reason = "",
+        });
+        // An entry that violates the reason-mandatory contract must not silence.
+        var rej_bad: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
+        defer rej_bad.entries.deinit();
+        try rej_bad.entries.put("GLOBAL.CAL-NOID\x00T269cal-infra.json", .{
+            .disposition = .not_a_register_claim,
+            .refuting_row = "—",
+            .rationale = "",
+            .valid = false,
+            .invalid_reason = "not-a-register-claim entry must carry the reason in rationale",
+        });
+        const ok = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_INFRA, "calibration/T269cal-infra.json", &reg, &rej_infra);
+        const bad = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_INFRA, "calibration/T269cal-infra.json", &reg, &rej_bad);
+        var disp_saw_rejected = false;
+        var disp_saw_reason = false;
+        for (ok.rejected_items.items) |item| {
+            if (std.mem.eql(u8, item.id, "GLOBAL.CAL-NOID")) {
+                disp_saw_rejected = true;
+                if (item.rationale.len > 0 and item.disposition == .not_a_register_claim) disp_saw_reason = true;
+            }
+        }
+        var noid_still_unabsorbed = false;
+        for (bad.items.items) |item| {
+            if (std.mem.eql(u8, item.id, "GLOBAL.CAL-NOID")) noid_still_unabsorbed = true;
+        }
+        synth_c7_disposition_ok = ok.rejected == 1 and disp_saw_rejected and disp_saw_reason and
+            ok.unabsorbed == 0 and bad.unabsorbed == 1 and noid_still_unabsorbed;
+    }
+    util.out("  known-good 8 (C7, synthetic): a not-a-register-claim rejection entry with\n", .{});
+    util.out("                its mandatory reason silences a NO-SUCH-ID finding … {s}\n", .{if (synth_c7_disposition_ok) "SILENT (reason carried)" else "BROKEN"});
+    util.out("  known-bad 10 (C7, synthetic): the same entry WITHOUT the reason must NOT\n", .{});
+    util.out("                silence — a silent skip is how a real finding gets lost … {s}\n", .{if (synth_c7_disposition_ok) "CAUGHT (still reported)" else "BROKEN"});
+    if (!synth_c7_disposition_ok) cal_ok = false;
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -1533,6 +1765,7 @@ pub fn main(init: std.process.Init) !void {
     util.out("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
     util.out("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
     util.out("  C7 unabsorbed findings         {d}   (FAILS)\n", .{c7});
+    util.out("  C7 non-conforming files        {d}   (reported)\n", .{c7_results.nonconforming});
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
@@ -1590,10 +1823,43 @@ fn noteMissing(
 
 // ── C7 findings checking ───────────────────────────────────────────────────
 
-const C7Unabsorbed = struct { id: []const u8, proposed: []const u8, actual: []const u8, file: ?[]const u8 };
+const C7Unabsorbed = struct {
+    id: []const u8,
+    proposed: []const u8,
+    actual: []const u8,
+    file: ?[]const u8,
+    /// disposition metadata, populated only for rejected (dispositioned) items
+    disposition: Disposition = .unparsed,
+    refuting_row: []const u8 = "",
+    rationale: []const u8 = "",
+};
+
+/// The three reason-carrying dispositions a rejection entry can carry (T272,
+/// extended by T269). Every dispositioned finding must be able to answer the
+/// question "why is this not in the register?" — a bare ignore list is the
+/// whole risk this mechanism exists to close.
+const Disposition = enum {
+    /// T272: the register row named in `refuting_row` rejects the finding.
+    rejected_by_register,
+    /// T269 part 1: the finding's ID is not a register claim at all (an infra
+    /// statement about tooling, a task-ID alias, ...). The reason lives in
+    /// `rationale`, which is MANDATORY — the loader refuses reason-less
+    /// entries of this kind, and the refusal is reported.
+    not_a_register_claim,
+    /// T269 part 1: the finding named its content under the wrong ID;
+    /// `refuting_row` names the register row the content was actually absorbed
+    /// under (e.g. a findings file that used a task ID as the claim ID).
+    absorbed_under_register_id,
+    unparsed,
+};
+
+const ConformIssue = struct { file: []const u8, reason: []const u8 };
 
 const C7Result = struct {
     files: usize,
+    conforming: usize,
+    nonconforming: usize,
+    conform_issues: std.ArrayList(ConformIssue),
     claims_total: usize,
     new_rows_total: usize,
     unabsorbed: usize,
@@ -1602,139 +1868,145 @@ const C7Result = struct {
     rejected_items: std.ArrayList(C7Unabsorbed),
 };
 
+const RejectionEntry = struct {
+    disposition: Disposition,
+    refuting_row: []const u8,
+    rationale: []const u8,
+    /// false → the entry fails its own contract (missing mandatory reason /
+    /// refuting row / unknown disposition); it must NOT silence and is
+    /// reported instead ("a silent skip is how a real finding gets lost").
+    valid: bool,
+    invalid_reason: []const u8,
+};
+
 /// RejectionIndex — a set of (claim_id, finding_file) pairs loaded from
-/// findings/rejections.json. A finding whose claim_id and file match an entry
-/// here has been considered and correctly refuted; it does NOT count as
-/// unabsorbed. Each entry carries the refuting register row for traceability.
+/// findings/rejections.json. A finding whose claim_id and file match a VALID
+/// entry here does NOT count as unabsorbed; it is dispositioned, reason-carrying
+/// (T272, extended by T269). Entries that fail their own contract are collected
+/// in `invalid` and reported — they do NOT silence.
 const RejectionIndex = struct {
     /// key = "claim_id\x00finding_file" (delimited so the two can't merge)
-    entries: std.StringHashMap([]const u8), // value = refuting_row
+    entries: std.StringHashMap(RejectionEntry),
+    invalid: std.ArrayList([]const u8),
 
-    fn has(self: *const RejectionIndex, gpa: Allocator, claim_id: []const u8, file: []const u8) bool {
-        const key = std.mem.concat(gpa, u8, &.{ claim_id, "\x00", file }) catch return false;
+    /// Only valid entries can disposition a finding.
+    fn get(self: *const RejectionIndex, gpa: Allocator, claim_id: []const u8, file: []const u8) ?RejectionEntry {
+        const key = std.mem.concat(gpa, u8, &.{ claim_id, "\x00", file }) catch return null;
         defer gpa.free(key);
-        return self.entries.contains(key);
+        const e = self.entries.get(key) orelse return null;
+        if (!e.valid) return null;
+        return e;
     }
 };
 
 fn loadRejections(gpa: Allocator, io: Io, path: []const u8) !RejectionIndex {
-    var idx: RejectionIndex = .{ .entries = std.StringHashMap([]const u8).init(gpa) };
+    var idx: RejectionIndex = .{
+        .entries = std.StringHashMap(RejectionEntry).init(gpa),
+        .invalid = .empty,
+    };
     const json = Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch |e| {
         if (e == error.FileNotFound) return idx;
         return e;
     };
-    var buf: std.ArrayList(u8) = .empty;
-    defer buf.deinit(gpa);
-    // Simple JSON parser for [{claim_id, finding_file, refuting_row, ...}]
-    var i: usize = 0;
-    while (i < json.len) : (i += 1) {
-        // Skip non-structural chars when looking for array markers
-        if (json[i] == '[' and i > 0) {
-            // Check if we just passed a "rejections" key — crude but sufficient
-            // Actually, find "rejections" key first, then parse its array.
+    var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch |e| {
+        try idx.invalid.append(gpa, try std.fmt.allocPrint(gpa, "{s}: not valid JSON ({s})", .{ path, @errorName(e) }));
+        return idx;
+    };
+    defer parsed.deinit();
+    if (parsed.value != .object) {
+        try idx.invalid.append(gpa, try std.fmt.allocPrint(gpa, "{s}: top-level is not an object", .{path}));
+        return idx;
+    }
+    const rej_val = parsed.value.object.get("rejections") orelse return idx;
+    if (rej_val != .array) {
+        try idx.invalid.append(gpa, try std.fmt.allocPrint(gpa, "{s}: `rejections` is not an array", .{path}));
+        return idx;
+    }
+    for (rej_val.array.items) |entry_val| {
+        if (entry_val != .object) {
+            try idx.invalid.append(gpa, try gpa.dupe(u8, "rejections[]: entry is not an object"));
             continue;
         }
-        if (json[i] != '"') continue;
-        const ks = i + 1;
-        const ke = std.mem.indexOfScalarPos(u8, json, ks, '"') orelse break;
-        const k = json[ks..ke];
-        i = ke + 1;
-        if (!std.mem.eql(u8, k, "rejections")) continue;
-        // Found "rejections" — skip to its array value
-        while (i < json.len and json[i] != '[') : (i += 1) {}
-        if (i >= json.len) break;
-        // Now iterate objects in the array
-        while (i < json.len) : (i += 1) {
-            if (json[i] == ']') break; // end of rejections array
-            if (json[i] != '{') continue;
-            // Inside a rejection object — extract claim_id, finding_file, refuting_row
-            var claim_id: ?[]const u8 = null;
-            var finding_file: ?[]const u8 = null;
-            var refuting_row: ?[]const u8 = null;
-            i += 1; // move past {
-            while (i < json.len) : (i += 1) {
-                if (json[i] == '}') break;
-                if (json[i] != '"') continue;
-                const fks = i + 1;
-                const fke = std.mem.indexOfScalarPos(u8, json, fks, '"') orelse break;
-                const fk = json[fks..fke];
-                i = fke + 1;
-                while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r' or json[i] == ':')) : (i += 1) {}
-                if (i >= json.len or json[i] != '"') continue;
-                buf.clearRetainingCapacity();
-                i += 1;
-                while (i < json.len) {
-                    if (json[i] == '\\' and i + 1 < json.len) {
-                        try buf.append(gpa, json[i + 1]);
-                        i += 2;
-                        continue;
-                    }
-                    if (json[i] == '"') break;
-                    try buf.append(gpa, json[i]);
-                    i += 1;
-                }
-                if (std.mem.eql(u8, fk, "claim_id")) claim_id = try gpa.dupe(u8, buf.items);
-                if (std.mem.eql(u8, fk, "finding_file")) finding_file = try gpa.dupe(u8, buf.items);
-                if (std.mem.eql(u8, fk, "refuting_row")) refuting_row = try gpa.dupe(u8, buf.items);
-            }
-            if (claim_id != null and finding_file != null) {
-                const key = try std.mem.concat(gpa, u8, &.{ claim_id.?, "\x00", finding_file.? });
-                const val = if (refuting_row) |r| r else "(no refuting row named)";
-                try idx.entries.put(key, val);
-            }
+        const obj = entry_val.object;
+        const claim_id = strField(obj, "claim_id");
+        const finding_file = strField(obj, "finding_file");
+        if (claim_id == null or finding_file == null) {
+            try idx.invalid.append(gpa, try std.fmt.allocPrint(gpa, "rejections[]: entry missing claim_id/finding_file ({s})", .{
+                if (claim_id) |c| c else "(no claim_id)",
+            }));
+            continue;
         }
-        break; // done with rejections
+        const disp_str = strField(obj, "disposition") orelse "rejected-by-register";
+        var disposition: Disposition = .unparsed;
+        if (std.mem.eql(u8, disp_str, "rejected-by-register")) {
+            disposition = .rejected_by_register;
+        } else if (std.mem.eql(u8, disp_str, "not-a-register-claim")) {
+            disposition = .not_a_register_claim;
+        } else if (std.mem.eql(u8, disp_str, "absorbed-under-register-id")) {
+            disposition = .absorbed_under_register_id;
+        }
+        const refuting_row = strField(obj, "refuting_row") orelse "";
+        const rationale = strField(obj, "rationale") orelse "";
+        var valid = true;
+        var why: []const u8 = "";
+        switch (disposition) {
+            .rejected_by_register => if (refuting_row.len == 0) {
+                valid = false;
+                why = "rejected-by-register entry must name a refuting_row";
+            },
+            .not_a_register_claim => if (rationale.len == 0) {
+                valid = false;
+                why = "not-a-register-claim entry must carry the reason in rationale (a silent skip is how a real finding gets lost)";
+            },
+            .absorbed_under_register_id => if (refuting_row.len == 0) {
+                valid = false;
+                why = "absorbed-under-register-id entry must name the absorbing register row in refuting_row";
+            },
+            .unparsed => {
+                valid = false;
+                why = "unknown disposition";
+            },
+        }
+        const key = try std.mem.concat(gpa, u8, &.{ claim_id.?, "\x00", finding_file.? });
+        if (!valid) {
+            try idx.invalid.append(gpa, try std.fmt.allocPrint(gpa, "{s} in {s}: {s}", .{ claim_id.?, finding_file.?, why }));
+            continue;
+        }
+        try idx.entries.put(key, .{
+            .disposition = disposition,
+            .refuting_row = try gpa.dupe(u8, refuting_row),
+            .rationale = try gpa.dupe(u8, rationale),
+            .valid = true,
+            .invalid_reason = "",
+        });
     }
     return idx;
 }
 
-/// JSON tokenizer for the flat findings format. Extracts a single string value
-/// for a given key from a JSON object. Returns null if the key is not found or
-/// the value is not a string. Handles escaped quotes and backslashes minimally
-/// (enough for the findings schema, which has no embedded JSON strings).
-fn jsonStringValue(gpa: Allocator, json: []const u8, key: []const u8, out: *std.ArrayList(u8)) !bool {
-    out.clearRetainingCapacity();
-    var i: usize = 0;
-    while (i < json.len) {
-        if (json[i] != '"') { i += 1; continue; }
-        const key_start = i + 1;
-        const key_end = std.mem.indexOfScalarPos(u8, json, key_start, '"') orelse return false;
-        const found_key = json[key_start..key_end];
-        i = key_end + 1;
-        // skip whitespace and colon
-        while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r')) : (i += 1) {}
-        if (i >= json.len or json[i] != ':') continue;
-        i += 1;
-        while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r')) : (i += 1) {}
-        if (i >= json.len) return false;
-        if (!std.mem.eql(u8, found_key, key)) continue;
-        if (json[i] != '"') return false; // non-string value for a string field
-        i += 1;
-        while (i < json.len) {
-            if (json[i] == '\\' and i + 1 < json.len) {
-                try out.append(gpa, json[i + 1]);
-                i += 2;
-                continue;
-            }
-            if (json[i] == '"') {
-                i += 1;
-                return true;
-            }
-            try out.append(gpa, json[i]);
-            i += 1;
-        }
-        return false;
-    }
-    return false;
+/// A string field of a JSON object, or null when absent / not a string.
+/// The returned slice is only valid until the parse arena is freed — callers
+/// that keep it must dupe.
+fn strField(obj: std.json.ObjectMap, key: []const u8) ?[]const u8 {
+    const v = obj.get(key) orelse return null;
+    if (v != .string) return null;
+    return v.string;
 }
 
 /// Parse a single findings JSON file. Returns a C7Result with the claims and
 /// new_rows extracted. The caller must compare these against the register.
-/// The rejection index is used to filter findings that have been considered
-/// and correctly refuted.
+/// The rejection index is used to filter findings that have been dispositioned.
+///
+/// Parsing is structural (std.json), not a character scan — the old scan read
+/// only the FIRST `new_rows` entry per file and mis-parsed its status (T266,
+/// T269 part 3). A file that does not conform to the findings schema
+/// (findings/README.md: required task_id/date/model/claims) is REPORTED as
+/// non-conforming rather than silently skipped (GRAND-AUDIT §2, T269 part 4).
 fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, reg: *Register, rej: *const RejectionIndex) !C7Result {
     var result: C7Result = .{
         .files = 1,
+        .conforming = 0,
+        .nonconforming = 0,
+        .conform_issues = .empty,
         .claims_total = 0,
         .new_rows_total = 0,
         .unabsorbed = 0,
@@ -1749,268 +2021,224 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
     // basename for rejection matching (rejections.json keys on the findings filename)
     const base = baseName(file_path);
 
-    var buf: std.ArrayList(u8) = .empty;
-    defer buf.deinit(gpa);
+    var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch |e| {
+        result.nonconforming = 1;
+        try result.conform_issues.append(gpa, .{
+            .file = owned_file,
+            .reason = try std.fmt.allocPrint(gpa, "not valid JSON ({s})", .{@errorName(e)}),
+        });
+        return result;
+    };
+    defer parsed.deinit();
 
-    // Extract task_id (for reporting)
-    _ = try jsonStringValue(gpa, json, "task_id", &buf);
+    if (parsed.value != .object) {
+        result.nonconforming = 1;
+        try result.conform_issues.append(gpa, .{
+            .file = owned_file,
+            .reason = try gpa.dupe(u8, "top-level is not a JSON object"),
+        });
+        return result;
+    }
 
-    // Count claims[] entries and check each against the register.
-    // We look for "id" fields inside objects within the "claims" array.
-    var in_claims = false;
-    var i: usize = 0;
-    while (i < json.len) : (i += 1) {
-        if (json[i] != '"') continue;
-        const ks = i + 1;
-        const ke = std.mem.indexOfScalarPos(u8, json, ks, '"') orelse break;
-        const k = json[ks..ke];
-        i = ke + 1;
-        if (std.mem.eql(u8, k, "claims")) {
-            // skip to opening [
-            while (i < json.len and json[i] != '[') : (i += 1) {}
-            if (i >= json.len) break;
-            in_claims = true;
-            continue;
-        }
-        if (in_claims and std.mem.eql(u8, k, "id")) {
-            // skip whitespace, colon, whitespace
-            while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r' or json[i] == ':')) : (i += 1) {}
-            if (i < json.len and json[i] == '"') {
-                buf.clearRetainingCapacity();
-                i += 1;
-                while (i < json.len) {
-                    if (json[i] == '\\' and i + 1 < json.len) {
-                        try buf.append(gpa, json[i + 1]);
-                        i += 2;
-                        continue;
-                    }
-                    if (json[i] == '"') break;
-                    try buf.append(gpa, json[i]);
-                    i += 1;
-                }
-                const claim_id = try gpa.dupe(u8, buf.items);
+    // Schema conformance (findings/README.md): task_id, date, model, claims
+    // are all required. A file missing any of them cannot contribute to the
+    // absorption queue — it must be REPORTED, not silently skipped.
+    const root = parsed.value.object;
+    var missing_keys: std.ArrayList([]const u8) = .empty;
+    defer missing_keys.deinit(gpa);
+    const required = [_][]const u8{ "task_id", "date", "model", "claims" };
+    for (required) |k| if (!root.contains(k)) try missing_keys.append(gpa, k);
+    if (root.get("claims")) |cv| {
+        if (cv != .array) try missing_keys.append(gpa, "claims-not-an-array");
+    }
+    if (missing_keys.items.len > 0) {
+        result.nonconforming = 1;
+        const joined = try std.mem.join(gpa, ", ", missing_keys.items);
+        try result.conform_issues.append(gpa, .{
+            .file = owned_file,
+            .reason = try std.fmt.allocPrint(gpa, "missing/wrong required key(s): {s}", .{joined}),
+        });
+        return result;
+    }
+    result.conforming = 1;
 
-                // Now find the proposed_status for this claim
-                var proposed: []const u8 = "?";
-                var j = i + 1;
-                while (j < json.len) {
-                    if (json[j] != '"') { j += 1; continue; }
-                    const pks = j + 1;
-                    const pke = std.mem.indexOfScalarPos(u8, json, pks, '"') orelse break;
-                    const pk = json[pks..pke];
-                    j = pke + 1;
-                    if (std.mem.eql(u8, pk, "proposed_status")) {
-                        while (j < json.len and (json[j] == ' ' or json[j] == '\t' or json[j] == '\n' or json[j] == '\r' or json[j] == ':')) : (j += 1) {}
-                        if (j < json.len and json[j] == '"') {
-                            j += 1;
-                            var pbuf: std.ArrayList(u8) = .empty;
-                            defer pbuf.deinit(gpa);
-                            while (j < json.len) {
-                                if (json[j] == '\\' and j + 1 < json.len) {
-                                    try pbuf.append(gpa, json[j + 1]);
-                                    j += 2;
-                                    continue;
-                                }
-                                if (json[j] == '"') break;
-                                try pbuf.append(gpa, json[j]);
-                                j += 1;
-                            }
-                            proposed = try gpa.dupe(u8, pbuf.items);
-                        }
-                        break;
-                    }
-                    // skip past nested objects/arrays
-                    if (json[j] == '{') {
-                        var depth: usize = 1;
-                        j += 1;
-                        while (j < json.len and depth > 0) : (j += 1) {
-                            if (json[j] == '{') depth += 1;
-                            if (json[j] == '}') depth -= 1;
-                        }
-                        continue;
-                    }
-                }
-
-                result.claims_total += 1;
-
-                // Check against register
-                if (reg.by_id.get(claim_id)) |slot| {
-                    const r = reg.rows.items[slot];
-                    const ps = parseStatus(proposed);
-                    if (ps != .unparsed and ps != r.status) {
-                        // Check rejection registry before counting as unabsorbed
-                        if (rej.has(gpa, claim_id, base)) {
-                            result.rejected += 1;
-                            try result.rejected_items.append(gpa, .{
-                                .id = claim_id,
-                                .proposed = proposed,
-                                .actual = r.status.name(),
-                                .file = owned_file,
-                            });
-                        } else {
-                            result.unabsorbed += 1;
-                            try result.items.append(gpa, .{
-                                .id = claim_id,
-                                .proposed = proposed,
-                                .actual = r.status.name(),
-                                .file = owned_file,
-                            });
-                        }
+    // claims[] — a claim is either an object (id + optional proposed_status)
+    // or a bare string (context-dump form: "IDs you touched"). An object with
+    // a proposed_status is a status proposal (compare against the register);
+    // an object without one, or a string, is presence-only (the row exists
+    // in the register or the finding leaks).
+    if (root.get("claims")) |claims_val| {
+        for (claims_val.array.items) |item| {
+            result.claims_total += 1;
+            if (item == .object) {
+                const id_val = item.object.get("id") orelse null;
+                if (id_val != null and id_val.? == .string) {
+                    const claim_id = id_val.?.string;
+                    const ps_val = item.object.get("proposed_status") orelse null;
+                    var proposed: []const u8 = "";
+                    if (ps_val != null and ps_val.? == .string) proposed = ps_val.?.string;
+                    if (proposed.len == 0) {
+                        try checkPresence(gpa, &result, reg, rej, claim_id, base, owned_file);
+                    } else {
+                        try checkStatusClaim(gpa, &result, reg, rej, claim_id, proposed, base, owned_file);
                     }
                 } else {
-                    // Claim ID not in register — check rejection registry
-                    if (rej.has(gpa, claim_id, base)) {
-                        result.rejected += 1;
-                        try result.rejected_items.append(gpa, .{
-                            .id = claim_id,
-                            .proposed = proposed,
-                            .actual = "NO SUCH ID",
-                            .file = owned_file,
-                        });
+                    result.unabsorbed += 1;
+                    try result.items.append(gpa, .{
+                        .id = try gpa.dupe(u8, "(claim without string id)"),
+                        .proposed = "",
+                        .actual = "MALFORMED",
+                        .file = owned_file,
+                    });
+                }
+            } else if (item == .string) {
+                try checkPresence(gpa, &result, reg, rej, item.string, base, owned_file);
+            } else {
+                result.unabsorbed += 1;
+                try result.items.append(gpa, .{
+                    .id = try gpa.dupe(u8, "(non-string claim item)"),
+                    .proposed = "",
+                    .actual = "MALFORMED",
+                    .file = owned_file,
+                });
+            }
+        }
+    }
+
+    // new_rows[] — every entry, not just the first (the T266 defect). Same
+    // item shapes as claims[], except the status field is named `status`.
+    if (root.get("new_rows")) |nr_val| {
+        if (nr_val == .array) {
+            for (nr_val.array.items) |item| {
+                result.new_rows_total += 1;
+                if (item == .object) {
+                    const id_val = item.object.get("id") orelse null;
+                    if (id_val != null and id_val.? == .string) {
+                        const nr_id = id_val.?.string;
+                        const st_val = item.object.get("status") orelse null;
+                        var nr_status: []const u8 = "";
+                        if (st_val != null and st_val.? == .string) nr_status = st_val.?.string;
+                        if (nr_status.len == 0) {
+                            try checkPresence(gpa, &result, reg, rej, nr_id, base, owned_file);
+                        } else {
+                            try checkStatusClaim(gpa, &result, reg, rej, nr_id, nr_status, base, owned_file);
+                        }
                     } else {
                         result.unabsorbed += 1;
                         try result.items.append(gpa, .{
-                            .id = claim_id,
-                            .proposed = proposed,
-                            .actual = "NO SUCH ID",
+                            .id = try gpa.dupe(u8, "(new-row without string id)"),
+                            .proposed = "",
+                            .actual = "MALFORMED",
                             .file = owned_file,
                         });
                     }
+                } else if (item == .string) {
+                    try checkPresence(gpa, &result, reg, rej, item.string, base, owned_file);
+                } else {
+                    result.unabsorbed += 1;
+                    try result.items.append(gpa, .{
+                        .id = try gpa.dupe(u8, "(non-string new-row item)"),
+                        .proposed = "",
+                        .actual = "MALFORMED",
+                        .file = owned_file,
+                    });
                 }
             }
-        }
-        if (in_claims and std.mem.eql(u8, k, "new_rows")) {
-            // Count new-rows entries. For each new-row, check if the ID exists
-            // in the register with the proposed status.
-            var nr_depth: usize = 0;
-            var nr_count: usize = 0;
-            var nr_i = i + 1;
-            while (nr_i < json.len) : (nr_i += 1) {
-                if (json[nr_i] == '{') nr_depth += 1;
-                if (json[nr_i] == '}') {
-                    if (nr_depth > 0) nr_depth -= 1;
-                    if (nr_depth == 0 and nr_count > 0) break;
-                }
-                if (nr_depth == 1 and json[nr_i] == '"') {
-                    const nks = nr_i + 1;
-                    const nke = std.mem.indexOfScalarPos(u8, json, nks, '"') orelse break;
-                    const nk = json[nks..nke];
-                    nr_i = nke;
-                    if (std.mem.eql(u8, nk, "id")) {
-                        nr_count += 1;
-                        result.new_rows_total += 1;
-                        // Extract the new-row id and status
-                        while (nr_i < json.len and (json[nr_i] == ' ' or json[nr_i] == '\t' or json[nr_i] == '\n' or json[nr_i] == '\r' or json[nr_i] == ':' or json[nr_i] == '"')) : (nr_i += 1) {}
-                        var nid_buf: std.ArrayList(u8) = .empty;
-                        defer nid_buf.deinit(gpa);
-                        while (nr_i < json.len) {
-                            if (json[nr_i] == '\\' and nr_i + 1 < json.len) {
-                                try nid_buf.append(gpa, json[nr_i + 1]);
-                                nr_i += 2;
-                                continue;
-                            }
-                            if (json[nr_i] == '"') break;
-                            try nid_buf.append(gpa, json[nr_i]);
-                            nr_i += 1;
-                        }
-                        const nr_id = try gpa.dupe(u8, nid_buf.items);
-
-                        // Find "status" field within this new-row object
-                        var nr_proposed: []const u8 = "?";
-                        var ns = nr_i + 1;
-                        var ns_depth: usize = 1;
-                        while (ns < json.len) : (ns += 1) {
-                            if (json[ns] == '{') ns_depth += 1;
-                            if (json[ns] == '}') {
-                                ns_depth -= 1;
-                                if (ns_depth == 0) break;
-                            }
-                            if (json[ns] != '"') continue;
-                            const sks = ns + 1;
-                            const ske = std.mem.indexOfScalarPos(u8, json, sks, '"') orelse break;
-                            const sk = json[sks..ske];
-                            ns = ske;
-                            if (std.mem.eql(u8, sk, "status")) {
-                                while (ns < json.len and (json[ns] == ' ' or json[ns] == '\t' or json[ns] == '\n' or json[ns] == '\r' or json[ns] == ':')) : (ns += 1) {}
-                                if (ns < json.len and json[ns] == '"') {
-                                    ns += 1;
-                                    var sbuf: std.ArrayList(u8) = .empty;
-                                    defer sbuf.deinit(gpa);
-                                    while (ns < json.len) {
-                                        if (json[ns] == '\\' and ns + 1 < json.len) {
-                                            try sbuf.append(gpa, json[ns + 1]);
-                                            ns += 2;
-                                            continue;
-                                        }
-                                        if (json[ns] == '"') break;
-                                        try sbuf.append(gpa, json[ns]);
-                                        ns += 1;
-                                    }
-                                    nr_proposed = try gpa.dupe(u8, sbuf.items);
-                                }
-                                break;
-                            }
-                        }
-
-                        // Check if the new-row ID is in the register
-                        if (reg.by_id.get(nr_id)) |slot| {
-                            const r = reg.rows.items[slot];
-                            const nps = parseStatus(nr_proposed);
-                            if (nps != .unparsed and nps != r.status) {
-                                if (rej.has(gpa, nr_id, base)) {
-                                    result.rejected += 1;
-                                    try result.rejected_items.append(gpa, .{
-                                        .id = nr_id,
-                                        .proposed = nr_proposed,
-                                        .actual = r.status.name(),
-                                        .file = owned_file,
-                                    });
-                                } else {
-                                    result.unabsorbed += 1;
-                                    try result.items.append(gpa, .{
-                                        .id = nr_id,
-                                        .proposed = nr_proposed,
-                                        .actual = r.status.name(),
-                                        .file = owned_file,
-                                    });
-                                }
-                            }
-                        } else {
-                            // New row never added — check rejection registry
-                            if (rej.has(gpa, nr_id, base)) {
-                                result.rejected += 1;
-                                try result.rejected_items.append(gpa, .{
-                                    .id = nr_id,
-                                    .proposed = nr_proposed,
-                                    .actual = "MISSING (row never added)",
-                                    .file = owned_file,
-                                });
-                            } else {
-                                result.unabsorbed += 1;
-                                try result.items.append(gpa, .{
-                                    .id = nr_id,
-                                    .proposed = nr_proposed,
-                                    .actual = "MISSING (row never added)",
-                                    .file = owned_file,
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            in_claims = false; // past claims[] now
         }
     }
 
     return result;
 }
 
+/// A claim/new-row that carries a proposed status: compare it against the
+/// register row of the same ID. A status mismatch (or a missing row) is
+/// unabsorbed unless a valid rejection entry dispositions it.
+fn checkStatusClaim(gpa: Allocator, result: *C7Result, reg: *Register, rej: *const RejectionIndex, claim_id: []const u8, proposed: []const u8, base: []const u8, owned_file: []const u8) !void {
+    if (reg.by_id.get(claim_id)) |slot| {
+        const r = reg.rows.items[slot];
+        const ps = parseStatus(proposed);
+        if (ps != .unparsed and ps != r.status) {
+            if (rej.get(gpa, claim_id, base)) |entry| {
+                result.rejected += 1;
+                try result.rejected_items.append(gpa, .{
+                    .id = try gpa.dupe(u8, claim_id),
+                    .proposed = try gpa.dupe(u8, proposed),
+                    .actual = r.status.name(),
+                    .file = owned_file,
+                    .disposition = entry.disposition,
+                    .refuting_row = entry.refuting_row,
+                    .rationale = entry.rationale,
+                });
+            } else {
+                result.unabsorbed += 1;
+                try result.items.append(gpa, .{
+                    .id = try gpa.dupe(u8, claim_id),
+                    .proposed = try gpa.dupe(u8, proposed),
+                    .actual = r.status.name(),
+                    .file = owned_file,
+                });
+            }
+        }
+    } else if (rej.get(gpa, claim_id, base)) |entry| {
+        result.rejected += 1;
+        try result.rejected_items.append(gpa, .{
+            .id = try gpa.dupe(u8, claim_id),
+            .proposed = try gpa.dupe(u8, proposed),
+            .actual = "NO SUCH ID",
+            .file = owned_file,
+            .disposition = entry.disposition,
+            .refuting_row = entry.refuting_row,
+            .rationale = entry.rationale,
+        });
+    } else {
+        result.unabsorbed += 1;
+        try result.items.append(gpa, .{
+            .id = try gpa.dupe(u8, claim_id),
+            .proposed = try gpa.dupe(u8, proposed),
+            .actual = "NO SUCH ID",
+            .file = owned_file,
+        });
+    }
+}
+
+/// A claim/new-row with no proposed status (a context-dump string, an
+/// absorption record): the only check possible is presence in the register.
+/// Present → absorbed (the row exists); absent → the finding names an ID the
+/// register does not know, which is a leak — unless dispositioned.
+fn checkPresence(gpa: Allocator, result: *C7Result, reg: *Register, rej: *const RejectionIndex, id: []const u8, base: []const u8, owned_file: []const u8) !void {
+    if (reg.by_id.get(id)) |_| return;
+    if (rej.get(gpa, id, base)) |entry| {
+        result.rejected += 1;
+        try result.rejected_items.append(gpa, .{
+            .id = try gpa.dupe(u8, id),
+            .proposed = "",
+            .actual = "NO SUCH ID",
+            .file = owned_file,
+            .disposition = entry.disposition,
+            .refuting_row = entry.refuting_row,
+            .rationale = entry.rationale,
+        });
+    } else {
+        result.unabsorbed += 1;
+        try result.items.append(gpa, .{
+            .id = try gpa.dupe(u8, id),
+            .proposed = "",
+            .actual = "NO SUCH ID",
+            .file = owned_file,
+        });
+    }
+}
+
 /// Scan findings/*.json and check every claim against the register.
-/// Findings matching an entry in the rejection index are counted as
-/// absorbed-with-rejection and do NOT contribute to unabsorbed.
+/// Findings matching a valid rejection entry are counted as dispositioned and
+/// do NOT contribute to unabsorbed. Schema-non-conforming files are REPORTED,
+/// not silently skipped (GRAND-AUDIT §2).
 fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, rej: *const RejectionIndex) !C7Result {
     var result: C7Result = .{
         .files = 0,
+        .conforming = 0,
+        .nonconforming = 0,
+        .conform_issues = .empty,
         .claims_total = 0,
         .new_rows_total = 0,
         .unabsorbed = 0,
@@ -2032,15 +2260,27 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
         if (!std.mem.endsWith(u8, e.basename, ".json")) continue;
         if (std.mem.eql(u8, e.basename, "rejections.json")) continue; // not a findings file
         // e.path is relative to the walked dir; read via dir, not cwd
-        const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch continue;
+        const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch |err| {
+            // an unreadable file is a non-conforming file — reported, not skipped
+            result.files += 1;
+            result.nonconforming += 1;
+            try result.conform_issues.append(gpa, .{
+                .file = try gpa.dupe(u8, e.path),
+                .reason = try std.fmt.allocPrint(gpa, "unreadable ({s})", .{@errorName(err)}),
+            });
+            continue;
+        };
         const fr = try parseFindingsFile(gpa, body, e.path, reg, rej);
         result.files += 1;
+        result.conforming += fr.conforming;
+        result.nonconforming += fr.nonconforming;
         result.claims_total += fr.claims_total;
         result.new_rows_total += fr.new_rows_total;
         result.unabsorbed += fr.unabsorbed;
         result.rejected += fr.rejected;
         try result.items.appendSlice(gpa, fr.items.items);
         try result.rejected_items.appendSlice(gpa, fr.rejected_items.items);
+        try result.conform_issues.appendSlice(gpa, fr.conform_issues.items);
     }
 
     return result;
@@ -2048,10 +2288,12 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
 
 const Alarm = struct { child: usize, parent: usize };
 
-/// `d:` edges whose parent can never be FALSE (a MEASUREMENT or a definition).
-/// Such an edge is a dead end: no falsification can ever travel it, so if the
-/// child's real dependency is the *soundness* behind the measurement, that
-/// parent is missing and C1a will never see the child.
+/// `d:` edges whose parent can never be FALSE (a MEASUREMENT, a definition, or
+/// a SUPERSEDED claim — none of them can be refuted). Such an edge is a dead
+/// end: no falsification can ever travel it, so if the child's real dependency
+/// is the *soundness* behind the measurement, that parent is missing and C1a
+/// will never see the child. (SUPERSEDED rows joined the set 2026-08-03, T269:
+/// a superseded claim is retired, not refutable.)
 fn shadowedEdges(gpa: Allocator, reg: *Register) !std.ArrayList(Alarm) {
     var out: std.ArrayList(Alarm) = .empty;
     for (reg.rows.items, 0..) |r, i| {
@@ -2059,7 +2301,7 @@ fn shadowedEdges(gpa: Allocator, reg: *Register) !std.ArrayList(Alarm) {
             if (d.kind != .derives) continue;
             const k = reg.by_id.get(d.target) orelse continue;
             const ps = reg.rows.items[k].status;
-            if (ps != .measurement and ps != .definition) continue;
+            if (ps != .measurement and ps != .definition and ps != .superseded) continue;
             try out.append(gpa, .{ .child = i, .parent = k });
         }
     }

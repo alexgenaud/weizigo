@@ -88,8 +88,15 @@ task with a NEW findings file. The findings file is an immutable record.
 | UNTESTED | `"UNTESTED"` |
 | INTRACTABLE | `"INTRACTABLE"` |
 | MEASUREMENT | `"MEASUREMENT"` |
+| SUPERSEDED | `"SUPERSEDED"` |
 
 The `(definition)` pseudo-status is not a valid proposed status.
+
+`SUPERSEDED` (added 2026-08-03, T269) is for claims that were true when
+written and were overtaken by events — the statement was never wrong, and it
+no longer describes reality. It is neither live (C1a/C3/B skip it) nor FALSE
+(it cannot be refuted, so nothing propagates through it). Existing instances:
+`CODE.WZO2-UNRUN`, `CODE.WZO2-CHAINSHORT`.
 
 ## Tooling
 

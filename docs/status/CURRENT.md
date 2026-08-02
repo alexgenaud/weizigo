@@ -5,7 +5,33 @@ after a context clear / compact / handover. Not durable — milestones live in g
 `../epistemic/PROGRESS.md` + `../decisions/` + `../research/`. If this file is stale, read
 `../epistemic/PROGRESS.md` → `leak-crisis.md` and rebuild it.
 
-Last refreshed **2026-08-02 (Orchestrator/Opus 5 — Grand Audit reconciliation)**.
+Last refreshed **2026-08-03 (deepseek-v4-flash/T269)**.
+
+## The floor is restored and the gate is installed (T284 landed, 2026-08-03)
+
+Supersedes the "gate not installed / floor breached" block below. T284 (`7f7761e`)
+re-pointed the three T279 orphans, repaired the three dangling evidence paths and the
+four cite-tag mismatches — **C1a=10, C2=14, C6=0, all at floor** — and reinstalled
+the gate (`core.hooksPath = tools/hooks`). `sh tools/regression-precommit.sh` passes
+installed-ness + null control, and the seeded-defect control still refuses (C1a 10→11).
+
+## T269 (2026-08-03, deepseek-v4-flash) — register vocabulary + C7 census
+
+**Ownership declared:** mutation of `src/claimlint.zig` (C7 parser rewritten on
+std.json; SUPERSEDED status added; non-conforming-file reporting), `docs/epistemic/CLAIMS.md`
+(`CODE.WZO2-UNRUN`, `CODE.WZO2-CHAINSHORT` → SUPERSEDED), `docs/epistemic/PROGRESS.md`
+(two cite-tags matched), `findings/rejections.json` (five disposition entries:
+T264-V1/V2/V3 not-a-register-claim, T265×2 absorbed-under-register-id),
+`findings/README.md` + `docs/infra/agents/findings-schema.json` (SUPERSEDED in the
+schema). Cleared when the T269 commit lands.
+**C7 is now a census, not a floor**: new-rows touched 4 → 16, claims touched
+25 → 42, unabsorbed 7 → 2 (T264-V1/V2/V3 and T265 dispositioned with reasons;
+T266's four proposed rows all match the register). The two remaining unabsorbed are
+`T267` in `T267-key-agreement.json` and `T267-context.json` — the key-agreement
+invariant finding (task ID used as claim ID; no register row covers the invariant,
+which `CODE.GTP-KOKEY` still lists as owed). Follow-up: mint a row with
+verify-then-promote. Seven pre-schema findings files are now REPORTED as
+non-conforming instead of silently skipped.
 
 ## The G3 blocker is GONE — absorbed (T279, 2026-08-03)
 

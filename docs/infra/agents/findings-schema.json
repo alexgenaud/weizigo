@@ -30,8 +30,8 @@
           },
           "proposed_status": {
             "type": "string",
-            "enum": ["PROVEN", "CLAIMED", "FALSE-AS-SCOPED", "FALSE", "UNTESTED", "INTRACTABLE", "MEASUREMENT"],
-            "description": "Proposed epistemic status. The (definition) pseudo-status is not valid."
+            "enum": ["PROVEN", "CLAIMED", "FALSE-AS-SCOPED", "FALSE", "UNTESTED", "INTRACTABLE", "MEASUREMENT", "SUPERSEDED"],
+            "description": "Proposed epistemic status. SUPERSEDED = true when written, overtaken by events (T269). The (definition) pseudo-status is not valid."
           },
           "rationale": {
             "type": "string",

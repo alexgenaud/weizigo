@@ -1,5 +1,5 @@
 {
-  "description": "Findings whose proposed status change was considered and rejected by the register. Each entry names the register row (or evidence) that refutes the finding — never a bare ignore list.",
+  "description": "Findings whose proposed status change was considered and dispositioned — either rejected by the register (refuting_row names the row), or adjudicated out of register scope (not-a-register-claim / absorbed-under-register-id, with the reason in rationale). Never a bare ignore list: every entry carries the reason, and claimlint refuses entries that do not (T269).",
   "rejections": [
     {
       "finding_task": "T212",
@@ -7,8 +7,59 @@
       "claim_id": "WZO2-4X4-VALID",
       "proposed_status": "PROVEN",
       "register_status": "FALSE-AS-SCOPED",
+      "disposition": "rejected-by-register",
       "refuting_row": "CODE.WZO2-INCOMPLETE (now FALSE-AS-SCOPED; the true count is 131,068 provably unreachable entries per CODE.WZO2-PASS1-LAW, absorbed T279)",
       "rationale": "The register correctly refuted T212's PROVEN proposal. CODE.WZO2-INCOMPLETE (2026-08-02) was CLAIMED based on a ~6.77M estimate later found 51.7× overstated (T266, verified T277, absorbed T279). The artifact is structurally complete at the entry level (CODE.WZO2-PASS1-LAW:PROVEN) but still not verified for closure or value-correctness. The WZO2-4X4-VALID row in CLAIMS.md records the reasoning: 'passing every check we had did not make the artifact valid, because no check we had tested completeness or value-correctness.' This is one of the project's better epistemic moments (GRAND-AUDIT §5). Corrected 2026-08-03 (T279)."
+    },
+    {
+      "finding_task": "T264",
+      "finding_file": "T264-version-stamping.json",
+      "claim_id": "T264-V1",
+      "proposed_status": "CLAIMED",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Infra statement about tooling, not an epistemic claim about Go: 'all 10 tools print a version stamp on startup/--version, built via tools/gen-version.sh'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1)."
+    },
+    {
+      "finding_task": "T264",
+      "finding_file": "T264-version-stamping.json",
+      "claim_id": "T264-V2",
+      "proposed_status": "CLAIMED",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Infra statement about tooling, not an epistemic claim about Go: 'oracle-v2-build writes artifacts into untracked/vNN/ with a manifest, version counter in untracked/VERSION'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1)."
+    },
+    {
+      "finding_task": "T264",
+      "finding_file": "T264-version-stamping.json",
+      "claim_id": "T264-V3",
+      "proposed_status": "CLAIMED",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Infra statement about tooling, not an epistemic claim about Go: 'the verify-battery JSON header includes battery_version with the full version stamp'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1)."
+    },
+    {
+      "finding_task": "T267",
+      "finding_file": "T267-key-agreement.json",
+      "claim_id": "T265",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.GTP-KOKEY: PROVEN",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.GTP-KOKEY (PROVEN)",
+      "rationale": "The findings file used the task ID 'T265' as the claim ID — a schema violation (claims[].id must be a register ID). The finding's content (engine and solver ko rules independently verified to agree, 0 disagreements) is registered as CODE.GTP-KOKEY, which already carries status PROVEN; the proposed status matches the row the content was absorbed under."
+    },
+    {
+      "finding_task": "T267",
+      "finding_file": "T267-context.json",
+      "claim_id": "T265",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.GTP-KOKEY: PROVEN",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.GTP-KOKEY (PROVEN)",
+      "rationale": "Same claim as in T267-key-agreement.json: the findings file used the task ID 'T265' as the claim ID. The content is registered as CODE.GTP-KOKEY (PROVEN), matching the proposal."
     }
   ]
 }
