@@ -2647,6 +2647,61 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     w.data("\n  === resume surface — composed at read time; nothing stored ===\n", .{});
     w.data("  composed {s} from tasks.json · git log/config/status · claimlint · STATE.md\n", .{now});
 
+    // ── self-defense: the surface must know its own provenance ──
+    // T289: the resume surface is the read-first surface; a surface that
+    // cannot tell you it is out of date is the same failure in a new place
+    // (T286 — the old surface was deleted while its replacement lived only
+    // in zig-out/, and no cold reader could tell). Report this binary's
+    // build stamp beside the source's current state, with an explicit
+    // verdict (CURRENT / STALE / cannot verify), using the same staleness
+    // rule as tools/smoke.sh: current iff no committed change since this
+    // binary's build touched managent source (src/managent/,
+    // tools/gen-version.sh, build.zig). Uncommitted edits do not trip it —
+    // the verdict is about what a cold reader would be misled by, not
+    // about in-progress work.
+    const ts_tree = treeDirty(io, repo_root);
+    const head_sha_raw = runCommand(alloc, io, &.{ "git", "-C", repo_root, "rev-parse", "--short", "HEAD" }) catch "";
+    defer if (@intFromPtr(head_sha_raw.ptr) != @intFromPtr("".ptr)) alloc.free(head_sha_raw);
+    const head_sha = std.mem.trim(u8, head_sha_raw, " \t\n\r");
+
+    w.data("  self: built from {s}{s} {s} (zig {s})\n", .{
+        version.commit,
+        if (version.dirty) "-dirty" else "",
+        version.build_date,
+        version.zig_version,
+    });
+    if (head_sha.len == 0) {
+        w.data("  source: HEAD unresolvable (git failed)\n", .{});
+        w.data("  self-check: cannot verify — rebuild and deploy: zig build && zig build deploy-managent\n", .{});
+    } else {
+        w.data("  source: HEAD {s}, tree {s}\n", .{ head_sha, if (ts_tree.nonkanban == 0) "clean" else "dirty" });
+        if (std.mem.eql(u8, version.commit, head_sha)) {
+            w.data("  self-check: CURRENT — this binary was built from HEAD ({s})\n", .{head_sha});
+        } else {
+            const range = std.fmt.allocPrint(alloc, "{s}..HEAD", .{version.commit}) catch "";
+            if (range.len == 0) {
+                w.data("  self-check: cannot verify (alloc failure) — rebuild and deploy: zig build && zig build deploy-managent\n", .{});
+            } else {
+                defer alloc.free(range);
+                const log_res = runGit(alloc, io, repo_root, &.{ "log", "--oneline", range, "--", "src/managent/", "tools/gen-version.sh", "build.zig" });
+                defer if (@intFromPtr(log_res.stdout.ptr) != @intFromPtr("".ptr)) alloc.free(log_res.stdout);
+                const log_trimmed = std.mem.trim(u8, log_res.stdout, " \t\n\r");
+                if (!log_res.ok) {
+                    w.data("  self-check: cannot verify — git cannot reconcile built commit {s} with HEAD {s} (rebuild and deploy: zig build && zig build deploy-managent)\n", .{ version.commit, head_sha });
+                } else if (log_trimmed.len == 0) {
+                    w.data("  self-check: CURRENT — no committed change to managent source since this binary was built\n", .{});
+                } else {
+                    w.data("  self-check: STALE — committed change(s) to managent source since this binary was built ({s} → {s}):\n", .{ version.commit, head_sha });
+                    var clog = std.mem.splitScalar(u8, log_trimmed, '\n');
+                    while (clog.next()) |cl| {
+                        if (cl.len > 0) w.data("      {s}\n", .{cl});
+                    }
+                    w.data("    rebuild and deploy: zig build && zig build deploy-managent\n", .{});
+                }
+            }
+        }
+    }
+
     // ── kanban (live tasks + held files) ──
     if (live == 0) {
         w.data("\n  kanban: NOTHING IN FLIGHT — no in_progress / dispatchable / blocked tasks\n", .{});
@@ -2738,37 +2793,24 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     w.data("\n  narrative (by reference — the prose is not copied here):\n", .{});
     scanChannelState(w, io, repo_root);
 
-    // ── working tree ──
-    const porcelain = runCommand(alloc, io, &.{ "git", "-C", repo_root, "status", "--porcelain" }) catch "";
-    defer if (@intFromPtr(porcelain.ptr) != @intFromPtr("".ptr)) alloc.free(porcelain);
-    var dirty: usize = 0;
-    var dirty_nonkanban: usize = 0;
-    var plines = std.mem.splitScalar(u8, porcelain, '\n');
-    while (plines.next()) |l| {
-        if (l.len == 0) continue;
-        dirty += 1;
-        const is_kanban_store = std.mem.indexOf(u8, l, "tasks.json") != null or
-            std.mem.indexOf(u8, l, "directives.jsonl") != null or
-            std.mem.indexOf(u8, l, "heartbeat.jsonl") != null;
-        if (!is_kanban_store) dirty_nonkanban += 1;
-    }
+    // ── working tree (dirty counts computed in the self block above) ──
     w.data("\n  tree: ", .{});
-    if (dirty_nonkanban == 0) {
+    if (ts_tree.nonkanban == 0) {
         w.data("clean", .{});
-        if (dirty > 0) w.data(" (only kanban-store writes: {d} file(s))", .{dirty});
+        if (ts_tree.total > 0) w.data(" (only kanban-store writes: {d} file(s))", .{ts_tree.total});
         w.data("\n", .{});
     } else {
-        w.data("{d} file(s) changed outside the kanban store ({d} total dirty)\n", .{ dirty_nonkanban, dirty });
+        w.data("{d} file(s) changed outside the kanban store ({d} total dirty)\n", .{ ts_tree.nonkanban, ts_tree.total });
     }
 
     // ── verdict (null control: an empty surface says so explicitly) ──
     w.data("\n  verdict: ", .{});
-    if (live == 0 and dirty_nonkanban == 0) {
+    if (live == 0 and ts_tree.nonkanban == 0) {
         w.data("NOTHING IN FLIGHT and the working tree is clean — nothing to resume.\n", .{});
         w.data("  durable overview: docs/epistemic/PROGRESS.md (hub) · docs/epistemic/CLAIMS.md (register)\n", .{});
     } else {
         w.data("{d} live task(s)", .{live});
-        if (dirty_nonkanban > 0) w.data(", {d} uncommitted file(s) outside the kanban store", .{dirty_nonkanban});
+        if (ts_tree.nonkanban > 0) w.data(", {d} uncommitted file(s) outside the kanban store", .{ts_tree.nonkanban});
         w.data(" — resume where you left off.\n", .{});
         w.data("  durable: docs/epistemic/PROGRESS.md (hub) · docs/epistemic/CLAIMS.md (register)\n", .{});
     }
@@ -4625,4 +4667,47 @@ fn runCommand(allocator: std.mem.Allocator, io: std.Io, argv: []const []const u8
         .argv = argv,
     });
     return result.stdout;
+}
+
+const RunGitOut = struct {
+    stdout: []const u8,
+    ok: bool,
+};
+
+/// Run git -C <repo_root> <argv...>; return stdout plus whether the exit
+/// was 0. On spawn failure stdout is "" and ok is false. Caller owns
+/// stdout when it is non-empty.
+fn runGit(allocator: std.mem.Allocator, io: std.Io, repo_root: []const u8, argv: []const []const u8) RunGitOut {
+    var full = std.ArrayList([]const u8).empty;
+    defer full.deinit(allocator);
+    full.appendSlice(allocator, &.{ "git", "-C", repo_root }) catch return .{ .stdout = "", .ok = false };
+    full.appendSlice(allocator, argv) catch return .{ .stdout = "", .ok = false };
+    const result = std.process.run(allocator, io, .{ .argv = full.items }) catch return .{ .stdout = "", .ok = false };
+    const ok = result.term == .exited and result.term.exited == 0;
+    return .{ .stdout = result.stdout, .ok = ok };
+}
+
+const TreeDirty = struct {
+    total: usize = 0,
+    nonkanban: usize = 0,
+};
+
+/// git status --porcelain dirty counts, with the kanban store's own writes
+/// (tasks.json / directives.jsonl / heartbeat.jsonl) separated out — the
+/// store is written by managent itself, so its dirty lines are not "the
+/// working tree diverging". Empty struct on git failure.
+fn treeDirty(io: std.Io, repo_root: []const u8) TreeDirty {
+    const porcelain = runCommand(alloc, io, &.{ "git", "-C", repo_root, "status", "--porcelain" }) catch return .{};
+    defer if (@intFromPtr(porcelain.ptr) != @intFromPtr("".ptr)) alloc.free(porcelain);
+    var out = TreeDirty{};
+    var plines = std.mem.splitScalar(u8, porcelain, '\n');
+    while (plines.next()) |l| {
+        if (l.len == 0) continue;
+        out.total += 1;
+        const is_kanban_store = std.mem.indexOf(u8, l, "tasks.json") != null or
+            std.mem.indexOf(u8, l, "directives.jsonl") != null or
+            std.mem.indexOf(u8, l, "heartbeat.jsonl") != null;
+        if (!is_kanban_store) out.nonkanban += 1;
+    }
+    return out;
 }

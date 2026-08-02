@@ -37,53 +37,96 @@ else
     FAIL=1
 fi
 
-# 4. Deployed binaries: bin/ == zig-out/ (T268) ─────────────────────────
-# Nothing used to verify that what we ship (bin/) is what we built
-# (zig-out/). Every tool's smoke test runs the DEPLOYED copy and compares
-# its version stamp with the build's — a stale bin/ now fails the suite.
+# 4. Deployed binaries: bin/ matches committed source (T268 + T289) ──────
+# T268 built the check as bin/ == zig-out/; T289 found the hole that
+# mattered: nothing RAN it. T286 deleted the read-first surface while its
+# replacement lived only in zig-out/, and the project had no read-first
+# surface at all until Orcha deployed by hand. This suite run is what makes
+# the check run — wired into `zig build test` from build.zig.
+#
+# Ordering-trap ruling (T289): staleness is judged against COMMITTED source
+# history, NOT against zig-out/ — a bin/ tool is stale iff committed changes
+# since its embedded build commit touched its sources (the tool's src,
+# tools/gen-version.sh, build.zig). Uncommitted edits never trip it (HEAD is
+# unchanged), so a normal edit-test cycle does not break; the guard bites
+# exactly when a cold reader could be misled (T286's shape: source change
+# committed, deploy skipped). A missing/unstamped binary, or one whose build
+# commit is not an ancestor of HEAD, is ALSO a failure — a guard that cannot
+# prove currency is the same silence. Staleness is an ERROR, not a warning:
+# a warning inside a passing suite is how T268's check died.
 # Run 'zig build deploy' (remove-copy-sign) to refresh bin/.
-echo "  deployed == built:"
+echo "  deployed vs committed source:"
 
 # Extract '<tool> <sha>[-dirty]' from a tool's version banner (stderr, any exit code).
 # The tool name is part of the compared token: a wrong-tool binary with the
 # same sha must also fail (negative control, T268).
 stamp_of() {
     local bin="$1"; shift
-    "$bin" "$@" 2>&1 | grep -oE '[a-z][a-z0-9-]* [0-9a-f]{7}(-dirty)? built' | head -1 | sed 's/ built$//' || true
+    "$bin" "$@" 2>&1 | grep -oE '[a-z][a-z0-9-]* [0-9a-f]{7,}(-dirty)? built' | head -1 | sed 's/ built$//' || true
 }
+
+HEAD_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "")
 
 deploy_check() {
     local tool="$1"; shift
-    local built deployed
-    built=$(stamp_of "zig-out/bin/$tool" "$@")
+    local srcs="$1"; shift
+    local deployed toolname built_sha touched
     deployed=$(stamp_of "bin/$tool" "$@")
-    if [ -z "$built" ]; then
-        echo "    FAIL: $tool: no version stamp in zig-out/bin/$tool"
-        FAIL=1
-    elif [ -z "$deployed" ]; then
+    if [ -z "$deployed" ]; then
         echo "    FAIL: $tool: bin/$tool missing or unstamped — run 'zig build deploy'"
         FAIL=1
-    elif [ "$built" = "$deployed" ]; then
-        echo "    PASS: $tool bin/$deployed == zig-out/$built"
-    else
-        echo "    FAIL: $tool: deployed bin/$deployed != built zig-out/$built — bin/ is stale"
+        return
+    fi
+    toolname=${deployed%% *}
+    built_sha=${deployed##* }
+    built_sha=${built_sha%-dirty}
+    if [ "$toolname" != "$tool" ]; then
+        echo "    FAIL: $tool: bin/$tool reports itself as '$toolname' — wrong-tool binary (negative control, T268)"
         FAIL=1
+        return
+    fi
+    if [ -z "$HEAD_SHA" ]; then
+        echo "    FAIL: $tool: cannot resolve git HEAD — cannot verify bin/$tool is current"
+        FAIL=1
+        return
+    fi
+    if ! git merge-base --is-ancestor "$built_sha" HEAD 2>/dev/null; then
+        echo "    FAIL: $tool: bin/$tool built from $built_sha, which is not an ancestor of HEAD ($HEAD_SHA) — provenance unverifiable; run 'zig build deploy'"
+        FAIL=1
+        return
+    fi
+    touched=$(git log --oneline "$built_sha..HEAD" -- $srcs 2>/dev/null | head -1)
+    if [ -n "$touched" ]; then
+        echo "    FAIL: $tool: bin/$tool built from $built_sha; committed source changes since then (HEAD $HEAD_SHA) — bin/ is stale; run 'zig build deploy'"
+        FAIL=1
+    else
+        echo "    PASS: $tool: bin/$tool current (built from $built_sha; no committed source change since)"
     fi
 }
 
+# Per-tool source scope: the tool's own sources + the version generator +
+# build.zig (a build.zig change can alter any binary's build or deploy).
+MANAGENT_SRC="src/managent/ tools/gen-version.sh build.zig"
+ABSORB_SRC="src/absorb.zig src/claims_register.zig tools/gen-version.sh build.zig"
+CLAIMLINT_SRC="src/claimlint.zig tools/gen-version.sh build.zig"
+GTP_SRC="src/gtp.zig tools/gen-version.sh build.zig"
+CHAIN_SRC="src/chainability.zig tools/gen-version.sh build.zig"
+EVSE_SRC="src/engine-vs-engine.zig tools/gen-version.sh build.zig"
+REACH_SRC="src/reachcensus.zig tools/gen-version.sh build.zig"
+
 # managent: --version prints the banner and exits 0.
-deploy_check managent --version
+deploy_check managent "$MANAGENT_SRC" --version
 # weizigo-absorb: no-arg run prints banner + usage (exit 1); banner is what we need.
-deploy_check weizigo-absorb
+deploy_check weizigo-absorb "$ABSORB_SRC"
 # weizigo-claimlint: --version prints banner then scans the register (exit 0).
-deploy_check weizigo-claimlint --version
+deploy_check weizigo-claimlint "$CLAIMLINT_SRC" --version
 # weizigo-gtp: --version prints banner (stderr) then fails to load the artifact.
-deploy_check weizigo-gtp --version
+deploy_check weizigo-gtp "$GTP_SRC" --version
 # Research tools: --version prints banner (stderr) then errors on the bad
 # artifact path; the banner is what we compare.
-deploy_check weizigo-chainability --version
-deploy_check weizigo-engine-vs-engine --version
-deploy_check weizigo-reachcensus --version
+deploy_check weizigo-chainability "$CHAIN_SRC" --version
+deploy_check weizigo-engine-vs-engine "$EVSE_SRC" --version
+deploy_check weizigo-reachcensus "$REACH_SRC" --version
 
 # Functional: the DEPLOYED managent must parse the live kanban (read-only).
 if bin/managent status --json 2>/dev/null | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null; then

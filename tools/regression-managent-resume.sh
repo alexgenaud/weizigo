@@ -15,6 +15,9 @@
 #                     channel STATE.md, hook install) degrade to explicit
 #                     "unavailable"/"none"/"NOT INSTALLED" markers — never
 #                     empty silence and never fabricated numbers
+#   self-defense      (T289) the surface reports its OWN provenance — "self:
+#                     built from …", "source: HEAD …", "self-check: …" — so a
+#                     stale binary cannot answer a cold agent with silence
 #
 # All fixtures are synthetic and run in /tmp/weizigo — the live kanban and live
 # repo are never touched. MANAGENT_STORE points at a scratch kanban and the
@@ -118,6 +121,18 @@ if echo "$OUT" | grep -q "NOTHING IN FLIGHT"; then
     FAIL=1
 else
     echo "    PASS: no NOTHING-IN-FLIGHT statement under a live task"
+fi
+
+# ── self-defense control (T289): the surface reports its own provenance ────
+echo "  5. self-defense control: resume reports its own provenance + a verdict"
+if echo "$OUT" | grep -q "self: built from" && \
+   echo "$OUT" | grep -q "source: HEAD" && \
+   echo "$OUT" | grep -q "self-check:"; then
+    echo "    PASS: self block present (binary built from the real repo, HEAD is the scratch repo — a mismatch verdict is expected and stated, never silence)"
+else
+    echo "    FAIL: self block missing from resume output:"
+    echo "$OUT" | sed 's/^/      /'
+    FAIL=1
 fi
 
 echo ""

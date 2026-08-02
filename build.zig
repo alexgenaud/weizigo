@@ -172,6 +172,17 @@ pub fn build(b: *std.Build) void {
     resume_regression.cwd = b.path(".");
     test_step.dependOn(&resume_regression.step);
 
+    // ── deployed-binaries guard (T289) ───────────────────────────────
+    // tools/smoke.sh compares every deployed bin/ tool's embedded build
+    // stamp against committed source history — a stale bin/ (built before
+    // committed source changes affecting that tool) fails the suite. T268
+    // built the check; T286 proved nothing ran it: the read-first surface
+    // was deleted while its replacement lived only in zig-out/. Same gate
+    // as the pre-commit and resume regressions above.
+    const smoke_regression = b.addSystemCommand(&.{ "sh", "tools/smoke.sh" });
+    smoke_regression.cwd = b.path(".");
+    test_step.dependOn(&smoke_regression.step);
+
     // ── differential (T257/T267: agreement matrix + key invariant) ─
     const differential_tests = b.addTest(.{
         .root_module = b.createModule(.{
