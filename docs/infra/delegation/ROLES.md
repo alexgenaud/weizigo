@@ -77,7 +77,8 @@ number may run at once, each declaring only its output path.
 
 **MUTATION** may modify existing files. One at a time, drawn from a backlog,
 citing the analysis that recommended it so the change is auditable rather than
-improvised, and declaring exclusive paths in `docs/status/CURRENT.md`.
+improvised, and declaring exclusive paths via the kanban `holds=` field
+(`managent show <id>` displays them; `bin/managent resume` lists every held path).
 
 Analysis parallelises for free; mutation does not.
 

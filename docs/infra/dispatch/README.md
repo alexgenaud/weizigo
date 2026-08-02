@@ -64,9 +64,9 @@ not a workaround.
 These are AGENTS.md rules made operational. Violating them corrupts work
 silently, which is worse than failing loudly.
 
-**File ownership.** Every console declares its owned files in
-`docs/status/CURRENT.md` before editing (`<console-id> owns <paths> for EXP-N,
-~N min`), and clears the line when done. Two consoles must never hold the same
+**File ownership.** Every console declares its owned files via the kanban
+`holds=` field before editing (`managent show <id>`; `bin/managent resume`
+lists every held path), and clears the hold when done. Two consoles must never hold the same
 file.
 
 **Never two consoles on an engine file.** `src/retro.zig`, `src/oracle.zig`,

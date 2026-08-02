@@ -11,7 +11,7 @@ interrupted mid-flight by a machine-level kernel panic on 2026-07-29 02:37 and
 never ran acceptance or wrote this document. The code it left in the tree was
 completed, corrected (one real sign defect, §3), measured, and documented by
 Opus 5 on 2026-07-29. Nothing about the panic affected the repository or the
-artifacts; see `docs/status/CURRENT.md`.
+artifacts; see the resume surface (`bin/managent resume`) for the current state.
 
 ---
 

@@ -15,7 +15,7 @@ what is open, and what it means.
 
 **The other files:**
 - `CLAIMS.md` — the ledger: every claim, its status, its evidence, its dependency edges. Machine-readable and machine-checked. This is where a status changes; this file only reflects those changes.
-- `CURRENT.md` — tactical: who owns what file, what build is in flight, what to resume.
+- `CURRENT.md` — retired 2026-08-03 (T286); the resume surface is `bin/managent resume`, composed at read time (`docs/infra/resume-surface.md`).
 - `HANDOVER.md` — session continuity between agent shifts.
 - `knowledge-ladder.md` — a PROPOSED framework separating epistemic strength from rule fidelity (not yet adjudicated by the user).
 

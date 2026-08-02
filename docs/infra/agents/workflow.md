@@ -19,17 +19,14 @@ truth together (`docs/about-this-document.md`).
 ## Where state lives, so context can be cleared at any moment
 
 - **Milestones** → committed to git (code + docs).
-- **The in-flight task** → `docs/status/CURRENT.md`, updated continuously: what I am doing now,
-  the next concrete step, any partial state not yet committed.
+- **The in-flight task** → `bin/managent resume`, read at any moment: what is in flight, what landed, gate status. (CURRENT.md is retired — a hand-refreshed file was always stale within a day; the surface is now derived at read time.)
 - **Decisions / findings** → `docs/decisions/` (ADRs, append-only) and `docs/research/`.
 - **Console discussion** → distilled into the tree only when it changes a decision, reveals a
   finding, or changes the plan; otherwise it stays ephemeral.
 - Aim for **implement → test → stabilize → verify → commit** in small cycles, so the committed
-  state is always coherent and the only thing at risk is the current `CURRENT.md` line.
+  state is always coherent and the only thing at risk is the current uncommitted diff.
 
-## How much process to apply (the agent's call)
-
-Trivial fix or doc edit → do it, one line in `CURRENT.md`. A probe or measurement → spec-line,
+Trivial fix or doc edit → do it, record the one line in the commit. A probe or measurement → spec-line,
 run, record. A real decision (ruleset, engine semantics, a new bound claim) → ADR + the
 auditor/battery as the gate. Anything touching engine soundness → the full pipeline + a
 fresh-agent audit. If encoding these as rules produces deadweight instead of results, the rules

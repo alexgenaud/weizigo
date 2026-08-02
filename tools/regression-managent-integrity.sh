@@ -49,7 +49,8 @@ else
     FAIL=1
 fi
 
-# ── Setup: temp store in ephemeral ──────────────────────────────────────────
+# ── Setup: temp store in /tmp/weizigo (disposable; the `ephemeral`
+#    indirection was retired 2026-08-03, T286) ────────────────────────────
 TMPDIR="$(mktemp -d /tmp/weizigo/managent-integrity-XXXXXX)"
 trap 'rm -rf "$TMPDIR"' EXIT
 

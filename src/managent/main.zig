@@ -194,6 +194,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdDone(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "status")) {
         try cmdStatus(w, io, state_path, repo_root, args);
+    } else if (std.mem.eql(u8, cmd, "resume")) {
+        try cmdResume(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "next")) {
         try cmdNext(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "show")) {
@@ -2418,6 +2420,361 @@ fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
     w.data("]\n", .{});
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESUME SURFACE (T286) — compose at read time, never store
+// ═══════════════════════════════════════════════════════════════════════════════
+// `managent resume` composes the resume surface on demand from sources that
+// cannot be stale: tasks.json (the kanban), git log/config/status, the claimlint
+// summary against the recorded floor, and the channel STATE.md narrative (by
+// reference). Nothing is cached and nothing is written; a stale surface is
+// structurally impossible because the surface IS the sources, read at the
+// instant of invocation. Design: docs/infra/resume-surface.md (T286).
+
+const ResumeFloor = struct {
+    c1a: i64 = 0,
+    c1b: i64 = 0,
+    c2: i64 = 0,
+    c6: i64 = 0,
+};
+
+fn readResumeFloor(io: std.Io, repo_root: []const u8) ?ResumeFloor {
+    const floor_path = std.fs.path.join(alloc, &.{ repo_root, "tools", "hooks", "claimlint-floor.json" }) catch return null;
+    defer alloc.free(floor_path);
+    const content = std.Io.Dir.cwd().readFileAlloc(io, floor_path, alloc, .unlimited) catch return null;
+    defer alloc.free(content);
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch return null;
+    defer parsed.deinit();
+    if (parsed.value != .object) return null;
+    const floor = parsed.value.object.get("floor") orelse return null;
+    if (floor != .object) return null;
+    var out = ResumeFloor{};
+    if (floor.object.get("C1a")) |v| {
+        if (v == .integer) out.c1a = v.integer;
+    }
+    if (floor.object.get("C1b")) |v| {
+        if (v == .integer) out.c1b = v.integer;
+    }
+    if (floor.object.get("C2")) |v| {
+        if (v == .integer) out.c2 = v.integer;
+    }
+    if (floor.object.get("C6")) |v| {
+        if (v == .integer) out.c6 = v.integer;
+    }
+    return out;
+}
+
+const ClaimlintSummary = struct {
+    ran: bool = false,
+    c1a: ?u64 = null,
+    c1b: ?u64 = null,
+    c2: ?u64 = null,
+    c6: ?u64 = null,
+    calibration_pass: bool = false,
+};
+
+/// Run the project's claimlint (from the repo root) and parse the summary
+/// counts. Degrades to `ran=false` when the binary is absent or spawn fails
+/// (fresh clone without a build) — the surface says "unavailable" instead of
+/// inventing numbers.
+fn runClaimlintSummary(allocator: std.mem.Allocator, io: std.Io, repo_root: []const u8) ClaimlintSummary {
+    var out = ClaimlintSummary{};
+    const result = std.process.run(allocator, io, .{
+        .argv = &.{ "bin/weizigo-claimlint" },
+        .cwd = .{ .path = repo_root },
+    }) catch return out;
+    defer allocator.free(result.stdout);
+    out.ran = true;
+    var lines = std.mem.splitScalar(u8, result.stdout, '\n');
+    while (lines.next()) |line| {
+        if (std.mem.indexOf(u8, line, "C1a orphans") != null) {
+            var tok = std.mem.tokenizeAny(u8, line, " \t");
+            var idx: usize = 0;
+            while (tok.next()) |t| : (idx += 1) {
+                if (idx == 5) out.c1a = std.fmt.parseInt(u64, t, 10) catch null;
+                if (idx == 7) out.c1b = std.fmt.parseInt(u64, t, 10) catch null;
+            }
+        } else if (std.mem.indexOf(u8, line, "C2 dangling") != null) {
+            var tok = std.mem.tokenizeAny(u8, line, " \t");
+            var idx: usize = 0;
+            while (tok.next()) |t| : (idx += 1) {
+                if (idx == 4) out.c2 = std.fmt.parseInt(u64, t, 10) catch null;
+            }
+        } else if (std.mem.indexOf(u8, line, "C6 cite-tag") != null) {
+            var tok = std.mem.tokenizeAny(u8, line, " \t");
+            var idx: usize = 0;
+            while (tok.next()) |t| : (idx += 1) {
+                if (idx == 3) out.c6 = std.fmt.parseInt(u64, t, 10) catch null;
+            }
+        } else if (std.mem.indexOf(u8, line, "calibration") != null) {
+            out.calibration_pass = std.mem.indexOf(u8, line, "PASS") != null;
+        }
+    }
+    return out;
+}
+
+fn printResumeSection(w: Writers, label: []const u8, ids: []const []const u8, state: *const StateMap, repo_root: []const u8) void {
+    if (ids.len == 0) return;
+    w.data("    {s} ({d})\n", .{ label, ids.len });
+    for (ids) |tid| {
+        const ts = state.get(tid).?;
+        const rel = bundleRel(ts.bundle, repo_root);
+        w.data("      {s} [set {c}]", .{ tid, ts.set });
+        if (ts.holds.len > 0) {
+            w.data(" holds", .{});
+            for (ts.holds) |h| w.data(" {s}", .{h});
+        }
+        if (ts.needs.len > 0) {
+            w.data(" needs", .{});
+            for (ts.needs) |n| w.data(" {s}", .{n});
+        }
+        if (ts.agent != null) {
+            const ident = agentIdentifier(ts, tid) catch tid;
+            w.data(" ({s})", .{ident});
+        }
+        w.data(" — {s}\n", .{rel});
+    }
+}
+
+/// Print the narrative headline of every channel STATE.md under untracked/msg/
+/// — by reference. The prose is never copied into the surface; the resume
+/// reader opens the file. Degrades to an explicit "none" when the channel
+/// does not exist (fresh clone).
+fn scanChannelState(w: Writers, io: std.Io, repo_root: []const u8) void {
+    const msg_dir = std.fs.path.join(alloc, &.{ repo_root, "untracked", "msg" }) catch {
+        w.data("    none (untracked/msg/ unreadable — fresh clone has no channel)\n", .{});
+        return;
+    };
+    defer alloc.free(msg_dir);
+
+    var root = std.Io.Dir.cwd().openDir(io, msg_dir, .{}) catch {
+        w.data("    none (untracked/msg/ unreadable — fresh clone has no channel)\n", .{});
+        return;
+    };
+    defer root.close(io);
+
+    var subs = std.ArrayList([]const u8).empty;
+    defer {
+        for (subs.items) |s| alloc.free(s);
+        subs.deinit(alloc);
+    }
+    var iter = root.iterate();
+    while (iter.next(io) catch null) |entry| {
+        if (entry.kind != .directory) continue;
+        subs.append(alloc, alloc.dupe(u8, entry.name) catch continue) catch continue;
+    }
+    std.mem.sort([]const u8, subs.items, {}, struct {
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
+    }.lt);
+
+    if (subs.items.len == 0) {
+        w.data("    none (no channel directories under untracked/msg/)\n", .{});
+        return;
+    }
+
+    var found: usize = 0;
+    for (subs.items) |sub| {
+        const state_rel = std.fmt.allocPrint(alloc, "untracked/msg/{s}/STATE.md", .{sub}) catch continue;
+        defer alloc.free(state_rel);
+        const state_abs = std.fs.path.join(alloc, &.{ repo_root, state_rel }) catch continue;
+        defer alloc.free(state_abs);
+        const content = std.Io.Dir.cwd().readFileAlloc(io, state_abs, alloc, .unlimited) catch continue;
+        defer alloc.free(content);
+
+        found += 1;
+        var title: ?[]const u8 = null;
+        var last_updated: ?[]const u8 = null;
+        var headline: ?[]const u8 = null;
+        var clines = std.mem.splitScalar(u8, content, '\n');
+        while (clines.next()) |line| {
+            const trimmed = std.mem.trim(u8, line, " \t\r");
+            if (title == null and trimmed.len > 0) title = trimmed;
+            if (last_updated == null and std.mem.indexOf(u8, line, "Last updated") != null) {
+                last_updated = std.mem.trim(u8, line, " \t\r");
+            }
+            if (headline == null and std.mem.startsWith(u8, trimmed, "## ")) headline = trimmed;
+            if (title != null and last_updated != null and headline != null) break;
+        }
+        w.data("    {s}\n", .{state_rel});
+        if (title) |t| w.data("      title: {s}\n", .{t});
+        if (last_updated) |lu| w.data("      last updated: {s}\n", .{lu});
+        if (headline) |h| w.data("      headline: {s}\n", .{h});
+        w.data("      (full narrative lives in that file — resume reads it there)\n", .{});
+    }
+    if (found == 0) w.data("    none (no STATE.md under untracked/msg/)\n", .{});
+}
+
+fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = args;
+
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+
+    const now = try nowTimestamp();
+    defer alloc.free(now);
+
+    var in_progress = std.ArrayList([]const u8).empty;
+    defer in_progress.deinit(alloc);
+    var dispatchable = std.ArrayList([]const u8).empty;
+    defer dispatchable.deinit(alloc);
+    var blocked = std.ArrayList([]const u8).empty;
+    defer blocked.deinit(alloc);
+
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const tid = entry.key_ptr.*;
+        const ts = entry.value_ptr.*;
+        switch (deriveStatus(&state, ts)) {
+            .in_progress => try in_progress.append(alloc, tid),
+            .dispatchable => try dispatchable.append(alloc, tid),
+            .blocked => try blocked.append(alloc, tid),
+            else => {},
+        }
+    }
+    const sortFn = struct {
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
+    }.lt;
+    std.mem.sort([]const u8, in_progress.items, {}, sortFn);
+    std.mem.sort([]const u8, dispatchable.items, {}, sortFn);
+    std.mem.sort([]const u8, blocked.items, {}, sortFn);
+
+    const live = in_progress.items.len + dispatchable.items.len + blocked.items.len;
+
+    // ── header ──
+    w.data("\n  === resume surface — composed at read time; nothing stored ===\n", .{});
+    w.data("  composed {s} from tasks.json · git log/config/status · claimlint · STATE.md\n", .{now});
+
+    // ── kanban (live tasks + held files) ──
+    if (live == 0) {
+        w.data("\n  kanban: NOTHING IN FLIGHT — no in_progress / dispatchable / blocked tasks\n", .{});
+    } else {
+        w.data("\n  kanban (live):\n", .{});
+        printResumeSection(w, "in_progress", in_progress.items, &state, repo_root);
+        printResumeSection(w, "dispatchable", dispatchable.items, &state, repo_root);
+        printResumeSection(w, "blocked", blocked.items, &state, repo_root);
+
+        w.data("  held files:\n", .{});
+        var held_any = false;
+        const buckets = [_][]const []const u8{ in_progress.items, dispatchable.items, blocked.items };
+        for (buckets) |ids| {
+            for (ids) |tid| {
+                const ts = state.get(tid).?;
+                for (ts.holds) |h| {
+                    held_any = true;
+                    w.data("    {s}  (held by {s})\n", .{ h, tid });
+                }
+            }
+        }
+        if (!held_any) w.data("    -- none --\n", .{});
+    }
+
+    // ── what landed: recent commits ──
+    const log_result = runCommand(alloc, io, &.{ "git", "-C", repo_root, "log", "--oneline", "-10" }) catch "";
+    defer if (@intFromPtr(log_result.ptr) != @intFromPtr("".ptr)) alloc.free(log_result);
+    w.data("\n  recent commits (git log --oneline -10):\n", .{});
+    if (std.mem.trim(u8, log_result, " \t\n\r").len == 0) {
+        w.data("    -- no commits yet --\n", .{});
+    } else {
+        var llines = std.mem.splitScalar(u8, log_result, '\n');
+        while (llines.next()) |l| {
+            if (l.len > 0) w.data("    {s}\n", .{l});
+        }
+    }
+
+    // ── gate: hook installed? claimlint at floor? ──
+    const hooks_result = runCommand(alloc, io, &.{ "git", "-C", repo_root, "config", "core.hooksPath" }) catch "";
+    defer if (@intFromPtr(hooks_result.ptr) != @intFromPtr("".ptr)) alloc.free(hooks_result);
+    const hooks_trimmed = std.mem.trim(u8, hooks_result, " \t\n\r");
+    const gate_installed = std.mem.eql(u8, hooks_trimmed, "tools/hooks");
+
+    const cl = runClaimlintSummary(alloc, io, repo_root);
+    const floor = readResumeFloor(io, repo_root);
+
+    w.data("\n  gate:\n", .{});
+    if (gate_installed) {
+        w.data("    pre-commit hook: INSTALLED (core.hooksPath = tools/hooks)\n", .{});
+    } else if (hooks_trimmed.len > 0) {
+        w.data("    pre-commit hook: set to '{s}' (not tools/hooks — install: git config core.hooksPath tools/hooks)\n", .{hooks_trimmed});
+    } else {
+        w.data("    pre-commit hook: NOT INSTALLED (core.hooksPath unset — install: git config core.hooksPath tools/hooks)\n", .{});
+    }
+
+    if (!cl.ran) {
+        w.data("    claimlint: unavailable (bin/weizigo-claimlint not built or failed to run — build: zig build)\n", .{});
+    } else {
+        w.data("    claimlint: ", .{});
+        if (cl.c1a) |v| w.data("C1a={d} ", .{v}) else w.data("C1a=? ", .{});
+        if (cl.c1b) |v| w.data("C1b={d} ", .{v}) else w.data("C1b=? ", .{});
+        if (cl.c2) |v| w.data("C2={d} ", .{v}) else w.data("C2=? ", .{});
+        if (cl.c6) |v| w.data("C6={d} ", .{v}) else w.data("C6=? ", .{});
+        w.data("calibration={s}\n", .{if (cl.calibration_pass) "PASS" else "FAIL/unparsed"});
+        if (floor) |f| {
+            if (cl.c1a != null and cl.c1b != null and cl.c2 != null and cl.c6 != null) {
+                const at_floor = cl.c1a.? <= @as(u64, @intCast(f.c1a)) and
+                    cl.c1b.? <= @as(u64, @intCast(f.c1b)) and
+                    cl.c2.? <= @as(u64, @intCast(f.c2)) and
+                    cl.c6.? <= @as(u64, @intCast(f.c6));
+                w.data("    floor: C1a={d} C1b={d} C2={d} C6={d} — {s}\n", .{
+                    f.c1a, f.c1b, f.c2, f.c6,
+                    if (at_floor) "at or below floor" else "ABOVE FLOOR — register regressed",
+                });
+            } else {
+                w.data("    floor: unparseable from claimlint summary\n", .{});
+            }
+        } else {
+            w.data("    floor: tools/hooks/claimlint-floor.json unreadable\n", .{});
+        }
+    }
+    // zig build status is deliberately NOT run: the full suite (incl. the
+    // stratified sweeps and the pre-commit regression) is minutes, not
+    // milliseconds — a resume surface that costs a suite-run to compose is not
+    // a resume surface. The reader is told to run it themselves. (resume-surface.md)
+    w.data("    zig build test: NOT RUN here (minutes of sweeps; run `zig build test` yourself)\n", .{});
+
+    // ── narrative headline, by reference ──
+    w.data("\n  narrative (by reference — the prose is not copied here):\n", .{});
+    scanChannelState(w, io, repo_root);
+
+    // ── working tree ──
+    const porcelain = runCommand(alloc, io, &.{ "git", "-C", repo_root, "status", "--porcelain" }) catch "";
+    defer if (@intFromPtr(porcelain.ptr) != @intFromPtr("".ptr)) alloc.free(porcelain);
+    var dirty: usize = 0;
+    var dirty_nonkanban: usize = 0;
+    var plines = std.mem.splitScalar(u8, porcelain, '\n');
+    while (plines.next()) |l| {
+        if (l.len == 0) continue;
+        dirty += 1;
+        const is_kanban_store = std.mem.indexOf(u8, l, "tasks.json") != null or
+            std.mem.indexOf(u8, l, "directives.jsonl") != null or
+            std.mem.indexOf(u8, l, "heartbeat.jsonl") != null;
+        if (!is_kanban_store) dirty_nonkanban += 1;
+    }
+    w.data("\n  tree: ", .{});
+    if (dirty_nonkanban == 0) {
+        w.data("clean", .{});
+        if (dirty > 0) w.data(" (only kanban-store writes: {d} file(s))", .{dirty});
+        w.data("\n", .{});
+    } else {
+        w.data("{d} file(s) changed outside the kanban store ({d} total dirty)\n", .{ dirty_nonkanban, dirty });
+    }
+
+    // ── verdict (null control: an empty surface says so explicitly) ──
+    w.data("\n  verdict: ", .{});
+    if (live == 0 and dirty_nonkanban == 0) {
+        w.data("NOTHING IN FLIGHT and the working tree is clean — nothing to resume.\n", .{});
+        w.data("  durable overview: docs/epistemic/PROGRESS.md (hub) · docs/epistemic/CLAIMS.md (register)\n", .{});
+    } else {
+        w.data("{d} live task(s)", .{live});
+        if (dirty_nonkanban > 0) w.data(", {d} uncommitted file(s) outside the kanban store", .{dirty_nonkanban});
+        w.data(" — resume where you left off.\n", .{});
+        w.data("  durable: docs/epistemic/PROGRESS.md (hub) · docs/epistemic/CLAIMS.md (register)\n", .{});
+    }
+    w.data("\n", .{});
+}
+
 fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     const exec_prefix = getFlagValue(args, "--exec");
 
@@ -2643,6 +3000,7 @@ fn printHelp(w: Writers) void {
         \\Usage:
         \\  managent                  show current state (default)
         \\  managent status [--json]  show current state (--json for machine output)
+        \\  managent resume           compose the resume surface at read time (replaces CURRENT.md)
         \\  managent add <id>         register a task (with --auto to mint T<N> ID)
         \\  managent suggest <slug>   mint T-ID, create bundle, print dispatch prompt
         \\  managent dispatch <id>    record a human→agent dispatch (task stays dispatchable)
@@ -2661,6 +3019,7 @@ fn printHelp(w: Writers) void {
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
         \\  managent liveness         show last heartbeat per in_progress task
         \\  managent standing         register triggered standing-tier tasks
+        \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
         \\  managent help             show this help
         \\
         \\Options:

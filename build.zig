@@ -162,6 +162,16 @@ pub fn build(b: *std.Build) void {
     precommit_regression.cwd = b.path(".");
     test_step.dependOn(&precommit_regression.step);
 
+    // ── resume-surface controls (T286) ───────────────────────────────
+    // Null control (empty kanban + clean tree says NOTHING IN FLIGHT) and
+    // seeded control (in_progress task + held file both appear). SKIPs
+    // loudly when no managent binary with the resume command exists —
+    // build with `zig build` first (same convention as the claimlint
+    // control in regression-precommit.sh).
+    const resume_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-resume.sh" });
+    resume_regression.cwd = b.path(".");
+    test_step.dependOn(&resume_regression.step);
+
     // ── differential (T257/T267: agreement matrix + key invariant) ─
     const differential_tests = b.addTest(.{
         .root_module = b.createModule(.{

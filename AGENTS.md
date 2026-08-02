@@ -61,7 +61,8 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 - **No silent writes to `data/` or `artifacts/`.** New rule → new file, tagged `(size, ruleset)`; never
   overwrite a `.wzo` or `artifacts/SHA256SUMS`.
 - **One writer per engine file** (`src/retro.zig`, `oracle.zig`, `rules.zig`, `solve.zig`). Declare
-  ownership in `docs/status/CURRENT.md`, clear it when done; concurrent edits corrupt silently.
+  ownership via the kanban `holds=` field (`managent show <id>` displays it), clear it when done;
+  concurrent edits corrupt silently.
 - **Dates are absolute** (2026-07-28), never "today." **Numbers cite their run** (command, flags, goban
   size) and state their **denominator**.
 - **Know your identifier and write it into every file you produce.** Court seats use the role name
@@ -118,8 +119,8 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | after the living overview | `docs/epistemic/PROGRESS.md` — the durable hub. The two dated docs below are depth it is meant to absorb; if they disagree with it, PROGRESS is stale and that is a bug to file |
 | after which ruleset we solve, and how | `docs/epistemic/roadmap-2026-07-28.md` |
 | after what is known-wrong | `docs/epistemic/critique-2026-07-28.md` (§4 especially) |
-| resuming cold (durable in git) | `docs/status/CURRENT.md`, then `docs/status/HANDOVER.md` |
-| resuming from the channel (durable + untracked) | `untracked/msg/<epic>/STATE.md` (read first), then `docs/status/CURRENT.md` |
+| resuming cold (durable in git) | `bin/managent resume` (composed surface), then `docs/epistemic/PROGRESS.md` |
+| resuming from the channel (durable + untracked) | `untracked/msg/<epic>/STATE.md` (read first), then `bin/managent resume` |
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | delegating to a DeepSeek subagent | `docs/infra/agents/subdelegation.md` — `odeeppi` (Pro) and `oflashpi` (Flash) shell commands |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
@@ -184,17 +185,19 @@ There are exactly two places for files that must not enter git, and their purpos
 
 | directory | purpose | lifetime | examples |
 |---|---|---|---|
-| `ephemeral/` → `/tmp/weizigo/` | **disposable outputs** — build artifacts, test runs, zig caches, scratch files you would not mind losing on reboot | reboot = gone; fine | `/tmp/weizigo-zigcache`, compiled binaries, `heartbeat.jsonl` |
+| `/tmp/weizigo/` | **disposable outputs** — build artifacts, test runs, zig caches, scratch files you would not mind losing on reboot | reboot = gone; fine | `/tmp/weizigo-zigcache`, compiled binaries, `heartbeat.jsonl` |
 | `untracked/` (project-local, gitignored) | **important but untracked** — agent-to-agent comms, large `.wzo` artifacts too big for git, in-progress task bundles | must survive across sessions; survives clone only on the host that created it | `msg/`, `managent/` (tombstone), `*.wzo` |
 
 **Rule: never put disposable scratch in `untracked/`.** The B44 cleanup swept evidence because `untracked/` held
 both scratch and load-bearing files and the cleaner could not tell them apart. If it goes to `/tmp/weizigo/` it will
 never be cited as evidence; if it is in `untracked/` someone may need it next month. Choose deliberately.
 
-To create the ephemeral symlink (once per clone):
+Ensure `/tmp/weizigo` exists (once per clone):
 ```sh
-mkdir -p /tmp/weizigo && ln -s /tmp/weizigo ephemeral
+mkdir -p /tmp/weizigo
 ```
+Disposable scratch goes straight to `/tmp/weizigo/` — the `ephemeral` symlink is retired
+(human's ruling, 2026-08-03; see `docs/infra/resume-surface.md`).
 
 Agent-to-agent comms and task state belong in `untracked/`, under documented subdirectories:
 - `untracked/msg/<epic>/` — cross-agent messages (see below)

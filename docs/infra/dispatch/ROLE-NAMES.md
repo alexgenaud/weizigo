@@ -20,7 +20,7 @@ The AGENTS.md identifier convention is `model/role` for court seats — but the 
    - Model names in examples → role names
 2. **Update the identifier convention in AGENTS.md** — the `model/role` format becomes just `role` for court seats, `task-id` for workers. The model is recorded in managent and model-perf, not in the identifier.
 3. **Sweep dispatch briefs** — `docs/infra/dispatch/*.md`. Where a brief says "Agent: Fable" or "dispatched to Opus", replace with the capability needed: `reasoning: sustained`, `adversarial review`, `measurement executor`, etc. Per `ROLES.md` §"Specification restraint": "specify only what changes the outcome, and say why." The brief says *what kind of thinking is needed*; STATE.md says *which model provides it today*.
-4. **Do NOT touch:** `model-perf.md` (it IS the model ledger), `CLAIMS.md` (records which model found/adjudicated what — that's provenance, not instruction), the channel (historical record), `tasks.json` (the `agent` field is the performance record and the `note` field is historical), `CURRENT.md` (records who holds which file — that's live state and model-attributed).
+4. **Do NOT touch:** `model-perf.md` (it IS the model ledger), `CLAIMS.md` (records which model found/adjudicated what — that's provenance, not instruction), the channel (historical record), `tasks.json` (the `agent` field is the performance record and the `note` field is historical). `CURRENT.md` is retired (2026-08-03) — held files live in the kanban `holds=` field and are listed by `bin/managent resume`.
 5. **STATE.md gets a one-line note** that it is now the single source of truth for which model holds which seat — every other file defers to it.
 
 ## Acceptance

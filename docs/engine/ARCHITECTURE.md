@@ -24,7 +24,7 @@ for 5x5, then 6x6, aiming at 7x7.
 > long-cycle verdict**, with a *measured* divergence from PSK — and as of
 > 2026-07-29 the value rule that was to compute it (`V = median(L, TIE, H)`) is
 > **FALSE-AS-SCOPED at 3×2**, so a replacement is required before any build.
-> Current position: `docs/status/CURRENT.md`, `docs/epistemic/PROGRESS.md`,
+> Current position: `bin/managent resume` (composed surface), `docs/epistemic/PROGRESS.md`,
 > `docs/epistemic/knowledge-ladder.md` (which rung each claim actually sits on).
 >
 > The 5x5 density folds and projections in §§ below are historical arithmetic,

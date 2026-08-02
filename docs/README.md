@@ -31,9 +31,9 @@ Working notes for the brute-force / perfect small-goban Go solver.
   `infra/agents/workflow.md`, `infra/sprint.md`, `infra/subagent.md`,
   `infra/agents/boss-role.md`, `infra/agents/worker-role.md`, `infra/delegation.md` —
   retired 2026-07-28; each is a stub naming its replacement.
-- `status/CURRENT.md` — ephemeral in-flight task status (read on resume;
-  update continuously).
-- `status/` — current state and live crises (`leak-crisis.md`).
+- `status/` — tactical session snapshots (HANDOVER.md; the old CURRENT.md is
+  retired — the resume surface is `bin/managent resume`, composed at read time) and live
+  crises (`leak-crisis.md`).
 - `decisions/` — Architecture Decision Records (ADRs), append-only, one
   numbered file per decision. Append new ones; supersede, don't rewrite.
 - `research/` — durable findings, measurements, dead-ends, and lessons.

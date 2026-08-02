@@ -47,7 +47,9 @@ never committed.
 
 1. **Give the subagent a bounded task.** One file to read, one question to answer, one deliverable. A subagent with an open-ended brief is a lost session.
 2. **State the deliverable path.** The subagent must write its output to a specific file. The parent reads it after the subagent exits.
-3. **Subagents never edit shared state *directly*.** No `CLAIMS.md`, no `CURRENT.md`, no channel messages.
+3. **Subagents never edit shared state *directly*.** No `CLAIMS.md`, no channel messages,
+   no edits to the resume surface (`bin/managent resume` is read-only by construction;
+   `CURRENT.md` is retired 2026-08-03).
    Kanban writes happen only via `bin/managent` (`claim` / `done` — the wrapper below enforces both).
    Output goes to `findings/` or a dedicated evidence path.
 4. **Independent re-implementation is the highest-value use.** The only instrument that has found every real defect in this project is an independent seat. Subagents make this cheap.

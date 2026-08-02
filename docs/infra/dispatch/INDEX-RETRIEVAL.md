@@ -9,7 +9,7 @@ That is the Persian-chancery standard: the tablet is worthless if the scribe can
 
 **1. A single top-level index** — `docs/INDEX.md`. For each question a reader or agent actually arrives with, one line and one destination:
 - *what is known / what failed / what's open* → `PROGRESS.md` (narrative), `CLAIMS.md` (ledger)
-- *what is the state right now* → `docs/status/CURRENT.md`, `STATE.md`
+- *what is the state right now* → `bin/managent resume`, `STATE.md`
 - *why was X decided* → the ADR, by topic not by number
 - *what backs claim Y* → its evidence dir
 - *what did model Z do* → `model-perf.md`

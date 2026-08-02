@@ -36,6 +36,7 @@ managent why <claim-id>        show tasks that produced evidence for a claim
 managent sync <role>           print unread inbox; exit non-zero when write owed
 managent audit [--json]        cross-check kanban against reality; exit 1 if FIX findings, 0 otherwise (WARN-only / clean)
 managent standing              print standing-tier triggers and task status
+managent resume                compose the resume surface at read time (replaces CURRENT.md; pure reader)
 
 Global options:
   -h, --help                  print help (works with any verb, e.g. `managent standing --help`)
@@ -43,7 +44,7 @@ Global options:
 
 ### Output streams
 
-**stdout = data.** `status`, `show`, `why`, `sync`, `audit`, `standing` write
+**stdout = data.** `status`, `show`, `why`, `sync`, `audit`, `standing`, `resume` write
 their payload to stdout — anything a caller might parse, filter, or redirect.
 
 **stderr = diagnostics.** Warnings, errors, `REJECTED`, `BLOCKED`, migration
@@ -301,6 +302,51 @@ $ managent
 
   failed
     -- none --
+```
+
+---
+
+### `managent resume`
+
+Composes the **resume surface** at read time (T286; design:
+`docs/infra/resume-surface.md`). Replaces `docs/status/CURRENT.md`, which was
+hand-refreshed and always stale. Pure reader: never writes `tasks.json`.
+
+Sections, each from a source that cannot be stale:
+
+- **kanban (live)** — in_progress / dispatchable / blocked tasks with set,
+  holds, needs, bundle; a `held files` list mapping each held path to its task.
+  An empty kanban prints an explicit `NOTHING IN FLIGHT` statement, never an
+  empty section.
+- **recent commits** — `git log --oneline -10`.
+- **gate** — `core.hooksPath` installed? claimlint counts (C1a/C1b/C2/C6)
+  against the recorded floor (`tools/hooks/claimlint-floor.json`)? `zig build
+  test` is deliberately NOT run (minutes of sweeps).
+- **narrative** — every `untracked/msg/*/STATE.md` by reference: path,
+  last-updated line, first `## ` heading. The prose is never copied.
+- **tree** — `git status --porcelain` (kanban-store writes excluded).
+- **verdict** — nothing-in-flight + clean tree, or a pointer to what is.
+
+Degradation is explicit, never silent: unbuilt claimlint prints
+`claimlint: unavailable`; a fresh clone with no channel prints `none (...)`.
+
+Regression controls: `tools/regression-managent-resume.sh` (null control —
+empty kanban + clean tree says NOTHING IN FLIGHT; seeded control — a task in
+progress and its held file both appear), wired into `zig build test`.
+
+```
+$ managent resume
+
+  === resume surface — composed at read time; nothing stored ===
+  composed 2026-08-03T00:10:00Z from tasks.json · git log/config/status · claimlint · STATE.md
+
+  kanban (live):
+    in_progress (1)
+      T286 [set B] — untracked/T286-derive-the-resume-surface.md
+  held files:
+    src/managent/main.zig  (held by T286)
+  ...
+  verdict: 1 live task(s) — resume where you left off.
 ```
 
 ---

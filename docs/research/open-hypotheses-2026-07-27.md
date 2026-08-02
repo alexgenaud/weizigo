@@ -334,7 +334,7 @@ H5(a), H5(c) ───────────▶ independent of everything abov
   them edits `src/retro.zig`, `oracle.zig`, `rules.zig` or `solve.zig`, so none
   contends for the one-writer-per-engine-file lock; H2's optional policy change
   and H5(a)'s guard touch `src/arena.zig` and `src/gtp.zig` respectively and
-  should each declare an intent line in `docs/status/CURRENT.md` per the
+  should each declare the exclusive path via the kanban `holds=` field per the
   concurrency protocol.
 - **Run first: H1's census.** It is the cheapest thing in the register (~183 MB,
   minutes of wall time, no build, no engine-file lock), it is the only entry that

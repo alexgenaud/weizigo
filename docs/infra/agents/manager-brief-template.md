@@ -153,6 +153,8 @@ docs/evidence/absorption/<YYYY-MM-DD>.json
 ## 6. Post-absorption
 
 1. **Commit the absorption file.** Load-bearing findings live at `docs/evidence/absorption/<date>.json`, which is tracked — committed to git before anything downstream cites it. A pure-mechanical batch may keep its file in `untracked/`, but never put load-bearing findings there: `untracked/` is git-ignored, which is how evidence dies.
-2. **Update `docs/status/CURRENT.md`** with the batch result.
+2. **Record the batch result** in the commit and the findings file
+   (`findings/<task-id>-<slug>.json`). The resume surface is derived, not
+   hand-written — `bin/managent resume` composes it at read time.
 3. **If any `claims[]` or `new_rows` entries exist:** file a follow-up task for the Orchestrator/claimlint (or run `weizigo-absorb`) to absorb them into `CLAIMS.md`.
 4. **If any gap mentions exist:** file follow-up tasks for resolution in the next sprint, unless the gap is CRITICAL (handle immediately).

@@ -24,7 +24,7 @@ dispatch lines); both pointed into the 298-line version, recoverable with
 ## Kept: decision hygiene
 
 - **Do not ask the user a question you can answer yourself.** With enough information, decide,
-  and record the rationale in `docs/status/CURRENT.md` — and in an ADR if durable.
+  and record the rationale in the commit and the findings file (`findings/<task-id>-<slug>.json`) — and in an ADR if durable.
 - **When you genuinely lack information, ask one focused question, not a menu** — with a
   recommended default.
 

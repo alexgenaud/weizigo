@@ -47,10 +47,11 @@ placement" heading.
 Not registered, tracked here so it is not lost: engine-unification **pass1** (the
 actual unification — delete `genericChainCaptured`, `genericIsLegal`,
 `genericPosFromMove`, extend to 4×3/4×4) is Phase 2 work and waits on the
-kernel's shape; audit **prescription 3** (generate the resume surface instead of
-hand-refreshing `docs/status/CURRENT.md`) and **prescription 4** (the two lying
-generators, the missing `ephemeral` symlink) are unregistered infra awaiting the
-human's word on scope.
+kernel's shape; audit **prescription 3** is done (T286: `bin/managent resume`
+composes the resume surface at read time; `docs/status/CURRENT.md` is deleted)
+and **prescription 4**'s lying-generator half is open (the `ephemeral` symlink
+half was retired by the human's 2026-08-03 ruling — `/tmp/weizigo` is the
+location, no symlink).
 
 ## The G3 gate is split (Orchestrator ruling, 2026-08-03)
 

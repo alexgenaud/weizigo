@@ -73,7 +73,7 @@ your finding. Your brief lists the findings file in `deliverables=`, so
 ## Principles
 
 **Scope.** Own only the paths your brief lists. If your task is MUTATION, declare
-them in `docs/status/CURRENT.md` and clear the declaration when done. Never a
+them via the kanban `holds=` field and clear the declaration when done. Never a
 second writer on `src/retro.zig`, `oracle.zig`, `rules.zig`, `solve.zig`; never a
 write to `data/` or `artifacts/`.
 

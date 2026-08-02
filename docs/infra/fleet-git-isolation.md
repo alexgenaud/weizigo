@@ -110,8 +110,9 @@ the two hard questions; here are the answers:
   (`--no-verify` or a wildcard identity) — and every escape hatch is the rot
   point the mechanism exists to close.
 - **It was not installed when this evaluation was written.** `core.hooksPath`
-  was unset on 2026-08-02 when T278 evaluated (CURRENT.md: "there is no gate
-  today"; installation was T280's job). **T280 installed it during the T278
+  was unset on 2026-08-02 when T278 evaluated (the then-current CURRENT.md
+  said "there is no gate today" — that file is retired 2026-08-03; the
+  surface is `bin/managent resume`). **T280 installed it during the T278
   session** — the T278 commit itself passed through the freshly-installed hook
   (`pre-commit: claimlint C1a=10 C1b=0 C2=14 C6=0 — ≤ floor, allowed`). The
   installation does not change the two holes below: the hook still cannot see
@@ -179,9 +180,11 @@ in §4.7; the retained-rule and deletion arms are exercised there as well.
 1. **Pathless invocation refused** — the `add -A` habit dies at the commit site.
 2. **Only the named paths are staged** (`git add -- <paths>`), then the staged
    set is verified against (scope ∪ named paths). Scope for a task = its
-   bundle's `deliverables=` meta header ∪ `findings/<id>-*.json` ∪ the two
-   fleet-coordination surfaces (`docs/status/CURRENT.md`,
-   `docs/status/HANDOVER.md` — any worker may legitimately touch these).
+   bundle's `deliverables=` meta header ∪ `findings/<id>-*.json` ∪ the
+   fleet-coordination surface `docs/status/HANDOVER.md` (any worker may
+   legitimately touch it; the wrapper's scope list still carries the retired
+   `docs/status/CURRENT.md` entry — harmless, and Orcha may drop it when the
+   wrapper is next edited).
 3. **Foreign staged paths → refused**, naming each, with the instruction to
    never unstage another console's work. (In `--explicit` mode — the
    Orchestrator's integration commits — the commit is path-limited instead,
@@ -320,4 +323,4 @@ two pre-existing managent regressions (`regression-managent-integrity.sh`,
 | Controls (done check) | `tools/regression-managent-done-git.sh` — all 5 arms PASS |
 | Pre-existing regressions | integrity + memory-safety — PASS on rebuilt `bin/managent` `05dae9b` |
 | Evidence | the regression scripts (in git); the scratch fixtures run under `/tmp/weizigo/` |
-| Related | DELEGATEE.md §"Committing while a fleet is running"; CURRENT.md T278 block; `f9469d1` (T272 gate landed, not accepted) |
+| Related | DELEGATEE.md §"Committing while a fleet is running"; `f9469d1` (T272 gate landed, not accepted) |

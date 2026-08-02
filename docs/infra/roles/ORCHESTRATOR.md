@@ -18,7 +18,7 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
    epic-01-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
 2. **Scan** `managent audit` — every discrepancy it finds, fix now rather than reporting it. If the kanban disagrees with reality, the kanban is the bug. Non-zero exit = FIX-level findings exist.
 3. **Reconcile attribution.** Agents declare their own model; `managent agent <id> <model>` when one didn't. An unattributed task is a hole in `model-perf.md`. `managent audit` flags these.
-4. **Absorb** finished work into `CLAIMS.md` (then `bin/weizigo-claimlint`), `PROGRESS.md`, `model-perf.md`, `CURRENT.md`, ADRs, `docs/evidence/` — then **commit**.
+4. **Absorb** finished work into `CLAIMS.md` (then `bin/weizigo-claimlint`), `PROGRESS.md`, `model-perf.md`, ADRs, `docs/evidence/` — then **commit**. (The resume surface needs no absorbing: it is derived at read time — `bin/managent resume`.)
 5. **Register** what the turn revealed as briefed tasks. A finding merely mentioned is a finding lost. `managent standing` shows the standing-tier triggers and auto-registers any that fired.
 6. **Write** to the channel when there is news: a ruling, a kill, a state change, a lesson. Never an ACK or a digest of others.
 7. **Answer briefly.** Fewer words to the console, more to disk — he should be able to skip your prose and lose nothing.
@@ -46,7 +46,7 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 
 ## On resume — cold start, context clear, crash
 
-`STATE.md` → `managent status` → latest `docs/status/handover-*.md` → `CURRENT.md` → this file + `docs/infra/delegation/ROLES.md`. Then reconcile per cadence step 2. **Your session memory does not survive; if it matters, it is in these files.**
+`STATE.md` → `managent resume` → this file + `docs/infra/delegation/ROLES.md`. Then reconcile per cadence step 2. **Your session memory does not survive; if it matters, it is in these files.**
 
 ## Boundaries
 

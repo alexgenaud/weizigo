@@ -17,7 +17,7 @@ file a bug.
 
 ## What is the state right now?
 
-→ `docs/status/CURRENT.md` — in-flight task status (ephemeral; updated often)
+→ `bin/managent resume` — the composed resume surface (in flight, what landed, gate status; read at invocation, nothing stored)
 → `docs/status/HANDOVER.md` — tactical session-continuity snapshot
 → `docs/epistemic/PROGRESS.md` — strategic truth: what we know, what we need to know
 → `untracked/msg/<epic>/<sprint>/STATE.md` — crash-recovery anchor for live cross-agent traffic
@@ -59,7 +59,7 @@ file a bug.
 ## What is in flight? What can I work on?
 
 → `./bin/managent status` — the kanban (dispatchable / in-progress / blocked / done / failed)
-→ `docs/status/CURRENT.md` — in-flight task declarations and file ownership
+→ `bin/managent resume` — held files and live tasks (the old CURRENT.md declarations)
 → `docs/infra/dispatch/README.md` — the dependency graph and concurrency rules
 
 ## What do terms mean?

@@ -98,8 +98,9 @@ progress · `[x]` done · `[-]` dropped.
   *document before / while / after* rule and the "where state lives so context can be cleared"
   rule. This file is the *documentation* method; that one is the *agent* method. They compose.
   The rest of the old workflow intention now lives in `AGENTS.md` and `infra/delegation/`.
-- `status/CURRENT.md` — the ephemeral in-flight-task file that makes the
-  "always ready to clear context" rule concrete.
+- `status/CURRENT.md` — retired 2026-08-03 (T286): a hand-refreshed in-flight
+  file was stale within a day. The resume surface is `bin/managent resume`,
+  composed at read time; see `docs/infra/resume-surface.md`.
 
 ## Reflexive note
 
