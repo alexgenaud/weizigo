@@ -21,8 +21,8 @@
     "skip_acceptance_reason": null
   },
   "T274": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T274-migos-tie-experiment.md",
     "set": "A",
@@ -30,14 +30,14 @@
     "needs": ["T271", "T275"],
     "caps": [],
     "added": "2026-08-02T19:57:05Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:33:22Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -106,7 +106,7 @@
   },
   "T260": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T260-fleet-triage.md",
     "set": "A",
@@ -232,7 +232,7 @@
   },
   "T227": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": "DSPro",
     "bundle": "untracked/T227-T227-acceptance-fix.md",
     "set": "A",
@@ -252,7 +252,7 @@
     "skip_acceptance_reason": "circular: acceptance machinery is the subject of this fix; regression tests verified via tools/regression-T227.sh (3/3)"
   },
   "T268": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T268-deploy-correctness.md",
@@ -261,20 +261,20 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T02:02:26Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:31:57Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
   "T226": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": "deepseek-v4-pro",
     "bundle": "untracked/T226-engine-unification-sprint.md",
     "set": "A",
@@ -400,7 +400,7 @@
   },
   "T244": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T227-regtest-sigkill-bundle.md",
     "set": "A",
@@ -442,7 +442,7 @@
   },
   "T254": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T254-P0-build-audit.md",
     "set": "A",
@@ -483,7 +483,7 @@
     "skip_acceptance_reason": null
   },
   "T270": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T270-i2-on-wzo2.md",
@@ -492,20 +492,20 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T02:03:01Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:31:14Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
   "T264": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T264-version-stamping.md",
     "set": "C",
@@ -525,7 +525,7 @@
     "skip_acceptance_reason": null
   },
   "T267": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T267-key-agreement-invariant.md",
@@ -534,20 +534,20 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T02:02:26Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:30:02Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
   "T256": {
     "status": "done",
-    "agent": "DSFlash",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T256-P1-build-audit.md",
     "set": "A",
@@ -610,7 +610,7 @@
   },
   "T246": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T227-regtest-skipempty-bundle.md",
     "set": "A",
@@ -630,7 +630,7 @@
     "skip_acceptance_reason": null
   },
   "T272": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T272-claimlint-gate-hook.md",
@@ -639,14 +639,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T19:35:07Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:33:16Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
@@ -715,7 +715,7 @@
   },
   "T257": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": "deepseek-v4-pro",
     "bundle": "untracked/T257-P2a-matrix.md",
     "set": "A",
@@ -778,7 +778,7 @@
   },
   "T265": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T265-ko-key-mismatch.md",
     "set": "A",
@@ -798,7 +798,7 @@
     "skip_acceptance_reason": null
   },
   "T266": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T266-artifact-incompleteness.md",
@@ -807,14 +807,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T02:02:26Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:28:52Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -883,7 +883,7 @@
   },
   "T245": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T227-regtest-deliverables-bundle.md",
     "set": "A",
@@ -924,8 +924,8 @@
     "skip_acceptance_reason": null
   },
   "T276": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T276-model-label-normalization.md",
     "set": "B",
@@ -933,14 +933,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T20:21:50Z",
-    "claimed": null,
+    "claimed": "2026-08-02T20:32:44Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -988,7 +988,7 @@
   },
   "T255": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T255-P1-design-audit.md",
     "set": "A",
@@ -1051,7 +1051,7 @@
   },
   "T253": {
     "status": "done",
-    "agent": "DSFlash",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T253-P0-spec-audit.md",
     "set": "A",
@@ -1072,7 +1072,7 @@
   },
   "T252": {
     "status": "done",
-    "agent": "DSPro",
+    "agent": "deepseek-v4-pro",
     "model": "deepseek-v4-pro",
     "bundle": "untracked/T252-differential-harness.md",
     "set": "A",
@@ -1093,7 +1093,7 @@
   }
 ,
   "_sys": {
-    "next_id": 276,
-    "directive_next": 11
+    "next_id": 277,
+    "directive_next": 14
   }
 }

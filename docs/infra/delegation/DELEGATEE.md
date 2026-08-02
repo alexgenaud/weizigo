@@ -129,6 +129,24 @@ establish · what you would check next.
 
 A negative result is a full deliverable.
 
+### The context dump — asked of every console before it is killed
+
+Your session is about to be discarded and nothing in it survives except files.
+Write `findings/<task-id>-context.json` and commit it. Six keys, matching the
+twelve dumps already in `findings/`:
+
+```
+task_id · date (absolute) · model (canonical label) · claims (IDs you touched or
+propose) · new_rows (register rows you added) · notes (free text — the payload)
+```
+
+`notes` is where the value is. State what you read, what you concluded **and on
+what evidence**, what you could not establish, what you assumed without checking,
+and **what you noticed but did not act on** — that last category is where two P0
+defects in same-day code came from. Uncertainty recorded is worth more than a tidy
+summary: a dump saying "I changed X because the brief said so and did not verify
+it" is a useful dump.
+
 ## Sub-delegating
 
 Permitted. You are then the delegator: read `DELEGATOR.md` and pass down owned

@@ -1,0 +1,36 @@
+## untracked/oracle-v2/oracle-3x3-v2.wzo2
+#  goban 3x3  ko_bits=4  n_groups=12675  n_entries=49428
+#  groups: total=12675 empty-goban=1 mono-black=510 mono-white=510
+#  entries: passes=0 25098  passes=1 24330
+#  passes=1 entries with ko != KO_NONE(9): 0
+#  groups with NO passes=1 entry at all: 0
+#  groups one-sided at passes=1: 1020
+#  (side=0,passes=1): absent=510  mono-white=510  |  agree=510  absent-but-not-mono-white=0  mono-white-but-present=0
+#  (side=1,passes=1): absent=510  mono-black=510  |  agree=510  absent-but-not-mono-black=0  mono-black-but-present=0
+#  T266-H1 on this artifact: CONFIRMED
+#  T266-H2 dropped pass edges: side=0 0  side=1 0   | orphaned passes=1 (no pass parent): side=0 0 side=1 0
+#  T266-H2: CONFIRMED (no pass edge dropped)
+#  C-B4 entries mis-ordered or duplicated within a group: 0   (denominator 36753 intra-group steps)
+#  C-B3 passes=0 entries whose ko point is an OCCUPIED cell: 0   (denominator 768 entries with ko != none)
+#  C-B2 passes=0 entries violating the monochrome-side law: 0   (denominator 25098 passes=0 entries)
+#  MISSING side-entries at passes=1 (total): 1020
+#  denominator (2 x n_groups): 25350
+
+## untracked/oracle-v2/oracle-4x4-v2.wzo2
+#  goban 4x4  ko_bits=5  n_groups=24318165  n_entries=99133036
+#  groups: total=24318165 empty-goban=1 mono-black=65534 mono-white=65534
+#  entries: passes=0 50627774  passes=1 48505262
+#  passes=1 entries with ko != KO_NONE(16): 0
+#  groups with NO passes=1 entry at all: 0
+#  groups one-sided at passes=1: 131068
+#  (side=0,passes=1): absent=65534  mono-white=65534  |  agree=65534  absent-but-not-mono-white=0  mono-white-but-present=0
+#  (side=1,passes=1): absent=65534  mono-black=65534  |  agree=65534  absent-but-not-mono-black=0  mono-black-but-present=0
+#  T266-H1 on this artifact: CONFIRMED
+#  T266-H2 dropped pass edges: side=0 0  side=1 0   | orphaned passes=1 (no pass parent): side=0 0 side=1 0
+#  T266-H2: CONFIRMED (no pass edge dropped)
+#  C-B4 entries mis-ordered or duplicated within a group: 0   (denominator 74814871 intra-group steps)
+#  C-B3 passes=0 entries whose ko point is an OCCUPIED cell: 0   (denominator 2122512 entries with ko != none)
+#  C-B2 passes=0 entries violating the monochrome-side law: 0   (denominator 50627774 passes=0 entries)
+#  MISSING side-entries at passes=1 (total): 131068
+#  denominator (2 x n_groups): 48636330
+
