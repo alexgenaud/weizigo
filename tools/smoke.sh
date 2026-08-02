@@ -79,6 +79,11 @@ deploy_check weizigo-absorb
 deploy_check weizigo-claimlint --version
 # weizigo-gtp: --version prints banner (stderr) then fails to load the artifact.
 deploy_check weizigo-gtp --version
+# Research tools: --version prints banner (stderr) then errors on the bad
+# artifact path; the banner is what we compare.
+deploy_check weizigo-chainability --version
+deploy_check weizigo-engine-vs-engine --version
+deploy_check weizigo-reachcensus --version
 
 # Functional: the DEPLOYED managent must parse the live kanban (read-only).
 if bin/managent status --json 2>/dev/null | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null; then

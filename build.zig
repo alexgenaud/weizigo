@@ -157,6 +157,11 @@ pub fn build(b: *std.Build) void {
     run_vb_graph_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_graph_tests.step);
 
+    // ── pre-commit hook regression controls (T272) ──────────────────
+    const precommit_regression = b.addSystemCommand(&.{ "sh", "tools/regression-precommit.sh" });
+    precommit_regression.cwd = b.path(".");
+    test_step.dependOn(&precommit_regression.step);
+
     // ── differential (T257/T267: agreement matrix + key invariant) ─
     const differential_tests = b.addTest(.{
         .root_module = b.createModule(.{
@@ -318,9 +323,41 @@ pub fn build(b: *std.Build) void {
     const deploy_gtp_step = b.step("deploy-gtp", "Deploy weizigo-gtp to bin/ (remove-copy-sign)");
     deploy_gtp_step.dependOn(&gtp_deploy.step);
 
+    // ── deploy weizigo-claimlint to bin/ ───────────────────────────
+    // GRAND-AUDIT §3 flagged bin/weizigo-claimlint as older than its source
+    // and unstamped; it reached bin/ only by manual copy. Give it the same
+    // mechanical remove-copy-sign deploy as every other tool (T268).
+    const claimlint_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-claimlint", "bin/weizigo-claimlint" });
+    claimlint_deploy.step.dependOn(b.getInstallStep());
+    const deploy_claimlint_step = b.step("deploy-claimlint", "Deploy weizigo-claimlint to bin/ (remove-copy-sign)");
+    deploy_claimlint_step.dependOn(&claimlint_deploy.step);
+
+    // ── deploy the research tools to bin/ ──────────────────────────
+    // weizigo-chainability / weizigo-engine-vs-engine / weizigo-reachcensus
+    // are deployed to bin/ like the rest; they get the same deploy so the
+    // stale-bin class cannot recur for them either (T268, "and the rest").
+    const chainability_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-chainability", "bin/weizigo-chainability" });
+    chainability_deploy.step.dependOn(b.getInstallStep());
+    const deploy_chainability_step = b.step("deploy-chainability", "Deploy weizigo-chainability to bin/ (remove-copy-sign)");
+    deploy_chainability_step.dependOn(&chainability_deploy.step);
+
+    const evse_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-engine-vs-engine", "bin/weizigo-engine-vs-engine" });
+    evse_deploy.step.dependOn(b.getInstallStep());
+    const deploy_evse_step = b.step("deploy-engine-vs-engine", "Deploy weizigo-engine-vs-engine to bin/ (remove-copy-sign)");
+    deploy_evse_step.dependOn(&evse_deploy.step);
+
+    const reachcensus_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-reachcensus", "bin/weizigo-reachcensus" });
+    reachcensus_deploy.step.dependOn(b.getInstallStep());
+    const deploy_reachcensus_step = b.step("deploy-reachcensus", "Deploy weizigo-reachcensus to bin/ (remove-copy-sign)");
+    deploy_reachcensus_step.dependOn(&reachcensus_deploy.step);
+
     // ── deploy all (umbrella) ──────────────────────────────────────
     const deploy_step = b.step("deploy", "Deploy every tool to bin/ (remove-copy-sign)");
     deploy_step.dependOn(&absorb_deploy.step);
     deploy_step.dependOn(&managent_deploy.step);
     deploy_step.dependOn(&gtp_deploy.step);
+    deploy_step.dependOn(&claimlint_deploy.step);
+    deploy_step.dependOn(&chainability_deploy.step);
+    deploy_step.dependOn(&evse_deploy.step);
+    deploy_step.dependOn(&reachcensus_deploy.step);
 }
