@@ -19,8 +19,34 @@ FAIL=0
 
 if [ "${1:-}" = "--build" ]; then
     echo "  rebuilding managent..."
-    (cd "$PROJECT" && zig build -Doptimize=ReleaseSafe 2>&1)
-    cp "$PROJECT/zig-out/bin/managent" "$MG"
+    # Guarded build (tools/runner) + remove-copy-sign deploy (tools/deploy.sh).
+    # A bare `cp` over a live signed binary SIGKILLs it on Apple Silicon (T268).
+    # --no-prepend-zig: keep ReleaseSafe (correctness convention); the runner
+    # would otherwise auto-add ReleaseFast and duplicate the -Doptimize flag.
+    (cd "$PROJECT" && "$PROJECT/tools/runner" --no-prepend-zig -- zig build -Doptimize=ReleaseSafe 2>&1)
+    "$PROJECT/tools/deploy.sh" "$PROJECT/zig-out/bin/managent" "$MG"
+fi
+
+# ── T268: the deployed copy must BE what we built ────────────────────
+# bin/managent is the binary every check below executes. If it is stale
+# relative to zig-out/bin/managent, the whole regression measures a binary
+# nobody can reconstruct. Compare the version stamps (deployed != built is
+# the stale-bin signal T264's stamping exists to expose).
+stamp_of() {
+    "$1" --version 2>&1 | grep -oE '[a-z][a-z0-9-]* [0-9a-f]{7}(-dirty)? built' | head -1 | sed 's/ built$//' || true
+}
+
+BUILT_STAMP=$(stamp_of "$PROJECT/zig-out/bin/managent")
+DEPLOYED_STAMP=$(stamp_of "$MG")
+echo "  T268: deployed stamp check"
+if [ -z "$DEPLOYED_STAMP" ]; then
+    echo "    FAIL: bin/managent missing or unstamped — run 'zig build deploy-managent'"
+    FAIL=1
+elif [ "$BUILT_STAMP" = "$DEPLOYED_STAMP" ]; then
+    echo "    PASS: deployed bin/$DEPLOYED_STAMP == built zig-out/$BUILT_STAMP"
+else
+    echo "    FAIL: deployed bin/$DEPLOYED_STAMP != built zig-out/$BUILT_STAMP — bin/ is stale"
+    FAIL=1
 fi
 
 # ── Setup: temp store in ephemeral ──────────────────────────────────────────

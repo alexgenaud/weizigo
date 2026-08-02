@@ -5,7 +5,9 @@ set -e
 cd "$(dirname "$0")/.."
 
 commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-if git diff --quiet 2>/dev/null; then
+# T268: staged-but-uncommitted changes must also set dirty=true — a bare
+# `git diff --quiet` (unstaged only) claims provenance a staged tree does not have.
+if git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; then
     dirty="false"
 else
     dirty="true"

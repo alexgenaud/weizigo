@@ -235,16 +235,18 @@ pub fn build(b: *std.Build) void {
     }));
     b.installArtifact(absorb_exe);
 
-    // ── deploy absorb to bin/ (post-install copy step) ────────────
-    const absorb_deploy = b.addSystemCommand(&.{ "cp", "zig-out/bin/weizigo-absorb", "bin/weizigo-absorb" });
+    // ── deploy absorb to bin/ (post-install deploy step) ───────────
+    // T268: deploy via remove-copy-sign (tools/deploy.sh) — a bare `cp` over
+    // a live signed binary on Apple Silicon SIGKILLs it (exit=137, silent).
+    const absorb_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-absorb", "bin/weizigo-absorb" });
     absorb_deploy.step.dependOn(b.getInstallStep());
-    const deploy_absorb_step = b.step("deploy-absorb", "Copy weizigo-absorb to bin/");
+    const deploy_absorb_step = b.step("deploy-absorb", "Deploy weizigo-absorb to bin/ (remove-copy-sign)");
     deploy_absorb_step.dependOn(&absorb_deploy.step);
 
-    // ── deploy managent to bin/ (post-install copy step) ───────────
-    const managent_deploy = b.addSystemCommand(&.{ "cp", "zig-out/bin/managent", "bin/managent" });
+    // ── deploy managent to bin/ (post-install deploy step) ─────────
+    const managent_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/managent", "bin/managent" });
     managent_deploy.step.dependOn(b.getInstallStep());
-    const deploy_managent_step = b.step("deploy-managent", "Copy managent to bin/");
+    const deploy_managent_step = b.step("deploy-managent", "Deploy managent to bin/ (remove-copy-sign)");
     deploy_managent_step.dependOn(&managent_deploy.step);
 
     // ── managent ───────────────────────────────────────────────────
@@ -298,8 +300,14 @@ pub fn build(b: *std.Build) void {
     b.installArtifact(gtp_exe);
 
     // ── deploy weizigo-gtp to bin/ ────────────────────────────────
-    const gtp_deploy = b.addSystemCommand(&.{ "cp", "zig-out/bin/weizigo-gtp", "bin/weizigo-gtp" });
+    const gtp_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-gtp", "bin/weizigo-gtp" });
     gtp_deploy.step.dependOn(b.getInstallStep());
-    const deploy_gtp_step = b.step("deploy-gtp", "Copy weizigo-gtp to bin/");
+    const deploy_gtp_step = b.step("deploy-gtp", "Deploy weizigo-gtp to bin/ (remove-copy-sign)");
     deploy_gtp_step.dependOn(&gtp_deploy.step);
+
+    // ── deploy all (umbrella) ──────────────────────────────────────
+    const deploy_step = b.step("deploy", "Deploy every tool to bin/ (remove-copy-sign)");
+    deploy_step.dependOn(&absorb_deploy.step);
+    deploy_step.dependOn(&managent_deploy.step);
+    deploy_step.dependOn(&gtp_deploy.step);
 }
