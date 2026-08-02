@@ -1,5 +1,12 @@
 # T266 — why the 4×4 WZO2 artifact is "missing" passes=1 entries
 
+**Terminology note (2026-08-03, T285):** "monochrome" → "single-colour goban"
+throughout this document, per glossary ruling (Orchestrator/human, 2026-08-03).
+The old term read as "no empty points", the opposite of what was meant.
+See `docs/epistemic/GLOSSARY.md`. Findings file `findings/T266-incompleteness.json`
+is immutable (absorbed by T279) and retains the old term; this document is the
+corrected record.
+
 ```
 Task:    T266 · Role: worker · Model: claude-opus-5 · Date: 2026-08-02
 Brief:   untracked/T266-artifact-incompleteness.md
@@ -62,10 +69,10 @@ therefore needs ≥1 black stone; one with Black to move is the result of a
 **White** placement and needs ≥1 white stone. The empty goban is the sole
 exception — it is a seed root for both sides. Hence:
 
-> **The monochrome-side law.** For a non-empty goban `P`:
+> **The single-colour-side law.** For a non-empty goban `P`:
 > `(P, Black to move, ko, 0)` is reachable only if `P` has ≥1 white stone, and
 > `(P, White to move, ko, 0)` only if `P` has ≥1 black stone.
-> With F2: **`(P, s, KO_NONE, 1)` is unreachable exactly when `P` is monochrome
+> With F2: **`(P, s, KO_NONE, 1)` is unreachable exactly when `P` is single-colour
 > in the colour of side `1−s`.**
 
 ### 1.2 The concrete case the brief asked for
@@ -95,24 +102,24 @@ The artifact agrees exactly (`t266_scan.py --lookup`):
 (it shares no code with builder or consumer; it parses only the frozen byte
 layout at `src/artifact2.zig:19-34`). It classifies **every** group.
 
-Hypothesis **T266-H1**: `(P, s, passes=1)` absent ⟺ `P` monochrome in colour `1−s`.
+Hypothesis **T266-H1**: `(P, s, passes=1)` absent ⟺ `P` single-colour in colour `1−s`.
 
 | | 3×3 | 4×4 |
 |---|---|---|
 | groups (denominator) | 12,675 | 24,318,165 |
 | entries | 49,428 | 99,133,036 |
-| monochrome-black / monochrome-white groups | 510 / 510 | 65,534 / 65,534 |
+|| single-colour-black / single-colour-white groups | 510 / 510 | 65,534 / 65,534 |
 | groups one-sided at passes=1 | 1,020 | 131,068 |
-| absent-but-**not** monochrome (would refute H1) | **0** | **0** |
-| monochrome-but-**present** (would refute H1) | **0** | **0** |
+| absent-but-**not** single-colour (would refute H1) | **0** | **0** |
+| single-colour-but-**present** (would refute H1) | **0** | **0** |
 | **T266-H1** | **CONFIRMED** | **CONFIRMED** |
 
 Not one exception in 24.3M groups. The arithmetic closes with no slack either:
-stored `passes=1` entries = `2 × n_groups − monochrome_groups` exactly —
+stored `passes=1` entries = `2 × n_groups − single_colour_groups` exactly —
 `2(12,675) − 1,020 = 24,330` ✓ and `2(24,318,165) − 131,068 = 48,505,262` ✓,
 both equal to the measured counts.
 
-(`65,534 = 2¹⁶ − 2`: every non-empty monochrome 4×4 goban except the fully
+(`65,534 = 2¹⁶ − 2`: every non-empty single-colour 4×4 goban except the fully
 filled one, which has no liberties and is illegal. Every one of them *is* in
 the artifact, reachable with the other side to move.)
 
@@ -175,7 +182,7 @@ Three further whole-artifact invariants, same denominators, all exact:
 | passes=1 entries with `ko ≠ KO_NONE` (design §2.5) | 0 | 0 | 48,505,262 |
 | passes=0 entries whose ko point names an **occupied** cell | 0 | 0 | 2,122,512 with ko≠none |
 | entries mis-ordered or duplicated within a group | 0 | 0 | 74,814,871 intra-group steps |
-| passes=0 entries violating the monochrome-side law | 0 | 0 | 50,627,774 |
+| passes=0 entries violating the single-colour-side law | 0 | 0 | 50,627,774 |
 
 ### 2.1 The instrument was calibrated before these zeros were believed
 
@@ -223,7 +230,7 @@ Two things have to be said in order, because the first is a naming trap.
 `i8` side (`src/gtp.zig:168`), where `+1` = Black; the artifact's key byte uses
 `0` = Black (`src/artifact2.zig:343-345`). So the missed state is
 `(single black stone on B3, **Black** to move, ko=none, passes=0)` — precisely a
-monochrome-black goban with Black to move, which §1 proves unreachable. The
+single-colour-black goban with Black to move, which §1 proves unreachable. The
 artifact is right to lack it.
 
 **The engine should never have asked.** The query comes from the bracket-display
@@ -239,14 +246,14 @@ suffix:
 `bounds2` is called *after* `applyMove`, so `s.pos` is the position after the
 move, but `side` is still **the mover**. After Black plays, it is White's turn;
 the engine asks the table about Black-to-move on Black's own result. On the
-opening move that state is monochrome-black and therefore absent → the miss, the
+opening move that state is single-colour-black and therefore absent → the miss, the
 area-score fallback, and the printed `[L=16,H=16]`. The correct bracket is the
 one the table does hold: `(colex=12, White to move, ko=none, passes=0)` =
 `[L=1,H=16]`.
 
 ### 3.3 The miss is the visible 0.2% of a bug that is silently wrong the rest of the time
 
-The wrong-side query only *misses* when the post-move position is monochrome —
+The wrong-side query only *misses* when the post-move position is single-colour —
 which in practice is only the opening move. Everywhere else it finds an entry
 and prints a wrong one, with no warning. From the self-play transcript below:
 
@@ -378,7 +385,7 @@ entries, the second alone cannot see missing ones:
   *Pass:* zero orphans.
 
 C-A1 ∧ C-A2, with the two roots stored, is exactly G-CENSUS. It refers to no
-incidental structure — no monochrome boards, no passes=1 asymmetry — so it stays
+incidental structure — no single-colour gobans, no passes=1 asymmetry — so it stays
 correct if the rules change.
 
 **It must run against the kernel move generator** (DIRECTION §4.2), not a private
@@ -400,7 +407,7 @@ above.
 | id | invariant | denominator (4×4) |
 |---|---|---|
 | C-B1 | pass-edge closure: `(P,s,KO_NONE,1)` stored ⟺ `(P,1−s,ko,0)` stored for some ko | 2 × n_groups = 48,636,330 |
-| C-B2 | monochrome-side law: `(P,s,·,0)` stored ⟹ `P` has a stone of colour `1−s`, or `P` empty | 50,627,774 passes=0 entries |
+| C-B2 | single-colour-side law: `(P,s,·,0)` stored ⟹ `P` has a stone of colour `1−s`, or `P` empty | 50,627,774 passes=0 entries |
 | C-B3 | ko domain: `passes=1` ⟹ `ko = KO_NONE`; `ko ≠ KO_NONE` ⟹ that cell is empty on `P` | 48,505,262 + 2,122,512 |
 | C-B4 | key bytes strictly increasing within each group (the format sort; strictness = no duplicates) | 74,814,871 intra-group steps |
 | C-B0 | header self-hash + `Σ counts = n_entries` + colex strictly increasing | 1 + 1 + 24,318,164 |
@@ -421,7 +428,7 @@ the check then silently tests nothing"):
 | K0 | none (null control) | nothing |
 | K1 | delete a `(P,s,KO_NONE,1)` whose pass parent is present | C-B1, C-A1 |
 | K2 | delete a `passes=0` placement child | C-A1 only — **C-B1 must stay silent**, proving C-B1 does not subsume C-A1 |
-| K3 | insert `(P, Black to move, ·, 0)` for monochrome-black `P` | C-B2, C-A2 |
+| K3 | insert `(P, Black to move, ·, 0)` for single-colour-black `P` | C-B2, C-A2 |
 | K4 | flip one passes bit (T193 replayed) | C-B3, C-B4 |
 | K5 | point one ko field at an occupied cell | C-B3 |
 | K6 | duplicate a key byte within a group | C-B4 |
@@ -467,7 +474,7 @@ Its 4×4 sample was the **first 5,000 groups in file order**. Groups are sorted 
 colex, and colex is layered by stone count (`src/colex.zig:41-49`), so those 5,000
 groups are the sparsest gobans — stone-count layers 0 to 4, colex 0..5007.
 Monochrome density falls off geometrically with stone count: a `k`-stone layer
-has `2^k` colourings of which exactly 2 are monochrome — 100% at `k=1`, 50% at
+has `2^k` colourings of which exactly 2 are single-colour — 100% at `k=1`, 50% at
 `k=2`, 25% at `k=3`, 12.5% at `k=4`, and 0.003% at `k=16`. The sample sat
 entirely in the region where the phenomenon is dense.
 

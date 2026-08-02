@@ -1,0 +1,42 @@
+{
+  "task": "T285",
+  "date": "2026-08-03",
+  "files": [
+    "docs/epic-01-markovian/AXIOMS.md",
+    "docs/epistemic/CLAIMS.md",
+    "docs/evidence/ORACLE-V2/incompleteness-T266.md"
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "INFO",
+      "claim": "GLOBAL.AXIOM-FORCEDPASS",
+      "summary": "Forced-pass axiom A6 added to AXIOMS.md §2; registered in CLAIMS.md §2.6a",
+      "detail": "The forced pass — a player with no legal placement passes, and the pass is indistinguishable from a voluntary one — was an unwritten axiom implicit in src/exp6_solve.zig:926-929 (pinned 082433e), which emits the pass edge unconditionally. Added as A6 in AXIOMS.md §2 block A, claim ID GLOBAL.AXIOM-FORCEDPASS, status CLAIMED at birth. The artifact records 516,242 terminal-bit states at 4×4 where a side cannot place (build T184, 2026-08-01, docs/evidence/ORACLE-V2/build-T184-2026-08-01.stdout:162). Depends on A5 (pass always legal); feeds Z-R-MOVE and Z-R-SCORE."
+    },
+    {
+      "id": "F2",
+      "severity": "INFO",
+      "summary": "Scope statement: handicap and arbitrary-start explicitly out of scope",
+      "detail": "The census seeds only the empty goban for either side at passes=0 (src/exp6_solve.zig:964-969). The model has no handicap concept and no arbitrary-start concept. This was a decided exclusion, not an oversight. Added to AXIOMS.md §6 as an explicit 'out of scope (model)' bullet."
+    },
+    {
+      "id": "F3",
+      "severity": "NOTE",
+      "summary": "Terminology sweep: 'monochrome' → 'single-colour goban' in incompleteness-T266.md and CLAIMS.md",
+      "detail": "Replaced all prose instances of 'monochrome' with 'single-colour goban' in docs/evidence/ORACLE-V2/incompleteness-T266.md (17 instances) and three CLAIMS.md rows: CODE.WZO2-INCOMPLETE, CODE.WZO2-PASS1-LAW, CODE.GTP-LHSIDE. Each CLAIMS.md row carries a parenthetical noting the term was superseded per glossary. Calibration check identifiers (K2-monochrome-law, CB2_monochrome_law) in the evidence document are left untouched — these are code references to the Python scanner, not prose. The immutable findings file findings/T266-incompleteness.json retains the old term per policy."
+    },
+    {
+      "id": "F4",
+      "severity": "NOTE",
+      "summary": "CLAIMS.md rows for A5 and B1 are stale vs AXIOMS.md Amendments 1–2",
+      "detail": "CLAIMS.md §2.6a row GLOBAL.AXIOM-PASS says 'does not change goban or affect ko' — but AXIOMS.md A5 was amended (Amendment 1, T275) to say 'clears the ko point (sets it to none)'. Row GLOBAL.AXIOM-BASICKO says 'goban matches the goban one ply earlier' — but AXIOMS.md B1 was amended (Amendment 2, Orchestrator) to say 'two plies earlier'. Not fixed here; these are stale copies from T271's original minting and are the CLAIMS.md owner's to update. Mentioned per DELEGATEE.md 'what you noticed but did not act on'."
+    },
+    {
+      "id": "F5",
+      "severity": "NOTE",
+      "summary": "Claimlint floor preserved — no regression",
+      "detail": "Post-edit: rows=309, C1a=10, C1b=0, C2=14, C6=0, C7=2, calibration PASS. One new row (GLOBAL.AXIOM-FORCEDPASS), zero new failures."
+    }
+  ]
+}

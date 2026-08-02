@@ -85,6 +85,7 @@ A freshly written axiom is CLAIMED, not PROVEN, until verified end-to-end.
 | `GLOBAL.AXIOM-CAPTURE` | **A3 — Capture.** After a stone is placed, any opposing group with zero liberties is removed from the goban. Liberties are empty orthogonally adjacent points. A group is a maximal connected set of same-colour stones. |
 | `GLOBAL.AXIOM-SUICIDE` | **A4 — Suicide prohibition.** A move is illegal if, after capture, the placed stone's own group has zero liberties. ("Capture" in A3 is applied first.) |
 | `GLOBAL.AXIOM-PASS` | **A5 — Pass.** A player may pass instead of placing a stone. Pass is always legal. A pass does not change the goban, does not capture. A pass clears the ko point (sets it to `none`). Pass is exempt from ko restrictions. |
+| `GLOBAL.AXIOM-FORCEDPASS` | **A6 — Forced pass.** A player with no legal placement passes (forced pass). A forced pass is indistinguishable from a voluntary one: it clears the ko point, increments the pass count, and counts toward double-pass termination. At 4×4, 516,242 entries carry the terminal bit for one side (build T184, 2026-08-01, `docs/evidence/ORACLE-V2/build-T184-2026-08-01.stdout:162`). |
 
 ### B — Basic ko (k=1)
 
@@ -368,6 +369,7 @@ for our own value.
 | `GLOBAL.AXIOM-CAPTURE` | all | A3 — Capture | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-SUICIDE` | all | A4 — Suicide prohibition | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-PASS` | all | A5 — Pass | CLAIMED | this file §2 |
+| `GLOBAL.AXIOM-FORCEDPASS` | all | A6 — Forced pass | CLAIMED | this file §2, Amendment 3; `docs/evidence/ORACLE-V2/build-T184-2026-08-01.stdout:162` |
 | `GLOBAL.AXIOM-BASICKO` | all | B1 — Basic ko rule (k=1) | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-KOSTATE` | all | B2 — Ko state encoding | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-KOPASS` | all | B3 — Ko–pass interaction | CLAIMED | this file §2 |
@@ -392,12 +394,19 @@ adjudication rows are CLAIMED pending independent verification.
 
 ## 6. Scope boundaries
 
-- **In scope for epic-01-markovian:** the theorem Z, axioms A1–E3, the
-  requirement tree nodes Z through Z-COMPLETE, the MIGOS adjudication.
+- **In scope for epic-01-markovian:** the theorem Z, axioms A1–E3 (now A1–A6),
+  the requirement tree nodes Z through Z-COMPLETE, the MIGOS adjudication.
 - **Explicitly out of scope (this task):** mapping all 282 register rows onto
   the tree (follows in its own task); any code change, battery, or kernel
   extraction (Phases 1–4); re-auditing the register; claimlint fix (separate);
   regenerating claimlint calibration (baseline recorded before edits).
+- **Explicitly out of scope (model):** handicap stones and arbitrary-start
+  positions. The census seeds only the empty goban, for either side, at
+  `passes=0` (`src/exp6_solve.zig:964-969`, pinned `082433e`). There is no
+  mechanism for a non-empty starting position and no handicap concept. This
+  is a decided scope boundary, not an oversight: the model solves the complete
+  game from the natural fresh-start root, and non-standard starts were
+  considered and excluded.
 
 ---
 
@@ -447,3 +456,23 @@ Also noted, not fixed here: T275 closed `pass` without the
 `findings/T275-*.json` its brief required, and nothing refused the close — the
 deliverable check only knew about `AXIOMS.md`. Future briefs list the findings file
 in `deliverables=` so `managent done` enforces it.
+
+### Amendment 3 — 2026-08-03 (deepseek-v4-pro/T285)
+
+Two additions, both raised by T266 after its own task closed:
+
+1. **A6 — Forced pass.** A player with no legal placement passes, and that
+   forced pass is indistinguishable from a voluntary one: it clears the ko
+   point, increments the pass count, and counts toward double-pass termination.
+   This is a rules choice — rulesets differ on whether a player unable to place
+   must pass — and is the choice made at `src/exp6_solve.zig:926-929` (pinned
+   `082433e`), which emits the pass edge unconditionally. The axiom was always
+   implicit in the code but unstated in the document. Added as A6, claim ID
+   `GLOBAL.AXIOM-FORCEDPASS`. The artifact records 516,242 terminal-bit states
+   at 4×4 where a side cannot place (build T184, 2026-08-01,
+   `docs/evidence/ORACLE-V2/build-T184-2026-08-01.stdout:162`).
+
+2. **Scope statement — handicap and arbitrary-start.** The census seeds only the
+   empty goban for either side (see §6). The model has no handicap concept and no
+   arbitrary-start concept. This was a decided exclusion, not an oversight; it is
+   now stated explicitly in §6.
