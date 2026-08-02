@@ -1,0 +1,78 @@
+{
+  "task_id": "T290",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "GLOBAL.I8-SCOPE",
+      "proposed_status": "CLAIMED",
+      "rationale": "I8 (truncation-gap regression) measures fixpoint-vs-truncation agreement on a 24-state fixture, not L==H within the fixpoint. T287 showed the fixture passes (0 mismatches) while 716 L<H states exist at 2×2 — the fixture is valid for what it measures but must not be read as evidence of single-valuedness.",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §3.2"
+    },
+    {
+      "id": "GLOBAL.I9-ANCHOR-4x4",
+      "proposed_status": "CLAIMED",
+      "rationale": "4×4 anchor is +1 under our ruleset (basic ko, flat TIE=0). MIGOS basic-ko agrees at +1 (T274). The +2 is a different game (pass-difference cycle resolution), not a discrepancy with our value. Pass0's '+1 vs MIGOS +2' language is corrected.",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §3.1 I9; AXIOMS.md §4.4"
+    },
+    {
+      "id": "GLOBAL.A1-MUTATION",
+      "proposed_status": "CLAIMED",
+      "rationale": "Acceptance criteria re-based on Amendment 1: known-bad = synthetic mutant (mutation testing), regression input = live artifact (golden master). A1 now requires synthetic mutants for every invariant; A4 makes v1 a regression input with documented I7 failure as baseline.",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §4"
+    },
+    {
+      "id": "GLOBAL.BATTERY-GAPS",
+      "proposed_status": "CLAIMED",
+      "rationale": "Six gaps identified in the requirement tree coverage: G1 (Z-R-STATE key agreement), G2 (Z-STATE-REACH closure), G3 (Z-STATE-KEY consumer-side), G4 (Z-TABLE-ROUNDTRIP), G5 (Z-CONVERGE-SEED), G6 (Z-CONVERGE-MONO). G1–G4 are runnable after Phase 2 kernel; G5–G6 are accepted gaps.",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §2"
+    }
+  ],
+  "new_rows": [
+    {
+      "id": "GLOBAL.I8-SCOPE",
+      "legacy": "—",
+      "goban": "2x2",
+      "claim": "I8 (truncation-gap regression) measures fixpoint-vs-truncation agreement on the 24-state T102/T103 fixture only. It does not measure L==H within the fixpoint. The 716 L<H states at 2×2 are the expected output of ADR-0020 semantics (E3) and are not a defect.",
+      "status": "CLAIMED",
+      "evidence": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §3.2; docs/audits/adr0020-gap-adjudication.md",
+      "depends_on": "T287, T102, T103",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.I9-ANCHOR-4x4",
+      "legacy": "—",
+      "goban": "4x4",
+      "claim": "The 4×4 fresh-start root under ruleset R (basic ko, flat TIE=0) is +1. MIGOS II basic-ko 4×4 is also +1 (van der Werf 2005 §5.4.1). The +2 value arises from a different game (pass-difference cycle resolution), not from a different tie constant or a defect in our solver.",
+      "status": "CLAIMED",
+      "evidence": "AXIOMS.md §4.4; T274 (MIGOS primary-source analysis); docs/evidence/T274/",
+      "depends_on": "GLOBAL.AXIOM-TIE, GLOBAL.FIXPOINT-VS-SEARCH, GLOBAL.TIE-MIGOS",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.BATTERY-GAPS",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "The verify-battery pass0 invariant set I1–I12 covers 14 of 20 requirement-tree nodes. Six gaps exist: G1 Z-R-STATE (key agreement), G2 Z-STATE-REACH (closure C-A1/C-A2), G3 Z-STATE-KEY (consumer-side key), G4 Z-TABLE-ROUNDTRIP, G5 Z-CONVERGE-SEED, G6 Z-CONVERGE-MONO. G1–G4 are specified and runnable after Phase 2 kernel; G5 is build-documentation, not an artifact property; G6 is mathematical and accepted.",
+      "status": "CLAIMED",
+      "evidence": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §2",
+      "depends_on": "AXIOMS.md §3 (requirement tree), pass0 spec, ADR-0020 gap adjudication (T287)",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Phase 1 acceptance criteria A1–A6 re-based on Amendment 1: synthetic mutants for calibration (A1), regression artifacts with documented baseline (A2, A4), two independent re-implementations (A5, raised from one). The v1 artifact (data/oracle-4x4-basicko-tie-area.wzo) is a regression input with documented I7 failure, not a known-bad calibration fixture.",
+      "status": "CLAIMED",
+      "evidence": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §4, §7",
+      "depends_on": "DIRECTION.md Amendment 1, pass0 spec A1–A6, T287",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "Full spec written at docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md. Key findings: (1) Check→Node and Node→Check mappings produced — 6 gaps identified, 4 runnable after Phase 2 kernel. (2) I8 is scope-limited but valid: it measures fixpoint-vs-truncation agreement on 24 states, not L==H. T287 confirmed the fixture is not informative about bracket rate. (3) I9 4×4 anchor corrected: our +1 matches MIGOS basic-ko +1 (T274); the +2 is a different game. (4) Acceptance criteria re-based on Amendment 1 — synthetic mutants for calibration, regression artifacts for baseline. A5 raised from one to two independent re-implementations (QA-023 lesson). (5) I11 and C-A1/C-A2 closure checks are specified but unrunnable without Phase 2 kernel. (6) Regression baseline (§7) records every known characteristic of every artifact so 'no new failure' is defined. (7) Exit code discipline refined to four classes including measurement-only (exit 4). What I could not establish: whether the six gaps (G1–G6) should all be in Phase 1 scope or deferred; T291 decides. What I assumed without checking: that the pass0 §6a matrix carries forward unchanged — verified by reading it. What I noticed but did not act on: pass0 I1 (pin census) could be reclassified from 'invariant' to 'measurement report' since pin_L==pin_H is the only structural invariant tested and the pin counts are measurements; left for T291 to decide."
+}
