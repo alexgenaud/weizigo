@@ -6,36 +6,54 @@ from datetime import date
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def parse_claims():
-    """Parse CLAIMS.md into claim dicts."""
+    """Parse CLAIMS.md into claim dicts.
+
+    Edge parsing mirrors src/claims_register.zig (the authority claimlint
+    uses): cells split on unescaped `|`, edges are backtick-delimited spans
+    in the depends-on column that start with `d:`/`e:`/`n:`. The historical
+    `;`-split parse silently dropped comma-separated edges (T276): the
+    register writes `\`d:X\`, \`d:Y\``, not `d:X; d:Y`.
+    """
     with open(f'{ROOT}/docs/epistemic/CLAIMS.md') as f:
         text = f.read()
-    
+
+    def split_cells(line):
+        # honour `\|` escapes, like claims_register.zig splitCells
+        out, start = [], 0
+        i = 0
+        while i < len(line):
+            if line[i] == '|' and (i == 0 or line[i - 1] != '\\'):
+                out.append(line[start:i])
+                start = i + 1
+            i += 1
+        out.append(line[start:])
+        return out
+
     claims = {}
     for line in text.split('\n'):
-        if not line.startswith('| `'):
+        if not line.startswith('| '):
             continue
-        parts = [p.strip() for p in line.split('|')]
-        if len(parts) < 12:
+        parts = [p.strip() for p in split_cells(line)]
+        if len(parts) != 12:
             continue
-        cid = parts[1].strip('`')
+        cid_cell = parts[1]
+        if cid_cell == 'ID' or not (cid_cell.startswith('`') and cid_cell.endswith('`')):
+            continue
+        cid = cid_cell[1:-1]
         label = parts[2]
         scope = parts[3]
         desc = parts[4]
         status = parts[5]
         evidence = parts[6]
-        edge_str = parts[7]
         deps_str = parts[8]
-        
-        # Parse edges
+
+        # Parse edges: backtick-delimited spans in the depends-on column.
         parents = []
-        if edge_str != '—' and edge_str:
-            clean = edge_str.replace('`', '')
-            for tok in clean.split(';'):
-                tok = tok.strip()
-                m = re.match(r'([dne]):(\S+)', tok)
-                if m:
-                    parents.append((m.group(1), m.group(2)))
-        
+        for m in re.finditer(r'`([^`]+)`', parts[7]):
+            tok = m.group(1)
+            if tok.startswith(('d:', 'e:', 'n:')):
+                parents.append((tok[0], tok[2:]))
+
         claims[cid] = {
             'label': label, 'scope': scope, 'desc': desc,
             'status': status, 'evidence': evidence,
@@ -52,6 +70,19 @@ def parse_claims():
     
     return claims
 
+def gen_stamp(today: str, source: str) -> list[str]:
+    """Identity stamp for generated files (T276). No agent runs this generator,
+    so no model is recorded — the historical `Model: DSPro` here forged
+    attribution for whoever actually ran the tool (AGENTS.md identity rule).
+    The stamp asserts only what the tool itself counts."""
+    return [
+        "```",
+        f"Task: n/a · Role: generator · Model: n/a · Date: {today}",
+        f"Source: {source}",
+        "```",
+    ]
+
+
 def gen_claim_evidence_index(claims):
     """Generate INDEX-claim-evidence.md."""
     today = date.today().isoformat()
@@ -59,15 +90,11 @@ def gen_claim_evidence_index(claims):
     lines = []
     lines.append('# INDEX — claim-to-evidence cross-reference (generated)')
     lines.append('')
-    lines.append(f'```')
-    lines.append(f'Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: {today}')
-    lines.append(f'Sprint: project-restructure pass0 (T200)')
-    lines.append(f'Source: docs/epistemic/CLAIMS.md (274 claims)')
-    lines.append(f'```')
+    lines.extend(gen_stamp(today, f'docs/epistemic/CLAIMS.md ({len(claims)} claims)'))
     lines.append('')
     lines.append('**Generated from `docs/epistemic/CLAIMS.md`.** Reproduce with:')
     lines.append('')
-    lines.append('    zig build && ./zig-out/bin/weizigo-claimlint')
+    lines.append('    python3 tools/gen-indices')
     lines.append('')
     lines.append('---')
     lines.append('')
@@ -99,15 +126,20 @@ def gen_claim_evidence_index(claims):
 def gen_claim_deps_index(claims):
     """Generate INDEX-claim-deps.md — the dependency tree."""
     today = date.today().isoformat()
-    
+
+    # Count edges as recorded in CLAIMS.md (T276: the header previously
+    # hardcoded `97 d:, 11 n:, 91 e:` — the graph displays each edge twice
+    # (parent + child), which is why the e: figure read ~2× wrong).
+    edge_counts = {}
+    for info in claims.values():
+        for rel, _ in info['parents']:
+            edge_counts[rel] = edge_counts.get(rel, 0) + 1
+    edges_str = ', '.join(f'{edge_counts.get(r, 0)} {r}:' for r in ('d', 'n', 'e'))
+
     lines = []
     lines.append('# INDEX — claim dependency tree (generated)')
     lines.append('')
-    lines.append(f'```')
-    lines.append(f'Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: {today}')
-    lines.append(f'Sprint: project-restructure pass0 (T200)')
-    lines.append(f'Source: docs/epistemic/CLAIMS.md edges (97 d:, 11 n:, 91 e:)')
-    lines.append(f'```')
+    lines.extend(gen_stamp(today, f'docs/epistemic/CLAIMS.md edges ({edges_str})'))
     lines.append('')
     lines.append('**Generated from `docs/epistemic/CLAIMS.md` edge columns.**')
     lines.append('Answers "what else falls if X is false" in one hop.')
@@ -166,13 +198,12 @@ def gen_claim_task_index():
     lines = []
     lines.append('# INDEX — claim-to-task cross-reference (generated)')
     lines.append('')
-    lines.append(f'```')
-    lines.append(f'Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: {today}')
-    lines.append(f'Sprint: project-restructure pass0 (T200)')
-    lines.append(f'```')
+    lines.extend(gen_stamp(today, 'docs/infra/dispatch/*.md briefs + docs/epistemic/CLAIMS.md'))
     lines.append('')
     lines.append('**Generated from `docs/infra/dispatch/*.md` briefs and `docs/epistemic/CLAIMS.md`.**')
-    lines.append('Reproduce by running `./bin/managent status` and scanning dispatch briefs.')
+    lines.append('Reproduce with:')
+    lines.append('')
+    lines.append('    python3 tools/gen-indices')
     lines.append('')
     lines.append('Each entry maps a claim ID to the task(s) that close it, bear on it, or')
     lines.append('produced its evidence. Status is from the kanban (`./bin/managent status`).')

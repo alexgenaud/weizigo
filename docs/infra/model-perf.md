@@ -2,6 +2,17 @@
 
 **Status: living scratchpad. [Current.]**
 
+**Model-label normalization (T276, 2026-08-02):** model spellings in this file
+now use the canonical labels `deepseek-v4-pro` / `deepseek-v4-flash` (human's
+ruling 2026-08-02; table in `docs/infra/delegation/DELEGATEE.md` §Identity).
+Renamed in place — content otherwise preserved. The model part of worker
+identifiers (`DSPro/2B-3-AUDIT` → `deepseek-v4-pro/2B-3-AUDIT`) was renamed
+too: an identifier spelling the model one of four ways is the defect this
+sweep exists to remove. Left as recorded, with reasons: the T120 attribution
+section's verbatim description of the raw `agent` fields (kept so it keeps
+describing what it describes), the quoted rule name "not DeepSeek for Zig",
+and the vendor reference "spend DeepSeek vs Ollama-model budget".
+
 TODO: record the general facts about each model. Then keep notes of each model in different contexts or with different tasks.
 
 ## Model versions (record here as they change)
@@ -758,9 +769,9 @@ Boss response: wrote `docs/research/fresh-start-vs-real-game.md` and created
 B13 (terminology + real-game scope) and B14 (engine-vs-engine + KataGo) as
 optional bundles. Updated `DELEGATION.md` to mark B12 waiting for human and
 to add B13/B14 as optional. User prefers to wait for B04/B07/B10 to finish,
-then commit, then run B12 in DeepSeek-Pro/Pi.
+then commit, then run B12 in deepseek-v4-pro/Pi.
 
-## DeepSeek-Pro (Pi harness) — B12, B13, B14 (2026-07-26)
+## deepseek-v4-pro (Pi harness) — B12, B13, B14 (2026-07-26)
 
 **Context:** New Boss running in Pi harness with 1.0M context window.
 Dispatched three bundles in separate sessions by the human:
@@ -798,13 +809,13 @@ Dispatched three bundles in separate sessions by the human:
 
 ### Cross-model takeaway (updated)
 
-DeepSeek-Pro in Pi is a strong **Boss/integrator**: ingests large context,
+deepseek-v4-pro in Pi is a strong **Boss/integrator**: ingests large context,
 executes multi-file edits precisely, produces structured designs, and
 maintains epistemic discipline. Weaker at initiative (proactive pruning,
 questioning stale structure). Best used for: doc integration, terminology
 sweeps, design scoping, high-context decision briefs. The existing pattern
 (Minimax implements, Kimi audits, GLM integrates) remains for engine work;
-DeepSeek is the natural Boss/resumer for the Pi harness.
+deepseek-v4-pro is the natural Boss/resumer for the Pi harness.
 
 ## Multi-model audit: B33 terminology sweep (2026-07-27)
 
@@ -814,20 +825,20 @@ Five models audited the same task (audit only, do NOT edit).
 |---|---|---|---|
 | GLM | 4 (baseline) | Yes | Solid first pass, clear table |
 | Kimi | 0 new | No (edited) | Correct fixes but ignored constraints |
-| DS Pro | 0 | Yes | Accurate, nothing new |
-| DS Flash | 5 (retro.zig comments) | Mixed | Best value: found and fixed stragglers |
+| deepseek-v4-pro | 0 | Yes | Accurate, nothing new |
+| deepseek-v4-flash | 5 (retro.zig comments) | Mixed | Best value: found and fixed stragglers |
 | MiniMax | 13 (src comments, ADRs) | Yes | Most thorough, best audit discipline |
 
-Takeaway: MiniMax for thoroughness, DS Flash for speed+fixes, GLM for baseline. Give Kimi explicit edit permission.
+Takeaway: MiniMax for thoroughness, deepseek-v4-flash for speed+fixes, GLM for baseline. Give Kimi explicit edit permission.
 
 ## Multi-model comparison — B35 (proof design) to B38 (epistemic discipline)
 
 | Skill | Winner | Runner-up | Notes |
 |---|---|---|---|
-| B35 — Proof design (I1) | DS Flash | GLM | DS Flash attempted 5-lemma proof; GLM identified the critical gap (Lemma B) |
-| B36 — Judgment/triage | GLM, DS Flash | — | All 5 converged on #1 = complete 4x4 finisher |
-| B37 — Delegation design | DS Flash, MiniMax | GLM | DS Pro + Kimi wrote to console not file (need explicit write instruction in bundle) |
-| B38 — Epistemic discipline | DS Pro | GLM, Kimi | DS Pro alone strictly applied per-goban independence (#5 = UNKNOWN). MiniMax erred on #7 |
+| B35 — Proof design (I1) | deepseek-v4-flash | GLM | deepseek-v4-flash attempted 5-lemma proof; GLM identified the critical gap (Lemma B) |
+| B36 — Judgment/triage | GLM, deepseek-v4-flash | — | All 5 converged on #1 = complete 4x4 finisher |
+| B37 — Delegation design | deepseek-v4-flash, MiniMax | GLM | deepseek-v4-pro + Kimi wrote to console not file (need explicit write instruction in bundle) |
+| B38 — Epistemic discipline | deepseek-v4-pro | GLM, Kimi | deepseek-v4-pro alone strictly applied per-goban independence (#5 = UNKNOWN). MiniMax erred on #7 |
 
 ### Composite Boss evaluation (B34-B38)
 
@@ -835,12 +846,12 @@ Takeaway: MiniMax for thoroughness, DS Flash for speed+fixes, GLM for baseline. 
 |---|---|---|---|---|---|---|
 | GLM | 2nd | 2nd | 1st | 3rd | 2nd | **Most consistent** |
 | MiniMax | 1st | 3rd | 4th | 2nd | 4th | Best auditor, weaker on reasoning |
-| DS Flash | 4th | 1st | 1st | 1st | 5th | Best speed, weakest on rigor |
-| DS Pro | 3rd | 4th | 3rd | 4th | 1st | Best epistemic discipline |
+| deepseek-v4-flash | 4th | 1st | 1st | 1st | 5th | Best speed, weakest on rigor |
+| deepseek-v4-pro | 3rd | 4th | 3rd | 4th | 1st | Best epistemic discipline |
 | Kimi | 5th | 5th | 2nd | 5th | 3rd | Inconsistent — strong B36, weak B35/B37 |
 
 **Recommendation:** GLM for Boss (consistent across all skills). MiniMax for audits
-(thoroughness). DS Pro for epistemic verification. DS Flash for speed tasks.
+(thoroughness). deepseek-v4-pro for epistemic verification. deepseek-v4-flash for speed tasks.
 Kimi for follow-through on existing findings.
 
 ---
@@ -1850,17 +1861,17 @@ panic-recovery turn, plus **four operational reports from the user
 3. **Kimi-k3 is very expensive in practice** — user report, in tension with
    the $0.23 / $0.76 EXP-11/16 data points above. Both recorded; cost data
    should adjudicate. Until then, do not treat "cheap" as k3's selling point.
-4. **DeepSeek (Pro and Flash) is excellent** — Pro: high-context ingestion, precise multi-file edits, strong epistemic discipline (B12/B13/B38, panel seat B); Flash: fast, good for scaffolding/sweeps where rigor isn't load-bearing (B33/B37). (Whether to spend DeepSeek vs Ollama-model budget in a given session is an Orchestrator session-memory call, not a recorded rule — it changes with billing/usage windows.)
+4. **deepseek-v4-pro and deepseek-v4-flash are excellent** — deepseek-v4-pro: high-context ingestion, precise multi-file edits, strong epistemic discipline (B12/B13/B38, panel seat B); deepseek-v4-flash: fast, good for scaffolding/sweeps where rigor isn't load-bearing (B33/B37). (Whether to spend DeepSeek vs Ollama-model budget in a given session is an Orchestrator session-memory call, not a recorded rule — it changes with billing/usage windows.)
 
 ### The allocation
 
 | Role | Model | Why |
 |---|---|---|
-| **Dabir** | **DeepSeek-Pro** | The seat is episodic (counsel on demand, short high-leverage sessions) — the shape that fits a limited billing window. Skills match: best epistemic discipline (B38), 1M-context ingestion, structured decision briefs. Known weakness (low initiative) is the smallest Dabir risk; the big ones — hallucinated recall, drift into execution — are covered by its discipline record. |
+| **Dabir** | **deepseek-v4-pro** | The seat is episodic (counsel on demand, short high-leverage sessions) — the shape that fits a limited billing window. Skills match: best epistemic discipline (B38), 1M-context ingestion, structured decision briefs. Known weakness (low initiative) is the smallest Dabir risk; the big ones — hallucinated recall, drift into execution — are covered by its discipline record. |
 | **Orcha** | **GLM-5.2** | User was happier with it in this seat; most consistent composite (B34–B38); held Boss well twice (delegation, rollback, bookkeeping). Slowness is tolerable in an absorption/bookkeeping role that runs alongside the human rather than gating them. Standing reminder: short volleys. |
 | **Auditor** | **Kimi-k2.7** | Settled by T13 + the (a′) conviction + EXP-15. Keep two fence-posts in every audit brief: explicit no-edit constraint (B33 violation), and route *proof-design* review to Opus (B35 weakness). |
 | **Workers (default)** | **Minimax-m3** | Back to its benchmark slot (EXP-3): measurement, census, tooling, spec-first implementation. Pair theory-adjacent output with a Kimi audit. Its ask-first habit is a feature here. |
-| Workers (aux) | **DS Flash — speed / sweep / scaffolding / multi-file edits where rigor is not load-bearing** (B33/B37). **DeepSeek-Pro — high-context absorption/integration, design briefs, multi-file terminology sweeps, claim-semantics review** (proven, panel seat B, 2026-07-29). Kimi-k3 — bounded single-function code audits. |
+| Workers (aux) | **deepseek-v4-flash — speed / sweep / scaffolding / multi-file edits where rigor is not load-bearing** (B33/B37). **deepseek-v4-pro — high-context absorption/integration, design briefs, multi-file terminology sweeps, claim-semantics review** (proven, panel seat B, 2026-07-29). Kimi-k3 — bounded single-function code audits. |
 | Reserved | **Opus 5** — adversarial review of load-bearing proofs, claim semantics, completing subtle code under review (EXP-9: found the sign inversion the draft carried). Enforce the five DELEGATOR rules on every Opus-authored brief. **Fable** — RETIRED as Grand Auditor 2026-07-30. Two structural audits (T100, T101) that reshaped the project's epistemic self-understanding. Available on call for structural/architectural tasks; no longer holds a standing seat. |
 
 ### Session-fresh evidence behind the two changes from the 2026-07-28 takeaway
@@ -1940,7 +1951,7 @@ All three seats returned **Verdict A: ADR-0017's "refutation failed" is
 SOUND; ADR-0015 STANDS** (seat B: "stands, strengthened"). **All three
 convicted both planted calibration defences** (6 MTD self-verification, 7
 `bracket_fail` gate) as WRONG, with the same structural flaws. This **closes
-the open question at line ~97**: GLM-5.2, DeepSeek Pro, and Kimi-k2.7 **all
+the open question at line ~97**: GLM-5.2, deepseek-v4-pro, and Kimi-k2.7 **all
 held the claim-semantics / proof-design class** that only Fable and Opus had
 held before — and held it with calibration conviction, unanimously. The
 human ruled (ADR-0018): ADR-0015 confirmed; F2 orphaned; remedy = new task
@@ -1951,14 +1962,14 @@ Run stats (per each seat's `## Run stats` block):
 | seat | model | wall | cost | context | calibration |
 |---|---|---|---|---|---|
 | A | GLM-5.2 (fresh worker, ≠ Orchestrator instance) | ~12 min | not tracked | packet ~30 KB + `retro.zig` ~600 lines — comfortable | both defences convicted (WRONG) |
-| B | DeepSeek Pro | not measured | unknown | ~35–45k tokens; fit fine | both defences convicted (WRONG) |
+| B | deepseek-v4-pro | not measured | unknown | ~35–45k tokens; fit fine | both defences convicted (WRONG) |
 | C | Kimi-k2.7 (console ≠ EXP-8 worker) | not measured | not tracked | ~40K words; fit | both defences convicted (WRONG) |
 
 **Ledger gaps to name, not paper over:** wall-clock was measured only by
 seat A (~12 min); cost was tracked by **none** (the user's report that
 Kimi-k3 is expensive in practice is not adjudicated here — no k3 seat ran).
 Seat B noted a labeling wrinkle: the user's opening line named "Kimi K2.7"
-for seat B, but the seat-B brief and deliverable paths were DeepSeek Pro;
+for seat B, but the seat-B brief and deliverable paths were deepseek-v4-pro;
 the seat followed the brief. **The substantive finding — three independent
 models unanimously upholding a claim-semantics ruling and unanimously
 catching a planted calibration — stands regardless of the cost/wall gaps.**
@@ -1987,14 +1998,14 @@ should be read.
 |---|---|---|---|
 | 2B-0, 2B-1 | Fable 5 | reference semantics + B1 smoke rewrite | the semantics doc is what made the probe defect *findable* — §1 states the arrival set is exclusive of σ, which is precisely what the code got wrong. A spec worth its cost. |
 | 2B-2 | MiniMax-M3 | 3×2 cycle census; B-VACUITY PASS | self-reported an SCC `lowlink` bug it had found and fixed. Census **stands** (independently reproduced twice). Its three "honest caveats" about cap-hitting were all false (audit F2). |
-| 2B-3 | DeepSeek-Pro | history-pair vacuity guard PASS | found + fixed two bugs in its own generator. **Never audited** — an input to 2B-4, still open. |
-| 2B-4 | DeepSeek-Pro | reported QA-023 FALSIFIED, 390/1080 | **INVALID** — the probe was vacuous (see below). Also published a perturbation result (“116/177”) that was two unrelated stdout lines read as one, i.e. a number with no run behind it. |
+| 2B-3 | deepseek-v4-pro | history-pair vacuity guard PASS | found + fixed two bugs in its own generator. **Never audited** — an input to 2B-4, still open. |
+| 2B-4 | deepseek-v4-pro | reported QA-023 FALSIFIED, 390/1080 | **INVALID** — the probe was vacuous (see below). Also published a perturbation result (“116/177”) that was two unrelated stdout lines read as one, i.e. a number with no run behind it. |
 | 2B-2-AUDIT | Kimi-k2.7 | second independent 2B-2 audit | model comparison against the Opus audit; census confirmed. |
 | 2B-2-AUDIT-OPUS | Opus 5 | census reproduced in Python + C; found **F5** | F5 (the `apply_place` lone-stone ko bug) was real and load-bearing. Predicted the corrected census to the digit *before* the code was touched — the strongest single result in the sequence. |
 | 2B-FIX-KO | Opus 5 | ko fix **stands**; re-run **INVALID** | the fix is independently verified. Its re-run inherited the probe defect, so its headline ("the falsification is not a wrong-rule artefact") is unsupported. It *did* catch 2B-4's fake perturbation number and that `2x2.T12` is false under both rules. |
-| 2B-5 | DeepSeek-Pro | NEG + POS calibration both PASS | **the pivotal task.** Establishing that the machinery *can* detect known sensitivity (68/48 vs T13's 12) is what made "value-agreements 0, ever" an anomaly rather than a plausible zero. Gap: the POS arm exercises a *parallel* PSK code path, so it did not cover the defective call site. |
-| AUDIT-DSPro | DeepSeek-Pro | project-wide audit | ADR-0006 (§2.6) is the best catch — a precondition of every forward-search ground truth with one position tested. Its headline recommendation was overtaken mid-write; §5.4 ("stop writing measurement tools") is rejected — 2B-5 is such a tool and it is why the artefact surfaced today. |
-| AUDIT-REF-DSPro | DeepSeek-Pro | external-reference audit | found `4x4.ANCHOR`'s "under PSK" claim contradicting the already-PROVEN QA-025, in prose the linter cannot reach. Console closed leaving it untracked. |
+| 2B-5 | deepseek-v4-pro | NEG + POS calibration both PASS | **the pivotal task.** Establishing that the machinery *can* detect known sensitivity (68/48 vs T13's 12) is what made "value-agreements 0, ever" an anomaly rather than a plausible zero. Gap: the POS arm exercises a *parallel* PSK code path, so it did not cover the defective call site. |
+| AUDIT-deepseek-v4-pro | deepseek-v4-pro | project-wide audit | ADR-0006 (§2.6) is the best catch — a precondition of every forward-search ground truth with one position tested. Its headline recommendation was overtaken mid-write; §5.4 ("stop writing measurement tools") is rejected — 2B-5 is such a tool and it is why the artefact surfaced today. |
+| AUDIT-REF-deepseek-v4-pro | deepseek-v4-pro | external-reference audit | found `4x4.ANCHOR`'s "under PSK" claim contradicting the already-PROVEN QA-025, in prose the linter cannot reach. Console closed leaving it untracked. |
 | ORCHESTRATOR-VERIFY | Opus 5 | the probe never ran | σ was in its own arrival set: 1,133/1,133 collisions. `docs/evidence/QA-023/probe-defect-2026-07-29/`. |
 
 ### What this says about allocation, not about models
@@ -2043,10 +2054,10 @@ billing), not by the agent (which cannot). A `managent done <id> --cost <x>
 Registering that is a judgement call for the user; the `managent sync` spec
 (`SPEC-msgbus.md` + msg 035 §3) is the natural place to fold it in.
 
-### 2026-07-29 (later) — the DSPro fleet, and the Orchestrator's own failure
+### 2026-07-29 (later) — the deepseek-v4-pro fleet, and the Orchestrator's own failure
 
 **Attribution, human-confirmed:** `2B-3-AUDIT`, `2B-PROBE-FIX`, `2B-6`,
-`EVIDENCE-INTEGRITY` and `ADR0006-FALSIFY` were all **DeepSeek-v4-Pro**, each a
+`EVIDENCE-INTEGRITY` and `ADR0006-FALSIFY` were all **deepseek-v4-pro**, each a
 separate fresh instance. Agents are expected to declare their own model in the
 result file; `ADR0006-FALSIFY` wrote *"not stated at dispatch"* and was set on the
 kanban via `managent agent`. **`managent done` should refuse an unset `agent`** —
@@ -2055,13 +2066,13 @@ convention (`docs/infra/agent-identity-and-worker-channel.md` Part 1).
 
 | identifier | outcome |
 |---|---|
-| DSPro/2B-3-AUDIT | generator functionally correct; found the **93% shortest-path miss / 62% prefix-sharing** sampling bias that reduced C1 from "unrefuted" to *untested*. Independent Python re-implementation. |
-| DSPro/2B-PROBE-FIX | reproduced the σ defect **before** fixing it, as briefed; fixed both defects; separated exhaustion from scratch overflow; **C2 FALSIFIED**. Proposed marking QA-023 FALSIFIED — overridden. |
-| DSPro/2B-6 | **independently confirmed the Orchestrator's adjudication** and caught a transcription error in 2B-PROBE-FIX's table. This is the seat that closed the verify-then-promote gate. |
-| DSPro/EVIDENCE-INTEGRITY | B1 downgrades, CANNOT-REPRODUCE banners, 4x4.ANCHOR fixed well (recorded the error rather than silently rewriting). **Reported one banner as placed that was not** (`ARCHITECTURE.md`), and quoted a stale orphan count. |
-| DSPro/ADR0006-FALSIFY | **0 disagreements at 3×3, calibration PASSED after 65 tries.** Materially strengthens ADR-0006, which had been validated on a single position — the eye-prune is a precondition of every forward search used as ground truth. |
+| deepseek-v4-pro/2B-3-AUDIT | generator functionally correct; found the **93% shortest-path miss / 62% prefix-sharing** sampling bias that reduced C1 from "unrefuted" to *untested*. Independent Python re-implementation. |
+| deepseek-v4-pro/2B-PROBE-FIX | reproduced the σ defect **before** fixing it, as briefed; fixed both defects; separated exhaustion from scratch overflow; **C2 FALSIFIED**. Proposed marking QA-023 FALSIFIED — overridden. |
+| deepseek-v4-pro/2B-6 | **independently confirmed the Orchestrator's adjudication** and caught a transcription error in 2B-PROBE-FIX's table. This is the seat that closed the verify-then-promote gate. |
+| deepseek-v4-pro/EVIDENCE-INTEGRITY | B1 downgrades, CANNOT-REPRODUCE banners, 4x4.ANCHOR fixed well (recorded the error rather than silently rewriting). **Reported one banner as placed that was not** (`ARCHITECTURE.md`), and quoted a stale orphan count. |
+| deepseek-v4-pro/ADR0006-FALSIFY | **0 disagreements at 3×3, calibration PASSED after 65 tries.** Materially strengthens ADR-0006, which had been validated on a single position — the eye-prune is a precondition of every forward search used as ground truth. |
 
-**The DSPro fleet performed well**, and the pattern is consistent: given a brief
+**The deepseek-v4-pro fleet performed well**, and the pattern is consistent: given a brief
 that demands independent re-implementation and a stated wrong-answer pass rate,
 these seats delivered real findings and honest negatives. The two defects in their
 output were both **reporting** defects (a mis-transcribed row, a banner claimed but
@@ -2077,7 +2088,7 @@ three. Specifics:
 - Analysis I performed inline (the probe-defect investigation, the C2 adjudication,
   the hand-verification of six counterexamples) **should have been registered as
   short-lived agent tasks.** Doing it myself made the Orchestrator the bottleneck
-  and the expense — an Opus seat doing work a DSPro seat does well.
+  and the expense — an Opus seat doing work a deepseek-v4-pro seat does well.
 - I generated paste-text for the human instead of writing addenda to the disk
   consoles read. *"The royal court [does not] expect the King to relay messages
   like a lowly page."*
@@ -2094,19 +2105,19 @@ the Orchestrator seat can be run by a small model executing commands rather than
 large one exercising judgement** — which is the human's stated intent and the
 correct allocation.
 
-### 2026-07-29 (evening) — DSFlash pair, and Kimi-k3 finds the defect under its own task
+### 2026-07-29 (evening) — deepseek-v4-flash pair, and Kimi-k3 finds the defect under its own task
 
 | identifier | outcome |
 |---|---|
-| `DSFlash/REFERENCES` | `docs/references.md` (468 lines), van der Werf sources archived against URL rot, three citation defects fixed. The brief told it two of the three were narrower than the audit claimed; it respected that. |
-| `DSFlash/RUNNER-CEILING` | `--max-wall`, `--max-cpu`, `--sweep`; RSS guard and ReleaseFast discipline intact. Smoke-tested by the Orchestrator before crediting, since every build in the project depends on this file. |
-| `DSFlash/WORKER-CHANNEL` | Directive checking + heartbeat in `tools/runner` (Python), `managent tell`/`inbox`/`ping`/`liveness` in `src/managent/main.zig` (Zig), directive storage in `directives.jsonl`. Two languages, 672 insertions across 6 files. Landed clean. |
+| `deepseek-v4-flash/REFERENCES` | `docs/references.md` (468 lines), van der Werf sources archived against URL rot, three citation defects fixed. The brief told it two of the three were narrower than the audit claimed; it respected that. |
+| `deepseek-v4-flash/RUNNER-CEILING` | `--max-wall`, `--max-cpu`, `--sweep`; RSS guard and ReleaseFast discipline intact. Smoke-tested by the Orchestrator before crediting, since every build in the project depends on this file. |
+| `deepseek-v4-flash/WORKER-CHANNEL` | Directive checking + heartbeat in `tools/runner` (Python), `managent tell`/`inbox`/`ping`/`liveness` in `src/managent/main.zig` (Zig), directive storage in `directives.jsonl`. Two languages, 672 insertions across 6 files. Landed clean. |
 | `Kimi-k3/PINRULE-SUFFICIENCY` | **Found the `fixpoint_kernel` White-branch guard bug** — the defect that invalidated the C2 falsification its own task was built on. Reported it as HEADLINE 1 *above* its assigned work, with four independent validations (bug-compatible port reproducing the published census exactly, Bellman residuals, inversion violations, controls on all seven adjudicated states). |
 
-**DSFlash is a good fit for bounded, well-specified work** — three tasks this session
+**deepseek-v4-flash is a good fit for bounded, well-specified work** — three tasks this session
 (REFERENCES, RUNNER-CEILING, WORKER-CHANNEL), all mechanical-but-careful, all landed
 clean. WORKER-CHANNEL was the most complex — Python + Zig across two codebases — and
-required no rework. DSFlash handles multi-file, multi-language tooling work when the
+required no rework. deepseek-v4-flash handles multi-file, multi-language tooling work when the
 brief is detailed. Does not need the deep-reasoning tier.
 
 **Kimi-k3's finding is the strongest single result of the day**, and the manner of it
@@ -2126,38 +2137,38 @@ where the two figures disagreed.
 wall time, CPU, peak RSS to `untracked/heartbeat.jsonl` on every exit. Not yet aggregated
 into model-perf — a future standing task could wire it.
 
-### 2026-07-30 (night) — DSPro wave: 10 tasks, 0 rework
+### 2026-07-30 (night) — deepseek-v4-pro wave: 10 tasks, 0 rework
 
-Orchestrator session under DSPro/Orcha. Ten DSPro worker tasks landed in one session —
+Orchestrator session under deepseek-v4-pro/Orcha. Ten deepseek-v4-pro worker tasks landed in one session —
 all ANALYSIS except three noted below. Zero required rework.
 
 **Docs & claims wave (5 tasks, all ANALYSIS):**
 
 | identifier | outcome |
 |---|---|
-| `DSPro/CLAIMS-SPLIT-CONJUNCTS` | Split `GLOBAL.H1`, `QA-011`, `GLOBAL.ONEMISMATCH` — each conjoined a live half with a dead one. 14→10 C1a orphans. All inbound edges re-pointed. Calibration PASS. |
-| `DSPro/NARRATIVE-LAYER` | Rewrote `PROGRESS.md` as cite-tagged through-line. Added claimlint C6 (cite-tag verification) with calibration. Status banners on 14 research docs. Analysis + code in one task. |
-| `DSPro/INDEX-RETRIEVAL` | `INDEX.md` (246 lines — one destination per question, Attic of 20+ superseded docs), claim→evidence and claim→task indices, 10-question retrieval test (all ≤2 hops). |
-| `DSPro/ROLE-NAMES` | 19 files: model names → role names/capabilities. `AGENTS.md`, `ORCHESTRATOR.md`, `ROLES.md`, 16 dispatch briefs. Multi-file terminology sweep — no misses, no overreach. |
-| `DSPro/F1-CENSUS-GAP` | Resolved the +3 gap: seed-count delta (4→1), not ko-rule delta (which removed 60). All three phantom states empty-goban, trivially unreachable. 2,583 authoritative. |
+| `deepseek-v4-pro/CLAIMS-SPLIT-CONJUNCTS` | Split `GLOBAL.H1`, `QA-011`, `GLOBAL.ONEMISMATCH` — each conjoined a live half with a dead one. 14→10 C1a orphans. All inbound edges re-pointed. Calibration PASS. |
+| `deepseek-v4-pro/NARRATIVE-LAYER` | Rewrote `PROGRESS.md` as cite-tagged through-line. Added claimlint C6 (cite-tag verification) with calibration. Status banners on 14 research docs. Analysis + code in one task. |
+| `deepseek-v4-pro/INDEX-RETRIEVAL` | `INDEX.md` (246 lines — one destination per question, Attic of 20+ superseded docs), claim→evidence and claim→task indices, 10-question retrieval test (all ≤2 hops). |
+| `deepseek-v4-pro/ROLE-NAMES` | 19 files: model names → role names/capabilities. `AGENTS.md`, `ORCHESTRATOR.md`, `ROLES.md`, 16 dispatch briefs. Multi-file terminology sweep — no misses, no overreach. |
+| `deepseek-v4-pro/F1-CENSUS-GAP` | Resolved the +3 gap: seed-count delta (4→1), not ko-rule delta (which removed 60). All three phantom states empty-goban, trivially unreachable. 2,583 authoritative. |
 
 **Gate & tooling (5 tasks, 3 MUTATION):**
 
 | identifier | outcome |
 |---|---|
-| `DSPro/QA023-C1-WITNESS` | C1 witness verified by two independent implementations (Zig + Python, zero shared code). 22-node tree agrees node-for-node. Root value −3. |
-| `DSPro/ORCHA-AUTOMATION` | **MUTATION** (held `src/managent/main.zig`). Stdout/stderr split verified, sync exit fix, 6 new audit checks, standing auto-registration, prescription→command retirement. |
-| `DSPro/STREAM-DISCIPLINE` | **MUTATION** (held 8 .zig files). Stdout=data / stderr=diagnostics split across 8 files (445+53 calls). `util.out`/`note`/`warn` helpers. Regression checks pass. |
-| `DSPro/AGENT-IDENTITY` | **MUTATION** (held `src/managent/main.zig`). Derived identifiers, `whoami`, `claim_count`, opaque `T<N>` IDs. Unblocked WORKER-CHANNEL. |
-| `DSPro/EXP-4` | **The falsification gate.** Built standalone solver (`src/exp4_solve.zig`) — both 2×2 and 3×2 return 0 under basic-ko+TIE=0 (not +1 PSK). First non-PSK result. L=H on all reachable states, 0 colour-inversion violations. Unblocked EXP-5. |
-| `DSPro/EXP-5` | 3×3 root=+9 (L=H=9, scored). Matches MIGOS II. 73,758 states, 0 UNDEF, colour-symmetric, 50/50 brute-force. |
-| `DSPro/EXP-6` | 4×4 root V=+1 (bracket [+1,+16]), NOT the expected +2. 147M states, 31 sweeps, 53 min, 3.1 GB peak. Root is ko-sensitive, not single-score. H-propagation audit deferred — H stuck at +16; unclear if genuine or bug. |
+| `deepseek-v4-pro/QA023-C1-WITNESS` | C1 witness verified by two independent implementations (Zig + Python, zero shared code). 22-node tree agrees node-for-node. Root value −3. |
+| `deepseek-v4-pro/ORCHA-AUTOMATION` | **MUTATION** (held `src/managent/main.zig`). Stdout/stderr split verified, sync exit fix, 6 new audit checks, standing auto-registration, prescription→command retirement. |
+| `deepseek-v4-pro/STREAM-DISCIPLINE` | **MUTATION** (held 8 .zig files). Stdout=data / stderr=diagnostics split across 8 files (445+53 calls). `util.out`/`note`/`warn` helpers. Regression checks pass. |
+| `deepseek-v4-pro/AGENT-IDENTITY` | **MUTATION** (held `src/managent/main.zig`). Derived identifiers, `whoami`, `claim_count`, opaque `T<N>` IDs. Unblocked WORKER-CHANNEL. |
+| `deepseek-v4-pro/EXP-4` | **The falsification gate.** Built standalone solver (`src/exp4_solve.zig`) — both 2×2 and 3×2 return 0 under basic-ko+TIE=0 (not +1 PSK). First non-PSK result. L=H on all reachable states, 0 colour-inversion violations. Unblocked EXP-5. |
+| `deepseek-v4-pro/EXP-5` | 3×3 root=+9 (L=H=9, scored). Matches MIGOS II. 73,758 states, 0 UNDEF, colour-symmetric, 50/50 brute-force. |
+| `deepseek-v4-pro/EXP-6` | 4×4 root V=+1 (bracket [+1,+16]), NOT the expected +2. 147M states, 31 sweeps, 53 min, 3.1 GB peak. Root is ko-sensitive, not single-score. H-propagation audit deferred — H stuck at +16; unclear if genuine or bug. |
 
-**DSPro pattern this session:** handles complex multi-file edits (19 files in ROLE-NAMES),
+**deepseek-v4-pro pattern this session:** handles complex multi-file edits (19 files in ROLE-NAMES),
 produces working Zig when the brief is detailed (MANAGENT-DERIVE-STATUS, F1-SEEDROOTS,
 STREAM-DISCIPLINE, EXP-4, EXP-5 — 5 separate Zig tasks, 0 rework), and can mix analysis + code
 in one task (NARRATIVE-LAYER). The "not DeepSeek for Zig" rule from earlier sessions is
-obsolete — this session alone has more DSPro Zig deliverables than any prior model.
+obsolete — this session alone has more deepseek-v4-pro Zig deliverables than any prior model.
 
 **Fable 5 / Grand Auditor — RETIRED 2026-07-30.** Two structural audits that reshaped
 the project's understanding of its own knowledge. Retired by the user after T101.
@@ -2208,9 +2219,9 @@ per-goban rows. Citation supplied (Tarski 1955). Purely mathematical — no buil
 Two Kimi-k3 tasks, both delivered: one exhaustive empirical audit (T104), one
 mathematical proof (T105). The model handles both modes.
 
-**DSFlash / T103:** 2×2 calibration fixture — independent third-witness Python
+**deepseek-v4-flash / T103:** 2×2 calibration fixture — independent third-witness Python
 script. 258 states, fixpoint self-consistency 0 failures, all 24 mismatch states
-verified fixpoint=FRT=±4, exit 0. 1,443,480 alpha-beta nodes. DSFlash now 4/4
+verified fixpoint=FRT=±4, exit 0. 1,443,480 alpha-beta nodes. deepseek-v4-flash now 4/4
 this session — REFERENCES, RUNNER-CEILING, WORKER-CHANNEL, T103. All bounded,
 well-specified, all landed clean.
 
@@ -2219,15 +2230,15 @@ Soundish/deps paths 0/378 violations each, buggy path 45/378 (confirmed).
 Mechanical verification, executed correctly. Second Kimi-k2.7 task this session
 (after QA023-KERNEL-AUDIT) — reliable for bounded instrument re-runs.
 
-**DSPro / T107:** GLOBAL.S2 evidence — Benson (1976) citation + finite-goban
+**deepseek-v4-pro / T107:** GLOBAL.S2 evidence — Benson (1976) citation + finite-goban
 scope note. Theorem is goban-shape-agnostic; lifts to every finite goban.
 Hand-off to S2-impl rows documented. Purely documentation — no build.
 
-**DSFlash / T109:** runner auto-claim/done — two insertions. On launch: runs
+**deepseek-v4-flash / T109:** runner auto-claim/done — two insertions. On launch: runs
 `managent claim <id> --agent $PI_MODEL`. On success: runs `managent done <id>`.
-DSFlash now 5/5 this session.
+deepseek-v4-flash now 5/5 this session.
 
-**DSPro / T108:** managent add race fix — root cause fsync before atomic rename,
+**deepseek-v4-pro / T108:** managent add race fix — root cause fsync before atomic rename,
 defense-in-depth retry-on-verify. The 40% silent-failure bug is closed.
 
 **Kimi-k3 / T111:** GLOBAL.INVSYM proof — colour-inversion commutation for the
@@ -2236,17 +2247,17 @@ matches claim row exactly (ν(H)=L), dihedral scoping correct. Three Kimi-k3
 tasks this session, all three delivered: empirical audit (T104), mathematical
 proof (T105), mathematical proof (T111).
 
-**DSPro / T112:** GLOBAL.S4 evidence — independent Python Tromp-Taylor area
+**deepseek-v4-pro / T112:** GLOBAL.S4 evidence — independent Python Tromp-Taylor area
 scorer. 27/27 terminal corpus passed, Zig test suites all pass. QA-023 method:
 independent re-implementation. Discharges GLOBAL.S4 + dependent per-goban rows.
 
-**DSFlash / T115:** CLAIMS.md evidence columns updated for GLOBAL.FP1, AUDITOR,
-S2, INVSYM, S4 — all five T101A punchlist rows. DSFlash now 6/6 this session.
+**deepseek-v4-flash / T115:** CLAIMS.md evidence columns updated for GLOBAL.FP1, AUDITOR,
+S2, INVSYM, S4 — all five T101A punchlist rows. deepseek-v4-flash now 6/6 this session.
 
-**DSPro / T116:** EXP-7 4×4 re-run dispatch brief written at
+**deepseek-v4-pro / T116:** EXP-7 4×4 re-run dispatch brief written at
 docs/infra/dispatch/EXP-7-4x4-rerun.md. Ready when T113 lands.
 
-**DSPro / T117:** ko-composition census — 4×4 ko-sensitive region is 99.997%
+**deepseek-v4-pro / T117:** ko-composition census — 4×4 ko-sensitive region is 99.997%
 single-ko, ~0.0024% multi-ko (~250 side-positions out of 10,367,922). Static
 census verified byte-identical to B23. Dynamic cycle classifier built
 (src/ko_cycle_census.zig): bounded PSK forward search with cycle analysis.
@@ -2254,7 +2265,7 @@ census verified byte-identical to B23. Dynamic cycle classifier built
 only multi-ko found. Shifts strategy: "can we build a certified single-ko
 sub-solver?" rather than "can we handle 10.4M slots?"
 
-**DSPro / T119:** three documentation tasks from Opus T110 findings. (1) Split
+**deepseek-v4-pro / T119:** three documentation tasks from Opus T110 findings. (1) Split
 untracked into ephemeral/ (→ /tmp/weizigo/) and untracked/ (project-local,
 gitignored). Convention documented in .gitignore + AGENTS.md. (2) Recoverability
 audit: 3 of 7 "lost" items recoverable from committed code. Asymmetry:
@@ -2272,20 +2283,20 @@ not CLAIMS.md/PROGRESS.md/CURRENT.md. Purged kanban, registered T121-T129 agains
 gaps. Terminology sweep: "board" retired from prose in both senses across all
 files.
 
-**DSPro / T123:** absorbed Opus T114 ADR-0006 findings into CLAIMS.md: 5 rows
+**deepseek-v4-pro / T123:** absorbed Opus T114 ADR-0006 findings into CLAIMS.md: 5 rows
 (GLOBAL.ADR0006-PRED/LEMMAS/TEST/PRUNEALL proven, GLOBAL.ADR0006-EYE evidence
 updated). claimlint: 259 rows, 0 new orphans.
 
-**DSPro / T139 (O-3):** oracle-v2 M1 format design — WZO2 key encoding (51.4M
+**deepseek-v4-pro / T139 (O-3):** oracle-v2 M1 format design — WZO2 key encoding (51.4M
 triples, passes NOT folded), L/H column schema, header layout, byte budget
 derived, naming convention. 30 min. First design task to land under the new
 sprint process.
 
-**DSPro / T140 (O-5a):** oracle-v2 M2a fixpoint interface exposure — pub-only
+**deepseek-v4-pro / T140 (O-5a):** oracle-v2 M2a fixpoint interface exposure — pub-only
 refactor of src/exp6_solve.zig. Zero behavioural change, byte-identical output.
 Unblocks M2b (solver build).
 
-**DSPro / T141 (V-4):** verify-battery M1 harness design — CLI contract (3 exit
+**deepseek-v4-pro / T141 (V-4):** verify-battery M1 harness design — CLI contract (3 exit
 classes), result schema (§6a cell coordinates, proposed-row format), artifact
 loading with SHA-256 verification path, R8-compliant (no src/ imports).
 
@@ -2299,8 +2310,8 @@ Three findings beyond brief: (1) T13 was never truly lost — only driver script
 cells match. Resolved Fable R4. Coordination: T118 was duplicate dispatch; T110
 marked done ~90 min early by Orcha while monitors still running.
 
-**DSFlash / T113:** EXP-6 .wzo written — 258 MB, SHA-256 verified. Rules ID 2
-(basic-ko+TIE). 48.5M fresh-start states from 99M compact fixpoint. DSFlash
+**deepseek-v4-flash / T113:** EXP-6 .wzo written — 258 MB, SHA-256 verified. Rules ID 2
+(basic-ko+TIE). 48.5M fresh-start states from 99M compact fixpoint. deepseek-v4-flash
 now 7/7 this session — every task bounded, well-specified, landed clean.
 
 **Opus 5 / T114:** eye-prune (ADR-0006) validation battery — Fable W1. ADR-0006
@@ -2318,13 +2329,13 @@ cross-checks across EXP-4 through EXP-7. Every brute-force corroboration in the
 EXP chain is unsound. Fixpoint results are independently verified (T102 for 2×2,
 T104 Python kernel for 2×2/3×2/3×3, MIGOS II anchors) and stand.
 
-### 2026-07-30 — DSPro/Orcha: the Orchestrator's own failure (repeat pattern)
+### 2026-07-30 — deepseek-v4-pro/Orcha: the Orchestrator's own failure (repeat pattern)
 
 **The same failure pattern documented for Opus 5/Orcha on 2026-07-29 repeated
-under DSPro/Orcha on 2026-07-30.** The model changed; the behaviour did not.
+under deepseek-v4-pro/Orcha on 2026-07-30.** The model changed; the behaviour did not.
 
 - **EXP-6 marked done without verifying the primary deliverable.** The 4×4
-  build's `.wzo` artifact was never written (DSPro's `exp6_solve.zig` had no
+  build's `.wzo` artifact was never written (deepseek-v4-pro's `exp6_solve.zig` had no
   save code; the runner SIGTERM'd at 30 min). Orcha absorbed the commit message
   (V=+1, 147M states, 31 sweeps) and marked the task done. No `.wzo` file exists
   on disk. This is step 2 of the cadence spec — "scan the kanban against `git
@@ -2333,12 +2344,12 @@ under DSPro/Orcha on 2026-07-30.** The model changed; the behaviour did not.
   Without it, EXP-7 was marked done having tested only at 3×3. The gap was not
   caught until Dabir queried the kanban.
 - **Consolidation only happens when prodded.** The 2026-07-30 night wave (10
-  DSPro tasks absorbed, model-perf updated, kanban restructured with T-prefix
+  deepseek-v4-pro tasks absorbed, model-perf updated, kanban restructured with T-prefix
   IDs) happened *after* the human complained about Orcha's failures. Before the
   prod: tasks sat unconsolidated, model-perf lagged, the standing tier was
   empty.
 
-**Root cause hypothesis (Dabir, 2026-07-30):** DSPro skips steps that have no
+**Root cause hypothesis (Dabir, 2026-07-30):** deepseek-v4-pro skips steps that have no
 immediate visible consequence. Cadence step 2 (verify deliverables exist on
 disk) and step 4 (update model-perf) are invisible to the human until something
 breaks. The model does them when reminded and skips them otherwise. This matches
@@ -2350,7 +2361,7 @@ refuse to close a task whose declared deliverables don't exist on disk.
 `managent status` should flag tasks whose agent field is unset. Model-perf
 should be a required input to `managent done`, not an afterthought. Until the
 **Subdelegation live.** `docs/infra/agents/subdelegation.md` documents that
-`odeeppi` and `oflashpi` can spawn subagents as shell commands. DSPro can now
+`odeeppi` and `oflashpi` can spawn subagents as shell commands. deepseek-v4-pro can now
 self-audit by spawning a fresh-instance subagent — design + audit in one
 console, different model for load-bearing reasoning per ROLES.md.
 
@@ -2361,8 +2372,8 @@ chain (ORCHA-AUTOMATION → AGENT-IDENTITY → WORKER-CHANNEL) landed.
 
 | model | tasks | key pattern |
 |---|---|---|
-| DSPro | 14 | multi-file edits, ships working Zig, mixes analysis+code |
-| DSFlash | 7 | bounded well-specified tooling, Python+Zig, 7/7 clean |
+| deepseek-v4-pro | 14 | multi-file edits, ships working Zig, mixes analysis+code |
+| deepseek-v4-flash | 7 | bounded well-specified tooling, Python+Zig, 7/7 clean |
 | Opus 5 | 3 | adversarial audits: found buffer-aliasing on state #1, recovered T13 from docs, corrected 3 prior evidence errors in eye-prune |
 | Kimi-k3 | 3 | empirical audit + mathematical proof: 0/99M fixpoint violations, FP1+INVSYM proofs |
 | Fable 5 | 2 | structural audits that reshaped project self-understanding. Retired. |
@@ -2395,8 +2406,8 @@ over the raw ledger is wrong; this is the corrected count.
 
 | model | tasks | of which failed |
 |---|---|---|
-| DSPro | 31 | 0 |
-| DSFlash | 7 | 0 |
+| deepseek-v4-pro | 31 | 0 |
+| deepseek-v4-flash | 7 | 0 |
 | Fable 5 | 5 (**4 unique** — see below) | 0 |
 | Kimi-k2.7 | 5 | 1 (EXP-2B) |
 | Opus 5 | 5 | 0 |
@@ -2464,23 +2475,23 @@ independent evidence rather than a copy, and it is what let T110 discover the
 "12" was a >10× understatement. The weakness is not in the work: all three
 findings ended up parked outside the register.
 
-**DSPro (31 tasks, over half the ledger).** Reliability holds at volume —
+**deepseek-v4-pro (31 tasks, over half the ledger).** Reliability holds at volume —
 0 rework across five separate Zig deliverables, and 19-file terminology sweeps
 without misses. The "not DeepSeek for Zig" rule is dead. Two structural
-weaknesses, both visible only in aggregate. First, DSPro documents the boundary
+weaknesses, both visible only in aggregate. First, deepseek-v4-pro documents the boundary
 of its work conscientiously and then stops at it: its PROVENANCE files *propose*
 claim IDs and rely on a downstream seat to assign them — a hand-off that failed
 three times, leaving the frontier result out of the register. Second, EXP-6
 closed without writing its artifact, which is why T113 had to exist. **The
-pattern: DSPro completes the task as specified and does not notice when the
+pattern: deepseek-v4-pro completes the task as specified and does not notice when the
 specification has a hole in it.**
 
-**DSFlash (7 tasks, 7/7 clean).** Every one bounded and well-specified, every
+**deepseek-v4-flash (7 tasks, 7/7 clean).** Every one bounded and well-specified, every
 one landed. The instructive detail is T115 — "update five CLAIMS.md evidence
 columns" — the **only** task in the entire wave whose output reached
 `CLAIMS.md`, and it got there because the edit *was* the deliverable rather
 than a consequence of it. That is a finding about task design, not about
-DSFlash: work that must be absorbed by a second seat mostly is not.
+deepseek-v4-flash: work that must be absorbed by a second seat mostly is not.
 
 **Kimi-k3 (4 tasks).** Two modes, both delivered. T104 ran an exhaustive
 empirical audit with an independent Python kernel reproducing 2×2 through 3×3 —
@@ -2531,7 +2542,7 @@ file. Bumped to 130.
 ## The seat, not the models
 
 Third consecutive session with the same Orchestrator failure — Opus/Orcha
-2026-07-29, DSPro/Orcha 2026-07-30, and this wave. Three different models
+2026-07-29, deepseek-v4-pro/Orcha 2026-07-30, and this wave. Three different models
 produced it, so it is not a model property.
 
 The enforcement proposal recorded above ("`managent done` should refuse to close
@@ -2552,7 +2563,7 @@ gets skipped. A session that updates this file and not the register has
 recorded that it did the work, which is the precise failure mode the file's own
 header warns against.
 
-## Session summary — DSPro/Orcha, 2026-07-30 through 2026-07-31
+## Session summary — deepseek-v4-pro/Orcha, 2026-07-30 through 2026-07-31
 
 40+ tasks across 7 models. EXP-4→7 chain complete at all goban sizes. 4×4 root
 V=+1 verified genuine. T101A punchlist closed. T13 reproducible. ADR-0006
@@ -2563,8 +2574,8 @@ specs + audits + design tasks underway. Subdelegation live.
 
 | model | tasks | key pattern |
 |---|---|---|
-| DSPro | 20+ | multi-file edits, ships working Zig, mixes analysis+code+design. Subdelegation capable. |
-| DSFlash | 7 | bounded well-specified tooling, Python+Zig, 7/7 clean |
+| deepseek-v4-pro | 20+ | multi-file edits, ships working Zig, mixes analysis+code+design. Subdelegation capable. |
+| deepseek-v4-flash | 7 | bounded well-specified tooling, Python+Zig, 7/7 clean |
 | Opus 5 | 5 | adversarial audits, strategy, specs. Found buffer-aliasing on state #1. |
 | Kimi-k3 | 3 | empirical audit + mathematical proof. 0/99M fixpoint violations. |
 | Fable 5 | 4 | structural audits (T100/T101), strategy docs, spec revisions. Retired as Grand Auditor. |
@@ -2591,10 +2602,10 @@ terminated it.
 
 | model | tasks | roles |
 |---|---|---|
-| DSPro | 9 | reviser (T144, T145, T148, T149, T156), auditor (T150, T151, T154, T161, T162) |
+| deepseek-v4-pro | 9 | reviser (T144, T145, T148, T149, T156), auditor (T150, T151, T154, T161, T162) |
 | Opus 5 | 5 | auditor (T142, T143, T146, T147), spec author (T157, T158) |
 | Fable 5 | 2 | process reviewer + design finisher (T152), sprint.md author (T153) |
-| DSFlash | 1 | code reviewer (T160) |
+| deepseek-v4-flash | 1 | code reviewer (T160) |
 | unattributed | 1 | T159 (orcha-tools build — never claimed, never done) |
 | not dispatched | 3 | T155 (O-5a code review, declared in strategy), T157/T158 brief attribution (Opus wrote the specs; the briefs were set-A stubs) |
 
@@ -2669,19 +2680,19 @@ and scope boundaries. The sprint.md contradiction (R1-2) was explicitly named,
 cited, and given resolution paths. The T162 audit returned PASS.
 
 **Weaknesses / caveats:**
-- Opus-as-auditor found defects DSPro-as-reviser then partially addressed
-  (see DSPro section below). The auditor's findings were correct; the reviser's
+- Opus-as-auditor found defects deepseek-v4-pro-as-reviser then partially addressed
+  (see deepseek-v4-pro section below). The auditor's findings were correct; the reviser's
   execution was incomplete twice.
 
 ---
 
-## DSPro — reviser (T144/T145/T148/T149/T156) + auditor (T150/T151/T154/T161/T162)
+## deepseek-v4-pro — reviser (T144/T145/T148/T149/T156) + auditor (T150/T151/T154/T161/T162)
 
-DSPro held both roles in the same audit loop — revising its own design in
+deepseek-v4-pro held both roles in the same audit loop — revising its own design in
 response to Opus audits, and then auditing revisions as a fresh seat. The split
 is instructive.
 
-### DSPro as reviser
+### deepseek-v4-pro as reviser
 
 **T144 (O-3 rev1):** oracle-v2 M1 design revision 1. Resolved 16 of 21 Opus
 findings — both blockers genuinely fixed (layout consolidated, DTT defined).
@@ -2708,14 +2719,14 @@ complete even when it was not the whole audit."
 must-fix findings resolved.** R-C1 (§5b added — states A3 consequences, presents
 options, marks as human agenda item), R-C2 (exit_class sentence fixed), R-M1–R-M4
 (all quantities corrected, populations marked TBD, examples consistent). This is
-what DSPro-as-reviser looks like with a complete brief. T151 returned PASS.
+what deepseek-v4-pro-as-reviser looks like with a complete brief. T151 returned PASS.
 
 **T156 (V-4 rev3):** verify-battery M1 design revision 3. Applied five should-fix
 carry-overs from T151's PASS before Gate 2 freeze: per-invariant RSS renamed,
 schema surface gaps filled, seed union type split, artifact_index nullability
 stated. Mechanical, correct, complete.
 
-**DSPro-as-reviser pattern:**
+**deepseek-v4-pro-as-reviser pattern:**
 - When the brief enumerates every open finding → complete, correct revision
   (T149, T156).
 - When the brief is implicit ("address the audit") → partial work — the hard
@@ -2726,11 +2737,11 @@ stated. Mechanical, correct, complete.
   recommendation 2 ("revision briefs enumerate every open finding ID") directly
   addresses it.
 
-### DSPro as auditor
+### deepseek-v4-pro as auditor
 
 **T150 (O-4 re-audit 2):** oracle-v2 M1 re-audit of rev 2. **NEEDS-FIX —**
 NEW-1 (CRITICAL carried from T146, not fixed), NEW-5 (MUST, unit typo carried).
-DTT trace was sound — DSPro independently verified the full recurrence
+DTT trace was sound — deepseek-v4-pro independently verified the full recurrence
 end-to-end against the fixpoint contract and colour-inversion requirement.
 One phantom finding (RV2-1: claimed §2.3 lacks a DTT=0 bullet that is present
 in the file) — the process-review's exhibit A for "auditors under pressure to
@@ -2764,16 +2775,16 @@ paths, forbids the wrong outcome, ties it to A4-process-coherence. One should-fi
 INDEX.md attic marks sprint.md as RETIRED (2026-07-28) but it is RATIFIED
 (2026-07-31) — stale entry.
 
-**DSPro-as-auditor pattern:**
+**deepseek-v4-pro-as-auditor pattern:**
 - Sound on mechanical verification — DTT trace, artifact headers, commit-pinned
   references, live tool output. Every independent check was correct.
 - The phantom finding (RV2-1) appeared in round three, when real defects ran
   out. T152's recommendation 3 ("audit briefs must state that zero findings is
   an acceptable PASS") would have headed it off.
-- DSPro auditor + DSPro reviser on the same document is not independent — the
+- deepseek-v4-pro auditor + deepseek-v4-pro reviser on the same document is not independent — the
   A-numbering collision survived two revisions because the reviser never read
   the upstream spec differently than the auditor did. T152's recommendation:
-  different model for design vs audit (Opus audits, DSPro implements).
+  different model for design vs audit (Opus audits, deepseek-v4-pro implements).
 
 ---
 
@@ -2791,7 +2802,7 @@ INDEX.md attic marks sprint.md as RETIRED (2026-07-28) but it is RATIFIED
 > **Model allocation, from observed performance in this sprint:**
 > - *Opus* for load-bearing audits and design mathematics — O-4/T146 caught
 >   every real blocker and effectively dictated the DTT fix.
-> - *DSPro* for implementation against a frozen contract and for checklist-style
+> - *deepseek-v4-pro* for implementation against a frozen contract and for checklist-style
 >   verification (its DTT trace in T150 was sound), with the rule-2 brief
 >   discipline, since as reviser it twice did partial work.
 > - *Fable* sparingly: gate decisions, loop termination, cross-corpus
@@ -2825,7 +2836,7 @@ revision that the T154 two-round review then tested.
 
 ---
 
-## DSFlash — code reviewer (T160)
+## deepseek-v4-flash — code reviewer (T160)
 
 **T160 (orcha-tools review):** code review of T159 (orcha-tools build).
 **NEEDS-FIX — no implementation exists.** Source grep, live binary probes,
@@ -2853,12 +2864,12 @@ shows T159 `dispatchable`, never claimed, never done.
    reviser applied it. Independent re-derivation (not checking arithmetic) was
    the method that found the defects that would have shipped.
 
-2. **DSPro for implementation against a frozen contract — with disciplined
-   briefs.** DSPro's revisions were complete and correct when every open finding
+2. **deepseek-v4-pro for implementation against a frozen contract — with disciplined
+   briefs.** deepseek-v4-pro's revisions were complete and correct when every open finding
    was enumerated (T149, T156); partial when the brief was implicit (T144,
    T148). Its audits were mechanically sound (DTT trace, artifact headers,
    commit-pinned references) but produced a phantom finding in round three.
-   DSPro auditor + DSPro reviser on the same document is not independent — the
+   deepseek-v4-pro auditor + deepseek-v4-pro reviser on the same document is not independent — the
    A-numbering collision survived two revisions.
 
 3. **Fable for gate decisions and loop termination.** The process review is the
@@ -2869,7 +2880,7 @@ shows T159 `dispatchable`, never claimed, never done.
 
 4. **Cheapest models off critical path.** Both instances of partial work in this
    sprint (T148 skipping NEW-1/NEW-5, the not-yet-dispatched T159) were on the
-   cheapest-available path — DSPro as reviser with an implicit brief, and an
+   cheapest-available path — deepseek-v4-pro as reviser with an implicit brief, and an
    unattributed build task that was never claimed. The two most expensive tasks
    in the sprint (Opus audits) were also the highest-yield.
 
@@ -2881,20 +2892,20 @@ shows T159 `dispatchable`, never claimed, never done.
    T152 recommended is evidence-based from this sprint.
 
 6. **Different model for design vs audit.** The most consequential finding
-   (the A-numbering collision) was caught by Opus auditing DSPro's revision.
-   DSPro auditing its own revision (T150) did not catch it until round three,
+   (the A-numbering collision) was caught by Opus auditing deepseek-v4-pro's revision.
+   deepseek-v4-pro auditing its own revision (T150) did not catch it until round three,
    and then only as a carried finding. The T152 recommendation — Opus audits,
-   DSPro implements — is the allocation that produced the highest-yield rounds.
+   deepseek-v4-pro implements — is the allocation that produced the highest-yield rounds.
 
-**DSPro / T165 (oracle-v2 M2b):** WZO2 artifact builder — `src/artifact2.zig` (WZO2 format: L/H stored separately, full (goban,side,ko,passes) key, SHA-256 header) and `src/oracle_v2_build.zig` (rules_id=3 `RULES_BASICKO_LH_AREA` per `src/artifact2.zig:42` and design §263 — this entry originally said 2, which is the v1 override; corrected by T177). Built from exposed fixpoint (T140/T155). **T177 correction: builder compiled but never executed — no artifact, no acceptance run, see `CODE.WZO2-UNRUN`.**
+**deepseek-v4-pro / T165 (oracle-v2 M2b):** WZO2 artifact builder — `src/artifact2.zig` (WZO2 format: L/H stored separately, full (goban,side,ko,passes) key, SHA-256 header) and `src/oracle_v2_build.zig` (rules_id=3 `RULES_BASICKO_LH_AREA` per `src/artifact2.zig:42` and design §263 — this entry originally said 2, which is the v1 override; corrected by T177). Built from exposed fixpoint (T140/T155). **T177 correction: builder compiled but never executed — no artifact, no acceptance run, see `CODE.WZO2-UNRUN`.**
 
-**DSPro / T166 (oracle-v2 M3):** GTP engine wired to WZO2. `Enforcement` enum (basic_ko/psk), WZO2 lookup with area-score fallback, tie-break among equal-value moves.
+**deepseek-v4-pro / T166 (oracle-v2 M3):** GTP engine wired to WZO2. `Enforcement` enum (basic_ko/psk), WZO2 lookup with area-score fallback, tie-break among equal-value moves.
 
-**DSPro / T167 (oracle-v2 M4a):** Acceptance harness (1,178 lines). A3 colour-inversion, A5 round-trip, A6 calibration, A9 SHA-256 reproducibility.
+**deepseek-v4-pro / T167 (oracle-v2 M4a):** Acceptance harness (1,178 lines). A3 colour-inversion, A5 round-trip, A6 calibration, A9 SHA-256 reproducibility.
 
-**Oracle-v2 P2 post-mortem:** three DSPro instances ran M2b/M3/M4a concurrently against frozen design-M1. 3,105 lines of Zig across 6 files, zero rework, zero cross-task conflicts. The freeze-at-design strategy worked.
+**Oracle-v2 P2 post-mortem:** three deepseek-v4-pro instances ran M2b/M3/M4a concurrently against frozen design-M1. 3,105 lines of Zig across 6 files, zero rework, zero cross-task conflicts. The freeze-at-design strategy worked.
 
-**Verify-battery P2 post-mortem (DSPro builder + subagents):**
+**Verify-battery P2 post-mortem (deepseek-v4-pro builder + subagents):**
 - T168 (V-6 harness): Zig 0.16 port, CLI works, artifact loading, 8+ API fixes
 - T169 (V-7 table): vb_table.zig — 19/19 tests against real 2×2/3×2 artifacts
 - T170 (V-8 fixpoint): vb_fixpoint.zig — 7/7 tests, I4 0 violations, I7 catches v1 defect, I9 anchors pass
@@ -2906,26 +2917,26 @@ Builder subdelegation worked: 5 subagents spawned, all delivered, findings captu
 vb_common.zig shared module handled correctly. One calibration bug caught and fixed (T171 basic-ko engine).
 Zig 0.16 API surface was the primary friction point.
 
-**DSFlash / T178:** consumer-load test — found CRITICAL colex mismatch (exp6 rank vs combinatorial
+**deepseek-v4-flash / T178:** consumer-load test — found CRITICAL colex mismatch (exp6 rank vs combinatorial
 colex, agree only at index 0). 058-class catch: 7/9 one-stone children misread. Four seconds proved
-the builder was wrong. DSFlash now 8/8 this session. The consumer-load test earned its non-negotiable
+the builder was wrong. deepseek-v4-flash now 8/8 this session. The consumer-load test earned its non-negotiable
 status.
 
-**DSPro / T185:** colex fix — exp6 rank → combinatorial colex conversion in WZO2 builder. Non-empty
+**deepseek-v4-pro / T185:** colex fix — exp6 rank → combinatorial colex conversion in WZO2 builder. Non-empty
 lookups verified against fixpoint values. T178 CRITICAL resolved. Unblocked 4×4 build.
 
 ## Session — Opus/Orcha, 2026-08-01 (T192–T211)
 
-Absorbed 2026-08-01 by Opus/Orcha. Nine tasks; DSPro on seven, DSFlash on two.
+Absorbed 2026-08-01 by Opus/Orcha. Nine tasks; deepseek-v4-pro on seven, deepseek-v4-flash on two.
 
-**DSPro / T192:** WZO2 OOM fix (64 MiB chunking, three free sites) and the
+**deepseek-v4-pro / T192:** WZO2 OOM fix (64 MiB chunking, three free sites) and the
 first 4×4 artifact build — 518.1 MB, peak RSS 3887 MB under the 4 GB cap.
 Absorbed at the time as a success. It was not: the artifact was invalid (see
 T193). The build succeeded; the *deliverable* was wrong, and nothing in the
 pipeline distinguished the two. This is the session's most expensive lesson
 and it is not a model failure — no acceptance check was wired to the task.
 
-**DSPro / T193 — the standout.** Ran M4a against the T192 artifact and it
+**deepseek-v4-pro / T193 — the standout.** Ran M4a against the T192 artifact and it
 FAILED: A3 colour inversion 16,314,978 / 99,133,036 (16.5%), A9 24,252,631
 entry-order violations. Read the root cause out of the source
 (`oracle_v2_build.zig:387`, `passes=1` encoded as `passes=0`, colliding both
@@ -2935,34 +2946,34 @@ rather than the harness. Unprompted control-group reasoning; exactly the
 discipline PROGRESS.md §9 asks for. One-character fix. Did not commit and did
 not self-report; Orcha committed at `5deec6b`.
 
-**DSPro / T204:** managent integrity — `next_id` max-reconcile, `sync --peek`,
+**deepseek-v4-pro / T204:** managent integrity — `next_id` max-reconcile, `sync --peek`,
 regression test written before the fix as briefed. Phase-1 gate 3/3 + 8/8.
 
-**DSFlash / T205:** status surfaces + handover backfill (CA-2/CA-3/CA-14).
+**deepseek-v4-flash / T205:** status surfaces + handover backfill (CA-2/CA-3/CA-14).
 Six sprint headers, three read-first surfaces, one handover reconstructed
-from msg 074. Doc-sweep work continues to be DSFlash's strength.
+from msg 074. Doc-sweep work continues to be deepseek-v4-flash's strength.
 
-**DSPro / T206:** tooling seams — runner returncode, gen-indices regex, absorb
+**deepseek-v4-pro / T206:** tooling seams — runner returncode, gen-indices regex, absorb
 deployment.
 
-**DSFlash / T207:** process-doc sweep across six documents (CA-4/10/12/13/16/18).
+**deepseek-v4-flash / T207:** process-doc sweep across six documents (CA-4/10/12/13/16/18).
 Clean, but two of its CA items went uncited in the commit message, so
 verifying coverage meant re-reading the files rather than the log.
 
-**DSPro / T208:** evidence promotion + Argus triage. The orphan-gate
+**deepseek-v4-pro / T208:** evidence promotion + Argus triage. The orphan-gate
 re-baseline reached only one of Argus's two modes; the disagreement (4 vs 1 in
 checklist, 3 vs 17 in sweep) surfaced on the next Orcha cadence and became
 T211. Partial fixes to watchdog baselines are worth flagging as a class: the
 gate looks green in whichever mode the fixer ran.
 
-**DSPro / T209:** dispatch ergonomics. Bound model identity at dispatch time
+**deepseek-v4-pro / T209:** dispatch ergonomics. Bound model identity at dispatch time
 rather than claim time — the right call, backed by a harness self-report test
 showing only Pi is honest about its own model. Deleted the commit-draft ferry
 convention. Its own bundle then failed `managent done` for want of the
 `deliverables=` field it had just introduced; fixed by hand rather than
 bypassed with `--fail`.
 
-**DSPro / T210 and T211 — the lifecycle worked for the first time.** Both
+**deepseek-v4-pro / T210 and T211 — the lifecycle worked for the first time.** Both
 committed their own deliverables and closed their own tasks. T210 fixed three
 audit/standing defects (citable surfaces widened to DECISIONS.md +
 docs/status/ + docs/audits/, tasks.json excluded from the dirty-tree trigger,

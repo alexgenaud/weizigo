@@ -1,14 +1,13 @@
 # INDEX — claim-to-evidence cross-reference (generated)
 
 ```
-Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: 2026-08-01
-Sprint: project-restructure pass0 (T200)
-Source: docs/epistemic/CLAIMS.md (274 claims)
+Task: n/a · Role: generator · Model: n/a · Date: 2026-08-02
+Source: docs/epistemic/CLAIMS.md (303 claims)
 ```
 
 **Generated from `docs/epistemic/CLAIMS.md`.** Reproduce with:
 
-    zig build && ./zig-out/bin/weizigo-claimlint
+    python3 tools/gen-indices
 
 ---
 
@@ -142,18 +141,24 @@ Source: docs/epistemic/CLAIMS.md (274 claims)
 | `4x4.S4` | UNTESTED (`⬜ᴵᴺᴴ`) | `4x4/EPISTEMIC.md:31-36` |
 | `4x4.SINGLE` | MEASUREMENT | `4x4/EPISTEMIC.md:250`; `ruleset-options.md:213` |
 | `4x4.TANGLE` | MEASUREMENT | `ruleset-options.md:216-218` |
+| `4x4.V1-INVSYM-BROKEN` | PROVEN (independent re-implementation, deduplicated count) | `docs/evidence/BATTERY/triage-T260.md`; `findings/T260-fleet-triage.json` |
 | `4x4.VALBATTERY` | MEASUREMENT | `retrograde-4x4.md:86-88` |
 | `4x4.WRITESOFF` | MEASUREMENT | `4x4/EPISTEMIC.md:236-242`; `ko-sensitive-chainability.md:246-254` |
 | `CODE.ADR0011-DTT` | CLAIMED | `0011:63-65`; `0009:138-146` |
-| `CODE.ADR0011-FMT` | vw\ | fb\ |
+| `CODE.ADR0011-FMT` | PROVEN | `0011:21-37`; `corrections:153-158`; `src/artifact.zig:23-53` |
 | `CODE.ADR0011-GATE` | PROVEN | `0011:39-46` |
+| `CODE.BATTERY-STUBBED` | PROVEN (source inspection + the stub output files) | `docs/evidence/BATTERY/fleet.md`; `findings/T258-context.json` |
+| `CODE.GTP-KOKEY` | PROVEN (root cause read in source, fix verified by transcript replay) | `docs/evidence/ORACLE-V2/ko-key-mismatch-T265.md`; `docs/evidence/ORACLE-V2/human-game-{1,2}.gtp`; `src/gtp.zig` (`626ec55`) |
 | `CODE.M4A-HARNESS` | PROVEN (by inspection) | `src/oracle_v2_accept.zig:19-20,493,628,682-700`; `build.zig:172-180` |
 | `CODE.S4-XVAL` | MEASUREMENT | `0008:63-66` |
 | `CODE.UNDEF` | PROVEN | `arena-4x4-undef.md:20-56`; `0011:30-35` |
-| `CODE.VB-BLINDGAPS` | PROVEN (blind-reimplementation audit, committed) | `docs/epic-01-markovian/sprints/verify-battery/archive/T172-blind-analysis.md`; `src/vb_fixpoint.zig:545-547` |
+| `CODE.VB-BLINDGAPS` | PROVEN (blind-reimplementation audit, committed) | `docs/evidence/CODE.VB-BLINDGAPS/T172-blind-analysis.md`; `src/vb_fixpoint.zig:545-547` |
 | `CODE.VB-STUBS` | PROVEN (by inspection) | `src/verify_battery.zig:26-27,357-373`; `src/vb_fixpoint.zig:502-547`; `docs/epic-01-markovian/sprints/verify-battery/archive/T168-notes.md` |
+| `CODE.WZO1-DTT-UNSET` | PROVEN (I7 across four gobans + independent spot-check + positive contrast artifact) | `docs/evidence/BATTERY/triage-T260.md`; `docs/evidence/BATTERY/fleet.md` |
 | `CODE.WZO2-CHAINSHORT` | PROVEN (by inspection; the code is committed) | `src/gtp.zig:286-288` |
-| `CODE.WZO2-UNRUN` | PROVEN (by inspection) | `src/oracle_v2_build.zig:188,240,469`; `src/artifact2.zig:42,177,316-319` |
+| `CODE.WZO2-INCOMPLETE` | PROVEN (direct artifact scan + self-play contradiction) | `findings/T261-m4b-triage.json`; `docs/evidence/ORACLE-V2/m4b-triage-T261.md`; `docs/evidence/ORACLE-V2/human-games-2026-08-02.md` |
+| `CODE.WZO2-PASSBIT` | PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed) | `docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.md`; `docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.stdout`; `src/oracle_v2_build.zig:387` (`5deec6b`) |
+| `CODE.WZO2-UNRUN` | PROVEN (by inspection, as of 2026-08-01 P2 delivery; **overtaken by events the same day** — the artifact was built and M4a ran, see `CODE.WZO2-PASSBIT`. The register has no status for "true when written, obsolete now"; the supersession is carried in the claim text) | `src/oracle_v2_build.zig:188,240,469`; `src/artifact2.zig:42,177,316-319` |
 | `GLOBAL.ADR0002-SEQ` | UNTESTED | `0002:36-38`; `0005:127-130` |
 | `GLOBAL.ADR0003-AREA` | PROVEN | `0003:13-16,21-24` |
 | `GLOBAL.ADR0004-P1` | PROVEN | `0004:20`; `0003:17-20` |
@@ -188,6 +193,24 @@ Source: docs/epistemic/CLAIMS.md (274 claims)
 | `GLOBAL.ADR0016-INHERIT` | CLAIMED (adopted rule — a decision, not a fact) | `docs/decisions/0016-per-board-independence-empirical-vs-structural.md`; `critique-2026-07-28.md:373` |
 | `GLOBAL.ANCHOR-DELTA` | CLAIMED | `retrograde-3x3.md:234-238` |
 | `GLOBAL.AUDITOR` | PROVEN | `consistency-audit.md:6-23`; `AGENTS.md:63-67`; `0013:117-122`; `docs/evidence/GLOBAL-AUDITOR/PROVENANCE.md`; `docs/evidence/GLOBAL-AUDITOR/consist-3x2-2026-07-30.log` |
+| `GLOBAL.AXIOM-AREA` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-BASICKO` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-BELLMAN` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-BRACKET` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-CAPTURE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-FRESHSTART` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-GEOM` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-KOPASS` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-KOSTATE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-LH` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-PASS` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-PASSSTATE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-SCORESIGN` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-STATE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-STONE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-SUICIDE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-TERMINAL` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-TIE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
 | `GLOBAL.B-1` | FALSE-AS-SCOPED (as of the code at 2026-07-27) | `corrections:136-171`; `0013:129-130`; `src/gtp.zig:154-196,90-93,121-132`; `src/artifact.zig:23-53,140,181` |
 | `GLOBAL.B1-AUDIT` | PROVEN | `leak-crisis.md:99-101`; `4x4/EPISTEMIC.md:90-97`; `CONCEPTS.md:29-30` |
 | `GLOBAL.B1-MULTIFIX` | MEASUREMENT | `leak-crisis.md:93-99` |
@@ -216,6 +239,7 @@ Source: docs/epistemic/CLAIMS.md (274 claims)
 | `GLOBAL.F4-COST` | MEASUREMENT | `0013:92-108` |
 | `GLOBAL.FIN-BRACKET` | MEASUREMENT | `retrograde-3x3.md:165-179` |
 | `GLOBAL.FIN-NEARTERM` | MEASUREMENT | `retrograde-3x3.md:84-100` |
+| `GLOBAL.FIXPOINT-VS-SEARCH` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §4 |
 | `GLOBAL.FP1` | PROVEN (as mathematics) | `CONCEPTS.md:25-30`; `0009:53-61`; `docs/evidence/GLOBAL-FP1/proof-2026-07-30.md` |
 | `GLOBAL.FP2` | CLAIMED | `CONCEPTS.md:31-32`; `0009:65-67,78-89` |
 | `GLOBAL.FP2-bounded` | FALSE-AS-SCOPED (at 3×2) | `CONCEPTS.md:33-37` |
@@ -269,9 +293,11 @@ Source: docs/epistemic/CLAIMS.md (274 claims)
 | `GLOBAL.SWEEPS` | MEASUREMENT | `retrograde-4x4.md:21-22,30-32` |
 | `GLOBAL.T06` | MEASUREMENT | `PROGRESS.md:114-115` |
 | `GLOBAL.T14.1` | CLAIMED | `PROGRESS.md:238-240` |
+| `GLOBAL.TIE-MIGOS` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §4 |
 | `GLOBAL.UD-1` | CLAIMED | `PROGRESS.md:238-240` → `untracked/SUBAGENTS.md` (**not in git; see §7**) |
 | `GLOBAL.UD-2` | CLAIMED | `PROGRESS.md:238-240`; `4x4/EPISTEMIC.md:35,326-327` |
 | `GLOBAL.UD-3` | CLAIMED | `PROGRESS.md:238-240` |
+| `GLOBAL.Z` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §1 |
 | `QA-001` | FALSE | `critique-2026-07-28.md:359`; `ko-sensitive-chainability.md:70-71` |
 | `QA-002` | FALSE | `critique-2026-07-28.md:360`; `regressions/4x4-black-win-after-ko.txt:74` |
 | `QA-003` | FALSE | `critique-2026-07-28.md:361`; `corrections:66-96` |
@@ -300,5 +326,7 @@ Source: docs/epistemic/CLAIMS.md (274 claims)
 | `QA-026` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `roadmap-2026-07-28.md:305`; `docs/research/f2-remedy-design-2026-07-29.md`; `docs/evidence/QA-023/proof-v2-2026-07-28.md` |
 | `QA-027` | FALSE-AS-SCOPED (at 4×4; 3×3 measured 100.00%) | `roadmap-2026-07-28.md:306`; `docs/research/newrule-certified-fraction-4x4-2026-07-31.md`; `docs/evidence/QA-027/4x4/PROVENANCE.md` |
 | `QA-028` | FALSE | `roadmap-2026-07-28.md:307`; `ruleset-options.md:42-71` |
+| `SPRINT-M4a-ACCEPT` | PROVEN (measured, denominators stated) | `docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md` |
+| `WZO2-4X4-VALID` | FALSE-AS-SCOPED (as "valid"; the artifact is usable and internally consistent, but not a verified perfect oracle) | `findings/T261-m4b-triage.json`; `docs/evidence/ORACLE-V2/human-games-2026-08-02.md` |
 
-*274 claims indexed.*
+*303 claims indexed.*

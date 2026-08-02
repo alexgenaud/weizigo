@@ -1,12 +1,14 @@
 # INDEX — claim-to-task cross-reference (generated)
 
 ```
-Task: INDEX-RETRIEVAL · Role: worker · Model: DSPro · Date: 2026-08-01
-Sprint: project-restructure pass0 (T200)
+Task: n/a · Role: generator · Model: n/a · Date: 2026-08-02
+Source: docs/infra/dispatch/*.md briefs + docs/epistemic/CLAIMS.md
 ```
 
 **Generated from `docs/infra/dispatch/*.md` briefs and `docs/epistemic/CLAIMS.md`.**
-Reproduce by running `./bin/managent status` and scanning dispatch briefs.
+Reproduce with:
+
+    python3 tools/gen-indices
 
 Each entry maps a claim ID to the task(s) that close it, bear on it, or
 produced its evidence. Status is from the kanban (`./bin/managent status`).
