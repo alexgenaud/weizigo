@@ -1,0 +1,21 @@
+{
+  "task_id": "T277",
+  "date": "2026-08-02",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "CODE.WZO2-INCOMPLETE",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "T277 independently verified all five aspects of T266's refutation: (1) the unreachability argument confirmed by source-code reading at dff5bba and an independent numpy scan of all 24,318,165 groups — zero exceptions; (2) census re-derived with own instrument, matching T266's numbers to the digit; (3) truncation hole re-derived from build log T184 — BFS new_marks=0 at sweep 32 is completeness evidence, not just consistency; (4) display-path defect reproduced at HEAD 63e245f; (5) seeded shift mutant caught by three separate checks. The ~6.77M figure is 51.7x overstated — the true count is 131,068 genuinely unreachable side-entries.",
+      "evidence_path": "docs/evidence/ORACLE-V2/incompleteness-verify-T277.md"
+    },
+    {
+      "id": "WZO2-4X4-VALID",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "Same status as T266 proposed, confirmed independently: the row remains FALSE-AS-SCOPED but on corrected grounds — completeness established only for the structural layer, L/H values and closure (C-A1/C-A2) still untested. The W+2 self-play contradiction was a display-path defect, not evidence against the artifact.",
+      "evidence_path": "docs/evidence/ORACLE-V2/incompleteness-verify-T277.md"
+    }
+  ],
+  "new_rows": [],
+  "notes": "VERDICT: T266's refutation STANDS. Independent verification (fresh instruments, separate code, no reuse of T266's scanner logic) confirmed all five checks the brief required. The four affected documents carrying ~6.77M/W+2 text are: CLAIMS.md (CODE.WZO2-INCOMPLETE row and WZO2-4X4-VALID row), PROGRESS.md, CURRENT.md, and BATTERY/i2-wzo2-T270.md. findings/rejections.json also carries the text. AXIOMS.md carries an indirect reference via a dependency note. Do NOT edit CLAIMS.md — T279 absorbs. The two real defects (gtp.zig display-path, oracle_v2_accept.zig ko rule) remain unfixed per DIRECTION §5 — registered, not repaired."
+}
