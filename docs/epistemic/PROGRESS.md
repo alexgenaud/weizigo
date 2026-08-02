@@ -210,12 +210,12 @@ EXP-6, DSPro, 2026-07-29/30):
 | 2×2 | **0** | TIE | L=−4, H=+4 | 258 | 4 | gate |
 | 3×2 | **0** | TIE | L=−6, H=+6 | 2,586 | 10 | gate |
 | 3×3 | **+9** | YES | — | 73,758 | 16 | matches MIGOS II `[GLOBAL.MIGOS-RULE:PROVEN]` |
-| 4×4 | **+1** | NO | [+1,+16] | 147M | 31 | **not** the expected +2 anchor — ruleset difference (basic ko vs PSK), not a bug |
+| 4×4 | **+1** | NO | [+1,+16] | 147M | 31 | **not** the expected +2 anchor — ruleset difference in tie resolution (TIE=0 vs MIGOS's long-cycle-tie), not a bug `[GLOBAL.TIE-MIGOS:CLAIMED]` |
 
 T104 (Kimi-k3, 2026-07-30) verified H=+16 genuine — 0 violations over
 99,133,036 states, 0 map misses, exhaustive inversion clean
 `[4x4.BASICKO-TIE:MEASUREMENT]`. The +2 gap vs the MIGOS II anchor is a
-**ruleset difference**, not a bug `[GLOBAL.MIGOS-RULE:PROVEN]`.
+**ruleset difference in tie resolution** (TIE=0 vs MIGOS's implementation-specific long-cycle-tie value), not a bug. **Corrected 2026-08-02 (T271): the prior 'basic ko vs PSK' explanation is contradicted by `GLOBAL.MIGOS-RULE` (MIGOS plays basic ko, not PSK); the surviving explanation is the tie-semantics difference `[GLOBAL.TIE-MIGOS:CLAIMED]` `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]`.**
 
 **⚠ Brute-force corroboration withdrawn (T102, 2026-07-30).** A successor-buffer
 aliasing defect in `brute_value_2x2` (`src/exp4_solve.zig:555-594`) invalidates

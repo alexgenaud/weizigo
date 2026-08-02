@@ -1,0 +1,50 @@
+{
+  "task": "T271",
+  "date": "2026-08-02",
+  "files": [
+    "docs/epic-01-markovian/AXIOMS.md",
+    "docs/epistemic/CLAIMS.md",
+    "docs/epistemic/PROGRESS.md"
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "INFO",
+      "claim": "GLOBAL.Z",
+      "summary": "Theorem Z stated as CLAIMED in AXIOMS.md §1; registered in CLAIMS.md",
+      "detail": "The theorem statement for epic-01-markovian is now precisely stated with five falsifiability criteria (Z1–Z5) and five explicit non-claims (NC1–NC5). Previously no single document stated the complete theorem with non-claims."
+    },
+    {
+      "id": "F2",
+      "severity": "INFO",
+      "claim": "AXIOMS A1–E3",
+      "summary": "21 new claim IDs minted and registered: 18 axioms + GLOBAL.Z + GLOBAL.TIE-MIGOS + GLOBAL.FIXPOINT-VS-SEARCH",
+      "detail": "Each axiom is one sentence, one claim ID, status CLAIMED at birth. Registered in CLAIMS.md §2.6a ('Ruleset axioms — minted by T271, 2026-08-02'). The requirement tree (§3 of AXIOMS.md) maps each axiom to the Z-derivation nodes it feeds."
+    },
+    {
+      "id": "F3",
+      "severity": "CRITICAL",
+      "claim": "GLOBAL.TIE-MIGOS",
+      "summary": "MIGOS tie-semantics adjudication: the 'basic ko vs PSK' explanation in 4x4.BASICKO-TIE and PROGRESS.md is contradicted by GLOBAL.MIGOS-RULE",
+      "detail": "The register's own PROVEN row GLOBAL.MIGOS-RULE establishes MIGOS II plays basic ko, not PSK. A basic-ko build disagreeing with a basic-ko anchor cannot be explained by 'basic ko vs PSK'. The surviving explanation is tie-semantics: TIE=0 vs MIGOS's implementation-specific long-cycle-tie value. Candidate 2 (fixpoint vs search) is secondary — only explains the gap if tie semantics are first aligned. Fixed in: CLAIMS.md row 4x4.BASICKO-TIE (depends-on edge changed from GLOBAL.MIGOS-RULE to GLOBAL.TIE-MIGOS), PROGRESS.md §4.2 table and prose."
+    },
+    {
+      "id": "F4",
+      "severity": "NOTE",
+      "summary": "PROGRESS.md lines 213 and 218 corrected — not deferred",
+      "detail": "Both locations previously said 'ruleset difference (basic ko vs PSK), not a bug' or cited GLOBAL.MIGOS-RULE as support for that explanation. Both now say 'ruleset difference in tie resolution (TIE=0 vs MIGOS's long-cycle-tie)' and cite GLOBAL.TIE-MIGOS. The table cell and the prose paragraph are corrected in the same commit."
+    },
+    {
+      "id": "F5",
+      "severity": "NOTE",
+      "summary": "Claimlint baseline preserved — no regression",
+      "detail": "Pre-edit: rows=282, C1a=10, C1b=0, C2=14, C6=0, C7=4, calibration=PASS. Post-edit: rows=303, C1a=10, C1b=0, C2=14, C6=0, C7=4, calibration=PASS. 21 new rows added, zero new failures."
+    },
+    {
+      "id": "F6",
+      "severity": "OPEN",
+      "summary": "Not done: mapping all 282 register rows onto the requirement tree",
+      "detail": "Explicitly out of scope for T271 per the brief. The tree is the input; the mapping follows as its own task. The 21 new axiom rows are mapped; the 282 pre-existing rows are not."
+    }
+  ]
+}
