@@ -18,7 +18,10 @@ cleared when the T278 commit lands. Recommendation + edge-case rulings:
 (incident-1 fixture, null + seeded) and `tools/regression-managent-done-git.sh`
 (null, seeded, retention, deletion) — both PASS on the rebuilt
 `bin/managent` (05dae9b). The wrapper is recommended, pending Orchestrator
-adoption; T280 still installs the T272 hook. Do not `git add -A` — commit via
+adoption. **T280 installed the T272 pre-commit hook during this session**
+(`core.hooksPath tools/hooks` is now set — the T278 commit itself passed
+through it at floor); the staged-path-subset backstop remains a follow-up.
+Do not `git add -A` — commit via
 `tools/git-commit-mine <paths> -m <msg>` with `MANAGENT_TASK_ID` set.
 
 # STATE AS OF 2026-08-02 — the Grand Audit landed; DIRECTION.md governs

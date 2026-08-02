@@ -109,11 +109,15 @@ the two hard questions; here are the answers:
   so the subset rule either blocks the Orchestrator or needs an escape hatch
   (`--no-verify` or a wildcard identity) — and every escape hatch is the rot
   point the mechanism exists to close.
-- **It is not even installed.** `core.hooksPath` is unset today; the T272 hook
-  sits in `tools/hooks/pre-commit` unused (CURRENT.md: "there is no gate
-  today"; installation is T280's job, pending fixed controls). A mechanism that
-  requires a *new* install step to be trusted has a worse deployment record in
-  this project than a self-contained script.
+- **It was not installed when this evaluation was written.** `core.hooksPath`
+  was unset on 2026-08-02 when T278 evaluated (CURRENT.md: "there is no gate
+  today"; installation was T280's job). **T280 installed it during the T278
+  session** — the T278 commit itself passed through the freshly-installed hook
+  (`pre-commit: claimlint C1a=10 C1b=0 C2=14 C6=0 — ≤ floor, allowed`). The
+  installation does not change the two holes below: the hook still cannot see
+  `git commit`'s path arguments, and the Orchestrator's scope is still
+  "anything". A mechanism that required a *new* install step to be trusted had
+  a worse deployment record in this project than a self-contained script.
 
 **Verdict: ruled out as primary** — the Orchestrator hole and the uninstalled
 hook make it weaker than the wrapper at deployment, and its only advantage over
