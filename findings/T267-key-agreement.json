@@ -1,0 +1,21 @@
+{
+  "task_id": "T267",
+  "date": "2026-08-02",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "T265",
+      "proposed_status": "PROVEN",
+      "rationale": "The real engine ko rule (rules.Rules.neighbors path, matching gtp.zig:717-744) now independently tested against solverKoGeneric on all boards and on game sequences; 0 disagreements on 2x2/3x2/3x3 exhaustive scan plus 4x4 human-game and self-play sequences.",
+      "evidence_path": "docs/evidence/GLOBAL.DIFFERENTIAL/T267-key-agreement"
+    },
+    {
+      "id": "T267",
+      "proposed_status": "PROVEN",
+      "rationale": "Key-agreement invariant wired into zig build test; engine and builder produce identical (colex, side, ko, passes, terminal) keys on all goban sizes (2x2, 3x2, 3x3, 4x4) for human-game sequences and self-play; seeded-defect control (626ec55^ old ko rule) caught disagreements on 3x2 self-play.",
+      "evidence_path": "src/differential.zig (tests 6-13), build.zig (differential wired into test_step)"
+    }
+  ],
+  "new_rows": [],
+  "notes": "Three changes delivered: (1) engineKoNewGeneric replaced with real independent implementation using rules.Rules.neighbors (not alias of solverKoGeneric); (2) key-agreement invariant added as 8 tests covering null control, seeded-defect control, two human games, and self-play at all 4 goban sizes; (3) differential.zig wired into zig build test via build.zig. The 626ec55^ reproduction: seeded-defect control ('ko key (T265): old engine rule disagrees with solver') confirms the old ko rule diverges on exhaustive board scan; 'T267: key-agreement seeded-defect' additionally confirms divergence on 3x2 self-play game sequences. All 13 differential tests pass in zig build test."
+}

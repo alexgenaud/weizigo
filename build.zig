@@ -157,6 +157,19 @@ pub fn build(b: *std.Build) void {
     run_vb_graph_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_graph_tests.step);
 
+    // ── differential (T257/T267: agreement matrix + key invariant) ─
+    const differential_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/differential.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    differential_tests.root_module.import_table = .{};
+    const run_differential_tests = b.addRunArtifact(differential_tests);
+    run_differential_tests.cwd = b.path(".");
+    test_step.dependOn(&run_differential_tests.step);
+
     // ── engine-vs-engine ──────────────────────────────────────────
     const engine_vs_engine_exe = b.addExecutable(.{
         .name = "weizigo-engine-vs-engine",
