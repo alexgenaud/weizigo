@@ -113,6 +113,16 @@ rather than smoothing it over. Flag what you judged borderline and left alone.
 **Suspicion.** A result matching exactly what the brief hoped for is the one to
 examine hardest.
 
+**Commit through the wrapper: `tools/git-commit-mine <paths> -m <msg>`** (T278,
+adopted by the Orchestrator 2026-08-02 after its controls were re-run independently —
+all five pass, including the incident-1 fixture). `bin/subagent` sets
+`MANAGENT_TASK_ID` for dispatched workers, so the wrapper knows whose commit it is;
+the rulings and edge cases are in `docs/infra/fleet-git-isolation.md`. `managent done`
+now asks **git** whether each declared deliverable is tracked and unmodified — an
+untracked or dirty deliverable refuses the close, naming the path, and the task stays
+`in_progress`. That is deliberate: T272 closed `pass` on 2026-08-02 with every
+deliverable outside git.
+
 **Committing while a fleet is running — path-limited adds, always.** Every console
 shares one `.git/index`. `git add -A`, `git add .`, and a pathless `git commit -a`
 stage **whatever another agent has staged**, and it lands in your commit under your

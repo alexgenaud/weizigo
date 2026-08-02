@@ -88,6 +88,13 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 - Retrograde build + battery: `RETRO_SAVE=1 zig run -O ReleaseFast src/retro.zig`. Long runs (258 MB, 19 sweeps)
   need a persistent session: start it, watch the heartbeat, never restart. Caches under `/tmp/weizigo-zigcache`.
 - `weizigo-oracle <a.wzo>` (GTP; Sabaki-compatible) · `weizigo-arena <a.wzo> <seeds>` · `bin/weizigo-claimlint`.
+- **Install the pre-commit gate once per clone: `git config core.hooksPath tools/hooks`.**
+  It blocks claimlint *regressions* against the recorded floor in
+  `tools/hooks/claimlint-floor.json` — not "must be green", which is unreachable today.
+  Repo config is not tracked by git, so `tools/regression-precommit.sh` (wired into
+  `zig build test`) **fails loudly while the gate is uninstalled**; a red suite on a
+  fresh clone means run that command. Commit with `tools/git-commit-mine <paths> -m <msg>`,
+  never `git add -A` — see `docs/infra/fleet-git-isolation.md`.
 - `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `reopen`
   / `purge` / `set` / `next` / `status` / `show`. The human dispatches; the
   agent claims; the Orchestrator owns the kanban end-to-end (D-8) and may

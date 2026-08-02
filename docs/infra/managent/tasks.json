@@ -21,7 +21,7 @@
     "skip_acceptance_reason": null
   },
   "T274": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T274-migos-tie-experiment.md",
@@ -31,11 +31,11 @@
     "caps": [],
     "added": "2026-08-02T19:57:05Z",
     "claimed": "2026-08-02T20:33:22Z",
-    "done": null,
+    "done": "2026-08-02T21:49:55Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -336,8 +336,8 @@
     "skip_acceptance_reason": null
   },
   "T280": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T280-install-and-control-the-gate.md",
     "set": "C",
@@ -346,11 +346,11 @@
     "caps": [],
     "added": "2026-08-02T21:03:40Z",
     "claimed": "2026-08-02T21:32:10Z",
-    "done": null,
+    "done": "2026-08-02T21:43:13Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "sh tools/regression-precommit.sh",
@@ -379,7 +379,7 @@
   },
   "T277": {
     "status": "in_progress",
-    "agent": null,
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T277-verify-incompleteness-refutation.md",
     "set": "A",
@@ -588,8 +588,8 @@
     "skip_acceptance_reason": "zig build test passes via tools/runner (zig not on PATH from managent subprocess)"
   },
   "T278": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T278-fleet-git-isolation.md",
     "set": "B",
@@ -598,12 +598,12 @@
     "caps": [],
     "added": "2026-08-02T21:01:15Z",
     "claimed": "2026-08-02T21:32:12Z",
-    "done": null,
+    "done": "2026-08-02T21:46:41Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "wrapper + git-aware done check; all controls PASS; follow-up: staged-path-subset backstop riding T280's now-installed hook; Orchestrator adoption pending (verify-then-promote)",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
@@ -798,7 +798,7 @@
     "skip_acceptance_reason": "runner cannot find zig in subprocess PATH; harness ran successfully directly and all tests pass"
   },
   "T269": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T269-register-vocabulary.md",
@@ -879,6 +879,27 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
+    "skip_acceptance_reason": null
+  },
+  "T281": {
+    "status": "done",
+    "agent": "orcha",
+    "model": null,
+    "bundle": "untracked/T281-install-the-gate.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T21:50:16Z",
+    "claimed": "2026-08-02T21:50:16Z",
+    "done": "2026-08-02T21:50:17Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": "Installed and verified; refusal observed. Acceptance sh tools/regression-precommit.sh exit 0.",
+    "claim_count": 1,
+    "acceptance": "sh tools/regression-precommit.sh",
     "skip_acceptance_reason": null
   },
   "T231": {
@@ -1177,7 +1198,7 @@
   }
 ,
   "_sys": {
-    "next_id": 281,
+    "next_id": 282,
     "directive_next": 17
   }
 }
