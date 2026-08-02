@@ -36,6 +36,26 @@ the four `arm-*.md` files are reference depth. Nothing in flight; clean tree.
   exits 1 — C1a=10, C2=14 (the recorded Argus floor still says 12), C6=0, C7=4,
   calibration PASS, 282/0 parsed. `T272` is the task that turns the floor into an
   enforced pre-commit gate; do not chase these to zero ad hoc.
+- **The G3 blocker is under challenge, not cleared.** T266 (`dff5bba`) measures the
+  4×4 `passes=1` shortfall at **131,068 genuinely-unreachable** side-entries, not
+  ~6.77M (T261's figure came from the first 5,000 groups in colex file order). If it
+  holds, `CODE.WZO2-INCOMPLETE` is PROVEN-and-wrong-as-stated and oracle-v2 G3 is not
+  blocked. **T277 must try to break it first**; T279 absorbs whatever T277 rules.
+  Do not quote either number as settled.
+- **The MIGOS +2 anchor was the wrong anchor.** T274 (`5f87b5b`): MIGOS's basic-ko 4×4
+  is **+1** (thesis Table 5.1) and its long-cycle-tie value is **0** — both ours. The
+  +2 is a different cycle-resolution rule. `GLOBAL.TIE-MIGOS` is contradicted on its
+  stated mechanism; absorption is T279.
+- **I2 is clean on WZO2** (T270: 0/99,133,036 at 4×4, 0/49,428 at 3×3, independently
+  re-implemented) **and blind to the completeness question** — the missingness is
+  colour-symmetric.
+- **The claimlint gate is still not installed.** T272 closed `pass` with its
+  deliverable outside git; landed at `f9469d1` as preserved-not-accepted, with its
+  seeded-defect control exercising claimlint instead of the hook. **T280** installs it
+  after fixing the controls. `core.hooksPath` is unset — there is no gate today.
+- **Deploy correctness is closed** (T268): remove-copy-sign, smoke 7/7
+  deployed==built, `./managent` and `./gtp` root hazards retired. Phase 1 gate
+  readings are now quotable.
 - **Phase 0 delivered, verified with findings.** `DSPro/T271` wrote
   `docs/epic-01-markovian/AXIOMS.md` (`52f16a4`, closed `pass`); Orcha
   verification found three defects — A5 contradicts B2/B3 on pass-clears-ko,

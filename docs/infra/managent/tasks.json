@@ -335,6 +335,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T280": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T280-install-and-control-the-gate.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T21:03:40Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "sh tools/regression-precommit.sh",
+    "skip_acceptance_reason": null
+  },
   "T232": {
     "status": "done",
     "agent": "orcha",
@@ -777,13 +798,13 @@
     "skip_acceptance_reason": "runner cannot find zig in subprocess PATH; harness ran successfully directly and all tests pass"
   },
   "T269": {
-    "status": "dispatchable",
+    "status": "blocked",
     "agent": null,
     "model": null,
     "bundle": "untracked/T269-register-vocabulary.md",
     "set": "C",
     "holds": [],
-    "needs": ["T272"],
+    "needs": ["T272", "T280"],
     "caps": [],
     "added": "2026-08-02T02:03:01Z",
     "claimed": null,
@@ -1156,7 +1177,7 @@
   }
 ,
   "_sys": {
-    "next_id": 280,
+    "next_id": 281,
     "directive_next": 16
   }
 }
