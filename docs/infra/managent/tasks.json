@@ -210,8 +210,8 @@
     "skip_acceptance_reason": null
   },
   "T262": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "T262",
     "model": null,
     "bundle": "untracked/T262-claimlint-c7-segfault.md",
     "set": "C",
@@ -219,16 +219,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T00:11:29Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-02T00:34:59Z",
+    "done": "2026-08-02T00:35:18Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "test findings (T262-*.json) intentionally produce unabsorbed C7 results; binary no longer segfaults — correctly reports all 7 items including both T212 unknown IDs that previously crashed at the second"
   },
   "T233": {
     "status": "done",
@@ -440,6 +440,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T265": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T265-ko-key-mismatch.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T01:05:10Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
   "T234": {
     "status": "done",
     "agent": "orcha",
@@ -588,8 +609,8 @@
     "skip_acceptance_reason": null
   },
   "T263": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "unknown/T263",
     "model": null,
     "bundle": "untracked/T263-gtp-sabaki.md",
     "set": "A",
@@ -597,14 +618,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T00:17:38Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-02T00:57:23Z",
+    "done": "2026-08-02T00:57:25Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -798,8 +819,8 @@
     "skip_acceptance_reason": null
   },
   "T261": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "T261",
     "model": null,
     "bundle": "untracked/T261-m4b-triage.md",
     "set": "A",
@@ -807,14 +828,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T00:06:33Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-02T00:32:40Z",
+    "done": "2026-08-02T00:33:08Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -841,7 +862,7 @@
   }
 ,
   "_sys": {
-    "next_id": 264,
+    "next_id": 265,
     "directive_next": 11
   }
 }
