@@ -1192,8 +1192,10 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                             .a2_child => " (UNCHAINABLE A2@chosen-child — refused V0 comparison; played history-free fallback)",
                         };
                         // For artifact2: show L/H bracket alongside pinned value
+                        // T283: after applyMove the side-to-move has changed to -side.
+                        // Query the bracket for the NEW side to move, not the mover.
                         const lh_suffix: []const u8 = if (s.a2) |_| blk: {
-                            const row = s.bounds2(&s.pos, s.ko_point, @intCast(s.passes), side);
+                            const row = s.bounds2(&s.pos, s.ko_point, @intCast(s.passes), -side);
                             break :blk std.fmt.bufPrint(&sbuf, " [L={d},H={d}]", .{ row.L, row.H }) catch "";
                         } else "";
                         std.debug.print("oracle: {s} -> {s}  child-value={d} stored-v0={d}{s}{s}{s}{s}{s} dtt={d}\n", .{
@@ -1785,4 +1787,124 @@ test "smoke: GTP session pipe (T263)" {
 
     // We should have matched all commands
     try expect(cmd_idx >= expected_cmds.len - 1); // quit may not produce a response
+}
+
+// T283: after applyMove, bounds2 must be queried with the new side-to-move
+// (-side), not the mover (side). This is the invariant violated by the
+// genmove display path at line 1196 (fixed by T283). The test builds a
+// minimal in-memory 4x4 artifact with distinct Black/White brackets so
+// that querying the wrong side returns visibly different numbers.
+test "T283: bounds2 queried with correct side after applyMove" {
+    const gpa = std.testing.allocator;
+    const w: u8 = 4;
+    const h: u8 = 4;
+    const kb = artifact2.koBits(w * h);
+    const none = artifact2.koNone(w, h); // 16
+
+    const S = Session(w, h);
+    const Pos = S.R.Pos;
+
+    // Compute colex indices for the states we need entries for.
+    const X = colexmod.Indexer(w, h);
+    var empty: Pos = [_]i8{0} ** 16;
+    const empty_colex: u32 = @intCast(X.colex_from_pos(&empty));
+
+    // b:B3: col=1 (B), row=3 → (4-3)*4+1 = 5
+    var after_b3: Pos = empty;
+    after_b3[5] = 1;
+    const b3_colex: u32 = @intCast(X.colex_from_pos(&after_b3));
+
+    // Build a minimal artifact with entries for both colex values,
+    // each with Black and White sides having distinct brackets.
+    const groups = [_]artifact2.GroupHeader{
+        .{ .colex = empty_colex, .entry_count = 2 },
+        .{ .colex = b3_colex, .entry_count = 2 },
+    };
+
+    const entries = [_]artifact2.EntryRow{
+        // Empty: Black side, ko=none, passes=0
+        .{ .key_byte = artifact2.encodeKeyByte(0, none, 0, 0, kb), .L = 0, .H = 0, .DTT = 10 },
+        // Empty: White side, ko=none, passes=0
+        .{ .key_byte = artifact2.encodeKeyByte(1, none, 0, 0, kb), .L = 0, .H = 0, .DTT = 10 },
+        // After b:B3: Black side — distinct bracket so wrong-side queries are visible
+        .{ .key_byte = artifact2.encodeKeyByte(0, none, 0, 0, kb), .L = 1, .H = 16, .DTT = 5 },
+        // After b:B3: White side — distinct bracket (colour inversion of Black's)
+        .{ .key_byte = artifact2.encodeKeyByte(1, none, 0, 0, kb), .L = -16, .H = -1, .DTT = 5 },
+    };
+
+    const art = artifact2.Artifact{
+        .header = artifact2.Header{
+            .w = w,
+            .h = h,
+            .ko_bits = kb,
+            .n_groups = groups.len,
+            .n_entries = entries.len,
+            .sha256 = [_]u8{0} ** artifact2.HASH_LEN,
+        },
+        .group_headers = &groups,
+        .entry_rows = &entries,
+    };
+
+    const file_bytes = try artifact2.buildFile(gpa, &art);
+    defer gpa.free(file_bytes);
+
+    // Construct a LoadedArtifact from the built bytes (same logic as
+    // the lookup test in artifact2.zig — no temp file needed).
+    var raw_hdr: [artifact2.HEADER_LEN]u8 = undefined;
+    @memcpy(&raw_hdr, file_bytes[0..artifact2.HEADER_LEN]);
+    const header = try artifact2.validateHeader(&raw_hdr, file_bytes.len, w, h);
+
+    const G: usize = @intCast(header.n_groups);
+    const n_checkpoints = (G + artifact2.CHECKPOINT_STRIDE - 1) / artifact2.CHECKPOINT_STRIDE;
+    const checkpoints = try gpa.alloc(u64, n_checkpoints);
+    defer gpa.free(checkpoints);
+
+    var cum: u64 = 0;
+    for (0..G) |gi| {
+        const off = artifact2.HEADER_LEN + gi * artifact2.GROUP_HEADER_SIZE;
+        const count = file_bytes[off + 4];
+        if (gi % artifact2.CHECKPOINT_STRIDE == 0) checkpoints[gi / artifact2.CHECKPOINT_STRIDE] = cum;
+        cum += count;
+    }
+
+    var loaded = artifact2.LoadedArtifact{
+        .gpa = gpa,
+        .data = file_bytes,
+        .header = header,
+        .group_base = artifact2.HEADER_LEN,
+        .entry_base = artifact2.HEADER_LEN + G * artifact2.GROUP_HEADER_SIZE,
+        .entry_checkpoints = checkpoints,
+    };
+
+    // Create a Session with the artifact.
+    var s = S{ .a2 = &loaded, .enforcement = .basic_ko };
+
+    // Empty state: Black's value should be 0.
+    try expect(s.v0(&s.pos, 1) == 0);
+
+    // Apply b:B3 (Black to move, places at cell 5).
+    try s.applyMove(1, 5);
+
+    // After Black's move, White (-1) is to move.
+    // The bug (pre-fix) queried bounds2 with side=1 (the mover).
+    // The fix queries bounds2 with -side=-1 (the new side-to-move).
+
+    // Correct query: White's bracket.
+    const row_correct = s.bounds2(&s.pos, s.ko_point, @intCast(s.passes), -1);
+    try expect(row_correct.L == -16);
+    try expect(row_correct.H == -1);
+    try expect(row_correct.ko_sensitive); // L=-16, H=-1 → L != H → ko_sensitive=true
+
+    // Wrong query (the bug pattern): Black's bracket — visibly different.
+    const row_wrong = s.bounds2(&s.pos, s.ko_point, @intCast(s.passes), 1);
+    try expect(row_wrong.L == 1);
+    try expect(row_wrong.H == 16);
+
+    // The two brackets must differ (otherwise the bug would be invisible).
+    try expect(row_correct.L != row_wrong.L);
+    try expect(row_correct.H != row_wrong.H);
+
+    // v0 also reflects the correct side.
+    try expect(s.v0(&s.pos, -1) == pinnedValue(-16, -1));
+    try expect(s.v0(&s.pos, 1) == pinnedValue(1, 16));
 }
