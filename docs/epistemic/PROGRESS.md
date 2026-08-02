@@ -381,15 +381,17 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   defect to the 4×4 builder rather than the harness. One character, fixed
   at `5deec6b`; rebuild and re-run are T212, and oracle-v2 G3 is unreachable
 
-- **2026-08-02 — the artifact is valid-looking and incomplete.** M4a passes 4/4
+- **2026-08-02 — the artifact is valid-looking and structurally complete.** M4a passes 4/4
   on the rebuilt artifact `[SPRINT-M4a-ACCEPT:PROVEN]`, and it is still not a
   verified perfect oracle: a direct scan found `passes=1` entries present for
-  only one side in ~27.9% of sampled 4×4 groups, an estimated 6.77M of 48.6M
-  missing, and oracle self-play ends W+2 against a root recorded as
-  `L=+1 H=+16` `[CODE.WZO2-INCOMPLETE:PROVEN]`. T212's proposal that the
-  artifact is valid is recorded and refuted `[WZO2-4X4-VALID:FALSE-AS-SCOPED]`.
+  only one side in ~27.9% of sampled 4×4 groups, but the absent entries are exactly the
+  131,068 monochrome gobans and are provably unreachable
+  `[CODE.WZO2-INCOMPLETE:FALSE-AS-SCOPED]` `[CODE.WZO2-PASS1-LAW:PROVEN]`.
+  The W+2 self-play was the pre-T265 ko rule + the display-path defect
+  `[CODE.GTP-LHSIDE:PROVEN]`, not missing entries. T212's proposal that the
+  artifact is valid is recorded and refuted on corrected grounds `[WZO2-4X4-VALID:FALSE-AS-SCOPED]`.
   **Passing every check we had did not make it correct, because no check we had
-  tested completeness.**
+  tested completeness or value-correctness.** Corrected 2026-08-03 (T279 absorption).
 - **A human playing the engine found what the checks could not.** The GTP
   engine set a ko point on any single-stone capture while the solver sets one
   only on the real ko shape, so it built keys the solver never enumerated and

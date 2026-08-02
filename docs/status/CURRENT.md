@@ -7,32 +7,27 @@ after a context clear / compact / handover. Not durable — milestones live in g
 
 Last refreshed **2026-08-02 (Orchestrator/Opus 5 — Grand Audit reconciliation)**.
 
-## The G3 blocker is GONE — two seats agree (T266 + T277, 2026-08-02/03)
+## The G3 blocker is GONE — absorbed (T279, 2026-08-03)
 
 **`CODE.WZO2-INCOMPLETE` is refuted and the refutation is independently verified.**
 T277 (`deepseek-v4-pro`, `c689d3c`) re-derived all five checks with fresh instruments —
-a separate numpy implementation, no reuse of T266's scanner — and all five hold:
+a separate numpy implementation, no reuse of T266's scanner — and all five hold.
+T279 has now absorbed the findings: `CODE.WZO2-INCOMPLETE` → FALSE-AS-SCOPED,
+`WZO2-4X4-VALID` stays FALSE-AS-SCOPED on corrected grounds, five new rows added
+(`CODE.WZO2-PASS1-LAW`, `CODE.ACCEPT-KOKEY`, `CODE.GTP-LHSIDE`,
+`CODE.CLAIMLINT-C7-NEWROWS`, `WZO2.I2-CLEAN`), and the MIGOS story rewritten
+(`GLOBAL.TIE-MIGOS` → FALSE-AS-SCOPED, `GLOBAL.FIXPOINT-VS-SEARCH` → CLAIMED
+with corrected content). All six documents carrying ~6.77M/W+2 text are swept.
 
-| check | result | denominator |
-|---|---|---|
-| unreachability argument | confirmed, zero exceptions | 24,318,165 groups |
-| census re-derived | matches T266 to the digit | 99,133,036 entries |
-| truncation hole | BFS convergence = completeness | T184 build log, sweep 32 |
-| display-path defect | reproduced at `63e245f` | `gtp.zig:1222` |
-| alignment mutant | caught by 3 checks | 3×3 synthetic |
+**The 4×4 artifact `0c3366f0…` is structurally complete at the entry level** —
+the 131,068 absent passes=1 entries are provably unreachable monochrome gobans
+with zero exceptions. It is **still not a verified perfect oracle**: closure
+(C-A1/C-A2) and L/H value-correctness are untested.
 
-**131,068 genuinely unreachable side-entries, not ~6.77M — 51.7× overstated.** That
-satisfies verify-then-promote, so the disposition may now move: `CODE.WZO2-INCOMPLETE`
-→ FALSE-AS-SCOPED, `WZO2-4X4-VALID` stays FALSE-AS-SCOPED on corrected grounds, and six
-documents plus `findings/rejections.json` carry text that must be swept. **None of that
-is done yet — `T279` owns it and holds `CLAIMS.md`.** Until T279 lands, the register
-still says PROVEN and the old number still appears in six places; quote neither.
-
-This does **not** make the 4×4 artifact correct. It makes it *not incomplete*. The two
-real defects the hunt turned up are live and registered: the display-path bug (`T283`)
-and a fourth unfixed copy of the ko rule inside the acceptance harness
-(`oracle_v2_accept.zig:150-165`, `T273`) — which means A1/A2/A8 have been measuring
-their own off-manifold walk.
+The two real defects the hunt turned up are live and registered: the display-path
+bug (`CODE.GTP-LHSIDE`, fix `T283`) and a fourth unfixed copy of the ko rule inside
+the acceptance harness (`CODE.ACCEPT-KOKEY`, `oracle_v2_accept.zig:150-165`, fix
+`T273`) — which means A1/A2/A8 have been measuring their own off-manifold walk.
 
 ## The gate is INSTALLED (T281, Orchestrator, 2026-08-02)
 
@@ -82,11 +77,14 @@ the four `arm-*.md` files are reference depth. Nothing in flight; clean tree.
 - **The 4×4 artifact is `0c3366f0…`, playable and NOT verified** — this
   supersedes the "INVALID / `a892d689`" headline in the 2026-08-01 block below,
   which describes the pre-rebuild artifact. `untracked/oracle-v2/oracle-4x4-v2.wzo2`
-  passes M4a 4/4 **and is not a solved 4×4**: `CODE.WZO2-INCOMPLETE` —
-  ~6.77M of ~48.6M side-entries missing, and oracle self-play ends `W+2` against a
-  builder-logged root of `L=+1 H=+16`. **Blocks oracle-v2 G3** (T266). None of
-  M4a's four checks tests completeness; T212's "artifact is valid" proposal is
-  recorded and refuted as `WZO2-4X4-VALID`.
+  passes M4a 4/4 **and is not a solved 4×4**: `CODE.WZO2-INCOMPLETE` is refuted
+  (FALSE-AS-SCOPED; the 131,068 absent passes=1 entries are provably unreachable,
+  `CODE.WZO2-PASS1-LAW:PROVEN`), but closure (C-A1/C-A2) and L/H values remain
+  untested. **Does not block oracle-v2 G3 on completeness, but does on
+  value-correctness.** None of M4a's four checks tests either completeness or
+  value-correctness; T212's "artifact is valid" proposal is recorded and refuted
+  on corrected grounds as `WZO2-4X4-VALID:FALSE-AS-SCOPED`.
+  Corrected 2026-08-03 (T279 absorption).
 - **All 282 register rows are presumed unverified**, falsifications included,
   until re-derived inside the reconstructed chain (DIRECTION §1). No re-audit
   until Phase 0/1 deliverables exist.
@@ -101,16 +99,16 @@ the four `arm-*.md` files are reference depth. Nothing in flight; clean tree.
   exits 1 — C1a=10, C2=14 (the recorded Argus floor still says 12), C6=0, C7=4,
   calibration PASS, 282/0 parsed. `T272` is the task that turns the floor into an
   enforced pre-commit gate; do not chase these to zero ad hoc.
-- **The G3 blocker is under challenge, not cleared.** T266 (`dff5bba`) measures the
+- **The G3 blocker is absorbed (T279).** T266 (`dff5bba`) measured the
   4×4 `passes=1` shortfall at **131,068 genuinely-unreachable** side-entries, not
-  ~6.77M (T261's figure came from the first 5,000 groups in colex file order). If it
-  holds, `CODE.WZO2-INCOMPLETE` is PROVEN-and-wrong-as-stated and oracle-v2 G3 is not
-  blocked. **T277 must try to break it first**; T279 absorbs whatever T277 rules.
-  Do not quote either number as settled.
+  ~6.77M. T277 independently verified. T279 absorbed: `CODE.WZO2-INCOMPLETE` →
+  FALSE-AS-SCOPED, `CODE.WZO2-PASS1-LAW` → PROVEN. The artifact is structurally
+  complete; value-correctness is untested.
 - **The MIGOS +2 anchor was the wrong anchor.** T274 (`5f87b5b`): MIGOS's basic-ko 4×4
   is **+1** (thesis Table 5.1) and its long-cycle-tie value is **0** — both ours. The
-  +2 is a different cycle-resolution rule. `GLOBAL.TIE-MIGOS` is contradicted on its
-  stated mechanism; absorption is T279.
+  +2 is a different cycle-resolution rule. T279 absorbed: `GLOBAL.TIE-MIGOS` →
+  FALSE-AS-SCOPED, `GLOBAL.FIXPOINT-VS-SEARCH` → CLAIMED with corrected content,
+  AXIOMS.md §4 rewritten.
 - **I2 is clean on WZO2** (T270: 0/99,133,036 at 4×4, 0/49,428 at 3×3, independently
   re-implemented) **and blind to the completeness question** — the missingness is
   colour-symmetric.

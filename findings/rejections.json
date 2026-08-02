@@ -7,8 +7,8 @@
       "claim_id": "WZO2-4X4-VALID",
       "proposed_status": "PROVEN",
       "register_status": "FALSE-AS-SCOPED",
-      "refuting_row": "CODE.WZO2-INCOMPLETE",
-      "rationale": "The register correctly refuted T212's PROVEN proposal. CODE.WZO2-INCOMPLETE (2026-08-02) established by direct scan that ~6.77M of ~48.6M passes=1 entries are missing; oracle self-play ends W+2 against a root of L=+1 H=+16. The WZO2-4X4-VALID row in CLAIMS.md records the reasoning: 'passing every check we had did not make the artifact valid, because no check we had tested completeness.' This is one of the project's better epistemic moments (GRAND-AUDIT §5)."
+      "refuting_row": "CODE.WZO2-INCOMPLETE (now FALSE-AS-SCOPED; the true count is 131,068 provably unreachable entries per CODE.WZO2-PASS1-LAW, absorbed T279)",
+      "rationale": "The register correctly refuted T212's PROVEN proposal. CODE.WZO2-INCOMPLETE (2026-08-02) was CLAIMED based on a ~6.77M estimate later found 51.7× overstated (T266, verified T277, absorbed T279). The artifact is structurally complete at the entry level (CODE.WZO2-PASS1-LAW:PROVEN) but still not verified for closure or value-correctness. The WZO2-4X4-VALID row in CLAIMS.md records the reasoning: 'passing every check we had did not make the artifact valid, because no check we had tested completeness or value-correctness.' This is one of the project's better epistemic moments (GRAND-AUDIT §5). Corrected 2026-08-03 (T279)."
     }
   ]
 }

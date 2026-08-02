@@ -286,128 +286,72 @@ goban size.
 
 ---
 
-## 4. MIGOS tie-semantics adjudication
+## 4. MIGOS tie-semantics adjudication — RESOLVED (T274, absorbed T279)
 
-### 4.1 The contradiction
+**The +1-vs-+2 miss is now explained.** T274 (2026-08-02) obtained the primary
+sources (van der Werf 2005 PhD thesis, DOI 10.26481/dis.20050127ew; van der Werf &
+Winands, ICGA 2009) and read them in full. The findings:
 
-`4x4.BASICKO-TIE` (CLAIMS.md) explains the +1-vs-+2 miss against the MIGOS II
-anchor as "a ruleset difference (basic ko vs PSK), not a bug." The register's
-own PROVEN row `GLOBAL.MIGOS-RULE` establishes that MIGOS II plays **basic ko**
-+ long-cycle-ties, NOT PSK. `4x4.ANCHOR` already records a prior correction for
-exactly this conflation. A basic-ko build disagreeing with a basic-ko anchor
-cannot be explained by "basic ko vs PSK."
+### 4.1 What the primary sources say
 
-`PROGRESS.md` repeats the same contradicted explanation at two locations:
-the gate-chain table (§4.2) and the immediately following prose.
+- **MIGOS's long-cycle-tie value is 0** — identical to our TIE=0. Thesis §5.3.2:
+  "In practice we use 0 as the value for a draw." ICGA 2009 §3.3: "Normally,
+  there is no need to distinguish long-cycle-ties from heuristic scores, so
+  MIGOS II simply assigns a value in the heuristic range (typically 0)."
+- **MIGOS's basic-ko 4×4 result is +1** — identical to our +1. Thesis §5.4.1
+  (Table 5.1): under basic ko, the 4×4 result is **+1**. Thesis text: "Under
+  basic ko Black does not win the 4×4 board by two points."
+- **The +2 arises from a different cycle-resolution rule.** Thesis Appendix A
+  §A.4: repetition ends the game; balanced cycle = draw; unbalanced cycle =
+  the player who passed more wins. Under this pass-difference rule (or SSK),
+  the 4×4 score is +2 — a seki that White cannot escape via a balanced cycle.
+  This is a different game definition, not a different tie constant.
 
-### 4.2 Candidate causes
+### 4.2 What this means
 
-The audit names two candidates. Each gets a register row.
+- **`GLOBAL.TIE-MIGOS` (Candidate 1) is FALSE-AS-SCOPED.** The minted mechanism
+  — "TIE=0 vs MIGOS's implementation-specific long-cycle-tie value" — is
+  contradicted: MIGOS's tie value is 0, same as ours. The +2 is not a different
+  tie value; it's a different game.
+- **`GLOBAL.FIXPOINT-VS-SEARCH` (Candidate 2) is CLAIMED with corrected content:**
+  under aligned rules (basic ko, flat TIE=0), weizigo fixpoint (+1) and MIGOS
+  search (+1) agree. The +1-vs-+2 gap is a ruleset difference, not a
+  fixpoint-vs-search discrepancy. A defect in our build (Candidate 2(b)) is not
+  needed to explain the gap — though our value for our own game still awaits
+  the #2 auditor.
+- **The +2 acceptance criterion is moot.** `roadmap-2026-07-28.md:227-232` set +2
+  as the target for a "finally legitimate comparison"; the target was the wrong
+  anchor — MIGOS's own basic-ko result is +1, and our +1 matches it.
+- **The "thesis §6.4" citation is wrong.** `4x4.ANCHOR` and the prior §4 text
+  cited "thesis §6.4" for the 4×4 solve; §6.4 is "Learning connectedness."
+  The correct location is §5.4.1 (Table 5.1) + Appendix A §A.4.
 
-#### Candidate 1: TIE=0 vs MIGOS tie semantics
+### 4.3 Empirical confirmation (T274, small-goban sweep)
 
-Our build uses TIE=0 — every cycle is a draw. MIGOS II uses basic ko +
-long-cycle-ties, but the *value* assigned to a long cycle is implementation
-defined and not necessarily 0. If MIGOS resolves a long cycle with a value
-other than 0, the two builds legitimately differ even though both use basic ko.
+T274's empirical half (D014 descope: 2×2, 3×2, 3×3; 4×4 analytic-only) confirmed:
+- L/H tables are bit-identical across five TIE values {0, +2, −2, +16, −16} at
+  every goban size — the fixpoint is TIE-free by construction, now empirically
+  confirmed on every state of three gobans.
+- V = clamp(TIE, [L,H]) exactly at every root and every state; violations=0.
+- At 4×4 (analytic): V_B(TIE) = clamp(TIE, [1,16]), V_W(TIE) = clamp(TIE,
+  [−16,−1]). Only TIE=+2 gives V_B=+2, at which V_W=−1 ≠ −2 — no single flat
+  TIE reproduces the colour-symmetric (+2,−2) anchor. The anchor requires a
+  per-side tie (or a different rule), which is what MIGOS's pass-difference
+  cycle resolution provides.
 
-- **What our ruleset does on a tie:** Under loopy-game fixpoint semantics
-  (ADR-0020), every cycle has value TIE=0. The fixpoint is the limit of Φ
-  where: Black child value = max over moves of White's H; White child value
-  = min over moves of Black's L. Cycles are not detected; the constant tie
-  value emerges as the fixpoint on cyclic subgraphs. At 4×4 the root is
-  bracket-valued [L=+1, H=+16] — the TIE=0 constant is consistent with L=+1
-  but not forced by it.
-- **What MIGOS does on a tie:** MIGOS II's ruleset is basic ko + long-cycle
-  ties. The exact tie value is implementation-specific: MIGOS II is a
-  *program*, not a ruleset `[GLOBAL.MIGOS-RULE:PROVEN]`. Van der Werf's PhD
-  thesis (§6.4) records the 4×4 empty-goban value as +2. The +2 result is
-  the output of a proof-number search with a specific long-cycle resolution.
-  Both our build and MIGOS use basic ko; the difference is in how cycles
-  beyond basic ko are valued.
+### 4.4 Disposition
 
-**Register row:** `GLOBAL.TIE-MIGOS` — CLAIMED.
+**Corrected 2026-08-03 (T279 absorption):** `GLOBAL.TIE-MIGOS` → FALSE-AS-SCOPED;
+`GLOBAL.FIXPOINT-VS-SEARCH` → CLAIMED with corrected content. `4x4.BASICKO-TIE`
+and `PROGRESS.md` §4.2 were already corrected by T271/T275; the "not a bug"
+withdrawal stands. The prior "basic ko vs PSK" explanation was refuted by
+`GLOBAL.MIGOS-RULE`; the replacement "tie-resolution" explanation was refuted
+by the primary sources; the surviving explanation is that the +2 anchor is a
+different game (cycle resolution by pass-difference or SSK).
 
-> The +1 (our TIE=0 build) vs +2 (MIGOS II) difference on the empty 4×4
-> is a genuine ruleset difference in *tie resolution*, not in the ko rule.
-> Both rulesets use basic ko (k=1); MIGOS's long-cycle tie value is not
-> guaranteed to be 0 and is implementation-dependent. The "basic ko vs PSK"
-> explanation in `4x4.BASICKO-TIE` and `PROGRESS.md` §4.2 is incorrect —
-> MIGOS does not play PSK.
-
-#### Candidate 2: Fixpoint vs search
-
-Our build computes the loopy-game fixpoint by Bellman iteration. MIGOS II
-uses proof-number search (PNS) on a game tree. These are different
-computational methods applied to different (if similar) game definitions.
-
-- **Loopy-game fixpoint:** The value at every state is the limit of Φ,
-  defined simultaneously for all states. The Bellman operator iterates until
-  zero-change; the result is the unique least/greatest fixpoint `[GLOBAL.FP1:PROVEN]`.
-- **Proof-number search:** MIGOS II searches a single game tree from the
-  root, with transpositions detected and long cycles resolved to ties.
-  PNS proves bounds on the root value by search, not by global fixpoint
-  iteration.
-
-Under identical rules (basic ko, same tie value), a fixpoint and a search
-should agree on the game-theoretic value. Since they disagree (+1 vs +2),
-either: (a) the tie semantics differ, bringing us back to Candidate 1; or
-(b) one of the two implementations does not compute its own declared value
-correctly. Candidate 2 is therefore a **secondary** cause — it only explains
-the gap if the tie semantics are first aligned.
-
-**Register row:** `GLOBAL.FIXPOINT-VS-SEARCH` — CLAIMED.
-
-> Fixpoint vs search is a computational-method difference, not a ruleset
-> difference. Under identical rulesets, fixpoint and search must agree on
-> game-theoretic values. The observed +1 vs +2 is therefore primarily
-> explained by tie-semantics (Candidate 1), with fixpoint vs search as a
-> secondary possible contributor only if both methods are verified correct
-> under aligned tie rules.
-
-### 4.3 Adjudication
-
-**The +1-vs-+2 miss is unexplained.**
-
-The "basic ko vs PSK" explanation in `4x4.BASICKO-TIE` and `PROGRESS.md` §4.2
-is **falsified by the register's own PROVEN row** `GLOBAL.MIGOS-RULE`. MIGOS
-plays basic ko, not PSK. Both our build and MIGOS play basic ko, so "basic ko
-vs PSK" cannot explain a basic-ko-vs-basic-ko discrepancy.
-
-The **leading hypothesis** is tie semantics: our TIE=0 differs from MIGOS's
-implementation-specific long-cycle-tie value `[GLOBAL.TIE-MIGOS:CLAIMED]`.
-The **live alternative** is a defect in our build — one of the two
-implementations does not compute its own declared value correctly — which is
-Candidate 2's branch (b) `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]`. Neither
-hypothesis has been eliminated; the miss has not been explained.
-
-The roadmap's **+2 acceptance criterion is not met**
-(`roadmap-2026-07-28.md:227-232`): +2 was the condition for a "finally
-legitimate comparison," and the 4×4 root is +1, not +2. Until the gap is
-explained, the build does not pass its own acceptance gate.
-
-**Falsification test for `GLOBAL.TIE-MIGOS`** (registered as T274, not run
-here): re-run the 4×4 root with only the tie constant changed, and read van
-der Werf's thesis §6.4 for MIGOS's actual long-cycle resolution. If a
-different tie constant reproduces +2, the tie-semantics hypothesis is
-confirmed. If no tie value reproduces +2, Candidate 2(b) — a defect —
-is what remains.
-
-The statement "not a bug" is withdrawn from both `PROGRESS.md` locations. It
-rested on `GLOBAL.TIE-MIGOS:CLAIMED` as if CLAIMED were PROVEN, repeating
-exactly the shape GRAND-AUDIT §1d objected to. A CLAIMED hypothesis does not
-support a "not a bug" disposition.
-
-### 4.4 Disposition of PROGRESS.md lines 213, 218
-
-**Corrected by T271 (2026-08-02):** the "basic ko vs PSK" explanation was
-replaced with the tie-resolution explanation and `GLOBAL.TIE-MIGOS` /
-`GLOBAL.FIXPOINT-VS-SEARCH` citations.
-
-**Further corrected by T275 (2026-08-02, Amendment 1):** "not a bug" is
-withdrawn — it rested on `GLOBAL.TIE-MIGOS:CLAIMED` as if CLAIMED were PROVEN.
-The miss is now recorded as unexplained, with the leading hypothesis and live
-alternative both stated. The +2 acceptance criterion is noted as unmet (T274).
+**The 4×4 fresh-start root under our ruleset (basic ko, flat TIE=0) is +1.**
+This agrees with MIGOS's basic-ko result. The #2 auditor gate is still owed
+for our own value.
 
 ---
 
