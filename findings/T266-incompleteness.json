@@ -1,0 +1,66 @@
+{
+  "task_id": "T266",
+  "date": "2026-08-02",
+  "model": "claude-opus-5",
+  "claims": [
+    {
+      "id": "CODE.WZO2-INCOMPLETE",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "Exhaustive scan of all 24,318,165 groups (not a sample) shows the absent passes=1 side-entries are exactly the 131,068 monochrome gobans and are provably unreachable, with zero exceptions in either direction; the '~6.77M of ~48.6M missing' figure came from extrapolating a colex-ordered 5,000-group prefix (stone-count layers 0-4, where monochrome density is high) as if it were uniform, overstating the true 131,068 by 51.7x.",
+      "evidence_path": "docs/evidence/ORACLE-V2/incompleteness-T266.md"
+    },
+    {
+      "id": "WZO2-4X4-VALID",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "Status unchanged, grounds must be restated: the row's refutation cited CODE.WZO2-INCOMPLETE and a W+2 self-play, both refuted by T266 (self-play at HEAD c344f02 ends B+1, matching the root's own L=+1, with 1 miss in 525 lookups from a display-path defect), so the artifact remains unverified only because closure (C-A1/C-A2) and the L/H values are untested, not because entries are missing.",
+      "evidence_path": "docs/evidence/ORACLE-V2/incompleteness-T266.md"
+    }
+  ],
+  "new_rows": [
+    {
+      "id": "CODE.WZO2-PASS1-LAW",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "**The monochrome-side law: a WZO2 `passes=1` side-entry is absent exactly when the goban is monochrome in the opposite colour.** Derivation: `passes=1` states have exactly one kind of in-edge, a pass from `passes=0` (`src/exp6_solve.zig:914-942`, placements always yield `passes=0`, the census seeds only `passes=0` roots at `964-969`); the pass child is `(board, 1-side, KO_NONE, passes+1)` (`:927`); and a `passes=0` state is entered only by a placement, which always leaves at least one stone of the mover's colour because `genericPosFromMove` writes the stone (`:164`), removes only opponent chains (`:170`) and rejects suicide (`:176`). Hence `(P, s, KO_NONE, 1)` is reachable iff `(P, 1-s, ko, 0)` is, which requires a stone of colour `1-s` on `P` unless `P` is empty. Verified exhaustively over every group of both shipped artifacts, denominators stated: 3x3 12,675 groups — 1,020 one-sided, 1,020 monochrome, 0 counter-examples either way; 4x4 24,318,165 groups — 131,068 one-sided, 131,068 monochrome, 0 counter-examples either way. Stored `passes=1` counts equal `2*n_groups - monochrome` exactly at both sizes. Instrument calibrated first: null control plus five synthetic seeded defects, all caught (`t266_calibrate.py`). **Consequence: there is nothing to fill and no rebuild is needed**",
+      "status": "PROVEN (derivation from source + exhaustive scan of both artifacts, instrument calibrated)",
+      "evidence": "docs/evidence/ORACLE-V2/incompleteness-T266.md; docs/evidence/ORACLE-V2/t266_scan.py; docs/evidence/ORACLE-V2/t266-scan-2026-08-02.stdout; docs/evidence/ORACLE-V2/t266-calibration-2026-08-02.stdout",
+      "depends_on": "d:CODE.WZO2-INCOMPLETE",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.ACCEPT-KOKEY",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "**`src/oracle_v2_accept.zig:150-165` carries a second, unfixed copy of the pre-T265 ko rule, and that — not artifact coverage — is what fails A1/A2/A8.** Its `koAfterCapture` sets a ko point on any single-stone capture; the solver (`src/exp6_solve.zig:899-910`) and post-T265 `src/gtp.zig:731-743` set one only when the capturing stone is in atari with no friendly neighbour. The checker therefore builds keys the artifact was never built with and goes off-manifold. Evidence: all ten sampled A1 refusals at HEAD `c344f02` are at `passes=0` with a **non-none** ko (3x3 ko=6,6,8,0,0 of KO_NONE=9; 4x4 ko=12,13,12,0,3 of KO_NONE=16) — **none** at `passes=1`, **none** at `ko=none`, refuting T261's stated root cause that refusals occur when self-play passes. One refusal traced end to end (3x3 colex=14717, ko=6): the group is present and complete with all four entries at `ko=none`, and neither white stone adjacent to the captured point satisfies `liberties==1 and friendly==0`, so no ko point arises. A1's walk cannot even pass voluntarily (`:613-618` increments passes only when `nmoves==0`). The T261 agreement '7.7% refusals ~ 8.0% one-sided groups' is a coincidence on a denominator of 104. Fourth instance of the producer/consumer key-disagreement family after T178, T193, T265",
+      "status": "PROVEN (source comparison + checker's own refusal output + one end-to-end trace)",
+      "evidence": "docs/evidence/ORACLE-V2/incompleteness-T266.md",
+      "depends_on": "d:CODE.WZO2-KOKEY; d:CODE.WZO2-INCOMPLETE",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.GTP-LHSIDE",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "**`src/gtp.zig:1222-1225` displays the bracket for the wrong side to move on every genmove.** The `lh_suffix` block calls `bounds2(&s.pos, …, side)` *after* `applyMove` (`:1204`), so it queries the post-move position with the mover still named as side to move. On the opening move that state is monochrome and therefore legitimately absent, producing the reproducible `colex=12 side=1 ko=16 passes=0` miss (note `side=1` there is the engine i8 side = **Black**, `src/gtp.zig:168`, whereas the key byte uses 0=Black, `src/artifact2.zig:343-345`). Everywhere else the wrong-side query silently *succeeds* and prints a wrong bracket: after `b:B3 w:C2 b:C3` (colex 1636) it printed `[L=16,H=16]` where the true state (White to move) is `[L=1,H=16]` — not a colour-inversion, simply a different state. Display/telemetry only: the move choice comes from `choose_with_check` (`:1202`) and is unaffected; 18-ply self-play at HEAD gives 1 miss in 525 lookups and ends B+1, consistent with the root's own `L=+1 H=+16`",
+      "status": "PROVEN (reproduced at HEAD c344f02; four plies cross-checked against direct artifact lookups)",
+      "evidence": "docs/evidence/ORACLE-V2/incompleteness-T266.md",
+      "depends_on": "d:CODE.WZO2-PASS1-LAW",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.CLAIMLINT-C7-NEWROWS",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "**Claimlint's C7 reads only the FIRST `new_rows` entry per findings file, and mis-parses its status — so proposed register rows 2..N are silently dropped from the absorption queue.** (1) *Truncation.* The hand-rolled brace scanner breaks out of the `new_rows` array as soon as the first row object closes: `if (nr_depth == 0 and nr_count > 0) break;` (`src/claimlint.zig:1676` at HEAD `c344f02`). Proved by A/B on this very file: with rows ordered [PASS1-LAW, ACCEPT-KOKEY, GTP-LHSIDE] C7 reports only `CODE.WZO2-PASS1-LAW`; reversed, it reports only `CODE.GTP-LHSIDE`; `new-rows touched` stays 2 (1 from T172-gap5.json + 1 from this file) although this file holds 4. (2) *Status mis-parse.* After matching the key `status`, `ns` is left on that key's closing quote (`:1716`) and the skip set at `:1718` omits `'\"'`, so the reader starts one character early and captures `\": \"` — every new row's proposed status reads as `: `, regardless of content (reproduced with a plain `PROVEN` status and a short claim). Both are one-line fixes. Same family as the C7 hazard DELEGATEE.md already warns about — a finding that fails to conform disappears silently — except here a **conforming** file loses rows",
+      "status": "PROVEN (A/B experiment on this findings file + source read at HEAD c344f02)",
+      "evidence": "docs/evidence/ORACLE-V2/incompleteness-T266.md",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "READ THIS FILE, NOT CLAIMLINT'S SUMMARY OF IT: this file proposes FOUR new_rows — CODE.WZO2-PASS1-LAW, CODE.ACCEPT-KOKEY, CODE.GTP-LHSIDE, CODE.CLAIMLINT-C7-NEWROWS — and C7 will surface only the first, per CODE.CLAIMLINT-C7-NEWROWS itself (src/claimlint.zig:1676 at HEAD c344f02). The rows are ordered most-important-first for that reason. Absorbing from the C7 listing alone will drop three of the four.\n\nSCOPE COMPLIANCE: analysis only, no fix and no rebuild, per DIRECTION §5 as restated in the brief. Both defects found are left in place and registered for a Phase 2/3 fix task.\n\nDELIVERABLE 2 (the completeness check, specified) is §5 of the evidence document: G-CENSUS = C-A1 (closed under the kernel move generator) AND C-A2 (grounded, no orphans), which together mean stored-set == reachable-set; plus a cheap exact layer C-B0..C-B4 that runs over the whole 4x4 artifact in under 9 seconds with denominators stated; plus the K0-K7 calibration series.\n\nREPORT AGAINST THE BRIEF (DELEGATEE.md 'Report, don't adapt'): DIRECTION §5 instructs that the Phase 1 battery must FAIL 0c3366f0 as a certified-defective calibration input. It will not fail it on completeness, because the defect is not there — C-B1..C-B4 pass exhaustively. Specifying a check to fail it anyway would be specifying a check to report a defect that does not exist. DIRECTION §5 and the standing calibration doctrine (DELEGATEE.md: draw known-bads from synthetic fixtures, not live data) were already in tension; the doctrine wins, and the K-series discharges DIRECTION's real requirement that the battery be shown able to fail. K7 uses the pre-T265 ko rule — a genuine, still-live fault — as the instrument-under-test control that 2B-5 lacked.\n\nNOT A CLAIM THAT THE ARTIFACT IS CORRECT: only structural completeness was tested. C-A1/C-A2 need the Phase 2 kernel and were not run; the stored L/H values were not tested at all.\n\nVERIFY-THEN-PROMOTE: three of these rows contradict a PROVEN row (CODE.WZO2-INCOMPLETE) and one contradicts a named root cause in T261's findings. Per the standing rule they need an independent seat to agree before promotion. The scan is a Python re-implementation sharing no code with builder or consumer, and the calibration harness with its null control is committed alongside, so a second seat can re-derive rather than re-reason.\n\nUNESTABLISHED: A2's 17,136 missing children / 4,224 L/H violations and A8's 5,096 DTT violations are not individually apportioned to CODE.ACCEPT-KOKEY — only A1's refusal states were measured. Whether the solver's ko rule is the RIGHT rule is an axioms question (T271/T275), untouched here.\n\nBLOCKER OBSERVED, NOT MINE: the working tree carries another seat's in-flight src/claimlint.zig edit that fails to compile (src/claimlint.zig:1228, undeclared identifier 'loadRejections'), so `zig build` is red. Not touched; the T266 binaries were built per-module instead."
+}

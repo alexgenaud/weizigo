@@ -1,0 +1,11 @@
+# T266 calibration — instrument: t266_scan.py  known-good: untracked/oracle-v2/oracle-3x3-v2.wzo2
+# mutants written to /private/tmp/claude-501/-Users-alex-Project-Zig-weizigo/4fd4e6a4-e0b7-4b64-8597-4a0c9d641a48/scratchpad/mutants (synthetic; live artifacts untouched)
+
+K0-null-control            -> PASS (clean, as required)
+K1-dropped-pass-edge       -> PASS (caught: {'h1_absent_not_mono_s0': 1, 'CB1_dropped_pass_edge_s0': 1, 'CB4_order_or_dup': 1})
+K2-monochrome-law          -> PASS (caught: {'CB1_dropped_pass_edge_s1': 1, 'CB1_orphan_s0': 1, 'CB2_monochrome_law': 1})
+K3-ko-on-occupied-cell     -> PASS (caught: {'CB3_ko_on_occupied_cell': 1})
+K4-passes-bit-flip         -> PASS (caught: {'CB3_passes1_ko_not_none': 1, 'CB4_order_or_dup': 1})
+K5-duplicate-key           -> PASS (caught: {'CB1_orphan_s0': 1, 'CB4_order_or_dup': 1})
+
+# calibration: PASS — instrument catches every seeded defect

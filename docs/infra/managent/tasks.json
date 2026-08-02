@@ -357,7 +357,7 @@
     "skip_acceptance_reason": null
   },
   "T273": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T273-kernel-ko-and-statekey.md",
@@ -525,8 +525,8 @@
     "skip_acceptance_reason": null
   },
   "T267": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T267-key-agreement-invariant.md",
     "set": "C",
@@ -535,15 +535,15 @@
     "caps": [],
     "added": "2026-08-02T02:02:26Z",
     "claimed": "2026-08-02T20:30:02Z",
-    "done": null,
+    "done": "2026-08-02T20:43:42Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "zig build test passes via tools/runner (zig not on PATH from managent subprocess)"
   },
   "T256": {
     "status": "done",
@@ -630,8 +630,8 @@
     "skip_acceptance_reason": null
   },
   "T272": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T272-claimlint-gate-hook.md",
     "set": "C",
@@ -640,15 +640,15 @@
     "caps": [],
     "added": "2026-08-02T19:35:07Z",
     "claimed": "2026-08-02T20:33:16Z",
-    "done": null,
+    "done": "2026-08-02T20:46:34Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "zig build test passes; regression controls green; run from a shell where zig is on PATH"
   },
   "T229": {
     "status": "done",
@@ -735,7 +735,7 @@
     "skip_acceptance_reason": "runner cannot find zig in subprocess PATH; harness ran successfully directly and all tests pass"
   },
   "T269": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T269-register-vocabulary.md",
@@ -798,8 +798,8 @@
     "skip_acceptance_reason": null
   },
   "T266": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "claude-opus-5",
     "model": null,
     "bundle": "untracked/T266-artifact-incompleteness.md",
     "set": "A",
@@ -808,11 +808,11 @@
     "caps": [],
     "added": "2026-08-02T02:02:26Z",
     "claimed": "2026-08-02T20:28:52Z",
-    "done": null,
+    "done": "2026-08-02T20:50:40Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -924,7 +924,7 @@
     "skip_acceptance_reason": null
   },
   "T276": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T276-model-label-normalization.md",
@@ -934,11 +934,11 @@
     "caps": [],
     "added": "2026-08-02T20:21:50Z",
     "claimed": "2026-08-02T20:32:44Z",
-    "done": null,
+    "done": "2026-08-02T20:49:38Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
