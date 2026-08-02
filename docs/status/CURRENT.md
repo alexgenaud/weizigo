@@ -7,6 +7,33 @@ after a context clear / compact / handover. Not durable — milestones live in g
 
 Last refreshed **2026-08-02 (Orchestrator/Opus 5 — Grand Audit reconciliation)**.
 
+## The G3 blocker is GONE — two seats agree (T266 + T277, 2026-08-02/03)
+
+**`CODE.WZO2-INCOMPLETE` is refuted and the refutation is independently verified.**
+T277 (`deepseek-v4-pro`, `c689d3c`) re-derived all five checks with fresh instruments —
+a separate numpy implementation, no reuse of T266's scanner — and all five hold:
+
+| check | result | denominator |
+|---|---|---|
+| unreachability argument | confirmed, zero exceptions | 24,318,165 groups |
+| census re-derived | matches T266 to the digit | 99,133,036 entries |
+| truncation hole | BFS convergence = completeness | T184 build log, sweep 32 |
+| display-path defect | reproduced at `63e245f` | `gtp.zig:1222` |
+| alignment mutant | caught by 3 checks | 3×3 synthetic |
+
+**131,068 genuinely unreachable side-entries, not ~6.77M — 51.7× overstated.** That
+satisfies verify-then-promote, so the disposition may now move: `CODE.WZO2-INCOMPLETE`
+→ FALSE-AS-SCOPED, `WZO2-4X4-VALID` stays FALSE-AS-SCOPED on corrected grounds, and six
+documents plus `findings/rejections.json` carry text that must be swept. **None of that
+is done yet — `T279` owns it and holds `CLAIMS.md`.** Until T279 lands, the register
+still says PROVEN and the old number still appears in six places; quote neither.
+
+This does **not** make the 4×4 artifact correct. It makes it *not incomplete*. The two
+real defects the hunt turned up are live and registered: the display-path bug (`T283`)
+and a fourth unfixed copy of the ko rule inside the acceptance harness
+(`oracle_v2_accept.zig:150-165`, `T273`) — which means A1/A2/A8 have been measuring
+their own off-manifold walk.
+
 ## The gate is INSTALLED (T281, Orchestrator, 2026-08-02)
 
 `core.hooksPath = tools/hooks`. `sh tools/regression-precommit.sh` exits 0 —

@@ -378,7 +378,7 @@
     "skip_acceptance_reason": null
   },
   "T277": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T277-verify-incompleteness-refutation.md",
@@ -388,11 +388,11 @@
     "caps": [],
     "added": "2026-08-02T20:59:22Z",
     "claimed": "2026-08-02T21:31:36Z",
-    "done": null,
+    "done": "2026-08-02T22:00:05Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -923,6 +923,27 @@
     "acceptance": "sh tools/regression-precommit.sh",
     "skip_acceptance_reason": null
   },
+  "T283": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T283-gtp-display-path.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T22:01:48Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
   "T231": {
     "status": "done",
     "agent": "orcha",
@@ -1176,7 +1197,7 @@
     "skip_acceptance_reason": null
   },
   "T279": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T279-absorb-fleet-findings.md",
@@ -1219,7 +1240,7 @@
   }
 ,
   "_sys": {
-    "next_id": 282,
+    "next_id": 283,
     "directive_next": 17
   }
 }
