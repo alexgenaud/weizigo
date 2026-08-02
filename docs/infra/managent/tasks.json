@@ -839,6 +839,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T282": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T282-wrapper-followups.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T21:51:54Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
   "T265": {
     "status": "done",
     "agent": "deepseek-v4-pro",

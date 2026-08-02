@@ -7,6 +7,27 @@ after a context clear / compact / handover. Not durable — milestones live in g
 
 Last refreshed **2026-08-02 (Orchestrator/Opus 5 — Grand Audit reconciliation)**.
 
+## The gate is INSTALLED (T281, Orchestrator, 2026-08-02)
+
+`core.hooksPath = tools/hooks`. `sh tools/regression-precommit.sh` exits 0 —
+installed-ness PASS, null control PASS (a commit at floor is allowed),
+**seeded-defect PASS with an observed refusal** (C1a 10 → 11, exactly +1 once T280
+fixed the insertion-loop bug that had reported a spurious 13-orphan cascade). Floor:
+C1a=10, C1b=0, C2=14, C6=0, calibration PASS; **C7 is deliberately not gated** (13
+unabsorbed today), so the absorption backlog cannot wedge the fleet.
+
+Two things a fresh clone must know: **repo config is not tracked**, so the gate is not
+installed until someone runs that one command — and `zig build test` will be **red**
+until they do, because it depends on the installed-ness check (`build.zig:160-163`).
+That redness is the mechanism working. Commit with
+`tools/git-commit-mine <paths> -m <msg>`, never `git add -A`.
+
+T280's kanban row reads `pass` and its install was reverted, correctly, on directive
+D016 (four consoles were committing at the time); it then closed before reading its
+inbox. `managent reopen` refuses a task closed `pass`, so **T281** is the record of the
+deferred install rather than a rewrite of T280's row. T282 carries the two wrapper
+follow-ups.
+
 ## T278 (2026-08-02, deepseek-v4-flash) — shared-index fleet hazard: mechanized
 
 **Ownership declared:** mutation of `src/managent/main.zig` (the `done`
