@@ -17,5 +17,5 @@
     }
   ],
   "new_rows": [],
-  "notes": "T262 calibration — two unknown IDs case (the segfault repro)"
+  "notes": "T262 calibration — two unknown IDs case (the segfault repro). DEBUGALLOCATOR POSTMORTEM: would std.heap.DebugAllocator have caught this? Default DebugAllocator (0xaa fill, no mprotect) — freed memory is still readable, would produce garbled 0xaa-filled filenames in output, visible but not a crash/hard-stop. DebugAllocator with mprotect detection — would segfault at the exact read site, making diagnosis instant. Neither was used: claimlint runs on std.heap.page_allocator directly. Since claimlint is not perf-critical (scans ~30 JSON files, runs <1s) and processes untrusted input, a debug-allocator test build should be standard — it would turn silent corruption into either visible garbage or an immediate crash at the bug site rather than a non-deterministic segfault at distance in ReleaseFast."
 }
