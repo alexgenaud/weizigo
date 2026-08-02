@@ -16,7 +16,7 @@ Opened 2026-08-02 by Orchestrator (Opus 5) at commit `2432d71`.
 | phase | content (DIRECTION §5) | state |
 |---|---|---|
 | 0 — theorem and axioms | AXIOMS.md; requirement tree top-down from Z; old rows mapped onto it; MIGOS/tie adjudicated | **T271 open — gates everything below** |
-| 1 — acceptance battery before code | battery built and calibrated on known-defective inputs first; `0c3366f0` must fail it | T266, T267, T270 open |
+| 1 — acceptance battery before code | battery built and calibrated on **synthetic** defects first (DIRECTION Amendment 1, ratified 2026-08-03); live artifacts are regression inputs | **decomposed 2026-08-03: T290 spec → T291 mutants → T292 baselines+gate.** Carry-forward T266/T267/T270 closed |
 | 2 — kernel extraction | one function one owner, ko and state-key first; all harnesses in `zig build test` | T273 blocked (needs T271, T267) |
 | 3 — A–Z reverification | ladder 2×2 → 3×2 → 3×3 → 4×4; kernel vs fixtures differentially; every register row re-derived, demoted or retired | not decomposed |
 | 4 — the swap | kernel becomes production; legacy frozen as fixtures; engine/experiment boundary in `src/` | not decomposed |
@@ -52,6 +52,23 @@ composes the resume surface at read time; `docs/status/CURRENT.md` is deleted)
 and **prescription 4**'s lying-generator half is open (the `ephemeral` symlink
 half was retired by the human's 2026-08-03 ruling — `/tmp/weizigo` is the
 location, no symlink).
+
+## Phase 1, decomposed (Orchestrator, 2026-08-03)
+
+Unblocked by two things: Phase 0's AXIOMS.md exists (so the requirement tree can say which
+lemmas need checks), and DIRECTION Amendment 1 is ratified (so the calibration rule is
+settled — synthetic mutants must fail, live artifacts must not *newly* fail). Three rows,
+serialized because each is the next one's input:
+
+| task | what it delivers | why it must come first |
+|---|---|---|
+| **T290** | `sprints/verify-battery/pass1/spec.md` — I1–I12 mapped onto the tree in both directions, every pass condition stated as violation-vs-measurement, A1–A6 re-based on Amendment 1, and each check marked runnable-now / needs-kernel | Prose only. Deciding *what fails* before writing code is the whole of "battery before code" — and T287 showed a wrong pass condition is itself a defect |
+| **T291** | `pass1/mutants.md` — ten synthetic mutants, one per defect actually suffered, each with a named killer and a kill matrix; two of them attack the battery itself | Mutation testing is what makes the readings mean anything. Four instruments were found broken on 2026-08-02, all green beforehand |
+| **T292** | `pass1/baselines.md` + suite wiring — a golden-master baseline per artifact per check, with v1's I7 failure baselined as *known-failing*, and the fast path inside `zig build test` | "Unchanged from baseline" is meaningless without a recorded baseline, and a gate nobody runs is prose |
+
+Two consequences of Amendment 1 that these rows carry, so they are not re-litigated:
+`0c3366f0`'s completeness checks must **pass** (its defect was refuted — T266/T277/T279),
+and the v1 4×4 DTT fault becomes a **synthetic** mutant so it survives its own repair.
 
 ## The G3 gate is split (Orchestrator ruling, 2026-08-03)
 

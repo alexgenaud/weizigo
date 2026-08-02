@@ -63,7 +63,7 @@
     "skip_acceptance_reason": null
   },
   "T288": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T288-absorb-and-fix-the-pass-condition.md",
@@ -72,14 +72,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T23:39:05Z",
-    "claimed": null,
+    "claimed": "2026-08-02T23:43:11Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": null
   },
@@ -335,6 +335,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T292": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T292-baselines-and-gate.md",
+    "set": "C",
+    "holds": [],
+    "needs": ["T291"],
+    "caps": [],
+    "added": "2026-08-02T23:47:15Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
   "T226": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -437,6 +458,48 @@
     "verdict": "abandoned",
     "verdict_note": "test-leakage phantom, closed by Orcha",
     "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
+  "T291": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T291-mutation-catalogue.md",
+    "set": "A",
+    "holds": [],
+    "needs": ["T290"],
+    "caps": [],
+    "added": "2026-08-02T23:47:15Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
+  "T290": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T290-phase1-battery-spec.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T23:46:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -1366,7 +1429,7 @@
   }
 ,
   "_sys": {
-    "next_id": 289,
+    "next_id": 292,
     "directive_next": 19
   }
 }
