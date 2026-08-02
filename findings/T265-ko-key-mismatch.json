@@ -1,0 +1,40 @@
+{
+  "task": "T265",
+  "title": "ko-key-mismatch: engine and solver disagree on when a ko exists",
+  "date": "2026-08-02",
+  "worker": "T265",
+  "model": "Claude",
+  "status": "FIXED",
+  "diagnosis": {
+    "confirmed": true,
+    "root_cause": "koAfterCapture in src/gtp.zig set a ko point whenever exactly one stone was captured (opp_before - opp_after == 1). The solver (src/exp6_solve.zig apply_place/apply_place32/apply_place4) additionally requires the capturer to be in atari with no friendly neighbours (liberties == 1 and friendly == 0).",
+    "impact": "The engine produced lookup keys with ko values the solver never assigned, causing lookup misses in the oracle artifact. The engine fell back to area-score fabrication, the Bellman comparison failed (UNCHAINABLE refusal), and the history-free greedy fallback produced nonsensical moves — including filling its own two-point eye in game 1.",
+    "family": "Third defect of this family: T178 (exp6 rank vs colex), T193 (passes bit encoded as 0), T265 (ko field). Every one is a lookup key built differently by producer and consumer.",
+    "second_game_explained": "The second game produced misses at ko=0 and ko=16 (KO_NONE) that appeared to escape the ko-rule diagnosis. In fact: the ko=0 states are ko-inconsistent (no capturer in atari — same root cause), and the ko=16 state is downstream of earlier off-manifold play. A single wrong ko determination puts the game off-manifold; every later lookup misses regardless of its own ko field.",
+    "cited_states_all_inconsistent": "Every cited state (colex=26668645 ko=3, colex=29301769 ko=12, colex=29355009 ko=3/12, colex=2456372 ko=0, colex=5798208 ko=16) checked against solver's ko rule — all non-KO_NONE states have ko points the solver would never assign. Random sample confirms: ~2.4% of single-stone captures under the old rule disagree with the solver."
+  },
+  "fix": {
+    "file": "src/gtp.zig",
+    "function": "koAfterCapture",
+    "change": "Added played_cell detection and the solver's ko rule: count liberties and friendly neighbours of the capturer in the post-capture position; only set ko if liberties == 1 AND friendly == 0.",
+    "commit": "626ec55 (committed by Orcha while T265 console was running)",
+    "verified_by": "Orchestrator — replayed human game transcripts through fixed binary: game 1 misses 14→0, UNCHAINABLE refusals 2→0; game 2 misses 12→0, refusals 2→0. All 20 engine moves now from the table."
+  },
+  "differential_test": {
+    "file": "src/differential.zig",
+    "tests": [
+      "ko key (T265): old engine rule disagrees with solver (negative control)",
+      "ko key (T265): fixed engine rule agrees with solver"
+    ],
+    "coverage": "2x2 (324 board×cell), 3x2 (4,374), 3x3 (177,147) — exhaustive",
+    "result": "Old rule: disagreements found on all sizes (confirmed bug). New rule: 0 disagreements all sizes (confirmed fix)."
+  },
+  "artifacts": {
+    "gtp_fix": "626ec55",
+    "differential_and_findings": "pending commit by T265",
+    "game_transcripts": "docs/evidence/ORACLE-V2/human-game-{1,2}.gtp",
+    "game_analysis": "docs/evidence/ORACLE-V2/human-games-2026-08-02.md",
+    "findings": "findings/T265-ko-key-mismatch.json"
+  },
+  "verdict": "CONFIRMED and FIXED. koAfterCapture aligned to solver rule. Differential invariant registered — the third such guard after T178 and T193. Human game replays confirm misses dropped to 0."
+}

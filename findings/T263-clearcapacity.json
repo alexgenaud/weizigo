@@ -1,0 +1,11 @@
+{
+    "task": "T263",
+    "date": "2026-08-02",
+    "title": "Zig 0.16 clearRetainingCapacity corrupts tokenizer buffers",
+    "severity": "blocker",
+    "summary": "std.ArrayList.clearRetainingCapacity() in Zig 0.16 does @memset(self.items, undefined), which corrupts any TokenIterator that captured the ArrayList's items slice before the clear. In src/gtp.zig, the GTP command loop called clearRetainingCapacity() on the line buffer immediately after creating a tokenizer, causing all command tokens to be garbage and every GTP command to return '? unknown command'.",
+    "affected": "src/gtp.zig (runSession and runDeferred)",
+    "fix": "Move line.clearRetainingCapacity() to after all tokenizer usage is complete (after out.clearRetainingCapacity(), before the next iteration).",
+    "impact": "The weizigo-gtp binary was completely non-functional when compiled with Zig 0.16. The existing bin/weizigo-oracle was compiled with an older Zig and was not affected.",
+    "denominator": "N/A — code defect, not measurement"
+}
