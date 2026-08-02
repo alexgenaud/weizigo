@@ -1,6 +1,9 @@
 # AXIOMS — epic-01-markovian: theorem, axioms, and requirement tree
 
-Task: T271 · Role: worker · Model: DSPro/T271 · Date: 2026-08-02
+Written by `DSPro/T271` · amended by `dspro/T275` and `Orchestrator` (Amendment
+log, §7) · Date: 2026-08-02. Identifiers per `bin/managent whoami <task>`; the
+model belongs in the kanban's `agent` field and `docs/infra/model-perf.md`, not in
+an identifier.
 
 **This file gates all later decomposition.** It states the theorem (Z), the
 ruleset axioms (A) from which Z is derived, the requirement tree from Z down to
@@ -92,6 +95,28 @@ A freshly written axiom is CLAIMED, not PROVEN, until verified end-to-end.
 | `GLOBAL.AXIOM-BASICKO` | **B1 — Basic ko rule (k=1).** A move is illegal if it would capture exactly one opposing stone AND the capturing stone would itself have exactly one liberty after capture AND the resulting goban position would be identical to the goban position two plies earlier — the position before the opponent's capture that created the ko shape (the ko point is the point of the captured stone). |
 | `GLOBAL.AXIOM-KOSTATE` | **B2 — Ko state encoding.** The ko point is the forbidden recapture point, or `none`. It is set to the point of the single captured stone when B1 fires; it is cleared (set to `none`) on every pass and on every non-ko-capture move. |
 | `GLOBAL.AXIOM-KOPASS` | **B3 — Ko–pass interaction.** A pass clears the ko point. Since pass is always legal (A5) and pass clears ko, a player can always break a ko cycle by passing — the opponent then faces no ko restriction. |
+
+#### Why B1 says *two* plies — the derivation, written out
+
+B1's ply count was "one ply earlier" as first written (T271) and is "two plies
+earlier" as amended (T275). Neither version showed its work, so the sequence is
+recorded here and anyone may check it against these three positions:
+
+| ply | position | contents at the two ko points `a`, `b` |
+|---|---|---|
+| P₀ | before the opponent's capture | Black stone at `a`; `b` empty |
+| P₁ | after White captures at `b` | `a` empty (Black's stone removed); White stone at `b` |
+| P₂ | after Black recaptures at `a` | Black stone at `a`; `b` empty (White's stone removed) |
+
+P₂ = P₀, and P₀ is **two** plies before P₂. P₁ — the position one ply earlier — is
+the position Black is moving *from*; a capture changes the goban, so P₂ ≠ P₁
+always, and a one-ply test would forbid nothing. Hence two.
+
+**This derivation is prose, and prose is what rots here.** The mechanized check is
+T273: the production ko function is written against B1 and then run differentially
+against the seventeen existing hand-written copies of the ko condition. If B1 as
+stated disagrees with what the solver has always done, that run says so — which is
+the only kind of agreement this project counts.
 
 ### C — Termination, scoring, and tie
 
@@ -451,3 +476,25 @@ register. Fixes:
    alternative is a defect `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]` candidate
    (b). The +2 acceptance criterion is not met. Falsification test registered
    as T274.
+
+### Amendment 2 — 2026-08-02 (`Orchestrator`, verification of Amendment 1)
+
+Amendment 1's items 1 and 3 are accepted as made. Item 2 — B1's ply count — was
+changed to "two plies" **without a derivation**, on the amending seat's authority
+rather than on shown work. The conclusion is right (the sequence is now written out
+under §2's B-block), but agreeing with a dispatcher is not verifying, and an axiom
+that later phases are built on may not rest on that. Two corrections here:
+
+1. **The B1 derivation is written into §2** — P₀/P₁/P₂ named, so the ply count can
+   be checked by reading rather than by trusting. The mechanized check remains
+   T273's differential run against the seventeen existing ko copies.
+2. **The identity line is restated** per `AGENTS.md:67-73`: Amendment 1 wrote
+   "Model: DSPro/T271", which puts an identifier in a model field and attributes
+   this file to a task that did not make the edit. Identifiers now name each
+   contributing seat; the model lives in the kanban's `agent` field and
+   `docs/infra/model-perf.md`.
+
+Also noted, not fixed here: T275 closed `pass` without the
+`findings/T275-*.json` its brief required, and nothing refused the close — the
+deliverable check only knew about `AXIOMS.md`. Future briefs list the findings file
+in `deliverables=` so `managent done` enforces it.

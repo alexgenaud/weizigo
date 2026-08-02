@@ -21,8 +21,8 @@
     "skip_acceptance_reason": null
   },
   "T275": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "dspro",
     "model": null,
     "bundle": "untracked/T275-axioms-amendment.md",
     "set": "A",
@@ -30,14 +30,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-02T19:57:32Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-02T20:02:10Z",
+    "done": "2026-08-02T20:05:01Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null
   },
@@ -126,7 +126,7 @@
     "skip_acceptance_reason": null
   },
   "T274": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T274-migos-tie-experiment.md",
