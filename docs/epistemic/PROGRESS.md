@@ -381,6 +381,29 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   The 3×3 artifact passes all four checks, which is what localises the
   defect to the 4×4 builder rather than the harness. One character, fixed
   at `5deec6b`; rebuild and re-run are T212, and oracle-v2 G3 is unreachable
+
+- **2026-08-02 — the artifact is valid-looking and incomplete.** M4a passes 4/4
+  on the rebuilt artifact `[SPRINT-M4a-ACCEPT:PROVEN]`, and it is still not a
+  verified perfect oracle: a direct scan found `passes=1` entries present for
+  only one side in ~27.9% of sampled 4×4 groups, an estimated 6.77M of 48.6M
+  missing, and oracle self-play ends W+2 against a root recorded as
+  `L=+1 H=+16` `[CODE.WZO2-INCOMPLETE:PROVEN]`. T212's proposal that the
+  artifact is valid is recorded and refuted `[WZO2-4X4-VALID:FALSE-AS-SCOPED]`.
+  **Passing every check we had did not make it correct, because no check we had
+  tested completeness.**
+- **A human playing the engine found what the checks could not.** The GTP
+  engine set a ko point on any single-stone capture while the solver sets one
+  only on the real ko shape, so it built keys the solver never enumerated and
+  fell back to a greedy heuristic — losing two games and filling its own eye
+  `[CODE.GTP-KOKEY:PROVEN]`. Third defect of one family after the colex and
+  passes-bit mismatches; **no test asserts that consumer and producer derive
+  the same key.**
+- **Two instruments were reporting on nothing.** The verify-battery had never
+  actually run — every output before 2026-08-02 came from a stub returning
+  `skipped` `[CODE.BATTERY-STUBBED:PROVEN]`. And the DTT column of every WZO1
+  artifact is the `@memset` initialiser, never computed
+  `[CODE.WZO1-DTT-UNSET:PROVEN]`, while the v1 4×4 basic-ko artifact violates
+  colour inversion on ~48% of positions `[4x4.V1-INVSYM-BROKEN:PROVEN]`.
   until they pass. The row that predicted this — "kanban *done* here means
   code written, not run" — was right, and cost 518 MB to confirm.
 - **Verify-battery** (harness + three invariant modules): 36 unit tests
