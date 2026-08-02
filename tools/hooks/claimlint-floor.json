@@ -1,7 +1,7 @@
 {
   "version": 1,
   "commit": "2432d71",
-  "note": "C2=14 (not 12) because two evidence paths cite vanished /tmp files: m4a-accept-T212's two logs and audit-2x2-mismatch-2026-07-30.md (§3). AGENTS.md:183-185 forbids citing /tmp. Either repair those paths and lower to 12, or hold at 14 with follow-up. Repair task: T273 (pending).",
+  "note": "C2=14 (not 12) because two evidence paths cite vanished /tmp files: m4a-accept-T212's two logs and audit-2x2-mismatch-2026-07-30.md (§3). AGENTS.md:183-185 forbids citing /tmp. Either repair those paths and lower to 12, or hold at 14 with follow-up. Repair task: unassigned (T273 is kernel ko extraction, not evidence-path repair — this note previously misrouted the follow-up).",
   "floor": {
     "C1a": 10,
     "C1b": 0,

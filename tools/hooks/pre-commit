@@ -7,7 +7,12 @@
 
 set -e
 
-FLOOR_FILE="tools/hooks/claimlint-floor.json"
+# CLAIMS_PATH: env var override for the claims register — set to run claimlint
+# against a different register (e.g. a seeded copy in a regression test).
+# Unset → claimlint reads its default CLAIMS.md.
+CLAIMS_PATH="${CLAIMS_PATH:-}"
+# FLOOR_FILE: env var override for the floor file.
+FLOOR_FILE="${FLOOR_FILE:-tools/hooks/claimlint-floor.json}"
 CLAIMLINT_BIN="bin/weizigo-claimlint"
 
 # ── guard: can we run at all? ──────────────────────────────────────────
@@ -23,7 +28,11 @@ if ! test -f "$FLOOR_FILE"; then
 fi
 
 # ── run claimlint ──────────────────────────────────────────────────────
-OUTPUT=$("$CLAIMLINT_BIN" 2>&1) || true
+if [ -n "$CLAIMS_PATH" ]; then
+    OUTPUT=$("$CLAIMLINT_BIN" "$CLAIMS_PATH" 2>&1) || true
+else
+    OUTPUT=$("$CLAIMLINT_BIN" 2>&1) || true
+fi
 CLAIMLINT_EXIT=$?
 
 # ── claimlint cannot parse the register → block ────────────────────────

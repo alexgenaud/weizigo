@@ -84,8 +84,14 @@ not at zero.
 
 **Canonical floor:** `tools/hooks/claimlint-floor.json` — the single source
 for claimlint floor values. The pre-commit hook reads it; this document cites
-it rather than restating numbers. The floor at commit `2432d71` is C1a=10,
-C2=14 (not 12 — see the floor file for the C2 explanation), C6=0.
+it rather than restating numbers. The floor is C1a=10, C2=14 (not 12 — see
+the floor file for the C2 explanation), C6=0.
+
+**The gate must be installed.** GRAND-AUDIT §1c (2026-08-02): the gates were
+dashboards with no enforcement. T280 installed `git config core.hooksPath
+tools/hooks` and added an installed-ness check to `tools/regression-precommit.sh`
+(exit 1 if `core.hooksPath` is unset). A clone without the hook fails loudly.
+A scheduled check item should verify `git config core.hooksPath` = `tools/hooks`.
 
 **Rule:** A claimlint check fires `must` only when its count **exceeds** the
 recorded floor. At the floor, it grades `could` — the floor is debt, not
