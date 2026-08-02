@@ -113,6 +113,18 @@ rather than smoothing it over. Flag what you judged borderline and left alone.
 **Suspicion.** A result matching exactly what the brief hoped for is the one to
 examine hardest.
 
+**Committing while a fleet is running — path-limited adds, always.** Every console
+shares one `.git/index`. `git add -A`, `git add .`, and a pathless `git commit -a`
+stage **whatever another agent has staged**, and it lands in your commit under your
+message. This happened three times on 2026-08-02: T268's amendment absorbed T272's
+staged claimlint work, and the Orchestrator's own `git add -A docs/` swept two of
+T266's evidence files into an unrelated commit. Name every path you commit
+(`git add <path> …` then `git commit`), verify with `git status --short` before and
+`git show --stat` after, and if you find files you did not write inside your commit,
+**say so in the report** — content is usually intact but attribution is not. Never
+`git reset`/`rebase` to repair it while others are committing; a repair on 2026-08-02
+briefly orphaned another agent's commit, recovered only via reflog.
+
 **Writing to the kanban.** `managent done <id>` on completion; `managent done
 <id> --fail` if you stopped because the brief was wrong. The `done` command
 checks that every file listed in the bundle's `deliverables=` meta header exists

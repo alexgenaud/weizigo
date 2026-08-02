@@ -356,6 +356,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T277": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T277-verify-incompleteness-refutation.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T20:59:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
   "T273": {
     "status": "dispatchable",
     "agent": null,
@@ -483,8 +504,8 @@
     "skip_acceptance_reason": null
   },
   "T270": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T270-i2-on-wzo2.md",
     "set": "A",
@@ -493,11 +514,11 @@
     "caps": [],
     "added": "2026-08-02T02:03:01Z",
     "claimed": "2026-08-02T20:31:14Z",
-    "done": null,
+    "done": "2026-08-02T20:52:45Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -544,6 +565,27 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test passes via tools/runner (zig not on PATH from managent subprocess)"
+  },
+  "T278": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T278-fleet-git-isolation.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T21:01:15Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
   },
   "T256": {
     "status": "done",
@@ -1070,6 +1112,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T279": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T279-absorb-fleet-findings.md",
+    "set": "A",
+    "holds": ["docs/epistemic/CLAIMS.md"],
+    "needs": ["T277"],
+    "caps": [],
+    "added": "2026-08-02T20:59:49Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
   "T252": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -1093,7 +1156,7 @@
   }
 ,
   "_sys": {
-    "next_id": 277,
-    "directive_next": 14
+    "next_id": 280,
+    "directive_next": 16
   }
 }
