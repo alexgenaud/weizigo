@@ -36,6 +36,9 @@ the four `arm-*.md` files are reference depth. Nothing in flight; clean tree.
   exits 1 — C1a=10, C2=14 (the recorded Argus floor still says 12), C6=0, C7=4,
   calibration PASS, 282/0 parsed. `T272` is the task that turns the floor into an
   enforced pre-commit gate; do not chase these to zero ad hoc.
+- **In flight**: T271 claimed 2026-08-02T19:41:53Z by `DSPro/T271` (DeepSeek-v4-Pro
+  console). It **holds `docs/epistemic/CLAIMS.md`** for the duration — one owner,
+  do not race it.
 - Channel state, seats and operating rules:
   `untracked/msg/milestone-01-ko-reframe/STATE.md`.
 
