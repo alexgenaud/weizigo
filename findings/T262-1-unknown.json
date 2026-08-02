@@ -1,0 +1,15 @@
+{
+  "task_id": "T262",
+  "date": "2026-08-01",
+  "model": "TestModel",
+  "claims": [
+    {
+      "id": "T262-FAKE-ID-1",
+      "proposed_status": "PROVEN",
+      "rationale": "Test: one unknown ID — must produce 1 unabsorbed with NO SUCH ID",
+      "evidence_path": "none"
+    }
+  ],
+  "new_rows": [],
+  "notes": "T262 calibration — one unknown ID case"
+}

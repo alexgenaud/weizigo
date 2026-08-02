@@ -1,0 +1,21 @@
+{
+  "task_id": "T262",
+  "date": "2026-08-01",
+  "model": "TestModel",
+  "claims": [
+    {
+      "id": "T262-FAKE-ID-4",
+      "proposed_status": "PROVEN",
+      "rationale": "Test: unknown ID alongside a known mismatch — must produce 2 unabsorbed total",
+      "evidence_path": "none"
+    },
+    {
+      "id": "GLOBAL.F2",
+      "proposed_status": "PROVEN",
+      "rationale": "Test: GLOBAL.F2 is CLAIMED in register, proposed PROVEN here — status mismatch",
+      "evidence_path": "none"
+    }
+  ],
+  "new_rows": [],
+  "notes": "T262 calibration — one unknown + one known status mismatch"
+}

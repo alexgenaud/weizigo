@@ -1549,6 +1549,9 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
         .items = .empty,
     };
 
+    // file_path may be a temporary (e.g. from a Dir.Walker); dupe it once
+    const owned_file = try gpa.dupe(u8, file_path);
+
     var buf: std.ArrayList(u8) = .empty;
     defer buf.deinit(gpa);
 
@@ -1643,7 +1646,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                             .id = claim_id,
                             .proposed = proposed,
                             .actual = r.status.name(),
-                            .file = file_path,
+                            .file = owned_file,
                         });
                     }
                 } else {
@@ -1653,7 +1656,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                         .id = claim_id,
                         .proposed = proposed,
                         .actual = "NO SUCH ID",
-                        .file = file_path,
+                        .file = owned_file,
                     });
                 }
             }
@@ -1741,7 +1744,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                                     .id = nr_id,
                                     .proposed = nr_proposed,
                                     .actual = r.status.name(),
-                                    .file = file_path,
+                                    .file = owned_file,
                                 });
                             }
                         } else {
@@ -1751,7 +1754,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                                 .id = nr_id,
                                 .proposed = nr_proposed,
                                 .actual = "MISSING (row never added)",
-                                .file = file_path,
+                                .file = owned_file,
                             });
                         }
                     }

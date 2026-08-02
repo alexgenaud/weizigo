@@ -1,0 +1,21 @@
+{
+  "task_id": "T262",
+  "date": "2026-08-01",
+  "model": "TestModel",
+  "claims": [
+    {
+      "id": "T262-FAKE-ID-2",
+      "proposed_status": "CLAIMED",
+      "rationale": "Test: first of two unknown IDs — must produce 2 unabsorbed",
+      "evidence_path": "none"
+    },
+    {
+      "id": "T262-FAKE-ID-3",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "Test: second of two unknown IDs — this is the crash repro case",
+      "evidence_path": "none"
+    }
+  ],
+  "new_rows": [],
+  "notes": "T262 calibration — two unknown IDs case (the segfault repro)"
+}

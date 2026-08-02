@@ -1,0 +1,21 @@
+{
+  "task_id": "T262",
+  "date": "2026-08-01",
+  "model": "TestModel",
+  "claims": [
+    {
+      "id": "GLOBAL.CALIB-LESSON",
+      "proposed_status": "PROVEN",
+      "rationale": "Test: all IDs known and matching — must produce 0 unabsorbed",
+      "evidence_path": "none"
+    },
+    {
+      "id": "GLOBAL.ADR0003-AREA",
+      "proposed_status": "PROVEN",
+      "rationale": "Test: second absorbed claim for zero-unknown case",
+      "evidence_path": "none"
+    }
+  ],
+  "new_rows": [],
+  "notes": "T262 calibration — zero unknown IDs case"
+}
