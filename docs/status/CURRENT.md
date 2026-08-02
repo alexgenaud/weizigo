@@ -53,6 +53,16 @@ the four `arm-*.md` files are reference depth. Nothing in flight; clean tree.
   deliverable outside git; landed at `f9469d1` as preserved-not-accepted, with its
   seeded-defect control exercising claimlint instead of the hook. **T280** installs it
   after fixing the controls. `core.hooksPath` is unset — there is no gate today.
+- **T267 verified pass, with one residue.** `src/differential.zig` is in the test
+  graph (`build.zig:165-176`), the tautological T265 test is gone —
+  `engineKoNewGeneric` (`differential.zig:276`) is an independent re-implementation
+  over the engine's `rules.Rules(w,h).neighbors`, not an alias — and the pre-fix
+  reproduction is real (`engineKoOldGeneric` finds disagreements at 2×2 and 3×2, so
+  the test can fail on a known bug). **Residue:** it still cannot exercise
+  `gtp.zig:717-744` itself (gtp is an exe root, so `build.zig:173` clears the import
+  table), so a regression in the shipped GTP rule would leave the test green. Closing
+  it is now part of T273's definition of done. `zig build test` exit 0 at HEAD, and it
+  runs T272's hook controls in-suite (`build.zig:160-163`).
 - **Deploy correctness is closed** (T268): remove-copy-sign, smoke 7/7
   deployed==built, `./managent` and `./gtp` root hazards retired. Phase 1 gate
   readings are now quotable.
