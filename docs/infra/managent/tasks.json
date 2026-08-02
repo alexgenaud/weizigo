@@ -167,6 +167,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T260": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T260-fleet-triage.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T00:06:33Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
   "T233": {
     "status": "done",
     "agent": "orcha",
@@ -251,27 +272,6 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
-  "T258": {
-    "status": "done",
-    "agent": "unknown/T258",
-    "model": null,
-    "bundle": "untracked/T258-vb-fleet-run.md",
-    "set": "A",
-    "holds": [],
-    "needs": [],
-    "caps": [],
-    "added": "2026-08-01T22:44:35Z",
-    "claimed": "2026-08-01T23:04:42Z",
-    "done": "2026-08-01T23:04:42Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "verdict": "fail-found",
-    "verdict_note": "Fleet run complete: 36 PASS, 8 FAIL, 6 ERR, 10 n/a across 60 cells. I7 fails on all artifacts (DTT uniformly 255). I4/I7/I5 unimplemented at 4x4 (T258-F3 blocking). I2 colour-inversion violations on 4x4 basicko. I6 mismatch on parallel checkpoint. I9 anchor mismatches at 2x2 and 4x4 checkpoints. 8 findings filed. zig build test passes.",
-    "claim_count": 1,
-    "acceptance": "zig build test",
-    "skip_acceptance_reason": null
-  },
   "T249": {
     "status": "done",
     "agent": "orcha",
@@ -291,6 +291,27 @@
     "verdict_note": "test-leakage phantom, closed by Orcha",
     "claim_count": 2,
     "acceptance": "kill -9 $$",
+    "skip_acceptance_reason": null
+  },
+  "T258": {
+    "status": "done",
+    "agent": "unknown/T258",
+    "model": null,
+    "bundle": "untracked/T258-vb-fleet-run.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-01T22:44:35Z",
+    "claimed": "2026-08-01T23:04:42Z",
+    "done": "2026-08-01T23:04:42Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "fail-found",
+    "verdict_note": "Fleet run complete: 36 PASS, 8 FAIL, 6 ERR, 10 n/a across 60 cells. I7 fails on all artifacts (DTT uniformly 255). I4/I7/I5 unimplemented at 4x4 (T258-F3 blocking). I2 colour-inversion violations on 4x4 basicko. I6 mismatch on parallel checkpoint. I9 anchor mismatches at 2x2 and 4x4 checkpoints. 8 findings filed. zig build test passes.",
+    "claim_count": 1,
+    "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
   "T227": {
@@ -713,6 +734,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T261": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T261-m4b-triage.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-02T00:06:33Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
+  },
   "T252": {
     "status": "done",
     "agent": "DSPro",
@@ -736,7 +778,7 @@
   }
 ,
   "_sys": {
-    "next_id": 260,
+    "next_id": 261,
     "directive_next": 11
   }
 }
