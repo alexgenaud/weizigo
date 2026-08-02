@@ -1,0 +1,30 @@
+{
+ "ok": true,
+ "path": "untracked/oracle-v2/oracle-4x4-v2.wzo2",
+ "w": 4,
+ "h": 4,
+ "rules_id": 3,
+ "n_groups": 24318165,
+ "n_entries": 99133036,
+ "filesize": 518123097,
+ "groups_sorted": true,
+ "embedded_sha256_ok": true,
+ "L_le_H": 99133036,
+ "score_range_ok": true,
+ "passes_ko_invariant_ok": true,
+ "unused_key_bits_zero": true,
+ "denominator": 99133036,
+ "reference": null,
+ "numpy": {
+  "checked": 99133036,
+  "violations": 0,
+  "not_found": 0,
+  "violating_groups_dedup": 0,
+  "terminal_mismatch": 0,
+  "self_inverse_groups": 1,
+  "comp_sorted": true,
+  "witnesses": [],
+  "verdict": "PASS"
+ },
+ "verdict": "PASS"
+}

@@ -1,0 +1,20 @@
+{
+  "task_id": "T270",
+  "date": "2026-08-02",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "WZO2.I2-CLEAN",
+      "legacy": "—",
+      "goban": "3x3, 4x4",
+      "claim": "**I2 colour-inversion holds exhaustively on both WZO2 artifacts** (independent re-implementation, R8 — no src/ imports). 4×4 (`0c3366f0…`): 0 violations / 0 not_found / 99,133,036 checked. 3×3 (`d79c17cd…`): 0 violations / 0 not_found / 49,428 checked. Two internal implementations agree at 3×3 (full) and at the 4×4 low-colex 2M-group window. Confirms the registered T212 A3 result (`SPRINT-M4a-ACCEPT`, 0/99,133,036) with a fully independent instrument. The WZO2 artifact does NOT share the v1 basic-ko inversion defect (`4x4.V1-INVSYM-BROKEN`, ~11.66M violations ≈ 48%). Calibration: I2 is blind to CODE.WZO2-INCOMPLETE (the missing passes=1 side-entries are colour-symmetric, so every present entry's inverse is present); a battery expecting I2 to fail the certified-defective `0c3366f0` input is wrong — the completeness-family checks (A1/A2/A8) carry that load.",
+      "status": "MEASUREMENT",
+      "evidence": "docs/evidence/BATTERY/i2-wzo2-T270.md; docs/evidence/BATTERY/i2-wzo2-T270/{3x3,4x4}-raw.json; docs/evidence/BATTERY/i2-wzo2-T270/check_i2_wzo2.py",
+      "depends_on": "d:GLOBAL.n (colour-inversion identity), e:SPRINT-M4a-ACCEPT (re-derived)",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "0 / 99,133,036 (4x4); 0 / 49,428 (3x3)"
+    }
+  ],
+  "notes": "Brief premise 'I2 has never been run against WZO2' is stale: the register records T212's M4a A3 (= I2) on this exact 4×4 artifact, PASS 0/99,133,036. This run re-derives that claim with an independent instrument (the T212 checker lived in src/, the coupling R8 exists to break) and confirms it exactly. Also confirmed: the 3×3 WZO2 passes I2 (T193 had established A3 passes at 3×3; re-derived here). All runs under tools/runner (RSS 4096 MB cap; 4×4 peak 3897 MB). Synthetic calibration fixtures (known-good / known-bad L-perturbation / known-bad missing-group) all behave as expected on both internal implementations."
+}

@@ -1,0 +1,42 @@
+{
+ "ok": true,
+ "path": "untracked/oracle-v2/oracle-3x3-v2.wzo2",
+ "w": 3,
+ "h": 3,
+ "rules_id": 3,
+ "n_groups": 12675,
+ "n_entries": 49428,
+ "filesize": 261215,
+ "groups_sorted": true,
+ "embedded_sha256_ok": true,
+ "L_le_H": 49428,
+ "score_range_ok": true,
+ "passes_ko_invariant_ok": true,
+ "unused_key_bits_zero": true,
+ "denominator": 49428,
+ "impl_agreement": true,
+ "reference": {
+  "checked": 49428,
+  "violations": 0,
+  "not_found": 0,
+  "violating_groups_dedup": 0,
+  "terminal_mismatch": 0,
+  "self_inverse_groups": 1,
+  "partner_missing_groups": 0,
+  "pairs_processed": 6338,
+  "witnesses": [],
+  "verdict": "PASS"
+ },
+ "numpy": {
+  "checked": 49428,
+  "violations": 0,
+  "not_found": 0,
+  "violating_groups_dedup": 0,
+  "terminal_mismatch": 0,
+  "self_inverse_groups": 1,
+  "comp_sorted": true,
+  "witnesses": [],
+  "verdict": "PASS"
+ },
+ "verdict": "PASS"
+}
