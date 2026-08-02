@@ -1,9 +1,7 @@
 # AXIOMS — epic-01-markovian: theorem, axioms, and requirement tree
 
-Written by `DSPro/T271` · amended by `dspro/T275` and `Orchestrator` (Amendment
-log, §7) · Date: 2026-08-02. Identifiers per `bin/managent whoami <task>`; the
-model belongs in the kanban's `agent` field and `docs/infra/model-perf.md`, not in
-an identifier.
+Task: T271 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-02
+Amended by T275 (deepseek-v4-pro) and the Orchestrator — see the amendment log, §7.
 
 **This file gates all later decomposition.** It states the theorem (Z), the
 ruleset axioms (A) from which Z is derived, the requirement tree from Z down to
@@ -488,11 +486,15 @@ that later phases are built on may not rest on that. Two corrections here:
 1. **The B1 derivation is written into §2** — P₀/P₁/P₂ named, so the ply count can
    be checked by reading rather than by trusting. The mechanized check remains
    T273's differential run against the seventeen existing ko copies.
-2. **The identity line is restated** per `AGENTS.md:67-73`: Amendment 1 wrote
-   "Model: DSPro/T271", which puts an identifier in a model field and attributes
-   this file to a task that did not make the edit. Identifiers now name each
-   contributing seat; the model lives in the kanban's `agent` field and
-   `docs/infra/model-perf.md`.
+2. **The identity line is restored to the prescribed template**, and the
+   Orchestrator's earlier criticism of it is withdrawn. T271 wrote
+   `Model: not stated at dispatch`, which is **exactly** what
+   `docs/infra/delegation/DELEGATEE.md` prescribes when a worker was not told its
+   model — correct, not a lapse. Amendment 1 then replaced it with
+   "Model: DSPro/T271", which puts an *identifier* in a *model* field. The model
+   is now known and normalized: `deepseek-v4-pro` (the labels `dspro`, `DSPro`,
+   `DeepSeek-Pro`, `DeepSeek-v4-Pro` all denote it; `dsflash` and friends denote
+   `deepseek-v4-flash`). Human's ruling, 2026-08-02.
 
 Also noted, not fixed here: T275 closed `pass` without the
 `findings/T275-*.json` its brief required, and nothing refused the close — the

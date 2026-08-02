@@ -12,7 +12,16 @@ Task: <id> · Role: worker · Model: <as you were told it> · Date: <absolute>
 
 You are your task ID, not your model. If you were not told your model, write
 `not stated at dispatch` — a blank is usable in the performance ledger, a guess
-corrupts it.
+corrupts it. Never put an identifier (`dspro/T275`) in the `Model` field; the
+field takes a model, the identifier is `bin/managent whoami <id>`.
+
+**Canonical model labels** (human's ruling, 2026-08-02) — one spelling per model,
+so the ledger does not fragment across aliases:
+
+| write this | not these |
+|---|---|
+| `deepseek-v4-pro` | dspro, DSPro, DeepSeek-Pro, DeepSeek-v4-Pro |
+| `deepseek-v4-flash` | dsflash, DSFlash, DeepSeek-Flash |
 
 ## The first thing you do
 
@@ -29,6 +38,37 @@ self-services and how your work is attributed to you in the performance ledger.
 
 If you are not running under the Orchestrator (e.g. an ad-hoc experiment
 from a console), claim via `managent next` to take the first eligible task.
+
+## Your context is fresh — three things that have caught cold consoles
+
+You are reading files written by consoles that no longer exist. Their reasoning did
+not survive; only the files did.
+
+**A line reference that looks wrong is probably commit-pinned, not stale.** Line
+refs in this project are pinned to a commit and the code moves. `GLOBAL.PASS-NOKO`
+cites `src/exp6_solve.zig:964` at `082433e`, where that line is the pass child; at
+HEAD the same statement is line 927 and 964 is unrelated. Resolve with
+`git show <commit>:<path>`, not `sed` at HEAD. If a citation still does not support
+its claim after that, **say so with both resolutions shown** — a drifted citation
+in a PROVEN row is a finding, and quietly assuming the claim is how a wrong row
+survives.
+
+**A critique handed to you may be wrong — checking it is the job, agreeing is
+not.** When a brief says "fix X" and X is an adjudication rather than a typo,
+reproduce the reasoning and **write the derivation into the file**, so the next
+reader can check it without redoing it. If the reasoning does not hold, leave the
+file alone and record why the instruction was rejected. A rejected amendment with a
+derivation is a better deliverable than an accepted one without: this project's
+standing rule is that a load-bearing change needs an independent seat to *agree*,
+and agreement means having checked. Deferring to whoever wrote the brief adds a
+signature, not evidence.
+
+**Findings are a schema, and a malformed findings file disappears silently.**
+Write `findings/<task-id>-<slug>.json` against
+`docs/infra/agents/findings-schema.json`. Claimlint's C7 **skips** non-conforming
+files without reporting them, so a schema slip does not fail loudly — it deletes
+your finding. Your brief lists the findings file in `deliverables=`, so
+`managent done` will refuse to close without it.
 
 ## Principles
 
