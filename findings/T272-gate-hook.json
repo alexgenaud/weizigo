@@ -1,0 +1,8 @@
+{
+  "task_id": "T272",
+  "date": "2026-08-02",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Three deliverables completed. D1: pre-commit hook (tools/hooks/pre-commit) blocks claimlint regressions against the recorded floor (tools/hooks/claimlint-floor.json); controls wired into zig build test (tools/regression-precommit.sh). D2: C7 absorbed-with-rejection disposition via findings/rejections.json; WZO2-4X4-VALID now rejected (C7 4→3); claimlint calibration extended with known-bad (rejection without refuting row still reported) and known-good (genuinely refuted goes silent). D3: C6 now scans a set of narrative files (PROGRESS.md + AXIOMS.md); calibration extended with second-file known-bad guard. ARGUS.md updated to cite floor file rather than restate numbers. C2 floor recorded at 14 (not 12) with explanation; repair task named in floor file."
+}

@@ -78,15 +78,14 @@ made mechanical.
 ## Floor-grading rule (T211)
 
 Some checks measure a condition that cannot reach zero without further work —
-the floor is a *ratified honest debt*, recorded in the roadmap's Phase-2 exit
-check. For these checks, the violation threshold is **above the floor**, not at
-zero.
+the floor is a *ratified honest debt*, recorded in the project's canonical
+floor file. For these checks, the violation threshold is **above the floor**,
+not at zero.
 
-| check | floor | source |
-|---|---|---|
-| claimlint C1a orphans | 10 | Phase-2 exit check (EXP-13) |
-| claimlint C2 dangling evidence | 12 | Phase-2 exit check (EXP-13) |
-| claimlint C6 cite-tag mismatches | 0 | must stay at zero |
+**Canonical floor:** `tools/hooks/claimlint-floor.json` — the single source
+for claimlint floor values. The pre-commit hook reads it; this document cites
+it rather than restating numbers. The floor at commit `2432d71` is C1a=10,
+C2=14 (not 12 — see the floor file for the C2 explanation), C6=0.
 
 **Rule:** A claimlint check fires `must` only when its count **exceeds** the
 recorded floor. At the floor, it grades `could` — the floor is debt, not

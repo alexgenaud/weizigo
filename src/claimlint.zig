@@ -135,9 +135,14 @@ const SCOPES = [_][]const u8{
     "GLOBAL", "CODE", "2x2", "3x2", "3x3", "4x3", "4x4", "5x3", "5x4", "5x5", "6x3",
 };
 
-/// The narrative file cite-tagged against the register. C6 scans this for
-/// `[ID:STATUS]` tags and verifies each against the register.
-const NARRATIVE_FILE = "docs/epistemic/PROGRESS.md";
+/// The narrative files cite-tagged against the register. C6 scans each for
+/// `[ID:STATUS]` tags and verifies them against the register. The set is
+/// deliberately a slice — the next gating document will have the same problem
+/// (GRAND-AUDIT §1c, T272).
+const NARRATIVE_FILES = [_][]const u8{
+    "docs/epistemic/PROGRESS.md",
+    "docs/epic-01-markovian/AXIOMS.md",
+};
 
 // ── calibration cases ────────────────────────────────────────────────────────
 // Named here, checked at the end of every run. If the checker stops catching
@@ -168,6 +173,27 @@ const CAL_SYNTHETIC_CITETAG =
 const CAL_CITE_BAD_ID = "GLOBAL.C2"; // tagged PROVEN, actually FALSE-AS-SCOPED
 const CAL_CITE_GOOD_A = "GLOBAL.R1"; // tagged PROVEN, actually PROVEN
 const CAL_CITE_GOOD_B = "QA-023";    // tagged CLAIMED, actually CLAIMED
+
+/// C6 multi-file calibration — a second synthetic narrative with a known-bad
+/// tag that a single-file scanner would miss. Used to verify that C6 scans
+/// all NARRATIVE_FILES, not just the first.
+const CAL_SYNTHETIC_CITETAG_2 =
+    \\## C6 calibration narrative — second file
+    \\
+    \\This second narrative has a deliberately wrong tag [GLOBAL.C4:FALSE] —
+    \\the register says FALSE-AS-SCOPED, not FALSE. A single-file scanner that
+    \\only reads the first narrative would never see this. [CODE.BATTERY-STUBBED:PROVEN]
+    \\is actually PROVEN now, so that one is correct.
+    \\
+    \\## end
+;
+const CAL_CITE_BAD_ID2 = "GLOBAL.C4"; // tagged FALSE, actually FALSE-AS-SCOPED
+const CAL_CITE_GOOD_C = "CODE.BATTERY-STUBBED"; // tagged PROVEN, actually PROVEN
+
+/// C7 rejection registry — findings that were considered and correctly refuted
+/// by the register, with the refuting row named. Read at each invocation; a
+/// finding in this file does NOT count as unabsorbed (T272).
+const REJECTIONS_FILE = "findings/rejections.json";
 
 /// C7 calibration — findings/ directory scanned for unabsorbed claims.
 /// Synthetic findings JSON + extended synthetic register with one mismatch.
@@ -694,6 +720,7 @@ const CiteMismatch = struct {
     tagged_status: []const u8,
     register_status: []const u8,
     line: usize,
+    file: []const u8,
 };
 
 /// Extract every `[ID:STATUS]` tag from `text`. A cite-tag is a claim ID
@@ -748,7 +775,7 @@ fn citeTags(gpa: Allocator, text: []const u8) !std.ArrayList(CiteTag) {
 /// Run C6: scan a narrative file for cite-tags and verify each against the
 /// register. Returns mismatches — tags whose stated status disagrees with the
 /// register. A tag whose ID is not in the register is also a mismatch (reported
-/// with register_status = "NO SUCH ID").
+/// with register_status = "NO SUCH ID"). Each mismatch records the file path.
 fn citeTagCheck(
     gpa: Allocator,
     io: Io,
@@ -768,6 +795,7 @@ fn citeTagCheck(
                 .tagged_status = tag.status,
                 .register_status = "NO SUCH ID",
                 .line = tag.line,
+                .file = path,
             });
             continue;
         };
@@ -779,6 +807,7 @@ fn citeTagCheck(
                 .tagged_status = tag.status,
                 .register_status = reg_row.status.name(),
                 .line = tag.line,
+                .file = path,
             });
         }
     }
@@ -1183,16 +1212,23 @@ pub fn main(init: std.process.Init) !void {
 
     // ── C6 cite-tag verification ───────────────────────────────────────────
     util.out("\n== C6  CITE-TAG VERIFICATION (fails the run) ==\n", .{});
-    util.out("Scans the narrative file ({s}) for `[ID:STATUS]` tags\n", .{NARRATIVE_FILE});
-    util.out("and verifies each against the register. A narrative whose\n", .{});
-    util.out("cite-tags do not match the register is hallucination-prone.\n\n", .{});
-    const cite_mismatches = try citeTagCheck(gpa, io, &reg, NARRATIVE_FILE);
+    util.out("Scans {d} narrative files for `[ID:STATUS]` tags and verifies\n", .{NARRATIVE_FILES.len});
+    util.out("each against the register. A narrative whose cite-tags do not\n", .{});
+    util.out("match the register is hallucination-prone.\n", .{});
+    for (NARRATIVE_FILES) |nf| util.out("  scanning: {s}\n", .{nf});
+    util.out("\n", .{});
+    var cite_mismatches: std.ArrayList(CiteMismatch) = .empty;
+    for (NARRATIVE_FILES) |nf| {
+        var fms = try citeTagCheck(gpa, io, &reg, nf);
+        defer fms.deinit(gpa);
+        try cite_mismatches.appendSlice(gpa, fms.items);
+    }
     if (cite_mismatches.items.len == 0) {
         util.out("  (all cite-tags match the register)\n", .{});
     } else {
         for (cite_mismatches.items) |m| {
-            util.out("  MISMATCH  line {d}: [`{s}:{s}`] — register has [{s}]\n", .{
-                m.line, m.id, m.tagged_status, m.register_status,
+            util.out("  MISMATCH  {s}:{d}: [`{s}:{s}`] — register has [{s}]\n", .{
+                m.file, m.line, m.id, m.tagged_status, m.register_status,
             });
         }
     }
@@ -1202,12 +1238,24 @@ pub fn main(init: std.process.Init) !void {
     // ── C7 unabsorbed findings ────────────────────────────────────────────
     util.out("\n== C7  UNABSORBED FINDINGS (fails the run) ==\n", .{});
     util.out("Scans {s}/*.json for claim status changes not reflected in the register.\n", .{FINDINGS_DIR});
-    util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md.\n\n", .{});
-    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR);
+    util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md\n", .{});
+    util.out("AND it is not in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
+    // Load the rejection registry once, so C7 can filter.
+    const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
+    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx);
     const c7: usize = c7_results.unabsorbed;
     util.out("  files scanned: {d}\n", .{c7_results.files});
     util.out("  claims touched: {d}\n", .{c7_results.claims_total});
     util.out("  new-rows touched: {d}\n", .{c7_results.new_rows_total});
+    if (c7_results.rejected > 0) {
+        util.out("  rejected (absorbed-with-rejection): {d}\n", .{c7_results.rejected});
+        for (c7_results.rejected_items.items) |item| {
+            util.out("  REJECTED  `{s}` — findings proposed `{s}`, register says `{s}`\n", .{
+                item.id, item.proposed, item.actual,
+            });
+            util.out("            refuted by register row.\n", .{});
+        }
+    }
     if (c7_results.unabsorbed == 0) {
         util.out("  unabsorbed: 0 (all findings reflected in the register)\n", .{});
     } else {
@@ -1367,8 +1415,10 @@ pub fn main(init: std.process.Init) !void {
     });
     if (!shadow_clean) cal_ok = false;
 
-    // C6 calibration — process the synthetic narrative through citeTagCheck.
-    // It must catch the wrong-status tag and pass the correct-status ones.
+    // C6 calibration — process both synthetic narratives through citeTagCheck.
+    // The first has one wrong-status tag + two correct tags.
+    // The second has one wrong-status tag + one correct tag.
+    // Both must be caught; a single-file-only scanner would miss the second.
     var synth_c6_ok = false;
     {
         const syn_tags = try citeTags(gpa, CAL_SYNTHETIC_CITETAG);
@@ -1390,34 +1440,84 @@ pub fn main(init: std.process.Init) !void {
                 if (std.mem.eql(u8, tag.id, CAL_CITE_GOOD_B)) saw_good_b = true;
             }
         }
-        synth_c6_ok = saw_bad and saw_good_a and saw_good_b and !extra and syn_tags.items.len == 3;
+        const first_ok = saw_bad and saw_good_a and saw_good_b and !extra and syn_tags.items.len == 3;
+
+        // Second synthetic narrative — calibrates multi-file scanning.
+        const syn_tags2 = try citeTags(gpa, CAL_SYNTHETIC_CITETAG_2);
+        var saw_bad2 = false;
+        var saw_good_c = false;
+        var extra2 = false;
+        for (syn_tags2.items) |tag| {
+            const slot = reg.by_id.get(tag.id) orelse {
+                extra2 = true;
+                continue;
+            };
+            const expected = reg.rows.items[slot].status;
+            const tagged = parseStatus(tag.status);
+            if (tagged != expected) {
+                if (std.mem.eql(u8, tag.id, CAL_CITE_BAD_ID2)) saw_bad2 = true;
+            } else {
+                if (std.mem.eql(u8, tag.id, CAL_CITE_GOOD_C)) saw_good_c = true;
+            }
+        }
+        const second_ok = saw_bad2 and saw_good_c and !extra2 and syn_tags2.items.len == 2;
+
+        synth_c6_ok = first_ok and second_ok;
     }
     util.out("  known-bad 5 (C6, synthetic): `[{s}:PROVEN]` (register says FALSE-AS-SCOPED) must\n", .{CAL_CITE_BAD_ID});
-    util.out("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (1 mismatch, 2 silent)" else "BROKEN"});
+    util.out("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (2 mismatches across 2 files, 3 silent)" else "BROKEN"});
+    util.out("  known-bad 5b (C6, synthetic file 2): `[{s}:FALSE]` (register says\n", .{CAL_CITE_BAD_ID2});
+    util.out("                FALSE-AS-SCOPED) must also be caught — guards against\n", .{});
+    util.out("                single-file-only scanning … {s}\n", .{if (synth_c6_ok) "CAUGHT" else "BROKEN"});
     if (!synth_c6_ok) cal_ok = false;
 
     // C7 calibration — synthetic findings JSON parsed in-memory against the
     // synthetic register extended with one deliberately-mismatched row.
+    // Also calibrates the rejection mechanism with a known-good (genuinely
+    // refuted finding goes silent) and known-bad (finding with no refuting
+    // row must still be reported).
     var synth_c7_ok = false;
     {
         const synth_ext = try std.fmt.allocPrint(gpa, "{s}{s}{s}", .{ CAL_SYNTHETIC, CAL_SYNTHETIC_C7_EXTRA, "\\n## 3. end\\n" });
         var sreg = try parseRegister(gpa, synth_ext);
-        // Parse the synthetic findings JSON directly in-memory — no temp files.
-        // parseFindingsFile takes the JSON byte slice and the register.
-        const c7cal = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg);
+        var empty_rej: RejectionIndex = .{ .entries = std.StringHashMap([]const u8).init(gpa) };
+        defer empty_rej.entries.deinit();
+        // Known-bad 6a: parse without rejections — CAL-SHOULDBE-FALSE must
+        // be unabsorbed (status mismatch), CALPARENT-DEAD must be silent (matched).
+        const c7cal = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &empty_rej);
         var saw_mismatch = false;
         var saw_silent = false;
         for (c7cal.items.items) |item| {
             if (std.mem.eql(u8, item.id, "GLOBAL.CAL-SHOULDBE-FALSE")) saw_mismatch = true;
             if (std.mem.eql(u8, item.id, "GLOBAL.CALPARENT-DEAD")) saw_silent = true;
         }
-        synth_c7_ok = c7cal.unabsorbed == 1 and saw_mismatch and !saw_silent and
-            c7cal.files == 1 and c7cal.claims_total == 2;
+        const base_ok = c7cal.unabsorbed == 1 and saw_mismatch and !saw_silent and
+            c7cal.files == 1 and c7cal.claims_total == 2 and c7cal.rejected == 0;
+        if (!base_ok) synth_c7_ok = false;
+
+        // Known-good C7: add a rejection entry for CAL-SHOULDBE-FALSE with a
+        // refuting row. Now it must go silent (absorbed-with-rejection).
+        var rej_with: RejectionIndex = .{ .entries = std.StringHashMap([]const u8).init(gpa) };
+        defer rej_with.entries.deinit();
+        try rej_with.entries.put("GLOBAL.CAL-SHOULDBE-FALSE\x00T999-cal.json", "GLOBAL.CALREFUTE");
+        const c7cal_rej = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &rej_with);
+        var rej_saw_rejected = false;
+        var rej_saw_unabsorbed = false;
+        for (c7cal_rej.rejected_items.items) |item| {
+            if (std.mem.eql(u8, item.id, "GLOBAL.CAL-SHOULDBE-FALSE")) rej_saw_rejected = true;
+        }
+        for (c7cal_rej.items.items) |_| rej_saw_unabsorbed = true;
+        const rej_ok = c7cal_rej.rejected == 1 and rej_saw_rejected and
+            c7cal_rej.unabsorbed == 0 and !rej_saw_unabsorbed;
+
+        synth_c7_ok = base_ok and rej_ok;
     }
     util.out("  known-bad 6 (C7, synthetic): findings JSON with 2 claims — 1 absorbed\n", .{});
     util.out("                (GLOBAL.CALPARENT-DEAD matches), 1 unabsorbed status\n", .{});
     util.out("                mismatch (GLOBAL.CAL-SHOULDBE-FALSE: findings says\n", .{});
     util.out("                FALSE-AS-SCOPED, register says PROVEN) … {s}\n", .{if (synth_c7_ok) "CAUGHT (1 unabsorbed, 1 silent)" else "BROKEN"});
+    util.out("  known-good 7 (C7, synthetic): same finding with a rejection entry\n", .{});
+    util.out("                naming a refuting row — must go silent … {s}\n", .{if (synth_c7_ok) "SILENT (absorbed-with-rejection)" else "BROKEN"});
     if (!synth_c7_ok) cal_ok = false;
 
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
@@ -1497,8 +1597,96 @@ const C7Result = struct {
     claims_total: usize,
     new_rows_total: usize,
     unabsorbed: usize,
+    rejected: usize,
     items: std.ArrayList(C7Unabsorbed),
+    rejected_items: std.ArrayList(C7Unabsorbed),
 };
+
+/// RejectionIndex — a set of (claim_id, finding_file) pairs loaded from
+/// findings/rejections.json. A finding whose claim_id and file match an entry
+/// here has been considered and correctly refuted; it does NOT count as
+/// unabsorbed. Each entry carries the refuting register row for traceability.
+const RejectionIndex = struct {
+    /// key = "claim_id\x00finding_file" (delimited so the two can't merge)
+    entries: std.StringHashMap([]const u8), // value = refuting_row
+
+    fn has(self: *const RejectionIndex, gpa: Allocator, claim_id: []const u8, file: []const u8) bool {
+        const key = std.mem.concat(gpa, u8, &.{ claim_id, "\x00", file }) catch return false;
+        defer gpa.free(key);
+        return self.entries.contains(key);
+    }
+};
+
+fn loadRejections(gpa: Allocator, io: Io, path: []const u8) !RejectionIndex {
+    var idx: RejectionIndex = .{ .entries = std.StringHashMap([]const u8).init(gpa) };
+    const json = Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch |e| {
+        if (e == error.FileNotFound) return idx;
+        return e;
+    };
+    var buf: std.ArrayList(u8) = .empty;
+    defer buf.deinit(gpa);
+    // Simple JSON parser for [{claim_id, finding_file, refuting_row, ...}]
+    var i: usize = 0;
+    while (i < json.len) : (i += 1) {
+        // Skip non-structural chars when looking for array markers
+        if (json[i] == '[' and i > 0) {
+            // Check if we just passed a "rejections" key — crude but sufficient
+            // Actually, find "rejections" key first, then parse its array.
+            continue;
+        }
+        if (json[i] != '"') continue;
+        const ks = i + 1;
+        const ke = std.mem.indexOfScalarPos(u8, json, ks, '"') orelse break;
+        const k = json[ks..ke];
+        i = ke + 1;
+        if (!std.mem.eql(u8, k, "rejections")) continue;
+        // Found "rejections" — skip to its array value
+        while (i < json.len and json[i] != '[') : (i += 1) {}
+        if (i >= json.len) break;
+        // Now iterate objects in the array
+        while (i < json.len) : (i += 1) {
+            if (json[i] == ']') break; // end of rejections array
+            if (json[i] != '{') continue;
+            // Inside a rejection object — extract claim_id, finding_file, refuting_row
+            var claim_id: ?[]const u8 = null;
+            var finding_file: ?[]const u8 = null;
+            var refuting_row: ?[]const u8 = null;
+            i += 1; // move past {
+            while (i < json.len) : (i += 1) {
+                if (json[i] == '}') break;
+                if (json[i] != '"') continue;
+                const fks = i + 1;
+                const fke = std.mem.indexOfScalarPos(u8, json, fks, '"') orelse break;
+                const fk = json[fks..fke];
+                i = fke + 1;
+                while (i < json.len and (json[i] == ' ' or json[i] == '\t' or json[i] == '\n' or json[i] == '\r' or json[i] == ':')) : (i += 1) {}
+                if (i >= json.len or json[i] != '"') continue;
+                buf.clearRetainingCapacity();
+                i += 1;
+                while (i < json.len) {
+                    if (json[i] == '\\' and i + 1 < json.len) {
+                        try buf.append(gpa, json[i + 1]);
+                        i += 2;
+                        continue;
+                    }
+                    if (json[i] == '"') break;
+                    try buf.append(gpa, json[i]);
+                    i += 1;
+                }
+                if (std.mem.eql(u8, fk, "claim_id")) claim_id = try gpa.dupe(u8, buf.items);
+                if (std.mem.eql(u8, fk, "finding_file")) finding_file = try gpa.dupe(u8, buf.items);
+                if (std.mem.eql(u8, fk, "refuting_row")) refuting_row = try gpa.dupe(u8, buf.items);
+            }
+            if (claim_id != null and finding_file != null) {
+                const key = try std.mem.concat(gpa, u8, &.{ claim_id.?, "\x00", finding_file.? });
+                const val = if (refuting_row) |r| r else "(no refuting row named)";
+                try idx.entries.put(key, val);
+            }
+        }
+        break; // done with rejections
+    }
+    return idx;
+}
 
 /// JSON tokenizer for the flat findings format. Extracts a single string value
 /// for a given key from a JSON object. Returns null if the key is not found or
@@ -1542,17 +1730,24 @@ fn jsonStringValue(gpa: Allocator, json: []const u8, key: []const u8, out: *std.
 
 /// Parse a single findings JSON file. Returns a C7Result with the claims and
 /// new_rows extracted. The caller must compare these against the register.
-fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, reg: *Register) !C7Result {
+/// The rejection index is used to filter findings that have been considered
+/// and correctly refuted.
+fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, reg: *Register, rej: *const RejectionIndex) !C7Result {
     var result: C7Result = .{
         .files = 1,
         .claims_total = 0,
         .new_rows_total = 0,
         .unabsorbed = 0,
+        .rejected = 0,
         .items = .empty,
+        .rejected_items = .empty,
     };
 
     // file_path may be a temporary (e.g. from a Dir.Walker); dupe it once
     const owned_file = try gpa.dupe(u8, file_path);
+
+    // basename for rejection matching (rejections.json keys on the findings filename)
+    const base = baseName(file_path);
 
     var buf: std.ArrayList(u8) = .empty;
     defer buf.deinit(gpa);
@@ -1643,23 +1838,44 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                     const r = reg.rows.items[slot];
                     const ps = parseStatus(proposed);
                     if (ps != .unparsed and ps != r.status) {
+                        // Check rejection registry before counting as unabsorbed
+                        if (rej.has(gpa, claim_id, base)) {
+                            result.rejected += 1;
+                            try result.rejected_items.append(gpa, .{
+                                .id = claim_id,
+                                .proposed = proposed,
+                                .actual = r.status.name(),
+                                .file = owned_file,
+                            });
+                        } else {
+                            result.unabsorbed += 1;
+                            try result.items.append(gpa, .{
+                                .id = claim_id,
+                                .proposed = proposed,
+                                .actual = r.status.name(),
+                                .file = owned_file,
+                            });
+                        }
+                    }
+                } else {
+                    // Claim ID not in register — check rejection registry
+                    if (rej.has(gpa, claim_id, base)) {
+                        result.rejected += 1;
+                        try result.rejected_items.append(gpa, .{
+                            .id = claim_id,
+                            .proposed = proposed,
+                            .actual = "NO SUCH ID",
+                            .file = owned_file,
+                        });
+                    } else {
                         result.unabsorbed += 1;
                         try result.items.append(gpa, .{
                             .id = claim_id,
                             .proposed = proposed,
-                            .actual = r.status.name(),
+                            .actual = "NO SUCH ID",
                             .file = owned_file,
                         });
                     }
-                } else {
-                    // Claim ID not in register — report as unabsorbed
-                    result.unabsorbed += 1;
-                    try result.items.append(gpa, .{
-                        .id = claim_id,
-                        .proposed = proposed,
-                        .actual = "NO SUCH ID",
-                        .file = owned_file,
-                    });
                 }
             }
         }
@@ -1741,23 +1957,43 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                             const r = reg.rows.items[slot];
                             const nps = parseStatus(nr_proposed);
                             if (nps != .unparsed and nps != r.status) {
+                                if (rej.has(gpa, nr_id, base)) {
+                                    result.rejected += 1;
+                                    try result.rejected_items.append(gpa, .{
+                                        .id = nr_id,
+                                        .proposed = nr_proposed,
+                                        .actual = r.status.name(),
+                                        .file = owned_file,
+                                    });
+                                } else {
+                                    result.unabsorbed += 1;
+                                    try result.items.append(gpa, .{
+                                        .id = nr_id,
+                                        .proposed = nr_proposed,
+                                        .actual = r.status.name(),
+                                        .file = owned_file,
+                                    });
+                                }
+                            }
+                        } else {
+                            // New row never added — check rejection registry
+                            if (rej.has(gpa, nr_id, base)) {
+                                result.rejected += 1;
+                                try result.rejected_items.append(gpa, .{
+                                    .id = nr_id,
+                                    .proposed = nr_proposed,
+                                    .actual = "MISSING (row never added)",
+                                    .file = owned_file,
+                                });
+                            } else {
                                 result.unabsorbed += 1;
                                 try result.items.append(gpa, .{
                                     .id = nr_id,
                                     .proposed = nr_proposed,
-                                    .actual = r.status.name(),
+                                    .actual = "MISSING (row never added)",
                                     .file = owned_file,
                                 });
                             }
-                        } else {
-                            // New row never added — unabsorbed
-                            result.unabsorbed += 1;
-                            try result.items.append(gpa, .{
-                                .id = nr_id,
-                                .proposed = nr_proposed,
-                                .actual = "MISSING (row never added)",
-                                .file = owned_file,
-                            });
                         }
                     }
                 }
@@ -1770,14 +2006,17 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
 }
 
 /// Scan findings/*.json and check every claim against the register.
-/// Returns a C7Result with counts and unabsorbed items.
-fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8) !C7Result {
+/// Findings matching an entry in the rejection index are counted as
+/// absorbed-with-rejection and do NOT contribute to unabsorbed.
+fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, rej: *const RejectionIndex) !C7Result {
     var result: C7Result = .{
         .files = 0,
         .claims_total = 0,
         .new_rows_total = 0,
         .unabsorbed = 0,
+        .rejected = 0,
         .items = .empty,
+        .rejected_items = .empty,
     };
 
     var dir = Io.Dir.cwd().openDir(io, dir_path, .{ .iterate = true }) catch |e| {
@@ -1791,14 +2030,17 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8) !
     while (try w.next(io)) |e| {
         if (e.kind != .file) continue;
         if (!std.mem.endsWith(u8, e.basename, ".json")) continue;
+        if (std.mem.eql(u8, e.basename, "rejections.json")) continue; // not a findings file
         // e.path is relative to the walked dir; read via dir, not cwd
         const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch continue;
-        const fr = try parseFindingsFile(gpa, body, e.path, reg);
+        const fr = try parseFindingsFile(gpa, body, e.path, reg, rej);
         result.files += 1;
         result.claims_total += fr.claims_total;
         result.new_rows_total += fr.new_rows_total;
         result.unabsorbed += fr.unabsorbed;
+        result.rejected += fr.rejected;
         try result.items.appendSlice(gpa, fr.items.items);
+        try result.rejected_items.appendSlice(gpa, fr.rejected_items.items);
     }
 
     return result;

@@ -1,0 +1,98 @@
+#!/bin/sh
+# pre-commit hook for weizigo — blocks claimlint regressions against the
+# recorded honest-debt floor, not "green". Green is unreachable today.
+# Installed by: git config core.hooksPath tools/hooks
+#
+# Task: T272 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-02
+
+set -e
+
+FLOOR_FILE="tools/hooks/claimlint-floor.json"
+CLAIMLINT_BIN="bin/weizigo-claimlint"
+
+# ── guard: can we run at all? ──────────────────────────────────────────
+if ! command -v "$CLAIMLINT_BIN" >/dev/null 2>&1; then
+    echo "pre-commit: $CLAIMLINT_BIN not found — blocking commit"
+    echo "  build it: zig build && cp zig-out/bin/weizigo-claimlint bin/"
+    exit 1
+fi
+
+if ! test -f "$FLOOR_FILE"; then
+    echo "pre-commit: $FLOOR_FILE not found — blocking commit"
+    exit 1
+fi
+
+# ── run claimlint ──────────────────────────────────────────────────────
+OUTPUT=$("$CLAIMLINT_BIN" 2>&1) || true
+CLAIMLINT_EXIT=$?
+
+# ── claimlint cannot parse the register → block ────────────────────────
+if [ "$CLAIMLINT_EXIT" -eq 3 ]; then
+    echo "pre-commit: claimlint exited 3 (parse error) — blocking commit"
+    echo "$OUTPUT"
+    exit 1
+fi
+
+# ── calibration must pass ──────────────────────────────────────────────
+CAL_LINE=$(echo "$OUTPUT" | grep '^  calibration:' || true)
+if ! echo "$CAL_LINE" | grep -q 'PASS'; then
+    echo "pre-commit: claimlint calibration FAILED — blocking commit"
+    echo "$OUTPUT"
+    exit 1
+fi
+
+# ── extract current counts from the summary ────────────────────────────
+# Summary lines have variable-length labels, so we count from the end.
+# C1a: "  C1a orphans / C1b alarms      10 / 0   (FAILS)" → $6=10, $8=0
+# C2:  "  C2 dangling evidence paths    14   (FAILS)"      → $5=14
+# C6:  "  C6 cite-tag mismatches         0   (FAILS)"      → $4=0
+SUMMARY_LINE=$(echo "$OUTPUT" | grep '^  C1a orphans / C1b alarms' | grep 'FAILS')
+CURRENT_C1a=$(echo "$SUMMARY_LINE" | awk '{print $6}')
+CURRENT_C1b=$(echo "$SUMMARY_LINE" | awk '{print $8}')
+CURRENT_C2=$(echo "$OUTPUT" | grep '^  C2 dangling evidence paths' | grep 'FAILS' | awk '{print $5}')
+CURRENT_C6=$(echo "$OUTPUT" | grep '^  C6 cite-tag mismatches' | grep 'FAILS' | awk '{print $4}')
+
+# ── read floor ─────────────────────────────────────────────────────────
+# Uses python3 for reliable JSON parsing (available on all dev hosts)
+read_floor_field() {
+    python3 -c "import json; d=json.load(open('$FLOOR_FILE')); print(d['floor']['$1'])" 2>/dev/null || echo "PARSE_ERROR"
+}
+
+FLOOR_C1a=$(read_floor_field "C1a")
+FLOOR_C1b=$(read_floor_field "C1b")
+FLOOR_C2=$(read_floor_field "C2")
+FLOOR_C6=$(read_floor_field "C6")
+
+# ── guard: floor file parseable ────────────────────────────────────────
+for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C6"; do
+    if [ "$val" = "PARSE_ERROR" ]; then
+        echo "pre-commit: cannot parse $FLOOR_FILE — blocking commit"
+        exit 1
+    fi
+done
+
+# ── compare — block on regression ──────────────────────────────────────
+regression() {
+    metric="$1"
+    current="$2"
+    floor="$3"
+    if [ -z "$current" ]; then
+        echo "pre-commit: could not parse current $metric from claimlint output — blocking commit"
+        echo "$OUTPUT"
+        exit 1
+    fi
+    if [ "$current" -gt "$floor" ]; then
+        echo "pre-commit: $metric regressed: $current > floor $floor — blocking commit"
+        echo "$OUTPUT"
+        exit 1
+    fi
+}
+
+regression "C1a" "$CURRENT_C1a" "$FLOOR_C1a"
+regression "C1b" "$CURRENT_C1b" "$FLOOR_C1b"
+regression "C2"  "$CURRENT_C2"  "$FLOOR_C2"
+regression "C6"  "$CURRENT_C6"  "$FLOOR_C6"
+
+# ── all clear ──────────────────────────────────────────────────────────
+echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C6=$CURRENT_C6 — ≤ floor, allowed"
+exit 0
