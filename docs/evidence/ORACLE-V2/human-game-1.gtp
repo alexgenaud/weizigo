@@ -1,0 +1,29 @@
+# Human vs weizigo 4x4 oracle — game 1, 2026-08-02
+# Human = Black (moves below), engine = White (genmove).
+# Engine: bin/weizigo-gtp, artifact oracle-4x4-v2.wzo2 (SHA 0c3366f0), pre-T265.
+# Replay: bin/weizigo-gtp <artifact> < this-file
+boardsize 4
+clear_board
+komi 0
+play B B3
+genmove W
+play B B2
+genmove W
+play B C1
+genmove W
+play B B1
+genmove W
+play B D4
+genmove W
+play B D1
+genmove W
+play B A2
+genmove W
+play B B2
+genmove W
+play B A2
+genmove W
+play B B1
+genmove W
+weizigo-stats
+quit
