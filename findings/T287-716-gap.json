@@ -1,0 +1,31 @@
+{
+  "task_id": "T287",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "ADR-0020.LH-CORRECT",
+      "legacy": "—",
+      "goban": "2x2",
+      "claim": "The 716 L≠H gaps at 2×2 (44% of the Cartesian-product non-terminal state space; 62% of genuinely reachable non-terminals) are the correct output of the loopy-game fixpoint under the corrected basic-ko rule. The fixpoint has 0 Bellman violations, 0 L>H violations, and 0 colour-inversion violations. L<H is semantically expected under ADR-0020 E3 — the bracket IS the deliverable.",
+      "status": "PROVEN",
+      "evidence": "docs/audits/adr0020-gap-adjudication.md · docs/evidence/QA-023/ko-fix-2026-07-29/fix2x2.py (independent Python re-implementation, re-verified T287) · src/retro.zig tests at :4575 and :4594 (passing)",
+      "depends_on": "GLOBAL.AXIOM-BELLMAN GLOBAL.AXIOM-LH GLOBAL.AXIOM-BRACKET",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "ADR-0020.VERIFY-PASS",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "ADR-0020 verification as a pass condition means: (C1) 0 Bellman violations (L=Φ(L), H=Φ(H)) over the reachable non-terminal state space at the size under test; (C2) 0 fixpoint-vs-truncation disagreements on the standing 24-state fixture (172 reachable non-terminals at 2×2). It does NOT require L==H on all reachable non-terminals — that would contradict E3 bracket semantics.",
+      "status": "CLAIMED",
+      "evidence": "docs/audits/adr0020-gap-adjudication.md · T102/T103 fixture (24/24 pass, 0 mismatches)",
+      "depends_on": "ADR-0020.LH-CORRECT GLOBAL.AXIOM-BRACKET",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "716 L≠H gaps at 2×2: the check is wrong, the solver is fine. The pass0 matrix (T257) measured L≠H within the fixpoint and interpreted it as a defect; under ADR-0020 E3, L<H is expected. The fixpoint has 0 Bellman violations on all 1620 non-terminal states (Python, re-verified) and passes both 2×2 Zig tests. The 24-fixture (T102/T103) measures fixpoint-vs-truncation agreement — a different property — and correctly shows gap=0. The pass condition 'L==H on all reachable non-terminals' is unsound. The correct pass condition is: 0 Bellman violations + 0 fixpoint-vs-truncation disagreements on the fixture. Escalation closed."
+}
