@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# git-commit-mine — path-limited commit wrapper for the shared-index fleet (T278)
+#
+# Every console shares one .git/index. `git add -A` / `git commit` stage and
+# commit whatever another console has staged, and it lands in your commit under
+# your message. That happened three times on 2026-08-02 (T268 absorbed T272's
+# staged claimlint work; the Orchestrator's `git add -A docs/` swept T266's
+# evidence into 91f7cf3). This wrapper is the mechanism that makes the hazard
+# structurally impossible at the commit site:
+#
+#   1. refuses a pathless invocation (the "add -A then commit" habit);
+#   2. stages ONLY the named paths, verifies the staged set contains nothing
+#      outside (your declared scope ∪ the named paths), and refuses otherwise,
+#      naming the foreign paths — T268's exact incident is the seeded fixture;
+#   3. commits with plain `git commit` only after the index has been verified;
+#   4. verifies the resulting commit contains exactly the named paths.
+#
+# Identity (who is committing, and therefore what scope) resolves from, in
+# order: `--task <id>`, `--bundle <file>`, $MANAGENT_TASK_ID. Without identity
+# the scope check cannot run — the wrapper then requires `--explicit` (or warns
+# and treats the named paths themselves as the scope; the Orchestrator's
+# cross-cutting integration commits are the designed user of this mode).
+#
+# Scope for a task = its bundle's `deliverables=` meta header, plus its own
+# findings files (findings/<id>-*.json), plus the two fleet-coordination
+# surfaces any worker may legitimately touch (docs/status/CURRENT.md,
+# docs/status/HANDOVER.md).
+#
+# Usage:
+#   tools/git-commit-mine <paths...> -m <message> [--task <id> | --bundle <f> | --explicit]
+#
+# Task: T278 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-02
+
+set -u
+
+REPO=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "git-commit-mine: not inside a git repo" >&2
+    exit 2
+}
+
+# ── parse args ────────────────────────────────────────────────────────────
+PATHS=()
+MSG=""
+TASK_ID=""
+BUNDLE=""
+EXPLICIT=0
+prev=""
+for arg in "$@"; do
+    if [ "$prev" = "-m" ]; then MSG="$arg"; prev=""; continue; fi
+    if [ "$prev" = "--task" ]; then TASK_ID="$arg"; prev=""; continue; fi
+    if [ "$prev" = "--bundle" ]; then BUNDLE="$arg"; prev=""; continue; fi
+    case "$arg" in
+        -m|--task|--bundle) prev="$arg" ;;
+        --explicit) EXPLICIT=1 ;;
+        *) PATHS+=("$arg") ;;
+    esac
+done
+
+if [ "${#PATHS[@]}" -eq 0 ]; then
+    echo "git-commit-mine: REFUSED — no paths. A pathless commit is exactly the"
+    echo "  fleet hazard (T268 absorbed T272's staged files; the Orchestrator's"
+    echo "  'git add -A docs/' swept T266's evidence). Name every path you commit."
+    exit 1
+fi
+if [ -z "$MSG" ]; then
+    echo "git-commit-mine: REFUSED — no commit message (-m <msg>)." >&2
+    exit 2
+fi
+if [ -z "$TASK_ID" ] && [ -z "$BUNDLE" ] && [ -n "${MANAGENT_TASK_ID:-}" ]; then
+    TASK_ID="$MANAGENT_TASK_ID"
+fi
+
+# ── scope resolution ──────────────────────────────────────────────────────
+SCOPE_FILE=$(mktemp "${TMPDIR:-/tmp}/git-commit-mine-scope-XXXXXX")
+trap 'rm -f "$SCOPE_FILE"' EXIT
+
+declare_scope() {  # add a path to the scope
+    [ -n "$1" ] && printf '%s\n' "$1" >> "$SCOPE_FILE"
+}
+
+SCOPE_SOURCE=""
+if [ -n "$TASK_ID" ]; then
+    BUNDLE_PATH=$(python3 - "$REPO" "$TASK_ID" <<'PYEOF'
+import json, sys
+repo, tid = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(repo + "/docs/infra/managent/tasks.json"))
+except Exception:
+    sys.exit(2)
+t = d.get(tid)
+if not t:
+    sys.exit(3)
+print(t.get("bundle") or "")
+PYEOF
+) || {
+    echo "git-commit-mine: REFUSED — cannot resolve task $TASK_ID in the kanban" >&2
+    exit 2
+}
+    SCOPE_SOURCE="task $TASK_ID (bundle: $BUNDLE_PATH)"
+    if [ -n "$BUNDLE_PATH" ]; then
+        BUNDLE="$REPO/$BUNDLE_PATH"
+    fi
+elif [ -n "$BUNDLE" ]; then
+    SCOPE_SOURCE="bundle $BUNDLE"
+fi
+
+# parse deliverables= from the bundle meta header (mirrors managent's parser)
+if [ -n "$BUNDLE" ] && [ -f "$BUNDLE" ]; then
+    META=$(head -1 "$BUNDLE")
+    case "$META" in
+        *"deliverables="*)
+            VAL=${META#*deliverables=}
+            VAL=${VAL%%-->*}
+            # Defect-2 truncation: value stops at " =" (e.g. " acceptance=cmd")
+            VAL=$(printf '%s' "$VAL" | sed -E 's/[[:space:]][^= ]*=.*$//')
+            while IFS= read -r p; do
+                p=$(printf '%s' "$p" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+                [ -n "$p" ] && declare_scope "$p"
+            done <<< "$(printf '%s' "$VAL" | tr ',' '\n')"
+            ;;
+    esac
+fi
+
+if [ -n "$TASK_ID" ]; then
+    # the task's own findings files are always in scope
+    for f in "$REPO"/findings/"$TASK_ID"-*.json; do
+        [ -e "$f" ] && declare_scope "${f#$REPO/}"
+    done
+    # fleet-coordination surfaces any worker may legitimately commit
+    declare_scope "docs/status/CURRENT.md"
+    declare_scope "docs/status/HANDOVER.md"
+fi
+
+# ── stage only the named paths ───────────────────────────────────────────
+cd "$REPO" || exit 2
+NAMES_ABS=()
+NAMES_REL=()
+for p in "${PATHS[@]}"; do
+    if [ -e "$p" ]; then
+        NAMES_ABS+=("$(cd "$(dirname "$p")" && pwd)/$(basename "$p")")
+    else
+        NAMES_ABS+=("$REPO/$p")
+    fi
+    NAMES_REL+=("$p")
+done
+git add -- "${NAMES_ABS[@]}" 2>/dev/null || {
+    echo "git-commit-mine: REFUSED — git add failed; a named path is missing or ignored." >&2
+    exit 2
+}
+
+# ── verify the staged set ─────────────────────────────────────────────────
+STAGED=$(git diff --cached --name-only)
+[ -z "$STAGED" ] && {
+    echo "git-commit-mine: REFUSED — nothing staged after adding the named paths." >&2
+    exit 2
+}
+
+foreign() {  # is path $1 outside scope ∪ named paths?
+    local p="$1" i
+    for i in "${NAMES_REL[@]}"; do
+        [ "$p" = "$i" ] && return 1
+    done
+    if [ -s "$SCOPE_FILE" ]; then
+        if grep -Fxq "$p" "$SCOPE_FILE"; then return 1; fi
+    fi
+    return 0
+}
+
+FOREIGN_LIST=""
+while IFS= read -r p; do
+    if foreign "$p"; then
+        FOREIGN_LIST="$FOREIGN_LIST$p"$'\n'
+    fi
+done <<< "$STAGED"
+
+if [ -n "$FOREIGN_LIST" ]; then
+    if [ "$EXPLICIT" -eq 0 ] && [ -n "$SCOPE_SOURCE" ]; then
+        echo "git-commit-mine: REFUSED — index contains staged paths outside your scope ($SCOPE_SOURCE):"
+        while IFS= read -r fp; do [ -n "$fp" ] && echo "  $fp"; done <<< "$FOREIGN_LIST"
+        echo "  This is the T268 incident class. Do NOT unstage another console's"
+        echo "  work. If the file is yours, unstage it (git restore --staged <path>);"
+        echo "  otherwise wait for its owner to commit, then retry."
+        exit 1
+    fi
+    echo "git-commit-mine: WARNING — index contains staged paths outside the named set" >&2
+    while IFS= read -r fp; do [ -n "$fp" ] && echo "git-commit-mine:   $fp" >&2; done <<< "$FOREIGN_LIST"
+    echo "git-commit-mine:   committing the named paths only (path-limited commit)." >&2
+    COMMIT_MODE="paths"
+else
+    COMMIT_MODE="index"
+fi
+
+# ── identity mode: named paths must be in scope ──────────────────────────
+if [ -n "$SCOPE_SOURCE" ] && [ "$EXPLICIT" -eq 0 ]; then
+    for p in "${NAMES_REL[@]}"; do
+        if [ -s "$SCOPE_FILE" ] && grep -Fxq "$p" "$SCOPE_FILE"; then
+            :
+        else
+            echo "git-commit-mine: REFUSED — path not in your declared scope ($SCOPE_SOURCE): $p"
+            echo "  Scope = the bundle's deliverables= plus findings/<id>-*.json plus"
+            echo "  docs/status/CURRENT.md, docs/status/HANDOVER.md. Commit only declared"
+            echo "  files, or pass --explicit to take responsibility for the paths yourself."
+            exit 1
+        fi
+    done
+fi
+
+# ── commit ───────────────────────────────────────────────────────────────
+# Index mode: the staged set was verified == named paths, so a plain `git
+# commit` is safe. Paths mode (foreign staged content present, explicit
+# mode): a path-limited `git commit -- <paths>` — the foreign content cannot
+# enter the commit and stays staged for its owner (T278: verified 2026-08-02,
+# T7's first cut used plain commit and absorbed the foreign files — the
+# seeded fixture caught it).
+if [ "$COMMIT_MODE" = "paths" ]; then
+    git commit -m "$MSG" -- "${NAMES_REL[@]}"
+else
+    git commit -m "$MSG"
+fi
+RC=$?
+[ "$RC" -ne 0 ] && exit "$RC"
+
+# ── verify the commit contains exactly the named paths ───────────────────
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+MISSING=()
+for p in "${NAMES_REL[@]}"; do
+    if ! printf '%s\n' "$IN_COMMIT" | grep -Fxq "$p"; then
+        MISSING+=("$p")
+    fi
+done
+if [ "${#MISSING[@]}" -gt 0 ]; then
+    echo "git-commit-mine: FAIL — commit $(git rev-parse --short HEAD) does not contain:" >&2
+    for m in "${MISSING[@]}"; do echo "  $m" >&2; done
+    exit 1
+fi
+echo "git-commit-mine: OK — commit $(git rev-parse --short HEAD) contains exactly: ${NAMES_REL[*]}"
+exit 0

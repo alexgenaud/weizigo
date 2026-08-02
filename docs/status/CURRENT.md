@@ -7,6 +7,20 @@ after a context clear / compact / handover. Not durable — milestones live in g
 
 Last refreshed **2026-08-02 (Orchestrator/Opus 5 — Grand Audit reconciliation)**.
 
+## T278 (2026-08-02, deepseek-v4-flash) — shared-index fleet hazard: mechanized
+
+**Ownership declared:** mutation of `src/managent/main.zig` (the `done`
+deliverable check now asks git, not the filesystem), `tools/git-commit-mine`
+(new), `tools/regression-git-commit-mine.sh` (new), `tools/regression-managent-done-git.sh` (new),
+`bin/subagent` (sets `MANAGENT_TASK_ID` for dispatched workers). Owned paths
+cleared when the T278 commit lands. Recommendation + edge-case rulings:
+`docs/infra/fleet-git-isolation.md`. Controls: `tools/regression-git-commit-mine.sh`
+(incident-1 fixture, null + seeded) and `tools/regression-managent-done-git.sh`
+(null, seeded, retention, deletion) — both PASS on the rebuilt
+`bin/managent` (05dae9b). The wrapper is recommended, pending Orchestrator
+adoption; T280 still installs the T272 hook. Do not `git add -A` — commit via
+`tools/git-commit-mine <paths> -m <msg>` with `MANAGENT_TASK_ID` set.
+
 # STATE AS OF 2026-08-02 — the Grand Audit landed; DIRECTION.md governs
 
 **Read `docs/audits/grand-audit-2026-08-02/DIRECTION.md` first** (ratified by the

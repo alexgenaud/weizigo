@@ -1636,6 +1636,104 @@ const rest = dl_value[scan..][rest_start..];
     return try result.toOwnedSlice(alloc);
 }
 
+// ── T278: the deliverable check asks git, not the filesystem ────────────────
+// T272 closed pass with its deliverables untracked or uncommitted; the statFile
+// check saw the files and passed. A deliverable that is not in git is not a
+// deliverable (AGENTS.md). These helpers implement the git-side verdict.
+
+/// Run git; true iff it exited 0. Spawn failure also returns false — every
+/// caller treats false as "not in git", which refuses rather than silently
+/// passing (the safe direction under a shared index).
+fn gitOk(io: std.Io, argv: []const []const u8) bool {
+    const result = std.process.run(alloc, io, .{ .argv = argv }) catch return false;
+    alloc.free(result.stdout);
+    alloc.free(result.stderr);
+    return switch (result.term) {
+        .exited => |code| code == 0,
+        else => false,
+    };
+}
+
+/// Was `d` deleted by some commit in history? The deliverable "the removal of
+/// d" is then in git even though the path is absent from HEAD.
+fn gitHistoryDeletion(io: std.Io, repo_root: []const u8, d: []const u8) bool {
+    const out = runCommand(alloc, io, &.{ "git", "-C", repo_root, "log", "--diff-filter=D", "-1", "--format=%h", "--", d }) catch return false;
+    defer alloc.free(out);
+    return std.mem.trim(u8, out, " \t\r\n").len > 0;
+}
+
+/// ARGUS T211 retention rule: a deliberately-untracked solver artifact under
+/// untracked/ whose SHA-256 is pinned in artifacts/SHA256SUMS is a legitimate
+/// deliverable that will never be in git.
+fn isPinnedRetentionArtifact(io: std.Io, repo_root: []const u8, d: []const u8) bool {
+    if (!std.mem.startsWith(u8, d, "untracked/")) return false;
+    const sums_path = std.fs.path.join(alloc, &.{ repo_root, "artifacts", "SHA256SUMS" }) catch return false;
+    defer alloc.free(sums_path);
+    const content = std.Io.Dir.cwd().readFileAlloc(io, sums_path, alloc, .unlimited) catch return false;
+    defer alloc.free(content);
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (trimmed.len == 0) continue;
+        // "<64 hex>  <path>": the path is the last field, space- or *-separated.
+        if (trimmed.len > d.len and std.mem.endsWith(u8, trimmed, d)) {
+            const sep = trimmed[trimmed.len - d.len - 1];
+            if (sep == ' ' or sep == '*') return true;
+        }
+    }
+    return false;
+}
+
+const DeliverableVerdict = struct {
+    ok: bool,
+    reason: []const u8,
+};
+
+/// Is deliverable `d` cleanly in git at close time? Pass: (a) tracked and free
+/// of uncommitted modifications; (b) a SHA256SUMS-pinned retention artifact
+/// under untracked/; (c) deleted in git history — the deliverable is the
+/// removal, and it is committed. Refuse with a reason for everything else.
+fn deliverableVerdict(io: std.Io, repo_root: []const u8, d: []const u8) DeliverableVerdict {
+    const in_index = gitOk(io, &.{ "git", "-C", repo_root, "ls-files", "--error-unmatch", "--", d });
+    const staged_deletion = !gitOk(io, &.{ "git", "-C", repo_root, "diff", "--cached", "--quiet", "--diff-filter=D", "--", d });
+
+    const d_abs = if (std.fs.path.isAbsolute(d))
+        (alloc.dupe(u8, d) catch return .{ .ok = false, .reason = "missing" })
+    else
+        (std.fs.path.join(alloc, &.{ repo_root, d }) catch return .{ .ok = false, .reason = "missing" });
+    defer alloc.free(d_abs);
+    const exists = blk: {
+        if (std.Io.Dir.cwd().statFile(io, d_abs, .{})) |_| break :blk true else |_| break :blk false;
+    };
+
+    if (exists) {
+        if (in_index) {
+            const clean_worktree = gitOk(io, &.{ "git", "-C", repo_root, "diff", "--quiet", "--", d });
+            const clean_index = gitOk(io, &.{ "git", "-C", repo_root, "diff", "--cached", "--quiet", "--", d });
+            if (clean_worktree and clean_index) {
+                return .{ .ok = true, .reason = "tracked and clean" };
+            }
+            return .{ .ok = false, .reason = "has uncommitted modifications — commit the changes" };
+        }
+        if (isPinnedRetentionArtifact(io, repo_root, d)) {
+            return .{ .ok = true, .reason = "SHA256SUMS-pinned retention artifact under untracked/ (ARGUS T211)" };
+        }
+        return .{ .ok = false, .reason = "untracked — commit it" };
+    }
+
+    // The path is not on disk: a deletion or a never-created file.
+    if (staged_deletion) {
+        return .{ .ok = false, .reason = "deletion staged but not committed — commit the deletion" };
+    }
+    if (in_index) {
+        return .{ .ok = false, .reason = "missing — deleted on disk but the deletion is not committed" };
+    }
+    if (gitHistoryDeletion(io, repo_root, d)) {
+        return .{ .ok = true, .reason = "deleted in git history — the deliverable is the removal" };
+    }
+    return .{ .ok = false, .reason = "missing" };
+}
+
 fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
         w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--skip-acceptance <reason>]\n", .{});
@@ -1720,24 +1818,34 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             for (deliverables) |d| alloc.free(d);
             alloc.free(deliverables);
         }
-        var missing = std.ArrayList([]const u8).empty;
-        defer missing.deinit(alloc);
+        // T278: the deliverable check asks git, not the filesystem. T272 closed
+        // pass with its deliverables untracked or uncommitted; statFile saw the
+        // files and passed. A deliverable that is not committed is not a
+        // deliverable. The two ruled exceptions: deliberately-untracked
+        // retention artifacts (untracked/ + SHA256SUMS-pinned, ARGUS T211) and
+        // deletion deliverables (the removal committed to history).
+        if (!gitOk(io, &.{ "git", "-C", repo_root, "rev-parse", "--git-dir" })) {
+            w.diag("\n  REJECTED: {s} — cannot ask git (not a git repo, or git unavailable)\n", .{id});
+            std.process.exit(1);
+        }
+        var violated = std.ArrayList([]const u8).empty;
+        defer {
+            for (violated.items) |v| alloc.free(v);
+            violated.deinit(alloc);
+        }
         for (deliverables) |d| {
-            const d_abs = if (std.fs.path.isAbsolute(d))
-                try alloc.dupe(u8, d)
-            else
-                try std.fs.path.join(alloc, &.{ repo_root, d });
-            defer alloc.free(d_abs);
-            if (std.Io.Dir.cwd().statFile(io, d_abs, .{})) |_| {} else |_| {
-                try missing.append(alloc, d);
+            const v = deliverableVerdict(io, repo_root, d);
+            if (!v.ok) {
+                try violated.append(alloc, try std.fmt.allocPrint(alloc, "{s}  ({s})", .{ d, v.reason }));
             }
         }
-        if (missing.items.len > 0) {
-            w.diag("\n  REJECTED: {s} has {d} missing deliverable(s):\n", .{ id, missing.items.len });
-            for (missing.items) |m| {
-                w.diag("    - {s}\n", .{m});
+        if (violated.items.len > 0) {
+            w.diag("\n  REJECTED: {s} has {d} deliverable(s) not cleanly in git:\n", .{ id, violated.items.len });
+            for (violated.items) |v| {
+                w.diag("    - {s}\n", .{v});
             }
-            w.diag("  Task stays in_progress. Create the file(s) or use --status blocked.\n", .{});
+            w.diag("  Commit each path (git add <path> && git commit), then done again.\n", .{});
+            w.diag("  A deliverable that is not committed is not a deliverable.\n", .{});
             std.process.exit(1);
         }
     }

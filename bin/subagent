@@ -44,11 +44,13 @@ def main(argv):
     target, wall = args[0], next(
         (f.split("=")[1] for f in flags if f.startswith("--wall=")), "1800")
 
+    task_id = None
     if re.fullmatch(r"T\d+", target):
         hits = glob.glob(os.path.join(ROOT, "untracked", f"{target}-*.md"))
         if len(hits) != 1:
             sys.exit(f"subagent: expected one bundle for {target}, found {len(hits)}")
         bundle = os.path.relpath(hits[0], ROOT)
+        task_id = target
         slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
         prompt = (f"Follow {bundle}\n\n"
                   f"FIRST: bin/managent claim {target}\n"
@@ -68,6 +70,8 @@ def main(argv):
     if not os.environ.get("DEEPSEEK_API_KEY"):
         sys.exit("subagent: DEEPSEEK_API_KEY is not set")
     env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
+    if task_id:
+        env["MANAGENT_TASK_ID"] = task_id
 
     cmd = ["tools/runner", "--max-wall", wall, "--",
            "pi", "--provider", "deepseek", "--model", model, "-p", prompt]
