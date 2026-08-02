@@ -5,11 +5,7 @@ Orchestrator directive D011 addressed this seat as "deepseek-v4-pro/T274" — di
 flagged for the performance ledger, managent `agent` field unchanged: `deepseek-v4-flash/T274`)
 · Date: 2026-08-02
 
-**Status: READING HALF COMPLETE · RUN HALF PENDING (Orchestrator HOLD D011).**
-D011 (2026-08-02T20:40:27Z) paused the 4×4 runs: three memory-heavy jobs in flight; the
-runner caps RSS per-PID, not summed across descendants; the host panicked at 12.5 GB on
-2026-07-29 (`docs/infra/host/incident-2026-07-29.md`). The reading half was done under the
-HOLD as directed; **no 4×4 run has been started**. See §6 for the run plan and budget.
+**Status: COMPLETE — 2026-08-02.** Reading half committed (`5f87b5b`); empirical half executed under Orchestrator directive D014 as the **descoped small-goban sweep** (2×2, 3×2, + 3×3 supplementary; **no 4×4 run** — 4×4 remains analytic-only, see §5, §9). D011's HOLD (host memory contention, per-PID RSS guard) governed the session; D014 lifted it for the cheap gobans only.
 
 ---
 
@@ -153,70 +149,142 @@ the full colour-symmetric anchor (+2, −2). The analytic prediction from the bu
   `main()` — it is never called (relevant to the T102 successor-buffer warning: the
   warning concerns a cross-check that this solver does not run).
 
-## 6. Run plan and budget statement (started only after Orcha resumes T274)
+## 6. Run plan, budget and what actually ran (D014 descope)
 
-**Budget (stated before starting):** 3 × ~53-min 4×4 runs ≈ 2.75 h wall + ~2 min build
-each, under `tools/runner` with the default 4 GB RSS cap (observed peak 3137 MB on
-2026-07-29), `--max-wall 14400 --max-cpu 28800`. Three runs: **TIE=0** (calibration /
-null control — gates must read 2×2=0, 3×2=0, 3×3=+9 and root +1), **TIE=+2** (the
-hypothesis value), **TIE=−2** (White-side control). If host contention or any failure
-makes three impractical, the two that answer the question are TIE=0 and TIE=+2; TIE=−2 is
-the White-side point and what is not reached gets reported explicitly.
+**Budget (stated before starting):** 3 × ~53-min 4×4 runs ≈ 2.75 h wall under
+`tools/runner` with the default 4 GB RSS cap (observed peak 3137 MB on 2026-07-29).
+**What actually ran (D014):** a 5-value TIE sweep over the *small* gobans only — TIE ∈
+{0, +2, −2, +16, −16} — each run seconds-scale (2×2 fixpoint 4 sweeps, 3×2 10 sweeps,
+3×3 16 sweeps), executed by `src/t274_tie_harness.zig` (committed) importing
+`src/exp6_solve.zig`. The harness never references `main()`, so the 4×4 census/fixpoint/
+WZO write is neither analyzed nor executed. **The 4×4 root was not run** (descope; the
++2-vs-+1 4×4 analysis in §5 is analytic, standing on the measured 2026-07-29 bracket
+[+1,+16] plus the TIE-free-fixpoint property now empirically confirmed).
 
-**Source change per run (nothing else):** the `TIE` constant (line 41) and — to honour
-"no silent writes to `data/`" — the WZO output path (line 1538), diverted to
-`/tmp/weizigo/T274-tie-<v>.wzo`. `data/oracle-4x4-basicko-tie-area.wzo` is not touched.
-This is I/O hygiene, not a ruleset change; the axiom set is otherwise fixed.
+**Source change per run (nothing else):** only `pub const TIE` (line 41) of
+`src/exp6_solve.zig`; restored to 0 after the sweep. The WZO output-path diversion (line
+1538 → `/tmp/weizigo/T274-tie-0.wzo`) is committed per D014 to honour "no silent writes
+to `data/`" — `data/oracle-4x4-basicko-tie-area.wzo` is untouched. This is I/O hygiene,
+not a ruleset change; the axiom set is otherwise fixed. (Note: the working tree was
+reverted between sessions — the first application of the diversion was lost; it was
+re-applied and committed with this revision.)
 
-**Blocker found on 2026-08-02 (before any run):** `src/exp6_solve.zig` at HEAD does NOT
-compile with the current toolchain (zig 0.16.0):
+**Blocker found 2026-08-02 (before any run):** `src/exp6_solve.zig` at HEAD does NOT
+compile with the current toolchain (zig 0.16.0): `fp4_out.data.deinit()` const-qualifier
+error at line 1568 (`const fp4_out` at line 1407). The QA-026-era commit (eeec85c,
+2026-07-29) had `!Fixpoint4Result` and no `.data.deinit()`, so the +1 measurement ran
+structurally different code; the refactor (T165–T167/T226) changed exports, comments and
+the return struct but **not any sweep kernel** (diff-verified), so the QA-026 +1 remains
+the measurement of the same game. The required fix is mechanical (`const`→`var`); it is
+left un-applied because the descope does not run `main()`. The "unmodified build" null
+control for the 4×4 gate chain therefore cannot run as-is at HEAD — a finding about the
+tree, not about the experiment.
 
-```
-src/exp6_solve.zig:1568:17: error: expected type '*T', found '*const T'
-    fp4_out.data.deinit();
-```
-
-`run_fixpoint_4x4` was refactored (T165–T167 absorption 2026-07-31 / T226 2026-08-02) to
-return an owned `Fixpoint4Output`, and `main` binds it as `const fp4_out` (line 1407) then
-calls the mutating `deinit`. The QA-026-era commit (eeec85c, 2026-07-29) had
-`const fp4 = try run_fixpoint_4x4(...) !Fixpoint4Result` and no `.data.deinit()`, so the
-+1 measurement ran structurally different code. **The fixpoint kernels are byte-identical
-in semantics** (verified by diff: the refactor changed exports, comments, the return
-struct and the WZO fill source, not any sweep update), so the QA-026 +1 remains the
-measurement of the same game. The required fix is mechanical: `const fp4_out` →
-`var fp4_out` (2 characters). The "unmodified build" null control therefore cannot run
-as-is at HEAD — a finding about the tree, not about the experiment.
-
-**Host contention:** at 22:41 a concurrent `zig build test` (not ours; another in-flight
-job on this host) was consuming several cores at 100%. Our runs will be slower while it
-persists; nothing was killed. This is the D011 context.
-
-**Per HOLD:** no run has been started. `git log`-verified that the only working-tree change
-to `src/exp6_solve.zig` so far is the wzo_path diversion (this document's §6 source
-change, applied for the aborted-launch attempt; the TIE constant is still 0).
+**Host contention:** a concurrent `zig build test` (not ours) ran at ~22:41; our
+seconds-scale runs were unaffected.
 
 ## 7. Findings for the register (proposed in `findings/T274-tie-experiment.json`)
 
-1. `GLOBAL.TIE-MIGOS` — proposed **FALSE-AS-SCOPED** (mechanism refuted by primary
-   sources: MIGOS's long-cycle-tie value is 0, identical to ours; MIGOS's own basic-ko
-   4×4 = +1 = ours; the +2 arises from the pass-difference cycle-resolution rule, a
-   different game definition). Awaiting the run half to finalise.
-2. `GLOBAL.FIXPOINT-VS-SEARCH` — under aligned rules (basic ko, tie 0), weizigo fixpoint
-   (+1) and MIGOS search (+1, thesis Table 5.1) **agree**; the +1-vs-+2 gap is a ruleset
-   (cycle-rule) difference, so candidate (b) (a defect) is not needed to explain the gap.
-   A defect hypothesis for our +1 remains live only in the standing sense (the #2 auditor
-   must confirm our value for our game).
+1. `GLOBAL.TIE-MIGOS` — proposed **FALSE-AS-SCOPED**: primary sources show MIGOS's
+   long-cycle-tie value is 0 (identical to ours) and MIGOS's own basic-ko 4×4 = +1 = ours;
+   the +2 anchor arises from the pass-difference cycle-resolution rule (a different game
+   definition). The empirical half (D014) confirms the value knob only affects
+   cycle-valued states (see §9) and that no flat tie can reproduce the colour-symmetric
+   (+2, −2) at 4×4 (analytic, §5): V_W = clamp(TIE,[−16,−1]) ≠ −V_B for every single
+   TIE.
+2. `GLOBAL.FIXPOINT-VS-SEARCH` — proposed CLAIMED: under aligned rules (basic ko, tie 0)
+   weizigo fixpoint (+1) and MIGOS search (+1, thesis Table 5.1) agree; the +1-vs-+2 gap
+   is a ruleset (cycle-resolution) difference, not a fixpoint-vs-search discrepancy. A
+   defect hypothesis for our own game's value remains live only in the standing sense
+   (#2 auditor).
 3. **Citation correction:** `4x4.ANCHOR` and `AXIOMS.md` §4 cite "thesis §6.4" for the
    4×4 +2; the correct location is thesis §5.4.1 (Table 5.1) + Appendix A §A.4.
 4. **Tree finding:** `src/exp6_solve.zig` at HEAD does not compile (const/var at line
    1568/1407); the QA-026 measurement's code (eeec85c) is structurally older but
    semantically identical.
+5. **Roadmap note (not a register row):** EXP-6's "4×4 = +2" acceptance criterion
+   (`roadmap-2026-07-28.md:227-232`) is not met by ruleset R (basic ko + flat TIE=0) and
+   cannot be, because the +2 anchor is a different game (pass-difference cycle scoring;
+   MIGOS's own basic-ko result is +1). The criterion needs restating against the ruleset
+   actually solved.
 
-## 8. What to check next (resume plan)
+## 8. Empirical results — small-goban TIE sweep (D014 descope, 2026-08-02)
 
-1. Apply the 2-char compile fix; run TIE=0 (calibration) → expect gates 0/0/+9, root +1,
-   bracket [1,16]/[−16,−1], 31 sweeps.
-2. Run TIE=+2 → expect root B +2, W −1, identical bracket/sweep count.
-3. Run TIE=−2 (budget permitting) → expect root B +1, W −2.
-4. Finalise the findings file and this document; restore `src/exp6_solve.zig` to HEAD
-   (TIE=0, original wzo path); commit; `managent done T274`.
+Harness: `src/t274_tie_harness.zig` (committed), importing `src/exp6_solve.zig`; per run
+only `pub const TIE` changed (line 41). Full logs:
+`/tmp/weizigo/T274-tie-{0,2,-2,16,-16}.small.stdout` (ephemeral).
+
+### 8.1 Roots — L/H unchanged, V = clamp(TIE,[L,H]) exactly
+
+| TIE | 2×2 root [L,H] | V | 3×2 root [L,H] | V | 3×3 root [L,H] | V |
+|---|---|---|---|---|---|---|
+| **0** | [−4, +4] | **0** (committed root ✓) | [−6, +6] | **0** (✓) | [9, 9] | **+9** (✓) |
+| +2 | [−4, +4] | **+2** | [−6, +6] | **+2** | [9, 9] | +9 |
+| −2 | [−4, +4] | **−2** | [−6, +6] | **−2** | [9, 9] | +9 |
+| +16 | [−4, +4] | **+4** (clamped at H) | [−6, +6] | **+6** (clamped at H) | [9, 9] | +9 |
+| −16 | [−4, +4] | **−4** (clamped at L) | [−6, +6] | **−6** (clamped at L) | [9, 9] | +9 |
+
+`clamp_ok=true` at every root; **violations=0** in the exhaustive per-state check
+(V == clamp(TIE,[L,H])) over all reachable non-terminal states in every run: 1620 states
+(2×2), 1732 states (3×2).
+
+### 8.2 L/H tables are bit-identical across all five TIE values
+
+Additive fingerprints (same every run):
+
+| goban | L fingerprint | H fingerprint |
+|---|---|---|
+| 2×2 | 5556148101547559484 | 10401735261974369308 |
+| 3×2 | 2064380219156613884 | 2776031351365902392 |
+| 3×3 | 4187169911178369046 | 8972143558438831558 |
+
+Sweep counts also identical per goban (2×2: 4 sweeps; 3×2: 10; 3×3: 16). This is the
+empirical confirmation that the fixpoint is TIE-free (by construction — no sweep update
+references TIE; confirmed on every state of three gobans).
+
+### 8.3 Bracket census — where the tie constant decides
+
+| TIE | goban | L==H (resolved) | L<TIE<H (V == TIE) | L>TIE (pin_L) | H<TIE (pin_H) |
+|---|---|---|---|---|---|
+| 0 | 2×2 | 904 | 570 | 40 | 106 |
+| 0 | 3×2 | 1366 | 268 | 34 | 64 |
+| +2 | 2×2 | 904 | 603 | 0 | 113 |
+| +2 | 3×2 | 1366 | 281 | 6 | 79 |
+| −2 | 2×2 | 904 | 603 | 113 | 0 |
+| −2 | 3×2 | 1366 | 281 | 63 | 22 |
+| +16 | 2×2 | 904 | 0 | 0 | 716 |
+| −16 | 2×2 | 904 | 0 | 716 | 0 |
+
+(L==H counts identical across TIE — the resolved core never moves; the tie-pinned and
+pinned-side counts redistribute exactly as the clamp predicts.) The 5 widest-bracket
+states (printed per run) are the same states every run with V = clamp(TIE,[L,H]), e.g.
+2×2 lin 0: [−4,+4], V = 0 / +2 / −2 / +4 / −4 across the sweep.
+
+### 8.4 What the sweep establishes
+
+1. **TIE=0 null control passes**: 2×2 = 0, 3×2 = 0, 3×3 = +9 — the committed roots,
+   reproduced by this checkout's code (which itself does not compile at HEAD for the 4×4
+   path, but the small-goban paths compile and run).
+2. **The tie constant is a pure value knob on cycle-valued states**: 2×2/3×2 roots are
+   tie-pinned (L == seed −N: Black has no terminal-forcing strategy; the game is
+   cycle-dominated — consistent with MIGOS's 2×2 footnote "either side can force a
+   balanced long cycle"), so V follows TIE exactly; at TIE = ±2 the roots take ±2 —
+   precisely MIGOS's documented optional configuration "Black (White) wins in case of a
+   balanced long-cycle repetition" (2009 §3.2).
+3. **The tie constant is inert on resolved states**: 3×3 root L==H==9 ⇒ V = 9 for every
+   TIE — the L==H region's values do not depend on the tie.
+4. **The 4×4 +2 cannot come from the tie value alone** (analytic, §5): with the measured
+   bracket [L=+1, H=+16] / [−16, −1], V_B(TIE) = clamp(TIE,[1,16]) and V_W(TIE) =
+   clamp(TIE,[−16,−1]) — the only value giving V_B = +2 is TIE = +2, at which V_W = −1
+   ≠ −2. Colour inversion demands the *signed* tie (Black's cycles +2, White's −2); a
+   single flat constant cannot express it. MIGOS's +2 comes from its cycle-resolution
+   *rule* (pass-difference), which is a different game — and MIGOS's own basic-ko result
+   is +1 = ours.
+
+## 9. What to check next
+
+- The 4×4 full run (TIE sweep at 4×4, ~53 min each) can be executed when the host is
+  quiet, after applying the 2-char compile fix (`const`→`var`, line 1407/1568) — expected
+  to confirm the analytic curve V = clamp(TIE,[1,16]) / clamp(TIE,[−16,−1]) (points at
+  TIE ∈ {0, +2, −2} predicted: +1, +2, +1 and −1, −1, −2).
+- The #2 auditor gate for the small-goban sweep results and the corrected register rows.

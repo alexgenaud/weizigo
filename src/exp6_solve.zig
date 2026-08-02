@@ -1535,7 +1535,7 @@ pub fn main() !void {
             .dw = dw,
         };
 
-        const wzo_path = "data/oracle-4x4-basicko-tie-area.wzo";
+        const wzo_path = "/tmp/weizigo/T274-tie-0.wzo"; // T274: diverted from data/ to avoid silent overwrite of the QA-026 artifact
         std.debug.print("# WZO: encoding and writing {s}...\n", .{wzo_path});
 
         const wzo_bytes = try artifact.encode(gpa, header, cols);
