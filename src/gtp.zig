@@ -71,6 +71,7 @@
 // `docs/research/h5a-player-mitigation-2026-07-28.md`.
 
 const std = @import("std");
+const version = @import("version");
 const rules = @import("rules.zig");
 const colexmod = @import("colex.zig");
 const artifact = @import("artifact.zig");
@@ -87,11 +88,13 @@ const MAX_HIST = 4096;
 /// and the engine falls back to pass or another filled child.
 pub const UNDEF: i8 = -128;
 
-/// P3-B: counter for silent bounds2 lookup-miss area-score fallback.
-/// Incremented each time bounds2 can't find a state in the artifact and
-/// falls back to area score. Module-level static: bounds2 takes *const S,
-/// and the counter must survive per-session. Printed at session end.
-var bounds2_lookup_miss_count: u64 = 0;
+/// T263: session stats counters (reported on quit / weizigo-stats).
+/// Module-level statics because bounds2 takes *const S and the counters
+/// must survive per-session.
+var stats_lookups: u64 = 0;     // total bounds2() calls
+var stats_misses: u64 = 0;      // bounds2() fallback to area score
+var stats_fallbacks: u64 = 0;   // choose_with_check fallback (UNCHAINABLE refusal)
+var stats_genmoves: u64 = 0;    // genmove calls
 
 /// Enforcement mode per spec oracle-v2 §3.1.
 /// basic_ko = enforce the artifact's own rule (ko point only).
@@ -154,14 +157,15 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 return .{ .L = area, .H = area, .DTT = 0, .terminal = true, .ko_sensitive = false };
             }
 
+            stats_lookups += 1;
             if (artifact2.lookup(a, colex_val, side, ko, passes)) |row| {
                 return row;
             }
 
             // Not found: unreachable state under basic ko. Fall back to area score.
-            bounds2_lookup_miss_count += 1;
+            stats_misses += 1;
             const area = R.area_score(pos);
-            std.debug.print("weizigo-oracle: WARNING bounds2 lookup-miss #{d} — state colex={d} side={d} ko={d} passes={d} not in artifact, fell back to area score {d}\n", .{ bounds2_lookup_miss_count, colex_val, side, ko, passes, area });
+            std.debug.print("weizigo-oracle: WARNING bounds2 lookup-miss #{d} — state colex={d} side={d} ko={d} passes={d} not in artifact, fell back to area score {d}\n", .{ stats_misses, colex_val, side, ko, passes, area });
             return .{ .L = area, .H = area, .DTT = 0, .terminal = true, .ko_sensitive = false };
         }
 
@@ -672,6 +676,7 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
         /// reintroduce a colour branch here: the colour is already inside the
         /// score.
         fn fallback_pick(s: *const S, side: i8, cause: Refusal) CheckedChoice {
+            stats_fallbacks += 1;
             var best: ?Choice = null;
             for (0..n) |p| {
                 if (s.pos[p] != 0) continue;
@@ -957,7 +962,7 @@ const KNOWN_COMMANDS = [_][]const u8{
     "boardsize",        "rectangular_boardsize",    "clear_board",   "komi",
     "play",             "genmove",     "undo",     "showboard",     "final_score",
     "weizigo_settled",  "weizigo_estimate", "weizigo_score",
-    "weizigo_chaincheck",
+    "weizigo_chaincheck", "weizigo-stats",
     "quit",
 };
 
@@ -998,7 +1003,6 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
             // ---- one GTP command line ----
             log.line("< {s}", .{std.mem.trim(u8, line.items, " \t\r")});
             var tokens = std.mem.tokenizeAny(u8, line.items, " \t\r");
-            line.clearRetainingCapacity();
             var first = tokens.next() orelse continue;
             var id: []const u8 = "";
             if (first.len > 0 and std.ascii.isDigit(first[0])) {
@@ -1089,6 +1093,7 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
             } else if (std.mem.eql(u8, first, "genmove")) {
                 const colort = tokens.next() orelse "";
                 const side: i8 = if (colort.len > 0 and (colort[0] == 'b' or colort[0] == 'B')) 1 else -1;
+                stats_genmoves += 1;
                 if (s.passes >= 2) {
                     reply = "pass";
                     std.debug.print("oracle: {s} -> pass  (two consecutive passes)\n", .{colort});
@@ -1331,7 +1336,23 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     report.dead.contested, status,
                 }) catch unreachable).len;
                 reply = sbuf[0..off];
+            } else if (std.mem.eql(u8, first, "weizigo-stats")) {
+                reply = std.fmt.bufPrint(&rbuf, "lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                }) catch "stats error";
+                std.debug.print("weizigo-oracle: stats lookups={d} misses={d} fallbacks={d} genmoves={d}\n", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                });
+                log.line("# stats lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                });
             } else if (std.mem.eql(u8, first, "quit")) {
+                std.debug.print("weizigo-oracle: session stats lookups={d} misses={d} fallbacks={d} genmoves={d}\n", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                });
+                log.line("# session stats lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                });
                 quit = true;
             } else {
                 ok = false;
@@ -1351,12 +1372,14 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
             log.line("> {s}", .{std.mem.trim(u8, out.items, "\n")});
             try stdout.writeStreamingAll(io, out.items);
             out.clearRetainingCapacity();
+            line.clearRetainingCapacity();
             if (quit) return;
         }
     }
 }
 
 pub fn main(init: std.process.Init) !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo-gtp")});
     const gpa = std.heap.page_allocator;
     var args = std.process.Args.Iterator.init(init.minimal.args);
     _ = args.next(); // argv0
@@ -1444,7 +1467,6 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
             }
             log.line("< {s}", .{std.mem.trim(u8, line.items, " \t\r")});
             var tokens = std.mem.tokenizeAny(u8, line.items, " \t\r");
-            line.clearRetainingCapacity();
             var first = tokens.next() orelse continue;
             var id: []const u8 = "";
             if (first.len > 0 and std.ascii.isDigit(first[0])) {
@@ -1570,7 +1592,17 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
                         reply = "unacceptable size";
                     }
                 }
+            } else if (std.mem.eql(u8, first, "weizigo-stats")) {
+                reply = std.fmt.bufPrint(&rbuf, "lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                }) catch "stats error";
             } else if (std.mem.eql(u8, first, "quit")) {
+                std.debug.print("weizigo-oracle: session stats lookups={d} misses={d} fallbacks={d} genmoves={d}\n", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                });
+                log.line("# session stats lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
+                    stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
+                });
                 quit = true;
             } else {
                 ok = false;
@@ -1586,6 +1618,7 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
             try out.appendSlice(gpa, "\n\n");
             log.line("> {s}", .{std.mem.trim(u8, out.items, "\n")});
             try stdout.writeStreamingAll(tio, out.items);
+            line.clearRetainingCapacity();
             if (quit) return;
         }
     }
@@ -1699,4 +1732,68 @@ test "H5(a) fallback_score is side-relative (antisymmetric), so both colours max
     const empty: Pos = [_]i8{0} ** 16;
     try expect(S.fallback_score(&empty, 1) == 0);
     try expect(S.fallback_score(&empty, -1) == 0);
+}
+
+// T263 smoke test: pipe a fixed GTP session over stdin to the weizigo-gtp
+// binary and assert well-formed `=` responses for every command except quit.
+test "smoke: GTP session pipe (T263)" {
+    const artifact_path = "untracked/oracle-v2/oracle-4x4-v2.wzo2";
+
+    const gpa = std.testing.allocator;
+
+    // GTP session: protocol_version, boardsize 4, clear_board, showboard,
+    // genmove b, final_score, quit
+    const commands = "protocol_version\nboardsize 4\nclear_board\nshowboard\ngenmove b\nfinal_score\nquit\n";
+
+    var child = std.process.spawn(std.testing.io, .{
+        .argv = &.{ "bin/weizigo-gtp", artifact_path },
+        .stdin = .pipe,
+        .stdout = .pipe,
+        .stderr = .ignore,
+    }) catch |err| {
+        std.debug.print("SKIP: cannot spawn bin/weizigo-gtp — run 'zig build deploy-gtp' first: {}\n", .{err});
+        return error.SkipZigTest;
+    };
+    defer child.kill(std.testing.io);
+
+    const io = std.testing.io;
+
+    // Write commands and close stdin so the child gets EOF.
+    try child.stdin.?.writeStreamingAll(io, commands);
+    child.stdin = null;
+
+    // Read all stdout into a buffer.
+    var stdout_buf: std.ArrayList(u8) = .empty;
+    defer stdout_buf.deinit(gpa);
+    var read_buf: [1024]u8 = undefined;
+    while (true) {
+        const n = child.stdout.?.readStreaming(io, &[_][]u8{read_buf[0..]}) catch break;
+        if (n == 0) break;
+        try stdout_buf.appendSlice(gpa, read_buf[0..n]);
+    }
+
+    const output = stdout_buf.items;
+
+    // Parse response blocks: split on "\n\n"
+    var responses = std.mem.splitSequence(u8, output, "\n\n");
+    var cmd_idx: usize = 0;
+    const expected_cmds = [_][]const u8{
+        "protocol_version", "boardsize 4", "clear_board", "showboard",
+        "genmove b", "final_score", "quit",
+    };
+    while (responses.next()) |block| {
+        const trimmed = std.mem.trim(u8, block, " \t\r\n");
+        if (trimmed.len == 0) continue;
+        if (cmd_idx >= expected_cmds.len) break;
+        // Every response to a GTP command must start with '=' (success)
+        // or '?' (error). We expect all = here.
+        if (trimmed.len > 0 and trimmed[0] != '=') {
+            std.debug.print("FAIL cmd '{s}': response starts with '{c}' not '=', block: '{s}'\n", .{ expected_cmds[cmd_idx], trimmed[0], trimmed });
+            return error.BadGtpResponse;
+        }
+        cmd_idx += 1;
+    }
+
+    // We should have matched all commands
+    try expect(cmd_idx >= expected_cmds.len - 1); // quit may not produce a response
 }

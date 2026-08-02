@@ -18,10 +18,22 @@
 
 const std = @import("std");
 
+/// Generate version.zig by running tools/gen-version.sh and capturing stdout.
+fn generateVersion(b: *std.Build) std.Build.LazyPath {
+    const cmd = b.addSystemCommand(&.{ "sh", "tools/gen-version.sh" });
+    return cmd.captureStdOut(.{});
+}
+
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
 pub fn build(b: *std.Build) void {
+    // ── version module (generated at build time) ──────────────────
+    const version_path = generateVersion(b);
+    const version_mod = b.createModule(.{
+        .root_source_file = version_path,
+    });
+
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -43,6 +55,8 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+
+    exe.root_module.addImport("version", version_mod);
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -83,6 +97,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
+    run_unit_tests.cwd = b.path("."); // tests access project files (e.g. bin/, untracked/)
 
     // Similar to creating the run step earlier, this exposes a `test` step to
     // the `zig build --help` menu, providing a way for the user to request
@@ -147,6 +162,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    engine_vs_engine_exe.root_module.addImport("version", version_mod);
     b.installArtifact(engine_vs_engine_exe);
 
     // ── chainability audit ─────────────────────────────────────────
@@ -160,6 +176,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    chainability_exe.root_module.addImport("version", version_mod);
     b.installArtifact(chainability_exe);
 
     // ── reachable ko-sensitivity census ────────────────────────────
@@ -175,6 +192,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    reachcensus_exe.root_module.addImport("version", version_mod);
     b.installArtifact(reachcensus_exe);
 
     // ── claim-register linter ──────────────────────────────────────
@@ -190,6 +208,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    claimlint_exe.root_module.addImport("version", version_mod);
     b.installArtifact(claimlint_exe);
 
     // ── absorption tool ────────────────────────────────────────────
@@ -204,6 +223,7 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
+    absorb_exe.root_module.addImport("version", version_mod);
     absorb_exe.root_module.addImport("claims_register", b.createModule(.{
         .root_source_file = b.path("src/claims_register.zig"),
         .target = target,
@@ -233,6 +253,7 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
+    managent_exe.root_module.addImport("version", version_mod);
     b.installArtifact(managent_exe);
 
     // ── verify-battery (M1 harness, T168) ──────────────────────────
@@ -245,6 +266,7 @@ pub fn build(b: *std.Build) void {
             .link_libc = true,
         }),
     });
+    verify_battery_exe.root_module.addImport("version", version_mod);
     b.installArtifact(verify_battery_exe);
 
     // ── oracle-v2 builder (M2b, T165) ─────────────────────────────
@@ -256,5 +278,24 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    oracle_v2_build_exe.root_module.addImport("version", version_mod);
     b.installArtifact(oracle_v2_build_exe);
+
+    // ── GTP oracle player (T263) ──────────────────────────────────
+    const gtp_exe = b.addExecutable(.{
+        .name = "weizigo-gtp",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/gtp.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    gtp_exe.root_module.addImport("version", version_mod);
+    b.installArtifact(gtp_exe);
+
+    // ── deploy weizigo-gtp to bin/ ────────────────────────────────
+    const gtp_deploy = b.addSystemCommand(&.{ "cp", "zig-out/bin/weizigo-gtp", "bin/weizigo-gtp" });
+    gtp_deploy.step.dependOn(b.getInstallStep());
+    const deploy_gtp_step = b.step("deploy-gtp", "Copy weizigo-gtp to bin/");
+    deploy_gtp_step.dependOn(&gtp_deploy.step);
 }
