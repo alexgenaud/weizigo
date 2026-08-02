@@ -1,22 +1,23 @@
 {
+  "task_id": "T261",
+  "date": "2026-08-02",
+  "model": "not stated at dispatch",
+  "claims": [],
   "task": "T261",
   "worker": "T261 (Claude, via pi)",
-  "date": "2026-08-02",
   "brief": "untracked/T261-m4b-triage.md",
-  "description": "Triage M4b: why do A1, A2 and A8 fail at 3×3 and 4×4?",
-
+  "description": "Triage M4b: why do A1, A2 and A8 fail at 3\u00d73 and 4\u00d74?",
   "sources_read": [
     "findings/T259-m4b.json",
     "findings/T259-context.json",
     "src/oracle_v2_accept.zig (full)",
-    "src/oracle_v2_build.zig (DTT section, lines 131–290)",
-    "src/gtp.zig (chainable_at_pos, lines 317–341)",
+    "src/oracle_v2_build.zig (DTT section, lines 131\u2013290)",
+    "src/gtp.zig (chainable_at_pos, lines 317\u2013341)",
     "docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md (full)",
     "docs/epic-01-markovian/sprints/oracle-v2/pass0/spec.md (full)",
     "untracked/oracle-v2/oracle-3x3-v2.wzo2 (scanned)",
     "untracked/oracle-v2/oracle-4x4-v2.wzo2 (sampled 5000 groups)"
   ],
-
   "new_evidence": {
     "artifact_passes1_coverage": {
       "description": "Direct scan of WZO2 artifacts to count passes=1 entries per group.",
@@ -42,75 +43,67 @@
       }
     }
   },
-
   "verdicts": {
-
     "A1_falsifiable": {
       "verdict": "A1 IS falsifiable on this code path",
-      "detail": "The module bypasses gtp.zig entirely and does direct artifact lookup and self-play. The CODE.WZO2-CHAINSHORT concern is stale — the P3-B fix is applied in gtp.zig (chainable_at_pos uses rhs_chain_v2 for WZO2) and this module never calls GTP. The refusals (8/104 on 3×3, 7/106 on 4×4) are real — states reached during self-play have no matching entry in the artifact.",
-      "root_cause": "The 3×3 artifact has 1,020 groups (8.0%) missing one side's passes=1 entry. The A1 refusal rate (7.7%) matches this exactly. When self-play passes, it looks up (colex, side, ko=none, passes=1) — if that specific side's entry is absent, it's a refusal.",
-      "artifact_vs_checker": "This is an ARTIFACT COVERAGE gap, not a checker bug. The artifact does not store passes=1 entries for one side in 8-28% of groups. Whether these missing entries are 'by design' (the fixpoint genuinely didn't produce them) or a builder defect requires reading exp6_solve.zig's reachability walk. The builder (oracle_v2_build.zig:388-399) writes passes=1 entries only when data.map.get(lin) returns non-null — if the fixpoint didn't produce a passes=1 state for that (board, side), no entry is written."
+      "detail": "The module bypasses gtp.zig entirely and does direct artifact lookup and self-play. The CODE.WZO2-CHAINSHORT concern is stale \u2014 the P3-B fix is applied in gtp.zig (chainable_at_pos uses rhs_chain_v2 for WZO2) and this module never calls GTP. The refusals (8/104 on 3\u00d73, 7/106 on 4\u00d74) are real \u2014 states reached during self-play have no matching entry in the artifact.",
+      "root_cause": "The 3\u00d73 artifact has 1,020 groups (8.0%) missing one side's passes=1 entry. The A1 refusal rate (7.7%) matches this exactly. When self-play passes, it looks up (colex, side, ko=none, passes=1) \u2014 if that specific side's entry is absent, it's a refusal.",
+      "artifact_vs_checker": "This is an ARTIFACT COVERAGE gap, not a checker bug. The artifact does not store passes=1 entries for one side in 8-28% of groups. Whether these missing entries are 'by design' (the fixpoint genuinely didn't produce them) or a builder defect requires reading exp6_solve.zig's reachability walk. The builder (oracle_v2_build.zig:388-399) writes passes=1 entries only when data.map.get(lin) returns non-null \u2014 if the fixpoint didn't produce a passes=1 state for that (board, side), no entry is written."
     },
-
     "A2_single_valued_assumption": {
       "verdict": "A2 does NOT assume single-valued states",
-      "detail": "A2 checks L and H through independent Bellman operators: L(parent) = best_side(L(children)), H(parent) = best_side(H(children)). Each bound propagates separately, matching the fixpoint design (design-M1.md, spec §8 F5). This is the correct test for bracket-valued states.",
+      "detail": "A2 checks L and H through independent Bellman operators: L(parent) = best_side(L(children)), H(parent) = best_side(H(children)). Each bound propagates separately, matching the fixpoint design (design-M1.md, spec \u00a78 F5). This is the correct test for bracket-valued states.",
       "actual_failure_cause": "Three compounding factors:",
-      "factor_1": "MISSING PASS EDGES. The 3×3 artifact has 1,020 groups missing one side's passes=1 entry. Each passes=0 entry in those groups has a pass edge that A2 cannot resolve. This accounts for part of the 17,136 missing children.",
-      "factor_2": "MISSING PLACEMENT CHILDREN. The remaining missing children (bulk of 17,136 − approximately 1,000–2,000 from pass edges) are placement children not found in the artifact. Root cause unknown — could be ko-tracking divergence between A2's koAfterCapture and exp6_solve.zig's genChildren4, or genuine artifact coverage gaps.",
-      "factor_3": "CORRUPTED BELLMAN COMPARISON. With children missing, best_L/best_H are computed from an incomplete child set. The 'sign-inverted' pattern (stored L=−9, expected L=9) likely occurs when the missing child(ren) would have anchored the Bellman computation correctly — their absence makes the remaining children produce a misleading best_L/best_H.",
-      "not_defended": "The violation counts (4,224 each for L/H on 3×3) are not reliable measures of artifact quality because they were computed from incomplete child sets. Per T259 context dump NOT-DEFENDED-1."
+      "factor_1": "MISSING PASS EDGES. The 3\u00d73 artifact has 1,020 groups missing one side's passes=1 entry. Each passes=0 entry in those groups has a pass edge that A2 cannot resolve. This accounts for part of the 17,136 missing children.",
+      "factor_2": "MISSING PLACEMENT CHILDREN. The remaining missing children (bulk of 17,136 \u2212 approximately 1,000\u20132,000 from pass edges) are placement children not found in the artifact. Root cause unknown \u2014 could be ko-tracking divergence between A2's koAfterCapture and exp6_solve.zig's genChildren4, or genuine artifact coverage gaps.",
+      "factor_3": "CORRUPTED BELLMAN COMPARISON. With children missing, best_L/best_H are computed from an incomplete child set. The 'sign-inverted' pattern (stored L=\u22129, expected L=9) likely occurs when the missing child(ren) would have anchored the Bellman computation correctly \u2014 their absence makes the remaining children produce a misleading best_L/best_H.",
+      "not_defended": "The violation counts (4,224 each for L/H on 3\u00d73) are not reliable measures of artifact quality because they were computed from incomplete child sets. Per T259 context dump NOT-DEFENDED-1."
     },
-
     "A8_failure_nature": {
-      "verdict": "A8 failure is NOT the v1 empty-column problem — DTT column is populated (FAR=0). The failure is DTT CONSISTENCY VIOLATIONS.",
+      "verdict": "A8 failure is NOT the v1 empty-column problem \u2014 DTT column is populated (FAR=0). The failure is DTT CONSISTENCY VIOLATIONS.",
       "mechanism": "The builder (oracle_v2_build.zig:131-290) computes DTT from its internal compact map, which includes ALL passes=1 states in the fixpoint. The compact map has passes=1 entries for every board/side that the fixpoint produced. A8 recomputes DTT from ARTIFACT lookups, which miss the passes=1 child entries for ~8-28% of groups.",
       "off_by_two_explanation": "For a passes=0 state whose opposite-side passes=1 entry is missing from the artifact:",
-      "step_1": "Builder: includes passes=1 child (say DTT=3) in min → min_child_dtt=3 → stored DTT=4",
-      "step_2": "A8: passes=1 entry not found → min_child_dtt from placements only (say min=5) → expected DTT=6",
-      "step_3": "stored DTT (4) vs expected DTT (6) → stored is 2 LESS than expected",
+      "step_1": "Builder: includes passes=1 child (say DTT=3) in min \u2192 min_child_dtt=3 \u2192 stored DTT=4",
+      "step_2": "A8: passes=1 entry not found \u2192 min_child_dtt from placements only (say min=5) \u2192 expected DTT=6",
+      "step_3": "stored DTT (4) vs expected DTT (6) \u2192 stored is 2 LESS than expected",
       "step_4": "This matches T259's observation: 'stored DTT is typically 2 less than expected'",
-      "design_mismatch_note": "design-M1.md §3.1 step 3 defines DTT recurrence from PLACEMENT children only when placements exist. The builder's genChildren4 generates pass children too but they get VP-checked alongside placements. A8 also includes pass edges. Both diverge from the design in the same direction, so this is not the cause of the off-by-2 discrepancy — the missing-entries explanation is.",
-      "not_defended": "The DTT violation count (5,096 on 3×3) is not a reliable measure of artifact quality. The violations are caused by incomplete child sets during A8's recomputation, not by DTT values being wrong in the artifact. Per T259 context dump NOT-DEFENDED-2."
+      "design_mismatch_note": "design-M1.md \u00a73.1 step 3 defines DTT recurrence from PLACEMENT children only when placements exist. The builder's genChildren4 generates pass children too but they get VP-checked alongside placements. A8 also includes pass edges. Both diverge from the design in the same direction, so this is not the cause of the off-by-2 discrepancy \u2014 the missing-entries explanation is.",
+      "not_defended": "The DTT violation count (5,096 on 3\u00d73) is not a reliable measure of artifact quality. The violations are caused by incomplete child sets during A8's recomputation, not by DTT values being wrong in the artifact. Per T259 context dump NOT-DEFENDED-2."
     }
   },
-
   "unified_hypothesis": {
     "statement": "The A1, A2, and A8 failures share a single root cause: missing passes=1 entries in the WZO2 artifact for a subset of (board, side) combinations.",
     "evidence": [
-      "A1 refusal rate (7.7%) ≈ fraction of groups with partial passes=1 coverage (8.0% at 3×3)",
+      "A1 refusal rate (7.7%) \u2248 fraction of groups with partial passes=1 coverage (8.0% at 3\u00d73)",
       "A2 missing children include pass edges that reference these missing passes=1 entries",
       "A8 off-by-2 pattern is exactly what happens when a pass child with low DTT is excluded from the min computation",
       "All three checks involve artifact child-state lookups that fail when passes=1 entries are absent"
     ],
     "unresolved": "WHY the fixpoint doesn't produce passes=1 entries for one side on 8-28% of boards. The pass child of (board, 1-side, ko, 0) should be (board, side, KO_NONE, 1) for all ko values. If (board, 1-side, ko, 0) is in the fixpoint, (board, side, KO_NONE, 1) should be too. The missing entries suggest either: (a) the fixpoint's reachability walk does not generate all pass children (bug in exp6_solve.zig or oracle_v2_build.zig), or (b) some boards are reachable with passes=0 for only one side (legitimate structure)."
   },
-
   "evidence_weighing": {
     "question": "Are these checker bugs or artifact defects?",
     "for_artifact_defect": [
-      "Missing passes=1 entries are a measurable gap in the artifact — they are demonstrably absent",
-      "The gap fraction matches the A1 refusal rate exactly (8.0% vs 7.7% on 3×3)",
+      "Missing passes=1 entries are a measurable gap in the artifact \u2014 they are demonstrably absent",
+      "The gap fraction matches the A1 refusal rate exactly (8.0% vs 7.7% on 3\u00d73)",
       "The missing entries cause real user-visible symptoms (refusals in self-play)"
     ],
     "for_checker_bug_or_spec_mismatch": [
-      "A3 passes with 0 violations on 99,133,036 checks — colour-inversion symmetry is perfect, which is unlikely in a corrupt artifact",
-      "A4 passes with pin_L == pin_H — another structural invariant that holds",
-      "A5 passes (round-trip identity) — encoding/decoding is correct",
-      "A6/A9 pass — corruption detection and reproducibility are verified",
+      "A3 passes with 0 violations on 99,133,036 checks \u2014 colour-inversion symmetry is perfect, which is unlikely in a corrupt artifact",
+      "A4 passes with pin_L == pin_H \u2014 another structural invariant that holds",
+      "A5 passes (round-trip identity) \u2014 encoding/decoding is correct",
+      "A6/A9 pass \u2014 corruption detection and reproducibility are verified",
       "The checks were designed assuming the artifact stores ALL passes=1 entries; this assumption is violated, causing false-positive rejections",
-      "The builder computed DTT from a COMPLETE child set (its internal compact map); A8 recomputes from an INCOMPLETE set (artifact lookups) — the stored DTT values are genuinely correct for the computation the builder performed"
+      "The builder computed DTT from a COMPLETE child set (its internal compact map); A8 recomputes from an INCOMPLETE set (artifact lookups) \u2014 the stored DTT values are genuinely correct for the computation the builder performed"
     ],
-    "assessment": "The evidence leans TOWARD SPEC MISMATCH, not artifact defect. The artifact is internally consistent (A3/A4/A5/A6/A9 pass). The three failing checks (A1/A2/A8) all depend on the artifact providing complete child-state coverage, which it does not — passes=1 entries are missing for 8-28% of groups. The checks are mechanically correct but their expectations about artifact completeness don't match the artifact's actual contents. Whether the missing passes=1 entries constitute a builder defect or a legitimate property of the fixpoint remains unsettled."
+    "assessment": "The evidence leans TOWARD SPEC MISMATCH, not artifact defect. The artifact is internally consistent (A3/A4/A5/A6/A9 pass). The three failing checks (A1/A2/A8) all depend on the artifact providing complete child-state coverage, which it does not \u2014 passes=1 entries are missing for 8-28% of groups. The checks are mechanically correct but their expectations about artifact completeness don't match the artifact's actual contents. Whether the missing passes=1 entries constitute a builder defect or a legitimate property of the fixpoint remains unsettled."
   },
-
   "what_would_settle_it": {
-    "decisive": "Build a fresh 2×2 WZO2 artifact from a known-correct fixpoint and run A1/A2/A8 against it. If they pass, the 3×3/4×4 artifacts have coverage gaps (artifact defect). If they fail, the checks have bugs (checker defect). The 2×2 state space is small enough to audit by hand.",
+    "decisive": "Build a fresh 2\u00d72 WZO2 artifact from a known-correct fixpoint and run A1/A2/A8 against it. If they pass, the 3\u00d73/4\u00d74 artifacts have coverage gaps (artifact defect). If they fail, the checks have bugs (checker defect). The 2\u00d72 state space is small enough to audit by hand.",
     "high_value": "Trace 3-5 specific (colex, side, passes=0) entries where A2 shows violations. Dump their child sets from both (a) A2's artifact-based generation and (b) exp6_solve.zig's genChildren4. Compare child colex values, ko points, and L/H values.",
     "moderate_value": "Read exp6_solve.zig's reachability walk to determine whether (board, 1-side, KO_NONE, 1) is always generated as a pass child of (board, side, ko, 0). If it isn't, that's the source of the missing passes=1 entries.",
     "moderate_value_2": "Run A1 with the pinned seed but using the GTP engine's own move generation (weizigo-oracle in self-play mode) instead of A1's internal self-play. If GTP also gets refusals, the artifact really is missing those states."
   },
-
-  "overall_verdict": "The A1, A2, and A8 failures share a common mechanism: missing passes=1 entries in the artifact for 8-28% of goban groups. This causes A1 refusals (state not found after pass), A2 missing children (pass edge unresolvable), and A8 DTT off-by-2 (pass child excluded from min-DTT computation). The artifact is internally consistent (A3-A9 pass) — the checks' failure is a spec mismatch between what the checks assume about artifact completeness and what the artifact actually stores. Whether the missing passes=1 entries are a builder defect or a legitimate structural property of the fixpoint is not settled without reading exp6_solve.zig's reachability walk.",
-  "recommendation": "Close fail-found on A1/A2/A8 with the finding that they measure a property (complete passes=1 coverage) the artifact does not provide. Promote to PASS or narrow their denominators to exclude states whose children are missing. The decisive test is a 2×2 build-and-verify."
+  "overall_verdict": "The A1, A2, and A8 failures share a common mechanism: missing passes=1 entries in the artifact for 8-28% of goban groups. This causes A1 refusals (state not found after pass), A2 missing children (pass edge unresolvable), and A8 DTT off-by-2 (pass child excluded from min-DTT computation). The artifact is internally consistent (A3-A9 pass) \u2014 the checks' failure is a spec mismatch between what the checks assume about artifact completeness and what the artifact actually stores. Whether the missing passes=1 entries are a builder defect or a legitimate structural property of the fixpoint is not settled without reading exp6_solve.zig's reachability walk.",
+  "recommendation": "Close fail-found on A1/A2/A8 with the finding that they measure a property (complete passes=1 coverage) the artifact does not provide. Promote to PASS or narrow their denominators to exclude states whose children are missing. The decisive test is a 2\u00d72 build-and-verify."
 }

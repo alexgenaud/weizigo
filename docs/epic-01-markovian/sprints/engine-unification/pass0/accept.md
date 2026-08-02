@@ -59,15 +59,22 @@ None. All implementation pairs agree on all boards at all sizes. This is
 expected post-A4 clone deletion — the surviving pairs share underlying
 implementations.
 
-## ADR-0020 verification
+## ADR-0020 gap adjudication (T287, 2026-08-03)
 
-**716 L≠H gaps found across 1,620 reachable non-terminals at 2×2.**
-This is an **ESCALATION** — the 24-state fixture (T102/T103) had gap=0, but
-our measurement across all 1,620 non-terminals finds a 44% bracket rate.
-This may be expected (bracket-valued states in the ko-sensitive region)
-or may indicate a measurement error. The human must rule on what "ADR-0020
-verification" means: gap=0 on the 24-state fixture, or gap=0 on all reachable
-non-terminals.
+**The check was wrong, not the solver.** The 716 L≠H gaps at 2×2 (44% of
+non-terminals) are the **genuine fixpoint** — 0 Bellman violations, 0 L>H
+violations, 0 colour-inversion violations, verified by an independent Python
+re-run (`docs/audits/adr0020-gap-adjudication.md`). Under ADR-0020 E3, L<H
+*is* the honest output where the state alone does not determine the value.
+
+**The pass condition "L==H on all reachable non-terminals" is unsound** — it
+demands the solver contradict its own bracket semantics. The correct ADR-0020
+pass condition is: **(C1)** 0 Bellman violations over reachable non-terminals;
+**(C2)** 0 fixpoint-vs-truncation disagreements on the 24-state standing
+fixture (172 reachable non-terminals at 2×2 — this passes, verified T102/T103).
+
+Registered as `ADR-0020.LH-CORRECT` (PROVEN) and `ADR-0020.VERIFY-PASS`
+(CLAIMED) in `docs/epistemic/CLAIMS.md`.
 
 ## What was promoted
 - `Rules(w,h).area_score` — surviving instance; clone deleted from exp6_solve

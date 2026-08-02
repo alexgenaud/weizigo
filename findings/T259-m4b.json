@@ -1,8 +1,11 @@
 {
+  "task_id": "T259",
+  "date": "2026-08-02",
+  "model": "not stated at dispatch",
+  "claims": [],
   "task": "T259",
   "description": "oracle-v2 M4b acceptance checks A1, A2, A4, A8",
   "worker": "T259",
-  "date": "2026-08-02",
   "artifacts": {
     "3x3": "untracked/oracle-v2/oracle-3x3-v2.wzo2",
     "4x4": "untracked/oracle-v2/oracle-4x4-v2.wzo2"
@@ -13,44 +16,107 @@
       "status_3x3": "FAIL",
       "status_4x4": "FAIL",
       "seed": "0x000057A14E270D97",
-      "result_3x3": {"queries": 104, "refusals": 8, "games": 8, "max_plies": 24},
-      "result_4x4": {"queries": 106, "refusals": 7, "games": 7, "max_plies": 23},
+      "result_3x3": {
+        "queries": 104,
+        "refusals": 8,
+        "games": 8,
+        "max_plies": 24
+      },
+      "result_4x4": {
+        "queries": 106,
+        "refusals": 7,
+        "games": 7,
+        "max_plies": 23
+      },
       "note": "Refusals are (colex, side, ko) states reached during PRNG self-play that have no entry in the artifact. Self-play uses only legal basic-ko moves via Rules.pos_from_move. These states should be in the artifact if it covers all reachable states."
     },
     "A2": {
       "description": "Post-round-trip Bellman residual",
       "status_3x3": "FAIL",
       "status_4x4": "NOT_RUN",
-      "result_3x3": {"checked": 49428, "L_violations": 4224, "H_violations": 4224, "missing_child": 17136, "stride": 1, "denominator": 49428},
+      "result_3x3": {
+        "checked": 49428,
+        "L_violations": 4224,
+        "H_violations": 4224,
+        "missing_child": 17136,
+        "stride": 1,
+        "denominator": 49428
+      },
       "note": "A2 finds Bellman fixpoint violations on the 3x3 artifact. Stored L/H values are systematically sign-inverted relative to expected Bellman values. 17136 missing children suggests many child states don't have entries in the artifact. The same pattern likely exists at 4x4 (not run due to wall-clock cost at stride=997)."
     },
     "A4": {
       "description": "Pin census (L==H, pin_L, pin_H)",
       "status_3x3": "PASS",
       "status_4x4": "PASS",
-      "result_3x3": {"total": 49428, "pin_T": 44020, "pin_L": 2080, "pin_H": 2080, "pin_0": 1248, "pin_LH_ok": true},
-      "result_4x4": {"total": 99133036, "pin_T": 95677624, "pin_L": 1280098, "pin_H": 1280098, "pin_0": 895216, "pin_LH_ok": true},
+      "result_3x3": {
+        "total": 49428,
+        "pin_T": 44020,
+        "pin_L": 2080,
+        "pin_H": 2080,
+        "pin_0": 1248,
+        "pin_LH_ok": true
+      },
+      "result_4x4": {
+        "total": 99133036,
+        "pin_T": 95677624,
+        "pin_L": 1280098,
+        "pin_H": 1280098,
+        "pin_0": 895216,
+        "pin_LH_ok": true
+      },
       "note": "pin_L == pin_H at both gobans. Colour-inversion symmetry holds."
     },
     "A8": {
       "description": "DTT non-constant, consistency, distribution",
       "status_3x3": "FAIL",
       "status_4x4": "FAIL",
-      "result_3x3": {"total": 49428, "far": 0, "non_constant": true, "dtt_terminal_errs": 0, "dtt_consistency_checked": 49428, "dtt_violations": 5096, "dtt_stride": 1, "dist": [0, 25500, 23928, 0, 0, 0]},
-      "result_4x4": {"total": 99133036, "far": 0, "non_constant": true, "dtt_terminal_errs": 0, "dtt_consistency_checked": 49592, "dtt_violations": 2672, "dtt_stride": 1999, "dist": [0, 23119236, 76013400, 400, 0, 0]},
+      "result_3x3": {
+        "total": 49428,
+        "far": 0,
+        "non_constant": true,
+        "dtt_terminal_errs": 0,
+        "dtt_consistency_checked": 49428,
+        "dtt_violations": 5096,
+        "dtt_stride": 1,
+        "dist": [
+          0,
+          25500,
+          23928,
+          0,
+          0,
+          0
+        ]
+      },
+      "result_4x4": {
+        "total": 99133036,
+        "far": 0,
+        "non_constant": true,
+        "dtt_terminal_errs": 0,
+        "dtt_consistency_checked": 49592,
+        "dtt_violations": 2672,
+        "dtt_stride": 1999,
+        "dist": [
+          0,
+          23119236,
+          76013400,
+          400,
+          0,
+          0
+        ]
+      },
       "note": "DTT is non-constant at both gobans (range 1-64 on 3x3, 1-64 on 4x4). DTT consistency (1 + min_child_DTT == parent_DTT) shows systematic violations: stored DTT is typically 2 less than expected, suggesting the artifact's DTT computation may exclude pass edges or use a different value-preserving definition."
     }
   },
   "dtt_column_validated": {
     "verdict": "DTT column contains real data (not the v1 empty column of all-255)",
-    "detail": "I7 fleet run found v1 DTT uniformly 255 (never populated). Both WZO2 artifacts validated here have FAR=0: 3x3 dist [1..4]=25500 [5..16]=23928; 4x4 dist [1..4]=23119236 [5..16]=76013400 [17..64]=400. A8 measures a populated column — passing would be meaningful (it fails)."
+    "detail": "I7 fleet run found v1 DTT uniformly 255 (never populated). Both WZO2 artifacts validated here have FAR=0: 3x3 dist [1..4]=25500 [5..16]=23928; 4x4 dist [1..4]=23119236 [5..16]=76013400 [17..64]=400. A8 measures a populated column \u2014 passing would be meaningful (it fails)."
   },
   "CODE_WZO2_CHAINSHORT": {
-    "verdict": "RESOLVED — not an issue for this module",
-    "detail": "The brief warned the WZO2 GTP path may short-circuit chainability to true. Inspection of gtp.zig shows chainable_at_pos (P3-B fix, line ~330) properly checks the Markov-key Bellman identity for WZO2 artifacts — no short-circuit. Additionally, this module does its own direct artifact lookup and self-play, bypassing gtp.zig entirely. A1 IS falsifiable: it correctly detects refusals on both artifacts."
+    "verdict": "RESOLVED \u2014 not an issue for this module",
+    "detail": "The brief warned the WZO2 GTP path may short-circuit chainability to true. Inspection of gtp.zig shows chainable_at_pos (P3-B fix, line ~330) properly checks the Markov-key Bellman identity for WZO2 artifacts \u2014 no short-circuit. Additionally, this module does its own direct artifact lookup and self-play, bypassing gtp.zig entirely. A1 IS falsifiable: it correctly detects refusals on both artifacts."
   },
   "encodeKeyByte_divergence": {
     "found": true,
-    "detail": "artifact2.zig encodeKeyByte takes passes: u1, terminal: u1. This module takes passes: u2, terminal: bool. Bit layout is identical — the type difference is cosmetic. Key byte decode functions differ similarly but produce identical results (verified by A5 round-trip passing on all artifacts)."
+    "detail": "artifact2.zig encodeKeyByte takes passes: u1, terminal: u1. This module takes passes: u2, terminal: bool. Bit layout is identical \u2014 the type difference is cosmetic. Key byte decode functions differ similarly but produce identical results (verified by A5 round-trip passing on all artifacts)."
   }
 }

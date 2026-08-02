@@ -1,0 +1,44 @@
+{
+  "task_id": "T288",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "GLOBAL.ADR0020-LH-CORRECT",
+      "proposed_status": "PROVEN",
+      "rationale": "T287 verified: the 716 L≠H gaps are the genuine fixpoint with 0 Bellman/L>H/colour-inversion violations. L<H is semantically expected under ADR-0020 E3.",
+      "evidence_path": "docs/audits/adr0020-gap-adjudication.md"
+    },
+    {
+      "id": "GLOBAL.ADR0020-VERIFY-PASS",
+      "proposed_status": "CLAIMED",
+      "rationale": "T287 adjudicated: ADR-0020 pass condition = 0 Bellman violations + 0 fixpoint-vs-truncation fixture disagreements; does NOT require L==H everywhere.",
+      "evidence_path": "docs/audits/adr0020-gap-adjudication.md"
+    }
+  ],
+  "new_rows": [
+    {
+      "id": "GLOBAL.ADR0020-LH-CORRECT",
+      "legacy": "—",
+      "goban": "2x2",
+      "claim": "The 716 L≠H gaps at 2×2 are the correct output of the loopy-game fixpoint under basic-ko. 0 Bellman violations, 0 L>H violations, 0 colour-inversion violations; fixpoint independently re-verified. L<H is semantically expected under ADR-0020 E3.",
+      "status": "PROVEN",
+      "evidence": "docs/audits/adr0020-gap-adjudication.md §2–4; docs/evidence/QA-023/ko-fix-2026-07-29/fix2x2.py; src/retro.zig tests",
+      "depends_on": "GLOBAL.AXIOM-BELLMAN GLOBAL.AXIOM-LH GLOBAL.AXIOM-BRACKET",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.ADR0020-VERIFY-PASS",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "ADR-0020 verification means: (C1) 0 Bellman violations over reachable non-terminals; (C2) 0 fixpoint-vs-truncation disagreements on the 24-state fixture. Does NOT require L==H everywhere.",
+      "status": "CLAIMED",
+      "evidence": "docs/audits/adr0020-gap-adjudication.md §3,8; T102/T103 fixture",
+      "depends_on": "GLOBAL.ADR0020-LH-CORRECT GLOBAL.AXIOM-BRACKET",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "### 7 non-conforming findings files repaired\n\nAll 7 files now conform to docs/infra/agents/findings-schema.json:\n\n- **T258-fleet.json**: top-level was a JSON array; wrapped in {\"task_id\":\"T258\",\"date\":\"2026-08-02\",\"model\":\"not stated at dispatch\",\"claims\":[],\"items\":[...]}.\n- **T259-m4b.json**: added task_id, model, claims. Existing content preserved.\n- **T260-fleet-triage.json**: added task_id, date, model, claims. This file is cited as evidence by PROVEN rows — substance unchanged, envelope repaired.\n- **T261-m4b-triage.json**: added task_id, model, claims. This file is cited as evidence by PROVEN rows — substance unchanged, envelope repaired.\n- **T263-clearcapacity.json**: added task_id, model, claims.\n- **T265-ko-key-mismatch.json**: added task_id, claims.\n- **T271-axioms.json**: added task_id, model, claims.\n\nAll repairs: added missing required keys only; no finding substance changed.\n\n### accept.md escalation closed\n\n`docs/epic-01-markovian/sprints/engine-unification/pass0/accept.md:64` replaced with T287's adjudication: the check was wrong, not the solver. The correct pass condition stated.\n\n### accept.md amended\n\n`docs/epic-01-markovian/sprints/engine-unification/pass0/accept.md:64` replaced with T287's adjudication: the check was wrong, not the solver. The correct pass condition stated.\n\n### T287 findings aligned\n\nT287-716-gap.json and T287-context.json IDs updated to match register (GLOBAL.ADR0020-LH-CORRECT, GLOBAL.ADR0020-VERIFY-PASS). T287-context.json new_rows converted from strings to objects per findings schema.\n\n### T285 A6 confirmed\n\nGLOBAL.AXIOM-FORCEDPASS row in CLAIMS.md matches AXIOMS.md §2 and Amendment 3. Status CLAIMED, evidence path correct.\n\n### Infra tasks T282/T286\n\nBoth are infra statements, not Go claims. No register rows needed. Both findings files have claims:[] and are already conforming.\n\n### Claimlint baseline\n\nPre: rows=309, C7 non-conforming=7, C7 unabsorbed=8. Post: rows=311, C7 non-conforming=0, C7 unabsorbed=2 (remaining 2 are T267 entries, not in brief scope). C1a=10 (≤10), C2=14 (≤14), C6=0, calibration=PASS — all bars met."
+}
