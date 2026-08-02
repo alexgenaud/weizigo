@@ -13,7 +13,12 @@
 #      outside (your declared scope ∪ the named paths), and refuses otherwise,
 #      naming the foreign paths — T268's exact incident is the seeded fixture;
 #   3. commits with plain `git commit` only after the index has been verified;
-#   4. verifies the resulting commit contains exactly the named paths.
+#   4. verifies the resulting commit contains exactly the named paths — and
+#      distinguishes the three cases (T282 defect 1): path committed by THIS
+#      invocation; path already committed and unchanged (a healthy no-op,
+#      reported as such, NOT a failure); path genuinely missing (a real
+#      failure). A wrapper that cries failure on a healthy commit trains
+#      people to ignore it.
 #
 # Identity (who is committing, and therefore what scope) resolves from, in
 # order: `--task <id>`, `--bundle <file>`, $MANAGENT_TASK_ID. Without identity
@@ -24,12 +29,18 @@
 # Scope for a task = its bundle's `deliverables=` meta header, plus its own
 # findings files (findings/<id>-*.json), plus the two fleet-coordination
 # surfaces any worker may legitimately touch (docs/status/CURRENT.md,
-# docs/status/HANDOVER.md).
+# docs/status/HANDOVER.md). Scope resolution lives in
+# tools/git-commit-mine-lib.sh, shared with the pre-commit backstop (T282) —
+# one implementation, two callers.
+#
+# Explicit-mode commits export GIT_MINE_EXPLICIT=1 so the pre-commit backstop
+# treats them as the wrapper-took-responsibility case (warn-and-allow), not a
+# scope violation — the wrapper already refused/limited the commit on the way in.
 #
 # Usage:
 #   tools/git-commit-mine <paths...> -m <message> [--task <id> | --bundle <f> | --explicit]
 #
-# Task: T278 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-02
+# Task: T278 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-02 (T282 follow-up 2026-08-03)
 
 set -u
 
@@ -37,6 +48,19 @@ REPO=$(git rev-parse --show-toplevel 2>/dev/null) || {
     echo "git-commit-mine: not inside a git repo" >&2
     exit 2
 }
+
+# Scope resolution is shared with the pre-commit backstop (T282) — the lib
+# ships next to this script; the target repo may be a scratch repo, so never
+# resolve it relative to REPO.
+LIB_DIR="$(cd "$(dirname "$0")" && pwd)"
+LIB="$LIB_DIR/git-commit-mine-lib.sh"
+if [ -f "$LIB" ]; then
+    # shellcheck disable=SC1090
+    source "$LIB"
+else
+    echo "git-commit-mine: REFUSED — $LIB missing (the wrapper and its scope lib ship together in tools/)" >&2
+    exit 2
+fi
 
 # ── parse args ────────────────────────────────────────────────────────────
 PATHS=()
@@ -80,22 +104,10 @@ declare_scope() {  # add a path to the scope
 
 SCOPE_SOURCE=""
 if [ -n "$TASK_ID" ]; then
-    BUNDLE_PATH=$(python3 - "$REPO" "$TASK_ID" <<'PYEOF'
-import json, sys
-repo, tid = sys.argv[1], sys.argv[2]
-try:
-    d = json.load(open(repo + "/docs/infra/managent/tasks.json"))
-except Exception:
-    sys.exit(2)
-t = d.get(tid)
-if not t:
-    sys.exit(3)
-print(t.get("bundle") or "")
-PYEOF
-) || {
-    echo "git-commit-mine: REFUSED — cannot resolve task $TASK_ID in the kanban" >&2
-    exit 2
-}
+    BUNDLE_PATH=$(gcm_task_bundle "$REPO" "$TASK_ID" "${MANAGENT_STORE:-}") || {
+        echo "git-commit-mine: REFUSED — cannot resolve task $TASK_ID in the kanban" >&2
+        exit 2
+    }
     SCOPE_SOURCE="task $TASK_ID (bundle: $BUNDLE_PATH)"
     if [ -n "$BUNDLE_PATH" ]; then
         BUNDLE="$REPO/$BUNDLE_PATH"
@@ -104,21 +116,13 @@ elif [ -n "$BUNDLE" ]; then
     SCOPE_SOURCE="bundle $BUNDLE"
 fi
 
-# parse deliverables= from the bundle meta header (mirrors managent's parser)
+# deliverables= from the bundle meta header — parsing lives in the shared lib
+# (tools/git-commit-mine-lib.sh, T282), so the pre-commit backstop and the
+# wrapper can never drift apart on what counts as in-scope.
 if [ -n "$BUNDLE" ] && [ -f "$BUNDLE" ]; then
-    META=$(head -1 "$BUNDLE")
-    case "$META" in
-        *"deliverables="*)
-            VAL=${META#*deliverables=}
-            VAL=${VAL%%-->*}
-            # Defect-2 truncation: value stops at " =" (e.g. " acceptance=cmd")
-            VAL=$(printf '%s' "$VAL" | sed -E 's/[[:space:]][^= ]*=.*$//')
-            while IFS= read -r p; do
-                p=$(printf '%s' "$p" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-                [ -n "$p" ] && declare_scope "$p"
-            done <<< "$(printf '%s' "$VAL" | tr ',' '\n')"
-            ;;
-    esac
+    while IFS= read -r p; do
+        declare_scope "$p"
+    done < <(gcm_bundle_deliverables "$BUNDLE")
 fi
 
 if [ -n "$TASK_ID" ]; then
@@ -150,10 +154,28 @@ git add -- "${NAMES_ABS[@]}" 2>/dev/null || {
 
 # ── verify the staged set ─────────────────────────────────────────────────
 STAGED=$(git diff --cached --name-only)
-[ -z "$STAGED" ] && {
+if [ -z "$STAGED" ]; then
+    # Nothing staged after adding the named paths. Two sub-cases (T282 defect 1):
+    # (a) every named path is already committed and unchanged — a healthy no-op;
+    #     report it as such and exit 0. Nothing is wrong; there was nothing to commit.
+    # (b) anything else — a genuine refusal.
+    ALL_CLEAN=1
+    for p in "${NAMES_REL[@]}"; do
+        if ! (git cat-file -e "HEAD:$p" 2>/dev/null && git diff --quiet HEAD -- "$p"); then
+            ALL_CLEAN=0
+            break
+        fi
+    done
+    if [ "$ALL_CLEAN" -eq 1 ]; then
+        echo "git-commit-mine: OK — nothing to commit: already committed and unchanged:"
+        for p in "${NAMES_REL[@]}"; do
+            echo "  $p"
+        done
+        exit 0
+    fi
     echo "git-commit-mine: REFUSED — nothing staged after adding the named paths." >&2
     exit 2
-}
+fi
 
 foreign() {  # is path $1 outside scope ∪ named paths?
     local p="$1" i
@@ -206,6 +228,13 @@ if [ -n "$SCOPE_SOURCE" ] && [ "$EXPLICIT" -eq 0 ]; then
 fi
 
 # ── commit ───────────────────────────────────────────────────────────────
+# Explicit-mode commits take responsibility for out-of-scope paths; the
+# pre-commit backstop (T282) must not refuse them — it treats
+# GIT_MINE_EXPLICIT=1 as the wrapper-took-responsibility case (warn-and-allow),
+# same as an unlabelled commit.
+if [ "$EXPLICIT" -eq 1 ]; then
+    export GIT_MINE_EXPLICIT=1
+fi
 # Index mode: the staged set was verified == named paths, so a plain `git
 # commit` is safe. Paths mode (foreign staged content present, explicit
 # mode): a path-limited `git commit -- <paths>` — the foreign content cannot
@@ -220,12 +249,24 @@ fi
 RC=$?
 [ "$RC" -ne 0 ] && exit "$RC"
 
-# ── verify the commit contains exactly the named paths ───────────────────
+# ── verify the commit contains exactly the named paths — three cases ─────
+# (T282 defect 1):
+#   1. path IS in the new commit            → committed by this invocation
+#   2. path not in commit but in HEAD and
+#      unchanged vs HEAD                    → already committed, nothing to
+#                                             commit — a healthy no-op, report
+#                                             as such, NOT a failure
+#   3. anything else                        → genuinely missing — a real failure
 IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
 MISSING=()
+ALREADY_COMMITTED=()
 for p in "${NAMES_REL[@]}"; do
-    if ! printf '%s\n' "$IN_COMMIT" | grep -Fxq "$p"; then
-        MISSING+=("$p")
+    if printf '%s\n' "$IN_COMMIT" | grep -Fxq "$p"; then
+        :  # case 1
+    elif git cat-file -e "HEAD:$p" 2>/dev/null && git diff --quiet HEAD -- "$p"; then
+        ALREADY_COMMITTED+=("$p")  # case 2
+    else
+        MISSING+=("$p")  # case 3
     fi
 done
 if [ "${#MISSING[@]}" -gt 0 ]; then
@@ -233,5 +274,10 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
     for m in "${MISSING[@]}"; do echo "  $m" >&2; done
     exit 1
 fi
-echo "git-commit-mine: OK — commit $(git rev-parse --short HEAD) contains exactly: ${NAMES_REL[*]}"
+if [ "${#ALREADY_COMMITTED[@]}" -gt 0 ]; then
+    echo "git-commit-mine: note — already committed and unchanged (nothing to commit for these): ${ALREADY_COMMITTED[*]}" >&2
+    echo "git-commit-mine: OK — commit $(git rev-parse --short HEAD) contains the changed paths: ${NAMES_REL[*]}"
+else
+    echo "git-commit-mine: OK — commit $(git rev-parse --short HEAD) contains exactly: ${NAMES_REL[*]}"
+fi
 exit 0

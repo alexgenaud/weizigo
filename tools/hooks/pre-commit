@@ -1,9 +1,31 @@
 #!/bin/sh
-# pre-commit hook for weizigo — blocks claimlint regressions against the
-# recorded honest-debt floor, not "green". Green is unreachable today.
+# pre-commit hook for weizigo — two gates:
+#   1. claimlint regressions against the recorded honest-debt floor, not
+#      "green" (green is unreachable today) — T272, installed by T280.
+#   2. staged-path subset backstop (T282): staged paths must be a subset of
+#      the committing task's declared deliverables ∪ its findings files ∪ the
+#      two fleet-coordination surfaces (CURRENT.md, HANDOVER.md) — scope
+#      resolved by tools/git-commit-mine-lib.sh, the SAME implementation the
+#      wrapper uses, so the two can never drift apart. Catches the T268
+#      incident class (three absorptions on 2026-08-02) for anyone who
+#      bypasses the wrapper.
+#
+#      Rulings (T282):
+#        identity known (MANAGENT_TASK_ID set, set by bin/subagent) +
+#          out-of-scope staged path  → REFUSE, naming the path
+#        identity absent (human, court seat) → warn-and-allow, paths listed
+#        identity set but unresolvable (kanban read failed / task absent)
+#          → warn-and-allow, paths listed (identity unknown = unlabelled;
+#          refusing would wedge a worker whose kanban is momentarily unreadable)
+#        wrapper --explicit commit (GIT_MINE_EXPLICIT=1) → warn-and-allow,
+#          paths listed (the wrapper took responsibility on the way in)
+#      MANAGENT_STORE is honored (scratch-kanban substrate isolation, e.g.
+#      regression tests); default is <repo>/docs/infra/managent/tasks.json.
+#
 # Installed by: git config core.hooksPath tools/hooks
 #
 # Task: T272 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-02
+# T282 backstop: 2026-08-03
 
 set -e
 
@@ -25,6 +47,70 @@ fi
 if ! test -f "$FLOOR_FILE"; then
     echo "pre-commit: $FLOOR_FILE not found — blocking commit"
     exit 1
+fi
+
+# ── gate 2: staged-path subset backstop (T282) ─────────────────────────
+# Runs before claimlint: it is cheaper and the refusal is the relevant one
+# when a foreign path is staged. Scope resolution shares the wrapper's
+# implementation (tools/git-commit-mine-lib.sh) — one copy of the parsing.
+STAGED_PATHS=$(git diff --cached --name-only 2>/dev/null || true)
+if [ -n "$STAGED_PATHS" ]; then
+    list_staged() {
+        echo "$STAGED_PATHS" | while IFS= read -r sp; do
+            [ -n "$sp" ] && echo "pre-commit:     $sp"
+        done
+    }
+    if [ -n "${MANAGENT_TASK_ID:-}" ] && [ "${GIT_MINE_EXPLICIT:-0}" != "1" ]; then
+        ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+        LIB="$ROOT/tools/git-commit-mine-lib.sh"
+        if [ ! -f "$LIB" ]; then
+            echo "pre-commit: WARNING — $LIB missing; cannot verify staged paths against task scope. Staged paths:"
+            list_staged
+        else
+            SCOPE_FILE=$(mktemp "${TMPDIR:-/tmp}/precommit-scope-XXXXXX" 2>/dev/null) || SCOPE_FILE=""
+            if [ -z "$SCOPE_FILE" ]; then
+                echo "pre-commit: WARNING — cannot create scope file; allowing. Staged paths:"
+                list_staged
+            else
+                trap 'rm -f "$SCOPE_FILE"' EXIT
+                if ! bash "$LIB" scope "$ROOT" "$MANAGENT_TASK_ID" "${MANAGENT_STORE:-}" > "$SCOPE_FILE" 2>/dev/null; then
+                    echo "pre-commit: WARNING — MANAGENT_TASK_ID=$MANAGENT_TASK_ID set but its scope cannot be resolved; allowing with staged paths listed (identity unknown = unlabelled):"
+                    list_staged
+                else
+                    VIOLATIONS=""
+                    while IFS= read -r sp; do
+                        [ -n "$sp" ] || continue
+                        if ! grep -Fxq "$sp" "$SCOPE_FILE"; then
+                            VIOLATIONS="${VIOLATIONS}${sp}
+"
+                        fi
+                    done <<EOF
+$STAGED_PATHS
+EOF
+                    if [ -n "$VIOLATIONS" ]; then
+                        echo "pre-commit: REFUSED — staged paths outside the scope of task $MANAGENT_TASK_ID:"
+                        echo "$VIOLATIONS" | while IFS= read -r vp; do
+                            [ -n "$vp" ] && echo "pre-commit:   $vp"
+                        done
+                        echo "pre-commit:   Scope = the bundle's deliverables= plus findings/<id>-*.json plus"
+                        echo "pre-commit:   docs/status/CURRENT.md, docs/status/HANDOVER.md (mirrors tools/git-commit-mine)."
+                        echo "pre-commit:   This is the T268 incident class — do NOT unstage another console's work."
+                        echo "pre-commit:   Commit through tools/git-commit-mine, or --no-verify only after reviewing"
+                        echo "pre-commit:   the listed paths yourself."
+                        exit 1
+                    fi
+                    echo "pre-commit: staged paths ⊆ scope of $MANAGENT_TASK_ID — allowed"
+                fi
+            fi
+        fi
+    else
+        if [ "${GIT_MINE_EXPLICIT:-0}" = "1" ]; then
+            echo "pre-commit: WARNING — wrapper --explicit commit (GIT_MINE_EXPLICIT=1); scope not enforced. Staged paths:"
+        else
+            echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset); unlabelled commit allowed. Staged paths:"
+        fi
+        list_staged
+    fi
 fi
 
 # ── run claimlint ──────────────────────────────────────────────────────

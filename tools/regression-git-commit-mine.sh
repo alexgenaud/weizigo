@@ -135,6 +135,85 @@ else
     FAIL=1
 fi
 
+# ── T282 arms: already-committed paths (defect 1) ───────────────────────
+# T282's defect: invoked with a path whose content was already committed by
+# an earlier commit, the wrapper reported "FAIL — commit <sha> does not
+# contain: <path>" even though nothing was wrong (nothing to commit). The
+# fix distinguishes three cases: committed by THIS invocation / already
+# committed and unchanged (healthy no-op, reported as such) / genuinely
+# missing (real failure). These two arms are the null controls for the fix;
+# the seeded control (foreign staged path refused, arm 2) is unchanged and
+# still the known-bad the wrapper catches.
+
+# arm 4 left docs/other.md staged (the wrapper staged it before the scope
+# refusal); it is the test's own file, unstage it — the foreign check would
+# otherwise refuse every arm below by design.
+git restore --staged docs/other.md 2>/dev/null || true
+
+echo "  6. T282 null: already-committed path alone reports cleanly (no-op)"
+# docs/amendment.md was committed in arm 1; re-invoking the wrapper on it
+# must be a healthy no-op, not a refusal and not a FAIL.
+COMMITS_PRE_NOOP=$(git rev-list --count HEAD)
+OUT=$("$WRAP" --bundle T268-bundle.md docs/amendment.md -m "T282 noop" 2>&1)
+RC=$?
+COMMITS_NOW=$(git rev-list --count HEAD)
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "already committed and unchanged"; then
+    echo "    PASS: RC=0, reported already-committed, no commit created ($COMMITS_PRE_NOOP->$COMMITS_NOW)"
+else
+    echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -2)"
+    FAIL=1
+fi
+
+echo "  7. T282 null: mixed — one new + one already-committed path"
+# The commit succeeds with exactly the NEW path; the already-committed path
+# is noted, never reported as FAIL. The mixed bundle declares BOTH paths so
+# the identity scope check passes — this arm exercises the verify-after
+# three-case distinction, not the scope check.
+printf '<!--managent set=B deliverables=docs/amendment3.md,docs/amendment.md-->\n' > T282-mixed-bundle.md
+echo "  amendment3" > docs/amendment3.md
+OUT=$("$WRAP" --bundle T282-mixed-bundle.md docs/amendment3.md docs/amendment.md -m "T282 mixed" 2>&1)
+RC=$?
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+if [ "$RC" -eq 0 ] && [ "$IN_COMMIT" = "docs/amendment3.md" ] && ! echo "$OUT" | grep -q "FAIL"; then
+    echo "    PASS: RC=0, commit contains exactly docs/amendment3.md, no FAIL, already-committed noted"
+else
+    echo "    FAIL: RC=$RC, commit: $IN_COMMIT, output: $(echo "$OUT" | head -3)"
+    FAIL=1
+fi
+
+# ── T282 arm: task identity through the kanban (previously untested) ─────
+# T278's controls only exercised --bundle mode; the MANAGENT_TASK_ID / kanban
+# path (which the pre-commit backstop now also relies on) was never run.
+
+echo "  8. T282 task identity: MANAGENT_TASK_ID + kanban scope"
+mkdir -p docs/infra/managent
+cat > docs/infra/managent/tasks.json <<'JSON'
+{"T282-ARM8": {"bundle": "T282-arm8-bundle.md"}}
+JSON
+printf '<!--managent set=B deliverables=docs/amendment4.md-->\n' > T282-arm8-bundle.md
+echo "  amendment4" > docs/amendment4.md
+OUT=$(MANAGENT_TASK_ID=T282-ARM8 "$WRAP" docs/amendment4.md -m "T282 task-mode" 2>&1)
+RC=$?
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+if [ "$RC" -eq 0 ] && [ "$IN_COMMIT" = "docs/amendment4.md" ]; then
+    echo "    PASS: commit $(git rev-parse --short HEAD) contains exactly docs/amendment4.md via kanban scope"
+else
+    echo "    FAIL: RC=$RC, commit: $IN_COMMIT, output: $(echo "$OUT" | head -2)"
+    FAIL=1
+fi
+
+echo "  9. T282 seeded: task identity + path outside kanban scope"
+echo "  foreign5" > docs/notdeclared.md
+OUT=$(MANAGENT_TASK_ID=T282-ARM8 "$WRAP" docs/notdeclared.md -m "no" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "docs/notdeclared.md" && echo "$OUT" | grep -qi "scope"; then
+    echo "    PASS: refused, naming docs/notdeclared.md as outside the task scope"
+    git restore --staged docs/notdeclared.md 2>/dev/null || true
+else
+    echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -1)"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-git-commit-mine: ALL CONTROLS PASSED ==="

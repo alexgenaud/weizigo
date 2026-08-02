@@ -120,6 +120,15 @@ through it at floor); the staged-path-subset backstop remains a follow-up.
 Do not `git add -A` — commit via
 `tools/git-commit-mine <paths> -m <msg>` with `MANAGENT_TASK_ID` set.
 
+## T282 (2026-08-03, deepseek-v4-flash) — wrapper follow-ups: false-FAIL fix + pre-commit backstop
+
+Closes the T278 follow-up ("the staged-path-subset backstop remains"). Two changes, verdict pass-with-findings (findings/T282-wrapper.json):
+
+1. **False-FAIL fix (tools/git-commit-mine):** verify-after now distinguishes three cases — committed by this invocation / already committed and unchanged (healthy no-op, noted, NOT a failure) / genuinely missing (real FAIL). An already-committed path alone now exits 0 with "nothing to commit: already committed and unchanged" instead of crying FAIL.
+2. **Staged-path-subset backstop (tools/hooks/pre-commit, gate 2, before claimlint):** refuses when identity-known (MANAGENT_TASK_ID) staged paths are outside the task's scope; unlabelled / unresolvable-identity / wrapper--explicit commits warn-and-allow with paths listed. Scope resolution moved into `tools/git-commit-mine-lib.sh`, shared with the wrapper (one implementation, two callers).
+
+Controls: `tools/regression-git-commit-mine.sh` 9/9 (arms 8-9 newly cover task-identity mode, previously untested), `tools/regression-git-commit-mine-hook.sh` 6/6 (new), `sh tools/regression-precommit.sh` 3/3. Findings: `findings/T282-wrapper.json` + `findings/T282-context.json`.
+
 # STATE AS OF 2026-08-02 — the Grand Audit landed; DIRECTION.md governs
 
 **Read `docs/audits/grand-audit-2026-08-02/DIRECTION.md` first** (ratified by the
