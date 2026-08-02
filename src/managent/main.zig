@@ -26,6 +26,7 @@
 //
 
 const std = @import("std");
+const version = @import("version");
 
 const alloc = std.heap.page_allocator;
 
@@ -127,6 +128,7 @@ const StateMap = std.StringHashMapUnmanaged(TaskState);
 // ─────────────────────────────────────────────────────────────────── entry
 
 pub fn main(init: std.process.Init.Minimal) !void {
+    std.debug.print("{s}\n", .{version.banner("managent")});
     const args_raw = init.args.vector;
     var args_slice = std.ArrayList([]const u8).empty;
     defer args_slice.deinit(alloc);

@@ -17,6 +17,7 @@
 ////////////////////////////////////////////
 
 const std = @import("std");
+const version = @import("version");
 const superko = @import("superko.zig");
 const solve = @import("solve.zig");
 
@@ -77,6 +78,7 @@ fn runSolve(job: *Job) void {
 }
 
 pub fn main() !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo")});
     const gpa = std.heap.page_allocator;
     const full = FULL;
 

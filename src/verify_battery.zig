@@ -24,12 +24,12 @@
 // Author: DSPro/T168-w2 · 2026-07-31
 
 const std = @import("std");
+const version = @import("version");
 const vb = @import("vb_common.zig");
 const vbt = @import("vb_table.zig");
 const vbf = @import("vb_fixpoint.zig");
 const vbg = @import("vb_graph.zig");
 
-const VERSION = "1.0.0";
 const SCHEMA_VERSION = "1.0.0";
 const DEFAULT_SEED: u64 = 31337;
 
@@ -233,7 +233,7 @@ fn writeHeader(out: Output, _: *const CliConfig, gs: ?vb.GobanSize, art_path: ?[
 
     var buf: [4096]u8 = undefined;
     out.write("{\"kind\":\"header\"");
-    out.writeFmt(",\"battery_version\":\"{s}\"", .{VERSION});
+    out.writeFmt(",\"battery_version\":\"{s}\"", .{version.banner("verify-battery")});
     out.writeFmt(",\"schema_version\":\"{s}\"", .{SCHEMA_VERSION});
     writeOptStr(out, "artifact_kind", if (art_path != null and art_sha != null) "pinned-v" else null);
     writeOptStr(out, "format", if (art_path != null and art_sha != null) "WZO1" else null);
@@ -689,7 +689,7 @@ pub fn main(init: std.process.Init) u8 {
 
     const cfg = parseCli(args) catch { note("Try 'verify-battery --help'.\n", .{}); return 3; };
     if (cfg.show_help) { note("{s}", .{HELP}); return 0; }
-    if (cfg.show_version) { note("verify-battery v{s}\n", .{VERSION}); return 0; }
+    if (cfg.show_version) { note("{s}\n", .{version.banner("verify-battery")}); return 0; }
     if (cfg.goban == null) { note("error: <goban> required\n", .{}); return 3; }
     const gs = cfg.goban.?;
     const need_artifact = !(cfg.i5_only and std.mem.eql(u8, cfg.i5_graph, "all-legal"));

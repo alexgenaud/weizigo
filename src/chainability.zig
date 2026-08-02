@@ -57,6 +57,7 @@
 //                that reproduces M1's 21.32% ko-sensitive fraction to 0.05pp.
 //   --examples K print the first K violating positions (default 8).
 const std = @import("std");
+const version = @import("version");
 const rules = @import("rules.zig");
 const colexmod = @import("colex.zig");
 const artifact = @import("artifact.zig");
@@ -226,6 +227,7 @@ fn Sweep(comptime w: usize, comptime h: usize) type {
 }
 
 pub fn main(init: std.process.Init) !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo-chainability")});
     const gpa = std.heap.page_allocator;
     const io = init.io;
     var args = std.process.Args.Iterator.init(init.minimal.args);

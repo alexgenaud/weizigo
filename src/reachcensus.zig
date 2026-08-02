@@ -134,6 +134,7 @@
 // With --psk-binding, --trace also annotates each ply with the PSK repeats
 // available there, as `{d=5 d=12}`.
 const std = @import("std");
+const version = @import("version");
 const util = @import("util.zig");
 const rules = @import("rules.zig");
 const colexmod = @import("colex.zig");
@@ -934,6 +935,7 @@ fn dispatchReplay(dec: *const artifact.Decoded, name: []const u8, text: []const 
 }
 
 pub fn main(init: std.process.Init) !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo-reachcensus")});
     const gpa = std.heap.page_allocator;
     const io = init.io;
     var args = std.process.Args.Iterator.init(init.minimal.args);

@@ -30,6 +30,7 @@
 // Appends one line to untracked/absorption.md (unless --dry-run).
 
 const std = @import("std");
+const version = @import("version");
 const cr = @import("claims_register.zig");
 const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
@@ -439,6 +440,7 @@ fn insertAfterForNewRow(reg: *cr.Register, nr: NewRow) []const u8 {
 // ── main ────────────────────────────────────────────────────────────────────
 
 pub fn main(init: std.process.Init) !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo-absorb")});
     const gpa = std.heap.page_allocator;
     const io = init.io;
     var args = std.process.Args.Iterator.init(init.minimal.args);

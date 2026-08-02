@@ -34,6 +34,7 @@
 // 1-ko, 2-ko, 3+) using the logic from B23/ko_census.zig.
 
 const std = @import("std");
+const version = @import("version");
 const rules = @import("rules.zig");
 const artifact = @import("artifact.zig");
 const gtp = @import("gtp.zig");
@@ -426,6 +427,7 @@ fn runTournament(
 }
 
 pub fn main(init: std.process.Init) !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo-engine-vs-engine")});
     const gpa = std.heap.page_allocator;
     var args = std.process.Args.Iterator.init(init.minimal.args);
     _ = args.next(); // program name

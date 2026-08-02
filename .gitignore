@@ -35,3 +35,4 @@ bin/*
 # last so no earlier rule (untracked/, log/, bin/, data/) can ever reach it.
 !docs/evidence/
 !docs/evidence/**
+src/version.zig

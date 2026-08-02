@@ -32,6 +32,7 @@
 //     zig run -O ReleaseFast src/oracle_v2_build.zig
 
 const std = @import("std");
+const version = @import("version");
 const exp6 = @import("exp6_solve.zig");
 const artifact2 = @import("artifact2.zig");
 const colex = @import("colex.zig");
@@ -45,8 +46,8 @@ const GroupBuilder4 = struct {
 const gpa = std.heap.page_allocator;
 
 pub fn main() !void {
+    std.debug.print("# {s}\n", .{version.banner("weizigo-oracle-v2-build")});
     std.debug.print("# ============================================================================\n", .{});
-    std.debug.print("# oracle-v2 M2b — Build WZO2 artifact from exposed fixpoint\n", .{});
     std.debug.print("# Task: T165 · Model: DSPro · Date: 2026-07-31\n", .{});
     std.debug.print("# ============================================================================\n", .{});
 
@@ -455,13 +456,12 @@ pub fn main() !void {
     // dtt already freed above in terminal-flag block
 
     // =====================================================================
-    // WRITE WZO2 FILE
+    // WRITE WZO2 FILE — into version directory untracked/vNN/
     // =====================================================================
     std.debug.print("\n## Writing WZO2 artifact\n", .{});
 
     // Build final GroupHeader list (with colex values, not exp6 ranks)
     var group_headers = try std.ArrayListUnmanaged(artifact2.GroupHeader).initCapacity(gpa, @intCast(n_groups));
-    // freed explicitly after buildFile to reduce peak RSS
     for (group_builders.items) |gb| {
         group_headers.append(gpa, .{
             .colex = gb.colex_val,
@@ -485,7 +485,6 @@ pub fn main() !void {
     const file_bytes = try artifact2.buildFile(gpa, &art);
     defer gpa.free(file_bytes);
 
-    // Free entry_rows and group_headers now that file_bytes is built (T192 OOM fix: ~464 MB savings at peak)
     entry_rows.deinit(gpa);
     group_headers.deinit(gpa);
 
@@ -497,9 +496,30 @@ pub fn main() !void {
     };
     std.debug.print("# SHA-256 verified\n", .{});
 
-    // Write to untracked/oracle-v2/
-    const out_dir = "untracked/oracle-v2";
-    const out_path = "untracked/oracle-v2/oracle-4x4-v2.wzo2";
+    // Compute artifact SHA-256 hex for manifest
+    var art_sha_hex: [64]u8 = undefined;
+    {
+        var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+        hasher.update(file_bytes);
+        var digest: [32]u8 = undefined;
+        hasher.final(&digest);
+        _ = std.fmt.bufPrint(&art_sha_hex, "{s}", .{std.fmt.bytesToHex(&digest, .lower)}) catch unreachable;
+    }
+
+    // Determine version directory number
+    var version_buf: [16]u8 = undefined;
+    const version_num = readVersionCounter(gpa) catch blk: {
+        std.debug.print("# Cannot read VERSION counter — using \"00\"\n", .{});
+        break :blk @as(u32, 0);
+    };
+    const ver_str = std.fmt.bufPrint(&version_buf, "{d:0>2}", .{version_num}) catch "00";
+
+    const out_dir_fmt = "untracked/v{s}";
+    const out_dir = try std.fmt.allocPrint(gpa, out_dir_fmt, .{ver_str});
+    defer gpa.free(out_dir);
+    const out_path = try std.fmt.allocPrint(gpa, out_dir_fmt ++ "/oracle-4x4-v2.wzo2", .{ver_str});
+    defer gpa.free(out_path);
+
     std.debug.print("# Writing {s}...\n", .{out_path});
 
     var threaded = std.Io.Threaded.init(gpa, .{});
@@ -525,6 +545,16 @@ pub fn main() !void {
         @as(f64, @floatFromInt(file_bytes.len)) / 1_000_000.0,
     });
 
+    // Write manifest
+    writeManifest(gpa, io, out_dir, ver_str, &art_sha_hex, file_bytes.len) catch |e| {
+        std.debug.print("# manifest write failed: {s}\n", .{@errorName(e)});
+    };
+
+    // Increment version counter
+    incrementVersionCounter(gpa) catch |e| {
+        std.debug.print("# VERSION counter update failed: {s}\n", .{@errorName(e)});
+    };
+
     // =====================================================================
     // SUMMARY
     // =====================================================================
@@ -541,4 +571,59 @@ pub fn main() !void {
     std.debug.print("# file: {s} ({d} bytes)\n", .{ out_path, file_bytes.len });
     std.debug.print("#\n", .{});
     std.debug.print("# DONE — artifact ready for M3/M4b.\n", .{});
+}
+
+// ── Version directory helpers ─────────────────────────────────────────────
+
+fn readVersionCounter(alloc: std.mem.Allocator) !u32 {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const cwd = std.Io.Dir.cwd();
+    const content = try cwd.readFileAlloc(io, "untracked/VERSION", alloc, .unlimited);
+    defer alloc.free(content);
+    return std.fmt.parseUnsigned(u32, std.mem.trim(u8, content, " \t\n\r"), 10);
+}
+
+fn incrementVersionCounter(alloc: std.mem.Allocator) !void {
+    const current = readVersionCounter(alloc) catch |e| {
+        std.debug.print("# readVersionCounter failed: {s}\n", .{@errorName(e)});
+        return;
+    };
+    const next = current + 1;
+    var buf: [16]u8 = undefined;
+    const s = try std.fmt.bufPrint(&buf, "{d}\n", .{next});
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const file = try std.Io.Dir.cwd().createFile(io, "untracked/VERSION", .{});
+    defer file.close(io);
+    try file.writeStreamingAll(io, s);
+}
+
+fn writeManifest(alloc: std.mem.Allocator, io: std.Io, dir_path: []const u8, ver_str: []const u8, sha_hex: *const [64]u8, file_bytes_len: usize) !void {
+    const manifest_path = try std.fmt.allocPrint(alloc, "{s}/manifest.json", .{dir_path});
+    defer alloc.free(manifest_path);
+
+    var file = try std.Io.Dir.cwd().createFile(io, manifest_path, .{});
+    defer file.close(io);
+
+    var buf: [4096]u8 = undefined;
+    const json = try std.fmt.bufPrint(&buf,
+        \\{{
+        \\  "tool": "weizigo-oracle-v2-build",
+        \\  "version": "{s}",
+        \\  "artifact": "oracle-4x4-v2.wzo2",
+        \\  "artifact_sha256": "{s}",
+        \\  "artifact_bytes": {d},
+        \\  "version_dir": "v{s}"
+        \\}}
+        \\
+    , .{
+        version.banner("weizigo-oracle-v2-build"),
+        sha_hex,
+        file_bytes_len,
+        ver_str,
+    });
+    try file.writeStreamingAll(io, json);
 }

@@ -98,6 +98,7 @@
 // usage: weizigo-claimlint [claims.md] [--quiet]
 //   run from the repo root; paths are resolved relative to the working dir.
 const std = @import("std");
+const version = @import("version");
 const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
@@ -802,6 +803,7 @@ const Missing = struct {
 };
 
 pub fn main(init: std.process.Init) !void {
+    std.debug.print("{s}\n", .{version.banner("weizigo-claimlint")});
     const gpa = std.heap.page_allocator;
     const io = init.io;
     var args = std.process.Args.Iterator.init(init.minimal.args);

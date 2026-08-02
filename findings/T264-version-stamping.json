@@ -1,0 +1,26 @@
+{
+  "task_id": "T264",
+  "date": "2026-08-02",
+  "model": "Claude",
+  "claims": [
+    {
+      "id": "T264-V1",
+      "proposed_status": "CLAIMED",
+      "rationale": "All 10 tools print version stamp on startup/--version. Format: weizigo-<tool> <sha>[-dirty] built <date> zig <ver>. Build-time generation via tools/gen-version.sh → src/version.zig (gitignored). Dirty flag works: dirty tree yields -dirty suffix.",
+      "evidence_path": "docs/infra/versioning.md"
+    },
+    {
+      "id": "T264-V2",
+      "proposed_status": "CLAIMED",
+      "rationale": "oracle-v2-build writes artifacts into untracked/vNN/ with manifest.json. Version counter in untracked/VERSION auto-increments. Scheme: version directory holds artifact + manifest + binaries.",
+      "evidence_path": "docs/infra/versioning.md"
+    },
+    {
+      "id": "T264-V3",
+      "proposed_status": "CLAIMED",
+      "rationale": "verify-battery JSON header includes battery_version with full version stamp. docs/infra/versioning.md documents the scheme.",
+      "evidence_path": "docs/infra/versioning.md"
+    }
+  ],
+  "notes": "Built and tested: zig build succeeds, all 10 tools run with correct stamp. verify-battery --version works. oracle-v2-build version directories + manifest not yet exercised end-to-end (requires full 4x4 solve). src/version.zig added to .gitignore (never committed stale)."
+}

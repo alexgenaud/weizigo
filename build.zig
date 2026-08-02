@@ -18,10 +18,14 @@
 
 const std = @import("std");
 
-/// Generate version.zig by running tools/gen-version.sh and capturing stdout.
+/// Generate version.zig to src/version.zig on disk before compilation.
+/// Returns a LazyPath for the generated file and registers the gen step
+/// as a dependency of all compilation via the install step.
 fn generateVersion(b: *std.Build) std.Build.LazyPath {
-    const cmd = b.addSystemCommand(&.{ "sh", "tools/gen-version.sh" });
-    return cmd.captureStdOut(.{});
+    const gen_cmd = b.addSystemCommand(&.{ "sh", "tools/gen-version.sh", "src/version.zig" });
+    gen_cmd.step.name = "gen-version";
+    b.getInstallStep().dependOn(&gen_cmd.step);
+    return b.path("src/version.zig");
 }
 
 // Although this function looks imperative, note that its job is to
@@ -30,7 +34,7 @@ fn generateVersion(b: *std.Build) std.Build.LazyPath {
 pub fn build(b: *std.Build) void {
     // ── version module (generated at build time) ──────────────────
     const version_path = generateVersion(b);
-    const version_mod = b.createModule(.{
+    const version_mod = b.addModule("version", .{
         .root_source_file = version_path,
     });
 
