@@ -264,10 +264,13 @@ goban size.
 - **Z-COMPLETE-ENUM:** Every state reachable from the fresh-start root under R
   is present in the table.
   - [F]: a reachable state whose lookup misses, or self-play divergence from
-    the table's own root value. `[CODE.WZO2-INCOMPLETE:PROVEN]` (estimated
-    6.77M missing at 4×4 WZO2).
+    the table's own root value. `[CODE.WZO2-INCOMPLETE:FALSE-AS-SCOPED]` (the
+    claimed 6.77M missing was 51.7× overstated; the artifact is structurally
+    complete — T266/T277/T279).
 - **Z-COMPLETE-PASSES:** The passes dimension is fully enumerated.
-  `[CODE.WZO2-INCOMPLETE:PROVEN]` — passes=1 entries missing for one side.
+  `[CODE.WZO2-INCOMPLETE:FALSE-AS-SCOPED]` — the passes=1 entries are
+  provably unreachable (monochrome gobans); structurally complete per
+  T266/T277/T279.
 
 ### 3.7 Cross-cutting concerns
 
@@ -414,7 +417,7 @@ register. Fixes:
    capture), not one. The ko-defect precedent (ADR-0013) makes this class of
    error load-bearing.
 3. **§4.3 — "not a bug" withdrawn.** The +1-vs-+2 miss is unexplained; the
-   leading hypothesis is tie semantics `[GLOBAL.TIE-MIGOS:CLAIMED]`, the live
+   leading hypothesis was tie semantics `[GLOBAL.TIE-MIGOS:FALSE-AS-SCOPED]`, the live
    alternative is a defect `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]` candidate
    (b). The +2 acceptance criterion is not met. Falsification test registered
    as T274.

@@ -210,11 +210,11 @@ EXP-6, DSPro, 2026-07-29/30):
 | 2×2 | **0** | TIE | L=−4, H=+4 | 258 | 4 | gate |
 | 3×2 | **0** | TIE | L=−6, H=+6 | 2,586 | 10 | gate |
 | 3×3 | **+9** | YES | — | 73,758 | 16 | matches MIGOS II `[GLOBAL.MIGOS-RULE:PROVEN]` |
-| 4×4 | **+1** | NO | [+1,+16] | 147M | 31 | **not** the expected +2 anchor — unexplained; leading hypothesis is tie resolution (TIE=0 vs MIGOS's long-cycle-tie) `[GLOBAL.TIE-MIGOS:CLAIMED]`, live alternative is a build defect `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]`; +2 acceptance criterion not met |
+| 4×4 | **+1** | NO | [+1,+16] | 147M | 31 | **not** the expected +2 anchor — unexplained; the leading hypothesis was tie resolution (TIE=0 vs MIGOS's long-cycle-tie) `[GLOBAL.TIE-MIGOS:FALSE-AS-SCOPED]`, live alternative is a build defect `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]`; +2 acceptance criterion not met |
 
 T104 (Kimi-k3, 2026-07-30) verified H=+16 genuine — 0 violations over
 99,133,036 states, 0 map misses, exhaustive inversion clean
-`[4x4.BASICKO-TIE:MEASUREMENT]`. The +2 gap vs the MIGOS II anchor is **unexplained**. The leading hypothesis is a tie-resolution difference (TIE=0 vs MIGOS's implementation-specific long-cycle-tie value) `[GLOBAL.TIE-MIGOS:CLAIMED]`; the live alternative is a defect in our build `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]` candidate (b). The roadmap's +2 acceptance criterion (`roadmap-2026-07-28.md:227-232`) is not met — the build is at +1, not +2. **Corrected 2026-08-02 (T271): the prior 'basic ko vs PSK' explanation was contradicted by `GLOBAL.MIGOS-RULE` (MIGOS plays basic ko, not PSK). Further corrected 2026-08-02 (T275): 'not a bug' withdrawn — it rested on a CLAIMED hypothesis as if PROVEN, repeating the GRAND-AUDIT §1d shape.**
+`[4x4.BASICKO-TIE:MEASUREMENT]`. The +2 gap vs the MIGOS II anchor is **unexplained**. The leading hypothesis was a tie-resolution difference (TIE=0 vs MIGOS's implementation-specific long-cycle-tie value) `[GLOBAL.TIE-MIGOS:FALSE-AS-SCOPED]`; the live alternative is a defect in our build `[GLOBAL.FIXPOINT-VS-SEARCH:CLAIMED]` candidate (b). The roadmap's +2 acceptance criterion (`roadmap-2026-07-28.md:227-232`) is not met — the build is at +1, not +2. **Corrected 2026-08-02 (T271): the prior 'basic ko vs PSK' explanation was contradicted by `GLOBAL.MIGOS-RULE` (MIGOS plays basic ko, not PSK). Further corrected 2026-08-02 (T275): 'not a bug' withdrawn — it rested on a CLAIMED hypothesis as if PROVEN, repeating the GRAND-AUDIT §1d shape. T279 (absorbed 2026-08-03): TIE-MIGOS refuted by primary sources (T274) — FALSE-AS-SCOPED.**
 
 **⚠ Brute-force corroboration withdrawn (T102, 2026-07-30).** A successor-buffer
 aliasing defect in `brute_value_2x2` (`src/exp4_solve.zig:555-594`) invalidates

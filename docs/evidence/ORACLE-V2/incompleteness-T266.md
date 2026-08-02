@@ -490,7 +490,7 @@ the ordering.
 C7 reports **one**.
 
 Two independent bugs in the hand-rolled `new_rows` scanner, both at HEAD
-`c344f02` (line numbers resolved with `git show HEAD:src/claimlint.zig`, since
+`c344f02` (line numbers resolved with `git show` at that commit, since
 the working tree carries another seat's edits):
 
 1. **Truncation** — `src/claimlint.zig:1676`:
