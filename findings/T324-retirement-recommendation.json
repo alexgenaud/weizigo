@@ -1,0 +1,12 @@
+{
+  "task_id": "T324",
+  "date": "2026-08-03",
+  "model": "not stated at dispatch",
+  "claims": [],
+  "recommend_counts": {
+    "retire": 108,
+    "keep": 0,
+    "defer": 8
+  },
+  "notes": "Recommendation-only pass over the 116 proposed-retirement rows in docs/epic-01-markovian/retirement-ruling-sheet.md. RULING column left empty for Orcha. Eight rows deferred because they are sole `e:` evidence for still-believed live rows; the other 108 rows recommended for retirement, including one (`4x4.COMPLETE-2026-07-21`) whose live dependent has a `d:` derives-from edge that must be re-pointed before the register status changes. No CLAIMS.md or register-tree-map.md edits were made."
+}
