@@ -172,6 +172,18 @@ pub fn build(b: *std.Build) void {
     resume_regression.cwd = b.path(".");
     test_step.dependOn(&resume_regression.step);
 
+    // ── standing-tier controls (T294) ───────────────────────────────
+    // STANDING-ABSORB null + seeded controls — the standing mechanism had
+    // no controls at all before T294; this is the pair the brief demands
+    // (below-threshold C7 stays silent and says so; a synthetic unabsorbed
+    // finding pushes C7 over and the trigger fires and names the count).
+    // Same SKIP convention as the resume regression: no managent binary
+    // carrying `standing`, or no deployed claimlint to copy into the
+    // scratch repo → SKIP loudly.
+    const standing_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-standing.sh" });
+    standing_regression.cwd = b.path(".");
+    test_step.dependOn(&standing_regression.step);
+
     // ── deployed-binaries guard (T289) ───────────────────────────────
     // tools/smoke.sh compares every deployed bin/ tool's embedded build
     // stamp against committed source history — a stale bin/ (built before

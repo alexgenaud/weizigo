@@ -4096,11 +4096,32 @@ const Standing = struct {
     brief_path: []const u8,
 };
 
+/// STANDING-ABSORB threshold — the claimlint C7 unabsorbed-findings count at
+/// which the absorption backlog becomes a kanban task, chosen by T294
+/// (2026-08-03). Rationale:
+///   • 0 is out — the permanently-red-gate failure (GRAND-AUDIT §1c): C7 is
+///     never 0 for long, and a trigger that fires on every transient artifact
+///     trains people to ignore it.
+///   • 1–4 is the in-flight noise band. A finished task's findings file is
+///     legitimately unabsorbed until the Orchestrator ratifies it into
+///     CLAIMS.md; during fleet turns 1–4 pending is normal operation. Firing
+///     there is the permanently-red gate at a smaller size.
+///   • The smallest fully decomposable genuine backlog observed was 10
+///     (2026-08-03: C7=21 = 10 genuine + 11 context dumps repeating their
+///     findings files — T290-context 9, T288-context 2). 5 fires on that with
+///     margin while still clearing the noise band.
+///   • 5 is a session-sized job — triage + reconcile + CLAIMS.md update +
+///     disposition — which is exactly what a kanban task is for.
+/// The trigger is ABSOLUTE (count > threshold), not change-based: a backlog
+/// that sits at 8 across two turns is still a backlog that needs absorbing.
+const ABSORB_C7_THRESHOLD: u64 = 5;
+
 const standing_templates = [_]Standing{
     .{ .id = "STANDING-HOLISTIC-AUDIT", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-HOLISTIC-AUDIT.md" },
     .{ .id = "STANDING-CLEANUP",        .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-CLEANUP.md" },
     .{ .id = "STANDING-REEVIDENCE",     .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-REEVIDENCE.md" },
     .{ .id = "STANDING-CONSOLIDATE",    .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-CONSOLIDATE.md" },
+    .{ .id = "STANDING-ABSORB",         .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-ABSORB.md" },
 };
 
 fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
@@ -4123,6 +4144,52 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
                 const after = line[idx + c3_marker.len ..];
                 c3_debt = std.fmt.parseInt(u64, std.mem.trim(u8, after, " \t\r"), 10) catch 0;
                 break;
+            }
+        }
+    }
+
+    // Trigger 1b: claimlint C7 unabsorbed findings (for STANDING-ABSORB).
+    // Read from the SAME claimlint run the C3 trigger uses, and from
+    // claimlint's own summary — the count is claimlint's, never reimplemented
+    // here (two implementations of one number drift). The per-file composition
+    // is likewise claimlint's own "in <file>" lines, surfaced verbatim.
+    var c7_unabsorbed: u64 = 0;
+    var c7_files = std.StringHashMap(u64).init(alloc);
+    defer c7_files.deinit();
+    {
+        const c7_marker = "C7 unabsorbed findings: ";
+        var lines = std.mem.splitScalar(u8, claimlint_result, '\n');
+        var in_entry = false;
+        while (lines.next()) |line| {
+            if (std.mem.indexOf(u8, line, c7_marker)) |idx| {
+                // summary line: "  C7 unabsorbed findings: 21   (FAILS)" — take
+                // the leading digits (the "(FAILS)" suffix must not poison the
+                // parse; the hook's awk does the same shape of extraction).
+                const after = std.mem.trim(u8, line[idx + c7_marker.len ..], " \t\r");
+                var digits: usize = 0;
+                while (digits < after.len and after[digits] >= '0' and after[digits] <= '9') digits += 1;
+                c7_unabsorbed = std.fmt.parseInt(u64, after[0..digits], 10) catch 0;
+                continue;
+            }
+            // Per-file composition: each UNABSORBED entry is followed by an
+            // "in <file>" line in claimlint's detail block. Aggregate per file
+            // so the trigger reports what the count is MADE OF, not just its
+            // size (the 2026-08-03 case: C7=21 was 10 genuine + 11 context
+            // dumps repeating their findings files).
+            if (std.mem.startsWith(u8, line, "  UNABSORBED")) {
+                in_entry = true;
+                continue;
+            }
+            if (in_entry) {
+                in_entry = false;
+                const trimmed = std.mem.trim(u8, line, " \t\r");
+                if (std.mem.startsWith(u8, trimmed, "in ")) {
+                    const f = trimmed[3..];
+                    const key = alloc.dupe(u8, f) catch continue;
+                    const gop = try c7_files.getOrPut(key);
+                    if (!gop.found_existing) gop.value_ptr.* = 0;
+                    gop.value_ptr.* += 1;
+                }
             }
         }
     }
@@ -4292,6 +4359,40 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
         if (triggered) {
             w.data(" [TRIGGERED — new falsification]", .{});
             try registerStanding(w, io, repo_root, state_path, &state, "STANDING-CONSOLIDATE", "falsification count grew: {d}→{d}", .{ false_prior, false_count });
+        }
+        w.data("\n", .{});
+    }
+
+    // STANDING-ABSORB: trigger when claimlint C7 unabsorbed findings exceeds
+    // the threshold (absolute, not change-based — see ABSORB_C7_THRESHOLD).
+    // Report the per-file composition alongside the size: a count nobody can
+    // decompose sends someone to triage before they can do work.
+    {
+        const triggered = c7_unabsorbed > ABSORB_C7_THRESHOLD;
+        w.data("    STANDING-ABSORB          C7 unabsorbed: {d} (threshold {d})", .{ c7_unabsorbed, ABSORB_C7_THRESHOLD });
+        if (triggered) {
+            w.data(" [TRIGGERED — absorption backlog above threshold]", .{});
+            try registerStanding(w, io, repo_root, state_path, &state, "STANDING-ABSORB", "C7 unabsorbed findings {d} > threshold {d}", .{ c7_unabsorbed, ABSORB_C7_THRESHOLD });
+        } else {
+            w.data(" — at/below threshold, no trigger", .{});
+        }
+        if (c7_files.count() > 0) {
+            const keys = try alloc.alloc([]const u8, c7_files.count());
+            defer alloc.free(keys);
+            var ki: usize = 0;
+            var it = c7_files.iterator();
+            while (it.next()) |entry| {
+                keys[ki] = entry.key_ptr.*;
+                ki += 1;
+            }
+            std.mem.sort([]const u8, keys, {}, struct {
+                fn lt(_: void, a: []const u8, b: []const u8) bool {
+                    return std.mem.lessThan(u8, a, b);
+                }
+            }.lt);
+            w.data("\n        per file:", .{});
+            for (keys) |f| w.data("  {s}: {d}", .{ f, c7_files.get(f).? });
+            w.data("\n", .{});
         }
         w.data("\n", .{});
     }

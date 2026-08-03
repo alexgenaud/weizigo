@@ -568,7 +568,7 @@ of findings.
 
 ### `managent standing`
 
-Checks the four standing-tier triggers and **auto-registers** any that fired
+Checks the five standing-tier triggers and **auto-registers** any that fired
 (creating the brief file and adding the task to the kanban). Triggers:
 
 - **STANDING-HOLISTIC-AUDIT** — milestone shape changes (new message directory)
@@ -577,6 +577,11 @@ Checks the four standing-tier triggers and **auto-registers** any that fired
   writes). (T210 D2)
 - **STANDING-REEVIDENCE** — claimlint C3 debt grows
 - **STANDING-CONSOLIDATE** — any new falsification (FALSE-AS-SCOPED count increased)
+- **STANDING-ABSORB** — claimlint C7 unabsorbed findings exceeds the threshold
+  (5, rationale in `src/managent/main.zig`; the count is read from
+  `bin/weizigo-claimlint`'s own summary, never reimplemented, and the per-file
+  composition is surfaced). Absolute, not change-based: a backlog that stays
+  above the threshold across turns still needs absorbing. (T294)
 
 Trigger state is persisted in the `_standing` key of `tasks.json`. Each
 template brief lives in `docs/infra/dispatch/STANDING-*.md`.
