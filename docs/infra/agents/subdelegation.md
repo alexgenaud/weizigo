@@ -140,6 +140,15 @@ documentation**: path 2 (Ollama→DeepSeek) remains live and documented as such.
 Revisit only if real containment (separate user, container, or key broker) is
 proposed — that would change the premise, not the ruling.
 
+**Clarified 2026-08-03 late evening (human): the Claude rule is about the
+harness, not the dispatcher.** A Claude model must never run *inside* another
+harness (e.g. a pi/Ollama process driving the Anthropic API itself). A
+non-Claude worker spawning a shell command that launches a **headless Claude
+Code session** (`claude -p "…" --model …`) is acceptable: the Claude model
+still runs in its own harness with its own permission system. The budget and
+runaway-loop exposure this opens is the same class the human accepted in the
+(c) ruling above — documented, not enforced.
+
 ## Attribution never asks the model (T321, 2026-08-03)
 
 T320 reported 0/4 self-identification mismatches, but it probed the `PI_MODEL`
