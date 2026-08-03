@@ -105,8 +105,8 @@
     "skip_acceptance_reason": "zig build test verified green by direct run at dbc82b3+f7edcf9: exit 0, Build Summary 15/15 steps succeeded, 342/342 tests passed, regression-precommit + regression-managent-resume ALL CONTROLS PASSED. managent's /bin/sh acceptance spawn lacks zig on PATH (sanitized PATH /usr/gnu/bin:/usr/local/bin:/bin:/usr/bin:.) — same known quirk as T267"
   },
   "T294": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T294-absorption-standing-trigger.md",
     "set": "C",
@@ -114,16 +114,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-03T00:06:32Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-03T00:22:28Z",
+    "done": "2026-08-03T00:29:58Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "Two independent reasons, both verified by Orcha rather than taken on report. (1) The done-runner cannot execute the acceptance at all: managent spawns /bin/sh -c 'zig build test' without inheriting PATH, so the child reports 'zig: command not found' even from a console where sh -c 'zig version' prints 0.16.0 — reproduced by Orcha, registered as T295. (2) Orcha ran the acceptance directly: exit 1, 36 pass / 2 fail, and BOTH failures are T291's uncommitted in-flight mutant fixtures (vb_mutants.test.M3-T265-killed-by-I5 and M5-T283-killed-by-I2), not T294's work. So the suite is red for a concurrent task's reason. T294's own controls (standing null+seeded, smoke, resume) pass. Attribution corrected: deepseek-v4-flash did the work; the deepseek-v4-pro claim at 00:22:28 was Orcha's bookkeeping attempt and produced nothing."
   },
   "T230": {
     "status": "done",
@@ -294,8 +294,8 @@
     "skip_acceptance_reason": null
   },
   "T293": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T293-absorb-the-phase1-wave.md",
     "set": "A",
@@ -303,16 +303,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-03T00:06:32Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-03T00:10:11Z",
+    "done": "2026-08-03T00:16:59Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "claimlint returns non-zero due to pre-existing C1a/C2/C6 orphans not in T293 scope; C7=0 and bars met (C1a=10≤10, C2=14≤14, C6=0, calibration=PASS)"
   },
   "T292": {
     "status": "blocked",
@@ -504,7 +504,7 @@
     "skip_acceptance_reason": null
   },
   "T291": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T291-mutation-catalogue.md",
@@ -513,14 +513,14 @@
     "needs": ["T290"],
     "caps": [],
     "added": "2026-08-02T23:47:15Z",
-    "claimed": null,
+    "claimed": "2026-08-03T00:23:00Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
@@ -880,6 +880,27 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test passes; regression controls green; run from a shell where zig is on PATH"
+  },
+  "T295": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T295-acceptance-runner-path.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-03T00:30:28Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null
   },
   "T285": {
     "status": "done",
@@ -1471,7 +1492,7 @@
   }
 ,
   "_sys": {
-    "next_id": 294,
-    "directive_next": 19
+    "next_id": 296,
+    "directive_next": 21
   }
 }
