@@ -2,7 +2,7 @@
 
 ```
 Task: T323 · Role: worker · Model: not stated at dispatch · Date: 2026-08-03
-Revision: 1 · Status: PROPOSED
+Revision: 2 · Status: RATIFIED (2026-08-03, spec audit T329 at 68a3b71, all ten findings dispositioned, ratified by Orcha as sprint owner)
 Sprint owner: Orchestrator
 ```
 
@@ -24,7 +24,7 @@ has ko/stateKey) · `AXIOMS.md` (requirement tree).
 
 ## 1. The goal — the sentence it changes
 
-**From** (`PHASES.md` G3b row):
+**From** (`PHASES.md` §The G3 gate is split, honest summary):
 
 > The artifact is structurally complete, value-unverified.
 
@@ -35,8 +35,8 @@ has ko/stateKey) · `AXIOMS.md` (requirement tree).
 
 This means:
 
-- **I4 passes with zero Bellman violations** on every non-terminal slot on the
-  full state graph, where the Bellman operator Φ is computed by the battery's
+- **I4 passes with zero Bellman violations** on every non-terminal slot in the
+  reachable state graph, where the Bellman operator Φ is computed by the battery's
   independent move generator (R8), not by the solver's.
 - **C-A1 forward closure passes with zero children-missing** — every child of
   every reachable state under R is present in the table, via the kernel move
@@ -60,7 +60,7 @@ the following from their current status:
 | claim ID | current status | target status after G3b |
 |---|---|---|
 | `4x4.C1` (fresh-start scores correct at 4×4) | UNTESTED | CLAIMED (value-correctness verified by closure + Bellman) |
-| `GLOBAL.H4` (partial Bellman verification) | CLAIMED | CLAIMED (now complete, not partial) |
+| `GLOBAL.H4` (partial Bellman verification) | CLAIMED | CLAIMED — claim text updated to remove "partial"; no status change because CLAIMED is the ceiling pending Phase 3 |
 | `4x4.FP1` (L/H are least/greatest fixpoints) | UNTESTED (checks 1–2); check 3 PASSES | CLAIMED (Bellman residual = 0 verifies fixpoint property) |
 
 The seven known-unkilled mutants from `mutants.md` that invert (M1, M2, M3, M4,
@@ -68,8 +68,9 @@ M8 — plus M9 and M10 which are meta) move from EXPECTED-to-invert to KILLED,
 and the five dependency edges from DIRECTION Amendment 2 are satisfied for the
 claims above.
 
-On demotion: a check that finds violations demotes `4x4.C1` and `4x4.FP1` back
-to FALSE-AS-SCOPED (scoped: the specific entries are wrong), and G3b stays open.
+On demotion: a check that finds violations demotes `4x4.C1` and `4x4.FP1` to
+FALSE-AS-SCOPED (scoped: the specific entries are wrong) and revises or retires
+`GLOBAL.H4` so it no longer claims completeness; G3b stays open.
 
 ### 1.2 What this sprint does NOT claim
 
@@ -98,11 +99,11 @@ not a check.
 |---|---|---|---|---|---|
 | **C-A1 forward closure** | `Z-STATE-REACH`, `Z-COMPLETE-ENUM` | **NO** — needs kernel move generator | Every child of every reachable state is in the table: `children_not_in_table == 0` | count of reachable states, total children, average branching factor | Synthetic mutant: one entry deleted → `children_not_in_table > 0` must be caught. Seeded at 2×2 first (ladder discipline). |
 | **C-A2 backward closure** | `Z-STATE-REACH`, `Z-COMPLETE-ENUM` | **NO** — needs kernel move generator | Every state reachable from the fresh-start root under R is present: `reachable_not_in_table == 0` | reachable-set size, % of colex space reachable | Synthetic mutant: same deleted-entry mutant as C-A1 — the missing entry must be flagged by both directions. |
-| **I4 Bellman residual** | `Z-CONVERGE-FIX` | **YES** — with battery's own Φ (R8) | At every non-terminal: `L ≠ Φ(L)` or `H ≠ Φ(H)` count == 0 | bracket rate, pin census, sweep-equivalent measurement | Synthetic mutant: one slot's value corrupted → Bellman violation > 0. 2×2 first. |
-| **I11 move-set consistency** | `Z-R-MOVE` | **NO** — needs SMD1 (solver-side dump) AND battery's R8 move generator | At every state in the sampled space: battery's legal-move set == solver's legal-move set, `mismatches == 0` | sample size, denominator, mismatch rate | **Null control + seeded-defect control before first reading counts** (see §4). 2×2 exhaustive first. |
-| **I5 SCC containment** | `Z-CONVERGE-FIX` | **YES** — with battery's own move graph (R8) | Every KO_SENSITIVE slot is cycle-reachable: `ko_not_cr == 0` | KO_SENSITIVE count, cycle-reachable count, KO_SENSITIVE rate | Synthetic mutant: KO_SENSITIVE spuriously set on a non-cycle-reachable slot → I5 must catch it. Per `mutants.md` M3, the current 2×2 all-legal graph has every state cycle-reachable; the mutant must be constructed at a goban size where the property fails, or the kosensitive-flag-only check must be separated from cycle-reachability. |
+| **I4 Bellman residual** | `Z-CONVERGE-FIX` | **NO** — needs battery R8 move generator (the sprint deliverable) | At every non-terminal in the reachable graph: `L ≠ Φ(L)` or `H ≠ Φ(H)` count == 0 | bracket rate, pin census, sweep-equivalent measurement | Synthetic mutant: one slot's value corrupted → Bellman violation > 0. 2×2 first. |
+| **I11 move-set consistency** | `Z-R-MOVE` | **NO** — needs SMD1 (solver-side dump) AND battery's R8 move generator | At every state in the sampled space (sample size and distribution are plan.md decisions): battery's legal-move set == solver's legal-move set, `mismatches == 0` | sample size, denominator, mismatch rate | **Null control + seeded-defect control before first reading counts** (see §4). 2×2 exhaustive first. |
+| **I5 SCC containment** | `Z-CONVERGE-FIX` | **NO** — needs battery R8 move graph | Every KO_SENSITIVE slot is cycle-reachable: `ko_not_cr == 0` | KO_SENSITIVE count, cycle-reachable count, KO_SENSITIVE rate | Synthetic mutant: KO_SENSITIVE spuriously set on a non-cycle-reachable slot → I5 must catch it. Per `mutants.md` M3, the 2×2 all-legal graph has every state cycle-reachable, so the first seeded-defect control runs at 3×2. |
 | **G1/G3 key agreement** | `Z-R-STATE`, `Z-STATE-KEY` | **NO** — needs kernel state-key encoder (T273 has the production one; the battery's consumer encoder is R8, needed for comparison) | Producer key == consumer key at every state: `key_mismatches == 0` | total states checked, denominator | Synthetic mutant: one bit flipped in the key → must be caught. This is the T178/T193/T265 defect family — three historical defects, zero current battery coverage. |
-| **R8 move-generator correctness** | `Z-R-MOVE` (supports I4, I5, I7, I11) | **YES** (is the deliverable, not a check on it) | The battery's independent move generator agrees with the kernel's at 2×2 exhaustive + the deepest-N 4×4 sample: `mismatches == 0` | sample size, denominator | Synthetic mutant: a known-incorrect move (e.g. ko-violating recapture allowed, suicide allowed) → must be caught. The kernel's move generator is compared against the battery's at every ladder rung. |
+| **R8 move-generator correctness** | `Z-R-MOVE` (supports I4, I5, I7, I11) | **NO** — is the sprint deliverable, not a pre-existing check | The battery's independent move generator agrees with the kernel's at 2×2 exhaustive + the sampled 4×4 space: `mismatches == 0` | sample size, denominator | Synthetic mutant: a known-incorrect move (e.g. ko-violating recapture allowed, suicide allowed) → must be caught. The kernel's move generator is compared against the battery's at every ladder rung. |
 
 ### 2.2 Checks carried forward from the battery that this sprint does NOT re-specify
 
@@ -141,7 +142,7 @@ All of these must hold simultaneously against the 4×4 checkpoint artifact
 3. **C-A2:** 0 reachable-not-in-table — every state reachable from the
    fresh-start root via the kernel move generator is present in the table.
 4. **I11:** 0 mismatches between the battery's legal-move set and the solver's
-   at the deepest-N sampled states (the sample size is the plan.md decision;
+   at the sampled states (sample size and distribution are plan.md decisions;
    exhaustive at 2×2, 3×2, 3×3; sampled at 4×4).
 5. **Key agreement (G1/G3):** 0 mismatches between producer and consumer keys
    at every state in the sampled space.
@@ -197,8 +198,8 @@ prose spec sentence and claim ID, with TDD per §6.
 kernel-movegen-row needs movegen-invariant-row
 ```
 
-The extraction is licensed only by an invariant that reproduces a known defect
-in the move relation and kills its own mutant. This is the T265 test pattern
+The extraction is licensed only by an invariant that seeds a known-incorrect
+mutant in the move relation and kills it. This is the T265 test pattern
 applied to the move generator: write a differential test that compares the
 kernel's move generator against the solver's, seed a known-incorrect mutant
 (e.g. allow suicide, allow ko recapture), and verify the invariant catches it.
@@ -433,7 +434,9 @@ the check catches it. The synthetic defect is:
 - C-A2: delete one entry → reachable-not-in-table > 0
 - I11: allow a ko recapture or suicide → mismatches > 0
 - Key-agreement: flip one bit in the key → mismatches > 0
-- I5: set KO_SENSITIVE on one non-cycle-reachable slot → ko_not_cr > 0
+- I5: set KO_SENSITIVE on one non-cycle-reachable slot → ko_not_cr > 0 (first
+  seeded-defect control at 3×2; 2×2 measurement-only because all states are
+  cycle-reachable)
 
 A check that passes the clean artifact and fails the synthetic mutant is
 **calibrated**. A check that passes both is **blind** — its reading is
@@ -457,7 +460,7 @@ artifact, not the check.
 - SMD1 (solver-side move-set dump utility).
 - Kernel move generator extraction (one function in `rules.zig`, TDD, with
   defect-reproducing invariant).
-- The ten carry-forward checks from the battery (§2.2) run as input readings,
+- The nine carry-forward checks from the battery (§2.2) run as input readings,
   not as sprint deliverables — they already exist.
 - Mutation adequacy: the seven T291 known-unkilled mutants invert to KILLED
   (M1, M2, M3, M4, M8, M9, M10).
