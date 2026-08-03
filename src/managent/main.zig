@@ -137,7 +137,11 @@ pub fn main(init: std.process.Init.Minimal) !void {
     }
     const args = args_slice.items;
 
-    var threaded = std.Io.Threaded.init(alloc, .{});
+    // T295: pass the parent environment so child processes (acceptance
+    // runner, git commands, claimlint) inherit PATH and other variables.
+    // Default InitOptions.environ is .empty, which causes spawns to start
+    // with no environment at all — /bin/sh: zig: command not found.
+    var threaded = std.Io.Threaded.init(alloc, .{ .environ = init.environ });
     defer threaded.deinit();
     const io = threaded.io();
 
@@ -1872,35 +1876,57 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
                     .argv = &.{ "/bin/sh", "-c", acc_cmd },
                     .cwd = .{ .path = repo_root },
                 }) catch |err| {
-                    w.diag("\n  REJECTED: {s} acceptance command failed to spawn: {}\n", .{ id, err });
+                    // T295: spawn failure is an infrastructure fault — the
+                    // shell itself could not be started. Distinguish from
+                    // a task-failure exit.
+                    w.diag("\n  CANNOT RUN: {s} acceptance could not start: {}\n", .{ id, err });
                     w.diag("  command: {s}\n", .{acc_cmd});
+                    w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
+                    w.diag("  Task stays in_progress. Fix the environment or use --skip-acceptance <reason>.\n", .{});
                     std.process.exit(1);
                 };
                 defer alloc.free(acc_result.stdout);
                 defer alloc.free(acc_result.stderr);
-                // Defect 1 fix (T227): .exited reads 0 on signalled children.
-                // Switch on the active union field; only .exited==0 is success.
+                // T227 (defect 1 fix): .exited reads 0 on signalled children.
+                // T295: distinguish acceptance-failure verdicts:
+                //   exit 127 = shell "command not found" (cannot run)
+                //   exit 126 = shell "not executable" (cannot run)
+                //   other non-zero = task's work genuinely failing
+                //   signal/stopped/unknown = infrastructure fault
                 const passed = switch (acc_result.term) {
-                    .exited => |code| code == 0,
+                    .exited => |code| if (code == 0) true else blk: {
+                        if (code == 127) {
+                            w.diag("\n  CANNOT RUN: {s} acceptance command not found in PATH\n", .{id});
+                            w.diag("  command: {s}\n", .{acc_cmd});
+                            w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
+                        } else if (code == 126) {
+                            w.diag("\n  CANNOT RUN: {s} acceptance command found but not executable\n", .{id});
+                            w.diag("  command: {s}\n", .{acc_cmd});
+                            w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
+                        } else {
+                            const last_output = if (acc_result.stderr.len > 0) acc_result.stderr else acc_result.stdout;
+                            w.diag("\n  ACCEPTANCE FAILED: {s} exited with code {d}\n", .{ id, code });
+                            w.diag("  command: {s}\n", .{acc_cmd});
+                            if (last_output.len > 0) {
+                                w.diag("  last output: {s}\n", .{last_output});
+                            }
+                        }
+                        break :blk false;
+                    },
                     .signal => |sig| blk: {
-                        w.diag("\n  REJECTED: {s} acceptance command killed by signal {d}\n", .{ id, sig });
+                        w.diag("\n  CANNOT RUN: {s} acceptance command killed by signal {d}\n", .{ id, sig });
                         break :blk false;
                     },
                     .stopped => blk: {
-                        w.diag("\n  REJECTED: {s} acceptance command stopped\n", .{ id });
+                        w.diag("\n  CANNOT RUN: {s} acceptance command stopped\n", .{ id });
                         break :blk false;
                     },
                     .unknown => blk: {
-                        w.diag("\n  REJECTED: {s} acceptance command terminated with unknown status\n", .{ id });
+                        w.diag("\n  CANNOT RUN: {s} acceptance command terminated with unknown status\n", .{ id });
                         break :blk false;
                     },
                 };
                 if (!passed) {
-                    const last_output = if (acc_result.stderr.len > 0) acc_result.stderr else acc_result.stdout;
-                    w.diag("  command: {s}\n", .{acc_cmd});
-                    if (last_output.len > 0) {
-                        w.diag("  last output: {s}\n", .{last_output});
-                    }
                     w.diag("  Task stays in_progress. Fix the issue or use --skip-acceptance <reason>.\n", .{});
                     std.process.exit(1);
                 }
@@ -3945,6 +3971,11 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 // T217: done task with no acceptance= declared — WARN
                 if (ts.acceptance == null and ts.skip_acceptance_reason == null) {
                     const msg = try std.fmt.allocPrint(alloc, "done but no acceptance= declared — task had no runnable green condition", .{});
+                    try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
+                }
+                // T295: surface --skip-acceptance uses so they stay visible
+                if (ts.skip_acceptance_reason) |reason| {
+                    const msg = try std.fmt.allocPrint(alloc, "closed with --skip-acceptance — acceptance check was bypassed: {s}", .{reason});
                     try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
                 }
             },

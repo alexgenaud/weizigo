@@ -57,7 +57,14 @@ trap 'rm -rf "$TMPDIR"' EXIT
 # Create minimal repo structure the binary expects
 mkdir -p "$TMPDIR/docs/infra/managent"
 mkdir -p "$TMPDIR/untracked"
-touch "$TMPDIR/.git"
+# T295: a real git repo (git init) not touch .git — gitOk needs a
+# valid .git directory. The old binary worked around the missing PATH
+# (empty environ) by failing to find git, which treated the repo as
+# "unavailable" and skipped the deliveable check. With the environ fix
+# git IS on PATH and a file at .git correctly fails the guard.
+git init "$TMPDIR" 2>/dev/null
+git -C "$TMPDIR" config user.email "test@test" 2>/dev/null
+git -C "$TMPDIR" config user.name "test" 2>/dev/null
 
 # Seed an existing task T105 with next_id=105 (next_id ≤ max T-ID → collision)
 # When suggest runs, it will read next_id=105 and mint T105, clobbering this one.
@@ -341,10 +348,52 @@ else
     FAIL=1
 fi
 
+# ── Check 14: T295 — acceptance with nonexistent cmd reports CANNOT RUN ──
+echo "        14. T295: nonexistent acceptance command reports CANNOT RUN (not FAILED)"
+
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA221":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"nonexistent-command-T295-seeded","claim_count":1}}
+JSONEOF
+DONE_OUT14=$(cd "$TMPDIR" && "$MG" done TA221 2>&1) || true
+if echo "$DONE_OUT14" | grep -q "CANNOT RUN" && echo "$DONE_OUT14" | grep -q "infrastructure fault"; then
+    echo "           PASS: nonexistent acceptance reports CANNOT RUN + infrastructure fault"
+else
+    echo "           FAIL: expected CANNOT RUN, got: $DONE_OUT14"
+    FAIL=1
+fi
+
+# ── Check 15: T295 — acceptance with exit-1 command reports ACCEPTANCE FAILED ──
+echo "        15. T295: failing acceptance command reports ACCEPTANCE FAILED"
+
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA222":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"exit 1","claim_count":1}}
+JSONEOF
+DONE_OUT15=$(cd "$TMPDIR" && "$MG" done TA222 2>&1) || true
+if echo "$DONE_OUT15" | grep -q "ACCEPTANCE FAILED" && echo "$DONE_OUT15" | grep -q "exited with code 1"; then
+    echo "           PASS: failing acceptance reports ACCEPTANCE FAILED with exit code"
+else
+    echo "           FAIL: expected ACCEPTANCE FAILED, got: $DONE_OUT15"
+    FAIL=1
+fi
+
+# ── Check 16: T295 — audit surfaces skip-acceptance uses ────────────────────
+echo "        16. T295: audit surfaces --skip-acceptance uses"
+
+cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
+{"TA223":{"status":"done","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","acceptance":"true","skip_acceptance_reason":"test skip reason","claim_count":1}}
+JSONEOF
+AUDIT_T295=$(cd "$TMPDIR" && "$MG" audit 2>&1)
+if echo "$AUDIT_T295" | grep -q "closed with --skip-acceptance" && echo "$AUDIT_T295" | grep -q "test skip reason"; then
+    echo "           PASS: audit surfaced skip-acceptance with reason"
+else
+    echo "           FAIL: audit did not surface skip-acceptance"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
-    echo "  T204/T209/T213/T217: ALL CHECKS PASS"
+    echo "  T204/T209/T213/T217/T295: ALL CHECKS PASS"
 else
-    echo "  T204/T209/T213/T217: SOME CHECKS FAILED"
+    echo "  T204/T209/T213/T217/T295: SOME CHECKS FAILED"
 fi
 exit "$FAIL"
