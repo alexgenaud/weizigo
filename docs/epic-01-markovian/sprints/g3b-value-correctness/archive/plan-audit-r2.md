@@ -82,3 +82,24 @@ Revision 2 fixed the load-bearing F1 defect by re-rooting the closure design to 
 ## Auditor identity and method
 
 Fresh-session document review against `pass0/plan.md` Revision 3 (commit `85839f4`), `pass0/spec.md` Revision 4 (RATIFIED), `archive/plan-audit-r1.md` (T332), `sprint.md`, `DIRECTION.md` + Amendments 1 & 2, `PHASES.md`, `sprints/verify-battery/pass1/mutants.md`, `sprints/oracle-v2/pass0/design-M1.md` (rev 3), and `sprints/verify-battery/pass0/design-M1.md` §4.6. No `untracked/msg/` channel traffic, author framing, or prior audit reasoning was consulted before forming findings. The WZO2 header and invariants were parsed independently with `xxd` and a short Python reader (`data/oracle-4x4-v2.wzo2`, byte-identical to `untracked/oracle-v2/oracle-4x4-v2.wzo2`, both pinned in `artifacts/SHA256SUMS`).
+
+## Gate-holder disposition (Orcha/Opus 5, 2026-08-04)
+
+Verdict accepted: **PASS-WITH-EDITS**. Both required edits applied in plan **Rev 4**;
+**plan.md is RATIFIED** and build-row decomposition follows. Round 2 of 2 — no further
+audit round is owed.
+
+| ID | disposition |
+|---|---|
+| N1 | **Confirmed and fixed.** `plan.md:318` did say "Spec is done (Rev 3, RATIFIED)" while the header and the §7 gate table said Rev 4. It is a regression this gate-holder introduced in the Rev 3 repoint — the gate table was bumped and this prose was missed. The auditor caught the gate-holder's own error, which is the gate working as designed. |
+| N2 | **Substance confirmed, citation corrected, suggested remedy rejected in favour of a different one.** Both `MG-INV` and `KEY-4x4` did declare `holds=src/differential.zig`, and the spec does assign that file to `movegen-invariant-row` alone — **but at `spec.md:278`, not `spec.md:248`, which is a blank line.** Verified by reading both. A finding must be checkable at the line it cites; this is the same class of slip as T324's "SOLE evidence" overstatement, and it is recorded here rather than waved through. Fix applied: MG-INV stays the sole declared holder; KEY-4x4 declares no hold and writes the file under MG-INV's ownership, serialized by its `needs MG-INV` edge inside set `g3b-movegen`. The auditor's alternative — a separate `src/vb_keyagree_4x4.zig` — is **rejected**: spec §6.4 decided to reuse `differential.zig`, and splitting one harness across two files to satisfy bookkeeping is worse than declaring ownership correctly. **Carried into decomposition as a live question, not a settled one:** whether `managent`'s hold conflict fires against *any* row declaring the path or only a live one. If only live rows conflict, KEY-4x4 should carry the hold from the moment MG-INV closes; that will be tested against a temp store at registration, not assumed. |
+
+**What this audit demonstrated, worth recording.** The brief required an artifact parse
+with measured-vs-claimed numbers, and the auditor delivered a 17-row measurement table
+that independently reproduced every §2.1 figure — including two the plan did not claim
+(max group `entry_count` = 8 against a bound of 36, and zero `passes=1` entries with
+`ko≠none`, which is the §2.5 invariant checked rather than quoted). Round 1's only
+critical finding came from a header parse after two document reviews missed the same
+defect; round 2's measurements confirmed the rebuild. `sprint.md:93`/`:100` again:
+instruments that touch the artifact find things, and document review finds the stale
+cross-references — which is also real work, since N1 was one.

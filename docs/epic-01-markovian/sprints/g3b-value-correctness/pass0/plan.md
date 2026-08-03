@@ -2,9 +2,11 @@
 
 ```
 Task: T333 · Role: worker · Model: glm-5.2 · Date: 2026-08-04
-Revision: 3 · Status: PROPOSED
+Revision: 4 · Status: **RATIFIED 2026-08-04** (sprint owner, on T334 round-2
+        PASS-WITH-EDITS with both required edits applied — round 2 of 2, no
+        further audit round owed)
         (Rev 2 is the builder's — T333/glm-5.2, all six findings; Rev 3 is a
-        gate-holder path repoint only, no numbers or decisions touched)
+        gate-holder path repoint; Rev 4 applies T334's N1 + N2 edits)
 Sprint: g3b-value-correctness · Pass: 0
 Parent: pass0/spec.md (Revision 4, RATIFIED 2026-08-04 — spec audit T329 Rev 2;
         T332 F1 amended Rev 3, re-rooting the artifact identity to WZO2;
@@ -315,7 +317,7 @@ record.
 ## 4. Phase sequence and gates
 
 Per `sprint.md` §Phases and §Audit gates. This pass runs **Plan, Scope
-(merged into Plan), Design, Test, Build, Accept**. Spec is done (Rev 3,
+(merged into Plan), Design, Test, Build, Accept**. Spec is done (Rev 4,
 RATIFIED 2026-08-04). The phase number is not a dependency (DIRECTION Amendment 2);
 the real serializer is file ownership (§6). TDD is non-negotiable: tests are
 written and reviewed before the implementation they test (the 2B-5 scar).
@@ -363,7 +365,7 @@ registers, each with the `needs` shown.
 | **CLOSURE** | C-A1 forward + C-A2 backward closure (§2.1 memory plan), binary-search membership over the sorted table | `src/vb_closure.zig` | g3b-battery | MG-KERN | edge 1 |
 | **I4-4x4** | I4 Bellman residual at 4×4, Φ from R8; report KO_SENSITIVE-clear and KO_SENSITIVE-set violation counts separately (spec §2.4) | `src/vb_bellman_4x4.zig` | g3b-battery | R8 | edge 4 |
 | **I5-4x4** | I5 SCC containment at 4×4, move graph from R8; iterative Tarjan per T134's memory plan (~1.2 GB peak). **First seeded-defect control at 3×2** (F2 — the 2×2 all-legal graph is entirely cycle-reachable, spec §7.2): set `KO_SENSITIVE` spuriously on a non-cycle-reachable 3×2 slot → `ko_not_cr > 0`, shown red-then-green **before** the 4×4 reading; this is a row bar, not effort-table prose | `src/vb_scc_4x4.zig` | g3b-battery | R8 | (supports Z-CONVERGE-FIX) |
-| **KEY-4x4** | G1/G3 key-agreement at 4×4, exhaustive over the table (§2.6); extends `differential.zig` with the 4×4-scale run | `src/differential.zig` | g3b-movegen | MG-INV, R8 | (closes G1/G3; kills M1–M4) |
+| **KEY-4x4** | G1/G3 key-agreement at 4×4, exhaustive over the table (§2.6); extends `differential.zig` with the 4×4-scale run | *no hold* — writes `src/differential.zig` **under MG-INV's ownership** (T334 N2: `spec.md:278` assigns that file to `movegen-invariant-row` alone). Serialized by `needs MG-INV` inside set `g3b-movegen`; **MG-INV stays the sole declared holder**, and no row outside this set may declare the file while KEY-4x4 is open | g3b-movegen | MG-INV, R8 | (closes G1/G3; kills M1–M4) |
 | **I11** | I11 move-set consistency: read SMD1 dump, compare against R8; null control (§4.1) + seeded-defect control (§4.2) before first reading counts | `src/vb_i11.zig` | g3b-battery | SMD1, R8 | edge 3 |
 | **BATT-HEALTH** | M9 meta-check: every invariant returns a real verdict, not `.skipped`; enumerate declared invariants, run each, assert status | `src/vb_health.zig` | g3b-battery | R8 | edge 5 (M9) |
 | **DISCHARGE** | G3b discharge / accept row: collect all check readings; **the bar is the seven mutant-kill assertions inverted in `vb_mutants.zig`** (F3 — M1–M4 by KEY-4x4, M8 by CLOSURE, M9 by BATT-HEALTH, M10 by I11's null control), a mechanized checkable assertion not merely the six check rows closed; the `needs` edges stay row-level because managent edges are rows; write `accept.md` | `accept.md` (+ findings) | A | KEY-4x4, CLOSURE, I4-4x4, I5-4x4, I11, BATT-HEALTH | edge 5 |
@@ -626,3 +628,4 @@ then Kotlin by owner ruling, not self-approved).
 | 2026-08-03 | Initial plan — T331 | glm-5.2:cloud/T331 |
 | 2026-08-04 | Rev 2 (T333): fix the six dispositioned plan-audit findings (T332 F1–F5 + gate-holder F6). **F1** — §2.1/§2.6 re-rooted to the real WZO2 artifact (`untracked/oracle-v2/oracle-4x4-v2.wzo2`, 518,123,097 B, SHA-256 `0c3366f0…`); membership predicate rebuilt as group-index binary search + in-group linear scan over the parsed schema (`n_groups=24,318,165`, `n_entries=99,133,036`, entry_size=4, ko_bits=5, PASSES_2_OMITTED, passes≥1⇒ko=none, KO_SENSITIVE=L≠H); memory budget re-derived (~531 MB peak, ~3.47 GB headroom); passes=2 children are expected-absent terminals, not missing. **F2** — I5 first seeded-defect control mechanized as an I5-4x4 row bar at 3×2, red-then-green before the 4×4 reading. **F3** — DISCHARGE bar restated as the seven mutant-kill assertions inverted in `vb_mutants.zig`; `needs` edges stay row-level. **F4** — comparison-harness author required distinct from both MG-KERN (A) and R8 (B); “(or A)” dropped. **F5** — T134 EXP-3 sweep citation relabelled an analogy; actual closure sweep count deferred to an accept.md measurement. **F6** — MG-INV commits to exhaustive `(pos, side, ko, passes)` comparison including `ko≠NONE`, with a ko-recapture mutant caught at a ko-active state. Header and §4 updated to spec Rev 3. | glm-5.2:cloud/T333 |
 | 2026-08-04 | Rev 3 (gate-holder, not the builder): **path repoint only.** §2.1's artifact becomes `data/oracle-4x4-v2.wzo2` — the deployed copy of the same build T333 parsed, byte-identical, SHA `0c3366f0…`, both paths listed in `artifacts/SHA256SUMS` — per spec Rev 4 (human ruling: a ratified spec must not make `untracked/` load-bearing). Header figures re-verified against the deployed copy before the edit (`shasum -c` 12/12 OK; engine load reports 24,318,165 groups / 99,133,036 entries, 0 misses, 0 fallbacks). Spec references bumped Rev 3 → Rev 4 in the header, §1, and the §7 gate table. **No number, decision, check, wave, row, edge or F1–F6 fix was touched** — the round-2 audit judges the builder's Rev 2 content. | claude-opus-5 (Orcha) |
+| 2026-08-04 | Rev 4 (gate-holder, on T334 round-2 audit — PASS-WITH-EDITS): **N1 (must)** — §4's "Spec is done (Rev 3, RATIFIED)" corrected to Rev 4. This was a regression the Rev 3 repoint introduced: the §7 gate table was bumped and this prose was missed, so the auditor caught the gate-holder's own error. **N2 (should, substance confirmed, citation corrected)** — `KEY-4x4` no longer co-declares `holds=src/differential.zig`; MG-INV stays the sole declared holder per `spec.md:278`, and KEY-4x4 writes the file under that ownership, serialized by `needs MG-INV` inside set `g3b-movegen`. The auditor cited `spec.md:248`, which is a blank line; the file-ownership assignment is at `:278`. The suggested alternative — a separate `src/vb_keyagree_4x4.zig` — is **rejected**: spec §6.4's decision was to reuse `differential.zig`, and splitting one harness across two files to satisfy bookkeeping is a worse outcome than declaring ownership correctly. **Status → RATIFIED**; build-row decomposition follows. | claude-opus-5 (Orcha) |
