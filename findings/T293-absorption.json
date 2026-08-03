@@ -1,0 +1,61 @@
+{
+  "task_id": "T293",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "GLOBAL.BATTERY-GAPS",
+      "proposed_status": "CLAIMED",
+      "rationale": "T290's pass1 spec §2 identified six requirement-tree coverage gaps. G1 Z-R-STATE and G3 Z-STATE-KEY have zero battery coverage — the T178/T193/T265 defect family (three producer/consumer key disagreements) went undetected.",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §2"
+    },
+    {
+      "id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE",
+      "proposed_status": "CLAIMED",
+      "rationale": "Phase 1 acceptance criteria A1–A6 re-based on Amendment 1: synthetic mutants for calibration, regression artifacts with documented baseline, two independent re-implementations (raised from one). T290's spec §4, §6, §7.",
+      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §4, §6, §7"
+    },
+    {
+      "id": "CODE.KEY-AGREEMENT",
+      "proposed_status": "CLAIMED",
+      "rationale": "T267's key-agreement invariant: engine and builder produce identical keys on 4 goban sizes; wired into zig build test; seeded-defect control caught. Downgraded from PROVEN: self-play coverage of cycle-intensive ko is light.",
+      "evidence_path": "docs/evidence/GLOBAL.DIFFERENTIAL/T267-key-agreement/PROVENANCE.md"
+    }
+  ],
+  "new_rows": [
+    {
+      "id": "GLOBAL.BATTERY-GAPS",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Phase 1 battery requirement-tree coverage gaps: six of twenty Z-tree nodes lack a battery invariant. G1 Z-R-STATE (state-key correctness), G2 Z-STATE-REACH (closure), G3 Z-STATE-KEY (consumer-side key), G4 Z-TABLE-ROUNDTRIP, G5 Z-CONVERGE-SEED (accepted), G6 Z-CONVERGE-MONO (accepted). G1+G3 are critical: the T178/T193/T265 defect family has zero battery coverage.",
+      "status": "CLAIMED",
+      "evidence": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §2; docs/evidence/ORACLE-V2/ko-key-mismatch-T265.md; docs/evidence/ORACLE-V2/incompleteness-T266.md",
+      "depends_on": "CODE.GTP-KOKEY CODE.ACCEPT-KOKEY (evidence of the defect family)",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Phase 1 verify-battery acceptance criteria A1–A6 re-based on Amendment 1: known-bads = synthetic mutants, regression inputs = golden masters with documented baseline. v1 is regression input with I7 failure baseline. A5 raised from one to two independent re-implementations. Exit codes refined to four classes.",
+      "status": "CLAIMED",
+      "evidence": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md §4, §6, §7",
+      "depends_on": "GLOBAL.BATTERY-GAPS GLOBAL.ADR0020-VERIFY-PASS",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.KEY-AGREEMENT",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "Key-agreement invariant wired into zig build test: engine and builder produce identical (colex, side, ko, passes, terminal) keys on all goban sizes. Engine ko rule independently re-implemented (not alias). Seeded-defect control caught. 13 differential tests pass. Caveat: self-play under-covers cycle-intensive ko.",
+      "status": "CLAIMED",
+      "evidence": "docs/evidence/GLOBAL.DIFFERENTIAL/T267-key-agreement/PROVENANCE.md; src/differential.zig (tests 6–13); build.zig",
+      "depends_on": "CODE.GTP-KOKEY (the ko-key instance), GLOBAL.BATTERY-GAPS (partial coverage of G1)",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "VERDICT: PASS. C7 before=21, after=0. Three new rows in CLAIMS.md (GLOBAL.BATTERY-GAPS, GLOBAL.BATTERY-PASS1-ACCEPTANCE, CODE.KEY-AGREEMENT). 11 dump duplicates from T290-context.json (9) and T288-context.json (2) dispositioned as not-a-register-claim through rejections.json. 3 T290-battery-spec.json proposals absorbed under existing rows (I8-SCOPE→ADR0020-VERIFY-PASS, I9-ANCHOR-4x4→TIE-MIGOS, A1-MUTATION→BATTERY-PASS1-ACCEPTANCE). 2 T267 proposals absorbed under CODE.KEY-AGREEMENT and CODE.GTP-KOKEY. Stub file pass1/i5-feasibility.md created to prevent C2 regression from T290 spec's dangling forward-reference. Bars: C1a=10, C2=14, C6=0, C7=0, calibration=PASS, non-conforming=0."
+}

@@ -60,6 +60,166 @@
       "disposition": "absorbed-under-register-id",
       "refuting_row": "CODE.GTP-KOKEY (PROVEN)",
       "rationale": "Same claim as in T267-key-agreement.json: the findings file used the task ID 'T265' as the claim ID. The content is registered as CODE.GTP-KOKEY (PROVEN), matching the proposal."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-battery-spec.json",
+      "claim_id": "GLOBAL.I8-SCOPE",
+      "proposed_status": "CLAIMED",
+      "register_status": "GLOBAL.ADR0020-VERIFY-PASS: CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "GLOBAL.ADR0020-VERIFY-PASS (CLAIMED)",
+      "rationale": "The I8 scope limitation (I8 measures fixpoint-vs-truncation agreement, not L==H) is already registered as GLOBAL.ADR0020-VERIFY-PASS (absorbed T288), which states the same ADR-0020 pass condition. I8-SCOPE is the battery-specific framing of the same epistemic claim."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-battery-spec.json",
+      "claim_id": "GLOBAL.I9-ANCHOR-4x4",
+      "proposed_status": "CLAIMED",
+      "register_status": "GLOBAL.TIE-MIGOS: FALSE-AS-SCOPED + GLOBAL.FIXPOINT-VS-SEARCH: CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "GLOBAL.TIE-MIGOS (FALSE-AS-SCOPED) + GLOBAL.FIXPOINT-VS-SEARCH (CLAIMED)",
+      "rationale": "The 4x4 anchor correction (+1 = MIGOS basic-ko, +2 is different game) is already registered: GLOBAL.TIE-MIGOS (absorbed T279) refutes the tie-value explanation and records MIGOS basic-ko = +1; GLOBAL.FIXPOINT-VS-SEARCH (also T279) records the fixpoint/search agreement under aligned rules. The battery-specific framing adds no new epistemic content."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-battery-spec.json",
+      "claim_id": "GLOBAL.A1-MUTATION",
+      "proposed_status": "CLAIMED",
+      "register_status": "GLOBAL.BATTERY-PASS1-ACCEPTANCE: CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "GLOBAL.BATTERY-PASS1-ACCEPTANCE (CLAIMED, T293)",
+      "rationale": "The mutation-testing re-base (Amendment 1) is part of the broader Phase 1 acceptance criteria registered as GLOBAL.BATTERY-PASS1-ACCEPTANCE. A1-MUTATION is the specific A1 half of that re-base; merged into the single row."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.I8-SCOPE",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals. Per DELEGATEE.md §Reporting, claims[] and new_rows[] in a context dump must be empty to avoid double-counting in C7."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.I9-ANCHOR-4x4",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.A1-MUTATION",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.BATTERY-GAPS",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement on 24-state fixture, not L==H within fixpoint",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.I9-ANCHOR-4x4 — 4×4 anchor is +1; MIGOS basic-ko agrees at +1; +2 is different game",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.BATTERY-GAPS — 6 gaps in requirement-tree coverage, 4 runnable after Phase 2 kernel",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T290",
+      "finding_file": "T290-context.json",
+      "claim_id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE — A1–A6 re-based on Amendment 1 (mutation testing + golden master)",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
+    },
+    {
+      "finding_task": "T288",
+      "finding_file": "T288-context.json",
+      "claim_id": "GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps at 2×2 are the correct output of the loopy-game fixpoint — PROVEN",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump."
+    },
+    {
+      "finding_task": "T288",
+      "finding_file": "T288-context.json",
+      "claim_id": "GLOBAL.ADR0020-VERIFY-PASS: ADR-0020 verification as a pass condition means 0 Bellman violations + 0 fixpoint-vs-truncation fixture disagreements, NOT L==H everywhere — CLAIMED",
+      "proposed_status": "—",
+      "register_status": "—",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump."
+    },
+    {
+      "finding_task": "T267",
+      "finding_file": "T267-key-agreement.json",
+      "claim_id": "T267",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.KEY-AGREEMENT: CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.KEY-AGREEMENT (CLAIMED, T293)",
+      "rationale": "The key-agreement invariant (engine and builder produce identical keys on all goban sizes; wired into zig build test) is registered as CODE.KEY-AGREEMENT (absorbed T293). The content matches; the proposed PROVEN is downgraded to CLAIMED per the brief: a self-play test with first-legal-move policy under-covers cycle-intensive ko positions."
+    },
+    {
+      "finding_task": "T267",
+      "finding_file": "T267-context.json",
+      "claim_id": "T267",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.KEY-AGREEMENT: CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.KEY-AGREEMENT (CLAIMED, T293)",
+      "rationale": "Same claim as in T267-key-agreement.json: key-agreement invariant registered as CODE.KEY-AGREEMENT (absorbed T293)."
     }
   ]
 }
