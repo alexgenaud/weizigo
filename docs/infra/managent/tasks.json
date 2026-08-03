@@ -45,7 +45,7 @@
   },
   "T335": {
     "status": "dispatchable",
-    "agent": "kimi-k2.7",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T335-g3b-build-sprint-console.md",
     "set": "A",
@@ -218,10 +218,32 @@
     "acceptance": "zig build test",
     "skip_acceptance_reason": "analysis only, no source changes",
     "amendments": []
+  },
+  "T337": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T337-fleet-hardening-round-2-console.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-03T23:53:17Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null,
+    "amendments": []
   }
 ,
   "_sys": {
-    "next_id": 337,
+    "next_id": 338,
     "directive_next": 21
   }
 }
