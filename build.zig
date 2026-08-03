@@ -120,6 +120,18 @@ pub fn build(b: *std.Build) void {
     const run_oracle_v2_accept_tests = b.addRunArtifact(oracle_v2_accept_tests);
     test_step.dependOn(&run_oracle_v2_accept_tests.step);
 
+    // ── verify-battery: mutation catalogue (vb_mutants, T291) ────
+    const vb_mutants_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_mutants.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_vb_mutants_tests = b.addRunArtifact(vb_mutants_tests);
+    run_vb_mutants_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_mutants_tests.step);
+
     // ── verify-battery: table invariants (vb_table) ──────────────
     const vb_table_tests = b.addTest(.{
         .root_module = b.createModule(.{

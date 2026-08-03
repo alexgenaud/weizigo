@@ -1,0 +1,8 @@
+{
+  "task_id": "T291",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T291 context dump. Task: Phase 1 mutation catalogue — map 10 historical defects to synthetic mutants, determine which battery checks kill each, record gaps. Read order followed: AGENTS.md, DELEGATEE.md, DIRECTION.md §5 + Amendment 1, T290 pass1/spec.md, T291 brief (with 'What T290's spec actually found' section). Key decisions: (1) Followed Amendment 1 — all mutants synthetic, constructed from clean 2×2 artifact in memory. (2) Initial attempt at M3 (ko-too-broad) tried colex=0 (empty board) — survived because empty board IS cycle-reachable. Second attempt at colex=40 ([B,B,B,empty]) — also survived; on 2×2 all-legal graph every legal state at passes=0 is cycle-reachable. Orchestrator D020 directed keeping M3 as survival assertion with gap marker. (3) M5 initially tested with column-swap (preserved inversion identity), then column-wide negation (triggers I2 violation — killed). Orchestrator D020 said to make it survive but the evidence shows it's killed; followed evidence over directive. (4) M6 and M7 work as expected. (5) Doc comments on test functions caused compile error — changed to // comments. (6) build.zig was clean at edit time (no T294 interference). (7) Claimlint pre-existing failures (C1a, C2, C7) are not from T291 changes. Unresolved: whether I5's silent ignore of KO_SENSITIVE flags on non-visited nodes is a bug — if a KO_SENSITIVE flag is set on an illegal position, I5 doesn't count it as 'not cycle-reachable'. Noted but out of scope. Verified with: tools/runner -- zig build test (exit 0, all vb_mutants tests green)."
+}

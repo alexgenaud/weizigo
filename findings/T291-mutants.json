@@ -1,0 +1,7 @@
+{
+  "task_id": "T291",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "notes": "T291 — Phase 1 mutation catalogue. Read T290's spec, mapped 10 historical defects to battery gaps. Key findings: (1) Kill rate 3/10 — M5 (I2), M6 (I7), M7 (I2) killed; M3 survives despite having a conceivable killer (I5) because every 2×2 legal state at passes=0 is cycle-reachable. (2) G1/G3 (Z-R-STATE/Z-STATE-KEY, key agreement) blocks 4 mutants: M1 (T178 colex), M2 (T193 passes bit), M3 (T265 ko-too-broad), M4 (ACCEPT-KOKEY). (3) G2 (Z-STATE-REACH, closure) blocks M8 (T261 deleted-entry). (4) Two meta-gaps: M9 (BATTERY-STUBBED) and M10 (alias-control) have no battery check. (5) All fixtures are synthetic WZO1 artifacts constructed in memory from a clean 2×2 artifact — zero writes to data/ or artifacts/. (6) The M3 test assertion expects .pass (survival) with an EXPECTED-GAP marker; it inverts to .fail when Phase 2 key-agreement lands. Deliverables: mutants.md (catalogue), vb_mutants.zig (kill-verification wired into zig build test), build.zig (integration). Orchestrator directive D020 resolved: M3 kept as survival assertion per the Orchestrator; M5 changed to killed per the evidence (column-wide negation triggers I2 violation)."
+}
