@@ -1,7 +1,7 @@
 # verify-battery — golden-master baselines and the gate (T292)
 
 ```
-Task:   T292 · Role: worker · Model: not stated at dispatch · Date: 2026-08-04
+Task:   T292 · Role: worker · Model: not stated at dispatch · Date: 2026-08-03
 Status: DELIVERED — baselines recorded, comparison semantics defined, gate wired
 Parent: pass1/spec.md (T290) · pass1/mutants.md (T291)
 Inputs: Amendment 1 (Feathers 2004 — golden master / characterization testing),
@@ -22,7 +22,7 @@ baselines.sh` (wired into `zig build test`); the slow full-artifact sweep is
 
 ## 1. What was recorded, and how
 
-Every in-scope artifact was run through the battery on 2026-08-04, under
+Every in-scope artifact was run through the battery on 2026-08-03, under
 `tools/runner` (RSS cap 4096 MB per PID, one invocation at a time — no
 concurrent sweeps, GRAND-AUDIT §3). Recorded per check: status, numerator /
 denominator, declared/actual mode, exit class, plus the command, the artifact
@@ -32,8 +32,8 @@ captured at `/tmp/weizigo/*-baseline.jsonl` during the session (disposable).
 
 | instrument | version stamp | binary SHA-256 |
 |---|---|---|
-| `zig-out/bin/verify-battery` | `verify-battery f8eb7c3-dirty built 2026-08-03T01:35:58Z zig 0.16.0` (HEAD `f8eb7c3`, dirty tree, ReleaseFast) | `8e8ee52b05cc8520ed18cdb4e358952f3c11dd0c` |
-| `oracle-v2-accept` (WZO2 acceptance) | built 2026-08-03 from `src/oracle_v2_accept.zig` at HEAD `f8eb7c3`, ReleaseFast | `2d04767aee004da5d863efcde654d61bc7be54f9` |
+| `zig-out/bin/verify-battery` | `verify-battery f8eb7c3-dirty built 2026-08-03T01:35:58Z zig 0.16.0` (HEAD `f8eb7c3`, dirty tree, ReleaseFast) | `8e8ee52b05cc8520ed18cdb4e358952f3c11dd0c` (legacy 40-hex; T309: field renamed from sha256 — the T292 binary is gone, a proper SHA-256 cannot be retroactively computed) |
+| `oracle-v2-accept` (WZO2 acceptance) | built 2026-08-03 from `src/oracle_v2_accept.zig` at HEAD `f8eb7c3`, ReleaseFast | `2d04767aee004da5d863efcde654d61bc7be54f9` (legacy 40-hex; T309: field renamed from sha256 — first 40 chars of actual SHA-256) |
 
 Commands: `tools/runner -- zig-out/bin/verify-battery <goban> <artifact>` (all
 twelve invariants, JSONL to stdout) and `tools/runner -- <oracle-v2-accept>
@@ -168,7 +168,7 @@ live in the baseline (documented characteristics) but the 258 MB artifacts are
 host-only (`data/` is gitignored) and the 4×4 I4/I5/I7 cells are battery
 errors anyway. The suite's job is the deterministic every-clone gate.
 
-**Wall-clock added: 3.3 s** (suite 30.1 s → 33.4 s, measured 2026-08-04 under
+**Wall-clock added: 3.3 s** (suite 30.1 s → 33.4 s, measured 2026-08-03 under
 `tools/runner -- zig build test`). The dominant cost is I5's 4×3 Tarjan
 (~544 MB peak, ~1 s). A suite nobody waits for gets bypassed; 33 s is
 well inside the existing budget.
@@ -285,3 +285,4 @@ that a *change* to any of them is the signal:
 | date | amendment | by |
 |---|---|---|
 | 2026-08-04 | Initial baseline — T292 (all seven WZO1 artifacts + WZO2 `0c3366f0`) | T292 |
+| 2026-08-03 | T309: added A2/A5/A8 exhaustive baseline rows (stride=1, all 99,133,036 entries); all PASS; peak RSS 866 MB; wall clocks A5 0.18s, A2 50.6s, A8 55.9s. Fixed record defects (hash field renames, date corrections). | T309 |

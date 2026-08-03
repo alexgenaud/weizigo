@@ -2,10 +2,13 @@
  "schema": "T292-baselines-v1",
  "generated_by": {
   "task": "T292",
-  "date": "2026-08-04",
+  "date": "2026-08-03",
+  "_note_date_correction": "T309: date corrected from 2026-08-04 to 2026-08-03 (the actual date of T292's recording session)",
   "verify_battery_version": "verify-battery f8eb7c3-dirty built 2026-08-03T01:35:58Z zig 0.16.0",
-  "verify_battery_binary_sha256": "8e8ee52b05cc8520ed18cdb4e358952f3c11dd0c",
-  "oracle_v2_accept_binary_sha256": "2d04767aee004da5d863efcde654d61bc7be54f9",
+  "verify_battery_binary_hash_legacy_40hex": "8e8ee52b05cc8520ed18cdb4e358952f3c11dd0c",
+  "_note_verify_battery_binary_hash": "T309: field renamed from verify_battery_binary_sha256 — the stored value is 40 hex chars (truncated SHA-256 or SHA-1), not a 64-char SHA-256. The T292 binary is gone; a proper SHA-256 cannot be retroactively computed.",
+  "oracle_v2_accept_binary_hash_legacy_40hex": "2d04767aee004da5d863efcde654d61bc7be54f9",
+  "_note_oracle_v2_accept_binary_hash": "T309: field renamed from oracle_v2_accept_binary_sha256 — the stored value is the first 40 chars of the actual SHA-256, not a full 64-char SHA-256. The T292 binary is gone; a proper SHA-256 cannot be retroactively computed.",
   "runner": "tools/runner -- (RSS cap 4096 MB per-PID; one invocation at a time)",
   "commands": [
    "tools/runner -- zig-out/bin/verify-battery <goban> <artifact>   (all 12 invariants; stdout JSONL)",
@@ -583,7 +586,7 @@
      "seed": null,
      "sample_size": null,
      "sample_denominator": null,
-     "deviation": "no committed anchor for this goban \u2014 spec \u00a74 I9"
+     "deviation": "no committed anchor for this goban — spec §4 I9"
     },
     "I10": {
      "status": "not-applicable",
@@ -734,7 +737,7 @@
      "seed": null,
      "sample_size": null,
      "sample_denominator": null,
-     "deviation": "+1 vs MIGOS +2 \u2014 open discrepancy (spec \u00a74 I9)"
+     "deviation": "+1 vs MIGOS +2 — open discrepancy (spec §4 I9)"
     },
     "I10": {
      "status": "not-applicable",
@@ -885,7 +888,7 @@
      "seed": null,
      "sample_size": null,
      "sample_denominator": null,
-     "deviation": "+1 vs MIGOS +2 \u2014 open discrepancy (spec \u00a74 I9)"
+     "deviation": "+1 vs MIGOS +2 — open discrepancy (spec §4 I9)"
     },
     "I10": {
      "status": "not-applicable",
@@ -1036,7 +1039,7 @@
      "seed": null,
      "sample_size": null,
      "sample_denominator": null,
-     "deviation": "+1 vs MIGOS +2 \u2014 open discrepancy (spec \u00a74 I9)"
+     "deviation": "+1 vs MIGOS +2 — open discrepancy (spec §4 I9)"
     },
     "I10": {
      "status": "not-applicable",
@@ -1081,7 +1084,7 @@
    "sha256": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
    "goban": "4x4",
    "instrument": "oracle-v2-accept (WZO2 acceptance; A1-A9)",
-   "notes": "structurally complete (G3a discharged, CODE.WZO2-PASS1-LAW PROVEN); value-unverified (G3b untouched \u2014 closure checks C-A1/C-A2 not run). Completeness checks PASS by baseline; A2/A3 value checks are measurements, not claims.",
+   "notes": "structurally complete (G3a discharged, CODE.WZO2-PASS1-LAW PROVEN); value-unverified (G3b untouched — closure checks C-A1/C-A2 not run). Completeness checks PASS by baseline; A2/A3 value checks are measurements, not claims. T309: added A2/A5/A8 exhaustive baseline rows (stride=1, all 99,133,036 entries checked).",
    "checks": {
     "A1": {
      "status": "pass",
@@ -1171,6 +1174,60 @@
      "numerator": 0,
      "denominator": 1,
      "note": "embedded SHA matches computed; groups_sorted=true entries_sorted=true entry_order_violations=0",
+     "mode_declared": "exhaustive",
+     "mode_actual": "exhaustive",
+     "exit_class": "pass",
+     "seed": null,
+     "sample_size": null
+    },
+    "A2_exhaustive": {
+     "_task": "T309",
+     "_date": "2026-08-03",
+     "_binary_sha256": "ff1a5787c793acf03efef36b6fe9ccf70154e018c56817d39a25357398698ac6",
+     "_wall_clock_s": 50.6,
+     "_peak_rss_mb": 866,
+     "status": "pass",
+     "numerator": 0,
+     "denominator": 99133036,
+     "stride": 1,
+     "sample_denominator": 99133036,
+     "note": "L_violations=0 H_violations=0 missing_child=0 (Bellman, exhaustive — all 99,133,036 entries)",
+     "mode_declared": "exhaustive",
+     "mode_actual": "exhaustive",
+     "exit_class": "pass",
+     "seed": null,
+     "sample_size": null
+    },
+    "A5_exhaustive": {
+     "_task": "T309",
+     "_date": "2026-08-03",
+     "_binary_sha256": "ff1a5787c793acf03efef36b6fe9ccf70154e018c56817d39a25357398698ac6",
+     "_wall_clock_s": 0.18,
+     "_peak_rss_mb": 866,
+     "status": "pass",
+     "numerator": 0,
+     "denominator": 99133036,
+     "stride": 1,
+     "sample_denominator": 99133036,
+     "note": "round-trip key_byte, exhaustive — all 99,133,036 entries; mismatches=0",
+     "mode_declared": "exhaustive",
+     "mode_actual": "exhaustive",
+     "exit_class": "pass",
+     "seed": null,
+     "sample_size": null
+    },
+    "A8_exhaustive": {
+     "_task": "T309",
+     "_date": "2026-08-03",
+     "_binary_sha256": "ff1a5787c793acf03efef36b6fe9ccf70154e018c56817d39a25357398698ac6",
+     "_wall_clock_s": 55.9,
+     "_peak_rss_mb": 866,
+     "status": "pass",
+     "numerator": 0,
+     "denominator": 99133036,
+     "stride": 1,
+     "sample_denominator": 99133036,
+     "note": "DTT distribution exhaustive; consistency violations=0 over all 99,133,036 entries; dist unchanged from sampled baseline",
      "mode_declared": "exhaustive",
      "mode_actual": "exhaustive",
      "exit_class": "pass",

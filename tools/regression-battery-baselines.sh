@@ -9,7 +9,7 @@
 # The slow full-artifact sweep (4x4 WZO1s + WZO2) is NOT here — it lives
 # behind the explicit `zig build battery-sweep` step.
 #
-# Task: T292 · Role: worker · Model: not stated at dispatch · Date: 2026-08-04
+# Task: T292 · Role: worker · Model: not stated at dispatch · Date: 2026-08-03
 
 set -e
 

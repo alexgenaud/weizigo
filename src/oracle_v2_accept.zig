@@ -34,15 +34,24 @@
 // is frozen by the M1 design; this file is the consumer that verifies it.
 //
 // Usage:
-//   zig run -O ReleaseSafe src/oracle_v2_accept.zig -- <path-to-wzo2> [check]
+//   zig run -O ReleaseSafe src/oracle_v2_accept.zig -- <path-to-wzo2> [check] [--stride N]
 //   zig test src/oracle_v2_accept.zig  # runs A5 round-trip unit tests
 //
 // Checks (select with second arg, default = all):
+//   a1   self-play refusal rate (pinned seed)
+//   a2   Bellman residual (L/H fixpoint identity)
 //   a3   colour inversion: L(-pos,-side)==-H(pos,side) for every stored state
+//   a4   pin census (L==H, L<H categories)
 //   a5   round-trip: decode(encode(x)) == x (exhaustive at 2×2/3×2/3×3,
 //        sampled with stated denominator at 4×4)
 //   a6   calibration: corrupt artifact, verify detection
+//   a8   DTT distribution and consistency
 //   a9   reproducibility: SHA-256 verification against recorded hash
+//
+// --stride N: override the default sampling stride for A2/A5/A8.
+//   --stride 1  = exhaustive (check every entry)
+//   --stride 0  = use built-in default (997/97/1999 for 4×4, 1 otherwise)
+//   default: built-in values (backward-compatible with all existing baselines)
 //
 // stdout = data (verdict + counts), stderr = diagnostics (progress).
 // Exit code 0 = PASS, 1 = FAIL, 2 = usage error.
@@ -721,23 +730,25 @@ fn checkA2(
     header: Wzo2Header,
     groups: []const Wzo2Group,
     entries: []const u8,
+    user_stride: ?u64,
 ) !A2Result {
     const w = header.w;
     const h = header.h;
+    const us = user_stride;
     return switch (w) {
         2 => switch (h) {
-            2 => checkA2Inner(2, 2, header, groups, entries),
-            3 => checkA2Inner(2, 3, header, groups, entries),
+            2 => checkA2Inner(2, 2, header, groups, entries, us),
+            3 => checkA2Inner(2, 3, header, groups, entries, us),
             else => error.UnsupportedGoban,
         },
         3 => switch (h) {
-            2 => checkA2Inner(3, 2, header, groups, entries),
-            3 => checkA2Inner(3, 3, header, groups, entries),
+            2 => checkA2Inner(3, 2, header, groups, entries, us),
+            3 => checkA2Inner(3, 3, header, groups, entries, us),
             else => error.UnsupportedGoban,
         },
         4 => switch (h) {
-            3 => checkA2Inner(4, 3, header, groups, entries),
-            4 => checkA2Inner(4, 4, header, groups, entries),
+            3 => checkA2Inner(4, 3, header, groups, entries, us),
+            4 => checkA2Inner(4, 4, header, groups, entries, us),
             else => error.UnsupportedGoban,
         },
         else => error.UnsupportedGoban,
@@ -750,6 +761,7 @@ fn checkA2Inner(
     header: Wzo2Header,
     groups: []const Wzo2Group,
     entries: []const u8,
+    user_stride: ?u64,
 ) !A2Result {
     const R = colex.Indexer(w, h);
     const Rules = rules.Rules(w, h);
@@ -758,8 +770,11 @@ fn checkA2Inner(
     const n_cells = w * h;
     const n_entries = header.n_entries;
 
-    // Stride: exhaustive for small gobans, prime-stride sample for 4x4
-    const stride: u64 = if (n_entries > 5_000_000) 997 else 1;
+    // Stride: user override > built-in default (exhaustive for small gobans,
+    // prime-stride sample for 4x4)
+    const stride: u64 = if (user_stride) |s|
+        if (s == 0) (if (n_entries > 5_000_000) @as(u64, 997) else 1) else s
+    else if (n_entries > 5_000_000) 997 else 1;
     const denominator = n_entries;
 
     var checked: u64 = 0;
@@ -912,23 +927,25 @@ fn checkA8(
     header: Wzo2Header,
     groups: []const Wzo2Group,
     entries: []const u8,
+    user_stride: ?u64,
 ) !A8Result {
     const w = header.w;
     const h = header.h;
+    const us = user_stride;
     return switch (w) {
         2 => switch (h) {
-            2 => checkA8Inner(2, 2, header, groups, entries),
-            3 => checkA8Inner(2, 3, header, groups, entries),
+            2 => checkA8Inner(2, 2, header, groups, entries, us),
+            3 => checkA8Inner(2, 3, header, groups, entries, us),
             else => error.UnsupportedGoban,
         },
         3 => switch (h) {
-            2 => checkA8Inner(3, 2, header, groups, entries),
-            3 => checkA8Inner(3, 3, header, groups, entries),
+            2 => checkA8Inner(3, 2, header, groups, entries, us),
+            3 => checkA8Inner(3, 3, header, groups, entries, us),
             else => error.UnsupportedGoban,
         },
         4 => switch (h) {
-            3 => checkA8Inner(4, 3, header, groups, entries),
-            4 => checkA8Inner(4, 4, header, groups, entries),
+            3 => checkA8Inner(4, 3, header, groups, entries, us),
+            4 => checkA8Inner(4, 4, header, groups, entries, us),
             else => error.UnsupportedGoban,
         },
         else => error.UnsupportedGoban,
@@ -941,6 +958,7 @@ fn checkA8Inner(
     header: Wzo2Header,
     groups: []const Wzo2Group,
     entries: []const u8,
+    user_stride: ?u64,
 ) !A8Result {
     const R = colex.Indexer(w, h);
     const Rules = rules.Rules(w, h);
@@ -962,7 +980,9 @@ fn checkA8Inner(
 
     // Stride for DTT consistency (expensive: requires child generation)
     const n_entries = header.n_entries;
-    const dtt_stride: u64 = if (n_entries > 1_000_000) 1999 else 1;
+    const dtt_stride: u64 = if (user_stride) |s|
+        if (s == 0) (if (n_entries > 1_000_000) @as(u64, 1999) else 1) else s
+    else if (n_entries > 1_000_000) 1999 else 1;
 
     var group_idx: usize = 0;
     var entry_global: u64 = 0;
@@ -1121,15 +1141,17 @@ const A8Result = struct {
 // decode(encode(key)) == key for every entry. Exhaustive at small gobans,
 // sampled at 4×4. This verifies writer/reader agreement on bit packing.
 
-fn checkA5(header: Wzo2Header, entries: []const u8) A5Result {
+fn checkA5(header: Wzo2Header, entries: []const u8, user_stride: ?u64) A5Result {
     const ko_bits = header.ko_bits;
     const n_entries = header.n_entries;
 
     var checked: u64 = 0;
     var mismatches: u64 = 0;
 
-    // For 4×4, sample rather than exhaust (99M entries is slow in debug).
-    const stride: u64 = if (n_entries > 10_000_000) 97 else 1; // prime stride for sampling
+    // Stride: user override > built-in default (prime stride 97 for 4×4)
+    const stride: u64 = if (user_stride) |s|
+        if (s == 0) (if (n_entries > 10_000_000) @as(u64, 97) else 1) else s
+    else if (n_entries > 10_000_000) 97 else 1;
     const denominator = n_entries;
 
     var ei: u64 = 0;
@@ -1425,7 +1447,31 @@ pub fn main(init: std.process.Init) !void {
     }
     const path: []const u8 = path_opt.?;
 
-    const check_filter: ?[]const u8 = args.next();
+    var check_filter: ?[]const u8 = null;
+    var user_stride: ?u64 = null;
+
+    // Parse remaining args: [check] [--stride N]
+    while (true) {
+        const arg = args.next();
+        if (arg == null) break;
+        const a = arg.?;
+        if (std.mem.eql(u8, a, "--stride")) {
+            const val = args.next();
+            if (val == null) {
+                util.warn("error: --stride requires a value\n", .{});
+                std.process.exit(2);
+            }
+            user_stride = std.fmt.parseUnsigned(u64, val.?, 10) catch {
+                util.warn("error: --stride value must be a non-negative integer, got '{s}'\n", .{val.?});
+                std.process.exit(2);
+            };
+        } else if (check_filter == null) {
+            check_filter = a;
+        } else {
+            util.warn("error: unexpected argument '{s}'\n", .{a});
+            std.process.exit(2);
+        }
+    }
 
     // Read the artifact
     const gpa = std.heap.page_allocator;
@@ -1482,7 +1528,7 @@ pub fn main(init: std.process.Init) !void {
     // --- A2: post-round-trip Bellman ---
     if (run_all or std.mem.eql(u8, check_filter.?, "a2")) {
         util.note("--- A2: Bellman residual ---\n", .{});
-        const result = try checkA2(header, groups, entries);
+        const result = try checkA2(header, groups, entries, user_stride);
         util.out("A2 Bellman: checked={d}  L_violations={d}  H_violations={d}  missing_child={d}  stride={d}  denominator={d}\n", .{
             result.checked, result.L_violations, result.H_violations, result.missing_child, result.stride, result.denominator,
         });
@@ -1506,7 +1552,7 @@ pub fn main(init: std.process.Init) !void {
     // --- A5: round-trip identity ---
     if (run_all or std.mem.eql(u8, check_filter.?, "a5")) {
         util.note("--- A5: round-trip identity ---\n", .{});
-        const result = checkA5(header, entries);
+        const result = checkA5(header, entries, user_stride);
         util.out("A5 round-trip: checked={d}  mismatches={d}  stride={d}  denominator={d}\n", .{
             result.checked, result.mismatches, result.stride, result.denominator,
         });
@@ -1518,7 +1564,7 @@ pub fn main(init: std.process.Init) !void {
     // --- A8: DTT distribution and consistency ---
     if (run_all or std.mem.eql(u8, check_filter.?, "a8")) {
         util.note("--- A8: DTT ---\n", .{});
-        const result = try checkA8(header, groups, entries);
+        const result = try checkA8(header, groups, entries, user_stride);
         util.out("A8 DTT: total={d}  far={d}  non_constant={}  terminal_dtt0_errs={d}\n", .{
             result.total, result.far_count, result.non_constant_ok, result.terminal_dtt0_errs,
         });
@@ -2165,7 +2211,7 @@ test "A2 Bellman: synthetic 2x2 fixpoint identity passes" {
     // missing_child will be non-zero, but L/H violations should be 0
     // because the values we stored (0) happen to match the pass-edge
     // value (0 from area_score when passes=2).
-    const result = try checkA2(header, &groups, entries_buf);
+    const result = try checkA2(header, &groups, entries_buf, null);
     // We expect L/H violations = 0 (the pass edge gives 0, and there are
     // no other placed children with entries, which skip).
     try std.testing.expectEqual(@as(u64, 0), result.L_violations);
@@ -2207,7 +2253,7 @@ test "A2 Bellman: detects L violation on synthetic data" {
         .sha256 = [_]u8{0} ** 32,
     };
 
-    const result = try checkA2(header, &groups, entries_buf);
+    const result = try checkA2(header, &groups, entries_buf, null);
     // L should be 99 but expected is 0 (pass edge → passes=2 terminal) → L violation
     try std.testing.expect(result.L_violations > 0);
 }
@@ -2240,7 +2286,7 @@ test "A8 DTT: non-constant detection" {
         .sha256 = [_]u8{0} ** 32,
     };
 
-    const result = try checkA8(header, &groups, &entries_buf);
+    const result = try checkA8(header, &groups, &entries_buf, null);
     try std.testing.expect(!result.non_constant_ok); // all same DTT
 }
 
@@ -2269,7 +2315,7 @@ test "A8 DTT: non-constant passes with variety" {
         .sha256 = [_]u8{0} ** 32,
     };
 
-    const result = try checkA8(header, &groups, &entries_buf);
+    const result = try checkA8(header, &groups, &entries_buf, null);
     try std.testing.expect(result.non_constant_ok);
 }
 
@@ -2304,6 +2350,6 @@ test "A8 DTT: terminal with DTT=0 is flagged" {
         .sha256 = [_]u8{0} ** 32,
     };
 
-    const result = try checkA8(header, &groups, &entries_buf);
+    const result = try checkA8(header, &groups, &entries_buf, null);
     try std.testing.expectEqual(@as(u64, 1), result.terminal_dtt0_errs);
 }
