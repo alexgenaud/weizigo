@@ -1,0 +1,8 @@
+{
+  "task_id": "T334",
+  "date": "2026-08-04",
+  "model": "kimi-k2.7-code:cloud",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Read: pass0/plan.md Rev 3 (commit 85839f4), pass0/spec.md Rev 4, archive/plan-audit-r1.md (T332), sprint.md, DIRECTION.md + Amendments 1 & 2, PHASES.md, sprints/verify-battery/pass1/mutants.md, sprints/oracle-v2/pass0/design-M1.md rev 3, sprints/verify-battery/pass0/design-M1.md §4.6. Did not read untracked/msg/ channel traffic or prior audit reasoning before forming findings. Measured: parsed data/oracle-4x4-v2.wzo2 header with Python — all fields match plan claims (n_groups=24,318,165, n_entries=99,133,036, file size 518,123,097, SHA-256 0c3366f0…, embedded slot digest 57009d93…). Verified group index is sorted by colex, max group count 8 (bound 36), passes=1 ko≠none count 0. Could not independently verify the WZO2 group order invariant across all 24.3M groups in the time budget, so the sortedness claim rests on a spot-check; the plan's membership predicate depends on it and is the same predicate in design-M1 Appendix A. Assumed without checking: that the T266/T277 structural-completeness chain justifies 'the reachable set is the table' (a G3a claim, not a plan-defect). Noticed but left alone: the plan's C-A2 'backward BFS' description actually expands children forward from the root, which is terminology inherited from the spec and does not affect mechanization."
+}

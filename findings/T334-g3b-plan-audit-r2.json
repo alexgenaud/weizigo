@@ -1,0 +1,8 @@
+{
+  "task_id": "T334",
+  "date": "2026-08-04",
+  "model": "kimi-k2.7-code:cloud",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Plan audit round 2 of 2 for g3b-value-correctness pass0. All six dispositioned round-1 findings (F1–F6) are fixed in plan Rev 3. WZO2 header and layout arithmetic were independently parsed and match the plan's figures. Two new findings: N1 (must) is a stale 'Rev 3' reference at plan.md:318-319 that contradicts the ratified spec Rev 4; N2 (should) is two rows (MG-INV and KEY-4x4) both declaring holds=src/differential.zig, conflicting with spec §3.1 one-owner assignment. Verdict: PASS-WITH-EDITS with exact diffs supplied. No claim status changes or new rows proposed."
+}
