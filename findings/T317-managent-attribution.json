@@ -1,0 +1,63 @@
+{
+  "task_id": "T317",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": ["CODE.MANAGENT-MODEL-VALIDATION", "CODE.MANAGENT-LOST-UPDATE", "CODE.MANAGENT-AMEND"],
+  "new_rows": [],
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "must",
+      "what": "managent add now accepts --model <name> with canonical-label validation and storage, same as suggest",
+      "files": ["src/managent/main.zig", "docs/infra/managent/spec.md"],
+      "control": "managent add --auto --bundle <fixture> --model deepseek-v4-flash stores the model; claim without --agent inherits it"
+    },
+    {
+      "id": "F2",
+      "severity": "must",
+      "what": "Canonical model label validation at point of writing: agent, claim (--agent), done (--agent) all reject non-canonical labels and print the accepted set. Raw Ollama tags (kimi-k2.7-code:cloud) are canonicalized before validation. The canonical set lives in one array in src/managent/main.zig — single source of truth.",
+      "files": ["src/managent/main.zig"],
+      "control_red": "managent agent <id> T999 → exit 1, names canonical set",
+      "control_green": "managent agent <id> deepseek-v4-pro → exit 0"
+    },
+    {
+      "id": "F3",
+      "severity": "must",
+      "what": "bin/ollama-subagent canonicalizes raw Ollama tags to canonical labels (kimi-k2.7-code:cloud → kimi-k2.7) and parses the bundle's deliverables= header for the closing prompt. The pre-fix code derived the filename from the brief slug regardless of the declared deliverables.",
+      "files": ["bin/ollama-subagent"],
+      "known_gap": "OLLAMA_TAG_TO_CANONICAL mapping is maintained manually in ollama-subagent; new Ollama models not in the mapping fall through to a :cloud-stripping heuristic"
+    },
+    {
+      "id": "F4",
+      "severity": "must",
+      "what": "tools/regression-subagent-prompt.sh wired into zig build test (T315 shipping debt). Follows the regression-precommit.sh precedent at build.zig:172-175.",
+      "files": ["build.zig"]
+    },
+    {
+      "id": "F5",
+      "severity": "must",
+      "what": "Store write lost-update safety: mutating commands (add, claim, agent, dispatch, amend) now use lock→re-read→modify→writeLocked→unlock. writeState refactored into writeStateLocked (no lock) and writeState (locking wrapper for backward compat). cmdDone, cmdReopen, cmdSet, cmdNeeds, cmdNext, cmdPurge, cmdVerdict still use writeState (locks internally but doesn't re-read under lock) — adequate because they are less raced in practice, but not the full brief requirement.",
+      "files": ["src/managent/main.zig"],
+      "owed": "Full lock→re-read→modify→writeLocked→unlock for the remaining 7 mutating commands"
+    },
+    {
+      "id": "F6",
+      "severity": "must",
+      "what": "managent amend <id> --verdict <v> --note <text>: append-only correction path. The original verdict is preserved in the store; amendments are surfaced in show/status/audit. managent done is terminal — amend is the correction path without erasing history.",
+      "files": ["src/managent/main.zig"],
+      "control": "amend T315 --verdict pass-with-findings → original 'pass' still in store, amendment record in JSON amendments[] array"
+    }
+  ],
+  "gaps": [
+    "cmdShow does not yet display amendments[] — the records are in JSON but not surfaced in the CLI output",
+    "cmdDone and 6 other mutating commands still use writeState (locking wrapper) rather than the full lock→re-read pattern — adequate for the immediate threat (concurrent claim/agent/add are the raced paths) but not the full brief requirement",
+    "The ollama-subagent OLLAMA_TAG_TO_CANONICAL dict must stay in sync with src/managent/main.zig canonical_models — no mechanized cross-check"
+  ],
+  "whats_next": [
+    "T319 (kanban archive) can proceed — it edits the same src/managent/main.zig file",
+    "T322 (wire orphaned controls) can proceed in parallel — edits build.zig",
+    "cmdShow amendment display should be added as a follow-up",
+    "Full lost-update hardening for remaining commands"
+  ]
+}

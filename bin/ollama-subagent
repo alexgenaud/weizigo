@@ -30,6 +30,28 @@ DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 WORKER_DEPTH = 2
 
 
+def _parse_deliverables(bundle_abs, slug, target):
+    """Parse deliverables= from a bundle's <!--managent ...--> meta header.
+
+    Returns a list of deliverable paths.  Falls back to the pre-T317
+    filename-derived path when the header declares nothing.
+    """
+    try:
+        with open(bundle_abs) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("<!--managent "):
+                    m = re.search(r"deliverables=([^\s>]+)", line)
+                    if m:
+                        val = m.group(1).rstrip(",")
+                        return [p.strip() for p in val.split(",") if p.strip()]
+                    break
+    except Exception:
+        pass
+    # Fall back: the pre-T317 filename-derived path.
+    return [f"findings/{target}-{slug}.json"]
+
+
 def parse(argv):
     """Split argv into (positional args, flags). --model/--wall accept both
     --model=X and --model X (space) forms; --dry-run is a bare flag."""
@@ -69,9 +91,31 @@ def main(argv):
                  f"manager, then stop.\nIf the task genuinely needs delegating, say "
                  f"so and let your manager decide.")
 
-    model = next((f.split("=", 1)[1] for f in flags if f.startswith("--model=")), None)
-    if not model:
+    raw_model = next((f.split("=", 1)[1] for f in flags if f.startswith("--model=")), None)
+    if not raw_model:
         sys.exit("ollama-subagent: name exactly one model — --model <ollama-tag>")
+
+    # ── T317 item 2: map raw Ollama tags to canonical model labels.
+    #    Ollama tags carry :cloud suffixes and code-variant names (e.g.
+    #    kimi-k2.7-code:cloud); managent rejects non-canonical labels at
+    #    write time, so we must emit the canonical form in --agent flags.
+    #    The canonical set is the single source of truth in
+    #    src/managent/main.zig; this mapping must stay in sync.
+    OLLAMA_TAG_TO_CANONICAL = {
+        "glm-5.2": "glm-5.2",
+        "glm-5.2:cloud": "glm-5.2",
+        "minimax-m3": "minimax-m3",
+        "minimax-m3:cloud": "minimax-m3",
+        "kimi-k2.7": "kimi-k2.7",
+        "kimi-k2.7-code": "kimi-k2.7",
+        "kimi-k2.7:cloud": "kimi-k2.7",
+        "kimi-k2.7-code:cloud": "kimi-k2.7",
+    }
+    model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
+    if model is None:
+        # Strip :cloud suffix and try again — a new Ollama model arriving
+        # before this mapping is updated.
+        model = re.sub(r":cloud$", "", raw_model)
 
     target, wall = args[0], next(
         (f.split("=", 1)[1] for f in flags if f.startswith("--wall=")), "1800")
@@ -83,12 +127,23 @@ def main(argv):
             sys.exit(f"ollama-subagent: expected one bundle for {target}, found {len(hits)}")
         bundle = os.path.relpath(hits[0], ROOT)
         task_id = target
+
+        # ── T317 item 5: read the bundle's declared deliverables from its
+        #    meta header, so the closing prompt names what the gate enforces.
+        #    The pre-T317 code derived the filename from the brief slug
+        #    regardless of the deliverables= line; three consecutive rows
+        #    closed wrong on this (T329, T332, T333).
         slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
+        deliverables = _parse_deliverables(hits[0], slug, target)
+        dl_lines = "\n".join(f"  - {d}" for d in deliverables)
+
         prompt = (f"Follow {bundle}\n\n"
                   f"FIRST: bin/managent claim {target} --agent {model}\n"
                   f"You are a worker. The brief carries everything.\n\n"
                   f"WHEN DONE, before any other output:\n"
-                  f"  1. Write findings/{target}-{slug}.json per findings/README.md\n"
+                  f"  Deliverables declared by the bundle (managent done checks every one):\n"
+                  f"{dl_lines}\n"
+                  f"  1. Write these files per findings/README.md\n"
                   f"  2. bin/managent done {target} --agent {model} --status <pass|pass-with-findings|"
                   f"fail-found|blocked|abandoned> --note <one line>\n")
     elif os.path.isfile(target):

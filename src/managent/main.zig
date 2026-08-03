@@ -83,9 +83,62 @@ const TaskState = struct {
     acceptance: ?[]const u8 = null,
     skip_acceptance_reason: ?[]const u8 = null,
     claim_count: u32 = 0,
+    // T317: append-only correction record.  managent done is terminal;
+    // amend appends corrections without erasing the original verdict.
+    amendments: [][]const u8 = &.{},
 };
 
 const valid_verdicts = [_][]const u8{ "pass", "pass-with-findings", "fail-found", "blocked", "abandoned" };
+
+// ── T317: canonical model labels — single source of truth ────────────────
+// Every model the project recognizes.  agents / claim / done / ollama-subagent
+// must emit only these spellings.  Add new models here; a second copy is the
+// divergence this project keeps paying for (AGENTS.md §model-perf ledger).
+// Shape notes: Anthropic labels carry the vendor prefix; Haiku carries a dated
+// snapshot suffix.  Validate against this list, never a regex.
+const canonical_models = [_][]const u8{
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-fable-5",
+    "claude-haiku-4-5-20251001",
+    "deepseek-v4-pro",
+    "deepseek-v4-flash",
+    "glm-5.2",
+    "minimax-m3",
+    "kimi-k2.7",
+};
+
+fn isCanonicalModel(s: []const u8) bool {
+    for (canonical_models) |m| {
+        if (std.mem.eql(u8, m, s)) return true;
+    }
+    return false;
+}
+
+/// Print the canonical set to stderr — used in rejection messages so the
+/// caller can see what is accepted without reading source.
+fn printCanonicalModels(w: Writers) void {
+    w.diag("  canonical models:", .{});
+    for (canonical_models, 0..) |m, i| {
+        if (i > 0) w.diag(",", .{});
+        w.diag(" {s}", .{m});
+    }
+    w.diag("\n", .{});
+}
+
+/// Strip Ollama's :cloud tag suffix and any -code variant before comparing
+/// against the canonical set.  The raw dispatch tag (e.g. kimi-k2.7-code:cloud)
+/// is accepted as input convenience; the stored value is always canonical.
+fn canonicalizeModelTag(raw: []const u8) []const u8 {
+    // Strip :cloud suffix first
+    var s = raw;
+    if (std.mem.endsWith(u8, s, ":cloud")) {
+        s = s[0 .. s.len - ":cloud".len];
+    }
+    // Map -code variant → canonical (kimi-k2.7-code → kimi-k2.7)
+    if (std.mem.eql(u8, s, "kimi-k2.7-code")) return "kimi-k2.7";
+    return s;
+}
 
 fn isValidVerdict(s: []const u8) bool {
     for (valid_verdicts) |v| {
@@ -220,6 +273,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdAgent(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "verdict")) {
         try cmdVerdict(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "amend")) {
+        try cmdAmend(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "sync")) {
         try cmdSync(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "tell")) {
@@ -510,10 +565,12 @@ fn readState(io: std.Io, state_path: []const u8) !StateMap {
     return parseStateJson(content);
 }
 
-fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
+/// T317: write the store without acquiring the lock — caller already holds
+/// the exclusive flock (lockStateDir).  The lock→read→modify→write→unlock
+/// pattern closes the lost-update window (2026-08-03 incident: T326's
+/// registration erased by a stale read-modify-write from another console).
+fn writeStateLocked(io: std.Io, state_path: []const u8, state: *StateMap) !void {
     try ensureStateDir(io, state_path);
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
 
     var buf: std.ArrayList(u8) = .empty;
     defer buf.deinit(alloc);
@@ -541,6 +598,17 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
     const state_dir = try std.Io.Dir.cwd().openDir(io, dirname, .{});
     defer state_dir.close(io);
     try state_dir.rename(tmp_name, state_dir, basename, io);
+}
+
+/// Locking wrapper — acquires the exclusive flock, calls writeStateLocked,
+/// releases.  Use writeStateLocked directly in mutating commands that already
+/// hold the lock (T317 lost-update pattern: lock → re-read → modify →
+/// writeStateLocked → unlock).
+fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
+    try ensureStateDir(io, state_path);
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
+    try writeStateLocked(io, state_path, state);
 }
 
 var sys_next_id: u32 = 100; // monotonic task-ID counter, loaded from _sys
@@ -679,6 +747,17 @@ fn parseStateJson(content: []const u8) !StateMap {
         }
         if (obj.object.get("claim_count")) |cc| {
             if (cc == .integer) ts.claim_count = @intCast(cc.integer);
+        }
+        if (obj.object.get("amendments")) |am| {
+            if (am == .array) {
+                var list = std.ArrayList([]const u8).empty;
+                for (am.array.items) |item| {
+                    if (item == .string) {
+                        try list.append(alloc, try alloc.dupe(u8, item.string));
+                    }
+                }
+                ts.amendments = try list.toOwnedSlice(alloc);
+            }
         }
 
         try state.put(alloc, task_id, ts);
@@ -839,6 +918,16 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         } else {
             try buf.appendSlice(alloc, ",\n    \"skip_acceptance_reason\": null");
         }
+
+        // T317: append-only amendment records
+        try buf.appendSlice(alloc, ",\n    \"amendments\": [");
+        for (ts.amendments, 0..) |am, ai| {
+            if (ai > 0) try buf.appendSlice(alloc, ", ");
+            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, am);
+            try buf.appendSlice(alloc, "\"");
+        }
+        try buf.appendSlice(alloc, "]");
 
         try buf.appendSlice(alloc, "\n  }");
     }
@@ -1037,7 +1126,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const use_auto = hasFlag(args, "--auto");
 
     if (!use_auto and args.len < 3) {
-        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>]\n", .{});
+        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>] [--model <name>]\n", .{});
         w.diag("       managent add --auto --bundle <path>  (mint opaque T<N> ID)\n", .{});
         std.process.exit(1);
     }
@@ -1048,7 +1137,27 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const bundle_override = getFlagValue(args, "--bundle");
     const set_override = getFlagValue(args, "--set");
     const needs_extra = getFlagValue(args, "--needs");
+    const model_flag = getFlagValue(args, "--model");
 
+    // T317: canonicalize and validate model label at registration time.
+    // Storing a non-canonical label creates attribution debt that multiplies
+    // when workers claim without --agent (the claim inherits the stored model).
+    var model_for_task: ?[]const u8 = null;
+    if (model_flag) |m| {
+        const canonical = canonicalizeModelTag(m);
+        if (!isCanonicalModel(canonical)) {
+            w.diag("error: '{s}' is not a canonical model label.\n", .{m});
+            printCanonicalModels(w);
+            std.process.exit(1);
+        }
+        model_for_task = try alloc.dupe(u8, canonical);
+    }
+
+    // T317: lock → re-read → modify → writeLocked → unlock lost-update pattern.
+    // The flock must be acquired before reading the store so no other console
+    // can register a row between our read and write.
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
     var state = try readState(io, state_path);
 
     var id: []const u8 = undefined;
@@ -1079,6 +1188,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         const ts = TaskState{
             .status = initial_status,
             .agent = null,
+            .model = model_for_task,
             .bundle = bundle_path,
             .set = meta.set,
             .holds = meta.holds,
@@ -1093,12 +1203,13 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         try state.put(alloc, try alloc.dupe(u8, id), ts);
         sys_next_id += 1;
 
-        // T108: retry-on-verify (same race as non-auto path)
+        // T108 + T317: retry-on-verify (same race as non-auto path).
+        // T317: lock before write to prevent lost-update races.
         const max_retries = 3;
         var attempt: u8 = 0;
         var written_ok = false;
         while (attempt < max_retries) : (attempt += 1) {
-            try writeState(io, state_path, &state);
+            try writeStateLocked(io, state_path, &state);
             var verify_state = try readState(io, state_path);
             defer freeState(&verify_state);
             if (verify_state.contains(id)) {
@@ -1159,6 +1270,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const ts = TaskState{
         .status = initial_status,
         .agent = null,
+        .model = model_for_task,
         .bundle = bundle_path,
         .set = meta.set,
         .holds = meta.holds,
@@ -1172,14 +1284,15 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
 
     try state.put(alloc, try alloc.dupe(u8, id), ts);
 
-    // T108: retry-on-verify — writeState's atomic rename can lose the write
-    // under heavy IO-thread contention. Verify the task actually persisted;
+    // T108 + T317: retry-on-verify — writeState's atomic rename can lose the
+    // write under heavy IO-thread contention. Verify the task actually persisted;
     // retry with backoff up to 3 times before failing loudly.
+    // T317: lock before write to prevent lost-update races.
     const max_retries = 3;
     var attempt: u8 = 0;
     var written_ok = false;
     while (attempt < max_retries) : (attempt += 1) {
-        try writeState(io, state_path, &state);
+        try writeStateLocked(io, state_path, &state);
         // Re-read and verify the task exists
         var verify_state = try readState(io, state_path);
         defer freeState(&verify_state);
@@ -1232,9 +1345,24 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     }
     const id = args[2];
 
-    const agent_name = getFlagValue(args, "--agent");
+    const agent_name_raw = getFlagValue(args, "--agent");
     const exec_prefix = getFlagValue(args, "--exec");
 
+    // T317: validate canonical model label at point of writing.
+    var agent_name: ?[]const u8 = null;
+    if (agent_name_raw) |a| {
+        const canonical = canonicalizeModelTag(a);
+        if (!isCanonicalModel(canonical)) {
+            w.diag("error: '{s}' is not a canonical model label.\n", .{a});
+            printCanonicalModels(w);
+            std.process.exit(1);
+        }
+        agent_name = canonical;
+    }
+
+    // T317: lock → re-read → modify → writeLocked → unlock lost-update pattern.
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
     var state = try readState(io, state_path);
 
     const ts_ptr = state.getPtr(id) orelse {
@@ -1278,7 +1406,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 else null;
             ts_ptr.claimed = now;
 
-            try writeState(io, state_path, &state);
+            try writeStateLocked(io, state_path, &state);
             const ident = try agentIdentifier(ts_ptr.*, id);
             w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
             w.diag("  follow {s}\n", .{ts_ptr.bundle});
@@ -1325,7 +1453,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 else null;
             ts_ptr.claimed = now;
 
-            try writeState(io, state_path, &state);
+            try writeStateLocked(io, state_path, &state);
 
             const ident = try agentIdentifier(ts_ptr.*, id);
             w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
@@ -1363,6 +1491,9 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
         }
     }
 
+    // T317: lock → re-read → modify → writeLocked → unlock
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
     var state = try readState(io, state_path);
 
     const ts_ptr = state.getPtr(id) orelse {
@@ -1390,7 +1521,7 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
         ts_ptr.note = null;
     }
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
 
     w.diag("\n  dispatched {s}  to {s}  [set: {c}]\n", .{ id, to_agent.?, ts_ptr.set });
     if (ts_ptr.status == .dispatchable) {
@@ -1752,8 +1883,20 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     const is_fail = hasFlag(args, "--fail");
     const status_override = getFlagValue(args, "--status");
     const note_override = getFlagValue(args, "--note");
-    const agent_override = getFlagValue(args, "--agent");
+    const agent_override_raw = getFlagValue(args, "--agent");
     const skip_acceptance_reason = getFlagValue(args, "--skip-acceptance");
+
+    // T317: validate canonical model label at point of writing.
+    var agent_override: ?[]const u8 = null;
+    if (agent_override_raw) |a| {
+        const canonical = canonicalizeModelTag(a);
+        if (!isCanonicalModel(canonical)) {
+            w.diag("error: '{s}' is not a canonical model label.\n", .{a});
+            printCanonicalModels(w);
+            std.process.exit(1);
+        }
+        agent_override = canonical;
+    }
 
     // T213: resolve verdict — --status flag, or --fail backward compat, or default "pass"
     const verdict_str: []const u8 = if (status_override) |s|
@@ -2234,7 +2377,19 @@ fn cmdAgent(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         std.process.exit(1);
     }
     const id = args[2];
-    const name = args[3];
+    const raw_name = args[3];
+
+    // T317: validate canonical model label at point of writing.
+    const name = canonicalizeModelTag(raw_name);
+    if (!isCanonicalModel(name)) {
+        w.diag("error: '{s}' is not a canonical model label.\n", .{raw_name});
+        printCanonicalModels(w);
+        std.process.exit(1);
+    }
+
+    // T317: lock → re-read → modify → write → unlock lost-update pattern.
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
     var state = try readState(io, state_path);
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
@@ -2242,7 +2397,7 @@ fn cmdAgent(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     };
     const old = ts_ptr.agent;
     ts_ptr.agent = try alloc.dupe(u8, name);
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
     w.diag("\n  {s}  agent {s} -> {s}\n", .{ id, old orelse "(none)", name });
 }
 
@@ -2296,6 +2451,76 @@ fn cmdVerdict(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     w.diag("\n  {s}  verdict -> {s}", .{ id, verdict_str });
     if (ts_ptr.verdict_note) |vn| w.diag("  (note: {s})", .{vn});
     w.diag("\n", .{});
+}
+
+// ── T317: append-only correction path ──────────────────────────────────────
+// managent done is terminal; a row closed with a wrong verdict cannot be
+// reopened (it was delivered, not killed mid-attempt).  amend appends a
+// correction record — the original verdict is preserved and surfaced by
+// show/status/audit alongside the correction, flagged for the reader.
+
+fn cmdAmend(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 3) {
+        w.diag("usage: managent amend <id> --verdict <verdict> --note <text>\n", .{});
+        w.diag("       append a correction record without erasing the original verdict\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    const verdict_str = getFlagValue(args, "--verdict");
+    const note_text = getFlagValue(args, "--note");
+
+    if (verdict_str == null) {
+        w.diag("error: --verdict is required\n", .{});
+        std.process.exit(1);
+    }
+    if (note_text == null) {
+        w.diag("error: --note is required (explain the correction)\n", .{});
+        std.process.exit(1);
+    }
+    if (!isValidVerdict(verdict_str.?)) {
+        w.diag("error: invalid verdict '{s}'. Valid: ", .{verdict_str.?});
+        for (valid_verdicts, 0..) |v, vi| {
+            if (vi > 0) w.diag(", ", .{});
+            w.diag("{s}", .{v});
+        }
+        w.diag("\n", .{});
+        std.process.exit(1);
+    }
+
+    // T317: lock → re-read → modify → write → unlock
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
+    var state = try readState(io, state_path);
+    const ts_ptr = state.getPtr(id) orelse {
+        w.diag("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    if (ts_ptr.status != .done and ts_ptr.status != .failed) {
+        w.diag("error: task '{s}' is {s} — amend is for done/failed tasks only\n", .{ id, statusToString(ts_ptr.status) });
+        std.process.exit(1);
+    }
+
+    const now = try nowTimestamp();
+    const correction = try std.fmt.allocPrint(alloc, "{s}: verdict={s} note={s}", .{ now, verdict_str.?, note_text.? });
+
+    // Append to amendments array (alloc owned by the array)
+    var new_amendments = std.ArrayList([]const u8).empty;
+    for (ts_ptr.amendments) |am| {
+        try new_amendments.append(alloc, am);
+    }
+    try new_amendments.append(alloc, correction);
+    // Free old array but not the strings (they're now in new_amendments)
+    alloc.free(ts_ptr.amendments);
+    ts_ptr.amendments = try new_amendments.toOwnedSlice(alloc);
+
+    try writeStateLocked(io, state_path, &state);
+
+    const original = if (ts_ptr.verdict) |v| v else "(none)";
+    w.diag("\n  {s}  amended  [{s}] → verdict={s}  (original: {s})\n", .{ id, now, verdict_str.?, original });
+    w.diag("  note: {s}\n", .{note_text.?});
+    w.diag("  The original verdict is preserved in the store.  audit flags amended rows.\n", .{});
 }
 
 fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const u8, args: [][]const u8) !void {
@@ -3081,6 +3306,7 @@ fn printHelp(w: Writers) void {
         \\  managent sync <role> [--peek]  print unread messages; exit non-zero when write owed; --peek skips _sync write
         \\  managent audit [--json]   cross-check kanban against reality
         \\  managent agent <id> <name> set the agent model for a task
+        \\  managent amend <id>        append a correction record (verdict + note) to a done/failed task
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent inbox [<target>] show pending directives for a target
@@ -3151,6 +3377,8 @@ fn freeState(state: *StateMap) void {
         if (ts.verdict_note) |vn| alloc.free(vn);
         if (ts.acceptance) |ac| alloc.free(ac);
         if (ts.skip_acceptance_reason) |sr| alloc.free(sr);
+        for (ts.amendments) |am| alloc.free(am);
+        alloc.free(ts.amendments);
     }
     state.deinit(alloc);
 }

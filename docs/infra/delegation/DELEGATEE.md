@@ -16,12 +16,21 @@ corrupts it. Never put an identifier (`dspro/T275`) in the `Model` field; the
 field takes a model, the identifier is `bin/managent whoami <id>`.
 
 **Canonical model labels** (human's ruling, 2026-08-02) — one spelling per model,
-so the ledger does not fragment across aliases:
+so the ledger does not fragment across aliases.  The full canonical set is the
+single source of truth in `src/managent/main.zig` (`canonical_models` array;
+T317, 2026-08-03).  managent rejects non-canonical labels at write time.
 
 | write this | not these |
 |---|---|
 | `deepseek-v4-pro` | dspro, DSPro, DeepSeek-Pro, DeepSeek-v4-Pro |
 | `deepseek-v4-flash` | dsflash, DSFlash, DeepSeek-Flash |
+| `claude-opus-5` | Claude-Opus-5, opus |
+| `claude-sonnet-5` | Claude-Sonnet-5 |
+| `claude-fable-5` | Claude-Fable-5, fable |
+| `claude-haiku-4-5-20251001` | Claude-Haiku-4.5 |
+| `glm-5.2` | glm-5.2:cloud, GLM-5.2 |
+| `minimax-m3` | minimax-m3:cloud, MiniMax-M3 |
+| `kimi-k2.7` | kimi-k2.7-code, kimi-k2.7-code:cloud, Kimi-K2.7 |
 
 ## The first thing you do
 

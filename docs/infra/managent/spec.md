@@ -18,6 +18,7 @@ Eighteen commands.
 
 ```
 managent add <id>              register a task
+managent add <id> --model <name>  register with model set (stored for claim inheritance)
 managent dispatch <id>         record a human→agent dispatch (task stays dispatchable)
 managent claim <id>            claim a task for execution
 managent done <id>             mark a task complete (default verdict: pass)
@@ -28,6 +29,7 @@ managent purge                 purge done/failed tasks (and clean their IDs from
 managent set <id> <A|B|C|…>      reassign a task's phase set (A–Z)
 managent needs <id> [--add…/--rm…]  add/remove dependency edges
 managent agent <id> <name>     set the model/agent for a task
+managent amend <id>            append a correction record (verdict + note) to a done/failed task (T317)
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task

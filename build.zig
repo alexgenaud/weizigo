@@ -196,6 +196,14 @@ pub fn build(b: *std.Build) void {
     runner_regression.cwd = b.path(".");
     test_step.dependOn(&runner_regression.step);
 
+    // ── subagent-prompt controls (T315/T317) ──────────────────────────
+    // bin/subagent is given a model but did not include --agent <model>
+    // in the generated prompt.  T315 ships the controls standalone; T317
+    // closes the wiring debt and adds model-tag→canonical validation.
+    const subagent_prompt_regression = b.addSystemCommand(&.{ "sh", "tools/regression-subagent-prompt.sh" });
+    subagent_prompt_regression.cwd = b.path(".");
+    test_step.dependOn(&subagent_prompt_regression.step);
+
     // ── resume-surface controls (T286) ───────────────────────────────
     // Null control (empty kanban + clean tree says NOTHING IN FLIGHT) and
     // seeded control (in_progress task + held file both appear). SKIPs
