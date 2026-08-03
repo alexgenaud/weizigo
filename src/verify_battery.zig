@@ -256,7 +256,7 @@ fn writeHeader(out: Output, _: *const CliConfig, gs: ?vb.GobanSize, art_path: ?[
     out.write("}\n");
 }
 
-fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af: ?[]const u8, afv: ?u8, art: ?[]const u8, art_sha: ?[]const u8, md_decl: []const u8, md_act: []const u8, scope: bool, status: []const u8, ec: []const u8, dur: u64, _: ?f64, seed: ?u64, ss: ?u64, sden: ?u64, ek: ?[]const u8, em: ?[]const u8) void {
+fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af: ?[]const u8, afv: ?u8, art: ?[]const u8, art_sha: ?[]const u8, md_decl: []const u8, md_act: []const u8, scope: bool, status: []const u8, ec: []const u8, dur: u64, _: ?f64, seed: ?u64, ss: ?u64, sden: ?u64, value: ?vb.CheckResultValue, deviation: ?[]const u8, ek: ?[]const u8, em: ?[]const u8) void {
     const rss_mb = rssHwmMb();
     out.write("{\"kind\":\"result\"");
     writeStr(out, "invariant", inv);
@@ -276,8 +276,12 @@ fn writeResult(out: Output, inv: []const u8, gs: []const u8, ak: ?[]const u8, af
     writeOptNum(out, "seed", seed);
     writeOptNum(out, "sample_size", ss);
     writeOptNum(out, "sample_denominator", sden);
-    out.write(",\"value\":null");
-    out.write(",\"deviation\":null");
+    if (value) |v| {
+        out.writeFmt(",\"value\":{{\"numerator\":{d},\"denominator\":{d}}}", .{ v.numerator, v.denominator });
+    } else {
+        out.write(",\"value\":null");
+    }
+    writeOptStr(out, "deviation", deviation);
     if (ek != null and em != null) {
         out.writeFmt(",\"error\":{{\"kind\":{s},\"message\":{s}}}", .{ ek.?, em.? });
     } else {
@@ -300,7 +304,7 @@ fn emitError(out: Output, cfg: *const CliConfig, gs: ?vb.GobanSize, art_path: ?[
     writeHeader(out, cfg, gs, art_path, art_sha, art_total, art_legal, null, null, cfg.reference_path, null, ts, &empty, cfg.seed, ssLabel(cfg.seed_source), &empty, null);
     var buf: [8]u8 = undefined;
     const gs_str = if (gs) |g| std.fmt.bufPrint(&buf, "{d}x{d}", .{ g.w, g.h }) catch "??" else "unknown";
-    writeResult(out, "ALL", gs_str, null, null, null, art_path, art_sha, "not-applicable", "not-applicable", false, "error", "battery-bad", @intCast(nowMs() - start_ms), null, null, null, null, ek, em);
+    writeResult(out, "ALL", gs_str, null, null, null, art_path, art_sha, "not-applicable", "not-applicable", false, "error", "battery-bad", @intCast(nowMs() - start_ms), null, null, null, null, null, null, ek, em);
     writeTrailer(out, 3, @intCast(nowMs() - start_ms), null, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1);
 }
 
@@ -849,7 +853,7 @@ pub fn main(init: std.process.Init) u8 {
             .@"battery-bad" => ec_bb += 1,
         }
 
-        writeResult(out, inv.label(), gs_str, ak_str, af_str, afv, result.artifact, result.artifact_sha256, mdLabel(result.mode_declared), mdLabel(result.mode_actual), result.scope_once_per_goban, csLabel(result.status), ecLabel(result.exit_class), result.duration_ms, result.rss_hwm_after_mb, result.seed, result.sample_size, result.sample_denominator, null, null);
+        writeResult(out, inv.label(), gs_str, ak_str, af_str, afv, result.artifact, result.artifact_sha256, mdLabel(result.mode_declared), mdLabel(result.mode_actual), result.scope_once_per_goban, csLabel(result.status), ecLabel(result.exit_class), result.duration_ms, result.rss_hwm_after_mb, result.seed, result.sample_size, result.sample_denominator, result.value, result.deviation, null, null);
         results.appendAssumeCapacity(result);
     }
 

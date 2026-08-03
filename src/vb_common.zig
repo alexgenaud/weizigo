@@ -364,6 +364,11 @@ pub const ErrorInfo = struct {
     artifact_magic: ?[]const u8 = null,
 };
 
+pub const CheckResultValue = struct {
+    numerator: u64,
+    denominator: u64,
+};
+
 pub const CheckResult = struct {
     invariant: Invariant,
     goban: GobanSize,
@@ -382,10 +387,7 @@ pub const CheckResult = struct {
     seed: ?u64,
     sample_size: ?u64,
     sample_denominator: ?u64,
-    value: ?struct {
-        numerator: u64,
-        denominator: u64,
-    },
+    value: ?CheckResultValue,
     deviation: ?[]const u8,
     @"error": ?ErrorInfo,
 };

@@ -338,6 +338,48 @@ pub fn build(b: *std.Build) void {
     verify_battery_exe.root_module.addImport("version", version_mod);
     b.installArtifact(verify_battery_exe);
 
+    // ── verify-battery: golden-master baseline gate (T292) ─────────
+    // Runs the freshly-built verify-battery binary on the four git-tracked
+    // WZO1 artifacts (oracle-2x2/3x2/3x3/4x3) and compares against the
+    // committed baseline docs/evidence/BATTERY/baselines.json under exact
+    // equality — a regression is any difference in (status, numerator,
+    // denominator, mode_declared, mode_actual, exit_class, sample params).
+    // addArtifactArg makes the binary a compile dependency, so the gate
+    // always runs the current battery. The slow full-artifact sweep (4x4
+    // WZO1s + WZO2) is behind `zig build battery-sweep`, never in the suite.
+    const battery_baselines = b.addSystemCommand(&.{ "sh", "tools/regression-battery-baselines.sh" });
+    battery_baselines.cwd = b.path(".");
+    battery_baselines.addArtifactArg(verify_battery_exe);
+    test_step.dependOn(&battery_baselines.step);
+
+    // ── oracle-v2 acceptance binary (T182/T292: battery-sweep) ─────
+    // Needed by the slow sweep (zig build battery-sweep) to check the WZO2
+    // artifact; installed so the sweep step can depend on it via
+    // addArtifactArg. The unit tests for this file are wired separately
+    // (oracle_v2_accept_tests above).
+    const oracle_v2_accept_exe = b.addExecutable(.{
+        .name = "oracle-v2-accept",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/oracle_v2_accept.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    b.installArtifact(oracle_v2_accept_exe);
+
+    // ── battery-sweep: slow full-artifact baseline sweep (T292) ────
+    // Explicit step — never part of `zig build test`. Covers the three
+    // data/ 4x4 WZO1 artifacts and the WZO2 artifact (0c3366f0) via
+    // oracle-v2-accept. Host-only artifacts absent on a fresh clone SKIP
+    // loudly. Sequential by construction (one script, one artifact at a
+    // time under tools/runner — GRAND-AUDIT §3).
+    const battery_sweep_cmd = b.addSystemCommand(&.{ "sh", "tools/regression-battery-sweep.sh" });
+    battery_sweep_cmd.cwd = b.path(".");
+    battery_sweep_cmd.addArtifactArg(verify_battery_exe);
+    battery_sweep_cmd.addArtifactArg(oracle_v2_accept_exe);
+    const battery_sweep = b.step("battery-sweep", "Slow full-artifact golden-master sweep (4x4 WZO1s + WZO2 0c3366f0) against baselines.json");
+    battery_sweep.dependOn(&battery_sweep_cmd.step);
+
     // ── oracle-v2 builder (M2b, T165) ─────────────────────────────
     const oracle_v2_build_exe = b.addExecutable(.{
         .name = "weizigo-oracle-v2-build",
