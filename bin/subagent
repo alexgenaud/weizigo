@@ -4,10 +4,14 @@
   --dspro     DeepSeek-v4-Pro          --wall=N    wall-clock guard, default 1800s
   --dsflash   DeepSeek-v4-Flash        --dry-run   print the command, spawn nothing
 
-DeepSeek dispatches DeepSeek only. Claude seats use the Claude Code harness.
-Children run at depth 2 and cannot dispatch further. Managers are launched by
-the human. The depth cap stops accidental recursion; it is not a security
-boundary — see docs/infra/agents/subdelegation.md.
+Bin/subagent dispatches DeepSeek only by construction (hardcoded model list,
+requires DEEPSEEK_API_KEY). Workers can reach Ollama models through
+`ollama launch pi` — the depth cap stops bin/subagent recursion but does not
+stop Ollama launches (T320, 2026-08-03). Claude seats use the Claude Code
+harness and must never be dispatched by a non-Claude harness (human rule).
+Children run at depth 2 and cannot dispatch further via bin/subagent.
+Managers are launched by the human. The depth cap stops accidental recursion;
+it is not a security boundary — see docs/infra/agents/subdelegation.md.
 """
 import glob, os, re, subprocess, sys
 

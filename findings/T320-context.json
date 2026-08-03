@@ -1,0 +1,8 @@
+{
+  "task_id": "T320",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump for T320. All probes used throwaway bundle untracked/T320-probe-cross.md. No real task rows claimed or closed. Results at /tmp/weizigo/T320-cross-result.txt (overwritten by successive probes). Detailed findings in findings/T320-delegation-reach.json."
+}

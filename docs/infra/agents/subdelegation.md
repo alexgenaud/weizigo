@@ -10,8 +10,12 @@ bin/subagent <path.md> --dsflash    # bare dispatch, no kanban lifecycle
 
 No default model — name one. Max two concurrent; `&` them and `wait`.
 
-DeepSeek dispatches DeepSeek only. Claude seats use the Claude Code harness and
-do not need this tool.
+`bin/subagent` dispatches DeepSeek only — by construction, it hardcodes the two
+DeepSeek models and requires `DEEPSEEK_API_KEY`. Claude seats use the Claude Code
+harness and do not need this tool.
+
+**However, workers can reach beyond DeepSeek through other paths** (T320,
+2026-08-03). See §Reach matrix below.
 
 Max two concurrent. `&` them and `wait`.
 
@@ -33,6 +37,29 @@ The credential travels by environment, never by argv: `tools/runner` echoes
 argv and the heartbeat writer records it, so an `--api-key` flag leaks the key
 into logs and evidence on every dispatch. Observed and redacted 2026-08-02;
 never committed.
+
+## Reach matrix (T320, 2026-08-03)
+
+Who can dispatch what, with the mechanism and the depth-cap behaviour:
+
+| Dispatcher | → DeepSeek | → Ollama | → Claude |
+|---|---|---|---|
+| **Human console** | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+| **deepseek-v4-pro** (depth 2) | REFUSED — `bin/subagent` depth cap | WORKS — `ollama launch pi`, depth travels via env | NOT ATTEMPTED (forbidden) |
+| **Ollama models** (depth unset) | WORKS — `bin/subagent` (DEEPSEEK_API_KEY is available) | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+| **Ollama models** (depth 2) | REFUSED — `bin/subagent` depth cap | WORKS — `ollama launch pi`, **no depth cap enforcement** | NOT ATTEMPTED (forbidden) |
+
+Key implications:
+- **`ollama launch pi` has no depth cap.** A worker at any depth can launch
+  Ollama children without restriction. The depth cap in `bin/subagent` stops
+  DeepSeek→DeepSeek recursion but does not stop DeepSeek→Ollama or
+  Ollama→anything.
+- **`DEEPSEEK_API_KEY` is available inside Ollama workers.** If the allocation
+  rule (Ollama for leaf rows only) is meant to be enforced technically, the
+  key must not be present in Ollama environments.
+- **The depth stamp travels through `ollama launch pi`** via standard env
+  inheritance, without auto-increment. A depth-2 worker's Ollama child is also
+  depth 2.
 
 ## When to use
 
