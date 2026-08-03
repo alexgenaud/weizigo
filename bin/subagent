@@ -53,11 +53,11 @@ def main(argv):
         task_id = target
         slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
         prompt = (f"Follow {bundle}\n\n"
-                  f"FIRST: bin/managent claim {target}\n"
+                  f"FIRST: bin/managent claim {target} --agent {model}\n"
                   f"You are a worker. The brief carries everything.\n\n"
                   f"WHEN DONE, before any other output:\n"
                   f"  1. Write findings/{target}-{slug}.json per findings/README.md\n"
-                  f"  2. bin/managent done {target} --status <pass|pass-with-findings|"
+                  f"  2. bin/managent done {target} --agent {model} --status <pass|pass-with-findings|"
                   f"fail-found|blocked|abandoned> --note <one line>\n")
     elif os.path.isfile(target):
         prompt = f"Follow {os.path.relpath(os.path.abspath(target), ROOT)}\n"

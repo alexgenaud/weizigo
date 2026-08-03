@@ -1,0 +1,8 @@
+{
+  "task_id": "T315",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Attribution-at-source fix. bin/subagent is given the model but was not including --agent <model> in the generated prompt. Seven rows needed hand-repair (T292, T307, T309, T310, T305, T306, T313) and one closed with agent=T309. Fix: bin/subagent now emits --agent <model> on both the claim and done lines. Updated subdelegation.md to document the corrected prompt shape and the registration gap (managent add has no --model; T317 will add it). tools/regression-subagent-prompt.sh: 5/5 controls pass (dsflash null, dspro null, seeded claim exact, seeded done exact, depth-cap). The seeded controls were shown red before the fix (recorded in session output) and green after. Wiring debt: the regression script is standalone; T317 wires it into zig build test."
+}

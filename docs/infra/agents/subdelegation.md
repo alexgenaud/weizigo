@@ -52,8 +52,15 @@ never committed.
    `CURRENT.md` is retired 2026-08-03).
    Kanban writes happen only via `bin/managent` (`claim` / `done` — the wrapper below enforces both).
    Output goes to `findings/` or a dedicated evidence path.
-4. **Independent re-implementation is the highest-value use.** The only instrument that has found every real defect in this project is an independent seat. Subagents make this cheap.
-5. **Max two DeepSeek pi-subagents at once.** They share the same filesystem and API key; three concurrent
+4. **Rows minted with `managent add` carry no model.** Unlike `managent suggest --model`,
+   `managent add` (as of 2026-08-03) has no `--model` flag and stores nothing on the
+   task record. A row created with `add` **must** be followed by
+   `bin/managent agent <id> <model>` before dispatch, or it will close unattributed.
+   **T317** will add `--model` to `add` so the habit is not the guard — a rule that
+   lives only in the orchestrator's habits is exactly what failed here (seven rows
+   hand-repaired on 2026-08-03: T292, T307, T309, T310, T305, T306, T313).
+5. **Independent re-implementation is the highest-value use.** The only instrument that has found every real defect in this project is an independent seat. Subagents make this cheap.
+6. **Max two DeepSeek pi-subagents at once.** They share the same filesystem and API key; three concurrent
    risk race conditions and rate limiting. This cap is a rate-limit scope on pi-subagents only — the
    concurrency authority is `docs/infra/delegation/ROLES.md` §Concurrency (analysis unlimited, mutation serial).
 
@@ -70,7 +77,22 @@ Subagent work is recorded in `model-perf.md` under the parent task, with a note 
 
 ## Prompt wrapper
 
-`bin/subagent` builds it. The bundle carries everything else.
+`bin/subagent` builds the worker prompt from the bundle and wraps it with
+kanban lifecycle commands:
+
+```
+Follow untracked/<TASK>-<slug>.md
+
+FIRST: bin/managent claim <TASK> --agent <model>
+You are a worker. The brief carries everything.
+
+WHEN DONE, before any other output:
+  1. Write findings/<TASK>-<slug>.json per findings/README.md
+  2. bin/managent done <TASK> --agent <model> --status <...> --note <...>
+```
+
+`--agent <model>` is always included; the script resolves the model from the
+`--dspro`/`--dsflash` flag. The bundle carries everything else.
 
 ## Findings schema
 
