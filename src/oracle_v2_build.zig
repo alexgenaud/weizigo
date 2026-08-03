@@ -45,10 +45,33 @@ const GroupBuilder4 = struct {
 
 const gpa = std.heap.page_allocator;
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
+    // Parse --threads N (default: cpu_count - 2, min 1). macOS has no taskset/
+    // numactl — thread count is the only lever for sharing the machine.
+    var num_threads: u8 = exp6.defaultFixpointThreads();
+    {
+        const argv = init.args.vector;
+        var i: usize = 1;
+        while (i < argv.len) : (i += 1) {
+            const arg = std.mem.span(argv[i]);
+            if (std.mem.eql(u8, arg, "--threads")) {
+                i += 1;
+                if (i < argv.len) {
+                    num_threads = try std.fmt.parseUnsigned(u8, std.mem.span(argv[i]), 10);
+                }
+            } else if (std.mem.eql(u8, arg, "--help")) {
+                std.debug.print("Usage: oracle-v2-build [--threads N]\n", .{});
+                std.debug.print("  --threads N  Number of fixpoint worker threads (default: {d} = cpu_count - 2; 1 = serial)\n", .{exp6.defaultFixpointThreads()});
+                return;
+            }
+        }
+    }
+    if (num_threads == 0) num_threads = 1;
+
     std.debug.print("# {s}\n", .{version.banner("weizigo-oracle-v2-build")});
     std.debug.print("# ============================================================================\n", .{});
     std.debug.print("# Task: T165 · Model: DSPro · Date: 2026-07-31\n", .{});
+    std.debug.print("# Threads: {d} ({s})\n", .{ num_threads, if (num_threads <= 1) "serial" else "parallel Jacobi" });
     std.debug.print("# ============================================================================\n", .{});
 
     // =====================================================================
@@ -117,7 +140,7 @@ pub fn main() !void {
 
     std.debug.print("\n## 4×4 fixpoint\n", .{});
 
-    var fp4_out = try exp6.run_fixpoint_4x4(gpa, reach4);
+    var fp4_out = try exp6.run_fixpoint_4x4(gpa, reach4, num_threads);
     // freed explicitly before WZO2 write to reduce peak RSS (T192)
 
     const fp4 = fp4_out.result;

@@ -145,6 +145,18 @@ pub fn build(b: *std.Build) void {
     run_vb_table_tests.cwd = b.path("."); // tests need artifacts/ from project root
     test_step.dependOn(&run_vb_table_tests.step);
 
+    // ── T312: parallel fixpoint race controls ────────────────────
+    const t312_race_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/t312_race_control.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_t312_race_tests = b.addRunArtifact(t312_race_tests);
+    run_t312_race_tests.cwd = b.path(".");
+    test_step.dependOn(&run_t312_race_tests.step);
+
     // ── verify-battery: fixpoint invariants (vb_fixpoint) ────────
     const vb_fixpoint_tests = b.addTest(.{
         .root_module = b.createModule(.{

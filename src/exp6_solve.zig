@@ -1079,9 +1079,125 @@ pub const Fixpoint4Output = struct {
     data: Fixpoint4Data,
 };
 
+/// Get a reasonable default thread count: cpu_count - 2, minimum 1.
+/// macOS has no taskset/numactl — this is the only lever for sharing the machine.
+pub fn defaultFixpointThreads() u8 {
+    const cpu = std.Thread.getCpuCount() catch 1;
+    return if (cpu > 2) @intCast(cpu - 2) else 1;
+}
+
+/// Shared read-only state for a parallel Jacobi sweep.
+const JacobiShared = struct {
+    compact_list: []const u64,
+    map: *const std.AutoHashMap(u64, u32),
+    cur_tab: []const i8, // values from previous sweep (read-only)
+    next_tab: []i8, // values being computed (disjoint writes per thread)
+    is_L: bool, // true = L sweep, false = H sweep
+};
+
+/// One thread's work for a Jacobi sweep: process compact indices [start..end).
+fn jacobiWorker(shared: *const JacobiShared, start: u32, end: u32) void {
+    var local_children: [N4 + 1]u64 = undefined;
+    for (start..end) |ci| {
+        const dense_idx = shared.compact_list[ci];
+        const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
+        if (passes == 2) continue;
+        const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
+        const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
+        const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
+        const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
+        const board: u32 = @intCast(rest2 % RAW_TOTAL4);
+        const enc = encodeState4(board, @intCast(side), ko, @intCast(passes));
+
+        var child_count: usize = 0;
+        genChildren4(enc, &local_children, &child_count);
+
+        const maximizing = side == 0;
+        var best: ?i8 = null;
+        for (local_children[0..child_count]) |child_enc| {
+            const child_passes = decodePasses4(child_enc);
+            const child_board = decodeBoard4(child_enc);
+            const child_side = decodeSide4(child_enc);
+            const child_ko = decodeKo4(child_enc);
+            const child_lin = linearIndex4(child_board, child_side, child_ko, child_passes);
+
+            if (child_passes == 2) {
+                const b = unrank_board4(child_board);
+                if (!genericIsLegal(N4, &b, W4, H4)) continue;
+                const sc = genericAreaScore(N4, &b, W4, H4);
+                if (best == null or (if (maximizing) sc > best.? else sc < best.?)) best = sc;
+            } else {
+                if (shared.map.get(child_lin)) |child_ci| {
+                    const v = shared.cur_tab[child_ci];
+                    if (best == null or (if (maximizing) v > best.? else v < best.?)) best = v;
+                }
+            }
+        }
+        // Note: terminal=1 states (no legal placements, only pass child)
+        // should get best=score-of-terminal-board. The serial path always
+        // has at least the pass child leading to terminal, so best is set.
+        if (best) |bval| {
+            shared.next_tab[ci] = bval;
+        } else {
+            shared.next_tab[ci] = shared.cur_tab[ci];
+        }
+    }
+}
+
+/// Run one parallel Jacobi sweep (L or H) with the given thread count.
+/// Workers read from cur_tab and write disjoint chunks of next_tab.
+fn runJacobiSweep(
+    gpa: std.mem.Allocator,
+    nt: u8,
+    chunk_size: u32,
+    compact_count: u32,
+    compact_list: []const u64,
+    map: *const std.AutoHashMap(u64, u32),
+    cur_tab: []const i8,
+    next_tab: []i8,
+    is_L: bool,
+) void {
+    const shared = JacobiShared{
+        .compact_list = compact_list,
+        .map = map,
+        .cur_tab = cur_tab,
+        .next_tab = next_tab,
+        .is_L = is_L,
+    };
+
+    if (nt == 1) {
+        jacobiWorker(&shared, 0, compact_count);
+        return;
+    }
+
+    var threads = gpa.alloc(std.Thread, nt - 1) catch @panic("OOM: jacobi threads");
+    defer gpa.free(threads);
+
+    // Spawn workers 1..nt-1
+    for (1..nt) |tid| {
+        const start: u32 = @intCast(tid * chunk_size);
+        if (start >= compact_count) {
+            threads[tid - 1] = std.Thread.spawn(.{}, jacobiWorker, .{ &shared, start, start }) catch @panic("spawn");
+        } else {
+            const end: u32 = @intCast(@min(start + chunk_size, compact_count));
+            threads[tid - 1] = std.Thread.spawn(.{}, jacobiWorker, .{ &shared, start, end }) catch @panic("spawn");
+        }
+    }
+
+    // Worker 0 runs on the calling thread
+    {
+        const end: u32 = @intCast(@min(chunk_size, compact_count));
+        jacobiWorker(&shared, 0, end);
+    }
+
+    // Join all workers
+    for (threads) |th| th.join();
+}
+
 // 4×4 fixpoint: uses compact arrays for L/H, hash map for child lookups.
 // Returns both the summary result and the owned tables (for M2b consumption).
-pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Output {
+// num_threads: 0 or 1 → exact serial path; > 1 → parallel Jacobi sweeps.
+pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64, num_threads: u8) !Fixpoint4Output {
     // Phase 1: build compact array of reachable non-terminal states (passes ∈ {0,1})
     var compact_list = try std.ArrayListUnmanaged(u64).initCapacity(gpa, 0);
 
@@ -1132,106 +1248,156 @@ pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Ou
     var total_changes: u64 = 1;
     const MAX_SWEEPS: u32 = 256;
 
-    while (total_changes > 0 and sweep_idx < MAX_SWEEPS) {
-        sweep_idx += 1;
-        total_changes = 0;
+    if (num_threads <= 1) {
+        // ── Serial path (control row — exactly the original Gauss-Seidel) ──
+        while (total_changes > 0 and sweep_idx < MAX_SWEEPS) {
+            sweep_idx += 1;
+            total_changes = 0;
 
-        // L sweep
-        var l_changed: u64 = 0;
-        for (compact_list.items, 0..) |dense_idx, ci| {
-            const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
-            if (passes == 2) continue;
-            const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
-            const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
-            const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
-            const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
-            const board: u32 = @intCast(rest2 % RAW_TOTAL4);
-            const enc = encodeState4(board, @intCast(side), ko, @intCast(passes));
+            // L sweep
+            var l_changed: u64 = 0;
+            for (compact_list.items, 0..) |dense_idx, ci| {
+                const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
+                if (passes == 2) continue;
+                const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
+                const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
+                const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
+                const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
+                const board: u32 = @intCast(rest2 % RAW_TOTAL4);
+                const enc = encodeState4(board, @intCast(side), ko, @intCast(passes));
 
-            var child_count: usize = 0;
-            genChildren4(enc, &child_indices, &child_count);
+                var child_count: usize = 0;
+                genChildren4(enc, &child_indices, &child_count);
 
-            const maximizing = side == 0;
-            var best_l: ?i8 = null;
-            for (child_indices[0..child_count]) |child_enc| {
-                const child_passes = decodePasses4(child_enc);
-                const child_board = decodeBoard4(child_enc);
-                const child_side = decodeSide4(child_enc);
-                const child_ko = decodeKo4(child_enc);
-                const child_lin = linearIndex4(child_board, child_side, child_ko, child_passes);
+                const maximizing = side == 0;
+                var best_l: ?i8 = null;
+                for (child_indices[0..child_count]) |child_enc| {
+                    const child_passes = decodePasses4(child_enc);
+                    const child_board = decodeBoard4(child_enc);
+                    const child_side = decodeSide4(child_enc);
+                    const child_ko = decodeKo4(child_enc);
+                    const child_lin = linearIndex4(child_board, child_side, child_ko, child_passes);
 
-                if (child_passes == 2) {
-                    // Terminal: compute area score on the fly
-                    const b = unrank_board4(child_board);
-                    // Check legality
-                    if (!genericIsLegal(N4, &b, W4, H4)) continue;
-                    const sc = genericAreaScore(N4, &b, W4, H4);
-                    if (best_l == null or (if (maximizing) sc > best_l.? else sc < best_l.?)) best_l = sc;
-                } else {
-                    if (map.get(child_lin)) |child_ci| {
-                        const vl = L_tab[child_ci];
-                        if (best_l == null or (if (maximizing) vl > best_l.? else vl < best_l.?)) best_l = vl;
+                    if (child_passes == 2) {
+                        const b = unrank_board4(child_board);
+                        if (!genericIsLegal(N4, &b, W4, H4)) continue;
+                        const sc = genericAreaScore(N4, &b, W4, H4);
+                        if (best_l == null or (if (maximizing) sc > best_l.? else sc < best_l.?)) best_l = sc;
+                    } else {
+                        if (map.get(child_lin)) |child_ci| {
+                            const vl = L_tab[child_ci];
+                            if (best_l == null or (if (maximizing) vl > best_l.? else vl < best_l.?)) best_l = vl;
+                        }
+                    }
+                }
+                if (best_l != null) {
+                    const new_val = best_l.?;
+                    if (new_val != L_tab[ci]) {
+                        L_tab[ci] = new_val;
+                        l_changed += 1;
                     }
                 }
             }
-            if (best_l != null) {
-                const new_val = best_l.?;
-                if (new_val != L_tab[ci]) {
-                    L_tab[ci] = new_val;
-                    l_changed += 1;
+
+            // H sweep
+            var h_changed: u64 = 0;
+            for (compact_list.items, 0..) |dense_idx, ci| {
+                const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
+                if (passes == 2) continue;
+                const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
+                const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
+                const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
+                const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
+                const board: u32 = @intCast(rest2 % RAW_TOTAL4);
+                const enc = encodeState4(board, @intCast(side), ko, @intCast(passes));
+
+                var child_count: usize = 0;
+                genChildren4(enc, &child_indices, &child_count);
+
+                const maximizing = side == 0;
+                var best_h: ?i8 = null;
+                for (child_indices[0..child_count]) |child_enc| {
+                    const child_passes = decodePasses4(child_enc);
+                    const child_board = decodeBoard4(child_enc);
+                    const child_side = decodeSide4(child_enc);
+                    const child_ko = decodeKo4(child_enc);
+                    const child_lin = linearIndex4(child_board, child_side, child_ko, child_passes);
+
+                    if (child_passes == 2) {
+                        const b = unrank_board4(child_board);
+                        if (!genericIsLegal(N4, &b, W4, H4)) continue;
+                        const sc = genericAreaScore(N4, &b, W4, H4);
+                        if (best_h == null or (if (maximizing) sc > best_h.? else sc < best_h.?)) best_h = sc;
+                    } else {
+                        if (map.get(child_lin)) |child_ci| {
+                            const vh = H_tab[child_ci];
+                            if (best_h == null or (if (maximizing) vh > best_h.? else vh < best_h.?)) best_h = vh;
+                        }
+                    }
                 }
-            }
-        }
-
-        // H sweep
-        var h_changed: u64 = 0;
-        for (compact_list.items, 0..) |dense_idx, ci| {
-            const passes: u8 = @intCast(dense_idx / (2 * KO_DIMS4 * RAW_TOTAL4));
-            if (passes == 2) continue;
-            const rest: u64 = dense_idx % (2 * KO_DIMS4 * RAW_TOTAL4);
-            const side: u8 = @intCast(rest / (KO_DIMS4 * RAW_TOTAL4));
-            const rest2: u64 = rest % (KO_DIMS4 * RAW_TOTAL4);
-            const ko: u5 = @intCast(rest2 / RAW_TOTAL4);
-            const board: u32 = @intCast(rest2 % RAW_TOTAL4);
-            const enc = encodeState4(board, @intCast(side), ko, @intCast(passes));
-
-            var child_count: usize = 0;
-            genChildren4(enc, &child_indices, &child_count);
-
-            const maximizing = side == 0;
-            var best_h: ?i8 = null;
-            for (child_indices[0..child_count]) |child_enc| {
-                const child_passes = decodePasses4(child_enc);
-                const child_board = decodeBoard4(child_enc);
-                const child_side = decodeSide4(child_enc);
-                const child_ko = decodeKo4(child_enc);
-                const child_lin = linearIndex4(child_board, child_side, child_ko, child_passes);
-
-                if (child_passes == 2) {
-                    const b = unrank_board4(child_board);
-                    if (!genericIsLegal(N4, &b, W4, H4)) continue;
-                    const sc = genericAreaScore(N4, &b, W4, H4);
-                    if (best_h == null or (if (maximizing) sc > best_h.? else sc < best_h.?)) best_h = sc;
-                } else {
-                    if (map.get(child_lin)) |child_ci| {
-                        const vh = H_tab[child_ci];
-                        if (best_h == null or (if (maximizing) vh > best_h.? else vh < best_h.?)) best_h = vh;
+                if (best_h != null) {
+                    const new_val = best_h.?;
+                    if (new_val != H_tab[ci]) {
+                        H_tab[ci] = new_val;
+                        h_changed += 1;
                     }
                 }
             }
-            if (best_h != null) {
-                const new_val = best_h.?;
-                if (new_val != H_tab[ci]) {
-                    H_tab[ci] = new_val;
-                    h_changed += 1;
-                }
+
+            total_changes = l_changed + h_changed;
+            std.debug.print("# 4x4 fixpoint sweep {d}: L_changed={d} H_changed={d} root_B(L={d},H={d}) root_W(L={d},H={d})\n", .{ sweep_idx, l_changed, h_changed, L_tab[root_b_compact], H_tab[root_b_compact], L_tab[root_w_compact], H_tab[root_w_compact] });
+            if (sweep_idx % 4 == 0 or total_changes == 0) {
+                std.debug.print("# 4x4 fixpoint sweep {d}: L_changed={d} H_changed={d}\n", .{ sweep_idx, l_changed, h_changed });
             }
         }
+    } else {
+        // ── Parallel Jacobi path ──
+        // Jacobi iteration: all threads read from the previous sweep's values
+        // and write to fresh arrays. This is order-independent and deterministic
+        // regardless of thread count or scheduling. Converges to the same fixpoint
+        // as Gauss-Seidel (unique for monotone operators on a complete lattice)
+        // but may require more sweeps.
 
-        total_changes = l_changed + h_changed;
-        std.debug.print("# 4x4 fixpoint sweep {d}: L_changed={d} H_changed={d} root_B(L={d},H={d}) root_W(L={d},H={d})\n", .{ sweep_idx, l_changed, h_changed, L_tab[root_b_compact], H_tab[root_b_compact], L_tab[root_w_compact], H_tab[root_w_compact] });
-        if (sweep_idx % 4 == 0 or total_changes == 0) {
-            std.debug.print("# 4x4 fixpoint sweep {d}: L_changed={d} H_changed={d}\n", .{ sweep_idx, l_changed, h_changed });
+        const L_next = try gpa.alloc(i8, compact_count);
+        defer gpa.free(L_next);
+        const H_next = try gpa.alloc(i8, compact_count);
+        defer gpa.free(H_next);
+        @memset(L_next, L_init);
+        @memset(H_next, H_init);
+
+        // Per-thread memory: stacks only (~8 KB each). The compact_list,
+        // map, L_tab, H_tab, L_next, H_next are all shared read-only (or
+        // disjoint-write) across threads. Total extra memory vs serial:
+        // L_next + H_next = 2 × 99,133,036 bytes ≈ 189 MB.
+        const nt: u8 = if (num_threads == 0) 1 else num_threads;
+        const chunk_size = (compact_count + nt - 1) / nt;
+
+        std.debug.print("# 4x4 fixpoint: parallel Jacobi, {d} threads, chunk_size={d}\n", .{ nt, chunk_size });
+
+        while (total_changes > 0 and sweep_idx < MAX_SWEEPS) {
+            sweep_idx += 1;
+
+            // L sweep (parallel Jacobi)
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, L_next, true);
+            var l_changed: u64 = 0;
+            for (0..compact_count) |ci| {
+                if (L_next[ci] != L_tab[ci]) l_changed += 1;
+                L_tab[ci] = L_next[ci];
+            }
+
+            // H sweep (parallel Jacobi)
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, H_tab, H_next, false);
+            var h_changed: u64 = 0;
+            for (0..compact_count) |ci| {
+                if (H_next[ci] != H_tab[ci]) h_changed += 1;
+                H_tab[ci] = H_next[ci];
+            }
+
+            total_changes = l_changed + h_changed;
+            std.debug.print("# 4x4 fixpoint sweep {d}: L_changed={d} H_changed={d} root_B(L={d},H={d}) root_W(L={d},H={d})\n", .{ sweep_idx, l_changed, h_changed, L_tab[root_b_compact], H_tab[root_b_compact], L_tab[root_w_compact], H_tab[root_w_compact] });
+            if (sweep_idx % 4 == 0 or total_changes == 0) {
+                std.debug.print("# 4x4 fixpoint sweep {d}: L_changed={d} H_changed={d}\n", .{ sweep_idx, l_changed, h_changed });
+            }
         }
     }
 
@@ -1300,14 +1466,37 @@ pub fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Ou
 // Main
 // =========================================================================
 
-pub fn main() !void {
+pub fn main(init: std.process.Init.Minimal) !void {
     const gpa = std.heap.page_allocator;
+
+    // Parse --threads N (default: cpu_count - 2, min 1). macOS has no taskset/
+    // numactl — thread count is the only lever for sharing the machine.
+    var num_threads: u8 = defaultFixpointThreads();
+    {
+        const argv = init.args.vector;
+        var i: usize = 1;
+        while (i < argv.len) : (i += 1) {
+            const arg = std.mem.span(argv[i]);
+            if (std.mem.eql(u8, arg, "--threads")) {
+                i += 1;
+                if (i < argv.len) {
+                    num_threads = try std.fmt.parseUnsigned(u8, std.mem.span(argv[i]), 10);
+                }
+            } else if (std.mem.eql(u8, arg, "--help")) {
+                std.debug.print("Usage: exp6_solve [--threads N]\n", .{});
+                std.debug.print("  --threads N  Number of fixpoint worker threads (default: {d} = cpu_count - 2; 1 = serial)\n", .{defaultFixpointThreads()});
+                return;
+            }
+        }
+    }
+    if (num_threads == 0) num_threads = 1;
 
     std.debug.print("# ============================================================================\n", .{});
     std.debug.print("# EXP-6 — 4×4 under the new rule: +2, and a root that can say so\n", .{});
     std.debug.print("# Task: EXP-6 · Role: worker · Model: DSPro · Date: 2026-07-29\n", .{});
     std.debug.print("# Rule: basic ko (formalization (i)) + TIE = {d} for long cycles\n", .{TIE});
     std.debug.print("# Value rule: V = median(L, TIE, H) = max(L, min(TIE, H))\n", .{});
+    std.debug.print("# Threads: {d} ({s})\n", .{ num_threads, if (num_threads <= 1) "serial" else "parallel Jacobi" });
     std.debug.print("# ============================================================================\n", .{});
 
     // =====================================================================
@@ -1404,7 +1593,7 @@ pub fn main() !void {
     // =====================================================================
     std.debug.print("\n## 4×4 fixpoint (sparse, compact arrays + hash map)\n", .{});
 
-    const fp4_out = try run_fixpoint_4x4(gpa, reach4);
+    const fp4_out = try run_fixpoint_4x4(gpa, reach4, num_threads);
     const fp4 = fp4_out.result;
 
     const v4_b = median(fp4.root_b_L, fp4.root_b_H);
