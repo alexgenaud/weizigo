@@ -1097,6 +1097,10 @@ const Fixpoint4Result = struct {
 };
 
 // 4×4 fixpoint: uses compact arrays for L/H, hash map for child lookups
+// DUPLICATE of exp6_solve.zig run_fixpoint_4x4 — serial-only, not updated for T312
+// parallelism. A redundant implementation is a cross-check under the
+// duplication-as-oracle doctrine; do not merge, and do not assume it shares
+// exp6_solve.zig's behaviour. (T314 finding, labelled 2026-08-03.)
 fn run_fixpoint_4x4(gpa: std.mem.Allocator, reach: []const u64) !Fixpoint4Result {
     // Phase 1: build compact array of reachable non-terminal states (passes ∈ {0,1})
     var compact_list = try std.ArrayListUnmanaged(u64).initCapacity(gpa, 0);
