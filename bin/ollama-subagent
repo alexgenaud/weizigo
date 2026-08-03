@@ -158,8 +158,16 @@ def main(argv):
 
     # `ollama launch pi --model <tag> -y -- <pi args>`: the integration name
     # implies pi, so the args after `--` go straight to pi (T320 evidence).
+    #
+    # **Launch with `raw_model`, never the canonical label.** The canonical label
+    # (`model`) belongs in the claim/done lines only — it is a ledger label, not an
+    # Ollama tag. T317 item 2 passed `model` here, which silently broke every Ollama
+    # dispatch: `ollama show glm-5.2` and `kimi-k2.7` are NOT FOUND, while
+    # `glm-5.2:cloud` and `kimi-k2.7-code:cloud` resolve — the roster is cloud models
+    # and the `:cloud` suffix is load-bearing. Caught 2026-08-04 at the T336 pass
+    # boundary by dry-running a dispatch and probing both tags.
     cmd = ["tools/runner", "--max-wall", wall, "--",
-           "ollama", "launch", "pi", "--model", model, "-y", "--", "-p", prompt]
+           "ollama", "launch", "pi", "--model", raw_model, "-y", "--", "-p", prompt]
     if "--dry-run" in flags:
         print(f"{DEPTH_VAR}={WORKER_DEPTH}")
         print(" ".join(repr(c) if "\n" in c else c for c in cmd))
