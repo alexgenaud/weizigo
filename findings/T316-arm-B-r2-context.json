@@ -1,0 +1,8 @@
+{
+  "task_id": "T316-arm-B-r2",
+  "date": "2026-08-03",
+  "model": "not stated at dispatch",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T316-arm-B-r2 context dump. Blind audit of two seeded T312 deliverables (T312-findings.json, parallel-fixpoint.md). Corpus read from untracked/T316-seeded/ only. Register checked: CLAIMS.md lines 272 (GLOBAL.FP1=PROVEN), 338 (GLOBAL.F2=CLAIMED), 600 (CODE.WZO2-BUILD-REPRO=CLAIMED). Seven defects found: two class-3 cite-tag mismatches (GLOBAL.F2 and CODE.WZO2-BUILD-REPRO both misstated as PROVEN), two class-2 internal contradictions (4-vs-5 test count, findings omitting exhaustive test), one class-1 missing provenance (speedup table), one class-2 label dishonesty (wrong_answer_pass_rate conflates coverage with false-pass probability), one class-4 suspicious claim (exhaustive 4x4 test as unit test implausible). Proposed CODE.T312-PARALLEL-FIXPOINT downgrade PROVEN→CLAIMED. Report in findings/T316-arm-B-r2.json."
+}
