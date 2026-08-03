@@ -8,19 +8,28 @@ const debug = std.debug;
 
 pub const UNDEF: i8 = -128;
 
-// ── lazy stdout writer (one Threaded instance, shared by all out() calls) ───
+// ── stdout writer (persistent File.Writer, created once) ───
+//
+// T307: Each out() call was creating a new File.Writer with pos=0, causing
+// positional pwritev writes to overwrite at offset 0 on regular files.
+// Pipes survived because the first positional write fails with Unseekable,
+// switching the (per-writer) mode to streaming for that call. Fix: create
+// ONE writer and reuse it, so the position counter correctly accumulates
+// across all calls. Uses global_single_threaded Io — no background thread.
 
 var stdout_ready = false;
-var stdout_threaded: std.Io.Threaded = undefined;
 var stdout_buf: [4096]u8 = undefined;
+var stdout_writer: std.Io.File.Writer = undefined;
 
-fn stdoutWriter() std.Io.File.Writer {
+fn stdoutWriter() *std.Io.File.Writer {
     if (!stdout_ready) {
-        stdout_threaded = std.Io.Threaded.init(std.heap.page_allocator, .{});
+        stdout_writer = std.Io.File.stdout().writer(
+            std.Io.Threaded.global_single_threaded.io(),
+            &stdout_buf,
+        );
         stdout_ready = true;
     }
-    const io = stdout_threaded.io();
-    return std.Io.File.stdout().writer(io, &stdout_buf);
+    return &stdout_writer;
 }
 
 /// Write data to stdout — anything a caller might parse, filter, redirect,

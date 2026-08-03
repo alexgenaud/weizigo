@@ -196,6 +196,15 @@ pub fn build(b: *std.Build) void {
     standing_regression.cwd = b.path(".");
     test_step.dependOn(&standing_regression.step);
 
+    // ── claimlint redirect-output controls (T307) ──────────────────
+    // Null control (pipe vs file redirect byte-identical, SUMMARY
+    // present) and seeded control (recorded 491-byte fragment from the
+    // old buggy binary is detected as the truncation defect).
+    // SKIPs loudly when no claimlint binary in zig-out/bin/.
+    const claimlint_redirect_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-output.sh" });
+    claimlint_redirect_regression.cwd = b.path(".");
+    test_step.dependOn(&claimlint_redirect_regression.step);
+
     // ── deployed-binaries guard (T289) ───────────────────────────────
     // tools/smoke.sh compares every deployed bin/ tool's embedded build
     // stamp against committed source history — a stale bin/ (built before
