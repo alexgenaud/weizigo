@@ -1,0 +1,8 @@
+{
+  "task_id": "T332",
+  "date": "2026-08-03",
+  "model": "kimi-k2.7-code:cloud",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Audit of pass0/plan.md Revision 1 found one critical closure/artifact-format mismatch (the checkpoint is WZO1, but the closure design assumes a (colex,side,ko,passes) table), plus two must-grade and two lower-grade findings. Verdict: NEEDS-FIX. No claim status changes or new register rows are proposed by this audit task."
+}
