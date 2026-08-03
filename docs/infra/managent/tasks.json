@@ -1,24 +1,24 @@
 {
-  "T252": {
+  "T287": {
     "status": "done",
     "agent": "deepseek-v4-pro",
-    "model": "deepseek-v4-pro",
-    "bundle": "untracked/T252-differential-harness.md",
+    "model": null,
+    "bundle": "untracked/T287-auditor-716-gap.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-01T19:58:59Z",
-    "claimed": "2026-08-01T20:00:00Z",
-    "done": "2026-08-01T20:10:00Z",
+    "added": "2026-08-02T23:08:38Z",
+    "claimed": "2026-08-02T23:16:24Z",
+    "done": "2026-08-02T23:28:12Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": "pass-with-findings",
-    "verdict_note": "Harness built and tested, regression-differential.sh deferred",
+    "verdict": "pass",
+    "verdict_note": null,
     "claim_count": 1,
-    "acceptance": "zig build test",
-    "skip_acceptance_reason": "harness tested via zig test src/differential.zig (2/2 pass)"
+    "acceptance": "bin/weizigo-claimlint",
+    "skip_acceptance_reason": "claimlint fails at HEAD on pre-existing debt (C1a=10, C2=14, C7=8); no regression from T287 changes. The acceptance gate is unreachable without fixing debt outside this task's scope."
   },
   "T275": {
     "status": "done",
@@ -314,25 +314,25 @@
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint returns non-zero due to pre-existing C1a/C2/C6 orphans not in T293 scope; C7=0 and bars met (C1a=10≤10, C2=14≤14, C6=0, calibration=PASS)"
   },
-  "T249": {
-    "status": "done",
-    "agent": "orcha",
+  "T292": {
+    "status": "dispatchable",
+    "agent": null,
     "model": null,
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T227-regtest-sigkill-bundle.md",
-    "set": "A",
+    "bundle": "untracked/T292-baselines-and-gate.md",
+    "set": "C",
     "holds": [],
-    "needs": [],
+    "needs": ["T291"],
     "caps": [],
-    "added": "2026-08-01T19:57:38Z",
-    "claimed": "2026-08-01T22:44:43Z",
-    "done": "2026-08-01T22:44:43Z",
+    "added": "2026-08-02T23:47:15Z",
+    "claimed": null,
+    "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": "abandoned",
-    "verdict_note": "test-leakage phantom, closed by Orcha",
-    "claim_count": 2,
-    "acceptance": "kill -9 $$",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
   "T227": {
@@ -377,25 +377,25 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
-  "T292": {
-    "status": "blocked",
-    "agent": null,
+  "T249": {
+    "status": "done",
+    "agent": "orcha",
     "model": null,
-    "bundle": "untracked/T292-baselines-and-gate.md",
-    "set": "C",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T227-regtest-sigkill-bundle.md",
+    "set": "A",
     "holds": [],
-    "needs": ["T291"],
+    "needs": [],
     "caps": [],
-    "added": "2026-08-02T23:47:15Z",
-    "claimed": null,
-    "done": null,
+    "added": "2026-08-01T19:57:38Z",
+    "claimed": "2026-08-01T22:44:43Z",
+    "done": "2026-08-01T22:44:43Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
-    "acceptance": "zig build test",
+    "verdict": "abandoned",
+    "verdict_note": "test-leakage phantom, closed by Orcha",
+    "claim_count": 2,
+    "acceptance": "kill -9 $$",
     "skip_acceptance_reason": null
   },
   "T226": {
@@ -504,8 +504,8 @@
     "skip_acceptance_reason": null
   },
   "T291": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T291-mutation-catalogue.md",
     "set": "A",
@@ -514,15 +514,15 @@
     "caps": [],
     "added": "2026-08-02T23:47:15Z",
     "claimed": "2026-08-03T00:23:00Z",
-    "done": null,
+    "done": "2026-08-03T00:39:12Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null
+    "skip_acceptance_reason": "zig build test passes under tools/runner (exit 0, pre-commit verified); zig not on managent's PATH"
   },
   "T290": {
     "status": "done",
@@ -1490,30 +1490,30 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
-  "T287": {
+  "T252": {
     "status": "done",
     "agent": "deepseek-v4-pro",
-    "model": null,
-    "bundle": "untracked/T287-auditor-716-gap.md",
+    "model": "deepseek-v4-pro",
+    "bundle": "untracked/T252-differential-harness.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-02T23:08:38Z",
-    "claimed": "2026-08-02T23:16:24Z",
-    "done": "2026-08-02T23:28:12Z",
+    "added": "2026-08-01T19:58:59Z",
+    "claimed": "2026-08-01T20:00:00Z",
+    "done": "2026-08-01T20:10:00Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": "pass",
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Harness built and tested, regression-differential.sh deferred",
     "claim_count": 1,
-    "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": "claimlint fails at HEAD on pre-existing debt (C1a=10, C2=14, C7=8); no regression from T287 changes. The acceptance gate is unreachable without fixing debt outside this task's scope."
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": "harness tested via zig test src/differential.zig (2/2 pass)"
   }
 ,
   "_sys": {
-    "next_id": 296,
+    "next_id": 297,
     "directive_next": 21
   }
 }
