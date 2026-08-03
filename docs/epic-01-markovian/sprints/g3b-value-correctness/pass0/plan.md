@@ -1,10 +1,11 @@
 # G3b value-correctness — pass0 PLAN
 
 ```
-Task: T331 · Role: worker · Model: glm-5.2:cloud · Date: 2026-08-03
-Revision: 1 · Status: PROPOSED
+Task: T333 · Role: worker · Model: glm-5.2:cloud · Date: 2026-08-04
+Revision: 2 · Status: PROPOSED
 Sprint: g3b-value-correctness · Pass: 0
-Parent: pass0/spec.md (Revision 2, RATIFIED 2026-08-03, spec audit T329)
+Parent: pass0/spec.md (Revision 3, RATIFIED 2026-08-04 — spec audit T329 Rev 2;
+        T332 F1 amended Rev 3, re-rooting the artifact identity to WZO2)
 Sprint owner: Orchestrator
 ```
 
@@ -17,8 +18,12 @@ will be audited (document review, fresh session) and ratified by the sprint
 owner before any build row is registered.
 
 **Inputs read.** `AGENTS.md` · `DELEGATEE.md` · `sprint.md` ·
-`pass0/spec.md` (Rev 2) · `archive/spec-audit-r1.md` (T329, all ten findings
-dispositioned) · `DIRECTION.md` + Amendments 1 & 2 · `PHASES.md` §The G3
+`pass0/spec.md` (Rev 3, RATIFIED 2026-08-04 — spec audit T329 Rev 2 + T332 F1
+amendment) · `archive/spec-audit-r1.md` (T329, all ten findings
+dispositioned) · `archive/plan-audit-r1.md` (T332, five findings F1–F5 +
+gate-holder F6, all six dispositioned; the mandate for this revision) ·
+`sprints/oracle-v2/pass0/design-M1.md` (rev 3, RATIFIED G2 — the WZO2 schema
+authority) · `DIRECTION.md` + Amendments 1 & 2 · `PHASES.md` §The G3
 gate is split · `sprints/verify-battery/pass1/spec.md` (check inventory) ·
 `sprints/verify-battery/pass1/mutants.md` (seven known-unkilled mutants) ·
 `sprints/verify-battery/pass0/design-M1.md` §4.6 (SMD1 format, already
@@ -27,8 +32,10 @@ specified) · `sprints/verify-battery/pass1/i5-feasibility.md` +
 `findings/T273-kernel-ko.json` (kernel already has `koAfterCapture`/
 `stateKey`) · `AXIOMS.md` (requirement tree + ruleset R) · `src/rules.zig`,
 `src/exp6_solve.zig`, `src/differential.zig` (current kernel/solver state).
+The WZO2 artifact header was parsed directly (T333, 2026-08-04); the numbers
+in §2.1 are measured, not assumed.
 
-**No contradiction with spec Rev 2 is intended.** Where this plan needs the
+**No contradiction with spec Rev 3 is intended.** Where this plan needs the
 spec to change, that is a plan-amendment halt (`sprint.md` §Bookends), not a
 silent divergence. No such halt is triggered here; every §6 question is
 answered within the spec's framed options.
@@ -49,57 +56,133 @@ plan does not reopen any pass condition.
 
 ## 2. Feasibility decisions — spec §6, each answered
 
-### 2.1 §6.1 — Memory plan for closure over 24.3M groups
+### 2.1 §6.1 — Memory plan for closure over the WZO2 table (F1 re-root)
 
-**Decision: in-core, snapshot-sweep BFS, ~280 MB peak — well under the 4 GB
-runner cap. Adopt the T134 i5-feasibility precedent's Phase-1 (BFS discovery)
-shape, which is exactly a closure computation.**
+**Decision: in-core, snapshot-sweep BFS over the loaded WZO2 table, ~531 MB
+peak — well under the 4 GB runner cap. Membership by group-index binary
+search + in-group linear scan, zero extra memory.**
 
-Rationale and structure:
+**Artifact identity (F1 re-root, spec Rev 3).** The sprint artifact is
+`untracked/oracle-v2/oracle-4x4-v2.wzo2` — **WZO2**, 518,123,097 bytes,
+full-file SHA-256 `0c3366f0…` (the header-embedded slot digest at offset 40,
+computed with bytes 40–71 zeroed per design-M1 §4.2, is `57009d93…`; both
+are reproducible). Header parsed directly 2026-08-04 (T333):
+`magic="WZO2", version=1, w=4, h=4, rules_id=3, entry_size=4,
+group_header_size=5, ko_bits=5, hdr_flags=1 (PASSES_2_OMITTED),
+n_groups=24,318,165, n_entries=99,133,036, data_offset=128`. File size
+validates the layout: `128 + 24,318,165×5 + 99,133,036×4 = 518,123,097` ✓.
+**Not** `data/oracle-4x4.checkpoint.wzo` (WZO1, 2026-07-21 PSK-era residue,
+header `total=3^16`, no ko/passes dimension — it cannot represent the k=1
+state this epic is about, and is ruled untrustworthy at the pivot). The
+authority for the schema is `sprints/oracle-v2/pass0/design-M1.md` (rev 3,
+RATIFIED G2), **not** `AGENTS.md`'s 258 MB figure — that is the WZO1 file
+size, which Rev 1 of this plan leaned on by mistake.
 
-- **The reachable set is the table.** G3a established structural
-  completeness: the table holds exactly the root-reachable states. C-A2
-  (backward closure) therefore BFS-expands only states that are *in the
-  table*; the table is the bound on the work, not the full linear address
-  space (3¹⁶ × 2 × 17 × 3 ≈ 4.4 B — far too large for a flat bitset, and
-  unnecessary).
-- **Membership by binary search, not by bitset.** The loaded table is keyed
-  by `(colex, side, ko, passes)` and stored sorted by construction. C-A1
-  (forward: every child of every table entry is present) and C-A2 (backward:
-  every root-reachable state is present) both reduce to: generate a child
-  key, look it up in the sorted table. Binary search is O(log n) per lookup,
-  zero extra memory. No rank-support bitset, no dense remap — those were
-  T134's solution for *Tarjan* (which needs dense vertex ids); closure does
-  not.
-- **Visited set over the table's own index.** C-A2's BFS needs a visited
-  marker to avoid re-expansion. Index the table 0..|T|−1 and keep a bitset
-  over that index: |T| ≈ 146 M bits → **~18 MB**. (C-A1 does not need
-  visited; it is a single linear scan of the table.)
-- **Peak RSS.** Loaded table (~258 MB per `AGENTS.md`) + visited bitset
-  (18 MB) + move-generation scratch (a handful of `[16]i8` boards, reused)
-  + the kernel move generator (already in `rules.zig`, no copy) ≈ **~280
-  MB**. Headroom under the 4 GB runner cap is ~3.7 GB. This is more
-  comfortable than T134's Tarjan plan (~1.2 GB) because closure is BFS, not
-  DFS-with-stacks.
-- **Snapshot-sweep, not a queue.** Following T134 §4.2 / EXP-3: each sweep
-  scans the visited bitset linearly, expands all newly-marked entries, marks
-  their in-table children. This eliminates the BFS queue (which at 146 M ×
-  8 B would be ~1.2 GB) at the cost of O(sweeps) passes. Sweeps at 4×4 are
-  bounded by the longest acyclic path (stone placements + ≤2 passes);
-  T134's EXP-3 census converged in 29 sweeps. Budget ≤40 sweeps.
+**Schema relevant to closure** (design-M1 §§1–4). Three contiguous regions:
+Header (128 B) | Group index (`n_groups × 5` B) | Entry data
+(`n_entries × 4` B). Group header = `colex (u32 LE) + entry_count (u8)`;
+groups are sorted by colex (binary-searchable). Entry =
+`key_byte (u8) + L (i8) + H (i8) + DTT (u8)`. `key_byte` packs
+`[passes:1][ko_point:KO_BITS][side:1][terminal:1]`, MSB→LSB, `KO_BITS=5` at
+4×4 (ko values 0…16, 16 = none). Entries within a group are sorted by
+`(colex, passes, ko_point, side)` — equivalently `key_byte & 0xFE`. Three
+format invariants closure must honour:
+
+- **`PASSES_2_OMITTED` (hdr_flags bit 0):** passes=2 states are NOT stored —
+  they are the absorbing terminal. A passes=2 child is *expected-absent*, not
+  a missing entry; C-A1 must not count it as `children_not_in_table`.
+- **`passes ≥ 1 ⇒ ko = none` (§2.5):** every stored passes=1 entry has
+  `ko = none`. A ko-active state exists only at passes=0.
+- **KO_SENSITIVE is not stored** — computed by the reader as `L != H`. The
+  I4 KO_SENSITIVE-clear/-set split reads `L,H` per entry.
+- **`terminal` (key_byte LSB):** a passes∈{0,1} entry with `terminal=1` has
+  no legal placement; its only move is pass. The kernel move generator
+  yields only the pass child from such a state.
+
+**Membership predicate (F1 reconciliation).** The full Markov state key is
+`(colex, side, ko_point, passes)`, passes∈{0,1}. To look up a child key:
+
+1. Binary-search the in-memory group index (a sorted `n_groups` array of
+   u32 colex values, packed 5 B each) for `colex` → O(log n_groups) ≈ O(25).
+2. Within the located group (≤ `2×(w·h+2) = 36` entries at 4×4), linear-scan
+   the entry data for an entry whose `key_byte & 0xFE == target_kb`, where
+   `target_kb` packs `(passes, ko_point, side)` — the `terminal` LSB is
+   masked off (a terminal-flagged entry and its non-terminal twin share the
+   same masked key; both are valid lookups depending on what the caller
+   asks). O(≤36).
+3. The group's byte range in the entry data is found via a sparse prefix sum
+   (cumulative entry index every 256th group, `n_groups/256 × 4 ≈ 380 KB`)
+   plus summing ≤255 `entry_count` bytes from the group index already in
+   cache.
+
+This is O(log G + ≤36) per lookup, **zero extra memory** beyond the group
+index already loaded for lookups and the mmap'd entry data. No rank-support
+bitset, no dense remap, no hash set — those were T134's solution for
+*Tarjan* (dense vertex ids); closure does not need them. (If, contrary to
+the parsed header and the format doc, the group index were not sorted by
+colex, binary search would be unsound and CLOSURE would need a hash set
+keyed on `colex` — ~1.2 GB, still feasible; that is the spec-amendment halt
+trigger in §13. The parsed header and design-M1 §2.4 both guarantee the
+sort, so the trigger is not pulled.)
+
+**The reachable set is the table.** G3a established structural
+completeness: the stored `n_entries = 99,133,036` entries are exactly the
+root-reachable non-terminal (passes∈{0,1}) states. C-A2 (backward closure)
+therefore BFS-expands only states that are *in the table*; the table is the
+bound on the work, not the spec's ~146 M estimate. Spec §6.1's
+`24.3 M groups × 3 pass × 2 sides ≈ 146 M` double-counts: it includes the
+passes=2 terminal (not stored) and passes=1 ko≠none states (excluded by the
+§2.5 invariant). The measured table is **99,133,036** entries, not 146 M.
+
+**Memory budget.**
+
+| component | size | resident? |
+|---|---|---|
+| Group index (`n_groups × 5`) | 121.59 MB | in memory (kept for lookups) |
+| Sparse prefix sum | ~380 KB | in memory |
+| Entry data (`n_entries × 4`) | 396.53 MB virtual | mmap'd; closure touches every entry → ~396.5 MB resident |
+| Visited bitset over table index (C-A2 only) | `n_entries` bits = 12.39 MB | in memory |
+| Move-gen scratch (a handful of `[16]i8` boards, reused) | <1 KB | — |
+
+- **C-A1 (forward, single linear scan, no visited):** peak RSS ≈ 121.59 +
+  396.53 + scratch ≈ **~518 MB** (the file's own working set).
+- **C-A2 (backward BFS, snapshot-sweep):** peak RSS ≈ 121.59 + 396.53 +
+  12.39 + scratch ≈ **~531 MB**. Headroom under the 4 GB runner cap is
+  ~3.47 GB.
+
+This is more comfortable than T134's Tarjan plan (~1.2 GB) because closure
+is BFS over the table, not DFS-with-stacks over a dense vertex space, and
+because the 4-byte WZO2 entry (vs the WZO1 6-byte row) plus the
+index/mmap split keeps the resident working set at the file's own ~518 MB.
+
+- **Snapshot-sweep, not a queue.** Following the *shape* of T134 §4.2 /
+  EXP-3 — **analogy only (F5): T134's precedent is the I5 SCC/Tarjan memory
+  plan, not a closure sweep.** Each sweep scans the visited bitset linearly,
+  expands all newly-marked entries, marks their in-table non-terminal
+  children. This eliminates the BFS queue (which at 99.13 M × 8 B would be
+  ~793 MB) at the cost of O(sweeps) passes over the bitset. Sweeps at 4×4
+  are bounded by the longest acyclic path in the reachable graph (stone
+  placements + ≤2 passes, since passes=2 is the absorbing terminal); the
+  budget is **≤40 sweeps as a planning estimate, not a carried-over
+  measurement.** The actual closure sweep count is an **accept.md
+  measurement** (F5), recorded with its denominator; it is not leaned on as
+  a carried-over precedent.
 - **Fallback (stated trigger, not expected).** If peak RSS exceeds 3.5 GB
-  during closure (it will not, by the budget above), fall back to
-  stream-from-disk: the table stays on disk, closure streams entries in
-  fixed-size blocks, membership checks go to an on-disk sorted-key index. A
-  memory-plan breach is a `battery-bad` exit (code 2), not an artifact-bad
-  finding (spec §6.1). The trigger is the runner's RSS report; the fallback
-  is a build-row scope expansion, which is a plan amendment, not a silent
-  switch.
+  during closure (it will not, by the budget above — headroom is ~3.47 GB),
+  fall back to stream-from-disk: the entry data stays on disk, closure
+  streams groups in fixed-size blocks, membership checks go to the
+  already-in-memory group index plus on-disk entry reads. A memory-plan
+  breach is a `battery-bad` exit (code 2), not an artifact-bad finding (spec
+  §6.1). The trigger is the runner's RSS report; the fallback is a build-row
+  scope expansion, which is a plan amendment, not a silent switch.
 
-**Denominator C-A1 will report:** `|T|` table entries scanned, total
-children generated, `children_not_in_table` (verdict: 0), average branching
-factor. **C-A2:** reachable-set size (must equal `|T|`), `reachable_not_in_table`
-(verdict: 0), % of colex space reachable.
+**Denominators C-A1 will report:** `n_entries = 99,133,036` table entries
+scanned, total non-terminal children generated, `children_not_in_table`
+(verdict: 0 — passes=2 children are expected-absent terminals, not counted
+as missing), average branching factor. **C-A2:** reachable non-terminal
+count (must equal `n_entries`), reachable terminal (passes=2) count (not
+stored, reported separately), `reachable_not_in_table` (verdict: 0), % of
+colex space reachable = `n_groups / 24,318,165` (legal positions, A094777).
 
 ### 2.2 §6.2 — C-A2: re-run reachability or certify T266?
 
@@ -166,18 +249,23 @@ format; the battery's I11 reader consumes it. Exhaustive scope at
 ### 2.6 §6.6 — G1/G3 key-agreement at 4×4: full scale or sampled?
 
 **Decision: exhaustive over the table's entries at 4×4 (the reachable
-set, ~146 M), not sampled. Not over the full legal-position space.**
+set, `n_entries = 99,133,036`), not sampled. Not over the full
+legal-position space.**
 
 Rationale: state-key computation is O(1) per state — no move generation, no
 graph traversal — so exhaustive over the reachable set is cheap. The
 key-agreement invariant (T267) checks producer key == consumer key for
 states reachable by real play; the table holds exactly those states.
-Iterating the loaded table and comparing `rules.stateKey` (producer, T273)
-against the battery's R8 encoder (consumer) for every entry is a single
-linear pass: ~146 M comparisons, peak RSS ≈ table + scratch (~260 MB), wall
-time minutes. This is strictly stronger than sampling and is feasible, so
-sampling would be a needless weakening. The denominator is `|T|` (table
-entry count), reported as `key_mismatches / |T|` with verdict 0.
+Iterating the loaded WZO2 table (group index in memory + mmap'd entry data)
+and comparing `rules.stateKey` (producer, T273) against the battery's R8
+encoder (consumer) for every entry — reconstructing the full
+`(colex, side, ko, passes)` key from the group header + `key_byte` per entry —
+is a single linear pass: ~99.1 M comparisons, peak RSS ≈ group index
+(121.6 MB) + entry data resident after the scan (396.5 MB) + scratch ≈
+**~518 MB**, wall time minutes. This is strictly stronger than sampling and
+is feasible, so sampling would be a needless weakening. The denominator is
+`n_entries = 99,133,036` (table entry count), reported as
+`key_mismatches / n_entries` with verdict 0.
 
 ---
 
@@ -221,14 +309,14 @@ record.
 ## 4. Phase sequence and gates
 
 Per `sprint.md` §Phases and §Audit gates. This pass runs **Plan, Scope
-(merged into Plan), Design, Test, Build, Accept**. Spec is done (Rev 2,
-RATIFIED). The phase number is not a dependency (DIRECTION Amendment 2);
+(merged into Plan), Design, Test, Build, Accept**. Spec is done (Rev 3,
+RATIFIED 2026-08-04). The phase number is not a dependency (DIRECTION Amendment 2);
 the real serializer is file ownership (§6). TDD is non-negotiable: tests are
 written and reviewed before the implementation they test (the 2B-5 scar).
 
 | phase | file | runs this pass? | gate instrument | gate holder |
 |---|---|---|---|---|
-| Spec | `spec.md` | done (Rev 2) | document review (T329, PASS-WITH-EDITS, ratified) | spec auditor |
+| Spec | `spec.md` | done (Rev 3, RATIFIED 2026-08-04) | document review (T329 PASS-WITH-EDITS ratified Rev 2; T332 F1 → Rev 3 amendment, re-rooting artifact to WZO2) | spec auditor |
 | **Plan** | `plan.md` (this) | yes | **document review, fresh session** | plan auditor |
 | Scope | — | **merged into Plan** (§12 MoSCoW; spec §8 already bounds scope) | (none — folded) | — |
 | **Design** | `design.md` | yes | **adversarial review** — attempt refutation, state a verdict | design auditor |
@@ -262,17 +350,17 @@ registers, each with the `needs` shown.
 
 | label | row (one-line) | holds (file) | set | needs (plan labels) | spec edge |
 |---|---|---|---|---|---|
-| **MG-INV** | move-generator differential invariant: extend `differential.zig` with a `legalMoves` operation + null control + seeded-defect control; prove the invariant catches a known-incorrect move mutant *before* the kernel is plugged in | `src/differential.zig` | g3b-movegen | — | edge 2 (the invariant) |
+| **MG-INV** | move-generator differential invariant: extend `differential.zig` with a `legalMoves` operation + null control + seeded-defect control; **exhaustive over the full `(pos, side, ko, passes)` space at 2×2 / 3×2 / 3×3, including `ko≠NONE` states** (F6 — SMD1's slice is `ko=NONE, passes=0`, so I11 never compares at a ko-active state; ko-dimension coverage of the move relation lives here); prove the invariant catches a known-incorrect move mutant — **including a ko-recapture mutant caught at a ko-active state** (the T265 defect family; spec §7.2 amendment 2026-08-04) — *before* the kernel is plugged in | `src/differential.zig` | g3b-movegen | — | edge 2 (the invariant) |
 | **MG-KERN** | extract the kernel move generator (`legalMoves`/`applyMove`/`applyPass`, assembling `rules.pos_from_move` + `rules.koAfterCapture` + pass/ko logic) into `src/rules.zig`, headed by the A1–A6/B1–B3 prose spec sentence + claim ID, TDD | `src/rules.zig` | g3b-movegen | MG-INV | edge 1, edge 2 (the move) |
 | **R8** | battery's independent move generator + independent state-key encoder, in `src/vb_movegen.zig`; different author than MG-KERN, blind to kernel/solver source (§7) | `src/vb_movegen.zig` | g3b-battery | — (input: AXIOMS.md only) | edge 3, 4 (the R8 side) |
 | **SMD1** | solver-side move-set dump utility emitting the §4.6 SMD1 format (`tools/smd1.zig` or a solver mode), using the kernel move generator | `tools/smd1.zig` | g3b-tools | MG-KERN | edge 3 (SMD1 side) |
 | **CLOSURE** | C-A1 forward + C-A2 backward closure (§2.1 memory plan), binary-search membership over the sorted table | `src/vb_closure.zig` | g3b-battery | MG-KERN | edge 1 |
 | **I4-4x4** | I4 Bellman residual at 4×4, Φ from R8; report KO_SENSITIVE-clear and KO_SENSITIVE-set violation counts separately (spec §2.4) | `src/vb_bellman_4x4.zig` | g3b-battery | R8 | edge 4 |
-| **I5-4x4** | I5 SCC containment at 4×4, move graph from R8; iterative Tarjan per T134's memory plan (~1.2 GB peak) | `src/vb_scc_4x4.zig` | g3b-battery | R8 | (supports Z-CONVERGE-FIX) |
+| **I5-4x4** | I5 SCC containment at 4×4, move graph from R8; iterative Tarjan per T134's memory plan (~1.2 GB peak). **First seeded-defect control at 3×2** (F2 — the 2×2 all-legal graph is entirely cycle-reachable, spec §7.2): set `KO_SENSITIVE` spuriously on a non-cycle-reachable 3×2 slot → `ko_not_cr > 0`, shown red-then-green **before** the 4×4 reading; this is a row bar, not effort-table prose | `src/vb_scc_4x4.zig` | g3b-battery | R8 | (supports Z-CONVERGE-FIX) |
 | **KEY-4x4** | G1/G3 key-agreement at 4×4, exhaustive over the table (§2.6); extends `differential.zig` with the 4×4-scale run | `src/differential.zig` | g3b-movegen | MG-INV, R8 | (closes G1/G3; kills M1–M4) |
 | **I11** | I11 move-set consistency: read SMD1 dump, compare against R8; null control (§4.1) + seeded-defect control (§4.2) before first reading counts | `src/vb_i11.zig` | g3b-battery | SMD1, R8 | edge 3 |
 | **BATT-HEALTH** | M9 meta-check: every invariant returns a real verdict, not `.skipped`; enumerate declared invariants, run each, assert status | `src/vb_health.zig` | g3b-battery | R8 | edge 5 (M9) |
-| **DISCHARGE** | G3b discharge / accept row: collect all check readings, confirm seven mutants killed (M1–M4 by KEY-4x4, M8 by CLOSURE, M9 by BATT-HEALTH, M10 by I11's null control), write `accept.md` | `accept.md` (+ findings) | A | KEY-4x4, CLOSURE, I4-4x4, I5-4x4, I11, BATT-HEALTH | edge 5 |
+| **DISCHARGE** | G3b discharge / accept row: collect all check readings; **the bar is the seven mutant-kill assertions inverted in `vb_mutants.zig`** (F3 — M1–M4 by KEY-4x4, M8 by CLOSURE, M9 by BATT-HEALTH, M10 by I11's null control), a mechanized checkable assertion not merely the six check rows closed; the `needs` edges stay row-level because managent edges are rows; write `accept.md` | `accept.md` (+ findings) | A | KEY-4x4, CLOSURE, I4-4x4, I5-4x4, I11, BATT-HEALTH | edge 5 |
 
 **Mutant → killer mapping** (spec §2.3 item 6, edge 5 currency):
 
@@ -322,8 +410,11 @@ different agent/model than the MG-KERN row (kernel move generator).**
 (§8), *before* MG-KERN's kernel function exists — R8's author literally
 cannot read code that has not been written. The differential invariant
 (MG-INV) and the key-agreement run (KEY-4x4) are the comparison harness;
-they are written by a third author (or A) and compare the two
-implementations after both exist. The null control (I11, §4.1) and the
+they are written by a third author **C, distinct from both MG-KERN's
+author (A) and R8's author (B)**, and compare the two implementations after
+both exist (F4 — allowing the kernel author to also write the comparison
+harness would weaken the independent-comparison guard the QA-023 rules were
+written for). The null control (I11, §4.1) and the
 seeded-defect control (§4.2) are the calibration that proves the comparison
 is sensitive — a check that passes both the clean artifact and the seeded
 mutant is blind, and its reading is not reported (QA-023).
@@ -462,7 +553,7 @@ accept time, routed through the standard absorption gate — not here.
 
 | risk | mitigation | trigger |
 |---|---|---|
-| 4×4 closure OOM | §2.1 budget is ~280 MB; fallback is stream-from-disk (plan amendment) | runner RSS > 3.5 GB |
+| 4×4 closure OOM | §2.1 budget is ~531 MB peak (group index 121.6 MB + entry data 396.5 MB resident + visited bitset 12.4 MB); fallback is stream-from-disk (plan amendment) | runner RSS > 3.5 GB |
 | 4×4 I5 Tarjan OOM | T134 plan is ~1.2 GB with ~2.8 GB headroom; fallbacks F1 (pack onstack) → F2 (drop dense_to_linear) → F3 (sample) → F4 (≤3×3 only) | runner RSS > 3.5 GB |
 | R8 ≡ alias of kernel (shared blind spot) | §6 blindness-by-scheduling + §4.1/§4.2 null & seeded-defect controls; if a Python probe catches what both miss → §7 escalation | a defect both Zig implementations miss |
 | I11 4×4 sample misses a systematic disagreement | 50 K stratified sample; exhaustive stretch goal if wall-time permits | a clean 50 K run with budget remaining |
@@ -508,9 +599,10 @@ then Kotlin by owner ruling, not self-approved).
   plan amendments, not silent switches.
 - **Spec-amendment halt triggers** (the plan halts, not diverges): (a) the
   §7 third-language escalation; (b) a §2.1/§2.6 memory or feasibility
-  finding that contradicts the budget (e.g. the table is not sorted by
-  construction, breaking binary-search membership — then CLOSURE needs a
-  hash set, ~1.2 GB, still feasible but a design change); (c) a check
+  finding that contradicts the budget (e.g. the WZO2 group index is not
+  sorted by colex as design-M1 §2.4 guarantees, breaking binary-search
+  membership — then CLOSURE needs a hash set keyed on `colex`, ~1.2 GB,
+  still feasible but a design change); (c) a check
   whose pass condition the build finds unsatisfiable on the input (T287
   precedent — a wrong pass condition is itself a defect).
 - **What this plan could not establish:** the exact 4×4 wall time for I5's
@@ -526,3 +618,4 @@ then Kotlin by owner ruling, not self-approved).
 | date | amendment | by |
 |---|---|---|
 | 2026-08-03 | Initial plan — T331 | glm-5.2:cloud/T331 |
+| 2026-08-04 | Rev 2 (T333): fix the six dispositioned plan-audit findings (T332 F1–F5 + gate-holder F6). **F1** — §2.1/§2.6 re-rooted to the real WZO2 artifact (`untracked/oracle-v2/oracle-4x4-v2.wzo2`, 518,123,097 B, SHA-256 `0c3366f0…`); membership predicate rebuilt as group-index binary search + in-group linear scan over the parsed schema (`n_groups=24,318,165`, `n_entries=99,133,036`, entry_size=4, ko_bits=5, PASSES_2_OMITTED, passes≥1⇒ko=none, KO_SENSITIVE=L≠H); memory budget re-derived (~531 MB peak, ~3.47 GB headroom); passes=2 children are expected-absent terminals, not missing. **F2** — I5 first seeded-defect control mechanized as an I5-4x4 row bar at 3×2, red-then-green before the 4×4 reading. **F3** — DISCHARGE bar restated as the seven mutant-kill assertions inverted in `vb_mutants.zig`; `needs` edges stay row-level. **F4** — comparison-harness author required distinct from both MG-KERN (A) and R8 (B); “(or A)” dropped. **F5** — T134 EXP-3 sweep citation relabelled an analogy; actual closure sweep count deferred to an accept.md measurement. **F6** — MG-INV commits to exhaustive `(pos, side, ko, passes)` comparison including `ko≠NONE`, with a ko-recapture mutant caught at a ko-active state. Header and §4 updated to spec Rev 3. | glm-5.2:cloud/T333 |
