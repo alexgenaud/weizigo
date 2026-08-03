@@ -1,0 +1,34 @@
+{
+  "task_id": "T336",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass-with-findings",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "must",
+      "what": "Sprint delivered 4 of 7 rows: T317 (managent attribution + store safety + amend), T319 (kanban archive), T325 (flaky-suite diagnosis), T322 (wire orphaned controls). 3 remain: T326 (GTP handicap, now unblocked), T327 (score-annotated board), T328 (bake-off), T330 (retirement edges).",
+      "files": ["docs/infra/fleet-hardening-2026-08-04.md"]
+    },
+    {
+      "id": "F2",
+      "severity": "must",
+      "what": "Claimlint at floor throughout sprint: C1a=10, C1b=0, C2=14, C6=0, C9=0, calibration=PASS. All commits through tools/git-commit-mine. All deploys verified with smoke.sh PASS, zero STALE lines.",
+      "files": []
+    },
+    {
+      "id": "F3",
+      "severity": "should",
+      "what": "5 regression scripts remain orphaned after T322. Each needs a fix row. The git-commit-mine.sh live-store write (line 190) is the most urgent — it would corrupt the kanban silently if wired before fixing.",
+      "files": ["tools/regression-git-commit-mine.sh"]
+    }
+  ],
+  "sprint_status": {
+    "completed": ["T317", "T319", "T325", "T322"],
+    "remaining": ["T326", "T327", "T328", "T330"],
+    "commits": 5,
+    "lines_changed": "+3000/-2100 approx"
+  }
+}

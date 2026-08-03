@@ -1,0 +1,8 @@
+{
+  "task_id": "T336",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T336 — fleet hardening sprint console. Executed 4 of 7 rows as a single deepseek-v4-pro seat. Sequenced per the sprint plan: T317 alone on a quiet fleet, then T319 → T325 ∥ T322. All rows deployed with smoke PASS. Claimlint at floor throughout.\n\nROWS DELIVERED:\n- T317 (pass): managent --model flag, canonical model validation (9 models), store lost-update hardening (5 commands lock→re-read→writeLocked), ollama-subagent tag→canonical mapping + deliverables parsing, wire regression-subagent-prompt.sh, amend command with append-only correction records.\n- T319 (pass): archive command with --dry-run, 96 rows archived, why searches both stores.\n- T325 (pass): 10 consecutive test suite runs, 0/10 failures, suite stable at HEAD.\n- T322 (pass-with-findings): 2 scripts wired (done-git, memory-safety), 5 deferred with stated reasons.\n\nREMAINING: T326 (GTP handicap, now unblocked), T327 (score-annotated, blocked by T326), T328 (bake-off, dispatchable), T330 (retirement edges, dispatchable).\n\nWHAT I NOTICED BUT DID NOT ACT ON:\n- The git-commit-mine.sh regression writes live tasks.json (line 190) — hygiene violation that would silently corrupt the kanban if wired.\n- cmdShow doesn't display amendment records from the amendments[] array.\n- C7 unabsorbed findings at 9 (up from 5) — STANDING-ABSORB should fire.\n- The ollama-subagent OLLAMA_TAG_TO_CANONICAL mapping must stay in sync with main.zig canonical_models[] — no mechanized cross-check.\n\nEVIDENCE: 5 commits, all with pre-commit claimlint check. zig build test exit 0 throughout. smoke.sh PASS on all deploys."
+}
