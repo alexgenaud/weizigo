@@ -419,25 +419,25 @@
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint returns non-zero due to pre-existing C1a/C2/C6 orphans not in T293 scope; C7=0 and bars met (C1a=10≤10, C2=14≤14, C6=0, calibration=PASS)"
   },
-  "T292": {
+  "T316": {
     "status": "done",
-    "agent": "deepseek-v4-flash",
+    "agent": "deepseek-v4-pro",
     "model": null,
-    "bundle": "untracked/T292-baselines-and-gate.md",
-    "set": "C",
+    "bundle": "untracked/T316-delegation-architecture-experiment.md",
+    "set": "D",
     "holds": [],
-    "needs": ["T291"],
+    "needs": ["T315"],
     "caps": [],
-    "added": "2026-08-02T23:47:15Z",
-    "claimed": "2026-08-03T01:22:47Z",
-    "done": "2026-08-03T01:52:40Z",
+    "added": "2026-08-03T15:00:20Z",
+    "claimed": "2026-08-03T15:34:32Z",
+    "done": "2026-08-03T16:25:32Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": "pass",
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Clean null result: Arm A (single worker) 6/6 defects, 0 false positives, 126s; Arm B (audit loop) R2 found 0 new for 2x cost; Arm C (sprint) 4.5-5/6 with 2-3 false positives. Single bounded row wins on every axis. Caveats: n=1 per arm; no arm can catch orchestration errors. Arm C worker misidentified its own model as claude-opus-4-5 while running deepseek-v4-pro. Answer key pinned pre-dispatch at docs/evidence/T316/corpus-manifest.sha256 (74423db) since untracked/ is gitignored — orchestrator's deliverable declaration was wrong, corrected.",
     "claim_count": 1,
-    "acceptance": "zig build test",
+    "acceptance": null,
     "skip_acceptance_reason": null
   },
   "T227": {
@@ -482,6 +482,27 @@
     "acceptance": null,
     "skip_acceptance_reason": null
   },
+  "T292": {
+    "status": "done",
+    "agent": "deepseek-v4-flash",
+    "model": null,
+    "bundle": "untracked/T292-baselines-and-gate.md",
+    "set": "C",
+    "holds": [],
+    "needs": ["T291"],
+    "caps": [],
+    "added": "2026-08-02T23:47:15Z",
+    "claimed": "2026-08-03T01:22:47Z",
+    "done": "2026-08-03T01:52:40Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": null,
+    "claim_count": 1,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
   "T249": {
     "status": "done",
     "agent": "orcha",
@@ -501,27 +522,6 @@
     "verdict_note": "test-leakage phantom, closed by Orcha",
     "claim_count": 2,
     "acceptance": "kill -9 $$",
-    "skip_acceptance_reason": null
-  },
-  "T316": {
-    "status": "done",
-    "agent": "deepseek-v4-pro",
-    "model": null,
-    "bundle": "untracked/T316-delegation-architecture-experiment.md",
-    "set": "D",
-    "holds": [],
-    "needs": ["T315"],
-    "caps": [],
-    "added": "2026-08-03T15:00:20Z",
-    "claimed": "2026-08-03T15:34:32Z",
-    "done": "2026-08-03T16:25:32Z",
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "verdict": "pass-with-findings",
-    "verdict_note": "Clean null result: Arm A (single worker) 6/6 defects, 0 false positives, 126s; Arm B (audit loop) R2 found 0 new for 2x cost; Arm C (sprint) 4.5-5/6 with 2-3 false positives. Single bounded row wins on every axis. Caveats: n=1 per arm; no arm can catch orchestration errors. Arm C worker misidentified its own model as claude-opus-4-5 while running deepseek-v4-pro. Answer key pinned pre-dispatch at docs/evidence/T316/corpus-manifest.sha256 (74423db) since untracked/ is gitignored — orchestrator's deliverable declaration was wrong, corrected.",
-    "claim_count": 1,
-    "acceptance": null,
     "skip_acceptance_reason": null
   },
   "T226": {
@@ -942,6 +942,27 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
+    "skip_acceptance_reason": null
+  },
+  "T322": {
+    "status": "blocked",
+    "agent": "deepseek-v4-pro",
+    "model": null,
+    "bundle": "untracked/T322-wire-orphaned-controls.md",
+    "set": "C",
+    "holds": [],
+    "needs": ["T317"],
+    "caps": [],
+    "added": "2026-08-03T18:17:36Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
   "T203": {
@@ -1912,7 +1933,7 @@
   }
 ,
   "_sys": {
-    "next_id": 322,
+    "next_id": 323,
     "directive_next": 21
   }
 }
