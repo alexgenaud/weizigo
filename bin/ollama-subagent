@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""Dispatch an Ollama worker.  bin/ollama-subagent <T-ID|path.md> --model <tag> [--wall=N] [--dry-run]
+
+  --model <tag>   Ollama model tag, e.g. glm-5.2:cloud (also --model=<tag>)
+  --wall=N        wall-clock guard, default 1800s (also --wall N)
+  --dry-run       print the command, spawn nothing
+
+bin/ollama-subagent applies the bin/subagent depth-cap contract to the Ollama
+path (T321, 2026-08-03). It stamps WEIZIGO_AGENT_DEPTH on the child and refuses
+at the worker depth, so an Ollama leaf cannot recurse further through this
+tool. It is a safety mechanism, NOT a security boundary — `ollama launch pi`
+remains directly callable and unguarded (see docs/infra/agents/subdelegation.md
+§Reach matrix and §Depth-enforcement ruling), and DEEPSEEK_API_KEY is NOT
+stripped, so an Ollama leaf can still dispatch DeepSeek via bin/subagent when
+depth < 2 (path 2, demonstrated by a real dispatch — see the reach matrix).
+Closing that path is option (c), held for the human.
+
+Children run at depth 2 and cannot dispatch further via bin/ollama-subagent or
+bin/subagent. Managers are launched by the human. The depth cap stops
+accidental recursion; it is not a security boundary — see subdelegation.md.
+
+The credential (if any) travels by environment, never by argv: tools/runner
+echoes argv and the heartbeat writer records it, so an --api-key flag would
+leak the key into logs and evidence on every dispatch.
+"""
+import glob, os, re, subprocess, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
+WORKER_DEPTH = 2
+
+
+def parse(argv):
+    """Split argv into (positional args, flags). --model/--wall accept both
+    --model=X and --model X (space) forms; --dry-run is a bare flag."""
+    args, flags, i = [], [], 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("--model", "--wall") and i + 1 < len(argv) and not argv[i + 1].startswith("--"):
+            flags.append(f"{a}={argv[i + 1]}")
+            i += 2
+            continue
+        if a.startswith("--"):
+            flags.append(a)
+            i += 1
+            continue
+        args.append(a)
+        i += 1
+    return args, flags
+
+
+def main(argv):
+    args, flags = parse(argv)
+    unknown = [f for f in flags
+               if f not in ("--dry-run",)
+               and not f.startswith("--model=")
+               and not f.startswith("--wall=")]
+    if len(args) != 1 or unknown:
+        sys.exit((f"ollama-subagent: unknown flag(s) {' '.join(unknown)}\n" if unknown else "")
+                 + __doc__)
+
+    try:  # fail closed: an unreadable depth is treated as a worker
+        depth = int(os.environ.get(DEPTH_VAR, "1"))
+    except ValueError:
+        depth = WORKER_DEPTH
+    if depth >= WORKER_DEPTH:
+        sys.exit(f"ollama-subagent: REFUSED — you are a worker (depth {depth}). Workers do "
+                 f"not dispatch.\nWrite your output to a file or return it to your "
+                 f"manager, then stop.\nIf the task genuinely needs delegating, say "
+                 f"so and let your manager decide.")
+
+    model = next((f.split("=", 1)[1] for f in flags if f.startswith("--model=")), None)
+    if not model:
+        sys.exit("ollama-subagent: name exactly one model — --model <ollama-tag>")
+
+    target, wall = args[0], next(
+        (f.split("=", 1)[1] for f in flags if f.startswith("--wall=")), "1800")
+
+    task_id = None
+    if re.fullmatch(r"T\d+", target):
+        hits = glob.glob(os.path.join(ROOT, "untracked", f"{target}-*.md"))
+        if len(hits) != 1:
+            sys.exit(f"ollama-subagent: expected one bundle for {target}, found {len(hits)}")
+        bundle = os.path.relpath(hits[0], ROOT)
+        task_id = target
+        slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
+        prompt = (f"Follow {bundle}\n\n"
+                  f"FIRST: bin/managent claim {target} --agent {model}\n"
+                  f"You are a worker. The brief carries everything.\n\n"
+                  f"WHEN DONE, before any other output:\n"
+                  f"  1. Write findings/{target}-{slug}.json per findings/README.md\n"
+                  f"  2. bin/managent done {target} --agent {model} --status <pass|pass-with-findings|"
+                  f"fail-found|blocked|abandoned> --note <one line>\n")
+    elif os.path.isfile(target):
+        prompt = f"Follow {os.path.relpath(os.path.abspath(target), ROOT)}\n"
+    else:
+        sys.exit(f"ollama-subagent: no such task or file: {target}")
+
+    # Credential by environment, never argv (see docstring).
+    env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
+    if task_id:
+        env["MANAGENT_TASK_ID"] = task_id
+
+    # `ollama launch pi --model <tag> -y -- <pi args>`: the integration name
+    # implies pi, so the args after `--` go straight to pi (T320 evidence).
+    cmd = ["tools/runner", "--max-wall", wall, "--",
+           "ollama", "launch", "pi", "--model", model, "-y", "--", "-p", prompt]
+    if "--dry-run" in flags:
+        print(f"{DEPTH_VAR}={WORKER_DEPTH}")
+        print(" ".join(repr(c) if "\n" in c else c for c in cmd))
+        return 0
+    return subprocess.call(cmd, cwd=ROOT, env=env)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -6,6 +6,9 @@ bin/subagent <T-ID> --dsflash       # DeepSeek-v4-Flash worker
 bin/subagent <T-ID> --dspro --wall=900     # wall guard, default 1800s
 bin/subagent <T-ID> --dspro --dry-run      # print the command, spawn nothing
 bin/subagent <path.md> --dsflash    # bare dispatch, no kanban lifecycle
+
+bin/ollama-subagent <T-ID> --model <tag>            # Ollama worker (guarded path)
+bin/ollama-subagent <T-ID> --model glm-5.2:cloud --dry-run
 ```
 
 No default model — name one. Max two concurrent; `&` them and `wait`.
@@ -13,6 +16,11 @@ No default model — name one. Max two concurrent; `&` them and `wait`.
 `bin/subagent` dispatches DeepSeek only — by construction, it hardcodes the two
 DeepSeek models and requires `DEEPSEEK_API_KEY`. Claude seats use the Claude Code
 harness and do not need this tool.
+
+`bin/ollama-subagent` dispatches an Ollama model via `ollama launch pi` with
+the same depth-cap contract as `bin/subagent` (T321, 2026-08-03). It is the
+guarded path for Ollama delegation; `ollama launch pi` itself remains directly
+callable and unguarded — see §Reach matrix and §Depth-enforcement ruling below.
 
 **However, workers can reach beyond DeepSeek through other paths** (T320,
 2026-08-03). See §Reach matrix below.
@@ -38,16 +46,35 @@ argv and the heartbeat writer records it, so an `--api-key` flag leaks the key
 into logs and evidence on every dispatch. Observed and redacted 2026-08-02;
 never committed.
 
-## Reach matrix (T320, 2026-08-03)
+## Reach matrix (T320, corrected T321, 2026-08-03)
 
-Who can dispatch what, with the mechanism and the depth-cap behaviour:
+Who can dispatch what, with the mechanism and the depth-cap behaviour. Rows
+are labelled by **depth** (the gate), not by model name: a DeepSeek/pi worker
+at depth 1 (a manager) can dispatch DeepSeek/pi; only a worker at depth ≥ 2
+is refused. (T320 labelled rows by model name and was corrected — T321.)
 
 | Dispatcher | → DeepSeek | → Ollama | → Claude |
 |---|---|---|---|
-| **Human console** | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
-| **deepseek-v4-pro** (depth 2) | REFUSED — `bin/subagent` depth cap | WORKS — `ollama launch pi`, depth travels via env | NOT ATTEMPTED (forbidden) |
-| **Ollama models** (depth unset) | WORKS — `bin/subagent` (DEEPSEEK_API_KEY is available) | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
-| **Ollama models** (depth 2) | REFUSED — `bin/subagent` depth cap | WORKS — `ollama launch pi`, **no depth cap enforcement** | NOT ATTEMPTED (forbidden) |
+| **Human console** (depth 1) | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+| **Any worker** (depth 2) | REFUSED — `bin/subagent` depth cap (`WEIZIGO_AGENT_DEPTH ≥ 2`) | WORKS — `ollama launch pi`, depth travels via env, no check | NOT ATTEMPTED (forbidden) |
+| **Any worker** (depth unset → 1) | WORKS — `bin/subagent` (`DEEPSEEK_API_KEY` available; **confirmed by a real dispatch**, see below) | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+
+**Two T320 cells were mis-attributed (corrected T321):**
+- T320's `deepseek-v4-pro (d=2) → DeepSeek REFUSED` cell ran `bin/subagent
+  --dry-run` with **no task argument** — it exited 1 for missing arguments,
+  not because of the depth cap. The depth-cap refusal itself was demonstrated
+  on the `glm-5.2 (d=2) → DeepSeek` cell (proper args, `REFUSED`, exit 1).
+- Row labels named the model; the gate is depth. A DeepSeek/pi worker at
+  depth 1 can dispatch DeepSeek/pi.
+
+**Ollama → DeepSeek is real, not hypothetical (T321, 2026-08-03).** T320's
+Ollama→DeepSeek cell was a `--dry-run` only — it proved the depth check did
+not refuse, not that a DeepSeek child ran. A real (non-dry-run)
+`bin/subagent --dspro` dispatch from a `glm-5.2:cloud` console at depth unset
+was run on a throwaway bundle: the `deepseek-v4-pro` child ran, wrote a marker
+file, printed `PROBE-OK`, and exited 0 in 5.8 s. `DEEPSEEK_API_KEY` was present
+(len 35). So an Ollama leaf **can** dispatch a real DeepSeek worker; path 2
+is demonstrated, not speculative.
 
 Key implications:
 - **`ollama launch pi` has no depth cap.** A worker at any depth can launch
@@ -60,6 +87,54 @@ Key implications:
 - **The depth stamp travels through `ollama launch pi`** via standard env
   inheritance, without auto-increment. A depth-2 worker's Ollama child is also
   depth 2.
+
+## Depth-enforcement ruling (T321, 2026-08-03)
+
+The depth cap guards exactly **one** of the four dispatcher→target edges —
+DeepSeek→DeepSeek via `bin/subagent`. The other three paths run free (T320):
+
+1. `ollama launch pi` performs no depth check and no increment while the env
+   value is inherited, so Ollama→Ollama is unbounded at any depth.
+2. `DEEPSEEK_API_KEY` is present inside Ollama workers, so an Ollama leaf can
+   dispatch DeepSeek whenever depth < 2. "Ollama for leaf rows only" is
+   convention, not enforcement — and the path is **demonstrated by a real
+   dispatch** (see the reach matrix), not merely dry-run possible.
+3. A depth-2 worker's Ollama child is also depth 2 — the stamp travels without
+   incrementing.
+
+This is the doctrine's own caveat made concrete, not a contradiction of it: the
+depth cap is a safety mechanism, not a security boundary. The decision is about
+posture and cost, so the human rules. Option costs, one line each:
+
+- **(a) Accept convention** — zero code; the risk is an accidental recursion
+  burning cloud budget. Honest and cheap.
+- **(b) Wrap the Ollama launch** — `bin/ollama-subagent` stamps `WEIZIGO_AGENT_DEPTH`,
+  increments it, and refuses at the worker depth; a convention backed by a tool,
+  not a boundary, and it only helps if used instead of `ollama launch pi`.
+- **(c) Strip `DEEPSEEK_API_KEY` from Ollama children** — the only option that
+  truly enforces leaf-only (closes the now-demonstrated path 2); it breaks any
+  legitimate Ollama→DeepSeek use. No such use is documented (Ollama models run as
+  leaf workers; DeepSeek is dispatched from the human console or a manager via
+  `bin/subagent`), and the throwaway probe found none either.
+
+**Ruling: (b), with (a)'s honest documentation.** `bin/ollama-subagent` mirrors
+the `bin/subagent` contract for the Ollama path: it refuses at the worker depth
+(`WEIZIGO_AGENT_DEPTH >= 2`), and stamps the child at depth 2. It is a safety
+mechanism, not a security boundary — `ollama launch pi` remains directly callable
+and unguarded, so the three paths above stay live and are documented as such.
+**(c) is NOT moot** — the real dispatch proved an Ollama leaf can spend DeepSeek
+budget — but it changes what existing consoles can do, so it is **held for the
+human's explicit word** and not implemented here. Note (b) closes paths 1 and 3
+(when used) but does **not** close path 2; only (c) does.
+
+## Attribution never asks the model (T321, 2026-08-03)
+
+T320 reported 0/4 self-identification mismatches, but it probed the `PI_MODEL`
+env var — a different question from "what model do you believe you are."
+Asked the latter, two of two workers were wrong (a `deepseek-v4-pro` worker said
+`claude-opus-4-5`; a `glm-5.2` child said `GPT-5`), and neither string existed on
+disk beforehand. So: **attribution reads `PI_MODEL` or comes from the
+dispatcher; never from the model's self-report.**
 
 ## When to use
 

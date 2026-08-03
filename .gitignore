@@ -30,6 +30,7 @@ bin/*
 # made it invisible to git status and one `git clean -x` from gone (T211-A).
 !bin/argus
 !bin/subagent
+!bin/ollama-subagent
 
 # Durable evidence store (roadmap-2026-07-28 §4 P1): a claim may be marked
 # PROVEN only if its probe source and output are committed here. Must stay

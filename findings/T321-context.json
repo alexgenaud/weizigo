@@ -1,0 +1,8 @@
+{
+  "task_id": "T321",
+  "date": "2026-08-03",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump for T321. One real (non-dry-run) DeepSeek dispatch was run on a throwaway bare-path bundle (untracked/throwaway-probe.md, removed after) to establish whether an Ollama console can actually dispatch DeepSeek — it can (deepseek-v4-pro child ran, wrote a marker, printed PROBE-OK, exit 0, 5.8 s). No real task rows claimed or closed by the probe (the throwaway was a bare-path dispatch, no kanban lifecycle). T321 itself is a real row, claimed/done via managent. Detailed findings in findings/T321-depth-enforcement.json."
+}
