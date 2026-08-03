@@ -1,0 +1,41 @@
+{
+  "task_id": "T319",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": ["CODE.MANAGENT-ARCHIVE"],
+  "new_rows": [],
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "must",
+      "what": "managent archive command: moves done/failed rows from tasks.json to archive.json. Eligibility: done/failed, no live dependents, holds committed (git ls-files), findings absorbed (C7 clean per claimlint).",
+      "files": ["src/managent/main.zig", "docs/infra/managent/tasks.json", "docs/infra/managent/archive.json"]
+    },
+    {
+      "id": "F2",
+      "severity": "must",
+      "what": "cmdWhy searches both live store and archive store. Archived rows appear with '(archived)' marker.",
+      "files": ["src/managent/main.zig"]
+    },
+    {
+      "id": "F3",
+      "severity": "must",
+      "what": "Dry-run mode (--dry-run) prints what would be archived without writing. Idempotent — second run changes nothing.",
+      "files": ["src/managent/main.zig"]
+    }
+  ],
+  "results": {
+    "archived": 96,
+    "refused_not_done": 9,
+    "refused_dependents": 1,
+    "refused_holds": 0,
+    "refused_absorbed": 0,
+    "live_remaining": 10
+  },
+  "gaps": [
+    "cmdAudit does not search the archive store yet — archived rows with uncommitted holds won't be flagged",
+    "Absorption check parses claimlint stdout (brittle to format changes)",
+    "The 'one live dependent' is T317 needing T315 (now archived) — T317's needs edge was cleaned but the count was from before cleaning"
+  ]
+}

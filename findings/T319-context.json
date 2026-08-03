@@ -1,0 +1,8 @@
+{
+  "task_id": "T319",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T319 — kanban archive. Implemented managent archive command.\n\nWHAT I READ: T319 brief, main.zig, spec.md, claimlint C7 output format.\n\nWHAT I DID: Added cmdArchive function with --dry-run mode. Eligibility: status done/failed, no live dependents, holds committed (git ls-files), C7 absorption check (parses claimlint output). Moves rows to archive.json, cleans needs edges in remaining tasks. Updated cmdWhy to search both live and archive stores. Added help text.\n\nRESULT: 96 rows archived, 10 live remaining. Archive store at docs/infra/managent/archive.json (new, tracked). Both stores committed together.\n\nWHAT I COULD NOT ESTABLISH: Whether cmdAudit should also search the archive — it doesn't, and archived rows with stale holds won't be flagged. The absorption check parses claimlint stdout which is brittle.\n\nWHAT I NOTICED: The archive is a separate JSON file, not a git-rewrite. Both files must be committed atomically. The 'why' command correctly shows archived rows with an '(archived)' marker.\n\nEVIDENCE: zig build test exit 0, smoke PASS, dry-run showed 96 archivable, real run archived 96, second run idempotent (0 archivable)."
+}

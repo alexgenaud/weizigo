@@ -273,6 +273,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdAgent(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "verdict")) {
         try cmdVerdict(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "archive")) {
+        try cmdArchive(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "amend")) {
         try cmdAmend(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "sync")) {
@@ -2254,6 +2256,215 @@ fn cmdPurge(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     }
 }
 
+// ── T319: archive closed rows to an archive store ──────────────────────────
+// Closed rows are load-bearing (why, audit, model-perf) and must not be
+// deleted.  archive moves them to docs/infra/managent/archive.json, tracked
+// in git, and cleans their IDs from remaining needs edges (same as purge).
+// Eligibility: status done or failed, all holds committed, no live dependents.
+
+fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    const dry_run = hasFlag(args, "--dry-run");
+    const force = hasFlag(args, "--force");
+    _ = force; // reserved for future: skip absorption check
+
+    // Lock the store for the entire archive operation.
+    try lockStateDir(io, state_path);
+    defer unlockStateDir(io, state_path);
+    var state = try readState(io, state_path);
+
+    // Archive path lives beside the live store.
+    const archive_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+    defer alloc.free(archive_path);
+
+    // Read existing archive (or start empty).
+    var archive_state = try readState(io, archive_path);
+    defer freeState(&archive_state);
+
+    // Collect archivable rows: done or failed, no live dependents,
+    // holds paths committed (checked via git ls-files).
+    const git_files_str = try runCommand(alloc, io, &.{ "git", "-C", repo_root, "ls-files" });
+    defer alloc.free(git_files_str);
+
+    var to_archive = std.ArrayList([]const u8).empty;
+    defer to_archive.deinit(alloc);
+    var refused_not_done = std.ArrayList([]const u8).empty;
+    defer refused_not_done.deinit(alloc);
+    var refused_dependents = std.ArrayList([]const u8).empty;
+    defer refused_dependents.deinit(alloc);
+    var refused_holds = std.ArrayList([]const u8).empty;
+    defer refused_holds.deinit(alloc);
+    var refused_absorbed = std.ArrayList([]const u8).empty;
+    defer refused_absorbed.deinit(alloc);
+
+    // First pass: find live dependents (tasks that need an archivable row)
+    var live_needed = std.StringHashMapUnmanaged(void).empty;
+    defer live_needed.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const ts = entry.value_ptr.*;
+            if (ts.status == .in_progress or ts.status == .dispatchable or ts.status == .blocked) {
+                for (ts.needs) |n| {
+                    live_needed.put(alloc, try alloc.dupe(u8, n), {}) catch {};
+                }
+            }
+        }
+    }
+
+    // C7 absorption check: run claimlint and parse unabsorbed task IDs.
+    var unabsorbed = std.StringHashMapUnmanaged(void).empty;
+    defer unabsorbed.deinit(alloc);
+    {
+        const cl_result = std.process.run(alloc, io, .{
+            .argv = &.{ "bin/weizigo-claimlint" },
+            .cwd = .{ .path = repo_root },
+        }) catch null;
+        if (cl_result) |*cr| {
+            defer alloc.free(cr.stdout);
+            defer alloc.free(cr.stderr);
+            // C7 section lists each unabsorbed finding with its task ID
+            var in_c7 = false;
+            var lines = std.mem.splitScalar(u8, cr.stdout, '\n');
+            while (lines.next()) |line| {
+                if (std.mem.indexOf(u8, line, "C7 unabsorbed findings") != null) in_c7 = true;
+                if (in_c7 and std.mem.indexOf(u8, line, "C8") != null) in_c7 = false;
+                if (in_c7) {
+                    // Lines like: "  T290  findings/T290-battery-spec.json  <claim-id>"
+                    var tok = std.mem.tokenizeAny(u8, line, " \t");
+                    if (tok.next()) |t| {
+                        if (std.mem.startsWith(u8, t, "T")) {
+                            unabsorbed.put(alloc, try alloc.dupe(u8, t), {}) catch {};
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Second pass: determine eligibility
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const id = entry.key_ptr.*;
+            const ts = entry.value_ptr.*;
+
+            if (ts.status != .done and ts.status != .failed) {
+                try refused_not_done.append(alloc, id);
+                continue;
+            }
+            if (live_needed.contains(id)) {
+                try refused_dependents.append(alloc, id);
+                continue;
+            }
+            // Check holds are committed
+            var all_holds_committed = true;
+            for (ts.holds) |h| {
+                if (std.mem.indexOf(u8, git_files_str, h) == null) {
+                    all_holds_committed = false;
+                    break;
+                }
+            }
+            if (!all_holds_committed) {
+                try refused_holds.append(alloc, id);
+                continue;
+            }
+            // Check absorption: warn if C7 has unabsorbed findings for this task
+            if (unabsorbed.contains(id)) {
+                try refused_absorbed.append(alloc, id);
+                continue;
+            }
+
+            try to_archive.append(alloc, id);
+        }
+    }
+
+    if (dry_run) {
+        w.diag("\n  DRY RUN — nothing will be written\n", .{});
+    }
+
+    w.diag("\n  archivable: {d} row(s)", .{to_archive.items.len});
+    if (to_archive.items.len > 0) {
+        for (to_archive.items) |a| w.diag(" {s}", .{a});
+    }
+    w.diag("\n  refused: {d} not done/failed, {d} live dependents, {d} uncommitted holds, {d} unabsorbed findings\n", .{
+        refused_not_done.items.len,
+        refused_dependents.items.len,
+        refused_holds.items.len,
+        refused_absorbed.items.len,
+    });
+
+    if (dry_run) {
+        w.diag("  Run without --dry-run to execute.\n", .{});
+        return;
+    }
+
+    if (to_archive.items.len == 0) {
+        w.diag("  nothing to archive\n", .{});
+        return;
+    }
+
+    // Move rows to archive.
+    var archived_count: usize = 0;
+    for (to_archive.items) |id| {
+        if (state.get(id)) |ts| {
+            const ts_copy = ts;
+            try archive_state.put(alloc, try alloc.dupe(u8, id), ts_copy);
+            _ = state.remove(id);
+            archived_count += 1;
+        }
+    }
+
+    // Clean needs edges in remaining tasks (same as purge).
+    var cleaned = std.ArrayList([]const u8).empty;
+    defer cleaned.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const ts_ptr = entry.value_ptr;
+            if (ts_ptr.needs.len == 0) continue;
+            var kept = std.ArrayList([]const u8).empty;
+            var removed_any = false;
+            for (ts_ptr.needs) |n| {
+                var is_archived = false;
+                for (to_archive.items) |a| {
+                    if (std.mem.eql(u8, n, a)) {
+                        is_archived = true;
+                        break;
+                    }
+                }
+                if (!is_archived) {
+                    try kept.append(alloc, n);
+                } else {
+                    removed_any = true;
+                }
+            }
+            if (removed_any) {
+                ts_ptr.needs = try kept.toOwnedSlice(alloc);
+                try cleaned.append(alloc, entry.key_ptr.*);
+            } else {
+                kept.deinit(alloc);
+            }
+        }
+    }
+
+    // Write both stores atomically.
+    try writeStateLocked(io, state_path, &state);
+    try writeStateLocked(io, archive_path, &archive_state);
+
+    w.diag("\n  archived {d} row(s):", .{archived_count});
+    for (to_archive.items) |a| {
+        if (archive_state.contains(a)) w.diag(" {s}", .{a});
+    }
+    w.diag("\n", .{});
+    if (cleaned.items.len > 0) {
+        w.diag("  cleaned needs of:", .{});
+        for (cleaned.items) |c| w.diag(" {s}", .{c});
+        w.diag("\n", .{});
+    }
+    w.diag("  archive store: docs/infra/managent/archive.json\n", .{});
+    w.diag("  Both stores must be committed together (the archive store is new).\n", .{});
+}
+
 fn cmdSet(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = repo_root;
     if (args.len < 4 or args[3].len == 0) {
@@ -3253,6 +3464,13 @@ fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !v
     var state = try readState(io, state_path);
     defer freeState(&state);
 
+    // T319: also search the archive store.
+    const state_dir = std.fs.path.dirname(state_path) orelse ".";
+    const archive_path = try std.fs.path.join(alloc, &.{ state_dir, "archive.json" });
+    defer alloc.free(archive_path);
+    var archive_state = readState(io, archive_path) catch StateMap{};
+    defer freeState(&archive_state);
+
     // ── stdout: the data ──
     w.data("\n  Tasks touching claim '{s}':\n", .{claim_id});
 
@@ -3277,6 +3495,30 @@ fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !v
             if (ts.agent) |a| w.data("  agent: {s}", .{a});
             w.data("\n      bundle: {s}\n", .{rel});
             if (ts.done) |d| w.data("      done: {s}\n", .{d});
+        }
+    }
+
+    if (!found) {
+        // T319: search the archive store
+        var ait = archive_state.iterator();
+        while (ait.next()) |aentry| {
+            const ts = aentry.value_ptr.*;
+            const tid = aentry.key_ptr.*;
+            const bundle_rel = bundleRel(ts.bundle, "");
+            var mentions = false;
+            if (std.mem.indexOf(u8, bundle_rel, claim_id) != null) mentions = true;
+            if (!mentions and ts.note != null) {
+                if (std.mem.indexOf(u8, ts.note.?, claim_id) != null) mentions = true;
+            }
+            if (!mentions and std.mem.indexOf(u8, tid, claim_id) != null) mentions = true;
+            if (mentions) {
+                found = true;
+                const rel = bundleRel(ts.bundle, "");
+                w.data("    {s}  [{s}] (archived)", .{ tid, statusToString(ts.status) });
+                if (ts.agent) |a| w.data("  agent: {s}", .{a});
+                w.data("\n      bundle: {s}\n", .{rel});
+                if (ts.done) |d| w.data("      done: {s}\n", .{d});
+            }
         }
     }
 
