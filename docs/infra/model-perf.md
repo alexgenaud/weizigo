@@ -47,17 +47,20 @@ models were wrong; a self-reported window is the same class of evidence).
 
 | model | harness | context window | source |
 |---|---|---|---|
-| `deepseek-v4-pro` | pi | 1.0 M | recorded below ("New Boss … 1.0M"), 2026-07-3x |
+| `deepseek-v4-pro` | pi | 1 M | human ruling 2026-08-03; matches "New Boss … 1.0M" below |
 | `deepseek-v4-flash` | pi | **TBD** | — |
-| `glm-5.2` | Ollama cloud / pi | 950 k | recorded above; ~300 k observed used, no compaction |
-| `minimax-m3` | Ollama cloud / pi | **TBD** | — |
-| `kimi-k2.7` | Ollama cloud / pi | ~556 k | recorded above |
+| `glm-5.2` | pi | 1 M | human ruling 2026-08-03 — **supersedes the 950 k in the prose entries above/below** |
+| `minimax-m3` | pi | 524 k | human ruling 2026-08-03 |
+| `kimi-k2.7` | pi | 262 k | human ruling 2026-08-03 — **supersedes the ~556 k prose entry** |
 | kimi-k3 | Ollama / pi | 128 k | EXP-11 entry below |
-| `claude-opus-5` | Claude Code | 1 M | evidenced: 2026-08-03 Orcha handover executed at 64% of a 1 M window |
-| `claude-fable-5` | Claude Code | **TBD — read `/context` in-session** | not yet recorded |
+| `claude-opus-5` | Claude Code | 1 M | human ruling 2026-08-03; matches the handover-at-64%-of-1M evidence |
+| `claude-fable-5` | Claude Code | **200 k** | human ruling 2026-08-03 |
 
-Fill a TBD only from the harness (Claude Code `/context`; Ollama `num_ctx` /
-model card of the exact `:cloud` tag; pi harness config), and date it.
+This table is canonical for windows; older per-model prose recording different
+numbers (glm 950 k, kimi-k2.7 ~556 k) is superseded, left in place as history.
+Fill a TBD only from the harness config or a human ruling, and date it.
+Operational consequence worth knowing: **Fable's window is 5× smaller than
+Opus's** — Fable seats need handovers ~5× as often on the same workload.
 
 Small-n, single-session anecdotes per model. Strengths/weaknesses only — speed
 and cost are not differentiators here. Add a dated entry each session.
