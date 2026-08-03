@@ -1133,6 +1133,27 @@
     "acceptance": "zig build test",
     "skip_acceptance_reason": null
   },
+  "T335": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T335-g3b-build-sprint-console.md",
+    "set": "A",
+    "holds": [],
+    "needs": ["T336"],
+    "caps": [],
+    "added": "2026-08-03T22:56:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
   "T262": {
     "status": "done",
     "agent": "T262",
@@ -1763,6 +1784,27 @@
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint binary is dirty due to uncommitted kanban files (docs/infra/managent/tasks.json, directives.jsonl); claimlint output is at floor: rows=309, C1a=10, C2=14, C6=0, calibration PASS"
   },
+  "T336": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T336-fleet-hardening-sprint-console.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-03T22:56:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null
+  },
   "T247": {
     "status": "done",
     "agent": "orcha",
@@ -2185,7 +2227,7 @@
   }
 ,
   "_sys": {
-    "next_id": 335,
+    "next_id": 337,
     "directive_next": 21
   }
 }

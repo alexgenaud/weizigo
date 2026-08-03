@@ -74,6 +74,18 @@ known token count (the evidence class behind the `claude-opus-5` row), or the
 harness config itself. Until then, plan Fable work against 200 k; a seat that turns
 out to have more window loses nothing by being handed over early.
 
+**Operating rule for `claude-fable-5` (human directive, 2026-08-04) — this is the
+binding one, independent of what the window turns out to be.** Hand a Fable seat over
+**before 90% of 200 k**, and use Fable **sparingly** in any case. The stated reason is
+that a different billing regime is believed to apply below 200 k versus 200 k–1 M.
+That belief is **not officially confirmed** and is recorded here as the human's
+operating assumption, not as fact — but the rule stands regardless of whether the
+window is 200 k or 1 M, because the cost boundary and the window are different
+questions. Practical consequence for dispatch: Fable is for work whose *value per
+token* is highest — deep holistic review, gate-holder verification of a fleet-critical
+control — never for cheap audits (kimi out-performed document review twice on
+2026-08-03) and never for long-running orchestration.
+
 Small-n, single-session anecdotes per model. Strengths/weaknesses only — speed
 and cost are not differentiators here. Add a dated entry each session.
 
