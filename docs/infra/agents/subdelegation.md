@@ -68,13 +68,15 @@ is refused. (T320 labelled rows by model name and was corrected — T321.)
   depth 1 can dispatch DeepSeek/pi.
 
 **Ollama → DeepSeek is real, not hypothetical (T321, 2026-08-03).** T320's
-Ollama→DeepSeek cell was a `--dry-run` only — it proved the depth check did
-not refuse, not that a DeepSeek child ran. A real (non-dry-run)
-`bin/subagent --dspro` dispatch from a `glm-5.2:cloud` console at depth unset
-was run on a throwaway bundle: the `deepseek-v4-pro` child ran, wrote a marker
-file, printed `PROBE-OK`, and exited 0 in 5.8 s. `DEEPSEEK_API_KEY` was present
-(len 35). So an Ollama leaf **can** dispatch a real DeepSeek worker; path 2
-is demonstrated, not speculative.
+Ollama→DeepSeek cell was a `--dry-run` only — `--dry-run` returns before the
+subprocess call, so it proved the depth check passed and `DEEPSEEK_API_KEY` is
+present, not that a DeepSeek child ran. A real (non-dry-run)
+`bin/subagent untracked/T321-probe-capital.md --dspro` dispatch (a file target,
+so no kanban row is touched) was run from a `glm-5.2:cloud` console at depth
+unset: the `deepseek-v4-pro` child replied exactly `Paris` and exited 0 in 4.5 s.
+`DEEPSEEK_API_KEY` was present (len 35). The path works end-to-end; an Ollama leaf
+**can** dispatch a real DeepSeek worker, and path 2 is demonstrated, not
+speculative.
 
 Key implications:
 - **`ollama launch pi` has no depth cap.** A worker at any depth can launch
