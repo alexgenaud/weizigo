@@ -103,3 +103,18 @@ critical finding came from a header parse after two document reviews missed the 
 defect; round 2's measurements confirmed the rebuild. `sprint.md:93`/`:100` again:
 instruments that touch the artifact find things, and document review finds the stale
 cross-references — which is also real work, since N1 was one.
+
+### Postscript — N2's open question, resolved by measurement (same session)
+
+The disposition above left one thing open: whether `managent`'s hold conflict fires
+against *any* row declaring a path or only a live one. Read rather than assumed:
+`holdsConflict` (`src/managent/main.zig:976-991`) `continue`s past every row whose
+`status != .in_progress`, and it is called from `claim` (`:1268`, `:1315`) — never from
+`add`. Two registered rows may both declare a file; the refusal fires only while one is
+in progress.
+
+That **inverts** the fix: KEY-4x4's `holds=src/differential.zig` is restored (plan Rev 5),
+because declaring it is what mechanizes one-writer-at-a-time, while the no-hold version
+this gate-holder wrote in Rev 4 would have enforced nothing at all. The finding N2 raised
+was real; the first remedy for it was wrong, and cost nothing to correct because the
+question was asked of the source instead of settled by argument.
