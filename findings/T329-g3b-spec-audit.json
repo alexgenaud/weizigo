@@ -1,0 +1,8 @@
+{
+  "task_id": "T329",
+  "date": "2026-08-03",
+  "model": "kimi-k2.7-code:cloud",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Spec audit gate for G3b value-correctness pass0 SPEC (Revision 1, commit 2d30b56). Verdict: PASS-WITH-EDITS. Ten findings: two critical/must (F2 I5 calibration impossible at 2x2, F3 R8/I4/I5 runnable-now inconsistency), four must (F1 carry-forward count, F4 demotion misstates prior status, F5 undefined deepest-N, F6 I4 scope mismatch), two should (F7 misattributed From quote, F8 R8 listed as both deliverable and check), two could (F9 overclaim on known move-relation defect, F10 H4 promotion ambiguity). Full report at docs/epic-01-markovian/sprints/g3b-value-correctness/archive/spec-audit-r1.md."
+}
