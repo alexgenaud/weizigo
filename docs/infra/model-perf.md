@@ -54,13 +54,25 @@ models were wrong; a self-reported window is the same class of evidence).
 | `kimi-k2.7` | pi | 262 k | human ruling 2026-08-03 — **supersedes the ~556 k prose entry** |
 | kimi-k3 | Ollama / pi | 128 k | EXP-11 entry below |
 | `claude-opus-5` | Claude Code | 1 M | human ruling 2026-08-03; matches the handover-at-64%-of-1M evidence |
-| `claude-fable-5` | Claude Code | **200 k** | human ruling 2026-08-03 |
+| `claude-fable-5` | Claude Code | **200 k** | human ruling 2026-08-03 — **stands**; see the anomaly note below |
 
 This table is canonical for windows; older per-model prose recording different
 numbers (glm 950 k, kimi-k2.7 ~556 k) is superseded, left in place as history.
 Fill a TBD only from the harness config or a human ruling, and date it.
 Operational consequence worth knowing: **Fable's window is 5× smaller than
 Opus's** — Fable seats need handovers ~5× as often on the same workload.
+
+**Anomaly, `claude-fable-5`, 2026-08-04 (logged, not ruled into the table).** The
+Fable Orcha seat reported its own usage indicator jumping mid-session from
+96%-of-200 k to 20.4%-of-1 M. Human ruling 2026-08-04: **the row stays at 200 k**
+and this observation is recorded as unexplained pending an independent
+measurement. The reason is the rule two paragraphs up: a percentage a seat reads
+off its own status line is one report from the subject of the question, and the
+seat that produced it is gone — `feedback-no-cross-session-continuity` applies, so
+nothing further can be asked of it. What would move the row: a handover taken at a
+known token count (the evidence class behind the `claude-opus-5` row), or the
+harness config itself. Until then, plan Fable work against 200 k; a seat that turns
+out to have more window loses nothing by being handed over early.
 
 Small-n, single-session anecdotes per model. Strengths/weaknesses only — speed
 and cost are not differentiators here. Add a dated entry each session.
