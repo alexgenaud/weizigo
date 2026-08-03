@@ -174,6 +174,16 @@ pub fn build(b: *std.Build) void {
     precommit_regression.cwd = b.path(".");
     test_step.dependOn(&precommit_regression.step);
 
+    // ── runner reporting regression controls (T311) ──────────────────
+    // Null + seeded controls for the two defects T311 fixed:
+    //   1. darwin walker noise (linux /proc probe on every poll)
+    //   2. prepend_releasefast optimize-flag detection (exact token
+    //      equality missed -Doptimize=<mode>)
+    // Plus a guard-bite control — the RSS cap still kills.
+    const runner_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-reporting.sh" });
+    runner_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_regression.step);
+
     // ── resume-surface controls (T286) ───────────────────────────────
     // Null control (empty kanban + clean tree says NOTHING IN FLIGHT) and
     // seeded control (in_progress task + held file both appear). SKIPs

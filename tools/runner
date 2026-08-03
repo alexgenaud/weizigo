@@ -258,12 +258,26 @@ def prepend_releasefast(argv):
       zig build / build install   -> -Doptimize=ReleaseFast (project option)
       zig build-exe / build-lib / build-obj / test / run / install
                                    -> -O ReleaseFast (command-level option)
+
+    T311 (2026-08-03): fix optimize-flag detection.  The old check
+    ``"-Doptimize" in argv`` uses exact token equality, which never matches
+    ``-Doptimize=ReleaseSafe`` (a single token with an embedded '=').
+    Now detects any argv element that *starts with* ``-Doptimize``, so a
+    caller who explicitly asks for ReleaseSafe or Debug gets it.
     """
     if not argv:
         return argv
     if Path(argv[0]).name != "zig":
         return argv
-    if "-O" in argv or "-Doptimize" in argv:
+    # Detect any existing optimize flag — an argv element that starts
+    # with -Doptimize (e.g. -Doptimize=ReleaseSafe) or is exactly -O.
+    # Exact token equality (the old check) fails for -Doptimize=<mode>
+    # because the token never equals the bare string "-Doptimize".
+    has_optimize = any(
+        arg == "-O" or arg.startswith("-Doptimize")
+        for arg in argv
+    )
+    if has_optimize:
         return argv
     if len(argv) < 2:
         return argv
@@ -380,6 +394,41 @@ def _descendant_pids_ps(root_pid):
         pids.add(pid)
         stack.extend(children.get(pid, []))
     return pids
+
+
+# ── platform detection (once at import) ──────────────────────────────
+
+def _detect_walker():
+    """Detect platform process-tree walker once at startup.
+
+    On Linux with /proc available, uses the fast /proc-based walker.
+    On all other platforms (macOS, BSD, containers without /proc),
+    falls back to `ps`.  Called once at module load; the result is
+    stored in _WALKER_FN / _WALKER_NAME for the lifetime of the run.
+    """
+    if sys.platform == 'linux' and os.path.isdir('/proc'):
+        return _descendant_pids_linux, 'linux /proc'
+    return _descendant_pids_ps, 'ps'
+
+_WALKER_FN, _WALKER_NAME = _detect_walker()
+
+
+# ── runner message dedup ─────────────────────────────────────────────
+
+_LAST_RUNNER_MSG = [None]  # mutable single-element list as closure cell
+
+def _runner_print(msg, file=None):
+    """Print a [runner] line, suppressing consecutive identical repeats.
+
+    Rate-limits per-poll messages that would otherwise drown the log
+    (the linux walker fallback on darwin, per-poll RSS logging, etc.).
+    Different messages always pass through; only identical back-to-back
+    repeats are suppressed.  The one-element-list cell avoids `global`.
+    """
+    if msg == _LAST_RUNNER_MSG[0]:
+        return
+    _LAST_RUNNER_MSG[0] = msg
+    print(msg, file=file or sys.stderr)
 
 
 # ── RSS reading ──────────────────────────────────────────────────────
@@ -551,6 +600,7 @@ def main():
         guards.append("progress-timeout off")
     guards.append(f"fallback: wall {args.max_wall}s cpu {args.max_cpu}s (silent children)")
     print(f"[runner] guards: {', '.join(guards)}, poll = {args.poll_ms} ms", file=sys.stderr)
+    print(f"[runner] process walker: {_WALKER_NAME} ({sys.platform})", file=sys.stderr)
 
     # ── WORKER-CHANNEL: directive check before launch ──────────────────────
     repo_root = _find_repo_root()
@@ -594,6 +644,7 @@ def main():
     progress_seen = False     # True if at least one [progress] line parsed
     progress_summary = None   # last progress summary for diagnostics
     stderr_buf = ""           # partial-line buffer
+    last_log_rss_time = 0.0   # throttle per-poll RSS logging (T311: once per 2 s)
 
     logs_done = False  # suppress finally-block logging if kill path already did it
 
@@ -636,12 +687,7 @@ def main():
                 pass  # stderr closed or select interrupted
 
             # ── RSS check (always on, no exemption) ────────────────────
-            try:
-                pids = _descendant_pids_linux(proc.pid)
-            except (FileNotFoundError, NotImplementedError, OSError) as e:
-                if args.log_rss:
-                    print(f"[runner] linux walker failed ({type(e).__name__}), falling back to ps", file=sys.stderr)
-                pids = _descendant_pids_ps(proc.pid)
+            pids = _WALKER_FN(proc.pid)
 
             total_cpu = 0.0
             over_rss = False
@@ -680,10 +726,13 @@ def main():
                     peak_cpu[pid] = max(peak_cpu.get(pid, 0.0), cpu)
 
                 if args.log_rss:
-                    extra = ""
-                    if not over_rss:
-                        extra = f", RSS {rss // (1024*1024)} MB"
-                    print(f"[runner] PID {pid}{extra}", file=sys.stderr)
+                    now = time.monotonic()
+                    if now - last_log_rss_time >= 2.0:
+                        last_log_rss_time = now
+                        extra = ""
+                        if not over_rss:
+                            extra = f", RSS {rss // (1024*1024)} MB"
+                        _runner_print(f"[runner] PID {pid}{extra}")
             sys.stderr.flush()
 
             # ── kill decisions ────────────────────────────────────────
