@@ -1,0 +1,56 @@
+[runner] argv = zig build --prefix /tmp/weizigo/probe --cache-dir /tmp/weizigo/probe-cache -Doptimize=ReleaseFast
+[runner] guards: rss 5120 MB, progress-timeout 600s (10:00), fallback: wall 1200s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+install
++- install weizigo-oracle-v2-build
+   +- compile exe weizigo-oracle-v2-build ReleaseFast native 1 errors
+src/oracle_v2_build.zig:53:37: error: root source file struct 'process' has no member named 'argsAlloc'
+        const args = try std.process.argsAlloc(gpa);
+                         ~~~~~~~~~~~^~~~~~~~~~
+/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/process.zig:1:1: note: struct declared here
+const builtin = @import("builtin");
+^~~~~
+referenced by:
+    callMain [inlined]: /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:698:59
+    callMainWithArgs [inlined]: /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:638:20
+    main: /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/start.zig:663:28
+    1 reference(s) hidden; use '-freference-trace=4' to see all references
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseFast --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/oracle_v2_build.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/probe-cache --global-cache-dir /Users/alex/.cache/zig --name weizigo-oracle-v2-build --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+Build Summary: 21/24 steps succeeded (1 failed)
+install transitive failure
++- install weizigo-oracle-v2-build transitive failure
+   +- compile exe weizigo-oracle-v2-build ReleaseFast native 1 errors
+
+error: the following build command failed with exit code 1:
+/tmp/weizigo/probe-cache/o/688a1e003f32402a281cc1fcfca88189/build /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig /Users/alex/Project/Zig/weizigo /tmp/weizigo/probe-cache /Users/alex/.cache/zig --seed 0x4cc9ea37 -Z15df5cfb18fc757a --prefix /tmp/weizigo/probe -Doptimize=ReleaseFast
+[runner] peak RSS by PID: in 16.4 s
+[runner]   pid   76563     605 MB
+[runner]   pid   76483     525 MB
+[runner]   pid   76560     452 MB
+[runner]   pid   76558     412 MB
+[runner]   pid   76562     374 MB
+[runner]   pid   76566     373 MB
+[runner]   pid   76556     369 MB
+[runner]   pid   76564     367 MB
+[runner]   pid   76557     324 MB
+[runner]   pid   76565     318 MB
+[runner]   pid   76561     297 MB
+[runner]   pid   76559      77 MB
+[runner]   pid   76547       8 MB
+[runner] peak total CPU by PID: in 16.4 s
+[runner]   pid   76563        0:13 (13.33s)
+[runner]   pid   76560        0:09 (9.35s)
+[runner]   pid   76558        0:07 (7.88s)
+[runner]   pid   76562        0:07 (7.31s)
+[runner]   pid   76556        0:07 (7.03s)
+[runner]   pid   76566        0:07 (7.01s)
+[runner]   pid   76564        0:07 (7.0s)
+[runner]   pid   76565        0:05 (5.98s)
+[runner]   pid   76557        0:05 (5.93s)
+[runner]   pid   76561        0:04 (4.92s)
+[runner]   pid   76483        0:02 (2.81s)
+[runner]   pid   76559        0:00 (0.31s)
+[runner]   pid   76547        0:00 (0.04s)
+[runner] exit 1 in 16.4 s

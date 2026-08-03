@@ -1,0 +1,114 @@
+[runner] argv = zig build --prefix /tmp/weizigo/safe-build --cache-dir /tmp/weizigo/safe-build/cache -Doptimize=ReleaseSafe
+[runner] guards: rss 5120 MB, progress-timeout 5400s (1:30:00), fallback: wall 43200s cpu 172800s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+install
++- install weizigo
+   +- compile exe weizigo ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/main.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name weizigo --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+install
++- install weizigo-oracle-v2-build
+   +- compile exe weizigo-oracle-v2-build ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/oracle_v2_build.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name weizigo-oracle-v2-build --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+install
++- install weizigo-chainability
+   +- compile exe weizigo-chainability ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/chainability.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name weizigo-chainability --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+install
++- install oracle-v2-accept
+   +- compile exe oracle-v2-accept ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe -Mroot=/Users/alex/Project/Zig/weizigo/src/oracle_v2_accept.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name oracle-v2-accept --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+install
++- install weizigo-engine-vs-engine
+   +- compile exe weizigo-engine-vs-engine ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/engine-vs-engine.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name weizigo-engine-vs-engine --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+install
++- install weizigo-reachcensus
+   +- compile exe weizigo-reachcensus ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/reachcensus.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name weizigo-reachcensus --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+install
++- install weizigo-gtp
+   +- compile exe weizigo-gtp ReleaseSafe native 1 errors
+src/exp6_solve.zig:1273:13: error: use of undeclared identifier 'runJacobiSweep'
+            runJacobiSweep(gpa, nt, chunk_size, compact_count, compact_list.items, &map, L_tab, H_tab, L_next, true, &child_indices);
+            ^~~~~~~~~~~~~~
+error: 1 compilation errors
+failed command: /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig build-exe -OReleaseSafe --dep version -Mroot=/Users/alex/Project/Zig/weizigo/src/gtp.zig -Mversion=/Users/alex/Project/Zig/weizigo/src/version.zig --cache-dir /tmp/weizigo/safe-build/cache --global-cache-dir /Users/alex/.cache/zig --name weizigo-gtp --zig-lib-dir /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/ --listen=-
+
+Build Summary: 9/24 steps succeeded (7 failed)
+install transitive failure
++- install weizigo transitive failure
+|  +- compile exe weizigo ReleaseSafe native 1 errors
++- install weizigo-engine-vs-engine transitive failure
+|  +- compile exe weizigo-engine-vs-engine ReleaseSafe native 1 errors
++- install weizigo-chainability transitive failure
+|  +- compile exe weizigo-chainability ReleaseSafe native 1 errors
++- install weizigo-reachcensus transitive failure
+|  +- compile exe weizigo-reachcensus ReleaseSafe native 1 errors
++- install oracle-v2-accept transitive failure
+|  +- compile exe oracle-v2-accept ReleaseSafe native 1 errors
++- install weizigo-oracle-v2-build transitive failure
+|  +- compile exe weizigo-oracle-v2-build ReleaseSafe native 1 errors
++- install weizigo-gtp transitive failure
+ 1 errors
+
+error: the following build command failed with exit code 1:
+/tmp/weizigo/safe-build/cache/o/62391f054c8d9a5ce778ef099d6ed64c/build /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig /Users/alex/Project/Zig/weizigo /tmp/weizigo/safe-build/cache /Users/alex/.cache/zig --seed 0x500cb37d -Z61e97893480c19c1 --prefix /tmp/weizigo/safe-build -Doptimize=ReleaseSafe
+[runner] peak RSS by PID: in 10.3 s
+[runner]   pid   73588     560 MB
+[runner]   pid   73580     421 MB
+[runner]   pid   73582     406 MB
+[runner]   pid   73589     335 MB
+[runner]   pid   73591     112 MB
+[runner]   pid   73587     110 MB
+[runner]   pid   73585     108 MB
+[runner]   pid   73584      77 MB
+[runner]   pid   73590      76 MB
+[runner]   pid   73586      76 MB
+[runner]   pid   73581      76 MB
+[runner]   pid   73576      32 MB
+[runner]   pid   73579       7 MB
+[runner] peak total CPU by PID: in 10.3 s
+[runner]   pid   73588        0:10 (10.14s)
+[runner]   pid   73580        0:06 (6.66s)
+[runner]   pid   73582        0:06 (6.38s)
+[runner]   pid   73589        0:05 (5.2s)
+[runner]   pid   73591        0:00 (0.83s)
+[runner]   pid   73587        0:00 (0.81s)
+[runner]   pid   73585        0:00 (0.79s)
+[runner]   pid   73590        0:00 (0.49s)
+[runner]   pid   73586        0:00 (0.42s)
+[runner]   pid   73584        0:00 (0.4s)
+[runner]   pid   73581        0:00 (0.35s)
+[runner]   pid   73576        0:00 (0.04s)
+[runner]   pid   73579        0:00 (0.04s)
+[runner] exit 1 in 10.3 s
