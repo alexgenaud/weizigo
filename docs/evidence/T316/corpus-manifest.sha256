@@ -1,0 +1,5 @@
+# T316 Seeded Corpus Manifest — committed before dispatch to prove answer key pre-exists
+# SHA-256 of all seeded files at creation time (2026-08-03)
+a5579b7242c84a2dba0ecd07a3e4cc621d56f1a60b4e17bd61565073f6eef7f0  untracked/T316-seeded/README.md
+8308af1dcaf5aa6e6877826a12d4b93d7184bfee785cf28c058a59b7ae1a16e4  untracked/T316-seeded/T312-findings.json
+7fab7cce2b1e749c8c1e4bfe2687b9ad95179d5cca38ed7ce6f0641bc332e1fe  untracked/T316-seeded/parallel-fixpoint.md
