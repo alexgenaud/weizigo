@@ -2,7 +2,7 @@
 
 ```
 Task: T323 · Role: worker · Model: not stated at dispatch · Date: 2026-08-03
-Revision: 2 · Status: RATIFIED (2026-08-03, spec audit T329 at 68a3b71, all ten findings dispositioned, ratified by Orcha as sprint owner)
+Revision: 3 · Status: RATIFIED (2026-08-04 amendment; Rev 2 ratified 2026-08-03 via spec audit T329 at 68a3b71; Rev 3 corrects the artifact identity — T332 F1, a premise defect found by the plan audit's artifact parse, missed by document review twice, sprint.md:93 confirmed again)
 Sprint owner: Orchestrator
 ```
 
@@ -125,8 +125,14 @@ not this sprint's deliverable but their pass/fail on the 4×4 artifact is
 
 ### 2.3 What constitutes "G3b passes"
 
-All of these must hold simultaneously against the 4×4 checkpoint artifact
-(`data/oracle-4x4.checkpoint.wzo`):
+All of these must hold simultaneously against the 4×4 oracle-v2 artifact
+(`untracked/oracle-v2/oracle-4x4-v2.wzo2`, WZO2, 518,123,097 bytes, SHA-256
+`0c3366f0…` — the artifact G3a's structural-completeness evidence chain
+(T266/T277) verified, reproducible nine independent ways). **Not**
+`data/oracle-4x4.checkpoint.wzo`: that is the 2026-07-21 WZO1 checkpoint from
+the abandoned PSK era (header `total = 3^16`, no ko/passes dimension — it
+cannot even represent the k=1 state this epic is about), named here in
+Revisions 1–2 by mistake and corrected by amendment 2026-08-04 (T332 F1):
 
 1. **I4:** 0 Bellman violations on every non-terminal slot reachable from the
    fresh-start root, with Φ computed by the battery's independent move
@@ -432,7 +438,11 @@ the check catches it. The synthetic defect is:
 - I4: corrupt one slot's L or H value → Bellman violation > 0
 - C-A1: delete one entry → children-not-in-table > 0
 - C-A2: delete one entry → reachable-not-in-table > 0
-- I11: allow a ko recapture or suicide → mismatches > 0
+- I11: allow suicide → mismatches > 0. (The ko-recapture mutant cannot
+  manifest through I11: SMD1's slice is `ko=NONE`, where every recapture is
+  legal, so that seeded control would be blind by construction. Ko-dimension
+  coverage of the move relation lives in the kernel-vs-R8 differential, which
+  must compare at ko≠NONE states — amendment 2026-08-04.)
 - Key-agreement: flip one bit in the key → mismatches > 0
 - I5: set KO_SENSITIVE on one non-cycle-reachable slot → ko_not_cr > 0 (first
   seeded-defect control at 3×2; 2×2 measurement-only because all states are

@@ -25,3 +25,17 @@ The plan is coherent on the feasibility decisions, scope boundaries, R8 independ
 ## Auditor identity and method
 
 Fresh-session document review against `pass0/spec.md` Revision 2 (RATIFIED), `sprint.md`, `DIRECTION.md` + Amendments 1 & 2, `PHASES.md`, `AXIOMS.md`, `pass0/design-M1.md` §4.6, `pass1/mutants.md`, and the artifact header of `data/oracle-4x4.checkpoint.wzo`. No `untracked/msg/` channel traffic, prior audits, or author framing was read before forming findings. Every finding cites a file:line range. The artifact header was verified with `xxd` and a short Python parse (`magic=WZO1`, `total=43046721`, `column_count=6`).
+
+## Gate-holder disposition (Orcha/Fable, 2026-08-04)
+
+Verdict accepted: **NEEDS-FIX** — the plan returns to the builder for Revision 2; round 2
+of 2 re-audits after. One finding added by the gate-holder (F6).
+
+| ID | disposition |
+|---|---|
+| F1 | **confirmed, escalated into the spec, and re-rooted** — the auditor parsed the wrong-artifact's header and was right that it can't hold the k=1 state; the deeper defect is that **spec §2.3 named that artifact** (`data/oracle-4x4.checkpoint.wzo`, WZO1, 2026-07-21 — PSK-era residue ruled untrustworthy at the pivot). The sprint's artifact is `untracked/oracle-v2/oracle-4x4-v2.wzo2` (WZO2, 518,123,097 B, SHA-256 `0c3366f0…`, header count 24,318,165 = A094777 — verified by the gate-holder with xxd). Spec amended to Revision 3 (sprint-owner authority). Plan Rev 2 must: name the WZO2 artifact + sha; rebuild the closure membership predicate and memory budget against the real WZO2 schema (the oracle-v2 format doc is the authority, not AGENTS.md's 258 MB figure — that is the WZO1 file size); keep the fallback trigger. |
+| F2 | **accepted** — plan Rev 2 mechanizes the I5 first-seeded-control-at-3×2 as part of the I5 row's bars (red-then-green shown before the 4×4 reading), not effort-table prose. |
+| F3 | **accepted as a text fix** — DISCHARGE's bar becomes the seven mutant assertions inverted in `vb_mutants.zig` (mechanized, checkable), not merely the six check rows closed; the `needs` edges stay row-level because managent edges are rows. |
+| F4 | **accepted** — the comparison-harness author must be distinct from both MG-KERN's and R8's authors; "(or A)" is dropped. |
+| F5 | **accepted** — the EXP-3 citation is relabelled an analogy; the actual closure sweep count is an accept.md measurement. |
+| F6 | **gate-holder finding (new, must)** — ko-dimension coverage of the move relation is nowhere explicit: SMD1's slice is `ko=NONE, passes=0` at every rung, so I11 never compares at a ko-active state and the spec's ko-recapture seeded control was blind by construction (spec §7.2 amended in Rev 3: suicide mutant on the slice). Plan Rev 2 must commit MG-INV's exhaustive 2×2/3×2/3×3 comparison to the full `(pos, side, ko, passes)` space including ko≠NONE, with a ko-recapture mutant caught at a ko-active state. This is the T265 defect family. |
