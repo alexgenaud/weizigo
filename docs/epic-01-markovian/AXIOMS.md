@@ -270,7 +270,7 @@ goban size.
     complete — T266/T277/T279).
 - **Z-COMPLETE-PASSES:** The passes dimension is fully enumerated.
   `[CODE.WZO2-INCOMPLETE:FALSE-AS-SCOPED]` — the passes=1 entries are
-  provably unreachable (monochrome gobans); structurally complete per
+  provably unreachable (single-colour gobans); structurally complete per
   T266/T277/T279.
 
 ### 3.7 Cross-cutting concerns

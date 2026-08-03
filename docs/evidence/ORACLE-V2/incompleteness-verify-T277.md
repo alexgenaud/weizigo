@@ -22,9 +22,9 @@ At `dff5bba`, `src/exp6_solve.zig`:
 
 - **F3 — placement survivor.** `apply_place4` (line 161-177) writes the mover's stone (line 164), removes only opponent chains (`pos[q] * colour < 0`, line 170), and returns `error.Suicide` if own chain captured (line 176). So a successful placement always leaves ≥1 stone of the mover's colour.
 
-**Combined**: `(P, s, KO_NONE, 1)` requires `(P, 1-s, ko, 0)` which requires a placement by colour `1-s` which leaves ≥1 stone of that colour on P. So absent exactly when P lacks stones of colour `1-s` → P is monochrome in colour `s`. ∎
+**Combined**: `(P, s, KO_NONE, 1)` requires `(P, 1-s, ko, 0)` which requires a placement by colour `1-s` which leaves ≥1 stone of that colour on P. So absent exactly when P lacks stones of colour `1-s` → P is single-colour in colour `s`. ∎
 
-Edge case: the empty goban is a seed root at passes=0 for both sides, but is not monochrome (k=0).
+Edge case: the empty goban is a seed root at passes=0 for both sides, but is not single-colour (k=0).
 
 ### 1.2 Exhaustive confirmation
 
@@ -33,10 +33,10 @@ My independent scan (`t277_scan4.py`, numpy-based, shares no code with `t266_sca
 | metric | 3×3 | 4×4 |
 |---|---|---|
 | groups | 12,675 | 24,318,165 |
-| monochrome-black / monochrome-white | 510 / 510 | 65,534 / 65,534 |
+| single-colour-black / single-colour-white | 510 / 510 | 65,534 / 65,534 |
 | one-sided at passes=1 | 1,020 | 131,068 |
-| absent-but-not-monochrome | **0** | **0** |
-| monochrome-but-present | **0** | **0** |
+| absent-but-not-single-colour | **0** | **0** |
+| single-colour-but-present | **0** | **0** |
 | T266-H1 | CONFIRMED | CONFIRMED |
 
 The arithmetic closes: stored passes=1 = 2×n_groups − absences = 24,330 ✓ (3×3), 48,505,262 ✓ (4×4).
@@ -100,7 +100,7 @@ weizigo-oracle: WARNING bounds2 lookup-miss #1 — state colex=12 side=1 ko=16 p
 oracle: b -> B3  child-value=1 stored-v0=1 KO_SENSITIVE [L=16,H=16] dtt=2
 ```
 
-**Root cause at `src/gtp.zig:1222`**: `bounds2(&s.pos, s.ko_point, @intCast(s.passes), side)` is called after `applyMove` (line 1204), so `s.pos` is the post-move position but `side` is still the mover. After Black plays B3, the table should be queried with White to move; instead it's queried with Black to move on a monochrome-black goban — legitimately absent, triggering the area-score fallback.
+**Root cause at `src/gtp.zig:1222`**: `bounds2(&s.pos, s.ko_point, @intCast(s.passes), side)` is called after `applyMove` (line 1204), so `s.pos` is the post-move position but `side` is still the mover. After Black plays B3, the table should be queried with White to move; instead it's queried with Black to move on a single-colour-black goban — legitimately absent, triggering the area-score fallback.
 
 Direct artifact lookup confirms:
 - `(colex=12, Black-to-move, none, 0)` = absent ✓ (unreachable per §1)
@@ -126,7 +126,7 @@ T266-H2: REFUTED
 C-B4 entries mis-ordered or duplicated within a group: 1
 ```
 
-The scanner correctly identifies the shift: group 1 (single white stone, not monochrome-black) now lacks its passes=1 side=1 entry (H1 refuted), group 1's passes=0 side=0 parent exists but its pass child is missing (H2 refuted), and the moved entry breaks the key ordering in group 0 (C-B4 caught).
+The scanner correctly identifies the shift: group 1 (single white stone, not single-colour-black) now lacks its passes=1 side=1 entry (H1 refuted), group 1's passes=0 side=0 parent exists but its pass child is missing (H2 refuted), and the moved entry breaks the key ordering in group 0 (C-B4 caught).
 
 **The instrument is sensitive to alignment failures.** If entries were misaligned with their groups (e.g. by an off-by-one in `mw.writeAll`), the checks would fire. The null artifact produces zero violations on all counters — so the alignment is confirmed correct.
 

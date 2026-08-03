@@ -259,8 +259,11 @@ T100–T126 wave (2026-07-30) strengthened it substantially:
   `[3x3.S2-impl:PROVEN]`. Terminal detection by Benson + double-pass is sound
   under area scoring `[GLOBAL.ADR0004-TERM:PROVEN]`.
 - **Area scoring** is implemented correctly; independently cross-validated by
-  T112 (DSPro, 2026-07-30) with a Python Tromp–Taylor area scorer on 500
-  random gobans, 0 disagreements `[GLOBAL.S4:PROVEN]`.
+  T112 (DSPro, 2026-07-30) with a Python Tromp–Taylor area scorer on 120
+  random gobans (seed 0xC0FFEE, stratified 2×2–5×5), 0 disagreements
+  `[GLOBAL.S4:PROVEN]`; the 500-goban run is the separate Zig-vs-Zig
+  self-test at 5×5 (`src/rules.zig:404`) — cross-validation and self-test
+  are different evidence.
 - **The writes-off finisher** (`memo_writes=false`) is self-consistent at 3×2
   (0 auditor violations) `[3x2.F3:PROVEN]` and the dependency-guarded memo
   (Kishimoto–Müller, `deps` mode) is validated at 3×2/3×3/4×3 `[GLOBAL.F4:PROVEN]`.
@@ -380,12 +383,14 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   The 3×3 artifact passes all four checks, which is what localises the
   defect to the 4×4 builder rather than the harness. One character, fixed
   at `5deec6b`; rebuild and re-run are T212, and oracle-v2 G3 is unreachable
+  until they pass. The row that predicted this — "kanban *done* here means
+  code written, not run" — was right, and cost 518 MB to confirm.
 
 - **2026-08-02 — the artifact is valid-looking and structurally complete.** M4a passes 4/4
   on the rebuilt artifact `[SPRINT-M4a-ACCEPT:PROVEN]`, and it is still not a
   verified perfect oracle: a direct scan found `passes=1` entries present for
   only one side in ~27.9% of sampled 4×4 groups, but the absent entries are exactly the
-  131,068 monochrome gobans and are provably unreachable
+  131,068 single-colour gobans and are provably unreachable
   `[CODE.WZO2-INCOMPLETE:FALSE-AS-SCOPED]` `[CODE.WZO2-PASS1-LAW:PROVEN]`.
   The W+2 self-play was the pre-T265 ko rule + the display-path defect
   `[CODE.GTP-LHSIDE:PROVEN]`, not missing entries. T212's proposal that the
@@ -405,8 +410,6 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   artifact is the `@memset` initialiser, never computed
   `[CODE.WZO1-DTT-UNSET:PROVEN]`, while the v1 4×4 basic-ko artifact violates
   colour inversion on ~48% of positions `[4x4.V1-INVSYM-BROKEN:PROVEN]`.
-  until they pass. The row that predicted this — "kanban *done* here means
-  code written, not run" — was right, and cost 518 MB to confirm.
 - **Verify-battery** (harness + three invariant modules): 36 unit tests
   (module-local, not reachable from `zig build test`), harness not wired to
   any invariant module — every check is a stub, zero verification runs
@@ -460,9 +463,16 @@ semantics, the state representation failed at 3×2
 **ADR-0020 changed the semantics and the outcome.** Under loopy-game fixpoint
 semantics, `(board, side, ko_point, passes)` **is** Markovian, the fixpoint
 converges, and the tables are internally consistent at every tested size
-through 4×4. The 4×4 goban was solved: root V=+1 under basic-ko + TIE=0,
-H=+16 verified genuine, 99.997% single-ko `[4x4.BASICKO-TIE:MEASUREMENT]`
-`[4x4.KO-CENSUS:MEASUREMENT]`. The foreclosures remain measured, not
+through 4×4. The 4×4 artifact is **structurally complete, value-unverified**
+— the G3 gate is split (`PHASES.md`, 2026-08-03): G3a structural completeness
+is discharged `[CODE.WZO2-PASS1-LAW:PROVEN]`, G3b value correctness is
+untouched. The measurements that are real stand: root V=+1 under basic-ko +
+TIE=0, H=+16 verified genuine, 99.997% single-ko
+`[4x4.BASICKO-TIE:MEASUREMENT]` `[4x4.KO-CENSUS:MEASUREMENT]` — but the
+closure checks C-A1/C-A2 are specified and unrun (they need the Phase 2
+kernel), and the acceptance harness that was meant to check the values had
+its own divergent ko rule, so A1/A2/A8 were measuring their own off-manifold
+walk `[CODE.ACCEPT-KOKEY:PROVEN]`. The foreclosures remain measured, not
 conjectured, and the 154/508 (30.3%) C2 falsification at 3×2
 `[3x2.T13:PROVEN]` is stronger evidence than ever (T110, 2026-07-30).
 
