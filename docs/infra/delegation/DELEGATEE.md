@@ -158,9 +158,18 @@ Write `findings/<task-id>-context.json` and commit it. Six keys, matching the
 twelve dumps already in `findings/`:
 
 ```
-task_id · date (absolute) · model (canonical label) · claims (IDs you touched or
-propose) · new_rows (register rows you added) · notes (free text — the payload)
+task_id · date (absolute) · model (canonical label) · claims: [] · new_rows: [] ·
+notes (free text — the payload)
 ```
+
+**`claims` and `new_rows` stay empty in a dump.** The dump is a narrative record, not a
+proposal: your *findings* file proposes rows, and claimlint's C7 counts every proposal it
+can see. A dump that repeats them double-counts, so the same row shows up twice in the
+absorption backlog and C7 stops being a usable number. This is not a style preference —
+on 2026-08-03 one task's dump added nine phantom entries to C7 on top of its findings
+file's eight, and three earlier consoles (T266, T270, T276) had each worked this out
+independently and left the arrays empty for exactly that reason. Put the claim IDs you
+touched in the `notes` prose instead, where they are readable and not counted.
 
 `notes` is where the value is. State what you read, what you concluded **and on
 what evidence**, what you could not establish, what you assumed without checking,
