@@ -129,6 +129,17 @@ budget — but it changes what existing consoles can do, so it is **held for the
 human's explicit word** and not implemented here. Note (b) closes paths 1 and 3
 (when used) but does **not** close path 2; only (c) does.
 
+**Ruled 2026-08-03 evening (human): (c) is REJECTED.** Rationale as given:
+stripping the key would only constrain *how* a runaway agent misbehaves, not
+*whether* — it limits the models a loop can burn without preventing the loop —
+and on a single-user machine the credential is reachable by any same-user
+process anyway (§Depth cap above), so (c) solves no security or integrity
+issue. If agents are permitted to dispatch across models, limiting their choice
+of model is cost without containment. Standing posture stays **(b) plus honest
+documentation**: path 2 (Ollama→DeepSeek) remains live and documented as such.
+Revisit only if real containment (separate user, container, or key broker) is
+proposed — that would change the premise, not the ruling.
+
 ## Attribution never asks the model (T321, 2026-08-03)
 
 T320 reported 0/4 self-identification mismatches, but it probed the `PI_MODEL`
