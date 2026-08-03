@@ -2,7 +2,7 @@
 
 ```
 Task: T323 · Role: worker · Model: not stated at dispatch · Date: 2026-08-03
-Revision: 3 · Status: RATIFIED (2026-08-04 amendment; Rev 2 ratified 2026-08-03 via spec audit T329 at 68a3b71; Rev 3 corrects the artifact identity — T332 F1, a premise defect found by the plan audit's artifact parse, missed by document review twice, sprint.md:93 confirmed again)
+Revision: 4 · Status: RATIFIED (Rev 2 ratified 2026-08-03 via spec audit T329 at 68a3b71; Rev 3, 2026-08-04, corrects the artifact identity — T332 F1, a premise defect found by the plan audit's artifact parse, missed by document review twice, sprint.md:93 confirmed again; Rev 4, 2026-08-04, repoints the artifact to its deployed path per human ruling — §2.3 only, no numbers changed)
 Sprint owner: Orchestrator
 ```
 
@@ -126,13 +126,30 @@ not this sprint's deliverable but their pass/fail on the 4×4 artifact is
 ### 2.3 What constitutes "G3b passes"
 
 All of these must hold simultaneously against the 4×4 oracle-v2 artifact
-(`untracked/oracle-v2/oracle-4x4-v2.wzo2`, WZO2, 518,123,097 bytes, SHA-256
+(**`data/oracle-4x4-v2.wzo2`**, WZO2, 518,123,097 bytes, SHA-256
 `0c3366f0…` — the artifact G3a's structural-completeness evidence chain
 (T266/T277) verified, reproducible nine independent ways). **Not**
 `data/oracle-4x4.checkpoint.wzo`: that is the 2026-07-21 WZO1 checkpoint from
 the abandoned PSK era (header `total = 3^16`, no ko/passes dimension — it
 cannot even represent the k=1 state this epic is about), named here in
-Revisions 1–2 by mistake and corrected by amendment 2026-08-04 (T332 F1):
+Revisions 1–2 by mistake and corrected by amendment 2026-08-04 (T332 F1).
+
+**On the path** (Rev 4, human ruling 2026-08-04). Revision 3 named the sprint
+build path `untracked/oracle-v2/oracle-4x4-v2.wzo2`, which made `untracked/` —
+`sprint.md:62`'s "where evidence goes to die" — load-bearing in a ratified
+spec. The oracle-v2 spec §4 F9 had already ratified `data/oracle-4x4-v2.wzo2`
+as the deployed path with a hash-then-deploy rule; the file had simply never
+been promoted out of the build area. It now is: the `data/` copy was verified
+against the recorded build hash (`shasum -c artifacts/SHA256SUMS`, 12/12 OK)
+and loads in the engine (24,318,165 groups / 99,133,036 entries, 0 misses, 0
+fallbacks). **The `untracked/` build remains in place and is the hash of
+record**, so the as-run reproduction commands in the T266/T277/T309 evidence
+documents still resolve; new work reads the `data/` path. Both are listed in
+`artifacts/SHA256SUMS` and are byte-identical, so a check may read either — but
+it must assert the SHA-256 it read, not the path it read it from, because the
+path is now ambiguous and the hash is not.
+
+The conditions:
 
 1. **I4:** 0 Bellman violations on every non-terminal slot reachable from the
    fresh-start root, with Φ computed by the battery's independent move
@@ -527,3 +544,6 @@ artifact, not the check.
 | date | amendment | by |
 |---|---|---|
 | 2026-08-03 | Initial spec — T323 | unknown/T323 |
+| 2026-08-03 | Rev 2 — spec audit T329 (PASS-WITH-EDITS), all ten findings dispositioned; nine fixed as proposed, F3 fixed with the I4 independence-shortcut parenthetical rejected. Ratified at `f0769ac` | claude-fable-5 (Orcha) |
+| 2026-08-04 | Rev 3 — artifact identity corrected (T332 F1): the sprint artifact is the WZO2 oracle-v2 build, **not** `data/oracle-4x4.checkpoint.wzo` (WZO1, PSK-era, no ko/passes dimension). §7.2's ko-recapture seeded control was blind by construction on SMD1's `ko=NONE` slice and was replaced with a suicide mutant on the slice; the ko-dimension gap became gate-holder finding F6 on the plan. Ratified at `ead66d0` | claude-fable-5 (Orcha) |
+| 2026-08-04 | Rev 4 — §2.3 artifact path repointed from the sprint build path to the deployed `data/oracle-4x4-v2.wzo2` (human ruling: a ratified spec must not make `untracked/` load-bearing; oracle-v2 spec §4 F9 had already ratified the deployed path). Copy hash-verified against the recorded build and engine-loaded before the repoint; the `untracked/` build stays as the hash of record. No check, number, edge or decision changed. Amendment rows for Rev 2 and Rev 3 added retroactively — they were recorded only in the header line | claude-opus-5 (Orcha) |

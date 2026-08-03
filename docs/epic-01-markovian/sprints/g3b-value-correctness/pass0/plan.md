@@ -1,11 +1,14 @@
 # G3b value-correctness — pass0 PLAN
 
 ```
-Task: T333 · Role: worker · Model: glm-5.2:cloud · Date: 2026-08-04
-Revision: 2 · Status: PROPOSED
+Task: T333 · Role: worker · Model: glm-5.2 · Date: 2026-08-04
+Revision: 3 · Status: PROPOSED
+        (Rev 2 is the builder's — T333/glm-5.2, all six findings; Rev 3 is a
+        gate-holder path repoint only, no numbers or decisions touched)
 Sprint: g3b-value-correctness · Pass: 0
-Parent: pass0/spec.md (Revision 3, RATIFIED 2026-08-04 — spec audit T329 Rev 2;
-        T332 F1 amended Rev 3, re-rooting the artifact identity to WZO2)
+Parent: pass0/spec.md (Revision 4, RATIFIED 2026-08-04 — spec audit T329 Rev 2;
+        T332 F1 amended Rev 3, re-rooting the artifact identity to WZO2;
+        Rev 4 repoints that artifact to its deployed path)
 Sprint owner: Orchestrator
 ```
 
@@ -18,8 +21,8 @@ will be audited (document review, fresh session) and ratified by the sprint
 owner before any build row is registered.
 
 **Inputs read.** `AGENTS.md` · `DELEGATEE.md` · `sprint.md` ·
-`pass0/spec.md` (Rev 3, RATIFIED 2026-08-04 — spec audit T329 Rev 2 + T332 F1
-amendment) · `archive/spec-audit-r1.md` (T329, all ten findings
+`pass0/spec.md` (Rev 3 as read by the builder; Rev 4's path repoint applied by
+the gate-holder afterwards) · `archive/spec-audit-r1.md` (T329, all ten findings
 dispositioned) · `archive/plan-audit-r1.md` (T332, five findings F1–F5 +
 gate-holder F6, all six dispositioned; the mandate for this revision) ·
 `sprints/oracle-v2/pass0/design-M1.md` (rev 3, RATIFIED G2 — the WZO2 schema
@@ -35,7 +38,7 @@ specified) · `sprints/verify-battery/pass1/i5-feasibility.md` +
 The WZO2 artifact header was parsed directly (T333, 2026-08-04); the numbers
 in §2.1 are measured, not assumed.
 
-**No contradiction with spec Rev 3 is intended.** Where this plan needs the
+**No contradiction with spec Rev 4 is intended.** Where this plan needs the
 spec to change, that is a plan-amendment halt (`sprint.md` §Bookends), not a
 silent divergence. No such halt is triggered here; every §6 question is
 answered within the spec's framed options.
@@ -62,8 +65,11 @@ plan does not reopen any pass condition.
 peak — well under the 4 GB runner cap. Membership by group-index binary
 search + in-group linear scan, zero extra memory.**
 
-**Artifact identity (F1 re-root, spec Rev 3).** The sprint artifact is
-`untracked/oracle-v2/oracle-4x4-v2.wzo2` — **WZO2**, 518,123,097 bytes,
+**Artifact identity (F1 re-root, spec Rev 3; path per spec Rev 4).** The sprint
+artifact is **`data/oracle-4x4-v2.wzo2`** — the deployed copy of the oracle-v2
+build this task parsed at `untracked/oracle-v2/oracle-4x4-v2.wzo2`, byte-identical
+and both listed in `artifacts/SHA256SUMS`; the header figures below were read from
+the build and re-verified against the deployed copy — **WZO2**, 518,123,097 bytes,
 full-file SHA-256 `0c3366f0…` (the header-embedded slot digest at offset 40,
 computed with bytes 40–71 zeroed per design-M1 §4.2, is `57009d93…`; both
 are reproducible). Header parsed directly 2026-08-04 (T333):
@@ -316,7 +322,7 @@ written and reviewed before the implementation they test (the 2B-5 scar).
 
 | phase | file | runs this pass? | gate instrument | gate holder |
 |---|---|---|---|---|
-| Spec | `spec.md` | done (Rev 3, RATIFIED 2026-08-04) | document review (T329 PASS-WITH-EDITS ratified Rev 2; T332 F1 → Rev 3 amendment, re-rooting artifact to WZO2) | spec auditor |
+| Spec | `spec.md` | done (Rev 4, RATIFIED 2026-08-04) | document review (T329 PASS-WITH-EDITS ratified Rev 2; T332 F1 → Rev 3 amendment, re-rooting artifact to WZO2; Rev 4 repoints it to the deployed path) | spec auditor |
 | **Plan** | `plan.md` (this) | yes | **document review, fresh session** | plan auditor |
 | Scope | — | **merged into Plan** (§12 MoSCoW; spec §8 already bounds scope) | (none — folded) | — |
 | **Design** | `design.md` | yes | **adversarial review** — attempt refutation, state a verdict | design auditor |
@@ -618,4 +624,4 @@ then Kotlin by owner ruling, not self-approved).
 | date | amendment | by |
 |---|---|---|
 | 2026-08-03 | Initial plan — T331 | glm-5.2:cloud/T331 |
-| 2026-08-04 | Rev 2 (T333): fix the six dispositioned plan-audit findings (T332 F1–F5 + gate-holder F6). **F1** — §2.1/§2.6 re-rooted to the real WZO2 artifact (`untracked/oracle-v2/oracle-4x4-v2.wzo2`, 518,123,097 B, SHA-256 `0c3366f0…`); membership predicate rebuilt as group-index binary search + in-group linear scan over the parsed schema (`n_groups=24,318,165`, `n_entries=99,133,036`, entry_size=4, ko_bits=5, PASSES_2_OMITTED, passes≥1⇒ko=none, KO_SENSITIVE=L≠H); memory budget re-derived (~531 MB peak, ~3.47 GB headroom); passes=2 children are expected-absent terminals, not missing. **F2** — I5 first seeded-defect control mechanized as an I5-4x4 row bar at 3×2, red-then-green before the 4×4 reading. **F3** — DISCHARGE bar restated as the seven mutant-kill assertions inverted in `vb_mutants.zig`; `needs` edges stay row-level. **F4** — comparison-harness author required distinct from both MG-KERN (A) and R8 (B); “(or A)” dropped. **F5** — T134 EXP-3 sweep citation relabelled an analogy; actual closure sweep count deferred to an accept.md measurement. **F6** — MG-INV commits to exhaustive `(pos, side, ko, passes)` comparison including `ko≠NONE`, with a ko-recapture mutant caught at a ko-active state. Header and §4 updated to spec Rev 3. | glm-5.2:cloud/T333 |
+| 2026-08-04 | Rev 2 (T333): fix the six dispositioned plan-audit findings (T332 F1–F5 + gate-holder F6). **F1** — §2.1/§2.6 re-rooted to the real WZO2 artifact (`untracked/oracle-v2/oracle-4x4-v2.wzo2`, 518,123,097 B, SHA-256 `0c3366f0…`); membership predicate rebuilt as group-index binary search + in-group linear scan over the parsed schema (`n_groups=24,318,165`, `n_entries=99,133,036`, entry_size=4, ko_bits=5, PASSES_2_OMITTED, passes≥1⇒ko=none, KO_SENSITIVE=L≠H); memory budget re-derived (~531 MB peak, ~3.47 GB headroom); passes=2 children are expected-absent terminals, not missing. **F2** — I5 first seeded-defect control mechanized as an I5-4x4 row bar at 3×2, red-then-green before the 4×4 reading. **F3** — DISCHARGE bar restated as the seven mutant-kill assertions inverted in `vb_mutants.zig`; `needs` edges stay row-level. **F4** — comparison-harness author required distinct from both MG-KERN (A) and R8 (B); “(or A)” dropped. **F5** — T134 EXP-3 sweep citation relabelled an analogy; actual closure sweep count deferred to an accept.md measurement. **F6** — MG-INV commits to exhaustive `(pos, side, ko, passes)` comparison including `ko≠NONE`, with a ko-recapture mutant caught at a ko-active state. Header and §4 updated to spec Rev 3. | glm-5.2:cloud/T333 || 2026-08-04 | Rev 3 (gate-holder, not the builder): **path repoint only.** §2.1's artifact becomes `data/oracle-4x4-v2.wzo2` — the deployed copy of the same build T333 parsed, byte-identical, SHA `0c3366f0…`, both paths listed in `artifacts/SHA256SUMS` — per spec Rev 4 (human ruling: a ratified spec must not make `untracked/` load-bearing). Header figures re-verified against the deployed copy before the edit (`shasum -c` 12/12 OK; engine load reports 24,318,165 groups / 99,133,036 entries, 0 misses, 0 fallbacks). Spec references bumped Rev 3 → Rev 4 in the header, §1, and the §7 gate table. **No number, decision, check, wave, row, edge or F1–F6 fix was touched** — the round-2 audit judges the builder's Rev 2 content. | claude-opus-5 (Orcha) |
