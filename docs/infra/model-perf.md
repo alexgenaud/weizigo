@@ -37,6 +37,28 @@ TODO: record the general facts about each model. Then keep notes of each model i
   allocated 2026-07-28 (D-7); first dispatch EXP-2 Part A (returned
   REPAIRABLE-GAPS, repaired, 2026-07-28).
 
+## Context windows (model × harness) — consolidated 2026-08-03
+
+The window is a property of the **model × harness pair**, not the model: Ollama's
+effective window is the serving config, and the pi harness caps differ from Claude
+Code. **Record only measured or harness-reported values — never a model's
+self-report** (the attribution doctrine extends here: asked what they are, 2/2
+models were wrong; a self-reported window is the same class of evidence).
+
+| model | harness | context window | source |
+|---|---|---|---|
+| `deepseek-v4-pro` | pi | 1.0 M | recorded below ("New Boss … 1.0M"), 2026-07-3x |
+| `deepseek-v4-flash` | pi | **TBD** | — |
+| `glm-5.2` | Ollama cloud / pi | 950 k | recorded above; ~300 k observed used, no compaction |
+| `minimax-m3` | Ollama cloud / pi | **TBD** | — |
+| `kimi-k2.7` | Ollama cloud / pi | ~556 k | recorded above |
+| kimi-k3 | Ollama / pi | 128 k | EXP-11 entry below |
+| `claude-opus-5` | Claude Code | 1 M | evidenced: 2026-08-03 Orcha handover executed at 64% of a 1 M window |
+| `claude-fable-5` | Claude Code | **TBD — read `/context` in-session** | not yet recorded |
+
+Fill a TBD only from the harness (Claude Code `/context`; Ollama `num_ctx` /
+model card of the exact `:cloud` tag; pi harness config), and date it.
+
 Small-n, single-session anecdotes per model. Strengths/weaknesses only — speed
 and cost are not differentiators here. Add a dated entry each session.
 
