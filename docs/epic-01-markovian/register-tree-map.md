@@ -539,6 +539,52 @@ Crisis-era diagnostic framing, refuted hypothesis, or withdrawn option; its role
 | proposed-retired rows (§2) | **116** | same run |
 | unmapped without disposition | **0** | C9a (empty/invalid `tree` cell fails the run) |
 
+### 3.1 Retirement count — four-way reconciliation (T318, 2026-08-03)
+
+The retirement count was reported three different ways by the Orchestrator on 2026-08-03.
+Re-measured against the ground truth (the table itself), all four sources agree at **116**. Each
+figure is printed with the command that produced it; a count without its command is not a
+measurement.
+
+| source | figure | command (run from repo root) |
+|---|---|---|
+| §2 header line | **116** | `grep -oE "Proposed retirements — [0-9]+ rows" docs/epic-01-markovian/register-tree-map.md` |
+| sum of the six §2.x family subtotals | **116** (21+45+24+9+14+3) | `grep -oE '^### 2\.[0-9]+ [a-z-]+ — [0-9]+ rows' docs/epic-01-markovian/register-tree-map.md` |
+| actual `RETIRED` cells in the §1 table | **116** | `awk '/^## 1\./{f=1} /^## 2\./{f=0} f' docs/epic-01-markovian/register-tree-map.md \| grep -cE '^\|.*RETIRED'` |
+| `findings/T305-tree-map.json` structured `tree_map` | **116** | `python3 -c "import json; d=json.load(open('findings/T305-tree-map.json')); print(sum(1 for v in d['tree_map'].values() if v['tree']=='RETIRED'))"` |
+
+**Which was wrong and why.**
+
+- The **“117”** figure (reported as “actual `RETIRED` cells in the §1 table”) was a measurement
+  artifact, not a content error. It came from the *unscoped* command `grep -c '^\|.*RETIRED'
+  <file>` (BSD grep reads `\|` as a literal pipe), which matches **116** §1 table cells **plus one
+  §3 prose row** — line 538, `| mapping rows (this doc §1) | **323** (207 mapped to a node + 116
+  RETIRED) | …`, which contains the word `RETIRED` inside a prose cell. Scoped to §1 (the `awk`
+  command above), the count is 116. The §1 table content was always 116; nothing in the table
+  needed changing.
+- The **“118”** figure lived only in the `notes` prose string of `findings/T305-tree-map.json`.
+  The structured `tree_map` object in that same file has exactly **116** entries with
+  `tree == "RETIRED"`. The 118 was a prose typo with no structural backing; T318 corrected the
+  `notes` string to 116 (see the correction note appended to that field).
+- The §2 header (**116**) and the six §2.x family subtotals (**116**) were correct as written;
+  no edit was needed to either.
+
+**The whole-file `grep -c RETIRED` trap — do not “fix” it back.** `grep -c RETIRED
+docs/epic-01-markovian/register-tree-map.md` over-counts the table cells because the word
+`RETIRED` also appears in prose. Before T318’s reconciliation block was added, the whole-file
+count was **119** = 116 §1 table cells + 3 prose mentions: (a) the vocabulary description at
+line 22 (`a known node or a disposition marker (\`RETIRED\`)`), (b) the §2 lead at line 372
+(`The register column carries \`RETIRED\` for each`), and (c) the §3 row at line 538
+(`207 mapped to a node + 116 RETIRED`). The T318 brief’s own “117” came from subtracting only
+two of these three (it missed the line-538 §3 row) — which is exactly what produced the bogus
+figure. After T318 this reconciliation block itself adds several more prose mentions of
+`RETIRED`, so the whole-file count is now higher than 119 and is meaningless as a cell count.
+**The robust table-cell count is the §1-scoped command above = 116**, not the whole-file
+count; do not reduce 116 to match any whole-file number.
+
+No row’s mapping or retirement proposal was altered to make the arithmetic work; the four
+sources already agreed at 116 once the two measurement errors above were corrected.
+
 ## 4. Discrepancies found while mapping (tree vs register)
 
 1. **AXIOMS §3.2 Z-R-MOVE enumerates `A1–A5, B1–B3` but not A6** (`GLOBAL.AXIOM-FORCEDPASS`, added
