@@ -1,0 +1,36 @@
+{
+  "task_id": "T325",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "observation",
+      "what": "10 consecutive zig build test runs at HEAD (307ec4c): all 10 passed (exit 0), mean wall time 39.9s (range 39.6-40.3s). Zero build-step failures, zero test failures. Serial run (-j1) also passed (45.1s).",
+      "evidence": "10 log files at /tmp/weizigo/t325-run-1.log through t325-run-10.log"
+    },
+    {
+      "id": "F2",
+      "severity": "observation",
+      "what": "The previously observed flakiness (T314: 390/393 → 393/393 with 1 build step failing) did not reproduce. Likely causes at b3d0209: dirty tree (the binary was -dirty stamped), concurrent zig build processes contending for .zig-cache, or filesystem pressure from parallel builds.",
+      "denominator": "0 failures in 10 parallel runs + 1 serial run = 0/11 observed failures"
+    },
+    {
+      "id": "F3",
+      "severity": "should",
+      "what": "Proposed fix: if the flakiness recurs, the most likely root cause is .zig-cache contention during parallel zig build. The suite already runs tests via addRunArtifact (pre-built test binaries), which should not contend. If build-step failures persist, isolate by running regression scripts sequentially and test binaries in parallel (zig build test runs all steps in dependency order, but regression scripts under tools/ may race on shared /tmp fixtures)."
+    }
+  ],
+  "suite_runs": {
+    "count": 10,
+    "failed": 0,
+    "mean_wall_s": 39.9,
+    "min_wall_s": 39.6,
+    "max_wall_s": 40.3,
+    "serial_run_s": 45.1,
+    "all_passed": true
+  }
+}

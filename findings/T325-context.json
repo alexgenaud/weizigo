@@ -1,0 +1,8 @@
+{
+  "task_id": "T325",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T325 — flaky-suite diagnosis. Ran zig build test 10 times consecutively. All 10 passed (exit 0), mean wall 39.9s. Zero build-step failures, zero test failures. Serial run (-j1) also passed (45.1s). The previously observed flakiness (390/393 → 393/393 at b3d0209) did not reproduce. Likely causes are now resolved: the dirty-tree binary (-dirty stamp) and .zig-cache contention from concurrent builds are no longer present at HEAD. Proposed fix if it recurs: serialize regression scripts that share /tmp fixtures. No source edits made — analysis only."
+}
