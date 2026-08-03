@@ -306,6 +306,43 @@ const CAL_SYNTHETIC_C7_INFRA =
     \\}
 ;
 
+/// C8 mutation-adequacy calibration — synthetic kill matrix with two claims:
+///   GLOBAL.CAL-KERNEL-UNKILLED — has a "survived" mutant (seeded, must be caught)
+///   GLOBAL.CAL-KERNEL-KILLED  — has all "killed" mutants (null, must be silent)
+/// A third register row GLOBAL.CAL-KERNEL-CLAIMED is CLAIMED with unkilled
+/// mutants — must also be silent (only PROVEN triggers C8).
+const CAL_SYNTHETIC_KILL_MATRIX =
+    \\{
+    \\  "claims": [
+    \\    {
+    \\      "claim_id": "GLOBAL.CAL-KERNEL-UNKILLED",
+    \\      "function": "calUnkilled",
+    \\      "source_file": "calibration",
+    \\      "mutants": [
+    \\        {"id": "CAL-M1", "description": "synthetic survived mutant", "verdict": "survived"}
+    \\      ]
+    \\    },
+    \\    {
+    \\      "claim_id": "GLOBAL.CAL-KERNEL-KILLED",
+    \\      "function": "calKilled",
+    \\      "source_file": "calibration",
+    \\      "mutants": [
+    \\        {"id": "CAL-M2", "description": "synthetic killed mutant", "verdict": "killed"}
+    \\      ]
+    \\    }
+    \\  ]
+    \\}
+;
+/// Extra register rows for C8 calibration. Three rows:
+///   GLOBAL.CAL-KERNEL-UNKILLED   PROVEN   with unkilled mutant → must be caught
+///   GLOBAL.CAL-KERNEL-KILLED    PROVEN   with all mutants killed → must be silent
+///   GLOBAL.CAL-KERNEL-CLAIMED   CLAIMED  with unkilled mutant → must be silent
+const CAL_SYNTHETIC_C8_EXTRA =
+    \\| `GLOBAL.CAL-KERNEL-UNKILLED` | — | all | synthetic: PROVEN kernel claim with unkilled mutant — must be caught | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+    \\| `GLOBAL.CAL-KERNEL-KILLED` | — | all | synthetic: PROVEN kernel claim with all mutants killed — must be silent | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+    \\| `GLOBAL.CAL-KERNEL-CLAIMED` | — | all | synthetic: CLAIMED kernel claim with unkilled mutant — must be silent (only PROVEN triggers) | CLAIMED | `AGENTS.md:1` | — | — | 0 | ? |
+;
+
 /// Build a synthetic register = CAL_SYNTHETIC's rows with `extra_rows` grafted
 /// in BEFORE the "## 3. end" footer, so the extra rows are inside §2. (Appending
 /// after the footer leaves them outside §2 where parseRegister never sees them —
@@ -1398,6 +1435,56 @@ pub fn main(init: std.process.Init) !void {
     }
     util.out("\n  C7 unabsorbed findings: {d}\n", .{c7});
 
+    // ── C8 mutation-adequacy promotion gate ──────────────────────────────
+    util.out("\n== C8  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==\n", .{});
+    util.out("DIRECTION Amendment 2 edge 5: a claim about a kernel function may not be\n", .{});
+    util.out("promoted past CLAIMED until the battery kills the mutants covering it.\n", .{});
+    util.out("Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json\n\n", .{});
+    var c8_violations: usize = 0;
+    var c8_kernel_claims: usize = 0;
+    var c8_unkilled_claims: usize = 0;
+    const KILL_MATRIX_PATH = "docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json";
+    const km_json = Io.Dir.cwd().readFileAlloc(io, KILL_MATRIX_PATH, gpa, .unlimited) catch |e| blk: {
+        util.note("C8: cannot read {s}: {s} — check is blind\n", .{ KILL_MATRIX_PATH, @errorName(e) });
+        break :blk @as([]const u8, &[_]u8{});
+    };
+    var km = try parseKillMatrix(gpa, km_json);
+    defer km.deinit(gpa);
+    c8_kernel_claims = km.claims.items.len;
+    for (km.claims.items) |kc| {
+        if (kc.all_killed) continue;
+        c8_unkilled_claims += 1;
+        const slot = reg.by_id.get(kc.claim_id) orelse continue;
+        const rr = reg.rows.items[slot];
+        if (rr.status != .proven) continue;
+        c8_violations += 1;
+        util.out("  VIOLATION  `{s}` — PROVEN but mutants unkilled:", .{kc.claim_id});
+        var first = true;
+        for (kc.mutants.items) |m| {
+            if (KillMatrix.isKilled(m.verdict)) continue;
+            if (!first) util.out(",", .{});
+            util.out(" {s} ({s})", .{ m.id, m.verdict });
+            first = false;
+        }
+        util.out("\n             function: {s} in {s}\n", .{ kc.function, kc.source_file });
+    }
+    if (c8_violations == 0) util.out("  (none)\n", .{});
+    util.out("\n  kernel-function claims in kill matrix: {d}\n", .{c8_kernel_claims});
+    util.out("  with at least one unkilled mutant:    {d}\n", .{c8_unkilled_claims});
+    util.out("  at PROVEN (violation):                {d}\n", .{c8_violations});
+    if (c8_violations > 0) {
+        util.out("\n  To become gating: all kernel-function claims at PROVEN must have every\n", .{});
+        util.out("  covering mutant killed. With the current {d}/10 kill rate this is not\n", .{3});
+        util.out("  achievable — the gate can ship only after Phase 2 key-agreement (G1/G3)\n", .{});
+        util.out("  and closure checks (G2) close the 7 surviving gaps.\n", .{});
+    } else {
+        util.out("\n  The count is 0 — no PROVEN kernel-function claims with unkilled mutants.\n", .{});
+        util.out("  T273's two kernel claims (GLOBAL.AXIOM-BASICKO, GLOBAL.AXIOM-STATE) are\n", .{});
+        util.out("  correctly held at CLAIMED, not PROVEN. When they are ready for promotion\n", .{});
+        util.out("  the G1/G3 gap must close first (key-agreement, Phase 2).\n", .{});
+    }
+    util.out("\n  C8 mutation-adequacy violations: {d}\n", .{c8_violations});
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -1752,6 +1839,43 @@ pub fn main(init: std.process.Init) !void {
     util.out("                silence — a silent skip is how a real finding gets lost … {s}\n", .{if (synth_c7_disposition_ok) "CAUGHT (still reported)" else "BROKEN"});
     if (!synth_c7_disposition_ok) cal_ok = false;
 
+    // C8 calibration — synthetic kill matrix + synthetic register rows.
+    // Seeded known-bad: GLOBAL.CAL-KERNEL-UNKILLED at PROVEN with unkilled mutant → must be caught.
+    // Null known-good:   GLOBAL.CAL-KERNEL-KILLED  at PROVEN with all mutants killed → must be silent.
+    // CLAIMED silence:   GLOBAL.CAL-KERNEL-CLAIMED at CLAIMED with unkilled mutant → must be silent.
+    var synth_c8_ok = false;
+    {
+        const synth_ext_c8 = try synthRegister(gpa, CAL_SYNTHETIC_C8_EXTRA);
+        var sreg_c8 = try parseRegister(gpa, synth_ext_c8);
+        var skm = try parseKillMatrix(gpa, CAL_SYNTHETIC_KILL_MATRIX);
+        defer skm.deinit(gpa);
+        var saw_unkilled = false;
+        var saw_killed_silent = true;
+        var saw_claimed_silent = true;
+        for (skm.claims.items) |kc| {
+            if (kc.all_killed) continue;
+            const slot = sreg_c8.by_id.get(kc.claim_id) orelse continue;
+            const rr = sreg_c8.rows.items[slot];
+            if (std.mem.eql(u8, kc.claim_id, "GLOBAL.CAL-KERNEL-UNKILLED")) {
+                if (rr.status == .proven) saw_unkilled = true;
+            }
+            if (std.mem.eql(u8, kc.claim_id, "GLOBAL.CAL-KERNEL-KILLED")) {
+                if (rr.status == .proven) saw_killed_silent = false;
+            }
+            if (std.mem.eql(u8, kc.claim_id, "GLOBAL.CAL-KERNEL-CLAIMED")) {
+                if (rr.status == .claimed) saw_claimed_silent = false;
+            }
+        }
+        synth_c8_ok = saw_unkilled and saw_killed_silent and saw_claimed_silent;
+    }
+    util.out("  known-bad 11 (C8, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-UNKILLED`\n", .{});
+    util.out("                with a survived mutant must be caught … {s}\n", .{if (synth_c8_ok) "CAUGHT" else "BROKEN"});
+    util.out("  known-good 9 (C8, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-KILLED`\n", .{});
+    util.out("                with all mutants killed must be silent … {s}\n", .{if (synth_c8_ok) "SILENT (correct)" else "BROKEN"});
+    util.out("  known-good 9b (C8, synthetic): CLAIMED kernel claim `GLOBAL.CAL-KERNEL-CLAIMED`\n", .{});
+    util.out("                with unkilled mutant must be silent (only PROVEN triggers) … {s}\n", .{if (synth_c8_ok) "SILENT (correct)" else "BROKEN"});
+    if (!synth_c8_ok) cal_ok = false;
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -1766,6 +1890,7 @@ pub fn main(init: std.process.Init) !void {
     util.out("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
     util.out("  C7 unabsorbed findings         {d}   (FAILS)\n", .{c7});
     util.out("  C7 non-conforming files        {d}   (reported)\n", .{c7_results.nonconforming});
+    util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)\n", .{c8_violations});
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
@@ -2327,6 +2452,94 @@ fn negationAlarms(gpa: Allocator, reg: *Register) !std.ArrayList(Alarm) {
 /// Breadth-first over `derives-from` edges; returns the shortest chain from
 /// row `start` to a FALSE ancestor, or null. Cycles are real in this graph
 /// (GLOBAL.C4 ⟵d GLOBAL.P3 ⟵d GLOBAL.C4), so the visited set is load-bearing.
+// ── C8 mutation-adequacy types ──────────────────────────────────────────
+
+/// A kill-matrix entry: one kernel-function claim and its mutants.
+const KillEntry = struct {
+    claim_id: []const u8,
+    function: []const u8,
+    source_file: []const u8,
+    mutants: std.ArrayList(KillMutant),
+    all_killed: bool,
+};
+
+const KillMutant = struct {
+    id: []const u8,
+    verdict: []const u8,
+};
+
+const KillMatrix = struct {
+    claims: std.ArrayList(KillEntry),
+    by_id: std.StringHashMap(usize),
+
+    fn deinit(self: *KillMatrix, gpa: Allocator) void {
+        for (self.claims.items) |*c| c.mutants.deinit(gpa);
+        self.claims.deinit(gpa);
+        self.by_id.deinit();
+    }
+
+    fn isKilled(verdict: []const u8) bool {
+        return std.mem.eql(u8, verdict, "killed");
+    }
+};
+
+/// Parse the kill-matrix JSON. The kill matrix maps claim IDs to the
+/// mutants covering that claim's kernel function. A claim with all mutants
+/// killed has all_killed=true.
+fn parseKillMatrix(gpa: Allocator, json: []const u8) !KillMatrix {
+    var km: KillMatrix = .{
+        .claims = .empty,
+        .by_id = std.StringHashMap(usize).init(gpa),
+    };
+    var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch |e| {
+        util.note("C8: kill matrix is not valid JSON ({s}) — check is blind\n", .{@errorName(e)});
+        return km;
+    };
+    defer parsed.deinit();
+    if (parsed.value != .object) return km;
+    const claims_arr = parsed.value.object.get("claims") orelse return km;
+    if (claims_arr != .array) return km;
+    for (claims_arr.array.items) |cv| {
+        if (cv != .object) continue;
+        const obj = cv.object;
+        const cid_val = obj.get("claim_id") orelse continue;
+        if (cid_val != .string) continue;
+        const cid = try gpa.dupe(u8, cid_val.string);
+        const fn_val = obj.get("function") orelse null;
+        const func = if (fn_val != null and fn_val.? == .string) try gpa.dupe(u8, fn_val.?.string) else try gpa.dupe(u8, "-");
+        const sf_val = obj.get("source_file") orelse null;
+        const sf = if (sf_val != null and sf_val.? == .string) try gpa.dupe(u8, sf_val.?.string) else try gpa.dupe(u8, "-");
+
+        var all_killed = true;
+        var mutants: std.ArrayList(KillMutant) = .empty;
+        if (obj.get("mutants")) |mv| {
+            if (mv == .array) {
+                for (mv.array.items) |m| {
+                    if (m != .object) continue;
+                    const mo = m.object;
+                    const mid_val = mo.get("id") orelse continue;
+                    if (mid_val != .string) continue;
+                    const mid = try gpa.dupe(u8, mid_val.string);
+                    const verd_val = mo.get("verdict") orelse continue;
+                    if (verd_val != .string) continue;
+                    const verd = try gpa.dupe(u8, verd_val.string);
+                    if (!KillMatrix.isKilled(verd)) all_killed = false;
+                    try mutants.append(gpa, .{ .id = mid, .verdict = verd });
+                }
+            }
+        }
+        try km.claims.append(gpa, .{
+            .claim_id = cid,
+            .function = func,
+            .source_file = sf,
+            .mutants = mutants,
+            .all_killed = all_killed,
+        });
+        try km.by_id.put(cid, km.claims.items.len - 1);
+    }
+    return km;
+}
+
 fn shortestFalseChain(gpa: Allocator, reg: *Register, start: usize) !?std.ArrayList(usize) {
     var parent = std.AutoHashMap(usize, usize).init(gpa);
     defer parent.deinit();

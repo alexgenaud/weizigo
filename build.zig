@@ -218,6 +218,13 @@ pub fn build(b: *std.Build) void {
     standing_regression.cwd = b.path(".");
     test_step.dependOn(&standing_regression.step);
 
+    // ── claimlint promotion-gate controls (T308) ─────────────────
+    // C8 mutation-adequacy gate: verifies no kernel-function claim has
+    // been promoted past CLAIMED without the battery killing its mutants.
+    const promotion_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-promotion.sh" });
+    promotion_regression.cwd = b.path(".");
+    test_step.dependOn(&promotion_regression.step);
+
     // ── claimlint redirect-output controls (T307) ──────────────────
     // Null control (pipe vs file redirect byte-identical, SUMMARY
     // present) and seeded control (recorded 491-byte fragment from the

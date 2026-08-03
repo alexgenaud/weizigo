@@ -1,0 +1,42 @@
+{
+  "source": "docs/epic-01-markovian/sprints/verify-battery/pass1/mutants.md",
+  "date": "2026-08-03",
+  "total_mutants": 10,
+  "mutants_killed": 3,
+  "claims": [
+    {
+      "claim_id": "GLOBAL.AXIOM-BASICKO",
+      "function": "koAfterCapture",
+      "source_file": "src/rules.zig",
+      "mutants": [
+        {"id": "M3", "description": "T265: ko set too broadly — KO_SENSITIVE without liberties==1 && friendly==0 test", "verdict": "survived", "gap": "G1/G3"},
+        {"id": "M4", "description": "ACCEPT-KOKEY: second unfixed ko copy in the acceptance harness", "verdict": "survived", "gap": "G1/G3"}
+      ]
+    },
+    {
+      "claim_id": "GLOBAL.AXIOM-KOSTATE",
+      "function": "koAfterCapture",
+      "source_file": "src/rules.zig",
+      "mutants": [
+        {"id": "M3", "description": "T265: ko set too broadly — KO_SENSITIVE without liberties==1 && friendly==0 test", "verdict": "survived", "gap": "G1/G3"},
+        {"id": "M4", "description": "ACCEPT-KOKEY: second unfixed ko copy in the acceptance harness", "verdict": "survived", "gap": "G1/G3"}
+      ]
+    },
+    {
+      "claim_id": "GLOBAL.AXIOM-STATE",
+      "function": "stateKey",
+      "source_file": "src/rules.zig",
+      "mutants": [
+        {"id": "M1", "description": "T178: colex vs combinatorial rank — one side at wrong indices", "verdict": "survived", "gap": "G1/G3"},
+        {"id": "M2", "description": "T193: passes bit dropped — passes=1 encoded as passes=0", "verdict": "survived", "gap": "G1/G3"}
+      ]
+    }
+  ],
+  "meta": {
+    "note": "A claim appearing in this file is a kernel-function claim. Any such claim at PROVEN status with at least one unkilled mutant is a mutation-adequacy violation. This matrix is single-sourced — the claimlint C8 check and the verify-battery mutant runner read the same file.",
+    "gaps": {
+      "G1/G3": "Z-R-STATE / Z-STATE-KEY — key agreement (consumer vs producer state encoding). Runnable after Phase 2 kernel lands.",
+      "G2": "Z-STATE-REACH — closure C-A1/C-A2. Runnable after Phase 2 kernel move generator."
+    }
+  }
+}
