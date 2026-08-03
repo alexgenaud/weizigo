@@ -204,6 +204,20 @@ pub fn build(b: *std.Build) void {
     subagent_prompt_regression.cwd = b.path(".");
     test_step.dependOn(&subagent_prompt_regression.step);
 
+    // ── T322: wire remaining orphaned regression scripts ───────────────
+    // Three scripts tested; two pass cleanly.  managent-integrity fails
+    // (checks deployed bin/ vs zig-out/ staleness — a pre-condition that
+    // zig build test does not satisfy).  Four others deferred:
+    // depth-enforcement (FAILURES), git-commit-mine (writes live tasks.json),
+    // git-commit-mine-hook (FAILURES), T227 (TIMEOUT >120s).
+    const orphaned_regression_1 = b.addSystemCommand(&.{ "sh", "tools/regression-managent-done-git.sh" });
+    orphaned_regression_1.cwd = b.path(".");
+    test_step.dependOn(&orphaned_regression_1.step);
+
+    const orphaned_regression_2 = b.addSystemCommand(&.{ "sh", "tools/regression-managent-memory-safety.sh" });
+    orphaned_regression_2.cwd = b.path(".");
+    test_step.dependOn(&orphaned_regression_2.step);
+
     // ── resume-surface controls (T286) ───────────────────────────────
     // Null control (empty kanban + clean tree says NOTHING IN FLIGHT) and
     // seeded control (in_progress task + held file both appear). SKIPs

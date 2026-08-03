@@ -1,0 +1,30 @@
+{
+  "task_id": "T322",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-pro",
+  "claims": ["CODE.REGRESSION-WIRING"],
+  "new_rows": [],
+  "verdict": "pass-with-findings",
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "must",
+      "what": "Wired 2 orphaned regression scripts into build.zig: regression-managent-done-git.sh (git deliverable guard controls) and regression-managent-memory-safety.sh (T122 stdout/stderr splitting controls). Both pass, use temp stores, and add <1s to suite time.",
+      "files": ["build.zig"]
+    },
+    {
+      "id": "F2",
+      "severity": "must",
+      "what": "5 scripts remain unwired with stated reasons: (1) depth-enforcement — FAILURES on ruling text match; (2) git-commit-mine — writes live docs/infra/managent/tasks.json (hygiene violation, line 190); (3) git-commit-mine-hook — FAILURES on pre-commit regression; (4) managent-integrity — checks deployed bin/ vs zig-out/ staleness, a pre-condition zig build test does not satisfy; (5) T227 — TIMEOUT >120s. Each needs a fix row.",
+      "files": []
+    },
+    {
+      "id": "F3",
+      "severity": "observation",
+      "what": "Suite wall time with added scripts: 41.0s (unchanged from ~40s baseline). The two added scripts combined add <1s. The remaining 5 would likely add 3-10s if fixed."
+    }
+  ],
+  "gaps": [
+    "5 scripts still unwired — each needs its own fix row (or a combined fix-them-all row). The managent-integrity staleness check is the highest-value gap (16 checks)."
+  ]
+}
