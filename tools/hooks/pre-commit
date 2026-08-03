@@ -114,12 +114,17 @@ EOF
 fi
 
 # ── run claimlint ──────────────────────────────────────────────────────
+# The exit code is captured WITHOUT `|| true` (which would swallow it and make
+# the exit-3 parse-error check below dead code — a gate that cannot fire is
+# worse than none). set -e is suspended for the capture only.
+set +e
 if [ -n "$CLAIMS_PATH" ]; then
-    OUTPUT=$("$CLAIMLINT_BIN" "$CLAIMS_PATH" 2>&1) || true
+    OUTPUT=$("$CLAIMLINT_BIN" "$CLAIMS_PATH" 2>&1)
 else
-    OUTPUT=$("$CLAIMLINT_BIN" 2>&1) || true
+    OUTPUT=$("$CLAIMLINT_BIN" 2>&1)
 fi
 CLAIMLINT_EXIT=$?
+set -e
 
 # ── claimlint cannot parse the register → block ────────────────────────
 if [ "$CLAIMLINT_EXIT" -eq 3 ]; then
@@ -146,6 +151,7 @@ CURRENT_C1a=$(echo "$SUMMARY_LINE" | awk '{print $6}')
 CURRENT_C1b=$(echo "$SUMMARY_LINE" | awk '{print $8}')
 CURRENT_C2=$(echo "$OUTPUT" | grep '^  C2 dangling evidence paths' | grep 'FAILS' | awk '{print $5}')
 CURRENT_C6=$(echo "$OUTPUT" | grep '^  C6 cite-tag mismatches' | grep 'FAILS' | awk '{print $4}')
+CURRENT_C9=$(echo "$OUTPUT" | grep '^  C9 tree-mapping violations' | grep 'FAILS' | awk '{print $4}')
 
 # ── read floor ─────────────────────────────────────────────────────────
 # Uses python3 for reliable JSON parsing (available on all dev hosts)
@@ -157,9 +163,10 @@ FLOOR_C1a=$(read_floor_field "C1a")
 FLOOR_C1b=$(read_floor_field "C1b")
 FLOOR_C2=$(read_floor_field "C2")
 FLOOR_C6=$(read_floor_field "C6")
+FLOOR_C9=$(read_floor_field "C9")
 
 # ── guard: floor file parseable ────────────────────────────────────────
-for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C6"; do
+for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C6" "$FLOOR_C9"; do
     if [ "$val" = "PARSE_ERROR" ]; then
         echo "pre-commit: cannot parse $FLOOR_FILE — blocking commit"
         exit 1
@@ -187,7 +194,8 @@ regression "C1a" "$CURRENT_C1a" "$FLOOR_C1a"
 regression "C1b" "$CURRENT_C1b" "$FLOOR_C1b"
 regression "C2"  "$CURRENT_C2"  "$FLOOR_C2"
 regression "C6"  "$CURRENT_C6"  "$FLOOR_C6"
+regression "C9"  "$CURRENT_C9"  "$FLOOR_C9"
 
 # ── all clear ──────────────────────────────────────────────────────────
-echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C6=$CURRENT_C6 — ≤ floor, allowed"
+echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C6=$CURRENT_C6 C9=$CURRENT_C9 — ≤ floor, allowed"
 exit 0

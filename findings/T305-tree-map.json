@@ -1,0 +1,1302 @@
+{
+  "task_id": "T305",
+  "date": "2026-08-03",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "tree_map": {
+    "GLOBAL.S1": {
+      "tree": "Z-STATE-LEGAL",
+      "note": "colex bijection; 3.3 Z-STATE-LEGAL cites S1; also D1 under Z-R-STATE"
+    },
+    "4x4.S1": {
+      "tree": "Z-STATE-LEGAL",
+      "note": "round-trip through 4x4"
+    },
+    "4x3.S1": {
+      "tree": "Z-STATE-LEGAL",
+      "note": "inherited structural proof"
+    },
+    "GLOBAL.S2": {
+      "tree": "Z-R-SCORE",
+      "note": "3.2 Z-R-SCORE C2 delegates to Benson"
+    },
+    "3x3.S2-impl": {
+      "tree": "Z-R-SCORE",
+      "note": "Benson implementation falsification-confirmed"
+    },
+    "4x4.S2-impl": {
+      "tree": "Z-R-SCORE",
+      "note": "UNTESTED — size-specific Benson impl"
+    },
+    "4x3.S2-impl": {
+      "tree": "Z-R-SCORE",
+      "note": "UNTESTED — size-specific Benson impl"
+    },
+    "4x3.S2": {
+      "tree": "Z-R-SCORE",
+      "note": "Benson theorem at 4x3"
+    },
+    "GLOBAL.S3a": {
+      "tree": "Z-STATE-LEGAL",
+      "note": "move/capture/suicide kernel + legal counts; 3.3 cites S3a"
+    },
+    "4x4.S3a": {
+      "tree": "Z-STATE-LEGAL",
+      "note": "legal count 24,318,165 = OEIS A094777"
+    },
+    "4x3.S3a": {
+      "tree": "Z-STATE-LEGAL",
+      "note": "legal count 321,689, project ground truth"
+    },
+    "GLOBAL.S3b": {
+      "tree": "RETIRED",
+      "note": "ko-legality under PSK history — evidences the k=1 choice, not a requirement under R (the k=1 ko legality is B1 → Z-R-MOVE)"
+    },
+    "4x4.S3b": {
+      "tree": "RETIRED",
+      "note": "PSK-history ko-legality at 4x4"
+    },
+    "4x3.S3b": {
+      "tree": "RETIRED",
+      "note": "PSK-history ko-legality at 4x3"
+    },
+    "GLOBAL.S4": {
+      "tree": "Z-R-SCORE",
+      "note": "area scoring implementation; 3.2 C2 → Z-R-SCORE"
+    },
+    "4x4.S4": {
+      "tree": "Z-R-SCORE",
+      "note": "UNTESTED at 4x4"
+    },
+    "4x3.S4": {
+      "tree": "Z-R-SCORE",
+      "note": "UNTESTED at 4x3"
+    },
+    "CODE.S4-XVAL": {
+      "tree": "Z-R-SCORE",
+      "note": "cross-validation measurement of rules.zig scorer"
+    },
+    "GLOBAL.FP1": {
+      "tree": "Z-CONVERGE-MONO",
+      "note": "Knaster–Tarski monotone map; 3.4 Z-CONVERGE-MONO cites FP1"
+    },
+    "2x2.B1": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "true least fixpoint at 2x2; also bears on MONO via monotone-from-−N"
+    },
+    "3x2.B1": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "true least fixpoint at 3x2"
+    },
+    "3x3.B1": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "true least fixpoint at 3x3"
+    },
+    "GLOBAL.B1-MULTIFIX": {
+      "tree": "Z-CONVERGE-MONO",
+      "note": "multi-fixpointedness measurement"
+    },
+    "GLOBAL.B1-AUDIT": {
+      "tree": "Z-CONVERGE-MONO",
+      "note": "re-converge check is not a least-ness witness"
+    },
+    "4x4.FP1": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "three-check acceptance"
+    },
+    "4x4.FP1-C1": {
+      "tree": "Z-CONVERGE-SEED",
+      "note": "seeded from −N/+N, per build logs — UNTESTED"
+    },
+    "4x4.FP1-C2": {
+      "tree": "Z-CONVERGE-FINITE",
+      "note": "zero-change final sweeps — UNTESTED"
+    },
+    "4x4.FP1-C3": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "V0/V1 Bellman identities — PASSES on sample"
+    },
+    "4x3.FP1": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "CLAIMED"
+    },
+    "GLOBAL.FP2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: L==H history-independence explicitly NOT a theorem"
+    },
+    "GLOBAL.FP2-bounded": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: FALSE-AS-SCOPED at 3x2"
+    },
+    "GLOBAL.FP2-general": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: INTRACTABLE beyond finite ban sets"
+    },
+    "GLOBAL.FP3": {
+      "tree": "Z-CONVERGE-FINITE",
+      "note": "3.4 Z-CONVERGE-FINITE cites FP3"
+    },
+    "4x4.FP3": {
+      "tree": "Z-CONVERGE-FINITE",
+      "note": "UNTESTED"
+    },
+    "4x3.FP3": {
+      "tree": "Z-CONVERGE-FINITE",
+      "note": "PROVEN"
+    },
+    "GLOBAL.CERTCORE": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: certified-core real-game claim FALSE-AS-SCOPED"
+    },
+    "GLOBAL.ADR0009-HONESTY": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: certification argument's unproven step"
+    },
+    "GLOBAL.INVSYM": {
+      "tree": "Z-SYM",
+      "note": "3.7 Z-SYM cites INVSYM; also C4 under Z-R-SIGN"
+    },
+    "GLOBAL.ADR0020-LH-CORRECT": {
+      "tree": "Z-TABLE",
+      "note": "2x2 L<H gaps are the correct bracket output (E3 semantics)"
+    },
+    "GLOBAL.ADR0020-VERIFY-PASS": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "defines ADR-0020 verification = 0 Bellman violations + fixture agreement"
+    },
+    "GLOBAL.C1": {
+      "tree": "Z",
+      "note": "definition of fresh-start correctness — the theorem's core definition"
+    },
+    "2x2.C1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "fresh-start values verified vs exact solver"
+    },
+    "3x2.C1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "fresh-start values verified vs exact solver"
+    },
+    "3x3.C1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "CLAIMED, finisher-dependent"
+    },
+    "4x3.C1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "CLAIMED, finisher-dependent"
+    },
+    "4x4.C1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "UNTESTED — 'supported, not proven'"
+    },
+    "GLOBAL.C2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: single-score history-independence FALSE-AS-SCOPED at 3x2"
+    },
+    "2x2.T12": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: C2-pilot at 2x2 tautological (no cycles)"
+    },
+    "3x2.T13": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1: C2 falsified at 3x2 — 154/508 L==H slots history-sensitive"
+    },
+    "3x3.C2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1 at 3x3 — UNTESTED"
+    },
+    "4x3.C2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1 at 4x3 — UNTESTED"
+    },
+    "4x4.C2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1 at 4x4 — UNTESTED (status conflict §6-D3)"
+    },
+    "GLOBAL.C3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: bracket bounds real-game — FALSE-AS-SCOPED at 3x3"
+    },
+    "2x2.C3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: leak-free measurement at 2x2"
+    },
+    "3x2.C3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: leak-free measurement at 3x2"
+    },
+    "3x3.C3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: C3 falsified at 3x3 (12-pt leak)"
+    },
+    "4x3.C3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2 at 4x3 — UNTESTED"
+    },
+    "4x4.C3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2 at 4x4 — UNTESTED (status conflict §6-D2)"
+    },
+    "GLOBAL.C4": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: fresh-start == real-game FALSE-AS-SCOPED"
+    },
+    "GLOBAL.LEAK": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: the fresh-start player leaks on PSK histories"
+    },
+    "GLOBAL.E1": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1/NC2 methodology: E1 confounded, diagnoses not falsifies"
+    },
+    "GLOBAL.BRUTE-ALIASING": {
+      "tree": "Z-AUDIT",
+      "note": "checker defect invalidated brute-force corroboration — audit-instrument doctrine"
+    },
+    "3x3.E3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: the 3x3 leaking game is a valid game"
+    },
+    "GLOBAL.E2-SANITY": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: E2 harness wiring verified"
+    },
+    "GLOBAL.E2-POLICY": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: range-aware policy correctness"
+    },
+    "GLOBAL.E2-VERDICT": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: structural-reason hypothesis for the C3 falsification"
+    },
+    "3x3.E2-RUN1": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: 25/4000 leak measurement"
+    },
+    "3x3.E2-RUN2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: 50/8000 replication"
+    },
+    "GLOBAL.P1": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2-family: an anchor match does not attest real-game correctness"
+    },
+    "GLOBAL.ADR0005-CACHE": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "the refuted ko_ref ≥ d memo rule — why old artifacts are not faithful"
+    },
+    "GLOBAL.ADR0008-HOLE": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "retraction of the cacheability 'theorem'"
+    },
+    "GLOBAL.F1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "writes-on finisher unsound — finisher-built tables not faithful"
+    },
+    "3x2.F1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "45/378 minimax-identity violations, writes-off gives 0"
+    },
+    "4x4.F1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "inherited unsoundness at 4x4"
+    },
+    "4x3.F1": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "inherited unsoundness at 4x3"
+    },
+    "GLOBAL.F2": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "bracket-guided finisher sound — orphaned CLAIMED"
+    },
+    "GLOBAL.ADR0010-CUT": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "bracket cutoffs — finisher soundness premise"
+    },
+    "GLOBAL.ADR0010-SOUND": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "ADR-0010 bracket claim closed empirically"
+    },
+    "2x2.F2": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "finisher agreement at 2x2"
+    },
+    "3x3.F2": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "finisher completes all 622 reps at 3x3"
+    },
+    "4x3.F2": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "UNTESTED"
+    },
+    "4x4.F2": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "UNTESTED — needs writes-off regen"
+    },
+    "GLOBAL.F3": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "writes-off finisher sound — rests on three invariants"
+    },
+    "3x2.F3": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "writes-off self-consistent at 3x2"
+    },
+    "4x4.F3": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "UNTESTED at 4x4"
+    },
+    "GLOBAL.F4": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "KM dependency-guarded memo restores sound reuse"
+    },
+    "3x2.F4": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "deps mode validated at 3x2"
+    },
+    "3x3.F4": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "deps mode validated at 3x3"
+    },
+    "4x3.F4": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "deps mode validated at 4x3"
+    },
+    "4x4.F4": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "UNTESTED at 4x4"
+    },
+    "GLOBAL.F4-COST": {
+      "tree": "RETIRED",
+      "note": "memory-for-reuse tradeoff — 5xN scaling projection, out of Z's goban scope"
+    },
+    "GLOBAL.AUDITOR": {
+      "tree": "Z-AUDIT",
+      "note": "3.7 Z-AUDIT; also NC5 (gate before 'verified')"
+    },
+    "GLOBAL.MEMO-XROOT": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "cross-root memo reuse unsound — finisher/memo soundness"
+    },
+    "GLOBAL.ADR0006-EYE": {
+      "tree": "Z-AUDIT",
+      "note": "eye-prune weak dominance — soundness of the forward cross-check instruments"
+    },
+    "GLOBAL.ADR0006-PRED": {
+      "tree": "Z-AUDIT",
+      "note": "eye-prune predicate validation (17/17 fixtures)"
+    },
+    "GLOBAL.ADR0006-LEMMAS": {
+      "tree": "Z-AUDIT",
+      "note": "six eye-prune premises verified per goban"
+    },
+    "GLOBAL.ADR0006-TEST": {
+      "tree": "Z-AUDIT",
+      "note": "eye-pruned forward search vs unpruned retrograde agreement"
+    },
+    "GLOBAL.ADR0006-PRUNEALL": {
+      "tree": "Z-AUDIT",
+      "note": "prune-all positions valued identically"
+    },
+    "GLOBAL.ADR0009-NOEYE": {
+      "tree": "Z-COMPLETE-ENUM",
+      "note": "retrograde uses the full legal move set — coverage total"
+    },
+    "GLOBAL.ADR0007-TENSION": {
+      "tree": "Z-COMPLETE-ENUM",
+      "note": "eye-prune-vs-coverage tension resolved by ADR-0009"
+    },
+    "GLOBAL.ADR0004-TERM": {
+      "tree": "Z-R-SCORE",
+      "note": "Benson-terminal leaf scores are the true game score"
+    },
+    "GLOBAL.ADR0004-P1": {
+      "tree": "RETIRED",
+      "note": "superko-era finiteness rationale; the k=1 game is finite by construction (D1)"
+    },
+    "GLOBAL.ADR0005-SUBBOARD": {
+      "tree": "RETIRED",
+      "note": "search-method foreclosure (full-goban only); the state IS the full goban by D1"
+    },
+    "GLOBAL.ADR0005-DBLPASS": {
+      "tree": "Z-R-SCORE",
+      "note": "area score exact at double pass (Tromp–Taylor)"
+    },
+    "GLOBAL.ADR0005-PASS": {
+      "tree": "Z-R-MOVE",
+      "note": "pass always legal (A5) — the 'no children' case is subsumed"
+    },
+    "GLOBAL.ADR0003-AREA": {
+      "tree": "Z-R-SCORE",
+      "note": "area score a pure function of the terminal snapshot"
+    },
+    "GLOBAL.P2": {
+      "tree": "Z-AUDIT",
+      "note": "symmetry PASS necessary-not-sufficient — validation doctrine"
+    },
+    "GLOBAL.P3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: the fresh-start player does not play the real-game score"
+    },
+    "4x4.P3": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: 8–16% leak measurement"
+    },
+    "GLOBAL.T06": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: arena baseline leak band 8–18%"
+    },
+    "4x4.B39": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: 45.3% leak — superseded measurement artifact"
+    },
+    "4x4.B43": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: 3.4% clean leak with UNDEF guard"
+    },
+    "4x4.B43-DIV": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: 476 real divergence events survive the guard"
+    },
+    "4x4.M5": {
+      "tree": "RETIRED",
+      "note": "old-artifact root-bracket/player diagnostic (16/19 plies flagged)"
+    },
+    "4x4.KO-RULE-NULL": {
+      "tree": "RETIRED",
+      "note": "PSK binding rate in two games — evidences the k=1 choice"
+    },
+    "4x4.GTP-DEFECT": {
+      "tree": "RETIRED",
+      "note": "player move rule undefined at 4x4 — a consumer defect"
+    },
+    "4x4.GREEDY-BIAS": {
+      "tree": "RETIRED",
+      "note": "greedy extremum bias — player-side"
+    },
+    "4x4.REGR-SYM": {
+      "tree": "RETIRED",
+      "note": "regression games identical up to mirror — player diagnostics"
+    },
+    "4x4.REGR-CLIFF": {
+      "tree": "RETIRED",
+      "note": "ply-16 collapse — old-artifact/player diagnostic"
+    },
+    "CODE.UNDEF": {
+      "tree": "RETIRED",
+      "note": "UNDEF sentinel convention for incomplete checkpoint artifacts; the k=1 table is complete by construction"
+    },
+    "4x4.B16-GAME": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC4: in-the-wild real-game ≠ fresh-start (GHI divergence)"
+    },
+    "4x4.HISTPERF-CHEAP": {
+      "tree": "RETIRED",
+      "note": "play-time history-perfect search feasibility — player-side"
+    },
+    "GLOBAL.R1": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "2x2.R1": {
+      "tree": "RETIRED",
+      "note": "118,475,182 ban-set states"
+    },
+    "3x2.R1": {
+      "tree": "RETIRED",
+      "note": "116,114,272 states"
+    },
+    "4x4.R1": {
+      "tree": "RETIRED",
+      "note": "structural; measured at 2x2"
+    },
+    "GLOBAL.R2": {
+      "tree": "RETIRED",
+      "note": "score-on-cycle ≡ PSK intractability"
+    },
+    "GLOBAL.R3": {
+      "tree": "RETIRED",
+      "note": "kill-X% foreclosure"
+    },
+    "4x4.R3": {
+      "tree": "RETIRED",
+      "note": "kill-X% census"
+    },
+    "2x2.R3": {
+      "tree": "RETIRED",
+      "note": "kill-50 at 2x2"
+    },
+    "3x2.R3": {
+      "tree": "RETIRED",
+      "note": "kill-50 at 3x2"
+    },
+    "GLOBAL.RPLY": {
+      "tree": "RETIRED",
+      "note": "exact N-ply superko sweep intractable"
+    },
+    "GLOBAL.RPLY-TRAP": {
+      "tree": "RETIRED",
+      "note": "bounded-history score-on-cycle trap"
+    },
+    "GLOBAL.RPLY-RETRO": {
+      "tree": "RETIRED",
+      "note": "bounded-history retrograde route"
+    },
+    "GLOBAL.RNPLY-FORBID": {
+      "tree": "RETIRED",
+      "note": "forbid-only N-ply does not terminate"
+    },
+    "GLOBAL.MIGOS-RULE": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "licenses the MIGOS basic-ko anchor as external attestation of the k=1 fresh-start values"
+    },
+    "GLOBAL.ANCHOR-DELTA": {
+      "tree": "RETIRED",
+      "note": "PSK-era anchor reconciliation; superseded by the k=1 anchor agreements (BASICKO-TIE rows)"
+    },
+    "GLOBAL.REFRAME": {
+      "tree": "Z",
+      "note": "adopted deliverable scope — the fresh-start-only framing that Z's §1.2 NCs encode"
+    },
+    "GLOBAL.UD-1": {
+      "tree": "RETIRED",
+      "note": "user decision record"
+    },
+    "GLOBAL.UD-2": {
+      "tree": "RETIRED",
+      "note": "user decision record"
+    },
+    "GLOBAL.UD-3": {
+      "tree": "RETIRED",
+      "note": "user decision record"
+    },
+    "GLOBAL.PSK-GAP": {
+      "tree": "RETIRED",
+      "note": "transitional statement about the old PSK artifact"
+    },
+    "GLOBAL.Z": {
+      "tree": "Z",
+      "note": "the theorem"
+    },
+    "GLOBAL.AXIOM-GEOM": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 A1 under Z-R-MOVE"
+    },
+    "GLOBAL.AXIOM-STONE": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 A2 under Z-R-MOVE"
+    },
+    "GLOBAL.AXIOM-CAPTURE": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 A3 under Z-R-MOVE"
+    },
+    "GLOBAL.AXIOM-SUICIDE": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 A4 under Z-R-MOVE"
+    },
+    "GLOBAL.AXIOM-PASS": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 A5 under Z-R-MOVE"
+    },
+    "GLOBAL.AXIOM-FORCEDPASS": {
+      "tree": "Z-R-MOVE",
+      "note": "A6 not enumerated in 3.2's A1–A5 list — tree amendment needed (finding)"
+    },
+    "GLOBAL.AXIOM-BASICKO": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 B1 under Z-R-MOVE"
+    },
+    "GLOBAL.AXIOM-KOSTATE": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 B2 under Z-R-MOVE (register dependents column says Z-R-STATE — grouping discrepancy, finding)"
+    },
+    "GLOBAL.AXIOM-KOPASS": {
+      "tree": "Z-R-MOVE",
+      "note": "3.2 B3 under Z-R-MOVE (register dependents column says Z-R-TIE — grouping discrepancy, finding)"
+    },
+    "GLOBAL.AXIOM-TERMINAL": {
+      "tree": "Z-R-SCORE",
+      "note": "3.2 C1 under Z-R-SCORE"
+    },
+    "GLOBAL.AXIOM-AREA": {
+      "tree": "Z-R-SCORE",
+      "note": "3.2 C2 under Z-R-SCORE"
+    },
+    "GLOBAL.AXIOM-TIE": {
+      "tree": "Z-R-TIE",
+      "note": "3.2 C3 under Z-R-TIE"
+    },
+    "GLOBAL.AXIOM-SCORESIGN": {
+      "tree": "Z-R-SIGN",
+      "note": "3.2 C4 under Z-R-SIGN"
+    },
+    "GLOBAL.AXIOM-STATE": {
+      "tree": "Z-R-STATE",
+      "note": "3.2 D1 under Z-R-STATE"
+    },
+    "GLOBAL.AXIOM-FRESHSTART": {
+      "tree": "Z-R-STATE",
+      "note": "3.2 D2 under Z-R-STATE"
+    },
+    "GLOBAL.AXIOM-PASSSTATE": {
+      "tree": "Z-R-STATE",
+      "note": "3.2 D3 under Z-R-STATE"
+    },
+    "GLOBAL.AXIOM-BELLMAN": {
+      "tree": "Z-CONVERGE",
+      "note": "E1 defines Φ — the operator Z-CONVERGE asserts converges; E-axioms not placed in 3.2 (finding)"
+    },
+    "GLOBAL.AXIOM-LH": {
+      "tree": "Z-CONVERGE",
+      "note": "E2 defines the fixpoints and seeds"
+    },
+    "GLOBAL.AXIOM-BRACKET": {
+      "tree": "Z-TABLE",
+      "note": "E3 defines the bracket semantics of stored values"
+    },
+    "GLOBAL.TIE-MIGOS": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "refuted tie explanation licenses the +1 anchor agreement (external attestation)"
+    },
+    "GLOBAL.FIXPOINT-VS-SEARCH": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "fixpoint (+1) agrees with MIGOS search (+1) under aligned rules"
+    },
+    "GLOBAL.AXIOM-AMEND1": {
+      "tree": "Z-R-MOVE",
+      "note": "axiom-change event for A5/B1 (and TIE-MIGOS registration)"
+    },
+    "GLOBAL.AXIOM-AMEND2": {
+      "tree": "Z-R-MOVE",
+      "note": "axiom-change event for B1's derivation"
+    },
+    "GLOBAL.CHAIN-DEF": {
+      "tree": "RETIRED",
+      "note": "chainability definition — used only by the retired crisis diagnostics"
+    },
+    "GLOBAL.CHAIN-LH": {
+      "tree": "RETIRED",
+      "note": "L==H chainability measured on old artifacts"
+    },
+    "GLOBAL.CHAIN-KO": {
+      "tree": "RETIRED",
+      "note": "ko-sensitive region not chainable — old-artifact diagnostic"
+    },
+    "GLOBAL.CHAIN-KIND": {
+      "tree": "RETIRED",
+      "note": "definitional-in-kind analysis of old-artifact violations"
+    },
+    "GLOBAL.MAXGAP": {
+      "tree": "RETIRED",
+      "note": "worst misprice = 2n regularity on old artifacts"
+    },
+    "2x2.M4": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "3x2.M4": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "3x3.M4": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "4x3.M4": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "4x4.M4": {
+      "tree": "RETIRED",
+      "note": "21.27% ko-sensitive, 4.08% misprice — the most-cited old-artifact datum"
+    },
+    "4x4.M6": {
+      "tree": "RETIRED",
+      "note": "writes-off misprice halving on old artifacts"
+    },
+    "4x4.M6-FLOOR": {
+      "tree": "RETIRED",
+      "note": "definitional floor on old artifacts"
+    },
+    "4x4.M6-EXCESS": {
+      "tree": "RETIRED",
+      "note": "the ADR-0013 excess on old artifacts"
+    },
+    "4x4.M6-SCREEN": {
+      "tree": "RETIRED",
+      "note": "misprice screen for old artifacts"
+    },
+    "4x4.WRITESOFF": {
+      "tree": "RETIRED",
+      "note": "uncommitted writes-off checkpoint state"
+    },
+    "4x4.M1": {
+      "tree": "RETIRED",
+      "note": "21.32% ko-sensitive exhaustive on the old checkpoint"
+    },
+    "4x4.KO-CENSUS": {
+      "tree": "RETIRED",
+      "note": "single-ko census of the old artifact — generation-strategy input"
+    },
+    "4x4.M2": {
+      "tree": "Z-CONVERGE-FINITE",
+      "note": "19 sweeps to fixpoint at 4x4"
+    },
+    "4x4.M3": {
+      "tree": "RETIRED",
+      "note": "finisher cost on the writes-on config — old generation"
+    },
+    "4x4.BRACKET": {
+      "tree": "RETIRED",
+      "note": "old root bracket [−6,+16]; the k=1 root bracket is in 4x4.BASICKO-TIE → Z-TABLE"
+    },
+    "4x4.SINGLE": {
+      "tree": "RETIRED",
+      "note": "old single-score fraction"
+    },
+    "4x4.TANGLE": {
+      "tree": "RETIRED",
+      "note": "old width-32 bracket count"
+    },
+    "4x4.ANCHOR": {
+      "tree": "RETIRED",
+      "note": "+2 anchor is a different game's value; superseded by the TIE-MIGOS adjudication"
+    },
+    "4x4.CYCLE-INSENS": {
+      "tree": "RETIRED",
+      "note": "cycle-insensitivity claim refuted by the +1-vs-+2 gap"
+    },
+    "4x4.VALBATTERY": {
+      "tree": "RETIRED",
+      "note": "2026-07-21 validation of the retracted COMPLETE artifact"
+    },
+    "4x4.COMPLETE-2026-07-21": {
+      "tree": "RETIRED",
+      "note": "the retracted completeness claim"
+    },
+    "4x4.PARALLEL": {
+      "tree": "RETIRED",
+      "note": "parallel checkpoint artifact"
+    },
+    "4x3.M1": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "4x3.M2": {
+      "tree": "Z-CONVERGE-FINITE",
+      "note": "17 sweeps at 4x3"
+    },
+    "4x3.M3": {
+      "tree": "RETIRED",
+      "note": "writes-on solve cost — old generation"
+    },
+    "4x3.BRACKET": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "4x3.TANGLE": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "3x3.M1": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "3x3.BRACKET": {
+      "tree": "RETIRED",
+      "note": ""
+    },
+    "3x3.ANCHOR": {
+      "tree": "RETIRED",
+      "note": "finisher-era anchor verification"
+    },
+    "GLOBAL.SWEEPS": {
+      "tree": "RETIRED",
+      "note": "sweep-growth/ko-fraction trend — a 5xN projection input"
+    },
+    "2x2.EXACT": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "history-exact ground truth for the 2x2 values"
+    },
+    "3x2.EXACT": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "history-exact ground truth for the 3x2 values"
+    },
+    "3x3.FWD-SPOT": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "forward re-solve of 105 sampled roots, 105/105 matched"
+    },
+    "GLOBAL.FWD-INTRACT": {
+      "tree": "RETIRED",
+      "note": "forward filling intractability — method rationale"
+    },
+    "GLOBAL.FIN-NEARTERM": {
+      "tree": "RETIRED",
+      "note": "plain finisher rescues near-terminal slots — finisher-era design"
+    },
+    "GLOBAL.FIN-BRACKET": {
+      "tree": "RETIRED",
+      "note": "bracket cutoffs collapse the finisher — finisher-era design"
+    },
+    "4x4.DRIVER": {
+      "tree": "RETIRED",
+      "note": "finisher driver saga — old generation design"
+    },
+    "2x2.BASICKO-TIE": {
+      "tree": "Z-TABLE",
+      "note": "fresh-start value under exactly R at 2x2; also evidences FINITE (4 sweeps) and FIX (0 failures)"
+    },
+    "3x2.BASICKO-TIE": {
+      "tree": "Z-TABLE",
+      "note": "fresh-start value under exactly R at 3x2; 10 sweeps"
+    },
+    "3x3.BASICKO-TIE": {
+      "tree": "Z-TABLE",
+      "note": "fresh-start value under exactly R at 3x3; root +9, 16 sweeps"
+    },
+    "4x4.BASICKO-TIE": {
+      "tree": "Z-TABLE",
+      "note": "fresh-start value under exactly R at 4x4; root +1, bracket [+1,+16], 31 sweeps"
+    },
+    "GLOBAL.PASS-NOKO": {
+      "tree": "Z-R-STATE",
+      "note": "the D3 invariant's PROVEN parent — passes ≥ 1 ⇒ ko_point = none"
+    },
+    "GLOBAL.H1-MARKOV": {
+      "tree": "Z-R-TIE",
+      "note": "3.2 C3's [F]: the constant tie makes the state Markovian — UNTESTED"
+    },
+    "GLOBAL.H1-COMPUTABLE": {
+      "tree": "Z-R-TIE",
+      "note": "old long-cycle-tie computation falsified — bears on cycle resolution semantics"
+    },
+    "GLOBAL.H1-CENSUS": {
+      "tree": "Z-STATE-REACH",
+      "note": "3.3 Z-STATE-REACH cites H1-CENSUS — 51,419,046 reachable triples at 4x4"
+    },
+    "3x3.H1-CENSUS": {
+      "tree": "Z-STATE-REACH",
+      "note": "22,736 reachable triples at 3x3"
+    },
+    "4x3.H1-CENSUS": {
+      "tree": "Z-STATE-REACH",
+      "note": "638,266 reachable triples at 4x3"
+    },
+    "4x4.G-CENSUS": {
+      "tree": "Z-COMPLETE-ENUM",
+      "note": "group-count bracket — the artifact's board address space covers the reachable boards"
+    },
+    "GLOBAL.LONGCYCLE": {
+      "tree": "Z-R-TIE",
+      "note": "long-cycle tie semantics falsified at 3x2 — bears on cycle resolution (C3)"
+    },
+    "GLOBAL.H2": {
+      "tree": "RETIRED",
+      "note": "greedy-player loss-rate ordering — player-side"
+    },
+    "GLOBAL.H3": {
+      "tree": "RETIRED",
+      "note": "play-time history-exact search affordability — player-side"
+    },
+    "GLOBAL.H3-LOWERBOUND": {
+      "tree": "RETIRED",
+      "note": "search performance lower bound — player-side"
+    },
+    "GLOBAL.H4": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "FP1 acceptance check 3 residual gaps (lo/hi never checked; 1:37 sample)"
+    },
+    "GLOBAL.H4a": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "V0/V1 on the in-memory lo/hi quads — UNTESTED"
+    },
+    "GLOBAL.H4b": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "exhaustive stride-1 chainability sweep — discharged by QA-021"
+    },
+    "GLOBAL.H5": {
+      "tree": "RETIRED",
+      "note": "player fix without resolving open questions — consumer-side"
+    },
+    "GLOBAL.H5a": {
+      "tree": "RETIRED",
+      "note": "chainable-region steering — player-side"
+    },
+    "GLOBAL.H5a-CHILD": {
+      "tree": "RETIRED",
+      "note": "child-side identity check — player-side"
+    },
+    "GLOBAL.H5a-FALLBACK": {
+      "tree": "RETIRED",
+      "note": "history-free fallback — player-side"
+    },
+    "GLOBAL.H5b": {
+      "tree": "RETIRED",
+      "note": "history-exact search to settled horizon — player-side"
+    },
+    "GLOBAL.H5c": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: bracket cuts under a real history IS claim C3 — the edge that orphans the finisher"
+    },
+    "GLOBAL.H5d": {
+      "tree": "RETIRED",
+      "note": "bounded-history route to a real-game claim — future work, not a requirement of this Z"
+    },
+    "GLOBAL.ONEMISMATCH-DIAG": {
+      "tree": "RETIRED",
+      "note": "organising interpretation, not a theorem"
+    },
+    "GLOBAL.ONEMISMATCH-CURE": {
+      "tree": "Z-R-TIE",
+      "note": "the falsified simple-ko-table cure — bears on cycle-resolution machinery"
+    },
+    "4x4.A-1": {
+      "tree": "RETIRED",
+      "note": "PSK-era causal attribution corrected to the player defect"
+    },
+    "4x4.A-2": {
+      "tree": "Z-NONCLAIMS",
+      "note": "C2-scope category error — every blundering node is ko-sensitive, outside NC1's scope"
+    },
+    "4x4.A-3": {
+      "tree": "RETIRED",
+      "note": "fresh-start-perfect player claim — player-side scope correction"
+    },
+    "GLOBAL.B-1": {
+      "tree": "RETIRED",
+      "note": "ADR-0013 consequences bullet on the history-perfect genmove — player-side"
+    },
+    "GLOBAL.C-1": {
+      "tree": "RETIRED",
+      "note": "transient chainability-violations attribution — crisis diagnostic"
+    },
+    "GLOBAL.CALIB-LESSON": {
+      "tree": "Z-AUDIT",
+      "note": "a self-consistency check needs a passing calibration case — auditor doctrine"
+    },
+    "CODE.ADR0011-FMT": {
+      "tree": "Z-TABLE",
+      "note": "WZO1 format: six frozen columns, no lo/hi — determines what the artifact can carry"
+    },
+    "CODE.ADR0011-GATE": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "saveArtifact refuses to write unless consistency checks pass"
+    },
+    "CODE.ADR0011-DTT": {
+      "tree": "RETIRED",
+      "note": "DTT best-effort on WZO1 — play-time aid on the old format"
+    },
+    "GLOBAL.ADR0009-DTT": {
+      "tree": "RETIRED",
+      "note": "DTT = fastest optimal resolution — a play-time aid, not a theorem requirement"
+    },
+    "GLOBAL.ADR0012-GATE": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "sha256 regression gate — build reproducibility"
+    },
+    "GLOBAL.ADR0012-PAR": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "byte-identical under threads — reproducibility"
+    },
+    "GLOBAL.ADR0012-5X5": {
+      "tree": "RETIRED",
+      "note": "5×5 feasibility projection — out of Z's goban scope"
+    },
+    "4x4.I5-FEAS": {
+      "tree": "Z-STATE-REACH",
+      "note": "battery I5 cycle-reachability feasibility — the reachable-graph check"
+    },
+    "3x2.I5-CAL": {
+      "tree": "Z-AUDIT",
+      "note": "T171's I5 reproduction partial — instrument calibration state"
+    },
+    "CODE.WZO2-CHAINSHORT": {
+      "tree": "RETIRED",
+      "note": "chainability instrument short-circuit — SUPERSEDED; crisis diagnostic"
+    },
+    "CODE.WZO2-UNRUN": {
+      "tree": "RETIRED",
+      "note": "SUPERSEDED status record — the artifact has since been built"
+    },
+    "CODE.WZO2-PASSBIT": {
+      "tree": "Z-STATE-KEY",
+      "note": "passes-bit key collision — the T193 producer/consumer key disagreement"
+    },
+    "SPRINT-M4a-ACCEPT": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "A3/A9 internal consistency (A5 round-trip covered separately); scope caveat: not completeness"
+    },
+    "WZO2-4X4-VALID": {
+      "tree": "Z-COMPLETE-ENUM",
+      "note": "closure untested — the artifact is not a verified perfect oracle"
+    },
+    "CODE.WZO2-INCOMPLETE": {
+      "tree": "Z-COMPLETE-ENUM",
+      "note": "3.6 cites this row — the refuted incompleteness claim; structural completeness established"
+    },
+    "WZO2.I2-CLEAN": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "I2 colour-inversion exhaustive on both WZO2 artifacts"
+    },
+    "CODE.WZO2-PASS1-LAW": {
+      "tree": "Z-COMPLETE-PASSES",
+      "note": "3.6 Z-COMPLETE-PASSES: the single-colour-side law"
+    },
+    "CODE.ACCEPT-KOKEY": {
+      "tree": "Z-STATE-KEY",
+      "note": "accept checker's second ko-rule copy — fourth producer/consumer key disagreement"
+    },
+    "CODE.GTP-LHSIDE": {
+      "tree": "RETIRED",
+      "note": "wrong-side bracket display — display-path defect, player/telemetry"
+    },
+    "CODE.CLAIMLINT-C7-NEWROWS": {
+      "tree": "Z-AUDIT",
+      "note": "claimlint C7 parser defect — the audit instrument's validity"
+    },
+    "CODE.GTP-KOKEY": {
+      "tree": "Z-STATE-KEY",
+      "note": "GTP ko-rule mismatch — third producer/consumer key disagreement (T265)"
+    },
+    "4x4.V1-INVSYM-BROKEN": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "the consistency check catches the v1 artifact's inversion failure"
+    },
+    "CODE.WZO1-DTT-UNSET": {
+      "tree": "RETIRED",
+      "note": "DTT column never computed on WZO1 — play-time aid, old format"
+    },
+    "CODE.BATTERY-STUBBED": {
+      "tree": "Z-AUDIT",
+      "note": "the battery was stubbed — instrument validity"
+    },
+    "CODE.M4A-HARNESS": {
+      "tree": "Z-AUDIT",
+      "note": "M4a harness orphaned and part-defective — instrument validity"
+    },
+    "CODE.VB-STUBS": {
+      "tree": "Z-AUDIT",
+      "note": "verify-battery not wired to invariants — instrument validity"
+    },
+    "CODE.VB-BLINDGAPS": {
+      "tree": "Z-AUDIT",
+      "note": "five spec gaps including the I11 dump format — battery spec"
+    },
+    "GLOBAL.ADR0012-LAYER": {
+      "tree": "RETIRED",
+      "note": "5×N layer size — out of Z's goban scope"
+    },
+    "GLOBAL.ADR0012-V1": {
+      "tree": "RETIRED",
+      "note": "V1 recomputed inline — RAM-lean design rationale"
+    },
+    "GLOBAL.ADR0002-SEQ": {
+      "tree": "RETIRED",
+      "note": "collision-size bounds for 5×5 forward search — out of scope"
+    },
+    "GLOBAL.ADR0007-AB": {
+      "tree": "RETIRED",
+      "note": "alpha-beta cannot populate an oracle — method rationale"
+    },
+    "GLOBAL.ADR0007-BACKEDGE": {
+      "tree": "RETIRED",
+      "note": "captures create back-edges — why the fixpoint iterates; convergence stands on FP1/FP3"
+    },
+    "GLOBAL.ADR0009-SUCC": {
+      "tree": "RETIRED",
+      "note": "successor-sweep propagation — design rationale"
+    },
+    "GLOBAL.ADR0014-PURE": {
+      "tree": "Z-NONCLAIMS",
+      "note": "score.zig consults no oracle values — the NC-honesty in the scoring UI"
+    },
+    "GLOBAL.ADR0016-INHERIT": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC3: per-goban independence policy"
+    },
+    "GLOBAL.ADR0015-BURDEN": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "ADR-0010's bracket premise refuted — the finisher stays orphaned"
+    },
+    "GLOBAL.F2-REMEDY": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "the median build — how a faithful table is generated without the finisher"
+    },
+    "GLOBAL.ADR0014-DEAD": {
+      "tree": "RETIRED",
+      "note": "scoring-UI heuristics — consumer-side; the theorem's scoring is Benson-exact (Z-R-SCORE)"
+    },
+    "4x4.D3": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "writes-off 4x4 tractability — feasibility of the faithful generation, UNTESTED"
+    },
+    "GLOBAL.B15": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "Track A 2x2/3x2 regen byte-identical — reproducibility"
+    },
+    "GLOBAL.T14.1": {
+      "tree": "RETIRED",
+      "note": "2026-07-27 bracket-only artifact — historical"
+    },
+    "GLOBAL.ONEWRITER": {
+      "tree": "RETIRED",
+      "note": "one-writer-per-engine-file rule — process"
+    },
+    "GLOBAL.RELEASEFAST": {
+      "tree": "RETIRED",
+      "note": "ReleaseSafe discipline — measurement methodology, process"
+    },
+    "GLOBAL.BATTERY-GAPS": {
+      "tree": "Z-AUDIT",
+      "note": "battery coverage gaps across six nodes (G1 Z-R-STATE, G2 Z-STATE-REACH, G3 Z-STATE-KEY, G4 Z-TABLE-ROUNDTRIP, G5 Z-CONVERGE-SEED, G6 Z-CONVERGE-MONO)"
+    },
+    "GLOBAL.BATTERY-PASS1-ACCEPTANCE": {
+      "tree": "Z-AUDIT",
+      "note": "Phase 1 acceptance criteria re-based on Amendment 1"
+    },
+    "CODE.KEY-AGREEMENT": {
+      "tree": "Z-STATE-KEY",
+      "note": "3.3 Z-STATE-KEY cites T267 — key-agreement invariant wired into tests"
+    },
+    "CODE.STANDING-ABSORB": {
+      "tree": "RETIRED",
+      "note": "kanban standing-trigger mechanism — infra"
+    },
+    "CODE.STANDING-C3-DEAD": {
+      "tree": "RETIRED",
+      "note": "dead standing trigger — infra"
+    },
+    "CODE.STANDING-STATE-FRAGILE": {
+      "tree": "RETIRED",
+      "note": "standing priors lost on kanban writes — infra"
+    },
+    "4x4.WZO2-A2-EXHAUSTIVE": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "A2 Bellman identity on all 99,133,036 entries, exhaustive"
+    },
+    "4x4.WZO2-A5-EXHAUSTIVE": {
+      "tree": "Z-TABLE-ROUNDTRIP",
+      "note": "A5 round-trip on all entries, exhaustive — closes the stride-97 sampling gap"
+    },
+    "4x4.WZO2-A8-EXHAUSTIVE": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "A8 DTT consistency on all entries, exhaustive"
+    },
+    "CODE.WZO2-BUILD-REPRO": {
+      "tree": "Z-TABLE-CONSISTENCY",
+      "note": "builder reproduces the artifact byte-for-byte — reproducibility"
+    },
+    "QA-001": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "the one-ply Bellman-identity claim refuted at ko-sensitive slots — [F] of FIX"
+    },
+    "QA-002": {
+      "tree": "RETIRED",
+      "note": "alias of 4x4.A-3"
+    },
+    "QA-003": {
+      "tree": "Z-NONCLAIMS",
+      "note": "alias of 4x4.A-2"
+    },
+    "QA-004": {
+      "tree": "Z-TABLE",
+      "note": "the root is bracket-valued, not L==H — E3 bracket semantics confirmed"
+    },
+    "QA-005": {
+      "tree": "RETIRED",
+      "note": "KO_SENSITIVE-flag semantics on the old artifact"
+    },
+    "QA-006": {
+      "tree": "RETIRED",
+      "note": "definitional-vs-excess violations — old-artifact M6 family"
+    },
+    "QA-007": {
+      "tree": "RETIRED",
+      "note": "alias of 4x4.M6-EXCESS"
+    },
+    "QA-008": {
+      "tree": "RETIRED",
+      "note": "writes-off checkpoint completion — old-artifact family"
+    },
+    "QA-009": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC2: the E2 leak counts are two runs, not a discrepancy"
+    },
+    "QA-010": {
+      "tree": "RETIRED",
+      "note": "alias of GLOBAL.ONEMISMATCH-DIAG"
+    },
+    "QA-011": {
+      "tree": "Z-R-TIE",
+      "note": "alias of the H1 pair (both halves Z-R-TIE)"
+    },
+    "QA-012": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC1-family: the ko-history dial quantifies residual history-dependence — blocked, UNTESTED"
+    },
+    "QA-013": {
+      "tree": "Z-R-TIE",
+      "note": "alias of GLOBAL.LONGCYCLE"
+    },
+    "QA-014": {
+      "tree": "RETIRED",
+      "note": "per-node Bellman check for the player — consumer-side"
+    },
+    "QA-015": {
+      "tree": "Z-NONCLAIMS",
+      "note": "NC3: the per-goban-independence ruling that became ADR-0016"
+    },
+    "QA-016": {
+      "tree": "RETIRED",
+      "note": "parallel checkpoint cannot state the answer — old artifact"
+    },
+    "QA-017": {
+      "tree": "RETIRED",
+      "note": "engine steers into the unchainable region — crisis diagnostic"
+    },
+    "QA-018": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "alias of GLOBAL.F2 — the finisher's soundness"
+    },
+    "QA-019": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "Track A does not escape the bracket-derived finisher premise"
+    },
+    "QA-020": {
+      "tree": "RETIRED",
+      "note": "self-certification rate — player-side"
+    },
+    "QA-021": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "FP1 check 3 exhaustive on vb/vw — 0 violations outside KO_SENSITIVE"
+    },
+    "QA-022": {
+      "tree": "Z-AUDIT",
+      "note": "evidence-retrievability refuted — evidence-integrity doctrine"
+    },
+    "QA-023": {
+      "tree": "Z-R-TIE",
+      "note": "Markovian state-sufficiency under a constant tie — the roadmap's load-bearing claim, UNTESTED-for-want-of-contrast"
+    },
+    "QA-024": {
+      "tree": "RETIRED",
+      "note": "PSK binding rate — evidences the k=1 choice"
+    },
+    "QA-025": {
+      "tree": "Z-TABLE-FAITHFUL",
+      "note": "alias of GLOBAL.MIGOS-RULE"
+    },
+    "QA-026": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "median(L,TIE,H) V-derivation falsified at 3x2"
+    },
+    "QA-027": {
+      "tree": "Z-CONVERGE-FIX",
+      "note": "certified fraction 100%-by-construction falsified at 4x4 — the V-derivation, not state-sufficiency"
+    },
+    "QA-028": {
+      "tree": "RETIRED",
+      "note": "Reading-A history-window ladder — withdrawn"
+    }
+  },
+  "notes": "T305 delivered the dropped Phase 0 deliverable: every register row mapped onto the AXIOMS §3 requirement tree. 323 rows mapped; 118 proposed-retired (families in register-tree-map.md §2); 6 new-work gaps listed (§5). The register gained an 11th `tree` column; claimlint gained C9 (vocabulary + mapping-doc cross-check, gated at floor C9:0). Tree-vs-register discrepancies recorded: A6 absent from §3.2's A1–A5 list; E1–E3 unplaced in §3.2; B2/B3 grouped under Z-R-MOVE by the tree but Z-R-STATE/Z-R-TIE by the register dependents columns. No claim status, evidence, or edge was changed; retirement is proposed, the human rules."
+}

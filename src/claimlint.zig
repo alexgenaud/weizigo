@@ -236,7 +236,7 @@ const CAL_SYNTHETIC_C7_JSON =
 /// GLOBAL.CAL-SHOULDBE-FALSE is in this extended register as PROVEN — the finding
 /// proposes FALSE-AS-SCOPED (mismatch, must be caught).
 const CAL_SYNTHETIC_C7_EXTRA =
-    \\| `GLOBAL.CAL-SHOULDBE-FALSE` | — | all | synthetic: deliberately PROVEN in register, finding says FALSE-AS-SCOPED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+    \\| `GLOBAL.CAL-SHOULDBE-FALSE` | — | all | synthetic: deliberately PROVEN in register, finding says FALSE-AS-SCOPED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
 ;
 
 /// C7 multi-row calibration — the T266 defect (T269): C7 read only the FIRST
@@ -280,8 +280,8 @@ const CAL_SYNTHETIC_C7_MULTIROW =
 ;
 /// The two register rows the multi-row calibration compares against.
 const CAL_SYNTHETIC_C7_MULTIROW_EXTRA =
-    \\| `GLOBAL.CAL-NEWROW-1` | — | all | synthetic: absorbed row | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
-    \\| `GLOBAL.CAL-NEWROW-2` | — | all | synthetic: deliberately PROVEN in register, findings says CLAIMED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
+    \\| `GLOBAL.CAL-NEWROW-1` | — | all | synthetic: absorbed row | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
+    \\| `GLOBAL.CAL-NEWROW-2` | — | all | synthetic: deliberately PROVEN in register, findings says CLAIMED | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
 ;
 
 /// C7 not-a-register-claim calibration (T269 part 1): a finding whose ID has no
@@ -338,9 +338,50 @@ const CAL_SYNTHETIC_KILL_MATRIX =
 ///   GLOBAL.CAL-KERNEL-KILLED    PROVEN   with all mutants killed → must be silent
 ///   GLOBAL.CAL-KERNEL-CLAIMED   CLAIMED  with unkilled mutant → must be silent
 const CAL_SYNTHETIC_C8_EXTRA =
-    \\| `GLOBAL.CAL-KERNEL-UNKILLED` | — | all | synthetic: PROVEN kernel claim with unkilled mutant — must be caught | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
-    \\| `GLOBAL.CAL-KERNEL-KILLED` | — | all | synthetic: PROVEN kernel claim with all mutants killed — must be silent | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
-    \\| `GLOBAL.CAL-KERNEL-CLAIMED` | — | all | synthetic: CLAIMED kernel claim with unkilled mutant — must be silent (only PROVEN triggers) | CLAIMED | `AGENTS.md:1` | — | — | 0 | ? |
+    \\| `GLOBAL.CAL-KERNEL-UNKILLED` | — | all | synthetic: PROVEN kernel claim with unkilled mutant — must be caught | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
+    \\| `GLOBAL.CAL-KERNEL-KILLED` | — | all | synthetic: PROVEN kernel claim with all mutants killed — must be silent | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
+    \\| `GLOBAL.CAL-KERNEL-CLAIMED` | — | all | synthetic: CLAIMED kernel claim with unkilled mutant — must be silent (only PROVEN triggers) | CLAIMED | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
+;
+
+/// C9 calibration — the T305 tree-mapping check, exercised on synthetic
+/// register rows + a synthetic mapping document.
+/// known-bad: `GLOBAL.CAL-TREE-BAD` carries an invalid cell (not a node, not
+/// RETIRED); `GLOBAL.CAL-TREE-NODOC` is a valid register row absent from the
+/// doc; `GLOBAL.CAL-TREE-EXTRA` is a doc row the register lacks. All three must
+/// be caught; the seven base rows must stay silent.
+/// known-good: the base register alone against a doc covering exactly its rows
+/// must be fully silent.
+const CAL_SYNTHETIC_C9_EXTRA =
+    \\| `GLOBAL.CAL-TREE-BAD` | — | all | synthetic: bogus tree cell — must be caught | CLAIMED | `AGENTS.md:1` | — | — | 0 | ? | BOGUS-NODE |
+    \\| `GLOBAL.CAL-TREE-NODOC` | — | all | synthetic: valid cell but absent from the doc — must be caught | CLAIMED | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
+;
+const CAL_SYNTHETIC_C9_DOC =
+    \\## 1. The mapping — synthetic
+    \\| ID | tree node | note |
+    \\|---|---|---|
+    \\| `GLOBAL.CALPARENT-DEAD` | Z-R-TIE | synthetic |
+    \\| `GLOBAL.CALPARENT-LIVE` | Z-TABLE | synthetic |
+    \\| `GLOBAL.CALCHILD-OK` | Z-NONCLAIMS | synthetic |
+    \\| `GLOBAL.CALCHILD-ALARM` | Z-NONCLAIMS | synthetic |
+    \\| `GLOBAL.CALPARENT-MEAS` | Z-AUDIT | synthetic |
+    \\| `GLOBAL.CALCHILD-SHADOW` | Z-AUDIT | synthetic |
+    \\| `GLOBAL.CALCHILD-PLAIN` | Z-AUDIT | synthetic |
+    \\| `GLOBAL.CAL-TREE-BAD` | BOGUS-NODE | synthetic: invalid cell — mismatch must not double-report |
+    \\| `GLOBAL.CAL-TREE-EXTRA` | Z-R-MOVE | synthetic: row the register does not have — must be caught |
+    \\## 2. end
+;
+const CAL_SYNTHETIC_C9_GOOD_DOC =
+    \\## 1. The mapping — synthetic good
+    \\| ID | tree node | note |
+    \\|---|---|---|
+    \\| `GLOBAL.CALPARENT-DEAD` | Z-R-TIE | synthetic |
+    \\| `GLOBAL.CALPARENT-LIVE` | Z-TABLE | synthetic |
+    \\| `GLOBAL.CALCHILD-OK` | Z-NONCLAIMS | synthetic |
+    \\| `GLOBAL.CALCHILD-ALARM` | Z-NONCLAIMS | synthetic |
+    \\| `GLOBAL.CALPARENT-MEAS` | Z-AUDIT | synthetic |
+    \\| `GLOBAL.CALCHILD-SHADOW` | Z-AUDIT | synthetic |
+    \\| `GLOBAL.CALCHILD-PLAIN` | Z-AUDIT | synthetic |
+    \\## 2. end
 ;
 
 /// Build a synthetic register = CAL_SYNTHETIC's rows with `extra_rows` grafted
@@ -364,13 +405,13 @@ const CAL_SYNTHETIC =
     \\
     \\| ID | legacy | board | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate |
     \\|---|---|---|---|---|---|---|---|---|---|
-    \\| `GLOBAL.CALPARENT-DEAD` | — | all | synthetic: a parent that is FALSE | FALSE-AS-SCOPED | `AGENTS.md:1` | — | — | 0 | ? |
-    \\| `GLOBAL.CALPARENT-LIVE` | — | all | synthetic: a parent still standing | PROVEN | `AGENTS.md:1` | — | — | 0 | ? |
-    \\| `GLOBAL.CALCHILD-OK` | — | all | synthetic: justified by the refutation of a parent that IS refuted | CLAIMED | `AGENTS.md:1` | `n:GLOBAL.CALPARENT-DEAD` | — | 0 | ? |
-    \\| `GLOBAL.CALCHILD-ALARM` | — | all | synthetic: justified by the refutation of a parent that is NOT refuted | CLAIMED | `AGENTS.md:1` | `n:GLOBAL.CALPARENT-LIVE` | — | 0 | ? |
-    \\| `GLOBAL.CALPARENT-MEAS` | — | all | synthetic: a measurement, which can never be FALSE | MEASUREMENT | `AGENTS.md:1` | — | — | 0 | ? |
-    \\| `GLOBAL.CALCHILD-SHADOW` | — | all | synthetic: `d:` onto a measurement — the shadowed-dependency shape | CLAIMED | `AGENTS.md:1` | `d:GLOBAL.CALPARENT-MEAS` | — | 0 | ? |
-    \\| `GLOBAL.CALCHILD-PLAIN` | — | all | synthetic: `d:` onto a real claim — must stay silent in C5 | CLAIMED | `AGENTS.md:1` | `d:GLOBAL.CALPARENT-LIVE` | — | 0 | ? |
+    \\| `GLOBAL.CALPARENT-DEAD` | — | all | synthetic: a parent that is FALSE | FALSE-AS-SCOPED | `AGENTS.md:1` | — | — | 0 | ? | Z-R-TIE |
+    \\| `GLOBAL.CALPARENT-LIVE` | — | all | synthetic: a parent still standing | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-TABLE |
+    \\| `GLOBAL.CALCHILD-OK` | — | all | synthetic: justified by the refutation of a parent that IS refuted | CLAIMED | `AGENTS.md:1` | `n:GLOBAL.CALPARENT-DEAD` | — | 0 | ? | Z-NONCLAIMS |
+    \\| `GLOBAL.CALCHILD-ALARM` | — | all | synthetic: justified by the refutation of a parent that is NOT refuted | CLAIMED | `AGENTS.md:1` | `n:GLOBAL.CALPARENT-LIVE` | — | 0 | ? | Z-NONCLAIMS |
+    \\| `GLOBAL.CALPARENT-MEAS` | — | all | synthetic: a measurement, which can never be FALSE | MEASUREMENT | `AGENTS.md:1` | — | — | 0 | ? | Z-AUDIT |
+    \\| `GLOBAL.CALCHILD-SHADOW` | — | all | synthetic: `d:` onto a measurement — the shadowed-dependency shape | CLAIMED | `AGENTS.md:1` | `d:GLOBAL.CALPARENT-MEAS` | — | 0 | ? | Z-AUDIT |
+    \\| `GLOBAL.CALCHILD-PLAIN` | — | all | synthetic: `d:` onto a real claim — must stay silent in C5 | CLAIMED | `AGENTS.md:1` | `d:GLOBAL.CALPARENT-LIVE` | — | 0 | ? | Z-AUDIT |
     \\
     \\## 3. end
 ;
@@ -443,6 +484,11 @@ const Row = struct {
     narrowed: ?u32,
     rate: ?f64,
     rate_raw: []const u8,
+    /// T305: the requirement-tree node (AXIOMS.md §3) this row serves, or
+    /// `RETIRED` (proposed retirement — the row serves no tree node; the
+    /// reason lives in register-tree-map.md §2 and the human rules). Checked
+    /// by C9.
+    tree: []const u8,
     in_degree: u32 = 0,
     refs_outside: u32 = 0,
 };
@@ -702,10 +748,10 @@ fn parseRegister(gpa: Allocator, text: []const u8) !Register {
         if (only_dashes) continue; // separator
 
         // A data row. It MUST have the full column set; loud on anything else.
-        if (c.len != 12) {
+        if (c.len != 13) {
             try reg.unparsed.append(gpa, try std.fmt.allocPrint(
                 gpa,
-                "{d}: expected 10 columns, found {d} — `{s}`",
+                "{d}: expected 11 columns, found {d} — `{s}`",
                 .{ lineno, c.len - 2, first },
             ));
             continue;
@@ -754,6 +800,7 @@ fn parseRegister(gpa: Allocator, text: []const u8) !Register {
             .narrowed = parseNarrowed(c[9]),
             .rate = parseRate(c[10]),
             .rate_raw = trim(c[10]),
+            .tree = trim(c[11]),
         });
         const slot = reg.rows.items.len - 1;
         if (reg.by_id.get(id)) |prev| {
@@ -1485,6 +1532,35 @@ pub fn main(init: std.process.Init) !void {
     }
     util.out("\n  C8 mutation-adequacy violations: {d}\n", .{c8_violations});
 
+    // ── C9 tree mapping (T305) ────────────────────────────────────────────
+    util.out("\n== C9  TREE MAPPING (fails the run) ==\n", .{});
+    util.out("Every register row carries the requirement-tree node it serves (AXIOMS.md §3)\n", .{});
+    util.out("in the `tree` column (T305 — the dropped Phase 0 deliverable, phase0-execution-\n", .{});
+    util.out("audit F2). C9a validates the vocabulary (a node, or RETIRED = proposed retirement);\n", .{});
+    util.out("C9b cross-checks docs/epic-01-markovian/register-tree-map.md against the register:\n", .{});
+    util.out("same row set, same node per row — a mapping that silently covers a subset is the\n", .{});
+    util.out("denominator defect this check exists to name.\n\n", .{});
+    var c9: C9Result = .{};
+    var c9_doc_missing = false;
+    const MAP_DOC_PATH = "docs/epic-01-markovian/register-tree-map.md";
+    const map_doc = Io.Dir.cwd().readFileAlloc(io, MAP_DOC_PATH, gpa, .unlimited) catch |e| blk: {
+        util.note("C9: cannot read {s}: {s} — mapping document missing, treating as violation\n", .{ MAP_DOC_PATH, @errorName(e) });
+        c9_doc_missing = true;
+        break :blk @as([]const u8, &[_]u8{});
+    };
+    try checkTreeMapping(gpa, &reg, map_doc, &c9);
+    if (c9_doc_missing) {
+        c9.doc_missing = true;
+        try c9.failures.append(gpa, "  DOC MISSING — docs/epic-01-markovian/register-tree-map.md cannot be read (C9b is blind)");
+    }
+    for (c9.failures.items) |f| util.out("{s}\n", .{f});
+    if (c9.failures.items.len == 0) util.out("  (none)\n", .{});
+    util.out("\n  register rows: {d} · mapping doc rows: {d}\n", .{ c9.reg_rows, c9.doc_rows });
+    util.out("  mapped to a node: {d} · proposed-retired (RETIRED): {d} · invalid cells: {d}\n", .{ c9.reg_rows - c9.retired_rows, c9.retired_rows, c9.invalid_cells });
+    util.out("  doc missing rows: {d} · doc extra rows: {d} · node mismatches: {d}\n", .{ c9.doc_missing_ids, c9.doc_extra_ids, c9.node_mismatches });
+    const c9_fail = c9.invalid_cells + c9.doc_missing_ids + c9.doc_extra_ids + c9.node_mismatches + (if (c9_doc_missing) @as(usize, 1) else 0);
+    util.out("\n  C9 tree-mapping violations: {d}\n", .{c9_fail});
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -1876,6 +1952,34 @@ pub fn main(init: std.process.Init) !void {
     util.out("                with unkilled mutant must be silent (only PROVEN triggers) … {s}\n", .{if (synth_c8_ok) "SILENT (correct)" else "BROKEN"});
     if (!synth_c8_ok) cal_ok = false;
 
+    // C9 calibration — synthetic register rows + synthetic mapping document.
+    // known-bad: a bogus tree cell, a register row missing from the doc, and a
+    // doc row the register lacks must all be caught (CAL-TREE-BAD appears in
+    // the doc with the same invalid cell, so it must not double-report as a
+    // node mismatch).
+    // known-good: the base register against a doc covering exactly its rows.
+    var synth_c9_ok = false;
+    {
+        const synth_ext_c9 = try synthRegister(gpa, CAL_SYNTHETIC_C9_EXTRA);
+        var sreg9 = try parseRegister(gpa, synth_ext_c9);
+        var c9res: C9Result = .{};
+        try checkTreeMapping(gpa, &sreg9, CAL_SYNTHETIC_C9_DOC, &c9res);
+        const c9_bad_caught = c9res.invalid_cells == 1 and c9res.doc_missing_ids == 1 and
+            c9res.doc_extra_ids == 1 and c9res.node_mismatches == 0;
+        var sreg9g = try parseRegister(gpa, CAL_SYNTHETIC);
+        var c9res_g: C9Result = .{};
+        try checkTreeMapping(gpa, &sreg9g, CAL_SYNTHETIC_C9_GOOD_DOC, &c9res_g);
+        const c9_good_silent = c9res_g.invalid_cells == 0 and c9res_g.doc_missing_ids == 0 and
+            c9res_g.doc_extra_ids == 0 and c9res_g.node_mismatches == 0;
+        synth_c9_ok = c9_bad_caught and c9_good_silent;
+    }
+    util.out("  known-bad 12 (C9, synthetic): a bogus tree cell, a register row missing\n", .{});
+    util.out("                from the mapping doc, and a doc row the register lacks\n", .{});
+    util.out("                must all be reported … {s}\n", .{if (synth_c9_ok) "CAUGHT (1 invalid + 1 doc-missing + 1 doc-extra)" else "BROKEN"});
+    util.out("  known-good 10 (C9, synthetic): a consistent register+doc pair must be\n", .{});
+    util.out("                silent … {s}\n", .{if (synth_c9_ok) "SILENT" else "BROKEN"});
+    if (!synth_c9_ok) cal_ok = false;
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -1891,11 +1995,12 @@ pub fn main(init: std.process.Init) !void {
     util.out("  C7 unabsorbed findings         {d}   (FAILS)\n", .{c7});
     util.out("  C7 non-conforming files        {d}   (reported)\n", .{c7_results.nonconforming});
     util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)\n", .{c8_violations});
+    util.out("  C9 tree-mapping violations      {d}   (FAILS)\n", .{c9_fail});
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);
-    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0 or c6 > 0 or c7 > 0) std.process.exit(1);
+    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0 or c6 > 0 or c7 > 0 or c9_fail > 0) std.process.exit(1);
     std.process.exit(0);
 }
 
@@ -2452,6 +2557,154 @@ fn negationAlarms(gpa: Allocator, reg: *Register) !std.ArrayList(Alarm) {
 /// Breadth-first over `derives-from` edges; returns the shortest chain from
 /// row `start` to a FALSE ancestor, or null. Cycles are real in this graph
 /// (GLOBAL.C4 ⟵d GLOBAL.P3 ⟵d GLOBAL.C4), so the visited set is load-bearing.
+// ── C9 tree mapping (T305) ──────────────────────────────────────────────
+
+/// Requirement-tree nodes from AXIOMS.md §3 (T271, amended T275). The
+/// vocabulary is hardcoded (the SCOPES precedent): when the tree changes,
+/// update this list — C9a then flags every row carrying a stale node instead
+/// of a reader noticing. A row whose cell is not in this list and is not
+/// `RETIRED` fails the run.
+const TREE_NODES = [_][]const u8{
+    "Z",
+    "Z-R",
+    "Z-R-MOVE",
+    "Z-R-SCORE",
+    "Z-R-TIE",
+    "Z-R-STATE",
+    "Z-R-SIGN",
+    "Z-STATE",
+    "Z-STATE-LEGAL",
+    "Z-STATE-REACH",
+    "Z-STATE-KEY",
+    "Z-CONVERGE",
+    "Z-CONVERGE-MONO",
+    "Z-CONVERGE-FINITE",
+    "Z-CONVERGE-SEED",
+    "Z-CONVERGE-FIX",
+    "Z-TABLE",
+    "Z-TABLE-ROUNDTRIP",
+    "Z-TABLE-FAITHFUL",
+    "Z-TABLE-CONSISTENCY",
+    "Z-COMPLETE",
+    "Z-COMPLETE-ENUM",
+    "Z-COMPLETE-PASSES",
+    "Z-SYM",
+    "Z-AUDIT",
+    "Z-NONCLAIMS",
+};
+
+fn isTreeNode(v: []const u8) bool {
+    for (TREE_NODES) |n| if (std.mem.eql(u8, v, n)) return true;
+    return false;
+}
+
+/// A `tree` cell is valid when it names a tree node or the proposed-retirement
+/// marker. `NEW:` is reserved for proposed new nodes (none are in use today).
+fn isValidTreeCell(v: []const u8) bool {
+    if (std.mem.eql(u8, v, "RETIRED")) return true;
+    if (std.mem.startsWith(u8, v, "NEW:")) return v.len > 4;
+    return isTreeNode(v);
+}
+
+const C9Result = struct {
+    invalid_cells: usize = 0,
+    doc_missing: bool = false,
+    doc_rows: usize = 0,
+    reg_rows: usize = 0,
+    doc_missing_ids: usize = 0,
+    doc_extra_ids: usize = 0,
+    node_mismatches: usize = 0,
+    retired_rows: usize = 0,
+    failures: std.ArrayList([]const u8) = .empty,
+};
+
+/// Parse the mapping document's §1 row table (id -> node). Only the table
+/// under `## 1. The mapping` is read; the retirement-family tables in §2 are
+/// not row mappings and must not pollute the map.
+fn parseMappingDoc(gpa: Allocator, text: []const u8) !std.StringHashMap([]const u8) {
+    var map = std.StringHashMap([]const u8).init(gpa);
+    var in_map = false;
+    var it = std.mem.splitScalar(u8, text, '\n');
+    while (it.next()) |line| {
+        if (std.mem.startsWith(u8, line, "## 1. The mapping")) {
+            in_map = true;
+            continue;
+        }
+        if (std.mem.startsWith(u8, line, "## 2.")) break;
+        if (!in_map) continue;
+        if (line.len == 0 or line[0] != '|') continue;
+        var cells = try splitCells(gpa, line);
+        defer cells.deinit(gpa);
+        const c = cells.items;
+        if (c.len < 3) continue;
+        const first = trim(c[1]);
+        if (std.mem.eql(u8, first, "ID")) continue;
+        var only_dashes = first.len > 0;
+        for (first) |ch| {
+            if (ch != '-' and ch != ':') only_dashes = false;
+        }
+        if (only_dashes) continue;
+        if (first.len >= 2 and first[0] == '`' and first[first.len - 1] == '`')
+            try map.put(first[1 .. first.len - 1], trim(c[2]));
+    }
+    return map;
+}
+
+/// C9 core: validate the register's `tree` column (C9a) and cross-check the
+/// mapping document against it (C9b) — row set equality and per-row node
+/// equality, so the mapping cannot silently cover a subset and cannot drift
+/// from the rows it describes.
+fn checkTreeMapping(gpa: Allocator, reg: *Register, doc_text: []const u8, out: *C9Result) !void {
+    for (reg.rows.items) |r| {
+        const v = trim(r.tree);
+        if (isValidTreeCell(v)) {
+            if (std.mem.eql(u8, v, "RETIRED")) out.retired_rows += 1;
+            continue;
+        }
+        out.invalid_cells += 1;
+        try out.failures.append(gpa, try std.fmt.allocPrint(
+            gpa,
+            "  BAD CELL  `{s}` — tree column \"{s}\" is not a tree node or RETIRED (line {d})",
+            .{ r.id, v, r.line },
+        ));
+    }
+
+    var doc = try parseMappingDoc(gpa, doc_text);
+    defer doc.deinit();
+    for (reg.rows.items) |r| {
+        const dnode = doc.get(r.id) orelse {
+            out.doc_missing_ids += 1;
+            try out.failures.append(gpa, try std.fmt.allocPrint(
+                gpa,
+                "  DOC MISSING `{s}` — register row absent from register-tree-map.md §1",
+                .{r.id},
+            ));
+            continue;
+        };
+        if (!std.mem.eql(u8, trim(dnode), trim(r.tree))) {
+            out.node_mismatches += 1;
+            try out.failures.append(gpa, try std.fmt.allocPrint(
+                gpa,
+                "  NODE MISMATCH `{s}` — register says \"{s}\", doc says \"{s}\"",
+                .{ r.id, trim(r.tree), trim(dnode) },
+            ));
+        }
+    }
+    var it = doc.iterator();
+    while (it.next()) |e| {
+        if (reg.by_id.get(e.key_ptr.*) == null) {
+            out.doc_extra_ids += 1;
+            try out.failures.append(gpa, try std.fmt.allocPrint(
+                gpa,
+                "  DOC EXTRA `{s}` — mapping doc §1 names a row the register does not have",
+                .{e.key_ptr.*},
+            ));
+        }
+    }
+    out.doc_rows = doc.count();
+    out.reg_rows = reg.rows.items.len;
+}
+
 // ── C8 mutation-adequacy types ──────────────────────────────────────────
 
 /// A kill-matrix entry: one kernel-function claim and its mutants.

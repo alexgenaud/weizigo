@@ -67,7 +67,7 @@ cp docs/epistemic/CLAIMS.md "$TMPDIR/CLAIMS.md"
 
 # Seeded row: PROVEN, depends on GLOBAL.C3 (FALSE-AS-SCOPED). Exactly one
 # orphan — the seeded row itself. Inserted once as the first data row in §2.
-SYNTH_ROW='| `GLOBAL.T280-CTRL-SEEDED` | — | all | synthetic: seeded-defect control for pre-commit hook (T280). PROVEN with d:GLOBAL.C3 (FALSE-AS-SCOPED) — exactly one C1a orphan. | PROVEN | `AGENTS.md:1` | `d:GLOBAL.C3` | — | 0 | ? |'
+SYNTH_ROW='| `GLOBAL.T280-CTRL-SEEDED` | — | all | synthetic: seeded-defect control for pre-commit hook (T280). PROVEN with d:GLOBAL.C3 (FALSE-AS-SCOPED) — exactly one C1a orphan. | PROVEN | `AGENTS.md:1` | `d:GLOBAL.C3` | — | 0 | ? | Z-AUDIT |'
 
 python3 -c "
 import sys
