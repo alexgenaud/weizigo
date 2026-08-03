@@ -37,7 +37,7 @@ unabsorbed-findings count exceeds the threshold **5**.
 | control | fixture | observed | verdict |
 |---|---|---|---|
 | null | scratch repo, empty `findings/` → C7=0 ≤ 5 | `C7 unabsorbed: 0 (threshold 5) — at/below threshold, no trigger`; nothing registered in the scratch kanban | PASS |
-| seeded | scratch repo + `findings/T294SEED-absorb.json` (6 claims, none in register) → C7=6 > 5 | trigger fires, names the count (`C7 unabsorbed: 6 (threshold 5)`), registers `STANDING-ABSORB` dispatchable, per-file line `T294SEED-absorb.json: 6` | PASS |
+| seeded | scratch repo + synthetic fixture `T294SEED-absorb.json` (6 claims, none in register; written into the scratch repo's `findings/` at test time by tools/regression-managent-standing.sh, never committed to the live repo) → C7=6 > 5 | trigger fires, names the count (`C7 unabsorbed: 6 (threshold 5)`), registers `STANDING-ABSORB` dispatchable, per-file line `T294SEED-absorb.json: 6` | PASS |
 
 All fixtures synthetic, run in `/tmp/weizigo` — live kanban, live findings/,
 live CLAIMS.md untouched (verified: no `managent standing` run in the live repo
