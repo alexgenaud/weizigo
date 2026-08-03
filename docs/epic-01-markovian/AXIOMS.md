@@ -216,7 +216,9 @@ goban size.
   - [F]: a state reachable under R that is absent from the census, or a
     census state unreachable by any legal sequence.
 - **Z-STATE-KEY:** Producer and consumer compute identical keys.
-  T267 (key-agreement invariant, outstanding).
+  T267 (key-agreement invariant) — **closed 2026-08-02 20:43Z** (`pass`): the
+  test half wires `differential.zig` into `zig build test`; the production
+  `koAfterCapture`/`stateKey` is T273's kernel extraction (Phase 2).
   - [F]: a (board, side, ko, passes) where the solver's key ≠ the consumer's
     key. The family: T178 (colex vs rank), T193 (passes bit), T265 (ko key).
 
@@ -383,12 +385,14 @@ for our own value.
 | `GLOBAL.AXIOM-BELLMAN` | all | E1 — Bellman operator | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-LH` | all | E2 — L/H fixpoint | CLAIMED | this file §2; `[GLOBAL.FP1:PROVEN]` `[GLOBAL.FP3:PROVEN]` |
 | `GLOBAL.AXIOM-BRACKET` | all | E3 — Bracket semantics | CLAIMED | this file §2 |
-| `GLOBAL.TIE-MIGOS` | all | The +1 vs +2 gap vs MIGOS II is a tie-resolution difference (TIE=0 vs MIGOS's long-cycle-tie), not a ko-rule difference | CLAIMED | this file §4; `[GLOBAL.MIGOS-RULE:PROVEN]` refutes the "basic ko vs PSK" explanation |
+| `GLOBAL.TIE-MIGOS` | all | The +1 vs +2 gap vs MIGOS II is a tie-resolution difference (TIE=0 vs MIGOS's long-cycle-tie) — **REFUTED by primary sources (T274, absorbed T279): MIGOS's long-cycle-tie value is 0 = ours (thesis §5.3.2; ICGA 2009 §3.3), and MIGOS's own basic-ko 4×4 result is +1 = ours (thesis Table 5.1); the +2 anchor is a different game (pass-difference cycle resolution, thesis Appendix A §A.4), not a different tie constant** | FALSE-AS-SCOPED | this file §4; T274/T279; `[GLOBAL.MIGOS-RULE:PROVEN]` refutes the "basic ko vs PSK" explanation |
 | `GLOBAL.FIXPOINT-VS-SEARCH` | all | Fixpoint vs search is a computational-method difference, not a ruleset difference; only explains the gap if tie semantics are first aligned | CLAIMED | this file §4 |
 
 **Status convention:** All freshly-minted axiom claim IDs are CLAIMED, not
-PROVEN — a written axiom is not proven by writing it. The two MIGOS
-adjudication rows are CLAIMED pending independent verification.
+PROVEN — a written axiom is not proven by writing it. Of the two MIGOS
+adjudication rows, `GLOBAL.TIE-MIGOS` is FALSE-AS-SCOPED (refuted by primary
+sources, T274, absorbed T279 — §4.2/§4.4 above and CLAIMS.md:421 agree) and
+`GLOBAL.FIXPOINT-VS-SEARCH` is CLAIMED pending independent verification.
 
 ---
 

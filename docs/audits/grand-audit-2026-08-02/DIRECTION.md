@@ -202,3 +202,56 @@ is how an instrument comes to certify its own error.
 
 **Consequence if ratified:** Phase 1 task briefs say "seed a synthetic defect" rather than
 "fail `0c3366f0`", and `docs/epic-01-markovian/PHASES.md` records the split G3 gate below.
+
+---
+
+## Amendment 2
+
+**Amendment 2 — phase order is dependency order, not calendar order (ruled 2026-08-03).**
+
+§5's five phases are a dependency plan, not a schedule. **No phase gates the dispatch of
+another.** The one hard gate already written stands unchanged: Phase 0 gates
+*decomposition* (`PHASES.md:24`).
+
+"Acceptance battery before code" and "calibrated on known-defective inputs first" bind
+**promotion, not dispatch.** Code may be written, committed and deployed while its battery
+coverage is incomplete; no claim about that code may be promoted past `CLAIMED` until the
+battery kills the mutants covering the function the claim is about. This is a
+**mutation-adequacy criterion** (DeMillo–Lipton–Sayward 1978; Budd 1980) used as a
+promotion gate rather than a dispatch gate.
+
+Two facts make this the correct reading of §5 rather than a relaxation of it:
+
+- §5's own Phase 1 contents already depend on Phase 2. The C-A1/C-A2 closure checks are
+  Phase 1 deliverables that need the Phase 2 kernel move generator (`PHASES.md:82`,
+  `sprints/verify-battery/pass1/spec.md:193`). A plan containing a
+  Phase-1-depends-on-Phase-2 edge cannot coherently demand calendar order.
+- The practice already conformed. T273 shipped the kernel extraction and held **both**
+  kernel claims at `CLAIMED` "pending Phase 3 end-to-end A–Z reverification"
+  (`findings/T273-kernel-ko.json`; zero `PROVEN`). Only the rule was missing.
+
+**The five dependency edges.** These are real, and are mechanized as `needs` on the tasks
+that carry them — never as convention:
+
+1. **C-A1/C-A2 closure checks ← the Phase 2 kernel move generator.**
+2. **Moving a function ← an invariant that reproduces a known defect in that function —
+   and that invariant must itself kill its own mutant before it licenses the move.** An
+   invariant that passes without exercising the moved code is a tautology, not a
+   prerequisite: `differential.zig:269-272` defined `engineKoNewGeneric` as
+   `return solverKoGeneric(...)` and compared the solver's ko rule against an alias of
+   itself (GRAND-AUDIT §1a) — verbatim what the QA-023 standing rule forbids, "a positive
+   control must exercise the instrument under test, not a parallel one"
+   (`AGENTS.md:146-148`).
+3. **Phase 3 row re-derivation ← the battery exists AND the register-to-tree mapping
+   exists.**
+4. **Phase 4 swap ← Phase 3 differential verification.**
+5. **Promotion of a claim past `CLAIMED` ← the mutants covering that claim's function are
+   killed** (edge 2's clause is the same currency, applied to the invariant itself).
+   T291's 3/10 kill rate therefore does not mean "the extraction shipped unverified"; it
+   means **seven promotion gates are known-closed**, which is the more actionable
+   statement.
+
+**What is not a dependency, and must not be enforced as one: the phase number.**
+Concurrency across phases is permitted and expected. The real serializer is **file
+ownership** — one writer per file (`AGENTS.md`; `docs/infra/fleet-git-isolation.md`) —
+enforced through managent sets, not through phase order.

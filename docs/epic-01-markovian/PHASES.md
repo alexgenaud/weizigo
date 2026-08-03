@@ -15,11 +15,22 @@ Opened 2026-08-02 by Orchestrator (Opus 5) at commit `2432d71`.
 
 | phase | content (DIRECTION §5) | state |
 |---|---|---|
-| 0 — theorem and axioms | AXIOMS.md; requirement tree top-down from Z; old rows mapped onto it; MIGOS/tie adjudicated | **T271 open — gates everything below** |
-| 1 — acceptance battery before code | battery built and calibrated on **synthetic** defects first (DIRECTION Amendment 1, ratified 2026-08-03); live artifacts are regression inputs | **decomposed 2026-08-03: T290 spec → T291 mutants → T292 baselines+gate.** Carry-forward T266/T267/T270 closed |
-| 2 — kernel extraction | one function one owner, ko and state-key first; all harnesses in `zig build test` | T273 blocked (needs T271, T267) |
+| 0 — theorem and axioms | AXIOMS.md; requirement tree top-down from Z; old rows mapped onto it; MIGOS/tie adjudicated | **done 2026-08-02** — T271 delivered at `3058f81`; T272 gate; follow-ups T274/T275/T280/T281/T284/T285 closed. The 282-row mapping deliverable is registered as T305 (needs T304) |
+| 1 — acceptance battery before code | battery built and calibrated on **synthetic** defects first (DIRECTION Amendment 1, ratified 2026-08-03); live artifacts are regression inputs | **delivered 2026-08-03** — T290 spec → T291 mutants → T292 baselines+gate all closed; golden-master baseline gate wired into `zig build test` (fast path), full-artifact sweep behind `zig build battery-sweep`. Carry-forward T266/T267/T270 closed |
+| 2 — kernel extraction | one function one owner, ko and state-key first; all harnesses in `zig build test` | **T273 done 2026-08-02** — kernel extraction (`koAfterCapture`, `stateKey`); both kernel claims held at `CLAIMED` pending Phase 3 end-to-end A–Z reverification (DIRECTION Amendment 2 promotion gate) |
 | 3 — A–Z reverification | ladder 2×2 → 3×2 → 3×3 → 4×4; kernel vs fixtures differentially; every register row re-derived, demoted or retired | not decomposed |
 | 4 — the swap | kernel becomes production; legacy frozen as fixtures; engine/experiment boundary in `src/` | not decomposed |
+
+**Phase order is dependency order, not calendar order (DIRECTION.md Amendment 2, ruled 2026-08-03).**
+No phase gates the dispatch of another; the one hard gate stands unchanged — Phase 0 gates
+*decomposition*. "Acceptance battery before code" and "calibrated on known-defective inputs
+first" bind **promotion, not dispatch**: code may ship while battery coverage is incomplete,
+but no claim about it may pass `CLAIMED` until the mutants covering its function are killed
+(mutation-adequacy, DeMillo–Lipton–Sayward 1978). The five real dependency edges are
+mechanized as `needs` on the tasks that carry them, never as convention; the phase number is
+not a dependency, so concurrency across phases is expected. The real serializer is **file
+ownership** via managent sets. The ruling text is `docs/audits/grand-audit-2026-08-02/DIRECTION.md`
+Amendment 2.
 
 **Phase 0 is a hard gate on decomposition.** Phases 1–4 get no new tasks until
 AXIOMS.md exists — the requirement tree is the input that says which lemmas need

@@ -82,6 +82,19 @@ The argument is defensible — but DIRECTION §5's phase ordering was never amen
 ruling authorizes the substitution, and the gate Phase 0 declared ("gates everything
 below") only gated on AXIOMS.md *existing*, not on phase order.
 
+> **Annotation (2026-08-03, T304 absorption):** F3 was true when written — at
+the time there was no ruling on phase ordering, and the gap it documents was
+real. **Resolved by DIRECTION.md Amendment 2 (ruled 2026-08-03):** §5's phases
+are a dependency plan, not a schedule; no phase gates the dispatch of another,
+and "acceptance battery before code" binds **promotion, not dispatch**. T273's
+kernel extraction therefore shipped within the ruling: both kernel claims were
+held at `CLAIMED` ("pending Phase 3 end-to-end A–Z reverification",
+`findings/T273-kernel-ko.json`; zero `PROVEN`), which is exactly what Amendment
+2's mutation-adequacy promotion gate permits. The finding's corrective content
+survives as Amendment 2's five dependency edges, mechanized as `needs` on the
+tasks that carry them. The finding is not rewritten; this note records what
+resolved it.
+
 ### F4. B1 now exists in three inconsistent statements under one claim ID
 
 - **AXIOMS.md §2 B1:** single capture ∧ capturer has exactly one liberty ∧ **resulting
