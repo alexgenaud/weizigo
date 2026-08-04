@@ -1,0 +1,8 @@
+{
+  "task_id": "T345",
+  "date": "2026-08-04",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump for T345 KEY-4x4. Exhaustive key-agreement run against data/oracle-4x4-v2.wzo2 (518,123,097 bytes, SHA-256 0c3366f0…). 99,133,036 entries checked, 0 mismatches between producer (rules.stateKey, kernel T273) and consumer (vb_movegen.stateKey, R8 T340). Test wired into src/differential.zig as test:T345:KEY-4x4. Calibration test flips LSB of producer colex → 1000/1000 caught. M1-M4 mutant fixture status: M3 assertion exists (vb_mutants.zig) but still expects SURVIVE; M1, M2, M4 have no test fixtures yet. Per brief 'mutant assertions are wired separately'."
+}

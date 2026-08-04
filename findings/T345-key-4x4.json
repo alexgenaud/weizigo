@@ -1,0 +1,15 @@
+{
+  "task_id": "T345",
+  "date": "2026-08-04",
+  "model": "DSPro",
+  "claims": [
+    {
+      "id": "CODE.KEY-AGREEMENT",
+      "proposed_status": "CLAIMED",
+      "rationale": "4x4 exhaustive key-agreement: 0 mismatches over 99,133,036 table entries between producer (kernel T273) and consumer (R8 T340) StateKey encoders. Calibration catches all 1000/1000 flipped-bit mutants (not a QA-023 tautology).",
+      "evidence_path": "src/differential.zig T345:KEY-4x4 test"
+    }
+  ],
+  "new_rows": [],
+  "notes": "T345 KEY-4x4 done. Producer (rules.stateKey) vs consumer (vb_movegen.stateKey) compared field-by-field for all 99,133,036 WZO2 entries. 0 mismatches. Calibration: 1000/1000 caught. Mutant status: M3 assertion exists in vb_mutants.zig but still expects SURVIVE (needs inversion to KILLED — wired separately per brief). M1, M2, M4 have no test fixtures yet (gap G1/G3 remains in vb_mutants.zig's kill matrix). zig build test timed out at 600s (4×4 exhaustive test + suite overhead); standalone `zig test src/differential.zig --test-filter KEY` passes clean in ~2 min."
+}

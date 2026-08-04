@@ -28,6 +28,7 @@ const testing = std.testing;
 const exp6 = @import("exp6_solve.zig");
 const rules_mod = @import("rules.zig");
 const colex = @import("colex.zig");
+const vb_mg = @import("vb_movegen.zig");
 
 // ── common board type ───────────────────────────────────────────────────────
 
@@ -1238,6 +1239,308 @@ test "T339: kernel-side ko-recapture mutant 3×3 — caught at ko≠NONE" {
     try testing.expect(r.ko_disagreements > 0);
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// KEY-AGREEMENT 4×4 (T345): producer (kernel) vs consumer (R8) state keys
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// T345 · Worker: deepseek-v4-pro/T345 · Date: 2026-08-04
+// OWNS: src/differential.zig · Set: D · Sprint: g3b-value-correctness pass0
+//
+// Iterates the entire 4×4 WZO2 table (99,133,036 entries), reconstructs the
+// (colex, side, ko, passes) key from each entry, and compares the kernel's
+// stateKey (producer, T273) against the battery's independent stateKey
+// (consumer, R8 / T340).  Both must produce identical StateKey tuples for
+// every entry — zero mismatches expected.
+//
+// The consumer path decodes the table's colex to a position via the canonical
+// colex.Indexer, then calls vb_movegen.stateKey which re-encodes the position
+// through its independent colexFromPos implementation.  Agreement confirms
+// the consumer's colex bijection matches the kernel's over the entire
+// reachable 4×4 space.
+//
+// WZO2 format authority: design-M1.md rev 3 (RATIFIED G2).
+
+const WZO2_HEADER_LEN_KEY: usize = 128;
+const WZO2_ENTRY_SIZE_KEY: u16 = 4;
+const WZO2_GROUP_HDR_SIZE_KEY: u8 = 5;
+const WZO2_MAGIC_KEY: [4]u8 = .{ 'W', 'Z', 'O', '2' };
+
+/// Unpack key_byte fields — WZO2 schema design-M1 §2.2:
+///   [passes:1][ko_point:KO_BITS][side:1][terminal:1]  MSB→LSB
+
+fn keyByteSide(kb: u8) u1 {
+    return @intCast((kb >> 1) & 1);
+}
+
+fn keyByteKo(kb: u8, ko_bits: u8) u8 {
+    const mask: u8 = if (ko_bits == 0) 0 else @intCast((@as(u16, 1) << @intCast(ko_bits)) - 1);
+    return @intCast((kb >> 2) & mask);
+}
+
+fn keyBytePasses(kb: u8, ko_bits: u8) u2 {
+    const shift: u3 = @intCast(2 + ko_bits);
+    return @intCast((kb >> shift) & 1);
+}
+
+/// Parse the WZO2 header, returning (w, h, ko_bits, hdr_flags, n_groups, n_entries, data_offset).
+fn parseWzo2HeaderKey(bytes: []const u8) !struct {
+    w: u8,
+    h: u8,
+    ko_bits: u8,
+    hdr_flags: u8,
+    n_groups: u64,
+    n_entries: u64,
+    data_offset: u64,
+} {
+    if (bytes.len < WZO2_HEADER_LEN_KEY) return error.Truncated;
+    if (!std.mem.eql(u8, bytes[0..4], &WZO2_MAGIC_KEY)) return error.BadMagic;
+    const version = std.mem.readInt(u16, bytes[4..6], .little);
+    if (version != 1) return error.BadVersion;
+    const w = bytes[6];
+    const h = bytes[7];
+    if (w == 0 or h == 0) return error.BadDimensions;
+    if (w != 4 or h != 4) return error.WrongGobanSize;
+    const rules_id = std.mem.readInt(u16, bytes[8..10], .little);
+    if (rules_id != 3) return error.BadRulesId;
+    const entry_size = std.mem.readInt(u16, bytes[10..12], .little);
+    if (entry_size != WZO2_ENTRY_SIZE_KEY) return error.BadEntrySize;
+    if (bytes[12] != WZO2_GROUP_HDR_SIZE_KEY) return error.BadGroupHeaderSize;
+    const ko_bits = bytes[13];
+    if (ko_bits != 5) return error.BadKoBits;
+    const hdr_flags = bytes[14];
+    const n_groups = std.mem.readInt(u64, bytes[16..24], .little);
+    const n_entries = std.mem.readInt(u64, bytes[24..32], .little);
+    const data_offset = std.mem.readInt(u64, bytes[32..40], .little);
+    if (data_offset != WZO2_HEADER_LEN_KEY) return error.BadDataOffset;
+    return .{
+        .w = w,
+        .h = h,
+        .ko_bits = ko_bits,
+        .hdr_flags = hdr_flags,
+        .n_groups = n_groups,
+        .n_entries = n_entries,
+        .data_offset = data_offset,
+    };
+}
+
+/// A minimal group record for iteration: colex + entry_count + cumulative entry offset.
+const KeyGroup = struct {
+    colex: u32,
+    entry_count: u8,
+    entry_offset: u64,
+};
+
+/// Read group index from raw WZO2 bytes.  Returns groups in colex-sorted order.
+fn readKeyGroups(bytes: []const u8, data_offset: u64, n_groups: u64, gpa: std.mem.Allocator) ![]KeyGroup {
+    const ng: usize = @intCast(n_groups);
+    const groups = try gpa.alloc(KeyGroup, ng);
+    errdefer gpa.free(groups);
+    const base: usize = @intCast(data_offset);
+    var cumulative: u64 = 0;
+    for (0..ng) |i| {
+        const off = base + i * WZO2_GROUP_HDR_SIZE_KEY;
+        const colex_val = std.mem.readInt(u32, bytes[off..][0..4], .little);
+        const count = bytes[off + 4];
+        groups[i] = KeyGroup{
+            .colex = colex_val,
+            .entry_count = count,
+            .entry_offset = cumulative,
+        };
+        cumulative += count;
+    }
+    return groups;
+}
+
+fn keyEntryData(bytes: []const u8, data_offset: u64, n_groups: u64) []const u8 {
+    const entry_base: usize = @intCast(data_offset + n_groups * WZO2_GROUP_HDR_SIZE_KEY);
+    return bytes[entry_base..];
+}
+
+test "T345: KEY-4x4 — producer vs consumer key-agreement exhaustive" {
+    // File I/O setup — use page_allocator (518 MB file).
+    const gpa = std.heap.page_allocator;
+    const path = "data/oracle-4x4-v2.wzo2";
+
+    const cwd = std.Io.Dir.cwd();
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const bytes = cwd.readFileAlloc(io, path, gpa, .unlimited) catch |err| {
+        std.debug.print("T345 KEY-4x4 SKIP: cannot read {s}: {}\n", .{ path, err });
+        return;
+    };
+    defer gpa.free(bytes);
+
+    // Parse header.
+    const hdr = parseWzo2HeaderKey(bytes) catch |err| {
+        std.debug.print("T345 KEY-4x4 FAIL: bad header: {}\n", .{err});
+        return err;
+    };
+
+    // Read group index.
+    const groups = readKeyGroups(bytes, hdr.data_offset, hdr.n_groups, gpa) catch |err| {
+        std.debug.print("T345 KEY-4x4 FAIL: group index: {}\n", .{err});
+        return err;
+    };
+    defer gpa.free(groups);
+
+    // Entry data slice.
+    const entries = keyEntryData(bytes, hdr.data_offset, hdr.n_groups);
+
+    const C = colex.Indexer(4, 4);
+    const ko_bits = hdr.ko_bits;
+    const n_entries: u64 = hdr.n_entries;
+
+    var mismatches: u64 = 0;
+    var entries_checked: u64 = 0;
+
+    // Progress reporting every 5M entries (stderr — diagnostics).
+    const progress_interval: u64 = 5_000_000;
+    var next_progress: u64 = progress_interval;
+
+    // Scan every group and every entry within each group.
+    for (groups) |group| {
+        const colex_val: u64 = @as(u64, group.colex);
+        const entry_start: usize = @intCast(group.entry_offset);
+        const entry_end: usize = @intCast(group.entry_offset + group.entry_count);
+
+        // Decode the position once per group (all entries share the same colex).
+        const pos = C.pos_from_colex(colex_val);
+
+        for (entry_start..entry_end) |ei| {
+            const entry = entries[ei * WZO2_ENTRY_SIZE_KEY ..][0..WZO2_ENTRY_SIZE_KEY];
+            const kb = entry[0];
+
+            const side_u1 = keyByteSide(kb);
+            const ko = keyByteKo(kb, ko_bits);
+            const passes = keyBytePasses(kb, ko_bits);
+            const side_i8: i8 = if (side_u1 == 0) @as(i8, 1) else @as(i8, -1);
+
+            // ── Producer key (kernel, T273) ──────────────────────────
+            const pk = rules_mod.stateKey(colex_val, side_i8, ko, passes);
+
+            // ── Consumer key (R8, T340) ──────────────────────────────
+            const vb_state = vb_mg.State(4, 4){
+                .pos = pos,
+                .side = side_i8,
+                .ko = ko,
+                .passes = passes,
+            };
+            const ck = vb_mg.stateKey(4, 4, vb_state);
+
+            // ── Compare ──────────────────────────────────────────────
+            if (pk.colex_idx != ck.colex_idx or
+                pk.side != ck.side or
+                pk.ko != ck.ko or
+                pk.passes != ck.passes or
+                pk.terminal != ck.terminal)
+            {
+                mismatches += 1;
+                if (mismatches <= 5) {
+                    std.debug.print(
+                        "T345 MISMATCH #{d}: colex={d} kb=0x{X:0>2} side={d} ko={d} passes={d}  " ++
+                            "producer=(colex={d},side={d},ko={d},passes={d},term={})  " ++
+                            "consumer=(colex={d},side={d},ko={d},passes={d},term={})\n",
+                        .{
+                            mismatches,     colex_val, kb, side_i8, ko, passes,
+                            pk.colex_idx,   pk.side,    pk.ko,  pk.passes,  pk.terminal,
+                            ck.colex_idx,   ck.side,    ck.ko,  ck.passes,  ck.terminal,
+                        },
+                    );
+                }
+            }
+
+            entries_checked += 1;
+            if (entries_checked >= next_progress) {
+                std.debug.print("T345 progress: {d} / {d} entries checked, {d} mismatches\n", .{ entries_checked, n_entries, mismatches });
+                next_progress += progress_interval;
+            }
+        }
+    }
+
+    // ── Report verdict ───────────────────────────────────────────────
+    std.debug.print("\nT345 KEY-4x4 RESULT: {d} mismatches / {d} entries checked / {d} total entries\n", .{ mismatches, entries_checked, n_entries });
+    try testing.expectEqual(@as(u64, 0), mismatches);
+    try testing.expectEqual(n_entries, entries_checked);
+}
+
+test "T345: KEY-4x4 calibration — flipped bit in producer colex caught" {
+    // Calibration: run the comparison on a tiny subset but with a
+    // deliberately corrupted key — one bit flipped in the producer
+    // colex_idx.  The invariant MUST catch it (mismatches > 0).
+    // If this test passes and the exhaustive test passes, we know
+    // the invariant is sensitive (not a QA-023 tautology).
+
+    const gpa = std.heap.page_allocator;
+    const path = "data/oracle-4x4-v2.wzo2";
+
+    const cwd = std.Io.Dir.cwd();
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const bytes = cwd.readFileAlloc(io, path, gpa, .unlimited) catch |err| {
+        std.debug.print("T345 calib SKIP: cannot read {s}: {}\n", .{ path, err });
+        return;
+    };
+    defer gpa.free(bytes);
+
+    const hdr = parseWzo2HeaderKey(bytes) catch return;
+    const groups = readKeyGroups(bytes, hdr.data_offset, hdr.n_groups, gpa) catch return;
+    defer gpa.free(groups);
+    const entries = keyEntryData(bytes, hdr.data_offset, hdr.n_groups);
+
+    const C = colex.Indexer(4, 4);
+    const ko_bits = hdr.ko_bits;
+
+    var mismatches: u64 = 0;
+    var checked: u64 = 0;
+    const max_check: u64 = 1000; // small sample — any mismatch proves sensitivity
+
+    for (groups) |group| {
+        if (checked >= max_check) break;
+        const colex_val: u64 = @as(u64, group.colex);
+        const pos = C.pos_from_colex(colex_val);
+        const entry_start: usize = @intCast(group.entry_offset);
+        const entry_end: usize = @intCast(group.entry_offset + group.entry_count);
+
+        for (entry_start..entry_end) |ei| {
+            if (checked >= max_check) break;
+            const entry = entries[ei * WZO2_ENTRY_SIZE_KEY ..][0..WZO2_ENTRY_SIZE_KEY];
+            const kb = entry[0];
+
+            const side_u1 = keyByteSide(kb);
+            const ko = keyByteKo(kb, ko_bits);
+            const passes = keyBytePasses(kb, ko_bits);
+            const side_i8: i8 = if (side_u1 == 0) @as(i8, 1) else @as(i8, -1);
+
+            // MUTANT: flip bit 0 of colex_idx (LSB) in the producer key.
+            const mutated_colex = colex_val ^ 1;
+            const pk = rules_mod.stateKey(mutated_colex, side_i8, ko, passes);
+
+            const vb_state = vb_mg.State(4, 4){
+                .pos = pos,
+                .side = side_i8,
+                .ko = ko,
+                .passes = passes,
+            };
+            const ck = vb_mg.stateKey(4, 4, vb_state);
+
+            if (pk.colex_idx != ck.colex_idx or
+                pk.side != ck.side or
+                pk.ko != ck.ko or
+                pk.passes != ck.passes or
+                pk.terminal != ck.terminal)
+            {
+                mismatches += 1;
+            }
+            checked += 1;
+        }
+    }
+
+    std.debug.print("T345 calibration: {d} mismatches / {d} checked (mutant: flipped LSB of producer colex)\n", .{ mismatches, checked });
+    try testing.expect(mismatches > 0); // MUST catch the corruption
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADAPTER FUNCTIONS — one per operation per implementation per size
