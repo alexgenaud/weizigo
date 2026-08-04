@@ -28,22 +28,23 @@
 // EVERY CHECK MAPS TO A FAILURE THAT ACTUALLY HAPPENED. Do not add a check that
 // merely enforces formatting.
 //
-//   C1a ORPHAN DETECTION — a PROVEN/CLAIMED claim with a transitive
+//   C1a ORPHANED (orphan detection) — a PROVEN/CLAIMED claim with a transitive
 //       `derives-from` (`d:`) ancestor that is FALSE-AS-SCOPED or FALSE.
 //       PAST FAILURE: O1. The project wrote "bracket cuts are C3" and "C3 is
 //       falsified" in two documents and did not notice for weeks that the
 //       finisher behind every shipped ko-sensitive value depended on it
 //       (CLAIMS.md §4.1 O1; critique-2026-07-28.md §4 M-F0).
 //
-//   C1b NEGATION ALARM — an `n:` (derives-from-negation) edge whose parent is
-//       NOT false. This project is driven by falsifications: whole positions
+//   C1b STALE-NEGATION (negation alarm) — an `n:` (derives-from-negation) edge
+//       whose parent is NOT false. This project is driven by falsifications: whole positions
 //       are adopted BECAUSE a claim fell. `GLOBAL.REFRAME` exists because C2,
 //       C3 and C4 are false; if any of them were rehabilitated, the reframe and
 //       everything under it would need re-examining and nothing would say so.
 //       Propagation is inverted, so this is a real check, not the mirror image
 //       of a formatting rule.
 //
-//   C2  DANGLING EVIDENCE — a cited file path that does not exist on disk.
+//   C2  DEAD-LINKS (dangling evidence) — a cited file path that does not exist
+//       on disk.
 //       C2a: paths in the register's own evidence column.
 //       C2b: paths named inside the documents the evidence column cites —
 //       the reproduction inputs. PAST FAILURE: the T13 class. The reproduction
@@ -52,13 +53,14 @@
 //       the whole reframe rests on can be read but not re-run
 //       (docs/evidence/README.md, CLAIMS.md §7).
 //
-//   C3  PROVEN WITHOUT COMMITTED EVIDENCE — a PROVEN claim whose evidence does
-//       not resolve under docs/evidence/. PAST FAILURE: roadmap-2026-07-28.md
+//   C3  UNBACKED (proven without committed evidence) — a PROVEN claim whose
+//       evidence does not resolve under docs/evidence/. PAST FAILURE: roadmap-2026-07-28.md
 //       §4 P1 — 57 scratch files were swept on 2026-07-27, taking the primary
 //       evidence for T13, T02/B1, T07 and B05 with them. A claim whose evidence
 //       cannot be retrieved is not proven; it is remembered.
 //
-//   C5  SHADOWED DEPENDENCY — a `d:` edge whose parent is a MEASUREMENT row.
+//   C5  SHADOWED (shadowed dependency) — a `d:` edge whose parent is a
+//       MEASUREMENT row.
 //       A measurement records that something *happened*; it is not a truth-claim
 //       that it was *correct*. PAST FAILURE: `3x3.C1` ("fresh-start scores
 //       correct at 3×3") carried `d:3x3.F2`, and `3x3.F2` measures only that
@@ -68,7 +70,8 @@
 //       measurement sat in the chain and stopped the falsification propagating,
 //       so C1a never saw the case CLAIMS.md §4.1-O3 calls the sharpest.
 //
-//   C4  DANGLING CLAIM IDs — an ID cited in docs/ that has no register row
+//   C4  GHOST-IDS (dangling claim IDs) — an ID cited in docs/ that has no
+//       register row
 //       (an error class waiting to happen: a status change that can never
 //       propagate because the register does not know the claim exists), and
 //       separately, register rows nothing references (a smell, not an error).
@@ -134,6 +137,36 @@ const PATH_EXT = [_][]const u8{
 const SCOPES = [_][]const u8{
     "GLOBAL", "CODE", "2x2", "3x2", "3x3", "4x3", "4x4", "5x3", "5x4", "5x5", "6x3",
 };
+
+/// The canonical name↔number mapping — the ONE source of truth (T356).
+/// The ID is the stable reference: it is the key in the floor file, the token
+/// in existing documents and commit messages, and what anything
+/// machine-readable matches on. The name is for human comprehension — `C3`
+/// alone tells a reader nothing; `C3 UNBACKED` does. Every output line carries
+/// both, ID first. Do not duplicate these name strings anywhere else: a second
+/// copy is the divergence this project keeps paying for. Add a name here and
+/// it flows to every section header, failure line and summary row via
+/// `checkName`.
+const Check = struct { id: []const u8, name: []const u8 };
+const CHECKS = [_]Check{
+    .{ .id = "C1a", .name = "ORPHANED" },
+    .{ .id = "C1b", .name = "STALE-NEGATION" },
+    .{ .id = "C2", .name = "DEAD-LINKS" },
+    .{ .id = "C3", .name = "UNBACKED" },
+    .{ .id = "C4", .name = "GHOST-IDS" },
+    .{ .id = "C5", .name = "SHADOWED" },
+    .{ .id = "C6", .name = "MISCITED" },
+    .{ .id = "C7", .name = "UNABSORBED" },
+    .{ .id = "C8", .name = "UNKILLED" },
+    .{ .id = "C9", .name = "UNMAPPED" },
+};
+
+/// The canonical name for a check ID, e.g. `checkName("C3")` → `UNBACKED`.
+/// Used in every output line so the name can never drift from the mapping.
+fn checkName(id: []const u8) []const u8 {
+    for (CHECKS) |c| if (std.mem.eql(u8, c.id, id)) return c.name;
+    return "?";
+}
 
 /// The narrative files cite-tagged against the register. C6 scans each for
 /// `[ID:STATUS]` tags and verifies them against the register. The set is
@@ -1062,17 +1095,17 @@ pub fn main(init: std.process.Init) !void {
     util.out("edges: {d} total — {d} `d:` derives-from, {d} `e:` evidenced-by, {d} `n:` derives-from-negation\n", .{ n_d + n_e + n_n, n_d, n_e, n_n });
 
     // ── C1 orphan detection ─────────────────────────────────────────────────
-    util.out("\n== C1  ORPHAN DETECTION (fails the run) ==\n", .{});
-    util.out("C1a: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.\n", .{});
+    util.out("\n== C1  ORPHAN DETECTION — C1a {s} · C1b {s} (fails the run) ==\n", .{ checkName("C1a"), checkName("C1b") });
+    util.out("C1a {s}: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.\n", .{checkName("C1a")});
     util.out("`n:` edges are NOT traversed — a claim justified by a refutation does not\n", .{});
-    util.out("inherit the refuted parent's ancestry. C1b below checks them the other way.\n\n", .{});
+    util.out("inherit the refuted parent's ancestry. C1b {s} below checks them the other way.\n\n", .{checkName("C1b")});
     var c1_count: usize = 0;
     var cal_orphan_hit = false;
     for (reg.rows.items, 0..) |r, i| {
         if (!r.status.isLive()) continue;
         const chain = try shortestFalseChain(gpa, &reg, i) orelse continue;
         c1_count += 1;
-        util.out("  ORPHAN  `{s}` ({s})\n", .{ r.id, r.status_raw });
+        util.out("  C1a {s}  `{s}` ({s})\n", .{ checkName("C1a"), r.id, r.status_raw });
         for (chain.items, 1..) |step, depth| {
             const sr = reg.rows.items[step];
             util.out("     {s}⟵d `{s}`  [{s}]\n", .{
@@ -1088,27 +1121,27 @@ pub fn main(init: std.process.Init) !void {
         }
     }
     if (c1_count == 0) util.out("  (none)\n", .{});
-    util.out("\n  C1a orphans: {d}\n", .{c1_count});
+    util.out("\n  C1a {s} orphans: {d}\n", .{ checkName("C1a"), c1_count });
 
     // C1b — the inverse. A claim carrying `n:P` is justified BY P being false.
     // If P is ever rehabilitated the justification evaporates and the child
     // needs re-examining. Nothing else in this repo detects that.
-    util.out("\n  C1b — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.\n", .{});
+    util.out("\n  C1b {s} — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.\n", .{checkName("C1b")});
     const alarms = try negationAlarms(gpa, &reg);
     for (alarms.items) |a| {
         const child = reg.rows.items[a.child];
         const parent = reg.rows.items[a.parent];
-        util.out("  ALARM   `{s}` ({s})\n", .{ child.id, child.status_raw });
+        util.out("  C1b {s}  `{s}` ({s})\n", .{ checkName("C1b"), child.id, child.status_raw });
         util.out("            ⟵n `{s}`  [{s}]  — justified by this parent being FALSE;\n", .{ parent.id, parent.status.name() });
         util.out("               it is not. The justification has evaporated.\n", .{});
     }
     if (alarms.items.len == 0)
         util.out("  (none — every `n:` edge points at a parent that is still FALSE)\n", .{});
-    util.out("\n  C1b alarms: {d}\n", .{alarms.items.len});
-    util.out("\n  C1 total: {d}\n", .{c1_count + alarms.items.len});
+    util.out("\n  C1b {s} alarms: {d}\n", .{ checkName("C1b"), alarms.items.len });
+    util.out("\n  C1 total (C1a {s} + C1b {s}): {d}\n", .{ checkName("C1a"), checkName("C1b"), c1_count + alarms.items.len });
 
     // ── C2 dangling evidence ────────────────────────────────────────────────
-    util.out("\n== C2  DANGLING EVIDENCE (fails the run) ==\n", .{});
+    util.out("\n== C2 {s}  DANGLING EVIDENCE (fails the run) ==\n", .{checkName("C2")});
     var missing: std.ArrayList(Missing) = .empty;
     var seen_missing = std.StringHashMap(usize).init(gpa);
 
@@ -1184,7 +1217,7 @@ pub fn main(init: std.process.Init) !void {
         }
         if (m.inventoriedOnly()) continue;
         c2_fail += 1;
-        util.out("  MISSING  {s}\n", .{m.path});
+        util.out("  C2 {s}  {s}\n", .{ checkName("C2"), m.path });
         util.out("           named in:", .{});
         for (m.vias.items, 0..) |v, k| {
             if (k == 4) {
@@ -1221,7 +1254,7 @@ pub fn main(init: std.process.Init) !void {
     util.out("\n  evidence documents that EXIST but are git-ignored — readable today,\n", .{});
     util.out("  unrecoverable after the next sweep (roadmap §4 P1; QA-022):\n", .{});
     for (notgit.items) |m| {
-        util.out("    NOT IN GIT  {s}   cited by", .{m.path});
+        util.out("    C2 {s} (git-ignored)  {s}   cited by", .{ checkName("C2"), m.path });
         for (m.claims.items, 0..) |cid, k| {
             if (k == 4) {
                 util.out(" …(+{d})", .{m.claims.items.len - k});
@@ -1234,13 +1267,13 @@ pub fn main(init: std.process.Init) !void {
     if (notgit.items.len == 0) util.out("    (none)\n", .{});
 
     const c2_total = c2_fail + notgit.items.len;
-    util.out("\n  C2 total: {d}  ({d} unique missing paths — {d} cited by the evidence column\n", .{ c2_total, c2_fail, c2a });
+    util.out("\n  C2 {s} total: {d}  ({d} unique missing paths — {d} cited by the evidence column\n", .{ checkName("C2"), c2_total, c2_fail, c2a });
     util.out("            directly, {d} named inside cited documents — plus {d} git-ignored\n", .{ c2b, notgit.items.len });
     util.out("            evidence documents; {d} bulk .wzo and {d} already-inventoried\n", .{ c2_bulk, c2_inventoried });
     util.out("            losses, not counted)\n", .{});
 
     // ── C3 proven without committed evidence ────────────────────────────────
-    util.out("\n== C3  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==\n", .{});
+    util.out("\n== C3 {s}  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==\n", .{checkName("C3")});
     util.out("roadmap-2026-07-28 §4 P1: a claim is PROVEN only if its probe source and\n", .{});
     util.out("output are committed under docs/evidence/. Tier C = no committed evidence\n", .{});
     util.out("at all. Tier B = a committed prose document records the result, but no\n", .{});
@@ -1296,13 +1329,14 @@ pub fn main(init: std.process.Init) !void {
     }
     util.out("\n  TIER A — compliant (evidence under docs/evidence/): {d}\n", .{tierA.items.len});
     for (tierA.items) |i| util.out("    `{s}`\n", .{reg.rows.items[i].id});
-    util.out("\n  C3 total PROVEN-without-committed-evidence: {d} of {d} PROVEN rows\n", .{
+    util.out("\n  C3 {s} total PROVEN-without-committed-evidence: {d} of {d} PROVEN rows\n", .{
+        checkName("C3"),
         tierB.items.len + tierC.items.len,
         tierA.items.len + tierB.items.len + tierC.items.len,
     });
 
     // ── C4 dangling claim IDs ───────────────────────────────────────────────
-    util.out("\n== C4  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==\n", .{});
+    util.out("\n== C4 {s}  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==\n", .{checkName("C4")});
     var dangling = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
     var qa = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
     var qa_modelled = std.StringHashMap(void).init(gpa);
@@ -1342,10 +1376,10 @@ pub fn main(init: std.process.Init) !void {
             }
         }
     }
-    util.out("  claim IDs cited in docs/ with NO register row ({d}):\n", .{dangling.count()});
+    util.out("  C4 {s} — claim IDs cited in docs/ with NO register row ({d}):\n", .{ checkName("C4"), dangling.count() });
     var dit = dangling.iterator();
     while (dit.next()) |e| {
-        util.out("    `{s}`  cited at", .{e.key_ptr.*});
+        util.out("    C4 {s}  `{s}`  cited at", .{ checkName("C4"), e.key_ptr.* });
         for (e.value_ptr.items) |w| util.out(" {s}", .{w});
         util.out("\n", .{});
     }
@@ -1358,7 +1392,7 @@ pub fn main(init: std.process.Init) !void {
     var qit = qa.iterator();
     while (qit.next()) |e| {
         if (reg.by_id.contains(e.key_ptr.*)) continue;
-        util.out("    UNMODELLED `{s}`  cited at", .{e.key_ptr.*});
+        util.out("    C4 {s}  UNMODELLED `{s}`  cited at", .{ checkName("C4"), e.key_ptr.* });
         for (e.value_ptr.items) |w| util.out(" {s}", .{w});
         util.out("\n", .{});
     }
@@ -1373,10 +1407,10 @@ pub fn main(init: std.process.Init) !void {
         util.out("    `{s}` [{s}]\n", .{ r.id, r.status.name() });
     }
     if (unref == 0) util.out("    (none)\n", .{});
-    util.out("\n  C4 total: {d} dangling IDs, {d} unmodelled QA-nnn IDs, {d} unreferenced rows\n", .{ dangling.count(), qa.count() - qa_modelled.count(), unref });
+    util.out("\n  C4 {s} total: {d} dangling IDs, {d} unmodelled QA-nnn IDs, {d} unreferenced rows\n", .{ checkName("C4"), dangling.count(), qa.count() - qa_modelled.count(), unref });
 
     // ── C5 shadowed dependencies ────────────────────────────────────────────
-    util.out("\n== C5  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==\n", .{});
+    util.out("\n== C5 {s}  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==\n", .{checkName("C5")});
     util.out("`d:` edges terminating on a MEASUREMENT or a definition. A measurement says\n", .{});
     util.out("something happened; a definition cannot be wrong. Neither can ever be FALSE,\n", .{});
     util.out("so the edge is a dead end: if the claim really needs the SOUNDNESS behind the\n", .{});
@@ -1385,16 +1419,16 @@ pub fn main(init: std.process.Init) !void {
     for (shadows.items) |sh| {
         const child = reg.rows.items[sh.child];
         const parent = reg.rows.items[sh.parent];
-        util.out("  SHADOWED: `{s}` [{s}]\n", .{ child.id, child.status.name() });
+        util.out("  C5 {s}  `{s}` [{s}]\n", .{ checkName("C5"), child.id, child.status.name() });
         util.out("            d: `{s}` [{s}] — a parent that can never be FALSE;\n", .{ parent.id, parent.status.name() });
         util.out("            completion is not soundness. Is the real parent a soundness claim?\n", .{});
     }
     if (shadows.items.len == 0) util.out("  (none)\n", .{});
     const c5 = shadows.items.len;
-    util.out("\n  C5 total: {d}\n", .{c5});
+    util.out("\n  C5 {s} total: {d}\n", .{ checkName("C5"), c5 });
 
     // ── C6 cite-tag verification ───────────────────────────────────────────
-    util.out("\n== C6  CITE-TAG VERIFICATION (fails the run) ==\n", .{});
+    util.out("\n== C6 {s}  CITE-TAG VERIFICATION (fails the run) ==\n", .{checkName("C6")});
     util.out("Scans {d} narrative files for `[ID:STATUS]` tags and verifies\n", .{NARRATIVE_FILES.len});
     util.out("each against the register. A narrative whose cite-tags do not\n", .{});
     util.out("match the register is hallucination-prone.\n", .{});
@@ -1410,16 +1444,17 @@ pub fn main(init: std.process.Init) !void {
         util.out("  (all cite-tags match the register)\n", .{});
     } else {
         for (cite_mismatches.items) |m| {
-            util.out("  MISMATCH  {s}:{d}: [`{s}:{s}`] — register has [{s}]\n", .{
+            util.out("  C6 {s}  MISMATCH  {s}:{d}: [`{s}:{s}`] — register has [{s}]\n", .{
+                checkName("C6"),
                 m.file, m.line, m.id, m.tagged_status, m.register_status,
             });
         }
     }
     const c6 = cite_mismatches.items.len;
-    util.out("\n  C6 cite-tag mismatches: {d}\n", .{c6});
+    util.out("\n  C6 {s} cite-tag mismatches: {d}\n", .{ checkName("C6"), c6 });
 
     // ── C7 unabsorbed findings ────────────────────────────────────────────
-    util.out("\n== C7  UNABSORBED FINDINGS (fails the run) ==\n", .{});
+    util.out("\n== C7 {s}  UNABSORBED FINDINGS (fails the run) ==\n", .{checkName("C7")});
     util.out("Scans {s}/*.json for claim status changes not reflected in the register.\n", .{FINDINGS_DIR});
     util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md\n", .{});
     util.out("AND it is not dispositioned in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
@@ -1431,7 +1466,7 @@ pub fn main(init: std.process.Init) !void {
     if (c7_results.nonconforming > 0) {
         util.out("  non-conforming (REPORTED, not silently skipped — GRAND-AUDIT §2): {d}\n", .{c7_results.nonconforming});
         for (c7_results.conform_issues.items) |ci| {
-            util.out("  NON-CONFORMING  {s} — {s}\n", .{ ci.file, ci.reason });
+            util.out("  C7 {s}  NON-CONFORMING  {s} — {s}\n", .{ checkName("C7"), ci.file, ci.reason });
         }
     } else {
         util.out("  non-conforming: 0 (all files conform to the findings schema)\n", .{});
@@ -1474,16 +1509,17 @@ pub fn main(init: std.process.Init) !void {
     } else {
         util.out("  unabsorbed: {d}\n", .{c7_results.unabsorbed});
         for (c7_results.items.items) |item| {
-            util.out("  UNABSORBED  `{s}` — findings says `{s}`, register says `{s}`\n", .{
+            util.out("  C7 {s}  `{s}` — findings says `{s}`, register says `{s}`\n", .{
+                checkName("C7"),
                 item.id, item.proposed, item.actual,
             });
             if (item.file) |f| util.out("              in {s}\n", .{f});
         }
     }
-    util.out("\n  C7 unabsorbed findings: {d}\n", .{c7});
+    util.out("\n  C7 {s} unabsorbed findings: {d}\n", .{ checkName("C7"), c7 });
 
     // ── C8 mutation-adequacy promotion gate ──────────────────────────────
-    util.out("\n== C8  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==\n", .{});
+    util.out("\n== C8 {s}  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==\n", .{checkName("C8")});
     util.out("DIRECTION Amendment 2 edge 5: a claim about a kernel function may not be\n", .{});
     util.out("promoted past CLAIMED until the battery kills the mutants covering it.\n", .{});
     util.out("Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json\n\n", .{});
@@ -1505,7 +1541,7 @@ pub fn main(init: std.process.Init) !void {
         const rr = reg.rows.items[slot];
         if (rr.status != .proven) continue;
         c8_violations += 1;
-        util.out("  VIOLATION  `{s}` — PROVEN but mutants unkilled:", .{kc.claim_id});
+        util.out("  C8 {s}  `{s}` — PROVEN but mutants unkilled:", .{ checkName("C8"), kc.claim_id });
         var first = true;
         for (kc.mutants.items) |m| {
             if (KillMatrix.isKilled(m.verdict)) continue;
@@ -1530,10 +1566,14 @@ pub fn main(init: std.process.Init) !void {
         util.out("  correctly held at CLAIMED, not PROVEN. When they are ready for promotion\n", .{});
         util.out("  the G1/G3 gap must close first (key-agreement, Phase 2).\n", .{});
     }
+    // The per-section total is left in its exact `C8 mutation-adequacy violations: N`
+    // form (no name inserted here): tools/regression-claimlint-promotion.sh greps
+    // this line by exact prefix and extracts the count with `sed 's/.*: //'`. The
+    // name UNKILLED is carried by the section header above and the SUMMARY row.
     util.out("\n  C8 mutation-adequacy violations: {d}\n", .{c8_violations});
 
     // ── C9 tree mapping (T305) ────────────────────────────────────────────
-    util.out("\n== C9  TREE MAPPING (fails the run) ==\n", .{});
+    util.out("\n== C9 {s}  TREE MAPPING (fails the run) ==\n", .{checkName("C9")});
     util.out("Every register row carries the requirement-tree node it serves (AXIOMS.md §3)\n", .{});
     util.out("in the `tree` column (T305 — the dropped Phase 0 deliverable, phase0-execution-\n", .{});
     util.out("audit F2). C9a validates the vocabulary (a node, or RETIRED = proposed retirement);\n", .{});
@@ -1551,7 +1591,7 @@ pub fn main(init: std.process.Init) !void {
     try checkTreeMapping(gpa, &reg, map_doc, &c9);
     if (c9_doc_missing) {
         c9.doc_missing = true;
-        try c9.failures.append(gpa, "  DOC MISSING — docs/epic-01-markovian/register-tree-map.md cannot be read (C9b is blind)");
+        try c9.failures.append(gpa, "  C9 UNMAPPED  DOC MISSING — docs/epic-01-markovian/register-tree-map.md cannot be read (C9b is blind)");
     }
     for (c9.failures.items) |f| util.out("{s}\n", .{f});
     if (c9.failures.items.len == 0) util.out("  (none)\n", .{});
@@ -1559,7 +1599,7 @@ pub fn main(init: std.process.Init) !void {
     util.out("  mapped to a node: {d} · proposed-retired (RETIRED): {d} · invalid cells: {d}\n", .{ c9.reg_rows - c9.retired_rows, c9.retired_rows, c9.invalid_cells });
     util.out("  doc missing rows: {d} · doc extra rows: {d} · node mismatches: {d}\n", .{ c9.doc_missing_ids, c9.doc_extra_ids, c9.node_mismatches });
     const c9_fail = c9.invalid_cells + c9.doc_missing_ids + c9.doc_extra_ids + c9.node_mismatches + (if (c9_doc_missing) @as(usize, 1) else 0);
-    util.out("\n  C9 tree-mapping violations: {d}\n", .{c9_fail});
+    util.out("\n  C9 {s} tree-mapping violations: {d}\n", .{ checkName("C9"), c9_fail });
 
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
@@ -1606,8 +1646,8 @@ pub fn main(init: std.process.Init) !void {
     util.out("A checker with no failing case proves nothing.\n\n", .{});
     var cal_ok = true;
 
-    util.out("  known-bad 1 (C1): `{s}` must be reported with `{s}` in its chain … {s}\n", .{
-        CAL_ORPHAN_CHILD, CAL_ORPHAN_ROOT, if (cal_orphan_hit) "CAUGHT" else "MISSED",
+    util.out("  known-bad 1 (C1a {s}): `{s}` must be reported with `{s}` in its chain … {s}\n", .{
+        checkName("C1a"), CAL_ORPHAN_CHILD, CAL_ORPHAN_ROOT, if (cal_orphan_hit) "CAUGHT" else "MISSED",
     });
     if (!cal_orphan_hit) cal_ok = false;
 
@@ -1615,8 +1655,8 @@ pub fn main(init: std.process.Init) !void {
     for (missing.items) |m| {
         if (std.mem.eql(u8, m.path, CAL_DANGLING)) cal_dangling_hit = true;
     }
-    util.out("  known-bad 2 (C2): `{s}` must be reported … {s}\n", .{
-        CAL_DANGLING, if (cal_dangling_hit) "CAUGHT" else "MISSED",
+    util.out("  known-bad 2 (C2 {s}): `{s}` must be reported … {s}\n", .{
+        checkName("C2"), CAL_DANGLING, if (cal_dangling_hit) "CAUGHT" else "MISSED",
     });
     if (!cal_dangling_hit) cal_ok = false;
 
@@ -1632,8 +1672,8 @@ pub fn main(init: std.process.Init) !void {
         }
         clean_ok = quiet;
     }
-    util.out("  known-good (C1+C2): PROVEN `{s}` with a real evidence path must be silent … {s}\n", .{
-        CAL_CLEAN, if (clean_ok) "SILENT (correct)" else "FLAGGED (checker suspect)",
+    util.out("  known-good (C1a {s} + C2 {s}): PROVEN `{s}` with a real evidence path must be silent … {s}\n", .{
+        checkName("C1a"), checkName("C2"), CAL_CLEAN, if (clean_ok) "SILENT (correct)" else "FLAGGED (checker suspect)",
     });
     if (!clean_ok) cal_ok = false;
 
@@ -1651,8 +1691,8 @@ pub fn main(init: std.process.Init) !void {
         const orphaned = (try shortestFalseChain(gpa, &reg, k)) != null;
         neg_ok_silent = has_n and !alarmed and !orphaned;
     }
-    util.out("  known-good (C1, `n:`): `{s}` — `n:` to a FALSE parent must be silent … {s}\n", .{
-        CAL_NEG_OK, if (neg_ok_silent) "SILENT (correct)" else "FLAGGED or has no `n:` edge (checker suspect)",
+    util.out("  known-good (C1b {s}, `n:`): `{s}` — `n:` to a FALSE parent must be silent … {s}\n", .{
+        checkName("C1b"), CAL_NEG_OK, if (neg_ok_silent) "SILENT (correct)" else "FLAGGED or has no `n:` edge (checker suspect)",
     });
     if (!neg_ok_silent) cal_ok = false;
 
@@ -1682,11 +1722,11 @@ pub fn main(init: std.process.Init) !void {
         synth_c5_ok = sreg.unparsed.items.len == 0 and saw_shadow and
             saw_plain_silent and sshadow.items.len == 1;
     }
-    util.out("  known-bad 3 (C1b, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a\n", .{});
+    util.out("  known-bad 3 (C1b {s}, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a\n", .{checkName("C1b")});
     util.out("                FALSE parent must not … {s}\n", .{if (synth_ok) "CAUGHT (1 alarm, 1 silent)" else "BROKEN"});
     if (!synth_ok) cal_ok = false;
 
-    util.out("  known-bad 4 (C5, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`\n", .{});
+    util.out("  known-bad 4 (C5 {s}, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`\n", .{checkName("C5")});
     util.out("                onto a real claim must not … {s}\n", .{if (synth_c5_ok) "CAUGHT (1 shadow, 1 silent)" else "BROKEN"});
     if (!synth_c5_ok) cal_ok = false;
 
@@ -1702,8 +1742,8 @@ pub fn main(init: std.process.Init) !void {
         }
         shadow_clean = any_d and !any_meas;
     }
-    util.out("  known-good (C5): `{s}` — every `d:` parent is a real claim, must be silent … {s}\n", .{
-        CAL_SHADOW_CLEAN, if (shadow_clean) "SILENT (correct)" else "FLAGGED (checker suspect)",
+    util.out("  known-good (C5 {s}): `{s}` — every `d:` parent is a real claim, must be silent … {s}\n", .{
+        checkName("C5"), CAL_SHADOW_CLEAN, if (shadow_clean) "SILENT (correct)" else "FLAGGED (checker suspect)",
     });
     if (!shadow_clean) cal_ok = false;
 
@@ -1756,9 +1796,9 @@ pub fn main(init: std.process.Init) !void {
 
         synth_c6_ok = first_ok and second_ok;
     }
-    util.out("  known-bad 5 (C6, synthetic): `[{s}:PROVEN]` (register says FALSE-AS-SCOPED) must\n", .{CAL_CITE_BAD_ID});
+    util.out("  known-bad 5 (C6 {s}, synthetic): `[{s}:PROVEN]` (register says FALSE-AS-SCOPED) must\n", .{ checkName("C6"), CAL_CITE_BAD_ID });
     util.out("                be caught, while correct-status tags pass silently … {s}\n", .{if (synth_c6_ok) "CAUGHT (2 mismatches across 2 files, 3 silent)" else "BROKEN"});
-    util.out("  known-bad 5b (C6, synthetic file 2): `[{s}:FALSE]` (register says\n", .{CAL_CITE_BAD_ID2});
+    util.out("  known-bad 5b (C6 {s}, synthetic file 2): `[{s}:FALSE]` (register says\n", .{ checkName("C6"), CAL_CITE_BAD_ID2 });
     util.out("                FALSE-AS-SCOPED) must also be caught — guards against\n", .{});
     util.out("                single-file-only scanning … {s}\n", .{if (synth_c6_ok) "CAUGHT" else "BROKEN"});
     if (!synth_c6_ok) cal_ok = false;
@@ -1811,11 +1851,11 @@ pub fn main(init: std.process.Init) !void {
 
         synth_c7_ok = base_ok and rej_ok;
     }
-    util.out("  known-bad 6 (C7, synthetic): findings JSON with 2 claims — 1 absorbed\n", .{});
+    util.out("  known-bad 6 (C7 {s}, synthetic): findings JSON with 2 claims — 1 absorbed\n", .{checkName("C7")});
     util.out("                (GLOBAL.CALPARENT-DEAD matches), 1 unabsorbed status\n", .{});
     util.out("                mismatch (GLOBAL.CAL-SHOULDBE-FALSE: findings says\n", .{});
     util.out("                FALSE-AS-SCOPED, register says PROVEN) … {s}\n", .{if (synth_c7_ok) "CAUGHT (1 unabsorbed, 1 silent)" else "BROKEN"});
-    util.out("  known-good 7 (C7, synthetic): same finding with a rejection entry\n", .{});
+    util.out("  known-good 7 (C7 {s}, synthetic): same finding with a rejection entry\n", .{checkName("C7")});
     util.out("                naming a refuting row — must go silent … {s}\n", .{if (synth_c7_ok) "SILENT (absorbed-with-rejection)" else "BROKEN"});
     if (!synth_c7_ok) cal_ok = false;
 
@@ -1843,7 +1883,7 @@ pub fn main(init: std.process.Init) !void {
             c7cal2.unabsorbed == 1 and saw_row2_mismatch and !saw_row1_unabsorbed and
             c7cal2.rejected == 0 and c7cal2.files == 1;
     }
-    util.out("  known-bad 8 (C7, synthetic): multi-row findings file — the T266 defect.\n", .{});
+    util.out("  known-bad 8 (C7 {s}, synthetic): multi-row findings file — the T266 defect.\n", .{checkName("C7")});
     util.out("                Row 1 (PROVEN, matches register) must stay silent, row 2\n", .{});
     util.out("                (CLAIMED vs PROVEN) must be caught, and BOTH counted\n", .{});
     util.out("                (new-rows touched = 2 — the old parser saw 1) … {s}\n", .{if (synth_c7_multirow_ok) "CAUGHT (2 rows counted, 1 mismatch, 1 silent)" else "BROKEN"});
@@ -1862,7 +1902,7 @@ pub fn main(init: std.process.Init) !void {
             bad.conforming == 0 and bad.claims_total == 0 and bad.unabsorbed == 0 and
             good.nonconforming == 0 and good.conforming == 1;
     }
-    util.out("  known-bad 9 (C7, synthetic): a non-findings JSON must be REPORTED, not\n", .{});
+    util.out("  known-bad 9 (C7 {s}, synthetic): a non-findings JSON must be REPORTED, not\n", .{checkName("C7")});
     util.out("                silently skipped (GRAND-AUDIT §2) … {s}\n", .{if (synth_c7_nonconf_ok) "CAUGHT (reported non-conforming)" else "BROKEN"});
     if (!synth_c7_nonconf_ok) cal_ok = false;
 
@@ -1909,9 +1949,9 @@ pub fn main(init: std.process.Init) !void {
         synth_c7_disposition_ok = ok.rejected == 1 and disp_saw_rejected and disp_saw_reason and
             ok.unabsorbed == 0 and bad.unabsorbed == 1 and noid_still_unabsorbed;
     }
-    util.out("  known-good 8 (C7, synthetic): a not-a-register-claim rejection entry with\n", .{});
+    util.out("  known-good 8 (C7 {s}, synthetic): a not-a-register-claim rejection entry with\n", .{checkName("C7")});
     util.out("                its mandatory reason silences a NO-SUCH-ID finding … {s}\n", .{if (synth_c7_disposition_ok) "SILENT (reason carried)" else "BROKEN"});
-    util.out("  known-bad 10 (C7, synthetic): the same entry WITHOUT the reason must NOT\n", .{});
+    util.out("  known-bad 10 (C7 {s}, synthetic): the same entry WITHOUT the reason must NOT\n", .{checkName("C7")});
     util.out("                silence — a silent skip is how a real finding gets lost … {s}\n", .{if (synth_c7_disposition_ok) "CAUGHT (still reported)" else "BROKEN"});
     if (!synth_c7_disposition_ok) cal_ok = false;
 
@@ -1944,11 +1984,11 @@ pub fn main(init: std.process.Init) !void {
         }
         synth_c8_ok = saw_unkilled and saw_killed_silent and saw_claimed_silent;
     }
-    util.out("  known-bad 11 (C8, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-UNKILLED`\n", .{});
+    util.out("  known-bad 11 (C8 {s}, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-UNKILLED`\n", .{checkName("C8")});
     util.out("                with a survived mutant must be caught … {s}\n", .{if (synth_c8_ok) "CAUGHT" else "BROKEN"});
-    util.out("  known-good 9 (C8, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-KILLED`\n", .{});
+    util.out("  known-good 9 (C8 {s}, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-KILLED`\n", .{checkName("C8")});
     util.out("                with all mutants killed must be silent … {s}\n", .{if (synth_c8_ok) "SILENT (correct)" else "BROKEN"});
-    util.out("  known-good 9b (C8, synthetic): CLAIMED kernel claim `GLOBAL.CAL-KERNEL-CLAIMED`\n", .{});
+    util.out("  known-good 9b (C8 {s}, synthetic): CLAIMED kernel claim `GLOBAL.CAL-KERNEL-CLAIMED`\n", .{checkName("C8")});
     util.out("                with unkilled mutant must be silent (only PROVEN triggers) … {s}\n", .{if (synth_c8_ok) "SILENT (correct)" else "BROKEN"});
     if (!synth_c8_ok) cal_ok = false;
 
@@ -1973,10 +2013,10 @@ pub fn main(init: std.process.Init) !void {
             c9res_g.doc_extra_ids == 0 and c9res_g.node_mismatches == 0;
         synth_c9_ok = c9_bad_caught and c9_good_silent;
     }
-    util.out("  known-bad 12 (C9, synthetic): a bogus tree cell, a register row missing\n", .{});
+    util.out("  known-bad 12 (C9 {s}, synthetic): a bogus tree cell, a register row missing\n", .{checkName("C9")});
     util.out("                from the mapping doc, and a doc row the register lacks\n", .{});
     util.out("                must all be reported … {s}\n", .{if (synth_c9_ok) "CAUGHT (1 invalid + 1 doc-missing + 1 doc-extra)" else "BROKEN"});
-    util.out("  known-good 10 (C9, synthetic): a consistent register+doc pair must be\n", .{});
+    util.out("  known-good 10 (C9 {s}, synthetic): a consistent register+doc pair must be\n", .{checkName("C9")});
     util.out("                silent … {s}\n", .{if (synth_c9_ok) "SILENT" else "BROKEN"});
     if (!synth_c9_ok) cal_ok = false;
 
@@ -1985,17 +2025,17 @@ pub fn main(init: std.process.Init) !void {
     // ── summary ─────────────────────────────────────────────────────────────
     util.out("\n== SUMMARY ==\n", .{});
     util.out("  rows parsed / unparsed        {d} / {d}\n", .{ reg.rows.items.len, reg.unparsed.items.len });
-    util.out("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)\n", .{ c1_count, alarms.items.len });
-    util.out("  C2 dangling evidence paths    {d}   (FAILS)\n", .{c2_total});
-    util.out("  C3 PROVEN w/o committed evid. {d}   (debt only, does not fail yet)\n", .{tierB.items.len + tierC.items.len});
-    util.out("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)\n", .{ dangling.count(), unref });
-    util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)\n", .{c5});
+    util.out("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)   [C1a {s} / C1b {s}]\n", .{ c1_count, alarms.items.len, checkName("C1a"), checkName("C1b") });
+    util.out("  C2 dangling evidence paths    {d}   (FAILS)   [{s}]\n", .{ c2_total, checkName("C2") });
+    util.out("  C3 PROVEN w/o committed evid. {d}   (debt only, does not fail yet)   [{s}]\n", .{ tierB.items.len + tierC.items.len, checkName("C3") });
+    util.out("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)   [{s}]\n", .{ dangling.count(), unref, checkName("C4") });
+    util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)   [{s}]\n", .{ c5, checkName("C5") });
     util.out("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
-    util.out("  C6 cite-tag mismatches         {d}   (FAILS)\n", .{c6});
-    util.out("  C7 unabsorbed findings         {d}   (FAILS)\n", .{c7});
-    util.out("  C7 non-conforming files        {d}   (reported)\n", .{c7_results.nonconforming});
-    util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)\n", .{c8_violations});
-    util.out("  C9 tree-mapping violations      {d}   (FAILS)\n", .{c9_fail});
+    util.out("  C6 cite-tag mismatches         {d}   (FAILS)   [{s}]\n", .{ c6, checkName("C6") });
+    util.out("  C7 unabsorbed findings         {d}   (FAILS)   [{s}]\n", .{ c7, checkName("C7") });
+    util.out("  C7 non-conforming files        {d}   (reported)   [{s}]\n", .{ c7_results.nonconforming, checkName("C7") });
+    util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)   [{s}]\n", .{ c8_violations, checkName("C8") });
+    util.out("  C9 tree-mapping violations      {d}   (FAILS)   [{s}]\n", .{ c9_fail, checkName("C9") });
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
@@ -2664,7 +2704,7 @@ fn checkTreeMapping(gpa: Allocator, reg: *Register, doc_text: []const u8, out: *
         out.invalid_cells += 1;
         try out.failures.append(gpa, try std.fmt.allocPrint(
             gpa,
-            "  BAD CELL  `{s}` — tree column \"{s}\" is not a tree node or RETIRED (line {d})",
+            "  C9 UNMAPPED  BAD CELL  `{s}` — tree column \"{s}\" is not a tree node or RETIRED (line {d})",
             .{ r.id, v, r.line },
         ));
     }
@@ -2676,7 +2716,7 @@ fn checkTreeMapping(gpa: Allocator, reg: *Register, doc_text: []const u8, out: *
             out.doc_missing_ids += 1;
             try out.failures.append(gpa, try std.fmt.allocPrint(
                 gpa,
-                "  DOC MISSING `{s}` — register row absent from register-tree-map.md §1",
+                "  C9 UNMAPPED  DOC MISSING `{s}` — register row absent from register-tree-map.md §1",
                 .{r.id},
             ));
             continue;
@@ -2685,7 +2725,7 @@ fn checkTreeMapping(gpa: Allocator, reg: *Register, doc_text: []const u8, out: *
             out.node_mismatches += 1;
             try out.failures.append(gpa, try std.fmt.allocPrint(
                 gpa,
-                "  NODE MISMATCH `{s}` — register says \"{s}\", doc says \"{s}\"",
+                "  C9 UNMAPPED  NODE MISMATCH `{s}` — register says \"{s}\", doc says \"{s}\"",
                 .{ r.id, trim(r.tree), trim(dnode) },
             ));
         }
@@ -2696,7 +2736,7 @@ fn checkTreeMapping(gpa: Allocator, reg: *Register, doc_text: []const u8, out: *
             out.doc_extra_ids += 1;
             try out.failures.append(gpa, try std.fmt.allocPrint(
                 gpa,
-                "  DOC EXTRA `{s}` — mapping doc §1 names a row the register does not have",
+                "  C9 UNMAPPED  DOC EXTRA `{s}` — mapping doc §1 names a row the register does not have",
                 .{e.key_ptr.*},
             ));
         }

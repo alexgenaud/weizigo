@@ -84,8 +84,11 @@ not at zero.
 
 **Canonical floor:** `tools/hooks/claimlint-floor.json` — the single source
 for claimlint floor values. The pre-commit hook reads it; this document cites
-it rather than restating numbers. The floor is C1a=10, C2=14 (not 12 — see
-the floor file for the C2 explanation), C6=0.
+it rather than restating numbers. The floor is C1a=10 (`ORPHANED`), C2=14
+(`DEAD-LINKS`, not 12 — see the floor file for the C2 explanation), C6=0
+(`MISCITED`). The check names are canonicalised in `src/claimlint.zig`
+(T356) and mirrored in the floor file's `names` map; the ID remains the
+stable key the hook and every document match on.
 
 **The gate must be installed.** GRAND-AUDIT §1c (2026-08-02): the gates were
 dashboards with no enforcement. T280 installed `git config core.hooksPath
@@ -95,8 +98,9 @@ A scheduled check item should verify `git config core.hooksPath` = `tools/hooks`
 
 **Rule:** A claimlint check fires `must` only when its count **exceeds** the
 recorded floor. At the floor, it grades `could` — the floor is debt, not
-regression. The floor may be lowered only by the Orchestrator on evidence of a
-committed fix (a claimlint run at a new lower count, with the diff documented).
+regression. So `ORPHANED` (C1a) at 10 is debt; at 11 it is `must`. The floor
+may be lowered only by the Orchestrator on evidence of a committed fix (a
+claimlint run at a new lower count, with the diff documented).
 
 ## Untracked-artifact retention rule (T211)
 
