@@ -524,7 +524,7 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
 /// on ANY process termination.  This replaces the mkdir mutex that leaked on
 /// every std.process.exit(1) after lock acquisition (T337 S0, 2026-08-04).
 ///
-/// Bounded wait: ~50 attempts over ~3s.  On exhaustion, fails loudly with the
+/// Bounded wait: ~10 attempts over ~3s.  On exhaustion, fails loudly with the
 /// holder's PID and timestamp rather than hanging forever.
 fn lockStore(io: std.Io, state_path: []const u8) !void {
     const lock_path = try std.fmt.allocPrint(alloc, "{s}.lockfile", .{state_path});
@@ -546,7 +546,7 @@ fn lockStore(io: std.Io, state_path: []const u8) !void {
     };
 
     // Try bounded non-blocking flock with backoff.
-    const max_attempts: u8 = 50;
+    const max_attempts: u8 = 10;
     var attempt: u8 = 0;
     while (attempt < max_attempts) : (attempt += 1) {
         const fd = std.c.open(@ptrCast(lock_path), open_flags, @as(c_int, 0o644));
@@ -587,7 +587,7 @@ fn lockStore(io: std.Io, state_path: []const u8) !void {
         _ = std.c.nanosleep(&req, null);
     }
 
-    // Bound exhausted — fail loudly.
+    // Bound exhausted — fail loudly (~3.2s total).
     const content = std.Io.Dir.cwd().readFileAlloc(io, lock_path, alloc, .limited(256)) catch "(unreadable)";
     defer if (!std.mem.eql(u8, content, "(unreadable)")) alloc.free(content);
     std.debug.print("FATAL: store locked for >3s ({s}).  If the holder is dead, remove {s}\n", .{ content, lock_path });
@@ -624,8 +624,8 @@ fn readState(io: std.Io, state_path: []const u8) !StateMap {
     return parseStateJson(content);
 }
 
-/// T317: write the store without acquiring the lock — caller already holds
-/// the exclusive flock (lockStateDir).  The lock→read→modify→write→unlock
+/// T317/T337: write the store without acquiring the lock — caller already holds
+/// the exclusive flock (lockStore).  The lock→read→modify→write→unlock
 /// pattern closes the lost-update window (2026-08-03 incident: T326's
 /// registration erased by a stale read-modify-write from another console).
 fn writeStateLocked(io: std.Io, state_path: []const u8, state: *StateMap) !void {
@@ -2533,7 +2533,7 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
 fn cmdSet(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = repo_root;
     if (args.len < 4 or args[3].len == 0) {
-        w.diag("usage: managent set <id> <A|B|C|…>\n", .{});
+        w.diag("usage: managent set <id> <A–Z>\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
@@ -3647,7 +3647,7 @@ fn printHelp(w: Writers) void {
         \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add)
         \\  --auto                   auto-generate opaque T<N> task ID (with add)
         \\  --bundle <path>          override bundle path (with add)
-        \\  --set <A|B|C>            override parallel set (with add / suggest)
+        \\  --set <A–Z>              override parallel set (with add / suggest)
         \\  --needs <id>             add extra dependency (with add)
         \\  --model <name>           set model for prompt line (with suggest)
         \\  --exec <prefix>          claim and exec into harness (with claim / next)
