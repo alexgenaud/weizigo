@@ -1,0 +1,8 @@
+{
+  "task_id": "T346",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-pro/T346.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "I11 move-set consistency: all tests pass. Null control (M10): kernel vs SMD1 at 2x2/3x2/3x3 → 0 mismatches. Seeded-defect: suicide mutant caught at 2x2 (mismatches > 0). Exhaustive ladder: 2x2 (114 states), 3x2 (978), 3x3 (25350), 4x3 (643378) all 0 mismatches. 4x4 sampled: 50000 stratified (10 colex deciles × 2500 Black + 2500 White, seed 31337) → 0 mismatches. 3x3 SMD1 cross-check: 0 mismatches. M10 wiring into vb_mutants.zig not yet done — that file (T291) still says 'Mutants M1, M2, M4, M8, M10 have no killer'. zig build test OOMs on SCC graph test (infrastructure, not I11). vb_i11 standalone: 14/14 tests pass."
+}

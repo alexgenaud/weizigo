@@ -1,0 +1,10 @@
+{
+  "task_id": "T346",
+  "model": "deepseek-v4-pro",
+  "date": "2026-08-05",
+  "files_changed": ["src/vb_i11.zig"],
+  "tests_passed": 14,
+  "tests_total": 14,
+  "standalone_command": "zig test --dep vb_movegen --dep engine -Mroot=src/vb_i11.zig -Mvb_movegen=src/vb_movegen.zig -Mengine=src/smd1_engine.zig",
+  "findings": "findings/T346-i11.json"
+}
