@@ -1,0 +1,8 @@
+{
+  "task_id": "T355",
+  "date": "2026-08-05",
+  "model": "claude-opus-5",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Gate-holder dump. The T355 console exited without committing, writing findings, or closing its row. Its source changes were found in the working tree, compile-verified (zig build exit 0) and committed by the Orchestrator at 0b0dc9b with attribution. The row's declared deliverables pointed at findings/T352-*.json because the brief was drafted as T352 and renamed without updating its meta header — an Orchestrator error of exactly the kind flagged earlier the same day (T322 findings squatting T323's namespace); corrected before close."
+}

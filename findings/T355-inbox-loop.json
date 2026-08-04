@@ -1,0 +1,8 @@
+{
+  "task_id": "T355",
+  "date": "2026-08-05",
+  "model": "minimax-m3",
+  "claims": [],
+  "new_rows": [],
+  "notes": "ORCHESTRATOR-AUTHORED after the console exited without writing findings; the work itself is the worker's, committed at 0b0dc9b. Delivered: workers poll `bin/managent inbox <id> --ack` at checkpoints; bin/ollama-subagent and bin/subagent inject that instruction alongside the claim/done lines; DELEGATEE.md states the contract; tools/regression-inbox-loop.sh is the control. Evidence it works, which is stronger than any test here: every directive sent by the Orchestrator this session travelled through it (D025 through D035), including the spec Rev 5 amendment to a running sprint console and the fleet-wide suite pause. Measured motivation: on 2026-08-04 two consoles sat at 0.0% CPU for four hours waiting for the operator to paste a message between them. Known gap: the injected prompt text labels the loop 'T352', a stale reference from when this brief was drafted under that ID; the bundle's deliverables line carried the same error and was corrected by the Orchestrator at close. Not verified: whether a worker reliably ACTS on pause/amend/kill directives rather than merely reading them — the three kill directives sent at session end went unread because the consoles were already gone."
+}
