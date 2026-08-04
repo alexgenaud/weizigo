@@ -109,6 +109,28 @@
     "skip_acceptance_reason": "zig build test not green on this clone: pre-existing tools/regression-managent-standing.sh failure (STANDING-ABSORB et al. not registered in kanban — Orchestrator standing-task matter, not T347) + suite already non-green per T340's record (T338 uncommitted differential.zig). T347's own gates pass in isolation: zig test src/vb_health.zig 38/38, zig test src/vb_mutants.zig 43/43 incl. M9-BATTERY-STUBBED kill, red-then-green wiring proof demonstrated, no-silent-bypass @compileError gate verified. The M9 kill test in vb_mutants.zig is wired into zig build test; vb_health.zig wiring is the sprint console's job (brief: do not edit build.zig).",
     "amendments": []
   },
+  "T364": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T364-orphan-reaper.md",
+    "set": "G",
+    "holds": ["tools/runner"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-04T23:54:10Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T344": {
     "status": "done",
     "agent": "deepseek-v4-pro",
