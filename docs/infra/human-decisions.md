@@ -54,11 +54,10 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
 
 ## Open, awaiting a ruling
 
-- **2026-08-04 — check names.** Proposed one-word handles for the claimlint checks, replacing
-  the C-numbers as the primary label (numbers retained as aliases): `ORPHANED` (C1a),
-  `STALE-NEGATION` (C1b), `DEAD-LINKS` (C2), **`UNBACKED`** (C3), `GHOST-IDS` (C4),
-  `SHADOWED` (C5), `MISCITED` (C6), `UNABSORBED` (C7), `UNKILLED` (C8), `UNMAPPED` (C9).
-  Registered as T356; ratify or rename before it lands.
+- **2026-08-04 — check names.** Names proposed to sit **alongside** the IDs, not replace them:
+  `ORPHANED` (C1a), `STALE-NEGATION` (C1b), `DEAD-LINKS` (C2), **`UNBACKED`** (C3),
+  `GHOST-IDS` (C4), `SHADOWED` (C5), `MISCITED` (C6), `UNABSORBED` (C7), `UNKILLED` (C8),
+  `UNMAPPED` (C9). Registered as T356; ratify or rename the words before it lands.
 - **2026-08-04 — epitaph policy (item 4).** Ratify once so agents can prune archaeology
   without asking. T354's triage will propose the wording.
 
@@ -71,4 +70,7 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
   must not make `untracked/` load-bearing.
 - **2026-08-04** — T328 (model bake-off) runs after the store-safety row landed.
 - **2026-08-03** — If a third re-implementation language is ever adopted, it is Kotlin.
+- **2026-08-04** — IDs and canonical names are both kept; a name never replaces an ID. IDs are
+  the stable reference in artifacts; names are how work is described to the operator, who does
+  not keep an ID glossary in mind.
 - **2026-08-03** — Credential stripping for subagents: rejected.
