@@ -1,7 +1,7 @@
 {
   "T356": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T356-name-the-checks.md",
     "set": "B",
@@ -9,14 +9,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-04T15:29:18Z",
-    "claimed": null,
+    "claimed": "2026-08-04T16:12:17Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
+    "dispatched": "2026-08-04T16:12:14Z",
+    "dispatched_to": "glm-5.2",
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -88,8 +88,8 @@
     "amendments": []
   },
   "T347": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "minimax-m3",
     "model": null,
     "bundle": "untracked/T347-batt-health.md",
     "set": "E",
@@ -97,14 +97,14 @@
     "needs": ["T340"],
     "caps": [],
     "added": "2026-08-04T10:22:59Z",
-    "claimed": null,
+    "claimed": "2026-08-04T17:46:12Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
+    "dispatched": "2026-08-04T17:45:50Z",
+    "dispatched_to": "minimax-m3",
+    "note": "BATT-HEALTH: M9 battery-health meta-check. Small scope, well-specified, mechanical. Same model as R8 (T340) is acceptable — no independence constraint on meta-checks.",
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -176,7 +176,7 @@
     "amendments": []
   },
   "T337": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T337-fleet-hardening-round-2-console.md",
@@ -186,15 +186,15 @@
     "caps": [],
     "added": "2026-08-03T23:53:17Z",
     "claimed": "2026-08-04T08:13:13Z",
-    "done": null,
+    "done": "2026-08-04T15:35:32Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Sprint delivered: S0 flock(2) fleet-critical fix, S1 dispatcher regression+cross-check, S4 absorption (C7 10→0, 9 claims), S5 4 orphan scripts wired, S6 cmdShow amendments + 7 commands hardened. S2-gtp: T326 closed, T327 verified+closed. S3: T330 closed. Deferrals: T350 cmdDone, T351 failed-command, T352 T227. C2 floor raise overruled. SHAs: 693f075 3cbaecf 1964235 42449f5 3a962b4 19aeb69 6324173 e401bf6 b6a8fec 7a0c1ec e970b22",
     "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "S0 flock lock (fleet-critical), S1 dispatcher controls, S4 absorption C7 10→0, S5 4 orphan scripts, S6 partial. smoke PASS at 7a0c1ec. Suite hung at close time from concurrent zig processes (T338 acceptance race) — deploy current, all deliverables committed. Three deferrals: T350/T351/T352. C2 floor raise overruled by Orchestrator (38ca84a)",
     "amendments": []
   },
   "T354": {
@@ -329,16 +329,16 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
-  "T339": {
-    "status": "blocked",
+  "T357": {
+    "status": "dispatchable",
     "agent": null,
     "model": null,
-    "bundle": "untracked/T339-mg-kern.md",
-    "set": "D",
-    "holds": ["src/rules.zig"],
-    "needs": ["T338"],
+    "bundle": "untracked/T357-ollama-concurrency-limit.md",
+    "set": "G",
+    "holds": [],
+    "needs": [],
     "caps": [],
-    "added": "2026-08-04T10:22:59Z",
+    "added": "2026-08-04T17:57:47Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -347,6 +347,28 @@
     "verdict": null,
     "verdict_note": null,
     "claim_count": 0,
+    "acceptance": "test -s docs/infra/agents/ollama-concurrency-2026-08-04.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T339": {
+    "status": "in_progress",
+    "agent": "glm-5.2",
+    "model": null,
+    "bundle": "untracked/T339-mg-kern.md",
+    "set": "D",
+    "holds": ["src/rules.zig"],
+    "needs": ["T338"],
+    "caps": [],
+    "added": "2026-08-04T10:22:59Z",
+    "claimed": "2026-08-04T17:46:12Z",
+    "done": null,
+    "dispatched": "2026-08-04T17:45:50Z",
+    "dispatched_to": "glm-5.2",
+    "note": "MG-KERN: kernel move-gen extraction. Author A — must differ from B (minimax-m3/T340) and C (deepseek-v4-pro/T338,T345). Plan §6 binding constraint.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -440,7 +462,7 @@
     "amendments": []
   },
   "T338": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T338-mg-inv.md",
@@ -450,15 +472,15 @@
     "caps": [],
     "added": "2026-08-04T10:22:54Z",
     "claimed": "2026-08-04T15:29:13Z",
-    "done": null,
+    "done": "2026-08-04T15:31:25Z",
     "dispatched": "2026-08-04T10:23:16Z",
     "dispatched_to": "deepseek-v4-pro",
     "note": "MG-INV: defines the invariant that licenses the kernel extraction. Must be right — the differential pattern, null + seeded-defect controls, exhaustive at ko≠NONE.",
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "12 tests pass: null control (3 sizes), suicide-mutant caught (3 sizes), ko-recapture-mutant caught at ko≠NONE (3 sizes), exhaustive agreement (3 sizes). Full Cartesian product over (board,side,ko,passes) including ko≠NONE.",
     "claim_count": 3,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "zig build test hangs on rules.zig benson_theorem_check which runs after differential tests; T338 tests verified via zig test src/differential.zig --test-filter T338: All 12 passed",
     "amendments": []
   },
   "T343": {
@@ -660,7 +682,7 @@
     "amendments": []
   },
   "T345": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T345-key-4x4.md",
@@ -682,8 +704,8 @@
     "amendments": []
   },
   "T355": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "minimax-m3",
     "model": null,
     "bundle": "untracked/T355-inbox-loop.md",
     "set": "G",
@@ -691,21 +713,21 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-04T15:14:25Z",
-    "claimed": null,
+    "claimed": "2026-08-04T16:12:20Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
+    "dispatched": "2026-08-04T16:12:14Z",
+    "dispatched_to": "minimax-m3",
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
     "amendments": []
   }
 ,
   "_sys": {
-    "next_id": 356,
-    "directive_next": 21
+    "next_id": 357,
+    "directive_next": 26
   }
 }
