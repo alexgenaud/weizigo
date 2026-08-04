@@ -695,6 +695,327 @@ test "T267: key-agreement — engine keys match builder keys on 4×4 self-play" 
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MG-INV: move-generator differential invariant (T338)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Compares legal-move bitmaps at every (board, side, ko, passes) state
+// across the full Cartesian product.  The three seeded-defect controls
+// (null, suicide-mutant, ko-recapture-mutant) are the licensing invariant
+// for the kernel move-generator extraction (MG-KERN, T339).
+//
+// MoveBitmap: bits 0..n_cells-1 = legal placement; bit PASS_BIT = pass legal.
+
+const MoveBitmap = u16;
+const PASS_SHIFT: u4 = 15; // bit 15 = pass is legal
+
+fn mbHasCell(mb: MoveBitmap, cell: usize) bool {
+    return (mb & (@as(u16, 1) << @intCast(cell))) != 0;
+}
+fn mbSetCell(mb: *MoveBitmap, cell: usize) void {
+    mb.* |= (@as(u16, 1) << @intCast(cell));
+}
+fn mbSetPass(mb: *MoveBitmap) void {
+    mb.* |= (@as(u16, 1) << PASS_SHIFT);
+}
+
+// ── Generic comparison over the full (board, side, ko, passes) space ──────
+
+fn compareMoveGens(
+    comptime n_cells: usize,
+    comptime w: usize,
+    comptime h: usize,
+    fn_a: anytype,
+    fn_b: anytype,
+) struct { total: u64, disagreements: u64, ko_disagreements: u64 } {
+    _ = .{ w, h };
+    const KO_NONE: u8 = @intCast(n_cells);
+    const pow3 = comptime blk: {
+        var p: u64 = 1;
+        var i: usize = 0;
+        while (i < n_cells) : (i += 1) { p *= 3; }
+        break :blk p;
+    };
+
+    var total: u64 = 0;
+    var disagreements: u64 = 0;
+    var ko_disagreements: u64 = 0;
+
+    var board_idx: u64 = 0;
+    while (board_idx < pow3) : (board_idx += 1) {
+        var board: [n_cells]i8 = undefined;
+        var v = board_idx;
+        for (0..n_cells) |j| {
+            const d: i8 = @intCast(@as(u3, @truncate(v % 3)));
+            v /= 3;
+            board[j] = d - 1;
+        }
+        inline for (.{ @as(i8, 1), @as(i8, -1) }) |side| {
+            for (0..n_cells + 1) |ko_u| {
+                const ko: u8 = @intCast(ko_u);
+                inline for (.{ @as(u8, 0), @as(u8, 1), @as(u8, 2) }) |passes| {
+                    const a = fn_a(&board, side, ko, passes);
+                    const b = fn_b(&board, side, ko, passes);
+                    total += 1;
+                    if (a != b) {
+                        disagreements += 1;
+                        if (ko != KO_NONE) ko_disagreements += 1;
+                    }
+                }
+            }
+        }
+    }
+    return .{ .total = total, .disagreements = disagreements, .ko_disagreements = ko_disagreements };
+}
+
+// ── 2×2 solver legalMoves ────────────────────────────────────────────────
+
+fn solverLegalMoves2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const s = exp6.Brute2x2.State{
+        .board = board.*,
+        .side = side,
+        .ko_point = if (ko >= 4) exp6.Brute2x2.State.KO_NONE else ko,
+        .passes = passes,
+    };
+    var mb: MoveBitmap = 0;
+    if (exp6.Brute2x2.State.apply_pass(s) != null) mbSetPass(&mb);
+    for (0..4) |cell| {
+        if (exp6.Brute2x2.State.apply_place(s, @intCast(cell)) != null) mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+// ── 3×2 solver legalMoves ────────────────────────────────────────────────
+
+fn solverLegalMoves3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const board_idx = exp6.rank_board32(board.*);
+    const state = exp6.StateIdx32{
+        .board = board_idx,
+        .side = if (side == 1) @as(u8, 0) else @as(u8, 1),
+        .ko = if (ko >= 6) exp6.KO_NONE32 else @as(u16, ko),
+        .passes = passes,
+    };
+    const colour: i8 = side;
+    var mb: MoveBitmap = 0;
+    if (exp6.apply_pass32(state) != null) mbSetPass(&mb);
+    for (0..6) |cell| {
+        if (exp6.apply_place32(state, board, colour, @intCast(cell)) != null) mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+// ── 3×3 solver legalMoves ────────────────────────────────────────────────
+
+fn solverLegalMoves3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const board_idx = exp6.rank_board(board.*);
+    const state = exp6.StateIdx{
+        .board = board_idx,
+        .side = if (side == 1) @as(u8, 0) else @as(u8, 1),
+        .ko = if (ko >= 9) exp6.KO_NONE else @as(u16, ko),
+        .passes = passes,
+    };
+    const colour: i8 = side;
+    var mb: MoveBitmap = 0;
+    if (exp6.apply_pass(state) != null) mbSetPass(&mb);
+    for (0..9) |cell| {
+        if (exp6.apply_place(state, board, colour, @intCast(cell)) != null) mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+// ── Suicide-mutant legalMoves (allows self-atari / suicide) ───────────────
+// These use genericPosFromMove directly and only reject Occupied.
+
+fn mutantSuicide2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const s = exp6.Brute2x2.State{
+        .board = board.*,
+        .side = side,
+        .ko_point = if (ko >= 4) exp6.Brute2x2.State.KO_NONE else ko,
+        .passes = passes,
+    };
+    var mb: MoveBitmap = 0;
+    if (exp6.Brute2x2.State.apply_pass(s) != null) mbSetPass(&mb);
+    for (0..4) |cell| {
+        if (board.*[cell] != 0) continue;
+        if (s.ko_point != exp6.Brute2x2.State.KO_NONE and cell == s.ko_point) continue;
+        var next = board.*;
+        _ = exp6.genericPosFromMove(4, &next, side, cell, 2, 2) catch |err| {
+            if (err == error.Occupied) continue;
+        };
+        mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+fn mutantSuicide3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const board_idx = exp6.rank_board32(board.*);
+    const state = exp6.StateIdx32{
+        .board = board_idx,
+        .side = if (side == 1) @as(u8, 0) else @as(u8, 1),
+        .ko = if (ko >= 6) exp6.KO_NONE32 else @as(u16, ko),
+        .passes = passes,
+    };
+    var mb: MoveBitmap = 0;
+    if (exp6.apply_pass32(state) != null) mbSetPass(&mb);
+    for (0..6) |cell| {
+        if (board.*[cell] != 0) continue;
+        if (state.ko != exp6.KO_NONE32 and @as(u16, @intCast(cell)) == state.ko) continue;
+        var next = board.*;
+        _ = exp6.genericPosFromMove(6, &next, side, cell, 3, 2) catch |err| {
+            if (err == error.Occupied) continue;
+        };
+        mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+fn mutantSuicide3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const board_idx = exp6.rank_board(board.*);
+    const state = exp6.StateIdx{
+        .board = board_idx,
+        .side = if (side == 1) @as(u8, 0) else @as(u8, 1),
+        .ko = if (ko >= 9) exp6.KO_NONE else @as(u16, ko),
+        .passes = passes,
+    };
+    var mb: MoveBitmap = 0;
+    if (exp6.apply_pass(state) != null) mbSetPass(&mb);
+    for (0..9) |cell| {
+        if (board.*[cell] != 0) continue;
+        if (state.ko != exp6.KO_NONE and @as(u16, @intCast(cell)) == state.ko) continue;
+        var next = board.*;
+        _ = exp6.genericPosFromMove(9, &next, side, cell, 3, 3) catch |err| {
+            if (err == error.Occupied) continue;
+        };
+        mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+// ── Ko-recapture-mutant legalMoves (removes the ko-point guard) ───────────
+// These call the solver's apply_place but with ko forced to NONE, so the
+// ko-recapture check is bypassed.  Every other rule (suicide, occupancy) is
+// intact — the ONLY difference is that ko recaptures become legal.
+
+fn mutantKoRecapture2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    _ = ko;
+    const s = exp6.Brute2x2.State{
+        .board = board.*,
+        .side = side,
+        .ko_point = exp6.Brute2x2.State.KO_NONE, // ← ko guard removed
+        .passes = passes,
+    };
+    var mb: MoveBitmap = 0;
+    if (exp6.Brute2x2.State.apply_pass(s) != null) mbSetPass(&mb);
+    for (0..4) |cell| {
+        if (exp6.Brute2x2.State.apply_place(s, @intCast(cell)) != null) mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+fn mutantKoRecapture3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const board_idx = exp6.rank_board32(board.*);
+    var state = exp6.StateIdx32{
+        .board = board_idx,
+        .side = if (side == 1) @as(u8, 0) else @as(u8, 1),
+        .ko = if (ko >= 6) exp6.KO_NONE32 else @as(u16, ko),
+        .passes = passes,
+    };
+    state.ko = exp6.KO_NONE32; // ← ko guard removed
+    const colour: i8 = side;
+    var mb: MoveBitmap = 0;
+    if (exp6.apply_pass32(state) != null) mbSetPass(&mb);
+    for (0..6) |cell| {
+        if (exp6.apply_place32(state, board, colour, @intCast(cell)) != null) mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+fn mutantKoRecapture3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const board_idx = exp6.rank_board(board.*);
+    var state = exp6.StateIdx{
+        .board = board_idx,
+        .side = if (side == 1) @as(u8, 0) else @as(u8, 1),
+        .ko = if (ko >= 9) exp6.KO_NONE else @as(u16, ko),
+        .passes = passes,
+    };
+    state.ko = exp6.KO_NONE; // ← ko guard removed
+    const colour: i8 = side;
+    var mb: MoveBitmap = 0;
+    if (exp6.apply_pass(state) != null) mbSetPass(&mb);
+    for (0..9) |cell| {
+        if (exp6.apply_place(state, board, colour, @intCast(cell)) != null) mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+// ── T338 tests ────────────────────────────────────────────────────────────
+
+test "T338: MG-INV null control 2×2 — solver vs solver agrees" {
+    const r = compareMoveGens(4, 2, 2, solverLegalMoves2x2, solverLegalMoves2x2);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+    try testing.expect(r.total > 0);
+}
+
+test "T338: MG-INV null control 3×2 — solver vs solver agrees" {
+    const r = compareMoveGens(6, 3, 2, solverLegalMoves3x2, solverLegalMoves3x2);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+    try testing.expect(r.total > 0);
+}
+
+test "T338: MG-INV null control 3×3 — solver vs solver agrees" {
+    const r = compareMoveGens(9, 3, 3, solverLegalMoves3x3, solverLegalMoves3x3);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+    try testing.expect(r.total > 0);
+}
+
+test "T338: MG-INV suicide-mutant 2×2 — caught (mismatches > 0)" {
+    const r = compareMoveGens(4, 2, 2, solverLegalMoves2x2, mutantSuicide2x2);
+    try testing.expect(r.disagreements > 0);
+}
+
+test "T338: MG-INV suicide-mutant 3×2 — caught (mismatches > 0)" {
+    const r = compareMoveGens(6, 3, 2, solverLegalMoves3x2, mutantSuicide3x2);
+    try testing.expect(r.disagreements > 0);
+}
+
+test "T338: MG-INV suicide-mutant 3×3 — caught (mismatches > 0)" {
+    const r = compareMoveGens(9, 3, 3, solverLegalMoves3x3, mutantSuicide3x3);
+    try testing.expect(r.disagreements > 0);
+}
+
+test "T338: MG-INV ko-recapture-mutant 2×2 — caught at ko≠NONE" {
+    const r = compareMoveGens(4, 2, 2, solverLegalMoves2x2, mutantKoRecapture2x2);
+    try testing.expect(r.disagreements > 0);
+    try testing.expect(r.ko_disagreements > 0); // must have ko-active mismatches
+}
+
+test "T338: MG-INV ko-recapture-mutant 3×2 — caught at ko≠NONE" {
+    const r = compareMoveGens(6, 3, 2, solverLegalMoves3x2, mutantKoRecapture3x2);
+    try testing.expect(r.disagreements > 0);
+    try testing.expect(r.ko_disagreements > 0);
+}
+
+test "T338: MG-INV ko-recapture-mutant 3×3 — caught at ko≠NONE" {
+    const r = compareMoveGens(9, 3, 3, solverLegalMoves3x3, mutantKoRecapture3x3);
+    try testing.expect(r.disagreements > 0);
+    try testing.expect(r.ko_disagreements > 0);
+}
+
+test "T338: MG-INV exhaustive 2×2 — solver vs solver = 0 mismatches" {
+    const r = compareMoveGens(4, 2, 2, solverLegalMoves2x2, solverLegalMoves2x2);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+}
+
+test "T338: MG-INV exhaustive 3×2 — solver vs solver = 0 mismatches" {
+    const r = compareMoveGens(6, 3, 2, solverLegalMoves3x2, solverLegalMoves3x2);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+}
+
+test "T338: MG-INV exhaustive 3×3 — solver vs solver = 0 mismatches" {
+    const r = compareMoveGens(9, 3, 3, solverLegalMoves3x3, solverLegalMoves3x3);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ADAPTER FUNCTIONS — one per operation per implementation per size
 // ═══════════════════════════════════════════════════════════════════════════════
 

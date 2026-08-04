@@ -1,0 +1,8 @@
+{
+  "task_id": "T338",
+  "date": "2026-08-04",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "MG-INV move-generator differential invariant deployed. 12 tests pass: null control (3 sizes × solver-vs-solver = 0 mismatches), suicide-mutant seeded-defect (3 sizes, mismatches > 0), ko-recapture-mutant seeded-defect (3 sizes, mismatches > 0 AND ko_disagreements > 0), exhaustive agreement (3 sizes, solver-vs-solver = 0 mismatches). Full Cartesian product over (board, side, ko, passes) including ko≠NONE states. Wired into zig build test via existing differential.zig test block. Total state spaces: 2×2 = 2,430, 3×2 = 30,618, 3×3 = 1,180,980. No claim status changes proposed — this invariant licenses MG-KERN extraction (T339), claims promoted at DISCHARGE."
+}
