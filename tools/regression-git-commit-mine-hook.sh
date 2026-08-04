@@ -41,6 +41,7 @@ echo "  calibration: PASS"
 echo "  C1a orphans / C1b alarms      0 / 0   (FAILS)"
 echo "  C2 dangling evidence paths    0   (FAILS)"
 echo "  C6 cite-tag mismatches        0   (FAILS)"
+echo "  C9 tree-mapping violations      0   (FAILS)"
 exit 0
 EOF
     chmod +x "$1/bin/weizigo-claimlint"

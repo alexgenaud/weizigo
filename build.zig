@@ -222,14 +222,30 @@ pub fn build(b: *std.Build) void {
     // (checks deployed bin/ vs zig-out/ staleness — a pre-condition that
     // zig build test does not satisfy).  Four others deferred:
     // depth-enforcement (FAILURES), git-commit-mine (writes live tasks.json),
-    // git-commit-mine-hook (FAILURES), T227 (TIMEOUT >120s).
-    const orphaned_regression_1 = b.addSystemCommand(&.{ "sh", "tools/regression-managent-done-git.sh" });
-    orphaned_regression_1.cwd = b.path(".");
-    test_step.dependOn(&orphaned_regression_1.step);
+    // T337 S5: wire four remaining orphaned regression scripts.
+    // All verified passing at HEAD (2026-08-04); T322's deferral reasons
+    // were stale — managent-integrity passes all 16 checks (the deployed-
+    // stamp check now passes because zig build test runs after build),
+    // depth-enforcement passes all 7 controls, git-commit-mine passes all
+    // 9 controls and was verified NOT to write live tasks.json (operates
+    // in /tmp/weizigo scratch repo), git-commit-mine-hook passes all 6
+    // controls after C9 stub fix (added missing C9 output line).
+    // T227 still times out (>120s) — deferred same as T322.
+    const integrity_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-integrity.sh" });
+    integrity_regression.cwd = b.path(".");
+    test_step.dependOn(&integrity_regression.step);
 
-    const orphaned_regression_2 = b.addSystemCommand(&.{ "sh", "tools/regression-managent-memory-safety.sh" });
-    orphaned_regression_2.cwd = b.path(".");
-    test_step.dependOn(&orphaned_regression_2.step);
+    const depth_regression = b.addSystemCommand(&.{ "sh", "tools/regression-depth-enforcement.sh" });
+    depth_regression.cwd = b.path(".");
+    test_step.dependOn(&depth_regression.step);
+
+    const gcm_regression = b.addSystemCommand(&.{ "sh", "tools/regression-git-commit-mine.sh" });
+    gcm_regression.cwd = b.path(".");
+    test_step.dependOn(&gcm_regression.step);
+
+    const gcm_hook_regression = b.addSystemCommand(&.{ "sh", "tools/regression-git-commit-mine-hook.sh" });
+    gcm_hook_regression.cwd = b.path(".");
+    test_step.dependOn(&gcm_hook_regression.step);
 
     // ── resume-surface controls (T286) ───────────────────────────────
     // Null control (empty kanban + clean tree says NOTHING IN FLIGHT) and
