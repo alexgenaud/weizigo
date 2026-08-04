@@ -814,6 +814,288 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
             s.vals_w_len = 0;
             s.push(&s.pos);
         }
+
+        // ---- T327: weizigo_showscores — score-annotated ASCII board -------
+        //
+        // Renders the goban as two side-by-side boards, row-aligned:
+        //   LEFT  — stones in the existing showboard format (1 char + space).
+        //   RIGHT — per-empty-point [L,H] for the SIDE TO MOVE, in 4-char
+        //           cells (3-char content right-aligned + 1 separator),
+        //           with stones as `X`/`O` placeholders so the two boards
+        //           read with the same shape.
+        //
+        // Cell format on the right (4 chars, all right-aligned so digit
+        // positions column-align across the board):
+        //   `  X ` / `  O `  — occupied cell (placeholder; not queried)
+        //   ` +5 ` / `+16 ` / ` -5` — L == H, the value (Black-positive)
+        //   `+1~ `           — L <  H, sign + leading digit + `~` marker
+        //   `  . `           — empty point, illegal for the side to move
+        //                      (ko ban, PSK hit, suicide)
+        //   ` ?? `           — empty point whose child is not in the artifact
+        //                      (lookup miss); also printed on stderr naming
+        //                      the (colex, side, ko, passes) state
+        //
+        // Header line: "scores for B to move, +N = B ahead by N" (or W).
+        // A footnote under the pair of boards expands every L<H marker to
+        // its full bracket (axiom E3 — never fabricate a scalar from a
+        // bracket). Empty when no L<H point exists at the current state.
+        //
+        // For 2-digit |L| the cell drops the second digit (the cell shows
+        // sign + leading digit + `~`; e.g. L=-16 → `-1~ `). The full
+        // bracket still lives in the footnote, so no information is lost;
+        // the cell identifies WHICH cells are L<H and the rough magnitude
+        // for visual scanning. (Brief: "prefer compact variants ... and
+        // expand the marked points to their full [L,H] in a footnote line
+        // under the board".)
+        //
+        // Why "silent-unless-asked": a per-move auto-print would interleave
+        // a multi-line block with Sabaki's GTP console on every play/
+        // genmove and bury the move reply. The board is a slow-readable
+        // artefact (you stop to look at it); the GTP loop is fast. The
+        // user can `weizigo_showscores` whenever they want a fresh look,
+        // which is the natural Sabaki console pattern (query, then read).
+        // Recorded as a deliberate choice; the brief allows it if explained.
+
+        /// Per-cell render result for the right board.
+        const ScoreCell = union(enum) {
+            stone: i8, // -1, 0, +1 (a stone on the goban; not queried)
+            legal_fixed: i8, // L == H, print the value
+            lh: struct { L: i8, H: i8 }, // L < H, marker cell + footnote
+            illegal: void,
+            miss: struct { side_arg: i8, child_ko: u8, colex: u32 }, // missing
+        };
+
+        /// Look up the (L, H) bracket for a child state from the loaded
+        /// artifact. Returns the cell contents (L==H → legal_fixed, L<H →
+        /// lh, absent → miss). For WZO2, uses the (colex, -side, child_ko,
+        /// passes=0) Markov key. For WZO1, uses the (colex, -side)
+        /// value, treating an UNDEF slot as a miss.
+        fn lookupChild(s: *const S, child: *const Pos, child_ko: u8, side: i8) ScoreCell {
+            const colex: u32 = @intCast(X.colex_from_pos(child));
+            if (s.a2) |a2| {
+                if (artifact2.lookup(a2, colex, -side, child_ko, 0)) |row| {
+                    if (row.L == row.H) return .{ .legal_fixed = row.L };
+                    return .{ .lh = .{ .L = row.L, .H = row.H } };
+                }
+                return .{ .miss = .{ .side_arg = -side, .child_ko = child_ko, .colex = colex } };
+            }
+            // WZO1 path: V0 is keyed on (colex, side) only. An UNDEF
+            // slot is the WZO1 equivalent of a miss (unfilled).
+            const d = s.d.?;
+            const v = if (-side > 0) d.vb[colex] else d.vw[colex];
+            if (v == UNDEF) {
+                return .{ .miss = .{ .side_arg = -side, .child_ko = child_ko, .colex = colex } };
+            }
+            // WZO1 has no L/H bracket; the single value is treated as L==H.
+            return .{ .legal_fixed = v };
+        }
+
+        /// Render the two-board display for the given side-to-move into
+        /// `out_buf`. Returns the slice actually written. The caller
+        /// passes a buffer sized to fit ~3 rows/2 boards + footnote + header;
+        /// ~512 bytes is comfortable at 4x4. On any unexpected error
+        /// (e.g. buffer too small) the function still returns a partial
+        /// but-readable result, never a panic.
+        pub fn formatShowScores(s: *const S, side: i8, out_buf: []u8) []u8 {
+            var off: usize = 0;
+
+            // Header line: the convention is Black-positive; the side arg
+            // picks the array, never the sign.
+            const side_letter: u8 = if (side > 0) 'B' else 'W';
+            const hdr = std.fmt.bufPrint(out_buf[off..], "scores for {c} to move, +N = B ahead by N\n", .{
+                side_letter,
+            }) catch return out_buf[0..0];
+            off += hdr.len;
+
+            // Remember which cells are L<H so the footnote can expand them.
+            var lh_cells: [n]?struct { L: i8, H: i8 } = .{null} ** n;
+
+            for (0..h) |r| {
+                // LEFT board: stones, in the existing showboard format
+                // (1 char + 1 space per cell).
+                for (0..w) |cx| {
+                    const cell = s.pos[r * w + cx];
+                    const ch: u8 = if (cell > 0) 'X' else if (cell < 0) 'O' else '.';
+                    if (off + 2 > out_buf.len) return out_buf[0..off];
+                    out_buf[off] = ch;
+                    off += 1;
+                    out_buf[off] = ' ';
+                    off += 1;
+                }
+                // Two-space gap between the two boards.
+                if (off + 2 > out_buf.len) return out_buf[0..off];
+                out_buf[off] = ' ';
+                out_buf[off + 1] = ' ';
+                off += 2;
+                // RIGHT board: per-point cells, 4 chars each (3-char
+                // right-aligned content + 1 separator space). All cells
+                // are 4 chars wide so columns align across the board.
+                for (0..w) |cx| {
+                    const p = r * w + cx;
+                    if (off + 4 > out_buf.len) return out_buf[0..off];
+                    const cell_val = s.pos[p];
+                    if (cell_val != 0) {
+                        // Occupied: right-align the stone in a 3-char
+                        // content slot: `  X`. Then add the separator
+                        // space. Visually the stone sits in the same
+                        // column as the rightmost digit of numeric
+                        // cells.
+                        out_buf[off] = ' ';
+                        out_buf[off + 1] = ' ';
+                        out_buf[off + 2] = if (cell_val > 0) 'X' else 'O';
+                        out_buf[off + 3] = ' ';
+                        off += 4;
+                        continue;
+                    }
+                    // Empty point — determine the cell kind.
+                    // 1. Ko ban: ko_point forbids recapture on the same point.
+                    if (s.ko_point != KO_NONE and p == s.ko_point) {
+                        out_buf[off] = ' ';
+                        out_buf[off + 1] = ' ';
+                        out_buf[off + 2] = '.';
+                        out_buf[off + 3] = ' ';
+                        off += 4;
+                        continue;
+                    }
+                    // 2. Suicide (occupied is unreachable here since
+                    //    cell_val == 0, but kept defensive).
+                    const child = R.pos_from_move(&s.pos, side, p) catch {
+                        out_buf[off] = ' ';
+                        out_buf[off + 1] = ' ';
+                        out_buf[off + 2] = '.';
+                        out_buf[off + 3] = ' ';
+                        off += 4;
+                        continue;
+                    };
+                    // 3. Positional superko.
+                    if (s.seen(&child)) {
+                        out_buf[off] = ' ';
+                        out_buf[off + 1] = ' ';
+                        out_buf[off + 2] = '.';
+                        out_buf[off + 3] = ' ';
+                        off += 4;
+                        continue;
+                    }
+                    // 4. Table lookup.
+                    const child_ko = koAfterCapture(&s.pos, side, &child);
+                    const kind = s.lookupChild(&child, child_ko, side);
+                    switch (kind) {
+                        .stone, .illegal => unreachable,
+                        .legal_fixed => |v| {
+                            // 3-char numeric (sign + 2 digits, right-
+                            // aligned in width 3 via `{d:>3}`) + 1 sep
+                            // space = 4 chars.
+                            const s1 = std.fmt.bufPrint(out_buf[off..][0..3], "{d:>3}", .{v}) catch {
+                                out_buf[off] = '?';
+                                out_buf[off + 1] = '?';
+                                out_buf[off + 2] = '?';
+                                out_buf[off + 3] = ' ';
+                                off += 4;
+                                continue;
+                            };
+                            @memcpy(out_buf[off .. off + s1.len], s1);
+                            if (s1.len < 3) {
+                                var k: usize = s1.len;
+                                while (k < 3) : (k += 1) out_buf[off + k] = ' ';
+                            }
+                            out_buf[off + 3] = ' ';
+                            off += 4;
+                        },
+                        .lh => |row| {
+                            lh_cells[p] = .{ .L = row.L, .H = row.H };
+                            // 4-char cell: sign + leading digit + '~'
+                            // (3 chars content) + 1 separator space.
+                            // The leading digit is the first digit of
+                            // |L| (so L=16 → leading digit '1'; the
+                            // full bracket is in the footnote per
+                            // axiom E3). For 4x4 the leading digit is
+                            // always defined (L ∈ [-16, 16]).
+                            const l_signed = row.L;
+                            const sign: u8 = if (l_signed < 0) @as(u8, '-') else @as(u8, '+');
+                            // |L| leading digit: integer divide by 10
+                            // for |L|>=10, else |L| itself. For L=0
+                            // the leading digit is 0 (the cell shows
+                            // `+0~` — a valid marker for a 0-positive
+                            // bracket; the footnote has the full pair).
+                            const abs_l: u8 = if (l_signed < 0) @intCast(-l_signed) else @intCast(l_signed);
+                            const leading: u8 = if (abs_l >= 10) abs_l / 10 else abs_l;
+                            const digit_ch: u8 = '0' + leading;
+                            out_buf[off] = sign;
+                            out_buf[off + 1] = digit_ch;
+                            out_buf[off + 2] = '~';
+                            out_buf[off + 3] = ' ';
+                            off += 4;
+                        },
+                        .miss => |m| {
+                            // Loud on stderr: name the state. Match the
+                            // wording used by `bounds2` so logs read
+                            // consistently.
+                            var vb: [8]u8 = undefined;
+                            const vtxt = vertex_from_cell(&vb, p, w, h);
+                            std.debug.print("weizigo-oracle: weizigo_showscores lookup-miss at {s} child colex={d} side={d} ko={d} passes=0 not in artifact\n", .{
+                                vtxt, m.colex, m.side_arg, m.child_ko,
+                            });
+                            out_buf[off] = ' ';
+                            out_buf[off + 1] = '?';
+                            out_buf[off + 2] = '?';
+                            out_buf[off + 3] = ' ';
+                            off += 4;
+                        },
+                    }
+                }
+                if (off + 1 > out_buf.len) return out_buf[0..off];
+                out_buf[off] = '\n';
+                off += 1;
+            }
+
+            // Footnote: expand every L<H marker. Always present so the
+            // layout doesn't shift on the user.
+            const fhdr = std.fmt.bufPrint(out_buf[off..], "marked (L<H):", .{}) catch return out_buf[0..off];
+            off += fhdr.len;
+            var any = false;
+            for (0..n) |p| {
+                if (lh_cells[p]) |row| {
+                    if (!any) {
+                        if (off + 1 > out_buf.len) return out_buf[0..off];
+                        out_buf[off] = ' ';
+                        off += 1;
+                        any = true;
+                    } else {
+                        if (off + 2 > out_buf.len) return out_buf[0..off];
+                        out_buf[off] = ',';
+                        out_buf[off + 1] = ' ';
+                        off += 2;
+                    }
+                    var vb: [8]u8 = undefined;
+                    const vtxt = vertex_from_cell(&vb, p, w, h);
+                    if (off + vtxt.len + 8 > out_buf.len) return out_buf[0..off];
+                    @memcpy(out_buf[off .. off + vtxt.len], vtxt);
+                    off += vtxt.len;
+                    out_buf[off] = '=';
+                    off += 1;
+                    out_buf[off] = '[';
+                    off += 1;
+                    const lb = std.fmt.bufPrint(out_buf[off..], "{d}", .{row.L}) catch "?";
+                    off += lb.len;
+                    out_buf[off] = ',';
+                    off += 1;
+                    const hb = std.fmt.bufPrint(out_buf[off..], "{d}", .{row.H}) catch "?";
+                    off += hb.len;
+                    out_buf[off] = ']';
+                    off += 1;
+                }
+            }
+            if (!any) {
+                const none_str = " none";
+                if (off + none_str.len > out_buf.len) return out_buf[0..off];
+                @memcpy(out_buf[off..][0..none_str.len], none_str);
+                off += none_str.len;
+            }
+            if (off + 1 > out_buf.len) return out_buf[0..off];
+            out_buf[off] = '\n';
+            off += 1;
+            return out_buf[0..off];
+        }
     };
 }
 
@@ -1036,6 +1318,7 @@ const KNOWN_COMMANDS = [_][]const u8{
     "set_free_handicap", "place_free_handicap", "fixed_handicap",
     "weizigo_settled",  "weizigo_estimate", "weizigo_score",
     "weizigo_chaincheck", "weizigo-stats",
+    "weizigo_showscores",
     "quit",
 };
 
@@ -1484,6 +1767,33 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     report.dead.contested, status,
                 }) catch unreachable).len;
                 reply = sbuf[0..off];
+            } else if (std.mem.eql(u8, first, "weizigo_showscores")) {
+                // T327: score-annotated ASCII board — two side-by-side
+                // gobans, left = stones, right = per-empty-point [L,H]
+                // for the SIDE TO MOVE. Optional first arg picks the side
+                // ('b' = Black to move, 'w' = White to move, default
+                // = 'b' = Black, the project-wide default). Lookup misses
+                // print a stderr line naming the state (same wording as
+                // `bounds2`); nothing is silently substituted.
+                //
+                // The reply is a multi-line block ending in '\n'. The GTP
+                // outer wrapper trims one trailing newline before
+                // appending the terminating blank line (see the
+                // out.appendSlice for reply). Convention: prepend a leading
+                // '\n' so the first goban row is not indented by the
+                // "= " response prefix — matches `showboard`.
+                const ct = tokens.next() orelse "b";
+                const cside: i8 = if (ct.len > 0 and (ct[0] == 'w' or ct[0] == 'W')) -1 else 1;
+                var sbuf2: [2048]u8 = undefined;
+                const rendered = s.formatShowScores(cside, &sbuf2);
+                // Prepend a leading newline (matches `showboard`).
+                if (rendered.len + 1 > sbuf.len) {
+                    reply = sbuf[0..0]; // defensive
+                } else {
+                    sbuf[0] = '\n';
+                    @memcpy(sbuf[1..][0..rendered.len], rendered);
+                    reply = sbuf[0 .. 1 + rendered.len];
+                }
             } else if (std.mem.eql(u8, first, "weizigo-stats")) {
                 reply = std.fmt.bufPrint(&rbuf, "lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
                     stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
@@ -2147,4 +2457,258 @@ test "T283: bounds2 queried with correct side after applyMove" {
     // v0 also reflects the correct side.
     try expect(s.v0(&s.pos, -1) == pinnedValue(-16, -1));
     try expect(s.v0(&s.pos, 1) == pinnedValue(1, 16));
+}
+
+// T327: score-annotated ASCII board rendering. The brief requires
+// asserting the EXACT output block for a known mid-game position, so
+// the test uses an in-memory minimal 4x4 artifact (T283 pattern) with
+// entries crafted to exercise all three cell kinds the brief names:
+// a 2-digit L==H value, an illegal point (PSK ban), and an L<H point.
+// The position is:
+//     . . . .
+//     . X X .
+//     . O O .
+//     . . . .
+// with Black to move. We then set ko_point to one cell (ko-illegal
+// render) and push the empty goban to the history (PSK-illegal for
+// any move that would recreate it — which on this mid-game board is
+// the cell A1: the empty point farthest from the centre is not
+// reproducing empty, but a Black play at A1 that recaptures nothing
+// has the EMPTY child state pushed to history, making A1 illegal).
+// Wait — PSK-illegal requires the CHILD state to be in history, not
+// the parent. Set `s.hist[0] = empty` (the initial position is in
+// history), and rely on a move that exactly recreates the empty
+// goban. On 4x4 from a 4-stone position, no single Black move
+// recreates the empty goban; so instead set a HISTORY-FAKE: place
+// the parent state itself into the history so that the
+// child-recurrence check fails when `seen(&child)` matches it.
+// We make the test simpler: skip the PSK-illegal assertion and
+// cover the illegal case via the ko_point ban (a more natural
+// single-cell render). The brief's "illegal point" requirement is
+// met by the ko ban — the cell renders as `.  `.
+test "T327: weizigo_showscores — 2-digit value + illegal point + L<H point" {
+    const gpa = std.testing.allocator;
+    const w: u8 = 4;
+    const h: u8 = 4;
+    const kb = artifact2.koBits(w * h);
+    const none = artifact2.koNone(w, h); // 16
+
+    const S = Session(w, h);
+    const Pos = S.R.Pos;
+    const X = colexmod.Indexer(w, h);
+
+    // Build a minimal 4x4 WZO2 artifact with entries for every child
+    // state the render will query from the test position. The mid-
+    // game position is:
+    //     . . . .   row 0
+    //     . X X .   row 1  (B at B3=cell 5, C3=cell 6)
+    //     . O O .   row 2  (W at B2=cell 9, C2=cell 10)
+    //     . . . .   row 3
+    // with Black to move. For each of the 12 empty cells, the child
+    // state is "mid-game + Black plays there" — 12 distinct positions.
+    // We assign each a hand-crafted (L, H) bracket designed to:
+    //   - produce a 2-digit L==H value at one cell
+    //   - produce an L<H bracket at one cell
+    //   - leave the remaining cells as L==H scalars in the small range
+    // (every value fits in i8). The ko_point = 5 (cell B3) makes
+    // that cell ko-illegal (it's occupied anyway, but we use a
+    // different cell so it stays an empty-point ko ban).
+    //
+    // Actually ko_point forbids RECAPTURE on an OCCUPIED point. To
+    // make an EMPTY cell ko-illegal, we set ko_point to an empty
+    // cell. Let's use ko_point = 0 (cell A4, empty in the mid-game
+    // position) — that cell renders as `.  `.
+    //
+    // Construct all 13 colex indices: the parent position + 12
+    // children. We use a HashMap-like approach via sorted groups
+    // (the lookup is binary search, so groups must be sorted by colex).
+
+    // Helper: compute colex for a position.
+    const colex_of = struct {
+        fn f(pos: *const Pos) u32 {
+            return @intCast(X.colex_from_pos(pos));
+        }
+    }.f;
+
+    // Parent position.
+    var parent: Pos = [_]i8{0} ** 16;
+    parent[5] = 1; // B3
+    parent[6] = 1; // C3
+    parent[9] = -1; // B2
+    parent[10] = -1; // C2
+    const parent_colex: u32 = colex_of(&parent);
+
+    // For each empty cell p in 0..16, the child is parent with
+    // parent[p] = 1 (Black plays there). The child's colex is unique
+    // for each p. We pre-build a list of (p, child_pos, colex).
+    var children: [16]Pos = undefined;
+    var child_colex: [16]u32 = undefined;
+    var child_p: [16]usize = undefined;
+    var n_children: usize = 0;
+    for (0..16) |p| {
+        if (parent[p] != 0) continue;
+        var ch: Pos = parent;
+        ch[p] = 1;
+        children[n_children] = ch;
+        child_colex[n_children] = colex_of(&ch);
+        child_p[n_children] = p;
+        n_children += 1;
+    }
+    // We also need an entry for the parent itself (so the side-to-
+    // move = Black at parent is a real lookup). Add it last.
+
+    // Build groups: 1 for parent + n_children for children. Sort by
+    // colex (WZO2 requires sorted groups for binary search).
+    var all_colex: [17]u32 = undefined;
+    var all_is_parent: [17]bool = undefined;
+    for (0..n_children) |i| {
+        all_colex[i] = child_colex[i];
+        all_is_parent[i] = false;
+    }
+    all_colex[n_children] = parent_colex;
+    all_is_parent[n_children] = true;
+
+    // Sort by colex (insertion sort — n=13).
+    var i: usize = 1;
+    while (i < n_children + 1) : (i += 1) {
+        const key_c = all_colex[i];
+        const key_p = all_is_parent[i];
+        var j: usize = i;
+        while (j > 0 and all_colex[j - 1] > key_c) : (j -= 1) {
+            all_colex[j] = all_colex[j - 1];
+            all_is_parent[j] = all_is_parent[j - 1];
+        }
+        all_colex[j] = key_c;
+        all_is_parent[j] = key_p;
+    }
+
+    // Build entries. Each group has 2 entries (Black + White sides,
+    // both at ko=none, passes=0). The CHILD entries are what the
+    // renderer queries for the side=-1 (White's view after Black
+    // plays). We give each child a hand-picked bracket:
+    //   - Cell 0 (A4): L==H=+12 (2-digit L==H, satisfies the brief)
+    //   - Cell 1 (B4): L=+1, H=+5 (L<H, satisfies the brief)
+    //   - Other cells: L==H=0 (sanity, not the focus of the test)
+    // For the parent, we don't query it directly during the render
+    // (we query each CHILD), but the lookup must succeed for the
+    // side to move at the parent — we set it to L=H=0.
+    const Bracket = struct { L: i8, H: i8 };
+    var groups: [17]artifact2.GroupHeader = undefined;
+    var entries: [34]artifact2.EntryRow = undefined;
+    var eg: usize = 0;
+    var ee: usize = 0;
+    for (0..n_children + 1) |gi| {
+        groups[gi] = .{ .colex = all_colex[gi], .entry_count = 2 };
+        // Bracket: depends on whether this is the parent or a child.
+        const c: Bracket = if (all_is_parent[gi]) Bracket{ .L = 0, .H = 0 } else blk: {
+            // Find which child this is (linear scan — n=12).
+            var found: ?Bracket = null;
+            for (0..n_children) |ci| {
+                if (all_colex[gi] == child_colex[ci]) {
+                    const p = child_p[ci];
+                    if (p == 0) found = Bracket{ .L = 12, .H = 12 }; // 2-digit L==H
+                    if (p == 1) found = Bracket{ .L = 1, .H = 5 }; // L<H
+                    if (p != 0 and p != 1) found = Bracket{ .L = 0, .H = 0 };
+                    break;
+                }
+            }
+            break :blk found orelse Bracket{ .L = 0, .H = 0 };
+        };
+        // Black-side entry (side=+1 → key_byte.side=0).
+        entries[ee] = .{
+            .key_byte = artifact2.encodeKeyByte(0, none, 0, 0, kb),
+            .L = c.L,
+            .H = c.H,
+            .DTT = 1,
+        };
+        ee += 1;
+        // White-side entry (side=-1 → key_byte.side=1).
+        entries[ee] = .{
+            .key_byte = artifact2.encodeKeyByte(1, none, 0, 0, kb),
+            .L = c.L,
+            .H = c.H,
+            .DTT = 1,
+        };
+        ee += 1;
+        eg += 1;
+    }
+
+    const n_groups_actual = n_children + 1;
+    const art = artifact2.Artifact{
+        .header = artifact2.Header{
+            .w = w,
+            .h = h,
+            .ko_bits = kb,
+            .n_groups = n_groups_actual,
+            .n_entries = ee,
+            .sha256 = [_]u8{0} ** artifact2.HASH_LEN,
+        },
+        .group_headers = groups[0..n_groups_actual],
+        .entry_rows = entries[0..ee],
+    };
+
+    const file_bytes = try artifact2.buildFile(gpa, &art);
+    defer gpa.free(file_bytes);
+
+    var raw_hdr: [artifact2.HEADER_LEN]u8 = undefined;
+    @memcpy(&raw_hdr, file_bytes[0..artifact2.HEADER_LEN]);
+    const header = try artifact2.validateHeader(&raw_hdr, file_bytes.len, w, h);
+
+    const G: usize = @intCast(header.n_groups);
+    const n_checkpoints = (G + artifact2.CHECKPOINT_STRIDE - 1) / artifact2.CHECKPOINT_STRIDE;
+    const checkpoints = try gpa.alloc(u64, n_checkpoints);
+    defer gpa.free(checkpoints);
+
+    var cum: u64 = 0;
+    for (0..G) |gi| {
+        const off = artifact2.HEADER_LEN + gi * artifact2.GROUP_HEADER_SIZE;
+        const count = file_bytes[off + 4];
+        if (gi % artifact2.CHECKPOINT_STRIDE == 0) checkpoints[gi / artifact2.CHECKPOINT_STRIDE] = cum;
+        cum += count;
+    }
+
+    var loaded = artifact2.LoadedArtifact{
+        .gpa = gpa,
+        .data = file_bytes,
+        .header = header,
+        .group_base = artifact2.HEADER_LEN,
+        .entry_base = artifact2.HEADER_LEN + G * artifact2.GROUP_HEADER_SIZE,
+        .entry_checkpoints = checkpoints,
+    };
+
+    var s = S{ .a2 = &loaded, .enforcement = .basic_ko };
+    s.pos = parent;
+    s.ko_point = 2; // cell 2 (C4) is ko-banned → renders as `  . `
+
+    // Render the board for Black to move.
+    var buf: [512]u8 = undefined;
+    const out = s.formatShowScores(1, &buf);
+
+    // Build the expected golden string. Each right-board cell is
+    // exactly 4 chars (3-char content + 1 separator), so the row
+    // width is precisely determined. The render is deterministic
+    // for a given (Session, side) pair. The golden block exercises:
+    //   - a 2-digit L==H value at A4 (+12 → `+12 `)
+    //   - an illegal point at C4 (ko ban → `  . `)
+    //   - an L<H point at B4 (sign + leading digit + `~` → `+1~ `)
+    // The footnote expands the B4 bracket to [1,5].
+    //
+    // Per-cell layout (4 chars each, content + separator):
+    //   row 0: `+12 `  `+1~ `  `  . `  ` +0 `
+    //   row 1: ` +0 `  `  X `  `  X `  ` +0 `
+    //   row 2: ` +0 `  `  O `  `  O `  ` +0 `
+    //   row 3: ` +0 `  ` +0 `  ` +0 `  ` +0 `
+    // (value 0 renders as ` +0 ` because `{d:>3}` shows the explicit
+    // sign on positive zero — consistent with the convention that
+    // every cell carries a sign so the column stays right-aligned
+    // with the sign of every value.)
+    const expected =
+        "scores for B to move, +N = B ahead by N\n" ++
+        ". . . .   +12 +1~   .  +0 \n" ++
+        ". X X .    +0   X   X  +0 \n" ++
+        ". O O .    +0   O   O  +0 \n" ++
+        ". . . .    +0  +0  +0  +0 \n" ++
+        "marked (L<H): B4=[1,5]\n";
+
+    try expect(std.mem.eql(u8, out, expected));
 }
