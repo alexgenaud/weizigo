@@ -45,6 +45,13 @@ Code. **Record only measured or harness-reported values — never a model's
 self-report** (the attribution doctrine extends here: asked what they are, 2/2
 models were wrong; a self-reported window is the same class of evidence).
 
+**The doctrine bans introspection, not relay.** An agent asked to *guess* its own
+identity is unreliable (2/2 wrong). An agent **told** its identity and asked to echo
+it is reliable (4/4 correct reading `PI_MODEL`), and that is precisely what
+`bin/subagent`/`bin/ollama-subagent` do by injecting `--agent <canonical>`. So
+`unknown/T999` in the ledger is not a lie or a guess — it is a row whose agent was
+never told what it was. The fix is always injection at dispatch, never a question.
+
 | model | harness | context window | source |
 |---|---|---|---|
 | `deepseek-v4-pro` | pi | 1 M | human ruling 2026-08-03; matches "New Boss … 1.0M" below |
@@ -54,7 +61,7 @@ models were wrong; a self-reported window is the same class of evidence).
 | `kimi-k2.7` | pi | 262 k | human ruling 2026-08-03 — **supersedes the ~556 k prose entry** |
 | kimi-k3 | Ollama / pi | 128 k | EXP-11 entry below |
 | `claude-opus-5` | Claude Code | 1 M | human ruling 2026-08-03; matches the handover-at-64%-of-1M evidence |
-| `claude-fable-5` | Claude Code | **200 k** | human ruling 2026-08-03 — **stands**; see the anomaly note below |
+| `claude-fable-5` | Claude Code | **plan against 200 k** (1 M observed) | operator read the harness indicator 2026-08-04: window reached 1 M mid-session. The 200 k planning figure is a **cost** boundary, not a capacity one — see the note below |
 
 This table is canonical for windows; older per-model prose recording different
 numbers (glm 950 k, kimi-k2.7 ~556 k) is superseded, left in place as history.
@@ -62,17 +69,21 @@ Fill a TBD only from the harness config or a human ruling, and date it.
 Operational consequence worth knowing: **Fable's window is 5× smaller than
 Opus's** — Fable seats need handovers ~5× as often on the same workload.
 
-**Anomaly, `claude-fable-5`, 2026-08-04 (logged, not ruled into the table).** The
-Fable Orcha seat reported its own usage indicator jumping mid-session from
-96%-of-200 k to 20.4%-of-1 M. Human ruling 2026-08-04: **the row stays at 200 k**
-and this observation is recorded as unexplained pending an independent
-measurement. The reason is the rule two paragraphs up: a percentage a seat reads
-off its own status line is one report from the subject of the question, and the
-seat that produced it is gone — `feedback-no-cross-session-continuity` applies, so
-nothing further can be asked of it. What would move the row: a handover taken at a
-known token count (the evidence class behind the `claude-opus-5` row), or the
-harness config itself. Until then, plan Fable work against 200 k; a seat that turns
-out to have more window loses nothing by being handed over early.
+**`claude-fable-5` window observation, 2026-08-04 — corrected attribution.** The
+**human** read the harness's context indicator directly and reported it jumping
+mid-session from 96%-of-200 k to 20.4%-of-1 M. That is a **harness reading by the
+operator**, which this table accepts — not a model self-report, and not subject to
+the never-ask-a-model rule above. An earlier revision of this note wrongly
+attributed the observation to the Fable seat itself; that was the Orchestrator's
+error, corrected here.
+
+**So Fable's usable window can be 1 M.** The 200 k figure in the row is retained
+deliberately, and **the reason is cost, not capacity**: the human is confident that
+Fable is materially cheaper from 0–200 k than from 200 k–1 M. The exact pricing is
+unknown, and whether the boundary is an allocation, an extension, or a technical
+switch (context loaded into a larger window) is also unknown and **not officially
+documented** — do not restate the mechanism as fact. Plan Fable work against 200 k
+because crossing it costs money, not because the seat runs out of room.
 
 **Operating rule for `claude-fable-5` (human directive, 2026-08-04) — this is the
 binding one, independent of what the window turns out to be.** Hand a Fable seat over
