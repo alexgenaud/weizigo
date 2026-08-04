@@ -1,0 +1,8 @@
+{
+  "task_id": "T341",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump reconstructed by sprint console T335. Worker (glm-5.2, attempt 2) produced tools/smd1.zig (920 lines, 14 tests) and src/smd1_engine.zig before being killed by runner at 1800s wall. The SMD1 engine re-exports rules, colex, and enumerate modules so the tool has a single @import('engine'). 14 tests cover: header round-trip, record serialization, CRC-32, exhaustive 2x2/3x2/3x3, sampled 4x4 with sidecar, empty board has moves, terminal has none, colex monotonicity, and round-trip bitmap comparison against direct kernel call. What I could not establish: whether the standalone `zig run` invocation produces valid .smd1 output for I11 consumption — the worker was killed before the smoke run. This must be verified before I11 (T346) reads the dump."
+}

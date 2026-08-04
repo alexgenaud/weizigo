@@ -1,0 +1,8 @@
+{
+  "task_id": "T341",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "SMD1: solver-side move-set dump utility. 920 lines, 14 tests. Delivered tools/smd1.zig + src/smd1_engine.zig. Emits SMD1 binary format (design-M1 §4.6): 28-byte header, sorted records, CRC-32 ISO-HDLC, bit-per-cell move bitmap + pass bit, slice ko=NONE passes=0. Uses KERNEL move generator (T339) — not solver. Scope: exhaustive at 2x2/3x2/3x3, sampled at 4x4 (50k stratified, seed 31337). Sidecar JSON records seed and strata. Worker killed by runner wall cap before committing; sprint console T335 committed on its behalf."
+}
