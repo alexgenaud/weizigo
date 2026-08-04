@@ -318,6 +318,19 @@ pub fn build(b: *std.Build) void {
     run_differential_tests.cwd = b.path(".");
     test_step.dependOn(&run_differential_tests.step);
 
+    // ── verify-battery: independent move generator (vb_movegen, T340) ─
+    const vb_movegen_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_movegen.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_movegen_tests.root_module.import_table = .{};
+    const run_vb_movegen_tests = b.addRunArtifact(vb_movegen_tests);
+    run_vb_movegen_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_movegen_tests.step);
+
     // ── engine-vs-engine ──────────────────────────────────────────
     const engine_vs_engine_exe = b.addExecutable(.{
         .name = "weizigo-engine-vs-engine",
