@@ -731,6 +731,89 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                 s.ko_point = KO_NONE; // pass clears the ko
             }
         }
+
+        // ---- T326: GTP handicap ------------------------------------------
+        //
+        // The oracle table covers every reachable (position, side, ko, passes)
+        // state. Any legal handicap placement (k Black stones, White to move,
+        // no ko, passes = 0) is reachable via Black-plays/White-passes
+        // alternation, so a handicap start hits the table with no solver
+        // change — this is GTP surface only. Side-to-move is caller-driven in
+        // GTP (every `play`/`genmove` names a colour), so "set White to move"
+        // is conveyed by the protocol, not by session state; we only set
+        // passes = 0, ko = none, and push the handicap position to the PSK
+        // history so it cannot be recreated.
+
+        /// Is every cell empty? GTP handicap commands are only legal on an
+        /// empty goban (the caller rejects otherwise).
+        pub fn isEmpty(s: *const S) bool {
+            for (s.pos) |x| if (x != 0) return false;
+            return true;
+        }
+
+        /// Black's table value for a candidate handicap child. For WZO2 this
+        /// is the Markov-key value at (child, Black, ko=none, passes=1) — the
+        /// state reached by "Black plays the candidate, White passes" — which
+        /// is the greedy one-stone-at-a-time walk the brief suggests: every
+        /// evaluated state is a reachable table entry, so lookups hit. For
+        /// WZO1 (no ko/passes dimension) it falls back to the (child, Black)
+        /// table value. Higher = better for Black.
+        fn handicapValue(s: *const S, child: *const Pos) i8 {
+            if (s.a2) |_| {
+                const row = s.bounds2(child, KO_NONE, 1, 1);
+                return pinnedValue(row.L, row.H);
+            }
+            return s.v0(child, 1);
+        }
+
+        /// Place k validated Black handicap stones directly (no move
+        /// alternation). Caller has checked the goban is empty and the cells
+        /// are valid, distinct, and 2 <= k <= w*h-1. With no White stones on
+        /// the goban a Black placement can never be suicide or a capture, so
+        /// a direct cell assignment is sound and equivalent to pos_from_move.
+        /// Resets passes/ko and the sustained-loss FIFOs, and pushes the
+        /// handicap position to the PSK history.
+        pub fn applyHandicap(s: *S, cells: []const usize) void {
+            for (cells) |p| s.pos[p] = 1;
+            s.passes = 0;
+            s.ko_point = KO_NONE;
+            s.vals_b_len = 0;
+            s.vals_w_len = 0;
+            s.push(&s.pos);
+        }
+
+        /// Greedily choose k Black handicap stones by oracle value, one at a
+        /// time, via the B-move/W-pass walk: for each candidate empty point,
+        /// place a Black stone and evaluate handicapValue (the (child, Black,
+        /// ko=none, passes=1) table entry — the position after "Black plays,
+        /// White passes"); pick the candidate that maximizes Black's pinned
+        /// value, commit it, and repeat. Writes the chosen cells in placement
+        /// order to `out[0..k]`. No new solver machinery — every evaluated
+        /// state is a reachable table entry.
+        pub fn chooseHandicap(s: *S, k: usize, out: []usize) !void {
+            var placed: usize = 0;
+            while (placed < k) : (placed += 1) {
+                var best_val: i8 = 0;
+                var best_p: ?usize = null;
+                for (0..n) |p| {
+                    if (s.pos[p] != 0) continue;
+                    const child = R.pos_from_move(&s.pos, 1, p) catch continue;
+                    const v = s.handicapValue(&child);
+                    if (best_p == null or v > best_val) {
+                        best_val = v;
+                        best_p = p;
+                    }
+                }
+                const p = best_p orelse return error.NoHandicapMove;
+                s.pos[p] = 1; // commit; no White stones -> no capture, no suicide
+                out[placed] = p;
+            }
+            s.passes = 0;
+            s.ko_point = KO_NONE;
+            s.vals_b_len = 0;
+            s.vals_w_len = 0;
+            s.push(&s.pos);
+        }
     };
 }
 
@@ -950,6 +1033,7 @@ const KNOWN_COMMANDS = [_][]const u8{
     "protocol_version", "name",        "version",  "known_command", "list_commands",
     "boardsize",        "rectangular_boardsize",    "clear_board",   "komi",
     "play",             "genmove",     "undo",     "showboard",     "final_score",
+    "set_free_handicap", "place_free_handicap", "fixed_handicap",
     "weizigo_settled",  "weizigo_estimate", "weizigo_score",
     "weizigo_chaincheck", "weizigo-stats",
     "quit",
@@ -1078,6 +1162,79 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                 } else {
                     ok = false;
                     reply = "invalid vertex";
+                }
+            } else if (std.mem.eql(u8, first, "set_free_handicap")) {
+                // T326: place the GUI's chosen stones as Black on an empty
+                // goban; White to move (caller-driven), passes=0, no ko.
+                // GTP spec: only legal on an empty board, 2 <= k <= legal max.
+                if (!s.isEmpty()) {
+                    ok = false;
+                    reply = "board not empty";
+                } else {
+                    const legal_max: usize = w * h - 1; // leave >=1 empty point
+                    var cells: [w * h]usize = undefined;
+                    var k: usize = 0;
+                    var err: ?[]const u8 = null;
+                    while (tokens.next()) |vert| {
+                        const cell = cell_from_vertex(vert, w, h) orelse {
+                            err = "invalid handicap vertex";
+                            break;
+                        };
+                        for (cells[0..k]) |c| if (c == cell) {
+                            err = "duplicate handicap vertex";
+                            break;
+                        };
+                        if (err != null) break;
+                        if (k >= legal_max) { err = "too many handicap stones"; break; }
+                        cells[k] = cell;
+                        k += 1;
+                    }
+                    if (err) |e| {
+                        ok = false;
+                        reply = e;
+                    } else if (k < 2) {
+                        ok = false;
+                        reply = "need at least 2 handicap stones";
+                    } else {
+                        s.applyHandicap(cells[0..k]);
+                    }
+                }
+            } else if (std.mem.eql(u8, first, "place_free_handicap") or std.mem.eql(u8, first, "fixed_handicap")) {
+                // T326: engine chooses n Black handicap stones by oracle value
+                // (greedy B-move/W-pass walk; see Session.chooseHandicap).
+                // fixed_handicap is defined for standard hoshi board sizes
+                // only — there are no hoshi on 4x4. We answer it with the same
+                // greedy placements as place_free_handicap (a deviation from
+                // the letter of the GTP spec — recorded in the findings) so
+                // the engine works regardless of which command a GUI sends on
+                // a custom-size goban.
+                const nt = tokens.next() orelse "";
+                const k = std.fmt.parseInt(usize, nt, 10) catch 0;
+                const legal_max: usize = w * h - 1;
+                if (!s.isEmpty()) {
+                    ok = false;
+                    reply = "board not empty";
+                } else if (k < 2 or k > legal_max) {
+                    ok = false;
+                    reply = "unacceptable number of handicap stones";
+                } else {
+                    var cells: [w * h]usize = undefined;
+                    s.chooseHandicap(k, &cells) catch {
+                        ok = false;
+                        reply = "handicap placement failed";
+                    };
+                    if (ok) {
+                        var off: usize = 0;
+                        for (cells[0..k], 0..) |cell, i| {
+                            if (i != 0) {
+                                sbuf[off] = ' ';
+                                off += 1;
+                            }
+                            const v = vertex_from_cell(sbuf[off..], cell, w, h);
+                            off += v.len;
+                        }
+                        reply = sbuf[0..off];
+                    }
                 }
             } else if (std.mem.eql(u8, first, "genmove")) {
                 const colort = tokens.next() orelse "";
@@ -1787,6 +1944,89 @@ test "smoke: GTP session pipe (T263)" {
 
     // We should have matched all commands
     try expect(cmd_idx >= expected_cmds.len - 1); // quit may not produce a response
+}
+
+// T326: GTP handicap — a 2-stone handicap game replayed with 0 lookup
+// misses and 0 fallbacks, asserting the post-handicap state resolves in
+// the table (chainable) and final_score is sane. The engine plays White
+// from the handicap start — the correct seat: by convention White moves
+// first after a handicap, and the GUI tracks turns (the engine does not).
+// `set_free_handicap` places the GUI's stones; `weizigo_chaincheck w`
+// confirms the post-handicap state is a filled, chainable table entry
+// (a1=1); a short engine-White / human-Black exchange follows; stats must
+// report misses=0 fallbacks=0; final_score must be a sane score string.
+test "T326: 2-stone handicap game, 0 misses / 0 fallbacks" {
+    const artifact_path = "untracked/oracle-v2/oracle-4x4-v2.wzo2";
+    const gpa = std.testing.allocator;
+
+    const commands =
+        "boardsize 4\n" ++
+        "set_free_handicap A4 D1\n" ++
+        "weizigo_chaincheck w\n" ++
+        "genmove w\n" ++
+        "play b C2\n" ++
+        "genmove w\n" ++
+        "weizigo-stats\n" ++
+        "final_score\n" ++
+        "quit\n";
+
+    var child = std.process.spawn(std.testing.io, .{
+        .argv = &.{ "bin/weizigo-gtp", artifact_path },
+        .stdin = .pipe,
+        .stdout = .pipe,
+        .stderr = .ignore,
+    }) catch |err| {
+        std.debug.print("SKIP: cannot spawn bin/weizigo-gtp — run 'zig build deploy-gtp' first: {}\n", .{err});
+        return error.SkipZigTest;
+    };
+    defer child.kill(std.testing.io);
+    const io = std.testing.io;
+
+    try child.stdin.?.writeStreamingAll(io, commands);
+    child.stdin = null;
+
+    var stdout_buf: std.ArrayList(u8) = .empty;
+    defer stdout_buf.deinit(gpa);
+    var read_buf: [1024]u8 = undefined;
+    while (true) {
+        const m = child.stdout.?.readStreaming(io, &[_][]u8{read_buf[0..]}) catch break;
+        if (m == 0) break;
+        try stdout_buf.appendSlice(gpa, read_buf[0..m]);
+    }
+    const output = stdout_buf.items;
+
+    // Parse response blocks (split on "\n\n") and map by command order:
+    //   0 boardsize, 1 set_free_handicap, 2 chaincheck, 3 genmove,
+    //   4 play, 5 genmove, 6 weizigo-stats, 7 final_score, 8 quit
+    var blocks = std.mem.splitSequence(u8, output, "\n\n");
+    var chaincheck: []const u8 = "";
+    var stats: []const u8 = "";
+    var score_reply: []const u8 = "";
+    var idx: usize = 0;
+    while (blocks.next()) |b| {
+        const t = std.mem.trim(u8, b, " \t\r\n");
+        if (t.len == 0) continue;
+        if (idx == 2) chaincheck = t;
+        if (idx == 6) stats = t;
+        if (idx == 7) score_reply = t;
+        idx += 1;
+    }
+
+    // Post-handicap state resolves in the table and is chainable (a1=1).
+    try expect(chaincheck.len > 0 and chaincheck[0] == '=');
+    try expect(std.mem.indexOf(u8, chaincheck, "a1=1") != null);
+
+    // 0 lookup misses, 0 fallbacks through the handicap game.
+    try expect(stats.len > 0 and stats[0] == '=');
+    try expect(std.mem.indexOf(u8, stats, "misses=0") != null);
+    try expect(std.mem.indexOf(u8, stats, "fallbacks=0") != null);
+
+    // final_score is a sane GTP score string: B+<n>, W+<n>, or 0.
+    try expect(score_reply.len > 0 and score_reply[0] == '=');
+    const ok_score = std.mem.indexOf(u8, score_reply, "B+") != null or
+        std.mem.indexOf(u8, score_reply, "W+") != null or
+        std.mem.indexOf(u8, score_reply, " 0") != null;
+    try expect(ok_score);
 }
 
 // T283: after applyMove, bounds2 must be queried with the new side-to-move
