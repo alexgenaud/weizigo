@@ -219,6 +219,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T361": {
+    "status": "in_progress",
+    "agent": "minimax-m3",
+    "model": null,
+    "bundle": "untracked/T361-old-vs-new-engine-kifu.md",
+    "set": "I",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-04T21:35:28Z",
+    "claimed": "2026-08-04T21:35:40Z",
+    "done": null,
+    "dispatched": "2026-08-04T21:35:28Z",
+    "dispatched_to": "minimax-m3",
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 1,
+    "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-04.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T351": {
     "status": "dispatchable",
     "agent": null,
@@ -793,7 +815,7 @@
   }
 ,
   "_sys": {
-    "next_id": 361,
+    "next_id": 362,
     "directive_next": 34
   }
 }
