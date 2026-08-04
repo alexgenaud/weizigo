@@ -357,6 +357,76 @@ pub fn build(b: *std.Build) void {
     run_vb_closure_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_closure_tests.step);
 
+    // ── verify-battery: battery health (vb_health, T347) ─────────
+    const vb_health_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_health.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_health_tests.root_module.import_table = .{};
+    const run_vb_health_tests = b.addRunArtifact(vb_health_tests);
+    run_vb_health_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_health_tests.step);
+
+    // ── verify-battery: Bellman residual (vb_bellman_4x4, T343) ──
+    const vb_bellman_4x4_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_bellman_4x4.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_bellman_4x4_tests.root_module.import_table = .{};
+    const run_vb_bellman_4x4_tests = b.addRunArtifact(vb_bellman_4x4_tests);
+    run_vb_bellman_4x4_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_bellman_4x4_tests.step);
+
+    // ── verify-battery: SCC containment (vb_scc_4x4, T344) ───────
+    const vb_scc_4x4_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_scc_4x4.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_scc_4x4_tests.root_module.import_table = .{};
+    const run_vb_scc_4x4_tests = b.addRunArtifact(vb_scc_4x4_tests);
+    run_vb_scc_4x4_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_scc_4x4_tests.step);
+
+    // ── verify-battery: move-set consistency (vb_i11, T346) ──────
+    const vb_i11_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_i11.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_i11_tests.root_module.import_table = .{};
+    const run_vb_i11_tests = b.addRunArtifact(vb_i11_tests);
+    run_vb_i11_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_i11_tests.step);
+
+    // ── SMD1 tool tests (tools/smd1.zig, T341) ──────────────────
+    const smd1_engine_mod = b.createModule(.{
+        .root_source_file = b.path("src/smd1_engine.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const smd1_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/smd1.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    smd1_tests.root_module.addImport("engine", smd1_engine_mod);
+    const run_smd1_tests = b.addRunArtifact(smd1_tests);
+    run_smd1_tests.cwd = b.path(".");
+    test_step.dependOn(&run_smd1_tests.step);
+
     // ── engine-vs-engine ──────────────────────────────────────────
     const engine_vs_engine_exe = b.addExecutable(.{
         .name = "weizigo-engine-vs-engine",
