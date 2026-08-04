@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Dispatch a DeepSeek worker.  bin/subagent <T-ID|path.md> --dspro|--dsflash [--wall=N] [--dry-run]
+"""Dispatch a DeepSeek worker.  bin/subagent <T-ID|path.md> --dspro|--dsflash [--wall=N] [--rss-cap-mb=N] [--dry-run]
 
-  --dspro     DeepSeek-v4-Pro          --wall=N    wall-clock guard, default 1800s
-  --dsflash   DeepSeek-v4-Flash        --dry-run   print the command, spawn nothing
+  --dspro     DeepSeek-v4-Pro          --wall=N        wall-clock guard, default 1800s
+  --dsflash   DeepSeek-v4-Flash        --rss-cap-mb=N  RSS cap in MB, default 4096
+                                       --dry-run       print the command, spawn nothing
 
 Bin/subagent dispatches DeepSeek only by construction (hardcoded model list,
 requires DEEPSEEK_API_KEY). Workers can reach Ollama models through
@@ -25,7 +26,7 @@ KNOWN = set(MODELS) | {"--dry-run"}
 def main(argv):
     args = [a for a in argv if not a.startswith("--")]
     flags = [a for a in argv if a.startswith("--")]
-    unknown = [f for f in flags if f not in KNOWN and not f.startswith("--wall=")]
+    unknown = [f for f in flags if f not in KNOWN and not f.startswith("--wall=") and not f.startswith("--rss-cap-mb=")]
     if len(args) != 1 or unknown:
         sys.exit((f"subagent: unknown flag(s) {' '.join(unknown)}\n" if unknown else "")
                  + __doc__)
@@ -47,6 +48,8 @@ def main(argv):
 
     target, wall = args[0], next(
         (f.split("=")[1] for f in flags if f.startswith("--wall=")), "1800")
+    rss_mb = next(
+        (f.split("=")[1] for f in flags if f.startswith("--rss-cap-mb=")), None)
 
     task_id = None
     if re.fullmatch(r"T\d+", target):
@@ -62,7 +65,18 @@ def main(argv):
                   f"WHEN DONE, before any other output:\n"
                   f"  1. Write findings/{target}-{slug}.json per findings/README.md\n"
                   f"  2. bin/managent done {target} --agent {model} --status <pass|pass-with-findings|"
-                  f"fail-found|blocked|abandoned> --note <one line>\n")
+                  f"fail-found|blocked|abandoned> --note <one line>\n\n"
+                  f"INBOX LOOP (T352):\n"
+                  f"  The human used to relay messages between consoles by hand. That relay\n"
+                  f"  is now a `managent tell` directive you can poll for.  At each natural\n"
+                  f"  checkpoint — after a commit, before starting a new sub-step, and\n"
+                  f"  before reporting done — run:\n"
+                  f"      bin/managent inbox {target} --ack\n"
+                  f"  A directive of `pause`, `amend` or `question` is actionable: act on\n"
+                  f"  it and record the directive ID (D0NN) in your findings file's\n"
+                  f"  `notes` field, so the Orchestrator can see you read it.  A directive\n"
+                  f"  of `kill` writes your context dump and exits.  An empty inbox is a\n"
+                  f"  no-op (do not be alarmed).  The brief carries everything else.\n")
     elif os.path.isfile(target):
         prompt = f"Follow {os.path.relpath(os.path.abspath(target), ROOT)}\n"
     else:
@@ -77,8 +91,10 @@ def main(argv):
     if task_id:
         env["MANAGENT_TASK_ID"] = task_id
 
-    cmd = ["tools/runner", "--max-wall", wall, "--",
-           "pi", "--provider", "deepseek", "--model", model, "-p", prompt]
+    cmd = ["tools/runner", "--max-wall", wall]
+    if rss_mb:
+        cmd.extend(["--rss-cap-mb", rss_mb])
+    cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
     if "--dry-run" in flags:
         print(f"{DEPTH_VAR}={WORKER_DEPTH}")
         print(" ".join(repr(c) if "\n" in c else c for c in cmd))
