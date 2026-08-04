@@ -1,0 +1,8 @@
+{
+  "task_id": "T343",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "I4 Bellman residual check (4x4 (exhaustive, all non-terminal entries)) over WZO2 oracle-v2 table. n_entries (non-terminal checked) = 99133036; KO_SENSITIVE-clear (L==H) = 95677624; KO_SENSITIVE-set (L!=H) = 3455412. violations_clear (VERDICT, clear entries with all-clear children) = 0; violations_set (MEASUREMENT, set entries) = 0; cycle_boundary_divergences (MEASUREMENT, clear entries with >=1 set child) = 0. children_missing = 0; move_divergences (R8-legal but transform-illegal) = 0; no_children = 0. verdict_pass = true. Phi move-set: R8 (vb_movegen.legalMoves, independent); child board+ko: independent re-impl (place/capture/koAfterCapture); terminal value: areaScore (Tromp-Taylor, Black-positive). KO_SENSITIVE = L!=H (computed from entry, not stored). Exhaustive over all 99,133,036 table entries (the root-reachable non-terminal set, per G3a structural completeness). Calibrated at 3x3 (real WZO2, exhaustive, 0 clear violations, corrupt-entry caught) and 2x2 synthetic micro-artifact. 2x2/3x2 WZO2 artifacts are not present in the repo (only 3x3 and 4x4 were deployed by the oracle-v2 sprint), so 3x3 is the smallest real calibration rung."
+}

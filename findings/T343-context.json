@@ -1,0 +1,8 @@
+{
+  "task_id": "T343",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "I4 context dump reconstructed by sprint console T335. Worker (glm-5.2) produced src/vb_bellman_4x4.zig (1389 lines) + findings but was killed at 1800s wall before writing context dump. Key result: 0 Bellman violations on 95,677,624 KO_SENSITIVE-clear entries; 0 violations on 3,455,412 KO_SENSITIVE-set entries; 0 cycle-boundary divergences. Φ uses R8 (T340) independent move generator. Calibrated at 3x3 WZO2 artifact. This is the first G3b closure check reading and it passes clean. What I could not establish: whether the KO_SENSITIVE-set 0 count is a genuine pass or the Bellman recomputation silently ignored cycle-boundary children — the finding says 0 divergences which suggests proper handling."
+}
