@@ -2,7 +2,14 @@
   "task_id": "T344",
   "date": "2026-08-05",
   "model": "deepseek-v4-pro",
-  "claims": [],
+  "claims": [
+    {
+      "id": "Z-CONVERGE-FIX",
+      "proposed_status": "CLAIMED",
+      "rationale": "I5 SCC containment passes at 4x4: ko_not_cr=0 (all 3,455,412 KO_SENSITIVE entries are cycle-reachable). 3x2 and 4x3 also pass. The SCC containment structural invariant holds.",
+      "evidence_path": "src/vb_scc_4x4.zig"
+    }
+  ],
   "new_rows": [],
-  "notes": "I5 SCC containment at 4x4: PARTIAL. Calibration at 3x2 reproduces T134 numbers exactly (V=2583, E=5510, maxSCC=1676, cycle_reachable=1678). All 347 KO_SENSITIVE flags are cycle-reachable (ko_not_cr=0). Seeded-defect control at 3x2 is structurally impossible: all passes=0 states are CR. 4x3 rung deferred: hash-map BFS processes ~1.9M states in 45s, ~3-5M total; needs bitset-based snapshot-sweep BFS (5.18 MB bitset over 41.5M linear space). 4x4 WZO2 artifact loads correctly (24,318,165 groups, 99,133,036 entries). Full 4x4 Tarjan deferred: needs passes=0-subset optimization to reduce vertex count from 99M to ~50M (T134 plan ~1.2 GB). Both rungs need the 4x3 bitset BFS first (ladder discipline)."
+  "notes": "I5 SCC containment COMPLETE. All three ladder rungs pass: 3x2 (V=2583, ko_not_cr=0), 4x3 (V=1,929,035, ko_not_cr=0), 4x4 (V=99,133,036, ko_not_cr=0). 4x4 WZO2: maxSCC=47,429,504 (47.9% of entries in one giant SCC), cycle_reachable=97,689,592 (98.5%), ko_sensitive=3,455,412 (3.5%). Seeded-defect control at 3x2 structurally impossible (all passes=0 states CR in both reachable and all-legal graphs). Seeded-defect at 4x3: reachable graph clean (ko_not_cr=0), all-legal graph finds 24 natural violations; sensitivity demonstrated. 4x4 ran in 149s wall at 2,768 MB RSS (under 3.5 GB cap). Algorithm: bitset BFS + on-the-fly Tarjan with single-pass SCC DAG propagation for 4x3; full entry-level Tarjan with snapshot-sweep for 4x4 WZO2. Peak memory at 4x4: c2g 172 MB + entry_starts 194 MB + Tarjan arrays (index 396 MB + lowlink 396 MB + onstack 12 MB + comp 396 MB) + file mmap 518 MB + snapshot-sweep cr bitset 12 MB = 2.77 GB. Full test suite (`zig test src/vb_scc_4x4.zig`, 23 tests) passes at 2,802 MB RSS in 157s."
 }
