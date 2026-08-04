@@ -1,0 +1,8 @@
+{
+  "task_id": "T339",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "MG-KERN: kernel move generator extracted into src/rules.zig. Added legalMoves/applyMove/applyPass (comptime Rules + runtime dispatcher), 8 tests at 2×2/3×3, passes>=2 terminal guards in differential.zig solver wrappers. Committed at 2062d82. Worker was killed by runner wall cap (1800s) before writing findings; sprint console T335 reconstructed this record from the committed diff and git log. Tests: empty board legalMoves, suicide forbidden, ko recapture forbidden, terminal passes=2, capture sets ko, occupied/suicide return null, applyPass semantics, runtime dispatcher matches comptime. The kernel uses rules.koAfterCapture (T273) — not a copy — satisfying CODE.ACCEPT-KOKEY requirement."
+}

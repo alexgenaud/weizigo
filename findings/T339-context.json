@@ -1,0 +1,8 @@
+{
+  "task_id": "T339",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump reconstructed by sprint console T335 (deepseek-v4-pro) after worker was killed by runner wall cap. Worker delivered: (1) kernel legalMoves/applyMove/applyPass in src/rules.zig with prose header citing A1-A6,B1-B3 axiomatic claims; (2) 8 tests covering placement, capture, ko, suicide, pass, and terminal states; (3) runtime dispatcher for battery use; (4) passes>=2 terminal guards in differential.zig solverLegalMoves wrappers. The kernel move generator reuses T273's koAfterCapture. What I could not establish: whether the worker ran the full MG-INV differential comparison (T338's invariant) against the kernel — the committed code has the kernel functions and the differential wiring but the worker was killed before the full verification run. This should be verified in Wave 3 (SMD1/CLOSURE) which uses the kernel."
+}
