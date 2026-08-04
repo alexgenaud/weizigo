@@ -183,7 +183,28 @@ pub fn fp_eq(a: Fingerprint, b: Fingerprint) bool {
 /// Stack of fingerprints; cap at DEPTH_LIMIT+1.
 pub const FP_STACK_SIZE: u32 = DEPTH_LIMIT + 1;
 
+/// T360 node budget. The cycle check below rejects only repeats **along the
+/// current path**, so this search enumerates simple paths rather than memoising:
+/// with branching ≤5 and DEPTH_LIMIT=64 the worst case is ~5^64 nodes. It stayed
+/// small only because most lines terminated early. On 2026-08-04 that stopped
+/// being true — five test binaries were found spinning at 100% CPU with up to
+/// 171 minutes each, machine load 16, and `zig build test` never finished.
+///
+/// A test that runs forever is worse than a test that fails: it takes the whole
+/// fleet's acceptance gate with it and nobody sees a red. So this fails loudly.
+/// **Raising the budget is not the fix** — if this fires, the search space
+/// changed, and T360 asks whether T339's kernel extraction changed 2×2 move or
+/// terminal semantics.
+pub const NODE_BUDGET: u64 = 20_000_000;
+pub var nodes_visited: u64 = 0;
+
 pub fn brute_value(s: State, history: []Fingerprint, history_len: u32, depth: u32) i8 {
+    nodes_visited += 1;
+    if (nodes_visited > NODE_BUDGET) {
+        @panic("T360: brute_value exceeded the node budget — the 2x2 search space " ++
+            "exploded. Do not raise NODE_BUDGET; find what changed the move or " ++
+            "terminal semantics (suspect: the kernel extraction in rules.zig).");
+    }
     // Cycle check: is the current state in the history?
     const current_fp = Fingerprint{
         .board = s.board,
@@ -232,6 +253,7 @@ pub fn brute_value(s: State, history: []Fingerprint, history_len: u32, depth: u3
 /// Top-level: game value of state `s` (no history).
 pub fn value(s: State) i8 {
     var history: [FP_STACK_SIZE]Fingerprint = undefined;
+    nodes_visited = 0; // per-query budget (T360)
     return brute_value(s, &history, 0, 0);
 }
 
