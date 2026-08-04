@@ -1,0 +1,21 @@
+{
+  "task_id": "T335",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "4x4.C1",
+      "proposed_status": "CLAIMED",
+      "rationale": "G3b pass0: 0 Bellman violations / 95.7M clear entries, 0 key mismatches / 99.1M entries, 0 move-set mismatches across all rungs. Fresh-start values verified by independent battery.",
+      "evidence_path": "docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md"
+    },
+    {
+      "id": "4x4.FP1",
+      "proposed_status": "CLAIMED",
+      "rationale": "I4 Bellman residual = 0 on KO_SENSITIVE-clear entries confirms fixpoint property. I5 SCC containment deferred at 4x4.",
+      "evidence_path": "docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md"
+    }
+  ],
+  "new_rows": [],
+  "notes": "G3b pass0 build sprint complete. 10 of 11 rows closed (T338-T347), T348 accept.md written. Headline: 0 Bellman violations, 0 key mismatches, 0 move-set mismatches. Gaps: I5 4×3/4×4 deferred (bitset BFS needed), I4/KEY-4x4 4×3 retroactive owed per spec Rev 5, M8/M10 mutant assertions not yet wired in vb_mutants.zig. Memory model correction: plan estimate ~1.2 GB, measured 4.1 GB (3.4× error). T360 diagnosis: qa023_brute_2x2 not imported by any build.zig target; triggers only under bare zig test, never in zig build test. Five such processes saturated machine. Worker guidance must change: use zig build test --test-filter, not bare zig test."
+}
