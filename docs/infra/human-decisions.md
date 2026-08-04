@@ -58,8 +58,7 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
   `ORPHANED` (C1a), `STALE-NEGATION` (C1b), `DEAD-LINKS` (C2), **`UNBACKED`** (C3),
   `GHOST-IDS` (C4), `SHADOWED` (C5), `MISCITED` (C6), `UNABSORBED` (C7), `UNKILLED` (C8),
   `UNMAPPED` (C9). Registered as T356; ratify or rename the words before it lands.
-- **2026-08-04 — epitaph policy (item 4).** Ratify once so agents can prune archaeology
-  without asking. T354's triage will propose the wording.
+- *(none)*
 
 ## Recently ruled (keep short; drop items older than the current milestone)
 
@@ -70,6 +69,13 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
   must not make `untracked/` load-bearing.
 - **2026-08-04** — T328 (model bake-off) runs after the store-safety row landed.
 - **2026-08-03** — If a third re-implementation language is ever adopted, it is Kotlin.
+- **2026-08-04** — Archive, never delete. Rows leaving the live register move to `archives/`,
+  preserved in full, with a one-line epitaph left behind. Priority target: nonsense and claims
+  resting on falsified foundations (the `C1a ORPHANED` family). Because nothing is destroyed,
+  agents may propose and move without per-item approval.
+- **2026-08-04** — Claimlint check names ratified as proposed: `C1a ORPHANED`,
+  `C1b STALE-NEGATION`, `C2 DEAD-LINKS`, `C3 UNBACKED`, `C4 GHOST-IDS`, `C5 SHADOWED`,
+  `C6 MISCITED`, `C7 UNABSORBED`, `C8 UNKILLED`, `C9 UNMAPPED`.
 - **2026-08-04** — IDs and canonical names are both kept; a name never replaces an ID. IDs are
   the stable reference in artifacts; names are how work is described to the operator, who does
   not keep an ID glossary in mind.
