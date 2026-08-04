@@ -1,0 +1,8 @@
+{
+  "task_id": "T360",
+  "date": "2026-08-04",
+  "model": "claude-opus-5",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Orchestrator-authored. T360 was claimed by the Orchestrator only to land the emergency bound while the machine was unusable (load 16, five binaries at 100% CPU). The bound is in at 00bd3cb and verified. The diagnosis - whether the 2x2 search space explosion is a kernel regression from T339 or a never-run orphaned test newly wired into the suite - is transferred to T335, whose sprint owns rules.zig and build.zig wiring. Suite runs were paused fleet-wide (D028/D029/D030) and resumed once bounded (D031). No claim status changes proposed."
+}
