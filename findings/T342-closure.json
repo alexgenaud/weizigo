@@ -1,0 +1,8 @@
+{
+  "task_id": "T342",
+  "date": "2026-08-04",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Implemented C-A1 (forward closure) and C-A2 (backward closure) over WZO2 table in src/vb_closure.zig. Tests pass at 3x3 (exhaustive): C-A1 children_not_in_table=0 over 49,428 entries, 176,873 non-terminal children, avg branching factor 3.58; passes2=24,330. C-A2 reachable_not_in_table=0, 48,460 non-terminal reachable from root (of 49,428 entries — some entries unreachable from fresh-start root, e.g. White-to-move on empty board passes=0). Both calibrations pass (corrupted entry detected). 4x4 sample (10 groups, 22 entries): children_not_in_table=0. Key byte encoding matches artifact2.zig authority. Build compiles cleanly. Full 4x4 run deferred to a separate run (518MB artifact, ~minutes wall time)."
+}

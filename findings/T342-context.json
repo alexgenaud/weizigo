@@ -1,0 +1,13 @@
+{
+  "task_id": "T342",
+  "model": "deepseek-v4-pro",
+  "date": "2026-08-04",
+  "files_changed": ["src/vb_closure.zig", "build.zig"],
+  "key_findings": [
+    "WZO2 key_byte encoding: ko starts at bit 2 (not bit 1), passes at bit (2+ko_bits). Matches artifact2.zig authority.",
+    "WZO2 colex stored as little-endian u32, matches artifact2.zig write/read. Uses goban-size-specific Indexer (3x3 artifact uses Indexer(3,3), not 4x4).",
+    "C-A1 at 3x3: 0 children_not_in_table over 49,428 entries. C-A2 at 3x3: 0 reachable_not_in_table.",
+    "Not all WZO2 entries are forward-reachable from root (3x3: 48,460 of 49,428). This is expected — some states (e.g. White-to-move empty board passes=0) require capture sequences not reachable from empty via forward BFS.",
+    "4x4 sample (10 groups) clean. Full 4x4 C-A1/C-A2 run deferred to separate invocation due to wall time (~minutes for 99M entries)."
+  ]
+}

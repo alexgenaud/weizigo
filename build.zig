@@ -217,6 +217,19 @@ pub fn build(b: *std.Build) void {
     ollama_disp_regression.cwd = b.path(".");
     test_step.dependOn(&ollama_disp_regression.step);
 
+    // ── T352: inbox-loop regression controls ──────────────────────
+    // Five controls: empty inbox is a no-op, a `tell` → read → ack →
+    // record timeline runs with no human action between, an unread
+    // directive surfaces in `managent resume` with a STALL marker and
+    // an age, the INBOX LOOP paragraph is in BOTH dispatch prompts,
+    // and the rendered dry-run prompt includes the worker instruction
+    // (`managent inbox <id> --ack`).  Temp store only — never the live
+    // docs/infra/managent/tasks.json.  Wired here because `zig build
+    // test` is the acceptance gate for T352.
+    const inbox_loop_regression = b.addSystemCommand(&.{ "sh", "tools/regression-inbox-loop.sh" });
+    inbox_loop_regression.cwd = b.path(".");
+    test_step.dependOn(&inbox_loop_regression.step);
+
     // ── T322: wire remaining orphaned regression scripts ───────────────
     // Three scripts tested; two pass cleanly.  managent-integrity fails
     // (checks deployed bin/ vs zig-out/ staleness — a pre-condition that
@@ -330,6 +343,19 @@ pub fn build(b: *std.Build) void {
     const run_vb_movegen_tests = b.addRunArtifact(vb_movegen_tests);
     run_vb_movegen_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_movegen_tests.step);
+
+    // ── verify-battery: closure (vb_closure, T342) ────────────────
+    const vb_closure_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vb_closure.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    vb_closure_tests.root_module.import_table = .{};
+    const run_vb_closure_tests = b.addRunArtifact(vb_closure_tests);
+    run_vb_closure_tests.cwd = b.path(".");
+    test_step.dependOn(&run_vb_closure_tests.step);
 
     // ── engine-vs-engine ──────────────────────────────────────────
     const engine_vs_engine_exe = b.addExecutable(.{
