@@ -518,34 +518,91 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
 
 // ── state file ──────────────────────────────────────────────────────────────
 
-fn lockStateDir(io: std.Io, state_path: []const u8) !void {
-    const lock_path = try std.fmt.allocPrint(alloc, "{s}.lock", .{state_path});
+/// Exclusive flock on the store, released by unlockStore or process exit (any
+/// exit path — crash, SIGKILL, std.process.exit).  Uses flock(2): the kernel
+/// releases the lock atomically when the holder's fd is closed, which happens
+/// on ANY process termination.  This replaces the mkdir mutex that leaked on
+/// every std.process.exit(1) after lock acquisition (T337 S0, 2026-08-04).
+///
+/// Bounded wait: ~50 attempts over ~3s.  On exhaustion, fails loudly with the
+/// holder's PID and timestamp rather than hanging forever.
+fn lockStore(io: std.Io, state_path: []const u8) !void {
+    const lock_path = try std.fmt.allocPrint(alloc, "{s}.lockfile", .{state_path});
     defer alloc.free(lock_path);
 
+    // Ensure the parent directory exists
     if (std.fs.path.dirname(lock_path)) |dp| {
         std.Io.Dir.cwd().createDirPath(io, dp) catch {};
     }
 
-    var delay: u64 = 1 * std.time.ns_per_ms;
-    while (true) {
-        std.Io.Dir.cwd().createDir(io, lock_path, .default_dir) catch {
+    const now = try nowTimestamp();
+
+    // Open or create the lock file with O_RDWR | O_CREAT | O_CLOEXEC.
+    // Use std.posix.O struct for platform-correct flag encoding.
+    const open_flags = std.posix.O{
+        .ACCMODE = .RDWR,
+        .CREAT = true,
+        .CLOEXEC = true,
+    };
+
+    // Try bounded non-blocking flock with backoff.
+    const max_attempts: u8 = 50;
+    var attempt: u8 = 0;
+    while (attempt < max_attempts) : (attempt += 1) {
+        const fd = std.c.open(@ptrCast(lock_path), open_flags, @as(c_int, 0o644));
+        if (fd == -1) {
+            // File might not be creatable — backoff and retry
+            const backoff_ms: u64 = @as(u64, 10) << @intCast(@min(attempt, 6));
             const req: std.c.timespec = .{
-                .sec = @intCast(delay / std.time.ns_per_s),
-                .nsec = @intCast(delay % std.time.ns_per_s),
+                .sec = @intCast(backoff_ms / 1000),
+                .nsec = @intCast((backoff_ms % 1000) * std.time.ns_per_ms),
             };
             _ = std.c.nanosleep(&req, null);
-            delay = @min(delay * 2, 100 * std.time.ns_per_ms);
             continue;
+        }
+
+        const lock_rc = std.c.flock(fd, std.posix.LOCK.EX | std.posix.LOCK.NB);
+        if (lock_rc == 0) {
+            // Lock acquired.  Write PID + timestamp for diagnostics.
+            const pid = std.c.getpid();
+            const diag = try std.fmt.allocPrint(alloc, "pid={d} since={s}", .{ pid, now });
+            defer alloc.free(diag);
+            _ = std.c.pwrite(fd, diag.ptr, diag.len, 0);
+            _ = std.c.ftruncate(fd, @intCast(diag.len));
+            LOCK_FD = fd;
+            return;
+        }
+
+        const err = std.c.errno(lock_rc);
+        _ = std.c.close(fd);
+        if (err != .AGAIN) {
+            return error.LockFailed;
+        }
+
+        const backoff_ms: u64 = @as(u64, 10) << @intCast(@min(attempt, 6));
+        const req: std.c.timespec = .{
+            .sec = @intCast(backoff_ms / 1000),
+            .nsec = @intCast((backoff_ms % 1000) * std.time.ns_per_ms),
         };
-        break;
+        _ = std.c.nanosleep(&req, null);
     }
+
+    // Bound exhausted — fail loudly.
+    const content = std.Io.Dir.cwd().readFileAlloc(io, lock_path, alloc, .limited(256)) catch "(unreadable)";
+    defer if (!std.mem.eql(u8, content, "(unreadable)")) alloc.free(content);
+    std.debug.print("FATAL: store locked for >3s ({s}).  If the holder is dead, remove {s}\n", .{ content, lock_path });
+    return error.StoreLocked;
 }
 
-fn unlockStateDir(io: std.Io, state_path: []const u8) void {
-    const lock_path = std.fmt.allocPrint(alloc, "{s}.lock", .{state_path}) catch return;
-    defer alloc.free(lock_path);
-    std.Io.Dir.cwd().deleteDir(io, lock_path) catch {};
+/// Release the flock acquired by lockStore.
+fn unlockStore() void {
+    if (LOCK_FD == -1) return;
+    _ = std.c.flock(LOCK_FD, std.posix.LOCK.UN);
+    _ = std.c.close(LOCK_FD);
+    LOCK_FD = -1;
 }
+
+var LOCK_FD: std.c.fd_t = -1;
 
 fn ensureStateDir(io: std.Io, state_path: []const u8) !void {
     if (std.fs.path.dirname(state_path)) |dp| {
@@ -608,8 +665,8 @@ fn writeStateLocked(io: std.Io, state_path: []const u8, state: *StateMap) !void 
 /// writeStateLocked → unlock).
 fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
     try ensureStateDir(io, state_path);
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     try writeStateLocked(io, state_path, state);
 }
 
@@ -1158,8 +1215,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     // T317: lock → re-read → modify → writeLocked → unlock lost-update pattern.
     // The flock must be acquired before reading the store so no other console
     // can register a row between our read and write.
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     var id: []const u8 = undefined;
@@ -1363,8 +1420,8 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     }
 
     // T317: lock → re-read → modify → writeLocked → unlock lost-update pattern.
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     const ts_ptr = state.getPtr(id) orelse {
@@ -1494,8 +1551,8 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
     }
 
     // T317: lock → re-read → modify → writeLocked → unlock
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     const ts_ptr = state.getPtr(id) orelse {
@@ -1561,7 +1618,9 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
 
     const set_override = getFlagValue(args, "--set");
 
-    // Read current state to get sys_next_id
+    // Read current state to get sys_next_id — T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     // Mint the ID
@@ -1625,7 +1684,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     };
     try state.put(alloc, try alloc.dupe(u8, id), ts);
     sys_next_id += 1;
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
 
     w.diag("\n  suggested {s}  [set: {c}]  [dispatchable]\n", .{ id, set });
     w.diag("  bundle: untracked/{s}\n", .{bundle_name});
@@ -2132,6 +2191,9 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     }
     const id = args[2];
 
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     const ts_ptr = state.getPtr(id) orelse {
@@ -2155,7 +2217,7 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     if (ts_ptr.verdict) |v| { alloc.free(v); ts_ptr.verdict = null; }
     if (ts_ptr.verdict_note) |vn| { alloc.free(vn); ts_ptr.verdict_note = null; }
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
 
     const prev_str: []const u8 = if (prev == .in_progress) "in_progress" else if (prev == .failed) "failed" else "done";
     const status_str: []const u8 = statusToString(ts_ptr.status);
@@ -2165,6 +2227,9 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 
 fn cmdPurge(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = args;
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     // commit-before-purge guard (ORCHA-AUTOMATION item 6)
@@ -2244,7 +2309,7 @@ fn cmdPurge(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         _ = state.remove(p);
     }
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
 
     w.diag("\n  purged {d} task(s):", .{purged.items.len});
     for (purged.items) |p| w.diag(" {s}", .{p});
@@ -2268,8 +2333,8 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     _ = force; // reserved for future: skip absorption check
 
     // Lock the store for the entire archive operation.
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     // Archive path lives beside the live store.
@@ -2477,6 +2542,9 @@ fn cmdSet(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         w.diag("error: set must be an uppercase letter A–Z, got '{c}'\n", .{new_set});
         std.process.exit(1);
     }
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
@@ -2484,7 +2552,7 @@ fn cmdSet(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     };
     const old_set = ts_ptr.set;
     ts_ptr.set = new_set;
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
     w.diag("\n  {s}  set {c} -> {c}\n", .{ id, old_set, new_set });
 }
 
@@ -2524,6 +2592,9 @@ fn cmdNeeds(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         w.diag("error: give at least one --add or --rm\n", .{});
         std.process.exit(1);
     }
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
@@ -2567,7 +2638,7 @@ fn cmdNeeds(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         ts_ptr.status = derived;
     }
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
 
     const from_str = statusToString(old_status);
     const to_str = statusToString(derived);
@@ -2599,8 +2670,8 @@ fn cmdAgent(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     }
 
     // T317: lock → re-read → modify → write → unlock lost-update pattern.
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
@@ -2640,6 +2711,9 @@ fn cmdVerdict(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         std.process.exit(1);
     }
 
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
@@ -2658,7 +2732,7 @@ fn cmdVerdict(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         ts_ptr.verdict_note = try alloc.dupe(u8, n);
     }
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
     w.diag("\n  {s}  verdict -> {s}", .{ id, verdict_str });
     if (ts_ptr.verdict_note) |vn| w.diag("  (note: {s})", .{vn});
     w.diag("\n", .{});
@@ -2700,8 +2774,8 @@ fn cmdAmend(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     }
 
     // T317: lock → re-read → modify → write → unlock
-    try lockStateDir(io, state_path);
-    defer unlockStateDir(io, state_path);
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
@@ -3282,6 +3356,9 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     const exec_prefix = getFlagValue(args, "--exec");
 
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state = try readState(io, state_path);
 
     var candidate_id: ?[]const u8 = null;
@@ -3308,7 +3385,7 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     ts_ptr.claimed = now;
     ts_ptr.claim_count += 1;
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
 
     const ident = try agentIdentifier(ts_ptr.*, id);
     w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
@@ -3426,6 +3503,12 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
     }
     if (ts.skip_acceptance_reason) |sr| {
         w.data("    skip_acceptance_reason: {s}\n", .{sr});
+    }
+    if (ts.amendments.len > 0) {
+        w.data("    amendments ({d}):\n", .{ts.amendments.len});
+        for (ts.amendments) |am| {
+            w.data("      {s}\n", .{am});
+        }
     }
     w.data("\n", .{});
 }

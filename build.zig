@@ -269,6 +269,15 @@ pub fn build(b: *std.Build) void {
     standing_regression.cwd = b.path(".");
     test_step.dependOn(&standing_regression.step);
 
+    // ── T337 S0: managent store-lock controls ──────────────────────
+    // Replaces the mkdir mutex (which leaked on every exit(1) after
+    // lock acquisition) with flock(2): the kernel releases the lock
+    // on ANY process termination.  Two controls: (1) rejection path
+    // releases lock, (2) SIGKILL holder → next command succeeds.
+    const lock_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-lock.sh" });
+    lock_regression.cwd = b.path(".");
+    test_step.dependOn(&lock_regression.step);
+
     // ── claimlint promotion-gate controls (T308) ─────────────────
     // C8 mutation-adequacy gate: verifies no kernel-function claim has
     // been promoted past CLAIMED without the battery killing its mutants.
