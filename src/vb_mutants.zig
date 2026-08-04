@@ -27,8 +27,8 @@
 // Per Amendment 1 (ratified 2026-08-03): mutants are synthetic — constructed
 // in memory from a clean artifact, never written to data/ or artifacts/.
 //
-// Kill-verification for mutants M3, M5, M6, M7.
-// Mutants M1, M2, M4, M8, M9, M10 have no killer — see the catalogue at
+// Kill-verification for mutants M3, M5, M6, M7, and M9 (BATT-HEALTH, T347).
+// Mutants M1, M2, M4, M8, M10 have no killer — see the catalogue at
 // docs/epic-01-markovian/sprints/verify-battery/pass1/mutants.md.
 
 const std = @import("std");
@@ -38,6 +38,7 @@ const vb = @import("vb_common.zig");
 const vb_table = @import("vb_table.zig");
 const vb_fixpoint = @import("vb_fixpoint.zig");
 const vb_graph = @import("vb_graph.zig");
+const vb_health = @import("vb_health.zig");
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -207,4 +208,45 @@ test "M7-T260 inversion-broken killed by I2" {
     std.debug.print("[EXPECTED] M7-T260: I2 status={s} violations={d}/{d}\n", .{ @tagName(result.status), result.violations, result.denominator });
     try testing.expectEqual(vb_table.InvariantStatus.fail, result.status);
     try testing.expect(result.violations > 0);
+}
+
+// ─── M9 — BATTERY-STUBBED: an invariant that always returns `.skipped` ─────
+//
+// M9 (CODE.BATTERY-STUBBED): one invariant stubbed to `.skipped` status; the
+// suite reports green because `verify_battery.zig`'s `toExit` maps
+// `.skipped => .pass` — no meta-check verified every invariant returned a
+// real verdict. The BATT-HEALTH meta-check (T347, `src/vb_health.zig`) is the
+// killer: it enumerates every declared invariant by compile-time reflection
+// over `vb.Invariant`, runs each, and fails iff any returns `.skipped`.
+//
+// Inverted from SURVIVED → KILLED on 2026-08-04 (T347). The fixture stubs one
+// runner (I7) to `vb_health.stubSkipped`; the health check must go red, then
+// green when the stub is removed (the real `RUNNERS` carry no stubs).
+
+test "M9-BATTERY-STUBBED killed by BATT-HEALTH (red, then green)" {
+    // (b) red — stub I7 to `.skipped`, the M9 mutant. The health check
+    // enumerates all 12 declared invariants and fails on the one stub.
+    var ctx = try vb_health.loadCtx(testing.allocator, "artifacts/oracle-2x2.wzo");
+    defer ctx.deinit();
+
+    var mutant: [vb_health.DECLARED]vb_health.RunnerFn = vb_health.RUNNERS;
+    const stubbed = vb.Invariant.I7;
+    mutant[@intFromEnum(stubbed)] = vb_health.stubSkipped;
+
+    const red = vb_health.checkWith(&ctx, &mutant);
+    std.debug.print("[EXPECTED] M9-BATTERY-STUBBED: red status={s} skipped={d} stubbed={s}\n", .{
+        @tagName(red.status), red.skipped_count, vb_health.invariantName(@intFromEnum(stubbed)),
+    });
+    try testing.expectEqual(vb_health.Status.fail, red.status);
+    try testing.expectEqual(@as(u32, 1), red.skipped_count);
+    try testing.expect(red.skipped[@intFromEnum(stubbed)]);
+
+    // (c) green — remove the stub (the canonical RUNNERS). Every invariant
+    // returns a real verdict; the health check passes.
+    const green = vb_health.check(&ctx);
+    std.debug.print("[EXPECTED] M9-BATTERY-STUBBED: green status={s} skipped={d}\n", .{
+        @tagName(green.status), green.skipped_count,
+    });
+    try testing.expectEqual(vb_health.Status.pass, green.status);
+    try testing.expectEqual(@as(u32, 0), green.skipped_count);
 }

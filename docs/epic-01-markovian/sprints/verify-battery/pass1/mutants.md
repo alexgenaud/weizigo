@@ -53,18 +53,18 @@ fails. A `survived` verdict names the gap.
 | **M6** DTT-UNSET | — | — | n/a | — | — | — | **✗** | n/a | — | n/a | — | — | **KILLED** | — |
 | **M7** INVSYM-BROKEN | — | **✗** | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** | — |
 | **M8** T261 deleted-entry | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G2 |
-| **M9** BATTERY-STUBBED | — | — | — | — | — | — | — | — | — | — | — | — | **SURVIVED** | meta |
+| **M9** BATTERY-STUBBED | — | — | — | — | — | — | — | — | — | — | — | — | **KILLED** | meta³ |
 | **M10** alias-control | — | — | — | — | — | — | — | — | — | — | — | — | **SURVIVED** | meta² |
 
-**Key:** `✗` = killed (invariant reports fail, test assertion verified) · `—` = not applicable (invariant doesn't test that property) · `n/a` = not applicable on WZO1 · `may³` = could catch in principle but the synthetic fixture does not trigger a kill (survival verified by test assertion) · `meta²` = `differential.zig` has a null control for this pattern, but it is not part of the battery per se
+**Key:** `✗` = killed (invariant reports fail, test assertion verified) · `—` = not applicable (invariant doesn't test that property) · `n/a` = not applicable on WZO1 · `may³` = could catch in principle but the synthetic fixture does not trigger a kill (survival verified by test assertion) · `meta²` = `differential.zig` has a null control for this pattern, but it is not part of the battery per se · `meta³` = killed by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347), which enumerates every declared invariant by compile-time reflection over `vb.Invariant` and fails iff any returns `.skipped`
 
-**Kill rate: 3 / 10 (denominator: 10 mutants).** Three mutants are killed by existing battery checks; the remaining 7 survive.
+**Kill rate: 4 / 10 (denominator: 10 mutants).** Four mutants are killed by existing/new battery checks; the remaining 6 survive.
 
 Of the 10 mutants:
-- **3 killed** by existing battery checks: M5 (I2 colour inversion), M6 (I7 DTT sanity), M7 (I2 colour inversion)
+- **4 killed** by battery checks: M5 (I2 colour inversion), M6 (I7 DTT sanity), M7 (I2 colour inversion), M9 (BATT-HEALTH meta-check, T347)
 - **4 survive** due to **G1/G3** (Z-R-STATE / Z-STATE-KEY — key agreement, needs Phase 2 kernel): M1, M2, M3, M4
 - **1 survives** due to **G2** (Z-STATE-REACH — closure C-A1/C-A2, needs Phase 2 kernel): M8
-- **2 survive** due to **meta-gaps** (no battery-health check; no independent-reimplementation check integrated into battery): M9, M10
+- **1 survives** due to **meta-gap** (no independent-reimplementation check integrated into battery): M10
 
 M3 merits explanation. It has a *conceivable* killer in the current
 battery (I5 SCC containment), but the synthetic fixture does not trigger
@@ -174,13 +174,16 @@ reachable set, which needs the Phase 2 kernel's move generator.
 
 ### Meta-gap — no battery-health check
 
-**Affected mutants:** M9 (BATTERY-STUBBED), M10 (alias-control)
+**Affected mutants:** M10 (alias-control) — M9 (BATTERY-STUBBED) was **closed**
+on 2026-08-04 by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347).
 
-M9: The battery has no meta-check that verifies every invariant returns a
-real verdict (not `.skipped`). Currently, I3 and I10 legitimately return
-`.not_applicable` on WZO1 — a stub would look identical. A meta-check would
-enumerate the declared invariants, run each, and verify the status is not
-`.skipped` unless the invariant is declared not-applicable for that format.
+M9 (CLOSED 2026-08-04, T347): The battery now has a meta-check that verifies
+every invariant returns a real verdict (not `.skipped`). `src/vb_health.zig`
+enumerates the declared invariants by compile-time reflection over
+`vb.Invariant`, runs each via a comptime-complete runner registry (a new
+`Invariant` variant without a registered runner is a *compile error*, so the
+check cannot rot), and fails iff any returns `.skipped`. Kill verified
+red-then-green in `src/vb_mutants.zig`. See the amendment log.
 
 M10: `differential.zig` (T257) has a null control for the alias pattern
 (registering the same function twice and verifying it's detected), but this
@@ -224,3 +227,4 @@ a clean artifact loaded into memory and corrupted in place.
 | date | amendment | by |
 |---|---|---|
 | 2026-08-03 | Initial catalogue — T291 | deepseek-v4-pro/T291 |
+| 2026-08-04 | M9 (BATTERY-STUBBED) inverted SURVIVED → **KILLED** by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347). The check enumerates every declared invariant by compile-time reflection over `vb.Invariant`, runs each via a comptime-complete runner registry, and fails iff any returns `.skipped`. Kill verified red-then-green in `src/vb_mutants.zig` `"M9-BATTERY-STUBBED killed by BATT-HEALTH (red, then green)"`. Kill rate 3/10 → 4/10. M10 remains SURVIVED (meta-gap: independent-reimplementation check not yet integrated). | minimax-m3/T347 |
