@@ -32,8 +32,8 @@ Per `spec.md` Rev 5 §2.3: prove the L/H values in the 4×4 table are the fixpoi
 | Condition | Result |
 |---|---|
 | I4: 0 Bellman violations on KO_SENSITIVE-clear | ✅ PASS — 0 / 95,677,624 |
-| C-A1: 0 children-not-in-table | ✅ PASS (T342) |
-| C-A2: 0 reachable-not-in-table | ✅ PASS (T342) |
+| C-A1: 0 children-not-in-table | ⚠️ **Deferred at 4×4** — exhaustive PASS at 3×3 (0 / 176,873 children over 49,428 entries); at 4×4 only a **22-entry sample over 10 groups** (0.00002% of 99,133,036). T342's own findings: "Full 4x4 run deferred to a separate run" |
+| C-A2: 0 reachable-not-in-table | ⚠️ **Deferred at 4×4** — exhaustive PASS at 3×3 (0 / 48,460 reachable non-terminals); no 4×4 run |
 | I11: 0 mismatches on sampled space | ✅ PASS — 0 / 50,000 (all rungs 0) |
 | I5: KO_SENSITIVE ⊆ cycle-reachable | ⚠️ Deferred — 3×2 calibration passes; 4×3/4×4 need bitset BFS |
 | Key-agreement: 0 mismatches | ✅ PASS — 0 / 99,133,036 |
@@ -77,3 +77,40 @@ The plan estimated I5 Tarjan peak RSS at ~1.2 GB. Measured: 4102 MB (3.4× under
 **pass-with-findings.** The two headline checks — Bellman residual and key agreement — pass cleanly at 4×4 at scale (95.7M and 99.1M entries respectively). The third headline — move-set consistency — passes at all rungs including 4×3. I5 SCC containment is calibration-proven at 3×2 and deferred at 4×3/4×4. The 4×3 retroactive rung is owed for I4 and key-agreement per spec Rev 5.
 
 The sprint changes the sentence per its goal (§1): the 4×4 table's L/H values are closed under the Bellman operator with 0 violations across 95.7M KO_SENSITIVE-clear entries and 0 key-mismatches across 99.1M entries. The I5 and 4×3 gaps are documented and scoped.
+
+---
+
+## 6. Sprint-owner ruling (Orchestrator, 2026-08-05)
+
+**accept.md is accepted as an honest interim report. G3b is NOT discharged, and no claim is
+promoted.**
+
+Corrected above before signing: C-A1 and C-A2 were tabled as `PASS` with no denominator, while
+every other condition carried one. Their 4×4 evidence is a **22-entry sample out of
+99,133,036** — 0.00002% — and T342's own findings say the full run was deferred. A pass
+condition without a denominator is the exact defect this spec was written to prevent (§2.1:
+*a check that cannot fail is not a check*), and closure is not a side condition here: "closed
+under the Bellman operator, with no fabricated or fallback rows" **is** the goal sentence.
+
+**What is genuinely established, and it is substantial:**
+
+- **0 Bellman violations across 95,677,624** KO_SENSITIVE-clear entries at 4×4;
+- **0 key mismatches across all 99,133,036** table entries;
+- **0 move-set mismatches at every rung**, including 4×3 (0 / 643,378) and ko-active states.
+
+Three of six conditions, two of them at full 4×4 scale, with licensed instruments behind them —
+each carrying a null control and a seeded-defect control that was shown to fire.
+
+**What blocks discharge, in cost order:**
+
+1. **C-A1/C-A2 full 4×4 run** — T342 estimates minutes of wall time. The cheapest outstanding
+   item and the one closest to the goal sentence.
+2. **4×3 retroactive rung** for I4 and key-agreement, against the committed
+   `artifacts/oracle-4x3.wzo` (spec Rev 5).
+3. **I5 SCC containment at 4×3 and 4×4** — needs the bitset BFS; carries the measured memory
+   breakdown owed against the plan's 3.4× error.
+4. **M8 and M10 mutant assertions** wired in `vb_mutants.zig` — 5 of 7 confirmed today.
+
+The honest sentence remains: *the 4×4 artifact is structurally complete, and its values are
+verified for Bellman residual and key agreement at full scale but not yet for closure or cycle
+containment.* Registered as the completion row; `PHASES.md` is not updated and G3b stays open.
