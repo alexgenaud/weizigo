@@ -1,0 +1,18 @@
+{
+  "task_id": "T337",
+  "date": "2026-08-04",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    "CODE.MANAGENT-MODEL-VALIDATION",
+    "CODE.MANAGENT-LOST-UPDATE",
+    "CODE.MANAGENT-AMEND",
+    "CODE.MANAGENT-ARCHIVE",
+    "CODE.REGRESSION-WIRING",
+    "CODE.T312-PARALLEL-FIXPOINT",
+    "CODE.WZO2-RELEASESAFE-INV",
+    "CODE.PARALLEL-FIXPOINT-MEASURED",
+    "GLOBAL.Z-R-MOVE-B1-EQUIV"
+  ],
+  "new_rows": [],
+  "notes": "Fleet hardening round 2 sprint console. Delivered S0 (flock lock — fleet-critical), S1 (dispatcher regression + cross-check), S4 (absorption C7 10→0), S5 (4 orphan scripts wired), S6 partial (cmdShow amendments + 7 commands hardened). S1b investigation: failed-command noise traced to 5 test files, deferred to T351. S2-gtp: T326 done (GTP handicap), T327 closed (score-annotated board, @memcpy crash finding). S3-register: T330 done (retirement edges). Loose end: T322 findings filename fix, git-commit-mine:190 verified FALSE. Follow-ups: .gitignore (lockfile), sprint.md + STATE.md (deploy standing rule), T326 amend (first real use of correction path), STANDING-ABSORB.md (never widen floor for transient paths rule). C2 floor raise 14→20 overruled by Orchestrator — ARGUS.md:97-100; T314 threads logs rescued to docs/evidence/PARALLEL-FIXPOINT-T314/ at 38ca84a. Three deferrals registered: T350 (cmdDone two-phase lock), T351 (failed-command legibility), T352 (T227 timeout)."
+}
