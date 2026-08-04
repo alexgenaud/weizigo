@@ -133,12 +133,12 @@ Do not merge them — the independent implementation is a cross-check.
 
 | Run | Log |
 |-----|-----|
-| N=1 | `/tmp/weizigo/t314-threads-1.log` |
-| N=2 | `/tmp/weizigo/t314-threads-2.log` |
-| N=4 | `/tmp/weizigo/t314-threads-4.log` |
-| N=6 | `/tmp/weizigo/t314-threads-6.log` |
-| N=12 | `/tmp/weizigo/t314-threads-12.log` |
-| N=16 | `/tmp/weizigo/t314-threads-16.log` |
+| N=1 | `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-1.log` |
+| N=2 | `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-2.log` |
+| N=4 | `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-4.log` |
+| N=6 | `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-6.log` |
+| N=12 | `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-12.log` |
+| N=16 | `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-16.log` |
 
 All logs carry the runner's peak RSS and wall-clock trailers. Logs are in `/tmp/weizigo/` (disposable)
 and are not evidence in the git sense — the relevant numbers are in the table above and in the

@@ -1,11 +1,11 @@
 {
   "version": 1,
   "commit": "2432d71",
-  "note": "C2=20 (6 new from /tmp/weizigo/t314-threads-*.log in T314+T313 evidence docs — T337 S4 absorption). C1a=10 C1b=0 C6=0 C9=0 unchanged.",
+  "note": "C2=14 restored 2026-08-04 by the Orchestrator. T337 S4 had raised it 14->20 to accommodate six new dangling citations to /tmp/weizigo/t314-threads-*.log; ARGUS.md:97-100 permits the floor to be LOWERED only, by the Orchestrator, on evidence of a committed fix. The six logs still existed in /tmp, so they were rescued into docs/evidence/PARALLEL-FIXPOINT-T314/ (72 KB, tracked) and the seven citations in parallel-fixpoint-measurement-2026-08-03.md and releasesafe-rebuild-2026-08-03.md re-pointed at the tracked copies. claimlint then measured C2=14 — that run is the evidence for this value. Why it mattered: all eleven pre-existing dangling paths were checked the same day and every one was already gone from disk, so raising a floor converts a fixable citation into permanent unfalsifiable debt. C1a=10 C1b=0 C6=0 C9=0 unchanged.",
   "floor": {
     "C1a": 10,
     "C1b": 0,
-    "C2": 20,
+    "C2": 14,
     "C6": 0,
     "calibration": "PASS",
     "C9": 0

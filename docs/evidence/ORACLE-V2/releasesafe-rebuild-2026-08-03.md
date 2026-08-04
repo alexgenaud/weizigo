@@ -175,7 +175,7 @@ sweeps 9–31, DTT, artifact build, and write — the phases the cap could not r
 ## 9. Process notes
 
 - A **concurrent T314 run** (`zig-out/bin/weizigo-oracle-v2-build --threads 1`,
-  ReleaseFast, under its own runner, log `/tmp/weizigo/t314-threads-1.log`) was
+  ReleaseFast, under its own runner, log `docs/evidence/PARALLEL-FIXPOINT-T314/t314-threads-1.log`) was
   executing during this run (observed from ~12:33 elapsed at ~17:00 local). It
   shares no state with this run (separate binary, separate process, deterministic
   single-threaded computation; host has 18 cores / 48 GB). Noted for the record;

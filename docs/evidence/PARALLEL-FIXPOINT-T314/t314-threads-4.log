@@ -1,0 +1,225 @@
+[runner] argv = /tmp/weizigo/t314-snapshot/weizigo-oracle-v2-build --threads 4
+[runner] guards: rss 5120 MB, progress-timeout 7200s (2:00:00), fallback: wall 28800s cpu 57600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+# weizigo-oracle-v2-build b3d0209-dirty built 2026-08-03T14:26:47Z zig 0.16.0
+# ============================================================================
+# Task: T165 · Model: DSPro · Date: 2026-07-31
+# Threads: 4 (parallel Jacobi)
+# ============================================================================
+
+## GATE CHAIN (from exp6_solve)
+# 2×2: B=0 W=0 → PASS (0)
+# 3x2 census sweep 8: new_marks = 214
+# 3x2 census sweep 12: new_marks = 0
+# 3x2 fixpoint sweep 4: L_changed=295 H_changed=20
+# 3x2 fixpoint sweep 8: L_changed=22 H_changed=0
+# 3x2 fixpoint sweep 10: L_changed=0 H_changed=0
+# 3×2: B=0 W=0 → PASS (0)
+# 3x3 census sweep 4: new_marks = 2624
+# 3x3 census sweep 8: new_marks = 13976
+# 3x3 census sweep 12: new_marks = 2648
+# 3x3 census sweep 16: new_marks = 66
+# 3x3 census sweep 18: new_marks = 0
+# 3x3 fixpoint sweep 4: L_changed=14447 H_changed=1220
+# 3x3 fixpoint sweep 8: L_changed=1535 H_changed=0
+# 3x3 fixpoint sweep 12: L_changed=1546 H_changed=0
+# 3x3 fixpoint sweep 16: L_changed=0 H_changed=0
+# 3×3: B=9 W=-9 → PASS (+9)
+
+# Gate chain: PASS — 2×2=0, 3×2=0, 3×3=+9.
+
+## 4×4 census
+# 4x4 census: TOTAL4=4390765542 ReachWords4=68605712 bitset_bytes=548845696
+# 4x4 census: reach.ptr=u64@11f604000 reach.len=68605712 expected=68605712
+# 4x4 census: memset done, reach.len=68605712
+# 4x4 census: frontier allocated
+# 4x4 census: roots seeded, frontier.len=2
+# 4x4 census: entering BFS loop...
+# 4x4 census sweep 1: frontier=2
+# 4x4 census sweep 2: frontier=34
+# 4x4 census sweep 3: frontier=514
+# 4x4 census sweep 4: frontier=4104
+# 4x4 census sweep 4: frontier_size=29056 new_marks=29056
+# 4x4 census sweep 5: frontier=29056
+# 4x4 census sweep 6: frontier=129448
+# 4x4 census sweep 7: frontier=530464
+# 4x4 census sweep 8: frontier=1512860
+# 4x4 census sweep 8: frontier_size=3963008 new_marks=3963008
+# 4x4 census sweep 9: frontier=3963008
+# 4x4 census sweep 10: frontier=7593912
+# 4x4 census sweep 11: frontier=13377228
+# 4x4 census sweep 12: frontier=17645156
+# 4x4 census sweep 12: frontier_size=21828328 new_marks=21828328
+# 4x4 census sweep 13: frontier=21828328
+# 4x4 census sweep 14: frontier=20415432
+# 4x4 census sweep 15: frontier=19139468
+# 4x4 census sweep 16: frontier=13619208
+# 4x4 census sweep 16: frontier_size=10937916 new_marks=10937916
+# 4x4 census sweep 17: frontier=10937916
+# 4x4 census sweep 18: frontier=6465988
+# 4x4 census sweep 19: frontier=4805836
+# 4x4 census sweep 20: frontier=2425584
+# 4x4 census sweep 20: frontier_size=1685296 new_marks=1685296
+# 4x4 census sweep 21: frontier=1685296
+# 4x4 census sweep 22: frontier=726088
+# 4x4 census sweep 23: frontier=470928
+# 4x4 census sweep 24: frontier=172756
+# 4x4 census sweep 24: frontier_size=103320 new_marks=103320
+# 4x4 census sweep 25: frontier=103320
+# 4x4 census sweep 26: frontier=32128
+# 4x4 census sweep 27: frontier=17116
+# 4x4 census sweep 28: frontier=4528
+# 4x4 census sweep 28: frontier_size=1968 new_marks=1968
+# 4x4 census sweep 29: frontier=1968
+# 4x4 census sweep 30: frontier=464
+# 4x4 census sweep 31: frontier=128
+# 4x4 census sweep 32: frontier=32
+# 4x4 census sweep 32: frontier_size=0 new_marks=0
+# 4x4 census BFS done, counting marked states...
+# 4x4 total reachable (all passes): 147638298
+# 4x4 census sweeps: 32
+
+## 4×4 fixpoint
+# 4x4 compact states (passes ∈ {0,1}): 99133036
+# 4x4 fixpoint: building hash map for 99133036 states...
+# 4x4 fixpoint: hash map capacity reserved, inserting...
+# 4x4 fixpoint: hash map built, 99133036 entries
+# 4x4 fixpoint: parallel Jacobi, 4 threads, chunk_size=24783259
+# 4x4 fixpoint sweep 1: L_changed=24365875 H_changed=24365875 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 2: L_changed=258105 H_changed=258105 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 3: L_changed=2349324 H_changed=2349324 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 4: L_changed=3095066 H_changed=3095066 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 4: L_changed=3095066 H_changed=3095066
+# 4x4 fixpoint sweep 5: L_changed=8273631 H_changed=8273631 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 6: L_changed=8383984 H_changed=8383984 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 7: L_changed=15342417 H_changed=15342417 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 8: L_changed=12633918 H_changed=12633918 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 8: L_changed=12633918 H_changed=12633918
+# 4x4 fixpoint sweep 9: L_changed=20355733 H_changed=20355733 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 10: L_changed=14730311 H_changed=14730311 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 11: L_changed=22732552 H_changed=22732552 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 12: L_changed=15201638 H_changed=15201638 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 12: L_changed=15201638 H_changed=15201638
+# 4x4 fixpoint sweep 13: L_changed=22396066 H_changed=22396066 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 14: L_changed=13817454 H_changed=13817454 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 15: L_changed=19127295 H_changed=19127295 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 16: L_changed=10755222 H_changed=10755222 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 16: L_changed=10755222 H_changed=10755222
+# 4x4 fixpoint sweep 17: L_changed=13982690 H_changed=13982690 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 18: L_changed=7071338 H_changed=7071338 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 19: L_changed=8627636 H_changed=8627636 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 20: L_changed=3831106 H_changed=3831106 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 20: L_changed=3831106 H_changed=3831106
+# 4x4 fixpoint sweep 21: L_changed=4411256 H_changed=4411256 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 22: L_changed=1700825 H_changed=1700825 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 23: L_changed=1856580 H_changed=1856580 root_B(L=-16,H=16) root_W(L=-16,H=16)
+# 4x4 fixpoint sweep 24: L_changed=629094 H_changed=629094 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 24: L_changed=629094 H_changed=629094
+# 4x4 fixpoint sweep 25: L_changed=647874 H_changed=647874 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 26: L_changed=198374 H_changed=198374 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 27: L_changed=202458 H_changed=202458 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 28: L_changed=53762 H_changed=53762 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 28: L_changed=53762 H_changed=53762
+# 4x4 fixpoint sweep 29: L_changed=55526 H_changed=55526 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 30: L_changed=14205 H_changed=14205 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 31: L_changed=14012 H_changed=14012 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 32: L_changed=5348 H_changed=5348 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 32: L_changed=5348 H_changed=5348
+# 4x4 fixpoint sweep 33: L_changed=4078 H_changed=4078 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 34: L_changed=3940 H_changed=3940 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 35: L_changed=2824 H_changed=2824 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 36: L_changed=2353 H_changed=2353 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 36: L_changed=2353 H_changed=2353
+# 4x4 fixpoint sweep 37: L_changed=2388 H_changed=2388 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 38: L_changed=2408 H_changed=2408 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 39: L_changed=2784 H_changed=2784 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 40: L_changed=4024 H_changed=4024 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 40: L_changed=4024 H_changed=4024
+# 4x4 fixpoint sweep 41: L_changed=2400 H_changed=2400 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 42: L_changed=3112 H_changed=3112 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 43: L_changed=1080 H_changed=1080 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 44: L_changed=912 H_changed=912 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 44: L_changed=912 H_changed=912
+# 4x4 fixpoint sweep 45: L_changed=776 H_changed=776 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 46: L_changed=1104 H_changed=1104 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 47: L_changed=2964 H_changed=2964 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 48: L_changed=4920 H_changed=4920 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 48: L_changed=4920 H_changed=4920
+# 4x4 fixpoint sweep 49: L_changed=6540 H_changed=6540 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 50: L_changed=9808 H_changed=9808 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 51: L_changed=4452 H_changed=4452 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 52: L_changed=6696 H_changed=6696 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 52: L_changed=6696 H_changed=6696
+# 4x4 fixpoint sweep 53: L_changed=1232 H_changed=1232 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 54: L_changed=1648 H_changed=1648 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 55: L_changed=452 H_changed=452 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 56: L_changed=380 H_changed=380 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 56: L_changed=380 H_changed=380
+# 4x4 fixpoint sweep 57: L_changed=32 H_changed=32 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 58: L_changed=24 H_changed=24 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 59: L_changed=0 H_changed=0 root_B(L=1,H=16) root_W(L=-16,H=-1)
+# 4x4 fixpoint sweep 59: L_changed=0 H_changed=0
+# 4x4 fixpoint DEBUG: pass_child(empty,W,1) L=-16 H=-1
+# 4x4 fixpoint DEBUG: pass_child(empty,B,1) L=1 H=16
+# 4x4 fixpoint DEBUG: (1B,W,0) L=-16 H=-16
+# 4x4 fixpoint DEBUG: (1B1W,B,0) L=1 H=16
+# 4x4 fixpoint DEBUG: (1B1W,W,1) L=-16 H=-16
+# root (empty, B to move):  L= +1 H=+16
+# root (empty, W to move):  L=-16 H= -1
+# fixpoint sweeps: 59, converged: true
+# compact states (passes ∈ {0,1}): 99133036
+
+## DTT computation
+# DTT: iterative relaxation (max 254 sweeps)...
+# DTT sweep 10: changed=0
+# DTT: 10 sweeps, final changes=0
+# DTT distribution: FAR(255)=0 non-FAR-distinct=18
+#   DTT=1: 17050674
+#   DTT=2: 195854
+#   DTT=3: 2918468
+#   DTT=4: 2954240
+#   DTT=5: 20959172
+#   DTT=6: 9921168
+#   DTT=7: 30441614
+#   DTT=8: 5041700
+#   DTT=9: 8518316
+#   DTT=10: 470622
+#   DTT=11: 519544
+#   DTT=12: 63912
+#   DTT=13: 56632
+#   DTT=14: 11792
+#   DTT=15: 7920
+#   DTT=16: 1008
+#   DTT=17: 384
+#   DTT=18: 16
+
+## Building WZO2 artifact
+# groups: 24318165
+# entries: 99133036
+# file size: 518123097 bytes (518.1 MB)
+# terminal flags set: 516242
+
+## Writing WZO2 artifact
+# SHA-256 self-check...
+# SHA-256 verified
+# Writing untracked/v06/oracle-4x4-v2.wzo2...
+# WZO2 artifact written: untracked/v06/oracle-4x4-v2.wzo2 (518123097 bytes, 518.1 MB)
+
+# ============================================================================
+# oracle-v2 M2b SUMMARY
+# ============================================================================
+# gate chain: 2×2=0 3×2=0 3×3=9 → PASS
+# 4×4 root (empty, B): L=1 H=16
+# 4×4 root (empty, W): L=-16 H=-1
+# fixpoint sweeps: 59, converged: true
+# compact states: 99133036
+# DTT sweeps: 10
+# groups: 24318165, entries: 99133036
+# file: untracked/v06/oracle-4x4-v2.wzo2 (518123097 bytes)
+#
+# DONE — artifact ready for M3/M4b.
+[runner] peak RSS by PID: in 2488.5 s
+[runner]   pid   44508    3887 MB
+[runner] peak total CPU by PID: in 2488.5 s
+[runner]   pid   44508     1:55:46 (6946.93s)
+[runner] exit 0 in 2488.5 s
