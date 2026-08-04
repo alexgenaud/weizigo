@@ -2,7 +2,7 @@
 
 ```
 Task: T323 · Role: worker · Model: not stated at dispatch · Date: 2026-08-03
-Revision: 4 · Status: RATIFIED (Rev 2 ratified 2026-08-03 via spec audit T329 at 68a3b71; Rev 3, 2026-08-04, corrects the artifact identity — T332 F1, a premise defect found by the plan audit's artifact parse, missed by document review twice, sprint.md:93 confirmed again; Rev 4, 2026-08-04, repoints the artifact to its deployed path per human ruling — §2.3 only, no numbers changed)
+Revision: 5 · Status: RATIFIED (Rev 2 ratified 2026-08-03 via spec audit T329 at 68a3b71; Rev 3, 2026-08-04, corrects the artifact identity — T332 F1, a premise defect found by the plan audit's artifact parse, missed by document review twice, sprint.md:93 confirmed again; Rev 4, 2026-08-04, repoints the artifact to its deployed path per human ruling — §2.3 only, no numbers changed)
 Sprint owner: Orchestrator
 ```
 
@@ -446,7 +446,24 @@ counts.
 | **Rung 1** | 2×2 | 1,620 non-terminals (reachable) | All checks exhaustive. I4, C-A1, C-A2, I11, I5, key-agreement. Null controls and seeded-defect controls for I11. |
 | **Rung 2** | 3×2 | ~17K reachable | All checks exhaustive. Same battery. |
 | **Rung 3** | 3×3 | ~600K reachable | All checks exhaustive where feasible; I11 sampled if SMD1 exhaustive is too large. |
-| **Rung 4** | 4×4 | ~146M reachable | I4, C-A1, C-A2, I11 on sampled space (sample strategy: plan.md). I5 (SCC containment) on the full graph. Key-agreement on the sampled space. |
+| **Rung 4** | **4×3** | ~5M reachable | **All checks, against the committed golden oracle `artifacts/oracle-4x3.wzo` (3.19 MB, SHA in `artifacts/SHA256SUMS`).** Exhaustive where it fits; sampled with a stated denominator where it does not. |
+| **Rung 5** | 4×4 | ~146M reachable | I4, C-A1, C-A2, I11 on sampled space (sample strategy: plan.md). I5 (SCC containment) on the full graph. Key-agreement on the sampled space. |
+
+**Why a second rectangle (Rev 5, operator ruling 2026-08-04).** Squares hide a defect class
+that rectangles catch: **on a square board width and height are interchangeable**, so any
+implementation that transposes `w` and `h` passes every square test. This codebase is exposed
+to exactly that — the artifact header carries `w` and `h` separately and colex indexing depends
+on their order. 3×2 was in the ladder for a narrower reason (it is the smallest board where the
+I5 cycle-containment control is not vacuous; see §7.2), and it is small enough that a
+transposition bug may not surface. 4×3 is the better structural rung: larger, asymmetric, and a
+**golden oracle for it is already committed**, so the cost is running checks rather than
+building an artifact.
+
+**4×3 is also the 5×4 dress rehearsal.** 5×4 is the next resource-realistic rung — not because
+it is realistic Go, but because it is where CPU, RAM and disk stop being free and the 4×4
+brute-force approach must either scale or be replaced. Whatever 4×3 teaches about memory,
+sweep counts and runtime transfers to that decision. **Every 4×4 reading is taken only after
+its check has passed at 4×3.**
 
 ### 7.2 Calibration rule
 
@@ -471,7 +488,7 @@ meaningless and must not be reported as a pass.
 
 ### 7.3 Failure at a rung
 
-If a check fails at rung 1 or 2 (where the artifact is well-characterised and
+If a check fails at rung 1, 2 or 3 (where the artifact is well-characterised and
 the ladder sizes are exhaustive), the G3b sprint halts for adjudication. A
 failure at 4×4 that passes at all smaller rungs is a finding about the 4×4
 artifact, not the check.
@@ -547,3 +564,4 @@ artifact, not the check.
 | 2026-08-03 | Rev 2 — spec audit T329 (PASS-WITH-EDITS), all ten findings dispositioned; nine fixed as proposed, F3 fixed with the I4 independence-shortcut parenthetical rejected. Ratified at `f0769ac` | claude-fable-5 (Orcha) |
 | 2026-08-04 | Rev 3 — artifact identity corrected (T332 F1): the sprint artifact is the WZO2 oracle-v2 build, **not** `data/oracle-4x4.checkpoint.wzo` (WZO1, PSK-era, no ko/passes dimension). §7.2's ko-recapture seeded control was blind by construction on SMD1's `ko=NONE` slice and was replaced with a suicide mutant on the slice; the ko-dimension gap became gate-holder finding F6 on the plan. Ratified at `ead66d0` | claude-fable-5 (Orcha) |
 | 2026-08-04 | Rev 4 — §2.3 artifact path repointed from the sprint build path to the deployed `data/oracle-4x4-v2.wzo2` (human ruling: a ratified spec must not make `untracked/` load-bearing; oracle-v2 spec §4 F9 had already ratified the deployed path). Copy hash-verified against the recorded build and engine-loaded before the repoint; the `untracked/` build stays as the hash of record. No check, number, edge or decision changed. Amendment rows for Rev 2 and Rev 3 added retroactively — they were recorded only in the header line | claude-opus-5 (Orcha) |
+| 2026-08-04 | Rev 5 — **4×3 inserted as ladder rung 4**, 4×4 becomes rung 5, on operator ruling. Two reasons, neither of them Go realism: squares cannot catch width/height transposition because `w` and `h` are interchangeable on them, and this format carries `w`/`h` separately with colex order depending on both; and 4×3 is the resource rehearsal for 5×4, the next rung where CPU/RAM/disk stop being free. A golden 4×3 oracle is already committed (`artifacts/oracle-4x3.wzo`), so the cost is running checks, not building an artifact. **No 4×4 reading is taken until that check has passed at 4×3.** §7.3's halt condition extended to rung 3. | claude-opus-5 (Orcha) |
