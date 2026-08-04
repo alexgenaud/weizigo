@@ -317,12 +317,22 @@ One listed edge was upgraded rather than orphaned: `4x4.FP1-C3` (line 281), whos
 source was the retiring `4x4.M4`, was re-pointed to `e:QA-021` — the exhaustive PROVEN
 upgrade the register prose explicitly names ("Upgrades `4x4.FP1-C3`'s 1:37 sample").
 
-Two edges had no surviving register artifact to re-point to and were annotated
+Five edges had no surviving register artifact to re-point to and were annotated
 "evidence retired — needs re-derivation" (the underlying `docs/` sources remain): `4x4.D3`
-(`e:4x3.M3`, sole evidence) and `4x4.B43` (`e:CODE.UNDEF` + `e:4x4.PARALLEL`, both retiring).
+(`e:4x3.M3`, sole evidence), `4x4.B43` (`e:CODE.UNDEF` + `e:4x4.PARALLEL`, both retiring),
+`4x4.F2` and `4x4.F3` (`e:4x4.M6`, sole `e:` source for each — their `d:` edges are
+derives-from, not evidence), and `GLOBAL.H5c` (`e:GLOBAL.FIN-BRACKET`, sole `e:` source).
+
+**Correction (resuming T330 console, 2026-08-04):** the initial T330 commit (95a2810)
+mis-annotated `4x4.F2`, `4x4.F3`, and `GLOBAL.H5c` as "superseded by remaining evidence" —
+it treated their `d:` derives-from edges as evidence. The brief's case 1 is explicit that
+"remaining evidence" means `e:` sources only; these three rows had no remaining `e:` source
+(the retiring row was the sole `e:` evidence), so case 2 applies. Corrected in `CLAIMS.md`
+to "evidence retired; needs re-derivation". `bin/weizigo-claimlint` unchanged at the floor
+(C1a=10, C1b=0, C2=14, C6=0, C9=0; 323 parsed, 0 unparsed) before and after.
 
 No status column changed, no row deleted, no new row added; all 116 `tree` cells still read
-`RETIRED`. `bin/weizigo-claimlint` is unchanged at the floor (C1a=10, C1b=0, C2=14, C6=0,
-C9=0; 323 rows parsed, 0 unparsed). Verdict: pass-with-findings — the sheet under-counted the
-live dependents of `3x3.ANCHOR` and `4x4.M4` by three rows; recorded here so the next
-audit does not re-discover them as surprises.
+`RETIRED`. Verdict: pass-with-findings — the sheet under-counted the live dependents of
+`3x3.ANCHOR` and `4x4.M4` by three rows, and the initial commit mis-classified three
+sole-evidence edges as having remaining evidence; both recorded here so the next audit
+does not re-discover them as surprises.
