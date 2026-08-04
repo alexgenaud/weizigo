@@ -87,28 +87,6 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
-  "T344": {
-    "status": "dispatchable",
-    "agent": null,
-    "model": null,
-    "bundle": "untracked/T344-i5-4x4.md",
-    "set": "E",
-    "holds": ["src/vb_scc_4x4.zig"],
-    "needs": ["T340"],
-    "caps": [],
-    "added": "2026-08-04T10:22:59Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
-    "acceptance": "zig build test",
-    "skip_acceptance_reason": null,
-    "amendments": []
-  },
   "T322": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -129,6 +107,28 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "suite passed at 41.0s prior to commit",
+    "amendments": []
+  },
+  "T344": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T344-i5-4x4.md",
+    "set": "E",
+    "holds": ["src/vb_scc_4x4.zig"],
+    "needs": ["T340"],
+    "caps": [],
+    "added": "2026-08-04T10:22:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T319": {
@@ -481,7 +481,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-04T15:14:38Z: verdict=abandoned note=VOID row, superseded by T352. --fail recorded verdict=blocked, which reads as 'work stalled'; abandoned is the honest terminal state for a row that never carried work."]
   },
   "T325": {
     "status": "done",
