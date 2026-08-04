@@ -26,6 +26,14 @@ Absorb the unabsorbed findings into the epistemic register:
   twice.
 - Do not absorb what is not yours to absorb: the CLAIMS.md owner is the
   claims-register seat; confirm scope before editing.
+- **Never widen a claimlint floor to admit a citation.** When a finding cites
+  a path under `/tmp/` or `untracked/`, that evidence is alive only until the
+  next prune or reboot.  Rescue the file into tracked evidence under
+  `docs/evidence/` and re-point the citation in the findings or the claim
+  row; NEVER raise a C2/floor to accommodate a transient path.  Eleven dead
+  paths in C2 are what ignoring this already cost (T337 S4, 2026-08-04).
+  The floor is lowered only by the Orchestrator on evidence of a committed
+  fix (ARGUS.md:97-100).
 
 ## Deliverable
 
