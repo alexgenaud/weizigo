@@ -1,6 +1,6 @@
 {
   "T356": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T356-name-the-checks.md",
@@ -10,15 +10,15 @@
     "caps": [],
     "added": "2026-08-04T15:29:18Z",
     "claimed": "2026-08-04T16:12:17Z",
-    "done": null,
+    "done": "2026-08-04T23:49:37Z",
     "dispatched": "2026-08-04T16:12:14Z",
     "dispatched_to": "glm-5.2",
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Check names delivered and verified in output: 'C3 ... [UNBACKED]', one name map in claimlint.zig plus the floor file, IDs retained as keys and primary reference. Console exited without committing or closing; work committed by the Orchestrator at 28b7bda, row closed on its behalf.",
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "acceptance is bin/weizigo-claimlint, which exits 1 by design while C1a/C2/C3/C7/C9 carry honest debt — same handling as T285/T287/T296. Verified instead: counts unmoved at floor and calibration PASS after the change, which is this row's null control.",
     "amendments": []
   },
   "T328": {
@@ -220,7 +220,7 @@
     "amendments": []
   },
   "T361": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "minimax-m3",
     "model": null,
     "bundle": "untracked/T361-old-vs-new-engine-kifu.md",
@@ -230,12 +230,12 @@
     "caps": [],
     "added": "2026-08-04T21:35:28Z",
     "claimed": "2026-08-04T21:35:40Z",
-    "done": null,
+    "done": "2026-08-04T23:48:34Z",
     "dispatched": "2026-08-04T21:35:28Z",
     "dispatched_to": "minimax-m3",
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "abandoned",
+    "verdict_note": "Console exited with no work in the tree and no findings. Old-vs-new 4x4 engine kifu not started; the brief stands and the row can be re-registered when a console is free.",
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-04.md",
     "skip_acceptance_reason": null,
@@ -836,7 +836,7 @@
     "amendments": []
   },
   "T355": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "minimax-m3",
     "model": null,
     "bundle": "untracked/T355-inbox-loop.md",
@@ -846,20 +846,20 @@
     "caps": [],
     "added": "2026-08-04T15:14:25Z",
     "claimed": "2026-08-04T16:12:20Z",
-    "done": null,
+    "done": "2026-08-04T23:49:18Z",
     "dispatched": "2026-08-04T16:12:14Z",
     "dispatched_to": "minimax-m3",
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Inbox loop delivered and proven in use: carried every directive this session (D025-D035), taking the operator out of the relay. Console exited without committing or closing; work committed by the Orchestrator at 0b0dc9b, findings authored at close, row closed on its behalf. Known gap: injected prompt text still labels the loop T352.",
     "claim_count": 1,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "acceptance is zig build test; T360's node-budget panic makes it red by design until T363 resolves the underlying explosion. zig build exits 0 and the mechanism is demonstrated by D025-D035.",
     "amendments": []
   }
 ,
   "_sys": {
-    "next_id": 363,
-    "directive_next": 34
+    "next_id": 364,
+    "directive_next": 37
   }
 }

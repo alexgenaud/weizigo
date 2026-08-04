@@ -12,3 +12,64 @@
 {"id":"D018","target":"T286","directive":"amend","note":"Two coordination constraints, because three other consoles are live. (1) If you add a managent subcommand, do NOT deploy a rebuilt bin/managent while others are running - every console calls bin/managent for claim/done, and a broken deploy breaks their closes. Build to zig-out, verify, and either deploy at the very end or leave the deploy to Orcha; say in your report which you did. (2) Delete docs/status/CURRENT.md in your FINAL commit, not early: Orcha has been writing that file all session and other consoles may cite it. Land the replacement surface and the pointer fixes first, verify the new path works, then remove the file. Orcha stops writing CURRENT.md as of now, so you own it from here.","from":"Orchestrator","ts":"2026-08-02T23:18:32Z","read":false}
 {"id":"D019","target":"T291","directive":"amend","note":"Two things before you start. (1) Your brief gained a section 'What T290s spec actually found' - read it: G1/G3 (Z-R-STATE, Z-STATE-KEY) and G2 (Z-STATE-REACH closure) have NO battery coverage and are rated critical, so mutants 1, 2, 4 and 8 will most likely be killed by nothing. That is the expected result; record the kill failure against the gap ID rather than inventing a check, because those need the Phase 2 kernel. A catalogue where every mutant dies is the result to distrust. (2) build.zig co-ownership: T294 is finishing and may also wire controls into zig build test. Re-read build.zig immediately before you edit it, keep your edit to your own block, and if the text you expected has already changed, that is T294 - stop and report rather than resolving it blind.","from":"Orchestrator","ts":"2026-08-03T00:18:35Z","read":false}
 {"id":"D020","target":"T291","directive":"amend","note":"Your two failing tests are the EXPECTED result, not bugs to fix: vb_mutants.test.M3-T265-killed-by-I5 and M5-T283-killed-by-I2 both fail because nothing kills those mutants - which is exactly what T290's spec predicted for the uncovered nodes (G1/G3 Z-R-STATE and Z-STATE-KEY, G2 Z-STATE-REACH, all critical, all needing the Phase 2 kernel). Do NOT invent a check to make them pass and do NOT weaken the mutant. But do NOT leave them as red assertions either: a permanently-red suite is the pathology GRAND-AUDIT 1c describes, and it is already costing us - your two failures made zig build test exit 1, which blocked T294's close for a reason that had nothing to do with T294. Record them as known-unkilled gaps: the test asserts the CURRENT state (mutant survives, tied to its gap ID) and carries an EXPECTED marker in its output, so the suite is green while the catalogue honestly says four of ten mutants have no killer. When the Phase 2 kernel lands, those tests invert - say so in mutants.md so T273's successor knows the assertion flips rather than being deleted.","from":"Orchestrator","ts":"2026-08-03T00:30:28Z","read":false}
+{"id":"D021","target":"T355","directive":"amend","note":"test","from":"unknown","ts":"2026-08-04T16:12:49Z","read":true}
+{"id":"D022","target":"T355","directive":"question","note":"test ack","from":"T355-test","ts":"2026-08-04T16:16:15Z","read":true}
+
+{"id":"D023","target":"T355","directive":"question","note":"resume test 1","from":"T355-test","ts":"2026-08-04T16:16:17Z","read":false}
+{"id":"D024","target":"T355","directive":"question","note":"resume test 2","from":"T355-test","ts":"2026-08-04T16:16:17Z","read":false}
+{"id":"D025","target":"T356","directive":"amend","note":"Names RATIFIED by the operator, all ten as proposed. Keep the ID as the key and primary reference; print both as 'C3 UNBACKED: 76'. Proceed to land.","from":"unknown","ts":"2026-08-04T16:43:39Z","read":false}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{"id":"D026","target":"T335","directive":"amend","note":"SPEC AMENDED to Rev 5 (operator ruling): 4x3 is now ladder rung 4 and 4x4 becomes rung 5. NO 4x4 reading is taken until that same check has passed at 4x3. Golden oracle artifacts/oracle-4x3.wzo (3.19MB) is already committed - the cost is running checks, not building an artifact. Reason: squares cannot catch width/height transposition (w and h are interchangeable on a square; our header carries them separately and colex depends on order), and 4x3 is the resource rehearsal for 5x4. Update plan.md and add a 4x3 bar to every row that takes a 4x4 reading: T343 I4, T344 I5, T345 KEY-4x4, T346 I11, and CLOSURE's 4x4 run. Re-audit is NOT required for this amendment; log it in the plan amendment table.","from":"unknown","ts":"2026-08-04T19:33:51Z","read":true}
+
+
+
+
+
+
+
+
+
+{"id":"D027","target":"T335","directive":"amend","note":"TWO THINGS. (1) UNBLOCK: there are NO uncommitted build.zig changes from the Orchestrator. 'git diff build.zig' and 'git diff --cached build.zig' are both empty; the last build.zig commits are 063da2b (T342) and d2ae79f (yours). Nothing of mine is pending and nothing has been pending all day. Wire vb_health, smd1, vb_bellman_4x4, vb_scc_4x4 and vb_i11 now — you are the single writer for build.zig in this sprint, as you have been since d2ae79f. Commit, then zig build deploy, then sh tools/smoke.sh with zero STALE. (2) T344 RULING: do NOT raise the RSS cap yet. The finding is not the 6 MB overshoot, it is that the plan predicted ~1.2 GB and reality is 4.1 GB - a 3.4x modelling error. A memory model wrong by 3.4x at 4x4 makes every 5x4 projection worthless, and 5x4 sizing is now an explicit operator goal. So: apply F1 (pack onstack), then F2 (drop dense_to_linear) if F1 is insufficient, and REPORT A MEASURED MEMORY BREAKDOWN - bytes per component, measured not estimated, against the plan's line items. If F1+F2 still exceed 4096 MB, come back with that breakdown and I will rule on a documented cap raise. Also note spec Rev 5 (directive D026): T343's and T345's 4x4 readings were taken before the 4x3 rung existed, so the 4x3 rung is now owed retroactively for I4 and KEY-4x4 before DISCHARGE.","from":"unknown","ts":"2026-08-04T20:17:02Z","read":true}
+{"id":"D028","target":"T335","directive":"pause","note":"STOP RUNNING 'zig build test' — it never finishes. A 2x2 brute force (qa023_brute_2x2.brute_value) recurses unbounded; five binaries were found spinning at 100% CPU with up to 171 minutes each, machine load 16. Registered as T360 (P0). Until it closes: verify your leg with 'zig test src/<file>.zig --test-filter <tag>' and close with --skip-acceptance citing T360. Do not kill other consoles' processes.","from":"unknown","ts":"2026-08-04T20:33:08Z","read":true}
+{"id":"D029","target":"T355","directive":"pause","note":"STOP RUNNING 'zig build test' — it never finishes. A 2x2 brute force (qa023_brute_2x2.brute_value) recurses unbounded; five binaries were found spinning at 100% CPU with up to 171 minutes each, machine load 16. Registered as T360 (P0). Until it closes: verify your leg with 'zig test src/<file>.zig --test-filter <tag>' and close with --skip-acceptance citing T360. Do not kill other consoles' processes.","from":"unknown","ts":"2026-08-04T20:33:08Z","read":false}
+{"id":"D030","target":"T356","directive":"pause","note":"STOP RUNNING 'zig build test' — it never finishes. A 2x2 brute force (qa023_brute_2x2.brute_value) recurses unbounded; five binaries were found spinning at 100% CPU with up to 171 minutes each, machine load 16. Registered as T360 (P0). Until it closes: verify your leg with 'zig test src/<file>.zig --test-filter <tag>' and close with --skip-acceptance citing T360. Do not kill other consoles' processes.","from":"unknown","ts":"2026-08-04T20:33:08Z","read":false}
+{"id":"D031","target":"T335","directive":"resume","note":"Suite unblocked at 00bd3cb: qa023_brute_2x2 now fails loudly on a 20M-node budget instead of spinning forever. zig build test will FAIL fast (signal ABRT with a T360 panic message) rather than hang — that red is expected and is T360's, not yours. Do not raise NODE_BUDGET. You may run the suite again; a red from that panic does not block your close, cite T360 in --skip-acceptance.","from":"unknown","ts":"2026-08-04T21:17:10Z","read":true}
+{"id":"D032","target":"T355","directive":"resume","note":"Suite unblocked at 00bd3cb: qa023_brute_2x2 now fails loudly on a 20M-node budget instead of spinning forever. zig build test will FAIL fast (signal ABRT with a T360 panic message) rather than hang — that red is expected and is T360's, not yours. Do not raise NODE_BUDGET. You may run the suite again; a red from that panic does not block your close, cite T360 in --skip-acceptance.","from":"unknown","ts":"2026-08-04T21:17:10Z","read":false}
+{"id":"D033","target":"T356","directive":"resume","note":"Suite unblocked at 00bd3cb: qa023_brute_2x2 now fails loudly on a 20M-node budget instead of spinning forever. zig build test will FAIL fast (signal ABRT with a T360 panic message) rather than hang — that red is expected and is T360's, not yours. Do not raise NODE_BUDGET. You may run the suite again; a red from that panic does not block your close, cite T360 in --skip-acceptance.","from":"unknown","ts":"2026-08-04T21:17:10Z","read":false}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{"id":"D034","target":"T355","directive":"kill","note":"Session is being closed by the operator. Before you exit: (1) commit whatever you have working via tools/git-commit-mine — partial work committed is worth far more than perfect work lost; (2) write findings/<id>-context.json with what you did, what you did NOT finish, and what the next worker should know; (3) close your row with bin/managent done <id> --agent <label> --status <pass|pass-with-findings|blocked> and an honest note. Do NOT leave the row in_progress — a claimed row with a dead console is the state that wedged this fleet earlier today.","from":"unknown","ts":"2026-08-04T23:46:36Z","read":false}
+{"id":"D035","target":"T356","directive":"kill","note":"Session is being closed by the operator. Before you exit: (1) commit whatever you have working via tools/git-commit-mine — partial work committed is worth far more than perfect work lost; (2) write findings/<id>-context.json with what you did, what you did NOT finish, and what the next worker should know; (3) close your row with bin/managent done <id> --agent <label> --status <pass|pass-with-findings|blocked> and an honest note. Do NOT leave the row in_progress — a claimed row with a dead console is the state that wedged this fleet earlier today.","from":"unknown","ts":"2026-08-04T23:46:36Z","read":false}
+{"id":"D036","target":"T361","directive":"kill","note":"Session is being closed by the operator. Before you exit: (1) commit whatever you have working via tools/git-commit-mine — partial work committed is worth far more than perfect work lost; (2) write findings/<id>-context.json with what you did, what you did NOT finish, and what the next worker should know; (3) close your row with bin/managent done <id> --agent <label> --status <pass|pass-with-findings|blocked> and an honest note. Do NOT leave the row in_progress — a claimed row with a dead console is the state that wedged this fleet earlier today.","from":"unknown","ts":"2026-08-04T23:46:36Z","read":false}
