@@ -204,6 +204,19 @@ pub fn build(b: *std.Build) void {
     subagent_prompt_regression.cwd = b.path(".");
     test_step.dependOn(&subagent_prompt_regression.step);
 
+    // ── T337 S1: ollama-dispatcher regression controls ───────────────
+    // T317 item 2 passed the canonical label to ollama launch instead
+    // of the Ollama tag — every ollama dispatch would have failed, and
+    // four green suite runs said nothing (caught at the T336 pass
+    // boundary by dry-running a dispatch and probing both tags).
+    // These controls assert that the launch uses the raw tag while the
+    // claim/done lines carry the canonical label, plus a mechanized
+    // cross-check that OLLAMA_TAG_TO_CANONICAL and canonical_models[]
+    // do not drift.
+    const ollama_disp_regression = b.addSystemCommand(&.{ "sh", "tools/regression-ollama-dispatcher.sh" });
+    ollama_disp_regression.cwd = b.path(".");
+    test_step.dependOn(&ollama_disp_regression.step);
+
     // ── T322: wire remaining orphaned regression scripts ───────────────
     // Three scripts tested; two pass cleanly.  managent-integrity fails
     // (checks deployed bin/ vs zig-out/ staleness — a pre-condition that
