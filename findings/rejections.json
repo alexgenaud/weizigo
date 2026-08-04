@@ -220,6 +220,106 @@
       "disposition": "absorbed-under-register-id",
       "refuting_row": "CODE.KEY-AGREEMENT (CLAIMED, T293)",
       "rationale": "Same claim as in T267-key-agreement.json: key-agreement invariant registered as CODE.KEY-AGREEMENT (absorbed T293)."
+    },
+    {
+      "finding_task": "T312",
+      "finding_file": "T312-parallel-fixpoint.json",
+      "claim_id": "CODE.T312-PARALLEL-FIXPOINT",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Valid claim at CLAIMED — the T312 parallel fixpoint solver with race controls, convergence proof, and seeded-defect detection. Needs CLAIMS.md §2 manual insertion (weizigo-absorb generated directive: add_row after GLOBAL.ADR0001-PROJECT). T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T313",
+      "finding_file": "T313-releasesafe-invariance.json",
+      "claim_id": "CODE.WZO2-RELEASESAFE-INV",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Valid claim at CLAIMED — ReleaseSafe rebuild produces byte-identical artifact with zero safety panics. UB-independence evidence for serial path. Promotion to PROVEN blocked by DIRECTION Amendment 2 edge 5 (mutation adequacy for code involved). T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T314",
+      "finding_file": "T314-parallel-measurement.json",
+      "claim_id": "CODE.PARALLEL-FIXPOINT-MEASURED",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Measurement of T312 parallel fixpoint on Apple M5 Max — speedup curve, RSS, byte-identical artifacts. Status MEASUREMENT (not a truth claim). T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T316",
+      "finding_file": "T316-arm-B-r2.json",
+      "claim_id": "CODE.T312-PARALLEL-FIXPOINT",
+      "proposed_status": "CLAIMED (downgrade from PROVEN)",
+      "register_status": "covered by T312 absorption above",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (T312, pending-CLAIMS.md-placement)",
+      "rationale": "T316 audit finding: T312's proposed PROVEN status is downgraded to CLAIMED due to cite-tag mismatches, internal test-count contradiction, missing provenance, and wrong_answer_pass_rate reporting coverage not false-pass probability. Absorbed under T312's own CLAIMED proposal (which agrees the correct status is CLAIMED). T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T317",
+      "finding_file": "T317-managent-attribution.json",
+      "claim_id": "CODE.MANAGENT-MODEL-VALIDATION",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Tooling claim: canonical model label validation in managent (canonical_models[], canonicalizeModelTag, isCanonicalModel). Valid CLAIMED. T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T317",
+      "finding_file": "T317-managent-attribution.json",
+      "claim_id": "CODE.MANAGENT-LOST-UPDATE",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Tooling claim: lost-update safety in managent store (lock→re-read→writeStateLocked→unlock pattern for 5 commands). Valid CLAIMED. T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T317",
+      "finding_file": "T317-managent-attribution.json",
+      "claim_id": "CODE.MANAGENT-AMEND",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Tooling claim: append-only amendment path for done/failed tasks (managent amend). Valid CLAIMED, first real use on T326 (T337). T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T319",
+      "finding_file": "T319-kanban-archive.json",
+      "claim_id": "CODE.MANAGENT-ARCHIVE",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Tooling claim: managent archive command with dry-run, eligibility checks, idempotency, and cmdWhy dual-store search. Valid CLAIMED. T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T322",
+      "finding_file": "T322-orphaned-controls.json",
+      "claim_id": "CODE.REGRESSION-WIRING",
+      "proposed_status": "CLAIMED",
+      "register_status": "not yet in CLAIMS.md",
+      "disposition": "pending-CLAIMS.md-placement",
+      "refuting_row": "—",
+      "rationale": "Tooling claim: orphaned regression scripts wired into zig build test (managent-done-git, managent-memory-safety). Extended by T337 S5 which wired 4 more. Valid CLAIMED. T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T306",
+      "finding_file": "T306-b1-unification.json",
+      "claim_id": "GLOBAL.Z-R-MOVE-B1-EQUIV",
+      "proposed_status": "PROVEN (findings proposes PROVEN at 2×2/3×2, CLAIMED at 3×3/4×4)",
+      "register_status": "CLAIMED (register holds at CLAIMED per DIRECTION Amendment 2 edge 5)",
+      "disposition": "rejected-by-register",
+      "refuting_row": "GLOBAL.Z-R-MOVE-B1-EQUIV (CLAIMS.md §2.1)",
+      "rationale": "Findings proposes PROVEN at 2×2/3×2; register holds at CLAIMED per DIRECTION Amendment 2 edge 5: solver claims may not be promoted past CLAIMED until mutation adequacy covers them. The B1 lemma kills one mutant but the larger goban scopes lack exhaustive coverage. T337 S4, 2026-08-04."
     }
   ]
 }

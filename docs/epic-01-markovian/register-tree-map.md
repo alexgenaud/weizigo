@@ -366,6 +366,15 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `SPRINT-M4a-ACCEPT` | Z-TABLE-CONSISTENCY | A3/A9 internal consistency (A5 round-trip covered separately); scope caveat: not completeness |
 | `WZO2-4X4-VALID` | Z-COMPLETE-ENUM | closure untested — the artifact is not a verified perfect oracle |
 | `WZO2.I2-CLEAN` | Z-TABLE-CONSISTENCY | I2 colour-inversion exhaustive on both WZO2 artifacts |
+| `GLOBAL.Z-R-MOVE-B1-EQUIV` | Z-R-MOVE | B1 shape-rule equivalence lemma (T306, absorbed T337 S4) |
+| `CODE.T312-PARALLEL-FIXPOINT` | Z-TABLE-CONSISTENCY | parallel fixpoint solver with race controls (T312, T337 S4) |
+| `CODE.WZO2-RELEASESAFE-INV` | Z-TABLE-CONSISTENCY | ReleaseSafe rebuild byte-identical (T313, T337 S4) |
+| `CODE.PARALLEL-FIXPOINT-MEASURED` | Z-TABLE-CONSISTENCY | parallel fixpoint speedup measurement (T314, T337 S4) |
+| `CODE.MANAGENT-MODEL-VALIDATION` | RETIRED | family process; canonical model label validation — infra (T317, T337 S4) |
+| `CODE.MANAGENT-LOST-UPDATE` | RETIRED | family process; lost-update safety in store — infra (T317, T337 S4) |
+| `CODE.MANAGENT-AMEND` | RETIRED | family process; append-only amendment path — infra (T317, T337 S4) |
+| `CODE.MANAGENT-ARCHIVE` | RETIRED | family process; kanban archive command — infra (T319, T337 S4) |
+| `CODE.REGRESSION-WIRING` | RETIRED | family process; orphaned regression scripts wired — infra (T322, T337 S4) |
 
 ## 2. Proposed retirements — 116 rows, by family
 
