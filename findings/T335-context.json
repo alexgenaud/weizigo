@@ -1,0 +1,8 @@
+{
+  "task_id": "T335",
+  "date": "2026-08-04",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "G3b build sprint console — session state at first pause.\n\nREAD:\n- All required docs: AGENTS.md, DELEGATEE.md, DELEGATOR.md, sprint.md, DIRECTION.md + Amendments 1&2, PHASES.md, subdelegation.md, runner.md, managent spec, findings schema\n- Spec (Rev 4, RATIFIED) and Plan (Rev 5, RATIFIED) — read in full\n- T317 done, T336 done — preconditions met\n\nDONE:\n- Claimed T335\n- Wrote all 11 brief files (T338–T348) per plan §5 row table, each with correct set mapping (g3b-movegen→D, g3b-battery→E, g3b-tools→F, DISCHARGE→A), holds, needs, deliverables (findings JSON + context JSON), and acceptance\n\nBLOCKED:\n- managent add calls all failed (error.FileNotFound — possibly glob expansion or store-lock issue). User directed: pause until T337 reports store-lock fix deployed. T337 is in_progress (deepseek-v4-pro, fleet hardening round 2)\n\nWHAT I COULD NOT ESTABLISH:\n- Why the glob failed (files exist, verified with ls). Could be a managent bug or a store-lock issue T337 is fixing\n- Whether T317's lost-update-safe store is sufficient or T337's additional fix is needed\n\nASSUMED WITHOUT CHECKING:\n- That the plan's set letter mapping (D/E/F) won't conflict with existing sets. Current kanban uses A/B/C. D/E/F are unused\n- That managent --bundle accepts glob patterns (the spec says it globs by default; --bundle may not)\n\nNEXT:\n- Wait for T337 completion signal\n- Re-run managent add for all 11 rows (use explicit filenames, not globs)\n- Stamp canonical model labels on each row\n- Dispatch Wave 1: T338 (MG-INV) ∥ T340 (R8)\n- Then proceed through waves per plan §8"
+}
