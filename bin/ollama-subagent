@@ -145,7 +145,18 @@ def main(argv):
                   f"{dl_lines}\n"
                   f"  1. Write these files per findings/README.md\n"
                   f"  2. bin/managent done {target} --agent {model} --status <pass|pass-with-findings|"
-                  f"fail-found|blocked|abandoned> --note <one line>\n")
+                  f"fail-found|blocked|abandoned> --note <one line>\n\n"
+                  f"INBOX LOOP (T352):\n"
+                  f"  The human used to relay messages between consoles by hand. That relay\n"
+                  f"  is now a `managent tell` directive you can poll for.  At each natural\n"
+                  f"  checkpoint — after a commit, before starting a new sub-step, and\n"
+                  f"  before reporting done — run:\n"
+                  f"      bin/managent inbox {target} --ack\n"
+                  f"  A directive of `pause`, `amend` or `question` is actionable: act on\n"
+                  f"  it and record the directive ID (D0NN) in your findings file's\n"
+                  f"  `notes` field, so the Orchestrator can see you read it.  A directive\n"
+                  f"  of `kill` writes your context dump and exits.  An empty inbox is a\n"
+                  f"  no-op (do not be alarmed).  The brief carries everything else.\n")
     elif os.path.isfile(target):
         prompt = f"Follow {os.path.relpath(os.path.abspath(target), ROOT)}\n"
     else:

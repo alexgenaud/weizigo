@@ -48,6 +48,46 @@ self-services and how your work is attributed to you in the performance ledger.
 If you are not running under the Orchestrator (e.g. an ad-hoc experiment
 from a console), claim via `managent next` to take the first eligible task.
 
+## The inbox loop (T352)
+
+The human used to relay messages between consoles by hand — two consoles
+sitting at 0% CPU for four hours waiting for a paste is the largest single
+waste this project has measured. The relay is now `managent tell <id>
+<pause|amend|question|kill> --note <text>`, and the worker's side is one
+command you run at every natural checkpoint:
+
+```sh
+bin/managent inbox <your-task-id> --ack
+```
+
+Run it **after a commit**, **before starting a new sub-step**, and **before
+reporting done**. The `bin/subagent` and `bin/ollama-subagent` dispatch
+prompts already say this, but the rule is yours whether the prompt said so
+or not.
+
+Directives and what to do with them:
+
+| directive | what to do |
+|---|---|
+| `pause` | stop work, leave your context dump and the partial state on disk, and either report `blocked` or wait for the matching `resume` |
+| `resume` | continue the work that was paused |
+| `amend` | incorporate the note into the current step before the next commit; record the directive ID (`D0NN`) in your findings file's `notes` field |
+| `question` | answer in your next commit message or findings file; record the directive ID the same way |
+| `kill` | write `findings/<task-id>-context.json` per the standing rule below, commit, and exit — do not report `done` |
+
+A directive that is older than 5 minutes and still unread is a **fleet
+stall**; `managent resume` surfaces unread directives with an age and a
+`!` marker, so the operator can see you are stuck without opening your
+console. The `managent inbox` command without `--ack` only displays; with
+`--ack` it marks the matching ones as read in
+`docs/infra/managent/directives.jsonl` under the same store lock as
+`managent claim`/`done`. Two workers on different task IDs do not
+interfere: ack is scoped to the target you pass.
+
+The Orchestrator's side is also one command. Sending a correction to a
+live row is `managent tell <task-id> --amend "<text>"`; no clipboard
+step, no relay.
+
 ## Your context is fresh — three things that have caught cold consoles
 
 You are reading files written by consoles that no longer exist. Their reasoning did

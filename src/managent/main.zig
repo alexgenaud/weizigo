@@ -3262,6 +3262,152 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
         if (!held_any) w.data("    -- none --\n", .{});
     }
 
+    // ── pending directives (T352) — a fleet stall is an unread directive ──
+    // The resume surface must say so where the operator already looks, with
+    // age in minutes so a stale directive reads as stale.  Older than the
+    // STALL_THRESHOLD_MIN threshold → flagged as STALL with a louder marker.
+    // The threshold is five minutes by default; override with
+    // RESUME_STALL_MIN.  This is the operator's signal that `managent tell`
+    // is in use and the worker has not yet polled.
+    {
+        var directives = readDirectives(io, repo_root, state_path) catch null;
+        defer if (directives) |*d| {
+            for (d.items) |di| {
+                alloc.free(di.id);
+                alloc.free(di.target);
+                alloc.free(di.directive);
+                if (di.note) |n| alloc.free(n);
+                alloc.free(di.from);
+                alloc.free(di.ts);
+            }
+            d.deinit(alloc);
+        };
+
+        var unread: u32 = 0;
+        var stale: u32 = 0;
+        var ts: std.c.timespec = undefined;
+        _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &ts);
+        const now_unix: i64 = ts.sec;
+        const STALL_THRESHOLD_MIN: i64 = blk: {
+            const override_ptr = std.c.getenv("RESUME_STALL_MIN");
+            if (override_ptr) |op| {
+                const sp = std.mem.span(op);
+                if (std.fmt.parseInt(i64, sp, 10)) |v| break :blk v else |_| {}
+            }
+            break :blk 5;
+        };
+
+        if (directives) |dirs| {
+            for (dirs.items) |d| {
+                if (d.read) continue;
+                unread += 1;
+            }
+        }
+
+        const ageSecFromTs = struct {
+            fn f(ts_str: []const u8, now_unix_in: i64) ?i64 {
+                if (ts_str.len < 19) return null;
+                const year = std.fmt.parseInt(i64, ts_str[0..4], 10) catch return null;
+                const month = std.fmt.parseInt(i64, ts_str[5..7], 10) catch return null;
+                const day = std.fmt.parseInt(i64, ts_str[8..10], 10) catch return null;
+                const hour = std.fmt.parseInt(i64, ts_str[11..13], 10) catch return null;
+                const minute = std.fmt.parseInt(i64, ts_str[14..16], 10) catch return null;
+                const second = std.fmt.parseInt(i64, ts_str[17..19], 10) catch return null;
+                var leap_count: i64 = 0;
+                var y: i64 = 1970;
+                while (y < year) : (y += 1) {
+                    const leap = (@rem(y, 4) == 0 and @rem(y, 100) != 0) or (@rem(y, 400) == 0);
+                    if (leap) leap_count += 1;
+                }
+                const month_days_lut = [_]i64{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+                var day_of_year: i64 = day - 1;
+                var m: usize = 0;
+                while (m < @as(usize, @intCast(month - 1))) : (m += 1) {
+                    day_of_year += month_days_lut[m];
+                }
+                if (month > 2 and ((@rem(year, 4) == 0 and @rem(year, 100) != 0) or (@rem(year, 400) == 0))) {
+                    day_of_year += 1;
+                }
+                const days_since_epoch: i64 = (year - 1970) * 365 + leap_count + day_of_year;
+                const ts_unix: i64 = days_since_epoch * 86400
+                    + hour * 3600 + minute * 60 + second;
+                return now_unix_in - ts_unix;
+            }
+        }.f;
+
+        w.data("\n  pending directives", .{});
+        if (unread == 0) {
+            w.data(": none\n", .{});
+        } else {
+            w.data(" ({d} unread", .{unread});
+            if (directives) |dirs| {
+                for (dirs.items) |d| {
+                    if (d.read) continue;
+                    if (ageSecFromTs(d.ts, now_unix)) |age_sec| {
+                        if (age_sec > STALL_THRESHOLD_MIN * 60) {
+                            stale += 1;
+                        }
+                    }
+                }
+            }
+            if (stale > 0) {
+                w.data(", {d} STALL (> {d} min old)", .{ stale, STALL_THRESHOLD_MIN });
+            }
+            w.data("):\n", .{});
+            if (directives) |dirs| {
+                for (dirs.items) |d| {
+                    if (d.read) continue;
+                    const age_str = blk: {
+                        if (d.ts.len < 19) break :blk "?";
+                        const year = std.fmt.parseInt(i64, d.ts[0..4], 10) catch break :blk "?";
+                        const month = std.fmt.parseInt(i64, d.ts[5..7], 10) catch break :blk "?";
+                        const day = std.fmt.parseInt(i64, d.ts[8..10], 10) catch break :blk "?";
+                        const hour = std.fmt.parseInt(i64, d.ts[11..13], 10) catch break :blk "?";
+                        const minute = std.fmt.parseInt(i64, d.ts[14..16], 10) catch break :blk "?";
+                        const second = std.fmt.parseInt(i64, d.ts[17..19], 10) catch break :blk "?";
+                        // Days-since-epoch (UTC).  Count leap years between
+                        // 1970 and the year-1 boundary: a year is a leap
+                        // iff divisible by 4, except centuries not by 400.
+                        // 1970 itself is not a leap year, and ts represents
+                        // 2026-08-01 well past all of them.  Off by ±1
+                        // around a leap day — the resume surface treats
+                        // these as minutes, not a contract.
+                        var leap_count: i64 = 0;
+                        var y: i64 = 1970;
+                        while (y < year) : (y += 1) {
+                            const leap = (@rem(y, 4) == 0 and @rem(y, 100) != 0) or (@rem(y, 400) == 0);
+                            if (leap) leap_count += 1;
+                        }
+                        const month_days_lut = [_]i64{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+                        var day_of_year: i64 = day - 1;
+                        var m: usize = 0;
+                        while (m < @as(usize, @intCast(month - 1))) : (m += 1) {
+                            day_of_year += month_days_lut[m];
+                        }
+                        // Add 1 if this is a leap year and we're past Feb.
+                        if (month > 2 and ((@rem(year, 4) == 0 and @rem(year, 100) != 0) or (@rem(year, 400) == 0))) {
+                            day_of_year += 1;
+                        }
+                        const days_since_epoch: i64 = (year - 1970) * 365 + leap_count + day_of_year;
+                        const ts_unix = days_since_epoch * 86400
+                            + hour * 3600 + minute * 60 + second;
+                        const age_sec = now_unix - ts_unix;
+                        if (age_sec < 0) break :blk "0m";
+                        const age_min: i64 = @divTrunc(age_sec, 60);
+                        if (age_min < 60) break :blk std.fmt.allocPrint(alloc, "{d}m", .{age_min}) catch "?";
+                        break :blk std.fmt.allocPrint(alloc, "{d}h{d}m", .{ @divTrunc(age_min, 60), @rem(age_min, 60) }) catch "?";
+                    };
+                    const is_stale = if (ageSecFromTs(d.ts, now_unix)) |age_sec|
+                        age_sec > STALL_THRESHOLD_MIN * 60
+                    else
+                        false;
+                    const marker: u8 = if (is_stale) '!' else ' ';
+                    w.data("    {c} {s}  {s}  {s}  from {s}  ({s})\n", .{ marker, d.id, d.target, d.directive, d.from, age_str });
+                }
+            }
+        }
+    }
+
     // ── what landed: recent commits ──
     const log_result = runCommand(alloc, io, &.{ "git", "-C", repo_root, "log", "--oneline", "-10" }) catch "";
     defer if (@intFromPtr(log_result.ptr) != @intFromPtr("".ptr)) alloc.free(log_result);
@@ -3634,7 +3780,7 @@ fn printHelp(w: Writers) void {
         \\  managent amend <id>        append a correction record (verdict + note) to a done/failed task
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
-        \\  managent inbox [<target>] show pending directives for a target
+        \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
         \\  managent liveness         show last heartbeat per in_progress task
         \\  managent standing         register triggered standing-tier tasks
@@ -5162,13 +5308,28 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
 }
 
-// ── inbox [<target>] — show pending directives ───────────────────────────────
-
+// ── inbox [<target>] [--ack] — show pending directives, optionally ack ──────
+//
+// T352: a worker that just read the inbox (--ack) signals to the resume
+// surface that this directive is no longer fleet-stalling; without --ack the
+// directive stays unread and keeps showing in `managent resume` so the
+// operator can see stalls from a live console.  --ack is scoped: it acks
+// only the directives matching the optional <target> and the current
+// read=false state, so two workers polling their own inboxes do not
+// collide.  Acks are recorded in-place in docs/infra/managent/directives.jsonl
+// under the same flock as the kanban (lockStore/writeStateLocked — A3).
 fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
-    const target = if (args.len >= 3 and !std.mem.startsWith(u8, args[2], "-"))
-        args[2]
-    else
-        "";
+    var target: []const u8 = "";
+    var ack = false;
+    var i: usize = 2;
+    while (i < args.len) : (i += 1) {
+        const a = args[i];
+        if (std.mem.eql(u8, a, "--ack")) {
+            ack = true;
+        } else if (!std.mem.startsWith(u8, a, "-")) {
+            target = a;
+        }
+    }
 
     var directives = try readDirectives(io, repo_root, state_path);
     defer {
@@ -5201,6 +5362,94 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         w.data("  -- no pending directives --\n", .{});
     }
     w.data("\n", .{});
+
+    if (ack) {
+        // Mark the matching directives as read in-place.  Re-read the file
+        // (the read above freed nothing; the .jsonl lines are still on disk
+        // unchanged), then write a new content stream with read=true on
+        // the matching IDs.
+        try lockStore(io, state_path);
+        defer unlockStore();
+        const dir_path = try std.fs.path.join(alloc, &.{ repo_root, DIRECTIVES_FILE });
+        defer alloc.free(dir_path);
+        const content = std.Io.Dir.cwd().readFileAlloc(io, dir_path, alloc, .unlimited) catch "";
+        defer if (@intFromPtr(content.ptr) != @intFromPtr("".ptr)) alloc.free(content);
+
+        // Build the set of IDs to ack (in display order; we already
+        // enumerated them above).  We re-read from the file rather than
+        // re-using `directives` because parse-free mutation is safer than
+        // a second pass that could miss a corner-case.
+        var lines = std.mem.splitScalar(u8, content, '\n');
+        var out = std.ArrayList(u8).empty;
+        defer out.deinit(alloc);
+        var acked: u32 = 0;
+        while (lines.next()) |line| {
+            const trimmed = std.mem.trim(u8, line, " \r\n");
+            if (trimmed.len == 0) {
+                if (out.items.len > 0) try out.append(alloc, '\n');
+                continue;
+            }
+            // Cheap parse: extract id, target, and current read flag.
+            var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch {
+                try out.appendSlice(alloc, line);
+                try out.append(alloc, '\n');
+                continue;
+            };
+            defer parsed.deinit();
+            if (parsed.value != .object) {
+                try out.appendSlice(alloc, line);
+                try out.append(alloc, '\n');
+                continue;
+            }
+            const obj = parsed.value.object;
+            const d_id = if (obj.get("id")) |v| if (v == .string) v.string else "" else "";
+            const d_target = if (obj.get("target")) |v| if (v == .string) v.string else "" else "";
+            const d_read = if (obj.get("read")) |v| if (v == .bool) v.bool else false else false;
+
+            const match = !d_read and
+                d_id.len > 0 and
+                (target.len == 0 or std.mem.eql(u8, d_target, target));
+            if (match) {
+                // Re-serialise with read:true (cheaper than surgical patch).
+                const new_line = std.fmt.allocPrint(alloc, "{{\"id\":\"{s}\",\"target\":\"{s}\",\"directive\":\"{s}\"", .{
+                    d_id, d_target,
+                    if (obj.get("directive")) |v| if (v == .string) v.string else "" else "",
+                }) catch "";
+                defer alloc.free(new_line);
+                var line_buf = std.ArrayList(u8).empty;
+                defer line_buf.deinit(alloc);
+                try line_buf.appendSlice(alloc, new_line);
+                if (obj.get("note")) |v| if (v == .string) {
+                    try line_buf.appendSlice(alloc, ",\"note\":\"");
+                    try line_buf.appendSlice(alloc, v.string);
+                    try line_buf.appendSlice(alloc, "\"");
+                };
+                if (obj.get("from")) |v| if (v == .string) {
+                    try line_buf.appendSlice(alloc, ",\"from\":\"");
+                    try line_buf.appendSlice(alloc, v.string);
+                    try line_buf.appendSlice(alloc, "\"");
+                };
+                if (obj.get("ts")) |v| if (v == .string) {
+                    try line_buf.appendSlice(alloc, ",\"ts\":\"");
+                    try line_buf.appendSlice(alloc, v.string);
+                    try line_buf.appendSlice(alloc, "\"");
+                };
+                try line_buf.appendSlice(alloc, ",\"read\":true}\n");
+                try out.appendSlice(alloc, line_buf.items);
+                acked += 1;
+            } else {
+                try out.appendSlice(alloc, line);
+                try out.append(alloc, '\n');
+            }
+        }
+
+        const file = try std.Io.Dir.cwd().createFile(io, dir_path, .{});
+        defer file.close(io);
+        try file.writeStreamingAll(io, out.items);
+        // Always print the count, even when zero, so a polling worker can
+        // confirm the ack succeeded (and a tester can assert on it).
+        w.data("  acked {d} directive(s)\n\n", .{acked});
+    }
 }
 
 // ── ping [--note <text>] — emit a heartbeat ──────────────────────────────────
