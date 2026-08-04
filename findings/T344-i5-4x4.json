@@ -1,0 +1,8 @@
+{
+  "task_id": "T344",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "I5 SCC containment at 4x4: PARTIAL. Calibration at 3x2 reproduces T134 numbers exactly (V=2583, E=5510, maxSCC=1676, cycle_reachable=1678). All 347 KO_SENSITIVE flags are cycle-reachable (ko_not_cr=0). Seeded-defect control at 3x2 is structurally impossible: all passes=0 states are CR. 4x3 rung deferred: hash-map BFS processes ~1.9M states in 45s, ~3-5M total; needs bitset-based snapshot-sweep BFS (5.18 MB bitset over 41.5M linear space). 4x4 WZO2 artifact loads correctly (24,318,165 groups, 99,133,036 entries). Full 4x4 Tarjan deferred: needs passes=0-subset optimization to reduce vertex count from 99M to ~50M (T134 plan ~1.2 GB). Both rungs need the 4x3 bitset BFS first (ladder discipline)."
+}

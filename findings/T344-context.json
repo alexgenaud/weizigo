@@ -1,0 +1,29 @@
+{
+  "task_id": "T344",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-pro",
+  "status": "pass-with-findings",
+  "summary": "I5 SCC containment: 3x2 calibration reproduces T134 (V=2583 maxSCC=1676). 4x3/4x4 deferred pending optimizations.",
+  "artifacts": {
+    "3x2-calibration": {
+      "V": 2583,
+      "E": 5510,
+      "maxSCC": 1676,
+      "cycle_involved": 1676,
+      "cycle_reachable": 1678,
+      "ko_sensitive": 347,
+      "ko_not_cr": 0
+    }
+  },
+  "gaps": [
+    "seeded-defect at 3x2 structurally impossible (all passes=0 states CR)",
+    "4x3 rung: hash-map BFS too slow, needs bitset snapshot-sweep (5.18 MB bitset)",
+    "4x4 rung: needs passes=0 subset Tarjan (99M→~50M vertices) + 4x3 rung first"
+  ],
+  "next_steps": [
+    "Implement bitset-based BFS for 4x3 (linear space 41.5M bits = 5.18 MB)",
+    "Run I5 on 4x3 artifact (artifacts/oracle-4x3.wzo)",
+    "With 4x3 passing, optimize 4x4 WZO2 Tarjan on passes=0 subset",
+    "Run I5 on 4x4 WZO2 (data/oracle-4x4-v2.wzo2)"
+  ]
+}
