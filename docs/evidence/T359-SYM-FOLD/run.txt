@@ -1,0 +1,294 @@
+[runner] argv = zig run -O ReleaseFast src/symcensus.zig
+[runner] guards: rss 4096 MB, progress-timeout 600s (10:00), fallback: wall 600s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+weizigo symmetry-fold census (T359; analysis only)
+run with -O ReleaseFast
+
+==== 2x2 ====
+raw (3^n)         = 81
+legal             = 57
+orbits (raw)      = 13
+canonical-legal   = 8
+fold raw/canon    = 6.231
+fold legal/canon  = 7.125
+fold raw/canon-leg= 10.125
+group order       = 16
+fixed by >=1 non-id (raw positions): 65
+orbit-size dist (size: count):
+  size=1: 1
+  size=2: 2
+  size=4: 3
+  size=8: 6
+  size=16: 1
+self-consistency sum(size*count) = matches (== raw)
+==== 3x2 ====
+raw (3^n)         = 729
+legal             = 489
+orbits (raw)      = 116
+canonical-legal   = 78
+fold raw/canon    = 6.284
+fold legal/canon  = 6.269
+fold raw/canon-leg= 9.346
+group order       = 8
+fixed by >=1 non-id (raw positions): 153
+orbit-size dist (size: count):
+  size=1: 1
+  size=2: 10
+  size=4: 33
+  size=8: 72
+self-consistency sum(size*count) = matches (== raw)
+==== 3x3 ====
+raw (3^n)         = 19683
+legal             = 12675
+orbits (raw)      = 1444
+canonical-legal   = 924
+fold raw/canon    = 13.631
+fold legal/canon  = 13.718
+fold raw/canon-leg= 21.302
+group order       = 16
+fixed by >=1 non-id (raw positions): 2947
+orbit-size dist (size: count):
+  size=1: 1
+  size=2: 15
+  size=4: 35
+  size=8: 347
+  size=16: 1046
+self-consistency sum(size*count) = matches (== raw)
+==== 4x3 ====
+raw (3^n)         = 531441
+legal             = 321689
+orbits (raw)      = 67625
+canonical-legal   = 40997
+fold raw/canon    = 7.859
+fold legal/canon  = 7.847
+fold raw/canon-leg= 12.963
+group order       = 8
+fixed by >=1 non-id (raw positions): 9201
+orbit-size dist (size: count):
+  size=1: 1
+  size=2: 88
+  size=4: 2256
+  size=8: 65280
+self-consistency sum(size*count) = matches (== raw)
+==== 4x4 ====
+  4x4: 5000000/43046721 (11.6%)
+  4x4: 10000000/43046721 (23.2%)
+  4x4: 15000000/43046721 (34.8%)
+  4x4: 20000000/43046721 (46.5%)
+  4x4: 25000000/43046721 (58.1%)
+  4x4: 30000000/43046721 (69.7%)
+  4x4: 35000000/43046721 (81.3%)
+  4x4: 40000000/43046721 (92.9%)
+raw (3^n)         = 43046721
+legal             = 24318165
+orbits (raw)      = 2700373
+canonical-legal   = 1524805
+fold raw/canon    = 15.941
+fold legal/canon  = 15.948
+fold raw/canon-leg= 28.231
+group order       = 16
+fixed by >=1 non-id (raw positions): 156481
+orbit-size dist (size: count):
+  size=1: 1
+  size=2: 28
+  size=4: 302
+  size=8: 19402
+  size=16: 2680640
+self-consistency sum(size*count) = matches (== raw)
+
+==== SUMMARY ====
+goban  grp  raw           legal          orbits(raw)   fold_raw  canon_legal  fold_legal  fold_comb
+2x2    16            81            57            13    6.23            8      7.13    10.13
+3x2     8           729           489           116    6.28           78      6.27     9.35
+3x3    16         19683         12675          1444   13.63          924     13.72    21.30
+4x3     8        531441        321689         67625    7.86        40997      7.85    12.96
+4x4    16      43046721      24318165       2700373   15.94      1524805     15.95    28.23
+
+==== NULL CONTROL (colex-min vs lex-min orbit count) ====
+2x2: colex-min orbits=13  lex-min orbits=13  AGREE
+3x2: colex-min orbits=116  lex-min orbits=116  AGREE
+3x3: colex-min orbits=1444  lex-min orbits=1444  AGREE
+4x3: colex-min orbits=67625  lex-min orbits=67625  AGREE
+4x4: colex-min orbits=2700373  lex-min orbits=2700373  AGREE
+
+==== SEEDED CONTROL (perturbed rot90 permutation) ====
+2x2: correct orbits=13  perturbed orbits=12  DETECTED
+3x2: rectangle (no rot90 to perturb) — n/a
+3x3: correct orbits=1444  perturbed orbits=1431  DETECTED
+4x3: rectangle (no rot90 to perturb) — n/a
+4x4: correct orbits=2700373  perturbed orbits=2700228  DETECTED
+
+==== Q2: orbit-min colex distribution (cumulative % of orbits below threshold) ====
+goban   6.25%    12.5%    25%      50%      75%      100%
+2x2    15.4%   23.1%   46.2%   69.2%   69.2%  100.0% 
+3x2    12.9%   20.7%   31.9%   65.5%   87.9%  100.0% 
+3x3    11.5%   15.8%   34.5%   61.9%   84.6%  100.0% 
+4x3     6.7%   17.6%   35.2%   60.6%   81.3%  100.0% 
+4x4    11.1%   12.7%   26.3%   60.9%   83.4%  100.0% 
+
+==== Q2: truncation loss at 50% (orbits with min_colex >= 50%) ====
+2x2: lost 4 orbits (30.8% of canonical set) by truncating at 50%
+3x2: lost 40 orbits (34.5% of canonical set) by truncating at 50%
+3x3: lost 550 orbits (38.1% of canonical set) by truncating at 50%
+4x3: lost 26636 orbits (39.4% of canonical set) by truncating at 50%
+4x4: lost 1055164 orbits (39.1% of canonical set) by truncating at 50%
+
+==== ANOMALIES (orbits of size 1 or 2; up to 256 listed) ====
+2x2: 3 anomaly orbits
+  size=1 k=0 colex=0 pos=../..
+  size=2 k=4 colex=71 pos=WB/BW
+  size=2 k=4 colex=65 pos=WW/WW
+3x2: 11 anomaly orbits
+  size=1 k=0 colex=0 pos=.../...
+  size=2 k=2 colex=42 pos=.B./.W.
+  size=2 k=2 colex=41 pos=.W./.W.
+  size=2 k=4 colex=351 pos=W.B/B.W
+  size=2 k=4 colex=350 pos=B.W/B.W
+  size=2 k=4 colex=348 pos=B.B/W.W
+  size=2 k=4 colex=345 pos=W.W/W.W
+  size=2 k=6 colex=686 pos=BWB/WBW
+  size=2 k=6 colex=683 pos=WBW/WBW
+  size=2 k=6 colex=672 pos=BBB/WWW
+  size=2 k=6 colex=665 pos=WWW/WWW
+3x3: 16 anomaly orbits
+  size=1 k=0 colex=0 pos=.../.../...
+  size=2 k=1 colex=9 pos=.../.W./...
+  size=2 k=4 colex=1625 pos=.W./B.B/.W.
+  size=2 k=4 colex=1619 pos=.W./W.W/.W.
+  size=2 k=5 colex=3943 pos=.W./WBW/.W.
+  size=2 k=5 colex=3939 pos=.W./WWW/.W.
+  size=2 k=4 colex=2297 pos=W.B/.../B.W
+  size=2 k=4 colex=2291 pos=W.W/.../W.W
+  size=2 k=5 colex=5287 pos=W.W/.B./W.W
+  size=2 k=5 colex=5283 pos=W.W/.W./W.W
+  size=2 k=8 colex=17981 pos=WBW/B.B/WBW
+  size=2 k=9 colex=19357 pos=WBW/BBB/WBW
+  size=2 k=9 colex=19341 pos=WBW/BWB/WBW
+  size=2 k=8 colex=17891 pos=WWW/W.W/WWW
+  size=2 k=9 colex=19187 pos=WWW/WBW/WWW
+  size=2 k=9 colex=19171 pos=WWW/WWW/WWW
+4x3: 89 anomaly orbits
+  size=1 k=0 colex=0 pos=..../..../....
+  size=2 k=2 colex=106 pos=..../.BW./....
+  size=2 k=2 colex=105 pos=..../.WW./....
+  size=2 k=2 colex=126 pos=..../B..W/....
+  size=2 k=2 colex=125 pos=..../W..W/....
+  size=2 k=4 colex=3159 pos=..../WBBW/....
+  size=2 k=4 colex=3158 pos=..../BWBW/....
+  size=2 k=4 colex=3156 pos=..../BBWW/....
+  size=2 k=4 colex=3153 pos=..../WWWW/....
+  size=2 k=4 colex=6791 pos=.WB./..../.BW.
+  size=2 k=4 colex=6790 pos=.BW./..../.BW.
+  size=2 k=6 colex=58570 pos=.BW./.WB./.BW.
+  size=2 k=6 colex=58566 pos=.BW./.BW./.BW.
+  size=2 k=6 colex=59466 pos=.BW./W..B/.BW.
+  size=2 k=8 colex=222818 pos=.BW./WWBB/.BW.
+  size=2 k=8 colex=222810 pos=.BW./WBWB/.BW.
+  size=2 k=6 colex=59462 pos=.BW./B..W/.BW.
+  size=2 k=8 colex=222790 pos=.BW./BWBW/.BW.
+  size=2 k=8 colex=222782 pos=.BW./BBWW/.BW.
+  size=2 k=4 colex=6788 pos=.BB./..../.WW.
+  size=2 k=4 colex=6785 pos=.WW./..../.WW.
+  size=2 k=6 colex=58557 pos=.WW./.BB./.WW.
+  size=2 k=6 colex=58545 pos=.WW./.WW./.WW.
+  size=2 k=6 colex=59453 pos=.WW./B..B/.WW.
+  size=2 k=8 colex=222765 pos=.WW./BBBB/.WW.
+  size=2 k=8 colex=222741 pos=.WW./BWWB/.WW.
+  size=2 k=6 colex=59441 pos=.WW./W..W/.WW.
+  size=2 k=8 colex=222729 pos=.WW./WBBW/.WW.
+  size=2 k=8 colex=222705 pos=.WW./WWWW/.WW.
+  size=2 k=4 colex=8279 pos=W..B/..../B..W
+  size=2 k=4 colex=8278 pos=B..W/..../B..W
+  size=2 k=6 colex=70282 pos=B..W/.WB./B..W
+  size=2 k=6 colex=70278 pos=B..W/.BW./B..W
+  size=2 k=6 colex=71178 pos=B..W/W..B/B..W
+  size=2 k=8 colex=246626 pos=B..W/WWBB/B..W
+  size=2 k=8 colex=246618 pos=B..W/WBWB/B..W
+  size=2 k=6 colex=71174 pos=B..W/B..W/B..W
+  size=2 k=8 colex=246598 pos=B..W/BWBW/B..W
+  size=2 k=8 colex=246590 pos=B..W/BBWW/B..W
+  size=2 k=4 colex=8276 pos=B..B/..../W..W
+  size=2 k=4 colex=8273 pos=W..W/..../W..W
+  size=2 k=6 colex=70269 pos=W..W/.BB./W..W
+  size=2 k=6 colex=70257 pos=W..W/.WW./W..W
+  size=2 k=6 colex=71165 pos=W..W/B..B/W..W
+  size=2 k=8 colex=246573 pos=W..W/BBBB/W..W
+  size=2 k=8 colex=246549 pos=W..W/BWWB/W..W
+  size=2 k=6 colex=71153 pos=W..W/W..W/W..W
+  size=2 k=8 colex=246537 pos=W..W/WBBW/W..W
+  size=2 k=8 colex=246513 pos=W..W/WWWW/W..W
+  size=2 k=8 colex=304730 pos=BWWB/..../WBBW
+  size=2 k=8 colex=304727 pos=WBBW/..../WBBW
+  size=2 k=10 colex=476583 pos=WBBW/.BB./WBBW
+  size=2 k=10 colex=476535 pos=WBBW/.WW./WBBW
+  size=2 k=10 colex=481703 pos=WBBW/B..B/WBBW
+  size=2 k=12 colex=529127 pos=WBBW/BBBB/WBBW
+  size=2 k=12 colex=529031 pos=WBBW/BWWB/WBBW
+  size=2 k=10 colex=481655 pos=WBBW/W..W/WBBW
+  size=2 k=12 colex=528983 pos=WBBW/WBBW/WBBW
+  size=2 k=12 colex=528887 pos=WBBW/WWWW/WBBW
+  size=2 k=8 colex=304715 pos=WBWB/..../BWBW
+  size=2 k=8 colex=304710 pos=BWBW/..../BWBW
+  size=2 k=10 colex=476502 pos=BWBW/.WB./BWBW
+  size=2 k=10 colex=476486 pos=BWBW/.BW./BWBW
+  size=2 k=10 colex=481622 pos=BWBW/W..B/BWBW
+  size=2 k=12 colex=528822 pos=BWBW/WWBB/BWBW
+  size=2 k=12 colex=528790 pos=BWBW/WBWB/BWBW
+  size=2 k=10 colex=481606 pos=BWBW/B..W/BWBW
+  size=2 k=12 colex=528710 pos=BWBW/BWBW/BWBW
+  size=2 k=12 colex=528678 pos=BWBW/BBWW/BWBW
+  size=2 k=8 colex=304685 pos=WWBB/..../BBWW
+  size=2 k=8 colex=304676 pos=BBWW/..../BBWW
+  size=2 k=10 colex=476372 pos=BBWW/.WB./BBWW
+  size=2 k=10 colex=476356 pos=BBWW/.BW./BBWW
+  size=2 k=10 colex=481492 pos=BBWW/W..B/BBWW
+  size=2 k=12 colex=528308 pos=BBWW/WWBB/BBWW
+  size=2 k=12 colex=528276 pos=BBWW/WBWB/BBWW
+  size=2 k=10 colex=481476 pos=BBWW/B..W/BBWW
+  size=2 k=12 colex=528196 pos=BBWW/BWBW/BBWW
+  size=2 k=12 colex=528164 pos=BBWW/BBWW/BBWW
+  size=2 k=8 colex=304640 pos=BBBB/..../WWWW
+  size=2 k=8 colex=304625 pos=WWWW/..../WWWW
+  size=2 k=10 colex=476193 pos=WWWW/.BB./WWWW
+  size=2 k=10 colex=476145 pos=WWWW/.WW./WWWW
+  size=2 k=10 colex=481313 pos=WWWW/B..B/WWWW
+  size=2 k=12 colex=527585 pos=WWWW/BBBB/WWWW
+  size=2 k=12 colex=527489 pos=WWWW/BWWB/WWWW
+  size=2 k=10 colex=481265 pos=WWWW/W..W/WWWW
+  size=2 k=12 colex=527441 pos=WWWW/WBBW/WWWW
+  size=2 k=12 colex=527345 pos=WWWW/WWWW/WWWW
+4x4: 29 anomaly orbits
+  size=1 k=0 colex=0 pos=..../..../..../....
+  size=2 k=4 colex=10023 pos=..../.WB./.BW./....
+  size=2 k=4 colex=10017 pos=..../.WW./.WW./....
+  size=2 k=8 colex=3501991 pos=.WB./B..W/W..B/.BW.
+  size=2 k=8 colex=3501979 pos=.WB./W..B/B..W/.BW.
+  size=2 k=12 colex=29396139 pos=.WB./WBWB/BWBW/.BW.
+  size=2 k=12 colex=29396019 pos=.WB./WWBB/BBWW/.BW.
+  size=2 k=8 colex=3501949 pos=.WW./B..B/B..B/.WW.
+  size=2 k=8 colex=3501889 pos=.WW./W..W/W..W/.WW.
+  size=2 k=12 colex=29395161 pos=.WW./WBBW/WBBW/.WW.
+  size=2 k=12 colex=29394753 pos=.WW./WWWW/WWWW/.WW.
+  size=2 k=4 colex=30407 pos=W..B/..../..../B..W
+  size=2 k=8 colex=4094119 pos=W..B/.BW./.WB./B..W
+  size=2 k=8 colex=4094107 pos=W..B/.WB./.BW./B..W
+  size=2 k=4 colex=30401 pos=W..W/..../..../W..W
+  size=2 k=8 colex=4094077 pos=W..W/.BB./.BB./W..W
+  size=2 k=8 colex=4094017 pos=W..W/.WW./.WW./W..W
+  size=2 k=12 colex=34614839 pos=WBBW/B..B/B..B/WBBW
+  size=2 k=16 colex=43009847 pos=WBBW/BBBB/BBBB/WBBW
+  size=2 k=16 colex=43008215 pos=WBBW/BWWB/BWWB/WBBW
+  size=2 k=12 colex=34614491 pos=WBWB/B..W/W..B/BWBW
+  size=2 k=16 colex=43004795 pos=WBWB/BBWW/WWBB/BWBW
+  size=2 k=16 colex=43004315 pos=WBWB/BWBW/WBWB/BWBW
+  size=2 k=12 colex=34613933 pos=WWBB/W..B/B..W/BBWW
+  size=2 k=16 colex=42994925 pos=WWBB/WBWB/BWBW/BBWW
+  size=2 k=16 colex=42994445 pos=WWBB/WWBB/BBWW/BBWW
+  size=2 k=12 colex=34613057 pos=WWWW/W..W/W..W/WWWW
+  size=2 k=16 colex=42982817 pos=WWWW/WBBW/WBBW/WWWW
+  size=2 k=16 colex=42981185 pos=WWWW/WWWW/WWWW/WWWW
+[runner] peak RSS by PID: in 19.2 s
+[runner]   pid   18971       4 MB
+[runner] peak total CPU by PID: in 19.2 s
+[runner]   pid   18971        0:18 (18.95s)
+[runner] exit 0 in 19.2 s

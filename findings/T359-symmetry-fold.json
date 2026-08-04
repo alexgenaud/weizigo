@@ -1,0 +1,20 @@
+{
+  "task_id": "T359",
+  "date": "2026-08-04",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "GLOBAL.SYM-FOLD",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Symmetry-fold census (T359, 2026-08-04) over the full RAW 3^n space (legal AND illegal): the raw÷canonical orbit fold converges to the group order (D4×2=16 square, D2×2=8 rectangle) as symmetric positions thin out — measured 2x2 6.23x, 3x2 6.28x, 3x3 13.63x, 4x3 7.86x, 4x4 15.94x (99.6% of 16x). Combined raw÷canonical-legal is 28.23x on 4x4 (legality ~1.77x × symmetry 15.95x), supporting the 5x5 ~26 GB target by extrapolation. Q2 refuted: the canonical set is NOT a colex prefix — every orbit is locked inside one stone-count layer (symmetry and colour inversion both preserve stone count), so ~39% of orbits have their minimum in the top 50% of colex and truncating at 50% loses the entire high-stone (endgame) region. The monochrome orbit {all-white, all-black} (min colex 3^n-2^n = 99.85% on 4x4) is the extreme counter-example but not the only family (28 size-2 orbits on 4x4). Truncation is a predictable, exploitable weakness (an opponent steers play into the unscored high-stone region); the fold must be indexed canonicalisation, never truncation. Null control: colex-min and lex-min orbit counts agree on all five gobans. Seeded control: a corrupted rot90 permutation is detected on every square goban. 5x5 fold factor is extrapolated, not measured (per-goban independence).",
+      "status": "MEASUREMENT",
+      "evidence": "docs/research/symmetry-fold-census-2026-08-04.md; src/symcensus.zig; docs/evidence/T359-SYM-FOLD/run.txt",
+      "depends_on": "e:GLOBAL.ADR0007-COLEX; e:GLOBAL.INVSYM",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "Run: tools/runner -- zig run -O ReleaseFast src/symcensus.zig (19.2 s wall, ~4 MB peak RSS, 2026-08-04). Instrument src/symcensus.zig reuses src/enumerate.zig (symmetry perms + legality) and src/colex.zig (layered address); standalone, not wired into build.zig. Canonical-legal counts reproduce docs/research/enumeration-census.md (8/78/924/40997/1524805) and OEIS A094777 legal counts, through an independent colex-min path. No engine/format/artifact changed (analysis only, per brief). Identifier: glm-5.2/T359. No inbox directives received (acked 0)."
+}
