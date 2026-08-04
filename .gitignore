@@ -38,3 +38,4 @@ bin/*
 !docs/evidence/
 !docs/evidence/**
 src/version.zig
+docs/infra/managent/tasks.json.lockfile

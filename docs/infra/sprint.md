@@ -139,6 +139,12 @@ Plan.md declares what runs in parallel.
 1. Tests pass, including known-bad calibration fixtures
 2. Audit gates pass, every finding ID dispositioned
 3. Consumer-load smoke test (non-negotiable — 058 F1–F4)
+4. **Commit → deploy → smoke for every mutating commit, before anything else**
+   touches the store.  managent-integrity (T268, wired by T337 S5) compares
+   deployed bin/ stamps against committed source and FAILS the suite on
+   staleness.  A red suite from staleness blocks every other agent until the
+   committer deploys — the staleness gate that T295 §5 had turned into a
+   warning is now load-bearing again.
 4. Sprint owner ratifies accept.md
 
 ## Engineering rules for standalone tools
