@@ -770,6 +770,7 @@ fn compareMoveGens(
 // ── 2×2 solver legalMoves ────────────────────────────────────────────────
 
 fn solverLegalMoves2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal: no moves (matches moves32 / kernel)
     const s = exp6.Brute2x2.State{
         .board = board.*,
         .side = side,
@@ -787,6 +788,7 @@ fn solverLegalMoves2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBi
 // ── 3×2 solver legalMoves ────────────────────────────────────────────────
 
 fn solverLegalMoves3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal: no moves (matches moves32 / kernel)
     const board_idx = exp6.rank_board32(board.*);
     const state = exp6.StateIdx32{
         .board = board_idx,
@@ -806,6 +808,7 @@ fn solverLegalMoves3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBi
 // ── 3×3 solver legalMoves ────────────────────────────────────────────────
 
 fn solverLegalMoves3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal: no moves (matches moves32 / kernel)
     const board_idx = exp6.rank_board(board.*);
     const state = exp6.StateIdx{
         .board = board_idx,
@@ -826,6 +829,7 @@ fn solverLegalMoves3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBi
 // These use genericPosFromMove directly and only reject Occupied.
 
 fn mutantSuicide2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal
     const s = exp6.Brute2x2.State{
         .board = board.*,
         .side = side,
@@ -847,6 +851,7 @@ fn mutantSuicide2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitma
 }
 
 fn mutantSuicide3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal
     const board_idx = exp6.rank_board32(board.*);
     const state = exp6.StateIdx32{
         .board = board_idx,
@@ -869,6 +874,7 @@ fn mutantSuicide3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitma
 }
 
 fn mutantSuicide3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal
     const board_idx = exp6.rank_board(board.*);
     const state = exp6.StateIdx{
         .board = board_idx,
@@ -896,6 +902,7 @@ fn mutantSuicide3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitma
 // intact — the ONLY difference is that ko recaptures become legal.
 
 fn mutantKoRecapture2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal
     _ = ko;
     const s = exp6.Brute2x2.State{
         .board = board.*,
@@ -912,6 +919,7 @@ fn mutantKoRecapture2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveB
 }
 
 fn mutantKoRecapture3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal
     const board_idx = exp6.rank_board32(board.*);
     var state = exp6.StateIdx32{
         .board = board_idx,
@@ -930,6 +938,7 @@ fn mutantKoRecapture3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveB
 }
 
 fn mutantKoRecapture3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 terminal
     const board_idx = exp6.rank_board(board.*);
     var state = exp6.StateIdx{
         .board = board_idx,
@@ -1014,6 +1023,221 @@ test "T338: MG-INV exhaustive 3×3 — solver vs solver = 0 mismatches" {
     const r = compareMoveGens(9, 3, 3, solverLegalMoves3x3, solverLegalMoves3x3);
     try testing.expectEqual(@as(u64, 0), r.disagreements);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MG-KERN wiring (T339): kernel vs solver differential
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// T338 licensed the invariant (null + seeded-defect controls on the solver).
+// T339 extracts the kernel move generator into `rules.zig` (Rules(w,h).
+// legalMoves/applyMove/applyPass) and wires it into this invariant as a
+// second implementation. The kernel is assembled from the same building
+// blocks the solver uses (pos_from_move for A2/A3/A4, the production
+// koAfterCapture for B1/B2), so the kernel-vs-solver comparison is an
+// extraction-fidelity check (did the extraction preserve behaviour?),
+// not an independence check — the R8-vs-kernel comparison (I11, author B)
+// is the independence guard. These tests prove:
+//   (a) the kernel agrees with the solver at every (board, side, ko,
+//       passes) state including ko≠NONE, at 2×2/3×2/3×3 exhaustive; and
+//   (b) the invariant catches a suicide mutant applied to the KERNEL
+//       side (exercises the kernel's pos_from_move code path); and
+//   (c) the invariant catches a ko-recapture mutant applied to the KERNEL
+//       side at a ko-active state.
+//
+// The kernel's legalMoves returns a byte bitmap (pass at bit n, SMD1
+// §4.6.3); these adapters translate to the harness's MoveBitmap (u16,
+// pass at bit 15) so they are directly comparable to the solver adapters.
+
+fn bmBit(bm: []const u8, i: usize) bool {
+    return (bm[i / 8] >> @intCast(i % 8)) & 1 == 1;
+}
+
+fn kernelLegalMoves2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const R = rules_mod.Rules(2, 2);
+    const passes_u2: u2 = @intCast(passes);
+    const bm = R.legalMoves(board, side, ko, passes_u2);
+    var mb: MoveBitmap = 0;
+    for (0..4) |cell| if (bmBit(bm[0..], cell)) mbSetCell(&mb, cell);
+    if (bmBit(bm[0..], 4)) mbSetPass(&mb); // pass bit at n=4
+    return mb;
+}
+
+fn kernelLegalMoves3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const R = rules_mod.Rules(3, 2);
+    const passes_u2: u2 = @intCast(passes);
+    const bm = R.legalMoves(board, side, ko, passes_u2);
+    var mb: MoveBitmap = 0;
+    for (0..6) |cell| if (bmBit(bm[0..], cell)) mbSetCell(&mb, cell);
+    if (bmBit(bm[0..], 6)) mbSetPass(&mb); // pass bit at n=6
+    return mb;
+}
+
+fn kernelLegalMoves3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    const R = rules_mod.Rules(3, 3);
+    const passes_u2: u2 = @intCast(passes);
+    const bm = R.legalMoves(board, side, ko, passes_u2);
+    var mb: MoveBitmap = 0;
+    for (0..9) |cell| if (bmBit(bm[0..], cell)) mbSetCell(&mb, cell);
+    if (bmBit(bm[0..], 9)) mbSetPass(&mb); // pass bit at n=9
+    return mb;
+}
+
+// ── Kernel-side mutants (exercise the kernel's pos_from_move path) ─────────
+
+/// MUTANT (kernel side): allows suicide — swallows error.Suicide from the
+/// kernel's `pos_from_move`, rejecting only Occupied. Differs from the
+/// kernel at every suicide position.
+fn mutantSuicideKernel2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0; // C1 matches kernel
+    const R = rules_mod.Rules(2, 2);
+    var mb: MoveBitmap = 0;
+    mbSetPass(&mb);
+    const ko_set = ko < 4;
+    for (0..4) |cell| {
+        if (board[cell] != 0) continue; // A2
+        if (ko_set and cell == ko) continue; // B1
+        _ = R.pos_from_move(board, side, cell) catch |err| {
+            if (err == error.Occupied) continue;
+            // error.Suicide → allowed (mutant)
+        };
+        mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+fn mutantSuicideKernel3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0;
+    const R = rules_mod.Rules(3, 2);
+    var mb: MoveBitmap = 0;
+    mbSetPass(&mb);
+    const ko_set = ko < 6;
+    for (0..6) |cell| {
+        if (board[cell] != 0) continue;
+        if (ko_set and cell == ko) continue;
+        _ = R.pos_from_move(board, side, cell) catch |err| {
+            if (err == error.Occupied) continue;
+        };
+        mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+fn mutantSuicideKernel3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0;
+    const R = rules_mod.Rules(3, 3);
+    var mb: MoveBitmap = 0;
+    mbSetPass(&mb);
+    const ko_set = ko < 9;
+    for (0..9) |cell| {
+        if (board[cell] != 0) continue;
+        if (ko_set and cell == ko) continue;
+        _ = R.pos_from_move(board, side, cell) catch |err| {
+            if (err == error.Occupied) continue;
+        };
+        mbSetCell(&mb, cell);
+    }
+    return mb;
+}
+
+/// MUTANT (kernel side): removes the ko-point guard — a placement at the
+/// ko cell is allowed. Suicide (A4) and occupancy (A2) stay intact via the
+/// kernel's pos_from_move. Differs from the kernel only at ko-active states
+/// where the ko cell is empty and not suicide → ko_disagreements > 0.
+fn mutantKoRecaptureKernel2x2(board: *const [4]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0;
+    _ = ko; // MUTANT: ko guard removed
+    const R = rules_mod.Rules(2, 2);
+    var mb: MoveBitmap = 0;
+    mbSetPass(&mb);
+    for (0..4) |cell| {
+        if (board[cell] != 0) continue; // A2
+        if (R.pos_from_move(board, side, cell)) |_| mbSetCell(&mb, cell) else |_| {} // A4
+    }
+    return mb;
+}
+
+fn mutantKoRecaptureKernel3x2(board: *const [6]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0;
+    _ = ko;
+    const R = rules_mod.Rules(3, 2);
+    var mb: MoveBitmap = 0;
+    mbSetPass(&mb);
+    for (0..6) |cell| {
+        if (board[cell] != 0) continue;
+        if (R.pos_from_move(board, side, cell)) |_| mbSetCell(&mb, cell) else |_| {}
+    }
+    return mb;
+}
+
+fn mutantKoRecaptureKernel3x3(board: *const [9]i8, side: i8, ko: u8, passes: u8) MoveBitmap {
+    if (passes >= 2) return 0;
+    _ = ko;
+    const R = rules_mod.Rules(3, 3);
+    var mb: MoveBitmap = 0;
+    mbSetPass(&mb);
+    for (0..9) |cell| {
+        if (board[cell] != 0) continue;
+        if (R.pos_from_move(board, side, cell)) |_| mbSetCell(&mb, cell) else |_| {}
+    }
+    return mb;
+}
+
+// ── T339 tests: kernel vs solver exhaustive + kernel-side mutants caught ──
+
+test "T339: kernel vs solver 2×2 — 0 mismatches (exhaustive, ko≠NONE included)" {
+    const r = compareMoveGens(4, 2, 2, kernelLegalMoves2x2, solverLegalMoves2x2);
+    try testing.expect(r.total > 0);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+    try testing.expectEqual(@as(u64, 0), r.ko_disagreements);
+}
+
+test "T339: kernel vs solver 3×2 — 0 mismatches (exhaustive, ko≠NONE included)" {
+    const r = compareMoveGens(6, 3, 2, kernelLegalMoves3x2, solverLegalMoves3x2);
+    try testing.expect(r.total > 0);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+    try testing.expectEqual(@as(u64, 0), r.ko_disagreements);
+}
+
+test "T339: kernel vs solver 3×3 — 0 mismatches (exhaustive, ko≠NONE included)" {
+    const r = compareMoveGens(9, 3, 3, kernelLegalMoves3x3, solverLegalMoves3x3);
+    try testing.expect(r.total > 0);
+    try testing.expectEqual(@as(u64, 0), r.disagreements);
+    try testing.expectEqual(@as(u64, 0), r.ko_disagreements);
+}
+
+test "T339: kernel-side suicide mutant 2×2 — caught (mismatches > 0)" {
+    const r = compareMoveGens(4, 2, 2, kernelLegalMoves2x2, mutantSuicideKernel2x2);
+    try testing.expect(r.disagreements > 0);
+}
+
+test "T339: kernel-side suicide mutant 3×2 — caught (mismatches > 0)" {
+    const r = compareMoveGens(6, 3, 2, kernelLegalMoves3x2, mutantSuicideKernel3x2);
+    try testing.expect(r.disagreements > 0);
+}
+
+test "T339: kernel-side suicide mutant 3×3 — caught (mismatches > 0)" {
+    const r = compareMoveGens(9, 3, 3, kernelLegalMoves3x3, mutantSuicideKernel3x3);
+    try testing.expect(r.disagreements > 0);
+}
+
+test "T339: kernel-side ko-recapture mutant 2×2 — caught at ko≠NONE" {
+    const r = compareMoveGens(4, 2, 2, kernelLegalMoves2x2, mutantKoRecaptureKernel2x2);
+    try testing.expect(r.disagreements > 0);
+    try testing.expect(r.ko_disagreements > 0);
+}
+
+test "T339: kernel-side ko-recapture mutant 3×2 — caught at ko≠NONE" {
+    const r = compareMoveGens(6, 3, 2, kernelLegalMoves3x2, mutantKoRecaptureKernel3x2);
+    try testing.expect(r.disagreements > 0);
+    try testing.expect(r.ko_disagreements > 0);
+}
+
+test "T339: kernel-side ko-recapture mutant 3×3 — caught at ko≠NONE" {
+    const r = compareMoveGens(9, 3, 3, kernelLegalMoves3x3, mutantKoRecaptureKernel3x3);
+    try testing.expect(r.disagreements > 0);
+    try testing.expect(r.ko_disagreements > 0);
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ADAPTER FUNCTIONS — one per operation per implementation per size

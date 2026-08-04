@@ -33,6 +33,7 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
+const expectEqualSlices = std.testing.expectEqualSlices;
 
 pub fn Rules(comptime w: usize, comptime h: usize) type {
     return struct {
@@ -353,6 +354,88 @@ pub fn Rules(comptime w: usize, comptime h: usize) type {
                 if (pos[q] * colour <= 0 or !alive[q]) return false;
             }
             return true;
+        }
+
+        // ── Kernel move generator (T339, MG-KERN) — A1–A6, B1–B3 ───────────
+        //
+        // The kernel move generator assembles the existing building blocks
+        // into the state-level move relation over the Markov state
+        // (pos, side, ko, passes):
+        //   • `pos_from_move` — A2 (place on empty), A3 (capture zero-liberty
+        //     opponent chains), A4 (reject suicide after capture).
+        //   • the T273 production `koAfterCapture` — B1/B2 (the one true ko
+        //     rule, CODE.ACCEPT-KOKEY: never a copied ko rule).
+        //   • pass / passes logic — A5 (pass always legal), A6 (forced pass
+        //     is indistinguishable), B3 (pass clears ko), C1 (double-pass
+        //     terminal).
+        //
+        // Axioms served (AXIOMS §2): A1 GLOBAL.AXIOM-GEOM, A2
+        // GLOBAL.AXIOM-STONE, A3 GLOBAL.AXIOM-CAPTURE, A4
+        // GLOBAL.AXIOM-SUICIDE, A5 GLOBAL.AXIOM-PASS, A6
+        // GLOBAL.AXIOM-FORCEDPASS, B1 GLOBAL.AXIOM-BASICKO, B2
+        // GLOBAL.AXIOM-KOSTATE, B3 GLOBAL.AXIOM-KOPASS. Claim served:
+        // Z-R-MOVE (move legality is decidable). The ko-point sentinel is
+        // `ko >= n` = NONE — the same convention as `koAfterCapture` and
+        // `stateKey`. `side` is +1 Black / -1 White; side-to-move picks the
+        // array, never the sign (C4).
+        //
+        // Move bitmap: bit i (0 <= i < n) = a stone placement at cell i is
+        // legal; bit n = pass is legal (A5/B3); bits > n are 0. `moves_bytes`
+        // is the byte length (SMD1 §4.6.3 contract; matches R8).
+
+        /// Byte length of the legal-move bitmap for this goban size.
+        pub const moves_bytes: usize = (n + 1 + 7) / 8;
+
+        /// The ko-point NONE sentinel for this goban size (`ko >= n` = NONE).
+        pub fn ko_none() u8 {
+            return @intCast(n);
+        }
+
+        /// Legal-move bitmap for the Markov state (pos, side, ko, passes).
+        /// C1: at passes=2 (terminal) the bitmap is empty — no children.
+        /// A5/B3: pass is always legal (bit n set) unless terminal. B1: a
+        /// placement at the ko point is illegal. A2: occupied cells are
+        /// illegal. A4: a placement that is suicide after A3 capture is
+        /// illegal (the capture is applied first inside `pos_from_move`).
+        pub fn legalMoves(pos: *const Pos, side: i8, ko: u8, passes: u2) [moves_bytes]u8 {
+            var bm: [moves_bytes]u8 = [_]u8{0} ** moves_bytes;
+            if (passes >= 2) return bm; // C1 absorbing terminal
+            const n_u8: u8 = @intCast(n);
+            const ko_set = ko < n_u8;
+            for (0..n) |cell| {
+                if (pos[cell] != 0) continue; // A2
+                if (ko_set and cell == @as(usize, ko)) continue; // B1
+                if (pos_from_move(pos, side, cell)) |_| {
+                    bm[cell / 8] |= @as(u8, 1) << @intCast(cell % 8);
+                } else |_| {} // A4 suicide (A3 capture applied inside pos_from_move)
+            }
+            // A5/B3: pass always legal. Bit n is the pass bit.
+            bm[n / 8] |= @as(u8, 1) << @intCast(n % 8);
+            return bm;
+        }
+
+        /// Next Markov state after a stone placement.
+        /// A2/A3/A4 + B1 (ko guard) + B2 (ko set via the production
+        /// `koAfterCapture`, CODE.ACCEPT-KOKEY). Returns null if the move is
+        /// illegal (terminal / occupied / ko-forbidden / suicide). On
+        /// success the side flips, ko is the newly-computed point, passes=0.
+        pub const MoveChild = struct { pos: Pos, side: i8, ko: u8, passes: u2 };
+        pub fn applyMove(pos: *const Pos, side: i8, ko: u8, passes: u2, cell: usize) ?MoveChild {
+            if (passes >= 2) return null; // C1
+            if (pos[cell] != 0) return null; // A2
+            if (ko < @as(u8, @intCast(n)) and cell == @as(usize, ko)) return null; // B1
+            const next = pos_from_move(pos, side, cell) catch return null; // A3/A4
+            const new_ko = koAfterCapture(pos, &next, side, w, h, @intCast(n)); // B1/B2
+            return .{ .pos = next, .side = -side, .ko = new_ko, .passes = 0 };
+        }
+
+        /// Next Markov state after a pass.
+        /// A5 (always legal unless terminal), B2/B3 (clears ko), C1
+        /// (double-pass terminal). Side flips, ko=NONE, passes+1.
+        pub const PassChild = struct { side: i8, ko: u8, passes: u2 };
+        pub fn applyPass(side: i8, passes: u2) ?PassChild {
+            if (passes >= 2) return null; // C1
+            return .{ .side = -side, .ko = @intCast(n), .passes = passes + 1 };
         }
     };
 }
@@ -1486,4 +1569,202 @@ test "stateKey: terminal flag" {
     try expect(!stateKey(0, 1, 0, 0).terminal);
     try expect(!stateKey(0, 1, 0, 1).terminal);
     try expect(stateKey(0, 1, 0, 2).terminal);
+}
+
+// ── Kernel move generator runtime dispatchers (T339, MG-KERN) ──────────────
+//
+// Runtime w/h dispatch for callers that do not have comptime dimensions
+// (parity with `areaScore` / `neighborsRt` / `koAfterCapture` / `stateKey`).
+// Supported goban sizes: 2×2, 3×2, 3×3, 4×3, 4×4 (n ∈ {4,6,9,12,16}).
+//
+// Move bitmap contract identical to the comptime `Rules(w,h).legalMoves`:
+// bit i (0 <= i < n) = placement legal; bit n = pass legal. Returned in a
+// fixed `MAX_MOVES_BYTES`-byte buffer (zero-padded beyond the goban's
+// `moves_bytes`) so the return type is size-independent.
+
+pub const MAX_N: usize = 16;
+pub const MAX_MOVES_BYTES: usize = (MAX_N + 1 + 7) / 8; // 3
+
+pub const MoveChildRt = struct {
+    board: [MAX_N]i8,
+    board_len: usize,
+    side: i8,
+    ko: u8,
+    passes: u2,
+};
+
+pub const PassChildRt = struct {
+    side: i8,
+    ko: u8,
+    passes: u2,
+};
+
+/// Legal-move bitmap (size-independent buffer) for the Markov state.
+/// Bits 0..n-1 = placement; bit n = pass. Zero beyond `moves_bytes`.
+pub fn legalMovesRt(board: []const i8, w: usize, h: usize, side: i8, ko: u8, passes: u2) [MAX_MOVES_BYTES]u8 {
+    var out: [MAX_MOVES_BYTES]u8 = [_]u8{0} ** MAX_MOVES_BYTES;
+    switch (w * h) {
+        4 => { const r = Rules(2, 2).legalMoves(@ptrCast(board.ptr), side, ko, passes); @memcpy(out[0..r.len], &r); },
+        6 => { const r = Rules(3, 2).legalMoves(@ptrCast(board.ptr), side, ko, passes); @memcpy(out[0..r.len], &r); },
+        9 => { const r = Rules(3, 3).legalMoves(@ptrCast(board.ptr), side, ko, passes); @memcpy(out[0..r.len], &r); },
+        12 => { const r = Rules(4, 3).legalMoves(@ptrCast(board.ptr), side, ko, passes); @memcpy(out[0..r.len], &r); },
+        16 => { const r = Rules(4, 4).legalMoves(@ptrCast(board.ptr), side, ko, passes); @memcpy(out[0..r.len], &r); },
+        else => @panic("legalMovesRt: unsupported goban size"),
+    }
+    return out;
+}
+
+/// Apply a stone placement at runtime. Returns null if illegal.
+pub fn applyMoveRt(board: []const i8, w: usize, h: usize, side: i8, ko: u8, passes: u2, cell: usize) ?MoveChildRt {
+    const n = w * h;
+    var out: MoveChildRt = .{ .board = undefined, .board_len = n, .side = -side, .ko = 0, .passes = 0 };
+    switch (n) {
+        4 => {
+            const child = Rules(2, 2).applyMove(@ptrCast(board.ptr), side, ko, passes, cell) orelse return null;
+            @memcpy(out.board[0..4], child.pos[0..4]);
+            out.ko = child.ko;
+        },
+        6 => {
+            const child = Rules(3, 2).applyMove(@ptrCast(board.ptr), side, ko, passes, cell) orelse return null;
+            @memcpy(out.board[0..6], child.pos[0..6]);
+            out.ko = child.ko;
+        },
+        9 => {
+            const child = Rules(3, 3).applyMove(@ptrCast(board.ptr), side, ko, passes, cell) orelse return null;
+            @memcpy(out.board[0..9], child.pos[0..9]);
+            out.ko = child.ko;
+        },
+        12 => {
+            const child = Rules(4, 3).applyMove(@ptrCast(board.ptr), side, ko, passes, cell) orelse return null;
+            @memcpy(out.board[0..12], child.pos[0..12]);
+            out.ko = child.ko;
+        },
+        16 => {
+            const child = Rules(4, 4).applyMove(@ptrCast(board.ptr), side, ko, passes, cell) orelse return null;
+            @memcpy(out.board[0..16], child.pos[0..16]);
+            out.ko = child.ko;
+        },
+        else => @panic("applyMoveRt: unsupported goban size"),
+    }
+    return out;
+}
+
+/// Apply a pass at runtime. Returns null if terminal (passes=2). Clears ko.
+pub fn applyPassRt(w: usize, h: usize, side: i8, passes: u2) ?PassChildRt {
+    if (passes >= 2) return null;
+    return .{ .side = -side, .ko = @intCast(w * h), .passes = passes + 1 };
+}
+
+// ── kernel move-generator unit tests (T339) ───────────────────────────────
+
+fn bitSet(bm: []const u8, i: usize) bool {
+    return (bm[i / 8] & (@as(u8, 1) << @intCast(i % 8))) != 0;
+}
+
+test "kernel legalMoves 2x2: empty board, Black to move — 4 placements + pass" {
+    const R = Rules(2, 2);
+    const b = [_]i8{0} ** 4;
+    const bm = R.legalMoves(&b, 1, R.ko_none(), 0);
+    try expect(bm.len == 1); // moves_bytes = ceil(5/8) = 1
+    for (0..4) |cell| try expect(bitSet(&bm, cell));
+    try expect(bitSet(&bm, 4)); // pass bit (bit n=4)
+}
+
+test "kernel legalMoves 2x2: suicide forbidden (corner surrounded)" {
+    const R = Rules(2, 2);
+    // Black to move at cell 0; both neighbours (1,2) are White and the White
+    // chains retain a liberty at cell 3, so the placement captures nothing
+    // and Black's own stone has zero liberties → suicide (A4) → illegal.
+    const b = [_]i8{ 0, -1, -1, 0 };
+    const bm = R.legalMoves(&b, 1, R.ko_none(), 0);
+    try expect(!bitSet(&bm, 0)); // suicide forbidden
+    try expect(bitSet(&bm, 4)); // pass still legal (A5)
+}
+
+test "kernel legalMoves 2x2: ko point forbids recapture" {
+    const R = Rules(2, 2);
+    // Empty board, ko set at cell 1 — placement at 1 is forbidden, others ok.
+    const b = [_]i8{0} ** 4;
+    const bm = R.legalMoves(&b, 1, 1, 0); // ko = 1
+    try expect(!bitSet(&bm, 1)); // ko-forbidden
+    try expect(bitSet(&bm, 0));
+    try expect(bitSet(&bm, 2));
+    try expect(bitSet(&bm, 3));
+    try expect(bitSet(&bm, 4)); // pass
+}
+
+test "kernel legalMoves 2x2: terminal (passes=2) has no moves" {
+    const R = Rules(2, 2);
+    const b = [_]i8{0} ** 4;
+    const bm = R.legalMoves(&b, 1, R.ko_none(), 2);
+    try expect(bm[0] == 0);
+    try expect(!bitSet(&bm, 4)); // no pass at terminal
+}
+
+test "kernel applyMove 3x3: capture sets ko, side flips, passes reset" {
+    const R = Rules(3, 3);
+    // Ko shape: White at 0 with single liberty 3; Black at 1; Black plays 3
+    // capturing W at 0. Played stone at 3 has neighbours {0=empty,4,?}...
+    // Use the documented ko shape from koAfterCapture tests: P1 = W . W / B W .
+    // Black plays cell 1, captures W at 0; played stone at 1 has 1 liberty
+    // (cell 0) and no friendly neighbour → ko at 0.
+    const p1 = [_]i8{ -1, 0, -1, 1, -1, 0, 0, 0, 0 };
+    const child = R.applyMove(&p1, 1, R.ko_none(), 0, 1) orelse return error.NoChild;
+    try expectEqual(@as(i8, -1), child.side); // side flipped
+    try expectEqual(@as(u2, 0), child.passes);
+    try expectEqual(@as(u8, 0), child.ko); // ko at captured cell 0
+    try expect(child.pos[0] == 0 and child.pos[1] == 1 and child.pos[3] == 1);
+}
+
+test "kernel applyMove 3x3: occupied and suicide return null" {
+    const R = Rules(3, 3);
+    const b = [_]i8{ 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+    try expect(R.applyMove(&b, 1, R.ko_none(), 0, 0) == null); // occupied
+    // suicide: White surrounding a Black move point
+    const s = [_]i8{ 0, -1, -1, -1, -1, 0, 0, 0, 0 };
+    try expect(R.applyMove(&s, 1, R.ko_none(), 0, 0) == null); // Black at 0 = suicide
+}
+
+test "kernel applyPass: clears ko, flips side, increments passes" {
+    const R = Rules(2, 2);
+    const c0 = R.applyPass(1, 0) orelse return error.NoPass;
+    try expectEqual(@as(i8, -1), c0.side);
+    try expectEqual(@as(u8, 4), c0.ko); // NONE = n = 4
+    try expectEqual(@as(u2, 1), c0.passes);
+    const c1 = R.applyPass(-1, 1) orelse return error.NoPass;
+    try expectEqual(@as(u2, 2), c1.passes);
+    try expect(R.applyPass(1, 2) == null); // terminal
+}
+
+test "kernel runtime dispatcher matches comptime Rules (2x2 + 3x3)" {
+    // 2x2 empty, Black: runtime vs comptime legalMoves agree.
+    {
+        const b = [_]i8{0} ** 4;
+        const rt = legalMovesRt(&b, 2, 2, 1, 4, 0);
+        const ct = Rules(2, 2).legalMoves(&b, 1, 4, 0);
+        try expectEqualSlices(u8, ct[0..], rt[0..ct.len]);
+    }
+    // 3x3 with a ko point, White to move.
+    {
+        const b = [_]i8{ -1, 0, -1, 1, -1, 0, 0, 0, 0 };
+        const rt = legalMovesRt(&b, 3, 3, -1, 9, 0);
+        const ct = Rules(3, 3).legalMoves(&b, -1, 9, 0);
+        try expectEqualSlices(u8, ct[0..], rt[0..ct.len]);
+    }
+    // applyMoveRt round-trip on 3x3 ko shape.
+    {
+        const p1 = [_]i8{ -1, 0, -1, 1, -1, 0, 0, 0, 0 };
+        const ct = Rules(3, 3).applyMove(&p1, 1, 9, 0, 1) orelse return error.NoChild;
+        const rt = applyMoveRt(&p1, 3, 3, 1, 9, 0, 1) orelse return error.NoChildRt;
+        try expectEqual(@as(i8, -1), rt.side);
+        try expectEqual(@as(u8, 0), rt.ko);
+        try expectEqualSlices(i8, ct.pos[0..9], rt.board[0..9]);
+    }
+    // applyPassRt.
+    {
+        const p = applyPassRt(2, 2, 1, 0) orelse return error.NoPassRt;
+        try expectEqual(@as(i8, -1), p.side);
+        try expectEqual(@as(u8, 4), p.ko);
+        try expectEqual(@as(u2, 1), p.passes);
+    }
 }
