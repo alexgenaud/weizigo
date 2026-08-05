@@ -86,3 +86,5 @@
 
 
 
+
+{"id":"D037","target":"T363","directive":"amend","note":"T328 disclosed, Orcha verified at the cited lines: zig build test is RED at HEAD pre-existing — src/vb_i11.zig:58 imports the 'engine' module but build.zig:407 clears vb_i11_tests' import_table (broken since T346 partial 9d2fd76). Your acceptance is zig build test, and vb_* is your sprint's territory: wire the engine module into vb_i11_tests as the working targets do, zig build deploy + smoke after the build.zig commit (zero STALE), record red->green in accept.md. Do not weaken or drop the I11 tests to get green.","from":"unknown","ts":"2026-08-05T12:14:53Z","read":false}

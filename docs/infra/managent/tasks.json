@@ -22,8 +22,8 @@
     "amendments": []
   },
   "T328": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T328-model-bakeoff-harness.md",
     "set": "A",
@@ -32,15 +32,15 @@
     "caps": [],
     "added": "2026-08-03T21:09:12Z",
     "claimed": "2026-08-05T11:24:22Z",
-    "done": null,
+    "done": "2026-08-05T11:49:40Z",
     "dispatched": "2026-08-05T11:17:34Z",
     "dispatched_to": "deepseek-v4-flash",
     "note": "EPISTEMIC-RACES registration order item 1: dry-run, harness plumbing only.",
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Harness + protocol + dry-run proof landed (89baf9a). Acceptance zig build test is red at HEAD b045bff for pre-existing reasons (vb_i11.zig:58 imports 'engine', build.zig:407 clears that target's import table — T346 partial 9d2fd76; regression-managent-standing 3-5 in a scratch repo; src/ unmodified by this row) — reported, not adapted. Dry run: deepseek-v4-flash lane exit 0 (out.md 18B, wall 1.7s cpu 0.48s rss 194MB), claude lane refused by WEIZIGO_BAKEOFF_ALLOW_CLAUDE gate. Fixtures committed via --explicit, outside the bundle deliverables=.",
     "claim_count": 2,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "zig build test red at HEAD b045bff pre-existing, proven: clean-clone repro of src/vb_i11.zig:58 compile error (build.zig:407 clears the vb_i11 test target import table; T346 partial 9d2fd76) + regression-managent-standing 3-5 in scratch repo + git diff HEAD -- src/ empty; this row touches only tools/, docs/infra/bakeoff.md, findings/ — none reachable from the suite",
     "amendments": []
   },
   "T350": {
@@ -726,8 +726,8 @@
     "amendments": []
   },
   "T367": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T367-race-packet-authoring.md",
     "set": "D",
@@ -735,14 +735,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T11:16:10Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T12:15:04Z",
+    "done": "2026-08-05T12:15:04Z",
     "dispatched": "2026-08-05T11:17:34Z",
     "dispatched_to": "deepseek-v4-flash",
     "note": "EPISTEMIC-RACES registration order item 2: packet authoring + key sealing; author model family recorded in the manifest.",
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -970,6 +970,6 @@
 ,
   "_sys": {
     "next_id": 369,
-    "directive_next": 37
+    "directive_next": 38
   }
 }

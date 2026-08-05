@@ -54,6 +54,24 @@ progress; **T367** and **T354** dispatched, awaiting claim.
 5. **2026-08-12: the Flash-for-everything ruling expires.** Re-rule on the week's ledger
    (`model-perf.md` §Model versions); T363's console is the sprint-manager data point.
 
+## Addendum — same day, at handover execution
+
+- **T328 is done** (`89baf9a`, verdict pass-with-findings, deepseek-v4-flash/T328.2): bake-off
+  harness (`tools/bakeoff.sh`), T316-hardened protocol (`docs/infra/bakeoff.md`), dry run
+  proven end-to-end (Flash lane exit 0, Claude lane refused by the
+  `WEIZIGO_BAKEOFF_ALLOW_CLAUDE` gate as designed). Races item 3 (Pro-vs-Flash on races 1–2)
+  now waits only on T367's packets.
+- **T328 disclosed, and this seat verified at the cited lines: `zig build test` is RED at
+  HEAD, pre-existing** — `src/vb_i11.zig:58` imports the `engine` module while `build.zig:407`
+  clears that test target's import table (broken since T346's partial `9d2fd76`). Directive
+  **D037** sent to T363: the fix is in its sprint territory and its acceptance gate; red→green
+  goes in accept.md. If T363 stalls on it, that directive is the thread to pull.
+- T328 also reproduced the dead standing-trigger regressions (controls 3–5 fail in a scratch
+  repo) — same defect T368 carries; no new row needed.
+- C7 reads 0 unabsorbed / 1 non-conforming — the non-conforming file is T366's *live*,
+  still-in-progress findings JSON (missing `claims` key); the row will conform at close, no
+  action unless it closes malformed.
+
 ## Allocation notes
 
 Temporary default: deepseek-v4-flash for ALL new dispatches until 2026-08-12. Concurrency
