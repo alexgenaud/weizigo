@@ -1,0 +1,132 @@
+{
+ "task_id": "T375",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T375",
+ "claims": [],
+ "new_rows": [],
+ "method": {
+  "question": "Did the new engine ever throw away a winnable position? (The missing half of M3: T366 measured whether the OLD engine throws games away; T375 runs the mirror on the NEW engine, adds the check the mirror cannot make — the new table's own stored L/H bracket — and answers the operator's question 'Is the new engine strictly stronger? Did the new engine ever lose to the old engine?')",
+  "instrument": {
+   "source": "src/t366_evse.zig",
+   "source_sha256": "4e378353159fc891fcf477beb9198d4915794ef6f311c6f51cac967beebc91ab",
+   "source_note": "The committed instrument (19cd78b) already carries the mirror machinery: mirrorSubstitution/mirrorArbiter/classifyMirror, mirror_summary per frame, per-game mirror{} records. T375 runs it as-is; no engine source, no build.zig, no src/vb_*.zig touched.",
+   "binary": "/tmp/weizigo/t375/t375-evse",
+   "binary_sha256": "d335a4abd4963a9a4233471d17b6fc904fd8ed7f58fb6e3ff5fd79d45479adb7",
+   "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t375/cache --global-cache-dir /tmp/weizigo/t375/global --name weizigo-t375-evse -femit-bin=/tmp/weizigo/t375/t375-evse",
+   "build_git_head": "19cd78b",
+   "build_version_stamp": "weizigo-t366-evse 19cd78b built 2026-08-05T13:29:40Z zig 0.16.0",
+   "build_env_note": "Compiled in a detached git worktree (/tmp/weizigo/t375/wt) at the committed HEAD, because the main working tree's engine sources (src/gtp.zig, src/vb_*, build.zig) are mid-edit by the in-progress T363 sprint. Compiling against the committed sources keeps the instrument reproducible; the worktree added nothing and changed nothing. The 258 MB / 518 MB oracle artifacts are untracked, so the run passed absolute paths to the main tree's data/ files."
+  },
+  "artifacts": {
+   "old": {
+    "path": "data/oracle-4x4.checkpoint.wzo",
+    "sha256": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118",
+    "bytes": 258280358,
+    "rules_id": 1,
+    "rules": "Chinese area, komi 0, positional superko (WZO1; fresh-start single values, no ko/passes dimension; the known-untrustworthy writes-ON build)"
+   },
+   "new": {
+    "path": "data/oracle-4x4-v2.wzo2",
+    "sha256": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
+    "bytes": 518123097,
+    "rules_id": 3,
+    "rules": "Chinese area, komi 0, basic ko, L/H bracket (WZO2; Markov key on goban/side/ko_point/passes)"
+   }
+  }
+ },
+ "headline_run": {
+  "seed": 42,
+  "openings": "3 canonical one-ply (corner A1, edge B1, centre B2) + 30 seeded random two-ply (deduplicated: 33 distinct openings)",
+  "games_per_frame": 66,
+  "frames_total_games": 132,
+  "command": "/tmp/weizigo/t375/t375-evse --frame both --openings 30 --seed 42 --old <abs data/oracle-4x4.checkpoint.wzo> --new <abs data/oracle-4x4-v2.wzo2> --out /tmp/weizigo/t375/sgf --json /tmp/weizigo/t375/raw.json",
+  "raw_json": "/tmp/weizigo/t375/raw.json",
+  "runtime": "0.6 s wall, 746 MB peak RSS (tools/runner guard)",
+  "mirror_results": {
+   "fA_shared_PSK": {
+    "enforcement": "old=psk, new=psk",
+    "new_wins": 36,
+    "new_losses": 30,
+    "new_draws": 0,
+    "new_engine_genuine_losses": 0,
+    "new_engine_loss_not_attributable": 30,
+    "new_engine_equal_value": 36,
+    "new_engine_outcome_unknown": 0,
+    "denominator": 66
+   },
+   "fB_new_ruleset_basicko": {
+    "enforcement": "old=psk, new=basic-ko",
+    "new_wins": 40,
+    "new_losses": 26,
+    "new_draws": 0,
+    "new_engine_genuine_losses": 0,
+    "new_engine_loss_not_attributable": 26,
+    "new_engine_equal_value": 40,
+    "new_engine_outcome_unknown": 0,
+    "denominator": 66
+   }
+  },
+  "lh_check": {
+   "method": "For each of the 56 new-engine losses (30 fA + 26 fB), read the new table's own stored L/H bracket at the first-divergence node (the only node where the kifu carries stored bracket data; read with the node's (ko, passes) state). Claim 'won for the new engine's colour': new==B and L>0, or new==W and H<0 (bracket values are Black-positive: the side to move picks the lookup row, never the sign). A loss from a position its own table claims winnable is a self-contradiction of exactly the kind T366 found in the old table (fA-o32-W: a value its own play could not reach).",
+   "verdicts": {
+    "new_engine_losses": 56,
+    "in_scope_loss_divergence_nodes": 56,
+    "ko_pending_loss_nodes": 0,
+    "passes_gt0_loss_nodes": 0,
+    "ko_sensitive_loss_nodes": 4,
+    "self_contradictions": 0,
+    "drawn_claim_losses": 0,
+    "per_frame": {"fA": {"losses": 30, "in_scope": 30, "self_contradictions": 0}, "fB": {"losses": 26, "in_scope": 26, "self_contradictions": 0}}
+   },
+   "reading": "At every one of the 56 loss divergence nodes the new table's own bracket already showed the position lost for the new engine's colour (all 56 in-scope: ko none, passes 0; 4 rows ko-sensitive, reported as data). The new table never claims a winnable position at a divergence node whose game its own play then loses. Two independent lines now agree the new engine threw away nothing on this sample: the old-engine arbiter (mirror, 0/56) and the new table's own bracket (L/H check, 0/56).",
+   "report_dont_adapt": "No self-contradiction found; no witness state recorded; nothing to stop for."
+  }
+ },
+ "controls": {
+  "null_control": {
+   "result": "PASS",
+   "script": "/tmp/weizigo/t375/nullctl.py",
+   "detail": "The instrument computes T366's own direction and the mirror in the same run. Re-running T366's direction at seed 42 reproduces its published figures exactly: fA 3 genuine losses / 66, fB 7 / 66, and the same 10 genuine-loss game records (fA-o19-W, fA-o21-B, fA-o32-W, fB-o02-B, fB-o04-B, fB-o06-B, fB-o17-B, fB-o19-W, fB-o21-B, fB-o32-W). Game-by-game comparison against the committed findings/T366-engine-kifu.json at 19cd78b: 6072 scalar fields across all 132 games (moves, results, old-direction classifications, divergence nodes, substitution replays, arbiters, and the mirror records), 0 mismatches; the only differing field is the sgf output path (different --out dir by design).",
+   "finding": "T366's doc prose and context JSON say '62 of 66 first divergences per frame are in-scope'; its own committed kifu JSON says 66, and this run's 132 games independently confirm 66/66 in-scope (per-game node_in_scope flags). The 62 is a stale T366 doc number (pre-correction era); this row reports the measured 66 and flags the discrepancy rather than reproducing it."
+  },
+  "seeded_control": {
+   "result": "PASS",
+   "harness": {
+    "source": "src/seedctl.zig (additive copy of the committed instrument + an --inject-* option; committed with this row, like T366 committed its instrument)",
+    "source_sha256": "bbea5c374d7e31c6783d7de5d27f20cd930c11882a438e21e34fcaea660bebc2",
+    "binary_sha256": "e3141a4cc058dfe768cb97a032e29ddeb2258de22d49524d0edd8d99995cfea3",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/seedctl.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t375/cache --global-cache-dir /tmp/weizigo/t375/global --name weizigo-t375-seedctl -femit-bin=/tmp/weizigo/t375/seedctl",
+    "diff_from_instrument": "one new struct (Inject), one optional parameter threaded runFrame -> runGame, one played-move override (forces the NEW engine's move at one decision point to a pass or a cell), and the arg parsing. All measurement code (runGame core, substitution replays, arbiters, classifyGame/classifyMirror, JSON/SGF emission) untouched."
+   },
+   "detail": "Injected a deliberately bad move (a pass) for the new engine at one decision point: fA-o00-B, moves-index 1 (the new engine's first White move, opening canonical-corner-A1, old engine Black). Before injection the game is W+16 (new engine wins; mirror classification equal_value). With the injected pass it becomes B+3: mirror new_result flips win -> loss and the mirror classifier reports genuine_loss (via the mirror-arbiter fallback: the old engine's self-play wins W+16 with the new colour; the substitution replay diverges because the old engine's fresh White line no longer fits the injected position sequence — the documented fallback).",
+   "surgical_check": "Only the targeted game changed: 65 of 66 frame-A games byte-identical to the main run; fA-o00-W (the same opening with colours swapped) byte-identical.",
+   "harness_null_control": "The seedctl harness run WITHOUT injection is byte-identical to the main instrument run (132 games, 0 mismatches)."
+  }
+ },
+ "classification_rules_mirror": {
+  "new_genuine_loss": "the new engine lost (or drew) a game its colour could have won/drawn, decided by what the OLD engine achieves with the new engine's colour from the same opening: old-engine substitution replay (old engine's moves at the new engine's decision points, original opponent moves replayed) preferred; old-engine self-play arbiter as fallback",
+  "new_loss_not_attributable": "new engine lost, but even the old engine's moves with its colour from the same opening lose: the position was lost anyway",
+  "new_equal_value": "new engine did not lose (won, or held the draw the old-engine line also holds)",
+  "outcome_unknown": "substitution replay diverged and the arbiter cycled to the ply cap"
+ },
+ "overlap_with_t366": {
+  "what_happened": "While T375 was being registered/dispatched (brief written 15:20:06, row registered 15:21:12), the mirror machinery was added to src/t366_evse.zig and committed at 15:26:52 as 19cd78b — a T366 extension ('T366: mirror measurement...', doc section 5.1) publishing the same mirror figures (new engine 0 genuine losses in both frames) before T375's own run.",
+  "what_t375_adds": "(1) an independent run of the committed instrument (this row's raw.json), which reproduces the 19cd78b mirror figures exactly — the verify-then-promote second seat; (2) the L/H bracket self-contradiction check, which neither T366's 5.1 nor the 19cd78b commit made; (3) the null control (byte-level vs committed kifu) and the seeded control (injection caught as genuine_loss), which no prior run documented; (4) the T375-labeled deliverables (symmetric-arbiter.json, context.json, run doc).",
+  "reading": "T366's 5.1 and this row agree: on this sample the new engine threw away 0 positions; the old engine threw away 3 (fA) / 7 (fB). The raw head-to-head scoreline (old won 30/66 fA, 26/66 fB) is opening-driven and is the wrong lens — both rows say so; throw-aways are the one-sided measurement."
+ },
+ "limitations_and_scope": [
+  "The two artifacts encode DIFFERENT rulesets (WZO1 PSK fresh-start single values vs WZO2 basic-ko L/H bracket keyed on goban/side/ko_point/passes); the comparison is scoped: only OUTCOME differences decide classifications; stored-value comparisons are reported with the node's (ko, passes) state.",
+  "The frame-B mirror tests the old engine in its own PSK world (its only world): the old engine cannot answer basic-ko position repetition, so the frame-B mirror bounds rather than equals the basic-ko question for the new engine — same caveat T366's 5.1 states.",
+  "Everything here is the fresh-start slice (C1). No table value is a real-game value; real-game history-independence (C2) is falsified at 3x2 (T13) and is out of scope. The L/H bracket is a fresh-start claim, and the 0-self-contradiction verdict inherits that scope — it is a fresh-start-claim-vs-own-play check, the same logic T366 applied to the old table's fA-o32-W.",
+  "'0' is 'none detected in 66 games per frame at these openings', not a proof: 66 games sample a tiny fraction of the 4x4 state space, and the openings are the same 33 for both engines (colour-swapped).",
+  "The L/H check reads only the first-divergence node of each game (the only node with stored bracket data in the kifu), not every ply.",
+  "The mirror's substitution replay usually diverges; the self-play arbiter is the main decider. The substitution replay diverges when the substituted engine's fresh line stops fitting the original move sequence — a replay-semantics property, symmetric in both directions: it decided 9 of the 56 mirror classifications and only 6 of the 76 old-direction non-wins in T366's own measurement (arbiter 70). The self-play arbiter decided the remaining 47 mirror classifications; outcome_unknown = 0 in both frames because the arbiter always completes."
+ ],
+ "outputs": {
+  "evidence_doc": "docs/evidence/ENGINE-VS-ENGINE/symmetric-2026-08-05.md",
+  "arbiter_json": "findings/T375-symmetric-arbiter.json",
+  "sgf_count": 0,
+  "sgf_note": "The brief commits an SGF kifu for every new-engine genuine loss 'if any'. There are none (0 in fA, 0 in fB) and no L/H self-contradiction witnesses, so no SGFs are committed. Full kifu data for all 132 games (moves, divergence nodes, mirror replays/arbiters) is in the arbiter JSON."
+ }
+}
