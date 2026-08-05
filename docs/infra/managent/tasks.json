@@ -374,8 +374,8 @@
     "amendments": []
   },
   "T365": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T365-audits-date-prefix-sweep.md",
     "set": "B",
@@ -383,16 +383,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T08:45:34Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T10:38:55Z",
+    "done": "2026-08-05T10:39:10Z",
     "dispatched": "2026-08-05T08:45:34Z",
     "dispatched_to": "deepseek-v4-flash",
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "acceptance is bin/weizigo-claimlint, which exits 1 by design while C2 carries honest debt (floor C2=14, tools/hooks/claimlint-floor.json) — same handling as T285/T287/T296. Verified instead: C2=14 before AND after the sweep (nothing newly dangling), calibration PASS both times, 0/32 old names repo-wide (seeded-control grep shown to fire first), ls docs/audits/ chronological.",
     "amendments": []
   },
   "T352": {
