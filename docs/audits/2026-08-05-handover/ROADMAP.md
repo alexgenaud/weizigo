@@ -117,6 +117,39 @@ T356 cleanly; deepseek-v4-pro delivered I5/I11 code and KEY-4×4 but was RSS-kil
 whole-sprint package for one console per the Orcha-delegates-sprints ruling. Fable is
 reserved for high value-per-token holistic work, handed over before 90% of 200k.
 
+## Addendum — close of the Fable session, 2026-08-05 (after T365)
+
+Written at handover, same authority as the rest of this document. What changed since §1–5:
+
+- **Finding 3 is resolved:** STATE.md's rewrite is committed (`9a1a6ae`, via T365's
+  path-limited escape hatch). **Attribution note for the incoming Orchestrator:** the
+  rewrite rode along under T365's message, flagged by the worker itself for optional
+  re-attribution; likewise `docs/infra/model-perf.md`'s belief-audit and temporary-default
+  sections rode along in `048af65` (they are Fable's work, committed by the sweep). History
+  stands; the findings notes carry the attribution.
+- **T365 is done and verified by this seat** (instruments run, not report read): 0/32
+  old-name hits repo-wide, `ls docs/audits/` chronological, C2=14 with calibration PASS.
+  The governing document now lives at `docs/audits/2026-08-02-grand-audit/DIRECTION.md` —
+  every doc citing the old path was repointed; out-of-repo pointers (operator memory,
+  console prompts) must be hand-updated.
+- **Temporary allocation ruling (expires 2026-08-12):** deepseek-v4-flash is the default
+  for ALL new dispatches — worker rows and sprint-manager consoles — unless a task-type or
+  role weakness is recorded in model-perf.md with the row that showed it. **T363's console
+  is therefore the first sprint-manager trial on Flash.** At expiry, re-rule on the week's
+  ledger. Full ruling: model-perf.md §Model versions.
+- **Model evaluation is now chartered:** the confirmation-bias finding and the belief
+  baseline live in model-perf.md §Belief audit; the head-to-head designs (five epistemic
+  races, grading layers, entrance-exam property) live in `EPISTEMIC-RACES.md` beside this
+  file, with a registration order for the Orchestrator. T328 carries the grader-validity
+  and timing/token bars in its brief.
+- **Tier 0 correction:** the absorb debt has grown — T365 added two more findings files;
+  expect C7 (unabsorbed findings) above the 4 measured in §3. The managent binary is still
+  stale. Tier 0 stands as written, only larger.
+- **SIMD (operator question, answered):** no explicit SIMD anywhere in `src/`/`tools/`;
+  ReleaseFast auto-vectorization and u64-bitset popcount are the current parallelism.
+  Explicit `@Vector` work is a post-Z optimization, gated on T358's measured census — a
+  frontier line item, not current work.
+
 ## 6. What this document is not
 
 Not the Phase 3 task decomposition (Orcha's to register), not a plan-doc revision (spec and
