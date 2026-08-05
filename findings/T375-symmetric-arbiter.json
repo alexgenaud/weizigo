@@ -3,6 +3,20 @@
  "date": "2026-08-05",
  "model": "deepseek-v4-flash",
  "identifier": "deepseek-v4-flash/T375",
+ "claims": [],
+ "new_rows": [
+  {
+   "id": "4x4.NEW-ENGINE-MIRROR",
+   "legacy": "\u2014",
+   "goban": "4\u00d74",
+   "claim": "Mirror measurement (T375, 2026-08-05, committed instrument src/t366_evse.zig 19cd78b, seed 42, 33 openings, both frames, 66 games/frame): the NEW engine measured for the same fault T366 found in the OLD engine \u2014 0 new-engine throw-aways in 56 mirror losses (fA 0/30, fB 0/26) and 0 self-contradictions in 56/56 in-scope first-divergence loss nodes against the new table's own stored L/H bracket (4 ko-sensitive nodes reported as data; 0 drawn-claim losses) \u2014 the new table never claims a winnable position its own play then loses. Sample-scoped: 66 games/frame at these openings is a tiny fraction of the 4\u00d74 state space; '0' means none detected in the sample, not a proof. Fresh-start slice only (C1); no real-game claim (C2 falsified at 3\u00d72, T13). Controls: null control reproduces T366's published figures exactly (fA 3/66, fB 7/66, same 10 game records; 6072 fields, 0 mismatches); seeded control (src/seedctl.zig injection at fA-o00-B moves-index 1) flips equal_value\u2192genuine_loss, harness sensitive.",
+   "status": "MEASUREMENT",
+   "evidence": "docs/evidence/ENGINE-VS-ENGINE/symmetric-2026-08-05.md; findings/T375-symmetric-arbiter.json; findings/T375-context.json",
+   "depends_on": "\u2014",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  }
+ ],
  "operator_question": "Is the new engine strictly stronger? Did the new engine ever lose to the old engine?",
  "milestone": "M3 (the new engine outplays the old one) — the missing half: the new engine measured for the same fault T366 found in the old engine.",
  "instrument": {

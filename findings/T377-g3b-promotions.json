@@ -1,0 +1,28 @@
+{
+ "task_id": "T377",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T377",
+ "claims": [
+  {
+   "id": "4x4.C1",
+   "proposed_status": "CLAIMED",
+   "rationale": "G3b discharge (Orchestrator ruling, accept.md final section, 2026-08-05): fresh-start value-correctness verified by closure + Bellman on the WZO2 4x4 table — I4 Bellman residual 0/95,677,624 KO_SENSITIVE-clear entries; C-A1 0/600,763,414 children; C-A2 0/99,020,312 reachable; key agreement 0/99,133,036; I5 0/3,455,412; I11 0/50,000 sampled (0.05% of 99,133,036 — the one non-exhaustive condition). Scope limits ride with the row: the KO_SENSITIVE column itself remains distrusted pending Track A (checks pass around it, not on it); fresh-start under R only; not a real-game oracle, not history-independent (C2 FALSE-AS-SCOPED at 3x2), not PSK, not cross-size. Dependency column re-pointed: the FALSE-AS-SCOPED finisher ancestors (d:GLOBAL.F1, d:4x4.F2) removed, replaced by e: edges to the battery evidence rows (4x4.WZO2-A2-EXHAUSTIVE, GLOBAL.I5-SCC-CONTAIN, CODE.KEY-AGREEMENT) — C1a held at 10. Nothing promoted to PROVEN; CLAIMED is the ceiling pending Phase 3.",
+   "evidence_path": "docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md"
+  },
+  {
+   "id": "4x4.FP1",
+   "proposed_status": "CLAIMED",
+   "rationale": "G3b discharge (same ruling): Bellman residual = 0 on 95,677,624 KO_SENSITIVE-clear entries at 4x4 (I4) verifies the fixpoint property; I5 0/3,455,412 KO_SENSITIVE cycle-reachable. Scope limits ride with the row: KO_SENSITIVE column itself remains distrusted pending Track A; I11 at 4x4 is a 50,000-state sample of 99,133,036 (0.05%); fresh-start under R only. Nothing promoted to PROVEN.",
+   "evidence_path": "docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md"
+  },
+  {
+   "id": "GLOBAL.H4",
+   "proposed_status": "CLAIMED",
+   "rationale": "Claim text drops 'partial' per the G3b ruling — the Bellman verification is no longer partial: I4 at 4x4 checks the stored L/H bracket columns on the WZO2 table exhaustively (0/95,677,624 KO_SENSITIVE-clear; 0/3,455,412 KO_SENSITIVE-set as measurement; 0 cycle-boundary divergences). No status change (CLAIMED is the ceiling pending Phase 3).",
+   "evidence_path": "docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md"
+  }
+ ],
+ "new_rows": [],
+ "notes": "Executed the three G3b promotions in docs/epistemic/CLAIMS.md exactly as the ruling authorises: 4x4.C1 UNTESTED -> CLAIMED, 4x4.FP1 UNTESTED -> CLAIMED, GLOBAL.H4 text drops 'partial' with no status change. Nothing promoted to PROVEN. The four scope limits from the ruling are quoted inside each promoted row's claim text so they are findable at the row itself. The 4x4.C1 dependency column was re-pointed as part of the promotion: its two d: edges reached FALSE-AS-SCOPED ancestors (GLOBAL.F1 directly; 4x4.F2 transitively via GLOBAL.C3), which would have moved the C1a orphan count 10->11; the row now carries e: edges to the battery evidence rows instead. claimlint before/after: C1a=10, C1b=0, C2=14, C6=0, C9=0, calibration PASS in both runs; C7 non-conforming 5->0; C7 unabsorbed findings 0->1 (the T375 mirror-measurement proposal below, entering the absorption queue)."
+}

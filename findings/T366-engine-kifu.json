@@ -3,6 +3,7 @@
 "date":"2026-08-05",
 "model":"deepseek-v4-flash",
 "identifier":"deepseek-v4-flash/T366",
+"claims": [],
 "frames":[
 {
 "frame":"fA",

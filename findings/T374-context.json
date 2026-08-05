@@ -3,6 +3,7 @@
  "date": "2026-08-05",
  "model": "deepseek-v4-flash",
  "identifier": "flash/T374",
+ "claims": [],
  "context": {
   "provenance": {
    "first_sighting": "T327 (close note only — no follow-up row was registered; bin/managent audit flagged the class: 'verdict pass-with-findings but verdict_note names no follow-up task')",

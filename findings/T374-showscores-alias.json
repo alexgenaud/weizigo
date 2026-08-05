@@ -3,6 +3,7 @@
  "date": "2026-08-05",
  "model": "deepseek-v4-flash",
  "identifier": "flash/T374",
+ "claims": [],
  "deliverable": "src/gtp.zig",
  "finding": {
   "id": "T374-showscores-alias",
