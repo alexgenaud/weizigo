@@ -1,0 +1,53 @@
+{
+ "task_id": "T380",
+ "date": "2026-08-05",
+ "model": "flash",
+ "identifier": "flash/T380",
+ "claims": [],
+ "new_rows": [],
+ "context": {
+  "brief": "untracked/T380-retrograde-ko-critical-review.md (kanban set=M; landmark L2 proven 4\u00d74 values at its weakest joint)",
+  "scope_discipline": "additive only \u2014 read artifacts and sources; three standalone instruments compiled ad hoc; no build.zig, engine-source or src/vb_*.zig edits. Not touched: build.zig, src/retro.zig, src/oracle.zig, src/rules.zig, src/solve.zig, src/exp6_solve.zig, src/vb_*.zig, artifacts/, data/.",
+  "existing_suite_state": "rules.zig tests 77/77 pass (includes koAfterCapture and Z-R-MOVE-B1-EQUIV 2\u00d72/3\u00d72 tests). differential.zig ko tests pass individually (T265 negative control, T265/T273 fixed, T273 regression guard, T339 2\u00d72/3\u00d72/3\u00d73); the full differential.zig aggregate aborts at the documented pre-existing qa023 T360 fail-fast (4 crashes = documented pre-existing; T363 commit record).",
+  "instruments": {
+   "src/t380_ko_slot.zig": {
+    "sha256": "4654f9983a2d444d8c3eec3278803c150975f2953b2294494f09508267d008e5",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t380_ko_slot.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t380/kc --global-cache-dir /tmp/weizigo/t380/gc --name weizigo-t380-ko-slot -femit-bin=/tmp/weizigo/t380/ko-slot",
+    "modes_and_runs": {
+     "walk": "3,222,855 states, 39,770 ko edges, 8,305 ko-set states; inv1=0 over=0 under=0",
+     "planted": "same walk with bans persisting across non-pass moves; inv1=2 under=866, witness colex 39,441,641 side=1 ko=2 bans={2,3}",
+     "moveset": "kernel vs exp6 successor sets over 266,779 random 4\u00d74 states: 0 mismatches",
+     "equiv3": "exhaustive 3\u00d73: 12,675 legal P0, 784 windows, 152 lemma-predicate mismatches, 0 ban-set mismatches",
+     "equiv4": "sampled 4\u00d74: 2,309,383 P0 sampled, 344,996 windows, 36,446 lemma-predicate mismatches, 0 ban-set mismatches"
+    }
+   },
+   "src/t380_census.zig": {
+    "sha256": "7e0332237c1e6e48dfc423f649ef69be6dcacd17eb51a01f507aace22ae1f113",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t380_census.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t380/kc --global-cache-dir /tmp/weizigo/t380/gc --name weizigo-t380-census -femit-bin=/tmp/weizigo/t380/census",
+    "modes_and_runs": {
+     "census": "24,318,165 positions, 99,133,036 entries scanned; class=[22,278,061;2,013,032;27,072;0] max=2; bracket-valued positions 1,924,973 class=[1,782,629;140,160;2,184;0]; set_with_zero_ko=1,782,629; ko_with_no_set=1,897,760; freshstart_set_b=981,071 freshstart_set_w=981,071; global_max_width=32 witness=6452; width_hist peak at 14:734,894 and 16:376,234",
+     "null": "kernel-def [8,675,538;1,663,032;29,352;0] max=2; loose-def [6,741,026;3,415,640;211,000;256] max=3 matches B23 published EXACTLY over 10,367,922 side-positions",
+     "plant": "3\u00d73 correct [11,971;704;0;0] vs planted [11,971;640;64;0] \u2014 differs, caught",
+     "scc3": "49,428 entries, 30,457 SCCs; L<H in non-trivial SCCs 3,004; L<H not in non-trivial SCCs 2,404"
+    }
+   },
+   "src/t380_psk_diff.zig": {
+    "sha256": "42da5d9e391f1460708895c2b8b3dd2a77e7f28cb37c67e47c97a9dde8649f78",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t380_psk_diff.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t380/kc --global-cache-dir /tmp/weizigo/t380/gc --name weizigo-t380-psk-diff -femit-bin=/tmp/weizigo/t380/psk-diff",
+    "modes_and_runs": {
+     "3x3": "checked 24,330 (of 25,350); divergent 680 (2.80%); all 680 at fresh-start L<H, 0 at L==H; classes [600,80,0,0]; same with L<H 2,524; null control 0",
+     "4x4": "1,591 roots sampled (10-14 stones, 8:1 ko-weighting, budget 200,000); 782 budget-excluded; 809 within-budget; 0 divergent within-budget; null control 0. Exact ban-set solver rejected for 4\u00d74 (5.4 MB per memo key); memo-off O.solve used instead"
+    }
+   }
+  },
+  "running_notes": {
+   "all_runs": "tools/runner guard is for ad-hoc builds; these runs were executed directly with the compiled binaries (no build.zig involvement; memory well under the 4 GB breach cap except the census which read the 518 MB artifact + checkpoint into memory ~1 GB peak; ko-slot walk ~1.2 GB peak with three hash maps).",
+   "no_engine_edits": "git diff confirms no changes to any engine, build.zig, data/ or artifacts/ file by this row.",
+   "stray_file_note": "a stray src/t382_census.zig and binary weizigo-t382-census exist untracked in the working tree (not created by this row; left untouched)."
+  },
+  "verification": {
+   "rule_4_file_lines": "all cited file:line locations verified by grep before recording: rules.zig:1109 (koAfterCapture), :1136 (friendly==0), :1385/:1446 (lemma tests), :423/:436 (applyMove/applyPass); exp6_solve.zig:262/:552/:886 (apply_place32/apply_place/apply_place4), :914 (genChildren4); vb_bellman_4x4.zig:399 (koAfterCaptureRt), :437 (applyPass); gtp.zig:230/:313/:496; retro.zig:661 (isKoCapture loose); ko_census.zig:48 (isKoCapture loose); differential.zig:1188-1236 (T339).",
+   "hash_crosscheck": "artifact hashes match artifacts/SHA256SUMS and the T366/T117 records (oracle-4x4-v2.wzo2 0c3366f0..., checkpoint a2174fed..., basicko-tie edd9f68e...)."
+  }
+ }
+}
