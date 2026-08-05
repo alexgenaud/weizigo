@@ -220,8 +220,8 @@
     "amendments": []
   },
   "T354": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T354-register-triage.md",
     "set": "B",
@@ -229,16 +229,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-04T15:14:04Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T12:18:49Z",
+    "done": "2026-08-05T12:19:18Z",
     "dispatched": "2026-08-05T11:34:05Z",
     "dispatched_to": "deepseek-v4-flash",
     "note": "Unblocked by STANDING-ABSORB close (044d9b2): CLAIMS.md is free. Tier 2 row: register triage + C3 ratchet.",
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "claimlint exits 1 at the recorded floor (C1a=10, C1b=0, C2=14, C6=0, C9=0) by design — 'must be green' is unreachable today per tools/hooks/claimlint-floor.json. T354's real bar is counts unmoved, verified: claimlint output byte-identical before (HEAD f623a67) and after the task (334 rows, C1a 10, C2 14, C3 76, C4 46/2, C9 0, calibration PASS) — the deliverable is a proposal, the register/floor/fixtures untouched (commit 1e9b855).",
     "amendments": []
   },
   "T361": {
@@ -282,6 +282,28 @@
     "verdict_note": null,
     "claim_count": 0,
     "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T370": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T370-task-identity-propagation.md",
+    "set": "G",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T12:16:52Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "sh tools/smoke.sh",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -748,7 +770,7 @@
     "amendments": []
   },
   "T366": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T366-old-vs-new-engine-kifu.md",
@@ -758,11 +780,11 @@
     "caps": [],
     "added": "2026-08-05T11:16:04Z",
     "claimed": "2026-08-05T11:31:41Z",
-    "done": null,
+    "done": "2026-08-05T12:21:09Z",
     "dispatched": "2026-08-05T11:30:18Z",
     "dispatched_to": "deepseek-v4-flash",
     "note": "Milestone M3 (old-vs-new engine kifu), re-registration of dead T361. Read-only vs committed artifacts; set I; no collision with the four rows in flight.",
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -854,6 +876,28 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "zig build test",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T369": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T369-suite-truth.md",
+    "set": "J",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T12:16:45Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "sh tools/suite-truth.sh",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -969,7 +1013,7 @@
   }
 ,
   "_sys": {
-    "next_id": 369,
-    "directive_next": 38
+    "next_id": 371,
+    "directive_next": 42
   }
 }

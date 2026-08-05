@@ -1,8 +1,8 @@
 # STATE — crash-recovery anchor
 
 **Read this first. Overwritten in place; always current.**
-Last updated: **2026-08-05, end of the Fable 5 Orcha session** (operator-corrected seat
-attribution; session delta in `docs/status/handover-orcha-2026-08-05.md`).
+Last updated: **2026-08-05, start of the Opus 5 Orcha session** — Fable 5 retired from the seat
+on operator instruction; its session delta is `docs/status/handover-orcha-2026-08-05.md`.
 Resume: `bin/managent resume`, then this file, then your row's brief. Nothing else.
 
 ---
@@ -69,10 +69,13 @@ counts until that check has passed at 4×3.**
 
 | Row | What | State |
 |---|---|---|
-| T363 | G3b completion — the four gaps to discharge | **in progress** (deepseek-v4-flash whole-sprint console; first sprint-manager trial) |
-| T328 | Bake-off harness dry-run (races item 1) | in progress |
-| T366 | Old vs new 4×4 engine kifu, milestone M3 (re-registration of dead T361) | in progress |
-| T367 | Race packet authoring + key sealing (races item 2) | dispatched, awaiting claim |
+| T363 | G3b completion — the four gaps to discharge | **in progress** (deepseek-v4-flash whole-sprint console; first sprint-manager trial). Live at 2026-08-05T12:2xZ: I5 SCC run under runner at the authorised 8192 MB |
+| T328 | Bake-off harness dry-run (races item 1) | **done** 2026-08-05 (89baf9a), verdict pass-with-findings |
+| T366 | Old vs new 4×4 engine kifu, milestone M3 (re-registration of dead T361) | in progress; uncommitted `src/t366_evse.zig`, `docs/evidence/ENGINE-VS-ENGINE/`, `findings/T366-engine-kifu.json` |
+| T367 | Race packet authoring + key sealing (races item 2) | **done** 2026-08-05 (b7c382c), verdict pass — 18 lane-facing packets, keys hash-committed before any lane runs, 3/3 known killers verified at seal time. Note for the audit: it ran unclaimed for ~45 min and recorded claim and done in the same instant (12:15:04Z), so `holdsConflict` protected nothing while it worked |
+| T354 | Register triage + C3 ratchet | dispatched 11:34Z, no claim and nothing in tree — **liveness unverifiable, see T370**; treat as unconfirmed, not dead |
+| T369 | **Suite truth** — `zig build test` red by construction; 24 rows closed on 24 different pre-existing-red stories | registered 2026-08-05, set J. **Hold while the fleet is hot** (owns `build.zig`) |
+| T370 | **Task identity never reaches `tools/runner`** — liveness blind, directives cannot land in a running worker | registered 2026-08-05, set G (serialises with T362/T364) |
 | STANDING-ABSORB | Tier 0 absorb pass | **done 2026-08-05** (C7 4→0, commit 044d9b2) |
 | T354 | Register triage + C3 ratchet | dispatched (unblocked by absorb close) |
 | T368 | `managent standing` trigger markers dead since T356's rename — re-couple + regression | dispatchable (set C) |
@@ -87,6 +90,19 @@ counts until that check has passed at 4×3.**
 `C7 UNABSORBED` 0 · `C9 UNMAPPED` 0 · calibration PASS — all at floor.
 **`C3 UNBACKED` = 76 of 100 PROVEN rows have no committed evidence.** Report-only, which is why
 it grew unnoticed. T354 proposes the ratchet.
+
+**`zig build test` is RED and has been since T346 — and the acceptance gate is therefore not a
+gate.** `bin/managent audit` reports **24 done rows closed with `--skip-acceptance`**, each with
+its own honest-sounding story for why the suite was already red (T338's uncommitted work, T360's
+node budget, `vb_i11` wiring, an 1800 s runner kill, claimlint's floor). No two stories agree and
+no row owned the aggregate, so 24 consecutive rows self-certified on a partial leg. Red #1 is
+verified by execution: `build.zig:407` empties the `vb_i11` test target's import table while
+`src/vb_i11.zig:58` imports `engine`. **T369** owns the fix, the enumeration of the remaining
+reds with an owner and a defect/red-by-design verdict each, and a known-red manifest that fires
+in both directions. Until then: cite T369 when skipping acceptance — do not invent a new story.
+Corollary of the same reading: the I11 null and seeded-defect controls have **never** run inside
+`zig build test`; G3b's move-set evidence was taken by the standalone recipe at
+`src/vb_i11.zig:42-46`, which does pass. Say so when citing it.
 
 ## 5. Operator rulings, 2026-08-04/05
 
@@ -127,10 +143,10 @@ it grew unnoticed. T354 proposes the ratchet.
 
 | seat | status |
 |---|---|
-| Orchestrator | handover to Opus 5 pending — Fable 5 held it 2026-08-05 (Opus 5 before that, 2026-08-04/05) |
+| Orchestrator | **Opus 5, seated 2026-08-05** (Fable 5 retired from the seat on operator instruction the same day; Opus 5 also held it 2026-08-04/05 before Fable) |
 | Sprint consoles | seated per package, closed when the package closes |
 | Auditor | ephemeral, spun per gate (DIRECTION §6) |
-| Fable | available for high value-per-token work only; never cheap audits |
+| Fable | **unseated** — available for high value-per-token holistic work only; never cheap audits |
 
 **Governing documents:** `docs/audits/2026-08-02-grand-audit/DIRECTION.md` + Amendments 1–2 ·
 `docs/epic-01-markovian/PHASES.md` · `docs/infra/sprint.md` · `docs/infra/human-decisions.md`.
