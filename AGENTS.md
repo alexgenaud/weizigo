@@ -170,10 +170,37 @@ bounded, so he never has to guess which paragraphs are the payload.** Two forms,
 quote marker — it must survive a single select-and-paste. If it does not fit on one line, it is not a
 one-liner; use form 2.
 
-**2. Multi-line copy/paste text is fenced by a `---` horizontal rule above and below, each `---` on its
+**2. Multi-line copy/paste text is fenced by a `---` above and below, each `---` ALONE on its
 own line with a blank line on either side.** So: prose, blank line, `---`, blank line, **the payload**,
 blank line, `---`, blank line, prose. Nothing but payload goes inside the boundaries — no commentary, no
 "note that…", no explanation the receiving console should not read. Put that in the prose outside.
+
+The blank lines are load-bearing, not style: markdown fuses a `---` with an adjacent text line into a
+heading or an attached rule, which makes the fence invisible or swallows the payload's first line. A
+fence that is not alone is not a fence. (Violation observed 2026-08-05: a payload written directly
+against its opening `---` rendered as one merged block; the human could not see where narrative ended
+and payload began.)
+
+**The payload's first line is an address line:** `<sender>/<seat> to <target>/<seat>: …` — e.g.
+`Fable/Auditor to Opus/Orcha: …` — so the human knows which console receives it without reading the
+body, and the receiving console knows who is speaking. For task dispatches the target form is
+`<model>/T<nnn>` (e.g. `to deepseek-v4-flash/T365:`); the address line replaces the older
+same-line `--- <model>/T<nnn>` annotation, which put content on the fence line and broke the
+fence-alone rule.
+
+Canonical shape (ruled 2026-08-05):
+
+```
+…narrative to the human ends here.
+
+---
+
+Fable/Auditor to Opus/Orcha: <the payload, and nothing else>
+
+---
+
+…narrative to the human resumes here.
+```
 
 Why: without the rule the human has to infer the subset, and inferring it wrongly means a console gets a
 truncated or contaminated brief. This applies to relay messages, dispatch prompts, commit-message drafts,
