@@ -318,5 +318,9 @@
   "sgf_count": 132,
   "sgf_dir": "docs/evidence/ENGINE-VS-ENGINE/",
   "sgf_naming": "t366-<fA|fB>-o<NN>-<B|W>.sgf \u2014 one per diverged game, divergence ply marked with a C[] comment carrying both engines' moves and stored values"
+ },
+ "directive_handling": {
+  "D039": "acked 2026-08-05 (read:false -> read). Orcha ruling: zig build test RED AT HEAD is pre-existing (build.zig:407 clears the vb_i11 test target's import table; src/vb_i11.zig:58 imports 'engine'); registered as T369 which owns build.zig \u2014 not this row's to touch. Acceptance (test -s on the evidence doc) PASSES without a skip, so T369 is cited here as context only. The instrument was compiled standalone (zig build-exe at HEAD) and built clean; the full suite was not run by this row (it is red at HEAD for the T369 cause). MANAGENT_TASK_ID was not exported during this row's runs (tools/runner not used); noted for T370.",
+  "other_red_observed": "none beyond the T369 pre-existing cause; this row never ran the full suite."
  }
 }
