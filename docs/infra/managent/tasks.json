@@ -484,8 +484,8 @@
     "amendments": []
   },
   "T368": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T368-standing-trigger-markers.md",
     "set": "C",
@@ -493,14 +493,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T11:34:05Z",
-    "claimed": null,
+    "claimed": "2026-08-05T12:52:44Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -968,8 +968,8 @@
     "amendments": []
   },
   "T371": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T371-race-first-runs.md",
     "set": "D",
@@ -977,14 +977,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T12:23:33Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T13:08:35Z",
+    "done": "2026-08-05T13:08:35Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/evidence/EPISTEMIC-RACES/runs/2026-08-05-pro-vs-flash.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1079,7 +1079,7 @@
   }
 ,
   "_sys": {
-    "next_id": 373,
+    "next_id": 374,
     "directive_next": 42
   }
 }
