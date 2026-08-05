@@ -39,7 +39,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 - **Measurements map to the node they evidence** (e.g. `4x4.M2` 19 sweeps → Z-CONVERGE-FINITE,
   `2x2.BASICKO-TIE` root value → Z-TABLE), not to a node of their own.
 
-## 1. The mapping — 323 rows (matches the register; count printed by claimlint C0)
+## 1. The mapping — 334 rows (matches the register; count printed by claimlint C0)
 
 | ID | tree node | note |
 |---|---|---|
@@ -375,6 +375,8 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `CODE.MANAGENT-AMEND` | RETIRED | family process; append-only amendment path — infra (T317, T337 S4) |
 | `CODE.MANAGENT-ARCHIVE` | RETIRED | family process; kanban archive command — infra (T319, T337 S4) |
 | `CODE.REGRESSION-WIRING` | RETIRED | family process; orphaned regression scripts wired — infra (T322, T337 S4) |
+| `GLOBAL.SYM-FOLD` | RETIRED | symmetry-fold census over the raw 3^n space — legal AND illegal (T359, STANDING-ABSORB 2026-08-05) |
+| `GLOBAL.I5-SCC-CONTAIN` | RETIRED | I5 SCC cycle-reachability containment passes at 3x2/4x3/4x4 (T344, STANDING-ABSORB 2026-08-05) |
 
 ## 2. Proposed retirements — 116 rows, by family
 

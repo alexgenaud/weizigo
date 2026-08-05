@@ -1,8 +1,12 @@
 {
   "task_id": "T342",
   "model": "deepseek-v4-pro",
+  "claims": [],
   "date": "2026-08-04",
-  "files_changed": ["src/vb_closure.zig", "build.zig"],
+  "files_changed": [
+    "src/vb_closure.zig",
+    "build.zig"
+  ],
   "key_findings": [
     "WZO2 key_byte encoding: ko starts at bit 2 (not bit 1), passes at bit (2+ko_bits). Matches artifact2.zig authority.",
     "WZO2 colex stored as little-endian u32, matches artifact2.zig write/read. Uses goban-size-specific Indexer (3x3 artifact uses Indexer(3,3), not 4x4).",

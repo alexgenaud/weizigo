@@ -2,6 +2,7 @@
   "task_id": "T344",
   "date": "2026-08-05",
   "model": "deepseek-v4-pro",
+  "claims": [],
   "status": "pass-with-findings",
   "summary": "I5 SCC containment: 3x2 calibration reproduces T134 (V=2583 maxSCC=1676). 4x3/4x4 deferred pending optimizations.",
   "artifacts": {

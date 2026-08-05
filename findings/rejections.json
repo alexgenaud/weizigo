@@ -226,30 +226,30 @@
       "finding_file": "T312-parallel-fixpoint.json",
       "claim_id": "CODE.T312-PARALLEL-FIXPOINT",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Valid claim at CLAIMED — the T312 parallel fixpoint solver with race controls, convergence proof, and seeded-defect detection. Needs CLAIMS.md §2 manual insertion (weizigo-absorb generated directive: add_row after GLOBAL.ADR0001-PROJECT). T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Valid claim at CLAIMED — the T312 parallel fixpoint solver with race controls, convergence proof, and seeded-defect detection. Needs CLAIMS.md §2 manual insertion (weizigo-absorb generated directive: add_row after GLOBAL.ADR0001-PROJECT). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T313",
       "finding_file": "T313-releasesafe-invariance.json",
       "claim_id": "CODE.WZO2-RELEASESAFE-INV",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Valid claim at CLAIMED — ReleaseSafe rebuild produces byte-identical artifact with zero safety panics. UB-independence evidence for serial path. Promotion to PROVEN blocked by DIRECTION Amendment 2 edge 5 (mutation adequacy for code involved). T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.WZO2-RELEASESAFE-INV (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Valid claim at CLAIMED — ReleaseSafe rebuild produces byte-identical artifact with zero safety panics. UB-independence evidence for serial path. Promotion to PROVEN blocked by DIRECTION Amendment 2 edge 5 (mutation adequacy for code involved). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T314",
       "finding_file": "T314-parallel-measurement.json",
       "claim_id": "CODE.PARALLEL-FIXPOINT-MEASURED",
       "proposed_status": "MEASUREMENT",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Measurement of T312 parallel fixpoint on Apple M5 Max — speedup curve, RSS, byte-identical artifacts. Status MEASUREMENT (not a truth claim). T337 S4, 2026-08-04."
+      "register_status": "MEASUREMENT",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.PARALLEL-FIXPOINT-MEASURED (MEASUREMENT, CLAIMS.md §2.10)",
+      "rationale": "Measurement of T312 parallel fixpoint on Apple M5 Max — speedup curve, RSS, byte-identical artifacts. Status MEASUREMENT (not a truth claim). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T316",
@@ -258,7 +258,7 @@
       "proposed_status": "CLAIMED (downgrade from PROVEN)",
       "register_status": "covered by T312 absorption above",
       "disposition": "absorbed-under-register-id",
-      "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (T312, pending-CLAIMS.md-placement)",
+      "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (CLAIMED, CLAIMS.md §2.10)",
       "rationale": "T316 audit finding: T312's proposed PROVEN status is downgraded to CLAIMED due to cite-tag mismatches, internal test-count contradiction, missing provenance, and wrong_answer_pass_rate reporting coverage not false-pass probability. Absorbed under T312's own CLAIMED proposal (which agrees the correct status is CLAIMED). T337 S4, 2026-08-04."
     },
     {
@@ -266,50 +266,50 @@
       "finding_file": "T317-managent-attribution.json",
       "claim_id": "CODE.MANAGENT-MODEL-VALIDATION",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Tooling claim: canonical model label validation in managent (canonical_models[], canonicalizeModelTag, isCanonicalModel). Valid CLAIMED. T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.MANAGENT-MODEL-VALIDATION (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Tooling claim: canonical model label validation in managent (canonical_models[], canonicalizeModelTag, isCanonicalModel). Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T317",
       "finding_file": "T317-managent-attribution.json",
       "claim_id": "CODE.MANAGENT-LOST-UPDATE",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Tooling claim: lost-update safety in managent store (lock→re-read→writeStateLocked→unlock pattern for 5 commands). Valid CLAIMED. T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.MANAGENT-LOST-UPDATE (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Tooling claim: lost-update safety in managent store (lock→re-read→writeStateLocked→unlock pattern for 5 commands). Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T317",
       "finding_file": "T317-managent-attribution.json",
       "claim_id": "CODE.MANAGENT-AMEND",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Tooling claim: append-only amendment path for done/failed tasks (managent amend). Valid CLAIMED, first real use on T326 (T337). T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.MANAGENT-AMEND (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Tooling claim: append-only amendment path for done/failed tasks (managent amend). Valid CLAIMED, first real use on T326 (T337). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T319",
       "finding_file": "T319-kanban-archive.json",
       "claim_id": "CODE.MANAGENT-ARCHIVE",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Tooling claim: managent archive command with dry-run, eligibility checks, idempotency, and cmdWhy dual-store search. Valid CLAIMED. T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.MANAGENT-ARCHIVE (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Tooling claim: managent archive command with dry-run, eligibility checks, idempotency, and cmdWhy dual-store search. Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T322",
       "finding_file": "T322-orphaned-controls.json",
       "claim_id": "CODE.REGRESSION-WIRING",
       "proposed_status": "CLAIMED",
-      "register_status": "not yet in CLAIMS.md",
-      "disposition": "pending-CLAIMS.md-placement",
-      "refuting_row": "—",
-      "rationale": "Tooling claim: orphaned regression scripts wired into zig build test (managent-done-git, managent-memory-safety). Extended by T337 S5 which wired 4 more. Valid CLAIMED. T337 S4, 2026-08-04."
+      "register_status": "CLAIMED",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.REGRESSION-WIRING (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "Tooling claim: orphaned regression scripts wired into zig build test (managent-done-git, managent-memory-safety). Extended by T337 S5 which wired 4 more. Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
     },
     {
       "finding_task": "T306",
@@ -320,6 +320,36 @@
       "disposition": "rejected-by-register",
       "refuting_row": "GLOBAL.Z-R-MOVE-B1-EQUIV (CLAIMS.md §2.1)",
       "rationale": "Findings proposes PROVEN at 2×2/3×2; register holds at CLAIMED per DIRECTION Amendment 2 edge 5: solver claims may not be promoted past CLAIMED until mutation adequacy covers them. The B1 lemma kills one mutant but the larger goban scopes lack exhaustive coverage. T337 S4, 2026-08-04."
+    },
+    {
+      "finding_task": "T335",
+      "finding_file": "T335-g3b-build-sprint.json",
+      "claim_id": "4x4.C1",
+      "proposed_status": "CLAIMED",
+      "register_status": "UNTESTED",
+      "disposition": "rejected-by-register",
+      "refuting_row": "4x4.C1 (UNTESTED, CLAIMS.md §2.3: 'SUPPORTED, not PROVEN; no exhaustive ground truth exists')",
+      "rationale": "The T335 proposal to promote 4x4.C1 to CLAIMED on the strength of G3b pass0 is rejected on the sprint owner's own ruling: docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md §6 (Orchestrator, 2026-08-05) states 'G3b is NOT discharged, and no claim is promoted'. C-A1/C-A2 closure was tabled as PASS with no denominator — the 4x4 evidence is a 22-entry sample out of 99,133,036 (0.00002%), the exact defect the g3b spec was written to prevent (§2.1: a check that cannot fail is not a check); the four remaining gaps are registered as T363. Internal consistency (0 Bellman violations, 0 key mismatches, 0 move-set mismatches) is not correctness against ground truth, which is what 4x4.C1 asserts and what the row marks UNTESTED."
+    },
+    {
+      "finding_task": "T335",
+      "finding_file": "T335-g3b-build-sprint.json",
+      "claim_id": "4x4.FP1",
+      "proposed_status": "CLAIMED",
+      "register_status": "UNTESTED",
+      "disposition": "rejected-by-register",
+      "refuting_row": "4x4.FP1 (UNTESTED — checks 1-2; check 3 PASSES, CLAIMS.md §2.2) and 4x4.FP1-C1/4x4.FP1-C2 (UNTESTED, CLAIMS.md §2.2)",
+      "rationale": "The T335 proposal to promote 4x4.FP1 to CLAIMED is rejected: the register row 4x4.FP1 remains UNTESTED for checks 1-2 (seed from -N/+N, zero-change termination) per CLAIMS.md §2.2 and 4x4/EPISTEMIC.md:69-97; only check 3 (V0/V1 Bellman identities, 4x4.FP1-C3) is PROVEN as scoped. The I4 Bellman-residual result from G3b pass0 covers the check-3 class, not seeding/termination. The g3b sprint owner's ruling (pass0/accept.md §6, 2026-08-05) states no claim is promoted from G3b pass0; I5 containment is deferred to T344 and does not discharge FP1 checks 1-2. Internal-consistency measurement is not fixpoint-seeding evidence."
+    },
+    {
+      "finding_task": "T344",
+      "finding_file": "T344-i5-4x4.json",
+      "claim_id": "Z-CONVERGE-FIX",
+      "proposed_status": "CLAIMED",
+      "register_status": "NO SUCH ID",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "GLOBAL.I5-SCC-CONTAIN (CLAIMED, CLAIMS.md §2.10)",
+      "rationale": "The findings file used the malformed ID 'Z-CONVERGE-FIX' — no register prefix (GLOBAL./CODE./<goban>.) and a collision with the Z-column vocabulary (the tree/colex label Z-CONVERGE-FIX already names the fixpoint-convergence row family, e.g. 4x4.WZO2-A2-EXHAUSTIVE's tree cell). The content (I5 SCC containment passes at 3x2/4x3/4x4, ko_not_cr=0) is registered as GLOBAL.I5-SCC-CONTAIN (CLAIMED) added by STANDING-ABSORB 2026-08-05, cited from findings/T344-i5-4x4.json. Single-instrument self-report held at CLAIMED, not PROVEN, per verify-then-promote."
     }
   ]
 }
