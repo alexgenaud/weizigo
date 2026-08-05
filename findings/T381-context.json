@@ -1,0 +1,138 @@
+{
+ "task_id": "T381",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T381",
+ "git_head": "f46ba1ca",
+ "instrument_source": "src/t381_evse.zig",
+ "instrument_sha256": "3e6426bd832e41b2c6abf129abd70f7c2b5c9ce3aa36d8088a98bc60013ee40f",
+ "instrument_binary_sha256": "716a54d565a98b95ec5d8269b956c3c42475c871d072b74e46185132e8456082",
+ "artifact": "data/oracle-4x4-v2.wzo2",
+ "artifact_sha256": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
+ "ruleset_ours": "Chinese area, komi 0, no suicide, basic ko (rules_id 3, L/H bracket)",
+ "openings": "T366 corpus verbatim (3 canonical one-ply + 30 seeded random two-ply, seed 42) + empty goban = 34; x2 colours = 68 games per engine",
+ "engines": {
+  "gnugo": {
+   "version": "GNU Go 3.8",
+   "invocation": "gnugo --mode gtp --boardsize 4 --chinese-rules --komi 0 --forbid-suicide --simple-ko --never-resign",
+   "ruleset_notes": "simple ko confirmed by probe (recapture rejected); suicide forbidden; final_score UNRELIABLE on 4x4 (B+16.0 on empty board and on full 8-8 board) - game result always from our area_score",
+   "ko_suicide_probe": "ko recapture rejected; suicide rejected",
+   "final_score_empty": "B+16.0",
+   "final_score_full": "B+16.0",
+   "stone_check": "list_stones agree in all 68 games",
+   "summary": {
+    "games": 68,
+    "wins": 46,
+    "losses": 21,
+    "ties": 1,
+    "capped": 0,
+    "losses_from_claimed_won": 0,
+    "ties_from_claimed_won": 0,
+    "outcome_inside_root_bracket": 39,
+    "claimed_won_roots": 39,
+    "claimed_won_roots_all_won": true,
+    "refused_our_positions": 0
+   }
+  },
+  "pachi": {
+   "version": "Pachi 12.90",
+   "invocation": "pachi resign_threshold=0 threads=2 -t =1000",
+   "ruleset_notes": "ko recapture rejected (play-based probe; no all_legal); suicide rejected; final_score works on empty board (0) but returns \"unclear groups\" on contested 4x4 - not used; lacks list_stones (positional check untested, by-construction agreement)",
+   "ko_suicide_probe": "ko recapture rejected; suicide rejected",
+   "final_score_empty": "0",
+   "final_score_full": "unclear groups",
+   "stone_check": "untested (no list_stones)",
+   "summary": {
+    "games": 68,
+    "wins": 39,
+    "losses": 28,
+    "ties": 1,
+    "capped": 0,
+    "losses_from_claimed_won": 0,
+    "ties_from_claimed_won": 0,
+    "outcome_inside_root_bracket": 37,
+    "claimed_won_roots": 34,
+    "claimed_won_roots_all_won": true,
+    "refused_our_positions": 0
+   }
+  },
+  "fuego": {
+   "version": "Fuego 1.1.SVN",
+   "invocation": "fuego --quiet  (then GTP: boardsize 4, clear_board, komi 0, time_settings 0 1 1, uct_param_player resign_threshold 0, go_param_rules ko_rule simple)",
+   "ruleset_notes": "DEFAULT IS POSITIONAL SUPERKO (go_param_rules ko_rule superko) - a different game. Found via fuego-o13-B rejection at ply 48 (\"illegal move: 49 B A4 (superko)\"). Fixed with go_param_rules ko_rule simple, verified: same 48-ply sequence replayed, 0 errors. ko recapture then rejected as \"(simple)\"; suicide rejected; final_score numerically correct on probes but dead-stone judgment diverges from pure area on contested positions - not used",
+   "superko_finding": {
+    "game": "fuego-o13-B",
+    "event": "our position-repeating A4 at ply 48 rejected as superko under default rules",
+    "resolution": "ruleset_mismatch (different game - MIGOS epitaph)",
+    "after_fix": "same opening wins B+16 under ko_rule simple, no rejection"
+   },
+   "ko_suicide_probe": "ko recapture rejected (simple); suicide rejected",
+   "final_score_empty": "0",
+   "final_score_full": "W+16 (its own dead-stone judgment; pure area expects 0)",
+   "stone_check": "list_stones agree in all 68 games",
+   "summary": {
+    "games": 68,
+    "wins": 56,
+    "losses": 6,
+    "ties": 5,
+    "capped": 1,
+    "losses_from_claimed_won": 0,
+    "ties_from_claimed_won": 0,
+    "outcome_inside_root_bracket": 36,
+    "claimed_won_roots": 34,
+    "claimed_won_roots_all_won": true,
+    "refused_our_positions": 0
+   }
+  }
+ },
+ "headline": "losses from claimed-won positions: 0/68 per engine, 0/204 total; ties from claimed-won: 0/204 (after the Fuego basic-ko fix; the default-superko run produced 1 tie-from-claimed, resolved to ruleset mismatch)",
+ "loss_analysis": "all 55 losses came from roots the table claimed for the OPPONENT (forced openings often losing for our colour); 0 losses had any claimed-for-us position",
+ "non_optimal_our_moves": "5 total in 204 games, all the designed early-game pass-override (chooseV2) in games the table never claimed for us: gnugo-o05-B ply12, gnugo-o22-B ply12, gnugo-o32-B ply12 (L=H=-13, passes=1), fuego-o26-W ply5 and ply9 (L=H=0, passes=1); none affected any finding",
+ "controls": {
+  "null_control": [
+   {
+    "game": "gnugo-o33-B",
+    "recorded": 16,
+    "replay": 16,
+    "passed": true
+   },
+   {
+    "game": "pachi-o33-B",
+    "recorded": 16,
+    "replay": 16,
+    "passed": true
+   },
+   {
+    "game": "fuego-o00-B",
+    "recorded": 2,
+    "replay": 2,
+    "passed": true
+   }
+  ],
+  "seeded_control": [
+   {
+    "injection": "gnugo-o33-B ply 0 pass",
+    "result": "checker flags ply0 optimal=false (chosen -1 vs extremum 1); claim flips to White-favoured; recovered to B+1",
+    "passed": true
+   },
+   {
+    "injection": "gnugo-o02-B ply 2 pass",
+    "result": "root [16,16] claimed; injected pass flips to W+9 LOSS; finding=loss_from_claimed, resolution=selector, outcome_inside_root=false",
+    "passed": true
+   }
+  ],
+  "selfscore": "recorded score reproducible from the move list with no engine (pure area_score of final position)",
+  "determinism_note": "harness deterministic (null control); engines are not: GNU Go games varied 10/68 and Pachi 52/68 across two runs (internal RNG); each run a valid sample; 0 losses-from-claimed stable across all runs of all engines"
+ },
+ "capped_games": [
+  {
+   "game": "fuego-o32-W",
+   "note": "basic-ko legal position cycle to the 400-ply cap; reported, not classified (T366 convention)"
+  }
+ ],
+ "files": {
+  "evidence_doc": "docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md",
+  "data_json": "findings/T381-third-party.json",
+  "raw_runs": "/tmp/weizigo/t381/gnugo-final.json, /tmp/weizigo/t381/pachi-final.json, /tmp/weizigo/t381/fuego-full4.json"
+ }
+}
