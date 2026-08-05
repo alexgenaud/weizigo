@@ -1,17 +1,20 @@
 # STATE — crash-recovery anchor
 
 **Read this first. Overwritten in place; always current.**
-Last updated: **2026-08-05, start of the Opus 5 Orcha session** — Fable 5 retired from the seat
-on operator instruction; its session delta is `docs/status/handover-orcha-2026-08-05.md`.
+Last updated: **2026-08-05, evening — Opus 5 Orcha session, after G3b was discharged and the
+fleet drained.** Fable 5 retired from the seat earlier the same day; its session delta is
+`docs/status/handover-orcha-2026-08-05.md`.
 Resume: `bin/managent resume`, then this file, then your row's brief. Nothing else.
 
 ---
 
 ## 1. Where things stand
 
-**The 4×4 artifact is structurally complete. Its values are verified for Bellman residual and
-key agreement at full scale, and not yet for closure or cycle containment.** That is the honest
-sentence; do not shorten it to "solved".
+**The 4×4 artifact is structurally complete, and its values are now verified at full scale for
+Bellman residual, key agreement, closure (both directions) and cycle containment — with move-set
+consistency at 4×4 verified on a 50,000-state sample rather than exhaustively.** That is the
+honest sentence as of 2026-08-05; do not shorten it to "solved", and do not drop the word
+*sample* from the last clause.
 
 G3b pass0 ran and delivered ten rows. Established at 4×4, each behind an instrument licensed
 with a null control **and** a seeded defect shown to fire:
@@ -20,11 +23,21 @@ with a null control **and** a seeded defect shown to fire:
 - **0 key mismatches / 99,133,036** entries
 - **0 move-set mismatches at every rung**, including 4×3 (0 / 643,378) and at ko-active states
 
-**G3b is NOT discharged and no claim was promoted.** `pass0/accept.md` §6 carries the ruling.
-Two pass conditions had been tabled as PASS with no denominator; their real 4×4 evidence was a
-22-entry sample (0.00002%). Four gaps remain, registered as **T363** in cost order: full 4×4
-closure run (minutes), 4×3 retroactive rung for I4 and key-agreement, I5 at 4×3/4×4 with the
-owed memory breakdown, M8/M10 mutant assertions.
+**G3b is DISCHARGED (Orchestrator ruling, 2026-08-05, `29477d9`)** — the signed ruling is the
+final section of `pass0/accept.md`. T363 closed all four gaps; the seat re-ran the load-bearing
+check itself rather than reading the report (0 / 600,763,414 children, 0 / 99,020,312 reachable,
+239.5 s, 1124 MB — reproducing T363's figures exactly). Promotions authorised, executed by
+**T377**: `4x4.C1` and `4x4.FP1` UNTESTED → CLAIMED, `GLOBAL.H4` text drops "partial". **Nothing
+to PROVEN** — CLAIMED is the ceiling pending Phase 3.
+
+**Four scope limits travel with that discharge and must be quoted wherever it is cited:** I11 at
+4×4 is a 50,000-state sample of 99,133,036 (0.05%) and the only non-exhaustive condition; the 4×3
+I4 rung excludes 170,276 KO_SENSITIVE slots (WZO1 format boundary); the KO_SENSITIVE column itself
+is still distrusted pending Track A — the checks pass *around* it; and everything is fresh-start
+under R, never real-game. **Accepted vacuity finding:** spec §7.2's premise that 3×2 is the first
+non-vacuous I5 rung is false in the full graph, so the lower I5 rungs could not have failed and
+were never evidence — the 4×4 rung is the one that counts, and it carries the red-then-green
+seeded control. G3b is one lemma of Phase 3, not Phase 3.
 
 Spec is **Rev 5**, plan is **Rev 5**, both RATIFIED. 4×3 is ladder rung 4: **no 4×4 reading
 counts until that check has passed at 4×3.**
@@ -52,6 +65,13 @@ counts until that check has passed at 4×3.**
    the full import graph and drags in `qa023_brute_2x2`'s explosive smoke test. It now fails
    fast on a 20M-node budget (T360); **do not raise the budget.** (`zig build test` accepts no
    filter in this build.zig — the previous wording here prescribed a command that does not run.)
+   **Since T363 (`f713234`) four files need the `engine` module and the bare form no longer
+   compiles them** — `vb_i11`, `vb_closure`, `vb_mutants`, `smd1`. For those, map the module
+   explicitly, e.g.
+   `zig test -O ReleaseFast --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig --test-filter "<tag>"`.
+   The bare form fails with `error: no module named 'engine' available within module 'test'` —
+   a compile error, so it is loud, but it looks like a broken checkout rather than a stale recipe.
+   Verified by this seat on 2026-08-05 while re-running the 4×4 closure check.
 8. **One writer per file, declared as `holds=`.** `holdsConflict` refuses a claim only against an
    **in-progress** holder (`src/managent/main.zig`), so declaring the hold is what mechanizes it.
 9. **Commit through `tools/git-commit-mine <paths> -m <msg>`**, never `git add -A`.
@@ -67,23 +87,25 @@ counts until that check has passed at 4×3.**
 
 ## 3. In flight and owed
 
+**The fleet is empty as of 2026-08-05 evening.** Every dispatched row closed. Dispatchable now,
+in the order this seat would run them:
+
 | Row | What | State |
 |---|---|---|
-| T363 | G3b completion — the four gaps to discharge | **in progress** (deepseek-v4-flash whole-sprint console; first sprint-manager trial). Live at 2026-08-05T12:2xZ: I5 SCC run under runner at the authorised 8192 MB |
-| T328 | Bake-off harness dry-run (races item 1) | **done** 2026-08-05 (89baf9a), verdict pass-with-findings |
-| T366 | Old vs new 4×4 engine kifu, milestone M3 (re-registration of dead T361) | **done** 2026-08-05 (0ad9710 + 71fcec7), verdict pass. 132 games, every one diverges; genuine value losses 3/66 shared-PSK frame and 6/66 basic-ko frame, decided by outcome not node-value equality. Frame A losses are **old-table internal inconsistency** — a node value its children cannot reach — consistent with the writes-ON checkpoint being the untrusted build. Its acceptance passed without a skip, and it observed no red beyond T369's |
-| T367 | Race packet authoring + key sealing (races item 2) | **done** 2026-08-05 (b7c382c), verdict pass — 18 lane-facing packets, keys hash-committed before any lane runs, 3/3 known killers verified at seal time. Note for the audit: it ran unclaimed for ~45 min and recorded claim and done in the same instant (12:15:04Z), so `holdsConflict` protected nothing while it worked |
-| T354 | Register triage + C3 ratchet | dispatched 11:34Z, no claim and nothing in tree — **liveness unverifiable, see T370**; treat as unconfirmed, not dead |
-| T371 | **Race first runs** — Pro vs Flash on races 1 and 2 (EPISTEMIC-RACES item 3) | registered 2026-08-05, set D, unblocked by T328 + T367. **Conductor must not be from a competing family** — explicit Orcha exception to the Flash-default; recommend glm-5.2. Confound to publish: Flash authored the packets and is also a lane, so a Flash win licenses only a replication, while a Flash loss is the informative outcome |
-| T369 | **Suite truth** — `zig build test` red by construction; 24 rows closed on 24 different pre-existing-red stories | registered 2026-08-05, set J. **Hold while the fleet is hot** (owns `build.zig`); red #1 stays with T363 per D037/D041 |
-| T370 | **Task identity never reaches `tools/runner`** — liveness blind, directives cannot land in a running worker | registered 2026-08-05, set G (serialises with T362/T364) |
-| STANDING-ABSORB | Tier 0 absorb pass | **done 2026-08-05** (C7 4→0, commit 044d9b2) |
-| T354 | Register triage + C3 ratchet | dispatched (unblocked by absorb close) |
-| T368 | `managent standing` trigger markers dead since T356's rename — re-couple + regression | dispatchable (set C) |
-| T357 | Ollama concurrency measurement | **requires a QUIET fleet** — first row when the fleet drains |
-| T350/T351/T352/T353, T362, T364 | managent robustness; runner rows | hold while fleet is hot (they edit tooling live consoles execute) |
-| T358 | Scaling census — hold until the machine is quiet; it rebuilds artifacts | dispatchable, frontier-held |
-| T348 | DISCHARGE — **do not claim until T363 closes and Orcha rules** | blocked in practice |
+| T377 | Execute the G3b promotions + repair the 5 non-conforming findings files | **dispatchable — do this first**, it records M2's result in the ledger |
+| T373 | Register triage Step 0 — 132 rows to `archives/`, live register 334→202, C3 floor 48 | **unblocked** (needed T363, now done). Wedge risk: re-base the calibration fixtures FIRST |
+| T369 | Suite truth — enumerate every red, known-red manifest firing both ways | dispatchable. Red #1 is FIXED by T363; the remaining red is qa023's T360 fail-fast (4 crashed tests) |
+| T370 | Task identity into `tools/runner` — liveness blind, directives cannot land | dispatchable; serialises with T362/T364 (set G) |
+| T357 | Ollama concurrency measurement — **needs a quiet fleet, which it now has** | dispatchable |
+| T362 / T364 | Fleet-aware memory guard; parent-side exit records + `managent reap` | dispatchable, hold `tools/runner` |
+| T350–T353 | managent robustness (set C, one at a time) | dispatchable |
+| T358 | Scaling census — rebuilds artifacts, wants a quiet machine | dispatchable, frontier-held |
+| STANDING-CLEANUP | Triggered: tree dirty across two turns | dispatchable |
+
+Closed 2026-08-05 (evening): **T363** (all four G3b gaps + the `vb_i11` build defect),
+**T348** (discharge, closed by the seat — the verdict was never a worker's to give),
+**T366** + **T375** (M3 and its mirror), **T371** (first race), **T368** (standing triggers),
+**T372** (Z-R-TIE contrast), **T374** (showscores crash), **T376** (bakeoff worktree).
 
 ## 4. Gates, as of now
 
@@ -92,8 +114,14 @@ counts until that check has passed at 4×3.**
 **`C3 UNBACKED` = 76 of 100 PROVEN rows have no committed evidence.** Report-only, which is why
 it grew unnoticed. T354 proposes the ratchet.
 
-**`zig build test` is RED and has been since T346 — and the acceptance gate is therefore not a
-gate.** `bin/managent audit` reports **24 done rows closed with `--skip-acceptance`**, each with
+**Suite, 2026-08-05 evening: 46/48 steps, 691/695 tests** (up from 43/48 and 681/685). T363 fixed
+red #1 — the `vb_i11` target that could not compile since T346 — via a shared `engine_mod` now
+imported by `vb_i11`, `vb_closure`, `vb_mutants` and `smd1`. The remaining 4 crashed tests are the
+documented pre-existing `qa023_brute_2x2` fail-fast (T360's 20M-node budget; do not raise it).
+**T369 still owns the aggregate**: a known-red manifest that fires in both directions, so a new
+red is loud and a fixed red must be struck. Also still true, and the reason T369 matters:
+
+**the acceptance gate has not been a gate.** `bin/managent audit` reports **24 done rows closed with `--skip-acceptance`**, each with
 its own honest-sounding story for why the suite was already red (T338's uncommitted work, T360's
 node budget, `vb_i11` wiring, an 1800 s runner kill, claimlint's floor). No two stories agree and
 no row owned the aggregate, so 24 consecutive rows self-certified on a partial leg. Red #1 is
