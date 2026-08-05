@@ -197,6 +197,28 @@
     "skip_acceptance_reason": "suite passed at 42.4s prior to commit (307ec4c)",
     "amendments": []
   },
+  "T372": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T372-zrtie-contrast-generator.md",
+    "set": "K",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T12:37:41Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/QA-023/c1-contrast-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T337": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -304,6 +326,28 @@
     "verdict_note": null,
     "claim_count": 0,
     "acceptance": "sh tools/smoke.sh",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T373": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T373-triage-adoption.md",
+    "set": "B",
+    "holds": [],
+    "needs": ["T363"],
+    "caps": [],
+    "added": "2026-08-05T12:38:37Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -1035,7 +1079,7 @@
   }
 ,
   "_sys": {
-    "next_id": 371,
+    "next_id": 373,
     "directive_next": 42
   }
 }
