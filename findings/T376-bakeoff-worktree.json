@@ -1,0 +1,42 @@
+{
+  "task_id": "T376",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Fixed two structural gaps in the bake-off harness (tools/bakeoff.sh, docs/infra/bakeoff.md), found by T371 running the instrument for real. Milestone: M1 (the dashboard tells the truth). Commit 90cc86f (fix + doc); the evidence commit is this one.
+
+## Finding 1 — FIXED: execute() cannot run from a worktree
+
+Old find_root() walked up from the script's dir requiring isdir(.git); in a git worktree .git is a FILE carrying a gitdir: pointer, so root detection failed and execute() refused to run. New find_root() prefers `git rev-parse --show-toplevel` (accepts both a .git dir and a .git file), treats absence of git as a loud die() (exit 2, stderr names the directory and git's own error — never a guess), and adds a sanity guard: the resolved root must contain this harness at <root>/tools/bakeoff.sh (realpath-compared), else it refuses to guess. The guard is the answer to 'a root detector that silently picks the wrong directory is how a lane would read the keys' — e.g. a copy of the harness inside an unrelated nested repo now dies instead of running lanes against the wrong checkout.
+
+PROOF (one real execute() lane from a worktree, not --emit): fresh worktree /tmp/weizigo/lane-wt-t376 at commit 90cc86f (committed content only), roster `deepseek deepseek-v4-flash`, brief tools/bakeoff-dryrun-task.md, invoked from inside the worktree:
+
+  cd /tmp/weizigo/lane-wt-t376 && tools/bakeoff.sh tools/bakeoff-dryrun-task.md /tmp/weizigo/T376-roster.txt --run t376-worktree-proof-20260805 --wall 300
+
+Result: harness exit 0; summary `root=/private/tmp/weizigo/lane-wt-t376 worktree=True`; `RESULT deepseek-v4-flash family=deepseek serving_tag=deepseek-v4-flash status=ok exit=0 wall_s=2.0 cpu_s=0.49 rss_mb=194 out_bytes=18`; out.md = exactly `BAKEOFF-DRYRUN-OK\n` (18 B); trailer.log captured `[runner] exit 0 in 2.0 s`, peak RSS 194 MB, peak total CPU 0.49 s; lanes.json isolation record `root_is_worktree: true`. Run dir preserved at untracked/bakeoff/t376-worktree-proof-20260805/ (gitignored) — durable copy in the main checkout, same files also present in the worktree. Hashes: out.md 40f1f3af25956fe9387abfbf97dc8a02bd42b8ba84ff67ffc33275436514439c, trailer.log ce317e096dd250829628edf4c3a522c6ae925b335a711be695894d8b4c250082, lanes.json 41d71e1fecc4ea35c774655d10dbd9015ecba56ec052f0b01641b1ea91c6fa7e, prompt.txt 0019dacaab1f1a701c7d7d23ac4578f5f5432df355e74de1197500413cbda5c8 (prompt hash == T328's recorded hash, consistency signal). The lane ran from inside the worktree through tools/runner exactly as the protocol requires.
+
+CONTROLS (find_root, exercised via SourceFileLoader on the real script):
+- Worktree (success): load /tmp/weizigo/lane-wt-t376/tools/bakeoff.sh -> find_root() = /private/tmp/weizigo/lane-wt-t376. PASS.
+- Null control, normal checkout (success): load tools/bakeoff.sh at repo root -> find_root() = /Users/alex/Project/Zig/weizigo. PASS.
+- Seeded control, outside any repository (must die loudly): copy of the script at /tmp/weizigo/t376-norepo/tools/bakeoff.sh (plain dir, no git) -> stderr 'bakeoff: not inside a git repository (git rev-parse failed from /tmp/weizigo/t376-norepo/tools): fatal: not a git repository (or any of the parent directories): .git', exit code 2. PASS.
+- Extra guard (script inside a repo but not at <root>/tools/bakeoff.sh): copy at /tmp/weizigo/t376-nested/sub/bakeoff.sh inside a fresh git repo -> stderr 'resolved root ... does not contain this harness ... refusing to guess', exit 2. PASS (this is the silent-wrong-directory case made loud).
+
+## Finding 2 — HONESTED + CHEAP HARDENING: the boundary is relative-path-only
+
+Documentation first (docs/infra/bakeoff.md, new subsection 'Worktree execution and the isolation boundary'): the worktree isolation is stated as a RELATIVE-PATH boundary plus a convention (harness header instructs no shell commands; race briefs self-contained), NOT a sandbox. 'Do not describe worktree isolation as a guarantee.' A tool-using lane can read the main checkout's gitignored untracked/ via absolute paths; verified from inside lane-wt-t376: untracked/race-keys/ and untracked/race-grading/ absent from the lane's view (relative), and `test -f /Users/alex/Project/Zig/weizigo/untracked/race-keys/race1.key` returns true (absolute reach exists — demonstrated with existence only, no content read). NOTE: untracked/msg/milestone-01-ko-reframe/STATE.md IS tracked in git, so a worktree does contain that one file; the key/grading state is gitignored and absent.
+
+Cheap hardening: execute() now records isolation.root / isolation.root_is_worktree / isolation.lane_cwd (+ a strength string) in lanes.json and prints `root=<root> worktree=<bool>` on stdout, so every run document can state exactly what a lane could reach. Lanes already dispatch with cwd=root (the worktree root when run from a worktree), so relative traversal cannot climb back to the main checkout.
+
+NOT built this row (sized finding, per brief 'do not build a sandbox'): true isolation needs OS-level sandboxing (macOS seatbelt / Linux bwrap) or per-family tool restriction. pi has `--no-tools` (verified in `pi --help`), so deepseek/ollama lanes COULD be tool-restricted with one argv flag, but claude lanes legitimately need tools per brief (mechanical anchors: 'zig build test passes' is a scored criterion, §3.5) and the harness supports per-task --claude-tools, so a blanket --no-tools would change the grading contract. A per-run '--no-tools' harness flag forwarded to pi lanes (race lanes are self-contained by design) is the cheapest real step; sized at one flag + one doc paragraph + one dry-run regression, out of scope here per the plumbing-only bar.
+
+## Also recorded (retry rule)
+
+T371 observed a deepseek-v4-flash attempt-1 API stall (600 s wall, near-zero CPU, 0 output; retried). docs/infra/bakeoff.md §5 now has 'Retried lanes': the completing attempt's clocks and output are the scored ones; the retry is disclosed in the run document (attempt count, why each non-completing attempt stopped, which clocks were scored); attempt artifacts preserved verbatim (out.md.attempt1, trailer.log.attempt1), never overwritten.
+
+## Bars honored
+
+- Touched only tools/bakeoff.sh and docs/infra/bakeoff.md (+ this findings pair). Packets and sealed keys untouched (docs/evidence/EPISTEMIC-RACES/, untracked/race-keys/ — hashes still match the b7c382c register). tools/runner untouched (held by T362/T364). Grading contract, family-exclusion bar, calibration requirements unchanged.
+- Acceptance: sh tools/smoke.sh zero STALE after `zig build deploy` (see T376-context.json for the run).
+- Plumbing-only: lane dispatch argv unchanged; lanes.json gained an isolation record (additive)."
+}
