@@ -9,9 +9,18 @@ FAIL=0
 
 echo "=== smoke ==="
 
-# 1. Differential harness: null control + seeded-defect + known-bad (3 tests, <0.1s)
+# 1. Differential harness: null control + seeded-defect + known-bad (3 tests, ~1s)
+# Filtered per STATE rule 7: unfiltered `zig test src/differential.zig` pulls the
+# import graph and runs qa023_brute_2x2's explosive smoke test (T360 fail-fast aborts
+# it, reddening this step for the wrong reason). The pass condition asserts the exact
+# test count: zig exits 0 on a filter that matches nothing ("All 0 tests passed"),
+# which made step 2 below a vacuous green until 2026-08-05.
 printf '  differential: '
-if zig test src/differential.zig 2>/dev/null; then
+OUT=$(zig test src/differential.zig \
+    --test-filter "null control: same impl twice" \
+    --test-filter "seeded-defect control: mutant caught" \
+    --test-filter "known-bad fixture" 2>&1) || true
+if echo "$OUT" | grep -q "All 3 tests passed"; then
     echo "PASS"
 else
     echo "FAIL"
@@ -19,8 +28,11 @@ else
 fi
 
 # 2. Rules area_score + neighbors dispatchers (2 tests, fast)
+# --test-filter is a substring match, one flag per test; the old single-string
+# `\|` alternation matched zero tests and passed vacuously. Count asserted.
 printf '  rules dispatchers: '
-if zig test src/rules.zig --test-filter "areaScore runtime\|neighborsRt runtime" 2>/dev/null; then
+OUT=$(zig test src/rules.zig --test-filter "areaScore runtime" --test-filter "neighborsRt runtime" 2>&1) || true
+if echo "$OUT" | grep -q "All 2 tests passed"; then
     echo "PASS"
 else
     echo "FAIL"
