@@ -1,7 +1,8 @@
 # STATE — crash-recovery anchor
 
 **Read this first. Overwritten in place; always current.**
-Last updated: **2026-08-05, end of the Opus 5 Orcha session.**
+Last updated: **2026-08-05, end of the Fable 5 Orcha session** (operator-corrected seat
+attribution; session delta in `docs/status/handover-orcha-2026-08-05.md`).
 Resume: `bin/managent resume`, then this file, then your row's brief. Nothing else.
 
 ---
@@ -68,16 +69,17 @@ counts until that check has passed at 4×3.**
 
 | Row | What | State |
 |---|---|---|
-| T363 | G3b completion — the four gaps to discharge | dispatchable, **next** |
-| T355 | Inbox loop | in progress (minimax-m3) |
-| T356 | Check names — landed in claimlint output (`C3 … [UNBACKED]`) | in progress (glm-5.2) |
-| T359 | Symmetry fold census — the ~16× that gates 5×5 | in progress (glm-5.2) |
-| T361 | Old vs new 4×4 engine, SGF kifu for genuine losses | in progress (minimax-m3) |
-| T358 | Scaling census — hold until the machine is quiet; it rebuilds artifacts | dispatchable |
-| T362 | Fleet-aware memory guard — per-process caps do not compose | dispatchable |
-| T353/T354 | `managent orient` (≤150-line generated preamble); register triage | dispatchable |
-| T350/T351/T352 | cmdDone two-phase lock; suite legibility; T227 timeout | dispatchable |
-| T348 | DISCHARGE — **do not claim until T363 closes** | blocked in practice |
+| T363 | G3b completion — the four gaps to discharge | **in progress** (deepseek-v4-flash whole-sprint console; first sprint-manager trial) |
+| T328 | Bake-off harness dry-run (races item 1) | in progress |
+| T366 | Old vs new 4×4 engine kifu, milestone M3 (re-registration of dead T361) | in progress |
+| T367 | Race packet authoring + key sealing (races item 2) | dispatched, awaiting claim |
+| STANDING-ABSORB | Tier 0 absorb pass | **done 2026-08-05** (C7 4→0, commit 044d9b2) |
+| T354 | Register triage + C3 ratchet | dispatched (unblocked by absorb close) |
+| T368 | `managent standing` trigger markers dead since T356's rename — re-couple + regression | dispatchable (set C) |
+| T357 | Ollama concurrency measurement | **requires a QUIET fleet** — first row when the fleet drains |
+| T350/T351/T352/T353, T362, T364 | managent robustness; runner rows | hold while fleet is hot (they edit tooling live consoles execute) |
+| T358 | Scaling census — hold until the machine is quiet; it rebuilds artifacts | dispatchable, frontier-held |
+| T348 | DISCHARGE — **do not claim until T363 closes and Orcha rules** | blocked in practice |
 
 ## 4. Gates, as of now
 
@@ -98,6 +100,11 @@ it grew unnoticed. T354 proposes the ratchet.
   boundary, not capacity — the window reaches 1 M. Mechanism undocumented; do not restate as fact.
 - **4×3 is ladder rung 4** (spec Rev 5), for transposition coverage and as the 5×4 rehearsal.
 - **8192 MB authorised** for the I5 runs. Host has 48 GB and took an OOM kernel panic at 12.5 GB.
+- **deepseek-v4-flash is the default for ALL new dispatches until 2026-08-12** (worker rows and
+  sprint consoles); at expiry, re-rule on the week's ledger — `model-perf.md` §Model versions.
+- **Concurrency:** the five-agent ceiling is the Ollama pool only; no DeepSeek limit known
+  (operator, 2026-08-05: six DeepSeek + five Ollama + several Claude simultaneously is fine).
+  Real constraints are sets, `holds=`, and host RAM.
 - Decisions that cannot be delegated: `docs/infra/human-decisions.md`.
 
 ## 6. Epitaphs — do not re-open these
@@ -120,7 +127,7 @@ it grew unnoticed. T354 proposes the ratchet.
 
 | seat | status |
 |---|---|
-| Orchestrator | handover pending — Opus 5 held it 2026-08-04/05 |
+| Orchestrator | handover to Opus 5 pending — Fable 5 held it 2026-08-05 (Opus 5 before that, 2026-08-04/05) |
 | Sprint consoles | seated per package, closed when the package closes |
 | Auditor | ephemeral, spun per gate (DIRECTION §6) |
 | Fable | available for high value-per-token work only; never cheap audits |

@@ -231,9 +231,9 @@
     "added": "2026-08-04T15:14:04Z",
     "claimed": null,
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
+    "dispatched": "2026-08-05T11:34:05Z",
+    "dispatched_to": "deepseek-v4-flash",
+    "note": "Unblocked by STANDING-ABSORB close (044d9b2): CLAIMS.md is free. Tier 2 row: register triage + C3 ratchet.",
     "verdict": null,
     "verdict_note": null,
     "claim_count": 0,
@@ -405,6 +405,28 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-04T14:22:51Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T368": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T368-standing-trigger-markers.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T11:34:05Z",
     "claimed": null,
     "done": null,
     "dispatched": null,
@@ -726,8 +748,8 @@
     "amendments": []
   },
   "T366": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T366-old-vs-new-engine-kifu.md",
     "set": "I",
@@ -735,14 +757,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T11:16:04Z",
-    "claimed": null,
+    "claimed": "2026-08-05T11:31:41Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
+    "dispatched": "2026-08-05T11:30:18Z",
+    "dispatched_to": "deepseek-v4-flash",
+    "note": "Milestone M3 (old-vs-new engine kifu), re-registration of dead T361. Read-only vs committed artifacts; set I; no collision with the four rows in flight.",
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -947,8 +969,7 @@
   }
 ,
   "_sys": {
-    "next_id": 368,
+    "next_id": 369,
     "directive_next": 37
-  },
-  "_standing": {"c3_debt":0,"msg_count":1,"false_count":52,"dirty_files":0}
+  }
 }
