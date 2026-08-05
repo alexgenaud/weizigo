@@ -396,8 +396,8 @@
     "amendments": ["2026-08-04T10:23:44Z: verdict=pass-with-findings note=correction (Orchestrator, 2026-08-04): original skip-acceptance blamed regression-git-commit-mine and regression-subagent-prompt as broken — both pass ALL CONTROLS in a clean run. The red observation was correct (suite exit 1) but the cause was a dirty tree with leftover test artifacts from other consoles, not defective scripts. The GTP deliverable is sound: 88/88 gtp tests, smoke PASS zero STALE after deploy"]
   },
   "T383": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T383-ko-decode-fix.md",
     "set": "E",
@@ -405,14 +405,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T22:25:51Z",
-    "claimed": null,
+    "claimed": "2026-08-05T22:55:38Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 14,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -506,8 +506,8 @@
     "amendments": []
   },
   "T384": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T384-absorb-and-lemma-correction.md",
     "set": "B",
@@ -515,16 +515,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T22:26:22Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T22:49:47Z",
+    "done": "2026-08-05T22:49:55Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C1a/C2/C6/C9 gating counters sit at the recorded floor — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed: C1a=10 C1b=0 C2=14 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row; commit 72855f7)",
     "amendments": []
   },
   "T346": {
@@ -634,6 +634,28 @@
     "verdict_note": null,
     "claim_count": 0,
     "acceptance": "zig build test",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T386": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T386-cycle-resolution-adr.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T22:59:37Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/decisions/0021-cycle-resolution-by-superko.md",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -836,8 +858,8 @@
     "amendments": []
   },
   "T373": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T373-triage-adoption.md",
     "set": "B",
@@ -845,14 +867,14 @@
     "needs": ["T363"],
     "caps": [],
     "added": "2026-08-05T12:38:37Z",
-    "claimed": null,
+    "claimed": "2026-08-05T22:37:23Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -899,6 +921,28 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "sprint console — report committed",
+    "amendments": []
+  },
+  "T385": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T385-bracket-gallery-and-naming.md",
+    "set": "I",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T22:58:52Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md",
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T352": {
@@ -1321,7 +1365,7 @@
   }
 ,
   "_sys": {
-    "next_id": 384,
+    "next_id": 386,
     "directive_next": 43
   }
 }
