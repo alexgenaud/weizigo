@@ -405,14 +405,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T22:25:51Z",
-    "claimed": "2026-08-05T22:55:38Z",
+    "claimed": "2026-08-05T23:13:39Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 14,
+    "claim_count": 17,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -527,6 +527,28 @@
     "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C1a/C2/C6/C9 gating counters sit at the recorded floor — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed: C1a=10 C1b=0 C2=14 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row; commit 72855f7)",
     "amendments": []
   },
+  "T387": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T387-capture-budget-termination.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T23:47:36Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/research/capture-budget-2026-08-06.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T346": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -638,7 +660,7 @@
     "amendments": []
   },
   "T386": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T386-cycle-resolution-adr.md",
@@ -647,14 +669,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T22:59:37Z",
-    "claimed": null,
+    "claimed": "2026-08-05T23:44:31Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/decisions/0021-cycle-resolution-by-superko.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1365,7 +1387,7 @@
   }
 ,
   "_sys": {
-    "next_id": 386,
+    "next_id": 387,
     "directive_next": 43
   }
 }
