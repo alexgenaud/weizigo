@@ -210,3 +210,83 @@ measured: the old engine throws away 3 (fA) / 7 (fB) of its losses on these
 openings; the new engine throws away 0 (fA) / 0 (fB), and its own table
 never contradicts itself at any loss divergence node; strictly stronger on
 this sample, not a proof.**
+
+---
+
+## 9. Second-seat verification — independent re-run, field-for-field
+
+Task: T375 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-05
+
+Sections 1–8 were produced by the first console to hold this task (closed
+13:41:54Z). This section is an independent re-run of the **same committed
+instrument from a different console** (same task ID, same model), performed
+without reading the row's own JSON first, and compared field-for-field. It is
+the verify-then-promote second seat for every headline number above — the
+gate this project requires before a load-bearing claim is treated as settled.
+**Verdict: every number in §§3–7 reproduces; 0 disagreements.**
+
+**Build.** Fresh detached worktree at the commit the row cites (`19cd78b`,
+engine sources exactly as the row used them — the main tree's `gtp.zig` has
+since moved at HEAD via T374's showscores fix, which does not touch the play
+path; the worktree avoided it). `tools/gen-version.sh` regenerated in the
+worktree (gitignored). Compiled with the row's exact ad-hoc recipe under
+`tools/runner`:
+
+```
+zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig \
+  -Mversion=src/version.zig --cache-dir /tmp/weizigo/t375-verify/cache \
+  --global-cache-dir /tmp/weizigo/t375-verify/global \
+  --name weizigo-t375-evse -femit-bin=/tmp/weizigo/t375-verify/t375-evse
+```
+
+Instrument binary SHA `9410cf72…` (the row's `d335a4ab…` was a different
+build of the same source). Run: same flags, seed 42, 30 openings, both
+frames; output `/tmp/weizigo/t375-verify/raw.json` (SHA
+`f73ae20b…`); 132 SGFs to `/tmp/weizigo/t375-verify/sgf`.
+
+**Field-for-field comparison vs the committed row JSON.** The re-run's 132
+games vs `findings/T375-symmetric-arbiter.json`: 8684 scalar fields (moves,
+results, old-direction classification, divergence nodes, substitution
+replays, arbiters, mirror records), **0 mismatches**; the only differing
+field is the sgf path, by `--out` dir. The row's null control reproduces too:
+same comparison against T366's committed kifu
+(`findings/T366-engine-kifu.json`, clean in git at 19cd78b): 8684 scalar
+fields, **0 mismatches**. (The row reports 6072 fields for its null control;
+this re-run counts 8684 — the row's count excluded the mirror/arbiter
+sub-objects. Same conclusion: 0 mismatches.)
+
+**Headline figures confirmed.** fA: 66/66 diverged, genuine 3 / not-attr 33 /
+equal 30 / unknown 0; mirror 36 W – 30 L, **0 genuine mirror losses**. fB:
+66/66 diverged, genuine 7 / not-attr 33 / equal 26 / unknown 0; mirror
+40 W – 26 L, **0 genuine mirror losses**. Disagreeing plys 256 (fA) / 270
+(fB); cross-ruleset plys 0 (fA) / 8 (fB); ko-class counts
+`[235,17,4,0]` / `[249,17,4,0]`. The 10 old-direction genuine-loss game
+records are the same 10 the row and T366 list.
+
+**L/H bracket check re-derived from the raw kifu, not from the row's JSON.**
+56 new-engine losses (30 fA + 26 fB); all 56 divergence nodes in the
+fresh-start slice (ko none, passes 0); 4 ko-sensitive rows; **0
+self-contradictions**; 0 drawn-claim losses. All 56 committed witness states
+match the independent re-derivation exactly (0/56 mismatches) — the row did
+not invent them.
+
+**Seeded control re-run.** `src/seedctl.zig` (SHA `bbea5c37…`, identical to
+the committed file) built from the same worktree. Inject a pass at fA-o00-B
+moves-index 1 (the new engine's first White move): game flips **W+16 → B+3**,
+mirror classification **equal_value → genuine_loss**; the decider is exactly
+the documented fallback (substitution replay `diverged=true`, arbiter
+`old_engine_wins_with_new_colour=true`). Surgical: only fA-o00-B differs of
+132 games (sgf path excluded); the colour-swapped twin fA-o00-W untouched;
+frame B entirely untouched. Harness null control (no injection): 0 games
+differ.
+
+**Stale-62 finding confirmed.** T366's doc line 37 says "62 of 66 first
+divergences per frame are in-scope"; the committed T366 kifu JSON and this
+re-run both say **66/66** per frame. The 62 is stale pre-correction prose, as
+the row flagged.
+
+**Provenance.** Re-run console: `deepseek-v4-flash/T375` (re-dispatch of the
+same task, kanban already closed pass; the row's verdict stands).
+Run doc: this file. Re-run data: `/tmp/weizigo/t375-verify/` (disposable; the
+committed row JSON is the durable copy). No new claim rows proposed; no
+changes to any number above.
