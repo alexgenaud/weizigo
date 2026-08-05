@@ -17,6 +17,16 @@ TODO: record the general facts about each model. Then keep notes of each model i
 
 ## Model versions (record here as they change)
 
+- **deepseek-v4-flash — preview-channel bump, reported 2026-08-05 (operator).** DeepSeek
+  updated its models without changing the V4 version string; Flash is reportedly on a
+  "preview state" and may be cheaper and stronger than Pro on many tasks. The canonical
+  label is unchanged, which means **the label no longer pins the model across dates** —
+  any head-to-head run (T328 protocol) must record the exact serving tag and date, and
+  pre-bump Flash rows in the ledger are not comparable with post-bump ones. First
+  post-bump observation: T365 (32-entry rename sweep with ~100 reference updates) at
+  ~31,000 tokens (console `3.1%/1.0M`, relayed by operator) while still in progress.
+
+
 - GLM-5.2 (worker, boss/orchestrator) — glm-5.2:cloud, context 950 k
 - **Minimax-m3** (worker) — minimax-m3:cloud
 - **Kimi-k2.7** (worker / auditor) — kimi-k2.7-code:cloud, context ~556 k
@@ -55,7 +65,7 @@ never told what it was. The fix is always injection at dispatch, never a questio
 | model | harness | context window | source |
 |---|---|---|---|
 | `deepseek-v4-pro` | pi | 1 M | human ruling 2026-08-03; matches "New Boss … 1.0M" below |
-| `deepseek-v4-flash` | pi | **TBD** | — |
+| `deepseek-v4-flash` | pi | 1.0 M | console readout relayed by operator 2026-08-05 during T365 (`3.1%/1.0M`); harness-reported, admissible per the doctrine above |
 | `glm-5.2` | pi | 1 M | human ruling 2026-08-03 — **supersedes the 950 k in the prose entries above/below** |
 | `minimax-m3` | pi | 524 k | human ruling 2026-08-03 |
 | `kimi-k2.7` | pi | 262 k | human ruling 2026-08-03 — **supersedes the ~556 k prose entry** |
