@@ -1,0 +1,8 @@
+{
+  "task_id": "T354",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Register triage proposal. Every one of the 334 register rows (CLAIMS.md §2 lines 214-671 at HEAD f623a67) is classified into exactly one of LIVE (201) / ARCHAEOLOGY (106) / NOTE (16) / BOGUS (10) / DISPUTED (1), using the mechanical filter from the brief: a row that maps to no requirement-tree node (the 123 RETIRED cells, claimlint C9-validated) is not a claim. The full table, the C3 ratchet plan, the expected register size (334 -> 202), the archives/register/ layout, and the three highest-value re-derivations are in docs/epistemic/register-triage-2026-08-04.md. Bars: claims[] and new_rows[] are empty (a triage is a proposal — putting proposals in the arrays would double-count C7); no status promotions proposed (the only proposed status changes are moves out of the register and PROVEN -> CLAIMED demotions for 18 argument/source-reading rows in the ratchet's step 3); claimlint floor unmoved — this task edits neither CLAIMS.md nor tools/hooks/claimlint-floor.json. Measured 2026-08-05: C1a 10, C2 14, C3 76 of 100 PROVEN, C4 46 dangling + 2 unreferenced, C9 0, calibration PASS. Claim counts identical before and after this task."
+}
