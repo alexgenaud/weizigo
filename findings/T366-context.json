@@ -9,9 +9,9 @@
   "question": "Where does the WZO1-era 4x4 oracle (data/oracle-4x4.checkpoint.wzo) lose to the current WZO2 oracle (data/oracle-4x4-v2.wzo2)? Produce the divergence kifu.",
   "instrument": {
    "source": "src/t366_evse.zig",
-   "source_sha256": "a5a1f71b973d6f4fbaf72ec658f7c8ed9b841f9921911e7e9302cb0ff75b33e9",
+   "source_sha256": "60f1b41eafde18fdcd9bbaa3e6800e1170e63c2fc12924bdd57f99fe227743d2",
    "binary": "/tmp/weizigo/t366/t366-evse",
-   "binary_sha256": "2e3b3e7793a0c689751174bd6319881d6233020553cef543b0266c6113acfec2",
+   "binary_sha256": "95332f5f309597e7",
    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t366/cache --global-cache-dir /tmp/weizigo/t366/global --name weizigo-t366-evse -femit-bin=/tmp/weizigo/t366/t366-evse",
    "build_git_head": "95b2eff",
    "build_version_stamp": "weizigo-t366-evse 95b2eff built 2026-08-05T11:07:17Z zig 0.16.0"
@@ -54,7 +54,7 @@
     "enforcement": "old=psk, new=psk",
     "diverged_games": "66/66",
     "in_scope_first_divergences": 62,
-    "total_disagreeing_plys": 257,
+    "total_disagreeing_plys": 256,
     "genuine_value_losses": 3,
     "loss_not_attributable": 33,
     "equal_value": 30,
@@ -65,9 +65,9 @@
     "old_draws": 0,
     "cross_ruleset_plys": 0,
     "ko_disagree_by_class_0_1_2_3plus": [
-     239,
-     16,
-     2,
+     235,
+     17,
+     4,
      0
     ]
    },
@@ -75,20 +75,20 @@
     "enforcement": "old=psk, new=basic-ko",
     "diverged_games": "66/66",
     "in_scope_first_divergences": 62,
-    "total_disagreeing_plys": 268,
-    "genuine_value_losses": 6,
+    "total_disagreeing_plys": 270,
+    "genuine_value_losses": 7,
     "loss_not_attributable": 33,
-    "equal_value": 27,
+    "equal_value": 26,
     "outcome_unknown": 0,
     "capped": 0,
-    "old_wins": 27,
-    "old_losses": 39,
+    "old_wins": 26,
+    "old_losses": 40,
     "old_draws": 0,
-    "cross_ruleset_plys": 6,
+    "cross_ruleset_plys": 8,
     "ko_disagree_by_class_0_1_2_3plus": [
-     250,
-     16,
-     2,
+     249,
+     17,
+     4,
      0
     ]
    }
@@ -144,6 +144,26 @@
     ],
     "arbiter": "W+16",
     "cross_ruleset_plys": []
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o02-B",
+    "opening": "canonical-centre-B2",
+    "old_colour": "B",
+    "result": "W+16",
+    "div_ply": 4,
+    "old_move": "ac",
+    "new_move": "ab",
+    "node_old_v0": 2,
+    "node_new_L_H": [
+     1,
+     16
+    ],
+    "arbiter": "B+1",
+    "cross_ruleset_plys": [
+     15,
+     17
+    ]
    },
    {
     "frame": "fB",
@@ -264,6 +284,8 @@
   "results": {
    "fA": {
     "diverged": "62/66",
+    "old_wins": 32,
+    "old_losses": 34,
     "genuine": 2,
     "not_attributable": 32,
     "equal_value": 32,
@@ -271,24 +293,26 @@
     "capped": 0,
     "cross_ruleset_plys": 0,
     "ko_disagree_by_class": [
-     224,
-     12,
-     0,
+     220,
+     13,
+     2,
      0
     ]
    },
    "fB": {
     "diverged": "62/66",
-    "genuine": 5,
+    "old_wins": 27,
+    "old_losses": 39,
+    "genuine": 6,
     "not_attributable": 30,
-    "equal_value": 28,
+    "equal_value": 27,
     "outcome_unknown": 3,
     "capped": 0,
-    "cross_ruleset_plys": 8,
+    "cross_ruleset_plys": 10,
     "ko_disagree_by_class": [
-     236,
-     12,
-     0,
+     235,
+     13,
+     2,
      0
     ]
    }
@@ -322,5 +346,11 @@
  "directive_handling": {
   "D039": "acked 2026-08-05 (read:false -> read). Orcha ruling: zig build test RED AT HEAD is pre-existing (build.zig:407 clears the vb_i11 test target's import table; src/vb_i11.zig:58 imports 'engine'); registered as T369 which owns build.zig \u2014 not this row's to touch. Acceptance (test -s on the evidence doc) PASSES without a skip, so T369 is cited here as context only. The instrument was compiled standalone (zig build-exe at HEAD) and built clean; the full suite was not run by this row (it is red at HEAD for the T369 cause). MANAGENT_TASK_ID was not exported during this row's runs (tools/runner not used); noted for T370.",
   "other_red_observed": "none beyond the T369 pre-existing cause; this row never ran the full suite."
+ },
+ "correction": {
+  "date": "2026-08-05",
+  "bug": "canonical opening definition: declared as two-element literals {cell, 0} with the 0 intended as an unused-slot sentinel, but op.len = moves.len counted 2, so playOpening played 'Black stone + White pass' and the recorded games carried a standing White pass (passes=1) from the start. Fixed: canonical openings are one-ply slices {cell} (len=1) and the tournament/arbiter side-to-move after the opening is opening.len%2-aware.",
+  "impact": "Regenerated all games. Frame A unchanged (3 genuine losses). Frame B 6 -> 7 genuine losses (canonical-centre-B2, old as Black, is now a genuine loss via the cross-ruleset mechanism). Exact counts in the doc \u00a73/\u00a74 and this file supersede the pre-correction commit 0ad9710.",
+  "reverified": "132/132 games still cross-check OK against bin/weizigo-gtp after regeneration."
  }
 }

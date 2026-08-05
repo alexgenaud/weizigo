@@ -259,9 +259,13 @@ const OpeningList = struct {
 fn buildOpenings(gpa: std.mem.Allocator, count: usize, seed: u64, canonical: bool) !OpeningList {
     var list = OpeningList{ .gpa = gpa };
     if (canonical) {
-        try list.add("canonical-corner-A1", &.{ 1, 0 }); // cell 0
-        try list.add("canonical-edge-B1", &.{ 2, 0 }); // cell 1
-        try list.add("canonical-centre-B2", &.{ 6, 0 }); // cell 5
+        // One-ply openings: Black's first move only, White to move after.
+        // NB: the slice length IS the opening length — never pad with a
+        // sentinel element (a 2-element {cell,0} literal would silently
+        // become a two-ply 'stone + White pass' opening, len=2).
+        try list.add("canonical-corner-A1", &.{1}); // cell 0
+        try list.add("canonical-edge-B1", &.{2}); // cell 1
+        try list.add("canonical-centre-B2", &.{6}); // cell 5
     }
     var prng = std.Random.DefaultPrng.init(seed);
     const rnd = prng.random();
@@ -390,7 +394,7 @@ fn runGame(
         try out.moves.append(gpa, m);
     }
 
-    var side: i8 = 1;
+    var side: i8 = if (opening.len % 2 == 0) 1 else -1; // continue from the side after the forced opening plies
     var ply: usize = 0;
 
     while (ply < PLY_CAP) : (ply += 1) {
@@ -551,7 +555,7 @@ fn arbiterPlay(
     s.reset();
     playOpening(&s, opening);
 
-    var side: i8 = 1;
+    var side: i8 = if (opening.len % 2 == 0) 1 else -1; // side to move after the forced opening
     var plies: usize = 0;
     while (plies < PLY_CAP and s.passes < 2) : (plies += 1) {
         const c = s.choose(side);
