@@ -21,6 +21,52 @@ a record of what was run should stay verbatim. Read `milestone M<n>` in those as
 
 ---
 
+## The map
+
+```mermaid
+graph TD
+    L0["L0 · the table and the<br/>instruments exist<br/><i>banked</i>"]
+    L1["L1 · the dashboard<br/>tells the truth<br/><i>substantially met</i>"]
+    L2["L2 · proven 4x4 values<br/><i>in progress — critical path</i>"]
+    L3["L3 · the new engine<br/>outplays the old one<br/><i>met</i>"]
+    L4["L4 · the ledger is clean<br/><i>opened — 334 to 207 rows</i>"]
+    L5["L5 · one rulebook<br/><i>not started</i>"]
+    L6["L6 · small Go solved,<br/>certifiably<br/><i>the mission</i>"]
+    L7["L7 · the 5x5 decision,<br/>costed<br/><i>frontier</i>"]
+
+    L0 --> L1
+    L0 --> L2
+    L0 --> L3
+    L1 --> L4
+    L2 --> L5
+    L2 --> L6
+    L4 --> L6
+    L5 --> L6
+    L6 --> L7
+    L3 -.->|"evidence only,<br/>not a dependency"| L6
+
+    classDef done fill:#2d5016,stroke:#4a7c23,color:#fff
+    classDef active fill:#5c4317,stroke:#8a6420,color:#fff
+    classDef todo fill:#2b2b3d,stroke:#4a4a63,color:#ccc
+    class L0,L1,L3 done
+    class L2,L4 active
+    class L5,L6,L7 todo
+```
+
+**How to read it.** `L0` is the ground everything stands on. Three things then run in parallel:
+`L1` makes the instruments honest, `L2` makes the values provable, and `L3` checks — independently
+of the whole spine — that the rebuild is actually an improvement. `L4` follows `L1`, because
+cleaning a ledger with lying gauges just moves the lies. **`L6` is the convergence point**: it needs
+`L2` (the values are right), `L4` (the claims are backed) and `L5` (one rulebook) all together —
+no two of the three suffice. `L7` is the only thing downstream of the mission.
+
+`L3` connects to `L6` with a dashed line on purpose: it is *evidence* that the reconstruction is
+sound, not a prerequisite. If `L3` had failed, we would have stopped and asked why; it passing does
+not advance `L6` by itself.
+
+The critical path is therefore **L0 → L2 → L5 → L6**, with `L4` joining at the end — and `L2` is
+where the work is.
+
 ## The one-paragraph story
 
 We already have a complete 4×4 answer table and a set of instruments that have been shown to catch
