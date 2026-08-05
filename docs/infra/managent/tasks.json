@@ -131,6 +131,28 @@
     "skip_acceptance_reason": "Pre-existing failures in qa023_brute_2x2, gtp.showscores, vb_bellman_4x4, vb_i11. All 4 vb_scc_4x4 tests pass.",
     "amendments": []
   },
+  "T380": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T380-retrograde-ko-critical-review.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T19:38:08Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/KO-REVIEW/retrograde-ko-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T319": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -857,6 +879,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T381": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T381-third-party-engines.md",
+    "set": "N",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T19:38:08Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "STANDING-CLEANUP": {
     "status": "dispatchable",
     "agent": null,
@@ -1211,7 +1255,7 @@
   }
 ,
   "_sys": {
-    "next_id": 379,
+    "next_id": 381,
     "directive_next": 42
   }
 }
