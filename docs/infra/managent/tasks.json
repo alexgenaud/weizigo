@@ -637,6 +637,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T378": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T378-qa023-probe-inverted-guards.md",
+    "set": "K",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T18:00:47Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig test src/qa023_probe.zig",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T322": {
     "status": "done",
     "agent": "deepseek-v4-pro",
