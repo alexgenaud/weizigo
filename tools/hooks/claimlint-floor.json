@@ -1,11 +1,12 @@
 {
   "version": 1,
-  "commit": "2432d71",
-  "note": "C2=14 restored 2026-08-04 by the Orchestrator. T337 S4 had raised it 14->20 to accommodate six new dangling citations to /tmp/weizigo/t314-threads-*.log; ARGUS.md:97-100 permits the floor to be LOWERED only, by the Orchestrator, on evidence of a committed fix. The six logs still existed in /tmp, so they were rescued into docs/evidence/PARALLEL-FIXPOINT-T314/ (72 KB, tracked) and the seven citations in parallel-fixpoint-measurement-2026-08-03.md and releasesafe-rebuild-2026-08-03.md re-pointed at the tracked copies. claimlint then measured C2=14 — that run is the evidence for this value. Why it mattered: all eleven pre-existing dangling paths were checked the same day and every one was already gone from disk, so raising a floor converts a fixable citation into permanent unfalsifiable debt. C1a=10 C1b=0 C6=0 C9=0 unchanged. T356 (2026-08-04) added the `names` map alongside `floor` so every check carries a human-readable name next to its ID; the numeric keys and values are untouched and remain what the pre-commit hook matches on.",
+  "commit": "T373",
+  "note": "Triage adoption (T373, 2026-08-06, executing docs/epistemic/register-triage-2026-08-04.md; Orchestrator ruling 2026-08-05). Every floor that moves moves DOWN on the evidence of one claimlint run on the triaged register (rows 339 -> 207; 132 rows archived under archives/register/): C1a 10 -> 0 (all ten orphans — GLOBAL.F2 and the rest of the finisher-soundness chain — moved to the archive with the triage; the C1a calibration re-based onto a synthetic orphan pair, since a real-data case would disappear when the register improves); C2 14 -> 11 (the three git-ignored evidence citations — untracked/SUBAGENTS.md, AUDIT-DSPro-retroactive.md, 025-fable-to-all.md — died with their rows or were re-pointed to committed evidence); C3 76 -> 48 is the FIRST C3 ratchet floor, declared in the same commit that reaches it (48 of the 76 PROVEN-without-committed-evidence rows stay live; the other 28 left with the triage: 26 ARCHAEOLOGY/NOTE + 2 BOGUS). C3 is now a failing gate (pre-commit compares it). C4 is report-only and re-measured 46/2 -> 45/2 (archive resolution wired into claimlint C4 — IDs in archives/register/INDEX.md read as archived, not dangling; seeded control verified: an ID NOT in INDEX.md still dangles). C5 4 -> 0, C7 1 -> 0 (archive resolution in C7 too). C1b=0 C6=0 C9=0 calibration PASS unchanged. The floor-file 'commit' field carries the task ID until the commit lands; the Orchestrator may stamp the hash.",
   "floor": {
-    "C1a": 10,
+    "C1a": 0,
     "C1b": 0,
-    "C2": 14,
+    "C2": 11,
+    "C3": 48,
     "C6": 0,
     "calibration": "PASS",
     "C9": 0

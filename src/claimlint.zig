@@ -108,6 +108,11 @@ const Io = std.Io;
 
 const DEFAULT_CLAIMS = "docs/epistemic/CLAIMS.md";
 
+/// T373: the archive index that resolves IDs moved out of the live register.
+/// C4 treats an ID listed here as archived (not dangling); the reader's entry
+/// point is archives/register/INDEX.md.
+const ARCHIVE_INDEX_PATH = "archives/register/INDEX.md";
+
 /// Directories the repo never tracks (.gitignore, 2026-07-28). A path that
 /// exists here is on somebody's disk, not in git, which for C3 is the same as
 /// not existing — that is exactly how the T13 probe source was lost.
@@ -180,8 +185,15 @@ const NARRATIVE_FILES = [_][]const u8{
 // ── calibration cases ────────────────────────────────────────────────────────
 // Named here, checked at the end of every run. If the checker stops catching
 // these, the checker is broken — not the register.
-const CAL_ORPHAN_CHILD = "GLOBAL.F2"; // must be reported by C1 ...
-const CAL_ORPHAN_ROOT = "GLOBAL.C3"; // ... with this FALSE ancestor in the chain
+// The C1a known-bad used to be a real-data case (`GLOBAL.F2` reported with
+// `GLOBAL.C3` in its chain) but the register triage (T373, 2026-08-06) moved
+// every real orphan — including `GLOBAL.F2` — out of the live register, so C1a
+// went 10 → 0 on real data. A real-register case that disappears when the
+// register is cleaned is not a calibration case (same lesson as C5's); the
+// known-bad now lives in the synthetic register, exactly like C1b's and C5's,
+// grafting an orphan child onto the synthetic FALSE parent so the check still
+// exercises a FALSE ancestor. `GLOBAL.C3` stays live in the real register, so
+// the FALSE-ancestor concept the fixture exercises is still real.
 const CAL_DANGLING = "untracked/c2pilot_3x2.zig"; // must be reported by C2
 const CAL_CLEAN = "GLOBAL.ADR0003-AREA"; // PROVEN, real evidence, must be silent
 const CAL_NEG_OK = "GLOBAL.REFRAME"; // carries `n:` to a FALSE parent — must be SILENT
@@ -189,14 +201,26 @@ const CAL_NEG_OK = "GLOBAL.REFRAME"; // carries `n:` to a FALSE parent — must 
 /// version calibrated against `3x3.C1 d: 3x3.F2` — the exact edge C5 exists to
 /// get fixed — and went MISSED the moment the fix landed. A calibration case
 /// that disappears when the register improves is not a calibration case.
-const CAL_SHADOW_CLEAN = "GLOBAL.F2"; // real-data known-good: `d:` only to real claims
+/// Re-based 2026-08-06 (T373): `GLOBAL.F2` (the old known-good) left the live
+/// register in the triage; `GLOBAL.ADR0020-LH-CORRECT` stays and carries three
+/// `d:` edges to real claims (AXIOM-BELLMAN, AXIOM-LH, AXIOM-BRACKET) — same shape.
+const CAL_SHADOW_CLEAN = "GLOBAL.ADR0020-LH-CORRECT"; // real-data known-good: `d:` only to real claims
+/// C1a's known-bad — synthetic (see the comment above): a CLAIMED row whose
+/// only `d:` edge reaches the synthetic FALSE parent must be reported; a
+/// CLAIMED row whose `d:` edge reaches a PROVEN parent must stay silent.
+const CAL_SYNTHETIC_C1A_EXTRA =
+    \\| `GLOBAL.CALCHILD-ORPHAN` | — | all | synthetic: orphan of a FALSE parent — must be caught | CLAIMED | `AGENTS.md:1` | `d:GLOBAL.CALPARENT-DEAD` | — | 0 | ? | Z-NONCLAIMS |
+    \\| `GLOBAL.CALCHILD-ORPHAN-CLEAN` | — | all | synthetic: child of a PROVEN parent — must stay silent | CLAIMED | `AGENTS.md:1` | `d:GLOBAL.CALPARENT-LIVE` | — | 0 | ? | Z-NONCLAIMS |
+;
 /// C6 calibration — a synthetic narrative text with one wrong-status tag and
 /// two correct-status tags. The wrong one must be caught, the right ones must
 /// pass silently. The known-bad uses a real ID with a deliberately wrong status.
+/// Re-based 2026-08-06 (T373): `GLOBAL.R1` (the old known-good) left the live
+/// register; `GLOBAL.INVSYM` stays PROVEN with the same shape.
 const CAL_SYNTHETIC_CITETAG =
     \\## C6 calibration narrative
     \\
-    \\PSK is intractable for exact solve [GLOBAL.R1:PROVEN] and this is a
+    \\Colour inversion is exact for bounds [GLOBAL.INVSYM:PROVEN] and this is a
     \\structural result. The claim [GLOBAL.C2:PROVEN] is deliberately wrong —
     \\C2 is FALSE-AS-SCOPED, not PROVEN. Meanwhile [QA-023:CLAIMED] is the
     \\correct status for the state-sufficiency claim.
@@ -204,7 +228,7 @@ const CAL_SYNTHETIC_CITETAG =
     \\## end
 ;
 const CAL_CITE_BAD_ID = "GLOBAL.C2"; // tagged PROVEN, actually FALSE-AS-SCOPED
-const CAL_CITE_GOOD_A = "GLOBAL.R1"; // tagged PROVEN, actually PROVEN
+const CAL_CITE_GOOD_A = "GLOBAL.INVSYM"; // tagged PROVEN, actually PROVEN
 const CAL_CITE_GOOD_B = "QA-023";    // tagged CLAIMED, actually CLAIMED
 
 /// C6 multi-file calibration — a second synthetic narrative with a known-bad
@@ -1005,7 +1029,30 @@ fn citeTagCheck(
     };
     const tags = try citeTags(gpa, text);
     for (tags.items) |tag| {
-        const slot = reg.by_id.get(tag.id) orelse {
+        const tagged = parseStatus(tag.status);
+        // T373: the row may have moved to archives/register/ in the triage.
+        // A tag whose ID is archived verifies against the archive row's
+        // preserved status — silent on match, mismatch otherwise (the same
+        // resolution C4 got; without it the 36 correct tags on archived
+        // rows would fail the run).
+        const reg_status = if (reg.by_id.get(tag.id)) |s| blk: {
+            break :blk reg.rows.items[s].status;
+        } else blk: {
+            const arow_path = try std.fmt.allocPrint(gpa, "archives/register/rows/{s}.md", .{tag.id});
+            const arow = Io.Dir.cwd().readFileAlloc(io, arow_path, gpa, .unlimited) catch break :blk null;
+            break :blk try archivedRowStatus(gpa, arow);
+        };
+        if (reg_status) |rs| {
+            if (tagged != rs) {
+                try out.append(gpa, .{
+                    .id = tag.id,
+                    .tagged_status = tag.status,
+                    .register_status = rs.name(),
+                    .line = tag.line,
+                    .file = path,
+                });
+            }
+        } else {
             try out.append(gpa, .{
                 .id = tag.id,
                 .tagged_status = tag.status,
@@ -1013,21 +1060,37 @@ fn citeTagCheck(
                 .line = tag.line,
                 .file = path,
             });
-            continue;
-        };
-        const reg_row = reg.rows.items[slot];
-        const tagged = parseStatus(tag.status);
-        if (tagged != reg_row.status) {
-            try out.append(gpa, .{
-                .id = tag.id,
-                .tagged_status = tag.status,
-                .register_status = reg_row.status.name(),
-                .line = tag.line,
-                .file = path,
-            });
         }
     }
     return out;
+}
+
+/// Parse the status out of an archived row file (archives/register/rows/<ID>.md):
+/// the verbatim register line's 6th cell, or null if the file is unreadable or
+/// the line cannot be parsed. Used by C6 so a tag on an archived row is verified
+/// against the archived status rather than reported as "NO SUCH ID".
+fn archivedRowStatus(gpa: Allocator, body: []const u8) !?Status {
+    var it = std.mem.splitScalar(u8, body, '\n');
+    while (it.next()) |line| {
+        if (!std.mem.startsWith(u8, line, "| `")) continue;
+        var cells = try splitCells(gpa, line);
+        defer cells.deinit(gpa);
+        if (cells.items.len < 6) continue;
+        const st = parseStatus(cells.items[5]);
+        if (st == .unparsed) return null;
+        return st;
+    }
+    return null;
+}
+
+/// Read archives/register/rows/<ID>.md and return its preserved status, or null
+/// if the row is not archived / unreadable / unparsed. Used by C6 and C7 so a
+/// citation or finding on an archived row is verified against the archived
+/// status rather than reported as NO SUCH ID.
+fn archivedStatusFor(gpa: Allocator, io: Io, id: []const u8) !?Status {
+    const arow_path = try std.fmt.allocPrint(gpa, "archives/register/rows/{s}.md", .{id});
+    const arow = Io.Dir.cwd().readFileAlloc(io, arow_path, gpa, .unlimited) catch return null;
+    return archivedRowStatus(gpa, arow);
 }
 
 // ── report state ─────────────────────────────────────────────────────────────
@@ -1100,7 +1163,6 @@ pub fn main(init: std.process.Init) !void {
     util.out("`n:` edges are NOT traversed — a claim justified by a refutation does not\n", .{});
     util.out("inherit the refuted parent's ancestry. C1b {s} below checks them the other way.\n\n", .{checkName("C1b")});
     var c1_count: usize = 0;
-    var cal_orphan_hit = false;
     for (reg.rows.items, 0..) |r, i| {
         if (!r.status.isLive()) continue;
         const chain = try shortestFalseChain(gpa, &reg, i) orelse continue;
@@ -1113,11 +1175,6 @@ pub fn main(init: std.process.Init) !void {
                 sr.id,
                 sr.status.name(),
             });
-        }
-        if (std.mem.eql(u8, r.id, CAL_ORPHAN_CHILD)) {
-            for (chain.items) |step| {
-                if (std.mem.eql(u8, reg.rows.items[step].id, CAL_ORPHAN_ROOT)) cal_orphan_hit = true;
-            }
         }
     }
     if (c1_count == 0) util.out("  (none)\n", .{});
@@ -1340,6 +1397,23 @@ pub fn main(init: std.process.Init) !void {
     var dangling = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
     var qa = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
     var qa_modelled = std.StringHashMap(void).init(gpa);
+    // T373: rows moved out of the live register by the triage adoption are
+    // archived under archives/register/INDEX.md. An ID cited in docs/ that is
+    // NOT in the register but IS in the archive index reads as archived, not
+    // dangling — without this the 132 moved IDs would become 132 new ghosts.
+    var archived = std.StringHashMap(void).init(gpa);
+    if (Io.Dir.cwd().readFileAlloc(io, ARCHIVE_INDEX_PATH, gpa, .unlimited)) |abody| {
+        var alit = std.mem.splitScalar(u8, abody, '\n');
+        while (alit.next()) |line| {
+            var spans: std.ArrayList([]const u8) = .empty;
+            defer spans.deinit(gpa);
+            try backtickSpans(gpa, line, &spans);
+            for (spans.items) |sp| {
+                const cid = claimIdOf(sp) orelse continue;
+                if (!reg.by_id.contains(cid) and !archived.contains(cid)) try archived.put(cid, {});
+            }
+        }
+    } else |_| {}
     for (idx.paths.items) |p| {
         if (!std.mem.startsWith(u8, p, "docs/") and !std.mem.eql(u8, p, "AGENTS.md")) continue;
         if (!endsWith(p, ".md")) continue;
@@ -1365,10 +1439,17 @@ pub fn main(init: std.process.Init) !void {
                     const g2 = try qa_modelled.getOrPut(cid);
                     if (!g2.found_existing) g2.value_ptr.* = {};
                 }
+                // T373: an archived row still models its QA ID — a falsification
+                // reaches it via the archive index, so it is not "unmodelled".
+                if (isQaId(cid) and archived.contains(cid)) {
+                    const g2 = try qa_modelled.getOrPut(cid);
+                    if (!g2.found_existing) g2.value_ptr.* = {};
+                }
                 if (reg.by_id.get(cid)) |k| {
                     if (!inside_sec2) reg.rows.items[k].refs_outside += 1;
                     continue;
                 }
+                if (archived.contains(cid)) continue; // archived row — reads as archived, not dangling
                 const gop = try dangling.getOrPut(cid);
                 if (!gop.found_existing) gop.value_ptr.* = .empty;
                 const where = try std.fmt.allocPrint(gpa, "{s}:{d}", .{ p, lineno });
@@ -1646,10 +1727,28 @@ pub fn main(init: std.process.Init) !void {
     util.out("A checker with no failing case proves nothing.\n\n", .{});
     var cal_ok = true;
 
-    util.out("  known-bad 1 (C1a {s}): `{s}` must be reported with `{s}` in its chain … {s}\n", .{
-        checkName("C1a"), CAL_ORPHAN_CHILD, CAL_ORPHAN_ROOT, if (cal_orphan_hit) "CAUGHT" else "MISSED",
-    });
-    if (!cal_orphan_hit) cal_ok = false;
+    // known-bad/known-good pair for C1a — synthetic (the real register now has
+    // zero orphans after the T373 triage, so a real-data case would be a
+    // calibration case that disappears when the register improves).
+    var synth_c1a_ok = false;
+    {
+        const synth_ext_c1a = try synthRegister(gpa, CAL_SYNTHETIC_C1A_EXTRA);
+        var sreg_c1a = try parseRegister(gpa, synth_ext_c1a);
+        var saw_orphan = false;
+        var saw_clean = true;
+        for (sreg_c1a.rows.items, 0..) |_, i| {
+            const chain = try shortestFalseChain(gpa, &sreg_c1a, i) orelse continue;
+            const cid = sreg_c1a.rows.items[i].id;
+            if (std.mem.eql(u8, cid, "GLOBAL.CALCHILD-ORPHAN")) saw_orphan = true;
+            if (std.mem.eql(u8, cid, "GLOBAL.CALCHILD-ORPHAN-CLEAN")) saw_clean = false;
+            _ = chain;
+        }
+        synth_c1a_ok = sreg_c1a.unparsed.items.len == 0 and saw_orphan and saw_clean;
+    }
+    util.out("  known-bad 1 (C1a {s}, synthetic): a CLAIMED row with a `d:` chain to a\n", .{checkName("C1a")});
+    util.out("                FALSE-AS-SCOPED ancestor must be reported, while a CLAIMED\n", .{});
+    util.out("                row whose parents are PROVEN must stay silent … {s}\n", .{if (synth_c1a_ok) "CAUGHT (1 orphan, 1 silent)" else "BROKEN"});
+    if (!synth_c1a_ok) cal_ok = false;
 
     var cal_dangling_hit = false;
     for (missing.items) |m| {
@@ -1816,7 +1915,7 @@ pub fn main(init: std.process.Init) !void {
         defer empty_rej.entries.deinit();
         // Known-bad 6a: parse without rejections — CAL-SHOULDBE-FALSE must
         // be unabsorbed (status mismatch), CALPARENT-DEAD must be silent (matched).
-        const c7cal = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &empty_rej);
+        const c7cal = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &empty_rej);
         var saw_mismatch = false;
         var saw_silent = false;
         for (c7cal.items.items) |item| {
@@ -1839,7 +1938,7 @@ pub fn main(init: std.process.Init) !void {
             .valid = true,
             .invalid_reason = "",
         });
-        const c7cal_rej = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &rej_with);
+        const c7cal_rej = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_JSON, "calibration/T999-cal.json", &sreg, &rej_with);
         var rej_saw_rejected = false;
         var rej_saw_unabsorbed = false;
         for (c7cal_rej.rejected_items.items) |item| {
@@ -1872,7 +1971,7 @@ pub fn main(init: std.process.Init) !void {
         var sreg2 = try parseRegister(gpa, synth_ext2);
         var empty_rej2: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
         defer empty_rej2.entries.deinit();
-        const c7cal2 = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_MULTIROW, "calibration/T269cal-multirow.json", &sreg2, &empty_rej2);
+        const c7cal2 = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_MULTIROW, "calibration/T269cal-multirow.json", &sreg2, &empty_rej2);
         var saw_row1_unabsorbed = false;
         var saw_row2_mismatch = false;
         for (c7cal2.items.items) |item| {
@@ -1896,8 +1995,8 @@ pub fn main(init: std.process.Init) !void {
     {
         var empty_rej3: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
         defer empty_rej3.entries.deinit();
-        const bad = try parseFindingsFile(gpa, "{\"foo\": 1}", "calibration/T269cal-bad.json", &reg, &empty_rej3);
-        const good = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_JSON, "calibration/T269cal-good.json", &reg, &empty_rej3);
+        const bad = try parseFindingsFile(gpa, io, "{\"foo\": 1}", "calibration/T269cal-bad.json", &reg, &empty_rej3);
+        const good = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_JSON, "calibration/T269cal-good.json", &reg, &empty_rej3);
         synth_c7_nonconf_ok = bad.nonconforming == 1 and bad.conform_issues.items.len == 1 and
             bad.conforming == 0 and bad.claims_total == 0 and bad.unabsorbed == 0 and
             good.nonconforming == 0 and good.conforming == 1;
@@ -1932,8 +2031,8 @@ pub fn main(init: std.process.Init) !void {
             .valid = false,
             .invalid_reason = "not-a-register-claim entry must carry the reason in rationale",
         });
-        const ok = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_INFRA, "calibration/T269cal-infra.json", &reg, &rej_infra);
-        const bad = try parseFindingsFile(gpa, CAL_SYNTHETIC_C7_INFRA, "calibration/T269cal-infra.json", &reg, &rej_bad);
+        const ok = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_INFRA, "calibration/T269cal-infra.json", &reg, &rej_infra);
+        const bad = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_INFRA, "calibration/T269cal-infra.json", &reg, &rej_bad);
         var disp_saw_rejected = false;
         var disp_saw_reason = false;
         for (ok.rejected_items.items) |item| {
@@ -2027,7 +2126,7 @@ pub fn main(init: std.process.Init) !void {
     util.out("  rows parsed / unparsed        {d} / {d}\n", .{ reg.rows.items.len, reg.unparsed.items.len });
     util.out("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)   [C1a {s} / C1b {s}]\n", .{ c1_count, alarms.items.len, checkName("C1a"), checkName("C1b") });
     util.out("  C2 dangling evidence paths    {d}   (FAILS)   [{s}]\n", .{ c2_total, checkName("C2") });
-    util.out("  C3 PROVEN w/o committed evid. {d}   (debt only, does not fail yet)   [{s}]\n", .{ tierB.items.len + tierC.items.len, checkName("C3") });
+    util.out("  C3 PROVEN w/o committed evid. {d}   (debt list — hook-gated at the floor in claimlint-floor.json)   [{s}]\n", .{ tierB.items.len + tierC.items.len, checkName("C3") });
     util.out("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)   [{s}]\n", .{ dangling.count(), unref, checkName("C4") });
     util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)   [{s}]\n", .{ c5, checkName("C5") });
     util.out("  A  repeated-narrowing smells  {d}   (report only)\n", .{smell});
@@ -2271,7 +2370,7 @@ fn strField(obj: std.json.ObjectMap, key: []const u8) ?[]const u8 {
 /// T269 part 3). A file that does not conform to the findings schema
 /// (findings/README.md: required task_id/date/model/claims) is REPORTED as
 /// non-conforming rather than silently skipped (GRAND-AUDIT §2, T269 part 4).
-fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, reg: *Register, rej: *const RejectionIndex) !C7Result {
+fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []const u8, reg: *Register, rej: *const RejectionIndex) !C7Result {
     var result: C7Result = .{
         .files = 1,
         .conforming = 0,
@@ -2348,9 +2447,9 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                     var proposed: []const u8 = "";
                     if (ps_val != null and ps_val.? == .string) proposed = ps_val.?.string;
                     if (proposed.len == 0) {
-                        try checkPresence(gpa, &result, reg, rej, claim_id, base, owned_file);
+                        try checkPresence(gpa, io, &result, reg, rej, claim_id, base, owned_file);
                     } else {
-                        try checkStatusClaim(gpa, &result, reg, rej, claim_id, proposed, base, owned_file);
+                        try checkStatusClaim(gpa, io, &result, reg, rej, claim_id, proposed, base, owned_file);
                     }
                 } else {
                     result.unabsorbed += 1;
@@ -2362,7 +2461,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                     });
                 }
             } else if (item == .string) {
-                try checkPresence(gpa, &result, reg, rej, item.string, base, owned_file);
+                try checkPresence(gpa, io, &result, reg, rej, item.string, base, owned_file);
             } else {
                 result.unabsorbed += 1;
                 try result.items.append(gpa, .{
@@ -2389,9 +2488,9 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                         var nr_status: []const u8 = "";
                         if (st_val != null and st_val.? == .string) nr_status = st_val.?.string;
                         if (nr_status.len == 0) {
-                            try checkPresence(gpa, &result, reg, rej, nr_id, base, owned_file);
+                            try checkPresence(gpa, io, &result, reg, rej, nr_id, base, owned_file);
                         } else {
-                            try checkStatusClaim(gpa, &result, reg, rej, nr_id, nr_status, base, owned_file);
+                            try checkStatusClaim(gpa, io, &result, reg, rej, nr_id, nr_status, base, owned_file);
                         }
                     } else {
                         result.unabsorbed += 1;
@@ -2403,7 +2502,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
                         });
                     }
                 } else if (item == .string) {
-                    try checkPresence(gpa, &result, reg, rej, item.string, base, owned_file);
+                    try checkPresence(gpa, io, &result, reg, rej, item.string, base, owned_file);
                 } else {
                     result.unabsorbed += 1;
                     try result.items.append(gpa, .{
@@ -2423,7 +2522,7 @@ fn parseFindingsFile(gpa: Allocator, json: []const u8, file_path: []const u8, re
 /// A claim/new-row that carries a proposed status: compare it against the
 /// register row of the same ID. A status mismatch (or a missing row) is
 /// unabsorbed unless a valid rejection entry dispositions it.
-fn checkStatusClaim(gpa: Allocator, result: *C7Result, reg: *Register, rej: *const RejectionIndex, claim_id: []const u8, proposed: []const u8, base: []const u8, owned_file: []const u8) !void {
+fn checkStatusClaim(gpa: Allocator, io: Io, result: *C7Result, reg: *Register, rej: *const RejectionIndex, claim_id: []const u8, proposed: []const u8, base: []const u8, owned_file: []const u8) !void {
     if (reg.by_id.get(claim_id)) |slot| {
         const r = reg.rows.items[slot];
         const ps = parseStatus(proposed);
@@ -2445,6 +2544,32 @@ fn checkStatusClaim(gpa: Allocator, result: *C7Result, reg: *Register, rej: *con
                     .id = try gpa.dupe(u8, claim_id),
                     .proposed = try gpa.dupe(u8, proposed),
                     .actual = r.status.name(),
+                    .file = owned_file,
+                });
+            }
+        }
+    } else if (try archivedStatusFor(gpa, io, claim_id)) |astat| {
+        // T373: the row lives in archives/register/ now — the archive status
+        // is the row's authority, exactly as the register's was before.
+        const ps = parseStatus(proposed);
+        if (ps != .unparsed and ps != astat) {
+            if (rej.get(gpa, claim_id, base)) |entry| {
+                result.rejected += 1;
+                try result.rejected_items.append(gpa, .{
+                    .id = try gpa.dupe(u8, claim_id),
+                    .proposed = try gpa.dupe(u8, proposed),
+                    .actual = astat.name(),
+                    .file = owned_file,
+                    .disposition = entry.disposition,
+                    .refuting_row = entry.refuting_row,
+                    .rationale = entry.rationale,
+                });
+            } else {
+                result.unabsorbed += 1;
+                try result.items.append(gpa, .{
+                    .id = try gpa.dupe(u8, claim_id),
+                    .proposed = try gpa.dupe(u8, proposed),
+                    .actual = astat.name(),
                     .file = owned_file,
                 });
             }
@@ -2475,8 +2600,10 @@ fn checkStatusClaim(gpa: Allocator, result: *C7Result, reg: *Register, rej: *con
 /// absorption record): the only check possible is presence in the register.
 /// Present → absorbed (the row exists); absent → the finding names an ID the
 /// register does not know, which is a leak — unless dispositioned.
-fn checkPresence(gpa: Allocator, result: *C7Result, reg: *Register, rej: *const RejectionIndex, id: []const u8, base: []const u8, owned_file: []const u8) !void {
+fn checkPresence(gpa: Allocator, io: Io, result: *C7Result, reg: *Register, rej: *const RejectionIndex, id: []const u8, base: []const u8, owned_file: []const u8) !void {
     if (reg.by_id.get(id)) |_| return;
+    // T373: an archived row still satisfies presence — the row exists, in the archive.
+    if (try archivedStatusFor(gpa, io, id)) |_| return;
     if (rej.get(gpa, id, base)) |entry| {
         result.rejected += 1;
         try result.rejected_items.append(gpa, .{
@@ -2540,7 +2667,7 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
             });
             continue;
         };
-        const fr = try parseFindingsFile(gpa, body, e.path, reg, rej);
+        const fr = try parseFindingsFile(gpa, io, body, e.path, reg, rej);
         result.files += 1;
         result.conforming += fr.conforming;
         result.nonconforming += fr.nonconforming;

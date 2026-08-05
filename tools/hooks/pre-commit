@@ -145,11 +145,15 @@ fi
 # Summary lines have variable-length labels, so we count from the end.
 # C1a: "  C1a orphans / C1b alarms      10 / 0   (FAILS)" → $6=10, $8=0
 # C2:  "  C2 dangling evidence paths    14   (FAILS)"      → $5=14
+# C3:  "  C3 PROVEN w/o committed evid. 48   (debt...)"     → $6=48 — gated by
+#      the C3 ratchet floor (T373): report-only at the claimlint level, the
+#      floor lives here in the hook, exactly like C1a/C2/C6/C9.
 # C6:  "  C6 cite-tag mismatches         0   (FAILS)"      → $4=0
 SUMMARY_LINE=$(echo "$OUTPUT" | grep '^  C1a orphans / C1b alarms' | grep 'FAILS')
 CURRENT_C1a=$(echo "$SUMMARY_LINE" | awk '{print $6}')
 CURRENT_C1b=$(echo "$SUMMARY_LINE" | awk '{print $8}')
 CURRENT_C2=$(echo "$OUTPUT" | grep '^  C2 dangling evidence paths' | grep 'FAILS' | awk '{print $5}')
+CURRENT_C3=$(echo "$OUTPUT" | grep '^  C3 PROVEN w/o committed evid.' | awk '{print $6}')
 CURRENT_C6=$(echo "$OUTPUT" | grep '^  C6 cite-tag mismatches' | grep 'FAILS' | awk '{print $4}')
 CURRENT_C9=$(echo "$OUTPUT" | grep '^  C9 tree-mapping violations' | grep 'FAILS' | awk '{print $4}')
 
@@ -162,11 +166,12 @@ read_floor_field() {
 FLOOR_C1a=$(read_floor_field "C1a")
 FLOOR_C1b=$(read_floor_field "C1b")
 FLOOR_C2=$(read_floor_field "C2")
+FLOOR_C3=$(read_floor_field "C3")
 FLOOR_C6=$(read_floor_field "C6")
 FLOOR_C9=$(read_floor_field "C9")
 
 # ── guard: floor file parseable ────────────────────────────────────────
-for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C6" "$FLOOR_C9"; do
+for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C3" "$FLOOR_C6" "$FLOOR_C9"; do
     if [ "$val" = "PARSE_ERROR" ]; then
         echo "pre-commit: cannot parse $FLOOR_FILE — blocking commit"
         exit 1
@@ -193,9 +198,10 @@ regression() {
 regression "C1a" "$CURRENT_C1a" "$FLOOR_C1a"
 regression "C1b" "$CURRENT_C1b" "$FLOOR_C1b"
 regression "C2"  "$CURRENT_C2"  "$FLOOR_C2"
+regression "C3"  "$CURRENT_C3"  "$FLOOR_C3"
 regression "C6"  "$CURRENT_C6"  "$FLOOR_C6"
 regression "C9"  "$CURRENT_C9"  "$FLOOR_C9"
 
 # ── all clear ──────────────────────────────────────────────────────────
-echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C6=$CURRENT_C6 C9=$CURRENT_C9 — ≤ floor, allowed"
+echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C3=$CURRENT_C3 C6=$CURRENT_C6 C9=$CURRENT_C9 — ≤ floor, allowed"
 exit 0

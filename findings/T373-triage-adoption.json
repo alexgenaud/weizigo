@@ -1,0 +1,15 @@
+{
+  "task_id": "T373",
+  "date": "2026-08-06",
+  "model": "flash",
+  "identifier": "deepseek-v4-flash/T373",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Triage adoption executed per the brief and the proposal sheet. 132 rows (106 ARCHAEOLOGY + 16 NOTE + 10 BOGUS) moved to archives/register/ in full with epitaphs (archive, never delete); the live register went 339 -> 207. GLOBAL.I5-SCC-CONTAIN re-mapped RETIRED -> Z-STATE-REACH with the ruling cited. claimlint C4/C6/C7 wired to resolve archived IDs via archives/register/INDEX.md and archives/register/rows/<ID>.md. C3 floor 48 declared in the same commit that reaches it (pre-commit now gates C3). Floors: C1a 10->0, C2 14->11, C3 76->48, C4 re-measured 46/2 -> 45/2 (report-only), C5 4->0, C7 1->0, C1b/C6/C9/calibration unchanged. Every counter moves DOWN. All claimlint regressions pass; the seeded archive-resolution control verified (an ID not in INDEX.md still dangles). Verification runs: bin/weizigo-claimlint before (rows 339, C1a 10, C2 14 at HEAD + 3 T384 drift -> 17, C3 76, C4 46/2, C9 0, calibration PASS) and after (rows 207, C1a 0, C2 11, C3 48, C4 45/2, C9 0, calibration PASS); tools/regression-claimlint-output.sh PASS; tools/regression-claimlint-promotion.sh PASS; tools/regression-precommit.sh PASS; zig test src/claimlint.zig PASS. Full `zig build test` not completed in this session (suite exceeds 30 min; per-module gate green). Commit via tools/git-commit-mine. See findings/T373-context.json for the surfaced items.",
+  "deviations_from_brief": [
+    "C4 archive resolution extended to C6 (36 cite-tag mismatches on archived rows would otherwise fail the run) and C7 (19 unabsorbed findings referencing archived rows) — same resolution rule, same spirit as the brief's step 0.4; without it the package wedges.",
+    "C3 gate wired into tools/hooks/pre-commit (the floor is hook-enforced, matching the existing C1a/C2/C6/C9 gate mechanism) — a floor in the JSON without a hook comparison would be inert.",
+    "An 8th archive family, falsified-foundation, holds the 10 BOGUS rows — the sheet's 7-family list covers ARCHAEOLOGY/NOTE; the BOGUS class needed a home.",
+    "tools/hooks/pre-commit and src/claimlint.zig are committed despite not being listed in the bundle's deliverables= header — the brief body mandates both (steps 1 and 4); committed with --explicit and this disclosure."
+  ]
+}
