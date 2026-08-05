@@ -901,6 +901,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T379": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T379-self-play-trajectory-consistency.md",
+    "set": "I",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T18:38:16Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T360": {
     "status": "done",
     "agent": "claude-opus-5",
@@ -1189,7 +1211,7 @@
   }
 ,
   "_sys": {
-    "next_id": 378,
+    "next_id": 379,
     "directive_next": 42
   }
 }
