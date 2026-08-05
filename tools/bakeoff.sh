@@ -60,8 +60,10 @@ refused (the summary says which); 2 on harness errors (bad args/roster, run
 name exists, missing dispatch binary, missing credential).
 
 Engineering rules (sprint.md): one state area under untracked/ (untracked/
-bakeoff/, nothing in docs/src/data/artifacts); root found by walking up for
-.git; flock on untracked/bakeoff/.lock around run-dir creation and lanes.json;
+bakeoff/, nothing in docs/src/data/artifacts); root resolved via
+`git rev-parse --show-toplevel` (worktree-aware — accepts both a `.git` dir
+and a `.git` FILE with a `gitdir:` pointer, T376); flock on
+untracked/bakeoff/.lock around run-dir creation and lanes.json;
 standalone binary, stdlib only; shallow interface. Python3 because macOS ships
 no flock(1) and the trailer parse + JSON lane map want stdlib json/re/shlex.
 
@@ -119,14 +121,40 @@ def diag(msg):
 
 
 def find_root():
-    d = os.path.dirname(os.path.abspath(__file__))
-    while True:
-        if os.path.isdir(os.path.join(d, ".git")):
-            return d
-        parent = os.path.dirname(d)
-        if parent == d:
-            die(f"no .git found walking up from {os.path.dirname(os.path.abspath(__file__))}")
-        d = parent
+    """Repository root, worktree-aware (T376).
+
+    A git WORKTREE's `.git` is a FILE carrying a `gitdir:` pointer, not a
+    directory, so the old isdir-only walk-up could not see a worktree root
+    and would silently keep walking into a parent checkout — the exact
+    failure where a lane would read the WRONG repo's keys. Prefer git's own
+    answer (`git rev-parse --show-toplevel` accepts both forms); absence of
+    git is the error case, never a guess.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            cwd=here,
+        )
+    except FileNotFoundError:
+        die(f"no git on PATH — cannot resolve the repository root (from {here})")
+    if proc.returncode != 0:
+        die(f"not inside a git repository (git rev-parse failed from {here}): "
+            f"{proc.stderr.strip() or 'no error output'}")
+    root = proc.stdout.strip()
+    if not root:
+        die("git rev-parse --show-toplevel returned an empty root")
+    # Sanity: this harness must live inside the resolved root. A detector
+    # that silently returns a DIFFERENT checkout's root (e.g. a nested repo
+    # between here and the intended root) would run lanes with the wrong
+    # repo's untracked/ in reach — refuse rather than guess.
+    script = os.path.realpath(__file__)
+    expected = os.path.realpath(os.path.join(root, "tools", "bakeoff.sh"))
+    if script != expected:
+        die(f"resolved root {root!r} does not contain this harness "
+            f"({script} != {expected}) — refusing to guess")
+    return root
 
 
 # ── roster ───────────────────────────────────────────────────────────
@@ -290,6 +318,15 @@ def preflight(lanes, wall):
 
 def execute(brief, roster, run, wall, claude_tools, lanes):
     root = find_root()
+    # T376 isolation record: a git WORKTREE root has `.git` as a FILE (a
+    # `gitdir:` pointer) and holds only committed content, so gitignored
+    # state (e.g. untracked/race-keys/, untracked/race-grading/) does not
+    # exist in the lane's view at all. That is a RELATIVE-PATH boundary only:
+    # a tool-using lane can still read the main checkout's gitignored files
+    # via absolute paths (no sandbox, T376 finding 2). The record below makes
+    # the truth auditable in lanes.json — it does not make the boundary
+    # stronger.
+    is_worktree = os.path.isfile(os.path.join(root, ".git"))
     bakeoff_dir = os.path.join(root, "untracked", "bakeoff")
     os.makedirs(bakeoff_dir, exist_ok=True)
     run_dir = os.path.join(bakeoff_dir, run)
@@ -388,6 +425,14 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
         "prompt_sha256": prompt_sha,
         "claude_gate": CLAUDE_GATE,
         "claude_tools": claude_tools,
+        "isolation": {
+            "root": root,
+            "root_is_worktree": is_worktree,
+            "lane_cwd": root,  # lanes dispatch with cwd=root
+            "strength": "relative-path boundary only — a tool-using lane can "
+                         "reach the host filesystem (incl. the main checkout's "
+                         "gitignored untracked/) via absolute paths; no sandbox (T376)",
+        },
         "lanes": results,
     }
     with open(os.path.join(bakeoff_dir, ".lock"), "w") as lf:
@@ -399,6 +444,7 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
 
     # summary — stdout is data
     print(f"run={run}")
+    print(f"root={root} worktree={is_worktree}")
     print(f"brief={brief}")
     print(f"roster={roster}")
     print(f"lanes={len(results)}")

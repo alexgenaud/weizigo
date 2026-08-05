@@ -85,6 +85,37 @@ the credential at once (the fleet cap of two concurrent pi-subagents is a
 rate-limit scope). Parallelism, when the human wants it, is the `--emit`
 block backgrounded in one console.
 
+### Worktree execution and the isolation boundary (T376)
+
+`tools/bakeoff.sh` resolves the repository root with
+`git rev-parse --show-toplevel`, which accepts both forms of `.git`: a
+directory (normal checkout) and a **file** carrying a `gitdir:` pointer (git
+worktree). `execute()` therefore runs correctly from inside a worktree — the
+harness's own dispatch path, not the `--emit` block, is the supported way to
+run a race (T371 had to fall back to `--emit` because the old `find_root`
+required `isdir(.git)`; T376 fixed it and proved one lane end-to-end).
+
+Races whose answer keys must stay out of lane reach run from a **git
+worktree**: a worktree contains only committed content, so gitignored state
+like `untracked/race-keys/` and `untracked/race-grading/` does not exist in
+the lane's view at all. The harness records the isolation context in
+`lanes.json` — `isolation.root`, `isolation.root_is_worktree`,
+`isolation.lane_cwd` — so every run document can state exactly what a lane
+could reach.
+
+**The true strength of that boundary:** it is a *relative-path* boundary, not
+a sandbox. A lane granted tools (pi lanes have tools by default; claude lanes
+get `--allowedTools`) can read the main checkout's gitignored files via
+**absolute paths** from inside a worktree — or by relative paths when the
+harness runs from the main checkout itself. The boundary is "a boundary plus
+a convention": the harness header instructs the lane to run no shell
+commands unless the brief requires it, and race briefs are self-contained by
+design. That convention is real but unenforced. **Do not describe worktree
+isolation as a guarantee.** A run that needs true isolation (a hostile lane)
+needs OS-level sandboxing or per-family tool restriction (e.g. `--no-tools`
+on pi lanes); see the sized finding in `findings/T376-bakeoff-worktree.json`
+— not built this row.
+
 ### Headless Claude lanes — exact flags
 
 Claude Code supports headless dispatch: `claude -p "<prompt>" --model <model>`
@@ -209,6 +240,23 @@ The n=1 caveat accompanies every such ratio. A repeat run is a new `--run`
 with the same brief and roster; multiple runs are required before a ranking
 claim is worth making.
 
+### Retried lanes (T376)
+
+A lane may stall (observed: a deepseek-v4-flash attempt-1 API stall,
+2026-08-05 — 600 s wall with near-zero CPU, 0 output; waiting, not compute).
+When a lane is retried:
+
+- **The completing attempt's clocks and output are the scored ones.** The
+  stalled attempt's near-zero CPU is not a capability signal; its wall time
+  measures the API's behaviour that day, and both are still recorded.
+- **The retry is disclosed in the run document**: attempt count, why each
+  non-completing attempt stopped (trailer exit line / kill reason), and which
+  attempt's clocks were scored.
+- **Attempt artifacts are preserved verbatim, never overwritten**
+  (`out.md.attempt1`, `trailer.log.attempt1`, …). A retried lane is a
+  validity question for timing comparisons, not a no-op — a run with a
+  retried lane reports it as such.
+
 ## 6. Dry-run demonstration (T328, 2026-08-05)
 
 Fixtures: `tools/bakeoff-dryrun-task.md` (trivial, not graded — explicitly
@@ -239,6 +287,20 @@ lane + one claude lane).
 Evidence: `untracked/bakeoff/dryrun-2026-08-05b/` (gitignored; SHA-256 of
 `out.md`, `trailer.log`, `lanes.json` recorded in `findings/T328-bakeoff.json`).
 
+### Worktree proof (T376, 2026-08-05)
+
+`execute()` from a git worktree, end-to-end: a fresh worktree at
+`/tmp/weizigo/lane-wt-t376` (committed content only), one deepseek lane
+(roster `deepseek deepseek-v4-flash`, brief `tools/bakeoff-dryrun-task.md`),
+run `tools/bakeoff.sh ... --run t376-worktree-proof-20260805` from inside the
+worktree. Result: `root=<worktree> worktree=True` in the summary;
+`out.md` = `BAKEOFF-DRYRUN-OK`; trailer captured both clocks + peak RSS;
+`lanes.json` records `isolation.root_is_worktree: true`; `untracked/race-keys/`
+and `untracked/race-grading/` absent from the lane's view. Durable run dir
+copied to the main checkout's `untracked/bakeoff/t376-worktree-proof-20260805/`
+(gitignored); SHA-256 of `out.md`, `trailer.log`, `lanes.json` recorded in
+`findings/T376-bakeoff-worktree.json`.
+
 ## 7. Security and hygiene notes
 
 - Credentials by environment only (§2); runner guards on every lane.
@@ -248,3 +310,9 @@ Evidence: `untracked/bakeoff/dryrun-2026-08-05b/` (gitignored; SHA-256 of
   `lanes.json` in place — a corrected run is a new `--run`.
 - The claude gate (§2) is the deliberate-spend control: a bake-off that
   executes claude lanes is an explicit, env-var-backed act.
+- **Worktree isolation is a relative-path boundary, not a sandbox** (§2,
+  "Worktree execution and the isolation boundary"). The harness records
+  `isolation.root` / `root_is_worktree` / `lane_cwd` in `lanes.json` so the
+  run document can state what a lane could reach; it does not (and cannot,
+  cheaply) prevent a tool-using lane from reading the main checkout by
+  absolute path.
