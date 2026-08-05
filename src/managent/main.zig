@@ -2376,34 +2376,60 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         }
     }
 
-    // C7 absorption check: run claimlint and parse unabsorbed task IDs.
+    // C7 absorption check: run claimlint and collect the task IDs of
+    // findings files carrying UNABSORBED entries. T368: the unabsorbed
+    // items live in claimlint's C7 DETAIL section ("  C7 UNABSORBED  `...`"
+    // followed by an "in <file>" line) — the old parse looked for T-tokens
+    // after the summary line, a format that never existed in any claimlint
+    // output, so the absorption refusal was silently dead (same defect
+    // class as CODE.STANDING-C3-DEAD). The task ID comes from the findings
+    // filename per findings/README.md's <TASKID>-<slug>.json convention.
+    // A missing section header is a loud warning, never a silent "nothing
+    // unabsorbed".
     var unabsorbed = std.StringHashMapUnmanaged(void).empty;
     defer unabsorbed.deinit(alloc);
-    {
-        const cl_result = std.process.run(alloc, io, .{
+    const cl_result = blk: {
+        const r = std.process.run(alloc, io, .{
             .argv = &.{ "bin/weizigo-claimlint" },
             .cwd = .{ .path = repo_root },
-        }) catch null;
-        if (cl_result) |*cr| {
-            defer alloc.free(cr.stdout);
-            defer alloc.free(cr.stderr);
-            // C7 section lists each unabsorbed finding with its task ID
-            var in_c7 = false;
-            var lines = std.mem.splitScalar(u8, cr.stdout, '\n');
-            while (lines.next()) |line| {
-                if (std.mem.indexOf(u8, line, "C7 unabsorbed findings") != null) in_c7 = true;
-                if (in_c7 and std.mem.indexOf(u8, line, "C8") != null) in_c7 = false;
-                if (in_c7) {
-                    // Lines like: "  T290  findings/T290-battery-spec.json  <claim-id>"
-                    var tok = std.mem.tokenizeAny(u8, line, " \t");
-                    if (tok.next()) |t| {
-                        if (std.mem.startsWith(u8, t, "T")) {
-                            unabsorbed.put(alloc, try alloc.dupe(u8, t), {}) catch {};
-                        }
+        }) catch break :blk null;
+        break :blk r;
+    };
+    if (cl_result) |*cr| {
+        defer alloc.free(cr.stdout);
+        defer alloc.free(cr.stderr);
+        const item_marker = "  C7 UNABSORBED  `";
+        var lines = std.mem.splitScalar(u8, cr.stdout, '\n');
+        var in_c7_section = false;
+        var c7_section_found = false;
+        var prev_item = false;
+        while (lines.next()) |line| {
+            if (std.mem.indexOf(u8, line, "== C7 ") != null) {
+                in_c7_section = true;
+                c7_section_found = true;
+                continue;
+            }
+            if (in_c7_section and std.mem.indexOf(u8, line, "== C8 ") != null) break;
+            if (!in_c7_section) continue;
+            if (std.mem.startsWith(u8, line, item_marker)) {
+                prev_item = true;
+                continue;
+            }
+            if (prev_item) {
+                prev_item = false;
+                const trimmed = std.mem.trim(u8, line, " \t\r");
+                if (std.mem.startsWith(u8, trimmed, "in ")) {
+                    if (taskIdFromFindingsPath(trimmed[3..])) |tid| {
+                        unabsorbed.put(alloc, try alloc.dupe(u8, tid), {}) catch {};
                     }
                 }
             }
         }
+        if (!c7_section_found) {
+            w.diag("  WARNING: claimlint C7 section header ('== C7 ') not found — the archive absorption check cannot see unabsorbed findings\n", .{});
+        }
+    } else {
+        w.diag("  WARNING: bin/weizigo-claimlint missing or failed to run — the archive absorption check is blind\n", .{});
     }
 
     // Second pass: determine eligibility
@@ -4854,6 +4880,47 @@ const standing_templates = [_]Standing{
     .{ .id = "STANDING-ABSORB",         .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-ABSORB.md" },
 };
 
+/// Parse the first digit-run after `label` from claimlint's `== SUMMARY ==`
+/// block (the canonical machine-consumable section — the same block the
+/// pre-commit hook's awk and the resume surface read). Scoping to the
+/// SUMMARY block keeps a drift in claimlint's detail sections from being
+/// mistaken for a summary reading. Returns null when the label is absent
+/// (marker drifted) or the value is not numeric — callers MUST treat null
+/// as a loud failure, never as zero (T368).
+fn parseSummaryCount(output: []const u8, label: []const u8) ?u64 {
+    var lines = std.mem.splitScalar(u8, output, '\n');
+    var in_summary = false;
+    while (lines.next()) |line| {
+        if (std.mem.indexOf(u8, line, "== SUMMARY ==") != null) {
+            in_summary = true;
+            continue;
+        }
+        if (!in_summary) continue;
+        if (std.mem.indexOf(u8, line, label)) |idx| {
+            const after = std.mem.trim(u8, line[idx + label.len ..], " \t\r");
+            var digits: usize = 0;
+            while (digits < after.len and after[digits] >= '0' and after[digits] <= '9') digits += 1;
+            if (digits == 0) return null;
+            return std.fmt.parseInt(u64, after[0..digits], 10) catch null;
+        }
+    }
+    return null;
+}
+
+/// Extract a task ID from a findings filename per findings/README.md's
+/// `<TASKID>-<slug>.json` convention: "T129-qa027.json" → "T129".
+fn taskIdFromFindingsPath(path: []const u8) ?[]const u8 {
+    const base = std.fs.path.basename(path);
+    if (base.len < 2 or base[0] != 'T') return null;
+    var i: usize = 1;
+    while (i < base.len) : (i += 1) {
+        const c = base[i];
+        if (!((c >= '0' and c <= '9') or (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z') or c == '_')) break;
+    }
+    if (i <= 1) return null;
+    return base[0..i];
+}
+
 fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = args;
 
@@ -4861,57 +4928,73 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
 
     // ── detect triggers ──
 
-    // Trigger 1: claimlint C3 debt (for STANDING-REEVIDENCE)
+    // Trigger 1: claimlint C3 debt (for STANDING-REEVIDENCE).
+    // T368: the marker must match claimlint's CURRENT summary line
+    // ("  C3 PROVEN w/o committed evid. {d} ..."). The old "C3: " marker
+    // never matched any claimlint output (CODE.STANDING-C3-DEAD), so the
+    // reading was a silent 0 from birth. Parse the == SUMMARY == block (the
+    // machine-consumable section the pre-commit hook's awk also reads) and
+    // fail LOUDLY when the marker is absent — a silent 0 is how a standing
+    // trigger dies without anyone noticing.
     var c3_debt: u64 = 0;
     var c3_prior: u64 = 0;
-    const claimlint_result = try runCommand(alloc, io, &.{ "bin/weizigo-claimlint" });
+    const c3_marker = "C3 PROVEN w/o committed evid.";
+    const claimlint_result = runCommand(alloc, io, &.{ "bin/weizigo-claimlint" }) catch |e| {
+        w.diag("  standing: cannot run bin/weizigo-claimlint for the C3/C7 triggers ({s})\n", .{@errorName(e)});
+        w.diag("  Build it (zig build) — the standing C3/C7 readings are unavailable.\n", .{});
+        std.process.exit(1);
+    };
     defer alloc.free(claimlint_result);
-    {
-        const c3_marker = "C3: ";
-        var lines = std.mem.splitScalar(u8, claimlint_result, '\n');
-        while (lines.next()) |line| {
-            if (std.mem.indexOf(u8, line, c3_marker)) |idx| {
-                const after = line[idx + c3_marker.len ..];
-                c3_debt = std.fmt.parseInt(u64, std.mem.trim(u8, after, " \t\r"), 10) catch 0;
-                break;
-            }
-        }
+    var c3_marker_missing = false;
+    if (parseSummaryCount(claimlint_result, c3_marker)) |v| {
+        c3_debt = v;
+    } else {
+        c3_marker_missing = true;
+        w.diag("  WARNING: claimlint marker '{s}' not found in its == SUMMARY == block — STANDING-REEVIDENCE reading UNRELIABLE\n", .{c3_marker});
     }
 
     // Trigger 1b: claimlint C7 unabsorbed findings (for STANDING-ABSORB).
     // Read from the SAME claimlint run the C3 trigger uses, and from
     // claimlint's own summary — the count is claimlint's, never reimplemented
-    // here (two implementations of one number drift). The per-file composition
-    // is likewise claimlint's own "in <file>" lines, surfaced verbatim.
+    // here (two implementations of one number drift).
+    // T368: repointed at the current SUMMARY line
+    // ("  C7 unabsorbed findings         {d}   (FAILS)   [UNABSORBED]").
+    // T356 (28b7bda) renamed the old detail line "  C7 unabsorbed findings:
+    // {d}" to "  C7 UNABSORBED unabsorbed findings: {d}", silently killing
+    // the T294 marker — C7 read 0 from 2026-08-05 on and STANDING-ABSORB
+    // could never fire. A missing marker is a loud failure below, never a
+    // silent 0.
     var c7_unabsorbed: u64 = 0;
+    const c7_marker = "C7 unabsorbed findings";
+    var c7_marker_missing = false;
+    if (parseSummaryCount(claimlint_result, c7_marker)) |v| {
+        c7_unabsorbed = v;
+    } else {
+        c7_marker_missing = true;
+        w.diag("  WARNING: claimlint marker '{s}' not found in its == SUMMARY == block — STANDING-ABSORB reading UNRELIABLE\n", .{c7_marker});
+    }
+    // Per-file composition: each UNABSORBED entry in claimlint's C7 detail
+    // section is followed by an "in <file>" line; aggregate per file so the
+    // trigger reports what the count is MADE OF, not just its size (the
+    // 2026-08-03 case: C7=21 was 10 genuine + 11 context dumps repeating
+    // their findings files). T368: repointed at the current item lines
+    // ("  C7 UNABSORBED  `...`") — T356 renamed the old "  UNABSORBED  `..."
+    // prefix; a drifted item format while C7>0 is warned, not silently empty.
     var c7_files = std.StringHashMap(u64).init(alloc);
     defer c7_files.deinit();
     {
-        const c7_marker = "C7 unabsorbed findings: ";
+        const item_marker = "  C7 UNABSORBED  `";
         var lines = std.mem.splitScalar(u8, claimlint_result, '\n');
-        var in_entry = false;
+        var prev_item = false;
+        var saw_item = false;
         while (lines.next()) |line| {
-            if (std.mem.indexOf(u8, line, c7_marker)) |idx| {
-                // summary line: "  C7 unabsorbed findings: 21   (FAILS)" — take
-                // the leading digits (the "(FAILS)" suffix must not poison the
-                // parse; the hook's awk does the same shape of extraction).
-                const after = std.mem.trim(u8, line[idx + c7_marker.len ..], " \t\r");
-                var digits: usize = 0;
-                while (digits < after.len and after[digits] >= '0' and after[digits] <= '9') digits += 1;
-                c7_unabsorbed = std.fmt.parseInt(u64, after[0..digits], 10) catch 0;
+            if (std.mem.startsWith(u8, line, item_marker)) {
+                prev_item = true;
+                saw_item = true;
                 continue;
             }
-            // Per-file composition: each UNABSORBED entry is followed by an
-            // "in <file>" line in claimlint's detail block. Aggregate per file
-            // so the trigger reports what the count is MADE OF, not just its
-            // size (the 2026-08-03 case: C7=21 was 10 genuine + 11 context
-            // dumps repeating their findings files).
-            if (std.mem.startsWith(u8, line, "  UNABSORBED")) {
-                in_entry = true;
-                continue;
-            }
-            if (in_entry) {
-                in_entry = false;
+            if (prev_item) {
+                prev_item = false;
                 const trimmed = std.mem.trim(u8, line, " \t\r");
                 if (std.mem.startsWith(u8, trimmed, "in ")) {
                     const f = trimmed[3..];
@@ -4921,6 +5004,9 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
                     gop.value_ptr.* += 1;
                 }
             }
+        }
+        if (c7_unabsorbed > 0 and !saw_item) {
+            w.diag("  WARNING: claimlint C7 detail item lines ('{s}') not found while C7={d} — per-file composition unavailable\n", .{ item_marker, c7_unabsorbed });
         }
     }
 
@@ -5072,7 +5158,10 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     }
 
     // STANDING-REEVIDENCE: trigger when C3 debt grows
-    {
+    if (c3_marker_missing) {
+        w.data("    STANDING-REEVIDENCE      C3 debt: UNRELIABLE (marker '{s}' not found in claimlint summary)", .{c3_marker});
+        w.data("\n", .{});
+    } else {
         const triggered = c3_debt > c3_prior and c3_prior > 0;
         w.data("    STANDING-REEVIDENCE      C3 debt: {d} (was {d})", .{ c3_debt, c3_prior });
         if (triggered) {
@@ -5097,7 +5186,10 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     // the threshold (absolute, not change-based — see ABSORB_C7_THRESHOLD).
     // Report the per-file composition alongside the size: a count nobody can
     // decompose sends someone to triage before they can do work.
-    {
+    if (c7_marker_missing) {
+        w.data("    STANDING-ABSORB          C7 unabsorbed: UNRELIABLE (marker '{s}' not found in claimlint summary)", .{c7_marker});
+        w.data("\n", .{});
+    } else {
         const triggered = c7_unabsorbed > ABSORB_C7_THRESHOLD;
         w.data("    STANDING-ABSORB          C7 unabsorbed: {d} (threshold {d})", .{ c7_unabsorbed, ABSORB_C7_THRESHOLD });
         if (triggered) {
@@ -5125,6 +5217,20 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
             w.data("\n", .{});
         }
         w.data("\n", .{});
+    }
+
+    // ── marker guard (T368): a missing claimlint marker is a broken ──
+    // mechanism, not a zero reading. The T356 rename killed C7's marker and
+    // C7 read 0 for a day while STANDING-ABSORB silently could not fire;
+    // C3's marker was dead since birth (CODE.STANDING-C3-DEAD). Never
+    // persist priors from an unreliable reading — exit loudly so the next
+    // rename breaks a run, not a mechanism.
+    if (c3_marker_missing or c7_marker_missing) {
+        w.diag("\n  standing: FATAL — claimlint output does not carry every marker this build parses.\n", .{});
+        w.diag("  The affected C3/C7 readings above are UNRELIABLE; no trigger was evaluated from them.\n", .{});
+        w.diag("  Re-point the markers in src/managent/main.zig against a fresh `bin/weizigo-claimlint`\n", .{});
+        w.diag("  run (the standing regression tests guard the exact strings), then rebuild + redeploy.\n", .{});
+        std.process.exit(1);
     }
 
     // ── persist current trigger state ──
