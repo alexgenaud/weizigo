@@ -1,0 +1,6 @@
+# T328 dry-run roster — plumbing demonstration (2026-08-05)
+# family canonical-label [ollama-serving-tag]
+# The claude lane is EMIT ONLY in this row: executing it requires
+# WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1, which T328 never exports.
+deepseek deepseek-v4-flash
+claude claude-opus-5
