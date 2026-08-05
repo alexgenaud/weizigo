@@ -176,8 +176,8 @@
     "amendments": []
   },
   "T377": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T377-g3b-promotions-and-absorb.md",
     "set": "B",
@@ -185,16 +185,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T17:56:13Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T20:46:33Z",
+    "done": "2026-08-05T20:46:44Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "claimlint exits 1 by design (recorded floor debt: C1a=10, C1b=0, C2=14, C6=0, C9=0, calibration PASS — all at or below floor in both runs). The brief's acceptance bar is met: C7 non-conforming 5->0; floor counters unmoved. C7 unabsorbed 0->1 is the intended T375 mirror-measurement proposal entering the absorption queue.",
     "amendments": []
   },
   "T370": {
@@ -458,6 +458,28 @@
     "verdict_note": "Measured fold factors (4x4 raw/canon=15.94x of predicted 16x; combined raw/canon-legal=28.23x). Q2 truncation REFUTED: orbits are stone-count-locked so ~39% of orbits sit in the top 50% of colex; truncating at 50% loses the entire endgame region (predictable+exploitable, not noise). Null control (colex-min vs lex-min) AGREE on all 5 gobans; seeded control (corrupted rot90) DETECTED on all squares. Proposed register row GLOBAL.SYM-FOLD (MEASUREMENT). No encoding/format/artifact changed.",
     "claim_count": 1,
     "acceptance": "test -s docs/research/symmetry-fold-census-2026-08-04.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T382": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T382-goban-pathology-census.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T20:49:31Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/research/goban-pathology-2026-08-05.md",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -1256,6 +1278,6 @@
 ,
   "_sys": {
     "next_id": 382,
-    "directive_next": 42
+    "directive_next": 43
   }
 }
