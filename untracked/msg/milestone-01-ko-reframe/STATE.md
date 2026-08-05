@@ -45,9 +45,12 @@ counts until that check has passed at 4×3.**
    2026-08-04 and every one was already gone from disk.
 6. **Commit, then `zig build deploy`, then `sh tools/smoke.sh` with zero STALE — every time.**
    Deploy staleness is a hard suite failure again since T337 wired the check.
-7. **Verify a leg with `zig build test --test-filter <tag>`, never bare `zig test src/<f>.zig`.**
-   The bare form pulls the full import graph and drags in `qa023_brute_2x2`'s explosive smoke
-   test. It now fails fast on a 20M-node budget (T360); **do not raise the budget.**
+7. **Verify a leg with `zig test src/<f>.zig --test-filter <tag>` (one flag per test — the
+   filter is a SUBSTRING match, so a `\|` alternation string matches nothing and passes
+   vacuously; assert the reported test count), never unfiltered.** The unfiltered form pulls
+   the full import graph and drags in `qa023_brute_2x2`'s explosive smoke test. It now fails
+   fast on a 20M-node budget (T360); **do not raise the budget.** (`zig build test` accepts no
+   filter in this build.zig — the previous wording here prescribed a command that does not run.)
 8. **One writer per file, declared as `holds=`.** `holdsConflict` refuses a claim only against an
    **in-progress** holder (`src/managent/main.zig`), so declaring the hold is what mechanizes it.
 9. **Commit through `tools/git-commit-mine <paths> -m <msg>`**, never `git add -A`.
