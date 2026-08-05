@@ -249,8 +249,8 @@ behaviour this sprint was designed to produce. The spec's §7.2 premise is **cor
 **Not discharged by this ruling:** the #2 auditor gate, Track A, and every claim outside spec
 §1.1's three rows. G3b is one lemma of Phase 3, not Phase 3.
 
-**Milestone:** advances `M2 (proven 4×4 values)` — four of the table's correctness properties now
+**Landmark:** advances `L2 (proven 4×4 values)` — four of the table's correctness properties now
 hold at full scale with denominators, where two did this morning, and the closure result is
 reproducible by anyone in four minutes with the command above. What still stands between here and
-M2: I11 exhaustive at 4×4 rather than sampled, the KO_SENSITIVE column's own trust (Track A), and
+L2: I11 exhaustive at 4×4 rather than sampled, the KO_SENSITIVE column's own trust (Track A), and
 the #2 auditor.

@@ -1,6 +1,6 @@
 # EPISTEMIC RACES — head-to-head model evaluation on the capabilities this project runs on
 
-Author: Fable · 2026-08-05 · companion to `ROADMAP.md` and `MILESTONES.md` (this directory)
+Author: Fable · 2026-08-05 · companion to `ROADMAP.md` and `LANDMARKS.md` (this directory)
 Protocol substrate: T328 bake-off harness (answer-key-first, blind grading, sealed lane map,
 both clocks + operator-collected tokens, tokens-now-prices-later). Baseline beliefs to race
 against: `docs/infra/model-perf.md` §Belief audit 2026-08-05.
@@ -58,7 +58,7 @@ to a checkable residue — claimlint's architecture applied to model evaluation:
 - **Scoring:** name-match is mechanical (key holds: mutation testing DeMillo–Lipton–Sayward
   1978; golden master, Feathers 2004; retrograde/tablebase methods; proof-number search;
   **van der Werf's 5×5 Go solution 2003 — the exact prior art for the 5×4/5×5 frontier;
-  Schaeffer's checkers proof — the exact prior art for milestone M6**). Only the
+  Schaeffer's checkers proof — the exact prior art for landmark L6**). Only the
   "what it adds" paragraph needs the blind grader.
 - **Direct project benefit:** unkeyed mappings that survive human ruling are free research
   leads — this race can amend the roadmap.
