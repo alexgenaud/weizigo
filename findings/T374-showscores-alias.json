@@ -1,0 +1,53 @@
+{
+ "task_id": "T374",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T374",
+ "deliverable": "src/gtp.zig",
+ "finding": {
+  "id": "T374-showscores-alias",
+  "class": "self-aliasing @memcpy (Zig safe-mode trap)",
+  "location": "src/gtp.zig, formatShowScores, .legal_fixed branch (old line 996)",
+  "summary": "weizigo_showscores panicked on any 4x4 board under a safe build: formatShowScores formatted a value with bufPrint directly INTO out_buf and then copied the returned slice onto its own backing memory with @memcpy. bufPrint returns a slice of the buffer it wrote into, so source and destination were the same bytes; Zig's overlap check trapped with 'panic: @memcpy arguments alias'. The crash was first seen by T327, recorded only in its close note, and never filed; T366 hit it again (worked around by reading L/H through the session API). T374 filed and fixed it.",
+  "root_cause": "const s1 = std.fmt.bufPrint(out_buf[off..][0..3], \"{d:>3}\", .{v}) catch {...}; @memcpy(out_buf[off .. off + s1.len], s1);\n\nThe formatted bytes were already in place: bufPrint writes into out_buf[off..][0..3] and returns a slice of that same memory. The @memcpy was a no-op with identical source and destination, and the copy was never needed.",
+  "fix": "Deleted the @memcpy entirely (minimal; the formatted bytes are already where the renderer needs them). The return value of bufPrint is now discarded with `_ =`. No formatting or layout change: the rendered output is byte-identical to the pre-fix output modulo the crash.",
+  "dead_code_removed": {
+   "claim": "the `if (s1.len < 3)` padding branch next to the deleted @memcpy could never fire",
+   "evidence": "std.fmt.bufPrint(buf[0..3], \"{d:>3}\", .{v}) succeeds only when the formatted output fits in 3 bytes; the `:>3` specifier right-aligns into exactly width 3, so a successful call returns exactly 3 bytes. Values needing more (|v| >= 100, e.g. +127 or -128 as i8) fail bufPrint and land in the catch, which writes '???' and continues. There is no path where s1.len < 3 on success. Branch removed with the @memcpy.",
+   "probe": "zig run on {d:>3} for i8 5/12/0/-8/99/-99: all return exactly 3 bytes (' +5','+12',' +0',' -8','+99','-99'); i8 127 → '+127' (4 bytes, bufPrint fails)."
+  },
+  "rendering_note": {
+   "discovery": "Zig 0.16's {d} prints the sign for signed integer types: i8 12 formats as '+12', i8 0 as ' +0', i8 -8 as ' -8' (probed standalone: i8/i16/i32 signed → sign always; u8 and comptime_int literals → no '+'). legal_fixed values are i8, so every cell carries an explicit sign. The T327 test's golden text (+12, +0 forms) was correct all along; its explanatory comment ('{d:>3} shows the explicit sign on positive zero') was wrong about the mechanism and has been corrected.",
+   "impact": "none on output — the fix preserves the exact rendering the (never-passing) golden described."
+  },
+  "regression_test": {
+   "existing": "T327: weizigo_showscores — 2-digit value + illegal point + L<H point (4x4, golden-output assert). Was the crashing test; now green, golden verified byte-for-byte against the fixed render.",
+   "new": "T374: formatShowScores at 4x4 — aliased memcpy gone, golden render asserted. Empty 4x4 goban, Black to move; hand-built 17-group WZO2 artifact; every empty cell resolves through .legal_fixed (the fixed line); asserts the full rendered block including a 2-digit positive (+12 at A4), a negative (-8 at D1), zeros, and the 'marked (L<H): none' footnote. Golden built per-cell (4 chars each) to avoid hand-counting errors.",
+   "red_control": "zig test src/gtp.zig at HEAD: 7/97 gtp.test.T327 ... thread panic: @memcpy arguments alias at src/gtp.zig:996:44 in formatShowScores.",
+   "green_control": "zig test src/gtp.zig --test-filter T327 → 1/1 OK; --test-filter T374 → 1/1 OK; full suite (safe build, default mode) → All 98 tests passed (97 at HEAD + T374)."
+  },
+  "memcpy_sweep": {
+   "method": "read every @memcpy site in src/gtp.zig and trace source vs destination buffers",
+   "result": "only the deleted one was self-aliasing. All 10 remaining sites copy between distinct buffers:",
+   "sites": [
+    {"line": 1082, "dest": "out_buf[off..off+vtxt.len]", "src": "vtxt from local stack buffer vb (line 1079, vertex_from_cell)", "verdict": "distinct"},
+    {"line": 1101, "dest": "out_buf[off..]", "src": "none_str string literal \" none\"", "verdict": "distinct"},
+    {"line": 1404, "dest": "lb[ll..ll+c.len]", "src": "c from static KNOWN_COMMANDS", "verdict": "distinct"},
+    {"line": 1407, "dest": "rbuf[0..ll]", "src": "lb[0..ll]", "verdict": "distinct arrays"},
+    {"line": 1690, "dest": "rbuf[0..bl]", "src": "bb[0..bl]", "verdict": "distinct arrays"},
+    {"line": 1804, "dest": "sbuf[1..][0..rendered.len]", "src": "rendered, a slice of sbuf2 (declared 1797); sbuf declared 1350", "verdict": "distinct arrays"},
+    {"line": 1970, "dest": "lb[ll..ll+c.len]", "src": "c from static KNOWN_COMMANDS", "verdict": "distinct"},
+    {"line": 1973, "dest": "rbuf[0..ll]", "src": "lb[0..ll]", "verdict": "distinct arrays"},
+    {"line": 2414, "dest": "raw_hdr local", "src": "file_bytes", "verdict": "distinct"},
+    {"line": 2664, "dest": "raw_hdr local", "src": "file_bytes", "verdict": "distinct"}
+   ],
+   "adjacent_class": "footnote bufPrint calls at lines 1089/1093 format into out_buf[off..] and advance off by the returned length without any copy — same in-place pattern, no @memcpy, no aliasing trap. Left as-is."
+  },
+  "verification": {
+   "build": "zig test src/gtp.zig (safe build — Debug, the default; asserts and overlap checks live)",
+   "counts": "red: 7/97 panic at HEAD; green: 1/1 (T327), 1/1 (T374), 98/98 full suite",
+   "filter_note": "each --test-filter run reported 1/1 (STATE rule 7: a zero-match filter compiles nothing and exits 0 — the asserted counts prove the right tests ran)",
+   "zig_version": "0.16.0"
+  }
+ }
+}

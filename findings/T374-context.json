@@ -1,0 +1,40 @@
+{
+ "task_id": "T374",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T374",
+ "context": {
+  "provenance": {
+   "first_sighting": "T327 (close note only — no follow-up row was registered; bin/managent audit flagged the class: 'verdict pass-with-findings but verdict_note names no follow-up task')",
+   "second_sighting": "T366 on 2026-08-05, worked around by reading L/H through the session API instead of the crashing display path",
+   "filed_by": "T374 (this row), per the brief: 'Second independent sighting; file it and fix it.'"
+  },
+  "what_was_wrong_in_the_brief": [
+   "'The suite had 122/123 passing with this crash present, which means no test covered the path' — at HEAD the T327 test DID cover the path (4x4 formatShowScores with a golden assert); it was the 1 crashing test. The path was covered but red: a crashing test verifies nothing. T374's fix turns the existing golden green and adds a second, focused regression (T374 tag).",
+   "The brief suggested std.mem.copyForwards as the fix; the @memcpy was deleted instead (the copy was a no-op — bufPrint's bytes are already in place). Same outcome, fewer instructions, and the dead padding branch alongside it is removed too."
+  ],
+  "zig_formatting_discovery": {
+   "finding": "Zig 0.16 std.fmt {d} prints the sign for SIGNED integer types (i8/i16/i32): 12 → '+12', 0 → ' +0', -8 → ' -8'. Unsigned (u8) and comptime_int literals get no '+'. This is why the i8 legal_fixed cells render with explicit signs.",
+   "probe": "fmtprobe4: i8 5 → ' +5'; i8 12 → '+12'; i8 0 → ' +0'; i8 -8 → ' -8'; i8 99 → '+99'; i8 -99 → '-99'; i8 127 → '+127'; i8 -128 → '-128'; i16 12 → '+12'; i32 12 → '+12'; u8 12 → ' 12'; runtime i32 12 → '+12'. All right-aligned into width 3 via :>3.",
+   "consequence": "the T327 golden (+12 / +0 forms) was correct and is unchanged; only its mechanism comment was wrong and is corrected. The T374 golden uses the same sign-always forms.",
+   "consequence_2": "values |v| >= 100 (e.g. i8 127 → '+127', 4 bytes) fail the 3-byte bufPrint and render '???' — pre-existing behavior, unchanged by this fix, unreachable at 4x4 (scores in [-16, 16])."
+  },
+  "dead_branch_verdict": {
+   "branch": "if (s1.len < 3) { pad to 3 }",
+   "verdict": "confirmed dead and removed",
+   "why": "{d:>3} on success returns exactly 3 bytes (probe: every in-range i8 value → len 3); out-of-range values fail bufPrint → the catch branch runs. No success path has s1.len < 3."
+  },
+  "scope_and_bars": {
+   "files_touched": "src/gtp.zig only (per set L). build.zig and src/vb_*.zig untouched (T363 holds them).",
+   "no_restructure": "formatShowScores structure unchanged; only the .legal_fixed branch's redundant copy + dead padding removed, comments corrected.",
+   "suite_red_at_head": "zig build test is red at HEAD for pre-existing causes owned by T369 (build.zig:407 clears the vb_i11 test target's import table) and T363; not run by this row — the per-module test target is the verification surface (zig test src/gtp.zig), which is green 98/98."
+  },
+  "milestone_line": "Milestone: advances M0 (the table and the instruments exist) — the GTP weizigo_showscores annotator no longer crashes on a 4x4 board: a score-annotated goban now renders over GTP, restoring the 'see it yourself' path M0 implies; nothing about the table changes (display path only) — M0 stays banked-with-caveat until T369 restores `zig build test`.",
+  "related_rows": ["T327 (introduced the command and the bug)", "T366 (second sighting)", "T369 (owns zig build test redness — cited, not investigated)"],
+  "outputs": {
+   "main_finding": "findings/T374-showscores-alias.json",
+   "regression_test": "src/gtp.zig test 'T374: formatShowScores at 4x4 — aliased memcpy gone, golden render asserted'",
+   "existing_test_now_green": "src/gtp.zig test 'T327: weizigo_showscores — 2-digit value + illegal point + L<H point'"
+  }
+ }
+}

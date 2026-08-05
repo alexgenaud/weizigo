@@ -982,10 +982,19 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                     switch (kind) {
                         .stone, .illegal => unreachable,
                         .legal_fixed => |v| {
-                            // 3-char numeric (sign + 2 digits, right-
-                            // aligned in width 3 via `{d:>3}`) + 1 sep
-                            // space = 4 chars.
-                            const s1 = std.fmt.bufPrint(out_buf[off..][0..3], "{d:>3}", .{v}) catch {
+                            // 3-char numeric right-aligned into width 3 via
+                            // `{d:>3}`. Zig's `{d}` prints the sign for
+                            // signed integer types: non-negative values get
+                            // '+' (0 → ` +0`, 12 → `+12`), negatives get '-'
+                            // (-8 → ` -8`). + 1 sep space = 4 chars.
+                            // bufPrint writes into out_buf[off..] and
+                            // returns a slice of that SAME memory, so the
+                            // formatted bytes are already in place and
+                            // nothing needs copying. T374: the previous
+                            // `@memcpy(out_buf[off..off+s1.len], s1)` had
+                            // identical source and destination; Zig's
+                            // overlap check trapped in safe builds.
+                            _ = std.fmt.bufPrint(out_buf[off..][0..3], "{d:>3}", .{v}) catch {
                                 out_buf[off] = '?';
                                 out_buf[off + 1] = '?';
                                 out_buf[off + 2] = '?';
@@ -993,11 +1002,12 @@ pub fn Session(comptime w: usize, comptime h: usize) type {
                                 off += 4;
                                 continue;
                             };
-                            @memcpy(out_buf[off .. off + s1.len], s1);
-                            if (s1.len < 3) {
-                                var k: usize = s1.len;
-                                while (k < 3) : (k += 1) out_buf[off + k] = ' ';
-                            }
+                            // `{d:>3}` fills to width 3 on success, so the
+                            // returned slice is always exactly 3 bytes here
+                            // (values needing more characters — |v| >= 100 —
+                            // fail the bufPrint and land in the catch
+                            // above). The old `if (s1.len < 3)` padding
+                            // branch could never fire and is removed.
                             out_buf[off + 3] = ' ';
                             off += 4;
                         },
@@ -2698,10 +2708,13 @@ test "T327: weizigo_showscores — 2-digit value + illegal point + L<H point" {
     //   row 1: ` +0 `  `  X `  `  X `  ` +0 `
     //   row 2: ` +0 `  `  O `  `  O `  ` +0 `
     //   row 3: ` +0 `  ` +0 `  ` +0 `  ` +0 `
-    // (value 0 renders as ` +0 ` because `{d:>3}` shows the explicit
-    // sign on positive zero — consistent with the convention that
-    // every cell carries a sign so the column stays right-aligned
-    // with the sign of every value.)
+    // (value 0 renders as ` +0 ` because `{d}` prints the sign for
+    // signed integer types in Zig 0.16: non-negative i8 values get an
+    // explicit '+', right-aligned into width 3 by `{d:>3}` — so every
+    // cell carries a sign and the column stays aligned. T374 note: this
+    // golden never ran green — the test crashed at the aliased @memcpy
+    // in formatShowScores before reaching the assertion; the expected
+    // text was verified against the fixed render byte-for-byte.)
     const expected =
         "scores for B to move, +N = B ahead by N\n" ++
         ". . . .   +12 +1~   .  +0 \n" ++
@@ -2709,6 +2722,177 @@ test "T327: weizigo_showscores — 2-digit value + illegal point + L<H point" {
         ". O O .    +0   O   O  +0 \n" ++
         ". . . .    +0  +0  +0  +0 \n" ++
         "marked (L<H): B4=[1,5]\n";
+
+    try expect(std.mem.eql(u8, out, expected));
+}
+
+test "T374: formatShowScores at 4x4 — aliased memcpy gone, golden render asserted" {
+    const gpa = std.testing.allocator;
+    const w: u8 = 4;
+    const h: u8 = 4;
+    const kb = artifact2.koBits(w * h);
+    const none = artifact2.koNone(w, h); // 16
+
+    const S = Session(w, h);
+    const Pos = S.R.Pos;
+    const X = colexmod.Indexer(w, h);
+
+    // Empty 4x4 goban, Black to move. The renderer resolves every
+    // empty cell's child state ("empty + Black stone there") in the
+    // artifact, and each resolution lands in the `.legal_fixed`
+    // branch — the one that used to run
+    // `@memcpy(out_buf[off..off+s1.len], s1)` with identical source
+    // and destination (bufPrint returns a slice of the very buffer
+    // it wrote into), trapping in safe builds. This test is the
+    // regression for that line: it must render, and the rendered
+    // output must be exactly the golden below. Values cover all
+    // three `{d:>3}` shapes for i8 (sign always printed): a 2-digit
+    // positive (A4=12 → `+12 `), a negative (D1=-8 → ` -8 `), and
+    // zeros (` +0 `).
+    const colex_of = struct {
+        fn f(pos: *const Pos) u32 {
+            return @intCast(X.colex_from_pos(pos));
+        }
+    }.f;
+
+    var parent: Pos = [_]i8{0} ** 16; // empty goban
+    const parent_colex: u32 = colex_of(&parent);
+
+    var children: [16]Pos = undefined;
+    var child_colex: [16]u32 = undefined;
+    var child_p: [16]usize = undefined;
+    var n_children: usize = 0;
+    for (0..16) |p| {
+        var ch: Pos = parent;
+        ch[p] = 1; // Black stone
+        children[n_children] = ch;
+        child_colex[n_children] = colex_of(&ch);
+        child_p[n_children] = p;
+        n_children += 1;
+    }
+
+    // Groups: 16 children + the parent itself. Sort by colex (WZO2
+    // lookups binary-search sorted groups).
+    var all_colex: [17]u32 = undefined;
+    var all_is_parent: [17]bool = undefined;
+    for (0..n_children) |i| {
+        all_colex[i] = child_colex[i];
+        all_is_parent[i] = false;
+    }
+    all_colex[n_children] = parent_colex;
+    all_is_parent[n_children] = true;
+
+    var i: usize = 1;
+    while (i < n_children + 1) : (i += 1) {
+        const key_c = all_colex[i];
+        const key_p = all_is_parent[i];
+        var j: usize = i;
+        while (j > 0 and all_colex[j - 1] > key_c) : (j -= 1) {
+            all_colex[j] = all_colex[j - 1];
+            all_is_parent[j] = all_is_parent[j - 1];
+        }
+        all_colex[j] = key_c;
+        all_is_parent[j] = key_p;
+    }
+
+    const Bracket = struct { L: i8, H: i8 };
+    var groups: [17]artifact2.GroupHeader = undefined;
+    var entries: [34]artifact2.EntryRow = undefined;
+    var eg: usize = 0;
+    var ee: usize = 0;
+    for (0..n_children + 1) |gi| {
+        groups[gi] = .{ .colex = all_colex[gi], .entry_count = 2 };
+        const c: Bracket = if (all_is_parent[gi]) Bracket{ .L = 0, .H = 0 } else blk: {
+            var found = Bracket{ .L = 0, .H = 0 };
+            for (0..n_children) |ci| {
+                if (all_colex[gi] == child_colex[ci]) {
+                    const p = child_p[ci];
+                    if (p == 0) found = Bracket{ .L = 12, .H = 12 }; // 2-digit L==H at A4
+                    if (p == 15) found = Bracket{ .L = -8, .H = -8 }; // negative at D1
+                    break;
+                }
+            }
+            break :blk found;
+        };
+        entries[ee] = .{
+            .key_byte = artifact2.encodeKeyByte(0, none, 0, 0, kb),
+            .L = c.L,
+            .H = c.H,
+            .DTT = 1,
+        };
+        ee += 1;
+        entries[ee] = .{
+            .key_byte = artifact2.encodeKeyByte(1, none, 0, 0, kb),
+            .L = c.L,
+            .H = c.H,
+            .DTT = 1,
+        };
+        ee += 1;
+        eg += 1;
+    }
+
+    const n_groups_actual = n_children + 1;
+    const art = artifact2.Artifact{
+        .header = artifact2.Header{
+            .w = w,
+            .h = h,
+            .ko_bits = kb,
+            .n_groups = n_groups_actual,
+            .n_entries = ee,
+            .sha256 = [_]u8{0} ** artifact2.HASH_LEN,
+        },
+        .group_headers = groups[0..n_groups_actual],
+        .entry_rows = entries[0..ee],
+    };
+
+    const file_bytes = try artifact2.buildFile(gpa, &art);
+    defer gpa.free(file_bytes);
+
+    var raw_hdr: [artifact2.HEADER_LEN]u8 = undefined;
+    @memcpy(&raw_hdr, file_bytes[0..artifact2.HEADER_LEN]);
+    const header = try artifact2.validateHeader(&raw_hdr, file_bytes.len, w, h);
+
+    const G: usize = @intCast(header.n_groups);
+    const n_checkpoints = (G + artifact2.CHECKPOINT_STRIDE - 1) / artifact2.CHECKPOINT_STRIDE;
+    const checkpoints = try gpa.alloc(u64, n_checkpoints);
+    defer gpa.free(checkpoints);
+
+    var cum: u64 = 0;
+    for (0..G) |gi| {
+        const off = artifact2.HEADER_LEN + gi * artifact2.GROUP_HEADER_SIZE;
+        const count = file_bytes[off + 4];
+        if (gi % artifact2.CHECKPOINT_STRIDE == 0) checkpoints[gi / artifact2.CHECKPOINT_STRIDE] = cum;
+        cum += count;
+    }
+
+    var loaded = artifact2.LoadedArtifact{
+        .gpa = gpa,
+        .data = file_bytes,
+        .header = header,
+        .group_base = artifact2.HEADER_LEN,
+        .entry_base = artifact2.HEADER_LEN + G * artifact2.GROUP_HEADER_SIZE,
+        .entry_checkpoints = checkpoints,
+    };
+
+    var s = S{ .a2 = &loaded, .enforcement = .basic_ko };
+    s.pos = parent; // empty goban, Black to move
+    s.ko_point = none;
+
+    var buf: [512]u8 = undefined;
+    const out = s.formatShowScores(1, &buf);
+
+    // Golden: every right-board cell is 4 chars (3-char `{d:>3}`
+    // content with the i8 sign always printed + 1 separator space);
+    // the left board is the empty goban. A4 (cell 0, row 0 col 0)
+    // shows +12, D1 (cell 15, row 3 col 3) shows -8, every other
+    // cell shows +0. No L<H cells → the footnote reads " none".
+    const expected =
+        "scores for B to move, +N = B ahead by N\n" ++
+        ". . . . " ++ "  " ++ "+12 " ++ " +0 " ++ " +0 " ++ " +0 " ++ "\n" ++
+        ". . . . " ++ "  " ++ " +0 " ++ " +0 " ++ " +0 " ++ " +0 " ++ "\n" ++
+        ". . . . " ++ "  " ++ " +0 " ++ " +0 " ++ " +0 " ++ " +0 " ++ "\n" ++
+        ". . . . " ++ "  " ++ " +0 " ++ " +0 " ++ " +0 " ++ " -8 " ++ "\n" ++
+        "marked (L<H): none\n";
 
     try expect(std.mem.eql(u8, out, expected));
 }
