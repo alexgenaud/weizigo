@@ -395,6 +395,28 @@
     "skip_acceptance_reason": "zig build test red on pre-existing fleet regressions only (regression-git-commit-mine: T326-in-kanban fixture collision + leftover staged T268/T282 bundles from other agents; regression-subagent-prompt: odeeppi/oflashpi absent) — confirmed by stashing src/gtp.zig and re-running at clean HEAD; gtp.zig leg green (88/88 tests, smoke PASS zero STALE after zig build deploy)",
     "amendments": ["2026-08-04T10:23:44Z: verdict=pass-with-findings note=correction (Orchestrator, 2026-08-04): original skip-acceptance blamed regression-git-commit-mine and regression-subagent-prompt as broken — both pass ALL CONTROLS in a clean run. The red observation was correct (suite exit 1) but the cause was a dirty tree with leftover test artifacts from other consoles, not defective scripts. The GTP deliverable is sound: 88/88 gtp tests, smoke PASS zero STALE after deploy"]
   },
+  "T383": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T383-ko-decode-fix.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T22:25:51Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "zig build test",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T327": {
     "status": "done",
     "agent": "minimax-m3",
@@ -480,6 +502,28 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "test -s docs/research/goban-pathology-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T384": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T384-absorb-and-lemma-correction.md",
+    "set": "B",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T22:26:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -1277,7 +1321,7 @@
   }
 ,
   "_sys": {
-    "next_id": 383,
+    "next_id": 384,
     "directive_next": 43
   }
 }
