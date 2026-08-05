@@ -3,6 +3,13 @@
  "date": "2026-08-05",
  "model": "deepseek-v4-flash",
  "identifier": "flash/T381",
+ "claims": [
+  {
+   "id": "4x4.THIRD-PARTY-ZERO",
+   "proposed_status": "MEASUREMENT",
+   "rationale": "0 losses from claimed-won positions in 204 games against three independent engines (GNU Go, Pachi, Fuego), 107 claim-witnessing games; none detected in this sample, not a proof. Absorbed T384 (register row added)."
+  }
+ ],
  "git_head": "f46ba1ca",
  "instrument_source": "src/t381_evse.zig",
  "instrument_sha256": "3e6426bd832e41b2c6abf129abd70f7c2b5c9ce3aa36d8088a98bc60013ee40f",

@@ -67,8 +67,11 @@ zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig \
   -femit-bin=/tmp/weizigo/t375/t375-evse
 weizigo-t375-evse --frame both --openings 30 --seed 42 \
   --old data/oracle-4x4.checkpoint.wzo --new data/oracle-4x4-v2.wzo2 \
-  --out /tmp/weizigo/t375/sgf --json /tmp/weizigo/t375/raw.json
+  --out /tmp/weizigo/t375/sgf --json docs/evidence/ENGINE-VS-ENGINE/raw-t375-run.json
 ```
+
+(Raw run output rescued from the disposable run directory and re-pointed
+2026-08-05 by T384 so the citation survives the next sweep.)
 
 **Mirror semantics** (roles swapped from T366): at each of the **new**
 engine's decision points (its colour's turns beyond the forced opening) the
@@ -241,7 +244,7 @@ zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig \
 
 Instrument binary SHA `9410cf72…` (the row's `d335a4ab…` was a different
 build of the same source). Run: same flags, seed 42, 30 openings, both
-frames; output `/tmp/weizigo/t375-verify/raw.json` (SHA
+frames; output `docs/evidence/ENGINE-VS-ENGINE/raw-t375-verify.json` (SHA
 `f73ae20b…`); 132 SGFs to `/tmp/weizigo/t375-verify/sgf`.
 
 **Field-for-field comparison vs the committed row JSON.** The re-run's 132
@@ -288,5 +291,6 @@ the row flagged.
 **Provenance.** Re-run console: `deepseek-v4-flash/T375` (re-dispatch of the
 same task, kanban already closed pass; the row's verdict stands).
 Run doc: this file. Re-run data: `/tmp/weizigo/t375-verify/` (disposable; the
-committed row JSON is the durable copy). No new claim rows proposed; no
-changes to any number above.
+committed row JSON is the durable copy, and the verify raw output was rescued
+to `docs/evidence/ENGINE-VS-ENGINE/raw-t375-verify.json` 2026-08-05 T384). No
+new claim rows proposed; no changes to any number above.

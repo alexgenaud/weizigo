@@ -1,0 +1,71 @@
+{
+ "task_id": "T384",
+ "date": "2026-08-05",
+ "model": "flash",
+ "identifier": "flash/T384",
+ "claims": [
+  {
+   "id": "GLOBAL.Z-R-MOVE-B1-EQUIV",
+   "proposed_status": "CLAIMED",
+   "rationale": "Lemma re-stated after T380 F-3 falsified the old wording (P2 == P0 of the window <=> shape rule fires): 152/784 exhaustive at 3x3, 36,446/344,996 sampled at 4x4. The implemented predicate (a recapture the shape rule bans recreates the position one state back) holds 0/784 and 0/344,996. Status unchanged at CLAIMED — a corrected lemma is CLAIMED until re-derived; matching the code is not a proof. src/ untouched per the brief."
+  }
+ ],
+ "new_rows": [
+  {
+   "id": "4x4.NEW-ENGINE-MIRROR",
+   "legacy": "—",
+   "goban": "4x4",
+   "claim": "Mirror measurement (T375, 2026-08-05): NEW engine measured for the same fault T366 found in the OLD engine — 0 throw-aways in 56 mirror losses (fA 0/30, fB 0/26), 0 self-contradictions in 56/56 in-scope first-divergence loss nodes vs the new table's own L/H bracket. Sample-scoped: 66 games/frame is a tiny fraction of the 4x4 state space; '0' means none detected, not a proof. Fresh-start slice only (C1).",
+   "status": "MEASUREMENT",
+   "evidence": "docs/evidence/ENGINE-VS-ENGINE/symmetric-2026-08-05.md; findings/T375-symmetric-arbiter.json; findings/T375-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "4x4.THIRD-PARTY-ZERO",
+   "legacy": "—",
+   "goban": "4x4",
+   "claim": "Third-party cross-check (T381, 2026-08-05): 0 losses from claimed-won positions in 204 games (34 openings x 2 colours x 3 engines: GNU Go, Pachi, Fuego basic-ko), 107 claim-witnessing games, 0/204 total. Verdict verbatim: none detected in this sample, not a proof. Fresh-start slice only (C1).",
+   "status": "MEASUREMENT",
+   "evidence": "docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md; findings/T381-third-party.json; findings/T381-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "4x4.BRACKET-NOT-KO",
+   "legacy": "—",
+   "goban": "4x4",
+   "claim": "Brackets NOT predominantly ko-derived (T380 Q4/F-5): 92.6% (1,782,629/1,924,973) of bracket-valued positions carry zero ko shapes; 93.0% (1,897,760/2,040,104) of ko-carrying positions have no bracket-valued entry. Denominator: whole 4x4 table, 99,133,036 entries.",
+   "status": "MEASUREMENT",
+   "evidence": "docs/evidence/KO-REVIEW/retrograde-ko-2026-08-05.md; findings/T380-ko-review.json; findings/T380-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "4x4.KO-CLUSTER-MAX-2",
+   "legacy": "—",
+   "goban": "4x3/4x4",
+   "claim": "Maximum independent ko-cluster count is 2 (T380 Q3/F-4 + F-9): exhaustive 4x4 census (24,318,165 legal positions) max 2; 4x3 (321,689 legal positions) triple ko 0/321,689. The historical 3-ko class of 256 positions is a loose-definition artifact (friend-connected captures never set a B1 ko point).",
+   "status": "MEASUREMENT",
+   "evidence": "docs/evidence/KO-REVIEW/retrograde-ko-2026-08-05.md; findings/T380-ko-review.json; findings/T380-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "GLOBAL.PATHOLOGY-GRADIENT",
+   "legacy": "—",
+   "goban": "2x2-4x4",
+   "claim": "Pathology is a gradient, not a threshold (T382): smallest board with realistic ko is 3x2 (history dependence 0 at 2x2, 30.3% at 3x2), not 3x3; no defensible clean threshold — two real jumps (2x2->3x2; first 2-ko at 4x3, first 3-ko at 4x4). The 7x KO_SENS drop mixes WZO1/WZO2 denominators.",
+   "status": "MEASUREMENT",
+   "evidence": "docs/research/goban-pathology-2026-08-05.md; findings/T382-pathology.json; findings/T382-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  }
+ ],
+ "notes": "=== WHAT I DID ===\n\nPart 1 — absorb (per untracked/T384-absorb-and-lemma-correction.md):\n\n1. Repaired the two non-conforming findings files (missing required key 'claims'):\n   findings/T381-context.json and findings/T381-third-party.json now carry\n   claims: [{id: 4x4.THIRD-PARTY-ZERO, proposed_status: MEASUREMENT}] — the T381\n   measurement proposed and now registered. Both files are conforming; no other\n   substance changed.\n\n2. Absorbed the unabsorbed row 4x4.NEW-ENGINE-MIRROR (proposed MEASUREMENT in\n   findings/T375-symmetric-arbiter.json new_rows; register said NO SUCH ID) —\n   register row added as MEASUREMENT with the proposal's own denominators\n   (56 mirror losses, 66 games/frame, fA 0/30 fB 0/26) and its scope limit\n   ('0' means none detected in the sample, not a proof).\n\n3. Proposed four further rows from the day's work, each with denominator and\n   scope limit, none promoted beyond what the evidence carries:\n   - 4x4.THIRD-PARTY-ZERO (T381): 0 losses from claimed-won in 204 games against\n     GNU Go/Pachi/Fuego, 107 claim-witnessing games. Row's verdict verbatim:\n     \"none detected in this sample, not a proof.\"\n   - 4x4.BRACKET-NOT-KO (T380 Q4): 92.6% (1,782,629/1,924,973) of\n     bracket-valued positions carry zero ko shapes; 93.0% of ko-carrying\n     positions have no bracket. Whole-table denominator 99,133,036 entries.\n   - 4x4.KO-CLUSTER-MAX-2 (T380 Q3): max independent ko-cluster count 2;\n     triple ko not constructible on 12 points (0/321,689 at 4x3); the\n     historical 3-ko class of 256 positions is a loose-definition artifact.\n   - GLOBAL.PATHOLOGY-GRADIENT (T382): smallest board with realistic ko is 3x2,\n     not 3x3; no defensible pathology threshold — a gradient with two jumps.\n   All five rows registered as MEASUREMENT (a datum, not a truth-claim);\n   promotion beyond that is the Orchestrator's call, gated on mutation\n   adequacy (verify-then-promote).\n\nPart 2 — B1 lemma correction (T380 finding F-3):\n\n   GLOBAL.Z-R-MOVE-B1-EQUIV re-stated to match the implemented predicate\n   (a recapture the shape rule bans recreates the position one state back),\n   citing T380's counts as the falsification of the old wording (152/784 at\n   3x3, 36,446/344,996 at 4x4 sampled). Status honest: CLAIMED, not PROVEN —\n   a corrected lemma is CLAIMED until re-derived; matching the code is not a\n   proof. src/ NOT touched (per brief). The src/rules.zig tests still mechanize\n   the old predicate but run only at 2x2/3x2, where the two predicates\n   coincide — flagged in the row as needing re-mechanization at 3x3+ (a\n   separate row, not done here).\n\n=== T373 COLLISION CHECK ===\n\nT373 (register triage Step 0) is still dispatchable (needs T363) — not started;\nno row collision. The rows I touched are the day's T375/T380/T381/T382\nfindings + the B1 lemma; none overlap the triage's scope.\n\n=== WHAT I DID NOT DO ===\n\n- Did not touch src/ (brief bar), data/, artifacts/, rejections.json.\n- Did not change any status beyond adding the five MEASUREMENT rows and the\n  lemma's (unchanged) CLAIMED status.\n- Did not edit 4x4.KO-CENSUS (its loose-definition 3-ko reading is superseded\n  by 4x4.KO-CLUSTER-MAX-2; dispositioning that existing row is the\n  Orchestrator's call — flagged in the new row's dependents column)."
+}

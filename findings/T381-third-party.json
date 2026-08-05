@@ -3,6 +3,13 @@
  "date": "2026-08-05",
  "model": "deepseek-v4-flash",
  "identifier": "flash/T381",
+ "claims": [
+  {
+   "id": "4x4.THIRD-PARTY-ZERO",
+   "proposed_status": "MEASUREMENT",
+   "rationale": "Per-engine per-game records: 0 losses-from-claimed-won per engine (0/68 each), 0/204 total. None detected in this sample, not a proof. Absorbed T384 (register row added)."
+  }
+ ],
  "artifact": "data/oracle-4x4-v2.wzo2",
  "notes": "One merged document: GNU Go (headline), Pachi, Fuego (basic-ko configured). Each engine: 34 openings x 2 colours = 68 games. Openings = T366 corpus (33) + empty goban. Losses from claimed-won positions: 0/68 per engine.",
  "engines": {

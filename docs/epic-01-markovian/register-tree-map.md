@@ -39,7 +39,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 - **Measurements map to the node they evidence** (e.g. `4x4.M2` 19 sweeps → Z-CONVERGE-FINITE,
   `2x2.BASICKO-TIE` root value → Z-TABLE), not to a node of their own.
 
-## 1. The mapping — 334 rows (matches the register; count printed by claimlint C0)
+## 1. The mapping — 339 rows (matches the register; count printed by claimlint C0)
 
 | ID | tree node | note |
 |---|---|---|
@@ -377,6 +377,11 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `CODE.REGRESSION-WIRING` | RETIRED | family process; orphaned regression scripts wired — infra (T322, T337 S4) |
 | `GLOBAL.SYM-FOLD` | RETIRED | symmetry-fold census over the raw 3^n space — legal AND illegal (T359, STANDING-ABSORB 2026-08-05) |
 | `GLOBAL.I5-SCC-CONTAIN` | RETIRED | I5 SCC cycle-reachability containment passes at 3x2/4x3/4x4 (T344, STANDING-ABSORB 2026-08-05) |
+| `4x4.NEW-ENGINE-MIRROR` | RETIRED | family player (§2.3): T375 mirror measurement — new engine vs its own table's brackets, engine-play consistency; serves L3, not the theorem (T384) |
+| `4x4.THIRD-PARTY-ZERO` | RETIRED | family player (§2.3): T381 third-party cross-check (GNU Go/Pachi/Fuego); engine-play measurement, serves L3, not the theorem (T384) |
+| `4x4.BRACKET-NOT-KO` | Z-TABLE | T380 Q4/F-5: brackets not predominantly ko-derived — bracket-vs-ko-shape correlation census over the whole 4x4 table; evidences bracket semantics (T384) |
+| `4x4.KO-CLUSTER-MAX-2` | Z-R-MOVE | T380 Q3/F-4+F-9: max independent ko clusters = 2 (4x4, 4x3) — census under the production ko-shape definition, the B1/B2 family (T384) |
+| `GLOBAL.PATHOLOGY-GRADIENT` | Z-NONCLAIMS | T382: pathology is a gradient, no defensible threshold; smallest realistic-ko board 3x2 — NC1 family (history dependence across sizes, siblings 2x2.T12/3x2.T13) (T384) |
 
 ## 2. Proposed retirements — 116 rows, by family
 
@@ -545,9 +550,9 @@ Crisis-era diagnostic framing, refuted hypothesis, or withdrawn option; its role
 
 | surface | count | produced by |
 |---|---|---|
-| register rows | **323** | `bin/weizigo-claimlint` C0 (`rows parsed: 323`) at HEAD before this task; re-checked by C9 after |
-| mapping rows (this doc §1) | **323** (207 mapped to a node + 116 RETIRED) | claimlint C9 cross-check (row set equality) |
-| proposed-retired rows (§2) | **116** | same run |
+| register rows | **339** | `bin/weizigo-claimlint` C0 (`rows parsed: 339`) — live count on every run |
+| mapping rows (this doc §1) | **339** (214 mapped to a node + 125 RETIRED) | claimlint C9 cross-check (row set equality) |
+| proposed-retired rows (§2) | **125** | same run |
 | unmapped without disposition | **0** | C9a (empty/invalid `tree` cell fails the run) |
 
 ### 3.1 Retirement count — four-way reconciliation (T318, 2026-08-03)
