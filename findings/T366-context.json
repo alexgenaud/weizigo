@@ -1,0 +1,322 @@
+{
+ "task_id": "T366",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T366",
+ "claims": [],
+ "new_rows": [],
+ "method": {
+  "question": "Where does the WZO1-era 4x4 oracle (data/oracle-4x4.checkpoint.wzo) lose to the current WZO2 oracle (data/oracle-4x4-v2.wzo2)? Produce the divergence kifu.",
+  "instrument": {
+   "source": "src/t366_evse.zig",
+   "source_sha256": "a5a1f71b973d6f4fbaf72ec658f7c8ed9b841f9921911e7e9302cb0ff75b33e9",
+   "binary": "/tmp/weizigo/t366/t366-evse",
+   "binary_sha256": "2e3b3e7793a0c689751174bd6319881d6233020553cef543b0266c6113acfec2",
+   "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t366/cache --global-cache-dir /tmp/weizigo/t366/global --name weizigo-t366-evse -femit-bin=/tmp/weizigo/t366/t366-evse",
+   "build_git_head": "95b2eff",
+   "build_version_stamp": "weizigo-t366-evse 95b2eff built 2026-08-05T11:07:17Z zig 0.16.0"
+  },
+  "verification_consumer": {
+   "binary": "bin/weizigo-gtp",
+   "binary_sha256": "d820206393eedc2adfdcbba8fc72a219abf2c6700823ebfbcc7d0489938b261e",
+   "stamp": "weizigo-gtp 95b2eff built 2026-08-05T11:07:17Z zig 0.16.0",
+   "note": "Built independently via build.zig at the same commit; used to replay every recorded game and cross-check divergence-node choices and final scores."
+  },
+  "artifacts": {
+   "old": {
+    "path": "data/oracle-4x4.checkpoint.wzo",
+    "sha256": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118",
+    "bytes": 258280358,
+    "rules_id": 1,
+    "rules": "Chinese area, komi 0, positional superko (WZO1; fresh-start single values, no ko/passes dimension; the known-untrustworthy writes-ON build)",
+    "legal_per_side": 24318165
+   },
+   "new": {
+    "path": "data/oracle-4x4-v2.wzo2",
+    "sha256": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
+    "bytes": 518123097,
+    "rules_id": 3,
+    "rules": "Chinese area, komi 0, basic ko, L/H bracket (WZO2; Markov key on goban/side/ko_point/passes)",
+    "n_groups": 24318165,
+    "n_entries": 99133036,
+    "ko_bits": 5
+   },
+   "pin_notes": "Both SHAs match artifacts/SHA256SUMS; the new-artifact SHA is the one named in the brief (0c3366f0...)."
+  }
+ },
+ "headline_run": {
+  "seed": 42,
+  "openings": "3 canonical one-ply (corner A1, edge B1, centre B2) + 30 seeded random two-ply (deduplicated: 33 distinct openings)",
+  "games_per_frame": 66,
+  "frames_total_games": 132,
+  "results": {
+   "fA_shared_PSK": {
+    "enforcement": "old=psk, new=psk",
+    "diverged_games": "66/66",
+    "in_scope_first_divergences": 62,
+    "total_disagreeing_plys": 257,
+    "genuine_value_losses": 3,
+    "loss_not_attributable": 33,
+    "equal_value": 30,
+    "outcome_unknown": 0,
+    "capped": 0,
+    "old_wins": 30,
+    "old_losses": 36,
+    "old_draws": 0,
+    "cross_ruleset_plys": 0,
+    "ko_disagree_by_class_0_1_2_3plus": [
+     239,
+     16,
+     2,
+     0
+    ]
+   },
+   "fB_new_ruleset_basicko": {
+    "enforcement": "old=psk, new=basic-ko",
+    "diverged_games": "66/66",
+    "in_scope_first_divergences": 62,
+    "total_disagreeing_plys": 268,
+    "genuine_value_losses": 6,
+    "loss_not_attributable": 33,
+    "equal_value": 27,
+    "outcome_unknown": 0,
+    "capped": 0,
+    "old_wins": 27,
+    "old_losses": 39,
+    "old_draws": 0,
+    "cross_ruleset_plys": 6,
+    "ko_disagree_by_class_0_1_2_3plus": [
+     250,
+     16,
+     2,
+     0
+    ]
+   }
+  },
+  "genuine_losses": [
+   {
+    "frame": "fA",
+    "game": "fA-o19-W",
+    "opening": "random-016-adcb (A4,C2)",
+    "old_colour": "W",
+    "result": "B+3",
+    "div_ply": 5,
+    "old_move": "db",
+    "new_move": "dc",
+    "node_old_v0": -1,
+    "node_new_L_H": [
+     -16,
+     -1
+    ],
+    "arbiter": "W+1",
+    "cross_ruleset_plys": []
+   },
+   {
+    "frame": "fA",
+    "game": "fA-o21-B",
+    "opening": "random-018-dbbc (D2,B3)",
+    "old_colour": "B",
+    "result": "W+3",
+    "div_ply": 6,
+    "old_move": "ac",
+    "new_move": "dc",
+    "node_old_v0": 1,
+    "node_new_L_H": [
+     1,
+     1
+    ],
+    "arbiter": "B+1",
+    "cross_ruleset_plys": []
+   },
+   {
+    "frame": "fA",
+    "game": "fA-o32-W",
+    "opening": "random-029-ddcc (D4,C3)",
+    "old_colour": "W",
+    "result": "B+3",
+    "div_ply": 2,
+    "old_move": "aa",
+    "new_move": "dc",
+    "node_old_v0": -16,
+    "node_new_L_H": [
+     -16,
+     -16
+    ],
+    "arbiter": "W+16",
+    "cross_ruleset_plys": []
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o04-B",
+    "opening": "random-001-dddc (D4,D3)",
+    "old_colour": "B",
+    "result": "W+16",
+    "div_ply": 2,
+    "old_move": "bc",
+    "new_move": "cc",
+    "node_old_v0": 2,
+    "node_new_L_H": [
+     1,
+     16
+    ],
+    "arbiter": "B+1",
+    "cross_ruleset_plys": [
+     15,
+     17
+    ]
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o06-B",
+    "opening": "random-003-cabc (C1,B3)",
+    "old_colour": "B",
+    "result": "W+16",
+    "div_ply": 5,
+    "old_move": "bd",
+    "new_move": "cd",
+    "node_old_v0": 1,
+    "node_new_L_H": [
+     1,
+     1
+    ],
+    "arbiter": "B+1",
+    "cross_ruleset_plys": [
+     17,
+     19
+    ]
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o17-B",
+    "opening": "random-014-bacc (B1,C3)",
+    "old_colour": "B",
+    "result": "W+16",
+    "div_ply": 7,
+    "old_move": "ab",
+    "new_move": "db",
+    "node_old_v0": 0,
+    "node_new_L_H": [
+     1,
+     1
+    ],
+    "arbiter": "B+1",
+    "cross_ruleset_plys": [
+     15,
+     17
+    ]
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o19-W",
+    "opening": "random-016-adcb (A4,C2)",
+    "old_colour": "W",
+    "result": "B+3",
+    "div_ply": 5,
+    "old_move": "db",
+    "new_move": "dc",
+    "node_old_v0": -1,
+    "node_new_L_H": [
+     -16,
+     -1
+    ],
+    "arbiter": "W+1",
+    "cross_ruleset_plys": []
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o21-B",
+    "opening": "random-018-dbbc (D2,B3)",
+    "old_colour": "B",
+    "result": "W+3",
+    "div_ply": 6,
+    "old_move": "ac",
+    "new_move": "dc",
+    "node_old_v0": 1,
+    "node_new_L_H": [
+     1,
+     1
+    ],
+    "arbiter": "B+1",
+    "cross_ruleset_plys": []
+   },
+   {
+    "frame": "fB",
+    "game": "fB-o32-W",
+    "opening": "random-029-ddcc (D4,C3)",
+    "old_colour": "W",
+    "result": "B+3",
+    "div_ply": 2,
+    "old_move": "aa",
+    "new_move": "dc",
+    "node_old_v0": -16,
+    "node_new_L_H": [
+     -16,
+     -16
+    ],
+    "arbiter": "W+16",
+    "cross_ruleset_plys": []
+   }
+  ]
+ },
+ "robustness_run": {
+  "seed": 7,
+  "games_per_frame": 66,
+  "results": {
+   "fA": {
+    "diverged": "62/66",
+    "genuine": 2,
+    "not_attributable": 32,
+    "equal_value": 32,
+    "outcome_unknown": 0,
+    "capped": 0,
+    "cross_ruleset_plys": 0,
+    "ko_disagree_by_class": [
+     224,
+     12,
+     0,
+     0
+    ]
+   },
+   "fB": {
+    "diverged": "62/66",
+    "genuine": 5,
+    "not_attributable": 30,
+    "equal_value": 28,
+    "outcome_unknown": 3,
+    "capped": 0,
+    "cross_ruleset_plys": 8,
+    "ko_disagree_by_class": [
+     236,
+     12,
+     0,
+     0
+    ]
+   }
+  },
+  "outcome_unknown_games": "3 in fB (fB-o04-B, fB-o04-W, fB-o27-W): the substitution replay diverged and the new-engine self-play arbiter hit the 400-ply cap (basic-ko position cycling, TIE=0 semantics) \u2014 those openings' loss-attribution is undetermined, reported honestly rather than guessed."
+ },
+ "verification": {
+  "result": "132/132 games cross-checked OK against bin/weizigo-gtp (a separately built binary): every divergence node's OLD/NEW choices match chaincheck at that node; every fully-replayable game's final score matches; frame-B cross-ruleset plys are rejected by the GTP play handler at exactly the recorded plys (GTP play enforces positional superko unconditionally \u2014 the tool's in-process applyMove is the authority for lines containing repetitions, which is the basic-ko semantics the WZO2 artifact encodes).",
+  "script": "/tmp/weizigo/t366/verify.py (SGF-to-GTP coordinate conversion applied; the tool records SGF coordinates, the GTP binary speaks GTP coordinates \u2014 the first verification attempt omitted this conversion and is discarded)"
+ },
+ "classification_rules": {
+  "genuine_loss": "the old engine lost (or drew) a game its colour could have won/drawn under better moves, decided by what the new engine achieves with the old engine's colour from the same opening: substitution replay (new engine's moves at the old engine's decision points, original opponent moves replayed) preferred; new-engine self-play arbiter as fallback",
+  "loss_not_attributable": "old engine lost but even the new engine's moves with its colour from the same opening lose",
+  "equal_value": "old engine did not lose (won, or held the draw the new-engine line also holds): the divergence did not cost the game",
+  "outcome_unknown": "substitution replay diverged and the arbiter cycled to the ply cap (frame B, TIE=0)"
+ },
+ "limitations_and_scope": [
+  "The two artifacts encode DIFFERENT rulesets: WZO1 = PSK fresh-start single values with no ko/passes dimension; WZO2 = basic-ko L/H bracket keyed on (goban, side, ko_point, passes). The stored-value comparisons are scoped to the fresh-start slice (ko=NONE, passes=0) where both engines' values are fresh-start values; 62/66 first divergences per frame fall in that slice. Even there, PSK-vs-basic-ko differences downstream mean value differences are expected in ko-reachable positions and are NOT counted as losses by themselves \u2014 only outcome differences decide the classification.",
+  "The WZO1 checkpoint is the known-untrustworthy writes-ON build (AGENTS.md foreclosure): its ko-sensitive values are unverified. The frame-A genuine losses are consistent with old-table internal inconsistency (node value not achieved by its children), which is exactly the class that build is known to corrupt.",
+  "A divergence is reported at the first ply where the two engines choose differently; the played move is the side-to-move engine's choice, so a game follows one engine's line at each node. Games where the old engine's colour lost are tested for loss-attribution as above.",
+  "All values quoted are fresh-start values (C1), not real-game values; no real-game claim is made for either engine (C2 is falsified at 3x2, T13).",
+  "The GTP verification surface: bin/weizigo-gtp's play handler rejects position-repeating moves unconditionally, so frame-B games containing cross-ruleset plys cannot be replayed end-to-end through GTP; the in-process instrument (applyMove, no play-time PSK check) is the authority for those lines, matching the basic-ko ruleset the WZO2 artifact was solved under."
+ ],
+ "outputs": {
+  "evidence_doc": "docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-05.md",
+  "kifu_json": "findings/T366-engine-kifu.json",
+  "sgf_count": 132,
+  "sgf_dir": "docs/evidence/ENGINE-VS-ENGINE/",
+  "sgf_naming": "t366-<fA|fB>-o<NN>-<B|W>.sgf \u2014 one per diverged game, divergence ply marked with a C[] comment carrying both engines' moves and stored values"
+ }
+}
