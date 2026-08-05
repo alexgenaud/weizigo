@@ -113,6 +113,31 @@ spawns) whose job is "get the project back on track", not continuous supervision
 cheapest model that passes the aspect races gets the seat; the audit cadence is the safety
 net that makes that experiment reversible.
 
+**T371 first race runs (2026-08-05, conductor glm-5.2/T371 — non-deepseek): Pro-vs-Flash on
+races 1 and 2.** Run doc: `docs/evidence/EPISTEMIC-RACES/runs/2026-08-05-pro-vs-flash.md`; scores
+`findings/T371-race-first-runs.json`. Race 1 (falsification design, graded by execution, recall /
+3): **flash 3/3 (0 false alarms), pro 2/3 (1 false alarm — its R1-P3 test crashed on both mutant
+and clean: the dag omitted the leaf-node entries, so a correct idea was scored as a non-running
+test).** Race 2 (honest refusal, confusion matrix vs key, point iff verdict correct AND gap named
+correctly): **both 4/6**, with *different* error structures — flash leaned skeptical (two false
+refusals of grounded packets R2-P1/R2-P3, all three real gaps named right); pro was balanced (two
+promotes right, one false refusal R2-P2, one **wrong-gap** refusal R2-P4 — refused correctly but
+named C-A2 deferral instead of the keyed 'no denominator'). Clocks: pro wall 115.9 s / 0.95 s CPU /
+195 MB; flash wall 616.8 s / 3.75 s CPU / 216 MB on attempt 2 (attempt 1 was a 600 s API stall, 0
+output, 3.26 s CPU — a transient, not a capability signal). **What it licenses: a replication, not
+a capability claim.** The packet author is deepseek-v4-flash and flash is a lane, so the Flash win
+is confounded in Flash's favour (key tampering excluded — SHA-256 of keys + all 15 lane-facing
+files re-verified against the `b7c382c` register before any lane ran; family-level prior remains).
+The registered follow-up is the same two lanes against a packet set authored by a non-deepseek
+family; a Flash win *there* begins to look like capability, a Flash loss *here* would already have
+been informative (none occurred). n=1 standing: one run per model is an anecdote. Three protocol
+findings recorded (report-don't-adapt): the bakeoff harness `execute()` cannot run from a git
+worktree (`find_root` requires `isdir(.git)`; a worktree's `.git` is a file) — the real run used
+the `--emit` block from a worktree; the worktree boundary is relative-path-only (the harness does
+not pass `--no-tools`, so a tool-using lane could reach the main repo's `untracked/race-keys/` via
+absolute paths — mitigated here by the inlined self-contained brief); and the flash attempt-1 API
+stall.
+
 ## Context windows (model × harness) — consolidated 2026-08-03
 
 The window is a property of the **model × harness pair**, not the model: Ollama's
