@@ -327,7 +327,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-05T19:52:54Z: verdict=pass note=Attribution correction (Orcha, 2026-08-05), reported by glm-5.2/T371 rather than found by audit. T368's claim transition (dispatchable->in_progress, agent=deepseek-v4-flash) was physically committed under T371's kanban commit 01435b9, because docs/infra/managent/tasks.json is shared and held T368's uncommitted transition when T371 committed its own claim->done; directive D039's read flag (false->true) rode along the same way. CONTENT IS CORRECT — T368 was in fact claimed and executed by deepseek-v4-flash, which landed its own work commit 2903473 on top — only the carrying commit's attribution is wrong. Documented content-right/attribution-wrong class, docs/infra/fleet-git-isolation.md. No history rewrite: the ledger entry is accurate and this record states which commit carried it. Verdict unchanged (pass). Credit to the T371 console for reporting a defect that made its own commit look worse; that is exactly what the fleet-isolation doc asks for, and cheaper than any audit that would have caught it."]
   },
   "T357": {
     "status": "dispatchable",
@@ -880,7 +880,7 @@
     "amendments": []
   },
   "T381": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T381-third-party-engines.md",
@@ -889,14 +889,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T19:38:08Z",
-    "claimed": null,
+    "claimed": "2026-08-05T19:50:44Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1255,7 +1255,7 @@
   }
 ,
   "_sys": {
-    "next_id": 381,
+    "next_id": 382,
     "directive_next": 42
   }
 }
