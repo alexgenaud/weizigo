@@ -202,6 +202,27 @@ Fable/Auditor to Opus/Orcha: <the payload, and nothing else>
 …narrative to the human resumes here.
 ```
 
+**Never two `---` in a row (operator directive 2026-08-05).** One rule is always enough: between
+narrative and a payload, and *between consecutive payloads* — a single `---` closes one block and opens
+the next. Stacking a closing rule against an opening rule is the violation that prompted this line. For
+several dispatches, put all the prose first, then the payloads back to back separated by one rule each:
+
+```
+…narrative, including which model each dispatch is for, ends here.
+
+---
+
+flash/T372: Follow untracked/T372-zrtie-contrast-generator.md
+
+---
+
+flash/T368: Follow untracked/T368-standing-trigger-markers.md
+
+---
+```
+
+(`flash/T<nnn>` shorthand is fine in a paste line; the kanban and ledger keep the canonical model label.)
+
 Why: without the rule the human has to infer the subset, and inferring it wrongly means a console gets a
 truncated or contaminated brief. This applies to relay messages, dispatch prompts, commit-message drafts,
 and anything else handed over for pasting — every role, not just the Orchestrator.
