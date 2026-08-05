@@ -132,8 +132,8 @@
     "amendments": []
   },
   "T380": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T380-retrograde-ko-critical-review.md",
     "set": "M",
@@ -141,14 +141,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T19:38:08Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T21:34:36Z",
+    "done": "2026-08-05T21:34:36Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/evidence/KO-REVIEW/retrograde-ko-2026-08-05.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -462,8 +462,8 @@
     "amendments": []
   },
   "T382": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T382-goban-pathology-census.md",
     "set": "M",
@@ -471,14 +471,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T20:49:31Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T21:23:33Z",
+    "done": "2026-08-05T21:47:20Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/research/goban-pathology-2026-08-05.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -902,8 +902,8 @@
     "amendments": []
   },
   "T381": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T381-third-party-engines.md",
     "set": "N",
@@ -912,12 +912,12 @@
     "caps": [],
     "added": "2026-08-05T19:38:08Z",
     "claimed": "2026-08-05T19:50:44Z",
-    "done": null,
+    "done": "2026-08-05T21:00:47Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "T381 (deepseek-v4-flash): third-party engines vs the 4x4 oracle — GNU Go/Pachi/Fuego over GTP, 68 games each (T366 corpus + empty goban, both colours), 204 total. Headline: losses from claimed-won positions 0/68 per engine, 0/204; ties-from-claimed 0/204 after Fuego reconfigured from its default positional superko to basic ko (the only tie-from-claimed of the project, resolved to ruleset mismatch with witness fuego-o13-B ply 48). Controls: null (deterministic replay, all three), seeded (injected pass flips claimed [16,16] to W+9 loss; checker flags selector cause), selfscore. Deliverables: docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md, findings/T381-third-party.json, findings/T381-context.json; instrument src/t381_evse.zig (additive); commit 05936f6.",
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md",
     "skip_acceptance_reason": null,
@@ -968,8 +968,8 @@
     "amendments": []
   },
   "T379": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T379-self-play-trajectory-consistency.md",
     "set": "I",
@@ -977,14 +977,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T18:38:16Z",
-    "claimed": null,
+    "claimed": "2026-08-05T21:22:56Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1277,7 +1277,7 @@
   }
 ,
   "_sys": {
-    "next_id": 382,
+    "next_id": 383,
     "directive_next": 43
   }
 }
