@@ -145,6 +145,20 @@ fn keyBytePasses(kb: u8, ko_bits: u8) u2 {
     return @intCast((kb >> @intCast(2 + ko_bits)) & 1);
 }
 
+/// Extract ko_point from a key byte. Contract authority: artifact2's
+/// decodeKeyByte (src/artifact2.zig:70) puts the ko field at bits
+/// 2..(1+ko_bits), i.e. `(kb >> 2) & ((1 << ko_bits) - 1)` — NOT `kb >> 1`,
+/// which leaks the side bit (bit 1) into the ko field. T383 F-7: the
+/// pre-fix ca1/ca2 inline decode used `kb >> 1` (originally at :467/:794,
+/// now routed through this helper); every sibling
+/// decoder in src/ (differential.zig:1278, oracle_v2_accept.zig:122,
+/// vb_bellman_4x4.zig:164, vb_scc_4x4.zig:205, t380_census.zig:187,
+/// t382_census.zig:820) already used `>> 2`.
+fn keyByteKo(kb: u8, ko_bits: u8) u8 {
+    const mask: u8 = if (ko_bits == 0) 0 else @intCast((@as(u16, 1) << @intCast(ko_bits)) - 1);
+    return @intCast((kb >> 2) & mask); // ko field at bits 2..(1+ko_bits), artifact2 §2.2
+}
+
 /// Extract terminal flag from key_byte.
 fn keyByteTerminal(kb: u8) bool {
     return (kb & 1) != 0;
@@ -465,7 +479,7 @@ pub fn ca1ForwardClosure(
             // Reconstruct Markov state from group + key_byte
             const side = keyByteSide(kb);
             const passes = keyBytePasses(kb, hd.ko_bits);
-            const ko = if (passes >= 1) context.ko_none else (kb >> 1) & ((@as(u8, 1) << @intCast(hd.ko_bits)) - 1);
+            const ko = if (passes >= 1) context.ko_none else keyByteKo(kb, hd.ko_bits);
 
             context.result.n_entries_scanned += 1;
 
@@ -792,7 +806,7 @@ pub fn ca2BackwardClosure(
             const colex = Wzo2Reader.groupColex(reader.groups, group_idx);
             const side = keyByteSide(kb);
             const passes = keyBytePasses(kb, hdr.ko_bits);
-            const ko = if (passes >= 1) ko_none else (kb >> 1) & ((@as(u8, 1) << @intCast(hdr.ko_bits)) - 1);
+            const ko = if (passes >= 1) ko_none else keyByteKo(kb, hdr.ko_bits);
 
             // Reconstruct goban position
             const pos = try posFromColexRt(colex, hdr.w, hdr.h);
@@ -1011,7 +1025,7 @@ test "C-A1 forward closure: 4x4 passes on sample (first ~10 groups)" {
             const kb = entry[0];
             const side = keyByteSide(kb);
             const passes = keyBytePasses(kb, reader.header.ko_bits);
-            const ko = if (passes >= 1) ko_none else (kb >> 2) & ((@as(u8, 1) << @intCast(reader.header.ko_bits)) - 1);
+            const ko = if (passes >= 1) ko_none else keyByteKo(kb, reader.header.ko_bits);
 
             const moves = rules.legalMovesRt(&pos, 4, 4, side, ko, passes);
             const moves_bytes = (n + 1 + 7) / 8;
@@ -1145,4 +1159,26 @@ test "key_byte: passes bit position is correct for different ko_bits" {
         try testing.expectEqual(@as(u2, 1), keyBytePasses(kb, 5));
         try testing.expect((kb & 0x40) != 0); // bit 6 set
     }
+}
+
+test "key_byte: ko field decodes at bits 2..(1+ko_bits) — regression for T383 F-7" {
+    // F-7 (T380): ca1/ca2 decoded the ko field with `kb >> 1`, leaking the
+    // side bit into the ko field. Witness: Black, ko=3, passes=0, ko_bits=5
+    // (4×4) encodes to kb = 0b00001100 = 12; the old decoder returned
+    // (12 >> 1) & 31 = 6 instead of 3. White, ko=NONE(16) encodes to
+    // kb = (16 << 2) | (1 << 1) = 66; the old decoder returned
+    // (66 >> 1) & 31 = 1 instead of 16. Each assertion below exercises the
+    // production decode path (keyByteKo, used by ca1/ca2 and the 4×4
+    // sample/full tests), not a parallel re-implementation.
+    const ko_bits: u8 = 5; // 4×4
+
+    const kb = encodeKeyByte(0, 3, 0, ko_bits, false); // 0=Black, ko=3
+    try testing.expectEqual(@as(u8, 3), keyByteKo(kb, ko_bits));
+
+    const kb2 = encodeKeyByte(1, 16, 0, ko_bits, false); // 1=White, ko=NONE(16)
+    try testing.expectEqual(@as(u8, 16), keyByteKo(kb2, ko_bits));
+
+    // 2×2: ko_bits=3, ko=4 (NONE for 4 cells)
+    const kb3 = encodeKeyByte(0, 4, 0, 3, false); // 0=Black, ko=4
+    try testing.expectEqual(@as(u8, 4), keyByteKo(kb3, 3));
 }

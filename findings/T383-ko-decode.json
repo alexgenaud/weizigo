@@ -1,0 +1,68 @@
+{
+  "task_id": "T383",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T383",
+  "claims": [],
+  "new_rows": [],
+  "method": {
+    "question": "Fix the key-byte ko decode in vb_closure (T380 finding F-7: ca1/ca2 read the ko field at kb>>1 instead of the artifact2 contract's kb>>2), re-issue the C-A1/C-A2 4×4 closure figures with denominators, sweep the class of key-byte ko decoders across src/, and add a regression test. Bars: src/vb_closure.zig plus any sibling decode sites the sweep finds; no artifact edits, no re-solving, no touching accept.md (Orchestrator Amendment 1).",
+    "subject": "the two defective decode sites src/vb_closure.zig:467/:794 (ca1ForwardClosure / ca2BackwardClosure) and the closure figures they produced; the 4×4 table data/oracle-4x4-v2.wzo2 (rules_id 3, SHA 0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a, 24,318,165 groups, 99,133,036 entries)",
+    "instruments": {
+      "src/vb_closure.zig": {
+        "change": "added keyByteKo (decode helper, contract kb>>2), all three decode sites (:467/:795/:1014) now go through it; added regression test 'key_byte: ko field decodes at bits 2..(1+ko_bits) — regression for T383 F-7'",
+        "runs": "RED (helper on pre-fix kb>>1 semantics, byte-identical to HEAD): test fails 'expected 3, found 6'. GREEN (kb>>2): all 3 key_byte tests pass. Full module: 12/12 tests pass. Gated full 4×4 closure (WEIZIGO_CLOSURE_4X4_FULL=1): C-A1 + C-A2 in 245.8 s wall, 1124 MB peak RSS, exit 0"
+      },
+      "/tmp/weizigo/t383_probe.zig": {
+        "purpose": "independent re-implementation of C-A2 (own visited bitset, own entry decode, kernel successor relation, membership via Wzo2Reader.lookup/findGroup) to confirm the corrected count and enumerate the non-reachable entries; a second variant with T380's settled-skip to reproduce its published figures",
+        "runs": "IND reachable=99,133,034 not_in_table=0 sweeps=32; non_reachable=2 enumerated (colex=0 side=-1 ko=16 passes=0; colex=0 side=1 ko=16 passes=1). IND2 (settled-skip): reachable=98,999,934 not_in_table=0 non_reachable=133,102 — reproduces T380's published figures exactly"
+      }
+    },
+    "artifacts_read": {
+      "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a (the 4×4 table, 518,123,097 bytes; SHA verified before the run)"
+    },
+    "existing_evidence_cited": {
+      "artifact2 contract": "src/artifact2.zig:70-76 decodeKeyByte: side=(kb>>1)&1, ko=(kb>>2)&((1<<ko_bits)-1), passes=(kb>>(2+ko_bits))&1 — the WZO2 §2.2 authority the fix is cited against",
+      "T380 F-7": "the finding this row fixes: vb_closure.zig:467/:794 decode with kb>>1; T380's corrected-decode figures came from its own instrument t380_ko_slot.zig reach mode (D042-2a)",
+      "T363": "the original closure run on record, computed with the defective decode (accept.md §7)"
+    }
+  },
+  "findings": [
+    {
+      "id": "F-1",
+      "question": "the fix — is the ko field now decoded per the artifact2 contract at every vb_closure site?",
+      "verdict": "fixed — two sites corrected, one already-correct site unified through the helper",
+      "claim": "The contract (src/artifact2.zig:70-76, WZO2 §2.2) puts ko at bits 2..(1+ko_bits): ko = (kb>>2)&((1<<ko_bits)-1). ca1ForwardClosure (:467) and ca2BackwardClosure (:794) decoded with kb>>1, which leaks the side bit (bit 1) into the ko field; the 4×4 sample test (:1013) already used kb>>2. The fix adds keyByteKo (contract decode) and routes all three sites through it, so the whole file has one decode.",
+      "measurement": "Red-then-green witness exercised the production decode path (keyByteKo, used by ca1/ca2 and the sample/full tests), not a parallel copy: with the pre-fix semantics, encodeKeyByte(0,3,0,5,false) = 0b00001100 = 12 decodes to (12>>1)&31 = 6 (expected 3) and encodeKeyByte(1,16,0,5,false) = 66 decodes to (66>>1)&31 = 1 (expected 16). RED: 'expected 3, found 6'. GREEN: all 3 key_byte tests pass."
+    },
+    {
+      "id": "F-2",
+      "question": "sweep the class — every key-byte ko decode site in src/, checked against the contract",
+      "verdict": "exactly two defective sites exist, both in vb_closure, both fixed; ten sibling decoders already correct",
+      "claim": "A shift constant duplicated in two places is usually duplicated in three; the sweep inventoried every site that decodes a key byte's ko field across src/. All sibling decoders already use kb>>2: artifact2.decodeKeyByte (the authority), differential.keyByteKo, oracle_v2_accept.keyByteKoPoint, vb_bellman_4x4.keyByteKo (whose comment already warns 'NOT >> 1'), vb_scc_4x4.keyByteKo, t380_census.keyByteKo, t382_census, t380_ko_slot, t380_psk_diff.",
+      "measurement": "grep over src/*.zig for kb>>/ko_mask/keyByteKo/key_byte decode patterns: 12 decode sites inventoried; vb_closure:467/:795 (kb>>1, fixed) vs 10 correct (kb>>2). Encode-only sites (gtp.zig, oracle_v2_build.zig, oracle_v2_consumer_load.zig, artifact2.encodeKeyByte) are not decoders and were not changed."
+    },
+    {
+      "id": "F-3",
+      "question": "re-run the gated full 4×4 closure and report the figures with denominators",
+      "verdict": "C-A1 0/616,030,190 children missing over 99,133,036 entries; C-A2 0/99,133,034 reachable missing, 2 non-reachable, 32 sweeps — closure verdicts hold, denominators corrected",
+      "claim": "WEIZIGO_CLOSURE_4X4_FULL=1 run of the gated test (zig test -O ReleaseFast --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig --test-filter '4x4 full closure', under tools/runner, 245.8 s wall, 1124 MB peak RSS, exit 0): C-A1 entries_scanned=99,133,036, non_term_children=616,030,190, passes2=48,505,262 (expected-absent terminals, not counted as missing), children_not_in_table=0, avg_bf=6.2142; C-A2 reachable_non_terminal=99,133,034, reachable_terminal=48,505,261, reachable_not_in_table=0, sweeps=32. The 2 non-reachable entries are the structurally-impossible empty-board side-mismatch entries (enumerated, see F-4). This matches the plan.md §2.1 expectation ('C-A2 reachable non-terminal count must equal n_entries') to within those 2 entries. T363's on-record figures (99,020,312 reachable / 112,724 non-reachable / 600,763,414 C-A1 children) were computed with the defective decoder and are superseded.",
+      "measurement": "full run output: 'C-A1 4x4 FULL: entries_scanned=99133036 non_term_children=616030190 passes2=48505262 children_not_in_table=0 avg_bf=6.2142 status=pass' ; 'C-A2 4x4 FULL: reachable_non_terminal=99133034 reachable_terminal=48505261 reachable_not_in_table=0 sweeps=32 pct_colex=407.6501% status=pass'. Both closure verdicts (0 children-not-in-table, 0 reachable-not-in-table) hold."
+    },
+    {
+      "id": "F-4",
+      "question": "the corrected C-A2 figures do NOT match T380's corrected run (98,999,934 / 133,102) — is this two independent correct decoders disagreeing?",
+      "verdict": "no — the two instruments compute different reachable sets by definition; T380's reachAnalyze skips expanding settled positions (R.is_settled), a restriction the kernel successor relation does not have. Two genuinely independent correct decoders of the kernel closure AGREE on 99,133,034.",
+      "claim": "The brief's stop-and-report trigger assumes 'two independent correct decoders disagreeing'. Investigation shows T380 could not have re-run vb_closure (its scope was additive-only): its D042-2a figures came from t380_ko_slot.zig reach mode, which skips expansion of settled positions ('if (passes >= 2 or R.is_settled(&pos)) continue;'). The kernel successor relation (rules.legalMoves/applyMove) has no settled check — only passes>=2 is terminal — so children of settled positions are reachable under the closure's definition but absent from T380's. An independent re-implementation of the kernel closure (own visited bitset, own decode, own sweep) agrees with the production path exactly: 99,133,034 reachable, 0 not-in-table, 32 sweeps, and enumerates the 2 non-reachable entries (colex=0 side=-1 ko=16 passes=0 — White to move on the empty board; colex=0 side=1 ko=16 passes=1 — Black to move after a White pass on the empty board). The same independent BFS with T380's settled-skip reproduces T380's published figures exactly (98,999,934 / 133,102 / not_in_table=0), proving the discrepancy is the settled-skip, not the decode. T380's D042-2a characterisation survives with the corrected definition intact: non-reachable ko-set = 0 (both non-reachable entries are ko=NONE).",
+      "measurement": "probe output: 'PROD: reachable_non_terminal=99133034 reachable_terminal=48505261 not_in_table=0 sweeps=32 status=pass' ; 'IND : reachable=99133034 not_in_table=0 sweeps=32' ; 'non-reachable: colex=0 side=-1 ko=16 passes=0' ; 'non-reachable: colex=0 side=1 ko=16 passes=1' ; 'IND : non_reachable=2' ; 'IND2: settled-skip reachable=98999934 not_in_table=0 sweeps=32 non_reachable=133102'. All four assert-checks pass (production==independent; 0 not-in-table both; non_reachable==2; settled-skip==98,999,934)."
+    },
+    {
+      "id": "F-5",
+      "question": "regression — will the next shift change break a test instead of a denominator?",
+      "verdict": "yes — new test decodes known keys through the production path",
+      "claim": "test 'key_byte: ko field decodes at bits 2..(1+ko_bits) — regression for T383 F-7' encodes (side,ko,passes) with the file's own encodeKeyByte and asserts keyByteKo (the production decode used by ca1/ca2 and the sample/full closure tests) recovers the ko field, for ko_bits=5 (4×4, ko=3 and ko=NONE=16 with side=1) and ko_bits=3 (2×2, ko=4). A future shift change (>>1 or otherwise) fails this test at build time.",
+      "measurement": "RED run on pre-fix semantics: 'expected 3, found 6' (TestExpectedEqual). GREEN run after fix: 'All 3 tests passed'."
+    }
+  ],
+  "notes": "Discrepancy reporting (brief bar 3): the re-run figures do NOT match T380's corrected run, so this row stops and reports — but the diagnosis in F-4 shows it is not the brief's feared case of two correct decoders disagreeing: the corrected kernel closure is confirmed by two independent correct decoders (99,133,034 / 2 non-reachable), and T380's figure is a different reachability definition (settled-skip), reproduced exactly by the independent BFS with that skip. The closure verdicts (0 children-not-in-table, 0 reachable-not-in-table) hold under both decoders and both definitions; what changed is the denominators, per the task's landmark (L2, proven 4×4 values — denominators corrected, verdicts unmoved). Suite acceptance: zig build test = 45/48 steps succeeded (2 failed), 693/697 tests passed (4 crashed); the 4 crashes are the documented pre-existing qa023_brute_2x2 explosive smoke tests (T360), and the second failing step is the pre-existing stale-bin managent integrity check (bin/managent not redeployed since the e7aeef5 T383/T384 registration; the working tree was already dirty before this row — M docs/infra/managent/tasks.json and M untracked/msg/milestone-01-ko-reframe/STATE.md). vb_closure module itself: 12/12 tests pass, including the new regression."
+}

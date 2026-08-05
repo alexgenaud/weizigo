@@ -1,0 +1,38 @@
+{
+  "task_id": "T383",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T383",
+  "claims": [],
+  "new_rows": [],
+  "context": {
+    "brief": "untracked/T383-ko-decode-fix.md (kanban set=E, deliverables=src/vb_closure.zig,findings/T383-ko-decode.json,findings/T383-context.json, acceptance=zig build test)",
+    "landmark": "advances L2 (proven 4×4 values) by making the discharge's denominators correct. The verdicts do not move; the numbers under them do.",
+    "scope_discipline": "src/vb_closure.zig plus any sibling decode sites the sweep finds; no artifact edits, no re-solving, no touch of accept.md (Orchestrator Amendment 1). The independent probe lives in /tmp/weizigo/t383_probe.zig (disposable, not a deliverable).",
+    "model_and_identity": "claimed as deepseek-v4-flash/T383 via bin/managent claim T383 --agent deepseek-v4-flash (dispatch shorthand flash/T383). tools/runner auto-claims with PI_MODEL on each --task-id invocation; between runs the task stays claimed, so iterative runs reopen first (bin/managent reopen T383).",
+    "state_rule_7_note": "zig test src/vb_closure.zig needs the engine module since T363: `zig test --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig` (the file imports rules.zig/colex.zig through the smd1_engine shim; one module owns rules.zig). The gated full 4×4 closure additionally needs WEIZIGO_CLOSURE_4X4_FULL=1, and per the Orchestrator's own re-run precedent runs under tools/runner with -O ReleaseFast (testing.expect is not compiled out in ReleaseFast; std.debug.assert would be).",
+    "existing_suite_state": "at HEAD before this row: tree already dirty (M docs/infra/managent/tasks.json from kanban churn — T383 claim_count was already 14 before this row's claims — and M untracked/msg/milestone-01-ko-reframe/STATE.md, an unrelated edit); bin/managent stale relative to the e7aeef5 T383/T384 registration commit (stale-bin managent integrity step failing — pre-existing, Orchestrator's redeploy responsibility); the 4 qa023_brute_2x2 explosive smoke crashes are the documented pre-existing T360 standing failure (do not raise NODE_BUDGET).",
+    "suite_result": "zig build test (under tools/runner, -Doptimize=ReleaseFast): Build Summary 45/48 steps succeeded (2 failed); 693/697 tests passed (4 crashed). The 2 failed steps: (1) qa023_brute_2x2 step (4 T360 crashes, documented pre-existing), (2) regression-managent-integrity step (stale bin/managent, pre-existing from e7aeef5). vb_closure module: 12/12 tests pass, including the new regression test. claimlint pre-commit hook on the current tree: C1a=0 C1b=0 C2=11 C6=0 C9=0 — at or below the recorded floor (C1a=10 C1b=0 C2=14 C6=0 C9=0), allowed.",
+    "runs": {
+      "red": "tools/runner --task-id T383 -- zig test --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig --test-filter 'key_byte' (helper temporarily on pre-fix kb>>1 semantics, byte-identical to HEAD): 2 passed, 1 failed — 'key_byte: ko field decodes at bits 2..(1+ko_bits) — regression for T383 F-7...expected 3, found 6'",
+      "green": "same command with kb>>2: All 3 tests passed.",
+      "full_module": "zig test --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig: 12/12 tests passed.",
+      "closure": "WEIZIGO_CLOSURE_4X4_FULL=1 tools/runner --task-id T383 -- zig test --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig --test-filter '4x4 full closure': C-A1 entries_scanned=99133036 non_term_children=616030190 passes2=48505262 children_not_in_table=0 avg_bf=6.2142 status=pass; C-A2 reachable_non_terminal=99133034 reachable_terminal=48505261 reachable_not_in_table=0 sweeps=32 pct_colex=407.6501% status=pass; 245.8 s wall, 1124 MB peak RSS, exit 0.",
+      "probe": "zig test --dep engine --dep vb_closure -Mroot=/tmp/weizigo/t383_probe.zig -Mengine=src/smd1_engine.zig --dep engine -Mvb_closure=src/vb_closure.zig --test-filter 'T383 probe': PROD reachable_non_terminal=99133034 reachable_terminal=48505261 not_in_table=0 sweeps=32 status=pass; IND reachable=99133034 not_in_table=0 sweeps=32; non-reachable=2 (colex=0 side=-1 ko=16 passes=0; colex=0 side=1 ko=16 passes=1); IND2 (settled-skip) reachable=98999934 not_in_table=0 sweeps=32 non_reachable=133102. All assertions pass."
+    },
+    "sweep_inventory": [
+      "src/artifact2.zig:74 decodeKeyByte ko=(kb>>2)&ko_mask — CORRECT (contract authority)",
+      "src/vb_closure.zig:467 ca1ForwardClosure ko decode kb>>1 — WRONG, FIXED (now keyByteKo, kb>>2)",
+      "src/vb_closure.zig:794 ca2BackwardClosure ko decode kb>>1 — WRONG, FIXED (now keyByteKo, kb>>2)",
+      "src/vb_closure.zig:1013 4×4 sample test ko decode kb>>2 — correct, unified through keyByteKo",
+      "src/differential.zig:1278 keyByteKo (kb>>2) — correct",
+      "src/oracle_v2_accept.zig:122 keyByteKoPoint (kb>>2) — correct",
+      "src/vb_bellman_4x4.zig:164 keyByteKo (kb>>2) — correct",
+      "src/vb_scc_4x4.zig:205 keyByteKo (kb>>2) — correct",
+      "src/t380_census.zig:184 keyByteKo (kb>>2) — correct",
+      "src/t382_census.zig:820 inline (kb>>2) — correct",
+      "src/t380_ko_slot.zig:739/:790 inline (kb>>2) — correct",
+      "src/t380_psk_diff.zig:170 inline (kb>>2) — correct"
+    ]
+  }
+}
