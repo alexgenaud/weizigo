@@ -34,8 +34,9 @@
 // colex bijection). No other src/ imports.
 
 const std = @import("std");
-const rules = @import("rules.zig");
-const colex_mod = @import("colex.zig");
+const engine = @import("engine");
+const rules = engine.rules;
+const colex_mod = engine.colex;
 
 const assert = std.debug.assert;
 
@@ -1062,6 +1063,41 @@ test "C-A1 forward closure: 4x4 passes on sample (first ~10 groups)" {
         "C-A1 4×4 sample: entries={d} children={d} passes2={d} missing={d}\n",
         .{ checked, children_checked, passes2, missing },
     );
+}
+
+test "C-A1/C-A2 4x4 full closure (gated by WEIZIGO_CLOSURE_4X4_FULL=1): children_not_in_table == 0 and reachable_not_in_table == 0" {
+    // Full 4×4 closure run (spec §2.3 items 2–3). The plan (plan.md §2.1)
+    // budgets ~531 MB peak RSS; the runner guard (4 GB) is the bound.
+    // Gated so `zig build test` stays fast — the sprint console runs it
+    // explicitly with WEIZIGO_CLOSURE_4X4_FULL=1 for the reading.
+    if (std.c.getenv("WEIZIGO_CLOSURE_4X4_FULL") == null) {
+        std.debug.print("SKIP 4x4 full closure (set WEIZIGO_CLOSURE_4X4_FULL=1 to run)\n", .{});
+        return;
+    }
+    const allocator = std.heap.page_allocator;
+    const file_bytes = try readFileBytes(allocator, "data/oracle-4x4-v2.wzo2");
+    defer allocator.free(file_bytes);
+    var reader = try Wzo2Reader.load(allocator, file_bytes);
+    defer reader.deinit();
+
+    // C-A1: forward closure over the whole table.
+    const ca1 = try ca1ForwardClosure(&reader, allocator);
+    std.debug.print(
+        "C-A1 4x4 FULL: entries_scanned={d} non_term_children={d} passes2={d} children_not_in_table={d} avg_bf={d:.4} status={s}\n",
+        .{ ca1.n_entries_scanned, ca1.total_non_terminal_children, ca1.passes2_children, ca1.children_not_in_table, ca1.avgBranchingFactor(), @tagName(ca1.status) },
+    );
+    try testing.expectEqual(@as(u64, 0), ca1.children_not_in_table);
+    try testing.expectEqual(reader.header.n_entries, ca1.n_entries_scanned);
+    try testing.expectEqual(ClosureStatus.pass, ca1.status);
+
+    // C-A2: backward closure from the fresh-start root.
+    const ca2 = try ca2BackwardClosure(&reader, allocator);
+    std.debug.print(
+        "C-A2 4x4 FULL: reachable_non_terminal={d} reachable_terminal={d} reachable_not_in_table={d} sweeps={d} pct_colex={d:.4}% status={s}\n",
+        .{ ca2.reachable_non_terminal, ca2.reachable_terminal, ca2.reachable_not_in_table, ca2.sweeps, ca2.pctColexSpace(reader.header.n_groups), @tagName(ca2.status) },
+    );
+    try testing.expectEqual(@as(u64, 0), ca2.reachable_not_in_table);
+    try testing.expectEqual(ClosureStatus.pass, ca2.status);
 }
 
 test "key_byte encoding round-trips" {

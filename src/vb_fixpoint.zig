@@ -499,6 +499,21 @@ test "I4 Bellman residual on 2x2 artifact" {
     try testing.expectEqual(@as(u64, 0), result.violations);
 }
 
+test "I4 Bellman residual on 4x3 artifact (rung 4, spec Rev 5)" {
+    // Spec Rev 5 made 4×3 ladder rung 4: no 4×4 reading counts until the
+    // check passed at 4×3. The committed golden oracle is WZO1
+    // (artifacts/oracle-4x3.wzo, SHA-256 5316f428… in artifacts/SHA256SUMS),
+    // so the WZO1-format I4 instrument is the applicable one. KO_SENSITIVE
+    // slots are excluded (they carry the distrusted PSK-era ko column); the
+    // verdict is on the KO_SENSITIVE-clear non-terminal slots.
+    var dec = try loadArtifact("artifacts/oracle-4x3.wzo");
+    defer dec.deinit();
+    const result = checkI4(&dec, .{ .w = 4, .h = 3 });
+    std.debug.print("I4 4x3: violations={d} examined={d} ko_excluded={d} status={s}\n", .{ result.violations, result.denominator, result.ko_sensitive_excluded, @tagName(result.status) });
+    try testing.expectEqual(FixpointStatus.pass, result.status);
+    try testing.expectEqual(@as(u64, 0), result.violations);
+}
+
 test "I7 DTT sanity on 3x2 artifact" {
     var dec = try loadArtifact("artifacts/oracle-3x2.wzo");
     defer dec.deinit();

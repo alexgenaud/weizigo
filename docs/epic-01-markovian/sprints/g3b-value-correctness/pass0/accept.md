@@ -31,13 +31,13 @@ Per `spec.md` Rev 5 §2.3: prove the L/H values in the 4×4 table are the fixpoi
 
 | Condition | Result |
 |---|---|
-| I4: 0 Bellman violations on KO_SENSITIVE-clear | ✅ PASS — 0 / 95,677,624 |
-| C-A1: 0 children-not-in-table | ⚠️ **Deferred at 4×4** — exhaustive PASS at 3×3 (0 / 176,873 children over 49,428 entries); at 4×4 only a **22-entry sample over 10 groups** (0.00002% of 99,133,036). T342's own findings: "Full 4x4 run deferred to a separate run" |
-| C-A2: 0 reachable-not-in-table | ⚠️ **Deferred at 4×4** — exhaustive PASS at 3×3 (0 / 48,460 reachable non-terminals); no 4×4 run |
-| I11: 0 mismatches on sampled space | ✅ PASS — 0 / 50,000 (all rungs 0) |
-| I5: KO_SENSITIVE ⊆ cycle-reachable | ⚠️ Deferred — 3×2 calibration passes; 4×3/4×4 need bitset BFS |
-| Key-agreement: 0 mismatches | ✅ PASS — 0 / 99,133,036 |
-| Seven mutants killed | ⚠️ 5 of 7 confirmed (M1–M4 by KEY-4x4, M9 by BATT-HEALTH); M8 (CLOSURE) and M10 (I11 null control) wired in code, not yet asserted in `vb_mutants.zig` |
+| I4: 0 Bellman violations on KO_SENSITIVE-clear | ✅ PASS — 0 / 95,677,624 at 4×4 (T343); **0 / 463,024 at 4×3** (T363 retroactive rung, WZO1 instrument, 170,276 KO_SENSITIVE excluded) |
+| C-A1: 0 children-not-in-table | ✅ **PASS — 0 / 600,763,414 non-terminal children over all 99,133,036 entries at 4×4** (T363 full run, 251 s, 1124 MB peak RSS; 48,505,262 passes=2 children counted separately as expected-absent terminals, avg branching factor 6.06) |
+| C-A2: 0 reachable-not-in-table | ✅ **PASS — 0 missing; 99,020,312 reachable non-terminal states over 32 snapshot sweeps at 4×4** (T363 full run; 48,448,900 reachable passes=2 terminals reported separately; note: table holds 99,133,036 entries — 112,724 are not root-reachable, e.g. White-to-move-on-empty passes=0 — so reachable ≠ n_entries is expected, not a defect) |
+| I11: 0 mismatches on sampled space | ✅ PASS — 0 / 50,000 (all rungs 0: 114 / 978 / 25,350 / 643,378 / 50,000) |
+| I5: KO_SENSITIVE ⊆ cycle-reachable | ✅ **PASS at 4×3 and 4×4** — 4×3: 0 / 170,181 KO_SENSITIVE (V=1,929,035, E=6,858,926, maxSCC=1,284,078); 4×4: **0 / 3,455,412** (V=99,133,036, E=565,402,416, maxSCC=47,429,504, cycle-reachable 97,689,592, 136 s, 2768 MB peak RSS). Seeded-defect control demonstrated red-then-green at 4×4 (baseline 0 → spurious L≠H → 1 → restore → 0). **Vacuity finding (T363): at 3×2 every passes=0 ko=NONE slot is cycle-reachable in the full-graph model, and at 4×3 the non-CR slots are all already KO_SENSITIVE — the spec §7.2 premise that 3×2 is the first non-vacuous rung does not hold for the full (colex, side, ko, passes) graph; the first genuine red-then-green rung is 4×4.** |
+| Key-agreement: 0 mismatches | ✅ PASS — 0 / 99,133,036 at 4×4 (T345); **0 / 643,378 at 4×3** (T363 retroactive rung, WZO1 artifact slice) |
+| Seven mutants killed | ✅ **7 of 7 confirmed** — M1–M4 by KEY-4x4 (T345), M9 by BATT-HEALTH (T347), **M8 by C-A1/C-A2 closure and M10 by I11 null control, both asserted red-then-green in `vb_mutants.zig` (T363)** |
 
 ### 2.3 Headline numbers
 
@@ -48,35 +48,52 @@ Per `spec.md` Rev 5 §2.3: prove the L/H values in the 4×4 table are the fixpoi
 
 ## 3. What could not be established
 
-### 3.1 I5 SCC containment at 4×3 and 4×4 (T344)
+All four gaps from §6 are now closed (T363, 2026-08-05). What remains honestly not established:
 
-The 3×2 calibration reproduces T134's numbers (V=2583, maxSCC=1676). The 4×3 and 4×4 Tarjan runs exceed the 4096 MB RSS cap. At 8192 MB the worker's zig test ran 3×2 but deferred 4×3/4×4 for a bitset-based BFS optimization (F1: pack onstack). The existing code is at `78a6af3` (1346 lines).
+### 3.1 The seeded-defect control is vacuous at 3×2 (and 4×3) in the full-graph model
 
-### 3.2 4×3 retroactive rung owed
+Spec §7.2 and plan F2 premise: the first non-vacuous I5 seeded-defect control runs at 3×2. **Measured (T363): false for the full (colex, side, ko, passes) graph this implementation uses.** At 3×2 every passes=0 ko=NONE slot is cycle-reachable (ko_not_cr=0, no hint) — the same vacuity the spec attributed to 2×2 only. At 4×3 the non-cycle-reachable slots (24 in the all-legal graph) are all already KO_SENSITIVE, so a spurious-KO_SENSITIVE seed cannot raise ko_not_cr. The first rung where a genuine red-then-green seeded-defect is demonstrable is **4×4** (non-CR L==H entries exist, ~1.44M; the test seeds a spurious L≠H on one and shows ko_not_cr 0 → 1 → 0). The 4×4 control is wired and passes; the 3×2/4×3 vacuity is recorded in the tests as a NOTE, not silently skipped.
 
-Spec Rev 5 (D026 operator ruling, 2026-08-04) inserted 4×3 as ladder rung 4 between 3×3 and 4×4. T346 (I11) passed at 4×3 (0/643,378). T343 (I4) and T345 (KEY-4x4) took their 4×4 readings before the rung existed; both owe retroactive 4×3 verification against `artifacts/oracle-4x3.wzo` (3.19 MB, committed).
+### 3.2 I4 at 4×3 uses the WZO1 instrument, not the WZO2 bracket check
 
-### 3.3 Mutant assertions M8 and M10
+The committed 4×3 golden oracle is WZO1 (rules_id=1, single value per (colex, side), no L/H bracket, no ko/passes dimension). The applicable I4 instrument at that rung is the battery's WZO1 Bellman check (`vb_fixpoint.checkI4`), which excludes KO_SENSITIVE slots by design (they carry the distrusted PSK-era ko column). It passes 0/463,024 examined (170,276 excluded). The WZO2 bracket instrument cannot run on a WZO1 file — this is a format boundary, not a scoped check.
 
-M8 (deleted-entry → C-A1/C-A2 catches) and M10 (alias-control → null control catches) are implemented in the check code (T342, T346) but the `vb_mutants.zig` inversion assertions are not yet wired. M1–M4 killed by KEY-4x4, M9 killed by BATT-HEALTH — 5 of 7 confirmed.
+### 3.3 The 4×3 and 4×4 I5 memory ledger is measured, not estimated — and the plan's ~1.2 GB was wrong by 2.3×–3.4×
 
-### 3.4 Memory model correction
+The plan (plan.md §2.1/§11, T134 precedent) budgeted I5 at ~1.2 GB peak RSS. Measured: the earlier 4×4 run peaked at **4102 MB** (3.4× error, accept.md §3.4 as signed); the bitset-BFS run at HEAD (T363, packed onstack) peaks at **2768 MB** (2.3× error still). The per-component ledger at 4×4 (measured at allocation sites, MiB):
 
-The plan estimated I5 Tarjan peak RSS at ~1.2 GB. Measured: 4102 MB (3.4× under-estimate). The WZO2 entry data (396.5 MB mmap'd) + group index (121.6 MB) + Tarjan structures (dense_to_linear, index/lowlink/onstack arrays, adjacency) sum past 4 GB. The corrected breakdown per component is owed per the operator's 5×4 sizing goal (Orcha ruling, 2026-08-04).
+| component | bytes | MiB | plan line item? |
+|---|---|---|---|
+| artifact file resident (mmap/read) | 518,123,097 | 494.1 | ✓ entry data + group index |
+| — group index | 121,590,825 | 116.0 | ✓ |
+| — entry data | 396,532,144 | 378.2 | ✓ |
+| colex→group map | 172,186,884 | 164.2 | ✗ **not in plan budget** |
+| entry_starts | 194,545,320 | 185.5 | ✗ **not in plan budget** |
+| Tarjan index | 396,532,144 | 378.2 | ✓ |
+| Tarjan lowlink | 396,532,144 | 378.2 | ✓ |
+| Tarjan onstack (packed) | 12,391,632 | 11.8 | ✓ (F1 applied) |
+| SCC id (comp) | 396,532,144 | 378.2 | ✗ **not in plan budget** |
+| SCC stack | 793,064,288 | 756.3 | ✗ **not in plan budget** |
+| comp_sizes | 206,814,132 | 197.2 | ✗ not in plan budget |
+| cycle-reachable marks | 99,133,036 | 94.5 | ✗ not in plan budget |
+| DFS frame stack | 129,651,200 | 123.6 | ✗ not in plan budget |
+| **ledger total** | | **3,656.0** | |
+
+**Why the plan under-forecast:** it counted only the file + index/lowlink/onstack arrays (~1.2 GB). The full graph run needs, on top: a u64 SCC stack sized to V (756 MB — the single largest item), the comp array (378 MB), the colex→group map (164 MB) and entry_starts (186 MB) for O(1) child lookup, comp_sizes (197 MB), cycle-reachable marks (95 MB) and the DFS frame stack (124 MB). The 5×4 sizing decision should use **~3.7 GB of in-memory arrays at 4×4** (plus the 494 MB artifact), not 1.2 GB — and the packed-onstack bitset BFS (F1) is what brings peak RSS to 2768 MB rather than the 4102 MB pre-F1 measurement. At 4×3 the ledger totals 235.6 MiB (linear_to_dense dominates at 158 MiB).
 
 ## 4. What remains
 
-1. T344 I5: apply F1 (pack onstack bitset BFS), run 4×3 then 4×4, report memory breakdown
-2. T343 I4 retroactive: run against `artifacts/oracle-4x3.wzo`
-3. T345 KEY-4x4 retroactive: run against `artifacts/oracle-4x3.wzo`
-4. Wire M8 and M10 inversion assertions in `vb_mutants.zig`
-5. Sprint owner ratifies accept.md
+1. **Sprint owner ratifies** the discharge decision (T363 hands this to the Orchestrator — the worker does not self-discharge).
+2. Track A regenerates the KO_SENSITIVE column with `memo_writes=false` (the values used here are the committed artifact's; the closure/Bellman checks verify the table is internally consistent under R, they do not repair the distrusted ko-sensitive column).
+3. The 3×2/4×3 I5 seeded-defect vacuity (§3.1) is a spec-premise finding for the owner's disposition — the spec §7.2/plan F2 assumption does not hold in the full-graph model; the 4×4 control covers it.
 
 ## 5. Verdict
 
-**pass-with-findings.** The two headline checks — Bellman residual and key agreement — pass cleanly at 4×4 at scale (95.7M and 99.1M entries respectively). The third headline — move-set consistency — passes at all rungs including 4×3. I5 SCC containment is calibration-proven at 3×2 and deferred at 4×3/4×4. The 4×3 retroactive rung is owed for I4 and key-agreement per spec Rev 5.
+**pass-with-findings → all six check conditions now hold, with denominators.** The three headline checks pass at full 4×4 scale (Bellman 0/95.7M, key-agreement 0/99.1M, move-set 0/50K + all rungs). **C-A1/C-A2 closure now passes at full 4×4** (0/600.8M children, 0/99.0M reachable), I5 passes at 4×3 and 4×4 (0/170K and 0/3.46M), the 4×3 retroactive rung is closed for I4 (0/463K) and key-agreement (0/643K), and all seven mutants are asserted killed including M8/M10 wired red-then-green. The I5 memory ledger is measured (2768 MB peak at 4×4 with packed onstack; 3.66 GB of in-memory arrays) — the plan's ~1.2 GB forecast is corrected by a measured 3.4×–2.3× factor for the 5×4 sizing decision.
 
-The sprint changes the sentence per its goal (§1): the 4×4 table's L/H values are closed under the Bellman operator with 0 violations across 95.7M KO_SENSITIVE-clear entries and 0 key-mismatches across 99.1M entries. The I5 and 4×3 gaps are documented and scoped.
+**The goal sentence now holds as checkable evidence:** the 4×4 table's L/H values are closed under the Bellman operator (0 violations on KO_SENSITIVE-clear entries at full scale), closed forward and backward (0 missing children, 0 unreachable-in-table), key-agreement-tight (0/99.1M), move-set-consistent (0 at every rung), and every KO_SENSITIVE slot is cycle-reachable (0/3.46M). The honest epistemic limit is unchanged: these are fresh-start scores under R, verified by the battery — not a real-game PSK oracle, not history-independent, and the KO_SENSITIVE column itself remains distrusted pending Track A.
+
+Findings file: `findings/T363-g3b-completion.json` (task T363, deepseek-v4-flash).
 
 ---
 
@@ -114,3 +131,54 @@ each carrying a null control and a seeded-defect control that was shown to fire.
 The honest sentence remains: *the 4×4 artifact is structurally complete, and its values are
 verified for Bellman residual and key agreement at full scale but not yet for closure or cycle
 containment.* Registered as the completion row; `PHASES.md` is not updated and G3b stays open.
+
+---
+
+## 7. T363 completion record (deepseek-v4-flash, 2026-08-05)
+
+**The four blocking gaps from §6 are closed. Each result carries its denominator. This row does
+not discharge G3b and promotes no claim — that ruling is the sprint owner's, per spec §1.1.**
+
+1. **C-A1/C-A2 full 4×4 closure run — PASS.** `WEIZIGO_CLOSURE_4X4_FULL=1` gated test in
+   `src/vb_closure.zig` (T363). C-A1: **0 children-not-in-table / 600,763,414 non-terminal
+   children** over all 99,133,036 entries, 48,505,262 passes=2 children counted separately as
+   expected-absent terminals, avg branching factor 6.0602, 251 s wall, 1124 MB peak RSS. C-A2:
+   **0 reachable-not-in-table**, 99,020,312 reachable non-terminals over 32 sweeps, 48,448,900
+   reachable terminals (not stored, reported separately). Note: table = 99,133,036 entries but
+   reachable = 99,020,312 — 112,724 entries are not root-reachable (e.g. White-to-move on empty
+   board at passes=0); C-A2's verdict is reachable ⊆ table, and it holds.
+2. **4×3 retroactive rung — PASS for I4 and key-agreement** against `artifacts/oracle-4x3.wzo`
+   (SHA 5316f428…). I4: 0 / 463,024 KO_SENSITIVE-clear non-terminal examined (170,276
+   KO_SENSITIVE excluded — WZO1 instrument, spec §2.4 split; test added to `vb_fixpoint.zig`).
+   Key-agreement: 0 / 643,378 states (producer kernel vs consumer R8, ko=NONE passes=0 slice;
+   test added to `differential.zig`). I11 already passed there (0 / 643,378, T346).
+3. **I5 SCC containment at 4×3 and 4×4 — PASS, with the measured memory ledger owed.** 4×3:
+   0 ko_not_cr / 170,181 KO_SENSITIVE (V=1,929,035, E=6,858,926, maxSCC=1,284,078, 235.6 MiB
+   ledger). 4×4: 0 ko_not_cr / 3,455,412 (V=99,133,036, E=565,402,416, maxSCC=47,429,504,
+   cycle-reachable 97,689,592; 136 s; **2768 MB peak RSS**, ledger sum 3,656.0 MiB — full
+   per-component table in §3.3). Seeded-defect red-then-green demonstrated at 4×4 (0 → 1 → 0).
+   **Vacuity finding:** the spec's premise that 3×2 is the first non-vacuous I5 seeded-defect
+   rung is false in the full-graph model — 3×2 has no non-cycle-reachable passes=0 slot (same
+   vacuity as 2×2), and 4×3's non-CR slots are all already KO_SENSITIVE; the first genuine
+   red-then-green rung is 4×4 (§3.1).
+4. **M8 and M10 mutant assertions — wired and red-then-green in `vb_mutants.zig`.** M8
+   (deleted entry): C-A1 catches children_not_in_table 0→2, C-A2 reachable_not_in_table 0→1,
+   restore → 0/0. M10 (alias control): I11 null control reports 0/114 vacuously (kernel vs
+   SMD1, both kernel) and the seeded-defect control reports 1/114 — proving the harness is
+   sensitive to independence. **7 of 7 mutants now asserted killed.**
+
+**Build wiring fixed en route:** `vb_i11` had a pre-existing build.zig defect (T328-documented)
+— `import_table = .{}` dropped the `engine` module, so the module never compiled in
+`zig build test`. Wired the shared `engine_mod` (smd1_engine shim) into vb_i11, vb_closure,
+vb_mutants and smd1; vb_closure's rules/colex imports now go through the engine shim (one
+module owns rules.zig — the file-in-two-modules error). After the build.zig commit:
+`zig build deploy` + `sh tools/smoke.sh` = **smoke PASS, zero STALE**.
+
+**Baseline suite state at handover:** `zig build test` goes from 43/48 steps (681/685 tests) at
+HEAD to 46/48 (691/695) with T363's changes — the two previously-failing steps (vb_i11 compile,
+stale-bin managent standing) are fixed. The 4 remaining crashed tests are the documented
+pre-existing `qa023_brute_2x2` explosive smoke tests (T360, fail-fast on the 20M-node budget;
+the brief says do not raise it). claimlint is at floor (C1a=10, C1b=0, C2=14, C6=0, C9=0).
+
+**G3b stays open until the sprint owner rules on discharge (spec §1.1 promotions: `4x4.C1` →
+CLAIMED, `GLOBAL.H4` text update, `4x4.FP1` → CLAIMED) and on the §3.1 vacuity finding.**

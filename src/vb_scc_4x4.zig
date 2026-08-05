@@ -66,11 +66,48 @@ pub const Result = struct {
     error_msg: ?[]const u8 = null,
     /// Peak RSS estimate (MB)
     peak_rss_mb: u64 = 0,
+    /// Per-component memory ledger (bytes), plan.md §2.1/§11 line items.
+    /// Measured at allocation sites, not estimated.
+    mem_file_bytes: u64 = 0, // artifact bytes resident (entry data + group index)
+    mem_group_index: u64 = 0, // group index portion of the artifact
+    mem_entry_data: u64 = 0, // entry data portion of the artifact
+    mem_colex_map: u64 = 0, // colex→group direct map (WZO2 only)
+    mem_entry_starts: u64 = 0, // per-group entry offsets (WZO2 only)
+    mem_index: u64 = 0, // Tarjan index array
+    mem_lowlink: u64 = 0, // Tarjan lowlink array
+    mem_onstack: u64 = 0, // Tarjan onstack bitset/array
+    mem_comp: u64 = 0, // SCC id per vertex
+    mem_dense_linear: u64 = 0, // dense_to_linear (WZO1 bitset paths)
+    mem_linear_dense: u64 = 0, // linear_to_dense (WZO1 bitset paths)
+    mem_adjacency: u64 = 0, // adjacency lists (small-goban path)
+    mem_scc_stack: u64 = 0, // Tarjan SCC stack
+    mem_scc_rep: u64 = 0, // SCC representative array (WZO1 bitset path)
+    mem_comp_sizes: u64 = 0, // per-SCC size array
+    mem_cr: u64 = 0, // cycle-reachable marks
+    mem_bitset: u64 = 0, // BFS bitset (WZO1 bitset path)
+    mem_frames: u64 = 0, // DFS frame stack
+    mem_queue: u64 = 0, // BFS queue (WZO1 paths)
+    mem_other: u64 = 0, // everything else (scratch, overhead)
     /// Seeded-defect hint: first non-cycle-reachable (colex, side) at
     /// passes=0, ko=NONE. Used by the seeded-defect control test.
     seed_hint_colex: ?u64 = null,
     seed_hint_side: ?u1 = null,
+    /// Seeded-defect hint #2: first non-cycle-reachable (colex, side) at
+    /// passes=0, ko=NONE whose KO_SENSITIVE flag is CLEAR — the slot a
+    /// spurious-KO_SENSITIVE seed needs (the first hint may already be set).
+    seed_hint_clear_colex: ?u64 = null,
+    seed_hint_clear_side: ?u1 = null,
 };
+
+/// Total of the memory-ledger entries above.
+pub fn memTotal(res: Result) u64 {
+    return res.mem_file_bytes + res.mem_group_index + res.mem_entry_data +
+        res.mem_colex_map + res.mem_entry_starts + res.mem_index +
+        res.mem_lowlink + res.mem_onstack + res.mem_comp +
+        res.mem_dense_linear + res.mem_linear_dense + res.mem_adjacency +
+        res.mem_scc_stack + res.mem_scc_rep + res.mem_comp_sizes +
+        res.mem_cr + res.mem_bitset + res.mem_frames + res.mem_queue + res.mem_other;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  WZO2 HEADER (design-M1 §4)
@@ -705,6 +742,8 @@ fn checkI5Small(
     var ko_not_cycle_reachable: u64 = 0;
     var seed_hint_colex: ?u64 = null;
     var seed_hint_side: ?u1 = null;
+    var seed_hint_clear_colex: ?u64 = null;
+    var seed_hint_clear_side: ?u1 = null;
 
     for (0..V) |v| {
         const lin = dense_to_linear.items[v];
@@ -726,6 +765,12 @@ fn checkI5Small(
                 seed_hint_colex = dec.colex;
                 seed_hint_side = dec.side;
             }
+            // Record the first non-cycle-reachable state whose flag is CLEAR
+            // (a spurious-KO_SENSITIVE seed needs a clear slot).
+            if (seed_hint_clear_colex == null and !cycle_reachable_set[v] and !is_ko_sensitive) {
+                seed_hint_clear_colex = dec.colex;
+                seed_hint_clear_side = dec.side;
+            }
         }
     }
 
@@ -741,6 +786,18 @@ fn checkI5Small(
         .status = if (ko_not_cycle_reachable == 0) .pass else .fail,
         .seed_hint_colex = seed_hint_colex,
         .seed_hint_side = seed_hint_side,
+        .seed_hint_clear_colex = seed_hint_clear_colex,
+        .seed_hint_clear_side = seed_hint_clear_side,
+        // Memory ledger (plan §2.1/§11 line items) — small-goban path.
+        .mem_file_bytes = artifact_bytes.len,
+        .mem_entry_data = artifact_bytes.len - 32, // 6 dense WZO1 columns
+        .mem_dense_linear = V * @sizeOf(u64),
+        .mem_index = V * @sizeOf(i32),
+        .mem_lowlink = V * @sizeOf(u32),
+        .mem_onstack = V * @sizeOf(bool),
+        .mem_comp = V * @sizeOf(u32),
+        .mem_cr = V * @sizeOf(bool),
+        .mem_adjacency = total_edges * @sizeOf(u32),
     };
 }
 
@@ -775,13 +832,21 @@ fn checkI5Wzo2(
     const n_groups: u64 = hdr.n_groups;
     const n_entries: u64 = hdr.n_entries;
 
+    // ── Memory ledger (plan §2.1 line items) ────────────────────────
+    var res = Result{ .status = .pass };
+    res.mem_file_bytes = mmap_bytes.len;
+    res.mem_group_index = groups.len;
+    res.mem_entry_data = entries.len;
+
     // ── Build colex→group mapping ─────────────────────────────────────
     const c2g = try buildColexToGroup(allocator, groups, n_groups);
     defer allocator.free(c2g);
+    res.mem_colex_map = COLEX_SPACE_4X4 * @sizeOf(u32);
 
     // ── Build entry start offsets per group ───────────────────────────
     var entry_starts = try allocator.alloc(u64, n_groups);
     defer allocator.free(entry_starts);
+    res.mem_entry_starts = n_groups * @sizeOf(u64);
     {
         var cum: u64 = 0;
         for (0..n_groups) |g| {
@@ -813,21 +878,26 @@ fn checkI5Wzo2(
     var index = try allocator.alloc(i32, @intCast(V));
     defer allocator.free(index);
     @memset(index, -1);
+    res.mem_index = V * @sizeOf(i32);
 
     var lowlink = try allocator.alloc(u32, @intCast(V));
     defer allocator.free(lowlink);
+    res.mem_lowlink = V * @sizeOf(u32);
 
     // Packed onstack bitset: 1 bit per vertex
     const onstack_words = (@as(usize, @intCast(V)) + 63) / 64;
     var onstack = try allocator.alloc(u64, onstack_words);
     defer allocator.free(onstack);
     @memset(onstack, 0);
+    res.mem_onstack = onstack_words * @sizeOf(u64);
 
     var scc_stack = try std.ArrayListUnmanaged(u64).initCapacity(allocator, @intCast(V));
     defer scc_stack.deinit(allocator);
+    res.mem_scc_stack = V * @sizeOf(u64);
 
     var comp = try allocator.alloc(u32, @intCast(V));
     defer allocator.free(comp);
+    res.mem_comp = V * @sizeOf(u32);
 
     var counter: u32 = 0;
     var ncomp: u32 = 0;
@@ -992,6 +1062,7 @@ fn checkI5Wzo2(
     var comp_sizes = try allocator.alloc(u32, ncomp);
     defer allocator.free(comp_sizes);
     @memset(comp_sizes, 0);
+    res.mem_comp_sizes = ncomp * @sizeOf(u32);
     for (comp) |c| comp_sizes[c] += 1;
 
     var non_trivial: u64 = 0;
@@ -1010,6 +1081,8 @@ fn checkI5Wzo2(
     var cr = try allocator.alloc(bool, @intCast(V));
     defer allocator.free(cr);
     @memset(cr, false);
+    res.mem_cr = V * @sizeOf(bool);
+    res.mem_frames = frames.capacity * @sizeOf(Frame);
 
     // Seed: cycle-involved vertices
     for (0..V) |v| {
@@ -1091,10 +1164,7 @@ fn checkI5Wzo2(
 
     // ── KO_SENSITIVE containment check ────────────────────────────────
     var ko_not_cr: u64 = 0;
-    // We already counted ko_sensitive in the first pass.
-    // Now check which ones are NOT cycle-reachable.
-    // We can iterate over entries again and check cr[v].
-    // But we counted ko_sensitive already. Let's re-count during the check.
+    var seed_clear_ei: ?u64 = null; // first non-CR L==H entry (for seeding)
     var ko_sensitive_check: u64 = 0;
     for (0..V) |v| {
         const gi_kocheck = findGroupForEntry(entry_starts, v);
@@ -1107,23 +1177,29 @@ fn checkI5Wzo2(
             if (!cr[v]) {
                 ko_not_cr += 1;
             }
+        } else if (seed_clear_ei == null and !cr[v]) {
+            // First non-cycle-reachable L==H (clear) entry — a spurious
+            // L!=H seed can be placed here to demonstrate red-then-green.
+            seed_clear_ei = v;
         }
     }
     assert(ko_sensitive_check == ko_sensitive);
 
-    return Result{
-        .nodes = V,
-        .edges = total_edges,
-        .scc_non_trivial = non_trivial,
-        .max_scc_size = max_scc,
-        .cycle_involved = cycle_involved,
-        .cycle_reachable = cycle_reachable_count,
-        .ko_sensitive_count = ko_sensitive,
-        .ko_not_cr = ko_not_cr,
-        .status = if (ko_not_cr == 0) .pass else .fail,
-        .seed_hint_colex = null,
-        .seed_hint_side = null,
-    };
+    res.nodes = V;
+    res.edges = total_edges;
+    res.scc_non_trivial = non_trivial;
+    res.max_scc_size = max_scc;
+    res.cycle_involved = cycle_involved;
+    res.cycle_reachable = cycle_reachable_count;
+    res.ko_sensitive_count = ko_sensitive;
+    res.ko_not_cr = ko_not_cr;
+    res.status = if (ko_not_cr == 0) .pass else .fail;
+    // seed hints: for the WZO2 path the entries are the vertices; expose the
+    // first non-CR L==H entry index (as colex surrogate via its entry index
+    // is not meaningful to callers — use the entry index directly in the
+    // seeded-defect test via a dedicated accessor instead).
+    res.seed_hint_clear_colex = seed_clear_ei;
+    return res;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1321,6 +1397,12 @@ fn checkI5Wzo1Bitset(
     const fb = artifact_bytes[payload_start + 2 * @as(usize, @intCast(total)) .. payload_start + 3 * @as(usize, @intCast(total))];
     const fw = artifact_bytes[payload_start + 3 * @as(usize, @intCast(total)) .. payload_start + 4 * @as(usize, @intCast(total))];
 
+    // ── Memory ledger (plan §2.1/§11 line items) ─────────────────────
+    var res = Result{ .status = .pass };
+    res.mem_file_bytes = artifact_bytes.len;
+    res.mem_group_index = 0; // WZO1: dense columns, no separate group index
+    res.mem_entry_data = artifact_bytes.len - payload_start; // 6 dense columns
+
     const ko_count: usize = n + 1;
     const sub_stride: u64 = @as(u64, ko_count) * 3;
     const stride: u64 = 2 * sub_stride;
@@ -1331,9 +1413,11 @@ fn checkI5Wzo1Bitset(
     var bitset = try allocator.alloc(u64, bitset_words);
     defer allocator.free(bitset);
     @memset(bitset, 0);
+    res.mem_bitset = bitset_words * @sizeOf(u64);
 
     var queue = try std.ArrayListUnmanaged(u64).initCapacity(allocator, 0);
     defer queue.deinit(allocator);
+    res.mem_queue = queue.capacity * @sizeOf(u64);
 
     // Seed
     if (all_legal_seed) {
@@ -1401,14 +1485,17 @@ fn checkI5Wzo1Bitset(
     }
 
     // Count and collect
+    res.mem_queue = queue.capacity * @sizeOf(u64);
     var V: u64 = 0;
     for (bitset) |word| V += @popCount(word);
     const Vi = @as(usize, @intCast(V));
 
     var dense_to_linear = try allocator.alloc(u64, Vi);
     defer allocator.free(dense_to_linear);
+    res.mem_dense_linear = Vi * @sizeOf(u64);
     var linear_to_dense = try allocator.alloc(u32, @as(usize, @intCast(space)));
     defer allocator.free(linear_to_dense);
+    res.mem_linear_dense = @as(usize, @intCast(space)) * @sizeOf(u32);
     @memset(linear_to_dense, 0xFF);
     {
         var vid: u32 = 0;
@@ -1423,7 +1510,17 @@ fn checkI5Wzo1Bitset(
     }
 
     // Tarjan with on-the-fly children + SCC DAG
-    return runTarjanSccDag(allocator, w, h, @intCast(n), stride, sub_stride, fb, fw, Vi, dense_to_linear, linear_to_dense, space);
+    var out = try runTarjanSccDag(allocator, w, h, @intCast(n), stride, sub_stride, fb, fw, Vi, dense_to_linear, linear_to_dense, space);
+    // Fold this function's ledger into the Tarjan result: the artifact and
+    // bitset/queue allocations live here, not in runTarjanSccDag.
+    out.mem_file_bytes = res.mem_file_bytes;
+    out.mem_entry_data = res.mem_entry_data;
+    out.mem_group_index = 0;
+    out.mem_bitset = res.mem_bitset;
+    out.mem_queue = res.mem_queue;
+    out.mem_dense_linear = dense_to_linear.len * @sizeOf(u64);
+    out.mem_linear_dense = linear_to_dense.len * @sizeOf(u32);
+    return out;
 }
 
 // ─── Linear encoding helpers (used by both WZO1 and WZO2 bitset paths) ──
@@ -1477,6 +1574,19 @@ fn runTarjanSccDag(
     var comp = try allocator.alloc(u32, Vi);
     @memset(comp, 0);
 
+    // ── Memory ledger (plan §2.1/§11 line items) ─────────────────────
+    var res = Result{ .status = .pass };
+    res.mem_file_bytes = 0; // caller records the artifact; columns indexed here
+    res.mem_entry_data = 0;
+    res.mem_index = Vi * @sizeOf(i32);
+    res.mem_lowlink = Vi * @sizeOf(u32);
+    res.mem_onstack = Vi * @sizeOf(bool);
+    res.mem_scc_stack = Vi * @sizeOf(u32);
+    res.mem_comp = Vi * @sizeOf(u32);
+    res.mem_dense_linear = dense_to_linear.len * @sizeOf(u64);
+    res.mem_linear_dense = linear_to_dense.len * @sizeOf(u32);
+    res.mem_queue = 0;
+
     // Inter-SCC edges NOT stored. Instead, we process SCCs in reverse
     // pop order (topological order of the SCC DAG) and compute children
     // on the fly for each trivial SCC.
@@ -1500,6 +1610,7 @@ fn runTarjanSccDag(
         for (frames.items) |*fr| fr.children.deinit(allocator);
         frames.deinit(allocator);
     }
+    res.mem_frames = frames.capacity * @sizeOf(Frame);
 
     for (0..Vi) |root| {
         if (index[root] != -1) continue;
@@ -1581,6 +1692,9 @@ fn runTarjanSccDag(
     var scc_cr = try allocator.alloc(bool, ncomp);
     defer allocator.free(scc_cr);
     @memset(scc_cr, false);
+    res.mem_cr = ncomp * @sizeOf(bool);
+    res.mem_scc_rep = scc_rep.len * @sizeOf(u32);
+    res.mem_comp_sizes = ncomp * @sizeOf(u32);
     for (0..ncomp) |c| { if (comp_sizes[c] >= 2) scc_cr[c] = true; }
 
     // Process in reverse pop order (sources → sinks)
@@ -1606,30 +1720,40 @@ fn runTarjanSccDag(
     var ko_not_cr: u64 = 0;
     var sh_colex: ?u64 = null;
     var sh_side: ?u1 = null;
+    var sh_clear_colex: ?u64 = null;
+    var sh_clear_side: ?u1 = null;
     for (0..Vi) |v| {
         const addr = dense_to_linear[v];
         const dec = decodeLin(addr, stride, sub_stride);
         if (dec.ko == ko_none and dec.passes == 0) {
             const flags = if (dec.side == 0) fb[@intCast(dec.colex)] else fw[@intCast(dec.colex)];
-            if ((flags & 1) != 0) {
+            const is_ko_sensitive = (flags & 1) != 0;
+            if (is_ko_sensitive) {
                 ko_sens += 1;
                 if (!scc_cr[comp[v]]) ko_not_cr += 1;
             }
             if (sh_colex == null and !scc_cr[comp[v]]) { sh_colex = dec.colex; sh_side = dec.side; }
+            if (sh_clear_colex == null and !scc_cr[comp[v]] and !is_ko_sensitive) { sh_clear_colex = dec.colex; sh_clear_side = dec.side; }
         }
     }
 
     var cr_count: u64 = 0;
     for (0..Vi) |v| { if (scc_cr[comp[v]]) cr_count += 1; }
 
-    return Result{
-        .nodes = Vi, .edges = total_edges,
-        .scc_non_trivial = non_trivial, .max_scc_size = max_scc,
-        .cycle_involved = cycle_involved, .cycle_reachable = cr_count,
-        .ko_sensitive_count = ko_sens, .ko_not_cr = ko_not_cr,
-        .status = if (ko_not_cr == 0) .pass else .fail,
-        .seed_hint_colex = sh_colex, .seed_hint_side = sh_side,
-    };
+    res.nodes = Vi;
+    res.edges = total_edges;
+    res.scc_non_trivial = non_trivial;
+    res.max_scc_size = max_scc;
+    res.cycle_involved = cycle_involved;
+    res.cycle_reachable = cr_count;
+    res.ko_sensitive_count = ko_sens;
+    res.ko_not_cr = ko_not_cr;
+    res.status = if (ko_not_cr == 0) .pass else .fail;
+    res.seed_hint_colex = sh_colex;
+    res.seed_hint_side = sh_side;
+    res.seed_hint_clear_colex = sh_clear_colex;
+    res.seed_hint_clear_side = sh_clear_side;
+    return res;
 }
 
 /// Compute children for a vertex in the WZO1 bitset graph (on-the-fly).
@@ -1676,6 +1800,41 @@ fn computeWzo1Children(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  MEMORY BREAKDOWN PRINTER (plan §2.1/§11 line items)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Print the per-component memory ledger with MiB figures, labelled for
+/// the plan's line items. Output is diagnostic (stderr via std.debug.print).
+pub fn printMemBreakdown(res: Result, goban_label: []const u8) void {
+    const mib = struct {
+        fn f(b: u64) f64 {
+            return @as(f64, @floatFromInt(b)) / (1024.0 * 1024.0);
+        }
+    }.f;
+    std.debug.print("[mem {s}] total={d:.1} MiB (ledger sum) — plan-vs-actual comparison below\n", .{ goban_label, mib(memTotal(res)) });
+    std.debug.print("[mem {s}]   artifact file (mmap'd)   {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_file_bytes, mib(res.mem_file_bytes) });
+    std.debug.print("[mem {s}]   group index              {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_group_index, mib(res.mem_group_index) });
+    std.debug.print("[mem {s}]   entry data               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_entry_data, mib(res.mem_entry_data) });
+    std.debug.print("[mem {s}]   colex→group map          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_colex_map, mib(res.mem_colex_map) });
+    std.debug.print("[mem {s}]   entry_starts             {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_entry_starts, mib(res.mem_entry_starts) });
+    std.debug.print("[mem {s}]   Tarjan index             {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_index, mib(res.mem_index) });
+    std.debug.print("[mem {s}]   Tarjan lowlink           {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_lowlink, mib(res.mem_lowlink) });
+    std.debug.print("[mem {s}]   Tarjan onstack           {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_onstack, mib(res.mem_onstack) });
+    std.debug.print("[mem {s}]   SCC id (comp)            {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_comp, mib(res.mem_comp) });
+    std.debug.print("[mem {s}]   dense_to_linear          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_dense_linear, mib(res.mem_dense_linear) });
+    std.debug.print("[mem {s}]   linear_to_dense          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_linear_dense, mib(res.mem_linear_dense) });
+    std.debug.print("[mem {s}]   adjacency lists          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_adjacency, mib(res.mem_adjacency) });
+    std.debug.print("[mem {s}]   SCC stack                {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_scc_stack, mib(res.mem_scc_stack) });
+    std.debug.print("[mem {s}]   SCC reps                 {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_scc_rep, mib(res.mem_scc_rep) });
+    std.debug.print("[mem {s}]   comp_sizes               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_comp_sizes, mib(res.mem_comp_sizes) });
+    std.debug.print("[mem {s}]   cycle-reachable marks    {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_cr, mib(res.mem_cr) });
+    std.debug.print("[mem {s}]   BFS bitset               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_bitset, mib(res.mem_bitset) });
+    std.debug.print("[mem {s}]   DFS frame stack          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_frames, mib(res.mem_frames) });
+    std.debug.print("[mem {s}]   BFS queue                {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_queue, mib(res.mem_queue) });
+    std.debug.print("[mem {s}]   other (scratch/overhead) {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_other, mib(res.mem_other) });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1709,6 +1868,76 @@ test "vb_scc_4x4: 3×2 calibration — SCC structure + clean check" {
     try std.testing.expectEqual(@as(u64, 0), result.ko_not_cr);
 }
 
+test "vb_scc_4x4: 3×2 seeded-defect — spurious KO_SENSITIVE on a non-cycle-reachable slot → red-then-green" {
+    // Spec §7.2 / plan F2: the FIRST seeded-defect control for I5 runs at 3×2
+    // (the 2×2 all-legal graph is entirely cycle-reachable, so a spurious
+    // KO_SENSITIVE cannot be caught there). Row bar: set KO_SENSITIVE
+    // spuriously on a non-cycle-reachable 3×2 slot → ko_not_cr > 0, shown
+    // red-then-green BEFORE the 4×4 reading.
+    //
+    // Measured finding (T363): in the FULL (colex, side, ko, passes) graph
+    // this implementation uses, the 3×2 all-legal graph has NO
+    // non-cycle-reachable passes=0 ko=NONE slot (ko_not_cr=0, hint null) —
+    // the same vacuity the spec attributed to 2×2 only. The spec's 3×2
+    // premise came from the projected-graph model (vb_graph); the full-graph
+    // model needs a larger goban. The first non-vacuous rung is 4×3, where
+    // the all-legal graph does have non-CR slots (24). This test records the
+    // 3×2 vacuity explicitly and defers the red-then-green to the 4×3 test.
+    const allocator = std.heap.page_allocator;
+    const artifact_path = "artifacts/oracle-3x2.wzo";
+
+    var threaded = std.Io.Threaded.init(std.heap.page_allocator, .{});
+    const io = threaded.io();
+    var bytes = try std.Io.Dir.cwd().readFileAlloc(io, artifact_path, allocator, .unlimited);
+    defer allocator.free(bytes);
+
+    // GREEN baseline: clean artifact, reachable-from-empty graph.
+    const clean = try checkI5Small(allocator, 3, 2, bytes, false);
+    try std.testing.expectEqual(Status.pass, clean.status);
+    try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
+
+    // All-legal graph: look for a non-cycle-reachable passes=0 ko=NONE slot.
+    const all_legal = try checkI5Small(allocator, 3, 2, bytes, true);
+    std.debug.print("[3x2 all-legal] V={d} ko_not_cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.ko_not_cr, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
+
+    if (all_legal.seed_hint_clear_colex == null) {
+        // Vacuity documented above: every 3×2 passes=0 ko=NONE slot is
+        // cycle-reachable in the full graph. The check still passes the
+        // clean artifact; the seeded-defect control moves to 4×4 where a
+        // non-CR L==H entry exists (4×3's non-CR slots are all already
+        // KO_SENSITIVE, so it is vacuous too). This is a measurement, not
+        // a pass.
+        std.debug.print("[T344 NOTE] 3×2 all-legal has no non-CR clear-flag slot in the full graph — seeded-defect demonstrated at 4×4 instead (3×2 and 4×3 are vacuous in the full-graph model; 2×2, 3×2, 4×3-reachable share the same vacuity).\n", .{});
+        return;
+    }
+
+    const hint_colex = all_legal.seed_hint_clear_colex.?;
+    const hint_side = all_legal.seed_hint_clear_side.?;
+
+    const total: u64 = 729;
+    const payload_start: usize = 32;
+    const fb_start = payload_start + 2 * @as(usize, @intCast(total));
+    const fw_start = payload_start + 3 * @as(usize, @intCast(total));
+    const flag_idx = if (hint_side == 0)
+        fb_start + @as(usize, @intCast(hint_colex))
+    else
+        fw_start + @as(usize, @intCast(hint_colex));
+    const old_flag = bytes[flag_idx];
+
+    // RED: spurious KO_SENSITIVE → ko_not_cr increases over baseline.
+    bytes[flag_idx] = old_flag | 1;
+    const corrupted = try checkI5Small(allocator, 3, 2, bytes, true);
+    try std.testing.expectEqual(Status.fail, corrupted.status);
+    try std.testing.expect(corrupted.ko_not_cr > all_legal.ko_not_cr);
+    std.debug.print("[3x2 seeded-defect RED] ko_not_cr={d} (baseline={d})\n", .{ corrupted.ko_not_cr, all_legal.ko_not_cr });
+
+    // GREEN: restore the flag → back to baseline.
+    bytes[flag_idx] = old_flag;
+    const restored = try checkI5Small(allocator, 3, 2, bytes, true);
+    try std.testing.expectEqual(restored.ko_not_cr, all_legal.ko_not_cr);
+    std.debug.print("[3x2 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
+}
+
 test "vb_scc_4x4: 4×3 calibration — clean check passes" {
     const allocator = std.heap.page_allocator;
     const artifact_path = "artifacts/oracle-4x3.wzo";
@@ -1725,6 +1954,7 @@ test "vb_scc_4x4: 4×3 calibration — clean check passes" {
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
     std.debug.print("  seed_hint_colex={?d} seed_hint_side={?d}\n", .{ result.seed_hint_colex, result.seed_hint_side });
+    printMemBreakdown(result, "4x3");
 
     try std.testing.expect(result.nodes > 0);
     try std.testing.expectEqual(Status.pass, result.status);
@@ -1747,58 +1977,27 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
 
     // Find a non-CR passes=0 state in the all-legal graph
     const all_legal = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
-    std.debug.print("\n[4x3 all-legal] V={d} ko_not_cr={d} hint_colex={?d}\n", .{ all_legal.nodes, all_legal.ko_not_cr, all_legal.seed_hint_colex });
+    std.debug.print("\n[4x3 all-legal] V={d} ko_not_cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.ko_not_cr, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
 
-    if (all_legal.seed_hint_colex == null) {
-        std.debug.print("[T344 NOTE] 4×3 all-legal has no non-CR passes=0 state. Seeded-defect deferred to 4×4.\n", .{});
+    const hint_colex = all_legal.seed_hint_clear_colex orelse {
+        std.debug.print("[T344 NOTE] 4×3 all-legal has no non-CR clear-flag passes=0 state. Seeded-defect cannot be shown red-then-green here.\n", .{});
         return;
-    }
+    };
+    const hint_side = all_legal.seed_hint_clear_side.?;
 
-    // Find a non-CR state with KO_SENSITIVE currently CLEAR
-    // (the seed_hint might be on an already-KO_SENSITIVE state).
-    // We scan the artifact flags manually to find one.
+    // Proceed with seeded-defect: spurious KO_SENSITIVE on this clear state
     const total: u64 = 531441;
     const payload_start: usize = 32;
     const fb_start = payload_start + 2 * @as(usize, @intCast(total));
     const fw_start = payload_start + 3 * @as(usize, @intCast(total));
-
-    // Need to re-derive which states are non-CR by comparing all_legal result
-    // with the artifact flags. For simplicity: brute-force scan for a non-CR
-    // pass=0 state with flag=0.
-    // Since the all-legal run already computed this, we can iterate colex
-    // space and check if (flag clear) and (state non-CR).
-    // But we don't have direct access to the non-CR list...
-    //
-    // Simpler approach: just use the hint, but verify the flag is 0.
-    // If flag is already 1, the seeded-defect can't demonstrate increase.
-    const hint_flag = if (all_legal.seed_hint_side.? == 0)
-        bytes[fb_start + @as(usize, @intCast(all_legal.seed_hint_colex.?))]
-    else
-        bytes[fw_start + @as(usize, @intCast(all_legal.seed_hint_colex.?))];
-
-    if ((hint_flag & 1) != 0) {
-        std.debug.print("[T344 NOTE] seed_hint already KO_SENSITIVE at colex={d}. Finding alternative...\n", .{all_legal.seed_hint_colex.?});
-        // Fall back: use reachable-from-empty's clean check (which passes),
-        // and force-set KO_SENSITIVE on any non-CR state we can find.
-        // Since we can't easily enumerate non-CR states without re-running,
-        // accept that the seeded-defect is demonstrated by the reachable
-        // clean check passing (ko_not_cr=0) and the all-legal check finding
-        // violations (ko_not_cr=24). The check IS sensitive.
-        std.debug.print("[T344 NOTE] Seeded-defect demonstrated: reachable ko_not_cr=0, all-legal ko_not_cr={d}.\n", .{all_legal.ko_not_cr});
-        return;
-    }
-
-    // Proceed with seeded-defect: spurious KO_SENSITIVE on this state
-    const hint_colex = all_legal.seed_hint_colex.?;
-    const hint_side = all_legal.seed_hint_side.?;
     const flag_idx = if (hint_side == 0)
         fb_start + @as(usize, @intCast(hint_colex))
     else
         fw_start + @as(usize, @intCast(hint_colex));
     const old_flag = bytes[flag_idx];
-    bytes[flag_idx] |= 1;
 
     // RED: spurious KO_SENSITIVE → ko_not_cr increases
+    bytes[flag_idx] = old_flag | 1;
     const corrupted = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
     try std.testing.expectEqual(Status.fail, corrupted.status);
     try std.testing.expect(corrupted.ko_not_cr > all_legal.ko_not_cr);
@@ -1809,6 +2008,51 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
     const restored = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
     try std.testing.expectEqual(restored.ko_not_cr, all_legal.ko_not_cr);
     std.debug.print("[4x3 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
+}
+
+test "vb_scc_4x4: 4×4 seeded-defect — spurious L!=H on a non-cycle-reachable entry → red-then-green" {
+    // Spec §7.2 calibration: I5 must fail a seeded defect. At 2×2/3×2 the
+    // full-graph model is vacuous (every passes=0 ko=NONE slot is
+    // cycle-reachable); at 4×3 all non-CR slots are already KO_SENSITIVE.
+    // At 4×4 (WZO2, KO_SENSITIVE = L!=H) there are non-CR L==H entries
+    // (~1.44M), so a spurious L!=H seed must push ko_not_cr > 0 — shown
+    // red-then-green here.
+    const allocator = std.heap.page_allocator;
+    const artifact_path = "data/oracle-4x4-v2.wzo2";
+
+    var threaded = std.Io.Threaded.init(std.heap.page_allocator, .{});
+    const io = threaded.io();
+    const file_bytes = try std.Io.Dir.cwd().readFileAlloc(io, artifact_path, allocator, .unlimited);
+    defer allocator.free(file_bytes);
+
+    // GREEN baseline.
+    const clean = try checkI5Wzo2(allocator, file_bytes);
+    try std.testing.expectEqual(Status.pass, clean.status);
+    try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
+    const seed_ei = clean.seed_hint_clear_colex orelse {
+        std.debug.print("[T344 NOTE] 4×4 has no non-CR L==H entry — cannot seed. (Unexpected; ~1.44M expected.)\n", .{});
+        return;
+    };
+
+    // RED: make the non-CR entry spurious-KO_SENSITIVE by corrupting L.
+    // Entry data begins after the header + group index.
+    const entry_data_start: usize = 128 + @as(usize, @intCast(24318165)) * WZO2_GROUP_HEADER_SIZE;
+    const off = entry_data_start + @as(usize, @intCast(seed_ei)) * WZO2_ENTRY_SIZE + 1; // L byte
+    const orig_l = file_bytes[off];
+    const orig_h = file_bytes[off + 1];
+    std.debug.print("[4x4 seeded-defect] seed entry {d} L={d} H={d}\n", .{ seed_ei, @as(i8, @bitCast(orig_l)), @as(i8, @bitCast(orig_h)) });
+    file_bytes[off] = orig_l +% 1; // flip L to differ from H
+    const corrupted = try checkI5Wzo2(allocator, file_bytes);
+    try std.testing.expectEqual(Status.fail, corrupted.status);
+    try std.testing.expect(corrupted.ko_not_cr > clean.ko_not_cr);
+    std.debug.print("[4x4 seeded-defect RED] ko_not_cr={d} (baseline {d}) at entry {d}\n", .{ corrupted.ko_not_cr, clean.ko_not_cr, seed_ei });
+
+    // GREEN: restore.
+    file_bytes[off] = orig_l;
+    const restored = try checkI5Wzo2(allocator, file_bytes);
+    try std.testing.expectEqual(Status.pass, restored.status);
+    try std.testing.expectEqual(@as(u64, 0), restored.ko_not_cr);
+    std.debug.print("[4x4 seeded-defect GREEN] restored ko_not_cr={d}\n", .{restored.ko_not_cr});
 }
 
 test "vb_scc_4x4: 4×4 WZO2 — ko_not_cr == 0" {
@@ -1846,6 +2090,7 @@ test "vb_scc_4x4: 4×4 WZO2 — ko_not_cr == 0" {
         result.nodes, result.edges, result.max_scc_size, result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
+    printMemBreakdown(result, "4x4");
 
     try std.testing.expect(result.nodes > 0);
     try std.testing.expectEqual(Status.pass, result.status);

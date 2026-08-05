@@ -171,7 +171,7 @@ const CmpResult = struct {
 
 /// Compare R8 against an SMD1 dump file.
 /// `bytes` = the full SMD1 file contents.
-fn compareSmd1(comptime w: usize, comptime h: usize, bytes: []const u8) !CmpResult {
+pub fn compareSmd1(comptime w: usize, comptime h: usize, bytes: []const u8) !CmpResult {
     const hdr = try smd1Validate(bytes, w, h);
     const rec_size: usize = @as(usize, hdr.colex_bytes) + 1 + hdr.moves_bytes;
     var res = CmpResult{ .mismatches = 0, .total = 0, .examples = undefined, .example_count = 0 };
@@ -228,7 +228,7 @@ fn compareSmd1(comptime w: usize, comptime h: usize, bytes: []const u8) !CmpResu
 
 /// Null-control compare: kernel vs SMD1 (both kernel-generated).
 /// Uses the kernel's own legalMoves instead of R8. Must return 0 mismatches.
-fn compareSmd1Null(comptime w: usize, comptime h: usize, bytes: []const u8) !CmpResult {
+pub fn compareSmd1Null(comptime w: usize, comptime h: usize, bytes: []const u8) !CmpResult {
     const hdr = try smd1Validate(bytes, w, h);
     const R = kernel_rules.Rules(w, h);
     const ko_none = R.ko_none();
@@ -272,7 +272,7 @@ fn compareSmd1Null(comptime w: usize, comptime h: usize, bytes: []const u8) !Cmp
 /// Direct comparison of R8 vs kernel for exhaustive gobans (2×2, 3×2, 3×3,
 /// 4×3). Iterates every legal position at the artifact slice (ko=NONE,
 /// passes=0) for both sides.
-fn compareDirect(comptime w: usize, comptime h: usize) !CmpResult {
+pub fn compareDirect(comptime w: usize, comptime h: usize) !CmpResult {
     const R = kernel_rules.Rules(w, h);
     const X = engine.colex.Indexer(w, h);
     const E = engine.enumerate.Enumerator(w, h);
@@ -355,7 +355,7 @@ fn defectiveLegalMoves(
 
 /// Seeded-defect comparison: compare the defective move generator against
 /// the kernel at a specific goban. Must find mismatches > 0.
-fn compareDefective(
+pub fn compareDefective(
     comptime w: usize,
     comptime h: usize,
     trigger_colex: u64,

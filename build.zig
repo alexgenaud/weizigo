@@ -49,6 +49,15 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    // ── engine module (kernel re-export shim, T341) — shared by vb_i11,
+    // vb_mutants, and tools/smd1. Wired here once so the named import
+    // @import("engine") resolves in every consumer.
+    const engine_mod = b.createModule(.{
+        .root_source_file = b.path("src/smd1_engine.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     const exe = b.addExecutable(.{
         .name = "weizigo",
         // In this case the main source file is merely a path, however, in more
@@ -128,6 +137,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
+    vb_mutants_tests.root_module.addImport("engine", engine_mod);
     const run_vb_mutants_tests = b.addRunArtifact(vb_mutants_tests);
     run_vb_mutants_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_mutants_tests.step);
@@ -352,7 +362,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    vb_closure_tests.root_module.import_table = .{};
+    vb_closure_tests.root_module.addImport("engine", engine_mod);
     const run_vb_closure_tests = b.addRunArtifact(vb_closure_tests);
     run_vb_closure_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_closure_tests.step);
@@ -404,17 +414,12 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    vb_i11_tests.root_module.import_table = .{};
+    vb_i11_tests.root_module.addImport("engine", engine_mod);
     const run_vb_i11_tests = b.addRunArtifact(vb_i11_tests);
     run_vb_i11_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_i11_tests.step);
 
     // ── SMD1 tool tests (tools/smd1.zig, T341) ──────────────────
-    const smd1_engine_mod = b.createModule(.{
-        .root_source_file = b.path("src/smd1_engine.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
     const smd1_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = b.path("tools/smd1.zig"),
@@ -422,7 +427,7 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
         }),
     });
-    smd1_tests.root_module.addImport("engine", smd1_engine_mod);
+    smd1_tests.root_module.addImport("engine", engine_mod);
     const run_smd1_tests = b.addRunArtifact(smd1_tests);
     run_smd1_tests.cwd = b.path(".");
     test_step.dependOn(&run_smd1_tests.step);

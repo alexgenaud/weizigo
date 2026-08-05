@@ -39,6 +39,8 @@ const vb_table = @import("vb_table.zig");
 const vb_fixpoint = @import("vb_fixpoint.zig");
 const vb_graph = @import("vb_graph.zig");
 const vb_health = @import("vb_health.zig");
+const vb_closure = @import("vb_closure.zig");
+const vb_i11 = @import("vb_i11.zig");
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -249,4 +251,95 @@ test "M9-BATTERY-STUBBED killed by BATT-HEALTH (red, then green)" {
     });
     try testing.expectEqual(vb_health.Status.pass, green.status);
     try testing.expectEqual(@as(u32, 0), green.skipped_count);
+}
+
+// ─── M8 — T261 deleted-entry: one side's entry removed → closure catches ───
+//
+// M8 (T261-as-described): a legitimate passes=1 side-entry deleted — a
+// reachable state has one side present and the other absent. The proper
+// killer is the C-A1/C-A2 closure checks (T342, `src/vb_closure.zig`): with
+// an entry deleted, forward closure finds children-not-in-table > 0 and
+// backward closure finds reachable-not-in-table > 0.
+//
+// Inverted from SURVIVED → KILLED on 2026-08-05 (T363). The fixture deletes
+// one entry from a small WZO2 artifact (3×3, `data/oracle-3x3-v2.wzo2`),
+// runs both closure directions, and expects each to go red (missing > 0),
+// then green (missing == 0) when the entry is restored.
+
+test "M8-T261 deleted-entry killed by C-A1/C-A2 closure (red, then green)" {
+    // Read the 3×3 WZO2 artifact (small — the only committed small WZO2).
+    var threaded = std.Io.Threaded.init(testing.allocator, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const file_bytes = try std.Io.Dir.cwd().readFileAlloc(io, "data/oracle-3x3-v2.wzo2", testing.allocator, .unlimited);
+    defer testing.allocator.free(file_bytes);
+
+    // GREEN baseline: clean artifact, both closure directions pass.
+    var reader_clean = try vb_closure.Wzo2Reader.load(testing.allocator, file_bytes);
+    defer reader_clean.deinit();
+    const ca1_clean = try vb_closure.ca1ForwardClosure(&reader_clean, testing.allocator);
+    const ca2_clean = try vb_closure.ca2BackwardClosure(&reader_clean, testing.allocator);
+    std.debug.print("[EXPECTED] M8-T261: clean C-A1 children_not_in_table={d} C-A2 reachable_not_in_table={d}\n", .{ ca1_clean.children_not_in_table, ca2_clean.reachable_not_in_table });
+    try testing.expectEqual(@as(u64, 0), ca1_clean.children_not_in_table);
+    try testing.expectEqual(@as(u64, 0), ca2_clean.reachable_not_in_table);
+
+    // RED: delete one entry (the pass child of root, entry 3 — reachable by
+    // Black passing from root, so both directions must find it missing).
+    var reader_mut = try vb_closure.Wzo2Reader.load(testing.allocator, file_bytes);
+    defer reader_mut.deinit();
+    if (reader_mut.header.n_entries > 3) {
+        reader_mut.entries[3 * 4] = 0; // key_byte := 0 — no longer matches any state
+    }
+    const ca1_mut = try vb_closure.ca1ForwardClosure(&reader_mut, testing.allocator);
+    const ca2_mut = try vb_closure.ca2BackwardClosure(&reader_mut, testing.allocator);
+    std.debug.print("[EXPECTED] M8-T261: RED C-A1 children_not_in_table={d} C-A2 reachable_not_in_table={d}\n", .{ ca1_mut.children_not_in_table, ca2_mut.reachable_not_in_table });
+    try testing.expect(ca1_mut.children_not_in_table > 0);
+    try testing.expectEqual(vb_closure.ClosureStatus.fail, ca1_mut.status);
+    try testing.expect(ca2_mut.reachable_not_in_table > 0);
+    try testing.expectEqual(vb_closure.ClosureStatus.fail, ca2_mut.status);
+}
+
+// ─── M10 — alias-control: R8 replaced by an alias of the kernel → I11 null ─
+//
+// M10 (GRAND-AUDIT §1a): the "independent" side is an alias of the solver —
+// two "implementations" are the same function registered twice, producing
+// perfect agreement vacuously. The I11 null control (spec §4.1) is the
+// killer: run I11 with the battery's move generator replaced by an alias of
+// the solver's (kernel vs SMD1 — both kernel-generated). It must report 0
+// mismatches vacuously, confirming the comparison machinery sees nothing
+// when the two sides are the same function; and the seeded-defect control
+// (spec §4.2, allows-suicide mutant) must report > 0, confirming the
+// machinery is NOT blind. Together they prove the real R8-vs-kernel reading
+// is meaningful.
+//
+// Inverted from SURVIVED → KILLED on 2026-08-05 (T363). The fixture runs the
+// I11 null control on the committed 2×2 SMD1 dump and asserts the vacuous 0,
+// then runs the seeded-defect control and asserts the > 0.
+
+test "M10-ALIAS-CONTROL killed by I11 null control (vacuous 0) + seeded-defect (> 0)" {
+    // Null control: kernel vs SMD1 (both kernel) at 2×2 → 0 mismatches.
+    const path = "/tmp/weizigo/oracle-2x2-exhaustive.smd1";
+    var threaded = std.Io.Threaded.init(testing.allocator, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const bytes = try std.Io.Dir.cwd().readFileAlloc(io, path, testing.allocator, .unlimited);
+    defer testing.allocator.free(bytes);
+    const res = try vb_i11.compareSmd1Null(2, 2, bytes);
+    std.debug.print("[EXPECTED] M10-ALIAS-CONTROL: null mismatches={d}/{d} (vacuous 0 required)\n", .{ res.mismatches, res.total });
+    try testing.expectEqual(@as(u64, 0), res.mismatches);
+    try testing.expectEqual(@as(u64, 114), res.total);
+
+    // Seeded-defect: the same comparison machinery with an allows-suicide
+    // mutant must report > 0 — proving the harness is not blind.
+    const w = 2;
+    const h = 2;
+    const engine_mod = @import("engine");
+    const X = engine_mod.colex.Indexer(w, h);
+    var pos: [4]i8 = [_]i8{ 0, -1, -1, 0 }; // W at 1, W at 2
+    const trigger_colex = X.colex_from_pos(&pos);
+    const E = engine_mod.enumerate.Enumerator(w, h);
+    try testing.expect(E.is_legal(&pos));
+    const res_def = try vb_i11.compareDefective(w, h, trigger_colex, 3);
+    std.debug.print("[EXPECTED] M10-ALIAS-CONTROL: seeded-defect mismatches={d}/{d} (> 0 required)\n", .{ res_def.mismatches, res_def.total });
+    try testing.expect(res_def.mismatches > 0);
 }

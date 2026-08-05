@@ -1465,6 +1465,92 @@ test "T345: KEY-4x4 — producer vs consumer key-agreement exhaustive" {
     try testing.expectEqual(n_entries, entries_checked);
 }
 
+test "T345: KEY-4x3 — producer vs consumer key-agreement over the WZO1 4×3 oracle (rung 4, spec Rev 5)" {
+    // Spec Rev 5 made 4×3 ladder rung 4: no 4×4 reading counts until the
+    // check passed at 4×3. T345 took its 4×4 reading before the rung existed;
+    // this run closes the retroactive rung against the committed WZO1 golden
+    // oracle artifacts/oracle-4x3.wzo (SHA-256 5316f428… in SHA256SUMS).
+    //
+    // The WZO1 artifact stores one value per (colex, side) at the ko=NONE,
+    // passes=0 slice — no ko/passes dimension. Key-agreement at 4×3 therefore
+    // compares producer (kernel rules.stateKey) vs consumer (R8
+    // vb_movegen.stateKey) for every (colex, side) with a stored (non-UNDEF)
+    // value: 321,689 legal positions × 2 sides = 643,378 states.
+    const gpa = std.heap.page_allocator;
+    const path = "artifacts/oracle-4x3.wzo";
+
+    const cwd = std.Io.Dir.cwd();
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const bytes = cwd.readFileAlloc(io, path, gpa, .unlimited) catch |err| {
+        std.debug.print("T345 KEY-4x3 SKIP: cannot read {s}: {}\n", .{ path, err });
+        return;
+    };
+    defer gpa.free(bytes);
+
+    if (bytes.len < 32) return error.Truncated;
+    if (!std.mem.eql(u8, bytes[0..4], "WZO1")) return error.BadMagic;
+    const total = std.mem.readInt(u64, bytes[12..20], .little);
+    if (total != 531441) return error.BadTotal; // 3^12 for 4×3
+    if (bytes[6] != 4 or bytes[7] != 3) return error.BadDimensions;
+
+    const payload: usize = 32;
+    const t: usize = @intCast(total);
+    const vb = bytes[payload .. payload + t];
+    const vw = bytes[payload + t .. payload + 2 * t];
+
+    const C = colex.Indexer(4, 3);
+    const ko_none: u8 = 12;
+    const n_expected: u64 = 643378;
+
+    var mismatches: u64 = 0;
+    var checked: u64 = 0;
+
+    // Scan the raw colex space; a stored (non-UNDEF) value marks a legal state.
+    for (0..t) |ci| {
+        const colex_val: u64 = @intCast(ci);
+        const pos = C.pos_from_colex(colex_val);
+        var side_list = [_]i8{ 1, -1 };
+        for (&side_list) |side| {
+            const stored = if (side == 1) vb[ci] else vw[ci];
+            if (@as(i8, @bitCast(stored)) == -128) continue; // UNDEF — illegal position
+            checked += 1;
+
+            // Producer (kernel, T273) at the ko=NONE, passes=0 slice.
+            const pk = rules_mod.stateKey(colex_val, side, ko_none, 0);
+
+            // Consumer (R8, T340).
+            const vb_state = vb_mg.State(4, 3){
+                .pos = pos,
+                .side = side,
+                .ko = ko_none,
+                .passes = 0,
+            };
+            const ck = vb_mg.stateKey(4, 3, vb_state);
+
+            if (pk.colex_idx != ck.colex_idx or
+                pk.side != ck.side or
+                pk.ko != ck.ko or
+                pk.passes != ck.passes or
+                pk.terminal != ck.terminal)
+            {
+                mismatches += 1;
+                if (mismatches <= 5) {
+                    std.debug.print(
+                        "T345 KEY-4x3 MISMATCH #{d}: colex={d} side={d}  producer=(colex={d},side={d},ko={d},passes={d},term={})  consumer=(colex={d},side={d},ko={d},passes={d},term={})\n",
+                        .{ mismatches, colex_val, side, pk.colex_idx, pk.side, pk.ko, pk.passes, pk.terminal, ck.colex_idx, ck.side, ck.ko, ck.passes, ck.terminal },
+                    );
+                }
+            }
+        }
+    }
+
+    std.debug.print("\nT345 KEY-4x3 RESULT: {d} mismatches / {d} states checked (expected {d})\n", .{ mismatches, checked, n_expected });
+    try testing.expectEqual(@as(u64, 0), mismatches);
+    try testing.expectEqual(n_expected, checked);
+}
+
 test "T345: KEY-4x4 calibration — flipped bit in producer colex caught" {
     // Calibration: run the comparison on a tiny subset but with a
     // deliberately corrupted key — one bit flipped in the producer
