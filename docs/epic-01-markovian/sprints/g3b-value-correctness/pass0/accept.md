@@ -182,3 +182,75 @@ the brief says do not raise it). claimlint is at floor (C1a=10, C1b=0, C2=14, C6
 
 **G3b stays open until the sprint owner rules on discharge (spec §1.1 promotions: `4x4.C1` →
 CLAIMED, `GLOBAL.H4` text update, `4x4.FP1` → CLAIMED) and on the §3.1 vacuity finding.**
+
+---
+
+## Orchestrator ruling — G3b is DISCHARGED (Opus 5, seat, 2026-08-05)
+
+Spec §1.1 reserves this verdict for the sprint owner; the worker does not self-discharge. I rule
+on T363's closure of the four gaps, having **re-run the load-bearing check myself** rather than
+read the report.
+
+**Independent verification, second seat, at HEAD:**
+
+```
+zig test -O ReleaseFast --dep engine -Mroot=src/vb_closure.zig -Mengine=src/smd1_engine.zig \
+  --test-filter "4x4 full closure"        (WEIZIGO_CLOSURE_4X4_FULL=1, under tools/runner)
+
+C-A1 4x4 FULL: entries_scanned=99133036 non_term_children=600763414
+               children_not_in_table=0 passes2=48505262 avg_bf=6.0602 status=pass
+C-A2 4x4 FULL: reachable_non_terminal=99020312 reachable_terminal=48448900
+               reachable_not_in_table=0 sweeps=32 status=pass
+exit 0 in 239.5 s, peak RSS 1124 MB
+```
+
+Reproduces T363's figures exactly, including wall time and peak RSS.
+
+**The six conditions, each with its denominator (STATE rule 2):**
+
+| condition | reading | scale |
+|---|---|---|
+| I4 — Bellman violations, KO_SENSITIVE-clear | **0 / 95,677,624** (4×4) · **0 / 463,024** (4×3) | exhaustive |
+| C-A1 — children not in table | **0 / 600,763,414** over all 99,133,036 entries | exhaustive |
+| C-A2 — reachable not in table | **0 / 99,020,312**, 32 sweeps | exhaustive |
+| Key agreement | **0 / 99,133,036** (4×4) · **0 / 643,378** (4×3) | exhaustive |
+| I5 — KO_SENSITIVE ⊆ cycle-reachable | **0 / 3,455,412** (4×4) · **0 / 170,181** (4×3) | exhaustive |
+| I11 — move-set consistency | **0 / 50,000** at 4×4; 0 at every lower rung (114 / 978 / 25,350 / 643,378) | **sampled at 4×4** |
+| Mutation adequacy (Amendment 2 gate) | 7 / 7 mutants asserted killed, M8 + M10 wired red-then-green | — |
+
+**Ruling: G3b is discharged.** Promotions per spec §1.1 are authorised — `4x4.C1` UNTESTED →
+CLAIMED, `4x4.FP1` UNTESTED → CLAIMED, `GLOBAL.H4` claim text updated to drop "partial" with no
+status change. CLAIMED is the ceiling pending Phase 3; nothing here is promoted to PROVEN, and the
+Amendment 2 mutation gate is satisfied by the 7/7 kills.
+
+**Four scope limits ride with the discharge and must be quoted wherever it is cited:**
+
+1. **I11 at 4×4 is a 50,000-state sample of 99,133,036 — 0.05%.** It is the one condition not
+   exhaustive at the headline goban. It sits beside five exhaustive readings and must never be
+   summarised as if it were one of them.
+2. **The 4×3 I4 rung excludes 170,276 KO_SENSITIVE slots** (0 / 463,024 examined of 633,300). That
+   is a WZO1 format boundary, not a scoped-away inconvenience: the WZO2 bracket instrument cannot
+   run on a WZO1 file.
+3. **The KO_SENSITIVE column itself remains distrusted** pending Track A. The checks pass *around*
+   it, not *on* it.
+4. **Fresh-start scores under R only.** Not a real-game oracle, not history-independent (C2 is
+   FALSE-AS-SCOPED at 3×2, T13), not PSK, not cross-size.
+
+**On the §3.1 vacuity finding — accepted, and it strengthens the result.** T363 found that spec
+§7.2's premise is false in the full (colex, side, ko, passes) graph: at 3×2 every passes=0
+ko=NONE slot is cycle-reachable, and at 4×3 the non-CR slots are all already KO_SENSITIVE, so the
+first genuinely non-vacuous I5 rung is **4×4**, not 3×2. This means the lower-rung I5 passes were
+vacuous — they could not have failed, and by this project's standing rule they were never evidence.
+The reading that counts is the 4×4 one, and it is licensed precisely because the seeded-defect
+control was demonstrated red-then-green at that rung (baseline 0 → spurious L≠H → 1 → restore → 0).
+A row that reports its own ladder as vacuous, while holding the one rung that is not, is the
+behaviour this sprint was designed to produce. The spec's §7.2 premise is **corrected, not waived**.
+
+**Not discharged by this ruling:** the #2 auditor gate, Track A, and every claim outside spec
+§1.1's three rows. G3b is one lemma of Phase 3, not Phase 3.
+
+**Milestone:** advances `M2 (proven 4×4 values)` — four of the table's correctness properties now
+hold at full scale with denominators, where two did this morning, and the closure result is
+reproducible by anyone in four minutes with the command above. What still stands between here and
+M2: I11 exhaustive at 4×4 rather than sampled, the KO_SENSITIVE column's own trust (Track A), and
+the #2 auditor.

@@ -1,0 +1,8 @@
+{
+  "task_id": "T348",
+  "date": "2026-08-05",
+  "model": "claude-opus-5",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context for T348's closure. The row was never dispatched to a worker: its deliverable (pass0/accept.md) and all six acceptance conditions were completed by T363, and the only thing outstanding was the verdict, which spec 1.1 reserves for the sprint owner. The Orchestrator seat therefore claimed and closed it, with the ruling signed in accept.md's final section. Acceptance skipped: acceptance= is 'zig build test', red only for the documented pre-existing qa023_brute_2x2 explosive smoke tests (T360 fail-fast on the 20M-node budget; do not raise it). Suite improved 43/48 steps and 681/685 tests at HEAD to 46/48 and 691/695 with T363's changes; T369 owns the aggregate suite-truth enumeration. claimlint at floor: C1a=10 C1b=0 C2=14 C6=0 C9=0, calibration PASS. claims:[] and new_rows:[] are deliberate \u2014 the register promotions this ruling authorises are executed and cited by T377, so recording them here as well would double-count them in the absorber. Instrument note found while verifying: since T363's rewiring, the bare 'zig test src/<f>.zig --test-filter' form prescribed by STATE rule 7 no longer compiles vb_i11, vb_closure, vb_mutants or smd1 \u2014 they need '--dep engine -Mengine=src/smd1_engine.zig'. STATE rule 7 has been corrected."
+}
