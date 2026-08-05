@@ -1,0 +1,18 @@
+# t372 probe — C1/C2 with contrast-rich histories (3x3, kernel corrected)
+# params: seed=45341306 n-states=64 k-short=4 k-detour=4 max-depth=32 budget=20000000 eval=ab stratum=sparse
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# buckets (non-terminal reachable, BFS-reachable): L==H=9588 pin_T=128 pin_L=384 pin_H=384
+# === probe reading ===
+# states sampled: 64
+# states with >=1 valid arrival: 30
+# states with >=1 within-budget value: 1
+# histories: total 144 (short 92, detour 52); ARRIVAL-BAD 0; sigma-in-arrival 0 (must be 0)
+# evaluations: total 144; within-budget 4 (TIE-valued 0); exhausted 140 (97.2%)
+# nodes spent: 2800000008
+# C1: states eligible (>=2 within-budget values): 1; states FAILING (values disagree): 0
+# C1 pair-level: 6 within-budget history pairs, 0 disagreeing
+# C2: states eligible (>=1 within-budget value): 1; states FAILING (all agree but != median): 0
+# fresh-start cut (shortest arrivals only): 0/0 values == median(L,TIE,H)
+# short-vs-long C1 witness states: 0
+# [F] verdict (Z-R-TIE): NOT FOUND at this contrast level — 1 eligible states, 6 pairs, zero disagreements
+# fresh-start reading: NOT FULLY CONSISTENT — see cut above (with denominators)

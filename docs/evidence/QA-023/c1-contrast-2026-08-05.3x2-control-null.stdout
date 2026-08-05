@@ -1,0 +1,4 @@
+# t372 control-null — same (state, history) evaluated twice must agree (3x2)
+# params: seed=45341306 n-states=100 k=4 budget=5000000 eval=ab
+# null control: 100 (state, history) pairs evaluated twice; mismatches 0; replay mismatches 0
+# null verdict: PASS — harness is deterministic (a mismatch here would break the theory test, not the theory)

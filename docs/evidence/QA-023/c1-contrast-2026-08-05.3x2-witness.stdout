@@ -1,0 +1,6 @@
+# t372 witness — (178,0,6,0) [B W B . W .] Black to move, ko=none, passes=0
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# sigma reachable=true  corrected L=-6 H=-6 median=-6 (handcheck: L==H==-6)
+# arrival A: len=22 moves, valid=0 (0=valid), ends-at-sigma=true, sigma-in-arrival=false, ab=-3 (22 nodes), plain=null (20000000 nodes), expected=-3  PASS
+# arrival B: len=24 moves, valid=0 (0=valid), ends-at-sigma=true, sigma-in-arrival=false, ab=-6 (33 nodes), plain=null (20000000 nodes), expected=-6  PASS
+# witness verdict: REPRODUCED — evaluator and rules validated against the hand-verified witness

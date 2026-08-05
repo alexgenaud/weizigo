@@ -1,0 +1,7 @@
+1/6 t372_zrtie.test.t372-rules-basic...OK
+2/6 t372_zrtie.test.t372-witness...OK
+3/6 t372_zrtie.test.t372-fixpoint-anchors...OK
+4/6 t372_zrtie.test.t372-null-control...OK
+5/6 t372_zrtie.test.t372-seeded-control...OK
+6/6 t372_zrtie.test.t372-contrast...OK
+All 6 tests passed.

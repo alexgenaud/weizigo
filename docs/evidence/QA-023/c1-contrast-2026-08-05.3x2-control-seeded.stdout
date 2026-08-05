@@ -1,0 +1,55 @@
+# t372 control-seeded — injected history dependence must be caught (3x2)
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# --- seeded mode: len_gt_dist (value consults whether the arrival is longer than the shortest) ---
+# t372 probe — C1/C2 with contrast-rich histories (3x2, kernel SEEDED-PERTURBED)
+# params: seed=45341306 n-states=96 k-short=4 k-detour=4 max-depth=24 budget=5000000 eval=ab stratum=all
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# buckets (non-terminal reachable, BFS-reachable): L==H=1366 pin_T=296 pin_L=34 pin_H=34
+# SEEDED-DBG: (67,0,6,1) board[BBBW..] dist=6 evals=[6@0S,6@0S,6@0S,6@0S,7@0L,7@0L,7@0L,7@0L]
+# SEEDED-DBG: (316,0,6,1) board[B.WW.B] dist=6 evals=[6@0S,6@0S]
+# SEEDED-DBG: (180,1,6,1) board[..W.W.] dist=5 evals=[-6@1S,-6@1S,-6@1S,-6@1S,-5@1L,-5@1L,-5@1L,-5@1L]
+# SEEDED-DBG: (386,1,6,1) board[WW.WBB] dist=7 evals=[0@1L,0@1L,0@1L,0@1L]
+# SEEDED-DBG: (386,1,6,1) board[WW.WBB] dist=7 evals=[-1@1S,-1@1S,-1@1S,-1@1S,0@1L,0@1L,0@1L,0@1L]
+# SEEDED-DBG: (170,1,6,1) board[WW..W.] dist=7 evals=[-6@1S,-6@1S,-6@1S,-6@1S,-5@1L,-5@1L,-5@1L,-5@1L]
+# SEEDED-DBG: (670,0,6,1) board[BBW.WW] dist=8 evals=[1@0L,1@0L,1@0L,1@0L]
+# SEEDED-DBG: (283,0,6,1) board[BBBB.B] dist=10 evals=[6@0S,6@0S,6@0S,6@0S,7@0L,7@0L,7@0L,7@0L]
+# === probe reading ===
+# states sampled: 97
+# states with >=1 valid arrival: 97
+# states with >=1 within-budget value: 15
+# histories: total 676 (short 336, detour 340); ARRIVAL-BAD 0; sigma-in-arrival 0 (must be 0)
+# evaluations: total 676; within-budget 93 (TIE-valued 4); exhausted 583 (86.2%)
+# nodes spent: 2915026061
+# C1: states eligible (>=2 within-budget values): 14; states FAILING (values disagree): 10
+# C1 pair-level: 286 within-budget history pairs, 152 disagreeing
+# C2: states eligible (>=1 within-budget value): 15; states FAILING (all agree but != median): 3
+# fresh-start cut (shortest arrivals only): 41/41 values == median(L,TIE,H)
+# short-vs-long C1 witness states: 10
+# SEEDED CONTROL verdict: injected history dependence DETECTED by the probe (152 disagreeing pairs, 10 C1-fail states)
+# --- seeded mode: pass-member (value consults pass-membership of the arrival) ---
+# t372 probe — C1/C2 with contrast-rich histories (3x2, kernel SEEDED-PERTURBED)
+# params: seed=45341306 n-states=96 k-short=4 k-detour=4 max-depth=24 budget=5000000 eval=ab stratum=all
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# buckets (non-terminal reachable, BFS-reachable): L==H=1366 pin_T=296 pin_L=34 pin_H=34
+# SEEDED-DBG: (67,0,6,1) board[BBBW..] dist=6 evals=[7@0S,7@0S,7@0S,7@0S,7@0L,7@0L,7@0L,7@0L]
+# SEEDED-DBG: (316,0,6,1) board[B.WW.B] dist=6 evals=[7@0S,7@0S]
+# SEEDED-DBG: (180,1,6,1) board[..W.W.] dist=5 evals=[-5@1S,-5@1S,-5@1S,-5@1S,-5@1L,-5@1L,-5@1L,-5@1L]
+# SEEDED-DBG: (386,1,6,1) board[WW.WBB] dist=7 evals=[0@1L,0@1L,0@1L,0@1L]
+# SEEDED-DBG: (386,1,6,1) board[WW.WBB] dist=7 evals=[0@1S,0@1S,0@1S,0@1S,0@1L,0@1L,0@1L,0@1L]
+# SEEDED-DBG: (170,1,6,1) board[WW..W.] dist=7 evals=[-5@1S,-5@1S,-5@1S,-5@1S,-5@1L,-5@1L,-5@1L,-5@1L]
+# SEEDED-DBG: (670,0,6,1) board[BBW.WW] dist=8 evals=[1@0L,1@0L,1@0L,1@0L]
+# SEEDED-DBG: (283,0,6,1) board[BBBB.B] dist=10 evals=[7@0S,7@0S,7@0S,7@0S,7@0L,7@0L,7@0L,7@0L]
+# === probe reading ===
+# states sampled: 97
+# states with >=1 valid arrival: 97
+# states with >=1 within-budget value: 15
+# histories: total 676 (short 336, detour 340); ARRIVAL-BAD 0; sigma-in-arrival 0 (must be 0)
+# evaluations: total 676; within-budget 93 (TIE-valued 4); exhausted 583 (86.2%)
+# nodes spent: 2915026061
+# C1: states eligible (>=2 within-budget values): 14; states FAILING (values disagree): 1
+# C1 pair-level: 286 within-budget history pairs, 8 disagreeing
+# C2: states eligible (>=1 within-budget value): 15; states FAILING (all agree but != median): 14
+# fresh-start cut (shortest arrivals only): 2/41 values == median(L,TIE,H)
+# short-vs-long C1 witness states: 1
+# SEEDED CONTROL verdict: injected history dependence DETECTED by the probe (8 disagreeing pairs, 1 C1-fail states)
+# seeded verdict: PASS — the probe discriminates injected history dependence — len_gt_dist detected 152 disagreeing pairs, pass-member detected 8

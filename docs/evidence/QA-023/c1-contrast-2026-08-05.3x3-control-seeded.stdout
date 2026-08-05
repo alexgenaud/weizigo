@@ -1,0 +1,51 @@
+# t372 control-seeded — injected history dependence must be caught (3x3)
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# --- seeded mode: len_gt_dist (value consults whether the arrival is longer than the shortest) ---
+# t372 probe — C1/C2 with contrast-rich histories (3x3, kernel SEEDED-PERTURBED)
+# params: seed=45341306 n-states=128 k-short=4 k-detour=4 max-depth=32 budget=5000000 eval=ab stratum=all
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# buckets (non-terminal reachable, BFS-reachable): L==H=44018 pin_T=1248 pin_L=2080 pin_H=2080
+# SEEDED-DBG: (6681,0,9,1) board[.BBBB...B] dist=10 evals=[9@0S,9@0S,9@0S,9@0S]
+# SEEDED-DBG: (2226,0,9,1) board[.BBB...B.] dist=8 evals=[9@0S,9@0S,9@0S,9@0S]
+# SEEDED-DBG: (5023,1,9,1) board[B...WW.W.] dist=7 evals=[-9@1S,-9@1S,-9@1S,-9@1S]
+# SEEDED-DBG: (2511,0,9,1) board[....BB.B.] dist=6 evals=[9@0S,9@0S,9@0S,9@0S]
+# SEEDED-DBG: (2299,0,9,1) board[BB.BB..B.] dist=10 evals=[9@0S,9@0S,9@0S,9@0S,10@0L,10@0L,10@0L,10@0L]
+# SEEDED-DBG: (2522,0,9,1) board[W.B.BB.B.] dist=8 evals=[9@0S,9@0S,9@0S,9@0S,10@0L,10@0L,10@0L,10@0L]
+# === probe reading ===
+# states sampled: 128
+# states with >=1 valid arrival: 102
+# states with >=1 within-budget value: 6
+# histories: total 478 (short 381, detour 97); ARRIVAL-BAD 0; sigma-in-arrival 0 (must be 0)
+# evaluations: total 478; within-budget 32 (TIE-valued 0); exhausted 446 (93.3%)
+# nodes spent: 2230026824
+# C1: states eligible (>=2 within-budget values): 6; states FAILING (values disagree): 2
+# C1 pair-level: 80 within-budget history pairs, 32 disagreeing
+# C2: states eligible (>=1 within-budget value): 6; states FAILING (all agree but != median): 0
+# fresh-start cut (shortest arrivals only): 24/24 values == median(L,TIE,H)
+# short-vs-long C1 witness states: 2
+# SEEDED CONTROL verdict: injected history dependence DETECTED by the probe (32 disagreeing pairs, 2 C1-fail states)
+# --- seeded mode: pass-member (value consults pass-membership of the arrival) ---
+# t372 probe — C1/C2 with contrast-rich histories (3x3, kernel SEEDED-PERTURBED)
+# params: seed=45341306 n-states=128 k-short=4 k-detour=4 max-depth=32 budget=5000000 eval=ab stratum=all
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# buckets (non-terminal reachable, BFS-reachable): L==H=44018 pin_T=1248 pin_L=2080 pin_H=2080
+# SEEDED-DBG: (6681,0,9,1) board[.BBBB...B] dist=10 evals=[10@0S,10@0S,10@0S,10@0S]
+# SEEDED-DBG: (2226,0,9,1) board[.BBB...B.] dist=8 evals=[10@0S,10@0S,10@0S,10@0S]
+# SEEDED-DBG: (5023,1,9,1) board[B...WW.W.] dist=7 evals=[-8@1S,-8@1S,-8@1S,-8@1S]
+# SEEDED-DBG: (2511,0,9,1) board[....BB.B.] dist=6 evals=[10@0S,10@0S,10@0S,10@0S]
+# SEEDED-DBG: (2299,0,9,1) board[BB.BB..B.] dist=10 evals=[10@0S,10@0S,10@0S,10@0S,10@0L,10@0L,10@0L,10@0L]
+# SEEDED-DBG: (2522,0,9,1) board[W.B.BB.B.] dist=8 evals=[10@0S,10@0S,10@0S,10@0S,10@0L,10@0L,10@0L,10@0L]
+# === probe reading ===
+# states sampled: 128
+# states with >=1 valid arrival: 102
+# states with >=1 within-budget value: 6
+# histories: total 478 (short 381, detour 97); ARRIVAL-BAD 0; sigma-in-arrival 0 (must be 0)
+# evaluations: total 478; within-budget 32 (TIE-valued 0); exhausted 446 (93.3%)
+# nodes spent: 2230026824
+# C1: states eligible (>=2 within-budget values): 6; states FAILING (values disagree): 0
+# C1 pair-level: 80 within-budget history pairs, 0 disagreeing
+# C2: states eligible (>=1 within-budget value): 6; states FAILING (all agree but != median): 6
+# fresh-start cut (shortest arrivals only): 0/24 values == median(L,TIE,H)
+# short-vs-long C1 witness states: 0
+# SEEDED CONTROL verdict: injected history dependence NOT DETECTED by the probe (0 disagreeing pairs, 0 C1-fail states)
+# seeded verdict: PASS — the probe discriminates injected history dependence — len_gt_dist detected 32 disagreeing pairs, pass-member detected 0

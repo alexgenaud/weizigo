@@ -1,0 +1,15 @@
+# t372 census — 3x2 corrected kernel (single true root)
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# reachable V = 2583  (non-terminal 1730, terminal 853)
+# anchor: F1-CENSUS-GAP new+1 (independent Python) = 2,583
+# fixpoint: 10 sweeps (monotone Gauss-Seidel, L up from -n, H down from +n)
+# Bellman residual: L=0 H=0 (must be 0 = exact fixpoints)
+# colour-inversion: violations 0 (both-reachable, must be 0); mirror-unreachable 3 (single-root boundary)
+# pin census (non-terminal): L==H=1366 L<H&pin_T=296 L<H&pin_L=34 L<H&pin_H=34 (sum 1730)
+# anchor state (178,0,6,0): reachable=true L=-6 H=-6 median=-6 (pinrule: L=-6 H=-6)
+# anchor state (511,1,6,1): reachable=true L=-6 H=-6 median=-6 (pinrule: L=-6 H=-6)
+# anchor state (146,0,6,0): reachable=true L=6 H=6 median=6 (pinrule: L=6 H=6)
+# anchor state (93,1,6,0): reachable=true L=6 H=6 median=6 (pinrule: L=6 H=6)
+# anchor state (146,1,6,0): reachable=true L=6 H=6 median=6 (pinrule: L=6 H=6)
+# anchor state (146,0,6,1): reachable=true L=6 H=6 median=6 (pinrule: L=6 H=6)
+# anchor state (380,0,6,1): reachable=true L=6 H=6 median=6 (pinrule: L=6 H=6)

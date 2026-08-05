@@ -1,0 +1,7 @@
+# t372 census — 3x3 corrected kernel (single true root)
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# reachable V = 73755  (non-terminal 49426, terminal 24329)
+# fixpoint: 16 sweeps (monotone Gauss-Seidel, L up from -n, H down from +n)
+# Bellman residual: L=0 H=0 (must be 0 = exact fixpoints)
+# colour-inversion: violations 0 (both-reachable, must be 0); mirror-unreachable 3 (single-root boundary)
+# pin census (non-terminal): L==H=44018 L<H&pin_T=1248 L<H&pin_L=2080 L<H&pin_H=2080 (sum 49426)

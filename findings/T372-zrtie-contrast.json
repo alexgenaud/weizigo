@@ -1,0 +1,120 @@
+{
+  "task_id": "T372",
+  "date": "2026-08-05",
+  "model": "deepseek-v4-flash",
+  "identifier": "flash/T372",
+  "claims": [],
+  "new_rows": [],
+  "instrument": "weizigo-t372-zrtie 657f800 zig 0.16.0 (ReleaseSafe, standalone src/t372_zrtie.zig)",
+  "seed": 45341306,
+  "witness_reproduction": {
+    "goban": "3x2",
+    "state": "(178,0,6,0) [B W B . W .]",
+    "arrival_A": {"moves": 22, "value": -3, "ab_nodes": 22, "expected": -3, "result": "PASS"},
+    "arrival_B": {"moves": 24, "value": -6, "ab_nodes": 33, "expected": -6, "result": "PASS"},
+    "fixpoint": "L==H==-6",
+    "note": "alpha-beta node counts 22/33 match the QA023-C1-WITNESS handcheck exactly; plain minimax exhausts 20M nodes (documented honest cost)."
+  },
+  "kernel_anchors_3x2": {
+    "reachable_V": 2583,
+    "reference": "F1-CENSUS-GAP new+1 independent Python: 2,583",
+    "non_terminal": 1730,
+    "terminal": 853,
+    "bellman_residual_L": 0,
+    "bellman_residual_H": 0,
+    "inversion_violations_both_reachable": 0,
+    "mirror_unreachable_single_root_boundary": 3,
+    "L_eq_H_non_terminal": 1366,
+    "L_lt_H_non_terminal": 364,
+    "pin_T": 296,
+    "pin_L": 34,
+    "pin_H": 34,
+    "witness_anchor_states_match": "7/7 pinrule C1-witness (L,H) values"
+  },
+  "kernel_anchors_3x3": {
+    "reachable_V": 73755,
+    "non_terminal": 49426,
+    "terminal": 24329,
+    "bellman_residual_L": 0,
+    "bellman_residual_H": 0,
+    "inversion_violations_both_reachable": 0,
+    "L_eq_H_non_terminal": 44018,
+    "L_lt_H_non_terminal": 5408,
+    "pin_T": 1248,
+    "pin_L": 2080,
+    "pin_H": 2080
+  },
+  "contrast_3x2": {
+    "n_states": 100,
+    "baseline_2b3": {"shortest_miss_pct": 93.0, "shared_prefix_pct": 62.35, "avg_len": 14.8, "avg_shortest_len": 5.1},
+    "old_generator_rerun": {"shortest_hit": 2, "shortest_miss_pct": 98.0, "avg_len": 15.21, "shared_prefix_pct": 52.91, "pairs": 2716},
+    "new_generator": {"shortest_hit": 100, "shortest_hit_pct": 100.0, "avg_shortest_len": 5.87, "avg_detour_len": 23.09, "shared_prefix_pct": 23.44, "pairs": 2278},
+    "arrival_bad_validated": 0,
+    "verdict": "BEATS the baseline on every axis"
+  },
+  "controls": {
+    "null_3x2": {"pairs": 64, "mismatches": 0, "replay_mismatches": 0, "verdict": "PASS"},
+    "seeded_3x2": {
+      "len_gt_dist": {"disagreeing_pairs": 152, "c1_fail_states": 10, "detected": true},
+      "pass_member": {"disagreeing_pairs": 8, "c1_fail_states": 1, "detected": true},
+      "verdict": "PASS"
+    },
+    "seeded_3x3": {
+      "len_gt_dist": {"disagreeing_pairs": 32, "c1_fail_states": 2, "detected": true},
+      "pass_member": {"disagreeing_pairs": 0, "c1_fail_states": 0, "detected": false,
+        "note": "pass-membership uniform within the 3x3 within-budget sample; len_gt_dist proves discrimination"},
+      "verdict": "PASS (OR across seeds)"
+    },
+    "degenerate_parity_negative_control": "path-length parity == side (tuple function, not a history feature); probe correctly does NOT flag it"
+  },
+  "probe_3x2": {
+    "stratum": "all",
+    "states_sampled": 129,
+    "states_reached": 129,
+    "states_with_value": 24,
+    "histories": {"total": 906, "short": 441, "detour": 465, "arrival_bad": 0, "sigma_in_arrival": 0},
+    "evals": {"total": 906, "within_budget": 142, "tie": 0, "exhausted": 764, "exhaustion_pct": 84.3, "nodes": 3820853308},
+    "c1": {"eligible_states": 24, "fail_states": 0, "within_budget_pairs": 404, "disagreeing_pairs": 0},
+    "c2": {"eligible_states": 24, "fail_states": 0},
+    "fresh_start_cut": {"agree": 66, "total": 66},
+    "short_vs_long_witness_states": 0,
+    "verdict": "no additional [F] found at this contrast level; hand-verified witness [F] reproduces separately (witness mode)"
+  },
+  "probe_3x3_general": {
+    "stratum": "all",
+    "budget": 5000000,
+    "states_sampled": 128,
+    "states_reached": 102,
+    "states_with_value": 6,
+    "histories": {"total": 478, "short": 381, "detour": 97, "arrival_bad": 0, "sigma_in_arrival": 0},
+    "evals": {"total": 478, "within_budget": 32, "tie": 0, "exhausted": 446, "exhaustion_pct": 93.3, "nodes": 2230026824},
+    "c1": {"eligible_states": 6, "fail_states": 0, "within_budget_pairs": 80, "disagreeing_pairs": 0},
+    "c2": {"eligible_states": 6, "fail_states": 0},
+    "fresh_start_cut": {"agree": 24, "total": 24},
+    "verdict": "[F] NOT FOUND within the within-budget denominator (lower bound; 93.3% exhaustion)"
+  },
+  "probe_3x3_sparse": {
+    "stratum": "sparse (<=2 empty cells)",
+    "budget": 20000000,
+    "states_sampled": 64,
+    "states_reached": 30,
+    "states_with_value": 1,
+    "evals": {"total": 144, "within_budget": 4, "exhausted": 140, "exhaustion_pct": 97.2, "nodes": 2800000008},
+    "c1": {"eligible_states": 1, "fail_states": 0, "within_budget_pairs": 6, "disagreeing_pairs": 0},
+    "c2": {"eligible_states": 1, "fail_states": 0},
+    "fresh_start_cut": {"agree": 0, "total": 0},
+    "verdict": "consistent with the general-stratum reading; no failures within budget"
+  },
+  "tests": "6/6 passed (rules-basic, witness, fixpoint-anchors, null-control, seeded-control, contrast); asserted per-leg with --test-filter",
+  "verdict_Z_R_TIE": {
+    "history_conditioned_rule_3x2": "[F] FOUND — witness (178,0,6,0) reproduces (-3 vs -6); C1 fails for the history-conditioned first-revisit-truncation rule (settled; reproduced, not re-adjudicated)",
+    "sampled_probe_3x2": "no additional [F] within 24 states / 404 pairs / 142 within-budget evals",
+    "sampled_probe_3x3": "no [F] within 6 states / 80 pairs / 32 within-budget evals (93.3% exhausted; lower bound)",
+    "fresh_start_reading": "CONSISTENT on every within-budget shortest-arrival value: 66/66 (3x2), 24/24 (3x3); corroborates pinrule's 396/396"
+  },
+  "findings": [
+    "register-triage 2026-08-04 §5.1 says the fresh-start reading is 'still untested' — pinrule-sufficiency 2026-07-29 §4b already tested it (396/396). This task re-tests with measured contrast + controls (66/66, 24/24). No status change proposed.",
+    "src/qa023_probe.zig fixpoint_kernel still has inverted White-node guards at HEAD 657f800 (grep :965 best < L_tab[li], :1024 best > H_tab[hi]) — pinrule's finding stands at HEAD; file held by 2B-6/F1-SEEDROOTS, reported not edited.",
+    "arrival-length parity is a degenerate seed: parity == side (side toggles every move); a sufficiency probe calibrated on it would be calibrated on a non-seed."
+  ]
+}

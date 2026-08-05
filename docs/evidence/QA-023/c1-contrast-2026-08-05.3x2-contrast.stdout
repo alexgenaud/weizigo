@@ -1,0 +1,9 @@
+# t372 contrast — generator contrast vs the 93% / 62% baseline (3x2)
+# params: seed=45341306 n-states=100 k-short=4 k-detour=4 max-depth=24 (old generator: depth 16, k 8)
+# instrument: weizigo-t372-zrtie 657f800 zig 0.16.0
+# === contrast measurement (N = 100 states) ===
+# baseline (2B-3-AUDIT, old DFS generator): shortest miss 93%, shared prefix 62.35%, avg len 14.8 vs shortest 5.1
+# OLD generator (depth 16, k 8): shortest-hit 2/100 (98.0% miss 2.0%), avg arrival len 15.21, shared prefix 52.91% (2716 pairs)
+# NEW generator: shortest-hit 100/100 (100.0%), avg shortest len 5.87, avg detour len 23.09, shared prefix 23.44% (2278 pairs)
+# ARRIVAL-BAD (validated subset): 0 (must be 0)
+# verdict: new generator BEATS the baseline (hit rate 100.0% vs 7%, shared prefix 23.44% vs 62.35%)
