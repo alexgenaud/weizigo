@@ -333,6 +333,10 @@ pub fn main(init: std.process.Init) !void {
         try scc3(gpa);
         return;
     }
+    if (std.mem.eql(u8, mode, "43")) {
+        try census43(gpa);
+        return;
+    }
 
     // ── main census over the 4×4 WZO2 table ──
     var wzo = try Wzo2.open(gpa, "data/oracle-4x4-v2.wzo2");
@@ -706,4 +710,114 @@ fn scc3(gpa: std.mem.Allocator) !void {
     std.debug.print("SCC3: L<H entries in non-trivial SCCs={d}; L<H entries NOT in non-trivial SCCs={d}; entries in non-trivial SCCs={d}\n", .{
         lh_set_in_nontriv, lh_set_not_in_nontriv, in_nontriv_set,
     });
+}
+
+
+/// D042-3 — 4×3 test board (operator's suggestion): enumerate every legal
+/// 4×3 position, count independent ko clusters (production shape rule), and
+/// report the max (is double/triple ko constructible on 12 points?), with the
+/// legal-position denominator.
+fn census43(gpa: std.mem.Allocator) !void {
+    _ = gpa;
+    const R43 = rules.Rules(4, 3);
+    const X43 = colexmod.Indexer(4, 3);
+    const E43 = @import("enumerate.zig").Enumerator(4, 3);
+    const N43 = 12;
+    var dist = Dist{};
+    var legal43: u64 = 0;
+    var with_ko: u64 = 0;
+    var ko_carrying_class = [_]u64{0} ** 4;
+    for (0..X43.total) |i| {
+        const pos: [12]i8 = X43.pos_from_colex(i);
+        if (!E43.is_legal(&pos)) continue;
+        legal43 += 1;
+        const cl = countClusters43(&pos);
+        if (cl > 0) with_ko += 1;
+        ko_carrying_class[if (cl >= 3) 3 else cl] += 1;
+        dist.by_class[classOf(cl)] += 1;
+        dist.total += 1;
+        if (cl > dist.max_clusters) {
+            dist.max_clusters = cl;
+            dist.max_witness = i;
+        }
+    }
+    _ = R43;
+    _ = N43;
+    std.debug.print("CENSUS43: legal_positions={d} class=[{d},{d},{d},{d}] max_clusters={d} witness={d} with_ko={d}\n", .{
+        legal43, dist.by_class[0], dist.by_class[1], dist.by_class[2], dist.by_class[3], dist.max_clusters, dist.max_witness, with_ko,
+    });
+}
+
+fn isKoShape43(pos: *const [12]i8, p: usize, colour: i8) ?u8 {
+    const R43 = rules.Rules(4, 3);
+    if (pos[p] != 0) return null;
+    const next = R43.pos_from_move(pos, colour, p) catch return null;
+    var opp_before: u8 = 0;
+    var opp_after: u8 = 0;
+    var captured: ?usize = null;
+    for (0..12) |i| {
+        if (pos[i] == -colour) opp_before += 1;
+        if (next[i] == -colour) opp_after += 1;
+        if (pos[i] == -colour and next[i] == 0) captured = i;
+    }
+    if (opp_before - opp_after != 1) return null;
+    var libs: u8 = 0;
+    var friends: u8 = 0;
+    var nb: [4]usize = undefined;
+    const cnt = R43.neighbors(p, &nb);
+    for (nb[0..cnt]) |q| {
+        if (next[q] == 0) libs += 1;
+        if (next[q] == colour) friends += 1;
+    }
+    if (libs != 1 or friends != 0) return null;
+    return @intCast(captured.?);
+}
+
+fn countClusters43(pos: *const [12]i8) u8 {
+    const R43 = rules.Rules(4, 3);
+    var points: [24]KoPoint = undefined;
+    var np: usize = 0;
+    for (0..12) |p| {
+        inline for (.{ @as(i8, 1), @as(i8, -1) }) |colour| {
+            if (isKoShape43(pos, p, colour)) |cap| {
+                if (np < 24) {
+                    points[np] = .{ .cell = @intCast(p), .cap = cap };
+                    np += 1;
+                }
+            }
+        }
+    }
+    if (np == 0) return 0;
+    var masks: [24]u32 = undefined;
+    for (points[0..np], 0..) |kp, i| {
+        var mask: u32 = 0;
+        mask |= @as(u32, 1) << @as(u5, @intCast(kp.cell));
+        mask |= @as(u32, 1) << @as(u5, @intCast(kp.cap));
+        var nb: [4]usize = undefined;
+        const c1 = R43.neighbors(kp.cell, &nb);
+        for (nb[0..c1]) |q| mask |= @as(u32, 1) << @as(u5, @intCast(q));
+        const c2 = R43.neighbors(kp.cap, &nb);
+        for (nb[0..c2]) |q| mask |= @as(u32, 1) << @as(u5, @intCast(q));
+        masks[i] = mask;
+    }
+    var parent: [24]u8 = undefined;
+    for (0..np) |i| parent[i] = @intCast(i);
+    for (0..np) |i| {
+        for (i + 1..np) |j| {
+            if (masks[i] & masks[j] != 0) {
+                var ri: u8 = @intCast(i);
+                while (parent[ri] != ri) ri = parent[ri];
+                var rj: u8 = @intCast(j);
+                while (parent[rj] != rj) rj = parent[rj];
+                if (ri != rj) parent[ri] = rj;
+            }
+        }
+    }
+    var roots: u32 = 0;
+    for (0..np) |i| {
+        var r: u8 = @intCast(i);
+        while (parent[r] != r) r = parent[r];
+        roots |= @as(u32, 1) << @as(u5, @intCast(r));
+    }
+    return @intCast(@popCount(roots));
 }

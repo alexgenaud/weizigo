@@ -449,6 +449,10 @@ pub fn main(init: std.process.Init) !void {
         std.debug.print("RESULT moveset: states={d} mismatches={d} (want 0)\n", .{ states_checked, mismatches });
         return;
     }
+    if (std.mem.eql(u8, mode, "reach")) {
+        try reachAnalyze(gpa);
+        return;
+    }
     if (std.mem.eql(u8, mode, "equiv3")) {
         try equivExhaustive(3, 3, gpa);
         return;
@@ -648,4 +652,269 @@ fn equivSample4(gpa: std.mem.Allocator) !void {
     std.debug.print("RESULT equiv4: p0_sampled={d} p0_with_window={d} windows={d} windows_with_ko={d} window_mismatches={d} ban_mismatches={d} (want 0,0)\n", .{
         p0_tried, p0_with_window, checked, windows_with_ko, mismatches, ban_mismatches,
     });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// D042-2a — key-space completeness: characterise the non-root-reachable
+// entries of the 4×4 WZO2 table. Snapshot-sweep BFS from the fresh-start
+// root over the table's entries (kernel successor relation), then scan the
+// entries NOT reached: how many carry ko != NONE, and is each one a shape a
+// real capture could have produced (pos[ko]==0 AND the recapture at ko is a
+// legal single-stone capture with 1 liberty and no friends)?
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ReachGroup = struct { colex: u32, count: u8, entry_offset: u64 };
+
+fn reachAnalyze(gpa: std.mem.Allocator) !void {
+    const cwd = std.Io.Dir.cwd();
+    var threaded = std.Io.Threaded.init(gpa, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const bytes = try cwd.readFileAlloc(io, "data/oracle-4x4-v2.wzo2", gpa, .unlimited);
+    defer gpa.free(bytes);
+    if (!std.mem.eql(u8, bytes[0..4], "WZO2")) return error.BadWzo2;
+    const n_groups = std.mem.readInt(u64, bytes[16..24], .little);
+    const n_entries = std.mem.readInt(u64, bytes[24..32], .little);
+    const ko_bits = bytes[13];
+    const group_base: usize = 128;
+    const entry_base: usize = group_base + @as(usize, @intCast(n_groups)) * 5;
+    const groups = try gpa.alloc(ReachGroup, @intCast(n_groups));
+    defer gpa.free(groups);
+    var cum: u64 = 0;
+    for (0..@as(usize, @intCast(n_groups))) |i| {
+        const off = group_base + i * 5;
+        groups[i] = .{ .colex = std.mem.readInt(u32, bytes[off..][0..4], .little), .count = bytes[off + 4], .entry_offset = cum };
+        cum += groups[i].count;
+    }
+    std.debug.print("REACH: groups={d} entries={d}\n", .{ n_groups, n_entries });
+
+    // ── BFS from the root with snapshot sweeps over a visited bitset ──
+    const words: usize = @intCast((n_entries + 63) / 64);
+    const visited = try gpa.alloc(u64, words);
+    defer gpa.free(visited);
+    var mark = try gpa.alloc(u64, words);
+    @memset(visited, 0);
+    @memset(mark, 0);
+
+    var reachable: u64 = 0;
+
+    // root = empty board colex 0, Black (side_u1 0), ko=16 (NONE), passes=0
+    const root_kb = encodeKeyByteFor(0, 16, 0, ko_bits);
+    // find the root entry index
+    var root_ei: ?u64 = null;
+    {
+        var gi: usize = 0;
+        while (gi < n_groups) : (gi += 1) {
+            if (groups[gi].colex != 0) continue;
+            for (0..groups[gi].count) |i| {
+                const off = entry_base + (groups[gi].entry_offset + i) * 4;
+                if ((bytes[off] & 0xFE) == root_kb) {
+                    root_ei = groups[gi].entry_offset + i;
+                }
+            }
+        }
+    }
+    if (root_ei == null) {
+        std.debug.print("REACH: root entry not found\n", .{});
+        return;
+    }
+    visited[root_ei.? / 64] |= @as(u64, 1) << @intCast(root_ei.? % 64);
+    mark[root_ei.? / 64] |= @as(u64, 1) << @intCast(root_ei.? % 64);
+    reachable += 1;
+
+    var sweeps: u64 = 0;
+    while (true) : (sweeps += 1) {
+        // the current frontier is `mark` (the previous sweep's new marks);
+        // expand only those entries into a fresh `next_mark`
+        const next_mark = try gpa.alloc(u64, words);
+        @memset(next_mark, 0);
+        var ei: u64 = 0;
+        while (ei < n_entries) : (ei += 1) {
+            if (mark[ei / 64] & (@as(u64, 1) << @intCast(ei % 64)) == 0) continue;
+            // decode this entry
+            const off = entry_base + ei * 4;
+            const kb = bytes[off];
+            const side_u1: u1 = @intCast((kb >> 1) & 1);
+            const ko_raw: u8 = @intCast((kb >> 2) & ((@as(u16, 1) << @intCast(ko_bits)) - 1));
+            const passes: u2 = @intCast((kb >> @intCast(2 + ko_bits)) & 1);
+            const g = findGroupForEntry(groups, ei) orelse continue;
+            const colex = groups[g].colex;
+            const pos: Pos = X.pos_from_colex(colex);
+            const side: i8 = if (side_u1 == 0) 1 else -1;
+            const ko: u8 = if (passes >= 1) @intCast(N) else ko_raw;
+            if (passes >= 2 or R.is_settled(&pos)) continue;
+            // children via the kernel
+            for (0..N) |cell| {
+                if (R.applyMove(&pos, side, ko, passes, cell)) |child| {
+                    const cco: u32 = @intCast(X.colex_from_pos(&child.pos));
+                    try markChildInTable(bytes, entry_base, groups, n_groups, cco, child.side, child.ko, child.passes, ko_bits, visited, next_mark, &reachable);
+                }
+            }
+            if (R.applyPass(side, passes)) |pc| {
+                try markChildInTable(bytes, entry_base, groups, n_groups, colex, pc.side, pc.ko, pc.passes, ko_bits, visited, next_mark, &reachable);
+            }
+        }
+        // fold the frontier into visited
+        for (0..words) |w| visited[w] |= mark[w];
+        gpa.free(mark);
+        mark = next_mark;
+        var any = false;
+        for (0..words) |w| {
+            if (mark[w] != 0) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) break;
+        if (sweeps > 128) {
+            std.debug.print("REACH: sweep cap exceeded\n", .{});
+            break;
+        }
+    }
+    gpa.free(mark);
+    std.debug.print("REACH: sweeps={d} reachable={d} not_reachable={d} children_not_in_table={d}\n", .{ sweeps, reachable, n_entries - reachable, reach_children_not_in_table });
+
+    // ── characterise the non-reachable entries ──
+    var nr_total: u64 = 0;
+    var nr_ko_set: u64 = 0;
+    var nr_ko_invalid: u64 = 0;
+    var all_ko_set: u64 = 0;
+    var all_ko_invalid: u64 = 0;
+    var ex: u64 = 0;
+    var ei: u64 = 0;
+    while (ei < n_entries) : (ei += 1) {
+        const off = entry_base + ei * 4;
+        const kb = bytes[off];
+        const side_u1: u1 = @intCast((kb >> 1) & 1);
+        const ko_raw: u8 = @intCast((kb >> 2) & ((@as(u16, 1) << @intCast(ko_bits)) - 1));
+        const passes: u2 = @intCast((kb >> @intCast(2 + ko_bits)) & 1);
+        const g = findGroupForEntry(groups, ei) orelse continue;
+        const colex = groups[g].colex;
+        const side: i8 = if (side_u1 == 0) 1 else -1;
+        const ko: u8 = if (passes >= 1) @intCast(N) else ko_raw;
+        const pos: Pos = X.pos_from_colex(colex);
+        const reached = visited[ei / 64] & (@as(u64, 1) << @intCast(ei % 64)) != 0;
+        if (ko != N and passes == 0) {
+            all_ko_set += 1;
+            const ok = pos[@intCast(ko)] == 0 and isKoCaptureShape(&pos, side, @intCast(ko)) != null;
+            if (!ok) all_ko_invalid += 1;
+        }
+        if (!reached) {
+            nr_total += 1;
+            if (ko != N and passes == 0) {
+                nr_ko_set += 1;
+                const ok = pos[@intCast(ko)] == 0 and isKoCaptureShape(&pos, side, @intCast(ko)) != null;
+                if (!ok) {
+                    nr_ko_invalid += 1;
+                    if (ex < 8) {
+                        std.debug.print("REACH INVALID ko entry: colex={d} side={d} ko={d} passes={d}\\n", .{ colex, side, ko, passes });
+                        ex += 1;
+                    }
+                }
+            }
+        }
+    }
+    std.debug.print("REACH: non-reachable={d} of which ko-set(passes=0)={d} ko-invalid={d}\\n", .{ nr_total, nr_ko_set, nr_ko_invalid });
+    std.debug.print("REACH: whole table ko-set(passes=0)={d} ko-invalid={d}\\n", .{ all_ko_set, all_ko_invalid });
+}
+
+fn encodeKeyByteFor(side_u1: u1, ko: u8, passes: u2, ko_bits: u8) u8 {
+    var kb: u8 = 0;
+    kb |= @as(u8, side_u1) << 1;
+    kb |= ko << 2;
+    kb |= @as(u8, passes) << @intCast(2 + ko_bits);
+    return kb;
+}
+
+fn findGroupForEntry(groups: []const ReachGroup, ei: u64) ?usize {
+    // linear scan is fine for the group count? 24.3M groups x 99M entries is
+    // too slow; use the entry_offset ordering (groups are sorted by colex and
+    // entry_offset is cumulative) -> binary search on entry_offset.
+    var lo: usize = 0;
+    var hi: usize = groups.len;
+    while (lo < hi) {
+        const mid = lo + (hi - lo) / 2;
+        if (groups[mid].entry_offset <= ei) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    if (lo == 0) return null;
+    const g = lo - 1;
+    if (g < groups.len and groups[g].entry_offset <= ei and ei < groups[g].entry_offset + groups[g].count) return g;
+    return null;
+}
+
+var reach_children_not_in_table: u64 = 0; // C-A1 verdict counter (correct-ko closure)
+
+fn markChildInTable(
+    bytes: []const u8,
+    entry_base: usize,
+    groups: []const ReachGroup,
+    n_groups: u64,
+    colex: u32,
+    side: i8,
+    ko: u8,
+    passes: u2,
+    ko_bits: u8,
+    visited: []u64,
+    mark: []u64,
+    reachable: *u64,
+) !void {
+    // binary search the group by colex
+    var lo: usize = 0;
+    var hi: usize = @intCast(n_groups);
+    while (lo < hi) {
+        const mid = lo + (hi - lo) / 2;
+        if (groups[mid].colex < colex) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    if (lo >= n_groups or groups[lo].colex != colex) {
+        reach_children_not_in_table += 1; // C-A1: a legal child with no table entry
+        return;
+    }
+    const target_kb = encodeKeyByteFor(if (side > 0) 0 else 1, ko, passes, ko_bits);
+    for (0..groups[lo].count) |i| {
+        const off = entry_base + (groups[lo].entry_offset + i) * 4;
+        if ((bytes[off] & 0xFE) == target_kb) {
+            const ei = groups[lo].entry_offset + i;
+            if (visited[ei / 64] & (@as(u64, 1) << @intCast(ei % 64)) == 0) {
+                visited[ei / 64] |= @as(u64, 1) << @intCast(ei % 64);
+                mark[ei / 64] |= @as(u64, 1) << @intCast(ei % 64);
+                reachable.* += 1;
+            }
+            return;
+        }
+    }
+}
+
+/// Is playing `cell` (empty) a single-stone capture whose capturing stone
+/// ends with exactly 1 liberty and no friendly neighbours (the kernel shape)?
+fn isKoCaptureShape(pos: *const Pos, colour: i8, cell: usize) ?u8 {
+    if (pos[cell] != 0) return null;
+    const next = R.pos_from_move(pos, colour, cell) catch return null;
+    var opp_before: u8 = 0;
+    var opp_after: u8 = 0;
+    var captured: ?usize = null;
+    for (0..N) |i| {
+        if (pos[i] == -colour) opp_before += 1;
+        if (next[i] == -colour) opp_after += 1;
+        if (pos[i] == -colour and next[i] == 0) captured = i;
+    }
+    if (opp_before - opp_after != 1) return null;
+    var libs: u8 = 0;
+    var friends: u8 = 0;
+    var nb: [4]usize = undefined;
+    const cnt = R.neighbors(cell, &nb);
+    for (nb[0..cnt]) |q| {
+        if (next[q] == 0) libs += 1;
+        if (next[q] == colour) friends += 1;
+    }
+    if (libs != 1 or friends != 0) return null;
+    return @intCast(captured.?);
 }

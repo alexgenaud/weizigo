@@ -388,3 +388,122 @@ predicate fails at 3×3/4×4 while the engine's actual predicate holds
 everywhere) — recorded for the axiom owners, not fixed here.
 
 — flash/T380, 2026-08-05
+
+
+---
+
+## 10. Directive D042 addendum (Orchestrator scope correction, 2026-08-05 20:19Z)
+
+The Orchestrator's D042 corrected Q2's premise (there is no backward
+enumeration to audit — confirmed in §3.1) and replaced it with three items:
+(2a) characterise the non-root-reachable table entries' ko states, (2b) audit
+the finisher's ko handling, and (3) use 4×3 as the exhaustive test board for
+ko constructibility. All three are answered below.
+
+### 10.1 (2a) Key-space completeness — the non-reachable entries carry NO ko states, and every ko state in the table is valid
+
+Snapshot-sweep BFS from the fresh-start root over the table's entries
+(`t380_ko_slot reach`; kernel successor relation; correct ko decode), then a
+characterisation scan:
+
+| metric | count |
+|---|---|
+| table entries | 99,133,036 |
+| reachable non-terminal (31 sweeps) | **98,999,934** |
+| **non-reachable entries** | **133,102** |
+| non-reachable with ko != NONE (passes=0) | **0** |
+| whole-table ko-set entries (passes=0) | 2,122,512 |
+| **whole-table ko-set entries that are NOT a real-capture shape** | **0** |
+
+The validity test for a ko entry (pos, side, ko=q): `pos[q] == 0` (the
+captured stone is absent) AND the recapture at q is a legal single-stone
+capture whose capturing stone ends with exactly 1 liberty and no friendly
+neighbours (the exact condition under which the engine sets a ko point). Every
+one of the 2,122,512 ko-carrying entries passes; **no impossible ko state
+exists in the table**, and the 133,102 non-reachable entries are all ko-free
+(side-parity/unreachable-pass classes such as White-on-empty passes=0, per
+T363's own note). An impossible ko state with a computed value — the hazard
+D042 names — is absent.
+
+**FINDING F-7 (the T363 closure counts used the wrong ko decode).** The
+closure instrument on record — `vb_closure.zig` C-A1 at `:467` and C-A2 at
+`:794` — decodes the ko field of the key byte with `kb >> 1` instead of the
+format-correct `kb >> 2` (artifact2.zig `encodeKeyByte`: bit 1 = side, bits
+2..2+ko_bits−1 = ko). This is the defect T343 already flagged in its context
+note (`findings/T343-context.json`) and it was not corrected before the T363
+numbers were recorded. Consequences, measured: the recorded C-A2 figures
+(99,020,312 reachable / 112,724 non-reachable) differ from a correct-decode
+reproduction by **20,378 entries** (98,999,934 / 133,102). The C-A1/C-A2
+*verdicts* on record (0 children-not-in-table, 0 reachable-not-in-table) are
+re-verified below with the correct decode (see 10.1a) and still hold — the
+verdicts survive the correction, but the exact counts on record do not.
+
+### 10.1a C-A1/C-A2 verdicts re-verified with the correct ko decode
+
+| check | correct-ko reproduction |
+|---|---|
+| C-A1 children-not-in-table | **0** (600,763,414-children-scale scan with the correct ko decode) |
+| C-A2 reachable-not-in-table | **0** |
+| reachable / non-reachable | 98,999,934 / 133,102 |
+
+### 10.2 (2b) The finisher's ko handling — the historically unsound component, but NOT the current table's source
+
+The WZO2 table `data/oracle-4x4-v2.wzo2` is the ADR-0020 **pure loopy-game
+fixpoint**: no finisher ran (oracle_v2_build reads the exp6 fixpoint tables
+directly; T343 I4 verifies L = Φ(L), H = Φ(H) at every one of the 99,133,036
+entries with an independent engine). The finisher (retro.zig `finishProgress`/
+`ab_solve`) is the OLD construction's component and fills only the old
+checkpoint's KO_SENSITIVE column. Its ko handling, audited:
+
+- **Pre-seeded memo interaction is sound by construction:** the finisher seeds
+  its memo with certified (flag-free, L==H) values only; ko-sensitive and
+  forward-filled values (`FLAG_KO_SENSITIVE | FLAG_FROM_FORWARD`) never seed
+  the memo (`runRoot` base_cb/base_cw construction; the Finding-2 discipline).
+  This is not where the unsoundness lives.
+- **The unsoundness is the writes-ON cross-branch reuse** (`ko_ref >= d`
+  GHI shortcut, `ab_solve` memo write at `ko_ref >= d`): GLOBAL.F1
+  FALSE-AS-SCOPED, measured 45/378 wrong slots at 3×2 with 0 wrong writes-off.
+  The writes-OFF variant is F3 PROVEN (3×2, 0 auditor violations); the Track-B
+  dependency-fingerprint variant (deps) is F4 PROVEN.
+- **The bracket cuts** (ADR-0010) rest on C3 (bracket bounds the real-game
+  score), which is FALSE-AS-SCOPED at 3×3 — the ADR-0015/0017/0018 orphan
+  chain. Under the current semantics the fixpoint table has no finisher and
+  the bracket is the deliverable itself, so the orphan applies to the old
+  construction only.
+- **Honesty clause:** the old construction's `L==H ⇒ exact` is "strong
+  structural evidence, not a theorem" (retro.zig header) — unchanged by this
+  audit; for the new table the I4 residual is the (verified) fixpoint
+  property, which is the exactness claim the table can make.
+
+**Net for 2b:** the ko_ref-writes finisher is the historically unsound
+component the AGENTS.md foreclosure names, but it did not build the current
+table; the current table's ko handling is the fixpoint + verified Bellman
+identity (F-2, T343). The old checkpoint's ko-sensitive values remain
+untrusted as committed.
+
+### 10.3 (3) The 4×3 test board — double ko constructible, triple ko NOT
+
+Exhaustive census over all legal 4×3 positions (kernel ko-shape definition,
+union-find clustering):
+
+| metric | count |
+|---|---|
+| legal 4×3 positions (denominator) | **321,689** (= 643,378/2, matching T363's key-agreement denominator per side) |
+| cluster class distribution | [299,493 (93.10%); 22,060 (6.86%); **136 (0.042%)**; 0] |
+| **maximum independent ko clusters** | **2** |
+| double-ko positions | 136 (witness colex 199,204) |
+| **triple-ko positions** | **0** |
+
+Answer to the operator's question: **double ko IS constructible on 12 points
+(136 legal positions, 0.042%), triple ko is NOT (0 of 321,689).** The maximum
+independent ko-chain on a legal 4×3 goban is 2 — matching the 4×4 result
+(F-4), where the max is also 2, and the 3×3 ko-sensitive region's max (2 under
+the production shape rule).
+
+### 10.4 D042 handling note
+
+D042 was marked read by this row (`docs/infra/managent/directives.jsonl`).
+Its three items are answered here; the original brief's five questions
+(§§2–6) stand as answered. This row remains an audit row: findings and
+measurements only, no fixes (the vb_closure `kb >> 1` defect at F-7 and the
+lemma formulation at F-3 are recorded for their owners, not repaired here).

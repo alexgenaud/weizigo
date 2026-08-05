@@ -6,18 +6,30 @@
  "claims": [],
  "new_rows": [],
  "method": {
-  "question": "Is ko correctly and exhaustively handled in the retrograde construction? Five questions: (Q1) is a single ko_point sufficient for basic ko — by proof and machine search for a two-live-bans counterexample; (Q2) is the ko state discovered correctly at every retrograde step; (Q3) multi-ko census over the 4×4 table (max independent ko-chain count, with denominator); (Q4) do the L<H brackets come from ko (bracket width vs ko structure, both directions); (Q5) where does basic ko differ from PSK and which of those does the table call L<H.",
-  "subject": "the current 4×4 table data/oracle-4x4-v2.wzo2 (WZO2 rules_id 3, SHA 0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a, 24,318,165 position groups, 99,133,036 entries); engine sources src/exp6_solve.zig (production fixpoint), src/rules.zig (T273 kernel), src/vb_bellman_4x4.zig (independent battery), src/retro.zig; the old checkpoint data/oracle-4x4.checkpoint.wzo (SHA a2174fed…) used ONLY for the Q3 null control, never for value claims.",
+  "question": "Is ko correctly and exhaustively handled in the retrograde construction? Five questions: (Q1) is a single ko_point sufficient for basic ko \u2014 by proof and machine search for a two-live-bans counterexample; (Q2) is the ko state discovered correctly at every retrograde step; (Q3) multi-ko census over the 4\u00d74 table (max independent ko-chain count, with denominator); (Q4) do the L<H brackets come from ko (bracket width vs ko structure, both directions); (Q5) where does basic ko differ from PSK and which of those does the table call L<H.",
+  "subject": "the current 4\u00d74 table data/oracle-4x4-v2.wzo2 (WZO2 rules_id 3, SHA 0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a, 24,318,165 position groups, 99,133,036 entries); engine sources src/exp6_solve.zig (production fixpoint), src/rules.zig (T273 kernel), src/vb_bellman_4x4.zig (independent battery), src/retro.zig; the old checkpoint data/oracle-4x4.checkpoint.wzo (SHA a2174fed\u2026) used ONLY for the Q3 null control, never for value claims.",
   "instruments": {
-   "src/t380_ko_slot.zig": {"modes": "walk | planted | moveset | equiv3 | equiv4", "purpose": "Q1/Q2: reachable-state walk checking the B1 ban-set invariants; planted sensitivity control; kernel-vs-production successor-set comparison; shape-rule vs B1-ban-set equivalence at 3×3 (exhaustive) and 4×4 (sampled)"},
-   "src/t380_census.zig": {"modes": "census | null | plant | scc3", "purpose": "Q3/Q4: independent-ko-cluster census over the whole table + bracket-width correlation; B23 null control; union-find seeded-defect control; 3×3 SCC calibration of the cycle-reachability reading"},
-   "src/t380_psk_diff.zig": {"modes": "3x3 | 4x4", "purpose": "Q5: PSK fresh-start vs basic-ko pinned fresh-start, 3×3 exhaustive, 4×4 node-budgeted sample"}
+   "src/t380_ko_slot.zig": {
+    "modes": "walk | planted | moveset | equiv3 | equiv4",
+    "purpose": "Q1/Q2: reachable-state walk checking the B1 ban-set invariants; planted sensitivity control; kernel-vs-production successor-set comparison; shape-rule vs B1-ban-set equivalence at 3\u00d73 (exhaustive) and 4\u00d74 (sampled)",
+    "sha256": "07e1face1fc09c7a48614df88aebacf5404109c6209098dab2d57699af62e324"
+   },
+   "src/t380_census.zig": {
+    "modes": "census | null | plant | scc3",
+    "purpose": "Q3/Q4: independent-ko-cluster census over the whole table + bracket-width correlation; B23 null control; union-find seeded-defect control; 3\u00d73 SCC calibration of the cycle-reachability reading",
+    "sha256": "6cc23085eb2bfdf291e887d4cc8ca6330680a58381d82b190d10ed58ebe7ca15"
+   },
+   "src/t380_psk_diff.zig": {
+    "modes": "3x3 | 4x4",
+    "purpose": "Q5: PSK fresh-start vs basic-ko pinned fresh-start, 3\u00d73 exhaustive, 4\u00d74 node-budgeted sample",
+    "sha256": "42da5d9e391f1460708895c2b8b3dd2a77e7f28cb37c67e47c97a9dde8649f78"
+   }
   },
   "artifacts_read": {
    "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a (the table)",
    "data/oracle-4x4.checkpoint.wzo": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118 (null control only)",
-   "data/oracle-3x3-v2.wzo2": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb (3×3 basic-ko table)",
-   "artifacts/oracle-3x3.wzo": "c1f8fe5edac9a42710f57056c87e80b66b5bae5a8af610ba2b256af1e2805685 (PSK 3×3 oracle)"
+   "data/oracle-3x3-v2.wzo2": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb (3\u00d73 basic-ko table)",
+   "artifacts/oracle-3x3.wzo": "c1f8fe5edac9a42710f57056c87e80b66b5bae5a8af610ba2b256af1e2805685 (PSK 3\u00d73 oracle)"
   },
   "existing_evidence_cited": {
    "T343 I4-4x4": "0 Bellman violations on 95,677,624 clear entries with the independent R8 move set + independent ko (findings/T343-i4-4x4.json)",
@@ -30,52 +42,73 @@
   {
    "id": "F-1",
    "question": "Q1",
-   "verdict": "no defect — single ko slot is sufficient",
+   "verdict": "no defect \u2014 single ko slot is sufficient",
    "claim": "The B1 ban set at any reachable state has size <= 1, so one ko_point slot suffices. Derived from AXIOMS B1/B2: the ban set is {m : result(m) == position one state back}; only the recapture of the last move's single captured stone can recreate that position (a multi-stone previous capture removes >= 2 stones no single move can restore; a non-capture previous move leaves the played cell occupied, so it cannot be re-emptied).",
-   "measurement": "Reachable-state walk at 4×4 (BFS depth <=14 + 20,000 random walks x 400 plies, seed 0x7E57A380): 3,222,855 states visited, 39,770 ko-creating edges, 8,305 distinct ko-set states; INV-1 (|ban set| > 1) = 0; INV-2 over-restriction = 0; INV-2 under-restriction = 0. Exhaustive 3×3 static window check: 0 ban-set mismatches over 784 single-capture windows.",
-   "controls": "Planted two-live-bans bookkeeping (bans persist across non-pass moves): the search found 2 INV-1 violations (witness colex 39,441,641 side=1 ko=2 ban set {2,3}) and 866 INV-2 under-restrictions — the counterexample search demonstrably finds planted two-ban states."
+   "measurement": "Reachable-state walk at 4\u00d74 (BFS depth <=14 + 20,000 random walks x 400 plies, seed 0x7E57A380): 3,222,855 states visited, 39,770 ko-creating edges, 8,305 distinct ko-set states; INV-1 (|ban set| > 1) = 0; INV-2 over-restriction = 0; INV-2 under-restriction = 0. Exhaustive 3\u00d73 static window check: 0 ban-set mismatches over 784 single-capture windows.",
+   "controls": "Planted two-live-bans bookkeeping (bans persist across non-pass moves): the search found 2 INV-1 violations (witness colex 39,441,641 side=1 ko=2 ban set {2,3}) and 866 INV-2 under-restrictions \u2014 the counterexample search demonstrably finds planted two-ban states."
   },
   {
    "id": "F-2",
    "question": "Q2",
-   "verdict": "no defect — ko state discovered correctly at every retrograde step",
+   "verdict": "no defect \u2014 ko state discovered correctly at every retrograde step",
    "claim": "All retrograde engines are successor-sweep (no backward/predecessor enumeration: retro.zig header, exp6.genChildren4:914, vb i4Bellman), so a successor's ko point is always computed FORWARD from the move's shape rule; the risk concentrates in the shape rule and copy-consistency. The shape rule's ko point equals the B1 ban set at every reachable state.",
-   "measurement": "INV-2 over = 0, under = 0 over 3,222,855 reachable 4×4 states; exhaustive 3×3 ban-set check 0/784; sampled 4×4 ban-set check 0/344,996; kernel (rules.zig:1109) vs production (exp6.apply_place4:886) successor sets identical over 266,779 random 4×4 states (moveset mode, closes the T339 <=3×3 gap); existing T345 key agreement 0/99,133,036; existing T343 I4 Bellman residual with independent ko 0/95,677,624 clear entries.",
+   "measurement": "INV-2 over = 0, under = 0 over 3,222,855 reachable 4\u00d74 states; exhaustive 3\u00d73 ban-set check 0/784; sampled 4\u00d74 ban-set check 0/344,996; kernel (rules.zig:1109) vs production (exp6.apply_place4:886) successor sets identical over 266,779 random 4\u00d74 states (moveset mode, closes the T339 <=3\u00d73 gap); existing T345 key agreement 0/99,133,036; existing T343 I4 Bellman residual with independent ko 0/95,677,624 clear entries.",
    "sites_inventoried": "SET: rules.koAfterCapture (rules.zig:1109; friendly==0 at :1136), exp6 apply_place32/apply_place/apply_place4 (exp6_solve.zig:262,552,886), vb koAfterCaptureRt (vb_bellman_4x4.zig:399), gtp.zig:230,313,496 (kernel). CLEAR: rules.zig:436 applyPass, exp6_solve.zig:295,585, vb_bellman_4x4.zig:437. All match B2 (set on B1 shape, cleared on pass and non-ko-capture)."
   },
   {
    "id": "F-3",
    "question": "Q2 (axiom/lemma gap)",
-   "verdict": "finding — the lemma Z-R-MOVE-B1-EQUIV is mis-formulated; the engine is B1-correct",
-   "claim": "The lemma's stated predicate (rules.zig:1385,1446: P2 == P0 of the window <=> shape rule fires; mechanized at 2×2/3×2 only) is NOT the predicate the engine needs. The engine sets the ko point per the shape rule and the ban is judged at the resulting state against the position ONE state back; the two predicates coincide at 2×2/3×2 and diverge at 3×3+.",
-   "measurement": "3×3 exhaustive: 152 of 784 windows falsify the lemma predicate (P2 != P0 but shape fires); 0 of 784 falsify the correct predicate (ban set == {ko point}). 4×4 sampled: 36,446 of 344,996 windows falsify the lemma predicate; 0 falsify the correct predicate. Witness at 3×3: P0 = colex 3197 (0 -1 1 / -1 1 0 / 1 0 0), W@7 captures B@6 (capturer 2 liberties, no ko), B@0 captures W@1 with Black's stone at exactly 1 liberty and no friends -> ko point = 1 set correctly (White's recapture at 1 recreates P1 = the position one state back, so B1 bans it); the window's P2 != P0 so the lemma reports a mismatch.",
-   "consequence": "The AXIOMS B1 'two plies earlier' phrasing admits both readings; the lemma as stated is falsified at 3×3/4×4 and its 'proven at 2×2/3×2' scope does not extend. Recorded for the axiom owners (this row fixes nothing).",
+   "verdict": "finding \u2014 the lemma Z-R-MOVE-B1-EQUIV is mis-formulated; the engine is B1-correct",
+   "claim": "The lemma's stated predicate (rules.zig:1385,1446: P2 == P0 of the window <=> shape rule fires; mechanized at 2\u00d72/3\u00d72 only) is NOT the predicate the engine needs. The engine sets the ko point per the shape rule and the ban is judged at the resulting state against the position ONE state back; the two predicates coincide at 2\u00d72/3\u00d72 and diverge at 3\u00d73+.",
+   "measurement": "3\u00d73 exhaustive: 152 of 784 windows falsify the lemma predicate (P2 != P0 but shape fires); 0 of 784 falsify the correct predicate (ban set == {ko point}). 4\u00d74 sampled: 36,446 of 344,996 windows falsify the lemma predicate; 0 falsify the correct predicate. Witness at 3\u00d73: P0 = colex 3197 (0 -1 1 / -1 1 0 / 1 0 0), W@7 captures B@6 (capturer 2 liberties, no ko), B@0 captures W@1 with Black's stone at exactly 1 liberty and no friends -> ko point = 1 set correctly (White's recapture at 1 recreates P1 = the position one state back, so B1 bans it); the window's P2 != P0 so the lemma reports a mismatch.",
+   "consequence": "The AXIOMS B1 'two plies earlier' phrasing admits both readings; the lemma as stated is falsified at 3\u00d73/4\u00d74 and its 'proven at 2\u00d72/3\u00d72' scope does not extend. Recorded for the axiom owners (this row fixes nothing).",
    "controls": "The same instrument that falsifies the lemma predicate verifies the correct predicate with 0 mismatches at both sizes."
   },
   {
    "id": "F-4",
    "question": "Q3",
-   "verdict": "measurement — maximum independent ko-chain on a legal 4×4 goban is TWO",
-   "claim": "Exhaustive census over all 24,318,165 legal 4×4 positions (every legal position is one group in the table; denominator 24,318,165) with the production ko-shape definition (single capture + 1 liberty + no friendly neighbours), clustered by 1-neighbourhood union-find.",
-   "measurement": "class distribution [0-ko 22,278,061 (91.61%), 1-ko 2,013,032 (8.28%), 2-ko 27,072 (0.111%), 3+-ko 0]. Max clusters = 2. The operator's 'perhaps three' prior is refuted under the production definition. Under the loose B23 definition (no friendly check) max over the old ko-sensitive region is 3 (256 side-positions, witness colex 36,199,102) — those 'third kos' are friend-connected captures that never set a B1 ko point, so the T117 3-ko hard core is a definition artifact.",
-   "controls": "NULL: loose-def distribution over the old checkpoint's ko-sensitive side-positions reproduces B23 published [6,741,026; 3,415,640; 211,000; 256] over 10,367,922 EXACTLY (kernel-def for comparison [8,675,538; 1,663,032; 29,352; 0], max 2). PLANTED: union-find merge disabled -> 3×3 distribution changes [11,971; 704; 0; 0] -> [11,971; 640; 64; 0], caught."
+   "verdict": "measurement \u2014 maximum independent ko-chain on a legal 4\u00d74 goban is TWO",
+   "claim": "Exhaustive census over all 24,318,165 legal 4\u00d74 positions (every legal position is one group in the table; denominator 24,318,165) with the production ko-shape definition (single capture + 1 liberty + no friendly neighbours), clustered by 1-neighbourhood union-find.",
+   "measurement": "class distribution [0-ko 22,278,061 (91.61%), 1-ko 2,013,032 (8.28%), 2-ko 27,072 (0.111%), 3+-ko 0]. Max clusters = 2. The operator's 'perhaps three' prior is refuted under the production definition. Under the loose B23 definition (no friendly check) max over the old ko-sensitive region is 3 (256 side-positions, witness colex 36,199,102) \u2014 those 'third kos' are friend-connected captures that never set a B1 ko point, so the T117 3-ko hard core is a definition artifact.",
+   "controls": "NULL: loose-def distribution over the old checkpoint's ko-sensitive side-positions reproduces B23 published [6,741,026; 3,415,640; 211,000; 256] over 10,367,922 EXACTLY (kernel-def for comparison [8,675,538; 1,663,032; 29,352; 0], max 2). PLANTED: union-find merge disabled -> 3\u00d73 distribution changes [11,971; 704; 0; 0] -> [11,971; 640; 64; 0], caught."
   },
   {
    "id": "F-5",
    "question": "Q4",
-   "verdict": "measurement — brackets do NOT come predominantly from static ko shapes",
-   "claim": "Correlation of bracket width (H−L) against ko structure over the whole table (99,133,036 entries; 3,455,412 bracket-valued (L<H) entries = 3.49%; 1,924,973 positions with at least one bracket-valued entry = 7.92%).",
-   "measurement": "Bracket-valued positions with ZERO ko shapes: 1,782,629 of 1,924,973 = 92.6% — the strong form of the operator's hypothesis is refuted; the bracket's dominant source is cycle structure created in play (kos formed by moves at positions with no static shape, and non-ko cycles: pass fights, approach-move loops), not static ko shapes. Ko-carrying positions with NO bracket-valued entry: 1,897,760 of 2,040,104 = 93.0% (most kos never widen a bracket). Bracket width by class (mean): 0-ko 13.21, 1-ko 15.02, 2-ko 19.55; global max width 32 (full [-16,+16] range; 96,760 entries at width 32, witness colex 6,452). Fresh-start slice (ko=none, passes=0): bracket-valued 981,071 per side (exactly equal — colour inversion holds), 1,913,925 positions either side (7.87%), mean width 13.28; the old table's fresh-start ko-sensitive set was 5,183,961 positions (21.3%) — the new table's fresh-start bracket-valued set is 2.7x smaller. SCC calibration at 3×3 (49,428 entries, 30,457 SCCs): L<H entries in non-trivial SCCs 3,004, NOT in any non-trivial SCC 2,404 (44%) — L<H is the 'can reach a value-ambiguous cycle' indicator including pre-cycle states, not 'is in a cycle'.",
+   "verdict": "measurement \u2014 brackets do NOT come predominantly from static ko shapes",
+   "claim": "Correlation of bracket width (H\u2212L) against ko structure over the whole table (99,133,036 entries; 3,455,412 bracket-valued (L<H) entries = 3.49%; 1,924,973 positions with at least one bracket-valued entry = 7.92%).",
+   "measurement": "Bracket-valued positions with ZERO ko shapes: 1,782,629 of 1,924,973 = 92.6% \u2014 the strong form of the operator's hypothesis is refuted; the bracket's dominant source is cycle structure created in play (kos formed by moves at positions with no static shape, and non-ko cycles: pass fights, approach-move loops), not static ko shapes. Ko-carrying positions with NO bracket-valued entry: 1,897,760 of 2,040,104 = 93.0% (most kos never widen a bracket). Bracket width by class (mean): 0-ko 13.21, 1-ko 15.02, 2-ko 19.55; global max width 32 (full [-16,+16] range; 96,760 entries at width 32, witness colex 6,452). Fresh-start slice (ko=none, passes=0): bracket-valued 981,071 per side (exactly equal \u2014 colour inversion holds), 1,913,925 positions either side (7.87%), mean width 13.28; the old table's fresh-start ko-sensitive set was 5,183,961 positions (21.3%) \u2014 the new table's fresh-start bracket-valued set is 2.7x smaller. SCC calibration at 3\u00d73 (49,428 entries, 30,457 SCCs): L<H entries in non-trivial SCCs 3,004, NOT in any non-trivial SCC 2,404 (44%) \u2014 L<H is the 'can reach a value-ambiguous cycle' indicator including pre-cycle states, not 'is in a cycle'.",
    "controls": "Same census instrument as F-4 (null + planted controls apply)."
   },
   {
    "id": "F-6",
    "question": "Q5",
-   "verdict": "measurement — at 3×3, basic ko differs from PSK exactly at the table's fresh-start L<H positions",
-   "claim": "PSK fresh-start (artifacts/oracle-3x3.wzo, validated) vs basic-ko pinned fresh-start (data/oracle-3x3-v2.wzo2, V = clamp(TIE=0,[L,H])), exhaustive over all legal 3×3 positions x sides.",
-   "measurement": "checked 24,330 (of 25,350 = 12,675 x 2; 1,020 sides lack a fresh-start entry — unreachable single-colour gobans per CODE.WZO2-PASS1-LAW); divergent 680 (2.80%); ALL 680 at fresh-start L<H, 0 at L==H; by cluster class [600, 80, 0, 0]; same-value with L<H 2,524 (of 3,204 bracket-valued = 78.8%). 4×4 sample (memo-off forward PSK O.solve, 10-14 stones, 8:1 ko-weighting, budget 200,000 nodes): 1,591 roots, 782 budget-excluded (49.1%), 809 within-budget, 0 divergent within-budget — honest null within budget; the divergent class concentrates in the budget-excluded ko/cycle-heavy half (the Exact ban-set solver is unusable at 4×4: 5.4 MB per memo key). Class list: (a) ko-threat-tenuki-retake (basic ko legal after tenuki, PSK bans) — L<H; (b) long non-ko cycles (pass fights, approach loops) — L<H; (c) multi-ko loops — L<H; (d) one-shot snapback-style recaptures (both rulesets ban the immediate recapture) — no divergence; (e) non-cycle positions — no divergence, L==H.",
+   "verdict": "measurement \u2014 at 3\u00d73, basic ko differs from PSK exactly at the table's fresh-start L<H positions",
+   "claim": "PSK fresh-start (artifacts/oracle-3x3.wzo, validated) vs basic-ko pinned fresh-start (data/oracle-3x3-v2.wzo2, V = clamp(TIE=0,[L,H])), exhaustive over all legal 3\u00d73 positions x sides.",
+   "measurement": "checked 24,330 (of 25,350 = 12,675 x 2; 1,020 sides lack a fresh-start entry \u2014 unreachable single-colour gobans per CODE.WZO2-PASS1-LAW); divergent 680 (2.80%); ALL 680 at fresh-start L<H, 0 at L==H; by cluster class [600, 80, 0, 0]; same-value with L<H 2,524 (of 3,204 bracket-valued = 78.8%). 4\u00d74 sample (memo-off forward PSK O.solve, 10-14 stones, 8:1 ko-weighting, budget 200,000 nodes): 1,591 roots, 782 budget-excluded (49.1%), 809 within-budget, 0 divergent within-budget \u2014 honest null within budget; the divergent class concentrates in the budget-excluded ko/cycle-heavy half (the Exact ban-set solver is unusable at 4\u00d74: 5.4 MB per memo key). Class list: (a) ko-threat-tenuki-retake (basic ko legal after tenuki, PSK bans) \u2014 L<H; (b) long non-ko cycles (pass fights, approach loops) \u2014 L<H; (c) multi-ko loops \u2014 L<H; (d) one-shot snapback-style recaptures (both rulesets ban the immediate recapture) \u2014 no divergence; (e) non-cycle positions \u2014 no divergence, L==H.",
    "controls": "NULL: 0 divergences at (L==H, 0-cluster) in both frames."
+  },
+  {
+   "id": "F-7",
+   "question": "D042-2a",
+   "verdict": "finding \u2014 the T363 C-A1/C-A2 closure counts were computed with the wrong ko decode; the verdicts survive correction",
+   "claim": "vb_closure.zig decodes the key-byte ko field with 'kb >> 1' at :467 (C-A1) and :794 (C-A2); the format contract (artifact2.zig encodeKeyByte) puts ko at bits 2..(2+ko_bits-1), i.e. 'kb >> 2'. T343 flagged this in its context note; it was not corrected before T363's numbers were recorded.",
+   "measurement": "Correct-ko-decode reproduction (t380_ko_slot reach, kernel successors, 31 sweeps): reachable = 98,999,934, non-reachable = 133,102 \u2014 vs the recorded 99,020,312 / 112,724, a 20,378-entry difference. The closure VERDICTS still hold with the correct decode: C-A1 children-not-in-table = 0, C-A2 reachable-not-in-table = 0. Non-reachable entries carry ko != NONE at passes=0 in 0 of 133,102 cases; the whole table's 2,122,512 ko-set entries are 0-invalid (every one is a shape a real capture could have produced: pos[ko]==0 AND the recapture at ko is a legal single-stone capture with 1 liberty and no friendly neighbours).",
+   "consequence": "The g3b accept.md C-A1/C-A2 rows and the T363 record quote counts computed with the mis-decode; the verdicts are re-verified here with the correct decode. Recorded for the vb_closure owner; not fixed by this row."
+  },
+  {
+   "id": "F-8",
+   "question": "D042-2b",
+   "verdict": "audit note \u2014 the finisher's ko handling is the historically unsound component, but it did not build the current table",
+   "claim": "The WZO2 table is the ADR-0020 pure loopy-game fixpoint (no finisher; oracle_v2_build reads the exp6 fixpoint directly; T343 I4 verifies L=Phi(L), H=Phi(H) at all 99,133,036 entries with an independent engine). The finisher (retro.zig finishProgress/ab_solve) fills only the old checkpoint's KO_SENSITIVE column. Its memo seeding is sound (certified flag-free values only; FLAG_KO_SENSITIVE|FLAG_FROM_FORWARD never seed); its unsoundness is the writes-ON ko_ref>=d cross-branch reuse (GLOBAL.F1 FALSE-AS-SCOPED, 45/378 at 3x2, 0 writes-off; writes-off F3 PROVEN, deps Track B F4 PROVEN); its bracket cuts rest on C3 (FALSE-AS-SCOPED). The old checkpoint's ko-sensitive values remain untrusted as committed; the current table's values are fixpoint-derived and I4-verified."
+  },
+  {
+   "id": "F-9",
+   "question": "D042-3",
+   "verdict": "measurement \u2014 on the 4\u00d73 test board, double ko is constructible, triple ko is not",
+   "claim": "Exhaustive ko-cluster census over all legal 4\u00d73 positions (kernel ko-shape definition, union-find).",
+   "measurement": "legal 4\u00d73 positions = 321,689 (denominator; = 643,378/2, matching T363's key-agreement per-side count). Cluster class distribution [299,493 (93.10%); 22,060 (6.86%); 136 (0.042%); 0]. Maximum independent ko clusters = 2: double ko IS constructible on 12 points (136 legal positions, witness colex 199,204); triple ko is NOT (0 of 321,689). Matches the 4\u00d74 maximum (F-4: max 2)."
   }
  ],
- "notes": "Audit row: findings and measurements only; no engine, table, axiom or ADR modified. The ko handling of the retrograde construction is verified correct on the reachable 4×4 state space (F-1, F-2), the multi-ko census refutes the max-three prior (F-4, max = 2), brackets are mostly not ko-driven (F-5, 92.6% of bracket-valued positions carry no ko shape), and the one defect-adjacent finding is an axiom/lemma formulation error (F-3). The 3×3 lemma-predicate falsification (F-3) and the census ko-shape definition inconsistency (B23/retro omit the friendly-neighbour check; see the run doc §3.5) are recorded for the axiom owners. Landmark: advances L2 (proven 4×4 values) at its weakest joint — the ko audit leaves the construction's ko handling un-refuted on the reachable space while naming the two non-value defects to fix."
+ "notes": "Audit row: findings and measurements only; no engine, table, axiom or ADR modified. The ko handling of the retrograde construction is verified correct on the reachable 4\u00d74 state space (F-1, F-2), the multi-ko census refutes the max-three prior (F-4, max = 2), brackets are mostly not ko-driven (F-5, 92.6% of bracket-valued positions carry no ko shape), and the one defect-adjacent finding is an axiom/lemma formulation error (F-3). The 3\u00d73 lemma-predicate falsification (F-3) and the census ko-shape definition inconsistency (B23/retro omit the friendly-neighbour check; see the run doc \u00a73.5) are recorded for the axiom owners. Landmark: advances L2 (proven 4\u00d74 values) at its weakest joint \u2014 the ko audit leaves the construction's ko handling un-refuted on the reachable space while naming the two non-value defects to fix."
 }
