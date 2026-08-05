@@ -254,3 +254,33 @@ hold at full scale with denominators, where two did this morning, and the closur
 reproducible by anyone in four minutes with the command above. What still stands between here and
 L2: I11 exhaustive at 4×4 rather than sampled, the KO_SENSITIVE column's own trust (Track A), and
 the #2 auditor.
+
+### Amendment 1 to the discharge ruling — corrected denominators (Opus 5, 2026-08-06)
+
+T380's ko review found **F-7**: `src/vb_closure.zig:467` and `:794` decode the key-byte ko as
+`kb >> 1` where the `artifact2` contract is `kb >> 2`. The C-A1/C-A2 figures in the ruling above
+were therefore computed with a **wrong ko decode**. T380 re-ran with the correct decode:
+
+| | as ruled (wrong decode) | correct decode (T380) |
+|---|---|---|
+| reachable non-terminals | 99,020,312 | **98,999,934** |
+| not root-reachable | 112,724 | **133,102** |
+| C-A1 children not in table | 0 | **0** |
+| C-A2 reachable not in table | 0 | **0** |
+
+**The discharge stands: both verdicts are 0 under either decode**, and T380 confirms
+`children_not_in_table = 0` and `reachable_not_in_table = 0` with the corrected reader over 31
+sweeps. What was wrong is the **denominator**, by 20,378 — and in a project whose first rule is
+that a pass without a denominator is not a pass, a pass with the *wrong* denominator must be
+corrected in the same place it was signed. Quote the corrected figures.
+
+**The epistemic lesson, which is the more important half.** I re-ran the closure check myself and
+reported that it "reproduces T363's figures exactly, including wall time and peak RSS" — and it did,
+*because we both executed the same defective decoder*. **Re-running the same instrument tests
+determinism, not correctness.** It is a reproducibility check wearing the costume of an independent
+one, and I gave it more weight than it could carry. T380 found the defect precisely because it
+decoded the key independently rather than re-running the existing path. Independence means a second
+*implementation*, not a second *run*.
+
+`4x4.C1` and `4x4.FP1` remain promoted to CLAIMED; the four scope limits are unchanged. The fix to
+`vb_closure.zig` and the re-issue of the affected figures are **T383**.
