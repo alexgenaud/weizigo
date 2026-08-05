@@ -1,0 +1,5 @@
+# Evidence transcript — r1-p2 (seeded run, python3 3.9.6, 2026-08-05)
+
+```
+differential: 100000 random captures, disagreements = 0
+```

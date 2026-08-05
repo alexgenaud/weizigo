@@ -1,0 +1,5 @@
+# Evidence transcript — r1-p1 (seeded run, python3 3.9.6, 2026-08-05)
+
+```
+key agreement: 1000000 sampled states, mismatches = 0
+```

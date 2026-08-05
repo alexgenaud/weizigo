@@ -1,0 +1,7 @@
+# Evidence transcript — r1-p3 (seeded run, python3 3.9.6, 2026-08-05)
+
+```
+seeded-defect control: GREEN
+clean control: GREEN
+verdict: CALIBRATED
+```
