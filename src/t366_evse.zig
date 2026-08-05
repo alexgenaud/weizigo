@@ -343,6 +343,19 @@ const GameRecord = struct {
 
     classification: enum { genuine_loss, not_attributable, equal_value, outcome_unknown } = .equal_value,
 
+    // mirror: same measurement with roles swapped (new engine is the tested one)
+    mirror_new_result: enum { win, loss, draw } = .draw,
+    mirror_sub_completed: bool = false,
+    mirror_sub_score: i8 = 0,
+    mirror_sub_old_colour_wins: bool = false,
+    mirror_sub_diverged: bool = false,
+    mirror_sub_capped: bool = false,
+    mirror_arb_completed: bool = false,
+    mirror_arb_score: i8 = 0,
+    mirror_arb_old_colour_wins: bool = false,
+    mirror_arb_capped: bool = false,
+    mirror_classification: enum { genuine_loss, not_attributable, equal_value, outcome_unknown } = .equal_value,
+
     sgf_path: []const u8 = "",
 };
 
@@ -573,6 +586,101 @@ fn arbiterPlay(
     return outcome;
 }
 
+/// Mirror measurement (the 'is the new engine strictly better?' question):
+/// the substitution-replay logic with roles swapped. At the TESTED (new)
+/// engine's decision points the reference (old) engine plays; at the old
+/// engine's turns the original moves are replayed (they were the old engine's
+/// own choices). If the OLD engine wins with the NEW engine's colour, the new
+/// engine threw away a winnable position.
+fn mirrorSubstitution(
+    dec: *const artifact.Decoded,
+    opening: *const Opening,
+    tested_colour: i8, // the NEW engine's colour in the original game
+    orig_moves: []const u8,
+) ReplayOutcome {
+    var s = S{ .d = dec, .a2 = null, .enforcement = .psk };
+    s.reset();
+
+    var side: i8 = 1;
+    var mi: usize = 0;
+    var plies: usize = 0;
+    var outcome = ReplayOutcome{ .completed = false, .diverged = false, .capped = false };
+
+    while (plies < PLY_CAP and s.passes < 2 and mi < orig_moves.len) : (plies += 1) {
+        const ref_decision = (side == tested_colour and mi >= opening.len);
+        if (ref_decision) {
+            const c = s.choose(side);
+            s.applyMove(side, c.cell) catch {
+                outcome.diverged = true;
+                return outcome;
+            };
+        } else {
+            const m = orig_moves[mi];
+            if (m == 0) {
+                s.applyMove(side, null) catch {
+                    outcome.diverged = true;
+                    return outcome;
+                };
+            } else {
+                const cell: usize = m - 1;
+                const child = R.pos_from_move(&s.pos, side, cell) catch {
+                    outcome.diverged = true;
+                    return outcome;
+                };
+                if (s.seen(&child)) { // the old engine's rule: PSK
+                    outcome.diverged = true;
+                    return outcome;
+                }
+                s.applyMove(side, cell) catch unreachable;
+            }
+        }
+        side = -side;
+        mi += 1;
+    }
+
+    if (plies >= PLY_CAP) {
+        outcome.capped = true;
+        return outcome;
+    }
+    if (s.passes < 2) {
+        outcome.diverged = true;
+        return outcome;
+    }
+    outcome.completed = true;
+    outcome.score = R.area_score(&s.pos);
+    outcome.old_colour_wins = if (tested_colour > 0) outcome.score > 0 else outcome.score < 0;
+    return outcome;
+}
+
+/// Mirror arbiter: the OLD engine self-plays both colours from the opening;
+/// reports whether it wins with the NEW engine's colour.
+fn mirrorArbiter(
+    dec: *const artifact.Decoded,
+    opening: *const Opening,
+    tested_colour: i8,
+) ReplayOutcome {
+    var s = S{ .d = dec, .a2 = null, .enforcement = .psk };
+    s.reset();
+    playOpening(&s, opening);
+
+    var side: i8 = if (opening.len % 2 == 0) 1 else -1;
+    var plies: usize = 0;
+    while (plies < PLY_CAP and s.passes < 2) : (plies += 1) {
+        const c = s.choose(side);
+        s.applyMove(side, c.cell) catch unreachable;
+        side = -side;
+    }
+    var outcome = ReplayOutcome{ .completed = false, .diverged = false, .capped = false };
+    if (plies >= PLY_CAP) {
+        outcome.capped = true;
+        return outcome;
+    }
+    outcome.completed = s.passes >= 2;
+    outcome.score = R.area_score(&s.pos);
+    outcome.old_colour_wins = if (tested_colour > 0) outcome.score > 0 else outcome.score < 0;
+    return outcome;
+}
+
 /// Outcome-based classification: does the old engine lose (or fail to win) a
 /// game its colour could have drawn/won under better moves? Decided by what
 /// the new engine achieves with the old engine's colour from the same opening
@@ -601,6 +709,46 @@ fn classifyGame(rec: *GameRecord) void {
     else if (better.?)
         .genuine_loss
     else if (rec.old_result == .loss)
+        .not_attributable
+    else
+        .equal_value;
+}
+
+/// Mirror classification: does the NEW engine lose (or fail to win) a game
+/// its colour could have won under the OLD engine's moves? Decided by the old
+/// engine's substitution replay (preferred) or old-engine self-play arbiter.
+fn classifyMirror(rec: *GameRecord) void {
+    const new_colour: i8 = -rec.old_colour;
+    rec.mirror_new_result = if (rec.score > 0)
+        (if (new_colour > 0) .win else .loss)
+    else if (rec.score < 0)
+        (if (new_colour > 0) .loss else .win)
+    else
+        .draw;
+
+    if (rec.mirror_new_result == .win) {
+        rec.mirror_classification = .equal_value;
+        return;
+    }
+    var better: ?bool = null;
+    if (rec.mirror_sub_completed) {
+        if (rec.mirror_new_result == .loss) {
+            better = rec.mirror_sub_old_colour_wins or rec.mirror_sub_score == 0;
+        } else { // draw
+            better = rec.mirror_sub_old_colour_wins;
+        }
+    } else if (rec.mirror_arb_completed) {
+        if (rec.mirror_new_result == .loss) {
+            better = rec.mirror_arb_old_colour_wins or rec.mirror_arb_score == 0;
+        } else { // draw
+            better = rec.mirror_arb_old_colour_wins;
+        }
+    }
+    rec.mirror_classification = if (better == null)
+        .outcome_unknown
+    else if (better.?)
+        .genuine_loss
+    else if (rec.mirror_new_result == .loss)
         .not_attributable
     else
         .equal_value;
@@ -744,6 +892,13 @@ fn frameJson(
     var cross_plys: u64 = 0;
     var in_scope_div: u64 = 0;
     var disagree_total: u64 = 0;
+    var m_genuine: u64 = 0;
+    var m_not_attr: u64 = 0;
+    var m_eqv: u64 = 0;
+    var m_unk: u64 = 0;
+    var m_new_wins: u64 = 0;
+    var m_new_losses: u64 = 0;
+    var m_new_draws: u64 = 0;
     for (games) |g| {
         if (g.has_divergence) div += 1;
         if (g.has_divergence and g.div_in_scope) in_scope_div += 1;
@@ -754,11 +909,22 @@ fn frameJson(
             .equal_value => eqv += 1,
             .outcome_unknown => unk += 1,
         }
+        switch (g.mirror_classification) {
+            .genuine_loss => m_genuine += 1,
+            .not_attributable => m_not_attr += 1,
+            .equal_value => m_eqv += 1,
+            .outcome_unknown => m_unk += 1,
+        }
         if (g.capped) capped += 1;
         switch (g.old_result) {
             .win => old_wins += 1,
             .loss => old_losses += 1,
             .draw => old_draws += 1,
+        }
+        switch (g.mirror_new_result) {
+            .win => m_new_wins += 1,
+            .loss => m_new_losses += 1,
+            .draw => m_new_draws += 1,
         }
         cross_plys += g.cross_ruleset_plys.items.len;
     }
@@ -798,6 +964,22 @@ fn frameJson(
         try j.num(@intCast(k));
     }
     try j.raw("]},\n");
+
+    try j.raw("\"mirror_summary\":{\n\"new_wins\":");
+    try j.num(@intCast(m_new_wins));
+    try j.raw(",\n\"new_losses\":");
+    try j.num(@intCast(m_new_losses));
+    try j.raw(",\n\"new_draws\":");
+    try j.num(@intCast(m_new_draws));
+    try j.raw(",\n\"new_engine_genuine_losses\":");
+    try j.num(@intCast(m_genuine));
+    try j.raw(",\n\"new_engine_loss_not_attributable\":");
+    try j.num(@intCast(m_not_attr));
+    try j.raw(",\n\"new_engine_equal_value\":");
+    try j.num(@intCast(m_eqv));
+    try j.raw(",\n\"new_engine_outcome_unknown\":");
+    try j.num(@intCast(m_unk));
+    try j.raw("},\n");
 
     try j.raw("\"games\":[\n");
     for (games, 0..) |g, i| {
@@ -902,7 +1084,29 @@ fn frameJson(
         try j.num(g.arb_score);
         try j.raw(",\"old_colour_wins\":");
         try j.boole(g.arb_old_colour_wins);
-        try j.raw("}}");
+        try j.raw("},\n\"mirror\":{\"new_result\":");
+        try j.str(@tagName(g.mirror_new_result));
+        try j.raw(",\"mirror_classification\":");
+        try j.str(@tagName(g.mirror_classification));
+        try j.raw(",\"substitution_replay\":{\"completed\":");
+        try j.boole(g.mirror_sub_completed);
+        try j.raw(",\"diverged\":");
+        try j.boole(g.mirror_sub_diverged);
+        try j.raw(",\"capped\":");
+        try j.boole(g.mirror_sub_capped);
+        try j.raw(",\"score\":");
+        try j.num(g.mirror_sub_score);
+        try j.raw(",\"old_engine_wins_with_new_colour\":");
+        try j.boole(g.mirror_sub_old_colour_wins);
+        try j.raw("},\"arbiter_old_self_play\":{\"completed\":");
+        try j.boole(g.mirror_arb_completed);
+        try j.raw(",\"capped\":");
+        try j.boole(g.mirror_arb_capped);
+        try j.raw(",\"score\":");
+        try j.num(g.mirror_arb_score);
+        try j.raw(",\"old_engine_wins_with_new_colour\":");
+        try j.boole(g.mirror_arb_old_colour_wins);
+        try j.raw("}}}"); // closes arbiter_old_self_play, mirror, and the game object
     }
     try j.raw("\n]}\n");
 
@@ -964,6 +1168,24 @@ fn runFrame(
             }
 
             classifyGame(&rec);
+
+            // mirror: the new engine as the tested one (roles swapped)
+            {
+                const msub = mirrorSubstitution(dec, opening, -old_colour, rec.moves.items);
+                rec.mirror_sub_completed = msub.completed;
+                rec.mirror_sub_diverged = msub.diverged;
+                rec.mirror_sub_capped = msub.capped;
+                rec.mirror_sub_score = msub.score;
+                rec.mirror_sub_old_colour_wins = msub.old_colour_wins;
+
+                const msub_arb = mirrorArbiter(dec, opening, -old_colour);
+                rec.mirror_arb_completed = msub_arb.completed;
+                rec.mirror_arb_capped = msub_arb.capped;
+                rec.mirror_arb_score = msub_arb.score;
+                rec.mirror_arb_old_colour_wins = msub_arb.old_colour_wins;
+
+                classifyMirror(&rec);
+            }
 
             if (rec.has_divergence) {
                 var fnamebuf: [96]u8 = undefined;
