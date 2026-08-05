@@ -9,7 +9,7 @@ This document recommends; registering rows and writing delegation packages stays
 Human-visible checkpoints for this roadmap live in `MILESTONES.md` beside this file — the
 tiers below are the dependency truth; the milestones are the same journey as observations.
 
-Governing docs, in authority order: `docs/audits/grand-audit-2026-08-02/DIRECTION.md`
+Governing docs, in authority order: `docs/audits/2026-08-02-grand-audit/DIRECTION.md`
 (+ Amendments 1–2) · `docs/epic-01-markovian/PHASES.md` · `docs/infra/sprint.md` ·
 `docs/infra/human-decisions.md` · STATE.md (working-tree version, see finding 3).
 

@@ -4,9 +4,9 @@
 **Task:** T114 · **Role:** auditor · **Model:** Opus 5 · **Date:** 2026-07-30
 **Target:** `GLOBAL.ADR0006-EYE` — "forbidding a player from filling its own
 Benson-alive true eye does not change the game score"
-**Opened by:** `docs/audits/epistemic-tree-shake-fable-2026-07-30.md` **W1**
+**Opened by:** `docs/audits/2026-07-30-epistemic-tree-shake-fable.md` **W1**
 **Source:** `src/eyeprune_battery.zig` (new; no engine file modified)
-**Stdout:** `docs/audits/eye-prune-validation-2026-07-30.stdout`
+**Stdout:** `docs/audits/2026-07-30-eye-prune-validation.stdout`
 
 ---
 
@@ -438,11 +438,11 @@ Ranked by what the battery could not reach:
 **Do not edit `CLAIMS.md`** (owner's file). Proposed rows for the owner:
 
 ```
-| `GLOBAL.ADR0006-EYE` | — | all | Forbidding a player from filling its own Benson-alive true eye does not change the game score (weak dominance under area scoring) | CLAIMED | `0006:27-49`; `docs/audits/eye-prune-validation-2026-07-30.md` | `d:GLOBAL.S2`, `d:GLOBAL.S4` | (unchanged) | ? | ? |
-| `GLOBAL.ADR0006-PRED` | — | all | The shipped eye-prune predicate fires on genuine eyes of Benson-alive groups and never on false eyes, one-eye groups, big-eye space or opponent eyes; both implementations agree | PROVEN | `eye-prune-validation-2026-07-30.md` §3 (17/17 fixtures; 0/3,999,936 cross-impl mismatches) | `e:GLOBAL.S2` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
-| `GLOBAL.ADR0006-LEMMAS` | — | 2×2/3×2/3×3/4×3/4×4 | The six premises of ADR-0006's soundness argument (fill legal, area invariant, opponent-suicide, no capture, no new life either side) hold for every own true eye | PROVEN (per board listed) | `eye-prune-validation-2026-07-30.md` §8 (0 violations; 1,362,424 eyes at 4×4) | `e:GLOBAL.S2`, `e:GLOBAL.S4` | `GLOBAL.ADR0006-EYE` | 0 | n/a (exact) |
-| `GLOBAL.ADR0006-TEST` | — | 2×2/3×2/3×3/4×3 | The eye-pruned forward search agrees with the unpruned retrograde table on every non-KO_SENSITIVE, non-FROM_FORWARD slot it can resolve (4,212 slots, 0 disagreements; 4×3 is a 1-in-8 sample) | PROVEN (executed 2026-07-30, scoped) | `eye-prune-validation-2026-07-30.md` §6 | `d:GLOBAL.ADR0009-NOEYE` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
-| `GLOBAL.ADR0006-PRUNEALL` | — | 2×2/3×2/3×3/4×3/4×4 | Positions where the prune removes every legal board move are `is_settled` terminals below 4×4; at 4×4 there are 96 live such pairs, all valued identically by the eye-pruned forward search and the unpruned retrograde table | PROVEN (per board listed) | `eye-prune-validation-2026-07-30.md` §4, §J | `d:GLOBAL.ADR0006-EYE`, `e:4x4` checkpoint | `GLOBAL.F3` (empty-move-list handling) | 0 | n/a (exact) |
+| `GLOBAL.ADR0006-EYE` | — | all | Forbidding a player from filling its own Benson-alive true eye does not change the game score (weak dominance under area scoring) | CLAIMED | `0006:27-49`; `docs/audits/2026-07-30-eye-prune-validation.md` | `d:GLOBAL.S2`, `d:GLOBAL.S4` | (unchanged) | ? | ? |
+| `GLOBAL.ADR0006-PRED` | — | all | The shipped eye-prune predicate fires on genuine eyes of Benson-alive groups and never on false eyes, one-eye groups, big-eye space or opponent eyes; both implementations agree | PROVEN | `2026-07-30-eye-prune-validation.md` §3 (17/17 fixtures; 0/3,999,936 cross-impl mismatches) | `e:GLOBAL.S2` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
+| `GLOBAL.ADR0006-LEMMAS` | — | 2×2/3×2/3×3/4×3/4×4 | The six premises of ADR-0006's soundness argument (fill legal, area invariant, opponent-suicide, no capture, no new life either side) hold for every own true eye | PROVEN (per board listed) | `2026-07-30-eye-prune-validation.md` §8 (0 violations; 1,362,424 eyes at 4×4) | `e:GLOBAL.S2`, `e:GLOBAL.S4` | `GLOBAL.ADR0006-EYE` | 0 | n/a (exact) |
+| `GLOBAL.ADR0006-TEST` | — | 2×2/3×2/3×3/4×3 | The eye-pruned forward search agrees with the unpruned retrograde table on every non-KO_SENSITIVE, non-FROM_FORWARD slot it can resolve (4,212 slots, 0 disagreements; 4×3 is a 1-in-8 sample) | PROVEN (executed 2026-07-30, scoped) | `2026-07-30-eye-prune-validation.md` §6 | `d:GLOBAL.ADR0009-NOEYE` | `GLOBAL.ADR0006-EYE` | 0 | see §7 |
+| `GLOBAL.ADR0006-PRUNEALL` | — | 2×2/3×2/3×3/4×3/4×4 | Positions where the prune removes every legal board move are `is_settled` terminals below 4×4; at 4×4 there are 96 live such pairs, all valued identically by the eye-pruned forward search and the unpruned retrograde table | PROVEN (per board listed) | `2026-07-30-eye-prune-validation.md` §4, §J | `d:GLOBAL.ADR0006-EYE`, `e:4x4` checkpoint | `GLOBAL.F3` (empty-move-list handling) | 0 | n/a (exact) |
 ```
 
 `GLOBAL.ADR0006-EYE` should **stay CLAIMED**. Nothing here promotes it: the

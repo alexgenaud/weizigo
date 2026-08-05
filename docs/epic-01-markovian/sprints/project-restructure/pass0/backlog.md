@@ -40,7 +40,7 @@ demote the claim.
 | 3 | `untracked/T02-audit-kimi.md` | leak-crisis.md, evidence/README.md | 23 rows | accept — recorded in loss inventory | — | Confirmed lost. |
 | 4 | `untracked/T02-minimax.md` | leak-crisis.md, evidence column, evidence/README.md | 23 rows | accept — recorded in loss inventory | — | Confirmed lost. |
 | 5 | `untracked/B39-arena4x4.md` | research/arena-4x4-undef.md, evidence/README.md | 8 rows | accept — recorded in loss inventory | — | Confirmed lost. |
-| 6 | `/tmp/audit-2x2-mismatch.log` | audits/audit-2x2-mismatch-2026-07-30.md | 4 rows | accept — ephemeral path | — | `/tmp/` paths are ephemeral by design. The audit document records the findings. |
+| 6 | `/tmp/audit-2x2-mismatch.log` | audits/2026-07-30-audit-2x2-mismatch.md | 4 rows | accept — ephemeral path | — | `/tmp/` paths are ephemeral by design. The audit document records the findings. |
 | 7 | `untracked/T13-minimax.md` | research/c2-falsification-3x2.md, evidence/T13/, evidence/README.md | 3 rows | backlog — investigate recoverability | T13 owner | T13 is the C2 falsification; its minimax artifact is lost. The probe reimplementation exists. Determine if the original can be reconstructed. |
 | 8 | `untracked/c2pilot_3x2.zig` | research/c2-falsification-3x2.md, evidence/T13/, evidence/README.md | 3 rows | backlog — investigate recoverability | T13 owner | T13's pilot source is lost. |
 | 9 | `/tmp/zig-tables.txt` | evidence/T13/probe-reimplementation-2026-07-30.md | 1 row | accept — ephemeral path | — | `/tmp/` path. |

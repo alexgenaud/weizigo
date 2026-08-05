@@ -154,7 +154,7 @@ independent re-implementation — remains a practice with no enforcement, and th
   shows), and spec.md:52's own regression contract ("status 1>/dev/null is silent") is broken
   by the version banner.
 - **Evidence citing `/tmp`** — `m4a-accept-T212` cites two vanished `/tmp/weizigo/` logs;
-  `audit-2x2-mismatch-2026-07-30.md` cites `/tmp/audit-2x2-mismatch.log`, reachable from 4
+  `2026-07-30-audit-2x2-mismatch.md` cites `/tmp/audit-2x2-mismatch.log`, reachable from 4
   register rows. AGENTS.md:183-185 says verbatim this must never happen. These are the two
   paths that pushed C2 past its ratchet.
 - Note on a foreclosure's wording: `data/` is fully gitignored, so "the **committed**

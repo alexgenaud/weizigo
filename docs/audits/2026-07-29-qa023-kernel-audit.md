@@ -5,7 +5,7 @@
 **Date:** 2026-07-29  
 **Scope:** read-only audit; propose only. `src/`, `CLAIMS.md`, and existing deliverables were not edited.
 
-Independent verifier: `docs/audits/qa023-kernel-audit-2026-07-29.py` (Python 3, reimplements the 3×2/2×2 rules and both fixpoint kernels from scratch; no Zig code imported).
+Independent verifier: `docs/audits/2026-07-29-qa023-kernel-audit.py` (Python 3, reimplements the 3×2/2×2 rules and both fixpoint kernels from scratch; no Zig code imported).
 
 ## Executive summary
 
@@ -146,7 +146,7 @@ zig run -O ReleaseFast src/qa023_probe.zig -- fixpoint-3x2
 # pin census:  L==H=948  L<H&pin_T=1532  L<H&pin_L=142  L<H&pin_H=0
 
 # independent Python verifier
-python3 docs/audits/qa023-kernel-audit-2026-07-29.py
+python3 docs/audits/2026-07-29-qa023-kernel-audit.py
 ```
 
 Key Python verifier outputs (condensed):
@@ -168,6 +168,6 @@ corrected:  pin=2232/322/34/34  residual L=0 H=0    inversion=0    groups=24
 
 ## 9. Identifiers and provenance
 
-- Independent verifier source: `docs/audits/qa023-kernel-audit-2026-07-29.py`
-- This audit report: `docs/audits/qa023-kernel-audit-2026-07-29.md`
+- Independent verifier source: `docs/audits/2026-07-29-qa023-kernel-audit.py`
+- This audit report: `docs/audits/2026-07-29-qa023-kernel-audit.md`
 - Reference files read: `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`, `src/qa023_probe.zig:880-1070`, `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`, `docs/decisions/0019-first-revisit-truncation-is-the-rule-median-pin-is-falsified.md`, `AGENTS.md`.

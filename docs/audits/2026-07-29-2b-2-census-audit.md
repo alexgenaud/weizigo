@@ -137,7 +137,7 @@ rather than threatens the conclusion.
 
 ## Files produced
 
-- `docs/audits/2b-2-census-audit-2026-07-29.md` (this file)
+- `docs/audits/2026-07-29-2b-2-census-audit.md` (this file)
 - `docs/evidence/AUDIT-2B-2/independent_graph_check.py`
 - `docs/evidence/AUDIT-2B-2/bounded_cycle_count.py`
 - `docs/evidence/AUDIT-2B-2/independent_check.stdout`

@@ -36,4 +36,4 @@ Three states. Either the Python port over-trimmed, or the Zig still seeds someth
 
 **Suggested seat:** the kernel auditor — it found the gap, it already holds the census context, and this is **not** self-review (`F1-SEEDROOTS` was a different worker's work). A good use of a seat that is otherwise idle behind a blocked `EXP-4`.
 
-**Read first:** `docs/evidence/QA-023/f1-seedroots-2026-07-29.md`, `docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md` §7 (the 2,583 prediction), `docs/audits/2b-2-census-audit-opus5-2026-07-29.md` (finding F1).
+**Read first:** `docs/evidence/QA-023/f1-seedroots-2026-07-29.md`, `docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md` §7 (the 2,583 prediction), `docs/audits/2026-07-29-2b-2-census-audit-opus5.md` (finding F1).

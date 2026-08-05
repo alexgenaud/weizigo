@@ -30,7 +30,7 @@ evidence, §5):
 | independent Python kernel, 3×2 | 2,586 states, reachable-set exact | **0 mismatches** |
 | independent Python kernel, 3×3 | 73,758 states, reachable-set exact | **0 mismatches** |
 
-The run log: `docs/audits/audit-exp6-hchain-2026-07-30.stdout` (79,103 lines;
+The run log: `docs/audits/2026-07-30-audit-exp6-hchain.stdout` (79,103 lines;
 exit 0; 3,137 MB peak RSS; 3,322.8 s wall under `tools/runner` ceilings
 8192 MB / 14400 s — the same ceilings as production).
 
@@ -173,10 +173,10 @@ raw log; the centre-start line, where the premise holds, is violation-free.
 
 ## 4. Independent Python kernel check (true re-implementation)
 
-`docs/audits/exp6-hchain-kernel-check-2026-07-30.py` (rules core from the QA023
+`docs/audits/2026-07-30-exp6-hchain-kernel-check.py` (rules core from the QA023
 kernel audit — the instrument class that found F5; satisfies "independent
 re-implementation is what finds defects") vs the harness's dumped tables.
-Output committed at `docs/audits/exp6-hchain-kernel-check-2026-07-30.stdout`:
+Output committed at `docs/audits/2026-07-30-exp6-hchain-kernel-check.stdout`:
 
 | goban | denominator | reach-set equality | value mismatches | inversion | white p=1 mixed H==top |
 |---|---|---|---|---|---|
@@ -234,9 +234,9 @@ values, now measured by this audit's run: (1B@0,W,0) = (−16,−16);
 
 ## 8. Evidence & files
 
-- `docs/audits/audit-exp6-hchain-2026-07-30.stdout` — full run log (79,103
+- `docs/audits/2026-07-30-audit-exp6-hchain.stdout` — full run log (79,103
   lines; runner exit 0; 3,137 MB peak; 3,322.8 s)
-- `docs/audits/exp6-hchain-kernel-check-2026-07-30.py` + `.stdout` —
+- `docs/audits/2026-07-30-exp6-hchain-kernel-check.py` + `.stdout` —
   independent kernel check, exit 0, all PASS
 - `src/exp6_hchain_audit.zig` — faithful-copy instrument (post-convergence,
   read-only audits only: verify / inversion / firstmove / trace A / trace B;

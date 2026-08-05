@@ -10,7 +10,7 @@ truncation. The divergence was NOT semantic — it was a single shared successor
 buffer threaded through recursive calls in src/exp4_solve.zig:555-594.
 
 With the defect understood and independently reproduced (see
-docs/audits/audit-2x2-mismatch-2026-07-30.md), this fixture locks in the
+docs/audits/2026-07-30-audit-2x2-mismatch.md), this fixture locks in the
 corrected relationship: 0 mismatches, all 24 states at ±4 from both
 evaluators.
 

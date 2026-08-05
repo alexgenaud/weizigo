@@ -504,6 +504,6 @@ that.
 
 ## 8. Files
 
-- `docs/audits/2b-6-full-review-2026-07-29.md` — this file.
+- `docs/audits/2026-07-29-2b-6-full-review.md` — this file.
 - No evidence files produced — read-only audit. Verification by hand
   computation and source-code review, not by re-measurement.

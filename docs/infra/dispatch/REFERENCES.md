@@ -1,7 +1,7 @@
 <!--managent set=R-->
 # REFERENCES — build the bibliography the project has never had, and fix three citation defects
 
-**Opened by:** `docs/audits/AUDIT-REF-DSPro-2026-07-29.md`, assessed by the Orchestrator. ANALYSIS + new file; no engine file, no `CLAIMS.md`.
+**Opened by:** `docs/audits/2026-07-29-AUDIT-REF-DSPro.md`, assessed by the Orchestrator. ANALYSIS + new file; no engine file, no `CLAIMS.md`.
 
 ## Why
 
@@ -43,4 +43,4 @@ For each, mark **independently reproduced** / **implemented without external cro
 
 ## Deliverable
 
-`docs/references.md` + the source-doc edits + archived sources. **Read first:** `docs/audits/AUDIT-REF-DSPro-2026-07-29.md` (the full audit — the summary above is compressed), `GLOSSARY.md`'s entry block.
+`docs/references.md` + the source-doc edits + archived sources. **Read first:** `docs/audits/2026-07-29-AUDIT-REF-DSPro.md` (the full audit — the summary above is compressed), `GLOSSARY.md`'s entry block.

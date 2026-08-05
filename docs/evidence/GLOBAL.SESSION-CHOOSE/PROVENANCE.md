@@ -47,7 +47,7 @@ VERIFIED.**
 **Calibration case (per P3):** the audit's sensitivity was demonstrated by the
 two brief-accuracy findings it caught (the claim is in HANDOVER.md §"Gotchas",
 not AGENTS.md §"Gotchas"; the relying opus verdict is
-`docs/audits/muhtasib-audit-chunk2-2026-07-28.md:48`, not
+`docs/audits/2026-07-28-muhtasib-audit-chunk2.md:48`, not
 `docs/evidence/QA-023/audit-opus-2026-07-28.md`) and by the H5a check, which
 located the two concrete wrinkles a searcher-hypothesis would have broken
 (early-game override at src/gtp.zig:208–224; the `v1_from_table` pass pricing

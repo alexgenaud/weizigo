@@ -17,6 +17,20 @@ TODO: record the general facts about each model. Then keep notes of each model i
 
 ## Model versions (record here as they change)
 
+- **TEMPORARY default — operator ruling 2026-08-05 (widened same day), expires 2026-08-12:**
+  `deepseek-v4-flash` is the **default model for ALL new dispatches this week — worker rows
+  AND sprint-manager consoles** — unless a clear weakness is discovered for a specific task
+  type or role; record any such weakness here, with the row that showed it, and carve that
+  task type out rather than reverting wholesale. The operator's reasoning, recorded: the
+  project has no experience/data entitling it to say "not for this role"; default-to-Flash
+  until the ledger says otherwise. First live sprint-manager trial: the next sprint package
+  dispatched (T363 is queued). Risk containment is the existing machinery, not model choice:
+  inbox checkpoints, heartbeats, the Orchestrator's review of the sprint's accept doc, and
+  the discharge ruling still gates — a weak sprint manager costs time, never truth.
+  This doubles as the alternative-hypothesis test the Belief audit (below) says is missing:
+  a week of Flash-allocated rows across task types generates the Pro-vs-Flash comparison
+  data that the old always-Pro default structurally could not. At expiry: re-rule on the
+  week's ledger, don't let the temporary default silently become a decided one.
 - **deepseek-v4-flash — preview-channel bump, reported 2026-08-05 (operator).** DeepSeek
   updated its models without changing the V4 version string; Flash is reportedly on a
   "preview state" and may be cheaper and stronger than Pro on many tasks. The canonical
@@ -46,6 +60,58 @@ TODO: record the general facts about each model. Then keep notes of each model i
 - **Fable** (hardest reasoning tasks, documents over implementation) —
   allocated 2026-07-28 (D-7); first dispatch EXP-2 Part A (returned
   REPAIRABLE-GAPS, repaired, 2026-07-28).
+
+## Belief audit — what we think we know about models, 2026-08-05 (Fable, operator-ordered)
+
+**The operator's finding, recorded as a standing correction:** model-allocation beliefs in
+this project were largely *decided* early, then data was collected under those allocations —
+which can only confirm them. A model that never gets hard rows never fails one; a seat only
+one family ever held has no comparator. From here on, allocation beliefs are **hypotheses**,
+and the T328 head-to-head protocol is how they earn or lose their standing. This section is
+the baseline snapshot to race against.
+
+**Class A — measured (harness-reported or counted; trust as stated):**
+- Context windows table below (model × harness).
+- Ledger verdict counts (2026-08-05, all 138 rows): deepseek-v4-pro 41 pass / 11
+  pass-with-findings / 11 abandoned; deepseek-v4-flash 17/1/0; glm-5.2 ~10 with 3
+  amendments; minimax-m3 4/1; kimi-k2.7 3 rows. **Counts are real; rankings drawn from
+  them are not** — see Class B.
+- Identity doctrine: introspection unreliable (2/2 wrong), told-identity echo reliable (4/4).
+- deepseek-v4-flash post-bump: T365 sweep at ~37 k tokens (`3.7%/1.0M`) near completion.
+
+**Class B — observational, confounded by allocation (plausible; not evidence of ranking):**
+- "DS Pro strong at code but dies at 4×4 scale" — it *got* the biggest rows because it was
+  the default; its RSS-kills happened where no other model was ever sent.
+- "glm-5.2 clean on leaf rows", "minimax-m3 good at infra rows" — each measured only where
+  it was allocated; no same-row comparator exists for any of these readings.
+- "Opus is a good Orchestrator" — the seat's best recorded acts (the 22-entry-sample catch)
+  and worst (the kill -9 sweep) both belong to the only family seated under current tooling.
+  n=1 family, zero comparators.
+
+**Class C — decided, never tested (hypotheses awaiting a race):**
+- Opus for orchestration; DeepSeek as default worker; Fable only for deep holistic work;
+  "not DeepSeek for Zig"; Pro over Flash for subdelegating rows. Each was an allocation
+  ruling. None has head-to-head data. The Pro-vs-Flash race (first, per operator demand)
+  and the orchestrator-aspect races below convert these to Class A or kill them.
+
+**Racing the orchestrator role without seating anyone.** The role decomposes into bounded,
+answer-keyed tasks, each dispatchable to N models under the T328 protocol:
+1. **Triage** — given a findings dump, register the right rows with correct `needs`/`holds`
+   (scored against a sealed key).
+2. **Verdict discipline** — a delivered row with a planted flaw (e.g. a pass condition with
+   no denominator) must be refused; the 22-entry-sample catch is the canonical seeded test.
+3. **Inbox handling** — drain a seeded directive backlog correctly (acks, kills, amends).
+4. **Crash recovery** — from `managent resume` + STATE.md alone, state the correct next
+   three actions (keyed).
+5. **Dispatch authoring** — write the delegation package for a known row; blind-graded.
+
+**The direction that makes the races matter:** keep shrinking the seat mechanically —
+`resume` (T286), inbox loop (T355), reap (T364), orient (T353), a scorecard subcommand —
+until the residual orchestrator is a checklist a cheap model (or eventually a script)
+executes, with drift caught by periodic deep audits (the operator's ~daily Fable/audit
+spawns) whose job is "get the project back on track", not continuous supervision. The
+cheapest model that passes the aspect races gets the seat; the audit cadence is the safety
+net that makes that experiment reversible.
 
 ## Context windows (model × harness) — consolidated 2026-08-03
 
@@ -203,7 +269,7 @@ a 225-line audit plus a `PROVENANCE.md` (per
   log -S` empty); the verbatim form lives in HANDOVER.md
   §“Gotchas” (:61–63); HANDOVER §“Critical state” does not
   repeat it. The relying opus verdict is
-  `docs/audits/muhtasib-audit-chunk2-2026-07-28.md:48`
+  `docs/audits/2026-07-28-muhtasib-audit-chunk2.md:48`
   (Auditor chunk 2, in flight), not
   `audit-opus-2026-07-28.md`. This is a real claim-location
   correction: I cited AGENTS.md in the brief, the claim is in
@@ -1736,7 +1802,7 @@ the solver (only rules/colex/artifact/score imports at :55–58);
 **Substantive secondary finding (worker caught, I missed):** the
 claim is **not in AGENTS.md** at any commit. It lives in HANDOVER.md
 §"Gotchas" (:61–63). The relying opus verdict is
-`docs/audits/muhtasib-audit-chunk2-2026-07-28.md:48` (Auditor
+`docs/audits/2026-07-28-muhtasib-audit-chunk2.md:48` (Auditor
 chunk 2), not `audit-opus-2026-07-28.md`. This is a real claim-
 location correction, not a stylistic nit: AGENTS.md is the
 standing rule-of-everyone; HANDOVER.md is a per-session tactical
@@ -2487,7 +2553,7 @@ over the raw ledger is wrong; this is the corrected count.
 | **unattributed** | **1** | 1 (EXP-7, `agent` field held the task ID) |
 
 `AUDIT-TRAJECTORY` and `T100` are the **same work** — identical bundle
-(`docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md`), same agent.
+(`docs/audits/2026-07-30-epistemic-trajectory-audit-fable.md`), same agent.
 Fable's honest unique count is 4, and the total is 59 unique work items, not 60.
 The prior session summary's "32 tasks across 7 models" counted the 2026-07-30
 wave only; this table is the whole purged ledger.
@@ -2523,7 +2589,7 @@ Six gaps were registered as **T123–T128**; the two most consequential:
   load-bearing falsification, twenty-four hours after T110 reproduced it. The
   same row states "12 mismatches" where T110 measured 154 of 508 (30.3%).
 - **T114 wrote five `CLAIMS.md` rows, pre-formatted for insertion**
-  (`eye-prune-validation-2026-07-30.md:441-445`). None were pasted. The worker
+  (`2026-07-30-eye-prune-validation.md:441-445`). None were pasted. The worker
   did the register seat's typing for it and the register seat still did not
   paste.
 

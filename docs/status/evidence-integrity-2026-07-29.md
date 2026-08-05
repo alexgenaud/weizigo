@@ -3,7 +3,7 @@
 **Task:** EVIDENCE-INTEGRITY set N. **Agent:** DSPro. **Model:** not stated at dispatch.
 
 Per `docs/infra/dispatch/EVIDENCE-INTEGRITY.md` and
-`docs/audits/AUDIT-DSPro-2026-07-29.md` §2.4–§2.7, §3.2.
+`docs/audits/2026-07-29-AUDIT-DSPro.md` §2.4–§2.7, §3.2.
 
 ## What moved
 

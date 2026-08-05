@@ -120,7 +120,7 @@ That is the separate family of `S2-impl` rows, one per goban size:
 These rows are implementation-regression claims and must be closed by
 falsification-testing the `rules.zig` / `terminal.zig` `benson_alive`
 routines at each size against naive Benson or an independent reference.
-The tree-shake's L4 (`docs/audits/t101-punchlist-2026-07-30.md` §1) is the
+The tree-shake's L4 (`docs/audits/2026-07-30-t101-punchlist.md` §1) is the
 recommended companion wave — a Benson regression battery at 4×4 and 4×3.
 
 **Dependents that rest on `GLOBAL.S2`** (the theorem, not the implementation):

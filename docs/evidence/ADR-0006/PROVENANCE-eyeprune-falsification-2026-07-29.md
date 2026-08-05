@@ -21,6 +21,6 @@
 - **Denominator:** 1,050 pairs → 824 live (226 settled, vacuous).
 - **Control arm:** Not the unpruned game value — the always-cache memo is unsound under superko.
 - **Calibration:** Random-cell prune (22.5% pass rate) does not model real defects.
-  See `docs/audits/eye-prune-validation-2026-07-30.md` §4–§7.
+  See `docs/audits/2026-07-30-eye-prune-validation.md` §4–§7.
 
 The numbers above are **retained as originally published**.

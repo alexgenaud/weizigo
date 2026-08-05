@@ -26,7 +26,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | claim ID | status | evidence |
 |---|---|---|
 | `2x2.B1` | CLAIMED | `leak-crisis.md:86-101`. **No durable evidence file — primary evidence (`untracked/T02-minimax.md`) lost; only a prose summary survives. Downgraded PROVEN→CLAIMED 2026-07-29 (evidence-integrity sweep).** |
-| `2x2.BASICKO-TIE` | MEASUREMENT | `docs/evidence/QA-026/PROVENANCE.md`; `docs/evidence/QA-026/exp4-solve-2026-07-29.stdout`; `docs/audits/audit-2x2-mismatch-2026-07-30.md` |
+| `2x2.BASICKO-TIE` | MEASUREMENT | `docs/evidence/QA-026/PROVENANCE.md`; `docs/evidence/QA-026/exp4-solve-2026-07-29.stdout`; `docs/audits/2026-07-30-audit-2x2-mismatch.md` |
 | `2x2.C1` | PROVEN | `leak-crisis.md:24`; `PROGRESS.md:126` |
 | `2x2.C3` | MEASUREMENT | `leak-crisis.md:72` |
 | `2x2.EXACT` | MEASUREMENT | `retrograde-3x3.md:74-82` |
@@ -36,7 +36,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `2x2.R3` | MEASUREMENT | `ruleset-options.md:91,98` |
 | `2x2.T12` | MEASUREMENT | `4x4/EPISTEMIC.md:255-257,287-288` |
 | `3x2.B1` | CLAIMED | `leak-crisis.md:86-101`. **No durable evidence file — primary evidence (`untracked/T02-minimax.md`) lost; only a prose summary survives. Downgraded PROVEN→CLAIMED 2026-07-29 (evidence-integrity sweep).** |
-| `3x2.BASICKO-TIE` | MEASUREMENT | `docs/evidence/QA-026/PROVENANCE.md`; `docs/evidence/QA-026/exp4-solve-2026-07-29.stdout`; `docs/audits/audit-2x2-mismatch-2026-07-30.md` |
+| `3x2.BASICKO-TIE` | MEASUREMENT | `docs/evidence/QA-026/PROVENANCE.md`; `docs/evidence/QA-026/exp4-solve-2026-07-29.stdout`; `docs/audits/2026-07-30-audit-2x2-mismatch.md` |
 | `3x2.C1` | PROVEN | `leak-crisis.md:24`; `c2-falsification-3x2.md:56-57` (0/540 L==H fresh-start mismatches) |
 | `3x2.C3` | MEASUREMENT | `leak-crisis.md:73` |
 | `3x2.EXACT` | MEASUREMENT | `retrograde-3x3.md:50-52,141` |
@@ -50,7 +50,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `3x2.T13` | PROVEN (falsification) | `docs/evidence/T13/probe-reimplementation-2026-07-30.md` §4,§8; `docs/evidence/T13/t13_probe.py`, `zig_t13_replay.zig`; `docs/research/c2-falsification-3x2.md:15-16,45-95` |
 | `3x3.ANCHOR` | MEASUREMENT | `retrograde-3x3.md:183-185`; `0008:45-47` |
 | `3x3.B1` | CLAIMED | `leak-crisis.md:56-61,86-101`; `4x4/EPISTEMIC.md:60-62`. **No durable evidence file — primary evidence (`untracked/T02-minimax.md`) lost; only a prose summary survives. Downgraded PROVEN→CLAIMED 2026-07-29 (evidence-integrity sweep).** |
-| `3x3.BASICKO-TIE` | MEASUREMENT | `docs/evidence/QA-026/3x3/PROVENANCE.md`; `docs/evidence/QA-026/3x3/exp5-solve-2026-07-29.stdout`; `docs/audits/audit-2x2-mismatch-2026-07-30.md` |
+| `3x3.BASICKO-TIE` | MEASUREMENT | `docs/evidence/QA-026/3x3/PROVENANCE.md`; `docs/evidence/QA-026/3x3/exp5-solve-2026-07-29.stdout`; `docs/audits/2026-07-30-audit-2x2-mismatch.md` |
 | `3x3.BRACKET` | MEASUREMENT | `retrograde-3x3.md:102-110`; `ruleset-options.md:211` |
 | `3x3.C1` | CLAIMED | `PROGRESS.md:210` |
 | `3x3.C2` | UNTESTED | `PROGRESS.md:212-213` |
@@ -167,11 +167,11 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.ADR0005-DBLPASS` | CLAIMED (argued, not machine-checked) | `0005:61-63` |
 | `GLOBAL.ADR0005-PASS` | PROVEN | `0005:47-50` |
 | `GLOBAL.ADR0005-SUBBOARD` | PROVEN | `0005:5-9`; `AGENTS.md:80-81` |
-| `GLOBAL.ADR0006-EYE` | CLAIMED | `0006:27-49`; `docs/audits/eye-prune-validation-2026-07-30.md` |
-| `GLOBAL.ADR0006-LEMMAS` | PROVEN (per goban listed) | `eye-prune-validation-2026-07-30.md` §8 (0 violations; 1,362,424 eyes at 4×4) |
-| `GLOBAL.ADR0006-PRED` | PROVEN | `eye-prune-validation-2026-07-30.md` §3 (17/17 fixtures; 0/3,999,936 cross-impl mismatches) |
-| `GLOBAL.ADR0006-PRUNEALL` | PROVEN (per goban listed) | `eye-prune-validation-2026-07-30.md` §4, §J |
-| `GLOBAL.ADR0006-TEST` | PROVEN (executed 2026-07-30, scoped) | `eye-prune-validation-2026-07-30.md` §6 |
+| `GLOBAL.ADR0006-EYE` | CLAIMED | `0006:27-49`; `docs/audits/2026-07-30-eye-prune-validation.md` |
+| `GLOBAL.ADR0006-LEMMAS` | PROVEN (per goban listed) | `2026-07-30-eye-prune-validation.md` §8 (0 violations; 1,362,424 eyes at 4×4) |
+| `GLOBAL.ADR0006-PRED` | PROVEN | `2026-07-30-eye-prune-validation.md` §3 (17/17 fixtures; 0/3,999,936 cross-impl mismatches) |
+| `GLOBAL.ADR0006-PRUNEALL` | PROVEN (per goban listed) | `2026-07-30-eye-prune-validation.md` §4, §J |
+| `GLOBAL.ADR0006-TEST` | PROVEN (executed 2026-07-30, scoped) | `2026-07-30-eye-prune-validation.md` §6 |
 | `GLOBAL.ADR0007-AB` | PROVEN | `0007:25-28` |
 | `GLOBAL.ADR0007-BACKEDGE` | PROVEN | `0007:30-33`; `0009:41-46` |
 | `GLOBAL.ADR0007-TENSION` | CLAIMED (open in ADR-0007; resolved by `GLOBAL.ADR0009-NOEYE`, never recorded as such in ADR-0007) | `0007:37-43` |
@@ -215,7 +215,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.B1-AUDIT` | PROVEN | `leak-crisis.md:99-101`; `4x4/EPISTEMIC.md:90-97`; `CONCEPTS.md:29-30` |
 | `GLOBAL.B1-MULTIFIX` | MEASUREMENT | `leak-crisis.md:93-99` |
 | `GLOBAL.B15` | CLAIMED | `artifacts/SHA256SUMS` |
-| `GLOBAL.BRUTE-ALIASING` | FALSE (methodological) | `docs/audits/audit-2x2-mismatch-2026-07-30.md` §1,§6; `docs/audits/audit-2x2-mismatch-2026-07-30.py` |
+| `GLOBAL.BRUTE-ALIASING` | FALSE (methodological) | `docs/audits/2026-07-30-audit-2x2-mismatch.md` §1,§6; `docs/audits/2026-07-30-audit-2x2-mismatch.py` |
 | `GLOBAL.C-1` | FALSE-AS-SCOPED | `corrections:175-201` |
 | `GLOBAL.C1` | — (definition) | `CONCEPTS.md:50-53`; `leak-crisis.md:24` |
 | `GLOBAL.C2` | FALSE-AS-SCOPED (at 3×2) | `leak-crisis.md:25`; `PROGRESS.md:127`; `AGENTS.md:68-73` |
@@ -247,7 +247,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.FP3` | PROVEN | `CONCEPTS.md:43-46`; `4x3/EPISTEMIC.md:31` |
 | `GLOBAL.FWD-INTRACT` | PROVEN | `retrograde-3x3.md:17-21,39-58` |
 | `GLOBAL.H1-CENSUS` | PROVEN | `docs/evidence/GLOBAL.H1-CENSUS/4x4-standard.txt`; `docs/evidence/GLOBAL.H1-CENSUS/PROVENANCE.md`; `kostate-census-2026-07-28.md:23,228-241`; calibration at 4×4: `4x4-ko-disabled.txt` (known-good), `4x4-broken-every_capture.txt` (known-bad, +91%) |
-| `GLOBAL.H1-COMPUTABLE` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `docs/audits/qa023-kernel-audit-2026-07-29.md`; `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md` |
+| `GLOBAL.H1-COMPUTABLE` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2026-07-29-2b-6-full-review.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `docs/audits/2026-07-29-qa023-kernel-audit.md`; `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md` |
 | `GLOBAL.H1-MARKOV` | UNTESTED | `open-hypotheses:30-118`; `PROGRESS.md:169-183`; `docs/audits/2b-3-audit-*.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md` §3 |
 | `GLOBAL.H2` | UNTESTED | `open-hypotheses:122-166` |
 | `GLOBAL.H3` | UNTESTED | `open-hypotheses:170-214` |
@@ -264,7 +264,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.H5d` | CLAIMED | `open-hypotheses:288-289`; `ko-sensitive-chainability.md:288-289`; `AGENTS.md:71-73` |
 | `GLOBAL.INVSYM` | PROVEN | `0009:102-107,148-157`; `0008:48-51,54-60`; `AGENTS.md:75-77`; `docs/evidence/GLOBAL-INVSYM/proof-2026-07-30.md` |
 | `GLOBAL.LEAK` | PROVEN | `leak-crisis.md:9-14`; `PROGRESS.md:110-121` |
-| `GLOBAL.LONGCYCLE` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `open-hypotheses:92-103` |
+| `GLOBAL.LONGCYCLE` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2026-07-29-2b-6-full-review.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `open-hypotheses:92-103` |
 | `GLOBAL.MAXGAP` | CLAIMED | `ko-sensitive-chainability.md:94-100`; `PROGRESS.md:98-102` |
 | `GLOBAL.MEMO-XROOT` | PROVEN (falsification) | `retrograde-3x3.md:23-37`; `0010:63-66` |
 | `GLOBAL.MIGOS-RULE` | PROVEN | `retrograde-3x3.md:222-241` |
@@ -310,7 +310,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `QA-010` | CLAIMED | `critique-2026-07-28.md:368`; `PROGRESS.md:169-183` |
 | `QA-011` | CLAIMED | `critique-2026-07-28.md:369`; `open-hypotheses:30-118` |
 | `QA-012` | UNTESTED | `critique-2026-07-28.md:370`; `roadmap-2026-07-28.md:302-307`; `docs/research/psk-divergence-2026-07-29.md`; `docs/evidence/QA-012/` |
-| `QA-013` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `critique-2026-07-28.md:371`; `open-hypotheses:92-103` |
+| `QA-013` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2026-07-29-2b-6-full-review.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `critique-2026-07-28.md:371`; `open-hypotheses:92-103` |
 | `QA-014` | UNTESTED | `critique-2026-07-28.md:372`; `ko-sensitive-chainability.md:24-33` |
 | `QA-015` | CLAIMED (**DECIDED 2026-07-28** — D-2, Opus + GLM; the rule now lives in ADR-0016, and `mixed` was **not** ruled on) | `critique-2026-07-28.md:373`; `docs/decisions/0016-per-board-independence-empirical-vs-structural.md` |
 | `QA-016` | FALSE | `critique-2026-07-28.md:374`; `arena-4x4-undef.md:20-26` |
@@ -320,10 +320,10 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `QA-020` | FALSE | `critique-2026-07-28.md:378`; `reachable-kosensitivity-2026-07-28.md`; `docs/evidence/QA-027/4x4/PROVENANCE.md` |
 | `QA-021` | PROVEN | `critique-2026-07-28.md:379`; `ko-sensitive-chainability.md:109,116` |
 | `QA-022` | FALSE | `docs/evidence/README.md`; `critique-2026-07-28.md:380`; §7 of this file |
-| `QA-023` | CLAIMED | `roadmap-2026-07-28.md:302`; `docs/evidence/QA-023/proof.md` (Part A; the computational half is 2×2-only, which `EXP-2-AUDIT-PREREG.md` rejects outright as INCOMPLETE). EXP-2A done 2026-07-28 (Fable 5; REPAIRABLE-GAPS→repaired); EXP-2B (the 3×2 computational half) COMPLETE 2026-07-29 via 2B-0…2B-6. **DO NOT MARK THIS ROW FALSE. The computational half SPLITS: C1 (this row's actual assertion — state-sufficiency) is UNTESTED-FOR-WANT-OF-CONTRAST, because the history generator misses the shortest arrival in 93% of states and its histories share ~62% of prefixes (`2B-3-AUDIT`); C2 (that the common value equals `median(L,TIE,H)`) is FALSIFIED — but C2 is `QA-026`'s content, NOT this row's. C2's failure is not evidence against state-sufficiency: on every eligible state all within-budget histories agree, including on the six C2 counterexamples. The reference-semantics §1 restatement conjoins C1 and C2, so §1-as-a-whole is false; that is a fact about the restatement. Adjudicated by 2B-6 (independent) confirming the Orchestrator: `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`.** **⚠ 2026-07-29 (night) — SCOPE SPLIT. `fixpoint_kernel`'s White-branch defect is VERIFIED by two independent seats (`Kimi-k3/PINRULE-SUFFICIENCY` found it; `Kimi-k2.7/QA023-KERNEL-AUDIT` reproduced all three evidence lines from scratch in Python, no Zig imported). Corrected kernel validated three ways: agrees with `smoke_fixpoint_2x2`, Bellman residuals 0/0, colour-inversion violations 0. Corrected 3x2 census `2232/322/34/34` replaces the buggy `948/1532/142/0`. **T138 (2026-07-31, `docs/evidence/QA-023/census-reconciliation.md`) confirmed the +36-state delta vs EXP-4's `2220/298/34/34` is exactly the 36 empty-goban-with-ko-point phantom seeds (12 into L==H, 24 into pin_T); the cycle-reachable spread 1,724/1,704/1,678 reduces to the same phantom convention, with 1,678 the true-game-root value.** **On the CORRECTED kernel the verdict differs by semantics:** for the **history-conditioned** rule (first-revisit truncation, ADR-0019) this is **FALSE at 3x2** — C1 witness `(178,0,6,0)`, goban `[B,W,B,_,W,_]`, Black to move: two valid arrivals give truncation values **-3** and **-6** while the corrected fixpoint gives `L=H=-6`. For **fresh-start (shortest-arrival)** semantics the corrected tables remain consistent (`396/396` agreements in PINRULE-SUFFICIENCY; spot-checked independently) — a different object, and **UNTESTED** rather than true. Remaining gap, named by the auditor itself: the ~22-node witness tree was **not dumped and hand-verified** — task `QA023-C1-WITNESS`. Evidence: `docs/audits/qa023-kernel-audit-2026-07-29.md`, `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`.** Note also that the 2B-4 probe numbers (390/1080) were artefacts of a σ-in-arrival defect, 1,133/1,133 collisions (`docs/evidence/QA-023/probe-defect-2026-07-29/`) |
+| `QA-023` | CLAIMED | `roadmap-2026-07-28.md:302`; `docs/evidence/QA-023/proof.md` (Part A; the computational half is 2×2-only, which `EXP-2-AUDIT-PREREG.md` rejects outright as INCOMPLETE). EXP-2A done 2026-07-28 (Fable 5; REPAIRABLE-GAPS→repaired); EXP-2B (the 3×2 computational half) COMPLETE 2026-07-29 via 2B-0…2B-6. **DO NOT MARK THIS ROW FALSE. The computational half SPLITS: C1 (this row's actual assertion — state-sufficiency) is UNTESTED-FOR-WANT-OF-CONTRAST, because the history generator misses the shortest arrival in 93% of states and its histories share ~62% of prefixes (`2B-3-AUDIT`); C2 (that the common value equals `median(L,TIE,H)`) is FALSIFIED — but C2 is `QA-026`'s content, NOT this row's. C2's failure is not evidence against state-sufficiency: on every eligible state all within-budget histories agree, including on the six C2 counterexamples. The reference-semantics §1 restatement conjoins C1 and C2, so §1-as-a-whole is false; that is a fact about the restatement. Adjudicated by 2B-6 (independent) confirming the Orchestrator: `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`.** **⚠ 2026-07-29 (night) — SCOPE SPLIT. `fixpoint_kernel`'s White-branch defect is VERIFIED by two independent seats (`Kimi-k3/PINRULE-SUFFICIENCY` found it; `Kimi-k2.7/QA023-KERNEL-AUDIT` reproduced all three evidence lines from scratch in Python, no Zig imported). Corrected kernel validated three ways: agrees with `smoke_fixpoint_2x2`, Bellman residuals 0/0, colour-inversion violations 0. Corrected 3x2 census `2232/322/34/34` replaces the buggy `948/1532/142/0`. **T138 (2026-07-31, `docs/evidence/QA-023/census-reconciliation.md`) confirmed the +36-state delta vs EXP-4's `2220/298/34/34` is exactly the 36 empty-goban-with-ko-point phantom seeds (12 into L==H, 24 into pin_T); the cycle-reachable spread 1,724/1,704/1,678 reduces to the same phantom convention, with 1,678 the true-game-root value.** **On the CORRECTED kernel the verdict differs by semantics:** for the **history-conditioned** rule (first-revisit truncation, ADR-0019) this is **FALSE at 3x2** — C1 witness `(178,0,6,0)`, goban `[B,W,B,_,W,_]`, Black to move: two valid arrivals give truncation values **-3** and **-6** while the corrected fixpoint gives `L=H=-6`. For **fresh-start (shortest-arrival)** semantics the corrected tables remain consistent (`396/396` agreements in PINRULE-SUFFICIENCY; spot-checked independently) — a different object, and **UNTESTED** rather than true. Remaining gap, named by the auditor itself: the ~22-node witness tree was **not dumped and hand-verified** — task `QA023-C1-WITNESS`. Evidence: `docs/audits/2026-07-29-qa023-kernel-audit.md`, `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`.** Note also that the 2B-4 probe numbers (390/1080) were artefacts of a σ-in-arrival defect, 1,133/1,133 collisions (`docs/evidence/QA-023/probe-defect-2026-07-29/`) |
 | `QA-024` | CLAIMED | `roadmap-2026-07-28.md:303`; `psk-binding-rate-2026-07-28.md:366-380` (EXP-1: consistent at exactly zero, with a recommended re-scoping); `docs/research/psk-divergence-2026-07-29.md` (EXP-8: harness built, value half blocked) |
 | `QA-025` | PROVEN | `roadmap-2026-07-28.md:304`; `retrograde-3x3.md:222-241` |
-| `QA-026` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2b-6-full-review-2026-07-29.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `roadmap-2026-07-28.md:305`; `docs/research/f2-remedy-design-2026-07-29.md`; `docs/evidence/QA-023/proof-v2-2026-07-28.md` |
+| `QA-026` | FALSE-AS-SCOPED | `docs/evidence/QA-023/probe-fix-2026-07-29.md`; `docs/audits/2026-07-29-2b-6-full-review.md`; `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`; `roadmap-2026-07-28.md:305`; `docs/research/f2-remedy-design-2026-07-29.md`; `docs/evidence/QA-023/proof-v2-2026-07-28.md` |
 | `QA-027` | FALSE-AS-SCOPED (at 4×4; 3×3 measured 100.00%) | `roadmap-2026-07-28.md:306`; `docs/research/newrule-certified-fraction-4x4-2026-07-31.md`; `docs/evidence/QA-027/4x4/PROVENANCE.md` |
 | `QA-028` | FALSE | `roadmap-2026-07-28.md:307`; `ruleset-options.md:42-71` |
 | `SPRINT-M4a-ACCEPT` | PROVEN (measured, denominators stated) | `docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md` |

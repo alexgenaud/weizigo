@@ -141,7 +141,7 @@ file a bug.
 ## What did 2B-4 conclude and does it still stand?
 
 → `docs/infra/dispatch/2B-4.md` — the brief
-→ `docs/audits/2b-6-full-review-2026-07-29.md` — the independent audit (2B-6)
+→ `docs/audits/2026-07-29-2b-6-full-review.md` — the independent audit (2B-6)
 → `docs/evidence/QA-023/probe-defect-2026-07-29/README.md` — the σ-in-arrival defect that invalidated it
 → `docs/evidence/QA-023/probe-fix-2026-07-29.md` — the corrected re-run (2B-PROBE-FIX)
 → `docs/epistemic/qa023-c2-adjudication-2026-07-29.md` — the final adjudication
@@ -197,10 +197,10 @@ between a board EPISTEMIC.md and CLAIMS.md is resolved in favor of CLAIMS.md.
 ## Where are the audits?
 
 → `docs/audits/` — independent audit reports
-→ `docs/audits/AUDIT-DSPro-2026-07-29.md` — the comprehensive audit that spawned many cleanup tasks
-→ `docs/audits/AUDIT-REF-DSPro-2026-07-29.md` — references audit
-→ `docs/audits/2b-6-full-review-2026-07-29.md` — 2B-6: the load-bearing QA-023 audit
-→ `docs/audits/qa023-kernel-audit-2026-07-29.md` — fixpoint kernel verification
+→ `docs/audits/2026-07-29-AUDIT-DSPro.md` — the comprehensive audit that spawned many cleanup tasks
+→ `docs/audits/2026-07-29-AUDIT-REF-DSPro.md` — references audit
+→ `docs/audits/2026-07-29-2b-6-full-review.md` — 2B-6: the load-bearing QA-023 audit
+→ `docs/audits/2026-07-29-qa023-kernel-audit.md` — fixpoint kernel verification
 
 ## What documents are historical / superseded?
 

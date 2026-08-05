@@ -37,7 +37,7 @@
 #                                            src/exp4_solve.zig threads
 #                                            through its recursion
 #
-# Run: python3 docs/audits/audit-2x2-mismatch-2026-07-30.py
+# Run: python3 docs/audits/2026-07-30-audit-2x2-mismatch.py
 
 import sys
 

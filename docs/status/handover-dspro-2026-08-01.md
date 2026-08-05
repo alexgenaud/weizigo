@@ -7,7 +7,7 @@ Status: BACKFILLED by T205 (DSFlash), source
   DECISIONS.md D-16…D-20. No handover file was produced at stand-down
   (coherence-audit CA-3); this is the ORCHESTRATOR.md:5-mandated
   docs/status/handover-<model>-<date>.md, reconstructed 2026-08-01 after
-  the coherence audit (docs/audits/coherence-audit-2026-08-01.md).
+  the coherence audit (docs/audits/2026-08-01-coherence-audit.md).
 ```
 
 Tactical, per-session snapshot. Strategy lives in `../epistemic/PROGRESS.md`;
@@ -16,7 +16,7 @@ handover's content is the audit, `DECISIONS.md`, and the kanban history.
 
 ## Read order
 
-1. `../audits/coherence-audit-2026-08-01.md` — the interregnum audit
+1. `../audits/2026-08-01-coherence-audit.md` — the interregnum audit
    (CA-1…CA-19) and its remediation roadmap.
 2. `CURRENT.md` — live state (refreshed 2026-08-01 by T205).
 3. `../status/roadmap-audit-remediation-2026-08-01.md` — D-A…D-D rulings,

@@ -24,7 +24,7 @@ do not record +1 as contradicting the +2 anchor without it.
 ## Part 2 — the aliasing withdrawal has no row at all
 
 T102 found a successor-buffer aliasing defect in `brute_value_2x2`
-(`docs/audits/audit-2x2-mismatch-2026-07-30.md`). All 24 EXP-4 2×2 "mismatches"
+(`docs/audits/2026-07-30-audit-2x2-mismatch.md`). All 24 EXP-4 2×2 "mismatches"
 were an artifact of the *checker*, not a divergence in the thing checked;
 fixpoint and truncation agree on all 172 reachable non-terminal 2×2 states.
 

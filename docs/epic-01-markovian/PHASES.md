@@ -2,7 +2,7 @@
 
 Canonical, unsuffixed, revised in place. Maintained by the Orchestrator.
 
-**Authority.** `docs/audits/grand-audit-2026-08-02/DIRECTION.md`, ratified by the
+**Authority.** `docs/audits/2026-08-02-grand-audit/DIRECTION.md`, ratified by the
 human 2026-08-02, governs. This file is only the phase→task mapping: where each
 registered task sits and why. **When this file or the kanban disagrees with
 DIRECTION.md, DIRECTION.md wins and this file is the bug.** Task briefs live at
@@ -29,7 +29,7 @@ but no claim about it may pass `CLAIMED` until the mutants covering its function
 (mutation-adequacy, DeMillo–Lipton–Sayward 1978). The five real dependency edges are
 mechanized as `needs` on the tasks that carry them, never as convention; the phase number is
 not a dependency, so concurrency across phases is expected. The real serializer is **file
-ownership** via managent sets. The ruling text is `docs/audits/grand-audit-2026-08-02/DIRECTION.md`
+ownership** via managent sets. The ruling text is `docs/audits/2026-08-02-grand-audit/DIRECTION.md`
 Amendment 2.
 
 **Phase 0 is a hard gate on decomposition.** Phases 1–4 get no new tasks until

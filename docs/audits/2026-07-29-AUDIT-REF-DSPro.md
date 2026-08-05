@@ -6,7 +6,7 @@ Model: DeepSeek-v4-Pro (DSPro)
 Task: AUDIT-REF-DSPro · Date: 2026-07-29
 Scope: every external reference in the project — papers, authors, theorems, 
        anchors, OEIS entries, web sources, prior art
-Output: this single file (docs/audits/AUDIT-REF-DSPro-2026-07-29.md) — ANALYSIS
+Output: this single file (docs/audits/2026-07-29-AUDIT-REF-DSPro.md) — ANALYSIS
 ```
 
 **Method.** I scanned every .md and .zig file for citations, author names,

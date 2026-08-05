@@ -42,7 +42,7 @@ Acceptance: every question resolves in **≤ 2 hops**.
 
 ## Q5: "What did 2B-4 conclude and does it still stand?"
 
-**Path:** `docs/INDEX.md` → "What did 2B-4 conclude and does it still stand?" → the index names the brief (`docs/infra/dispatch/2B-4.md`), the audit (`docs/audits/2b-6-full-review-2026-07-29.md`), the defect report (`docs/evidence/QA-023/probe-defect-2026-07-29/README.md`), and the corrected re-run (`docs/evidence/QA-023/probe-fix-2026-07-29.md`).
+**Path:** `docs/INDEX.md` → "What did 2B-4 conclude and does it still stand?" → the index names the brief (`docs/infra/dispatch/2B-4.md`), the audit (`docs/audits/2026-07-29-2b-6-full-review.md`), the defect report (`docs/evidence/QA-023/probe-defect-2026-07-29/README.md`), and the corrected re-run (`docs/evidence/QA-023/probe-fix-2026-07-29.md`).
 **Hops: 1** — the index line gives the complete chain. A reader wanting the conclusion opens `probe-fix-2026-07-29.md` (hop 2) and finds the adjudication.
 **Result: ✅ PASS (≤ 2 hops)**
 

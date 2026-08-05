@@ -327,7 +327,7 @@ Under loopy-game fixpoint semantics (ADR-0020), the state `(board, side,
 ko_point, passes)` **is** Markovian — the fixpoint value is a function of
 the state alone. Under truncation semantics (ADR-0019, superseded), C1 is
 falsified at 3×2 `[GLOBAL.H1-COMPUTABLE:FALSE-AS-SCOPED]`. The ~22-node
-witness tree is committed in `docs/audits/qa023-kernel-audit-2026-07-29.md`.
+witness tree is committed in `docs/audits/2026-07-29-qa023-kernel-audit.md`.
 ADR-0020 changes which semantics the project targets; it does not change the
 falsification status of the truncation rows.
 

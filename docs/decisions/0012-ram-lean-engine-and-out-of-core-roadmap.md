@@ -10,7 +10,7 @@
 > representation is demonstrated at 4×4. **This ADR is a historical record of a
 > feasibility argument that predates the crisis.** For current status see
 > `docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md` and
-> the audit at `docs/audits/AUDIT-DSPro-2026-07-29.md` §3.2.
+> the audit at `docs/audits/2026-07-29-AUDIT-DSPro.md` §3.2.
 
 Date: 2026-07-23 · Status: **proposed** (design; measurements pending)
 

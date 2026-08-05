@@ -36,7 +36,7 @@ bin/weizigo-chainability artifacts/oracle-4x3.wzo
 bin/weizigo-chainability data/oracle-4x4.checkpoint.wzo --sample 37
 ```
 
-Output: `untracked/muhtasib-audit-chunk1-2026-07-28.md`.
+Output: `untracked/2026-07-28-muhtasib-audit-chunk1.md`.
 
 ### Chunk 2 — Audit the claim graph (PROGRESS / leak-crisis / QA-023)
 
@@ -55,7 +55,7 @@ Check for:
 - Places where “fresh-start correct” is read as “real-game correct.”
 - Whether QA-023 Part A is still labeled REPAIRABLE-GAPS or has been silently promoted.
 
-Output: `untracked/muhtasib-audit-chunk2-2026-07-28.md`.
+Output: `untracked/2026-07-28-muhtasib-audit-chunk2.md`.
 
 ### Chunk 3 — Reproduce EXP-3 basic-ko state-space census
 
@@ -71,7 +71,7 @@ Evidence files:
 - `docs/research/kostate-census-2026-07-28.md`
 - `docs/evidence/GLOBAL.H1-CENSUS/PROVENANCE.md`
 
-Output: `untracked/muhtasib-audit-chunk3-2026-07-28.md`.
+Output: `untracked/2026-07-28-muhtasib-audit-chunk3.md`.
 
 ### Chunk 4 — Inspect the dirty tree for commit hazards
 
@@ -83,7 +83,7 @@ Check `git status`, read diffs, and verify:
 - `docs/status/CURRENT.md` reflects EXP-2A/EXP-3 completions honestly.
 - No two authors are claiming the same file.
 
-Output: `untracked/muhtasib-audit-chunk4-2026-07-28.md`.
+Output: `untracked/2026-07-28-muhtasib-audit-chunk4.md`.
 
 ## Verdict categories
 
@@ -96,4 +96,4 @@ Each audited claim will be marked:
 
 ## Context-clearing schedule
 
-After each chunk, the user may clear the agent context. The audit files in `untracked/` will carry state. Read `untracked/muhtasib-audit-plan-2026-07-28.md` first to resume.
+After each chunk, the user may clear the agent context. The audit files in `untracked/` will carry state. Read `untracked/2026-07-28-muhtasib-audit-plan.md` first to resume.

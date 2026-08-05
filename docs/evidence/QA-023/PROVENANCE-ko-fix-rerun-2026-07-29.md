@@ -101,7 +101,7 @@ instead, none of which calls `value`.
 
 ## Dependencies
 
-- `docs/audits/2b-2-census-audit-opus5-2026-07-29.md` — finding F5 (the bug),
+- `docs/audits/2026-07-29-2b-2-census-audit-opus5.md` — finding F5 (the bug),
   and F1/F2/F6 referenced in the deliverable.
 - `docs/evidence/QA-023/proof-v2-2026-07-28.md` §1.1 — the governing rule text.
 - `docs/evidence/QA-023/reference-semantics-2026-07-29.md` — 2B-0 semantics.

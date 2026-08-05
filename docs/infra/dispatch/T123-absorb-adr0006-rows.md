@@ -7,7 +7,7 @@
 
 T114 (the eye-prune validation battery, Fable's W1) produced five `CLAIMS.md`
 rows **already formatted for insertion** at
-`docs/audits/eye-prune-validation-2026-07-30.md:441-445`. None were pasted in.
+`docs/audits/2026-07-30-eye-prune-validation.md:441-445`. None were pasted in.
 The T120 absorption audit found this is the largest block of verified,
 ready-to-absorb evidence sitting outside the register.
 

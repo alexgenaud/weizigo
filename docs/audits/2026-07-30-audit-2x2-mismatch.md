@@ -120,7 +120,7 @@ Total alpha-beta cost: 20,527,408 nodes over 172 states, max 339,959 for a
 single state.
 
 **(b) Independent reimplementation** —
-`docs/audits/audit-2x2-mismatch-2026-07-30.py` rewrites rules, state encoding,
+`docs/audits/2026-07-30-audit-2x2-mismatch.py` rewrites rules, state encoding,
 area scoring, the L/H fixpoint, and the truncation evaluator from the
 specification, sharing no code with the Zig. It reproduces:
 
@@ -216,7 +216,7 @@ Children: `pass`→+0, `place 2`→+0, `place 3`→+4.
 
 Per-state checkpoints were written to `/tmp/audit-2x2-mismatch.log` as each
 state was verified; the file is preserved as
-`docs/audits/audit-2x2-mismatch-2026-07-30.stdout`.
+`docs/audits/2026-07-30-audit-2x2-mismatch.stdout`.
 
 ## 5. Collateral: the `1-ko shape` anchor is a wrong expected value
 
@@ -325,18 +325,18 @@ tractable. That is beyond this audit's scope.
 
 ## 9. Files
 
-- `docs/audits/audit-2x2-mismatch-2026-07-30.md` — this file
-- `docs/audits/audit-2x2-mismatch-2026-07-30.py` — independent Python verifier
-- `docs/audits/audit-2x2-mismatch-2026-07-30.stdout` — Python run output
+- `docs/audits/2026-07-30-audit-2x2-mismatch.md` — this file
+- `docs/audits/2026-07-30-audit-2x2-mismatch.py` — independent Python verifier
+- `docs/audits/2026-07-30-audit-2x2-mismatch.stdout` — Python run output
   (also the per-state checkpoint log, `/tmp/audit-2x2-mismatch.log`)
 - `src/audit_2x2_mismatch.zig` — three-evaluator comparison in Zig
-- `docs/audits/audit-2x2-mismatch-zig-2026-07-30.stdout` — Zig run output
+- `docs/audits/2026-07-30-audit-2x2-mismatch-zig.stdout` — Zig run output
 
 Reproduce with:
 
 ```
 tools/runner -- zig run -O ReleaseFast src/audit_2x2_mismatch.zig
-python3 docs/audits/audit-2x2-mismatch-2026-07-30.py
+python3 docs/audits/2026-07-30-audit-2x2-mismatch.py
 ```
 
 Both complete in under two minutes.

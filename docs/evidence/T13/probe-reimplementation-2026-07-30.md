@@ -399,7 +399,7 @@ prune never fires". `3x2.T13` is therefore invariant to ADR-0006 and should be
 struck from that dispatch's contamination list. `3x2.C1`, `3x3.C3`/E2 and the
 finisher are untouched by this and remain exposed.
 
-**Not in conflict with T114.** `docs/audits/eye-prune-validation-2026-07-30.md`
+**Not in conflict with T114.** `docs/audits/2026-07-30-eye-prune-validation.md`
 (T114, same date) reports that the sound unpruned control "does not terminate
 (32/32 roots unresolved at **3×2**)". That is about **fresh-start roots from a
 near-empty goban**, where the unpruned tree is the whole game. The twelve

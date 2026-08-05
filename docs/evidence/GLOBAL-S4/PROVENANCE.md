@@ -1,7 +1,7 @@
 # `GLOBAL.S4` — provenance
 
 **Author:** DSPro/T112, 2026-07-30.  
-**Dispatch:** direct evidence task from `docs/audits/t101-punchlist-2026-07-30.md` row 4 / `docs/epistemic/CLAIMS.md` row `GLOBAL.S4`.  
+**Dispatch:** direct evidence task from `docs/audits/2026-07-30-t101-punchlist.md` row 4 / `docs/epistemic/CLAIMS.md` row `GLOBAL.S4`.  
 **Run date:** 2026-07-30.  
 **Claim ID(s) closed:** `GLOBAL.S4` primarily; the evidence also discharges `4x4.S4` and `4x3.S4` (both `⬜ᴵᴺᴴ`, self-declared inheritance from `GLOBAL.S4`) because a Tromp–Taylor area scorer is goban-size-agnostic by construction — a single size-stratified corpus at 2×2 through 5×5 covers every finite goban size at once.  
 **Acceptance criterion (from the punchlist, Option B):** an independent ~40-line Python re-implementation of the Tromp–Taylor area scoring algorithm, verified against a size-stratified terminal corpus drawn from the project's existing test fixtures.

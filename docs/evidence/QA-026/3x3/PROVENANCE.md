@@ -41,7 +41,7 @@ a defective evaluator with a successor-buffer aliasing bug that affects
 every solver in the EXP-4→EXP-7 chain. The 50/50 agreements are not evidence.
 The gate chain (2×2/3×2 re-run from this binary), Bellman self-consistency,
 and colour-inversion symmetry are independently verified. See
-`docs/audits/audit-2x2-mismatch-2026-07-30.md` and `GLOBAL.BRUTE-ALIASING`.**
+`docs/audits/2026-07-30-audit-2x2-mismatch.md` and `GLOBAL.BRUTE-ALIASING`.**
 
 ### Known-good
 2×2 root = 0, 3×2 root = 0, re-run from this binary. Both pass. **Brute-force

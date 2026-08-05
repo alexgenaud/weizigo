@@ -43,7 +43,7 @@ Everything else moved. The census numbers are now
 **V = 2,622 · E = 5,668 · cycle-involved 1,676 · cycle-reachable 1,704 ·
 216,176 cycles at cap 14** — exactly the values the Opus-5 audit of 2B-2
 predicted from an independent Python transposition
-(`docs/audits/2b-2-census-audit-opus5-2026-07-29.md`, F5).
+(`docs/audits/2026-07-29-2b-2-census-audit-opus5.md`, F5).
 
 Two things turned up that were not in the brief and that a reader of the
 2B-4 deliverable needs (§6): 2B-4's **perturbation calibration never ran** —

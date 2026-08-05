@@ -187,7 +187,7 @@ distinguish them:
   load-bearing. Every corrected disagreement is invariant across the histories
   sampled for that state; the as-published run is invariant too, vacuously.
 
-  **QUALIFIED 2026-07-29 by `2B-3-AUDIT`** (`docs/audits/2b-3-history-pairs-audit-2026-07-29.md`,
+  **QUALIFIED 2026-07-29 by `2B-3-AUDIT`** (`docs/audits/2026-07-29-2b-3-history-pairs-audit.md`,
   DSPro, independent Python re-implementation): the history generator has a
   systematic bias — on 30 sampled states it **misses the shortest arrival path
   entirely in 28 (93%)** and includes any shortest path in **0**, collecting

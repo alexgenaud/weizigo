@@ -9,7 +9,7 @@
 - The **1,724 cycle-reachable** vertices (1,696 SCC + 28-vertex tail) — the set 2B-4 samples from.
 - The **escalate decision** — 2B-2 returned PASS (cycles > 0, no escalate). Confirm non-vacuous.
 
-**Deliverable:** `docs/audits/2b-2-census-audit-2026-07-29.md` — verdict (VERIFIED / PARTIAL / WRONG) per item, citations, and a one-line: does this census hold up enough that 2B-4's falsification can rest on it? **Do not edit** `src/`, `CLAIMS.md`, or any 2B-N deliverable.
+**Deliverable:** `docs/audits/2026-07-29-2b-2-census-audit.md` — verdict (VERIFIED / PARTIAL / WRONG) per item, citations, and a one-line: does this census hold up enough that 2B-4's falsification can rest on it? **Do not edit** `src/`, `CLAIMS.md`, or any 2B-N deliverable.
 
 **Read first:** `docs/infra/roles/AUDITOR.md`, `docs/evidence/QA-023/census-3x2-2026-07-29.md` (+ stdout + PROVENANCE), `src/qa023_probe.zig` (`run_census_3x2`, `run_cycle_census_3x2`).
 

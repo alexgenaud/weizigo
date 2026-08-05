@@ -11,7 +11,7 @@ have table regions of perfect play, of optimal, of good, of guesses? Can we
 divide and conquer the regions of uncertainty rather than the entire goban and
 all table regions?
 
-**Companion piece** to `epistemic-trajectory-audit-fable-2026-07-30.md` (T100),
+**Companion piece** to `2026-07-30-epistemic-trajectory-audit-fable.md` (T100),
 which judged the trajectory. This file judges the *structure*: what holds the
 tree up, what is rotten, and where the uncertainty actually lives.
 

@@ -1,7 +1,7 @@
 <!--managent set=K needs=2B-2-AUDIT-OPUS holds=src/qa023_brute_2x2.zig,src/qa023_probe.zig-->
 # 2B-FIX-KO — fix the single-stone ko-capture rule (audit F5), re-run census + probe
 
-**Opened by:** the audit of 2B-2 (`docs/audits/2b-2-census-audit-2026-07-29.md`), finding F5. **This is the gate on whether 2B-4's QA-023 falsification is real or a wrong-rule artefact.**
+**Opened by:** the audit of 2B-2 (`docs/audits/2026-07-29-2b-2-census-audit.md`), finding F5. **This is the gate on whether 2B-4's QA-023 falsification is real or a wrong-rule artefact.**
 
 ## The bug (F5)
 
@@ -26,4 +26,4 @@
 
 **Holds:** `src/qa023_brute_2x2.zig`, `src/qa023_probe.zig`. **Build/run:** through `tools/runner`; node budget + heartbeat; never unfiltered `zig test` (use `--test-filter`).
 
-**Read first:** `docs/audits/2b-2-census-audit-2026-07-29.md` (F5), `docs/evidence/QA-023/reference-semantics-2026-07-29.md` (2B-0), the 2B-2 + 2B-4 deliverables.
+**Read first:** `docs/audits/2026-07-29-2b-2-census-audit.md` (F5), `docs/evidence/QA-023/reference-semantics-2026-07-29.md` (2B-0), the 2B-2 + 2B-4 deliverables.

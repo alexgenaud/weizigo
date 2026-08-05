@@ -1,7 +1,7 @@
 # `GLOBAL.AUDITOR` — provenance
 
 **Author:** Kimi-k2.7/T106, 2026-07-30.  
-**Dispatch:** direct evidence task from `docs/audits/t101-punchlist-2026-07-30.md` row 5 / `docs/epistemic/CLAIMS.md` row `GLOBAL.AUDITOR`.  
+**Dispatch:** direct evidence task from `docs/audits/2026-07-30-t101-punchlist.md` row 5 / `docs/epistemic/CLAIMS.md` row `GLOBAL.AUDITOR`.  
 **Run date:** 2026-07-30.  
 **Claim ID(s) closed:** `GLOBAL.AUDITOR` primarily; the run is also the standing empirical basis for `3x2.F1`, `3x2.F3`, `3x2.F4`, `3x3.F4`, `4x3.F4`, `4x4.M6` reading 2, and the `GLOBAL.H5` gate.  
 **Acceptance criterion (from `AGENTS.md:63-67`):** zero minimax-identity violations on the 3×2 exhaustive pass of the `#2 self-consistency auditor`.

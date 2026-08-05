@@ -32,7 +32,7 @@
    The prune changes no value in any of these searches. `3x2.T13` is
    invariant to ADR-0006.
 
-4. **Corroborated independently by T114** (`docs/audits/eye-prune-validation-2026-07-30.md`),
+4. **Corroborated independently by T114** (`docs/audits/2026-07-30-eye-prune-validation.md`),
    which found no ADR-0006 falsification across an exhaustive 4×4 structural
    battery. T114's §H (sound control) also found agreement between the
    eye-pruned forward search and the unpruned retrograde table at 2×2, 3×2,

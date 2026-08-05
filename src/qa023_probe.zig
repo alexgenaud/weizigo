@@ -590,7 +590,7 @@ fn area_score(board: *const Pos) i8 {
 //     liberty (the vacated cell), that cell is the new ko_point for the
 //     opponent). The lone-stone conjunct is what makes this a *single-stone
 //     ko capture* in the proof-v2 §1.1 sense; see F5 in
-//     `docs/audits/2b-2-census-audit-opus5-2026-07-29.md`.
+//     `docs/audits/2026-07-29-2b-2-census-audit-opus5.md`.
 //   - apply_pass: increment passes, clear ko_point. Two passes = terminal.
 //
 // Both return null for illegal moves (occupied, suicide, ko-point, passes

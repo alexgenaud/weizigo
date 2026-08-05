@@ -20,7 +20,7 @@ Two independent implementations agree (`PINRULE-SUFFICIENCY` found it; the kerne
 So: **fresh seat, and the tree must be produced twice by independent paths.**
 
 1. The **in-tree** evaluator — `truncated_value` in `src/qa023_probe.zig`, post-`2B-PROBE-FIX` (σ excluded, scratch sized, counters separated).
-2. An **independent reimplementation** — your own, or the kernel auditor's Python verifier (`docs/audits/qa023-kernel-audit-2026-07-29.py`).
+2. An **independent reimplementation** — your own, or the kernel auditor's Python verifier (`docs/audits/2026-07-29-qa023-kernel-audit.py`).
 
 **They must agree node for node.** At ~22 nodes that is cheap, and it is precisely the check that would have caught all three earlier defects. Any disagreement is the finding.
 
@@ -47,4 +47,4 @@ Secondary reason: the PINRULE-SUFFICIENCY worker hit context exhaustion once alr
 
 `docs/evidence/QA-023/c1-witness-handcheck-<date>.md` + the tree dump. **Do not edit `src/`, `CLAIMS.md`, or any deliverable.** If the witness fails to hold up, say so plainly and immediately — `QA-023`'s status, `ADR-0019`'s fork, and `EXP-4` all hang on it.
 
-**Read first:** `docs/audits/qa023-kernel-audit-2026-07-29.md` §"C1 witness", `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`, `docs/evidence/QA-023/reference-semantics-2026-07-29.md` §1 (the recursion being evaluated).
+**Read first:** `docs/audits/2026-07-29-qa023-kernel-audit.md` §"C1 witness", `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`, `docs/evidence/QA-023/reference-semantics-2026-07-29.md` §1 (the recursion being evaluated).

@@ -68,16 +68,16 @@ side, passes)` node unconditionally with no history awareness. This is **not the
 unpruned game value** under positional superko. The sound control (history-set
 memo key) does not terminate at any goban size. The result compares the pruned
 search against an approximation, not ground truth. The replaced sound test is
-`GLOBAL.ADR0006-TEST` at `eye-prune-validation-2026-07-30.md` §6.
+`GLOBAL.ADR0006-TEST` at `2026-07-30-eye-prune-validation.md` §6.
 
 **Correction 3 — calibration.** Pruning a random non-eye cell (22.5% wrong-prune
 pass rate) is not how this code fails. A predicate that returned `false`
 everywhere would have scored 0 disagreements too. The proper calibration — four
 plausible wrong predicates benchmarked by the battery's §G/§I — is in
-`eye-prune-validation-2026-07-30.md` §7.
+`2026-07-30-eye-prune-validation.md` §7.
 
 The numbers above are **retained as originally published**; the corrections are
-the authoritative update. See `docs/audits/eye-prune-validation-2026-07-30.md`
+the authoritative update. See `docs/audits/2026-07-30-eye-prune-validation.md`
 §4–§7 for the full account.
 
 ### 4×4 cost estimate
@@ -107,7 +107,7 @@ tools/runner -- /tmp/weizigo-eyeprune-falsify
 ## Next checks
 
 The result strengthens ADR-0006 at 3×3 but does not close the gap the audit
-identified (§2.6 of AUDIT-DSPro-2026-07-29.md): the forward searches that use
+identified (§2.6 of 2026-07-29-AUDIT-DSPro.md): the forward searches that use
 the prune (finisher, T13, E2) operate at 3×2, 3×3, and 4×4. The 3×3 check
 is now done; 3×2 is trivial; 4×4 is the open frontier.
 

@@ -75,15 +75,15 @@ will document any) is recorded, not silently fixed.
 
 | file | refs |
 |---|---|
-| `docs/audits/muhtasib-audit-chunk2-2026-07-28.md` | 9 |
-| `docs/audits/AUDIT-REF-DSPro-2026-07-29.md` | 6 |
-| `docs/audits/muhtasib-audit-chunk4-2026-07-28.md` | 4 |
-| `docs/audits/muhtasib-audit-plan-2026-07-28.md` | 3 |
-| `docs/audits/2b-2-census-audit-opus5-2026-07-29.md` | 2 |
-| `docs/audits/qa023-kernel-audit-2026-07-29.md` | 2 |
-| `docs/audits/2b-2-census-audit-2026-07-29.md` | 1 |
-| `docs/audits/epistemic-trajectory-audit-fable-2026-07-30.md` | 1 |
-| `docs/audits/muhtasib-audit-chunk1-2026-07-28.md` | 1 |
+| `docs/audits/2026-07-28-muhtasib-audit-chunk2.md` | 9 |
+| `docs/audits/2026-07-29-AUDIT-REF-DSPro.md` | 6 |
+| `docs/audits/2026-07-28-muhtasib-audit-chunk4.md` | 4 |
+| `docs/audits/2026-07-28-muhtasib-audit-plan.md` | 3 |
+| `docs/audits/2026-07-29-2b-2-census-audit-opus5.md` | 2 |
+| `docs/audits/2026-07-29-qa023-kernel-audit.md` | 2 |
+| `docs/audits/2026-07-29-2b-2-census-audit.md` | 1 |
+| `docs/audits/2026-07-30-epistemic-trajectory-audit-fable.md` | 1 |
+| `docs/audits/2026-07-28-muhtasib-audit-chunk1.md` | 1 |
 
 ### Rationale for freezing
 

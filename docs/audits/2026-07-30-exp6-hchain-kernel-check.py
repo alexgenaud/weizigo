@@ -14,7 +14,7 @@ under area scoring / komi 0 / basic ko (formalization i) and diffs every
 
 The rules core (Rules/GameGraph/StateSpace/FixpointKernel.corrected) is the
 independent re-implementation proven in the QA023 kernel audit
-(docs/audits/qa023-kernel-audit-2026-07-29.py — the instrument that found the
+(docs/audits/2026-07-29-qa023-kernel-audit.py — the instrument that found the
 F5 ko bug).  Only the harness-specific census seeding, dump parsing and
 diffing are new.
 
@@ -27,7 +27,7 @@ from collections import deque
 from typing import List, Tuple, Optional, Set, Dict
 
 # ---------------------------------------------------------------------------
-# Rules core — copied from docs/audits/qa023-kernel-audit-2026-07-29.py
+# Rules core — copied from docs/audits/2026-07-29-qa023-kernel-audit.py
 # (Kimi-K2.7/QA023).  Independent of all Zig sources.
 # ---------------------------------------------------------------------------
 

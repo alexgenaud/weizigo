@@ -96,7 +96,7 @@ correctly labels them "unhashed, in scope."
 | citation | verified content | match? |
 |---|---|---|
 | `calibration-2x2-mismatch.py` | 24 states, 0 mismatches / 172 reachable non-terminals | ✓ |
-| `audit-2x2-mismatch-2026-07-30.md` | "mismatches, 172 non-terminals: 24 → this audit **0**" | ✓ |
+| `2026-07-30-audit-2x2-mismatch.md` | "mismatches, 172 non-terminals: 24 → this audit **0**" | ✓ |
 
 Polarity is correctly **agreement** (gap = 0), not mismatch. The spec's note
 about ADR-0020:47-49 predating T102's finding is accurate — I verified

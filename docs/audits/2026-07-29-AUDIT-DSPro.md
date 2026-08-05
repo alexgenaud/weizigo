@@ -5,7 +5,7 @@ Role: Auditor (project scope)
 Model: DeepSeek-v4-Pro (DSPro)
 Task: AUDIT-DSPro · Date: 2026-07-29
 Scope: the entire project — documentation, code, process, epistemic tree
-Output: this single file (docs/audits/AUDIT-DSPro-2026-07-29.md) — ANALYSIS,
+Output: this single file (docs/audits/2026-07-29-AUDIT-DSPro.md) — ANALYSIS,
         no file conflicts
 ```
 

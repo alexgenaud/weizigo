@@ -1,7 +1,7 @@
 <!--managent set=M-->
 # ADR0006-FALSIFY — a direct falsification test for the eye-prune
 
-**Opened by:** `docs/audits/AUDIT-DSPro-2026-07-29.md` §2.6, adopted by the Orchestrator. ANALYSIS task — no engine file is modified, so it runs alongside anything.
+**Opened by:** `docs/audits/2026-07-29-AUDIT-DSPro.md` §2.6, adopted by the Orchestrator. ANALYSIS task — no engine file is modified, so it runs alongside anything.
 
 ## Why this matters
 
@@ -34,4 +34,4 @@ If 3×3 is exhaustively clean, state the result **as scoped to 3×3** and give t
 
 **Build/run:** through `tools/runner`. New source file only (suggest `src/eyeprune_falsify.zig`); do not modify `src/rules.zig`, `src/retro.zig`, `src/oracle.zig` or any engine file — read them.
 
-**Read first:** `docs/decisions/0006-*.md` (the claim and its one test), ADR-0009:118-123 (the indirect gate), `AUDIT-DSPro-2026-07-29.md` §2.6.
+**Read first:** `docs/decisions/0006-*.md` (the claim and its one test), ADR-0009:118-123 (the indirect gate), `2026-07-29-AUDIT-DSPro.md` §2.6.

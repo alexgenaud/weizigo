@@ -342,4 +342,4 @@ fixes are active in the current code. Neither fix introduces new defects.
 
 - `/tmp/audit_2b3_independent.py` — the independent Python verification (DSPro)
 - `/tmp/audit_2b3_bias.py` — the bias quantification analysis (DSPro)
-- `docs/audits/2b-3-history-pairs-audit-2026-07-29.md` — this file
+- `docs/audits/2026-07-29-2b-3-history-pairs-audit.md` — this file

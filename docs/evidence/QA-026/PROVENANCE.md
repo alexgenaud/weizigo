@@ -33,7 +33,7 @@ were an artifact of the checker; fixpoint and exact FRT agree on all 172
 reachable non-terminal 2×2 states. The fixpoint results (anchors tested
 against the fixpoint, Bellman self-consistency, colour-inversion) are
 independently verified by T102 (Zig + Python) and T104 (Python kernel).
-See `docs/audits/audit-2x2-mismatch-2026-07-30.md` and `GLOBAL.BRUTE-ALIASING`.
+See `docs/audits/2026-07-30-audit-2x2-mismatch.md` and `GLOBAL.BRUTE-ALIASING`.
 
 - **Known-good:** 2×2 five-anchor smoke test (empty-B, empty-W, full-B, passes=1, passes=2) — all match expected values **via fixpoint**. The brute-force corroboration in the stdout §2 is withdrawn
 - **Known-bad 1:** PSK vs new-rule root comparison — fixpoint root=0, PSK root=+1, delta=1 (non-zero ⇒ gate distinguishes rulesets)
