@@ -308,7 +308,7 @@
     "amendments": []
   },
   "STANDING-ABSORB": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/docs/infra/dispatch/STANDING-ABSORB.md",
@@ -318,11 +318,11 @@
     "caps": [],
     "added": "2026-08-03T23:54:39Z",
     "claimed": "2026-08-05T11:19:57Z",
-    "done": null,
+    "done": "2026-08-05T11:29:55Z",
     "dispatched": "2026-08-05T11:17:34Z",
     "dispatched_to": "deepseek-v4-flash",
     "note": "Tier 0 absorb pass (ROADMAP 2026-08-05 finding 1). Live caveat: 'managent standing' trigger line reads C7=0 while a fresh bin/weizigo-claimlint reads C7=4 FAILS + 3 non-conforming — claimlint is the authority; report the discrepancy as a finding.",
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -949,5 +949,6 @@
   "_sys": {
     "next_id": 368,
     "directive_next": 37
-  }
+  },
+  "_standing": {"c3_debt":0,"msg_count":1,"false_count":52,"dirty_files":0}
 }
