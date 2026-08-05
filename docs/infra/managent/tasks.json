@@ -373,6 +373,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T365": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T365-audits-date-prefix-sweep.md",
+    "set": "B",
+    "holds": ["docs/audits"],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-05T08:45:34Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": "2026-08-05T08:45:34Z",
+    "dispatched_to": "deepseek-v4-flash",
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "bin/weizigo-claimlint",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T352": {
     "status": "dispatchable",
     "agent": null,
@@ -881,7 +903,7 @@
   }
 ,
   "_sys": {
-    "next_id": 364,
+    "next_id": 366,
     "directive_next": 37
   }
 }
