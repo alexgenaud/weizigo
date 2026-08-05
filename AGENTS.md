@@ -227,6 +227,36 @@ Why: without the rule the human has to infer the subset, and inferring it wrongl
 truncated or contaminated brief. This applies to relay messages, dispatch prompts, commit-message drafts,
 and anything else handed over for pasting — every role, not just the Orchestrator.
 
+## Landmarks — frame the work as a journey, not a task list
+
+`docs/audits/2026-08-05-handover/LANDMARKS.md` names the checkpoints a human can verify without
+reading a task brief: **L0** the table and the instruments exist · **L1** the dashboard tells the
+truth · **L2** proven 4×4 values · **L3** the new engine outplays the old one · **L4** the ledger is
+clean · **L5** one rulebook · **L6** small Go solved, certifiably · **L7** the 5×5 decision, costed.
+
+**Every ID is written with its short name** — `L2 (proven 4×4 values)`, never a bare `L2`. An ID
+nobody can expand is not communication. (These were "milestones M<n>" before 2026-08-05; the IDs
+moved to `L<n>` because `M1`–`M10` are already the mutant IDs.)
+
+**Frame work as movement between landmarks.** A sprint is not "a list of rows that closed" — it is a
+step from one landmark toward the next. When you open a brief, say which landmark the work serves;
+when you close a row, say what a human can now see that they could not before, and what still
+stands in the way:
+
+> **Landmark:** advances `L<n> (<short name>)` — <what is now visible> — <what remains>.
+
+Three rules keep it honest rather than decorative:
+
+1. **Always expand the ID.**
+2. **State which direction a result cuts.** If something got worse, say *whose* and *which way*.
+   "Every game diverged and there were 9 genuine losses" is uninterpretable until you say the losses
+   were the *old* engine's and the new engine wins those games.
+3. **A row that advances no landmark says so** — `Landmark: none directly; unblocks <row>`. Fleet
+   plumbing is honest work; dressing it up as mission progress is what makes landmark talk worthless.
+
+This is for the operator, who is the only reader who cannot query the repo — every other artifact
+here is written for the next agent.
+
 ## Untracked directories — two types, never conflat
 
 There are exactly two places for files that must not enter git, and their purposes are distinct:
