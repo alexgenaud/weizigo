@@ -1,0 +1,366 @@
+{
+ "task_id": "T382",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T382",
+ "instrument": "src/t382_census.zig",
+ "question": "define 'pathological goban' formally, then measure it at every solved size",
+ "component_definitions": {
+  "1_full_kill": "positions where one colour has zero stones on the goban; per non-settled slot, whether a full-kill move exists and whether one is optimal (child stored value == stored value)",
+  "2_ko_density": "KO_SENSITIVE (L<H) slot fraction (WZO1 flag; WZO2 L<H separately) and the independent-ko-count distribution (B23 static shapes)",
+  "3_pass_optimality": "per non-settled slot, whether the pass edge (V1(P,-side)) equals the stored V0 value",
+  "4_cycle_reachability": "Tarjan SCCs over the full (pos, side, ko, passes in {0,1}) move graph; whether a non-trivial SCC is root-reachable; cycle-reachable fraction (I5's notion)",
+  "5_history_dependence": "fraction of L==H slots whose exact value differs under some reachable history; measured at 2x2 (0) and 3x2 (30.3%), structurally bounded elsewhere by cycle-reachability and pending-ko potential"
+ },
+ "census": {
+  "1_full_kill": {
+   "2x2": {
+    "fk_positions": 29,
+    "legal": 57,
+    "pct_of_legal": 50.8772,
+    "fk_slots": 74,
+    "non_settled": 106,
+    "fk_optimal_all": 58,
+    "fk_optimal_lh": 24,
+    "fk_slots_lh": 24
+   },
+   "3x2": {
+    "fk_positions": 125,
+    "legal": 489,
+    "pct_of_legal": 25.5624,
+    "fk_slots": 448,
+    "non_settled": 918,
+    "fk_optimal_all": 426,
+    "fk_optimal_lh": 304,
+    "fk_slots_lh": 304
+   },
+   "3x3": {
+    "fk_positions": 1021,
+    "legal": 12675,
+    "pct_of_legal": 8.0552,
+    "fk_slots": 5716,
+    "non_settled": 24826,
+    "fk_optimal_all": 5652,
+    "fk_optimal_lh": 4950,
+    "fk_slots_lh": 4950
+   },
+   "4x3": {
+    "fk_positions": 8189,
+    "legal": 321689,
+    "pct_of_legal": 2.5456,
+    "fk_slots": 61698,
+    "non_settled": 640110,
+    "fk_optimal_all": 61554,
+    "fk_optimal_lh": 59878,
+    "fk_slots_lh": 59974
+   },
+   "4x4": {
+    "fk_positions": 131069,
+    "legal": 24318165,
+    "pct_of_legal": 0.539,
+    "fk_slots": 1340858,
+    "non_settled": 48599962,
+    "fk_optimal_all": 1340298,
+    "fk_optimal_lh": 1336536,
+    "fk_slots_lh": 1336552
+   }
+  },
+  "2_ko_density": {
+   "ko_sens_fraction_wzo1_nonsettled": {
+    "2x2": {
+     "ko_sens": 82,
+     "non_settled": 106,
+     "pct": 77.3585
+    },
+    "3x2": {
+     "ko_sens": 378,
+     "non_settled": 918,
+     "pct": 41.1765
+    },
+    "3x3": {
+     "ko_sens": 8698,
+     "non_settled": 24826,
+     "pct": 35.0358
+    },
+    "4x3": {
+     "ko_sens": 170276,
+     "non_settled": 640110,
+     "pct": 26.6011
+    },
+    "4x4": {
+     "ko_sens": 10367922,
+     "non_settled": 48599962,
+     "pct": 21.3332
+    }
+   },
+   "ko_sens_fraction_wzo1_allslots": {
+    "2x2": {
+     "ko_sens": 82,
+     "slots": 114,
+     "pct": 71.9298
+    },
+    "3x2": {
+     "ko_sens": 378,
+     "slots": 978,
+     "pct": 38.6503
+    },
+    "3x3": {
+     "ko_sens": 8698,
+     "slots": 25350,
+     "pct": 34.3116
+    },
+    "4x3": {
+     "ko_sens": 170276,
+     "slots": 643378,
+     "pct": 26.4659
+    },
+    "4x4": {
+     "ko_sens": 10367922,
+     "slots": 48636330,
+     "pct": 21.3172
+    }
+   },
+   "ko_sens_fraction_wzo2": {
+    "3x3": {
+     "ko_sens": 5408,
+     "entries": 49428,
+     "pct": 10.9412,
+     "artifact": "data/oracle-3x3-v2.wzo2"
+    },
+    "4x4": {
+     "ko_sens": 3455412,
+     "entries": 99133036,
+     "pct": 3.4856,
+     "artifact": "data/oracle-4x4-v2.wzo2"
+    },
+    "note": "4x3 has no WZO2 artifact. The brief's 170,181/643,378 = 26.45% mixes the I5-graph numerator (flagged ko=none passes=0 states in the reachable graph, 170,181, missing 95 unreachable flagged slots) with the WZO1 all-slot denominator; WZO1 measured here: 170,276/643,378 = 26.47% (all slots), 170,276/640,110 = 26.60% (non-settled)."
+   },
+   "ko_count_distribution": {
+    "2x2": {
+     "ko_sens_slots": 82,
+     "dist": [
+      50,
+      32,
+      0,
+      0,
+      0
+     ],
+     "labels": [
+      "0-ko",
+      "1-ko",
+      "2-ko",
+      "3-ko",
+      "4-ko+"
+     ]
+    },
+    "3x2": {
+     "ko_sens_slots": 378,
+     "dist": [
+      294,
+      84,
+      0,
+      0,
+      0
+     ],
+     "labels": [
+      "0-ko",
+      "1-ko",
+      "2-ko",
+      "3-ko",
+      "4-ko+"
+     ]
+    },
+    "3x3": {
+     "ko_sens_slots": 8698,
+     "dist": [
+      7010,
+      1688,
+      0,
+      0,
+      0
+     ],
+     "labels": [
+      "0-ko",
+      "1-ko",
+      "2-ko",
+      "3-ko",
+      "4-ko+"
+     ]
+    },
+    "4x3": {
+     "ko_sens_slots": 170276,
+     "dist": [
+      122888,
+      46448,
+      940,
+      0,
+      0
+     ],
+     "labels": [
+      "0-ko",
+      "1-ko",
+      "2-ko",
+      "3-ko",
+      "4-ko+"
+     ]
+    },
+    "4x4": {
+     "ko_sens_slots": 10367922,
+     "dist": [
+      6741026,
+      3415640,
+      211000,
+      256,
+      0
+     ],
+     "labels": [
+      "0-ko",
+      "1-ko",
+      "2-ko",
+      "3-ko",
+      "4-ko+"
+     ]
+    }
+   }
+  },
+  "3_pass_optimality": {
+   "2x2": {
+    "pass_opt": 40,
+    "non_settled": 106,
+    "pass_opt_lh": 0,
+    "lh": 24,
+    "pass_opt_ks": 40,
+    "ko_sens": 82
+   },
+   "3x2": {
+    "pass_opt": 232,
+    "non_settled": 918,
+    "pass_opt_lh": 124,
+    "lh": 540,
+    "pass_opt_ks": 108,
+    "ko_sens": 378
+   },
+   "3x3": {
+    "pass_opt": 6336,
+    "non_settled": 24826,
+    "pass_opt_lh": 4226,
+    "lh": 16128,
+    "pass_opt_ks": 2110,
+    "ko_sens": 8698
+   },
+   "4x3": {
+    "pass_opt": 178344,
+    "non_settled": 640110,
+    "pass_opt_lh": 130008,
+    "lh": 469834,
+    "pass_opt_ks": 48336,
+    "ko_sens": 170276
+   },
+   "4x4": {
+    "pass_opt": 14861608,
+    "non_settled": 48599962,
+    "pass_opt_lh": 11554998,
+    "lh": 38232040,
+    "pass_opt_ks": 3306610,
+    "ko_sens": 10367922
+   }
+  },
+  "4_cycle_reachability": {
+   "2x2": {
+    "V": 1140,
+    "E": 2042,
+    "nontriv_sccs": 1,
+    "max_scc": 160,
+    "reachable_from_root": 170,
+    "reachable_in_nontriv_scc": 160,
+    "cycle_exists_root_reachable": true,
+    "lh_p0_slots": 32,
+    "lh_p0_cycle_reachable": 32,
+    "ks_p0_slots": 82,
+    "ks_p0_cycle_reachable": 82
+   },
+   "3x2": {
+    "V": 13692,
+    "E": 33486,
+    "nontriv_sccs": 1,
+    "max_scc": 1676,
+    "reachable_from_root": 1730,
+    "reachable_in_nontriv_scc": 1676,
+    "cycle_exists_root_reachable": true,
+    "lh_p0_slots": 600,
+    "lh_p0_cycle_reachable": 600,
+    "ks_p0_slots": 378,
+    "ks_p0_cycle_reachable": 378
+   },
+   "3x3": {
+    "V": 507000,
+    "E": 1756536,
+    "nontriv_sccs": 1,
+    "max_scc": 48602,
+    "reachable_from_root": 49426,
+    "reachable_in_nontriv_scc": 48602,
+    "cycle_exists_root_reachable": true,
+    "lh_p0_slots": 16652,
+    "lh_p0_cycle_reachable": 16652,
+    "ks_p0_slots": 8698,
+    "ks_p0_cycle_reachable": 8698
+   }
+  },
+  "4b_cycle_reachability_i5_committed": {
+   "4x3": {
+    "V": 1929035,
+    "E": 6858926,
+    "maxSCC": 1284078,
+    "ko_sensitive": 170181,
+    "ko_not_cr": 0,
+    "source": "GLOBAL.I5-SCC-CONTAIN / accept.md, T344/T363"
+   },
+   "4x4": {
+    "V": 99133036,
+    "E": 565402416,
+    "maxSCC": 47429504,
+    "cycle_reachable": 97689592,
+    "ko_sensitive": 3455412,
+    "ko_not_cr": 0,
+    "source": "GLOBAL.I5-SCC-CONTAIN / accept.md, T344/T363"
+   },
+   "note": "I5 graph models differ from the t382 cycles model at 4x3 (pos,side,passes, no ko dimension; V=3x side-slots) \u2014 cited, not re-measured."
+  },
+  "5_history_dependence": {
+   "2x2": {
+    "measured": 0,
+    "denominator": "all L==H slots x histories (T12 C2-pilot); EXP-8 sample: 0/10 L==H diverged",
+    "pending_ko_lh_potential": 16,
+    "lh": 24
+   },
+   "3x2": {
+    "measured": "154/508 = 30.3% of reachable L==H slots (T13, 2026-07-30)",
+    "falsifying_pairs": "4432/134504",
+    "pending_ko_lh_potential": 244,
+    "lh": 540
+   },
+   "3x3": {
+    "measured": "not measured (cost: T13 exhaustive at 3x2 ~5min/17 workers; 3x3 line space >=10^4x larger; EXP-8 shows exact-PSK-under-history budget-intractable even at 3x2)",
+    "structural_bound_cycle": "100.0% of L==H ko=none p0 slots cycle-reachable (measured)",
+    "structural_bound_pending_ko": 40.1786
+   },
+   "4x3": {
+    "measured": "not measured",
+    "structural_bound_cycle": "unmeasured here; I5 shows all ko-sensitive cycle-reachable at 4x3",
+    "structural_bound_pending_ko": 41.1124
+   },
+   "4x4": {
+    "measured": "not measured",
+    "structural_bound_cycle": "98.5% of states cycle-reachable (I5); all KO_SENSITIVE cycle-reachable",
+    "structural_bound_pending_ko": 45.3451
+   }
+  }
+ },
+ "answer": {
+  "smallest_board_with_realistic_ko": "3x2 \u2014 history dependence measured 0 at 2x2 and 30.3% at 3x2 (T13); the operator's 3x3 guess was one rung high",
+  "threshold_verdict": "no defensible clean threshold: pathology is a gradient, with two real jumps \u2014 (a) 2x2 -> 3x2 (history dependence 0 -> 30.3%, pass-optimality among L==H 0% -> 23%, full-kill positions 51% -> 26%), (b) first 2-ko positions at 4x3 (0.55% of ko-sensitive slots), first 3-ko at 4x4 (0.0025%). 2x2 is pathological in the opposite direction (ko shapes exist but never change an L==H value; 51% of positions are annihilations).",
+  "ko_mechanism_note": "the 3x2 history dependence is driven by full-goban position-repetition bans (PSK), not ko recaptures per se (T13's hand-verified example idx=413: a goban-winning capture repeats a position from 5 plies earlier); 2x2's divergence (EXP-8, KO_SENS region only) is ko-recapture-driven. Both mechanisms are absent from L==H values at 2x2.",
+  "sevenfold_claim_corrected": "the brief's '7x drop' (26.45% -> 3.49%) mixes WZO1 (4x3) with WZO2 (4x4) denominators; on consistent WZO1 the KO_SENS fraction falls gently 26.5% -> 21.3% (1.2x); on consistent WZO2 (3x3 -> 4x4) it falls 10.9% -> 3.5% (3.1x). The trend direction is real, the magnitude is format-dependent."
+ },
+ "claims": []
+}

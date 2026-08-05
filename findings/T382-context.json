@@ -1,0 +1,90 @@
+{
+ "task_id": "T382",
+ "date": "2026-08-05",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T382",
+ "git_head": "6ed1be4",
+ "instrument_source": "src/t382_census.zig",
+ "instrument_sha256": "467120e10f457cd43ed112dbeee411f633eeefd114457eec6353c5d497221147",
+ "build": "tools/runner -- zig build-exe -O ReleaseFast src/t382_census.zig --name weizigo-t382-census  (ReleaseFast, runner RSS guard 4096 MB)",
+ "selftest": "11 passed, 0 failed \u2014 Tarjan hand-built graph; ko-shape detector (3x3 single pocket, 4x4 two disjoint pockets); 1x1 null artifact (zero flags, one pass move); flag-flip seeded defect (KO_SENS count +1); value-perturbation seeded defect (127 cannot be pass-optimal)",
+ "calibration_cross_checks": {
+  "2x2_legal_57": "OEIS A094777 \u2014 PASS",
+  "3x3_ko_count_dist": "7010/1688/0/0/0 = B23 \u2014 PASS (byte-identical)",
+  "4x4_ko_count_dist": "6741026/3415640/211000/256/0 = B23 \u2014 PASS (byte-identical)",
+  "4x4_nonsettled_KO_SENS": "10,367,922/48,599,962 = 21.3332% = chainability \u2014 PASS",
+  "4x4_wzo2_KO_SENS": "3,455,412/99,133,036 = 3.4856% = committed I5/brief headline \u2014 PASS",
+  "4x4_wzo2_entries": "99,133,036 walked clean = committed count \u2014 PASS",
+  "3x2_maxSCC": "1,676 = T134/T363 calibration \u2014 PASS",
+  "3x2_all_p0_konone_cycle_reachable": "100% = T363 vacuity \u2014 PASS",
+  "2x2_PSK_acyclic_note": "T12 'no reachable non-root cycles' holds for PSK-legal reachability; the move graph (I5 model) HAS cycles at 2x2 (7-state capture-exchange cycle witnessed; max SCC 160). T12's tautology is a PSK-ban effect, not cycle absence."
+ },
+ "artifacts": {
+  "artifacts/oracle-2x2.wzo": "1ed06e648561995005a16489dcf6c4205c5aa11f427da81cceca40d3cab62abf",
+  "artifacts/oracle-3x2.wzo": "d4d22c0d9f1d771bfcb1d99fc43a4f19f652205113ff599123b189097b3bb523",
+  "artifacts/oracle-3x3.wzo": "c1f8fe5edac9a42710f57056c87e80b66b5bae5a8af610ba2b256af1e2805685",
+  "artifacts/oracle-4x3.wzo": "5316f428ad821c79c5dcd62188c648d6455ffd2e698e9b5d49db93ae0a6ecad1",
+  "data/oracle-4x4.checkpoint.wzo": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118",
+  "data/oracle-3x3-v2.wzo2": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb",
+  "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a"
+ },
+ "runs": [
+  {
+   "mode": "--selftest",
+   "cmd": "weizigo-t382-census --selftest",
+   "result": "11/11 PASS"
+  },
+  {
+   "mode": "--slot",
+   "cmd": "weizigo-t382-census --slot artifacts/oracle-2x2.wzo",
+   "result": "see pathology json"
+  },
+  {
+   "mode": "--slot",
+   "cmd": "weizigo-t382-census --slot artifacts/oracle-3x2.wzo",
+   "result": "see pathology json"
+  },
+  {
+   "mode": "--slot",
+   "cmd": "weizigo-t382-census --slot artifacts/oracle-3x3.wzo",
+   "result": "see pathology json"
+  },
+  {
+   "mode": "--slot",
+   "cmd": "weizigo-t382-census --slot artifacts/oracle-4x3.wzo",
+   "result": "see pathology json"
+  },
+  {
+   "mode": "--slot",
+   "cmd": "weizigo-t382-census --slot data/oracle-4x4.checkpoint.wzo",
+   "result": "39.3 s wall, see pathology json"
+  },
+  {
+   "mode": "--kocount",
+   "cmd": "weizigo-t382-census --kocount <artifact> (all five sizes)",
+   "result": "B23-verified at 3x3/4x4; new at 2x2/3x2/4x3"
+  },
+  {
+   "mode": "--cycles",
+   "cmd": "weizigo-t382-census --cycles artifacts/oracle-2x2.wzo (and 3x2, 3x3)",
+   "result": "2x2: maxSCC 160; 3x2: maxSCC 1676; 3x3: maxSCC 48602"
+  },
+  {
+   "mode": "--wzo2",
+   "cmd": "weizigo-t382-census --wzo2 data/oracle-3x3-v2.wzo2",
+   "result": "49,428 entries; KO_SENS 5,408 = 10.94%"
+  },
+  {
+   "mode": "--wzo2",
+   "cmd": "weizigo-t382-census --wzo2 data/oracle-4x4-v2.wzo2",
+   "result": "99,133,036 entries; KO_SENS 3,455,412 = 3.4856%"
+  }
+ ],
+ "trust_labels": {
+  "wzo1_ko_sens_flags": "bracket property (L<H), not a score \u2014 safe to read (chainability discipline)",
+  "wzo1_stored_values_ko_sens_slots": "distrusted (median-pinned; Track A pending) \u2014 pass-opt and full-kill-opt on KO_SENS slots are bracketed in the report",
+  "wzo1_stored_values_lh_slots": "fresh-start single-score values; C1 proven at 2x2/3x2, claimed above",
+  "history_dependence_3x3_4x3_4x4": "not measured \u2014 running the T13 exhaustive probe at larger sizes is a solve campaign, not a census; EXP-8 measured exact-PSK-under-history is budget-intractable even at 3x2"
+ },
+ "claims": []
+}
