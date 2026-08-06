@@ -238,6 +238,17 @@ clean · **L5** one rulebook · **L6** small Go solved, certifiably · **L7** th
 nobody can expand is not communication. (These were "milestones M<n>" before 2026-08-05; the IDs
 moved to `L<n>` because `M1`–`M10` are already the mutant IDs.)
 
+**Every row has a SHORT NAME, phrased as the question the row answers.** Not a slug — a question
+a human can read: `T387 (does a capture cap make the game finite?)`, `T388 (do we run the same test
+at every goban size?)`. It goes in the brief's title line and in the `managent` note, and it is what
+appears in narrative to the operator. Report a row's outcome as a sentence that ties it to its
+landmark:
+
+> `T387 (does a capture cap make the game finite?)` — **answered yes, at 3×3.** One of the
+> hypotheses supporting `L2 (proven 4×4 values)`; still open at 4×3 and 4×4.
+
+An ID with no short name forces the reader to open the brief to learn what the work was about.
+
 **Frame work as movement between landmarks.** A sprint is not "a list of rows that closed" — it is a
 step from one landmark toward the next. When you open a brief, say which landmark the work serves;
 when you close a row, say what a human can now see that they could not before, and what still
