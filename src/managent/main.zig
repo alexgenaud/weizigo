@@ -1593,7 +1593,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
 fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
-        w.diag("usage: managent dispatch <id> --to <agent> [--note <text>]\n", .{});
+        w.diag("usage: managent dispatch <id> --to <agent> [--note <text>] [--force]\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
@@ -2025,7 +2025,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     // blind.  cmdDone refuses; --force closes with a loud acknowledgement.
     const CLAIM_TO_DONE_REFUSE_SECS: i64 = 10;
     if (args.len < 3) {
-        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--skip-acceptance <reason>]\n", .{});
+        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--skip-acceptance <reason>] [--force]\n", .{});
         w.diag("       --fail (backward compat, sets verdict=blocked)\n", .{});
         w.diag("       --status defaults to 'pass'; --note required for non-pass verdicts\n", .{});
         w.diag("       --skip-acceptance bypasses the acceptance= command (reason mandatory)\n", .{});
