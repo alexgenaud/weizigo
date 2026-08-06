@@ -1,0 +1,74 @@
+{
+  "task_id": "T389",
+  "date": "2026-08-06",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T389",
+  "claims": [],
+  "new_rows": [],
+  "method": {
+    "question": "Does the new engine honour its own table's brackets along played trajectories? The property that makes an answer key an answer key (operator, 2026-08-05): in self-play the final score must land inside the stored [L,H] bracket at every earlier node; a final score outside an earlier bracket is a contradiction (table wrong, selector wrong, or key wrong).",
+    "instrument": {
+      "source": "src/t389_traj.zig",
+      "note": "Standalone, additive. Reads data/oracle-4x4-v2.wzo2 only + the committed corpus findings/T366-engine-kifu.json. No build.zig edit, no engine-source edit. The brief names src/t379_*.zig; T379 died as a zombie (6da4ac8) and this row is T389, so the instrument follows the t<task>_*.zig convention.",
+      "modes": "selfplay (new engine vs itself, T366 openings seed 42 + empty goban, both colour assignments as determinism replicates), replay (committed 132-game corpus, move-for-move), --inject-* (seedctl semantics for the seeded control). Per-ply node bracket from artifact2.lookup (session API, as T366 did; the weizigo_showscores 4x4 crash of T374 is not exercised).",
+      "auxiliary": "src/t389_pskprobe.zig — witnesses for the frame-A PSK-vs-basic-ko artefact (per-node bracket walk of fA-o06-B, and the ply-17 case where the basic-ko optimal move cd is PSK-illegal).",
+      "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t389_traj.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t389/cache --global-cache-dir /tmp/weizigo/t389/global --name weizigo-t389-traj -femit-bin=/tmp/weizigo/t389/t389-traj (under tools/runner, MANAGENT_TASK_ID=T389)",
+      "build_git_head": "045cdc4",
+      "binary_sha256": "3dfbddcae5ee20f944346db460c967882f29ad871dc40098bcf60c455d158c4c",
+      "artifact": "data/oracle-4x4-v2.wzo2, sha256 0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a, rules_id 3 (Chinese area, komi 0, basic ko, L/H bracket)",
+      "corpus": "findings/T366-engine-kifu.json, sha256 8b61c2305e7661b1c814cd6297f9d066bd3197dd29cabfc90157f47f0769b36d (132 games)"
+    },
+    "invariant": "final score in [L_n, H_n] at every node n of every game, where [L_n,H_n] is the table's stored bracket at the node's (colex, side, ko_point, passes) key. L = Black's guarantee (below_L escape => Black's play failed), H = White's enforcement (above_H escape => White's play failed); culprit identity from the game's colour assignment. Bracketed nodes (L<H) are interval predictions; only interval escape is a violation."
+  },
+  "headline_run": {
+    "selfplay": {
+      "games": 67,
+      "openings": "33 T366 openings (3 canonical one-ply + 30 random two-ply, seed 42) x 2 colour assignments + empty goban; pairs are determinism replicates (33/33 byte-identical)",
+      "plies": 1153,
+      "forced_opening_plies": 126,
+      "engine_decision_plies": 1027,
+      "violations": 48,
+      "violations_at_engine_decision_plies": 0,
+      "violations_at_forced_opening_plies": 48,
+      "lookup_misses": 0,
+      "empty_game": "0 violations, final +1, root [1,16] (bracketed), final == L"
+    },
+    "seeded_control": {
+      "inject": "opening 0 (canonical-corner-A1), moves-index 1, White, pass (seedctl semantics, T375's injection)",
+      "result_flip": "W+16 -> B+16 (T375's old-vs-new game gave B+3; different game, same sensitivity)",
+      "checker": "fires at ply 1, side W, above_H (final 16 > H -16), bracket [-16,-16], forced_ply=false, in both replicates",
+      "surgical": "65/66 non-injected games byte-identical to null run (PASS)",
+      "net": "48 violations (46 forced + 2 engine-decision, exactly the injected ones)"
+    },
+    "corpus_replay": {
+      "games": 132,
+      "plies": 2604,
+      "forced_opening_plies": 252,
+      "engine_decision_plies": 2352,
+      "violations": 284,
+      "fA": "144 violations / 1287 plies; 42 new-engine-attributable at engine-decision plies (PSK-vs-basic-ko enforcement artefacts, all above_H; witness fA-o06-B ply 17: basic-ko optimal cd is PSK-illegal; same opening fA B+16 vs fB W+16), 55 old-engine-attributable, 47 forced",
+      "fB": "140 violations / 1317 plies; 0 new-engine-attributable at any engine-decision ply (0/1191), 92 old-engine-attributable, 48 forced",
+      "causes": "key_mismatch 0, indeterminate_bracket 85, genuine_defect 199, ruleset_mismatch 0; lookup misses 0; illegal moves 0",
+      "ko_pending_violations": "4, all old-engine-attributable (fA/fB-o19-W, fA/fB-o21-B = T366 genuine losses), all with alternate (ko-cleared) key containing the final",
+      "passes_1_violations": 3,
+      "replay_fidelity": "132/132 final scores match the committed corpus"
+    },
+    "operator_hypothesis": "NOT supported as a new-engine defect (0 escapes at new-engine decision plies in self-play and frame B, at any ko/pass key state); CONFIRMED as the old engine's failure class (the 4 ko-pending escapes are all old-engine-attributable = T366's genuine losses)"
+  },
+  "notes": [
+    "Fleet hygiene: HEAD moved during the row (6da4ac8 -> 045cdc4). The instrument was built and run at 045cdc4. Version stamp confirms.",
+    "The corpus frame-A games were generated by T366's instrument at commit 19cd78b with the new engine PSK-enforced; the frame-A new-attributable escapes are PSK-vs-basic-ko artefacts (the table is basic-ko; PSK-restricted play cannot always achieve/enforce its brackets), NOT new-engine defects. The fB frame is the apples-to-apples test and shows zero.",
+    "Escapes explained by the move at the violated ply (child bracket contains final): selfplay 46/48, corpus 110/284 (the propagating 174 are old-engine collapses, consistent with T366's lines-that-collapse).",
+    "The 48 selfplay escapes are all at forced-opening plies (14 at the empty root, 34 at ply 1) — corpus fixtures, not engine choices; the canonical corner/edge and some random openings are deliberately suboptimal first moves, which is what makes the corpus comparable to T366. The checker firing on them is the same sensitivity the seeded control demonstrates on an engine choice.",
+    "Determinism: replicate pairs byte-identical; runs deterministic at fixed seed.",
+    "Deliverable JSON assembly: findings/T389-trajectory-consistency.json = one '--mode both' run (sections selfplay, corpus-replay) + the seeded run's section renamed seeded-control, merged mechanically (the only non-instrument step).",
+    "What I did not establish: per-fA-violation proof that each of the 42 PSK artefacts would have been avoided under basic ko (established for the witness game fA-o06-B via the frame flip and the ply-17 PSK block; the other 41 are attributed by the frame difference, not individually verified).",
+    "Noticed but did not act on: nothing new-engine-suspicious. The 4 alt-key hits are old-engine blunder plies, so the alternate-key probe is recorded as data but is NOT treated as key-mismatch evidence (a build-side key decode bug such as T383's would show as lookup misses, and there are 0).",
+    "Vocabulary: the Orchestrator's ruling 045cdc4 (BRACKETED / SINGLE-SCORE, not KO_SENSITIVE / CYCLE-UNDETERMINED) is followed in the evidence doc; the instrument's cause name 'indeterminate_bracket' is an identifier and was left as-is."
+  ],
+  "outputs": {
+    "evidence_doc": "docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
+    "trajectory_json": "findings/T389-trajectory-consistency.json",
+    "instruments": "src/t389_traj.zig, src/t389_pskprobe.zig"
+  }
+}
