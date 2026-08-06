@@ -240,6 +240,21 @@ pub fn build(b: *std.Build) void {
     inbox_loop_regression.cwd = b.path(".");
     test_step.dependOn(&inbox_loop_regression.step);
 
+    // ── T399: directive/JSON write-site integrity controls ────────────
+    // Unescaped free text in JSON artifacts corrupted directives.jsonl
+    // (lost directive, 2026-08-06) and tasks.json (fleet outage, same
+    // day).  Nine controls against a scratch store: multi-line note
+    // round-trips through tell/inbox, quotes/backslash/tab/trailing-
+    // newline notes round-trip byte-exactly, the ack path re-escapes,
+    // the store path (amend/dispatch/done --skip-acceptance/ping) stays
+    // parseable, a single-line note is unaffected, and a deliberately
+    // corrupted ledger line makes the reader warn while audit reports
+    // it.  RED against the 2026-08-06 binary; wired because `zig build
+    // test` is the acceptance gate for T399.
+    const directive_integrity_regression = b.addSystemCommand(&.{ "sh", "tools/regression-directive-integrity.sh" });
+    directive_integrity_regression.cwd = b.path(".");
+    test_step.dependOn(&directive_integrity_regression.step);
+
     // ── T322: wire remaining orphaned regression scripts ───────────────
     // Three scripts tested; two pass cleanly.  managent-integrity fails
     // (checks deployed bin/ vs zig-out/ staleness — a pre-condition that

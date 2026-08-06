@@ -635,6 +635,17 @@ fn writeStateLocked(io: std.Io, state_path: []const u8, state: *StateMap) !void 
     defer buf.deinit(alloc);
     try serializeState(state, &buf);
 
+    // T399: refuse to write an unreadable store.  Escaping makes the output
+    // valid by construction; this re-parse is the write-site guard that turns
+    // the 2026-08-06 failure mode (amend reported success while writing
+    // unparseable tasks.json → every reader crashed) into a loud error.
+    {
+        var check = std.json.parseFromSlice(std.json.Value, alloc, buf.items, .{ .allocate = .alloc_always }) catch {
+            return error.StateWriteNotRoundTrip;
+        };
+        check.deinit();
+    }
+
     const dirname = std.fs.path.dirname(state_path) orelse ".";
     const basename = std.fs.path.basename(state_path);
 
@@ -839,122 +850,103 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         if (!first) try buf.appendSlice(alloc, ",");
         first = false;
 
-        try buf.appendSlice(alloc, "\n  \"");
-        try buf.appendSlice(alloc, entry.key_ptr.*);
-        try buf.appendSlice(alloc, "\": {");
+        try buf.appendSlice(alloc, "\n  ");
+        try writeJsonString(buf, entry.key_ptr.*);
+        try buf.appendSlice(alloc, ": {");
 
         const ts = entry.value_ptr.*;
-        try buf.appendSlice(alloc, "\n    \"status\": \"");
-        try buf.appendSlice(alloc, statusToString(ts.status));
-        try buf.appendSlice(alloc, "\"");
+        try buf.appendSlice(alloc, "\n    \"status\": ");
+        try writeJsonString(buf, statusToString(ts.status));
 
         if (ts.agent) |a| {
-            try buf.appendSlice(alloc, ",\n    \"agent\": \"");
-            try buf.appendSlice(alloc, a);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"agent\": ");
+            try writeJsonString(buf, a);
         } else {
             try buf.appendSlice(alloc, ",\n    \"agent\": null");
         }
 
         if (ts.model) |m| {
-            try buf.appendSlice(alloc, ",\n    \"model\": \"");
-            try buf.appendSlice(alloc, m);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"model\": ");
+            try writeJsonString(buf, m);
         } else {
             try buf.appendSlice(alloc, ",\n    \"model\": null");
         }
 
-        try buf.appendSlice(alloc, ",\n    \"bundle\": \"");
-        try buf.appendSlice(alloc, ts.bundle);
-        try buf.appendSlice(alloc, "\"");
+        try buf.appendSlice(alloc, ",\n    \"bundle\": ");
+        try writeJsonString(buf, ts.bundle);
 
-        try buf.appendSlice(alloc, ",\n    \"set\": \"");
-        try buf.append(alloc, ts.set);
-        try buf.appendSlice(alloc, "\"");
+        try buf.appendSlice(alloc, ",\n    \"set\": ");
+        try writeJsonString(buf, &.{ts.set});
 
         try buf.appendSlice(alloc, ",\n    \"holds\": [");
         for (ts.holds, 0..) |h, hi| {
             if (hi > 0) try buf.appendSlice(alloc, ", ");
-            try buf.appendSlice(alloc, "\"");
-            try buf.appendSlice(alloc, h);
-            try buf.appendSlice(alloc, "\"");
+            try writeJsonString(buf, h);
         }
         try buf.appendSlice(alloc, "]");
 
         try buf.appendSlice(alloc, ",\n    \"needs\": [");
         for (ts.needs, 0..) |n, ni| {
             if (ni > 0) try buf.appendSlice(alloc, ", ");
-            try buf.appendSlice(alloc, "\"");
-            try buf.appendSlice(alloc, n);
-            try buf.appendSlice(alloc, "\"");
+            try writeJsonString(buf, n);
         }
         try buf.appendSlice(alloc, "]");
 
         try buf.appendSlice(alloc, ",\n    \"caps\": [");
         for (ts.caps, 0..) |c, ci| {
             if (ci > 0) try buf.appendSlice(alloc, ", ");
-            try buf.appendSlice(alloc, "\"");
-            try buf.appendSlice(alloc, c);
-            try buf.appendSlice(alloc, "\"");
+            try writeJsonString(buf, c);
         }
         try buf.appendSlice(alloc, "]");
 
-        try buf.appendSlice(alloc, ",\n    \"added\": \"");
-        try buf.appendSlice(alloc, ts.added);
-        try buf.appendSlice(alloc, "\"");
+        try buf.appendSlice(alloc, ",\n    \"added\": ");
+        try writeJsonString(buf, ts.added);
 
         if (ts.claimed) |c| {
-            try buf.appendSlice(alloc, ",\n    \"claimed\": \"");
-            try buf.appendSlice(alloc, c);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"claimed\": ");
+            try writeJsonString(buf, c);
         } else {
             try buf.appendSlice(alloc, ",\n    \"claimed\": null");
         }
 
         if (ts.done) |d| {
-            try buf.appendSlice(alloc, ",\n    \"done\": \"");
-            try buf.appendSlice(alloc, d);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"done\": ");
+            try writeJsonString(buf, d);
         } else {
             try buf.appendSlice(alloc, ",\n    \"done\": null");
         }
 
         if (ts.dispatched) |dp| {
-            try buf.appendSlice(alloc, ",\n    \"dispatched\": \"");
-            try buf.appendSlice(alloc, dp);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"dispatched\": ");
+            try writeJsonString(buf, dp);
         } else {
             try buf.appendSlice(alloc, ",\n    \"dispatched\": null");
         }
 
         if (ts.dispatched_to) |dt| {
-            try buf.appendSlice(alloc, ",\n    \"dispatched_to\": \"");
-            try buf.appendSlice(alloc, dt);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"dispatched_to\": ");
+            try writeJsonString(buf, dt);
         } else {
             try buf.appendSlice(alloc, ",\n    \"dispatched_to\": null");
         }
 
         if (ts.note) |nt| {
-            try buf.appendSlice(alloc, ",\n    \"note\": \"");
-            try buf.appendSlice(alloc, nt);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"note\": ");
+            try writeJsonString(buf, nt);
         } else {
             try buf.appendSlice(alloc, ",\n    \"note\": null");
         }
 
         if (ts.verdict) |vd| {
-            try buf.appendSlice(alloc, ",\n    \"verdict\": \"");
-            try buf.appendSlice(alloc, vd);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"verdict\": ");
+            try writeJsonString(buf, vd);
         } else {
             try buf.appendSlice(alloc, ",\n    \"verdict\": null");
         }
 
         if (ts.verdict_note) |vn| {
-            try buf.appendSlice(alloc, ",\n    \"verdict_note\": \"");
-            try buf.appendSlice(alloc, vn);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"verdict_note\": ");
+            try writeJsonString(buf, vn);
         } else {
             try buf.appendSlice(alloc, ",\n    \"verdict_note\": null");
         }
@@ -963,17 +955,15 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.claim_count}));
 
         if (ts.acceptance) |ac| {
-            try buf.appendSlice(alloc, ",\n    \"acceptance\": \"");
-            try buf.appendSlice(alloc, ac);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"acceptance\": ");
+            try writeJsonString(buf, ac);
         } else {
             try buf.appendSlice(alloc, ",\n    \"acceptance\": null");
         }
 
         if (ts.skip_acceptance_reason) |sr| {
-            try buf.appendSlice(alloc, ",\n    \"skip_acceptance_reason\": \"");
-            try buf.appendSlice(alloc, sr);
-            try buf.appendSlice(alloc, "\"");
+            try buf.appendSlice(alloc, ",\n    \"skip_acceptance_reason\": ");
+            try writeJsonString(buf, sr);
         } else {
             try buf.appendSlice(alloc, ",\n    \"skip_acceptance_reason\": null");
         }
@@ -982,18 +972,18 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         try buf.appendSlice(alloc, ",\n    \"amendments\": [");
         for (ts.amendments, 0..) |am, ai| {
             if (ai > 0) try buf.appendSlice(alloc, ", ");
-            try buf.appendSlice(alloc, "\"");
-            try buf.appendSlice(alloc, am);
-            try buf.appendSlice(alloc, "\"");
+            try writeJsonString(buf, am);
         }
         try buf.appendSlice(alloc, "]");
 
         try buf.appendSlice(alloc, "\n  }");
     }
 
-    if (!first) try buf.appendSlice(alloc, "\n");
-    // _sys metadata
-    try buf.appendSlice(alloc, ",\n  \"_sys\": {\n    \"next_id\": ");
+    // _sys metadata — the leading comma must be omitted when the task map is
+    // empty: `{` followed directly by `,` is invalid JSON (latent bug the
+    // T399 round-trip guard caught on a bare purge leaving zero tasks).
+    try buf.appendSlice(alloc, if (first) "\n  " else ",\n  ");
+    try buf.appendSlice(alloc, "\"_sys\": {\n    \"next_id\": ");
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_next_id}));
     try buf.appendSlice(alloc, ",\n    \"directive_next\": ");
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_directive_next}));
@@ -1218,6 +1208,53 @@ fn getFlagValue(args: [][]const u8, flag: []const u8) ?[]const u8 {
         }
     }
     return null;
+}
+
+// ── JSON escaping (T399) ────────────────────────────────────────────────────
+// The write paths interpolate free text (--note, --skip-acceptance reasons,
+// directive payloads) into JSON artifacts.  Every JSON writer must go through
+// writeJsonString: an unescaped `"` or newline terminates the record early
+// and corrupts the store on write — the 2026-08-06 incidents (lost directive
+// in directives.jsonl; tasks.json unparseable → fleet outage).  Quotes are
+// the proven-in-the-wild case, not just newlines.  Control bytes are emitted
+// as \uXXXX so no byte in the artifact can break a reader's JSON parse.
+
+fn writeJsonString(buf: *std.ArrayList(u8), s: []const u8) !void {
+    try buf.append(alloc, '"');
+    for (s) |c| {
+        switch (c) {
+            '"' => try buf.appendSlice(alloc, "\\\""),
+            '\\' => try buf.appendSlice(alloc, "\\\\"),
+            '\n' => try buf.appendSlice(alloc, "\\n"),
+            '\r' => try buf.appendSlice(alloc, "\\r"),
+            '\t' => try buf.appendSlice(alloc, "\\t"),
+            else => {
+                if (c < 0x20) {
+                    // Control byte → \u00XX (RFC 8259 requires escaping < 0x20)
+                    try buf.appendSlice(alloc, "\\u00");
+                    try buf.append(alloc, hexDigit((c >> 4) & 0xF));
+                    try buf.append(alloc, hexDigit(c & 0xF));
+                } else {
+                    try buf.append(alloc, c);
+                }
+            },
+        }
+    }
+    try buf.append(alloc, '"');
+}
+
+fn hexDigit(v: u8) u8 {
+    return if (v < 10) '0' + v else 'a' + v - 10;
+}
+
+/// Allocating variant of writeJsonString: returns `"escaped"` including the
+/// quotes, suitable for fmt-style writers (printStatusJson, audit --json).
+/// Caller frees the result.
+fn jsonString(s: []const u8) ![]const u8 {
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try writeJsonString(&buf, s);
+    return try buf.toOwnedSlice(alloc);
 }
 
 // ── commands ────────────────────────────────────────────────────────────────
@@ -3168,46 +3205,64 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
 }
 
 fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
-    w.data("[", .{});
+    // T399: this is a JSON writer (stdout data consumed by dashboards); free
+    // text goes through writeJsonString like every other JSON writer.
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try buf.appendSlice(alloc, "[");
     var it = state.iterator();
     var first = true;
     while (it.next()) |entry| {
-        if (!first) w.data(",", .{});
+        if (!first) try buf.appendSlice(alloc, ",");
         first = false;
         const ts = entry.value_ptr.*;
         const rel = bundleRel(ts.bundle, repo_root);
-        w.data("\n  {{\"id\":\"{s}\",\"status\":\"{s}\",\"set\":\"{c}\",\"bundle\":\"{s}\"", .{
-            entry.key_ptr.*, statusToString(ts.status), ts.set, rel,
-        });
+        try buf.appendSlice(alloc, "\n  {\"id\":");
+        try writeJsonString(&buf, entry.key_ptr.*);
+        try buf.appendSlice(alloc, ",\"status\":");
+        try writeJsonString(&buf, statusToString(ts.status));
+        try buf.appendSlice(alloc, ",\"set\":");
+        try writeJsonString(&buf, &.{ts.set});
+        try buf.appendSlice(alloc, ",\"bundle\":");
+        try writeJsonString(&buf, rel);
         if (ts.model) |m| {
-            w.data(",\"model\":\"{s}\"", .{m});
+            try buf.appendSlice(alloc, ",\"model\":");
+            try writeJsonString(&buf, m);
         }
         if (ts.agent) |_| {
             const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
-            w.data(",\"identifier\":\"{s}\"", .{ident});
+            try buf.appendSlice(alloc, ",\"identifier\":");
+            try writeJsonString(&buf, ident);
         }
         if (ts.needs.len > 0) {
-            w.data(",\"needs\":[", .{});
+            try buf.appendSlice(alloc, ",\"needs\":[");
             for (ts.needs, 0..) |n, ni| {
-                if (ni > 0) w.data(",", .{});
-                w.data("\"{s}\"", .{n});
+                if (ni > 0) try buf.appendSlice(alloc, ",");
+                try writeJsonString(&buf, n);
             }
-            w.data("]", .{});
+            try buf.appendSlice(alloc, "]");
         }
         if (ts.holds.len > 0) {
-            w.data(",\"holds\":[", .{});
+            try buf.appendSlice(alloc, ",\"holds\":[");
             for (ts.holds, 0..) |h, hi| {
-                if (hi > 0) w.data(",", .{});
-                w.data("\"{s}\"", .{h});
+                if (hi > 0) try buf.appendSlice(alloc, ",");
+                try writeJsonString(&buf, h);
             }
-            w.data("]", .{});
+            try buf.appendSlice(alloc, "]");
         }
-        if (ts.dispatched_to) |dt| w.data(",\"dispatched_to\":\"{s}\"", .{dt});
-        if (ts.verdict) |v| w.data(",\"verdict\":\"{s}\"", .{v});
-        w.data("}}", .{});
+        if (ts.dispatched_to) |dt| {
+            try buf.appendSlice(alloc, ",\"dispatched_to\":");
+            try writeJsonString(&buf, dt);
+        }
+        if (ts.verdict) |v| {
+            try buf.appendSlice(alloc, ",\"verdict\":");
+            try writeJsonString(&buf, v);
+        }
+        try buf.appendSlice(alloc, "}");
     }
-    if (!first) w.data("\n", .{});
-    w.data("]\n", .{});
+    if (!first) try buf.appendSlice(alloc, "\n");
+    try buf.appendSlice(alloc, "]\n");
+    w.data("{s}", .{buf.items});
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3524,7 +3579,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     // RESUME_STALL_MIN.  This is the operator's signal that `managent tell`
     // is in use and the worker has not yet polled.
     {
-        var directives = readDirectives(io, repo_root, state_path) catch null;
+        var directives = readDirectives(w, io, repo_root, state_path, null) catch null;
         defer if (directives) |*d| {
             for (d.items) |di| {
                 alloc.free(di.id);
@@ -4084,7 +4139,7 @@ fn freeState(state: *StateMap) void {
 
 const DIRECTIVES_FILE = "docs/infra/managent/directives.jsonl";
 
-fn readDirectives(io: std.Io, repo_root: []const u8, state_path: []const u8) !std.ArrayList(Directive) {
+fn readDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, bad_out: ?*u32) !std.ArrayList(Directive) {
     _ = state_path;
     var result = std.ArrayList(Directive).empty;
     errdefer result.deinit(alloc);
@@ -4099,14 +4154,22 @@ fn readDirectives(io: std.Io, repo_root: []const u8, state_path: []const u8) !st
     defer alloc.free(content);
 
     var lines = std.mem.splitScalar(u8, content, '\n');
+    var bad: u32 = 0; // T399: unparseable lines are skipped (resilience) but
+    // reported — a silent skip is what let the 2026-08-06 corruption sit.
     while (lines.next()) |line| {
         const trimmed = std.mem.trim(u8, line, " \r\n");
         if (trimmed.len == 0) continue;
 
-        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch {
+            bad += 1;
+            continue;
+        };
         defer parsed.deinit();
 
-        if (parsed.value != .object) continue;
+        if (parsed.value != .object) {
+            bad += 1;
+            continue;
+        }
         const obj = parsed.value.object;
 
         const d_id = if (obj.get("id")) |v| if (v == .string) v.string else "" else "";
@@ -4117,7 +4180,10 @@ fn readDirectives(io: std.Io, repo_root: []const u8, state_path: []const u8) !st
         const d_ts = if (obj.get("ts")) |v| if (v == .string) v.string else "" else "";
         const d_read = if (obj.get("read")) |v| if (v == .bool) v.bool else false else false;
 
-        if (d_id.len == 0 or d_target.len == 0) continue;
+        if (d_id.len == 0 or d_target.len == 0) {
+            bad += 1;
+            continue;
+        }
 
         try result.append(alloc, Directive{
             .id = try alloc.dupe(u8, d_id),
@@ -4130,43 +4196,61 @@ fn readDirectives(io: std.Io, repo_root: []const u8, state_path: []const u8) !st
         });
     }
 
+    if (bad > 0) {
+        w.diag("warn: {d} unparseable or malformed directive record(s) in {s} — the ledger has been corrupted\n", .{ bad, DIRECTIVES_FILE });
+    }
+    if (bad_out) |bo| bo.* = bad;
+
     return result;
 }
 
-fn appendDirective(io: std.Io, repo_root: []const u8, d: Directive) !void {
+fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) !void {
     const dir_path = try std.fs.path.join(alloc, &.{ repo_root, DIRECTIVES_FILE });
     defer alloc.free(dir_path);
 
     const dirname = std.fs.path.dirname(dir_path) orelse ".";
     std.Io.Dir.cwd().createDirPath(io, dirname) catch {};
 
-    // Build JSON line
+    // Build JSON line — T399: every string goes through writeJsonString.
+    // A raw `"` or newline in a note terminates the record early and the
+    // reader skips it silently (Incident 1, 2026-08-06).
     var buf = std.ArrayList(u8).empty;
     defer buf.deinit(alloc);
 
-    try buf.appendSlice(alloc, "{\"id\":\"");
-    try buf.appendSlice(alloc, d.id);
-    try buf.appendSlice(alloc, "\",\"target\":\"");
-    try buf.appendSlice(alloc, d.target);
-    try buf.appendSlice(alloc, "\",\"directive\":\"");
-    try buf.appendSlice(alloc, d.directive);
-    try buf.appendSlice(alloc, "\"");
+    try buf.appendSlice(alloc, "{\"id\":");
+    try writeJsonString(&buf, d.id);
+    try buf.appendSlice(alloc, ",\"target\":");
+    try writeJsonString(&buf, d.target);
+    try buf.appendSlice(alloc, ",\"directive\":");
+    try writeJsonString(&buf, d.directive);
     if (d.note) |n| {
-        try buf.appendSlice(alloc, ",\"note\":\"");
-        try buf.appendSlice(alloc, n);
-        try buf.appendSlice(alloc, "\"");
+        try buf.appendSlice(alloc, ",\"note\":");
+        try writeJsonString(&buf, n);
     }
-    try buf.appendSlice(alloc, ",\"from\":\"");
-    try buf.appendSlice(alloc, d.from);
-    try buf.appendSlice(alloc, "\",\"ts\":\"");
-    try buf.appendSlice(alloc, d.ts);
-    try buf.appendSlice(alloc, "\",\"read\":");
+    try buf.appendSlice(alloc, ",\"from\":");
+    try writeJsonString(&buf, d.from);
+    try buf.appendSlice(alloc, ",\"ts\":");
+    try writeJsonString(&buf, d.ts);
+    try buf.appendSlice(alloc, ",\"read\":");
     if (d.read) {
         try buf.appendSlice(alloc, "true");
     } else {
         try buf.appendSlice(alloc, "false");
     }
     try buf.appendSlice(alloc, "}\n");
+
+    // T399: refuse to write an unreadable record.  The line we just built
+    // must round-trip through the same parser the readers use; if it does
+    // not, the file is left untouched and the command fails loudly — `tell`
+    // must never print `told <target>` for a record a reader cannot see.
+    {
+        const check = std.mem.trim(u8, buf.items, " \r\n");
+        var roundtrip = std.json.parseFromSlice(std.json.Value, alloc, check, .{ .allocate = .alloc_always }) catch {
+            w.diag("FATAL: directive record {s} failed to re-parse after escaping — refusing to write (would corrupt the ledger)\n", .{d.id});
+            return error.DirectiveWriteNotRoundTrip;
+        };
+        roundtrip.deinit();
+    }
 
     // Read existing content + append new line
     const existing_str = std.Io.Dir.cwd().readFileAlloc(io, dir_path, alloc, .unlimited) catch "";
@@ -4194,7 +4278,7 @@ const Heartbeat = struct {
     rss_mb: f64 = 0.0,
 };
 
-fn readHeartbeats(io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
+fn readHeartbeats(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
     var result = std.ArrayList(Heartbeat).empty;
     errdefer result.deinit(alloc);
 
@@ -4208,14 +4292,22 @@ fn readHeartbeats(io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
     defer alloc.free(content);
 
     var lines = std.mem.splitScalar(u8, content, '\n');
+    var bad: u32 = 0; // T399: same silent-skip hazard as readDirectives had —
+    // a corrupt heartbeat record must be reported, not swallowed.
     while (lines.next()) |line| {
         const trimmed = std.mem.trim(u8, line, " \r\n");
         if (trimmed.len == 0) continue;
 
-        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch {
+            bad += 1;
+            continue;
+        };
         defer parsed.deinit();
 
-        if (parsed.value != .object) continue;
+        if (parsed.value != .object) {
+            bad += 1;
+            continue;
+        }
         const obj = parsed.value.object;
 
         const hb_ident = if (obj.get("identifier")) |v| if (v == .string) v.string else "" else "";
@@ -4226,7 +4318,10 @@ fn readHeartbeats(io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
         const hb_cpu = if (obj.get("cpu")) |v| if (v == .float) @as(f64, v.float) else if (v == .integer) @as(f64, @floatFromInt(v.integer)) else 0.0 else 0.0;
         const hb_rss = if (obj.get("rss_mb")) |v| if (v == .float) @as(f64, v.float) else if (v == .integer) @as(f64, @floatFromInt(v.integer)) else 0.0 else 0.0;
 
-        if (hb_ident.len == 0 or hb_task.len == 0) continue;
+        if (hb_ident.len == 0 or hb_task.len == 0) {
+            bad += 1;
+            continue;
+        }
 
         try result.append(alloc, Heartbeat{
             .identifier = try alloc.dupe(u8, hb_ident),
@@ -4237,6 +4332,10 @@ fn readHeartbeats(io: std.Io, repo_root: []const u8) !std.ArrayList(Heartbeat) {
             .cpu = hb_cpu,
             .rss_mb = hb_rss,
         });
+    }
+
+    if (bad > 0) {
+        w.diag("warn: {d} unparseable or malformed heartbeat record(s) in untracked/heartbeat.jsonl\n", .{bad});
     }
 
     return result;
@@ -4491,10 +4590,19 @@ fn writeSyncData(io: std.Io, state_path: []const u8, state: *StateMap, role: []c
 
     // Content is "{...}". Insert _sync before the closing "}".
     // Also merge with existing _sync if present.
-    const sync_json = try std.fmt.allocPrint(alloc,
-        \\"_sync": {{"{s}": {{"last_read_msg":{d},"last_posted_msg":{d},"last_event_gen":{d}}}}}
-    , .{ role, rs.last_read_msg, rs.last_posted_msg, rs.last_event_gen });
-    defer alloc.free(sync_json);
+    // Build the _sync block — T399: the role is a CLI arg and must go
+    // through writeJsonString like every other free text.
+    var sync_buf = std.ArrayList(u8).empty;
+    defer sync_buf.deinit(alloc);
+    try sync_buf.appendSlice(alloc, "\"_sync\": {");
+    try writeJsonString(&sync_buf, role);
+    try sync_buf.appendSlice(alloc, ": {\"last_read_msg\":");
+    try sync_buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{rs.last_read_msg}));
+    try sync_buf.appendSlice(alloc, ",\"last_posted_msg\":");
+    try sync_buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{rs.last_posted_msg}));
+    try sync_buf.appendSlice(alloc, ",\"last_event_gen\":");
+    try sync_buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{rs.last_event_gen}));
+    try sync_buf.appendSlice(alloc, "}}");
 
     // Simple approach: insert _sync before the closing brace
     if (trimmed.len > 2 and trimmed[trimmed.len - 1] == '}') {
@@ -4505,7 +4613,7 @@ fn writeSyncData(io: std.Io, state_path: []const u8, state: *StateMap, role: []c
         }
         try buf.appendSlice(alloc, trimmed[0..end]);
         try buf.appendSlice(alloc, ",\n  ");
-        try buf.appendSlice(alloc, sync_json);
+        try buf.appendSlice(alloc, sync_buf.items);
         try buf.appendSlice(alloc, "\n}\n");
     } else {
         try buf.appendSlice(alloc, trimmed);
@@ -4726,6 +4834,31 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
     }
 
+    // ── T399: the directive ledger must round-trip ─────────────────────────
+    // A corrupted control channel (unparseable lines) means directives were
+    // written but never delivered — the Incident-1 failure mode (2026-08-06):
+    // `tell` printed success while the reader skipped the record silently.
+    // The reader warns per invocation; audit surfaces it on the dashboard.
+    {
+        var bad_directives: u32 = 0;
+        var directives_for_check = readDirectives(w, io, repo_root, state_path, &bad_directives) catch null;
+        if (directives_for_check) |*dl| {
+            for (dl.items) |di| {
+                alloc.free(di.id);
+                alloc.free(di.target);
+                alloc.free(di.directive);
+                if (di.note) |n| alloc.free(n);
+                alloc.free(di.from);
+                alloc.free(di.ts);
+            }
+            dl.deinit(alloc);
+        }
+        if (bad_directives > 0) {
+            const msg = try std.fmt.allocPrint(alloc, "{d} unparseable or malformed directive record(s) in directives.jsonl — the ledger has been corrupted; directives may have been written but never delivered", .{bad_directives});
+            try findings.append(alloc, .{ .level = "FIX", .id = "directives.jsonl", .msg = msg });
+        }
+    }
+
     var it = state.iterator();
     while (it.next()) |entry| {
         const tid = entry.key_ptr.*;
@@ -4784,7 +4917,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
         // WORKER-CHANNEL: heartbeat-based staleness check for in_progress
         if (ts.status == .in_progress) {
-            var hbs = readHeartbeats(io, repo_root) catch null;
+            var hbs = readHeartbeats(w, io, repo_root) catch null;
             if (hbs) |*heartbeats| {
                 defer {
                     for (heartbeats.items) |h| {
@@ -5063,7 +5196,15 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         w.data("[\n", .{});
         for (findings.items, 0..) |f, fi| {
             if (fi > 0) w.data(",\n", .{});
-            w.data("  {{\"level\":\"{s}\",\"id\":\"{s}\",\"msg\":\"{s}\"}}", .{ f.level, f.id, f.msg });
+            // T399: findings can embed free text (deliverable paths, hold
+            // names, skip-acceptance reasons) — escape before emitting JSON.
+            const lvl = try jsonString(f.level);
+            defer alloc.free(lvl);
+            const fid = try jsonString(f.id);
+            defer alloc.free(fid);
+            const fmsg = try jsonString(f.msg);
+            defer alloc.free(fmsg);
+            w.data("  {{\"level\":{s},\"id\":{s},\"msg\":{s}}}", .{ lvl, fid, fmsg });
         }
         if (findings.items.len > 0) w.data("\n", .{});
         w.data("]\n", .{});
@@ -5647,7 +5788,10 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         .read = false,
     };
 
-    try appendDirective(io, repo_root, d);
+    appendDirective(w, io, repo_root, d) catch |err| {
+        w.diag("  FAILED: directive not written ({s}) — nothing was appended to the ledger\n", .{@errorName(err)});
+        std.process.exit(1);
+    };
 
     // Persist the updated directive counter
     try writeState(io, state_path, &state_for_counter);
@@ -5680,7 +5824,7 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
     }
 
-    var directives = try readDirectives(io, repo_root, state_path);
+    var directives = try readDirectives(w, io, repo_root, state_path, null);
     defer {
         for (directives.items) |d| {
             alloc.free(d.id);
@@ -5760,28 +5904,29 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 (target.len == 0 or std.mem.eql(u8, d_target, target));
             if (match) {
                 // Re-serialise with read:true (cheaper than surgical patch).
-                const new_line = std.fmt.allocPrint(alloc, "{{\"id\":\"{s}\",\"target\":\"{s}\",\"directive\":\"{s}\"", .{
-                    d_id,                                                                     d_target,
-                    if (obj.get("directive")) |v| if (v == .string) v.string else "" else "",
-                }) catch "";
-                defer alloc.free(new_line);
+                // T399: parsed values must go back through writeJsonString —
+                // a directive written with an escaped `\"` in its note parses
+                // to a raw `"` here, and re-emitting it raw would corrupt the
+                // ledger on the ack path.
                 var line_buf = std.ArrayList(u8).empty;
                 defer line_buf.deinit(alloc);
-                try line_buf.appendSlice(alloc, new_line);
+                try line_buf.appendSlice(alloc, "{\"id\":");
+                try writeJsonString(&line_buf, d_id);
+                try line_buf.appendSlice(alloc, ",\"target\":");
+                try writeJsonString(&line_buf, d_target);
+                try line_buf.appendSlice(alloc, ",\"directive\":");
+                try writeJsonString(&line_buf, if (obj.get("directive")) |v| if (v == .string) v.string else "" else "");
                 if (obj.get("note")) |v| if (v == .string) {
-                    try line_buf.appendSlice(alloc, ",\"note\":\"");
-                    try line_buf.appendSlice(alloc, v.string);
-                    try line_buf.appendSlice(alloc, "\"");
+                    try line_buf.appendSlice(alloc, ",\"note\":");
+                    try writeJsonString(&line_buf, v.string);
                 };
                 if (obj.get("from")) |v| if (v == .string) {
-                    try line_buf.appendSlice(alloc, ",\"from\":\"");
-                    try line_buf.appendSlice(alloc, v.string);
-                    try line_buf.appendSlice(alloc, "\"");
+                    try line_buf.appendSlice(alloc, ",\"from\":");
+                    try writeJsonString(&line_buf, v.string);
                 };
                 if (obj.get("ts")) |v| if (v == .string) {
-                    try line_buf.appendSlice(alloc, ",\"ts\":\"");
-                    try line_buf.appendSlice(alloc, v.string);
-                    try line_buf.appendSlice(alloc, "\"");
+                    try line_buf.appendSlice(alloc, ",\"ts\":");
+                    try writeJsonString(&line_buf, v.string);
                 };
                 try line_buf.appendSlice(alloc, ",\"read\":true}\n");
                 try out.appendSlice(alloc, line_buf.items);
@@ -5809,21 +5954,32 @@ fn cmdPing(w: Writers, io: std.Io, repo_root: []const u8, args: [][]const u8) !v
     const ts = try nowTimestamp();
     const ident = "unknown/ping";
 
-    // Build heartbeat JSON line
+    // Build heartbeat JSON line — T399: escape free text like the other
+    // writers; an unescaped newline in a --note would split the record.
     var buf = std.ArrayList(u8).empty;
     defer buf.deinit(alloc);
 
-    try buf.appendSlice(alloc, "{\"identifier\":\"");
-    try buf.appendSlice(alloc, ident);
-    try buf.appendSlice(alloc, "\",\"task\":\"ping\",\"ts\":\"");
-    try buf.appendSlice(alloc, ts);
-    try buf.appendSlice(alloc, "\"");
+    try buf.appendSlice(alloc, "{\"identifier\":");
+    try writeJsonString(&buf, ident);
+    try buf.appendSlice(alloc, ",\"task\":");
+    try writeJsonString(&buf, "ping");
+    try buf.appendSlice(alloc, ",\"ts\":");
+    try writeJsonString(&buf, ts);
     if (note_text) |nt| {
-        try buf.appendSlice(alloc, ",\"note\":\"");
-        try buf.appendSlice(alloc, nt);
-        try buf.appendSlice(alloc, "\"");
+        try buf.appendSlice(alloc, ",\"note\":");
+        try writeJsonString(&buf, nt);
     }
     try buf.appendSlice(alloc, "}\n");
+
+    // T399: refuse to write an unreadable heartbeat.
+    {
+        const check = std.mem.trim(u8, buf.items, " \r\n");
+        var roundtrip = std.json.parseFromSlice(std.json.Value, alloc, check, .{ .allocate = .alloc_always }) catch {
+            w.diag("FATAL: heartbeat failed to re-parse after escaping — refusing to write\n", .{});
+            return error.HeartbeatWriteNotRoundTrip;
+        };
+        roundtrip.deinit();
+    }
 
     const hb_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked" });
     defer alloc.free(hb_dir);
@@ -5872,7 +6028,7 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     };
     const stale_secs: i64 = @intFromFloat(@max(stale_min, 0.0) * 60.0);
 
-    var heartbeats = try readHeartbeats(io, repo_root);
+    var heartbeats = try readHeartbeats(w, io, repo_root);
     defer {
         for (heartbeats.items) |h| {
             alloc.free(h.identifier);
@@ -5955,7 +6111,7 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
 // ── print pending directives for a claiming task ─────────────────────────────
 
 fn printPendingDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, task_id: []const u8) void {
-    var directives = readDirectives(io, repo_root, state_path) catch return;
+    var directives = readDirectives(w, io, repo_root, state_path, null) catch return;
     defer {
         for (directives.items) |d| {
             alloc.free(d.id);
