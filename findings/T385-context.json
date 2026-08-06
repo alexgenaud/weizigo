@@ -1,0 +1,52 @@
+{
+ "task_id": "T385",
+ "date": "2026-08-06",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T385",
+ "claims": [],
+ "new_rows": [],
+ "context": {
+  "brief": "untracked/T385-bracket-gallery-and-naming.md (kanban set=I; landmark L2 proven 4x4 values; deliverable docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md)",
+  "scope_discipline": "additive only \u2014 read artifacts and sources; one standalone instrument (src/t385_gallery.zig) compiled ad hoc; no build.zig, engine-source or artifact edits. Not touched: build.zig, src/retro.zig, src/oracle.zig, src/rules.zig, src/solve.zig, src/exp6_solve.zig, src/vb_*.zig, artifacts/, data/.",
+  "ko_decode": "kb >> 2 per artifact2 \u00a72.2. T383 landed the vb_closure fix (c5e75d7); this instrument decodes independently and regression-checks against artifact2.decodeKeyByte in selftest (incl. the F-7 witness encodeKeyByte(0,3,0,5) -> ko 3, not 6).",
+  "artifacts_read": {
+   "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a (24,318,165 groups, 99,133,036 entries, ko_bits 5, rules_id 3)",
+   "data/oracle-3x3-v2.wzo2": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb (12,675 groups, 49,428 entries, ko_bits 4)"
+  },
+  "committed_runs_cited": {
+   "T344 I5 4x4": "maxSCC=47,429,504 (47.9% of entries), cycle_reachable=97,689,592 (98.5%), ko_sensitive=3,455,412, ko_not_cr=0/3,455,412 (findings/T344-i5-4x4.json, single-instrument CLAIMED)",
+   "T382 --cycles 3x3": "max SCC 48,602, root-reachable 49,426, root-reachable-in-nontriv 48,602 (docs/research/goban-pathology-2026-08-05.md \u00a73.4)",
+   "T380 Q4": "set_positions 1,924,973; set_with_zero_ko 1,782,629 (92.6%); ko_with_no_set 1,897,760; freshstart 1,913,925/981,071/981,071; bracket_entries 3,455,412"
+  },
+  "instrument": {
+   "src/t385_gallery.zig": {
+    "sha256": "c3a22e3a84fac5a81b6635005d8a928468089832a8a3526301d694bb8f806233",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t385_gallery.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t385/kc --global-cache-dir /tmp/weizigo/t385/gc --name weizigo-t385-gallery -femit-bin=/tmp/weizigo/t385/bin/gallery (under tools/runner: rss 4096 MB cap, max-wall 3600 for the run modes)",
+    "modes_and_runs": {
+     "selftest": "9/9 passing: colex round-trip (1000 samples); key-byte decode vs artifact2 incl. F-7 witness; binary search == linear scan + PASS-NOKO (100 groups); C-A1 spot check 2000 states missing=0; natural-parent 7/7; ko-search positive control 7/7 (ko found at depth 1 via the same search code); Tarjan hand-built graph (4 SCCs, {1,2} shared); cycle-DFS hand-built graph (cycle from 0, none from leaf); board renderer",
+     "run": "pass A full 4x4 scan (24,318,165 groups / 99,133,036 entries); corr4x4 bounded DFS/BFS (depth 10 plies, 30,000 nodes/root, 300 per bucket); class-3 bounded census; gallery. Two seeds: 0x7E57_7385 and 0x5EED_2026 (findings/T385-gallery.json carries seed 0x5EED_2026; aggregates identical in both: cycle_found 291-294/300 bracket vs 255/300 clear; ko_found 300/300 bracket vs 296-299/300 clear; class3 no-ko-within-bound 0/300 fresh + 0/300 any, both seeds; missing_children=0)",
+     "corr3x3": "exhaustive: 49,428 entries, 184,938 edges, missing=0; Tarjan: 827 SCCs, one non-trivial of size 48,602 (matches committed T382 max-SCC); L<H in-nontriv 5,408/5,408 (100%), L==H 43,194/44,020 (98.1%); can-reach-nontriv same; ko-reachable L<H 304 (5.6%) vs L==H 3,280 (7.5%); 1-ply ban-parent L<H 160 (3.0%) vs L==H 1,376 (3.1%); class3 exact 5,072/5,408 (93.8%), fresh 3,060; mean widths 6.52 (class3) vs 6.92 (all L<H). Independent Python re-implementation agrees on edges and SCC sizes (the check that caught the CSR offset bug below)."
+    }
+   }
+  },
+  "instrumentation_bug_found_and_fixed": "corr3x3 adjacency originally skipped the passes==2 pass child with a `continue` inside the per-vertex loop, dropping the succ_start/rsucc_start CSR offset appends for every passes==1 vertex \u2014 a corrupted adjacency that still reported the correct edge count (184,938); symptom was max SCC 39,405 vs the correct 48,602, caught only by the independent Python re-implementation. Fixed: the passes==2 child is skipped inside an `if` block.",
+  "bounds": {
+   "forward": "depth <= 10 plies, node budget 30,000 per root; exhaustive within the bound",
+   "backward": "1 ply; single-capture restoration only (conservative, corroboration-only); measured at 3x3: 0 false positives, 1,504/1,536 (97.9%) of true ban-parent states missed",
+   "statements": "bounded search findings are worded as bounded ('no ko-free bracketed entry within (10 plies, 30k nodes)', 0/300 and 0/300, two seeds), never as 'the class is empty'"
+  },
+  "gallery_classes_found": {
+   "1_single_score_ko_in_past": "4 examples (colex 5157/5164/5174/5179), each verified: ban-cell shape check + natural one-ply parent in table",
+   "2_single_score_ko_in_future": "4 examples (colex 514/515 x both sides), witness ko at 2-4 plies, path recorded",
+   "3_bracketed_no_ko_anywhere": "0 at 4x4 within the bound (the finding); class proven non-empty at 3x3 exact (5,072/5,408) with 13 example positions in findings/T385-corr3x3.json",
+   "4_bracketed_ko_present": "4 examples (colex 34667/34678/35142/35163), single readable ko shape each"
+  },
+  "files_written": [
+   "docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md",
+   "findings/T385-gallery.json",
+   "findings/T385-corr3x3.json",
+   "findings/T385-context.json",
+   "src/t385_gallery.zig"
+  ]
+ }
+}
