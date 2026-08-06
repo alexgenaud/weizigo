@@ -1,1 +1,178 @@
-{"task_id":"T385","mode":"corr3x3 — exhaustive","artifact":{"path":"data/oracle-3x3-v2.wzo2","sha256":"d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb"},"graph":{"vertices":49428,"edges":184938,"missing_children":0,"sccs":827,"nontriv_sccs":1,"max_comp_size":48602},"correlation":{"lh_entries":5408,"lh_in_nontriv_scc":5408,"lh_in_nontriv_pct":100.0000,"eq_entries":44020,"eq_in_nontriv_scc":43194,"eq_in_nontriv_pct":98.1236,"lh_can_reach_nontriv":5408,"lh_can_reach_pct":100.0000,"eq_can_reach_nontriv":43194,"eq_can_reach_pct":98.1236,"lh_ko_reachable":304,"eq_ko_reachable":3280,"lh_1ply_ban_parent":160,"eq_1ply_ban_parent":1376,"width_mean_in_nontriv":6.9186,"width_mean_not_in_nontriv":0,"width_mean_by_scc_size_bucket":[{"bucket":"1 (trivial SCC)","n":0,"mean_width":0},{"bucket":"2..10","n":0,"mean_width":0},{"bucket":"11..100","n":0,"mean_width":0},{"bucket":"101..1000","n":0,"mean_width":0},{"bucket":">1000","n":5408,"mean_width":6.9186}]},"class3_exact_census":{"definition":"entry is L<H, ko==NONE, position has no static ko shape, NO ko-carrying state reachable in the whole graph, NO 1-ply predecessor carrying a ko ban — all checks exhaustive over the 49,428-entry 3×3 graph","all_entries":5072,"fresh_start_entries":3060,"mean_width_all":6.5221,"mean_width_fresh":6.8758,"examples":[{"colex":164,"side":1,"passes":0,"stones":3,"L":-9,"H":1},{"colex":164,"side":1,"passes":1,"stones":3,"L":-1,"H":1},{"colex":166,"side":-1,"passes":0,"stones":3,"L":-1,"H":9},{"colex":166,"side":-1,"passes":1,"stones":3,"L":-1,"H":1},{"colex":167,"side":1,"passes":0,"stones":3,"L":-9,"H":1},{"colex":167,"side":1,"passes":1,"stones":3,"L":-1,"H":1},{"colex":169,"side":-1,"passes":0,"stones":3,"L":-1,"H":9},{"colex":169,"side":-1,"passes":1,"stones":3,"L":-1,"H":1},{"colex":171,"side":1,"passes":0,"stones":3,"L":-9,"H":-3},{"colex":178,"side":-1,"passes":0,"stones":3,"L":3,"H":9},{"colex":179,"side":1,"passes":0,"stones":3,"L":3,"H":4},{"colex":180,"side":1,"passes":0,"stones":3,"L":-9,"H":-3},{"colex":182,"side":1,"passes":0,"stones":3,"L":-9,"H":9}]}}
+{
+  "task_id": "T385",
+  "mode": "corr3x3 — exhaustive",
+  "artifact": {
+    "path": "data/oracle-3x3-v2.wzo2",
+    "sha256": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb"
+  },
+  "graph": {
+    "vertices": 49428,
+    "edges": 184938,
+    "missing_children": 0,
+    "sccs": 827,
+    "nontriv_sccs": 1,
+    "max_comp_size": 48602
+  },
+  "correlation": {
+    "lh_entries": 5408,
+    "lh_in_nontriv_scc": 5408,
+    "lh_in_nontriv_pct": 100.0,
+    "eq_entries": 44020,
+    "eq_in_nontriv_scc": 43194,
+    "eq_in_nontriv_pct": 98.1236,
+    "lh_can_reach_nontriv": 5408,
+    "lh_can_reach_pct": 100.0,
+    "eq_can_reach_nontriv": 43194,
+    "eq_can_reach_pct": 98.1236,
+    "lh_ko_reachable": 304,
+    "eq_ko_reachable": 3280,
+    "lh_1ply_ban_parent": 160,
+    "eq_1ply_ban_parent": 1376,
+    "width_mean_in_nontriv": 6.9186,
+    "width_mean_not_in_nontriv": 0,
+    "width_mean_by_scc_size_bucket": [
+      {
+        "bucket": "1 (trivial SCC)",
+        "n": 0,
+        "mean_width": 0
+      },
+      {
+        "bucket": "2..10",
+        "n": 0,
+        "mean_width": 0
+      },
+      {
+        "bucket": "11..100",
+        "n": 0,
+        "mean_width": 0
+      },
+      {
+        "bucket": "101..1000",
+        "n": 0,
+        "mean_width": 0
+      },
+      {
+        "bucket": ">1000",
+        "n": 5408,
+        "mean_width": 6.9186
+      }
+    ]
+  },
+  "class3_exact_census": {
+    "definition": "entry is L<H, ko==NONE, position has no static ko shape, NO ko-carrying state reachable in the whole graph, NO 1-ply predecessor carrying a ko ban — all checks exhaustive over the 49,428-entry 3×3 graph",
+    "all_entries": 5072,
+    "fresh_start_entries": 3060,
+    "mean_width_all": 6.5221,
+    "mean_width_fresh": 6.8758,
+    "examples": [
+      {
+        "colex": 164,
+        "side": 1,
+        "passes": 0,
+        "stones": 3,
+        "L": -9,
+        "H": 1
+      },
+      {
+        "colex": 164,
+        "side": 1,
+        "passes": 1,
+        "stones": 3,
+        "L": -1,
+        "H": 1
+      },
+      {
+        "colex": 166,
+        "side": -1,
+        "passes": 0,
+        "stones": 3,
+        "L": -1,
+        "H": 9
+      },
+      {
+        "colex": 166,
+        "side": -1,
+        "passes": 1,
+        "stones": 3,
+        "L": -1,
+        "H": 1
+      },
+      {
+        "colex": 167,
+        "side": 1,
+        "passes": 0,
+        "stones": 3,
+        "L": -9,
+        "H": 1
+      },
+      {
+        "colex": 167,
+        "side": 1,
+        "passes": 1,
+        "stones": 3,
+        "L": -1,
+        "H": 1
+      },
+      {
+        "colex": 169,
+        "side": -1,
+        "passes": 0,
+        "stones": 3,
+        "L": -1,
+        "H": 9
+      },
+      {
+        "colex": 169,
+        "side": -1,
+        "passes": 1,
+        "stones": 3,
+        "L": -1,
+        "H": 1
+      },
+      {
+        "colex": 171,
+        "side": 1,
+        "passes": 0,
+        "stones": 3,
+        "L": -9,
+        "H": -3
+      },
+      {
+        "colex": 178,
+        "side": -1,
+        "passes": 0,
+        "stones": 3,
+        "L": 3,
+        "H": 9
+      },
+      {
+        "colex": 179,
+        "side": 1,
+        "passes": 0,
+        "stones": 3,
+        "L": 3,
+        "H": 4
+      },
+      {
+        "colex": 180,
+        "side": 1,
+        "passes": 0,
+        "stones": 3,
+        "L": -9,
+        "H": -3
+      },
+      {
+        "colex": 182,
+        "side": 1,
+        "passes": 0,
+        "stones": 3,
+        "L": -9,
+        "H": 9
+      }
+    ]
+  },
+  "date": "2026-08-06",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "_schema_repair": "Orchestrator 2026-08-06: added required key(s) date, model, claims so the absorber can parse this file. CONTENT UNCHANGED — no measurement, count or conclusion was edited. claims:[] asserts the row proposed no register row; T395/T396 carry the substantive absorption."
+}
