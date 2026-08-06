@@ -1332,6 +1332,23 @@ const KNOWN_COMMANDS = [_][]const u8{
     "quit",
 };
 
+/// Exact byte length of the `list_commands` reply (names joined by '\n'),
+/// computed from KNOWN_COMMANDS at comptime.
+///
+/// T403 (2026-08-07): this used to be a hand-written `[256]u8` while the real
+/// reply was 303 bytes, so `list_commands` — which every GTP GUI sends during
+/// handshake — panicked with "index out of bounds: index 265, len 256". The
+/// engine was unusable from Sabaki for that reason alone. Deriving the size
+/// here means adding a command can never re-introduce the overflow.
+const LIST_COMMANDS_BYTES = blk: {
+    var n: usize = 0;
+    for (KNOWN_COMMANDS, 0..) |c, k| {
+        if (k != 0) n += 1; // the '\n' separator
+        n += c.len;
+    }
+    break :blk n;
+};
+
 fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec: ?*const artifact.Decoded, a2: ?*const artifact2.LoadedArtifact, log: *const LogSink, pre: []const u8, enforcement: Enforcement) !void {
     const S = Session(w, h);
     var s = S{ .d = dec, .a2 = a2, .enforcement = enforcement };
@@ -1394,7 +1411,9 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     if (std.mem.eql(u8, c, q)) reply = "true";
                 }
             } else if (std.mem.eql(u8, first, "list_commands")) {
-                var lb: [256]u8 = undefined;
+                // Sized from KNOWN_COMMANDS, and the reply buffer must hold it.
+                comptime std.debug.assert(LIST_COMMANDS_BYTES <= 512);
+                var lb: [LIST_COMMANDS_BYTES]u8 = undefined;
                 var ll: usize = 0;
                 for (KNOWN_COMMANDS, 0..) |c, k| {
                     if (k != 0) {
@@ -1960,7 +1979,9 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
                     if (std.mem.eql(u8, c, q)) reply = "true";
                 }
             } else if (std.mem.eql(u8, first, "list_commands")) {
-                var lb: [256]u8 = undefined;
+                // Sized from KNOWN_COMMANDS, and the reply buffer must hold it.
+                comptime std.debug.assert(LIST_COMMANDS_BYTES <= 512);
+                var lb: [LIST_COMMANDS_BYTES]u8 = undefined;
                 var ll: usize = 0;
                 for (KNOWN_COMMANDS, 0..) |c, k| {
                     if (k != 0) {
