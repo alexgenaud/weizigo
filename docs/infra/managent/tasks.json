@@ -241,6 +241,50 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T403": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T403-gtp-boardsize-desync.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T22:31:28Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T404": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T404-absorb-2026-08-07.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T22:31:35Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T351": {
     "status": "dispatchable",
     "agent": null,
@@ -616,8 +660,8 @@
     "amendments": ["2026-08-06T14:50:04Z: verdict=blocked note=FAILED, adjudicated by claude-opus-5/orcha (the row was worked by deepseek-v4-flash; the earlier identifier claude-opus-5/T387 was an artefact of my --agent flag on the close and has been restored — do NOT read this hang against Opus in model-perf.md). Cause: src/t387_budget.zig:717-719 is an infinite loop. bitpos is declared u6, whose range is 0..63, so the guard while (bitpos < 64) is a tautology and the += 1 at 63 wraps instead of trapping under the -O ReleaseFast that tools/runner forces. Debug would have caught it in the first second; the fleet build mode cannot. Evidence: sample(1) put 2,554 of 2,554 stack samples at t387_budget.zig:718-719, with 14h02m elapsed, 836 CPU-minutes, RSS 880 KB and no output file — 100 percent CPU allocating nothing is a spin, not a slow solve. The idiom occurs exactly once in the repo. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z, so it was also a zombie. Process reaped 2026-08-06T14:47Z; no partial state existed to salvage. WHAT SURVIVES: DAG mode terminated and its three readings were uncommitted in /tmp — preserved to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges, the seeded control firing; 3x3 B=8 423,922 states 0 back edges; 4x3 B=8 10,636,928 states 0 back edges). The structural half of the operator capture-budget result is therefore intact and the handover claim that it is confirmed still stands. WHAT DOES NOT: the Bellman-consistency reading the handover lists as the open question was never taken. It is not pending, it is unmeasured. FOLLOW-UP: T397 (preserve the DAG readings into findings/, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 against the T386 at-risk denominators 80/2,748 and 496/51,318, and rule on whether budget-from-here forces the capture counter into the key). Landmark: no advance — L2 unmoved, and one reading the seat believed was in flight is now known not to be."]
   },
   "T400": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T400-c2-scoring-axiom-prose.md",
     "set": "A",
@@ -625,16 +669,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T20:23:18Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-06T22:30:18Z",
+    "done": "2026-08-06T22:30:18Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "Closed by claude-opus-5/orcha; worked by deepseek-v4-flash. Work LANDED at 3c63848 but the row was never claimed and sat dispatchable while its console worked and committed — the worked-without-claiming shape, so claim and done are recorded together here by the Orchestrator, not by the worker. Acceptance string (test -s on a research doc) is moot; deliverables verified by inspection at HEAD: AXIOMS.md C2 now reads Tromp-Taylor as-stands with Amendment 4 in section 7, GLOBAL.AXIOM-AREA updated in lockstep with register-tree-map.md, and src/rules.zig carries an additive characterization test pinning the contract (a non-Benson-alive invader scores as stones stand, +13, not +16 with removal). area_score untouched — no kernel behaviour changed. ORCHESTRATOR RULING RATIFIED: option (a), the code is the game. The axiom prose was wrong and the shipped scorer was right; prose bends to code because every solved artifact, every committed test and the MIGOS cross-validation were produced under as-stands scoring, so changing the code would invalidate the entire table while changing the prose invalidates nothing. Benson is NOT part of terminal scoring; it stays load-bearing only where dead-stone STATUS is decided — the ADR-0006 eye-prune, is_settled terminal detection including the WZO2 seed phase, and resign logic. This closes Fable owed-decision 1 exactly as recommended. OWED, minor and not worth holding the row: no findings/T400-*.json exists, so this row adds nothing to the C7 queue despite amending an axiom row; the substance lives in AXIOMS.md section 7 and CLAIMS.md where a reader will look. Landmark: advances L4 (the ledger is clean) — an axiom that described a game we do not play now describes the one we do.",
     "amendments": []
   },
   "T346": {
@@ -1540,8 +1584,8 @@
     "amendments": ["2026-08-04T08:59:31Z: verdict=pass-with-findings note=Resuming console (commit 93c2000): independent re-derivation confirmed prior T330.2 work + its 3 extra live dependents; found and fixed 3 sole-evidence mis-annotations — 4x4.F2, 4x4.F3, GLOBAL.H5c were 'superseded by remaining evidence' but had NO remaining e: source (their d: edges are derives-from, not evidence; brief case 1 is e:-only); corrected to 'evidence retired; needs re-derivation'. Amended sheet §Completion ('Two'->'Five' edges) with a Correction paragraph. claimlint unchanged at floor. All 3 deliverables tracked & unmodified."]
   },
   "T392": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T392-suite-bisect.md",
     "set": "P",
@@ -1549,14 +1593,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T02:38:34Z",
-    "claimed": null,
+    "claimed": "2026-08-06T22:16:10Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/evidence/SUITE-BISECT/bisect-2026-08-06.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1717,7 +1761,7 @@
   }
 ,
   "_sys": {
-    "next_id": 403,
+    "next_id": 405,
     "directive_next": 55
   }
 }
