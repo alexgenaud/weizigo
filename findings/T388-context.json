@@ -1,0 +1,95 @@
+{
+ "task_id": "T388",
+ "date": "2026-08-06",
+ "model": "flash",
+ "files_changed": [
+  "docs/infra/instrument-coverage.md",
+  "findings/T388-parametric.json",
+  "findings/T388-context.json"
+ ],
+ "findings": "findings/T388-parametric.json",
+ "runs": [
+  {
+   "id": "A-general-i5-all-legal",
+   "command": "tools/runner -- zig-out/bin/verify-battery 3x2 artifacts/oracle-3x2.wzo --invariants I5 --i5-graph all-legal --output /tmp/weizigo/t388-i5-gen.jsonl",
+   "artifact": "artifacts/oracle-3x2.wzo",
+   "artifact_sha256": "d4d22c0d9f1d771bfcb1d99fc43a4f19f652205113ff599123b189097b3bb523",
+   "result": {
+    "status": "pass",
+    "exit_class": "pass",
+    "value": {
+     "numerator": 0,
+     "denominator": 378
+    }
+   },
+   "stderr_diag": "[I5] BFS: V=2958 nodes, E=8656 edges (p0=1002 p1=978 p2=978) | [I5] Tarjan: SCCs total=439 non-trivial=1 maxSize=1000 cycleInvolved=1000 cycleReachable=2886 | [I5] KO_SENSITIVE flags: 378 total, 0 NOT cycle-reachable",
+   "jsonl": "/tmp/weizigo/t388-i5-gen.jsonl"
+  },
+  {
+   "id": "B-general-i5-reachable",
+   "command": "tools/runner -- zig-out/bin/verify-battery 3x2 artifacts/oracle-3x2.wzo --invariants I5 --i5-graph reachable --output /tmp/weizigo/t388-i5-gen-reach.jsonl",
+   "artifact": "artifacts/oracle-3x2.wzo",
+   "result": {
+    "status": "pass",
+    "exit_class": "pass",
+    "value": {
+     "numerator": 0,
+     "denominator": 378
+    }
+   },
+   "stderr_diag": "[I5] BFS: V=2583 nodes, E=7364 edges (p0=877 p1=853 p2=853) | [I5] Tarjan: SCCs total=64 non-trivial=1 maxSize=1000 cycleInvolved=1000 cycleReachable=2523 | [I5] KO_SENSITIVE flags: 378 total, 0 NOT cycle-reachable",
+   "jsonl": "/tmp/weizigo/t388-i5-gen-reach.jsonl"
+  },
+  {
+   "id": "C-size-specific-i5-reachable",
+   "command": "tools/runner -- zig test src/vb_scc_4x4.zig --test-filter \"SCC structure\"",
+   "artifact": "artifacts/oracle-3x2.wzo",
+   "diag": "[3x2 diag] V=2583 E=5510 maxSCC=1676 nSCC_non_trivial=1 cycle_involved=1676 cycle_reachable=1678 ko_sens=347 ko_not_cr=0",
+   "outcome": "All 1 tests passed"
+  },
+  {
+   "id": "D-size-specific-i5-all-legal",
+   "command": "tools/runner -- zig test src/vb_scc_4x4.zig --test-filter \"spurious KO_SENSITIVE\"",
+   "artifact": "artifacts/oracle-3x2.wzo",
+   "diag": "[3x2 all-legal] V=2958 ko_not_cr=0 hint_colex=null clear_hint_colex=null | [T344 NOTE] 3x2 all-legal has no non-CR clear-flag slot in the full graph \u2014 seeded-defect demonstrated at 4x4 instead",
+   "outcome": "All 1 tests passed"
+  },
+  {
+   "id": "E-raw-flag-census",
+   "command": "python3 (WZO1 layout: payload 32, fb at +2*total, fw at +3*total)",
+   "artifact": "artifacts/oracle-3x2.wzo",
+   "diag": "flags bit0 set: black=189 white=189 total=378; fb nonzero=189 fw nonzero=189"
+  }
+ ],
+ "coverage_matrix_sources": {
+  "battery_statuses": "docs/evidence/BATTERY/baselines.json (T292-ratified)",
+  "fleet_matrix": "docs/evidence/BATTERY/fleet.md (T258, includes T258-F1..F8)",
+  "general_dispatch": "src/verify_battery.zig:463-528",
+  "declared_modes": "src/vb_common.zig:128-136 (modeForCell), :138-139 (notApplicableOnWZO1)",
+  "i4_general": "src/vb_fixpoint.zig:170,265-283",
+  "i4_4x4": "src/vb_bellman_4x4.zig:1014 (main/run4x4AndWrite)",
+  "i4_a2": "src/oracle_v2_accept.zig:729,758 (kernel rules.Rules)",
+  "i5_general": "src/vb_graph.zig:448,468,491",
+  "i5_size_specific": "src/vb_scc_4x4.zig:398,741-757,810,861-870,1378",
+  "i7_general": "src/vb_fixpoint.zig:294,359-374",
+  "i7_a8": "src/oracle_v2_accept.zig:926,955",
+  "i8": "src/vb_fixpoint.zig:390 (stub); real fixture docs/evidence/QA-026/calibration-2x2-mismatch.py",
+  "i9": "src/vb_fixpoint.zig:415",
+  "i11_stub": "src/vb_fixpoint.zig:473",
+  "i11_real": "src/vb_i11.zig:174,231,275",
+  "key_agreement": "src/differential.zig:401 (T267), :1244 (T345 KEY-4x4)",
+  "closure": "src/vb_closure.zig:438,702",
+  "mutants": "src/vb_mutants.zig:94,132,162,190,228,269,319",
+  "health": "src/vb_health.zig (T347)",
+  "t380_closure_counter": "src/t380_ko_slot.zig:850"
+ },
+ "citation_anchors": {
+  "register_3x2_spread": "docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md 3.3 (1,724 / 1,704 / 1,678)",
+  "vb_graph_calibration_target": "src/vb_graph.zig:33-34 (3x2 true-root maxSCC=1,676)",
+  "t363_vacuity": "findings/T363-g3b-completion.json (projected vs full graph model; 3x2 vacuity)",
+  "t344_4x4_i5": "findings/T344-i5-4x4.json (V=99,133,036, cycle_reachable=97,689,592, ko_sensitive=3,455,412, ko_not_cr=0)",
+  "t343_4x4_i4": "findings/T343-i4-4x4.json (violations_clear=0 over 99,133,036)",
+  "t346_i11": "findings/T346-i11.json (2x2/3x2/3x3/4x3 exhaustive 0 mismatches; 4x4 sampled 50k 0 mismatches)",
+  "t345_key": "findings/T345-key-4x4.json (0 mismatches over 99,133,036)"
+ }
+}
