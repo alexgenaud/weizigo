@@ -1,0 +1,28 @@
+{
+  "task_id": "T387",
+  "date": "2026-08-06",
+  "model": "flash",
+  "identifier": "flash/T387; completed on flash/T397 (same console) after the D054 kill; this file is the context record",
+  "claims": [],
+  "new_rows": [],
+  "context": {
+    "brief": "untracked/T387-capture-budget-termination.md (kanban set=M; landmark L2 (proven 4x4 values)). The operator's idea: bound total captures over a game by B; then after B captures no capture is legal, stones only add, the game must terminate. Investigate: (1) the termination argument, (2) the state-space cost (exact multiplier at 3x3/4x3/4x4, bytes), (3) the hypothesis that the budget resolves exactly the bracketed region and leaves the determined region unchanged (test at 3x3, sweep B), (4) capture counts along optimal lines at 3x3/4x3, (5) the longest games in the bracketed region with boards, (6) the area-vs-territory scoring asymmetry.",
+    "row_history": "claimed flash/T387 2026-08-06; the value mode hung on a u6 loop counter (see findings/T397-value-mode-hang.json); the Orchestrator reaped the process, closed T387 as failed under D054 (14:50Z), registered T397 for the fix, saved the DAG readings to findings/T387-capture-budget-dag.json, and offered T397 to this console; T397 claimed and the fix + full measurement set completed here. The T387 row stays closed as adjudicated; this file and findings/T387-capture-budget.json are the report.",
+    "scope_discipline": "additive only — one new measurement instrument (src/t387_budget.zig); no engine, artifact, or axiom edits; no ruleset change made (the bars: any budget defines a new game and must be declared as one).",
+    "instrument_provenance": {
+      "src": "src/t387_budget.zig",
+      "sha256": "5dbfd551cdb47feeeca03389b82964ea76ef16f3c110c08b4ae4e4d866d5acae",
+      "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t387_budget.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t387/kc --global-cache-dir /tmp/weizigo/t387/gc --name weizigo-t387-budget -femit-bin=/tmp/weizigo/t387/bin/budget",
+      "runs": "4x4 reach runs under tools/runner (RSS cap 3.8 GB; wall 25-30 min) — the 4x4 base BFS is 147.6M states / ~600M child expansions, ~2.5 min; budgeted B=1..3 add ~3.5-5 min each; all completed",
+      "dependencies": "t386_engine.zig, exp6_solve.zig, colex.zig, score.zig (read-only imports)"
+    },
+    "key_semantics": {
+      "state": "(board base-3 rank, side 0=Black/1=White, ko, passes, budget)",
+      "budget_definition": "total stones captured over the whole game (the operator's 'total captures' reading); a placement capturing k stones is legal iff budget + k <= B; alternative reading (capture moves, not stones) changes the numbers but not the theorems",
+      "value_semantics": "single-pass minimax on the budget-augmented DAG; terminal = double pass, Chinese area, Black-positive; L == H everywhere by the DAG theorem"
+    },
+    "base_table_trust": "data/oracle-3x3-v2.wzo2 is the trusted 3x3 table (T380 gate: 0/49,428); the 4x4 WZO2 table (data/oracle-4x4-v2.wzo2, sha 0c3366f0 per T385) is NOT used for value claims here (the 4x4 value mode is out of scope: memory projection exceeds the runner cap — see notes in the research doc)",
+    "known_wrong_prior": "the brief's premise said infinite play is a cycle by pigeonhole (3^16 boards) — confirmed; the budget argument was suspected to fail at the 'stones are only added' step — it does NOT fail: verified as the DAG theorem",
+    "notes": "The one judgment call worth flagging: the L<H value-drift measurement (B24 vs B32 etc.) compares per-slot budget values at two budgets; it is the cleanest evidence that the bracket is relocated, not resolved."
+  }
+}

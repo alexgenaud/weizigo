@@ -1,0 +1,103 @@
+{
+  "task_id": "T387",
+  "date": "2026-08-06",
+  "model": "flash",
+  "identifier": "flash/T387 (row closed under D054 as failed — the u6 hang; the fix and the full measurement set were completed on the follow-up row flash/T397; this file and the research doc are the report the Orchestrator asked for)",
+  "claims": [],
+  "new_rows": [],
+  "notes": "The capture-budget investigation: does bounding total captures make the game finite, and at what cost? All numbers from the fixed binary (sha 5dbfd551); every figure with its denominator; controls ledger below.",
+  "method": {
+    "rule": "budget B = total stones captured over the whole game; a placement capturing k stones is legal iff budget_so_far + k <= B; budget lives in the state key (board, side, ko, passes, budget). Everything else (basic ko, suicide, passes, TIE=0 Chinese-area scoring at double-pass) is the WZO2/ADR-0020 semantics, mirrored from t386_engine.",
+    "instrument": "src/t387_budget.zig (additive, measurement only; no engine/artifact/axiom edits)",
+    "base_table": "data/oracle-3x3-v2.wzo2 (sha d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb per T385) for the 3x3 hypothesis test",
+    "psk_table": "artifacts/oracle-3x3.wzo for the PSK-overlap comparison"
+  },
+  "termination": {
+    "claim": "the budget-augmented game graph is a DAG — no directed cycles — hence every play terminates from every state, with no repetition rule at all.",
+    "proof_sketch": "budget is monotone non-decreasing along every play; a directed cycle would need constant budget; on a constant-budget cycle no capture occurs, so placements strictly increase the stone count and the board can never repeat, so no placement lies on the cycle; a pass-only cycle hits passes=2 and terminates. Game length <= 2(N+B)+1 plies.",
+    "machine_check": {
+      "3x3_B8": { "states": 423922, "back_edges": 0 },
+      "4x3_B8": { "states": 10636928, "back_edges": 0 },
+      "3x3_base_control": { "back_edges": 135512, "expectation": "> 0 (cycles exist without the budget)" },
+      "4x3_base_control": { "back_edges": 4929916 }
+    },
+    "consequence": "L == H everywhere under the budget rule — the bracket collapses structurally, no fixpoint ambiguity, no finisher needed."
+  },
+  "state_space_cost": {
+    "dense_key_multiplier": "exactly (B+1) at every goban size — the budget is one small integer in the key; the table grows by (B+1): 4x4 table 396.5 MB (99,133,036 x 4 B entries) -> 3.57 GB at B=8, 9.9 GB at B=24.",
+    "reachable_counts": {
+      "3x3": { "base": 73758, "B0": 72990, "B2": 138302, "B4": 195714, "B8": 423922 },
+      "4x3": { "base": 1929038, "B0": 1905570, "B2": 3922394, "B4": 5855764, "B8": 10636928, "B16": 25707312 },
+      "4x4": { "base": 147638298, "B0": 145515786, "B1": 239332920, "B2": 320070400, "B3": 403353354 }
+    },
+    "multiplier_vs_base_reachable": {
+      "3x3": { "B8": 5.7475 },
+      "4x3": { "B8": 5.5141, "B16": 13.326 },
+      "4x4": { "B1": 1.6211, "B2": 2.1679, "B3": 2.7320, "trend": "marginal states per budget level ~= 85M at 4x4, so the reachable multiplier grows roughly linearly in B: ~0.99 + 0.64B (4x4); dense multiplier is (B+1) regardless" }
+    },
+    "note": "base = raw-key-space reachable from both fresh-start roots (matches the t386 census exactly: 3x3 73,758, 4x3 1,929,038); the published 98,999,934 (T380 10.1a) is the TABLE-entry count, a different measure"
+  },
+  "root_value_curves": {
+    "3x3_empty_root": { "B": [0,1,2,3,4,6,8,12,16,24,32], "V": [1,1,2,6,6,9,9,9,9,9,9], "note": "stabilizes at +9 for B >= 6; the 3x3 table's own fresh-start empty-root entry is L==H==9, so the budget reproduces it" },
+    "4x3_empty_root": { "B": [0,1,2,3,4,6,8,12,16,24,32,48,64], "V": [1,0,2,0,1,7,12,7,9,7,12,7,9], "note": "OSCILLATES forever in {0,1,2,7,9,12} — no stabilization. The base bracket is [-1,12] and the PSK truth is +4 (RETRO_BRACKET); the budget value never converges and never equals +4" },
+    "reading": "at 3x3 the budget reproduces a stable value (the determined root was already L==H); at 4x3 the value is B-arbitrary — this is the operator's absurdity relocated, not removed"
+  },
+  "hypothesis_3x3": {
+    "framing": "per-position fresh-start comparison vs data/oracle-3x3-v2.wzo2: V'(p) = budget-rule value of the subgame starting at p with the budget untouched (fresh-start semantics, matching T380 Q5's comparison class)",
+    "null_gate": { "census_states": 73758, "fixpoint_sweeps": 16, "converged": true, "entries_checked": 49428, "mismatches": 0, "gate_passes": true },
+    "sweep": [
+      { "B": 0,  "L_eq_H_moved": 20780, "L_eq_H_total": 21126, "L_lt_H_inside": 1208, "L_lt_H_outside": 1996, "root_black_V": 1 },
+      { "B": 1,  "L_eq_H_moved": 18860, "L_eq_H_total": 21126, "L_lt_H_inside": 1480, "L_lt_H_outside": 1724, "root_black_V": 1 },
+      { "B": 2,  "L_eq_H_moved": 16812, "L_eq_H_total": 21126, "L_lt_H_inside": 888,  "L_lt_H_outside": 2316, "root_black_V": 2 },
+      { "B": 3,  "L_eq_H_moved": 13660, "L_eq_H_total": 21126, "L_lt_H_inside": 912,  "L_lt_H_outside": 2292, "root_black_V": 6 },
+      { "B": 4,  "L_eq_H_moved": 8704,  "L_eq_H_total": 21126, "L_lt_H_inside": 1508, "L_lt_H_outside": 1696, "root_black_V": 6 },
+      { "B": 6,  "L_eq_H_moved": 4878,  "L_eq_H_total": 21126, "L_lt_H_inside": 1980, "L_lt_H_outside": 1224, "root_black_V": 9 },
+      { "B": 8,  "L_eq_H_moved": 2298,  "L_eq_H_total": 21126, "L_lt_H_inside": 2364, "L_lt_H_outside": 840,  "root_black_V": 9 },
+      { "B": 12, "L_eq_H_moved": 1230,  "L_eq_H_total": 21126, "L_lt_H_inside": 2564, "L_lt_H_outside": 640,  "root_black_V": 9 },
+      { "B": 16, "L_eq_H_moved": 592,   "L_eq_H_total": 21126, "L_lt_H_inside": 2756, "L_lt_H_outside": 448,  "root_black_V": 9 },
+      { "B": 24, "L_eq_H_moved": 0,     "L_eq_H_total": 21126, "L_lt_H_inside": 3204, "L_lt_H_outside": 0,    "root_black_V": 9 },
+      { "B": 32, "L_eq_H_moved": 0,     "L_eq_H_total": 21126, "L_lt_H_inside": 3204, "L_lt_H_outside": 0,    "root_black_V": 9 }
+    ],
+    "reading_L_eq_H": "21,126 fresh-start slots with L==H in the base table: 98.4% move at B=0, monotonically decreasing to 0.0% at B >= 24. The determined region is preserved once B >= 24 (at 3x3).",
+    "reading_L_lt_H": "all 3,204 bracketed slots collapse to single values (DAG theorem), all inside the old bracket for B >= 24 — BUT the individual values are B-dependent and do NOT converge:",
+    "L_lt_H_value_drift": {
+      "B24_vs_B32": 1252, "B32_vs_B48": 1252, "B48_vs_B64": 1648,
+      "all_differing_slots_are_L_lt_H": true,
+      "note": "39-51% of the bracketed slots change value between consecutive budget steps; the values oscillate within the bracket. The budget does not resolve the bracket — it replaces the honest [L,H] with an arbitrary B-dependent number. Raw per-slot data (B=24/32/48/64) in untracked/T397-brackets-drift/; reproducible via the committed brackets mode."
+    },
+    "PSK_overlap": {
+      "B24": { "psk_checked": 24330, "psk_match": 22350, "pct": 91.9, "psk_mismatch_at_L_eq_H": 0, "note": "100% of the L==H slots match PSK (mismatch 0); among the 3,204 L<H slots, 1,224 (38.2%) match PSK — fewer than the pinned basic-ko value's 78.8% (T380 Q5)" }
+    }
+  },
+  "capture_counts_along_optimal_lines": {
+    "3x3_root": { "B6": { "min": 0, "max": 6 }, "B8": { "min": 0, "max": 8 }, "B16": { "min": 0, "max": 16 }, "B24": { "min": 0, "max": 24 }, "note": "a zero-capture optimal line exists (value +9) at every B >= 6; max grows with B — optimal lines exist using every capture count up to B" },
+    "4x3_root": { "B8": { "min": 0, "max": 8 }, "B12": { "min": 11, "max": 12 }, "B16": { "min": 16, "max": 16 }, "B24": { "min": 23, "max": 24 }, "B32": { "min": 0, "max": 32 }, "B48": { "min": 47, "max": 48 }, "B64": { "min": 64, "max": 64 }, "note": "at large B the optimal lines CONSUME THE ENTIRE BUDGET (min = max = B at B=16,24,48,64): optimal play at 4x3 has no capture-count bound independent of B — 'if optimal play never exceeds K captures then B>K is non-binding' is FALSE at 4x3" },
+    "denominator": "root = empty goban, Black to move, budget 0; min/max over optimal (value-achieving) lines; support in the findings JSON of the value mode"
+  },
+  "longest_games": {
+    "3x3_root": { "B0": 18, "B8": 33, "B16": 48, "B32": 78 },
+    "4x3_root": { "B0": 24, "B8": 39, "B16": 54, "B32": 85, "B64": 146 },
+    "what_actually_happens": "the long lines are capture-and-rebuild wars: White captures 1, Black captures 2, alternating for tens of plies, each player rebuilding the captured stones ('clumping up, filling own eyes, being captured, repeat' — the operator's hypothesis, confirmed literally). The 4x3 B=64 line: 98 plies with the 1,2 rhythm (ply 14..90), then bursts (+4, +2), then double-pass, final board BBBB/BBBB/BW.B = +9, budget exhausted 64/64. Transcripts in the line-mode outputs (untracked/T397-lines/).",
+    "base_rule_cycles": "without the budget the 3x3 graph has 135,512 re-visits in one DFS (the giant SCC per T385: 48,602 of 49,428 vertices) and the 2x2 graph has the T382 7-state capture-exchange cycle; the budget cuts every one of them"
+  },
+  "scoring_asymmetry": {
+    "claim": "Chinese area scoring is a function of the final board alone, so any capture-and-rebuild round trip is score-neutral; Japanese territory + prisoners is not a board function, so the same round trip is neutral only when the prisoners cancel.",
+    "demo": "the T382 2x2 7-state capture-exchange cycle returns to its starting board: area -4 -> -4 (neutral); prisoners 3-3 (balanced, so Japanese also -3 -> -3). Board {B@1,B@3} reached via the cycle (2 B prisoners) vs directly (0 prisoners): area identical (+4), Japanese territory + prisoners 4 vs 2 — differ by exactly the prisoner count.",
+    "why_it_matters": "under area scoring the cycling that feels absurd genuinely gains nothing (score-neutral); under territory scoring the same loop is not neutral — which is why the operator's intuition is area-specific"
+  },
+  "controls_ledger": [
+    { "control": "null: base-fixpoint gate", "reading": "t386 Engine reproduces data/oracle-3x3-v2.wzo2 entry-for-entry: 0 mismatches over 49,428 (16 sweeps, converged)" },
+    { "control": "null: minimax identity sample", "reading": "0 mismatches at 3x3 (486..14,705 checked) and 4x3 (12,703..793,619 checked) across the B sweep" },
+    { "control": "null: colour inversion", "reading": "v(empty, White) == -v(empty, Black) at every B and both gobans" },
+    { "control": "null: reach B=0 subset", "reading": "B=0 reachable <= base reachable at all three sizes (capture-free subset, as designed)" },
+    { "control": "seeded: dag base graph", "reading": "back-edges 135,512 (3x3) and 4,929,916 (4x3) — the cycle detector fires" },
+    { "control": "seeded: planted budget (consumed by every placement)", "reading": "value 3x3 B=8: V' 1 vs 9 unplanted; hypothesis: every sweep row changed — the instrument is sensitive" },
+    { "control": "red-then-green (T397)", "reading": "u6 planted: test FAILS (bounded, no hang); u7: 78/78 pass" }
+  ],
+  "verdict": {
+    "termination": "VERIFIED — the budget game is a DAG; finite without any repetition rule.",
+    "state_cost": "cheap — (B+1) table multiplier, one small integer in the key; dense addressing preserved (vs PSK's ban-set explosion).",
+    "hypothesis": "PARTIALLY TRUE, and the false half is the finding: the L==H region is preserved at B >= 24 (3x3), but the L<H region's single values are B-dependent and non-convergent (3x3 slots still drift at B=64; the 4x3 root oscillates forever). The budget relocates the bracket's ambiguity into a budget-exhaustion race instead of resolving it.",
+    "recommendation": "ruleset investigation only — no ruleset change made (per the bars). If the Orchestrator wants a budget rule, it is a new game and must be declared as one (the MIGOS +2 epitaph); the honest generation deliverable remains the fresh-start single-score region + [L,H] bracket, and the budget does NOT supply the missing single scores the operator hoped for."
+  }
+}

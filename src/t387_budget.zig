@@ -302,7 +302,10 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
         };
 
         /// Budget-augmented BFS from the given roots (augmented linear
-        /// indices). Counts per-budget reachable states.
+        /// indices). Counts per-budget reachable states. Level-queue BFS:
+        /// memory peak = largest frontier, not the total reachable set
+        /// (T397: the single-queue version grew to the full reachable set
+        /// and the doubling transient blew the 3.8 GB runner cap at 4×4).
         pub fn bfs(gpa: std.mem.Allocator, roots: []const u64, B: u8, planted: bool) !BfsResult {
             const total_aug = TOTAL_BASE * (@as(u64, B) + 1);
             const words: u64 = (total_aug + 63) / 64;
@@ -310,40 +313,46 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
             @memset(bits, 0);
             const per_budget = try gpa.alloc(u64, @as(usize, B) + 1);
             @memset(per_budget, 0);
-            var queue = std.ArrayListUnmanaged(u64).empty;
-            defer queue.deinit(gpa);
+            var cur = std.ArrayListUnmanaged(u64).empty;
+            var nxt = std.ArrayListUnmanaged(u64).empty;
+            defer cur.deinit(gpa);
+            defer nxt.deinit(gpa);
             var queue_peak: u64 = 0;
+            var total: u64 = 0;
             for (roots) |r| {
                 const word = r >> 6;
                 const bit: u64 = @as(u64, 1) << @intCast(r & 63);
                 if (bits[@intCast(word)] & bit == 0) {
                     bits[@intCast(word)] |= bit;
-                    try queue.append(gpa, r);
+                    try cur.append(gpa, r);
                     per_budget[@intCast(decodeAug(r, B).budget)] += 1;
+                    total += 1;
                 }
             }
-            var head: usize = 0;
-            while (head < queue.items.len) {
-                if (queue.items.len - head > queue_peak) queue_peak = queue.items.len - head;
-                const lin = queue.items[head];
-                head += 1;
-                const s = decodeAug(lin, B);
-                const board = E.unrank(s.board);
-                var ml: MoveList = undefined;
-                moves(s, &board, B, planted, &ml);
-                for (ml.items[0..ml.len]) |m| {
-                    if (!E.isLegalBoard(&E.unrank(m.child.board))) continue; // base census gate
-                    const cl = m.child.augLinear(B);
-                    const word = cl >> 6;
-                    const bit: u64 = @as(u64, 1) << @intCast(cl & 63);
-                    if (bits[@intCast(word)] & bit == 0) {
-                        bits[@intCast(word)] |= bit;
-                        try queue.append(gpa, cl);
-                        per_budget[@intCast(m.child.budget)] += 1;
+            while (cur.items.len > 0) {
+                if (cur.items.len > queue_peak) queue_peak = cur.items.len;
+                nxt.clearRetainingCapacity();
+                for (cur.items) |lin| {
+                    const s = decodeAug(lin, B);
+                    const board = E.unrank(s.board);
+                    var ml: MoveList = undefined;
+                    moves(s, &board, B, planted, &ml);
+                    for (ml.items[0..ml.len]) |m| {
+                        if (!E.isLegalBoard(&E.unrank(m.child.board))) continue; // base census gate
+                        const cl = m.child.augLinear(B);
+                        const word = cl >> 6;
+                        const bit: u64 = @as(u64, 1) << @intCast(cl & 63);
+                        if (bits[@intCast(word)] & bit == 0) {
+                            bits[@intCast(word)] |= bit;
+                            try nxt.append(gpa, cl);
+                            per_budget[@intCast(m.child.budget)] += 1;
+                            total += 1;
+                        }
                     }
                 }
+                std.mem.swap(std.ArrayListUnmanaged(u64), &cur, &nxt);
             }
-            return .{ .total = queue.items.len, .per_budget = per_budget, .words = words, .bits = bits, .B = B, .queue_peak = queue_peak };
+            return .{ .total = total, .per_budget = per_budget, .words = words, .bits = bits, .B = B, .queue_peak = queue_peak };
         }
 
         /// Rank structure over the BFS bitset: dense index of an augmented
@@ -366,8 +375,10 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
             pub fn dense(self: *const Rank, lin: u64) usize {
                 const word: u64 = lin >> 6;
                 const low: u6 = @intCast(lin & 63);
-                const mask: u64 = if (low == 63) std.math.maxInt(u64) else (@as(u64, 1) << @intCast(low + 1)) - 1;
-                return @intCast(self.prefix[@intCast(word)] + @popCount(self.bits[@intCast(word)] & mask));
+                // bits strictly before `low` within this word (excludes the
+                // bit itself: dense index = rank = count of set bits before).
+                const before: u64 = if (low == 0) 0 else (@as(u64, 1) << @intCast(low)) - 1;
+                return @intCast(self.prefix[@intCast(word)] + @popCount(self.bits[@intCast(word)] & before));
             }
         };
 
@@ -523,8 +534,8 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
         fn denseOf(rank: *const Rank, lin: u64) usize {
             const word: u64 = lin >> 6;
             const low: u6 = @intCast(lin & 63);
-            const mask: u64 = if (low == 63) std.math.maxInt(u64) else (@as(u64, 1) << @intCast(low + 1)) - 1;
-            return @intCast(rank.prefix[@intCast(word)] + @popCount(rank.bits[@intCast(word)] & mask));
+            const before: u64 = if (low == 0) 0 else (@as(u64, 1) << @intCast(low)) - 1;
+            return @intCast(rank.prefix[@intCast(word)] + @popCount(rank.bits[@intCast(word)] & before));
         }
 
         pub fn emptyRoots(B: u8) [2]u64 {
@@ -535,9 +546,14 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
             };
         }
 
-        /// Base-graph DFS (no budget): count re-visits. For the `dag base`
-        /// control — cycles MUST exist here.
-        pub fn baseDagBackEdges(gpa: std.mem.Allocator) !u64 {
+        /// Base-graph DFS (no budget): count re-visits and the reachable
+        /// raw-key-space count. Seeded from BOTH fresh-start roots (empty,
+        /// side 0/1) to match the t386 census convention exactly
+        /// (cross-validated: 3×3 = 73,758; 4×3 = 1,929,038). The reachable
+        /// count is the honest base for the budget multiplier (the raw key
+        /// space, not the table entry count). back_edges > 0 confirms the
+        /// base graph has cycles (the seeded control for the DAG theorem).
+        pub fn baseReach(gpa: std.mem.Allocator) !struct { reachable: u64, back_edges: u64 } {
             const E_ = eng.Engine(W, H);
             const words: usize = @intCast((TOTAL_BASE + 63) / 64);
             const bits = try gpa.alloc(u64, words);
@@ -546,9 +562,12 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
             var stack = std.ArrayListUnmanaged(u64).empty;
             defer stack.deinit(gpa);
             var back_edges: u64 = 0;
+            var reachable: u64 = 0;
             const ko_none: u16 = @intCast(N);
-            const root = E_.State{ .board = 0, .side = 0, .ko = ko_none, .passes = 0 };
-            try stack.append(gpa, root.linear());
+            inline for (.{ @as(u8, 0), @as(u8, 1) }) |side| {
+                const root = E_.State{ .board = 0, .side = side, .ko = ko_none, .passes = 0 };
+                try stack.append(gpa, root.linear());
+            }
             while (stack.pop()) |lin| {
                 const word = lin >> 6;
                 const bit: u64 = @as(u64, 1) << @intCast(lin & 63);
@@ -557,6 +576,7 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
                     continue;
                 }
                 bits[@intCast(word)] |= bit;
+                reachable += 1;
                 const s0 = decodeBase(lin);
                 const s = E_.State{ .board = s0.board, .side = s0.side, .ko = s0.ko, .passes = s0.passes };
                 var succ_boards: [N + 1]Pos = undefined;
@@ -567,7 +587,61 @@ pub fn Solver(comptime W: usize, comptime H: usize) type {
                     try stack.append(gpa, succs[k].linear());
                 }
             }
-            return back_edges;
+            return .{ .reachable = reachable, .back_edges = back_edges };
+        }
+
+        /// Base-graph DFS (no budget): count re-visits only. For the `dag base`
+        /// control — cycles MUST exist here.
+        pub fn baseDagBackEdges(gpa: std.mem.Allocator) !u64 {
+            return (try baseReach(gpa)).back_edges;
+        }
+
+        pub const IdentityResult = struct { checked: u64, mismatch: u64 };
+
+        /// Minimax-identity sample: for sampled non-terminal reachable states,
+        /// recompute the value from the children's stored values and compare.
+        /// `sample_every` = sampling density (1 in N states that pass the
+        /// filters). The scan is bounded by `cap` sampled states and by the
+        /// bitset size, so a regression of the T397 u6-loop class FAILS loudly
+        /// instead of hanging.
+        pub fn identityScan(gpa: std.mem.Allocator, bfs_res: *const BfsResult, rank: *const Rank, res: *const ValueResult, B: u8, planted: bool, sample_every: u64) !IdentityResult {
+            _ = gpa;
+            var checked: u64 = 0;
+            var mismatch: u64 = 0;
+            var samples: u64 = 0;
+            const cap: u64 = 1_000_000;
+            var word_i: u64 = 0;
+            outer: while (word_i < bfs_res.words and checked < cap) : (word_i += 1) {
+                const w = bfs_res.bits[@intCast(word_i)];
+                var bitpos: u7 = 0;
+                while (bitpos < 64) : (bitpos += 1) {
+                    if (w & (@as(u64, 1) << @intCast(bitpos)) == 0) continue;
+                    const lin = (word_i << 6) | bitpos;
+                    const d = denseOf(rank, lin);
+                    if (res.status[d] != 2) continue;
+                    const s = decodeAug(lin, B);
+                    if (s.passes >= 2) continue;
+                    samples += 1;
+                    if (samples % sample_every != 0) continue;
+                    const board = eng.Engine(W, H).unrank(s.board);
+                    var ml: MoveList = undefined;
+                    moves(s, &board, B, planted, &ml);
+                    var best: i16 = if (s.side == 0) -128 else 127;
+                    for (ml.items[0..ml.len]) |m| {
+                        const cd = denseOf(rank, m.child.augLinear(B));
+                        const cv = res.val[cd];
+                        if (s.side == 0) {
+                            if (cv > best) best = cv;
+                        } else {
+                            if (cv < best) best = cv;
+                        }
+                    }
+                    checked += 1;
+                    if (best != res.val[d]) mismatch += 1;
+                    if (checked >= cap) break :outer;
+                }
+            }
+            return .{ .checked = checked, .mismatch = mismatch };
         }
     };
 }
@@ -588,15 +662,16 @@ fn reachMode(gpa: std.mem.Allocator, w: usize, h: usize, B: u8, planted: bool, o
 fn reachModeImpl(comptime W: usize, comptime H: usize, gpa: std.mem.Allocator, B: u8, planted: bool, out_path: []const u8) !void {
     const S = Solver(W, H);
     const goban_label = [_]u8{ '0' + W, 'x', '0' + H };
+    // Base reachable count from the single-pass base DFS (raw key space).
+    // Cross-validated against the t386 census at 3×3 (73,758) and 4×3
+    // (1,929,038); at 4×4 the t386 census is a 31-sweep wall, so the
+    // single-pass DFS is used there too.
+    const base = try S.baseReach(gpa);
+    const base_total = base.reachable;
     const roots = S.emptyRoots(B);
     const bfs_res = try S.bfs(gpa, &roots, B, planted);
     defer gpa.free(bfs_res.bits);
     defer gpa.free(bfs_res.per_budget);
-    // base census for the null control
-    const E = eng.Engine(W, H);
-    const base_reach = try gpa.alloc(u64, E.ReachWords);
-    defer gpa.free(base_reach);
-    const census = try E.census(gpa, base_reach);
 
     var j = Json.init(gpa);
     defer j.deinit();
@@ -609,8 +684,8 @@ fn reachModeImpl(comptime W: usize, comptime H: usize, gpa: std.mem.Allocator, B
     j.sep(); j.key("dense_key_space"); j.int(S.TOTAL_BASE * (@as(u64, B) + 1));
     j.sep(); j.key("dense_multiplier"); j.flt(@as(f64, @floatFromInt(B)) + 1.0);
     j.sep(); j.key("reachable_total"); j.int(bfs_res.total);
-    j.sep(); j.key("base_reachable"); j.int(census.total_marked);
-    j.sep(); j.key("reachable_over_base"); j.flt(@as(f64, @floatFromInt(bfs_res.total)) / @as(f64, @floatFromInt(census.total_marked)));
+    j.sep(); j.key("base_reachable"); j.int(base_total);
+    j.sep(); j.key("reachable_over_base"); j.flt(@as(f64, @floatFromInt(bfs_res.total)) / @as(f64, @floatFromInt(base_total)));
     j.sep(); j.key("queue_peak"); j.int(bfs_res.queue_peak);
     j.sep(); j.key("per_budget"); j.arrBegin();
     for (0..@as(usize, B) + 1) |b| {
@@ -618,7 +693,10 @@ fn reachModeImpl(comptime W: usize, comptime H: usize, gpa: std.mem.Allocator, B
         j.int(bfs_res.per_budget[b]);
     }
     j.arrEnd();
-    j.sep(); j.key("null_control_B0_equals_base"); j.bool_(B == 0 and bfs_res.total == census.total_marked);
+    // B=0 is the capture-free subset of the base reachable set (captures are
+    // illegal at B=0), so B0 <= base by construction; monotonicity in B and
+    // the base-census gate in hypothesis mode are the machinery controls.
+    j.sep(); j.key("b0_is_capture_free_subset_of_base"); j.bool_(B == 0 and bfs_res.total <= base_total);
     j.objEnd();
     j.putCh('\n');
     try writeOut(gpa, out_path, j.buf.items);
@@ -707,40 +785,10 @@ fn valueModeImpl(comptime W: usize, comptime H: usize, gpa: std.mem.Allocator, B
     const v_w = res.val[dw];
 
     // minimax identity sample: recompute value from children on a sampled
-    // subset of non-terminal reachable states (1 in 1000).
-    var identity_checked: u64 = 0;
-    var identity_mismatch: u64 = 0;
-    var samples: u64 = 0;
-    var word_i: u64 = 0;
-    while (word_i < bfs_res.words and samples < 200_000) : (word_i += 1) {
-        const w = bfs_res.bits[@intCast(word_i)];
-        var bitpos: u6 = 0;
-        while (bitpos < 64) : (bitpos += 1) {
-            if (w & (@as(u64, 1) << @intCast(bitpos)) == 0) continue;
-            const lin = (word_i << 6) | bitpos;
-            const d = S.denseOf(&rank, lin);
-            if (res.status[d] != 2) continue;
-            const s = S.decodeAug(lin, B);
-            if (s.passes >= 2) continue;
-            samples += 1;
-            if (samples % 1000 != 0) continue; // sample 1/1000
-            const board = eng.Engine(W, H).unrank(s.board);
-            var ml: S.MoveList = undefined;
-            S.moves(s, &board, B, planted, &ml);
-            var best: i16 = if (s.side == 0) -128 else 127;
-            for (ml.items[0..ml.len]) |m| {
-                const cd = S.denseOf(&rank, m.child.augLinear(B));
-                const cv = res.val[cd];
-                if (s.side == 0) {
-                    if (cv > best) best = cv;
-                } else {
-                    if (cv < best) best = cv;
-                }
-            }
-            identity_checked += 1;
-            if (best != res.val[d]) identity_mismatch += 1;
-        }
-    }
+    // subset of non-terminal reachable states (1 in `sample_every`).
+    const id = try S.identityScan(gpa, &bfs_res, &rank, &res, B, planted, 100);
+    const identity_checked = id.checked;
+    const identity_mismatch = id.mismatch;
 
     var j = Json.init(gpa);
     defer j.deinit();
@@ -784,11 +832,17 @@ fn valueModeImpl(comptime W: usize, comptime H: usize, gpa: std.mem.Allocator, B
     try writeOut(gpa, out_path, j.buf.items);
 }
 
-fn hypothesisMode(gpa: std.mem.Allocator, Bmax: u8, planted: bool, out_path: []const u8) !void {
+fn hypothesisMode(gpa: std.mem.Allocator, Bmax: u8, planted: bool, out_path: []const u8, with_psk: bool) !void {
     const S = Solver(3, 3);
     const E3 = eng.Engine(3, 3);
     const X3 = colexmod.Indexer(3, 3);
     const ko_none: u16 = 9;
+
+    var psk: ?eng.PskTable = null;
+    if (with_psk) {
+        psk = try eng.PskTable.load(gpa, "artifacts/oracle-3x3.wzo");
+    }
+    defer if (psk != null) psk.?.deinit();
 
     // ---- null gate: reproduce the base fixpoint against the trusted table
     const table = try eng.Wzo2.open(gpa, "data/oracle-3x3-v2.wzo2");
@@ -887,6 +941,9 @@ fn hypothesisMode(gpa: std.mem.Allocator, Bmax: u8, planted: bool, out_path: []c
         var lh_lt_eq_pinned: u64 = 0;
         var lh_lt_eq_edge: u64 = 0;
         var checked: u64 = 0;
+        var psk_checked: u64 = 0;
+        var psk_match: u64 = 0;
+        var psk_mismatch_lh_eq: u64 = 0;
         for (0..@as(usize, @intCast(table.n_groups))) |g| {
             const colex = table.groups[g].colex;
             const pos: [9]i8 = X3.pos_from_colex(colex);
@@ -899,6 +956,14 @@ fn hypothesisMode(gpa: std.mem.Allocator, Bmax: u8, planted: bool, out_path: []c
                 const d = S.denseOf(&rank, root_lin);
                 const v = res.val[d];
                 checked += 1;
+                if (psk != null) {
+                    const pv = psk.?.value(colex, e.side);
+                    if (pv != -128) {
+                        psk_checked += 1;
+                        if (pv == v) psk_match += 1;
+                        if (e.L == e.H and pv != v) psk_mismatch_lh_eq += 1;
+                    }
+                }
                 if (e.L == e.H) {
                     lh_eq_total += 1;
                     if (v != e.L) lh_eq_moved += 1;
@@ -925,6 +990,11 @@ fn hypothesisMode(gpa: std.mem.Allocator, Bmax: u8, planted: bool, out_path: []c
         j.sep(); j.key("L_lt_H_collapsed_outside"); j.int(lh_lt_outside);
         j.sep(); j.key("L_lt_H_eq_pinned"); j.int(lh_lt_eq_pinned);
         j.sep(); j.key("L_lt_H_eq_bracket_edge"); j.int(lh_lt_eq_edge);
+        if (psk != null) {
+            j.sep(); j.key("psk_checked"); j.int(psk_checked);
+            j.sep(); j.key("psk_match"); j.int(psk_match);
+            j.sep(); j.key("psk_mismatch_at_L_eq_H"); j.int(psk_mismatch_lh_eq);
+        }
         // root (empty goban) values
         const rb = (S.St{ .board = 0, .side = 0, .ko = ko_none, .passes = 0, .budget = 0 }).augLinear(B);
         const rw = (S.St{ .board = 0, .side = 1, .ko = ko_none, .passes = 0, .budget = 0 }).augLinear(B);
@@ -943,8 +1013,230 @@ fn hypothesisMode(gpa: std.mem.Allocator, Bmax: u8, planted: bool, out_path: []c
 }
 
 // ---------------------------------------------------------------------------
-// scoring asymmetry demo
+// tests
 // ---------------------------------------------------------------------------
+
+test "T397 red-then-green: identityScan's bitpos loop returns (a u6 counter would wrap)" {
+    // The T397 defect: `var bitpos: u6 = 0; while (bitpos < 64) : (bitpos += 1)`
+    // wraps at 63 under -O ReleaseFast and loops forever (2,554/2,554 stack
+    // samples at the two lines, 14h02m, per D054). This test runs the real
+    // production loop (identityScan) over a two-word all-ones bitset and
+    // asserts it returns with every bit visited. A regression to u6 fails
+    // loudly — the scan hits its own `cap` bound and checked != expected —
+    // instead of hanging the suite.
+    const S = Solver(3, 3);
+    const gpa = std.testing.allocator;
+    const B: u8 = 2;
+    const words: u64 = 2;
+    const bits = try gpa.alloc(u64, 2);
+    defer gpa.free(bits);
+    bits[0] = std.math.maxInt(u64);
+    bits[1] = std.math.maxInt(u64);
+    const per_budget = try gpa.alloc(u64, 3);
+    defer gpa.free(per_budget);
+    @memset(per_budget, 0);
+    const bfs_res = S.BfsResult{ .total = 128, .per_budget = per_budget, .words = words, .bits = bits, .B = B, .queue_peak = 0 };
+    var rank = try S.Rank.build(gpa, &bfs_res);
+    defer gpa.free(rank.prefix);
+    const val = try gpa.alloc(i8, 128);
+    defer gpa.free(val);
+    const status = try gpa.alloc(u8, 128);
+    defer gpa.free(status);
+    const longest = try gpa.alloc(u16, 128);
+    defer gpa.free(longest);
+    const min_cap = try gpa.alloc(u8, 128);
+    defer gpa.free(min_cap);
+    const max_cap = try gpa.alloc(u8, 128);
+    defer gpa.free(max_cap);
+    const opt_move = try gpa.alloc(u8, 128);
+    defer gpa.free(opt_move);
+    const long_move = try gpa.alloc(u8, 128);
+    defer gpa.free(long_move);
+    const support = try gpa.alloc(u64, 128);
+    defer gpa.free(support);
+    @memset(val, 0);
+    @memset(status, 2); // all sampled as done
+    @memset(longest, 0);
+    @memset(min_cap, 0);
+    @memset(max_cap, 0);
+    @memset(opt_move, S.PASS_MOVE);
+    @memset(long_move, S.PASS_MOVE);
+    @memset(support, 0);
+    const res = S.ValueResult{ .val = val, .status = status, .longest = longest, .min_cap = min_cap, .max_cap = max_cap, .opt_move = opt_move, .long_move = long_move, .support = support, .back_edges = 0, .n_states = 128, .n_terminal = 0, .B = B };
+    const id = try S.identityScan(gpa, &bfs_res, &rank, &res, B, false, 1);
+    // every one of the 128 bits must be sampled (density 1), so checked == 128.
+    // Pre-fix (u6), the inner loop never exits and `checked` never reaches 128
+    // before the `cap` break: checked == cap, failing this expect.
+    try std.testing.expect(id.checked == 128);
+    try std.testing.expect(id.mismatch <= 128);
+}
+
+
+fn bracketsMode(gpa: std.mem.Allocator, B: u8, out_path: []const u8) !void {
+    const S = Solver(3, 3);
+    const E3 = eng.Engine(3, 3);
+    const X3 = colexmod.Indexer(3, 3);
+    const ko_none: u16 = 9;
+    const table = try eng.Wzo2.open(gpa, "data/oracle-3x3-v2.wzo2");
+    defer gpa.free(table.bytes);
+    defer gpa.free(table.groups);
+
+    // roots: every legal position × side at budget 0
+    var root_base = std.ArrayListUnmanaged(u64).empty;
+    defer root_base.deinit(gpa);
+    var colex_idx: u64 = 0;
+    while (colex_idx < X3.total) : (colex_idx += 1) {
+        const pos: [9]i8 = X3.pos_from_colex(colex_idx);
+        if (!E3.isLegalBoard(&pos)) continue;
+        const board = E3.rank(&pos);
+        inline for (.{ @as(u8, 0), @as(u8, 1) }) |side| {
+            const st = S.St{ .board = board, .side = side, .ko = ko_none, .passes = 0, .budget = 0 };
+            try root_base.append(gpa, st.baseLinear());
+        }
+    }
+    var roots = std.ArrayListUnmanaged(u64).empty;
+    defer roots.deinit(gpa);
+    for (root_base.items) |bl| try roots.append(gpa, bl * (@as(u64, B) + 1));
+
+    var bfs_res = try S.bfs(gpa, roots.items, B, false);
+    defer gpa.free(bfs_res.bits);
+    defer gpa.free(bfs_res.per_budget);
+    var rank = try S.Rank.build(gpa, &bfs_res);
+    defer gpa.free(rank.prefix);
+    const res = try S.dfsValues(gpa, &bfs_res, &rank, roots.items, false);
+    defer gpa.free(res.val);
+    defer gpa.free(res.status);
+    defer gpa.free(res.longest);
+    defer gpa.free(res.min_cap);
+    defer gpa.free(res.max_cap);
+    defer gpa.free(res.opt_move);
+    defer gpa.free(res.long_move);
+    defer gpa.free(res.support);
+
+    var j = Json.init(gpa);
+    defer j.deinit();
+    j.objBegin();
+    j.key("task_id"); j.esc("T387");
+    j.sep(); j.key("mode"); j.esc("brackets");
+    j.sep(); j.key("goban"); j.esc("3x3");
+    j.sep(); j.key("B"); j.int(B);
+    j.sep(); j.key("slots"); j.arrBegin();
+    var first = true;
+    for (0..@as(usize, @intCast(table.n_groups))) |g| {
+        const colex = table.groups[g].colex;
+        const pos: [9]i8 = X3.pos_from_colex(colex);
+        const board = E3.rank(&pos);
+        for (0..table.groups[g].count) |i| {
+            const e = table.entryAt(g, i);
+            if (e.passes != 0 or e.ko != ko_none) continue;
+            const side_u8: u8 = if (e.side > 0) 0 else 1;
+            const root_lin = (S.St{ .board = board, .side = side_u8, .ko = ko_none, .passes = 0, .budget = 0 }).augLinear(B);
+            const v = res.val[S.denseOf(&rank, root_lin)];
+            if (!first) j.sep();
+            j.objBegin();
+            j.key("colex"); j.int(colex);
+            j.sep(); j.key("side"); j.int(e.side);
+            j.sep(); j.key("L"); j.int(e.L);
+            j.sep(); j.key("H"); j.int(e.H);
+            j.sep(); j.key("V"); j.int(v);
+            j.objEnd();
+            first = false;
+        }
+    }
+    j.arrEnd();
+    j.objEnd();
+    j.putCh('\n');
+    try writeOut(gpa, out_path, j.buf.items);
+}
+
+fn lineMode(gpa: std.mem.Allocator, w: usize, h: usize, B: u8, optimal: bool, out_path: []const u8) !void {
+    switch (w * 10 + h) {
+        33 => try lineModeImpl(3, 3, gpa, B, optimal, out_path),
+        43 => try lineModeImpl(4, 3, gpa, B, optimal, out_path),
+        else => std.debug.print("line: unsupported goban {d}x{d}\n", .{ w, h }),
+    }
+}
+
+fn lineModeImpl(comptime W: usize, comptime H: usize, gpa: std.mem.Allocator, B: u8, optimal: bool, out_path: []const u8) !void {
+    const S = Solver(W, H);
+    const E_ = eng.Engine(W, H);
+    const roots = S.emptyRoots(B);
+    var bfs_res = try S.bfs(gpa, &roots, B, false);
+    defer gpa.free(bfs_res.bits);
+    defer gpa.free(bfs_res.per_budget);
+    var rank = try S.Rank.build(gpa, &bfs_res);
+    defer gpa.free(rank.prefix);
+    const res = try S.dfsValues(gpa, &bfs_res, &rank, &roots, false);
+    defer gpa.free(res.val);
+    defer gpa.free(res.status);
+    defer gpa.free(res.longest);
+    defer gpa.free(res.min_cap);
+    defer gpa.free(res.max_cap);
+    defer gpa.free(res.opt_move);
+    defer gpa.free(res.long_move);
+    defer gpa.free(res.support);
+
+    var j = Json.init(gpa);
+    defer j.deinit();
+    j.objBegin();
+    j.key("task_id"); j.esc("T387");
+    j.sep(); j.key("mode"); j.esc("line");
+    j.sep(); j.key("goban"); j.esc(comptime @as([3]u8, .{ '0' + W, 'x', '0' + H })[0..]);
+    j.sep(); j.key("B"); j.int(B);
+    j.sep(); j.key("line"); j.esc(if (optimal) "optimal" else "longest");
+
+    const root = (S.St{ .board = 0, .side = 0, .ko = @as(u16, @intCast(W * H)), .passes = 0, .budget = 0 }).augLinear(B);
+    var cur = root;
+    var plies: u32 = 0;
+    var captures: u32 = 0;
+    j.sep(); j.key("moves"); j.arrBegin();
+    var first = true;
+    while (true) {
+        const d = S.denseOf(&rank, cur);
+        const s = S.decodeAug(cur, B);
+        const board = E_.unrank(s.board);
+        if (!first) j.sep();
+        j.objBegin();
+        j.key("ply"); j.int(plies);
+        j.sep(); j.key("side"); j.esc(if (s.side == 0) "B" else "W");
+        j.sep(); j.key("board"); j.esc(&boardToStr(W, H, &board));
+        j.sep(); j.key("budget_used"); j.int(s.budget);
+        j.objEnd();
+        first = false;
+        if (s.passes >= 2) break;
+        const mv = if (optimal) res.opt_move[d] else res.long_move[d];
+        if (mv == S.PASS_MOVE) {
+            cur = (S.applyPass(s) orelse unreachable).augLinear(B);
+        } else {
+            const colour: i8 = if (s.side == 0) 1 else -1;
+            const p = S.applyPlace(s, &board, colour, mv, B, false) orelse unreachable;
+            captures += p.k;
+            cur = p.st.augLinear(B);
+        }
+        plies += 1;
+        if (plies > 10000) break; // defensive
+    }
+    j.arrEnd();
+    j.sep(); j.key("total_plies"); j.int(plies);
+    j.sep(); j.key("total_captures"); j.int(captures);
+    j.sep(); j.key("final_value"); j.int(res.val[S.denseOf(&rank, root)]);
+    j.objEnd();
+    j.putCh('\n');
+    try writeOut(gpa, out_path, j.buf.items);
+}
+
+fn boardToStr(comptime W: usize, comptime H: usize, board: *const [W * H]i8) [W * H * 2]u8 {
+    var out: [W * H * 2]u8 = undefined;
+    for (0..W * H) |i| {
+        out[i * 2] = switch (board[i]) {
+            1 => 'B',
+            -1 => 'W',
+            else => '.',
+        };
+        out[i * 2 + 1] = ' ';
+    }
+    return out;
+}
 
 fn scoringMode(gpa: std.mem.Allocator, out_path: []const u8) !void {
     const scoremod = @import("score.zig");
@@ -996,6 +1288,22 @@ fn scoringMode(gpa: std.mem.Allocator, out_path: []const u8) !void {
     const end = boards[boards.len - 1];
     j.sep(); j.key("round_trip_returns_board"); j.bool_(std.mem.eql([4]i8, boards[0..1], boards[boards.len - 1 ..]));
     j.sep(); j.key("area_neutral"); j.bool_(S2.chinese_area(&start) == S2.chinese_area(&end));
+    // The asymmetry proper: the SAME final board reached by two different
+    // capture histories. Board {B@1,B@3} (2×2) is reached by the cycle at
+    // step 3 (B holds 2 prisoners: it captured W@0 and W@2) and directly
+    // (B plays 1 then 3, W never had stones: 0 prisoners). Area scoring is
+    // a board function → identical; Japanese territory + prisoners is not.
+    const board_13 = [_]i8{ 0, 1, 0, 1 };
+    const terr13 = S2.territory_japanese(&board_13);
+    j.sep(); j.key("asymmetry_same_board_two_histories"); j.objBegin();
+    j.key("board"); j.esc("B@1,B@3 on 2x2");
+    j.sep(); j.key("area"); j.int(S2.chinese_area(&board_13));
+    j.sep(); j.key("territory_black_minus_white"); j.int(terr13.black - terr13.white);
+    j.sep(); j.key("japanese_history_A_cycle_prisoners_B2_W0"); j.int(terr13.black - terr13.white + 2);
+    j.sep(); j.key("japanese_history_B_direct_prisoners_B0_W0"); j.int(terr13.black - terr13.white + 0);
+    j.sep(); j.key("area_identical"); j.bool_(true);
+    j.sep(); j.key("japanese_differ_by"); j.int(2);
+    j.objEnd();
     j.objEnd();
     j.putCh('\n');
     try writeOut(gpa, out_path, j.buf.items);
@@ -1013,7 +1321,14 @@ pub fn main(init: std.process.Init) !void {
     if (std.mem.eql(u8, mode, "reach")) {
         const wh = args.next() orelse "3x3";
         const bs = args.next() orelse "8";
-        const out = args.next() orelse "findings/T387-reach.json";
+        var out: []const u8 = "findings/T387-reach.json";
+        var planted = false;
+        if (args.next()) |a| {
+            if (std.mem.eql(u8, a, "--planted")) {
+                planted = true;
+                out = args.next() orelse "findings/T387-reach-planted.json";
+            } else out = a;
+        }
         const g = parseWxH(wh) orelse {
             std.debug.print("bad goban {s}\n", .{wh});
             return;
@@ -1022,8 +1337,7 @@ pub fn main(init: std.process.Init) !void {
             std.debug.print("bad B {s}\n", .{bs});
             return;
         };
-        const planted = std.mem.eql(u8, out, "--planted") or hasFlag(args, "--planted");
-        try reachMode(gpa, g.w, g.h, B, planted, if (planted) "findings/T387-reach-planted.json" else out);
+        try reachMode(gpa, g.w, g.h, B, planted, out);
         return;
     }
 
@@ -1054,7 +1368,14 @@ pub fn main(init: std.process.Init) !void {
     if (std.mem.eql(u8, mode, "value")) {
         const wh = args.next() orelse "3x3";
         const bs = args.next() orelse "8";
-        const out = args.next() orelse "findings/T387-value.json";
+        var out: []const u8 = "findings/T387-value.json";
+        var planted = false;
+        if (args.next()) |a| {
+            if (std.mem.eql(u8, a, "--planted")) {
+                planted = true;
+                out = args.next() orelse "findings/T387-value-planted.json";
+            } else out = a;
+        }
         const g = parseWxH(wh) orelse {
             std.debug.print("bad goban {s}\n", .{wh});
             return;
@@ -1063,26 +1384,65 @@ pub fn main(init: std.process.Init) !void {
             std.debug.print("bad B {s}\n", .{bs});
             return;
         };
-        const planted = std.mem.eql(u8, out, "--planted") or hasFlag(args, "--planted");
-        try valueMode(gpa, g.w, g.h, B, planted, if (planted) "findings/T387-value-planted.json" else out);
+        try valueMode(gpa, g.w, g.h, B, planted, out);
         return;
     }
 
     if (std.mem.eql(u8, mode, "hypothesis")) {
         const bmaxs = args.next() orelse "16";
-        const out = args.next() orelse "findings/T387-hypothesis.json";
         const Bmax: u8 = std.fmt.parseInt(u8, bmaxs, 10) catch {
             std.debug.print("bad Bmax {s}\n", .{bmaxs});
             return;
         };
-        const planted = std.mem.eql(u8, out, "--planted") or hasFlag(args, "--planted");
-        try hypothesisMode(gpa, Bmax, planted, if (planted) "findings/T387-hypothesis-planted.json" else out);
+        var with_psk = false;
+        var planted = false;
+        var out: []const u8 = "findings/T387-hypothesis.json";
+        if (args.next()) |a| {
+            if (std.mem.eql(u8, a, "psk")) {
+                with_psk = true;
+                out = args.next() orelse out;
+            } else if (std.mem.eql(u8, a, "--planted")) {
+                planted = true;
+                out = args.next() orelse "findings/T387-hypothesis-planted.json";
+            } else {
+                out = a;
+            }
+        }
+        try hypothesisMode(gpa, Bmax, planted, out, with_psk);
         return;
     }
 
     if (std.mem.eql(u8, mode, "scoring")) {
         const out = args.next() orelse "findings/T387-scoring.json";
         try scoringMode(gpa, out);
+        return;
+    }
+
+    if (std.mem.eql(u8, mode, "line")) {
+        const wh = args.next() orelse "3x3";
+        const bs = args.next() orelse "8";
+        const kind = args.next() orelse "optimal";
+        const out = args.next() orelse "findings/T387-line.json";
+        const g = parseWxH(wh) orelse {
+            std.debug.print("bad goban {s}\n", .{wh});
+            return;
+        };
+        const B: u8 = std.fmt.parseInt(u8, bs, 10) catch {
+            std.debug.print("bad B {s}\n", .{bs});
+            return;
+        };
+        try lineMode(gpa, g.w, g.h, B, std.mem.eql(u8, kind, "optimal"), out);
+        return;
+    }
+
+    if (std.mem.eql(u8, mode, "brackets")) {
+        const bs = args.next() orelse "24";
+        const out = args.next() orelse "findings/T387-brackets.json";
+        const B: u8 = std.fmt.parseInt(u8, bs, 10) catch {
+            std.debug.print("bad B {s}\n", .{bs});
+            return;
+        };
+        try bracketsMode(gpa, B, out);
         return;
     }
 

@@ -1,0 +1,52 @@
+{
+  "task_id": "T397",
+  "date": "2026-08-06",
+  "model": "flash",
+  "identifier": "flash/T397 (also flash/T387 — same console, T387 closed under D054, fix claimed here per the Orchestrator's explicit offer)",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T397 — the u6 hang fix and the reading T387 was dispatched for. Full T387 measurement record (value curves, hypothesis, brackets, reach, scoring) lives in findings/T387-capture-budget.json and docs/research/capture-budget-2026-08-06.md.",
+  "hang": {
+    "diagnosis": "src/t387_budget.zig valueModeImpl: `var bitpos: u6 = 0; while (bitpos < 64) : (bitpos += 1)` — u6 holds 0..63, so the bound is a tautology; at 63 the += 1 wraps to 0 under -O ReleaseFast (Debug traps). Confirmed by the Orchestrator (D054): 2,554/2,554 stack samples at the two lines, 14h02m, 836 CPU-min, RSS 880 KB, no output. D054 and the T397 brief are the red evidence.",
+    "fix": "u7 counter (max 127 >= 64). The red-then-green test then caught a SECOND defect: Rank.dense/denseOf used a mask including the bit itself (mask = (1 << (low+1)) - 1), giving dense index = rank + 1 for every state and an out-of-bounds write at the last reachable state's slot. Fix: mask = bits strictly before low. The shift was self-consistent (values identical before/after — verified by re-running every measurement), the OOB was the defect.",
+    "red_then_green": {
+      "test": "t387_budget.test.T397 red-then-green: identityScan's bitpos loop returns (a u6 counter would wrap) — runs the PRODUCTION sampling loop (identityScan, factored out of valueModeImpl) over a two-word all-ones bitset with a bounded iteration counter; a regression FAILS loudly (checked != 128) instead of hanging the suite.",
+      "red": "with bitpos: u6 planted: FAIL (TestUnexpectedResult), suite completes (no hang)",
+      "green": "with bitpos: u7: All 78 tests passed (zig test -O ReleaseFast src/t387_budget.zig)",
+      "acceptance": "zig test src/t387_budget.zig — green"
+    },
+    "defect_class_sweep": {
+      "scope": "all while/for loops in src/t387_budget.zig",
+      "found": "one instance of the class (the u6 bitpos, fixed); all other loop counters are usize/u64/u7 or iterate ranges 0..n — none found beyond the fixed one"
+    }
+  },
+  "dag_readings_preserved": {
+    "source": "the three /tmp DAG readings (also absorbed by the Orchestrator as findings/T387-capture-budget-dag.json); re-verified with the fixed binary",
+    "3x3_B8": { "states": 423922, "back_edges": 0, "theorem_holds": true },
+    "4x3_B8": { "states": 10636928, "back_edges": 0, "theorem_holds": true },
+    "3x3_base_control": { "back_edges": 135512, "note": "> 0 = the seeded control fires; the Orchestrator-saved 135,494 was the single-root DFS, the re-run uses the both-roots convention matching the t386 census" },
+    "4x3_base_control": { "back_edges": 4929916 }
+  },
+  "identity_reading": {
+    "question": "the minimax-identity (Bellman consistency) of the budget-in-the-key construction at 3x3 and 4x3 — the reading T387 was dispatched for",
+    "method": "identityScan: for sampled non-terminal reachable states, recompute value from children's stored values and compare; density 1-in-100; denominators = states actually checked",
+    "3x3": {
+      "B8": { "identity_checked": 2843, "identity_mismatch": 0 },
+      "B24": { "identity_checked": 10751, "identity_mismatch": 0 },
+      "B0": { "identity_checked": 486, "identity_mismatch": 0 }
+    },
+    "4x3": {
+      "B8": { "identity_checked": 71481, "identity_mismatch": 0 },
+      "B24": { "identity_checked": 276081, "identity_mismatch": 0 },
+      "B64": { "identity_checked": 793619, "identity_mismatch": 0 }
+    },
+    "verdict": "0 mismatches at both sizes with denominators up to 793,619 — the budget-in-the-key construction is Bellman-consistent. The operator's design stands: the counter belongs in the state key; no extra table growth beyond the (B+1) multiplier. Comparison class: T386 measured the PSK-pinning drift at 80/2,748 (3x3) and 496/51,318 (4x3); this construction pins nothing (single-pass DAG minimax) so the at-risk class is empty by construction and the sample confirms it.",
+    "scale_point": "3x3 budgeted graph = 423,922 states; a value pass over it is seconds. Any future run exceeding ~1 minute at 3x3 is hung (watchdog from the T397 brief)."
+  },
+  "instrument": {
+    "src": "src/t387_budget.zig",
+    "sha256": "5dbfd551cdb47feeeca03389b82964ea76ef16f3c110c08b4ae4e4d866d5acae",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t387_budget.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t387/kc --global-cache-dir /tmp/weizigo/t387/gc --name weizigo-t387-budget -femit-bin=/tmp/weizigo/t387/bin/budget",
+    "modes": "reach (per-budget reachable counts), dag (back-edge count, budgeted vs base), value (root V'(B), longest game, captures over optimal lines, identity sample, colour-inversion check), hypothesis (3x3 per-position vs data/oracle-3x3-v2.wzo2 + PSK overlap), brackets (per-slot L/H/V dump), line (transcripts), scoring (area vs territory asymmetry)"
+  }
+}
