@@ -40,6 +40,7 @@ stub_claimlint() {  # $1 = scratch repo root
 echo "  calibration: PASS"
 echo "  C1a orphans / C1b alarms      0 / 0   (FAILS)"
 echo "  C2 dangling evidence paths    0   (FAILS)"
+echo "  C3 PROVEN w/o committed evid.      0   (debt...)"
 echo "  C6 cite-tag mismatches        0   (FAILS)"
 echo "  C9 tree-mapping violations      0   (FAILS)"
 exit 0

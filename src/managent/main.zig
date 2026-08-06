@@ -1101,8 +1101,7 @@ fn ageSecFromTs(ts_str: []const u8, now_unix: i64) ?i64 {
         day_of_year += 1;
     }
     const days_since_epoch: i64 = (year - 1970) * 365 + leap_count + day_of_year;
-    const ts_unix: i64 = days_since_epoch * 86400
-        + hour * 3600 + minute * 60 + second;
+    const ts_unix: i64 = days_since_epoch * 86400 + hour * 3600 + minute * 60 + second;
     return now_unix - ts_unix;
 }
 
@@ -1493,9 +1492,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             const now = try nowTimestamp();
             ts_ptr.status = .in_progress;
             // T209: fall back to model stored at suggest/dispatch time
-            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a)
-                else if (ts_ptr.model) |m| try alloc.dupe(u8, m)
-                else null;
+            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
             ts_ptr.claimed = now;
 
             try writeStateLocked(io, state_path, &state);
@@ -1547,9 +1544,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             const now = try nowTimestamp();
             ts_ptr.status = .in_progress;
             // T209: fall back to model stored at suggest/dispatch time
-            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a)
-                else if (ts_ptr.model) |m| try alloc.dupe(u8, m)
-                else null;
+            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
             ts_ptr.claimed = now;
 
             try writeStateLocked(io, state_path, &state);
@@ -1712,9 +1707,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     defer alloc.free(rel_bundle);
 
     // Store model on task: the model is bound at dispatch/suggest time, not claim time.
-    const model_for_task: ?[]const u8 = if (model_flag) |m| try alloc.dupe(u8, m)
-        else if (std.c.getenv("PI_MODEL")) |ptr| try alloc.dupe(u8, std.mem.sliceTo(ptr, 0))
-        else null;
+    const model_for_task: ?[]const u8 = if (model_flag) |m| try alloc.dupe(u8, m) else if (std.c.getenv("PI_MODEL")) |ptr| try alloc.dupe(u8, std.mem.sliceTo(ptr, 0)) else null;
 
     const ts = TaskState{
         .status = .dispatchable,
@@ -1786,9 +1779,9 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
                 while (scan < dl_value.len) : (scan += 1) {
                     if (dl_value[scan] == ' ' or dl_value[scan] == '\t') {
                         // skip leading whitespace manually (avoid trimStart which may not exist in zig 0.16)
-var rest_start: usize = 0;
-while (rest_start < dl_value[scan..].len and (dl_value[scan..][rest_start] == ' ' or dl_value[scan..][rest_start] == '\t')) : (rest_start += 1) {}
-const rest = dl_value[scan..][rest_start..];
+                        var rest_start: usize = 0;
+                        while (rest_start < dl_value[scan..].len and (dl_value[scan..][rest_start] == ' ' or dl_value[scan..][rest_start] == '\t')) : (rest_start += 1) {}
+                        const rest = dl_value[scan..][rest_start..];
                         if (std.mem.indexOfScalar(u8, rest, '=')) |eq_idx| {
                             if (eq_idx > 0) {
                                 truncate_at = scan;
@@ -1800,18 +1793,18 @@ const rest = dl_value[scan..][rest_start..];
                 if (truncate_at) |t| {
                     dl_value = dl_value[0..t];
                 }
-            if (dl_value.len > 0) {
-                var parts = std.mem.splitScalar(u8, dl_value, ',');
-                while (parts.next()) |part| {
-                    const trimmed = std.mem.trim(u8, part, " \t\r\n");
-                    if (trimmed.len > 0) {
-                        try result.append(alloc, try alloc.dupe(u8, trimmed));
+                if (dl_value.len > 0) {
+                    var parts = std.mem.splitScalar(u8, dl_value, ',');
+                    while (parts.next()) |part| {
+                        const trimmed = std.mem.trim(u8, part, " \t\r\n");
+                        if (trimmed.len > 0) {
+                            try result.append(alloc, try alloc.dupe(u8, trimmed));
+                        }
+                    }
+                    if (result.items.len > 0) {
+                        return try result.toOwnedSlice(alloc);
                     }
                 }
-                if (result.items.len > 0) {
-                    return try result.toOwnedSlice(alloc);
-                }
-            }
             } // close outer dl_value.len > 0 (Defect 2 truncation guard)
         }
     }
@@ -2036,14 +2029,28 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         std.process.exit(1);
     }
 
+    // T350: two-phase lock.  Phase 1 (below) holds the exclusive flock for the
+    // whole read→validate→modify→write sequence, closing the lost-update window
+    // that previously spanned the acceptance run (T337 S6 deferred cmdDone for
+    // exactly that reason).  Phase 2 runs the acceptance command with NO lock —
+    // holding the flock for its runtime (up to 60s) would block every other
+    // store operation — and on failure re-acquires the flock to revert the
+    // done write.  There is deliberately no `defer unlockStore` here: phase 2
+    // must run unlocked, so the lock is released explicitly after the phase-1
+    // write.  Exit paths inside phase 1 call unlockStore() before exit, and
+    // rely on flock(2)'s kernel release at process exit as the backstop (the
+    // T337 S0 contract, exercised by regression-managent-lock.sh).
+    try lockStore(io, state_path);
     var state = try readState(io, state_path);
 
     const ts_ptr = state.getPtr(id) orelse {
+        unlockStore();
         w.diag("error: task '{s}' not found\n", .{id});
         std.process.exit(1);
     };
 
     if (ts_ptr.status != .in_progress) {
+        unlockStore();
         w.diag("error: task '{s}' is not in progress (status: {s})\n", .{ id, statusToString(ts_ptr.status) });
         std.process.exit(1);
     }
@@ -2055,6 +2062,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         ts_ptr.agent = try alloc.dupe(u8, a);
     }
     if (ts_ptr.agent == null and ts_ptr.model == null) {
+        unlockStore();
         w.diag("\n  REJECTED: {s} has no agent or model set.\n", .{id});
         w.diag("  Every completed task must carry an agent for the identifier and model-performance ledger.\n", .{});
         w.diag("  Use: managent done {s} --agent <model>\n", .{id});
@@ -2082,6 +2090,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         // retention artifacts (untracked/ + SHA256SUMS-pinned, ARGUS T211) and
         // deletion deliverables (the removal committed to history).
         if (!gitOk(io, &.{ "git", "-C", repo_root, "rev-parse", "--git-dir" })) {
+            unlockStore();
             w.diag("\n  REJECTED: {s} — cannot ask git (not a git repo, or git unavailable)\n", .{id});
             std.process.exit(1);
         }
@@ -2097,6 +2106,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             }
         }
         if (violated.items.len > 0) {
+            unlockStore();
             w.diag("\n  REJECTED: {s} has {d} deliverable(s) not cleanly in git:\n", .{ id, violated.items.len });
             for (violated.items) |v| {
                 w.diag("    - {s}\n", .{v});
@@ -2107,86 +2117,28 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         }
     }
 
-    // ── acceptance run (T217) — task declares its own green condition ──
-    // Only for pass / pass-with-findings verdicts; blocked/abandoned/fail-found skip.
-    if (std.mem.eql(u8, verdict_str, "pass") or std.mem.eql(u8, verdict_str, "pass-with-findings")) {
-        if (ts_ptr.acceptance) |acc_cmd| {
-            if (skip_acceptance_reason) |reason| {
-                // Defect 3 fix (T227): reject empty reason.
-                if (reason.len == 0) {
-                    w.diag("\n  REJECTED: {s} --skip-acceptance requires a non-empty reason\n", .{id});
-                    std.process.exit(1);
-                }
-                // --skip-acceptance used: store the reason and bypass the check
-                if (ts_ptr.skip_acceptance_reason) |old| alloc.free(old);
-                ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
-                w.diag("\n  ACCEPTANCE SKIPPED: {s}\n    reason: {s}\n", .{ id, reason });
-            } else {
-                // Run the acceptance command via /bin/sh -c
-                const acc_result = std.process.run(alloc, io, .{
-                    .argv = &.{ "/bin/sh", "-c", acc_cmd },
-                    .cwd = .{ .path = repo_root },
-                }) catch |err| {
-                    // T295: spawn failure is an infrastructure fault — the
-                    // shell itself could not be started. Distinguish from
-                    // a task-failure exit.
-                    w.diag("\n  CANNOT RUN: {s} acceptance could not start: {}\n", .{ id, err });
-                    w.diag("  command: {s}\n", .{acc_cmd});
-                    w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
-                    w.diag("  Task stays in_progress. Fix the environment or use --skip-acceptance <reason>.\n", .{});
-                    std.process.exit(1);
-                };
-                defer alloc.free(acc_result.stdout);
-                defer alloc.free(acc_result.stderr);
-                // T227 (defect 1 fix): .exited reads 0 on signalled children.
-                // T295: distinguish acceptance-failure verdicts:
-                //   exit 127 = shell "command not found" (cannot run)
-                //   exit 126 = shell "not executable" (cannot run)
-                //   other non-zero = task's work genuinely failing
-                //   signal/stopped/unknown = infrastructure fault
-                const passed = switch (acc_result.term) {
-                    .exited => |code| if (code == 0) true else blk: {
-                        if (code == 127) {
-                            w.diag("\n  CANNOT RUN: {s} acceptance command not found in PATH\n", .{id});
-                            w.diag("  command: {s}\n", .{acc_cmd});
-                            w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
-                        } else if (code == 126) {
-                            w.diag("\n  CANNOT RUN: {s} acceptance command found but not executable\n", .{id});
-                            w.diag("  command: {s}\n", .{acc_cmd});
-                            w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
-                        } else {
-                            const last_output = if (acc_result.stderr.len > 0) acc_result.stderr else acc_result.stdout;
-                            w.diag("\n  ACCEPTANCE FAILED: {s} exited with code {d}\n", .{ id, code });
-                            w.diag("  command: {s}\n", .{acc_cmd});
-                            if (last_output.len > 0) {
-                                w.diag("  last output: {s}\n", .{last_output});
-                            }
-                        }
-                        break :blk false;
-                    },
-                    .signal => |sig| blk: {
-                        w.diag("\n  CANNOT RUN: {s} acceptance command killed by signal {d}\n", .{ id, sig });
-                        break :blk false;
-                    },
-                    .stopped => blk: {
-                        w.diag("\n  CANNOT RUN: {s} acceptance command stopped\n", .{ id });
-                        break :blk false;
-                    },
-                    .unknown => blk: {
-                        w.diag("\n  CANNOT RUN: {s} acceptance command terminated with unknown status\n", .{ id });
-                        break :blk false;
-                    },
-                };
-                if (!passed) {
-                    w.diag("  Task stays in_progress. Fix the issue or use --skip-acceptance <reason>.\n", .{});
-                    std.process.exit(1);
-                }
-                w.diag("\n  acceptance: {s} OK\n", .{acc_cmd});
-            }
+    // ── T350 phase-1 pre-checks (under lock, before the done write) ──
+    // T227 defect-3 fix: an empty --skip-acceptance reason is rejected here,
+    // BEFORE the write — a malformed skip must never leave the store mutated.
+    if (skip_acceptance_reason) |reason| {
+        const acceptance_applies = ts_ptr.acceptance != null and
+            (std.mem.eql(u8, verdict_str, "pass") or std.mem.eql(u8, verdict_str, "pass-with-findings"));
+        if (reason.len == 0 and acceptance_applies) {
+            unlockStore();
+            w.diag("\n  REJECTED: {s} --skip-acceptance requires a non-empty reason\n", .{id});
+            std.process.exit(1);
         }
     }
 
+    // ── phase-1 write (T350): status done + verdict, under the flock ──
+    // The acceptance gate runs after the write (phase 2) so the flock is held
+    // for the store mutation only, never for the acceptance command's runtime
+    // (up to 60s — holding it that long would block every other store op).
+    // The pre-mutation terminal fields are captured for the phase-2 revert.
     const now = try nowTimestamp();
+    const prev_done = ts_ptr.done;
+    const prev_verdict = ts_ptr.verdict;
+    const prev_verdict_note = ts_ptr.verdict_note;
 
     // T213: all terminal tasks use status=.done; verdict carries the flavour
     ts_ptr.status = .done;
@@ -2197,9 +2149,8 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
     // T217: record --skip-acceptance reason on the task
     if (skip_acceptance_reason) |reason| {
-        if (ts_ptr.skip_acceptance_reason == null) {
-            ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
-        }
+        if (ts_ptr.skip_acceptance_reason) |old| alloc.free(old);
+        ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
     }
 
     var unblocked = std.ArrayList([]const u8).empty;
@@ -2217,7 +2168,86 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         }
     }
 
-    try writeState(io, state_path, &state);
+    try writeStateLocked(io, state_path, &state);
+    // Release the flock before phase 2 — the acceptance command runs unlocked.
+    unlockStore();
+
+    // ── phase 2 (no lock): the acceptance gate (T217) ──
+    // Only for pass / pass-with-findings verdicts; blocked/abandoned/fail-found skip.
+    if (std.mem.eql(u8, verdict_str, "pass") or std.mem.eql(u8, verdict_str, "pass-with-findings")) {
+        if (ts_ptr.acceptance) |acc_cmd| {
+            if (skip_acceptance_reason) |reason| {
+                w.diag("\n  ACCEPTANCE SKIPPED: {s}\n    reason: {s}\n", .{ id, reason });
+            } else {
+                // Run the acceptance command via /bin/sh -c
+                const acc_result = std.process.run(alloc, io, .{
+                    .argv = &.{ "/bin/sh", "-c", acc_cmd },
+                    .cwd = .{ .path = repo_root },
+                }) catch |err| {
+                    // T295: spawn failure is an infrastructure fault — the
+                    // shell itself could not be started. Distinguish from
+                    // a task-failure exit.
+                    w.diag("\n  CANNOT RUN: {s} acceptance could not start: {}\n", .{ id, err });
+                    w.diag("  command: {s}\n", .{acc_cmd});
+                    w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
+                    // T350: phase 1 already wrote done — roll it back.
+                    const reverted = revertAcceptanceFailure(w, io, state_path, id, now, prev_done, prev_verdict, prev_verdict_note) catch false;
+                    if (!reverted) w.diag("  WARNING: could not revert {s} — verify its status manually.\n", .{id});
+                    w.diag("  Task stays in_progress. Fix the environment or use --skip-acceptance <reason>.\n", .{});
+                    std.process.exit(1);
+                };
+                defer alloc.free(acc_result.stdout);
+                defer alloc.free(acc_result.stderr);
+                // T227 (defect 1 fix): .exited reads 0 on signalled children.
+                // T295: distinguish acceptance-failure verdicts:
+                //   exit 127 = shell "command not found" (cannot run)
+                //   exit 126 = shell "not executable" (cannot run)
+                //   other non-zero = task's work genuinely failing
+                //   signal/stopped/unknown = infrastructure fault
+                var passed = false;
+                switch (acc_result.term) {
+                    .exited => |code| {
+                        if (code == 0) {
+                            passed = true;
+                        } else if (code == 127) {
+                            w.diag("\n  CANNOT RUN: {s} acceptance command not found in PATH\n", .{id});
+                            w.diag("  command: {s}\n", .{acc_cmd});
+                            w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
+                        } else if (code == 126) {
+                            w.diag("\n  CANNOT RUN: {s} acceptance command found but not executable\n", .{id});
+                            w.diag("  command: {s}\n", .{acc_cmd});
+                            w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
+                        } else {
+                            const last_output = if (acc_result.stderr.len > 0) acc_result.stderr else acc_result.stdout;
+                            w.diag("\n  ACCEPTANCE FAILED: {s} exited with code {d}\n", .{ id, code });
+                            w.diag("  command: {s}\n", .{acc_cmd});
+                            if (last_output.len > 0) {
+                                w.diag("  last output: {s}\n", .{last_output});
+                            }
+                        }
+                    },
+                    .signal => |sig| {
+                        w.diag("\n  CANNOT RUN: {s} acceptance command killed by signal {d}\n", .{ id, sig });
+                    },
+                    .stopped => {
+                        w.diag("\n  CANNOT RUN: {s} acceptance command stopped\n", .{id});
+                    },
+                    .unknown => {
+                        w.diag("\n  CANNOT RUN: {s} acceptance command terminated with unknown status\n", .{id});
+                    },
+                }
+                if (!passed) {
+                    // T350: phase 1 already wrote done — the store must not
+                    // keep advertising a completion the gate never confirmed.
+                    const reverted = revertAcceptanceFailure(w, io, state_path, id, now, prev_done, prev_verdict, prev_verdict_note) catch false;
+                    if (!reverted) w.diag("  WARNING: could not revert {s} — verify its status manually.\n", .{id});
+                    w.diag("  Task stays in_progress. Fix the issue or use --skip-acceptance <reason>.\n", .{});
+                    std.process.exit(1);
+                }
+                w.diag("\n  acceptance: {s} OK\n", .{acc_cmd});
+            }
+        }
+    }
 
     w.diag("\n  {s} done  [set: {c}]  [verdict: {s}]", .{ id, ts_ptr.set, verdict_str });
     if (unblocked.items.len > 0) {
@@ -2228,6 +2258,76 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         w.diag("]", .{});
     }
     w.diag("\n", .{});
+}
+
+/// T350: phase-2 acceptance-failure rollback.  Re-acquires the flock, re-reads
+/// the store, and restores <id> from the done state phase 1 wrote back to
+/// in_progress.  Guarded: the revert is skipped when the task no longer carries
+/// the exact phase-1 done timestamp — a concurrent reopen/redo/purge touched
+/// it, and clobbering that is worse than leaving a stale done.  Returns true
+/// when the revert was applied, false when skipped (task changed or vanished).
+/// Tasks left dispatchable only by the (now reverted) completion are re-blocked
+/// — the symmetric inverse of phase 1's unblock sweep, so the kanban never
+/// advertises dependents as runnable on a completion that did not stick.
+fn revertAcceptanceFailure(
+    w: Writers,
+    io: std.Io,
+    state_path: []const u8,
+    id: []const u8,
+    phase1_done: []const u8,
+    prev_done: ?[]const u8,
+    prev_verdict: ?[]const u8,
+    prev_verdict_note: ?[]const u8,
+) !bool {
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    const ts = state.getPtr(id) orelse {
+        w.diag("  (task {s} no longer exists — nothing to revert)\n", .{id});
+        return false;
+    };
+
+    if (ts.status != .done) {
+        w.diag("  (task {s} is {s} — not the done write from this command; leaving it alone)\n", .{ id, statusToString(ts.status) });
+        return false;
+    }
+    if (ts.done == null or !std.mem.eql(u8, ts.done.?, phase1_done)) {
+        w.diag("  (task {s} was re-completed since — leaving the newer done write alone)\n", .{id});
+        return false;
+    }
+
+    ts.status = .in_progress;
+    if (ts.done) |d| alloc.free(d);
+    ts.done = if (prev_done) |d| try alloc.dupe(u8, d) else null;
+    if (ts.verdict) |v| alloc.free(v);
+    ts.verdict = if (prev_verdict) |v| try alloc.dupe(u8, v) else null;
+    if (ts.verdict_note) |vn| alloc.free(vn);
+    ts.verdict_note = if (prev_verdict_note) |vn| try alloc.dupe(u8, vn) else null;
+
+    var reblocked = std.ArrayList([]const u8).empty;
+    defer reblocked.deinit(alloc);
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const dep = entry.value_ptr.*;
+        if (dep.status != .dispatchable) continue;
+        if (deriveStatus(&state, dep) == .blocked) {
+            state.getPtr(entry.key_ptr.*).?.status = .blocked;
+            try reblocked.append(alloc, entry.key_ptr.*);
+        }
+    }
+
+    try writeStateLocked(io, state_path, &state);
+
+    w.diag("  reverted {s} to in_progress (acceptance failed)\n", .{id});
+    if (reblocked.items.len > 0) {
+        w.diag("  re-blocked:", .{});
+        for (reblocked.items) |rb| {
+            w.diag(" {s}", .{rb});
+        }
+        w.diag("\n", .{});
+    }
+    return true;
 }
 
 fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
@@ -2261,8 +2361,14 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     ts_ptr.agent = null;
     ts_ptr.claimed = null;
     ts_ptr.done = null;
-    if (ts_ptr.verdict) |v| { alloc.free(v); ts_ptr.verdict = null; }
-    if (ts_ptr.verdict_note) |vn| { alloc.free(vn); ts_ptr.verdict_note = null; }
+    if (ts_ptr.verdict) |v| {
+        alloc.free(v);
+        ts_ptr.verdict = null;
+    }
+    if (ts_ptr.verdict_note) |vn| {
+        alloc.free(vn);
+        ts_ptr.verdict_note = null;
+    }
 
     try writeStateLocked(io, state_path, &state);
 
@@ -2437,7 +2543,7 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     defer unabsorbed.deinit(alloc);
     const cl_result = blk: {
         const r = std.process.run(alloc, io, .{
-            .argv = &.{ "bin/weizigo-claimlint" },
+            .argv = &.{"bin/weizigo-claimlint"},
             .cwd = .{ .path = repo_root },
         }) catch break :blk null;
         break :blk r;
@@ -2916,7 +3022,9 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     }
 
     const sortFn = struct {
-        fn lt(_: void, a: []const u8, b: []const u8) bool { return std.mem.lessThan(u8, a, b); }
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
     }.lt;
     std.mem.sort([]const u8, dispatchable.items, {}, sortFn);
     std.mem.sort([]const u8, in_progress.items, {}, sortFn);
@@ -3088,7 +3196,7 @@ const ClaimlintSummary = struct {
 fn runClaimlintSummary(allocator: std.mem.Allocator, io: std.Io, repo_root: []const u8) ClaimlintSummary {
     var out = ClaimlintSummary{};
     const result = std.process.run(allocator, io, .{
-        .argv = &.{ "bin/weizigo-claimlint" },
+        .argv = &.{"bin/weizigo-claimlint"},
         .cwd = .{ .path = repo_root },
     }) catch return out;
     defer allocator.free(result.stdout);
@@ -3431,8 +3539,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
                             day_of_year += 1;
                         }
                         const days_since_epoch: i64 = (year - 1970) * 365 + leap_count + day_of_year;
-                        const ts_unix = days_since_epoch * 86400
-                            + hour * 3600 + minute * 60 + second;
+                        const ts_unix = days_since_epoch * 86400 + hour * 3600 + minute * 60 + second;
                         const age_sec = now_unix - ts_unix;
                         if (age_sec < 0) break :blk "0m";
                         const age_min: i64 = @divTrunc(age_sec, 60);
@@ -3899,7 +4006,6 @@ fn freeState(state: *StateMap) void {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ORCHA-AUTOMATION new commands
 // ═══════════════════════════════════════════════════════════════════════════════
-
 
 // ── directive store (WORKER-CHANNEL) ─────────────────────────────────────────
 
@@ -4890,10 +4996,10 @@ const ABSORB_C7_THRESHOLD: u64 = 5;
 
 const standing_templates = [_]Standing{
     .{ .id = "STANDING-HOLISTIC-AUDIT", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-HOLISTIC-AUDIT.md" },
-    .{ .id = "STANDING-CLEANUP",        .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-CLEANUP.md" },
-    .{ .id = "STANDING-REEVIDENCE",     .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-REEVIDENCE.md" },
-    .{ .id = "STANDING-CONSOLIDATE",    .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-CONSOLIDATE.md" },
-    .{ .id = "STANDING-ABSORB",         .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-ABSORB.md" },
+    .{ .id = "STANDING-CLEANUP", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-CLEANUP.md" },
+    .{ .id = "STANDING-REEVIDENCE", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-REEVIDENCE.md" },
+    .{ .id = "STANDING-CONSOLIDATE", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-CONSOLIDATE.md" },
+    .{ .id = "STANDING-ABSORB", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-ABSORB.md" },
 };
 
 /// Parse the first digit-run after `label` from claimlint's `== SUMMARY ==`
@@ -4955,7 +5061,7 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     var c3_debt: u64 = 0;
     var c3_prior: u64 = 0;
     const c3_marker = "C3 PROVEN w/o committed evid.";
-    const claimlint_result = runCommand(alloc, io, &.{ "bin/weizigo-claimlint" }) catch |e| {
+    const claimlint_result = runCommand(alloc, io, &.{"bin/weizigo-claimlint"}) catch |e| {
         w.diag("  standing: cannot run bin/weizigo-claimlint for the C3/C7 triggers ({s})\n", .{@errorName(e)});
         w.diag("  Build it (zig build) — the standing C3/C7 readings are unavailable.\n", .{});
         std.process.exit(1);
@@ -5378,7 +5484,6 @@ fn persistStandingState(io: std.Io, state_path: []const u8, c3: u64, msg: u64, f
     state_dir.rename(tmp_name, state_dir, basename, io) catch {};
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // WORKER-CHANNEL commands (2026-07-29)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -5426,7 +5531,7 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     try writeState(io, state_path, &state_for_counter);
 
     w.diag("\n  told {s} -> {s}\n", .{ target, directive });
-    w.diag("  directive {s}\n", .{ d_id });
+    w.diag("  directive {s}\n", .{d_id});
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
 }
 
@@ -5534,7 +5639,7 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             if (match) {
                 // Re-serialise with read:true (cheaper than surgical patch).
                 const new_line = std.fmt.allocPrint(alloc, "{{\"id\":\"{s}\",\"target\":\"{s}\",\"directive\":\"{s}\"", .{
-                    d_id, d_target,
+                    d_id,                                                                     d_target,
                     if (obj.get("directive")) |v| if (v == .string) v.string else "" else "",
                 }) catch "";
                 defer alloc.free(new_line);

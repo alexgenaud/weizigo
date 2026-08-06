@@ -301,6 +301,19 @@ pub fn build(b: *std.Build) void {
     lock_regression.cwd = b.path(".");
     test_step.dependOn(&lock_regression.step);
 
+    // ── T350: cmdDone two-phase lock controls ────────────────────
+    // The flock covers the store mutation (validate → attribute → git
+    // deliverable check → write done) but never the acceptance command's
+    // runtime; on acceptance failure the done write is reverted under a
+    // fresh lock and dependents re-blocked.  Controls: acceptance pass
+    // keeps done · acceptance fail reverts to in_progress + re-blocks ·
+    // nested store write succeeds during phase 2 (proves the lock is
+    // released) and the vanish guard fires · --skip-acceptance closes ·
+    // empty skip reason rejected before the write.
+    const done_two_phase_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-done-two-phase.sh" });
+    done_two_phase_regression.cwd = b.path(".");
+    test_step.dependOn(&done_two_phase_regression.step);
+
     // ── claimlint promotion-gate controls (T308) ─────────────────
     // C8 mutation-adequacy gate: verifies no kernel-function claim has
     // been promoted past CLAIMED without the battery killing its mutants.
