@@ -1,0 +1,76 @@
+{
+ "task_id": "T396",
+ "date": "2026-08-06",
+ "model": "deepseek-v4-flash",
+ "identifier": "flash/T396",
+ "claims": [
+  {
+   "id": "GLOBAL.I5-SCC-CONTAIN",
+   "proposed_status": "CLAIMED",
+   "rationale": "T391 adjudication (2026-08-06): the '24 natural violations' at 4x3 all-legal reported by T344 and repeated by T363 are FALSIFIED — vb_scc_4x4.runTarjanSccDag's CR propagation order (descending instead of ascending) fabricated them; true reading 0, CR 1,300,030 not 1,300,006. Row prose corrected to withdraw the 'sensitivity demonstrated' reading; the I5 PASS at all three rungs STANDS (4x4 0/3,455,412 and 4x3 0/170,181 re-verified unchanged). Status unchanged at CLAIMED."
+  },
+  {
+   "id": "3x2.I5-CAL",
+   "proposed_status": "MEASUREMENT",
+   "rationale": "T391 reconciled the E/max-SCC discrepancy this row recorded as 'never reconciled': it was a vb_graph defect pair (Defect A passes==2 non-terminal inflated E 7,364 vs 5,510; Defect B quadruple-to-triple projection gave maxSCC 1,000 vs 1,676). Post-fix vb_graph reproduces the register on every quantity and its calibration gates are the register values; the 'blocked until reconciled' verdict is lifted. Status unchanged at MEASUREMENT."
+  }
+ ],
+ "new_rows": [
+  {
+   "id": "CODE.I5-INSTRUMENT-ADJUDICATION",
+   "legacy": "—",
+   "goban": "n/a",
+   "claim": "I5 instrument adjudication (T391, 2026-08-06): the general I5 instrument vb_graph was wrong on every graph metric while both instruments' verdicts passed; vb_scc_4x4 correct. Defects A (passes==2 given placement successors, E 7,364 vs 5,510) and B (quadruple-to-triple projection, maxSCC 1,000 vs 1,676) in vb_graph; Defect C (CR propagation descending instead of ascending in vb_scc_4x4.runTarjanSccDag) FABRICATED the '24 natural violations' at 4x3 all-legal (T344/T363) — true reading 0, CR 1,300,030. Third-route Python independent verification; blast radius NONE (4x4 0/3,455,412 and 4x3 0/170,181 re-verified unchanged); fixes landed incl. the cross-size differential gate src/i5_differential.zig (3x2 permanent, 4x3 env-gated).",
+   "status": "MEASUREMENT",
+   "evidence": "docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md; findings/T391-i5-disagreement.json; findings/T391-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "CODE.INSTRUMENT-COVERAGE",
+   "legacy": "—",
+   "goban": "n/a",
+   "claim": "Instrument coverage map (T388, 2026-08-06): the ladder's most load-bearing checks (I4 Bellman, I5 SCC, I7 DTT) are performed by DIFFERENT code at 4x4 than at every smaller rung; the general battery returns battery-bad for 4x4 I4/I5/I7; I11's battery runner is a stub; nine divergences named (D1-D9); the demonstrated cross-size differential: general and size-specific I5 instruments disagree on every countable reading on the same 3x2 artifact while both pass. Unification costed, not performed. D2 resolved by T391 (CODE.I5-INSTRUMENT-ADJUDICATION); D1/D3-D9 stand as L0 instrument-coverage debt.",
+   "status": "MEASUREMENT",
+   "evidence": "docs/infra/instrument-coverage.md; findings/T388-parametric.json; findings/T388-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "3x3.BRACKET-NOT-KO",
+   "legacy": "—",
+   "goban": "3x3",
+   "claim": "Brackets NOT ko-derived at 3x3 (T385 corr3x3, exhaustive over the whole 3x3 WZO2 graph, 49,428 entries): 93.8% (5,072/5,408) of bracketed (L<H) entries are ko-free anywhere — no static ko shape, no ko-carrying state reachable in the whole graph, no 1-ply ko-ban predecessor. Neither SCC membership (100% of L<H in the giant SCC but 98.1% of L==H too) nor ko-reachability (5.6% L<H vs 7.5% L==H) predicts the bracket. L<H is a value-structure property, not a graph-structure or ko property — mirror of 4x4.BRACKET-NOT-KO (T380 Q4).",
+   "status": "MEASUREMENT",
+   "evidence": "findings/T385-corr3x3.json; findings/T385-gallery.json; findings/T385-context.json; docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "4x4.SELF-PLAY-BRACKET-CONSISTENT",
+   "legacy": "—",
+   "goban": "4x4",
+   "claim": "The new engine honours its own stored brackets at engine-chosen plies (T389): 0 bracket escapes / 1,027 engine-decision plies in 67 self-play games; 0 / 1,191 in the 66-game frame-B corpus; 0 / 1,161 in frame A (after attributing the 42 PSK artefacts); 0 lookup misses across 3,759 plies. The 48 self-play escapes at forced-opening plies and the 284 corpus escapes are old-engine or frame-enforcement artefacts, not engine defects. Scope: internal consistency only, NOT value correctness; fresh-start slice only (C1); per-goban independence.",
+   "status": "MEASUREMENT",
+   "evidence": "findings/T389-trajectory-consistency.json; findings/T389-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  },
+  {
+   "id": "GLOBAL.PSK-GRAFT-COHERENT",
+   "legacy": "—",
+   "goban": "3x3/4x3",
+   "claim": "The PSK graft is coherent (T386/ADR-0021): where the basic-ko fixpoint is single-valued (L==H) the PSK fresh-start value equals it — 0 divergent at 3x3 (24,330 checked) and 0 at 4x3 (635,190 checked); where L<H the PSK value may differ (680 = 2.80% at 3x3; 2,792 = 0.44% at 4x3) and never lies outside [L,H] (psk_outside_bracket = 0). Layered pinning certifies 85.8% (3x3) / 94.9% (4x3) of the bracket region by propagation, but propagation is NOT PSK-exact (80/2,748 and 496/51,318 drifters); one extra pin round restores exact PSK equality (0 mismatches at 24,330/635,190). The 4x4 per-root PSK solve remains the measured wall ('count-cheap, per-solve-walled').",
+   "status": "MEASUREMENT",
+   "evidence": "docs/decisions/0021-cycle-resolution-by-superko.md; findings/T386-cycle-resolution.json; findings/T386-context.json",
+   "depends_on": "—",
+   "narrowed": 0,
+   "wrong_answer_pass_rate": "?"
+  }
+ ],
+ "notes": "T396 (are the day's findings in the register?) — absorption complete. The four non-conforming files (T391-context.json, T388-context.json, T385-gallery.json, T385-corr3x3.json) were already repaired by the Orchestrator (commit cab9b45, claims:[] with an explicit assertion that T395/T396 carry the substantive absorption); this row performed the register absorption of the day's results with the four files' content untouched. Register: +5 rows (all MEASUREMENT, held per verify-then-promote — promotion beyond MEASUREMENT is an Orchestrator ruling), 2 amendments (GLOBAL.I5-SCC-CONTAIN — '24 natural violations' withdrawn; 3x2.I5-CAL — E/max-SCC discrepancy reconciled), statuses unchanged throughout. Infra rows T390/T350/T370 carry claims:[] after inspection (tooling, no epistemic claims — confirmed, not assumed). claimlint after: C7 unabsorbed 0, non-conforming 0; every floor unmoved (C1a 0, C1b 0, C2 11, C3 48, C6 0, C9 0); edges 231 unchanged; C4 45/0/2 unchanged. Two reported, non-floor moves: the bulk-.wzo informational count 4 -> 5 (CODE.INSTRUMENT-COVERAGE's evidence doc names 'artifacts/oracle-2x2/3x2/3x3/4x3.wzo', a four-artifact compression; non-failing), and the repo index 3635 -> 3636 (a concurrent agent's new src/t393_census.zig, not this row). Landmark: advances L4 (the ledger is clean) — the day's findings now have register homes with denominators and scope limits, and the fabricated '24 natural violations' narrative is withdrawn from the register it was cited in."
+}

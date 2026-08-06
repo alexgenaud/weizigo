@@ -39,7 +39,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 - **Measurements map to the node they evidence** (e.g. `4x4.M2` 19 sweeps → Z-CONVERGE-FINITE,
   `2x2.BASICKO-TIE` root value → Z-TABLE), not to a node of their own.
 
-## 1. The mapping — 207 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
+## 1. The mapping — 212 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
 
 | ID | tree node | note |
 |---|---|---|
@@ -250,6 +250,11 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `4x4.BRACKET-NOT-KO` | Z-TABLE | T380 Q4/F-5: brackets not predominantly ko-derived — bracket-vs-ko-shape correlation census over the whole 4x4 table; evidences bracket semantics (T384) |
 | `4x4.KO-CLUSTER-MAX-2` | Z-R-MOVE | T380 Q3/F-4+F-9: max independent ko clusters = 2 (4x4, 4x3) — census under the production ko-shape definition, the B1/B2 family (T384) |
 | `GLOBAL.PATHOLOGY-GRADIENT` | Z-NONCLAIMS | T382: pathology is a gradient, no defensible threshold; smallest realistic-ko board 3x2 — NC1 family (history dependence across sizes, siblings 2x2.T12/3x2.T13) (T384) |
+| `CODE.I5-INSTRUMENT-ADJUDICATION` | Z-AUDIT | T391: I5 instrument pair adjudicated — vb_graph defects A/B, vb_scc_4x4 Defect C (fabricated the "24 natural violations"); instrument-validity family, sibling 3x2.I5-CAL (T396) |
+| `CODE.INSTRUMENT-COVERAGE` | Z-AUDIT | T388: instrument coverage map + nine divergences (D1–D9); which instrument runs which check at which size — instrument-validity family (T396) |
+| `3x3.BRACKET-NOT-KO` | Z-TABLE | T385 corr3x3: 93.8% of 3x3 bracketed entries ko-free anywhere; SCC membership and ko-reachability fail to predict the bracket — evidences bracket semantics (E3), mirror of 4x4.BRACKET-NOT-KO (T396) |
+| `4x4.SELF-PLAY-BRACKET-CONSISTENT` | RETIRED | family player (§2.3): T389 self-play trajectory consistency — the engine honours its own brackets at engine-chosen plies (0/1027, 0/1191, 0/1161); engine-play measurement, serves L3, not the theorem (T396) |
+| `GLOBAL.PSK-GRAFT-COHERENT` | Z-TABLE | T386/ADR-0021: PSK graft coherent — diverges from the fixpoint only at L<H, never at L==H, never outside [L,H]; evidences bracket semantics and the cycle-resolution route (T396) |
 
 ## 2. Adopted retirements — 132 rows moved to archives/register/, by family
 
