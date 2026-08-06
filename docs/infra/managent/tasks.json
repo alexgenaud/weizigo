@@ -770,8 +770,8 @@
     "amendments": []
   },
   "T350": {
-    "status": "in_progress",
-    "agent": "deepseek-v4-pro",
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": "deepseek-v4-pro",
     "bundle": "untracked/T350-cmdDone-two-phase-lock.md",
     "set": "C",
@@ -780,15 +780,15 @@
     "caps": [],
     "added": "2026-08-04T14:22:44Z",
     "claimed": "2026-08-06T01:12:50Z",
-    "done": null,
+    "done": "2026-08-06T02:02:21Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "acceptance gate is 'zig build test'; the suite is red at HEAD on 9 pre-existing engine-module failures (vb_bellman_4x4 applyMove panic, differential/calibration I9/A2/I4/A1 violations) unrelated to this change — engine mid-refactor under T363/T380/T386/T387/T389. All managent regressions pass against the deployed 2d7a1db binary: integrity 16/16 (incl. the two acceptance controls), done-two-phase 7/7 (the brief's controls a and b), lock, done-git, smoke. See findings/T350-context.json.",
     "amendments": []
   },
   "T388": {
@@ -946,7 +946,7 @@
     "amendments": []
   },
   "T390": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T390-duplicate-dispatch-guard.md",
@@ -964,6 +964,28 @@
     "verdict_note": null,
     "claim_count": 0,
     "acceptance": "sh tools/regression-duplicate-dispatch.sh",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T391": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T391-i5-instrument-disagreement.md",
+    "set": "J",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T02:09:53Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -1453,7 +1475,7 @@
   }
 ,
   "_sys": {
-    "next_id": 390,
-    "directive_next": 49
+    "next_id": 391,
+    "directive_next": 51
   }
 }
