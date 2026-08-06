@@ -1,0 +1,747 @@
+{
+ "instrument": "T394-force-life",
+ "task": "T394",
+ "set": "B",
+ "agent": "deepseek-v4-flash/T394",
+ "date": "2026-08-06",
+ "identifier_note": "deepseek-v4-flash/T394 in full at first use; flash/T394 after.",
+ "artifact": "data/oracle-3x3-v2.wzo2 + data/oracle-4x4-v2.wzo2 (WZO2, rules_id 3, verified oracle-v2 loopy fixpoint)",
+ "4x3_prediction": {
+  "recorded_at": "2026-08-06T15:40:39Z (ledger ping; /tmp/weizigo/T394-4x3-prediction.json)",
+  "predicted_canForceLife_B_root": true,
+  "predicted_canForceLife_W_root": true,
+  "predicted_root_bracket": "L > 0 (Black-favoured, non-straddling)",
+  "predicted_tie_value_guess": "+1 (L >= 1)",
+  "basis": "pattern 2x2/3x2 false, 3x3 true; brief predicts 4x4 true; colour-inversion forces the B-root and W-root readings to match",
+  "outcome": "WRONG on canForceLife (measured false for both); RIGHT on the bracket (measured [4,12], L>0)"
+ },
+ "definitions": {
+  "canForceLife": "P can force the game into a position containing a Benson-alive P chain, against any opposition. Boolean reachability game; least attractor of the position-target over the basic-ko move graph with P-side existential / opponent-side universal states. passes=1 pass edges are losing sinks (two passes end the game); implemented as remaining=outdeg+1 for universal passes=1 states.",
+  "vertex_space_3x3_4x4": "WZO2 table entries (reachable-from-empty closure under basic ko, passes in {0,1}; passes=2 terminal states omitted). Child closure verified: 0 placement misses, 0 pass misses at both sizes.",
+  "vertex_space_2x2_3x2_4x3": "reachable-from-empty closure built by BFS under the same basic-ko move relation (no WZO2 table exists).",
+  "L_H_source": "3x3/4x4: the WZO2 entries (verified). 2x2/3x2/4x3: the generic loopy fixpoint implemented in src/t394_force_life.zig (exp6_solve.zig semantics, ADR-0020), calibrated against the WZO2 3x3 table per-entry (0 mismatches over 49,428) and the committed roots ([\u22124,+4], [\u22126,+6])."
+ },
+ "sizes": [
+  {
+   "size": "2x2",
+   "mode": "closure",
+   "graph": {
+    "V": 172,
+    "E_edges": 358,
+    "sink_edges": 86,
+    "child_misses": 0,
+    "pass_misses": 0,
+    "placement_edges": 272,
+    "legal_positions": 57
+   },
+   "targets": {
+    "T_B": 4,
+    "T_W": 4
+   },
+   "attractors": {
+    "B": {
+     "size": 24,
+     "pops": 24,
+     "max_level": 1
+    },
+    "W": {
+     "size": 24,
+     "pops": 24
+    }
+   },
+   "root": {
+    "L": -4,
+    "H": 4,
+    "cfB": false,
+    "cfW": false,
+    "w_root_cfW": false
+   },
+   "T2": {
+    "pin0": 92,
+    "pin0_both_false": 92,
+    "violations": 0,
+    "witnesses": []
+   },
+   "T3": {
+    "neither": 124,
+    "neither_pin0": 92,
+    "neither_decisive": 16,
+    "neither_br": 16,
+    "some": 48,
+    "some_pin0": 0,
+    "some_decisive": 48,
+    "some_br": 0
+   },
+   "buckets": {
+    "lh": 64,
+    "lh_pos": 32,
+    "lh_neg": 32,
+    "lh_zero": 0,
+    "br_black": 8,
+    "br_white": 8
+   },
+   "controls": {
+    "null": true,
+    "s1": true,
+    "s2": true,
+    "s3": true,
+    "s4": true,
+    "planted": true
+   },
+   "verify": {
+    "B": {
+     "checked": 172,
+     "violations": 0,
+     "sampled": false
+    },
+    "W": {
+     "checked": 172,
+     "violations": 0,
+     "sampled": false
+    }
+   },
+   "cost_ms": {
+    "graph": 0,
+    "preds": 0,
+    "targets": 0,
+    "fixpoint": 0,
+    "attrB": 0,
+    "attrW": 0,
+    "verify": 0,
+    "stats": 0
+   },
+   "calibration": {
+    "kind": "C1C2",
+    "C1_E4x4_match": false,
+    "C2_pin0_3x3": false,
+    "C2_pin0_4x4": false
+   }
+  },
+  {
+   "size": "3x2",
+   "mode": "closure",
+   "graph": {
+    "V": 1732,
+    "E_edges": 4670,
+    "sink_edges": 854,
+    "child_misses": 0,
+    "pass_misses": 0,
+    "placement_edges": 3792,
+    "legal_positions": 489
+   },
+   "targets": {
+    "T_B": 126,
+    "T_W": 126
+   },
+   "attractors": {
+    "B": {
+     "size": 562,
+     "pops": 562,
+     "max_level": 7
+    },
+    "W": {
+     "size": 562,
+     "pops": 562
+    }
+   },
+   "root": {
+    "L": -6,
+    "H": 6,
+    "cfB": false,
+    "cfW": false,
+    "w_root_cfW": false
+   },
+   "T2": {
+    "pin0": 298,
+    "pin0_both_false": 298,
+    "violations": 0,
+    "witnesses": []
+   },
+   "T3": {
+    "neither": 608,
+    "neither_pin0": 298,
+    "neither_decisive": 242,
+    "neither_br": 68,
+    "some": 1124,
+    "some_pin0": 0,
+    "some_decisive": 1124,
+    "some_br": 0
+   },
+   "buckets": {
+    "lh": 1366,
+    "lh_pos": 667,
+    "lh_neg": 667,
+    "lh_zero": 32,
+    "br_black": 34,
+    "br_white": 34
+   },
+   "controls": {
+    "null": false,
+    "s1": false,
+    "s2": false,
+    "s3": false,
+    "s4": true,
+    "planted": false
+   },
+   "verify": {
+    "B": {
+     "checked": 1732,
+     "violations": 0,
+     "sampled": false
+    },
+    "W": {
+     "checked": 1732,
+     "violations": 0,
+     "sampled": false
+    }
+   },
+   "cost_ms": {
+    "graph": 0,
+    "preds": 1,
+    "targets": 0,
+    "fixpoint": 3,
+    "attrB": 0,
+    "attrW": 0,
+    "verify": 1,
+    "stats": 0
+   },
+   "calibration": {
+    "kind": "C1C2",
+    "C1_E4x4_match": false,
+    "C2_pin0_3x3": false,
+    "C2_pin0_4x4": false
+   }
+  },
+  {
+   "size": "3x3",
+   "mode": "wzo2",
+   "graph": {
+    "V": 49428,
+    "E_edges": 184938,
+    "sink_edges": 24330,
+    "child_misses": 0,
+    "pass_misses": 0,
+    "placement_edges": 159840,
+    "legal_positions": 12675
+   },
+   "targets": {
+    "T_B": 3270,
+    "T_W": 3270
+   },
+   "attractors": {
+    "B": {
+     "size": 18312,
+     "pops": 18312,
+     "max_level": 18
+    },
+    "W": {
+     "size": 18312,
+     "pops": 18312
+    }
+   },
+   "root": {
+    "L": 9,
+    "H": 9,
+    "cfB": true,
+    "cfW": false,
+    "w_root_cfW": true
+   },
+   "T2": {
+    "pin0": 1248,
+    "pin0_both_false": 1248,
+    "violations": 0,
+    "witnesses": []
+   },
+   "T3": {
+    "neither": 12804,
+    "neither_pin0": 1248,
+    "neither_decisive": 7396,
+    "neither_br": 4160,
+    "some": 36624,
+    "some_pin0": 0,
+    "some_decisive": 36624,
+    "some_br": 0
+   },
+   "buckets": {
+    "lh": 44020,
+    "lh_pos": 21506,
+    "lh_neg": 21506,
+    "lh_zero": 1008,
+    "br_black": 2080,
+    "br_white": 2080
+   },
+   "controls": {
+    "null": false,
+    "s1": false,
+    "s2": false,
+    "s3": false,
+    "s4": true,
+    "planted": false
+   },
+   "verify": {
+    "B": {
+     "checked": 49428,
+     "violations": 0,
+     "sampled": false
+    },
+    "W": {
+     "checked": 49428,
+     "violations": 0,
+     "sampled": false
+    }
+   },
+   "cost_ms": {
+    "graph": 0,
+    "preds": 12,
+    "targets": 3,
+    "fixpoint": 0,
+    "attrB": 0,
+    "attrW": 1,
+    "verify": 612,
+    "stats": 0
+   },
+   "calibration": {
+    "kind": "C3",
+    "C3_closure_eq_table": true,
+    "closure_V": 49428,
+    "table_V": 49428,
+    "C3_lh_mismatches": 0,
+    "checked": 49428
+   }
+  },
+  {
+   "size": "4x3",
+   "mode": "closure",
+   "graph": {
+    "V": 1293848,
+    "E_edges": 6223762,
+    "sink_edges": 635190,
+    "child_misses": 0,
+    "pass_misses": 0,
+    "placement_edges": 5565104,
+    "legal_positions": 321689
+   },
+   "targets": {
+    "T_B": 55208,
+    "T_W": 55208
+   },
+   "attractors": {
+    "B": {
+     "size": 489303,
+     "pops": 489303,
+     "max_level": 21
+    },
+    "W": {
+     "size": 489303,
+     "pops": 489303
+    }
+   },
+   "root": {
+    "L": 4,
+    "H": 12,
+    "cfB": false,
+    "cfW": false,
+    "w_root_cfW": false
+   },
+   "T2": {
+    "pin0": 26520,
+    "pin0_both_false": 26488,
+    "violations": 32,
+    "witnesses": [
+     {
+      "colex": 6762,
+      "side": 0,
+      "ko": 12,
+      "passes": 0,
+      "L": 0,
+      "H": 12,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 9290,
+      "side": 0,
+      "ko": 12,
+      "passes": 0,
+      "L": 0,
+      "H": 12,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 4999,
+      "side": 0,
+      "ko": 12,
+      "passes": 0,
+      "L": 0,
+      "H": 12,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 6839,
+      "side": 0,
+      "ko": 12,
+      "passes": 0,
+      "L": 0,
+      "H": 12,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 6759,
+      "side": 1,
+      "ko": 12,
+      "passes": 0,
+      "L": -12,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 9287,
+      "side": 1,
+      "ko": 12,
+      "passes": 0,
+      "L": -12,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 5002,
+      "side": 1,
+      "ko": 12,
+      "passes": 0,
+      "L": -12,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     },
+     {
+      "colex": 6842,
+      "side": 1,
+      "ko": 12,
+      "passes": 0,
+      "L": -12,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 10,
+      "forcibleW": 10
+     }
+    ]
+   },
+   "T3": {
+    "neither": 315762,
+    "neither_pin0": 26488,
+    "neither_decisive": 223074,
+    "neither_br": 66200,
+    "some": 978086,
+    "some_pin0": 32,
+    "some_decisive": 977678,
+    "some_br": 376
+   },
+   "buckets": {
+    "lh": 1200752,
+    "lh_pos": 587694,
+    "lh_neg": 587694,
+    "lh_zero": 25364,
+    "br_black": 33288,
+    "br_white": 33288
+   },
+   "controls": {
+    "null": false,
+    "s1": false,
+    "s2": false,
+    "s3": false,
+    "s4": true,
+    "planted": false
+   },
+   "verify": {
+    "B": {
+     "checked": 1293848,
+     "violations": 0,
+     "sampled": false
+    },
+    "W": {
+     "checked": 1293848,
+     "violations": 0,
+     "sampled": false
+    }
+   },
+   "cost_ms": {
+    "graph": 883,
+    "preds": 1661,
+    "targets": 414,
+    "fixpoint": 37762,
+    "attrB": 19,
+    "attrW": 17,
+    "verify": 1662,
+    "stats": 3495
+   },
+   "calibration": {
+    "kind": "C1C2",
+    "C1_E4x4_match": false,
+    "C2_pin0_3x3": false,
+    "C2_pin0_4x4": false
+   }
+  },
+  {
+   "size": "4x4",
+   "mode": "wzo2",
+   "graph": {
+    "V": 99133036,
+    "E_edges": 616030190,
+    "sink_edges": 48505262,
+    "child_misses": 0,
+    "pass_misses": 0,
+    "placement_edges": 565402416,
+    "legal_positions": 24318165
+   },
+   "targets": {
+    "T_B": 2766492,
+    "T_W": 2766492
+   },
+   "attractors": {
+    "B": {
+     "size": 38180831,
+     "pops": 38180831,
+     "max_level": 0
+    },
+    "W": {
+     "size": 38180831,
+     "pops": 38180831
+    }
+   },
+   "root": {
+    "L": 1,
+    "H": 16,
+    "cfB": false,
+    "cfW": false,
+    "w_root_cfW": false
+   },
+   "T2": {
+    "pin0": 895216,
+    "pin0_both_false": 885840,
+    "violations": 9376,
+    "witnesses": [
+     {
+      "colex": 6115,
+      "side": 0,
+      "ko": 16,
+      "passes": 0,
+      "L": -1,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 5,
+      "forcibleW": 7
+     },
+     {
+      "colex": 6126,
+      "side": 1,
+      "ko": 16,
+      "passes": 0,
+      "L": 0,
+      "H": 1,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 7,
+      "forcibleW": 5
+     },
+     {
+      "colex": 6197,
+      "side": 0,
+      "ko": 16,
+      "passes": 0,
+      "L": -1,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 5,
+      "forcibleW": 7
+     },
+     {
+      "colex": 6204,
+      "side": 1,
+      "ko": 16,
+      "passes": 0,
+      "L": 0,
+      "H": 1,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 7,
+      "forcibleW": 5
+     },
+     {
+      "colex": 6358,
+      "side": 1,
+      "ko": 16,
+      "passes": 0,
+      "L": 0,
+      "H": 16,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 6,
+      "forcibleW": 6
+     },
+     {
+      "colex": 6363,
+      "side": 0,
+      "ko": 16,
+      "passes": 0,
+      "L": -16,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 6,
+      "forcibleW": 6
+     },
+     {
+      "colex": 10323,
+      "side": 0,
+      "ko": 16,
+      "passes": 0,
+      "L": -1,
+      "H": 0,
+      "cfB": false,
+      "cfW": true,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 5,
+      "forcibleW": 7
+     },
+     {
+      "colex": 10334,
+      "side": 1,
+      "ko": 16,
+      "passes": 0,
+      "L": 0,
+      "H": 1,
+      "cfB": true,
+      "cfW": false,
+      "areaB": 0,
+      "areaW": 0,
+      "forcibleB": 7,
+      "forcibleW": 5
+     }
+    ]
+   },
+   "T3": {
+    "neither": 22885430,
+    "neither_pin0": 885840,
+    "neither_decisive": 19518338,
+    "neither_br": 2481252,
+    "some": 76247606,
+    "some_pin0": 9376,
+    "some_decisive": 76159286,
+    "some_br": 78944
+   },
+   "buckets": {
+    "lh": 95677624,
+    "lh_pos": 46812417,
+    "lh_neg": 46812417,
+    "lh_zero": 2052790,
+    "br_black": 1280098,
+    "br_white": 1280098
+   },
+   "controls": {
+    "null": false,
+    "s1": false,
+    "s2": false,
+    "s3": false,
+    "s4": true,
+    "planted": false
+   },
+   "verify": {
+    "B": {
+     "checked": 200269,
+     "violations": 0,
+     "sampled": true
+    },
+    "W": {
+     "checked": 200269,
+     "violations": 0,
+     "sampled": true
+    }
+   },
+   "cost_ms": {
+    "graph": 64,
+    "preds": 37185,
+    "targets": 14849,
+    "fixpoint": 0,
+    "attrB": 3586,
+    "attrW": 3577,
+    "verify": 1401,
+    "stats": 3149
+   },
+   "calibration": {
+    "kind": "C1C2",
+    "C1_E4x4_match": true,
+    "C2_pin0_3x3": false,
+    "C2_pin0_4x4": true
+   }
+  }
+ ],
+ "verdict": {
+  "T1": {
+   "statement": "empty-board root is decisive iff canForceLife holds for some player at the root",
+   "result": "HOLDS in the L==H (single-valued) form at all five sizes: 2x2 [\u22124,+4] not single + no life-forcing; 3x2 [\u22126,+6] same; 3x3 [+9] single + Black can force life; 4x3 [4,12] not single + none; 4x4 [1,16] not single + none. FAILS in the non-straddling (L>0) form at 4x3 and 4x4: the root is decisive for Black (L=+4, L=+1) yet NO player can force a Benson-alive chain. The brief's prediction (canForceLife holds for Black at 3x3 AND 4x4) is falsified at 4x4; my timestamped 4x3 prediction (true) is falsified at 4x3. The operator's territory-denial phrasing is false: on 4x3/4x4 neither player can force unconditional life, yet the game is decisive for Black by area.",
+   "cuts": "against the operator's hypothesis at 4x3/4x4: territory (area) can be won without any Benson-alive group; the game does not loop merely because life cannot be forced."
+  },
+  "T2": {
+   "statement": "every draw-by-loop entry (L<=0<=H) has canForceLife false for both players",
+   "result": "HOLDS EXACTLY at 2x2 (92/92), 3x2 (298/298), 3x3 (1,248/1,248 \u2014 the brief's number reproduced). FAILS at 4x3 (32/26,520 = 0.12%) and 4x4 (9,376/895,216 = 1.05%): exceptions are states where a player can force life yet the bracket still straddles zero \u2014 the forcible territory is too small to decide. Witnesses and reachable-alive areas in the size entries.",
+   "cuts": "mostly for the operator's hypothesis (a sound draw-oracle at <=3x3), with a small measured exception rate at 4x3/4x4 that bounds its certification value."
+  },
+  "T3": {
+   "statement": "among states where neither can force life, what fraction are draw-by-loop vs decisive?",
+   "result": "the neither-can-force-life class is mostly DECISIVE at every size >= 3x2: 2x2 16/124 (12.9%), 3x2 242/608 (39.8%), 3x3 7,396/12,804 (57.8%), 4x3 223,074/315,762 (70.7%), 4x4 19,518,338/22,885,430 (85.3%). Large decisive mass sits in the neither class: territory-denial does NOT explain those wins.",
+   "cuts": "against the operator's hypothesis: the 'neither can force life => draw' implication is false \u2014 decisive wins happen without either player being able to force unconditional life."
+  },
+  "landmark": "advances L2 (proven 4\u00d74 values): the canForceLife instrument is certified (controls, verification, calibrations all green) and shows the draw-by-loop region at 4x4 (895,216 entries) is 98.95% clean of life-forcing, with 9,376 exceptions (1.05%) carrying witnesses. As a pruning oracle the classifier is sound where T2 holds exactly (<=3x3) and has a measured, witness-carrying exception rate at 4x3/4x4. Cost: the Boolean pass at 4x4 was ~61s at ~3.3 GB peak vs the ~1h value iteration \u2014 two orders of magnitude cheaper."
+ }
+}
