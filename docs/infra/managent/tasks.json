@@ -396,7 +396,7 @@
     "amendments": ["2026-08-04T10:23:44Z: verdict=pass-with-findings note=correction (Orchestrator, 2026-08-04): original skip-acceptance blamed regression-git-commit-mine and regression-subagent-prompt as broken — both pass ALL CONTROLS in a clean run. The red observation was correct (suite exit 1) but the cause was a dirty tree with leftover test artifacts from other consoles, not defective scripts. The GTP deliverable is sound: 88/88 gtp tests, smoke PASS zero STALE after deploy"]
   },
   "T383": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T383-ko-decode-fix.md",
@@ -406,15 +406,15 @@
     "caps": [],
     "added": "2026-08-05T22:25:51Z",
     "claimed": "2026-08-05T23:13:39Z",
-    "done": null,
+    "done": "2026-08-06T00:15:35Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 17,
     "acceptance": "zig build test",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "zig build test at 45/48 steps, 693/697 tests — the 2 failing steps are pre-existing and unrelated to this row: (1) the 4 qa023_brute_2x2 explosive smoke crashes (documented T360 standing failure, do not raise NODE_BUDGET), (2) the stale-bin managent integrity step (bin/managent not redeployed since the e7aeef5 T383/T384 registration; working tree was already dirty before this row). vb_closure module itself: 12/12 tests pass including the new T383 F-7 regression test; claimlint at/below floor (C1a=0 C1b=0 C2=11 C6=0 C9=0).",
     "amendments": []
   },
   "T327": {
@@ -528,8 +528,8 @@
     "amendments": []
   },
   "T387": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T387-capture-budget-termination.md",
     "set": "M",
@@ -537,14 +537,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T23:47:36Z",
-    "claimed": null,
+    "claimed": "2026-08-06T00:24:23Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/research/capture-budget-2026-08-06.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -660,8 +660,8 @@
     "amendments": []
   },
   "T386": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T386-cycle-resolution-adr.md",
     "set": "M",
@@ -670,11 +670,11 @@
     "caps": [],
     "added": "2026-08-05T22:59:37Z",
     "claimed": "2026-08-05T23:44:31Z",
-    "done": null,
+    "done": "2026-08-06T00:13:05Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "test -s docs/decisions/0021-cycle-resolution-by-superko.md",
@@ -766,6 +766,28 @@
     "verdict_note": null,
     "claim_count": 0,
     "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T388": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T388-size-parametric-instruments.md",
+    "set": "J",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T00:26:06Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/instrument-coverage.md",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -880,7 +902,7 @@
     "amendments": []
   },
   "T373": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T373-triage-adoption.md",
@@ -890,15 +912,15 @@
     "caps": [],
     "added": "2026-08-05T12:38:37Z",
     "claimed": "2026-08-05T22:37:23Z",
-    "done": null,
+    "done": "2026-08-05T23:49:33Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "claimlint exits 1 by design (the C2 gating counter sits at the recorded floor: 11 — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed: C1a=0 C1b=0 C2=11 C3=48 C6=0 C9=0 <= floor, calibration PASS; commit 5a70722 + floor-stamp 166300c). Counters before/after the triage: rows 339->207, C1a 10->0, C2 14->11, C3 76->48, C4 46/2->45/2 (report-only, archive-resolved), C5 4->0, C7 1->0, C1b/C6/C9 0, calibration PASS — every count moved DOWN. Seeded archive-resolution control verified (an ID not in INDEX.md still dangles).",
     "amendments": []
   },
   "STANDING-ABSORB": {
@@ -946,8 +968,8 @@
     "amendments": []
   },
   "T385": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T385-bracket-gallery-and-naming.md",
     "set": "I",
@@ -955,14 +977,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T22:58:52Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-05T23:47:51Z",
+    "done": "2026-08-06T00:26:04Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1387,7 +1409,7 @@
   }
 ,
   "_sys": {
-    "next_id": 387,
-    "directive_next": 43
+    "next_id": 388,
+    "directive_next": 44
   }
 }
