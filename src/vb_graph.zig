@@ -26,13 +26,25 @@
 // Author: DSPro/T171-w1 · 2026-07-31
 // Status: DELIVERED — V-9 M4 implementation, calibration gate pending
 //
+// T391 (2026-08-06): corrected to match the committed register. Two defects
+// fixed: (1) passes==2 states were given placement successors although two
+// passes end the game — this inflated E (3×2: 7,364 vs 5,510) and
+// cycle-reachable (2,523 vs 1,678) and merged SCCs (64 vs 908);
+// (2) SCC sizes were projected from (board,side,ko,passes) quadruples to
+// (board,side,ko) triples — producing maxSCC=1,000 at 3×2 where the register
+// and this module's own calibration target say 1,676. Metrics are now
+// quadruple-level, matching the register (verify-battery pass0 spec §5) and
+// the size-specific instrument vb_scc_4x4 exactly. Adjudication: third-route
+// independent Python, docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py.
+//
 // Standalone: imports NOTHING from src/ (spec R8). Re-implements colex
 // addressing, basic-ko rules engine, iterative Tarjan SCC, and minimal
 // WZO1 artifact reader for fb/fw columns.
 //
 // Calibration targets (from QA-023 evidence, committed register):
-//   2×2 all-seed: maxSCC=160  (scc2x2.py)
-//   3×2 true-root: maxSCC=1,676  (ko-fix-rerun-2026-07-29.stdout:107)
+//   2×2 all-seed: maxSCC=160  (scc2x2.py); true-root V=255, E=434
+//   3×2 true-root: maxSCC=1,676, E=5,510, cycle-reachable=1,678
+//      (ko-fix-rerun-2026-07-29.stdout; F1-SEEDROOTS.md:10)
 //
 // Integration: this module defines its own types since vb_common.zig does
 // not exist yet (T168 not yet delivered). When vb_common lands, merge
@@ -77,6 +89,10 @@ pub const I5Result = struct {
     /// Containment check
     ko_sensitive_flags: u64 = 0,
     ko_sensitive_not_cycle_reachable: u64 = 0,
+    /// KO_SENSITIVE flags on graph vertices at (ko=NONE, passes=0) — the
+    /// subset of `ko_sensitive_flags` whose fresh-start state is a vertex of
+    /// the graph. The containment check covers exactly this set (T391).
+    ko_sensitive_graph: u64 = 0,
     /// Status
     status: I5Status = .pass,
     error_msg: ?[]const u8 = null,
@@ -571,6 +587,12 @@ fn checkI5Comptime(
         const cur_linear = queue.items[qhead];
         qhead += 1;
         const decoded = decodeNode(n, cur_linear);
+        // Two consecutive passes end the game: passes==2 states are terminal
+        // and have NO outgoing moves. (T391 fix: the previous code generated
+        // placement moves from passes==2 states, inflating E and
+        // cycle-reachable and merging SCCs — 3×2 E=7,364 vs the register
+        // 5,510; SCCs 64 vs 908. "Pass edges are terminal cut-edges".)
+        if (decoded.passes >= 2) continue;
         const pos = C.pos_from_colex(decoded.colex_idx);
         const colour: i8 = if (decoded.side == 0) 1 else -1;
         const other_side: u1 = if (decoded.side == 0) 1 else 0;
@@ -663,20 +685,22 @@ fn checkI5Comptime(
             const other_side: u1 = if (decoded.side == 0) 1 else 0;
             const ko_forbidden = decoded.ko_point;
 
-            // Collect successors (full graph including pass edges)
+            // Collect successors (full graph including pass edges).
+            // passes==2 states are terminal (two passes end the game):
+            // no placement and no pass edge out of them. (T391.)
             var children: [n + 1]u32 = undefined;
             var child_count: usize = 0;
-            for (0..n) |cell| {
-                if (pos[cell] != 0) continue;
-                const result = K.apply_move(&pos, colour, cell, ko_forbidden) catch continue;
-                const child_colex = C.colex_from_pos(&result.pos);
-                const child_linear = encodeNode(n, child_colex, other_side, result.ko_point, 0);
-                if (visited.get(child_linear)) |child_dense| {
-                    children[child_count] = child_dense;
-                    child_count += 1;
-                }
-            }
             if (decoded.passes < 2) {
+                for (0..n) |cell| {
+                    if (pos[cell] != 0) continue;
+                    const result = K.apply_move(&pos, colour, cell, ko_forbidden) catch continue;
+                    const child_colex = C.colex_from_pos(&result.pos);
+                    const child_linear = encodeNode(n, child_colex, other_side, result.ko_point, 0);
+                    if (visited.get(child_linear)) |child_dense| {
+                        children[child_count] = child_dense;
+                        child_count += 1;
+                    }
+                }
                 const pass_linear = encodeNode(n, decoded.colex_idx, other_side, K.KoNone, decoded.passes + 1);
                 if (visited.get(pass_linear)) |pass_dense| {
                     children[child_count] = pass_dense;
@@ -731,47 +755,36 @@ fn checkI5Comptime(
         }
     }
 
-    // ── Phase 3: compute SCC metrics on (board, side, ko) triples ───────
-    // The reference (2B-2) counts SCC at the triple level; passes are
-    // terminal cut-edges, not vertices. We project quadruples to triples.
+    // ── Phase 3: SCC metrics at the (board, side, ko, passes) quadruple
+    //    level — the game-graph level the register is stated in.
+    // T391 (2026-08-06): the previous code projected each SCC to unique
+    // (board, side, ko) triples, producing 3×2 maxSCC=1,000 — matching
+    // neither the register (1,676, ko-fix-rerun-2026-07-29.stdout:107) nor
+    // this module's own calibration header (1,676), and mixing levels within
+    // one result (cycle_involved triple-projected, cycle_reachable counted on
+    // quadruple vertices). Quadruple-level metrics match the size-specific
+    // instrument (vb_scc_4x4) and the committed Python reference exactly.
 
     const ncomp = tarjan_ncomp;
-    var comp_triple_sets = try gpa.alloc(std.AutoHashMap(u64, void), ncomp);
-    defer {
-        for (comp_triple_sets[0..ncomp]) |*s| s.deinit();
-        gpa.free(comp_triple_sets);
-    }
-    for (comp_triple_sets[0..ncomp]) |*s| s.* = std.AutoHashMap(u64, void).init(gpa);
-
-    for (tarjan_comp[0..V], dense_to_linear.items) |comp_id, linear| {
-        const dec = decodeNode(n, linear);
-        const triple_key = dec.colex_idx * (2 * @as(u64, n + 1)) +
-            @as(u64, dec.side) * @as(u64, n + 1) +
-            (if (dec.ko_point == n) 0 else @as(u64, dec.ko_point) + 1);
-        try comp_triple_sets[@intCast(comp_id)].put(triple_key, {});
+    var comp_sizes = try gpa.alloc(u32, ncomp);
+    defer gpa.free(comp_sizes);
+    @memset(comp_sizes, 0);
+    for (tarjan_comp[0..V]) |comp_id| {
+        comp_sizes[comp_id] += 1;
     }
 
     var max_scc: u32 = 0;
     var non_trivial: u32 = 0;
-    for (comp_triple_sets[0..ncomp]) |*set| {
-        const sz: u32 = @intCast(set.count());
-        if (sz > max_scc) max_scc = sz;
-        if (sz >= 2) non_trivial += 1;
-    }
-
-    var comp_triple_counts = try gpa.alloc(u32, ncomp);
-    defer gpa.free(comp_triple_counts);
-    for (comp_triple_sets[0..ncomp], 0..) |*set, i| {
-        comp_triple_counts[i] = @intCast(set.count());
-    }
-
-    // Cycle-involved: sum of triple counts for non-trivial components
     var cycle_involved_count: u64 = 0;
-    for (comp_triple_counts[0..ncomp]) |sz| {
-        if (sz >= 2) cycle_involved_count += sz;
+    for (comp_sizes[0..ncomp]) |sz| {
+        if (sz >= 2) {
+            non_trivial += 1;
+            cycle_involved_count += sz;
+        }
+        if (sz > max_scc) max_scc = sz;
     }
 
-    // Cycle-reachable: vertices that can reach a non-trivial SCC
+    // Cycle-reachable: vertices that can reach a non-trivial SCC.
     // This requires a reverse BFS from cycle-involved vertices.
     // Build reverse adjacency (child → parent list)
     var rev_adj = try gpa.alloc(std.ArrayListUnmanaged(u32), V);
@@ -784,6 +797,7 @@ fn checkI5Comptime(
     for (0..V) |v| {
         const cur_linear = dense_to_linear.items[v];
         const decoded = decodeNode(n, cur_linear);
+        if (decoded.passes >= 2) continue; // terminal: no outgoing edges
         const pos = C.pos_from_colex(decoded.colex_idx);
         const colour: i8 = if (decoded.side == 0) 1 else -1;
         const other_side: u1 = if (decoded.side == 0) 1 else 0;
@@ -798,11 +812,9 @@ fn checkI5Comptime(
                 try rev_adj[child_dense].append(gpa, @intCast(v));
             }
         }
-        if (decoded.passes < 2) {
-            const pass_linear = encodeNode(n, decoded.colex_idx, other_side, K.KoNone, decoded.passes + 1);
-            if (visited.get(pass_linear)) |pass_dense| {
-                try rev_adj[pass_dense].append(gpa, @intCast(v));
-            }
+        const pass_linear = encodeNode(n, decoded.colex_idx, other_side, K.KoNone, decoded.passes + 1);
+        if (visited.get(pass_linear)) |pass_dense| {
+            try rev_adj[pass_dense].append(gpa, @intCast(v));
         }
     }
 
@@ -816,8 +828,7 @@ fn checkI5Comptime(
 
     for (0..V) |v| {
         const comp_id = tarjan_comp[v];
-        const triples_in_comp: u32 = comp_triple_counts[@intCast(comp_id)];
-        if (triples_in_comp >= 2) {
+        if (comp_sizes[comp_id] >= 2) {
             cycle_reachable_set[v] = true;
             try rev_queue.append(gpa, @intCast(v));
         }
@@ -845,37 +856,35 @@ fn checkI5Comptime(
     // ── Phase 4: KO_SENSITIVE containment check ──────────────────────────
 
     var ko_sensitive_flags: u64 = 0;
+    var ko_sensitive_graph: u64 = 0;
     var ko_sensitive_not_cr: u64 = 0;
 
     if (artifact != null and artifact.?.fb.len > 0) {
         const art = artifact.?;
-        // For each stored slot (position, side) where KO_SENSITIVE is set,
-        // map to graph node (position, side, ko=NONE) and check cycle-reachable.
+        // KO_SENSITIVE is stored per fresh-start slot (colex, side).
+        // Two scopes are reported (T391):
+        //   ko_sensitive_flags  — artifact-wide census over all stored slots;
+        //   ko_sensitive_graph  — flags on slots present as (ko=NONE, passes=0)
+        //                         graph vertices (the set the containment
+        //                         check actually covers).
+        // A flagged slot absent from the graph is not a violation; it is
+        // simply outside the checked domain (unreachable from the seeds).
         for (0..art.total) |colex_idx| {
-            // Black side
-            if ((art.fb[colex_idx] & 1) != 0) {
+            for (0..2) |s| {
+                const side: u1 = @intCast(s);
+                const flags = if (side == 0) art.fb[colex_idx] else art.fw[colex_idx];
+                if ((flags & 1) == 0) continue;
                 ko_sensitive_flags += 1;
-                const linear = encodeNode(n, colex_idx, 0, K.KoNone, 0);
+                const linear = encodeNode(n, colex_idx, side, K.KoNone, 0);
                 if (visited.get(linear)) |dense| {
-                    if (!cycle_reachable_set[dense]) {
-                        ko_sensitive_not_cr += 1;
-                    }
-                }
-                // else: slot not reachable in this graph — still counts as not cycle-reachable
-                // (but shouldn't happen for all-legal graph)
-            }
-            // White side
-            if ((art.fw[colex_idx] & 1) != 0) {
-                ko_sensitive_flags += 1;
-                const linear = encodeNode(n, colex_idx, 1, K.KoNone, 0);
-                if (visited.get(linear)) |dense| {
+                    ko_sensitive_graph += 1;
                     if (!cycle_reachable_set[dense]) {
                         ko_sensitive_not_cr += 1;
                     }
                 }
             }
         }
-        std.debug.print("[I5] KO_SENSITIVE flags: {d} total, {d} NOT cycle-reachable\n", .{ ko_sensitive_flags, ko_sensitive_not_cr });
+        std.debug.print("[I5] KO_SENSITIVE flags: {d} total, {d} on graph (ko=NONE, passes=0), {d} NOT cycle-reachable\n", .{ ko_sensitive_flags, ko_sensitive_graph, ko_sensitive_not_cr });
     } else {
         std.debug.print("[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)\n", .{});
     }
@@ -891,6 +900,7 @@ fn checkI5Comptime(
         .cycle_involved = cycle_involved_count,
         .cycle_reachable = cycle_reachable_count,
         .ko_sensitive_flags = ko_sensitive_flags,
+        .ko_sensitive_graph = ko_sensitive_graph,
         .ko_sensitive_not_cycle_reachable = ko_sensitive_not_cr,
         .status = status,
     };
@@ -986,32 +996,35 @@ test "encode/decode node round-trip 2x2" {
 }
 
 test "I5 calibration: 2x2 reachable graph" {
-    // Reference (scc2x2.py): true-root corrected V=255, maxSCC raw=160.
-    // Triple-projected from Python would be ~96 (unique triples in max SCC).
+    // Reference (scc2x2.py, register spec §5): true-root V=255, E=434,
+    // max SCC=160. Gate is exact-equality. cycle_reachable=162 and
+    // sccs_total=96 are the third-route (T391) quadruple-level values.
     const result = try checkI5(std.testing.allocator, .{ .w = 2, .h = 2 }, null, .{ .graph = .reachable });
     std.debug.print("2x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
     try std.testing.expectEqual(I5Status.pass, result.status);
-    // V must match Python: true-root corrected V=255
     try std.testing.expectEqual(@as(u64, 255), result.nodes);
-    // Triple-projected cycle-involved (~96 unique triples in max SCC).
-    // We don't have exact Python triple count for 2x2; just verify >0 and ≤255.
-    try std.testing.expect(result.cycle_involved > 0);
-    try std.testing.expect(result.cycle_involved <= 255);
+    try std.testing.expectEqual(@as(u64, 434), result.edges);
+    try std.testing.expectEqual(@as(u64, 160), result.max_scc_size);
+    try std.testing.expectEqual(@as(u64, 160), result.cycle_involved);
+    try std.testing.expectEqual(@as(u64, 162), result.cycle_reachable);
+    try std.testing.expectEqual(@as(u64, 96), result.sccs_total);
 }
 
 test "I5 calibration: 3x2 reachable graph" {
-    // Committed reference: docs/evidence/QA-023/i5-reference-3x2.py (T186, 2026-08-01).
-    // Python produces the exact same values as this Zig implementation —
-    // quadruple BFS → quadruple Tarjan → triple projection for SCC sizes.
-    // Gate is exact-equality; any deviation means the implementation changed.
+    // Committed reference: docs/evidence/QA-023/i5-reference-3x2.py (T186,
+    // 2026-08-01; corrected by T391 2026-08-06 — the reference had inherited
+    // the same passes==2 and triple-projection defects). Register values
+    // (verify-battery pass0 spec §5): E=5,510, maxSCC=1,676 (cycle-involved),
+    // cycle-reachable=1,678 (true game root, phantoms excluded). Gate is
+    // exact-equality; any deviation means the implementation changed.
     const result = try checkI5(std.testing.allocator, .{ .w = 3, .h = 2 }, null, .{ .graph = .reachable });
     std.debug.print("3x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
     try std.testing.expectEqual(@as(u64, 2583), result.nodes);
-    try std.testing.expectEqual(@as(u64, 7364), result.edges);
-    try std.testing.expectEqual(@as(u64, 1000), result.max_scc_size);
-    try std.testing.expectEqual(@as(u64, 1000), result.cycle_involved);
-    try std.testing.expectEqual(@as(u64, 2523), result.cycle_reachable);
-    try std.testing.expectEqual(@as(u64, 64), result.sccs_total);
+    try std.testing.expectEqual(@as(u64, 5510), result.edges);
+    try std.testing.expectEqual(@as(u64, 1676), result.max_scc_size);
+    try std.testing.expectEqual(@as(u64, 1676), result.cycle_involved);
+    try std.testing.expectEqual(@as(u64, 1678), result.cycle_reachable);
+    try std.testing.expectEqual(@as(u64, 908), result.sccs_total);
     try std.testing.expectEqual(@as(u64, 1), result.sccs_non_trivial);
 }
 
@@ -1021,8 +1034,8 @@ test "I5 calibration: 3x2 reachable graph" {
 // resolve ../artifacts/ from the Zig test runner's working directory
 // and were hard-skipped since T171. The main runner is the canonical
 // integration path; test-only coverage comes from the two calibration
-// tests above which exercise BFS, Tarjan, and triple-projection on the
-// reachable-from-empty graph — the structural core of I5.
+// tests above which exercise BFS, Tarjan, and quadruple-level SCC metrics
+// on the reachable-from-empty graph — the structural core of I5.
 
 // ─── standalone calibration runner ─────────────────────────────────────────
 
@@ -1042,7 +1055,7 @@ pub fn main(init: std.process.Init) !void { _ = init;
         defer art.deinit(gpa);
         const result = try checkI5(gpa, .{ .w = 2, .h = 2 }, &art, .{ .graph = .all_legal });
         std.debug.print("Result: V={d} E={d} SCCs={d} nonTriv={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.sccs_total, result.sccs_non_trivial, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
-        std.debug.print("KO_SENSITIVE: flags={d} notCycleReachable={d} status={s}\n", .{ result.ko_sensitive_flags, result.ko_sensitive_not_cycle_reachable, @tagName(result.status) });
+        std.debug.print("KO_SENSITIVE: flags={d} graph={d} notCycleReachable={d} status={s}\n", .{ result.ko_sensitive_flags, result.ko_sensitive_graph, result.ko_sensitive_not_cycle_reachable, @tagName(result.status) });
     }
 
     // 2×2 reachable-from-empty
@@ -1061,7 +1074,7 @@ pub fn main(init: std.process.Init) !void { _ = init;
         defer art.deinit(gpa);
         const result = try checkI5(gpa, .{ .w = 3, .h = 2 }, &art, .{ .graph = .all_legal });
         std.debug.print("Result: V={d} E={d} SCCs={d} nonTriv={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.sccs_total, result.sccs_non_trivial, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
-        std.debug.print("KO_SENSITIVE: flags={d} notCycleReachable={d} status={s}\n", .{ result.ko_sensitive_flags, result.ko_sensitive_not_cycle_reachable, @tagName(result.status) });
+        std.debug.print("KO_SENSITIVE: flags={d} graph={d} notCycleReachable={d} status={s}\n", .{ result.ko_sensitive_flags, result.ko_sensitive_graph, result.ko_sensitive_not_cycle_reachable, @tagName(result.status) });
     }
 
     // 3×2 reachable-from-empty

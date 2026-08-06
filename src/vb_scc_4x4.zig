@@ -395,7 +395,9 @@ fn computeKo(
 ///
 /// If `all_legal_seed` is true, seeds from all legal positions instead of
 /// just the empty-board root. Use true for seeded-defect control testing.
-fn checkI5Small(
+/// (pub since T391: consumed by the cross-size differential,
+/// src/i5_differential.zig.)
+pub fn checkI5Small(
     allocator: std.mem.Allocator,
     comptime w: usize,
     comptime h: usize,
@@ -1682,13 +1684,22 @@ fn runTarjanSccDag(
     var non_trivial: u64 = 0; var max_scc: u64 = 0; var cycle_involved: u64 = 0;
     for (comp_sizes) |sz| { if (sz >= 2) { non_trivial += 1; cycle_involved += sz; if (sz > max_scc) max_scc = sz; } }
 
-    // ── SCC cycle-reachable: single pass in reverse pop order ────────
-    // SCCs are popped in reverse topological order of the DAG (first
-    // popped = sink, last popped = source). Processing from ncomp-1
-    // down to 0 visits sources before sinks (topological order).
-    // For each trivial SCC (size 1), we compute its representative
-    // vertex's children on the fly. If any child is in a CR SCC, this
-    // SCC is CR. Non-trivial SCCs (size >= 2) are inherently CR.
+    // ── SCC cycle-reachable: single pass in POP order ──────────────────
+    // CR(c) is a backward property: c is cycle-reachable iff some successor
+    // SCC is cycle-reachable. Tarjan pops SCCs in reverse topological order
+    // (sinks first, sources last), so a successor SCC always has a LOWER
+    // component id than its predecessor. Processing ids ASCENDING
+    // (sinks → sources) therefore visits every successor before its
+    // predecessors — the correct order for this propagation.
+    //
+    // T391 (2026-08-06): the previous code processed ncomp-1 → 0 (sources
+    // first), so a trivial SCC was examined before its successors' CR status
+    // was known and was never marked CR unless a child was already marked.
+    // At 4×3 all-legal this produced 24 spurious KO_SENSITIVE violations
+    // (CR 1,300,006 vs the correct 1,300,030; third-route-4x3.py). The
+    // reachable-graph readings were unaffected (the bug only over-reports
+    // non-CR), and the recorded "24 natural violations" (T344/T363) are
+    // falsified: the true 4×3 all-legal ko_not_cr is 0.
     var scc_cr = try allocator.alloc(bool, ncomp);
     defer allocator.free(scc_cr);
     @memset(scc_cr, false);
@@ -1697,10 +1708,9 @@ fn runTarjanSccDag(
     res.mem_comp_sizes = ncomp * @sizeOf(u32);
     for (0..ncomp) |c| { if (comp_sizes[c] >= 2) scc_cr[c] = true; }
 
-    // Process in reverse pop order (sources → sinks)
-    var c: u32 = ncomp;
-    while (c > 0) {
-        c -= 1;
+    // Process ids ascending (sinks → sources): successors before predecessors.
+    for (0..ncomp) |c0| {
+        const c: u32 = @intCast(c0);
         if (scc_cr[c]) continue; // already CR (non-trivial or propagated)
         // Trivial SCC: compute children of its representative vertex
         const rep_v = scc_rep[c];
@@ -1880,9 +1890,13 @@ test "vb_scc_4x4: 3×2 seeded-defect — spurious KO_SENSITIVE on a non-cycle-re
     // non-cycle-reachable passes=0 ko=NONE slot (ko_not_cr=0, hint null) —
     // the same vacuity the spec attributed to 2×2 only. The spec's 3×2
     // premise came from the projected-graph model (vb_graph); the full-graph
-    // model needs a larger goban. The first non-vacuous rung is 4×3, where
-    // the all-legal graph does have non-CR slots (24). This test records the
-    // 3×2 vacuity explicitly and defers the red-then-green to the 4×3 test.
+    // model needs a larger goban. T391 (2026-08-06): the first non-vacuous
+    // rung is 4×4 — the previously claimed 4×3 all-legal non-CR slots
+    // ("24 natural violations", T344/T363) were a false positive of a
+    // CR-propagation order bug in runTarjanSccDag, fixed by T391; the true
+    // 4×3 all-legal reading is ko_not_cr=0 (vacuous, same as 3×2). This
+    // test records the 3×2 vacuity explicitly and defers the red-then-green
+    // to the 4×4 test.
     const allocator = std.heap.page_allocator;
     const artifact_path = "artifacts/oracle-3x2.wzo";
 
@@ -1957,6 +1971,14 @@ test "vb_scc_4x4: 4×3 calibration — clean check passes" {
     printMemBreakdown(result, "4x3");
 
     try std.testing.expect(result.nodes > 0);
+    // Exact gate (T391): these match the register / third-route values
+    // (docs/evidence/I5-DISAGREEMENT/third-route-4x3.py) exactly.
+    try std.testing.expectEqual(@as(u64, 1929035), result.nodes);
+    try std.testing.expectEqual(@as(u64, 6858926), result.edges);
+    try std.testing.expectEqual(@as(u64, 1284078), result.max_scc_size);
+    try std.testing.expectEqual(@as(u64, 1284078), result.cycle_involved);
+    try std.testing.expectEqual(@as(u64, 1284080), result.cycle_reachable);
+    try std.testing.expectEqual(@as(u64, 170181), result.ko_sensitive_count);
     try std.testing.expectEqual(Status.pass, result.status);
     try std.testing.expectEqual(@as(u64, 0), result.ko_not_cr);
 }
@@ -1977,10 +1999,19 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
 
     // Find a non-CR passes=0 state in the all-legal graph
     const all_legal = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
-    std.debug.print("\n[4x3 all-legal] V={d} ko_not_cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.ko_not_cr, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
+    std.debug.print("\n[4x3 all-legal] V={d} E={d} scc_nt={d} maxSCC={d} ko_not_cr={d} ko_sens={d} cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.edges, all_legal.scc_non_trivial, all_legal.max_scc_size, all_legal.ko_not_cr, all_legal.ko_sensitive_count, all_legal.cycle_reachable, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
+
+    // T391: with the CR-propagation order fixed, the 4×3 all-legal graph is
+    // vacuous — ko_not_cr = 0 (no non-CR passes=0 ko=NONE slot at all). The
+    // "24 natural violations" recorded at T344/T363 were a false positive of
+    // the descending propagation order; the true all-legal reading is 0, and
+    // the seeded-defect control moves to 4×4 (the first non-vacuous rung,
+    // as T363 already concluded for the wrong reason).
+    try std.testing.expectEqual(@as(u64, 0), all_legal.ko_not_cr);
+    try std.testing.expect(all_legal.seed_hint_colex == null);
 
     const hint_colex = all_legal.seed_hint_clear_colex orelse {
-        std.debug.print("[T344 NOTE] 4×3 all-legal has no non-CR clear-flag passes=0 state. Seeded-defect cannot be shown red-then-green here.\n", .{});
+        std.debug.print("[T391 NOTE] 4×3 all-legal is vacuous (ko_not_cr=0): no non-CR passes=0 ko=NONE slot, so no red-then-green can be shown here. Seeded-defect demonstrated at 4×4. The T344/T363 '24 natural violations' were spurious (propagation-order bug, fixed by T391).\n", .{});
         return;
     };
     const hint_side = all_legal.seed_hint_clear_side.?;
@@ -2011,12 +2042,13 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
 }
 
 test "vb_scc_4x4: 4×4 seeded-defect — spurious L!=H on a non-cycle-reachable entry → red-then-green" {
-    // Spec §7.2 calibration: I5 must fail a seeded defect. At 2×2/3×2 the
-    // full-graph model is vacuous (every passes=0 ko=NONE slot is
-    // cycle-reachable); at 4×3 all non-CR slots are already KO_SENSITIVE.
-    // At 4×4 (WZO2, KO_SENSITIVE = L!=H) there are non-CR L==H entries
-    // (~1.44M), so a spurious L!=H seed must push ko_not_cr > 0 — shown
-    // red-then-green here.
+    // Spec §7.2 calibration: I5 must fail a seeded defect. At 2×2/3×2/4×3
+    // the full-graph model is vacuous (every passes=0 ko=NONE slot is
+    // cycle-reachable — T391 confirmed the 4×3 all-legal reading is 0, not
+    // the previously reported 24, which were a propagation-order false
+    // positive). At 4×4 (WZO2, KO_SENSITIVE = L!=H) there are non-CR L==H
+    // entries (~1.44M), so a spurious L!=H seed must push ko_not_cr > 0 —
+    // shown red-then-green here.
     const allocator = std.heap.page_allocator;
     const artifact_path = "data/oracle-4x4-v2.wzo2";
 

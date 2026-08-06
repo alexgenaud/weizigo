@@ -431,6 +431,23 @@ pub fn build(b: *std.Build) void {
     run_vb_scc_4x4_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_scc_4x4_tests.step);
 
+    // ── verify-battery: I5 cross-size differential (T391) ────────────
+    // Runs both I5 implementations (vb_graph general, vb_scc_4x4
+    // size-specific) on the same artifact and requires identical readings.
+    // The 4×3 cell is env-gated (WEIZIGO_I5_DIFF_4X3=1): linking both
+    // instruments in one binary pushes the ReleaseFast codegen past the
+    // tools/runner RSS cap (T391; see the test's comment).
+    const i5_diff_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/i5_differential.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_i5_diff_tests = b.addRunArtifact(i5_diff_tests);
+    run_i5_diff_tests.cwd = b.path(".");
+    test_step.dependOn(&run_i5_diff_tests.step);
+
     // ── verify-battery: move-set consistency (vb_i11, T346) ──────
     const vb_i11_tests = b.addTest(.{
         .root_module = b.createModule(.{

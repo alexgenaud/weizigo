@@ -1,0 +1,57 @@
+goban=3x2 mode=reachable buggy=0
+V=2583
+E=5510
+p0=877 p1=853 p2=853
+sccs_total=908
+sccs_non_trivial=1
+max_scc=1676
+cycle_involved=1676
+cycle_reachable=1678
+ko_sensitive_raw_census=378
+ko_sensitive_graph=347
+ko_not_cr=0
+verdict=pass
+elapsed_s=0.02
+goban=3x2 mode=buggy buggy=1
+V=2583
+E=7364
+p0=877 p1=853 p2=853
+sccs_total=64
+sccs_non_trivial=1
+max_scc=2520
+cycle_involved=2520
+cycle_reachable=2523
+ko_sensitive_raw_census=378
+ko_sensitive_graph=347
+ko_not_cr=0
+verdict=pass
+elapsed_s=0.03
+goban=4x3 mode=reachable buggy=0
+V=1929035
+E=6858926
+p0=658657 p1=635189 p2=635189
+sccs_total=644958
+sccs_non_trivial=1
+max_scc=1284078
+cycle_involved=1284078
+cycle_reachable=1284080
+ko_sensitive_raw_census=170276
+ko_sensitive_graph=170181
+ko_not_cr=0
+verdict=pass
+elapsed_s=39.55
+all_legal_seeds=643378
+goban=4x3 mode=alllegal buggy=0
+V=1953602
+E=6965904
+p0=666846 p1=643378 p2=643378
+sccs_total=669525
+sccs_non_trivial=1
+max_scc=1284078
+cycle_involved=1284078
+cycle_reachable=1300030
+ko_sensitive_raw_census=170276
+ko_sensitive_graph=170276
+ko_not_cr=0
+verdict=pass
+elapsed_s=42.58

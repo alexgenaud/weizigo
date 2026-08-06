@@ -1,0 +1,98 @@
+{
+ "task_id": "T391-context",
+ "date": "2026-08-06",
+ "model": "deepseek-v4-flash",
+ "description": "Raw run outputs for the T391 adjudication (findings/T391-i5-disagreement.json). All runs at commit ed9f3b1 + T391 changes, unless noted. Commands are stated with the numbers.",
+ "runs": [
+  {
+   "label": "third-route 3x2 (correct model)",
+   "command": "python3 docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py 3x2",
+   "output": "V=2583 E=5510 p0=877 p1=853 p2=853 sccs_total=908 sccs_non_trivial=1 max_scc=1676 cycle_involved=1676 cycle_reachable=1678 ko_sensitive_raw_census=378 ko_sensitive_graph=347 ko_not_cr=0 verdict=pass"
+  },
+  {
+   "label": "third-route 3x2 (passes=2 bug re-enabled, reproduces vb_graph)",
+   "command": "python3 docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py 3x2 --buggy",
+   "output": "V=2583 E=7364 sccs_total=64 sccs_non_trivial=1 max_scc=2520 cycle_involved=2520 cycle_reachable=2523 ko_sensitive_graph=347 ko_not_cr=0"
+  },
+  {
+   "label": "third-route 2x2 (register check)",
+   "command": "python3 docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py 2x2",
+   "output": "V=255 E=434 sccs_total=96 max_scc=160 cycle_involved=160 cycle_reachable=162 ko_sensitive_raw_census=82"
+  },
+  {
+   "label": "third-route 4x3 reachable (register check)",
+   "command": "python3 docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py 4x3",
+   "output": "V=1929035 E=6858926 sccs_total=644958 sccs_non_trivial=1 max_scc=1284078 cycle_involved=1284078 cycle_reachable=1284080 ko_sensitive_raw_census=170276 ko_sensitive_graph=170181 ko_not_cr=0 verdict=pass"
+  },
+  {
+   "label": "third-route 4x3 all-legal (correct model)",
+   "command": "python3 docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py 4x3 --alllegal",
+   "output": "all_legal_seeds=643378 V=1953602 E=6965904 sccs_total=669525 sccs_non_trivial=1 max_scc=1284078 cycle_involved=1284078 cycle_reachable=1300030 ko_sensitive_raw_census=170276 ko_sensitive_graph=170276 ko_not_cr=0 verdict=pass"
+  },
+  {
+   "label": "third-route propagation-order simulation (proves Defect C)",
+   "command": "python3 (simulation over the third-route 4x3 all-legal graph; descending vs ascending single-pass CR propagation vs exact reverse-BFS)",
+   "output": "THEIR descending propagation: CR count = 1300006, ko_not_cr = 24 | ASCENDING propagation: CR count = 1300030, ko_not_cr = 0 | reverse-BFS: CR count = 1300030, ko_not_cr = 0 | descending == theirs (24 missed)"
+  },
+  {
+   "label": "vb_graph pre-fix calibration (buggy values, now superseded)",
+   "command": "zig test src/vb_graph.zig --test-filter 3x2 (pre-fix)",
+   "output": "V=2583 E=7364 maxSCC=1000 cycleInv=1000 cycleReach=2523 SCCs total=64"
+  },
+  {
+   "label": "vb_graph post-fix calibration",
+   "command": "tools/runner -- zig test src/vb_graph.zig",
+   "output": "2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162 | 3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 | All 8 tests passed."
+  },
+  {
+   "label": "vb_scc_4x4 3x2 post-fix",
+   "command": "tools/runner -- zig test src/vb_scc_4x4.zig --test-filter '3×2 calibration'",
+   "output": "[3x2 diag] V=2583 E=5510 maxSCC=1676 nSCC_non_trivial=1 cycle_involved=1676 cycle_reachable=1678 ko_sens=347 ko_not_cr=0"
+  },
+  {
+   "label": "vb_scc_4x4 4x3 post-fix (was 24 pre-fix)",
+   "command": "tools/runner -- zig test src/vb_scc_4x4.zig --test-filter '4×3 seeded'",
+   "output": "[4x3 all-legal] V=1953602 E=6965904 scc_nt=1 maxSCC=1284078 ko_not_cr=0 ko_sens=170276 cr=1300030 hint_colex=null clear_hint_colex=null | [T391 NOTE] 4×3 all-legal is vacuous (ko_not_cr=0) ... The T344/T363 '24 natural violations' were spurious (propagation-order bug, fixed by T391)."
+  },
+  {
+   "label": "vb_scc_4x4 4x4 post-fix (unchanged)",
+   "command": "tools/runner -- zig test src/vb_scc_4x4.zig (suite)",
+   "output": "[4x4] V=99133036 E=565402416 maxSCC=47429504 nSCC_nt=1 cycle_inv=47429504 cycle_reach=97689592 ko_sens=3455412 ko_not_cr=0 | 4x4 seeded-defect RED ko_not_cr=1 (baseline 0) ... GREEN ko_not_cr=0 | All 25 tests passed."
+  },
+  {
+   "label": "i5 cross-size differential 3x2",
+   "command": "tools/runner -- zig test src/i5_differential.zig --test-filter '3×2'",
+   "output": "[I5-diff 3x2] general: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSensGraph=347 koNotCR=0 pass | [I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass | OK"
+  },
+  {
+   "label": "fixed battery 4x3 reachable",
+   "command": "./zig-out/bin/verify-battery 4x3 artifacts/oracle-4x3.wzo --i5-only --i5-graph reachable (rebuilt with T391 changes)",
+   "output": "BFS: V=1929035 E=6858926 (p0=658657 p1=635189 p2=635189) | Tarjan: SCCs total=644958 non-trivial=1 maxSize=1284078 cycleInvolved=1284078 cycleReachable=1284080 | KO_SENSITIVE flags: 170276 total, 170181 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable | result: status=pass numerator=0 denominator=170276 | duration_ms=2489 rss_hwm_after_mb=513.8 (pre-fix run: duration_ms=143971, E=9605694, SCCs=10174, CR=1918865)"
+  },
+  {
+   "label": "fixed battery 3x3 all-legal + reachable",
+   "command": "./zig-out/bin/verify-battery 3x3 artifacts/oracle-3x3.wzo --i5-graph all-legal/reachable --invariants I5",
+   "output": "all-legal: KO_SENSITIVE flags: 8698 total, 8698 on graph, 0 NOT cycle-reachable, pass 0/8698 | reachable: flags 8698 total, 8621 on graph, 0 NOT cycle-reachable, pass 0/8698"
+  },
+  {
+   "label": "battery golden-master baseline",
+   "command": "python3 tools/battery-baseline-compare.py --battery ./zig-out/bin/verify-battery --mode fast --baseline docs/evidence/BATTERY/baselines.json",
+   "output": "BASELINE COMPARISON: PASS (I5 rows: 2x2 pass 0/82, 3x2 pass 0/378, 3x3 pass 0/8698, 4x3 pass 0/170276)"
+  },
+  {
+   "label": "committed python reference (corrected by T391)",
+   "command": "python3 docs/evidence/QA-023/i5-reference-3x2.py",
+   "output": "V=2583 E=5510 sccs_total=908 sccs_non_trivial=1 max_scc=1676 cycle_involved=1676 cycle_reachable=1678 | # OK (pre-fix it reproduced vb_graph's buggy values: E=7364, sccs_total=64, max_scc_triple=1000, cycle_reachable_quad=2523)"
+  },
+  {
+   "label": "full suite (T391 changes)",
+   "command": "tools/runner -- zig build test",
+   "output": "Build Summary: 50/52 steps succeeded (1 failed); 727/732 tests passed (1 skipped, 4 crashed). 4 crashes = documented pre-existing qa023_brute_2x2 explosive smoke tests (T360 fail-fast). 1 skipped = env-gated 4x3 I5 differential (WEIZIGO_I5_DIFF_4X3)."
+  },
+  {
+   "label": "full suite (HEAD baseline, T391 changes stashed)",
+   "command": "tools/runner -- zig build test (git stash of T391 files)",
+   "output": "Build Summary: 48/50 steps succeeded (1 failed); 693/697 tests passed (4 crashed). Same documented qa023 crashes; same pre-existing failing steps (identical binary hashes 013f3f2c oracle_v2_accept, 3a521fc7 closure, 51fca8f3 bellman, e84dfebe oracle_v2_accept, battery I9-known-bad)."
+  }
+ ]
+}

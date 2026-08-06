@@ -110,6 +110,18 @@ verifies they measure the same property.
 
 ### D2 — I5 SCC: two implementations of the same check on the same artifact disagree on every count (DEMONSTRATED, §4)
 
+> **SUPERSEDED by T391 (2026-08-06)** — adjudicated and fixed; the differential
+> in §4 is now built (`src/i5_differential.zig`). The adjudication
+> (`docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md`): same property,
+> same artifact; the general instrument was **wrong** on E / maxSCC /
+> cycle-reachable / SCC count (passes==2 non-terminal bug + triple-projected
+> SCC sizes — now fixed to the register values), and the KO_SENSITIVE
+> 378-vs-347 framing below is a scope confusion: 378 is the artifact-wide
+> census, 347 is the checked graph-restricted domain, neither is an error.
+> T391 additionally found and fixed a third defect: `vb_scc_4x4`'s 4×3
+> all-legal CR propagation order fabricated the "24 natural violations"
+> (T344/T363); the true reading is 0.
+
 `vb_graph.checkI5` and `vb_scc_4x4.checkI5Small` both run on `artifacts/oracle-3x2.wzo`.
 Readings differ: KO_SENSITIVE 378 vs 347 (raw artifact census is 378 — the general
 instrument is right, the size-specific one undercounts by 31); cycle_reachable 2,523
@@ -215,7 +227,16 @@ matrix is truthful.
 
 ## 4. The one test that would have caught this class: the cross-size differential
 
-**Specification (not built — this row proposes):** for every (check, size) cell that
+**Built by T391 (2026-08-06):** `src/i5_differential.zig`, wired into `zig build
+ test` — both I5 implementations on `artifacts/oracle-3x2.wzo` (reachable) must
+ return identical V, E, maxSCC, cycle_involved, cycle_reachable, ko_sensitive,
+ ko_not_cr and verdict. The 4×3 cell is env-gated (`WEIZIGO_I5_DIFF_4X3=1`)
+ because linking both instruments in one binary pushes ReleaseFast codegen past
+ the tools/runner RSS cap (tooling constraint; the instrument itself runs at
+ ~110 MB after BFS). See the adjudication
+ `docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md`.
+
+**Specification (as originally proposed by this row):** for every (check, size) cell that
 has ≥2 implementations, run both on the **same artifact** and require **identical
 readings** — status, numerator, denominator, and (for I5) the graph metrics
 (V, E, maxSCC, cycle_reachable, ko_sensitive). Verdict equality alone is not enough:

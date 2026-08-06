@@ -1,0 +1,64 @@
+{
+ "task_id": "T391",
+ "date": "2026-08-06",
+ "model": "deepseek-v4-flash",
+ "claims": [],
+ "new_rows": [],
+ "notes": "T391 (which I5 instrument is telling the truth?) \u2014 ADJUDICATED and FIXED. Same property, same artifact, same reachable convention; the general instrument vb_graph was wrong on every graph metric while both verdicts passed. Three defects total across the pair, each independently verified by a third-route Python written for this task (docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py): (A) vb_graph gives passes==2 states placement successors although two passes end the game \u2014 inflates E 7364 vs register 5510, merges SCCs 64 vs 908, inflates cycle-reachable 2523 vs 1678; (B) vb_graph projects SCC sizes from quadruples to (board,side,ko) triples \u2014 maxSCC 1000 vs register 1676, contradicting its own header citation (:34) and mixing metric levels in one result; (C) vb_scc_4x4.runTarjanSccDag CR propagation processed component ids descending instead of ascending (successors must be processed before predecessors) \u2014 fabricated the '24 natural violations' at 4x3 all-legal (T344/T363): true reading 0, CR 1300030 not 1300006. The ko_sensitive 378 vs 347 is a census-scope difference (artifact-wide vs graph-restricted at ko=NONE passes=0), not an error; T388's 'undercounts by 31' framing was a scope confusion. Blast radius for the G3b discharge: NONE \u2014 the 4x4 reading (0/3,455,412, checkI5Wzo2 snapshot-sweep, order-independent) and the 4x3 reading (0/170,181, true-root convention) are both correct as recorded and re-verified unchanged; the '24 natural violations' narrative was spurious and is corrected. Fixes: vb_graph passes=2 terminal + quadruple-level metrics + graph-restricted KO_SENSITIVE count; vb_scc_4x4 propagation order + vacuity notes; i5-reference-3x2.py corrected in place (it had inherited both vb_graph defects); new src/i5_differential.zig cross-size differential gate (T388 \u00a74) wired into build.zig, 3x2 permanent + 4x3 env-gated (WEIZIGO_I5_DIFF_4X3=1: linking both instruments in one binary makes ReleaseFast codegen exceed the runner RSS cap \u2014 tooling, not instrument; runtime is ~110 MB). Suite: zig build test 50/52 steps, 727/732 tests passed, 1 skipped (gated 4x3), 4 crashed = documented qa023_brute_2x2 (same as HEAD baseline). Battery golden-master baseline comparison unchanged. Landmark: advances L2 (proven 4x4 values) \u2014 the I5 instrument now reproduces the register at every overlapping size and the pair cannot silently diverge again; what remains for L2 is the Track A ko-sensitive regeneration, untouched by this row.",
+ "adjudication": {
+  "property": "I5 SCC containment: KO_SENSITIVE \u2286 cycle-reachable (g3b pass0 spec \u00a72.1)",
+  "same_property_or_different": "SAME property, same artifact, same reachable-from-empty convention, identical vertex set (V=2583 both). The disagreements are edge-set and metric-level differences, not different properties.",
+  "correct_instrument": "vb_scc_4x4 (checkI5Small/checkI5Wzo1Bitset/checkI5Wzo2) at 3x2/4x3/4x4 \u2014 reproduces the register on every shared quantity",
+  "wrong_instrument": "vb_graph (general) \u2014 defects A (passes==2 non-terminal) and B (triple projection)",
+  "third_defect": "vb_scc_4x4.runTarjanSccDag CR propagation order (descending instead of ascending) \u2014 fabricated 24 false violations at 4x3 all-legal",
+  "ko_sensitive_378_vs_347": "census-scope difference: 378 = artifact-wide flag census over stored (colex,side) slots (verified by direct byte scan); 347 = flags on reachable (ko=NONE, passes=0) graph vertices. Both violation checks cover only the 347. Neither is a numeric error.",
+  "definitions_quoted": [
+   "vb_graph.zig:15-16 'Pass edges are treated as terminal cut-edges (Option A from i5-feasibility.md)'",
+   "vb_graph.zig:34 calibration target '3\u00d72 true-root: maxSCC=1,676 (ko-fix-rerun-2026-07-29.stdout:107)' \u2014 which the pre-fix code did not reproduce (reported 1,000)",
+   "vb_graph.zig:820 (pre-fix) 'We project quadruples to triples'",
+   "vb_scc_4x4.zig:445 'Terminal: passes=2 has no outgoing edges'",
+   "vb_scc_4x4.zig:1110 (WZO2) 'Terminal: out-degree 0'",
+   "verify-battery pass0 spec \u00a75: 3\u00d72 cycle-reachable 'Convention for I5: the true game root, phantoms excluded \u2192 1,678'"
+  ]
+ },
+ "third_route": {
+  "instrument": "docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py (written for T391; own WZO1 reader, own colex, own basic-ko engine from the F5 rule statement; only the file-format-fixed colex bijection is shared)",
+  "outputs": "docs/evidence/I5-DISAGREEMENT/third-route-3x2.stdout",
+  "reproduces": {
+   "register_3x2_reachable": {"V": 2583, "E": 5510, "sccs_total": 908, "max_scc": 1676, "cycle_involved": 1676, "cycle_reachable": 1678, "ko_sensitive_graph": 347, "ko_not_cr": 0},
+   "vb_graph_buggy_3x2": {"V": 2583, "E": 7364, "sccs_total": 64, "max_scc": 2520, "cycle_reachable": 2523, "ko_not_cr": 0},
+   "register_2x2_reachable": {"V": 255, "E": 434, "max_scc": 160, "cycle_reachable": 162},
+   "register_4x3_reachable": {"V": 1929035, "E": 6858926, "sccs_total": 644958, "max_scc": 1284078, "cycle_involved": 1284078, "cycle_reachable": 1284080, "ko_sensitive_graph": 170181, "ko_not_cr": 0},
+   "4x3_alllegal_correct": {"V": 1953602, "E": 6965904, "max_scc": 1284078, "cycle_reachable": 1300030, "ko_sensitive_graph": 170276, "ko_not_cr": 0},
+   "4x3_alllegal_buggy_propagation": {"CR": 1300006, "ko_not_cr": 24}
+  },
+  "propagation_order_simulation": "descending single-pass propagation reproduces the instrument's exact 4x3 all-legal output (CR=1300006, ko_not_cr=24); ascending matches the exact reverse-BFS (CR=1300030, ko_not_cr=0). Proof the '24' is a false positive."
+ },
+ "blast_radius": {
+  "discharge_lines_unchanged": true,
+  "4x4_0_over_3455412": "unchanged \u2014 checkI5Wzo2 snapshot-sweep CR is order-independent and exact; re-ran unchanged (V=99,133,036, E=565,402,416, maxSCC=47,429,504, CR=97,689,592, ko_not_cr=0)",
+  "4x3_0_over_170181": "unchanged \u2014 reachable true-root convention (the register's convention); the recorded '24 natural violations' were Defect C's false positive; the true all-legal reading is also 0",
+  "3x2": "0 under both conventions (vacuity: every passes=0 fresh-start slot cycle-reachable)",
+  "general_battery_rows": "denominators preserved (census), verdicts preserved; only graph metrics change to register values; T292 golden-master baseline comparison passes unchanged",
+  "needs_orchestrator_ruling": false,
+  "record_corrections": [
+   "T344/T363 '24 natural violations at 4x3 all-legal' \u2014 FALSIFIED (spurious, Defect C)",
+   "T363 '4x3's non-CR slots are all already KO_SENSITIVE' \u2014 FALSIFIED (4x3 all-legal is vacuous, ko_not_cr=0)",
+   "T388 'the general instrument is right, the size-specific one undercounts by 31' \u2014 scope confusion; 378 is the census, 347 the graph-restricted checked domain"
+  ]
+ },
+ "fixes": [
+  "src/vb_graph.zig: passes==2 terminal in BFS/Tarjan/rev-adj; quadruple-level SCC metrics (projection removed); ko_sensitive_graph reported alongside census; calibration gates = register values",
+  "src/vb_scc_4x4.zig: runTarjanSccDag CR propagation ascending (successors first); 4x3 exact gates; vacuity notes; checkI5Small pub",
+  "docs/evidence/QA-023/i5-reference-3x2.py: corrected in place (had inherited both vb_graph defects), exact register gates",
+  "src/i5_differential.zig (new): cross-size differential \u2014 3x2 permanent, 4x3 env-gated WEIZIGO_I5_DIFF_4X3=1; wired into build.zig",
+  "build.zig: i5_diff test step"
+ ],
+ "verification": {
+  "zig_test_vb_graph": "8/8 pass (2x2: V=255 E=434 maxSCC=160 CR=162; 3x2: V=2583 E=5510 maxSCC=1676 CR=1678 SCCs=908)",
+  "zig_test_vb_scc_4x4": "25/25 pass incl. 4x4 (ko_not_cr=0 unchanged); 4x3 all-legal now ko_not_cr=0 (was 24)",
+  "zig_test_i5_differential_3x2": "identical readings both instruments (V=2583 E=5510 maxSCC=1676 CR=1678 koSens=347 koNotCR=0 pass)",
+  "zig_build_test": "50/52 steps succeeded; 727/732 tests passed; 1 skipped (gated 4x3 differential); 4 crashed (documented pre-existing qa023_brute_2x2 explosive smoke, T360) \u2014 identical failure set to HEAD baseline (48/50 steps, 693/697 tests)",
+  "battery_golden_master": "BASELINE COMPARISON: PASS (all I5 rows unchanged: 2x2 0/82, 3x2 0/378, 3x3 0/8698, 4x3 0/170276)"
+ }
+}

@@ -3,16 +3,25 @@
 i5-reference-3x2.py — Committed Python reference for I5 calibration at 3×2.
 
 Task: T186 · Worker: DSPro/T186 · Date: 2026-08-01
+**Corrected 2026-08-06 by T391** — this file had inherited two defects from
+src/vb_graph.zig and reproduced them to the digit, so it could not serve as an
+independent check:
+  1. passes==2 states were expanded (placement successors) although two
+     passes end the game — inflating E (7,364 vs the register 5,510),
+     cycle-reachable (2,523 vs 1,678) and merging SCCs (64 vs 908);
+  2. SCC sizes were projected from (board, side, ko, passes) quadruples to
+     (board, side, ko) triples, producing maxSCC=1,000 where the register
+     (and vb_graph's own header) cite 1,676.
+The file now reproduces the committed register values (verify-battery pass0
+spec §5): true-root V=2,583, E=5,510, maxSCC=1,676, cycle-reachable=1,678.
+The independent third route that caught all of this (written for T391,
+not derived from either instrument) is docs/evidence/I5-DISAGREEMENT/
+third-route-3x2.py.
 
-Produces the exact V, E, max-SCC, cycle-involved at the SAME PROJECTION LEVEL
-as src/vb_graph.zig (T171-w1): BFS discovers reachable (board, side, ko, passes)
-quadruples; iterative Tarjan runs on those quadruples; then each SCC is projected
-to unique (board, side, ko) triples for the maxSCC and cycle-involved counts.
-
-This replaces the self-calibrated [988,1012] gate in the Zig test with a
-committed exact-value gate. The reference is a full independent re-implementation
-— no imports from the Zig codebase, no shared code beyond the colex bijection
-specification and the basic-ko rules correction (F5 fix, QA-023).
+Produces the exact V, E, max-SCC, cycle-involved at the QUADRUPLE level:
+BFS discovers reachable (board, side, ko, passes) quadruples; iterative
+Tarjan runs on those quadruples; SCC sizes are counted at the quadruple
+level (the game-graph level the register is stated in).
 
 Output format: one key=value per line on stdout for easy parsing by the Zig
 gate. Exit 0 on success.
@@ -22,7 +31,6 @@ Reference calibration data (from ko-fix-rerun-2026-07-29.stdout, quadruple level
   true-root: V=2583  E=5510  maxSCC=1676  cycle-involved=1676  cycle-reachable=1678
 
 The Zig implementation uses true-root seeding (empty board only).
-This reference reproduces the Zig projection: quadruple Tarjan → triple SCC sizes.
 """
 
 from __future__ import annotations
@@ -281,6 +289,8 @@ def i5_calibrate_3x2() -> dict:
         cur_linear = queue[qhead]
         qhead += 1
         colex_idx, side, ko_point, passes = decode_node(n, cur_linear)
+        if passes >= 2:
+            continue  # two passes end the game: terminal, no outgoing moves (T391)
         pos = C.pos_from_colex(colex_idx)
         colour = 1 if side == 0 else -1
         other_side = 1 - side
@@ -327,6 +337,9 @@ def i5_calibrate_3x2() -> dict:
     E = 0
     for v, cur_linear in enumerate(dense_to_linear):
         colex_idx, side, ko_point, passes = decode_node(n, cur_linear)
+        if passes >= 2:
+            adjacency.append([])  # terminal: no outgoing edges (T391)
+            continue
         pos = C.pos_from_colex(colex_idx)
         colour = 1 if side == 0 else -1
         other_side = 1 - side
@@ -416,23 +429,17 @@ def i5_calibrate_3x2() -> dict:
                 if tarjan_lowlink[v] < tarjan_lowlink[parent_v]:
                     tarjan_lowlink[parent_v] = tarjan_lowlink[v]
 
-    # ── Phase 3: project SCCs to triples (board, side, ko) ────────────────
+    # ── Phase 3: SCC sizes at the quadruple level (T391) ───────────────
 
-    # Collect triples per SCC
-    comp_triple_sets = [set() for _ in range(tarjan_ncomp)]
-    for v, lin in enumerate(dense_to_linear):
-        colex_idx, side, ko_point, _ = decode_node(n, lin)
-        triple_key = colex_idx * (2 * (n + 1)) + side * (n + 1) + (0 if ko_point == n else ko_point + 1)
-        comp_triple_sets[tarjan_comp[v]].add(triple_key)
+    comp_sizes = [0] * tarjan_ncomp
+    for c in tarjan_comp:
+        comp_sizes[c] += 1
 
-    # Triple-level SCC sizes
-    comp_triple_sizes = [len(s) for s in comp_triple_sets]
+    max_scc = max(comp_sizes) if comp_sizes else 0
+    sccs_non_trivial = sum(1 for sz in comp_sizes if sz >= 2)
+    cycle_involved = sum(sz for sz in comp_sizes if sz >= 2)
 
-    max_scc_triple = max(comp_triple_sizes) if comp_triple_sizes else 0
-    sccs_non_trivial = sum(1 for sz in comp_triple_sizes if sz >= 2)
-    cycle_involved_triple = sum(sz for sz in comp_triple_sizes if sz >= 2)
-
-    # ── Phase 4: cycle-reachable at quadruple level (reverse BFS) ──────────
+    # ── Phase 4: cycle-reachable at quadruple level (reverse BFS) ─────────
 
     # Build reverse adjacency
     rev_adj = [[] for _ in range(V)]
@@ -440,11 +447,11 @@ def i5_calibrate_3x2() -> dict:
         for child in children:
             rev_adj[child].append(v)
 
-    # Seed: cycle-involved vertices (those in non-trivial SCCs at triple level)
+    # Seed: cycle-involved vertices (those in non-trivial SCCs at quadruple level)
     cycle_reachable = [False] * V
     rev_queue = []
     for v in range(V):
-        if comp_triple_sizes[tarjan_comp[v]] >= 2:
+        if comp_sizes[tarjan_comp[v]] >= 2:
             cycle_reachable[v] = True
             rev_queue.append(v)
 
@@ -467,9 +474,9 @@ def i5_calibrate_3x2() -> dict:
         "p2": p2,
         "sccs_total": tarjan_ncomp,
         "sccs_non_trivial": sccs_non_trivial,
-        "max_scc_triple": max_scc_triple,
-        "cycle_involved_triple": cycle_involved_triple,
-        "cycle_reachable_quad": cycle_reachable_quad,
+        "max_scc": max_scc,
+        "cycle_involved": cycle_involved,
+        "cycle_reachable": cycle_reachable_quad,
     }
 
 
@@ -493,17 +500,24 @@ if __name__ == "__main__":
     print(f"p2={r['p2']}")
     print(f"sccs_total={r['sccs_total']}")
     print(f"sccs_non_trivial={r['sccs_non_trivial']}")
-    print(f"max_scc_triple={r['max_scc_triple']}")
-    print(f"cycle_involved_triple={r['cycle_involved_triple']}")
-    print(f"cycle_reachable_quad={r['cycle_reachable_quad']}")
+    print(f"max_scc={r['max_scc']}")
+    print(f"cycle_involved={r['cycle_involved']}")
+    print(f"cycle_reachable={r['cycle_reachable']}")
     print(f"elapsed_s={elapsed:.3f}")
 
-    # Sanity checks
+    # Sanity checks — exact register gates (verify-battery pass0 spec §5;
+    # corrected by T391 2026-08-06)
     assert r["V"] == 2583, f"V mismatch: expected 2583, got {r['V']}"
+    assert r["E"] == 5510, f"E mismatch: expected 5510, got {r['E']}"
+    assert r["max_scc"] == 1676, f"max_scc mismatch: expected 1676, got {r['max_scc']}"
+    assert r["cycle_involved"] == 1676, f"cycle_involved mismatch: expected 1676, got {r['cycle_involved']}"
+    assert r["cycle_reachable"] == 1678, f"cycle_reachable mismatch: expected 1678, got {r['cycle_reachable']}"
+    assert r["sccs_total"] == 908, f"sccs_total mismatch: expected 908, got {r['sccs_total']}"
+    assert r["sccs_non_trivial"] == 1, f"sccs_non_trivial mismatch: expected 1, got {r['sccs_non_trivial']}"
     assert r["p0"] + r["p1"] + r["p2"] == r["V"]
     assert r["sccs_non_trivial"] <= r["sccs_total"]
-    assert r["cycle_involved_triple"] <= r["V"]
-    assert r["cycle_reachable_quad"] <= r["V"]
+    assert r["cycle_involved"] <= r["V"]
+    assert r["cycle_reachable"] <= r["V"]
 
     print("# OK", file=sys.stderr)
     sys.exit(0)
