@@ -197,6 +197,28 @@
     "skip_acceptance_reason": "claimlint exits 1 by design (recorded floor debt: C1a=10, C1b=0, C2=14, C6=0, C9=0, calibration PASS — all at or below floor in both runs). The brief's acceptance bar is met: C7 non-conforming 5->0; floor counters unmoved. C7 unabsorbed 0->1 is the intended T375 mirror-measurement proposal entering the absorption queue.",
     "amendments": []
   },
+  "T402": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T402-capture-budget-pluggable.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T21:34:36Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T370": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -327,7 +349,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-06T20:51:57Z: verdict=pass-with-findings note=ADJUDICATED by claude-opus-5/orcha. Verdict stands as PASS, upgraded to pass-with-findings for one narrative correction whose fault is NOT the workers. (1) THE OUT-OF-SAMPLE TEST IS VALID AND THE ROW EARNED IT. D053 required the 4x3 root prediction be timestamped before measurement; the row complied - prediction recorded 2026-08-06T15:40:39Z via ledger ping and in findings/T394-force-life.json (canForceLife B=true W=true, root L>0) BEFORE the 4x3 pass, then measured false/false with root [4,12]. The life-forcing half was WRONG and the row published that plainly, alongside the falsification of the briefs own 4x4 prediction. A dated miss is worth more than an undatable hit; T1s 4x3 rung stands as a genuine out-of-sample reading. Controls, calibrations and the full-fixpoint verification are present as briefed. (2) CORRECTION - THE PRUNING-ORACLE FRAMING IS A LOGICAL ERROR, AND IT ORIGINATES IN FABLES BRIEF, NOT IN THE WORKER. The doc at docs/research/force-life-classifier-2026-08-06.md:176-180 says T2s measured exception rate is the honest bound on using the classifier as a certified stop valuing, its a draw oracle at 4x4. That bounds the WRONG DIRECTION. T2 measures draw-by-loop => neither-can-force. The oracle use is the CONVERSE, neither-can-force => draw, and the rows own T3 measures that converse as FALSE: 85.3% of the neither-can-force class at 4x4 is DECISIVE (19,518,338 of 22,885,430), majority-decisive at every size >= 3x2. So the oracles error rate is 85.3%, not T2s 1.05%. A search pruning on it would abandon 19.5 million decisively-valued 4x4 states. ATTRIBUTION, recorded at Fables own request: the error is in the T394 brief, untracked/T394-force-life-classifier.md:54 - "If T2 holds exactly, canForceLife=false for both players is a sound stop valuing, its a draw oracle" - authored by claude-fable-5/auditor, and repeated to this seat in Fables opening handover note. The worker inherited the framing in one sentence of section T2 while its own section T3 states the opposite correctly and says it cuts against the operators hypothesis. The doc therefore contradicts itself and the T3 side is right. THE SOUND STATEMENT: draws-by-loop are CONFINED to the neither-can-force class (exact through 3x3, 32 exceptions at 4x3, 9,376 witnessed at 4x4); confinement is not certification. Absorbed as GLOBAL.DRAWLOOP-CONFINED carrying the explicit non-claim, plus GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE recording the 85.3% refutation. (3) SCOPE FLAG for anyone citing this row: the 4x3 root [+4,+12] is MEASURED by a single instrument and NOT independently audited. Do not cite it as solved until a second seat verifies it. (4) LEDGER: findings file was non-conforming (missing task_id, model, claims); repaired pre-absorption and disclosed in-file. Landmark: advances L2 - T1s L==H form holds 5/5 (forcible immortality buys rule-independence, not victory) and the operators territory-denial hypothesis is falsified at 4x3/4x4. That is the operators loss and it cuts toward unconditional life being the wrong notion of territory for decisive wins."]
+    "amendments": ["2026-08-06T20:51:57Z: verdict=pass-with-findings note=ADJUDICATED by claude-opus-5/orcha. Verdict stands as PASS, upgraded to pass-with-findings for one narrative correction whose fault is NOT the workers. (1) THE OUT-OF-SAMPLE TEST IS VALID AND THE ROW EARNED IT. D053 required the 4x3 root prediction be timestamped before measurement; the row complied - prediction recorded 2026-08-06T15:40:39Z via ledger ping and in findings/T394-force-life.json (canForceLife B=true W=true, root L>0) BEFORE the 4x3 pass, then measured false/false with root [4,12]. The life-forcing half was WRONG and the row published that plainly, alongside the falsification of the briefs own 4x4 prediction. A dated miss is worth more than an undatable hit; T1s 4x3 rung stands as a genuine out-of-sample reading. Controls, calibrations and the full-fixpoint verification are present as briefed. (2) CORRECTION - THE PRUNING-ORACLE FRAMING IS A LOGICAL ERROR, AND IT ORIGINATES IN FABLES BRIEF, NOT IN THE WORKER. The doc at docs/research/force-life-classifier-2026-08-06.md:176-180 says T2s measured exception rate is the honest bound on using the classifier as a certified stop valuing, its a draw oracle at 4x4. That bounds the WRONG DIRECTION. T2 measures draw-by-loop => neither-can-force. The oracle use is the CONVERSE, neither-can-force => draw, and the rows own T3 measures that converse as FALSE: 85.3% of the neither-can-force class at 4x4 is DECISIVE (19,518,338 of 22,885,430), majority-decisive at every size >= 3x2. So the oracles error rate is 85.3%, not T2s 1.05%. A search pruning on it would abandon 19.5 million decisively-valued 4x4 states. ATTRIBUTION, recorded at Fables own request: the error is in the T394 brief, untracked/T394-force-life-classifier.md:54 - 'If T2 holds exactly, canForceLife=false for both players is a sound stop valuing, its a draw oracle' - authored by claude-fable-5/auditor, and repeated to this seat in Fables opening handover note. The worker inherited the framing in one sentence of section T2 while its own section T3 states the opposite correctly and says it cuts against the operators hypothesis. The doc therefore contradicts itself and the T3 side is right. THE SOUND STATEMENT: draws-by-loop are CONFINED to the neither-can-force class (exact through 3x3, 32 exceptions at 4x3, 9,376 witnessed at 4x4); confinement is not certification. Absorbed as GLOBAL.DRAWLOOP-CONFINED carrying the explicit non-claim, plus GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE recording the 85.3% refutation. (3) SCOPE FLAG for anyone citing this row: the 4x3 root [+4,+12] is MEASURED by a single instrument and NOT independently audited. Do not cite it as solved until a second seat verifies it. (4) LEDGER: findings file was non-conforming (missing task_id, model, claims); repaired pre-absorption and disclosed in-file. Landmark: advances L2 - T1s L==H form holds 5/5 (forcible immortality buys rule-independence, not victory) and the operators territory-denial hypothesis is falsified at 4x3/4x4. That is the operators loss and it cuts toward unconditional life being the wrong notion of territory for decisive wins."]
   },
   "T365": {
     "status": "done",
@@ -1231,6 +1253,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T401": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T401-bracketed-position-tournament.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T21:34:05Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T381": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -1673,7 +1717,7 @@
   }
 ,
   "_sys": {
-    "next_id": 401,
+    "next_id": 403,
     "directive_next": 55
   }
 }
