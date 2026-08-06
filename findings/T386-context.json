@@ -1,0 +1,47 @@
+{
+ "task_id": "T386",
+ "date": "2026-08-06",
+ "model": "flash",
+ "identifier": "flash/T386",
+ "claims": [],
+ "new_rows": [],
+ "context": {
+  "brief": "untracked/T386-cycle-resolution-adr.md (kanban set=M; landmark L2 proven 4x4 values). Deliver an ADR (docs/decisions/0021-cycle-resolution-by-superko.md) evaluating the operator's proposal: 'Pass 1: enumerate positions, legality, link successors. Pass 2: retrograde from terminal. Pass 3: retrograde-BFS until a depth with brackets; resolve those to terminal under positional superko (PSK); then repeat Pass 2 for the next layer. Expect fewer instances each round.' Four questions, in order: (1) the graft defines a new ruleset — declare it or refute its coherence; (2) cost, measured at 3x3 first, with 4x3/4x4 as projections; (3) GLOBAL.R1 intractability, scoped honestly; (4) whether full PSK dissolves GLOBAL.F1 or relocates it.",
+  "scope_discipline": "additive only — four new measurement instruments (src/t386_engine.zig, src/t386_coherence.zig, src/t386_shrink.zig, src/t386_layers.zig); no edit to build.zig, any engine source (retro/oracle/rules/solve/exp6/vb_*), data/, artifacts/, or any axiom/ADR. No implementation of the proposal — measurement only. Findings files are the record; the ADR is the deliverable.",
+  "existing_suite_state": "The current 4x4 table is the ADR-0020 pure loopy-game fixpoint (data/oracle-4x4-v2.wzo2, no finisher; T380 F-8). The finisher's unsoundness is GLOBAL.F1 (writes-ON ko_ref>=d, 45/378 at 3x2, 0 writes-off); the committed ko-sensitive values are untrusted pending Track A. The 3x3 table (data/oracle-3x3-v2.wzo2) is trusted and is the regression-gate target for the new engine.",
+  "instruments": {
+   "src/t386_engine.zig": {
+    "sha256": "2eb5593906b9b55da304cdbb5157effc97b6cebccac8f00cfdc1a6aea35f8ee8",
+    "role": "shared generic ko-state retrograde fixpoint engine (ADR-0020 semantics) + WZO2 reader + WZO1 PSK loader + ko-cluster helper; used at 3x3 (regression-gated) and 4x3 (fresh construction)",
+    "gate": "3x3: 49,428 wzo2 entries reproduced entry-for-entry, 0 mismatches; census 73,758 states / 12,675 legal boards matches exp6",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t386_<tool>.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t386/kc --global-cache-dir /tmp/weizigo/t386/gc"
+   },
+   "src/t386_coherence.zig": {
+    "sha256": "339ba9df2da9cc76d8cc27119c1bc4f1b40b76a272031636ffb3031fd31570a9",
+    "role": "graft value-coherence at 3x3 (control, must reproduce T380 F-6) and 4x3",
+    "runs": "3x3: checked=24,330 divergent=680 (2.80%) all at L<H, 0 at L==H, null=0, psk_outside_bracket=0. 4x3: checked=635,190 divergent=2,792 (0.44%) all at L<H, 0 at L==H, null=0, psk_outside_bracket=0; fresh-start brackets 54,074 (8.51%) per-layer L0:2 L1:16 L2:128 L3:624 L4:2246 L5:6196 L6:10600 L7:13848 L8:11116 L9:6076 L10:2274 L11:948",
+    "wall": "33 s for the 4x3 census+fixpoint (peak RSS 92 MB)"
+   },
+   "src/t386_shrink.zig": {
+    "sha256": "1d23f311641824a521acb2a0d676d531b62de6f627db9f50600712c552750a13",
+    "role": "the layered pinning experiment (Pass 3) at 3x3 and 4x3, plus the phase-2 verify-then-pin exactness pass",
+    "runs": "3x3: 3 rounds, pins 456, propagated 2,748 (85.8%), remaining 0; phase-2 drifters 80 (all bracketed+divergent at r0, L4-L6, symmetric), +80 pins, table == PSK oracle exactly (total 536 pins = 16.7% of 3,204 brackets). 4x3: 3 rounds, pins 2,756, propagated 51,318 (94.9%), remaining 0; phase-2 drifters 496 (456 divergent at r0, L6-L9, symmetric), +496 pins, table == PSK oracle exactly (total 3,252 pins = 6.0% of 54,074 brackets). Wall 57 s.",
+    "note": "each 'pin' is one idealized forward PSK solve — the experiment measures solve-COUNT economics, not per-solve cost"
+   },
+   "src/t386_layers.zig": {
+    "sha256": "7698caecfb107c7837dd9549abd02b92f7e910862a48868ceca1226a9e41f1e5",
+    "role": "layer distribution of the fresh-start bracket region from the committed WZO2 tables",
+    "runs": "3x3: 3,204 entries / 2,984 positions (23.5%), L0 certified. 4x4: 1,962,142 entries / 1,913,925 positions (7.8704% of 24,318,165), per-layer L15:1856 L14:8424 L13:45656 L12:153030 L11:321312 L10:434904 L9:420368 L8:304472 L7:167920 L6:72520 L5:24344 L4:6182 L3:976 L2:168 L1:8 L0:2; width mean 13.28; empty goban B [1,16] W [-16,-1]; reproduces T380 census exactly",
+    "wall": "4x4 run 1.2 s, peak RSS 866 MB"
+   }
+  },
+  "controls": {
+   "engine gate": "t386_engine at 3x3 == data/oracle-3x3-v2.wzo2 entry-for-entry (49,428 entries, 0 mismatches; fresh-start subset 24,330, 0)",
+   "T380 F-6 reproduction": "3x3 coherence: 680/24,330 divergent, all at L<H, 0 null — identical to T380 F-6's published numbers",
+   "T380 census reproduction": "4x4 layers: 1,962,142 / 1,913,925 / 7.8704% / width mean 13.28 — identical to T380 F-5's published numbers",
+   "cross-instrument": "3x3 layer histogram from t386_layers == shrink round-0 histogram (3,204 total, per-layer identical)"
+  },
+  "dates_absolute": "2026-08-06 (all runs this session; system clock UTC)",
+  "no_engine_edits": "git status shows only the four new src/t386_*.zig files plus this findings pair and the ADR (docs/decisions/0021-cycle-resolution-by-superko.md) as additions; no modification to any engine, artifact, data/ or build file"
+ }
+}

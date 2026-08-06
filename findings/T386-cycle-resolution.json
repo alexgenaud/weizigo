@@ -1,0 +1,122 @@
+{
+ "task_id": "T386",
+ "date": "2026-08-06",
+ "model": "flash",
+ "identifier": "flash/T386",
+ "claims": [],
+ "new_rows": [],
+ "method": {
+  "question": "Evaluate the operator's proposal: resolve the bracketed (L < H) region by positional superko (PSK) in a layered retrograde loop \u2014 Pass 3: retrograde-BFS until a depth with brackets; resolve those to terminal under PSK; repeat Pass 2 for the next layer; expect fewer instances each round. Deliver an ADR (docs/decisions/0021-cycle-resolution-by-superko.md) with: the ruleset statement, the coherence argument (or refutation), measured costs at 3x3 with a projection to 4x3 and 4x4, the relationship to the existing finisher, and a recommendation.",
+  "subject": "The graft under test: k=1 (basic-ko) legality fixpoint with PSK fresh-start values pinned onto the bracketed region, re-propagated by the Bellman operator. Measurements: (1) value-coherence of the graft \u2014 where PSK fresh-start diverges from the fixpoint, and whether it ever leaves the bracket; (2) the layer distribution of the fresh-start bracket region at 3x3/4x3/4x4; (3) the layered pinning experiment (does resolving a layer shrink the next, at what rate, and is the propagation PSK-exact); (4) the exactness cost (verify-then-pin phase).",
+  "instruments": {
+   "src/t386_engine.zig": {
+    "sha256": "2eb5593906b9b55da304cdbb5157effc97b6cebccac8f00cfdc1a6aea35f8ee8",
+    "build": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t386_<tool>.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t386/kc --global-cache-dir /tmp/weizigo/t386/gc",
+    "purpose": "Generic ko-state retrograde fixpoint engine over (board, side, ko, passes) with basic-ko legality and TIE=0 long-cycle verdicts (the ADR-0020 semantics of the WZO2 tables), used at 3x3 and 4x3. Uses exp6_solve.zig's generic move-kernel helpers (T273 kernel). Plus WZO2 reader, WZO1 PSK loader, ko-cluster helper. Additive only.",
+    "control": "At 3x3 the engine reproduces data/oracle-3x3-v2.wzo2 ENTRY-FOR-ENTRY: 49,428 entries, 0 mismatches (fresh-start subset 24,330, 0 mismatches). Census: 73,758 reachable states, 12,675 legal boards \u2014 matches exp6's published counts."
+   },
+   "src/t386_coherence.zig": {
+    "sha256": "339ba9df2da9cc76d8cc27119c1bc4f1b40b76a272031636ffb3031fd31570a9",
+    "build": "same pattern; binary /tmp/weizigo/t386/coherence",
+    "purpose": "Graft value-coherence: for every reachable legal position x side with a PSK value, compare PSK fresh-start vs clamp(TIE=0,[L,H]) and vs the bracket [L,H] itself. Frames: 3x3 (control, must reproduce T380 F-6) and 4x3 (the projection check \u2014 no WZO2 artifact exists at 4x3, so the basic-ko fixpoint is the engine's fresh construction, gated at 3x3).",
+    "modes_and_runs": {
+     "3x3": "census 73,758 states / 12,675 legal / 18 sweeps; fixpoint 16 sweeps converged, L>H=0, bracketed-states=5,408; regression gate 49,428 entries / 0 mismatches; checked=24,330 divergent=680 div_at_L<H=680 div_at_L==H=0 null_control=0 psk_outside_bracket=0 div_by_class=[600,80,0,0]. Reproduces T380 F-6 EXACTLY.",
+     "4x3": "census 1,929,038 states / 321,689 legal / 24 sweeps; fixpoint 29 sweeps converged, L>H=0, bracketed-states=93,096; checked=635,190 (of 643,378 slots; 8,188 sides lack a PSK value or reachability \u2014 the PASS1-LAW single-colour/immovable slots) divergent=2,792 div_at_L<H=2,792 div_at_L==H=0 null_control=0 psk_outside_bracket=0 div_by_class=[2,696,96,0,0]; fresh-start brackets total=54,074 (8.51% of checked) per-layer L0:2 L1:16 L2:128 L3:624 L4:2,246 L5:6,196 L6:10,600 L7:13,848 L8:11,116 L9:6,076 L10:2,274 L11:948."
+    }
+   },
+   "src/t386_shrink.zig": {
+    "sha256": "1d23f311641824a521acb2a0d676d531b62de6f627db9f50600712c552750a13",
+    "build": "same pattern; binary /tmp/weizigo/t386/shrink",
+    "purpose": "The layered pinning experiment: fixpoint round 0; then repeat: pin the FRESH-START key (position, side, ko=none, passes=0) of every bracket-valued position at the deepest unresolved layer to its PSK value (artifacts/oracle-3x3.wzo, artifacts/oracle-4x3.wzo), re-converge with pins held, recount. Phase 2 (exactness): pin every fresh-start key whose converged value still differs from the PSK oracle; re-converge; repeat until the table equals the PSK oracle. A 'pin' is one idealized forward PSK solve \u2014 the experiment measures solve-COUNT economics, NOT per-solve cost.",
+    "modes_and_runs": {
+     "3x3": "round 0: 3,204 fresh-start brackets (L1:8 L2:84 L3:320 L4:688 L5:856 L6:688 L7:360 L8:200, L0:0). round 1: pin L8 (200), propagate 448, remaining 2,556. round 2: pin L7 (168), propagate 1,624, remaining 764. round 3: pin L6 (88), propagate 676, remaining 0. Cumulative pinned 456, propagated 2,748 (85.8%). psk_outside_bracket=0. Phase 2: 80 drifters (0.33% of 24,330 slots; 2.9% of propagated), all bracketed-at-r0 AND divergent-at-r0, layers L4:16 L5:16 L6:48, error direction 40 up / 40 down (symmetric); 1 extra round, no cascade; total pins 536 (16.7% of the 3,204 brackets). Final table == PSK oracle at all 24,330 checked slots.",
+     "4x3": "round 0: 54,074 fresh-start brackets (L0..L11). round 1: pin L11 (948), propagate 6,932, remaining 46,194. round 2: pin L10 (864), propagate 25,864, remaining 19,466. round 3: pin L9 (944), propagate 18,522, remaining 0. Cumulative pinned 2,756, propagated 51,318 (94.9%). psk_outside_bracket=0. Phase 2: 496 drifters (0.078% of 635,190 slots; 0.97% of propagated), 456 divergent-at-r0 (40 not), layers L6:16 L7:144 L8:144 L9:192, error direction 248/248 (symmetric); 1 extra round, no cascade; total pins 3,252 (6.0% of the 54,074 brackets). Final table == PSK oracle at all 635,190 checked slots. Wall: 57 s (4x3 census+fixpoint ~33 s + 3 rounds + phase 2)."
+    }
+   },
+   "src/t386_layers.zig": {
+    "sha256": "7698caecfb107c7837dd9549abd02b92f7e910862a48868ceca1226a9e41f1e5",
+    "build": "same pattern; binary /tmp/weizigo/t386/layers",
+    "purpose": "Layer distribution of the fresh-start bracket region from the committed WZO2 tables (data/oracle-3x3-v2.wzo2, data/oracle-4x4-v2.wzo2). Layer = number of stones on the goban (the retrograde sweep order, stone-count descending). Per layer: groups, fresh-start entries, fresh-start bracket entries, bracket positions (union over sides), all-keys bracket entries, width stats (mean, max, >=16, >=24, =32).",
+    "modes_and_runs": {
+     "3x3": "groups=12,675 fresh=24,330 fresh_bracket=3,204 bracket_pos=2,984 all_bracket=5,408 width_mean=7.14; per-layer fresh_bracket L8:200 L7:360 L6:688 L5:856 L4:688 L3:320 L2:84 L1:8 L0:0. Cross-checked against the shrink experiment's round-0 histogram (identical).",
+     "4x4": "groups=24,318,165 fresh=48,505,262 fresh_bracket=1,962,142 bracket_pos=1,913,925 all_bracket=3,455,412 width_mean=13.28, pct=7.8704% of positions. Reproduces T380's published census EXACTLY (981,071 per side; 1,913,925 either side; 7.87%; width mean 13.28). Per-layer fresh_bracket: L15:1,856 L14:8,424 L13:45,656 L12:153,030 L11:321,312 L10:434,904 L9:420,368 L8:304,472 L7:167,920 L6:72,520 L5:24,344 L4:6,182 L3:976 L2:168 L1:8 L0:2. Peak L10; opening L0-L3 total 1,154; near-terminal L13-L15 total 55,936. Width>=24 entries: L6-L12 (L10:22,608, L11:17,992, L9:18,112, L8:11,400, L12:8,240, L7:5,696, L6:2,160); width=32 same band. Empty goban (colex 0): B [1,16], W [-16,-1], width 15, dtt 3 \u2014 bracketed at 4x4."
+    }
+   }
+  },
+  "artifacts_read": {
+   "data/oracle-3x3-v2.wzo2": "committed 3x3 WZO2 table (basic ko + L/H bracket); regression gate target",
+   "data/oracle-4x4-v2.wzo2": "committed 4x4 WZO2 table (SHA 0c3366f0...); layer census source",
+   "artifacts/oracle-3x3.wzo": "validated PSK fresh-start oracle (WZO1) \u2014 the 3x3 resolution source",
+   "artifacts/oracle-4x3.wzo": "validated PSK fresh-start oracle (WZO1) \u2014 the 4x3 resolution source"
+  },
+  "existing_evidence_cited": {
+   "T380 F-6": "at 3x3, PSK vs basic-ko pinned fresh-start diverge at 680/24,330 (2.80%), ALL at L<H, 0 at L==H; 4x4 sample 809 within-budget, 0 divergent, 782 budget-excluded (49.1%)",
+   "T380 F-5": "fresh-start bracket-valued: 981,071 per side, 1,913,925 positions either side (7.87%), mean width 13.28; 3,455,412 bracket-valued entries (3.49%)",
+   "T380 F-1/F-2": "B1 single ko slot sufficient; ko state correct at every retrograde step",
+   "GLOBAL.R1": "PSK exact-solve intractable even on empty 2x2: 118,475,182 ban-set states, budget-exceeded (ruleset-options.md)",
+   "GLOBAL.F1 / 3x2.F1": "writes-ON ko_ref>=d cross-branch memo reuse unsound: 45/378 ko-sensitive slots at 3x2, 0 writes-off",
+   "scaling-census.md": "sound (writes-off) 4x4 finisher untested (D3); sound reuse explodes on capture-reopening roots (layer-15 roots blow 500M budget, 3-6 min each); RETRO_CMP 4x3 sound 183.1M vs reuse 11.0M nodes (16.6x); sparse deps 4x4 RSS 1.3 GB",
+   "ADR-0010 Finding 6": "empty 3x3 exceeded 2.0e9 nodes without bracket cuts; MTD+bounds memo <=3.5e5 nodes at the 4x4 empty root (writes-ON)",
+   "retrograde-4x4.md": "writes-ON 4x4 finisher: 1,080,118,252 nodes, 367 s, 0 budget skips \u2014 the unsound path (GLOBAL.F1); 5.4 MB/memo key Exact solver unusable at 4x4 (T380)"
+  }
+ },
+ "findings": [
+  {
+   "id": "F-1",
+   "question": "coherence (a): does PSK diverge only where the fixpoint is undetermined?",
+   "verdict": "measurement \u2014 the coherence fact survives at 4x3",
+   "claim": "At every reachable legal position x side where the basic-ko fixpoint is single-valued (L == H), the PSK fresh-start value equals it; where L < H the PSK value may differ. If PSK diverged at an L==H position, the graft would change a value the fixpoint already determined.",
+   "measurement": "3x3 (control): checked 24,330; divergent (PSK vs clamp(TIE=0,[L,H])) = 680 = 2.80%; ALL 680 at L<H; 0 at L==H; null control (L==H, 0-ko-cluster) 0. Reproduces T380 F-6 exactly. 4x3: checked 635,190 of 643,378 slots (8,188 sides lack PSK value/reachability); divergent 2,792 = 0.44%; ALL at L<H; 0 at L==H; null control 0. Divergent classes: [600,80,0,0] at 3x3, [2,696,96,0,0] at 4x3 (by independent-ko-cluster count) \u2014 the bulk of divergence is at positions with no static ko shape (cycle structure created in play), matching T380 F-5's bracket-source finding.",
+   "controls": "the 3x3 frame reproduces T380 F-6's published numbers exactly; the engine is regression-gated entry-for-entry against the committed 3x3 table (49,428 entries, 0 mismatches)."
+  },
+  {
+   "id": "F-2",
+   "question": "coherence (b) \u2014 NEW: is every PSK fresh-start value inside its bracket?",
+   "verdict": "measurement \u2014 the graft never contradicts a bound the table makes",
+   "claim": "A fresh-start PSK value outside [L,H] would refute the graft's value-coherence (the PSK resolution would contradict a bound the fixpoint already makes). Measured: zero such values at both sizes.",
+   "measurement": "psk_outside_bracket = 0 at 3x3 (24,330 checked) and 0 at 4x3 (635,190 checked). Combined with F-1: the PSK fresh-start table and the fixpoint agree on every single-valued position and never contradict each other on any position. The strongest measured statement of graft coherence available: 'resolve the undetermined region under PSK' changes nothing determined and never violates a bound.",
+   "controls": "same instrument as F-1; the 3x3 frame is the control."
+  },
+  {
+   "id": "F-3",
+   "question": "cost (a): the layer distribution of the fresh-start bracket region",
+   "verdict": "measurement \u2014 bell-shaped, mid-game-heavy; near-terminal and opening layers are small",
+   "claim": "The 4x4 fresh-start bracket region is not opening-concentrated: it peaks at 10 stones (L10: 434,904 entries) and is thin at both ends (L0: 2, L1: 8, L2: 168, L3: 976; L13-L15: 55,936). The empty goban IS bracketed at 4x4 (B [1,16], W [-16,-1], width 15). Deep-tangle entries (width >= 24 of 32) concentrate at L6-L12.",
+   "measurement": "4x4 (wzo2, 48,505,262 fresh-start entries): total fresh-start bracket entries 1,962,142; positions 1,913,925 (7.87% of 24,318,165); per-layer L15:1,856 L14:8,424 L13:45,656 L12:153,030 L11:321,312 L10:434,904 L9:420,368 L8:304,472 L7:167,920 L6:72,520 L5:24,344 L4:6,182 L3:976 L2:168 L1:8 L0:2. Width stats: mean 13.28, max 32; width>=24 counts L6-L12 band (peak L10:22,608). 3x3: 3,204 entries / 2,984 positions (23.5%); L0 certified (0 brackets). 4x3 (engine fixpoint): 54,074 entries / 635,190 checked (8.51%); L0:2 (empty 4x3 bracketed, 100% of its 2 slots), near-terminal L11: 948 of 3,128 (30.3% \u2014 the capture-reopening signature band).",
+   "controls": "4x4 totals reproduce T380's census exactly (1,962,142 / 1,913,925 / 7.8704% / width mean 13.28)."
+  },
+  {
+   "id": "F-4",
+   "question": "cost (b): does resolving a layer shrink the next? (the operator's core optimism)",
+   "verdict": "measurement \u2014 YES, dramatically, at both 3x3 and 4x3: 3 rounds, 85.8%/94.9% of the bracket region certified by propagation without any direct resolution",
+   "claim": "The layered re-convergence (pin a layer's brackets to PSK values, re-run Pass 2) certifies the great majority of the remaining bracket region for free, and the rate IMPROVES with goban size (85.8% -> 94.9% of bracket entries never need a direct solve at 3x3 -> 4x3).",
+   "measurement": "3x3: round 0 = 3,204 brackets; round 1 pins L8 (200) -> 448 propagated, remaining 2,556; round 2 pins L7 (168) -> 1,624 propagated, remaining 764; round 3 pins L6 (88) -> 676 propagated, remaining 0. Direct pins 456 (14.2%), propagated 2,748 (85.8%). 4x3: round 0 = 54,074; round 1 pins L11 (948) -> 6,932 propagated; round 2 pins L10 (864) -> 25,864 propagated; round 3 pins L9 (944) -> 18,522 propagated; remaining 0. Direct pins 2,756 (5.1%), propagated 51,318 (94.9%). Shrink is structurally non-increasing (pinned values lie inside [L,H], so L rises, H falls, certified stays certified); the MEASURED content is the rate, which is fast: every unresolved bracket layer collapses within the next re-convergence at both sizes.",
+   "controls": "each round's re-convergence terminates with L>H = 0; the 3x3 round-0 histogram equals the wzo2 layer census (t386_layers) exactly."
+  },
+  {
+   "id": "F-5",
+   "question": "cost (c) \u2014 NEW: is the propagation PSK-exact?",
+   "verdict": "measurement \u2014 NO: 80/2,748 (3x3) and 496/51,318 (4x3) propagated positions are certified to the WRONG value; exactness needs verify-then-pin",
+   "claim": "Propagation certifies positions 'for free' but not always to their PSK fresh-start value. The drifters are all bracketed-at-round-0 and almost all divergent-at-round-0 (80/80 at 3x3; 456/496 at 4x3), live in the propagation-certified bands, and err symmetrically (40/40 up/down at 3x3; 248/248 at 4x3) \u2014 the construction is not systematically pro- or anti-Black. Pinning the drifters (1 extra round at each size) makes the final table EXACTLY the PSK oracle (0 mismatches at all 24,330 / 635,190 checked slots), with no cascade.",
+   "measurement": "3x3: FINAL-VERIFY mismatch-vs-PSK = 80 (0.33% of 24,330 slots; 2.9% of the 2,748 propagated), all at L4-L6 (16/16/48), all bracketed AND divergent at round 0. Phase 2: 1 round, 80 pins, 0 remaining mismatches. 4x3: mismatch = 496 (0.078% of 635,190; 0.97% of 51,318), at L6-L9 (16/144/144/192), 456 divergent-at-r0 (40 not). Phase 2: 1 round, 496 pins, 0 remaining. Total exact-resolution cost: 536 of 3,204 brackets (16.7%) at 3x3; 3,252 of 54,074 (6.0%) at 4x3.",
+   "controls": "phase 2 terminates with the construction equal to the PSK oracle entry-for-entry; the phase-2 pins' provenance is checked against the round-0 L/H snapshot."
+  },
+  {
+   "id": "F-6",
+   "question": "intractability scoping: does GLOBAL.R1 transfer to the proposal?",
+   "verdict": "finding \u2014 R1's specific number does not transfer, but the per-root PSK-solve wall at 4x4 does; the proposal inherits it, and the layered order meets the worst roots first",
+   "claim": "R1 (118,475,182 ban-set states on the empty 2x2, whole-game root solve) measures FULL-HISTORY enumeration from the root. The proposal is not that: it resolves bracketed roots with certified/pinned boundary values, and the measured 3x3/4x3 experiments show bracket-collapse in 3 rounds. BUT the per-root forward PSK solve at 4x4 is the project's measured wall (sound path: capture-reopening roots at near-terminal layers blow 500M-node budgets, 3-6 min each \u2014 scaling-census; 4x4 PSK sample: 782/1,591 roots budget-excluded at 200K nodes \u2014 T380 F-6; Exact solver unusable at 5.4 MB/memo key), and at 4x4 the DEEPEST bracketed layers (L13-L15: 55,936 entries) are exactly the capture-reopening band the finisher measured as explosive \u2014 the deepest-first layered order resolves those FIRST.",
+   "measurement": "4x4 layer census: L13-L15 fresh-start bracket entries 45,656+8,424+1,856 = 55,936 (2.85% of the bracket region); the finisher's measured blowups were at exactly this band (scaling-census: 'near-terminal layer 15 (one empty point), a few ko-sensitive roots blow the 500M budget'). An alternative shallowest-first order would resolve the opening band first (L0-L3: 1,154 entries total \u2014 small), making the deep-layer searches cheaper by pinning their capture-children \u2014 but then the empty goban (width-15 bracket, the R1-class root) is resolved first. Either order, the per-root PSK solve at 4x4 is the wall; the layered construction reduces the COUNT of solves (F-4/F-5) but not their per-solve difficulty.",
+   "controls": "the 3x3/4x3 experiments give the count side of the ledger at two sizes; the per-solve cost side rests on the cited existing measurements (scaling-census, T380 F-6, retrograde-4x4)."
+  },
+  {
+   "id": "F-7",
+   "question": "soundness: does adopting full PSK dissolve GLOBAL.F1?",
+   "verdict": "finding \u2014 F1 is dissolved only by making unsafe reuse impossible, which is the expensive path; the layered pinning does not carry the F1 hazard but has its own failure mode",
+   "claim": "F1 is a memo-reuse discipline bug (a score computed under one history reused at another arrival; the ko_ref >= d guard insufficient). Adopting full PSK does not fix the guard \u2014 under PSK the memo key would need the full ban set (5.4 MB/key at 4x4 \u2014 infeasible), so the forward search is writes-off by necessity: the unsafe reuse class becomes unreachable (the F1 bug evaporates) but the search becomes the sound path, which is the capture-reopening wall (F-6). Separately, the layered construction's PINNING is not a search-memo reuse at all \u2014 pins are fixpoint constants (the graft's definition) \u2014 so it carries no F1-class hazard; its failure mode is value-infidelity of the propagation (F-5), detectable only by comparing against the PSK value, which requires the solve.",
+   "measurement": "no new run needed: the argument rests on F-5 (drifters need oracle comparison to be caught) and the cited memo-key cost (T380: 5.4 MB per memo key at 4x4).",
+   "controls": "\u2014"
+  }
+ ],
+ "notes": "All instruments are additive (src/t386_*.zig); no engine, artifact, axiom, build.zig or data/ file touched (git diff clean apart from the four new src files). Runs executed directly (ReleaseFast binaries, peak RSS 866 MB for the 4x4 census, 208 MB for 4x3 shrink \u2014 no runner breach). Every denominator is stated per line. Projections to 4x4 (shrink rate, solve count) are LABELLED AS PROJECTIONS in the ADR: the 3x3/4x3 rates do not transfer by per-goban independence; they bound the plausible band (6-17% of bracket entries need direct resolution). The 4x4 layer census and bracket counts are MEASURED, not projected. Landmark: advances L2 (proven 4x4 values) by measuring whether the proposed cycle-resolution route can produce them and at what cost; the answer is 'count-cheap, per-solve-walled' with the exactness caveat (F-5)."
+}
