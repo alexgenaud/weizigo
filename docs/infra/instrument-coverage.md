@@ -3,7 +3,7 @@
 ```
 Task:     T388 (one instrument, every size: make "the same test at every rung" actually true)
 Set:      J
-Identifier: flash/T388
+Identifier: deepseek-v4-flash/T388
 Date:     2026-08-06
 Landmark: L0 (the table and the instruments exist)
 Scope:    map · name divergences · propose (no rewrites) · demonstrate one differential
