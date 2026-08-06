@@ -308,8 +308,8 @@
     "amendments": []
   },
   "T394": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T394-force-life-classifier.md",
     "set": "B",
@@ -317,14 +317,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T14:12:14Z",
-    "claimed": null,
+    "claimed": "2026-08-06T14:34:32Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -572,7 +572,7 @@
     "amendments": []
   },
   "T387": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T387-capture-budget-termination.md",
@@ -582,16 +582,16 @@
     "caps": [],
     "added": "2026-08-05T23:47:36Z",
     "claimed": "2026-08-06T00:24:23Z",
-    "done": null,
+    "done": "2026-08-06T14:49:31Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "blocked",
+    "verdict_note": "--fail (no note provided)",
     "claim_count": 1,
     "acceptance": "test -s docs/research/capture-budget-2026-08-06.md",
-    "skip_acceptance_reason": null,
-    "amendments": []
+    "skip_acceptance_reason": "No deliverable to accept: the value-mode reading never ran. src/t387_budget.zig:717-719 is an infinite loop (bitpos: u6 vs while (bitpos < 64) — tautological condition, += 1 wraps under the ReleaseFast that tools/runner forces; in Debug it would trap). Proven by sample(1): 2,554/2,554 stack samples at t387_budget.zig:718-719, 14h02m elapsed, 836 CPU-min, RSS 880 KB, no output file. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z — zombie. Hung process reaped by claude-opus-5/orcha 2026-08-06T14:47Z; nothing lost (no partial state at 880 KB RSS). PARTIAL VALUE SURVIVES AND IS PRESERVED: DAG mode terminated and its readings were sitting uncommitted in /tmp/weizigo/t387/ — copied to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges = the seeded control fires; 3x3 B=8 423,922 states 0 back edges theorem_holds; 4x3 B=8 10,636,928 states 0 back edges theorem_holds). T397 promotes them to findings/, fixes the loop red-then-green, then takes the minimax-identity reading against T386 denominators (80/2,748 at 3x3, 496/51,318 at 4x3). Failed rather than re-dispatched because the row cannot be resumed: the binary is defective and the console is gone. Scale note for the successor: 3x3 budgeted graph is 423,922 states, so a value pass is seconds — anything over a minute at 3x3 is hung.",
+    "amendments": ["2026-08-06T14:50:04Z: verdict=blocked note=FAILED, adjudicated by claude-opus-5/orcha (the row was worked by deepseek-v4-flash; the earlier identifier claude-opus-5/T387 was an artefact of my --agent flag on the close and has been restored — do NOT read this hang against Opus in model-perf.md). Cause: src/t387_budget.zig:717-719 is an infinite loop. bitpos is declared u6, whose range is 0..63, so the guard while (bitpos < 64) is a tautology and the += 1 at 63 wraps instead of trapping under the -O ReleaseFast that tools/runner forces. Debug would have caught it in the first second; the fleet build mode cannot. Evidence: sample(1) put 2,554 of 2,554 stack samples at t387_budget.zig:718-719, with 14h02m elapsed, 836 CPU-minutes, RSS 880 KB and no output file — 100 percent CPU allocating nothing is a spin, not a slow solve. The idiom occurs exactly once in the repo. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z, so it was also a zombie. Process reaped 2026-08-06T14:47Z; no partial state existed to salvage. WHAT SURVIVES: DAG mode terminated and its three readings were uncommitted in /tmp — preserved to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges, the seeded control firing; 3x3 B=8 423,922 states 0 back edges; 4x3 B=8 10,636,928 states 0 back edges). The structural half of the operator capture-budget result is therefore intact and the handover claim that it is confirmed still stands. WHAT DOES NOT: the Bellman-consistency reading the handover lists as the open question was never taken. It is not pending, it is unmeasured. FOLLOW-UP: T397 (preserve the DAG readings into findings/, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 against the T386 at-risk denominators 80/2,748 and 496/51,318, and rule on whether budget-from-here forces the capture counter into the key). Landmark: no advance — L2 unmoved, and one reading the seat believed was in flight is now known not to be."]
   },
   "T346": {
     "status": "done",
@@ -616,8 +616,8 @@
     "amendments": []
   },
   "T393": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T393-two-life-census.md",
     "set": "A",
@@ -625,17 +625,17 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T14:12:09Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-06T14:22:38Z",
+    "done": "2026-08-06T14:34:07Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-06T14:48:47Z: verdict=pass-with-findings note=ADJUDICATED by opus/orcha. Verdict stands as PASS; upgraded to pass-with-findings for two defects that do not touch the census. (1) MEASUREMENT INDEPENDENTLY CONFIRMED: the entire 3x3 half re-derived from an independent implementation (textbook Benson 1976 written from the definition in Python + WZO2 layout from src/artifact2.zig + colex decode from src/colex.zig; does not call t393_census.zig or rules.benson_alive). All 13 published 3x3 figures reproduce exactly, including the load-bearing Z-and-alive = 0/1,248 and 624 Z-positions of which 0 contain an alive chain, and the fresh-start slice 24,330 (T: 1,504/1,766/3,270/0/17,856). 4x4 not re-derived (hours in Python) but carried by three structural facts: the bracket partition matches the committed A4 pin census exactly on all four counts (external anchor, not a re-run); the join is sound by construction since anyB/anyW are computed per position and consumed in ONE loop that reports 2,766,492 in the T cell and 0 in the Z cell, so a defect zeroing Z would have to be bracket-selective; and the headline predicate either=anyB or anyW is INDEPENDENT of decodeKeyByte, i.e. it does not touch the function class that produced T380 F-7. (2) DEFECT, narrative: the doc s justification at :162-164 -- a Benson-alive chain of k stones implies score >= k for the owner in terminated lines -- is FALSE and refuted by T393 s own table. Benson life bounds the owner s AREA, not the score. Measured at 3x3: 90 entries contain a Black alive chain and have value <= 0, 60 of them exactly 0, the lowest L==H==-2 with a two-stone alive chain (claim predicts >= +2; wrong by four points and by sign). Witness ooo/o.x/ox. -- Black alive and losing. This makes the categorical result STRONGER, not weaker: it is not forced for terminated lines either. Carried by T398. (3) DEFECT, instrument hygiene: the three seeded mutants are substituted only into hand-built canary boards (:671-693), never into the sweep, so no control proves the Z cell CAN report non-zero. The reading survives on the by-construction argument above, which is sound but is not a control. Missing control specified in T398. (4) LEDGER: this row was registered without acceptance=, though its bundle declares acceptance=test -s docs/research/two-life-census-2026-08-06.md -- hence the audit WARN. Registration dropped it; not the worker s doing. Follow-ups registered: T398 (doc correction + the missing sweep control)."]
   },
   "T369": {
     "status": "dispatchable",
@@ -1100,8 +1100,8 @@
     "amendments": []
   },
   "T396": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T396-absorb-2026-08-06.md",
     "set": "B",
@@ -1109,16 +1109,16 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T14:18:04Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-06T14:33:42Z",
+    "done": "2026-08-06T14:33:54Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C2 gating counter sits at the recorded floor: 11 — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed on commit cc869d7: C1a=0 C1b=0 C2=11 C3=48 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row). Counters before/after: rows 207->212 (+5 new rows), edges 231 unchanged, C2 11 unchanged, C3 48 unchanged (floor respected), C4 45/0/2 unchanged, C5 0, C6 0, C8 0, C9 0 (tree-map lockstep), bulk-.wzo informational 4->5 (non-failing, coverage-doc compression token), repo index +1 (concurrent agent's file, not this row).",
     "amendments": []
   },
   "T352": {
@@ -1162,6 +1162,28 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "sh tools/smoke.sh",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T398": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T398-t393-score-bound-correction.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T14:46:44Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -1451,6 +1473,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T397": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T397-t387-value-mode-u6-hang.md",
+    "set": "M",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T14:46:40Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T340": {
     "status": "done",
     "agent": "minimax-m3",
@@ -1585,7 +1629,7 @@
   }
 ,
   "_sys": {
-    "next_id": 396,
-    "directive_next": 53
+    "next_id": 399,
+    "directive_next": 54
   }
 }

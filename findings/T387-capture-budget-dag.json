@@ -1,0 +1,51 @@
+{
+  "task_id": "T387",
+  "title": "capture-budget termination — DAG-mode readings (the half that terminated)",
+  "date": "2026-08-06",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T387",
+  "status": "SALVAGED — the row FAILED; these are the readings that survived",
+  "salvaged_by": "claude-opus-5/orcha",
+  "salvaged_at": "2026-08-06T14:52Z",
+  "provenance": "The row's console died without committing. These three readings were produced by DAG mode, terminated normally, and were left uncommitted in /tmp/weizigo/t387/ (dag33.json, dag33base.json, dag43.json) — volatile storage. Copied verbatim into the repo by the Orchestrator during T387's adjudication so the structural result is not lost to a reboot. Byte-identical copies also at untracked/T397-t387-dag-readings/.",
+  "instrument": "src/t387_budget.zig (untracked at salvage time; binary was /tmp/weizigo/t387/bin/budget, built -O ReleaseFast via tools/runner)",
+
+  "readings": [
+    {
+      "mode": "dag",
+      "goban": "3x3",
+      "base_graph": true,
+      "back_edges": 135494,
+      "control_expects": "> 0 (the cycle detector is sensitive)",
+      "role": "SEEDED CONTROL — proves the back-edge detector fires on the unbudgeted graph"
+    },
+    {
+      "mode": "dag",
+      "goban": "3x3",
+      "base_graph": false,
+      "B": 8,
+      "states": 423922,
+      "back_edges": 0,
+      "theorem_holds": true
+    },
+    {
+      "mode": "dag",
+      "goban": "4x3",
+      "base_graph": false,
+      "B": 8,
+      "states": 10636928,
+      "back_edges": 0,
+      "theorem_holds": true
+    }
+  ],
+
+  "what_this_supports": "The structural half of the operator's capture-budget argument: every cycle must contain a capture, so bounding total captures makes the move graph acyclic, and a DAG has a unique minimax value (no bracket). Measured: 135,494 back edges in the unbudgeted 3x3 graph, 0 with the budget at B=8, at both 3x3 and 4x3. The control firing is what makes the two zeros readable.",
+
+  "what_this_does_NOT_support": "Bellman consistency under budget-from-here. That reading was T387's other half and it NEVER RAN — src/t387_budget.zig:717-719 is an infinite loop (bitpos: u6 against a `while (bitpos < 64)` guard its own type cannot falsify; += 1 wraps rather than traps under the -O ReleaseFast tools/runner forces). Proven by sample(1): 2,554/2,554 stack samples at :718-719 after 14h02m elapsed / 836 CPU-minutes / 880 KB RSS / no output file. Do not cite this file as evidence about the Bellman identity. The at-risk class T386 measured is 80/2,748 at 3x3 and 496/51,318 at 4x3; nothing has been compared against those denominators.",
+
+  "follow_up": "T397 — promote these readings, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 and rule on whether budget-from-here forces the capture counter into the key.",
+
+  "scale_note": "The 3x3 budgeted graph is 423,922 states, so a value pass over it is seconds. Any future run exceeding a minute at 3x3 is hung, not slow — a cheap watchdog for the successor.",
+
+  "landmark": "No advance. L2 (proven 4x4 values) is unmoved. The row's structural result was already believed and still stands; what changed is that a reading the seat believed was in flight is now known never to have run."
+}
