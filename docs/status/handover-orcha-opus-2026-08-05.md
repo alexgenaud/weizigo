@@ -94,3 +94,111 @@ verbatim, including `race3/r3-p6/PACKET.md`, which says "milestone M6" and is **
 the packet manifest — editing it would invalidate T371's completed race. `AGENTS.md` now carries the
 framing rule so every console inherits it: say which landmark a row serves, say which direction a
 result cuts, and let a row that advances no landmark say so.
+
+---
+
+# Session close — 2026-08-06, Opus 5
+
+The first half of this file was written mid-session. This is the rest, and it revises parts of it.
+
+## What moved
+
+**`L2 (proven 4×4 values)`** — G3b discharged (`29477d9`), then **amended twice**, and both
+amendments are worth more than the ruling.
+
+- **Amendment 1** — T380's F-7: `vb_closure.zig:467/:794` decoded the key-byte ko as `kb >> 1`
+  where the contract says `kb >> 2`. Reachable `99,020,312 → 98,999,934`, not-root-reachable
+  `112,724 → 133,102`. Verdicts unchanged at 0. **The lesson:** I had "independently verified" the
+  closure figure by re-running it, and it matched exactly — *because both runs executed the same
+  defective decoder*. Re-running the same instrument tests determinism, not correctness.
+- **Amendment 2** — T391 adjudicated the I5 pair by a third independent route: `vb_graph` was wrong
+  on every graph metric while passing (`passes == 2` successors though two passes end the game;
+  quadruple→triple SCC projection, contradicting its own calibration constant). `vb_scc_4x4`, which
+  produced the discharge readings, was right. Discharge unchanged. **But a third defect was found in
+  the instrument that was right** — CR propagation walked component IDs descending where correctness
+  needs ascending, which **fabricated the "24 natural violations" at 4×3** that T344 reported and
+  T363 repeated. True reading **0**; the claim is cited in the register and T396 carries the
+  withdrawal.
+
+**Standing lesson, twice earned:** *compare the counts, not the verdicts.* Two runs of one
+implementation agreeing proves determinism. Two different implementations agreeing on a **verdict**
+while disagreeing on every underlying **count** is worth less than either alone — the shared `pass`
+concealed three real defects.
+
+**`L4 (the ledger is clean)`** — T373 executed triage Step 0: register **334 → 207 rows**,
+`C1a ORPHANED` **10 → 0**, `C2` 14 → 11, C3 floor declared at **48**.
+
+**`L3`** — T389: **0 bracket escapes / 1,027 engine-decision plies** in self-play; frame B
+**0/1,191**. The engine never leaves its own brackets. The operator's ko hypothesis is settled: not
+a new-engine defect, confirmed as the old engine's failure class.
+
+**`L0`** — T381 played three independent engines (GNU Go, Pachi, Fuego) over 204 games:
+**0 losses from claimed-won positions**. Fuego's default positional superko produced the only
+tie-from-claimed, correctly resolved as ruleset mismatch. T388 mapped instrument coverage and its
+cross-size differential **fired on first use** — which is how T391 started.
+
+## What the ko investigation actually found — the narrative changed
+
+The ko thread was aimed at the wrong target and the correction is the session's most useful result.
+
+- **"Retrograde" means sweep order, not un-play.** `retro.zig:19-26`: Bellman updates read *forward
+  successors only*; no un-move code exists. There is no backward ko reconstruction to get wrong.
+- **The bracket is not about ko.** T380: 92.6% of bracket-valued positions carry zero ko shapes.
+  T385 at 3×3, exact census: **93.8% of bracketed entries are ko-free anywhere** — no shape, no
+  reachable ko, no ban-parent. And **nothing we tested predicts the bracket**: SCC membership is
+  near-vacuous (100% of `L<H` in a non-trivial SCC — but so is 98.1% of `L==H`), and ko-reachability
+  points the *wrong way*.
+- **`L < H` is a value-structure property** — reachable value-*ambiguous* cycles — not a graph or ko
+  property. **Ruling: the flag is renamed `BRACKETED` / `SINGLE-SCORE`**, not `CYCLE-UNDETERMINED`,
+  because naming it after cycles would repeat the error being fixed. Sweep queued, unperformed
+  (~27 src files, ~185 docs; file by file, never a global `sed`).
+- **The KO_SENSITIVE region is NOT finisher-filled** (T380 F-8) — the current WZO2 table came from a
+  pure fixpoint. I told the operator otherwise from a stale header comment; the *old checkpoint's*
+  values are the distrusted ones.
+
+## The live thread: the capture budget
+
+The operator's idea, resisted for days and now the most promising line. **Every cycle must contain a
+capture** — returning to a position requires the stone count to come back down, and only captures
+do that. Bound total captures and the graph becomes a DAG; a DAG has a unique minimax value, so the
+bracket cannot exist. **T387's seeded control: 135,494 back-edges in the base graph, 0 with the
+budget.** Confirmed structurally.
+
+It reaches what superko cannot: the operator's absurd games — hundreds of plies of clump-die-repeat
+— *never repeat a position*, so superko never bites them.
+
+Open: cost, and **Bellman consistency**. Budget-from-here (the operator's design, memo key
+`(colex, side, ko, passes, c)`, no table growth, ~17.7M memo entries at X=8) may break the identity,
+since `V(P)` consumes `V(Q, c>0)` while the table stores `V(Q, 0)`. Not hypothetical — T386 measured
+that class at 80/2,748 (3×3) and 496/51,318 (4×3). T387 is measuring it.
+
+T386 also confirmed the graft's coherence: PSK diverges from the fixpoint **only** at `L < H`, never
+at `L == H`, at both sizes, and never leaves the bracket.
+
+## Fleet lessons, all earned the hard way
+
+1. **Claim-at-close makes every safeguard decorative.** Claim and done timestamps are identical or
+   seconds apart on many rows. `holdsConflict` refuses only against an *in-progress* holder — so if
+   a row is never in-progress until finished, no claim conflicts, no `holds=` bites, and the sets
+   protect nothing. Three duplicate dispatches followed (T376, T389, T350); T390 fixed the guard.
+2. **The operator caught every duplicate and both zombies**, not any instrument. T370 now makes
+   liveness real (three states, not one useless "stale").
+3. **A dirty main tree is not a valid instrument.** A binary built from it panicked; T350's suite
+   run reported nine failures that T391's clean run does not show. That may retroactively explain
+   part of the `--skip-acceptance, pre-existing red` history — some reds may never have existed at
+   any commit. **T392 is establishing the real failing set at clean HEAD.**
+4. **Duplication without a differential is two chances to be wrong.** The doctrine (one in
+   production, the rest as fixtures) was half-implemented. **T395** establishes one production
+   implementation per property, with a differential per pair and today's four defects seeded as the
+   controls that prove each fires.
+
+## Queue for the next seat
+
+**T387** (capture budget) and **T392** (suite bisect) are running — both long, both nudged by
+directive. **T396** absorbs the day's register rows. **T395** is the structural row and the one I'd
+prioritise. **T369** (suite truth) is unblocked but should wait for T392's clean-HEAD reading.
+**T357** still wants a quiet machine. Fable holds the end-game and bracketed-score hypotheses
+(**T393**, **T394**) — a coherent thread; leave it whole.
+
+**Owed rulings:** the `BRACKETED` rename sweep (approved, unscheduled); T395's demotion proposals;
+whether T387's residual makes budget-from-here viable or forces the counter into the key.
