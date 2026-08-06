@@ -1067,6 +1067,15 @@ fn nowTimestamp() ![]const u8 {
     });
 }
 
+/// Unix seconds from CLOCK.REALTIME — the same clock nowTimestamp() renders.
+/// The seconds-resolution gap between two rendered timestamps is this value
+/// minus the parse of the earlier one (ageSecFromTs's now_unix argument).
+fn nowUnix() i64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &ts);
+    return @intCast(ts.sec);
+}
+
 fn isLeapYear(y: u64) bool {
     if (y % 400 == 0) return true;
     if (y % 100 == 0) return false;
@@ -1472,9 +1481,6 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         std.process.exit(1);
     }
 
-    // Increment claim count before checking status
-    ts_ptr.claim_count += 1;
-
     switch (ts_ptr.status) {
         .blocked => {
             w.diag("\n  (stored blocked, needs met — claiming anyway)", .{});
@@ -1494,6 +1500,12 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             // T209: fall back to model stored at suggest/dispatch time
             ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
             ts_ptr.claimed = now;
+
+            // T390: bump claim_count only on a claim that will persist —
+            // refusal paths must leave the store's count alone, so a refused
+            // claim never prints a phantom .<attempt> suffix (agentIdentifier
+            // reads the count when naming the holder).
+            ts_ptr.claim_count += 1;
 
             try writeStateLocked(io, state_path, &state);
             const ident = try agentIdentifier(ts_ptr.*, id);
@@ -1516,10 +1528,14 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             }
         },
         .in_progress => {
+            // T390: name the holder as the store has it — claim_count was NOT
+            // bumped for a refused claim, so no phantom .<attempt> suffix.
             w.diag("\n  ALREADY CLAIMED: {s} is already in progress", .{id});
             const ident = try agentIdentifier(ts_ptr.*, id);
             w.diag(" by {s}", .{ident});
-            w.diag("\n", .{});
+            if (ts_ptr.claimed) |c| w.diag(" since {s}", .{c});
+            w.diag("\n  A second console on one row is how T376/T389/T350 duplicated.\n", .{});
+            w.diag("  If the first console is genuinely dead: managent reopen {s}, or re-dispatch with --force.\n", .{id});
             std.process.exit(1);
         },
         .done => {
@@ -1546,6 +1562,10 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             // T209: fall back to model stored at suggest/dispatch time
             ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
             ts_ptr.claimed = now;
+
+            // T390: bump claim_count only on a claim that will persist (see
+            // the .blocked branch — refusal paths never touch the count).
+            ts_ptr.claim_count += 1;
 
             try writeStateLocked(io, state_path, &state);
 
@@ -1607,6 +1627,28 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
     }
     if (ts_ptr.status == .in_progress) {
         w.diag("warning: {s} is already in progress (by {s}); recording the dispatch anyway\n", .{ id, ts_ptr.agent orelse "unknown" });
+    }
+
+    // ── T390: refuse a second dispatch on the same row ──
+    // The kanban proves duplicates are real: T376, T389, T350 each got a
+    // second console on one row, and in every case the OPERATOR noticed, not
+    // an instrument.  A second dispatch overwrites dispatched_to and hides
+    // the first holder.  Name holder + timestamp; --force re-dispatches a
+    // genuinely dead console (the T379 shape) loudly.
+    const force_dispatch = hasFlag(args, "--force");
+    if (ts_ptr.dispatched != null and !force_dispatch) {
+        w.diag("\n  REJECTED: {s} was already dispatched", .{id});
+        if (ts_ptr.dispatched_to) |to| w.diag(" to {s}", .{to});
+        if (ts_ptr.dispatched) |d| w.diag(" at {s}", .{d});
+        w.diag("\n  A second console on one row is how T376/T389/T350 duplicated.\n", .{});
+        w.diag("  If the first console is genuinely dead: managent dispatch {s} --to {s} --force\n", .{ id, to_agent.? });
+        std.process.exit(1);
+    }
+    if (ts_ptr.dispatched != null and force_dispatch) {
+        w.diag("\n  FORCED: {s} was already dispatched", .{id});
+        if (ts_ptr.dispatched_to) |to| w.diag(" to {s}", .{to});
+        if (ts_ptr.dispatched) |d| w.diag(" at {s}", .{d});
+        w.diag(" — re-dispatching anyway (previous console presumed dead)\n", .{});
     }
 
     const now = try nowTimestamp();
@@ -1973,6 +2015,15 @@ fn deliverableVerdict(io: std.Io, repo_root: []const u8, d: []const u8) Delivera
 }
 
 fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    // ── T390: claim-at-close gate ──
+    // The kanban's claim timestamps prove consoles do the work FIRST and
+    // record claim and done together at the end (T388 01:22:10/01:22:10,
+    // T380 21:34:36/21:34:36, T376 13:28:50/13:28:51 — and 9 of 54 closed
+    // rows land within this window).  A claim recorded within this many
+    // seconds of close means the row ran with NO claim held while the work
+    // happened — holdsConflict, holds= and the parallel sets were all
+    // blind.  cmdDone refuses; --force closes with a loud acknowledgement.
+    const CLAIM_TO_DONE_REFUSE_SECS: i64 = 10;
     if (args.len < 3) {
         w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--skip-acceptance <reason>]\n", .{});
         w.diag("       --fail (backward compat, sets verdict=blocked)\n", .{});
@@ -2053,6 +2104,28 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         unlockStore();
         w.diag("error: task '{s}' is not in progress (status: {s})\n", .{ id, statusToString(ts_ptr.status) });
         std.process.exit(1);
+    }
+
+    // ── T390: claim-at-close gate (before any store mutation) ──
+    // A claim recorded within CLAIM_TO_DONE_REFUSE_SECS of this done is the
+    // claim-at-close pattern — proof the row ran unprotected.  Refuse and
+    // point at the correct flow; --force asserts the close is genuine.
+    const force_done = hasFlag(args, "--force");
+    if (ts_ptr.claimed) |claimed_ts| {
+        const gap = ageSecFromTs(claimed_ts, nowUnix());
+        if (gap) |g| {
+            if (g <= CLAIM_TO_DONE_REFUSE_SECS and !force_done) {
+                unlockStore();
+                w.diag("\n  REJECTED: {s} was claimed {d}s before this done (claimed {s})\n", .{ id, g, claimed_ts });
+                w.diag("  A claim and done this close means the work ran with no claim held — no concurrency safeguard could see the row.\n", .{});
+                w.diag("  Claim at the START of the work (managent claim {s}), not at close.\n", .{id});
+                w.diag("  If this close is genuine, re-run with --force.\n", .{});
+                std.process.exit(1);
+            }
+            if (g <= CLAIM_TO_DONE_REFUSE_SECS and force_done) {
+                w.diag("\n  FORCED: {s} was claimed only {d}s before done (claimed {s}) — closing anyway, claim-at-close acknowledged\n", .{ id, g, claimed_ts });
+            }
+        }
     }
 
     // ── attribution enforcement (ORCHA-AUTOMATION item 3) ──
@@ -4859,6 +4932,55 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 }
             },
             .failed => {},
+        }
+
+        // ── T390: dirty deliverables on a row nobody holds ──
+        // A done or dispatchable row whose bundle deliverables= paths are
+        // dirty in the working tree is evidence of unclaimed work: the T389
+        // shape (second console editing a committed deliverable of an
+        // already-closed row) or the T367 shape (working without ever
+        // claiming).  dispatchable rows get an exists-on-disk filter — their
+        // deliverables legitimately do not exist yet (the row has not
+        // started); only an existing-and-dirty file is evidence of work.
+        // blocked/abandoned done rows never carried deliverables (the done
+        // gate exempts them by design) — checking their never-created paths
+        // would be noise, not hazard (T361, T379, T349).
+        const t390_exempt_verdict = ts.status == .done and ts.verdict != null and
+            (std.mem.eql(u8, ts.verdict.?, "blocked") or std.mem.eql(u8, ts.verdict.?, "abandoned"));
+        if (!t390_exempt_verdict and (ts.status == .done or ts.status == .dispatchable)) {
+            const bundle_abs3 = if (std.fs.path.isAbsolute(ts.bundle))
+                try alloc.dupe(u8, ts.bundle)
+            else
+                try std.fs.path.join(alloc, &.{ repo_root, ts.bundle });
+            defer alloc.free(bundle_abs3);
+            const dlvs = try parseDeliverablesFromBundle(w, io, bundle_abs3, ts.holds);
+            defer {
+                for (dlvs) |d| alloc.free(d);
+                alloc.free(dlvs);
+            }
+            for (dlvs) |d| {
+                // T390: skip the kanban's own store files — managent writes
+                // tasks.json / directives.jsonl / heartbeat.jsonl on every
+                // claim/dispatch/close, so their dirtiness is the live
+                // kanban's normal state, not unclaimed work (the same
+                // exclusion treeDirty applies to its dirty counts).
+                if (std.mem.indexOf(u8, d, "tasks.json") != null or
+                    std.mem.indexOf(u8, d, "directives.jsonl") != null or
+                    std.mem.indexOf(u8, d, "heartbeat.jsonl") != null) continue;
+                const v = deliverableVerdict(io, repo_root, d);
+                if (v.ok) continue;
+                if (ts.status == .dispatchable) {
+                    const d_abs = if (std.fs.path.isAbsolute(d))
+                        (alloc.dupe(u8, d) catch continue)
+                    else
+                        (std.fs.path.join(alloc, &.{ repo_root, d }) catch continue);
+                    defer alloc.free(d_abs);
+                    const exists = std.Io.Dir.cwd().statFile(io, d_abs, .{}) catch null;
+                    if (exists == null) continue; // not created yet — normal for an unstarted row
+                }
+                const msg = try std.fmt.allocPrint(alloc, "{s} but deliverable '{s}' is dirty — {s} (unclaimed work on this row)", .{ statusToString(ts.status), d, v.reason });
+                try findings.append(alloc, .{ .level = "FIX", .id = tid, .msg = msg });
+            }
         }
 
         // 6. task note references claim-status change with no second seat cited

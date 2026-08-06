@@ -314,6 +314,18 @@ pub fn build(b: *std.Build) void {
     done_two_phase_regression.cwd = b.path(".");
     test_step.dependOn(&done_two_phase_regression.step);
 
+    // ── T390: duplicate-dispatch controls ────────────────────────
+    // Two consoles on one row happened three times on 2026-08-05/06
+    // (T376/T389/T350); the kanban shows claim-at-close is the disease
+    // (claims and done recorded back-to-back, so no concurrency safeguard
+    // ever saw the row).  Controls: second dispatch refuses naming the
+    // holder, --force re-dispatches loudly, claim on a claimed row refuses
+    // with holder+timestamp, done within 10s of claim refuses (--force
+    // closes), audit reports dirty deliverables on done/dispatchable rows.
+    const dup_dispatch_regression = b.addSystemCommand(&.{ "sh", "tools/regression-duplicate-dispatch.sh" });
+    dup_dispatch_regression.cwd = b.path(".");
+    test_step.dependOn(&dup_dispatch_regression.step);
+
     // ── claimlint promotion-gate controls (T308) ─────────────────
     // C8 mutation-adequacy gate: verifies no kernel-function claim has
     // been promoted past CLAIMED without the battery killing its mutants.

@@ -234,7 +234,10 @@ BUNDLE_PATH="$TMPDIR/untracked/T${T213_TID}-t213-pass.md"
 echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH"
 echo "# T$T213_TID — t213-pass" >> "$BUNDLE_PATH"
 (cd "$TMPDIR" && "$MG" claim "T$T213_TID" 2>/dev/null)
-DONE_OUT=$(cd "$TMPDIR" && "$MG" done "T$T213_TID" 2>&1)
+# T390: claim-then-done within seconds is the claim-at-close pattern the
+# duplicate-dispatch guard refuses — the done gate needs --force to test the
+# verdict plumbing here (the claim was just recorded, no work between).
+DONE_OUT=$(cd "$TMPDIR" && "$MG" done "T$T213_TID" --force 2>&1)
 if echo "$DONE_OUT" | grep -q 'verdict: pass'; then
     echo "           PASS: default verdict is pass"
 else
@@ -251,7 +254,8 @@ BUNDLE_PATH2="$TMPDIR/untracked/T${T213_TID2}-t213-fail.md"
 echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH2"
 echo "# T$T213_TID2 — t213-fail" >> "$BUNDLE_PATH2"
 (cd "$TMPDIR" && "$MG" claim "T$T213_TID2" 2>/dev/null)
-DONE_OUT2=$(cd "$TMPDIR" && "$MG" done "T$T213_TID2" --fail 2>&1)
+# T390: --force for the same claim-at-close reason as check 6.
+DONE_OUT2=$(cd "$TMPDIR" && "$MG" done "T$T213_TID2" --fail --force 2>&1)
 if echo "$DONE_OUT2" | grep -q 'verdict: blocked'; then
     echo "           PASS: --fail sets verdict=blocked"
 else
@@ -268,7 +272,8 @@ BUNDLE_PATH3="$TMPDIR/untracked/T${T213_TID3}-t213-nonote.md"
 echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH3"
 echo "# T$T213_TID3 — t213-nonote" >> "$BUNDLE_PATH3"
 (cd "$TMPDIR" && "$MG" claim "T$T213_TID3" 2>/dev/null)
-if (cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass-with-findings 2>&1); then
+# T390: --force for the same claim-at-close reason as check 6.
+if (cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass-with-findings --force 2>&1); then
     echo "           FAIL: pass-with-findings without --note should be rejected"
     FAIL=1
 else
@@ -278,7 +283,7 @@ fi
 # ── Check 9: T213 — verdict command backfill ───────────────────────────────
 echo "        9. T213: verdict command backfills verdict on done task"
 
-(cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass --note "temp" 2>/dev/null)
+(cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass --note "temp" --force 2>/dev/null)
 (cd "$TMPDIR" && "$MG" verdict "T$T213_TID3" pass-with-findings --note "gap X, follow-up T999" 2>/dev/null)
 SHOW_OUT=$(cd "$TMPDIR" && "$MG" show "T$T213_TID3" 2>/dev/null)
 if echo "$SHOW_OUT" | grep -q 'verdict:  pass-with-findings' && echo "$SHOW_OUT" | grep -q 'follow-up T999'; then
