@@ -284,3 +284,36 @@ decoded the key independently rather than re-running the existing path. Independ
 
 `4x4.C1` and `4x4.FP1` remain promoted to CLAIMED; the four scope limits are unchanged. The fix to
 `vb_closure.zig` and the re-issue of the affected figures are **T383**.
+
+### Amendment 2 — the I5 instrument was adjudicated; the discharge is unchanged (Opus 5, 2026-08-06)
+
+T388's cross-size differential found the two I5 implementations disagreeing on every count at 3×2
+while both reported `pass`. Since I5 is one of the six conditions above, T391 adjudicated it by a
+**third independent route** (`docs/evidence/I5-DISAGREEMENT/third-route-3x2-4x3.py`, written for
+that row) rather than by re-running either instrument — the F-7 lesson from Amendment 1.
+
+**Verdict: the general instrument was wrong, the size-specific one right, and the discharge stands.**
+
+- `vb_graph` gave `passes == 2` states placement successors although two passes end the game —
+  contradicting its own header — and projected SCC sizes from quadruples to triples, contradicting
+  its own calibration constant. It was wrong on every graph metric while passing.
+- `vb_scc_4x4`, which produced the readings cited above, reproduces the register.
+- The `378 vs 347` gap was never an error: census scope versus graph-restricted scope.
+
+**Blast radius: none.** Both I5 readings re-verified unchanged — `0 / 3,455,412` at 4×4 and
+`0 / 170,181` at 4×3.
+
+**But a third defect was found in the instrument that was right**, and it matters beyond this
+sprint: `vb_scc_4x4`'s cycle-reachability propagation processed component IDs *descending* where
+correctness requires ascending. That fabricated the **"24 natural violations" at 4×3** reported by
+T344 and repeated by T363 — **the true reading is 0**. No conclusion here depended on those 24, but
+the narrative did, and it is now withdrawn.
+
+The pair can no longer diverge silently: `src/i5_differential.zig` is wired into `zig build test`
+(3×2 permanently, 4×3 behind `WEIZIGO_I5_DIFF_4X3=1` because linking both instruments in one
+ReleaseFast binary exceeds the runner's RSS cap).
+
+**Standing lesson, now twice-earned.** Amendment 1: two runs of the same code agreeing proves
+determinism, not correctness. Amendment 2: two *different* implementations agreeing on a verdict
+while disagreeing on every underlying count is worth less than either — a shared `pass` concealed
+three real defects. **Compare the counts, not the verdicts.**
