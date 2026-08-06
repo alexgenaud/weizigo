@@ -1,97 +1,369 @@
 {
- "task_id": "T393",
- "title": "two-life census: where does coexisting unconditional life begin, and does existing life ever sit under a straddling bracket?",
- "date": "2026-08-06",
- "model": "deepseek-v4-flash",
- "identifier": "flash/T393",
- "git_head": "ce604c9",
- "instrument_source": "src/t393_census.zig",
- "instrument_sha256": "98ad3d89d58ebb8437c5e63e14b3fcaf026914462de70b90810677eb32735130",
- "build": "tools/runner -- zig build-exe src/t393_census.zig --name weizigo-t393-census  (runner auto-adds -O ReleaseFast; RSS guard 4096 MB)",
- "selftest": "29 passed, 0 failed — bracket classification (8 hand pairs); null controls (empty 3x3, lone corner stone); positive controls (brief's 4x4 two-life board, 3x3 diamond, 3x3 two-eye ring); seeded-defect controls (three mutants each trip the canary the correct predicate passes); real-artifact cross-checks (3x3 WZO2 groups/entries/L<H, bracket totals sum, pin_L==pin_H, two_life=0, spotcheck 0 mismatches, Z-and-alive=0); synthetic 2x2 WZO2 walker determinism (groups/entries/brackets/fresh-start slice)",
- "calibration_cross_checks": {
-  "3x3_wzo2_groups": "12,675 walked = committed (T266 scan, goban-pathology) — PASS",
-  "3x3_wzo2_entries": "49,428 walked = committed — PASS",
-  "3x3_wzo2_L_lt_H": "2,080+2,080+1,248 = 5,408 / 49,428 = 10.9412% = committed T382 figure — PASS",
-  "3x3_pin_L_eq_pin_H": "2,080 == 2,080 (colour-inversion symmetry) — PASS",
-  "4x4_pin_census": "T=95,677,624 L=1,280,098 H=1,280,098 Z=895,216 = committed A4 baseline (rebuild-2026-08-03, baselines.md:70) — MATCH",
-  "4x4_entries": "99,133,036 walked = committed — PASS",
-  "3x3_two_life": "0 = T382 zero-alive series (12,675/12,675) — PASS",
-  "4x3_two_life": "2 = T382 zero-alive series (321,687/321,689) — PASS",
-  "4x4_two_life_WZO1_cross": "324 on data/oracle-4x4.checkpoint.wzo == 324 on data/oracle-4x4-v2.wzo2 — PASS (position-level count stable across WZO1/WZO2 rule-family split)",
-  "benson_alive_vs_naive_spotcheck": "3x3: 13 groups, 0 mismatches; 4x4: 23,749 groups, 0 mismatches — PASS (independent re-implementation)"
- },
- "artifacts": {
-  "data/oracle-3x3-v2.wzo2": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb",
-  "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
-  "artifacts/oracle-4x3.wzo": "5316f428ad821c79c5dcd62188c648d6455ffd2e698e9b5d49db93ae0a6ecad1",
-  "data/oracle-4x4.checkpoint.wzo": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118"
- },
- "census": {
-  "part1_two_life_frequency": {
-   "3x3": { "source": "data/oracle-3x3-v2.wzo2 (WZO2)", "legal_positions": 12675, "two_life": 0, "two_life_pct": 0.0, "b_only": 883, "w_only": 883, "neither": 10909, "zero_alive_colour": 12675, "zero_alive_pct": 100.0 },
-   "4x3": { "source": "artifacts/oracle-4x3.wzo (WZO1; no WZO2 artifact exists for 4x3 — WZO1 denominators, stated)", "legal_positions": 321689, "two_life": 2, "two_life_pct": 0.0006218, "b_only": 14244, "w_only": 14244, "neither": 293199, "zero_alive_colour": 321687, "zero_alive_pct": 99.9994 },
-   "4x4": { "source": "data/oracle-4x4-v2.wzo2 (WZO2); cross-checked on data/oracle-4x4.checkpoint.wzo (WZO1)", "legal_positions": 24318165, "two_life": 324, "two_life_pct": 0.0013323, "b_only": 694358, "w_only": 694358, "neither": 22929125, "zero_alive_colour": 24317841, "zero_alive_pct": 99.9987 }
+  "task_id": "T393",
+  "title": "two-life census: where does coexisting unconditional life begin, and does existing life ever sit under a straddling bracket?",
+  "date": "2026-08-06",
+  "model": "deepseek-v4-flash",
+  "identifier": "flash/T393",
+  "git_head": "ce604c9",
+  "instrument_source": "src/t393_census.zig",
+  "instrument_sha256": "98ad3d89d58ebb8437c5e63e14b3fcaf026914462de70b90810677eb32735130",
+  "build": "tools/runner -- zig build-exe src/t393_census.zig --name weizigo-t393-census  (runner auto-adds -O ReleaseFast; RSS guard 4096 MB)",
+  "selftest": "29 passed, 0 failed — bracket classification (8 hand pairs); null controls (empty 3x3, lone corner stone); positive controls (brief's 4x4 two-life board, 3x3 diamond, 3x3 two-eye ring); seeded-defect controls (three mutants each trip the canary the correct predicate passes); real-artifact cross-checks (3x3 WZO2 groups/entries/L<H, bracket totals sum, pin_L==pin_H, two_life=0, spotcheck 0 mismatches, Z-and-alive=0); synthetic 2x2 WZO2 walker determinism (groups/entries/brackets/fresh-start slice)",
+  "calibration_cross_checks": {
+    "3x3_wzo2_groups": "12,675 walked = committed (T266 scan, goban-pathology) — PASS",
+    "3x3_wzo2_entries": "49,428 walked = committed — PASS",
+    "3x3_wzo2_L_lt_H": "2,080+2,080+1,248 = 5,408 / 49,428 = 10.9412% = committed T382 figure — PASS",
+    "3x3_pin_L_eq_pin_H": "2,080 == 2,080 (colour-inversion symmetry) — PASS",
+    "4x4_pin_census": "T=95,677,624 L=1,280,098 H=1,280,098 Z=895,216 = committed A4 baseline (rebuild-2026-08-03, baselines.md:70) — MATCH",
+    "4x4_entries": "99,133,036 walked = committed — PASS",
+    "3x3_two_life": "0 = T382 zero-alive series (12,675/12,675) — PASS",
+    "4x3_two_life": "2 = T382 zero-alive series (321,687/321,689) — PASS",
+    "4x4_two_life_WZO1_cross": "324 on data/oracle-4x4.checkpoint.wzo == 324 on data/oracle-4x4-v2.wzo2 — PASS (position-level count stable across WZO1/WZO2 rule-family split)",
+    "benson_alive_vs_naive_spotcheck": "3x3: 13 groups, 0 mismatches; 4x4: 23,749 groups, 0 mismatches — PASS (independent re-implementation)"
   },
-  "part2_life_vs_bracket": {
-   "3x3_all_entries": { "entries": 49428, "T": { "total": 44020, "side_alive": 3270, "opp_alive": 3270, "either_alive": 6540, "both_alive": 0, "none_alive": 37480 }, "L": { "total": 2080, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 2080 }, "H": { "total": 2080, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 2080 }, "Z": { "total": 1248, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 1248 }, "overall": { "side_alive": 3270, "opp_alive": 3270, "either_alive": 6540, "both_alive": 0, "none_alive": 42888 }, "z_either": 0 },
-   "3x3_fresh_start_passes0_konone": { "entries": 24330, "T": { "total": 21126, "side_alive": 1504, "opp_alive": 1766, "either_alive": 3270, "both_alive": 0, "none_alive": 17856 }, "L": { "total": 1294, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 1294 }, "H": { "total": 1294, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 1294 }, "Z": { "total": 616, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 616 }, "overall": { "side_alive": 1504, "opp_alive": 1766, "either_alive": 3270, "both_alive": 0, "none_alive": 21060 }, "z_either": 0 },
-   "4x4_all_entries": { "entries": 99133036, "T": { "total": 95677624, "side_alive": 2766492, "opp_alive": 2766492, "either_alive": 5531688, "both_alive": 1296, "none_alive": 90145936 }, "L": { "total": 1280098, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 1280098 }, "H": { "total": 1280098, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 1280098 }, "Z": { "total": 895216, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 895216 }, "overall": { "side_alive": 2766492, "opp_alive": 2766492, "either_alive": 5531688, "both_alive": 1296, "none_alive": 93601348 }, "z_either": 0 },
-   "4x4_fresh_start_passes0_konone": { "entries": 48505262, "T": { "total": 46543120, "side_alive": 1358216, "opp_alive": 1389364, "either_alive": 2746932, "both_alive": 648, "none_alive": 43796188 }, "L": { "total": 728635, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 728635 }, "H": { "total": 728635, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 728635 }, "Z": { "total": 504872, "side_alive": 0, "opp_alive": 0, "either_alive": 0, "both_alive": 0, "none_alive": 504872 }, "overall": { "side_alive": 1358216, "opp_alive": 1389364, "either_alive": 2746932, "both_alive": 648, "none_alive": 45758330 }, "z_either": 0 },
-   "hypothesis": "no state containing a Benson-alive chain has a bracket straddling zero",
-   "hypothesis_verdict": "STANDS — Z-and-either-alive = 0 at every size and slice measured",
-   "stronger_finding": "not just zero straddling: NO entry whose side-to-move OR opponent holds a Benson-alive chain is in ANY non-T bracket (L/H/Z side_alive and opp_alive all 0, at 3x3 and 4x4, all-entries and fresh-start slices). Presence of unconditional life implies L==H certification in the stored tables.",
-   "converse_slice": "of the 895,216 pin_0 (Z) entries at 4x4, 0 contain a Benson-alive chain for either colour (denominator 895,216, committed A4 baseline). At 3x3: 0 of 1,248.",
-   "position_level": { "3x3": { "positions_with_straddling_entry": 624, "positions_with_straddling_entry_and_alive_chain": 0 }, "4x4": { "positions_with_straddling_entry": 507484, "positions_with_straddling_entry_and_alive_chain": 0 } }
+  "artifacts": {
+    "data/oracle-3x3-v2.wzo2": "d79c17cd6fd00ba4608bdc5b86c9930a15d2a7050e2cdce07b0203f5aeaf7beb",
+    "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
+    "artifacts/oracle-4x3.wzo": "5316f428ad821c79c5dcd62188c648d6455ffd2e698e9b5d49db93ae0a6ecad1",
+    "data/oracle-4x4.checkpoint.wzo": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118"
   },
-  "part3_winner_structure_3x3": {
-   "alive_positions_either_colour": 1766,
-   "alive_positions_b_only": 883,
-   "alive_positions_w_only": 883,
-   "alive_without_centre_alive_colour_absent_from_centre": 206,
-   "alive_without_centre_strict_centre_empty": 182,
-   "alive_without_centre_with_opponent_stone_at_centre": 24,
-   "orbits_mod_D4": 38,
-   "orbits_mod_D4_and_colour_inversion": 19,
-   "diamond_orbit_present": true,
-   "diamond_board": ".x. / x.x / .x.  (cells 1,3,5,7 — the brief's shape; the 'four-edge-midpoints' shape is the same set of cells)",
-   "answer": "YES — unconditional life at 3x3 exists without a centre stone; 206 raw positions / 38 shapes up to rotation-and-reflection / 19 up to rotation-reflection-and-colour-inversion",
-   "example_orbit_boards": [
-    ".o. / o.o / .o.",
-    ".x. / x.x / .x.",
-    "oo. / o.o / .o.",
-    "xx. / x.x / .x.",
-    "o.o / o.o / .o.",
-    "x.x / x.x / .x.",
-    "ooo / o.o / .o.",
-    "ooo / x.x / .x."
-   ]
+  "census": {
+    "part1_two_life_frequency": {
+      "3x3": {
+        "source": "data/oracle-3x3-v2.wzo2 (WZO2)",
+        "legal_positions": 12675,
+        "two_life": 0,
+        "two_life_pct": 0.0,
+        "b_only": 883,
+        "w_only": 883,
+        "neither": 10909,
+        "zero_alive_colour": 12675,
+        "zero_alive_pct": 100.0
+      },
+      "4x3": {
+        "source": "artifacts/oracle-4x3.wzo (WZO1; no WZO2 artifact exists for 4x3 — WZO1 denominators, stated)",
+        "legal_positions": 321689,
+        "two_life": 2,
+        "two_life_pct": 0.0006218,
+        "b_only": 14244,
+        "w_only": 14244,
+        "neither": 293199,
+        "zero_alive_colour": 321687,
+        "zero_alive_pct": 99.9994
+      },
+      "4x4": {
+        "source": "data/oracle-4x4-v2.wzo2 (WZO2); cross-checked on data/oracle-4x4.checkpoint.wzo (WZO1)",
+        "legal_positions": 24318165,
+        "two_life": 324,
+        "two_life_pct": 0.0013323,
+        "b_only": 694358,
+        "w_only": 694358,
+        "neither": 22929125,
+        "zero_alive_colour": 24317841,
+        "zero_alive_pct": 99.9987
+      }
+    },
+    "part2_life_vs_bracket": {
+      "3x3_all_entries": {
+        "entries": 49428,
+        "T": {
+          "total": 44020,
+          "side_alive": 3270,
+          "opp_alive": 3270,
+          "either_alive": 6540,
+          "both_alive": 0,
+          "none_alive": 37480
+        },
+        "L": {
+          "total": 2080,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 2080
+        },
+        "H": {
+          "total": 2080,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 2080
+        },
+        "Z": {
+          "total": 1248,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 1248
+        },
+        "overall": {
+          "side_alive": 3270,
+          "opp_alive": 3270,
+          "either_alive": 6540,
+          "both_alive": 0,
+          "none_alive": 42888
+        },
+        "z_either": 0
+      },
+      "3x3_fresh_start_passes0_konone": {
+        "entries": 24330,
+        "T": {
+          "total": 21126,
+          "side_alive": 1504,
+          "opp_alive": 1766,
+          "either_alive": 3270,
+          "both_alive": 0,
+          "none_alive": 17856
+        },
+        "L": {
+          "total": 1294,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 1294
+        },
+        "H": {
+          "total": 1294,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 1294
+        },
+        "Z": {
+          "total": 616,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 616
+        },
+        "overall": {
+          "side_alive": 1504,
+          "opp_alive": 1766,
+          "either_alive": 3270,
+          "both_alive": 0,
+          "none_alive": 21060
+        },
+        "z_either": 0
+      },
+      "4x4_all_entries": {
+        "entries": 99133036,
+        "T": {
+          "total": 95677624,
+          "side_alive": 2766492,
+          "opp_alive": 2766492,
+          "either_alive": 5531688,
+          "both_alive": 1296,
+          "none_alive": 90145936
+        },
+        "L": {
+          "total": 1280098,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 1280098
+        },
+        "H": {
+          "total": 1280098,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 1280098
+        },
+        "Z": {
+          "total": 895216,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 895216
+        },
+        "overall": {
+          "side_alive": 2766492,
+          "opp_alive": 2766492,
+          "either_alive": 5531688,
+          "both_alive": 1296,
+          "none_alive": 93601348
+        },
+        "z_either": 0
+      },
+      "4x4_fresh_start_passes0_konone": {
+        "entries": 48505262,
+        "T": {
+          "total": 46543120,
+          "side_alive": 1358216,
+          "opp_alive": 1389364,
+          "either_alive": 2746932,
+          "both_alive": 648,
+          "none_alive": 43796188
+        },
+        "L": {
+          "total": 728635,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 728635
+        },
+        "H": {
+          "total": 728635,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 728635
+        },
+        "Z": {
+          "total": 504872,
+          "side_alive": 0,
+          "opp_alive": 0,
+          "either_alive": 0,
+          "both_alive": 0,
+          "none_alive": 504872
+        },
+        "overall": {
+          "side_alive": 1358216,
+          "opp_alive": 1389364,
+          "either_alive": 2746932,
+          "both_alive": 648,
+          "none_alive": 45758330
+        },
+        "z_either": 0
+      },
+      "hypothesis": "no state containing a Benson-alive chain has a bracket straddling zero",
+      "hypothesis_verdict": "STANDS — Z-and-either-alive = 0 at every size and slice measured",
+      "stronger_finding": "not just zero straddling: NO entry whose side-to-move OR opponent holds a Benson-alive chain is in ANY non-T bracket (L/H/Z side_alive and opp_alive all 0, at 3x3 and 4x4, all-entries and fresh-start slices). Presence of unconditional life implies L==H certification in the stored tables.",
+      "converse_slice": "of the 895,216 pin_0 (Z) entries at 4x4, 0 contain a Benson-alive chain for either colour (denominator 895,216, committed A4 baseline). At 3x3: 0 of 1,248.",
+      "position_level": {
+        "3x3": {
+          "positions_with_straddling_entry": 624,
+          "positions_with_straddling_entry_and_alive_chain": 0
+        },
+        "4x4": {
+          "positions_with_straddling_entry": 507484,
+          "positions_with_straddling_entry_and_alive_chain": 0
+        }
+      }
+    },
+    "part3_winner_structure_3x3": {
+      "alive_positions_either_colour": 1766,
+      "alive_positions_b_only": 883,
+      "alive_positions_w_only": 883,
+      "alive_without_centre_alive_colour_absent_from_centre": 206,
+      "alive_without_centre_strict_centre_empty": 182,
+      "alive_without_centre_with_opponent_stone_at_centre": 24,
+      "orbits_mod_D4": 38,
+      "orbits_mod_D4_and_colour_inversion": 19,
+      "diamond_orbit_present": true,
+      "diamond_board": ".x. / x.x / .x.  (cells 1,3,5,7 — the brief's shape; the 'four-edge-midpoints' shape is the same set of cells)",
+      "answer": "YES — unconditional life at 3x3 exists without a centre stone; 206 raw positions / 38 shapes up to rotation-and-reflection / 19 up to rotation-reflection-and-colour-inversion",
+      "example_orbit_boards": [
+        ".o. / o.o / .o.",
+        ".x. / x.x / .x.",
+        "oo. / o.o / .o.",
+        "xx. / x.x / .x.",
+        "o.o / o.o / .o.",
+        "x.x / x.x / .x.",
+        "ooo / o.o / .o.",
+        "ooo / x.x / .x."
+      ]
+    },
+    "twolife_witness_boards": {
+      "4x3_pair_colour_inverses": [
+        ".xo. / xxoo / .xo.",
+        ".ox. / ooxx / .ox."
+      ],
+      "4x4_first_eight_in_colex_order_all_band_family": [
+        ".x.. / xxxx / oooo / .o..  (the brief's hand-verified example is the colex-first two-life position)",
+        ".o.. / oooo / xxxx / .x..",
+        "..x. / xxxx / oooo / .o..",
+        "..o. / oooo / xxxx / .x..",
+        ".x.. / xxxx / oooo / ..o.",
+        ".o.. / oooo / xxxx / ..x.",
+        "..x. / xxxx / oooo / ..o.",
+        "..o. / oooo / xxxx / ..x."
+      ]
+    }
   },
-  "twolife_witness_boards": {
-   "4x3_pair_colour_inverses": [
-    ".xo. / xxoo / .xo.",
-    ".ox. / ooxx / .ox."
-   ],
-   "4x4_first_eight_in_colex_order_all_band_family": [
-    ".x.. / xxxx / oooo / .o..  (the brief's hand-verified example is the colex-first two-life position)",
-    ".o.. / oooo / xxxx / .x..",
-    "..x. / xxxx / oooo / .o..",
-    "..o. / oooo / xxxx / .x..",
-    ".x.. / xxxx / oooo / ..o.",
-    ".o.. / oooo / xxxx / ..x.",
-    "..x. / xxxx / oooo / ..o.",
-    "..o. / oooo / xxxx / ..x."
-   ]
-  }
- },
- "runs": [
-  { "mode": "--selftest", "cmd": "weizigo-t393-census --selftest", "result": "29/29 PASS" },
-  { "mode": "--wzo2", "cmd": "weizigo-t393-census --wzo2 data/oracle-3x3-v2.wzo2", "result": "see census.part1/part2/part3" },
-  { "mode": "--wzo1", "cmd": "weizigo-t393-census --wzo1 artifacts/oracle-4x3.wzo", "result": "legal=321,689 two_life=2 (0.0006%) zero_alive_colour=321,687 (99.9994%)" },
-  { "mode": "--wzo1", "cmd": "weizigo-t393-census --wzo1 artifacts/oracle-3x3.wzo", "result": "two_life=0 (cross-check of WZO2 figure on the WZO1 artifact)" },
-  { "mode": "--wzo2", "cmd": "weizigo-t393-census --wzo2 data/oracle-4x4-v2.wzo2", "result": "pin census MATCH; two_life=324; Z-and-alive=0; spotcheck 23,749 groups 0 mismatches" },
-  { "mode": "--twolife", "cmd": "weizigo-t393-census --twolife data/oracle-4x4.checkpoint.wzo", "result": "two_life=324 on the WZO1 checkpoint == WZO2 figure; brief's example board is the colex-first two-life position" },
-  { "mode": "--twolife", "cmd": "weizigo-t393-census --twolife artifacts/oracle-4x3.wzo", "result": "the two 4x3 two-life positions printed (a colour-inverse pair)" }
- ],
- "landmark": "advances L2 (proven 4x4 values) — the bracketed region is now characterised by territory structure: straddling (Z) states never contain unconditional life, and unconditional life always certifies (L==H), at every size with a WZO2 table; the T382 zero-alive series is complete through 4x4 (two-life begins at 4x3 with 2 positions, 324 at 4x4). What remains for L2: the independent regeneration of the ko-sensitive columns (Track A) — this census is a structural property of the stored table, and the categorical disjointness (alive chains vs non-T brackets) is robust to ko-sensitive value distrust unless Track A changes which entries are L<H."
+  "runs": [
+    {
+      "mode": "--selftest",
+      "cmd": "weizigo-t393-census --selftest",
+      "result": "29/29 PASS"
+    },
+    {
+      "mode": "--wzo2",
+      "cmd": "weizigo-t393-census --wzo2 data/oracle-3x3-v2.wzo2",
+      "result": "see census.part1/part2/part3"
+    },
+    {
+      "mode": "--wzo1",
+      "cmd": "weizigo-t393-census --wzo1 artifacts/oracle-4x3.wzo",
+      "result": "legal=321,689 two_life=2 (0.0006%) zero_alive_colour=321,687 (99.9994%)"
+    },
+    {
+      "mode": "--wzo1",
+      "cmd": "weizigo-t393-census --wzo1 artifacts/oracle-3x3.wzo",
+      "result": "two_life=0 (cross-check of WZO2 figure on the WZO1 artifact)"
+    },
+    {
+      "mode": "--wzo2",
+      "cmd": "weizigo-t393-census --wzo2 data/oracle-4x4-v2.wzo2",
+      "result": "pin census MATCH; two_life=324; Z-and-alive=0; spotcheck 23,749 groups 0 mismatches"
+    },
+    {
+      "mode": "--twolife",
+      "cmd": "weizigo-t393-census --twolife data/oracle-4x4.checkpoint.wzo",
+      "result": "two_life=324 on the WZO1 checkpoint == WZO2 figure; brief's example board is the colex-first two-life position"
+    },
+    {
+      "mode": "--twolife",
+      "cmd": "weizigo-t393-census --twolife artifacts/oracle-4x3.wzo",
+      "result": "the two 4x3 two-life positions printed (a colour-inverse pair)"
+    }
+  ],
+  "landmark": "advances L2 (proven 4x4 values) — the bracketed region is now characterised by territory structure: straddling (Z) states never contain unconditional life, and unconditional life always certifies (L==H), at every size with a WZO2 table; the T382 zero-alive series is complete through 4x4 (two-life begins at 4x3 with 2 positions, 324 at 4x4). What remains for L2: the independent regeneration of the ko-sensitive columns (Track A) — this census is a structural property of the stored table, and the categorical disjointness (alive chains vs non-T brackets) is robust to ko-sensitive value distrust unless Track A changes which entries are L<H.",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "GLOBAL.LIFE-CERTIFIES",
+      "legacy": "—",
+      "goban": "3x3/4x4",
+      "claim": "**Wherever unconditional (Benson 1976) life sits on the goban, the stored WZO2 table certifies a single score (L==H).** No entry containing a Benson-alive chain for either colour falls in ANY bracketed class (L<H), and in particular none straddles zero: Z-and-either-alive = 0 over all 49,428 entries at 3x3 and all 99,133,036 at 4x4, over the fresh-start slices (24,330 / 48,505,262), and position-level 0 of the 624 (3x3) / 507,484 (4x4) positions holding a straddling entry. Converse slice: 0 of the 895,216 pin_0 draw-by-loop entries at 4x4 (and 0 of 1,248 at 3x3) contain a Benson-alive chain for either colour. **SCOPE:** a measured property of the stored tables, not a derived theorem; the L<H columns are the ko-sensitive region still distrusted pending Track A, but the finding's force is categorical (alive entries never co-occur with a non-T bracket) so it survives value distrust unless regeneration changes which entries are L<H. **INDEPENDENTLY CONFIRMED at 3x3** by claude-opus-5/orcha during T393 adjudication: a separate implementation (textbook Benson written from the definition in Python, WZO2 layout from src/artifact2.zig, colex decode from src/colex.zig, calling neither src/t393_census.zig nor rules.benson_alive) reproduced all 13 published 3x3 figures exactly. 4x4 not re-derived; carried by the bracket partition matching the committed A4 pin census on all four counts, by the join being sound by construction (anyB/anyW computed per position and consumed in one loop reporting 2,766,492 in the T cell and 0 in Z, so a defect zeroing Z would have to be bracket-selective), and by the headline predicate either=anyB-or-anyW being independent of decodeKeyByte. **CAVEAT (T398):** the doc's argument for why this is non-trivial is FALSE and withdrawn — Benson life bounds the owner's AREA, not the score; 90 entries at 3x3 hold a Black alive chain at value <= 0, 60 exactly 0, lowest L==H==-2 with a two-stone chain. The correction makes the result LESS forced, not more.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T393-two-life-census.json; docs/research/two-life-census-2026-08-06.md",
+      "depends_on": "e:GLOBAL.S2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.TWO-LIFE-ONSET",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "**Coexisting unconditional life — both colours simultaneously holding a Benson-alive chain — begins at 4x3.** Counts with denominators: 0/57 (2x2), 0/489 (3x2), 0/12,675 (3x3), **2/321,689 (4x3, a colour-inverse pair)**, **324/24,318,165 (4x4, 0.0013%, one in ~75,000)**. Completes the T382 zero-alive series, whose 4x4 row was pending: a colour at zero Benson-alive stones in 99.9987% of 4x4 legal positions. **SCOPE:** 3x3/4x4 from WZO2; 4x3 from the WZO1 artifact (no WZO2 exists at 4x3) — WZO1-denominated and labelled as such; legality and Benson aliveness are rule-family-independent position predicates, cross-checked by the 4x4 count being identically 324 on the WZO1 checkpoint and the WZO2 table. 3x3 row independently confirmed (0/12,675) by claude-opus-5/orcha.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T393-two-life-census.json; docs/research/two-life-census-2026-08-06.md; docs/research/goban-pathology-2026-08-05.md:74-83",
+      "depends_on": "e:GLOBAL.S2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "3x3.LIFE-NO-CENTRE",
+      "legacy": "—",
+      "goban": "3x3",
+      "claim": "**Unconditional life at 3x3 exists WITHOUT a stone at the centre point — the operator's shape claim is refuted.** 206 of the 1,766 3x3 positions where a colour is Benson-alive have the alive colour holding no centre stone (182 with the centre completely empty, 24 with the opponent's stone there); **38** distinct shapes modulo rotation/reflection, **19** modulo rotation/reflection/colour-inversion (exactly 2:1, consistent with zero two-life positions at 3x3). The diamond `.x./x.x/.x.` (cells 1,3,5,7 — the four edge midpoints; the brief's two named shapes are the same cell set) is Benson-alive with an empty centre. **INDEPENDENTLY CONFIRMED** by claude-opus-5/orcha: 1,766 / 206 / 182 / 24 / 38 / 19 and the diamond's aliveness all reproduced from a separate Benson implementation. This is the operator's loss and it cuts toward 'territory does not require the centre at 3x3'.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T393-two-life-census.json; docs/research/two-life-census-2026-08-06.md",
+      "depends_on": "e:GLOBAL.S2, e:3x3.S2-impl",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "CONFORMANCE REPAIR by claude-opus-5/orcha 2026-08-06 during T393 adjudication: this file was written without the required `claims` key (findings/README.md schema), so claimlint C7 reported it NON-CONFORMING and it was structurally excluded from absorption. Added `claims` (empty — this row proposes no status change to an existing register claim) and `new_rows` (the three census results, authored by the adjudicator from the row's own committed doc; no measurement was altered). Pre-absorption repair, so the immutability rule is not engaged. The T398 caveat on GLOBAL.LIFE-CERTIFIES is the adjudicator's finding, not the worker's, and must travel with the row."
 }

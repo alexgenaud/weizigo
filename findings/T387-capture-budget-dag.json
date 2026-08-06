@@ -7,9 +7,9 @@
   "status": "SALVAGED — the row FAILED; these are the readings that survived",
   "salvaged_by": "claude-opus-5/orcha",
   "salvaged_at": "2026-08-06T14:52Z",
-  "provenance": "The row's console died without committing. These three readings were produced by DAG mode, terminated normally, and were left uncommitted in /tmp/weizigo/t387/ (dag33.json, dag33base.json, dag43.json) — volatile storage. Copied verbatim into the repo by the Orchestrator during T387's adjudication so the structural result is not lost to a reboot. Byte-identical copies also at untracked/T397-t387-dag-readings/.",
+  "provenance": "These three readings were produced by DAG mode, terminated normally, and were left uncommitted in /tmp/weizigo/t387/ (dag33.json, dag33base.json, dag43.json) — volatile storage. Copied verbatim into the repo by the Orchestrator during T387's adjudication so the structural result is not lost to a reboot. Byte-identical copies also at untracked/T397-t387-dag-readings/.",
+  "provenance_correction": "CORRECTED 2026-08-06T15:30Z by claude-opus-5/orcha. This file and T387's close note originally said the row's console had died (it had never recorded a heartbeat since dispatch 2026-08-06T00:24:23Z). That inference was WRONG: the console was alive and relaunched the identical defective command at 16:46:12 local, which I found still spinning 40 minutes later (10:50 CPU, same infinite loop at t387_budget.zig:718-719 confirmed by a second sample(1)) and reaped. So the row had TWO concurrent runs of the same hung binary, and 'never beat a heartbeat' meant only that the console never exported MANAGENT_TASK_ID — it did NOT mean the console was dead. The lesson for liveness readings: absence of heartbeats proves absence of instrumentation, not absence of a console. The salvaged readings and the u6 diagnosis are unaffected.",
   "instrument": "src/t387_budget.zig (untracked at salvage time; binary was /tmp/weizigo/t387/bin/budget, built -O ReleaseFast via tools/runner)",
-
   "readings": [
     {
       "mode": "dag",
@@ -38,14 +38,24 @@
       "theorem_holds": true
     }
   ],
-
   "what_this_supports": "The structural half of the operator's capture-budget argument: every cycle must contain a capture, so bounding total captures makes the move graph acyclic, and a DAG has a unique minimax value (no bracket). Measured: 135,494 back edges in the unbudgeted 3x3 graph, 0 with the budget at B=8, at both 3x3 and 4x3. The control firing is what makes the two zeros readable.",
-
   "what_this_does_NOT_support": "Bellman consistency under budget-from-here. That reading was T387's other half and it NEVER RAN — src/t387_budget.zig:717-719 is an infinite loop (bitpos: u6 against a `while (bitpos < 64)` guard its own type cannot falsify; += 1 wraps rather than traps under the -O ReleaseFast tools/runner forces). Proven by sample(1): 2,554/2,554 stack samples at :718-719 after 14h02m elapsed / 836 CPU-minutes / 880 KB RSS / no output file. Do not cite this file as evidence about the Bellman identity. The at-risk class T386 measured is 80/2,748 at 3x3 and 496/51,318 at 4x3; nothing has been compared against those denominators.",
-
   "follow_up": "T397 — promote these readings, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 and rule on whether budget-from-here forces the capture counter into the key.",
-
   "scale_note": "The 3x3 budgeted graph is 423,922 states, so a value pass over it is seconds. Any future run exceeding a minute at 3x3 is hung, not slow — a cheap watchdog for the successor.",
-
-  "landmark": "No advance. L2 (proven 4x4 values) is unmoved. The row's structural result was already believed and still stands; what changed is that a reading the seat believed was in flight is now known never to have run."
+  "landmark": "No advance. L2 (proven 4x4 values) is unmoved. The row's structural result was already believed and still stands; what changed is that a reading the seat believed was in flight is now known never to have run.",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "GLOBAL.CAPTURE-BUDGET-DAG",
+      "legacy": "—",
+      "goban": "3x3/4x3",
+      "claim": "**Bounding total captures makes the move graph acyclic — measured, with the control firing.** Every cycle in Go must contain a capture (returning to a position requires the stone count to come back down, and only captures do that), so a capture budget should remove every back edge. Readings at B=8: **135,494 back edges in the unbudgeted 3x3 graph** (the seeded control, proving the back-edge detector is sensitive), **0 back edges at 3x3 over 423,922 states**, **0 back edges at 4x3 over 10,636,928 states**. A DAG has a unique minimax value, so the bracket cannot exist under the budget. This is the structural half of the operator's capture-budget line and it reaches what superko cannot: the absurd clump-die-repeat games never repeat a position, so superko never bites them. **EXPLICIT NON-CLAIM:** this says NOTHING about Bellman consistency under budget-from-here. That reading was T387's other half and it NEVER RAN — src/t387_budget.zig:717-719 is an infinite loop (bitpos declared u6 against a `while (bitpos < 64)` guard its own type cannot falsify; += 1 wraps rather than traps under the -O ReleaseFast tools/runner forces), proven by sample(1) at 2,554/2,554 stack samples after 14h02m and 836 CPU-minutes with 880 KB RSS and no output. Nothing has been compared against T386's at-risk denominators (80/2,748 at 3x3, 496/51,318 at 4x3). T397 owns the fix and that reading. **PROVENANCE CAVEAT:** these three readings were salvaged from uncommitted /tmp by the Orchestrator after the row failed; they are the instrument's own self-report with no independent re-derivation, hence MEASUREMENT.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T387-capture-budget-dag.json; src/t387_budget.zig",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "CONFORMANCE REPAIR by claude-opus-5/orcha 2026-08-06: this file (which I authored during T387's adjudication) was written without the required `claims` key, so claimlint C7 reported it NON-CONFORMING. Added `claims` (empty) and `new_rows` (the DAG result, scoped with its explicit non-claim about the Bellman identity). Absorption of these rows into CLAIMS.md + register-tree-map.md in lockstep is owed."
 }
