@@ -1,7 +1,7 @@
 # AXIOMS — epic-01-markovian: theorem, axioms, and requirement tree
 
 Task: T271 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-02
-Amended by T275 (deepseek-v4-pro) and the Orchestrator — see the amendment log, §7.
+Amended by T275 (deepseek-v4-pro), the Orchestrator, and T400 (flash) — see the amendment log, §7.
 
 **This file gates all later decomposition.** It states the theorem (Z), the
 ruleset axioms (A) from which Z is derived, the requirement tree from Z down to
@@ -122,7 +122,7 @@ the only kind of agreement this project counts.
 | ID | axiom |
 |---|---|
 | `GLOBAL.AXIOM-TERMINAL` | **C1 — Termination.** The game ends when both players pass consecutively (double-pass). A game may also reach a terminal position where both sides have no legal moves except pass; the value is the area score of that position. |
-| `GLOBAL.AXIOM-AREA` | **C2 — Area scoring.** At a terminal position, the score for Black is: Black stones on the goban + empty points in Black's surrounded territory. White's score is computed symmetrically. The game score is Black's score minus White's score. Territory is defined by Benson's unconditional-life theorem `[GLOBAL.S2:PROVEN]`. Stone count alone is insufficient — dead stones are removed before scoring and this axiom delegates to Benson for the definition of "alive." |
+| `GLOBAL.AXIOM-AREA` | **C2 — Area scoring.** At a terminal position, the score for Black is: Black stones on the goban + empty points in Black's surrounded territory. White's score is computed symmetrically. The game score is Black's score minus White's score. This is Tromp-Taylor area scoring, stones as they stand: every stone on the goban counts for its colour, and an empty region counts for a colour only when it borders exactly one colour (neutral otherwise). Nothing is removed at the terminal — dead-stone removal happens by play before the terminal (the defender captures, or the region stays contested), never by adjudication at it. Benson's unconditional-life theorem `[GLOBAL.S2:PROVEN]` is NOT part of terminal scoring (amended 2026-08-06, T400, §7 Amendment 4); it is load-bearing only where dead-stone status is decided: the ADR-0006 eye-prune, `is_settled` terminal *detection* (which positions get scored — never how; the WZO2 builder's seed phase and the forward search both use it), and resign logic. |
 | `GLOBAL.AXIOM-TIE` | **C3 — Tie value.** Under loopy-game fixpoint semantics, the value of a cycle is the tie constant TIE = 0 (Black-positive: a draw scores 0). The tie value is a constant, not a function of which positions repeat — this distinguishes it from score-on-cycle and makes the state Markovian. |
 | `GLOBAL.AXIOM-SCORESIGN` | **C4 — Score sign convention.** All scores are Black-positive. Side-to-move picks the array, never the sign. Black maximizes; White minimizes. Colour inversion: value(−pos, −side) == −value(pos, side). For bound tables: L(−pos, −side) == −H(pos, side). |
 
@@ -183,9 +183,9 @@ moves and terminal scores for any state.
   - [F]: a position where two interpretations of the axioms disagree on legality.
 - **Z-R-SCORE:** Terminal scoring is decidable.
   - C1 Termination `[GLOBAL.AXIOM-TERMINAL:CLAIMED]`
-  - C2 Area scoring — delegates to Benson `[GLOBAL.S2:PROVEN]`, `[GLOBAL.ADR0003-AREA:PROVEN]`, `[GLOBAL.S4:PROVEN]`
-  - [F]: a terminal position where area_score disagrees with the Benson +
-    Tromp–Taylor definition.
+  - C2 Area scoring — Tromp-Taylor as-stands, no removal at the terminal `[GLOBAL.ADR0003-AREA:PROVEN]`, `[GLOBAL.S4:PROVEN]` (amended 2026-08-06, T400 — Benson no longer named for territory; see §7 Amendment 4)
+  - Terminal detection (when to score) uses Benson — `is_settled` and the ADR-0006 eye-prune `[GLOBAL.S2:PROVEN]`, `[GLOBAL.ADR0004-TERM:PROVEN]`; detection only, not scoring
+  - [F]: a terminal position where area_score disagrees with the Tromp-Taylor as-stands definition.
 - **Z-R-TIE:** Cycle resolution is well-defined.
   - C3 TIE=0 `[GLOBAL.AXIOM-TIE:CLAIMED]`
   - [F]: a cycle whose fixpoint value under TIE=0 is not uniquely determined,
@@ -376,7 +376,7 @@ for our own value.
 | `GLOBAL.AXIOM-KOSTATE` | all | B2 — Ko state encoding | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-KOPASS` | all | B3 — Ko–pass interaction | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-TERMINAL` | all | C1 — Termination (double-pass) | CLAIMED | this file §2 |
-| `GLOBAL.AXIOM-AREA` | all | C2 — Area scoring (delegates to Benson) | CLAIMED | this file §2; `[GLOBAL.S2:PROVEN]` `[GLOBAL.ADR0003-AREA:PROVEN]` |
+| `GLOBAL.AXIOM-AREA` | all | C2 — Area scoring (Tromp-Taylor as-stands; amended 2026-08-06, T400) | CLAIMED | this file §2; this file §7 Amendment 4; `[GLOBAL.ADR0003-AREA:PROVEN]` `[GLOBAL.S4:PROVEN]` |
 | `GLOBAL.AXIOM-TIE` | all | C3 — Tie value TIE=0 | CLAIMED | this file §2 |
 | `GLOBAL.AXIOM-SCORESIGN` | all | C4 — Score sign convention (Black-positive) | CLAIMED | this file §2; `[GLOBAL.INVSYM:PROVEN]` |
 | `GLOBAL.AXIOM-STATE` | all | D1 — State tuple | CLAIMED | this file §2 |
@@ -480,3 +480,29 @@ Two additions, both raised by T266 after its own task closed:
    empty goban for either side (see §6). The model has no handicap concept and no
    arbitrary-start concept. This was a decided exclusion, not an oversight; it is
    now stated explicitly in §6.
+
+### Amendment 4 — 2026-08-06 (flash/T400)
+
+**C2's prose described a different terminal-scoring function than the one solved.** The
+axiom text ended *"Stone count alone is insufficient — dead stones are removed before
+scoring and this axiom delegates to Benson for the definition of 'alive.'"* The code the
+tables were built with does no such thing: `area_score` (`src/rules.zig:126`, port of
+`terminal.area_score`) is pure Tromp-Taylor — every stone counts for its colour, an
+empty region counts only when it borders exactly one colour, nothing is removed, Benson
+is never called. The retrograde builder scores C1 double-pass terminals with exactly
+this function (`src/retro.zig:1862`), ADR-0020 states the solved rule as "Tromp-Taylor
+area scoring", and a committed test asserts the as-stands behaviour ("area counts it
+regardless", `src/rules.zig`). The operator's question 2026-08-06 ("Does Benson-life/
+death still apply at the end?") surfaced the gap. **Adjudicated option (a): the code is
+the game** — nobody believes the shipped tables scored the wrong function (option (b));
+the prose is the odd one out, not the values: the tables cross-validate against MIGOS
+anchors, ADR-0020 names the solved rule, and the committed tests assert as-stands
+scoring. C2 now states the Tromp-Taylor as-stands reading and names where Benson IS
+load-bearing instead: the ADR-0006 eye-prune, `is_settled` terminal detection (which
+positions get scored — never how; the WZO2 builder's seed phase, the forward search,
+and GTP all use it), and resign logic. Scoring semantics
+only — no values change (optimal lines already remove dead stones by play before
+consenting to the terminal). Pinned by a new C2-contract regression test in
+`src/rules.zig` ("C2 terminal scoring is Tromp-Taylor as-stands: no dead-stone
+removal"): a terminal with an obviously-dead invader counts the invader's stone and
+neutralises the shared empty region — no removal.

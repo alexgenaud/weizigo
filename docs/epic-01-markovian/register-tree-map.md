@@ -39,7 +39,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 - **Measurements map to the node they evidence** (e.g. `4x4.M2` 19 sweeps → Z-CONVERGE-FINITE,
   `2x2.BASICKO-TIE` root value → Z-TABLE), not to a node of their own.
 
-## 1. The mapping — 212 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
+## 1. The mapping — 213 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
 
 | ID | tree node | note |
 |---|---|---|
@@ -156,6 +156,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `GLOBAL.AUDITOR` | Z-AUDIT | 3.7 Z-AUDIT; also NC5 (gate before 'verified') |
 | `GLOBAL.AXIOM-AMEND1` | Z-R-MOVE | axiom-change event for A5/B1 (and TIE-MIGOS registration) |
 | `GLOBAL.AXIOM-AMEND2` | Z-R-MOVE | axiom-change event for B1's derivation |
+| `GLOBAL.AXIOM-AMEND4` | Z-R-SCORE | axiom-change event for C2 — scoring restated as Tromp-Taylor as-stands, no removal at the terminal (T400) |
 | `GLOBAL.AXIOM-AREA` | Z-R-SCORE | 3.2 C2 under Z-R-SCORE |
 | `GLOBAL.AXIOM-BASICKO` | Z-R-MOVE | 3.2 B1 under Z-R-MOVE |
 | `GLOBAL.AXIOM-BELLMAN` | Z-CONVERGE | E1 defines Φ — the operator Z-CONVERGE asserts converges; E-axioms not placed in 3.2 (finding) |
@@ -216,7 +217,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `GLOBAL.PASS-NOKO` | Z-R-STATE | the D3 invariant's PROVEN parent — passes ≥ 1 ⇒ ko_point = none |
 | `GLOBAL.REFRAME` | Z | adopted deliverable scope — the fresh-start-only framing that Z's §1.2 NCs encode |
 | `GLOBAL.S1` | Z-STATE-LEGAL | colex bijection; 3.3 Z-STATE-LEGAL cites S1; also D1 under Z-R-STATE |
-| `GLOBAL.S2` | Z-R-SCORE | 3.2 Z-R-SCORE C2 delegates to Benson |
+| `GLOBAL.S2` | Z-R-SCORE | Benson theorem — load-bearing for terminal detection (`is_settled`), the ADR-0006 eye-prune and resign logic; NOT C2 scoring (amended T400) |
 | `GLOBAL.S3a` | Z-STATE-LEGAL | move/capture/suicide kernel + legal counts; 3.3 cites S3a |
 | `GLOBAL.S4` | Z-R-SCORE | area scoring implementation; 3.2 C2 → Z-R-SCORE |
 | `GLOBAL.T06` | Z-NONCLAIMS | NC4: arena baseline leak band 8–18% |

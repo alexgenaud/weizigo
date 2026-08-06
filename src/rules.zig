@@ -466,6 +466,39 @@ test "3x3: single stone is not alive; empty board not settled" {
     try expect(R.area_score(&one) == 9); // area counts it regardless
 }
 
+test "C2 terminal scoring is Tromp-Taylor as-stands: no dead-stone removal" {
+    // T400 contract (2026-08-06): C2's axiom prose once said dead stones are
+    // "removed before scoring" via Benson; the solved game does no such thing
+    // (option (a): the code is the game — `area_score` never calls Benson). A
+    // terminal position with an obviously-dead (non-Benson-alive) invader is
+    // scored as stones stand: the invader counts for its colour and the shared
+    // empty region is neutralised. NO removal at the terminal — dead-stone
+    // removal happens by play before the terminal, never by adjudication at it.
+    const R = Rules(4, 4);
+    // Black ring; white invader at (1,1) whose single liberty (1,2) is shared
+    // with black. Index 5 = (1,1), 6 = (1,2).
+    const b = [_]i8{
+        1, 1, 1, 1,
+        1, -1, 0, 1,
+        1, 1, 1, 1,
+        1, 1, 1, 1,
+    };
+    // The invader is not Benson-alive (one chain, no two vital regions), so
+    // is_settled is false: this is a double-pass terminal, not an adjudicated
+    // one — scored as stones stand.
+    const walive = R.benson_alive(&b, -1);
+    try expect(!walive[5]);
+    try expect(!R.is_settled(&b));
+    // As-stands: 14 black stones, 1 white stone, empty region {(1,2)} borders
+    // both colours -> neutral. Score = 14 - 1 = +13. Removing the dead stone
+    // would leave every point Black's: +16.
+    try expect(R.area_score(&b) == 13);
+    // Dead-stone removal by play: Black captures the invader by playing its
+    // last liberty — the only route the rules provide.
+    const after = try R.pos_from_move(&b, 1, 6);
+    try expect(after[5] == 0 and after[6] == 1);
+}
+
 test "capture and suicide on 3x3" {
     const R = Rules(3, 3);
     // white at 0 with single liberty 3 (cell 1 black): black plays 3 -> capture
