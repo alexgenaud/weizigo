@@ -448,6 +448,44 @@ pub fn build(b: *std.Build) void {
     run_i5_diff_tests.cwd = b.path(".");
     test_step.dependOn(&run_i5_diff_tests.step);
 
+    // ── I4 cross-engine differential (T395, T388 D1) ────────────────────
+    // Runs the two WZO2 Φ operators — vb_bellman_4x4.i4Bellman (R8 move
+    // engine) and oracle_v2_accept.checkA2 (kernel rules.Rules) — on the
+    // same 3×3 WZO2 artifact and requires identical denominator, zero
+    // violations on both sides, and identical missing-child counts. D1
+    // (T388): three independent I4 implementations with no overlap cell;
+    // this closes the cheapest one. The general WZO1 check shares no
+    // artifact with either WZO2 engine (different builds), recorded in
+    // docs/infra/property-ownership.md.
+    const i4_diff_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/i4_differential.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_i4_diff_tests = b.addRunArtifact(i4_diff_tests);
+    run_i4_diff_tests.cwd = b.path(".");
+    test_step.dependOn(&run_i4_diff_tests.step);
+
+    // ── key-byte decode differential + F-7 control (T395, T383 F-7) ─────
+    // Runs the closure instrument's production key-byte decode against the
+    // artifact2 contract over all 256 key bytes × ko_bits {3,4,5}, plus the
+    // seeded-defect control showing the historical kb>>1 decode (F-7) makes
+    // the differential fire. Needs the engine module because vb_closure
+    // imports it (same as vb_closure_tests).
+    const keybyte_diff_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/keybyte_differential.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    keybyte_diff_tests.root_module.addImport("engine", engine_mod);
+    const run_keybyte_diff_tests = b.addRunArtifact(keybyte_diff_tests);
+    run_keybyte_diff_tests.cwd = b.path(".");
+    test_step.dependOn(&run_keybyte_diff_tests.step);
+
     // ── verify-battery: move-set consistency (vb_i11, T346) ──────
     const vb_i11_tests = b.addTest(.{
         .root_module = b.createModule(.{

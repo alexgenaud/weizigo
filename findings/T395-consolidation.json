@@ -1,0 +1,101 @@
+{
+  "task_id": "T395-consolidation",
+  "date": "2026-08-06",
+  "model": "deepseek-v4-flash",
+  "identifier": "flash/T395",
+  "description": "The four seeded-defect controls: each re-introduces one historical defect through a mutation knob (default off) and must make its differential FIRE with the exact historical reading, then be fixed (green). A differential never shown to fail is not evidence.",
+  "differentials_wired": [
+    {
+      "id": "i4",
+      "file": "src/i4_differential.zig",
+      "rung": "3×3 WZO2 (data/oracle-3x3-v2.wzo2, 49,428 entries), both engines exhaustive",
+      "pair": "vb_bellman_4x4.i4Bellman (R8 movegen) vs oracle_v2_accept.checkA2 (kernel rules.Rules)",
+      "status": "wired into zig build test",
+      "green": "bellman entries=49428 viol_clear=0 viol_set=0 missing=0 move_div=0 no_child=0; A2 checked=49428 L_violations=0 H_violations=0 missing_child=0 stride=1; denominators equal; n_set=5408>0 (non-vacuous)"
+    },
+    {
+      "id": "i5",
+      "file": "src/i5_differential.zig",
+      "rung": "3×2 permanent (artifacts/oracle-3x2.wzo); 4×3 env-gated WEIZIGO_I5_DIFF_4X3=1 (RSS)",
+      "pair": "vb_graph.checkI5 (general) vs vb_scc_4x4.checkI5Small (size-specific)",
+      "status": "wired since T391; T395 added the Defect-A/B/A+B controls",
+      "green": "identical readings V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0"
+    },
+    {
+      "id": "keybyte",
+      "file": "src/keybyte_differential.zig",
+      "rung": "all 256 key bytes × ko_bits {3,4,5} (2×2, 3×3, 4×4 WZO2 rungs)",
+      "pair": "vb_closure.keyByteKo (production closure decode) vs artifact2.decodeKeyByte (contract authority)",
+      "status": "wired into zig build test",
+      "green": "closure decode == artifact2 contract on all 256 bytes × 3 ko_bits rungs"
+    }
+  ],
+  "controls": [
+    {
+      "defect": "A — vb_graph passes==2 placement successors (T391)",
+      "mutation": "I5Opts.mutate_passes2_placement=true (placements from passes==2 states; pass edges stay guarded by passes<2 — a pass out of passes==2 collides with the (ko+1, passes=0) node in encodeNode's u2 passes field)",
+      "differential": "I5 cross-size 3×2",
+      "red": "general E=7364 maxSCC=2520 cycleReach=2523 — exact third-route --buggy readings; pair NOT identical",
+      "green": "E=5510 maxSCC=1676 cycleReach=1678 — pair identical",
+      "status": "red-then-green PASS"
+    },
+    {
+      "defect": "B — vb_graph quadruple→triple SCC projection (T391)",
+      "mutation": "I5Opts.mutate_triple_projection=true (unique (board,side,ko) triple projection incl. triple-seeded cycle-reachable)",
+      "differential": "I5 cross-size 3×2",
+      "red": "general maxSCC=988 (on the corrected graph) vs specific 1676 — pair NOT identical. Historical 1,000 was triple projection ON TOP of Defect A's graph (reproduced exactly by the A+B control)",
+      "green": "maxSCC=1676 — pair identical",
+      "status": "red-then-green PASS"
+    },
+    {
+      "defect": "A+B — the pre-fix binary (both T391 defects at once)",
+      "mutation": "both knobs",
+      "differential": "I5 cross-size 3×2",
+      "red": "reproduces the exact pre-fix binary readings (T388 Run B): V=2583 E=7364 sccs_total=64 maxSCC=1000 cycle_involved=1000 cycle_reachable=2523 — pair NOT identical",
+      "green": "pair identical",
+      "status": "red-then-green PASS"
+    },
+    {
+      "defect": "C — vb_scc_4x4 descending CR propagation order (T391)",
+      "mutation": "checkI5Wzo1Bitset(..., mutate_descending_cr=true) — SCC ids processed ncomp-1→0 instead of 0→ncomp-1",
+      "differential": "the 4×3 all-legal cell of the I5 property (runs inside vb_scc_4x4's suite; the cross-instrument 4×3 cell is env-gated for RSS because linking both instruments in one binary exceeds the runner cap)",
+      "red": "ko_not_cr=24, cycle_reachable=1300006 — the historical '24 natural violations' (T344/T363), exactly as T391's third-route simulation of the bug",
+      "green": "ko_not_cr=0, cycle_reachable=1300030 — the true reading",
+      "status": "red-then-green PASS"
+    },
+    {
+      "defect": "D — kb>>1 key-byte ko decode (T383 F-7, T380)",
+      "mutation": "keyByteKoShift(kb, ko_bits, shift=1) — the pre-fix kb>>1 leaked the side bit (bit 1) into the ko field; production is shift=2",
+      "differential": "key-byte differential (closure vs artifact2 contract)",
+      "red": "F-7 witnesses: kb=12 ko_bits=5 → ko=6 instead of 3; kb=66 → ko=1 instead of 16; whole-space sweep diverges first at kb=2 ko_bits=3 (closure ko=1 vs contract ko=0 — the side-bit leak itself)",
+      "green": "every byte agrees with the contract; witnesses decode 3 and 16",
+      "status": "red-then-green PASS"
+    }
+  ],
+  "infeasible_cells_recorded": [
+    {
+      "property": "I7 DTT",
+      "why": "the 3×3 WZO1 and WZO2 artifacts are different builds with different ko conventions; no cell has both formats of the same build",
+      "compensation": "I7 runs at every WZO1 rung (2×2/3×2/3×3/4×3 — known-fail today on the DTT column), A8 at every WZO2 rung (3×3/4×4 — pass); T388 §3's single-definition proposal (adopt A8's recurrence) is recorded for the Orchestrator"
+    },
+    {
+      "property": "closure C-A1/C-A2 at 4×4",
+      "why": "600M children / ~1.1 GB — genuinely scale-specific",
+      "compensation": "both instruments agree on the 4×4 verdict (0 children-not-in-table); 3×3 exhaustive in-suite; t380_ko_slot.zig counter is supplementary, not authoritative"
+    },
+    {
+      "property": "I5 cross-instrument at 4×4",
+      "why": "bitset/Tarjan 1.46B linear space, ~2.8 GB RSS (T344)",
+      "compensation": "vb_scc_4x4's own 4×4 exhaustive WZO2 test runs in-suite (ko_not_cr=0, 3,455,412 ko_sensitive); the 3×2 differential is the permanent cross-size gate"
+    }
+  ],
+  "demotion_proposals": {
+    "i4": "A2 (kernel) production for WZO2; vb_bellman_4x4 demoted to fixture behind i4_differential.zig (its independent R8 engine stays the oracle); vb_fixpoint.checkI4 stays production for WZO1. Cost: none — the differential already runs both; T343's 4×4 reading re-framed from certification to fixture agreement.",
+    "i5": "vb_scc_4x4 is the size-specific authority (T391 adjudicated it right); vb_graph.checkI5 stays production at ≤3×3 and becomes fixture at 3×2/4×3 behind i5_differential.zig. Cost: the battery's I5 rows become fixture readings, kept honest by the differential.",
+    "i7": "adopt A8's recurrence as the single definition; vb_fixpoint.checkI7 becomes the WZO1 fixture. Cost: moderate, blocked by the artifact-format split until a shared reader exists.",
+    "i11": "no demotion — vb_i11 is already the only production implementation; vb_fixpoint.checkI11 is dead (never executes) and should be wired as the battery's I11 runner or removed.",
+    "key_agreement": "no demotion; propose running T345's exhaustive form at 3×3 WZO2 so the exhaustive form has a small-rung differential rung.",
+    "closure": "declare closure WZO2-only; t380_ko_slot.zig's counter stays the supplementary 4×4 oracle, not production.",
+    "mutants": "reconcile the kill matrix (T388 D8) then port the WZO1 2×2 fixtures to WZO2 3×3 in-memory so both mutant corpora share a fixture. Moderate; deferred."
+  }
+}

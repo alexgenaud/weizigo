@@ -56,13 +56,15 @@ fn loadBytes(path: []const u8) ![]u8 {
 }
 
 /// Run both instruments on the same artifact (reachable-from-empty graph,
-/// WZO1) and require identical readings on every countable quantity.
-fn differential(
+/// WZO1) and return both results without asserting. `opts` may carry the
+/// T395 seeded-defect mutations for the general instrument.
+fn runBoth(
     allocator: std.mem.Allocator,
     comptime w: usize,
     comptime h: usize,
     artifact_path: []const u8,
-) !void {
+    opts: vb_graph.I5Opts,
+) !struct { general: vb_graph.I5Result, specific: vb_scc_4x4.Result } {
     const bytes = try loadBytes(artifact_path);
     defer allocator.free(bytes);
 
@@ -70,21 +72,37 @@ fn differential(
     var art = try vb_graph.loadArtifact(allocator, bytes);
     defer art.deinit(allocator);
 
-    const general = try vb_graph.checkI5(allocator, .{ .w = @intCast(w), .h = @intCast(h) }, &art, .{ .graph = .reachable });
+    const general = try vb_graph.checkI5(allocator, .{ .w = @intCast(w), .h = @intCast(h) }, &art, opts);
     const specific = try vb_scc_4x4.checkI5Small(allocator, w, h, bytes, false);
 
     std.debug.print("[I5-diff {d}x{d}] general: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d} koSensGraph={d} koNotCR={d} {s}\n", .{
-        w, h, general.nodes, general.edges, general.max_scc_size, general.cycle_involved,
-        general.cycle_reachable, general.ko_sensitive_graph, general.ko_sensitive_not_cycle_reachable,
-        @tagName(general.status),
+        w,                       h,                          general.nodes,                            general.edges,            general.max_scc_size, general.cycle_involved,
+        general.cycle_reachable, general.ko_sensitive_graph, general.ko_sensitive_not_cycle_reachable, @tagName(general.status),
     });
     std.debug.print("[I5-diff {d}x{d}] specific: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d} koSens={d} koNotCR={d} {s}\n", .{
-        w, h, specific.nodes, specific.edges, specific.max_scc_size, specific.cycle_involved,
-        specific.cycle_reachable, specific.ko_sensitive_count, specific.ko_not_cr,
-        @tagName(specific.status),
+        w,                        h,                           specific.nodes,     specific.edges,            specific.max_scc_size, specific.cycle_involved,
+        specific.cycle_reachable, specific.ko_sensitive_count, specific.ko_not_cr, @tagName(specific.status),
     });
+    return .{ .general = general, .specific = specific };
+}
 
-    // Identical readings, not just identical verdicts.
+/// True when every countable quantity agrees. The T388 requirement: verdict
+/// equality alone is not enough — a divergence on any of these numbers means
+/// the two instruments are not measuring the same property, even if both pass.
+fn readingsIdentical(general: vb_graph.I5Result, specific: vb_scc_4x4.Result) bool {
+    return general.nodes == specific.nodes and
+        general.edges == specific.edges and
+        general.max_scc_size == specific.max_scc_size and
+        general.cycle_involved == specific.cycle_involved and
+        general.cycle_reachable == specific.cycle_reachable and
+        general.ko_sensitive_graph == specific.ko_sensitive_count and
+        general.ko_sensitive_not_cycle_reachable == specific.ko_not_cr and
+        std.mem.eql(u8, @tagName(general.status), @tagName(specific.status));
+}
+
+/// Assert identical readings, not just identical verdicts.
+fn expectIdentical(general: vb_graph.I5Result, specific: vb_scc_4x4.Result) !void {
+    try std.testing.expect(readingsIdentical(general, specific));
     try std.testing.expectEqual(general.nodes, specific.nodes);
     try std.testing.expectEqual(general.edges, specific.edges);
     try std.testing.expectEqual(general.max_scc_size, specific.max_scc_size);
@@ -95,10 +113,98 @@ fn differential(
     try std.testing.expectEqualStrings(@tagName(general.status), @tagName(specific.status));
 }
 
+/// Run the differential clean (production knobs off) and require identical
+/// readings on every countable quantity.
+fn differential(
+    allocator: std.mem.Allocator,
+    comptime w: usize,
+    comptime h: usize,
+    artifact_path: []const u8,
+) !void {
+    const pair = try runBoth(allocator, w, h, artifact_path, .{ .graph = .reachable });
+    try expectIdentical(pair.general, pair.specific);
+}
+
 test "I5 cross-size differential 3×2 (reachable, artifacts/oracle-3x2.wzo)" {
     // page_allocator: the instruments' own allocations are not leak-free
     // under the testing allocator (and they are built for page_allocator).
     try differential(std.heap.page_allocator, 3, 2, "artifacts/oracle-3x2.wzo");
+}
+
+test "I5 Defect-A control (T391: passes==2 placement successors) fires the differential, then green" {
+    // T395: defects become test cases. Re-introduce vb_graph's Defect A
+    // (passes==2 states given placement successors) via the mutation knob and
+    // show the cross-size differential FIRES on it — the general instrument's
+    // readings return to the exact pre-fix values (third-route --buggy, and
+    // T388 Run A's E) and diverge from vb_scc_4x4's correct readings. Then
+    // the fixed production path must agree again (green). A differential
+    // never shown to fail is not evidence.
+    const allocator = std.heap.page_allocator;
+    const pair = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{
+        .graph = .reachable,
+        .mutate_passes2_placement = true,
+    });
+    // RED: the seeded defect reproduces the historical buggy readings…
+    try std.testing.expectEqual(@as(u64, 7_364), pair.general.edges); // pre-fix E
+    try std.testing.expectEqual(@as(u64, 2_520), pair.general.max_scc_size); // third-route --buggy
+    try std.testing.expectEqual(@as(u64, 2_523), pair.general.cycle_reachable); // pre-fix
+    // …and the differential fires: the pair is NOT identical.
+    try std.testing.expect(!readingsIdentical(pair.general, pair.specific));
+    std.debug.print("[I5 Defect-A control] differential FIRES on seeded passes==2 successors (general E={d} vs specific E={d})\n", .{ pair.general.edges, pair.specific.edges });
+
+    // GREEN: production knobs off — the pair agrees again.
+    const clean = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{ .graph = .reachable });
+    try expectIdentical(clean.general, clean.specific);
+    std.debug.print("[I5 Defect-A control] GREEN: fixed path agrees on every countable\n", .{});
+}
+
+test "I5 Defect-B control (T391: quadruple→triple SCC projection) fires the differential, then green" {
+    // Defect B: SCC sizes projected to (board,side,ko) triples. On the
+    // corrected graph this yields maxSCC=988 (measured; the historical
+    // pre-fix 1,000 came from triple projection ON TOP of the Defect-A
+    // graph — see the Defect-A+B control below). Either way the projection
+    // itself is the defect: the reading diverges from vb_scc_4x4's 1,676
+    // and the differential fires.
+    const allocator = std.heap.page_allocator;
+    const pair = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{
+        .graph = .reachable,
+        .mutate_triple_projection = true,
+    });
+    try std.testing.expectEqual(@as(u64, 5_510), pair.general.edges); // graph itself is correct
+    try std.testing.expectEqual(@as(u64, 988), pair.general.max_scc_size); // triple projection
+    try std.testing.expectEqual(@as(u64, 1_676), pair.specific.max_scc_size); // correct instrument
+    try std.testing.expect(!readingsIdentical(pair.general, pair.specific));
+    std.debug.print("[I5 Defect-B control] differential FIRES on seeded triple projection (general maxSCC={d} vs specific maxSCC={d})\n", .{ pair.general.max_scc_size, pair.specific.max_scc_size });
+
+    const clean = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{ .graph = .reachable });
+    try expectIdentical(clean.general, clean.specific);
+    std.debug.print("[I5 Defect-B control] GREEN: fixed path agrees on every countable\n", .{});
+}
+
+test "I5 Defect-A+B control (both mutations) reproduces the exact pre-fix binary readings (T388 Run B)" {
+    // The historical vb_graph before T391 had BOTH defects at once. T388
+    // Run B (reachable) recorded: V=2583 E=7364 maxSCC=1000 cycleInv=1000
+    // cycleReach=2523 SCCs total=64 ko_not_cr=0. The combined mutation must
+    // reproduce those numbers exactly — the differential fires on E, maxSCC,
+    // cycleInv, cycleReach and sccs_total, not just on one quantity.
+    const allocator = std.heap.page_allocator;
+    const pair = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{
+        .graph = .reachable,
+        .mutate_passes2_placement = true,
+        .mutate_triple_projection = true,
+    });
+    try std.testing.expectEqual(@as(u64, 2_583), pair.general.nodes);
+    try std.testing.expectEqual(@as(u64, 7_364), pair.general.edges);
+    try std.testing.expectEqual(@as(u64, 64), pair.general.sccs_total);
+    try std.testing.expectEqual(@as(u64, 1_000), pair.general.max_scc_size);
+    try std.testing.expectEqual(@as(u64, 1_000), pair.general.cycle_involved);
+    try std.testing.expectEqual(@as(u64, 2_523), pair.general.cycle_reachable);
+    try std.testing.expect(!readingsIdentical(pair.general, pair.specific));
+    std.debug.print("[I5 Defect-A+B control] differential FIRES: pre-fix readings reproduced exactly (E={d} maxSCC={d} cycleReach={d} sccs={d})\n", .{ pair.general.edges, pair.general.max_scc_size, pair.general.cycle_reachable, pair.general.sccs_total });
+
+    const clean = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{ .graph = .reachable });
+    try expectIdentical(clean.general, clean.specific);
+    std.debug.print("[I5 Defect-A+B control] GREEN: fixed path agrees on every countable\n", .{});
 }
 
 test "I5 cross-size differential 4×3 (reachable, artifacts/oracle-4x3.wzo) [env-gated]" {

@@ -1,0 +1,61 @@
+{
+  "task_id": "T395-context",
+  "date": "2026-08-06",
+  "model": "deepseek-v4-flash",
+  "identifier": "flash/T395",
+  "description": "Raw run outputs for T395 (one implementation per property): the four seeded-defect controls, the three wired differentials, and the full-suite baseline comparison. All runs under tools/runner (RSS guard 4 GB, docs/infra/runner.md), repo root, -O ReleaseFast (runner default), 2026-08-06. Commands are stated with the numbers.",
+  "runs": [
+    {
+      "label": "I5 Defect-A control (passes==2 placement successors)",
+      "command": "tools/runner -- zig test src/i5_differential.zig --cache-dir /tmp/weizigo/zigcache-t395 --test-filter 'Defect'",
+      "output": "[I5 Defect-A control] differential FIRES on seeded passes==2 successors (general E=7364 vs specific E=5510)\n[I5 Defect-A control] GREEN: fixed path agrees on every countable\n[I5 Defect-B control] differential FIRES on seeded triple projection (general maxSCC=988 vs specific maxSCC=1676)\n[I5 Defect-B control] GREEN: fixed path agrees on every countable\n[I5 Defect-A+B control] differential FIRES: pre-fix readings reproduced exactly (E=7364 maxSCC=1000 cycleReach=2523 sccs=64)\n[I5 Defect-A+B control] GREEN: fixed path agrees on every countable\n[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading\nAll 4 tests passed.",
+      "note": "Defect-C's test lives in vb_scc_4x4.zig and runs inside this binary because i5_differential imports the instrument (established T391 pattern). The 4×3 all-legal cell runs fine; what is env-gated at 4×3 is the cross-instrument pair in one process."
+    },
+    {
+      "label": "I5 Defect-C control (descending CR propagation), in the owning instrument",
+      "command": "tools/runner -- zig test src/vb_scc_4x4.zig --cache-dir /tmp/weizigo/zigcache-t395 --test-filter 'Defect-C'",
+      "output": "[T395 Defect-C control] RED: descending CR propagation reproduces the historical spurious ko_not_cr=24 (CR 1300006) — the differential would fire\n[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading\nAll 1 tests passed."
+    },
+    {
+      "label": "vb_scc_4x4 full suite (T395 Defect-C control added)",
+      "command": "tools/runner -- zig test src/vb_scc_4x4.zig --cache-dir /tmp/weizigo/zigcache-t395",
+      "output": "26/26 tests passed (was 25/25 at T391 HEAD; T395 added the Defect-C control). 4×4 exhaustive unchanged: V=99133036 E=565402416 maxSCC=47429504 ko_sens=3455412 ko_not_cr=0. 4×3 all-legal: V=1953602 E=6965904 maxSCC=1284078 ko_not_cr=0 ko_sens=170276 cr=1300030.",
+      "note": "log: /tmp/weizigo/t395-vbscc-full.log"
+    },
+    {
+      "label": "key-byte differential + F-7 control",
+      "command": "tools/runner -- zig test src/keybyte_differential.zig --cache-dir /tmp/weizigo/zigcache-t395 --test-filter 'key-byte'",
+      "output": "[keybyte-diff] GREEN: closure decode == artifact2 contract on all 256 bytes × 3 ko_bits rungs\n[keybyte-diff F-7] RED: seeded kb>>1 decode diverges from the contract (first at kb=2 ko_bits=3: closure ko=1 vs contract ko=0) — the differential fires\n[keybyte-diff F-7] GREEN: fixed path (kb>>2) agrees with the contract on every byte\nAll 2 tests passed."
+    },
+    {
+      "label": "I4 Bellman differential (R8 vs kernel, 3×3 WZO2)",
+      "command": "tools/runner -- zig test src/i4_differential.zig --cache-dir /tmp/weizigo/zigcache-t395 --test-filter 'I4 Bellman differential'",
+      "output": "[I4-diff 3x3] bellman(R8): entries=49428 clear=44020 set=5408 viol_clear=0 viol_set=0 missing=0 move_div=0 no_child=0 pass\n[I4-diff 3x3] A2(kernel): checked=49428 L_violations=0 H_violations=0 missing_child=0 stride=1 denominator=49428\n[I4-diff 3x3] GREEN: R8 and kernel engines agree on every countable — the two Φ operators measure the same property\nAll 1 tests passed."
+    },
+    {
+      "label": "vb_graph full suite after mutation knobs (production defaults)",
+      "command": "tools/runner -- zig test src/vb_graph.zig --cache-dir /tmp/weizigo/zigcache-t395",
+      "output": "All 8 tests passed. 2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162; 3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 — unchanged from T391."
+    },
+    {
+      "label": "full suite after T395 changes",
+      "command": "tools/runner -- zig build test",
+      "output": "exit 1 — same failure classes as the T391 baseline: test binaries whose tests all pass but that exit non-zero under the Zig 0.16 --listen=- runner quirk ('internal test runner failure: EndOfStream'; bellman/closure/oracle_v2_accept/battery steps, identical to T391's note), plus the 4 documented qa023_brute_2x2 budget-crash ABRTs. The three new differential steps (i4_diff, keybyte_diff, i5_diff with controls) are green; no new red introduced.",
+      "note": "T369 owns the suite-truth manifest; it was dispatchable, not live, when this row ran."
+    }
+  ],
+  "files": {
+    "src/vb_graph.zig": "I5Opts gains mutate_passes2_placement / mutate_triple_projection (default false); BFS/Tarjan/rev-adj guards conditional; Phase-3 metrics branch restores the pre-fix triple projection under mutation",
+    "src/i5_differential.zig": "runBoth/readingsIdentical/expectIdentical refactor; Defect-A, Defect-B, Defect-A+B controls added",
+    "src/vb_scc_4x4.zig": "checkI5Wzo1Bitset + runTarjanSccDag gain mutate_descending_cr (default false); Defect-C control test at 4×3 all-legal",
+    "src/vb_closure.zig": "keyByteKo made pub, refactored to keyByteKoShift(kb, ko_bits, shift); production shift=2",
+    "src/keybyte_differential.zig": "NEW — closure decode vs artifact2 contract over 256 bytes × ko_bits {3,4,5} + F-7 seeded control",
+    "src/i4_differential.zig": "NEW — vb_bellman_4x4 (R8) vs oracle_v2_accept.checkA2 (kernel) on data/oracle-3x3-v2.wzo2, exhaustive both sides",
+    "src/oracle_v2_accept.zig": "pub: parseHeader, Wzo2Group, readGroupIndex, entryData, checkA2, A2Result (consumed by i4_differential)",
+    "src/vb_bellman_4x4.zig": "colexSpace made pub (consumed by i4_differential)",
+    "build.zig": "wired i4_differential and keybyte_differential test steps",
+    "docs/infra/property-ownership.md": "ownership table + defect controls + differential inventory + demotion proposals (acceptance deliverable)",
+    "findings/T395-consolidation.json": "the four controls with red/green readings",
+    "findings/T395-context.json": "this file"
+  }
+}

@@ -180,7 +180,7 @@ const Wzo2Header = struct {
     sha256: [32]u8,
 };
 
-fn parseHeader(bytes: []const u8) !Wzo2Header {
+pub fn parseHeader(bytes: []const u8) !Wzo2Header {
     if (bytes.len < WZO2_HEADER_LEN) return error.Truncated;
 
     // magic
@@ -258,7 +258,7 @@ fn koBitsForSize(w: u8, h: u8) u8 {
 // Group index and entry access
 // =========================================================================
 
-const Wzo2Group = struct {
+pub const Wzo2Group = struct {
     colex: u32,
     entry_count: u8,
     /// Byte offset of this group's first entry within the entry data region
@@ -267,7 +267,7 @@ const Wzo2Group = struct {
 
 /// Read all group headers and compute cumulative entry offsets.
 /// Returns groups sorted by colex (they should already be sorted; validated).
-fn readGroupIndex(bytes: []const u8, header: Wzo2Header, gpa: std.mem.Allocator) ![]Wzo2Group {
+pub fn readGroupIndex(bytes: []const u8, header: Wzo2Header, gpa: std.mem.Allocator) ![]Wzo2Group {
     const n_groups: usize = @intCast(header.n_groups);
     const groups = try gpa.alloc(Wzo2Group, n_groups);
     errdefer gpa.free(groups);
@@ -314,7 +314,7 @@ fn findGroup(groups: []const Wzo2Group, colex_val: u32) ?usize {
 }
 
 /// Returns a slice of the entry data region.
-fn entryData(bytes: []const u8, header: Wzo2Header) []const u8 {
+pub fn entryData(bytes: []const u8, header: Wzo2Header) []const u8 {
     const entry_base: usize = @intCast(header.data_offset + header.n_groups * WZO2_GROUP_HEADER_SIZE);
     const entry_len: usize = @intCast(header.n_entries * WZO2_ENTRY_SIZE);
     return bytes[entry_base..][0..entry_len];
@@ -726,7 +726,7 @@ const A4Result = struct {
 //
 // Exhaustive at 2x2/3x2/3x3, sampled with prime stride at 4x4.
 
-fn checkA2(
+pub fn checkA2(
     header: Wzo2Header,
     groups: []const Wzo2Group,
     entries: []const u8,
@@ -905,7 +905,7 @@ fn checkA2Inner(
     };
 }
 
-const A2Result = struct {
+pub const A2Result = struct {
     checked: u64,
     L_violations: u64,
     H_violations: u64,

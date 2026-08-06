@@ -154,9 +154,21 @@ fn keyBytePasses(kb: u8, ko_bits: u8) u2 {
 /// decoder in src/ (differential.zig:1278, oracle_v2_accept.zig:122,
 /// vb_bellman_4x4.zig:164, vb_scc_4x4.zig:205, t380_census.zig:187,
 /// t382_census.zig:820) already used `>> 2`.
-fn keyByteKo(kb: u8, ko_bits: u8) u8 {
+///
+/// pub so the T395 key-byte differential (src/keybyte_differential.zig) can
+/// compare this decoder against the artifact2 contract over the whole byte
+/// space; the `keyByteKoShift` variant carries the T395 F-7 seeded-defect
+/// control (shift=1 reproduces the historical bug).
+pub fn keyByteKo(kb: u8, ko_bits: u8) u8 {
+    return keyByteKoShift(kb, ko_bits, 2);
+}
+
+/// The decode with an explicit ko-field shift. Production uses shift=2 (the
+/// artifact2 contract). shift=1 reproduces the T383 F-7 defect — the ko
+/// field reads `kb >> 1`, leaking the side bit (bit 1) into the ko field.
+pub fn keyByteKoShift(kb: u8, ko_bits: u8, shift: u3) u8 {
     const mask: u8 = if (ko_bits == 0) 0 else @intCast((@as(u16, 1) << @intCast(ko_bits)) - 1);
-    return @intCast((kb >> 2) & mask); // ko field at bits 2..(1+ko_bits), artifact2 §2.2
+    return @intCast((kb >> shift) & mask); // ko field at bits 2..(1+ko_bits), artifact2 §2.2
 }
 
 /// Extract terminal flag from key_byte.

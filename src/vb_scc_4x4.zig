@@ -267,10 +267,22 @@ fn neighbors(comptime w: usize, comptime h: usize, p: usize, buf: *[4]usize) usi
     var cnt: usize = 0;
     const row = p / w;
     const col = p % w;
-    if (row > 0) { buf[cnt] = p - w; cnt += 1; }
-    if (row + 1 < h) { buf[cnt] = p + w; cnt += 1; }
-    if (col > 0) { buf[cnt] = p - 1; cnt += 1; }
-    if (col + 1 < w) { buf[cnt] = p + 1; cnt += 1; }
+    if (row > 0) {
+        buf[cnt] = p - w;
+        cnt += 1;
+    }
+    if (row + 1 < h) {
+        buf[cnt] = p + w;
+        cnt += 1;
+    }
+    if (col > 0) {
+        buf[cnt] = p - 1;
+        cnt += 1;
+    }
+    if (col + 1 < w) {
+        buf[cnt] = p + 1;
+        cnt += 1;
+    }
     return cnt;
 }
 
@@ -479,7 +491,11 @@ pub fn checkI5Small(
             }
             var i: usize = 0;
             while (i < n) : (i += 1) {
-                if (digits[i] == 2) { digits[i] = 0; pos[i] = 0; continue; }
+                if (digits[i] == 2) {
+                    digits[i] = 0;
+                    pos[i] = 0;
+                    continue;
+                }
                 digits[i] += 1;
                 pos[i] = if (digits[i] == 1) @as(i8, 1) else @as(i8, -1);
                 break;
@@ -944,7 +960,7 @@ fn checkI5Wzo2(
                 // Reconstruct state from entry
                 const gi = findGroupForEntry(entry_starts, v);
                 const colex = std.mem.readInt(u32, groups[gi * WZO2_GROUP_HEADER_SIZE ..][0..4], .little);
-                    _ = v - entry_starts[gi]; // local_idx
+                _ = v - entry_starts[gi]; // local_idx
                 const ent_off: usize = @intCast(v * WZO2_ENTRY_SIZE);
                 const ent = entries[ent_off..][0..WZO2_ENTRY_SIZE];
                 const kb = ent[0];
@@ -1162,7 +1178,9 @@ fn checkI5Wzo2(
     }
 
     var cycle_reachable_count: u64 = 0;
-    for (cr) |b| { if (b) cycle_reachable_count += 1; }
+    for (cr) |b| {
+        if (b) cycle_reachable_count += 1;
+    }
 
     // ── KO_SENSITIVE containment check ────────────────────────────────
     var ko_not_cr: u64 = 0;
@@ -1377,12 +1395,16 @@ fn isLegalPosition(comptime w: usize, comptime h: usize, pos: *const [w * h]i8) 
 ///
 /// `all_legal_seed`: if true, seeds BFS from all legal positions instead
 /// of just the empty-board root. Required for seeded-defect control.
+/// `mutate_descending_cr`: T395 seeded-defect control — re-introduce the
+/// T391 Defect C: process SCC ids DESCENDING in the CR propagation instead
+/// of ascending. Default false = production readings.
 fn checkI5Wzo1Bitset(
     allocator: std.mem.Allocator,
     comptime w: usize,
     comptime h: usize,
     artifact_bytes: []const u8,
     all_legal_seed: bool,
+    mutate_descending_cr: bool,
 ) !Result {
     const n = w * h;
     const total: u64 = pow3(@intCast(n));
@@ -1439,7 +1461,11 @@ fn checkI5Wzo1Bitset(
             }
             var i: usize = 0;
             while (i < n) : (i += 1) {
-                if (digits[i] == 2) { digits[i] = 0; pos[i] = 0; continue; }
+                if (digits[i] == 2) {
+                    digits[i] = 0;
+                    pos[i] = 0;
+                    continue;
+                }
                 digits[i] += 1;
                 pos[i] = if (digits[i] == 1) @as(i8, 1) else @as(i8, -1);
                 break;
@@ -1455,7 +1481,8 @@ fn checkI5Wzo1Bitset(
     // BFS
     var qhead: usize = 0;
     while (qhead < queue.items.len) {
-        const cur = queue.items[qhead]; qhead += 1;
+        const cur = queue.items[qhead];
+        qhead += 1;
         const dec = decodeLin(cur, stride, sub_stride);
         if (dec.passes >= 2) continue;
         const colour: i8 = if (dec.side == 0) @as(i8, 1) else @as(i8, -1);
@@ -1512,7 +1539,7 @@ fn checkI5Wzo1Bitset(
     }
 
     // Tarjan with on-the-fly children + SCC DAG
-    var out = try runTarjanSccDag(allocator, w, h, @intCast(n), stride, sub_stride, fb, fw, Vi, dense_to_linear, linear_to_dense, space);
+    var out = try runTarjanSccDag(allocator, w, h, @intCast(n), stride, sub_stride, fb, fw, Vi, dense_to_linear, linear_to_dense, space, mutate_descending_cr);
     // Fold this function's ledger into the Tarjan result: the artifact and
     // bitset/queue allocations live here, not in runTarjanSccDag.
     out.mem_file_bytes = res.mem_file_bytes;
@@ -1562,15 +1589,18 @@ fn runTarjanSccDag(
     dense_to_linear: []const u64,
     linear_to_dense: []const u32,
     space: u64,
+    mutate_descending_cr: bool,
 ) !Result {
     const ko_none = n;
 
     var index = try allocator.alloc(i32, Vi);
-    defer allocator.free(index); @memset(index, -1);
+    defer allocator.free(index);
+    @memset(index, -1);
     var lowlink = try allocator.alloc(u32, Vi);
     defer allocator.free(lowlink);
     var onstack = try allocator.alloc(bool, Vi);
-    defer allocator.free(onstack); @memset(onstack, false);
+    defer allocator.free(onstack);
+    @memset(onstack, false);
     var scc_stack = try std.ArrayListUnmanaged(u32).initCapacity(allocator, Vi);
     defer scc_stack.deinit(allocator);
     var comp = try allocator.alloc(u32, Vi);
@@ -1681,8 +1711,16 @@ fn runTarjanSccDag(
     defer allocator.free(comp_sizes);
     @memset(comp_sizes, 0);
     for (comp) |c| comp_sizes[c] += 1;
-    var non_trivial: u64 = 0; var max_scc: u64 = 0; var cycle_involved: u64 = 0;
-    for (comp_sizes) |sz| { if (sz >= 2) { non_trivial += 1; cycle_involved += sz; if (sz > max_scc) max_scc = sz; } }
+    var non_trivial: u64 = 0;
+    var max_scc: u64 = 0;
+    var cycle_involved: u64 = 0;
+    for (comp_sizes) |sz| {
+        if (sz >= 2) {
+            non_trivial += 1;
+            cycle_involved += sz;
+            if (sz > max_scc) max_scc = sz;
+        }
+    }
 
     // ── SCC cycle-reachable: single pass in POP order ──────────────────
     // CR(c) is a backward property: c is cycle-reachable iff some successor
@@ -1706,11 +1744,18 @@ fn runTarjanSccDag(
     res.mem_cr = ncomp * @sizeOf(bool);
     res.mem_scc_rep = scc_rep.len * @sizeOf(u32);
     res.mem_comp_sizes = ncomp * @sizeOf(u32);
-    for (0..ncomp) |c| { if (comp_sizes[c] >= 2) scc_cr[c] = true; }
+    for (0..ncomp) |c| {
+        if (comp_sizes[c] >= 2) scc_cr[c] = true;
+    }
 
     // Process ids ascending (sinks → sources): successors before predecessors.
-    for (0..ncomp) |c0| {
-        const c: u32 = @intCast(c0);
+    // T395 Defect-C control: mutate_descending_cr re-introduces the pre-fix
+    // order (ncomp-1 → 0), which examined a trivial SCC before its
+    // successors' CR status was known. At 4×3 all-legal that produced the
+    // spurious "24 natural violations" (CR 1,300,006 vs the correct
+    // 1,300,030; T391 third-route simulation).
+    for (0..ncomp) |idx| {
+        const c: u32 = if (mutate_descending_cr) @intCast(ncomp - 1 - idx) else @intCast(idx);
         if (scc_cr[c]) continue; // already CR (non-trivial or propagated)
         // Trivial SCC: compute children of its representative vertex
         const rep_v = scc_rep[c];
@@ -1742,13 +1787,21 @@ fn runTarjanSccDag(
                 ko_sens += 1;
                 if (!scc_cr[comp[v]]) ko_not_cr += 1;
             }
-            if (sh_colex == null and !scc_cr[comp[v]]) { sh_colex = dec.colex; sh_side = dec.side; }
-            if (sh_clear_colex == null and !scc_cr[comp[v]] and !is_ko_sensitive) { sh_clear_colex = dec.colex; sh_clear_side = dec.side; }
+            if (sh_colex == null and !scc_cr[comp[v]]) {
+                sh_colex = dec.colex;
+                sh_side = dec.side;
+            }
+            if (sh_clear_colex == null and !scc_cr[comp[v]] and !is_ko_sensitive) {
+                sh_clear_colex = dec.colex;
+                sh_clear_side = dec.side;
+            }
         }
     }
 
     var cr_count: u64 = 0;
-    for (0..Vi) |v| { if (scc_cr[comp[v]]) cr_count += 1; }
+    for (0..Vi) |v| {
+        if (scc_cr[comp[v]]) cr_count += 1;
+    }
 
     res.nodes = Vi;
     res.edges = total_edges;
@@ -1861,7 +1914,7 @@ test "vb_scc_4x4: 3×2 calibration — SCC structure + clean check" {
 
     // Diagnostic
     std.debug.print("\n[3x2 diag] V={d} E={d} maxSCC={d} nSCC_non_trivial={d} cycle_involved={d} cycle_reachable={d} ko_sens={d} ko_not_cr={d}\n", .{
-        result.nodes, result.edges, result.max_scc_size, result.scc_non_trivial,
+        result.nodes,          result.edges,           result.max_scc_size,       result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
 
@@ -1961,10 +2014,10 @@ test "vb_scc_4x4: 4×3 calibration — clean check passes" {
     const bytes = try std.Io.Dir.cwd().readFileAlloc(io, artifact_path, allocator, .unlimited);
     defer allocator.free(bytes);
 
-    const result = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, false);
+    const result = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, false, false);
 
     std.debug.print("\n[4x3] V={d} E={d} maxSCC={d} nSCC_nt={d} cycle_inv={d} cycle_reach={d} ko_sens={d} ko_not_cr={d}\n", .{
-        result.nodes, result.edges, result.max_scc_size, result.scc_non_trivial,
+        result.nodes,          result.edges,           result.max_scc_size,       result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
     std.debug.print("  seed_hint_colex={?d} seed_hint_side={?d}\n", .{ result.seed_hint_colex, result.seed_hint_side });
@@ -1993,12 +2046,12 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
     defer allocator.free(bytes);
 
     // GREEN: clean check on reachable-from-empty graph
-    const clean = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, false);
+    const clean = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, false, false);
     try std.testing.expectEqual(Status.pass, clean.status);
     try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
 
     // Find a non-CR passes=0 state in the all-legal graph
-    const all_legal = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
+    const all_legal = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
     std.debug.print("\n[4x3 all-legal] V={d} E={d} scc_nt={d} maxSCC={d} ko_not_cr={d} ko_sens={d} cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.edges, all_legal.scc_non_trivial, all_legal.max_scc_size, all_legal.ko_not_cr, all_legal.ko_sensitive_count, all_legal.cycle_reachable, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
 
     // T391: with the CR-propagation order fixed, the 4×3 all-legal graph is
@@ -2029,16 +2082,59 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
 
     // RED: spurious KO_SENSITIVE → ko_not_cr increases
     bytes[flag_idx] = old_flag | 1;
-    const corrupted = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
+    const corrupted = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
     try std.testing.expectEqual(Status.fail, corrupted.status);
     try std.testing.expect(corrupted.ko_not_cr > all_legal.ko_not_cr);
     std.debug.print("[4x3 seeded-defect RED] ko_not_cr={d} (baseline was {d})\n", .{ corrupted.ko_not_cr, all_legal.ko_not_cr });
 
     // Restore and verify
     bytes[flag_idx] = old_flag;
-    const restored = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true);
+    const restored = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
     try std.testing.expectEqual(restored.ko_not_cr, all_legal.ko_not_cr);
     std.debug.print("[4x3 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
+}
+
+test "vb_scc_4x4: T395 Defect-C control — descending CR propagation order fires (red), ascending is green" {
+    // T391 Defect C: runTarjanSccDag's cycle-reachable propagation processed
+    // SCC ids DESCENDING (sources first), so a trivial SCC was examined
+    // before its successors' CR status was known and was never marked CR
+    // unless a child was already marked. At 4×3 all-legal this fabricated
+    // the "24 natural violations" (T344/T363): CR 1,300,006 vs the true
+    // 1,300,030, ko_not_cr=24 vs 0. T391's third-route simulation
+    // reproduced both orders exactly.
+    //
+    // T395: defects become test cases. The seeded mutation must reproduce
+    // the historical spurious reading exactly (RED — the differential would
+    // fire on it), and the production path must return the true reading
+    // (GREEN). The 4×3 cell of the cross-size differential is env-gated for
+    // RSS (linking both instruments in one binary exceeds the runner cap,
+    // T391), so this control runs inside the size-specific instrument where
+    // the 4×3 all-legal cell already lives in-suite.
+    const allocator = std.heap.page_allocator;
+    const artifact_path = "artifacts/oracle-4x3.wzo";
+
+    var threaded = std.Io.Threaded.init(std.heap.page_allocator, .{});
+    const io = threaded.io();
+    const bytes = try std.Io.Dir.cwd().readFileAlloc(io, artifact_path, allocator, .unlimited);
+    defer allocator.free(bytes);
+
+    // GREEN: production path, 4×3 all-legal (same cell as the existing
+    // seeded-defect test).
+    const clean = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
+    try std.testing.expectEqual(Status.pass, clean.status);
+    try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
+    try std.testing.expectEqual(@as(u64, 1_300_030), clean.cycle_reachable); // third-route true reading
+
+    // RED: seeded descending order reproduces the historical spurious reading.
+    const seeded = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, true);
+    try std.testing.expectEqual(@as(u64, 24), seeded.ko_not_cr); // the fabricated "24 natural violations"
+    try std.testing.expectEqual(@as(u64, 1_300_006), seeded.cycle_reachable); // T391 simulation of the bug
+    try std.testing.expectEqual(Status.fail, seeded.status);
+    std.debug.print("[T395 Defect-C control] RED: descending CR propagation reproduces the historical spurious ko_not_cr={d} (CR {d}) — the differential would fire\n", .{ seeded.ko_not_cr, seeded.cycle_reachable });
+
+    // GREEN again: ascending order is correct.
+    try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
+    std.debug.print("[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading\n", .{});
 }
 
 test "vb_scc_4x4: 4×4 seeded-defect — spurious L!=H on a non-cycle-reachable entry → red-then-green" {
@@ -2119,7 +2215,7 @@ test "vb_scc_4x4: 4×4 WZO2 — ko_not_cr == 0" {
     };
 
     std.debug.print("[4x4] V={d} E={d} maxSCC={d} nSCC_nt={d} cycle_inv={d} cycle_reach={d} ko_sens={d} ko_not_cr={d}\n", .{
-        result.nodes, result.edges, result.max_scc_size, result.scc_non_trivial,
+        result.nodes,          result.edges,           result.max_scc_size,       result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
     printMemBreakdown(result, "4x4");

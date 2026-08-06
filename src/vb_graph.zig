@@ -69,6 +69,22 @@ pub const I5Opts = struct {
     graph: I5Graph = .all_legal,
     /// seed for PRNG (sampled mode, not used in exhaustive calibration)
     seed: u64 = 31337,
+    /// T395 seeded-defect control knobs (default false = production readings).
+    /// Re-introduce the two defects T391 fixed (2026-08-06) so the I5
+    /// differential can demonstrate it fires on each:
+    //
+    //  mutate_passes2_placement  — Defect A: give passes==2 states placement
+    //  successors although two passes end the game. Pre-fix 3×2 readings:
+    //  E=7,364 (vs 5,510), SCCs total=64 (vs 908), cycle_reachable=2,523
+    //  (vs 1,678), maxSCC=2,520 at quadruple level (third-route --buggy).
+    //
+    //  mutate_triple_projection  — Defect B: project SCC metrics to unique
+    //  (board, side, ko) triples instead of the (board, side, ko, passes)
+    //  quadruple. Pre-fix 3×2 maxSCC=1,000 (vs 1,676). With both defects
+    //  together the pre-fix binary produced maxSCC=1,000, cycleInv=1,000,
+    //  cycleReach=2,523 (T388 Run A).
+    mutate_passes2_placement: bool = false,
+    mutate_triple_projection: bool = false,
 };
 
 pub const I5Status = enum {
@@ -591,8 +607,10 @@ fn checkI5Comptime(
         // and have NO outgoing moves. (T391 fix: the previous code generated
         // placement moves from passes==2 states, inflating E and
         // cycle-reachable and merging SCCs — 3×2 E=7,364 vs the register
-        // 5,510; SCCs 64 vs 908. "Pass edges are terminal cut-edges".)
-        if (decoded.passes >= 2) continue;
+        // 5,510; SCCs 64 vs 908. "Pass edges are terminal cut-edges".
+        // T395: opts.mutate_passes2_placement re-introduces the pre-fix
+        // behaviour as a seeded-defect control.)
+        if (decoded.passes >= 2 and !opts.mutate_passes2_placement) continue;
         const pos = C.pos_from_colex(decoded.colex_idx);
         const colour: i8 = if (decoded.side == 0) 1 else -1;
         const other_side: u1 = if (decoded.side == 0) 1 else 0;
@@ -627,10 +645,17 @@ fn checkI5Comptime(
 
     const V = dense_to_linear.items.len;
     // Count passes levels for diagnostic
-    var p0: u64 = 0; var p1: u64 = 0; var p2: u64 = 0;
+    var p0: u64 = 0;
+    var p1: u64 = 0;
+    var p2: u64 = 0;
     for (dense_to_linear.items) |lin| {
         const dec = decodeNode(n, lin);
-        switch (dec.passes) { 0 => p0 += 1, 1 => p1 += 1, 2 => p2 += 1, else => {} }
+        switch (dec.passes) {
+            0 => p0 += 1,
+            1 => p1 += 1,
+            2 => p2 += 1,
+            else => {},
+        }
     }
     std.debug.print("[I5] BFS: V={d} nodes, E={d} edges  (p0={d} p1={d} p2={d})\n", .{ V, bfs_edge_count, p0, p1, p2 });
 
@@ -688,9 +713,16 @@ fn checkI5Comptime(
             // Collect successors (full graph including pass edges).
             // passes==2 states are terminal (two passes end the game):
             // no placement and no pass edge out of them. (T391.)
+            // T395: mutate_passes2_placement re-introduces the pre-fix
+            // unconditional placement loop. Pass edges stay guarded by
+            // passes<2 even under mutation: a pass out of a passes==2 state
+            // would encode passes=3, which collides with the (ko+1, passes=0)
+            // node (encodeNode's u2 passes field) — the pre-fix code had the
+            // same separate guard, and the third-route --buggy reproduction
+            // depends on it.
             var children: [n + 1]u32 = undefined;
             var child_count: usize = 0;
-            if (decoded.passes < 2) {
+            if (decoded.passes < 2 or opts.mutate_passes2_placement) {
                 for (0..n) |cell| {
                     if (pos[cell] != 0) continue;
                     const result = K.apply_move(&pos, colour, cell, ko_forbidden) catch continue;
@@ -701,6 +733,8 @@ fn checkI5Comptime(
                         child_count += 1;
                     }
                 }
+            }
+            if (decoded.passes < 2) {
                 const pass_linear = encodeNode(n, decoded.colex_idx, other_side, K.KoNone, decoded.passes + 1);
                 if (visited.get(pass_linear)) |pass_dense| {
                     children[child_count] = pass_dense;
@@ -766,22 +800,59 @@ fn checkI5Comptime(
     // instrument (vb_scc_4x4) and the committed Python reference exactly.
 
     const ncomp = tarjan_ncomp;
-    var comp_sizes = try gpa.alloc(u32, ncomp);
-    defer gpa.free(comp_sizes);
-    @memset(comp_sizes, 0);
-    for (tarjan_comp[0..V]) |comp_id| {
-        comp_sizes[comp_id] += 1;
-    }
 
+    // T395 Defect-B control: when opts.mutate_triple_projection is set,
+    // reproduce the pre-fix (board,side,ko) TRIPLE projection of SCC sizes
+    // (T391): maxSCC=1,000 at 3×2 vs the register's 1,676, and the mixed
+    // level mix (cycle_involved triple-projected, cycle_reachable seeded on
+    // triple counts but counted on quadruple vertices). Production path
+    // (default) stays at the quadruple level the register is stated in.
+    var comp_sizes: ?[]u32 = null;
+    var comp_triple_counts: ?[]u32 = null;
+    defer if (comp_sizes) |cs| gpa.free(cs);
+    defer if (comp_triple_counts) |cc| gpa.free(cc);
     var max_scc: u32 = 0;
     var non_trivial: u32 = 0;
     var cycle_involved_count: u64 = 0;
-    for (comp_sizes[0..ncomp]) |sz| {
-        if (sz >= 2) {
-            non_trivial += 1;
-            cycle_involved_count += sz;
+    if (opts.mutate_triple_projection) {
+        var comp_triple_sets = try gpa.alloc(std.AutoHashMap(u64, void), ncomp);
+        defer {
+            for (comp_triple_sets[0..ncomp]) |*s| s.deinit();
+            gpa.free(comp_triple_sets);
         }
-        if (sz > max_scc) max_scc = sz;
+        for (comp_triple_sets[0..ncomp]) |*s| s.* = std.AutoHashMap(u64, void).init(gpa);
+
+        for (tarjan_comp[0..V], dense_to_linear.items) |comp_id, linear| {
+            const dec = decodeNode(n, linear);
+            const triple_key = dec.colex_idx * (2 * @as(u64, n + 1)) +
+                @as(u64, dec.side) * @as(u64, n + 1) +
+                (if (dec.ko_point == n) 0 else @as(u64, dec.ko_point) + 1);
+            try comp_triple_sets[@intCast(comp_id)].put(triple_key, {});
+        }
+        comp_triple_counts = try gpa.alloc(u32, ncomp);
+        for (comp_triple_sets[0..ncomp], 0..) |*set, i| {
+            comp_triple_counts.?[i] = @intCast(set.count());
+        }
+        for (comp_triple_counts.?) |sz| {
+            if (sz > max_scc) max_scc = sz;
+            if (sz >= 2) non_trivial += 1;
+        }
+        for (comp_triple_counts.?) |sz| {
+            if (sz >= 2) cycle_involved_count += sz;
+        }
+    } else {
+        comp_sizes = try gpa.alloc(u32, ncomp);
+        @memset(comp_sizes.?, 0);
+        for (tarjan_comp[0..V]) |comp_id| {
+            comp_sizes.?[comp_id] += 1;
+        }
+        for (comp_sizes.?[0..ncomp]) |sz| {
+            if (sz >= 2) {
+                non_trivial += 1;
+                cycle_involved_count += sz;
+            }
+            if (sz > max_scc) max_scc = sz;
+        }
     }
 
     // Cycle-reachable: vertices that can reach a non-trivial SCC.
@@ -797,7 +868,9 @@ fn checkI5Comptime(
     for (0..V) |v| {
         const cur_linear = dense_to_linear.items[v];
         const decoded = decodeNode(n, cur_linear);
-        if (decoded.passes >= 2) continue; // terminal: no outgoing edges
+        // T395: mutate_passes2_placement re-introduces the pre-fix missing
+        // guard (passes==2 vertices got placement predecessors/children).
+        if (decoded.passes >= 2 and !opts.mutate_passes2_placement) continue; // terminal: no outgoing edges
         const pos = C.pos_from_colex(decoded.colex_idx);
         const colour: i8 = if (decoded.side == 0) 1 else -1;
         const other_side: u1 = if (decoded.side == 0) 1 else 0;
@@ -812,9 +885,15 @@ fn checkI5Comptime(
                 try rev_adj[child_dense].append(gpa, @intCast(v));
             }
         }
-        const pass_linear = encodeNode(n, decoded.colex_idx, other_side, K.KoNone, decoded.passes + 1);
-        if (visited.get(pass_linear)) |pass_dense| {
-            try rev_adj[pass_dense].append(gpa, @intCast(v));
+        // Pass edges stay guarded by passes<2 even under the T395 Defect-A
+        // mutation: a pass out of a passes==2 state collides with the
+        // (ko+1, passes=0) node (see the Tarjan guard above). The pre-fix
+        // code had this exact separate guard.
+        if (decoded.passes < 2) {
+            const pass_linear = encodeNode(n, decoded.colex_idx, other_side, K.KoNone, decoded.passes + 1);
+            if (visited.get(pass_linear)) |pass_dense| {
+                try rev_adj[pass_dense].append(gpa, @intCast(v));
+            }
         }
     }
 
@@ -828,7 +907,11 @@ fn checkI5Comptime(
 
     for (0..V) |v| {
         const comp_id = tarjan_comp[v];
-        if (comp_sizes[comp_id] >= 2) {
+        const in_cycle_comp = if (opts.mutate_triple_projection)
+            comp_triple_counts.?[@intCast(comp_id)] >= 2
+        else
+            comp_sizes.?[comp_id] >= 2;
+        if (in_cycle_comp) {
             cycle_reachable_set[v] = true;
             try rev_queue.append(gpa, @intCast(v));
         }
@@ -1039,7 +1122,8 @@ test "I5 calibration: 3x2 reachable graph" {
 
 // ─── standalone calibration runner ─────────────────────────────────────────
 
-pub fn main(init: std.process.Init) !void { _ = init;
+pub fn main(init: std.process.Init) !void {
+    _ = init;
     var threaded = std.Io.Threaded.init(std.heap.page_allocator, .{});
     const io = threaded.io();
     const gpa = std.heap.page_allocator;

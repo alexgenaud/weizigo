@@ -610,7 +610,7 @@ fn vbmPosFromColex(w: usize, h: usize, colex: u32, out: []i8) void {
     }
 }
 
-fn colexSpace(n: usize) u64 {
+pub fn colexSpace(n: usize) u64 {
     return switch (n) {
         4 => 81,
         6 => 729,
