@@ -57,5 +57,7 @@
     "docs/infra/property-ownership.md": "ownership table + defect controls + differential inventory + demotion proposals (acceptance deliverable)",
     "findings/T395-consolidation.json": "the four controls with red/green readings",
     "findings/T395-context.json": "this file"
-  }
+  },
+  "claims": [],
+  "notes": "CONFORMANCE REPAIR by claude-opus-5/orcha 2026-08-06: added the required claims key as EMPTY and deliberately no new_rows — this is a context dump, and per DELEGATEE.md Reporting a dump's claims[]/new_rows[] must be empty so its content is not double-counted in C7 against findings/T395-consolidation.json."
 }

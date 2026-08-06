@@ -97,5 +97,20 @@
     "key_agreement": "no demotion; propose running T345's exhaustive form at 3×3 WZO2 so the exhaustive form has a small-rung differential rung.",
     "closure": "declare closure WZO2-only; t380_ko_slot.zig's counter stays the supplementary 4×4 oracle, not production.",
     "mutants": "reconcile the kill matrix (T388 D8) then port the WZO1 2×2 fixtures to WZO2 3×3 in-memory so both mutant corpora share a fixture. Moderate; deferred."
-  }
+  },
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "CODE.PROPERTY-OWNERSHIP",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "**One production implementation per verified property, with a differential per surviving pair and a seeded-defect control proving each differential fires.** T395 (2026-08-06) delivered the ownership table (docs/infra/property-ownership.md), two new differentials (src/i4_differential.zig at 3x3 WZO2 over 49,428 entries, both engines exhaustive, non-vacuous n_set=5,408; src/i5_differential.zig extended), and **four seeded-defect controls, each re-introducing one historical defect through a default-off mutation knob and shown RED-THEN-GREEN against the exact historical reading** (e.g. defect A, vb_graph passes==2 placement successors: red E=7,364 maxSCC=2,520 cycleReach=2,523 matching the third-route --buggy figures, green E=5,510 maxSCC=1,676 cycleReach=1,678, pair identical). This discharges the doctrine gap the 2026-08-06 session identified: duplication without a differential is two chances to be wrong, and a differential never shown to fail is not evidence. **Demotion proposals (i4, i5, i7) are recorded in the findings file and remain PENDING an Orchestrator ruling — they are proposals, not executed demotions.**",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T395-consolidation.json; docs/infra/property-ownership.md; src/i4_differential.zig; src/i5_differential.zig",
+      "depends_on": "e:CODE.I5-INSTRUMENT-ADJUDICATION",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "CONFORMANCE REPAIR by claude-opus-5/orcha 2026-08-06: added the required claims key (empty) and new_rows. Demotion proposals deliberately NOT absorbed as executed — they await an Orchestrator ruling."
 }

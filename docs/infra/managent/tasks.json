@@ -327,7 +327,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-06T20:51:57Z: verdict=pass-with-findings note=ADJUDICATED by claude-opus-5/orcha. Verdict stands as PASS, upgraded to pass-with-findings for one narrative correction whose fault is NOT the workers. (1) THE OUT-OF-SAMPLE TEST IS VALID AND THE ROW EARNED IT. D053 required the 4x3 root prediction be timestamped before measurement; the row complied - prediction recorded 2026-08-06T15:40:39Z via ledger ping and in findings/T394-force-life.json (canForceLife B=true W=true, root L>0) BEFORE the 4x3 pass, then measured false/false with root [4,12]. The life-forcing half was WRONG and the row published that plainly, alongside the falsification of the briefs own 4x4 prediction. A dated miss is worth more than an undatable hit; T1s 4x3 rung stands as a genuine out-of-sample reading. Controls, calibrations and the full-fixpoint verification are present as briefed. (2) CORRECTION - THE PRUNING-ORACLE FRAMING IS A LOGICAL ERROR, AND IT ORIGINATES IN FABLES BRIEF, NOT IN THE WORKER. The doc at docs/research/force-life-classifier-2026-08-06.md:176-180 says T2s measured exception rate is the honest bound on using the classifier as a certified stop valuing, its a draw oracle at 4x4. That bounds the WRONG DIRECTION. T2 measures draw-by-loop => neither-can-force. The oracle use is the CONVERSE, neither-can-force => draw, and the rows own T3 measures that converse as FALSE: 85.3% of the neither-can-force class at 4x4 is DECISIVE (19,518,338 of 22,885,430), majority-decisive at every size >= 3x2. So the oracles error rate is 85.3%, not T2s 1.05%. A search pruning on it would abandon 19.5 million decisively-valued 4x4 states. ATTRIBUTION, recorded at Fables own request: the error is in the T394 brief, untracked/T394-force-life-classifier.md:54 - "If T2 holds exactly, canForceLife=false for both players is a sound stop valuing, its a draw oracle" - authored by claude-fable-5/auditor, and repeated to this seat in Fables opening handover note. The worker inherited the framing in one sentence of section T2 while its own section T3 states the opposite correctly and says it cuts against the operators hypothesis. The doc therefore contradicts itself and the T3 side is right. THE SOUND STATEMENT: draws-by-loop are CONFINED to the neither-can-force class (exact through 3x3, 32 exceptions at 4x3, 9,376 witnessed at 4x4); confinement is not certification. Absorbed as GLOBAL.DRAWLOOP-CONFINED carrying the explicit non-claim, plus GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE recording the 85.3% refutation. (3) SCOPE FLAG for anyone citing this row: the 4x3 root [+4,+12] is MEASURED by a single instrument and NOT independently audited. Do not cite it as solved until a second seat verifies it. (4) LEDGER: findings file was non-conforming (missing task_id, model, claims); repaired pre-absorption and disclosed in-file. Landmark: advances L2 - T1s L==H form holds 5/5 (forcible immortality buys rule-independence, not victory) and the operators territory-denial hypothesis is falsified at 4x3/4x4. That is the operators loss and it cuts toward unconditional life being the wrong notion of territory for decisive wins."]
   },
   "T365": {
     "status": "done",
@@ -592,6 +592,28 @@
     "acceptance": "test -s docs/research/capture-budget-2026-08-06.md",
     "skip_acceptance_reason": "No deliverable to accept: the value-mode reading never ran. src/t387_budget.zig:717-719 is an infinite loop (bitpos: u6 vs while (bitpos < 64) — tautological condition, += 1 wraps under the ReleaseFast that tools/runner forces; in Debug it would trap). Proven by sample(1): 2,554/2,554 stack samples at t387_budget.zig:718-719, 14h02m elapsed, 836 CPU-min, RSS 880 KB, no output file. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z — zombie. Hung process reaped by claude-opus-5/orcha 2026-08-06T14:47Z; nothing lost (no partial state at 880 KB RSS). PARTIAL VALUE SURVIVES AND IS PRESERVED: DAG mode terminated and its readings were sitting uncommitted in /tmp/weizigo/t387/ — copied to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges = the seeded control fires; 3x3 B=8 423,922 states 0 back edges theorem_holds; 4x3 B=8 10,636,928 states 0 back edges theorem_holds). T397 promotes them to findings/, fixes the loop red-then-green, then takes the minimax-identity reading against T386 denominators (80/2,748 at 3x3, 496/51,318 at 4x3). Failed rather than re-dispatched because the row cannot be resumed: the binary is defective and the console is gone. Scale note for the successor: 3x3 budgeted graph is 423,922 states, so a value pass is seconds — anything over a minute at 3x3 is hung.",
     "amendments": ["2026-08-06T14:50:04Z: verdict=blocked note=FAILED, adjudicated by claude-opus-5/orcha (the row was worked by deepseek-v4-flash; the earlier identifier claude-opus-5/T387 was an artefact of my --agent flag on the close and has been restored — do NOT read this hang against Opus in model-perf.md). Cause: src/t387_budget.zig:717-719 is an infinite loop. bitpos is declared u6, whose range is 0..63, so the guard while (bitpos < 64) is a tautology and the += 1 at 63 wraps instead of trapping under the -O ReleaseFast that tools/runner forces. Debug would have caught it in the first second; the fleet build mode cannot. Evidence: sample(1) put 2,554 of 2,554 stack samples at t387_budget.zig:718-719, with 14h02m elapsed, 836 CPU-minutes, RSS 880 KB and no output file — 100 percent CPU allocating nothing is a spin, not a slow solve. The idiom occurs exactly once in the repo. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z, so it was also a zombie. Process reaped 2026-08-06T14:47Z; no partial state existed to salvage. WHAT SURVIVES: DAG mode terminated and its three readings were uncommitted in /tmp — preserved to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges, the seeded control firing; 3x3 B=8 423,922 states 0 back edges; 4x3 B=8 10,636,928 states 0 back edges). The structural half of the operator capture-budget result is therefore intact and the handover claim that it is confirmed still stands. WHAT DOES NOT: the Bellman-consistency reading the handover lists as the open question was never taken. It is not pending, it is unmeasured. FOLLOW-UP: T397 (preserve the DAG readings into findings/, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 against the T386 at-risk denominators 80/2,748 and 496/51,318, and rule on whether budget-from-here forces the capture counter into the key). Landmark: no advance — L2 unmoved, and one reading the seat believed was in flight is now known not to be."]
+  },
+  "T400": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T400-c2-scoring-axiom-prose.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T20:23:18Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
   },
   "T346": {
     "status": "done",
@@ -1496,7 +1518,7 @@
     "amendments": []
   },
   "T397": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T397-t387-value-mode-u6-hang.md",
@@ -1506,11 +1528,11 @@
     "caps": [],
     "added": "2026-08-06T14:46:40Z",
     "claimed": "2026-08-06T15:46:21Z",
-    "done": null,
+    "done": "2026-08-06T16:54:01Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -1651,7 +1673,7 @@
   }
 ,
   "_sys": {
-    "next_id": 400,
+    "next_id": 401,
     "directive_next": 55
   }
 }
