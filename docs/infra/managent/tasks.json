@@ -263,6 +263,28 @@
     "skip_acceptance_reason": "zig build test red from T360 (qa023_brute_2x2 expected). All deploy checks PASS, zero STALE.",
     "amendments": []
   },
+  "T389": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T389-self-play-trajectory-consistency.md",
+    "set": "I",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T01:03:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T358": {
     "status": "dispatchable",
     "agent": null,
@@ -1100,7 +1122,7 @@
     "amendments": []
   },
   "T379": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T379-self-play-trajectory-consistency.md",
@@ -1110,15 +1132,15 @@
     "caps": [],
     "added": "2026-08-05T18:38:16Z",
     "claimed": "2026-08-05T21:22:56Z",
-    "done": null,
+    "done": "2026-08-06T01:03:43Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "blocked",
+    "verdict_note": "FAILED — console died with no work in tree. Claimed 2026-08-05T21:22:56Z; at 2026-08-06 there is no src/t379*, no run document, no findings, and no live process. Same shape as T361, and the same blindness: 'managent liveness' reads a dead row identically to a working one because no launch site passes --task-id or MANAGENT_TASK_ID (T370). The operator noticed before any instrument did. Re-registered as T389 with the brief unchanged.",
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
-    "skip_acceptance_reason": null,
+    "skip_acceptance_reason": "--note",
     "amendments": []
   },
   "T360": {
@@ -1409,7 +1431,7 @@
   }
 ,
   "_sys": {
-    "next_id": 388,
+    "next_id": 389,
     "directive_next": 44
   }
 }
