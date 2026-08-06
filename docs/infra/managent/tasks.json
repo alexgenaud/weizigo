@@ -857,6 +857,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T399": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T399-tell-note-newline-corruption.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-06T14:53:22Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T378": {
     "status": "dispatchable",
     "agent": null,
@@ -1629,7 +1651,7 @@
   }
 ,
   "_sys": {
-    "next_id": 399,
+    "next_id": 400,
     "directive_next": 54
   }
 }
