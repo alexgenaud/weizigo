@@ -1,0 +1,2249 @@
+[runner] argv = zig build -Doptimize=ReleaseFast test
+[runner] guards: rss 4096 MB, progress-timeout 600s (10:00), fallback: wall 1800s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+[runner] task identity: T392 (source: MANAGENT_TASK_ID)
+[runner] === pending directives ===
+[runner]   AMEND  from claude-opus-5
+[runner]     YOUR PREMISE MAY BE STALE — establish the real failing set before bisecting anything. T391 (landed c277321) reports 'zig build test 50/52 steps, 727/732 tests, 1 skipped (gated), 4 crashed = documented qa023_brute_2x2, identical to HEAD baseline' after its I5 fixes. That does NOT match the nine failures your brief lists from T350's 2026-08-06 acceptance run (vb_bellman_4x4 applyMove panic; I9/A2/I4/A1 calibration violations; I7 3x2 terminals_bad 52/72; I9 2x2 expected 0 actual 1). Two readings of 'the suite' hours apart, and only one can be current. THE MOST LIKELY EXPLANATION IS ITSELF THE FINDING: T350's run executed a main checkout carrying several consoles' UNCOMMITTED in-flight engine work, while T391's ran after those rows committed. If that is what happened, then 'the suite' is not a well-defined object while consoles hold uncommitted engine edits, and every acceptance reading taken from a dirty main tree is a reading of whatever was half-finished in it. That is a more valuable result than attributing nine failures to commits, and it would explain a great deal of the '--skip-acceptance, pre-existing red' history: some of those reds may never have existed at any commit. SO: (1) run the suite at clean HEAD in your worktree and record the actual failing set with counts — that is now your first deliverable, not a preliminary; (2) bisect ONLY failures that survive at clean HEAD; (3) if a failure from T350's list does not reproduce at any commit, say so explicitly and record it as tree-state, not as a regression, naming which consoles held uncommitted engine files at 01:44 (T363/T380/T385/T386/T389 territory — git reflog and the commit times will show it); (4) T391 also found and FIXED a real defect in vb_scc_4x4's CR propagation order that had fabricated '24 natural violations' at 4x3 in T344/T363 — true reading 0 — so any pre-c277321 commit you bisect through carries that defect and will give you readings that no longer mean anything. Bisect above c277321 where you can, and note it where you cannot.
+[runner]   AMEND  from claude-opus-5
+[runner]     STOP REVERSE-ENGINEERING THE TEST BINARY. You are ten hours in and driving zig's internal --listen protocol from Python to extract per-test results. That is not the task and it is not needed. A bisect needs ONE BIT PER COMMIT: did the failure reproduce, yes or no. Get it the cheap way — 'zig build test' exit code plus its human stderr, or 'zig test src/<file>.zig --test-filter <name>' for the specific failing test, with the matched count asserted (STATE rule 7). If a failure is a panic, the process dies and the exit code says so; you do not need structured results to see that. Budget yourself: if establishing the failing set at clean HEAD takes more than one suite run plus a handful of filtered runs, stop and report what you have. Remember D051 changed your first deliverable: run the suite at CLEAN HEAD in your worktree and record the actual failing set. T391 reports 50/52 steps and 727/732 tests with only the four documented qa023 crashes, so the nine failures you were sent after may not exist at any commit — in which case your deliverable is that finding, and it is worth more than the bisect. Also: your worktree sits at ed9f3b1, BELOW c277321, so it carries the CR-propagation defect T391 fixed; readings taken there no longer mean what they say. Move the worktree to current HEAD before measuring anything. And claim the row — it still reads dispatchable, so nothing has protected your work for ten hours.
+=== managent standing regression (STANDING-ABSORB) ===
+  1. null control: empty findings/ → C7=0 ≤ threshold 5, no trigger, stated
+    PASS: count 0, explicit at/below-threshold statement, no registration, RC=0
+  2. null control: STANDING-ABSORB not registered in the kanban
+    PASS: kanban untouched by a below-threshold C7
+  3. seeded control: synthetic unabsorbed finding pushes C7 over the threshold
+    PASS: count named (6), trigger fired, task registered, per-file composition surfaced
+  4. seeded control: STANDING-ABSORB is a registered dispatchable task
+    PASS: STANDING-ABSORB present in the scratch kanban
+  5. seeded control: brief file created next to the other standing briefs
+    PASS: docs/infra/dispatch/STANDING-ABSORB.md created
+  6. T368: markers managent parses are present in a real claimlint run
+    PASS: all four markers present in claimlint output
+  7. T368: drifted claimlint format → standing exits nonzero with UNRELIABLE readings
+    PASS: RC=1, UNRELIABLE readings on stdout, FATAL diagnostic on stderr
+  8. T368: C3 reading equals claimlint's own count (3) and does not fire without growth
+    PASS: C3 debt read as 3 (was 3), no trigger without growth
+  9. T368: C3 debt growth triggers STANDING-REEVIDENCE
+    PASS: C3 3→4 fired and registered STANDING-REEVIDENCE
+ 10. T368: archive --dry-run refuses a done task with unabsorbed findings
+    PASS: TARCH1 refused (1 unabsorbed findings)
+ 11. T368: archive --dry-run archives the task once its findings are absorbed
+    PASS: TARCH1 archivable, 0 unabsorbed findings
+
+=== regression-managent-standing: ALL CONTROLS PASSED ===
+=== inbox-loop regression ===
+  1. null control: empty inbox → no pending directives, ack=0, RC=0
+    PASS: empty inbox → -- no pending directives, acked 0, RC=0
+
+  2. seeded: tell → read → ack → record, no human action between
+    T+0.000s orchestrator: managent tell TSEED amend --note 'use clamp(TIE,[L,H])' --from T352-test
+    T+0.015s directive stored: D001
+    T+0.010s worker read: D001 present, note text present
+    T+0.010s worker wrote: /tmp/weizigo/inbox-loop-AkoaA0/worker-act-on-D001.log
+    T+0.009s worker acked: 1 directive marked read
+    T+0.009s disk state: /tmp/weizigo/inbox-loop-AkoaA0/docs/infra/managent/directives.jsonl carries read:true for D001
+    timeline saved to: /var/folders/x5/k8b1s03x3h1frb6cl_17w1hr0000gn/T/tmp.pflrb7iZDR
+
+  3. seeded: an unread directive surfaces in `managent resume` with STALL marker
+    PASS: D042 appears in resume with STALL marker
+        pending directives (1 unread, 1 STALL (> 0 min old)):
+          ! D042  TSEED  amend  from t352-fixture  (2h0m)
+    PASS: acked directive D001 is filtered out of resume
+
+  4. cross-check: INBOX LOOP paragraph in BOTH dispatch prompts
+    PASS /Users/alex/Project/Zig/weizigo/tools/../bin/subagent: INBOX LOOP paragraph present, mentions 'managent inbox', names natural checkpoints
+    PASS /Users/alex/Project/Zig/weizigo/tools/../bin/ollama-subagent: INBOX LOOP paragraph present, mentions 'managent inbox', names natural checkpoints
+
+  5. dry-run renders the inbox-loop paragraph in the dispatch prompt
+    PASS: dry-run prompt includes 'INBOX LOOP' and 'managent inbox T997 --ack'
+
+=== regression-inbox-loop: ALL CONTROLS PASSED ===
+=== managent resume regression ===
+  1. null control: nothing in flight + clean tree says so explicitly
+    PASS: empty kanban + clean tree → explicit 'NOTHING IN FLIGHT', RC=0
+  2. degradation control: unavailable sources are named, not silently empty
+    PASS: claimlint/STATE.md/hook all degrade to explicit markers
+  3. seeded control: in_progress task and its held file both appear
+    PASS: TSEED and its held path both present, RC=0
+  4. seeded control: with a live task the empty-state statement is gone
+    PASS: no NOTHING-IN-FLIGHT statement under a live task
+  5. self-defense control: resume reports its own provenance + a verdict
+    PASS: self block present (binary built from the real repo, HEAD is the scratch repo — a mismatch verdict is expected and stated, never silence)
+
+=== regression-managent-resume: ALL CONTROLS PASSED ===
+=== managent-lock regression ===
+  1. rejection path: lock released after cmdClaim rejects (task not found)
+    PASS: cmdClaim rejected (RC=1) — task not found as expected
+    PASS: subsequent command succeeded (RC=0) — lock released on rejection
+    PASS: lockfile present but NOT locked — flock acquired by test process
+  2. SIGKILL: killed holder releases the lock
+    PASS: holder acquired lock (flock EX|NB blocked)
+    PASS: mutating command after SIGKILL succeeded (RC=0) in 0.03127884864807129s
+    PASS: completed in 0.03127884864807129s (< 5s bound)
+
+=== regression-managent-lock: ALL CONTROLS PASSED ===
+test
++- run test w
+I4 3x3: status=pass entries=49428 clear=44020 set=5408 viol_clear=0 viol_set=0 cycle_div=0 missing=0 move_div=0 no_child=0
+I4 3x3 CALIBRATION L-only: total_violations=1 (expected > 0)
+I4 3x3 CALIBRATION verdict-bucket: ei=24832 viol_clear=1 (expected > 0) viol_set=0 cycle=0
+I4 2x2 synthetic: status=pass entries=2 clear=2 set=0 viol_clear=0
+I4 2x2 synthetic CALIBRATION equal: viol_clear=1 (expected > 0)
+I4 4x4 sample: groups=200 checked=570 viol_clear=0 missing=0 move_div=0
+SKIP 4x4 exhaustive (set WEIZIGO_I4_4X4_FULL=1 to run)
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/def78e76d976e42da4083e27c003f3a3/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+  T268: deployed stamp check
+    FAIL: deployed bin/managent 04adb3a-dirty != built zig-out/managent aa5f1a7-dirty — bin/ is stale
+Initialized empty Git repository in /private/tmp/weizigo/managent-integrity-JCdE0d/.git/
+
+  T204 regression: managent integrity
+        1. suggest preserves existing task record
+           tasks before suggest: 1
+Follow untracked/T106-test-slug.md
+           tasks after suggest: 2
+           PASS: T105 record survives suggest
+        2. suggest preserves existing bundle file
+           PASS: bundle file unchanged (hash: be18bb11202f9316...)
+        3. parseStateJson auto-corrects next_id ≤ max(T-ID)
+           suggest output: Follow untracked/T106-auto-correct-test.md
+           PASS: suggest auto-corrected next_id and minted T106 (not T100 or T105)
+           PASS: T105 survives after auto-correction
+           PASS: audit clean after auto-correction
+        4. T209: suggest prints minimal dispatch line
+           suggest output: Follow untracked/T107-t209-test.md
+           PASS: suggest prints 'Follow untracked/T<ID>-<slug>.md'
+        5. T209: bundle template has deliverables= in meta header
+           meta: <!--managent set=A deliverables=-->
+           PASS: bundle meta contains deliverables=
+        6. T213: done --status pass (default verdict)
+           PASS: default verdict is pass
+        7. T213: done --fail backward compat sets verdict=blocked
+           PASS: --fail sets verdict=blocked
+        8. T213: reject non-pass verdict without --note
+managent 04adb3a-dirty built 2026-08-06T02:56:16Z zig 0.16.0
+
+  REJECTED: verdict 'pass-with-findings' requires --note <text>
+  A verdict with no reason is the same information vacuum as bare 'done'.
+           PASS: pass-with-findings without --note rejected
+        9. T213: verdict command backfills verdict on done task
+           PASS: verdict command backfills correctly
+        10. T217: acceptance=true passes and task closes
+           PASS: acceptance executed and task closed with pass
+        11. T217: acceptance=false rejects and task stays in_progress
+managent 04adb3a-dirty built 2026-08-06T02:56:16Z zig 0.16.0
+
+  ACCEPTANCE FAILED: TA218 exited with code 1
+  command: false
+  reverted TA218 to in_progress (acceptance failed)
+  Task stays in_progress. Fix the issue or use --skip-acceptance <reason>.
+           PASS: acceptance=false rejected, task stayed in_progress
+        12. T217: --skip-acceptance bypasses command and closes task
+           PASS: --skip-acceptance recorded reason and closed task
+        13. T217: audit warns on done task with no acceptance= declared
+           PASS: audit warned about missing acceptance
+        14. T295: nonexistent acceptance command reports CANNOT RUN (not FAILED)
+           PASS: nonexistent acceptance reports CANNOT RUN + infrastructure fault
+        15. T295: failing acceptance command reports ACCEPTANCE FAILED
+           PASS: failing acceptance reports ACCEPTANCE FAILED with exit code
+        16. T295: audit surfaces --skip-acceptance uses
+           PASS: audit surfaced skip-acceptance with reason
+
+  T204/T209/T213/T217/T295: SOME CHECKS FAILED
+=== regression-runner-reporting: null — walker announced exactly once ===
+PASS: null — exactly one walker-selection line (got 1)
+
+=== regression-runner-reporting: null — peak RSS reported without --log-rss ===
+PASS: null — peak RSS reported with --log-rss off
+
+=== regression-runner-reporting: seeded — no linux-walker-failed noise ===
+PASS: seeded — zero 'linux walker failed' lines (was ~8/2s before T311)
+
+=== regression-runner-reporting: seeded — -Doptimize=ReleaseSafe survives ===
+PASS: seeded — ReleaseSafe preserved, ReleaseFast NOT injected
+
+=== regression-runner-reporting: guard — RSS cap still bites ===
+[runner] argv = python3 -c '
+x = bytearray(200 * 1024 * 1024)
+import time
+time.sleep(5)
+'
+[runner] guards: rss 50 MB, progress-timeout 600s (10:00), fallback: wall 1800s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+[runner] task identity: T392 (source: MANAGENT_TASK_ID)
+[runner] === pending directives ===
+[runner]   AMEND  from claude-opus-5
+[runner]     YOUR PREMISE MAY BE STALE — establish the real failing set before bisecting anything. T391 (landed c277321) reports 'zig build test 50/52 steps, 727/732 tests, 1 skipped (gated), 4 crashed = documented qa023_brute_2x2, identical to HEAD baseline' after its I5 fixes. That does NOT match the nine failures your brief lists from T350's 2026-08-06 acceptance run (vb_bellman_4x4 applyMove panic; I9/A2/I4/A1 calibration violations; I7 3x2 terminals_bad 52/72; I9 2x2 expected 0 actual 1). Two readings of 'the suite' hours apart, and only one can be current. THE MOST LIKELY EXPLANATION IS ITSELF THE FINDING: T350's run executed a main checkout carrying several consoles' UNCOMMITTED in-flight engine work, while T391's ran after those rows committed. If that is what happened, then 'the suite' is not a well-defined object while consoles hold uncommitted engine edits, and every acceptance reading taken from a dirty main tree is a reading of whatever was half-finished in it. That is a more valuable result than attributing nine failures to commits, and it would explain a great deal of the '--skip-acceptance, pre-existing red' history: some of those reds may never have existed at any commit. SO: (1) run the suite at clean HEAD in your worktree and record the actual failing set with counts — that is now your first deliverable, not a preliminary; (2) bisect ONLY failures that survive at clean HEAD; (3) if a failure from T350's list does not reproduce at any commit, say so explicitly and record it as tree-state, not as a regression, naming which consoles held uncommitted engine files at 01:44 (T363/T380/T385/T386/T389 territory — git reflog and the commit times will show it); (4) T391 also found and FIXED a real defect in vb_scc_4x4's CR propagation order that had fabricated '24 natural violations' at 4x3 in T344/T363 — true reading 0 — so any pre-c277321 commit you bisect through carries that defect and will give you readings that no longer mean anything. Bisect above c277321 where you can, and note it where you cannot.
+[runner]   AMEND  from claude-opus-5
+[runner]     STOP REVERSE-ENGINEERING THE TEST BINARY. You are ten hours in and driving zig's internal --listen protocol from Python to extract per-test results. That is not the task and it is not needed. A bisect needs ONE BIT PER COMMIT: did the failure reproduce, yes or no. Get it the cheap way — 'zig build test' exit code plus its human stderr, or 'zig test src/<file>.zig --test-filter <name>' for the specific failing test, with the matched count asserted (STATE rule 7). If a failure is a panic, the process dies and the exit code says so; you do not need structured results to see that. Budget yourself: if establishing the failing set at clean HEAD takes more than one suite run plus a handful of filtered runs, stop and report what you have. Remember D051 changed your first deliverable: run the suite at CLEAN HEAD in your worktree and record the actual failing set. T391 reports 50/52 steps and 727/732 tests with only the four documented qa023 crashes, so the nine failures you were sent after may not exist at any commit — in which case your deliverable is that finding, and it is worth more than the bisect. Also: your worktree sits at ed9f3b1, BELOW c277321, so it carries the CR-propagation defect T391 fixed; readings taken there no longer mean what they say. Move the worktree to current HEAD before measuring anything. And claim the row — it still reads dispatchable, so nothing has protected your work for ten hours.
+[runner] PID 49178 RSS 208 MB > cap 50 MB
+[runner] KILL: RSS cap 50 MB exceeded
+[runner] SIGKILL pgid 49178
+[runner] peak RSS by PID: in 0.3 s
+[runner]   pid   49178     208 MB
+[runner] exit 124 (RSS cap 50 MB exceeded) in 0.3 s
+PASS: guard — RSS cap kill (exit 124)
+
+=== regression-runner-reporting: all controls passed ===
+=== managent done two-phase lock regression ===
+  a. acceptance=true keeps the task done (verdict pass)
+    PASS: TA closed, verdict pass
+  b. acceptance=false reverts to in_progress and re-blocks dependents
+    PASS: TB reverted to in_progress, DEP re-blocked
+  c. acceptance runs unlocked (nested purge succeeds); vanish guard fires
+    PASS: lock released during phase 2 (purge succeeded), guard on vanished task
+  e. --skip-acceptance closes the task and records the reason
+    PASS: TE closed with recorded reason
+  f. empty --skip-acceptance reason rejected, store unmutated
+    PASS: TF rejected pre-write, still in_progress
+  g. live kanban untouched
+    PASS: live kanban byte-identical
+
+=== managent done two-phase: ALL CONTROLS PASSED ===
+test
++- run test w
+[keybyte-diff] GREEN: closure decode == artifact2 contract on all 256 bytes × 3 ko_bits rungs
+[keybyte-diff F-7] RED: seeded kb>>1 decode diverges from the contract (first at kb=2 ko_bits=3: closure ko=1 vs contract ko=0) — the differential fires
+[keybyte-diff F-7] GREEN: fixed path (kb>>2) agrees with the contract on every byte
+C-A1 3×3: scanned=49428 non-term-children=184938 passes2=24330 missing=0 avg_bf=3.74
+C-A1 3×3 CALIBRATION: missing=2 (expected > 0)
+C-A2 3×3: reachable-non-term=49426 (of 49428 entries) reachable-term=24329 missing=0 sweeps=18 pct-colex=389.95%
+C-A2 3×3 CALIBRATION: missing=1 (expected > 0)
+C-A1 4×4 sample: entries=22 children=356 passes2=11 missing=0
+SKIP 4x4 full closure (set WEIZIGO_CLOSURE_4X4_FULL=1 to run)
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/0f630ec375b329232ea7cc8998a88d1d/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+test
++- run test w
+I4 2x2: violations=0 examined=28 ko_excluded=82
+I4 4x3: violations=0 examined=463024 ko_excluded=170276 status=pass
+I7 3x2: terminals_bad=52 terminals_total=72
+I9 2x2: expected=0 actual=1 match=false
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=255 nodes, E=434 edges  (p0=85 p1=85 p2=85)
+[I5] Tarjan: SCCs total=96 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=162
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/254e19e5adf0823fab0665e7756d78d4/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+test
++- run sh failure
+error: process exited with error code 1
+failed command: cd /Users/alex/Project/Zig/weizigo && sh tools/regression-managent-integrity.sh
+
+test
++- run test w
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=255 nodes, E=434 edges  (p0=85 p1=85 p2=85)
+[I5] Tarjan: SCCs total=96 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=162
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/8ccab729c09f18b38092e7b7b04c0747/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+=== regression-precommit: installed-ness check ===
+  core.hooksPath = tools/hooks — installed
+
+=== regression-precommit: null control ===
+Running pre-commit hook on current tree (must pass — floor is not exceeded)...
+pre-commit: claimlint C1a=0 C1b=0 C2=11 C3=48 C6=0 C9=0 — ≤ floor, allowed
+PASS: null control — hook allowed the commit (at or below floor)
+
+=== regression-precommit: seeded-defect control ===
+  baseline C1a=0
+  seeded C1a=1 (baseline=0, delta=+1)
+Running pre-commit hook with CLAIMS_PATH pointing to the seeded register...
+pre-commit: C1a regressed: 1 > floor 0 — blocking commit
+weizigo-claimlint 2e195f3-dirty built 2026-08-06T02:54:54Z zig 0.16.0
+weizigo-claimlint — /var/folders/x5/k8b1s03x3h1frb6cl_17w1hr0000gn/T/tmp.KPvvyOIaTq/CLAIMS.md
+repo index: 3674 files · register §2 lines 214–564
+
+== C0  PARSE ==
+rows parsed:   214
+rows UNPARSED: 0   <-- must be 0; a linter that skips rows is worse than none
+edges: 231 total — 108 `d:` derives-from, 108 `e:` evidenced-by, 15 `n:` derives-from-negation
+
+== C1  ORPHAN DETECTION — C1a ORPHANED · C1b STALE-NEGATION (fails the run) ==
+C1a ORPHANED: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.
+`n:` edges are NOT traversed — a claim justified by a refutation does not
+inherit the refuted parent's ancestry. C1b STALE-NEGATION below checks them the other way.
+
+  C1a ORPHANED  `GLOBAL.T280-CTRL-SEEDED` (PROVEN)
+       ⟵d `GLOBAL.C3`  [FALSE-AS-SCOPED]
+
+  C1a ORPHANED orphans: 1
+
+  C1b STALE-NEGATION — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.
+  (none — every `n:` edge points at a parent that is still FALSE)
+
+  C1b STALE-NEGATION alarms: 0
+
+  C1 total (C1a ORPHANED + C1b STALE-NEGATION): 1
+
+== C2 DEAD-LINKS  DANGLING EVIDENCE (fails the run) ==
+
+  missing paths, with the claims that reach them:
+  C2 DEAD-LINKS  untracked/B05-glm.md
+           named in: docs/epistemic/boards/4x4/EPISTEMIC.md docs/epistemic/boards/CONCEPTS.md docs/status/leak-crisis.md docs/evidence/README.md
+           reachable from 58 register row(s), e.g. `GLOBAL.S1` `4x4.S1` `GLOBAL.S2` `4x4.S2-impl`
+  C2 DEAD-LINKS  untracked/T07-audit-hypotheses.md
+           named in: docs/epistemic/boards/4x4/EPISTEMIC.md docs/evidence/README.md
+           reachable from 33 register row(s), e.g. `GLOBAL.S1` `4x4.S1` `4x4.S2-impl` `GLOBAL.S3a`
+  C2 DEAD-LINKS  untracked/T02-audit-kimi.md
+           named in: docs/status/leak-crisis.md docs/evidence/README.md
+           reachable from 23 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  C2 DEAD-LINKS  untracked/T02-minimax.md
+           named in: docs/status/leak-crisis.md the evidence column itself docs/evidence/README.md
+           reachable from 23 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  C2 DEAD-LINKS  untracked/B39-arena4x4.md
+           named in: docs/research/arena-4x4-undef.md docs/evidence/README.md
+           reachable from 5 register row(s), e.g. `4x4.C2` `4x4.B39` `4x4.B43` `4x4.B43-DIV`
+  C2 DEAD-LINKS  /tmp/audit-2x2-mismatch.log
+           named in: docs/audits/2026-07-30-audit-2x2-mismatch.md
+           reachable from 4 register row(s), e.g. `GLOBAL.BRUTE-ALIASING` `2x2.BASICKO-TIE` `3x2.BASICKO-TIE` `3x3.BASICKO-TIE`
+  C2 DEAD-LINKS  untracked/T13-minimax.md
+           named in: docs/research/c2-falsification-3x2.md docs/evidence/T13/probe-reimplementation-2026-07-30.md docs/evidence/README.md
+           reachable from 3 register row(s), e.g. `3x2.C1` `3x2.T13` `QA-022`
+  C2 DEAD-LINKS  untracked/c2pilot_3x2.zig
+           named in: docs/research/c2-falsification-3x2.md docs/evidence/T13/probe-reimplementation-2026-07-30.md docs/evidence/README.md
+           reachable from 3 register row(s), e.g. `3x2.C1` `3x2.T13` `QA-022`
+  C2 DEAD-LINKS  /tmp/weizigo/T212-build-run2.log
+           named in: docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md
+           reachable from 1 register row(s), e.g. `SPRINT-M4a-ACCEPT`
+  C2 DEAD-LINKS  /tmp/weizigo/T212-build.log
+           named in: docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md
+           reachable from 1 register row(s), e.g. `SPRINT-M4a-ACCEPT`
+  C2 DEAD-LINKS  /tmp/zig-tables.txt
+           named in: docs/evidence/T13/probe-reimplementation-2026-07-30.md
+           reachable from 1 register row(s), e.g. `3x2.T13`
+
+  bulk .wzo artifacts cited but absent (informational — git-ignored by
+  design, hashes recorded in docs/evidence/README.md; does NOT fail):
+    data/oracle-4x4.wzo  (named in AGENTS.md)
+    /tmp/weizigo/T274-tie-0.wzo  (named in docs/evidence/GLOBAL-TIE-MIGOS/tie-experiment-T274.md)
+    data/oracle-3x3-basicko-tie0.wzo  (named in docs/research/f2-remedy-design-2026-07-29.md)
+    data/oracle-4x4-basicko-tie0.wzo  (named in docs/research/f2-remedy-design-2026-07-29.md)
+    artifacts/oracle-2x2/3x2/3x3/4x3.wzo  (named in docs/infra/instrument-coverage.md)
+
+  already inventoried as CONFIRMED LOST in docs/evidence/README.md and named nowhere
+  else — a recorded loss, not a dangling citation; does NOT fail:
+    untracked/B09-kimi.md
+    untracked/B23-kocensus.md
+    untracked/T12-minimax.md
+    untracked/T15-kimi.md
+    untracked/T15-review-kimi.md
+    untracked/T16-glm.md
+    untracked/T99-tripleko.md
+    untracked/c2pilot_2x2.zig
+    untracked/delegation-prompts-2026-07-26.md
+    untracked/discussion.md
+    untracked/idea-heap.md
+    untracked/model-perf.md
+    untracked/task-minimax.md
+
+  evidence documents that EXIST but are git-ignored — readable today,
+  unrecoverable after the next sweep (roadmap §4 P1; QA-022):
+    (none)
+
+  C2 DEAD-LINKS total: 11  (11 unique missing paths — 0 cited by the evidence column
+            directly, 11 named inside cited documents — plus 0 git-ignored
+            evidence documents; 5 bulk .wzo and 13 already-inventoried
+            losses, not counted)
+
+== C3 UNBACKED  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==
+roadmap-2026-07-28 §4 P1: a claim is PROVEN only if its probe source and
+output are committed under docs/evidence/. Tier C = no committed evidence
+at all. Tier B = a committed prose document records the result, but no
+re-runnable probe. Tier A = compliant.
+
+  TIER C — PROVEN, no committed evidence resolves at all (0):
+    (none)
+
+  TIER B — PROVEN, committed prose only, no probe under docs/evidence/ (49):
+    [in-deg  5] `GLOBAL.S3a`
+    [in-deg  5] `GLOBAL.FP3`
+    [in-deg  4] `GLOBAL.S1`
+    [in-deg  3] `3x2.C1`
+    [in-deg  3] `3x3.C3`
+    [in-deg  3] `GLOBAL.E2-SANITY`
+    [in-deg  3] `GLOBAL.MIGOS-RULE`
+    [in-deg  3] `GLOBAL.PASS-NOKO`
+    [in-deg  2] `GLOBAL.ADR0009-HONESTY`
+    [in-deg  2] `2x2.C1`
+    [in-deg  2] `3x3.E3`
+    [in-deg  2] `GLOBAL.E2-POLICY`
+    [in-deg  2] `3x2.F1`
+    [in-deg  2] `GLOBAL.ADR0003-AREA`
+    [in-deg  1] `4x4.S1`
+    [in-deg  1] `4x4.S3a`
+    [in-deg  1] `4x3.S3a`
+    [in-deg  1] `4x4.FP1-C3`
+    [in-deg  1] `GLOBAL.LEAK`
+    [in-deg  1] `GLOBAL.ADR0009-NOEYE`
+    [in-deg  1] `GLOBAL.P2`
+    [in-deg  1] `QA-021`
+    [in-deg  0] `GLOBAL.T280-CTRL-SEEDED`
+    [in-deg  0] `4x3.S1`
+    [in-deg  0] `3x3.S2-impl`
+    [in-deg  0] `4x3.S2`
+    [in-deg  0] `GLOBAL.B1-AUDIT`
+    [in-deg  0] `4x3.FP3`
+    [in-deg  0] `GLOBAL.E1`
+    [in-deg  0] `GLOBAL.ADR0008-HOLE`
+    [in-deg  0] `GLOBAL.ADR0010-SOUND`
+    [in-deg  0] `3x2.F3`
+    [in-deg  0] `3x2.F4`
+    [in-deg  0] `3x3.F4`
+    [in-deg  0] `4x3.F4`
+    [in-deg  0] `GLOBAL.MEMO-XROOT`
+    [in-deg  0] `GLOBAL.ADR0006-PRED`
+    [in-deg  0] `GLOBAL.ADR0006-LEMMAS`
+    [in-deg  0] `GLOBAL.ADR0006-TEST`
+    [in-deg  0] `GLOBAL.ADR0006-PRUNEALL`
+    [in-deg  0] `GLOBAL.ADR0004-TERM`
+    [in-deg  0] `GLOBAL.ADR0005-PASS`
+    [in-deg  0] `GLOBAL.CALIB-LESSON`
+    [in-deg  0] `CODE.ADR0011-FMT`
+    [in-deg  0] `CODE.ADR0011-GATE`
+    [in-deg  0] `CODE.M4A-HARNESS`
+    [in-deg  0] `CODE.VB-STUBS`
+    [in-deg  0] `GLOBAL.ADR0014-PURE`
+    [in-deg  0] `QA-025`
+
+  TIER A — compliant (evidence under docs/evidence/): 19
+    `GLOBAL.S2`
+    `GLOBAL.S4`
+    `GLOBAL.FP1`
+    `GLOBAL.INVSYM`
+    `GLOBAL.ADR0020-LH-CORRECT`
+    `3x2.T13`
+    `GLOBAL.AUDITOR`
+    `GLOBAL.H1-CENSUS`
+    `3x3.H1-CENSUS`
+    `4x3.H1-CENSUS`
+    `CODE.WZO2-PASSBIT`
+    `SPRINT-M4a-ACCEPT`
+    `CODE.WZO2-PASS1-LAW`
+    `CODE.ACCEPT-KOKEY`
+    `CODE.CLAIMLINT-C7-NEWROWS`
+    `CODE.GTP-KOKEY`
+    `4x4.V1-INVSYM-BROKEN`
+    `CODE.BATTERY-STUBBED`
+    `CODE.VB-BLINDGAPS`
+
+  C3 UNBACKED total PROVEN-without-committed-evidence: 49 of 68 PROVEN rows
+
+== C4 GHOST-IDS  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==
+  C4 GHOST-IDS — claim IDs cited in docs/ with NO register row (45):
+    C4 GHOST-IDS  `GLOBAL.C1-CALIB`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:199 docs/epistemic/claimlint-2026-07-28.md:377 docs/epistemic/CLAIMS.md:311
+    C4 GHOST-IDS  `2x2.C4`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:190 docs/epistemic/claimlint-2026-07-28.md:375 docs/epistemic/CLAIMS.md:311
+    C4 GHOST-IDS  `GLOBAL.H5c-id`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:109
+    C4 GHOST-IDS  `GLOBAL.H1`  cited at docs/infra/dispatch/T124-t13-row-rewrite.md:25 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:14 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:15 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:18
+    C4 GHOST-IDS  `GLOBAL.STATE-MD`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:329
+    C4 GHOST-IDS  `GLOBAL.CLAIMLINT`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:1 docs/INDEX-claim-task.md:69
+    C4 GHOST-IDS  `GLOBAL.HYPOTHESES`  cited at docs/evidence/GLOBAL.HYPOTHESES/PROVENANCE.md:1 docs/INDEX-claim-task.md:79
+    C4 GHOST-IDS  `GLOBAL.FP5`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:66
+    C4 GHOST-IDS  `GLOBAL.ADR0013-REF`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:71
+    C4 GHOST-IDS  `2x2.brute_value`  cited at docs/INDEX-claim-task.md:25
+    C4 GHOST-IDS  `4x4.V1-INVSYM-RATE`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p5/PACKET.md:9
+    C4 GHOST-IDS  `GLOBAL.ADR0012-EXTRAP`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:218
+    C4 GHOST-IDS  `4x4.S2`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:192 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:192 docs/epistemic/claimlint-2026-07-28.md:379 docs/epistemic/CLAIMS.md:55
+    C4 GHOST-IDS  `3x2.QA023.B-PROBE`  cited at docs/infra/dispatch/2B-PROBE-FIX.md:68 docs/evidence/QA-023/reference-semantics-2026-07-29.md:122 docs/evidence/QA-023/probe-fix-2026-07-29.md:206 docs/evidence/QA-023/census-3x2-2026-07-29.md:237
+    C4 GHOST-IDS  `3x2.QA023.B-CAL-NEG`  cited at docs/evidence/QA-023/reference-semantics-2026-07-29.md:125 docs/evidence/QA-023/census-3x2-2026-07-29.md:240 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:445 docs/audits/2026-07-29-2b-6-full-review.md:466
+    C4 GHOST-IDS  `4x4.C-A1-PASS`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p4/PACKET.md:9
+    C4 GHOST-IDS  `4x4.checkpoint`  cited at docs/INDEX-claim-task.md:52
+    C4 GHOST-IDS  `GLOBAL.SESSION-CHOOSE`  cited at docs/INDEX-claim-task.md:90
+    C4 GHOST-IDS  `GLOBAL.FP4`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:65
+    C4 GHOST-IDS  `GLOBAL.CALPARENT-DEAD`  cited at docs/epic-01-markovian/sprints/knowledge-capture/pass0/design.md:181
+    C4 GHOST-IDS  `4x4.DTT`  cited at docs/evidence/ORACLE-V2/build-T184-2026-08-01.md:128
+    C4 GHOST-IDS  `4x4.WZO2-OOM`  cited at docs/evidence/ORACLE-V2/build-T184-2026-08-01.md:133
+    C4 GHOST-IDS  `GLOBAL.H5c-verdict`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:109
+    C4 GHOST-IDS  `4x4.X2`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:196 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/CLAIMS.md:382
+    C4 GHOST-IDS  `GLOBAL.CORRECTIONS`  cited at docs/INDEX-claim-task.md:70
+    C4 GHOST-IDS  `3x2.QA023.B-VACUITY`  cited at docs/infra/dispatch/2B-0.md:6 docs/infra/dispatch/2B-2.md:8 docs/infra/dispatch/2B-6.md:4 docs/evidence/QA-023/PROVENANCE-census-3x2-2026-07-29.md:53
+    C4 GHOST-IDS  `GLOBAL.DENOMINATORS`  cited at docs/evidence/GLOBAL.DENOMINATORS/PROVENANCE.md:6 docs/evidence/GLOBAL.DENOMINATORS/sweep-2026-07-28.md:5 docs/INDEX-claim-task.md:71
+    C4 GHOST-IDS  `4x3.ANCHOR`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:188 docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md:133 docs/epistemic/claimlint-2026-07-28.md:372 docs/epistemic/CLAIMS.md:655
+    C4 GHOST-IDS  `4x4.ARENA-DIV`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:189 docs/epistemic/claimlint-2026-07-28.md:374 docs/epistemic/CLAIMS.md:319 docs/INDEX-claim-deps.md:174
+    C4 GHOST-IDS  `3x2.QA023.B-PROBE-C2`  cited at docs/audits/2026-07-29-qa023-kernel-audit.md:115
+    C4 GHOST-IDS  `3x2.QA023`  cited at docs/INDEX-claim-task.md:31
+    C4 GHOST-IDS  `GLOBAL.XVAL-AGREE`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p6/PACKET.md:9
+    C4 GHOST-IDS  `GLOBAL.ONEMISMATCH`  cited at docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:16 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:25 docs/infra/model-perf.md:2310 docs/epistemic/claimlint-2026-07-28.md:660
+    C4 GHOST-IDS  `3x2.QA023.B-PROBE-C1`  cited at docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md:188 docs/audits/2026-07-29-qa023-kernel-audit.md:114
+    C4 GHOST-IDS  `3x2.C4`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:191 docs/epistemic/claimlint-2026-07-28.md:375 docs/epistemic/CLAIMS.md:312
+    C4 GHOST-IDS  `4x4.X1`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:193 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:193 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/CLAIMS.md:62
+    C4 GHOST-IDS  `4x4.CHAIN-KO`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:195 docs/epistemic/claimlint-2026-07-28.md:373 docs/INDEX-claim-deps.md:62
+    C4 GHOST-IDS  `GLOBAL.TIE-FREEFIX`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p2/PACKET.md:9
+    C4 GHOST-IDS  `3x2.QA023.B-CAL-POS`  cited at docs/evidence/QA-023/reference-semantics-2026-07-29.md:128 docs/evidence/QA-023/probe-fix-2026-07-29.md:207 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:342 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:448
+    C4 GHOST-IDS  `3x2.T13-C2`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p3/PACKET.md:9
+    C4 GHOST-IDS  `GLOBAL.CAL-SHOULDBE-FALSE`  cited at docs/epic-01-markovian/sprints/knowledge-capture/pass0/design.md:182
+    C4 GHOST-IDS  `GLOBAL.ADR0017-REFUTE`  cited at docs/evidence/QA-018/review-a-glm/report.md:334 docs/decisions/0017-bracket-cut-refutation-attempt-failed.md:209
+    C4 GHOST-IDS  `GLOBAL.BRACKET`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:197 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:197 docs/epistemic/claimlint-2026-07-28.md:376 docs/epistemic/CLAIMS.md:283
+    C4 GHOST-IDS  `2x2.value`  cited at docs/INDEX-claim-task.md:26
+    C4 GHOST-IDS  `3x3.ROOT-R`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p1/PACKET.md:9
+
+  `QA-nnn` namespace coverage: 28 distinct IDs cited in docs/, 28 with a
+  register row, 0 without. A falsification cannot propagate to an ID the
+  graph cannot see:
+    C4 GHOST-IDS  UNMODELLED `QA-007`  cited at docs/infra/model-perf.md:1089 docs/epistemic/register-triage-2026-08-04.md:357 docs/epistemic/claimlint-2026-07-28.md:710
+    C4 GHOST-IDS  UNMODELLED `QA-008`  cited at docs/epistemic/register-triage-2026-08-04.md:358 docs/epic-01-markovian/register-tree-map.md:347 docs/epic-01-markovian/retirement-ruling-sheet.md:132
+    C4 GHOST-IDS  UNMODELLED `QA-016`  cited at docs/research/newrule-4x4-2026-07-28.md:134 docs/infra/dispatch/EXP-4.md:55 docs/infra/dispatch/EXP-6.md:6
+    C4 GHOST-IDS  UNMODELLED `QA-020`  cited at docs/research/newrule-certified-fraction-2026-07-30.md:7 docs/infra/dispatch/EXP-7-4x4-rerun.md:5 docs/infra/dispatch/EXP-7-4x4-rerun.md:204
+    C4 GHOST-IDS  UNMODELLED `QA-017`  cited at docs/infra/model-perf.md:1240 docs/epistemic/register-triage-2026-08-04.md:367 docs/epic-01-markovian/register-tree-map.md:349
+    C4 GHOST-IDS  UNMODELLED `QA-002`  cited at docs/infra/model-perf.md:1063 docs/epistemic/register-triage-2026-08-04.md:352 docs/epistemic/claimlint-2026-07-28.md:710
+    C4 GHOST-IDS  UNMODELLED `QA-028`  cited at docs/infra/model-perf.md:1669 docs/epistemic/register-triage-2026-08-04.md:378 docs/epistemic/claimlint-2026-07-28.md:688
+    C4 GHOST-IDS  UNMODELLED `QA-005`  cited at docs/epistemic/register-triage-2026-08-04.md:355 docs/epistemic/CLAIMS.md:547 docs/epic-01-markovian/register-tree-map.md:344
+    C4 GHOST-IDS  UNMODELLED `QA-024`  cited at docs/research/psk-divergence-2026-07-29.md:4 docs/infra/dispatch/EXP-8.md:6 docs/infra/dispatch/EXP-8.md:180
+    C4 GHOST-IDS  UNMODELLED `QA-010`  cited at docs/infra/dispatch/EXP-8.md:7 docs/epistemic/register-triage-2026-08-04.md:360 docs/epistemic/claimlint-2026-07-28.md:390
+    C4 GHOST-IDS  UNMODELLED `QA-006`  cited at docs/epistemic/register-triage-2026-08-04.md:356 docs/epic-01-markovian/register-tree-map.md:345 docs/epic-01-markovian/retirement-ruling-sheet.md:130
+    C4 GHOST-IDS  UNMODELLED `QA-018`  cited at docs/infra/dispatch/QA-018-REVIEW.md:14 docs/infra/dispatch/F2-REMEDY.md:5 docs/infra/dispatch/QA-018-RULING.md:5
+    C4 GHOST-IDS  UNMODELLED `QA-014`  cited at docs/epistemic/register-triage-2026-08-04.md:364 docs/epic-01-markovian/register-tree-map.md:379 docs/epic-01-markovian/retirement-ruling-sheet.md:165
+    (none unmodelled)
+
+  register rows nothing references — no citation outside §2 AND no
+  incoming edge inside it (a smell, not an error):
+    `GLOBAL.T280-CTRL-SEEDED` [PROVEN]
+    `WZO2-4X4-VALID` [FALSE-AS-SCOPED]
+    `WZO2.I2-CLEAN` [MEASUREMENT]
+
+  C4 GHOST-IDS total: 45 dangling IDs, 0 unmodelled QA-nnn IDs, 3 unreferenced rows
+
+== C5 SHADOWED  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==
+`d:` edges terminating on a MEASUREMENT or a definition. A measurement says
+something happened; a definition cannot be wrong. Neither can ever be FALSE,
+so the edge is a dead end: if the claim really needs the SOUNDNESS behind the
+measurement, that parent is missing and a falsification cannot reach this row.
+
+  (none)
+
+  C5 SHADOWED total: 0
+
+== C6 MISCITED  CITE-TAG VERIFICATION (fails the run) ==
+Scans 2 narrative files for `[ID:STATUS]` tags and verifies
+each against the register. A narrative whose cite-tags do not
+match the register is hallucination-prone.
+  scanning: docs/epistemic/PROGRESS.md
+  scanning: docs/epic-01-markovian/AXIOMS.md
+
+  (all cite-tags match the register)
+
+  C6 MISCITED cite-tag mismatches: 0
+
+== C7 UNABSORBED  UNABSORBED FINDINGS (fails the run) ==
+Scans findings/*.json for claim status changes not reflected in the register.
+A finding is unabsorbed when its proposed status differs from CLAIMS.md
+AND it is not dispositioned in the rejection registry (findings/rejections.json).
+
+  files scanned: 262
+  non-conforming: 0 (all files conform to the findings schema)
+  claims touched: 96
+  new-rows touched: 68
+  dispositioned (reason-carrying): 24
+  OUT OF REGISTER SCOPE  `T264-V1` — not a register claim; reason: Infra statement about tooling, not an epistemic claim about Go: 'all 10 tools print a version stamp on startup/--version, built via tools/gen-version.sh'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1).
+            in T264-version-stamping.json
+  OUT OF REGISTER SCOPE  `T264-V2` — not a register claim; reason: Infra statement about tooling, not an epistemic claim about Go: 'oracle-v2-build writes artifacts into untracked/vNN/ with a manifest, version counter in untracked/VERSION'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1).
+            in T264-version-stamping.json
+  OUT OF REGISTER SCOPE  `T264-V3` — not a register claim; reason: Infra statement about tooling, not an epistemic claim about Go: 'the verify-battery JSON header includes battery_version with the full version stamp'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1).
+            in T264-version-stamping.json
+  OUT OF REGISTER SCOPE  `GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps at 2×2 are the correct output of the loopy-game fixpoint — PROVEN` — not a register claim; reason: Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump.
+            in T288-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.ADR0020-VERIFY-PASS: ADR-0020 verification as a pass condition means 0 Bellman violations + 0 fixpoint-vs-truncation fixture disagreements, NOT L==H everywhere — CLAIMED` — not a register claim; reason: Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump.
+            in T288-context.json
+  REJECTED  `WZO2-4X4-VALID` — findings proposed `PROVEN`, register says `FALSE-AS-SCOPED`
+            refuted by register row: CODE.WZO2-INCOMPLETE (now FALSE-AS-SCOPED; the true count is 131,068 provably unreachable entries per CODE.WZO2-PASS1-LAW, absorbed T279)
+            in T212-wzo2-rebuild.json
+  REJECTED  `GLOBAL.Z-R-MOVE-B1-EQUIV` — findings proposed `PROVEN`, register says `CLAIMED`
+            refuted by register row: GLOBAL.Z-R-MOVE-B1-EQUIV (CLAIMS.md §2.1)
+            in T306-b1-unification.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I8-SCOPE` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals. Per DELEGATEE.md §Reporting, claims[] and new_rows[] in a context dump must be empty to avoid double-counting in C7.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I9-ANCHOR-4x4` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.A1-MUTATION` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement on 24-state fixture, not L==H within fixpoint` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I9-ANCHOR-4x4 — 4×4 anchor is +1; MIGOS basic-ko agrees at +1; +2 is different game` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.BATTERY-GAPS — 6 gaps in requirement-tree coverage, 4 runnable after Phase 2 kernel` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.BATTERY-PASS1-ACCEPTANCE — A1–A6 re-based on Amendment 1 (mutation testing + golden master)` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  ABSORBED UNDER REGISTER ID  `T265` → `CODE.GTP-KOKEY (PROVEN)`; reason: The findings file used the task ID 'T265' as the claim ID — a schema violation (claims[].id must be a register ID). The finding's content (engine and solver ko rules independently verified to agree, 0 disagreements) is registered as CODE.GTP-KOKEY, which already carries status PROVEN; the proposed status matches the row the content was absorbed under.
+            in T267-key-agreement.json
+  ABSORBED UNDER REGISTER ID  `T267` → `CODE.KEY-AGREEMENT (CLAIMED, T293)`; reason: The key-agreement invariant (engine and builder produce identical keys on all goban sizes; wired into zig build test) is registered as CODE.KEY-AGREEMENT (absorbed T293). The content matches; the proposed PROVEN is downgraded to CLAIMED per the brief: a self-play test with first-legal-move policy under-covers cycle-intensive ko positions.
+            in T267-key-agreement.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I8-SCOPE` → `GLOBAL.ADR0020-VERIFY-PASS (CLAIMED)`; reason: The I8 scope limitation (I8 measures fixpoint-vs-truncation agreement, not L==H) is already registered as GLOBAL.ADR0020-VERIFY-PASS (absorbed T288), which states the same ADR-0020 pass condition. I8-SCOPE is the battery-specific framing of the same epistemic claim.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I9-ANCHOR-4x4` → `GLOBAL.TIE-MIGOS (FALSE-AS-SCOPED) + GLOBAL.FIXPOINT-VS-SEARCH (CLAIMED)`; reason: The 4x4 anchor correction (+1 = MIGOS basic-ko, +2 is different game) is already registered: GLOBAL.TIE-MIGOS (absorbed T279) refutes the tie-value explanation and records MIGOS basic-ko = +1; GLOBAL.FIXPOINT-VS-SEARCH (also T279) records the fixpoint/search agreement under aligned rules. The battery-specific framing adds no new epistemic content.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.A1-MUTATION` → `GLOBAL.BATTERY-PASS1-ACCEPTANCE (CLAIMED, T293)`; reason: The mutation-testing re-base (Amendment 1) is part of the broader Phase 1 acceptance criteria registered as GLOBAL.BATTERY-PASS1-ACCEPTANCE. A1-MUTATION is the specific A1 half of that re-base; merged into the single row.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I8-SCOPE` → `GLOBAL.ADR0020-VERIFY-PASS (CLAIMED)`; reason: The I8 scope limitation (I8 measures fixpoint-vs-truncation agreement, not L==H) is already registered as GLOBAL.ADR0020-VERIFY-PASS (absorbed T288), which states the same ADR-0020 pass condition. I8-SCOPE is the battery-specific framing of the same epistemic claim.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I9-ANCHOR-4x4` → `GLOBAL.TIE-MIGOS (FALSE-AS-SCOPED) + GLOBAL.FIXPOINT-VS-SEARCH (CLAIMED)`; reason: The 4x4 anchor correction (+1 = MIGOS basic-ko, +2 is different game) is already registered: GLOBAL.TIE-MIGOS (absorbed T279) refutes the tie-value explanation and records MIGOS basic-ko = +1; GLOBAL.FIXPOINT-VS-SEARCH (also T279) records the fixpoint/search agreement under aligned rules. The battery-specific framing adds no new epistemic content.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `Z-CONVERGE-FIX` → `GLOBAL.I5-SCC-CONTAIN (CLAIMED, CLAIMS.md §2.10)`; reason: The findings file used the malformed ID 'Z-CONVERGE-FIX' — no register prefix (GLOBAL./CODE./<goban>.) and a collision with the Z-column vocabulary (the tree/colex label Z-CONVERGE-FIX already names the fixpoint-convergence row family, e.g. 4x4.WZO2-A2-EXHAUSTIVE's tree cell). The content (I5 SCC containment passes at 3x2/4x3/4x4, ko_not_cr=0) is registered as GLOBAL.I5-SCC-CONTAIN (CLAIMED) added by STANDING-ABSORB 2026-08-05, cited from findings/T344-i5-4x4.json. Single-instrument self-report held at CLAIMED, not PROVEN, per verify-then-promote.
+            in T344-i5-4x4.json
+  ABSORBED UNDER REGISTER ID  `T265` → `CODE.GTP-KOKEY (PROVEN)`; reason: Same claim as in T267-key-agreement.json: the findings file used the task ID 'T265' as the claim ID. The content is registered as CODE.GTP-KOKEY (PROVEN), matching the proposal.
+            in T267-context.json
+  ABSORBED UNDER REGISTER ID  `T267` → `CODE.KEY-AGREEMENT (CLAIMED, T293)`; reason: Same claim as in T267-key-agreement.json: key-agreement invariant registered as CODE.KEY-AGREEMENT (absorbed T293).
+            in T267-context.json
+  unabsorbed: 8
+  C7 UNABSORBED  `GLOBAL.CAPTURE-BUDGET-DAG` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T387-capture-budget-dag.json
+  C7 UNABSORBED  `GLOBAL.ROOT-SINGLE-IFF-FORCIBLE-LIFE` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T394-force-life.json
+  C7 UNABSORBED  `GLOBAL.DRAWLOOP-CONFINED` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T394-force-life.json
+  C7 UNABSORBED  `GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T394-force-life.json
+  C7 UNABSORBED  `GLOBAL.LIFE-CERTIFIES` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T393-two-life-census.json
+  C7 UNABSORBED  `GLOBAL.TWO-LIFE-ONSET` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T393-two-life-census.json
+  C7 UNABSORBED  `3x3.LIFE-NO-CENTRE` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T393-two-life-census.json
+  C7 UNABSORBED  `CODE.PROPERTY-OWNERSHIP` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T395-consolidation.json
+
+  C7 UNABSORBED unabsorbed findings: 8
+
+== C8 UNKILLED  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==
+DIRECTION Amendment 2 edge 5: a claim about a kernel function may not be
+promoted past CLAIMED until the battery kills the mutants covering it.
+Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json
+
+  (none)
+
+  kernel-function claims in kill matrix: 3
+  with at least one unkilled mutant:    3
+  at PROVEN (violation):                0
+
+  The count is 0 — no PROVEN kernel-function claims with unkilled mutants.
+  T273's two kernel claims (GLOBAL.AXIOM-BASICKO, GLOBAL.AXIOM-STATE) are
+  correctly held at CLAIMED, not PROVEN. When they are ready for promotion
+  the G1/G3 gap must close first (key-agreement, Phase 2).
+
+  C8 mutation-adequacy violations: 0
+
+== C9 UNMAPPED  TREE MAPPING (fails the run) ==
+Every register row carries the requirement-tree node it serves (AXIOMS.md §3)
+in the `tree` column (T305 — the dropped Phase 0 deliverable, phase0-execution-
+audit F2). C9a validates the vocabulary (a node, or RETIRED = proposed retirement);
+C9b cross-checks docs/epic-01-markovian/register-tree-map.md against the register:
+same row set, same node per row — a mapping that silently covers a subset is the
+denominator defect this check exists to name.
+
+  C9 UNMAPPED  DOC MISSING `GLOBAL.T280-CTRL-SEEDED` — register row absent from register-tree-map.md §1
+
+  register rows: 214 · mapping doc rows: 213
+  mapped to a node: 211 · proposed-retired (RETIRED): 3 · invalid cells: 0
+  doc missing rows: 1 · doc extra rows: 0 · node mismatches: 0
+
+  C9 UNMAPPED tree-mapping violations: 1
+
+== A  SMELL: repeated narrowing (report only) ==
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.FP2-bounded` narrowed 2× · now FALSE-AS-SCOPED (at 3×2)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.CERTCORE` narrowed 2× · now FALSE-AS-SCOPED
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.C2` narrowed 2× · now FALSE-AS-SCOPED (at 3×2)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.C3` narrowed 2× · now FALSE-AS-SCOPED (at 3×3)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.REFRAME` narrowed 3× · now CLAIMED (adopted decision)
+
+  4 of 5 repeatedly-narrowed claims are now FALSE. Repeated narrowing has
+  so far predicted death in this register; the survivors are the ones to read.
+
+  A total: 5 flagged, 2 rows with `narrowed` unknown
+
+== B  WEAK EVIDENCE (report only) ==
+PROVEN rows whose wrong-answer-pass-rate is unknown or above 25%.
+
+  WEAK EVIDENCE — stated rate above 25% (0):
+    (none)
+
+  WEAK EVIDENCE — rate not computed (`?`): 64 PROVEN rows
+  discriminating (rate stated and <= 25%): 4
+    `GLOBAL.S1`  rate ~0%
+    `4x4.S1`  rate ~0%
+    `4x4.S3a`  rate <0.01%
+    `4x3.S3a`  rate <0.1%
+
+== CALIBRATION (GLOBAL.CALIB-LESSON; roadmap §4 P3) ==
+A checker with no failing case proves nothing.
+
+  known-bad 1 (C1a ORPHANED, synthetic): a CLAIMED row with a `d:` chain to a
+                FALSE-AS-SCOPED ancestor must be reported, while a CLAIMED
+                row whose parents are PROVEN must stay silent … CAUGHT (1 orphan, 1 silent)
+  known-bad 2 (C2 DEAD-LINKS): `untracked/c2pilot_3x2.zig` must be reported … CAUGHT
+  known-good (C1a ORPHANED + C2 DEAD-LINKS): PROVEN `GLOBAL.ADR0003-AREA` with a real evidence path must be silent … SILENT (correct)
+  known-good (C1b STALE-NEGATION, `n:`): `GLOBAL.REFRAME` — `n:` to a FALSE parent must be silent … SILENT (correct)
+  known-bad 3 (C1b STALE-NEGATION, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a
+                FALSE parent must not … CAUGHT (1 alarm, 1 silent)
+  known-bad 4 (C5 SHADOWED, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`
+                onto a real claim must not … CAUGHT (1 shadow, 1 silent)
+  known-good (C5 SHADOWED): `GLOBAL.ADR0020-LH-CORRECT` — every `d:` parent is a real claim, must be silent … SILENT (correct)
+  known-bad 5 (C6 MISCITED, synthetic): `[GLOBAL.C2:PROVEN]` (register says FALSE-AS-SCOPED) must
+                be caught, while correct-status tags pass silently … CAUGHT (2 mismatches across 2 files, 3 silent)
+  known-bad 5b (C6 MISCITED, synthetic file 2): `[GLOBAL.C4:FALSE]` (register says
+                FALSE-AS-SCOPED) must also be caught — guards against
+                single-file-only scanning … CAUGHT
+  known-bad 6 (C7 UNABSORBED, synthetic): findings JSON with 2 claims — 1 absorbed
+                (GLOBAL.CALPARENT-DEAD matches), 1 unabsorbed status
+                mismatch (GLOBAL.CAL-SHOULDBE-FALSE: findings says
+                FALSE-AS-SCOPED, register says PROVEN) … CAUGHT (1 unabsorbed, 1 silent)
+  known-good 7 (C7 UNABSORBED, synthetic): same finding with a rejection entry
+                naming a refuting row — must go silent … SILENT (absorbed-with-rejection)
+  known-bad 8 (C7 UNABSORBED, synthetic): multi-row findings file — the T266 defect.
+                Row 1 (PROVEN, matches register) must stay silent, row 2
+                (CLAIMED vs PROVEN) must be caught, and BOTH counted
+                (new-rows touched = 2 — the old parser saw 1) … CAUGHT (2 rows counted, 1 mismatch, 1 silent)
+  known-bad 9 (C7 UNABSORBED, synthetic): a non-findings JSON must be REPORTED, not
+                silently skipped (GRAND-AUDIT §2) … CAUGHT (reported non-conforming)
+  known-good 8 (C7 UNABSORBED, synthetic): a not-a-register-claim rejection entry with
+                its mandatory reason silences a NO-SUCH-ID finding … SILENT (reason carried)
+  known-bad 10 (C7 UNABSORBED, synthetic): the same entry WITHOUT the reason must NOT
+                silence — a silent skip is how a real finding gets lost … CAUGHT (still reported)
+  known-bad 11 (C8 UNKILLED, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-UNKILLED`
+                with a survived mutant must be caught … CAUGHT
+  known-good 9 (C8 UNKILLED, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-KILLED`
+                with all mutants killed must be silent … SILENT (correct)
+  known-good 9b (C8 UNKILLED, synthetic): CLAIMED kernel claim `GLOBAL.CAL-KERNEL-CLAIMED`
+                with unkilled mutant must be silent (only PROVEN triggers) … SILENT (correct)
+  known-bad 12 (C9 UNMAPPED, synthetic): a bogus tree cell, a register row missing
+                from the mapping doc, and a doc row the register lacks
+                must all be reported … CAUGHT (1 invalid + 1 doc-missing + 1 doc-extra)
+  known-good 10 (C9 UNMAPPED, synthetic): a consistent register+doc pair must be
+                silent … SILENT
+
+  calibration: PASS
+
+== SUMMARY ==
+  rows parsed / unparsed        214 / 0
+  C1a orphans / C1b alarms      1 / 0   (FAILS)   [C1a ORPHANED / C1b STALE-NEGATION]
+  C2 dangling evidence paths    11   (FAILS)   [DEAD-LINKS]
+  C3 PROVEN w/o committed evid. 49   (debt list — hook-gated at the floor in claimlint-floor.json)   [UNBACKED]
+  C4 dangling IDs / unreferenced 45 / 3   (report only, does not fail yet)   [GHOST-IDS]
+  C5 shadowed dependencies      0   (report only, does not fail yet)   [SHADOWED]
+  A  repeated-narrowing smells  5   (report only)
+  C6 cite-tag mismatches         0   (FAILS)   [MISCITED]
+  C7 unabsorbed findings         8   (FAILS)   [UNABSORBED]
+  C7 non-conforming files        0   (reported)   [UNABSORBED]
+  C8 mutation-adequacy violations 0   (report only, does not fail yet)   [UNKILLED]
+  C9 tree-mapping violations      1   (FAILS)   [UNMAPPED]
+  calibration                   PASS
+PASS: seeded-defect control — hook blocked the commit (exit 1)
+
+=== regression-precommit: all controls passed ===
+=== git-commit-mine regression ===
+  1. null control: legit single-task commit
+    PASS: commit 8c1e575 contains exactly docs/amendment.md
+  2. seeded control: incident 1 — two staged sets, one commit
+    PASS: refused, named src/claimlint.zig, no commit created
+    PASS: both staged sets intact, foreign content untouched
+  3. explicit arm: foreign staged content present, commit is path-limited
+    FAIL: RC=2, commit contains: docs/amendment.md
+git-commit-mine: REFUSED — cannot resolve task T392 in the kanban
+    PASS: foreign path still staged and untouched
+  4. scope arm: path outside declared deliverables
+    FAIL: RC=1, output: git-commit-mine: REFUSED — index contains staged paths outside your scope (bundle T268-bundle.md):
+  5. pathless arm: no paths -> refused
+    PASS: pathless invocation refused
+  6. T282 null: already-committed path alone reports cleanly (no-op)
+    FAIL: RC=1, output: git-commit-mine: REFUSED — index contains staged paths outside your scope (bundle T268-bundle.md):
+  docs/amendment2.md
+  7. T282 null: mixed — one new + one already-committed path
+    FAIL: RC=1, commit: docs/amendment.md, output: git-commit-mine: REFUSED — index contains staged paths outside your scope (bundle T282-mixed-bundle.md):
+  docs/amendment2.md
+  This is the T268 incident class. Do NOT unstage another console's
+  8. T282 task identity: MANAGENT_TASK_ID + kanban scope
+    FAIL: RC=1, commit: docs/amendment.md, output: git-commit-mine: REFUSED — index contains staged paths outside your scope (task T282-ARM8 (bundle: T282-arm8-bundle.md)):
+  docs/amendment2.md
+  9. T282 seeded: task identity + path outside kanban scope
+    FAIL: RC=1, output: git-commit-mine: REFUSED — index contains staged paths outside your scope (task T282-ARM8 (bundle: T282-arm8-bundle.md)):
+
+=== regression-git-commit-mine: FAILURES ===
+=== regression-claimlint-promotion: pre-flight ===
+  zig-out/bin/weizigo-claimlint is executable
+  docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json present
+
+=== regression-claimlint-promotion: C8 baseline ===
+Starting violation count must be 0 — T273's kernel claims are CLAIMED.
+  C8 violation count: 0
+PASS: C8 baseline — 0 violations (expected 0)
+
+=== regression-claimlint-promotion: calibration ===
+PASS: calibration — seeded control caught, null control silent
+
+=== regression-claimlint-promotion: C8 control detail ===
+  known-bad 11: CAUGHT (seeded PROVEN kernel claim with unkilled mutant)
+  known-good 9: SILENT (null PROVEN kernel claim with all mutants killed)
+  known-good 9b: SILENT (CLAIMED kernel claim — only PROVEN triggers)
+
+=== regression-claimlint-promotion: all controls passed ===
+C8 mutation-adequacy check is deployed report-only. Starting count: 0.
+No kernel-function claim is PROVEN with unkilled mutants.
+To gate: close G1/G3 (key-agreement), kill mutants M1–M4, then set the floor.
+=== smoke ===
+  differential: PASS
+  rules dispatchers: PASS
+  area_score 2x2: PASS
+  deployed vs committed source:
+    STALE: managent: bin/managent built from 04adb3a; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    STALE: weizigo-absorb: bin/weizigo-absorb built from 2e195f3; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    STALE: weizigo-claimlint: bin/weizigo-claimlint built from 2e195f3; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    STALE: weizigo-gtp: bin/weizigo-gtp built from 2e195f3; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    STALE: weizigo-chainability: bin/weizigo-chainability built from 2e195f3; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    STALE: weizigo-engine-vs-engine: bin/weizigo-engine-vs-engine built from 2e195f3; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    STALE: weizigo-reachcensus: bin/weizigo-reachcensus built from 2e195f3; committed source changes since then (HEAD 56973b0) — run 'zig build deploy'
+    PASS: bin/managent status parses the live kanban
+
+smoke: PASS
+=== regression-claimlint-output: pre-flight ===
+  zig-out/bin/weizigo-claimlint is executable
+  tools/claimlint-redirect-short.fixture present (     491 bytes)
+
+=== regression-claimlint-output: null-identity ===
+Verify pipe and file redirect produce byte-identical output...
+  sizes match:    36135 bytes
+FAIL: content differs between pipe and file redirect
+  first difference:
+    63  66  65
+test
++- run test w
+C-A1 3×3: scanned=49428 non-term-children=184938 passes2=24330 missing=0 avg_bf=3.74
+C-A1 3×3 CALIBRATION: missing=2 (expected > 0)
+C-A2 3×3: reachable-non-term=49426 (of 49428 entries) reachable-term=24329 missing=0 sweeps=18 pct-colex=389.95%
+C-A2 3×3 CALIBRATION: missing=1 (expected > 0)
+C-A1 4×4 sample: entries=22 children=356 passes2=11 missing=0
+SKIP 4x4 full closure (set WEIZIGO_CLOSURE_4X4_FULL=1 to run)
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/54f69164f9014405a7e240f80c91f3db/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+=== battery baseline comparison [fast] ===
+  OK    artifacts/oracle-2x2.wzo  (battery rc=1)
+  pass  I1: pass 32/114
+  pass  I10: not-applicable None/None
+  pass  I11: not-applicable None/None
+  pass  I12: pass 0/114
+  pass  I2: pass 0/57
+  pass  I3: not-applicable None/None
+  pass  I4: pass 0/28
+  pass  I5: pass 0/82
+  pass  I6: pass 57/81
+  pass  I7: fail 8/114
+  pass  I8: not-applicable None/None
+  pass  I9: fail 0/1
+  OK    artifacts/oracle-3x2.wzo  (battery rc=1)
+  pass  I1: pass 600/978
+  pass  I10: not-applicable None/None
+  pass  I11: not-applicable None/None
+  pass  I12: pass 0/978
+  pass  I2: pass 0/489
+  pass  I3: not-applicable None/None
+  pass  I4: pass 0/540
+  pass  I5: pass 0/378
+  pass  I6: pass 489/729
+  pass  I7: fail 52/978
+  pass  I8: not-applicable None/None
+  pass  I9: pass 1/1
+  OK    artifacts/oracle-3x3.wzo  (battery rc=1)
+  pass  I1: pass 16652/25350
+  pass  I10: not-applicable None/None
+  pass  I11: not-applicable None/None
+  pass  I12: pass 0/25350
+  pass  I2: pass 0/12675
+  pass  I3: not-applicable None/None
+  pass  I4: pass 0/15742
+  pass  I5: pass 0/8698
+  pass  I6: pass 12675/19683
+  pass  I7: fail 822/25350
+  pass  I8: not-applicable None/None
+  pass  I9: pass 1/1
+  OK    artifacts/oracle-4x3.wzo  (battery rc=1)
+  pass  I1: pass 473102/643378
+  pass  I10: not-applicable None/None
+  pass  I11: not-applicable None/None
+  pass  I12: pass 0/643378
+  pass  I2: pass 0/321689
+  pass  I3: not-applicable None/None
+  pass  I4: pass 0/463024
+  pass  I5: pass 0/170276
+  pass  I6: pass 321689/531441
+  pass  I7: fail 9766/643378
+  pass  I8: not-applicable None/None
+  pass  I9: not-applicable 0/0
+
+BASELINE COMPARISON: PASS
+test
++- run sh failure
+error: process exited with error code 1
+failed command: cd /Users/alex/Project/Zig/weizigo && sh tools/regression-git-commit-mine.sh
+
+=== ollama-dispatcher regression ===
+  1. glm-5.2:cloud — launch uses raw tag, agent lines use canonical
+test
++- run test w
+[I4-diff 3x3] bellman(R8): entries=49428 clear=44020 set=5408 viol_clear=0 viol_set=0 missing=0 move_div=0 no_child=0 pass
+[I4-diff 3x3] A2(kernel): checked=49428 L_violations=0 H_violations=0 missing_child=0 stride=1 denominator=49428
+[I4-diff 3x3] GREEN: R8 and kernel engines agree on every countable — the two Φ operators measure the same property
+I4 3x3: status=pass entries=49428 clear=44020 set=5408 viol_clear=0 viol_set=0 cycle_div=0 missing=0 move_div=0 no_child=0
+I4 3x3 CALIBRATION L-only: total_violations=1 (expected > 0)
+I4 3x3 CALIBRATION verdict-bucket: ei=24832 viol_clear=1 (expected > 0) viol_set=0 cycle=0
+I4 2x2 synthetic: status=pass entries=2 clear=2 set=0 viol_clear=0
+I4 2x2 synthetic CALIBRATION equal: viol_clear=1 (expected > 0)
+I4 4x4 sample: groups=200 checked=570 viol_clear=0 missing=0 move_div=0
+SKIP 4x4 exhaustive (set WEIZIGO_I4_4X4_FULL=1 to run)
+A1 REFUSAL: colex=6 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=8 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=8 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=2 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=2 side=-1 ko=4 passes=0 group not found
+A2 L-VIOLATION: colex=0 side=1 ko=4 p=1  stored L=99 expected L=0
+A2 H-VIOLATION: colex=0 side=1 ko=4 p=1  stored H=99 expected H=0
+2x2: bijection over all 81 boards VERIFIED (dense, no collision)
+3x3: bijection over all 19683 boards VERIFIED (dense, no collision)
+3x2: bijection over all 729 boards VERIFIED (dense, no collision)
+S2-4x4 (k<=5): checked 170769 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+S2-4x4 (k<=8): checked 4840525 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/616e043a610a031a569cde36bda3903e/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+    PASS launch: ollama launch pi --model glm-5.2:cloud
+    PASS claim: --agent glm-5.2
+    PASS done: --agent glm-5.2
+  2. kimi-k2.7-code:cloud — launch uses raw tag, agent lines use canonical
+    PASS launch: ollama launch pi --model kimi-k2.7-code:cloud
+    PASS claim: --agent kimi-k2.7
+    PASS done: --agent kimi-k2.7
+  3. minimax-m3:cloud — launch uses raw tag, agent lines use canonical
+    PASS launch: ollama launch pi --model minimax-m3:cloud
+    PASS claim: --agent minimax-m3
+    PASS done: --agent minimax-m3
+  4. depth-cap: WEIZIGO_AGENT_DEPTH=2 refuses dispatch
+    PASS: refused at depth 2 (RC=1)
+  5. cross-check: OLLAMA_TAG_TO_CANONICAL ↔ canonical_models[]
+    PASS: OLLAMA_TAG_TO_CANONICAL ↔ canonical_models[] in sync
+  6. seeded-defect: canonical-label-in-launch is CAUGHT
+    PASS seeded: synthetic broken output uses canonical in launch — this WOULD fail control 1
+
+=== regression-ollama-dispatcher: ALL CONTROLS PASSED ===
+test
++- run test 138 pass, 4 crash (142 total)
+error: 'qa023_brute_2x2.test.smoke: empty board Black to move -> value 0 (published anchor)' terminated with signal ABRT with stderr:
+       T345 progress: 5000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 10000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 15000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 20000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 25000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 30000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 35000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 40000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 45000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 50000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 55000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 60000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 65000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 70000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 75000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 80000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 85000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 90000000 / 99133036 entries checked, 0 mismatches
+       T345 progress: 95000000 / 99133036 entries checked, 0 mismatches
+       
+       T345 KEY-4x4 RESULT: 0 mismatches / 99133036 entries checked / 99133036 total entries
+       
+       T345 KEY-4x3 RESULT: 0 mismatches / 643378 states checked (expected 643378)
+       T345 calibration: 1000 mismatches / 1000 checked (mutant: flipped LSB of producer colex)
+       2x2: bijection over all 81 boards VERIFIED (dense, no collision)
+       3x3: bijection over all 19683 boards VERIFIED (dense, no collision)
+       3x2: bijection over all 729 boards VERIFIED (dense, no collision)
+       S2-4x4 (k<=5): checked 170769 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+       S2-4x4 (k<=8): checked 4840525 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+       thread 9791254 panic: T360: brute_value exceeded the node budget — the 2x2 search space exploded. Do not raise NODE_BUDGET; find what changed the move or terminal semantics (suspect: the kernel extraction in rules.zig).
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:204:9: 0x104c0cab3 in brute_value (test)
+               @panic("T360: brute_value exceeded the node budget — the 2x2 search space " ++
+               ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c96b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c96b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x104c0c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x104c0c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:257:23: 0x104c0cc67 in value (test)
+           return brute_value(s, &history, 0, 0);
+                             ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:140:68: 0x104bd4f7f in mainServer (test)
+                       const status: TestResults.Status = if (test_fn.func()) |v| s: {
+                                                                          ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:71:26: 0x104bd4aa3 in main (test)
+               return mainServer(init) catch |err| panic("internal test runner failure: {t}", .{err});
+                                ^
+       ???:?:?: 0x18c973dff in start (/usr/lib/dyld)
+error: 'qa023_brute_2x2.test.smoke: empty board White to move -> value 0' terminated with signal ABRT with stderr:
+       thread 9798407 panic: T360: brute_value exceeded the node budget — the 2x2 search space exploded. Do not raise NODE_BUDGET; find what changed the move or terminal semantics (suspect: the kernel extraction in rules.zig).
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:204:9: 0x100704ab3 in brute_value (test)
+               @panic("T360: brute_value exceeded the node budget — the 2x2 search space " ++
+               ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007048f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070496b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070492f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070496b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070492f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007048f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070492f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070492f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007048f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007048f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070496b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007049d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x100704a87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070496b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10070492f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1007048f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1007048b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:257:23: 0x100704c1b in value (test)
+           return brute_value(s, &history, 0, 0);
+                             ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:140:68: 0x1006ccf7f in mainServer (test)
+                       const status: TestResults.Status = if (test_fn.func()) |v| s: {
+                                                                          ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:71:26: 0x1006ccaa3 in main (test)
+               return mainServer(init) catch |err| panic("internal test runner failure: {t}", .{err});
+                                ^
+       ???:?:?: 0x18c973dff in start (/usr/lib/dyld)
+error: 'qa023_brute_2x2.test.smoke: passes=1 is NOT terminal' terminated with signal ABRT with stderr:
+       thread 9798935 panic: T360: brute_value exceeded the node budget — the 2x2 search space exploded. Do not raise NODE_BUDGET; find what changed the move or terminal semantics (suspect: the kernel extraction in rules.zig).
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:204:9: 0x10009cab3 in brute_value (test)
+               @panic("T360: brute_value exceeded the node budget — the 2x2 search space " ++
+               ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c96b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c96b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c9a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c96b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c92f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c8f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c9a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009ca0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x10009c8b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x10009c9d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:257:23: 0x10009cb2f in value (test)
+           return brute_value(s, &history, 0, 0);
+                             ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:140:68: 0x100064f7f in mainServer (test)
+                       const status: TestResults.Status = if (test_fn.func()) |v| s: {
+                                                                          ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:71:26: 0x100064aa3 in main (test)
+               return mainServer(init) catch |err| panic("internal test runner failure: {t}", .{err});
+                                ^
+       ???:?:?: 0x18c973dff in start (/usr/lib/dyld)
+error: 'qa023_brute_2x2.test.smoke: 1-ko shape: B captures 1 W stone, the ko point forbids the snapback' terminated with signal ABRT with stderr:
+       thread 9799487 panic: T360: brute_value exceeded the node budget — the 2x2 search space exploded. Do not raise NODE_BUDGET; find what changed the move or terminal semantics (suspect: the kernel extraction in rules.zig).
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:204:9: 0x1029e0ab3 in brute_value (test)
+               @panic("T360: brute_value exceeded the node budget — the 2x2 search space " ++
+               ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e092f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e092f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e08f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e08f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e092f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e092f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a4b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e092f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e096b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09a7 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e08f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e096b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a0f in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e09d3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e0a87 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e08f3 in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:242:34: 0x1029e096b in brute_value (test)
+                   const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                        ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:232:30: 0x1029e08b7 in brute_value (test)
+               const v = brute_value(next_s, history, new_history_len, depth + 1);
+                                    ^
+       /Users/alex/Project/Zig/weizigo/src/qa023_brute_2x2.zig:257:23: 0x1029e0713 in value (test)
+           return brute_value(s, &history, 0, 0);
+                             ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:140:68: 0x1029a8f7f in mainServer (test)
+                       const status: TestResults.Status = if (test_fn.func()) |v| s: {
+                                                                          ^
+       /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/compiler/test_runner.zig:71:26: 0x1029a8aa3 in main (test)
+               return mainServer(init) catch |err| panic("internal test runner failure: {t}", .{err});
+                                ^
+       ???:?:?: 0x18c973dff in start (/usr/lib/dyld)
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/f01ea4608dd3101b2f05fe83d4b597ee/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+test
++- run sh failure
+error: process exited with error code 1
+failed command: cd /Users/alex/Project/Zig/weizigo && sh tools/regression-claimlint-output.sh
+
+=== managent duplicate-dispatch regression ===
+  a. dispatch on a fresh row succeeds
+    PASS: TA dispatched
+  b. second dispatch refuses, naming the holder
+    PASS: TA second dispatch refused
+  c. --force re-dispatch succeeds loudly
+    PASS: TA forced re-dispatch
+  d. claim on an already-claimed row refuses (holder + timestamp, no phantom suffix)
+    PASS: TB claim refused, holder/timestamp named, no phantom suffix
+  e. claim-then-done within seconds refuses; --force closes
+    PASS: TC done refused for claim-at-close
+    PASS: TC --force closed loudly
+  f. done on a normally-claimed row closes without --force
+    PASS: TD closed normally (old claim)
+  g. audit: done row with clean deliverable is silent
+    PASS: clean done deliverable → audit has no FIX findings
+  g2. audit: same row with deliverable dirtied reports FIX
+    PASS: dirty done deliverable reported
+  h. audit: dispatchable row with not-yet-created deliverable is silent
+    PASS: not-yet-created deliverable not flagged
+  h2. audit: dispatchable row with existing dirty deliverable reports FIX
+    PASS: dirty dispatchable deliverable reported
+  i. live kanban untouched
+    PASS: live kanban byte-identical
+
+=== managent duplicate-dispatch: ALL CONTROLS PASSED ===
+test
++- run test w
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED-GAP G1/G3] M3-T265: I5 status=pass ko_flags=82 ko_not_cr=0 — SURVIVES, no key-agreement check
+[EXPECTED] M5-T283: I2 status=fail violations=57/57
+[EXPECTED] M6-DTT-unset: I7 status=fail terminals_bad=12 terminals_total=12 uniform_val=255
+[EXPECTED] M7-T260: I2 status=fail violations=21/57
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9-BATTERY-STUBBED: red status=fail skipped=1 stubbed=I7
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9-BATTERY-STUBBED: green status=pass skipped=0
+[EXPECTED] M8-T261: clean C-A1 children_not_in_table=0 C-A2 reachable_not_in_table=0
+[EXPECTED] M8-T261: RED C-A1 children_not_in_table=2 C-A2 reachable_not_in_table=1
+[EXPECTED] M10-ALIAS-CONTROL: null mismatches=0/114 (vacuous 0 required)
+[EXPECTED] M10-ALIAS-CONTROL: seeded-defect mismatches=1/114 (> 0 required)
+C-A1 3×3: scanned=49428 non-term-children=184938 passes2=24330 missing=0 avg_bf=3.74
+C-A1 3×3 CALIBRATION: missing=2 (expected > 0)
+C-A2 3×3: reachable-non-term=49426 (of 49428 entries) reachable-term=24329 missing=0 sweeps=18 pct-colex=389.95%
+C-A2 3×3 CALIBRATION: missing=1 (expected > 0)
+C-A1 4×4 sample: entries=22 children=356 passes2=11 missing=0
+SKIP 4x4 full closure (set WEIZIGO_CLOSURE_4X4_FULL=1 to run)
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9 green: status=pass declared=12 skipped=0
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9 red: status=fail skipped=1 stubbed=I7
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9 double-red: status=fail skipped=2
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=255 nodes, E=434 edges  (p0=85 p1=85 p2=85)
+[I5] Tarjan: SCCs total=96 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=162
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678
+I4 2x2: violations=0 examined=28 ko_excluded=82
+I4 4x3: violations=0 examined=463024 ko_excluded=170276 status=pass
+I7 3x2: terminals_bad=52 terminals_total=72
+I9 2x2: expected=0 actual=1 match=false
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/159440278539cfd130b0eb27dd8907be/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+=== depth-enforcement regression (T321, option b) ===
+  1. null: bin/ollama-subagent at depth unset is NOT refused
+    PASS: prints command, RC 0 (not refused)
+  2. null: bin/ollama-subagent at depth 1 is NOT refused
+    PASS: stamps child depth 2, RC 0 (not refused)
+  3. seeded: bin/ollama-subagent at worker depth 2 IS refused
+    PASS: refused at depth 2 (RC=1)
+  4. seeded: bin/ollama-subagent fail-closes on an unreadable depth
+    PASS: garbage depth treated as worker (RC=1)
+  5. seeded: bin/subagent STILL refuses DeepSeek dispatch at depth 2
+    PASS: existing edge still guarded (RC=1)
+  6. doc: subdelegation.md records the ruling + three paths
+    PASS: ruling, real-dispatch finding, and path-3 note all present
+  7. doc: subdelegation.md records the attribution rule (never self-report)
+    PASS: attribution rule present
+
+=== regression-depth-enforcement: ALL CONTROLS PASSED ===
+=== subagent-prompt regression ===
+  1. null control: --dsflash --dry-run emits --agent on both lines
+    PASS: --agent deepseek-v4-flash on claim and done lines
+  2. null control: --dspro --dry-run emits --agent on both lines
+    PASS: --agent deepseek-v4-pro on claim and done lines
+  3. seeded: exact --agent fragment present on claim line
+    PASS: 'claim T995 --agent deepseek-v4-flash' found
+  4. seeded: exact --agent fragment present on done line
+    PASS: 'done T995 --agent deepseek-v4-flash --status' found
+  5. depth-cap: WEIZIGO_AGENT_DEPTH=2 refuses dispatch
+    PASS: refused at depth 2 (RC=1)
+
+=== regression-subagent-prompt: ALL CONTROLS PASSED ===
+test
++- run test w
+2x2: bijection over all 81 boards VERIFIED (dense, no collision)
+3x3: bijection over all 19683 boards VERIFIED (dense, no collision)
+3x2: bijection over all 729 boards VERIFIED (dense, no collision)
+S2-4x4 (k<=5): checked 170769 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+S2-4x4 (k<=8): checked 4840525 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/95ba7a4788b380a54a33c58dd665081e/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+=== regression-git-commit-mine-hook (staged-path subset backstop) ===
+  1. null: identity known, staged paths in scope
+    PASS: hook allowed (RC=0), reported staged ⊆ scope
+  2. seeded: identity known, foreign staged path REFUSED, naming it
+    PASS: refused (RC=1), naming docs/foreign.md as outside the task scope
+  3. unlabelled: no MANAGENT_TASK_ID, foreign staged -> warns and allows, naming it
+    PASS: warned (RC=0), naming docs/foreign.md
+  4. explicit: GIT_MINE_EXPLICIT=1, foreign staged -> warns and allows, naming it
+    PASS: warned (RC=0) with the explicit-mode note, path listed
+  5. unresolvable: MANAGENT_TASK_ID not in kanban -> warns and allows, listing paths
+    PASS: warned (RC=0) listing docs/ok.md (identity unknown = unlabelled)
+  6. findings: staged findings/<id>-*.json is in scope
+    PASS: hook allowed (RC=0) — findings glob included in scope
+
+=== regression-git-commit-mine-hook: ALL CONTROLS PASSED ===
+test
++- run test w
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9 green: status=pass declared=12 skipped=0
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9 red: status=fail skipped=1 stubbed=I7
+[I5] all-legal seeds: 57 legal positions × 2 sides = 114 root nodes
+[I5] BFS: V=342 nodes, E=596 edges  (p0=114 p1=114 p2=114)
+[I5] Tarjan: SCCs total=183 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=216
+[I5] KO_SENSITIVE flags: 82 total, 82 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[EXPECTED] M9 double-red: status=fail skipped=2
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=255 nodes, E=434 edges  (p0=85 p1=85 p2=85)
+[I5] Tarjan: SCCs total=96 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=162
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678
+I4 2x2: violations=0 examined=28 ko_excluded=82
+I4 4x3: violations=0 examined=463024 ko_excluded=170276 status=pass
+I7 3x2: terminals_bad=52 terminals_total=72
+I9 2x2: expected=0 actual=1 match=false
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/313dfaa606653fb680b93aaf8b0dc849/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+test
++- run test w
+A1 REFUSAL: colex=6 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=8 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=8 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=2 side=-1 ko=4 passes=0 group not found
+A1 REFUSAL: colex=2 side=-1 ko=4 passes=0 group not found
+A2 L-VIOLATION: colex=0 side=1 ko=4 p=1  stored L=99 expected L=0
+A2 H-VIOLATION: colex=0 side=1 ko=4 p=1  stored H=99 expected H=0
+2x2: bijection over all 81 boards VERIFIED (dense, no collision)
+3x3: bijection over all 19683 boards VERIFIED (dense, no collision)
+3x2: bijection over all 729 boards VERIFIED (dense, no collision)
+S2-4x4 (k<=5): checked 170769 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+S2-4x4 (k<=8): checked 4840525 legal positions; benson_alive vs naive mismatches=0; immediate-capture violations=0
+failed command: ./.zig-cache/o/5d93a2d6346cc9f1fb4a2fb2661d9c4e/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+test
++- run test w
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=7364 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=64 non-trivial=1 maxSize=2520 cycleInvolved=2520 cycleReachable=2523
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=7364 maxSCC=2520 cycleInv=2520 cycleReach=2523 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5 Defect-A control] differential FIRES on seeded passes==2 successors (general E=7364 vs specific E=5510)
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5 Defect-A control] GREEN: fixed path agrees on every countable
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=988 cycleInvolved=988 cycleReachable=1678
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=5510 maxSCC=988 cycleInv=988 cycleReach=1678 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5 Defect-B control] differential FIRES on seeded triple projection (general maxSCC=988 vs specific maxSCC=1676)
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5 Defect-B control] GREEN: fixed path agrees on every countable
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=7364 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=64 non-trivial=1 maxSize=1000 cycleInvolved=1000 cycleReachable=2523
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=7364 maxSCC=1000 cycleInv=1000 cycleReach=2523 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5 Defect-A+B control] differential FIRES: pre-fix readings reproduced exactly (E=7364 maxSCC=1000 cycleReach=2523 sccs=64)
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] KO_SENSITIVE flags: 378 total, 347 on graph (ko=NONE, passes=0), 0 NOT cycle-reachable
+[I5-diff 3x2] general: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSensGraph=347 koNotCR=0 pass
+[I5-diff 3x2] specific: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678 koSens=347 koNotCR=0 pass
+[I5 Defect-A+B control] GREEN: fixed path agrees on every countable
+SKIP 4×3 I5 differential (set WEIZIGO_I5_DIFF_4X3=1 to run)
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=255 nodes, E=434 edges  (p0=85 p1=85 p2=85)
+[I5] Tarjan: SCCs total=96 non-trivial=1 maxSize=160 cycleInvolved=160 cycleReachable=162
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+2x2 reachable: V=255 E=434 maxSCC=160 cycleInv=160 cycleReach=162
+[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)
+[I5] BFS: V=2583 nodes, E=5510 edges  (p0=877 p1=853 p2=853)
+[I5] Tarjan: SCCs total=908 non-trivial=1 maxSize=1676 cycleInvolved=1676 cycleReachable=1678
+[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)
+3x2 reachable: V=2583 E=5510 maxSCC=1676 cycleInv=1676 cycleReach=1678
+
+[3x2 diag] V=2583 E=5510 maxSCC=1676 nSCC_non_trivial=1 cycle_involved=1676 cycle_reachable=1678 ko_sens=347 ko_not_cr=0
+[3x2 all-legal] V=2958 ko_not_cr=0 hint_colex=null clear_hint_colex=null
+[T344 NOTE] 3×2 all-legal has no non-CR clear-flag slot in the full graph — seeded-defect demonstrated at 4×4 instead (3×2 and 4×3 are vacuous in the full-graph model; 2×2, 3×2, 4×3-reachable share the same vacuity).
+
+[4x3] V=1929035 E=6858926 maxSCC=1284078 nSCC_nt=1 cycle_inv=1284078 cycle_reach=1284080 ko_sens=170181 ko_not_cr=0
+  seed_hint_colex=null seed_hint_side=null
+[mem 4x3] total=235.6 MiB (ledger sum) — plan-vs-actual comparison below
+[mem 4x3]   artifact file (mmap'd)     3188678 B = 3.0 MiB
+[mem 4x3]   group index                      0 B = 0.0 MiB
+[mem 4x3]   entry data                 3188646 B = 3.0 MiB
+[mem 4x3]   colex→group map                  0 B = 0.0 MiB
+[mem 4x3]   entry_starts                     0 B = 0.0 MiB
+[mem 4x3]   Tarjan index               7716140 B = 7.4 MiB
+[mem 4x3]   Tarjan lowlink             7716140 B = 7.4 MiB
+[mem 4x3]   Tarjan onstack             1929035 B = 1.8 MiB
+[mem 4x3]   SCC id (comp)              7716140 B = 7.4 MiB
+[mem 4x3]   dense_to_linear           15432280 B = 14.7 MiB
+[mem 4x3]   linear_to_dense          165809592 B = 158.1 MiB
+[mem 4x3]   adjacency lists                  0 B = 0.0 MiB
+[mem 4x3]   SCC stack                  7716140 B = 7.4 MiB
+[mem 4x3]   SCC reps                   2579832 B = 2.5 MiB
+[mem 4x3]   comp_sizes                 2579832 B = 2.5 MiB
+[mem 4x3]   cycle-reachable marks       644958 B = 0.6 MiB
+[mem 4x3]   BFS bitset                 5181552 B = 4.9 MiB
+[mem 4x3]   DFS frame stack                  0 B = 0.0 MiB
+[mem 4x3]   BFS queue                 15650648 B = 14.9 MiB
+[mem 4x3]   other (scratch/overhead)         0 B = 0.0 MiB
+
+[4x3 all-legal] V=1953602 E=6965904 scc_nt=1 maxSCC=1284078 ko_not_cr=0 ko_sens=170276 cr=1300030 hint_colex=null clear_hint_colex=null
+[T391 NOTE] 4×3 all-legal is vacuous (ko_not_cr=0): no non-CR passes=0 ko=NONE slot, so no red-then-green can be shown here. Seeded-defect demonstrated at 4×4. The T344/T363 '24 natural violations' were spurious (propagation-order bug, fixed by T391).
+[T395 Defect-C control] RED: descending CR propagation reproduces the historical spurious ko_not_cr=24 (CR 1300006) — the differential would fire
+[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading
+[4x4 seeded-defect] seed entry 3529652 L=-16 H=-16
+[4x4 seeded-defect RED] ko_not_cr=1 (baseline 0) at entry 3529652
+[4x4 seeded-defect GREEN] restored ko_not_cr=0
+
+[4x4] 24318165 groups, 99133036 entries (494 MB). Starting Tarjan...
+[4x4] V=99133036 E=565402416 maxSCC=47429504 nSCC_nt=1 cycle_inv=47429504 cycle_reach=97689592 ko_sens=3455412 ko_not_cr=0
+[mem 4x4] total=3656.0 MiB (ledger sum) — plan-vs-actual comparison below
+[mem 4x4]   artifact file (mmap'd)   518123097 B = 494.1 MiB
+[mem 4x4]   group index              121590825 B = 116.0 MiB
+[mem 4x4]   entry data               396532144 B = 378.2 MiB
+[mem 4x4]   colex→group map          172186884 B = 164.2 MiB
+[mem 4x4]   entry_starts             194545320 B = 185.5 MiB
+[mem 4x4]   Tarjan index             396532144 B = 378.2 MiB
+[mem 4x4]   Tarjan lowlink           396532144 B = 378.2 MiB
+[mem 4x4]   Tarjan onstack            12391632 B = 11.8 MiB
+[mem 4x4]   SCC id (comp)            396532144 B = 378.2 MiB
+[mem 4x4]   dense_to_linear                  0 B = 0.0 MiB
+[mem 4x4]   linear_to_dense                  0 B = 0.0 MiB
+[mem 4x4]   adjacency lists                  0 B = 0.0 MiB
+[mem 4x4]   SCC stack                793064288 B = 756.3 MiB
+[mem 4x4]   SCC reps                         0 B = 0.0 MiB
+[mem 4x4]   comp_sizes               206814132 B = 197.2 MiB
+[mem 4x4]   cycle-reachable marks     99133036 B = 94.5 MiB
+[mem 4x4]   BFS bitset                       0 B = 0.0 MiB
+[mem 4x4]   DFS frame stack          129651200 B = 123.6 MiB
+[mem 4x4]   BFS queue                        0 B = 0.0 MiB
+[mem 4x4]   other (scratch/overhead)         0 B = 0.0 MiB
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/57c9abea26e2742e7cc123e564208dc8/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+test
++- run test w
+
+[3x2 diag] V=2583 E=5510 maxSCC=1676 nSCC_non_trivial=1 cycle_involved=1676 cycle_reachable=1678 ko_sens=347 ko_not_cr=0
+[3x2 all-legal] V=2958 ko_not_cr=0 hint_colex=null clear_hint_colex=null
+[T344 NOTE] 3×2 all-legal has no non-CR clear-flag slot in the full graph — seeded-defect demonstrated at 4×4 instead (3×2 and 4×3 are vacuous in the full-graph model; 2×2, 3×2, 4×3-reachable share the same vacuity).
+
+[4x3] V=1929035 E=6858926 maxSCC=1284078 nSCC_nt=1 cycle_inv=1284078 cycle_reach=1284080 ko_sens=170181 ko_not_cr=0
+  seed_hint_colex=null seed_hint_side=null
+[mem 4x3] total=235.6 MiB (ledger sum) — plan-vs-actual comparison below
+[mem 4x3]   artifact file (mmap'd)     3188678 B = 3.0 MiB
+[mem 4x3]   group index                      0 B = 0.0 MiB
+[mem 4x3]   entry data                 3188646 B = 3.0 MiB
+[mem 4x3]   colex→group map                  0 B = 0.0 MiB
+[mem 4x3]   entry_starts                     0 B = 0.0 MiB
+[mem 4x3]   Tarjan index               7716140 B = 7.4 MiB
+[mem 4x3]   Tarjan lowlink             7716140 B = 7.4 MiB
+[mem 4x3]   Tarjan onstack             1929035 B = 1.8 MiB
+[mem 4x3]   SCC id (comp)              7716140 B = 7.4 MiB
+[mem 4x3]   dense_to_linear           15432280 B = 14.7 MiB
+[mem 4x3]   linear_to_dense          165809592 B = 158.1 MiB
+[mem 4x3]   adjacency lists                  0 B = 0.0 MiB
+[mem 4x3]   SCC stack                  7716140 B = 7.4 MiB
+[mem 4x3]   SCC reps                   2579832 B = 2.5 MiB
+[mem 4x3]   comp_sizes                 2579832 B = 2.5 MiB
+[mem 4x3]   cycle-reachable marks       644958 B = 0.6 MiB
+[mem 4x3]   BFS bitset                 5181552 B = 4.9 MiB
+[mem 4x3]   DFS frame stack                  0 B = 0.0 MiB
+[mem 4x3]   BFS queue                 15650648 B = 14.9 MiB
+[mem 4x3]   other (scratch/overhead)         0 B = 0.0 MiB
+
+[4x3 all-legal] V=1953602 E=6965904 scc_nt=1 maxSCC=1284078 ko_not_cr=0 ko_sens=170276 cr=1300030 hint_colex=null clear_hint_colex=null
+[T391 NOTE] 4×3 all-legal is vacuous (ko_not_cr=0): no non-CR passes=0 ko=NONE slot, so no red-then-green can be shown here. Seeded-defect demonstrated at 4×4. The T344/T363 '24 natural violations' were spurious (propagation-order bug, fixed by T391).
+[T395 Defect-C control] RED: descending CR propagation reproduces the historical spurious ko_not_cr=24 (CR 1300006) — the differential would fire
+[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading
+[4x4 seeded-defect] seed entry 3529652 L=-16 H=-16
+[4x4 seeded-defect RED] ko_not_cr=1 (baseline 0) at entry 3529652
+[4x4 seeded-defect GREEN] restored ko_not_cr=0
+
+[4x4] 24318165 groups, 99133036 entries (494 MB). Starting Tarjan...
+[4x4] V=99133036 E=565402416 maxSCC=47429504 nSCC_nt=1 cycle_inv=47429504 cycle_reach=97689592 ko_sens=3455412 ko_not_cr=0
+[mem 4x4] total=3656.0 MiB (ledger sum) — plan-vs-actual comparison below
+[mem 4x4]   artifact file (mmap'd)   518123097 B = 494.1 MiB
+[mem 4x4]   group index              121590825 B = 116.0 MiB
+[mem 4x4]   entry data               396532144 B = 378.2 MiB
+[mem 4x4]   colex→group map          172186884 B = 164.2 MiB
+[mem 4x4]   entry_starts             194545320 B = 185.5 MiB
+[mem 4x4]   Tarjan index             396532144 B = 378.2 MiB
+[mem 4x4]   Tarjan lowlink           396532144 B = 378.2 MiB
+[mem 4x4]   Tarjan onstack            12391632 B = 11.8 MiB
+[mem 4x4]   SCC id (comp)            396532144 B = 378.2 MiB
+[mem 4x4]   dense_to_linear                  0 B = 0.0 MiB
+[mem 4x4]   linear_to_dense                  0 B = 0.0 MiB
+[mem 4x4]   adjacency lists                  0 B = 0.0 MiB
+[mem 4x4]   SCC stack                793064288 B = 756.3 MiB
+[mem 4x4]   SCC reps                         0 B = 0.0 MiB
+[mem 4x4]   comp_sizes               206814132 B = 197.2 MiB
+[mem 4x4]   cycle-reachable marks     99133036 B = 94.5 MiB
+[mem 4x4]   BFS bitset                       0 B = 0.0 MiB
+[mem 4x4]   DFS frame stack          129651200 B = 123.6 MiB
+[mem 4x4]   BFS queue                        0 B = 0.0 MiB
+[mem 4x4]   other (scratch/overhead)         0 B = 0.0 MiB
+failed command: cd /Users/alex/Project/Zig/weizigo && ./.zig-cache/o/0e991e54eb41a5d03bfa3488c5903321/test --cache-dir=./.zig-cache --seed=0xd096d5b3 --listen=-
+
+Build Summary: 51/56 steps succeeded (4 failed); 909/914 tests passed (1 skipped, 4 crashed)
+test transitive failure
++- run sh failure
++- run sh failure
++- run sh failure
++- run test 138 pass, 4 crash (142 total)
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/56d9e6f1ffdc1262bb3844b82aea3fb9/build /opt/homebrew/Cellar/zig/0.16.0_1/bin/zig /opt/homebrew/Cellar/zig/0.16.0_1/lib/zig /Users/alex/Project/Zig/weizigo .zig-cache /Users/alex/.cache/zig --seed 0xd096d5b3 -Z58155a48f8141abc -Doptimize=ReleaseFast test
+[runner] peak RSS by PID: in 606.0 s
+[runner]   pid   49199    2827 MB
+[runner]   pid   50382    2817 MB
+[runner]   pid   49345    1155 MB
+[runner]   pid   48126    1155 MB
+[runner]   pid   49195     867 MB
+[runner]   pid   48092     720 MB
+[runner]   pid   50667     520 MB
+[runner]   pid   49474     515 MB
+[runner]   pid   50423     498 MB
+[runner]   pid   50493     498 MB
+[runner]   pid   48105     452 MB
+[runner]   pid   49349     428 MB
+[runner]   pid   48083     418 MB
+[runner]   pid   48080     407 MB
+[runner]   pid   49344     399 MB
+[runner]   pid   49327     373 MB
+[runner]   pid   49329     369 MB
+[runner]   pid   48082     357 MB
+[runner]   pid   49347     356 MB
+[runner]   pid   48081     332 MB
+[runner]   pid   48078     331 MB
+[runner]   pid   48076     321 MB
+[runner]   pid   49330     320 MB
+[runner]   pid   50546     316 MB
+[runner]   pid   49346     313 MB
+[runner]   pid   49366     113 MB
+[runner]   pid   49565     104 MB
+[runner]   pid   50501      97 MB
+[runner]   pid   49487      95 MB
+[runner]   pid   50339      95 MB
+[runner]   pid   50184      87 MB
+[runner]   pid   49656      79 MB
+[runner]   pid   50544      76 MB
+[runner]   pid   48072      32 MB
+[runner]   pid   50429      18 MB
+[runner]   pid   50597      16 MB
+[runner]   pid   50435      16 MB
+[runner]   pid   48972      14 MB
+[runner]   pid   50666      14 MB
+[runner]   pid   50608      14 MB
+[runner]   pid   48914      14 MB
+[runner]   pid   48822      14 MB
+[runner]   pid   49176      14 MB
+[runner]   pid   48075      12 MB
+[runner]   pid   48494       8 MB
+[runner]   pid   51108       3 MB
+[runner]   pid   49025       2 MB
+[runner]   pid   49644       2 MB
+[runner]   pid   50260       2 MB
+[runner]   pid   48582       2 MB
+[runner]   pid   50990       2 MB
+[runner]   pid   48077       2 MB
+[runner]   pid   49773       2 MB
+[runner]   pid   51273       2 MB
+[runner]   pid   48482       2 MB
+[runner]   pid   49354       2 MB
+[runner]   pid   49336       2 MB
+[runner]   pid   48276       2 MB
+[runner]   pid   50888       2 MB
+[runner]   pid   51783       2 MB
+[runner]   pid   49198       2 MB
+[runner]   pid   51679       2 MB
+[runner]   pid   48814       2 MB
+[runner]   pid   51310       2 MB
+[runner]   pid   51586       2 MB
+[runner]   pid   48404       2 MB
+[runner]   pid   50178       2 MB
+[runner]   pid   51479       2 MB
+[runner]   pid   50496       2 MB
+[runner]   pid   51177       2 MB
+[runner]   pid   50587       2 MB
+[runner]   pid   50547       2 MB
+[runner]   pid   49796       1 MB
+[runner]   pid   50548       1 MB
+[runner]   pid   50621       1 MB
+[runner]   pid   50692       1 MB
+[runner]   pid   51678       1 MB
+[runner]   pid   51782       1 MB
+[runner]   pid   51585       1 MB
+[runner]   pid   50434       1 MB
+[runner]   pid   50338       1 MB
+[runner]   pid   51478       1 MB
+[runner]   pid   51107       1 MB
+[runner]   pid   51309       1 MB
+[runner]   pid   49564       1 MB
+[runner]   pid   49655       1 MB
+[runner]   pid   51691       1 MB
+[runner]   pid   49486       1 MB
+[runner]   pid   51331       1 MB
+[runner]   pid   51484       1 MB
+[runner]   pid   49365       1 MB
+[runner]   pid   50183       1 MB
+[runner]   pid   50436       1 MB
+[runner]   pid   48971       1 MB
+[runner]   pid   50340       1 MB
+[runner]   pid   48821       1 MB
+[runner]   pid   49491       1 MB
+[runner]   pid   49568       1 MB
+[runner]   pid   48823       1 MB
+[runner]   pid   49566       1 MB
+[runner]   pid   48915       1 MB
+[runner]   pid   48973       1 MB
+[runner]   pid   49488       1 MB
+[runner]   pid   50342       1 MB
+[runner]   pid   49490       1 MB
+[runner]   pid   49567       1 MB
+[runner]   pid   50545       1 MB
+[runner]   pid   50341       1 MB
+[runner]   pid   48495       1 MB
+[runner]   pid   48829       1 MB
+[runner]   pid   48927       1 MB
+[runner]   pid   48974       1 MB
+[runner]   pid   49043       0 MB
+[runner]   pid   49079       0 MB
+[runner]   pid   50243       0 MB
+[runner]   pid   50244       0 MB
+[runner]   pid   51332       0 MB
+[runner]   pid   51485       0 MB
+[runner]   pid   51692       0 MB
+[runner] peak total CPU by PID: in 606.0 s
+[runner]   pid   49199        9:53 (593.23s)
+[runner]   pid   50382        9:50 (590.91s)
+[runner]   pid   48092        0:08 (8.99s)
+[runner]   pid   48105        0:07 (7.94s)
+[runner]   pid   49195        0:07 (7.69s)
+[runner]   pid   49349        0:07 (7.49s)
+[runner]   pid   49344        0:07 (7.46s)
+[runner]   pid   48083        0:07 (7.43s)
+[runner]   pid   48080        0:07 (7.36s)
+[runner]   pid   49327        0:06 (6.46s)
+[runner]   pid   49329        0:06 (6.43s)
+[runner]   pid   49347        0:06 (6.04s)
+[runner]   pid   48082        0:06 (6.0s)
+[runner]   pid   49345        0:05 (5.97s)
+[runner]   pid   48081        0:05 (5.65s)
+[runner]   pid   48078        0:05 (5.63s)
+[runner]   pid   49330        0:05 (5.32s)
+[runner]   pid   48076        0:05 (5.28s)
+[runner]   pid   49474        0:05 (5.28s)
+[runner]   pid   49346        0:05 (5.23s)
+[runner]   pid   50547        0:04 (4.7s)
+[runner]   pid   50667        0:02 (2.67s)
+[runner]   pid   48126        0:00 (0.82s)
+[runner]   pid   50546        0:00 (0.63s)
+[runner]   pid   49366        0:00 (0.58s)
+[runner]   pid   49565        0:00 (0.52s)
+[runner]   pid   50621        0:00 (0.52s)
+[runner]   pid   50692        0:00 (0.51s)
+[runner]   pid   49487        0:00 (0.48s)
+[runner]   pid   50548        0:00 (0.48s)
+[runner]   pid   50339        0:00 (0.45s)
+[runner]   pid   50501        0:00 (0.45s)
+[runner]   pid   48075        0:00 (0.44s)
+[runner]   pid   50184        0:00 (0.41s)
+[runner]   pid   49656        0:00 (0.32s)
+[runner]   pid   50423        0:00 (0.31s)
+[runner]   pid   50493        0:00 (0.24s)
+[runner]   pid   50544        0:00 (0.23s)
+[runner]   pid   49025        0:00 (0.1s)
+[runner]   pid   50435        0:00 (0.07s)
+[runner]   pid   48972        0:00 (0.06s)
+[runner]   pid   50666        0:00 (0.06s)
+[runner]   pid   48822        0:00 (0.05s)
+[runner]   pid   50429        0:00 (0.05s)
+[runner]   pid   48072        0:00 (0.04s)
+[runner]   pid   48582        0:00 (0.04s)
+[runner]   pid   48914        0:00 (0.04s)
+[runner]   pid   50597        0:00 (0.04s)
+[runner]   pid   50608        0:00 (0.04s)
+[runner]   pid   49176        0:00 (0.03s)
+[runner]   pid   49773        0:00 (0.03s)
+[runner]   pid   51273        0:00 (0.03s)
+[runner]   pid   48077        0:00 (0.02s)
+[runner]   pid   48494        0:00 (0.02s)
+[runner]   pid   50260        0:00 (0.02s)
+[runner]   pid   50990        0:00 (0.02s)
+[runner]   pid   48276        0:00 (0.01s)
+[runner]   pid   48404        0:00 (0.01s)
+[runner]   pid   48482        0:00 (0.01s)
+[runner]   pid   48814        0:00 (0.01s)
+[runner]   pid   49198        0:00 (0.01s)
+[runner]   pid   49354        0:00 (0.01s)
+[runner]   pid   49336        0:00 (0.01s)
+[runner]   pid   49644        0:00 (0.01s)
+[runner]   pid   50178        0:00 (0.01s)
+[runner]   pid   50496        0:00 (0.01s)
+[runner]   pid   50587        0:00 (0.01s)
+[runner]   pid   50888        0:00 (0.01s)
+[runner]   pid   51586        0:00 (0.01s)
+[runner]   pid   51783        0:00 (0.01s)
+[runner]   pid   48495        0:00 (0.0s)
+[runner]   pid   48821        0:00 (0.0s)
+[runner]   pid   48823        0:00 (0.0s)
+[runner]   pid   48829        0:00 (0.0s)
+[runner]   pid   48915        0:00 (0.0s)
+[runner]   pid   48927        0:00 (0.0s)
+[runner]   pid   48971        0:00 (0.0s)
+[runner]   pid   48973        0:00 (0.0s)
+[runner]   pid   48974        0:00 (0.0s)
+[runner]   pid   49043        0:00 (0.0s)
+[runner]   pid   49079        0:00 (0.0s)
+[runner]   pid   49365        0:00 (0.0s)
+[runner]   pid   49486        0:00 (0.0s)
+[runner]   pid   49488        0:00 (0.0s)
+[runner]   pid   49490        0:00 (0.0s)
+[runner]   pid   49491        0:00 (0.0s)
+[runner]   pid   49564        0:00 (0.0s)
+[runner]   pid   49566        0:00 (0.0s)
+[runner]   pid   49567        0:00 (0.0s)
+[runner]   pid   49568        0:00 (0.0s)
+[runner]   pid   49655        0:00 (0.0s)
+[runner]   pid   49796        0:00 (0.0s)
+[runner]   pid   50183        0:00 (0.0s)
+[runner]   pid   50243        0:00 (0.0s)
+[runner]   pid   50244        0:00 (0.0s)
+[runner]   pid   50338        0:00 (0.0s)
+[runner]   pid   50340        0:00 (0.0s)
+[runner]   pid   50341        0:00 (0.0s)
+[runner]   pid   50342        0:00 (0.0s)
+[runner]   pid   50434        0:00 (0.0s)
+[runner]   pid   50545        0:00 (0.0s)
+[runner]   pid   51107        0:00 (0.0s)
+[runner]   pid   51177        0:00 (0.0s)
+[runner]   pid   51331        0:00 (0.0s)
+[runner]   pid   51332        0:00 (0.0s)
+[runner]   pid   51309        0:00 (0.0s)
+[runner]   pid   51310        0:00 (0.0s)
+[runner]   pid   51478        0:00 (0.0s)
+[runner]   pid   51479        0:00 (0.0s)
+[runner]   pid   51484        0:00 (0.0s)
+[runner]   pid   51485        0:00 (0.0s)
+[runner]   pid   51585        0:00 (0.0s)
+[runner]   pid   51691        0:00 (0.0s)
+[runner]   pid   51692        0:00 (0.0s)
+[runner]   pid   51678        0:00 (0.0s)
+[runner]   pid   51679        0:00 (0.0s)
+[runner]   pid   51782        0:00 (0.0s)
+[runner] exit 1 in 606.0 s

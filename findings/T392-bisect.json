@@ -1,0 +1,56 @@
+{
+  "task_id": "T392",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-flash",
+  "description": "T392 suite-bisect outcome: the failing set at clean HEAD 56973b0 is the documented qa023_brute_2x2 baseline (4 crashes, 1 env-gated skip, all other tests pass); none of T350's nine 'pre-existing reds' reproduce; nothing to bisect. See docs/evidence/SUITE-BISECT/bisect-2026-08-06.md.",
+  "claims": [],
+  "runs": [
+    {
+      "label": "full suite at clean HEAD",
+      "command": "tools/runner -- zig build test",
+      "commit": "56973b0 (2026-08-06 23:36:24 +0200)",
+      "wall_seconds": 606.0,
+      "exit": 1,
+      "build_summary": "51/56 steps succeeded (4 failed); 909/914 tests passed (1 skipped, 4 crashed)",
+      "crashed": "4 = qa023_brute_2x2 T360 budget panics (documented pre-existing; identical to T391 baseline)",
+      "skipped": "1 = env-gated (WEIZIGO_I5_DIFF_4X3 / SKIP 4x4 exhaustive)",
+      "failed_steps": [
+        "run test 138 pass, 4 crash (142 total) = qa023_brute_2x2 (documented)",
+        "sh tools/regression-managent-integrity.sh (T268 deployed-stamp check only; all 16 functional checks pass)",
+        "sh tools/regression-git-commit-mine.sh (caused by this session's exported MANAGENT_TASK_ID=T392 leaking into the wrapper's sandbox controls; clean-env rerun: all 9 controls PASS)",
+        "sh tools/regression-claimlint-output.sh (transient pipe-vs-file byte diff, non-reproducible; clean-env rerun PASS)"
+      ],
+      "quirk": "12 additional 'failed command:' lines from test binaries whose steps counted as SUCCEEDED — the documented Zig 0.16 --listen=- 'internal test runner failure: EndOfStream' quirk (matches T391's 'identical failing binary hashes' observation)",
+      "transcript": "docs/evidence/SUITE-BISECT/T392-suite-56973b0.stdout"
+    },
+    {
+      "label": "clean-env rerun regression-git-commit-mine.sh",
+      "command": "unset MANAGENT_TASK_ID && sh tools/regression-git-commit-mine.sh",
+      "output": "all 9 controls PASS (=== regression-git-commit-mine: ALL CONTROLS PASSED ===)",
+      "conclusion": "the suite-run failures of controls 3-9 were this session's MANAGENT_TASK_ID=T392 export (wrapper REFUSED 'cannot resolve task T392 in the kanban' in a sandbox repo with no kanban store) + the script's case-sensitive grep 'refused' vs 'REFUSED'. Not a HEAD failure."
+    },
+    {
+      "label": "clean-env rerun regression-claimlint-output.sh",
+      "command": "unset MANAGENT_TASK_ID && sh tools/regression-claimlint-output.sh",
+      "output": "all controls passed (null-identity byte-identical, null-summary, seeded-defect). Manual pipe-vs-file comparison also byte-identical (36135 bytes).",
+      "conclusion": "suite-time difference was transient (both outputs 36135 bytes, differing content); not reproducible standalone; passed at T391 and T350 runs."
+    },
+    {
+      "label": "clean-env rerun regression-managent-integrity.sh",
+      "command": "unset MANAGENT_TASK_ID && sh tools/regression-managent-integrity.sh",
+      "output": "T268 deployed stamp check FAIL: deployed bin/managent 04adb3a-dirty != built zig-out/managent aa5f1a7-dirty (bin/ is stale). All 16 functional checks PASS.",
+      "conclusion": "deploy-staleness precondition documented in build.zig ('checks deployed bin/ vs zig-out/ staleness — a pre-condition that zig build test does not satisfy'); version.zig in the build cache is stale (aa5f1a7-dirty) because gen-version.sh only reruns on cache invalidation. Not a source regression."
+    },
+    {
+      "label": "T350 nine-failure disposition",
+      "command": "grep of the suite transcript for each item",
+      "items": {
+        "vb_bellman_4x4 applyMove panic": "ABSENT — no applyMove panic in the transcript; only 4 qa023/T360 budget panics; bellman step succeeded (EndOfStream quirk line only)",
+        "I9/A2/I4/A1 calibration violations": "fire-and-pass seeded-defect calibration controls ('expected > 0', 'stored L=99' planted) — not failures",
+        "I7 3x2 terminals_bad 52/72": "print-only diagnostic in vb_fixpoint.zig:502-530 that asserts nothing (GRAND-AUDIT §2); prints identically in a run with 909/914 passing; also the expected-red marker under mutants",
+        "I9 2x2 expected=0 actual=1": "same print-only pattern ('battery I9-known-bad' per T391)"
+      },
+      "conclusion": "none reproduce at clean HEAD. T350's acceptance (2026-08-06 01:12-02:02Z) ran against a dirty mid-refactor tree (T350's own cmdDone work uncommitted per 35e1fdb's message; engine mid-refactor per T350's own skip reason) — a dirty tree is not a valid instrument."
+    }
+  ]
+}

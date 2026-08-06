@@ -1,0 +1,68 @@
+{
+  "task_id": "T392-context",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-flash",
+  "description": "Raw run outputs for the T392 suite-bisect (findings/T392-bisect.json + docs/evidence/SUITE-BISECT/bisect-2026-08-06.md). Suite measured at commit 56973b0. Commands are stated with the numbers.",
+  "claims": [],
+  "runs": [
+    {
+      "label": "kanban claim",
+      "command": "bin/managent claim T392 --agent deepseek-v4-flash",
+      "output": "claimed T392 [set: P] [deepseek-v4-flash/T392]"
+    },
+    {
+      "label": "tree state at measurement",
+      "command": "git status --short",
+      "output": "M untracked/msg/milestone-01-ko-reframe/STATE.md (one-line M3->L3 terminology change by another console; read by no test; not part of the build)",
+      "commit": "56973b0 at launch; 7997eaa landed 2026-08-07 00:32:48 +0200 after the run finished"
+    },
+    {
+      "label": "full suite (the measurement)",
+      "command": "tools/runner -- zig build test",
+      "wall_seconds": 606.0,
+      "exit": 1,
+      "output": "Build Summary: 51/56 steps succeeded (4 failed); 909/914 tests passed (1 skipped, 4 crashed)\ntest transitive failure\n+- run sh failure\n+- run sh failure\n+- run sh failure\n+- run test 138 pass, 4 crash (142 total)\n[runner] exit 1 in 606.0 s\npeak RSS by PID: 49199 2827 MB, 50382 2817 MB (the two 4x4 exhaustive steps, ran in parallel at 99% CPU)",
+      "crashes": "4 x 'T360: brute_value exceeded the node budget - the 2x2 search space exploded' in qa023_brute_2x2 (documented pre-existing, T360 fail-fast)",
+      "skip": "1 = env-gated (WEIZIGO_I5_DIFF_4X3 / SKIP 4x4 exhaustive)",
+      "transcript": "docs/evidence/SUITE-BISECT/T392-suite-56973b0.stdout"
+    },
+    {
+      "label": "suite-run sh failure 1: regression-managent-integrity.sh",
+      "command": "sh tools/regression-managent-integrity.sh (inside the suite)",
+      "output": "  T268: deployed stamp check\n    FAIL: deployed bin/managent 04adb3a-dirty != built zig-out/managent aa5f1a7-dirty - bin/ is stale\n...\n  T204/T209/T213/T217/T295: SOME CHECKS FAILED\n(checks 1-16 all print PASS individually; the only FAIL is the T268 stamp)",
+      "interpretation": "deploy-staleness precondition (build.zig documents it); version.zig in cache is stale (aa5f1a7-dirty) because tools/gen-version.sh only reruns on build-cache invalidation; deployed bin/managent built from 04adb3a-dirty at 2026-08-06 02:56:16Z (commit 04adb3a = T390)."
+    },
+    {
+      "label": "suite-run sh failure 2: regression-git-commit-mine.sh",
+      "command": "sh tools/regression-git-commit-mine.sh (inside the suite; MANAGENT_TASK_ID=T392 was exported for the run)",
+      "output": "  1. null control: PASS\n  2. seeded control: PASS (refused, named src/claimlint.zig, no commit created; both staged sets intact)\n  3. explicit arm: FAIL: RC=2, commit contains: docs/amendment.md / git-commit-mine: REFUSED - cannot resolve task T392 in the kanban\n  (then controls 4-9 cascade-fail on 'REFUSED - index contains staged paths outside your scope')\n  === regression-git-commit-mine: FAILURES ===",
+      "clean_env_rerun": "unset MANAGENT_TASK_ID && sh tools/regression-git-commit-mine.sh => all 9 controls PASS (commit c01cbea contains exactly docs/amendment4.md via kanban scope)",
+      "interpretation": "control 3's --explicit arm runs in a sandbox temp repo with no kanban store; the wrapper inherited MANAGENT_TASK_ID=T392 from this session's export and refused 'cannot resolve task T392'; the script greps lowercase 'refused' against uppercase 'REFUSED' so the refusal branch did not match, marking FAIL; the leftover staged docs/amendment2.md then poisoned controls 4-9. Not a HEAD failure; an artefact of my own environment."
+    },
+    {
+      "label": "suite-run sh failure 3: regression-claimlint-output.sh",
+      "command": "sh tools/regression-claimlint-output.sh (inside the suite)",
+      "output": "  sizes match: 36135 bytes\n  FAIL: content differs between pipe and file redirect\n  first difference: 63  66  65  (octal; i.e. bytes 0x33 0x36 0x35 = '3' ',' '+' ASCII)",
+      "clean_env_rerun": "sh tools/regression-claimlint-output.sh => all controls passed; manual zig-out/bin/weizigo-claimlint pipe-vs-file comparison byte-identical (36135 bytes); MANAGENT_TASK_ID does not change claimlint output (byte-identical with/without)",
+      "interpretation": "transient, non-reproducible; the two suite-time invocations saw different state ~1s apart while other suite steps ran in parallel (suite runs steps concurrently; this regression is not hermetic under that). Passed at T391 (c277321) and T350 runs. Not a claimlint regression."
+    },
+    {
+      "label": "quirk inventory (failed-command lines that counted as succeeded)",
+      "command": "grep 'failed command' on the transcript",
+      "output": "16 total 'failed command:' lines; 4 belong to the genuinely failed steps (3 sh + qa023 test step); 12 are the Zig 0.16 --listen=- 'internal test runner failure: EndOfStream' quirk from test binaries whose steps counted as SUCCEEDED in the Build Summary (binaries def78e76, 0f630ec3, 254e19e5, 8ccab729, 54f69164, 616e043a, f01ea460, 159440278, 95ba7a47, 313dfaa6, 5d93a2d6, 57c9abea, 0e991e54). Matches T391's 'identical failing binary hashes for bellman/closure/oracle_v2_accept/battery' observation.",
+      "note": "GRAND-AUDIT (2026-08-02) documents that 'zig build test interleaves literal failed command: lines into a passing run'; the summary counts these steps as succeeded because all their tests passed."
+    },
+    {
+      "label": "T350 nine-failure lines in the transcript",
+      "command": "grep 'I7 3x2|I9 2x2|terminals_bad|expected=0' on the transcript",
+      "output": "I7 3x2: terminals_bad=52 terminals_total=72 (lines 221, 1708, 1795)\nI9 2x2: expected=0 actual=1 match=false (lines 222, 1709, 1796)\n[EXPECTED] M6-DTT-unset: I7 status=fail terminals_bad=12 terminals_total=12 uniform_val=255\n[EXPECTED] M9-BATTERY-STUBBED: red status=fail skipped=1 stubbed=I7\n[EXPECTED] M9 red: status=fail skipped=1 stubbed=I7\nNo applyMove panic anywhere.",
+      "interpretation": "print-only diagnostics that assert nothing (GRAND-AUDIT section 2: vb_fixpoint.zig:502-530 'computes, prints (terminals_bad=52, match=false), and asserts nothing') plus expected-red markers under mutant controls. Not failures: the same run reports 909/914 tests passed."
+    },
+    {
+      "label": "T350 acceptance-window tree state (reflog)",
+      "command": "git reflog --date=iso | head -20",
+      "output": "T350 claimed 2026-08-06 01:12:50Z, done 02:02:21Z; commits in that window: 6da4ac8/5ca89f2 (03:04 +0200), 45fb91f (03:21), c8e1a93 (03:22), 35e1fdb (03:33; its message: 'T350's uncommitted cmdDone work left in working tree, disclosed in message'), 045cdc4 (03:34), 009d26a (03:45), a58af07 (03:50), 2d7a1db (04:01), ed9f3b1 (04:09).",
+      "interpretation": "T350's acceptance ran against a working tree carrying uncommitted in-flight engine work (its own + the mid-refactor rows it names: T363/T380/T386/T387/T389). A dirty tree is not a valid instrument; the 'nine pre-existing reds' most likely never existed at any commit."
+    }
+  ]
+}
