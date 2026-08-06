@@ -172,6 +172,15 @@ untracked or dirty deliverable refuses the close, naming the path, and the task 
 `in_progress`. That is deliberate: T272 closed `pass` on 2026-08-02 with every
 deliverable outside git.
 
+**Carry your identity into `tools/runner` runs (T370, 2026-08-06).** The seat's
+liveness and stop path depend on runner runs being attributable to your task.
+Right after `managent claim <id>`, run `export MANAGENT_TASK_ID=<id>` in your
+console (claim prints the exact line) — then every `tools/runner` invocation
+inherits it and heartbeats land under your row, so `managent liveness` reads you
+as alive and `managent tell <id> pause|kill` can reach a running compute. A run
+without identity warns loudly and is invisible to both; do not run that way when
+you can avoid it.
+
 **Committing while a fleet is running — path-limited adds, always.** Every console
 shares one `.git/index`. `git add -A`, `git add .`, and a pathless `git commit -a`
 stage **whatever another agent has staged**, and it lands in your commit under your

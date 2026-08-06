@@ -46,6 +46,15 @@
 # `pause` or `kill` directive is pending.  Heartbeat on every exit (success,
 # failure, or guard kill) so liveness shows real runs even if ungraceful.
 #
+# T370 (2026-08-06): identity also propagates via MANAGENT_TASK_ID from the
+# dispatch wrappers (bin/subagent, bin/ollama-subagent, tools/bakeoff.sh) so
+# nested invocations inherit it.  A run with neither --task-id nor the env
+# var is a DEGRADED mode and warns loudly: heartbeats land under
+# runner/<pid>, liveness cannot attribute them, and directives cannot reach
+# the run.  Directives are re-checked every --directive-poll-s during the
+# run, so a `managent tell <id> pause|kill` lands in a RUNNING command too,
+# not just at launch.
+#
 # T214 (2026-08-01): progress watchdog replaces wall/CPU ceilings.
 # The RSS cap is the one safety-critical guard (memory exhaustion panics the
 # host).  Wall and CPU ceilings are bad stuck-detectors — they kill correct
@@ -166,20 +175,25 @@ def _find_repo_root():
 
 # ── directive checking (WORKER-CHANNEL) ────────────────────────────────────
 
-def _check_directives(task_id, repo_root):
+def _check_directives(task_id, repo_root, verbose=True):
     """Check for pending directives addressed to `task_id`.
 
     Reads docs/infra/managent/directives.jsonl (one JSON object per line)
-    and looks for unread entries targeting this task.  Prints any pending
-    directives on stderr.  Returns True when a pause or kill directive is
-    pending (caller should exit 124 before launching the command).
+    and looks for unread entries targeting this task.  With verbose=True
+    (launch-time use) prints any pending directives on stderr.  Returns
+    the list of pending STOP directives (pause/kill) — empty when none;
+    the caller exits 124 when it is non-empty.
+
+    T370 (2026-08-06): the mid-run poll calls this with verbose=False so
+    an unread `amend`/`question` does not spam stderr every poll — stop
+    directives are the only ones the runner acts on mid-run.
     """
     if not repo_root or not task_id:
-        return False
+        return []
 
     dir_path = os.path.join(repo_root, "docs", "infra", "managent", "directives.jsonl")
     if not os.path.isfile(dir_path):
-        return False
+        return []
 
     try:
         pending = []
@@ -195,10 +209,11 @@ def _check_directives(task_id, repo_root):
                 if d.get("target") == task_id and d.get("read") is False:
                     pending.append(d)
     except OSError:
-        return False
+        return []
 
-    if not pending:
-        return False
+    stops = [d for d in pending if d.get("directive") in ("pause", "kill")]
+    if not pending or not verbose:
+        return stops
 
     print("[runner] === pending directives ===", file=sys.stderr)
     for d in pending:
@@ -209,8 +224,7 @@ def _check_directives(task_id, repo_root):
         if note:
             print(f"[runner]     {note}", file=sys.stderr)
 
-    has_stop = any(d.get("directive") in ("pause", "kill") for d in pending)
-    return has_stop
+    return stops
 
 
 # ── heartbeat emission (WORKER-CHANNEL) ────────────────────────────────────
@@ -554,6 +568,10 @@ def main():
     ap.add_argument("--task-id", type=str, default=None,
                     help="worker/task identifier for heartbeat and directive "
                          "checking, e.g. DSPro/2B-5 or WORKER-CHANNEL")
+    ap.add_argument("--directive-poll-s", type=int, default=10,
+                    help="re-check directives every N seconds during the run, "
+                         "so a `managent tell <id> pause|kill` stops a RUNNING "
+                         "command too (default 10; 0 to disable) (T370)")
     ap.add_argument("--sweep", action="store_true",
                     help="standalone: list top CPU consumers on the host "
                          "(no command needed)")
@@ -604,12 +622,27 @@ def main():
 
     # ── WORKER-CHANNEL: directive check before launch ──────────────────────
     repo_root = _find_repo_root()
+    identity_degraded = False
     task_identity = args.task_id or os.environ.get("MANAGENT_TASK_ID")
     if not task_identity:
-        # Fallback: derive from the command (last-resort heuristic)
+        # T370 (2026-08-06): identity was NOT propagated by the launch site
+        # (no --task-id, no MANAGENT_TASK_ID).  The pid form keeps the
+        # heartbeat file self-describing, but `managent liveness` cannot
+        # attribute the beats to any row and `managent tell <id>` directives
+        # cannot reach this run.  This fallback must be LOUD, not silent —
+        # a degraded mode nobody can see is how the fleet ran blind.
+        identity_degraded = True
         task_identity = f"runner/{os.getpid()}"
-    has_stop_directive = _check_directives(task_identity, repo_root)
-    if has_stop_directive:
+        print("[runner] WARNING: no task identity (no --task-id, no MANAGENT_TASK_ID)", file=sys.stderr)
+        print("[runner]   liveness cannot attribute this run's heartbeats, and directives cannot reach it.", file=sys.stderr)
+        print(f"[runner]   heartbeats will land under '{task_identity}'.", file=sys.stderr)
+        print("[runner]   fix: export MANAGENT_TASK_ID=<task-id> (preferred — children inherit it)", file=sys.stderr)
+        print("[runner]        or pass --task-id <task-id> (explicit per-run override).", file=sys.stderr)
+    else:
+        identity_source = "--task-id" if args.task_id else "MANAGENT_TASK_ID"
+        print(f"[runner] task identity: {task_identity} (source: {identity_source})", file=sys.stderr)
+    pending_stops = _check_directives(task_identity, repo_root)
+    if pending_stops:
         _emit_heartbeat(task_identity, shlex.join(argv), -1, -1, -1, repo_root)
         print(f"[runner] exit 124 (directive: pause/kill pending)", file=sys.stderr)
         sys.exit(124)
@@ -647,6 +680,9 @@ def main():
     last_log_rss_time = 0.0   # throttle per-poll RSS logging (T311: once per 2 s)
 
     logs_done = False  # suppress finally-block logging if kill path already did it
+
+    # T370: mid-run directive poll state (gated on identity, see loop)
+    last_directive_check = t0
 
     try:
         while True:
@@ -735,10 +771,32 @@ def main():
                         _runner_print(f"[runner] PID {pid}{extra}")
             sys.stderr.flush()
 
+            # ── WORKER-CHANNEL: mid-run directive poll (T370) ───────────
+            # A `managent tell <id> pause|kill` issued after launch must
+            # still land — without identity the seat could not halt an
+            # authorised long compute except by signalling the pid by hand.
+            # Poll every --directive-poll-s; a pending stop directive is
+            # treated exactly like the launch-time check (exit 124).
+            midrun_kill_reason = None
+            if args.directive_poll_s > 0 and not identity_degraded:
+                now_m = time.monotonic()
+                if now_m - last_directive_check >= args.directive_poll_s:
+                    last_directive_check = now_m
+                    midrun_stops = _check_directives(task_identity, repo_root, verbose=False)
+                    if midrun_stops:
+                        d = midrun_stops[0]
+                        midrun_kill_reason = (
+                            f"directive {d.get('id', '?')} "
+                            f"{str(d.get('directive', '?')).upper()} "
+                            f"from {d.get('from', '?')} (mid-run poll)"
+                        )
+
             # ── kill decisions ────────────────────────────────────────
             kill_reason = None
 
-            if over_rss:
+            if midrun_kill_reason:
+                kill_reason = midrun_kill_reason
+            elif over_rss:
                 kill_reason = f"RSS cap {args.rss_cap_mb} MB exceeded"
             elif progress_seen:
                 # Progress watchdog: kill if no progress for --progress-timeout

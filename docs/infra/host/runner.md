@@ -98,6 +98,15 @@ reflect real activity. Before T214, `managent audit` warned on every
 in_progress task for want of a heartbeat. Now progress lines feed the
 kanban automatically.
 
+**Identity (T370, 2026-08-06):** heartbeats land under the task only when
+the run carries identity — `MANAGENT_TASK_ID` env (set by the dispatch
+wrappers; a worker claimed by hand should `export MANAGENT_TASK_ID=<id>`
+after claiming) or `--task-id <id>`. A run with neither warns loudly and
+falls to `runner/<pid>`, which liveness cannot attribute and directives
+cannot reach. Directives are also re-checked every `--directive-poll-s`
+(default 10 s) during the run, so `managent tell <id> pause|kill` stops a
+running command, not just the next invocation.
+
 ## Platform notes
 
 - **macOS:** no `timeout(1)`. The runner is the project's wall-time

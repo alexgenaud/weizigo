@@ -97,6 +97,9 @@ def main(argv):
     cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
     if "--dry-run" in flags:
         print(f"{DEPTH_VAR}={WORKER_DEPTH}")
+        if task_id:
+            # T370: identity is propagated by env so nested runner calls inherit it.
+            print(f"MANAGENT_TASK_ID={task_id}")
         print(" ".join(repr(c) if "\n" in c else c for c in cmd))
         return 0
     return subprocess.call(cmd, cwd=ROOT, env=env)

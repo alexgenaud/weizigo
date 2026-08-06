@@ -1073,6 +1073,39 @@ fn isLeapYear(y: u64) bool {
     return y % 4 == 0;
 }
 
+/// Seconds between an ISO timestamp (YYYY-MM-DDTHH:MM:SSZ, as written by
+/// the runner's heartbeat emitter and managent's own writers) and now.
+/// null when unparseable.  Shared by `resume` directive staleness and
+/// `liveness` beat-age classification (T370, 2026-08-06).
+fn ageSecFromTs(ts_str: []const u8, now_unix: i64) ?i64 {
+    if (ts_str.len < 19) return null;
+    const year = std.fmt.parseInt(i64, ts_str[0..4], 10) catch return null;
+    const month = std.fmt.parseInt(i64, ts_str[5..7], 10) catch return null;
+    const day = std.fmt.parseInt(i64, ts_str[8..10], 10) catch return null;
+    const hour = std.fmt.parseInt(i64, ts_str[11..13], 10) catch return null;
+    const minute = std.fmt.parseInt(i64, ts_str[14..16], 10) catch return null;
+    const second = std.fmt.parseInt(i64, ts_str[17..19], 10) catch return null;
+    var leap_count: i64 = 0;
+    var y: i64 = 1970;
+    while (y < year) : (y += 1) {
+        const leap = (@rem(y, 4) == 0 and @rem(y, 100) != 0) or (@rem(y, 400) == 0);
+        if (leap) leap_count += 1;
+    }
+    const month_days_lut = [_]i64{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    var day_of_year: i64 = day - 1;
+    var m: usize = 0;
+    while (m < @as(usize, @intCast(month - 1))) : (m += 1) {
+        day_of_year += month_days_lut[m];
+    }
+    if (month > 2 and ((@rem(year, 4) == 0 and @rem(year, 100) != 0) or (@rem(year, 400) == 0))) {
+        day_of_year += 1;
+    }
+    const days_since_epoch: i64 = (year - 1970) * 365 + leap_count + day_of_year;
+    const ts_unix: i64 = days_since_epoch * 86400
+        + hour * 3600 + minute * 60 + second;
+    return now_unix - ts_unix;
+}
+
 fn phaseGate(state: StateMap, set: u8) bool {
     _ = state;
     _ = set;
@@ -1473,6 +1506,13 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             // WORKER-CHANNEL: print pending directives after claim
             printPendingDirectives(w, io, repo_root, state_path, id);
 
+            // T370: liveness + directives need the worker's tools/runner
+            // invocations to carry identity.  The env var is inherited by
+            // children, so nested runner calls are covered without every
+            // call site remembering a flag; --task-id stays the explicit
+            // per-run override.
+            w.diag("  export MANAGENT_TASK_ID={s}  (so tools/runner heartbeats land under this task)\n", .{id});
+
             if (exec_prefix) |prefix| {
                 const rel = bundleRel(ts_ptr.bundle, repo_root);
                 try execHarness(prefix, rel);
@@ -1520,6 +1560,13 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             // WORKER-CHANNEL: print pending directives after claim
             printPendingDirectives(w, io, repo_root, state_path, id);
+
+            // T370: liveness + directives need the worker's tools/runner
+            // invocations to carry identity.  The env var is inherited by
+            // children, so nested runner calls are covered without every
+            // call site remembering a flag; --task-id stays the explicit
+            // per-run override.
+            w.diag("  export MANAGENT_TASK_ID={s}  (so tools/runner heartbeats land under this task)\n", .{id});
 
             if (exec_prefix) |prefix| {
                 const rel = bundleRel(ts_ptr.bundle, repo_root);
@@ -3330,37 +3377,6 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
             }
         }
 
-        const ageSecFromTs = struct {
-            fn f(ts_str: []const u8, now_unix_in: i64) ?i64 {
-                if (ts_str.len < 19) return null;
-                const year = std.fmt.parseInt(i64, ts_str[0..4], 10) catch return null;
-                const month = std.fmt.parseInt(i64, ts_str[5..7], 10) catch return null;
-                const day = std.fmt.parseInt(i64, ts_str[8..10], 10) catch return null;
-                const hour = std.fmt.parseInt(i64, ts_str[11..13], 10) catch return null;
-                const minute = std.fmt.parseInt(i64, ts_str[14..16], 10) catch return null;
-                const second = std.fmt.parseInt(i64, ts_str[17..19], 10) catch return null;
-                var leap_count: i64 = 0;
-                var y: i64 = 1970;
-                while (y < year) : (y += 1) {
-                    const leap = (@rem(y, 4) == 0 and @rem(y, 100) != 0) or (@rem(y, 400) == 0);
-                    if (leap) leap_count += 1;
-                }
-                const month_days_lut = [_]i64{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-                var day_of_year: i64 = day - 1;
-                var m: usize = 0;
-                while (m < @as(usize, @intCast(month - 1))) : (m += 1) {
-                    day_of_year += month_days_lut[m];
-                }
-                if (month > 2 and ((@rem(year, 4) == 0 and @rem(year, 100) != 0) or (@rem(year, 400) == 0))) {
-                    day_of_year += 1;
-                }
-                const days_since_epoch: i64 = (year - 1970) * 365 + leap_count + day_of_year;
-                const ts_unix: i64 = days_since_epoch * 86400
-                    + hour * 3600 + minute * 60 + second;
-                return now_unix_in - ts_unix;
-            }
-        }.f;
-
         w.data("\n  pending directives", .{});
         if (unread == 0) {
             w.data(": none\n", .{});
@@ -3808,7 +3824,7 @@ fn printHelp(w: Writers) void {
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
-        \\  managent liveness         show last heartbeat per in_progress task
+        \\  managent liveness [--stale-min <min>]  show per-task liveness: never beat / beats stopped / beating (default threshold 5 min)
         \\  managent standing         register triggered standing-tier tasks
         \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
         \\  managent help             show this help
@@ -5609,9 +5625,25 @@ fn cmdPing(w: Writers, io: std.Io, repo_root: []const u8, args: [][]const u8) !v
 // ── liveness — show last heartbeat per in_progress task ──────────────────────
 
 fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
-    _ = args;
     var state = try readState(io, state_path);
     defer freeState(&state);
+
+    // T370 (2026-08-06): staleness threshold in minutes.  Default 5;
+    // override with --stale-min <float> (or LIVENESS_STALE_MIN).  The
+    // threshold is what separates "beating" from "beats stopped" — a
+    // row killed mid-run reads dead within one interval of its last beat.
+    const stale_min = blk: {
+        const override_ptr = std.c.getenv("LIVENESS_STALE_MIN");
+        if (override_ptr) |op| {
+            const sp = std.mem.span(op);
+            if (std.fmt.parseFloat(f64, sp)) |f| break :blk f else |_| {}
+        }
+        if (getFlagValue(args, "--stale-min")) |v| {
+            if (std.fmt.parseFloat(f64, v)) |f| break :blk f else |_| {}
+        }
+        break :blk 5.0;
+    };
+    const stale_secs: i64 = @intFromFloat(@max(stale_min, 0.0) * 60.0);
 
     var heartbeats = try readHeartbeats(io, repo_root);
     defer {
@@ -5624,8 +5656,16 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
         heartbeats.deinit(alloc);
     }
 
-    // For each in_progress task, find latest heartbeat
+    var now_tp: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &now_tp);
+    const now_unix: i64 = now_tp.sec;
+
+    // For each in_progress task, find latest heartbeat and count the
+    // runner-emitted beats (one per [progress] line / exit).  Three
+    // distinct states, because "stale" collapsing them made the reading
+    // useless: never beat / beats stopped Nm ago / beating.
     w.data("\n  Liveness (in_progress tasks):\n", .{});
+    w.data("  (threshold: {d:.1} min)\n", .{stale_min});
 
     var it = state.iterator();
     var found: u32 = 0;
@@ -5636,10 +5676,11 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
 
         found += 1;
 
-        // Find latest heartbeat matching this task
         var latest: ?Heartbeat = null;
+        var beats: u32 = 0;
         for (heartbeats.items) |h| {
             if (std.mem.eql(u8, h.task, tid)) {
+                beats += 1;
                 if (latest == null or std.mem.lessThan(u8, (latest.?).ts, h.ts)) {
                     latest = h;
                 }
@@ -5647,7 +5688,20 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
         }
 
         if (latest) |hb| {
-            w.data("    {s}  [{s}]  last: {s}\n", .{ tid, hb.identifier, hb.ts });
+            if (ageSecFromTs(hb.ts, now_unix)) |age| {
+                if (age <= stale_secs) {
+                    w.data("    {s}  [beating]  last beat {d}s ago  ({d} beats)\n", .{ tid, age, beats });
+                } else {
+                    const age_min: i64 = @divTrunc(age, 60);
+                    if (age < 60) {
+                        w.data("    {s}  [beats stopped {d}s ago]  last beat {s}  ({d} beats)\n", .{ tid, age, hb.ts, beats });
+                    } else {
+                        w.data("    {s}  [beats stopped {d}m ago]  last beat {s}  ({d} beats)\n", .{ tid, age_min, hb.ts, beats });
+                    }
+                }
+            } else {
+                w.data("    {s}  [last beat {s} (unparseable ts)]  ({d} beats)\n", .{ tid, hb.ts, beats });
+            }
             const cmd_display = if (hb.command.len > 40)
                 hb.command[0..40]
             else
@@ -5658,8 +5712,10 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
             if (hb.wall > 0) {
                 w.data("      wall: {d:.1}s  cpu: {d:.1}s  rss: {d:.0} MB\n", .{ hb.wall, hb.cpu, hb.rss_mb });
             }
+        } else if (ts.claimed) |claimed| {
+            w.data("    {s}  [never beat since dispatch {s}]\n", .{ tid, claimed });
         } else {
-            w.data("    {s}  [stale: no heartbeat recorded]\n", .{tid});
+            w.data("    {s}  [never beat]\n", .{tid});
         }
     }
 

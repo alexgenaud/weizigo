@@ -56,6 +56,7 @@ exit by default.
 | `--no-show-peak-on-exit` | (on) | skip the per-member peak log |
 | `--sweep` | (off) | standalone: list top CPU consumers on the host |
 | `--task-id <id>` | (none) | worker/task identifier (e.g. DSPro/2B-5); enables directive checking and heartbeat emission |
+| `--directive-poll-s <N>` | 10 | re-check directives every N seconds during the run; a `pause`/`kill` directive then stops a RUNNING command (T370); 0 to disable |
 
 ### `--sweep` mode
 
@@ -132,6 +133,26 @@ that missing tool for the project. See `docs/infra/host/macos-timeout-gap.md`.
 
 ## WORKER-CHANNEL additions (2026-07-29)
 
+### Identity: `--task-id` or `MANAGENT_TASK_ID` (T370, 2026-08-06)
+
+Every run should carry a task identity, by one of two channels:
+
+1. **`MANAGENT_TASK_ID` env var (preferred)** — the dispatch wrappers
+   (`bin/subagent`, `bin/ollama-subagent`, `tools/bakeoff.sh`) export it on
+   the child, so every **nested** `tools/runner` invocation inherits it
+   without any call site remembering a flag. A worker claimed by hand
+   should `export MANAGENT_TASK_ID=<id>` right after claiming — `managent
+   claim` prints the line to copy.
+2. **`--task-id <id>`** — the explicit per-run override (also enables the
+   runner's auto-claim/auto-done behaviour).
+
+A run with **neither** is a *degraded mode*: the runner warns loudly on
+stderr that liveness cannot attribute its heartbeats and directives cannot
+reach it, and heartbeats land under `runner/<pid>`. This fallback used to
+be silent — that is how the fleet ran blind (every real run fell to the
+pid form, so `managent liveness` read live and dead rows identically, and
+`managent tell <id> pause|kill` never matched a running worker).
+
 ### Directive checking
 
 When `--task-id` is set (or `MANAGENT_TASK_ID` env var), the runner reads
@@ -139,6 +160,13 @@ When `--task-id` is set (or `MANAGENT_TASK_ID` env var), the runner reads
 any pending (unread) directives to stderr.  If a `pause` or `kill` directive
 is pending, the runner **exits 124** without launching the command — the worker
 cannot run while paused or killed.
+
+**Mid-run (T370):** directives are re-checked every `--directive-poll-s`
+(default 10 s; `0` to disable) while the command executes. A
+`managent tell <id> pause|kill` issued after launch therefore lands in a
+**running** runner too: the process group is SIGKILLed and the runner
+exits 124 naming the directive. A directive for a *different* task never
+fires (the runner matches `target` against its own identity only).
 
 ### Heartbeat emission
 
@@ -152,6 +180,22 @@ appends a heartbeat JSON line to `untracked/heartbeat.jsonl`:
 The heartbeat carries wall-clock time, cumulative CPU, peak RSS, command,
 and the task identifier.  These accumulate per task in `heartbeat.jsonl`
 and drive `managent liveness` and the staleness checks in `managent audit`.
+
+### `managent liveness` states (T370, 2026-08-06)
+
+`liveness` distinguishes three real states per in_progress task instead of
+collapsing them into one "stale":
+
+- `[beating]  last beat Ns ago  (M beats)` — runner beats are landing;
+- `[beats stopped Nm ago]` — the task beat once but its beats stopped
+  (killed mid-run, hung, or its runner exited without closing);
+- `[never beat since dispatch <claimed>]` — no beat ever recorded for the
+  task (claimed but never started, or running without identity).
+
+The stale threshold is 5 minutes by default; override per run with
+`--stale-min <float>` (minutes) or `LIVENESS_STALE_MIN`. The beat count
+`(M beats)` is the number of runner-emitted heartbeats recorded under the
+task (one per `[progress]` line, plus one on exit).
 
 ### Environment variable
 
