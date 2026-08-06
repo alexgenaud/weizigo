@@ -244,6 +244,6 @@ life always certifies (L==H), at every size with a WZO2 table; the T382 zero-ali
 complete through 4×4 (coexisting life begins at 4×3 with 2 positions; 324 at 4×4, one in
 ~75,000). What remains: the independent regeneration of the ko-sensitive columns (Track A);
 this census is a categorical property of the stored table and survives ko-sensitive value
-distrust unless the regeneration changes the L<H membership itself. Independent of `T394
-(does a capture cap make the game finite?)` — T393 is the static half of the operator's
-question; T394 is the forcible half.
+distrust unless the regeneration changes the L<H membership itself. Independent of
+`T394 (can-force-life: a Boolean retrograde pass testing "loops are mutual territory-denial")`
+— T393 is the static half of the operator's question; T394 is the forcible half.
