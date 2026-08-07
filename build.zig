@@ -285,6 +285,16 @@ pub fn build(b: *std.Build) void {
     gcm_hook_regression.cwd = b.path(".");
     test_step.dependOn(&gcm_hook_regression.step);
 
+    // ── GTP boardsize desync controls (T403) ─────────────────────────
+    // Seeded (red): after rejected boardsize in deferred mode, the GTP
+    // session must stay alive — known_command genmove returns true and
+    // showboard returns an informative message, not ? unknown command.
+    // Null: correct launch path plays a full game.  SKIPs when
+    // bin/weizigo-gtp or the 4x4 artifact are missing.
+    const gtp_boardsize_regression = b.addSystemCommand(&.{ "sh", "tools/regression-gtp-boardsize.sh" });
+    gtp_boardsize_regression.cwd = b.path(".");
+    test_step.dependOn(&gtp_boardsize_regression.step);
+
     // ── resume-surface controls (T286) ───────────────────────────────
     // Null control (empty kanban + clean tree says NOTHING IN FLIGHT) and
     // seeded control (in_progress task + held file both appear). SKIPs

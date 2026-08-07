@@ -1439,7 +1439,7 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
                     s.reset();
                 } else {
                     ok = false;
-                    reply = "unacceptable size";
+                    reply = std.fmt.bufPrint(&rbuf, "unacceptable size — this engine is fixed to {d}x{d}", .{ w, h }) catch "unacceptable size";
                 }
             } else if (std.mem.eql(u8, first, "clear_board")) {
                 s.reset();
@@ -2000,7 +2000,7 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
                 const want_h = if (q2) |s2| (std.fmt.parseInt(usize, s2, 10) catch 0) else want_w;
                 if (want_w == 0 or want_h == 0) {
                     ok = false;
-                    reply = "unacceptable size";
+                    reply = std.fmt.bufPrint(&rbuf, "unacceptable size — start with: weizigo-gtp <path-to-wzo>", .{}) catch "unacceptable size";
                 } else {
                     // Try WZO2 first, then WZO1
                     const wzo2_path = try std.fmt.allocPrint(gpa, "artifacts/oracle-{d}x{d}-v2.wzo2", .{ want_w, want_h });
@@ -2078,9 +2078,13 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
                         return; // runSession returned (quit)
                     } else |_| {
                         ok = false;
-                        reply = "unacceptable size";
+                        reply = std.fmt.bufPrint(&rbuf, "unacceptable size — no artifact for {d}x{d} found; start with: weizigo-gtp <path-to-wzo>", .{ want_w, want_h }) catch "unacceptable size";
                     }
                 }
+            } else if (std.mem.eql(u8, first, "clear_board")) {
+                // No game state in deferred mode — accept gracefully.
+            } else if (std.mem.eql(u8, first, "showboard")) {
+                reply = "\nno goban loaded — use boardsize N to load an artifact";
             } else if (std.mem.eql(u8, first, "weizigo-stats")) {
                 reply = std.fmt.bufPrint(&rbuf, "lookups={d} misses={d} fallbacks={d} genmoves={d}", .{
                     stats_lookups, stats_misses, stats_fallbacks, stats_genmoves,
