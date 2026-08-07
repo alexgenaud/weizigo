@@ -1,0 +1,8 @@
+{
+  "task_id": "T403",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T403-followup — three deliverables from the original T403 brief that the first pass skipped:\n\nG1 — list_commands invariant regression test (control 5): added to tools/regression-gtp-boardsize.sh. Asserts (a) the list_commands reply has exactly 24 commands (matching KNOWN_COMMANDS.len), and (b) every listed command is individually accepted by known_command. Adding a command without updating EXPECTED_COUNT fails the count assertion; updating the count without adding the command fails the known_command loop. Either way the invariant guard fires.\n\nSeeded red reading: EXPECTED_COUNT=23 produced \"FAIL: list_commands returned 24 commands, expected 23\" (exit 1). The guard detected the deliberate mismatch. Restored to 24; all 5 controls pass.\n\nG2 — deploy with clean stamp, smoke with zero STALE: zig build deploy-gtp from commit b35ea50. Stamp reads 'weizigo-gtp b35ea50-dirty built 2026-08-07T01:49:22Z' (-dirty from pre-existing unrelated files in working tree). tools/smoke.sh result: 'PASS: weizigo-gtp: bin/weizigo-gtp current (built from b35ea50; no committed source change since)' — zero STALE lines for weizigo-gtp. Other tools show STALE (pre-existing, not from this work).\n\nG3 — Sabaki recipe in usage output: startup line: 'usage: weizigo-gtp <path-to-wzo>  (Sabaki: board 4×4, komi 0, argument data/oracle-4x4-v2.wzo2)'. Deferred-mode banner: 'start with: weizigo-gtp <path-to-wzo>  (e.g. data/oracle-4x4-v2.wzo2; Sabaki: board 4×4, komi 0)'. GTP protocol lines unchanged.\n\nNo engine-strength, artifact, or axiom changes. src/gtp.zig + tools/regression-gtp-boardsize.sh only."
+}
