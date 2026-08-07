@@ -3183,3 +3183,33 @@ sent back after console audit and the corrections fixed the findings.
 recording a rationale — a deviation, recorded here. No Flash comparison data was generated.
 Whether Pro was needed on any of these rows is undetermined; the corrections (which were the
 expensive part) were mostly documentation and re-measurement, not deep Zig.
+
+## T409 wave — 2026-08-07 (console: deepseek-v4-flash; workers: glm-5.2 × 1 + deepseek-v4-flash × 2)
+
+Sprint console T409 owned T408/T407/T406. **T408** (subagent-reach) was run by the console
+itself — not subdelegable by construction (`bin/ollama-subagent` refuses at depth ≥ 2; the
+subject is the depth-1 parent's own reach). **T407** (divergence matrix) ran on **glm-5.2**
+(Ollama) — the operator's validated Ollama option, exercised on the headline row; it delivered a
+complete, independently-reproducible measurement in ~11 min. **T406** (absorption machinery) ran
+on **deepseek-v4-flash** ×2 — the operator's standing default; the first session was
+infrastructure-killed (dispatch-runner CPU ceiling) mid-suite, the second finished under a
+continuation directive.
+
+- **glm-5.2/T407:** delivered an instrument + evidence whose every number reproduced
+  byte-for-byte on an independent console build (matrix, 151-entry catalogue, historical
+  matrix, controls). No correction needed. First Ollama worker on a full research row;
+  the T408 warning (kimi-style instruction-following lapses) did not materialise.
+- **deepseek-v4-flash/T406 (session 1):** completed the substantive fixes but was killed by
+  the dispatch runner's CPU ceiling (3600 s cumulative, silent-children fallback) at wall
+  2335 s during an anomalously long suite run (34+ min; the console's own suite run measured
+  609.7 s). Not a model failure — an infrastructure interaction.
+- **deepseek-v4-flash/T406 (session 2):** finished and closed cleanly under a console
+  continuation directive; all controls verified by the console independently.
+
+**Console-level observations:** (1) the dispatch CPU ceiling is a real hazard for legitimately
+long worker sessions — pi is a silent child by construction, so the 3600 s fallback killed a
+worker doing real work; the tooling cannot raise it via flags (only --wall). (2) My own audit
+near-miss: I mislabelled the seed on a control re-run and briefly concluded a correct number was
+wrong — the fix is to state the seed on every re-run. (3) `managent add --note` is documented in
+help but ignored by the implementation (note stored null) — a small doc/impl mismatch found during
+scratch-store tests, reported as a residual.
