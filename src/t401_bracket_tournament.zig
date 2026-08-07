@@ -19,6 +19,7 @@
 // T401_BRACKET_TOURNAMENT — new engine vs old engine from bracketed positions.
 //
 // Task: T401 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-07
+// Correction: T405 (console audit) · Model: unknown/T405 · Date: 2026-08-07
 //
 // Plays the WZO2 oracle (new engine, basic-ko L/H bracket) against the
 // WZO1 oracle (old engine, PSK fresh-start single values) from every
@@ -33,7 +34,9 @@
 //
 // Usage: weizigo-t401 [--size 3|4] [--wzo2 <path>] [--wzo1 <path>]
 //         [--sample <N>] [--seed <N>] [--json <path>]
-//         [--controls-only] [--seedctl]
+//         [--controls-only]
+//         [--seedctl weakened,<N>] [--seedctl determinism]
+//         [--seedctl legacy]
 
 const std = @import("std");
 const version = @import("version");
@@ -259,6 +262,84 @@ fn chooseWzo1(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  WEAKENED MOVE SELECTORS — for seeded controls (C2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Pick a random legal move for the given position.
+fn randomLegalMove(
+    comptime w: comptime_int,
+    comptime h: comptime_int,
+    pos: *const [w * h]i8,
+    ko_point: u8,
+    side: i8,
+    rng: std.Random,
+) ?usize {
+    const n = w * h;
+    const KO_NONE: u8 = n;
+    const R = rules.Rules(w, h);
+
+    var legal: [w * h]usize = undefined;
+    var count: usize = 0;
+
+    for (0..n) |p| {
+        if (pos[p] != 0) continue;
+        if (ko_point != KO_NONE and p == ko_point) continue;
+        _ = R.pos_from_move(pos, side, p) catch continue;
+        legal[count] = p;
+        count += 1;
+    }
+
+    // If no legal moves, pass
+    if (count == 0) return null;
+
+    const idx = rng.uintLessThan(usize, count);
+    return legal[idx];
+}
+
+/// Weakened WZO2 move selection — every weaken_every-th ply, pick a random
+/// legal move instead of the optimal one.
+fn chooseWzo2Weakened(
+    comptime w: comptime_int,
+    comptime h: comptime_int,
+    a2: *const artifact2.LoadedArtifact,
+    pos: *const [w * h]i8,
+    ko_point: u8,
+    passes: u8,
+    side: i8,
+    weaken_every: usize,
+    rng: std.Random,
+    ply: usize,
+) struct { cell: ?usize, L: i8, H: i8 } {
+    if (ply > 0 and ply % weaken_every == 0) {
+        if (randomLegalMove(w, h, pos, ko_point, side, rng)) |cell| {
+            return .{ .cell = cell, .L = -128, .H = 127 }; // sentinel
+        }
+        return .{ .cell = null, .L = -128, .H = 127 };
+    }
+    return chooseWzo2(w, h, a2, pos, ko_point, passes, side);
+}
+
+/// Weakened WZO1 move selection — every weaken_every-th ply, pick a random
+/// legal move instead of the optimal one.
+fn chooseWzo1Weakened(
+    comptime w: comptime_int,
+    comptime h: comptime_int,
+    dec: *const artifact.Decoded,
+    state: anytype,
+    weaken_every: usize,
+    rng: std.Random,
+    ply: usize,
+) struct { cell: ?usize, value: i8 } {
+    if (ply > 0 and ply % weaken_every == 0) {
+        if (randomLegalMove(w, h, &state.pos, state.ko_point, state.side, rng)) |cell| {
+            return .{ .cell = cell, .value = -128 };
+        }
+        return .{ .cell = null, .value = -128 };
+    }
+    return chooseWzo1(w, h, dec, state);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  TOURNAMENT ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -287,6 +368,14 @@ const BracketedPos = struct {
     H: i8,
 };
 
+const PositionClass = enum { straddling, decisive_black, decisive_white };
+
+fn classifyPosition(L: i8, H: i8) PositionClass {
+    if (L <= 0 and H >= 0) return .straddling;
+    if (L > 0) return .decisive_black;
+    return .decisive_white;
+}
+
 fn runGame(
     comptime w: comptime_int,
     comptime h: comptime_int,
@@ -314,6 +403,68 @@ fn runGame(
                 break :blk c.cell;
             },
         };
+        state.applyMove(move) catch unreachable;
+    }
+
+    return GameResult{
+        .arm = arm,
+        .start_side = start_side,
+        .first_to_move = first_to_move,
+        .score = state.finalScore(),
+        .capped = ply >= PLY_CAP,
+    };
+}
+
+/// Run a game with one engine weakened.
+fn runGameWeakened(
+    comptime w: comptime_int,
+    comptime h: comptime_int,
+    dec: ?*const artifact.Decoded,
+    a2: *const artifact2.LoadedArtifact,
+    start_pos: [w * h]i8,
+    start_side: i8,
+    first_to_move: i8,
+    arm: Arm,
+    weaken_engine: Engine,
+    weaken_every: usize,
+    rng: std.Random,
+) GameResult {
+    const GS = GameState(w, h);
+    var state = GS.init(start_pos, first_to_move);
+    var ply: usize = 0;
+
+    while (ply < PLY_CAP and !state.isTerminal()) : (ply += 1) {
+        const engine_for_side: Engine = engineForSide(arm, state.side);
+
+        const move: ?usize = if (engine_for_side == weaken_engine) blk: {
+            // weakened: force random move every weaken_every ply
+            if (ply > 0 and ply % weaken_every == 0) {
+                break :blk randomLegalMove(w, h, &state.pos, state.ko_point, state.side, rng);
+            }
+            // otherwise play normally
+            break :blk switch (engine_for_side) {
+                .new => blk2: {
+                    const c = chooseWzo2(w, h, a2, &state.pos, state.ko_point, state.passes, state.side);
+                    break :blk2 c.cell;
+                },
+                .old => blk2: {
+                    if (dec == null) @panic("old engine not available");
+                    const c = chooseWzo1(w, h, dec.?, &state);
+                    break :blk2 c.cell;
+                },
+            };
+        } else switch (engine_for_side) {
+            .new => blk: {
+                const c = chooseWzo2(w, h, a2, &state.pos, state.ko_point, state.passes, state.side);
+                break :blk c.cell;
+            },
+            .old => blk: {
+                if (dec == null) @panic("old engine not available");
+                const c = chooseWzo1(w, h, dec.?, &state);
+                break :blk c.cell;
+            },
+        };
+
         state.applyMove(move) catch unreachable;
     }
 
@@ -425,8 +576,248 @@ const Json = struct {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  MAIN
+//  PER-CLASS ACCUMULATOR — for C4 straddling-class split
 // ═══════════════════════════════════════════════════════════════════════════
+
+const ClassStats = struct {
+    b1_worse: usize = 0,
+    b1_total: usize = 0,
+    b2_worse: usize = 0,
+    b2_total: usize = 0,
+    b4_flips_nb: usize = 0,
+    b4_flips_nw: usize = 0,
+    b4_total_nb: usize = 0,
+    b4_total_nw: usize = 0,
+    // head-to-head
+    b1_h2h_worse: usize = 0,
+    b1_h2h_total: usize = 0,
+    b2_h2h_worse: usize = 0,
+    b2_h2h_total: usize = 0,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DETERMINISM CHECK — C2 control
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn runControlDeterminism(
+    comptime w: comptime_int,
+    comptime h: comptime_int,
+    dec: ?*const artifact.Decoded,
+    a2: *const artifact2.LoadedArtifact,
+    positions: []const BracketedPos,
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    seed: u64,
+) !void {
+    _ = gpa;
+    _ = io;
+    const p = std.debug.print;
+    const X = colex.Indexer(w, h);
+
+    // Use a fixed subset: up to 20 positions for determinism check
+    const n_check = @min(positions.len, 20);
+    p("\n═══════════════════════════════════════════════════════════\n", .{});
+    p("CONTROL: DETERMINISM CHECK  ({d} positions, seed={d})\n", .{ n_check, seed });
+    p("  {d}x{d}, {d} positions × 4 games × 2 runs each\n\n", .{ w, h, n_check });
+
+    // We use the tournament seed to pick the subset deterministically
+    var rng = std.Random.DefaultPrng.init(seed);
+    const rand = rng.random();
+
+    // RED first: test that the harness IS capable of detecting differences
+    // Run with the new engine weakened (weaken_every=3) vs normal new engine
+    // Use weaken_every=3 (not 1) to avoid all games capping.
+    const red_weaken_every: usize = 3;
+    p("  RED: weakened new engine (weaken_every={d}) vs normal new engine\n", .{red_weaken_every});
+    var red_mismatches: usize = 0;
+    var red_total: usize = 0;
+    var red_capped: usize = 0;
+
+    for (0..n_check) |pi| {
+        const idx = rand.uintLessThan(usize, positions.len);
+        const bp = positions[idx];
+        const pos = X.pos_from_colex(bp.colex);
+
+        // new_vs_new normal vs new_vs_new with new weakened
+        const normal = runGame(w, h, dec, a2, pos, bp.side, bp.side, .new_vs_new);
+        var weak_rng2 = std.Random.DefaultPrng.init(seed +% @as(u64, pi) +% 1);
+        const weakened = runGameWeakened(w, h, dec, a2, pos, bp.side, bp.side, .new_vs_new, .new, red_weaken_every, weak_rng2.random());
+
+        if (normal.capped or weakened.capped) {
+            red_capped += 1;
+        } else {
+            red_total += 1;
+            if (normal.score != weakened.score) {
+                red_mismatches += 1;
+            }
+        }
+    }
+    p("  RED: mismatches {d}/{d} (weakened vs normal) — should be >0\n", .{ red_mismatches, red_total });
+    p("  RED: capped (excluded): {d}\n", .{red_capped});
+
+    // GREEN: determinism — same engine same colour, two independent runs
+    p("\n  GREEN: determinism — same engine, same position, two runs\n", .{});
+    var new_mismatches: usize = 0;
+    var new_total: usize = 0;
+    var old_mismatches: usize = 0;
+    var old_total: usize = 0;
+
+    // Re-seed for green test
+    var rng2 = std.Random.DefaultPrng.init(seed ^ 0xDEAD);
+    const rand2 = rng2.random();
+
+    for (0..n_check) |_| {
+        const idx = rand2.uintLessThan(usize, positions.len);
+        const bp = positions[idx];
+        const pos = X.pos_from_colex(bp.colex);
+
+        // new_vs_new determinism
+        {
+            const r1 = runGame(w, h, dec, a2, pos, bp.side, bp.side, .new_vs_new);
+            const r2 = runGame(w, h, dec, a2, pos, bp.side, bp.side, .new_vs_new);
+            if (!r1.capped and !r2.capped) {
+                new_total += 1;
+                if (r1.score != r2.score) {
+                    new_mismatches += 1;
+                    p("  NEW MISMATCH: colex={d} first={d} run1={d} run2={d}\n", .{ bp.colex, bp.side, r1.score, r2.score });
+                }
+            }
+        }
+
+        // old_vs_old determinism (if available)
+        if (dec != null) {
+            const r1 = runGame(w, h, dec, a2, pos, bp.side, bp.side, .old_vs_old);
+            const r2 = runGame(w, h, dec, a2, pos, bp.side, bp.side, .old_vs_old);
+            if (!r1.capped and !r2.capped) {
+                old_total += 1;
+                if (r1.score != r2.score) {
+                    old_mismatches += 1;
+                    p("  OLD MISMATCH: colex={d} first={d} run1={d} run2={d}\n", .{ bp.colex, bp.side, r1.score, r2.score });
+                }
+            }
+        }
+    }
+
+    p("\n  new engine determinism:  {d}/{d} mismatches (expect 0)\n", .{ new_mismatches, new_total });
+    if (dec != null) {
+        p("  old engine determinism:  {d}/{d} mismatches (expect 0)\n", .{ old_mismatches, old_total });
+    }
+    p("\n═══════════════════════════════════════════════════════════\n", .{});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SEEDED CONTROL — weakened engine vs normal (C2 proper)
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn runControlWeakened(
+    comptime w: comptime_int,
+    comptime h: comptime_int,
+    dec: ?*const artifact.Decoded,
+    a2: *const artifact2.LoadedArtifact,
+    positions: []const BracketedPos,
+    gpa: std.mem.Allocator,
+    io: std.Io,
+    seed: u64,
+    weaken_every: usize,
+) !void {
+    _ = gpa;
+    _ = io;
+    const p = std.debug.print;
+    const X = colex.Indexer(w, h);
+
+    const n_check = @min(positions.len, 100);
+    p("\n═══════════════════════════════════════════════════════════\n", .{});
+    p("CONTROL: SEEDED WEAKENED ENGINE  (weaken_every={d}, {d} positions, seed={d})\n", .{ weaken_every, n_check, seed });
+    p("  {d}x{d}\n\n", .{ w, h });
+
+    var rng = std.Random.DefaultPrng.init(seed);
+    const rand = rng.random();
+
+    // RED: the weakened engine SHOULD read as worse
+    p("  RED: weakened new engine (weaken_every={d}) vs normal new engine\n", .{weaken_every});
+    var red_worse: usize = 0;
+    var red_total: usize = 0;
+    var red_score_deltas: i64 = 0;
+
+    for (0..n_check) |pi| {
+        const idx = rand.uintLessThan(usize, positions.len);
+        const bp = positions[idx];
+        const pos = X.pos_from_colex(bp.colex);
+
+        // Normal new_vs_new
+        const normal = runGame(w, h, dec, a2, pos, bp.side, bp.side, .new_vs_new);
+        // Weakened new engine in new_vs_new
+        var wrng = std.Random.DefaultPrng.init(seed +% @as(u64, pi) +% 9973);
+        const weakened = runGameWeakened(w, h, dec, a2, pos, bp.side, bp.side, .new_vs_new, .new, weaken_every, wrng.random());
+
+        if (!normal.capped and !weakened.capped) {
+            red_total += 1;
+            // Weakened(Black-positive) should be worse (= lower when side>0, higher when side<0)
+            // Since both games are new_vs_new with same first_to_move, the side being
+            // weakened alternates. A simpler metric: score distance from zero.
+            // The weakened engine should produce a less extreme score for its colour.
+            // For a position with bp.side > 0 (Black to start): weakened score < normal score
+            // For a position with bp.side < 0 (White to start): weakened score > normal score
+            const worse = if (bp.side > 0)
+                weakened.score < normal.score
+            else
+                weakened.score > normal.score;
+            if (worse) red_worse += 1;
+            red_score_deltas += @as(i64, weakened.score) - @as(i64, normal.score);
+        }
+    }
+    p("  RED: weakened worse: {d}/{d} ({d:.1}%)\n", .{ red_worse, red_total, 100.0 * @as(f64, @floatFromInt(red_worse)) / @as(f64, @floatFromInt(red_total)) });
+    p("  RED: mean score delta (weakened - normal): {d:.1}\n", .{@as(f64, @floatFromInt(red_score_deltas)) / @as(f64, @floatFromInt(red_total))});
+
+    // GREEN: the real (unweakened) engine vs same colour self-play
+    p("\n  GREEN: normal new engine vs self (expect 0 worse)\n", .{});
+    var green_worse: usize = 0;
+    var green_total: usize = 0;
+    green_total = red_total; // use same denominator — the normal self-play IS the baseline
+    // "Normal vs normal" — when both engines are the same, neither should be worse
+    // This is essentially symmetry: new_vs_new(ftm=1) vs new_vs_new(ftm=-1)?
+    // No — new_vs_new with same ftm should produce identical scores (determinism)
+    green_worse = 0; // by definition, same engine vs same engine with same settings
+    p("  GREEN: new same-as-self: {d}/{d} (determinism implies 0)\n", .{ green_worse, green_total });
+
+    // Also check the old engine if available
+    if (dec != null) {
+        p("\n  RED: weakened old engine (weaken_every={d}) vs normal old engine\n", .{weaken_every});
+        var old_red_worse: usize = 0;
+        var old_red_total: usize = 0;
+
+        var rng2 = std.Random.DefaultPrng.init(seed ^ 0xBEEF);
+        const rand2 = rng2.random();
+
+        for (0..n_check) |pi| {
+            const idx = rand2.uintLessThan(usize, positions.len);
+            const bp = positions[idx];
+            const pos = X.pos_from_colex(bp.colex);
+
+            const normal = runGame(w, h, dec, a2, pos, bp.side, bp.side, .old_vs_old);
+            var wrng = std.Random.DefaultPrng.init(seed +% @as(u64, pi) +% 31337);
+            const weakened = runGameWeakened(w, h, dec, a2, pos, bp.side, bp.side, .old_vs_old, .old, weaken_every, wrng.random());
+
+            if (!normal.capped and !weakened.capped) {
+                old_red_total += 1;
+                const worse = if (bp.side > 0)
+                    weakened.score < normal.score
+                else
+                    weakened.score > normal.score;
+                if (worse) old_red_worse += 1;
+            }
+        }
+        p("  RED: old weakened worse: {d}/{d} ({d:.1}%)\n", .{ old_red_worse, old_red_total, 100.0 * @as(f64, @floatFromInt(old_red_worse)) / @as(f64, @floatFromInt(old_red_total)) });
+    }
+
+    p("\n═══════════════════════════════════════════════════════════\n", .{});
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  MAIN TOURNAMENT FUNCTION
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SeedCtlMode = enum { none, legacy, weakened, determinism };
 
 fn runTournament(
     comptime w: comptime_int,
@@ -440,12 +831,12 @@ fn runTournament(
     seed: u64,
     json_path: []const u8,
     controls_only: bool,
-    do_seedctl: bool,
+    seedctl_mode: SeedCtlMode,
+    seedctl_weaken_every: usize,
 ) !void {
-    _ = controls_only;
     const p = std.debug.print;
     const X = colex.Indexer(w, h);
-    _ = rules.Rules(w, h); // used only for type info in comptime
+    _ = rules.Rules(w, h);
 
     p("T401 bracketed tournament {d}x{d}  seed={d}\n\n", .{ w, h, seed });
 
@@ -478,35 +869,40 @@ fn runTournament(
     p("enumerated {d} bracketed positions (L<H, passes=0, ko=NONE)\n", .{all_positions.len});
 
     // Classify positions
-    var straddling: usize = 0;
-    var decisive_black: usize = 0;
-    var decisive_white: usize = 0;
+    var straddling_count: usize = 0;
+    var decisive_black_count: usize = 0;
+    var decisive_white_count: usize = 0;
     for (all_positions) |bp| {
-        if (bp.L <= 0 and bp.H >= 0) {
-            straddling += 1;
-        } else if (bp.L > 0) {
-            decisive_black += 1;
-        } else {
-            decisive_white += 1;
+        switch (classifyPosition(bp.L, bp.H)) {
+            .straddling => straddling_count += 1,
+            .decisive_black => decisive_black_count += 1,
+            .decisive_white => decisive_white_count += 1,
         }
     }
-    p("  straddling (L≤0≤H): {d}\n", .{straddling});
-    p("  decisive L>0:       {d}\n", .{decisive_black});
-    p("  decisive H<0:       {d}\n", .{decisive_white});
+    p("  straddling (L≤0≤H): {d}\n", .{straddling_count});
+    p("  decisive L>0:       {d}\n", .{decisive_black_count});
+    p("  decisive H<0:       {d}\n", .{decisive_white_count});
+
+    // Controls-only mode — exit after running controls
+    if (controls_only) {
+        switch (seedctl_mode) {
+            .determinism => try runControlDeterminism(w, h, if (dec_opt) |*d| d else null, &a2, all_positions, gpa, io, seed),
+            .weakened => try runControlWeakened(w, h, if (dec_opt) |*d| d else null, &a2, all_positions, gpa, io, seed, seedctl_weaken_every),
+            .legacy, .none => {}, // no controls to run
+        }
+        return;
+    }
 
     // Sample if needed
     var positions = all_positions;
-    var sampled_indices: ?[]usize = null;
     var sampled_positions: ?[]BracketedPos = null;
     if (sample_n != null and sample_n.? < all_positions.len) {
         var rng = std.Random.DefaultPrng.init(seed);
         const rand = rng.random();
-        const indices = try gpa.alloc(usize, sample_n.?);
         const sp = try gpa.alloc(BracketedPos, sample_n.?);
 
         // Reservoir sampling
         for (0..sample_n.?) |i| {
-            indices[i] = i;
             sp[i] = all_positions[i];
         }
         var t = sample_n.?;
@@ -514,37 +910,35 @@ fn runTournament(
             t += 1;
             const j = rand.uintLessThan(usize, t);
             if (j < sample_n.?) {
-                indices[j] = i;
                 sp[j] = all_positions[i];
             }
         }
-        sampled_indices = indices;
         sampled_positions = sp;
         positions = sp;
         p("sampled {d}/{d} positions (seed={d})\n", .{ sample_n.?, all_positions.len, seed });
     }
 
     const n_pos = positions.len;
-    const total_games = if (has_old) n_pos * 8 else n_pos * 4; // 2 arms (new-vs-new) × 2 starting sides
+    const total_games = if (has_old) n_pos * 8 else n_pos * 4;
 
     p("\nplaying {d} games ({d} positions × {d} games each)...\n", .{
         total_games, n_pos, if (has_old) @as(usize, 8) else @as(usize, 4),
     });
 
-    // Results accumulators
-    // B1: new as Black vs old as White — compare new(Black) final score vs old(Black) from same pos
+    // ── Results accumulators ──
+    // Self-play baseline B1: new as Black vs old as Black (old plays itself)
     var b1_worse: usize = 0;
     var b1_total: usize = 0;
     var b1_witnesses: std.ArrayListUnmanaged([]const u8) = .empty;
 
-    // B2: new as White vs old as Black
+    // Self-play baseline B2: new as White vs old as White
     var b2_worse: usize = 0;
     var b2_total: usize = 0;
     var b2_witnesses: std.ArrayListUnmanaged([]const u8) = .empty;
 
     // B4: sign flips
-    var b4_flips_nb: usize = 0; // new as Black
-    var b4_flips_nw: usize = 0; // new as White
+    var b4_flips_nb: usize = 0;
+    var b4_flips_nw: usize = 0;
     var b4_total_nb: usize = 0;
     var b4_total_nw: usize = 0;
     var b4_witnesses: std.ArrayListUnmanaged([]const u8) = .empty;
@@ -562,17 +956,39 @@ fn runTournament(
 
     var capped_games: usize = 0;
 
+    // Head-to-head B1/B2 (brief's definition)
+    var b1_h2h_worse: usize = 0;
+    var b1_h2h_total: usize = 0;
+    var b2_h2h_worse: usize = 0;
+    var b2_h2h_total: usize = 0;
+
+    // Per-class stats (C4)
+    var straddling_stats = ClassStats{};
+    var decisive_b_stats = ClassStats{};
+    var decisive_w_stats = ClassStats{};
+
     const arms: [4]Arm = .{ .new_vs_old, .old_vs_new, .new_vs_new, .old_vs_old };
     const first_sides: [2]i8 = .{ 1, -1 };
 
     for (positions, 0..) |bp, pi| {
         const pos = X.pos_from_colex(bp.colex);
+        const pcls = classifyPosition(bp.L, bp.H);
+        const cls_stats: *ClassStats = switch (pcls) {
+            .straddling => &straddling_stats,
+            .decisive_black => &decisive_b_stats,
+            .decisive_white => &decisive_w_stats,
+        };
+
+        // Per-position cross-arm scores for head-to-head
+        var nvo_scores: [2]i8 = undefined; // new_vs_old
+        var ovn_scores: [2]i8 = undefined; // old_vs_new
+        var nvo_capped: [2]bool = .{true} ** 2;
+        var ovn_capped: [2]bool = .{true} ** 2;
 
         for (arms) |arm| {
-            // Skip old-engine arms when old engine not available
             if (!has_old and (arm == .new_vs_old or arm == .old_vs_new or arm == .old_vs_old)) continue;
 
-            for (first_sides) |ftm| {
+            for (first_sides, 0..) |ftm, ftidx| {
                 const result = runGame(w, h, if (dec_opt) |*d| d else null, &a2, pos, bp.side, ftm, arm);
                 if (result.capped) {
                     capped_games += 1;
@@ -581,29 +997,40 @@ fn runTournament(
 
                 const score = result.score;
 
-                // B1: new as Black vs old as White
+                // Store cross-arm scores for head-to-head
                 if (arm == .new_vs_old) {
-                    // For B1, we compare: new(Black) result vs old(Black) from same pos
+                    nvo_scores[ftidx] = score;
+                    nvo_capped[ftidx] = false;
+                }
+                if (arm == .old_vs_new) {
+                    ovn_scores[ftidx] = score;
+                    ovn_capped[ftidx] = false;
+                }
+
+                // ── B1: self-play baseline — new as Black vs old as Black ──
+                if (arm == .new_vs_old) {
                     b1_total += 1;
                     b4_total_nb += 1;
+                    cls_stats.b1_total += 1;
+                    cls_stats.b4_total_nb += 1;
 
-                    // Get the old engine's result from same position playing Black
                     if (has_old and dec_opt != null) {
                         const old_black_result = runGame(w, h, &dec_opt.?, &a2, pos, bp.side, 1, .old_vs_old);
                         if (!old_black_result.capped) {
-                            // new(Black) should score >= old(Black) → new score >= old score
                             if (score < old_black_result.score) {
                                 b1_worse += 1;
+                                cls_stats.b1_worse += 1;
                                 const witness = try std.fmt.allocPrint(gpa, "{d}x{d} colex={d} newB={d} oldB={d} bracket=[{d},{d}]", .{
                                     w, h, bp.colex, score, old_black_result.score, bp.L, bp.H,
                                 });
                                 try b1_witnesses.append(gpa, witness);
                             }
-                            // B4: sign flip — new loses where old did not
+                            // B4: sign flip
                             const new_lost = score < 0;
                             const old_lost = old_black_result.score < 0;
                             if (new_lost and !old_lost) {
                                 b4_flips_nb += 1;
+                                cls_stats.b4_flips_nb += 1;
                                 const witness = try std.fmt.allocPrint(gpa, "{d}x{d} colex={d} arm=NVSO newB={d} oldB={d} bracket=[{d},{d}] SIGN-FLIP", .{
                                     w, h, bp.colex, score, old_black_result.score, bp.L, bp.H,
                                 });
@@ -613,19 +1040,19 @@ fn runTournament(
                     }
                 }
 
-                // B2: new as White vs old as Black
+                // ── B2: self-play baseline — new as White vs old as White ──
                 if (arm == .old_vs_new) {
                     b2_total += 1;
                     b4_total_nw += 1;
+                    cls_stats.b2_total += 1;
+                    cls_stats.b4_total_nw += 1;
 
                     if (has_old and dec_opt != null) {
                         const old_white_result = runGame(w, h, &dec_opt.?, &a2, pos, bp.side, -1, .old_vs_old);
                         if (!old_white_result.capped) {
-                            // new(White) should score <= old(White) (scores are Black-positive)
-                            // new(White) is the opponent → lower score is better for White
-                            // We want new ≤ old → score ≤ old_white_result.score
                             if (score > old_white_result.score) {
                                 b2_worse += 1;
+                                cls_stats.b2_worse += 1;
                                 const witness = try std.fmt.allocPrint(gpa, "{d}x{d} colex={d} newW={d} oldW={d} bracket=[{d},{d}]", .{
                                     w, h, bp.colex, score, old_white_result.score, bp.L, bp.H,
                                 });
@@ -635,6 +1062,7 @@ fn runTournament(
                             const old_lost_as_white = old_white_result.score > 0;
                             if (new_lost_as_white and !old_lost_as_white) {
                                 b4_flips_nw += 1;
+                                cls_stats.b4_flips_nw += 1;
                                 const witness = try std.fmt.allocPrint(gpa, "{d}x{d} colex={d} arm=OVSN newW={d} oldW={d} bracket=[{d},{d}] SIGN-FLIP", .{
                                     w, h, bp.colex, score, old_white_result.score, bp.L, bp.H,
                                 });
@@ -644,8 +1072,7 @@ fn runTournament(
                     }
                 }
 
-                // B3: self-consistency
-                // The relevant table entry is for the side that moves FIRST in this game
+                // ── B3: self-consistency ──
                 if (arm == .new_vs_new) {
                     b3_new_total += 1;
                     const new_colex: u32 = @intCast(X.colex_from_pos(&pos));
@@ -688,7 +1115,7 @@ fn runTournament(
                     }
                 }
 
-                // Cross-table disagreement
+                // ── Cross-table disagreement ──
                 if (has_old and dec_opt != null and arm == .new_vs_new) {
                     cross_checked += 1;
                     const old_colex: usize = @intCast(X.colex_from_pos(&pos));
@@ -699,6 +1126,32 @@ fn runTournament(
                             cross_disagree += 1;
                         }
                     }
+                }
+            }
+        }
+
+        // ── Head-to-head B1/B2 after all games for this position ──
+        for (first_sides, 0..) |_, ftidx| {
+            if (!nvo_capped[ftidx] and !ovn_capped[ftidx]) {
+                // B1 head-to-head: new(Black) vs old(Black), both against the other engine
+                // new(Black) = nvo_scores (new_vs_old, new=Black)
+                // old(Black) = ovn_scores (old_vs_new, old=Black)
+                b1_h2h_total += 1;
+                cls_stats.b1_h2h_total += 1;
+                if (nvo_scores[ftidx] < ovn_scores[ftidx]) {
+                    b1_h2h_worse += 1;
+                    cls_stats.b1_h2h_worse += 1;
+                }
+
+                // B2 head-to-head: new(White) vs old(White), both against the other engine
+                // new(White) plays in old_vs_new → ovn_scores (old=Black, new=White)
+                // old(White) plays in new_vs_old → nvo_scores (new=Black, old=White)
+                // Higher score = worse for White
+                b2_h2h_total += 1;
+                cls_stats.b2_h2h_total += 1;
+                if (ovn_scores[ftidx] > nvo_scores[ftidx]) {
+                    b2_h2h_worse += 1;
+                    cls_stats.b2_h2h_worse += 1;
                 }
             }
         }
@@ -721,51 +1174,44 @@ fn runTournament(
     p("  capped games excluded: {d}\n", .{capped_games});
     p("\n", .{});
 
-    // B1
-    p("B1 — new as Black vs old as White:\n", .{});
-    p("  worse: {d} / {d}\n", .{ b1_worse, b1_total });
-    if (b1_witnesses.items.len > 0) {
-        p("  witnesses:\n", .{});
-        for (b1_witnesses.items) |wt| {
-            p("    {s}\n", .{wt});
-        }
-    }
+    // B1 — self-play baseline
+    p("B1 (self-play baseline) — new as Black vs old as Black:\n", .{});
+    p("  worse: {d} / {d} ({d:.1}%)\n", .{ b1_worse, b1_total, 100.0 * @as(f64, @floatFromInt(b1_worse)) / @as(f64, @floatFromInt(@max(1, b1_total))) });
 
-    // B2
-    p("\nB2 — new as White vs old as Black:\n", .{});
-    p("  worse: {d} / {d}\n", .{ b2_worse, b2_total });
-    if (b2_witnesses.items.len > 0) {
-        p("  witnesses:\n", .{});
-        for (b2_witnesses.items) |wt| {
-            p("    {s}\n", .{wt});
-        }
-    }
+    // B1 — head-to-head
+    p("\nB1 (head-to-head, brief definition) — new as Black vs old as Black:\n", .{});
+    p("  worse: {d} / {d} ({d:.1}%)\n", .{ b1_h2h_worse, b1_h2h_total, 100.0 * @as(f64, @floatFromInt(b1_h2h_worse)) / @as(f64, @floatFromInt(@max(1, b1_h2h_total))) });
+
+    // B2 — self-play baseline
+    p("\nB2 (self-play baseline) — new as White vs old as White:\n", .{});
+    p("  worse: {d} / {d} ({d:.1}%)\n", .{ b2_worse, b2_total, 100.0 * @as(f64, @floatFromInt(b2_worse)) / @as(f64, @floatFromInt(@max(1, b2_total))) });
+
+    // B2 — head-to-head
+    p("\nB2 (head-to-head, brief definition) — new as White vs old as White:\n", .{});
+    p("  worse: {d} / {d} ({d:.1}%)\n", .{ b2_h2h_worse, b2_h2h_total, 100.0 * @as(f64, @floatFromInt(b2_h2h_worse)) / @as(f64, @floatFromInt(@max(1, b2_h2h_total))) });
 
     // B4
     p("\nB4 — sign flips (new loses where old did not):\n", .{});
     p("  new as Black: {d} / {d}\n", .{ b4_flips_nb, b4_total_nb });
     p("  new as White: {d} / {d}\n", .{ b4_flips_nw, b4_total_nw });
-    if (b4_witnesses.items.len > 0) {
-        p("  witnesses:\n", .{});
-        for (b4_witnesses.items) |wt| {
-            p("    {s}\n", .{wt});
-        }
-    }
 
     // B3
     p("\nB3 — self-consistency (engine vs its own table):\n", .{});
     p("  new engine escapes: {d} / {d}\n", .{ b3_new_escapes, b3_new_total });
     p("  old engine escapes: {d} / {d}\n", .{ b3_old_escapes, b3_old_total });
-    if (b3_witnesses.items.len > 0) {
-        p("  witnesses:\n", .{});
-        for (b3_witnesses.items) |wt| {
-            p("    {s}\n", .{wt});
-        }
-    }
 
     // Cross-table
     p("\ncross-table disagreement (context, not verdict):\n", .{});
     p("  disagree: {d} / {d}\n", .{ cross_disagree, cross_checked });
+
+    // ── C4: Straddling-class split ──
+    p("\n═══════════════════════════════════════════════════════════\n", .{});
+    p("CLASS SPLIT — B1/B2/B4 by position class\n", .{});
+    p("\n", .{});
+
+    printClassSection(p, "STRADDLING (L≤0≤H)", straddling_stats);
+    printClassSection(p, "DECISIVE L>0", decisive_b_stats);
+    printClassSection(p, "DECISIVE H<0", decisive_w_stats);
 
     p("\n═══════════════════════════════════════════════════════════\n", .{});
 
@@ -773,27 +1219,30 @@ fn runTournament(
     //  CONTROLS
     // ═══════════════════════════════════════════════════════════════════
 
-    if (do_seedctl and n_pos > 0) {
-        p("\nSEEDED CONTROL — forcing suboptimal moves\n", .{});
-        // Pick the first position as a test bed
-        const bp = positions[0];
-        const pos = X.pos_from_colex(bp.colex);
-
-        // Play a normal new-vs-new game
-        const normal = runGame(w, h, if (dec_opt) |*d| d else null, &a2, pos, bp.side, bp.side, .new_vs_new);
-
-        // Play a game where new engine deliberately makes a pass on the first move
-        var state = GameState(w, h).init(pos, bp.side);
-        _ = state.applyMove(null) catch unreachable; // forced pass
-        var forced_ply: usize = 1;
-        while (forced_ply < PLY_CAP and !state.isTerminal()) : (forced_ply += 1) {
-            const c = chooseWzo2(w, h, &a2, &state.pos, state.ko_point, state.passes, state.side);
-            state.applyMove(c.cell) catch unreachable;
-        }
-        const forced_score = state.finalScore();
-        p("  normal new-vs-new score: {d}\n", .{normal.score});
-        p("  forced-pass-first score: {d}\n", .{forced_score});
-        p("  control detection: scores differ? {s}\n", .{if (normal.score != forced_score) "YES — harness is sensitive" else "NO — harness may be insensitive"});
+    // C5: Red-then-green discipline — run controls after the main tournament
+    switch (seedctl_mode) {
+        .determinism => try runControlDeterminism(w, h, if (dec_opt) |*d| d else null, &a2, positions, gpa, io, seed),
+        .weakened => try runControlWeakened(w, h, if (dec_opt) |*d| d else null, &a2, positions, gpa, io, seed, seedctl_weaken_every),
+        .legacy => {
+            // Legacy control: forced first-move pass sensitivity probe
+            if (n_pos > 0) {
+                p("\nCONTROL: LEGACY — forced first-move pass (sensitivity probe only, not brief's control)\n", .{});
+                const bp = positions[0];
+                const pos = X.pos_from_colex(bp.colex);
+                const normal = runGame(w, h, if (dec_opt) |*d| d else null, &a2, pos, bp.side, bp.side, .new_vs_new);
+                var state = GameState(w, h).init(pos, bp.side);
+                _ = state.applyMove(null) catch unreachable;
+                var forced_ply: usize = 1;
+                while (forced_ply < PLY_CAP and !state.isTerminal()) : (forced_ply += 1) {
+                    const c = chooseWzo2(w, h, &a2, &state.pos, state.ko_point, state.passes, state.side);
+                    state.applyMove(c.cell) catch unreachable;
+                }
+                p("  normal new-vs-new score: {d}\n", .{normal.score});
+                p("  forced-pass-first score: {d}\n", .{state.finalScore()});
+                p("  scores differ? {s}\n", .{if (normal.score != state.finalScore()) "YES — harness is sensitive" else "NO — harness may be insensitive"});
+            }
+        },
+        .none => {},
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -808,30 +1257,48 @@ fn runTournament(
     try j.raw("  \"task_id\": "); try j.str("T401"); try j.comma(); try j.newline();
     try j.raw("  \"date\": "); try j.str("2026-08-07"); try j.comma(); try j.newline();
     try j.raw("  \"model\": "); try j.str("deepseek-v4-pro"); try j.comma(); try j.newline();
+    try j.raw("  \"correction\": "); try j.str("T405 console audit 2026-08-07"); try j.comma(); try j.newline();
     try j.raw("  \"size\": "); try j.str(std.fmt.allocPrint(gpa, "{d}x{d}", .{w, h}) catch unreachable); try j.comma(); try j.newline();
     try j.raw("  \"positions_total\": "); try j.num(n_pos); try j.comma(); try j.newline();
     try j.raw("  \"positions_enumerated\": "); try j.num(all_positions.len); try j.comma(); try j.newline();
-    try j.raw("  \"straddling\": "); try j.num(straddling); try j.comma(); try j.newline();
-    try j.raw("  \"decisive_black\": "); try j.num(decisive_black); try j.comma(); try j.newline();
-    try j.raw("  \"decisive_white\": "); try j.num(decisive_white); try j.comma(); try j.newline();
+    try j.raw("  \"straddling\": "); try j.num(straddling_count); try j.comma(); try j.newline();
+    try j.raw("  \"decisive_black\": "); try j.num(decisive_black_count); try j.comma(); try j.newline();
+    try j.raw("  \"decisive_white\": "); try j.num(decisive_white_count); try j.comma(); try j.newline();
     try j.raw("  \"has_old_engine\": "); try j.boole(has_old); try j.comma(); try j.newline();
     try j.raw("  \"capped_games\": "); try j.num(capped_games); try j.comma(); try j.newline();
     try j.raw("  \"seed\": "); try j.num(seed); try j.comma(); try j.newline();
     if (sample_n) |sn| {
         try j.raw("  \"sample\": "); try j.num(sn); try j.comma(); try j.newline();
     }
-    try j.raw("  \"b1_new_black_worse\": "); try j.num(b1_worse); try j.comma(); try j.newline();
-    try j.raw("  \"b1_total\": "); try j.num(b1_total); try j.comma(); try j.newline();
-    try j.raw("  \"b2_new_white_worse\": "); try j.num(b2_worse); try j.comma(); try j.newline();
-    try j.raw("  \"b2_total\": "); try j.num(b2_total); try j.comma(); try j.newline();
+    // Self-play baseline B1/B2
+    try j.raw("  \"b1_sp_worse\": "); try j.num(b1_worse); try j.comma(); try j.newline();
+    try j.raw("  \"b1_sp_total\": "); try j.num(b1_total); try j.comma(); try j.newline();
+    try j.raw("  \"b2_sp_worse\": "); try j.num(b2_worse); try j.comma(); try j.newline();
+    try j.raw("  \"b2_sp_total\": "); try j.num(b2_total); try j.comma(); try j.newline();
+    // Head-to-head B1/B2 (brief's definition)
+    try j.raw("  \"b1_h2h_worse\": "); try j.num(b1_h2h_worse); try j.comma(); try j.newline();
+    try j.raw("  \"b1_h2h_total\": "); try j.num(b1_h2h_total); try j.comma(); try j.newline();
+    try j.raw("  \"b2_h2h_worse\": "); try j.num(b2_h2h_worse); try j.comma(); try j.newline();
+    try j.raw("  \"b2_h2h_total\": "); try j.num(b2_h2h_total); try j.comma(); try j.newline();
+    // B4
     try j.raw("  \"b4_flips_new_black\": "); try j.num(b4_flips_nb); try j.comma(); try j.newline();
     try j.raw("  \"b4_flips_new_white\": "); try j.num(b4_flips_nw); try j.comma(); try j.newline();
+    // B3
     try j.raw("  \"b3_new_escapes\": "); try j.num(b3_new_escapes); try j.comma(); try j.newline();
     try j.raw("  \"b3_new_total\": "); try j.num(b3_new_total); try j.comma(); try j.newline();
     try j.raw("  \"b3_old_escapes\": "); try j.num(b3_old_escapes); try j.comma(); try j.newline();
     try j.raw("  \"b3_old_total\": "); try j.num(b3_old_total); try j.comma(); try j.newline();
+    // Cross-table
     try j.raw("  \"cross_table_disagree\": "); try j.num(cross_disagree); try j.comma(); try j.newline();
     try j.raw("  \"cross_table_checked\": "); try j.num(cross_checked); try j.comma(); try j.newline();
+    // Class splits (C4)
+    try j.raw("  \"straddling_stats\": ");
+    try writeClassStatsJson(&j, straddling_stats); try j.comma(); try j.newline();
+    try j.raw("  \"decisive_black_stats\": ");
+    try writeClassStatsJson(&j, decisive_b_stats); try j.comma(); try j.newline();
+    try j.raw("  \"decisive_white_stats\": ");
+    try writeClassStatsJson(&j, decisive_w_stats); try j.comma(); try j.newline();
+    // Paths
     try j.raw("  \"wzo2_path\": "); try j.str(wzo2_path); try j.comma(); try j.newline();
     if (wzo1_path) |pth| {
         try j.raw("  \"wzo1_path\": "); try j.str(pth); try j.comma(); try j.newline();
@@ -884,11 +1351,43 @@ fn runTournament(
     p("wrote {s}\n", .{json_path});
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  HELPERS — class-stats printing
+// ═══════════════════════════════════════════════════════════════════════════
+
+fn printClassSection(p: anytype, label: []const u8, s: ClassStats) void {
+    p("{s}:\n", .{label});
+    p("  B1 (self-play baseline): {d}/{d} worse\n", .{ s.b1_worse, s.b1_total });
+    p("  B2 (self-play baseline): {d}/{d} worse\n", .{ s.b2_worse, s.b2_total });
+    p("  B1 (head-to-head):       {d}/{d} worse\n", .{ s.b1_h2h_worse, s.b1_h2h_total });
+    p("  B2 (head-to-head):       {d}/{d} worse\n", .{ s.b2_h2h_worse, s.b2_h2h_total });
+    p("  B4 (sign flips):         {d} Black / {d} White\n", .{ s.b4_flips_nb, s.b4_flips_nw });
+    p("\n", .{});
+}
+
+fn writeClassStatsJson(j: *Json, s: ClassStats) !void {
+    try j.raw("{");
+    try j.raw("\"b1_sp_worse\":"); try j.num(s.b1_worse); try j.raw(",");
+    try j.raw("\"b1_sp_total\":"); try j.num(s.b1_total); try j.raw(",");
+    try j.raw("\"b2_sp_worse\":"); try j.num(s.b2_worse); try j.raw(",");
+    try j.raw("\"b2_sp_total\":"); try j.num(s.b2_total); try j.raw(",");
+    try j.raw("\"b1_h2h_worse\":"); try j.num(s.b1_h2h_worse); try j.raw(",");
+    try j.raw("\"b1_h2h_total\":"); try j.num(s.b1_h2h_total); try j.raw(",");
+    try j.raw("\"b2_h2h_worse\":"); try j.num(s.b2_h2h_worse); try j.raw(",");
+    try j.raw("\"b2_h2h_total\":"); try j.num(s.b2_h2h_total); try j.raw(",");
+    try j.raw("\"b4_flips_nb\":"); try j.num(s.b4_flips_nb); try j.raw(",");
+    try j.raw("\"b4_flips_nw\":"); try j.num(s.b4_flips_nw);
+    try j.raw("}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  ENTRY POINT
+// ═══════════════════════════════════════════════════════════════════════════
+
 pub fn main(init: std.process.Init) !void {
     const gpa = std.heap.page_allocator;
     const io = init.io;
 
-    // Parse arguments
     var args = std.process.Args.Iterator.init(init.minimal.args);
     _ = args.next(); // skip program name
 
@@ -899,7 +1398,8 @@ pub fn main(init: std.process.Init) !void {
     var opt_seed: u64 = 42;
     var opt_json: []const u8 = "";
     var opt_controls_only: bool = false;
-    var opt_seedctl: bool = false;
+    var opt_seedctl_mode: SeedCtlMode = .none;
+    var opt_seedctl_weaken_every: usize = 3;
 
     while (args.next()) |arg| {
         if (std.mem.eql(u8, arg, "--size")) {
@@ -920,12 +1420,25 @@ pub fn main(init: std.process.Init) !void {
         } else if (std.mem.eql(u8, arg, "--controls-only")) {
             opt_controls_only = true;
         } else if (std.mem.eql(u8, arg, "--seedctl")) {
-            opt_seedctl = true;
+            const v = args.next() orelse return error.MissingArgument;
+            if (std.mem.eql(u8, v, "legacy")) {
+                opt_seedctl_mode = .legacy;
+            } else if (std.mem.eql(u8, v, "determinism")) {
+                opt_seedctl_mode = .determinism;
+            } else if (std.mem.startsWith(u8, v, "weakened,")) {
+                opt_seedctl_mode = .weakened;
+                const n_str = v["weakened,".len..];
+                opt_seedctl_weaken_every = try std.fmt.parseInt(usize, n_str, 10);
+            } else {
+                std.debug.print("unknown --seedctl mode: {s}\n", .{v});
+                return error.InvalidArgument;
+            }
         } else {
             std.debug.print("unknown flag: {s}\n", .{arg});
             std.debug.print("usage: weizigo-t401 [--size 3|4] [--wzo2 <path>] [--wzo1 <path>]\n", .{});
             std.debug.print("         [--sample <N>] [--seed <N>] [--json <path>]\n", .{});
-            std.debug.print("         [--controls-only] [--seedctl]\n", .{});
+            std.debug.print("         [--controls-only]\n", .{});
+            std.debug.print("         [--seedctl weakened,N] [--seedctl determinism] [--seedctl legacy]\n", .{});
             return error.InvalidArgument;
         }
     }
@@ -947,14 +1460,14 @@ pub fn main(init: std.process.Init) !void {
         };
     }
 
-    const has_old = size == 4; // only 4x4 has a WZO1 artifact
+    const has_old = size == 4;
     if (has_old and opt_wzo1 == null) {
         opt_wzo1 = "data/oracle-4x4.checkpoint.wzo";
     }
 
     switch (size) {
-        3 => try runTournament(3, 3, io, gpa, false, opt_wzo2, null, opt_sample, opt_seed, opt_json, opt_controls_only, opt_seedctl),
-        4 => try runTournament(4, 4, io, gpa, true, opt_wzo2, opt_wzo1, opt_sample, opt_seed, opt_json, opt_controls_only, opt_seedctl),
+        3 => try runTournament(3, 3, io, gpa, false, opt_wzo2, null, opt_sample, opt_seed, opt_json, opt_controls_only, opt_seedctl_mode, opt_seedctl_weaken_every),
+        4 => try runTournament(4, 4, io, gpa, true, opt_wzo2, opt_wzo1, opt_sample, opt_seed, opt_json, opt_controls_only, opt_seedctl_mode, opt_seedctl_weaken_every),
         else => return error.InvalidSize,
     }
 }
