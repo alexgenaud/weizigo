@@ -1,0 +1,8 @@
+{
+  "task_id": "T410",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Audited the instruction corpus at commit 0c5c232d. 215 files, 27,882 lines inventoried. 16 findings: 2 contradictions (F01 INDEX.md stale role list, F02 GLOSSARY.md broken research/ paths), 4 stale instructions (F03 AGENTS.md wrong path to ruleset-options.md, F04 HANDOVER.md template references retired CURRENT.md, F05 dispatch briefs reference CURRENT.md, F06 sprint.md wrongly in INDEX.md attic), 3 dead weight (F07 dispatch briefs need a closure banner, F08 docs/AGENTS.md known stray, F09 HUMAN.md empty tracked file), 2 rules nobody follows (F13 T410's own brief lacks short name, F14 bare landmark IDs used), 2 gaps (F15 MANAGENT_TASK_ID discoverability, F16 verification hygiene not documented), plus 2 file-does-not-exist notes from the brief's own corpus list. 10 prioritized proposals in the report. The watchdog has been reporting F02 since 2026-08-01 without a fix task — that is a process gap: watchdog findings that repeat across sweeps without assignment. F03 (AGENTS.md stale path) is in the foreclosures section that every agent reads. F04 (HANDOVER.md template) is the highest-impact stale instruction — it's the read-first template and teaches the wrong read order."
+}
