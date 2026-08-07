@@ -1,0 +1,49 @@
+{
+  "task_id": "T402",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "GLOBAL.FP2",
+      "proposed_status": "PROVEN",
+      "rationale": "L==H region agreement verified — bracket_low, bracket_high, bracket_mid all agree 100% with 20,216 L==H entries at 3x3 (the trivial limit: L==H ⇒ low=mid=high=L). The harness confirms what ADR-0009 claims: no structural evidence of L==H cycle-rule-dependence at 3x3.",
+      "evidence_path": "src/resolver.zig (test suite)"
+    }
+  ],
+  "new_rows": [
+    {
+      "id": "RESOLVER.INTERFACE",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Bracket resolvers are pluggable via `src/resolver.zig` — a `Resolver` takes a `ResolveContext` (colex, side, L, H) and returns `Resolution.value` or `.no_opinion`. No resolver is authoritative; output is never promoted without independent agreement (ADR-0022).",
+      "status": "PROVEN",
+      "evidence": "src/resolver.zig (11/11 tests pass), src/resolver_harness.zig (3x3 artifact-backed comparison)",
+      "depends_on": "ADR-0009",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "RESOLVER.BUDGET-QUARANTINE",
+      "legacy": "T387, T397",
+      "goban": "all",
+      "claim": "The capture budget is demoted from a ruleset candidate to a named, pluggable resolver (`capture_budget(B)`) whose registration metadata records its measured non-convergence: 4x3 root oscillates forever in {0,1,2,7,9,12}, never equals PSK truth +4; internal consistency is not external agreement (ADR-0022 §Context).",
+      "status": "PROVEN",
+      "evidence": "findings/T387-capture-budget.json, docs/research/capture-budget-2026-08-06.md, src/resolver.zig",
+      "depends_on": "T387, T397",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "RESOLVER.CONTROLS",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "The resolver comparison harness includes two controls: (1) null — the `none` resolver proposes nothing and moves no counter; (2) seeded — `deliberately_wrong` (propose L-1) is immediately REFUTED by the L==H agreement column. Both fire correctly at 3x3 (23,420 positions).",
+      "status": "PROVEN",
+      "evidence": "src/resolver.zig (test comparison harness — deliberately_wrong IS REFUTED, test comparison harness — null control), src/resolver_harness.zig (3x3 run)",
+      "depends_on": "RESOLVER.INTERFACE",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "T402 demotes a construction rather than advancing one. The capture budget is now quarantined behind a named interface with its falsification measurements on the label — 'internal consistency is not external agreement' is wired into the registration metadata so no future table build can accidentally adopt it. The baselines (bracket_low, bracket_high, bracket_mid) are the first honest yardsticks: any future resolver that cannot beat 'always say L' is worth nothing. All 11/11 tests pass (1 skipped — artifact-backed test needs separate build). Harness output (3x3, data/oracle-3x3-v2.wzo2): 23,420 positions (20,216 L==H, 3,204 L<H); none=0 proposed; low/high/mid=23,420 proposed, 0 L==H disagreements; deliberately_wrong REFUTED at 20,216/20,216 disagreements; capture_budget=0 proposed. Landmark: protects L2 (proven 4x4 values) from contamination."
+}
