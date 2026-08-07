@@ -227,6 +227,19 @@ pub fn build(b: *std.Build) void {
     ollama_disp_regression.cwd = b.path(".");
     test_step.dependOn(&ollama_disp_regression.step);
 
+    // ── T411: dispatch-verification regression controls ─────────────
+    // T408's kimi incident (2026-08-07): a dispatched agent replied
+    // "OK." and executed nothing; the dispatch "passed" because every
+    // check trusted the reply. These controls run stub workers through
+    // the REAL dispatchers and assert the verification fails a lazy
+    // worker (the incident, reproduced), believes side effects over
+    // text for a failing worker, and adds no measurable latency to an
+    // honest one. Scratch store + scratch perf ledger only — never the
+    // live kanban or docs/infra/model-perf.md.
+    const dispatch_verify_regression = b.addSystemCommand(&.{ "sh", "tools/regression-dispatch-verification.sh" });
+    dispatch_verify_regression.cwd = b.path(".");
+    test_step.dependOn(&dispatch_verify_regression.step);
+
     // ── T352: inbox-loop regression controls ──────────────────────
     // Five controls: empty inbox is a no-op, a `tell` → read → ack →
     // record timeline runs with no human action between, an unread

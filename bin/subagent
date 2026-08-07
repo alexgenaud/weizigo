@@ -5,6 +5,12 @@
   --dsflash   DeepSeek-v4-Flash        --rss-cap-mb=N  RSS cap in MB, default 4096
                                        --dry-run       print the command, spawn nothing
 
+  test-only flags (T411 — the regression uses them; production dispatches never do):
+  --test-root=<dir>    resolve the repo from <dir> instead of the script location
+  --test-worker=<cmd>  run <cmd> <prompt> instead of the runner+pi command, so a
+                       stub worker can exercise the full dispatch+verify path
+                       without an LLM (tools/regression-dispatch-verification.sh)
+
 Bin/subagent dispatches DeepSeek only by construction (hardcoded model list,
 requires DEEPSEEK_API_KEY). Workers can reach Ollama models through
 `ollama launch pi` — the depth cap stops bin/subagent recursion but does not
@@ -13,20 +19,54 @@ harness and must never be dispatched by a non-Claude harness (human rule).
 Children run at depth 2 and cannot dispatch further via bin/subagent.
 Managers are launched by the human. The depth cap stops accidental recursion;
 it is not a security boundary — see docs/infra/agents/subdelegation.md.
+
+Dispatch verification (T411, 2026-08-07): an agent that replies "OK." and
+runs nothing is the most dangerous defect this project has seen (T408/kimi).
+After the worker returns, this script verifies the WORK mechanically — the
+injected nonce appears in the captured stdout, every declared deliverable
+exists, and the kanban row left `dispatchable` — and fails the dispatch
+(exit 2, loud report naming every failing check) when a success claim does
+not hold. The worker's text is never trusted. See tools/dispatch_verify.py.
 """
-import glob, os, re, subprocess, sys
+import glob, os, re, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import dispatch_verify  # noqa: E402
+
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 WORKER_DEPTH = 2
 MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
 KNOWN = set(MODELS) | {"--dry-run"}
 
 
+def run_worker(cmd, cwd, env):
+    """Run the worker, streaming its stdout to the parent while capturing it.
+
+    The captured stdout is what verification greps for the nonce — the
+    runner's argv echo (which also contains the token) goes to stderr, so it
+    can never contaminate the check.  stderr is inherited and streams live.
+    """
+    proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
+                            text=True, bufsize=1)
+    chunks = []
+    for line in proc.stdout:
+        sys.stdout.write(line)
+        sys.stdout.flush()
+        chunks.append(line)
+    rc = proc.wait()
+    return rc, "".join(chunks)
+
+
 def main(argv):
     args = [a for a in argv if not a.startswith("--")]
     flags = [a for a in argv if a.startswith("--")]
-    unknown = [f for f in flags if f not in KNOWN and not f.startswith("--wall=") and not f.startswith("--rss-cap-mb=")]
+    unknown = [f for f in flags
+               if f not in KNOWN
+               and not f.startswith("--wall=")
+               and not f.startswith("--rss-cap-mb=")
+               and not f.startswith("--test-root=")
+               and not f.startswith("--test-worker=")]
     if len(args) != 1 or unknown:
         sys.exit((f"subagent: unknown flag(s) {' '.join(unknown)}\n" if unknown else "")
                  + __doc__)
@@ -50,20 +90,38 @@ def main(argv):
         (f.split("=")[1] for f in flags if f.startswith("--wall=")), "1800")
     rss_mb = next(
         (f.split("=")[1] for f in flags if f.startswith("--rss-cap-mb=")), None)
+    test_root = next(
+        (f.split("=", 1)[1] for f in flags if f.startswith("--test-root=")), None)
+    test_worker = next(
+        (f.split("=", 1)[1] for f in flags if f.startswith("--test-worker=")), None)
+    root = os.path.abspath(test_root) if test_root else ROOT
+
+    # T411: one random echo token per dispatch; the worker's captured stdout
+    # must contain it, or the dispatch fails verification (didn't-read case).
+    nonce = dispatch_verify.generate_nonce()
 
     task_id = None
+    deliverables = []
     if re.fullmatch(r"T\d+", target):
-        hits = glob.glob(os.path.join(ROOT, "untracked", f"{target}-*.md"))
+        hits = glob.glob(os.path.join(root, "untracked", f"{target}-*.md"))
         if len(hits) != 1:
             sys.exit(f"subagent: expected one bundle for {target}, found {len(hits)}")
-        bundle = os.path.relpath(hits[0], ROOT)
+        bundle = os.path.relpath(hits[0], root)
         task_id = target
         slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
+        # T317 item 5 / T411: the declared deliverables are part of the
+        # closing contract — name them in the prompt and verify them after.
+        deliverables = dispatch_verify.parse_deliverables(
+            hits[0], f"findings/{target}-{slug}.json")
+        dl_lines = "\n".join(f"  - {d}" for d in deliverables)
         prompt = (f"Follow {bundle}\n\n"
                   f"FIRST: bin/managent claim {target} --agent {model}\n"
                   f"You are a worker. The brief carries everything.\n\n"
+                  f"{dispatch_verify.nonce_prompt_lines(nonce)}"
                   f"WHEN DONE, before any other output:\n"
-                  f"  1. Write findings/{target}-{slug}.json per findings/README.md\n"
+                  f"  Deliverables declared by the bundle (managent done checks every one):\n"
+                  f"{dl_lines}\n"
+                  f"  1. Write these files per findings/README.md\n"
                   f"  2. bin/managent done {target} --agent {model} --status <pass|pass-with-findings|"
                   f"fail-found|blocked|abandoned> --note <one line>\n\n"
                   f"INBOX LOOP (T352):\n"
@@ -78,23 +136,34 @@ def main(argv):
                   f"  of `kill` writes your context dump and exits.  An empty inbox is a\n"
                   f"  no-op (do not be alarmed).  The brief carries everything else.\n")
     elif os.path.isfile(target):
-        prompt = f"Follow {os.path.relpath(os.path.abspath(target), ROOT)}\n"
+        prompt = f"Follow {os.path.relpath(os.path.abspath(target), root)}\n"
+        prompt += "\n" + dispatch_verify.nonce_prompt_lines(nonce)
+        # A bare dispatch may still carry a bundle meta header with
+        # deliverables=; parse it so the side effects can be verified.
+        deliverables = dispatch_verify.parse_deliverables(
+            os.path.abspath(target))
     else:
         sys.exit(f"subagent: no such task or file: {target}")
 
     # Credential by environment, never argv: tools/runner echoes argv and the
     # heartbeat writer records it, so --api-key would leak the key into logs and
     # evidence on every dispatch.
-    if not os.environ.get("DEEPSEEK_API_KEY"):
+    if not test_worker and not os.environ.get("DEEPSEEK_API_KEY"):
         sys.exit("subagent: DEEPSEEK_API_KEY is not set")
     env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
     if task_id:
         env["MANAGENT_TASK_ID"] = task_id
 
-    cmd = ["tools/runner", "--max-wall", wall]
-    if rss_mb:
-        cmd.extend(["--rss-cap-mb", rss_mb])
-    cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
+    if test_worker:
+        # Test-only path (T411): run the stub worker directly — no runner, no
+        # API call — so the regression can exercise the full dispatch+verify
+        # path with a seeded worker.
+        cmd = [test_worker, prompt]
+    else:
+        cmd = ["tools/runner", "--max-wall", wall]
+        if rss_mb:
+            cmd.extend(["--rss-cap-mb", rss_mb])
+        cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
     if "--dry-run" in flags:
         print(f"{DEPTH_VAR}={WORKER_DEPTH}")
         if task_id:
@@ -102,7 +171,22 @@ def main(argv):
             print(f"MANAGENT_TASK_ID={task_id}")
         print(" ".join(repr(c) if "\n" in c else c for c in cmd))
         return 0
-    return subprocess.call(cmd, cwd=ROOT, env=env)
+
+    rc, stdout = run_worker(cmd, root, env)
+
+    # ── T411: verify the WORK, never the reply ────────────────────────────
+    t0 = time.monotonic()
+    exit_code, summary, details, perf = dispatch_verify.verify_dispatch(
+        root=root, task_id=task_id, model=model, nonce=nonce, stdout=stdout,
+        rc=rc, store_env=os.environ.get("MANAGENT_STORE"),
+        deliverables=deliverables)
+    verify_ms = (time.monotonic() - t0) * 1000.0
+    print(f"[verify] {summary}", file=sys.stderr)
+    for line in details:
+        print(f"[verify]   {line}", file=sys.stderr)
+    print(f"[verify] verification phase took {verify_ms:.0f} ms", file=sys.stderr)
+    dispatch_verify.record_perf(root, perf)
+    return exit_code
 
 
 if __name__ == "__main__":
