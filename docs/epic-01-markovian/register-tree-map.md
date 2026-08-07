@@ -39,7 +39,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 - **Measurements map to the node they evidence** (e.g. `4x4.M2` 19 sweeps → Z-CONVERGE-FINITE,
   `2x2.BASICKO-TIE` root value → Z-TABLE), not to a node of their own.
 
-## 1. The mapping — 213 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
+## 1. The mapping — 221 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
 
 | ID | tree node | note |
 |---|---|---|
@@ -256,6 +256,14 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `3x3.BRACKET-NOT-KO` | Z-TABLE | T385 corr3x3: 93.8% of 3x3 bracketed entries ko-free anywhere; SCC membership and ko-reachability fail to predict the bracket — evidences bracket semantics (E3), mirror of 4x4.BRACKET-NOT-KO (T396) |
 | `4x4.SELF-PLAY-BRACKET-CONSISTENT` | RETIRED | family player (§2.3): T389 self-play trajectory consistency — the engine honours its own brackets at engine-chosen plies (0/1027, 0/1191, 0/1161); engine-play measurement, serves L3, not the theorem (T396) |
 | `GLOBAL.PSK-GRAFT-COHERENT` | Z-TABLE | T386/ADR-0021: PSK graft coherent — diverges from the fixpoint only at L<H, never at L==H, never outside [L,H]; evidences bracket semantics and the cycle-resolution route (T396) |
+| `GLOBAL.LIFE-CERTIFIES` | Z-TABLE | T393: alive chains never co-occur with a non-T bracket — unconditional life certifies L==H in the stored tables; evidences bracket/certification semantics (T404) |
+| `GLOBAL.TWO-LIFE-ONSET` | Z-R-SCORE | T393: coexisting unconditional life begins at 4x3 (2/321,689), 324 at 4x4 — Benson-alive census completing the T382 zero-alive series (T404) |
+| `3x3.LIFE-NO-CENTRE` | Z-R-SCORE | T393: unconditional life at 3x3 exists without a centre stone (206/1,766, diamond) — Benson aliveness at 3x3, sibling of 3x3.S2-impl (T404) |
+| `GLOBAL.CAPTURE-BUDGET-DAG` | Z-CONVERGE-FINITE | T387: capture budget makes the move graph acyclic (0 back-edges at 3x3/4x3 B=8, control fires) — the budgeted game's value iteration is finite; says nothing about Bellman consistency (T404) |
+| `GLOBAL.ROOT-SINGLE-IFF-FORCIBLE-LIFE` | Z-TABLE | T394: root single-valued iff canForceLife (5/5 sizes) — evidences when the bracket collapses at the root; 4x3 root [4,12] not independently audited (T404) |
+| `GLOBAL.DRAWLOOP-CONFINED` | Z-TABLE | T394: draw-by-loop confined to the neither-can-force class (exact ≤3x3; 98.95% at 4x4, witnessed exceptions) — bracket/draw structure; converse NOT a draw certificate (T404) |
+| `GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE` | Z-TABLE | T394: neither-can-force class is mostly decisive (85.3% at 4x4) — decisive-vs-draw structure, refutes draw-pruning framing (T404) |
+| `CODE.PROPERTY-OWNERSHIP` | Z-AUDIT | T395: one production implementation per property, differential per surviving pair, seeded-defect controls red-then-green — instrument discipline (T404) |
 
 ## 2. Adopted retirements — 132 rows moved to archives/register/, by family
 
@@ -462,8 +470,8 @@ foundation fell. Full epitaphs in `archives/register/families/falsified-foundati
 
 | surface | count | produced by |
 |---|---|---|
-| register rows | **207** | `bin/weizigo-claimlint` C0 (`rows parsed: 207`) — live count on every run, after T373's triage adoption (was 339; the sheet's 334 was measured before the 5 T384 absorptions) |
-| mapping rows (this doc §1) | **207** (205 mapped to a node + 2 RETIRED) | claimlint C9 cross-check (row set equality) |
+| register rows | **221** | `bin/weizigo-claimlint` C0 (`rows parsed: 221`) — live count on every run, after T373's triage adoption (was 339) + 10 T384/T396 absorptions + 8 T404 absorptions |
+| mapping rows (this doc §1) | **221** (218 mapped to a node + 3 RETIRED) | claimlint C9 cross-check (row set equality) |
 | moved rows (§2) | **132** (122 RETIRED + 10 BOGUS) | same run + the triage sheet's classification |
 | unmapped without disposition | **0** | C9a (empty/invalid `tree` cell fails the run) |
 

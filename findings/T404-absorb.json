@@ -1,0 +1,98 @@
+{
+  "task_id": "T404",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T404",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "GLOBAL.LIFE-CERTIFIES",
+      "legacy": "—",
+      "goban": "3x3/4x4",
+      "claim": "Wherever unconditional (Benson 1976) life sits on the goban, the stored WZO2 table certifies a single score (L==H): no entry containing a Benson-alive chain falls in ANY bracketed class, none straddles zero (Z-and-either-alive = 0 at 3x3 and 4x4, fresh-start slices included); converse slice 0 of 895,216 (4x4) / 1,248 (3x3) pin_0 entries contain an alive chain. SCOPE: measured property of stored tables, not a theorem; ko-sensitive columns still distrusted pending Track A but the force is categorical. INDEPENDENTLY CONFIRMED at 3x3 by claude-opus-5/orcha (separate Benson implementation, all 13 figures). CAVEAT (T398): the doc's non-triviality argument is FALSE and withdrawn — Benson life bounds AREA not score; 90 entries at 3x3 hold a Black alive chain at value <= 0, lowest L==H==-2.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T393-two-life-census.json; docs/research/two-life-census-2026-08-06.md",
+      "depends_on": "e:GLOBAL.S2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.TWO-LIFE-ONSET",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Coexisting unconditional life (both colours holding a Benson-alive chain) begins at 4x3: 0/57 (2x2), 0/489 (3x2), 0/12,675 (3x3), 2/321,689 (4x3, colour-inverse pair), 324/24,318,165 (4x4, 0.0013%). Completes the T382 zero-alive series. SCOPE: 3x3/4x4 from WZO2, 4x3 from WZO1 (labelled as such); 4x4 count identical (324) on the WZO1 checkpoint and the WZO2 table; 3x3 row independently confirmed (0/12,675) by claude-opus-5/orcha.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T393-two-life-census.json; docs/research/two-life-census-2026-08-06.md; docs/research/goban-pathology-2026-08-05.md:74-83",
+      "depends_on": "e:GLOBAL.S2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "3x3.LIFE-NO-CENTRE",
+      "legacy": "—",
+      "goban": "3x3",
+      "claim": "Unconditional life at 3x3 exists WITHOUT a centre stone — the operator's shape claim is refuted: 206 of 1,766 alive positions have the alive colour holding no centre stone (182 centre empty, 24 opponent's stone there); 38 shapes mod rotation/reflection, 19 mod colour-inversion; the diamond (cells 1,3,5,7) is alive with an empty centre. INDEPENDENTLY CONFIRMED by claude-opus-5/orcha. This is the operator's loss and cuts toward 'territory does not require the centre at 3x3'.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T393-two-life-census.json; docs/research/two-life-census-2026-08-06.md",
+      "depends_on": "e:GLOBAL.S2, e:3x3.S2-impl",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.CAPTURE-BUDGET-DAG",
+      "legacy": "—",
+      "goban": "3x3/4x3",
+      "claim": "Bounding total captures makes the move graph acyclic — measured, with the control firing: 135,494 back edges in the unbudgeted 3x3 graph (seeded control), 0 back edges at 3x3 over 423,922 states, 0 at 4x3 over 10,636,928 states (B=8). A DAG has a unique minimax value, so the bracket cannot exist under the budget. EXPLICIT NON-CLAIM: this says NOTHING about Bellman consistency under budget-from-here — that reading NEVER RAN (src/t387_budget.zig:717-719 is an infinite loop, u6 bitpos against a < 64 guard; 2,554/2,554 samples after 14h02m/836 CPU-min). T397 owns the fix and that reading. PROVENANCE CAVEAT: readings salvaged from uncommitted /tmp by the Orchestrator after the row failed; single-instrument self-report, hence MEASUREMENT.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T387-capture-budget-dag.json; src/t387_budget.zig",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.ROOT-SINGLE-IFF-FORCIBLE-LIFE",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "The empty-board root is single-valued (L==H) iff some player can force a Benson-alive chain — holds at all five solved sizes: 2x2 [-4,+4] not single + neither; 3x2 [-6,+6] not single + neither; 3x3 [+9] single + Black CAN force; 4x3 [4,12] not single + neither; 4x4 [1,16] not single + neither. Forcible life buys rule-independence, NOT victory — the operator's territory-denial phrasing is FALSIFIED at 4x3/4x4 (decisive roots, no life-forcing). SCOPE: measured, single instrument (src/t394_force_life.zig); the 4x3 root [4,12] is MEASURED and NOT independently audited — do not cite as solved until a second seat verifies it.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T394-force-life.json; docs/research/force-life-classifier-2026-08-06.md",
+      "depends_on": "e:GLOBAL.S2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.DRAWLOOP-CONFINED",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Draw-by-loop states (L<=0<=H) are CONFINED to the neither-can-force-life class: 0 exceptions at 2x2 (92), 3x2 (298), 3x3 (1,248); 32 at 4x3 (99.88% hold); 9,376 at 4x4 of 895,216 (98.95% hold), each with a witness record. EXPLICIT NON-CLAIM — the converse is FALSE and must never be inferred: canForceLife=false-for-both is NOT a draw certificate (its error rate is governed by GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE, 85.3% decisive at 4x4). Confinement is the sound direction; certification is not.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T394-force-life.json; docs/research/force-life-classifier-2026-08-06.md",
+      "depends_on": "e:GLOBAL.S2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Among states where NEITHER player can force unconditional life, the large majority are DECISIVE, not drawn: 12.9% (2x2), 39.8% (3x2), 57.8% (3x3), 70.7% (4x3), 85.3% (4x4, 22,885,430 states: 19,518,338 decisive vs 885,840 draw-by-loop). REFUTES the draw-pruning-oracle framing: a search that stopped valuing wherever neither can force life would abandon 19.5M decisively-valued 4x4 states. Cuts AGAINST the operator's territory-denial hypothesis.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T394-force-life.json; docs/research/force-life-classifier-2026-08-06.md §T3",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.PROPERTY-OWNERSHIP",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "One production implementation per verified property, with a differential per surviving pair and a seeded-defect control proving each differential fires. T395 delivered the ownership table (docs/infra/property-ownership.md), two new differentials (src/i4_differential.zig at 3x3 WZO2 over 49,428 entries, non-vacuous n_set=5,408; src/i5_differential.zig extended), and four seeded-defect controls shown RED-THEN-GREEN against the exact historical reading. Demotion proposals (i4, i5, i7) remain PENDING an Orchestrator ruling — proposals, not executed demotions.",
+      "status": "MEASUREMENT",
+      "evidence": "findings/T395-consolidation.json; docs/infra/property-ownership.md; src/i4_differential.zig; src/i5_differential.zig",
+      "depends_on": "e:CODE.I5-INSTRUMENT-ADJUDICATION",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "T404 (absorb the 2026-08-06/07 backlog) — absorption complete. Register: +8 rows, all MEASUREMENT, none promoted past it (single-instrument self-reports; the brief's verify-then-promote bar). CLAIMS.md + register-tree-map.md in lockstep: 213/213 -> 221/221, C9=0. The four source findings files (T393, T387-dag, T394, T395) were immutable — content untouched. FINDING 1 (broken safety net): STANDING-ABSORB is stuck in `done` and cannot be re-dispatched; its trigger (C7 unabsorbed >= 5) fired into a CLOSED row, so the 8 unabsorbed proposals had no standing mechanism to absorb them — this explicit row was required. The standing task must be reopened or the trigger re-homed before it can catch the next backlog. FINDING 2 (tool staleness): bin/weizigo-absorb parses the register as EMPTY — its shared parser src/claims_register.zig:312 still expects the pre-`tree` 10-column format (c.len != 12) while the register gained the 11th `tree` column (T305) and claimlint's own parser (claimlint.zig:808) expects 13 cells. The binary's directives are unusable (insert_after falls back to the nonexistent GLOBAL.ADR0001-PROJECT). Absorption done by hand in the 11-column format; the shared parser needs the same 13-cell update claimlint got. CONTROLS: null — claimlint before (C7=8, rows 213, C1a 0, C1b 0, C2 11, C3 48, C4 45/2, C5 0, C6 0, C8 0, C9 0, calibration PASS) vs after (C7=0, rows 221, everything else identical; edges 230->237 = +7 e: from the new rows); seeded — CODE.PROPERTY-OWNERSHIP deliberately left out: C7 reported exactly 1 unabsorbed (NO SUCH ID), then restored to 0. Floors unmoved: C3=48, C2=11, C9=0; tools/hooks/claimlint-floor.json untouched. New evidence docs C2b-checked: zero new dead links (the three .md docs cited for the first time resolve cleanly). Landmark: advances L4 (the ledger is clean) — the day's findings now have register homes with denominators, scope flags and explicit non-claims in the rows; the stuck-standing-task hazard is reported, not silently absorbed around."
+}
