@@ -1,0 +1,7 @@
+{
+  "_redirect": "findings/T402-capture-budget-pluggable.json",
+  "_note": "This file exists only to satisfy the task's declared deliverables list. The real findings are at findings/T402-capture-budget-pluggable.json. The slug was changed because 'pluggable-resolvers' was the brief's placeholder; the actual finding is the capture-budget quarantine.",
+  "task_id": "T402",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-pro"
+}
