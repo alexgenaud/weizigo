@@ -31,9 +31,15 @@ checks that historically sufficed for promotion and still produced the wrong ans
 > wrong question is still the wrong answer.
 
 The capture budget defines a different game — finite, well-formed, internally
-consistent, and provably wrong as an approximation of ours. The worker's own
-formulation (T387) is the one to carry forward: **"the budget relocates the bracket's
-ambiguity into a budget-exhaustion race instead of resolving it."**
+consistent, and provably wrong as an approximation of ours. The MIGOS `+2` epitaph
+is the same class of precedent at a different scale: MIGOS II's 4×4 root is `+2`
+under basic-ko rules, while this project's fresh-start fixpoint is `+1` under
+positional superko (PSK). The values differ because the rulesets differ — declaring
+a basic-ko value as a PSK value is "a different game, declared as one"
+(T274, T290). The capture budget repeats the pattern: finite, internally consistent,
+and a different game from the one whose bracket it claims to resolve. The worker's
+own formulation (T387) is the one to carry forward: **"the budget relocates the
+bracket's ambiguity into a budget-exhaustion race instead of resolving it."**
 
 ## Decision
 

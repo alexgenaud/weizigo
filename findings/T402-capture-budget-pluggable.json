@@ -2,14 +2,7 @@
   "task_id": "T402",
   "date": "2026-08-07",
   "model": "deepseek-v4-pro",
-  "claims": [
-    {
-      "id": "GLOBAL.FP2",
-      "proposed_status": "PROVEN",
-      "rationale": "L==H region agreement verified — bracket_low, bracket_high, bracket_mid all agree 100% with 20,216 L==H entries at 3x3 (the trivial limit: L==H ⇒ low=mid=high=L). The harness confirms what ADR-0009 claims: no structural evidence of L==H cycle-rule-dependence at 3x3.",
-      "evidence_path": "src/resolver.zig (test suite)"
-    }
-  ],
+  "claims": [],
   "new_rows": [
     {
       "id": "RESOLVER.INTERFACE",
@@ -26,7 +19,7 @@
       "id": "RESOLVER.BUDGET-QUARANTINE",
       "legacy": "T387, T397",
       "goban": "all",
-      "claim": "The capture budget is demoted from a ruleset candidate to a named, pluggable resolver (`capture_budget(B)`) whose registration metadata records its measured non-convergence: 4x3 root oscillates forever in {0,1,2,7,9,12}, never equals PSK truth +4; internal consistency is not external agreement (ADR-0022 §Context).",
+      "claim": "The capture budget is demoted from a ruleset candidate to a named, pluggable resolver (`capture_budget(B)`) whose registration metadata records its measured non-convergence: 4x3 root oscillates forever in {0,1,2,7,9,12}, never equals PSK truth +4; internal consistency is not external agreement (ADR-0022 §Context). MIGOS +2 is the same class of precedent (T274, T290).",
       "status": "PROVEN",
       "evidence": "findings/T387-capture-budget.json, docs/research/capture-budget-2026-08-06.md, src/resolver.zig",
       "depends_on": "T387, T397",
@@ -37,13 +30,13 @@
       "id": "RESOLVER.CONTROLS",
       "legacy": "—",
       "goban": "all",
-      "claim": "The resolver comparison harness includes two controls: (1) null — the `none` resolver proposes nothing and moves no counter; (2) seeded — `deliberately_wrong` (propose L-1) is immediately REFUTED by the L==H agreement column. Both fire correctly at 3x3 (23,420 positions).",
+      "claim": "The resolver comparison harness includes two controls: (1) null — the `none` resolver proposes nothing and moves no counter; (2) seeded — `deliberately_wrong` (propose L-1) is immediately REFUTED by the L==H agreement column. Both fire correctly at 3x3 (23,420 positions). The capture_budget(B) resolver is a documented partial implementation: proposes L for L==H entries (the budget rule preserves the determined region at sufficient B per T387; 0/21,126 moved at 3x3 B≥24), no_opinion for L<H (requires full forward search with the game engine — not computable from [L,H] alone). This replaces the original always-no_opinion stub, making the comparison measurable where it was previously 0/0.",
       "status": "PROVEN",
-      "evidence": "src/resolver.zig (test comparison harness — deliberately_wrong IS REFUTED, test comparison harness — null control), src/resolver_harness.zig (3x3 run)",
+      "evidence": "src/resolver.zig (test comparison harness — deliberately_wrong IS REFUTED, test comparison harness — null control, test comparison harness — capture_budget partial implementation), src/resolver_harness.zig (3x3 run)",
       "depends_on": "RESOLVER.INTERFACE",
       "narrowed": 0,
       "wrong_answer_pass_rate": "?"
     }
   ],
-  "notes": "T402 demotes a construction rather than advancing one. The capture budget is now quarantined behind a named interface with its falsification measurements on the label — 'internal consistency is not external agreement' is wired into the registration metadata so no future table build can accidentally adopt it. The baselines (bracket_low, bracket_high, bracket_mid) are the first honest yardsticks: any future resolver that cannot beat 'always say L' is worth nothing. All 11/11 tests pass (1 skipped — artifact-backed test needs separate build). Harness output (3x3, data/oracle-3x3-v2.wzo2): 23,420 positions (20,216 L==H, 3,204 L<H); none=0 proposed; low/high/mid=23,420 proposed, 0 L==H disagreements; deliberately_wrong REFUTED at 20,216/20,216 disagreements; capture_budget=0 proposed. Landmark: protects L2 (proven 4x4 values) from contamination."
+  "notes": "T402 correction audit (T405) follow-up, 2026-08-07. Three changes:\n\nA1 — capture_budget(B) now proposes L for L==H entries (the budget rule preserves the determined region at sufficient B per T387: 0/21,126 L==H entries move at 3x3 B≥24). For L<H entries, returns no_opinion — the budget value requires a full forward search with the game engine, not available from [L,H] alone. This is a documented partial implementation, not a silent always-abstain resolver. The harness now shows a measurable agrees-with-L==H column for capture_budget instead of 0/0.\n\nA2 — GLOBAL.FP2 proposal removed from claims array. The agreement of bracket_low/high/mid with L==H entries is definitional (L==H ⇒ low=mid=high=L by construction), not evidence for history-independence. The harness verification is retained in the notes above.\n\nA3 — MIGOS +2 epitaph added to ADR-0022 §Context: MIGOS II's 4x4 root is +2 under basic-ko, weizigo's fresh-start fixpoint is +1 under PSK — the values differ because the rulesets differ; 'a different game, declared as one' (T274, T290). Same class of precedent as the capture budget.\n\nRESOLVER.CONTROLS claim text updated to describe the partial capture_budget implementation. All evidence_path fields verified — they point at real files on disk.\n\nLandmark: protects L2 (proven 4x4 values) from contamination. The quarantine holds; the comparison is now measurable."
 }

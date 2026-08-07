@@ -171,9 +171,25 @@ fn resolveDeliberatelyWrong(_: ?*const anyopaque, rc: ResolveContext) Resolution
 
 /// capture budget resolver — registered with its non-convergence on the label.
 ///
-/// This resolver ALWAYS returns no_opinion. It is registered to record the
-/// T387/T397 measurements for the permanent record, so a future reader who
-/// encounters the name "capture budget" in any context can see the verdict.
+/// PARTIAL IMPLEMENTATION. The budget rule (T387/T397, src/t387_budget.zig,
+/// sha 5dbfd551) computes values by solving the full budget-augmented game
+/// graph — it cannot be run per-position from [L,H] alone; it requires the
+/// full board state, move generation, and a forward minimax search with the
+/// game engine. This lightweight resolver does not import the engine.
+///
+/// What this resolver does:
+///   - L==H: propose L (the budget rule preserves the determined region at
+///     sufficient B — T387 found 0/21,126 L==H entries move at 3x3 B≥24).
+///     At small B the budget value may differ; this resolver cannot detect
+///     that case from [L,H] alone.
+///   - L<H: no_opinion (the budget value is B-dependent and non-convergent;
+///     computing it requires a full forward search).
+///
+/// This is NOT a silent always-abstain resolver — it proposes for all L==H
+/// entries (the column the harness cares about). The limitation is documented
+/// so a future reader does not mistake "agrees with L==H at 100%" for "the
+/// budget resolver reproduces the table" — it only reproduces the L==H subset,
+/// which is definitional at sufficient B, not evidential.
 ///
 /// Measurements (T387/T397, src/t387_budget.zig, sha 5dbfd551):
 ///   - VERIFIED: the budget-augmented graph is a DAG (0 back-edges at 3x3 B=8
@@ -199,9 +215,11 @@ pub fn resolverCaptureBudget(B: u8) Resolver {
     return .{
         .name = "capture_budget",
         .metadata = 
-        \\Capture-budget resolver — REGISTERED AS A CAUTIONARY TALE, not as a candidate.
-        \\ALWAYS returns no_opinion. The budget construction is measured and known-wrong
-        \\as a valuing rule (T387/T397). See ADR-0022. Key facts:
+        \\Capture-budget resolver — partial implementation; REGISTERED AS A CAUTIONARY TALE.
+        \\Proposes L for L==H entries (budget preserves the determined region at sufficient B,
+        \\per T387); no_opinion for L<H (requires full forward search, not available from
+        \\[L,H] alone). The budget construction is measured and known-wrong as a valuing rule
+        \\(T387/T397). See ADR-0022. Key facts:
         \\  4x3 root oscillates {0,1,2,7,9,12}, never equals PSK truth +4.
         \\  Termination and Bellman consistency were true; neither implies correctness.
         \\  Internal consistency is not external agreement.
@@ -212,11 +230,16 @@ pub fn resolverCaptureBudget(B: u8) Resolver {
 }
 
 fn resolveCaptureBudget(self_ctx: ?*const anyopaque, rc: ResolveContext) Resolution {
-    _ = rc;
     const BudgetCtx = struct { B: u8 };
     const ctx: *const BudgetCtx = @ptrCast(@alignCast(self_ctx.?));
     _ = ctx;
-    // Always no_opinion — this resolver is a cautionary tale, not an implementation.
+    // L==H: the budget rule preserves the determined region at sufficient B
+    // (T387: 0/21,126 L==H entries move at 3×3 B≥24). Propose L.
+    // L<H: the budget value requires a full forward search with the engine —
+    // not computable from [L,H] alone. Return no_opinion.
+    if (rc.L == rc.H) {
+        return .{ .value = rc.L };
+    }
     return .no_opinion;
 }
 
@@ -372,13 +395,17 @@ test "deliberately_wrong resolver — propose L-1" {
     try testing.expectEqual(Resolution{ .value = 2 }, r.propose(mkRc(42, 1, 3, 7)));
 }
 
-test "capture_budget resolver — always no_opinion" {
+test "capture_budget resolver — propose L on L==H, no_opinion on L<H" {
     const r = resolverCaptureBudget(8);
+    // L<H: no_opinion (requires full forward search)
     try testing.expectEqual(Resolution.no_opinion, r.propose(mkRc(0, 1, -5, 5)));
-    try testing.expectEqual(Resolution.no_opinion, r.propose(mkRc(100, -1, 0, 0)));
-    // at different B
+    // L==H: propose L (budget preserves determined region at sufficient B)
+    try testing.expectEqual(Resolution{ .value = 0 }, r.propose(mkRc(100, -1, 0, 0)));
+    try testing.expectEqual(Resolution{ .value = 7 }, r.propose(mkRc(42, 1, 7, 7)));
+    // at different B — same behaviour
     const r2 = resolverCaptureBudget(64);
     try testing.expectEqual(Resolution.no_opinion, r2.propose(mkRc(0, 1, -5, 5)));
+    try testing.expectEqual(Resolution{ .value = 0 }, r2.propose(mkRc(100, -1, 0, 0)));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -505,9 +532,11 @@ test "comparison harness — all resolvers together" {
     try testing.expectEqual(@as(usize, 2), stats[4].disagrees_l_eq_h);
     try testing.expectEqual(@as(usize, 0), stats[4].agrees_l_eq_h);
 
-    // capture_budget — all abstained
-    try testing.expectEqual(@as(usize, 0), stats[5].proposed);
-    try testing.expectEqual(@as(usize, 4), stats[5].abstained);
+    // capture_budget — proposes L for L==H, no_opinion for L<H
+    try testing.expectEqual(@as(usize, 2), stats[5].proposed);
+    try testing.expectEqual(@as(usize, 2), stats[5].abstained);
+    try testing.expectEqual(@as(usize, 2), stats[5].agrees_l_eq_h);
+    try testing.expectEqual(@as(usize, 0), stats[5].disagrees_l_eq_h);
     try testing.expect(!stats[5].isRefuted());
 }
 

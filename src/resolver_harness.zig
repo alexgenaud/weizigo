@@ -223,12 +223,20 @@ fn runHarness(
         p("  seeded control FAIL: deliberately_wrong NOT refuted — harness may be insensitive\n", .{});
     }
 
-    // Capture budget: must not accidentally propose
+    // Capture budget: partial implementation — proposes L for L==H, no_opinion for L<H.
+    // The agreement column is the measurable comparison the row exists to record.
     const cb_st = stats[5];
-    if (cb_st.proposed == 0) {
-        p("  capture_budget safeguard PASS: capture_budget(8) proposed 0/{d} (always no_opinion)\n", .{positions.len});
+    p("  capture_budget(8): proposed {d}/{d}, abstained {d}/{d}, L==H agree {d}/{d}", .{
+        cb_st.proposed, positions.len,
+        cb_st.abstained, positions.len,
+        cb_st.agrees_l_eq_h, cb_st.agrees_l_eq_h + cb_st.disagrees_l_eq_h,
+    });
+    if (cb_st.disagrees_l_eq_h > 0) {
+        p(" — REFUTED ({d} disagreements)\n", .{cb_st.disagrees_l_eq_h});
+    } else if (cb_st.agrees_l_eq_h + cb_st.disagrees_l_eq_h == 0) {
+        p(" (no L==H entries in sample)\n", .{});
     } else {
-        p("  capture_budget safeguard FAIL: capture_budget(8) proposed {d} values\n", .{cb_st.proposed});
+        p("\n", .{});
     }
 
     p("\nLandmark: protects L2 (proven 4x4 values) from contamination.\n", .{});
