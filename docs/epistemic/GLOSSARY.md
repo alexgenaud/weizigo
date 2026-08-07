@@ -38,7 +38,7 @@ software engineers, and LLM agents. Organized by domain.
 - **basic ko / simple ko** — ko only (the one-ply ban above), with NO broader
   superko restriction. Japan/Korea pro rules; long cycles (triple ko, eternal
   life) lead to *no result* and the game is replayed. The leading tractable
-  *generation* rule candidate (see `research/ruleset-options.md`).
+  *generation* rule candidate (see `../research/ruleset-options.md`).
 - **PSK — positional superko** — no whole-goban *position* may ever repeat in a
   game. AGA/New Zealand/Tromp-Taylor/computer rule. This project's historical
   solving rule (`superko.zig`); **abandoned as the generation target** because
@@ -139,7 +139,7 @@ software engineers, and LLM agents. Organized by domain.
 - **GHI — Graph History Interaction** — (standard term; Kishimoto & Müller,
   and earlier) the problem that a position's score can depend on the *history*
   used to reach it (because of superko), so a plain position→score cache is
-  unsafe. The central villain of this project. See `research/ghi-and-superko.md`.
+  unsafe. The central villain of this project. See `../research/ghi-and-superko.md`.
 - **fixpoint iteration** — repeat a relaxation step until scores stop changing.
   Used for retrograde here because captures create back-edges (no clean
   topological order). Converges in 2/6/12/19 sweeps at 2x2/3x2/3x3/4x4.

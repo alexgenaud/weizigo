@@ -48,6 +48,21 @@ self-services and how your work is attributed to you in the performance ledger.
 If you are not running under the Orchestrator (e.g. an ad-hoc experiment
 from a console), claim via `managent next` to take the first eligible task.
 
+## Before you work — export your task identity (T370, 2026-08-06)
+
+**Right after `managent claim <id>`, run this in your console:**
+
+```sh
+export MANAGENT_TASK_ID=<id>
+```
+
+(claim prints the exact line). Every `tools/runner` invocation then inherits
+it and heartbeats land under your row, so `managent liveness` reads you as
+alive and `managent tell <id> pause|kill` can reach a running compute. A run
+without identity warns loudly and is invisible to both; do not run that way
+when you can avoid it. This step is too load-bearing to bury — do it before
+any compute, not after.
+
 ## The inbox loop (T352)
 
 The human used to relay messages between consoles by hand — two consoles
@@ -119,6 +134,16 @@ files without reporting them, so a schema slip does not fail loudly — it delet
 your finding. Your brief lists the findings file in `deliverables=`, so
 `managent done` will refuse to close without it.
 
+## Verification hygiene — scratch paths, never deliverable paths
+
+**A verification run must write to a scratch path, never to a committed
+deliverable path.** When you verify a deliverable by running its instrument,
+pass an explicit output path under `/tmp/weizigo/` — the instrument's default
+output path may be the committed deliverable itself. Sprint 2026-08-07
+documents the near-miss: a control run without `--json` overwrote the
+committed `findings/T401-bracket-tournament-4x4.json`. Verify against a copy;
+write the result beside it in `/tmp/weizigo/`, never into the deliverable.
+
 ## Principles
 
 **Scope.** Own only the paths your brief lists. If your task is MUTATION, declare
@@ -172,12 +197,11 @@ untracked or dirty deliverable refuses the close, naming the path, and the task 
 `in_progress`. That is deliberate: T272 closed `pass` on 2026-08-02 with every
 deliverable outside git.
 
-**Carry your identity into `tools/runner` runs (T370, 2026-08-06).** The seat's
+**Carry your identity into `tools/runner` runs (T370, 2026-08-06).** See
+§"Before you work" above for the `export MANAGENT_TASK_ID=<id>` step; this
+paragraph records why it matters. The seat's
 liveness and stop path depend on runner runs being attributable to your task.
-Right after `managent claim <id>`, run `export MANAGENT_TASK_ID=<id>` in your
-console (claim prints the exact line) — then every `tools/runner` invocation
-inherits it and heartbeats land under your row, so `managent liveness` reads you
-as alive and `managent tell <id> pause|kill` can reach a running compute. A run
+A run
 without identity warns loudly and is invisible to both; do not run that way when
 you can avoid it.
 

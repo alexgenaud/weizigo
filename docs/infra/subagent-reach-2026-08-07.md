@@ -1,5 +1,18 @@
 # Subagent reach from a DeepSeek parent — measured 2026-08-07 (T408)
 
+> **CORRECTED 2026-08-07 (operator ruling).** This doc's original wording said
+> "If a ceiling exists it sits above 6 and was not hit." That sentence was
+> false and is retracted here. **Ollama imposes a cap at five simultaneous
+> agents.** The 6-concurrent probe below did not observe an effect, but it used
+> trivial warm round-trips (~9 s total) and **could not have detected a
+> transfer-session cap** — absence of an observed effect is not evidence of
+> absence of the cap. The binding operational constraint remains
+> max-two-concurrent per parent. (The measurement record below is unchanged;
+> only the interpretation is corrected. Findings file
+> `findings/T408-subagent-reach.json` is untouched — T408's own wording was
+> careful and accurate; the overstatement was the Orchestrator's, corrected
+> in `docs/infra/managent/tasks.json` amendment 2026-08-07T11:09:40Z.)
+
 **Executor:** deepseek-v4-flash/T409 (sprint console, acting as the DeepSeek parent under test) ·
 **Date:** 2026-08-07 · **Row:** T408 (set G) · **Deliverable:** this doc + `findings/T408-subagent-reach.json`
 
@@ -14,7 +27,9 @@ do the rows' work" is structural, not preference).
 are reachable from a DeepSeek parent via `bin/ollama-subagent`. Round-trip correctness 3/3. Kanban
 interaction (claim/ping/done against a scratch store) works on all three (kimi needed one retry).
 Concurrency through **6 simultaneous workers** completed with zero errors or hangs — the recorded
-"five-agent ceiling" is **not observed** as a tool-level cap. The depth cap is enforced loudly on
+"five-agent ceiling" is **not observed** as a tool-level cap (caveat: the probe ran trivial warm
+round-trips in ~9 s and could not have detected a transfer-session cap — see the correction banner;
+**the cap exists at five**). The depth cap is enforced loudly on
 both guarded wrappers, and the unguarded `ollama launch pi` second hop remains live (depth travels
 by env, verified at 2). **A sprint may delegate to Ollama models**; keep the documented
 max-two-concurrent convention per parent.
@@ -23,9 +38,9 @@ max-two-concurrent convention per parent.
 
 | target (tag) | reachable from DS parent | round-trip correct | can claim/ping/done | safe concurrent count | recommended use |
 |---|---|---|---|---|---|
-| **kimi-k2.7** (`kimi-k2.7-code:cloud`) | YES — exit 0, 5.2 s, reply `+1` | YES (1/1) | YES — but flaky first try (1/2 attempts) | ≥6 observed (pool-wide) | leaf rows, read-heavy; **re-check output on multi-step shell bundles**; expect occasional instruction-following lapse |
-| **glm-5.2** (`glm-5.2:cloud`) | YES — exit 0, 11.1 s, reply `+1` | YES (1/1) | YES (1/1) | ≥6 observed (pool-wide) | leaf rows incl. kanban-interactive ones; cheapest dependable all-rounder |
-| **minimax-m3** (`minimax-m3:cloud`) | YES — exit 0, 124.2 s cold, reply `+1` | YES (1/1) | YES (1/1) | ≥6 observed (pool-wide) | leaf rows; **budget ~2 min cold start** before the 5-min timebox bites; fine once warm (9–74 s) |
+| **kimi-k2.7** (`kimi-k2.7-code:cloud`) | YES — exit 0, 5.2 s, reply `+1` | YES (1/1) | YES — but flaky first try (1/2 attempts) | ≤5 (operator ruling); probe through 6 could not detect a transfer-session cap | leaf rows, read-heavy; **re-check output on multi-step shell bundles**; expect occasional instruction-following lapse |
+| **glm-5.2** (`glm-5.2:cloud`) | YES — exit 0, 11.1 s, reply `+1` | YES (1/1) | YES (1/1) | ≤5 (operator ruling); probe through 6 could not detect a transfer-session cap | leaf rows incl. kanban-interactive ones; cheapest dependable all-rounder |
+| **minimax-m3** (`minimax-m3:cloud`) | YES — exit 0, 124.2 s cold, reply `+1` | YES (1/1) | YES (1/1) | ≤5 (operator ruling); probe through 6 could not detect a transfer-session cap | leaf rows; **budget ~2 min cold start** before the 5-min timebox bites; fine once warm (9–74 s) |
 
 Operational notes, not "works":
 - **Kimi needs the `-code` tag.** `ollama show kimi-k2.7:cloud` → NOT FOUND; `kimi-k2.7-code:cloud`
@@ -92,9 +107,13 @@ Round-trip bundle, mixed fleet. All sessions `exit 0`, reply `+1`.
   No queue error, no refusal, no hang.
 
 The recorded belief of a "five-agent ceiling on the Ollama pool only" was **not observed as a
-tool-level cap through 6**: nothing queued, errored, or hung. If a ceiling exists it sits above 6
-and was not hit; the project's own max-two-concurrent dispatch convention is the binding constraint
-for this sprint regardless. First 5-concurrent attempt is reported honestly: a bash 3.2
+tool-level cap through 6**: nothing queued, errored, or hung. **Corrected 2026-08-07 per operator
+ruling — there IS a five-agent cap.** That probe used trivial warm round-trips (~9 s total) and
+could not have detected a transfer-session cap; absence of an observed effect is not evidence of
+absence of the cap. We may reasonably choose not to work around it while no negative side effect
+appears; we must not claim there is no cap. The project's own max-two-concurrent dispatch
+convention is the binding constraint for this sprint regardless. First 5-concurrent attempt is
+reported honestly: a bash 3.2
 `declare -A` failure silently collapsed all five slots to minimax-m3 (5/5 still completed); the
 mixed run above is the corrected retry.
 

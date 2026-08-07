@@ -85,7 +85,7 @@ file a bug.
 
 ## What are the roles and who does what?
 
-→ `docs/infra/delegation/ROLES.md` — Overseer, Advisor, Theorist, Orchestrator, Auditor, Dabir
+→ `docs/infra/delegation/ROLES.md` — Dabir, Auditor, Orchestrator (the thinking-manager seats; "Overseer", "Advisor", "Theorist" are legacy names from 2026-07-28/29 handovers, not in ROLES.md)
 → `docs/infra/roles/ORCHESTRATOR.md` — Orchestrator-specific protocol
 → `docs/infra/roles/AUDITOR.md` — Auditor-specific protocol
 → `docs/infra/roles/DABIR.md` — Dabir-specific protocol
@@ -221,7 +221,6 @@ at its top stating its status. **Do not rely on these for current truth.**
 | `docs/infra/agents/boss-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATOR.md` |
 | `docs/infra/agents/worker-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATEE.md` |
 | `docs/infra/delegation.md` | RETIRED 2026-07-28 | `docs/infra/dispatch/README.md` |
-| `docs/infra/sprint.md` | RATIFIED rev 4 (d53c2a8); rewritten 200b974 (substance = D-16…D-20) | `docs/infra/dispatch/README.md` |
 | `docs/infra/subagent.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATEE.md` |
 | `docs/research/next-step-consistency-auditor.md` | SUPERSEDED | `docs/research/consistency-audit.md` |
 | `docs/research/oracle-3x3.md` | historical dead-end | `docs/research/retrograde-3x3.md` |

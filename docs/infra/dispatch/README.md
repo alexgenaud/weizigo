@@ -4,6 +4,15 @@
 console should be able to pick one up cold, with no other context than the read
 order below.
 
+> **⚠ ALL EXPERIMENTS BELOW ARE CLOSED — historical record.** The EXP-N briefs
+> document experiments from 2026-07-28 onward; every one is done. They are
+> kept for the record of what was asked and how the dependency graph ran, but
+> they are **not** current dispatchable work. Briefs written inside them may
+> reference retired mechanisms (e.g. `docs/status/CURRENT.md`, retired
+> 2026-08-03 per T286) — treat such instructions as historical.
+> **For current dispatchable work, see `bin/managent status`** (and
+> `untracked/` bundles for in-progress task briefs).
+
 ---
 
 ## Read order for any console (do this first, every time)
@@ -17,7 +26,8 @@ order below.
 3. `docs/epistemic/roadmap-2026-07-28.md` — which Go we are solving and why.
 4. `docs/epistemic/critique-2026-07-28.md` — what is known-wrong. §4 especially.
 5. `docs/epistemic/CLAIMS.md` — the claim graph. Find the IDs your task closes.
-6. Your brief: `docs/infra/dispatch/EXP-N.md`.
+6. Your brief: `docs/infra/dispatch/EXP-N.md` (historical — see the banner above;
+   current work dispatches from `bin/managent status` / `untracked/` bundles).
 
 Do not start work before step 6. Several of these experiments have already been
 run in a different form and **failed**; the briefs say which, and re-running a

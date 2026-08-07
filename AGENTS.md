@@ -12,11 +12,11 @@ retrograde value iteration with two-sided (L/H) certification. Gobans done throu
 Settled — reopening one wastes a session. To overturn one, write an ADR superseding it with evidence; never act against one silently.
 
 - **Positional superko (PSK) is NOT the generation target.** PSK exact-solve is intractable even on the EMPTY
-  2x2 (118M ban-set states). See ADR-0013, `research/ruleset-options.md`. Play-time can still enforce PSK for legality.
+  2x2 (118M ban-set states). See ADR-0013, `docs/research/ruleset-options.md`. Play-time can still enforce PSK for legality.
 - **kill-X% is dead as a ko-sensitive-region cure.** It makes the 4x4 ko-sensitive region WORSE (21.32%
   -> 25.01% as the threshold drops). Remains an optional play rule only.
 - **score-on-cycle is provably as hard as PSK.** Byte-identical state counts (118,475,182 / 116,114,272).
-  No free lunch. See `research/ruleset-options.md`.
+  No free lunch. See `docs/research/ruleset-options.md`.
 - **The committed ko-sensitive values are NOT trustworthy.** `data/oracle-4x4.checkpoint.wzo` (referent
   corrected 2026-07-28: `data/oracle-4x4.wzo` is named in older docs but **does not exist on disk** — two
   instruments confirm, `bin/weizigo-claimlint` and a direct `ls`. The checkpoint is the artifact this

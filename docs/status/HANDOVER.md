@@ -1,7 +1,8 @@
 # Boss handover — 2026-07-27 evening (chainability session)
 
 Tactical, per-session snapshot. Strategy lives in `../epistemic/PROGRESS.md`;
-in-flight task state lives in `CURRENT.md`. This file answers: what just
+in-flight task state lives in `bin/managent resume` (`CURRENT.md` was retired
+2026-08-03, T286). This file answers: what just
 happened, what will bite you, what to do next.
 
 **Historical record.** This file describes the 2026-07-27 chainability
@@ -17,7 +18,8 @@ the 2026-07-29 host-panic-recovery session) is the predecessor.
 1. **`handover-minimax-m3-2026-07-29.md`** — the current handover. The
    2026-07-29 host-panic-recovery session is the unit of recovery.
 2. `../epistemic/PROGRESS.md` — strategic overview (refreshed 2026-07-27).
-3. `CURRENT.md` — live state, uncommitted-work table, next actions by cost.
+3. `bin/managent resume` — live state, uncommitted-work table, next actions
+   by cost (the composed resume surface that replaced `CURRENT.md`, T286).
 4. `../research/ko-sensitive-chainability.md` — **the finding of this session.**
 5. `../../AGENTS.md` — behavior rules and foreclosures.
 6. `../research/corrections-2026-07-27.md` — errata: statements already in the
@@ -25,7 +27,8 @@ the 2026-07-29 host-panic-recovery session) is the predecessor.
    `regressions/README.md`.
 7. `../research/open-hypotheses-2026-07-27.md` — the open-work queue (H1–H5).
    Written by a concurrent agent on 2026-07-27; if it is absent, the same queue
-   is summarised in `CURRENT.md`.
+   was summarised in `CURRENT.md` (retired 2026-08-03; today that surface is
+   `bin/managent resume`).
 
 ## What this session did
 
@@ -66,8 +69,9 @@ user's call; any change to the ko/finisher path is gated on the #2 auditor.
   falsifiable part. Do not "fix" an in-flag violation.
 - **One writer per file.** Four agents shared this tree on 2026-07-27 evening.
   `git status` before editing; `git add` by path, never `-A`; post an intent
-  line in `CURRENT.md` before touching `src/retro.zig` / `oracle.zig` /
-  `rules.zig` / `solve.zig`.
+  line in `CURRENT.md` (retired 2026-08-03; today declare ownership via the
+  kanban `holds=` field, `managent show <id>`) before touching `src/retro.zig` /
+  `oracle.zig` / `rules.zig` / `solve.zig`.
 - **`Session.choose` in `src/gtp.zig` never searches** — it is table lookups
   only. ADR-0013's closing line claiming the GTP player inherits the finisher's
   fix is false; do not rely on it.
@@ -89,7 +93,9 @@ user's call; any change to the ko/finisher path is gated on the #2 auditor.
   tangles), usable for GTP play with UNDEF fallback;
   `data/oracle-4x4.checkpoint.wzo` is what the chainability run measured.
 - Committed ko-sensitive single-number scores remain untrusted (AGENTS.md).
-- Working tree is **dirty** — see the uncommitted table in `CURRENT.md`. Build
+- Working tree is **dirty** — see the uncommitted table in `CURRENT.md`
+  (retired 2026-08-03; that table is historical, not recoverable via
+  `bin/managent resume`). Build
   is clean at `zig build -Doptimize=ReleaseFast`.
 - The 4×4 artifact **and** the GTP player are still positional superko, although
   PSK has been abandoned as the generation rule since 2026-07-24. That gap is
@@ -107,7 +113,8 @@ also still undecided.
 Then, in cost order: commit the chainability work; H2 greedy-vs-random arena
 persona; H4 exhaustive 4×4 + `lo`/`hi` chainability residue; H5 player
 hardening (user's call); H3 mid-game tractability crossover. Detail in
-`CURRENT.md` and `../research/open-hypotheses-2026-07-27.md`.
+`CURRENT.md` (retired 2026-08-03) and
+`../research/open-hypotheses-2026-07-27.md`.
 
 ## Key tools
 
