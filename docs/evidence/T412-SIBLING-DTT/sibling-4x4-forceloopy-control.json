@@ -1,0 +1,16 @@
+{
+  "task_id": "T412", "instrument": "t412_sibling", "size": "4x4",
+  "wzo2_path": "data/oracle-4x4-v2.wzo2", "seed": 42, "seedctl": "force_loopy", "sample": 50000,
+  "sibling": {
+    "n_parents_total": 98616794, "sample": 50000, "n_parents": 50000, "tautology_checks": 50000, "tautology_mismatches": 0, "forced_loop": 50000, "one_of_one": 17996, "all_loopy_k": 32004, "partial_loop": 0, "no_loop_optimal": 0, "no_optimal": 0, "total_optimal_children": 182660, "total_loopy_optimal_children": 182660, "witnesses": [
+      {"colex":2631148,"side":1,"ko":16,"passes":0,"L":16,"H":16,"n_optimal":6,"n_loopy_optimal":6,"board":[1,0,0,1,0,-1,1,-1,0,0,1,-1,0,1,0,0]},
+      {"colex":11345496,"side":1,"ko":16,"passes":1,"L":16,"H":16,"n_optimal":1,"n_loopy_optimal":1,"board":[1,1,1,0,-1,1,-1,0,-1,-1,1,1,0,0,0,0]},
+      {"colex":7390805,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"n_optimal":7,"n_loopy_optimal":7,"board":[-1,0,-1,0,1,0,0,-1,1,-1,0,-1,0,-1,1,0]},
+      {"colex":23519319,"side":-1,"ko":16,"passes":1,"L":-16,"H":-16,"n_optimal":5,"n_loopy_optimal":5,"board":[-1,1,1,0,-1,1,0,-1,0,-1,-1,0,1,-1,0,-1]},
+      {"colex":844175,"side":-1,"ko":16,"passes":0,"L":-16,"H":-1,"n_optimal":2,"n_loopy_optimal":2,"board":[0,0,0,0,-1,1,1,0,1,-1,-1,0,1,0,0,0]},
+      {"colex":35958797,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"n_optimal":3,"n_loopy_optimal":3,"board":[-1,-1,1,1,-1,-1,1,0,1,-1,-1,-1,1,1,0,0]},
+      {"colex":1472462,"side":1,"ko":16,"passes":1,"L":16,"H":16,"n_optimal":1,"n_loopy_optimal":1,"board":[0,0,0,0,1,0,-1,0,1,1,0,0,-1,-1,-1,0]},
+      {"colex":1233719,"side":-1,"ko":16,"passes":0,"L":1,"H":1,"n_optimal":2,"n_loopy_optimal":2,"board":[0,-1,1,1,0,0,0,0,0,-1,1,1,0,0,1,0]}
+    ]
+  }
+}

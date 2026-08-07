@@ -1,0 +1,29 @@
+{
+  "task_id": "T412", "instrument": "t412_predictors", "size": "4x4",
+  "wzo2_path": "data/oracle-4x4-v2.wzo2", "seed": 42, "sample": 200000, "freshstart_total": 48276340, "n_entries": 200000, "n_LH": 8307, "base_rate": 0.0415, "features": [
+    {"name":"stones","f1":0.1048,"precision":0.0634,"recall":0.3024,"tp":2512,"fp":37104,"fn":5795,"tn":154589,"threshold":8,"direction":1},
+    {"name":"stone_parity","f1":0.0798,"precision":0.0415,"recall":1.0000,"tp":8307,"fp":191693,"fn":0,"tn":0,"threshold":0,"direction":0},
+    {"name":"side_stones","f1":0.1063,"precision":0.0585,"recall":0.5787,"tp":4807,"fp":77307,"fn":3500,"tn":114386,"threshold":4,"direction":1},
+    {"name":"opp_stones","f1":0.0861,"precision":0.0453,"recall":0.8580,"tp":7127,"fp":150128,"fn":1180,"tn":41565,"threshold":4,"direction":0},
+    {"name":"n_chains_side","f1":0.0862,"precision":0.0467,"recall":0.5630,"tp":4677,"fp":95494,"fn":3630,"tn":96199,"threshold":3,"direction":0},
+    {"name":"n_chains_opp","f1":0.0861,"precision":0.0466,"recall":0.5647,"tp":4691,"fp":95962,"fn":3616,"tn":95731,"threshold":3,"direction":0},
+    {"name":"min_lib_side","f1":0.0877,"precision":0.0470,"recall":0.6484,"tp":5386,"fp":109190,"fn":2921,"tn":82503,"threshold":1,"direction":1},
+    {"name":"min_lib_opp","f1":0.0873,"precision":0.0479,"recall":0.4871,"tp":4046,"fp":80338,"fn":4261,"tn":111355,"threshold":2,"direction":0},
+    {"name":"total_lib_side","f1":0.0858,"precision":0.0451,"recall":0.8973,"tp":7454,"fp":157989,"fn":853,"tn":33704,"threshold":7,"direction":1},
+    {"name":"total_lib_opp","f1":0.1069,"precision":0.0585,"recall":0.6219,"tp":5166,"fp":83206,"fn":3141,"tn":108487,"threshold":6,"direction":0},
+    {"name":"shared_lib","f1":0.0835,"precision":0.0451,"recall":0.5660,"tp":4702,"fp":99588,"fn":3605,"tn":92105,"threshold":3,"direction":0},
+    {"name":"empty_regions","f1":0.0798,"precision":0.0415,"recall":1.0000,"tp":8307,"fp":191693,"fn":0,"tn":0,"threshold":1,"direction":0},
+    {"name":"max_empty_region","f1":0.0949,"precision":0.0600,"recall":0.2275,"tp":1890,"fp":29625,"fn":6417,"tn":162068,"threshold":6,"direction":0},
+    {"name":"min_empty_region","f1":0.0815,"precision":0.0503,"recall":0.2134,"tp":1773,"fp":33447,"fn":6534,"tn":158246,"threshold":2,"direction":0},
+    {"name":"eye_space_side","f1":0.0875,"precision":0.0462,"recall":0.8067,"tp":6701,"fp":138199,"fn":1606,"tn":53494,"threshold":0,"direction":1},
+    {"name":"eye_space_opp","f1":0.0834,"precision":0.0480,"recall":0.3160,"tp":2625,"fp":52007,"fn":5682,"tn":139686,"threshold":1,"direction":0},
+    {"name":"empty_cells","f1":0.1048,"precision":0.0634,"recall":0.3024,"tp":2512,"fp":37104,"fn":5795,"tn":154589,"threshold":8,"direction":0},
+    {"name":"in_atari_side","f1":0.0877,"precision":0.0470,"recall":0.6484,"tp":5386,"fp":109190,"fn":2921,"tn":82503,"threshold":0,"direction":0},
+    {"name":"in_atari_opp","f1":0.0688,"precision":0.0369,"recall":0.5129,"tp":4261,"fp":111355,"fn":4046,"tn":80338,"threshold":0,"direction":0},
+    {"name":"mutual_atari","f1":0.0881,"precision":0.0491,"recall":0.4276,"tp":3552,"fp":68754,"fn":4755,"tn":122939,"threshold":0,"direction":0},
+    {"name":"benson_alive_side_now","f1":0.0000,"precision":0.0000,"recall":0.0000,"tp":0,"fp":5529,"fn":8307,"tn":186164,"threshold":0,"direction":0},
+    {"name":"benson_alive_opp_now","f1":0.0000,"precision":0.0000,"recall":0.0000,"tp":0,"fp":4840,"fn":8307,"tn":186853,"threshold":0,"direction":0},
+    {"name":"planted","f1":0.1872,"precision":1.0000,"recall":0.1033,"tp":858,"fp":0,"fn":7449,"tn":191693,"threshold":1,"direction":0}
+  ],
+  "best_nonplanted": {"name":"total_lib_opp","f1":0.1069,"precision":0.0585,"recall":0.6219}, "null_control": {"f1":0.0798,"precision":0.0415,"recall":1.0000}, "planted_control": {"sel_precision":1.0000,"sel_recall":0.1033,"sel_f1":0.1872,"bestf1_f1":0.1872,"bestf1_precision":1.0000,"bestf1_recall":0.1033}
+}

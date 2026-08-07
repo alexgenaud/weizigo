@@ -1,0 +1,29 @@
+{
+  "task_id": "T412", "instrument": "t412_predictors", "size": "3x3",
+  "wzo2_path": "data/oracle-3x3-v2.wzo2", "seed": 42, "n_entries": 23420, "n_LH": 3204, "base_rate": 0.1368, "features": [
+    {"name":"stones","f1":0.2693,"precision":0.2215,"recall":0.3433,"tp":1100,"fp":3866,"fn":2104,"tn":16350,"threshold":4,"direction":1},
+    {"name":"stone_parity","f1":0.2407,"precision":0.1368,"recall":1.0000,"tp":3204,"fp":20216,"fn":0,"tn":0,"threshold":0,"direction":0},
+    {"name":"side_stones","f1":0.2949,"precision":0.1909,"recall":0.6479,"tp":2076,"fp":8798,"fn":1128,"tn":11418,"threshold":2,"direction":1},
+    {"name":"opp_stones","f1":0.2532,"precision":0.1473,"recall":0.9014,"tp":2888,"fp":16722,"fn":316,"tn":3494,"threshold":2,"direction":0},
+    {"name":"n_chains_side","f1":0.2538,"precision":0.1613,"recall":0.5943,"tp":1904,"fp":9898,"fn":1300,"tn":10318,"threshold":1,"direction":1},
+    {"name":"n_chains_opp","f1":0.2407,"precision":0.1368,"recall":1.0000,"tp":3204,"fp":20214,"fn":0,"tn":2,"threshold":1,"direction":0},
+    {"name":"min_lib_side","f1":0.2465,"precision":0.1433,"recall":0.8814,"tp":2824,"fp":16882,"fn":380,"tn":3334,"threshold":2,"direction":1},
+    {"name":"min_lib_opp","f1":0.2988,"precision":0.1925,"recall":0.6679,"tp":2140,"fp":8978,"fn":1064,"tn":11238,"threshold":2,"direction":0},
+    {"name":"total_lib_side","f1":0.2745,"precision":0.1771,"recall":0.6092,"tp":1952,"fp":9068,"fn":1252,"tn":11148,"threshold":2,"direction":1},
+    {"name":"total_lib_opp","f1":0.2897,"precision":0.2100,"recall":0.4669,"tp":1496,"fp":5628,"fn":1708,"tn":14588,"threshold":4,"direction":0},
+    {"name":"shared_lib","f1":0.2407,"precision":0.1368,"recall":1.0000,"tp":3204,"fp":20212,"fn":0,"tn":4,"threshold":4,"direction":1},
+    {"name":"empty_regions","f1":0.2407,"precision":0.1368,"recall":1.0000,"tp":3204,"fp":20216,"fn":0,"tn":0,"threshold":1,"direction":0},
+    {"name":"max_empty_region","f1":0.2449,"precision":0.1604,"recall":0.5181,"tp":1660,"fp":8690,"fn":1544,"tn":11526,"threshold":3,"direction":0},
+    {"name":"min_empty_region","f1":0.2407,"precision":0.1368,"recall":1.0000,"tp":3204,"fp":20214,"fn":0,"tn":2,"threshold":8,"direction":1},
+    {"name":"eye_space_side","f1":0.2646,"precision":0.1547,"recall":0.9126,"tp":2924,"fp":15976,"fn":280,"tn":4240,"threshold":0,"direction":1},
+    {"name":"eye_space_opp","f1":0.2417,"precision":0.1375,"recall":1.0000,"tp":3204,"fp":20104,"fn":0,"tn":112,"threshold":2,"direction":1},
+    {"name":"empty_cells","f1":0.2693,"precision":0.2215,"recall":0.3433,"tp":1100,"fp":3866,"fn":2104,"tn":16350,"threshold":5,"direction":0},
+    {"name":"in_atari_side","f1":0.2332,"precision":0.1491,"recall":0.5343,"tp":1712,"fp":9768,"fn":1492,"tn":10448,"threshold":0,"direction":0},
+    {"name":"in_atari_opp","f1":0.1372,"precision":0.0865,"recall":0.3321,"tp":1064,"fp":11238,"fn":2140,"tn":8978,"threshold":0,"direction":0},
+    {"name":"mutual_atari","f1":0.1831,"precision":0.1309,"recall":0.3046,"tp":976,"fp":6480,"fn":2228,"tn":13736,"threshold":0,"direction":0},
+    {"name":"benson_alive_side_now","f1":0.0000,"precision":0.0000,"recall":0.0000,"tp":0,"fp":1504,"fn":3204,"tn":18712,"threshold":0,"direction":0},
+    {"name":"benson_alive_opp_now","f1":0.0000,"precision":0.0000,"recall":0.0000,"tp":0,"fp":856,"fn":3204,"tn":19360,"threshold":0,"direction":0},
+    {"name":"planted","f1":0.2407,"precision":0.1368,"recall":1.0000,"tp":3204,"fp":20216,"fn":0,"tn":0,"threshold":0,"direction":0}
+  ],
+  "best_nonplanted": {"name":"min_lib_opp","f1":0.2988,"precision":0.1925,"recall":0.6679}, "null_control": {"f1":0.2407,"precision":0.1368,"recall":1.0000}, "planted_control": {"sel_precision":1.0000,"sel_recall":0.0999,"sel_f1":0.1816,"bestf1_f1":0.2407,"bestf1_precision":0.1368,"bestf1_recall":1.0000}
+}

@@ -1,0 +1,5 @@
+{
+  "task_id": "T412", "instrument": "t412_loop_onset", "size": "3x3",
+  "wzo2_path": "data/oracle-3x3-v2.wzo2", "ply_cap": 400, "seed": 42, "seedctl": "none", "n_positions": 0, "n_capped": 0, "n_scored": 0, "cap_plies": 0, "cap_value_preserving": 0, "cap_value_losing": 0, "cap_unclassifiable": 0, "cap_pos_bracketed": 0, "cap_pos_single": 0, "cap_pos_no_entry": 0, "cap_games_with_value_losing": 0, "cap_games_with_unclassifiable": 0, "cap_games_visiting_single": 0, "cap_games_visiting_no_entry": 0, "cap_games_cycling": 0, "first_vl_hist": [0,0,0,0,0,0,0,0,0,0], "first_uncl_hist": [0,0,0,0,0,0,0,0,0,0], "first_single_hist": [0,0,0,0,0,0,0,0,0,0], "capped_games": [
+  ]
+}
