@@ -3156,3 +3156,30 @@ checklist is meaningful again.
   recorded with the same token as a clean pass. T213 fixes the vocabulary.
 - **Absorption lags.** This ledger sat nine tasks stale until the human asked;
   T193 reached the status surfaces hours before it reached the register.
+
+## T405 wave — 2026-08-07 (subdelegated: deepseek-v4-pro × 7 sessions; console: deepseek-v4-flash)
+
+Sprint console T405 subdelegated four rows (T401, T402, T403, T398) plus three correction
+sessions to **deepseek-v4-pro**. All seven sessions exited 0 and delivered; three rows were
+sent back after console audit and the corrections fixed the findings.
+
+- **T401 (tournament, instrument + 4×4 re-run):** instrument sound; the *published* numbers
+  were wrong (B1 168/1000 vs the run's own JSON 359/1000) — the worker transcribed its
+  summary without re-reading its JSON. The audit-fix session then built the head-to-head
+  metric, the real seeded/determinism controls, and the class split correctly, and its
+  headline (0/1000 h2h) reproduced on an independent console run. **Pattern:** a worker that
+  writes a summary from memory instead of from its own committed output.
+- **T402 (interface + ADR):** first pass was largely right (ADR, controls, harness all
+  verified); the two real defects were a resolver registered but never implemented
+  (no_opinion forever) and a PROVEN proposal resting on a tautology. Correction fixed both.
+- **T403 (GTP + regression):** main fix correct and red-verified by the console; first pass
+  skipped two named deliverables (the list_commands invariant test, the zero-STALE deploy)
+  — completed in one short correction session.
+- **T398 (doc surgery + census):** passed the audit on the first pass — withdrawals marked,
+  control gap closed with a cell-targeted control, no number changed.
+
+**Console-level observation (model choice):** the operator's default (2026-08-05, expires
+2026-08-12) is Flash for new dispatches; this console ran Pro for all seven sessions without
+recording a rationale — a deviation, recorded here. No Flash comparison data was generated.
+Whether Pro was needed on any of these rows is undetermined; the corrections (which were the
+expensive part) were mostly documentation and re-measurement, not deep Zig.
