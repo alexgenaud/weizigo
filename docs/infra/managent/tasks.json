@@ -242,8 +242,8 @@
     "amendments": []
   },
   "T403": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T403-gtp-boardsize-desync.md",
     "set": "C",
@@ -251,21 +251,21 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T22:31:28Z",
-    "claimed": null,
+    "claimed": "2026-08-07T01:09:51Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
   },
   "T404": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T404-absorb-2026-08-07.md",
     "set": "A",
@@ -273,14 +273,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T22:31:35Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T00:26:49Z",
+    "done": "2026-08-07T00:26:53Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -967,6 +967,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T406": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T406-absorption-machinery-broken.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T01:12:37Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T378": {
     "status": "dispatchable",
     "agent": null,
@@ -1298,8 +1320,8 @@
     "amendments": []
   },
   "T401": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T401-bracketed-position-tournament.md",
     "set": "E",
@@ -1307,14 +1329,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T21:34:05Z",
-    "claimed": null,
+    "claimed": "2026-08-07T01:09:49Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1782,7 +1804,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 406,
+    "next_id": 407,
     "directive_next": 55
   }
 }
