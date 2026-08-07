@@ -1,0 +1,8 @@
+{
+  "task_id": "T401",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Inbox directives: none. Bracket tournament: new engine (WZO2) vs old engine (WZO1) from L<H fresh-start positions. 3x3 exhaustive (3204 pos): B3 passes 0/676 escapes, no old engine. 4x4 sample 500/1962142 seed 12345: B1 168/1000 worse (new as B), B2 193/1000 worse (new as W), B4 145+160 sign flips, B3 new 0/287 escapes, B3 old 235/1000 (expected — PSK under basic-ko). Seeded control passed. Cross-table disagreement 279/287. Verdict: pass-with-findings — new engine is worse than old from bracketed positions, a PASS WITH WITNESSES finding per brief."
+}
