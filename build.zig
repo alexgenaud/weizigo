@@ -317,6 +317,22 @@ pub fn build(b: *std.Build) void {
     standing_regression.cwd = b.path(".");
     test_step.dependOn(&standing_regression.step);
 
+    // ── absorption-machinery controls (T406) ────────────────────────
+    // The two broken safety nets T404 found: weizigo-absorb parses the
+    // 11-column register as empty (silent "nothing to do") and STANDING-ABSORB
+    // fires its trigger into a done row that can never become dispatchable
+    // again. Controls: seeded 11-col (221 rows + directives), seeded 10-col
+    // (loud empty-parse hard error naming the counts), null (nothing proposed
+    // at zero backlog), gen-indices (second vacuous consumer: 221 indexed,
+    // 0-claim parse refused), standing reopen (done→dispatchable), live
+    // guard (no duplicate instance; refusal reads as inaction), family-wide
+    // reopen (STANDING-REEVIDENCE), standing null (C7=0 → no counter moves).
+    // Same SKIP convention as the standing/resume regressions: no built
+    // binary, or no deployed claimlint to copy into the scratch repo → SKIP.
+    const absorption_machinery_regression = b.addSystemCommand(&.{ "sh", "tools/regression-absorption-machinery.sh" });
+    absorption_machinery_regression.cwd = b.path(".");
+    test_step.dependOn(&absorption_machinery_regression.step);
+
     // ── T337 S0: managent store-lock controls ──────────────────────
     // Replaces the mkdir mutex (which leaked on every exit(1) after
     // lock acquisition) with flock(2): the kernel releases the lock

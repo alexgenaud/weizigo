@@ -90,6 +90,7 @@ pub const Row = struct {
     narrowed: ?u32,
     rate: ?f64,
     rate_raw: []const u8,
+    tree: []const u8,
     in_degree: u32 = 0,
     refs_outside: u32 = 0,
 };
@@ -101,6 +102,15 @@ pub const Register = struct {
     /// [start,end) line numbers (1-based) of the §2 region.
     sec2_start: usize = 0,
     sec2_end: usize = 0,
+    /// Column count read from the §2 header row (the `| ID | ... |` line).
+    /// 0 when no header row was found inside §2.
+    header_cols: usize = 0,
+    /// True when the register matches the canonical 11-column format (a
+    /// header was found and header_cols == REGISTER_COLS). A register whose
+    /// header is absent or carries a different column count is NOT
+    /// understood — callers must refuse to report "nothing to do" from it
+    /// (T406; the old hard-coded 10 parsed the 11-column register as empty).
+    format_ok: bool = false,
 };
 
 // ── scope prefixes §1 of the register ──────────────────────────────────────
@@ -270,6 +280,14 @@ pub fn claimIdOf(span: []const u8) ?[]const u8 {
 
 // ── register parsing ───────────────────────────────────────────────────────
 
+/// Canonical register width: the 11 columns of the T305 format (the `tree`
+/// column appended after wrong-answer-pass-rate, C9-gated). Per-row checks
+/// derive the expected count from the §2 header row (so a future column
+/// addition fails with a truthful message instead of a silent misparse);
+/// this constant is the canonical-format gate — a register whose header
+/// disagrees with it is not understood and must be refused loudly (T406).
+pub const REGISTER_COLS: usize = 11;
+
 pub fn parseRegister(gpa: Allocator, text: []const u8) !Register {
     var reg: Register = .{
         .rows = .empty,
@@ -302,18 +320,49 @@ pub fn parseRegister(gpa: Allocator, text: []const u8) !Register {
             continue;
         }
         const first = trim(c[1]);
-        if (std.mem.eql(u8, first, "ID")) continue; // header
+        if (std.mem.eql(u8, first, "ID")) {
+            // §2 header — derive the expected column count from it, and gate
+            // the canonical format (T406: the old hard-coded 10 silently
+            // parsed the 11-column register as empty).
+            reg.header_cols = c.len - 2;
+            if (reg.header_cols != REGISTER_COLS) {
+                try reg.unparsed.append(gpa, try std.fmt.allocPrint(
+                    gpa,
+                    "{d}: register header carries {d} columns, expected {d} (the tree column format, T305) — this register is not understood",
+                    .{ lineno, reg.header_cols, REGISTER_COLS },
+                ));
+            } else {
+                reg.format_ok = true;
+            }
+            continue; // header
+        }
         var only_dashes = first.len > 0;
         for (first) |ch| {
             if (ch != '-' and ch != ':') only_dashes = false;
         }
         if (only_dashes) continue; // separator
 
-        if (c.len != 12) {
+        if (reg.header_cols == 0) {
             try reg.unparsed.append(gpa, try std.fmt.allocPrint(
                 gpa,
-                "{d}: expected 10 columns, found {d} — `{s}`",
-                .{ lineno, c.len - 2, first },
+                "{d}: data row before any §2 header row — `{s}`",
+                .{ lineno, first },
+            ));
+            continue;
+        }
+        if (!reg.format_ok) {
+            try reg.unparsed.append(gpa, try std.fmt.allocPrint(
+                gpa,
+                "{d}: data row under a non-{d}-column §2 header — {s}",
+                .{ lineno, REGISTER_COLS, first },
+            ));
+            continue;
+        }
+        if (c.len != reg.header_cols + 2) {
+            try reg.unparsed.append(gpa, try std.fmt.allocPrint(
+                gpa,
+                "{d}: expected {d} columns, found {d} — `{s}`",
+                .{ lineno, reg.header_cols, c.len - 2, first },
             ));
             continue;
         }
@@ -361,6 +410,7 @@ pub fn parseRegister(gpa: Allocator, text: []const u8) !Register {
             .narrowed = parseNarrowed(c[9]),
             .rate = parseRate(c[10]),
             .rate_raw = trim(c[10]),
+            .tree = trim(c[11]),
         });
         const slot = reg.rows.items.len - 1;
         if (reg.by_id.get(id)) |prev| {

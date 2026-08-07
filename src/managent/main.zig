@@ -5646,8 +5646,47 @@ fn registerStanding(
     comptime note_fmt: []const u8,
     note_args: anytype,
 ) !void {
-    if (state.contains(id)) {
-        w.diag("      (already registered, skipping)\n", .{});
+    const note = try std.fmt.allocPrint(alloc, note_fmt, note_args);
+
+    // T406: a triggered standing task whose row is `done` (or `failed`) must
+    // be RE-REGISTERED as a dispatchable instance — the standing tier is
+    // recurring, and `done` was absorbing every future trigger ("already
+    // registered, skipping" while the absorption backlog sat at 8 and was
+    // cleared only by hand). We reopen the one canonical row rather than
+    // minting a fresh ID: the standing IDs are wired into standing_templates,
+    // docs/infra/dispatch/STANDING-*.md, and the CODE.STANDING-* register
+    // classes, so a fresh ID per recurrence would multiply those surfaces
+    // without bound and orphan the historical row.
+    //
+    // A LIVE instance (dispatchable / in_progress / blocked) is NOT reopened:
+    // a second instance would be a duplicate dispatch (T390) and two writers
+    // on one standing task. That refusal must read as the inaction it is —
+    // never a bare "(already registered, skipping)" sitting under a TRIGGERED
+    // line, which reads as status and hides a dead trigger.
+    if (state.getPtr(id)) |existing| {
+        if (existing.status == .done or existing.status == .failed) {
+            const prev = existing.status;
+            existing.status = .dispatchable;
+            existing.agent = null;
+            existing.claimed = null;
+            existing.done = null;
+            existing.dispatched = null;
+            existing.dispatched_to = null;
+            if (existing.verdict) |v| {
+                alloc.free(v);
+                existing.verdict = null;
+            }
+            if (existing.verdict_note) |vn| {
+                alloc.free(vn);
+                existing.verdict_note = null;
+            }
+            if (existing.note) |old| alloc.free(old);
+            existing.note = try alloc.dupe(u8, note);
+            try writeState(io, state_path, state);
+            w.data("\n      re-registered {s} [set: H] [dispatchable] (was {s} — standing triggers re-open the row)\n", .{ id, statusToString(prev) });
+            return;
+        }
+        w.diag("      {s} is {s} — NOT re-registered (a live {s} instance already exists; the standing tier keeps one row per task, and a second would be a duplicate dispatch)\n", .{ id, statusToString(existing.status), id });
         return;
     }
 
@@ -5672,7 +5711,6 @@ fn registerStanding(
 
     // Register the task
     const now = try nowTimestamp();
-    const note = try std.fmt.allocPrint(alloc, note_fmt, note_args);
     const ts = TaskState{
         .status = .dispatchable,
         .agent = null,

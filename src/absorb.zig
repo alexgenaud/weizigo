@@ -356,8 +356,15 @@ fn emitEditStatus(gpa: Allocator, claim_id: []const u8, current_status: []const 
 }
 
 fn emitAddRow(gpa: Allocator, nr: NewRow, insert_after: []const u8, section: []const u8) ![]const u8 {
+    // T406: the register is 11 columns (the `tree` column, T305, C9-gated).
+    // The findings schema carries no tree field, so the emitted row carries
+    // the TREE-ASSIGN placeholder: the Orchestrator must map the row onto
+    // the requirement tree (register-tree-map.md §1) before ratifying — a
+    // bare 10-column row would be unparseable by claimlint ("expected 11
+    // columns, found 10"). The directive names the obligation in its own
+    // `tree` field so the placeholder cannot be mistaken for a value.
     const row_text = try std.fmt.allocPrint(gpa,
-        "| `{s}` | {s} | {s} | {s} | {s} | {s} | {s} | — | {s} | {s} |",
+        "| `{s}` | {s} | {s} | {s} | {s} | {s} | {s} | — | {s} | {s} | TREE-ASSIGN |",
         .{ nr.id, nr.legacy, nr.goban, nr.claim, nr.status, nr.evidence, nr.depends_on, nr.narrowed, nr.wrong_answer_pass_rate },
     );
     var buf: std.ArrayList(u8) = .empty;
@@ -369,7 +376,7 @@ fn emitAddRow(gpa: Allocator, nr: NewRow, insert_after: []const u8, section: []c
     try appendJsonString(gpa, &buf, section);
     try buf.appendSlice(gpa, "\",\"row_text\":\"");
     try appendJsonString(gpa, &buf, row_text);
-    try buf.appendSlice(gpa, "\"}");
+    try buf.appendSlice(gpa, "\",\"tree\":\"TREE-ASSIGN — assign a node from register-tree-map.md §1 (C9-gated); the findings schema carries no tree field\"}");
     return buf.toOwnedSlice(gpa);
 }
 
@@ -497,6 +504,41 @@ pub fn main(init: std.process.Init) !void {
         std.process.exit(1);
     };
     var reg = try cr.parseRegister(gpa, claims_text);
+
+    // T406: an empty parse is a HARD error, never "nothing to do". The old
+    // parser returned 0 rows from the 11-column register and silently
+    // reported the backlog as clear — the tool reported success while doing
+    // nothing. A register that exists, is non-empty, and yields 0 rows (or
+    // whose header does not match the canonical 11-column format) is a file
+    // the tool does not understand; refuse loudly with the counts.
+    util.note("absorb: parsed {d} rows from CLAIMS.md\n", .{reg.rows.items.len});
+    if (reg.rows.items.len == 0 or !reg.format_ok) {
+        util.note("absorb: FATAL — parsed 0 rows from CLAIMS.md; register file is {d} bytes\n", .{claims_text.len});
+        if (reg.header_cols == 0) {
+            util.note("  no §2 header row found inside the register\n", .{});
+        } else if (reg.format_ok) {
+            util.note("  the §2 header is valid but carries no data rows — the register is empty\n", .{});
+        } else {
+            util.note("  register header carries {d} columns, expected {d} (the tree column format, T305)\n", .{ reg.header_cols, cr.REGISTER_COLS });
+        }
+        if (reg.unparsed.items.len > 0) {
+            util.note("  first parse complaint(s):\n", .{});
+            for (reg.unparsed.items[0..@min(reg.unparsed.items.len, 3)]) |u| {
+                util.note("    {s}\n", .{u});
+            }
+        }
+        util.note("  refusing to report 'nothing to do' from a register it could not understand\n", .{});
+        std.process.exit(1);
+    }
+    if (reg.unparsed.items.len > 0) {
+        // Partial drift: some rows were skipped; claims on those rows will
+        // read as "not found". Loud but not fatal — the register may be
+        // mid-edit. This is the non-silent half of the same discipline.
+        util.note("absorb: {d} register row(s) unparseable — claims on those rows will read as 'not found'\n", .{reg.unparsed.items.len});
+        for (reg.unparsed.items[0..@min(reg.unparsed.items.len, 3)]) |u| {
+            util.note("    {s}\n", .{u});
+        }
+    }
 
     // Build output lines, emit via util.out for stdout discipline.
     var out_lines: std.ArrayList([]const u8) = .empty;

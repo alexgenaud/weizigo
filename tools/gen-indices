@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate INDEX-claim-evidence.md, INDEX-claim-task.md, INDEX-claim-deps.md from CLAIMS.md."""
-import re, os, json
+import re, os, json, sys
 from datetime import date
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +34,11 @@ def parse_claims():
         if not line.startswith('| '):
             continue
         parts = [p.strip() for p in split_cells(line)]
-        if len(parts) != 12:
+        # T406: the register is 11 columns (tree column, T305). The old
+        # 10-column guard (12 parts) silently skipped every row of the
+        # current register and the generator wrote empty indices while
+        # reporting success — the same vacuity class as the absorb parser.
+        if len(parts) != 13:
             continue
         cid_cell = parts[1]
         if cid_cell == 'ID' or not (cid_cell.startswith('`') and cid_cell.endswith('`')):
@@ -255,6 +259,19 @@ def gen_claim_task_index():
 
 if __name__ == '__main__':
     claims = parse_claims()
+
+    # T406: 0 claims from a non-empty register is a file we do not
+    # understand, not a successful (empty) index. Fail loudly instead of
+    # overwriting the tracked indices with nothing.
+    if not claims:
+        with open(f'{ROOT}/docs/epistemic/CLAIMS.md') as f:
+            raw = f.read()
+        if raw.strip():
+            print("gen-indices: FATAL — parsed 0 claims from a non-empty register."
+                  " The register is 11 columns (tree column, T305); the 10-column"
+                  " guard in tools/gen-indices silently skipped every row. Fix the"
+                  " guard (len(parts) != 13), do not ship an empty index.", file=sys.stderr)
+            sys.exit(1)
     
     # Generate claim-evidence index
     with open(f'{ROOT}/docs/INDEX-claim-evidence.md', 'w') as f:
