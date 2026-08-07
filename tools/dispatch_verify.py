@@ -48,8 +48,6 @@ import secrets
 import sys
 import time
 
-NONCE_PATTERN = re.compile(r"NONCE-[0-9a-f]{16}")
-
 # Verdicts that mean "the worker claims the work was done."
 SUCCESS_VERDICTS = ("pass", "pass-with-findings")
 # Verdicts that mean "the worker reports the task did not succeed."
