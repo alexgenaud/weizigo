@@ -219,6 +219,28 @@
     "skip_acceptance_reason": null,
     "amendments": ["2026-08-07T01:34:15Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): acceptance (zig test src/resolver.zig) 11 passed + 1 skipped; harness reproduced independently (23,420 positions, null PASS, deliberately_wrong REFUTED 20,216/20,216); ADR-0022 complete (invariant sentence, {0,1,2,7,9,12}, quarantine framing); commit scope clean; stubs honest. THREE findings sent back: A1 MAJOR — capture_budget(B) always returns no_opinion, so the harness's L==H agreement column (the one that matters per brief) is 0/0 for the one resolver the row is about; operator's 'compare results' ask unmet for the measured construction; implement the measured budget resolution so the harness can refute-or-verify it in situ, quarantine metadata kept. A2 MAJOR — GLOBAL.FP2->PROVEN proposal is a tautology (bracket_low/mid/high agree with L==H by definition; FP2 is history-independence, unchanged by this); withdraw or downgrade the proposal before absorption. A3 MINOR — MIGOS +2 epitaph (brief Do.1) absent from ADR."]
   },
+  "T413": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T413-instruction-corpus-cleanup.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T11:31:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T370": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -723,6 +745,28 @@
     "claim_count": 2,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "vb_i11 not yet wired into build.zig — sprint console responsibility per brief; standalone 14/14 pass",
+    "amendments": []
+  },
+  "T412": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T412-loop-onset-and-cap-honesty.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T11:31:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T393": {
@@ -1649,6 +1693,28 @@
     "skip_acceptance_reason": null,
     "amendments": ["2026-08-07T08:47:43Z: verdict=pass-with-findings note=Orcha follow-up 2026-08-07 complete: (1) findings schema repaired — 5 files now conforming (4 original + 1 recreated by follow-up worker, caught by the new claimlint acceptance gate), values verified identical to HEAD; workflow-gap answer: claimlint C7 is now a standing per-row acceptance check (was run only at sprint end before). (2) h2h three-way split published: 868 better/132 equal/0 worse per colour, identical sequences 25/1000 (2.5%), ply agreement 55.8% — not a tautology; verified by console re-run. (3) seeded h2h control fires: RED 73/400 (18.3%) + 75/400 (18.8%) worker config, 147/400 + 138/400 console config, GREEN 0 — 0/1000 now CONTROLLED. Commits 8620dd5 + 9e02697."]
   },
+  "T414": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T414-sprint-loops-and-cleanup.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T11:31:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T374": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -1914,7 +1980,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 412,
+    "next_id": 415,
     "directive_next": 56
   }
 }
