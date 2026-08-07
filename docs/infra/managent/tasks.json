@@ -1034,8 +1034,8 @@
     "amendments": []
   },
   "T409": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T409-sprint-matrix-and-machinery.md",
     "set": "S",
@@ -1043,14 +1043,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T08:45:27Z",
-    "claimed": null,
+    "claimed": "2026-08-07T09:11:51Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1603,7 +1603,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-07T08:47:43Z: verdict=pass-with-findings note=Orcha follow-up 2026-08-07 complete: (1) findings schema repaired — 5 files now conforming (4 original + 1 recreated by follow-up worker, caught by the new claimlint acceptance gate), values verified identical to HEAD; workflow-gap answer: claimlint C7 is now a standing per-row acceptance check (was run only at sprint end before). (2) h2h three-way split published: 868 better/132 equal/0 worse per colour, identical sequences 25/1000 (2.5%), ply agreement 55.8% — not a tautology; verified by console re-run. (3) seeded h2h control fires: RED 73/400 (18.3%) + 75/400 (18.8%) worker config, 147/400 + 138/400 console config, GREEN 0 — 0/1000 now CONTROLLED. Commits 8620dd5 + 9e02697."]
   },
   "T374": {
     "status": "done",
@@ -1871,6 +1871,6 @@
   },
   "_sys": {
     "next_id": 410,
-    "directive_next": 55
+    "directive_next": 56
   }
 }
