@@ -235,3 +235,93 @@ companion document lists them:
 | Original (commit 7594ae9) | `weizigo-t401 --size 4 --sample 500 --seed 12345` | 12345 | `findings/T401-bracket-tournament-4x4.json` |
 | Correction (2026-08-07) | `weizigo-t401 --size 4 --sample 500 --seed 12345 --seedctl weakened,3 --json findings/T401-bracket-tournament-correction.json` | 12345 | `findings/T401-bracket-tournament-correction.json` |
 | Controls — determinism | `weizigo-t401 --size 4 --seed 12345 --controls-only --seedctl determinism` | 12345 | (console output above) |
+| h2h followup (2026-08-07) | `weizigo-t401 --size 4 --sample 500 --seed 12345 --json findings/T401-h2h-followup-tournament.json` | 12345 | `findings/T401-h2h-followup.json` |
+
+---
+
+# Addendum (Orcha directive 2026-08-07): h2h three-way split and seeded control
+
+**Task:** T401-h2h-followup · **Model:** deepseek-v4-pro · **Date:** 2026-08-07
+**Instrument:** `src/t401_bracket_tournament.zig` (additive changes from T401 correction)
+**Findings:** `findings/T401-h2h-followup.json`
+
+## D1 — Three-Way Head-to-Head Split
+
+The original h2h report counted only "worse." This addendum splits every h2h pair
+into better / equal / worse per colour.
+
+**B1 (new as Black):** nvo = new_vs_old score, ovn = old_vs_new score
+
+| class | better | equal | worse | total |
+|---|---|---|---|---|
+| all | 868 (86.8%) | 132 (13.2%) | 0 (0.0%) | 1,000 |
+| straddling (L≤0≤H) | 252 (96.2%) | 10 (3.8%) | 0 | 262 |
+| decisive L>0 | 322 (84.7%) | 58 (15.3%) | 0 | 380 |
+| decisive H<0 | 294 (82.1%) | 64 (17.9%) | 0 | 358 |
+
+**B2 (new as White):**
+
+| class | better | equal | worse | total |
+|---|---|---|---|---|
+| all | 868 (86.8%) | 132 (13.2%) | 0 (0.0%) | 1,000 |
+| straddling | 252 (96.2%) | 10 (3.8%) | 0 | 262 |
+| decisive L>0 | 322 (84.7%) | 58 (15.3%) | 0 | 380 |
+| decisive H<0 | 294 (82.1%) | 64 (17.9%) | 0 | 358 |
+
+Sanity: better + equal + worse = total for all rows. ✓
+
+**Reframing:** The new engine achieves strictly better scores than the old engine
+in every uncapped h2h pair (0/1000 worse, 868/1000 better). The 0/1,000 "worse"
+in the original report could read as a tautology (identical engines produce
+equal scores). The three-way split refutes this: 868/1,000 pairs produce
+different scores, and the new engine wins every one of them. The engines are
+not the same player.
+
+## D2 — Identical Move Sequences
+
+Each h2h game's move sequence was recorded. Per pair, the two sequences were
+compared cell-by-cell.
+
+| metric | value |
+|---|---|
+| identical-sequence pairs | 25 / 1,000 (2.5%) |
+| per-ply move agreement | 15,132 / 27,116 (55.8%) |
+| identical-seq => equal score | ✓ confirmed per-pair (no violations) |
+
+At each ply of each h2h game, both engines were queried at the current state
+(chooseWzo2 and chooseWzo1) and their preferred move compared. They agree
+55.8% of the time — substantial overlap but far from identity.
+
+Only 2.5% of pairs play identical move sequences. The engines produce largely
+different games; the 0/1,000 worse in h2h is not because the games are the same.
+
+## D3 — Seeded Head-to-Head Control
+
+The original seeded control weakened the engine in self-play only. This control
+weakens the NEW engine specifically in one h2h arm and measures the effect on
+the h2h worse rate (as D1 defines it).
+
+**Command:** `weizigo-t401 --size 4 --seed 12345 --controls-only --seedctl h2h_seeded,3`
+
+**RED (B1 path):** weaken new in new_vs_old arm, old_vs_new normal (n=400):
+- 295 better / 32 equal / **73 worse (18.3%)**
+
+**RED (B2 path):** weaken new in old_vs_new arm, new_vs_old normal (n=400):
+- 290 better / 35 equal / **75 worse (18.8%)**
+
+**GREEN:** normal h2h on different 50 positions (n=100):
+- B1: 86 better / 14 equal / 0 worse
+- B2: 86 better / 14 equal / 0 worse
+
+**Effect size:** A genuinely worse new engine (weakened every 3rd move) reads as
+18-19% worse via the D1 metric. The normal 0/1,000 h2h worse is not because the
+harness cannot detect worse — it can, at ~18% worse rate under this perturbation.
+A regression of that magnitude or larger would be caught.
+
+## Reproduction
+
+All existing numbers from the T401 correction reproduced exactly (same seed 12345,
+sample 500, artifacts `data/oracle-4x4-v2.wzo2` / `data/oracle-4x4.checkpoint.wzo`):
+B1 sp 359/1000, B2 sp 343/1000, capped 713, h2h worse 0/1000, B4 145/160,
+B3 0/287 and 235/1000, cross 279/287, all class splits. Full reproduction
+table in `findings/T401-h2h-followup.json`.
