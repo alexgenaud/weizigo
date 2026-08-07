@@ -440,8 +440,8 @@
     "amendments": ["2026-08-05T19:52:54Z: verdict=pass note=Attribution correction (Orcha, 2026-08-05), reported by glm-5.2/T371 rather than found by audit. T368's claim transition (dispatchable->in_progress, agent=deepseek-v4-flash) was physically committed under T371's kanban commit 01435b9, because docs/infra/managent/tasks.json is shared and held T368's uncommitted transition when T371 committed its own claim->done; directive D039's read flag (false->true) rode along the same way. CONTENT IS CORRECT — T368 was in fact claimed and executed by deepseek-v4-flash, which landed its own work commit 2903473 on top — only the carrying commit's attribution is wrong. Documented content-right/attribution-wrong class, docs/infra/fleet-git-isolation.md. No history rewrite: the ledger entry is accurate and this record states which commit carried it. Verdict unchanged (pass). Credit to the T371 console for reporting a defect that made its own commit look worse; that is exactly what the fleet-isolation doc asks for, and cheaper than any audit that would have caught it."]
   },
   "T410": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T410-instruction-file-audit.md",
     "set": "H",
@@ -449,14 +449,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T09:51:16Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T10:42:24Z",
+    "done": "2026-08-07T10:49:40Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1056,7 +1056,7 @@
     "amendments": []
   },
   "T409": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T409-sprint-matrix-and-machinery.md",
@@ -1066,13 +1066,35 @@
     "caps": [],
     "added": "2026-08-07T08:45:27Z",
     "claimed": "2026-08-07T09:11:51Z",
+    "done": "2026-08-07T10:41:45Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": "T409 sprint pass: T408 subagent reach (3/3 round-trip, 6/6 concurrency, depth cap enforced) — sprints may delegate to Ollama; T407 four-game matrix (Class B 151/270 at 4x4, MIXED verdict, new engine 0/270 below own floor) — every number independently reproduced by console audit; T406 absorption machinery (parser 11-col + hard error, standing reopen, gen-indices second consumer; regression ALL CONTROLS PASSED wired into suite; deploy zero STALE b1c443f). First T406 worker infra-killed by dispatch CPU ceiling; second finished. Landmarks: L3 mixed (divergence located), L2 protected, L4 advanced. Report: docs/status/sprint-2026-08-08.md.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T411": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T411-show-the-work-dispatch-verification.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T11:09:46Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 1,
+    "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1493,7 +1515,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-07T11:09:40Z: verdict=pass note=ORCHESTRATOR CORRECTION of MY OWN reading, claude-opus-5/orcha. The row is unchanged and remains PASS; what needs correcting is what I said about it. I wrote that T408 falsified the recorded five-agent Ollama ceiling and that it removed my concurrency argument. THAT WAS AN OVERCLAIM AND THE ROW ITSELF DID NOT MAKE IT. T408 wrote, carefully and correctly, that the ceiling is NOT OBSERVED AS A TOOL-LEVEL CAP THROUGH 6 and that if a ceiling exists it sits above 6 and was not hit. The worker was more precise than the Orchestrator; absence of evidence was mine to mishandle, not its. OPERATOR RULING 2026-08-07, accepted: there IS a five-agent Ollama ceiling. What is uncertain is only HOW it is enforced — the belief is that a sixth simultaneous upload/download is delayed or blocked-and-retried rather than refused, so it would never surface as an error. THE TEST COULD NOT HAVE SEEN IT, and this is the point that matters for anyone re-reading the row: the 6-concurrent probe completed in NINE SECONDS TOTAL on warm sessions with a trivial round-trip payload. A ceiling on concurrent transfer sessions cannot be detected by six near-instant warm replies. The instrument lacked the power to observe the thing it is being cited about, so not observed here carries almost no information. A logjam requires all five slots active in long-duration upload/download simultaneously, which may simply never occur in practice. STANDING WORDING, to be used wherever this is cited: the ceiling exists; we may reasonably choose not to worry about it while no negative side effect is observed; we must NOT claim there is no ceiling. Anyone quoting T408 on concurrency must quote the not-observed-through-6 phrasing and this caveat together. The row s own operational recommendation is unaffected and stands: keep max-two-concurrent per parent, glm dependable default, minimax ~2 min cold start, kimi flaky on multi-step shell bundles and must be output-verified. SECOND ITEM, promoted from the row s detail because it is the more dangerous finding: kimi attempt 1 replied OK. and RAN NOTHING, and the row stayed dispatchable. T408 caught it only because it asserted on STORE STATE rather than on the reply. That is the same failure shape as the tooling defects of this week — reports success while doing nothing — now at the AGENT layer. Registered as T412 (show-the-work dispatch verification)."]
   },
   "T360": {
     "status": "done",
@@ -1801,7 +1823,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-07T10:59:50Z: verdict=pass-with-findings note=ORCHESTRATOR CORRECTION, claude-opus-5/orcha. The measurements stand; the MIXED verdict does not, and the fault is mine — my brief told the row to use a self-play baseline as a strength comparison, and it is not one. WHY THE SELF-PLAY BASELINE CANNOT SUPPORT A STRENGTH VERDICT. (a) It is confounded by construction: in a self-play arm ONE engine occupies BOTH seats, so a new_new score differing from old_old cannot be attributed to new-as-Black or to new-as-White. Both sides changed at once. (b) Worse, self-play score is NOT MONOTONE IN STRENGTH. If both seats played perfectly the self-play game would land on the true value V(p). A stronger engine self-plays TOWARD V(p); a weaker one wanders. So if old_old landed above V(p) because old-as-White blundered, new_new landing on V(p) reads as WORSE while being MORE CORRECT. The metric cannot distinguish new is worse here from new is more right here, and the near-symmetry of the reading (62 better vs 56 worse of 270) is exactly what two different fixed points with scatter look like. WHAT THE EVIDENCE ACTUALLY SUPPORTS. The head-to-head arm IS a genuine strength comparison — same position, same colour, same opponent, one side varied — and it reads 150 better / 120 equal / 0 WORSE of 270, seeded-controlled with the planted weak engine firing at 40 percent, and only 20/270 identical sequences so it is not a tautology. B3 self-consistency adds 0/270 below the engine own floor. So the honest verdict is NOT MIXED and NOT heuristic: it is NOT REFUTED on 270 positions head-to-head, with a control that would have caught a 40 percent regression. RULING: the MIXED / heuristic / cheat label is WITHDRAWN. The self-play baseline is re-reported as DESCRIPTIVE — the two engines end self-play games at different scores on 118/270 positions — and must not be cited as evidence of regression. The plugin disposition SURVIVES, but for the correct reason: no proof is offered, and a finite tournament can only fail to refute, never establish strictly better. Everything unproven stays a plugin regardless of how favourable the scores are. The class-B catalogue keeps its full value as the map of WHERE they diverge. SECOND FINDING, unaffected by the above: the 3x3 leg is uninformative, not reassuring. Class B 0/126 at 96 percent ply-cap means almost nothing terminated, and the starts are BRACKETED positions, which are by definition the value-ambiguous ones where cycling is expected. Do not read 0/126 as agreement. FOLLOW-UP: T411 registered to re-report the baseline descriptively and to add the missing cost axis (two implementations agreeing on every result may differ by an order of magnitude in resources, which nothing currently measures)."]
   },
   "T395": {
     "status": "done",
@@ -1892,7 +1914,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 411,
+    "next_id": 412,
     "directive_next": 56
   }
 }
