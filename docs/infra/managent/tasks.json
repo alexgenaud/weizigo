@@ -439,6 +439,28 @@
     "skip_acceptance_reason": null,
     "amendments": ["2026-08-05T19:52:54Z: verdict=pass note=Attribution correction (Orcha, 2026-08-05), reported by glm-5.2/T371 rather than found by audit. T368's claim transition (dispatchable->in_progress, agent=deepseek-v4-flash) was physically committed under T371's kanban commit 01435b9, because docs/infra/managent/tasks.json is shared and held T368's uncommitted transition when T371 committed its own claim->done; directive D039's read flag (false->true) rode along the same way. CONTENT IS CORRECT — T368 was in fact claimed and executed by deepseek-v4-flash, which landed its own work commit 2903473 on top — only the carrying commit's attribution is wrong. Documented content-right/attribution-wrong class, docs/infra/fleet-git-isolation.md. No history rewrite: the ledger entry is accurate and this record states which commit carried it. Verdict unchanged (pass). Credit to the T371 console for reporting a defect that made its own commit look worse; that is exactly what the fleet-isolation doc asks for, and cheaper than any audit that would have caught it."]
   },
+  "T410": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T410-instruction-file-audit.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T09:51:16Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T357": {
     "status": "dispatchable",
     "agent": null,
@@ -968,8 +990,8 @@
     "amendments": []
   },
   "T406": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T406-absorption-machinery-broken.md",
     "set": "C",
@@ -977,14 +999,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T01:12:37Z",
-    "claimed": null,
+    "claimed": "2026-08-07T09:29:35Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1452,8 +1474,8 @@
     "amendments": []
   },
   "T408": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T408-ollama-subagent-reach-validation.md",
     "set": "G",
@@ -1461,14 +1483,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T08:44:13Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T09:26:45Z",
+    "done": "2026-08-07T09:26:57Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "T408 pass: all 3 Ollama targets (kimi-k2.7, glm-5.2, minimax-m3) reachable from DS parent via bin/ollama-subagent. Round-trip 3/3 (+1 each); kanban claim/ping/done vs scratch store 3/3 after kimi retry (1 flake/2 attempts, disclosed); concurrency 5/5 then 6/6 no queue/error/hang - five-agent ceiling NOT observed as tool cap; depth: both wrappers REFUSED at depth 2 (exit 1), unguarded ollama launch 2nd hop permitted (grandchild depth=2, refutes resets-to-0); live kanban untouched. Executed by T409 console (not subdelegated - bin/ollama-subagent refuses at depth>=2; deviation recorded). Deliverables at HEAD 2e0c4c9. Landmark: L4 + fleet capacity.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1760,8 +1782,8 @@
     "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."]
   },
   "T407": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T407-six-game-divergence-matrix.md",
     "set": "E",
@@ -1769,14 +1791,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T08:44:13Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T09:29:36Z",
+    "done": "2026-08-07T09:41:01Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "4x4 500-pos sample: Class B 151/270, new never worse h2h (0/270) but worse than old self-play on 56/270 -> MIXED (a plugin); new engine 0/270 below own floor (B3 holds); 89 below-L vs v2.wzo2 all old-engine slots; seeded h2h RED 40%, null PASS; 3x3 exhaustive Class B 0/126 (96% cap, reconciled)",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1870,7 +1892,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 410,
+    "next_id": 411,
     "directive_next": 56
   }
 }

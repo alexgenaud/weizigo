@@ -138,6 +138,35 @@ path segments, captured `.stdout` output, quoted third-party titles ("Solving Go
 and English idioms ("across the board"). (User's terminology ruling, 2026-07-29; extended to *goban*
 2026-07-31, swept by T120.)
 
+## Tooling gets the same pipeline as research code (user requirement, 2026-08-07) — standing
+
+**Tests before implementation, for instruments and tooling, not only for the engine.** The delivery
+pipeline — spec → design → tests → implement → independent audit → accept — has been applied to rows
+that produce numbers and skipped for the code that produces them. **Every defect of the week of
+2026-08-03 was in tooling or an instrument; none was in the kernel.** That is not luck, it is where
+the discipline was missing:
+
+| defect | why no test caught it |
+|---|---|
+| `t387_budget.zig` — `bitpos: u6` vs `while (bitpos < 64)`, infinite loop | none; only manifests under `-O ReleaseFast`, which is what `tools/runner` forces |
+| `gtp.zig` — `list_commands` reply 303 bytes into a `[256]u8` | none; crashed on a command every GUI sends at handshake |
+| `managent` — free text written into JSON unescaped | none; corrupted the live kanban **twice**, fleet-wide outage |
+| `absorb` — parser read a 221-row register as **empty** | none; reported "nothing to absorb" instead of failing |
+
+The shared failure mode is worth naming, because it recurs: **the tool reported success while doing
+nothing.** A silent wrong answer outranks a loud crash.
+
+So, standing:
+
+- **Write the failing test first and show it red**, then fix. A test written after the fix proves the
+  fix compiles, not that the test works. If a defect has already been fixed and cannot be re-observed
+  failing, **assert the invariant instead** — do not re-introduce a bug to watch it break.
+- **A tooling row is not accepted until its test is wired into `zig build test`.**
+- **Report which rows were test-first and which were not.** Sprint consoles must say so per row.
+- This binds the Orchestrator seat too. An Orchestrator production edit without a test is the same
+  defect with a better excuse — 2026-08-07, `src/gtp.zig` was fixed from the Orchestrator seat and
+  verified by hand, and its regression test had to be added afterwards by T403.
+
 ## Verification rules earned on 2026-07-29 (the QA-023 chain) — standing
 
 The QA-023 probe returned `TIE` on its first node in **1,133 of 1,133** evaluations and produced two
@@ -160,6 +189,30 @@ artefact through.** These are the rules that would have caught it, and they are 
   has: the audit that found the ko bug (F5) rewrote the algorithm in Python; document review found nothing.
 - **State every denominator, including the within-budget one.** 93% of the corrected probe's sample is
   missing; a rate quoted without that is not a measurement.
+
+## Closing report to the human — what your last console message must be (user requirement, 2026-08-07)
+
+**Everything you produce goes to disk and is read from git by the Orchestrator.** Your final console
+message is therefore *not* a handover — it is a short human-readable summary for the operator, who
+should never have to read a transcript to know what happened.
+
+End every task or sprint with a brief plain-text summary containing, in this order:
+
+1. **The headline** — what the task was, in one sentence, in words a human reads once.
+2. **Status** — `success`, `failure`, or `incomplete`. Say the word. "Pass with findings" is a
+   verdict for the ledger; the operator wants the plain status.
+3. **What he would want to know** — the load-bearing result, and anything surprising. A refuted
+   hypothesis, a defect found in something you were not working on, a number that contradicts a
+   published one.
+4. **Possible follow-up**, if a surprise suggests one. A sentence, not a plan.
+
+**No details.** No tables of denominators, no control readings, no file lists, no commit hashes. Those
+belong in the committed doc and findings file, where the Orchestrator reads them. If the summary is
+longer than a short paragraph or two, it is the wrong artifact.
+
+**Never ask the human to relay a message to another agent.** He is not a message bus. Write it to
+disk — a findings file, the row's doc, a `bin/managent tell` directive — and it will be read. Ask him
+to relay something only when there is genuinely no on-disk route, and then say explicitly why not.
 
 ## Agent-to-human output — copy/paste boundaries (user requirement, 2026-07-29)
 
