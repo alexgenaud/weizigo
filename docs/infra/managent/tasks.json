@@ -198,8 +198,8 @@
     "amendments": []
   },
   "T402": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T402-capture-budget-pluggable.md",
     "set": "M",
@@ -207,17 +207,17 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T21:34:36Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T01:23:32Z",
+    "done": "2026-08-07T01:30:32Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "ADR-0022 in docs/decisions/ (ADR-0021 taken; docs/adr/ did not exist). 11/11 tests pass. Controls fire: null=0 proposed, deliberately_wrong REFUTED at 20,216/20,216. Harness: 23,420 3x3 positions. Capture budget quarantined.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-07T01:34:15Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): acceptance (zig test src/resolver.zig) 11 passed + 1 skipped; harness reproduced independently (23,420 positions, null PASS, deliberately_wrong REFUTED 20,216/20,216); ADR-0022 complete (invariant sentence, {0,1,2,7,9,12}, quarantine framing); commit scope clean; stubs honest. THREE findings sent back: A1 MAJOR — capture_budget(B) always returns no_opinion, so the harness's L==H agreement column (the one that matters per brief) is 0/0 for the one resolver the row is about; operator's 'compare results' ask unmet for the measured construction; implement the measured budget resolution so the harness can refute-or-verify it in situ, quarantine metadata kept. A2 MAJOR — GLOBAL.FP2->PROVEN proposal is a tautology (bracket_low/mid/high agree with L==H by definition; FP2 is history-independence, unchanged by this); withdraw or downgrade the proposal before absorption. A3 MINOR — MIGOS +2 epitaph (brief Do.1) absent from ADR."]
   },
   "T370": {
     "status": "done",
@@ -242,7 +242,7 @@
     "amendments": []
   },
   "T403": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T403-gtp-boardsize-desync.md",
@@ -252,16 +252,16 @@
     "caps": [],
     "added": "2026-08-06T22:31:28Z",
     "claimed": "2026-08-07T01:09:51Z",
-    "done": null,
+    "done": "2026-08-07T01:15:59Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "desync root cause: runDeferred command table incomplete; fixed error messages + added showboard/clear_board to deferred mode; regression script 4/4 controls pass; commit 376997d",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-07T01:23:11Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): red control verified by independent pre-fix worktree build (25c0330) — showboard/clear_board return '? unknown command' pre-fix, control 1 asserts exactly that and would fail; 4/4 controls green against deployed binary; commit 376997d scoped correctly. THREE gaps sent back for correction: G1 list_commands length/acceptance invariant test (named deliverable, absent); G2 deployed bin/weizigo-gtp stamps 25c0330-dirty — rebuild+deploy from clean HEAD, smoke with zero STALE, say so; G3 Sabaki recipe absent from deferred-mode banner/usage output."]
   },
   "T404": {
     "status": "done",
@@ -1033,6 +1033,28 @@
     "skip_acceptance_reason": "suite passed at 41.0s prior to commit",
     "amendments": []
   },
+  "T409": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T409-sprint-matrix-and-machinery.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T08:45:27Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T337": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -1298,8 +1320,8 @@
     "amendments": []
   },
   "T398": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T398-t393-score-bound-correction.md",
     "set": "A",
@@ -1307,20 +1329,20 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T14:46:44Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T01:40:01Z",
+    "done": "2026-08-07T01:47:09Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "T393 score-bound claim withdrawn + value-dist histogram; T394 certification/confinement corrected; Z-cell control added; 32/32 selftest pass; both sweeps STANDS",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
   },
   "T401": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T401-bracketed-position-tournament.md",
@@ -1330,16 +1352,16 @@
     "caps": [],
     "added": "2026-08-06T21:34:05Z",
     "claimed": "2026-08-07T01:09:49Z",
-    "done": null,
+    "done": "2026-08-07T01:23:58Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "B1/B2: new worse ~17-19% from 4x4 bracketed region; B3 new: 0 escapes; B4: ~15% sign flips. Controls pass. Old-vs-new impossible at 3x3 (no WZO1).",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-07T01:31:06Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): 9 findings, sent back for correction. F1 CRITICAL: evidence doc + findings + summary report B1 168/1000, B2 193/1000, capped 144 — the committed run JSON findings/T401-bracket-tournament-4x4.json says B1 359/1000, B2 343/1000, capped 713 (direction agrees, magnitude misreported ~2x). F2 CRITICAL: seeded control is not the brief's — forced first-move pass on one game tests move-sensitivity, never weakens an engine to confirm worse-detection; no effect size; QA-023 parallel-path pattern. F3 CRITICAL: null control (old-vs-old determinism) not run; --controls-only is parsed but ignored (_ = controls_only). F4 MAJOR: 3x3 '12,816 games (4 arms)' false — only new_vs_new x2 sides = 6,408 played, capped 89.4% (5,732/6,408) not 44.7%. F5 MAJOR: B1/B2 baseline is old_vs_old self-play, not the brief's 'same opponent' (old(B) vs new(W) head-to-head) — metric as defined not measured. F6 MAJOR: 1,242 witnesses exist in committed JSON, zero published in doc. F7 MAJOR: straddling-vs-decisive class split enumerated but never analyzed (operator's sharpest class). F8 MINOR: 'old escapes 235/1000 expected - PSK under basic-ko' unverified; old engine's early-game non-greedy heuristic is an alternative cause. F9 MINOR: no commit/binary named for old engine. Commit scope and instrument trace clean otherwise."]
   },
   "T381": {
     "status": "done",
@@ -1427,6 +1449,28 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
     "skip_acceptance_reason": "--note",
+    "amendments": []
+  },
+  "T408": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T408-ollama-subagent-reach-validation.md",
+    "set": "G",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T08:44:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T360": {
@@ -1540,8 +1584,8 @@
     "amendments": []
   },
   "T405": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T405-sprint-engine-and-register.md",
     "set": "S",
@@ -1549,14 +1593,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T00:07:36Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T01:55:19Z",
+    "done": "2026-08-07T01:55:32Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "sprint complete (process correction: T405 itself was never claimed at session start — console error, subdelegated rows claimed correctly; force-close is genuine, all four rows closed + report committed 9da04a0, acceptance file exists). T401/T402/T403/T398 closed; three sent back and re-accepted (T401 9 findings, T402 3, T403 3; T398 first-pass). Headline: T401 h2h 0/1000 vs self-play 359+343/1000; T402 FP2 tautology withdrawn; T403 invariant control + zero-STALE; T398 Z-cell control. Residuals: 4 non-conforming findings files, no h2h-seeded control, clobber-restore (data intact), Pro-vs-Flash deviation.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1715,6 +1759,28 @@
     "skip_acceptance_reason": "Worker killed at 1800s wall; committed code + findings. Standalone smoke not yet run.",
     "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."]
   },
+  "T407": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T407-six-game-divergence-matrix.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T08:44:13Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T395": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -1804,7 +1870,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 407,
+    "next_id": 410,
     "directive_next": 55
   }
 }
