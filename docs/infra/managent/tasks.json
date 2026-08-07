@@ -329,6 +329,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T416": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T416-optimal-subgraph-cycle-test.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T23:27:38Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T335": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -747,6 +769,28 @@
     "skip_acceptance_reason": "vb_i11 not yet wired into build.zig — sprint console responsibility per brief; standalone 14/14 pass",
     "amendments": []
   },
+  "T417": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T417-sprint-cycles-and-solution-tree.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T23:27:38Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T412": {
     "status": "done",
     "agent": "glm-5.2",
@@ -1122,7 +1166,7 @@
     "amendments": []
   },
   "T411": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T411-show-the-work-dispatch-verification.md",
@@ -1132,12 +1176,12 @@
     "caps": [],
     "added": "2026-08-07T11:09:46Z",
     "claimed": "2026-08-07T12:01:30Z",
-    "done": null,
+    "done": "2026-08-07T12:39:58Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "T411 (show-the-work dispatch verification) — dispatchers now verify the work: nonce echo + declared deliverables + row-left-dispatchable, failing a lazy 'OK.' worker (red run first: pre-T411 rc=0); regression wired into zig build test (all controls green); deploy + smoke zero STALE at 82a044e; fixed latent T317 deliverables= parser bug; surfaced env-leak fragility in standing regressions (stale MANAGENT_TASK_ID / WEIZIGO_AGENT_DEPTH) — follow-up proposed to T414 (D060); commits 365e50b 95bbe8c 75699a4 82a044e",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
@@ -1694,8 +1738,8 @@
     "amendments": ["2026-08-07T08:47:43Z: verdict=pass-with-findings note=Orcha follow-up 2026-08-07 complete: (1) findings schema repaired — 5 files now conforming (4 original + 1 recreated by follow-up worker, caught by the new claimlint acceptance gate), values verified identical to HEAD; workflow-gap answer: claimlint C7 is now a standing per-row acceptance check (was run only at sprint end before). (2) h2h three-way split published: 868 better/132 equal/0 worse per colour, identical sequences 25/1000 (2.5%), ply agreement 55.8% — not a tautology; verified by console re-run. (3) seeded h2h control fires: RED 73/400 (18.3%) + 75/400 (18.8%) worker config, 147/400 + 138/400 console config, GREEN 0 — 0/1000 now CONTROLLED. Commits 8620dd5 + 9e02697."]
   },
   "T414": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T414-sprint-loops-and-cleanup.md",
     "set": "S",
@@ -1704,12 +1748,12 @@
     "caps": [],
     "added": "2026-08-07T11:31:59Z",
     "claimed": "2026-08-07T11:36:04Z",
-    "done": null,
+    "done": "2026-08-07T12:49:45Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "Sprint console #3: T412 loop onset (per-position sibling 5080/47456 3x3, DTT max 9/17 — cap is loop-trimming not depth), T413 corpus cleanup (10/16 + Part B), T411 dispatch verification (lazy OK. now fails rc=2). All audited with independent re-runs, all numbers reproduced, all findings claimlint-clean. Audit catch: D058 (operator cycle-test refinement) posted 41s after T412 closed, unread — the cycle test is the open headline question; do NOT propagate 'falsified' as established. Residuals: D058 cycle test (mint), quasi-rule build, 4x3 DTT, D060 env-leak scrub, F13 scan, F09 ratification. Commit 03ba1b0.",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
@@ -2002,7 +2046,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 416,
-    "directive_next": 59
+    "next_id": 418,
+    "directive_next": 61
   }
 }
