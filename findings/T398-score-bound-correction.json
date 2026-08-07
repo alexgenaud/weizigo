@@ -1,0 +1,48 @@
+{
+  "task_id": "T398",
+  "date": "2026-08-06",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T398 covers two corrections: T393's score-bound argument (Part A) and T394's certification-vs-confinement conflation (Part B). Both measurements stand; the reasoning in both docs is corrected. Added value-distribution histogram to t393_census.zig and a synthetic Z-cell positive control. All 32 selftest checks pass (including 3 new Z-control checks). 3×3 and 4×4 sweeps confirmed: hypothesis STANDS (Z∧alive=0).",
+  "t393_score_bound_retraction": {
+    "summary": "The paragraph at two-life-census-2026-08-06.md:162 argued that a Benson-alive chain's k stones bound the score away from zero (≥k for Black), which would rule out straddling for terminated lines. This is false and refuted by T393's own 3×3 table: 90 Black-alive entries have value ≤ 0, with the lowest at L=H=-2 (two-stone chain). The doc now carries an explicit withdrawal with the value-distribution table and corrected reasoning.",
+    "witness": "Black alive, L=H=-2, position colex at 3×3: ooo / o.x / ox. (two single-stone Black chains, each Benson-alive, White holding the rest)",
+    "3x3_black_alive_value_distribution": {
+      "L_values": [-2, -1, 0, 1, 2, 3, 4, 5, 6, 9],
+      "entry_counts": [4, 26, 60, 98, 112, 72, 132, 88, 160, 2518],
+      "total": 3270,
+      "denominator": "all 49,428 WZO2 entries at 3×3"
+    },
+    "4x4_alive_value_histogram_all": {
+      "L_values": [-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "entry_counts": [2082524, 0, 0, 24016, 17944, 30656, 39670, 51968, 62498, 69244, 74340, 71224, 66248, 56612, 49892, 41860, 54296, 41860, 49892, 56612, 66248, 71224, 74340, 69244, 62498, 51968, 39670, 30656, 17944, 24016, 0, 0, 2082524],
+      "total": 5531688,
+      "denominator": "all 99,133,036 WZO2 entries at 4×4",
+      "note": "symmetric about L=0 (colour-inversion); min alive-entry score is -16/16"
+    },
+    "4x4_alive_value_histogram_fs": {
+      "L_values": [-16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "entry_counts": [1369470, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 0, 7560, 0, 216, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1369470],
+      "total": 2746932,
+      "denominator": "48,505,262 fresh-start WZO2 entries at 4×4",
+      "note": "sparse: only L∈{-16,-2,0,+2,+16} nonzero; the -2/+2 entries (216 each) are the sharpest witnesses"
+    }
+  },
+  "t393_control_gap": {
+    "summary": "The three seeded mutants (never-alive, always-alive, White-blind) test the Benson-alive predicate on hand-built canary boards, never in the sweep. No control proved the Z cell can report non-zero.",
+    "fix": "Added synthetic Z-cell positive control (selftest block 7): a 2×2 fixture with colex 24 (two Black diagonal stones, both Benson-alive) and a straddling entry (L=-1, H=1). The sweep reports z_either==1, proving the Z cell reporting path is live. All 3 new control checks pass.",
+    "lesson": "A control that exercises a predicate is not a control on the cell you report."
+  },
+  "t394_certification_vs_confinement": {
+    "summary": "force-life-classifier-2026-08-06.md:176-180 concluded that T2's 1.05% exception rate bounds the 'stop valuing, it's a draw' oracle error. This bounds the wrong direction: T2 measures draw-by-loop ⟹ neither-can-force; the oracle needs the converse (neither-can-force ⟹ draw), and T3 measures that as 85.3% false at 4×4. The doc now carries an explicit withdrawal stating confinement is not certification.",
+    "T2_actual": "draws-by-loop are CONFINED to the neither-can-force class (0 exceptions through 3×3; 32 at 4×3; 9,376 at 4×4 of 895,216)",
+    "T3_actual": "neither-can-force class at 4×4 is 85.3% decisive (19,518,338 of 22,885,430)",
+    "verdict": "confinement ≠ certification; T2→T3 pointer added so the two cannot be read apart"
+  },
+  "selftest_result": "32 passed, 0 failed (including 3 new Z-control checks)",
+  "sweep_results": {
+    "3x3": "STANDS: Z∧either-alive=0, spotcheck 0/13 mismatches, all committed cross-checks reproduced",
+    "4x4": "STANDS: Z∧either-alive=0, pin census MATCHES A4 baseline, spotcheck 0/23749 mismatches"
+  }
+}

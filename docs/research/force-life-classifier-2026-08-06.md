@@ -175,9 +175,22 @@ within the bound).
 
 **Which way T2 cuts:** mostly **for** the operator's hypothesis. The "draw-by-loop
 ⟹ nobody can force life" implication holds exactly through 3×3 and on
-98.95–99.88% of the draw-by-loop entries at 4×3/4×4; the measured exception
-rate (with witnesses) is the honest bound on using the classifier as a
-certified "stop valuing, it's a draw" oracle at 4×4.
+98.95–99.88% of the draw-by-loop entries at 4×3/4×4.
+
+**Withdrawn (2026-08-06, T398):** an earlier draft concluded here that "the measured
+exception rate (with witnesses) is the honest bound on using the classifier as a
+certified 'stop valuing, it's a draw' oracle at 4×4." **That bounds the wrong
+direction.** T2 measures *draw-by-loop ⟹ neither-can-force-life*. The oracle use is
+the **converse** — *neither-can-force ⟹ draw* — and **T3, twelve lines below,
+measures that converse as false**: 85.3% of the neither-can-force class at 4×4 is
+decisive (19,518,338 of 22,885,430), and it is majority-decisive at every size
+≥ 3×2. The oracle's error rate is **85.3%, not T2's 1.05%**; a search pruning on it
+would abandon 19.5 million decisively valued 4×4 states.
+
+What T2 actually supports: **draws-by-loop are CONFINED to the neither-can-force
+class** (exact through 3×3: 0 exceptions over 92 + 298 + 1,248; 32 exceptions at
+4×3; 9,376 witnessed at 4×4 of 895,216). **Confinement is not certification.** See
+§T3 immediately below for the converse measurement.
 
 ### T3 (converse of T2) — among states where NEITHER player can force life, what fraction are draw-by-loop vs decisive?
 

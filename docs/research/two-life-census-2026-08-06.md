@@ -159,20 +159,37 @@ Benson-alive chain for either colour. **Position-level form:** 507,484 positions
 624 at 3×3) have at least one straddling entry; **zero** of those positions contain any
 alive chain.
 
-**Why this is not trivially forced, and why it matters.** A Benson-alive chain of *k* stones
-can never be captured, so in every *terminated* line the Black-positive score is bounded away
-from zero on the chain owner's side (≥ *k* for a Black chain; ≤ −*k* for a White chain) —
-that alone rules out straddling only for *terminated* lines. A straddling bracket could in
-principle still arise from draw-loop states, where the TIE=0 cycle value beats termination,
-and the residual cells beside a live group are exactly where 4×4's ko fights live (21.33% of
-WZO1 non-settled slots are ko-sensitive). The table shows **no such state exists**: wherever
+**Why this is not trivially forced, and why it matters.**
+
+**Withdrawn (2026-08-06, T398):** an earlier draft of this paragraph argued that a
+Benson-alive chain's *k* stones bound the owner's score away from zero (≥ *k* for Black),
+which would rule out straddling for terminated lines and leave only loop states as the
+possible exception. **That is wrong, and T393's own 3×3 table refutes it.**
+Unconditional life bounds the owner's *area*; the score is area *minus the opponent's*,
+and the opponent can hold more of the goban. The value distribution of WZO2 entries
+containing a Black Benson-alive chain at 3×3:
+
+| L | −2 | −1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| entries | 4 | 26 | 60 | 98 | 112 | 72 | 132 | 88 | 160 | 2,518 |
+
+**90 entries have a Black unconditionally-alive chain and a value ≤ 0; 60 sit exactly at
+zero.** The lowest is `L == H == −2` with a two-stone alive chain — where the earlier claim
+would predict `≥ +2`, so it is wrong by four points and by sign. A live chain is compatible
+with a negative score, a zero score, and could a priori be compatible with a straddling
+bracket. T393's categorical result — *wherever unconditional life sits on the goban, the
+stored table certifies `L == H`* — is therefore **less expected** than the earlier draft
+claimed, not a more expected one.
+
+A straddling bracket could in principle arise from a terminated state (a live chain losing
+on area) just as easily as from a draw-loop state — the zeroing-out argument does not
+work in either case. The table nevertheless shows **no such state exists**: wherever
 unconditional life is on the board, the least/greatest-fixpoint pair is already certified
-(L==H) — the residual ko machinery never keeps a live position ambiguous. This is a measured
-structural property of the stored tables, not a derived theorem; note the L<H columns are the
-distrusted ko-sensitive region per the foreclosures, and the finding's force is *categorical*
-(alive entries never co-occur with non-T brackets), so it is robust to value distrust unless
-Track A's regeneration changes which entries are L<H (then the re-run is a 5-minute check on
-this instrument).
+(L==H). This is a measured structural property of the stored tables, not a derived theorem;
+note the L<H columns are the distrusted ko-sensitive region per the foreclosures, and the
+finding's force is *categorical* (alive entries never co-occur with non-T brackets), so it
+is robust to value distrust unless Track A's regeneration changes which entries are L<H
+(then the re-run is a 5-minute check on this instrument).
 
 **Whose loop threat survives a live group?** The question is moot in the measured tables:
 no straddling state contains a live group, so no loop threat survives one. At the coarser
@@ -217,7 +234,15 @@ is false at 3×3: 206 of 1,766 alive positions do without the centre, in 38 dist
   colex-first two-life position at 4×4 (shown by `--twolife`).
 - **Seeded-defect control** — three deliberately broken vitality predicates (never-alive,
   always-alive, White-blind); each trips the canary that the correct predicate passes
-  (selftest).
+  (selftest). **Control gap (T398):** these mutants are substituted only into hand-built
+  canary boards (`src/t393_census.zig:671-693`), never into the sweep — so no control
+  proves the Z cell *can* report non-zero. The zero reading survives on the
+  by-construction argument in §1 above, which is sound but is not a control. The
+  general lesson: a control that exercises a predicate is not a control on the cell
+  you report.
+- **Synthetic Z-cell positive control (T398)** — a 2×2 fixture with a straddling entry
+  planted on a position with a Benson-alive chain; the sweep reports `z_either == 1`,
+  proving the Z cell reporting path is live.
 - **Independent re-implementation** — every 1024th group compared
   `rules.benson_alive` against the independent `naive_benson_alive`: 13 groups (3×3) and
   23,749 groups (4×4), **0 mismatches** (the QA-023 rule: re-implementation is what finds

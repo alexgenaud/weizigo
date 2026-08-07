@@ -166,6 +166,10 @@ const Wzo2Result = struct {
     pos_has_z_and_alive: u64 = 0,
     spot_checked: u64 = 0,
     spot_mismatch: u64 = 0,
+    // value histogram — entries containing an alive chain (either colour), by L value
+    // index = @as(u8, @bitCast(L)) (i8 → u8, covering −128..127; scores fit in ±16)
+    alive_value_histogram_all: [256]u64 = [_]u64{0} ** 256,
+    alive_value_histogram_fs: [256]u64 = [_]u64{0} ** 256,
     // part 3 (3×3 only)
     pos_alive_any: u64 = 0,
     alive_any_no_centre: u64 = 0,
@@ -317,6 +321,9 @@ fn Wzo2Sweep(comptime w: usize, comptime h: usize) type {
                     const either = side_alive or opp_alive;
 
                     addEntry(&res.all, br, side_alive, opp_alive);
+                    if (either) {
+                        res.alive_value_histogram_all[@as(u8, @bitCast(L))] += 1;
+                    }
                     if (br == .Z and either) {
                         res.all.z_either += 1;
                         if (res.all.n_witnesses < 3) {
@@ -338,6 +345,9 @@ fn Wzo2Sweep(comptime w: usize, comptime h: usize) type {
                     const is_fs = (dec.passes == 0) and (dec.ko == ko_none_val);
                     if (is_fs) {
                         addEntry(&res.fs, br, side_alive, opp_alive);
+                        if (either) {
+                            res.alive_value_histogram_fs[@as(u8, @bitCast(L))] += 1;
+                        }
                         if (br == .Z and either) res.fs.z_either += 1;
                     }
 
@@ -469,6 +479,8 @@ fn Wzo2Sweep(comptime w: usize, comptime h: usize) type {
             }
             printBracketCounts("all entries", &res.all);
             printBracketCounts("fresh-start slice (passes=0, ko=none)", &res.fs);
+            printAliveValueHistogram("all", &res.alive_value_histogram_all);
+            printAliveValueHistogram("fresh-start", &res.alive_value_histogram_fs);
             const verdict = if (res.all.z_either == 0 and res.fs.z_either == 0) "STANDS" else "REFUTED";
             util.out("hypothesis (no state containing a Benson-alive chain has a bracket straddling zero): all_entries_z_either={d}  freshstart_z_either={d}  -> {s}\n", .{ res.all.z_either, res.fs.z_either, verdict });
             var wi: u8 = 0;
@@ -480,6 +492,47 @@ fn Wzo2Sweep(comptime w: usize, comptime h: usize) type {
                 });
             }
             util.out("== end {d}x{d}\n", .{ w, h });
+        }
+
+        fn printAliveValueHistogram(slice: []const u8, hist: *const [256]u64) void {
+            var nonzero: u64 = 0;
+            var lo: i8 = 127;
+            var hi: i8 = -128;
+            for (0..256) |i| {
+                if (hist[i] > 0) {
+                    nonzero += hist[i];
+                    const v: i8 = @bitCast(@as(u8, @intCast(i)));
+                    if (v < lo) lo = v;
+                    if (v > hi) hi = v;
+                }
+            }
+            if (nonzero == 0) {
+                util.out("part2 {s} alive-value histogram: (no entries with alive chains)\n", .{slice});
+                return;
+            }
+            util.out("part2 {s} alive-value histogram (L values of entries containing an alive chain, either colour, {d} total):\n", .{ slice, nonzero });
+            // emit "L: v1 v2 ..." then "#: n1 n2 ..." using write
+            var buf: [4096]u8 = undefined;
+            const L_row = std.fmt.bufPrint(&buf, "  L:", .{}) catch unreachable;
+            var off: usize = L_row.len;
+            var v = lo;
+            while (v <= hi) : (v += 1) {
+                const s = std.fmt.bufPrint(buf[off..], " {d}", .{v}) catch unreachable;
+                off += s.len;
+            }
+            buf[off] = '\n';
+            off += 1;
+            const cnt_row = std.fmt.bufPrint(buf[off..], "  #:", .{}) catch unreachable;
+            off += cnt_row.len;
+            v = lo;
+            while (v <= hi) : (v += 1) {
+                const idx: u8 = @bitCast(v);
+                const s = std.fmt.bufPrint(buf[off..], " {d}", .{hist[idx]}) catch unreachable;
+                off += s.len;
+            }
+            buf[off] = '\n';
+            off += 1;
+            util.out("{s}", .{buf[0..off]});
         }
 
         fn printBracketCounts(label: []const u8, c: *const BracketCounts) void {
@@ -736,6 +789,36 @@ fn selftest(io: std.Io, gpa: std.mem.Allocator) !void {
         check(res.groups == 2 and res.entries == 4, "synthetic walker: groups=2 entries=4", &passed, &failed);
         check(res.all.by_bracket[@intFromEnum(Bracket.Z)] == 1 and res.all.by_bracket[@intFromEnum(Bracket.L)] == 1 and res.all.by_bracket[@intFromEnum(Bracket.T)] == 2, "synthetic walker: bracket counts T=2 L=1 Z=1", &passed, &failed);
         check(res.fs.entries == 3, "synthetic walker: fresh-start slice = 3 (passes=1 entry excluded)", &passed, &failed);
+    }
+
+    // ── 7. synthetic Z-cell positive control: a straddling entry on a position with an alive chain ──
+    {
+        const w: u8 = 2;
+        const h: u8 = 2;
+        const kb = artifact2.koBits(w * h);
+        const none = artifact2.koNone(w, h); // 4
+        // colex 24 = two Black stones at diagonal cells (0,0) and (1,1) — both are Benson-alive
+        // in 2×2 because each single-stone chain has two disconnected vital regions
+        const groups = [_]artifact2.GroupHeader{
+            .{ .colex = 24, .entry_count = 2 },
+        };
+        const entries = [_]artifact2.EntryRow{
+            // side=Black, fresh-start, L=-1 H=1 → Z bracket
+            .{ .key_byte = artifact2.encodeKeyByte(0, none, 0, 0, kb), .L = -1, .H = 1, .DTT = 10 },
+            // side=White, fresh-start, L=2 H=2 → T bracket (control: alive chain still present as opponent)
+            .{ .key_byte = artifact2.encodeKeyByte(1, none, 0, 0, kb), .L = 2, .H = 2, .DTT = 8 },
+        };
+        const art = artifact2.Artifact{
+            .header = .{ .w = w, .h = h, .ko_bits = kb, .n_groups = groups.len, .n_entries = entries.len, .sha256 = [_]u8{0} ** 32 },
+            .group_headers = &groups,
+            .entry_rows = &entries,
+        };
+        const file_bytes = try artifact2.buildFile(gpa, &art);
+        defer gpa.free(file_bytes);
+        const res = try Wzo2Sweep(2, 2).sweepBytes(file_bytes, gpa);
+        check(res.all.z_either == 1, "synthetic Z-control: Z cell reports 1 when position has an alive chain and a straddling entry", &passed, &failed);
+        check(res.all.by_bracket[@intFromEnum(Bracket.Z)] == 1, "synthetic Z-control: Z bracket count is 1", &passed, &failed);
+        check(res.all.alive[@intFromEnum(Bracket.Z)].either == 1, "synthetic Z-control: Z alive(either) is 1", &passed, &failed);
     }
 
     util.out("selftest: {d} passed, {d} failed\n", .{ passed, failed });
