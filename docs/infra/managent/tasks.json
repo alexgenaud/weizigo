@@ -748,7 +748,7 @@
     "amendments": []
   },
   "T412": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T412-loop-onset-and-cap-honesty.md",
@@ -758,12 +758,12 @@
     "caps": [],
     "added": "2026-08-07T11:31:59Z",
     "claimed": "2026-08-07T11:42:33Z",
-    "done": null,
+    "done": "2026-08-07T12:08:14Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Loop onset located (sibling test) + ply cap measured from table. 3x3 5080/47456 (10.70%) and 4x4 6073/200000 (3.04%) positions force optimal play into a loop (one-of-one 87-90%); max decisive DTT=9 (3x3)/17 (4x4) << T407's 400, so the 96% 3x3 cap is loop-trimming not depth; replay 100% value-preserving + 100% cycle; no cheap predictor (best F1 0.30/0.11). Quasi-rule side-by-side not done (no artifact). Amend D056 acked. Commit d95d268.",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
@@ -1122,8 +1122,8 @@
     "amendments": []
   },
   "T411": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T411-show-the-work-dispatch-verification.md",
     "set": "C",
@@ -1131,14 +1131,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T11:09:46Z",
-    "claimed": null,
+    "claimed": "2026-08-07T12:01:30Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1869,6 +1869,28 @@
     "skip_acceptance_reason": "Worker killed at 1800s wall; committed code + findings. Standalone smoke not yet run.",
     "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."]
   },
+  "T415": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T415-solution-tree-provenance.md",
+    "set": "J",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T12:09:00Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T407": {
     "status": "done",
     "agent": "glm-5.2",
@@ -1980,7 +2002,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 415,
-    "directive_next": 57
+    "next_id": 416,
+    "directive_next": 59
   }
 }
