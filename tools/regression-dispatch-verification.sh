@@ -48,6 +48,11 @@ OLLAMA_SUBAGENT="$ROOT/bin/ollama-subagent"
 MG="$ROOT/bin/managent"
 FAIL=0
 
+# The scratch dir lives under /tmp/weizigo (disposable outputs); this script
+# is also T411's acceptance gate, so it must not depend on the operator having
+# created it.
+mkdir -p /tmp/weizigo
+
 # A stale depth stamp from a worker-run suite would make the dispatchers
 # refuse (depth cap). The regression simulates the human console.
 unset WEIZIGO_AGENT_DEPTH || true
