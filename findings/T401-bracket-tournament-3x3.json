@@ -28,5 +28,8 @@
   "b1_witnesses": [],
   "b2_witnesses": [],
   "b4_witnesses": [],
-  "b3_witnesses": []
+  "b3_witnesses": [],
+  "claims": [],
+  "new_rows": [],
+  "notes": "Repaired by deepseek-v4-flash/T405 (Orcha directive, 2026-08-07): added empty claims[]/new_rows[] so the file conforms to findings/README.md schema (claimlint reported it NON-CONFORMING — missing required key 'claims'). No measurement or number changed; this file was a data dump, not a proposal."
 }

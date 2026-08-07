@@ -3,5 +3,8 @@
   "_note": "This file exists only to satisfy the task's declared deliverables list. The real findings are at findings/T402-capture-budget-pluggable.json. The slug was changed because 'pluggable-resolvers' was the brief's placeholder; the actual finding is the capture-budget quarantine.",
   "task_id": "T402",
   "date": "2026-08-07",
-  "model": "deepseek-v4-pro"
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Repaired by deepseek-v4-flash/T405 (Orcha directive, 2026-08-07): added empty claims[]/new_rows[] so the file conforms to findings/README.md schema (claimlint reported it NON-CONFORMING — missing required key 'claims'). No measurement or number changed; this file was a data dump, not a proposal."
 }
