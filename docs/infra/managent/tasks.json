@@ -946,8 +946,8 @@
     "amendments": []
   },
   "T399": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T399-tell-note-newline-corruption.md",
     "set": "C",
@@ -955,14 +955,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-06T14:53:22Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-06T23:31:06Z",
+    "done": "2026-08-06T23:31:11Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1517,6 +1517,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T405": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T405-sprint-engine-and-register.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-07T00:07:36Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T374": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -1584,7 +1606,7 @@
     "amendments": ["2026-08-04T08:59:31Z: verdict=pass-with-findings note=Resuming console (commit 93c2000): independent re-derivation confirmed prior T330.2 work + its 3 extra live dependents; found and fixed 3 sole-evidence mis-annotations — 4x4.F2, 4x4.F3, GLOBAL.H5c were 'superseded by remaining evidence' but had NO remaining e: source (their d: edges are derives-from, not evidence; brief case 1 is e:-only); corrected to 'evidence retired; needs re-derivation'. Amended sheet §Completion ('Two'->'Five' edges) with a Correction paragraph. claimlint unchanged at floor. All 3 deliverables tracked & unmodified."]
   },
   "T392": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T392-suite-bisect.md",
@@ -1594,11 +1616,11 @@
     "caps": [],
     "added": "2026-08-06T02:38:34Z",
     "claimed": "2026-08-06T22:16:10Z",
-    "done": null,
+    "done": "2026-08-06T22:38:31Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/SUITE-BISECT/bisect-2026-08-06.md",
@@ -1758,10 +1780,9 @@
     "acceptance": "zig build test",
     "skip_acceptance_reason": "acceptance is zig build test; T360's node-budget panic makes it red by design until T363 resolves the underlying explosion. zig build exits 0 and the mechanism is demonstrated by D025-D035.",
     "amendments": []
-  }
-,
+  },
   "_sys": {
-    "next_id": 405,
+    "next_id": 406,
     "directive_next": 55
   }
 }
