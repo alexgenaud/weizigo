@@ -152,6 +152,70 @@ else
     echo "    PASS: session stays alive after wrong-size boardsize"
 fi
 
+# ── 5. list_commands invariant (T403-followup G1) ──────────────────
+# The original bug (8998d09) was a hand-written [256]u8 reply buffer while
+# the real list_commands reply was 303 bytes.  This control asserts two
+# invariants that would have caught it:
+#   a) the number of listed commands equals KNOWN_COMMANDS.len (24)
+#   b) every listed command is individually accepted by known_command
+# Adding a command without updating this count fails the assertion.
+# Updating the count without adding the command also fails (the known_command
+# loop won't find it).  Either way, the invariant guard fires.
+#
+# GTP reply format: the first command name is on the same line as the '='
+# prefix (e.g. "= protocol_version"), then the rest on their own lines,
+# then a blank line to end the reply.
+echo ""
+echo "  5. list_commands invariant (count + per-command known_command)"
+OUT5=$(printf 'list_commands\nquit\n' | "$GTP" "$ARTIFACT" 2>/dev/null)
+
+EXPECTED_COUNT=24  # must match KNOWN_COMMANDS.len in src/gtp.zig
+
+# Extract commands from the list_commands reply: first from the '= ' line,
+# then subsequent lines until blank.
+# awk: after seeing the '= ' reply-start line, extract the first command
+# from it (strip "= " prefix), then print subsequent lines until blank.
+count=$(echo "$OUT5" | awk '
+  /^= / && !in_reply { in_reply=1; sub(/^= /, ""); print; next }
+  in_reply && /^$/ { exit }
+  in_reply { print }
+' | wc -l | tr -d ' ')
+
+if [ "$count" -ne "$EXPECTED_COUNT" ]; then
+    echo "    FAIL: list_commands returned $count commands, expected $EXPECTED_COUNT"
+    echo "$OUT5" | sed 's/^/      /'
+    FAIL=1
+else
+    echo "    PASS: list_commands count = $count (expected $EXPECTED_COUNT)"
+fi
+
+# Per-command known_command check — use same extraction
+cmds=$(echo "$OUT5" | awk '
+  /^= / && !in_reply { in_reply=1; sub(/^= /, ""); print; next }
+  in_reply && /^$/ { exit }
+  in_reply { print }
+')
+n_known=0
+n_unknown=0
+while IFS= read -r cmd; do
+    if [ -z "$cmd" ]; then continue; fi
+    kc=$(printf 'known_command %s\nquit\n' "$cmd" | "$GTP" "$ARTIFACT" 2>/dev/null)
+    if echo "$kc" | grep -q '= true'; then
+        n_known=$((n_known + 1))
+    else
+        echo "    FAIL: known_command $cmd not = true"
+        n_unknown=$((n_unknown + 1))
+    fi
+done <<EOF
+$cmds
+EOF
+
+if [ "$n_unknown" -eq 0 ]; then
+    echo "    PASS: all $n_known listed commands accepted by known_command"
+else
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-gtp-boardsize: ALL CONTROLS PASSED ==="

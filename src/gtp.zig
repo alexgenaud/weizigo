@@ -1867,6 +1867,7 @@ fn runSession(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, dec:
 
 pub fn main(init: std.process.Init) !void {
     std.debug.print("{s}\n", .{version.banner("weizigo-gtp")});
+    std.debug.print("usage: weizigo-gtp <path-to-wzo>  (Sabaki: board 4×4, komi 0, argument data/oracle-4x4-v2.wzo2)\n", .{});
     const gpa = std.heap.page_allocator;
     var args = std.process.Args.Iterator.init(init.minimal.args);
     _ = args.next(); // argv0
@@ -1941,6 +1942,7 @@ fn runDeferred(io: std.Io, gpa: std.mem.Allocator, opt_log_dir: ?[]const u8, enf
     defer out.deinit(gpa);
 
     std.debug.print("weizigo-oracle: deferred mode — waiting for boardsize…\n", .{});
+    std.debug.print("  start with: weizigo-gtp <path-to-wzo>  (e.g. data/oracle-4x4-v2.wzo2; Sabaki: board 4×4, komi 0)\n", .{});
 
     while (true) {
         const got = stdin.readStreaming(tio, &.{&in_buf}) catch 0;
