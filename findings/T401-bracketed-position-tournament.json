@@ -1,0 +1,51 @@
+{
+  "task_id": "T401",
+  "date": "2026-08-07",
+  "model": "deepseek-v4-pro",
+  "size": "3x3 and 4x4",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Inbox directives: none. Bracket tournament complete: 3x3 exhaustive (3204 positions) and 4x4 sample (500/1962142 positions, seed 12345). Controls: seeded control passed (forced-pass-first produced different score, harness is sensitive). No null control run (but engine determinism not in question — this is the same artifact as T389 which passed determinism checks).",
+  "findings": {
+    "3x3": {
+      "positions": 3204,
+      "exhaustive": true,
+      "old_engine_available": false,
+      "straddling": 616,
+      "decisive_black": 1294,
+      "decisive_white": 1294,
+      "b1_b2_skipped": "no old (WZO1) engine available for 3x3 — old-vs-new comparison impossible at this size",
+      "b3_new_escapes": 0,
+      "b3_new_total": 676,
+      "b3_old_escapes": 0,
+      "b3_old_total": 0,
+      "capped_games": 5732,
+      "result": "B3 passes at 3x3: 0 escapes in 676 non-capped new-vs-new self-play games. High cap rate (5732/12816 = 44.7%) due to cycles in bracketed positions."
+    },
+    "4x4": {
+      "positions_sampled": 500,
+      "positions_total": 1962142,
+      "seed": 12345,
+      "old_engine_available": true,
+      "old_engine_artifact": "data/oracle-4x4.checkpoint.wzo",
+      "straddling_sample": "~128 of 500 (sampled proportionally)",
+      "b1_worse": 168,
+      "b1_total": 1000,
+      "b2_worse": 193,
+      "b2_total": 1000,
+      "b4_flips_new_black": 145,
+      "b4_total_new_black": 1000,
+      "b4_flips_new_white": 160,
+      "b4_total_new_white": 1000,
+      "b3_new_escapes": 0,
+      "b3_new_total": 287,
+      "b3_old_escapes": 235,
+      "b3_old_total": 1000,
+      "cross_table_disagree": 279,
+      "cross_table_checked": 287,
+      "capped_games": 144,
+      "seeded_control": "PASS: forced pass first move produced different score (1 vs 3), harness detects weakened engine",
+      "result": "B1/B2: new engine IS worse than old from bracketed positions (168/1000 as Black, 193/1000 as White). B3: new engine stays within its own bracket (0/287 escapes). B4: 145+160 sign flips (new loses where old did not). Old engine escapes (235/1000) expected — PSK values under basic-ko rules. Cross-table disagreement 279/287 — the two engines' stored values differ almost everywhere in the bracketed region."
+    }
+  }
+}
