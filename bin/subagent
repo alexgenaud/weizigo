@@ -123,8 +123,13 @@ def main(argv):
         dl_lines = "\n".join(f"  - {d}" for d in deliverables)
         prompt = (f"Follow {bundle}\n\n"
                   f"FIRST: bin/managent claim {target} --agent {model}\n"
-                  f"You are a worker. The brief carries everything.\n\n"
-                  f"{dispatch_verify.nonce_prompt_lines(nonce)}"
+                  + ("You are a manager: you may dispatch your own sub-rows with "
+                     "bin/subagent or bin/ollama-subagent, and you never ask the human "
+                     "to relay a dispatch. The brief carries everything.\n\n"
+                     if depth + 1 < MAX_DEPTH else
+                     "You are a leaf: you are at the delegation cap and do not dispatch. "
+                     "The brief carries everything.\n\n")
+                  + f"{dispatch_verify.nonce_prompt_lines(nonce)}"
                   f"WHEN DONE, before any other output:\n"
                   f"  Deliverables declared by the bundle (managent done checks every one):\n"
                   f"{dl_lines}\n"
