@@ -224,7 +224,15 @@ to relay something only when there is genuinely no on-disk route, and then say e
 ## Agent-to-human output — copy/paste boundaries (user requirement, 2026-07-29)
 
 The human relays text between consoles by hand. **Anything he is meant to copy must be unambiguously
-bounded, so he never has to guess which paragraphs are the payload.** Two forms, and only two:
+bounded, so he never has to guess which paragraphs are the payload.**
+
+**Placement first (user requirement, 2026-08-08): if your message contains something he can dispatch
+NOW, put it EARLY — not at the end.** He is a dispatcher first and a reader second, so a prompt
+buried under analysis blocks him from starting the work while he reads about it. One line of context
+at most, then the dispatch line, then the explanation. (With *several* payloads, the
+consecutive-fences rule below still applies once past the opening.)
+
+Two forms, and only two:
 
 **1. A prompt one-liner is exactly one line.** No wrapping, no internal newlines, no leading bullet or
 quote marker — it must survive a single select-and-paste. If it does not fit on one line, it is not a
