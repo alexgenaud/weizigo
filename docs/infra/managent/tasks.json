@@ -109,6 +109,28 @@
     "skip_acceptance_reason": "zig build test not green on this clone: pre-existing tools/regression-managent-standing.sh failure (STANDING-ABSORB et al. not registered in kanban — Orchestrator standing-task matter, not T347) + suite already non-green per T340's record (T338 uncommitted differential.zig). T347's own gates pass in isolation: zig test src/vb_health.zig 38/38, zig test src/vb_mutants.zig 43/43 incl. M9-BATTERY-STUBBED kill, red-then-green wiring proof demonstrated, no-silent-bypass @compileError gate verified. The M9 kill test in vb_mutants.zig is wired into zig build test; vb_health.zig wiring is the sprint console's job (brief: do not edit build.zig).",
     "amendments": []
   },
+  "T421": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T421-evidence-in-tmp-repoint.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T06:43:03Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T344": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -1386,7 +1408,7 @@
     "amendments": []
   },
   "T419": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T419-loopy-child-taxonomy.md",
@@ -1396,11 +1418,11 @@
     "caps": [],
     "added": "2026-08-08T00:38:27Z",
     "claimed": "2026-08-08T00:45:25Z",
-    "done": null,
+    "done": "2026-08-08T01:43:52Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -1518,8 +1540,8 @@
     "amendments": []
   },
   "T420": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T420-third-party-max-strength.md",
     "set": "E",
@@ -1527,14 +1549,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T00:59:59Z",
-    "claimed": null,
+    "claimed": "2026-08-08T06:16:46Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2112,7 +2134,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 421,
+    "next_id": 422,
     "directive_next": 63
   }
 }

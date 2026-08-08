@@ -1,0 +1,1475 @@
+{
+  "task_id": "ORCHA-RESCUE",
+  "date": "2026-08-08",
+  "model": "claude-opus-5",
+  "claims": [],
+  "what": "Evidence cited by committed docs but stored only in /tmp. Copied verbatim into git before a reboot destroys it.",
+  "why": "AGENTS.md: 'Evidence in git, or the claim is not proven ... that is how T13's probe source, the falsification the strategy rests on, was destroyed.' claimlint's C2 only flags MISSING paths, so surviving /tmp citations are invisible to it - the defect surfaces only after the evidence is already gone.",
+  "cited_paths_total": 344,
+  "rescued_files": 278,
+  "rescued_bytes": 4585594,
+  "already_lost": 43,
+  "already_lost_paths": [
+    "/tmp/weizigo-eyeprune-falsify",
+    "/tmp/weizigo-psk-divergence",
+    "/tmp/weizigo-zigcache-exp3",
+    "/tmp/weizigo-zigcache-exp3/h/26e612db720d67ed47c6fcff35f7311c.txt",
+    "/tmp/weizigo-zigcache-exp3/o/4a1e974bc7957bf767ed23984b123048/test_census_pure",
+    "/tmp/weizigo/*-baseline.jsonl",
+    "/tmp/weizigo/T212-build-run2.log",
+    "/tmp/weizigo/T212-build.log",
+    "/tmp/weizigo/T270-calib",
+    "/tmp/weizigo/T274-tie-0.wzo",
+    "/tmp/weizigo/T274-tie-{0",
+    "/tmp/weizigo/accept",
+    "/tmp/weizigo/inbox-loop-AkoaA0/docs/infra/managent/directives.jsonl",
+    "/tmp/weizigo/inbox-loop-AkoaA0/worker-act-on-D001.log",
+    "/tmp/weizigo/invsym-4x4.log",
+    "/tmp/weizigo/lane-wt-r371",
+    "/tmp/weizigo/lane-wt-t376",
+    "/tmp/weizigo/managent-integrity-JCdE0d/.git/",
+    "/tmp/weizigo/oracle-v2-accept",
+    "/tmp/weizigo/orcha-accept",
+    "/tmp/weizigo/probe",
+    "/tmp/weizigo/probe-cache",
+    "/tmp/weizigo/probe-cache/o/688a1e003f32402a281cc1fcfca88189/build",
+    "/tmp/weizigo/safe-build",
+    "/tmp/weizigo/safe-build-full",
+    "/tmp/weizigo/safe-build-full/bin/weizigo-oracle-v2-build",
+    "/tmp/weizigo/safe-build-full/cache",
+    "/tmp/weizigo/safe-build/bin/",
+    "/tmp/weizigo/safe-build/cache",
+    "/tmp/weizigo/safe-build/cache/o/62391f054c8d9a5ce778ef099d6ed64c/build",
+    "/tmp/weizigo/t266-mutants",
+    "/tmp/weizigo/t277-mutants",
+    "/tmp/weizigo/t277-mutants/shift-mutant.wzo2",
+    "/tmp/weizigo/t289-green2.log",
+    "/tmp/weizigo/t314-snapshot/weizigo-oracle-v2-build",
+    "/tmp/weizigo/t314-threads-*.log",
+    "/tmp/weizigo/t325-run-*.log",
+    "/tmp/weizigo/t408/runs/{kimi",
+    "/tmp/weizigo/t416/audit-*.json",
+    "/tmp/weizigo/t416/audit-{allties-3x3",
+    "/tmp/weizigo/t416/out/*.json",
+    "/tmp/weizigo/t416/out/{3x3-allties",
+    "/tmp/weizigo/weizigo-oracle-v2"
+  ],
+  "directories_skipped": [
+    "/tmp/weizigo",
+    "/tmp/weizigo-zigcache",
+    "/tmp/weizigo/",
+    "/tmp/weizigo/t366/cache",
+    "/tmp/weizigo/t366/global",
+    "/tmp/weizigo/t372/cache",
+    "/tmp/weizigo/t372/global",
+    "/tmp/weizigo/t375-verify/",
+    "/tmp/weizigo/t375-verify/cache",
+    "/tmp/weizigo/t375-verify/global",
+    "/tmp/weizigo/t375-verify/sgf",
+    "/tmp/weizigo/t375/cache",
+    "/tmp/weizigo/t375/global",
+    "/tmp/weizigo/t375/sgf",
+    "/tmp/weizigo/t381/",
+    "/tmp/weizigo/t381/cache",
+    "/tmp/weizigo/t381/global",
+    "/tmp/weizigo/t382-run/",
+    "/tmp/weizigo/t387/",
+    "/tmp/weizigo/t389/cache",
+    "/tmp/weizigo/t389/global",
+    "/tmp/weizigo/t416/",
+    "/tmp/weizigo/t416/out/"
+  ],
+  "follow_up": "A row must re-point the citations in the 72 citing docs to these copies; until then the docs still name /tmp paths.",
+  "files": [
+    {
+      "src": "/tmp/weizigo/t366/t366-evse",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t366/t366-evse",
+      "bytes": 523432
+    },
+    {
+      "src": "/tmp/weizigo/T371/race1_grader.py",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/T371/race1_grader.py",
+      "bytes": 4551
+    },
+    {
+      "src": "/tmp/weizigo/t372/zrtie",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t372/zrtie",
+      "bytes": 697000
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o00-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o00-B.sgf",
+      "bytes": 494
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o00-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o00-W.sgf",
+      "bytes": 448
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o01-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o01-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o01-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o01-W.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o02-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o02-B.sgf",
+      "bytes": 431
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o02-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o02-W.sgf",
+      "bytes": 467
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o03-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o03-B.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o03-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o03-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o04-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o04-B.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o04-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o04-W.sgf",
+      "bytes": 453
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o05-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o05-B.sgf",
+      "bytes": 450
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o05-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o05-W.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o06-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o06-B.sgf",
+      "bytes": 448
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o06-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o06-W.sgf",
+      "bytes": 409
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o07-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o07-B.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o07-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o07-W.sgf",
+      "bytes": 416
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o08-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o08-B.sgf",
+      "bytes": 451
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o08-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o08-W.sgf",
+      "bytes": 485
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o09-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o09-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o09-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o09-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o10-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o10-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o10-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o10-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o11-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o11-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o11-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o11-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o12-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o12-B.sgf",
+      "bytes": 431
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o12-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o12-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o13-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o13-B.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o13-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o13-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o14-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o14-B.sgf",
+      "bytes": 471
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o14-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o14-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o15-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o15-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o15-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o15-W.sgf",
+      "bytes": 501
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o16-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o16-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o16-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o16-W.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o17-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o17-B.sgf",
+      "bytes": 438
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o17-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o17-W.sgf",
+      "bytes": 462
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o18-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o18-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o18-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o18-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o19-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o19-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o19-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o19-W.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o20-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o20-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o20-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o20-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o21-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o21-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o21-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o21-W.sgf",
+      "bytes": 421
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o22-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o22-B.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o22-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o22-W.sgf",
+      "bytes": 442
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o23-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o23-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o23-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o23-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o24-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o24-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o24-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o24-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o25-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o25-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o25-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o25-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o26-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o26-B.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o26-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o26-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o27-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o27-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o27-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o27-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o28-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o28-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o28-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o28-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o29-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o29-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o29-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o29-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o30-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o30-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o30-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o30-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o31-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o31-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o31-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o31-W.sgf",
+      "bytes": 493
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o32-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o32-B.sgf",
+      "bytes": 550
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fA-o32-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fA-o32-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o00-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o00-B.sgf",
+      "bytes": 494
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o00-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o00-W.sgf",
+      "bytes": 448
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o01-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o01-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o01-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o01-W.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o02-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o02-B.sgf",
+      "bytes": 651
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o02-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o02-W.sgf",
+      "bytes": 467
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o03-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o03-B.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o03-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o03-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o04-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o04-B.sgf",
+      "bytes": 657
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o04-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o04-W.sgf",
+      "bytes": 453
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o05-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o05-B.sgf",
+      "bytes": 450
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o05-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o05-W.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o06-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o06-B.sgf",
+      "bytes": 660
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o06-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o06-W.sgf",
+      "bytes": 409
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o07-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o07-B.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o07-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o07-W.sgf",
+      "bytes": 416
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o08-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o08-B.sgf",
+      "bytes": 451
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o08-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o08-W.sgf",
+      "bytes": 485
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o09-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o09-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o09-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o09-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o10-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o10-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o10-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o10-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o11-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o11-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o11-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o11-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o12-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o12-B.sgf",
+      "bytes": 431
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o12-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o12-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o13-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o13-B.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o13-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o13-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o14-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o14-B.sgf",
+      "bytes": 471
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o14-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o14-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o15-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o15-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o15-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o15-W.sgf",
+      "bytes": 501
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o16-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o16-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o16-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o16-W.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o17-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o17-B.sgf",
+      "bytes": 682
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o17-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o17-W.sgf",
+      "bytes": 462
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o18-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o18-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o18-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o18-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o19-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o19-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o19-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o19-W.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o20-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o20-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o20-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o20-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o21-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o21-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o21-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o21-W.sgf",
+      "bytes": 421
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o22-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o22-B.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o22-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o22-W.sgf",
+      "bytes": 442
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o23-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o23-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o23-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o23-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o24-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o24-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o24-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o24-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o25-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o25-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o25-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o25-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o26-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o26-B.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o26-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o26-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o27-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o27-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o27-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o27-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o28-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o28-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o28-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o28-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o29-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o29-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o29-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o29-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o30-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o30-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o30-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o30-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o31-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o31-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o31-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o31-W.sgf",
+      "bytes": 493
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o32-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o32-B.sgf",
+      "bytes": 550
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/sgf/t366-fB-o32-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/sgf/t366-fB-o32-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375-verify/t375-evse",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/t375-evse",
+      "bytes": 523432
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o00-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o00-B.sgf",
+      "bytes": 494
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o00-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o00-W.sgf",
+      "bytes": 448
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o01-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o01-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o01-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o01-W.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o02-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o02-B.sgf",
+      "bytes": 431
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o02-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o02-W.sgf",
+      "bytes": 467
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o03-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o03-B.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o03-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o03-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o04-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o04-B.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o04-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o04-W.sgf",
+      "bytes": 453
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o05-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o05-B.sgf",
+      "bytes": 450
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o05-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o05-W.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o06-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o06-B.sgf",
+      "bytes": 448
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o06-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o06-W.sgf",
+      "bytes": 409
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o07-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o07-B.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o07-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o07-W.sgf",
+      "bytes": 416
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o08-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o08-B.sgf",
+      "bytes": 451
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o08-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o08-W.sgf",
+      "bytes": 485
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o09-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o09-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o09-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o09-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o10-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o10-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o10-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o10-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o11-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o11-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o11-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o11-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o12-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o12-B.sgf",
+      "bytes": 431
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o12-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o12-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o13-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o13-B.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o13-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o13-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o14-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o14-B.sgf",
+      "bytes": 471
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o14-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o14-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o15-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o15-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o15-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o15-W.sgf",
+      "bytes": 501
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o16-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o16-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o16-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o16-W.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o17-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o17-B.sgf",
+      "bytes": 438
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o17-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o17-W.sgf",
+      "bytes": 462
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o18-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o18-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o18-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o18-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o19-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o19-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o19-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o19-W.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o20-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o20-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o20-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o20-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o21-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o21-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o21-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o21-W.sgf",
+      "bytes": 421
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o22-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o22-B.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o22-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o22-W.sgf",
+      "bytes": 442
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o23-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o23-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o23-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o23-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o24-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o24-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o24-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o24-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o25-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o25-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o25-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o25-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o26-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o26-B.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o26-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o26-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o27-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o27-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o27-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o27-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o28-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o28-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o28-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o28-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o29-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o29-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o29-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o29-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o30-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o30-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o30-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o30-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o31-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o31-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o31-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o31-W.sgf",
+      "bytes": 493
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o32-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o32-B.sgf",
+      "bytes": 550
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fA-o32-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fA-o32-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o00-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o00-B.sgf",
+      "bytes": 494
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o00-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o00-W.sgf",
+      "bytes": 448
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o01-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o01-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o01-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o01-W.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o02-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o02-B.sgf",
+      "bytes": 651
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o02-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o02-W.sgf",
+      "bytes": 467
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o03-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o03-B.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o03-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o03-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o04-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o04-B.sgf",
+      "bytes": 657
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o04-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o04-W.sgf",
+      "bytes": 453
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o05-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o05-B.sgf",
+      "bytes": 450
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o05-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o05-W.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o06-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o06-B.sgf",
+      "bytes": 660
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o06-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o06-W.sgf",
+      "bytes": 409
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o07-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o07-B.sgf",
+      "bytes": 444
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o07-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o07-W.sgf",
+      "bytes": 416
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o08-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o08-B.sgf",
+      "bytes": 451
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o08-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o08-W.sgf",
+      "bytes": 485
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o09-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o09-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o09-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o09-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o10-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o10-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o10-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o10-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o11-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o11-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o11-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o11-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o12-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o12-B.sgf",
+      "bytes": 431
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o12-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o12-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o13-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o13-B.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o13-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o13-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o14-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o14-B.sgf",
+      "bytes": 471
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o14-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o14-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o15-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o15-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o15-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o15-W.sgf",
+      "bytes": 501
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o16-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o16-B.sgf",
+      "bytes": 449
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o16-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o16-W.sgf",
+      "bytes": 447
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o17-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o17-B.sgf",
+      "bytes": 682
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o17-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o17-W.sgf",
+      "bytes": 462
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o18-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o18-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o18-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o18-W.sgf",
+      "bytes": 457
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o19-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o19-B.sgf",
+      "bytes": 452
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o19-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o19-W.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o20-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o20-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o20-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o20-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o21-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o21-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o21-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o21-W.sgf",
+      "bytes": 421
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o22-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o22-B.sgf",
+      "bytes": 446
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o22-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o22-W.sgf",
+      "bytes": 442
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o23-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o23-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o23-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o23-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o24-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o24-B.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o24-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o24-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o25-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o25-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o25-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o25-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o26-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o26-B.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o26-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o26-W.sgf",
+      "bytes": 437
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o27-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o27-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o27-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o27-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o28-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o28-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o28-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o28-W.sgf",
+      "bytes": 445
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o29-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o29-B.sgf",
+      "bytes": 427
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o29-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o29-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o30-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o30-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o30-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o30-W.sgf",
+      "bytes": 487
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o31-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o31-B.sgf",
+      "bytes": 433
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o31-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o31-W.sgf",
+      "bytes": 493
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o32-B.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o32-B.sgf",
+      "bytes": 550
+    },
+    {
+      "src": "/tmp/weizigo/t375/sgf/t366-fB-o32-W.sgf",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/sgf/t366-fB-o32-W.sgf",
+      "bytes": 439
+    },
+    {
+      "src": "/tmp/weizigo/t375/t375-evse",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t375/t375-evse",
+      "bytes": 523432
+    },
+    {
+      "src": "/tmp/weizigo/t381/t381-evse",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t381/t381-evse",
+      "bytes": 629512
+    },
+    {
+      "src": "/tmp/weizigo/t388-i5-gen-reach.jsonl",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t388-i5-gen-reach.jsonl",
+      "bytes": 1599
+    },
+    {
+      "src": "/tmp/weizigo/t388-i5-gen.jsonl",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t388-i5-gen.jsonl",
+      "bytes": 1591
+    },
+    {
+      "src": "/tmp/weizigo/t389/main-both.json",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t389/main-both.json",
+      "bytes": 219266
+    },
+    {
+      "src": "/tmp/weizigo/t389/seeded-final.json",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t389/seeded-final.json",
+      "bytes": 54621
+    },
+    {
+      "src": "/tmp/weizigo/t389/t389-traj",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t389/t389-traj",
+      "bytes": 551272
+    },
+    {
+      "src": "/tmp/weizigo/t407/t407",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t407/t407",
+      "bytes": 733496
+    },
+    {
+      "src": "/tmp/weizigo/t408-scratch.json",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t408-scratch.json",
+      "bytes": 2266
+    },
+    {
+      "src": "/tmp/weizigo/t408/roundtrip.md",
+      "dst": "docs/evidence/RESCUED-tmp-2026-08-08/t408/roundtrip.md",
+      "bytes": 280
+    }
+  ]
+}
