@@ -1,0 +1,355 @@
+[runner] argv = /tmp/weizigo/t420/t381-evse --strong --engine pachi --json /tmp/weizigo/t420/pachi-strong.json
+[runner] guards: rss 4096 MB, progress-timeout 600s (10:00), fallback: wall 1800s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+[runner] task identity: T420 (source: MANAGENT_TASK_ID)
+weizigo-t381-evse 95bbe8c-dirty built 2026-08-07T12:38:04Z zig 0.16.0
+artifact: data/oracle-4x4-v2.wzo2 (4x4, rules_id=3 Chinese area, komi 0, basic ko, L/H bracket)
+openings: 34 (3 canonical + 30 random + empty)
+  pachi-o00-B         canonical-corner-A1   W+16  result=loss  finding=            none  resolution=          none
+  pachi-o00-W         canonical-corner-A1   W+16  result= win  finding=            none  resolution=          none
+  pachi-o01-B           canonical-edge-B1    W+3  result=loss  finding=            none  resolution=          none
+  pachi-o01-W           canonical-edge-B1   W+16  result= win  finding=            none  resolution=          none
+  pachi-o02-B         canonical-centre-B2   B+16  result= win  finding=            none  resolution=          none
+  pachi-o02-W         canonical-centre-B2    W+3  result= win  finding=            none  resolution=          none
+  pachi-o03-B             random-000-bdbb      0  result= tie  finding=            none  resolution=          none
+  pachi-o03-W             random-000-bdbb   W+16  result= win  finding=            none  resolution=          none
+  pachi-o04-B             random-001-dddc   B+16  result= win  finding=            none  resolution=          none
+  pachi-o04-W             random-001-dddc    B+1  result=loss  finding=            none  resolution=          none
+  pachi-o05-B             random-002-adbc    W+5  result=loss  finding=            none  resolution=          none
+  pachi-o05-W             random-002-adbc   W+16  result= win  finding=            none  resolution=          none
+  pachi-o06-B             random-003-cabc   B+16  result= win  finding=            none  resolution=          none
+  pachi-o06-W             random-003-cabc    W+3  result= win  finding=            none  resolution=          none
+  pachi-o07-B             random-004-dacd   B+16  result= win  finding=            none  resolution=          none
+  pachi-o07-W             random-004-dacd      0  result= tie  finding=            none  resolution=          none
+  pachi-o08-B             random-005-acbd   B+16  result= win  finding=            none  resolution=          none
+  pachi-o08-W             random-005-acbd    B+4  result=loss  finding=            none  resolution=          none
+  pachi-o09-B             random-006-ccba   B+16  result= win  finding=            none  resolution=          none
+  pachi-o09-W             random-006-ccba   B+10  result=loss  finding=            none  resolution=          none
+  pachi-o10-B             random-007-cbac   B+16  result= win  finding=            none  resolution=          none
+  pachi-o10-W             random-007-cbac   B+11  result=loss  finding=            none  resolution=          none
+  pachi-o11-B             random-008-daaa   B+16  result= win  finding=            none  resolution=          none
+  pachi-o11-W             random-008-daaa    B+4  result=loss  finding=            none  resolution=          none
+  pachi-o12-B             random-009-bcdb   B+16  result= win  finding=            none  resolution=          none
+  pachi-o12-W             random-009-bcdb   B+16  result=loss  finding=            none  resolution=          none
+  pachi-o13-B             random-010-cabd   B+16  result= win  finding=            none  resolution=          none
+  pachi-o13-W             random-010-cabd   B+13  result=loss  finding=            none  resolution=          none
+  pachi-o14-B             random-011-ccac   B+16  result= win  finding=            none  resolution=          none
+  pachi-o14-W             random-011-ccac   B+16  result=loss  finding=            none  resolution=          none
+  pachi-o15-B             random-012-bdca   B+16  result= win  finding=            none  resolution=          none
+  pachi-o15-W             random-012-bdca   B+11  result=loss  finding=            none  resolution=          none
+  pachi-o16-B             random-013-cbdd   B+16  result= win  finding=            none  resolution=          none
+  pachi-o16-W             random-013-cbdd   B+13  result=loss  finding=            none  resolution=          none
+  pachi-o17-B             random-014-bacc   B+16  result= win  finding=            none  resolution=          none
+  pachi-o17-W             random-014-bacc    B+1  result=loss  finding=            none  resolution=          none
+  pachi-o18-B             random-015-dcab   B+16  result= win  finding=            none  resolution=          none
+  pachi-o18-W             random-015-dcab   B+12  result=loss  finding=            none  resolution=          none
+  pachi-o19-B             random-016-adcb    W+1  result=loss  finding=            none  resolution=          none
+  pachi-o19-W             random-016-adcb   W+16  result= win  finding=            none  resolution=          none
+  pachi-o20-B             random-017-acad   B+16  result= win  finding=            none  resolution=          none
+  pachi-o20-W             random-017-acad    B+2  result=loss  finding=            none  resolution=          none
+  pachi-o21-B             random-018-dbbc   B+16  result= win  finding=            none  resolution=          none
+  pachi-o21-W             random-018-dbbc    W+3  result= win  finding=            none  resolution=          none
+  pachi-o22-B             random-019-aacb    W+4  result=loss  finding=            none  resolution=          none
+  pachi-o22-W             random-019-aacb   W+16  result= win  finding=            none  resolution=          none
+  pachi-o23-B             random-020-ccbc   B+16  result= win  finding=            none  resolution=          none
+  pachi-o23-W             random-020-ccbc   B+10  result=loss  finding=            none  resolution=          none
+  pachi-o24-B             random-021-adda   B+16  result= win  finding=            none  resolution=          none
+  pachi-o24-W             random-021-adda    B+6  result=loss  finding=            none  resolution=          none
+  pachi-o25-B             random-022-dcdb   B+16  result= win  finding=            none  resolution=          none
+  pachi-o25-W             random-022-dcdb   B+12  result=loss  finding=            none  resolution=          none
+  pachi-o26-B             random-023-dbad   B+16  result= win  finding=            none  resolution=          none
+  pachi-o26-W             random-023-dbad    B+8  result=loss  finding=            none  resolution=          none
+  pachi-o27-B             random-024-ccca   B+16  result= win  finding=            none  resolution=          none
+  pachi-o27-W             random-024-ccca    B+7  result=loss  finding=            none  resolution=          none
+  pachi-o28-B             random-025-dcca   B+16  result= win  finding=            none  resolution=          none
+  pachi-o28-W             random-025-dcca    B+6  result=loss  finding=            none  resolution=          none
+  pachi-o29-B             random-026-ccaa   B+16  result= win  finding=            none  resolution=          none
+  pachi-o29-W             random-026-ccaa   B+16  result=loss  finding=            none  resolution=          none
+  pachi-o30-B             random-027-ccdd   B+16  result= win  finding=            none  resolution=          none
+  pachi-o30-W             random-027-ccdd   B+13  result=loss  finding=            none  resolution=          none
+  pachi-o31-B             random-028-bddd   B+16  result= win  finding=            none  resolution=          none
+  pachi-o31-W             random-028-bddd   B+16  result=loss  finding=            none  resolution=          none
+  pachi-o32-B             random-029-ddcc   W+16  result=loss  finding=            none  resolution=          none
+  pachi-o32-W             random-029-ddcc   W+16  result= win  finding=            none  resolution=          none
+  pachi-o33-B                       empty   B+16  result= win  finding=            none  resolution=          none
+  pachi-o33-W                       empty    W+2  result= win  finding=            none  resolution=          none
+t381: pachi: 68 games (wins 38 losses 28 ties 2 aborted 0) | losses-from-claimed 0 ties-from-claimed 0 | inside-root 40 | capped 0 | playouts-missing 0
+t381: pachi colour split — B: 27W/6L/1T lfc=0 wnr=0 inside=27 capped=0 | W: 11W/22L/1T lfc=0 wnr=4 inside=13 capped=0
+t381: wrote /tmp/weizigo/t420/pachi-strong.json (207483 bytes)
+[runner] peak RSS by PID: in 185.7 s
+[runner]   pid   31801     532 MB
+[runner]   pid   30009     531 MB
+[runner]   pid   30184     531 MB
+[runner]   pid   29768     531 MB
+[runner]   pid   30947     531 MB
+[runner]   pid   31073     531 MB
+[runner]   pid   31129     531 MB
+[runner]   pid   32335     531 MB
+[runner]   pid   32531     531 MB
+[runner]   pid   33144     531 MB
+[runner]   pid   29077     531 MB
+[runner]   pid   29216     531 MB
+[runner]   pid   30327     531 MB
+[runner]   pid   30538     531 MB
+[runner]   pid   31997     531 MB
+[runner]   pid   32391     531 MB
+[runner]   pid   32615     531 MB
+[runner]   pid   32802     531 MB
+[runner]   pid   33228     531 MB
+[runner]   pid   33424     531 MB
+[runner]   pid   29160     531 MB
+[runner]   pid   29426     531 MB
+[runner]   pid   29706     531 MB
+[runner]   pid   30128     531 MB
+[runner]   pid   30813     531 MB
+[runner]   pid   31535     531 MB
+[runner]   pid   31843     531 MB
+[runner]   pid   29484     531 MB
+[runner]   pid   29869     531 MB
+[runner]   pid   31612     531 MB
+[runner]   pid   31661     531 MB
+[runner]   pid   33518     531 MB
+[runner]   pid   28865     531 MB
+[runner]   pid   29635     531 MB
+[runner]   pid   29932     531 MB
+[runner]   pid   31444     531 MB
+[runner]   pid   32181     531 MB
+[runner]   pid   32482     531 MB
+[runner]   pid   28998     531 MB
+[runner]   pid   30058     531 MB
+[runner]   pid   30870     531 MB
+[runner]   pid   33340     531 MB
+[runner]   pid   28949     531 MB
+[runner]   pid   29526     531 MB
+[runner]   pid   31003     531 MB
+[runner]   pid   31752     531 MB
+[runner]   pid   33284     531 MB
+[runner]   pid   29335     531 MB
+[runner]   pid   31395     531 MB
+[runner]   pid   31920     531 MB
+[runner]   pid   32060     531 MB
+[runner]   pid   32942     531 MB
+[runner]   pid   33082     531 MB
+[runner]   pid   29258     531 MB
+[runner]   pid   30673     531 MB
+[runner]   pid   30731     531 MB
+[runner]   pid   31262     531 MB
+[runner]   pid   32753     531 MB
+[runner]   pid   28809     531 MB
+[runner]   pid   30453     531 MB
+[runner]   pid   31213     531 MB
+[runner]   pid   32130     531 MB
+[runner]   pid   32998     531 MB
+[runner]   pid   30268     531 MB
+[runner]   pid   30594     531 MB
+[runner]   pid   32667     531 MB
+[runner]   pid   31339     531 MB
+[runner]   pid   30404     531 MB
+[runner]   pid   28799     502 MB
+[runner]   pid   32175      95 MB
+[runner]   pid   33334      94 MB
+[runner]   pid   28859      93 MB
+[runner]   pid   29520      92 MB
+[runner]   pid   29329      92 MB
+[runner]   pid   32661      91 MB
+[runner]   pid   31438      91 MB
+[runner]   pid   31655      90 MB
+[runner]   pid   33133      90 MB
+[runner]   pid   29071      89 MB
+[runner]   pid   30941      89 MB
+[runner]   pid   33076      88 MB
+[runner]   pid   28992      88 MB
+[runner]   pid   31991      88 MB
+[runner]   pid   31837      88 MB
+[runner]   pid   31914      87 MB
+[runner]   pid   28803      87 MB
+[runner]   pid   29252      87 MB
+[runner]   pid   31067      87 MB
+[runner]   pid   31333      87 MB
+[runner]   pid   30447      87 MB
+[runner]   pid   32992      87 MB
+[runner]   pid   31123      87 MB
+[runner]   pid   32326      87 MB
+[runner]   pid   32936      87 MB
+[runner]   pid   30667      86 MB
+[runner]   pid   33278      86 MB
+[runner]   pid   32796      86 MB
+[runner]   pid   31529      86 MB
+[runner]   pid   29628      86 MB
+[runner]   pid   33222      86 MB
+[runner]   pid   30122      86 MB
+[runner]   pid   30532      86 MB
+[runner]   pid   30803      86 MB
+[runner]   pid   32385      85 MB
+[runner]   pid   30997      85 MB
+[runner]   pid   29926      84 MB
+[runner]   pid   30864      84 MB
+[runner]   pid   33418      84 MB
+[runner]   pid   30262      84 MB
+[runner]   pid   30178      84 MB
+[runner]   pid   30588      84 MB
+[runner]   pid   33512      84 MB
+[runner]   pid   28943      84 MB
+[runner]   pid   30003      83 MB
+[runner]   pid   31606      83 MB
+[runner]   pid   32124      83 MB
+[runner]   pid   32609      83 MB
+[runner]   pid   29863      83 MB
+[runner]   pid   32476      82 MB
+[runner]   pid   30321      82 MB
+[runner]   pid   32747      82 MB
+[runner]   pid   30398      82 MB
+[runner]   pid   31256      82 MB
+[runner]   pid   29700      81 MB
+[runner]   pid   31746      80 MB
+[runner]   pid   29150      80 MB
+[runner]   pid   30725      80 MB
+[runner]   pid   29762      80 MB
+[runner]   pid   32525      80 MB
+[runner]   pid   30052      79 MB
+[runner]   pid   29420      79 MB
+[runner]   pid   29478      79 MB
+[runner]   pid   31389      79 MB
+[runner]   pid   32054      79 MB
+[runner]   pid   31207      79 MB
+[runner]   pid   29210      78 MB
+[runner]   pid   31795      78 MB
+[runner] peak total CPU by PID: in 185.7 s
+[runner]   pid   32796        0:17 (17.25s)
+[runner]   pid   32175        0:17 (17.04s)
+[runner]   pid   31438        0:11 (11.58s)
+[runner]   pid   29520        0:10 (10.81s)
+[runner]   pid   33418        0:10 (10.81s)
+[runner]   pid   29329        0:10 (10.56s)
+[runner]   pid   32385        0:10 (10.52s)
+[runner]   pid   31655        0:10 (10.21s)
+[runner]   pid   29762        0:10 (10.08s)
+[runner]   pid   32661        0:09 (9.56s)
+[runner]   pid   30447        0:09 (9.5s)
+[runner]   pid   33133        0:09 (9.49s)
+[runner]   pid   33334        0:09 (9.45s)
+[runner]   pid   29071        0:09 (9.06s)
+[runner]   pid   31123        0:08 (8.7s)
+[runner]   pid   29252        0:08 (8.5s)
+[runner]   pid   28859        0:08 (8.48s)
+[runner]   pid   32992        0:08 (8.33s)
+[runner]   pid   32525        0:08 (8.15s)
+[runner]   pid   31914        0:07 (7.91s)
+[runner]   pid   30178        0:07 (7.88s)
+[runner]   pid   31256        0:07 (7.79s)
+[runner]   pid   28992        0:07 (7.64s)
+[runner]   pid   30588        0:07 (7.45s)
+[runner]   pid   29926        0:07 (7.18s)
+[runner]   pid   31837        0:07 (7.09s)
+[runner]   pid   30321        0:06 (6.9s)
+[runner]   pid   31529        0:06 (6.8s)
+[runner]   pid   29628        0:06 (6.73s)
+[runner]   pid   30725        0:06 (6.73s)
+[runner]   pid   30864        0:06 (6.64s)
+[runner]   pid   29863        0:06 (6.32s)
+[runner]   pid   30997        0:06 (6.1s)
+[runner]   pid   32054        0:05 (5.6s)
+[runner]   pid   30052        0:05 (5.56s)
+[runner]   pid   31991        0:04 (4.5s)
+[runner]   pid   29150        0:04 (4.39s)
+[runner]   pid   29700        0:04 (4.26s)
+[runner]   pid   33076        0:04 (4.25s)
+[runner]   pid   30667        0:03 (3.95s)
+[runner]   pid   33512        0:03 (3.83s)
+[runner]   pid   30941        0:03 (3.51s)
+[runner]   pid   31333        0:03 (3.5s)
+[runner]   pid   32326        0:03 (3.37s)
+[runner]   pid   33222        0:03 (3.31s)
+[runner]   pid   32936        0:03 (3.23s)
+[runner]   pid   29420        0:03 (3.04s)
+[runner]   pid   33278        0:03 (3.03s)
+[runner]   pid   30122        0:03 (3.0s)
+[runner]   pid   30803        0:02 (2.96s)
+[runner]   pid   31746        0:02 (2.93s)
+[runner]   pid   32124        0:02 (2.86s)
+[runner]   pid   31067        0:02 (2.83s)
+[runner]   pid   28803        0:02 (2.71s)
+[runner]   pid   30398        0:02 (2.66s)
+[runner]   pid   30532        0:02 (2.63s)
+[runner]   pid   30262        0:02 (2.21s)
+[runner]   pid   32476        0:02 (2.14s)
+[runner]   pid   30003        0:02 (2.12s)
+[runner]   pid   31207        0:02 (2.08s)
+[runner]   pid   28943        0:01 (1.98s)
+[runner]   pid   31606        0:01 (1.95s)
+[runner]   pid   32609        0:01 (1.77s)
+[runner]   pid   32747        0:01 (1.66s)
+[runner]   pid   31389        0:01 (1.65s)
+[runner]   pid   32181        0:00 (0.93s)
+[runner]   pid   29526        0:00 (0.92s)
+[runner]   pid   30870        0:00 (0.92s)
+[runner]   pid   31003        0:00 (0.92s)
+[runner]   pid   31213        0:00 (0.92s)
+[runner]   pid   31339        0:00 (0.92s)
+[runner]   pid   31395        0:00 (0.92s)
+[runner]   pid   31535        0:00 (0.92s)
+[runner]   pid   31612        0:00 (0.92s)
+[runner]   pid   31661        0:00 (0.92s)
+[runner]   pid   31752        0:00 (0.92s)
+[runner]   pid   31801        0:00 (0.92s)
+[runner]   pid   31843        0:00 (0.92s)
+[runner]   pid   31920        0:00 (0.92s)
+[runner]   pid   31997        0:00 (0.92s)
+[runner]   pid   32060        0:00 (0.92s)
+[runner]   pid   32130        0:00 (0.92s)
+[runner]   pid   32335        0:00 (0.92s)
+[runner]   pid   32391        0:00 (0.92s)
+[runner]   pid   32482        0:00 (0.92s)
+[runner]   pid   32531        0:00 (0.92s)
+[runner]   pid   32615        0:00 (0.92s)
+[runner]   pid   32667        0:00 (0.92s)
+[runner]   pid   32753        0:00 (0.92s)
+[runner]   pid   32802        0:00 (0.92s)
+[runner]   pid   32942        0:00 (0.92s)
+[runner]   pid   32998        0:00 (0.92s)
+[runner]   pid   33082        0:00 (0.92s)
+[runner]   pid   33144        0:00 (0.92s)
+[runner]   pid   33228        0:00 (0.92s)
+[runner]   pid   33284        0:00 (0.92s)
+[runner]   pid   33424        0:00 (0.92s)
+[runner]   pid   33518        0:00 (0.92s)
+[runner]   pid   29635        0:00 (0.91s)
+[runner]   pid   29768        0:00 (0.91s)
+[runner]   pid   29869        0:00 (0.91s)
+[runner]   pid   29932        0:00 (0.91s)
+[runner]   pid   30009        0:00 (0.91s)
+[runner]   pid   30058        0:00 (0.91s)
+[runner]   pid   30128        0:00 (0.91s)
+[runner]   pid   30184        0:00 (0.91s)
+[runner]   pid   30268        0:00 (0.91s)
+[runner]   pid   30327        0:00 (0.91s)
+[runner]   pid   30404        0:00 (0.91s)
+[runner]   pid   30453        0:00 (0.91s)
+[runner]   pid   30538        0:00 (0.91s)
+[runner]   pid   30594        0:00 (0.91s)
+[runner]   pid   30673        0:00 (0.91s)
+[runner]   pid   30731        0:00 (0.91s)
+[runner]   pid   30813        0:00 (0.91s)
+[runner]   pid   30947        0:00 (0.91s)
+[runner]   pid   31073        0:00 (0.91s)
+[runner]   pid   31129        0:00 (0.91s)
+[runner]   pid   31262        0:00 (0.91s)
+[runner]   pid   31444        0:00 (0.91s)
+[runner]   pid   33340        0:00 (0.91s)
+[runner]   pid   28865        0:00 (0.9s)
+[runner]   pid   28949        0:00 (0.9s)
+[runner]   pid   28998        0:00 (0.9s)
+[runner]   pid   29077        0:00 (0.9s)
+[runner]   pid   29160        0:00 (0.9s)
+[runner]   pid   29210        0:00 (0.9s)
+[runner]   pid   29216        0:00 (0.9s)
+[runner]   pid   29258        0:00 (0.9s)
+[runner]   pid   29335        0:00 (0.9s)
+[runner]   pid   29426        0:00 (0.9s)
+[runner]   pid   29484        0:00 (0.9s)
+[runner]   pid   29706        0:00 (0.9s)
+[runner]   pid   28809        0:00 (0.89s)
+[runner]   pid   29478        0:00 (0.81s)
+[runner]   pid   31795        0:00 (0.8s)
+[runner]   pid   28799        0:00 (0.12s)
+[runner] exit 0 in 185.8 s

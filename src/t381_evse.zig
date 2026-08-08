@@ -132,6 +132,49 @@ fn engineFor(name: []const u8) Engine {
     };
 }
 
+/// T420 (additive): FULL-STRENGTH engine configurations, selected by --strong.
+///
+/// The headroom story, established by probing before the run:
+///  - GNU Go: `--level` runs 0-10 and **10 is the default** (confirmed via
+///    `gnugo --help`), so T381 already ran GNU Go at maximum strength. Adding
+///    `--level 10` explicitly is documentation, not a change; the honest
+///    result is "no headroom", not a re-run.
+///  - Pachi: real headroom. T381's `-t =1000` actually ran ~11.5k simulations
+///    per move (Pachi enforces a ~0.1 s minimum search: =500/=1000/=10000 all
+///    land on the floor). `-t =50000` verifiably runs ~50-60k per move
+///    (threads=8; reportfreq=1000000 suppresses intermediate progress lines so
+///    stderr stays small enough to capture).
+///  - Fuego: NO real headroom. Default `max_games` is already 1.79769e+308
+///    (uncapped) and the search terminates on its own on 4x4 (~0.07-2.2 s,
+///    ~170-230k playouts/move) regardless of the time budget (1 s vs 5 s
+///    measured identical). `max_games 1000000` is set explicitly so the
+///    configured value is recorded; it does not bind.
+fn engineForStrong(name: []const u8) Engine {
+    if (std.mem.eql(u8, name, "gnugo")) {
+        // level 10 explicit = GNU Go's documented default and maximum.
+        return .{
+            .name = "gnugo",
+            .argv = &.{ "gnugo", "--mode", "gtp", "--boardsize", "4", "--chinese-rules", "--komi", "0", "--forbid-suicide", "--simple-ko", "--never-resign", "--level", "10" },
+        };
+    }
+    if (std.mem.eql(u8, name, "pachi")) {
+        return .{
+            .name = "pachi",
+            .argv = &.{ "pachi", "resign_threshold=0", "threads=8", "reportfreq=1000000", "-t", "=50000" },
+            .setup = &.{ "boardsize 4", "clear_board", "komi 0" },
+        };
+    }
+    if (std.mem.eql(u8, name, "fuego")) {
+        // T381 config + explicit (non-binding) max_games cap.
+        return .{
+            .name = "fuego",
+            .argv = &.{ "fuego", "--quiet" },
+            .setup = &.{ "boardsize 4", "clear_board", "komi 0", "time_settings 0 1 1", "uct_param_player resign_threshold 0", "go_param_rules ko_rule simple", "uct_param_player max_games 1000000" },
+        };
+    }
+    return engineFor(name);
+}
+
 // ---------------------------------------------------------------------------
 // GTP client over a spawned subprocess.
 // ---------------------------------------------------------------------------
@@ -147,20 +190,51 @@ const GtpClient = struct {
     gpa: std.mem.Allocator,
     in_buf: std.ArrayList(u8),
     name: []const u8,
+    /// T420 (additive): when true, stderr is piped into err_buf instead of
+    /// ignored — used by Pachi to read its per-move "*** WINNER (A/B games)"
+    /// search summaries, the only reliable per-move playout counter.
+    capture_stderr: bool = false,
+    err_buf: std.ArrayList(u8) = .empty,
 
     fn spawn(io: std.Io, gpa: std.mem.Allocator, argv: []const []const u8) !GtpClient {
+        return spawnInner(io, gpa, argv, false);
+    }
+
+    fn spawnWithStderr(io: std.Io, gpa: std.mem.Allocator, argv: []const []const u8) !GtpClient {
+        return spawnInner(io, gpa, argv, true);
+    }
+
+    fn spawnInner(io: std.Io, gpa: std.mem.Allocator, argv: []const []const u8, capture_stderr: bool) !GtpClient {
         const child = try std.process.spawn(io, .{
             .argv = argv,
             .stdin = .pipe,
             .stdout = .pipe,
-            .stderr = .ignore,
+            .stderr = if (capture_stderr) .pipe else .ignore,
         });
-        return .{ .child = child, .io = io, .gpa = gpa, .in_buf = std.ArrayList(u8).empty, .name = argv[0] };
+        return .{ .child = child, .io = io, .gpa = gpa, .in_buf = std.ArrayList(u8).empty, .name = argv[0], .capture_stderr = capture_stderr };
     }
 
     fn deinit(self: *GtpClient) void {
         self.child.kill(self.io);
         self.in_buf.deinit(self.gpa);
+        if (self.capture_stderr) self.err_buf.deinit(self.gpa);
+    }
+
+    /// T420 (additive): non-blocking drain of the captured stderr pipe into
+    /// err_buf. Called between GTP commands so the pipe never fills (Pachi
+    /// writes its per-move search summary to stderr during genmove).
+    fn drainStderr(self: *GtpClient) void {
+        if (!self.capture_stderr) return;
+        const fd = self.child.stderr.?.handle;
+        var buf: [8192]u8 = undefined;
+        while (true) {
+            var fds = [_]std.posix.pollfd{.{ .fd = fd, .events = std.posix.POLL.IN, .revents = 0 }};
+            const ready = std.posix.poll(&fds, 0) catch 0;
+            if (ready == 0) break;
+            const got = self.child.stderr.?.readStreaming(self.io, &[_][]u8{buf[0..]}) catch break;
+            if (got == 0) break;
+            self.err_buf.appendSlice(self.gpa, buf[0..got]) catch break;
+        }
     }
 
     /// Read until a complete GTP response block ("\n\n") is in in_buf.
@@ -400,6 +474,11 @@ const GameRecord = struct {
     witness_pinned: i8 = 0,
     witness_note: []const u8 = "",
     engine_stone_check: u8 = 0, // 0 untested, 1 agree, 2 disagree
+    // T420 (additive): achieved-strength instrumentation.
+    strength_label: []const u8 = "",
+    engine_playouts: std.ArrayListUnmanaged(u64) = .empty, // per engine-move, in order
+    playouts_total: u64 = 0,
+    playouts_missing: u64 = 0, // engine moves where no playout count could be read
 };
 
 fn claimedForUs(L: i8, Hv: i8, our_colour: i8) bool {
@@ -457,6 +536,46 @@ fn moveValueAt(s: *const S, side: i8, cell_plus: u8) i8 {
     return pinnedValue(row.L, row.H);
 }
 
+/// T420: extract the total-simulations count from the LAST
+/// "*** WINNER is X with score Y% (A/B games)" line in Pachi's captured
+/// stderr. Returns null if no WINNER line is present.
+fn pachiLastPlayouts(err_buf: []const u8) ?u64 {
+    var pos: usize = 0;
+    var best: ?u64 = null;
+    while (std.mem.indexOfPos(u8, err_buf, pos, "*** WINNER")) |wi| {
+        pos = wi + 1;
+        const paren = std.mem.indexOfPos(u8, err_buf, wi, "(") orelse break;
+        const slash = std.mem.indexOfPos(u8, err_buf, paren, "/") orelse break;
+        var end = slash + 1;
+        while (end < err_buf.len and err_buf[end] >= '0' and err_buf[end] <= '9') end += 1;
+        if (end == slash + 1) continue;
+        best = std.fmt.parseInt(u64, err_buf[slash + 1 .. end], 10) catch continue;
+    }
+    return best;
+}
+
+/// T420: extract the "GamesPlayed N" line from Fuego's `uct_stat_search`
+/// reply (the per-move achieved simulation count).
+fn fuegoGamesPlayed(reply: []const u8) ?u64 {
+    const pat = "GamesPlayed";
+    const gi = std.mem.indexOf(u8, reply, pat) orelse return null;
+    var start = gi + pat.len;
+    while (start < reply.len and (reply[start] == ' ' or reply[start] == '\t')) start += 1;
+    var end = start;
+    while (end < reply.len and reply[end] >= '0' and reply[end] <= '9') end += 1;
+    if (end == start) return null;
+    return std.fmt.parseInt(u64, reply[start..end], 10) catch null;
+}
+
+/// T420: human-readable label of the strength configuration in effect.
+fn strengthLabelFor(engine: Engine, strong: bool) []const u8 {
+    if (!strong) return "baseline (T381 settings)";
+    if (std.mem.eql(u8, engine.name, "gnugo")) return "gnugo --level 10 (default=max; no headroom)";
+    if (std.mem.eql(u8, engine.name, "pachi")) return "pachi threads=8 reportfreq=1000000 -t =50000";
+    if (std.mem.eql(u8, engine.name, "fuego")) return "fuego time_settings 0 1 1 uct_param_player max_games 1000000";
+    return "strong";
+}
+
 // ---------------------------------------------------------------------------
 // One game against a subprocess engine.
 // ---------------------------------------------------------------------------
@@ -474,18 +593,23 @@ fn playGame(
     opening_idx: usize,
     our_colour: i8,
     inject: ?*const Inject,
+    strong: bool, // T420: full-strength config + per-move playout recording
 ) !GameRecord {
     var rec = GameRecord{};
     rec.engine = engine.name;
     rec.opening = opening.name;
     rec.our_colour = our_colour;
+    rec.strength_label = strengthLabelFor(engine, strong);
     var idbuf: [96]u8 = undefined;
     const gid = std.fmt.bufPrint(&idbuf, "{s}-o{d:0>2}-{s}", .{
         engine.name, opening_idx, if (our_colour > 0) "B" else "W",
     }) catch unreachable;
     rec.game_id = gpa.dupe(u8, gid) catch unreachable;
 
-    var client = try GtpClient.spawn(io, gpa, engine.argv);
+    var client = if (strong and std.mem.eql(u8, engine.name, "pachi"))
+        try GtpClient.spawnWithStderr(io, gpa, engine.argv)
+    else
+        try GtpClient.spawn(io, gpa, engine.argv);
     defer client.deinit();
 
     if (!(try client.setup4x4())) {
@@ -609,11 +733,35 @@ fn playGame(
                 break;
             };
             try rec.moves.append(gpa, mv.?);
+
+            // T420: record the engine's ACTUAL per-move playouts, not the
+            // flag we passed. Pachi: parse the "*** WINNER (A/B games)"
+            // summary from its captured stderr (written synchronously during
+            // genmove). Fuego: query uct_stat_search for the search that just
+            // finished (read-only command, no game-state change).
+            if (strong) {
+                if (std.mem.eql(u8, engine.name, "pachi")) {
+                    client.drainStderr();
+                    if (pachiLastPlayouts(client.err_buf.items)) |n| {
+                        try rec.engine_playouts.append(gpa, n);
+                    } else {
+                        rec.playouts_missing += 1;
+                    }
+                } else if (std.mem.eql(u8, engine.name, "fuego")) {
+                    const sr = try client.command("uct_stat_search");
+                    if (fuegoGamesPlayed(sr.value)) |n| {
+                        try rec.engine_playouts.append(gpa, n);
+                    } else {
+                        rec.playouts_missing += 1;
+                    }
+                }
+            }
         }
         side = -side;
     }
 
     rec.capped = ply >= PLY_CAP;
+    for (rec.engine_playouts.items) |n| rec.playouts_total += n;
     rec.score = R.area_score(&sess.pos);
     rec.our_result = if (rec.engine_resigned)
         .win
@@ -905,7 +1053,18 @@ fn emitGameJson(j: *Json, rec: *const GameRecord) !void {
         try j.num(op.refusal_cause);
         try j.raw("}");
     }
-    try j.raw("]}");
+    try j.raw("],\n\"strength\":");
+    try j.str(rec.strength_label);
+    try j.raw(",\"playouts\":[");
+    for (rec.engine_playouts.items, 0..) |n, i| {
+        if (i > 0) try j.raw(",");
+        try j.num(@intCast(n));
+    }
+    try j.raw("],\n\"playouts_total\":");
+    try j.num(@intCast(rec.playouts_total));
+    try j.raw(",\"playouts_missing\":");
+    try j.num(@intCast(rec.playouts_missing));
+    try j.raw("}");
 }
 
 fn runEngine(
@@ -915,13 +1074,16 @@ fn runEngine(
     engine: Engine,
     openings: *const OpeningList,
     json_path: []const u8,
+    strong: bool, // T420
 ) !void {
     const p = std.debug.print;
+    const strength_label = strengthLabelFor(engine, strong);
     var games = std.ArrayListUnmanaged(GameRecord).empty;
     defer {
         for (games.items) |*g| {
             g.moves.deinit(gpa);
             g.our_positions.deinit(gpa);
+            g.engine_playouts.deinit(gpa); // T420
             gpa.free(g.game_id);
             gpa.free(g.engine_final_score);
         }
@@ -940,31 +1102,74 @@ fn runEngine(
     var res_ruleset: u64 = 0;
     var res_table: u64 = 0;
     var res_unresolved: u64 = 0;
+    // T420: per-colour splits (the game is NOT colour-symmetric here) and
+    // achieved-strength counters.
+    var wins_b: u64 = 0;
+    var wins_w: u64 = 0;
+    var losses_b: u64 = 0;
+    var losses_w: u64 = 0;
+    var ties_b: u64 = 0;
+    var ties_w: u64 = 0;
+    var lfc_b: u64 = 0; // losses from claimed-won, Black
+    var lfc_w: u64 = 0; // losses from claimed-won, White
+    var wnr_b: u64 = 0; // wins from non-claimed roots, Black
+    var wnr_w: u64 = 0; // wins from non-claimed roots, White
+    var inside_b: u64 = 0;
+    var inside_w: u64 = 0;
+    var capped_b: u64 = 0;
+    var capped_w: u64 = 0;
+    var playouts_total_all: u64 = 0;
+    var playouts_missing_all: u64 = 0;
 
     for (openings.items.items, 0..) |*opening, oi| {
         for ([_]i8{ 1, -1 }) |colour| {
-            var rec = playGame(io, gpa, a2, engine, opening, oi, colour, null) catch |err| {
+            var rec = playGame(io, gpa, a2, engine, opening, oi, colour, null, strong) catch |err| {
                 p("t381: game {s}-o{d:0>2}-{s} aborted: {}\n", .{ engine.name, oi, if (colour > 0) "B" else "W", err });
                 aborted += 1;
                 continue;
             };
-            if (rec.capped) capped += 1;
+            const our_b = rec.our_colour > 0;
+            if (rec.capped) {
+                capped += 1;
+                if (our_b) capped_b += 1 else capped_w += 1;
+            }
             classifyAndResolve(&rec);
 
             // Capped games are reported separately, not counted as W/L/T.
             if (!rec.capped) {
                 switch (rec.our_result) {
-                    .win => wins += 1,
-                    .loss => losses += 1,
-                    .tie => ties += 1,
+                    .win => {
+                        wins += 1;
+                        if (our_b) wins_b += 1 else wins_w += 1;
+                        // Q2: wins from roots NOT claimed for us = opponent
+                        // error (their blunder, not our claim); should fall as
+                        // strength rises.
+                        if (!rec.root_claimed_for_us) {
+                            if (our_b) wnr_b += 1 else wnr_w += 1;
+                        }
+                    },
+                    .loss => {
+                        losses += 1;
+                        if (our_b) losses_b += 1 else losses_w += 1;
+                    },
+                    .tie => {
+                        ties += 1;
+                        if (our_b) ties_b += 1 else ties_w += 1;
+                    },
                 }
             }
             switch (rec.finding) {
                 .none => {},
-                .loss_from_claimed => loss_from_claimed += 1,
+                .loss_from_claimed => {
+                    loss_from_claimed += 1;
+                    if (our_b) lfc_b += 1 else lfc_w += 1;
+                },
                 .tie_from_claimed => tie_from_claimed += 1,
             }
-            if (rec.outcome_inside_root) inside_root += 1;
+            if (rec.outcome_inside_root) {
+                inside_root += 1;
+                if (our_b) inside_b += 1 else inside_w += 1;
+            }
             switch (rec.resolution) {
                 .none => {},
                 .selector => res_selector += 1,
@@ -972,6 +1177,8 @@ fn runEngine(
                 .table_wrong => res_table += 1,
                 .unresolved => res_unresolved += 1,
             }
+            playouts_total_all += rec.playouts_total;
+            playouts_missing_all += rec.playouts_missing;
 
             var sb: [16]u8 = undefined;
             p("  {s}  {s:>26}  {s:>5}  result={s:>4}  finding={s:>16}  resolution={s:>14}\n", .{
@@ -983,8 +1190,12 @@ fn runEngine(
         }
     }
 
-    p("t381: {s}: {d} games (wins {d} losses {d} ties {d} aborted {d}) | losses-from-claimed {d} ties-from-claimed {d} | inside-root {d} | capped {d}\n", .{
-        engine.name, games.items.len, wins, losses, ties, aborted, loss_from_claimed, tie_from_claimed, inside_root, capped,
+    p("t381: {s}: {d} games (wins {d} losses {d} ties {d} aborted {d}) | losses-from-claimed {d} ties-from-claimed {d} | inside-root {d} | capped {d} | playouts-missing {d}\n", .{
+        engine.name, games.items.len, wins, losses, ties, aborted, loss_from_claimed, tie_from_claimed, inside_root, capped, playouts_missing_all,
+    });
+    p("t381: {s} colour split — B: {d}W/{d}L/{d}T lfc={d} wnr={d} inside={d} capped={d} | W: {d}W/{d}L/{d}T lfc={d} wnr={d} inside={d} capped={d}\n", .{
+        engine.name, wins_b, losses_b, ties_b, lfc_b, wnr_b, inside_b, capped_b,
+        wins_w, losses_w, ties_w, lfc_w, wnr_w, inside_w, capped_w,
     });
 
     // JSON document.
@@ -993,6 +1204,8 @@ fn runEngine(
     try j.raw("{\n\"task_id\":\"T381\",\n\"date\":\"2026-08-05\",\n\"model\":\"deepseek-v4-flash\",\n\"identifier\":\"flash/T381\",\n");
     try j.raw("\"engine\":");
     try j.str(engine.name);
+    try j.raw(",\n\"strength\":");
+    try j.str(strength_label);
     try j.raw(",\n\"artifact\":");
     try j.str(DEFAULT_ARTIFACT);
     try j.raw(",\n\"openings_total\":");
@@ -1023,6 +1236,39 @@ fn runEngine(
     try j.num(@intCast(res_table));
     try j.raw(",\"resolution_unresolved\":");
     try j.num(@intCast(res_unresolved));
+    // T420 additions: per-colour splits + achieved playouts.
+    try j.raw(",\"wins_black\":");
+    try j.num(@intCast(wins_b));
+    try j.raw(",\"wins_white\":");
+    try j.num(@intCast(wins_w));
+    try j.raw(",\"losses_black\":");
+    try j.num(@intCast(losses_b));
+    try j.raw(",\"losses_white\":");
+    try j.num(@intCast(losses_w));
+    try j.raw(",\"ties_black\":");
+    try j.num(@intCast(ties_b));
+    try j.raw(",\"ties_white\":");
+    try j.num(@intCast(ties_w));
+    try j.raw(",\"losses_from_claimed_black\":");
+    try j.num(@intCast(lfc_b));
+    try j.raw(",\"losses_from_claimed_white\":");
+    try j.num(@intCast(lfc_w));
+    try j.raw(",\"wins_from_non_claimed_roots_black\":");
+    try j.num(@intCast(wnr_b));
+    try j.raw(",\"wins_from_non_claimed_roots_white\":");
+    try j.num(@intCast(wnr_w));
+    try j.raw(",\"inside_root_black\":");
+    try j.num(@intCast(inside_b));
+    try j.raw(",\"inside_root_white\":");
+    try j.num(@intCast(inside_w));
+    try j.raw(",\"capped_black\":");
+    try j.num(@intCast(capped_b));
+    try j.raw(",\"capped_white\":");
+    try j.num(@intCast(capped_w));
+    try j.raw(",\"playouts_total\":");
+    try j.num(@intCast(playouts_total_all));
+    try j.raw(",\"playouts_missing\":");
+    try j.num(@intCast(playouts_missing_all));
     try j.raw("},\n\"games\":[\n");
     for (games.items, 0..) |*g, i| {
         if (i > 0) try j.raw(",\n");
@@ -1049,7 +1295,10 @@ fn probeEngine(io: std.Io, gpa: std.mem.Allocator, engine: Engine) !void {
     }
     p(")\n", .{});
 
-    var client = try GtpClient.spawn(io, gpa, engine.argv);
+    // T420: capture stderr so the strength section can read Pachi's
+    // per-move "*** WINNER (A/B games)" summaries. Transparent for the
+    // ruleset probes below (they read stdout responses only).
+    var client = try GtpClient.spawnWithStderr(io, gpa, engine.argv);
     defer client.deinit();
 
     const pv = try client.command("protocol_version");
@@ -1139,6 +1388,57 @@ fn probeEngine(io: std.Io, gpa: std.mem.Allocator, engine: Engine) !void {
     for (full) |cp| _ = try client.command(cp);
     const fs_full = try client.command("final_score");
     p("  final_score on fully-occupied board (W has all 16): '{s}'  (area komi 0 expects W+16)\n", .{fs_full.value});
+
+    // --- T420: strength settings actually in effect, per engine.
+    p("  --- strength section ---\n", .{});
+    if (std.mem.eql(u8, engine.name, "gnugo")) {
+        // GNU Go has no GTP-level strength query; level is a startup flag.
+        // Documented in --help: "--level <amount>  strength (default 10)";
+        // 10 is the maximum (runs 0-10). T381 ran without --level, i.e. at
+        // the default 10 — already maximum. No headroom exists.
+        p("  gnugo level: 10 (documented default and maximum; --help: '--level <amount> strength (default 10)')\n", .{});
+        p("  gnugo headroom: NONE — T381 already ran at max; not re-run per the brief.\n", .{});
+    } else if (std.mem.eql(u8, engine.name, "pachi")) {
+        // One genmove; read the actual simulation count from stderr.
+        var req: []const u8 = "?";
+        for (engine.argv, 0..) |a, i| {
+            if (std.mem.eql(u8, a, "-t") and i + 1 < engine.argv.len) req = engine.argv[i + 1];
+        }
+        _ = try client.command("clear_board");
+        const gm = try client.command("genmove b");
+        client.drainStderr();
+        const achieved = pachiLastPlayouts(client.err_buf.items);
+        p("  pachi requested -t {s}; move '{s}'\n", .{ req, gm.value });
+        if (achieved) |n| {
+            p("  pachi ACHIEVED playouts this move: {d}\n", .{n});
+        } else {
+            p("  pachi ACHIEVED playouts: UNREADABLE (no WINNER line in stderr)\n", .{});
+        }
+    } else if (std.mem.eql(u8, engine.name, "fuego")) {
+        // Configured vs achieved: uct_param_player reports max_games;
+        // uct_stat_search reports GamesPlayed for the search just finished.
+        const pp = try client.command("uct_param_player");
+        const ppc = gpa.dupe(u8, pp.value) catch return error.OutOfMemory;
+        defer gpa.free(ppc);
+        p("  fuego uct_param_player (configured):\n", .{});
+        var it = std.mem.tokenizeAny(u8, ppc, "\n");
+        while (it.next()) |line| {
+            if (std.mem.indexOf(u8, line, "max_games") != null or std.mem.indexOf(u8, line, "resign_threshold") != null)
+                p("    {s}\n", .{line});
+        }
+        _ = try client.command("clear_board");
+        const gm = try client.command("genmove b");
+        // gm.value slices into in_buf, which the next command overwrites —
+        // copy it before querying uct_stat_search.
+        const gm_copy = gpa.dupe(u8, gm.value) catch return error.OutOfMemory;
+        defer gpa.free(gm_copy);
+        const sr = try client.command("uct_stat_search");
+        const played = fuegoGamesPlayed(sr.value);
+        p("  fuego move '{s}'; ACHIEVED GamesPlayed: {d}\n", .{ gm_copy, played orelse 0 });
+        if (played == null) p("  fuego ACHIEVED GamesPlayed: UNREADABLE\n", .{});
+    } else {
+        p("  (no strength probe defined for unknown engine '{s}')\n", .{engine.name});
+    }
 
     p("t381: probe done for {s}\n", .{engine.name});
 }
@@ -1302,6 +1602,7 @@ pub fn main(init: std.process.Init) !void {
     var seed: u64 = 42;
     var canonical = true;
     var include_empty = true;
+    var strong = false; // T420: full-strength engine configs + per-move playout recording
     var mode: enum { run, probe, nullctl, seedctl, selfscore } = .run;
     var nullctl_game: ?[]const u8 = null;
     var seedctl_game: ?[]const u8 = null;
@@ -1318,6 +1619,7 @@ pub fn main(init: std.process.Init) !void {
         else if (std.mem.eql(u8, a, "--seed")) seed = std.fmt.parseInt(u64, args.next() orelse "42", 10) catch 42
         else if (std.mem.eql(u8, a, "--no-canonical")) canonical = false
         else if (std.mem.eql(u8, a, "--no-empty")) include_empty = false
+        else if (std.mem.eql(u8, a, "--strong")) strong = true
         else if (std.mem.eql(u8, a, "--probe")) mode = .probe
         else if (std.mem.eql(u8, a, "--nullctl")) {
             mode = .nullctl;
@@ -1338,9 +1640,10 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("{s}\n", .{version.banner("weizigo-t381-evse")});
 
-    const engine = engineFor(engine_name);
+    const engine = if (strong) engineForStrong(engine_name) else engineFor(engine_name);
 
     if (mode == .probe) {
+        if (strong) std.debug.print("t381: --strong probe: full-strength config\n", .{});
         try probeEngine(io, gpa, engine);
         return;
     }
@@ -1422,10 +1725,11 @@ pub fn main(init: std.process.Init) !void {
                 }) catch unreachable;
                 if (!std.mem.eql(u8, gid2, gid)) continue;
                 found = true;
-                var rec = try playGame(io, gpa, &a2, engine, opening, oi, colour, &inject);
+                var rec = try playGame(io, gpa, &a2, engine, opening, oi, colour, &inject, strong);
                 defer {
                     rec.moves.deinit(gpa);
                     rec.our_positions.deinit(gpa);
+                    rec.engine_playouts.deinit(gpa); // T420
                     gpa.free(rec.game_id);
                     gpa.free(rec.engine_final_score);
                 }
@@ -1449,5 +1753,5 @@ pub fn main(init: std.process.Init) !void {
     }
 
     // Normal run.
-    try runEngine(io, gpa, &a2, engine, &openings, json_path);
+    try runEngine(io, gpa, &a2, engine, &openings, json_path, strong);
 }

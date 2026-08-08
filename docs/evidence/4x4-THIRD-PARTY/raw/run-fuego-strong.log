@@ -1,0 +1,219 @@
+[runner] argv = /tmp/weizigo/t420/t381-evse --strong --engine fuego --json /tmp/weizigo/t420/fuego-strong.json
+[runner] guards: rss 4096 MB, progress-timeout 600s (10:00), fallback: wall 1800s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+[runner] task identity: T420 (source: MANAGENT_TASK_ID)
+weizigo-t381-evse 95bbe8c-dirty built 2026-08-07T12:38:04Z zig 0.16.0
+artifact: data/oracle-4x4-v2.wzo2 (4x4, rules_id=3 Chinese area, komi 0, basic ko, L/H bracket)
+openings: 34 (3 canonical + 30 random + empty)
+  fuego-o00-B         canonical-corner-A1    B+2  result= win  finding=            none  resolution=          none
+  fuego-o00-W         canonical-corner-A1   W+16  result= win  finding=            none  resolution=          none
+  fuego-o01-B           canonical-edge-B1    B+2  result= win  finding=            none  resolution=          none
+  fuego-o01-W           canonical-edge-B1   W+16  result= win  finding=            none  resolution=          none
+  fuego-o02-B         canonical-centre-B2   B+16  result= win  finding=            none  resolution=          none
+  fuego-o02-W         canonical-centre-B2      0  result= tie  finding=            none  resolution=          none
+  fuego-o03-B             random-000-bdbb    B+2  result= win  finding=            none  resolution=          none
+  fuego-o03-W             random-000-bdbb   W+16  result= win  finding=            none  resolution=          none
+  fuego-o04-B             random-001-dddc   B+16  result= win  finding=            none  resolution=          none
+  fuego-o04-W             random-001-dddc    B+1  result=loss  finding=            none  resolution=          none
+  fuego-o05-B             random-002-adbc    B+2  result= win  finding=            none  resolution=          none
+  fuego-o05-W             random-002-adbc   W+16  result= win  finding=            none  resolution=          none
+  fuego-o06-B             random-003-cabc   B+16  result= win  finding=            none  resolution=          none
+  fuego-o06-W             random-003-cabc      0  result= tie  finding=            none  resolution=          none
+  fuego-o07-B             random-004-dacd   B+16  result= win  finding=            none  resolution=          none
+  fuego-o07-W             random-004-dacd    B+3  result=loss  finding=            none  resolution=          none
+  fuego-o08-B             random-005-acbd   B+16  result= win  finding=            none  resolution=          none
+  fuego-o08-W             random-005-acbd    W+2  result= win  finding=            none  resolution=          none
+  fuego-o09-B             random-006-ccba   B+16  result= win  finding=            none  resolution=          none
+  fuego-o09-W             random-006-ccba    W+1  result= win  finding=            none  resolution=          none
+  fuego-o10-B             random-007-cbac   B+16  result= win  finding=            none  resolution=          none
+  fuego-o10-W             random-007-cbac    W+2  result= win  finding=            none  resolution=          none
+  fuego-o11-B             random-008-daaa   B+16  result= win  finding=            none  resolution=          none
+  fuego-o11-W             random-008-daaa    B+1  result=loss  finding=            none  resolution=          none
+  fuego-o12-B             random-009-bcdb   B+16  result= win  finding=            none  resolution=          none
+  fuego-o12-W             random-009-bcdb    W+2  result= win  finding=            none  resolution=          none
+  fuego-o13-B             random-010-cabd   B+16  result= win  finding=            none  resolution=          none
+  fuego-o13-W             random-010-cabd    B+5  result=loss  finding=            none  resolution=          none
+  fuego-o14-B             random-011-ccac   B+16  result= win  finding=            none  resolution=          none
+  fuego-o14-W             random-011-ccac      0  result= tie  finding=            none  resolution=          none
+  fuego-o15-B             random-012-bdca   B+16  result= win  finding=            none  resolution=          none
+  fuego-o15-W             random-012-bdca    W+1  result= win  finding=            none  resolution=          none
+  fuego-o16-B             random-013-cbdd   B+16  result= win  finding=            none  resolution=          none
+  fuego-o16-W             random-013-cbdd    W+2  result= win  finding=            none  resolution=          none
+  fuego-o17-B             random-014-bacc   B+16  result= win  finding=            none  resolution=          none
+  fuego-o17-W             random-014-bacc    W+2  result= win  finding=            none  resolution=          none
+  fuego-o18-B             random-015-dcab   B+16  result= win  finding=            none  resolution=          none
+  fuego-o18-W             random-015-dcab    W+2  result= win  finding=            none  resolution=          none
+  fuego-o19-B             random-016-adcb    W+1  result=loss  finding=            none  resolution=          none
+  fuego-o19-W             random-016-adcb   W+16  result= win  finding=            none  resolution=          none
+  fuego-o20-B             random-017-acad   B+16  result= win  finding=            none  resolution=          none
+  fuego-o20-W             random-017-acad    W+1  result= win  finding=            none  resolution=          none
+  fuego-o21-B             random-018-dbbc   B+16  result= win  finding=            none  resolution=          none
+  fuego-o21-W             random-018-dbbc      0  result= tie  finding=            none  resolution=          none
+  fuego-o22-B             random-019-aacb    B+2  result= win  finding=            none  resolution=          none
+  fuego-o22-W             random-019-aacb   W+16  result= win  finding=            none  resolution=          none
+  fuego-o23-B             random-020-ccbc   B+16  result= win  finding=            none  resolution=          none
+  fuego-o23-W             random-020-ccbc    W+2  result= win  finding=            none  resolution=          none
+  fuego-o24-B             random-021-adda   B+16  result= win  finding=            none  resolution=          none
+  fuego-o24-W             random-021-adda    W+1  result= win  finding=            none  resolution=          none
+  fuego-o25-B             random-022-dcdb   B+16  result= win  finding=            none  resolution=          none
+  fuego-o25-W             random-022-dcdb    W+1  result= win  finding=            none  resolution=          none
+  fuego-o26-B             random-023-dbad   B+16  result= win  finding=            none  resolution=          none
+  fuego-o26-W             random-023-dbad    W+1  result= win  finding=            none  resolution=          none
+  fuego-o27-B             random-024-ccca   B+16  result= win  finding=            none  resolution=          none
+  fuego-o27-W             random-024-ccca    W+1  result= win  finding=            none  resolution=          none
+  fuego-o28-B             random-025-dcca   B+16  result= win  finding=            none  resolution=          none
+  fuego-o28-W             random-025-dcca    W+1  result= win  finding=            none  resolution=          none
+  fuego-o29-B             random-026-ccaa   B+16  result= win  finding=            none  resolution=          none
+  fuego-o29-W             random-026-ccaa      0  result= tie  finding=            none  resolution=          none
+  fuego-o30-B             random-027-ccdd   B+16  result= win  finding=            none  resolution=          none
+  fuego-o30-W             random-027-ccdd    W+2  result= win  finding=            none  resolution=          none
+  fuego-o31-B             random-028-bddd   B+16  result= win  finding=            none  resolution=          none
+  fuego-o31-W             random-028-bddd    W+1  result= win  finding=            none  resolution=          none
+  fuego-o32-B             random-029-ddcc    B+2  result= win  finding=            none  resolution=          none
+  fuego-o32-W             random-029-ddcc   W+16  result= win  finding=            none  resolution=          none
+  fuego-o33-B                       empty   B+16  result= win  finding=            none  resolution=          none
+  fuego-o33-W                       empty    W+2  result= win  finding=            none  resolution=          none
+t381: fuego: 68 games (wins 58 losses 5 ties 5 aborted 0) | losses-from-claimed 0 ties-from-claimed 0 | inside-root 36 | capped 0 | playouts-missing 0
+t381: fuego colour split — B: 33W/1L/0T lfc=0 wnr=6 inside=25 capped=0 | W: 25W/4L/5T lfc=0 wnr=18 inside=11 capped=0
+t381: wrote /tmp/weizigo/t420/fuego-strong.json (188597 bytes)
+[runner] peak RSS by PID: in 353.5 s
+[runner]   pid   33590     502 MB
+[runner]   pid   37990     286 MB
+[runner]   pid   38110     282 MB
+[runner]   pid   35316     280 MB
+[runner]   pid   39146     279 MB
+[runner]   pid   34379     278 MB
+[runner]   pid   37728     277 MB
+[runner]   pid   35475     277 MB
+[runner]   pid   36594     275 MB
+[runner]   pid   37282     275 MB
+[runner]   pid   34258     275 MB
+[runner]   pid   36916     275 MB
+[runner]   pid   39570     273 MB
+[runner]   pid   40274     272 MB
+[runner]   pid   38969     271 MB
+[runner]   pid   38719     270 MB
+[runner]   pid   34645     269 MB
+[runner]   pid   34726     269 MB
+[runner]   pid   34940     268 MB
+[runner]   pid   37533     267 MB
+[runner]   pid   33964     267 MB
+[runner]   pid   36385     265 MB
+[runner]   pid   33847     265 MB
+[runner]   pid   36197     264 MB
+[runner]   pid   40497     264 MB
+[runner]   pid   33675     264 MB
+[runner]   pid   40764     264 MB
+[runner]   pid   39413     264 MB
+[runner]   pid   40109     262 MB
+[runner]   pid   38428     262 MB
+[runner]   pid   35107     261 MB
+[runner]   pid   39904     261 MB
+[runner]   pid   39752     260 MB
+[runner]   pid   37116     259 MB
+[runner]   pid   38800     257 MB
+[runner]   pid   35189     250 MB
+[runner]   pid   40885     249 MB
+[runner]   pid   33766     249 MB
+[runner]   pid   39277     249 MB
+[runner]   pid   37012     248 MB
+[runner]   pid   33594     248 MB
+[runner]   pid   39671     248 MB
+[runner]   pid   36269     248 MB
+[runner]   pid   37428     247 MB
+[runner]   pid   38346     247 MB
+[runner]   pid   38625     247 MB
+[runner]   pid   40193     247 MB
+[runner]   pid   34083     247 MB
+[runner]   pid   37813     247 MB
+[runner]   pid   39065     247 MB
+[runner]   pid   36513     247 MB
+[runner]   pid   38888     247 MB
+[runner]   pid   36116     247 MB
+[runner]   pid   40355     247 MB
+[runner]   pid   37634     247 MB
+[runner]   pid   40007     247 MB
+[runner]   pid   38519     246 MB
+[runner]   pid   37200     246 MB
+[runner]   pid   35016     246 MB
+[runner]   pid   39833     246 MB
+[runner]   pid   34583     246 MB
+[runner]   pid   34830     246 MB
+[runner]   pid   34462     246 MB
+[runner]   pid   34195     246 MB
+[runner]   pid   37894     246 MB
+[runner]   pid   40436     246 MB
+[runner]   pid   39489     246 MB
+[runner]   pid   35381     246 MB
+[runner]   pid   36855     244 MB
+[runner] peak total CPU by PID: in 353.5 s
+[runner]   pid   36594        0:14 (14.14s)
+[runner]   pid   40497        0:13 (13.68s)
+[runner]   pid   38110        0:12 (12.47s)
+[runner]   pid   39277        0:07 (7.22s)
+[runner]   pid   39146        0:06 (6.95s)
+[runner]   pid   40764        0:06 (6.5s)
+[runner]   pid   34258        0:06 (6.39s)
+[runner]   pid   33847        0:06 (6.13s)
+[runner]   pid   33964        0:06 (6.13s)
+[runner]   pid   36269        0:06 (6.12s)
+[runner]   pid   37990        0:06 (6.11s)
+[runner]   pid   40885        0:05 (5.63s)
+[runner]   pid   34083        0:05 (5.59s)
+[runner]   pid   38519        0:05 (5.56s)
+[runner]   pid   37012        0:05 (5.31s)
+[runner]   pid   34726        0:05 (5.29s)
+[runner]   pid   35189        0:05 (5.29s)
+[runner]   pid   37533        0:05 (5.29s)
+[runner]   pid   39904        0:05 (5.29s)
+[runner]   pid   36385        0:05 (5.28s)
+[runner]   pid   39570        0:05 (5.28s)
+[runner]   pid   40007        0:05 (5.28s)
+[runner]   pid   34830        0:05 (5.02s)
+[runner]   pid   36916        0:05 (5.02s)
+[runner]   pid   38969        0:05 (5.01s)
+[runner]   pid   35381        0:04 (4.75s)
+[runner]   pid   33675        0:04 (4.74s)
+[runner]   pid   38428        0:04 (4.74s)
+[runner]   pid   35016        0:04 (4.73s)
+[runner]   pid   37634        0:04 (4.73s)
+[runner]   pid   38625        0:04 (4.73s)
+[runner]   pid   37894        0:04 (4.47s)
+[runner]   pid   34462        0:04 (4.45s)
+[runner]   pid   38800        0:04 (4.45s)
+[runner]   pid   37728        0:04 (4.2s)
+[runner]   pid   33594        0:04 (4.19s)
+[runner]   pid   36513        0:04 (4.19s)
+[runner]   pid   38719        0:04 (4.19s)
+[runner]   pid   40109        0:04 (4.19s)
+[runner]   pid   33766        0:04 (4.18s)
+[runner]   pid   34379        0:04 (4.18s)
+[runner]   pid   34645        0:04 (4.18s)
+[runner]   pid   35107        0:04 (4.18s)
+[runner]   pid   36116        0:04 (4.18s)
+[runner]   pid   37282        0:04 (4.18s)
+[runner]   pid   37428        0:04 (4.18s)
+[runner]   pid   37813        0:04 (4.18s)
+[runner]   pid   38346        0:04 (4.18s)
+[runner]   pid   38888        0:04 (4.18s)
+[runner]   pid   39489        0:04 (4.18s)
+[runner]   pid   40274        0:04 (4.18s)
+[runner]   pid   40355        0:04 (4.18s)
+[runner]   pid   37116        0:04 (4.17s)
+[runner]   pid   37200        0:04 (4.17s)
+[runner]   pid   39065        0:04 (4.17s)
+[runner]   pid   39752        0:04 (4.17s)
+[runner]   pid   39671        0:04 (4.16s)
+[runner]   pid   40193        0:04 (4.15s)
+[runner]   pid   34940        0:03 (3.91s)
+[runner]   pid   35475        0:03 (3.9s)
+[runner]   pid   39413        0:03 (3.9s)
+[runner]   pid   36197        0:03 (3.62s)
+[runner]   pid   39833        0:03 (3.62s)
+[runner]   pid   36855        0:03 (3.08s)
+[runner]   pid   34195        0:03 (3.07s)
+[runner]   pid   34583        0:03 (3.07s)
+[runner]   pid   35316        0:03 (3.07s)
+[runner]   pid   40436        0:03 (3.07s)
+[runner]   pid   33590        0:00 (0.12s)
+[runner] exit 0 in 353.5 s
