@@ -42,7 +42,7 @@ move; it did not.
 
 ### 2.1 3×3 — EXHAUSTIVE — CONTAINS-CYCLES
 
-Source: `out/3x3-allties.json` (== `audit-allties-3x3.json`). Artifact
+Source: `docs/evidence/T416-OPTIMAL-CYCLE/3x3-allties.json` (== `docs/evidence/T416-OPTIMAL-CYCLE/audit-allties-3x3.json`). Artifact
 `data/oracle-3x3-v2.wzo2`, exhaustive over all 47,456 states.
 
 | quantity | value |
@@ -79,7 +79,7 @@ load-bearing finding.
 
 ### 2.2 4×4 — SAMPLE (seed 42, budget 150,000 nodes, 2,000 seeds) — CONTAINS-CYCLES
 
-Source: `out/4x4-allties.json` (== `audit-4x4-150000.json`). Artifact
+Source: `docs/evidence/T416-OPTIMAL-CYCLE/4x4-allties.json` (== `docs/evidence/T416-OPTIMAL-CYCLE/audit-4x4-150000.json`). Artifact
 `data/oracle-4x4-v2.wzo2`. **This is a sample, weaker than exhaustive.** A
 sampled *negative* would be weaker still than an exhaustive one — but this is a
 sampled **POSITIVE**: the sample cannot overstate acyclicity, it can only
@@ -234,7 +234,7 @@ is the closest the 4×4 sample comes.
 
 ### 5.3 3×3, example 3 — value −3, 4-cycle, 3 strict / 1 indifferent (exhaustive)
 
-Source: `out/3x3-allties.json` (member vectors below). This is one of the 12
+Source: `docs/evidence/T416-OPTIMAL-CYCLE/3x3-allties.json` (member vectors below). This is one of the 12
 **forced** cycles — 3 of 4 nodes strictly prefer to stay; 1 is indifferent.
 Value constant (−3), girth 4, SCC size 4.
 
@@ -299,8 +299,15 @@ demonstrated, not merely warned against.
 
 - **Instrument:** `src/t416_cycle.zig` (additive; reuses `src/t412_sibling.zig`'s
   WZO2 reader; no engine, artifact, or axiom edits).
-- **Raw outputs (this worker):** `/tmp/weizigo/t416/out/{3x3-allties,3x3-onetie,3x3-null,3x3-force,4x4-allties,4x4-onetie,4x4-force}.json` + `4x4-allties.stdout`.
-- **Independent re-runs (console, deepseek-v4-flash/T417):** `/tmp/weizigo/t416/audit-{allties-3x3,onetie-3x3,null-3x3,force-3x3,4x4-150000,4x4-onetie-150k,4x4-null-150k,4x4-force-150k}.json`.
+- **Durable copies (committed 2026-08-08 by deepseek-v4-flash/T418, absorption):** the run and
+  audit JSONs were copied from `/tmp/weizigo/t416/` to `docs/evidence/T416-OPTIMAL-CYCLE/` by the
+  Orchestrator before this row landed — `/tmp` is not evidence (AGENTS.md). The committed directory
+  is the canonical citation for every `out/` / `audit-*` file named in this doc and in
+  `findings/T416-optimal-cycle.json`; the register rows `3x3.OPTIMAL-CYCLE` / `4x4.OPTIMAL-CYCLE`
+  cite it. The `.stdout` files (e.g. `4x4-allties.stdout`) were not retained — the JSON records carry
+  the numbers.
+- **Raw outputs (this worker, pre-commit location only):** `/tmp/weizigo/t416/out/{3x3-allties,3x3-onetie,3x3-null,3x3-force,4x4-allties,4x4-onetie,4x4-force}.json` + `4x4-allties.stdout`.
+- **Independent re-runs (console, deepseek-v4-flash/T417; committed copies in the dir above):** `/tmp/weizigo/t416/audit-{allties-3x3,onetie-3x3,null-3x3,force-3x3,4x4-150000,4x4-onetie-150k,4x4-null-150k,4x4-force-150k}.json`.
   Every out/ file diffed against its audit pair is **byte-identical** (verified
   by `diff`, this pass). The 4×4 null control lives only in the audit dir
   (`audit-4x4-null-150k.json`, ACYCLIC) — its out/ copy was not retained, the
