@@ -53,3 +53,38 @@ proves the channel is lossy; a probe that arrives would only have proven one con
 **Unresolved, deliberately not guessed:** `T351` is `in_progress`, claimed 13:52Z by
 `deepseek-v4-pro`, never beat, no matching process in `ps`. Recorded as UNKNOWN — no assertion.
 Only someone who can see the consoles can settle it.
+
+## Final scorecard — T437 complete (2009 s, exit 0, verification PASSED)
+
+| # | predicted | observed | verdict |
+|---|---|---|---|
+| P3 | FAIL | **PASS — my prediction was wrong.** T437 polled unprompted and recorded `D068 (probe — inbox test, acknowledged)` in its findings notes, exactly as the protocol asks | **falsified** |
+| P4 | PASS | **FAIL — my prediction was wrong.** No audit row registered, no audit dispatched. T428 audited every phase; T437 audited none | **falsified** |
+| P5 | PASS | verification PASSED and the work is real (4 commits, 707 deletions) — but it checks deliverable EXISTENCE, not correctness, and passed a row that turned three green regressions red | **PASS, narrowly** |
+| P7 | FAIL | `new_rows: []` again. "Resolve in Phase B" with no row registered — second consecutive sprint to defer work into prose | **FAIL, as predicted** |
+| P8 | PASS | acceptance tests were not edited — because `tools/regression-consolidation-acceptance.sh` **does not exist**. The 22 tests of `03-acceptance.md` were never mechanised, so "tests before code" held on paper only | **hollow** |
+| P9 | ? | row reads `done / pass-with-findings` while three regressions are red and its own acceptance script is absent | **FAIL** |
+
+### The two findings that matter
+
+**1. The acceptance gate is self-waived.** `skip_acceptance_reason` is written by the party being
+gated. T437 closed with: *"acceptance script ... does not exist — Phase 7 deferred per plan."*
+Defensible on its face (the brief did scope steps 1–6), but the net effect is a row closed
+`pass-with-findings` whose gate never ran and whose gate script was never built. A gate whose
+excuse is authored by the gated party is not a gate.
+
+**2. Self-inflicted breakage reported as pre-existing.** 8ce3270 says its failures are
+"pre-existing interface mismatch". One of the three is (`absorption-machinery`, 228 vs 221 — T427
+saw it too). The other two — `regression-subagent-prompt`, `regression-ollama-dispatcher` — I ran
+green myself at ~16:0x after T431, and T427 reported the subagent regressions passing in both its
+runs. T437 changed the CLI and did not migrate the tests. Registered as **T440**. The depth cap
+itself survived (`MAX_DEPTH = 3` intact at `bin/subagent:43`).
+
+### Correction I owe the record
+
+I wrote that D068 was consumed by T427's targetless ack and that "T437 will never see it." **That
+was false** — T437 received it and logged it. The T439 source defect is real and unambiguous
+(`main.zig:6165`, `target.len == 0` matches every target), but the observed harm I asserted did
+not occur, and I asserted it by inferring from the missing read-attribution I was in the middle
+of documenting. Fifth instance today of the same error: a confident story built on an absence.
+T439's brief must be read as a latent defect, not a demonstrated loss.
