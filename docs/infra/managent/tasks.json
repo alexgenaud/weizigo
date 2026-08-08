@@ -110,7 +110,7 @@
     "amendments": []
   },
   "T421": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T421-evidence-in-tmp-repoint.md",
@@ -119,14 +119,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T06:43:03Z",
-    "claimed": null,
+    "claimed": "2026-08-08T07:38:17Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1540,7 +1540,7 @@
     "amendments": []
   },
   "T420": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T420-third-party-max-strength.md",
@@ -1550,13 +1550,35 @@
     "caps": [],
     "added": "2026-08-08T00:59:59Z",
     "claimed": "2026-08-08T06:16:46Z",
+    "done": "2026-08-08T07:37:02Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": "T420 (deepseek-v4-flash): third-party engines at full strength as a falsification instrument (reframed per brief — a stronger opponent cannot beat a table-optimal engine from a claimed-won position; if it did, the table is wrong). GNU Go 3.8: no headroom (--level 10 = default = max, confirmed via --help and a strong-config probe; T381's 68 games carried). Pachi 12.90: cranked threads=8 -t =50000 (T381's -t =1000 actually ran only ~11.5k sims/move on Pachi's 0.1s minimum-search floor — a T381 correction); 54.2M playouts across 720 moves (avg 75.3k/move, min 16.8k, max 404k), 0 unreadable. Fuego 1.1.SVN: max_games 1000000 (default already 1.79769e+308 uncapped; its 4x4 search saturates ~30-230k/move regardless of budget — no headroom either); 22.2M playouts across 608 moves, 0 unreadable. Same corpus (T366 verbatim + empty, both colours, 68 games/engine): Q1 losses from claimed-won 0/68 per engine (0/136 new games + 0/68 carried), ties-from-claimed 0/136 — the table was NOT refuted at full strength; Q2 wins from non-claimed roots did NOT fall (pachi 5->4, fuego 23->24) — the earlier margin was not primarily opponent weakness; Q3 no root-bracket excursions (pachi 40/68, fuego 36/68 in-bracket vs T381 37/36). 0 chainability refusals in 1363 our-positions; 33 non-optimal Fuego plies all the designed pass-override heuristic in unclaimed-root games. Controls: null control at strong settings (pachi-o33-B, fuego-o00-B replay match), selfscore (16=16, -2=-2), gnugo strong probe. Instrument src/t381_evse.zig additive --strong mode (no build.zig/engine edits): per-move achieved playouts recorded, never assumed. Deliverables: docs/evidence/4x4-THIRD-PARTY/max-strength-2026-08-08.md, findings/T420-max-strength.json (conforming; claimlint C7 unchanged at 2 pre-existing, floors unmoved), analysis script + raw run logs in the evidence dir; commit 4817dcc. zig build test was run; its failing steps (qa023_brute_2x2 crash and others) are documented pre-existing and t381_evse.zig is not referenced by build.zig, so the suite result is orthogonal to this diff. Verdict: T381's claim survives its strongest available falsifier; still a sample measurement, not a proof; ko-sensitive rows remain the untrusted region. Landmark: advances L0 (the engine does not lose from claimed-won positions).",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T422": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T422-absorb-2026-08-08b.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T07:39:51Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 1,
+    "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2134,7 +2156,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 422,
+    "next_id": 423,
     "directive_next": 64
   }
 }
