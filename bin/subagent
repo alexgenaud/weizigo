@@ -1,24 +1,29 @@
 #!/usr/bin/env python3
-"""Dispatch a DeepSeek worker.  bin/subagent <T-ID|path.md> --dspro|--dsflash [--wall=N] [--rss-cap-mb=N] [--dry-run]
+"""Dispatch a worker.  bin/subagent --provider <deepseek|ollama> <T-ID|path.md> [--model <tag>] [--wall=N] [--rss-cap-mb=N] [--dry-run]
 
-  --dspro     DeepSeek-v4-Pro          --wall=N        wall-clock guard, default 1800s
-  --dsflash   DeepSeek-v4-Flash        --rss-cap-mb=N  RSS cap in MB, default 4096
-                                       --dry-run       print the command, spawn nothing
+  --provider deepseek    dispatch via DeepSeek (requires DEEPSEEK_API_KEY)
+  --provider ollama      dispatch via Ollama (requires --model <tag>)
+  --model <tag>          Ollama model tag, e.g. glm-5.2:cloud (ollama only)
+  --wall=N               wall-clock guard, default 1800s
+  --rss-cap-mb=N         RSS cap in MB, default 4096 (deepseek only)
+  --dry-run              print the command, spawn nothing
 
   test-only flags (T411 — the regression uses them; production dispatches never do):
   --test-root=<dir>    resolve the repo from <dir> instead of the script location
-  --test-worker=<cmd>  run <cmd> <prompt> instead of the runner+pi command, so a
+  --test-worker=<cmd>  run <cmd> <prompt> instead of the real worker, so a
                        stub worker can exercise the full dispatch+verify path
                        without an LLM (tools/regression-dispatch-verification.sh)
 
-Bin/subagent dispatches DeepSeek only by construction (hardcoded model list,
-requires DEEPSEEK_API_KEY). Workers can reach Ollama models through
-`ollama launch pi` — the depth cap stops bin/subagent recursion but does not
-stop Ollama launches (T320, 2026-08-03). Claude seats use the Claude Code
-harness and must never be dispatched by a non-Claude harness (human rule).
-Depth increments per dispatch and refuses at MAX_DEPTH (3), so a manager may
-delegate a manager and the chain still ends. The depth cap stops runaway recursion;
-it is not a security boundary — see docs/infra/agents/subdelegation.md.
+bin/subagent dispatches either a DeepSeek or Ollama worker, selected by the
+REQUIRED --provider flag. A bare call exits non-zero naming "provider" (C2.1).
+
+Workers can reach Ollama models through `ollama launch pi` — the depth cap
+stops bin/subagent recursion but does not stop Ollama launches (T320, 2026-08-03).
+Claude seats use the Claude Code harness and must never be dispatched by a
+non-Claude harness (human rule). Depth increments per dispatch and refuses at
+MAX_DEPTH (3), so a manager may delegate a manager and the chain still ends.
+The depth cap stops runaway recursion; it is not a security boundary — see
+docs/infra/agents/subdelegation.md.
 
 Dispatch verification (T411, 2026-08-07): an agent that replies "OK." and
 runs nothing is the most dangerous defect this project has seen (T408/kimi).
@@ -35,24 +40,30 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import dispatch_verify  # noqa: E402
 
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
-# T431: the cap bounds RECURSION; it does not ban delegation. Depth increments
-# by one per dispatch and refuses at MAX_DEPTH, so a manager may dispatch a
-# manager (which may dispatch a leaf) and the chain still terminates. Before
-# T431 every child was stamped 2 and refused at 2, making every child a leaf —
-# which meant a sprint console could not dispatch its own phase audits and had
-# to ask the human to paste them. That made the operator the transport layer.
 MAX_DEPTH = 3
-MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
-KNOWN = set(MODELS) | {"--dry-run"}
+
+# ── provider configuration ─────────────────────────────────────────────────
+PROVIDERS = {"deepseek", "ollama"}
+
+# DeepSeek model map (flags → canonical labels)
+DS_MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
+
+# Ollama tag → canonical model label mapping (must stay in sync with
+# src/managent/main.zig canonical_models[] — T317 item 2).
+OLLAMA_TAG_TO_CANONICAL = {
+    "glm-5.2": "glm-5.2",
+    "glm-5.2:cloud": "glm-5.2",
+    "minimax-m3": "minimax-m3",
+    "minimax-m3:cloud": "minimax-m3",
+    "kimi-k2.7": "kimi-k2.7",
+    "kimi-k2.7-code": "kimi-k2.7",
+    "kimi-k2.7:cloud": "kimi-k2.7",
+    "kimi-k2.7-code:cloud": "kimi-k2.7",
+}
 
 
 def run_worker(cmd, cwd, env):
-    """Run the worker, streaming its stdout to the parent while capturing it.
-
-    The captured stdout is what verification greps for the nonce — the
-    runner's argv echo (which also contains the token) goes to stderr, so it
-    can never contaminate the check.  stderr is inherited and streams live.
-    """
+    """Run the worker, streaming its stdout to the parent while capturing it."""
     proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
                             text=True, bufsize=1)
     chunks = []
@@ -64,20 +75,41 @@ def run_worker(cmd, cwd, env):
     return rc, "".join(chunks)
 
 
-def main(argv):
-    args = [a for a in argv if not a.startswith("--")]
-    flags = [a for a in argv if a.startswith("--")]
-    unknown = [f for f in flags
-               if f not in KNOWN
-               and not f.startswith("--wall=")
-               and not f.startswith("--rss-cap-mb=")
-               and not f.startswith("--test-root=")
-               and not f.startswith("--test-worker=")]
-    if len(args) != 1 or unknown:
-        sys.exit((f"subagent: unknown flag(s) {' '.join(unknown)}\n" if unknown else "")
-                 + __doc__)
+def parse_argv(argv):
+    """Split argv into (positional args, flags dictionary)."""
+    args, flags, i = [], {}, 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("--model", "--wall", "--provider") and i + 1 < len(argv) and not argv[i + 1].startswith("--"):
+            flags[a.lstrip("-")] = argv[i + 1]
+            i += 2
+            continue
+        if "=" in a and a.startswith("--"):
+            k, v = a.split("=", 1)
+            flags[k.lstrip("-")] = v
+            i += 1
+            continue
+        if a.startswith("--"):
+            flags[a.lstrip("-")] = True
+            i += 1
+            continue
+        args.append(a)
+        i += 1
+    return args, flags
 
-    try:  # fail closed: an unreadable depth is treated as a worker
+
+def main(argv):
+    args, flags = parse_argv(argv)
+    provider = flags.get("provider")
+
+    # C2.1: --provider is REQUIRED
+    if not provider:
+        sys.exit("subagent: missing --provider (deepseek|ollama)\n" + __doc__)
+    if provider not in PROVIDERS:
+        sys.exit(f"subagent: unknown provider '{provider}' — must be deepseek or ollama\n")
+
+    # Depth cap (shared, before provider branch — NF2 resolved)
+    try:
         depth = int(os.environ.get(DEPTH_VAR, "1"))
     except ValueError:
         depth = MAX_DEPTH
@@ -88,25 +120,36 @@ def main(argv):
                  f"then stop.\nIf the task genuinely needs delegating, say so and let "
                  f"your manager decide.")
 
-    chosen = [f for f in flags if f in MODELS]
-    if len(chosen) != 1:
-        sys.exit("subagent: name exactly one model — --dspro or --dsflash")
-    model = MODELS[chosen[0]]
+    target = args[0] if args else None
+    if not target or len(args) != 1:
+        sys.exit(__doc__)
 
-    target, wall = args[0], next(
-        (f.split("=")[1] for f in flags if f.startswith("--wall=")), "1800")
-    rss_mb = next(
-        (f.split("=")[1] for f in flags if f.startswith("--rss-cap-mb=")), None)
-    test_root = next(
-        (f.split("=", 1)[1] for f in flags if f.startswith("--test-root=")), None)
-    test_worker = next(
-        (f.split("=", 1)[1] for f in flags if f.startswith("--test-worker=")), None)
+    wall = flags.get("wall", "1800")
+    rss_mb = flags.get("rss-cap-mb")  # deepseek only
+    raw_model = flags.get("model")    # ollama only
+    test_root = flags.get("test-root")
+    test_worker = flags.get("test-worker")
+    dry_run = "dry-run" in flags
     root = os.path.abspath(test_root) if test_root else ROOT
 
-    # T411: one random echo token per dispatch; the worker's captured stdout
-    # must contain it, or the dispatch fails verification (didn't-read case).
+    # ── Resolve model ──────────────────────────────────────────────────
+    if provider == "deepseek":
+        # DeepSeek: model is chosen from --dspro/--dsflash flags
+        chosen_ds = [f"--{k}" for k in ("dspro", "dsflash") if flags.get(k) is True]
+        if len(chosen_ds) != 1:
+            sys.exit("subagent: for --provider deepseek, name exactly one model — --dspro or --dsflash")
+        model = DS_MODELS[chosen_ds[0]]
+    else:  # ollama
+        if not raw_model:
+            sys.exit("subagent: for --provider ollama, --model <tag> is required\n")
+        model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
+        if model is None:
+            model = re.sub(r":cloud$", "", raw_model)
+
+    # ── Nonce ──────────────────────────────────────────────────────────
     nonce = dispatch_verify.generate_nonce()
 
+    # ── Task resolution ────────────────────────────────────────────────
     task_id = None
     deliverables = []
     if re.fullmatch(r"T\d+", target):
@@ -116,19 +159,20 @@ def main(argv):
         bundle = os.path.relpath(hits[0], root)
         task_id = target
         slug = re.sub(rf"^{target}-|\.md$", "", os.path.basename(bundle))
-        # T317 item 5 / T411: the declared deliverables are part of the
-        # closing contract — name them in the prompt and verify them after.
         deliverables = dispatch_verify.parse_deliverables(
             hits[0], f"findings/{target}-{slug}.json")
         dl_lines = "\n".join(f"  - {d}" for d in deliverables)
+        delegate_note = (
+            "You are a manager: you may dispatch your own sub-rows with "
+            "bin/subagent or bin/ollama-subagent, and you never ask the human "
+            "to relay a dispatch. The brief carries everything.\n\n"
+            if depth + 1 < MAX_DEPTH else
+            "You are a leaf: you are at the delegation cap and do not dispatch. "
+            "The brief carries everything.\n\n"
+        )
         prompt = (f"Follow {bundle}\n\n"
                   f"FIRST: bin/managent claim {target} --agent {model}\n"
-                  + ("You are a manager: you may dispatch your own sub-rows with "
-                     "bin/subagent or bin/ollama-subagent, and you never ask the human "
-                     "to relay a dispatch. The brief carries everything.\n\n"
-                     if depth + 1 < MAX_DEPTH else
-                     "You are a leaf: you are at the delegation cap and do not dispatch. "
-                     "The brief carries everything.\n\n")
+                  + delegate_note
                   + f"{dispatch_verify.nonce_prompt_lines(nonce)}"
                   f"WHEN DONE, before any other output:\n"
                   f"  Deliverables declared by the bundle (managent done checks every one):\n"
@@ -148,45 +192,42 @@ def main(argv):
                   f"  of `kill` writes your context dump and exits.  An empty inbox is a\n"
                   f"  no-op (do not be alarmed).  The brief carries everything else.\n")
     elif os.path.isfile(target):
-        prompt = f"Follow {os.path.relpath(os.path.abspath(target), root)}\n"
-        prompt += "\n" + dispatch_verify.nonce_prompt_lines(nonce)
-        # A bare dispatch may still carry a bundle meta header with
-        # deliverables=; parse it so the side effects can be verified.
-        deliverables = dispatch_verify.parse_deliverables(
-            os.path.abspath(target))
+        prompt = f"Follow {os.path.relpath(os.path.abspath(target), root)}\\n"
+        prompt += "\\n" + dispatch_verify.nonce_prompt_lines(nonce)
+        deliverables = dispatch_verify.parse_deliverables(os.path.abspath(target))
     else:
         sys.exit(f"subagent: no such task or file: {target}")
 
-    # Credential by environment, never argv: tools/runner echoes argv and the
-    # heartbeat writer records it, so --api-key would leak the key into logs and
-    # evidence on every dispatch.
-    if not test_worker and not os.environ.get("DEEPSEEK_API_KEY"):
-        sys.exit("subagent: DEEPSEEK_API_KEY is not set")
+    # ── Environment ────────────────────────────────────────────────────
+    if provider == "deepseek" and not test_worker:
+        if not os.environ.get("DEEPSEEK_API_KEY"):
+            sys.exit("subagent: DEEPSEEK_API_KEY is not set")
     env = dict(os.environ, **{DEPTH_VAR: str(depth + 1)})
     if task_id:
         env["MANAGENT_TASK_ID"] = task_id
 
+    # ── Build command ──────────────────────────────────────────────────
     if test_worker:
-        # Test-only path (T411): run the stub worker directly — no runner, no
-        # API call — so the regression can exercise the full dispatch+verify
-        # path with a seeded worker.
         cmd = [test_worker, prompt]
-    else:
+    elif provider == "deepseek":
         cmd = ["tools/runner", "--max-wall", wall]
         if rss_mb:
             cmd.extend(["--rss-cap-mb", rss_mb])
         cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
-    if "--dry-run" in flags:
+    else:  # ollama
+        cmd = ["tools/runner", "--max-wall", wall, "--",
+               "ollama", "launch", "pi", "--model", raw_model, "-y", "--", "-p", prompt]
+
+    if dry_run:
         print(f"{DEPTH_VAR}={depth + 1}")
         if task_id:
-            # T370: identity is propagated by env so nested runner calls inherit it.
             print(f"MANAGENT_TASK_ID={task_id}")
-        print(" ".join(repr(c) if "\n" in c else c for c in cmd))
+        print(" ".join(repr(c) if "\\n" in c else c for c in cmd))
         return 0
 
     rc, stdout = run_worker(cmd, root, env)
 
-    # ── T411: verify the WORK, never the reply ────────────────────────────
+    # ── T411: verify the WORK, never the reply ────────────────────────
     t0 = time.monotonic()
     exit_code, summary, details, perf = dispatch_verify.verify_dispatch(
         root=root, task_id=task_id, model=model, nonce=nonce, stdout=stdout,

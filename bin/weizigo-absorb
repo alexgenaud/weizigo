@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "weizigo-absorb: use weizigo-claimlint absorb" >&2
+exec bin/weizigo-claimlint absorb "$@"

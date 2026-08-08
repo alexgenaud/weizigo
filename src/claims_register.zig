@@ -18,7 +18,7 @@
 //
 // CLAIMS REGISTER — shared parser for docs/epistemic/CLAIMS.md §2.
 //
-// Used by claimlint (checker) and absorb (knowledge-capture tool). Extracted
+// Used by claimlint (verify and absorb verbs) — imported by src/claimlint.zig. Extracted
 // from claimlint.zig 2026-08-01 (T194/D5) so the absorption tool can read the
 // register without duplicating the parser.
 //
@@ -42,6 +42,9 @@ pub const Status = enum {
     intractable,
     measurement,
     definition,
+    /// "true when written, overtaken by events" (T269): the claim was correct
+    /// when made, but the world moved on.
+    superseded,
     unparsed,
 
     pub fn isLive(s: Status) bool {
@@ -60,6 +63,7 @@ pub const Status = enum {
             .intractable => "INTRACTABLE",
             .measurement => "MEASUREMENT",
             .definition => "(definition)",
+            .superseded => "SUPERSEDED",
             .unparsed => "??",
         };
     }
@@ -168,6 +172,7 @@ pub fn parseStatus(raw: []const u8) Status {
     if (std.mem.startsWith(u8, s, "UNTESTED")) return .untested;
     if (std.mem.startsWith(u8, s, "INTRACTABLE")) return .intractable;
     if (std.mem.startsWith(u8, s, "MEASUREMENT")) return .measurement;
+    if (std.mem.startsWith(u8, s, "SUPERSEDED")) return .superseded;
     if (std.mem.startsWith(u8, s, "—")) return .definition;
     return .unparsed;
 }

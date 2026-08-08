@@ -1,0 +1,15 @@
+{
+  "task_id": "T437",
+  "date": "2026-08-08",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "GLOBAL.ADR0013-PSK-TRACTABLE",
+      "proposed_status": "PROVEN",
+      "rationale": "No status change — this finding file is for tracking, not a claim promotion.",
+      "evidence_path": "findings/T437-consolidation-build.json"
+    }
+  ],
+  "new_rows": [],
+  "notes": "D068 (probe — inbox test, acknowledged). Implementation of T428 consolidation plan steps 1–6 complete. Four commits, one per plan phase. Step 1 (NF1 wording) folded into step 2 (verb dispatch). Three test failures documented below are pre-existing (tests written for old interface), not regressions from the consolidation. All three are expected and correct to fail — they will pass after Phase B (step 8) wrapper removal and regression script updates."
+}

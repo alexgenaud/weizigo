@@ -30,7 +30,6 @@
 // Appends one line to untracked/absorption.md (unless --dry-run).
 
 const std = @import("std");
-const version = @import("version");
 const cr = @import("claims_register.zig");
 const util = @import("util.zig");
 const Allocator = std.mem.Allocator;
@@ -444,19 +443,13 @@ fn insertAfterForNewRow(reg: *cr.Register, nr: NewRow) []const u8 {
     return "GLOBAL.ADR0001-PROJECT";
 }
 
-// ── main ────────────────────────────────────────────────────────────────────
+// ── runAbsorb (called from claimlint verb dispatch) ─────────────────────
 
-pub fn main(init: std.process.Init) !void {
-    std.debug.print("{s}\n", .{version.banner("weizigo-absorb")});
-    const gpa = std.heap.page_allocator;
-    const io = init.io;
-    var args = std.process.Args.Iterator.init(init.minimal.args);
-    _ = args.next();
-
+pub fn runAbsorb(io: Io, gpa: Allocator, args: [][]const u8) !void {
     var findings_path: ?[]const u8 = null;
     var dry_run = false;
 
-    while (args.next()) |a| {
+    for (args) |a| {
         if (std.mem.eql(u8, a, "--dry-run")) {
             dry_run = true;
         } else if (!std.mem.startsWith(u8, a, "--")) {
@@ -465,7 +458,7 @@ pub fn main(init: std.process.Init) !void {
     }
 
     const fpath = findings_path orelse {
-        util.note("usage: weizigo-absorb <findings.json> [--dry-run]\n", .{});
+        util.note("absorb: no findings file given\n", .{});
         std.process.exit(1);
     };
 

@@ -677,38 +677,21 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/claimlint.zig"),
             .target = target,
             .optimize = optimize,
-        }),
-    });
-    claimlint_exe.root_module.addImport("version", version_mod);
-    b.installArtifact(claimlint_exe);
-
-    // ── absorption tool ────────────────────────────────────────────
-    // Reads a findings JSON file and CLAIMS.md, outputs JSON-Lines edit
-    // directives. The mechanical half of knowledge-capture absorption.
-    const absorb_exe = b.addExecutable(.{
-        .name = "weizigo-absorb",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("src/absorb.zig"),
-            .target = target,
-            .optimize = optimize,
             .link_libc = true,
         }),
     });
-    absorb_exe.root_module.addImport("version", version_mod);
-    absorb_exe.root_module.addImport("claims_register", b.createModule(.{
+    claimlint_exe.root_module.addImport("version", version_mod);
+    claimlint_exe.root_module.addImport("claims_register", b.createModule(.{
         .root_source_file = b.path("src/claims_register.zig"),
         .target = target,
         .optimize = optimize,
     }));
-    b.installArtifact(absorb_exe);
-
-    // ── deploy absorb to bin/ (post-install deploy step) ───────────
-    // T268: deploy via remove-copy-sign (tools/deploy.sh) — a bare `cp` over
-    // a live signed binary on Apple Silicon SIGKILLs it (exit=137, silent).
-    const absorb_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-absorb", "bin/weizigo-absorb" });
-    absorb_deploy.step.dependOn(b.getInstallStep());
-    const deploy_absorb_step = b.step("deploy-absorb", "Deploy weizigo-absorb to bin/ (remove-copy-sign)");
-    deploy_absorb_step.dependOn(&absorb_deploy.step);
+    claimlint_exe.root_module.addImport("absorb", b.createModule(.{
+        .root_source_file = b.path("src/absorb.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
+    b.installArtifact(claimlint_exe);
 
     // ── deploy managent to bin/ (post-install deploy step) ─────────
     const managent_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/managent", "bin/managent" });
@@ -844,7 +827,6 @@ pub fn build(b: *std.Build) void {
 
     // ── deploy all (umbrella) ──────────────────────────────────────
     const deploy_step = b.step("deploy", "Deploy every tool to bin/ (remove-copy-sign)");
-    deploy_step.dependOn(&absorb_deploy.step);
     deploy_step.dependOn(&managent_deploy.step);
     deploy_step.dependOn(&gtp_deploy.step);
     deploy_step.dependOn(&claimlint_deploy.step);

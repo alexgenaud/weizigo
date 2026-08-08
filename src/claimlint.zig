@@ -103,6 +103,8 @@
 const std = @import("std");
 const version = @import("version");
 const util = @import("util.zig");
+const cr = @import("claims_register.zig");
+const absorb = @import("absorb.zig");
 const Allocator = std.mem.Allocator;
 const Io = std.Io;
 
@@ -461,8 +463,8 @@ fn synthRegister(gpa: Allocator, extra_rows: []const u8) ![]u8 {
 const CAL_SYNTHETIC =
     \\## 2. The register
     \\
-    \\| ID | legacy | board | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate |
-    \\|---|---|---|---|---|---|---|---|---|---|
+    \\| ID | legacy | board | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+    \\|---|---|---|---|---|---|---|---|---|---|---|
     \\| `GLOBAL.CALPARENT-DEAD` | — | all | synthetic: a parent that is FALSE | FALSE-AS-SCOPED | `AGENTS.md:1` | — | — | 0 | ? | Z-R-TIE |
     \\| `GLOBAL.CALPARENT-LIVE` | — | all | synthetic: a parent still standing | PROVEN | `AGENTS.md:1` | — | — | 0 | ? | Z-TABLE |
     \\| `GLOBAL.CALCHILD-OK` | — | all | synthetic: justified by the refutation of a parent that IS refuted | CLAIMED | `AGENTS.md:1` | `n:GLOBAL.CALPARENT-DEAD` | — | 0 | ? | Z-NONCLAIMS |
@@ -476,80 +478,12 @@ const CAL_SYNTHETIC =
 
 // ── model ────────────────────────────────────────────────────────────────────
 
-const Status = enum {
-    proven,
-    claimed,
-    false_as_scoped,
-    false_flat,
-    untested,
-    intractable,
-    measurement,
-    definition,
-    /// "true when written, overtaken by events" (T269): the claim was correct
-    /// when made, but the world moved on. Not FALSE (the statement was never
-    /// wrong) and not live (it no longer describes reality). Superseded rows
-    /// are invisible to C1a/C3/B — they can never be FALSE, so no falsification
-    /// travels through them, and they owe no committed evidence for a claim
-    /// they no longer make. Existing instances: `CODE.WZO2-UNRUN`,
-    /// `CODE.WZO2-CHAINSHORT`.
-    superseded,
-    unparsed,
-
-    fn isLive(s: Status) bool {
-        return s == .proven or s == .claimed;
-    }
-    fn isFalse(s: Status) bool {
-        return s == .false_as_scoped or s == .false_flat;
-    }
-    fn name(s: Status) []const u8 {
-        return switch (s) {
-            .proven => "PROVEN",
-            .claimed => "CLAIMED",
-            .false_as_scoped => "FALSE-AS-SCOPED",
-            .false_flat => "FALSE",
-            .untested => "UNTESTED",
-            .intractable => "INTRACTABLE",
-            .measurement => "MEASUREMENT",
-            .definition => "(definition)",
-            .superseded => "SUPERSEDED",
-            .unparsed => "??",
-        };
-    }
-};
-
-const EdgeKind = enum {
-    /// `d:` the claim is a logical consequence of the parent. Parent falls -> child falls.
-    derives,
-    /// `e:` the claim is supported by a measurement. Parent falls -> child becomes UNTESTED.
-    evidenced,
-    /// `n:` the claim is justified by the parent being FALSE. Propagation is
-    /// INVERTED: a FALSE parent is healthy; a parent that is no longer false
-    /// means the child's justification has evaporated.
-    negation,
-};
-
-const Edge = struct { kind: EdgeKind, target: []const u8 };
-
-const Row = struct {
-    id: []const u8,
-    line: usize,
-    board: []const u8,
-    status: Status,
-    status_raw: []const u8,
-    evidence: []const u8,
-    dependents: []const u8,
-    deps: std.ArrayList(Edge),
-    narrowed: ?u32,
-    rate: ?f64,
-    rate_raw: []const u8,
-    /// T305: the requirement-tree node (AXIOMS.md §3) this row serves, or
-    /// `RETIRED` (proposed retirement — the row serves no tree node; the
-    /// reason lives in register-tree-map.md §2 and the human rules). Checked
-    /// by C9.
-    tree: []const u8,
-    in_degree: u32 = 0,
-    refs_outside: u32 = 0,
-};
+// Type aliases from claims_register.zig — single source of truth (T428 step 3).
+const Status = cr.Status;
+const EdgeKind = cr.EdgeKind;
+const Edge = cr.Edge;
+const Row = cr.Row;
+const Register = cr.Register;
 
 // ── small string helpers ─────────────────────────────────────────────────────
 
@@ -566,10 +500,6 @@ fn baseName(p: []const u8) []const u8 {
     return p;
 }
 
-fn hasPathExt(s: []const u8) bool {
-    for (PATH_EXT) |e| if (endsWith(s, e)) return true;
-    return false;
-}
 
 fn isIgnoredPath(p: []const u8) bool {
     for (IGNORED_PREFIXES) |pre| if (std.mem.startsWith(u8, p, pre)) return true;
@@ -580,40 +510,9 @@ fn isIgnoredPath(p: []const u8) bool {
 /// register escapes literal pipes (`vb\|vw\|...` in CODE.ADR0011-FMT), so a
 /// naive split silently mangles that row — and a linter that silently mangles
 /// rows is worse than none.
-fn splitCells(gpa: Allocator, line: []const u8) !std.ArrayList([]const u8) {
-    var out: std.ArrayList([]const u8) = .empty;
-    var start: usize = 0;
-    var i: usize = 0;
-    while (i < line.len) : (i += 1) {
-        if (line[i] != '|') continue;
-        if (i > 0 and line[i - 1] == '\\') continue;
-        try out.append(gpa, line[start..i]);
-        start = i + 1;
-    }
-    try out.append(gpa, line[start..]);
-    return out;
-}
 
 /// Strip a trailing `:12`, `:12-34`, `:12,34-56` line citation.
-fn stripLineSpec(tok: []const u8) []const u8 {
-    const colon = std.mem.lastIndexOfScalar(u8, tok, ':') orelse return tok;
-    if (colon + 1 >= tok.len) return tok[0..colon];
-    for (tok[colon + 1 ..]) |c| {
-        if (!std.ascii.isDigit(c) and c != ',' and c != '-') {
-            // en-dash is multi-byte; treat any non-ASCII as "not a line spec"
-            return tok;
-        }
-    }
-    return tok[0..colon];
-}
 
-fn stripPunct(tok: []const u8) []const u8 {
-    var s = tok;
-    while (s.len > 0 and (s[s.len - 1] == '.' or s[s.len - 1] == ',' or s[s.len - 1] == ';' or
-        s[s.len - 1] == ')' or s[s.len - 1] == ']')) s = s[0 .. s.len - 1];
-    while (s.len > 0 and (s[0] == '(' or s[0] == '[' or s[0] == '=')) s = s[1..];
-    return s;
-}
 
 // ── repo file index ──────────────────────────────────────────────────────────
 
@@ -660,7 +559,7 @@ const Index = struct {
     /// tolerant — an unresolvable *path-shaped* token is a finding, an
     /// unresolvable prose token is not.
     fn resolve(self: *Index, raw: []const u8) !?[]const u8 {
-        var tok = stripLineSpec(stripPunct(trim(raw)));
+        var tok = cr.stripLineSpec(cr.stripPunct(trim(raw)));
         // Documents link each other relatively (`../status/leak-crisis.md`).
         // Drop the leading traversal and let the suffix match do the work —
         // deliberately tolerant: this check hunts deleted files, not wrong
@@ -710,213 +609,34 @@ const Index = struct {
 
 // ── register parsing ─────────────────────────────────────────────────────────
 
-const Register = struct {
-    rows: std.ArrayList(Row),
-    by_id: std.StringHashMap(usize),
-    unparsed: std.ArrayList([]const u8),
-    /// [start,end) line numbers (1-based) of the §2 region, so C4 can tell a
-    /// register row's own columns from a genuine outside reference.
-    sec2_start: usize = 0,
-    sec2_end: usize = 0,
-};
 
-fn parseStatus(raw: []const u8) Status {
-    const s = trim(raw);
-    if (s.len == 0) return .unparsed;
-    if (std.mem.startsWith(u8, s, "FALSE-AS-SCOPED")) return .false_as_scoped;
-    if (std.mem.startsWith(u8, s, "FALSE")) return .false_flat;
-    if (std.mem.startsWith(u8, s, "PROVEN")) return .proven;
-    if (std.mem.startsWith(u8, s, "CLAIMED")) return .claimed;
-    if (std.mem.startsWith(u8, s, "SUPERSEDED")) return .superseded;
-    if (std.mem.startsWith(u8, s, "UNTESTED")) return .untested;
-    if (std.mem.startsWith(u8, s, "INTRACTABLE")) return .intractable;
-    if (std.mem.startsWith(u8, s, "MEASUREMENT")) return .measurement;
-    if (std.mem.startsWith(u8, s, "—")) return .definition; // "— (definition)"
-    return .unparsed;
+
+
+
+
+
+fn isKnownVerb(v: []const u8) bool {
+    return std.mem.eql(u8, v, "absorb") or std.mem.eql(u8, v, "verify");
 }
 
-fn parseNarrowed(raw: []const u8) ?u32 {
-    const s = trim(raw);
-    if (s.len == 0 or s[0] == '?') return null;
-    return std.fmt.parseInt(u32, s, 10) catch null;
-}
-
-fn parseRate(raw: []const u8) ?f64 {
-    var s = trim(raw);
-    if (s.len == 0 or s[0] == '?') return null;
-    while (s.len > 0 and (s[0] == '~' or s[0] == '<' or s[0] == '>')) s = s[1..];
-    if (endsWith(s, "%")) s = s[0 .. s.len - 1];
-    return std.fmt.parseFloat(f64, s) catch null;
-}
-
-/// Every backtick-delimited span in `cell`, appended to `out`.
-fn backtickSpans(gpa: Allocator, cell: []const u8, out: *std.ArrayList([]const u8)) !void {
-    var i: usize = 0;
-    while (i < cell.len) {
-        if (cell[i] != '`') {
-            i += 1;
-            continue;
-        }
-        const start = i + 1;
-        var j = start;
-        while (j < cell.len and cell[j] != '`') : (j += 1) {}
-        if (j >= cell.len) return;
-        if (j > start) try out.append(gpa, cell[start..j]);
-        i = j + 1;
-    }
-}
-
-fn parseRegister(gpa: Allocator, text: []const u8) !Register {
-    var reg: Register = .{
-        .rows = .empty,
-        .by_id = std.StringHashMap(usize).init(gpa),
-        .unparsed = .empty,
-    };
-    var lineno: usize = 0;
-    var in_sec2 = false;
-    var it = std.mem.splitScalar(u8, text, '\n');
-    while (it.next()) |line| {
-        lineno += 1;
-        if (std.mem.startsWith(u8, line, "## 2. The register")) {
-            in_sec2 = true;
-            reg.sec2_start = lineno;
-            continue;
-        }
-        if (in_sec2 and std.mem.startsWith(u8, line, "## 3.")) {
-            in_sec2 = false;
-            reg.sec2_end = lineno;
-            continue;
-        }
-        if (!in_sec2) continue;
-        if (line.len == 0 or line[0] != '|') continue;
-
-        var cells = try splitCells(gpa, line);
-        defer cells.deinit(gpa);
-        const c = cells.items;
-        if (c.len < 3) {
-            try reg.unparsed.append(gpa, try std.fmt.allocPrint(gpa, "{d}: too few cells ({d})", .{ lineno, c.len }));
-            continue;
-        }
-        const first = trim(c[1]);
-        if (std.mem.eql(u8, first, "ID")) continue; // header
-        var only_dashes = first.len > 0;
-        for (first) |ch| {
-            if (ch != '-' and ch != ':') only_dashes = false;
-        }
-        if (only_dashes) continue; // separator
-
-        // A data row. It MUST have the full column set; loud on anything else.
-        if (c.len != 13) {
-            try reg.unparsed.append(gpa, try std.fmt.allocPrint(
-                gpa,
-                "{d}: expected 11 columns, found {d} — `{s}`",
-                .{ lineno, c.len - 2, first },
-            ));
-            continue;
-        }
-        if (first.len < 3 or first[0] != '`' or first[first.len - 1] != '`') {
-            try reg.unparsed.append(gpa, try std.fmt.allocPrint(
-                gpa,
-                "{d}: ID cell is not a backticked claim ID — `{s}`",
-                .{ lineno, first },
-            ));
-            continue;
-        }
-        const id = first[1 .. first.len - 1];
-        const status = parseStatus(c[5]);
-        if (status == .unparsed) {
-            try reg.unparsed.append(gpa, try std.fmt.allocPrint(
-                gpa,
-                "{d}: unrecognised status for `{s}` — \"{s}\"",
-                .{ lineno, id, trim(c[5]) },
-            ));
-        }
-
-        var deps: std.ArrayList(Edge) = .empty;
-        var spans: std.ArrayList([]const u8) = .empty;
-        defer spans.deinit(gpa);
-        try backtickSpans(gpa, c[7], &spans);
-        for (spans.items) |sp| {
-            if (std.mem.startsWith(u8, sp, "d:")) {
-                try deps.append(gpa, .{ .kind = .derives, .target = sp[2..] });
-            } else if (std.mem.startsWith(u8, sp, "e:")) {
-                try deps.append(gpa, .{ .kind = .evidenced, .target = sp[2..] });
-            } else if (std.mem.startsWith(u8, sp, "n:")) {
-                try deps.append(gpa, .{ .kind = .negation, .target = sp[2..] });
-            }
-        }
-
-        try reg.rows.append(gpa, .{
-            .id = id,
-            .line = lineno,
-            .board = trim(c[3]),
-            .status = status,
-            .status_raw = trim(c[5]),
-            .evidence = c[6],
-            .dependents = c[8],
-            .deps = deps,
-            .narrowed = parseNarrowed(c[9]),
-            .rate = parseRate(c[10]),
-            .rate_raw = trim(c[10]),
-            .tree = trim(c[11]),
-        });
-        const slot = reg.rows.items.len - 1;
-        if (reg.by_id.get(id)) |prev| {
-            try reg.unparsed.append(gpa, try std.fmt.allocPrint(
-                gpa,
-                "{d}: duplicate claim ID `{s}` (first at line {d})",
-                .{ lineno, id, reg.rows.items[prev].line },
-            ));
-        } else {
-            try reg.by_id.put(id, slot);
-        }
-    }
-    if (reg.sec2_end == 0) reg.sec2_end = lineno;
-    return reg;
+fn printHelp(io: Io) void {
+    _ = io;
+    util.out(
+        \\usage: weizigo-claimlint [<verb>] [<path>]
+        \\
+        \\verbs:
+        \\  verify [<path>]  run claimlint checks on CLAIMS.md (default)
+        \\  absorb <findings.json> [--dry-run]
+        \\                    absorb findings into CLAIMS.md
+        \\  help              print this help
+        \\
+    , .{});
 }
 
 // ── claim-ID recognition (C4) ────────────────────────────────────────────────
 
-fn isClaimIdToken(tok: []const u8) bool {
-    // `QA-nnn` — the Q&A register minted by critique-2026-07-28 §7 and
-    // roadmap-2026-07-28 §5. Scope-free by construction (§1), so it has no dot.
-    if (isQaId(tok)) return true;
-    const dot = std.mem.indexOfScalar(u8, tok, '.') orelse return false;
-    const scope = tok[0..dot];
-    const rest = tok[dot + 1 ..];
-    if (rest.len == 0) return false;
-    var scope_ok = false;
-    for (SCOPES) |s| {
-        if (std.mem.eql(u8, s, scope)) {
-            scope_ok = true;
-            break;
-        }
-    }
-    if (!scope_ok) return false;
-    for (rest) |ch| {
-        if (!std.ascii.isAlphanumeric(ch) and ch != '.' and ch != '-' and ch != '_') return false;
-    }
-    if (hasPathExt(tok)) return false; // `4x4.checkpoint.wzo` is a file, not a claim
-    return true;
-}
 
-fn claimIdOf(span: []const u8) ?[]const u8 {
-    var s = trim(span);
-    if (std.mem.startsWith(u8, s, "d:") or std.mem.startsWith(u8, s, "e:") or
-        std.mem.startsWith(u8, s, "n:")) s = s[2..];
-    if (!isClaimIdToken(s)) return null;
-    return s;
-}
 
-/// `QA-nnn` — the second claim-ID namespace, minted by critique-2026-07-28 §7
-/// and roadmap-2026-07-28 §5 and imported into §2.11 on 2026-07-28. Tracked
-/// separately so the tool can report how much of it the register models: an ID
-/// the graph cannot see is an ID a falsification can never propagate to.
-fn isQaId(tok: []const u8) bool {
-    if (tok.len < 6 or !std.mem.startsWith(u8, tok, "QA-")) return false;
-    for (tok[3..]) |ch| if (!std.ascii.isDigit(ch)) return false;
-    return true;
-}
 
 // ── path-token extraction (C2) ───────────────────────────────────────────────
 
@@ -938,9 +658,9 @@ fn pathTokens(gpa: Allocator, text: []const u8, out: *std.ArrayList([]const u8))
         }
         const start = i;
         while (i < text.len and isPathChar(text[i])) : (i += 1) {}
-        const tok = stripLineSpec(stripPunct(text[start..i]));
+        const tok = cr.stripLineSpec(cr.stripPunct(text[start..i]));
         if (tok.len < 5) continue;
-        if (!hasPathExt(tok)) continue;
+        if (!cr.hasPathExt(tok)) continue;
         if (std.mem.startsWith(u8, tok, "http")) continue;
         try out.append(gpa, tok);
     }
@@ -1056,7 +776,7 @@ fn volatileScan(gpa: Allocator, io: Io, idx: *Index, hits: *std.ArrayList(Volati
                 }
                 const start = i;
                 while (i < line.len and isPathChar(line[i])) : (i += 1) {}
-                const tok = stripLineSpec(stripPunct(line[start..i]));
+                const tok = cr.stripLineSpec(cr.stripPunct(line[start..i]));
                 if (tok.len < 5) continue;
                 const cls = (try volatileClassOf(idx, tok)) orelse continue;
                 try hits.append(gpa, .{ .token = tok, .file = p, .line = lineno, .class = cls });
@@ -1112,13 +832,13 @@ fn citeTags(gpa: Allocator, text: []const u8) !std.ArrayList(CiteTag) {
             continue;
         }
         const id_part = trim(text[start..colon]);
-        if (!isClaimIdToken(id_part)) {
+        if (!cr.isClaimIdToken(id_part)) {
             i = close;
             continue;
         }
         const status_part = trim(text[colon + 1 .. close]);
         // Validate that status_part is a recognised status word
-        if (parseStatus(status_part) == .unparsed) {
+        if (cr.parseStatus(status_part) == .unparsed) {
             i = close;
             continue;
         }
@@ -1149,7 +869,7 @@ fn citeTagCheck(
     };
     const tags = try citeTags(gpa, text);
     for (tags.items) |tag| {
-        const tagged = parseStatus(tag.status);
+        const tagged = cr.parseStatus(tag.status);
         // T373: the row may have moved to archives/register/ in the triage.
         // A tag whose ID is archived verifies against the archive row's
         // preserved status — silent on match, mismatch otherwise (the same
@@ -1193,10 +913,10 @@ fn archivedRowStatus(gpa: Allocator, body: []const u8) !?Status {
     var it = std.mem.splitScalar(u8, body, '\n');
     while (it.next()) |line| {
         if (!std.mem.startsWith(u8, line, "| `")) continue;
-        var cells = try splitCells(gpa, line);
+        var cells = try cr.splitCells(gpa, line);
         defer cells.deinit(gpa);
         if (cells.items.len < 6) continue;
-        const st = parseStatus(cells.items[5]);
+        const st = cr.parseStatus(cells.items[5]);
         if (st == .unparsed) return null;
         return st;
     }
@@ -1229,25 +949,66 @@ const Missing = struct {
     }
 };
 
+/// Verb dispatch: routes to verify (default) or absorb, preserving backward
+/// compatibility — if the first non-flag argument is neither a recognized verb
+/// nor an existing path, it is treated as an unknown verb (C1.1 RED control).
+/// The boundary is structural (separate code paths, separate invocation
+/// context, no shared mutable state), not by convention.
 pub fn main(init: std.process.Init) !void {
     std.debug.print("{s}\n", .{version.banner("weizigo-claimlint")});
     const gpa = std.heap.page_allocator;
     const io = init.io;
     var args = std.process.Args.Iterator.init(init.minimal.args);
-    _ = args.next();
-    var claims_path: []const u8 = DEFAULT_CLAIMS;
+    _ = args.next(); // prog name
+
+    const verb = args.next();
+
+    if (verb) |v| {
+        if (std.mem.eql(u8, v, "help") or std.mem.eql(u8, v, "--help") or std.mem.eql(u8, v, "-h")) {
+            printHelp(io);
+            return;
+        }
+        if (std.mem.eql(u8, v, "absorb")) {
+            var absorb_args = std.ArrayList([]const u8).empty;
+            defer absorb_args.deinit(gpa);
+            while (args.next()) |a| : (try absorb_args.append(gpa, a)) {}
+            return absorb.runAbsorb(io, gpa, absorb_args.items);
+        }
+        // C1.1 / NF3: a non-verb, non-existing-path is an unknown verb, not a
+        // path to verify. Only treat as a verify path if the file actually exists.
+        if (!isKnownVerb(v)) {
+            const f = Io.Dir.cwd().openFile(io, v, .{}) catch {
+                util.note("claimlint: unknown verb '{s}'\n", .{v});
+                printHelp(io);
+                std.process.exit(1);
+            };
+            f.close(io);
+        }
+    }
+
+    // Default: verify verb. Collect remaining args for the verify path.
+    // If the first arg was a known verb (verify/absorb), it was consumed above;
+    // only non-flag args AFTER the verb are paths.
+    var claims_path: []const u8 = if (verb == null or std.mem.eql(u8, verb.?, "verify"))
+        DEFAULT_CLAIMS
+    else
+        verb.?;
     while (args.next()) |a| {
         if (std.mem.startsWith(u8, a, "--")) continue;
         claims_path = a;
     }
 
+    return runVerify(io, gpa, claims_path);
+}
+
+fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     const text = Io.Dir.cwd().readFileAlloc(io, claims_path, gpa, .unlimited) catch |e| {
         util.note("claimlint: cannot read {s}: {s}\n", .{ claims_path, @errorName(e) });
         std.process.exit(3);
     };
 
     var idx = try Index.build(gpa, io);
-    var reg = try parseRegister(gpa, text);
+    var reg = try cr.parseRegister(gpa, text);
 
     util.out("weizigo-claimlint — {s}\n", .{claims_path});
     util.out("repo index: {d} files · register §2 lines {d}–{d}\n", .{
@@ -1330,7 +1091,7 @@ pub fn main(init: std.process.Init) !void {
     for (reg.rows.items) |r| {
         var spans: std.ArrayList([]const u8) = .empty;
         defer spans.deinit(gpa);
-        try backtickSpans(gpa, r.evidence, &spans);
+        try cr.backtickSpans(gpa, r.evidence, &spans);
         for (spans.items) |sp| {
             var toks: std.ArrayList([]const u8) = .empty;
             defer toks.deinit(gpa);
@@ -1341,7 +1102,7 @@ pub fn main(init: std.process.Init) !void {
                 try noteMissing(gpa, &missing, &seen_missing, t, r.id, "the evidence column itself", true);
             }
             // bare-name citations resolve too (`0009`, `open-hypotheses`)
-            const bare = stripLineSpec(stripPunct(trim(sp)));
+            const bare = cr.stripLineSpec(cr.stripPunct(trim(sp)));
             if (bare.len > 0 and std.mem.indexOfScalar(u8, bare, ' ') == null)
                 try toks.append(gpa, bare);
 
@@ -1463,12 +1224,12 @@ pub fn main(init: std.process.Init) !void {
         var has_committed = false;
         var spans: std.ArrayList([]const u8) = .empty;
         defer spans.deinit(gpa);
-        try backtickSpans(gpa, r.evidence, &spans);
+        try cr.backtickSpans(gpa, r.evidence, &spans);
         for (spans.items) |sp| {
             var toks: std.ArrayList([]const u8) = .empty;
             defer toks.deinit(gpa);
             try pathTokens(gpa, sp, &toks);
-            const bare = stripLineSpec(stripPunct(trim(sp)));
+            const bare = cr.stripLineSpec(cr.stripPunct(trim(sp)));
             if (bare.len > 0 and std.mem.indexOfScalar(u8, bare, ' ') == null)
                 try toks.append(gpa, bare);
             for (toks.items) |t| {
@@ -1526,9 +1287,9 @@ pub fn main(init: std.process.Init) !void {
         while (alit.next()) |line| {
             var spans: std.ArrayList([]const u8) = .empty;
             defer spans.deinit(gpa);
-            try backtickSpans(gpa, line, &spans);
+            try cr.backtickSpans(gpa, line, &spans);
             for (spans.items) |sp| {
-                const cid = claimIdOf(sp) orelse continue;
+                const cid = cr.claimIdOf(sp) orelse continue;
                 if (!reg.by_id.contains(cid) and !archived.contains(cid)) try archived.put(cid, {});
             }
         }
@@ -1545,22 +1306,22 @@ pub fn main(init: std.process.Init) !void {
             const inside_sec2 = is_claims and lineno > reg.sec2_start and lineno < reg.sec2_end;
             var spans: std.ArrayList([]const u8) = .empty;
             defer spans.deinit(gpa);
-            try backtickSpans(gpa, line, &spans);
+            try cr.backtickSpans(gpa, line, &spans);
             for (spans.items) |sp| {
-                const cid = claimIdOf(sp) orelse continue;
-                if (isQaId(cid)) {
+                const cid = cr.claimIdOf(sp) orelse continue;
+                if (cr.isQaId(cid)) {
                     const g = try qa.getOrPut(cid);
                     if (!g.found_existing) g.value_ptr.* = .empty;
                     if (g.value_ptr.items.len < 3)
                         try g.value_ptr.append(gpa, try std.fmt.allocPrint(gpa, "{s}:{d}", .{ p, lineno }));
                 }
-                if (isQaId(cid) and reg.by_id.contains(cid)) {
+                if (cr.isQaId(cid) and reg.by_id.contains(cid)) {
                     const g2 = try qa_modelled.getOrPut(cid);
                     if (!g2.found_existing) g2.value_ptr.* = {};
                 }
                 // T373: an archived row still models its QA ID — a falsification
                 // reaches it via the archive index, so it is not "unmodelled".
-                if (isQaId(cid) and archived.contains(cid)) {
+                if (cr.isQaId(cid) and archived.contains(cid)) {
                     const g2 = try qa_modelled.getOrPut(cid);
                     if (!g2.found_existing) g2.value_ptr.* = {};
                 }
@@ -1934,7 +1695,7 @@ pub fn main(init: std.process.Init) !void {
     var synth_c1a_ok = false;
     {
         const synth_ext_c1a = try synthRegister(gpa, CAL_SYNTHETIC_C1A_EXTRA);
-        var sreg_c1a = try parseRegister(gpa, synth_ext_c1a);
+        var sreg_c1a = try cr.parseRegister(gpa, synth_ext_c1a);
         var saw_orphan = false;
         var saw_clean = true;
         for (sreg_c1a.rows.items, 0..) |_, i| {
@@ -1999,7 +1760,7 @@ pub fn main(init: std.process.Init) !void {
     var synth_ok = false;
     var synth_c5_ok = false;
     {
-        var sreg = try parseRegister(gpa, CAL_SYNTHETIC);
+        var sreg = try cr.parseRegister(gpa, CAL_SYNTHETIC);
         const salarms = try negationAlarms(gpa, &sreg);
         var saw_alarm = false;
         var saw_silent = true;
@@ -2064,7 +1825,7 @@ pub fn main(init: std.process.Init) !void {
                 continue;
             };
             const expected = reg.rows.items[slot].status;
-            const tagged = parseStatus(tag.status);
+            const tagged = cr.parseStatus(tag.status);
             if (tagged != expected) {
                 if (std.mem.eql(u8, tag.id, CAL_CITE_BAD_ID)) saw_bad = true;
             } else {
@@ -2085,7 +1846,7 @@ pub fn main(init: std.process.Init) !void {
                 continue;
             };
             const expected = reg.rows.items[slot].status;
-            const tagged = parseStatus(tag.status);
+            const tagged = cr.parseStatus(tag.status);
             if (tagged != expected) {
                 if (std.mem.eql(u8, tag.id, CAL_CITE_BAD_ID2)) saw_bad2 = true;
             } else {
@@ -2111,7 +1872,7 @@ pub fn main(init: std.process.Init) !void {
     var synth_c7_ok = false;
     {
         const synth_ext = try synthRegister(gpa, CAL_SYNTHETIC_C7_EXTRA);
-        var sreg = try parseRegister(gpa, synth_ext);
+        var sreg = try cr.parseRegister(gpa, synth_ext);
         var empty_rej: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
         defer empty_rej.entries.deinit();
         // Known-bad 6a: parse without rejections — CAL-SHOULDBE-FALSE must
@@ -2169,7 +1930,7 @@ pub fn main(init: std.process.Init) !void {
     var synth_c7_multirow_ok = false;
     {
         const synth_ext2 = try synthRegister(gpa, CAL_SYNTHETIC_C7_MULTIROW_EXTRA);
-        var sreg2 = try parseRegister(gpa, synth_ext2);
+        var sreg2 = try cr.parseRegister(gpa, synth_ext2);
         var empty_rej2: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
         defer empty_rej2.entries.deinit();
         const c7cal2 = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_MULTIROW, "calibration/T269cal-multirow.json", &sreg2, &empty_rej2);
@@ -2262,7 +2023,7 @@ pub fn main(init: std.process.Init) !void {
     var synth_c8_ok = false;
     {
         const synth_ext_c8 = try synthRegister(gpa, CAL_SYNTHETIC_C8_EXTRA);
-        var sreg_c8 = try parseRegister(gpa, synth_ext_c8);
+        var sreg_c8 = try cr.parseRegister(gpa, synth_ext_c8);
         var skm = try parseKillMatrix(gpa, CAL_SYNTHETIC_KILL_MATRIX);
         defer skm.deinit(gpa);
         var saw_unkilled = false;
@@ -2301,12 +2062,12 @@ pub fn main(init: std.process.Init) !void {
     var synth_c9_ok = false;
     {
         const synth_ext_c9 = try synthRegister(gpa, CAL_SYNTHETIC_C9_EXTRA);
-        var sreg9 = try parseRegister(gpa, synth_ext_c9);
+        var sreg9 = try cr.parseRegister(gpa, synth_ext_c9);
         var c9res: C9Result = .{};
         try checkTreeMapping(gpa, &sreg9, CAL_SYNTHETIC_C9_DOC, &c9res);
         const c9_bad_caught = c9res.invalid_cells == 1 and c9res.doc_missing_ids == 1 and
             c9res.doc_extra_ids == 1 and c9res.node_mismatches == 0;
-        var sreg9g = try parseRegister(gpa, CAL_SYNTHETIC);
+        var sreg9g = try cr.parseRegister(gpa, CAL_SYNTHETIC);
         var c9res_g: C9Result = .{};
         try checkTreeMapping(gpa, &sreg9g, CAL_SYNTHETIC_C9_GOOD_DOC, &c9res_g);
         const c9_good_silent = c9res_g.invalid_cells == 0 and c9res_g.doc_missing_ids == 0 and
@@ -2727,7 +2488,7 @@ fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []cons
 fn checkStatusClaim(gpa: Allocator, io: Io, result: *C7Result, reg: *Register, rej: *const RejectionIndex, claim_id: []const u8, proposed: []const u8, base: []const u8, owned_file: []const u8) !void {
     if (reg.by_id.get(claim_id)) |slot| {
         const r = reg.rows.items[slot];
-        const ps = parseStatus(proposed);
+        const ps = cr.parseStatus(proposed);
         if (ps != .unparsed and ps != r.status) {
             if (rej.get(gpa, claim_id, base)) |entry| {
                 result.rejected += 1;
@@ -2753,7 +2514,7 @@ fn checkStatusClaim(gpa: Allocator, io: Io, result: *C7Result, reg: *Register, r
     } else if (try archivedStatusFor(gpa, io, claim_id)) |astat| {
         // T373: the row lives in archives/register/ now — the archive status
         // is the row's authority, exactly as the register's was before.
-        const ps = parseStatus(proposed);
+        const ps = cr.parseStatus(proposed);
         if (ps != .unparsed and ps != astat) {
             if (rej.get(gpa, claim_id, base)) |entry| {
                 result.rejected += 1;
@@ -3002,7 +2763,7 @@ fn parseMappingDoc(gpa: Allocator, text: []const u8) !std.StringHashMap([]const 
         if (std.mem.startsWith(u8, line, "## 2.")) break;
         if (!in_map) continue;
         if (line.len == 0 or line[0] != '|') continue;
-        var cells = try splitCells(gpa, line);
+        var cells = try cr.splitCells(gpa, line);
         defer cells.deinit(gpa);
         const c = cells.items;
         if (c.len < 3) continue;
