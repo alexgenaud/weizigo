@@ -30,3 +30,26 @@ contaminated and must not be quoted as a suite-cost measurement.
 is contradicted by three direct observations today (~35 min, ~44 min, and one in progress past
 37 min), and by the week-close audit's 52-minute run with an UNRESOLVED verdict. The 618 s figure
 carried in the handover should not be quoted again until re-measured on an idle machine.
+
+## Results (appended as they land — predictions above are frozen at commit 65f9400)
+
+| # | predicted | observed | verdict |
+|---|---|---|---|
+| P1 | PASS | claimed in 2 s as `deepseek-v4-pro/T437` | **PASS** |
+| P2 | FAIL | `liveness`: "never beat since 15:11:42Z" — third console running | **FAIL, as predicted** |
+| P3 | FAIL | **VOID — the instrument broke.** D068 (target T437) was consumed by T427's targetless `--ack`. The question "does a working console read its inbox unprompted?" is unanswered, because the probe never reached the console it was addressed to | **VOID → defect T439** |
+| P6 | FAIL | console `clean — no violations`; same-run report `NEEDS ACTION (2)` | **FAIL, as predicted** |
+
+**The finding the experiment produced, which no prediction anticipated:** `bin/managent inbox
+--ack` with no target marks EVERY row's unread directives as read (`main.zig:6165`,
+`target.len == 0` matches all), and the read event records no author and no timestamp. So a
+directive can be delivered to nobody while the ledger shows it read. Registered as **T439**.
+This is the channel that replaced the human relay, and it silently ate a message addressed to a
+console that is running right now.
+
+**Method note.** P3 failing to measure is worth more than P3 confirming. A probe that vanishes
+proves the channel is lossy; a probe that arrives would only have proven one console polls.
+
+**Unresolved, deliberately not guessed:** `T351` is `in_progress`, claimed 13:52Z by
+`deepseek-v4-pro`, never beat, no matching process in `ps`. Recorded as UNKNOWN — no assertion.
+Only someone who can see the consoles can settle it.

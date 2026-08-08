@@ -989,6 +989,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T439": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T439-inbox-ack-crosstalk.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T15:22:30Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "managent inbox --ack with no target acks all rows' directives (main.zig:6165 target.len==0 matches everything); observed live when T427's ack consumed D068 addressed to T437. Read event also has no author/timestamp.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T343": {
     "status": "done",
     "agent": "glm-5.2",
