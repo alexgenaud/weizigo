@@ -102,6 +102,7 @@ indirect approaches:
 ```sh
 zig build-exe -O ReleaseFast src/eyeprune_falsify.zig -femit-bin=/tmp/weizigo-eyeprune-falsify
 tools/runner -- /tmp/weizigo-eyeprune-falsify
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 ## Next checks

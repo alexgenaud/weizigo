@@ -22,6 +22,7 @@ The harness source itself is at `src/psk_divergence.zig` (this task owns it).
 ```sh
 tools/runner -- zig build-exe -Mmain=src/psk_divergence.zig \
   -femit-bin=/tmp/weizigo-psk-divergence
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 All builds run under the B-2 RSS runner (`tools/runner`) per `AGENTS.md` and

@@ -70,12 +70,12 @@ at one moves-array index to a pass or a cell).
 zig build-exe -O ReleaseFast --dep version -Mroot=src/t389_traj.zig \
   -Mversion=src/version.zig --cache-dir /tmp/weizigo/t389/cache \
   --global-cache-dir /tmp/weizigo/t389/global --name weizigo-t389-traj \
-  -femit-bin=/tmp/weizigo/t389/t389-traj            (under tools/runner)
+  -femit-bin=docs/evidence/RESCUED-tmp-2026-08-08/t389/t389-traj            (under tools/runner)
 
 # main run (sections selfplay + corpus-replay):
-weizigo-t389-traj --mode both --json /tmp/weizigo/t389/main-both.json
+weizigo-t389-traj --mode both --json docs/evidence/RESCUED-tmp-2026-08-08/t389/main-both.json
 # seeded control:
-weizigo-t389-traj --mode selfplay --json /tmp/weizigo/t389/seeded-final.json \
+weizigo-t389-traj --mode selfplay --json docs/evidence/RESCUED-tmp-2026-08-08/t389/seeded-final.json \
   --inject-opening 0 --inject-ply 1 --inject-side W --inject-cell pass
 # deliverable = main run + the seeded section merged (mechanical, documented here)
 ```

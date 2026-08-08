@@ -54,12 +54,12 @@ Operational notes, not "works":
 
 ### 1. Reach + round trip (3/3 correct)
 
-Identical trivial bundle (`/tmp/weizigo/t408/roundtrip.md`): *"Read `docs/epistemic/PROGRESS.md`.
+Identical trivial bundle (`docs/evidence/RESCUED-tmp-2026-08-08/t408/roundtrip.md`): *"Read `docs/epistemic/PROGRESS.md`.
 Reply with ONLY the 4×4 root value from the gate-chain table in section 4.2."* Expected answer: `+1`
 (the 4×4 `root` column, basic-ko tie-area table, PROGRESS.md §4.2). One probe proves reach + file
 access + instruction-following in a single dispatch.
 
-Command shape (per target): `bin/ollama-subagent /tmp/weizigo/t408/roundtrip.md --model <tag> --wall=300`
+Command shape (per target): `bin/ollama-subagent docs/evidence/RESCUED-tmp-2026-08-08/t408/roundtrip.md --model <tag> --wall=300`
 wrapped in `tools/runner` (rss 4 GB, progress-timeout 600 s, wall 300 s). All via the guarded path;
 `bin/ollama-subagent` is the correct entry point for every dispatch here because the bundle was a
 bare file target (no kanban row) — `bin/subagent` is the DeepSeek-only sibling and cannot reach
@@ -76,7 +76,7 @@ here and in the findings file).
 
 ### 2. Kanban interaction against a scratch store (3/3 after retries)
 
-Scratch store `/tmp/weizigo/t408-scratch.json` (`MANAGENT_STORE` override; the live kanban was never
+Scratch store `docs/evidence/RESCUED-tmp-2026-08-08/t408-scratch.json` (`MANAGENT_STORE` override; the live kanban was never
 a target — see Safety). One pre-registered dispatchable row per model (T902 glm, T903 kimi,
 T904 minimax, model pre-stamped via `add --model`). Probe bundle: claim (no `--agent`, inherits
 stamped model) → `sleep 12` → ping → done (no `--agent`, `--status pass`, note with an embedded
@@ -145,7 +145,7 @@ bundle (grandchild depth echo) before recording the finding.
 `git status` on `docs/infra/managent/tasks.json` after all probes: the only diffs are (a) the
 T409 claim made by this console at session start (required) and (b) Orcha's T405 amendment
 (08:47:43Z, predates this session). No probe row, no scratch write reached the live store. All
-`managent` exercises ran under `MANAGENT_STORE=/tmp/weizigo/t408-scratch.json`.
+`managent` exercises ran under `MANAGENT_STORE=docs/evidence/RESCUED-tmp-2026-08-08/t408-scratch.json`.
 
 ## What this means for the sprint (T409's staffing decision)
 

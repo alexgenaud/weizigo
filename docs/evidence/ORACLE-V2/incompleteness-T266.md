@@ -561,11 +561,13 @@ python3 docs/evidence/ORACLE-V2/t266_scan.py untracked/oracle-v2/oracle-3x3-v2.w
                                              untracked/oracle-v2/oracle-4x4-v2.wzo2
 python3 docs/evidence/ORACLE-V2/t266_calibrate.py \
         untracked/oracle-v2/oracle-3x3-v2.wzo2 /tmp/weizigo/t266-mutants
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the calibration mutant set is gone
 python3 docs/evidence/ORACLE-V2/t266_scan.py --group untracked/oracle-v2/oracle-3x3-v2.wzo2 14717
 python3 docs/evidence/ORACLE-V2/t266_scan.py --lookup untracked/oracle-v2/oracle-4x4-v2.wzo2 12 1 16 0
 tools/runner -- zig build-exe --dep version -Mroot=src/oracle_v2_accept.zig \
         -Mversion=src/version.zig -femit-bin=/tmp/weizigo/accept
 /tmp/weizigo/accept untracked/oracle-v2/oracle-3x3-v2.wzo2 a1
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the accept binary above is gone
 printf 'boardsize 4\nclear_board\ngenmove b\nquit\n' | \
         ./bin/weizigo-gtp untracked/oracle-v2/oracle-4x4-v2.wzo2
 ```

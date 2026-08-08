@@ -28,7 +28,7 @@ concurrent sweeps, GRAND-AUDIT §3). Recorded per check: status, numerator /
 denominator, declared/actual mode, exit class, plus the command, the artifact
 SHA-256 and the binary version stamp. Raw JSONL of every run is in
 `docs/evidence/BATTERY/baselines.json` (normalized) — the run transcripts were
-captured at `/tmp/weizigo/*-baseline.jsonl` during the session (disposable).
+captured at `/tmp/weizigo/*-baseline.jsonl` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — during the session (disposable).
 
 | instrument | version stamp | binary SHA-256 |
 |---|---|---|

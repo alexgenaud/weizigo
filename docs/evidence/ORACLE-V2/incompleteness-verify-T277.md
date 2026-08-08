@@ -181,4 +181,5 @@ python3 docs/evidence/ORACLE-V2/t266_scan.py --lookup untracked/oracle-v2/oracle
 # Shift mutant
 python3 docs/evidence/ORACLE-V2/t277_shift_mutant.py untracked/oracle-v2/oracle-3x3-v2.wzo2 /tmp/weizigo/t277-mutants
 python3 docs/evidence/ORACLE-V2/t266_scan.py /tmp/weizigo/t277-mutants/shift-mutant.wzo2
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the calibration mutant set above is gone
 ```

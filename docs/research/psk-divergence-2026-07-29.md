@@ -33,6 +33,7 @@ Source: `src/psk_divergence.zig` (owned by this task).  Build:
 ```sh
 tools/runner -- zig build-exe -Mmain=src/psk_divergence.zig \
   -femit-bin=/tmp/weizigo-psk-divergence
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 The exact PSK reference is `retro.Retro(w,h).O.solve` with `memo=false` and
@@ -62,6 +63,7 @@ Command:
 ```sh
 tools/runner -- /tmp/weizigo-psk-divergence artifacts/oracle-2x2.wzo \
   --games 200 --max-empties 2 --budget 200000000 --policy random --seed 20260729
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 | metric | value | denominator |
@@ -94,6 +96,7 @@ Command:
 ```sh
 tools/runner -- /tmp/weizigo-psk-divergence artifacts/oracle-2x2.wzo \
   --games 100 --max-empties 2 --budget 200000000 --policy mixed --seed 20260729
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 - sampled: 77; solved: 49; budget-excluded: 17.
@@ -136,6 +139,7 @@ Command:
 ```sh
 tools/runner -- /tmp/weizigo-psk-divergence artifacts/oracle-3x2.wzo \
   --games 20 --max-empties 1 --budget 200000000 --policy random --seed 20260729
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 | metric | value | denominator |
@@ -160,6 +164,7 @@ PSK value +1 to 0, then run `random` 10 games:
 tools/runner -- /tmp/weizigo-psk-divergence artifacts/oracle-2x2.wzo \
   --games 10 --max-empties 2 --budget 200000000 --policy random --seed 20260729 \
   --perturb-vb 0 0
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 Result: value divergence **13/20** vs **unperturbed run's 28/56** — the
@@ -219,6 +224,7 @@ Once new-rule tables are available, the same harness can be re-run with:
 ```sh
 tools/runner -- /tmp/weizigo-psk-divergence <new-rule-table.wzo> \
   --games 1000 --max-empties <threshold> --budget <N> --policy random
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the probe binary above is gone
 ```
 
 The acceptance criterion (d/n per board/frame, 95% CI, exclusion accounting,

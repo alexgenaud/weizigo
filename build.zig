@@ -411,6 +411,16 @@ pub fn build(b: *std.Build) void {
     claimlint_redirect_regression.cwd = b.path(".");
     test_step.dependOn(&claimlint_redirect_regression.step);
 
+    // ── claimlint volatile-evidence controls (T421) ─────────────────
+    // C10 VOLATILE: a fixture doc citing an EXISTING /tmp path must be
+    // reported (the whole defect — C2 only sees missing paths), the
+    // run's exit status must not change (report-only), and the output
+    // must be byte-identical to baseline once the fixture is removed.
+    // SKIPs loudly when no claimlint binary in zig-out/bin/.
+    const claimlint_volatile_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-volatile.sh" });
+    claimlint_volatile_regression.cwd = b.path(".");
+    test_step.dependOn(&claimlint_volatile_regression.step);
+
     // ── deployed-binaries guard (T289) ───────────────────────────────
     // tools/smoke.sh compares every deployed bin/ tool's embedded build
     // stamp against committed source history — a stale bin/ (built before

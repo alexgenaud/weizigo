@@ -163,7 +163,7 @@ WZO write is neither analyzed nor executed. **The 4×4 root was not run** (desco
 
 **Source change per run (nothing else):** only `pub const TIE` (line 41) of
 `src/exp6_solve.zig`; restored to 0 after the sweep. The WZO output-path diversion (line
-1538 → `/tmp/weizigo/T274-tie-0.wzo`) is committed per D014 to honour "no silent writes
+1538 → `/tmp/weizigo/T274-tie-0.wzo` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08)) is committed per D014 to honour "no silent writes
 to `data/`" — `data/oracle-4x4-basicko-tie-area.wzo` is untouched. This is I/O hygiene,
 not a ruleset change; the axiom set is otherwise fixed. (Note: the working tree was
 reverted between sessions — the first application of the diversion was lost; it was
@@ -212,7 +212,7 @@ seconds-scale runs were unaffected.
 
 Harness: `src/t274_tie_harness.zig` (committed), importing `src/exp6_solve.zig`; per run
 only `pub const TIE` changed (line 41). Full logs:
-`/tmp/weizigo/T274-tie-{0,2,-2,16,-16}.small.stdout` (ephemeral).
+`/tmp/weizigo/T274-tie-{0,2,-2,16,-16}.small.stdout` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — (ephemeral).
 
 ### 8.1 Roots — L/H unchanged, V = clamp(TIE,[L,H]) exactly
 

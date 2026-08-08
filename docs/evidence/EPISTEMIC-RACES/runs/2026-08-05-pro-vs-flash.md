@@ -47,7 +47,7 @@ any lane ran.
 
 ## 2. Boundary (worktree; verified before dispatch)
 
-Lanes ran from git worktree `/tmp/weizigo/lane-wt-r371` (only committed content). Verified from
+Lanes ran from git worktree `/tmp/weizigo/lane-wt-r371` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) (only committed content). Verified from
 inside the worktree: `untracked/race-keys/` absent, `untracked/race-grading/` absent, no
 `race*.key`, no `clean/impl.py`, no T371 brief/keys; committed packets present; `tools/bakeoff.sh`
 and `tools/runner` present.
@@ -64,7 +64,7 @@ and `tools/runner` present.
 
 ## 3. Grader calibration (ran BEFORE any lane score was read)
 
-### Race 1 — mechanical grader (`/tmp/weizigo/T371/race1_grader.py`)
+### Race 1 — mechanical grader (`docs/evidence/RESCUED-tmp-2026-08-08/T371/race1_grader.py`)
 
 Per packet (`r1-p1`, `r1-p2`, `r1-p3`), each fixture run against mutant and clean twin:
 

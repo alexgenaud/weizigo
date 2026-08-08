@@ -58,6 +58,13 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   that is how T13's probe source, the falsification the strategy rests on, was destroyed. **Every claim
   carries a status** — PROVEN / CLAIMED / FALSE-AS-SCOPED — and never assert "proven" or "sound" without
   the run that makes it so.
+- **Scratch is for working files; a citation is a commitment (T421, 2026-08-08).** Anything a document
+  cites must be committed under `docs/evidence/<claim-id>/` **before the row closes** — a `/tmp` citation
+  whose file still exists passes claimlint C2 (which only sees *missing* paths) and becomes a dead link
+  the moment the sweep destroys the file; 43 such citations had already crossed that line on 2026-08-08
+  before the 278-file rescue. claimlint C10 VOLATILE reports every `/tmp`, `/private/tmp`,
+  absolute-outside-tree and `untracked/` citation in committed docs, whether or not the file exists.
+  C10 is report-only; its floor is proposed separately, so treat it as a standing debt census, not a gate.
 - **No silent writes to `data/` or `artifacts/`.** New rule → new file, tagged `(size, ruleset)`; never
   overwrite a `.wzo` or `artifacts/SHA256SUMS`.
 - **One writer per engine file** (`src/retro.zig`, `oracle.zig`, `rules.zig`, `solve.zig`). Declare

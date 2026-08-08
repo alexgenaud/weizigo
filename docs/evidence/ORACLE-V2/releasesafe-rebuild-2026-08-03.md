@@ -37,7 +37,7 @@ is needed — the files are the same 518 MB of bytes.
 ## 2. The run, for the record
 
 Binary: `weizigo-oracle-v2-build d070833-dirty built 2026-08-03T13:57:06Z zig
-0.16.0` at `/tmp/weizigo/safe-build-full/bin/weizigo-oracle-v2-build` — built
+0.16.0` at `/tmp/weizigo/safe-build-full/bin/weizigo-oracle-v2-build` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — built
 2026-08-03 ~16:08 local from HEAD `d070833` (post-T312, pre-T308; the builder
 sources `exp6_solve.zig`/`oracle_v2_build.zig` last changed at `663effd` T312,
 15:46:32; none of the six later commits touch the builder path). The "dirty"
@@ -50,6 +50,7 @@ explicit `-Doptimize=ReleaseSafe` — no ReleaseFast injection):
 ```
 tools/runner --max-wall 43200 --max-cpu 172800 --progress-timeout 5400 --rss-cap-mb 5120 \
   -- zig build --prefix /tmp/weizigo/safe-build-full --cache-dir /tmp/weizigo/safe-build-full/cache -Doptimize=ReleaseSafe
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the ReleaseSafe build prefix above is gone (the cache dir was never evidence)
 ```
 
 Run command (full window per the 2026-08-03 machine-time grant; `--threads 1`
@@ -60,6 +61,7 @@ path on which the T184/T310 trajectory and byte comparisons are valid):
 MANAGENT_TASK_ID=T313 tools/runner --max-wall 21600 --max-cpu 172800 --progress-timeout 5400 \
   --rss-cap-mb 5120 --log-rss -- \
   /tmp/weizigo/safe-build-full/bin/weizigo-oracle-v2-build --threads 1
+# EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the ReleaseSafe-built binary above is gone
 ```
 
 - log: `untracked/releasesafe-rebuild-full-2026-08-03.log` (this record's copy:
@@ -167,7 +169,7 @@ releasesafe-rebuild-2026-08-03.log`, RUNNER_RC=124 (the designed 19-min wall cap
 the *correct* ending for a time-boxed run). Pre-T312 binary `46bc8c1-dirty built
 2026-08-03T11:59:50Z` (600,376 bytes, sha256 `a284523cd514420bae438df9ff8a20b8c7210
 faad7e687d4d6b6a4f78c17c239` — the partial-run binary, left untouched at
-`/tmp/weizigo/safe-build/bin/`). It established: gate chain PASS, full 4×4 census
+`/tmp/weizigo/safe-build/bin/` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08)). It established: gate chain PASS, full 4×4 census
 clean, 8/8 fixpoint sweeps agreeing with T184, peak RSS 3,241 MB, before the wall
 cap. The full run confirms the partial run's early evidence and extends it through
 sweeps 9–31, DTT, artifact build, and write — the phases the cap could not reach.

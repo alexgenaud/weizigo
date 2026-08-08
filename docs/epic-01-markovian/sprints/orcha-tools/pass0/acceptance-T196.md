@@ -6,7 +6,8 @@ Scope:    managent suggest (R1), done deliverable check (R2), audit
           cross-citation flag (R3) vs docs/epic-01-markovian/sprints/
           orcha-tools/pass0/spec.md rev 1 (PROPOSED).
 Method:   consumer-load tests on a sandbox copy of the repo
-          (/tmp/weizigo/orcha-accept, rsync of HEAD 15029b5 + working
+          (/tmp/weizigo/orcha-accept — EVIDENCE LOST (path was /tmp, destroyed before
+          rescue on 2026-08-08), rsync of HEAD 15029b5 + working
           tree, minus data/ and *.wzo), live binary bin/managent
           (built 2026-07-31 18:42 from src 16:55; zig-out build
           2026-08-01 09:07, same source), plus one read-only live

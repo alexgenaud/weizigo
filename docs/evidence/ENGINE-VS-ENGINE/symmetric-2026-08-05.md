@@ -64,7 +64,7 @@ artifacts (old `oracle-4x4.checkpoint.wzo` `a2174fed…`; new
 zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig \
   -Mversion=src/version.zig --cache-dir /tmp/weizigo/t375/cache \
   --global-cache-dir /tmp/weizigo/t375/global --name weizigo-t375-evse \
-  -femit-bin=/tmp/weizigo/t375/t375-evse
+  -femit-bin=docs/evidence/RESCUED-tmp-2026-08-08/t375/t375-evse
 weizigo-t375-evse --frame both --openings 30 --seed 42 \
   --old data/oracle-4x4.checkpoint.wzo --new data/oracle-4x4-v2.wzo2 \
   --out /tmp/weizigo/t375/sgf --json docs/evidence/ENGINE-VS-ENGINE/raw-t375-run.json
@@ -192,7 +192,7 @@ arbiters — is in `findings/T375-symmetric-arbiter.json`.
 ## 8. Reproducibility
 
 - Instrument source `src/t366_evse.zig` `4e378353…` (committed 19cd78b);
-  instrument binary `/tmp/weizigo/t375/t375-evse` `d335a4ab…`; seedctl
+  instrument binary `docs/evidence/RESCUED-tmp-2026-08-08/t375/t375-evse` `d335a4ab…`; seedctl
   harness `src/seedctl.zig` `bbea5c37…` (committed with this row), binary
   `e3141a4c…`; all built at git HEAD 19cd78b (version stamp
   `weizigo-t366-evse 19cd78b built 2026-08-05T13:29:40Z zig 0.16.0`).
@@ -239,7 +239,7 @@ worktree (gitignored). Compiled with the row's exact ad-hoc recipe under
 zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig \
   -Mversion=src/version.zig --cache-dir /tmp/weizigo/t375-verify/cache \
   --global-cache-dir /tmp/weizigo/t375-verify/global \
-  --name weizigo-t375-evse -femit-bin=/tmp/weizigo/t375-verify/t375-evse
+  --name weizigo-t375-evse -femit-bin=docs/evidence/RESCUED-tmp-2026-08-08/t375-verify/t375-evse
 ```
 
 Instrument binary SHA `9410cf72…` (the row's `d335a4ab…` was a different

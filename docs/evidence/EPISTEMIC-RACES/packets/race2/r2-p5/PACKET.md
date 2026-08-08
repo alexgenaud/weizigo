@@ -25,7 +25,7 @@
 
 **2. Raw log.** Per-position values and violation flags were dumped to
 `/tmp/weizigo/invsym-4x4.log` (host temp file — deleted after the run; not committed, too
-large). The summary table above is derived from that log.
+large). The summary table above is derived from that log. — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08)
 
 **3. Method.** For each stored position, both side entries were read from the artifact and the
 inversion identity was evaluated directly. No sampling — the full table was scanned.

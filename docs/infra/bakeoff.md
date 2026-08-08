@@ -290,7 +290,7 @@ Evidence: `untracked/bakeoff/dryrun-2026-08-05b/` (gitignored; SHA-256 of
 ### Worktree proof (T376, 2026-08-05)
 
 `execute()` from a git worktree, end-to-end: a fresh worktree at
-`/tmp/weizigo/lane-wt-t376` (committed content only), one deepseek lane
+`/tmp/weizigo/lane-wt-t376` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — (committed content only), one deepseek lane
 (roster `deepseek deepseek-v4-flash`, brief `tools/bakeoff-dryrun-task.md`),
 run `tools/bakeoff.sh ... --run t376-worktree-proof-20260805` from inside the
 worktree. Result: `root=<worktree> worktree=True` in the summary;

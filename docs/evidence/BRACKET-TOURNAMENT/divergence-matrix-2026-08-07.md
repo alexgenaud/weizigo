@@ -6,7 +6,7 @@ selectors copied verbatim from the proven `src/t401_bracket_tournament.zig`,
 restructured for the four-game matrix)
 **Build:** `tools/runner -- zig build-exe -O ReleaseFast --dep version
 -Mroot=src/t407_divergence_matrix.zig -Mversion=src/version.zig ...`
-**Binary:** `/tmp/weizigo/t407/t407` · **Ply cap:** 400 (cap-hits are their own
+**Binary:** `docs/evidence/RESCUED-tmp-2026-08-08/t407/t407` · **Ply cap:** 400 (cap-hits are their own
 class, never scored)
 **Supporting data:** `divergence-matrix-2026-08-07-3x3-data.json`,
 `divergence-matrix-2026-08-07-4x4-data.json` (this directory)

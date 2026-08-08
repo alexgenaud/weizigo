@@ -39,7 +39,7 @@ The previously observed flakiness (T314: 390/393 → 393/393 at `b3d0209`) did n
 
 Proposed fix if it recurs: serialize regression scripts that share `/tmp` fixtures.
 
-**Evidence:** 10 log files at `/tmp/weizigo/t325-run-*.log`. Analysis only — no source changes.
+**Evidence:** 10 log files at `/tmp/weizigo/t325-run-*.log` — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08). Analysis only — no source changes.
 
 ---
 

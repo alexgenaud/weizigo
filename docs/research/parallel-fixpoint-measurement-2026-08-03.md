@@ -16,7 +16,7 @@ All six rows used the same binary, snapshotted before the first run:
 
 ```
 SHA-256: efcec15905790eb0df3ee33b4dc90c1035c6453b48d1c4f738e8c4a4e57a5526
-Path:    /tmp/weizigo/t314-snapshot/weizigo-oracle-v2-build
+Path:    /tmp/weizigo/t314-snapshot/weizigo-oracle-v2-build — EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08)
 Built:   b3d0209 (HEAD at T314 start)
 Host:    Apple M5 Max, 6 P-cores + 12 E-cores, 48 GB LPDDR5
 ```

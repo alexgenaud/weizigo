@@ -317,8 +317,8 @@ payload 32 + 6×729 bytes, fb at +2·total, fw at +3·total):
 ```
 flags bit0 set: black=189 white=189 total=378    (fb/fw nonzero: 189/189)
 ```
-Raw outputs saved at `/tmp/weizigo/t388-i5-gen.jsonl` (Run A),
-`/tmp/weizigo/t388-i5-gen-reach.jsonl` (Run B), and in `findings/T388-context.json`.
+Raw outputs saved at `docs/evidence/RESCUED-tmp-2026-08-08/t388-i5-gen.jsonl` (Run A),
+`docs/evidence/RESCUED-tmp-2026-08-08/t388-i5-gen-reach.jsonl` (Run B), and in `findings/T388-context.json`.
 
 ---
 

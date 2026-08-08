@@ -178,6 +178,7 @@ check on a 3×3 artifact whose keys use the engine colex).
 tools/runner -- zig run -O ReleaseFast src/oracle_v2_consumer_load.zig   # build 3x3 WZO2 + load + query
 printf 'boardsize 3\nclear_board\ngenmove b\ngenmove w\nquit\n' | \
   /tmp/weizigo/weizigo-oracle-v2 untracked/oracle-v2/oracle-3x3-v2.wzo2  # the consumer trace
+  # EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) — the oracle-v2 binary above is gone
 ```
 
 Artifact: `untracked/oracle-v2/oracle-3x3-v2.wzo2`, SHA-256

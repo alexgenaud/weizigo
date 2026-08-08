@@ -164,6 +164,7 @@ const CHECKS = [_]Check{
     .{ .id = "C7", .name = "UNABSORBED" },
     .{ .id = "C8", .name = "UNKILLED" },
     .{ .id = "C9", .name = "UNMAPPED" },
+    .{ .id = "C10", .name = "VOLATILE" },
 };
 
 /// The canonical name for a check ID, e.g. `checkName("C3")` → `UNBACKED`.
@@ -945,6 +946,92 @@ fn pathTokens(gpa: Allocator, text: []const u8, out: *std.ArrayList([]const u8))
     }
 }
 
+// ── C10 volatile-evidence detection (T421) ────────────────────────────────
+//
+// C2 DEAD-LINKS flags only paths that are MISSING. A /tmp citation whose file
+// still exists is not missing, so it passes — and the defect only becomes
+// visible after the evidence is destroyed, which is exactly too late. The
+// 2026-08-08 rescue found 344 distinct /tmp paths cited in committed docs; 43
+// had already crossed that line. C10 flags the citation CLASS: any evidence
+// path outside the repo — /tmp, /private/tmp, an absolute path that does not
+// resolve inside the working tree, or untracked/ — whether or not the file
+// currently exists. Volatile storage is never evidence.
+//
+// Scan scope mirrors C4's: prose documents (.md under docs/ + AGENTS.md). A
+// data artifact (.json/.log/.stdout run record) whose content happens to name
+// a /tmp path is the evidence itself, not a citation, and is out of scope.
+// Report-only (T421): it must not move any existing floor; the C10 floor is
+// proposed separately.
+
+const VolatileClass = enum { tmp, private_tmp, absolute, untracked };
+
+fn volatileClassOf(idx: *Index, tok: []const u8) !?VolatileClass {
+    if (std.mem.startsWith(u8, tok, "/tmp/")) return .tmp;
+    if (std.mem.startsWith(u8, tok, "/private/tmp/")) return .private_tmp;
+    if (std.mem.startsWith(u8, tok, "untracked/")) return .untracked;
+    if (tok.len > 0 and tok[0] == '/') {
+        // A device, not a citation — `2>/dev/null` is a shell idiom.
+        if (std.mem.eql(u8, tok, "/dev/null")) return null;
+        // Absolute-looking but inside the tree (`/optimal-cycle-test-2026-08-08.md`
+        // is a root-relative doc link) is not a violation; resolve like C2 does.
+        var t = tok;
+        while (std.mem.startsWith(u8, t, "/")) t = t[1..];
+        if (t.len == 0) return null;
+        // A root-anchored word with no further depth (a `/genmove` fragment in a
+        // GTP trace, a `-femit-bin=/weizigo-exp` tail) is not a path citation.
+        const first_slash = std.mem.indexOfScalar(u8, t, '/') orelse return null;
+        // Notation like `/L/H`, `/2x2/3x3/4x4`, `/C2/C3` is not a path either:
+        // the first component must be a root directory this kind of host has.
+        const first = t[0..first_slash];
+        const ROOTS = [_][]const u8{
+            "Users", "opt", "Library", "private", "System", "Applications", "Volumes",
+            "home", "etc", "usr", "var", "proc", "dev", "sbin", "bin", "boot", "mnt", "media", "root", "tmp",
+        };
+        var is_root = false;
+        for (ROOTS) |r| if (std.mem.eql(u8, first, r)) {
+            is_root = true;
+            break;
+        };
+        if (!is_root) return null;
+        if ((try idx.resolve(t)) != null) return null;
+        return .absolute;
+    }
+    return null;
+}
+
+const VolatileHit = struct {
+    token: []const u8,
+    file: []const u8,
+    line: usize,
+    class: VolatileClass,
+};
+
+fn volatileScan(gpa: Allocator, io: Io, idx: *Index, hits: *std.ArrayList(VolatileHit)) !void {
+    for (idx.paths.items) |p| {
+        if (!std.mem.startsWith(u8, p, "docs/") and !std.mem.eql(u8, p, "AGENTS.md")) continue;
+        if (!endsWith(p, ".md")) continue;
+        const body = Io.Dir.cwd().readFileAlloc(io, p, gpa, .unlimited) catch continue;
+        var lineno: usize = 0;
+        var lit = std.mem.splitScalar(u8, body, '\n');
+        while (lit.next()) |line| {
+            lineno += 1;
+            var i: usize = 0;
+            while (i < line.len) {
+                if (!isPathChar(line[i])) {
+                    i += 1;
+                    continue;
+                }
+                const start = i;
+                while (i < line.len and isPathChar(line[i])) : (i += 1) {}
+                const tok = stripLineSpec(stripPunct(line[start..i]));
+                if (tok.len < 5) continue;
+                const cls = (try volatileClassOf(idx, tok)) orelse continue;
+                try hits.append(gpa, .{ .token = tok, .file = p, .line = lineno, .class = cls });
+            }
+        }
+    }
+}
+
 // ── cite-tag extraction (C6) ────────────────────────────────────────────────
 
 /// A cite-tag found in a narrative document: `[ID:STATUS]`.
@@ -1682,6 +1769,82 @@ pub fn main(init: std.process.Init) !void {
     const c9_fail = c9.invalid_cells + c9.doc_missing_ids + c9.doc_extra_ids + c9.node_mismatches + (if (c9_doc_missing) @as(usize, 1) else 0);
     util.out("\n  C9 {s} tree-mapping violations: {d}\n", .{ checkName("C9"), c9_fail });
 
+    // ── C10 volatile evidence paths (T421) ──────────────────────────────
+    util.out("\n== C10 {s}  EVIDENCE OUTSIDE THE REPO (report only — does NOT fail, yet) ==\n", .{checkName("C10")});
+    util.out("A /tmp or /private/tmp path, an absolute path outside the working tree,\n", .{});
+    util.out("or an untracked/ path is volatile storage — never evidence — whether\n", .{});
+    util.out("or not the file exists today. C2 only catches paths that are MISSING;\n", .{});
+    util.out("the 2026-08-08 rescue found 344 distinct /tmp paths cited in committed\n", .{});
+    util.out("docs, of which 43 were already destroyed. The floor for this counter is\n", .{});
+    util.out("proposed separately (T421); it does not gate the run yet.\n\n", .{});
+    var c10_hits: std.ArrayList(VolatileHit) = .empty;
+    defer c10_hits.deinit(gpa);
+    try volatileScan(gpa, io, &idx, &c10_hits);
+    var c10_tmp: usize = 0;
+    var c10_priv: usize = 0;
+    var c10_abs: usize = 0;
+    var c10_untracked: usize = 0;
+    for (c10_hits.items) |h| switch (h.class) {
+        .tmp => c10_tmp += 1,
+        .private_tmp => c10_priv += 1,
+        .absolute => c10_abs += 1,
+        .untracked => c10_untracked += 1,
+    };
+    // Group by token for the report; show up to MAX_LOC per token. The defect
+    // classes (/tmp, /private/tmp, absolute-outside-tree) print IN FULL — a
+    // seeded control must always be visible — and only untracked/ is capped
+    // (it is a large structural census, not the defect). Sorted deterministically
+    // so the output is reproducible.
+    const C10_MAX_LOC = 3;
+    const C10_MAX_UNTRACKED = 20;
+    var c10_by_token = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
+    defer {
+        var it = c10_by_token.iterator();
+        while (it.next()) |e| e.value_ptr.deinit(gpa);
+        c10_by_token.deinit();
+    }
+    for (c10_hits.items) |h| {
+        const gop = try c10_by_token.getOrPut(h.token);
+        if (!gop.found_existing) gop.value_ptr.* = .empty;
+        if (gop.value_ptr.items.len < C10_MAX_LOC)
+            try gop.value_ptr.append(gpa, try std.fmt.allocPrint(gpa, "{s}:{d}", .{ h.file, h.line }));
+    }
+    var c10_tokens: std.ArrayList([]const u8) = .empty;
+    defer c10_tokens.deinit(gpa);
+    {
+        var it = c10_by_token.iterator();
+        while (it.next()) |e| try c10_tokens.append(gpa, e.key_ptr.*);
+    }
+    const C10TokenLess = struct {
+        fn less(_: void, a: []const u8, b: []const u8) bool {
+            // defect classes first, untracked/ last; lexicographic within each
+            const au = std.mem.startsWith(u8, a, "untracked/");
+            const bu = std.mem.startsWith(u8, b, "untracked/");
+            if (au != bu) return !au;
+            return std.mem.lessThan(u8, a, b);
+        }
+    };
+    std.mem.sort([]const u8, c10_tokens.items, {}, C10TokenLess.less);
+    var c10_shown: usize = 0;
+    var c10_untracked_shown: usize = 0;
+    for (c10_tokens.items) |tok| {
+        const is_untracked = std.mem.startsWith(u8, tok, "untracked/");
+        if (is_untracked) {
+            if (c10_untracked_shown >= C10_MAX_UNTRACKED) continue;
+            c10_untracked_shown += 1;
+        } else {
+            c10_shown += 1;
+        }
+        util.out("  C10 {s}  {s}\n", .{ checkName("C10"), tok });
+        for (c10_by_token.get(tok).?.items) |loc| util.out("             at {s}\n", .{loc});
+    }
+    if (c10_untracked_shown < c10_by_token.count() - c10_shown)
+        util.out("  …(+{d} more distinct untracked/ paths)\n", .{c10_by_token.count() - c10_shown - c10_untracked_shown});
+    if (c10_hits.items.len == 0) util.out("  (none)\n", .{});
+    util.out("\n  C10 {s} total: {d}  ({d} /tmp · {d} /private/tmp · {d} absolute-outside-tree · {d} untracked/)\n", .{
+        checkName("C10"), c10_hits.items.len, c10_tmp, c10_priv, c10_abs, c10_untracked,
+    });
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -2135,6 +2298,7 @@ pub fn main(init: std.process.Init) !void {
     util.out("  C7 non-conforming files        {d}   (reported)   [{s}]\n", .{ c7_results.nonconforming, checkName("C7") });
     util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)   [{s}]\n", .{ c8_violations, checkName("C8") });
     util.out("  C9 tree-mapping violations      {d}   (FAILS)   [{s}]\n", .{ c9_fail, checkName("C9") });
+    util.out("  C10 volatile evidence paths     {d}   (report only — does not fail, yet)   [{s}]\n", .{ c10_hits.items.len, checkName("C10") });
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
