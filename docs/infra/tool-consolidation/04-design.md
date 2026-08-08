@@ -98,12 +98,15 @@ pub fn main(init: std.process.Init) !void {
 ```
 
 **Exit codes:**
-- `verify`: 0 = clean (no findings), 1 = findings present, 2 = usage/IO error (existing claimlint
-  convention)
-- `absorb`: 0 = absorption proposed, 1 = usage/IO error (existing absorb convention — absorb does
-  not use exit code 1 for "findings present" the way claimlint does)
-- The two sets of exit codes are disjoint in meaning; the verb is the scope. No code path reaches
-  both; no exit-code collision.
+- `verify`: 0 = clean (no findings), 1 = findings present, 2 = usage/IO error, 3 = unparsed rows
+  (existing claimlint convention — lines 1246, 2342 at `9a96f8b`)
+- `absorb`: 0 = absorption proposed, 1 = usage/IO error (existing absorb convention)
+- The exit codes overlap numerically on 0 and 1. The boundary is NOT numeric — it is structural:
+  separate code paths (the dispatch routes `absorb` to `absorb.runAbsorb` and everything else to
+  `runVerify`; no code path reaches both), separate invocation context (the verb is the first
+  argument, visible in argv), and no shared mutable state between invocations. A caller that wants
+  to distinguish `verify`-exit-0 (clean register) from `absorb`-exit-0 (absorption proposed)
+  already knows which verb it invoked.
 
 **No shared mutable state:** each invocation parses args, allocates from the page allocator, runs
 one verb, and exits. No global mutable state persists between invocations. The separation is
@@ -115,7 +118,7 @@ claimlint's inline parser (~300 lines, functions at lines 713–930 at `9a96f8b`
 public API of `claims_register.zig`. The retirement is:
 
 1. **Remove** (from `src/claimlint.zig`): `Register` struct, `parseStatus`, `parseNarrowed`,
-   `parseRate`, `backtickSpans`, `parseRegister`, `claimIdOf`, `isQaId`.
+   `parseRate`, `backtickSpans`, `parseRegister`, `isClaimIdToken`, `claimIdOf`, `isQaId`.
 2. **Add import**: `const cr = @import("claims_register.zig");`
 3. **Replace call sites**: every `parseRegister(...)` → `cr.parseRegister(...)`, every
    `parseStatus(...)` → `cr.parseStatus(...)`, etc.
@@ -151,7 +154,7 @@ confirms the merge is not a bloating exercise.
 
 | file | change | rationale |
 |---|---|---|
-| `bin/subagent` | add `--provider` flag parsing; on `--provider ollama`, run the Ollama dispatch path; on `--provider deepseek` or no flag (default), run the DeepSeek path; unknown provider → error | one script, two providers |
+| `bin/subagent` | add `--provider` flag parsing; `--provider` is REQUIRED (missing → error, satisfying C2.1); `--provider ollama` runs the Ollama dispatch path; `--provider deepseek` runs the DeepSeek path; unknown provider → error | one script, two providers; backward compat via wrapper that injects `--provider deepseek` |
 | `bin/ollama-subagent` | replace with a shell wrapper: `#!/usr/bin/env python3\nimport subprocess, sys\nsys.stderr.write("ollama-subagent: use bin/subagent --provider ollama\\n")\nsys.exit(subprocess.call([sys.executable, "bin/subagent", "--provider", "ollama"] + sys.argv[1:]))` | cutover safety |
 
 ### 3.2 Provider dispatch design
@@ -162,8 +165,10 @@ The current scripts are 205 and 248 lines with 113 common lines. The merge strat
    argument parsing) as the shared main body.
 2. **Branch on `--provider`** at exactly one point: the command construction. DeepSeek path builds
    a `ds-pi` command with `DEEPSEEK_API_KEY`; Ollama path builds `ollama launch pi --model <tag>`.
-3. **Default to `deepseek`** when `--provider` is absent (backward compatibility with old
-   `bin/subagent`).
+3. **`--provider` is REQUIRED.** A bare `bin/subagent` (no `--provider`) exits non-zero with
+   "missing --provider (deepseek|ollama)" on stderr — satisfying C2.1 and scope §3.2. Backward
+   compatibility is via the `bin/subagent` *cutover wrapper*, which injects `--provider deepseek`
+   so old invocations that expected the DeepSeek path still work unchanged.
 4. **Ollama path requires `--model`** (same as old `ollama-subagent`); DeepSeek path infers model
    from the prompt (same as old `subagent`).
 
@@ -184,15 +189,15 @@ Scored against the operational definitions from strategy §5:
 |---|---|---|
 | **reuse** | `+` — one parser (`claims_register.zig`) imported by claimlint; 300 lines of inline copy retired | `+` — 113 common lines deduped into shared scaffold |
 | **testability** | `+` — union of 4 regression scripts; one binary, one build target | `+` — union of 3(+2 shared) scripts; one file to test |
-| **predictability** | `+` — default verb = `verify` (backward compat); `absorb` verb is explicit; no mode surprises | `+` — `--provider` flag is explicit; missing flag defaults to deepseek (backward compat) |
+| **predictability** | `+` — default verb = `verify` (backward compat); `absorb` verb is explicit; no mode surprises | `+` — `--provider` flag is REQUIRED (missing → error, satisfying C2.1); explicit providers, no silent default |
 | **transparency** | `+` — `--help` lists both verbs; `2>/dev/null` contract preserved per verb | `+` — `--help` lists both providers; dispatch trace visible for both |
-| **stability** | `0` — cutover wrappers keep `bin/weizigo-absorb` alive; backward-compat default preserves old invocations; the `−` from scope is mitigated to `0` by the concrete cutover design | `0` — wrapper keeps `bin/ollama-subagent` alive; backward-compat default preserves old `bin/subagent` invocations |
+| **stability** | `0` — cutover wrappers keep `bin/weizigo-absorb` alive; backward-compat default preserves old invocations; the `−` from scope is mitigated to `0` by the concrete cutover design | `0` — wrapper keeps `bin/ollama-subagent` alive; `bin/subagent` wrapper injects `--provider deepseek` for backward compat |
 | **agility** | `+` — one file for a parser fix instead of two; one build target | `+` — one file to edit for dispatch changes |
 | **performance** | `+` — one build, one deploy; ~300 fewer lines | `+` — one Python parse instead of two |
-| **separation of concerns** | `0` — verb dispatch is a structural boundary: separate code paths, separate exit-code ranges, no shared mutable state; the `−` from scope is mitigated to `0` by the concrete verb-dispatch contract (§2.2) — verify and transform are different verbs, not merged logic | `0` — provider flag separates mechanism (API call) from policy (which provider); no concern bleed |
+| **separation of concerns** | `0` — verb dispatch is a structural boundary: separate code paths, separate invocation context (verb in argv), no shared mutable state; exit codes overlap numerically (0 and 1) but the verb disambiguates — a caller already knows which verb it invoked; the `−` from scope is mitigated to `0` by structural separation, not numeric separation | `0` — provider flag separates mechanism (API call) from policy (which provider); no concern bleed |
 
 No `−` entries remain. The two scope-level `−` entries (stability, separation of concerns) are
-mitigated to `0` by the concrete design choices: cutover wrappers + backward-compat default for
+mitigated to `0` by the concrete design choices: cutover wrappers + backward-compat defaults for
 stability; verb dispatch with separate exit codes and no shared state for separation of concerns.
 
 ## 5. What the design does NOT do
@@ -258,7 +263,9 @@ claimlint_exe.root_module.addImport("claims_register", b.createModule(.{
 1. `zig build` produces `zig-out/bin/weizigo-claimlint` (the merged binary).
 2. `bin/weizigo-claimlint` is deployed from `zig-out/bin/weizigo-claimlint` (unchanged deploy step).
 3. `bin/weizigo-absorb` is REPLACED with the shell wrapper.
-4. `bin/subagent` is REPLACED with the merged script.
+4. `bin/subagent` is REPLACED with the merged script (which requires `--provider` — existing
+   callers must be updated to pass `--provider deepseek`; callers that are not updated get a
+   hard error "missing --provider," which is loud, not silent).
 5. `bin/ollama-subagent` is REPLACED with the Python wrapper.
 6. `zig build test` is run — all regressions pass with wrappers in place.
 
@@ -287,7 +294,7 @@ is found that still depends on the old entry points.
 **Landmark:** advances `L4 (the ledger is clean)` — the design is a mechanical merge, not a rewrite:
 one binary with verbs for claimlint+absorb (300 lines of inline parser retired, `claims_register.zig`
 becomes single source of truth), one script with `--provider` for subagent+ollama-subagent (113 common
-lines deduped), both with backward-compatible defaults and cutover wrappers. The two scope-level `−`
+lines deduped), both with cutover wrappers for backward compatibility. The two scope-level `−`
 entries (stability, separation of concerns) are mitigated to `0` by concrete design choices. What
 remains: independent audit, then Phase 5 (plan — ordered, revertible steps).
 
@@ -295,7 +302,7 @@ remains: independent audit, then Phase 5 (plan — ordered, revertible steps).
 `absorb` verbs (default = verify for backward compat, absorb via `weizigo-claimlint absorb <args>`),
 retiring claimlint's ~300-line inline parser copy and importing `claims_register.zig` instead — making
 the T406 two-verdicts-same-file shape structurally impossible. subagent and ollama-subagent merge into
-`bin/subagent` with `--provider deepseek|ollama` (default = deepseek). Both old entry points become
+`bin/subagent` with `--provider deepseek|ollama` (REQUIRED flag). Both old entry points become
 thin wrappers during cutover. No shared library, no managent/argus changes, no regression rewrites.
 ~300 net lines removed from the Zig toolchain, one parser instead of two, two scripts instead of four.
 All eight qualities score `+` or `0` — no `−` entries remain.
