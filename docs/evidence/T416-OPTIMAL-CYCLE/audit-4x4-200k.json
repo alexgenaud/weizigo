@@ -1,0 +1,17 @@
+{
+  "task_id": "T416", "instrument": "t416_cycle", "size": "4x4",
+  "wzo2_path": "data/oracle-4x4-v2.wzo2", "mode": "bfs", "seedctl": "none", "null_graph": "no",
+  "seeds": 2000, "budget": 200000, "seed": 42,
+  "verdict": "CONTAINS-CYCLES",
+  "n_nodes": 200001, "n_edges": 289343, "n_scc": 199967,
+  "tautology_checks": 200001, "tautology_mismatches": 0,
+  "n_cyclic_scc": 10, "n_states_on_cycles": 44,
+  "n_forced_cycles": 0, "n_forced_states": 0, "n_indifferent_cycles": 10, "n_indifferent_states": 44,
+  "n_value_const_ok": 10, "n_value_const_bad": 0,
+  "min_cycle_size": 4, "max_cycle_size": 8, "min_girth": 4, "max_girth": 6, "n_girth_measured": 10
+  ,"examples": [
+    {"scc_size":8,"girth":6,"forced":"no","value":-16,"value_const":"yes","n_strict":0,"n_indifferent":8,"members":[{"colex":26109061,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":4,"n_optimal_leaf":0},{"colex":27317477,"side":-1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":5,"n_optimal_leaf":0},{"colex":9639493,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":6,"n_optimal_leaf":0},{"colex":25095045,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":4,"n_optimal_leaf":0},{"colex":27202629,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":4,"n_optimal_leaf":0},{"colex":16575877,"side":-1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":6,"n_optimal_leaf":5},{"colex":17933765,"side":-1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":6,"n_optimal_leaf":5},{"colex":17991141,"side":-1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":4,"n_optimal_leaf":3}]},
+    {"scc_size":4,"girth":4,"forced":"no","value":-16,"value_const":"yes","n_strict":0,"n_indifferent":4,"members":[{"colex":3447626,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":7712650,"side":-1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":6,"n_optimal_leaf":0},{"colex":13777875,"side":1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":7,"n_optimal_leaf":0},{"colex":7749006,"side":-1,"ko":16,"passes":0,"L":-16,"H":-16,"pinned":-16,"n_optimal_total":4,"n_optimal_leaf":3}]},
+    {"scc_size":4,"girth":4,"forced":"no","value":16,"value_const":"yes","n_strict":0,"n_indifferent":4,"members":[{"colex":15223283,"side":1,"ko":16,"passes":0,"L":16,"H":16,"pinned":16,"n_optimal_total":6,"n_optimal_leaf":0},{"colex":23561459,"side":-1,"ko":16,"passes":0,"L":16,"H":16,"pinned":16,"n_optimal_total":5,"n_optimal_leaf":0},{"colex":15193571,"side":1,"ko":16,"passes":0,"L":16,"H":16,"pinned":16,"n_optimal_total":2,"n_optimal_leaf":0},{"colex":8804506,"side":-1,"ko":16,"passes":0,"L":16,"H":16,"pinned":16,"n_optimal_total":8,"n_optimal_leaf":7}]}
+  ]
+}

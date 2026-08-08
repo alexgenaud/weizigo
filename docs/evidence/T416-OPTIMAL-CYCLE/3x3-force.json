@@ -1,0 +1,14 @@
+{
+  "task_id": "T416", "instrument": "t416_cycle", "size": "3x3",
+  "wzo2_path": "data/oracle-3x3-v2.wzo2", "mode": "exhaustive", "seedctl": "force_all_optimal", "null_graph": "no",
+  "verdict": "CONTAINS-CYCLES",
+  "n_nodes": 47456, "n_edges": 169154, "n_scc": 1499,
+  "tautology_checks": 47456, "tautology_mismatches": 0,
+  "n_cyclic_scc": 1, "n_states_on_cycles": 45958,
+  "n_forced_cycles": 0, "n_forced_states": 0, "n_indifferent_cycles": 1, "n_indifferent_states": 45958,
+  "n_value_const_ok": 0, "n_value_const_bad": 1,
+  "min_cycle_size": 45958, "max_cycle_size": 45958, "min_girth": 0, "max_girth": 0, "n_girth_measured": 0
+  ,"examples": [
+    {"scc_size":45958,"girth":0,"forced":"no","value":9,"value_const":"no","n_strict":18124,"n_indifferent":27834,"members":[{"colex":1,"side":1,"ko":9,"passes":0,"L":9,"H":9,"pinned":9,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":1,"side":-1,"ko":9,"passes":1,"L":-9,"H":-9,"pinned":-9,"n_optimal_total":9,"n_optimal_leaf":1},{"colex":2,"side":-1,"ko":9,"passes":0,"L":-9,"H":-9,"pinned":-9,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":2,"side":1,"ko":9,"passes":1,"L":9,"H":9,"pinned":9,"n_optimal_total":9,"n_optimal_leaf":1},{"colex":3,"side":1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":3,"side":-1,"ko":9,"passes":1,"L":-9,"H":-9,"pinned":-9,"n_optimal_total":9,"n_optimal_leaf":1},{"colex":4,"side":-1,"ko":9,"passes":0,"L":3,"H":9,"pinned":3,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":4,"side":1,"ko":9,"passes":1,"L":9,"H":9,"pinned":9,"n_optimal_total":9,"n_optimal_leaf":1},{"colex":5,"side":1,"ko":9,"passes":0,"L":9,"H":9,"pinned":9,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":5,"side":-1,"ko":9,"passes":1,"L":-9,"H":-9,"pinned":-9,"n_optimal_total":9,"n_optimal_leaf":1},{"colex":6,"side":-1,"ko":9,"passes":0,"L":-9,"H":-9,"pinned":-9,"n_optimal_total":9,"n_optimal_leaf":0},{"colex":6,"side":1,"ko":9,"passes":1,"L":9,"H":9,"pinned":9,"n_optimal_total":9,"n_optimal_leaf":1}]}
+  ]
+}

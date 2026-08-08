@@ -1,0 +1,15 @@
+{
+  "task_id": "T416", "instrument": "t416_cycle", "size": "4x4",
+  "wzo2_path": "data/oracle-4x4-v2.wzo2", "mode": "bfs", "seedctl": "none", "null_graph": "yes",
+  "seeds": 2000, "budget": 150000, "seed": 42,
+  "verdict": "ACYCLIC",
+  "n_nodes": 150001, "n_edges": 0, "n_scc": 150001,
+  "tautology_checks": 150001, "tautology_mismatches": 0,
+  "n_cyclic_scc": 0, "n_states_on_cycles": 0,
+  "n_forced_cycles": 0, "n_forced_states": 0, "n_indifferent_cycles": 0, "n_indifferent_states": 0,
+  "n_value_const_ok": 0, "n_value_const_bad": 0,
+  "min_cycle_size": 0, "max_cycle_size": 0, "min_girth": 0, "max_girth": 0, "n_girth_measured": 0
+  ,"examples": [
+
+  ]
+}

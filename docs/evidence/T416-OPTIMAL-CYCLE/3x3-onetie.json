@@ -1,0 +1,16 @@
+{
+  "task_id": "T416", "instrument": "t416_cycle", "size": "3x3",
+  "wzo2_path": "data/oracle-3x3-v2.wzo2", "mode": "exhaustive", "seedctl": "none", "null_graph": "no",
+  "verdict": "CONTAINS-CYCLES",
+  "n_nodes": 47456, "n_edges": 37350, "n_scc": 47296,
+  "tautology_checks": 47456, "tautology_mismatches": 0,
+  "n_cyclic_scc": 48, "n_states_on_cycles": 208,
+  "n_forced_cycles": 4, "n_forced_states": 32, "n_indifferent_cycles": 44, "n_indifferent_states": 176,
+  "n_value_const_ok": 48, "n_value_const_bad": 0,
+  "min_cycle_size": 4, "max_cycle_size": 8, "min_girth": 4, "max_girth": 8, "n_girth_measured": 48
+  ,"examples": [
+    {"scc_size":4,"girth":4,"forced":"no","value":-3,"value_const":"yes","n_strict":3,"n_indifferent":1,"members":[{"colex":7195,"side":-1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":1,"n_optimal_leaf":0},{"colex":7547,"side":1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":1,"n_optimal_leaf":0},{"colex":7547,"side":-1,"ko":9,"passes":1,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":2,"n_optimal_leaf":1},{"colex":14587,"side":1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":1,"n_optimal_leaf":0}]},
+    {"scc_size":4,"girth":4,"forced":"no","value":3,"value_const":"yes","n_strict":3,"n_indifferent":1,"members":[{"colex":7146,"side":1,"ko":9,"passes":0,"L":3,"H":9,"pinned":3,"n_optimal_total":1,"n_optimal_leaf":0},{"colex":7562,"side":-1,"ko":9,"passes":0,"L":3,"H":9,"pinned":3,"n_optimal_total":1,"n_optimal_leaf":0},{"colex":7562,"side":1,"ko":9,"passes":1,"L":3,"H":9,"pinned":3,"n_optimal_total":2,"n_optimal_leaf":1},{"colex":14666,"side":-1,"ko":9,"passes":0,"L":3,"H":9,"pinned":3,"n_optimal_total":1,"n_optimal_leaf":0}]},
+    {"scc_size":4,"girth":4,"forced":"no","value":-3,"value_const":"yes","n_strict":3,"n_indifferent":1,"members":[{"colex":7383,"side":-1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":1,"n_optimal_leaf":0},{"colex":7563,"side":1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":1,"n_optimal_leaf":0},{"colex":7563,"side":-1,"ko":9,"passes":1,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":2,"n_optimal_leaf":1},{"colex":14603,"side":1,"ko":9,"passes":0,"L":-9,"H":-3,"pinned":-3,"n_optimal_total":1,"n_optimal_leaf":0}]}
+  ]
+}

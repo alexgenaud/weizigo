@@ -330,8 +330,8 @@
     "amendments": []
   },
   "T416": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T416-optimal-subgraph-cycle-test.md",
     "set": "E",
@@ -339,14 +339,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T23:27:38Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-08T00:14:14Z",
+    "done": "2026-08-08T00:16:21Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "3x3 exhaustive: 54 cyclic SCCs (12 forced/80 states, 42 indifferent/4470), value const 54/54; 4x4 sample seed42 b150k: 6 cyclic SCCs (0 forced/6 indifferent), value const 6/6; onetie fabricates 4x4 ACYCLIC (tie-handling trap demonstrated); controls null ACYCLIC + force RED; out/ vs audit byte-identical; directives D061+D062 obeyed.",
+    "claim_count": 3,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -770,8 +770,8 @@
     "amendments": []
   },
   "T417": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T417-sprint-cycles-and-solution-tree.md",
     "set": "S",
@@ -779,14 +779,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T23:27:38Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T23:54:54Z",
+    "done": "2026-08-08T00:18:10Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "Sprint #4: both rows closed, audited, accepted. T416: optimal-move subgraph CONTAINS-CYCLES — 3x3 exhaustive 12 forced cycles (80 states) / 42 indifferent; 4x4 sample 6 indifferent cycles, forced-status open. Operator's loop question answered: sustainable under optimal play. T415: solution tree, 18/45 PROVED (40%). Two T416 infra RSS kills reported; D061/D062 continuation obeyed.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1316,6 +1316,28 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T418": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T418-absorb-2026-08-08.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T00:27:06Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -1914,8 +1936,8 @@
     "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."]
   },
   "T415": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T415-solution-tree-provenance.md",
     "set": "J",
@@ -1923,14 +1945,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-07T12:09:00Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-07T23:55:49Z",
+    "done": "2026-08-08T00:04:01Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "Solution tree delivered: 45 sub-steps graded per goban, 18 PROVED (40%), monotone fall with size; finisher KNOWN-WRONG where used, 4x4 WZO2 construction CLAIMED at every stage past enumeration",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2046,7 +2068,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 418,
-    "directive_next": 61
+    "next_id": 419,
+    "directive_next": 63
   }
 }
