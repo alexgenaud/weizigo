@@ -418,8 +418,8 @@
     "amendments": []
   },
   "T437": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T437-consolidation-implementation.md",
     "set": "S",
@@ -427,14 +427,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T14:20:15Z",
-    "claimed": null,
+    "claimed": "2026-08-08T15:11:42Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": "T428 deferred code implementation to a follow-on row and registered none (new_rows: []); this is that row — steps 1-6 of the audited plan, design frozen",
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "tools/regression-consolidation-acceptance.sh",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -569,7 +569,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T13:20:42Z: post-close: Verdict recorded while the row's console was still running its verification suite — the Orchestrator read 'liveness' showing no T427 entry as meaning no live console, which is the D054 error (no heartbeats proves no instrumentation, not no console; T427 never exported MANAGENT_TASK_ID). The commit f8a10af is sound: deliverable files were stable from 14:39:53 and were independently re-verified (16/16 arms, live-store sha256 unchanged, guard truth table exercised by hand incl. the non-fixture-add-succeeds cell the row's own arms omit). The in-flight suite run does NOT verify the committed state regardless: it started 14:31, before the last edits at 14:39:53. Directive sent to the console to report its result for post-close amendment rather than re-commit."]
+    "amendments": ["2026-08-08T13:20:42Z: post-close: Verdict recorded while the row's console was still running its verification suite — the Orchestrator read 'liveness' showing no T427 entry as meaning no live console, which is the D054 error (no heartbeats proves no instrumentation, not no console; T427 never exported MANAGENT_TASK_ID). The commit f8a10af is sound: deliverable files were stable from 14:39:53 and were independently re-verified (16/16 arms, live-store sha256 unchanged, guard truth table exercised by hand incl. the non-fixture-add-succeeds cell the row's own arms omit). The in-flight suite run does NOT verify the committed state regardless: it started 14:31, before the last edits at 14:39:53. Directive sent to the console to report its result for post-close amendment rather than re-commit.", "2026-08-08T15:21:12Z: post-close: SUITE RESULT reported by the console (text only, no action, as directed). Run 1: 57/65 steps, 904/931 tests, 1 skipped, 19 failed, 7 crashed. Failing: qa023_brute_2x2 (4 ABRT, the documented T360 fail-fast set), t419_taxonomy (1), vb_bellman_4x4 (1), the fixpoint binary (10), regression-absorption-machinery (register 228 vs 221, documented stale fixture), plus 7 binaries it could not attribute by name and did not chase. Run 2: the fixpoint failures were gone, the rest remained. NONE OF THE FAILURES ARE T427's: regression-argus-doctor all arms PASS in both runs, and every managent/claimlint/git-commit-mine regression passed including regression-claim-lifecycle, the T424 suite most exposed to the new guard. Note 904/931 is BELOW the handover's documented 926/931 baseline. MY FIXPOINT DIAGNOSIS WAS WRONG AND THE CONSOLE REFUTED IT WITH EVIDENCE. I claimed the failures were artifacts of a tree changing under the run. They were not: its last Zig edit was to src/managent/main.zig, which the engine test binaries do not link. The real cause is FileNotFound on /tmp/weizigo/oracle-*.smd1 — T423 date-partitioned them into /tmp/weizigo/260707/ and src/vb_i11.zig reads the top-level paths unconditionally. It restored 8 files with cp -n and 91/91 passed on the same cached binary. Verified independently at src/vb_i11.zig:446/462/473/483/497 and by listing both directories. Registered as T438. WALL-CLOCK: the console declined to claim a cause it had not measured and did not time the runs; my 35 and 43 minute figures are direct ps readings and stand on their own, but the attribution of any overrun to the 16 new arms remains UNMEASURED. It notes the doctor script makes ~12 doctor invocations each spawning claimlint + git + ps + two managent reads, a plausible contributor and a one-line timed follow-up. ARM 12: the console independently confirmed the missing positive control (non-fixture add on live must SUCCEED) and agreed a permanent arm is the right fix; folded into T430's brief rather than minting a row."]
   },
   "T386": {
     "status": "done",
@@ -701,6 +701,28 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exits 1 at the recorded floor (C1a=10, C1b=0, C2=14, C6=0, C9=0) by design — 'must be green' is unreachable today per tools/hooks/claimlint-floor.json. T354's real bar is counts unmoved, verified: claimlint output byte-identical before (HEAD f623a67) and after the task (334 rows, C1a 10, C2 14, C3 76, C4 46/2, C9 0, calibration PASS) — the deliverable is a proposal, the register/floor/fixtures untouched (commit 1e9b855).",
+    "amendments": []
+  },
+  "T438": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T438-suite-depends-on-tmp.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T15:20:52Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "src/vb_i11.zig reads hardcoded /tmp/weizigo/*.smd1; T423's archiving moved them and 10 null-control tests failed FileNotFound. Verified at src/vb_i11.zig:446/462/473/483/497.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T391": {
@@ -2508,7 +2530,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 438,
-    "directive_next": 68
+    "next_id": 439,
+    "directive_next": 69
   }
 }
