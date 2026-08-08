@@ -1,0 +1,39 @@
+{
+  "task_id": "T441",
+  "date": "2026-08-08",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "DOCTOR-CONSOLE-LIE",
+      "proposed_status": "PROVEN",
+      "rationale": "Doctor console line now derives from doctor's own section counts, not sweep grades. The pre-fix code filtered by (must,critical,should) and every doctor finding is graded could, so it always printed 'clean — no violations' even with NEEDS ACTION > 0. Fixed at bin/argus:1904-1920.",
+      "evidence_path": "bin/argus"
+    },
+    {
+      "id": "INBOX-ACK-SCOPE",
+      "proposed_status": "PROVEN",
+      "rationale": "Targetless inbox --ack now refuses with a clear error message instead of silently marking every row's directives read. Requires explicit --all flag or a target. Fixed at src/managent/main.zig (cmdInbox).",
+      "evidence_path": "src/managent/main.zig"
+    },
+    {
+      "id": "INBOX-READ-ATTRIBUTION",
+      "proposed_status": "PROVEN",
+      "rationale": "Ack path now writes read_by and read_at alongside read:true, using MANAGENT_TASK_ID for identity resolution. Bare read:true is still parsed from existing records for backward compat.",
+      "evidence_path": "src/managent/main.zig"
+    },
+    {
+      "id": "LIVENESS-UNASSERTED",
+      "proposed_status": "PROVEN",
+      "rationale": "Liveness display changed from '[never beat]' / '[never beat since dispatch]' to 'UNKNOWN — no assertion (...)' so absence of a heartbeat is visibly absence of instrumentation, not evidence of a dead console.",
+      "evidence_path": "src/managent/main.zig"
+    },
+    {
+      "id": "ASSERTION-LEDGER-BOOT",
+      "proposed_status": "PROVEN",
+      "rationale": "Assertion ledger bootstrapped: assert command (managent assert <row> <status>), JSONL store at docs/infra/assertion-ledger/assertions.jsonl, append-only with assertion counter in _sys, identity attribution via MANAGENT_TASK_ID/ PI_MODEL. Argus doctor liveness check updated to parse UNKNOWN format.",
+      "evidence_path": "src/managent/main.zig"
+    }
+  ],
+  "new_rows": [],
+  "notes": "Design decisions: (1) Targetless --ack refused rather than requiring --all because the footgun of marking every row's directives read silently was the measured defect. (2) read_by uses MANAGENT_TASK_ID rather than agentIdentifier(task state) because the ack path doesn't have a task state — it resolves identity from the environment like claim/done use PI_MODEL. (3) Liveness parser in argus updated to match both old [never beat] and new UNKNOWN — no assertion for backward compat with older managent binaries. (4) Assertion record uses verb 'asserted' (not in the spec's controlled vocabulary) as a pragmatic addition — the spec's 'observed' verb carries different semantics. A future reconciliation with the spec can align the vocabulary. (5) Regression suite: pre-existing failures in absorption-machinery (row count drift, stderr pattern), battery-* (no binary), git-commit-mine (staged paths outside scope), inbox-loop arm 4 (ollama-subagent missing INBOX LOOP paragraph), T227 (deliverables swallowing acceptance). None caused by T441; directive-integrity and task-identity regressions fixed to match new behavior."
+}

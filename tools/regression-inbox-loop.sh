@@ -270,6 +270,75 @@ else
     FAIL=1
 fi
 
+# ── 6. T441: targetless --ack is REFUSED ────────────────────────────
+# The pre-T441 code path matched target.len==0 to every row. The fix
+# refuses targetless ack unless --all is given.
+echo ""
+echo "  6. seeded: targetless --ack is REFUSED (T441 ack scope)"
+OUT=$("$MG" inbox --ack 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "would mark every row"; then
+    echo "    PASS: targetless --ack refused (RC=$RC), message names the risk"
+else
+    echo "    FAIL: expected refusal with 'would mark every row', got RC=$RC:"
+    echo "$OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+
+# ── 7. T441: --all --ack acks across all targets ─────────────────────
+# Plant a directive for TSEED, then ack it with --all.echo ""
+echo "  7. seeded: --all --ack acks all targets (T441 ack scope)"
+"$MG" tell TSEED amend --note "test-for-all-ack" --from T441-test 2>/dev/null
+ALL_ACK_OUT=$("$MG" inbox --all --ack 2>/dev/null)
+ALL_RC=$?
+if [ "$ALL_RC" -eq 0 ] && echo "$ALL_ACK_OUT" | grep -q "acked"; then
+    ACKED_COUNT=$(echo "$ALL_ACK_OUT" | grep -oE 'acked [0-9]+ directive' | grep -oE '[0-9]+')
+    if [ "$ACKED_COUNT" -gt 0 ]; then
+        echo "    PASS: --all --ack succeeded, acked $ACKED_COUNT directive(s)"
+    else
+        echo "    FAIL: --all --ack reported 0 directives acked (expected > 0)"
+        FAIL=1
+    fi
+else
+    echo "    FAIL: --all --ack failed (RC=$ALL_RC):"
+    echo "$ALL_ACK_OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+
+# ── 8. T441: read_by + read_at attribution on acked directives ───────
+# Plant a fresh directive, ack it with MANAGENT_TASK_ID set, and verify
+# the directive record carries read_by and read_at.
+echo ""
+echo "  8. seeded: ack records read_by + read_at (T441 read attribution)"
+"$MG" tell TSEED amend --note "test-read-attribution" --from T441-test 2>/dev/null
+export MANAGENT_TASK_ID=T441
+"$MG" inbox TSEED --ack 2>/dev/null
+unset MANAGENT_TASK_ID
+if grep -q "read_by.*T441" "$DIRECTIVES" && grep -q "read_at" "$DIRECTIVES"; then
+    echo "    PASS: directives.jsonl carries read_by:T441 and read_at timestamp"
+else
+    echo "    FAIL: read_by or read_at missing from directives.jsonl"
+    grep "test-read-attribution" "$DIRECTIVES" | head -1 | sed 's/^/      /'
+    FAIL=1
+fi
+
+# ── 9. T441: liveness shows UNKNOWN — no assertion for never-beat rows ─
+# Verify that the liveness output uses "UNKNOWN — no assertion" not "never beat".
+echo ""
+echo "  9. seeded: liveness shows UNKNOWN — no assertion (T441 unasserted status)"
+LIVE_OUT=$("$MG" liveness 2>/dev/null)
+if echo "$LIVE_OUT" | grep -q "UNKNOWN.*no assertion"; then
+    echo "    PASS: liveness uses 'UNKNOWN — no assertion' for rows without heartbeats"
+else
+    echo "    FAIL: liveness output missing 'UNKNOWN — no assertion'"
+    echo "$LIVE_OUT" | grep -i "never beat" | sed 's/^/      /'
+    FAIL=1
+fi
+if echo "$LIVE_OUT" | grep -q "never beat"; then
+    echo "    FAIL: liveness still uses 'never beat' (must be 'UNKNOWN — no assertion')"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-inbox-loop: ALL CONTROLS PASSED ==="

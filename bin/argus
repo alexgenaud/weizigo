@@ -823,10 +823,15 @@ class ArgusRun:
             )
             return
 
-        # Parse liveness: look for "never beat" / "beats stopped" markers
+        # Parse liveness: look for "UNKNOWN — no assertion" / "never beat" /
+        # "beats stopped" markers.  T441 changed "never beat" to
+        # "UNKNOWN — no assertion"; keep backward compat for any older output.
         suspects = []
         no_in_progress = False
         for line in stdout.splitlines():
+            m = re.search(r'(\S+)\s+UNKNOWN\s.*no assertion', line)
+            if m:
+                suspects.append((m.group(1), "no heartbeat"))
             m = re.search(r'(\S+)\s+\[never beat', line)
             if m:
                 suspects.append((m.group(1), "never beat"))
@@ -1900,14 +1905,35 @@ def main():
 
     run.write_summary()
 
-    # Report findings to stderr
-    violations = [f for f in run.findings if f.get("grade") in ("must", "critical", "should")]
-    if violations:
-        print(f"argus: {len(violations)} violation(s) logged", file=sys.stderr)
-        for f in violations:
-            print(f"  [{f.get('grade')}] {f.get('finding', '')[:120]}", file=sys.stderr)
+    # Report findings to stderr.
+    # Doctor mode derives its console line from the doctor's own
+    # section counts — doctor findings are graded "could" and the
+    # sweep-grade filter ("must"/"critical"/"should") would match
+    # nothing on every run, making the one-line check always lie
+    # (T430).
+    if args.mode == "doctor" and hasattr(run, "doctor_groups"):
+        need = len(run.doctor_groups.get("NEEDS ACTION", []))
+        can = len(run.doctor_groups.get("CAN CLOSE", []))
+        watch = len(run.doctor_groups.get("WATCH", []))
+        clean = len(run.doctor_groups.get("CLEAN", []))
+        if need > 0:
+            print(f"argus: NEEDS ACTION ({need})  can close ({can})  watch ({watch})  clean ({clean})", file=sys.stderr)
+            for e in run.doctor_groups.get("NEEDS ACTION", []):
+                print(f"  NEEDS ACTION: {e['text'][:120]}", file=sys.stderr)
+        elif can > 0:
+            print(f"argus: CAN CLOSE ({can})  watch ({watch})  clean ({clean})", file=sys.stderr)
+        elif watch > 0:
+            print(f"argus: WATCH ({watch})  clean ({clean})", file=sys.stderr)
+        else:
+            print(f"argus: clean ({clean})", file=sys.stderr)
     else:
-        print("argus: clean — no violations", file=sys.stderr)
+        violations = [f for f in run.findings if f.get("grade") in ("must", "critical", "should")]
+        if violations:
+            print(f"argus: {len(violations)} violation(s) logged", file=sys.stderr)
+            for f in violations:
+                print(f"  [{f.get('grade')}] {f.get('finding', '')[:120]}", file=sys.stderr)
+        else:
+            print("argus: clean — no violations", file=sys.stderr)
 
     if args.dry_run:
         print("\n--- dry-run log ---", file=sys.stderr)

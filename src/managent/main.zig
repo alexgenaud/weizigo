@@ -202,7 +202,7 @@ const mutating_verbs = [_][]const u8{
     "add",     "claim",  "done",    "reopen", "purge", "set",
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
-    "standing",
+    "standing", "assert",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -408,6 +408,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdSync(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "tell")) {
         try cmdTell(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "assert")) {
+        try cmdAssert(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "inbox")) {
         try cmdInbox(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "ping")) {
@@ -810,6 +812,7 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
 
 var sys_next_id: u32 = 100; // monotonic task-ID counter, loaded from _sys
 var sys_directive_next: u32 = 1; // monotonic directive-ID counter, loaded from _sys
+var sys_assertion_next: u32 = 1; // monotonic assertion-ID counter, loaded from _sys
 
 fn parseStateJson(content: []const u8) !StateMap {
     const trimmed = std.mem.trim(u8, content, " \t\n\r");
@@ -840,6 +843,9 @@ fn parseStateJson(content: []const u8) !StateMap {
             }
             if (sys_val.object.get("directive_next")) |dv| {
                 if (dv == .integer) sys_directive_next = @intCast(dv.integer);
+            }
+            if (sys_val.object.get("assertion_next")) |av| {
+                if (av == .integer) sys_assertion_next = @intCast(av.integer);
             }
         }
     }
@@ -1114,6 +1120,8 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_next_id}));
     try buf.appendSlice(alloc, ",\n    \"directive_next\": ");
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_directive_next}));
+    try buf.appendSlice(alloc, ",\n    \"assertion_next\": ");
+    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_assertion_next}));
     try buf.appendSlice(alloc, "\n  }");
     try buf.appendSlice(alloc, "\n}\n");
 }
@@ -1316,6 +1324,25 @@ fn agentIdentifier(ts: TaskState, task_id: []const u8) ![]const u8 {
         return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ model, task_id });
     }
     return try std.fmt.allocPrint(alloc, "{s}/{s}.{d}", .{ model, task_id, ts.claim_count });
+}
+
+/// Resolve the identity of whoever is running the current process, for
+/// attribution on ack reads and assertions.  Uses MANAGENT_TASK_ID (the
+/// worker's own task) or PI_MODEL; falls back to "unknown".
+fn resolveAckIdentity() []const u8 {
+    if (std.c.getenv("MANAGENT_TASK_ID")) |ptr| {
+        const tid = std.mem.sliceTo(ptr, 0);
+        if (tid.len > 0) return tid;
+    }
+    if (std.c.getenv("PI_MODEL")) |ptr| {
+        const model = std.mem.sliceTo(ptr, 0);
+        if (model.len > 0) {
+            // We can't allocate; return a static-ish fallback.  The
+            // common case is MANAGENT_TASK_ID which is already set.
+            return model; // caller must dupe if needed
+        }
+    }
+    return "unknown";
 }
 
 // ── flag parsing helpers ────────────────────────────────────────────────────
@@ -4267,9 +4294,10 @@ fn printHelp(w: Writers) void {
         \\  managent amend <id> --post-close <text>  record a follow-up against a done row (verdict untouched)
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
+        \\  managent assert <row> <status> [--note]  assert a row's status to the assertion ledger (T441)
         \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
-        \\  managent liveness [--stale-min <min>]  show per-task liveness: never beat / beats stopped / beating (default threshold 5 min)
+        \\  managent liveness [--stale-min <min>]  show per-task liveness: UNKNOWN / beating / beats stopped (default threshold 5 min)
         \\  managent standing         register triggered standing-tier tasks
         \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
         \\  managent help             show this help
@@ -4352,6 +4380,22 @@ fn freeState(state: *StateMap) void {
 // ── directive store (WORKER-CHANNEL) ─────────────────────────────────────────
 
 const DIRECTIVES_FILE = "docs/infra/managent/directives.jsonl";
+
+// ── assertion ledger (T426/T441) ────────────────────────────────────────────
+
+const ASSERTIONS_FILE = "docs/infra/assertion-ledger/assertions.jsonl";
+
+const Assertion = struct {
+    id: []const u8,
+    ts: []const u8,
+    actor: []const u8,
+    verb: []const u8,
+    object: []const u8,
+    basis: []const u8,
+    supersedes: ?[]const u8 = null,
+    note: ?[]const u8 = null,
+    status_value: ?[]const u8 = null,
+};
 
 fn readDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, bad_out: ?*u32) !std.ArrayList(Directive) {
     _ = state_path;
@@ -4476,6 +4520,76 @@ fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) 
     try out.appendSlice(alloc, buf.items);
 
     const file = try std.Io.Dir.cwd().createFile(io, dir_path, .{});
+    defer file.close(io);
+    try file.writeStreamingAll(io, out.items);
+}
+
+// ── assertion ledger (T426/T441) ────────────────────────────────────────────
+
+fn appendAssertion(w: Writers, io: std.Io, repo_root: []const u8, a: Assertion) !void {
+    const path = try std.fs.path.join(alloc, &.{ repo_root, ASSERTIONS_FILE });
+    defer alloc.free(path);
+
+    const dirname = std.fs.path.dirname(path) orelse ".";
+    std.Io.Dir.cwd().createDirPath(io, dirname) catch {};
+
+    // Build JSON line — T399: every string goes through writeJsonString.
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+
+    try buf.appendSlice(alloc, "{\"id\":");
+    try writeJsonString(&buf, a.id);
+    try buf.appendSlice(alloc, ",\"ts\":");
+    try writeJsonString(&buf, a.ts);
+    try buf.appendSlice(alloc, ",\"actor\":");
+    try writeJsonString(&buf, a.actor);
+    try buf.appendSlice(alloc, ",\"verb\":");
+    try writeJsonString(&buf, a.verb);
+    try buf.appendSlice(alloc, ",\"object\":");
+    try writeJsonString(&buf, a.object);
+    try buf.appendSlice(alloc, ",\"basis\":");
+    try writeJsonString(&buf, a.basis);
+    if (a.supersedes) |s| {
+        try buf.appendSlice(alloc, ",\"supersedes\":");
+        try writeJsonString(&buf, s);
+    }
+    // Build meta object if either note or status_value is set
+    if (a.note != null or a.status_value != null) {
+        try buf.appendSlice(alloc, ",\"meta\":{");
+        var first_meta = true;
+        if (a.status_value) |sv| {
+            try buf.appendSlice(alloc, "\"status\":");
+            try writeJsonString(&buf, sv);
+            first_meta = false;
+        }
+        if (a.note) |n| {
+            if (!first_meta) try buf.appendSlice(alloc, ",");
+            try buf.appendSlice(alloc, "\"note\":");
+            try writeJsonString(&buf, n);
+        }
+        try buf.appendSlice(alloc, "}");
+    }
+    try buf.appendSlice(alloc, "}\n");
+
+    // T399 round-trip guard
+    {
+        const check = std.mem.trim(u8, buf.items, " \r\n");
+        var roundtrip = std.json.parseFromSlice(std.json.Value, alloc, check, .{ .allocate = .alloc_always }) catch {
+            w.diag("FATAL: assertion record {s} failed to re-parse after escaping — refusing to write\n", .{a.id});
+            return error.AssertionWriteNotRoundTrip;
+        };
+        roundtrip.deinit();
+    }
+
+    const existing_str = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch "";
+    defer if (@intFromPtr(existing_str.ptr) != @intFromPtr("".ptr)) alloc.free(existing_str);
+
+    var out = std.ArrayList(u8).empty;
+    defer out.deinit(alloc);
+    if (existing_str.len > 0) try out.appendSlice(alloc, existing_str);
+    try out.appendSlice(alloc, buf.items);
+
+    const file = try std.Io.Dir.cwd().createFile(io, path, .{});
     defer file.close(io);
     try file.writeStreamingAll(io, out.items);
 }
@@ -6064,6 +6178,79 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
 }
 
+// ── assert <row> <status> [--note <text>] — assert a row's status ────────────
+//
+// T441: the observation layer must say only what it can support.  This
+// command writes an assertion record to docs/infra/assertion-ledger/assertions.jsonl
+// recording who asserted a row's status, what status, when, and why.
+// The assertion log is append-only: later assertions supersede earlier ones;
+// absence of an assertion is UNKNOWN, never "none".
+
+fn cmdAssert(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 4) {
+        w.diag("usage: managent assert <row> <status> [--note <text>]\n", .{});
+        w.diag("  status: dispatchable | in_progress | done | absorbed | recommended-close | closed\n", .{});
+        std.process.exit(1);
+    }
+    const target = args[2];
+    const status_val = args[3];
+
+    const valid_statuses = [_][]const u8{ "dispatchable", "in_progress", "done", "absorbed", "recommended-close", "closed" };
+    var status_ok = false;
+    for (valid_statuses) |vs| {
+        if (std.mem.eql(u8, vs, status_val)) { status_ok = true; break; }
+    }
+    if (!status_ok) {
+        w.diag("error: invalid status '{s}' — must be one of: dispatchable, in_progress, done, absorbed, recommended-close, closed\n", .{status_val});
+        std.process.exit(1);
+    }
+
+    const note_text = getFlagValue(args, "--note");
+
+    // Resolve identity — same as claim/done: MANAGENT_TASK_ID or PI_MODEL
+    const actor = if (std.c.getenv("MANAGENT_TASK_ID")) |ptr|
+        std.mem.sliceTo(ptr, 0)
+    else if (std.c.getenv("PI_MODEL")) |ptr|
+        std.mem.sliceTo(ptr, 0)
+    else
+        "unknown";
+
+    // Persist the assertion counter
+    var state_for_counter = try readState(io, state_path);
+    defer freeState(&state_for_counter);
+
+    const a_id = try std.fmt.allocPrint(alloc, "A{d:0>4}", .{sys_assertion_next});
+    sys_assertion_next += 1;
+
+    const now = try nowTimestamp();
+
+    const a = Assertion{
+        .id = try alloc.dupe(u8, a_id),
+        .ts = try alloc.dupe(u8, now),
+        .actor = try alloc.dupe(u8, actor),
+        .verb = try alloc.dupe(u8, "asserted"),
+        .object = try alloc.dupe(u8, target),
+        .basis = try alloc.dupe(u8, "performed"),
+        .status_value = try alloc.dupe(u8, status_val),
+        .note = if (note_text) |nt| try alloc.dupe(u8, nt) else null,
+    };
+
+    // Write assertion under the same lock as the kanban
+    try lockStore(io, state_path);
+    defer unlockStore();
+    appendAssertion(w, io, repo_root, a) catch |err| {
+        w.diag("  FAILED: assertion not written ({s}) — nothing was appended to the ledger\n", .{@errorName(err)});
+        std.process.exit(1);
+    };
+
+    // Persist the updated assertion counter
+    try writeStateLocked(io, state_path, &state_for_counter);
+
+    w.diag("\n  asserted {s} -> {s}\n", .{ target, status_val });
+    w.diag("  assertion {s}\n", .{a_id});
+    if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
+}
+
 // ── inbox [<target>] [--ack] — show pending directives, optionally ack ──────
 //
 // T352: a worker that just read the inbox (--ack) signals to the resume
@@ -6077,14 +6264,26 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     var target: []const u8 = "";
     var ack = false;
+    var all_flag = false;
     var i: usize = 2;
     while (i < args.len) : (i += 1) {
         const a = args[i];
         if (std.mem.eql(u8, a, "--ack")) {
             ack = true;
+        } else if (std.mem.eql(u8, a, "--all")) {
+            all_flag = true;
         } else if (!std.mem.startsWith(u8, a, "-")) {
             target = a;
         }
+    }
+
+    // T441: targetless ack is a footgun — it marks every row's directives
+    // read.  Require an explicit --all to ack across all targets.
+    if (ack and target.len == 0 and !all_flag) {
+        w.diag("error: 'inbox --ack' without a target would mark every row's directives read.\n", .{});
+        w.diag("  Use 'inbox <target> --ack' to ack one row, or 'inbox --all --ack' to ack all.\n", .{});
+        w.diag("  Display-only (no --ack) is allowed without a target.\n", .{});
+        std.process.exit(1);
     }
 
     var directives = try readDirectives(w, io, repo_root, state_path, null);
@@ -6164,13 +6363,18 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             const match = !d_read and
                 d_id.len > 0 and
-                (target.len == 0 or std.mem.eql(u8, d_target, target));
+                (all_flag or target.len == 0 or std.mem.eql(u8, d_target, target));
             if (match) {
-                // Re-serialise with read:true (cheaper than surgical patch).
+                // Re-serialise with read:true + read_by + read_at.
                 // T399: parsed values must go back through writeJsonString —
                 // a directive written with an escaped `\"` in its note parses
                 // to a raw `"` here, and re-emitting it raw would corrupt the
                 // ledger on the ack path.
+                // T441: bare read:true is retained for backward compat
+                // when reading old records; new writes carry read_by + read_at.
+                const now_ts = try nowTimestamp();
+                const who = resolveAckIdentity();
+
                 var line_buf = std.ArrayList(u8).empty;
                 defer line_buf.deinit(alloc);
                 try line_buf.appendSlice(alloc, "{\"id\":");
@@ -6191,7 +6395,12 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                     try line_buf.appendSlice(alloc, ",\"ts\":");
                     try writeJsonString(&line_buf, v.string);
                 };
-                try line_buf.appendSlice(alloc, ",\"read\":true}\n");
+                try line_buf.appendSlice(alloc, ",\"read\":true");
+                try line_buf.appendSlice(alloc, ",\"read_by\":");
+                try writeJsonString(&line_buf, who);
+                try line_buf.appendSlice(alloc, ",\"read_at\":");
+                try writeJsonString(&line_buf, now_ts);
+                try line_buf.appendSlice(alloc, "}\n");
                 try out.appendSlice(alloc, line_buf.items);
                 acked += 1;
             } else {
@@ -6359,9 +6568,12 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
                 w.data("      wall: {d:.1}s  cpu: {d:.1}s  rss: {d:.0} MB\n", .{ hb.wall, hb.cpu, hb.rss_mb });
             }
         } else if (ts.claimed) |claimed| {
-            w.data("    {s}  [never beat since dispatch {s}]\n", .{ tid, claimed });
+            // T441: absence of a heartbeat is UNKNOWN, never "none" —
+            // a console whose worker hasn't set MANAGENT_TASK_ID is still
+            // alive and working; we just can't see it.
+            w.data("    {s}  UNKNOWN — no assertion (claimed {s}, no heartbeat)\n", .{ tid, claimed });
         } else {
-            w.data("    {s}  [never beat]\n", .{tid});
+            w.data("    {s}  UNKNOWN — no assertion (in_progress, no heartbeat)\n", .{tid});
         }
     }
 

@@ -533,6 +533,33 @@ else
     FAIL=1
 fi
 
+# ── arm 16: T441 — doctor console line derives from doctor groups ─────
+# The pre-T441 code filtered findings by sweep grade (must/critical/should)
+# and doctor findings are all "could", so it always said "clean — no
+# violations" even when the report showed NEEDS ACTION. The fix makes the
+# console line derive from the doctor's own sections.
+echo "  16. T441: doctor console line matches doctor group counts"
+STDERR_LOG="$WORK/doctor-stderr-16.txt"
+"$ARGUS" --mode doctor --report "$WORK/doctor-report-16.md" >/dev/null 2>"$STDERR_LOG" || true
+STDERR_LINE=$(head -1 "$STDERR_LOG")
+# The old broken output pattern: "clean — no violations" while NEEDS ACTION > 0
+if echo "$STDERR_LINE" | grep -qE "^(argus: NEEDS ACTION|argus: CAN CLOSE|argus: WATCH|argus: clean)"; then
+    echo "    PASS: console line uses doctor-derived format: $STDERR_LINE"
+else
+    echo "    FAIL: console line missing expected format: $STDERR_LINE"
+    FAIL=1
+fi
+# Verify it does NOT say "clean — no violations" in a non-clean state
+NEED_COUNT=$(group_count "$WORK/doctor-report-16.md" "NEEDS ACTION" "")
+if [ "$NEED_COUNT" -gt 0 ]; then
+    if echo "$STDERR_LINE" | grep -q "clean — no violations"; then
+        echo "    FAIL: doctor says 'clean — no violations' but report has NEEDS ACTION ($NEED_COUNT)"
+        FAIL=1
+    else
+        echo "    PASS: non-clean state correctly NOT reported as 'clean — no violations'"
+    fi
+fi
+
 echo ""
 if [ "$FAIL" = "0" ]; then
     echo "regression-argus-doctor: all arms PASS"

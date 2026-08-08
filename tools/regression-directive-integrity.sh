@@ -175,7 +175,7 @@ echo "  3. acking a directive whose note contains a quote does not corrupt the l
 reset_directives
 "$MG" tell TWEIRD pause --note $'ack me: "quoted" note' >/dev/null 2>&1
 "$MG" tell TWEIRD resume --note $'ack me too\nsecond line' >/dev/null 2>&1
-ACKED=$("$MG" inbox --ack 2>&1 | grep -o 'acked [0-9]* directive' || true)
+ACKED=$("$MG" inbox --all --ack 2>&1 | grep -o 'acked [0-9]* directive' || true)
 CLEAN=$(jsonl_clean "$DIRECTIVES") || true
 READFLAG=FAIL
 python3 - "$DIRECTIVES" <<'PYEOF' && READFLAG=PASS

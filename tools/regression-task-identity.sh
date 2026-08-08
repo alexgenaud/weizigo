@@ -121,10 +121,10 @@ seed_heartbeats "{\"identifier\":\"test/T370B\",\"task\":\"T370B\",\"ts\":\"$NOW
 {\"identifier\":\"test/T370C\",\"task\":\"T370C\",\"ts\":\"$OLD\",\"command\":\"echo dead\",\"wall\":10.0,\"cpu\":1.0,\"rss_mb\":50}"
 
 LIVE_OUT=$(cd "$TMP" && "$MG" liveness 2>/dev/null)
-if echo "$LIVE_OUT" | grep -q "T370A  \[never beat since dispatch"; then
-    pass "never-beat state (no heartbeat since claim)"
+if echo "$LIVE_OUT" | grep -q "T370A  UNKNOWN.*no assertion"; then
+    pass "never-beat state (no heartbeat since claim — T441: UNKNOWN — no assertion)"
 else
-    fail "T370A should read 'never beat since dispatch': $LIVE_OUT"
+    fail "T370A should read 'UNKNOWN — no assertion': $LIVE_OUT"
 fi
 if echo "$LIVE_OUT" | grep -q "T370B  \[beating\]"; then
     pass "beating state (recent beat)"
