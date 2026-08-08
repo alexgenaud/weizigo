@@ -103,9 +103,27 @@ now structurally impossible.
   evidence paths **11**, C3 PROVEN-without-committed-evidence **48** (both floor-gated in
   `claimlint-floor.json` — honest debt, not regressions), C6 miscited 0, **C7 unabsorbed 2**
   (pre-existing; T422 will absorb), C8/C5 clean, calibration PASS.
-- **Test suite:** `zig build test` run at HEAD for this audit — **PENDING at write time; result
-  recorded in §7 below.** Expected ~610 s; the documented baseline is green (T350's nine failures
-  were proven a dirty-tree artefact — a dirty tree is not a valid instrument).
+- **Test suite: UNRESOLVED — not a clean green in this run.** `zig build test` at HEAD took
+  **~52 minutes** (documented figure: ~610 s) and reported **923/931 tests passed, 7 crashed,
+  1 skipped, plus 2 `run sh` step failures** (6 of 62 build steps failed). Three facts temper
+  this before anyone calls it a regression:
+  1. **Nothing reproduces standalone.** The one step the build named as failed (`vb_closure`)
+     passes **12/12** re-run directly, and the three environment-sensitive shell regressions
+     (`git-commit-mine`, `subagent-prompt`, `dispatch-verification`) all **PASS** standalone.
+     No stale `MANAGENT_*`/`WEIZIGO_*` env vars were present (the D060 confounder is excluded).
+  2. **The run was resource-saturated:** *two* test binaries were simultaneously executing the
+     same `vb_scc_4x4` seeded-defect test (a full 4×4-table SCC scan in `checkI5Wzo2`), each
+     pegged at 100% CPU for 25+ minutes at ~3.2 GB RSS. The crash pattern is consistent with
+     memory/CPU pressure under the parallel test graph, the same class as the T416 RSS-guard
+     kills and the 2026-07-29 OOM kernel panic.
+  3. **The tree was 2 files dirty** (the §3 files) — and T350 established that a dirty tree is
+     not a valid instrument.
+  **First session back: one clean-tree, low-load re-run before trusting or acting on this.**
+  The duplicated concurrent `vb_scc_4x4` execution and the 52-min wall time (5× the documented
+  610 s) deserve a row of their own regardless of the re-run's verdict — a suite this heavy will
+  keep tripping the CPU guard on worker-run suites.
+  Small positive datum: the in-suite dispatch-verification regression appended **zero** lines to
+  the live `model-perf.md` ledger across all these runs — T411's scratch-ledger isolation works.
 - **Engine:** plays in Sabaki today; from bracketed positions vs the old engine 150 better /
   120 equal / 0 worse of 270, and 0/270 below its own table's floor.
 - **Backlog debt:** nine `dispatchable` rows from earlier sets predate the current thread and were
@@ -121,17 +139,20 @@ now structurally impossible.
 
 In this order (dependency order, not priority order):
 
-1. **Settle T421.** Check `git log` first (§3). Its "which claims lost evidence" report may
+1. **Re-run the suite on a clean tree under low load** and settle the §4 suite verdict. If it
+   crashes again, bisect by test binary; if green, register the suite-weight row (52 min wall,
+   duplicated `vb_scc_4x4` execution) and update the documented baseline.
+2. **Settle T421.** Check `git log` first (§3). Its "which claims lost evidence" report may
    reclassify register rows — read it before trusting any PROVEN row it names.
-2. **Dispatch T422** (absorb) once T421's paths are stable.
-3. **Triage the nine stale backlog rows** (§4) — decide, don't let them sit a second week.
-4. **Audit the 4×3 root `[+4,+12]`** — single-instrument, gates citation (roadmap §4.1).
-5. **The 4×4 forced-cycle question** — needs a bigger run than the 4 GB RSS guard allows; pair it
+3. **Dispatch T422** (absorb) once T421's paths are stable.
+4. **Triage the nine stale backlog rows** (§4) — decide, don't let them sit a second week.
+5. **Audit the 4×3 root `[+4,+12]`** — single-instrument, gates citation (roadmap §4.1).
+6. **The 4×4 forced-cycle question** — needs a bigger run than the 4 GB RSS guard allows; pair it
    with the **CPU/RSS-guard knob** row (a 40-minute suite run once tripped the 1-hour cumulative
    ceiling and killed a worker mid-row; T416 was killed twice by the RSS guard).
-6. **Fixed-reference-opponent tournament** — the unconfounded strength arm (`N vs R` compared to
+7. **Fixed-reference-opponent tournament** — the unconfounded strength arm (`N vs R` compared to
    `O vs R`), which `new/new` vs `old/old` is not.
-7. Smaller queued items: cost axis in the resolver registry; regenerate stale claim-index files
+8. Smaller queued items: cost axis in the resolver registry; regenerate stale claim-index files
    (T406 generator fix); D060 env-leak scrub in regression harnesses; F13 short-name scan residue;
    F09 ratification (operator ruling needed).
 
@@ -177,10 +198,6 @@ In this order (dependency order, not priority order):
 - **A dirty tree is not a valid instrument** (T350's nine "failures").
 - **Absence of an observed effect is not evidence of absence** (the Ollama-cap overclaim; now
   audit-gate check 7 on every sprint).
-
-### Suite result (filled in when the run finished)
-
-_Pending at the time of the main write — see the addendum line below this section once recorded._
 
 ---
 
