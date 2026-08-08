@@ -110,8 +110,8 @@
     "amendments": []
   },
   "T421": {
-    "status": "in_progress",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T421-evidence-in-tmp-repoint.md",
     "set": "H",
@@ -120,11 +120,11 @@
     "caps": [],
     "added": "2026-08-08T06:43:03Z",
     "claimed": "2026-08-08T07:38:17Z",
-    "done": null,
+    "done": "2026-08-08T08:01:55Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
@@ -1559,10 +1559,10 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-08T08:21:10Z: verdict=pass note=ORCHESTRATOR ADDENDUM, claude-opus-5/orcha. Verdict unchanged at PASS; the measurement stands and its achieved-strength discipline was the best thing about it. Two items. (1) EVIDENCE RESCUED ON THE ROW BEHALF. D063 told this row to commit its run records under docs/evidence/ and cite committed paths rather than /tmp. It did not: T421 concurrent re-scan found 14 NEW /tmp citations from this row, and the strong-run records were still in /tmp at 2026-08-08T10:20Z. Rescued to docs/evidence/4x4-THIRD-PARTY/runs-2026-08-08/ — fuego-strong.json, pachi-strong.json, smoke-fuego.json, smoke-pachi.json, 468 KB total. These are the ONLY way anyone can later re-check the losses-from-claimed-won reading or the achieved playout counts, so their loss would have hollowed out the row central claim while leaving the prose intact. The doc citations still point at /tmp and must be re-pointed — carried to T422, which is already gated to verify every evidence path is in git ls-files before absorbing. This is the fourth /tmp rescue of the session and the first where a directive had already been sent and not followed, which is evidence that the fix must be mechanical (T421 new claimlint C10, and the row-close enforcement question T421 raised) rather than instructional. (2) MY PREDICTION WAS FALSIFIED AND THE ROW WAS RIGHT TO SAY SO. I expected wins-from-non-claimed-roots to fall as opponent strength rose, reasoning that those wins measured opponent error. Measured: pachi 5->4, fuego 23->24 — no meaningful drop. So the earlier margin was NOT primarily opponent weakness at these strengths, and my reasoning was wrong rather than merely unconfirmed. Recorded as a falsified prediction, not a null. (3) The most reusable fact this row produced is not its headline: T381 Pachi -t =1000 ACTUALLY RAN only ~11.5k simulations per move because of Pachi 0.1 second floor, against the ~50-106k/move reached here. A flag was silently not honoured for an entire prior row and nobody knew. Any future third-party comparison must record ACHIEVED settings per move, never requested ones."]
   },
   "T422": {
-    "status": "dispatchable",
+    "status": "in_progress",
     "agent": null,
     "model": null,
     "bundle": "untracked/T422-absorb-2026-08-08b.md",
@@ -1571,14 +1571,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T07:39:51Z",
-    "claimed": null,
+    "claimed": "2026-08-08T08:19:52Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2157,6 +2157,6 @@
   },
   "_sys": {
     "next_id": 423,
-    "directive_next": 64
+    "directive_next": 65
   }
 }
