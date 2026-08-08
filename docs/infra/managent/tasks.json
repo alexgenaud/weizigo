@@ -374,8 +374,8 @@
     "amendments": []
   },
   "T423": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T423-tmp-artifact-archive.md",
     "set": "G",
@@ -383,14 +383,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T10:24:43Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-08T10:32:22Z",
+    "done": "2026-08-08T10:38:59Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -440,8 +440,8 @@
     "amendments": []
   },
   "T424": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T424-claim-lifecycle-flakes.md",
     "set": "C",
@@ -449,17 +449,17 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T10:24:43Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-08T10:33:25Z",
+    "done": "2026-08-08T10:48:54Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-08T10:50:55Z: post-close: ACCEPTANCE-GATE RECORDING GAP (found at close): the store never captured acceptance= — T423 and T424 were registered at 2026-08-08T10:24:43Z via the suggest stub meta (deliverables=--, no acceptance key), and the real brief meta with acceptance= was written afterwards without re-running add. The gate itself did not run at done. No verification was actually skipped: tools/regression-claim-lifecycle.sh was run standalone 3x this session (red on pre-fix binaries, green after, green final) and is wired into zig build test. Recording the discrepancy on the row via amend --post-close. Follow-up for the Orchestrator's registration flow: re-read the bundle meta at done when acceptance is null, or re-register after the brief meta is finalized."]
   },
   "T358": {
     "status": "dispatchable",
@@ -2133,6 +2133,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T425": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T425-orcha-doctor-watchdog.md",
+    "set": "G",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T10:55:25Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T371": {
     "status": "done",
     "agent": "glm-5.2",
@@ -2200,7 +2222,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 425,
+    "next_id": 426,
     "directive_next": 65
   }
 }
