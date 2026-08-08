@@ -264,8 +264,8 @@
     "amendments": []
   },
   "T351": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-pro",
     "model": "deepseek-v4-pro",
     "bundle": "untracked/T351-failed-command-source-fix.md",
     "set": "C",
@@ -273,14 +273,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-04T14:22:51Z",
-    "claimed": null,
+    "claimed": "2026-08-08T13:52:27Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1097,6 +1097,28 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "acceptance is bin/weizigo-claimlint, which exits 1 by design while C1a/C2/C3/C7/C9 carry honest debt — same handling as T285/T287/T296. Verified instead: counts unmoved at floor and calibration PASS after the change, which is this row's null control.",
+    "amendments": []
+  },
+  "--bundle": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T430-phase2-audit.md",
+    "set": "S",
+    "holds": [],
+    "needs": ["T428"],
+    "caps": [],
+    "added": "2026-08-08T13:52:25Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T347": {
@@ -2001,6 +2023,28 @@
     "skip_acceptance_reason": null,
     "amendments": ["2026-08-08T08:21:10Z: verdict=pass note=ORCHESTRATOR ADDENDUM, claude-opus-5/orcha. Verdict unchanged at PASS; the measurement stands and its achieved-strength discipline was the best thing about it. Two items. (1) EVIDENCE RESCUED ON THE ROW BEHALF. D063 told this row to commit its run records under docs/evidence/ and cite committed paths rather than /tmp. It did not: T421 concurrent re-scan found 14 NEW /tmp citations from this row, and the strong-run records were still in /tmp at 2026-08-08T10:20Z. Rescued to docs/evidence/4x4-THIRD-PARTY/runs-2026-08-08/ — fuego-strong.json, pachi-strong.json, smoke-fuego.json, smoke-pachi.json, 468 KB total. These are the ONLY way anyone can later re-check the losses-from-claimed-won reading or the achieved playout counts, so their loss would have hollowed out the row central claim while leaving the prose intact. The doc citations still point at /tmp and must be re-pointed — carried to T422, which is already gated to verify every evidence path is in git ls-files before absorbing. This is the fourth /tmp rescue of the session and the first where a directive had already been sent and not followed, which is evidence that the fix must be mechanical (T421 new claimlint C10, and the row-close enforcement question T421 raised) rather than instructional. (2) MY PREDICTION WAS FALSIFIED AND THE ROW WAS RIGHT TO SAY SO. I expected wins-from-non-claimed-roots to fall as opponent strength rose, reasoning that those wins measured opponent error. Measured: pachi 5->4, fuego 23->24 — no meaningful drop. So the earlier margin was NOT primarily opponent weakness at these strengths, and my reasoning was wrong rather than merely unconfirmed. Recorded as a falsified prediction, not a null. (3) The most reusable fact this row produced is not its headline: T381 Pachi -t =1000 ACTUALLY RAN only ~11.5k simulations per move because of Pachi 0.1 second floor, against the ~50-106k/move reached here. A flag was silently not honoured for an entire prior row and nobody knew. Any future third-party comparison must record ACHIEVED settings per move, never requested ones."]
   },
+  "T436": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T436-phase4-reaudit.md",
+    "set": "S",
+    "holds": [],
+    "needs": ["T428"],
+    "caps": [],
+    "added": "2026-08-08T14:11:09Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "STANDING-CLEANUP": {
     "status": "dispatchable",
     "agent": null,
@@ -2133,6 +2177,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T433": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T430-phase2-audit.md",
+    "set": "S",
+    "holds": [],
+    "needs": ["T428"],
+    "caps": [],
+    "added": "2026-08-08T13:52:40Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T325": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -2218,6 +2284,28 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T435": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T435-phase4-audit.md",
+    "set": "S",
+    "holds": [],
+    "needs": ["T428"],
+    "caps": [],
+    "added": "2026-08-08T14:05:49Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -2331,6 +2419,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T434": {
+    "status": "blocked",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T434-phase3-audit.md",
+    "set": "S",
+    "holds": [],
+    "needs": ["T428"],
+    "caps": [],
+    "added": "2026-08-08T14:00:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T348": {
     "status": "done",
     "agent": "claude-opus-5",
@@ -2376,7 +2486,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 432,
-    "directive_next": 67
+    "next_id": 437,
+    "directive_next": 68
   }
 }
