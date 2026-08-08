@@ -1979,6 +1979,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T428": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T428-sprint-tool-consolidation.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T12:36:17Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T360": {
     "status": "done",
     "agent": "claude-opus-5",
@@ -2266,7 +2288,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 428,
+    "next_id": 429,
     "directive_next": 65
   }
 }
