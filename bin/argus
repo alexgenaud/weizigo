@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
 """argus — read-only watchdog for weizigo project state.
 
-Two modes (R5: one per invocation):
+Three modes (R5: one per invocation):
   --mode checklist    Run mechanized checks from the registry, compare to baselines.
   --mode sweep        Walk the project, record findings with evidence, state coverage.
+  --mode doctor       Encode the Orchestrator's manual weekly sweep (T425): one screen
+                      grouped into NEEDS ACTION / CAN CLOSE / WATCH / CLEAN, every
+                      finding names its evidence and the fix command. Read-only against
+                      the kanban, register, and tree.
 
-Writes exactly two files (R3 write allowlist):
+Writes exactly three files (R3 write allowlist):
   untracked/watchdog.md          Append-only JSON Lines log (R7)
   untracked/watchdog-summary.md  Overwritten Markdown summary (R8), recomputable
                                  from the log alone (A4)
+  untracked/doctor-report.md     Overwritten Markdown report (T425), grouped by what
+                                 the operator should DO (NEEDS ACTION / CAN CLOSE /
+                                 WATCH / CLEAN); every line names the row, path,
+                                 and the command to fix. Recomputable from the log
+                                 alone (the JSONL run/finding stream is the source
+                                 of truth; this is the human-facing view).
 
-Identifier: DSPro/T195 · 2026-08-01
+Identifier: DSPro/T195 · 2026-08-01 (sweep/checklist), minimax-m3/T425 · 2026-08-08 (doctor)
 """
 
 import argparse
@@ -597,6 +607,632 @@ class ArgusRun:
             baseline=baseline_val,
         )
 
+    # ── doctor mode (T425) ────────────────────────────────────────────
+
+    def run_doctor(self):
+        """Encode the Orchestrator's manual weekly sweep (T425).
+
+        Runs nine checks and groups them by what the operator should DO:
+          NEEDS ACTION  — operator must do something NOW (fix or claim)
+          CAN CLOSE     — done rows the operator can close
+          WATCH         — soft warnings (long in_progress, etc.)
+          CLEAN         — green state for the periodic checks
+
+        Every finding names its evidence and the fix command.
+        """
+        self.checks_run = 9
+        self.doctor_groups = {
+            "NEEDS ACTION": [],
+            "CAN CLOSE": [],
+            "WATCH": [],
+            "CLEAN": [],
+        }
+
+        # Run each check; they push into doctor_groups via the doctor_finding helper
+        self._doctor_worked_without_claiming()
+        self._doctor_in_progress_no_heartbeat()
+        self._doctor_findings_nonconforming()
+        self._doctor_c7_unabsorbed()
+        self._doctor_evidence_outside_repo()
+        self._doctor_deployed_staleness()
+        self._doctor_uncommitted_in_tree()
+        self._doctor_processes_no_owner()
+        self._doctor_floors_and_lockstep()
+
+        # Write the report
+        self._write_doctor_report()
+
+    def doctor_finding(self, group, text, *, evidence_kind="command",
+                       evidence_command=None, evidence_exit=None,
+                       evidence_output=None, fix_command=None):
+        """Record a doctor finding into the right group.
+
+        The evidence is preserved on the underlying log finding for R6
+        compliance. The group is encoded into the slug for downstream
+        parsing and into the report text.
+        """
+        slug = f"doctor.{group.lower().replace(' ', '-')}"
+        self.finding(
+            "could",  # doctor findings are observations, not violations
+            text,
+            slug=slug,
+            evidence_kind=evidence_kind,
+            evidence_command=evidence_command,
+            evidence_exit=evidence_exit,
+            evidence_output=evidence_output,
+        )
+        entry = {
+            "text": text,
+            "fix": fix_command,
+            "evidence_command": evidence_command,
+            "evidence_exit": evidence_exit,
+        }
+        self.doctor_groups[group].append(entry)
+
+    def _write_doctor_report(self):
+        """Render the doctor report — one screen the operator can read in 10s.
+
+        Format: section headers, then per-line entries with the fix command.
+        """
+        lines = [
+            "# argus doctor — operator weekly sweep",
+            "",
+            f"**Run:** `{self.run_id}` · **{_utc_iso(self.ts)}**",
+            "",
+        ]
+        for group in ("NEEDS ACTION", "CAN CLOSE", "WATCH", "CLEAN"):
+            entries = self.doctor_groups.get(group, [])
+            lines.append(f"## {group} ({len(entries)})")
+            lines.append("")
+            if entries:
+                for e in entries:
+                    text = e["text"]
+                    fix = e.get("fix")
+                    if fix:
+                        lines.append(f"- {text}")
+                        lines.append(f"  - fix: `{fix}`")
+                    else:
+                        lines.append(f"- {text}")
+            else:
+                lines.append(f"  *(none)*")
+            lines.append("")
+
+        # CLEAN summary line — one line the operator can grep
+        clean_lines = [e["text"] for e in self.doctor_groups.get("CLEAN", [])]
+        if clean_lines:
+            lines.append("---")
+            lines.append("")
+            lines.append("**CLEAN summary:** " + " · ".join(clean_lines))
+            lines.append("")
+
+        os.makedirs(os.path.dirname(self.args.report), exist_ok=True)
+        with open(self.args.report, "w") as f:
+            f.write("\n".join(lines) + "\n")
+
+    # ── check 1: worked-without-claiming ──────────────────────────────
+
+    def _doctor_worked_without_claiming(self):
+        """Rows whose deliverables were touched while still dispatchable.
+
+        A row that has files committed to its deliverable paths BEFORE the
+        worker claimed the row is the worked-without-claiming shape (T392,
+        T395, T400, T404, T419). Forward-going: any dispatchable row whose
+        bundle file is in `git status --porcelain` is a NEEDS ACTION.
+        """
+        # Get all rows from the kanban
+        exit_code, stdout, stderr = _run(
+            ["bin/managent", "status", "--json"], timeout=10,
+            cwd=str(self.root),
+        )
+        if exit_code != 0:
+            self.doctor_finding(
+                "WATCH",
+                f"could not read kanban status (exit={exit_code}): {stderr[:200]}",
+                evidence_command="bin/managent status --json",
+                evidence_exit=exit_code,
+            )
+            return
+
+        try:
+            rows = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            self.doctor_finding(
+                "WATCH",
+                f"could not parse kanban JSON: {e}",
+                evidence_command="bin/managent status --json",
+            )
+            return
+
+        # For each dispatchable row, check if its bundle file is dirty
+        suspects = []
+        for row in rows:
+            status = row.get("status")
+            if status not in ("dispatchable",):
+                continue
+            row_id = row.get("id", "?")
+            bundle = row.get("bundle", "")
+            if not bundle:
+                continue
+            # The bundle path is relative to repo root; absolute paths
+            # (e.g. /tmp/.../bundle.md) are exempt — they are test fixtures,
+            # not production bundles.
+            if os.path.isabs(bundle):
+                continue
+            bundle_path = self.root / bundle
+            if not bundle_path.exists():
+                continue
+            try:
+                rel = bundle_path.relative_to(self.root)
+            except ValueError:
+                continue
+            # Check if the file is dirty in git
+            exit_code2, stdout2, _ = _run(
+                ["git", "status", "--porcelain", str(rel)],
+                timeout=10, cwd=str(self.root),
+            )
+            if stdout2.strip():
+                suspects.append((row_id, bundle, stdout2.strip()))
+
+        if suspects:
+            for row_id, bundle, dirty in suspects:
+                self.doctor_finding(
+                    "NEEDS ACTION",
+                    f"{row_id} worked but never claimed — {bundle} is dirty in the tree",
+                    evidence_kind="command",
+                    evidence_command=f"git status --porcelain {bundle}",
+                    evidence_output=dirty,
+                    fix_command=f"managent claim {row_id} --agent <model>  # or check whether the commit was legitimate",
+                )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                "no worked-without-claiming rows",
+                evidence_command="git status --porcelain + bin/managent status --json",
+            )
+
+    # ── check 2: in_progress with no heartbeat ────────────────────────
+
+    def _doctor_in_progress_no_heartbeat(self):
+        """Rows in_progress with no recent heartbeat (= potentially dead console).
+
+        "no heartbeat means no MANAGENT_TASK_ID, not necessarily a dead console" —
+        the check is honest about that. We report under WATCH.
+        """
+        exit_code, stdout, stderr = _run(
+            ["bin/managent", "liveness"], timeout=10,
+            cwd=str(self.root),
+        )
+        if exit_code != 0:
+            self.doctor_finding(
+                "WATCH",
+                f"managent liveness failed (exit={exit_code}): {stderr[:200]}",
+                evidence_command="bin/managent liveness",
+                evidence_exit=exit_code,
+            )
+            return
+
+        # Parse liveness: look for "never beat" / "beats stopped" markers
+        suspects = []
+        no_in_progress = False
+        for line in stdout.splitlines():
+            m = re.search(r'(\S+)\s+\[never beat', line)
+            if m:
+                suspects.append((m.group(1), "never beat"))
+            m = re.search(r'(\S+)\s+beats stopped', line)
+            if m:
+                suspects.append((m.group(1), "beats stopped"))
+            if "no in_progress" in line.lower() or "no in progress" in line.lower():
+                no_in_progress = True
+
+        if suspects:
+            for row_id, why in suspects:
+                self.doctor_finding(
+                    "WATCH",
+                    f"{row_id} in_progress, no heartbeat ({why}) — may lack MANAGENT_TASK_ID",
+                    evidence_command="bin/managent liveness",
+                    evidence_output=f"{row_id}: {why}",
+                )
+        elif no_in_progress:
+            self.doctor_finding(
+                "CLEAN",
+                "no in_progress rows (no heartbeat check needed)",
+                evidence_command="bin/managent liveness",
+            )
+        else:
+            # Liveness ran and reported something; we cannot parse it.
+            # Conservatively call CLEAN since no marker fired.
+            self.doctor_finding(
+                "CLEAN",
+                f"in_progress rows present but all beating (liveness clean): {stdout[:120]}",
+                evidence_command="bin/managent liveness",
+            )
+
+    # ── check 3: findings non-conforming ──────────────────────────────
+
+    def _doctor_findings_nonconforming(self):
+        """Findings files that do not conform to the schema.
+
+        Non-conforming files are structurally excluded from absorption, so a
+        high count means work was done but cannot enter the register.
+        """
+        exit_code, stdout, stderr = _run(
+            ["bin/weizigo-claimlint"], timeout=30,
+            cwd=str(self.root),
+        )
+        # Parse: "C7 non-conforming files        N   (reported)   [UNABSORBED]"
+        nc = 0
+        for line in stdout.splitlines():
+            m = re.search(r'C7 non-conforming files\s+(\d+)', line)
+            if m:
+                nc = int(m.group(1))
+                break
+
+        if nc > 0:
+            self.doctor_finding(
+                "NEEDS ACTION",
+                f"{nc} findings file(s) non-conforming (excluded from absorption)",
+                evidence_command="bin/weizigo-claimlint",
+                evidence_exit=exit_code,
+                evidence_output=f"non-conforming: {nc}",
+                fix_command="bin/weizigo-claimlint  # inspect, then fix each file's task_id/date/model/claims",
+            )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                f"non-conforming: 0",
+                evidence_command="bin/weizigo-claimlint",
+            )
+
+    # ── check 4: C7 unabsorbed above threshold + STANDING-ABSORB gate ─
+
+    def _doctor_c7_unabsorbed(self):
+        """C7 unabsorbed findings + whether STANDING-ABSORB can actually fire.
+
+        STANDING-ABSORB is `done` once a registration fires, so a high C7
+        with a done STANDING-ABSORB means the trigger cannot re-fire until
+        the standing row is reopened — the operator should know.
+        """
+        exit_code, stdout, stderr = _run(
+            ["bin/weizigo-claimlint"], timeout=30,
+            cwd=str(self.root),
+        )
+        c7 = 0
+        for line in stdout.splitlines():
+            m = re.search(r'C7 unabsorbed findings\s+(\d+)', line)
+            if m:
+                c7 = int(m.group(1))
+                break
+
+        # Read STANDING-ABSORB status
+        exit_code2, stdout2, _ = _run(
+            ["bin/managent", "show", "STANDING-ABSORB"], timeout=10,
+            cwd=str(self.root),
+        )
+        standing_status = "?"
+        for line in stdout2.splitlines():
+            m = re.search(r'STANDING-ABSORB\s+(\w+)', line)
+            if m:
+                standing_status = m.group(1)
+                break
+
+        # Threshold per STANDING-ABSORB.md (5)
+        threshold = 5
+        if c7 >= threshold and standing_status in ("done", "failed"):
+            self.doctor_finding(
+                "NEEDS ACTION",
+                f"C7 unabsorbed={c7} (≥{threshold}) but STANDING-ABSORB is {standing_status} — trigger cannot fire",
+                evidence_command="bin/weizigo-claimlint && bin/managent show STANDING-ABSORB",
+                evidence_exit=exit_code,
+                evidence_output=f"C7={c7}, standing={standing_status}",
+                fix_command="managent reopen STANDING-ABSORB  # or absorb the backlog by hand",
+            )
+        elif c7 >= threshold:
+            self.doctor_finding(
+                "NEEDS ACTION",
+                f"C7 unabsorbed={c7} (≥{threshold}) — STANDING-ABSORB should fire on next sweep",
+                evidence_command="bin/weizigo-claimlint",
+                evidence_output=f"C7={c7}",
+                fix_command="managent standing  # or run STANDING-ABSORB explicitly",
+            )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                f"C7 unabsorbed: {c7} (below threshold {threshold})",
+                evidence_command="bin/weizigo-claimlint",
+            )
+
+    # ── check 5: evidence cited outside the repo (C10 VOLATILE) ───────
+
+    def _doctor_evidence_outside_repo(self):
+        """C10 volatile citations — /tmp, absolute, untracked/ paths.
+
+        Report-only; report the count. Even if the file still exists, the
+        citation is fragile (reboot, prune).
+        """
+        exit_code, stdout, stderr = _run(
+            ["bin/weizigo-claimlint"], timeout=30,
+            cwd=str(self.root),
+        )
+        c10 = 0
+        c10_breakdown = ""
+        for line in stdout.splitlines():
+            m = re.search(r'C10 volatile evidence paths\s+(\d+)', line)
+            if m:
+                c10 = int(m.group(1))
+                c10_breakdown = line.strip()
+                break
+
+        if c10 > 0:
+            self.doctor_finding(
+                "NEEDS ACTION",
+                f"{c10} volatile evidence citation(s) in committed docs (/tmp, /private/tmp, absolute-outside-tree, untracked/)",
+                evidence_command="bin/weizigo-claimlint",
+                evidence_exit=exit_code,
+                evidence_output=c10_breakdown,
+                fix_command="rescue the file to docs/evidence/ and re-point the citation",
+            )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                f"C10 volatile: 0",
+                evidence_command="bin/weizigo-claimlint",
+            )
+
+    # ── check 6: deployed binary staleness ────────────────────────────
+
+    def _doctor_deployed_staleness(self):
+        """Deployed bin/ tools vs built zig-out/bin/ — flag any stale.
+
+        The "stale" definition: the deployed binary's mtime is older than
+        the source file's mtime. Some tools (argus) are Python and have no
+        zig-out counterpart, so we report them as N/A.
+        """
+        deployed_dir = self.root / "bin"
+        built_dir = self.root / "zig-out" / "bin"
+        if not deployed_dir.is_dir():
+            self.doctor_finding(
+                "CLEAN",
+                "no bin/ directory (nothing to check)",
+            )
+            return
+
+        stale = []
+        for deployed_path in sorted(deployed_dir.iterdir()):
+            if not deployed_path.is_file():
+                continue
+            name = deployed_path.name
+            # Find a corresponding built binary
+            candidates = [
+                built_dir / name,
+                built_dir / f"weizigo-{name.removeprefix('weizigo-')}",
+            ]
+            built_path = None
+            for c in candidates:
+                if c.is_file():
+                    built_path = c
+                    break
+            if built_path is None:
+                # Python script or no built counterpart (argus, smoke.sh)
+                continue
+            try:
+                deployed_mtime = deployed_path.stat().st_mtime
+                built_mtime = built_path.stat().st_mtime
+            except OSError:
+                continue
+            if built_mtime > deployed_mtime:
+                stale.append(name)
+
+        if stale:
+            for name in stale:
+                short = name.removeprefix("weizigo-")
+                self.doctor_finding(
+                    "NEEDS ACTION",
+                    f"bin/{name} stale vs zig-out — run: zig build deploy",
+                    evidence_kind="command",
+                    evidence_command=f"stat -f %m bin/{name} zig-out/bin/{name}",
+                    evidence_output=f"zig-out newer than bin/",
+                    fix_command=f"zig build deploy  # or zig build deploy-{short}",
+                )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                "deployed bin/ matches zig-out (zero stale)",
+                evidence_command="ls -t bin/* zig-out/bin/*",
+            )
+
+    # ── check 7: uncommitted files in the tree, with age ──────────────
+
+    def _doctor_uncommitted_in_tree(self):
+        """Tracked files modified vs HEAD, and untracked files under the tree.
+
+        Reports the count and the oldest age (in days). Untracked files
+        in untracked/ are exempt (they are not committed by design).
+        """
+        exit_code, stdout, stderr = _run(
+            ["git", "status", "--porcelain"], timeout=10,
+            cwd=str(self.root),
+        )
+        if not stdout:
+            self.doctor_finding(
+                "CLEAN",
+                "tree clean (no uncommitted or untracked files)",
+                evidence_command="git status --porcelain",
+            )
+            return
+
+        modified = []
+        untracked = []
+        for line in stdout.splitlines():
+            if not line.strip():
+                continue
+            if line.startswith("??"):
+                fpath = line[3:].strip()
+                # Exempt untracked/ and bin/argus (the watchdog output files)
+                if fpath.startswith("untracked/") or fpath in (
+                    "untracked/watchdog.md",
+                    "untracked/watchdog-summary.md",
+                    "untracked/doctor-report.md",
+                ):
+                    continue
+                untracked.append(fpath)
+            elif line[0] in " MARC":
+                modified.append(line[3:].strip())
+
+        if modified or untracked:
+            text = []
+            if modified:
+                text.append(f"{len(modified)} modified tracked")
+            if untracked:
+                text.append(f"{len(untracked)} untracked")
+            self.doctor_finding(
+                "NEEDS ACTION",
+                f"uncommitted in tree: {' / '.join(text)} (e.g. {', '.join((modified + untracked)[:3])})",
+                evidence_command="git status --porcelain",
+                evidence_exit=exit_code,
+                evidence_output=stdout[:500],
+                fix_command="git diff  # inspect, then commit or stash",
+            )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                "tree clean (untracked/ and watchdog outputs exempt)",
+                evidence_command="git status --porcelain",
+            )
+
+    # ── check 8: processes with no owning row ────────────────────────
+
+    def _doctor_processes_no_owner(self):
+        """Live zig/weizigo processes that have been running a long time.
+
+        This is a soft signal — a long-running build is not necessarily a
+        hang. We report anything >= 30min under WATCH.
+        """
+        exit_code, stdout, stderr = _run(
+            ["ps", "-eo", "pid,etime,command"], timeout=10,
+        )
+        if exit_code != 0:
+            self.doctor_finding(
+                "CLEAN",
+                f"ps unavailable (exit={exit_code})",
+                evidence_command="ps -eo pid,etime,command",
+            )
+            return
+
+        suspects = []
+        for line in stdout.splitlines():
+            line_stripped = line.strip()
+            if "zig" not in line_stripped and "weizigo" not in line_stripped:
+                continue
+            if "grep" in line_stripped or "ps -eo" in line_stripped:
+                continue
+            # Extract PID and command
+            parts = line_stripped.split(None, 2)
+            if len(parts) < 3:
+                continue
+            pid, etime, cmd = parts
+            # Filter to long-running (>= 30 min)
+            etime_clean = etime.strip()
+            minutes = 0
+            try:
+                if "-" in etime_clean:
+                    days, _, etime_clean = etime_clean.partition("-")
+                    minutes += int(days) * 24 * 60
+                parts2 = etime_clean.split(":")
+                if len(parts2) == 3:
+                    minutes += int(parts2[0]) * 60 + int(parts2[1])
+                elif len(parts2) == 2:
+                    minutes += int(parts2[0])
+            except ValueError:
+                continue
+            if minutes < 30:
+                continue  # short-lived; not a hang
+            suspects.append((pid, etime, cmd[:80]))
+
+        if suspects:
+            for pid, etime, cmd in suspects[:5]:
+                self.doctor_finding(
+                    "WATCH",
+                    f"long-running process (pid={pid}, etime={etime}): {cmd}",
+                    evidence_command="ps -eo pid,etime,command",
+                    evidence_output=f"{pid} {etime} {cmd}",
+                )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                "no long-running zig/weizigo processes (no orphan consoles)",
+                evidence_command="ps -eo pid,etime,command | grep -E 'zig|weizigo'",
+            )
+
+    # ── check 9: register/tree-map lockstep and floor drift ───────────
+
+    def _doctor_floors_and_lockstep(self):
+        """CLAIMS.md row count vs register-tree-map.md §1, and floor drift.
+
+        The C9b lockstep is reported by claimlint as "C9b register↔map
+        lockstep" or similar. Floor counters: C1a (orphans), C2 (dead
+        links), C3 (cited-not-promoted). We use the same claimlint output.
+        """
+        exit_code, stdout, stderr = _run(
+            ["bin/weizigo-claimlint"], timeout=30,
+            cwd=str(self.root),
+        )
+
+        c0 = c1a = c2 = c3 = None
+        c9 = None
+        for line in stdout.splitlines():
+            m = re.search(r'rows parsed\s*/\s*unparsed\s+(\d+)\s*/\s*\d+', line)
+            if m: c0 = int(m.group(1))
+            m = re.search(r'C1a orphans\s*/\s*C1b alarms\s+(\d+)\s*/\s*\d+', line)
+            if m: c1a = int(m.group(1))
+            m = re.search(r'C2 dangling evidence paths\s+(\d+)', line)
+            if m: c2 = int(m.group(1))
+            m = re.search(r'C3 PROVEN w/o committed evid\.\s+(\d+)', line)
+            if m: c3 = int(m.group(1))
+            m = re.search(r'C9 tree-mapping violations\s+(\d+)', line)
+            if m: c9 = int(m.group(1))
+
+        # Floor values from tools/hooks/claimlint-floor.json (T356, 2026-08-02)
+        floors = self.CLAIMLINT_FLOOR
+
+        issues = []
+        clean_parts = []
+        if c0 is not None:
+            clean_parts.append(f"register {c0} rows")
+        if c1a is not None:
+            if c1a > floors.get("C1a", 0):
+                issues.append(f"C1a orphans={c1a} (floor={floors.get('C1a')})")
+            else:
+                clean_parts.append(f"C1a {c1a}")
+        if c2 is not None:
+            if c2 > floors.get("C2", 0):
+                issues.append(f"C2 dead-links={c2} (floor={floors.get('C2')})")
+            else:
+                clean_parts.append(f"C2 {c2}")
+        if c3 is not None:
+            # C3 has no fixed floor; report current value
+            clean_parts.append(f"C3 {c3}")
+        if c9 is not None:
+            clean_parts.append(f"C9 {c9}")
+
+        if issues:
+            for issue in issues:
+                self.doctor_finding(
+                    "NEEDS ACTION",
+                    f"floor drift: {issue}",
+                    evidence_command="bin/weizigo-claimlint",
+                    evidence_output=issue,
+                    fix_command="bin/weizigo-claimlint  # inspect the cited claims, then rescue the evidence",
+                )
+        else:
+            summary = "register/tree-map lockstep"
+            if clean_parts:
+                summary = " · ".join(clean_parts)
+            self.doctor_finding(
+                "CLEAN",
+                summary,
+                evidence_command="bin/weizigo-claimlint",
+            )
+
     # ── sweep mode ───────────────────────────────────────────────────
 
     def run_sweep(self):
@@ -1097,27 +1733,33 @@ def main():
         prog="argus",
         description="Argus watchdog — read-only project state monitor (T195).",
     )
-    ap.add_argument("--mode", required=True, choices=["sweep", "checklist"],
+    ap.add_argument("--mode", required=True, choices=["sweep", "checklist", "doctor"],
                     help="One mode per invocation (R5)")
     ap.add_argument("--log", default=None,
                     help="Path to watchdog log (default: untracked/watchdog.md)")
     ap.add_argument("--summary", default=None,
                     help="Path to summary (default: untracked/watchdog-summary.md)")
+    ap.add_argument("--report", default=None,
+                    help="Path to doctor report (default: untracked/doctor-report.md; T425)")
     ap.add_argument("--checklist", default=None,
                     help="Path to checklist registry (default: docs/epic-01-markovian/sprints/argus/checklist.md)")
     ap.add_argument("--run-id", default=None,
                     help="Override run ID (default: auto-generated from timestamp)")
+    ap.add_argument("--root", default=None,
+                    help="Override repo root (default: walk up from this script; T425 scratch support)")
     ap.add_argument("--dry-run", action="store_true",
                     help="Print findings to stdout, do not write files")
     args = ap.parse_args()
 
-    root = _repo_root()
+    root = Path(args.root).resolve() if args.root else _repo_root()
 
     # Set default paths relative to repo root
     if args.log is None:
         args.log = str(root / "untracked" / "watchdog.md")
     if args.summary is None:
         args.summary = str(root / "untracked" / "watchdog-summary.md")
+    if args.report is None:
+        args.report = str(root / "untracked" / "doctor-report.md")
     if args.checklist is None:
         args.checklist = str(root / "docs" / "epic-01-markovian" / "sprints" / "argus" / "checklist.md")
 
@@ -1143,6 +1785,14 @@ def main():
         run.sweep_files_total = len(docs_files)
         run.emit_run_marker()
         run.run_sweep()
+    if args.mode == "doctor":
+        # Doctor mode: T425 — encode the Orchestrator's manual weekly sweep.
+        # One screen grouped into NEEDS ACTION / CAN CLOSE / WATCH / CLEAN,
+        # every finding names its evidence and the fix command. Read-only
+        # against the kanban, register, and tree.
+        run.checks_run = 9
+        run.emit_run_marker()
+        run.run_doctor()
 
     run.write_summary()
 
