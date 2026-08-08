@@ -266,6 +266,8 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `CODE.PROPERTY-OWNERSHIP` | Z-AUDIT | T395: one production implementation per property, differential per surviving pair, seeded-defect controls red-then-green — instrument discipline (T404) |
 | `3x3.OPTIMAL-CYCLE` | Z-R-TIE | T416: the optimal-move subgraph CONTAINS-CYCLES at 3×3 — exhaustive, 54 cyclic SCCs, 12 FORCED — cycle resolution (C3) is load-bearing under optimal play; value constant on all 54 cycles (0 bad); not a real-game claim (T418) |
 | `4x4.OPTIMAL-CYCLE` | Z-R-TIE | T416: sampled positive — cycles exist at 4×4 (6 SCCs in the declared 150,001-node / ≈0.15% sample); '0 forced in the sample' is a lower bound, not a general negative; sibling of 3x3.OPTIMAL-CYCLE, per-goban independence (T418) |
+| `3x3.LOOPY-TAXONOMY` | Z-R-TIE | T419: full loopy-child partition at 3×3 — exhaustive over 47,456 non-terminal parents; optimal play declines reachable loops at 9,480 of 15,008 loopy-holding positions (63%), depth-3 forced 3,656 ≥ T416's 80 forced-cycle states — how often cycle resolution (C3) is load-bearing under optimal play; sibling of 3x3.OPTIMAL-CYCLE (T422) |
+| `4x4.LOOPY-TAXONOMY` | Z-R-TIE | T419: loopy-child partition on T412's declared 200,000-sample of 98,616,794 — 23,459 decline-reachable loops, depth-3 forced 4,867 is a sample lower bound; sampled census of when cycle resolution (C3) matters under optimal play; sibling of 4x4.OPTIMAL-CYCLE, per-goban independence (T422) |
 | `CODE.RESOLVER-INTERFACE` | Z-AUDIT | ADR-0022: pluggable resolver interface, none authoritative — instrument architecture (T402, absorbed T418) |
 | `CODE.RESOLVER-BUDGET-QUARANTINE` | Z-AUDIT | capture budget demoted to a named pluggable resolver whose registration metadata records its measured non-convergence — instrument validity; sibling GLOBAL.CAPTURE-BUDGET-DAG; CLAIMED not PROVEN at absorption (T402, absorbed T418) |
 | `CODE.RESOLVER-CONTROLS` | Z-AUDIT | harness null + seeded controls fire at all 23,420 3×3 positions — instrument-control discipline, re-verified at absorption (T402, absorbed T418) |
@@ -475,8 +477,8 @@ foundation fell. Full epitaphs in `archives/register/families/falsified-foundati
 
 | surface | count | produced by |
 |---|---|---|
-| register rows | **226** | `bin/weizigo-claimlint` C0 (`rows parsed: 226`) — live count on every run, after T373's triage adoption (was 339) + 10 T384/T396 absorptions + 8 T404 absorptions + 5 T418 absorptions |
-| mapping rows (this doc §1) | **226** (223 mapped to a node + 3 RETIRED) | claimlint C9 cross-check (row set equality) |
+| register rows | **228** | `bin/weizigo-claimlint` C0 (`rows parsed: 228`) — live count on every run, after T373's triage adoption (was 339) + 10 T384/T396 absorptions + 8 T404 absorptions + 5 T418 absorptions + 2 T422 absorptions |
+| mapping rows (this doc §1) | **228** (225 mapped to a node + 3 RETIRED) | claimlint C9 cross-check (row set equality) |
 | moved rows (§2) | **132** (122 RETIRED + 10 BOGUS) | same run + the triage sheet's classification |
 | unmapped without disposition | **0** | C9a (empty/invalid `tree` cell fails the run) |
 
