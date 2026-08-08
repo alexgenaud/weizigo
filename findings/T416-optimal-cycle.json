@@ -1,0 +1,31 @@
+{
+  "task_id": "T416",
+  "date": "2026-08-08",
+  "model": "GLM-5.2",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "3x3.OPTIMAL-CYCLE",
+      "legacy": "—",
+      "goban": "3x3",
+      "claim": "**The optimal-move subgraph at 3×3 (all optimal children kept, ties included) CONTAINS-CYCLES — exhaustive over 47,456 states / 76,244 edges (T416, 2026-08-08, instrument `src/t416_cycle.zig`; artifact `data/oracle-3x3-v2.wzo2`; re-run byte-identical by an independent console).** 54 cyclic SCCs, 4,550 states on cycles (9.6% of states); value constant on all 54 cycles (0 bad). The forced/indifferent split: **12 FORCED cycles / 80 states** (every node strictly prefers to stay — the loop is compelled under optimal play by both sides) and **42 INDIFFERENT cycles / 4,470 states** (an optimal exit exists at ≥1 node — the loop is available, not compelled). Tautology guard `V_p==Bellman-best`: 0 / 47,456 mismatches. Controls: null graph ACYCLIC (0 edges); seeded `force_all_optimal` RED (1 giant cyclic SCC of 45,958 states, value-const 0/1 — the planted corruption showing through as expected); tie-handling control keeps 37,350 edges (vs 76,244 all-ties) and undercounts cycles 54→48 / states 4,550→208 — the fabricated-acyclicity failure demonstrated (not full acyclicity at 3×3, but a 22× state undercount). **This answers the operator's central question for 3×3: optimal play by BOTH sides can sustain a loop, and 12 of the loops are genuinely forced — the 'no problem to solve' case is NOT established at 3×3.** Scope: fresh-start optimal-move subgraph (C1 values); not a real-game PSK claim (C2 FALSE-AS-SCOPED at 3×2, C3 FALSE-AS-SCOPED at 3×3); ko-sensitive columns distrusted pending Track A. Single-instrument self-report + one independent console re-run (byte-identical), not a second-seat adjudication — MEASUREMENT, not PROVEN.",
+      "status": "MEASUREMENT",
+      "evidence": "docs/research/optimal-cycle-test-2026-08-08.md; /tmp/weizigo/t416/out/3x3-allties.json; /tmp/weizigo/t416/audit-allties-3x3.json",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "4x4.OPTIMAL-CYCLE",
+      "legacy": "—",
+      "goban": "4x4",
+      "claim": "**The optimal-move subgraph at 4×4 (all optimal children kept) CONTAINS-CYCLES on a declared SAMPLE — BFS seed 42, budget 150,000 nodes, 2,000 seeds → 150,001 nodes / 208,908 edges (T416, 2026-08-08, instrument `src/t416_cycle.zig`; artifact `data/oracle-4x4-v2.wzo2`; re-run byte-identical by an independent console).** 6 cyclic SCCs, 24 states on cycles, all 4-cycles, value constant on all 6 (0 bad); **0 FORCED / 6 INDIFFERENT** in the sample. Tautology guard 0 / 150,001 mismatches. Controls: null ACYCLIC (0 edges); seeded `force_all_optimal` RED (14 cyclic SCCs / 66 states, value-const 1/13 ok — the seeded corruption showing through, expected); **tie-handling control keeps 45,905 edges (vs 208,908 all-ties) and FABRICATES ACYCLIC** — the single most likely way to get this question wrong, demonstrated. **A sampled POSITIVE: the sample cannot overstate acyclicity, only understate it; cycles exist at 4×4.** Scope limits: (1) SAMPLE — 150,001 / 99,133,036 ≈ 0.15% of the table; '0 forced in the sample' is a lower bound (0), NOT '0 forced at 4×4' — whether 4×4 has any forced cycle is OPEN (the 3×3 exhaustive rate was 12/54 = 22%, but per-goban independence forbids cross-size inference). (2) The exhaustive 4×4 run was killed twice by the 4 GB RSS guard (D061/D062); the sample is the honest deliverable. (3) Fresh-start optimal-move subgraph (C1); not a real-game PSK claim; ko-sensitive columns distrusted pending Track A. Single-instrument self-report + one independent console re-run (byte-identical) — MEASUREMENT, not PROVEN.",
+      "status": "MEASUREMENT",
+      "evidence": "docs/research/optimal-cycle-test-2026-08-08.md; /tmp/weizigo/t416/out/4x4-allties.json; /tmp/weizigo/t416/audit-4x4-150000.json",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "Directives obeyed: D061 (continue after infra kill; declared 4x4 sample budget 150000 seed 42, write to declared paths) and D062 (stop running the instrument — all measurements done and console-verified byte-identical; write the doc and findings from the verified JSONs only; no zig builds). Both amend directives from deepseek-v4-flash/T417. Worker identity: glm-5.2/T416.3. The partial findings/T416-cycle-3x3.json (wrong name, non-conforming) is superseded by this file and removed. out/ vs audit-*.json diffs all byte-identical (verified by `diff` this pass); the 4x4 null control lives only in audit-4x4-null-150k.json (ACYCLIC). 4x3 out of scope — no WZO2 artifact. Per-goban epistemic independence honoured: no cross-size inference; 3x3 exhaustive, 4x4 a declared sample labelled as such. The tie-handling trap is demonstrated (4x4 onetie ACYCLIC vs all-ties CONTAINS-CYCLES), not merely warned against."
+}
