@@ -67,6 +67,23 @@ def _run(cmd, timeout=30, cwd=None):
     except subprocess.TimeoutExpired:
         return 124, "", f"timeout after {timeout}s"
 
+# T427: argus is read-only by contract. The only managent verbs it may
+# invoke are these; a future edit that tries to call a mutating verb from
+# the watchdog fails loudly instead of silently writing the kanban it is
+# supposed to watch (the option the brief weighs and rejects as primary —
+# the T425 leak came from the regression calling managent directly, not
+# from argus — but kept as a cheap belt: this deny-list is the boundary).
+MANAGENT_RO_VERBS = frozenset({
+    "status", "liveness", "audit", "standing", "show", "whoami", "why", "resume",
+})
+
+def _managent(root, verb, *args, timeout=10):
+    """Run a read-only managent command, refusing any mutating verb."""
+    if verb not in MANAGENT_RO_VERBS:
+        raise RuntimeError(f"argus refused to invoke mutating managent verb '{verb}'")
+    return _run(["bin/managent", verb, *args], timeout=timeout, cwd=str(root))
+
+
 
 def _extract_command(check_text):
     """Extract a shell command from a registry check field.
@@ -612,7 +629,7 @@ class ArgusRun:
     def run_doctor(self):
         """Encode the Orchestrator's manual weekly sweep (T425).
 
-        Runs nine checks and groups them by what the operator should DO:
+        Runs ten checks and groups them by what the operator should DO:
           NEEDS ACTION  — operator must do something NOW (fix or claim)
           CAN CLOSE     — done rows the operator can close
           WATCH         — soft warnings (long in_progress, etc.)
@@ -620,7 +637,7 @@ class ArgusRun:
 
         Every finding names its evidence and the fix command.
         """
-        self.checks_run = 9
+        self.checks_run = 10
         self.doctor_groups = {
             "NEEDS ACTION": [],
             "CAN CLOSE": [],
@@ -638,6 +655,7 @@ class ArgusRun:
         self._doctor_uncommitted_in_tree()
         self._doctor_processes_no_owner()
         self._doctor_floors_and_lockstep()
+        self._doctor_fixture_rows()
 
         # Write the report
         self._write_doctor_report()
@@ -720,10 +738,7 @@ class ArgusRun:
         bundle file is in `git status --porcelain` is a NEEDS ACTION.
         """
         # Get all rows from the kanban
-        exit_code, stdout, stderr = _run(
-            ["bin/managent", "status", "--json"], timeout=10,
-            cwd=str(self.root),
-        )
+        exit_code, stdout, stderr = _managent(self.root, "status", "--json")
         if exit_code != 0:
             self.doctor_finding(
                 "WATCH",
@@ -798,10 +813,7 @@ class ArgusRun:
         "no heartbeat means no MANAGENT_TASK_ID, not necessarily a dead console" —
         the check is honest about that. We report under WATCH.
         """
-        exit_code, stdout, stderr = _run(
-            ["bin/managent", "liveness"], timeout=10,
-            cwd=str(self.root),
-        )
+        exit_code, stdout, stderr = _managent(self.root, "liveness")
         if exit_code != 0:
             self.doctor_finding(
                 "WATCH",
@@ -1233,6 +1245,98 @@ class ArgusRun:
                 evidence_command="bin/weizigo-claimlint",
             )
 
+    # ── check 10: fixture-shaped rows in the kanban (T427) ────────────
+
+    # Fixture ids embed a marker token (DOCTOR/FIXTURE/SEED/PROBE/ARM/TEST)
+    # as a delimited word — T425-DOCTOR-2-<rand>, TLC-ARM1, T294SEED. The
+    # token must be bounded so a legit id like T-LATEST-... never matches.
+    FIXTURE_ID_RE = re.compile(
+        r'(?:^|[-_])(DOCTOR|FIXTURE|SEED|PROBE|ARM|TEST)(?:[-_]|$|\d)', re.I
+    )
+
+    def _kanban_rows(self):
+        """Read the kanban store, honoring MANAGENT_STORE (scratch support).
+
+        Read-only: parses the JSON file directly so the doctor can see the
+        claimed/done timestamps that `managent status --json` omits (T427).
+        Returns (rows, None) or (None, error_text).
+        """
+        store_env = os.environ.get("MANAGENT_STORE")
+        if store_env:
+            store_path = Path(store_env)
+            if not store_path.is_absolute():
+                store_path = self.root / store_path
+        else:
+            store_path = self.root / "docs" / "infra" / "managent" / "tasks.json"
+        try:
+            with open(store_path) as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            return None, str(e)
+        if isinstance(data, list):
+            rows = data
+        elif isinstance(data, dict):
+            rows = []
+            for rid, r in data.items():
+                if not isinstance(r, dict):
+                    continue
+                r = dict(r)
+                r.setdefault("id", rid)
+                rows.append(r)
+        else:
+            return None, "store is neither a JSON object nor an array"
+        return rows, None
+
+    def _doctor_fixture_rows(self):
+        """Rows that look like test-harness fixtures (the T425 leak shape).
+
+        T425's regression wrote 16 T425-DOCTOR-* rows into the LIVE kanban:
+        ids matching a generated pattern, bundles under tools/, claimed and
+        closed in the same second. The doctor must surface the next one
+        under NEEDS ACTION instead of letting it sit as a closable console.
+        The id-pattern signal alone suffices (the incident rows all had it);
+        bundle-under-tools/ combined with claimed==done-to-the-second is the
+        fallback for a fixture with a non-marker id. claimed==done alone is
+        NOT a signal — 6 legit live rows close within the same second.
+        """
+        rows, err = self._kanban_rows()
+        if rows is None:
+            self.doctor_finding(
+                "WATCH",
+                f"could not read kanban store for fixture scan: {err}",
+                evidence_command="bin/managent status --json",
+            )
+            return
+
+        fixtures = []
+        for row in rows:
+            rid = row.get("id", "")
+            bundle = row.get("bundle") or ""
+            claimed = row.get("claimed")
+            done = row.get("done")
+            id_fixture = bool(self.FIXTURE_ID_RE.search(rid))
+            bundle_fixture = bundle.startswith("tools/") or bundle.startswith("bin/")
+            same_second = bool(claimed and done and claimed == done)
+            if id_fixture or (bundle_fixture and same_second):
+                fixtures.append((rid, bundle, claimed, done))
+
+        if fixtures:
+            for rid, bundle, claimed, done in fixtures:
+                self.doctor_finding(
+                    "NEEDS ACTION",
+                    f"{rid} looks like a test fixture, not a real row (bundle={bundle}, claimed==done {claimed})",
+                    evidence_kind="command",
+                    evidence_command="bin/managent status --json",
+                    evidence_output=f"id={rid} bundle={bundle} claimed={claimed} done={done}",
+                    fix_command="bin/managent purge  # after committing real rows — or Orchestrator removes the fixture row by hand",
+                )
+        else:
+            self.doctor_finding(
+                "CLEAN",
+                "no fixture-shaped rows in the kanban (no T425-DOCTOR-style detritus)",
+                evidence_command="bin/managent status --json",
+            )
+
     # ── sweep mode ───────────────────────────────────────────────────
 
     def run_sweep(self):
@@ -1395,7 +1499,7 @@ class ArgusRun:
 
     def _sweep_kanban(self):
         """Sweep the kanban for stale/orphan tasks."""
-        exit_code, stdout, stderr = _run(["bin/managent", "status"], timeout=10)
+        exit_code, stdout, stderr = _managent(self.root, "status")
 
         # Check for blocked tasks
         in_blocked = False
@@ -1421,7 +1525,7 @@ class ArgusRun:
             )
 
         # Check for done tasks not promoted (delegate to managent audit)
-        exit_code2, stdout2, stderr2 = _run(["bin/managent", "audit"], timeout=10)
+        exit_code2, stdout2, stderr2 = _managent(self.root, "audit")
         finding_count = 0
         for line in stdout2.splitlines():
             if re.search(r'\[WARN\]|\[ERR\]', line):
@@ -1790,7 +1894,7 @@ def main():
         # One screen grouped into NEEDS ACTION / CAN CLOSE / WATCH / CLEAN,
         # every finding names its evidence and the fix command. Read-only
         # against the kanban, register, and tree.
-        run.checks_run = 9
+        run.checks_run = 10
         run.emit_run_marker()
         run.run_doctor()
 

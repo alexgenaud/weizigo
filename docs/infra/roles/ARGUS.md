@@ -59,18 +59,21 @@ compare the result against the stored baseline, and emit a finding for every
 regression. Baselines are values, not booleans — a check is red only when it
 deviates from its baseline.
 
-**Mode 3 — doctor (T425).** Encode the Orchestrator's manual weekly sweep as a
-one-line check. Nine checks grouped by what the operator should DO:
+**Mode 3 — doctor (T425, hardened by T427).** Encode the Orchestrator's manual
+weekly sweep as a one-line check. Ten checks grouped by what the operator
+should DO:
 
 ```
 NEEDS ACTION  — rows worked but never claimed, non-conforming findings,
                 C7 unabsorbed ≥ threshold with standing tier unable to fire,
                 volatile evidence citations, deployed binary staleness,
-                uncommitted tracked files
+                uncommitted tracked files, fixture-shaped kanban rows
+                (T425-DOCTOR-* style detritus; id pattern or tools/ bundle
+                + claimed==done same second)
 CAN CLOSE     — done rows the operator can acknowledge
 WATCH         — in_progress rows with no heartbeat, long-running processes
 CLEAN         — no in_progress rows, C7 below threshold, register/tree-map
-                lockstep, floor counters at or below floor
+                lockstep, floor counters at or below floor, no fixture rows
 ```
 
 Every finding names its evidence (a command, exit code, and output, or a

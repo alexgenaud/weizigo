@@ -468,6 +468,29 @@ that changed are printed on stderr:
 (survives fresh clone). managent is the only writer. Atomic writes via
 temp-file + rename.
 
+### Test-harness write guards (T427)
+
+T425's regression wrote 16 `T425-DOCTOR-*` fixture rows into the LIVE kanban
+because its arms called `add`/`claim`/`done` without `MANAGENT_STORE`. Two
+guards, both failing loudly at the moment of the write (exit 1 + diagnostic):
+
+1. **Fixture-pattern ids are refused on the live store** — `add` of a row
+   whose id contains a boundary-delimited marker token (`DOCTOR`, `FIXTURE`,
+   `SEED`, `PROBE`, `ARM`, `TEST`) is refused unless `MANAGENT_STORE` points
+   elsewhere. No cooperation required from the caller: the id itself trips
+   it, so a future harness cannot silently reproduce the T425 shape.
+2. **`MANAGENT_TEST=1` refuses every mutating verb on the live store** — a
+   harness that declares itself a test cannot write production even with a
+   non-fixture-shaped id. Mutating verbs: `add`, `claim`, `done`, `reopen`,
+   `purge`, `set`, `needs`, `agent`, `verdict`, `archive`, `amend`, `sync`,
+   `tell`, `inbox`, `dispatch`, `suggest`, `next`, `ping`. Read-only verbs
+   keep working. The load-time migration write is refused too.
+
+The "live store" is `MANAGENT_STORE` unset, or set to a path that resolves
+(symlinks included) to the default `docs/infra/managent/tasks.json`.
+Scratch stores — `MANAGENT_STORE` pointing anywhere else — are exempt:
+tests own their substrate (A3).
+
 ```json
 {
   "B09": {

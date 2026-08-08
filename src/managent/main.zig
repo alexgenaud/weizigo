@@ -178,6 +178,113 @@ fn isValidDirective(s: []const u8) bool {
 
 const StateMap = std.StringHashMapUnmanaged(TaskState);
 
+// ── T427: test-harness write guards ────────────────────────────────────────
+// T425's regression wrote 16 T425-DOCTOR-* rows into the LIVE kanban because
+// its arms called add/claim/done without MANAGENT_STORE. Two guards, both
+// failing loudly at the moment of the write:
+//   (a) fixture-pattern ids are refused on the live store — no cooperation
+//       required from the caller (the id itself trips the guard);
+//   (b) with MANAGENT_TEST=1, ANY mutating verb on the live store is refused
+//       — a harness that declares itself a test cannot write production even
+//       with a non-fixture-shaped id.
+// Scratch stores (MANAGENT_STORE pointing anywhere else) are exempt: tests
+// own their substrate (A3).
+
+/// Marker tokens that regression harnesses embed in fixture row ids
+/// (T425-DOCTOR-2-<rand>, TLC-ARM1, T294SEED, ...). Matched as
+/// boundary-delimited words so a legit id like T-LATEST-... never trips it.
+const fixture_markers = [_][]const u8{ "DOCTOR", "FIXTURE", "SEED", "PROBE", "ARM", "TEST" };
+
+/// Verbs that write the kanban state (or live runtime state: ping's
+/// heartbeat). Read-only verbs (status/show/whoami/why/resume/standing/
+/// audit/liveness) are never refused.
+const mutating_verbs = [_][]const u8{
+    "add",     "claim",  "done",    "reopen", "purge", "set",
+    "needs",   "agent",  "verdict", "archive", "amend", "sync",
+    "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
+    "standing",
+};
+
+fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
+    w.diag("\n  REFUSED: '{s}' would write the LIVE kanban — {s}\n", .{ cmd, why });
+    w.diag("  Test harnesses and fixtures must run against a scratch store:\n", .{});
+    w.diag("    MANAGENT_STORE=/tmp/weizigo/<scratch>/tasks.json {s} ...\n", .{ cmd });
+    w.diag("  (T427: T425's regression wrote 16 fixture rows into the live store.)\n", .{});
+    std.process.exit(1);
+}
+
+fn isMutatingVerb(cmd: []const u8) bool {
+    for (mutating_verbs) |v| {
+        if (std.mem.eql(u8, cmd, v)) return true;
+    }
+    return false;
+}
+
+/// Absolute, symlink-resolved form of a path. Uses libc realpath when the
+/// path exists (so /tmp/... and /private/tmp/... compare equal on macOS);
+/// falls back to pure string normalization when it does not exist yet.
+fn resolveAbsPath(p: []const u8) ![]u8 {
+    if (!std.fs.path.isAbsolute(p)) {
+        var buf: [std.fs.max_path_bytes]u8 = undefined;
+        const cwd_ptr = std.c.getcwd(&buf, buf.len) orelse return error.CwdUnavailable;
+        const cwd = std.mem.sliceTo(cwd_ptr, 0);
+        const joined = try std.fs.path.join(alloc, &.{ cwd, p });
+        defer alloc.free(joined);
+        return resolveAbsPath(joined);
+    }
+    const z = try alloc.allocSentinel(u8, p.len, 0);
+    defer alloc.free(z);
+    @memcpy(z, p);
+    var out_buf: [std.fs.max_path_bytes]u8 = undefined;
+    if (std.c.realpath(z.ptr, &out_buf)) |resolved| {
+        return alloc.dupe(u8, std.mem.sliceTo(resolved, 0));
+    }
+    return std.fs.path.resolve(alloc, &.{p});
+}
+
+/// True when the store this invocation would use IS the live kanban: it
+/// resolves to the default store path of the repo discovered from cwd AND
+/// that path is tracked in git. The tracking check is what separates the
+/// real kanban from a scratch repo's default store — T424's
+/// claim-lifecycle regression runs managent from a scratch repo with
+/// MANAGENT_STORE unset and must keep working; its store is untracked.
+fn isLiveStore(io: std.Io, state_path: []const u8, repo_root: []const u8) bool {
+    const default_path = std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "tasks.json" }) catch return false;
+    defer alloc.free(default_path);
+    const def_resolved = resolveAbsPath(default_path) catch return false;
+    defer alloc.free(def_resolved);
+    const eff_resolved = resolveAbsPath(state_path) catch return false;
+    defer alloc.free(eff_resolved);
+    if (!std.mem.eql(u8, eff_resolved, def_resolved)) return false;
+    const out = runGit(alloc, io, repo_root, &.{ "ls-files", "--", "docs/infra/managent/tasks.json" });
+    defer if (out.stdout.len > 0) alloc.free(out.stdout);
+    return out.ok and std.mem.indexOf(u8, out.stdout, "docs/infra/managent/tasks.json") != null;
+}
+
+/// Does the id look like a harness-generated fixture id? Uppercased, then
+/// each marker token must be delimited by '-', '_', a digit, or the edges.
+fn idLooksLikeFixture(id: []const u8) bool {
+    var upper_buf: [160]u8 = undefined;
+    if (id.len == 0 or id.len > upper_buf.len) return false;
+    for (id, 0..) |c, i| {
+        upper_buf[i] = if (c >= 'a' and c <= 'z') c - 32 else c;
+    }
+    const upper = upper_buf[0..id.len];
+    for (fixture_markers) |m| {
+        var idx: usize = 0;
+        while (std.mem.indexOfPos(u8, upper, idx, m)) |pos| {
+            const before_ok = pos == 0 or upper[pos - 1] == '-' or upper[pos - 1] == '_';
+            const after_idx = pos + m.len;
+            const after_ok = after_idx >= upper.len or
+                upper[after_idx] == '-' or upper[after_idx] == '_' or
+                (upper[after_idx] >= '0' and upper[after_idx] <= '9');
+            if (before_ok and after_ok) return true;
+            idx = pos + 1;
+        }
+    }
+    return false;
+}
+
 // ─────────────────────────────────────────────────────────────────── entry
 
 pub fn main(init: std.process.Init.Minimal) !void {
@@ -218,6 +325,10 @@ pub fn main(init: std.process.Init.Minimal) !void {
         std.Io.Dir.cwd().createDirPath(io, dir_path) catch {};
     }
 
+    // T427: live-store detection + test-harness marker (see guards above).
+    const is_live = isLiveStore(io, state_path, repo_root);
+    const test_harness = std.c.getenv("MANAGENT_TEST") != null;
+
     // Determine command (first non-flag arg, or "status")
     const cmd: []const u8 = if (args.len >= 2 and !std.mem.startsWith(u8, args[1], "-")) args[1] else "status";
 
@@ -237,13 +348,29 @@ pub fn main(init: std.process.Init.Minimal) !void {
     // Migration: on every invocation, re-derive dispatchable/blocked statuses
     {
         var st = try readState(io, state_path);
-        if (migrateState(w, &st)) {
+        const migrated = migrateState(w, &st);
+        if (migrated) {
+            // T427: even a read-only verb would rewrite the store here — a
+            // test harness must not migrate the live store either.
+            if (test_harness and is_live) {
+                refuseLiveWrite(w, cmd, "MANAGENT_TEST=1 — a read-only verb would migrate the live store; point MANAGENT_STORE at a scratch path");
+            }
             try writeState(io, state_path, &st);
         }
         freeState(&st);
     }
 
+    // T427: a test harness (MANAGENT_TEST=1) must not write the live store.
+    if (test_harness and is_live and isMutatingVerb(cmd)) {
+        refuseLiveWrite(w, cmd, "MANAGENT_TEST=1 — test harnesses must not write the live kanban");
+    }
+
     if (std.mem.eql(u8, cmd, "add")) {
+        // T427: fixture-pattern ids are refused on the live store, no
+        // cooperation required from the caller — the id itself trips it.
+        if (is_live and args.len >= 3 and !std.mem.startsWith(u8, args[2], "-") and idLooksLikeFixture(args[2])) {
+            refuseLiveWrite(w, cmd, "row id matches a test-fixture pattern (DOCTOR/FIXTURE/SEED/PROBE/ARM/TEST)");
+        }
         try cmdAdd(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "claim")) {
         try cmdClaim(w, io, repo_root, state_path, args);
@@ -4166,6 +4293,10 @@ fn printHelp(w: Writers) void {
         \\  managent whoami 2B-5         # resolve what identifier a task would have
         \\  managent next --exec "pi --provider deepseek --model deepseek-v4-pro"
         \\  managent claim B17 --exec "pi --provider ollama --model glm-5.2:cloud"
+        \\\nTest isolation (T427 — T425 leaked 16 fixture rows into the live store):
+        \\  MANAGENT_STORE=<path>  run against a scratch store instead of the live kanban
+        \\  MANAGENT_TEST=1        refuse every mutating verb on the live store (for harnesses)
+        \\  fixture-pattern ids (DOCTOR/FIXTURE/SEED/PROBE/ARM/TEST) are refused on the live store
         \\
     , .{});
 }

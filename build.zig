@@ -435,12 +435,18 @@ pub fn build(b: *std.Build) void {
     claim_lifecycle_regression.cwd = b.path(".");
     test_step.dependOn(&claim_lifecycle_regression.step);
 
-    // ── argus --mode doctor controls (T425) ───────────────────────────
+    // ── argus --mode doctor controls (T425, hardened by T427) ────────
     // The Orchestrator's manual weekly sweep encoded as a one-line check.
-    // Ten arms: smoke (live tree end-to-end), uncommitted files, dispatchable
-    // row with uncommitted bundle, non-conforming findings, C7 unabsorbed
-    // visible, C10 volatile citations, deploy staleness, in_progress with
-    // no heartbeat, register/tree-map lockstep, floor counters. Reads
+    // Sixteen arms: smoke, uncommitted files, dispatchable row with
+    // uncommitted bundle, non-conforming findings, C7 unabsorbed visible,
+    // C10 volatile citations, deploy staleness, in_progress with no
+    // heartbeat, register/tree-map lockstep, floor counters, CAN CLOSE
+    // (info), fixture-row detection in the kanban (T427), the managent
+    // live-write guards (fixture-pattern add + MANAGENT_TEST tripwire,
+    // tested against a fake repo), no-false-alarm on the real store, and
+    // the null control: live tasks.json byte-identical before/after. All
+    // managent calls run against a scratch store (MANAGENT_STORE) seeded
+    // from the live store; the live kanban is never written. Reads
     // bin/argus (a Python script shipped at HEAD, not a built binary); the
     // SKIP convention is identical to the other regressions — missing
     // argus/managent/claimlint → SKIP loudly.
