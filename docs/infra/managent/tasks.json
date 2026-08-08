@@ -1914,7 +1914,7 @@
     "amendments": []
   },
   "T429": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T429-audit-01-strategy.md",
@@ -1924,16 +1924,16 @@
     "caps": [],
     "added": "2026-08-08T12:43:43Z",
     "claimed": "2026-08-08T13:20:07Z",
-    "done": null,
+    "done": "2026-08-08T13:21:34Z",
     "dispatched": "2026-08-08T13:19:58Z",
     "dispatched_to": "glm-5.2",
     "note": "audit of T428 phase 1 strategy; dispatched by Orcha via bin/ollama-subagent (no human relay)",
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "PASS WITH FINDINGS — Phase 2 may proceed; three non-blocking findings (F1 managent line-count drift, F2 subagent-overlap method unspecified, F3 stale claims_register header). Five-site parser topology, T406 story, §10 precedent, eight-quality yardstick all verified by independent re-measurement.",
     "claim_count": 1,
     "acceptance": "test -s docs/infra/tool-consolidation/01-strategy-audit.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-08T13:23:49Z: post-close: F1's NUMBERS confirmed by the Orchestrator's own re-measurement (managent 6455, total 12674 — the doc's 6451/12670 are wrong), but F1's stated CAUSE is refuted. The audit says 'the file grew 4 lines between the doc's measurement and this audit'; timestamps rule that out. src/managent/main.zig was byte-stable from 14:39:53, and T428 committed its doc at 14:43 — the growth happened BEFORE the doc was written, not after. Actual cause: T428 measured the WORKING TREE while T427 was still editing it. At df486a6 the committed tree totals 12,439; the doc states 12,670; the settled working tree is 12,674. So 231 lines of the strategy's foundational inventory (main.zig +131, bin/argus +104) belong to an unrelated in-flight row and were uncommitted at measurement time — the inventory describes no committed state of the repository and is reproducible from no commit. That reclassifies F1 from 'measurement drift, within method variance' to 'measured against a moving tree', the same class as D051 (readings taken at the wrong commit do not mean what they say). The prescribed remedy is unchanged and now mandatory: Phase 2 re-measures and STATES THE COMMIT. Audit verdict PASS WITH FINDINGS stands — the load-bearing claims (five parser sites, T406 silent divergence, §10 precedent) are unaffected by a 2 percent line-count contamination, and the auditor did the hard part right: it re-measured independently, contradicted the document it was auditing, and F3 (claims_register.zig's header claims claimlint uses it, which is false) is a sharp catch the writer missed."]
   },
   "T420": {
     "status": "done",
@@ -2333,6 +2333,6 @@
   },
   "_sys": {
     "next_id": 431,
-    "directive_next": 66
+    "directive_next": 67
   }
 }

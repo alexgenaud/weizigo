@@ -3217,3 +3217,4 @@ dispatch-verify 2026-08-08 T416 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-08 T415 deepseek-v4-flash report=success verified=pass
 dispatch-verify 2026-08-08 T416 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-08 T416 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-08 T429 glm-5.2 report=success verified=pass
