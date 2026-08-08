@@ -1429,6 +1429,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T430": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T430-doctor-console-permanently-green.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T13:01:51Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "argus --mode doctor console verdict is permanently green: bin/argus:1904 filters findings by sweep grades (must/critical/should) but every doctor finding is graded 'could', so the one-line check prints 'clean — no violations' while the report file shows NEEDS ACTION. Verified same-run 2026-08-08T13:00:25Z at 72295b5. Plus: --dry-run reprints prior runs' findings as current.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "tools/regression-argus-doctor.sh",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T412": {
     "status": "done",
     "agent": "glm-5.2",
