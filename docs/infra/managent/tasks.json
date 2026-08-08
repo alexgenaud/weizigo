@@ -528,8 +528,8 @@
     "amendments": []
   },
   "T427": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T427-argus-doctor-fixture-leak.md",
     "set": "C",
@@ -537,14 +537,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T11:45:48Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-08T12:55:11Z",
+    "done": "2026-08-08T12:58:22Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1891,6 +1891,28 @@
     "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C2 gating counter sits at the recorded floor: 11 — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed on commit cc869d7: C1a=0 C1b=0 C2=11 C3=48 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row). Counters before/after: rows 207->212 (+5 new rows), edges 231 unchanged, C2 11 unchanged, C3 48 unchanged (floor respected), C4 45/0/2 unchanged, C5 0, C6 0, C8 0, C9 0 (tree-map lockstep), bulk-.wzo informational 4->5 (non-failing, coverage-doc compression token), repo index +1 (concurrent agent's file, not this row).",
     "amendments": []
   },
+  "T429": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T429-audit-01-strategy.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T12:43:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "test -s docs/infra/tool-consolidation/01-strategy-audit.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T420": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -1980,8 +2002,8 @@
     "amendments": []
   },
   "T428": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T428-sprint-tool-consolidation.md",
     "set": "S",
@@ -1989,14 +2011,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T12:36:17Z",
-    "claimed": null,
+    "claimed": "2026-08-08T12:39:20Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2288,7 +2310,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 429,
+    "next_id": 430,
     "directive_next": 65
   }
 }
