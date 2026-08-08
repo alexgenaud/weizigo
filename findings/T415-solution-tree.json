@@ -1,0 +1,8 @@
+{
+  "task_id": "T415",
+  "date": "2026-08-08",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Solution-tree provenance survey (docs/epistemic/SOLUTION-TREE.md): the construction tree for each goban size (2x2, 3x2, 3x3, 4x3, 4x4), grading the eight step families (enumeration, movegen, terminal+scoring, retrograde sweep, L/H fixpoint, finisher, artifact format, verify battery) PROVED/CLAIMED/HYPOTHESISED/KNOWN-SUBOPTIMAL/KNOWN-WRONG/UNDETERMINED. No claims proposed and no CLAIMS.md edits: this row describes the construction, it does not adjudicate the game. Headline: 18 of 45 sub-steps PROVED (40%), falling monotonically with size (5/9 at 2x2 and 3x2, 4/9 at 3x3, 3/9 at 4x3, 1/9 at 4x4) — the shipped 4x4 WZO2 table is the size whose construction is least proved. Every size's finisher step (where the finisher is in the construction: 2x2/3x2/3x3-WZO1/4x3) is KNOWN-WRONG mechanism (GLOBAL.F1 writes-ON), with a ground-truth rescue at 2x2 only; at 3x2 the committed ko-sensitive column violates minimax 45/378 (3x2.F1 PROVEN). The 4x4 WZO2 construction does NOT use the finisher (T380 F-8) — its weakest links are the distrusted KO_SENSITIVE column pending Track A (4x4.D3 UNTESTED), 4x4.C1 CLAIMED with four scope limits (I11 0.05% sample; nothing PROVEN), and inherited-only terminal/scoring (4x4.S2-impl, 4x4.S4 UNTESTED) plus no battery key-agreement cell (G1/G3). No UNDETERMINED steps found among the eight families; three marginal archaeology items recorded (2x2/3x2 WZO1 writes-ON-vs-off build log; A6 fixture (c) fix status; checkpoint 19 vs WZO2 31 sweep counts). Inbox directives: none received (inbox polled twice, 0 acked)."
+}
