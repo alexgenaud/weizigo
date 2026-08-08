@@ -435,6 +435,19 @@ pub fn build(b: *std.Build) void {
     claim_lifecycle_regression.cwd = b.path(".");
     test_step.dependOn(&claim_lifecycle_regression.step);
 
+    // ── argus --mode doctor controls (T425) ───────────────────────────
+    // The Orchestrator's manual weekly sweep encoded as a one-line check.
+    // Ten arms: smoke (live tree end-to-end), uncommitted files, dispatchable
+    // row with uncommitted bundle, non-conforming findings, C7 unabsorbed
+    // visible, C10 volatile citations, deploy staleness, in_progress with
+    // no heartbeat, register/tree-map lockstep, floor counters. Reads
+    // bin/argus (a Python script shipped at HEAD, not a built binary); the
+    // SKIP convention is identical to the other regressions — missing
+    // argus/managent/claimlint → SKIP loudly.
+    const argus_doctor_regression = b.addSystemCommand(&.{ "sh", "tools/regression-argus-doctor.sh" });
+    argus_doctor_regression.cwd = b.path(".");
+    test_step.dependOn(&argus_doctor_regression.step);
+
     // ── deployed-binaries guard (T289) ───────────────────────────────
     // tools/smoke.sh compares every deployed bin/ tool's embedded build
     // stamp against committed source history — a stale bin/ (built before

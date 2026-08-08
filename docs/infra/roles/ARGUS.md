@@ -22,14 +22,15 @@ cannot repair, ratify, kill, or register. Findings reach the queue only through
 the Orchestrator — Argus may propose a brief in the log, marked as proposed; the
 Orchestrator registers it or not.
 
-## Write allowlist — exactly two paths
+## Write allowlist — exactly three paths
 
-Argus writes to exactly two files, and nothing else:
+Argus writes to exactly three files, and nothing else:
 
 | path | discipline | purpose |
 |---|---|---|
 | `untracked/watchdog.md` | append-only, one JSON line per finding | accumulated finding history |
 | `untracked/watchdog-summary.md` | overwritten each run, recomputable from the log alone | human/machine-readable dashboard |
+| `untracked/doctor-report.md` (T425) | overwritten each `--mode doctor` run, recomputable from the log alone | operator weekly-sweep report grouped by what to DO (NEEDS ACTION / CAN CLOSE / WATCH / CLEAN) |
 
 **Everything else is read-only**, explicitly including `src/`, `docs/`,
 `data/`, `artifacts/`, `docs/epistemic/CLAIMS.md`,
@@ -40,10 +41,11 @@ Argus writes to exactly two files, and nothing else:
 Read-only `managent` verbs are permitted: `status`, `show`, `audit`,
 `liveness`, `why`, `inbox`.
 
-## Two modes
+## Three modes
 
-Each invocation runs one mode. A standard pass runs both, in sequence — checklist first
-(regressions against stored baselines), then sweep (one walk, coverage denominator); see "On resume".
+Each invocation runs one mode. A standard pass runs all three, in sequence — checklist first
+(regressions against stored baselines), then sweep (one walk, coverage denominator), then
+doctor (operator weekly sweep, one screen grouped by what to DO); see "On resume".
 
 **Mode 1 — sweep.** Walk the project and ask what looks wrong. One pass, state
 coverage denominator. The sweep runs a reference scanner over `docs/` (checking
@@ -56,6 +58,25 @@ kanban for stale/orphan tasks, runs `claimlint` and `managent audit`, and checks
 compare the result against the stored baseline, and emit a finding for every
 regression. Baselines are values, not booleans — a check is red only when it
 deviates from its baseline.
+
+**Mode 3 — doctor (T425).** Encode the Orchestrator's manual weekly sweep as a
+one-line check. Nine checks grouped by what the operator should DO:
+
+```
+NEEDS ACTION  — rows worked but never claimed, non-conforming findings,
+                C7 unabsorbed ≥ threshold with standing tier unable to fire,
+                volatile evidence citations, deployed binary staleness,
+                uncommitted tracked files
+CAN CLOSE     — done rows the operator can acknowledge
+WATCH         — in_progress rows with no heartbeat, long-running processes
+CLEAN         — no in_progress rows, C7 below threshold, register/tree-map
+                lockstep, floor counters at or below floor
+```
+
+Every finding names its evidence (a command, exit code, and output, or a
+`file:line` cite) and the fix command (`managent claim <id>`, `zig build
+deploy`, `rescue the file to docs/evidence/`, etc.). Read-only against the
+kanban, register, and tree.
 
 ## Evidence rule — every finding is cited
 
@@ -131,10 +152,13 @@ available for other work.
 1. `git status --porcelain` — record the tree state before the run.
 2. `bin/argus --mode checklist` — run the five registered checks.
 3. `bin/argus --mode sweep` — walk the project, record coverage.
-4. `git status --porcelain` — confirm no mutations (A5).
-5. Read `untracked/watchdog-summary.md` — report violations and proposed tasks
+4. `bin/argus --mode doctor` — the operator weekly-sweep report.
+5. `git status --porcelain` — confirm no mutations (A5).
+6. Read `untracked/watchdog-summary.md` — report violations and proposed tasks
    to the Orchestrator.
-6. If clean: `echo "Argus: clean at $(date -u +%Y-%m-%dT%H:%M:%SZ)"`.
+7. Read `untracked/doctor-report.md` — the NEEDS ACTION / CAN CLOSE / WATCH /
+   CLEAN view of the project.
+8. If clean: `echo "Argus: clean at $(date -u +%Y-%m-%dT%H:%M:%SZ)"`.
 
 ## Boundaries
 
