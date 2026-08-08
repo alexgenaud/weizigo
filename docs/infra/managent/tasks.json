@@ -547,7 +547,7 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-08T13:20:42Z: post-close: Verdict recorded while the row's console was still running its verification suite — the Orchestrator read 'liveness' showing no T427 entry as meaning no live console, which is the D054 error (no heartbeats proves no instrumentation, not no console; T427 never exported MANAGENT_TASK_ID). The commit f8a10af is sound: deliverable files were stable from 14:39:53 and were independently re-verified (16/16 arms, live-store sha256 unchanged, guard truth table exercised by hand incl. the non-fixture-add-succeeds cell the row's own arms omit). The in-flight suite run does NOT verify the committed state regardless: it started 14:31, before the last edits at 14:39:53. Directive sent to the console to report its result for post-close amendment rather than re-commit."]
   },
   "T386": {
     "status": "done",
@@ -1914,8 +1914,8 @@
     "amendments": []
   },
   "T429": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T429-audit-01-strategy.md",
     "set": "S",
@@ -1923,14 +1923,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T12:43:43Z",
-    "claimed": null,
+    "claimed": "2026-08-08T13:20:07Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": null,
+    "dispatched": "2026-08-08T13:19:58Z",
+    "dispatched_to": "glm-5.2",
+    "note": "audit of T428 phase 1 strategy; dispatched by Orcha via bin/ollama-subagent (no human relay)",
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": "test -s docs/infra/tool-consolidation/01-strategy-audit.md",
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2332,7 +2332,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 430,
-    "directive_next": 65
+    "next_id": 431,
+    "directive_next": 66
   }
 }
