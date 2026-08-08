@@ -1320,8 +1320,8 @@
     "amendments": []
   },
   "T418": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T418-absorb-2026-08-08.md",
     "set": "A",
@@ -1329,14 +1329,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T00:27:06Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-08T00:42:39Z",
+    "done": "2026-08-08T00:51:37Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1386,8 +1386,8 @@
     "amendments": []
   },
   "T419": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "deepseek-v4-flash",
     "model": null,
     "bundle": "untracked/T419-loopy-child-taxonomy.md",
     "set": "E",
@@ -1395,14 +1395,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T00:38:27Z",
-    "claimed": null,
+    "claimed": "2026-08-08T00:45:25Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1513,6 +1513,28 @@
     "verdict": "pass",
     "verdict_note": "T393 score-bound claim withdrawn + value-dist histogram; T394 certification/confinement corrected; Z-cell control added; 32/32 selftest pass; both sweeps STANDS",
     "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T420": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T420-third-party-max-strength.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T00:59:59Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2090,7 +2112,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 420,
+    "next_id": 421,
     "directive_next": 63
   }
 }
