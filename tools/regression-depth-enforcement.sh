@@ -101,7 +101,7 @@ fi
 # Pre-T431 every child was stamped 2 regardless of the parent's depth, so
 # depth carried no information about how deep the chain actually was.
 echo "  3c. null: depth increments (1 -> 2), not stamped flat"
-OUT=$(WEIZIGO_AGENT_DEPTH=1 "$SUBAGENT" T996 --dspro --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=1 "$SUBAGENT" --provider deepseek T996 --dspro --dry-run 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=2"; then
     echo "    PASS: depth-1 parent stamps child 2"
@@ -123,7 +123,7 @@ fi
 
 # ── seeded-3: bin/subagent DeepSeek->DeepSeek refusal still fires (bar) ──
 echo "  5. seeded: bin/subagent STILL refuses DeepSeek dispatch at cap depth 3"
-OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" T996 --dspro --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" --provider deepseek T996 --dspro --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: existing edge still guarded (RC=$RC)"

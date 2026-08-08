@@ -41,7 +41,7 @@ echo "=== subagent-prompt regression ==="
 
 # ── null control: --dsflash ──────────────────────────────────────────────
 echo "  1. null control: --dsflash --dry-run emits --agent on both lines"
-OUT=$("$SUBAGENT" T995 --dsflash --dry-run 2>&1)
+OUT=$("$SUBAGENT" --provider deepseek T995 --dsflash --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
     echo "    FAIL: subagent exit code $RC"
@@ -69,7 +69,7 @@ fi
 
 # ── null control: --dspro ────────────────────────────────────────────────
 echo "  2. null control: --dspro --dry-run emits --agent on both lines"
-OUT=$("$SUBAGENT" T995 --dspro --dry-run 2>&1)
+OUT=$("$SUBAGENT" --provider deepseek T995 --dspro --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
     echo "    FAIL: subagent exit code $RC"
@@ -101,7 +101,7 @@ fi
 # A control that has never been red is not a control; the red run is recorded
 # in the T315 session output (2026-08-03).
 echo "  3. seeded: exact --agent fragment present on claim line"
-OUT=$("$SUBAGENT" T995 --dsflash --dry-run 2>&1)
+OUT=$("$SUBAGENT" --provider deepseek T995 --dsflash --dry-run 2>&1)
 if echo "$OUT" | grep -q "claim T995 --agent deepseek-v4-flash"; then
     echo "    PASS: 'claim T995 --agent deepseek-v4-flash' found"
 else
@@ -122,7 +122,7 @@ fi
 # ── depth cap: still fires ───────────────────────────────────────────────
 # T315 does not change the depth cap. Prove it still refuses at depth 2.
 echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
-OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" T995 --dsflash 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" --provider deepseek T995 --dsflash 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: refused at cap depth 3 (RC=$RC)"

@@ -28,6 +28,9 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$HERE/.."
 OLLAMA_SUBAGENT="$ROOT/bin/ollama-subagent"
+# T440: the tag table moved into bin/subagent when T437 merged the pair;
+# the wrapper no longer carries it, so the cross-check reads the source.
+TAG_TABLE_SRC="$ROOT/bin/subagent"
 FAIL=0
 
 # Synthetic bundle — the T-ID branch of ollama-subagent requires it
@@ -146,11 +149,13 @@ echo "  5. cross-check: OLLAMA_TAG_TO_CANONICAL ↔ canonical_models[]"
 MAIN_ZIG="$ROOT/src/managent/main.zig"
 PASS_CROSS=1
 
-# Extract canonical values from bin/ollama-subagent's OLLAMA_TAG_TO_CANONICAL
-# dict (the values — right-hand side of each mapping)
+# Extract canonical values from the OLLAMA_TAG_TO_CANONICAL dict (the values —
+# right-hand side of each mapping). T440: the table lives in bin/subagent since
+# T437 merged the pair; bin/ollama-subagent is now a thin wrapper and no longer
+# carries it, so the cross-check reads the source of truth directly.
 OLLAMA_CANONICALS=$(python3 -c "
 import re, sys
-with open('$OLLAMA_SUBAGENT') as f:
+with open('$TAG_TABLE_SRC') as f:
     text = f.read()
 m = re.search(r'OLLAMA_TAG_TO_CANONICAL\s*=\s*\{(.*?)\}', text, re.DOTALL)
 if not m:

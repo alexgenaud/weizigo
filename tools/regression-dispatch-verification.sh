@@ -140,7 +140,7 @@ echo "=== dispatch-verification regression ==="
 
 # ── seeded control 1: the lazy "OK." worker, via bin/subagent ────────────
 echo "  1. seeded: lazy stub (prints OK., does nothing) is FAILED by bin/subagent"
-OUT=$(STUB_MODE=lazy "$SUBAGENT" T998 --dsflash \
+OUT=$(STUB_MODE=lazy "$SUBAGENT" --provider deepseek T998 --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] \
@@ -186,7 +186,7 @@ fi
 
 # ── seeded control 2: work done, failure reported — believe the side effects
 echo "  3. seeded: stub does the work but reports failure (fail-found)"
-OUT=$(STUB_MODE=fail "$SUBAGENT" T999 --dsflash \
+OUT=$(STUB_MODE=fail "$SUBAGENT" --provider deepseek T999 --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] \
@@ -215,7 +215,7 @@ fi
 
 # ── null control: an honest worker passes with no added friction ──────────
 echo "  4. null: honest stub passes; nonce echoed; latency measured"
-OUT=$(STUB_MODE=honest "$SUBAGENT" T1000 --dsflash \
+OUT=$(STUB_MODE=honest "$SUBAGENT" --provider deepseek T1000 --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] \
