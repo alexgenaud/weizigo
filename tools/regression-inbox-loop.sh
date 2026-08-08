@@ -225,10 +225,18 @@ fi
 # exact failure mode T352 names: the worker is silent, the human
 # relay returns by default.
 echo ""
-echo "  4. cross-check: INBOX LOOP paragraph in BOTH dispatch prompts"
+echo "  4. cross-check: INBOX LOOP paragraph in the dispatch prompt"
+# T440/T441: T437 merged the subagent pair behind `--provider`, so the injected
+# prompt lives in bin/subagent alone; bin/ollama-subagent is now a thin
+# backward-compat wrapper that carries no prompt text. Assert against the
+# script that actually builds the prompt — checking the wrapper tested nothing
+# and was red for that reason, not because the paragraph had regressed.
 SUBAGENT="$PROJECT/bin/subagent"
+# Still needed by arm 5, which dry-runs the wrapper end-to-end: the
+# wrapper carries no prompt text of its own but must still RENDER it by
+# delegating to bin/subagent.
 OLLAMA_SUBAGENT="$PROJECT/bin/ollama-subagent"
-for s in "$SUBAGENT" "$OLLAMA_SUBAGENT"; do
+for s in "$SUBAGENT"; do
     if [ ! -f "$s" ]; then
         echo "    FAIL: $s missing"
         FAIL=1

@@ -704,8 +704,8 @@
     "amendments": []
   },
   "T438": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "in_progress",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T438-suite-depends-on-tmp.md",
     "set": "C",
@@ -713,14 +713,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T15:20:52Z",
-    "claimed": null,
+    "claimed": "2026-08-08T17:02:31Z",
     "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": "src/vb_i11.zig reads hardcoded /tmp/weizigo/*.smd1; T423's archiving moved them and 10 null-control tests failed FileNotFound. Verified at src/vb_i11.zig:446/462/473/483/497.",
+    "dispatched": "2026-08-08T17:02:22Z",
+    "dispatched_to": "glm-5.2",
+    "note": "suite depends on /tmp SMD1 fixtures; independent files, runs alongside T441",
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 0,
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1384,6 +1384,28 @@
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": ["2026-08-05T19:52:54Z: verdict=pass note=Attribution correction (Orcha, 2026-08-05), reported by glm-5.2/T371 rather than found by audit. T368's claim transition (dispatchable->in_progress, agent=deepseek-v4-flash) was physically committed under T371's kanban commit 01435b9, because docs/infra/managent/tasks.json is shared and held T368's uncommitted transition when T371 committed its own claim->done; directive D039's read flag (false->true) rode along the same way. CONTENT IS CORRECT — T368 was in fact claimed and executed by deepseek-v4-flash, which landed its own work commit 2903473 on top — only the carrying commit's attribution is wrong. Documented content-right/attribution-wrong class, docs/infra/fleet-git-isolation.md. No history rewrite: the ledger entry is accurate and this record states which commit carried it. Verdict unchanged (pass). Credit to the T371 console for reporting a defect that made its own commit look worse; that is exactly what the fleet-isolation doc asks for, and cheaper than any audit that would have caught it."]
+  },
+  "T441-AUDIT": {
+    "status": "done",
+    "agent": "glm-5.2",
+    "model": null,
+    "bundle": "untracked/T441-AUDIT-audit.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T17:19:51Z",
+    "claimed": "2026-08-08T17:19:51Z",
+    "done": "2026-08-08T17:21:04Z",
+    "dispatched": "2026-08-08T17:19:56Z",
+    "dispatched_to": "glm-5.2:cloud",
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": null,
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
   },
   "T357": {
     "status": "dispatchable",
@@ -2134,8 +2156,8 @@
     "amendments": []
   },
   "T441": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T441-observation-layer.md",
     "set": "S",
@@ -2143,17 +2165,17 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T17:02:11Z",
-    "claimed": null,
-    "done": null,
-    "dispatched": null,
-    "dispatched_to": null,
-    "note": "SPRINT: closes T430+T439+T432 as one defect (status surface asserts what it cannot support). Builds on T426 assertion-ledger spec, managent writes / argus reads.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "claimed": "2026-08-08T17:02:21Z",
+    "done": "2026-08-08T17:21:12Z",
+    "dispatched": "2026-08-08T17:02:17Z",
+    "dispatched_to": "deepseek-v4-pro",
+    "note": "observation layer sprint; folds T430/T439/T432",
+    "verdict": "pass-with-findings",
+    "verdict_note": "All five fixes verified: doctor console line, inbox ack scope+attribution, liveness UNKNOWN, assert command. Pre-existing regression failures: absorption-machinery, battery-*, git-commit-mine (staged paths outside scope), inbox-loop arm4 (ollama-subagent), T227. Audit dispatched via subagent (timed out on ollama launch); self-verification of all five fixes passes.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-08T17:28:26Z: post-close: ALL FIVE FIXES VERIFIED BY THE ORCHESTRATOR, directly, not accepted on report: (1) doctor console now prints 'argus: NEEDS ACTION (4) can close (0) watch (2) clean (5)' and the counts match its own report file — the permanently-green bug is dead; (2) 'inbox --ack' with no target is REFUSED with a message naming both correct forms; (3) read_by/read_at written at main.zig:6399; (4) liveness renders 'T440 UNKNOWN — no assertion (claimed ..., no heartbeat)', the operator's rule implemented literally; (5) 'managent assert <row> <status>' exists. Also observed: T438's console shows '[beating] last beat 34s ago (23 beats)' — the first console visible while alive all day. A CORRECTION I OWE THIS ROW: its verdict note says the audit 'timed out on ollama launch' and that it self-verified, while commit 89f4212 claims a glm-5.2 auditor with a nonce. I began treating that as fabricated attribution and was WRONG — findings/T441-audit.json carries per-check evidence too specific to invent (a verbatim --ack refusal message, and doctor counts of NEEDS ACTION (3)/watch (3)/clean (6) that differ from mine in a way consistent with a real earlier run). The audit ran. The contradiction in the verdict note is sloppy reporting, not a fake audit, and I should not have leaned toward the worse reading. THREE REAL DEFECTS REMAIN, registered as T442: findings/T441-audit.json is non-conforming (missing task_id, model, claims — the newly-fixed doctor caught it, which is a good sign for the fix); C7 unabsorbed is 6 with STANDING-ABSORB done so the trigger cannot fire; and regression-argus-doctor is red on a state-dependent arm that asserts C7 appears under CLEAN, true only while the ledger has no backlog. ITS 'pre-existing' CLAIM FOR inbox-loop WAS CORRECT and exposes an incomplete fix of MINE: T440 migrated four regressions but missed regression-inbox-loop, which asserted the dispatch prompt lives in bin/ollama-subagent — text that moved to bin/subagent in T437's merge. Fixed and green."]
   },
   "STANDING-CLEANUP": {
     "status": "dispatchable",
@@ -2573,6 +2595,28 @@
     "skip_acceptance_reason": "--note",
     "amendments": []
   },
+  "T442": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T442-absorb-and-destate-doctor-arm.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T17:28:26Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T355": {
     "status": "done",
     "agent": "minimax-m3",
@@ -2596,7 +2640,8 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 441,
-    "directive_next": 69
+    "next_id": 443,
+    "directive_next": 71,
+    "assertion_next": 4
   }
 }
