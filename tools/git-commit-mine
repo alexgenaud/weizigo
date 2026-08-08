@@ -135,6 +135,55 @@ if [ -n "$TASK_ID" ]; then
     declare_scope "docs/status/HANDOVER.md"
 fi
 
+# ── claim-status check (T424) ────────────────────────────────────────────
+# Worked-without-claiming: T392/T395/T400/T404/T419 were worked and committed
+# while the row still read `dispatchable`. An unclaimed row is invisible to
+# holdsConflict, so holds= and the parallel sets protect nothing — the hazard
+# the claim exists for. Claim is the precondition of accepted work: a commit
+# whose task is not in_progress is refused here, BEFORE anything is staged
+# (the refusal leaves the index untouched), naming the recovery path.
+# `--explicit` is the deliberate escape, same semantics as the scope escape:
+# the caller takes responsibility and the silent path dies.
+if [ -n "$TASK_ID" ] && [ "$EXPLICIT" -eq 0 ]; then
+    TASK_STATUS=$(gcm_task_status "$REPO" "$TASK_ID" "${MANAGENT_STORE:-}") || {
+        echo "git-commit-mine: REFUSED — cannot read task $TASK_ID's status in the kanban" >&2
+        exit 2
+    }
+    case "$TASK_STATUS" in
+        ""|in_progress)
+            : ;;  # no status key (synthetic fixture) or claimed — allow
+        done|failed)
+            echo "git-commit-mine: REFUSED — task $TASK_ID is $TASK_STATUS, not in_progress."
+            echo "  The row is closed; committing under it puts post-close work outside the"
+            echo "  row and the kanban stops agreeing with reality."
+            echo "  Record the follow-up against the row instead:"
+            echo "    managent amend $TASK_ID --post-close \"<what landed and where>\""
+            echo "  or mint a new row for the follow-up work. To commit anyway, pass"
+            echo "  --explicit (you take responsibility; the escape is loud, not silent)."
+            exit 1
+            ;;
+        blocked)
+            echo "git-commit-mine: REFUSED — task $TASK_ID is blocked (needs unmet), not in_progress."
+            echo "  The row's dependencies are not done; the work ran under an unmet gate."
+            echo "  Resolve the needs, claim the row (managent claim $TASK_ID), then retry."
+            echo "  To commit anyway, pass --explicit (you take responsibility; the escape"
+            echo "  is loud, not silent)."
+            exit 1
+            ;;
+        *)
+            echo "git-commit-mine: REFUSED — task $TASK_ID is $TASK_STATUS, not in_progress."
+            echo "  Claim the row FIRST (managent claim $TASK_ID), then retry this commit:"
+            echo "  the work ran with no claim held, so holds= and the parallel sets were"
+            echo "  blind to the row (T392/T395/T400/T404/T419 worked without claiming this"
+            echo "  week, 2026-08-08). If the claim is refused (set locked / needs unmet),"
+            echo "  the work was unauthorized — stop and talk to the Orchestrator."
+            echo "  To commit anyway, pass --explicit (you take responsibility; the escape"
+            echo "  is loud, not silent)."
+            exit 1
+            ;;
+    esac
+fi
+
 # ── stage only the named paths ───────────────────────────────────────────
 cd "$REPO" || exit 2
 NAMES_ABS=()

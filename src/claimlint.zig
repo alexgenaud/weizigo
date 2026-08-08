@@ -134,7 +134,7 @@ const BULK_EXT = ".wzo";
 const LOSS_INVENTORY = "docs/evidence/README.md";
 
 const PATH_EXT = [_][]const u8{
-    ".md", ".zig", ".txt", ".py", ".cfg", ".sh", ".json", ".sgf", ".log",
+    ".md",  ".zig",  ".txt", ".py",   ".cfg", ".sh",  ".json", ".sgf", ".log",
     ".csv", ".toml", ".yml", ".yaml", ".wzo", ".reg", ".bak",
 };
 
@@ -230,7 +230,7 @@ const CAL_SYNTHETIC_CITETAG =
 ;
 const CAL_CITE_BAD_ID = "GLOBAL.C2"; // tagged PROVEN, actually FALSE-AS-SCOPED
 const CAL_CITE_GOOD_A = "GLOBAL.INVSYM"; // tagged PROVEN, actually PROVEN
-const CAL_CITE_GOOD_B = "QA-023";    // tagged CLAIMED, actually CLAIMED
+const CAL_CITE_GOOD_B = "QA-023"; // tagged CLAIMED, actually CLAIMED
 
 /// C6 multi-file calibration — a second synthetic narrative with a known-bad
 /// tag that a single-file scanner would miss. Used to verify that C6 scans
@@ -984,8 +984,9 @@ fn volatileClassOf(idx: *Index, tok: []const u8) !?VolatileClass {
         // the first component must be a root directory this kind of host has.
         const first = t[0..first_slash];
         const ROOTS = [_][]const u8{
-            "Users", "opt", "Library", "private", "System", "Applications", "Volumes",
-            "home", "etc", "usr", "var", "proc", "dev", "sbin", "bin", "boot", "mnt", "media", "root", "tmp",
+            "Users", "opt",  "Library", "private", "System", "Applications", "Volumes",
+            "home",  "etc",  "usr",     "var",     "proc",   "dev",          "sbin",
+            "bin",   "boot", "mnt",     "media",   "root",   "tmp",
         };
         var is_root = false;
         for (ROOTS) |r| if (std.mem.eql(u8, first, r)) {
@@ -1006,6 +1007,26 @@ const VolatileHit = struct {
     class: VolatileClass,
 };
 
+/// Returns the fence character (backtick or tilde) when `line` opens or
+/// closes a CommonMark fenced code block, else 0.  A fence is up to 3 spaces
+/// of indent followed by 3+ of the same char.  T424 (Orchestrator ruling on
+/// T422): a path inside a fenced block is a build-command illustration — a
+/// `zig --cache-dir /tmp/...` is not an evidence citation, and re-pointing
+/// it would produce a nonsensical command naming docs/ as a build cache.
+/// C10 skips the whole block.  An opening fence inside a block of the other
+/// char is code, not a toggle; a fence with no closer runs to EOF (CommonMark).
+fn fenceCharOf(line: []const u8) u8 {
+    var i: usize = 0;
+    while (i < line.len and i < 3 and line[i] == ' ') : (i += 1) {}
+    if (i >= line.len) return 0;
+    const c = line[i];
+    if (c != '`' and c != '~') return 0;
+    var n: usize = 1;
+    while (i + n < line.len and line[i + n] == c) : (n += 1) {}
+    if (n < 3) return 0;
+    return c;
+}
+
 fn volatileScan(gpa: Allocator, io: Io, idx: *Index, hits: *std.ArrayList(VolatileHit)) !void {
     for (idx.paths.items) |p| {
         if (!std.mem.startsWith(u8, p, "docs/") and !std.mem.eql(u8, p, "AGENTS.md")) continue;
@@ -1013,8 +1034,20 @@ fn volatileScan(gpa: Allocator, io: Io, idx: *Index, hits: *std.ArrayList(Volati
         const body = Io.Dir.cwd().readFileAlloc(io, p, gpa, .unlimited) catch continue;
         var lineno: usize = 0;
         var lit = std.mem.splitScalar(u8, body, '\n');
+        var fence_char: u8 = 0;
         while (lit.next()) |line| {
             lineno += 1;
+            // T424: skip fenced code blocks (and their fence marker lines).
+            const fc = fenceCharOf(line);
+            if (fc != 0) {
+                if (fence_char == 0) {
+                    fence_char = fc;
+                } else if (fc == fence_char) {
+                    fence_char = 0;
+                }
+                continue;
+            }
+            if (fence_char != 0) continue;
             var i: usize = 0;
             while (i < line.len) {
                 if (!isPathChar(line[i])) {
@@ -1181,7 +1214,6 @@ fn archivedStatusFor(gpa: Allocator, io: Io, id: []const u8) !?Status {
 }
 
 // ── report state ─────────────────────────────────────────────────────────────
-
 
 const Missing = struct {
     path: []const u8,
@@ -1614,7 +1646,11 @@ pub fn main(init: std.process.Init) !void {
         for (cite_mismatches.items) |m| {
             util.out("  C6 {s}  MISMATCH  {s}:{d}: [`{s}:{s}`] — register has [{s}]\n", .{
                 checkName("C6"),
-                m.file, m.line, m.id, m.tagged_status, m.register_status,
+                m.file,
+                m.line,
+                m.id,
+                m.tagged_status,
+                m.register_status,
             });
         }
     }
@@ -1679,7 +1715,9 @@ pub fn main(init: std.process.Init) !void {
         for (c7_results.items.items) |item| {
             util.out("  C7 {s}  `{s}` — findings says `{s}`, register says `{s}`\n", .{
                 checkName("C7"),
-                item.id, item.proposed, item.actual,
+                item.id,
+                item.proposed,
+                item.actual,
             });
             if (item.file) |f| util.out("              in {s}\n", .{f});
         }

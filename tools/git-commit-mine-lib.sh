@@ -50,6 +50,30 @@ print(t.get("bundle") or "")
 PYEOF
 }
 
+gcm_task_status() {
+    # <repo> <task-id> [tasks-json] → prints the task's stored status, lowercased
+    # (dispatchable / in_progress / done / failed / blocked); empty when the
+    # entry carries no status key (synthetic fixtures); 2 = kanban unreadable,
+    # 3 = task absent.  T424: the claim-lifecycle guard reads this — a commit
+    # under a task that is not in_progress is refused (worked-without-claiming
+    # was invisible to holdsConflict all week of 2026-08-08).
+    [ "$#" -ge 2 ] || { echo "git-commit-mine-lib: task-status needs <repo> <task-id>" >&2; return 2; }
+    local repo="$1" tid="$2"
+    local store="${3:-$1/docs/infra/managent/tasks.json}"
+    python3 - "$repo" "$tid" "$store" <<'PYEOF'
+import json, sys
+repo, tid, store = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    d = json.load(open(store))
+except Exception:
+    sys.exit(2)
+t = d.get(tid)
+if not t:
+    sys.exit(3)
+print((t.get("status") or "").lower())
+PYEOF
+}
+
 gcm_bundle_deliverables() {
     # <bundle-path> → prints deliverables= paths parsed from the meta header
     [ "$#" -ge 1 ] || { echo "git-commit-mine-lib: bundle-deliverables needs <bundle-path>" >&2; return 2; }
@@ -98,6 +122,7 @@ else
     shift 2>/dev/null || true
     case "$cmd" in
         task-bundle) gcm_task_bundle "$@" ;;
+        task-status) gcm_task_status "$@" ;;
         bundle-deliverables) gcm_bundle_deliverables "$@" ;;
         scope) gcm_scope_for_task "$@" ;;
         *) echo "git-commit-mine-lib: unknown command '$cmd'" >&2; exit 2 ;;

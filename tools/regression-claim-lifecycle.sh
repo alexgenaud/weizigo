@@ -1,0 +1,373 @@
+#!/usr/bin/env bash
+# regression-claim-lifecycle.sh — T424 controls for the five claim/close lifecycle flakes
+#
+# Five defects surfaced the week of 2026-08-08, all in the same lifecycle, all
+# with the same symptom: the kanban disagrees with reality.
+#
+#   1. worked-without-claiming — T392/T395/T400/T404/T419 were worked and
+#      committed while still reading `dispatchable`. An unclaimed row is
+#      invisible to holdsConflict, so nothing protects its files from a second
+#      writer. Fix: git-commit-mine refuses a commit whose named task is not
+#      in_progress (--explicit is the loud, deliberate escape).
+#   2. reopen refuses done rows — a post-close correction must be recordable
+#      against the row. Fix: `amend --post-close <text>` records the follow-up
+#      commit against the row (verdict untouched), and reopen's refusal on a
+#      done row names amend instead of dead-ending.
+#   3. add --note documented but ignored — the note was stored null. Fix:
+#      cmdAdd captures --note (≤4 KiB), round-trips into the store and show.
+#   4. claim-at-close — T390 added the 10s refusal, but --force remains the
+#      silent routine escape (3 of 34 rows closed inside the window after the
+#      gate landed; the store records no trace of the force). Fix: a forced
+#      close records a FORCED amendment so the kanban tells the truth.
+#   5. C10 VOLATILE over-counts paths inside fenced code blocks — build-command
+#      illustrations (zig --cache-dir /tmp/...) are not evidence citations
+#      (Orchestrator ruling on T422, D064). Fix: C10 skips fenced blocks.
+#
+# Arms (all exercised against a scratch store / scratch repo — never the live
+# kanban; the claimlint arm uses a fixture doc created and removed in place):
+#   0. null control: claim → work → close cycle succeeds, no added friction
+#   1. seeded: commit under a dispatchable row REFUSED; in_progress PASSES;
+#      done-row commit REFUSED naming amend; --explicit still commits (escape)
+#   2. seeded: amend --post-close round-trips into the store + show; reopen on
+#      a done row refuses naming amend; audit WARNs amended rows
+#   3. seeded: add --note round-trips into the store + show; >4 KiB rejected
+#   4. seeded: done --force inside the claim window records a FORCED amendment;
+#      the same close WITHOUT --force is refused (T390 gate regression)
+#   5. seeded: a /tmp path inside a fenced block NOT counted by C10 while the
+#      same path in prose IS; fixture removed → output byte-identical baseline
+#
+# Task: T424 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-08
+
+set -u
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+PROJECT="$(cd "$HERE/.." && pwd)"
+MG="$PROJECT/zig-out/bin/managent"
+CLAIMLINT="$PROJECT/zig-out/bin/weizigo-claimlint"
+WRAP="$PROJECT/tools/git-commit-mine"
+AGENT="deepseek-v4-flash"   # canonical model label (claim/done validate against the list)
+
+FAIL=0
+
+if ! test -x "$MG"; then
+    echo "SKIP: $MG not found — build with 'zig build' first (same convention as the"
+    echo "      claimlint and resume regressions)."
+    exit 0
+fi
+if ! test -x "$CLAIMLINT"; then
+    echo "SKIP: $CLAIMLINT not found — build with 'zig build' first."
+    exit 0
+fi
+
+WORK="$(mktemp -d /tmp/weizigo/claim-lifecycle-XXXXXX)"
+FIXTURE="$PROJECT/docs/evidence/C10-FENCE-SEEDED.md"
+TMPDIR="$(mktemp -d /tmp/weizigo/claim-lifecycle-tmp-XXXXXX)"
+trap 'rm -rf "$WORK" "$TMPDIR"; rm -f "$FIXTURE"' EXIT
+
+# ── scratch git repo (isolated from the live repo, like the T278 regression) ─
+cd "$WORK"
+git init -q
+git config user.email t424@test
+git config user.name T424
+mkdir -p docs docs/infra/managent
+echo base > README.md
+git add README.md
+git commit -qm base
+
+# managent's default store resolves to $WORK/docs/infra/managent/tasks.json
+# because the repo root is found by walking up from cwd; git-commit-mine uses
+# the same default. Both operate on the scratch store — never the live kanban.
+
+echo ""
+echo "=== regression-claim-lifecycle ==="
+
+# ── arm 0: null control — claim → work → close, no added friction ──────────
+echo "  0. null control: claim → work → close cycle"
+cat > arm0-bundle.md <<'EOF'
+<!--managent set=A deliverables=docs/arm0.md-->
+EOF
+echo "  arm0 work" > docs/arm0.md
+OUT=$("$MG" add TLC-ARM0 --bundle arm0-bundle.md 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+OUT=$("$MG" claim TLC-ARM0 --agent "$AGENT" 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: claim: $OUT"; FAIL=1; fi
+OUT=$(MANAGENT_TASK_ID=TLC-ARM0 "$WRAP" docs/arm0.md -m "TLC-ARM0 work" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: in_progress commit refused (RC=$RC): $OUT"
+    FAIL=1
+else
+    echo "    PASS: commit while in_progress succeeds (no new friction)"
+fi
+sleep 11   # pass the T390 claim-at-close window so the null close is unforced
+OUT=$("$MG" done TLC-ARM0 --status pass 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: done refused (RC=$RC): $OUT"
+    FAIL=1
+else
+    echo "    PASS: done closes the row, verdict pass"
+fi
+
+# ── arm 1: seeded — commit under a dispatchable row is refused ─────────────
+echo "  1. seeded: commit under a dispatchable row refused"
+cat > arm1-bundle.md <<'EOF'
+<!--managent set=A deliverables=docs/arm1.md-->
+EOF
+echo "  arm1 work" > docs/arm1.md
+OUT=$("$MG" add TLC-ARM1 --bundle arm1-bundle.md 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+# row is dispatchable — the exact worked-without-claiming shape
+COMMITS_BEFORE=$(git rev-list --count HEAD)
+OUT=$(MANAGENT_TASK_ID=TLC-ARM1 "$WRAP" docs/arm1.md -m "worked without claiming" 2>&1)
+RC=$?
+COMMITS_AFTER=$(git rev-list --count HEAD)
+if [ "$RC" -eq 0 ]; then
+    echo "    FAIL: commit under a dispatchable row succeeded (RC=0) — the worked-"
+    echo "          without-claiming defect: $OUT"
+    FAIL=1
+elif echo "$OUT" | grep -qi "in_progress" && [ "$COMMITS_AFTER" -eq "$COMMITS_BEFORE" ]; then
+    echo "    PASS: refused, names the claim requirement, no commit created"
+else
+    echo "    FAIL: refusal or message wrong (RC=$RC, commits $COMMITS_BEFORE->$COMMITS_AFTER): $OUT"
+    FAIL=1
+fi
+# the refusal must leave the index untouched
+if [ -z "$(git diff --cached --name-only)" ]; then
+    echo "    PASS: nothing staged by the refused invocation"
+else
+    echo "    FAIL: refused invocation left staged paths"
+    FAIL=1
+fi
+# positive control: claim first, then the same commit succeeds
+OUT=$("$MG" claim TLC-ARM1 --agent "$AGENT" 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: claim: $OUT"; FAIL=1; fi
+OUT=$(MANAGENT_TASK_ID=TLC-ARM1 "$WRAP" docs/arm1.md -m "TLC-ARM1 after claim" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: in_progress commit refused (RC=$RC): $OUT"
+    FAIL=1
+else
+    echo "    PASS: same commit succeeds once claimed (claim is the precondition)"
+fi
+sleep 11
+OUT=$("$MG" done TLC-ARM1 --status pass 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: done: $OUT"; FAIL=1; fi
+# done-row commit: refused, and the refusal names amend (the post-close path).
+# The row's own deliverables are all committed by now, so this arm uses a
+# second bundle whose deliverables are still uncommitted and a hand-written
+# store entry (status=done) — the wrapper's claim check reads the store; the
+# real managent close already proved the store format above.
+cat > arm1d-bundle.md <<'EOF'
+<!--managent set=A deliverables=docs/arm1.md,docs/arm1b.md-->
+EOF
+cp docs/infra/managent/tasks.json "$TMPDIR/arm1-store.json"
+cat > docs/infra/managent/tasks.json <<'JSON'
+{"TLC-ARMDONE": {"bundle": "arm1d-bundle.md", "status": "done", "verdict": "pass"}}
+JSON
+echo "  arm1b post-close" > docs/arm1b.md
+OUT=$(MANAGENT_TASK_ID=TLC-ARMDONE "$WRAP" docs/arm1b.md -m "post-close follow-up" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    echo "    FAIL: commit under a done row succeeded (RC=0): $OUT"
+    FAIL=1
+elif echo "$OUT" | grep -qi "amend"; then
+    echo "    PASS: done-row commit refused, names amend as the post-close path"
+else
+    echo "    FAIL: done-row refusal does not name amend (RC=$RC): $OUT"
+    FAIL=1
+fi
+# --explicit remains the loud, deliberate escape (Orchestrator/worker mode)
+OUT=$(MANAGENT_TASK_ID=TLC-ARMDONE "$WRAP" --explicit docs/arm1b.md -m "TLC-ARMDONE explicit escape" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    echo "    PASS: --explicit commits anyway (documented escape, not silent)"
+else
+    echo "    FAIL: --explicit escape broken (RC=$RC): $OUT"
+    FAIL=1
+fi
+# restore the real scratch store for the managent arms that follow
+cp "$TMPDIR/arm1-store.json" docs/infra/managent/tasks.json
+# the hand-written-store arms leave docs/arm1b.md committed under the explicit
+# commit; it is the test's own file, and arm 2 reads only TLC-ARM1's row.
+
+# ── arm 2: seeded — post-close correction recordable against the row ───────
+echo "  2. seeded: amend --post-close records a follow-up against the row"
+OUT=$("$MG" amend TLC-ARM1 --post-close "D064-style follow-up landed in abc123" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: amend --post-close refused (RC=$RC): $OUT"
+    FAIL=1
+else
+    if python3 -c "
+import json,sys
+d=json.load(open('docs/infra/managent/tasks.json'))
+ams=d['TLC-ARM1'].get('amendments',[])
+sys.exit(0 if any('post-close' in a and 'abc123' in a for a in ams) else 1)"; then
+        echo "    PASS: amendment recorded in the store (post-close + follow-up commit)"
+    else
+        echo "    FAIL: amendment not recorded in the store"
+        FAIL=1
+    fi
+fi
+OUT=$("$MG" show TLC-ARM1 2>/dev/null)
+if echo "$OUT" | grep -q "abc123"; then
+    echo "    PASS: show displays the post-close amendment"
+else
+    echo "    FAIL: show does not display the amendment: $OUT"
+    FAIL=1
+fi
+# reopen on a done row must refuse AND name amend (the T422 dead-end)
+OUT=$("$MG" reopen TLC-ARM1 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    echo "    FAIL: reopen succeeded on a done row (RC=0): $OUT"
+    FAIL=1
+elif echo "$OUT" | grep -qi "amend"; then
+    echo "    PASS: reopen refuses a done row and names amend (no dead-end)"
+else
+    echo "    FAIL: reopen refusal does not name amend (RC=$RC): $OUT"
+    FAIL=1
+fi
+# audit flags amended rows (the kanban must surface the correction)
+OUT=$("$MG" audit 2>/dev/null)
+if echo "$OUT" | grep -qi "amend" && echo "$OUT" | grep -q "TLC-ARM1"; then
+    echo "    PASS: audit surfaces the amended row"
+else
+    echo "    FAIL: audit does not flag the amended row: $OUT"
+    FAIL=1
+fi
+
+# ── arm 3: seeded — add --note round-trips ─────────────────────────────────
+echo "  3. seeded: add --note round-trips"
+cat > arm3-bundle.md <<'EOF'
+<!--managent set=A deliverables=docs/arm3.md-->
+EOF
+OUT=$("$MG" add TLC-ARM3 --bundle arm3-bundle.md --note "context for the row" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+if python3 -c "
+import json,sys
+d=json.load(open('docs/infra/managent/tasks.json'))
+n=d['TLC-ARM3'].get('note')
+sys.exit(0 if n=='context for the row' else 1)"; then
+    echo "    PASS: note stored on the row"
+else
+    echo "    FAIL: note not stored (documented flag that silently does nothing)"
+    FAIL=1
+fi
+OUT=$("$MG" show TLC-ARM3 2>/dev/null)
+if echo "$OUT" | grep -q "context for the row"; then
+    echo "    PASS: show displays the note"
+else
+    echo "    FAIL: show does not display the note"
+    FAIL=1
+fi
+# >4 KiB note rejected (mirrors dispatch's limit)
+BIG="$(head -c 5000 /dev/zero | tr '\0' 'x')"
+OUT=$("$MG" add TLC-ARM3BIG --bundle arm3-bundle.md --note "$BIG" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -qi "4 KiB"; then
+    echo "    PASS: >4 KiB note rejected"
+else
+    echo "    FAIL: oversized note accepted (RC=$RC): $OUT"
+    FAIL=1
+fi
+
+# ── arm 4: seeded — forced close leaves a record; unforced close refused ───
+echo "  4. seeded: claim-at-close — refused without --force, recorded with it"
+cat > arm4-bundle.md <<'EOF'
+<!--managent set=A deliverables=docs/arm4.md-->
+EOF
+echo "  arm4 work" > docs/arm4.md
+OUT=$("$MG" add TLC-ARM4 --bundle arm4-bundle.md 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+OUT=$("$MG" claim TLC-ARM4 --agent "$AGENT" 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: claim: $OUT"; FAIL=1; fi
+OUT=$(MANAGENT_TASK_ID=TLC-ARM4 "$WRAP" docs/arm4.md -m "TLC-ARM4 work" 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: commit: $OUT"; FAIL=1; fi
+# claim and done within 10s: refused WITHOUT --force (T390 gate regression)
+OUT=$("$MG" done TLC-ARM4 --status pass 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    echo "    FAIL: done within the 10s window succeeded without --force: $OUT"
+    FAIL=1
+elif echo "$OUT" | grep -qi "claim"; then
+    echo "    PASS: unforced within-window close refused, names the claim"
+else
+    echo "    FAIL: refusal message does not mention the claim (RC=$RC): $OUT"
+    FAIL=1
+fi
+# with --force: closes AND records the force in the store (fix 4)
+OUT=$("$MG" done TLC-ARM4 --status pass --force 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: --force close refused (RC=$RC): $OUT"
+    FAIL=1
+else
+    if python3 -c "
+import json,sys
+d=json.load(open('docs/infra/managent/tasks.json'))
+ams=d['TLC-ARM4'].get('amendments',[])
+sys.exit(0 if any('FORCED' in a for a in ams) else 1)"; then
+        echo "    PASS: forced close recorded as an amendment (the kanban tells the truth)"
+    else
+        echo "    FAIL: forced close left no record — the silent escape"
+        FAIL=1
+    fi
+fi
+
+# ── arm 5: seeded — C10 does not count paths inside fenced blocks ─────────
+echo "  5. seeded: C10 fence skip (fenced path not counted, prose path counted)"
+RAND_SUFFIX="t424-$(date +%s)-$$"
+PROSE_PATH="/tmp/weizigo/c10-$RAND_SUFFIX-prose.json"
+FENCED_PATH="/tmp/weizigo/c10-$RAND_SUFFIX-fenced.json"
+mkdir -p /tmp/weizigo
+cat > "$FIXTURE" <<EOF
+# C10 fence fixture (T424 regression control — do not commit)
+
+A prose evidence citation — this is a real citation and MUST be counted:
+
+$PROSE_PATH
+
+A build-command illustration inside a fenced block — this is NOT evidence
+and must NOT be counted (Orchestrator ruling on T422):
+
+\`\`\`
+zig build --cache-dir $FENCED_PATH --global-cache-dir /tmp/weizigo/c10-$RAND_SUFFIX-other --femit-bin=/tmp/weizigo/c10-$RAND_SUFFIX-bin
+\`\`\`
+EOF
+cd "$PROJECT"   # claimlint scans the working tree from the repo root (its Index walks cwd)
+"$CLAIMLINT" > "$TMPDIR/fence.out" 2>/dev/null
+C10_SECTION="$(awk '/^== C10/{f=1} /^== A /{f=0} f' "$TMPDIR/fence.out")"
+if echo "$C10_SECTION" | grep -Fq "$PROSE_PATH"; then
+    echo "    PASS: prose /tmp citation counted"
+else
+    echo "    FAIL: prose /tmp citation not in the C10 section"
+    FAIL=1
+fi
+if echo "$C10_SECTION" | grep -Fq "$FENCED_PATH"; then
+    echo "    FAIL: fenced-block path counted by C10 — the over-count defect:"
+    echo "$C10_SECTION" | grep -F "$FENCED_PATH" | head -3
+    FAIL=1
+else
+    echo "    PASS: fenced-block path NOT counted"
+fi
+# null: fixture removed → the paths vanish from the output entirely
+rm -f "$FIXTURE"
+"$CLAIMLINT" > "$TMPDIR/null.out" 2>/dev/null
+if grep -Fq "$FENCED_PATH" "$TMPDIR/null.out" || grep -Fq "$PROSE_PATH" "$TMPDIR/null.out"; then
+    echo "    FAIL: fixture paths still reported after fixture removal"
+    FAIL=1
+else
+    echo "    PASS: fixture paths absent once the fixture doc is gone"
+fi
+
+echo ""
+if [ "$FAIL" -eq 0 ]; then
+    echo "=== regression-claim-lifecycle: ALL CONTROLS PASSED ==="
+    exit 0
+else
+    echo "=== regression-claim-lifecycle: FAILURES ==="
+    exit 1
+fi

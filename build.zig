@@ -421,6 +421,20 @@ pub fn build(b: *std.Build) void {
     claimlint_volatile_regression.cwd = b.path(".");
     test_step.dependOn(&claimlint_volatile_regression.step);
 
+    // ── claim/close lifecycle controls (T424) ────────────────────────
+    // Five flakes, one symptom (the kanban disagrees with reality):
+    // worked-without-claiming (git-commit-mine refuses a commit whose task
+    // is not in_progress), post-close corrections (amend --post-close +
+    // reopen names amend instead of dead-ending + audit WARNs amended rows),
+    // add --note round-trip, forced closes leave a FORCED amendment, and C10
+    // no longer counts paths inside fenced code blocks. All managent arms
+    // run against a scratch store in /tmp/weizigo — never the live kanban;
+    // the claimlint arm uses a fixture doc created and removed in place.
+    // SKIPs loudly when no managent/claimlint binary in zig-out/bin/.
+    const claim_lifecycle_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claim-lifecycle.sh" });
+    claim_lifecycle_regression.cwd = b.path(".");
+    test_step.dependOn(&claim_lifecycle_regression.step);
+
     // ── deployed-binaries guard (T289) ───────────────────────────────
     // tools/smoke.sh compares every deployed bin/ tool's embedded build
     // stamp against committed source history — a stale bin/ (built before

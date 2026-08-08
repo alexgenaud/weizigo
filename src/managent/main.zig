@@ -1263,7 +1263,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const use_auto = hasFlag(args, "--auto");
 
     if (!use_auto and args.len < 3) {
-        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>] [--model <name>]\n", .{});
+        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>] [--model <name>] [--note <text>]\n", .{});
         w.diag("       managent add --auto --bundle <path>  (mint opaque T<N> ID)\n", .{});
         std.process.exit(1);
     }
@@ -1275,6 +1275,20 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const set_override = getFlagValue(args, "--set");
     const needs_extra = getFlagValue(args, "--needs");
     const model_flag = getFlagValue(args, "--model");
+
+    // T424: add --note was documented in help but ignored by the implementation
+    // (note stored null) — a documented flag that silently does nothing is the
+    // week's signature defect in miniature (T409 found it).  Mirror dispatch's
+    // ≤4 KiB limit so add and dispatch cannot disagree on what a note is.
+    const note_flag = getFlagValue(args, "--note");
+    var note_for_task: ?[]const u8 = null;
+    if (note_flag) |nt| {
+        if (nt.len > 4096) {
+            w.diag("error: --note is 4 KiB max (got {d} bytes)\n", .{nt.len});
+            std.process.exit(1);
+        }
+        note_for_task = try alloc.dupe(u8, nt);
+    }
 
     // T317: canonicalize and validate model label at registration time.
     // Storing a non-canonical label creates attribution debt that multiplies
@@ -1335,6 +1349,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .added = now,
             .claimed = null,
             .done = null,
+            .note = note_for_task,
         };
 
         try state.put(alloc, try alloc.dupe(u8, id), ts);
@@ -1417,6 +1432,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .added = now,
         .claimed = null,
         .done = null,
+        .note = note_for_task,
     };
 
     try state.put(alloc, try alloc.dupe(u8, id), ts);
@@ -2147,7 +2163,12 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     // A claim recorded within CLAIM_TO_DONE_REFUSE_SECS of this done is the
     // claim-at-close pattern — proof the row ran unprotected.  Refuse and
     // point at the correct flow; --force asserts the close is genuine.
+    // T424: a forced close must leave a record — the T390 gate's escape was
+    // silent (3 of 34 rows closed inside the window after the gate landed;
+    // the store could not say which used --force).  The FORCED amendment is
+    // appended at the phase-1 write, so it persists only when the close does.
     const force_done = hasFlag(args, "--force");
+    var forced_close_gap: ?i64 = null;
     if (ts_ptr.claimed) |claimed_ts| {
         const gap = ageSecFromTs(claimed_ts, nowUnix());
         if (gap) |g| {
@@ -2160,6 +2181,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
                 std.process.exit(1);
             }
             if (g <= CLAIM_TO_DONE_REFUSE_SECS and force_done) {
+                forced_close_gap = g;
                 w.diag("\n  FORCED: {s} was claimed only {d}s before done (claimed {s}) — closing anyway, claim-at-close acknowledged\n", .{ id, g, claimed_ts });
             }
         }
@@ -2261,6 +2283,18 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (skip_acceptance_reason) |reason| {
         if (ts_ptr.skip_acceptance_reason) |old| alloc.free(old);
         ts_ptr.skip_acceptance_reason = try alloc.dupe(u8, reason);
+    }
+
+    // T424: a forced claim-at-close close must leave a record — the escape
+    // was silent, and the kanban stopped agreeing with reality.  The record
+    // is an amendment, so show/audit surface it exactly like a manual amend.
+    if (forced_close_gap) |gap| {
+        const rec = try std.fmt.allocPrint(alloc, "{s}: FORCED close (claimed {d}s before done) — claim-at-close acknowledged via --force", .{ now, gap });
+        var new_ams = std.ArrayList([]const u8).empty;
+        for (ts_ptr.amendments) |am| try new_ams.append(alloc, am);
+        try new_ams.append(alloc, rec);
+        alloc.free(ts_ptr.amendments);
+        ts_ptr.amendments = try new_ams.toOwnedSlice(alloc);
     }
 
     var unblocked = std.ArrayList([]const u8).empty;
@@ -2463,6 +2497,19 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     const is_blocked_done = prev == .done and ts_ptr.verdict != null and
         (std.mem.eql(u8, ts_ptr.verdict.?, "blocked") or std.mem.eql(u8, ts_ptr.verdict.?, "abandoned"));
     if (prev != .in_progress and prev != .failed and !is_blocked_done) {
+        if (prev == .done) {
+            // T424: a real completion is not re-queueable (mint a new row for
+            // fresh work), but a post-close correction must still be
+            // recordable against the row — amend does that (T422's D064 shape:
+            // the fix landed in follow-up commit 4330ef2 outside the row).
+            w.diag("error: task '{s}' is done (reopen is for in_progress/failed tasks killed mid-attempt)\n", .{id});
+            w.diag("  A done row is a real completion, not a killed attempt — it is not re-queueable.\n", .{});
+            w.diag("  To record a post-close correction (a follow-up commit, a late directive):\n", .{});
+            w.diag("    managent amend {s} --post-close \"<what landed and where>\"\n", .{id});
+            w.diag("  or to correct the verdict itself: managent amend {s} --verdict <v> --note <text>\n", .{id});
+            w.diag("  For fresh work, mint a new row.\n", .{});
+            std.process.exit(1);
+        }
         w.diag("error: task '{s}' is {s} (reopen is for in_progress/failed/blocked tasks killed mid-attempt)\n", .{ id, statusToString(prev) });
         std.process.exit(1);
     }
@@ -3032,34 +3079,60 @@ fn cmdVerdict(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
 // reopened (it was delivered, not killed mid-attempt).  amend appends a
 // correction record — the original verdict is preserved and surfaced by
 // show/status/audit alongside the correction, flagged for the reader.
+//
+// T424: two flavors.  `amend <id> --verdict <v> --note <t>` corrects the
+// verdict (T317).  `amend <id> --post-close <t>` records a follow-up — a
+// directive that landed after the close, or a fix that had to land in a
+// follow-up commit outside the row (the T422 shape: D064 arrived after the
+// work) — WITHOUT touching the verdict, because the verdict did not change.
+// reopen still refuses done rows: a real completion is not re-queueable, and
+// its refusal now names amend instead of dead-ending.
 
 fn cmdAmend(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = repo_root;
     if (args.len < 3) {
         w.diag("usage: managent amend <id> --verdict <verdict> --note <text>\n", .{});
-        w.diag("       append a correction record without erasing the original verdict\n", .{});
+        w.diag("       managent amend <id> --post-close <text>  (record a follow-up against a done row; verdict untouched)\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
     const verdict_str = getFlagValue(args, "--verdict");
     const note_text = getFlagValue(args, "--note");
+    const post_close_text = getFlagValue(args, "--post-close");
 
-    if (verdict_str == null) {
-        w.diag("error: --verdict is required\n", .{});
+    if (post_close_text != null and (verdict_str != null or note_text != null)) {
+        w.diag("error: use either --post-close (verdict untouched) or --verdict/--note (verdict correction), not both\n", .{});
         std.process.exit(1);
     }
-    if (note_text == null) {
-        w.diag("error: --note is required (explain the correction)\n", .{});
-        std.process.exit(1);
-    }
-    if (!isValidVerdict(verdict_str.?)) {
-        w.diag("error: invalid verdict '{s}'. Valid: ", .{verdict_str.?});
-        for (valid_verdicts, 0..) |v, vi| {
-            if (vi > 0) w.diag(", ", .{});
-            w.diag("{s}", .{v});
+    if (post_close_text == null) {
+        if (verdict_str == null) {
+            w.diag("error: --verdict is required\n", .{});
+            std.process.exit(1);
         }
-        w.diag("\n", .{});
-        std.process.exit(1);
+        if (note_text == null) {
+            w.diag("error: --note is required (explain the correction)\n", .{});
+            std.process.exit(1);
+        }
+        if (!isValidVerdict(verdict_str.?)) {
+            w.diag("error: invalid verdict '{s}'. Valid: ", .{verdict_str.?});
+            for (valid_verdicts, 0..) |v, vi| {
+                if (vi > 0) w.diag(", ", .{});
+                w.diag("{s}", .{v});
+            }
+            w.diag("\n", .{});
+            std.process.exit(1);
+        }
+    } else {
+        // T424: a post-close record is the follow-up itself; an empty one is
+        // the same information vacuum as a bare 'done' (T227 defect-3 rule).
+        if (post_close_text.?.len == 0) {
+            w.diag("error: --post-close requires a non-empty note\n", .{});
+            std.process.exit(1);
+        }
+        if (post_close_text.?.len > 4096) {
+            w.diag("error: --post-close is 4 KiB max (got {d} bytes)\n", .{post_close_text.?.len});
+            std.process.exit(1);
+        }
     }
 
     // T317: lock → re-read → modify → write → unlock
@@ -3077,7 +3150,10 @@ fn cmdAmend(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     }
 
     const now = try nowTimestamp();
-    const correction = try std.fmt.allocPrint(alloc, "{s}: verdict={s} note={s}", .{ now, verdict_str.?, note_text.? });
+    const correction = if (post_close_text) |pct|
+        try std.fmt.allocPrint(alloc, "{s}: post-close: {s}", .{ now, pct })
+    else
+        try std.fmt.allocPrint(alloc, "{s}: verdict={s} note={s}", .{ now, verdict_str.?, note_text.? });
 
     // Append to amendments array (alloc owned by the array)
     var new_amendments = std.ArrayList([]const u8).empty;
@@ -3091,10 +3167,16 @@ fn cmdAmend(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
     try writeStateLocked(io, state_path, &state);
 
-    const original = if (ts_ptr.verdict) |v| v else "(none)";
-    w.diag("\n  {s}  amended  [{s}] → verdict={s}  (original: {s})\n", .{ id, now, verdict_str.?, original });
-    w.diag("  note: {s}\n", .{note_text.?});
-    w.diag("  The original verdict is preserved in the store.  audit flags amended rows.\n", .{});
+    if (post_close_text) |pct| {
+        w.diag("\n  {s}  post-close correction recorded  [{s}]\n", .{ id, now });
+        w.diag("  note: {s}\n", .{pct});
+        w.diag("  The original verdict is preserved in the store.  audit flags amended rows.\n", .{});
+    } else {
+        const original = if (ts_ptr.verdict) |v| v else "(none)";
+        w.diag("\n  {s}  amended  [{s}] → verdict={s}  (original: {s})\n", .{ id, now, verdict_str.?, original });
+        w.diag("  note: {s}\n", .{note_text.?});
+        w.diag("  The original verdict is preserved in the store.  audit flags amended rows.\n", .{});
+    }
 }
 
 fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const u8, args: [][]const u8) !void {
@@ -4055,6 +4137,7 @@ fn printHelp(w: Writers) void {
         \\  managent audit [--json]   cross-check kanban against reality
         \\  managent agent <id> <name> set the agent model for a task
         \\  managent amend <id>        append a correction record (verdict + note) to a done/failed task
+        \\  managent amend <id> --post-close <text>  record a follow-up against a done row (verdict untouched)
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
@@ -4905,6 +4988,17 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         if (ts.status == .done and ts.claimed == null) {
             const msg = try std.fmt.allocPrint(alloc, "done but never claimed — audit trail broken", .{});
             try findings.append(alloc, .{ .level = "FIX", .id = tid, .msg = msg });
+        }
+
+        // T424: amended rows — a post-close correction was recorded against the
+        // row (amend --verdict / amend --post-close / a forced close).  The
+        // kanban must surface it, not bury it in the store: a correction that
+        // lands after the close is exactly the kanban-disagrees-with-reality
+        // class (T422's D064 shape).  WARN, not FIX — a correction is a fact
+        // of record, not a defect to gate on.
+        if (ts.amendments.len > 0) {
+            const msg = try std.fmt.allocPrint(alloc, "amended post-close ({d} correction record(s)) — see managent show {s}", .{ ts.amendments.len, tid });
+            try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
         }
 
         // C. in_progress task with note containing GATED → was blocked by hand

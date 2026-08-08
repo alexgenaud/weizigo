@@ -29,7 +29,7 @@ managent purge                 purge done/failed tasks (and clean their IDs from
 managent set <id> <A|B|C|…>      reassign a task's phase set (A–Z)
 managent needs <id> [--add…/--rm…]  add/remove dependency edges
 managent agent <id> <name>     set the model/agent for a task
-managent amend <id>            append a correction record (verdict + note) to a done/failed task (T317)
+managent amend <id>            append a correction record (--verdict/--note, or --post-close) to a done/failed task (T317/T424)
 managent [status]              show current state (default command)
 managent next                  claim the next available task
 managent show <id>             show details for one task
@@ -239,7 +239,9 @@ overwrites `dispatched_to`). The Orchestrator's D-8 tool for re-queueing a
 console that was terminated without completing — the alternative (fail +
 re-add) would orphan the `needs` edges of dependents. Not allowed on `done`
 (a real completion is not re-queueable; mint a new task), `dispatchable`
-(already claimable), or `blocked` (dependencies unmet).
+(already claimable), or `blocked` (dependencies unmet). **A post-close
+correction is NOT a reopen** — `reopen`'s refusal on a `done` row names the
+correct tool, `managent amend --post-close` (T424):
 
 ```
 $ managent reopen EXP-2B
@@ -247,6 +249,26 @@ $ managent reopen EXP-2B
   reopened EXP-2B  [set: A]  (was in_progress)
   follow docs/infra/dispatch/EXP-2B.md
 ```
+
+### `managent amend <id>`
+
+Appends an append-only correction record to a `done`/`failed` row; the
+original verdict is preserved and the row is surfaced by `audit` (WARN) and
+`show`. Two flavors (T317 + T424):
+
+- `amend <id> --verdict <v> --note <text>` — corrects the verdict (original
+  preserved alongside the correction).
+- `amend <id> --post-close <text>` — records a follow-up against the row
+  **without touching the verdict**: a directive that arrived after the close,
+  or a fix that landed in a follow-up commit outside the row (the T422 shape:
+  D064 arrived post-close, the re-pointing landed in commit 4330ef2 outside
+  the row, and the old `amend` required naming a verdict that had not
+  changed). The two flavors are mutually exclusive; `--post-close` text is
+  non-empty and ≤ 4 KiB.
+
+A forced claim-at-close close (`done --force` inside the T390 refusal window)
+appends a `FORCED close` amendment of its own, so the kanban records what the
+console did instead of looking like a normal close.
 
 ### `managent purge`
 
