@@ -137,7 +137,13 @@ REACH_SRC="src/reachcensus.zig tools/gen-version.sh build.zig"
 # managent: --version prints the banner and exits 0.
 deploy_check managent "$MANAGENT_SRC" --version
 # weizigo-absorb: no-arg run prints banner + usage (exit 1); banner is what we need.
-deploy_check weizigo-absorb "$ABSORB_SRC"
+# T437 consolidated absorb into `weizigo-claimlint absorb` and removed
+# absorb_exe from build.zig, so bin/weizigo-absorb is no longer a deployed
+# binary — it is a compat alias that execs claimlint. The negative control
+# below compares a tool's version stamp to its own name, so an alias trips
+# it by design. Asserting a retired binary is current tests nothing; the
+# tool it delegates to IS still checked (weizigo-claimlint, below).
+# deploy_check weizigo-absorb "$ABSORB_SRC"   # retired T437/T440
 # weizigo-claimlint: --version prints banner then scans the register (exit 0).
 deploy_check weizigo-claimlint "$CLAIMLINT_SRC" --version
 # weizigo-gtp: --version prints banner (stderr) then fails to load the artifact.
