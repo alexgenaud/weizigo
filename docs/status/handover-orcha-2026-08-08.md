@@ -21,20 +21,45 @@ Then `bin/managent status` and `git log` **before dispatching anything**.
 
 | | |
 |---|---|
+*(Updated 2026-08-08 12:45 UTC — the afternoon's work is folded in below.)*
+
 | Register | 228 rows, mapping doc 228, C9b lockstep, 0 node mismatches |
 | Findings | C7 unabsorbed **0**, non-conforming **0** |
 | Floors | C2 = 11, C3 = 48 — unmoved all week |
-| Rows in flight | none |
-| Processes | none (no zombies, no orphans) |
+| Kanban | **102 rows** (was 118 — 16 fixture rows removed, see below) |
 | Engine | current, playable in Sabaki: `bin/weizigo-gtp` + `data/oracle-4x4-v2.wzo2`, board 4×4, komi 0 |
 
-**Registered and not yet dispatched:** `T423` (date-partition `/tmp`), `T424` (claim/close lifecycle
-flakes — five defects, priority order stated in the brief).
+**Running at handover:** `T428` (tool-consolidation sprint, 8 phases, `deepseek-v4-flash`) and `T427`
+(argus fixture leak, working but **never claimed** — it will hit T424's new commit refusal; that is
+the mechanism working, but it may need `bin/managent claim T427 --agent <model>` to unwedge).
 
-**The one open stability question:** `zig build test` was **not confirmed green** in Fable's audit run
-(923/931, 7 crashed, ~52 min against a documented ~610 s), though nothing reproduced standalone and
-the machine was saturated. A clean run was started on a quiet machine at handover time; **check
-`/tmp/weizigo-suite-clean-260808.log` for its verdict before trusting or distrusting the suite.**
+**Registered, not dispatched:** nothing. The queue is the ROADMAP §4/§5 list.
+
+### The suite question is CLOSED
+
+`zig build test` on a quiet machine at HEAD: **59/63 steps, 926/931 tests, 1 skipped, 4 crashed,
+618.0 s.** The 618 s matches the documented ~610 s and refutes the 52-minute figure in Fable's audit —
+confirming its own resource-saturation hypothesis. The 4 crashes are the documented
+`qa023_brute_2x2` baseline. **The three step failures are bookkeeping from our own week**, not
+defects: a fixture asserting 221 register rows when absorption took it to 228, deploy staleness
+(cured by T424's deploy), and one precommit check. Log: `/tmp/weizigo-suite-clean-260808.log`.
+
+### What landed after the first version of this file
+
+- **`T424` is the strongest tooling row of the week.** 19 controls shown RED then GREEN. Commits are
+  now **refused** when the row is not `in_progress`; `amend --post-close` exists; `add --note`
+  round-trips; forced closes append a `FORCED` amendment because **`--force` left no trace, which was
+  itself the finding**; C10 census 1065 → 879. It also found that **`audit`'s long-standing claim to
+  flag amended rows was false** — a sixth instance of the week's pattern.
+- **`T426` produced `docs/infra/assertion-ledger/spec.md`, and its best section is §10 — what it
+  refuses to build**: no new CLI (*"`managent` writes it; `argus` reads it"*), no replacement of
+  `tasks.json`, no stored derived state, **no prose generation**, no looping console. Ship Phase 1
+  only; Phase 2 needs a separate ruling. **Accepted.**
+- **`T425` passed and wrote 16 fixture rows into the LIVE kanban** — `T425-DOCTOR-*`, most claimed and
+  closed in the same second. Removed after proving each was a fixture. **Nothing detected it**: not
+  claimlint, not the suite, not `managent audit`. `T427` fixes the cause.
+- **`AGENTS.md`**: dispatch lines go **early** in a message, not at the end (the operator is a
+  dispatcher first and a reader second).
 
 ---
 
@@ -58,6 +83,11 @@ the machine was saturated. A clean run was started on a quiet machine at handove
 6. **A prediction of mine was falsified and the row was right to say so** — I expected
    wins-from-non-claimed-roots to fall as opponent strength rose. Measured: pachi 5→4, fuego 23→24.
    The earlier margin was **not** primarily opponent weakness.
+7. **I reported console status from memory instead of checking, and got it wrong.** The operator
+   corrected me. This is the same failure I had sent three rows back for that week. **Check
+   `bin/managent` before every status claim — there is no version of this seat where recalling is
+   acceptable**, and the reason the operator keeps asking "can I close this console?" is that nothing
+   makes the answer checkable (which is what `T426`'s spec and `argus --mode doctor` are for).
 
 ---
 
