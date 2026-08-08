@@ -127,11 +127,11 @@ else
 fi
 
 # ── control 4: depth cap still fires ─────────────────────────────────────
-echo "  4. depth-cap: WEIZIGO_AGENT_DEPTH=2 refuses dispatch"
-OUT=$(WEIZIGO_AGENT_DEPTH=2 "$OLLAMA_SUBAGENT" T996 --model glm-5.2:cloud 2>&1)
+echo "  4. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$OLLAMA_SUBAGENT" T996 --model glm-5.2:cloud 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
-    echo "    PASS: refused at depth 2 (RC=$RC)"
+    echo "    PASS: refused at cap depth 3 (RC=$RC)"
 else
     echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -1)"
     FAIL=1

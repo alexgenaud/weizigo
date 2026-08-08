@@ -21,8 +21,8 @@ stripped, so an Ollama leaf can still dispatch DeepSeek via bin/subagent when
 depth < 2 (path 2, demonstrated by a real dispatch — see the reach matrix).
 Closing that path is option (c), held for the human.
 
-Children run at depth 2 and cannot dispatch further via bin/ollama-subagent or
-bin/subagent. Managers are launched by the human. The depth cap stops
+Depth increments per dispatch and refuses at MAX_DEPTH (3), so a manager may
+delegate a manager and the chain still ends (T431). The depth cap stops
 accidental recursion; it is not a security boundary — see subdelegation.md.
 
 The credential (if any) travels by environment, never by argv: tools/runner
@@ -44,7 +44,9 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import dispatch_verify  # noqa: E402
 
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
-WORKER_DEPTH = 2
+# T431: see bin/subagent — the cap bounds recursion, it does not ban
+# delegation. Depth increments per dispatch and refuses at MAX_DEPTH.
+MAX_DEPTH = 3
 
 
 def parse(argv):
@@ -99,9 +101,9 @@ def main(argv):
     try:  # fail closed: an unreadable depth is treated as a worker
         depth = int(os.environ.get(DEPTH_VAR, "1"))
     except ValueError:
-        depth = WORKER_DEPTH
-    if depth >= WORKER_DEPTH:
-        sys.exit(f"ollama-subagent: REFUSED — you are a worker (depth {depth}). Workers do "
+        depth = MAX_DEPTH
+    if depth >= MAX_DEPTH:
+        sys.exit(f"ollama-subagent: REFUSED — you are at the delegation cap (depth {depth} of {MAX_DEPTH}). Workers do "
                  f"not dispatch.\nWrite your output to a file or return it to your "
                  f"manager, then stop.\nIf the task genuinely needs delegating, say "
                  f"so and let your manager decide.")
@@ -195,7 +197,7 @@ def main(argv):
         sys.exit(f"ollama-subagent: no such task or file: {target}")
 
     # Credential by environment, never argv (see docstring).
-    env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
+    env = dict(os.environ, **{DEPTH_VAR: str(depth + 1)})
     if task_id:
         env["MANAGENT_TASK_ID"] = task_id
 
@@ -218,7 +220,7 @@ def main(argv):
         cmd = ["tools/runner", "--max-wall", wall, "--",
                "ollama", "launch", "pi", "--model", raw_model, "-y", "--", "-p", prompt]
     if "--dry-run" in flags:
-        print(f"{DEPTH_VAR}={WORKER_DEPTH}")
+        print(f"{DEPTH_VAR}={depth + 1}")
         if task_id:
             # T370: identity is propagated by env so nested runner calls inherit it.
             print(f"MANAGENT_TASK_ID={task_id}")

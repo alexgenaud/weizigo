@@ -1143,6 +1143,28 @@
     "skip_acceptance_reason": "claimlint exits 1 by design (recorded floor debt: C1a=10, C1b=0, C2=14, C6=0, C9=0, calibration PASS — all at or below floor in both runs). The brief's acceptance bar is met: C7 non-conforming 5->0; floor counters unmoved. C7 unabsorbed 0->1 is the intended T375 mirror-measurement proposal entering the absorption queue.",
     "amendments": []
   },
+  "T431": {
+    "status": "in_progress",
+    "agent": "claude-opus-5",
+    "model": null,
+    "bundle": "untracked/T431-depth-cap-bounds-recursion.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T13:47:42Z",
+    "claimed": "2026-08-08T13:48:03Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T370": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -2332,7 +2354,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 431,
+    "next_id": 432,
     "directive_next": 67
   }
 }

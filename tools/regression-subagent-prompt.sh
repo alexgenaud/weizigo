@@ -121,11 +121,11 @@ fi
 
 # ── depth cap: still fires ───────────────────────────────────────────────
 # T315 does not change the depth cap. Prove it still refuses at depth 2.
-echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=2 refuses dispatch"
-OUT=$(WEIZIGO_AGENT_DEPTH=2 "$SUBAGENT" T995 --dsflash 2>&1)
+echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" T995 --dsflash 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
-    echo "    PASS: refused at depth 2 (RC=$RC)"
+    echo "    PASS: refused at cap depth 3 (RC=$RC)"
 else
     echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -1)"
     FAIL=1

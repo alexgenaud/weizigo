@@ -70,14 +70,43 @@ else
     FAIL=1
 fi
 
-# ── seeded-1: worker depth (2) IS refused — red pre-fix, green post-fix ──
-echo "  3. seeded: bin/ollama-subagent at worker depth 2 IS refused"
-OUT=$(WEIZIGO_AGENT_DEPTH=2 "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+# ── seeded-1: the CAP depth (3) IS refused — recursion terminates ───────
+# T431: the bound moved from 2 to 3 so a manager may delegate a manager. The
+# bound itself is the principle and must still fire; only its value moved.
+echo "  3. seeded: bin/ollama-subagent at cap depth 3 IS refused"
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
-    echo "    PASS: refused at depth 2 (RC=$RC)"
+    echo "    PASS: refused at depth 3 (RC=$RC)"
 else
     echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -1)"
+    FAIL=1
+fi
+
+# ── null-3 (T431): a MANAGER at depth 2 may dispatch, and stamps depth 3 ─
+# This is the point of the change: a sprint console must be able to dispatch
+# its own phase audits. Pre-T431 this was REFUSED, which is why sprints had
+# to ask the human to paste their dispatches.
+echo "  3b. null: bin/ollama-subagent at manager depth 2 is NOT refused, stamps 3"
+OUT=$(WEIZIGO_AGENT_DEPTH=2 "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=3"; then
+    echo "    PASS: manager may dispatch; child stamped depth 3"
+else
+    echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -2 | tr '\n' ' ')"
+    FAIL=1
+fi
+
+# ── null-4 (T431): depth INCREMENTS, it is not stamped flat ─────────────
+# Pre-T431 every child was stamped 2 regardless of the parent's depth, so
+# depth carried no information about how deep the chain actually was.
+echo "  3c. null: depth increments (1 -> 2), not stamped flat"
+OUT=$(WEIZIGO_AGENT_DEPTH=1 "$SUBAGENT" T996 --dspro --dry-run 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=2"; then
+    echo "    PASS: depth-1 parent stamps child 2"
+else
+    echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -2 | tr '\n' ' ')"
     FAIL=1
 fi
 
@@ -93,8 +122,8 @@ else
 fi
 
 # ── seeded-3: bin/subagent DeepSeek->DeepSeek refusal still fires (bar) ──
-echo "  5. seeded: bin/subagent STILL refuses DeepSeek dispatch at depth 2"
-OUT=$(WEIZIGO_AGENT_DEPTH=2 "$SUBAGENT" T996 --dspro --dry-run 2>&1)
+echo "  5. seeded: bin/subagent STILL refuses DeepSeek dispatch at cap depth 3"
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" T996 --dspro --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: existing edge still guarded (RC=$RC)"

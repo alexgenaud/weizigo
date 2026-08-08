@@ -380,7 +380,7 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
         trailer_path = os.path.join(out_dir, "trailer.log")
         argv = lane_argv(lane, prompt, wall, claude_tools)
         env = dict(os.environ)
-        env["WEIZIGO_AGENT_DEPTH"] = "2"          # lanes are leaf workers
+        env["WEIZIGO_AGENT_DEPTH"] = "3"          # lanes are leaf workers (T431: cap value, not 2)
         env["MANAGENT_TASK_ID"] = f"bakeoff/{run}/{label}"  # heartbeat identity
         diag(f"lane {label}: dispatch {shlex.join(argv)}")
         t0 = time.monotonic()

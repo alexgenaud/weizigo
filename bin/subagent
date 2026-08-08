@@ -16,8 +16,8 @@ requires DEEPSEEK_API_KEY). Workers can reach Ollama models through
 `ollama launch pi` — the depth cap stops bin/subagent recursion but does not
 stop Ollama launches (T320, 2026-08-03). Claude seats use the Claude Code
 harness and must never be dispatched by a non-Claude harness (human rule).
-Children run at depth 2 and cannot dispatch further via bin/subagent.
-Managers are launched by the human. The depth cap stops accidental recursion;
+Depth increments per dispatch and refuses at MAX_DEPTH (3), so a manager may
+delegate a manager and the chain still ends. The depth cap stops runaway recursion;
 it is not a security boundary — see docs/infra/agents/subdelegation.md.
 
 Dispatch verification (T411, 2026-08-07): an agent that replies "OK." and
@@ -35,7 +35,13 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import dispatch_verify  # noqa: E402
 
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
-WORKER_DEPTH = 2
+# T431: the cap bounds RECURSION; it does not ban delegation. Depth increments
+# by one per dispatch and refuses at MAX_DEPTH, so a manager may dispatch a
+# manager (which may dispatch a leaf) and the chain still terminates. Before
+# T431 every child was stamped 2 and refused at 2, making every child a leaf —
+# which meant a sprint console could not dispatch its own phase audits and had
+# to ask the human to paste them. That made the operator the transport layer.
+MAX_DEPTH = 3
 MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
 KNOWN = set(MODELS) | {"--dry-run"}
 
@@ -74,12 +80,13 @@ def main(argv):
     try:  # fail closed: an unreadable depth is treated as a worker
         depth = int(os.environ.get(DEPTH_VAR, "1"))
     except ValueError:
-        depth = WORKER_DEPTH
-    if depth >= WORKER_DEPTH:
-        sys.exit(f"subagent: REFUSED — you are a worker (depth {depth}). Workers do "
-                 f"not dispatch.\nWrite your output to a file or return it to your "
-                 f"manager, then stop.\nIf the task genuinely needs delegating, say "
-                 f"so and let your manager decide.")
+        depth = MAX_DEPTH
+    if depth >= MAX_DEPTH:
+        sys.exit(f"subagent: REFUSED — you are at the delegation cap (depth {depth} "
+                 f"of {MAX_DEPTH}). The chain has to end somewhere and it ends with "
+                 f"you.\nWrite your output to a file or return it to your manager, "
+                 f"then stop.\nIf the task genuinely needs delegating, say so and let "
+                 f"your manager decide.")
 
     chosen = [f for f in flags if f in MODELS]
     if len(chosen) != 1:
@@ -150,7 +157,7 @@ def main(argv):
     # evidence on every dispatch.
     if not test_worker and not os.environ.get("DEEPSEEK_API_KEY"):
         sys.exit("subagent: DEEPSEEK_API_KEY is not set")
-    env = dict(os.environ, **{DEPTH_VAR: str(WORKER_DEPTH)})
+    env = dict(os.environ, **{DEPTH_VAR: str(depth + 1)})
     if task_id:
         env["MANAGENT_TASK_ID"] = task_id
 
@@ -165,7 +172,7 @@ def main(argv):
             cmd.extend(["--rss-cap-mb", rss_mb])
         cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
     if "--dry-run" in flags:
-        print(f"{DEPTH_VAR}={WORKER_DEPTH}")
+        print(f"{DEPTH_VAR}={depth + 1}")
         if task_id:
             # T370: identity is propagated by env so nested runner calls inherit it.
             print(f"MANAGENT_TASK_ID={task_id}")

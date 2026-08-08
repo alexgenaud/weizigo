@@ -30,9 +30,20 @@ Max two concurrent. `&` them and `wait`.
 The script resolves the bundle, builds the claim/findings/done wrapper, runs
 under `tools/runner`, and stamps `WEIZIGO_AGENT_DEPTH` on the child.
 
-**Depth cap — a safety mechanism, not a security boundary.** Children run at
-depth 2 with `WEIZIGO_AGENT_DEPTH` stamped, and `bin/subagent` refuses at 2: a
-worker writes a file or returns output to its manager and stops.
+**Depth cap — a bound on recursion, not a ban on delegation** (T431,
+2026-08-08). `WEIZIGO_AGENT_DEPTH` increments by one per dispatch and the
+dispatch tools refuse at `MAX_DEPTH = 3`. So a human console (depth 1) may
+dispatch a manager (2), which may dispatch a leaf (3), and the leaf stops.
+The chain terminates; delegation is not banned.
+
+Until T431 the cap stamped *every* child at 2 and refused at 2, so every child
+was a leaf. That enforced the principle by making delegation impossible below
+the human — and it had a cost that showed up as a process failure, not a
+technical one: a sprint console could not dispatch its own phase audits, so it
+asked the operator to paste them by hand. The operator became the transport
+layer between consoles, which is both slower and less safe (a pasted line skips
+the T411 dispatch verification that `bin/subagent` performs). Bounding the
+depth instead of flattening it removes the need for that relay.
 
 It stops accidental and eager recursion. It cannot stop a determined agent: on
 a single-user machine any process running as that user can reach the
@@ -48,16 +59,14 @@ never committed.
 
 ## Reach matrix (T320, corrected T321, 2026-08-03)
 
-Who can dispatch what, with the mechanism and the depth-cap behaviour. Rows
-are labelled by **depth** (the gate), not by model name: a DeepSeek/pi worker
-at depth 1 (a manager) can dispatch DeepSeek/pi; only a worker at depth ≥ 2
-is refused. (T320 labelled rows by model name and was corrected — T321.)
+Who can dispatch what. Rows are labelled by **depth** (the gate), not by model
+name. Updated for T431: the gate is `depth >= 3`, not `depth >= 2`.
 
 | Dispatcher | → DeepSeek | → Ollama | → Claude |
 |---|---|---|---|
-| **Human console** (depth 1) | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
-| **Any worker** (depth 2) | REFUSED — `bin/subagent` depth cap (`WEIZIGO_AGENT_DEPTH ≥ 2`) | WORKS — `ollama launch pi`, depth travels via env, no check | NOT ATTEMPTED (forbidden) |
-| **Any worker** (depth unset → 1) | WORKS — `bin/subagent` (`DEEPSEEK_API_KEY` available; **confirmed by a real dispatch**, see below) | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+| **Human console** (depth unset → 1) | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+| **Manager** (depth 2) | WORKS — `bin/subagent`, child stamped 3 (T431; was REFUSED) | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
+| **Leaf** (depth 3 = cap) | REFUSED — depth cap | WORKS — `ollama launch pi`, depth travels via env, no check | NOT ATTEMPTED (forbidden) |
 
 **Two T320 cells were mis-attributed (corrected T321):**
 - T320's `deepseek-v4-pro (d=2) → DeepSeek REFUSED` cell ran `bin/subagent
