@@ -1,0 +1,18 @@
+{
+  "task_id": "T419", "instrument": "t419_taxonomy", "size": "3x3",
+  "wzo2_path": "data/oracle-3x3-v2.wzo2", "seedctl": "none_loopy", "seed": 42,
+  "parents": {
+    "n_parents_total": 47456, "n_parents": 47456, "tautology_checks": 47456, "tautology_mismatches": 0
+  },
+  "gap1": {
+    "forced": 0, "one_of_one": 0, "all_loopy_k": 0, "partial": 0, "no_loop": 47456, "no_loop_a": 0, "no_loop_b": 47456, "no_optimal": 0, "total_optimal_children": 97064, "total_loopy_optimal_children": 0, "total_loopy_children": 0, "margin": {
+   "n": 0, "min": 0, "max": 0, "median": 0, "mean": 0.0000, "hist": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+   }
+  },
+  "gap2": {
+    "perm1": 0, "forced1": 0, "perm2": 0, "forced2": 0, "perm3": 0, "forced3": 0
+  },
+  "reconciliations": {
+    "no_loop_a_plus_b_equals_no_loop": true, "perm1_equals_forced_plus_partial": true, "forced1_equals_forced": true, "forced_monotone": true, "perm_monotone": true
+  }
+}

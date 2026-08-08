@@ -167,6 +167,21 @@ pub fn build(b: *std.Build) void {
     run_t312_race_tests.cwd = b.path(".");
     test_step.dependOn(&run_t312_race_tests.step);
 
+    // ── T419: loopy-child taxonomy classification (Gap 1 + Gap 2) ──────
+    // Pure classification + depth-1..3 recursion, unit-tested.  The driver
+    // (reads WZO2 only) reconciles against T412's published table at run
+    // time; the unit tests cover the classification logic itself.
+    const t419_taxonomy_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/t419_taxonomy.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_t419_taxonomy_tests = b.addRunArtifact(t419_taxonomy_tests);
+    run_t419_taxonomy_tests.cwd = b.path(".");
+    test_step.dependOn(&run_t419_taxonomy_tests.step);
+
     // ── verify-battery: fixpoint invariants (vb_fixpoint) ────────
     const vb_fixpoint_tests = b.addTest(.{
         .root_module = b.createModule(.{
