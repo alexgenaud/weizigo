@@ -203,13 +203,13 @@ interventions like parser extraction).
    ```
    method: grep -v '^[[:space:]]*#' <file> | sed '/^[[:space:]]*$/d' |
            sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sort | uniq
-   common (comm -12): 117 lines
+   common (comm -12): 113 lines
    subagent-unique:    45 lines
-   ollama-unique:      66 lines
-   total distinct:    228 lines
+   ollama-unique:      64 lines
+   total distinct:    222 lines
    ```
 
-   117 of 228 distinct lines are common — 51.3%. The differing lines are nearly all:
+   113 of 222 distinct lines are common — 50.9%. The differing lines are nearly all:
    - The provider-specific API call (subagent: DeepSeek API, ollama: `ollama run`)
    - Model-flag handling (ollama has `--model`, subagent infers from prompt)
    - The prompt file convention (ollama reads a brief file; subagent reads the brief + a
@@ -228,8 +228,9 @@ interventions like parser extraction).
 - The DeepSeek path requires an API key in the environment; the Ollama path requires a running
   local instance. The merged script's help must make the provider boundary obvious — a user who
   runs `bin/subagent` without `--provider` should get an error, not a cryptic API failure.
-- The two paths currently have different depth-enforcement logic (ollama enforces depth ≤2,
-  subagent doesn't). The merge must preserve both behaviors, not silently unify them.
+- The two paths currently have identical depth-cap logic (both: `MAX_DEPTH = 3`, `if depth >=
+  MAX_DEPTH: sys.exit("…REFUSED…")`, `DEPTH_VAR = str(depth + 1)` on child env). The merge
+  is therefore simpler than the general case — no divergent behaviors to reconcile.
 
 **Scope boundary — what is NOT merged:**
 - `tools/dispatch_verify.py` is already shared — no change needed. It stays as a separate module.
@@ -346,7 +347,7 @@ Scored at scope level (design trade-offs are Phase 4):
 
 | quality | claimlint+absorb merge | subagent pair merge | combined effect |
 |---|---|---|---|
-| **reuse** | `+` — one parser instead of two; `claims_register.zig` becomes single source of truth | `+` — 117 common lines deduped; one script instead of two | `+` — 3→1 register parsers in Zig (gen-indices TBD); 2→1 dispatch scripts |
+| **reuse** | `+` — one parser instead of two; `claims_register.zig` becomes single source of truth | `+` — 113 common lines deduped; one script instead of two | `+` — 3→1 register parsers in Zig (gen-indices TBD); 2→1 dispatch scripts |
 | **testability** | `+` — union of suites (3+1=4); one binary, one test harness | `+` — union of suites (1+1+2 shared=4); shared `dispatch_verify.py` already tested once | `+` — test count preserved or increased |
 | **predictability** | `0` — verb boundary (verify/absorb) must be crisp; Phase 4 must demonstrate | `0` — `--provider` flag is a well-understood pattern; error on missing flag | `0` — neither merge introduces hidden modes |
 | **transparency** | `+` — one help screen shows the pipeline; `2>/dev/null`/`1>/dev/null` contract preserved per verb | `+` — one help screen shows both providers; dispatch trace visible | `+` — fewer entry points to discover |
