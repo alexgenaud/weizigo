@@ -1385,6 +1385,28 @@
     "skip_acceptance_reason": "sprint console — report committed",
     "amendments": []
   },
+  "T419": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T419-loopy-child-taxonomy.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T00:38:27Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T385": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -2068,7 +2090,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 419,
+    "next_id": 420,
     "directive_next": 63
   }
 }
