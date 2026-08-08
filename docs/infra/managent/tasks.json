@@ -2133,6 +2133,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T441": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T441-observation-layer.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T17:02:11Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "SPRINT: closes T430+T439+T432 as one defect (status surface asserts what it cannot support). Builds on T426 assertion-ledger spec, managent writes / argus reads.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "STANDING-CLEANUP": {
     "status": "dispatchable",
     "agent": null,
