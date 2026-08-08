@@ -1,0 +1,107 @@
+{
+  "task_id": "T418",
+  "date": "2026-08-08",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T418",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "3x3.OPTIMAL-CYCLE",
+      "legacy": "—",
+      "goban": "3x3",
+      "claim": "The optimal-move subgraph at 3x3 CONTAINS-CYCLES (exhaustive: 47,456 states / 76,244 edges, T416) — 54 cyclic SCCs, 12 FORCED cycles / 80 states, value constant on all 54 cycles; MEASUREMENT kept (single-instrument self-report + one byte-identical console re-run is not a second-seat adjudication). Absorbed 2026-08-08 (T418); /tmp evidence citations re-pointed to docs/evidence/T416-OPTIMAL-CYCLE/.",
+      "status": "MEASUREMENT",
+      "evidence": "docs/research/optimal-cycle-test-2026-08-08.md; docs/evidence/T416-OPTIMAL-CYCLE/3x3-allties.json; docs/evidence/T416-OPTIMAL-CYCLE/audit-allties-3x3.json",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "4x4.OPTIMAL-CYCLE",
+      "legacy": "—",
+      "goban": "4x4",
+      "claim": "The optimal-move subgraph at 4x4 CONTAINS-CYCLES on a declared SAMPLE (150,001 / 99,133,036 = 0.15%; 6 cyclic SCCs; 0 FORCED in the sample is a LOWER BOUND, not '0 forced at 4x4'; exhaustive killed twice by the 4 GB RSS guard) — scope limits carried verbatim; MEASUREMENT kept. Absorbed 2026-08-08 (T418).",
+      "status": "MEASUREMENT",
+      "evidence": "docs/research/optimal-cycle-test-2026-08-08.md; docs/evidence/T416-OPTIMAL-CYCLE/4x4-allties.json; docs/evidence/T416-OPTIMAL-CYCLE/audit-4x4-150000.json",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.RESOLVER-INTERFACE",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "Bracket resolvers are pluggable via src/resolver.zig (Resolver/ResolveContext/Resolution, ADR-0022); none is authoritative. Renamed from RESOLVER.INTERFACE at absorption (RESOLVER. is not an ID scope; CODE. is). PROVEN as a definitional statement about the code and the decision record (11 unit tests pass, 1 deliberate skip, re-verified at absorption).",
+      "status": "PROVEN",
+      "evidence": "docs/evidence/CODE.RESOLVER/PROVENANCE.md; src/resolver.zig; docs/decisions/ADR-0022-bracket-resolvers-pluggable.md",
+      "depends_on": "—",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.RESOLVER-BUDGET-QUARANTINE",
+      "legacy": "T387, T397",
+      "goban": "n/a",
+      "claim": "The capture budget is demoted to a named pluggable resolver (capture_budget(B)) whose registration metadata records its measured non-convergence (4x3 root oscillates {0,1,2,7,9,12}, never PSK +4); internal consistency is not external agreement (ADR-0022). Renamed from RESOLVER.BUDGET-QUARANTINE and DOWNGRADED from the PROVEN proposal to CLAIMED at absorption: the load-bearing oscillation datum is single-instrument T387, same class as GLOBAL.CAPTURE-BUDGET-DAG (MEASUREMENT, T404); no second seat has adjudicated it.",
+      "status": "CLAIMED",
+      "evidence": "docs/evidence/CODE.RESOLVER/PROVENANCE.md; src/resolver.zig; findings/T387-capture-budget.json; docs/research/capture-budget-2026-08-06.md",
+      "depends_on": "e:CODE.RESOLVER-INTERFACE",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    },
+    {
+      "id": "CODE.RESOLVER-CONTROLS",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "The resolver comparison harness has null (none proposes nothing) and seeded (deliberately_wrong REFUTED) controls; both fire correctly at 3x3 over 23,420 positions. Renamed from RESOLVER.CONTROLS at absorption; PROVEN per brief rule 3 (exhaustive within the harness; independently re-run at absorption: null 0/23,420, seeded REFUTED 20,216/20,216, capture_budget proposes 20,216/23,420 / abstains 3,204/23,420).",
+      "status": "PROVEN",
+      "evidence": "docs/evidence/CODE.RESOLVER/PROVENANCE.md; src/resolver.zig; src/resolver_harness.zig",
+      "depends_on": "e:CODE.RESOLVER-INTERFACE",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "directives": [
+    {
+      "directive": "add_row",
+      "claim_id": "3x3.OPTIMAL-CYCLE",
+      "insert_after": "QA-027",
+      "section": "2",
+      "row_text": "| `3x3.OPTIMAL-CYCLE` | — | 3x3 | **The optimal-move subgraph at 3×3 (all optimal children kept, ties included) CONTAINS-CYCLES — exhaustive over 47,456 states / 76,244 edges (T416, 2026-08-08, instrument `src/t416_cycle.zig`; artifact `data/oracle-3x3-v2.wzo2`; re-run byte-identical by an independent console).** 54 cyclic SCCs, 4,550 states on cycles (9.6% of states); value constant on all 54 cycles (0 bad). The forced/indifferent split: **12 FORCED cycles / 80 states** (every node strictly prefers to stay — the loop is compelled under optimal play by both sides) and **42 INDIFFERENT cycles / 4,470 states** (an optimal exit exists at ≥1 node — the loop is available, not compelled). Tautology guard `V_p==Bellman-best`: 0 / 47,456 mismatches. Controls: null graph ACYCLIC (0 edges); seeded `force_all_optimal` RED (1 giant cyclic SCC of 45,958 states, value-const 0/1 — the planted corruption showing through as expected); tie-handling control keeps 37,350 edges (vs 76,244 all-ties) and undercounts cycles 54→48 / states 4,550→208 — the fabricated-acyclicity failure demonstrated (not full acyclicity at 3×3, but a 22× state undercount). **This answers the operator's central question for 3×3: optimal play by BOTH sides can sustain a loop, and 12 of the loops are genuinely forced — the 'no problem to solve' case is NOT established at 3×3.** Scope: fresh-start optimal-move subgraph (C1 values); not a real-game PSK claim (C2 FALSE-AS-SCOPED at 3×2, C3 FALSE-AS-SCOPED at 3×3); ko-sensitive columns distrusted pending Track A. Single-instrument self-report + one independent console re-run (byte-identical), not a second-seat adjudication — MEASUREMENT, not PROVEN. | MEASUREMENT | docs/research/optimal-cycle-test-2026-08-08.md; /tmp/weizigo/t416/out/3x3-allties.json; /tmp/weizigo/t416/audit-allties-3x3.json | — | — | 0 | ? | TREE-ASSIGN |",
+      "tree": "TREE-ASSIGN — assign a node from register-tree-map.md §1 (C9-gated); the findings schema carries no tree field"
+    },
+    {
+      "directive": "add_row",
+      "claim_id": "4x4.OPTIMAL-CYCLE",
+      "insert_after": "QA-027",
+      "section": "2",
+      "row_text": "| `4x4.OPTIMAL-CYCLE` | — | 4x4 | **The optimal-move subgraph at 4×4 (all optimal children kept) CONTAINS-CYCLES on a declared SAMPLE — BFS seed 42, budget 150,000 nodes, 2,000 seeds → 150,001 nodes / 208,908 edges (T416, 2026-08-08, instrument `src/t416_cycle.zig`; artifact `data/oracle-4x4-v2.wzo2`; re-run byte-identical by an independent console).** 6 cyclic SCCs, 24 states on cycles, all 4-cycles, value constant on all 6 (0 bad); **0 FORCED / 6 INDIFFERENT** in the sample. Tautology guard 0 / 150,001 mismatches. Controls: null ACYCLIC (0 edges); seeded `force_all_optimal` RED (14 cyclic SCCs / 66 states, value-const 1/13 ok — the seeded corruption showing through, expected); **tie-handling control keeps 45,905 edges (vs 208,908 all-ties) and FABRICATES ACYCLIC** — the single most likely way to get this question wrong, demonstrated. **A sampled POSITIVE: the sample cannot overstate acyclicity, only understate it; cycles exist at 4×4.** Scope limits: (1) SAMPLE — 150,001 / 99,133,036 ≈ 0.15% of the table; '0 forced in the sample' is a lower bound (0), NOT '0 forced at 4×4' — whether 4×4 has any forced cycle is OPEN (the 3×3 exhaustive rate was 12/54 = 22%, but per-goban independence forbids cross-size inference). (2) The exhaustive 4×4 run was killed twice by the 4 GB RSS guard (D061/D062); the sample is the honest deliverable. (3) Fresh-start optimal-move subgraph (C1); not a real-game PSK claim; ko-sensitive columns distrusted pending Track A. Single-instrument self-report + one independent console re-run (byte-identical) — MEASUREMENT, not PROVEN. | MEASUREMENT | docs/research/optimal-cycle-test-2026-08-08.md; /tmp/weizigo/t416/out/4x4-allties.json; /tmp/weizigo/t416/audit-4x4-150000.json | — | — | 0 | ? | TREE-ASSIGN |",
+      "tree": "TREE-ASSIGN — assign a node from register-tree-map.md §1 (C9-gated); the findings schema carries no tree field"
+    },
+    {
+      "directive": "add_row",
+      "claim_id": "RESOLVER.INTERFACE",
+      "insert_after": "QA-027",
+      "section": "2",
+      "row_text": "| `RESOLVER.INTERFACE` | — | all | Bracket resolvers are pluggable via `src/resolver.zig` — a `Resolver` takes a `ResolveContext` (colex, side, L, H) and returns `Resolution.value` or `.no_opinion`. No resolver is authoritative; output is never promoted without independent agreement (ADR-0022). | PROVEN | src/resolver.zig (11/11 tests pass), src/resolver_harness.zig (3x3 artifact-backed comparison) | ADR-0009 | — | 0 | ? | TREE-ASSIGN |",
+      "tree": "TREE-ASSIGN — assign a node from register-tree-map.md §1 (C9-gated); the findings schema carries no tree field"
+    },
+    {
+      "directive": "add_row",
+      "claim_id": "RESOLVER.BUDGET-QUARANTINE",
+      "insert_after": "QA-027",
+      "section": "2",
+      "row_text": "| `RESOLVER.BUDGET-QUARANTINE` | T387, T397 | all | The capture budget is demoted from a ruleset candidate to a named, pluggable resolver (`capture_budget(B)`) whose registration metadata records its measured non-convergence: 4x3 root oscillates forever in {0,1,2,7,9,12}, never equals PSK truth +4; internal consistency is not external agreement (ADR-0022 §Context). MIGOS +2 is the same class of precedent (T274, T290). | PROVEN | findings/T387-capture-budget.json, docs/research/capture-budget-2026-08-06.md, src/resolver.zig | T387, T397 | — | 0 | ? | TREE-ASSIGN |",
+      "tree": "TREE-ASSIGN — assign a node from register-tree-map.md §1 (C9-gated); the findings schema carries no tree field"
+    },
+    {
+      "directive": "add_row",
+      "claim_id": "RESOLVER.CONTROLS",
+      "insert_after": "QA-027",
+      "section": "2",
+      "row_text": "| `RESOLVER.CONTROLS` | — | all | The resolver comparison harness includes two controls: (1) null — the `none` resolver proposes nothing and moves no counter; (2) seeded — `deliberately_wrong` (propose L-1) is immediately REFUTED by the L==H agreement column. Both fire correctly at 3x3 (23,420 positions). The capture_budget(B) resolver is a documented partial implementation: proposes L for L==H entries (the budget rule preserves the determined region at sufficient B per T387; 0/21,126 moved at 3x3 B≥24), no_opinion for L<H (requires full forward search with the game engine — not computable from [L,H] alone). This replaces the original always-no_opinion stub, making the comparison measurable where it was previously 0/0. | PROVEN | src/resolver.zig (test comparison harness — deliberately_wrong IS REFUTED, test comparison harness — null control, test comparison harness — capture_budget partial implementation), src/resolver_harness.zig (3x3 run) | RESOLVER.INTERFACE | — | 0 | ? | TREE-ASSIGN |",
+      "tree": "TREE-ASSIGN — assign a node from register-tree-map.md §1 (C9-gated); the findings schema carries no tree field"
+    }
+  ],
+  "notes": "T418 (absorb the T416/T402 backlog, 5 rows) — absorption complete. Register +5: 221 -> 226; C9 lockstep with register-tree-map.md (226 = 223 mapped + 3 RETIRED). C7 unabsorbed: 0; C7 non-conforming: 0; calibration PASS. Floors unmoved: C2=11, C3=48, C9=0; tools/hooks/claimlint-floor.json untouched. Landmark: advances L4 (the ledger is clean) — the five proposals now have register homes with the brief's rulings applied: the OPTIMAL-CYCLE measurements keep their MEASUREMENT ceiling and their exact scope limits, the resolver rows are CODE-scoped with per-row PROVEN justification (or the downgrade said out loud), and the /tmp evidence citations resolve to committed files under docs/evidence/ (C2b-checked: zero new dead links at close).\n\nEVIDENCE-PATH FIX (the row's blocker): findings/T416-optimal-cycle.json cited /tmp/weizigo/t416/... — /tmp is not evidence (AGENTS.md). The Orchestrator had copied the run+audit JSONs to docs/evidence/T416-OPTIMAL-CYCLE/ (committed with this row); both register rows' evidence columns now cite that directory. The research doc's own Source: citations (`out/3x3-allties.json`, `out/4x4-allties.json`) were the SECOND instance of the same defect — they were newly-dangling (C2 11 -> 13 at the seeded waypoint) and were re-pointed to the committed copies, with the provenance section recording the durable home and that the .stdout files were not retained. The findings file itself was NOT edited (immutable record; the fix went in the register row text and the doc). The other three proposals' evidence columns checked for the same defect: T402's three rows cite src/, findings/, docs/ — all git-tracked, no /tmp.\n\nPER-ROW STATUS DECISIONS (brief rule 3, stated per row):\n- 3x3.OPTIMAL-CYCLE — MEASUREMENT, kept: single-instrument self-report + one byte-identical independent-console re-run is not a second-seat adjudication; the row's own sentence is kept.\n- 4x4.OPTIMAL-CYCLE — MEASUREMENT, kept; 4x4 scope limits carried verbatim: '0 FORCED in the sample' is a lower bound, NOT '0 forced at 4x4'; sample 150,001/99,133,036 = 0.15%; the exhaustive run was killed twice by the 4 GB RSS guard; per-goban independence forbids inferring 4x4 from 3x3's 12/54 forced rate. A sampled positive cannot be weakened into a general negative.\n- CODE.RESOLVER-INTERFACE — renamed from RESOLVER.INTERFACE (RESOLVER. is not an ID scope in CLAIMS.md §1; CODE. is, and these are code claims) and kept PROVEN: definitional — the interface contract is what src/resolver.zig says (zig test at absorption: 11 passed, 0 failed, 1 deliberate skip — the artifact-backed comparison is the harness binary, not a unit test) and the no-authoritative-resolver rule is ADR-0022's recorded policy. PROVEN in the same sense as GLOBAL.ADR0009-HONESTY — as a statement about the code and the decision record, not an empirical claim about a goban.\n- CODE.RESOLVER-CONTROLS — renamed and kept PROVEN; brief rule 3 explicitly qualifies ('cites both controls firing over 23,420 positions at 3x3, which qualifies'). Independently re-run at absorption: src/resolver_harness.zig rebuilt ReleaseSafe and run at 3x3, seed 42, on data/oracle-3x3-v2.wzo2 — null control 0/23,420 proposed; deliberately_wrong REFUTED at 20,216/20,216 L==H disagreements (first witness colex=0 side=1 L=H=9 proposed=8); capture_budget(8) proposes 20,216/23,420, abstains 3,204/23,420; baselines bracket_low/high/mid agree 20,216/20,216 on L==H and stay inside [L,H] on all 3,204 L<H. Reproduces the T402 figures exactly. The 0/21,126-at-B>=24 figure is T387's budget-mode datum, attributed to T387 in the row text and NOT re-derived.\n- CODE.RESOLVER-BUDGET-QUARANTINE — renamed and DOWNGRADED PROVEN -> CLAIMED (brief rule 3: 'If you cannot justify it, downgrade — and say you did'): the demotion, the resolver registration and its metadata are code/process facts verifiable by reading src/resolver.zig and ADR-0022, but the load-bearing measured non-convergence (4x3 root oscillates forever in {0,1,2,7,9,12}, never equals PSK truth +4) is a single-instrument T387 datum of the same provenance class as GLOBAL.CAPTURE-BUDGET-DAG (T387 readings, no independent seat — that sibling row is held at MEASUREMENT for exactly this reason, T404). Verify-then-promote (QA-023 chain): no second seat has adjudicated the oscillation, so the compound claim is CLAIMED, not PROVEN.\n\nRENAMES/DOWNGRADE dispositioned in findings/rejections.json (claimlint C7 refuses a bare ignore; every entry reason-carrying): RESOLVER.INTERFACE -> CODE.RESOLVER-INTERFACE (absorbed-under-register-id); RESOLVER.CONTROLS -> CODE.RESOLVER-CONTROLS (absorbed-under-register-id); RESOLVER.BUDGET-QUARANTINE (rejected-by-register — the absorbing row CODE.RESOLVER-BUDGET-QUARANTINE sits at CLAIMED). C7 at close prints all three as dispositioned (2 ABSORBED UNDER REGISTER ID + 1 REJECTED), unabsorbed: 0.\n\nCONTROLS:\n- Null — claimlint before: rows parsed 221/0, C1a 0, C1b 0, C2 11, C3 48, C4 47/2, C5 0, A 5, C6 0, C7 5, non-conforming 2, C8 0, C9 0, calibration PASS. After: rows 226/0, C1a 0, C1b 0, C2 11, C3 48, C4 45/2, C5 0, A 5, C6 0, C7 0, non-conforming 0, C8 0, C9 0, edges 237 -> 239 (+2 e: from the new rows), calibration PASS. Every counter except the absorbed-row count is unchanged, with two explained exceptions: C7 (5 unabsorbed -> 0 — the absorption itself) and C4 47 -> 45 (the two OPTIMAL-CYCLE IDs were cited-and-dangling in docs/status/sprint-2026-08-08b.md before this row; absorption registered them; the three PROVENANCE.md CODE.RESOLVER-* tokens are all registered at close). Both moves are the absorption doing its job; C4 is report-only and moved DOWN.\n- Seeded — CODE.RESOLVER-CONTROLS deliberately left out of the first pass (register + mapping doc + no rejection entry): claimlint reported exactly 1 unabsorbed (RESOLVER.CONTROLS, NO SUCH ID, in T402-capture-budget-pluggable.json) at rows 225, C9 0; then the row and its rejection entry landed and C7 returned to 0. (T404's control shape; it worked.)\n\nNON-CONFORMING CLEANUP: findings/T416-cycle-3x3.json and findings/T416-cycle-4x4.json — the two partial findings files missing date/model/claims that made claimlint report non-conforming: 2 — were removed. T416's own notes said they were 'superseded by this file and removed' but they were still on disk, untracked; removing them completes the stated intent (no git record; not a content edit of an immutable record). non-conforming: 0 at close.\n\nDirectives (pasted verbatim from `bin/weizigo-absorb <findings.json> --dry-run` at 221 rows, pre-absorption) are in the `directives` array. They carry the TREE-ASSIGN placeholders; each was resolved to a real node from register-tree-map.md §1 at absorption: Z-R-TIE (both OPTIMAL-CYCLE rows — the fixpoint gives uniquely determined values on all measured cycles and forced loops make cycle resolution load-bearing), Z-AUDIT (all three CODE.RESOLVER-* rows — the resolver subsystem is the comparison instrument; instrument-validity family). The two T416 directives' row_text still shows the /tmp evidence paths — that is the pre-fix tool output, recorded as evidence of the defect; the register rows carry the corrected paths."
+}

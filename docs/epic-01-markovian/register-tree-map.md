@@ -39,7 +39,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 - **Measurements map to the node they evidence** (e.g. `4x4.M2` 19 sweeps → Z-CONVERGE-FINITE,
   `2x2.BASICKO-TIE` root value → Z-TABLE), not to a node of their own.
 
-## 1. The mapping — 221 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
+## 1. The mapping — 226 rows (matches the register; count printed by claimlint C0). The 132 rows triaged out on 2026-08-06 (T373) live in archives/register/INDEX.md — see §2.
 
 | ID | tree node | note |
 |---|---|---|
@@ -264,6 +264,11 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `GLOBAL.DRAWLOOP-CONFINED` | Z-TABLE | T394: draw-by-loop confined to the neither-can-force class (exact ≤3x3; 98.95% at 4x4, witnessed exceptions) — bracket/draw structure; converse NOT a draw certificate (T404) |
 | `GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE` | Z-TABLE | T394: neither-can-force class is mostly decisive (85.3% at 4x4) — decisive-vs-draw structure, refutes draw-pruning framing (T404) |
 | `CODE.PROPERTY-OWNERSHIP` | Z-AUDIT | T395: one production implementation per property, differential per surviving pair, seeded-defect controls red-then-green — instrument discipline (T404) |
+| `3x3.OPTIMAL-CYCLE` | Z-R-TIE | T416: the optimal-move subgraph CONTAINS-CYCLES at 3×3 — exhaustive, 54 cyclic SCCs, 12 FORCED — cycle resolution (C3) is load-bearing under optimal play; value constant on all 54 cycles (0 bad); not a real-game claim (T418) |
+| `4x4.OPTIMAL-CYCLE` | Z-R-TIE | T416: sampled positive — cycles exist at 4×4 (6 SCCs in the declared 150,001-node / ≈0.15% sample); '0 forced in the sample' is a lower bound, not a general negative; sibling of 3x3.OPTIMAL-CYCLE, per-goban independence (T418) |
+| `CODE.RESOLVER-INTERFACE` | Z-AUDIT | ADR-0022: pluggable resolver interface, none authoritative — instrument architecture (T402, absorbed T418) |
+| `CODE.RESOLVER-BUDGET-QUARANTINE` | Z-AUDIT | capture budget demoted to a named pluggable resolver whose registration metadata records its measured non-convergence — instrument validity; sibling GLOBAL.CAPTURE-BUDGET-DAG; CLAIMED not PROVEN at absorption (T402, absorbed T418) |
+| `CODE.RESOLVER-CONTROLS` | Z-AUDIT | harness null + seeded controls fire at all 23,420 3×3 positions — instrument-control discipline, re-verified at absorption (T402, absorbed T418) |
 
 ## 2. Adopted retirements — 132 rows moved to archives/register/, by family
 
@@ -470,8 +475,8 @@ foundation fell. Full epitaphs in `archives/register/families/falsified-foundati
 
 | surface | count | produced by |
 |---|---|---|
-| register rows | **221** | `bin/weizigo-claimlint` C0 (`rows parsed: 221`) — live count on every run, after T373's triage adoption (was 339) + 10 T384/T396 absorptions + 8 T404 absorptions |
-| mapping rows (this doc §1) | **221** (218 mapped to a node + 3 RETIRED) | claimlint C9 cross-check (row set equality) |
+| register rows | **226** | `bin/weizigo-claimlint` C0 (`rows parsed: 226`) — live count on every run, after T373's triage adoption (was 339) + 10 T384/T396 absorptions + 8 T404 absorptions + 5 T418 absorptions |
+| mapping rows (this doc §1) | **226** (223 mapped to a node + 3 RETIRED) | claimlint C9 cross-check (row set equality) |
 | moved rows (§2) | **132** (122 RETIRED + 10 BOGUS) | same run + the triage sheet's classification |
 | unmapped without disposition | **0** | C9a (empty/invalid `tree` cell fails the run) |
 

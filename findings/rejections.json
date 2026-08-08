@@ -350,6 +350,36 @@
       "disposition": "absorbed-under-register-id",
       "refuting_row": "GLOBAL.I5-SCC-CONTAIN (CLAIMED, CLAIMS.md §2.10)",
       "rationale": "The findings file used the malformed ID 'Z-CONVERGE-FIX' — no register prefix (GLOBAL./CODE./<goban>.) and a collision with the Z-column vocabulary (the tree/colex label Z-CONVERGE-FIX already names the fixpoint-convergence row family, e.g. 4x4.WZO2-A2-EXHAUSTIVE's tree cell). The content (I5 SCC containment passes at 3x2/4x3/4x4, ko_not_cr=0) is registered as GLOBAL.I5-SCC-CONTAIN (CLAIMED) added by STANDING-ABSORB 2026-08-05, cited from findings/T344-i5-4x4.json. Single-instrument self-report held at CLAIMED, not PROVEN, per verify-then-promote."
+    },
+    {
+      "finding_task": "T402",
+      "finding_file": "T402-capture-budget-pluggable.json",
+      "claim_id": "RESOLVER.INTERFACE",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.RESOLVER-INTERFACE: PROVEN",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.RESOLVER-INTERFACE (PROVEN, CLAIMS.md §2.11 tail)",
+      "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix: RESOLVER. is not an ID scope in CLAIMS.md §1 (GLOBAL./CODE./<goban> are), and this is a claim about code, not about a goban — CODE. is the right namespace (renaming now is cheap; renaming after citation is not). Registered as CODE.RESOLVER-INTERFACE at PROVEN: definitional code claim (the interface contract is what src/resolver.zig says; 11 unit tests pass, 1 deliberate skip, re-verified by zig test at absorption), and the no-authoritative-resolver rule is ADR-0022's recorded policy (brief rule 3)."
+    },
+    {
+      "finding_task": "T402",
+      "finding_file": "T402-capture-budget-pluggable.json",
+      "claim_id": "RESOLVER.BUDGET-QUARANTINE",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.RESOLVER-BUDGET-QUARANTINE: CLAIMED",
+      "disposition": "rejected-by-register",
+      "refuting_row": "CODE.RESOLVER-BUDGET-QUARANTINE (CLAIMED, CLAIMS.md §2.11 tail — downgraded at T418 absorption)",
+      "rationale": "T418 absorption renamed the ID to CODE.RESOLVER-BUDGET-QUARANTINE and DOWNGRADED the proposed status from PROVEN to CLAIMED. The demotion, the resolver registration and its metadata are code/process facts verifiable by reading src/resolver.zig and ADR-0022; but the load-bearing measured non-convergence (4×3 root oscillates in {0,1,2,7,9,12}, never equals PSK truth +4) is a single-instrument T387 datum of the same provenance class as GLOBAL.CAPTURE-BUDGET-DAG (T387 readings salvaged from /tmp, no independent seat — that sibling row is held at MEASUREMENT for exactly this reason, T404). Verify-then-promote (QA-023 chain): a load-bearing claim moves to PROVEN only after an independent seat agrees; none has adjudicated the oscillation, so the compound claim is CLAIMED, not PROVEN. Brief rule 3: 'If you cannot justify it, downgrade — and say you did.'"
+    },
+    {
+      "finding_task": "T402",
+      "finding_file": "T402-capture-budget-pluggable.json",
+      "claim_id": "RESOLVER.CONTROLS",
+      "proposed_status": "PROVEN",
+      "register_status": "CODE.RESOLVER-CONTROLS: PROVEN",
+      "disposition": "absorbed-under-register-id",
+      "refuting_row": "CODE.RESOLVER-CONTROLS (PROVEN, CLAIMS.md §2.11 tail)",
+      "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix (RESOLVER. is not an ID scope in CLAIMS.md §1; CODE. is, and this is a code claim). Registered as CODE.RESOLVER-CONTROLS at PROVEN: both controls fire over all 23,420 3×3 harness positions — verification is exhaustive within the harness, and the harness was independently re-run at absorption (null 0/23,420; deliberately_wrong REFUTED at 20,216/20,216; capture_budget proposes 20,216/23,420, abstains 3,204/23,420). Brief rule 3 qualifies PROVEN: 'RESOLVER.CONTROLS cites both controls firing over 23,420 positions at 3x3, which qualifies.' The claim is about the harness's control wiring, not a goban value."
     }
   ]
 }
