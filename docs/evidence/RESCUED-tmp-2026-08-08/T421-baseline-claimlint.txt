@@ -1,0 +1,474 @@
+weizigo-claimlint — docs/epistemic/CLAIMS.md
+repo index: 4329 files · register §2 lines 214–591
+
+== C0  PARSE ==
+rows parsed:   226
+rows UNPARSED: 0   <-- must be 0; a linter that skips rows is worse than none
+edges: 239 total — 107 `d:` derives-from, 117 `e:` evidenced-by, 15 `n:` derives-from-negation
+
+== C1  ORPHAN DETECTION — C1a ORPHANED · C1b STALE-NEGATION (fails the run) ==
+C1a ORPHANED: PROVEN/CLAIMED claims with a transitive `d:` ancestor that is FALSE.
+`n:` edges are NOT traversed — a claim justified by a refutation does not
+inherit the refuted parent's ancestry. C1b STALE-NEGATION below checks them the other way.
+
+  (none)
+
+  C1a ORPHANED orphans: 0
+
+  C1b STALE-NEGATION — NEGATION ALARM: `n:` edges whose parent is no longer FALSE.
+  (none — every `n:` edge points at a parent that is still FALSE)
+
+  C1b STALE-NEGATION alarms: 0
+
+  C1 total (C1a ORPHANED + C1b STALE-NEGATION): 0
+
+== C2 DEAD-LINKS  DANGLING EVIDENCE (fails the run) ==
+
+  missing paths, with the claims that reach them:
+  C2 DEAD-LINKS  untracked/B05-glm.md
+           named in: docs/epistemic/boards/4x4/EPISTEMIC.md docs/epistemic/boards/CONCEPTS.md docs/status/leak-crisis.md docs/evidence/README.md
+           reachable from 58 register row(s), e.g. `GLOBAL.S1` `4x4.S1` `GLOBAL.S2` `4x4.S2-impl`
+  C2 DEAD-LINKS  untracked/T07-audit-hypotheses.md
+           named in: docs/epistemic/boards/4x4/EPISTEMIC.md docs/evidence/README.md
+           reachable from 33 register row(s), e.g. `GLOBAL.S1` `4x4.S1` `4x4.S2-impl` `GLOBAL.S3a`
+  C2 DEAD-LINKS  untracked/T02-audit-kimi.md
+           named in: docs/status/leak-crisis.md docs/evidence/README.md
+           reachable from 23 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  C2 DEAD-LINKS  untracked/T02-minimax.md
+           named in: docs/status/leak-crisis.md the evidence column itself docs/evidence/README.md
+           reachable from 23 register row(s), e.g. `2x2.B1` `3x2.B1` `3x3.B1` `GLOBAL.B1-MULTIFIX`
+  C2 DEAD-LINKS  untracked/B39-arena4x4.md
+           named in: docs/research/arena-4x4-undef.md docs/evidence/README.md
+           reachable from 5 register row(s), e.g. `4x4.C2` `4x4.B39` `4x4.B43` `4x4.B43-DIV`
+  C2 DEAD-LINKS  /tmp/audit-2x2-mismatch.log
+           named in: docs/audits/2026-07-30-audit-2x2-mismatch.md
+           reachable from 4 register row(s), e.g. `GLOBAL.BRUTE-ALIASING` `2x2.BASICKO-TIE` `3x2.BASICKO-TIE` `3x3.BASICKO-TIE`
+  C2 DEAD-LINKS  untracked/T13-minimax.md
+           named in: docs/research/c2-falsification-3x2.md docs/evidence/T13/probe-reimplementation-2026-07-30.md docs/evidence/README.md
+           reachable from 3 register row(s), e.g. `3x2.C1` `3x2.T13` `QA-022`
+  C2 DEAD-LINKS  untracked/c2pilot_3x2.zig
+           named in: docs/research/c2-falsification-3x2.md docs/evidence/T13/probe-reimplementation-2026-07-30.md docs/evidence/README.md
+           reachable from 3 register row(s), e.g. `3x2.C1` `3x2.T13` `QA-022`
+  C2 DEAD-LINKS  /tmp/weizigo/T212-build-run2.log
+           named in: docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md
+           reachable from 1 register row(s), e.g. `SPRINT-M4a-ACCEPT`
+  C2 DEAD-LINKS  /tmp/weizigo/T212-build.log
+           named in: docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md
+           reachable from 1 register row(s), e.g. `SPRINT-M4a-ACCEPT`
+  C2 DEAD-LINKS  /tmp/zig-tables.txt
+           named in: docs/evidence/T13/probe-reimplementation-2026-07-30.md
+           reachable from 1 register row(s), e.g. `3x2.T13`
+
+  bulk .wzo artifacts cited but absent (informational — git-ignored by
+  design, hashes recorded in docs/evidence/README.md; does NOT fail):
+    data/oracle-4x4.wzo  (named in docs/epistemic/boards/4x4/EPISTEMIC.md)
+    /tmp/weizigo/T274-tie-0.wzo  (named in docs/evidence/GLOBAL-TIE-MIGOS/tie-experiment-T274.md)
+    data/oracle-3x3-basicko-tie0.wzo  (named in docs/research/f2-remedy-design-2026-07-29.md)
+    data/oracle-4x4-basicko-tie0.wzo  (named in docs/research/f2-remedy-design-2026-07-29.md)
+    artifacts/oracle-2x2/3x2/3x3/4x3.wzo  (named in docs/infra/instrument-coverage.md)
+
+  already inventoried as CONFIRMED LOST in docs/evidence/README.md and named nowhere
+  else — a recorded loss, not a dangling citation; does NOT fail:
+    untracked/B09-kimi.md
+    untracked/B23-kocensus.md
+    untracked/T12-minimax.md
+    untracked/T15-kimi.md
+    untracked/T15-review-kimi.md
+    untracked/T16-glm.md
+    untracked/T99-tripleko.md
+    untracked/c2pilot_2x2.zig
+    untracked/delegation-prompts-2026-07-26.md
+    untracked/discussion.md
+    untracked/idea-heap.md
+    untracked/model-perf.md
+    untracked/task-minimax.md
+
+  evidence documents that EXIST but are git-ignored — readable today,
+  unrecoverable after the next sweep (roadmap §4 P1; QA-022):
+    (none)
+
+  C2 DEAD-LINKS total: 11  (11 unique missing paths — 0 cited by the evidence column
+            directly, 11 named inside cited documents — plus 0 git-ignored
+            evidence documents; 5 bulk .wzo and 13 already-inventoried
+            losses, not counted)
+
+== C3 UNBACKED  PROVEN WITHOUT COMMITTED EVIDENCE (debt list — does NOT fail, yet) ==
+roadmap-2026-07-28 §4 P1: a claim is PROVEN only if its probe source and
+output are committed under docs/evidence/. Tier C = no committed evidence
+at all. Tier B = a committed prose document records the result, but no
+re-runnable probe. Tier A = compliant.
+
+  TIER C — PROVEN, no committed evidence resolves at all (0):
+    (none)
+
+  TIER B — PROVEN, committed prose only, no probe under docs/evidence/ (48):
+    [in-deg  5] `GLOBAL.S3a`
+    [in-deg  5] `GLOBAL.FP3`
+    [in-deg  4] `GLOBAL.S1`
+    [in-deg  3] `3x2.C1`
+    [in-deg  3] `3x3.C3`
+    [in-deg  3] `GLOBAL.E2-SANITY`
+    [in-deg  3] `GLOBAL.MIGOS-RULE`
+    [in-deg  3] `GLOBAL.PASS-NOKO`
+    [in-deg  2] `GLOBAL.ADR0009-HONESTY`
+    [in-deg  2] `2x2.C1`
+    [in-deg  2] `3x3.E3`
+    [in-deg  2] `GLOBAL.E2-POLICY`
+    [in-deg  2] `3x2.F1`
+    [in-deg  2] `GLOBAL.ADR0003-AREA`
+    [in-deg  1] `4x4.S1`
+    [in-deg  1] `3x3.S2-impl`
+    [in-deg  1] `4x4.S3a`
+    [in-deg  1] `4x3.S3a`
+    [in-deg  1] `4x4.FP1-C3`
+    [in-deg  1] `GLOBAL.LEAK`
+    [in-deg  1] `GLOBAL.ADR0009-NOEYE`
+    [in-deg  1] `GLOBAL.P2`
+    [in-deg  1] `QA-021`
+    [in-deg  0] `4x3.S1`
+    [in-deg  0] `4x3.S2`
+    [in-deg  0] `GLOBAL.B1-AUDIT`
+    [in-deg  0] `4x3.FP3`
+    [in-deg  0] `GLOBAL.E1`
+    [in-deg  0] `GLOBAL.ADR0008-HOLE`
+    [in-deg  0] `GLOBAL.ADR0010-SOUND`
+    [in-deg  0] `3x2.F3`
+    [in-deg  0] `3x2.F4`
+    [in-deg  0] `3x3.F4`
+    [in-deg  0] `4x3.F4`
+    [in-deg  0] `GLOBAL.MEMO-XROOT`
+    [in-deg  0] `GLOBAL.ADR0006-PRED`
+    [in-deg  0] `GLOBAL.ADR0006-LEMMAS`
+    [in-deg  0] `GLOBAL.ADR0006-TEST`
+    [in-deg  0] `GLOBAL.ADR0006-PRUNEALL`
+    [in-deg  0] `GLOBAL.ADR0004-TERM`
+    [in-deg  0] `GLOBAL.ADR0005-PASS`
+    [in-deg  0] `GLOBAL.CALIB-LESSON`
+    [in-deg  0] `CODE.ADR0011-FMT`
+    [in-deg  0] `CODE.ADR0011-GATE`
+    [in-deg  0] `CODE.M4A-HARNESS`
+    [in-deg  0] `CODE.VB-STUBS`
+    [in-deg  0] `GLOBAL.ADR0014-PURE`
+    [in-deg  0] `QA-025`
+
+  TIER A — compliant (evidence under docs/evidence/): 21
+    `GLOBAL.S2`
+    `GLOBAL.S4`
+    `GLOBAL.FP1`
+    `GLOBAL.INVSYM`
+    `GLOBAL.ADR0020-LH-CORRECT`
+    `3x2.T13`
+    `GLOBAL.AUDITOR`
+    `GLOBAL.H1-CENSUS`
+    `3x3.H1-CENSUS`
+    `4x3.H1-CENSUS`
+    `CODE.WZO2-PASSBIT`
+    `SPRINT-M4a-ACCEPT`
+    `CODE.WZO2-PASS1-LAW`
+    `CODE.ACCEPT-KOKEY`
+    `CODE.CLAIMLINT-C7-NEWROWS`
+    `CODE.GTP-KOKEY`
+    `4x4.V1-INVSYM-BROKEN`
+    `CODE.BATTERY-STUBBED`
+    `CODE.VB-BLINDGAPS`
+    `CODE.RESOLVER-INTERFACE`
+    `CODE.RESOLVER-CONTROLS`
+
+  C3 UNBACKED total PROVEN-without-committed-evidence: 48 of 69 PROVEN rows
+
+== C4 GHOST-IDS  DANGLING CLAIM IDs (report only — does NOT fail, yet) ==
+  C4 GHOST-IDS — claim IDs cited in docs/ with NO register row (45):
+    C4 GHOST-IDS  `GLOBAL.C1-CALIB`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:199 docs/epistemic/claimlint-2026-07-28.md:377 docs/epistemic/CLAIMS.md:326
+    C4 GHOST-IDS  `2x2.C4`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:190 docs/epistemic/claimlint-2026-07-28.md:375 docs/epistemic/CLAIMS.md:326
+    C4 GHOST-IDS  `GLOBAL.H5c-id`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:109
+    C4 GHOST-IDS  `GLOBAL.H1`  cited at docs/infra/dispatch/T124-t13-row-rewrite.md:25 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:14 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:15 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:18
+    C4 GHOST-IDS  `GLOBAL.STATE-MD`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:329
+    C4 GHOST-IDS  `GLOBAL.CLAIMLINT`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:1 docs/INDEX-claim-task.md:69
+    C4 GHOST-IDS  `GLOBAL.HYPOTHESES`  cited at docs/evidence/GLOBAL.HYPOTHESES/PROVENANCE.md:1 docs/INDEX-claim-task.md:79
+    C4 GHOST-IDS  `GLOBAL.FP5`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:66
+    C4 GHOST-IDS  `GLOBAL.ADR0013-REF`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:71
+    C4 GHOST-IDS  `2x2.brute_value`  cited at docs/INDEX-claim-task.md:25
+    C4 GHOST-IDS  `4x4.V1-INVSYM-RATE`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p5/PACKET.md:9
+    C4 GHOST-IDS  `GLOBAL.ADR0012-EXTRAP`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:218
+    C4 GHOST-IDS  `4x4.S2`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:192 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:192 docs/epistemic/claimlint-2026-07-28.md:379 docs/epistemic/CLAIMS.md:55
+    C4 GHOST-IDS  `3x2.QA023.B-PROBE`  cited at docs/infra/dispatch/2B-PROBE-FIX.md:68 docs/evidence/QA-023/reference-semantics-2026-07-29.md:122 docs/evidence/QA-023/probe-fix-2026-07-29.md:206 docs/evidence/QA-023/census-3x2-2026-07-29.md:237
+    C4 GHOST-IDS  `3x2.QA023.B-CAL-NEG`  cited at docs/evidence/QA-023/reference-semantics-2026-07-29.md:125 docs/evidence/QA-023/census-3x2-2026-07-29.md:240 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:445 docs/audits/2026-07-29-2b-6-full-review.md:466
+    C4 GHOST-IDS  `4x4.C-A1-PASS`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p4/PACKET.md:9
+    C4 GHOST-IDS  `4x4.checkpoint`  cited at docs/INDEX-claim-task.md:52
+    C4 GHOST-IDS  `GLOBAL.SESSION-CHOOSE`  cited at docs/INDEX-claim-task.md:90
+    C4 GHOST-IDS  `GLOBAL.FP4`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:65
+    C4 GHOST-IDS  `GLOBAL.CALPARENT-DEAD`  cited at docs/epic-01-markovian/sprints/knowledge-capture/pass0/design.md:181
+    C4 GHOST-IDS  `4x4.DTT`  cited at docs/evidence/ORACLE-V2/build-T184-2026-08-01.md:128
+    C4 GHOST-IDS  `4x4.WZO2-OOM`  cited at docs/evidence/ORACLE-V2/build-T184-2026-08-01.md:133
+    C4 GHOST-IDS  `GLOBAL.H5c-verdict`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:109
+    C4 GHOST-IDS  `4x4.X2`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:196 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/CLAIMS.md:397
+    C4 GHOST-IDS  `GLOBAL.CORRECTIONS`  cited at docs/INDEX-claim-task.md:70
+    C4 GHOST-IDS  `3x2.QA023.B-VACUITY`  cited at docs/infra/dispatch/2B-0.md:6 docs/infra/dispatch/2B-2.md:8 docs/infra/dispatch/2B-6.md:4 docs/evidence/QA-023/PROVENANCE-census-3x2-2026-07-29.md:53
+    C4 GHOST-IDS  `GLOBAL.DENOMINATORS`  cited at docs/evidence/GLOBAL.DENOMINATORS/PROVENANCE.md:6 docs/evidence/GLOBAL.DENOMINATORS/sweep-2026-07-28.md:5 docs/INDEX-claim-task.md:71
+    C4 GHOST-IDS  `4x3.ANCHOR`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:188 docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md:133 docs/epistemic/claimlint-2026-07-28.md:372 docs/epistemic/CLAIMS.md:683
+    C4 GHOST-IDS  `4x4.ARENA-DIV`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:189 docs/epistemic/claimlint-2026-07-28.md:374 docs/epistemic/CLAIMS.md:334 docs/INDEX-claim-deps.md:174
+    C4 GHOST-IDS  `3x2.QA023.B-PROBE-C2`  cited at docs/audits/2026-07-29-qa023-kernel-audit.md:115
+    C4 GHOST-IDS  `3x2.QA023`  cited at docs/INDEX-claim-task.md:31
+    C4 GHOST-IDS  `GLOBAL.XVAL-AGREE`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p6/PACKET.md:9
+    C4 GHOST-IDS  `GLOBAL.ONEMISMATCH`  cited at docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:16 docs/infra/dispatch/CLAIMS-SPLIT-CONJUNCTS.md:25 docs/infra/model-perf.md:2310 docs/epistemic/claimlint-2026-07-28.md:660
+    C4 GHOST-IDS  `3x2.QA023.B-PROBE-C1`  cited at docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md:188 docs/audits/2026-07-29-qa023-kernel-audit.md:114
+    C4 GHOST-IDS  `3x2.C4`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:191 docs/epistemic/claimlint-2026-07-28.md:375 docs/epistemic/CLAIMS.md:327
+    C4 GHOST-IDS  `4x4.X1`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:193 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:193 docs/epistemic/claimlint-2026-07-28.md:378 docs/epistemic/CLAIMS.md:62
+    C4 GHOST-IDS  `4x4.CHAIN-KO`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:195 docs/epistemic/claimlint-2026-07-28.md:373 docs/INDEX-claim-deps.md:62
+    C4 GHOST-IDS  `GLOBAL.TIE-FREEFIX`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p2/PACKET.md:9
+    C4 GHOST-IDS  `3x2.QA023.B-CAL-POS`  cited at docs/evidence/QA-023/reference-semantics-2026-07-29.md:128 docs/evidence/QA-023/probe-fix-2026-07-29.md:207 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:342 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:448
+    C4 GHOST-IDS  `3x2.T13-C2`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p3/PACKET.md:9
+    C4 GHOST-IDS  `GLOBAL.CAL-SHOULDBE-FALSE`  cited at docs/epic-01-markovian/sprints/knowledge-capture/pass0/design.md:182
+    C4 GHOST-IDS  `GLOBAL.ADR0017-REFUTE`  cited at docs/evidence/QA-018/review-a-glm/report.md:334 docs/decisions/0017-bracket-cut-refutation-attempt-failed.md:209
+    C4 GHOST-IDS  `GLOBAL.BRACKET`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:197 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:197 docs/epistemic/claimlint-2026-07-28.md:376 docs/epistemic/CLAIMS.md:298
+    C4 GHOST-IDS  `2x2.value`  cited at docs/INDEX-claim-task.md:26
+    C4 GHOST-IDS  `3x3.ROOT-R`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p1/PACKET.md:9
+
+  `QA-nnn` namespace coverage: 28 distinct IDs cited in docs/, 28 with a
+  register row, 0 without. A falsification cannot propagate to an ID the
+  graph cannot see:
+    C4 GHOST-IDS  UNMODELLED `QA-007`  cited at docs/infra/model-perf.md:1089 docs/epistemic/register-triage-2026-08-04.md:357 docs/epistemic/claimlint-2026-07-28.md:710
+    C4 GHOST-IDS  UNMODELLED `QA-008`  cited at docs/epistemic/register-triage-2026-08-04.md:358 docs/epic-01-markovian/register-tree-map.md:360 docs/epic-01-markovian/retirement-ruling-sheet.md:132
+    C4 GHOST-IDS  UNMODELLED `QA-016`  cited at docs/research/newrule-4x4-2026-07-28.md:134 docs/infra/dispatch/EXP-4.md:55 docs/infra/dispatch/EXP-6.md:6
+    C4 GHOST-IDS  UNMODELLED `QA-020`  cited at docs/research/newrule-certified-fraction-2026-07-30.md:7 docs/infra/dispatch/EXP-7-4x4-rerun.md:5 docs/infra/dispatch/EXP-7-4x4-rerun.md:204
+    C4 GHOST-IDS  UNMODELLED `QA-017`  cited at docs/infra/model-perf.md:1240 docs/epistemic/register-triage-2026-08-04.md:367 docs/epic-01-markovian/register-tree-map.md:362
+    C4 GHOST-IDS  UNMODELLED `QA-002`  cited at docs/infra/model-perf.md:1063 docs/epistemic/register-triage-2026-08-04.md:352 docs/epistemic/claimlint-2026-07-28.md:710
+    C4 GHOST-IDS  UNMODELLED `QA-028`  cited at docs/infra/model-perf.md:1669 docs/epistemic/register-triage-2026-08-04.md:378 docs/epistemic/claimlint-2026-07-28.md:688
+    C4 GHOST-IDS  UNMODELLED `QA-005`  cited at docs/epistemic/register-triage-2026-08-04.md:355 docs/epistemic/CLAIMS.md:570 docs/epic-01-markovian/register-tree-map.md:357
+    C4 GHOST-IDS  UNMODELLED `QA-024`  cited at docs/research/psk-divergence-2026-07-29.md:4 docs/infra/dispatch/EXP-8.md:6 docs/infra/dispatch/EXP-8.md:180
+    C4 GHOST-IDS  UNMODELLED `QA-010`  cited at docs/infra/dispatch/EXP-8.md:7 docs/epistemic/register-triage-2026-08-04.md:360 docs/epistemic/claimlint-2026-07-28.md:390
+    C4 GHOST-IDS  UNMODELLED `QA-006`  cited at docs/epistemic/register-triage-2026-08-04.md:356 docs/epic-01-markovian/register-tree-map.md:358 docs/epic-01-markovian/retirement-ruling-sheet.md:130
+    C4 GHOST-IDS  UNMODELLED `QA-018`  cited at docs/infra/dispatch/QA-018-REVIEW.md:14 docs/infra/dispatch/F2-REMEDY.md:5 docs/infra/dispatch/QA-018-RULING.md:5
+    C4 GHOST-IDS  UNMODELLED `QA-014`  cited at docs/epistemic/register-triage-2026-08-04.md:364 docs/epic-01-markovian/register-tree-map.md:392 docs/epic-01-markovian/retirement-ruling-sheet.md:165
+    (none unmodelled)
+
+  register rows nothing references — no citation outside §2 AND no
+  incoming edge inside it (a smell, not an error):
+    `WZO2-4X4-VALID` [FALSE-AS-SCOPED]
+    `WZO2.I2-CLEAN` [MEASUREMENT]
+
+  C4 GHOST-IDS total: 45 dangling IDs, 0 unmodelled QA-nnn IDs, 2 unreferenced rows
+
+== C5 SHADOWED  SHADOWED DEPENDENCY (report only — does NOT fail, yet) ==
+`d:` edges terminating on a MEASUREMENT or a definition. A measurement says
+something happened; a definition cannot be wrong. Neither can ever be FALSE,
+so the edge is a dead end: if the claim really needs the SOUNDNESS behind the
+measurement, that parent is missing and a falsification cannot reach this row.
+
+  (none)
+
+  C5 SHADOWED total: 0
+
+== C6 MISCITED  CITE-TAG VERIFICATION (fails the run) ==
+Scans 2 narrative files for `[ID:STATUS]` tags and verifies
+each against the register. A narrative whose cite-tags do not
+match the register is hallucination-prone.
+  scanning: docs/epistemic/PROGRESS.md
+  scanning: docs/epic-01-markovian/AXIOMS.md
+
+  (all cite-tags match the register)
+
+  C6 MISCITED cite-tag mismatches: 0
+
+== C7 UNABSORBED  UNABSORBED FINDINGS (fails the run) ==
+Scans findings/*.json for claim status changes not reflected in the register.
+A finding is unabsorbed when its proposed status differs from CLAIMS.md
+AND it is not dispositioned in the rejection registry (findings/rejections.json).
+
+  files scanned: 293
+  non-conforming: 0 (all files conform to the findings schema)
+  claims touched: 97
+  new-rows touched: 88
+  dispositioned (reason-carrying): 27
+  OUT OF REGISTER SCOPE  `T264-V1` — not a register claim; reason: Infra statement about tooling, not an epistemic claim about Go: 'all 10 tools print a version stamp on startup/--version, built via tools/gen-version.sh'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1).
+            in T264-version-stamping.json
+  OUT OF REGISTER SCOPE  `T264-V2` — not a register claim; reason: Infra statement about tooling, not an epistemic claim about Go: 'oracle-v2-build writes artifacts into untracked/vNN/ with a manifest, version counter in untracked/VERSION'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1).
+            in T264-version-stamping.json
+  OUT OF REGISTER SCOPE  `T264-V3` — not a register claim; reason: Infra statement about tooling, not an epistemic claim about Go: 'the verify-battery JSON header includes battery_version with the full version stamp'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1).
+            in T264-version-stamping.json
+  OUT OF REGISTER SCOPE  `GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps at 2×2 are the correct output of the loopy-game fixpoint — PROVEN` — not a register claim; reason: Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump.
+            in T288-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.ADR0020-VERIFY-PASS: ADR-0020 verification as a pass condition means 0 Bellman violations + 0 fixpoint-vs-truncation fixture disagreements, NOT L==H everywhere — CLAIMED` — not a register claim; reason: Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump.
+            in T288-context.json
+  REJECTED  `WZO2-4X4-VALID` — findings proposed `PROVEN`, register says `FALSE-AS-SCOPED`
+            refuted by register row: CODE.WZO2-INCOMPLETE (now FALSE-AS-SCOPED; the true count is 131,068 provably unreachable entries per CODE.WZO2-PASS1-LAW, absorbed T279)
+            in T212-wzo2-rebuild.json
+  REJECTED  `GLOBAL.Z-R-MOVE-B1-EQUIV` — findings proposed `PROVEN`, register says `CLAIMED`
+            refuted by register row: GLOBAL.Z-R-MOVE-B1-EQUIV (CLAIMS.md §2.1)
+            in T306-b1-unification.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I8-SCOPE` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals. Per DELEGATEE.md §Reporting, claims[] and new_rows[] in a context dump must be empty to avoid double-counting in C7.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I9-ANCHOR-4x4` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.A1-MUTATION` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement on 24-state fixture, not L==H within fixpoint` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.I9-ANCHOR-4x4 — 4×4 anchor is +1; MIGOS basic-ko agrees at +1; +2 is different game` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.BATTERY-GAPS — 6 gaps in requirement-tree coverage, 4 runnable after Phase 2 kernel` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  OUT OF REGISTER SCOPE  `GLOBAL.BATTERY-PASS1-ACCEPTANCE — A1–A6 re-based on Amendment 1 (mutation testing + golden master)` — not a register claim; reason: Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals.
+            in T290-context.json
+  ABSORBED UNDER REGISTER ID  `RESOLVER.INTERFACE` → `CODE.RESOLVER-INTERFACE (PROVEN, CLAIMS.md §2.11 tail)`; reason: T418 absorption renamed the proposed ID to the established CODE. prefix: RESOLVER. is not an ID scope in CLAIMS.md §1 (GLOBAL./CODE./<goban> are), and this is a claim about code, not about a goban — CODE. is the right namespace (renaming now is cheap; renaming after citation is not). Registered as CODE.RESOLVER-INTERFACE at PROVEN: definitional code claim (the interface contract is what src/resolver.zig says; 11 unit tests pass, 1 deliberate skip, re-verified by zig test at absorption), and the no-authoritative-resolver rule is ADR-0022's recorded policy (brief rule 3).
+            in T402-capture-budget-pluggable.json
+  REJECTED  `RESOLVER.BUDGET-QUARANTINE` — findings proposed `PROVEN`, register says `NO SUCH ID`
+            refuted by register row: CODE.RESOLVER-BUDGET-QUARANTINE (CLAIMED, CLAIMS.md §2.11 tail — downgraded at T418 absorption)
+            in T402-capture-budget-pluggable.json
+  ABSORBED UNDER REGISTER ID  `RESOLVER.CONTROLS` → `CODE.RESOLVER-CONTROLS (PROVEN, CLAIMS.md §2.11 tail)`; reason: T418 absorption renamed the proposed ID to the established CODE. prefix (RESOLVER. is not an ID scope in CLAIMS.md §1; CODE. is, and this is a code claim). Registered as CODE.RESOLVER-CONTROLS at PROVEN: both controls fire over all 23,420 3×3 harness positions — verification is exhaustive within the harness, and the harness was independently re-run at absorption (null 0/23,420; deliberately_wrong REFUTED at 20,216/20,216; capture_budget proposes 20,216/23,420, abstains 3,204/23,420). Brief rule 3 qualifies PROVEN: 'RESOLVER.CONTROLS cites both controls firing over 23,420 positions at 3x3, which qualifies.' The claim is about the harness's control wiring, not a goban value.
+            in T402-capture-budget-pluggable.json
+  ABSORBED UNDER REGISTER ID  `T265` → `CODE.GTP-KOKEY (PROVEN)`; reason: The findings file used the task ID 'T265' as the claim ID — a schema violation (claims[].id must be a register ID). The finding's content (engine and solver ko rules independently verified to agree, 0 disagreements) is registered as CODE.GTP-KOKEY, which already carries status PROVEN; the proposed status matches the row the content was absorbed under.
+            in T267-key-agreement.json
+  ABSORBED UNDER REGISTER ID  `T267` → `CODE.KEY-AGREEMENT (CLAIMED, T293)`; reason: The key-agreement invariant (engine and builder produce identical keys on all goban sizes; wired into zig build test) is registered as CODE.KEY-AGREEMENT (absorbed T293). The content matches; the proposed PROVEN is downgraded to CLAIMED per the brief: a self-play test with first-legal-move policy under-covers cycle-intensive ko positions.
+            in T267-key-agreement.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I8-SCOPE` → `GLOBAL.ADR0020-VERIFY-PASS (CLAIMED)`; reason: The I8 scope limitation (I8 measures fixpoint-vs-truncation agreement, not L==H) is already registered as GLOBAL.ADR0020-VERIFY-PASS (absorbed T288), which states the same ADR-0020 pass condition. I8-SCOPE is the battery-specific framing of the same epistemic claim.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I9-ANCHOR-4x4` → `GLOBAL.TIE-MIGOS (FALSE-AS-SCOPED) + GLOBAL.FIXPOINT-VS-SEARCH (CLAIMED)`; reason: The 4x4 anchor correction (+1 = MIGOS basic-ko, +2 is different game) is already registered: GLOBAL.TIE-MIGOS (absorbed T279) refutes the tie-value explanation and records MIGOS basic-ko = +1; GLOBAL.FIXPOINT-VS-SEARCH (also T279) records the fixpoint/search agreement under aligned rules. The battery-specific framing adds no new epistemic content.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.A1-MUTATION` → `GLOBAL.BATTERY-PASS1-ACCEPTANCE (CLAIMED, T293)`; reason: The mutation-testing re-base (Amendment 1) is part of the broader Phase 1 acceptance criteria registered as GLOBAL.BATTERY-PASS1-ACCEPTANCE. A1-MUTATION is the specific A1 half of that re-base; merged into the single row.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I8-SCOPE` → `GLOBAL.ADR0020-VERIFY-PASS (CLAIMED)`; reason: The I8 scope limitation (I8 measures fixpoint-vs-truncation agreement, not L==H) is already registered as GLOBAL.ADR0020-VERIFY-PASS (absorbed T288), which states the same ADR-0020 pass condition. I8-SCOPE is the battery-specific framing of the same epistemic claim.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `GLOBAL.I9-ANCHOR-4x4` → `GLOBAL.TIE-MIGOS (FALSE-AS-SCOPED) + GLOBAL.FIXPOINT-VS-SEARCH (CLAIMED)`; reason: The 4x4 anchor correction (+1 = MIGOS basic-ko, +2 is different game) is already registered: GLOBAL.TIE-MIGOS (absorbed T279) refutes the tie-value explanation and records MIGOS basic-ko = +1; GLOBAL.FIXPOINT-VS-SEARCH (also T279) records the fixpoint/search agreement under aligned rules. The battery-specific framing adds no new epistemic content.
+            in T290-battery-spec.json
+  ABSORBED UNDER REGISTER ID  `Z-CONVERGE-FIX` → `GLOBAL.I5-SCC-CONTAIN (CLAIMED, CLAIMS.md §2.10)`; reason: The findings file used the malformed ID 'Z-CONVERGE-FIX' — no register prefix (GLOBAL./CODE./<goban>.) and a collision with the Z-column vocabulary (the tree/colex label Z-CONVERGE-FIX already names the fixpoint-convergence row family, e.g. 4x4.WZO2-A2-EXHAUSTIVE's tree cell). The content (I5 SCC containment passes at 3x2/4x3/4x4, ko_not_cr=0) is registered as GLOBAL.I5-SCC-CONTAIN (CLAIMED) added by STANDING-ABSORB 2026-08-05, cited from findings/T344-i5-4x4.json. Single-instrument self-report held at CLAIMED, not PROVEN, per verify-then-promote.
+            in T344-i5-4x4.json
+  ABSORBED UNDER REGISTER ID  `T265` → `CODE.GTP-KOKEY (PROVEN)`; reason: Same claim as in T267-key-agreement.json: the findings file used the task ID 'T265' as the claim ID. The content is registered as CODE.GTP-KOKEY (PROVEN), matching the proposal.
+            in T267-context.json
+  ABSORBED UNDER REGISTER ID  `T267` → `CODE.KEY-AGREEMENT (CLAIMED, T293)`; reason: Same claim as in T267-key-agreement.json: key-agreement invariant registered as CODE.KEY-AGREEMENT (absorbed T293).
+            in T267-context.json
+  unabsorbed: 2
+  C7 UNABSORBED  `3x3.LOOPY-TAXONOMY` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T419-loopy-taxonomy.json
+  C7 UNABSORBED  `4x4.LOOPY-TAXONOMY` — findings says `MEASUREMENT`, register says `NO SUCH ID`
+              in T419-loopy-taxonomy.json
+
+  C7 UNABSORBED unabsorbed findings: 2
+
+== C8 UNKILLED  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==
+DIRECTION Amendment 2 edge 5: a claim about a kernel function may not be
+promoted past CLAIMED until the battery kills the mutants covering it.
+Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json
+
+  (none)
+
+  kernel-function claims in kill matrix: 3
+  with at least one unkilled mutant:    3
+  at PROVEN (violation):                0
+
+  The count is 0 — no PROVEN kernel-function claims with unkilled mutants.
+  T273's two kernel claims (GLOBAL.AXIOM-BASICKO, GLOBAL.AXIOM-STATE) are
+  correctly held at CLAIMED, not PROVEN. When they are ready for promotion
+  the G1/G3 gap must close first (key-agreement, Phase 2).
+
+  C8 mutation-adequacy violations: 0
+
+== C9 UNMAPPED  TREE MAPPING (fails the run) ==
+Every register row carries the requirement-tree node it serves (AXIOMS.md §3)
+in the `tree` column (T305 — the dropped Phase 0 deliverable, phase0-execution-
+audit F2). C9a validates the vocabulary (a node, or RETIRED = proposed retirement);
+C9b cross-checks docs/epic-01-markovian/register-tree-map.md against the register:
+same row set, same node per row — a mapping that silently covers a subset is the
+denominator defect this check exists to name.
+
+  (none)
+
+  register rows: 226 · mapping doc rows: 226
+  mapped to a node: 223 · proposed-retired (RETIRED): 3 · invalid cells: 0
+  doc missing rows: 0 · doc extra rows: 0 · node mismatches: 0
+
+  C9 UNMAPPED tree-mapping violations: 0
+
+== A  SMELL: repeated narrowing (report only) ==
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.FP2-bounded` narrowed 2× · now FALSE-AS-SCOPED (at 3×2)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.CERTCORE` narrowed 2× · now FALSE-AS-SCOPED
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.C2` narrowed 2× · now FALSE-AS-SCOPED (at 3×2)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.C3` narrowed 2× · now FALSE-AS-SCOPED (at 3×3)
+  SMELL: repeated narrowing — the representation may be wrong, not the claim.
+         `GLOBAL.REFRAME` narrowed 3× · now CLAIMED (adopted decision)
+
+  4 of 5 repeatedly-narrowed claims are now FALSE. Repeated narrowing has
+  so far predicted death in this register; the survivors are the ones to read.
+
+  A total: 5 flagged, 2 rows with `narrowed` unknown
+
+== B  WEAK EVIDENCE (report only) ==
+PROVEN rows whose wrong-answer-pass-rate is unknown or above 25%.
+
+  WEAK EVIDENCE — stated rate above 25% (0):
+    (none)
+
+  WEAK EVIDENCE — rate not computed (`?`): 65 PROVEN rows
+  discriminating (rate stated and <= 25%): 4
+    `GLOBAL.S1`  rate ~0%
+    `4x4.S1`  rate ~0%
+    `4x4.S3a`  rate <0.01%
+    `4x3.S3a`  rate <0.1%
+
+== CALIBRATION (GLOBAL.CALIB-LESSON; roadmap §4 P3) ==
+A checker with no failing case proves nothing.
+
+  known-bad 1 (C1a ORPHANED, synthetic): a CLAIMED row with a `d:` chain to a
+                FALSE-AS-SCOPED ancestor must be reported, while a CLAIMED
+                row whose parents are PROVEN must stay silent … CAUGHT (1 orphan, 1 silent)
+  known-bad 2 (C2 DEAD-LINKS): `untracked/c2pilot_3x2.zig` must be reported … CAUGHT
+  known-good (C1a ORPHANED + C2 DEAD-LINKS): PROVEN `GLOBAL.ADR0003-AREA` with a real evidence path must be silent … SILENT (correct)
+  known-good (C1b STALE-NEGATION, `n:`): `GLOBAL.REFRAME` — `n:` to a FALSE parent must be silent … SILENT (correct)
+  known-bad 3 (C1b STALE-NEGATION, synthetic): `n:` to a PROVEN parent must ALARM, `n:` to a
+                FALSE parent must not … CAUGHT (1 alarm, 1 silent)
+  known-bad 4 (C5 SHADOWED, synthetic): `d:` onto a MEASUREMENT must be reported, `d:`
+                onto a real claim must not … CAUGHT (1 shadow, 1 silent)
+  known-good (C5 SHADOWED): `GLOBAL.ADR0020-LH-CORRECT` — every `d:` parent is a real claim, must be silent … SILENT (correct)
+  known-bad 5 (C6 MISCITED, synthetic): `[GLOBAL.C2:PROVEN]` (register says FALSE-AS-SCOPED) must
+                be caught, while correct-status tags pass silently … CAUGHT (2 mismatches across 2 files, 3 silent)
+  known-bad 5b (C6 MISCITED, synthetic file 2): `[GLOBAL.C4:FALSE]` (register says
+                FALSE-AS-SCOPED) must also be caught — guards against
+                single-file-only scanning … CAUGHT
+  known-bad 6 (C7 UNABSORBED, synthetic): findings JSON with 2 claims — 1 absorbed
+                (GLOBAL.CALPARENT-DEAD matches), 1 unabsorbed status
+                mismatch (GLOBAL.CAL-SHOULDBE-FALSE: findings says
+                FALSE-AS-SCOPED, register says PROVEN) … CAUGHT (1 unabsorbed, 1 silent)
+  known-good 7 (C7 UNABSORBED, synthetic): same finding with a rejection entry
+                naming a refuting row — must go silent … SILENT (absorbed-with-rejection)
+  known-bad 8 (C7 UNABSORBED, synthetic): multi-row findings file — the T266 defect.
+                Row 1 (PROVEN, matches register) must stay silent, row 2
+                (CLAIMED vs PROVEN) must be caught, and BOTH counted
+                (new-rows touched = 2 — the old parser saw 1) … CAUGHT (2 rows counted, 1 mismatch, 1 silent)
+  known-bad 9 (C7 UNABSORBED, synthetic): a non-findings JSON must be REPORTED, not
+                silently skipped (GRAND-AUDIT §2) … CAUGHT (reported non-conforming)
+  known-good 8 (C7 UNABSORBED, synthetic): a not-a-register-claim rejection entry with
+                its mandatory reason silences a NO-SUCH-ID finding … SILENT (reason carried)
+  known-bad 10 (C7 UNABSORBED, synthetic): the same entry WITHOUT the reason must NOT
+                silence — a silent skip is how a real finding gets lost … CAUGHT (still reported)
+  known-bad 11 (C8 UNKILLED, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-UNKILLED`
+                with a survived mutant must be caught … CAUGHT
+  known-good 9 (C8 UNKILLED, synthetic): PROVEN kernel claim `GLOBAL.CAL-KERNEL-KILLED`
+                with all mutants killed must be silent … SILENT (correct)
+  known-good 9b (C8 UNKILLED, synthetic): CLAIMED kernel claim `GLOBAL.CAL-KERNEL-CLAIMED`
+                with unkilled mutant must be silent (only PROVEN triggers) … SILENT (correct)
+  known-bad 12 (C9 UNMAPPED, synthetic): a bogus tree cell, a register row missing
+                from the mapping doc, and a doc row the register lacks
+                must all be reported … CAUGHT (1 invalid + 1 doc-missing + 1 doc-extra)
+  known-good 10 (C9 UNMAPPED, synthetic): a consistent register+doc pair must be
+                silent … SILENT
+
+  calibration: PASS
+
+== SUMMARY ==
+  rows parsed / unparsed        226 / 0
+  C1a orphans / C1b alarms      0 / 0   (FAILS)   [C1a ORPHANED / C1b STALE-NEGATION]
+  C2 dangling evidence paths    11   (FAILS)   [DEAD-LINKS]
+  C3 PROVEN w/o committed evid. 48   (debt list — hook-gated at the floor in claimlint-floor.json)   [UNBACKED]
+  C4 dangling IDs / unreferenced 45 / 2   (report only, does not fail yet)   [GHOST-IDS]
+  C5 shadowed dependencies      0   (report only, does not fail yet)   [SHADOWED]
+  A  repeated-narrowing smells  5   (report only)
+  C6 cite-tag mismatches         0   (FAILS)   [MISCITED]
+  C7 unabsorbed findings         2   (FAILS)   [UNABSORBED]
+  C7 non-conforming files        0   (reported)   [UNABSORBED]
+  C8 mutation-adequacy violations 0   (report only, does not fail yet)   [UNKILLED]
+  C9 tree-mapping violations      0   (FAILS)   [UNMAPPED]
+  calibration                   PASS
