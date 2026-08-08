@@ -1,0 +1,8 @@
+{
+  "task_id": "T436",
+  "date": "2026-08-08",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Phase 4 design re-audit round 2 (gate T428 Phase 4 -> Phase 5). Verdict: PASS WITH FINDINGS. All three round-1 findings (T435) are genuinely fixed at their load-bearing core: F1 (--provider REQUIRED on merged bin/subagent; bare invocation exits non-zero naming 'provider' -- C2.1 satisfied, verified against source: no --provider flag today) FIXED; F2 (exit-code boundary restated as structural with overlap on 0/1, not 'separate numeric ranges', in 04-design.md lines ~104 and 197) FIXED at core; F3 (isClaimIdToken added to 02.3 removal list; verified genuine duplicate claimlint.zig:880 <-> claims_register.zig:252, called at 907/1115) FIXED. Three new non-blocking findings for the Phase 5 plan: NF1 stale 'separate exit-code ranges' phrase in 04-design.md:113 (contradicts corrected block at :104); NF2 subagent backward-compat internally inconsistent -- 03.1/03.2/04 claim a 'bin/subagent cutover wrapper' injecting --provider deepseek but 07 step 4 (:267-268) says no wrapper and old callers must update or get a hard error, and no such wrapper is a file change; NF3 C1.1 RED control (weizigo-claimlint no-such-verb -> stderr names unknown verb) not satisfied by 01.2 default-verb=verify (non-verb treated as path -> verify errors on missing path, naming the path not the verb; same shape as F1 but lower severity: exit != 0 already holds). No claim status changes or new register rows proposed; this is a design-doc gate audit. Full report: docs/infra/tool-consolidation/04-design-audit-r2.md."
+}
