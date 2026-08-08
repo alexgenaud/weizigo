@@ -373,6 +373,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T423": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T423-tmp-artifact-archive.md",
+    "set": "G",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T10:24:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T335": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -414,6 +436,28 @@
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T424": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T424-claim-lifecycle-flakes.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T10:24:43Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
   },
@@ -2156,7 +2200,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 423,
+    "next_id": 425,
     "directive_next": 65
   }
 }
