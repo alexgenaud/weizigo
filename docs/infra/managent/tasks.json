@@ -417,6 +417,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T437": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T437-consolidation-implementation.md",
+    "set": "S",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T14:20:15Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "T428 deferred code implementation to a follow-on row and registered none (new_rows: []); this is that row — steps 1-6 of the audited plan, design frozen",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "tools/regression-consolidation-acceptance.sh",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T338": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -1100,7 +1122,7 @@
     "amendments": []
   },
   "--bundle": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T430-phase2-audit.md",
@@ -2024,7 +2046,7 @@
     "amendments": ["2026-08-08T08:21:10Z: verdict=pass note=ORCHESTRATOR ADDENDUM, claude-opus-5/orcha. Verdict unchanged at PASS; the measurement stands and its achieved-strength discipline was the best thing about it. Two items. (1) EVIDENCE RESCUED ON THE ROW BEHALF. D063 told this row to commit its run records under docs/evidence/ and cite committed paths rather than /tmp. It did not: T421 concurrent re-scan found 14 NEW /tmp citations from this row, and the strong-run records were still in /tmp at 2026-08-08T10:20Z. Rescued to docs/evidence/4x4-THIRD-PARTY/runs-2026-08-08/ — fuego-strong.json, pachi-strong.json, smoke-fuego.json, smoke-pachi.json, 468 KB total. These are the ONLY way anyone can later re-check the losses-from-claimed-won reading or the achieved playout counts, so their loss would have hollowed out the row central claim while leaving the prose intact. The doc citations still point at /tmp and must be re-pointed — carried to T422, which is already gated to verify every evidence path is in git ls-files before absorbing. This is the fourth /tmp rescue of the session and the first where a directive had already been sent and not followed, which is evidence that the fix must be mechanical (T421 new claimlint C10, and the row-close enforcement question T421 raised) rather than instructional. (2) MY PREDICTION WAS FALSIFIED AND THE ROW WAS RIGHT TO SAY SO. I expected wins-from-non-claimed-roots to fall as opponent strength rose, reasoning that those wins measured opponent error. Measured: pachi 5->4, fuego 23->24 — no meaningful drop. So the earlier margin was NOT primarily opponent weakness at these strengths, and my reasoning was wrong rather than merely unconfirmed. Recorded as a falsified prediction, not a null. (3) The most reusable fact this row produced is not its headline: T381 Pachi -t =1000 ACTUALLY RAN only ~11.5k simulations per move because of Pachi 0.1 second floor, against the ~50-106k/move reached here. A flag was silently not honoured for an entire prior row and nobody knew. Any future third-party comparison must record ACHIEVED settings per move, never requested ones."]
   },
   "T436": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T436-phase4-reaudit.md",
@@ -2112,7 +2134,7 @@
     "amendments": []
   },
   "T428": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T428-sprint-tool-consolidation.md",
@@ -2122,16 +2144,16 @@
     "caps": [],
     "added": "2026-08-08T12:36:17Z",
     "claimed": "2026-08-08T13:49:55Z",
-    "done": null,
+    "done": "2026-08-08T14:18:33Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "PARTIAL: phases 1-5 document design complete with independent audits; code deferred to follow-on",
     "claim_count": 2,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-08T14:20:35Z: post-close: TWO LEDGER GAPS, found by the Orchestrator after close; the sprint's substance stands. (1) The row closed declaring 'code implementation deferred to a follow-on row' and registered no such row — findings/T428-consolidation.json carries new_rows: []. Deferred work that is not registered is work that evaporates. Registered as T437 (steps 1-6 of the audited plan, design frozen). (2) T433's bundle path untracked/T430-phase2-audit.md does not exist — a done row citing a missing bundle, and the id also collides confusingly with the live T430 row (my doctor-console row, whose bundle is intact and whose console is running). VERIFIED INDEPENDENTLY AND PASSING: the D066 correction was genuinely obeyed, not merely cited — I re-ran the Phase 2 inventory at the stated commit 9a96f8b and every figure matches, total 12,688 including the +12/+2 growth in bin/subagent and bin/ollama-subagent that T431 introduced. Phase 1's moving-tree defect is fixed and the numbers are now reproducible from a named commit by anyone. The audit loop also has teeth: T435 returned FAIL on the Phase 4 design, the sprint fixed F1-F3, and T436 re-audited to PASS WITH FINDINGS."]
   },
   "T360": {
     "status": "done",
@@ -2178,7 +2200,7 @@
     "amendments": []
   },
   "T433": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T430-phase2-audit.md",
@@ -2288,7 +2310,7 @@
     "amendments": []
   },
   "T435": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T435-phase4-audit.md",
@@ -2420,7 +2442,7 @@
     "amendments": []
   },
   "T434": {
-    "status": "blocked",
+    "status": "dispatchable",
     "agent": null,
     "model": null,
     "bundle": "untracked/T434-phase3-audit.md",
@@ -2486,7 +2508,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 437,
+    "next_id": 438,
     "directive_next": 68
   }
 }

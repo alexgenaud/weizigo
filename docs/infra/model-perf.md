@@ -3221,3 +3221,4 @@ dispatch-verify 2026-08-08 T429 glm-5.2 report=success verified=pass
 dispatch-verify 2026-08-08 T433 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-08 T434 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-08 T435 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-08 T428 deepseek-v4-pro report=success verified=pass
