@@ -80,6 +80,36 @@ value decays if it lands eight hours late.
 takes the machine to load ~9.5, and load contamination is exactly what produced the bogus 35–52
 minute suite readings on 2026-08-08. Any midnight job must check for a running suite first.
 
+## 3b. In flight — the first T-B (mechanism fix) readings, 2026-08-18 21:53
+
+Three crash-repair rows dispatched in parallel to three different models, same bars, same
+acceptance shape:
+
+| row | red being fixed | model |
+|---|---|---|
+| T451 | `t419_taxonomy` `@intCast` underflow | `glm-5.2` |
+| T452 | `qa023_brute_2x2` node-budget explosion | `minimax-m3` |
+| T453 | `vb_bellman_4x4` `board[0..16]` OOB | `kimi-k2.7` |
+
+**What this design can say, and what it cannot.** Each row is a *different bug*, so this is
+"same task type, different instance" — it fills three T-B cells with real verdicts, and it does
+**not** rank the three models the way T447 ranked five on one identical task. A true T-B race
+would hand the same defect to every lane, which would mean either three worktrees (the operator
+has ruled the project does not use them) or duplicated write work on one file. So the honest
+label on these cells is *demonstrated competence at this task type*, never *better than*.
+
+Two conditions were set by the Orchestrator before dispatch, both of which the briefs lacked:
+
+1. **`deliverables=` was empty** in all three, which silently disables the strongest arm of
+   dispatch verification (T411 checks the nonce, the declared deliverables, and the row status —
+   with no deliverables declared, only the nonce is left). Each row now declares its source file
+   and its findings file, plus a per-file `zig test` as acceptance rather than the full suite,
+   which is untrustworthy per T454.
+2. **All three originally declared `docs/infra/suite-truth.md`** — three concurrent writers on
+   one manifest. The manifest was removed from every scope; each console reports the ratchet it
+   earned under a `manifest_ratchet` key in its findings, and the Orchestrator applies all three
+   in one commit with one writer.
+
 ## 4. The holes, in the order worth filling
 
 1. **T-B (mechanism fix, test-first)** — no cell filled at all, and it is the most common row

@@ -959,6 +959,8 @@ test "classifyParent: no_optimal (no children)" {
 test "classifyParent: no_loop_a margin is always >= 1" {
     // A loopy child that ties best_v would be optimal — so in no_loop_a the
     // best loopy child must be strictly off the optimal value (margin >= 1).
+    // best_v is derived as the argmax/argmin over children (the classifier's
+    // precondition); an independent random best_v violates it.
     var prng = std.Random.DefaultPrng.init(99);
     const rng = prng.random();
     var buf: [8]ChildInfo = undefined;
@@ -967,10 +969,15 @@ test "classifyParent: no_loop_a margin is always >= 1" {
         const maximizing = rng.boolean();
         const lo = rng.intRangeAtMost(i8, -9, 9);
         const hi = lo + @as(i8, @intCast(rng.uintLessThan(u8, 12)));
-        const best_v = rng.intRangeAtMost(i8, lo, hi);
+        var best_v: i8 = if (maximizing) -127 else 127;
         for (0..n) |i| {
             const v = rng.intRangeAtMost(i8, lo, hi);
             buf[i] = .{ .v = v, .loopy = rng.boolean() };
+            if (maximizing) {
+                if (buf[i].v > best_v) best_v = buf[i].v;
+            } else {
+                if (buf[i].v < best_v) best_v = buf[i].v;
+            }
         }
         const c = classifyParent(maximizing, best_v, buf[0..n]);
         if (c.class == .no_loop_a) {

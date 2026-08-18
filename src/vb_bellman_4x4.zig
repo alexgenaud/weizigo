@@ -449,7 +449,12 @@ pub fn applyMove(board: []const i8, w: usize, h: usize, side: i8, ko: u8, passes
         if (next[q] == opp and chainNoLiberty(&next, n, q, opp)) removeChain(&next, n, q, opp);
     }
     if (chainNoLiberty(&next, n, cell, side)) return null; // suicide
-    const new_ko = koAfterCaptureRt(board[0..MAX_N], &next, n, side);
+    // koAfterCaptureRt expects `*const [MAX_N]i8`; the caller's `board` is
+    // only `n` long, so copy into a MAX_N-sized buffer (mirror of `next`).
+    var old: [MAX_N]i8 = [_]i8{0} ** MAX_N;
+    var j: usize = 0;
+    while (j < n) : (j += 1) old[j] = board[j];
+    const new_ko = koAfterCaptureRt(&old, &next, n, side);
     return MoveChild{ .board = next, .side = -side, .ko = new_ko, .passes = 0 };
 }
 
