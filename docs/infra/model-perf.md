@@ -3252,3 +3252,4 @@ qwen3.8 trial (`--model qwen3.8` via the Ollama path) for lightweight, non-commi
 until its envelope is known. qwen3.8 is not yet in the canonical label list — add it there
 before any ledger line names it.
 dispatch-verify 2026-08-18 T444 deepseek-v4-pro report=unknown verified=fail fail=row
+dispatch-verify 2026-08-18 T443 deepseek-v4-flash report=success verified=pass
