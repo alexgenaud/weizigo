@@ -3226,3 +3226,28 @@ dispatch-verify 2026-08-08 T430 deepseek-v4-flash report=incomplete verified=fai
 dispatch-verify 2026-08-08 T437 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-08 T441 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-08 T438 glm-5.2 report=incomplete verified=fail fail=row
+
+## 2026-08-18 — DeepSeek epoch boundary (operator report, return from absence)
+
+The operator reports DeepSeek has released a **new version of deepseek-v4-pro under the same
+name**, and deepseek-v4-flash **may have been silently updated** as well. Both are expected to
+compete with frontier models; Pro is a candidate to replace kimi-k2.7-class or Claude-class
+seats — undetermined until raced.
+
+Epistemics of this line: **every deepseek-v4-* observation above this section describes the
+pre-2026-08-18 models.** The canonical labels are unchanged (they validate against the list, and
+the vendor kept the name), but the label is now an epoch-dependent pointer — do not aggregate
+performance across this boundary. Per "race, don't decide": new-epoch beliefs start at zero and
+are earned by dispatch-verify lines dated after this one.
+
+First new-epoch probes, dispatched 2026-08-18 by claude-fable-5 (read-only rows, deliberately
+parallel and non-conflicting): T444 stale-row triage → deepseek-v4-pro; T443 storage durability
+policy → deepseek-v4-flash.
+
+Standing items this section supersedes or notes: the DS-Flash-default TEMP window (T363 trial)
+**expired 2026-08-12 mid-absence — lapsed, operator decision pending**, and any extension should
+be decided on new-epoch evidence, not the pre-boundary trial alone. Operator authorization
+2026-08-18/19: liberal Ollama use (kimi-k3 excluded on cost; kimi-k2.7 fine), and a local
+qwen3.8 trial (`--model qwen3.8` via the Ollama path) for lightweight, non-committal tasks
+until its envelope is known. qwen3.8 is not yet in the canonical label list — add it there
+before any ledger line names it.
