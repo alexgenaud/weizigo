@@ -1,0 +1,18 @@
+{
+  "task_id": "T451",
+  "date": "2026-08-18",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "manifest_ratchet": {
+    "rationale": "Fix to src/t419_taxonomy.zig (no_loop_a fuzz generator) lands the test in HEAD (commit d7e4bdb, applied pre-dispatch by the dispatcher; identical content to what this row produced). Per-file zig test now passes 17/17 with --test-filter 'no_loop_a margin is always' matching 1/1 (not vacuous). The t419_taxonomy crash family (1 of 7 crashed steps) is the load-bearing ratchet.",
+    "strike": [
+      "RED module t419_taxonomy"
+    ],
+    "counts": [
+      { "name": "COUNT steps-failed", "from": 7, "to": 6 },
+      { "name": "COUNT tests-crashed", "from": 7, "to": 6 }
+    ]
+  },
+  "notes": "T451 (glm-5.2, 2026-08-18) — fix the t419_taxonomy no_loop_a margin intCast crash. Diagnosis (T369): fuzz test generates best_v independently of children's actual values, allowing a loopy child to beat best_v; the no_loop_a branch then computes a negative margin that does not fit u16. Fix (in src/t419_taxonomy.zig only, lines 960-986): derive best_v as the argmax/argmin over children as they are generated, restoring the classifier's precondition (best_v is the optimum). The fix is purely in the test generator — classifyParent is unchanged. After fix: `zig test -O ReleaseSafe src/t419_taxonomy.zig` reports 'All 17 tests passed' (matched test count = 17, the same as the file's declared test set — not vacuous green); targeted --test-filter 'no_loop_a margin is always' reports 'All 1 tests passed'. Sanity counter (out-of-tree): no_loop_a branch reached 497 of 2000 iterations, margin range [1,10], invariant holds. The fix was pre-applied to HEAD by commit d7e4bdb (dispatcher bundle, which also pre-applied T452/T453 fixes), so this row's git-commit-mine call reported 'already committed and unchanged' — the change is in git, attributed to the dispatcher commit, not to T451. Per the Orchestrator's standing bar (the manifest is NOT yours to edit; three concurrent writers would corrupt it), the earned ratchet is reported here under manifest_ratchet for the Orchestrator to apply with one writer. Verdict: pass — the red is fixed in source and reproducible green per-file; the manifest ratchet is the only remaining action and belongs to the Orchestrator. Crash family 1 (t419_taxonomy) closes; families 2 (qa023_brute_2x2) and 3 (vb_bellman_4x4) are T452/T453, not T451. Inbox directive D075 (Orchestrator amend 2026-08-18T19:55:18Z): confirmed the file swept into d7e4bdb was src/t419_taxonomy.zig (the best_v argmax/argmin derivation) — this row's finding matches; nothing else to amend."
+}
