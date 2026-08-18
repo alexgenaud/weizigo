@@ -3307,3 +3307,4 @@ incident). Racing a field against one carefully-written key beat the key.
 
 dispatch-verify 2026-08-18 T444 deepseek-v4-pro report=unknown verified=fail fail=row
 dispatch-verify 2026-08-18 T443 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-18 T369 deepseek-v4-pro report=success verified=pass

@@ -72,6 +72,17 @@
     "bytes": 22606,
     "tokens": "no reading",
     "note": "-2 for the one false alarm that mattered: it reported tools/git-commit-mine:98 as letting a foreign staged path slip into a commit on mktemp failure. Verified false - with SCOPE_FILE empty, foreign() returns 0 for every non-named path, so the wrapper REFUSES. Reporting a fail-closed safety wrapper as fail-open is the error class the SAFE section exists to catch."
+   },
+   {
+    "lane": "F (late, non-blind)",
+    "model": "qwen3.8:27b-mlx",
+    "family": "ollama",
+    "serving_tag": "qwen3.8:27b-mlx",
+    "score": null,
+    "wall_s": 2400.4,
+    "bytes": 0,
+    "tokens": "no reading",
+    "note": "Added by operator request after the blind field closed, on the byte-identical prompt (sha256 84ec2845b6708745df96a36eaae950138f716a0506871b149517a8b1eda66c83), same tools/runner, same worktree. KILLED BY THE WALL GUARD: '[runner] exit 124 (wall ceiling 2400s (40:00) reached at 2400.1s elapsed (no [progress] lines seen)) in 2400.4 s'. 0 bytes captured \u2014 stdout is buffered to completion by pi, so this reads as NO COMPLETION within 40 minutes, not as 'produced nothing'. Not scored: it neither finished nor ran blind (its identity was known to the grader). Recorded as a capability reading, not a race result: five cloud lanes finished the same task in 359-682 s. The task shape is the cause \u2014 a repo-wide audit is dominated by tool-call round-trips and each one pays local generation latency."
    }
   ],
   "caveats": [
@@ -79,7 +90,8 @@
    "Lanes ran in parallel from the --emit block (not the harness's sequential execute), so no lanes.json dispatch record exists; the roster + per-lane tools/runner trailers are the dispatch record.",
    "The grader saw each lane's wall time and byte size before anonymizing; only the CONTENT was blind.",
    "No token readings: agents cannot read their own meter and the operator was not at the console.",
-   "Lanes ran from a git worktree at /tmp/weizigo/race-t447, so untracked/race-keys/ did not exist in their view. That is a relative-path boundary, not a sandbox (T376)."
+   "Lanes ran from a git worktree at /tmp/weizigo/race-t447, so untracked/race-keys/ did not exist in their view. That is a relative-path boundary, not a sandbox (T376).",
+   "A sixth lane (qwen3.8:27b-mlx, local) was run after grading closed, at the operator's request. It is outside the blind field and unscored; see its lane note."
   ]
  },
  "key_gaps_found_by_lanes": [

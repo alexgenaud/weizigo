@@ -51,8 +51,11 @@ alternative". **n = 1 everywhere.** No cell in this table justifies a ranking on
 
 ## 3. What the local model is for — `qwen3.8:27b-mlx`
 
-Measured 2026-08-18: given the T447 audit brief (3,027-byte prompt, whole-repo reading), it
-produced **no completion inside a 2400 s wall guard**, while five cloud lanes finished the same
+Measured 2026-08-18, and the reading is exact rather than impressionistic — given the T447 audit
+brief (3,027-byte prompt, whole-repo reading) it was killed by the guard:
+`[runner] exit 124 (wall ceiling 2400s (40:00) reached at 2400.1s elapsed (no [progress] lines
+seen)) in 2400.4 s`, zero bytes captured. Because `pi` buffers stdout to completion that means
+**no completion inside 40 minutes**, not "produced nothing". Five cloud lanes finished the same
 task in 359–682 s. The reason is structural, not a defect: a repo-wide audit is dominated by
 tool-call round-trips, and every one of them pays local generation latency.
 

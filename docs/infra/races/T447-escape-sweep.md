@@ -99,5 +99,24 @@ read-only audit work until a race shows it earning the difference.
 - **Irony worth recording:** the lanes ran under `tools/runner` inside a worktree, so by T449 —
   which one of them found — none of them emitted a heartbeat.
 
+### Late sixth lane — `qwen3.8:27b-mlx`, local, unscored
+
+Run at the operator's request after grading closed, on the byte-identical prompt (sha256
+`84ec2845…`), same `tools/runner`, same worktree. It was **killed by the wall guard**:
+
+```
+[runner] KILL: wall ceiling 2400s (40:00) reached at 2400.1s elapsed (no [progress] lines seen)
+[runner] exit 124 … in 2400.4 s
+```
+
+Zero bytes captured — and because `pi` buffers stdout to completion, that reads as **no
+completion inside 40 minutes**, not as "produced nothing". It is **not scored**: it neither
+finished nor ran blind, since its identity was known to the grader.
+
+It is still a useful reading, just of capability rather than quality: the five cloud lanes
+finished this task in 359–682 s. The cause is the task shape — a repo-wide audit is dominated by
+tool-call round-trips, and every one of them pays local generation latency. What that model is
+suited to instead is written up in `docs/infra/model-task-matrix.md` §3.
+
 Full per-lane detail: `findings/T447-regression-escape-sweep.json`. Lane outputs (gitignored):
 `untracked/bakeoff/t447-2026-08-18/<model>/out.md`.
