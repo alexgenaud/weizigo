@@ -44,7 +44,12 @@ PROJECT="$(cd "$HERE/.." && pwd)"
 MG="$PROJECT/bin/managent"
 FAIL=0
 
-WORK="$(mktemp -d /tmp/weizigo/managent-dup-dispatch-XXXXXX)"
+# T445: /tmp/weizigo decays (tmp sweeps, reboots). Create it, and REFUSE to run
+# if scratch creation fails — an empty scratch var once sent this suite's arms
+# into the LIVE repo (2026-08-18 incident: live kanban wiped, claimlint.zig and
+# CLAIMS.md clobbered by fixtures). cd "" succeeds silently; never rely on it.
+mkdir -p /tmp/weizigo
+WORK="$(mktemp -d /tmp/weizigo/managent-dup-dispatch-XXXXXX)" || { echo "regression-duplicate-dispatch.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
 git init -q

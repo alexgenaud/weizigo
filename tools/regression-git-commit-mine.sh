@@ -24,7 +24,12 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WRAP="$HERE/git-commit-mine"
 FAIL=0
-WORK="$(mktemp -d /tmp/weizigo/git-commit-mine-test-XXXXXX)"
+# T445: /tmp/weizigo decays (tmp sweeps, reboots). Create it, and REFUSE to run
+# if scratch creation fails — an empty scratch var once sent this suite's arms
+# into the LIVE repo (2026-08-18 incident: live kanban wiped, claimlint.zig and
+# CLAIMS.md clobbered by fixtures). cd "" succeeds silently; never rely on it.
+mkdir -p /tmp/weizigo
+WORK="$(mktemp -d /tmp/weizigo/git-commit-mine-test-XXXXXX)" || { echo "regression-git-commit-mine.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
 git init -q

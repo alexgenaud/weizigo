@@ -57,7 +57,12 @@ mkdir -p /tmp/weizigo
 # refuse (depth cap). The regression simulates the human console.
 unset WEIZIGO_AGENT_DEPTH || true
 
-WORK="$(mktemp -d /tmp/weizigo/t411-dispatch-verify-XXXXXX)"
+# T445: /tmp/weizigo decays (tmp sweeps, reboots). Create it, and REFUSE to run
+# if scratch creation fails — an empty scratch var once sent this suite's arms
+# into the LIVE repo (2026-08-18 incident: live kanban wiped, claimlint.zig and
+# CLAIMS.md clobbered by fixtures). cd "" succeeds silently; never rely on it.
+mkdir -p /tmp/weizigo
+WORK="$(mktemp -d /tmp/weizigo/t411-dispatch-verify-XXXXXX)" || { echo "regression-dispatch-verification.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
 git init -q

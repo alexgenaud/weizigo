@@ -51,7 +51,12 @@ fi
 
 # ── Setup: temp store in /tmp/weizigo (disposable; the `ephemeral`
 #    indirection was retired 2026-08-03, T286) ────────────────────────────
-TMPDIR="$(mktemp -d /tmp/weizigo/managent-integrity-XXXXXX)"
+# T445: /tmp/weizigo decays (tmp sweeps, reboots). Create it, and REFUSE to run
+# if scratch creation fails — an empty scratch var once sent this suite's arms
+# into the LIVE repo (2026-08-18 incident: live kanban wiped, claimlint.zig and
+# CLAIMS.md clobbered by fixtures). cd "" succeeds silently; never rely on it.
+mkdir -p /tmp/weizigo
+TMPDIR="$(mktemp -d /tmp/weizigo/managent-integrity-XXXXXX)" || { echo "regression-managent-integrity.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$TMPDIR"' EXIT
 
 # Create minimal repo structure the binary expects

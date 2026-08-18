@@ -53,8 +53,17 @@ seed_kanban() {  # $1 = repo root  $2 = task id  $3 = bundle name
     printf '{"%s": {"bundle": "%s"}}\n' "$2" "$3" > "$1/docs/infra/managent/tasks.json"
 }
 
+# T445: /tmp/weizigo decays (tmp sweeps, reboots). Create it, and REFUSE to run
+# if scratch creation fails — an empty scratch path once sent this suite's arms
+# into the LIVE repo (2026-08-18 incident). `exit` inside $() only leaves the
+# subshell, so the failure branch kills the whole script by PID.
 new_scratch() {
-    mktemp -d /tmp/weizigo/gcm-hook-test-XXXXXX
+    mkdir -p /tmp/weizigo
+    mktemp -d /tmp/weizigo/gcm-hook-test-XXXXXX || {
+        echo "regression-git-commit-mine-hook: FATAL — scratch mktemp failed; refusing to run (T445)" >&2
+        kill -TERM $$
+        exit 2
+    }
 }
 
 run_hook() {  # $1 = repo root; env: MANAGENT_TASK_ID, MANAGENT_STORE, GIT_MINE_EXPLICIT
