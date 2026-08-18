@@ -3264,10 +3264,18 @@ Measured, not recalled — one `ollama run <tag> "say ready"` per tag from this 
 | `kimi-k2-thinking:cloud` | `retired at 2026-06-16` (vendor retirement) |
 | `qwen3.6:latest` (local, 23 GB) | answers |
 
-Consequences: `bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working
-kimi invocation (both tags already map to canonical `kimi-k2.7`, so the ledger label is
-unaffected). The authorized local qwen trial is **qwen3.6**, not qwen3.8 — qwen3.8 is not
-pulled on this host; whichever label is used must be added to `canonical_models` first.
+**Re-probed after the operator updated Ollama to 0.32.14 (2026-08-18, later the same evening).**
+Part of the first reading was an artefact of the update in progress: the three `*:cloud` models
+did not appear in `ollama list` before it and do now. What survives the re-probe:
+`kimi-k2.7:cloud` still returns *model not found* while `kimi-k2.7-code:cloud` answers, and the
+`kimi-k2-thinking` retirement message came from the vendor, not the client. So
+`bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working kimi invocation
+(both tags map to canonical `kimi-k2.7`, so the ledger label is unaffected).
+
+The local qwen the operator pulled is **`qwen3.8:27b-mlx`** (18 GB, MLX build) — the earlier note
+here said 3.8 was not on this host, which was true when it was written and is not now. The label
+`qwen3.8` must be added to `canonical_models` in `src/managent/main.zig` before any ledger line
+names it; until then it can only be run outside the kanban path (as the T447 late lane was).
 
 ### T447 — first answer-keyed race, 2026-08-18 (new epoch, n=1)
 
