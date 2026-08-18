@@ -197,6 +197,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T446": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T446-ledger-board-seam.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T17:37:17Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T403": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -481,6 +503,28 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C1a/C2/C6/C9 gating counters sit at the recorded floor — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed: C1a=10 C1b=0 C2=14 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row; commit 72855f7)",
+    "amendments": []
+  },
+  "T445": {
+    "status": "done",
+    "agent": "claude-fable-5",
+    "model": null,
+    "bundle": "untracked/T445-scratch-dir-hard-fail.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T17:32:29Z",
+    "claimed": "2026-08-18T17:32:29Z",
+    "done": "2026-08-18T17:35:35Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass",
+    "verdict_note": null,
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
     "amendments": []
   },
   "T400": {
@@ -1408,8 +1452,8 @@
     "amendments": []
   },
   "T444": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T444-stale-row-triage.md",
     "set": "A",
@@ -1417,14 +1461,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T17:13:50Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-18T17:36:42Z",
+    "done": "2026-08-18T17:37:00Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Triage delivered (findings committed). Original claim destroyed by the T445 store wipe mid-run; claim/done replayed by claude-fable-5, hence the two-phase force.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2684,8 +2728,8 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 445,
+    "next_id": 447,
     "directive_next": 71,
-    "assertion_next": 14
+    "assertion_next": 16
   }
 }
