@@ -264,8 +264,8 @@
     "amendments": []
   },
   "T351": {
-    "status": "in_progress",
-    "agent": "deepseek-v4-pro",
+    "status": "dispatchable",
+    "agent": null,
     "model": "deepseek-v4-pro",
     "bundle": "untracked/T351-failed-command-source-fix.md",
     "set": "C",
@@ -273,7 +273,7 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-04T14:22:51Z",
-    "claimed": "2026-08-08T13:52:27Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
@@ -704,8 +704,8 @@
     "amendments": []
   },
   "T438": {
-    "status": "in_progress",
-    "agent": "glm-5.2",
+    "status": "done",
+    "agent": "claude-fable-5",
     "model": null,
     "bundle": "untracked/T438-suite-depends-on-tmp.md",
     "set": "C",
@@ -713,14 +713,14 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-08T15:20:52Z",
-    "claimed": "2026-08-08T17:02:31Z",
-    "done": null,
+    "claimed": "2026-08-18T17:10:20Z",
+    "done": "2026-08-18T17:15:53Z",
     "dispatched": "2026-08-08T17:02:22Z",
     "dispatched_to": "glm-5.2",
     "note": "suite depends on /tmp SMD1 fixtures; independent files, runs alongside T441",
-    "verdict": null,
+    "verdict": "pass",
     "verdict_note": null,
-    "claim_count": 1,
+    "claim_count": 2,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -1403,6 +1403,28 @@
     "verdict": "pass",
     "verdict_note": null,
     "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
+  "T444": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T444-stale-row-triage.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T17:13:50Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": []
@@ -2529,6 +2551,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T443": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "untracked/T443-storage-durability-policy.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T17:13:50Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T371": {
     "status": "done",
     "agent": "glm-5.2",
@@ -2640,8 +2684,8 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 443,
+    "next_id": 445,
     "directive_next": 71,
-    "assertion_next": 12
+    "assertion_next": 14
   }
 }
