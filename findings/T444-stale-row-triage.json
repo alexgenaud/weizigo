@@ -1,0 +1,141 @@
+{
+  "task_id": "T444",
+  "date": "2026-08-18",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "triage": [
+    {
+      "row": "--bundle",
+      "registered": "2026-08-08T13:52:25Z",
+      "evidence": "Bundle field points at untracked/T430-phase2-audit.md, which does not exist on disk (only untracked/T433-phase2-audit.md exists). No note, no agent, no verdict, claim_count=0. The phase-2 audit content it references is delivered under T433 (docs/infra/tool-consolidation/02-scope-audit.md).",
+      "recommendation": "close-with-evidence",
+      "basis": "Phantom stub: dangling bundle path, and the real phase-2 audit is T433, already delivered (A0008). No work attached to this id."
+    },
+    {
+      "row": "STANDING-CLEANUP",
+      "registered": "2026-08-04T10:32:33Z",
+      "evidence": "Standing trigger row. Note 'tree dirty across two turns: 1→2 dirty files' is stale — the tree now carries many untracked paths (bin/, data/, zig-out/, log/, .zig-cache/, managent). Trigger condition (dirty tree) is genuinely met.",
+      "recommendation": "keep-as-is",
+      "basis": "Standing task by design: stays dispatchable and re-opens on re-trigger (b1c443f registerStanding). The note self-heals on the next re-trigger; no one-time deliverable to triage."
+    },
+    {
+      "row": "T351",
+      "registered": "2026-08-04T14:22:51Z",
+      "evidence": "A0013 (2026-08-18): no T351 deliverables in git; prior claim (claim_count=1, deepseek-v4-pro) produced no beats/commits; whether that console ran is UNKNOWN. The defect is still present — unguarded std.debug.print in all five files — but the brief's line table has drifted: rules.zig prints now at 959/981/1027/1040/1050 (brief said 912-925); vb_mutants.zig at 117/155/183 (brief said 114/152/180/207); vb_fixpoint.zig at 497/512/521/532/542 (brief said 497/506/517/527); colex.zig:192 still matches but has 4 more prints nearby.",
+      "recommendation": "refresh-brief",
+      "basis": "Defect (six `failed command:` lines from test artifacts) plausibly still live, but every file:line citation except colex.zig:192 has drifted under T428/T437/T441-era edits. Re-derive the failing lines at HEAD before dispatch."
+    },
+    {
+      "row": "T352",
+      "registered": "2026-08-04T14:22:51Z",
+      "evidence": "tools/regression-T227.sh exists (4018 bytes) but build.zig:299 still records 'T227 still times out (>120s) — deferred same as T322.' The script is NOT wired into zig build test (no dependOn for it).",
+      "recommendation": "keep-as-is",
+      "basis": "Timeout defect persists and the script remains unwired; the brief's core deliverable (#4 wire into zig build test) is undone. Brief still valid."
+    },
+    {
+      "row": "T353",
+      "registered": "2026-08-04T15:14:04Z",
+      "evidence": "`bin/managent orient` → 'unknown command: orient'. The verb is not implemented in src/managent/main.zig. Its hold (src/managent/main.zig) is now clear — the row it serialized against (T350) is done.",
+      "recommendation": "keep-as-is",
+      "basis": "Work never started; brief still valid against HEAD (resume still exists as the pattern to follow). Hold cleared."
+    },
+    {
+      "row": "T357",
+      "registered": "2026-08-04T17:57:47Z",
+      "evidence": "Deliverable docs/infra/agents/ollama-concurrency-2026-08-04.md absent. No measurement committed. git log --all --grep=T357 finds only the registration commit (1ee424c).",
+      "recommendation": "keep-as-is",
+      "basis": "Measurement never run. Brief's 'quiet fleet' precondition is not currently met (4 rows in progress), so it is correctly not dispatchable-now; brief itself still valid."
+    },
+    {
+      "row": "T358",
+      "registered": "2026-08-04T20:18:05Z",
+      "evidence": "Deliverable docs/research/scaling-census-2026-08-04.md absent. Cited inputs all present: artifacts/oracle-{2x2,3x2,3x3,4x3}.wzo and data/oracle-4x4-v2.wzo2 (518 MB). git log finds only registration (3a656f3).",
+      "recommendation": "keep-as-is",
+      "basis": "Census never run; every artifact the brief says to reuse is still on disk. Brief valid."
+    },
+    {
+      "row": "T362",
+      "registered": "2026-08-04T22:15:21Z",
+      "evidence": "tools/runner has no host-pressure guard: grep for memsize/available/host-pressure finds nothing; only the per-process --rss-cap-mb remains. No hw.memsize-derived danger floor.",
+      "recommendation": "keep-as-is",
+      "basis": "Defect (per-process caps don't compose) still present in tools/runner. Brief valid."
+    },
+    {
+      "row": "T364",
+      "registered": "2026-08-04T23:54:10Z",
+      "evidence": "No `reap` verb in src/managent/main.zig (grep empty). tools/runner still has no parent-side exit record for SIGKILLed children. Last runner change is T370 (35e1fdb), unrelated.",
+      "recommendation": "keep-as-is",
+      "basis": "Both structural defects remain. Brief valid."
+    },
+    {
+      "row": "T378",
+      "registered": "2026-08-05T18:00:47Z",
+      "evidence": "Inverted White guards VERIFIED still at HEAD: src/qa023_probe.zig:965 `if (any and best < L_tab[li])` (should be >, lower bound must ascend) and :1024 `if (any and best > H_tab[hi])` (should be <, upper bound must descend). No fix commit (git log --grep=T378 finds only registration c251438). File dated Aug 5 11:48.",
+      "recommendation": "keep-as-is",
+      "basis": "Defect still live and the brief's two line numbers are still exact. Highest-severity untouched row — any C1 reading from the shipped probe is suspect in the White direction."
+    },
+    {
+      "row": "T430",
+      "registered": "2026-08-08T13:01:51Z",
+      "evidence": "A0005 (2026-08-08T18:36:46Z) closed: 'Folded into T441 and delivered there (commit 2849ef8)'. bin/argus doctor console line fixed in 2849ef8 (derives from doctor groups, not sweep grades).",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0005 + commit 2849ef8 (bin/argus changed, 42 lines)."
+    },
+    {
+      "row": "T432",
+      "registered": "2026-08-08T13:51:01Z",
+      "evidence": "A0006 (2026-08-08T18:36:47Z) closed: 'Folded into T441 and delivered there (commit 2849ef8)'. Liveness 'never beat' → 'UNKNOWN — no assertion' and `managent assert` verb landed in 2849ef8.",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0006 + commit 2849ef8 (src/managent/main.zig +226 lines)."
+    },
+    {
+      "row": "T433",
+      "registered": "2026-08-08T13:52:40Z",
+      "evidence": "A0008 closed: delivered during T428 sprint. Deliverable docs/infra/tool-consolidation/02-scope-audit.md exists (14.5 KB). Store bundle path is stale: points at untracked/T430-phase2-audit.md, actual file is untracked/T433-phase2-audit.md.",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0008 + 02-scope-audit.md committed. Note the stale bundle path in the store."
+    },
+    {
+      "row": "T434",
+      "registered": "2026-08-08T14:00:43Z",
+      "evidence": "A0009 closed: delivered during T428 sprint. Deliverable docs/infra/tool-consolidation/03-acceptance-audit.md exists (19.9 KB).",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0009 + 03-acceptance-audit.md committed."
+    },
+    {
+      "row": "T435",
+      "registered": "2026-08-08T14:05:49Z",
+      "evidence": "A0010 closed: delivered during T428 sprint. Deliverable docs/infra/tool-consolidation/04-design-audit.md exists (19.4 KB, verdict FAIL) at commit 57f56de.",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0010 + commit 57f56de (T435 Phase 4 audit: FAIL)."
+    },
+    {
+      "row": "T436",
+      "registered": "2026-08-08T14:11:09Z",
+      "evidence": "A0011 closed: delivered during T428 sprint. Deliverable docs/infra/tool-consolidation/04-design-audit-r2.md exists (19.8 KB, PASS WITH FINDINGS) at commit 8d2ab81; findings/T436-phase4-reaudit.json committed.",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0011 + commit 8d2ab81 (T436 Phase 4 re-audit)."
+    },
+    {
+      "row": "T439",
+      "registered": "2026-08-08T15:22:30Z",
+      "evidence": "A0007 (2026-08-08T18:36:47Z) closed: 'Folded into T441 and delivered there (commit 2849ef8)'. Targetless --ack refusal + read_by/read_at attribution landed in 2849ef8 (tools/regression-inbox-loop.sh added).",
+      "recommendation": "close-with-evidence",
+      "basis": "Assertion A0007 + commit 2849ef8 (src/managent/main.zig inbox ack path)."
+    },
+    {
+      "row": "T442",
+      "registered": "2026-08-08T17:28:26Z",
+      "evidence": "NOT delivered. (1) findings/T441-audit.json is still non-conforming — claimlint reports 'C7 UNABSORBED NON-CONFORMING T441-audit.json — missing/wrong required key(s): task_id, model, claims' (it uses task/auditor/parent). (2) findings/T442-absorb.json absent. (3) tools/regression-argus-doctor.sh arm 0 still asserts 'C7 unabsorbed' appears under CLEAN (line ~173), which is only true when C7 < threshold — a live-state reading, exactly the state-dependent arm the brief says to de-state. (4) Premise 'C7 unabsorbed is 6' is stale: current C7 unabsorbed is 140 with 1 non-conforming.",
+      "recommendation": "refresh-brief",
+      "basis": "All three deliverables still pending, but the premise number moved (C7 6 → 140 unabsorbed) so the absorb scope is now an order of magnitude larger and must be re-stated before dispatch."
+    }
+  ],
+  "mechanism_fix_candidate": {
+    "id": "LEDGER-BOARD-SEAM",
+    "description": "The kanban rendering (bin/managent status/board) does not consult docs/infra/assertion-ledger/assertions.jsonl. A0005-A0011 mark T430/T432/T439/T433/T434/T435/T436 closed, but all seven still render dispatchable, so a dispatcher picking 'next dispatchable row' can re-dispatch finished work. Likely fix in src/managent/main.zig: status/board rendering consults assertions.jsonl, with a later assertion superseding an earlier one (per docs/infra/assertion-ledger/spec.md, T426).",
+    "affected_rows": ["T430", "T432", "T439", "T433", "T434", "T435", "T436"]
+  },
+  "notes": "INCIDENT (2026-08-18 ~19:22Z): while this read-only triage ran, the parallel T369 suite measurement executed tools/regression-git-commit-mine.sh arm 8, which overwrites the live docs/infra/managent/tasks.json with a single fixture row and never restores it. The live kanban store is clobbered, so bin/managent done T444 fails (task not found). Full incident + recovery recipe: untracked/msg/kanban-clobber-2026-08-18/STATE.md. Verdict for this row: pass-with-findings. T369 was named in the brief's expected member list but is now in_progress (claude-fable-5/T369, claimed 2026-08-18T17:17:10Z), not dispatchable — excluded from the dispatchable triage. T351 also appears in the live dispatchable list though absent from the brief's expected list; covered above. Seven rows (T430/T432/T439/T433-T436) are already delivered in git and closed in the assertion ledger but still render dispatchable — this is the ledger↔board seam flagged as a mechanism fix candidate. Verification was read-only per the brief (no zig build, no test suite): assertions read from docs/infra/assertion-ledger/assertions.jsonl, deliverables checked via ls/git log/grep, the T378 guard inversion and T351 line drift verified against HEAD source."
+}
