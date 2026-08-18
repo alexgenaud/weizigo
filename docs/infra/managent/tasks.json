@@ -461,6 +461,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T448": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T448-live-tree-fixture-residue.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T18:09:19Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Live-tree fixture residue survives a killed regression run (EXIT trap does not run on SIGKILL; tools/runner kills on guards). Found by claude-opus-5/orcha deriving the T447 answer key.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T437": {
     "status": "done",
     "agent": "deepseek-v4-pro",
