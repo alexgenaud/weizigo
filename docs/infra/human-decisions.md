@@ -58,20 +58,27 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
   `ORPHANED` (C1a), `STALE-NEGATION` (C1b), `DEAD-LINKS` (C2), **`UNBACKED`** (C3),
   `GHOST-IDS` (C4), `SHADOWED` (C5), `MISCITED` (C6), `UNABSORBED` (C7), `UNKILLED` (C8),
   `UNMAPPED` (C9). Registered as T356; ratify or rename the words before it lands.
-- **2026-08-18 — DeepSeek default seat.** The TEMP rule making `deepseek-v4-flash` the default
-  for all dispatches lapsed 2026-08-12. Operator's standing question: **where does
-  `deepseek-v4-pro` shine enough to earn its cost**, and how do both compare to Opus and Fable.
-  Forced binary choice today is **Flash** (much cheaper). Awaiting a ruling on evidence from
-  the new-epoch races; do not aggregate across the 2026-08-18 DeepSeek epoch boundary.
-- **2026-08-18 — T443 storage-durability policy P1–P6** (`untracked/T443-policy-draft.md`):
-  operator ratifies. Includes the **branch-archival idea** — commit epic/sprint binary data to a
-  git branch, delete the binary before squash/merge. Caution to weigh in the ruling: a committed
-  binary enters the object store and branch deletion alone does not reclaim it (needs unreachable
-  + gc, and it bloats clones meanwhile); an **orphan branch never merged**, or P3's manifest +
-  off-disk archive, likely dominates. Do not default into it.
 
 ## Recently ruled (keep short; drop items older than the current milestone)
 
+- **2026-08-18 — No binaries in git, and no worktrees to design for.** The branch-archival
+  sketch is **rejected by the operator**: large artifacts do not go into a git branch even if the
+  branch is later squashed or deleted. Diligent organization of `/tmp/weizigo` (scratch) and
+  `untracked/` (host-local artifacts) is the working answer. The operator also rules that **this
+  project has no need for worktrees**, so cross-branch and cross-worktree binary sharing is a
+  problem we do not solve. *Standing caveat the ruling does not settle:* `/tmp` is where the
+  9.4 GB `260707` archive was lost to tmp decay, and `untracked/` dies with the disk — durability
+  still needs **one off-disk copy** (T443 P3), which is not a git question. Ratification of P1,
+  P2, P4, P5, P6 as written still stands open.
+- **2026-08-18 — No permanent default model; fill the matrix instead.** Repeatedly choosing the
+  same model for the same task type, for lack of alternative experience, is an unsound habit and
+  ends here. A model is selected for a task type only when evidence says it is the most
+  appropriate for *that* type, and every model is to be tried across task types, head-to-head
+  where the work allows. Cost stance **while Ollama credits are plentiful**: prefer Ollama models;
+  otherwise `deepseek-v4-flash` over `deepseek-v4-pro` (cheaper, and on 2026-08-18's race also
+  faster and better); `deepseek-v4-pro` is worth trying on **heavy, long-horizon, Opus/Fable-like**
+  work, which is the one shape no race has yet measured. Coverage lives in
+  `docs/infra/model-task-matrix.md`; an empty cell is a reason to dispatch, not a gap to hide.
 - **2026-08-18** — **Ollama credits are plentiful:** use, test and compare `glm-5.2`,
   `minimax-m3`, `kimi-k2.7` liberally (K3 excluded on cost). A local `qwen3.x` trial is
   authorized for lightweight tasks — add the label to `canonical_models` first, and run no local

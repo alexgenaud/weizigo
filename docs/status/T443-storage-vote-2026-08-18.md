@@ -14,7 +14,26 @@ to say yes. Nothing in the draft is in force until you rule.
 | P5 | `docs/evidence/` + `findings/` unchanged | **ratify** | nothing |
 | P6 | Dead defaults are bugs: `src/arena.zig:565` → `data/oracle-4x4.wzo` and `src/resolver_harness.zig:283` → `data/oracle-4x3-v2.wzo2` point at files that do not exist | **ratify** | the next row touching those files repoints them |
 
-## The branch-archival idea (your 2026-08-18 sketch) — recommend NO, with one exception
+## RULED, 2026-08-18 (operator): no binaries in git, and no worktrees to design for
+
+The operator's ruling, same evening this sheet was written: **large artifacts do not go into a
+git branch**, even one later squashed or deleted. Diligent organization of `/tmp/weizigo`
+(scratch) and `untracked/` (host-local artifacts) is the working answer. He further ruled that
+**this project has no need for worktrees**, so cross-branch and cross-worktree binary sharing is
+a problem we do not solve.
+
+Two consequences to carry:
+
+1. **The durability question is not settled by this ruling and must not be filed as if it were.**
+   `/tmp` is precisely where the 9.4 GB `260707` archive was lost to tmp decay, and `untracked/`
+   dies with the disk. Organization is the right answer for *scratch*; **one off-disk copy** (P3)
+   is still the only thing that survives the disk failing. That remains open.
+2. **T449 drops in priority.** `tools/runner` being blind inside a git worktree is a real defect,
+   but if the project runs no worktrees it is **latent, not live**. The one place a worktree is
+   used today is race-lane isolation (`tools/bakeoff.sh`, T376) — optional, and its own harness
+   already resolves roots correctly. Keep the row; do not rank it above live work.
+
+## Why the branch idea was the wrong shape anyway (kept as the reasoning behind the ruling)
 
 The sketch: commit epic/sprint binary data to a git branch, delete the binary once stable, then
 squash/merge into `main`. The mechanics work against it:
