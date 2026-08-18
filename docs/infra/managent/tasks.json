@@ -351,6 +351,28 @@
     "skip_acceptance_reason": null,
     "amendments": ["2026-08-08T10:50:55Z: post-close: ACCEPTANCE-GATE RECORDING GAP (found at close): the store never captured acceptance= — T423 and T424 were registered at 2026-08-08T10:24:43Z via the suggest stub meta (deliverables=--, no acceptance key), and the real brief meta with acceptance= was written afterwards without re-running add. The gate itself did not run at done. No verification was actually skipped: tools/regression-claim-lifecycle.sh was run standalone 3x this session (red on pre-fix binaries, green after, green final) and is wired into zig build test. Recording the discrepancy on the row via amend --post-close. Follow-up for the Orchestrator's registration flow: re-read the bundle meta at done when acceptance is null, or re-register after the brief meta is finalized."]
   },
+  "T455": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T455-unlabelled-commit-has-no-scope.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T19:55:44Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "An unlabelled commit (MANAGENT_TASK_ID unset) bypasses the pre-commit scope check entirely — tools/hooks/pre-commit:63/:110 warn and allow. Found by the Orchestrator committing two live consoles' source edits into d7e4bdb. The guard is strongest for dispatched workers and absent for the actor most able to do damage.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "sh tools/regression-precommit.sh",
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T389": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -1452,7 +1474,7 @@
     "amendments": []
   },
   "T453": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "kimi-k2.7",
     "model": null,
     "bundle": "untracked/T453-vb-bellman-oob.md",
@@ -1462,12 +1484,12 @@
     "caps": [],
     "added": "2026-08-18T18:20:25Z",
     "claimed": "2026-08-18T19:53:40Z",
-    "done": null,
+    "done": "2026-08-18T19:55:43Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "repair row registered by T369 (suite-truth)",
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "applyMove OOB fix verified at HEAD (34/34 vb_bellman_4x4, 149/149 i4_differential); fix pre-applied in d7e4bdb; manifest_ratchet recorded for Orchestrator application (RED vb_bellman_4x4 strike + COUNT 7->6).",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
@@ -2905,7 +2927,7 @@
   },
   "_sys": {
     "next_id": 455,
-    "directive_next": 73,
+    "directive_next": 77,
     "assertion_next": 17
   }
 }
