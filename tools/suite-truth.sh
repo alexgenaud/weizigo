@@ -56,7 +56,7 @@ if [ -z "$LOG" ]; then
     echo "suite-truth: $RUNNER missing — refuse to run an unguarded suite" >&2
     exit 2
   fi
-  LOG="$(mktemp /tmp/weizigo/suite-truth-XXXXXX.log)" || { echo "suite-truth: mktemp failed" >&2; exit 2; }
+  LOG="$(mktemp /tmp/weizigo/suite-truth-XXXXXX)" || { echo "suite-truth: mktemp failed" >&2; exit 2; }
   echo "suite-truth: running zig build test -Doptimize=ReleaseSafe (guarded) — log: $LOG"
   # ReleaseSafe: the crashes this gate tracks are safety-check panics; they
   # are no-ops (UB) in ReleaseFast.  Flags match the 2026-08-18 run-2 measurement.
