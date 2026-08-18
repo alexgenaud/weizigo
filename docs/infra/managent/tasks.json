@@ -1341,6 +1341,28 @@
     "skip_acceptance_reason": "zig build test not green on this clone: pre-existing tools/regression-managent-standing.sh failure (STANDING-ABSORB et al. not registered in kanban — Orchestrator standing-task matter, not T347) + suite already non-green per T340's record (T338 uncommitted differential.zig). T347's own gates pass in isolation: zig test src/vb_health.zig 38/38, zig test src/vb_mutants.zig 43/43 incl. M9-BATTERY-STUBBED kill, red-then-green wiring proof demonstrated, no-silent-bypass @compileError gate verified. The M9 kill test in vb_mutants.zig is wired into zig build test; vb_health.zig wiring is the sprint console's job (brief: do not edit build.zig).",
     "amendments": []
   },
+  "T454": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T454-suite-reading-depends-on-caller.md",
+    "set": "J",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-18T19:36:37Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "zig build test yields 7 failing steps under a task identity and 6 without; the suite-truth manifest records the set unconditionally, so the gate's verdict depends on who runs it. Root cause is MANAGENT_TASK_ID leaking into the scratch repo (T369's own diagnosis). Found by running T369's acceptance gate independently.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T319": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -1889,7 +1911,7 @@
     "claim_count": 1,
     "acceptance": "sh tools/suite-truth.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": ["2026-08-18T19:36:37Z: post-close: Acceptance gate run independently by claude-opus-5/orcha at f8983bb: RED, and correctly so. The manifest records the 7-red set unconditionally, but the suite yields 7 failing steps under a task identity and 6 without — measured both arms: env -u MANAGENT_TASK_ID -> rc=0/0 FAIL; MANAGENT_TASK_ID=T369 -> rc=1/6 FAIL. The row's own controls were green because they ran under its own identity. Gate mechanism validated (it fired on the fixed-red direction and named the script); manifest conditionality registered as T454. No fault in the diagnosis, which named this leak; the gap is that the conditionality never reached the manifest."]
   },
   "T363": {
     "status": "done",
@@ -2882,7 +2904,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 454,
+    "next_id": 455,
     "directive_next": 73,
     "assertion_next": 17
   }
