@@ -109,19 +109,23 @@ shell regressions.
 
 ### Shell regression 7 — `tools/regression-argus-doctor.sh`
 
-- **Cause:** two arms fail: doctor does not surface C7-unabsorbed (below
-  threshold) under CLEAN, and does not surface deploy staleness under CLEAN,
-  while the arms assert it should.
-- **Owning row:** T442 (the state-dependent arm the 2026-08-18 brief already
-  assigned) · **Verdict:** defect. Record here; do not fix in T369.
+- **Cause:** two arms fail: doctor does not surface C7-unabsorbed under CLEAN
+  and does not surface deploy staleness under CLEAN, while the arms assert it
+  should. At rest C7 = 8 unabsorbed, above the threshold of 5 — exactly the
+  state-dependent arm T442 owns (Orchestrator directive D071, 2026-08-18).
+- **Owning row:** T442 · **Verdict:** state-dependent (reading of state, not a
+  suite defect) — recorded here, do not fix in T369.
 
 ## Corrections to the 2026-08-18 brief
 
 - **claimlint C9 is 0, not 1.** The run-2 log's `C9 tree-mapping violations: 1`
-  (`GLOBAL.T280-CTRL-SEEDED` doc-missing) is the **synthetic seeded register**
-  inside `regression-precommit.sh`'s seeded-defect control — which passed by
-  design. The live register (228 rows) and the tree-map (228 rows) are in
-  lockstep; `bin/weizigo-claimlint` reports C9 = 0. Nothing to fix.
+  (`GLOBAL.T280-CTRL-SEEDED` doc-missing) is a **suite-time artifact** — the
+  seeded register inside `regression-precommit.sh`'s seeded-defect control,
+  which passed by design; several regression scripts seed fixture docs into
+  the live tree and remove them only in an exit trap (Orchestrator directive
+  D071, 2026-08-18, independently confirms the fixture-seeding class). The
+  live register (228 rows) and the tree-map (228 rows) are in lockstep;
+  `bin/weizigo-claimlint` reports C9 = 0. Nothing to fix.
 - **The brief undercounted the shell reds** (it named only argus-doctor).
   This manifest records all four (entries 4–7 above); three of them —
   managent-integrity, git-commit-mine, absorption-machinery — reproduce at
