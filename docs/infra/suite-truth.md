@@ -24,10 +24,12 @@ Build Summary: 56/65 steps succeeded (8 failed); 927/935 tests passed (1 skipped
 - The 7 crashes reproduce deterministically under seed `0xb0d1bce9` on a quiet
   machine; the resource-pressure hypothesis is **falsified**.
 
-## The eight failed steps
+## The failed steps
 
-Seven crashes across four test binaries (three root causes), plus four failing
-shell regressions.
+Seven crashes across four test binaries (three root causes), plus three
+failing shell regressions (a fourth — managent-integrity deploy-staleness —
+was red in run 2 and was **struck by this row** after `zig build deploy`
+resolved the staleness; see the struck-red note below).
 
 ### Crash family 1 — `t419_taxonomy` (1 crash)
 
@@ -80,14 +82,17 @@ shell regressions.
   Live since 2026-08-06 (reported by T350), twelve days unowned.
 - **Owning row:** T343 · **Verdict:** defect.
 
-### Shell regression 4 — `tools/regression-managent-integrity.sh`
+### Shell regression 4 — `tools/regression-managent-integrity.sh` — STRUCK this row
 
-- **Cause:** T268 deploy-staleness check: `bin/managent` (2849ef8-dirty) !=
-  `zig-out/bin/managent` (b2a8517-dirty). `zig build test` builds `zig-out/`
-  but does not deploy to `bin/`; the deployed copy stays stale.
-- **Owning row:** T268 (the stamp check is working as designed) · **Verdict:**
-  state-dependent (deploy hygiene) — resolves with `zig build deploy`, not a
-  code change.
+- **Was:** T268 deploy-staleness check — `bin/managent` (2849ef8-dirty) !=
+  `zig-out/bin/managent` (b2a8517-dirty); `zig build test` builds `zig-out/`
+  but does not deploy to `bin/`.
+- **Struck by T369:** `zig build deploy` (close-out, STATE rule 6) resolved the
+  staleness; the red is gone at HEAD. It is a deploy-hygiene reading, not a
+  code defect — it **re-appears** whenever source changes and the suite runs
+  before the next deploy, at which point the gate will correctly report it as
+  a NEW red (the operator should then `zig build deploy`).
+- **Owning row:** T268 (the stamp check is working as designed).
 
 ### Shell regression 5 — `tools/regression-git-commit-mine.sh`
 
@@ -127,9 +132,9 @@ shell regressions.
   live register (228 rows) and the tree-map (228 rows) are in lockstep;
   `bin/weizigo-claimlint` reports C9 = 0. Nothing to fix.
 - **The brief undercounted the shell reds** (it named only argus-doctor).
-  This manifest records all four (entries 4–7 above); three of them —
-  managent-integrity, git-commit-mine, absorption-machinery — reproduce at
-  HEAD and were silently missing from the run-2 summary.
+  The run-2 log carries four `run sh failure` steps: managent-integrity,
+  git-commit-mine, absorption-machinery, argus-doctor. Three reproduce at HEAD;
+  managent-integrity was deploy-hygiene and is now struck (above).
 
 ## Machine section — parsed by `tools/suite-truth.sh`
 
@@ -138,9 +143,8 @@ Do not edit the lines below without re-running the gate (ratchet only).
 RED module t419_taxonomy
 RED module qa023_brute_2x2
 RED module vb_bellman_4x4
-RED script tools/regression-managent-integrity.sh
 RED script tools/regression-git-commit-mine.sh
 RED script tools/regression-absorption-machinery.sh
 RED script tools/regression-argus-doctor.sh
-COUNT steps-failed 8
+COUNT steps-failed 7
 COUNT tests-crashed 7
