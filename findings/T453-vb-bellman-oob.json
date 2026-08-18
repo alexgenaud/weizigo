@@ -1,0 +1,18 @@
+{
+  "task_id": "T453",
+  "date": "2026-08-18",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T453 (suite-truth — fix vb_bellman_4x4 applyMove OOB) — closed. Directive D076 (amend, claude-opus-5/orcha, 2026-08-18T19:55:18Z) read and incorporated: the file swept into commit d7e4bdb was src/vb_bellman_4x4.zig (the MAX_N buffer copy before koAfterCaptureRt). Defect: applyMove(board, w, h, ...) sliced the caller's board to board[0..MAX_N] (MAX_N=16) at the koAfterCaptureRt call, while the 2x2 test passes a 4-element board — index out of bounds: index 16, len 4. Root cause: koAfterCaptureRt's signature demands *const [MAX_N]i8, but the caller's 'board' is sized to n (e.g. 4 for 2x2). Fix: copy board into a [MAX_N]i8 buffer at the call site (mirror of how 'next' is built), so applyMove is genuinely size-generic for any w,h <= 4x4. Did NOT widen the test. Verification at HEAD: zig test -O ReleaseSafe src/vb_bellman_4x4.zig -> All 34 tests passed (test 4/34 'applyMove: 2x2 empty Black at cell 0' now passes); zig test -O ReleaseSafe src/i4_differential.zig -> All 149 tests passed (test 5/149 re-imports the same applyMove via @import('vb_bellman_4x4.zig'), also now passes). Test counts matched: 34 vb_bellman_4x4, 149 i4_differential — no vacuous green (test 4/34 was the crash site before the fix). Note on provenance: the fix at src/vb_bellman_4x4.zig:454-457 was already present in commit d7e4bdb (the Orchestrator's dispatch commit explicitly states 'Two things were fixed before dispatch rather than after') — my run was a verification pass against the pre-applied fix; the implementation is correct and the red is gone. manifest_ratchet: docs/infra/suite-truth.md — strike the line 'RED module vb_bellman_4x4' (one of seven reds). COUNT steps-failed moves 7 -> 6. Crash family 3 in the suite-truth prose should also be struck (defect no longer reproduces). Owner applies both edits under a single writer commit per the duplicate-writer hazard rule.",
+  "manifest_ratchet": {
+    "file": "docs/infra/suite-truth.md",
+    "strike_lines": [
+      "RED module vb_bellman_4x4"
+    ],
+    "count_changes": {
+      "COUNT steps-failed": { "from": 7, "to": 6 }
+    },
+    "also_strike_prose": "Crash family 3 — vb_bellman_4x4 (2 crashes, two binaries) — the defect no longer reproduces; applyMove is now size-generic. i4_differential was already green at HEAD on this branch; the import shared the now-fixed applyMove."
+  }
+}
