@@ -3269,5 +3269,33 @@ kimi invocation (both tags already map to canonical `kimi-k2.7`, so the ledger l
 unaffected). The authorized local qwen trial is **qwen3.6**, not qwen3.8 — qwen3.8 is not
 pulled on this host; whichever label is used must be added to `canonical_models` first.
 
+### T447 — first answer-keyed race, 2026-08-18 (new epoch, n=1)
+
+One read-only task (sweep `tools/*.sh` for live-repo escape paths), five lanes, key sealed
+before dispatch, blind-graded. Full run document: `docs/infra/races/T447-escape-sweep.md`.
+
+| model | score /30 | wall | output bytes |
+|---|---|---|---|
+| deepseek-v4-flash | **38** | 416.9 s | 13,790 |
+| deepseek-v4-pro | 34 | 681.8 s | 10,759 |
+| glm-5.2 | 30 | 359.6 s | 26,228 |
+| minimax-m3 | 27 | 428.0 s | 25,095 |
+| kimi-k2.7 | 25 | 372.3 s | 22,606 |
+
+Scores pass 30 because verified findings outside the key earn +3 each. No token readings (the
+operator was not at the console; absent, not estimated).
+
+**Against the operator's standing question — where does Pro earn its cost?** Not here. On a
+read-only audit Flash outscored Pro in 61 % of the wall time. Pro's distinguishing quality was
+**discipline, not reach**: it and Flash were the only two lanes with every reachability verdict
+correct, and Pro alone among the non-winners ruled `tools/git-commit-mine:98` fail-CLOSED where
+kimi-k2.7 ruled it fail-open. n=1 — this is one race on one task shape, and the honest reading
+is "no evidence yet that Pro earns the premium on read-only audits", not "Pro is worse".
+
+**The result that matters more than the ranking:** all five lanes found a real defect the
+grader's own answer key missed (`tools/regression-argus-doctor.sh:195` seeding the live tracked
+`AGENTS.md` with a restore outside the trap — a mechanism that already fired once, in the T445
+incident). Racing a field against one carefully-written key beat the key.
+
 dispatch-verify 2026-08-18 T444 deepseek-v4-pro report=unknown verified=fail fail=row
 dispatch-verify 2026-08-18 T443 deepseek-v4-flash report=success verified=pass

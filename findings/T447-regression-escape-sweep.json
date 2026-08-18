@@ -1,0 +1,135 @@
+{
+ "task_id": "T447",
+ "date": "2026-08-18",
+ "model": "claude-opus-5",
+ "identifier": "claude-opus-5/T447",
+ "claims": [],
+ "new_rows": [
+  "T449",
+  "T450"
+ ],
+ "race": {
+  "protocol": "docs/infra/bakeoff.md (answer-key-first, blind grading)",
+  "run": "t447-2026-08-18",
+  "key_sha256": "0d2ac295eb9b2493614a52159caa823084ed551523c77e14690dc9b039da2fd4",
+  "brief_sha256": "12f79202c74da8c9d81fcb3906506f7f13aa603e703426e280bb7966909978f9",
+  "key_committed_before_dispatch": "111c141",
+  "graded_at": "9c08584",
+  "grader": "claude-opus-5/orcha",
+  "rubric_max": 30,
+  "lanes": [
+   {
+    "lane": "E",
+    "model": "deepseek-v4-flash",
+    "family": "deepseek",
+    "serving_tag": "deepseek-v4-flash",
+    "score": 38,
+    "wall_s": 416.9,
+    "bytes": 13790,
+    "tokens": "no reading",
+    "note": "Highest score and the most compact report. Only lane to find the runner heartbeat writing into the LIVE untracked/heartbeat.jsonl, pilot_gate.sh:14 regenerating TRACKED artifacts before the verification that is supposed to gate them, the argus-doctor arm-7 bundle missing from the trap, and the bare cp over the signed live bin/managent. -1: asserted MANAGENT_STORE='' fails loudly; probed, a read verb prints an empty board and exits 0 - but it flagged exactly that as residual question 1 with the settling command."
+   },
+   {
+    "lane": "A",
+    "model": "deepseek-v4-pro",
+    "family": "deepseek",
+    "serving_tag": "deepseek-v4-pro",
+    "score": 34,
+    "wall_s": 681.8,
+    "bytes": 10759,
+    "tokens": "no reading",
+    "note": "Cleanest reachability discipline: every Class-A mktemp site correctly ruled UNREACHABLE with set -e as the reason, and it verified `cd \"$(false)\"` returns 0 under set -e by execution. Correctly ruled tools/git-commit-mine:98 fails CLOSED - the claim lane C got backwards. Slowest lane, 1.6x the winner."
+   },
+   {
+    "lane": "D",
+    "model": "glm-5.2",
+    "family": "ollama",
+    "serving_tag": "glm-5.2:cloud",
+    "score": 30,
+    "wall_s": 359.6,
+    "bytes": 26228,
+    "tokens": "no reading",
+    "note": "Fastest lane, and the only one to verify tools/runner:168 uses os.path.isdir('.git') and is therefore blind inside a git worktree (heartbeats and directives silently no-op) - the T376 defect class, unfixed in the runner. -2 for a fabricated citation: pilot_gate.sh:46-47, a file with 30 lines (the code is at :21-22)."
+   },
+   {
+    "lane": "B",
+    "model": "minimax-m3",
+    "family": "ollama",
+    "serving_tag": "minimax-m3:cloud",
+    "score": 27,
+    "wall_s": 428.0,
+    "bytes": 25095,
+    "tokens": "no reading",
+    "note": "Broadest citation count (34 tools/*.sh references, all in range) and a strong SAFE section, but weaker reachability verdicts: it reasoned about live-tree impact rather than about set -e, and contradicted itself on claim-lifecycle ('unreachable in practice' then 'a SIGKILL leaves the fixture orphaned')."
+   },
+   {
+    "lane": "C",
+    "model": "kimi-k2.7",
+    "family": "ollama",
+    "serving_tag": "kimi-k2.7-code:cloud",
+    "score": 25,
+    "wall_s": 372.3,
+    "bytes": 22606,
+    "tokens": "no reading",
+    "note": "-2 for the one false alarm that mattered: it reported tools/git-commit-mine:98 as letting a foreign staged path slip into a commit on mktemp failure. Verified false - with SCOPE_FILE empty, foreign() returns 0 for every non-named path, so the wrapper REFUSES. Reporting a fail-closed safety wrapper as fail-open is the error class the SAFE section exists to catch."
+   }
+  ],
+  "caveats": [
+   "n=1 per lane: one race is an anecdote, not a ranking.",
+   "Lanes ran in parallel from the --emit block (not the harness's sequential execute), so no lanes.json dispatch record exists; the roster + per-lane tools/runner trailers are the dispatch record.",
+   "The grader saw each lane's wall time and byte size before anonymizing; only the CONTENT was blind.",
+   "No token readings: agents cannot read their own meter and the operator was not at the console.",
+   "Lanes ran from a git worktree at /tmp/weizigo/race-t447, so untracked/race-keys/ did not exist in their view. That is a relative-path boundary, not a sandbox (T376)."
+  ]
+ },
+ "key_gaps_found_by_lanes": [
+  {
+   "finding": "tools/regression-argus-doctor.sh:192-198 appends a seed line to the LIVE TRACKED AGENTS.md and restores it only INLINE - the EXIT trap at :110 does not cover it. Verified. Not hypothetical: the T445 incident record lists 'AGENTS.md +1 fixture line' among the damage.",
+   "found_by": [
+    "all five lanes"
+   ],
+   "severity": "high",
+   "row": "T448"
+  },
+  {
+   "finding": "tools/runner:168 resolves the repo root with os.path.isdir(os.path.join(current,'.git')), so inside a git worktree (.git is a FILE) it returns None: heartbeats are not written and directives are not read, silently. tools/bakeoff.sh was fixed for exactly this in T376; the runner was not. Verified.",
+   "found_by": [
+    "glm-5.2"
+   ],
+   "severity": "medium",
+   "row": "T449"
+  },
+  {
+   "finding": "tools/pilot_gate.sh regenerates TRACKED artifacts/*.wzo before the verification that gates them (:14), and under --full deletes data/oracle-4x4.checkpoint.wzo and moves data/oracle-4x4.wzo aside (:21-22) with no restore on any failure path. Verified.",
+   "found_by": [
+    "deepseek-v4-flash",
+    "deepseek-v4-pro",
+    "kimi-k2.7",
+    "glm-5.2"
+   ],
+   "severity": "medium",
+   "row": "T450"
+  },
+  {
+   "finding": "tools/runner appends a heartbeat line to the LIVE untracked/heartbeat.jsonl on every invocation from a live-checkout cwd (tools/smoke.sh:44, tools/regression-runner-reporting.sh) - by design, but it is a live-tree write from a test harness and the file is unbounded.",
+   "found_by": [
+    "deepseek-v4-flash",
+    "glm-5.2"
+   ],
+   "severity": "low",
+   "row": ""
+  },
+  {
+   "finding": "tools/regression-inbox-loop.sh:272-275 writes untracked/T997-inbox-loop-dryrun.md into the LIVE tree - a fourth site of the T448 class the answer key missed.",
+   "found_by": [
+    "deepseek-v4-pro",
+    "minimax-m3",
+    "kimi-k2.7",
+    "deepseek-v4-flash"
+   ],
+   "severity": "low",
+   "row": "T448"
+  }
+ ],
+ "notes": "First answer-keyed race under docs/infra/bakeoff.md. Ordered by the operator 2026-08-18 ('run the same safe, conflict-free task across five-to-eight models', read-only audits preferred) and aimed at the standing question of where deepseek-v4-pro earns its cost over deepseek-v4-flash. RESULT, new epoch, n=1: FLASH BEAT PRO - 38 vs 34 on a 30-point rubric (verified bonuses take both above 30), in 416.9 s against Pro's 681.8 s. Pro's distinction was discipline rather than reach: it and Flash were the only lanes to get every reachability verdict right, and Pro correctly ruled tools/git-commit-mine:98 fail-CLOSED where kimi-k2.7 ruled it fail-open. ALL FIVE lanes found a real defect the answer key missed (the live AGENTS.md seed) - a five-model field beat a single Opus key on the exact thing the key was written for. Directive D071 was sent to the T369 console during this race, not to any lane. No lane edited or ran anything; the working tree was byte-identical before and after."
+}
