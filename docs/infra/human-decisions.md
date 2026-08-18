@@ -58,10 +58,28 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
   `ORPHANED` (C1a), `STALE-NEGATION` (C1b), `DEAD-LINKS` (C2), **`UNBACKED`** (C3),
   `GHOST-IDS` (C4), `SHADOWED` (C5), `MISCITED` (C6), `UNABSORBED` (C7), `UNKILLED` (C8),
   `UNMAPPED` (C9). Registered as T356; ratify or rename the words before it lands.
-- *(none)*
+- **2026-08-18 — DeepSeek default seat.** The TEMP rule making `deepseek-v4-flash` the default
+  for all dispatches lapsed 2026-08-12. Operator's standing question: **where does
+  `deepseek-v4-pro` shine enough to earn its cost**, and how do both compare to Opus and Fable.
+  Forced binary choice today is **Flash** (much cheaper). Awaiting a ruling on evidence from
+  the new-epoch races; do not aggregate across the 2026-08-18 DeepSeek epoch boundary.
+- **2026-08-18 — T443 storage-durability policy P1–P6** (`untracked/T443-policy-draft.md`):
+  operator ratifies. Includes the **branch-archival idea** — commit epic/sprint binary data to a
+  git branch, delete the binary before squash/merge. Caution to weigh in the ruling: a committed
+  binary enters the object store and branch deletion alone does not reclaim it (needs unreachable
+  + gc, and it bloats clones meanwhile); an **orphan branch never merged**, or P3's manifest +
+  off-disk archive, likely dominates. Do not default into it.
 
 ## Recently ruled (keep short; drop items older than the current milestone)
 
+- **2026-08-18** — **Ollama credits are plentiful:** use, test and compare `glm-5.2`,
+  `minimax-m3`, `kimi-k2.7` liberally (K3 excluded on cost). A local `qwen3.x` trial is
+  authorized for lightweight tasks — add the label to `canonical_models` first, and run no local
+  inference during a measured suite run.
+- **2026-08-18** — **Race, don't allocate by belief:** run the same safe, conflict-free task
+  across five-to-eight models, in parallel or blindly comparable, and score it blind (bake-off
+  protocol, `docs/infra/bakeoff.md`). Read-only audits are the ideal class; write rows need
+  worktree isolation or sequential runs.
 - **2026-08-04** — Fable: hand over before 90% of 200 k, use sparingly; the 200 k boundary is
   cost, not capacity, and the mechanism is undocumented and not to be restated as fact.
 - **2026-08-04** — Orcha delegates sprints to consoles and does not manage their internals.

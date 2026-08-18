@@ -3251,5 +3251,23 @@ be decided on new-epoch evidence, not the pre-boundary trial alone. Operator aut
 qwen3.8 trial (`--model qwen3.8` via the Ollama path) for lightweight, non-committal tasks
 until its envelope is known. qwen3.8 is not yet in the canonical label list — add it there
 before any ledger line names it.
+### Serving-tag probe, 2026-08-18 evening (claude-opus-5/orcha)
+
+Measured, not recalled — one `ollama run <tag> "say ready"` per tag from this host:
+
+| tag | result |
+|---|---|
+| `glm-5.2:cloud` | answers |
+| `minimax-m3:cloud` | answers |
+| `kimi-k2.7:cloud` | **`Error: model 'kimi-k2.7' not found`** |
+| `kimi-k2.7-code:cloud` | answers — **this is the tag to dispatch kimi with today** |
+| `kimi-k2-thinking:cloud` | `retired at 2026-06-16` (vendor retirement) |
+| `qwen3.6:latest` (local, 23 GB) | answers |
+
+Consequences: `bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working
+kimi invocation (both tags already map to canonical `kimi-k2.7`, so the ledger label is
+unaffected). The authorized local qwen trial is **qwen3.6**, not qwen3.8 — qwen3.8 is not
+pulled on this host; whichever label is used must be added to `canonical_models` first.
+
 dispatch-verify 2026-08-18 T444 deepseek-v4-pro report=unknown verified=fail fail=row
 dispatch-verify 2026-08-18 T443 deepseek-v4-flash report=success verified=pass
