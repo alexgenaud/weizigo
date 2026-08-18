@@ -318,12 +318,14 @@ test "M8-T261 deleted-entry killed by C-A1/C-A2 closure (red, then green)" {
 
 test "M10-ALIAS-CONTROL killed by I11 null control (vacuous 0) + seeded-defect (> 0)" {
     // Null control: kernel vs SMD1 (both kernel) at 2×2 → 0 mismatches.
-    const path = "/tmp/weizigo/oracle-2x2-exhaustive.smd1";
-    var threaded = std.Io.Threaded.init(testing.allocator, .{});
-    defer threaded.deinit();
-    const io = threaded.io();
-    const bytes = try std.Io.Dir.cwd().readFileAlloc(io, path, testing.allocator, .unlimited);
-    defer testing.allocator.free(bytes);
+    // T438: the fixture is regenerated in-memory (vb_i11.fixtureExhaustive)
+    // instead of read from a decaying /tmp dump. Both the old on-disk dump
+    // and this regeneration come from the same kernel move generator, so the
+    // null-control semantics (solver vs alias-of-solver) are unchanged; the
+    // expected total of 114 records below now also cross-checks the in-memory
+    // emitter against what the committed dump used to contain.
+    const bytes = try vb_i11.fixtureExhaustive(2, 2);
+    defer vb_i11.freeFixture(bytes);
     const res = try vb_i11.compareSmd1Null(2, 2, bytes);
     std.debug.print("[EXPECTED] M10-ALIAS-CONTROL: null mismatches={d}/{d} (vacuous 0 required)\n", .{ res.mismatches, res.total });
     try testing.expectEqual(@as(u64, 0), res.mismatches);

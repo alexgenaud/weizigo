@@ -55,9 +55,12 @@
 //   1. "byte-identity verified out-of-band" — no evidence was committed. The
 //      port may be faithful; nobody has shown it. Until someone does, treat
 //      this as a re-implementation, not a proven-equal copy.
-//   2. "wired into build.zig as the vb_i11_tests target" — FALSE at the time of
-//      this commit: build.zig carries no such target. These tests pass
-//      standalone (35/35, verified) but are not yet in `zig build test`.
+//   2. "wired into build.zig as the vb_i11_tests target" — TRUE, and it
+//      predates T438: build.zig has carried vb_i11_tests in test_step since
+//      T346. The 2026-08-08 handover's counter-claim ("build.zig carries no
+//      such target") was itself wrong — corrected 2026-08-18 (T438 remainder)
+//      by reading build.zig:601-612 at HEAD 189e423. There is no *standalone
+//      named step*; standalone runs use the zig test command above.
 // Both are tracked on T438, which remains open.
 
 const std = @import("std");
@@ -627,7 +630,9 @@ fn smd1EmitSampled(
 }
 
 /// Generate the exhaustive SMD1 fixture for goban w×h in-memory.
-fn fixtureExhaustive(comptime w: usize, comptime h: usize) ![]u8 {
+/// Pub since T438-remainder: vb_mutants.zig's M10 alias-control consumes it
+/// instead of reading a decaying /tmp dump.
+pub fn fixtureExhaustive(comptime w: usize, comptime h: usize) ![]u8 {
     return try smd1EmitExhaustive(w, h, std.heap.page_allocator);
 }
 
@@ -638,7 +643,7 @@ fn fixtureSampled(comptime w: usize, comptime h: usize, seed: u64, n_total: u32)
 }
 
 /// Free fixture bytes allocated by fixtureExhaustive / fixtureSampled.
-fn freeFixture(bytes: []u8) void {
+pub fn freeFixture(bytes: []u8) void {
     std.heap.page_allocator.free(bytes);
 }
 
