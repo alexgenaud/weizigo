@@ -1,8 +1,8 @@
-# INTENT — what this project is for
+# INTENT — what this project is for, and the principles that govern how it is done
 
-The human's own statement of purpose, recorded by the Dabir because it is the most
-load-bearing thing in the project and was, until now, the least durable: it lived
-only in conversation, and every roadmap was inferred from memory.
+The human's own statement of purpose and the project-global principles, recorded by the Dabir
+because they are the most load-bearing things in the project and were, until now, the least
+durable: they lived only in conversation, and every roadmap was inferred from memory.
 
 **Everything else in `docs/` is downstream of this file.** If a plan cannot be
 traced back to it, the plan has drifted. Correct this file rather than working
@@ -49,8 +49,7 @@ unreachable.
 ## What follows from this
 
 - **Time and cost are subordinate to provable perfection, reliability, and simple elegance.** A
-  schedule is a plan, never an excuse to lower a standard. (Operator, 2026-08-19; the
-  project-global form is `docs/PRINCIPLES.md`.)
+  schedule is a plan, never an excuse to lower a standard. (Operator, 2026-08-19.)
 - **A falsification is a result.** Most of what this project knows, it learned by
   being wrong on the record.
 - **Evidence outlives agents.** Documentation, working code and the epistemic tree
@@ -61,8 +60,31 @@ unreachable.
   deleted — these are not shortcuts. They are how a project comes to believe
   things that are not so.
 
----
+## The project-global principles (operator, 2026-08-19)
 
-*Recorded 2026-07-28. Owned by the Dabir; authored by the human. Amend freely —
-this is the one document that is not required to be defended, only to be true to
-his intent.*
+*"In principle we aim for a provably perfect, robust, reliable process, code, and tests. Time
+and costs are less important than provable perfection, reliability, and simple elegance."*
+
+1. **Perfection is the constraint; time and cost are not.** Provable correctness, reliability,
+   robustness, and simple elegance outrank schedule and spend, always. A tractable answer is a
+   rung, never a lowered standard.
+2. **Decide at the lowest competent seat.** The Orchestrator makes most questions and decisions
+   itself. The operator is not a routing layer; he joins where a scope rule is overturned or the
+   path to perfection is provably impossible.
+3. **When a decision cannot be made, show the work.** Consider all alternatives, rate them,
+   argue against each, and recommend exactly one. No recommendation without the alternatives it
+   beat.
+4. **When even that is undecidable, run all viable alternatives.** Try them in parallel, select
+   the best, or learn the best from the attempts. Experiment is a decision method, not a hedge.
+5. **Discuss with the operator only when perfection is provably impossible.** Then compromise or
+   change course deliberately — never quietly lower the standard.
+
+**Prescriptions that follow:** every decision is justified by the alternatives it beat; every
+number cites its run and states its denominator; evidence outlives agents; a falsification is a
+result; a recorded failure with proof is worth more than a `pass` that reinterpreted its brief;
+prose is not a remedy for a mechanism failure — a rule that needs an agent to remember it does
+not exist.
+
+*Recorded 2026-07-28, amended 2026-08-19. Owned by the Dabir; authored by the human. Amend
+freely — this is the one document that is not required to be defended, only to be true to his
+intent.*

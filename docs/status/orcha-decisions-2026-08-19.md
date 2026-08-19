@@ -9,28 +9,35 @@ chosen one is best. Where a decision could not be made, the proof is stated.
 
 ---
 
-## D1 — T443 storage policy: ratify P1, P2, P4, P5, P6; P3 deferred with proof
+## D1 — T443 storage policy: the directory taxonomy and naming convention, decided
 
-**Decision: ratify P1 (scratch discipline), P2 (data manifest), P4 (untracked direction),
-P5 (evidence unchanged), P6 (dead-default repoint). P3 (one off-disk archive) is adopted as
-policy but cannot execute — see the proof.**
+**Decision: the storage model is the four-layer taxonomy we already have — `/tmp/weizigo/`
+(scratch, periodic cleanup accepted), `untracked/` (host-local durable: comms, large artifacts,
+in-progress bundles; not purged unless we purge it), `data/` (gitignored working oracle tables,
+manifest-tracked), git-tracked directories (history, done deliberately). No external volume is
+required — the T443 sheet's "volume" framing was its own invention, not the operator's.**
 
-Why P1/P2/P4/P5/P6 are best: each is the status quo codified (P1/P5), a small tax for a real
-durability/audit gain (P2), or a registered debt rather than a deadline (P4). The alternatives —
-binaries-in-git branch, worktrees, orphan-branch content store — were already ruled out by the
-operator (2026-08-18: no binaries in git, no worktrees) and the draft's own analysis shows P3's
-manifest+off-disk archive dominates the orphan branch on every axis.
+Why best: the operator's correction (2026-08-19) is the taxonomy itself: `/tmp/` is best for
+ephemeral files we accept cleaning periodically; `untracked/` is not purged unless we purge it,
+so it is the host-local durable layer; git-tracked dirs are stored in history, done
+thoughtfully, diligently, and intentionally. The T443 draft's own census confirms the layers do
+this work already: 44 `/tmp/weizigo`-referencing files are WRITE-only (zero read pre-existing
+state); the real exposure was `data/` (1.7 GB, gitignored, one disk), and the nine same-disk
+twins of `oracle-4x4-v2.wzo2` already live in `untracked/oracle-v2/` + `untracked/v02…v09/`.
 
-**Proof that P3 cannot be decided by me:** the decision "run `tools/archive-oracle.sh` once to an
-external volume" requires an external volume to exist. Read-only inspection of this host shows
-none: `/Volumes/` contains only `Macintosh HD -> /` (a symlink to the system volume); `diskutil
-list external` reports empty; `df -h` shows a single 1.8 TiB APFS container (`disk3s1s1` /
-`disk3s5`). There is no destination volume to name — the operator cannot name one either, because
-none exists. This is a hardware fact, not a preference. The best decision available is:
-**P3 stays adopted-but-blocked, the exposure stays quantified (1.7 GB on one disk, ten same-disk
-copies), and the nine same-disk duplicates are NOT consolidated until an off-disk copy exists**
-(the duplicates are the only redundancy that exists today — consolidation before a real archive
-would reduce redundancy, not increase it).
+**Naming convention, decided:** every artifact carries a `(goban, ruleset)` tag in its name
+(standing rule: new rule → new file, never overwrite a `.wzo`); `data/` gets a tracked
+`data/MANIFEST.json` (P2) with one row per file — path, bytes, sha256, builder commit, regen
+cost + denominator — and every manifest row lists **every twin copy anywhere** (`data/`,
+`untracked/`) with its sha256, so the manifest is the single inventory of where each artifact
+lives. New `data/` files without a manifest row are refused in the same commit.
+
+**The nine duplicates are kept, not consolidated.** They are the redundancy layer on a single
+disk; consolidating them without an external copy destroys the only backup that exists. The
+T443 sheet's "consolidate after P3 runs once" is superseded: with no external archive, the
+untracked twins ARE the archive. The residual risk — one disk failing takes `data/` + `untracked/`
+together — is accepted consciously under the operator's framing (untracked/ is durable by
+convention, and git history is the deliberate layer).
 
 ## D2 — Audit policy: adopt the three tiers, sampling 1-in-5, failure-is-success sentence
 
@@ -92,11 +99,12 @@ ruling commit. The finding to record: the pack's open-list is stale on this item
 
 ## What was proven undecidable, and why
 
-Only one decision was proven impossible to make from this seat: **P3's execution** (D1), because
-the required hardware — an external volume — does not exist on this host. Everything else was
-decided with the alternatives argued against. The two items previously framed as needing operator
-inputs (P3 volume path, multi-writer ratification) are resolved: P3 by proof of hardware absence,
-multi-writer by decision under delegation.
+No decision was left undecidable. P3 was the only candidate for a blocked item, and the
+operator's correction removed the false premise: the T443 sheet's "external volume" was its own
+invention, not a requirement — the storage decision is the four-layer taxonomy we already have,
+made in D1. The two items previously framed as needing operator inputs (P3 volume path,
+multi-writer ratification) are resolved: P3 by the taxonomy decision under the operator's
+correction, multi-writer by decision under delegation.
 
 *Recorded 2026-08-19 by ORCHA-flash. The operator may veto any decision; until then each is in
 force. Absorption §13 implementation is dispatched as registered tasks in the order the spec
