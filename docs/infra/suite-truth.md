@@ -26,10 +26,9 @@ Build Summary: 56/65 steps succeeded (8 failed); 927/935 tests passed (1 skipped
 
 ## The failed steps
 
-Seven crashes across four test binaries (three root causes), plus three
-failing shell regressions (a fourth — managent-integrity deploy-staleness —
-was red in run 2 and was **struck by this row** after `zig build deploy`
-resolved the staleness; see the struck-red note below).
+Six crashes across four test binaries (three root causes), plus two
+failing shell regressions (two were struck: managent-integrity
+deploy-staleness by T369, git-commit-mine env-bleed by T454).
 
 ### Crash family 1 — `t419_taxonomy` (1 crash)
 
@@ -94,16 +93,26 @@ resolved the staleness; see the struck-red note below).
   a NEW red (the operator should then `zig build deploy`).
 - **Owning row:** T268 (the stamp check is working as designed).
 
-### Shell regression 5 — `tools/regression-git-commit-mine.sh`
+### Shell regression 5 — `tools/regression-git-commit-mine.sh` — STRUCK by T454
 
-- **Cause:** `MANAGENT_TASK_ID` (T369, propagated by `tools/runner`) leaks into
+- **Was:** `MANAGENT_TASK_ID` (T369, propagated by `tools/runner`) leaked into
   the regression's scratch repo; the wrapper's `--explicit` / task-scope arms
-  try to resolve task T369 in the scratch kanban and refuse
+  tried to resolve the live task id in the scratch kanban and refused
   (`cannot resolve task T369 in the kanban`), and a leftover staged
-  `docs/amendment2.md` cascades the refusal into arms 4–9. Deterministic
-  whenever the suite runs under a task identity — the fleet's normal case.
-- **Owning row:** T370 (task-identity propagation) × T282 (task-scope arms) ·
-  **Verdict:** defect.
+  `docs/amendment2.md` cascaded the refusal into arms 4–9. Deterministic
+  whenever the suite ran under a task identity — the fleet's normal case.
+- **Struck by T454:** the wrapper now treats env-derived ids that the local
+  kanban doesn't carry as advisory (warn + fall through to unlabelled),
+  rather than refusing; explicit `--task` / `--bundle` keep the strict refusal
+  because the caller named the id on purpose. Both readings now match
+  (`sh tools/regression-git-commit-mine.sh` is GREEN under MANAGENT_TASK_ID
+  set and unset), so the conditionality that the gate failed on is gone.
+  The fix at the wrapper boundary also protects every other harness that
+  invokes `tools/git-commit-mine` from a scratch repo, including
+  regressions that don't yet exist.
+- **Owning row:** T454 (the leak + the wrapper fix) · **Verdict:** fixed at
+  the structural layer — env-derived ids are now advisory, kanban-known
+  ids are authoritative.
 
 ### Shell regression 6 — `tools/regression-absorption-machinery.sh`
 
@@ -133,8 +142,11 @@ resolved the staleness; see the struck-red note below).
   `bin/weizigo-claimlint` reports C9 = 0. Nothing to fix.
 - **The brief undercounted the shell reds** (it named only argus-doctor).
   The run-2 log carries four `run sh failure` steps: managent-integrity,
-  git-commit-mine, absorption-machinery, argus-doctor. Three reproduce at HEAD;
-  managent-integrity was deploy-hygiene and is now struck (above).
+  git-commit-mine, absorption-machinery, argus-doctor. Two reproduce at
+  HEAD — managent-integrity was deploy-hygiene and was struck by T369;
+  git-commit-mine was env-bleed and was struck by T454. Two remain
+  (absorption-machinery's 221↔228 hardcoded count; argus-doctor's
+  deploy-staleness arm — state-dependent under T442).
 
 ## Machine section — parsed by `tools/suite-truth.sh`
 
@@ -143,8 +155,7 @@ Do not edit the lines below without re-running the gate (ratchet only).
 RED module t419_taxonomy
 RED module qa023_brute_2x2
 RED module vb_bellman_4x4
-RED script tools/regression-git-commit-mine.sh
 RED script tools/regression-absorption-machinery.sh
 RED script tools/regression-argus-doctor.sh
-COUNT steps-failed 7
-COUNT tests-crashed 7
+COUNT steps-failed 6
+COUNT tests-crashed 6

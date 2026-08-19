@@ -1,0 +1,60 @@
+{
+  "task_id": "T454",
+  "date": "2026-08-19",
+  "model": "glm-5.2",
+  "identifier": "glm-5.2/T454",
+  "claims": [],
+  "new_rows": [],
+  "directives_acked": [],
+  "notes": "T454 (suite reading depends on who runs it) — DELIVERED. Two readings of `tools/regression-git-commit-mine.sh` are now identical (GREEN, 0 FAIL) with and without MANAGENT_TASK_ID in env. The manifest (`docs/infra/suite-truth.md`) is updated: `RED script tools/regression-git-commit-mine.sh` is struck; COUNT steps-failed 7→6; COUNT tests-crashed 7→6. Headline summary updated (seven crashes / three reds → six crashes / two reds); the struck entry carries the post-fix diagnosis. Brief's 'fallback' (conditions column) NOT taken — the wrapper fix is structural, no manifest condition needed. Controls (both arms, before/after, rc + FAIL count): BEFORE — env-unset rc=0 FAIL=0; env=T454 rc=1 FAIL=6. AFTER — env-unset rc=0 FAIL=0; env=T404 rc=0 FAIL=0. The two readings flip to identical after the fix, as the brief required.",
+  "fix_choice": {
+    "boundary": "wrapper",
+    "chosen": "wrapper-level: env-derived TASK_ID that the local kanban doesn't carry is treated as advisory (warn + fall through to unlabelled), not a refusal. Explicit --task / --bundle stay strict (the caller named the id on purpose).",
+    "rejected_alternative": "harness-level: regression-git-commit-mine.sh scrubs MANAGENT_TASK_ID at the top, like the other three wrapper-using regressions (claim-lifecycle, hook, precommit).",
+    "justification": "Brief said 'prefer the boundary that also protects the OTHER scripts — this is one instance of environment bleeding across the scratch boundary, and tonight produced three more.' The other three (regression-claim-lifecycle, regression-git-commit-mine-hook, regression-precommit) all already scrub or set MANAGENT_TASK_ID explicitly per arm — the leak class is 'env-bleed across scratch boundary'. A wrapper-level fix catches this class for ALL current callers AND any future regression that creates a scratch repo, so it is structurally safer than a per-script scrub. The alternative heuristic the brief listed ('wrapper ignores MANAGENT_TASK_ID when $REPO != $LIB_DIR/..') would have broken regression-claim-lifecycle (it deliberately invokes the wrapper from a scratch repo with MANAGENT_TASK_ID=TLC-ARM1, which IS in the scratch kanban — that test would have flipped GREEN-with-leak instead of testing the strict refusal). The 'kanban-known id' boundary preserves regression-claim-lifecycle's coverage and removes the leak."
+  },
+  "wrapper_change": {
+    "file": "tools/git-commit-mine",
+    "summary": "Track whether TASK_ID came from $MANAGENT_TASK_ID via TASK_ID_FROM_ENV=1. In the scope-resolution block, when gcm_task_bundle fails and TASK_ID_FROM_ENV=1, warn on stderr and clear TASK_ID (so the rest of the wrapper proceeds as unlabelled — no scope check, no claim-status check). When gcm_task_bundle fails and TASK_ID_FROM_ENV=0, the existing strict refusal stands (the caller passed --task on purpose).",
+    "warning_text": "git-commit-mine: NOTE — $MANAGENT_TASK_ID=<id> is not in <repo>/docs/infra/managent/tasks.json; treating the call as unlabelled. (a regression harness invoking the wrapper from a scratch repo with the parent's env inherits MANAGENT_TASK_ID=<id>, which the scratch kanban cannot resolve — T369 / T454.)",
+    "header_comment": "Added a T454 paragraph at the top of the file describing the change and its rationale."
+  },
+  "control_results": {
+    "no_MANAGENT_TASK_ID_BEFORE_fix": {"rc": 0, "fail_count": 0, "wall_s": "<1"},
+    "MANAGENT_TASK_ID=T404_BEFORE_fix": {"rc": 1, "fail_count": 6, "wall_s": "<1, "which_arms": ["3 (explicit — 'cannot resolve task T404 in the kanban' from arm 1's leftover staged docs/amendment.md cascading into arm 3's explicit-mode invocation)", "4 (scope — same leftover staged path)", "6 (T282 null — same leftover)", "7 (T282 mixed — same leftover)", "8 (T282 task identity — same leftover)", "9 (T282 seeded — same leftover)"]},
+    "no_MANAGENT_TASK_ID_AFTER_fix": {"rc": 0, "fail_count": 0, "wall_s": "<1"},
+    "MANAGENT_TASK_ID=T404_AFTER_fix": {"rc": 0, "fail_count": 0, "wall_s": "<1"},
+    "note": "BEFORE-fix measurements are at HEAD `c7f124d` against an unmodified `tools/git-commit-mine`. AFTER-fix measurements are at the same HEAD after the wrapper edit (and the manifest strike). Both readings of the SAME script at HEAD are now GREEN, so the conditionality that the brief named is gone."
+  },
+  "cross_regression_checks": {
+    "regression-git-commit-mine-hook": "PASS under both env-unset and env=T404 (the hook regression already uses MANAGENT_TASK_ID=\"\" in run_hook helper, so it never depended on env-derived ids).",
+    "regression-claim-lifecycle": "PASS under both env-unset and env=T404. Arms 0/1/4 explicitly set MANAGENT_TASK_ID=TLC-ARM{0,1,DONE} (which IS in the scratch kanban) — the wrapper's strict path is preserved, the claim-status guard is still tested.",
+    "regression-precommit": "PASS under both env-unset and env=T404 (already scrubs via MANAGENT_TASK_ID=\"\" in run_hook).",
+    "regression-argus-doctor": "FAIL under both env-unset and env=T404 — the failing arm is the deploy-staleness check, unrelated to T404; same failure pattern in both readings so the conditionality is not introduced by env. The deploy-staleness arm stays in the manifest (T442 owns it).",
+    "regression-absorption-machinery": "FAIL under both env-unset and env=T404 — the failing arm is the 221↔228 hardcoded count, same in both readings. Stays in the manifest as the T406 defect.",
+    "regression-claimlint-output, claimlint-volatile, directive-integrity, managent-standing, managent-integrity, inbox-loop, duplicate-dispatch": "PASS under both env-unset and env=T404 (the wrapper fix is invisible to scripts that do not invoke tools/git-commit-mine from a scratch repo)."
+  },
+  "manifest_changes": {
+    "file": "docs/infra/suite-truth.md",
+    "struck_entries": ["RED script tools/regression-git-commit-mine.sh"],
+    "count_ratchets": {"steps-failed": "7 → 6", "tests-crashed": "7 → 6"},
+    "prose_updates": [
+      "Section 'The failed steps' header: 'Seven crashes across four test binaries (three root causes), plus three failing shell regressions (a fourth — managent-integrity deploy-staleness — was red in run 2 and was struck by this row after `zig build deploy` resolved the staleness; see the struck-red note below).' → 'Six crashes across four test binaries (three root causes), plus two failing shell regressions (two were struck: managent-integrity deploy-staleness by T369, git-commit-mine env-bleed by T454).'",
+      "Section 'Shell regression 5 — `tools/regression-git-commit-mine.sh`' rewritten as a STRUCK entry describing T454's fix (TASK_ID_FROM_ENV gate at the wrapper boundary).",
+      "Section 'Corrections to the 2026-08-18 brief' / shell-reds bullet updated: 'The run-2 log carries four `run sh failure` steps ... Three reproduce at HEAD; managent-integrity was deploy-hygiene and is now struck (above).' → 'Two reproduce at HEAD — managent-integrity was deploy-hygiene and was struck by T369; git-commit-mine was env-bleed and was struck by T454. Two remain (absorption-machinery's 221↔228 hardcoded count; argus-doctor's deploy-staleness arm — state-dependent under T442).'"
+    ],
+    "machine_section": "RED module t419_taxonomy / qa023_brute_2x2 / vb_bellman_4x4 unchanged. RED script tools/regression-absorption-machinery.sh / tools/regression-argus-doctor.sh unchanged. RED script tools/regression-git-commit-mine.sh REMOVED. COUNT steps-failed 7→6. COUNT tests-crashed 7→6."
+  },
+  "live_repo_safety": {
+    "live_invocation_with_MANAGENT_TASK_ID=T404": "wrapper resolves T404 in the LIVE kanban (T404 IS in the live kanban as in_progress) and applies scope / claim-status guards correctly — behaviour unchanged for the fleet's normal path.",
+    "live_invocation_without_MANAGENT_TASK_ID": "wrapper treats the call as unlabelled (no scope check, no claim-status check). Behaviour unchanged from before T454.",
+    "explicit_task_unresolvable": "`tools/git-commit-mine --task T999 <path> -m \"x\"` in a scratch repo with empty kanban STILL refuses with 'cannot resolve task T999 in the kanban' (the brief said 'do not paper over the reading'; the strict refusal for caller-named ids is preserved).",
+    "explicit_task_resolvable_in_scratch": "`tools/git-commit-mine --task T404 <path> -m \"x\"` in a scratch repo where the kanban carries T404 STILL uses T404 as the task id (regression-claim-lifecycle continues to exercise the strict path)."
+  },
+  "deliverables": {
+    "tools/git-commit-mine": "edited — env-derived TASK_ID that the local kanban cannot resolve now warns + falls through to unlabelled; explicit --task / --bundle keep the strict refusal. Header comment block extended with a T454 paragraph.",
+    "docs/infra/suite-truth.md": "edited — `tools/regression-git-commit-mine.sh` struck from the manifest, COUNT steps-failed 7→6, COUNT tests-crashed 7→6; the struck-red section describes the fix; 'The failed steps' header and 'Corrections' bullet updated.",
+    "findings/T454-suite-caller-dependence.json": "this file"
+  },
+  "inbox_loop": "polled at claim (2026-08-19), at fix checkpoint (before commit), and before close — all empty (0 directives)."
+}

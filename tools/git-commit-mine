@@ -41,6 +41,17 @@
 #   tools/git-commit-mine <paths...> -m <message> [--task <id> | --bundle <f> | --explicit]
 #
 # Task: T278 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-02 (T282 follow-up 2026-08-03)
+# T454: when TASK_ID comes from $MANAGENT_TASK_ID (env fallback) and the local
+# kanban at $REPO/docs/infra/managent/tasks.json doesn't carry it, treat the
+# call as unlabelled and warn — don't refuse. The fleet's normal path is
+# MANAGENT_TASK_ID == <worker's current task> in the LIVE repo; a regression
+# harness invoking the wrapper from a SCRATCH repo with the parent's env
+# otherwise resolves a bogus id, refuses every arm, and the suite goes red
+# for a property the harness itself caused (T369's run-2 measurement was
+# exactly this shape — 6 reds without MANAGENT_TASK_ID, 7 reds with). The
+# wrapper's structural backstop: env-derived ids are advisory, kanban-known
+# ids are authoritative. Explicit --task / --bundle keep the strict refusal
+# (the caller named it on purpose).
 
 set -u
 
@@ -92,6 +103,7 @@ if [ -z "$MSG" ]; then
 fi
 if [ -z "$TASK_ID" ] && [ -z "$BUNDLE" ] && [ -n "${MANAGENT_TASK_ID:-}" ]; then
     TASK_ID="$MANAGENT_TASK_ID"
+    TASK_ID_FROM_ENV=1
 fi
 
 # ── scope resolution ──────────────────────────────────────────────────────
@@ -104,13 +116,26 @@ declare_scope() {  # add a path to the scope
 
 SCOPE_SOURCE=""
 if [ -n "$TASK_ID" ]; then
-    BUNDLE_PATH=$(gcm_task_bundle "$REPO" "$TASK_ID" "${MANAGENT_STORE:-}") || {
-        echo "git-commit-mine: REFUSED — cannot resolve task $TASK_ID in the kanban" >&2
-        exit 2
-    }
-    SCOPE_SOURCE="task $TASK_ID (bundle: $BUNDLE_PATH)"
-    if [ -n "$BUNDLE_PATH" ]; then
-        BUNDLE="$REPO/$BUNDLE_PATH"
+    # T454: env-derived ids are advisory (see header); kanban-unknown env ids
+    # fall through to unlabelled with a warning rather than a refusal, so
+    # scratch-repo harness invocations stop cascading. Explicit --task /
+    # --bundle stay strict — the caller named the id on purpose.
+    if ! BUNDLE_PATH=$(gcm_task_bundle "$REPO" "$TASK_ID" "${MANAGENT_STORE:-}"); then
+        if [ "${TASK_ID_FROM_ENV:-0}" = "1" ]; then
+            echo "git-commit-mine: NOTE — \$MANAGENT_TASK_ID=$TASK_ID is not in $REPO/docs/infra/managent/tasks.json; treating the call as unlabelled." >&2
+            echo "  (a regression harness invoking the wrapper from a scratch repo with the parent's env inherits" >&2
+            echo "   MANAGENT_TASK_ID=$TASK_ID, which the scratch kanban cannot resolve — T369 / T454.)" >&2
+            TASK_ID=""
+            TASK_ID_FROM_ENV=0
+        else
+            echo "git-commit-mine: REFUSED — cannot resolve task $TASK_ID in the kanban" >&2
+            exit 2
+        fi
+    else
+        SCOPE_SOURCE="task $TASK_ID (bundle: $BUNDLE_PATH)"
+        if [ -n "$BUNDLE_PATH" ]; then
+            BUNDLE="$REPO/$BUNDLE_PATH"
+        fi
     fi
 elif [ -n "$BUNDLE" ]; then
     SCOPE_SOURCE="bundle $BUNDLE"
