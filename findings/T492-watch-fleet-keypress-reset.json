@@ -1,0 +1,8 @@
+{
+  "task_id": "T492",
+  "date": "2026-08-19",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Engineering task (L1 dashboard tells the truth), no epistemic register change. Extracted nap_for_age(age)->10|60|3600 and reset_schedule() from the inline loop in untracked/watch-fleet.sh; the keypress path (any non-q/non-Q key on a real tty) now calls reset_schedule() so the refresh escalation restarts at 10s for a minute, 60s for an hour, then hourly — matching the operator's 2026-08-19 request. Added a WATCH_FLEET_SOURCE=1 source-only guard so a regression harness can source the schedule helpers without the cd/loop side effects (mirrors the HEAD contract's guard). TDD: arm E added to tools/regression-watch-fleet.sh first, seen RED (live file had no source guard -> sourcing ran the whole script and aborted the harness before the checks), then the fix applied and arm E went GREEN. Existing arms A-D pin the FROZEN T469 contract (re-pinned from `git show HEAD` to `git show 333b855` because committing the live file made HEAD no longer carry the T469 test hooks) and remain untouched and green; the new arm E sources the LIVE working-tree file. sh -n clean; one-shot piped mode (`echo | untracked/watch-fleet.sh`) still renders one frame and exits 0. The watch-fleet step wired into zig build test (build.zig:241 runs `sh tools/regression-watch-fleet.sh`) passes; the full `zig build test` suite was not run to completion in this session (exceeds the 900s wall budget) but no change here touches anything outside the watch-fleet regression. Inbox checked once (T492): no pending directives (acked 0)."
+}

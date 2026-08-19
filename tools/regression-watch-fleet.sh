@@ -51,17 +51,22 @@ STORE="$WORK/docs/infra/managent/tasks.json"
 LEDGER="$WORK/docs/infra/assertion-ledger/assertions.jsonl"
 export MANAGENT_STORE="$STORE"
 
-# The script under test is the COMMITTED contract (HEAD), not the live
-# working-tree file: the live file is co-owned (T469 landed the four-section
-# layout; the operator's console has since been iterating on it). Pinning to
-# HEAD keeps the controls deterministic; re-pin when the script settles.
+# The script under test for arms A–D is the FROZEN T469 contract, not the
+# live working-tree file and not HEAD: T492 (ba5df89, 2026-08-19) committed
+# the operator's live iteration of watch-fleet.sh, which dropped the
+# WATCH_FLEET_ONCE / WATCH_FLEET_SOURCE / etime_secs / cpu_secs test hooks
+# and the opt-in heal that arms A–D exercise. Pinning to the T469 contract
+# commit (333b855) keeps those controls deterministic against the contract
+# they were written for; arm E (T492) sources the LIVE file for the new
+# schedule helpers. Re-pinned from HEAD to 333b855 because the change made
+# the HEAD pin impossible (HEAD no longer carries the T469 hooks).
 SCRIPT="$WORK/untracked/watch-fleet.sh"
-git -C "$PROJECT" show HEAD:untracked/watch-fleet.sh > "$SCRIPT" || {
-    echo "regression-watch-fleet.sh: FATAL — HEAD has no untracked/watch-fleet.sh; the pinned contract is gone" >&2
+git -C "$PROJECT" show 333b855:untracked/watch-fleet.sh > "$SCRIPT" || {
+    echo "regression-watch-fleet.sh: FATAL — 333b855 has no untracked/watch-fleet.sh; the pinned T469 contract is gone" >&2
     exit 1
 }
 if ! grep -q "WATCH_FLEET_ONCE" "$SCRIPT"; then
-    echo "regression-watch-fleet.sh: FATAL — committed script lacks the test hooks (WATCH_FLEET_ONCE); contract changed" >&2
+    echo "regression-watch-fleet.sh: FATAL — pinned script lacks the test hooks (WATCH_FLEET_ONCE); T469 contract changed" >&2
     exit 1
 fi
 
@@ -182,6 +187,42 @@ if [ -s "$LEDGER" ]; then
     echo "    FAIL: no assertion should have been written (ledger non-empty)"; d_fail=1
 fi
 if [ "$d_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+
+# ── Arm E: schedule escalation + keypress reset (T492, LIVE file) ───────
+# Unlike arms A–D (which pin the COMMITTED contract via `git show HEAD`),
+# this arm sources the LIVE working-tree file untracked/watch-fleet.sh and
+# exercises the schedule helpers extracted by T492. The live file defines
+# nap_for_age(age) -> 10|60|3600 and reset_schedule() (which reassigns START
+# to now); a non-quit keypress calls reset_schedule so the escalation
+# restarts at 10s. Red-first: the arms below fail until the live file
+# exposes those helpers under the WATCH_FLEET_SOURCE=1 guard.
+echo "  E. nap_for_age escalates 10/60/3600; keypress resets the schedule (live file)"
+LIVE="$PROJECT/untracked/watch-fleet.sh"
+e_fail=0
+if [ ! -f "$LIVE" ]; then
+    echo "    FAIL: live file not found at $LIVE"; e_fail=1
+else
+    WATCH_FLEET_SOURCE=1 . "$LIVE" 2>/dev/null
+    echeck() {  # $1=expected  $2=actual  $3=label
+        if [ "$1" != "$2" ]; then echo "    FAIL $3: expected '$1' got '$2'"; e_fail=1; fi
+    }
+    echeck 10    "$(nap_for_age 30 2>/dev/null)"   "nap_for_age 30"
+    echeck 60    "$(nap_for_age 120 2>/dev/null)"  "nap_for_age 120"
+    echeck 3600  "$(nap_for_age 4000 2>/dev/null)" "nap_for_age 4000"
+    # red-first: a keypress must reset the schedule so escalation restarts.
+    # Plant a stale START (age ~ hours), reset, and confirm START moved AND
+    # the post-reset nap is 10s again — the defect was a keypress leaving the
+    # hourly nap in place after the first hour.
+    START=1000000
+    before=$START
+    reset_schedule 2>/dev/null || { echo "    FAIL reset_schedule: undefined (live file not patched)"; e_fail=1; }
+    if [ -n "$before" ] && [ "$before" = "$START" ]; then
+        echo "    FAIL reset_schedule: START unchanged ($before == $START) — keypress would not restart escalation"; e_fail=1
+    fi
+    age=$(( $(date +%s) - START ))
+    echeck 10 "$(nap_for_age "$age" 2>/dev/null)" "post-reset nap_for_age"
+fi
+if [ "$e_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="
