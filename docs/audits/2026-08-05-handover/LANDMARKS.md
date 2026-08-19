@@ -27,9 +27,9 @@ a record of what was run should stay verbatim. Read `milestone M<n>` in those as
 graph TD
     L0["L0 · the table and the<br/>instruments exist<br/><i>banked</i>"]
     L1["L1 · the dashboard<br/>tells the truth<br/><i>substantially met</i>"]
-    L2["L2 · proven 4x4 values<br/><i>in progress — critical path</i>"]
+    L2["L2 · proven 4x4 values<br/><i>G3b discharged; remainder<br/>unregistered — critical path</i>"]
     L3["L3 · the new engine<br/>outplays the old one<br/><i>met</i>"]
-    L4["L4 · the ledger is clean<br/><i>opened — 334 to 207 rows</i>"]
+    L4["L4 · the ledger is clean<br/><i>first step reached —<br/>UNBACKED 76 to 48</i>"]
     L5["L5 · one rulebook<br/><i>not started</i>"]
     L6["L6 · small Go solved,<br/>certifiably<br/><i>the mission</i>"]
     L7["L7 · the 5x5 decision,<br/>costed<br/><i>frontier</i>"]
@@ -71,10 +71,12 @@ where the work is.
 
 We already have a complete 4×4 answer table and a set of instruments that have been shown to catch
 deliberately broken input — that is **L0 (the table and the instruments exist)**. What we do *not*
-yet have is the right to call those 99 million values *proven*: two of the four correctness
-properties hold at full scale, and the other two rested on a 22-entry sample until that was
-corrected to "deferred". Closing those two is **L2 (proven 4×4 values)**, and it is the critical
-path right now. Alongside it, the project has been paying down two debts: the dashboard that
+yet have is the right to call those 99 million values *proven*: all four correctness properties
+now hold at full scale with denominators (G3b discharged 2026-08-05, twice amended, verdicts
+standing), but the move-set check is still a 0.05% sample at 4×4, the KO_SENSITIVE column's own
+trust is unruled (Track A), and the #2 auditor gate has not run. Closing that remainder is
+**L2 (proven 4×4 values)**, and it is the critical path right now — as of 2026-08-19 it had no
+live row on the kanban (see `docs/audits/2026-08-19-L2-audit/VERDICT.md`). Alongside it, the project has been paying down two debts: the dashboard that
 describes the project has to stop lying about itself — **L1 (the dashboard tells the truth)** — and
 the claim ledger has to stop marking things "proven" with no evidence attached — **L4 (the ledger
 is clean)**. Then the fourteen scattered copies of the ko rule collapse into one production
@@ -84,14 +86,14 @@ independently of that spine, **L3 (the new engine outplays the old one)** is the
 the reconstruction is actually an improvement — and as of 2026-08-05 it has been measured, on the
 board, with the games committed.
 
-| landmark | short name | status today |
+| landmark | short name | status today (2026-08-19) |
 |---|---|---|
-| **L0** | the table and the instruments exist | banked — **but its own self-test is failing today** (see below) |
-| **L1** | the dashboard tells the truth | substantially delivered 2026-08-05; one gauge still mis-reads |
-| **L2** | proven 4×4 values | **in progress — the critical path** (row T363) |
-| **L3** | the new engine outplays the old one | **met 2026-08-05**, scope stated |
-| **L4** | the ledger is clean | opened 2026-08-05 — the plan exists and is ruled on (rows T354 → T373) |
-| **L5** | one rulebook | not started; correctly waits on L2 |
+| **L0** | the table and the instruments exist | banked — the suite's known reds now have an owner and a manifest gate (`docs/infra/suite-truth.md`, T369) |
+| **L1** | the dashboard tells the truth | substantially met; observation layer rebuilt (T439/T441/T446/T464); open seams: suite reading is caller-dependent (T454), deployed managent binary stale pending fleet drain |
+| **L2** | proven 4×4 values | **G3b discharged 2026-08-05 (amended ×2, verdicts stand); L2 itself NOT discharged — remainder (I11 exhaustive, Track A ruling, #2 auditor, denominator absorption) was unregistered until 2026-08-19** |
+| **L3** | the new engine outplays the old one | **met 2026-08-05**, scope stated; unchanged |
+| **L4** | the ledger is clean | first declared step reached — UNBACKED 76 → 48 (claimlint C3=48, 2026-08-19); register parses 228 rows |
+| **L5** | one rulebook | not started; correctly waits on L2 and the mutation-adequacy promotion gate |
 | **L6** | small Go solved, certifiably | the mission; needs L2 + L4 + L5 |
 | **L7** | the 5×5 decision, costed | frontier; only after L6 |
 
@@ -115,6 +117,14 @@ exactly, and a single deliberately altered *value* was caught by two independent
 by this file's own rule — the test outranks the narrative — L0 is not currently *observable*.
 Restoring it is row T369; the specific wiring fix belongs to T363, whose gate it is.
 
+**Status, 2026-08-19 (T467 audit):** T369 closed (pass-with-findings). `zig build test` is still
+red, but the redness is now *governed*: `docs/infra/suite-truth.md` is the manifest of known
+reds (7 deterministic crashes across three root causes + failing shell regressions, measured
+baseline run 2, 2026-08-18, 810.9 s), and `tools/suite-truth.sh` exits 0 only when observed ==
+manifest, ratchet-down only. Caveat carried forward: the suite's reading depends on who runs it
+(`MANAGENT_TASK_ID` leak, row T454 — open), so the gate's first independent run went red and was
+right to.
+
 ## L1 — the dashboard tells the truth *(roadmap Tier 0 — substantially delivered)*
 
 What the project says about itself matches reality: no stale binaries, no gauge reading that
@@ -131,6 +141,17 @@ successfully). One gauge still mis-reads: a rename in one tool orphaned the trig
 tool watches for, so an auto-absorb trigger silently reads zero forever (row T368). Also newly
 found: the liveness display cannot distinguish a working agent from a dead one, because the
 identity that would tell them apart is never passed in (row T370).
+
+**Status, 2026-08-19 (T467 audit):** the observation layer was rebuilt across 2026-08-12..19 —
+the directive channel that delivered to nobody was found and fixed (T439), five
+observation-layer fixes verified (T441), closed assertions render from the ledger so done rows
+are never re-dispatched (T446, commit 142ad0c), and one status resolver is shared by
+status/next/liveness/audit (T464, commit d1ca608). Liveness itself was settled by operator
+ruling: status is an *assertion* with an author and timestamp, absence is UNKNOWN. Open seams:
+the suite reading is caller-dependent (T454), and the deployed `bin/managent` is stale relative
+to d1ca608 pending fleet drain — the resume surface currently says so itself, which is the gauge
+working. Fourteen days of L1-stale status in this very file (L2 "in flight" after the row
+closed) is the L1 failure the 2026-08-19 audit corrects.
 
 ## L2 — proven 4×4 values, an answer key rather than an opinion *(roadmap Tier 1 — the critical path)*
 
@@ -154,9 +175,20 @@ run on 2026-08-05 (`docs/evidence/BATTERY/seeded-control-2026-08-05.md`): one va
 violations — while six unrelated checks stayed exactly still. A green light you have watched turn
 red when it should is the only green light worth trusting.
 
-**Status:** two of four properties established at full scale (0 Bellman violations / 95,677,624
-and 0 key mismatches / 99,133,036). The remaining two — closure and cycle containment — plus a
-retroactive 4×3 rung and two mutation assertions, are the four gaps in row T363, in flight.
+**Status, 2026-08-19 (T467 audit; supersedes the paragraph this replaced, which described
+2026-08-05 morning):** all four properties are established at full scale with denominators, and
+G3b was discharged the evening of 2026-08-05 (accept.md signed ruling + two amendments; verdicts
+stand). The corrected readings, per `docs/audits/2026-08-19-L2-audit/VERDICT.md` §1: Bellman
+**0 / 95,677,624** clear + **0 / 3,455,412** set (second engine route: **0 / 99,133,036**,
+A2_exhaustive); key agreement **0 / 99,133,036** (4×4) and **0 / 643,378** (4×3); closure C-A1
+**0 / 616,030,190** and C-A2 **0 / 99,133,034** (corrected ko decode, T383 — the
+600,763,414 / 99,020,312 figures still quoted in `instrument-coverage.md` and `CLAIMS.md` are
+the wrong-decode denominators); cycle containment **0 / 3,455,412** (4×4) and **0 / 170,181**
+(4×3). **L2 itself is NOT met:** I11 is a 0.05% sample at 4×4 (0 / 50,000 of 99,133,036 — this
+landmark says "never a sample"), the KO_SENSITIVE column remains distrusted pending a Track A
+ruling (T380 F-8 is evidence it may be dischargeable by ruling), the #2 auditor gate has not
+run, and the mutation kill matrix contradicts the discharge record (mutants.md vs T363). Until
+2026-08-19 none of that remainder was a registered row.
 
 ## L3 — the new engine outplays the old one, watchably *(met 2026-08-05)*
 
@@ -208,6 +240,13 @@ live ledger goes 334 → 202. The unbacked count comes down in four declared ste
 18 → 0), each step's floor locked in only by the commit that reaches it, so the number can never
 quietly climb again. Row T373 executes the first step and is deliberately blocked until T363
 finishes, because it touches machinery that could otherwise freeze every agent's ability to commit.
+
+**Status, 2026-08-19 (T467 audit):** the first declared step is reached — `bin/weizigo-claimlint`
+today reads **C3 UNBACKED = 48** (the 76 → 48 floor, hook-gated in `claimlint-floor.json`), with
+the register parsing 228 rows, C1a/C1b/C6/C9 = 0, C2 dangling = 11, C7 unabsorbed = 6 (above the
+threshold of 5 — live churn from today's closes, STANDING-ABSORB's job), and calibration PASS.
+Remaining to the landmark: 48 → 32 → 18 → 0, plus the proposed STANDING-CLAIMVERIFY background
+row (one prose-only PROVEN claim re-probed per pass, `docs/status/backlog-2026-08-19.md`).
 
 ## L5 — one rulebook *(roadmap Tier 3)*
 
