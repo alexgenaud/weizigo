@@ -38,6 +38,12 @@
 # resume commands, same convention as regression-managent-resume.sh.
 #
 # Task: T352 · Role: worker · Model: minimax-m3 · Date: 2026-08-04
+# T448: kill-survival + startup check (glm-5.2/T448, 2026-08-19). The
+# synthetic bundle ($BUNDLE) under untracked/ was previously removed only
+# in the EXIT trap; a SIGKILLed run left it in the tree. T448 adds
+# INT/TERM/HUP to the trap (safety net) and a start-up check that REFUSES
+# to run if a fixture from a previous (killed) run is still present.
+# SIGKILL bypasses traps, so the start-up check is the load-bearing half.
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -73,7 +79,33 @@ fi
 # CLAIMS.md clobbered by fixtures). cd "" succeeds silently; never rely on it.
 mkdir -p /tmp/weizigo
 WORK="$(mktemp -d /tmp/weizigo/inbox-loop-XXXXXX)" || { echo "regression-inbox-loop.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
-trap 'rm -rf "$WORK"' EXIT
+
+# T448: start-up check. The synthetic bundle under untracked/ was
+# previously cleaned only by the EXIT trap; a SIGKILLed run left it in
+# the tree. The trap (set below) now also runs on INT/TERM/HUP — but
+# SIGKILL bypasses traps, so the start-up check is the load-bearing
+# half. Refuse to run until the operator inspects and removes the file
+# by hand: a stale fixture is evidence a previous run was killed, and
+# silently overwriting it would hide that (T445 staged 1659 files this
+# way).
+BUNDLE="$PROJECT/untracked/T997-inbox-loop-dryrun.md"
+if [ -e "$BUNDLE" ]; then
+    echo "regression-inbox-loop.sh: REFUSED — stale fixture from a previous run:" >&2
+    echo "    $BUNDLE" >&2
+    echo "A previous run was killed (SIGKILL or uncaught signal); the EXIT trap did not run." >&2
+    echo "The startup check is the load-bearing guard — SIGKILL bypasses traps, and" >&2
+    echo "tools/runner's SIGKILL on wall/CPU/RSS/progress guards is routine in this fleet." >&2
+    echo "Remove the file by hand (after inspecting it is fixture-shaped and not yours)" >&2
+    echo "and re-run. The script will not silently overwrite — that hides evidence (T445)." >&2
+    exit 3
+fi
+
+# T448: trap on EXIT/INT/TERM/HUP — previously EXIT only, so a signal
+# that bypasses inline cleanup (but still lets the trap run) would leave
+# $BUNDLE and the worker-act-on log behind. Trap is the safety net;
+# startup check above is the load-bearing guard.
+cleanup() { rm -f "$BUNDLE" "$WORK/worker-act-on-D"*.log 2>/dev/null || true; rm -rf "$WORK"; }
+trap cleanup EXIT INT TERM HUP
 cd "$WORK"
 git init -q
 git config user.email t352@test
@@ -272,7 +304,10 @@ echo "  5. dry-run renders the inbox-loop paragraph in the dispatch prompt"
 BUNDLE="$PROJECT/untracked/T997-inbox-loop-dryrun.md"
 rm -f "$BUNDLE"
 printf '<!--managent set=G deliverables=findings/T997-test.json-->\n# T997 — dry-run\n' > "$BUNDLE"
-trap 'rm -f "$BUNDLE" "$WORK/worker-act-on-D"*.log; rm -rf "$WORK"' EXIT
+# T448: the EXIT-only trap at this line was removed; the trap set at
+# script init (cleanup, EXIT/INT/TERM/HUP) already covers $BUNDLE and
+# the worker-act-on log. Overriding it here would have re-introduced
+# the EXIT-only coverage gap that T448 fixes.
 OUT=$("$OLLAMA_SUBAGENT" T997 --model minimax-m3 --dry-run 2>&1)
 if echo "$OUT" | grep -q "INBOX LOOP" && \
    echo "$OUT" | grep -q "managent inbox T997 --ack"; then

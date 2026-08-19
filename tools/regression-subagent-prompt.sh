@@ -23,6 +23,9 @@
 # This script is NOT in the build graph; T317 wires it into zig build test.
 #
 # Task: T315 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-03
+# T448: kill-survival + startup check (glm-5.2/T448, 2026-08-19). The
+# synthetic bundle ($BUNDLE) under untracked/ was previously removed only
+# in the EXIT trap; a SIGKILLed run left it in the tree.
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -32,10 +35,27 @@ FAIL=0
 
 # Synthetic bundle in untracked/ — the T-ID branch requires it
 BUNDLE="$ROOT/untracked/T995-regression-test.md"
-# Clean up any leftover from a previous interrupted run
-rm -f "$BUNDLE"
+# T448: refuse to run if a previous run left live-tree residue behind.
+# The pre-T448 `rm -f` here was exactly the silent-overwrite behaviour
+# T448 calls out: a SIGKILLed previous run's bundle was quietly removed
+# on the next run, hiding the evidence that a run was killed. The
+# start-up check below REPLACES that rm -f — the file is preserved
+# until the operator inspects and removes it by hand.
+if [ -e "$BUNDLE" ]; then
+    echo "regression-subagent-prompt.sh: REFUSED — stale fixture from a previous run:" >&2
+    echo "    $BUNDLE" >&2
+    echo "A previous run was killed (SIGKILL or uncaught signal); the EXIT trap did not run." >&2
+    echo "The startup check is the load-bearing guard — SIGKILL bypasses traps, and" >&2
+    echo "tools/runner's SIGKILL on wall/CPU/RSS/progress guards is routine in this fleet." >&2
+    echo "Remove the file by hand (after inspecting it is fixture-shaped and not yours)" >&2
+    echo "and re-run. The script will not silently overwrite — that hides evidence (T445)." >&2
+    exit 3
+fi
 printf '<!--managent set=C deliverables=findings/T995-test.json-->\n# T995 — test bundle\n' > "$BUNDLE"
-trap 'rm -f "$BUNDLE"' EXIT
+# T448: trap on EXIT/INT/TERM/HUP — previously EXIT only. The startup
+# check above is the load-bearing guard; this trap is the safety net.
+cleanup() { rm -f "$BUNDLE" 2>/dev/null || true; }
+trap cleanup EXIT INT TERM HUP
 
 echo "=== subagent-prompt regression ==="
 

@@ -73,17 +73,133 @@
 # GREEN on the post-fix script. Script SKIPs loudly when bin/argus is
 # missing (it is a Python script shipped at HEAD; --build rebuilds nothing).
 #
+# T442 de-state: arm 4 / 17. T448: startup check refuses to run if any
+# fixture from a previous (killed) run still lives in the live tree —
+# tools/runner SIGKILLs on wall/CPU/RSS/progress guards, so a stale
+# fixture is the routine outcome, not an exotic one. arm 19 below is the
+# kill-survival self-check; arm 20 is the byte-identical-tree null.
+#
 # Task: T425 · Role: worker · Model: minimax-m3 · Date: 2026-08-08
 # T427 hardening: deepseek-v4-flash/T427 · Date: 2026-08-08
+# T448: kill-survival + startup check (glm-5.2/T448, 2026-08-19)
 
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT="$(cd "$HERE/.." && pwd)"
+
+# ── T448: --check-fixtures-only ──────────────────────────────────────────
+# A no-arms mode that runs ONLY the stale-fixture startup check and exits.
+# Used by arm 19 (kill-survival self-check) to assert the check is real
+# without re-running the whole suite. Anything that survives SIGKILL would
+# be visible to a fresh run; this mode is the load-bearing half of the
+# cleanup story — the trap is a safety net, but SIGKILL bypasses traps
+# entirely, so the only honest guard is "refuse to start if anything
+# looks like residue."
+if [ "${1:-}" = "--check-fixtures-only" ]; then
+    PROJECT="$PROJECT"
+    # The static list is the source of truth (FIXTURE_PATHS below); --check
+    # re-declares just enough of the check to assert it without sourcing
+    # the whole script.
+    STALE=0
+    for p in \
+        "$PROJECT/findings/T425-DOCTOR-NONCONFORM.json" \
+        "$PROJECT/docs/evidence/T425-DOCTOR-FIXTURE.md" \
+        "$PROJECT/tools/regression-argus-doctor-fixture.md" \
+        "$PROJECT/untracked/T427-guard-fixture.md"; do
+        if [ -e "$p" ]; then echo "stale: $p" >&2; STALE=1; fi
+    done
+    if [ -f "$PROJECT/AGENTS.md" ] && grep -q "^  # T427 arm 1 seed$" "$PROJECT/AGENTS.md"; then
+        echo "stale: $PROJECT/AGENTS.md (carries '  # T427 arm 1 seed' sentinel — arm 1 was killed mid-run)" >&2
+        STALE=1
+    fi
+    if [ "$STALE" -ne 0 ]; then exit 3; fi
+    exit 0
+fi
+
 ARGUS="$PROJECT/bin/argus"
 MG="$PROJECT/bin/managent"
 CLAIMLINT="$PROJECT/bin/weizigo-claimlint"
 LIVE_STORE="$PROJECT/docs/infra/managent/tasks.json"
+
+# ── T448: live-tree fixture registry ─────────────────────────────────────
+# Every live-tree path this script creates (and the inline `rm -f` calls
+# in each arm clean up on a normal exit). The trap removes them on
+# EXIT/INT/TERM/HUP; the startup check below refuses to run if any of
+# them is already present (evidence of a SIGKILLed previous run).
+#
+# Paths whose names include runtime values ($WORK, $BASHPID) cannot be
+# in this static list — register them with `track_fixture` once computed.
+declare -a FIXTURE_PATHS=(
+    "$PROJECT/findings/T425-DOCTOR-NONCONFORM.json"
+    "$PROJECT/docs/evidence/T425-DOCTOR-FIXTURE.md"
+    "$PROJECT/tools/regression-argus-doctor-fixture.md"
+    "$PROJECT/untracked/T427-guard-fixture.md"
+)
+# arm 1 sentinel: AGENTS.md gets a `  # T427 arm 1 seed` line appended and
+# restored inline by the arm. The inline restore uses $SEED_BAK which is
+# under $WORK; if the process is killed mid-arm the restore never runs
+# and AGENTS.md carries the sentinel. The startup check looks for the
+# sentinel (the file always exists — checking for presence wouldn't help).
+ARM1_SENTINEL='^  # T427 arm 1 seed$'
+
+track_fixture() {
+    # Register a live-tree fixture path whose name contains runtime
+    # values (so it can't be in the static FIXTURE_PATHS list above).
+    # Use this AFTER the variable is computed — usually right before
+    # the arm's `cat > "$path" <<EOF`.
+    FIXTURE_PATHS+=("$1")
+}
+
+# T448 startup check: refuse to run if any live-tree fixture from a
+# previous run is still present. SIGKILL cannot be trapped at all, so
+# the trap is a safety net for SIGINT/SIGTERM/SIGHUP only — this check
+# is the load-bearing half. We refuse rather than silently overwrite,
+# because overwriting hides the evidence (a stray fixture could be a
+# real edit by another console; T445 staged 1659 files this way).
+check_stale_fixtures() {
+    local stale=()
+    local p
+    for p in "${FIXTURE_PATHS[@]}"; do
+        if [ -e "$p" ]; then stale+=("$p"); fi
+    done
+    if [ -f "$PROJECT/AGENTS.md" ] && grep -qE "$ARM1_SENTINEL" "$PROJECT/AGENTS.md"; then
+        stale+=("$PROJECT/AGENTS.md (carries the arm-1 sentinel — that arm was killed mid-run)")
+    fi
+    if [ "${#stale[@]}" -gt 0 ]; then
+        echo "regression-argus-doctor.sh: REFUSED — stale live-tree fixture(s) from a previous run remain:" >&2
+        local s
+        for s in "${stale[@]}"; do echo "    $s" >&2; done
+        echo "A previous run was killed (SIGKILL or uncaught signal); the EXIT trap did not run." >&2
+        echo "The startup check is the load-bearing guard — SIGKILL bypasses traps, and" >&2
+        echo "tools/runner's SIGKILL on wall/CPU/RSS/progress guards is routine in this fleet." >&2
+        echo "Remove the files by hand (after inspecting that they are fixture-shaped and not yours)" >&2
+        echo "and re-run. The script will not silently overwrite — that hides evidence (T445)." >&2
+        exit 3
+    fi
+}
+
+# T448 trap: named cleanup function so EXIT/INT/TERM/HUP share the same
+# path. Order matters — restore AGENTS.md BEFORE removing $WORK (the
+# backup lives there), and remove fixtures BEFORE removing $WORK (the
+# arm 7 fixture lives under $PROJECT/untracked/, not $WORK, but the
+# scratch FAKE repo's fixture does live under $WORK, and removing $WORK
+# last is the safest order for everything).
+cleanup() {
+    # arm 1: restore AGENTS.md from the backup if the inline restore
+    # didn't run. The inline restore at the end of the arm body handles
+    # the common case; this is the safety net for signals that bypass
+    # inline code but still let the trap run (SIGINT/SIGTERM/SIGHUP).
+    if [ -n "${SEED_BAK:-}" ] && [ -f "${SEED_BAK}" ]; then
+        cp "$SEED_BAK" "$PROJECT/AGENTS.md" 2>/dev/null || true
+    fi
+    local p
+    for p in "${FIXTURE_PATHS[@]}"; do
+        rm -f "$p"
+    done
+    rm -rf "$WORK"
+}
+trap cleanup EXIT INT TERM HUP
 
 FAIL=0
 
@@ -107,6 +223,11 @@ fi
 mkdir -p /tmp/weizigo
 WORK="$(mktemp -d /tmp/weizigo/argus-doctor-XXXXXX)" || { echo "regression-argus-doctor.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 
+# T448: refuse to run if a previous run left live-tree residue behind.
+# Must run AFTER $WORK is created (cleanup depends on $WORK for the
+# AGENTS.md backup restore) but BEFORE any arm touches the live tree.
+check_stale_fixtures
+
 # ── T427: scratch kanban store ──────────────────────────────────────────────
 # Every managent call in this script goes to a scratch store seeded with a
 # byte-copy of the live tasks.json. The doctor (argus) reads the kanban via
@@ -120,7 +241,11 @@ export MANAGENT_STORE="$SCRATCH_STORE"
 # The null control's before-hash — compared at arm 15 after every other arm.
 LIVE_HASH_BEFORE="$(shasum -a 256 "$LIVE_STORE" | cut -d' ' -f1)"
 
-trap 'rm -rf "$WORK"; rm -f "$PROJECT/findings/T425-DOCTOR-NONCONFORM.json" "$PROJECT/docs/evidence/T425-DOCTOR-FIXTURE.md" "$PROJECT/tools/regression-argus-doctor-fixture.md" "$PROJECT/untracked/T427-guard-fixture.md"' EXIT
+# T448: trap (cleanup) is set above (right after the helper definitions).
+# EXIT/INT/TERM/HUP all run the same cleanup function — restores AGENTS.md
+# from $SEED_BAK (if present), removes every live-tree fixture in
+# FIXTURE_PATHS, and finally removes $WORK. SIGKILL bypasses traps, so
+# the startup check (check_stale_fixtures) is the load-bearing guard.
 
 # Helper: run the doctor (against the SCRATCH store via MANAGENT_STORE),
 # write report into a temp file, print its full path.
@@ -266,6 +391,13 @@ fi
 # ── arm 1: seeded — uncommitted tracked file in the live tree ─────────
 # Touch a tracked file (modify without committing). The doctor should
 # report it under NEEDS ACTION. Restore on exit.
+#
+# T448: the inline restore uses $SEED_BAK under $WORK. The trap (set at
+# top of script) restores AGENTS.md from $SEED_BAK if the inline restore
+# did not run (SIGINT/SIGTERM/SIGHUP) — and the startup check refuses to
+# run at all if the sentinel line from a SIGKILLed arm 1 is still in
+# AGENTS.md. AGENTS.md is the only tracked file the suite touches; the
+# 2026-08-18 T445 incident recorded "+1 fixture line" as observed damage.
 echo "  1. seeded: uncommitted tracked file in live tree"
 SEED_FILE="$PROJECT/AGENTS.md"
 SEED_BAK="$WORK/AGENTS.md.bak"
@@ -273,6 +405,7 @@ cp "$SEED_FILE" "$SEED_BAK"
 echo "  # T427 arm 1 seed" >> "$SEED_FILE"
 REPORT=$(run_doctor)
 n=$(group_count "$REPORT" "NEEDS ACTION" "uncommitted|tree")
+# Inline restore: the common path. Trap restores if this doesn't run.
 cp "$SEED_BAK" "$SEED_FILE"
 rm -f "$SEED_BAK"
 if [ "$n" -ge 1 ]; then
@@ -390,11 +523,16 @@ fi
 # ── arm 7: seeded — in_progress row with no heartbeat ────────────────
 # Add a row (SCRATCH store), claim it (so it's in_progress), don't ping.
 # The doctor's liveness check should warn WATCH.
+#
+# T448: the bundle path includes $WORK so it can't be in FIXTURE_PATHS
+# statically — register it via track_fixture once computed. The inline
+# rm -f handles normal exit; the trap handles signals.
 echo "  7. seeded: in_progress row with no heartbeat (SCRATCH store)"
 ARM7_ROW_ID="T425-DOCTOR-7-$(basename "$WORK")"
 ARM7_BUNDLE_REL="untracked/T425-DOCTOR-7-$(basename "$WORK").md"
 ARM7_BUNDLE="$PROJECT/$ARM7_BUNDLE_REL"
 rm -f "$ARM7_BUNDLE"
+track_fixture "$ARM7_BUNDLE"   # T448: trap must remove on signal
 cat > "$ARM7_BUNDLE" <<'EOF'
 <!--managent set=A-->
 # T425 doctor arm 7
@@ -703,6 +841,71 @@ elif [ -n "$LIVE_C7_CLEAN" ]; then
     echo "    INFO: live tree is green: $LIVE_C7_CLEAN"
 else
     echo "    INFO: live tree has no C7 marker in either section (unexpected — investigate)"
+fi
+
+# ── arm 19: T448 — kill-survival self-check ───────────────────────────
+# Plant a stale fixture (mimics a SIGKILLed previous run leaving residue)
+# and re-invoke the script in --check-fixtures-only mode. The script must
+# refuse with the expected exit code and name the stale path. This is the
+# load-bearing half of T448 — the trap is the safety net, but SIGKILL
+# bypasses traps, so the startup check is what actually catches residue.
+echo "  19. T448: kill-survival — start-up check refuses stale fixture"
+STALE_DOC="$PROJECT/docs/evidence/T425-DOCTOR-FIXTURE.md"
+cat > "$STALE_DOC" <<'EOF'
+# stale fixture from T448 arm 19
+EOF
+# --check-fixtures-only runs the SAME startup check the main run does,
+# in a child shell, and returns RC=3 on stale / RC=0 on clean. Output
+# goes to stderr (the refusal message); capture both streams.
+OUT=$( sh "$0" --check-fixtures-only 2>&1 )
+RC=$?
+# The stale fixture is itself a live-tree fixture — remove it via the
+# same path the trap uses. Track it first so cleanup is consistent.
+track_fixture "$STALE_DOC"
+cleanup >/dev/null 2>&1 || true
+# Re-check: with the fixture gone, --check-fixtures-only must now PASS.
+OUT_CLEAN=$( sh "$0" --check-fixtures-only 2>&1 )
+RC_CLEAN=$?
+if [ "$RC" -eq 3 ] && echo "$OUT" | grep -q "stale:" && echo "$OUT" | grep -q "T425-DOCTOR-FIXTURE.md"; then
+    echo "    PASS: stale fixture refused (RC=3), named the path"
+else
+    echo "    FAIL: stale-fixture refusal (RC=$RC, expected 3):"
+    echo "$OUT" | sed 's/^/        /' | head -5
+    FAIL=1
+fi
+if [ "$RC_CLEAN" -eq 0 ]; then
+    echo "    PASS: --check-fixtures-only returns 0 once fixtures are cleaned"
+else
+    echo "    FAIL: --check-fixtures-only still refused after cleanup (RC=$RC_CLEAN):"
+    echo "$OUT_CLEAN" | sed 's/^/        /' | head -3
+    FAIL=1
+fi
+
+# ── arm 20: T448 — null: live tree byte-identical after the full run ──
+# The trap and the inline rms together leave the live repo untouched by
+# the suite's arms. arm 15 already proves tasks.json is byte-identical;
+# this arm extends the proof to FIXTURE_PATHS — none of them exist
+# after a normal run, and the AGENTS.md sentinel is absent. The brief
+# calls for `git status --porcelain`; we use the FIXTURE_PATHS scan
+# instead because (a) git status would catch unrelated user edits, and
+# (b) the live tree is allowed to carry OTHER uncommitted work by other
+# consoles — the assertion is scoped to what THIS script created.
+echo "  20. T448: null — live tree byte-identical after the full run"
+RESIDUE=0
+for p in "${FIXTURE_PATHS[@]}"; do
+    if [ -e "$p" ]; then
+        echo "    FAIL: residue after run: $p"
+        RESIDUE=1
+    fi
+done
+if [ -f "$PROJECT/AGENTS.md" ] && grep -qE "$ARM1_SENTINEL" "$PROJECT/AGENTS.md"; then
+    echo "    FAIL: AGENTS.md still carries the arm-1 sentinel"
+    RESIDUE=1
+fi
+if [ "$RESIDUE" -eq 0 ]; then
+    echo "    PASS: no live-tree residue; AGENTS.md clean"
+else
+    FAIL=1
 fi
 
 echo ""

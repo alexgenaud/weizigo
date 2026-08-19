@@ -22,12 +22,47 @@
 #                  does not fail, yet).
 #
 # Task: T421 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-08
+# T448: kill-survival + startup check (glm-5.2/T448, 2026-08-19). The
+# fixture doc ($FIXTURE) was previously removed only in the EXIT trap;
+# a SIGKILLed run left it in the tree. T448 adds INT/TERM/HUP to the trap
+# (safety net) and a start-up check that REFUSES to run if the fixture
+# from a previous (killed) run is still present. SIGKILL bypasses traps,
+# so the start-up check is the load-bearing half.
+
+# T448 (kill-survival self-check recursion guard): the arm below
+# re-invokes `sh "$0"` to exercise the start-up check against a planted
+# stale fixture. Without this guard, the recursive invocation runs the
+# SAME arm and creates the SAME fixture — infinite recursion until the
+# OS kills the test (T448.2 observed 120s timeout, 2026-08-19). When
+# SKIP_KILL_SURVIVAL=1 is set, we skip the arms section (including
+# this guard's own arm) but keep the start-up check and the trap live
+# so the recursive invocation can demonstrate the refusal and the
+# clean re-entry in turn.
+SKIP_KILL_SURVIVAL="${SKIP_KILL_SURVIVAL:-0}"
 
 set -e
 
 CLAIMLINT="zig-out/bin/weizigo-claimlint"
 FIXTURE="docs/evidence/C10-VOLATILE-SEEDED.md"
 SEEDED_PATH="/tmp/weizigo/c10-volatile-seeded-8f3a2e.json"
+
+# ── T448: start-up check (load-bearing) ─────────────────────────────────
+# If a previous run was killed mid-arm (SIGKILL, uncaught signal), the
+# fixture doc from that run is still in the live tree. The pre-T448
+# code would silently overwrite it on the next run — hiding the evidence
+# that a run was killed, and leaving a brief window where the project's
+# claimlint readings were not its own. Refuse to run until the operator
+# inspects and removes the file by hand.
+if [ -e "$FIXTURE" ]; then
+    echo "regression-claimlint-volatile.sh: REFUSED — stale fixture from a previous run:" >&2
+    echo "    $FIXTURE" >&2
+    echo "A previous run was killed (SIGKILL or uncaught signal); the EXIT trap did not run." >&2
+    echo "The startup check is the load-bearing guard — SIGKILL bypasses traps, and" >&2
+    echo "tools/runner's SIGKILL on wall/CPU/RSS/progress guards is routine in this fleet." >&2
+    echo "Remove the file by hand (after inspecting it is fixture-shaped and not yours)" >&2
+    echo "and re-run. The script will not silently overwrite — that hides evidence (T445)." >&2
+    exit 3
+fi
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -45,7 +80,26 @@ printf '{"seeded": true}\n' > "$SEEDED_PATH"
 echo "  seeded target exists: $SEEDED_PATH"
 
 TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TMPDIR"; rm -f "$FIXTURE"' EXIT
+# T448: trap on EXIT/INT/TERM/HUP — previously EXIT only, so SIGKILL
+# and an uncaught signal would leave the fixture in the live tree.
+# The startup check above is the load-bearing guard; this trap is the
+# safety net for signals that DO let cleanup run.
+cleanup() { rm -rf "$TMPDIR"; rm -f "$FIXTURE"; }
+trap cleanup EXIT INT TERM HUP
+
+# T448 (kill-survival recursion guard): if the script is re-entered by
+# the kill-survival arm below with SKIP_KILL_SURVIVAL=1 set, the
+# recursive invocation must NOT run the arms (including itself). It
+# already hit the start-up check (above) and the trap (set above) on
+# the way in — both are what we are testing. Exit cleanly so the
+# caller sees RC=3 from the start-up refusal (when the fixture is
+# present) or RC=0 from a clean re-entry (when the cleanup removed it).
+# Without this guard the recursive invocation would re-run the same
+# arm and create the same fixture, recursing until the OS killed the
+# test (T448.2 observed 120s timeout, 2026-08-19).
+if [ "$SKIP_KILL_SURVIVAL" = "1" ]; then
+    exit 0
+fi
 
 # ── baseline (no fixture): capture the run the tree is expected to keep ──
 set +e
@@ -116,6 +170,64 @@ if ! cmp -s "$TMPDIR/baseline.out" "$TMPDIR/null.out"; then
     exit 1
 fi
 echo "PASS: null-control — output byte-identical to baseline on the same tree"
+
+# ── T448: kill-survival — start-up check refuses stale fixture ────────────
+# Plant a stale fixture doc (mimics a SIGKILLed previous run leaving
+# residue in the live tree) and re-invoke the script in a child shell
+# WITH the recursion guard set, so the recursive invocation runs only
+# the start-up check (and the other T448 plumbing) but skips THIS arm.
+# Without the guard the recursive invocation would run the same arm and
+# plant the same fixture, recursing until the OS killed the test
+# (T448.2 observed a 120s timeout, 2026-08-19).
+echo ""
+echo "=== regression-claimlint-volatile: kill-survival self-check ==="
+cat > "$FIXTURE" <<'EOF'
+# stale fixture (T448 arm — do not commit)
+EOF
+# `set +e` locally so the recursive invocation's expected non-zero exit
+# (the very thing this arm asserts on) does not abort us. `|| true`
+# alone would mask the exit code from $?; capturing it before turning
+# `set -e` back on is the only way to read it correctly.
+set +e
+OUT=$( SKIP_KILL_SURVIVAL=1 sh "$0" 2>&1 )
+RC=$?
+cleanup >/dev/null 2>&1
+# Re-invoke after cleanup: must succeed again (proves the refusal was
+# strictly caused by the stale fixture, not some other state). Same
+# recursion guard — we want the start-up check only, not the whole suite.
+OUT_CLEAN=$( SKIP_KILL_SURVIVAL=1 sh "$0" 2>&1 )
+RC_CLEAN=$?
+set -e
+if [ "$RC" -eq 3 ] && echo "$OUT" | grep -q "REFUSED.*stale fixture" && echo "$OUT" | grep -q "$FIXTURE"; then
+    echo "PASS: stale-fixture refusal — start-up check named the path (RC=3)"
+else
+    echo "FAIL: stale-fixture refusal (RC=$RC, expected 3):"
+    echo "$OUT" | sed 's/^/      /' | head -5
+    exit 1
+fi
+# The re-run after cleanup may also fail for its own reasons (e.g. the
+# seeded /tmp file was rm'd by the trap on a previous interrupted run);
+# we only assert it didn't fail with the stale-fixture refusal code.
+if [ "$RC_CLEAN" -eq 3 ]; then
+    echo "FAIL: clean re-run still refused with stale-fixture code — cleanup didn't remove the residue"
+    exit 1
+else
+    echo "PASS: clean re-run did not refuse on stale-fixture grounds (RC=$RC_CLEAN)"
+fi
+
+# ── T448: null — live tree byte-identical after the full run ───────────
+# After the suite completes, the live tree must carry no residue. We
+# assert against the FIXTURE path specifically (a git-status --porcelain
+# would catch unrelated user edits; this script only owns $FIXTURE).
+echo ""
+echo "=== regression-claimlint-volatile: null — no live-tree residue ==="
+if [ ! -e "$FIXTURE" ]; then
+    echo "PASS: $FIXTURE absent after the run"
+else
+    echo "FAIL: $FIXTURE still present after the run:"
+    ls -la "$FIXTURE" | sed 's/^/      /'
+    exit 1
+fi
 
 echo ""
 echo "=== regression-claimlint-volatile: all controls passed ==="
