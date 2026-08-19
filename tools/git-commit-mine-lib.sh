@@ -21,6 +21,14 @@
 #           deliverables ∪ findings/<id>-*.json ∪ the two fleet-coordination
 #           surfaces (docs/status/CURRENT.md, docs/status/HANDOVER.md — any
 #           worker may legitimately touch these).
+#       active-holders <repo> [tasks-json]
+#           prints live-holder rows, one per line, tab-separated:
+#               <task-id>\t<agent>\t<path>
+#           a (task-id, path) tuple for every in_progress row's
+#               holds ∪ bundle-deliverables
+#           empty stdout when no live holders or store unreadable; exit 0
+#           always (the pre-commit backstop treats empty-as-unknown as
+#           warn-and-allow — the same degraded-path as today's branch).
 #
 # tasks-json defaults to <repo>/docs/infra/managent/tasks.json. The caller
 # passes MANAGENT_STORE (the managent binary's substrate-isolation override,
@@ -97,6 +105,56 @@ gcm_bundle_deliverables() {
     return 0
 }
 
+gcm_active_holders() {
+    # <repo> [tasks-json] → prints tab-separated <task-id>\t<agent>\t<path> rows
+    # for every in_progress row's (holds ∪ bundle-deliverables). Empty on
+    # store-unreadable / no-live-holders; exit 0 always so the pre-commit
+    # backstop can fall back to warn-and-allow without ceremony.
+    [ "$#" -ge 1 ] || { echo "git-commit-mine-lib: active-holders needs <repo>" >&2; return 2; }
+    local repo="$1"
+    local store="${2:-$1/docs/infra/managent/tasks.json}"
+    python3 - "$repo" "$store" <<'PYEOF'
+import json, os, sys
+repo, store = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(store))
+except Exception:
+    sys.exit(0)
+for tid, t in d.items():
+    if (t.get("status") or "").lower() != "in_progress":
+        continue
+    agent = t.get("identifier") or t.get("agent") or ""
+    paths = []
+    paths.extend(t.get("holds") or [])
+    bundle = t.get("bundle") or ""
+    if bundle:
+        bpath = os.path.join(repo, bundle)
+        try:
+            with open(bpath) as bf:
+                meta = bf.readline()
+        except Exception:
+            meta = ""
+        if "deliverables=" in meta:
+            val = meta.split("deliverables=", 1)[1]
+            val = val.split("-->", 1)[0]
+            # mirror gcm_bundle_deliverables' defect-2 truncation: stop at the
+            # next " key=value" token
+            import re
+            val = re.sub(r"\s[^= ]*=.*$", "", val)
+            for p in val.split(","):
+                p = p.strip()
+                if p:
+                    paths.append(p)
+    # dedupe while preserving order
+    seen = set()
+    for p in paths:
+        if p and p not in seen:
+            seen.add(p)
+            print(f"{tid}\t{agent}\t{p}")
+PYEOF
+    return 0
+}
+
 gcm_scope_for_task() {
     # <repo> <task-id> [tasks-json] → prints the full scope, one path per line
     [ "$#" -ge 2 ] || { echo "git-commit-mine-lib: scope needs <repo> <task-id>" >&2; return 2; }
@@ -125,6 +183,7 @@ else
         task-status) gcm_task_status "$@" ;;
         bundle-deliverables) gcm_bundle_deliverables "$@" ;;
         scope) gcm_scope_for_task "$@" ;;
+        active-holders) gcm_active_holders "$@" ;;
         *) echo "git-commit-mine-lib: unknown command '$cmd'" >&2; exit 2 ;;
     esac
 fi

@@ -18,7 +18,15 @@
 #          → warn-and-allow, paths listed (identity unknown = unlabelled;
 #          refusing would wedge a worker whose kanban is momentarily unreadable)
 #        wrapper --explicit commit (GIT_MINE_EXPLICIT=1) → warn-and-allow,
-#          paths listed (the wrapper took responsibility on the way in)
+#          paths listed (the wrapper took responsibility on the way in; see
+#          the rationale in the branch below for why we do NOT also gate it
+#          on holder-collision)
+#        unlabelled commit (no MANAGENT_TASK_ID) + staged path currently
+#          held by an in_progress row → REFUSE, naming the holding row +
+#          its agent (T455; closes the gap the Orchestrator's `git add -A`
+#          swept through on 2026-08-18, d7e4bdb). Unlabelled commits
+#          touching nothing held stay allowed — that is the operator's
+#          normal case and must not become ceremony.
 #      MANAGENT_STORE is honored (scratch-kanban substrate isolation, e.g.
 #      regression tests); default is <repo>/docs/infra/managent/tasks.json.
 #
@@ -26,6 +34,9 @@
 #
 # Task: T272 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-02
 # T282 backstop: 2026-08-03
+# T455 holder-collision guard: 2026-08-19 — unlabelled commits that touch a
+#   path held by an in_progress row are refused, with the holder named.
+#   See findings/T455-unlabelled-commit-scope.json.
 
 set -e
 
@@ -105,11 +116,67 @@ EOF
         fi
     else
         if [ "${GIT_MINE_EXPLICIT:-0}" = "1" ]; then
-            echo "pre-commit: WARNING — wrapper --explicit commit (GIT_MINE_EXPLICIT=1); scope not enforced. Staged paths:"
+            # The wrapper's explicit-mode is by design the "I took
+            # responsibility" channel (tools/git-commit-mine:267-272): when
+            # the wrapper is used it has already refused/limited the commit
+            # on the way in (T278 verified 2026-08-02). Adding a holder-
+            # collision refusal here would re-refuse what the wrapper
+            # already limited, and would not add coverage the unlabelled
+            # branch doesn't already provide — so we keep warn-and-allow.
+            # T455 finding, 2026-08-19.
+            echo "pre-commit: WARNING — wrapper --explicit commit (GIT_MINE_EXPLICIT=1); scope not enforced (T455). Staged paths:"
         else
-            echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset); unlabelled commit allowed. Staged paths:"
+            # T455: unlabelled commit. Refuse if any staged path is held
+            # by an in_progress row; the kanban already knows who holds
+            # what. Touching nothing held stays allowed — the operator's
+            # normal case must not become ceremony. If the store cannot
+            # be read, fall back to today's warn-and-allow and say so.
+            ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+            LIB="$ROOT/tools/git-commit-mine-lib.sh"
+            HOLDERS_FILE=$(mktemp "${TMPDIR:-/tmp}/precommit-holders-XXXXXX" 2>/dev/null) || HOLDERS_FILE=""
+            if [ -z "$LIB" ] || [ ! -f "$LIB" ] || [ -z "$HOLDERS_FILE" ]; then
+                echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset) and the holder table cannot be read; unlabelled commit allowed. Staged paths:"
+                list_staged
+            else
+                bash "$LIB" active-holders "$ROOT" "${MANAGENT_STORE:-}" > "$HOLDERS_FILE" 2>/dev/null || true
+                if [ ! -s "$HOLDERS_FILE" ]; then
+                    echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset) and no live holders known (kanban unreadable or empty); unlabelled commit allowed. Staged paths:"
+                    list_staged
+                else
+                    COLLISIONS=""
+                    COLLIDING_TASKS=""
+                    while IFS= read -r sp; do
+                        [ -n "$sp" ] || continue
+                        # HOLDERS_FILE: tab-separated <task-id>\t<agent>\t<path>
+                        HIT=$(awk -F'\t' -v p="$sp" '$3 == p { print $1 "\t" $2; exit }' "$HOLDERS_FILE")
+                        if [ -n "$HIT" ]; then
+                            TID=${HIT%%	*}
+                            AGENT=${HIT#*	}
+                            COLLISIONS="${COLLISIONS}${sp}
+"
+                            COLLIDING_TASKS="${COLLIDING_TASKS}${sp}  (held by ${TID}, agent=${AGENT})
+"
+                        fi
+                    done <<EOF
+$STAGED_PATHS
+EOF
+                    if [ -n "$COLLISIONS" ]; then
+                        echo "pre-commit: REFUSED — unlabelled commit (MANAGENT_TASK_ID unset) touches paths held by live task(s):"
+                        echo "$COLLIDING_TASKS" | while IFS= read -r line; do
+                            [ -n "$line" ] && echo "pre-commit:   $line"
+                        done
+                        echo "pre-commit:   This is the T455 / T268 incident class — name your work."
+                        echo "pre-commit:   Export MANAGENT_TASK_ID=<your-id> (the dispatched-worker path),"
+                        echo "pre-commit:   run via tools/git-commit-mine (the wrapper path-limited mode),"
+                        echo "pre-commit:   or --no-verify only after reviewing the listed paths yourself."
+                        exit 1
+                    fi
+                    # unlabelled + nothing held → allow silently. The
+                    # operator's normal case must not become ceremony.
+                    echo "pre-commit: unlabelled commit, no staged path held by any live row — allowed"
+                fi
+            fi
         fi
-        list_staged
     fi
 fi
 

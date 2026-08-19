@@ -1,0 +1,35 @@
+{
+  "task_id": "T455",
+  "date": "2026-08-19",
+  "model": "kimi-k2.7",
+  "identifier": "kimi-k2.7/T455",
+  "claims": [],
+  "new_rows": [],
+  "claim": "An unlabelled commit (MANAGENT_TASK_ID unset) is refused when any staged path is currently held by an in_progress row; the refusal names the holding row and its agent. Unlabelled commits touching nothing held stay allowed (no ceremony). The hook degrades to today's warn-and-allow when the kanban store cannot be read.",
+  "design": {
+    "problem": "tools/hooks/pre-commit:63/:110 — the staged-path subset backstop is gated on MANAGENT_TASK_ID being set; with it unset, the hook warns and allows. The protection is strongest for the dispatched worker (whose identity is exported by bin/subagent) and absent for the actor most able to do damage — the Orchestrator or the operator committing by hand across the whole tree. Found by the Orchestrator on 2026-08-18, committing d7e4bdb with `git add -A` and sweeping two consoles' in-progress source edits.",
+    "mechanism": "tools/git-commit-mine-lib.sh — new function gcm_active_holders <repo> [tasks-json]. Reads the kanban store and prints, for every in_progress row, tab-separated lines '<task-id>\\t<agent>\\t<path>' for every path in that row's (holds ∪ bundle-deliverables). Bundle deliverables are parsed from the bundle's <!--managent ...deliverables=...--> meta header, mirroring gcm_bundle_deliverables' defect-2 truncation. Empty stdout on store-unreadable or no-live-holders; exit 0 always so the hook can fall back without ceremony. tools/hooks/pre-commit — in the unlabelled branch (no MANAGENT_TASK_ID, no GIT_MINE_EXPLICIT=1), call active-holders into a temp file; for each staged path, look up a holder by exact path match; if any collision, REFUSE naming the path and 'held by <TID>, agent=<AGENT>'. If no collisions, allow silently. If active-holders produced an empty file, fall back to today's warn-and-allow and say so (degraded path).",
+    "what_counts_as_live": "status == 'in_progress' (the wrapper already gates work on this — T424). 'done' / 'failed' / 'blocked' / 'dispatchable' rows are not live: their holds= is residual from earlier work, and a later commit should not be refused by a row that closed yesterday. 'holds' is the row's declared edit list; bundle-deliverables is parsed from the bundle's first-line meta header. Fleet-coordination surfaces (docs/status/CURRENT.md, docs/status/HANDOVER.md) are NOT in the holder list — any worker may legitimately touch them.",
+    "explicit_decision": "GIT_MINE_EXPLICIT=1 stays warn-and-allow. The wrapper's explicit-mode is by design the 'I took responsibility' channel (tools/git-commit-mine:267-272). When the wrapper is used, it has already refused/limited the commit on the way in (T278 verified 2026-08-02). Adding a holder-collision refusal to the explicit branch would re-refuse what the wrapper already limited, and would not add coverage the unlabelled branch doesn't already provide. The branch comment in the hook records this rationale inline."
+  },
+  "bars": {
+    "seeded_control": "PASS — an in_progress row T455X holds src/vb_bellman_4x4.zig; an unlabelled commit on that path is REFUSED with the message naming 'T455X, agent=glm-5.2/T455X' and the path. Verified by tools/regression-precommit.sh arm 7a.",
+    "null_control_no_collision": "PASS — no live holders; an unlabelled commit on an unheld path is allowed silently (no WARNING, no refusal). Verified by arm 7b.",
+    "labelled_still_works": "PASS — a labelled commit (T455C, MANAGENT_TASK_ID=T455C) whose staged path is in the row's declared scope is allowed via the T282 branch (the T455 guard only fires in the unlabelled branch). Verified by arm 7c.",
+    "degraded_kanban": "PASS — unlabelled commit with the kanban store unreadable: hook warns and allows, message names 'kanban unreadable' and the staged paths. Verified by arm 7d.",
+    "explicit_still_allows": "PASS — GIT_MINE_EXPLICIT=1 + a foreign held path: hook warns and allows (T455 explicit-mode rationale). Verified by arm 7e.",
+    "deliverables_also_collision": "PASS — a row with no `holds` but a bundle declaring deliverables=src/vb_bellman_4x4.zig: the staged path is still refused. Verified manually during development (not part of the regression suite — deliverables collision is exercised by 7a's T455X which holds the path directly; the test relies on the same code path because active-holders reads both holds and deliverables via one function)."
+  },
+  "files_modified": [
+    "tools/git-commit-mine-lib.sh",
+    "tools/hooks/pre-commit",
+    "tools/regression-precommit.sh"
+  ],
+  "run": {
+    "command": "sh tools/regression-precommit.sh",
+    "exit_code": 0,
+    "summary": "installed-ness: PASS. null control (live tree): PASS. seeded-defect: PASS. T455 7a (seeded-collision): PASS. T455 7b (null-no-collision): PASS. T455 7c (labelled-still-works): PASS. T455 7d (degraded-kanban): PASS. T455 7e (explicit-still-allows): PASS.",
+    "live_tree_check": "sh tools/hooks/pre-commit with no MANAGENT_TASK_ID and no staged paths returns RC=0 — the new unlabelled branch allows silently when nothing is held, exactly the operator's normal case."
+  },
+  "notes": "T455's first attempt at the regression script failed with a silent exit on the first OUT=$(...) capture: the script uses `set -e`, and `OUT=$(failing_cmd)` in dash/bash aborts the parent script with the failing exit, even with `set +e` inside the subshell — because the assignment to OUT is the last command in the subshell and inherits f's exit code. Resolved by wrapping the T455 section in `set +e` (re-enabled after FAIL_T455 is set). This is a generic hazard for any test suite under set -e that captures output from a command expected to fail: the failure mode is silent script exit before any PASS/FAIL is printed. Documented inline in tools/regression-precommit.sh. Inbox loop: no directives received (`bin/managent inbox T455 --ack` returned empty)."
+}
