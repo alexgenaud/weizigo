@@ -49,6 +49,19 @@
 #                kanban reports zero fixture-shaped rows (the 16 are gone)
 #  15. null — THE null control: live tasks.json byte-identical before and
 #                after the whole run (hash before == hash after)
+#  16. T441 — doctor console line derives from doctor groups
+#  17. controlled — C7 above-threshold in a SCRATCH findings dir (controlled
+#                counter) → doctor reports under NEEDS ACTION. Pairs with
+#                arm 4 (null, controlled counter). Both arms test the doctor's
+#                BEHAVIOUR under a controlled C7 count, not the live count
+#                (the pre-T442 arm 4 was a state-dependent reading wearing a
+#                test's clothes: it asserted "C7 unabsorbed" appeared under
+#                CLEAN, which is only true when live C7 < 5 — so it went
+#                red whenever the project had a backlog, regardless of the
+#                doctor's own correctness).
+#  18. informational — live C7 unabsorbed reading (operator-facing, never a
+#                gate). The operator reads the live C7 from this line; the
+#                suite never fails on it.
 #
 # Every control creates any temp files under /tmp/weizigo/ and cleans them
 # up in the trap. The live repo is touched only by arm 1 (touch + restore),
@@ -107,7 +120,7 @@ export MANAGENT_STORE="$SCRATCH_STORE"
 # The null control's before-hash — compared at arm 15 after every other arm.
 LIVE_HASH_BEFORE="$(shasum -a 256 "$LIVE_STORE" | cut -d' ' -f1)"
 
-trap 'rm -rf "$WORK"; rm -f "$PROJECT/findings/T425-DOCTOR-NONCONFORM.json" "$PROJECT/findings/T425-DOCTOR-C7SEED.json" "$PROJECT/docs/evidence/T425-DOCTOR-C7.md" "$PROJECT/docs/evidence/T425-DOCTOR-FIXTURE.md" "$PROJECT/tools/regression-argus-doctor-fixture.md" "$PROJECT/untracked/T427-guard-fixture.md"' EXIT
+trap 'rm -rf "$WORK"; rm -f "$PROJECT/findings/T425-DOCTOR-NONCONFORM.json" "$PROJECT/docs/evidence/T425-DOCTOR-FIXTURE.md" "$PROJECT/tools/regression-argus-doctor-fixture.md" "$PROJECT/untracked/T427-guard-fixture.md"' EXIT
 
 # Helper: run the doctor (against the SCRATCH store via MANAGENT_STORE),
 # write report into a temp file, print its full path.
@@ -160,6 +173,71 @@ group_lines() {
         /^## / { flag=0 }
         flag && $0 ~ pat { print }
     ' "$report"
+}
+
+# ── T442: scratch findings dir for controlled C7 testing ──────────────────
+# The doctor reads `bin/weizigo-claimlint` with `cwd=str(self.root)`, and
+# claimlint reads `findings/*.json` and `findings/rejections.json` and
+# `docs/epistemic/CLAIMS.md` from cwd. Pass `--root <scratch-tree>` to make
+# the doctor read everything from the scratch tree, not the live repo.
+#
+# The scratch tree must carry:
+#   * bin/weizigo-claimlint (copy of the live one — the doctor's internal
+#     _run uses cwd=str(root), and the script is invoked as bin/weizigo-claimlint
+#     RELATIVE to that root)
+#   * bin/argus (copy of the live Python script, same reason)
+#   * bin/managent (the doctor calls managent status / liveness; on a scratch
+#     tree we accept these as missing — the resulting WATCH lines are noise,
+#     but the C7 finding is what arm 4 / arm 17 assert on)
+#   * findings/ (initially empty for the null arm; seeded for the seeded arm)
+#   * findings/rejections.json (valid JSON; the loader refuses malformed files)
+#   * docs/epistemic/CLAIMS.md (a register with at least one backticked row
+#     in the §2 register table; the header must carry 11 columns)
+SCRATCH_TREE_ROOT="$WORK/scratch-tree"
+SCRATCH_CLAIMS_REL="docs/epistemic/CLAIMS.md"
+SCRATCH_FINDINGS_DIR="findings"
+
+# Build a minimal scratch tree. Idempotent — arm 17 re-uses the tree and
+# only adds / removes its seed findings file.
+setup_scratch_tree() {
+    mkdir -p "$SCRATCH_TREE_ROOT/bin" "$SCRATCH_TREE_ROOT/$SCRATCH_FINDINGS_DIR" "$SCRATCH_TREE_ROOT/docs/epistemic"
+    # Copy the live binaries so the doctor's internal _run can find them.
+    cp "$PROJECT/bin/weizigo-claimlint" "$SCRATCH_TREE_ROOT/bin/weizigo-claimlint" 2>/dev/null || true
+    cp "$PROJECT/bin/weizigo-claimlint.real" "$SCRATCH_TREE_ROOT/bin/weizigo-claimlint.real" 2>/dev/null || true
+    cp "$PROJECT/bin/argus" "$SCRATCH_TREE_ROOT/bin/argus" 2>/dev/null || true
+    cp "$PROJECT/bin/managent" "$SCRATCH_TREE_ROOT/bin/managent" 2>/dev/null || true
+    # Minimal register with one backticked row in the §2 table — the ID
+    # schema is `<SCOPE>.<LEGACY>` (CLAIMS.md §1). Header MUST be 11 columns
+    # (claims_register.zig REGISTER_COLS = 11, T305). The doctor reads C7
+    # from this register's count of unabsorbed findings.
+    cat > "$SCRATCH_TREE_ROOT/$SCRATCH_CLAIMS_REL" <<'CLAIMS_EOF'
+# CLAIMS — scratch register for argus doctor controlled-state testing
+
+**Created:** 2026-08-19
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `scratch.scratch-row` | — | all | scratch row for argus controlled C7 testing | PROVEN | AGENTS.md:1 | — | — | 0 | ? | Z-TEST |
+CLAIMS_EOF
+    # Minimal rejections registry. Must be valid JSON (claimlint refuses
+    # malformed files — T269).
+    cat > "$SCRATCH_TREE_ROOT/$SCRATCH_FINDINGS_DIR/rejections.json" <<'REJ_EOF'
+{"description": "scratch rejections registry for argus controlled C7 testing","rejections": []}
+REJ_EOF
+}
+
+# Run the doctor against the SCRATCH TREE via --root. The doctor's
+# internal _run calls (bin/weizigo-claimlint, bin/managent) inherit cwd
+# from --root, so all paths resolve under the scratch tree, not the
+# live repo. The live repo is untouched.
+#
+# Args: $1 = report file path (in WORK)
+run_doctor_scrap() {
+    local report="$1"
+    "$ARGUS" --mode doctor --root "$SCRATCH_TREE_ROOT" --report "$report" >/dev/null 2>&1
+    echo "$report"
 }
 
 echo ""
@@ -252,33 +330,28 @@ else
     FAIL=1
 fi
 
-# ── arm 4: seeded — C7 unabsorbed above threshold ───────────────────
-# A finding that references a claim_id not in CLAIMS.md → C7 counts it.
-# To stay below the threshold otherwise, the test creates a single such
-# finding. C7 threshold is 5; we seed exactly 1, so the doctor reports
-# CLEAN (below threshold) — the relevant NEEDS ACTION is from arm 3.
-echo "  4. seeded: C7 unabsorbed count visible (below threshold)"
-cat > "$PROJECT/findings/T425-DOCTOR-C7SEED.json" <<'EOF'
-{
- "task_id": "T425-DOCTOR-C7",
- "date": "2026-08-08",
- "model": "minimax-m3",
- "identifier": "minimax-m3/T425-C7",
- "claims": [{"claim_id": "T425.NONEXISTENT-CLAIM", "proposed_status": "MEASUREMENT", "evidence": ["docs/evidence/T425-DOCTOR-C7.md"]}],
- "new_rows": []
-}
-EOF
-mkdir -p "$PROJECT/docs/evidence"
-cat > "$PROJECT/docs/evidence/T425-DOCTOR-C7.md" <<'EOF'
-# T425 doctor C7 fixture
-EOF
-REPORT=$(run_doctor)
+# ── arm 4: null, controlled — C7 below threshold in scratch findings ─────
+# Build a SCRATCH findings/CLAIMS.md bin/ tree with an empty findings dir
+# (so claimlint's C7 reads 0, well below the threshold of 5). Run the
+# doctor against the SCRATCH tree via --root. The doctor MUST report C7
+# under CLEAN.
+#
+# T442 de-state: the pre-T442 arm asserted "C7 unabsorbed" appears under
+# CLEAN against the LIVE tree — which is only true when live C7 < 5. So the
+# arm went red whenever the project had a backlog, regardless of the
+# doctor's own correctness. The new arm is a controlled-state null: a
+# scratch findings dir with zero unabsorbed, asserting the doctor surfaces
+# the CLEAN marker correctly.
+echo "  4. null, controlled: scratch findings (C7=0) → doctor reports CLEAN"
+setup_scratch_tree
+REPORT=$(run_doctor_scrap "$WORK/doctor-report-4.md")
 n=$(group_count "$REPORT" "CLEAN" "C7 unabsorbed")
-rm -f "$PROJECT/findings/T425-DOCTOR-C7SEED.json" "$PROJECT/docs/evidence/T425-DOCTOR-C7.md"
-if [ "$n" -ge 1 ]; then
-    echo "    PASS: doctor reports C7 unabsorbed count under CLEAN (below threshold)"
+c7_value=$(group_lines "$REPORT" "CLEAN" "C7 unabsorbed" | head -1)
+if [ "$n" -ge 1 ] && echo "$c7_value" | grep -qE "C7 unabsorbed: 0 \(below threshold"; then
+    echo "    PASS: doctor reports controlled C7=0 under CLEAN (controlled counter, not live)"
 else
-    echo "    FAIL: doctor did NOT surface C7 unabsorbed under CLEAN"
+    echo "    FAIL: doctor did NOT surface controlled C7=0 under CLEAN"
+    group_lines "$REPORT" "CLEAN" "C7" | sed 's/^/        /' | head -3
     FAIL=1
 fi
 
@@ -563,6 +636,73 @@ if [ "$NEED_COUNT" -gt 0 ]; then
     else
         echo "    PASS: non-clean state correctly NOT reported as 'clean — no violations'"
     fi
+fi
+
+# ── arm 17: controlled, seeded — C7 above threshold in scratch findings ─
+# Pairs with arm 4. Drop a fixture findings file with 6 unabsorbed claim IDs
+# (all `scratch.NONEXISTENT-N`, NOT in the scratch register) into the scratch
+# tree's findings/ dir. The doctor MUST report C7=6 under NEEDS ACTION
+# (threshold is 5). This is the same controlled counter arm 4 uses, but
+# seeded — together they cover both sides of the threshold transition.
+#
+# T442 de-state: paired with arm 4 (null), this arm proves the doctor's
+# C7 reporting behaves correctly when the controlled counter crosses the
+# threshold. Neither arm reads the live tree's C7 — both are scratch-tree
+# controlled. The pre-T442 arm was a live-state reading wearing a test's
+# clothes; the post-T442 pair tests the doctor's BEHAVIOUR.
+echo "  17. controlled, seeded: scratch findings (C7=6 ≥ 5) → doctor reports NEEDS ACTION"
+setup_scratch_tree  # arm 17 re-uses the scratch tree built by arm 4
+SEED_FINDINGS="$SCRATCH_TREE_ROOT/$SCRATCH_FINDINGS_DIR/T425-DOCTOR-C7SEED.json"
+cat > "$SEED_FINDINGS" <<'SEED_EOF'
+{
+  "task_id": "T425-DOCTOR-C7-SEED",
+  "date": "2026-08-19",
+  "model": "minimax-m3",
+  "identifier": "minimax-m3/T425-C7-SEED",
+  "claims": [
+    {"id": "scratch.NONEXISTENT-1", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 1", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-2", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 2", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-3", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 3", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-4", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 4", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-5", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 5", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-6", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 6", "evidence_path": "AGENTS.md"}
+  ],
+  "new_rows": []
+}
+SEED_EOF
+REPORT=$(run_doctor_scrap "$WORK/doctor-report-17.md")
+rm -f "$SEED_FINDINGS"
+# Assert: doctor reports C7 ≥ threshold under NEEDS ACTION, with the exact
+# controlled count visible. The arm's point is BEHAVIOUR, not a specific
+# number — accept any count ≥ 5 surfaced under NEEDS ACTION.
+n_na=$(group_count "$REPORT" "NEEDS ACTION" "C7 unabsorbed=")
+n_clean=$(group_count "$REPORT" "CLEAN" "C7 unabsorbed: [0-9]")
+c7_value=$(group_lines "$REPORT" "NEEDS ACTION" "C7 unabsorbed=" | head -1)
+if [ "$n_na" -ge 1 ] && [ "$n_clean" = "0" ] && [ -n "$c7_value" ]; then
+    echo "    PASS: doctor reports controlled C7 ≥ 5 under NEEDS ACTION (controlled counter, not live): $c7_value"
+else
+    echo "    FAIL: doctor did NOT surface controlled C7 ≥ 5 under NEEDS ACTION (na=$n_na clean=$n_clean c7='$c7_value')"
+    group_lines "$REPORT" "NEEDS ACTION" "C7" | sed 's/^/        /' | head -3
+    FAIL=1
+fi
+
+# ── arm 18: informational — live C7 unabsorbed reading ────────────────
+# Operator-facing readout: the live tree's C7 unabsorbed count and whether
+# STANDING-ABSORB should fire. This arm NEVER fails the suite — it is the
+# only place the operator can read the live C7 from the suite, and it is
+# explicitly NOT a gate (T442: a project-state reading is operator-facing,
+# not a regression-control signal). The arm 4 / arm 17 pair above are the
+# controls; this is the dashboard.
+echo "  18. informational: live C7 unabsorbed (operator-facing, not a gate)"
+LIVE_REPORT=$(run_doctor)
+LIVE_C7_LINE=$(group_lines "$LIVE_REPORT" "NEEDS ACTION" "C7 unabsorbed=" | head -1)
+LIVE_C7_CLEAN=$(group_lines "$LIVE_REPORT" "CLEAN" "C7 unabsorbed:" | head -1)
+if [ -n "$LIVE_C7_LINE" ]; then
+    echo "    INFO: live tree is red: $LIVE_C7_LINE (run STANDING-ABSORB or absorb by hand)"
+elif [ -n "$LIVE_C7_CLEAN" ]; then
+    echo "    INFO: live tree is green: $LIVE_C7_CLEAN"
+else
+    echo "    INFO: live tree has no C7 marker in either section (unexpected — investigate)"
 fi
 
 echo ""

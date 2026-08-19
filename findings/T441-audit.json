@@ -1,54 +1,59 @@
 {
-  "task": "T441-AUDIT",
-  "auditor": "glm-5.2:cloud",
-  "parent": "T441",
-  "nonce": "NONCE-385f6836b123e242",
+  "task_id": "T441-AUDIT",
   "date": "2026-08-08",
-  "verdict": "pass",
-  "summary": "All five observation-layer fixes verified PASS.",
-  "checks": [
-    {
-      "id": 1,
-      "name": "Doctor console line",
-      "command": "bin/argus --mode doctor 2>&1 1>/dev/null",
-      "result": "PASS",
-      "evidence": "stderr shows 'argus: NEEDS ACTION (3)  can close (0)  watch (3)  clean (6)' followed by three 'NEEDS ACTION:' detail lines. No 'clean — no violations' string present while NEEDS ACTION entries exist."
-    },
-    {
-      "id": 2,
-      "name": "inbox --ack scoping",
-      "commands": [
-        "bin/managent inbox --ack            -> REFUSED (exit 1)",
-        "bin/managent inbox --all --ack      -> ok (exit 0, acked 0)",
-        "bin/managent inbox T441-AUDIT --ack -> ok (exit 0, acked 1)"
-      ],
-      "result": "PASS",
-      "evidence": "Bare '--ack' refused with explicit error: \"'inbox --ack' without a target would mark every row's directives read. Use 'inbox <target> --ack' ... or 'inbox --all --ack' ...\". --all and targeted forms both succeed."
-    },
-    {
-      "id": 3,
-      "name": "read attribution",
-      "command": "bin/managent tell T441-AUDIT question --note '...'; MANAGENT_TASK_ID=T441 bin/managent inbox T441-AUDIT --ack",
-      "result": "PASS",
-      "evidence": "Directive D069 planted with read=false. After ack under MANAGENT_TASK_ID=T441, directives.jsonl record updated to: {\"id\":\"D069\",...,\"read\":true,\"read_by\":\"T441\",\"read_at\":\"2026-08-08T17:20:47Z\"}. Both read_by and read_at populated."
-    },
-    {
-      "id": 4,
-      "name": "Liveness UNKNOWN",
-      "command": "bin/managent liveness",
-      "result": "PASS",
-      "evidence": "Output shows 'UNKNOWN — no assertion' for 3 rows lacking heartbeats (T351, T440, T441-AUDIT). grep for 'never beat' returns no match (exit 1)."
-    },
-    {
-      "id": 5,
-      "name": "assert command",
-      "command": "bin/managent assert T441 in_progress --note \"audit test\"",
-      "result": "PASS",
-      "evidence": "Exit 0. Appended assertion A0002 to docs/infra/assertion-ledger/assertions.jsonl: {\"id\":\"A0002\",\"ts\":\"2026-08-08T17:20:51Z\",\"actor\":\"T441\",\"verb\":\"asserted\",\"object\":\"T441\",\"basis\":\"performed\",\"meta\":{\"status\":\"in_progress\",\"note\":\"audit test\"}}."
-    }
-  ],
-  "artifacts_left": [
-    "D069 test directive in docs/infra/managent/directives.jsonl (question, acked) — harmless; left in place.",
-    "A0002 audit-test assertion in docs/infra/assertion-ledger/assertions.jsonl — harmless test record; left in place."
-  ]
+  "model": "glm-5.2:cloud",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T441-AUDIT (verification of T441 observation-layer fixes; envelope fixed 2026-08-19 by minimax-m3/T442 — the audit was REAL and verified PASS, only the JSON envelope was wrong (used task/auditor/parent instead of task_id/model/claims per findings/README.md). Five checks each PASS, evidence per check quoted in the audit fields below — preserved as audit_metadata for trace. Nonce recorded; no claim promotion (NONCE-385f6836b123e242). Verdict: pass. Findings empty: the underlying T441-observation-layer.json claims use bare identifiers (DOCTOR-CONSOLE-LIE etc.) that do not follow the §1 SCOPE.LEGACY scheme, so they are rejected as not-a-register-claim by T442 — see findings/rejections.json. The audit verifies the underlying code IS correct; the proposals were just envelope-malformed.",
+  "audit_metadata": {
+    "parent": "T441",
+    "nonce": "NONCE-385f6836b123e242",
+    "verdict": "pass",
+    "summary": "All five observation-layer fixes verified PASS.",
+    "checks": [
+      {
+        "id": 1,
+        "name": "Doctor console line",
+        "command": "bin/argus --mode doctor 2>&1 1>/dev/null",
+        "result": "PASS",
+        "evidence": "stderr shows 'argus: NEEDS ACTION (3)  can close (0)  watch (3)  clean (6)' followed by three 'NEEDS ACTION:' detail lines. No 'clean — no violations' string present while NEEDS ACTION entries exist."
+      },
+      {
+        "id": 2,
+        "name": "inbox --ack scoping",
+        "commands": [
+          "bin/managent inbox --ack            -> REFUSED (exit 1)",
+          "bin/managent inbox --all --ack      -> ok (exit 0, acked 0)",
+          "bin/managent inbox T441-AUDIT --ack -> ok (exit 0, acked 1)"
+        ],
+        "result": "PASS",
+        "evidence": "Bare '--ack' refused with explicit error: \"'inbox --ack' without a target would mark every row's directives read. Use 'inbox <target> --ack' ... or 'inbox --all --ack' ...\". --all and targeted forms both succeed."
+      },
+      {
+        "id": 3,
+        "name": "read attribution",
+        "command": "bin/managent tell T441-AUDIT question --note '...'; MANAGENT_TASK_ID=T441 bin/managent inbox T441-AUDIT --ack",
+        "result": "PASS",
+        "evidence": "Directive D069 planted with read=false. After ack under MANAGENT_TASK_ID=T441, directives.jsonl record updated to: {\"id\":\"D069\",...,\"read\":true,\"read_by\":\"T441\",\"read_at\":\"2026-08-08T17:20:47Z\"}. Both read_by and read_at populated."
+      },
+      {
+        "id": 4,
+        "name": "Liveness UNKNOWN",
+        "command": "bin/managent liveness",
+        "result": "PASS",
+        "evidence": "Output shows 'UNKNOWN — no assertion' for 3 rows lacking heartbeats (T351, T440, T441-AUDIT). grep for 'never beat' returns no match (exit 1)."
+      },
+      {
+        "id": 5,
+        "name": "assert command",
+        "command": "bin/managent assert T441 in_progress --note \"audit test\"",
+        "result": "PASS",
+        "evidence": "Exit 0. Appended assertion A0002 to docs/infra/assertion-ledger/assertions.jsonl: {\"id\":\"A0002\",\"ts\":\"2026-08-08T17:20:51Z\",\"actor\":\"T441\",\"verb\":\"asserted\",\"object\":\"T441\",\"basis\":\"performed\",\"meta\":{\"status\":\"in_progress\",\"note\":\"audit test\"}}."
+      }
+    ],
+    "artifacts_left": [
+      "D069 test directive in docs/infra/managent/directives.jsonl (question, acked) — harmless; left in place.",
+      "A0002 audit-test assertion in docs/infra/assertion-ledger/assertions.jsonl — harmless test record; left in place."
+    ]
+  }
 }

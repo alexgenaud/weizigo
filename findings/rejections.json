@@ -380,6 +380,116 @@
       "disposition": "absorbed-under-register-id",
       "refuting_row": "CODE.RESOLVER-CONTROLS (PROVEN, CLAIMS.md §2.11 tail)",
       "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix (RESOLVER. is not an ID scope in CLAIMS.md §1; CODE. is, and this is a code claim). Registered as CODE.RESOLVER-CONTROLS at PROVEN: both controls fire over all 23,420 3×3 harness positions — verification is exhaustive within the harness, and the harness was independently re-run at absorption (null 0/23,420; deliberately_wrong REFUTED at 20,216/20,216; capture_budget proposes 20,216/23,420, abstains 3,204/23,420). Brief rule 3 qualifies PROVEN: 'RESOLVER.CONTROLS cites both controls firing over 23,420 positions at 3x3, which qualifies.' The claim is about the harness's control wiring, not a goban value."
+    },
+    {
+      "finding_task": "T437",
+      "finding_file": "T437-consolidation-build.json",
+      "claim_id": "GLOBAL.ADR0013-PSK-TRACTABLE",
+      "proposed_status": "PROVEN",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "T437 explicitly states 'No status change — this finding file is for tracking, not a claim promotion.' The proposed ID GLOBAL.ADR0013-PSK-TRACTABLE is a malformed compound (no §1 SCOPE.LEGACY convention: the established row family for ADR-0013 consequences is GLOBAL.B-1; 'PSK-TRACTABLE' was a working title for the Track A scope and was never promoted — ADR-0013 itself records PSK exact-solve as INTRACTABLE at the EMPTY 2x2, with 118M ban-set states, AGENTS.md foreclosure). The finding's notes describe a four-commit consolidation that does not move any epistemic claim. Recording it as a register row would inflate CLAIMS.md without epistemic content (T269 part 1)."
+    },
+    {
+      "finding_task": "T438",
+      "finding_file": "T438-tmp-fixture-dependency.json",
+      "claim_id": "T443",
+      "proposed_status": "",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Envelope artefact (T442 diagnosis). T438's new_rows field was authored as `[\"T443\", \"T444\"]` — array of strings, not the schema's array of objects (findings/README.md §Schema requires {id, legacy, goban, claim, status, evidence, depends_on, narrowed, wrong_answer_pass_rate}). The strings were cross-references to later sprint tasks, not proposed register rows. T443 (storage durability policy) is a real kanban task (managent show T443 → done) but its own findings file carries claims:[] new_rows:[] — it has never proposed a CLAIMS.md row, and the storage-policy work is recorded in untracked/T443-policy-draft.md (operator ratification pending). No register row to absorb; the entry exists only as a parser artefact from a malformed envelope."
+    },
+    {
+      "finding_task": "T438",
+      "finding_file": "T438-tmp-fixture-dependency.json",
+      "claim_id": "T444",
+      "proposed_status": "",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Envelope artefact, paired with T443 above. T444 (stale-row triage) is a real kanban task (managent show T444 → done) and its own findings file carries claims:[] new_rows:[] — a read-only triage with no register promotion. The T438 cross-reference is a malformed envelope: new_rows[] held strings, not row objects. Triage findings are operator-facing recommendations on stale rows, not epistemic claims; they live in the triage block of T444-stale-row-triage.json and in the kanban assertions ledger, not CLAIMS.md."
+    },
+    {
+      "finding_task": "T441",
+      "finding_file": "T441-observation-layer.json",
+      "claim_id": "DOCTOR-CONSOLE-LIE",
+      "proposed_status": "PROVEN",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Bare identifier violates CLAIMS.md §1 SCOPE.LEGACY scheme (no GLOBAL./CODE./NxM. prefix; 'DOCTOR-CONSOLE-LIE' is a working title, not an ID). The underlying code fix is verified PASS by T441-AUDIT (findings/T441-audit.json, nonce NONCE-385f6836b123e242, all five checks PASS including this one) — the audit is the proof; the unratified claim proposal duplicates it with a malformed ID. Recording it would register a row whose ID is unparseable by claims_register.zig and whose evidence is the same audit's per-check field. Five identical dispositions follow for the other T441 proposals (INBOX-ACK-SCOPE, INBOX-READ-ATTRIBUTION, LIVENESS-UNASSERTED, ASSERTION-LEDGER-BOOT)."
+    },
+    {
+      "finding_task": "T441",
+      "finding_file": "T441-observation-layer.json",
+      "claim_id": "INBOX-ACK-SCOPE",
+      "proposed_status": "PROVEN",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Bare identifier violates CLAIMS.md §1. The targetless inbox --ack refusal is verified PASS by T441-AUDIT check 2 (exit codes 1/0/0 against the three probe commands, evidence quoted from the live bin/managent run). Recording a register row would duplicate the audit with a malformed ID; the audit's check 2 is the load-bearing verification."
+    },
+    {
+      "finding_task": "T441",
+      "finding_file": "T441-observation-layer.json",
+      "claim_id": "INBOX-READ-ATTRIBUTION",
+      "proposed_status": "PROVEN",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Bare identifier violates CLAIMS.md §1. The read_by/read_at attribution on acked directives is verified PASS by T441-AUDIT check 3 (D069 planted with read=false, after ack record shows read_by=T441, read_at populated). The audit is the proof; the proposal duplicates it with a malformed ID."
+    },
+    {
+      "finding_task": "T441",
+      "finding_file": "T441-observation-layer.json",
+      "claim_id": "LIVENESS-UNASSERTED",
+      "proposed_status": "PROVEN",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Bare identifier violates CLAIMS.md §1. The 'UNKNOWN — no assertion' liveness display is verified PASS by T441-AUDIT check 4 (liveness output quoted: UNKNOWN for 3 rows; no 'never beat' string present). Audit is the proof; proposal duplicates with a malformed ID."
+    },
+    {
+      "finding_task": "T441",
+      "finding_file": "T441-observation-layer.json",
+      "claim_id": "ASSERTION-LEDGER-BOOT",
+      "proposed_status": "PROVEN",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Bare identifier violates CLAIMS.md §1. The assertion ledger bootstrap (managent assert verb, JSONL store at docs/infra/assertion-ledger/assertions.jsonl, identity via MANAGENT_TASK_ID/PI_MODEL) is verified PASS by T441-AUDIT check 5 (assertion A0002 appended, schema matches the spec). The audit is the proof; the proposal duplicates it with a malformed ID. (Note: the live assertion ledger at HEAD carries ~13 rows, all closed; this row would have been the natural home for them if the ID had been registered correctly, but the schema violation is what stopped it.)"
+    },
+    {
+      "finding_task": "T447",
+      "finding_file": "T447-regression-escape-sweep.json",
+      "claim_id": "T449",
+      "proposed_status": "",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Envelope artefact (T442 diagnosis). T447's new_rows field was authored as `[\"T449\", \"T450\"]` — array of strings, not the schema's array of objects. T449 (runner worktree blind lane) is a real kanban task (managent show T449 → dispatchable) but its own findings file has not yet been produced; the task is the dispatchable follow-up identified by T447's race, not a register row proposed by T447. Cross-reference, not proposal."
+    },
+    {
+      "finding_task": "T447",
+      "finding_file": "T447-regression-escape-sweep.json",
+      "claim_id": "T450",
+      "proposed_status": "",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Envelope artefact, paired with T449 above. T450 is a real kanban task (managent show T450 → dispatchable) and its own findings file has not yet been produced; T447's cross-reference is a malformed envelope (new_rows[] as string array, not row objects). No register row to absorb."
+    },
+    {
+      "finding_task": "T460",
+      "finding_file": "T460-t452-grading.json",
+      "claim_id": "T452-design-race-verdict",
+      "proposed_status": "CLAIMED",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "Malformed compound ID: 'T452-design-race-verdict' is a task ID with an appended descriptive slug, not a CLAIMS.md §1 SCOPE.LEGACY identifier (no GLOBAL./CODE./NxM. prefix; verbose descriptor rather than terse legacy). The grader's actual content (lanes' scores against the sealed T452 key, the 4-3 split on the bounded-fix question, the B/C/F/G 'bounded fix exists' verdict with proof-v2:680-696 / 1-ko qa023 expectation / TOTAL_STATES 2430 findings) is recorded in untracked/race-grading/t452/scores-glm-5.2.md and the lane-level reports — those are the operator-facing record, not a register row. The T452 verdict itself (whether to adopt bounded fix as ADR-0023 successor) is the operator's call from the race result, not an epistemic claim to register. Recording a row with this ID would pollute CLAIMS.md with a parse-broken identifier (CLAIMS.md §1 expects T452-DESIGN-RACE-VERDICT-shape strings to be SCOPE.LEGACY pairs; this is neither scope nor legacy)."
     }
   ]
 }
