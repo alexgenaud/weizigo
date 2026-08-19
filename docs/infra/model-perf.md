@@ -3308,3 +3308,6 @@ incident). Racing a field against one carefully-written key beat the key.
 dispatch-verify 2026-08-18 T444 deepseek-v4-pro report=unknown verified=fail fail=row
 dispatch-verify 2026-08-18 T443 deepseek-v4-flash report=success verified=pass
 dispatch-verify 2026-08-18 T369 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-18 T453 kimi-k2.7 report=success verified=pass
+dispatch-verify 2026-08-18 T451 glm-5.2 report=success verified=fail fail=nonce
+dispatch-verify 2026-08-18 T452 minimax-m3 report=incomplete verified=fail fail=row

@@ -61,6 +61,18 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
 
 ## Recently ruled (keep short; drop items older than the current milestone)
 
+- **2026-08-19 — the Orchestrator delegates; it does not work.** Operator observation, and it is
+  empirical rather than stylistic: *he has never conflicted with a delegated worker; only
+  Opus/Orcha has.* He does not conflict because he never touches the tree. The seat's output is
+  a correct kanban, briefs, dispatches, absorbed findings and compiled results — **never a
+  diff**. Verifying a worker's row means dispatching an independent check, not re-running it
+  inline. Prohibitions and the failures that earned them are in
+  `docs/infra/roles/ORCHESTRATOR.md` §"What the Orchestrator does NOT do".
+- **2026-08-19 — staging procedure for every agent.** Keep your own list of files created or
+  modified and stage them **by name**; never `git add -A`, `git add .`, or `git commit -a`. The
+  rule already existed at `AGENTS.md:104` and did not bind, so it is now a procedure with the
+  failure recorded, and `T455` builds the mechanism — an unlabelled commit currently bypasses
+  the scope check entirely.
 - **2026-08-18 — No binaries in git, and no worktrees to design for.** The branch-archival
   sketch is **rejected by the operator**: large artifacts do not go into a git branch even if the
   branch is later squashed or deleted. Diligent organization of `/tmp/weizigo` (scratch) and

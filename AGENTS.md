@@ -101,8 +101,18 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   `tools/hooks/claimlint-floor.json` — not "must be green", which is unreachable today.
   Repo config is not tracked by git, so `tools/regression-precommit.sh` (wired into
   `zig build test`) **fails loudly while the gate is uninstalled**; a red suite on a
-  fresh clone means run that command. Commit with `tools/git-commit-mine <paths> -m <msg>`,
-  never `git add -A` — see `docs/infra/fleet-git-isolation.md`.
+  fresh clone means run that command.
+- **Staging procedure — every agent, every commit, no exceptions.** Keep your own list of the
+  files you created or modified, and **stage them by name**: `tools/git-commit-mine <paths> -m
+  <msg>`. **Never `git add -A`, `git add .`, or `git commit -a`.** You are never alone in this
+  checkout: another console's half-finished edit sitting in the working tree is invisible to you
+  and indistinguishable from your own, and a wildcard stage takes it. If you do not know which
+  files are yours, you are not ready to commit — re-read your own brief's `deliverables=`, which
+  is the authoritative list. Recorded failure, 2026-08-18: the **Orchestrator** ran `git add -A`
+  while three consoles were mid-row and committed two of their source fixes under an unrelated
+  message (`d7e4bdb`); the work survived, the authorship did not. The rule predated the failure,
+  which is why the mechanism is being built too — `T455`, since a rule that only prose enforces
+  is enforced only on whoever reads it. See `docs/infra/fleet-git-isolation.md`.
 - `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `reopen`
   / `purge` / `set` / `next` / `status` / `show`. The human dispatches; the
   agent claims; the Orchestrator owns the kanban end-to-end (D-8) and may

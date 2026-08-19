@@ -2728,7 +2728,7 @@
     "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."]
   },
   "T451": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T451-t419-intcast.md",
@@ -2738,12 +2738,12 @@
     "caps": [],
     "added": "2026-08-18T18:20:25Z",
     "claimed": "2026-08-18T19:53:48Z",
-    "done": null,
+    "done": "2026-08-18T20:01:15Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "repair row registered by T369 (suite-truth)",
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "Fixed no_loop_a fuzz intCast crash by deriving best_v from children (test generator only, classifyParent unchanged). 17/17 tests pass per-file; matched-count not vacuous. Fix lands in HEAD via d7e4bdb (pre-applied); manifest ratchet (strike t419_taxonomy, counts 7->6) reported in findings for the Orchestrator. Inbox D075 acked.",
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
@@ -2926,8 +2926,8 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 455,
+    "next_id": 456,
     "directive_next": 77,
-    "assertion_next": 17
+    "assertion_next": 18
   }
 }
