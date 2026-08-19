@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+"""bin/dispatch — headless task dispatch, one line out.
+
+Usage:
+  bin/dispatch <T-id> <model> [--wall=N] [--dry-run]
+               [--test-root=<dir>] [--test-worker=<cmd>]
+
+  <model>   a canonical model label (src/managent/main.zig
+            canonical_models[], T317) or a dispatch tag that canonicalizes
+            to one (glm-5.2:cloud, kimi-k2.7-code, kimi-k2.7:cloud,
+            minimax-m3:cloud, qwen3.8:27b-mlx:cloud; dspro/dsflash for the
+            deepseek pair).  claude-* labels are REFUSED — claude seats run
+            from a claude console with `claude -p`, never through a
+            non-Claude harness (human rule, stated in bin/subagent).
+
+  --wall=N  tools/runner wall-clock fallback in seconds (default 2700 —
+            the mode of recent practice; how to choose: DELEGATOR.md
+            §Choosing a wall).
+
+  --dry-run print the exact nohup command; spawn nothing.
+
+  test-only flags (T476 — the regression uses them; production never does):
+  --test-root=<dir>    resolve bundle and log from <dir> (scratch repo)
+  --test-worker=<cmd>  forwarded to bin/subagent (stub worker for the
+                       end-to-end regression control)
+
+Refuses (exit 1, message on stderr), in order:
+  * a manager at the delegation cap (WEIZIGO_AGENT_DEPTH, shared with
+    bin/subagent) — the chain has to end somewhere
+  * a model that is not canonical — re-dispatching under a made-up label
+    is how the model-performance ledger stops attributing
+  * a task whose row is not `dispatchable` — re-dispatch of an
+    in_progress row is how the T350/T376/T389 duplicates happened; a
+    done/failed/blocked/absent row needs reopen/retire/registration
+  * a task with no single untracked/T<id>-*.md bundle — the worker
+    cannot follow a brief that does not exist, and two bundles is a
+    name collision
+
+On success it DETACHES the worker (new session, stdout+stderr into
+untracked/log/t<id>.log — the nohup convention the Orchestrator practised
+by hand) and prints ONE data line to stdout:
+
+  dispatched T454 → glm-5.2 (ollama) · pid 61234 · untracked/log/t454.log
+
+Diagnostics (watch hints, guard messages) go to stderr.  stdout = data,
+stderr = diagnostics (AGENTS.md).
+
+What happens after: the worker console claims the row itself, runs under
+tools/runner (heartbeats under the task id), and bin/subagent verifies the
+WORK mechanically on return — nonce echo, declared deliverables exist, row
+left dispatchable (see DELEGATOR.md §What dispatch verification proves).
+
+Task: T476 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-19
+"""
+import glob
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
+MAX_DEPTH = 3
+DEFAULT_WALL = 2700
+
+# Canonical label → (provider, bin/subagent model flags).
+# The labels are the T317 canonical set (src/managent/main.zig); the tags
+# mirror bin/subagent's OLLAMA_TAG_TO_CANONICAL.  tools/regression-dispatch.sh
+# control 13 asserts this map stays in sync with canonical_models[].
+MODELS = {
+    "deepseek-v4-pro":   ("deepseek", ["--dspro"]),
+    "deepseek-v4-flash": ("deepseek", ["--dsflash"]),
+    "glm-5.2":           ("ollama", ["--model", "glm-5.2:cloud"]),
+    "minimax-m3":        ("ollama", ["--model", "minimax-m3:cloud"]),
+    "kimi-k2.7":         ("ollama", ["--model", "kimi-k2.7-code:cloud"]),
+    "qwen3.8:27b-mlx":   ("ollama", ["--model", "qwen3.8:27b-mlx"]),
+}
+
+# Input-convenience aliases (same shape managent accepts).
+ALIASES = {
+    "dspro": "deepseek-v4-pro",
+    "dsflash": "deepseek-v4-flash",
+}
+
+
+def canonicalize_model(raw: str) -> str:
+    """Strip :cloud and the kimi -code variant, exactly like managent's
+    canonicalizeModelTag (src/managent/main.zig)."""
+    s = ALIASES.get(raw, raw)
+    if s.endswith(":cloud"):
+        s = s[: -len(":cloud")]
+    if s == "kimi-k2.7-code":
+        return "kimi-k2.7"
+    return s
+
+
+def resolve_model(raw: str):
+    """→ (canonical, err, provider, flags); err set (canon None) on refusal."""
+    canon = canonicalize_model(raw)
+    if canon.startswith("claude-"):
+        return None, (
+            f"dispatch: refused {raw!r} — claude seats run from a claude console "
+            f"with `claude -p '<brief>'` and must never be dispatched by a "
+            f"non-Claude harness (human rule)."), None, None
+    if canon in MODELS:
+        provider, flags = MODELS[canon]
+        return canon, None, provider, flags
+    return None, (
+        f"dispatch: refused model {raw!r} — not a canonical model label "
+        f"(T317, src/managent/main.zig).\n"
+        f"  dispatchable here: {', '.join(sorted(MODELS))}\n"
+        f"  canonical but claude-seat: claude-opus-5, claude-sonnet-5, "
+        f"claude-fable-5, claude-haiku-4-5-20251001\n"
+        f"  (kimi-k2.7-code and any :cloud tag are accepted and canonicalized)"), None, None
+
+
+def row_state(root: str, task_id: str):
+    """→ (status, identifier, store_path); (None, None, store) when absent.
+    The managent binary always comes from the real repo (ROOT); --test-root
+    only relocates bundle/log/store-default, never the tooling."""
+    store = os.environ.get("MANAGENT_STORE") or os.path.join(
+        root, "docs", "infra", "managent", "tasks.json")
+    env = dict(os.environ)
+    if os.environ.get("MANAGENT_STORE") is None:
+        env["MANAGENT_STORE"] = store
+    try:
+        out = subprocess.run(
+            [os.path.join(ROOT, "bin", "managent"), "status", "--json"],
+            capture_output=True, text=True, env=env, timeout=20).stdout
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        sys.exit(f"dispatch: cannot read kanban status --json: {e}")
+    try:
+        rows = json.loads(out)
+    except json.JSONDecodeError:
+        sys.exit(f"dispatch: kanban status --json was not JSON (store {store})")
+    for r in rows:
+        if r.get("id") == task_id:
+            return r.get("status"), r.get("identifier"), store
+    return None, None, store
+
+
+def main(argv):
+    task_id = None
+    model_raw = None
+    wall = DEFAULT_WALL
+    dry_run = False
+    test_root = None
+    test_worker = None
+
+    for a in argv:
+        if a == "--dry-run":
+            dry_run = True
+        elif a.startswith("--wall="):
+            try:
+                wall = int(a.split("=", 1)[1])
+                if wall <= 0:
+                    raise ValueError
+            except ValueError:
+                sys.exit(f"dispatch: --wall must be a positive integer, got {a!r}")
+        elif a.startswith("--test-root="):
+            test_root = a.split("=", 1)[1]
+        elif a.startswith("--test-worker="):
+            test_worker = a.split("=", 1)[1]
+        elif a.startswith("--"):
+            sys.exit(__doc__)
+        elif task_id is None:
+            task_id = a
+        elif model_raw is None:
+            model_raw = a
+        else:
+            sys.exit(__doc__)
+
+    if not task_id or model_raw is None:
+        sys.exit(__doc__)
+    if not re.fullmatch(r"T\d+", task_id):
+        sys.exit(f"dispatch: '{task_id}' is not a T<id> task id")
+
+    # ── delegation cap, shared with bin/subagent ────────────────────────
+    try:
+        depth = int(os.environ.get(DEPTH_VAR, "1"))
+    except ValueError:
+        depth = MAX_DEPTH
+    if depth >= MAX_DEPTH:
+        sys.exit(f"dispatch: REFUSED — you are at the delegation cap (depth {depth} "
+                 f"of {MAX_DEPTH}). bin/subagent would refuse the same; a manager "
+                 f"may dispatch a manager only while the chain stays under the cap.")
+
+    # ── model resolution (refuses non-canonical and claude-*) ────────────
+    canon, err, provider, flags = resolve_model(model_raw)
+    if canon is None:
+        sys.exit(err)
+
+    root = os.path.abspath(test_root) if test_root else ROOT
+
+    # ── row state (refuses anything not dispatchable) ────────────────────
+    status, identifier, store = row_state(root, task_id)
+    if status is None:
+        sys.exit(f"dispatch: task {task_id} not found in store {store}\n"
+                 f"  register it first (bin/managent add {task_id} --auto ...)")
+    if status != "dispatchable":
+        if status == "in_progress" and identifier:
+            sys.exit(f"dispatch: REFUSED — {task_id} is already in_progress "
+                     f"(claimed by {identifier}).\n"
+                     f"  Re-dispatching a live row is how the T350/T376/T389 "
+                     f"duplicates happened.\n"
+                     f"  If the console died, `bin/managent reopen {task_id}` "
+                     f"first, then dispatch.")
+        sys.exit(f"dispatch: REFUSED — {task_id} is {status}, not dispatchable.\n"
+                 f"  Reopen/retire/register it first, then dispatch.")
+
+    # ── bundle (exactly one untracked/T<id>-*.md) ────────────────────────
+    hits = glob.glob(os.path.join(root, "untracked", f"{task_id}-*.md"))
+    if len(hits) != 1:
+        sys.exit(f"dispatch: expected exactly one bundle for {task_id} under "
+                 f"{root}/untracked/, found {len(hits)}:\n"
+                 + "\n".join(f"  {h}" for h in hits) +
+                 "\n  bin/subagent resolves the brief the same way — fix the "
+                 "bundle first.")
+
+    # ── construct the subagent command ───────────────────────────────────
+    subagent = os.path.join(ROOT, "bin", "subagent")
+    cmd = [sys.executable, subagent, "--provider", provider, *flags,
+           task_id, f"--wall={wall}"]
+    if test_root:
+        cmd.append(f"--test-root={test_root}")
+    if test_worker:
+        cmd.append(f"--test-worker={test_worker}")
+
+    log_rel = os.path.join("untracked", "log", f"{task_id.lower()}.log")
+    log_path = os.path.join(root, log_rel)
+
+    shell_line = ("nohup " + shlex.join([os.path.relpath(c, root) if os.path.abspath(c)
+                                         .startswith(root) else c for c in cmd])
+                  + f" > {log_rel} 2>&1 &")
+
+    if dry_run:
+        print(f"dry-run {task_id} → {canon} ({provider})")
+        print(f"  subagent: {shlex.join(cmd)}")
+        print(f"  log: {log_rel}")
+        print(f"  would run: {shell_line}")
+        return 0
+
+    # ── detach (the nohup convention, done with explicit fd redirection) ─
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    env = dict(os.environ)
+    env[DEPTH_VAR] = str(depth + 1)
+    with open(log_path, "ab") as logf, open(os.devnull, "rb") as devnull:
+        proc = subprocess.Popen(cmd, cwd=root, env=env,
+                                stdin=devnull, stdout=logf, stderr=subprocess.STDOUT,
+                                start_new_session=True)
+    pid = proc.pid
+
+    # stdout = data (the one line the orchestrator needs to see)
+    print(f"dispatched {task_id} → {canon} ({provider}) · pid {pid} · {log_rel}")
+    # stderr = diagnostics
+    print(f"watch: tail -f {log_rel} · bin/managent status | grep {task_id} "
+          f"· bin/managent liveness {task_id}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -268,6 +268,21 @@ pub fn build(b: *std.Build) void {
     dispatch_verify_regression.cwd = b.path(".");
     test_step.dependOn(&dispatch_verify_regression.step);
 
+    // ── T476: bin/dispatch regression controls ──────────────────────
+    // T476's gap: the headless dispatch procedure (nohup detach, log
+    // path, wall choice, provider↔model pairing, claude's refusal to go
+    // through bin/subagent) lived only in the Orchestrator's head. These
+    // controls pin the wrapper's contract: dry-run construction per model
+    // family, refusal of in_progress/non-canonical/claude/missing-bundle/
+    // unknown rows (nothing spawned on refusal), the T317 model-map sync
+    // with src/managent/main.zig, and one real end-to-end dispatch
+    // through a stub worker (detach → log → in_progress → done →
+    // verification PASSED). Scratch store + scratch repo only — never the
+    // live kanban, live repo, or docs/infra/model-perf.md.
+    const dispatch_regression = b.addSystemCommand(&.{ "sh", "tools/regression-dispatch.sh" });
+    dispatch_regression.cwd = b.path(".");
+    test_step.dependOn(&dispatch_regression.step);
+
     // ── T352: inbox-loop regression controls ──────────────────────
     // Five controls: empty inbox is a no-op, a `tell` → read → ack →
     // record timeline runs with no human action between, an unread

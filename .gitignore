@@ -31,6 +31,7 @@ bin/*
 !bin/argus
 !bin/subagent
 !bin/ollama-subagent
+!bin/dispatch
 
 # Durable evidence store (roadmap-2026-07-28 §4 P1): a claim may be marked
 # PROVEN only if its probe source and output are committed here. Must stay
