@@ -86,6 +86,9 @@ const TaskState = struct {
     // T317: append-only correction record.  managent done is terminal;
     // amend appends corrections without erasing the original verdict.
     amendments: [][]const u8 = &.{},
+    // T464: one-line epitaph left when a row is retired from the live kanban
+    // (archive, never delete — the full record moves, this one line stays).
+    epitaph: ?[]const u8 = null,
 };
 
 const valid_verdicts = [_][]const u8{ "pass", "pass-with-findings", "fail-found", "blocked", "abandoned" };
@@ -203,7 +206,7 @@ const mutating_verbs = [_][]const u8{
     "add",     "claim",  "done",    "reopen", "purge", "set",
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
-    "standing", "assert",
+    "standing", "assert", "retire",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -403,6 +406,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdVerdict(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "archive")) {
         try cmdArchive(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "retire")) {
+        try cmdRetire(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "amend")) {
         try cmdAmend(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "sync")) {
@@ -963,6 +968,9 @@ fn parseStateJson(content: []const u8) !StateMap {
                 ts.amendments = try list.toOwnedSlice(alloc);
             }
         }
+        if (obj.object.get("epitaph")) |ep| {
+            if (ep == .string) ts.epitaph = try alloc.dupe(u8, ep.string);
+        }
 
         try state.put(alloc, task_id, ts);
     }
@@ -1109,6 +1117,14 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try writeJsonString(buf, am);
         }
         try buf.appendSlice(alloc, "]");
+
+        // T464: retirement epitaph (null while the row is live)
+        if (ts.epitaph) |ep| {
+            try buf.appendSlice(alloc, ",\n    \"epitaph\": ");
+            try writeJsonString(buf, ep);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"epitaph\": null");
+        }
 
         try buf.appendSlice(alloc, "\n  }");
     }
@@ -3021,6 +3037,86 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     w.diag("  Both stores must be committed together (the archive store is new).\n", .{});
 }
 
+// ── T464: retire a row from the live kanban (archive, never delete) ─────────
+// `purge` and `archive` accept only done/failed rows, so a dispatchable row
+// that should leave (T462's close-with-evidence triage) had no verb.  retire
+// accepts ANY status and moves the full record to archive.json with a one-line
+// epitaph (--note) that stays on the archived record.
+fn cmdRetire(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 3) {
+        w.diag("usage: managent retire <id> --note <epitaph>\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    const note_text = getFlagValue(args, "--note");
+    if (note_text == null or note_text.?.len == 0) {
+        w.diag("error: retire requires --note <epitaph> — a one-line epitaph stays on the archived record\n", .{});
+        std.process.exit(1);
+    }
+
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    const ts = state.get(id) orelse {
+        w.diag("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    // Archive path lives beside the live store (same as cmdArchive).
+    const archive_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+    defer alloc.free(archive_path);
+
+    var archive_state = try readState(io, archive_path);
+    defer freeState(&archive_state);
+
+    // The full record moves; the one-line epitaph stays on it.
+    var moved = ts;
+    moved.epitaph = try alloc.dupe(u8, note_text.?);
+    try archive_state.put(alloc, try alloc.dupe(u8, id), moved);
+    _ = state.remove(id);
+
+    // Clean the retired id from remaining tasks' needs edges (same as purge/archive).
+    var cleaned = std.ArrayList([]const u8).empty;
+    defer cleaned.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const tp = entry.value_ptr;
+            if (tp.needs.len == 0) continue;
+            var kept = std.ArrayList([]const u8).empty;
+            var removed_any = false;
+            for (tp.needs) |n| {
+                if (std.mem.eql(u8, n, id)) {
+                    removed_any = true;
+                } else {
+                    try kept.append(alloc, n);
+                }
+            }
+            if (removed_any) {
+                tp.needs = try kept.toOwnedSlice(alloc);
+                try cleaned.append(alloc, entry.key_ptr.*);
+            } else {
+                kept.deinit(alloc);
+            }
+        }
+    }
+
+    // Write both stores atomically.
+    try writeStateLocked(io, state_path, &state);
+    try writeStateLocked(io, archive_path, &archive_state);
+
+    w.diag("\n  retired {s}  [set: {c}]  (archived with epitaph)\n", .{ id, ts.set });
+    w.diag("  epitaph: {s}\n", .{note_text.?});
+    w.diag("  archive store: docs/infra/managent/archive.json\n", .{});
+    if (cleaned.items.len > 0) {
+        w.diag("  cleaned needs of:", .{});
+        for (cleaned.items) |c| w.diag(" {s}", .{c});
+        w.diag("\n", .{});
+    }
+}
+
 fn cmdSet(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = repo_root;
     if (args.len < 4 or args[3].len == 0) {
@@ -3364,13 +3460,9 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     var it_sort = state.iterator();
     while (it_sort.next()) |entry| {
         const tid = entry.key_ptr.*;
-        // T446: a `closed` assertion renders the row under done regardless of
-        // what tasks.json stores (dispatchable or in_progress → done).
-        if (closedAssertion(&ledger, tid) != null) {
-            try done.append(alloc, tid);
-            continue;
-        }
-        switch (entry.value_ptr.*.status) {
+        // T464: ONE status resolver — the assertion ledger's latest assertion
+        // is authoritative over tasks.json in BOTH directions.
+        switch (resolveStatus(&state, entry.value_ptr.*, &ledger, tid).status) {
             .dispatchable => try dispatchable.append(alloc, tid),
             .in_progress => try in_progress.append(alloc, tid),
             .blocked => try blocked.append(alloc, tid),
@@ -3429,7 +3521,7 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
     for (ids) |tid| {
         const ts = state.get(tid).?;
         const rel = bundleRel(ts.bundle, repo_root);
-        const asserted = closedAssertion(ledger, tid);
+        const asserted = resolveStatus(state, ts, ledger, tid).asserted;
         w.data("    {s} set {c}", .{ tid, ts.set });
         if (ts.needs.len > 0) {
             w.data(", needs", .{});
@@ -3472,12 +3564,13 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
         first = false;
         const ts = entry.value_ptr.*;
         const rel = bundleRel(ts.bundle, repo_root);
-        // T446: a `closed` assertion supersedes tasks.json's status.
-        const asserted = closedAssertion(ledger, entry.key_ptr.*);
+        // T464: ONE status resolver — ledger authoritative in both directions.
+        const resolved = resolveStatus(state, ts, ledger, entry.key_ptr.*);
+        const asserted = resolved.asserted;
         try buf.appendSlice(alloc, "\n  {\"id\":");
         try writeJsonString(&buf, entry.key_ptr.*);
         try buf.appendSlice(alloc, ",\"status\":");
-        try writeJsonString(&buf, if (asserted != null) "done" else statusToString(ts.status));
+        try writeJsonString(&buf, statusToString(resolved.status));
         try buf.appendSlice(alloc, ",\"set\":");
         try writeJsonString(&buf, &.{ts.set});
         try buf.appendSlice(alloc, ",\"bundle\":");
@@ -4061,8 +4154,9 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     var it = state.iterator();
     while (it.next()) |entry| {
         const ts = entry.value_ptr.*;
-        if (deriveStatus(&state, ts) != .dispatchable) continue;
-        if (closedAssertion(&ledger, entry.key_ptr.*) != null) continue;
+        // T464: ONE status resolver — a closed assertion is not dispatchable,
+        // and a dispatchable assertion re-queues a stored-in_progress row.
+        if (resolveStatus(&state, ts, &ledger, entry.key_ptr.*).status != .dispatchable) continue;
         if (phaseGate(state, ts.set)) continue;
         if (holdsConflict(state, ts.holds, entry.key_ptr.*) != null) continue;
         candidate_id = entry.key_ptr.*;
@@ -4297,6 +4391,7 @@ fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !v
                 if (ts.agent) |a| w.data("  agent: {s}", .{a});
                 w.data("\n      bundle: {s}\n", .{rel});
                 if (ts.done) |d| w.data("      done: {s}\n", .{d});
+                if (ts.epitaph) |ep| w.data("      epitaph: {s}\n", .{ep});
             }
         }
     }
@@ -4329,6 +4424,7 @@ fn printHelp(w: Writers) void {
         \\  managent agent <id> <name> set the agent model for a task
         \\  managent amend <id>        append a correction record (verdict + note) to a done/failed task
         \\  managent amend <id> --post-close <text>  record a follow-up against a done row (verdict untouched)
+        \\  managent retire <id> --note <epitaph>  archive a row (any status) with a one-line epitaph (archive, never delete)
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent assert <row> <status> [--note]  assert a row's status to the assertion ledger (T441)
@@ -4342,7 +4438,7 @@ fn printHelp(w: Writers) void {
         \\Options:
         \\  --agent <name>           label who claimed — sets the model in the identifier (with claim / done)
         \\  --to <agent>             agent the task is dispatched to (with dispatch)
-        \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add)
+        \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add / retire)
         \\  --auto                   auto-generate opaque T<N> task ID (with add)
         \\  --bundle <path>          override bundle path (with add)
         \\  --set <A–Z>              override parallel set (with add / suggest)
@@ -4406,6 +4502,7 @@ fn freeState(state: *StateMap) void {
         if (ts.skip_acceptance_reason) |sr| alloc.free(sr);
         for (ts.amendments) |am| alloc.free(am);
         alloc.free(ts.amendments);
+        if (ts.epitaph) |ep| alloc.free(ep);
     }
     state.deinit(alloc);
 }
@@ -4631,20 +4728,18 @@ fn appendAssertion(w: Writers, io: std.Io, repo_root: []const u8, a: Assertion) 
     try file.writeStreamingAll(io, out.items);
 }
 
-// ── ledger/board seam (T446) ────────────────────────────────────────────────
+// ── ledger/board seam (T446 → T464) ────────────────────────────────────────
 // `status` / `next` render the kanban from tasks.json only; the assertion
-// ledger is the audit trail that can disagree with it.  A0005–A0012 assert
-// `closed` on eight rows that tasks.json still renders dispatchable (T430/
-// T432/T433/T434/T435/T436/T439) or in_progress (T440) — a dispatcher picking
-// "next dispatchable" can re-dispatch finished work, and the board shows a
-// seat that no longer exists.  The ledger's latest assertion on a row
-// supersedes tasks.json's status for rendering: a `closed` assertion renders
-// the row under done with an `(asserted)` marker and takes it out of `next`.
-// Only `closed` supersedes here.  The other ledger statuses (dispatchable,
-// in_progress) are assertions that may disagree with tasks.json in ways the
-// doctor reports (assertion-ledger spec §9.3) — this seam does not pick a
-// winner for those; it closes the one disagreement class that re-dispatches
-// finished work.
+// ledger is the audit trail that can disagree with it.  T446 closed one
+// disagreement class (a `closed` assertion renders the row done and takes it
+// out of `next`).  T464 generalises the seam: the latest assertion on a row
+// is authoritative over tasks.json in BOTH directions, for every status the
+// ledger can assert — `closed` (→ done), `dispatchable`, `in_progress`,
+// `done`, `absorbed` and `recommended-close` (both → done).  A `dispatchable`
+// assertion re-queues a stored-in_progress row (A0017/T452); an `in_progress`
+// assertion re-opens a stored-done row (A0016/T369).  Every view — status,
+// the board rendering, next, liveness, audit — resolves a task's status
+// through resolveStatus() and nowhere else.
 
 const LedgerStatus = struct {
     status_value: []const u8,
@@ -4731,14 +4826,40 @@ fn freeLedgerStatuses(map: *LedgerStatuses) void {
     map.deinit(alloc);
 }
 
-/// The assertion id when the row's latest ledger assertion is `closed`, else
-/// null.  `closed` is the console-lifecycle terminal state (spec §2.3); a
-/// row that has been closed is finished, so it renders under done and is
-/// never handed out by `next`.
-fn closedAssertion(map: *const LedgerStatuses, tid: []const u8) ?[]const u8 {
-    const entry = map.get(tid) orelse return null;
-    if (std.mem.eql(u8, entry.status_value, "closed")) return entry.assertion_id;
+/// The single, unmissable status resolver (T464).  Every view — status, the
+/// board rendering, next, liveness, audit — calls this to learn a task's
+/// effective status.  The assertion ledger's latest assertion on a row is
+/// authoritative over tasks.json's stored status in both directions;
+/// otherwise the stored status is needs-derived (dispatchable ↔ blocked) via
+/// deriveStatus.  `asserted` carries the winning assertion id whenever the
+/// ledger spoke; it is null when no ledger file exists (null arm) or no
+/// assertion maps to a row status.
+const ResolvedStatus = struct {
+    status: TaskStatus,
+    asserted: ?[]const u8,
+};
+
+/// Map an assertion-ledger status string to a row status.  `closed`,
+/// `absorbed` and `recommended-close` are console-lifecycle states that occur
+/// after the row is done, so they all render as done.  Unknown strings return
+/// null (no override) rather than guessing.
+fn ledgerStatusToTask(s: []const u8) ?TaskStatus {
+    if (std.mem.eql(u8, s, "dispatchable")) return .dispatchable;
+    if (std.mem.eql(u8, s, "in_progress")) return .in_progress;
+    if (std.mem.eql(u8, s, "done")) return .done;
+    if (std.mem.eql(u8, s, "closed")) return .done;
+    if (std.mem.eql(u8, s, "absorbed")) return .done;
+    if (std.mem.eql(u8, s, "recommended-close")) return .done;
     return null;
+}
+
+fn resolveStatus(state: *const StateMap, ts: TaskState, ledger: *const LedgerStatuses, tid: []const u8) ResolvedStatus {
+    if (ledger.get(tid)) |ls| {
+        if (ledgerStatusToTask(ls.status_value)) |effective| {
+            return .{ .status = effective, .asserted = ls.assertion_id };
+        }
+    }
+    return .{ .status = deriveStatus(state, ts), .asserted = null };
 }
 
 // ── heartbeat reading (WORKER-CHANNEL) ──────────────────────────────────────
@@ -5132,6 +5253,11 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     var state = try readState(io, state_path);
     defer freeState(&state);
 
+    // T464: audit classifies every row through the same resolver as the board
+    // — a closed assertion is done, a dispatchable assertion is dispatchable.
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
+
     // Collect git ls-files for checking deliverables
     var git_files = std.ArrayList([]const u8).empty;
     defer {
@@ -5338,11 +5464,12 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     while (it.next()) |entry| {
         const tid = entry.key_ptr.*;
         const ts = entry.value_ptr.*;
+        const eff = resolveStatus(&state, ts, &ledger, tid).status;
 
         // ── cross-status checks (apply regardless of status) ──
 
         // A. in_progress or done but needs not met → claimed over an unmet gate
-        if (ts.status == .in_progress or ts.status == .done) {
+        if (eff == .in_progress or eff == .done) {
             if (!needsMet(&state, ts)) {
                 var unmet_list = std.ArrayList(u8).empty;
                 defer unmet_list.deinit(alloc);
@@ -5356,7 +5483,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                         try unmet_list.appendSlice(alloc, ns);
                     }
                 }
-                const msg = try std.fmt.allocPrint(alloc, "{s} but needs not met: {s} — gate it (claimed over unmet dependency)", .{ statusToString(ts.status), unmet_list.items });
+                const msg = try std.fmt.allocPrint(alloc, "{s} but needs not met: {s} — gate it (claimed over unmet dependency)", .{ statusToString(eff), unmet_list.items });
                 try findings.append(alloc, .{ .level = "FIX", .id = tid, .msg = msg });
             }
             // Also check retroactively: claimed before dependency completed
@@ -5366,7 +5493,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                     if (nts) |need_ts| {
                         if (need_ts.done != null and ts.claimed != null) {
                             if (std.mem.lessThan(u8, ts.claimed.?, need_ts.done.?)) {
-                                const msg = try std.fmt.allocPrint(alloc, "{s}: claimed ({s}) before dependency {s} was done ({s}) — gated claim", .{ statusToString(ts.status), ts.claimed.?, n, need_ts.done.? });
+                                const msg = try std.fmt.allocPrint(alloc, "{s}: claimed ({s}) before dependency {s} was done ({s}) — gated claim", .{ statusToString(eff), ts.claimed.?, n, need_ts.done.? });
                                 try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
                                 break;
                             }
@@ -5377,7 +5504,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
 
         // B. done task with claimed == null → completed without ever being claimed
-        if (ts.status == .done and ts.claimed == null) {
+        if (eff == .done and ts.claimed == null) {
             const msg = try std.fmt.allocPrint(alloc, "done but never claimed — audit trail broken", .{});
             try findings.append(alloc, .{ .level = "FIX", .id = tid, .msg = msg });
         }
@@ -5394,7 +5521,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
 
         // C. in_progress task with note containing GATED → was blocked by hand
-        if (ts.status == .in_progress and ts.note != null) {
+        if (eff == .in_progress and ts.note != null) {
             if (std.mem.indexOf(u8, ts.note.?, "GATED") != null) {
                 const msg = try std.fmt.allocPrint(alloc, "in_progress but note says GATED — verify premise is still valid", .{});
                 try findings.append(alloc, .{ .level = "WARN", .id = tid, .msg = msg });
@@ -5402,7 +5529,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
 
         // WORKER-CHANNEL: heartbeat-based staleness check for in_progress
-        if (ts.status == .in_progress) {
+        if (eff == .in_progress) {
             var hbs = readHeartbeats(w, io, repo_root) catch null;
             if (hbs) |*heartbeats| {
                 defer {
@@ -5429,7 +5556,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             }
         }
 
-        switch (ts.status) {
+        switch (eff) {
             .done => {
                 // 1. done task with agent == null → attribute it
                 if (ts.agent == null) {
@@ -5564,9 +5691,9 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         // blocked/abandoned done rows never carried deliverables (the done
         // gate exempts them by design) — checking their never-created paths
         // would be noise, not hazard (T361, T379, T349).
-        const t390_exempt_verdict = ts.status == .done and ts.verdict != null and
+        const t390_exempt_verdict = eff == .done and ts.verdict != null and
             (std.mem.eql(u8, ts.verdict.?, "blocked") or std.mem.eql(u8, ts.verdict.?, "abandoned"));
-        if (!t390_exempt_verdict and (ts.status == .done or ts.status == .dispatchable)) {
+        if (!t390_exempt_verdict and (eff == .done or eff == .dispatchable)) {
             const bundle_abs3 = if (std.fs.path.isAbsolute(ts.bundle))
                 try alloc.dupe(u8, ts.bundle)
             else
@@ -5588,7 +5715,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                     std.mem.indexOf(u8, d, "heartbeat.jsonl") != null) continue;
                 const v = deliverableVerdict(io, repo_root, d);
                 if (v.ok) continue;
-                if (ts.status == .dispatchable) {
+                if (eff == .dispatchable) {
                     const d_abs = if (std.fs.path.isAbsolute(d))
                         (alloc.dupe(u8, d) catch continue)
                     else
@@ -5597,7 +5724,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                     const exists = std.Io.Dir.cwd().statFile(io, d_abs, .{}) catch null;
                     if (exists == null) continue; // not created yet — normal for an unstarted row
                 }
-                const msg = try std.fmt.allocPrint(alloc, "{s} but deliverable '{s}' is dirty — {s} (unclaimed work on this row)", .{ statusToString(ts.status), d, v.reason });
+                const msg = try std.fmt.allocPrint(alloc, "{s} but deliverable '{s}' is dirty — {s} (unclaimed work on this row)", .{ statusToString(eff), d, v.reason });
                 try findings.append(alloc, .{ .level = "FIX", .id = tid, .msg = msg });
             }
         }
@@ -6630,6 +6757,11 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     var state = try readState(io, state_path);
     defer freeState(&state);
 
+    // T464: liveness consults the assertion ledger through the same resolver
+    // as every other view — a closed-asserted row is not a live claim.
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
+
     // T370 (2026-08-06): staleness threshold in minutes.  Default 5;
     // override with --stale-min <float> (or LIVENESS_STALE_MIN).  The
     // threshold is what separates "beating" from "beats stopped" — a
@@ -6674,7 +6806,9 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     while (it.next()) |entry| {
         const tid = entry.key_ptr.*;
         const ts = entry.value_ptr.*;
-        if (ts.status != .in_progress) continue;
+        // T464: resolve through the one resolver — an `in_progress` assertion
+        // shows as a live claim; a `closed` assertion drops the row.
+        if (resolveStatus(&state, ts, &ledger, tid).status != .in_progress) continue;
 
         found += 1;
 

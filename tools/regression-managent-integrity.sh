@@ -400,10 +400,165 @@ else
     FAIL=1
 fi
 
+# ══════════════════════════════════════════════════════════════════════════
+# ── T464: ONE status resolver + retire verb ────────────────────────────────
+# Every view (status/board, next, liveness, audit) resolves a task's status
+# through ONE function; the assertion ledger is authoritative in BOTH
+# directions; retire archives a dispatchable row with an epitaph (archive,
+# never delete). All arms run against the scratch store — never the live one.
+# ══════════════════════════════════════════════════════════════════════════
+
+mkdir -p "$TMPDIR/docs/infra/assertion-ledger"
+LEDGER="$TMPDIR/docs/infra/assertion-ledger/assertions.jsonl"
+
+# --- T464 seed helpers -----------------------------------------------------
+t464_disp() { # $1=id
+    printf '"%s":{"status":"dispatchable","agent":null,"model":null,"bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":null,"done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":0}' "$1" "$1"
+}
+t464_inprog() { # $1=id  $2=agent
+    printf '"%s":{"status":"in_progress","agent":"%s","model":"%s","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$2" "$2" "$1"
+}
+t464_seed() { # $1 = comma-joined task records
+    printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$TMPDIR/docs/infra/managent/tasks.json"
+}
+t464_assert() { # $1=assertion-id $2=row $3=status
+    printf '{"id":"%s","ts":"2026-08-18T17:10:20Z","actor":"test","verb":"asserted","object":"%s","basis":"performed","meta":{"status":"%s","note":"seeded regression"}}\n' "$1" "$2" "$3" >> "$LEDGER"
+}
+
+# ── Check 17: T464 — closed assertion drops a row from next, in-progress, liveness ──
+echo "        17. T464: closed assertion drops a row from next, in-progress list, liveness"
+
+: > "$LEDGER"
+t464_seed "$(t464_disp T464A),$(t464_inprog T464B claude-opus-5)"
+t464_assert A0005 T464A closed
+t464_assert A0012 T464B closed
+
+NEXT_OUT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
+if ! echo "$NEXT_OUT" | grep -q 'claimed'; then
+    echo "           PASS: next refused to hand out closed-asserted T464A"
+else
+    echo "           FAIL: next handed out a closed-asserted row: $NEXT_OUT"
+    FAIL=1
+fi
+
+STATUS_JSON=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
+python3 - "$STATUS_JSON" <<'PYEOF'
+import sys, json
+data = json.loads(sys.argv[1])
+by_id = {d["id"]: d for d in data}
+fails = []
+t464a = by_id.get("T464A")
+t464b = by_id.get("T464B")
+if t464a is None or t464a.get("status") != "done" or t464a.get("asserted") != "A0005":
+    fails.append("T464A should be done+asserted=A0005, got %r" % t464a)
+if t464b is None or t464b.get("status") != "done" or t464b.get("asserted") != "A0012":
+    fails.append("T464B should be done+asserted=A0012, got %r" % t464b)
+if fails:
+    for f in fails:
+        print("           FAIL: " + f)
+    sys.exit(1)
+print("           PASS: closed-asserted rows render done with (asserted) markers")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+LIVENESS_OUT=$(cd "$TMPDIR" && "$MG" liveness 2>/dev/null)
+if echo "$LIVENESS_OUT" | grep -q 'T464B'; then
+    echo "           FAIL: closed-asserted T464B still listed by liveness"
+    FAIL=1
+else
+    echo "           PASS: closed-asserted T464B absent from liveness"
+fi
+
+# ── Check 18: T464 — dispatchable assertion re-queues a stored in_progress row ──
+echo "        18. T464: dispatchable assertion re-queues a stored in_progress row"
+
+: > "$LEDGER"
+t464_seed "$(t464_inprog T464D minimax-m3)"
+t464_assert A0017 T464D dispatchable
+
+STATUS_JSON=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
+python3 - "$STATUS_JSON" <<'PYEOF'
+import sys, json
+data = json.loads(sys.argv[1])
+by_id = {d["id"]: d for d in data}
+t = by_id.get("T464D")
+if t is None or t.get("status") != "dispatchable" or t.get("asserted") != "A0017":
+    print("           FAIL: T464D should be dispatchable+asserted=A0017, got %r" % t)
+    sys.exit(1)
+print("           PASS: T464D renders dispatchable with (asserted: A0017)")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+NEXT_OUT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
+if echo "$NEXT_OUT" | grep -q 'claimed T464D'; then
+    echo "           PASS: next hands out dispatchable-asserted T464D"
+else
+    echo "           FAIL: next did not hand out T464D: $NEXT_OUT"
+    FAIL=1
+fi
+
+# ── Check 19: T464 — retire moves a dispatchable row to archive with an epitaph ──
+echo "        19. T464: retire moves a dispatchable row to archive with an epitaph"
+
+: > "$LEDGER"
+t464_seed "$(t464_disp T464E)"
+
+RETIRE_OUT=$(cd "$TMPDIR" && "$MG" retire T464E --note "folded into T464; no deliverables ever produced" 2>&1)
+if echo "$RETIRE_OUT" | grep -q 'retired T464E'; then
+    echo "           PASS: retire accepted a dispatchable row"
+else
+    echo "           FAIL: retire did not move T464E: $RETIRE_OUT"
+    FAIL=1
+fi
+
+LIVE_JSON=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
+python3 - "$LIVE_JSON" <<'PYEOF'
+import sys, json
+data = json.loads(sys.argv[1])
+if any(d["id"] == "T464E" for d in data):
+    print("           FAIL: T464E still in the live store after retire")
+    sys.exit(1)
+print("           PASS: T464E absent from the live store")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+python3 - "$TMPDIR/docs/infra/managent/archive.json" <<'PYEOF'
+import sys, json
+d = json.load(open(sys.argv[1]))
+if d.get("T464E") is None or d["T464E"].get("epitaph") != "folded into T464; no deliverables ever produced":
+    print("           FAIL: epitaph missing or wrong in archive.json: %r" % d.get("T464E"))
+    sys.exit(1)
+print("           PASS: epitaph left on the archived record")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+# ── Check 20: T464 — null arm: no ledger file → views behave as before ──────
+echo "        20. T464: null arm (no ledger file) leaves every view unchanged"
+
+rm -f "$LEDGER"
+t464_seed "$(t464_disp T464F)"
+
+NULL_STATUS=$(cd "$TMPDIR" && "$MG" status 2>/dev/null)
+if echo "$NULL_STATUS" | grep -q 'T464F' && ! echo "$NULL_STATUS" | grep -q 'asserted'; then
+    echo "           PASS: T464F renders dispatchable with no asserted marker"
+else
+    echo "           FAIL: null-arm status misrendered:"
+    echo "$NULL_STATUS"
+    FAIL=1
+fi
+
+NULL_NEXT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
+if echo "$NULL_NEXT" | grep -q 'claimed T464F'; then
+    echo "           PASS: next hands out T464F with no ledger (unchanged)"
+else
+    echo "           FAIL: null-arm next did not claim T464F: $NULL_NEXT"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
-    echo "  T204/T209/T213/T217/T295: ALL CHECKS PASS"
+    echo "  T204/T209/T213/T217/T295/T464: ALL CHECKS PASS"
 else
-    echo "  T204/T209/T213/T217/T295: SOME CHECKS FAILED"
+    echo "  T204/T209/T213/T217/T295/T464: SOME CHECKS FAILED"
 fi
 exit "$FAIL"
