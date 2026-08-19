@@ -1,0 +1,44 @@
+{
+  "task_id": "T468",
+  "date": "2026-08-19",
+  "model": "minimax-m3",
+  "claims": [
+    {
+      "id": "OBSERVATION.LANDMARK-ASSIGNMENT-L1-L4-DOMINATE",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "Of the five do-now tasks measured 2026-08-19 (T378/T455/T448/T454/T442), three serve L1 (T455, T448, T454), two serve L4 (T378, T442), and zero serve L2. The brief's pre-measured finding survives: the do-now queue advances L1 and L4 only, with no L2 representation; T467 (in progress) is a ruling on L2, not evidence production. Confirms the operator's worry that infrastructure is displacing the mission, while honestly noting the sequencing rationale (instruments before claims).",
+      "evidence_path": "docs/status/landmark-assignment-2026-08-19.md"
+    },
+    {
+      "id": "OBSERVATION.LANDMARK-L6-ZERO-TASKS",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "L6 (small Go solved, certifiably) is the convergence point of L2+L4+L5; no individual task can advance L6 on its own. The kanban has zero rows whose primary chain is L6. This is by design, not a gap — but it is the most surprising reading of the distribution and is worth surfacing.",
+      "evidence_path": "docs/status/landmark-assignment-2026-08-19.md"
+    },
+    {
+      "id": "OBSERVATION.PROPOSED-LANDMARK-L8-LANGUAGE-HONESTY",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "T458 (disambiguate 'row') is genuinely necessary work and has no landmark on the map. Propose L8 (the language the project speaks is unambiguous): a human can see at a glance whether 'row' means a kanban task or a register claim, because every agent reads the disambiguated file first.",
+      "evidence_path": "docs/status/landmark-assignment-2026-08-19.md"
+    },
+    {
+      "id": "OBSERVATION.PROPOSED-LANDMARK-L9-FLEET-RACE",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "T328 (bake-off harness) is genuinely necessary work and has no landmark on the map. Propose L9 (the fleet can race its own workers on demand): a human can run `tools/bakeoff.sh <prompt>` and see the per-model answer, ranked. Races themselves are evidence for L1/L2/L4, but the *ability to race* is its own capability.",
+      "evidence_path": "docs/status/landmark-assignment-2026-08-19.md"
+    },
+    {
+      "id": "OBSERVATION.QUESTIONED-T349",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "T349 is a malformed registration (shell-quoting accident), superseded by T352; the row carries no work and was failed on purpose. Its only honest role is to record that the registration was wrong; questioned in landmark assignment because there is nothing it would do.",
+      "evidence_path": "docs/status/landmark-assignment-2026-08-19.md"
+    },
+    {
+      "id": "OBSERVATION.QUESTIONED-BUNDLE",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "The phantom stub '--bundle' references untracked/T430-phase2-audit.md, verified absent on disk 2026-08-19; only T433-phase2-audit.md exists. The phase-2 content has been delivered under T433; claim_count=0. Nothing the row would do would change the ledger; T444/T446 already recommended close-with-evidence.",
+      "evidence_path": "docs/status/landmark-assignment-2026-08-19.md"
+    }
+  ],
+  "notes": "Operator directive inbox polled 2026-08-19: bin/managent inbox T468 --ack returned '-- no pending directives --'. No directive IDs to record. The four honest non-L<n> outcomes (L8/L9 proposed, T349/--bundle questioned) are surfaced in the doc per the brief's instruction; no made-up landmark to fill a cell. Counts in the doc note that 16 rows serve more than one landmark; the table lists the primary chain, with secondary chains noted inline. The brief's pre-measured finding (four-L1-or-process-safety, one-L4, zero-L2) survives with a small amendment: T442 is L4, not process-safety, so the do-now serves 3-L1 + 2-L4 = 5, not 4-L1 + 1-L4. The L2 zero stands."
+}
