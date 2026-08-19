@@ -194,6 +194,29 @@ in §4.7; the retained-rule and deletion arms are exercised there as well.
 5. **Verify-after:** the created commit is checked to contain exactly the named
    paths; a mismatch fails loudly.
 
+### 4.1a Commit subjects — one line, under 72 characters
+
+The wrapper's `-m` is the commit subject. It is a **display and grep surface**:
+`git log --oneline`, the perf ledger, and every scan read it. The established
+corpus (2026-07/08, pre-inflation) runs 16–106 chars, median ~70; the recent
+inflation to 500–1600 char subjects (2026-08-19) made `git log --oneline`
+unreadable and grep hits unusable.
+
+- **One line, under 72 characters.** If the whole story does not fit, the
+  subject names the change and the *body* carries the detail — `-m` supports
+  multiple `-m` flags or an embedded newline (`-m $'subject\n\nbody'`), and
+  the findings file is the durable record of why.
+- **Verb-first, no leading dash**: `T482: claimlint c7 --json + exit` not
+  `-- claimlint…`. Prefix `T<id>:` (or a topic like `docs:`/`tools:`) then the
+  verb.
+- **No trailing punctuation, no ellipsis, no `[skip]` clutter.** The subject
+  is a label; the commit body and the findings file are the argument.
+- **A subject that needs more than 72 chars is a sign the commit is two
+  commits** — split it.
+
+Where the detail must ride in the commit (reconstruction, rulings), use the
+body, never a 200-word subject.
+
 ### 4.2 Seeded-defect control — incident 1 reproduced (the fixture)
 
 `tools/regression-git-commit-mine.sh` builds a scratch repo in `/tmp/weizigo`

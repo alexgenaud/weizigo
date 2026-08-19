@@ -4,6 +4,26 @@ A brief succeeds when a competent agent following it cannot reach a wrong answer
 believing it is right. A dispatch succeeds when the worker runs detached, the
 log lands where the next orchestrator will look, and the mechanical checks pass.
 
+## Task titles — one line, under 40 characters
+
+The title is the brief's `# T<nnn> — <title>` line, what `watch-fleet` shows in
+PROGRESS/DONE/OPEN, and what the perf ledger records. It is a **display surface**,
+not a summary document: if it does not fit on one terminal line it is too long.
+
+- **Under 40 characters.** The established corpus (`untracked/task-desc.tsv`)
+  is 33–38. A title that needs more than 40 chars is a sign the task is two
+tasks.
+- **One clause, verb-first, no punctuation chains.** "measure Ollama concurrency
+  limit", "absorb backlog; doctor arm reads state". No colons after the id,
+  no question marks in the title — the *question* goes in the body, the title
+  names the deliverable.
+- **Never repeat the id.** `# T482 — claimlint c7 --json + exit` not
+  `# T482 — T482 does claimlint…`.
+- **The long form lives in the body.** The brief's first paragraph carries the
+  one-sentence question and the landmark. The title is a pointer, not the doc.
+
+Title is what a human scans when deciding what to dispatch; make it scannable.
+
 ## The header
 
 ```

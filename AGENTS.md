@@ -113,6 +113,12 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   message (`d7e4bdb`); the work survived, the authorship did not. The rule predated the failure,
   which is why the mechanism is being built too — `T455`, since a rule that only prose enforces
   is enforced only on whoever reads it. See `docs/infra/fleet-git-isolation.md`.
+- **Titles are display surfaces: one line, under 40 chars for a task title, under 72 for a
+  commit subject.** The full rules live in their single homes: task titles in
+  `docs/infra/delegation/DELEGATOR.md` §Task titles; commit subjects in
+  `docs/infra/fleet-git-isolation.md` §4.1a. A title that needs more than the limit is a sign
+  the task (or commit) is two of whatever it is. The detail goes in the body / the findings
+  file, never in the title.
 - `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `reopen`
   / `purge` / `set` / `next` / `status` / `show`. The human dispatches; the
   agent claims; the Orchestrator owns the kanban end-to-end (D-8) and may
