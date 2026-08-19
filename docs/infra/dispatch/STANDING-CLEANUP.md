@@ -1,6 +1,8 @@
 <!--managent set=H-->
 # STANDING-CLEANUP — absorption and cleanup pass
 
+**Landmark:** advances `L4 (the ledger is clean)` — standing cleanup keeps the working tree clean and the resume surface honest; the floor must match what claimlint actually sees.
+
 Auto-registered standing task. Trigger: working tree dirty across two consecutive turns.
 
 ## Task

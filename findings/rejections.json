@@ -550,6 +550,16 @@
       "disposition": "not-a-register-claim",
       "refuting_row": "—",
       "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that the --bundle stub references untracked/T430-phase2-audit.md (verified absent 2026-08-19), superseded by T433-phase2-audit.md (present, claim_count=0). Task-queue observation about a phantom stub, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T444/T446 already recommended close-with-evidence."
+    },
+    {
+      "finding_task": "T479",
+      "finding_file": "T479-landmark-application.json",
+      "claim_id": "OBSERVATION.LANDMARK-COVERAGE-AFTER-T479",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1 (ID scheme: <SCOPE>.<LEGACY-ID>; SCOPE is GLOBAL/CODE/NxM; no OBSERVATION scope exists). The proposal is a meta-observation about landmark-coverage in the live kanban after T479's sweep — 21 of 22 live tasks show a fleet-greppable L<n> token, with --bundle correctly blank. Task-queue observation, not an epistemic claim about Go. Recorded in findings/T479-landmark-application.json (T479's deliverable), which is the operator-facing record; registering it would pollute the epistemic register with a parse-broken identifier and a non-epistemic datum."
     }
   ]
 }

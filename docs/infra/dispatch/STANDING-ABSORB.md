@@ -1,6 +1,8 @@
 <!--managent set=H-->
 # STANDING-ABSORB — absorb the findings backlog
 
+**Landmark:** advances `L4 (the ledger is clean)` — auto-triggered absorption pass; without it, unabsorbed findings silently accumulate, and the C7 gauge reads one number while the register reads another.
+
 Auto-registered standing task. Trigger: claimlint's C7 unabsorbed-findings count
 exceeds the threshold (5) — `managent standing` fires when
 `C7 unabsorbed findings` in `bin/weizigo-claimlint`'s summary is above it, and
