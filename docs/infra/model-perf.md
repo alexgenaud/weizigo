@@ -3311,3 +3311,25 @@ dispatch-verify 2026-08-18 T369 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-18 T453 kimi-k2.7 report=success verified=pass
 dispatch-verify 2026-08-18 T451 glm-5.2 report=success verified=fail fail=nonce
 dispatch-verify 2026-08-18 T452 minimax-m3 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-19 - qwen3.8:27b-mlx report=bare verified=pass
+dispatch-verify 2026-08-19 T456 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-19 T457 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T459 kimi-k2.7 report=success verified=fail fail=deliverables
+dispatch-verify 2026-08-19 T460 glm-5.2 report=success verified=fail fail=deliverables
+dispatch-verify 2026-08-19 T461 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T462 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-19 T446 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-19 T463 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-19 T455 kimi-k2.7 report=success verified=fail fail=nonce
+dispatch-verify 2026-08-19 T442 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T378 glm-5.2 report=success verified=fail fail=nonce
+dispatch-verify 2026-08-19 - qwen3.8:27b-mlx report=bare verified=pass
+dispatch-verify 2026-08-19 T464 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-19 T450 kimi-k2.7 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-19 T448 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-19 T468 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T469 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-19 T448 kimi-k2.7 report=success verified=pass
+dispatch-verify 2026-08-19 T466 deepseek-v4-flash report=unknown verified=fail fail=row
+dispatch-verify 2026-08-19 T450 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T470 glm-5.2 report=success verified=pass
