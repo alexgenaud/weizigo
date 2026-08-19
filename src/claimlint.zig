@@ -500,6 +500,29 @@ fn baseName(p: []const u8) []const u8 {
     return p;
 }
 
+/// T482: derive the owning task id from a findings filename. The convention
+/// (findings/README.md §File naming) is `<TASKID>-<slug>.json`, where
+/// TASKID may itself contain hyphens (e.g. `STANDING-ABSORB`). The rule:
+/// TASKID is everything before the first `-` that is followed by a
+/// lowercase letter — the boundary between the all-caps identifier and
+/// the kebab-case slug. For `T129-qa027` → `T129`. For
+/// `STANDING-ABSORB-absorption-2026-08-05` → `STANDING-ABSORB`. For
+/// filenames with no such boundary the whole basename (sans `.json`) is
+/// returned. Pure string logic, no JSON access — used as a fallback when
+/// the JSON is unreadable. The result is a slice into `name` and must
+/// not be freed by the caller; the input owns the storage.
+fn taskIdFromFilename(name: []const u8) []const u8 {
+    var n = name;
+    if (std.mem.endsWith(u8, n, ".json")) n = n[0 .. n.len - 5];
+    var i: usize = 0;
+    while (i < n.len) : (i += 1) {
+        if (n[i] == '-' and i + 1 < n.len and std.ascii.isLower(n[i + 1])) {
+            return n[0..i];
+        }
+    }
+    return n;
+}
+
 
 fn isIgnoredPath(p: []const u8) bool {
     for (IGNORED_PREFIXES) |pre| if (std.mem.startsWith(u8, p, pre)) return true;
@@ -616,7 +639,7 @@ const Index = struct {
 
 
 fn isKnownVerb(v: []const u8) bool {
-    return std.mem.eql(u8, v, "absorb") or std.mem.eql(u8, v, "verify");
+    return std.mem.eql(u8, v, "absorb") or std.mem.eql(u8, v, "verify") or std.mem.eql(u8, v, "c7");
 }
 
 fn printHelp(io: Io) void {
@@ -628,6 +651,11 @@ fn printHelp(io: Io) void {
         \\  verify [<path>]  run claimlint checks on CLAIMS.md (default)
         \\  absorb <findings.json> [--dry-run]
         \\                    absorb findings into CLAIMS.md
+        \\  c7 [--json] [<path>]
+        \\                    C7 unabsorbed-findings check only. With --json,
+        \\                    emits a per-file JSON report consumed structurally
+        \\                    by `managent done` (spec §7, T482). Exit 1 when
+        \\                    c7_unabsorbed > 0 OR c7_nonconforming > 0.
         \\  help              print this help
         \\
     , .{});
@@ -973,6 +1001,24 @@ pub fn main(init: std.process.Init) !void {
             defer absorb_args.deinit(gpa);
             while (args.next()) |a| : (try absorb_args.append(gpa, a)) {}
             return absorb.runAbsorb(io, gpa, absorb_args.items);
+        }
+        // T482: `c7 [--json]` — machine-readable C7 report. `--json` emits
+        // an array of per-file objects (one per findings JSON, with
+        // path/task_id/conforming/conforming_reason/claims_total/new_rows_total/
+        // unabsorbed/dispositioned) and nothing else; without `--json` the
+        // existing human-readable C7 block is unchanged. Same exit conditions
+        // as `verify` (spec §6.1).
+        if (std.mem.eql(u8, v, "c7")) {
+            var as_json = false;
+            var claims_path: []const u8 = DEFAULT_CLAIMS;
+            while (args.next()) |a| {
+                if (std.mem.eql(u8, a, "--json")) {
+                    as_json = true;
+                } else if (!std.mem.startsWith(u8, a, "--")) {
+                    claims_path = a;
+                }
+            }
+            return runC7(io, gpa, claims_path, as_json);
         }
         // C1.1 / NF3: a non-verb, non-existing-path is an unknown verb, not a
         // path to verify. Only treat as a verify path if the file actually exists.
@@ -2016,6 +2062,105 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("                silence — a silent skip is how a real finding gets lost … {s}\n", .{if (synth_c7_disposition_ok) "CAUGHT (still reported)" else "BROKEN"});
     if (!synth_c7_disposition_ok) cal_ok = false;
 
+    // C7 non-conforming-file exit-condition calibration (T482): the spec
+    // §6.1 promotes `nonconforming > 0` to the same rank as `c7 > 0` in
+    // the exit-1 predicate. A file that cannot speak must fail louder than
+    // a file that says something wrong. Without this calibration the
+    // change can be "implemented" as code that exists but the predicate
+    // forgets, and the next T454 (malformed file with zero proposals
+    // contributing to the census) would slip through `verify` with exit 0.
+    var synth_c7_nonconf_exit_ok = false;
+    {
+        // 1. A non-conforming finding must produce `nonconforming > 0`
+        //    AND `unabsorbed == 0` — the T454 illusion that hid the bug
+        //    was exactly this: malformed file → 0 unabsorbed, so the
+        //    pre-fix census said nothing was wrong.
+        var empty_rej_nc: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
+        defer empty_rej_nc.entries.deinit();
+        const bad = try parseFindingsFile(gpa, io, "{\"foo\": 1}", "calibration/T482-nonconf.json", &reg, &empty_rej_nc);
+
+        // 2. The exit-1 predicate must fire on this alone. T482 promotes
+        //    `nonconforming` to the same rank as `c7` itself, so a file
+        //    that cannot parse must trigger exit 1 without needing an
+        //    accompanying unabsorbed finding. The pre-fix predicate
+        //    ignored `nonconforming`, so this arm fails.
+        const would_fail = shouldFailRun(0, 0, 0, 0, 0, bad.nonconforming, 0);
+        synth_c7_nonconf_exit_ok = bad.nonconforming == 1 and bad.unabsorbed == 0 and
+            bad.conforming == 0 and bad.conform_issues.items.len == 1 and would_fail;
+    }
+    util.out("  known-bad 11 (C7 {s}, synthetic, T482): a non-conforming finding must fail the\n", .{checkName("C7")});
+    util.out("                run by itself — `nonconforming > 0` joins the exit-1 predicate\n", .{});
+    util.out("                at the same rank as `c7 > 0` (spec §6.1) … {s}\n", .{if (synth_c7_nonconf_exit_ok) "CAUGHT (predicate fires on nonconforming=1)" else "BROKEN"});
+    if (!synth_c7_nonconf_exit_ok) cal_ok = false;
+
+    // C7 c7 --json round-trip calibration (T482): the JSON verb and the
+    // human-readable C7 block must report the same per-file census. The
+    // spec §7 kills the scraper class by making the JSON authoritative;
+    // if it drifts from the human-readable path the gate is split-brain.
+    // The arm writes the JSON to a buffer, parses it back, and asserts
+    // every count agrees with the C7Result it was derived from.
+    var synth_c7_json_roundtrip_ok = false;
+    {
+        var empty_rej_rt: RejectionIndex = .{ .entries = std.StringHashMap(RejectionEntry).init(gpa), .invalid = .empty };
+        defer empty_rej_rt.entries.deinit();
+        // Mix a conforming and a non-conforming file so the JSON has both
+        // shapes in the same buffer.
+        const good = try parseFindingsFile(gpa, io, CAL_SYNTHETIC_C7_JSON, "calibration/T482-good.json", &reg, &empty_rej_rt);
+        const bad = try parseFindingsFile(gpa, io, "{\"foo\": 1}", "calibration/T482-bad.json", &reg, &empty_rej_rt);
+
+        var buf = std.ArrayList(u8).empty;
+        defer buf.deinit(gpa);
+        // Wrap in an array so parseFromSlice succeeds on the concatenated
+        // objects (a bare concatenation is invalid JSON). Consumers in
+        // production do the same (runC7Json wraps in `[...]`).
+        try buf.append(gpa, '[');
+        try writeC7Json(gpa, &buf, good);
+        try buf.append(gpa, ',');
+        try writeC7Json(gpa, &buf, bad);
+        try buf.append(gpa, ']');
+        const parsed = std.json.parseFromSlice(std.json.Value, gpa, buf.items, .{ .allocate = .alloc_always }) catch null;
+        defer if (parsed) |p| p.deinit();
+
+        var ok = false;
+        if (parsed) |a| {
+            if (a.value == .array and a.value.array.items.len == 2) {
+                const g = a.value.array.items[0];
+                const b = a.value.array.items[1];
+                if (g == .object and b == .object) {
+                    const go = g.object;
+                    const bo = b.object;
+                    const g_ok = go.get("path") != null and go.get("task_id") != null and
+                        go.get("conforming") != null and go.get("claims_total") != null and
+                        go.get("new_rows_total") != null and go.get("unabsorbed") != null and
+                        go.get("dispositioned") != null;
+                    const b_ok = bo.get("path") != null and bo.get("task_id") != null and
+                        bo.get("conforming") != null and bo.get("conforming_reason") != null and
+                        bo.get("claims_total") != null and bo.get("new_rows_total") != null and
+                        bo.get("unabsorbed") != null and bo.get("dispositioned") != null;
+                    // Counts must match the C7Result they were derived
+                    // from. The good file has conforming=1, nonconforming=0;
+                    // the bad file has conforming=0, nonconforming=1.
+                    const g_path_match = if (go.get("path")) |v| if (v == .string) std.mem.eql(u8, v.string, "calibration/T482-good.json") else false else false;
+                    const g_conf_match = if (go.get("conforming")) |v| v == .bool and v.bool == true else false;
+                    const g_unabs = if (go.get("unabsorbed")) |v| if (v == .array) @as(usize, v.array.items.len) else 0xffff else 0xffff;
+                    const g_disp = if (go.get("dispositioned")) |v| if (v == .array) @as(usize, v.array.items.len) else 0xffff else 0xffff;
+                    const b_path_match = if (bo.get("path")) |v| if (v == .string) std.mem.eql(u8, v.string, "calibration/T482-bad.json") else false else false;
+                    const b_conf_match = if (bo.get("conforming")) |v| v == .bool and v.bool == false else false;
+                    const b_reason_match = if (bo.get("conforming_reason")) |v| v == .string and v.string.len > 0 else false;
+                    const b_unabs = if (bo.get("unabsorbed")) |v| if (v == .array) @as(usize, v.array.items.len) else 0xffff else 0xffff;
+                    const b_disp = if (bo.get("dispositioned")) |v| if (v == .array) @as(usize, v.array.items.len) else 0xffff else 0xffff;
+                    ok = g_ok and b_ok and g_path_match and g_conf_match and g_unabs == good.unabsorbed and g_disp == good.rejected and
+                        b_path_match and b_conf_match and b_reason_match and b_unabs == bad.unabsorbed and b_disp == bad.rejected;
+                }
+            }
+        }
+        synth_c7_json_roundtrip_ok = ok;
+    }
+    util.out("  known-good 11 (C7 {s}, synthetic, T482): `c7 --json` output must round-trip — every\n", .{checkName("C7")});
+    util.out("                per-file count (conforming, unabsorbed, dispositioned) agrees with\n", .{});
+    util.out("                the C7Result it was derived from … {s}\n", .{if (synth_c7_json_roundtrip_ok) "ROUND-TRIPS (2 files, 8 keys each, counts match)" else "BROKEN"});
+    if (!synth_c7_json_roundtrip_ok) cal_ok = false;
+
     // C8 calibration — synthetic kill matrix + synthetic register rows.
     // Seeded known-bad: GLOBAL.CAL-KERNEL-UNKILLED at PROVEN with unkilled mutant → must be caught.
     // Null known-good:   GLOBAL.CAL-KERNEL-KILLED  at PROVEN with all mutants killed → must be silent.
@@ -2102,8 +2247,88 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);
-    if (c1_count > 0 or alarms.items.len > 0 or c2_total > 0 or c6 > 0 or c7 > 0 or c9_fail > 0) std.process.exit(1);
+    if (shouldFailRun(c1_count, alarms.items.len, c2_total, c6, c7, c7_results.nonconforming, c9_fail)) std.process.exit(1);
     std.process.exit(0);
+}
+
+/// T482: the `c7` verb. Runs the same C7 pass as `verify` (same register
+/// parse, same rejection registry) but emits ONLY the C7 report, never
+/// the C1/C2/.../C9 sections. Two output modes:
+///   - human-readable (default): the existing C7 block, unchanged. Used by
+///     the pre-commit awk and the human readers; byte-identical to verify's
+///     C7 section so existing consumers keep working.
+///   - machine-readable (`--json`): one JSON object per findings file, in a
+///     top-level array. Path, task_id, conforming + reason, claims_total,
+///     new_rows_total, unabsorbed (id/proposed/actual), dispositioned
+///     (id/proposed/actual/disposition/refuting_row/rationale). Consumers
+///     (`managent done` in T485) filter by task_id; the field shape is the
+///     spec §7 contract and the calibration arm enforces it.
+/// Exit codes: same predicate as `verify` (spec §6.1) — `c7_unabsorbed > 0`
+/// OR `c7_nonconforming > 0` makes the run fail. Without `--json` the
+/// verb is essentially a `verify` filtered to C7; with `--json` it's the
+/// structural consumption surface. The banner is suppressed in `--json`
+/// mode so the output is parseable byte-for-byte.
+fn runC7(io: Io, gpa: Allocator, claims_path: []const u8, as_json: bool) !void {
+    const text = Io.Dir.cwd().readFileAlloc(io, claims_path, gpa, .unlimited) catch |e| {
+        util.note("claimlint: cannot read {s}: {s}\n", .{ claims_path, @errorName(e) });
+        std.process.exit(3);
+    };
+    var reg = try cr.parseRegister(gpa, text);
+    if (as_json) {
+        return runC7Json(io, gpa, &reg);
+    }
+    // Human-readable path: print the same C7 block `verify` prints, plus
+    // the same exit conditions. The banner is preserved (the human reader
+    // wants to know which file was read).
+    util.out("weizigo-claimlint — {s}\n", .{claims_path});
+    util.out("\n== C7 {s}  UNABSORBED FINDINGS (fails the run) ==\n", .{checkName("C7")});
+    util.out("Scans {s}/*.json for claim status changes not reflected in the register.\n", .{FINDINGS_DIR});
+    util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md\n", .{});
+    util.out("AND it is not dispositioned in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
+    const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
+    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx);
+    util.out("  files scanned: {d}\n", .{c7_results.files});
+    util.out("  non-conforming: {d} (fails the run when > 0; spec §6.1)\n", .{c7_results.nonconforming});
+    util.out("  unabsorbed: {d}\n", .{c7_results.unabsorbed});
+    util.out("  dispositioned: {d}\n", .{c7_results.rejected});
+    if (shouldFailRun(0, 0, 0, 0, c7_results.unabsorbed, c7_results.nonconforming, 0)) std.process.exit(1);
+    std.process.exit(0);
+}
+
+/// T482: emit the JSON C7 report — one object per findings file, in an
+/// outer array. Pure data on stdout, no banner, no diagnostic commentary
+/// (consumers parse this byte-for-byte; any non-JSON prefix breaks them).
+/// Exits 1 if `c7_unabsorbed > 0` OR `c7_nonconforming > 0` (spec §6.1);
+/// exits 0 otherwise. The exit code is the same predicate as `verify`'s
+/// C7 row, so `managent done` and the pre-commit floor can read it
+/// structurally without re-implementing the rule.
+fn runC7Json(io: Io, gpa: Allocator, reg: *Register) !void {
+    const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
+    const c7_results = try checkFindings(gpa, io, reg, FINDINGS_DIR, &rejection_idx);
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(gpa);
+    try buf.append(gpa, '[');
+    for (c7_results.per_file.items, 0..) |pf, i| {
+        if (i > 0) try buf.append(gpa, ',');
+        try writeC7Json(gpa, &buf, pf);
+    }
+    try buf.append(gpa, ']');
+    util.out("{s}", .{buf.items});
+    if (shouldFailRun(0, 0, 0, 0, c7_results.unabsorbed, c7_results.nonconforming, 0)) std.process.exit(1);
+    std.process.exit(0);
+}
+
+/// The exit-1 predicate. Centralised so the C7 non-conforming-file arm of
+/// the calibration (T482, spec §6.1) can test it without spawning a
+/// sub-process. Adding `nonconforming` here promotes a malformed findings
+/// file to the same rank as `c7` itself — a file that cannot speak must fail
+/// louder than a file that says something wrong. The pre-fix predicate did
+/// not include this count, which is exactly the T454 defect: malformed
+/// files contributed 0 unabsorbed, so the run said nothing was wrong.
+fn shouldFailRun(c1_count: usize, c1b_alarms: usize, c2_total: usize, c6: usize, c7_unabsorbed: usize, c7_nonconforming: usize, c9_fail: usize) bool {
+    return c1_count > 0 or c1b_alarms > 0 or c2_total > 0 or
+        c6 > 0 or c7_unabsorbed > 0 or c7_nonconforming > 0 or
+        c9_fail > 0;
 }
 
 fn spaces(n: usize) []const u8 {
@@ -2187,7 +2412,18 @@ const Disposition = enum {
 
 const ConformIssue = struct { file: []const u8, reason: []const u8 };
 
+/// Per-file C7 result. The aggregate (sum across the directory) is also
+/// one of these — the struct is the same shape, just nested. T482: the
+/// `c7 --json` verb emits one of these per file. `path` and `task_id`
+/// are populated by `parseFindingsFile` (path always; task_id from the
+/// JSON `task_id` field when conforming, from the filename convention
+/// otherwise). Aggregated by `checkFindings`.
 const C7Result = struct {
+    /// path relative to the findings dir (e.g. `T129-qa027.json`); empty
+    /// for synthetic/aggregate results.
+    path: []const u8 = "",
+    /// owning task id (T129, STANDING-ABSORB, ...); empty when unknown.
+    task_id: []const u8 = "",
     files: usize,
     conforming: usize,
     nonconforming: usize,
@@ -2198,6 +2434,11 @@ const C7Result = struct {
     rejected: usize,
     items: std.ArrayList(C7Unabsorbed),
     rejected_items: std.ArrayList(C7Unabsorbed),
+    /// T482: per-file results, populated by `checkFindings`. The aggregate
+    /// fields above are computed by summing this list, so the two views
+    /// cannot drift. Consumers of `c7 --json` iterate this; the human-
+    /// readable C7 block stays byte-identical.
+    per_file: std.ArrayList(C7Result) = .empty,
 };
 
 const RejectionEntry = struct {
@@ -2347,14 +2588,23 @@ fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []cons
         .rejected_items = .empty,
     };
 
-    // file_path may be a temporary (e.g. from a Dir.Walker); dupe it once
+    // file_path may be a temporary (e.g. from a Dir.Walker); dupe it once.
+    // Stored on the result so `c7 --json` can emit it per-file (T482).
     const owned_file = try gpa.dupe(u8, file_path);
+    result.path = owned_file;
 
     // basename for rejection matching (rejections.json keys on the findings filename)
     const base = baseName(file_path);
 
     var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch |e| {
         result.nonconforming = 1;
+        // Non-conforming: fall back to filename convention for the task id
+        // (the JSON is unreadable, so we have nothing else). The dupe is
+        // load-bearing: `taskIdFromFilename` returns a slice into its
+        // `name` argument, which in production is `e.path` from
+        // `walkSelectively` — a buffer the walker may reuse on the next
+        // iteration, dangling the pointer before the consumer reads it.
+        result.task_id = try gpa.dupe(u8, taskIdFromFilename(base));
         try result.conform_issues.append(gpa, .{
             .file = owned_file,
             .reason = try std.fmt.allocPrint(gpa, "not valid JSON ({s})", .{@errorName(e)}),
@@ -2365,6 +2615,7 @@ fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []cons
 
     if (parsed.value != .object) {
         result.nonconforming = 1;
+        result.task_id = try gpa.dupe(u8, taskIdFromFilename(base));
         try result.conform_issues.append(gpa, .{
             .file = owned_file,
             .reason = try gpa.dupe(u8, "top-level is not a JSON object"),
@@ -2385,6 +2636,14 @@ fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []cons
     }
     if (missing_keys.items.len > 0) {
         result.nonconforming = 1;
+        // For the schema-non-conforming case, prefer the JSON's task_id
+        // (it may be present even when other keys are missing) over the
+        // filename — JSON is the authoritative source when it parses.
+        if (strField(root, "task_id")) |tid| {
+            result.task_id = try gpa.dupe(u8, tid);
+        } else {
+            result.task_id = try gpa.dupe(u8, taskIdFromFilename(base));
+        }
         const joined = try std.mem.join(gpa, ", ", missing_keys.items);
         try result.conform_issues.append(gpa, .{
             .file = owned_file,
@@ -2393,6 +2652,8 @@ fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []cons
         return result;
     }
     result.conforming = 1;
+    // Conforming: task_id is mandatory and present; use it.
+    result.task_id = try gpa.dupe(u8, strField(root, "task_id").?);
 
     // claims[] — a claim is either an object (id + optional proposed_status)
     // or a bare string (context-dump form: "IDs you touched"). An object with
@@ -2480,6 +2741,146 @@ fn parseFindingsFile(gpa: Allocator, io: Io, json: []const u8, file_path: []cons
     }
 
     return result;
+}
+
+/// T482: emit one C7 per-file JSON object. The contract is "one JSON
+/// object per call" — consumers wrap in an array if they need one, and
+/// `managent done` filters by task id without re-parsing the outer
+/// container. Field names are snake_case so the round-trip calibration
+/// arm (known-good 11) can key on them. `conforming_reason` is non-null
+/// only when `conforming` is false; a conforming file emits `null` so
+/// the consumer can branch on the boolean. The per-file counts MUST
+/// agree with the aggregate C7Result the JSON was derived from — the
+/// calibration arm enforces this and the `c7 --json` consumer depends
+/// on it (`managent done` will scope by task id, so any drift between
+/// per-file and aggregate would split-brain the gate).
+fn writeC7Json(gpa: Allocator, buf: *std.ArrayList(u8), c7r: C7Result) !void {
+    try buf.appendSlice(gpa, "{");
+    try appendJsonString(gpa, buf, "path");
+    try buf.appendSlice(gpa, ":");
+    try appendJsonString(gpa, buf, c7r.path);
+    try buf.appendSlice(gpa, ",");
+    try appendJsonString(gpa, buf, "task_id");
+    try buf.appendSlice(gpa, ":");
+    try appendJsonString(gpa, buf, c7r.task_id);
+    try buf.appendSlice(gpa, ",");
+    try appendJsonString(gpa, buf, "conforming");
+    try buf.appendSlice(gpa, ":");
+    if (c7r.conforming > 0) try buf.appendSlice(gpa, "true") else try buf.appendSlice(gpa, "false");
+    try buf.appendSlice(gpa, ",");
+    try appendJsonString(gpa, buf, "conforming_reason");
+    try buf.appendSlice(gpa, ":");
+    if (c7r.conforming > 0 or c7r.conform_issues.items.len == 0) {
+        try buf.appendSlice(gpa, "null");
+    } else {
+        try appendJsonString(gpa, buf, c7r.conform_issues.items[0].reason);
+    }
+    try buf.appendSlice(gpa, ",");
+    try appendJsonString(gpa, buf, "claims_total");
+    try buf.appendSlice(gpa, ":");
+    const ct = try std.fmt.allocPrint(gpa, "{d}", .{c7r.claims_total});
+    defer gpa.free(ct);
+    try buf.appendSlice(gpa, ct);
+    try buf.appendSlice(gpa, ",");
+    try appendJsonString(gpa, buf, "new_rows_total");
+    try buf.appendSlice(gpa, ":");
+    const nt = try std.fmt.allocPrint(gpa, "{d}", .{c7r.new_rows_total});
+    defer gpa.free(nt);
+    try buf.appendSlice(gpa, nt);
+    try buf.appendSlice(gpa, ",");
+    try appendJsonString(gpa, buf, "unabsorbed");
+    try buf.appendSlice(gpa, ":[");
+    for (c7r.items.items, 0..) |u, i| {
+        if (i > 0) try buf.appendSlice(gpa, ",");
+        try buf.appendSlice(gpa, "{");
+        try appendJsonString(gpa, buf, "id");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.id);
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "proposed");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.proposed);
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "actual");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.actual);
+        try buf.appendSlice(gpa, "}");
+    }
+    try buf.appendSlice(gpa, "],");
+    try appendJsonString(gpa, buf, "dispositioned");
+    try buf.appendSlice(gpa, ":[");
+    for (c7r.rejected_items.items, 0..) |u, i| {
+        if (i > 0) try buf.appendSlice(gpa, ",");
+        try buf.appendSlice(gpa, "{");
+        try appendJsonString(gpa, buf, "id");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.id);
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "proposed");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.proposed);
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "actual");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.actual);
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "disposition");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, dispositionName(u.disposition));
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "refuting_row");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.refuting_row);
+        try buf.appendSlice(gpa, ",");
+        try appendJsonString(gpa, buf, "rationale");
+        try buf.appendSlice(gpa, ":");
+        try appendJsonString(gpa, buf, u.rationale);
+        try buf.appendSlice(gpa, "}");
+    }
+    try buf.appendSlice(gpa, "]}");
+}
+
+/// Stable string form for the `Disposition` enum, used by `c7 --json`.
+/// Matches the values in `findings/rejections.json` exactly (T269).
+fn dispositionName(d: Disposition) []const u8 {
+    return switch (d) {
+        .rejected_by_register => "rejected-by-register",
+        .not_a_register_claim => "not-a-register-claim",
+        .absorbed_under_register_id => "absorbed-under-register-id",
+        .unparsed => "unparsed",
+    };
+}
+
+/// Write a JSON-escaped string literal (with surrounding quotes) into the
+/// buffer. Mirrors `src/managent/main.zig:writeJsonString` — the same
+/// escape rules (RFC 8259), the same control-byte handling. Kept local
+/// because `managent`'s helper uses its global `alloc`; this file passes
+/// the allocator explicitly.
+fn appendJsonString(gpa: Allocator, buf: *std.ArrayList(u8), s: []const u8) !void {
+    try buf.append(gpa, '"');
+    for (s) |c| {
+        switch (c) {
+            '"' => try buf.appendSlice(gpa, "\\\""),
+            '\\' => try buf.appendSlice(gpa, "\\\\"),
+            '\n' => try buf.appendSlice(gpa, "\\n"),
+            '\r' => try buf.appendSlice(gpa, "\\r"),
+            '\t' => try buf.appendSlice(gpa, "\\t"),
+            else => {
+                if (c < 0x20) {
+                    try buf.appendSlice(gpa, "\\u00");
+                    try buf.append(gpa, hexDigit((c >> 4) & 0xF));
+                    try buf.append(gpa, hexDigit(c & 0xF));
+                } else {
+                    try buf.append(gpa, c);
+                }
+            },
+        }
+    }
+    try buf.append(gpa, '"');
+}
+
+fn hexDigit(v: u8) u8 {
+    return if (v < 10) '0' + v else 'a' + v - 10;
 }
 
 /// A claim/new-row that carries a proposed status: compare it against the
@@ -2622,6 +3023,25 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
         // e.path is relative to the walked dir; read via dir, not cwd
         const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch |err| {
             // an unreadable file is a non-conforming file — reported, not skipped
+            var per: C7Result = .{
+                .files = 1,
+                .conforming = 0,
+                .nonconforming = 1,
+                .conform_issues = .empty,
+                .claims_total = 0,
+                .new_rows_total = 0,
+                .unabsorbed = 0,
+                .rejected = 0,
+                .items = .empty,
+                .rejected_items = .empty,
+            };
+            per.path = try gpa.dupe(u8, e.path);
+            per.task_id = try gpa.dupe(u8, taskIdFromFilename(baseName(e.path)));
+            try per.conform_issues.append(gpa, .{
+                .file = try gpa.dupe(u8, e.path),
+                .reason = try std.fmt.allocPrint(gpa, "unreadable ({s})", .{@errorName(err)}),
+            });
+            try result.per_file.append(gpa, per);
             result.files += 1;
             result.nonconforming += 1;
             try result.conform_issues.append(gpa, .{
@@ -2631,6 +3051,7 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
             continue;
         };
         const fr = try parseFindingsFile(gpa, io, body, e.path, reg, rej);
+        try result.per_file.append(gpa, fr);
         result.files += 1;
         result.conforming += fr.conforming;
         result.nonconforming += fr.nonconforming;

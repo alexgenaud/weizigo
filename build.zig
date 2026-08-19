@@ -497,6 +497,21 @@ pub fn build(b: *std.Build) void {
     claimlint_volatile_regression.cwd = b.path(".");
     test_step.dependOn(&claimlint_volatile_regression.step);
 
+    // ── T482: claimlint c7 --json controls ─────────────────────
+    // The `c7 --json` verb is the spec §7 machine-readable consumption
+    // surface for `managent done` (T485). Three arms: c7-json-shape
+    // asserts the eight-field contract (path, task_id, conforming,
+    // conforming_reason, claims_total, new_rows_total, unabsorbed,
+    // dispositioned); c7-json-counts asserts the per-file JSON counts
+    // agree with the human-readable C7 block (one count, one
+    // implementation); c7-nonconf-exits asserts a non-conforming file
+    // alone makes `c7 --json` exit 1 (the spec §6.1 promotion that
+    // closed the T454 illusion). The fixture is added and removed in
+    // place; a SIGKILL trap (T448 pattern) wipes it on every exit.
+    const claimlint_c7_json_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-c7-json.sh" });
+    claimlint_c7_json_regression.cwd = b.path(".");
+    test_step.dependOn(&claimlint_c7_json_regression.step);
+
     // ── claim/close lifecycle controls (T424) ────────────────────────
     // Five flakes, one symptom (the kanban disagrees with reality):
     // worked-without-claiming (git-commit-mine refuses a commit whose task
