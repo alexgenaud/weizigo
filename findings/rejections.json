@@ -490,6 +490,66 @@
       "disposition": "not-a-register-claim",
       "refuting_row": "—",
       "rationale": "Malformed compound ID: 'T452-design-race-verdict' is a task ID with an appended descriptive slug, not a CLAIMS.md §1 SCOPE.LEGACY identifier (no GLOBAL./CODE./NxM. prefix; verbose descriptor rather than terse legacy). The grader's actual content (lanes' scores against the sealed T452 key, the 4-3 split on the bounded-fix question, the B/C/F/G 'bounded fix exists' verdict with proof-v2:680-696 / 1-ko qa023 expectation / TOTAL_STATES 2430 findings) is recorded in untracked/race-grading/t452/scores-glm-5.2.md and the lane-level reports — those are the operator-facing record, not a register row. The T452 verdict itself (whether to adopt bounded fix as ADR-0023 successor) is the operator's call from the race result, not an epistemic claim to register. Recording a row with this ID would pollute CLAIMS.md with a parse-broken identifier (CLAIMS.md §1 expects T452-DESIGN-RACE-VERDICT-shape strings to be SCOPE.LEGACY pairs; this is neither scope nor legacy)."
+    },
+    {
+      "finding_task": "T468",
+      "finding_file": "T468-landmark-assignment.json",
+      "claim_id": "OBSERVATION.LANDMARK-ASSIGNMENT-L1-L4-DOMINATE",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1 (ID scheme: <SCOPE>.<LEGACY-ID>; SCOPE is GLOBAL/CODE/NxM; no OBSERVATION scope exists). The proposal is a meta-observation about landmark distribution across the kanban (5 do-now tasks serve L1+L4 only, zero serve L2) — task-queue observation, not an epistemic claim about Go. The finding is recorded in docs/status/landmark-assignment-2026-08-19.md (T468's deliverable), which is the operator-facing record; registering it would pollute the epistemic register with a parse-broken identifier and a non-epistemic datum."
+    },
+    {
+      "finding_task": "T468",
+      "finding_file": "T468-landmark-assignment.json",
+      "claim_id": "OBSERVATION.LANDMARK-L6-ZERO-TASKS",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that L6 (small Go solved, certifiably) has no task with L6 as its primary chain because L6 is the convergence point of L2+L4+L5. Task-queue observation, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md."
+    },
+    {
+      "finding_task": "T468",
+      "finding_file": "T468-landmark-assignment.json",
+      "claim_id": "OBSERVATION.PROPOSED-LANDMARK-L8-LANGUAGE-HONESTY",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation recommending a new landmark (L8, language honesty) for work like T458. The map is at docs/audits/2026-08-05-handover/LANDMARKS.md and any landmark proposal belongs there as an ADR, not in the epistemic register. Recorded in docs/status/landmark-assignment-2026-08-19.md."
+    },
+    {
+      "finding_task": "T468",
+      "finding_file": "T468-landmark-assignment.json",
+      "claim_id": "OBSERVATION.PROPOSED-LANDMARK-L9-FLEET-RACE",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation recommending a new landmark (L9, fleet race capability) for the bake-off harness T328. The map is at docs/audits/2026-08-05-handover/LANDMARKS.md and any landmark proposal belongs there as an ADR. Recorded in docs/status/landmark-assignment-2026-08-19.md."
+    },
+    {
+      "finding_task": "T468",
+      "finding_file": "T468-landmark-assignment.json",
+      "claim_id": "OBSERVATION.QUESTIONED-T349",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that T349 is a malformed registration (shell-quoting accident) superseded by T352 with no work to do. Task-queue observation about a dispatchable artifact, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T349's own row in the kanban (managent show T349) is the operator-facing record."
+    },
+    {
+      "finding_task": "T468",
+      "finding_file": "T468-landmark-assignment.json",
+      "claim_id": "OBSERVATION.QUESTIONED-BUNDLE",
+      "proposed_status": "MEASUREMENT",
+      "register_status": "NO SUCH ID",
+      "disposition": "not-a-register-claim",
+      "refuting_row": "—",
+      "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that the --bundle stub references untracked/T430-phase2-audit.md (verified absent 2026-08-19), superseded by T433-phase2-audit.md (present, claim_count=0). Task-queue observation about a phantom stub, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T444/T446 already recommended close-with-evidence."
     }
   ]
 }
