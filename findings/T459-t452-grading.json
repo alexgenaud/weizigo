@@ -1,0 +1,8 @@
+{
+  "task_id": "T459",
+  "date": "2026-08-19",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Graded the seven anonymized T452 design-race answers blind against the sealed KEY.md. No inbox directives received (D0NN none). Checked the primary source citations and a representative sample of the cited documents; no fabricated citations were found. Two lanes self-identified as MiniMax-M3 and were ignored for scoring. Top scores: A=20, E=20, D=19, B/C/F/G=18. The 1-ko smoke expectation at src/qa023_brute_2x2.zig:508 is wrong (0 should be -4). A bounded semantics-preserving fix exists on 2x2 via full-window alpha-beta with no transposition table, measured at <=339,959 nodes/state in the 2026-07-30 audit."
+}
