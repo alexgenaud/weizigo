@@ -342,6 +342,19 @@ pub fn build(b: *std.Build) void {
     ledger_board_seam_regression.cwd = b.path(".");
     test_step.dependOn(&ledger_board_seam_regression.step);
 
+    // ── T478: duty mechanism + landmark gate controls ──────────────────
+    // Duties are beneficial work that never completes; managent must
+    // recognise them (bundle meta `duty` key / --duty flag), count task
+    // closes toward a per-duty due threshold, record chunks (`duty <UID>
+    // done`), and gate `landmark <Ln> --declare` while any duty is overdue
+    // or last-failed.  Six arms, scratch store only: 5 closes make a duty
+    // due · overdue duty refuses + names · null (no duties) declares ·
+    // chunk resets due-count · next never hands out a duty · last-failed
+    // blocks even when not due.
+    const duty_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-duty.sh" });
+    duty_regression.cwd = b.path(".");
+    test_step.dependOn(&duty_regression.step);
+
     const depth_regression = b.addSystemCommand(&.{ "sh", "tools/regression-depth-enforcement.sh" });
     depth_regression.cwd = b.path(".");
     test_step.dependOn(&depth_regression.step);

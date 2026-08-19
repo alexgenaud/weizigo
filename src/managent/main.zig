@@ -83,6 +83,19 @@ const TaskState = struct {
     acceptance: ?[]const u8 = null,
     skip_acceptance_reason: ?[]const u8 = null,
     claim_count: u32 = 0,
+    // T478: duty fields.  A duty is beneficial work that never completes
+    // (docs/infra/duties.md): recognised via the bundle meta header's `duty`
+    // key or the --duty flag on `add`; stored so status/next/landmark need not
+    // re-read every bundle.  Due-count is closes-based, not clock-based:
+    // last_chunk_closes is the _sys.closes value at the last chunk (or at
+    // registration); the duty is due once _sys.closes has advanced due_after
+    // past it.
+    duty: bool = false,
+    due_after: u32 = 5,
+    last_chunk_closes: u64 = 0,
+    last_chunk_ts: ?[]const u8 = null,
+    last_chunk_verdict: ?[]const u8 = null,
+    last_chunk_findings: ?[]const u8 = null,
     // T317: append-only correction record.  managent done is terminal;
     // amend appends corrections without erasing the original verdict.
     amendments: [][]const u8 = &.{},
@@ -206,7 +219,7 @@ const mutating_verbs = [_][]const u8{
     "add",     "claim",  "done",    "reopen", "purge", "set",
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
-    "standing", "assert", "retire",
+    "standing", "assert", "retire", "duty",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -353,7 +366,15 @@ pub fn main(init: std.process.Init.Minimal) !void {
     {
         var st = try readState(io, state_path);
         const migrated = migrateState(w, &st);
-        if (migrated) {
+        // T478: one-time duty-flag migration — recognize duties registered
+        // before the duty flag existed (DCLAIM/DRPLAY/DARGUS) by re-reading
+        // their bundle meta headers.  Guarded by _sys.duty_migrated so the
+        // bundle scan runs exactly once per store.
+        const duty_migrated_now = !sys_duty_migrated;
+        if (duty_migrated_now) {
+            migrateDutyFlags(io, repo_root, &st);
+        }
+        if (migrated or duty_migrated_now) {
             // T427: even a read-only verb would rewrite the store here — a
             // test harness must not migrate the live store either.
             if (test_harness and is_live) {
@@ -430,6 +451,10 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdWhy(w, io, state_path, args);
     } else if (std.mem.eql(u8, cmd, "suggest")) {
         try cmdSuggest(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "duty")) {
+        try cmdDuty(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "landmark")) {
+        try cmdLandmark(w, io, repo_root, state_path, args);
     } else {
         w.diag("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -475,6 +500,10 @@ const BundleMeta = struct {
     needs: [][]const u8,
     caps: [][]const u8,
     acceptance: ?[]const u8 = null,
+    // T478: `duty` key marks the row a duty; `due_after` overrides the
+    // default closes-until-due (5).
+    duty: bool = false,
+    due_after: u32 = 5,
 };
 
 fn findBundle(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8) ![]const u8 {
@@ -607,6 +636,14 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
                 }
                 result.caps = try caps_list.toOwnedSlice(alloc);
             }
+        } else if (std.mem.eql(u8, key, "duty")) {
+            // T478: presence of the key marks the duty (value ignored —
+            // `duty`, `duty=1`, `duty=true` all mean the same thing).
+            result.duty = true;
+        } else if (std.mem.eql(u8, key, "due_after")) {
+            // T478: per-duty closes-until-due (default 5).  An unparseable
+            // value falls back to 5 rather than failing registration.
+            result.due_after = std.fmt.parseInt(u32, value, 10) catch 5;
         } else if (std.mem.eql(u8, key, "context")) {
             w.diag("error: 'context=…' key is rejected (retired 2026-07-28); remove it from {s}\n", .{bundle_path});
             std.process.exit(1);
@@ -819,6 +856,8 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
 var sys_next_id: u32 = 100; // monotonic task-ID counter, loaded from _sys
 var sys_directive_next: u32 = 1; // monotonic directive-ID counter, loaded from _sys
 var sys_assertion_next: u32 = 1; // monotonic assertion-ID counter, loaded from _sys
+var sys_closes: u64 = 0; // T478: total task closes, loaded from _sys (duty due-count)
+var sys_duty_migrated: bool = false; // T478: one-time duty-flag migration marker
 
 fn parseStateJson(content: []const u8) !StateMap {
     const trimmed = std.mem.trim(u8, content, " \t\n\r");
@@ -852,6 +891,12 @@ fn parseStateJson(content: []const u8) !StateMap {
             }
             if (sys_val.object.get("assertion_next")) |av| {
                 if (av == .integer) sys_assertion_next = @intCast(av.integer);
+            }
+            if (sys_val.object.get("closes")) |cv| {
+                if (cv == .integer) sys_closes = @intCast(cv.integer);
+            }
+            if (sys_val.object.get("duty_migrated")) |dv| {
+                if (dv == .bool) sys_duty_migrated = dv.bool;
             }
         }
     }
@@ -956,6 +1001,24 @@ fn parseStateJson(content: []const u8) !StateMap {
         }
         if (obj.object.get("claim_count")) |cc| {
             if (cc == .integer) ts.claim_count = @intCast(cc.integer);
+        }
+        if (obj.object.get("duty")) |dv| {
+            if (dv == .bool) ts.duty = dv.bool;
+        }
+        if (obj.object.get("due_after")) |dv| {
+            if (dv == .integer) ts.due_after = @intCast(dv.integer);
+        }
+        if (obj.object.get("last_chunk_closes")) |dv| {
+            if (dv == .integer) ts.last_chunk_closes = @intCast(dv.integer);
+        }
+        if (obj.object.get("last_chunk_ts")) |dv| {
+            if (dv == .string) ts.last_chunk_ts = try alloc.dupe(u8, dv.string);
+        }
+        if (obj.object.get("last_chunk_verdict")) |dv| {
+            if (dv == .string) ts.last_chunk_verdict = try alloc.dupe(u8, dv.string);
+        }
+        if (obj.object.get("last_chunk_findings")) |dv| {
+            if (dv == .string) ts.last_chunk_findings = try alloc.dupe(u8, dv.string);
         }
         if (obj.object.get("amendments")) |am| {
             if (am == .array) {
@@ -1096,6 +1159,32 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         try buf.appendSlice(alloc, ",\n    \"claim_count\": ");
         try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.claim_count}));
 
+        // T478: duty fields
+        try buf.appendSlice(alloc, ",\n    \"duty\": ");
+        try buf.appendSlice(alloc, if (ts.duty) "true" else "false");
+        try buf.appendSlice(alloc, ",\n    \"due_after\": ");
+        try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.due_after}));
+        try buf.appendSlice(alloc, ",\n    \"last_chunk_closes\": ");
+        try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.last_chunk_closes}));
+        if (ts.last_chunk_ts) |v| {
+            try buf.appendSlice(alloc, ",\n    \"last_chunk_ts\": ");
+            try writeJsonString(buf, v);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"last_chunk_ts\": null");
+        }
+        if (ts.last_chunk_verdict) |v| {
+            try buf.appendSlice(alloc, ",\n    \"last_chunk_verdict\": ");
+            try writeJsonString(buf, v);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"last_chunk_verdict\": null");
+        }
+        if (ts.last_chunk_findings) |v| {
+            try buf.appendSlice(alloc, ",\n    \"last_chunk_findings\": ");
+            try writeJsonString(buf, v);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"last_chunk_findings\": null");
+        }
+
         if (ts.acceptance) |ac| {
             try buf.appendSlice(alloc, ",\n    \"acceptance\": ");
             try writeJsonString(buf, ac);
@@ -1139,6 +1228,10 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_directive_next}));
     try buf.appendSlice(alloc, ",\n    \"assertion_next\": ");
     try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_assertion_next}));
+    try buf.appendSlice(alloc, ",\n    \"closes\": ");
+    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sys_closes}));
+    try buf.appendSlice(alloc, ",\n    \"duty_migrated\": ");
+    try buf.appendSlice(alloc, if (sys_duty_migrated) "true" else "false");
     try buf.appendSlice(alloc, "\n  }");
     try buf.appendSlice(alloc, "\n}\n");
 }
@@ -1446,6 +1539,9 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const set_override = getFlagValue(args, "--set");
     const needs_extra = getFlagValue(args, "--needs");
     const model_flag = getFlagValue(args, "--model");
+    // T478: --duty marks the row a duty at registration (meta `duty` key is
+    // the bundle-carried alternative; either one sets the stored flag).
+    const duty_flag = hasFlag(args, "--duty");
 
     // T424: add --note was documented in help but ignored by the implementation
     // (note stored null) — a documented flag that silently does nothing is the
@@ -1517,6 +1613,9 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .needs = meta.needs,
             .caps = meta.caps,
             .acceptance = meta.acceptance,
+            .duty = meta.duty or duty_flag,
+            .due_after = meta.due_after,
+            .last_chunk_closes = if (meta.duty or duty_flag) sys_closes else 0,
             .added = now,
             .claimed = null,
             .done = null,
@@ -1600,6 +1699,9 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .needs = meta.needs,
         .caps = meta.caps,
         .acceptance = meta.acceptance,
+        .duty = meta.duty or duty_flag,
+        .due_after = meta.due_after,
+        .last_chunk_closes = if (meta.duty or duty_flag) sys_closes else 0,
         .added = now,
         .claimed = null,
         .done = null,
@@ -2482,6 +2584,12 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             try unblocked.append(alloc, entry.key_ptr.*);
         }
     }
+
+    // T478: count the close.  Incremented atomically with the phase-1 done
+    // write (under the flock) and never decremented — a later acceptance
+    // failure reopens the row but the close *event* still counts toward duty
+    // due-counts.  Monotonic; no separate lock round-trip.
+    sys_closes += 1;
 
     try writeStateLocked(io, state_path, &state);
     // Release the flock before phase 2 — the acceptance command runs unlocked.
@@ -3456,10 +3564,17 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     defer done.deinit(alloc);
     var failed = std.ArrayList([]const u8).empty;
     defer failed.deinit(alloc);
+    var duties = std.ArrayList([]const u8).empty;
+    defer duties.deinit(alloc);
 
     var it_sort = state.iterator();
     while (it_sort.next()) |entry| {
         const tid = entry.key_ptr.*;
+        // T478: a duty never renders in OPEN alongside tasks — its own section.
+        if (entry.value_ptr.*.duty) {
+            try duties.append(alloc, tid);
+            continue;
+        }
         // T464: ONE status resolver — the assertion ledger's latest assertion
         // is authoritative over tasks.json in BOTH directions.
         switch (resolveStatus(&state, entry.value_ptr.*, &ledger, tid).status) {
@@ -3481,6 +3596,7 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     std.mem.sort([]const u8, blocked.items, {}, sortFn);
     std.mem.sort([]const u8, done.items, {}, sortFn);
     std.mem.sort([]const u8, failed.items, {}, sortFn);
+    std.mem.sort([]const u8, duties.items, {}, sortFn);
 
     // ── stdout: the data ──
     printSection(w, "dispatchable", dispatchable.items, &state, &ledger, repo_root);
@@ -3509,7 +3625,32 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     printSection(w, "blocked", blocked.items, &state, &ledger, repo_root);
     printSection(w, "done", done.items, &state, &ledger, repo_root);
     printSection(w, "failed", failed.items, &state, &ledger, repo_root);
+    printDutySection(w, duties.items, &state);
     w.data("\n", .{});
+}
+
+fn printDutySection(w: Writers, ids: []const []const u8, state: *StateMap) void {
+    w.data("\n  duties ({d})\n", .{ids.len});
+    if (ids.len == 0) {
+        w.data("    -- none --\n", .{});
+        return;
+    }
+    for (ids) |uid| {
+        const ts = state.get(uid).?;
+        const since = closesSinceChunk(ts);
+        if (dutyIsDue(ts)) {
+            w.data("    {s}  due ({d} closes since chunk, due after {d})", .{ uid, since, ts.due_after });
+        } else {
+            w.data("    {s}  not due ({d}/{d} closes since chunk)", .{ uid, since, ts.due_after });
+        }
+        if (ts.last_chunk_verdict) |v| {
+            w.data(", last chunk: {s}", .{v});
+            if (ts.last_chunk_ts) |t| w.data(" {s}", .{t});
+        } else {
+            w.data(", no chunk yet", .{});
+        }
+        w.data("\n", .{});
+    }
 }
 
 fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *StateMap, ledger: *const LedgerStatuses, repo_root: []const u8) void {
@@ -3564,6 +3705,38 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
         first = false;
         const ts = entry.value_ptr.*;
         const rel = bundleRel(ts.bundle, repo_root);
+        // T478: a duty is its own kind — never "dispatchable" (so dashboards
+        // and argus's dispatchable scans cannot mistake it for an open task).
+        if (ts.duty) {
+            const since = closesSinceChunk(ts);
+            try buf.appendSlice(alloc, "\n  {\"id\":");
+            try writeJsonString(&buf, entry.key_ptr.*);
+            try buf.appendSlice(alloc, ",\"status\":\"duty\",\"duty\":true");
+            try buf.appendSlice(alloc, ",\"due\":");
+            try buf.appendSlice(alloc, if (dutyIsDue(ts)) "true" else "false");
+            try buf.appendSlice(alloc, ",\"closes_since_chunk\":");
+            try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{since}));
+            try buf.appendSlice(alloc, ",\"due_after\":");
+            try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.due_after}));
+            try buf.appendSlice(alloc, ",\"set\":");
+            try writeJsonString(&buf, &.{ts.set});
+            try buf.appendSlice(alloc, ",\"bundle\":");
+            try writeJsonString(&buf, rel);
+            if (ts.last_chunk_verdict) |v| {
+                try buf.appendSlice(alloc, ",\"last_chunk_verdict\":");
+                try writeJsonString(&buf, v);
+            }
+            if (ts.last_chunk_findings) |v| {
+                try buf.appendSlice(alloc, ",\"last_chunk_findings\":");
+                try writeJsonString(&buf, v);
+            }
+            if (ts.last_chunk_ts) |v| {
+                try buf.appendSlice(alloc, ",\"last_chunk_ts\":");
+                try writeJsonString(&buf, v);
+            }
+            try buf.appendSlice(alloc, "}");
+            continue;
+        }
         // T464: ONE status resolver — ledger authoritative in both directions.
         const resolved = resolveStatus(state, ts, ledger, entry.key_ptr.*);
         const asserted = resolved.asserted;
@@ -4154,6 +4327,8 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     var it = state.iterator();
     while (it.next()) |entry| {
         const ts = entry.value_ptr.*;
+        // T478: a duty must never be handed out by next in place of a task.
+        if (ts.duty) continue;
         // T464: ONE status resolver — a closed assertion is not dispatchable,
         // and a dispatchable assertion re-queues a stored-in_progress row.
         if (resolveStatus(&state, ts, &ledger, entry.key_ptr.*).status != .dispatchable) continue;
@@ -4300,6 +4475,16 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
             w.data("      {s}\n", .{am});
         }
     }
+    if (ts.duty) {
+        const since = closesSinceChunk(ts);
+        w.data("    duty:     yes (due after {d} closes; {d} since chunk)\n", .{ ts.due_after, since });
+        if (ts.last_chunk_ts) |t| {
+            w.data("    last_chunk: {s}", .{t});
+            if (ts.last_chunk_verdict) |v| w.data(" verdict={s}", .{v});
+            if (ts.last_chunk_findings) |f| w.data(" findings={s}", .{f});
+            w.data("\n", .{});
+        }
+    }
     w.data("\n", .{});
 }
 
@@ -4402,6 +4587,186 @@ fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !v
     w.data("\n", .{});
 }
 
+// ── T478: duty helpers ──────────────────────────────────────────────────────
+
+/// Does the bundle's managent meta header carry a `duty` key?  Scans only the
+/// first 50 lines for the `<!--managent ... -->` line (the same window
+/// parseBundleMeta uses) and looks for a `duty` token in it.  A missing or
+/// unreadable bundle returns false — recognition must fail soft, never crash a
+/// read-only command.
+fn bundleHasDutyKey(io: std.Io, repo_root: []const u8, bundle: []const u8) bool {
+    const abs = if (std.fs.path.isAbsolute(bundle))
+        alloc.dupe(u8, bundle) catch return false
+    else
+        std.fs.path.join(alloc, &.{ repo_root, bundle }) catch return false;
+    defer alloc.free(abs);
+
+    const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch return false;
+    defer alloc.free(content);
+
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    var line_count: usize = 0;
+    while (lines.next()) |line| : (line_count += 1) {
+        if (line_count >= 50) break;
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (!std.mem.startsWith(u8, trimmed, "<!--managent ")) continue;
+
+        var inner = trimmed["<!--managent ".len..];
+        if (std.mem.endsWith(u8, inner, "-->")) {
+            inner = inner[0 .. inner.len - 3];
+        }
+        var tokens = std.mem.splitScalar(u8, inner, ' ');
+        while (tokens.next()) |token| {
+            if (token.len == 0) continue;
+            var parts = std.mem.splitScalar(u8, token, '=');
+            const key = parts.next() orelse continue;
+            if (std.mem.eql(u8, key, "duty")) return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+/// T478 one-time migration: mark pre-existing duty rows by re-reading their
+/// bundle meta headers.  Runs once per store (guarded by _sys.duty_migrated in
+/// main); sets the marker regardless of what it found so the scan does not
+/// repeat on every load.
+fn migrateDutyFlags(io: std.Io, repo_root: []const u8, state: *StateMap) void {
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const ts = entry.value_ptr;
+        if (ts.duty) continue;
+        if (bundleHasDutyKey(io, repo_root, ts.bundle)) {
+            ts.duty = true;
+        }
+    }
+    sys_duty_migrated = true;
+}
+
+/// Closes elapsed since a duty's last chunk (saturating at zero).
+fn closesSinceChunk(ts: TaskState) u64 {
+    if (sys_closes >= ts.last_chunk_closes) return sys_closes - ts.last_chunk_closes;
+    return 0;
+}
+
+/// A duty is due once _sys.closes has advanced due_after past its last chunk.
+fn dutyIsDue(ts: TaskState) bool {
+    return closesSinceChunk(ts) >= ts.due_after;
+}
+
+/// A duty whose most recent chunk failed blocks a landmark declaration.
+fn dutyLastFailed(ts: TaskState) bool {
+    if (ts.last_chunk_verdict) |v| {
+        return std.mem.eql(u8, v, "fail");
+    }
+    return false;
+}
+
+// ── T478: duty — record a chunk for a duty (duties never close) ────────────
+
+fn cmdDuty(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    // managent duty <UID> done --verdict pass|fail --findings <path>
+    if (args.len < 4 or !std.mem.eql(u8, args[3], "done")) {
+        w.diag("usage: managent duty <UID> done --verdict pass|fail --findings <path>\n", .{});
+        w.diag("       records one chunk (date, verdict, findings); a duty never closes.\n", .{});
+        std.process.exit(1);
+    }
+    const uid = args[2];
+    const verdict = getFlagValue(args, "--verdict");
+    const findings = getFlagValue(args, "--findings");
+
+    if (verdict == null or (!std.mem.eql(u8, verdict.?, "pass") and !std.mem.eql(u8, verdict.?, "fail"))) {
+        w.diag("error: --verdict pass|fail is required (the chunk's pass is the landmark gate's input)\n", .{});
+        std.process.exit(1);
+    }
+    if (findings == null or findings.?.len == 0) {
+        w.diag("error: --findings <path> is required (evidence must be recorded)\n", .{});
+        std.process.exit(1);
+    }
+
+    // T337: lock → re-read → modify → writeStateLocked → unlock
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    const ts = state.getPtr(uid) orelse {
+        w.diag("error: task '{s}' not found\n", .{uid});
+        std.process.exit(1);
+    };
+
+    if (!ts.duty) {
+        w.diag("error: '{s}' is not a duty (no duty flag) — chunks apply only to duties\n", .{uid});
+        std.process.exit(1);
+    }
+
+    const now = try nowTimestamp();
+
+    if (ts.last_chunk_ts) |v| alloc.free(v);
+    if (ts.last_chunk_verdict) |v| alloc.free(v);
+    if (ts.last_chunk_findings) |v| alloc.free(v);
+
+    ts.last_chunk_closes = sys_closes;
+    ts.last_chunk_ts = try alloc.dupe(u8, now);
+    ts.last_chunk_verdict = try alloc.dupe(u8, verdict.?);
+    ts.last_chunk_findings = try alloc.dupe(u8, findings.?);
+
+    try writeStateLocked(io, state_path, &state);
+
+    w.diag("\n  chunk recorded for {s}  [verdict: {s}]  [findings: {s}]\n", .{ uid, verdict.?, findings.? });
+    w.diag("  due in {d} closes (closes-since-chunk reset to 0)\n", .{ts.due_after});
+}
+
+// ── T478: landmark — gate a landmark declaration on duty currency ──────────
+
+fn cmdLandmark(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    // managent landmark <Ln> --declare
+    if (args.len < 4 or !std.mem.eql(u8, args[3], "--declare")) {
+        w.diag("usage: managent landmark <Ln> --declare\n", .{});
+        w.diag("       refuses while any duty is overdue or its last chunk failed.\n", .{});
+        std.process.exit(1);
+    }
+    const landmark = args[2];
+
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+
+    var blocking = std.ArrayList([]const u8).empty;
+    defer blocking.deinit(alloc);
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const ts = entry.value_ptr.*;
+        if (!ts.duty) continue;
+        if (dutyIsDue(ts) or dutyLastFailed(ts)) {
+            try blocking.append(alloc, entry.key_ptr.*);
+        }
+    }
+
+    std.mem.sort([]const u8, blocking.items, {}, struct {
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
+    }.lt);
+
+    if (blocking.items.len > 0) {
+        w.diag("\n  REFUSED: landmark {s} — duties not current:\n", .{landmark});
+        for (blocking.items) |bid| {
+            const ts = state.get(bid).?;
+            if (dutyLastFailed(ts)) {
+                w.diag("    {s}: last chunk failed", .{bid});
+                if (ts.last_chunk_findings) |f| w.diag(" (findings: {s})", .{f});
+                w.diag("\n", .{});
+            } else {
+                w.diag("    {s}: overdue ({d} closes since chunk, due after {d})\n", .{ bid, closesSinceChunk(ts), ts.due_after });
+            }
+        }
+        std.process.exit(1);
+    }
+
+    w.diag("\n  landmark {s} declared (duties current)\n", .{landmark});
+}
+
 fn printHelp(w: Writers) void {
     w.diag(
         \\managent — agent-manager CLI
@@ -4431,6 +4796,8 @@ fn printHelp(w: Writers) void {
         \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
         \\  managent liveness [--stale-min <min>]  show per-task liveness: UNKNOWN / beating / beats stopped (default threshold 5 min)
+        \\  managent duty <UID> done  record a duty chunk (--verdict pass|fail --findings <path>); duties never close
+        \\  managent landmark <Ln> --declare  gate a landmark declaration on duty currency (overdue or last-failed blocks)
         \\  managent standing         register triggered standing-tier tasks
         \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
         \\  managent help             show this help
@@ -4443,6 +4810,7 @@ fn printHelp(w: Writers) void {
         \\  --bundle <path>          override bundle path (with add)
         \\  --set <A–Z>              override parallel set (with add / suggest)
         \\  --needs <id>             add extra dependency (with add)
+        \\  --duty                   register the row as a duty (with add)
         \\  --model <name>           set model for prompt line (with suggest)
         \\  --exec <prefix>          claim and exec into harness (with claim / next)
         \\  --json                   machine-readable output (with status / audit)
@@ -5465,6 +5833,10 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         const tid = entry.key_ptr.*;
         const ts = entry.value_ptr.*;
         const eff = resolveStatus(&state, ts, &ledger, tid).status;
+
+        // T478: a duty is not a task — the task-lifecycle audit checks
+        // (unmet needs, attribution, deliverables, staleness) do not apply.
+        if (ts.duty) continue;
 
         // ── cross-status checks (apply regardless of status) ──
 
