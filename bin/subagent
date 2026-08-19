@@ -227,7 +227,9 @@ def main(argv):
         print(" ".join(repr(c) if "\\n" in c else c for c in cmd))
         return 0
 
+    t_run0 = time.monotonic()
     rc, stdout = run_worker(cmd, root, env)
+    wall_seconds = time.monotonic() - t_run0
 
     # ── T411: verify the WORK, never the reply ────────────────────────
     t0 = time.monotonic()
@@ -241,6 +243,19 @@ def main(argv):
         print(f"[verify]   {line}", file=sys.stderr)
     print(f"[verify] verification phase took {verify_ms:.0f} ms", file=sys.stderr)
     dispatch_verify.record_perf(root, perf)
+
+    # ── T477: heal the one wound the dispatcher can heal ───────────────
+    # If verification failed AND the worker died (rc != 0) leaving the row
+    # in_progress, reopen it so it returns to dispatchable — the process
+    # that watched the worker die is still running and already knows. Heal
+    # ONLY this case; every other failure is left for the Orchestrator.
+    if exit_code != 0:
+        healed, heal_line = dispatch_verify.heal_dispatch(
+            root=root, real_root=ROOT, task_id=task_id, model=model,
+            rc=rc, wall_seconds=wall_seconds,
+            store_env=os.environ.get("MANAGENT_STORE"))
+        if heal_line:
+            print(f"[verify] {heal_line}", file=sys.stderr)
     return exit_code
 
 

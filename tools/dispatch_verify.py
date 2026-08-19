@@ -45,6 +45,7 @@ import json
 import os
 import re
 import secrets
+import subprocess
 import sys
 import time
 
@@ -229,6 +230,84 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
             "worker reported failure (verdict %s); side effects verified — verification PASSED "
             "(believing the work, not the text)" % verdict,
             details, (task_id, model, worker_report, "pass", None))
+
+
+def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
+                    store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS"):
+    """Heal the one wound the dispatcher can heal: the worker it just watched
+    die (rc != 0) left the kanban row in_progress.
+
+    T477 (2026-08-19): T448/T450/T452/T466/T475 each sat claimed by a console
+    that no longer existed until a human noticed and relayed a `reopen`. The
+    process that watched the worker die is still running and already knows —
+    so the heal lives here, in the dispatcher, not in a monitor.
+
+    Heal ONLY this case. A worker that reported success and failed verification
+    for a missing deliverable must stay exactly as it is: that is a claim to
+    investigate, not a mess to tidy, and reopening it would erase the evidence.
+    A worker that never claimed (row still dispatchable) needs no reopen. A
+    worker that exited 0 but left the row open is the kimi incident, not a
+    death — leave it for the Orchestrator.
+
+    Returns (healed, line):
+      healed  True iff the dispatcher reopened the row
+      line    a single human-readable line printed by the caller under [verify]
+
+    Side effects on heal:
+      1. `managent reopen <task_id>` — row returns to dispatchable.
+      2. an assertion record (JSON, one line) appended to the heals log:
+         {task_id, model, exit_code, wall_seconds, healed_by, timestamp}.
+      3. the returned line, so the operator sees the heal rather than the wound.
+    The tree is never touched (a heal that cleaned the working tree would
+    destroy a dead worker's uncommitted edits — three consoles died that way
+    this week).
+    """
+    if task_id is None:
+        return (False, "")
+    # Re-read the store at heal time: the row could have closed between the
+    # verify read and now (rare, but a reopen of a done row would refuse and
+    # we want to report that cleanly, not crash).
+    status, _verdict = task_state(read_store(root, store_env), task_id)
+    if status != "in_progress":
+        return (False, "")
+    if rc == 0:
+        # A clean exit that left the row open is not a "watched die". The
+        # kimi incident (rc=0, did nothing) is investigated, not auto-healed.
+        return (False, "")
+
+    mg = mg_path or os.path.join(real_root, "bin", "managent")
+    r = subprocess.run([mg, "reopen", task_id],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return (False,
+                "heal FAILED: managent reopen %s exited %d: %s"
+                % (task_id, r.returncode, (r.stderr or r.stdout).strip()))
+
+    rec = {
+        "task_id": task_id,
+        "model": model,
+        "exit_code": rc,
+        "wall_seconds": round(wall_seconds, 1),
+        "healed_by": "dispatcher",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    path = (os.environ.get(assert_path_env)
+            or os.path.join(real_root, "docs", "infra", "dispatch-heals.jsonl"))
+    wrote = True
+    try:
+        with open(path, "a") as f:
+            f.write(json.dumps(rec) + "\n")
+    except OSError as e:
+        wrote = False
+        err = str(e)
+    line = ("healed: dispatcher reopened %s (model=%s rc=%d wall=%.1fs) — "
+            "assertion written"
+            % (task_id, model, rc, wall_seconds))
+    if not wrote:
+        line = ("healed: dispatcher reopened %s (model=%s rc=%d wall=%.1fs) — "
+                "ASSERTION WRITE FAILED: %s"
+                % (task_id, model, rc, wall_seconds, err))
+    return (True, line)
 
 
 def record_perf(root, perf):
