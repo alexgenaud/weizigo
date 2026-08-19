@@ -41,30 +41,42 @@ result. A catalogue where every mutant dies is the result to distrust.
 ## 3. Kill matrix
 
 Each mutant fed through the battery. A `killed` verdict names the invariant that
-fails. A `survived` verdict names the gap.
+fails. A `survived` verdict names the gap. **Kill-verification is the existence
+of a red-then-green test asserting the killer (in `src/vb_mutants.zig` or
+`src/differential.zig`); a passing killer reading on the live artifact alone is
+calibration, not kill-verification.**
 
 | mutant | I1 | I2 | I3 | I4 | I5 | I6 | I7 | I8 | I9 | I10 | I11 | I12 | verdict | gap |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **M1** T178 colex | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3 |
-| **M2** T193 passes bit | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3 |
+| **M1** T178 colex | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3¹ |
+| **M2** T193 passes bit | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3¹ |
 | **M3** T265 ko-too-broad | — | — | n/a | — | may³ | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3 |
-| **M4** ACCEPT-KOKEY | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3 |
+| **M4** ACCEPT-KOKEY | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3¹ |
 | **M5** GTP-LHSIDE | — | **✗** | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** | — |
 | **M6** DTT-UNSET | — | — | n/a | — | — | — | **✗** | n/a | — | n/a | — | — | **KILLED** | — |
 | **M7** INVSYM-BROKEN | — | **✗** | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** | — |
-| **M8** T261 deleted-entry | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G2 |
+| **M8** T261 deleted-entry | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** (T363) | G2⁴ |
 | **M9** BATTERY-STUBBED | — | — | — | — | — | — | — | — | — | — | — | — | **KILLED** | meta³ |
-| **M10** alias-control | — | — | — | — | — | — | — | — | — | — | — | — | **SURVIVED** | meta² |
+| **M10** alias-control | — | — | — | — | — | — | — | — | — | — | — | — | **KILLED** (T363) | —⁵ |
 
-**Key:** `✗` = killed (invariant reports fail, test assertion verified) · `—` = not applicable (invariant doesn't test that property) · `n/a` = not applicable on WZO1 · `may³` = could catch in principle but the synthetic fixture does not trigger a kill (survival verified by test assertion) · `meta²` = `differential.zig` has a null control for this pattern, but it is not part of the battery per se · `meta³` = killed by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347), which enumerates every declared invariant by compile-time reflection over `vb.Invariant` and fails iff any returns `.skipped`
+**Key:** `✗` = killed (invariant reports fail, test assertion verified) · `—` = not applicable (invariant doesn't test that property) · `n/a` = not applicable on WZO1 · `may³` = could catch in principle but the synthetic fixture does not trigger a kill (survival verified by test assertion) · `meta³` = killed by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347), which enumerates every declared invariant by compile-time reflection over `vb.Invariant` and fails iff any returns `.skipped` · `¹` = T345 KEY-4x4 calibration in `src/differential.zig:1554` flips bit 0 of producer colex and asserts the key-agreement invariant catches it (proves the machinery is sensitive), but no per-mutant kill-verification fixture for M1/M2/M4 exists; the intended killer is the T345 KEY-4x4 exhaustive run, which has been wired but does not yet have the per-mutant red-then-green test. · `⁴` = M8 fixture lives at `src/vb_mutants.zig:269` (3×3 WZO2, deletes one entry from `data/oracle-3x3-v2.wzo2`); C-A1 `children_not_in_table` 0→2, C-A2 `reachable_not_in_table` 0→1, restore → 0/0. · `⁵` = M10 fixture at `src/vb_mutants.zig:319` exercises the I11 null control (kernel-vs-SMD1, both kernel) → 0/114 vacuous, AND the seeded-defect control (allows-suicide mutant) → 1/114, together proving the harness is sensitive to genuine disagreement; the meta² gap (no battery-integrated independent-reimplementation check) was the original framing and is now superseded — the I11 null + seeded-defect pair is wired into the battery.
 
-**Kill rate: 4 / 10 (denominator: 10 mutants).** Four mutants are killed by existing/new battery checks; the remaining 6 survive.
+**Kill rate: 6 / 10 (denominator: 10 mutants).** Six mutants are killed by existing/new battery checks; the remaining 4 survive.
 
 Of the 10 mutants:
-- **4 killed** by battery checks: M5 (I2 colour inversion), M6 (I7 DTT sanity), M7 (I2 colour inversion), M9 (BATT-HEALTH meta-check, T347)
-- **4 survive** due to **G1/G3** (Z-R-STATE / Z-STATE-KEY — key agreement, needs Phase 2 kernel): M1, M2, M3, M4
-- **1 survives** due to **G2** (Z-STATE-REACH — closure C-A1/C-A2, needs Phase 2 kernel): M8
-- **1 survives** due to **meta-gap** (no independent-reimplementation check integrated into battery): M10
+- **6 killed** by battery checks: M5 (I2 colour inversion), M6 (I7 DTT sanity), M7 (I2 colour inversion), M8 (C-A1/C-A2 closure, T363), M9 (BATT-HEALTH meta-check, T347), M10 (I11 null + seeded-defect, T363)
+- **3 survive** due to **G1/G3** (Z-R-STATE / Z-STATE-KEY — key agreement, partial coverage by T345 KEY-4x4 calibration, no per-mutant kill-verification): M1, M2, M4
+- **1 survives** due to **G1/G3** (I5 vacuity at 2×2 — every passes=0 slot is cycle-reachable; the proper killer is T267/T345 key-agreement which requires the Phase 2 kernel producer encoder): M3
+
+**Reconciliation (T475, 2026-08-19).** T363's note (`findings/T363-g3b-completion.json`) claimed
+"SEVEN OF SEVEN mutants now asserted killed (M1-M4 KEY-4x4, M8 CLOSURE, M9 BATT-HEALTH, M10 I11-null)".
+The run evidence at `zig build test` (T475, 2026-08-19) shows this was an overstatement: **only 6
+mutants have kill-verified tests** (M5-M10 except M3); M3 still SURVIVES (`src/vb_mutants.zig:94`,
+explicit comment "M3 survives", test asserts `I5Status.pass`); M1, M2, M4 have no per-mutant
+kill-verification fixture — T345 KEY-4x4 calibration proves the machinery is sensitive to colex
+bit-flip, but exhaustive key-agreement has not been red-then-green tested against the M1/M2/M4
+fixtures specifically. The honest kill rate is **6/10**, not 7/10 or 4/10 (the pre-T347 figure).
+The matrix above is the corrected record.
 
 M3 merits explanation. It has a *conceivable* killer in the current
 battery (I5 SCC containment), but the synthetic fixture does not trigger
@@ -164,18 +176,24 @@ key-agreement check is the intended killer.
 
 ### Gap G2 — Z-STATE-REACH (closure C-A1/C-A2)
 
-**Affected mutant:** M8 (T261 deleted-entry)
-
-The battery has no check that the reachable set is correctly computed. I6
-verifies legal position counts (OEIS), not reachability. The C-A1/C-A2
-closure checks (T266) require computing the forward/backward closure of the
-reachable set, which needs the Phase 2 kernel's move generator.
-**Runnable after Phase 2.**
+**Affected mutant:** ~~M8 (T261 deleted-entry)~~ — **CLOSED 2026-08-05 (T363)** by the C-A1/C-A2
+closure checks (`src/vb_closure.zig` `ca1ForwardClosure` / `ca2BackwardClosure`). The 3×3 WZO2
+fixture deletes one entry from `data/oracle-3x3-v2.wzo2`; forward closure finds
+`children_not_in_table` 0→2, backward closure finds `reachable_not_in_table` 0→1, restore → 0/0.
+Kill verified red-then-green in `src/vb_mutants.zig` `"M8-T261 deleted-entry killed by C-A1/C-A2
+closure (red, then green)"`. **Gap G2 is closed at 3×3 WZO2 and 4×4 WZO2 (T363, gated
+`WEIZIGO_CLOSURE_4X4_FULL=1` run); per the T383 corrected-decode re-run, 4×4 C-A1 = 0 / 616,030,190
+children and C-A2 = 0 / 99,133,034 reachable, 32 sweeps (`findings/T383-ko-decode.json:48`).**
 
 ### Meta-gap — no battery-health check
 
-**Affected mutants:** M10 (alias-control) — M9 (BATTERY-STUBBED) was **closed**
-on 2026-08-04 by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347).
+**Affected mutants:** ~~M10 (alias-control)~~ — **CLOSED 2026-08-05 (T363)** by the I11 null
+control + seeded-defect (`src/vb_i11.zig` `compareSmd1Null` + `compareDefective`). Kernel-vs-SMD1
+(both kernel) reports 0/114 mismatches vacuously; the allows-suicide mutant reports 1/114,
+together proving the comparison machinery is sensitive to genuine disagreement (not a tautology).
+Kill verified red-then-green in `src/vb_mutants.zig` `"M10-ALIAS-CONTROL killed by I11 null control
+(vacuous 0) + seeded-defect (> 0)"`. M9 (BATTERY-STUBBED) was **closed** on 2026-08-04 by the
+BATT-HEALTH meta-check (`src/vb_health.zig`, T347).
 
 M9 (CLOSED 2026-08-04, T347): The battery now has a meta-check that verifies
 every invariant returns a real verdict (not `.skipped`). `src/vb_health.zig`
@@ -185,16 +203,20 @@ enumerates the declared invariants by compile-time reflection over
 check cannot rot), and fails iff any returns `.skipped`. Kill verified
 red-then-green in `src/vb_mutants.zig`. See the amendment log.
 
-M10: `differential.zig` (T257) has a null control for the alias pattern
-(registering the same function twice and verifying it's detected), but this
-is not integrated into the battery's own test suite. The battery does not
-currently register multiple "independent" implementations for differential
-comparison — that's Phase 2's job (spec A5: two invariants independently
-re-implemented).
+M10 (CLOSED 2026-08-05, T363): The I11 differential check (`src/vb_i11.zig`) is now the battery's
+differential-comparison machinery, with the null control (kernel-vs-alias-of-kernel → 0 vacuously)
+and the seeded-defect control (allows-suicide mutant → 1) wired into `zig build test`. The
+"alias-of-self" pattern is no longer a battery-integrated meta-gap; the kill-verified test
+establishes that the comparison infrastructure can both ignore an alias (vacuous 0) and detect a
+real divergence (> 0).
 
-Both meta-gaps are **acknowledged, not critical for Phase 1**. The Phase 1
-battery's invariants are individually calibrated against synthetic mutants;
-the meta-checks for the battery harness itself are a Phase 2 concern.
+**Gap G1/G3 — Z-R-STATE / Z-STATE-KEY (key agreement)** is the only remaining open gap, covering
+M1/M2/M3/M4. T345 KEY-4x4 calibration in `src/differential.zig:1554` demonstrates the key-agreement
+machinery is sensitive to colex bit-flip (mutant → mismatch detected), and T345 KEY-4x4 exhaustive
+runs the producer/consumer comparison over all 99,133,036 4×4 entries (`src/differential.zig:1360`).
+Per-mutant kill-verification fixtures for M1, M2, M4 do not yet exist; the M3 test
+(`src/vb_mutants.zig:94`) explicitly asserts SURVIVAL on 2×2 (vacuous at that size: every passes=0
+slot is cycle-reachable). Closing G1/G3 is the Phase 2 kernel producer-extraction deliverable.
 
 ## 6. Fixtures and kill-verification
 
@@ -228,3 +250,5 @@ a clean artifact loaded into memory and corrupted in place.
 |---|---|---|
 | 2026-08-03 | Initial catalogue — T291 | deepseek-v4-pro/T291 |
 | 2026-08-04 | M9 (BATTERY-STUBBED) inverted SURVIVED → **KILLED** by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347). The check enumerates every declared invariant by compile-time reflection over `vb.Invariant`, runs each via a comptime-complete runner registry, and fails iff any returns `.skipped`. Kill verified red-then-green in `src/vb_mutants.zig` `"M9-BATTERY-STUBBED killed by BATT-HEALTH (red, then green)"`. Kill rate 3/10 → 4/10. M10 remains SURVIVED (meta-gap: independent-reimplementation check not yet integrated). | minimax-m3/T347 |
+| 2026-08-05 | M8 (T261 deleted-entry) inverted SURVIVED → **KILLED** by the C-A1/C-A2 closure checks (`src/vb_closure.zig`, T342). Fixture deletes one entry from the 3×3 WZO2 artifact (`data/oracle-3x3-v2.wzo2`); forward closure finds `children_not_in_table` 0→2, backward closure finds `reachable_not_in_table` 0→1, restore → 0/0. M10 (alias-control) inverted SURVIVED → **KILLED** by the I11 null control + seeded-defect (`src/vb_i11.zig`, T346): kernel-vs-SMD1 (both kernel) → 0/114 vacuously, allows-suicide mutant → 1/114, together proving the comparison machinery is sensitive to genuine disagreement. Kill rate 4/10 → 6/10. (T363's note claimed "seven of seven"; run evidence at T475 showed that was an overstatement — M3 still SURVIVES in code, and M1/M2/M4 have no per-mutant kill-verification tests.) | deepseek-v4-flash/T363 |
+| 2026-08-19 | T475 reconciliation: corrected the kill matrix to **6 / 10** (not the 4/10 originally recorded nor the 7/10 claimed by T363); added the T363 M8/M10 inversions and the kernel-successor C-A1/C-A2 corrected denominators (T383); flagged D8 (flagged 2026-08-06, unreconciled until now). The matrix is now the durable record; per-mutant M1/M2/M3/M4 kill-verification fixtures remain the gap G1/G3 debt. | kimi-k2.7/T475 |

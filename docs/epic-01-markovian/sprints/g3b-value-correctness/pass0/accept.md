@@ -32,12 +32,12 @@ Per `spec.md` Rev 5 §2.3: prove the L/H values in the 4×4 table are the fixpoi
 | Condition | Result |
 |---|---|
 | I4: 0 Bellman violations on KO_SENSITIVE-clear | ✅ PASS — 0 / 95,677,624 at 4×4 (T343); **0 / 463,024 at 4×3** (T363 retroactive rung, WZO1 instrument, 170,276 KO_SENSITIVE excluded) |
-| C-A1: 0 children-not-in-table | ✅ **PASS — 0 / 600,763,414 non-terminal children over all 99,133,036 entries at 4×4** (T363 full run, 251 s, 1124 MB peak RSS; 48,505,262 passes=2 children counted separately as expected-absent terminals, avg branching factor 6.06) |
-| C-A2: 0 reachable-not-in-table | ✅ **PASS — 0 missing; 99,020,312 reachable non-terminal states over 32 snapshot sweeps at 4×4** (T363 full run; 48,448,900 reachable passes=2 terminals reported separately; note: table holds 99,133,036 entries — 112,724 are not root-reachable, e.g. White-to-move-on-empty passes=0 — so reachable ≠ n_entries is expected, not a defect) |
+| C-A1: 0 children-not-in-table | ✅ **PASS — 0 / 600,763,414 non-terminal children over all 99,133,036 entries at 4×4** under the wrong-decode (`kb>>1`) the original T363 run used; T383 corrected-decode re-run: **0 / 616,030,190** (kernel-successor; `findings/T383-ko-decode.json:48`). 251 s, 1124 MB peak RSS; 48,505,262 passes=2 children counted separately as expected-absent terminals, avg branching factor 6.06 |
+| C-A2: 0 reachable-not-in-table | ✅ **PASS — 0 missing; 99,020,312 reachable non-terminal states over 32 snapshot sweeps at 4×4** under the wrong-decode (`kb>>1`) the original T363 run used; T383 corrected-decode re-run: **0 / 99,133,034** (kernel-successor, 32 sweeps, 2 structurally-impossible non-reachable entries — colex=0 side-mismatch — enumerated in `findings/T383-ko-decode.json` F-4; the T380 settled-skip variant is 98,999,934 reachable / 133,102 non-reachable, a different reachability measure). Note: table holds 99,133,036 entries; under the kernel-successor convention 2 entries are not root-reachable (e.g. White-to-move-on-empty passes=0), so reachable ≠ n_entries is expected, not a defect |
 | I11: 0 mismatches on sampled space | ✅ PASS — 0 / 50,000 (all rungs 0: 114 / 978 / 25,350 / 643,378 / 50,000) |
 | I5: KO_SENSITIVE ⊆ cycle-reachable | ✅ **PASS at 4×3 and 4×4** — 4×3: 0 / 170,181 KO_SENSITIVE (V=1,929,035, E=6,858,926, maxSCC=1,284,078); 4×4: **0 / 3,455,412** (V=99,133,036, E=565,402,416, maxSCC=47,429,504, cycle-reachable 97,689,592, 136 s, 2768 MB peak RSS). Seeded-defect control demonstrated red-then-green at 4×4 (baseline 0 → spurious L≠H → 1 → restore → 0). **Vacuity finding (T363): at 3×2 every passes=0 ko=NONE slot is cycle-reachable in the full-graph model, and at 4×3 the non-CR slots are all already KO_SENSITIVE — the spec §7.2 premise that 3×2 is the first non-vacuous rung does not hold for the full (colex, side, ko, passes) graph; the first genuine red-then-green rung is 4×4.** |
 | Key-agreement: 0 mismatches | ✅ PASS — 0 / 99,133,036 at 4×4 (T345); **0 / 643,378 at 4×3** (T363 retroactive rung, WZO1 artifact slice) |
-| Seven mutants killed | ✅ **7 of 7 confirmed** — M1–M4 by KEY-4x4 (T345), M9 by BATT-HEALTH (T347), **M8 by C-A1/C-A2 closure and M10 by I11 null control, both asserted red-then-green in `vb_mutants.zig` (T363)** |
+| Seven mutants killed | ✅ **6 of 10 confirmed killed** (corrected by T475 from T363's "7 of 7" overstatement) — M5/M6/M7 by I2/I7/I2, **M8 by C-A1/C-A2 closure and M10 by I11 null control** (both asserted red-then-green in `vb_mutants.zig`, T363), M9 by BATT-HEALTH (T347). M1/M2/M3/M4 SURVIVE: T345 KEY-4x4 calibration demonstrates machinery sensitivity to colex bit-flip but is not per-mutant kill-verification; per-mutant fixtures for M1/M2/M4 do not exist; M3 test (`src/vb_mutants.zig:94`) asserts `I5Status.pass` (vacuous at 2×2). The remaining Gap G1/G3 is owed to Phase 2 kernel producer-extraction. |
 
 ### 2.3 Headline numbers
 
@@ -142,11 +142,17 @@ not discharge G3b and promotes no claim — that ruling is the sprint owner's, p
 1. **C-A1/C-A2 full 4×4 closure run — PASS.** `WEIZIGO_CLOSURE_4X4_FULL=1` gated test in
    `src/vb_closure.zig` (T363). C-A1: **0 children-not-in-table / 600,763,414 non-terminal
    children** over all 99,133,036 entries, 48,505,262 passes=2 children counted separately as
-   expected-absent terminals, avg branching factor 6.0602, 251 s wall, 1124 MB peak RSS. C-A2:
-   **0 reachable-not-in-table**, 99,020,312 reachable non-terminals over 32 sweeps, 48,448,900
-   reachable terminals (not stored, reported separately). Note: table = 99,133,036 entries but
-   reachable = 99,020,312 — 112,724 entries are not root-reachable (e.g. White-to-move on empty
-   board at passes=0); C-A2's verdict is reachable ⊆ table, and it holds.
+   expected-absent terminals, avg branching factor 6.0602, 251 s wall, 1124 MB peak RSS — figures
+   computed under the wrong-decode (`kb>>1`) the T363 run inherited; the T383 corrected-decode
+   re-run reports C-A1 0 / **616,030,190** children (kernel-successor; `findings/T383-ko-decode.json:48`).
+   C-A2: **0 reachable-not-in-table**, 99,020,312 reachable non-terminals over 32 sweeps
+   (wrong-decode) → T383 corrected-decode: 0 / **99,133,034** reachable non-terminals, 32 sweeps,
+   2 structurally-impossible non-reachable entries (colex=0 side-mismatch, enumerated in
+   `findings/T383-ko-decode.json` F-4); 48,448,900 reachable terminals (not stored, reported
+   separately). Note: table = 99,133,036 entries; under the kernel-successor convention only 2
+   entries are not root-reachable (vs 112,724 under the wrong-decode / vs 133,102 under the T380
+   settled-skip convention); C-A2's verdict is reachable ⊆ table, and it holds under all three
+   conventions.
 2. **4×3 retroactive rung — PASS for I4 and key-agreement** against `artifacts/oracle-4x3.wzo`
    (SHA 5316f428…). I4: 0 / 463,024 KO_SENSITIVE-clear non-terminal examined (170,276
    KO_SENSITIVE excluded — WZO1 instrument, spec §2.4 split; test added to `vb_fixpoint.zig`).
@@ -259,20 +265,36 @@ the #2 auditor.
 
 T380's ko review found **F-7**: `src/vb_closure.zig:467` and `:794` decode the key-byte ko as
 `kb >> 1` where the `artifact2` contract is `kb >> 2`. The C-A1/C-A2 figures in the ruling above
-were therefore computed with a **wrong ko decode**. T380 re-ran with the correct decode:
+were therefore computed with a **wrong ko decode**. T380 re-ran with the correct decode (its
+**settled-skip** reachability — `R.is_settled` short-circuits expansion of settled positions):
 
-| | as ruled (wrong decode) | correct decode (T380) |
+| | as ruled (wrong decode) | correct decode (T380, **settled-skip**) |
 |---|---|---|
 | reachable non-terminals | 99,020,312 | **98,999,934** |
 | not root-reachable | 112,724 | **133,102** |
 | C-A1 children not in table | 0 | **0** |
 | C-A2 reachable not in table | 0 | **0** |
 
-**The discharge stands: both verdicts are 0 under either decode**, and T380 confirms
-`children_not_in_table = 0` and `reachable_not_in_table = 0` with the corrected reader over 31
-sweeps. What was wrong is the **denominator**, by 20,378 — and in a project whose first rule is
-that a pass without a denominator is not a pass, a pass with the *wrong* denominator must be
-corrected in the same place it was signed. Quote the corrected figures.
+T383 then re-ran the **kernel-successor** closure (`src/vb_closure.zig` `ca1ForwardClosure` /
+`ca2BackwardClosure` — no settled short-circuit, every legal move expanded) with the corrected
+decode (`kb >> 2`, contract-aligned; `findings/T383-ko-decode.json:48`):
+
+| | as ruled (wrong decode, kernel-suc) | corrected decode (T380, settled-skip) | corrected decode (T383, **kernel-successor**) |
+|---|---|---|---|
+| reachable non-terminals | 99,020,312 | 98,999,934 | **99,133,034** |
+| not root-reachable | 112,724 | 133,102 | **2** (colex=0 side-mismatch, enumerated) |
+| C-A1 non-terminal children | 600,763,414 | — | **616,030,190** |
+| C-A2 sweeps | — | — | **32** |
+| C-A1 children not in table | 0 | 0 | **0** |
+| C-A2 reachable not in table | 0 | 0 | **0** |
+
+**Two conventions, both verdicts 0.** The discharge stands under either convention:
+- **kernel-successor** (`src/vb_closure.zig`, T383): every reachable non-terminal has every legal
+  child in the table; 99,133,034 reachable non-terminals, 2 structurally-impossible
+  empty-board-side-mismatch entries not root-reachable (enumerated in `findings/T383-ko-decode.json`
+  F-4). C-A1 0 / 616,030,190, C-A2 0 / 99,133,034.
+- **settled-skip** (T380 D042-2a): children of settled positions are not expanded; 98,999,934
+  reachable non-terminals, 133,102 not root-reachable. C-A1 0, C-A2 0.
 
 **The epistemic lesson, which is the more important half.** I re-ran the closure check myself and
 reported that it "reproduces T363's figures exactly, including wall time and peak RSS" — and it did,
@@ -280,10 +302,18 @@ reported that it "reproduces T363's figures exactly, including wall time and pea
 determinism, not correctness.** It is a reproducibility check wearing the costume of an independent
 one, and I gave it more weight than it could carry. T380 found the defect precisely because it
 decoded the key independently rather than re-running the existing path. Independence means a second
-*implementation*, not a second *run*.
+*implementation*, not a second *run*. T383 then closed the loop: a second *independent
+implementation* of the kernel closure (own visited bitset, own decode, own sweep) agrees with the
+production path exactly (99,133,034 reachable / 0 not-in-table / 32 sweeps / 2 non-reachable
+enumerated), and the same independent BFS with T380's settled-skip reproduces T380's published
+figures exactly (98,999,934 / 133,102). The discrepancy between T380 and T383 is the settled-skip,
+not the decode.
 
 `4x4.C1` and `4x4.FP1` remain promoted to CLAIMED; the four scope limits are unchanged. The fix to
-`vb_closure.zig` and the re-issue of the affected figures are **T383**.
+`vb_closure.zig` and the re-issue of the affected figures are **T383**. T475 (2026-08-19) propagated
+the corrected kernel-successor denominators (0 / 616,030,190 · 0 / 99,133,034) into every status
+surface that still quoted the wrong-decode pair (Amendment 1 itself is now the table above — it
+preserves the original settled-skip re-issue and adds the kernel-successor re-issue alongside).
 
 ### Amendment 2 — the I5 instrument was adjudicated; the discharge is unchanged (Opus 5, 2026-08-06)
 
