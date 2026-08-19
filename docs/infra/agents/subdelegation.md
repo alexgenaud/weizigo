@@ -11,7 +11,7 @@ bin/ollama-subagent <T-ID> --model <tag>            # Ollama worker (guarded pat
 bin/ollama-subagent <T-ID> --model glm-5.2:cloud --dry-run
 ```
 
-No default model — name one. Max two concurrent; `&` them and `wait`.
+No default model — name one. **Two distinct limits, do not conflate:** (a) the *parallel* count — no fleet cap; ANALYSIS unlimited, MUTATION serial, conflict-free by `holds=` and task-kind per `docs/infra/delegation/ROLES.md` §Concurrency (operator's ruling 2026-08-19: no DeepSeek rate-limit cap); (b) the *recursion* depth — `WEIZIGO_AGENT_DEPTH`/`MAX_DEPTH=3` below stays: it bounds delegation chains so agent → subagent → sub-subagent cannot loop or branch infinitely.
 
 `bin/subagent` dispatches DeepSeek only — by construction, it hardcodes the two
 DeepSeek models and requires `DEEPSEEK_API_KEY`. Claude seats use the Claude Code
@@ -24,8 +24,6 @@ callable and unguarded — see §Reach matrix and §Depth-enforcement ruling bel
 
 **However, workers can reach beyond DeepSeek through other paths** (T320,
 2026-08-03). See §Reach matrix below.
-
-Max two concurrent. `&` them and `wait`.
 
 The script resolves the bundle, builds the claim/findings/done wrapper, runs
 under `tools/runner`, and stamps `WEIZIGO_AGENT_DEPTH` on the child.
@@ -193,9 +191,6 @@ dispatcher; never from the model's self-report.**
    lives only in the orchestrator's habits is exactly what failed here (seven rows
    hand-repaired on 2026-08-03: T292, T307, T309, T310, T305, T306, T313).
 5. **Independent re-implementation is the highest-value use.** The only instrument that has found every real defect in this project is an independent seat. Subagents make this cheap.
-6. **Max two DeepSeek pi-subagents at once.** They share the same filesystem and API key; three concurrent
-   risk race conditions and rate limiting. This cap is a rate-limit scope on pi-subagents only — the
-   concurrency authority is `docs/infra/delegation/ROLES.md` §Concurrency (analysis unlimited, mutation serial).
 
 ## Patterns
 

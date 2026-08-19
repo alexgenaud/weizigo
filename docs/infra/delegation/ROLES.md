@@ -101,8 +101,10 @@ its dispatchable set. The kanban already expresses both kinds, verified against
 So the practical limit on analysis is consoles and cost, not the kanban.
 
 **This section is the concurrency authority.** `sprint.md`, `subdelegation.md` and
-`manager-brief-template.md` defer to it; their "max two" caps apply only to DeepSeek
-pi-subagents (API rate limit), never to analysis generally.
+`manager-brief-template.md` defer to it. There is **no fleet or per-provider cap** on parallel
+workers (operator's ruling, 2026-08-19); the only numeric bound is the *recursion* depth cap
+(`WEIZIGO_AGENT_DEPTH`/`MAX_DEPTH=3`) in the dispatch tools, which prevents delegation loops —
+a different mechanism from parallel width.
 
 ## Dispatching, claiming, and the kanban
 
