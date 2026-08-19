@@ -1,0 +1,8 @@
+{
+  "task_id": "T472",
+  "date": "2026-08-19",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Ruled on T467 remainder T-a (Track A). VERDICT: the KO_SENSITIVE column of data/oracle-4x4-v2.wzo2 (3,455,412 L!=H bracket entries, SHA 0c3366f0...e15a) is DISCHARGED BY PROVENANCE — built by the ADR-0020 pure loopy-game fixpoint (oracle_v2_build.zig -> exp6.run_fixpoint_4x4), never the historically unsound finisher (retro.zig writes only .wzo via artifact.zig, never .wzo2). Provenance chain verified at source with file:line (oracle_v2_build.zig:19,23-24,34-38,143; exp6_solve.zig:34-47; ADR-0020:31,60; retro.zig:74,440,920,3166-3167; artifact2.zig:88-93,128-157,184,252-253; baselines.json:1084; parallel-fixpoint-measurement-2026-08-03.md:86-100; vb_bellman_4x4.zig:711,810-811,883-886). No regeneration row registered: memo_writes=false is a retro.zig finisher flag inapplicable to a fixpoint-only build (it still names data/oracle-4x4.checkpoint.wzo, whose ko-sensitive values stay untrusted). Ruling recorded in accept.md section 8. Scope limits 1,2,4 remain; #2 auditor gate (T467 remainder T-c) remains open; no claim promoted. Inbox checked at checkpoints (bin/managent inbox T472 --ack): empty, no directives."
+}

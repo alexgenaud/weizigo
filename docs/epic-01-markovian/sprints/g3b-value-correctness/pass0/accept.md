@@ -317,3 +317,65 @@ ReleaseFast binary exceeds the runner's RSS cap).
 determinism, not correctness. Amendment 2: two *different* implementations agreeing on a verdict
 while disagreeing on every underlying count is worth less than either — a shared `pass` concealed
 three real defects. **Compare the counts, not the verdicts.**
+
+---
+
+## 8. Track A ruling — KO_SENSITIVE column DISCHARGED BY PROVENANCE (deepseek-v4-pro/T472, 2026-08-19)
+
+Ruled on T467 remainder T-a (`docs/audits/2026-08-19-L2-audit/VERDICT.md`): is the 3,455,412-entry
+KO_SENSITIVE column of `data/oracle-4x4-v2.wzo2` (SHA `0c3366f0…e15a`) trusted, or must Track A
+regenerate it with `memo_writes=false`? **Ruling: discharged by provenance.** The column is the
+ADR-0020 pure loopy-game fixpoint bracket, not the historically unsound finisher's output. The
+provenance chain, verified at source (not inherited from T380 F-8):
+
+1. **The WZO2 builder is `oracle_v2_build.zig` and reads the fixpoint directly.**
+   `src/oracle_v2_build.zig:19` — "oracle-v2 M2b — Build WZO2 artifact from exposed fixpoint (T165)";
+   `:23-24` — "Builds the WZO2 artifact per design-M1.md: reads the fixpoint tables from
+   exp6_solve.zig's exposed interface".
+2. **Its only 4×4 value source is the pure fixpoint.** `src/oracle_v2_build.zig:143`:
+   `var fp4_out = try exp6.run_fixpoint_4x4(gpa, reach4, num_threads);`. There is no finisher call
+   anywhere in the builder.
+3. **The builder's import set excludes the finisher.** `src/oracle_v2_build.zig:34-38` imports
+   `std`, `version`, `exp6_solve`, `artifact2`, `colex` — no `retro`. The finisher lives in a
+   separate program, `src/retro.zig` (`ab_solve` at `:440`, `finishProgress` at `:920`), which the
+   builder never links.
+4. **The fixpoint engine does not call the finisher either.** `src/exp6_solve.zig:34-47` imports
+   `std`, `artifact`, `rules_mod`, `qa023_brute_2x2` — no `retro`.
+5. **The semantics is the fixpoint, by decision.**
+   `docs/decisions/ADR-0020-loopy-game-fixpoint-semantics.md:31` — "The deliverable is the loopy-game
+   fixpoint table"; `:60` — "EXP-6 (4×4 build) proceeds under this semantics".
+6. **The finisher writes a different format to different paths, and never `.wzo2`.**
+   `src/retro.zig:74` imports `artifact.zig` (the flat WZO1 format), not `artifact2.zig` (the grouped
+   WZO2 format); its 4×4 outputs are `data/oracle-4x4.wzo` and `data/oracle-4x4.checkpoint.wzo`
+   (`src/retro.zig:3166-3167`). `grep wzo2 src/retro.zig` returns nothing — the finisher cannot
+   produce a `.wzo2`. The WZO2 grouped layout (colex+entry_count group headers, key_byte|L|H|DTT
+   entry rows, rules_id 3) is written only by `artifact2.buildFile` (`src/artifact2.zig:88-93,
+   128-157,184,252-253`), called only from `oracle_v2_build.zig`.
+7. **The shipped file is the fixpoint build's byte-identity.** `data/oracle-4x4-v2.wzo2` SHA
+   `0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a` (verified this task, 2026-08-19)
+   matches `docs/evidence/BATTERY/baselines.json:1084` and T310's deterministic rebuild — 8/8 builds
+   byte-identical across serial and N=1/2/4/6/12/16 Jacobi thread counts, all via
+   `exp6.run_fixpoint_4x4` (`docs/research/parallel-fixpoint-measurement-2026-08-03.md:86-100`).
+8. **The shipped column satisfies the fixpoint identity — finisher values could not.** The
+   KO_SENSITIVE-set bucket is defined as stored L≠H (`src/vb_bellman_4x4.zig:711`); I4 computes Φ
+   via the independent R8 engine for every entry and reports `violations_set = 0` on the 3,455,412
+   L≠H entries and `violations_clear = 0` on the 95,677,624 L==H entries (`:810-811,883-886`, T343).
+   L=Φ(L), H=Φ(H) is the fixpoint identity; a finisher-collapsed column (single αβ values inside
+   non-degenerate brackets) would not satisfy it. Zero residual over all 99,133,036 entries is only
+   satisfiable by fixpoint brackets.
+
+**What the ruling does and does not do.**
+
+- **Does:** rescinds scope limit 3's "remains distrusted pending Track A" for
+  `data/oracle-4x4-v2.wzo2`. The 3,455,412 L≠H entries are the ADR-0020 fixpoint bracket — the
+  deliverable itself under loopy-game semantics (ADR-0020:31) — not the finisher's ko-sensitive
+  single values. Track A's regeneration row is **not registered**: `memo_writes=false` is a
+  `retro.zig` finisher flag (`src/retro.zig:920`), and this artifact never ran a finisher, so the
+  instruction is a category error against it. It still names the old checkpoint
+  (`data/oracle-4x4.checkpoint.wzo`), whose ko-sensitive values stay untrusted as committed.
+- **Does not:** promote any claim to PROVEN, discharge the #2 auditor gate (T467 remainder T-c), or
+  change the fresh-start-only scope (limit 4). Provenance answers "which builder, by what evidence,
+  does it distinguish fixpoint from finisher" — it does not turn fresh-start scores into real-game
+  scores (C2/C3 remain FALSE-AS-SCOPED as scoped).
+
+Findings: `findings/T472-track-a-ruling.json`.
