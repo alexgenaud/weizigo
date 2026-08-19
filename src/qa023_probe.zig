@@ -948,7 +948,7 @@ fn fixpoint_kernel(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointStats {
                     l_changed += 1;
                 }
             } else {
-                // White min over L(children); L ascends so any best < current
+                // White min over L(children); L ascends so any best > current
                 var best: i8 = H_init;
                 var any: bool = false;
                 for (0..m) |k| {
@@ -962,14 +962,17 @@ fn fixpoint_kernel(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointStats {
                         any = true;
                     }
                 }
-                if (any and best < L_tab[li]) {
+                if (any and best > L_tab[li]) {
                     L_tab[li] = best;
                     l_changed += 1;
                 }
             }
         }
         // H sweep (same operator: Black max, White min); H descends so the
-        // driving check flips: best < H_tab[hi] for Black, best > for White.
+        // driving check flips: best < H_tab[hi] for Black, best < for White.
+        // (H descends for both; the side only affects WHICH child's value
+        // we pick — Black max, White min — not the descent direction.
+        // Earlier this comment read "best > for White", a copy error: T378.)
         var h_changed: u64 = 0;
         var hi: u64 = 0;
         while (hi < TOTAL_STATES) : (hi += 1) {
@@ -1007,7 +1010,7 @@ fn fixpoint_kernel(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointStats {
                     h_changed += 1;
                 }
             } else {
-                // White min over H(children); H descends so any best > current
+                // White min over H(children); H descends so any best < current
                 var best: i8 = L_init;
                 var any: bool = false;
                 for (0..m) |k| {
@@ -1021,7 +1024,7 @@ fn fixpoint_kernel(reach: []const u64, L_tab: []i8, H_tab: []i8) FixpointStats {
                         any = true;
                     }
                 }
-                if (any and best > H_tab[hi]) {
+                if (any and best < H_tab[hi]) {
                     H_tab[hi] = best;
                     h_changed += 1;
                 }
@@ -2597,6 +2600,156 @@ test "3x2: median rule on the calibration gadget" {
     const T: i8 = TIE;
     const V_v2: i8 = @max(L, @min(T, H));
     try expect(V_v2 == 1);
+}
+
+// ---- TEST: 3x2 fixpoint_kernel — White guards (T378, 2026-08-19) ---------
+//
+// The as-shipped kernel had inverted White guards at :965 (L sweep) and :1024
+// (H sweep): the L-sweep White guard read `best < L_tab[li]` (lower on
+// descent), the H-sweep White guard read `best > H_tab[hi]` (raise on
+// descent). Both are wrong because the sweep direction does not flip with
+// side — only the operator (max vs min) does. The buggy guards therefore
+// never raised L or lowered H at White-to-move states, so the kernel
+// reported a partial fixpoint (Bellman residual > 0). With the fix, the
+// kernel reaches an exact Phi fixpoint (Bellman residual = 0 on L and H,
+// bracket invariant L<=H).
+//
+// The strong witness is the fixpoint property itself: count of reachable
+// non-terminal states where Phi(tab)[s] != tab[s]. T372's fixpoint_corrected
+// reports residual 0/0 at 3x2 (census 2026-08-19); these tests reproduce
+// that invariant against the qa023_probe kernel.
+
+test "3x2: fixpoint_kernel — White L guard at :965 propagates from terminal" {
+    const gpa = std.heap.page_allocator;
+    const reach = try gpa.alloc(u64, ReachWords);
+    defer gpa.free(reach);
+    @memset(reach, 0);
+    seed_roots(reach);
+    const snap = try gpa.alloc(u64, ReachWords);
+    defer gpa.free(snap);
+    var new_marks: u64 = 1;
+    while (new_marks > 0) {
+        try census_sweep(reach, snap, &new_marks);
+    }
+    const L_tab = try gpa.alloc(i8, TOTAL_STATES);
+    defer gpa.free(L_tab);
+    const H_tab = try gpa.alloc(i8, TOTAL_STATES);
+    defer gpa.free(H_tab);
+    _ = fixpoint_kernel(reach, L_tab, H_tab);
+
+    // The strong witness (T378): the kernel must compute an exact fixpoint
+    // of Phi on both L and H (bellman_residual == 0). The buggy kernel
+    // never raised L at White-to-move states (guard `best < L_tab[li]`
+    // instead of `best > L_tab[li]`), so the residuals on L would be > 0.
+    // T372's fixpoint_corrected (src/t372_zrtie.zig:bellman_residual) is
+    // the reference: residuals 0/0 at 3x2 (census output, 2026-08-19).
+    var l_residual: u64 = 0;
+    var h_residual: u64 = 0;
+    var linear: u64 = 0;
+    while (linear < TOTAL_STATES) : (linear += 1) {
+        if (reach[linear >> 6] & (@as(u64, 1) << @intCast(linear & 63)) == 0) continue;
+        const passes: u8 = @intCast(linear / (2 * KO_DIMS * RAW_TOTAL));
+        if (passes == 2) continue;
+        const rest: u64 = linear % (2 * KO_DIMS * RAW_TOTAL);
+        const side: u8 = @intCast(rest / (KO_DIMS * RAW_TOTAL));
+        const rest2: u64 = rest % (KO_DIMS * RAW_TOTAL);
+        const ko: u16 = @intCast(rest2 / RAW_TOTAL);
+        const board: u32 = @intCast(rest2 % RAW_TOTAL);
+        const state = StateIdx{ .board = board, .side = side, .ko = ko, .passes = passes };
+        var succ_boards: [n + 1]Pos = undefined;
+        var succs: [n + 1]StateIdx = undefined;
+        const m = moves(state, &succ_boards, &succs);
+        var best_l: ?i8 = null;
+        var best_h: ?i8 = null;
+        for (0..m) |k| {
+            if (!is_legal(&succ_boards[k])) continue;
+            const cl = succs[k].linear();
+            if (reach[cl >> 6] & (@as(u64, 1) << @intCast(cl & 63)) == 0) continue;
+            const vl = L_tab[cl];
+            const vh = H_tab[cl];
+            if (side == 0) {
+                if (best_l == null or vl > best_l.?) best_l = vl;
+                if (best_h == null or vh > best_h.?) best_h = vh;
+            } else {
+                if (best_l == null or vl < best_l.?) best_l = vl;
+                if (best_h == null or vh < best_h.?) best_h = vh;
+            }
+        }
+        if (best_l == null or best_h == null) continue;
+        if (best_l.? != L_tab[linear]) l_residual += 1;
+        if (best_h.? != H_tab[linear]) h_residual += 1;
+    }
+    std.debug.print("# T378 bellman residual L={d} H={d}\n", .{ l_residual, h_residual });
+    try expect(l_residual == 0);
+    try expect(h_residual == 0);
+
+    // And the bracket invariant: L <= H at every reachable state.
+    var bracket_violations: u64 = 0;
+    var li2: u64 = 0;
+    while (li2 < TOTAL_STATES) : (li2 += 1) {
+        if (reach[li2 >> 6] & (@as(u64, 1) << @intCast(li2 & 63)) == 0) continue;
+        if (L_tab[li2] > H_tab[li2]) bracket_violations += 1;
+    }
+    try expect(bracket_violations == 0);
+}
+
+test "3x2: fixpoint_kernel — White H guard at :1024 propagates from terminal" {
+    const gpa = std.heap.page_allocator;
+    const reach = try gpa.alloc(u64, ReachWords);
+    defer gpa.free(reach);
+    @memset(reach, 0);
+    seed_roots(reach);
+    const snap = try gpa.alloc(u64, ReachWords);
+    defer gpa.free(snap);
+    var new_marks: u64 = 1;
+    while (new_marks > 0) {
+        try census_sweep(reach, snap, &new_marks);
+    }
+    const L_tab = try gpa.alloc(i8, TOTAL_STATES);
+    defer gpa.free(L_tab);
+    const H_tab = try gpa.alloc(i8, TOTAL_STATES);
+    defer gpa.free(H_tab);
+    _ = fixpoint_kernel(reach, L_tab, H_tab);
+
+    // Strong witness for the H-side White guard (T378): the Bellman residual
+    // on H must be zero. The buggy kernel never lowered H at White-to-move
+    // states (guard `best > H_tab[hi]` instead of `best < H_tab[hi]`), so the
+    // H residuals would be > 0. The L-sweep White guard test above already
+    // exercises Phi(L), this one exercises Phi(H) separately so a future
+    // regression on the H-side alone (e.g. someone fixing L but breaking H)
+    // would be caught independently.
+    var h_residual: u64 = 0;
+    var linear: u64 = 0;
+    while (linear < TOTAL_STATES) : (linear += 1) {
+        if (reach[linear >> 6] & (@as(u64, 1) << @intCast(linear & 63)) == 0) continue;
+        const passes: u8 = @intCast(linear / (2 * KO_DIMS * RAW_TOTAL));
+        if (passes == 2) continue;
+        const rest: u64 = linear % (2 * KO_DIMS * RAW_TOTAL);
+        const side: u8 = @intCast(rest / (KO_DIMS * RAW_TOTAL));
+        const rest2: u64 = rest % (KO_DIMS * RAW_TOTAL);
+        const ko: u16 = @intCast(rest2 / RAW_TOTAL);
+        const board: u32 = @intCast(rest2 % RAW_TOTAL);
+        const state = StateIdx{ .board = board, .side = side, .ko = ko, .passes = passes };
+        var succ_boards: [n + 1]Pos = undefined;
+        var succs: [n + 1]StateIdx = undefined;
+        const m = moves(state, &succ_boards, &succs);
+        var best_h: ?i8 = null;
+        for (0..m) |k| {
+            if (!is_legal(&succ_boards[k])) continue;
+            const cl = succs[k].linear();
+            if (reach[cl >> 6] & (@as(u64, 1) << @intCast(cl & 63)) == 0) continue;
+            const vh = H_tab[cl];
+            if (side == 0) {
+                if (best_h == null or vh > best_h.?) best_h = vh;
+            } else {
+                if (best_h == null or vh < best_h.?) best_h = vh;
+            }
+        }
+        if (best_h == null) continue;
+        if (best_h.? != H_tab[linear]) h_residual += 1;
+    }
+    std.debug.print("# T378 H-bellman residual = {d}\n", .{h_residual});
+    try expect(h_residual == 0);
 }
 
 // ---- 3x2 HISTORY-PAIR GENERATION (2B-3) -----------------------------------
