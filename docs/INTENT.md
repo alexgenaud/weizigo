@@ -85,6 +85,16 @@ result; a recorded failure with proof is worth more than a `pass` that reinterpr
 prose is not a remedy for a mechanism failure — a rule that needs an agent to remember it does
 not exist.
 
+**Single source of truth (operator, 2026-08-19).** Better than synchronising and realigning
+contradictions is to have one and only one assertion, never repeated, and consistently applied,
+without negative examples or exceptions. Every assertion lives in exactly one place and every
+other reference defers to it. A number a tool already prints is not held in prose; the prose
+re-points at the tool.
+
+**Comments are for the non-obvious only (operator, 2026-08-19).** No comments in code where the
+code is self-describing. Comments are reserved for explanations that cannot be improved in the
+code itself.
+
 *Recorded 2026-07-28, amended 2026-08-19. Owned by the Dabir; authored by the human. Amend
 freely — this is the one document that is not required to be defended, only to be true to his
 intent.*
