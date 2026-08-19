@@ -355,6 +355,13 @@ pub fn build(b: *std.Build) void {
     duty_regression.cwd = b.path(".");
     test_step.dependOn(&duty_regression.step);
 
+    // T496: fleet-keeper loop + cooldown flag controls (scratch store + scratch
+    // repo). Fires oldest-eligible until the cap, cools down on a flag, and
+    // the dead-man's switch treats an unreadable cooldown dir as cooldown.
+    const fleet_keeper_regression = b.addSystemCommand(&.{ "sh", "tools/regression-fleet-keeper.sh" });
+    fleet_keeper_regression.cwd = b.path(".");
+    test_step.dependOn(&fleet_keeper_regression.step);
+
     const depth_regression = b.addSystemCommand(&.{ "sh", "tools/regression-depth-enforcement.sh" });
     depth_regression.cwd = b.path(".");
     test_step.dependOn(&depth_regression.step);

@@ -25,6 +25,7 @@ UIDs share a column with task ids so one display serves both.
 | `DCLAIM` | `L4 (the ledger is clean)` | verify **one** prose-only `PROVEN` claim: re-run its probe, or record NO-SUCH-PROBE naming what a probe would need. 48 of 69 `PROVEN` claims have no re-runnable probe; this is the only thing that moves that number. |
 | `DRPLAY` | `L2 (proven 4×4 values)` | play **one** random or deliberately suboptimal 4×4 game against the oracle and check the predicted value against the played result. Cannot prove the table; can falsify it. A single disagreement is a crisis finding. |
 | `DARGUS` | `L1 (the dashboard tells the truth)` | run `bin/argus --mode doctor` once and act on exactly what it reports: orphaned claims, stale binaries, gauges disagreeing with a fresh measurement. |
+| `DFLEET` | `L1 (the dashboard tells the truth)` | run **one** iteration of `tools/fleet-keeper.sh`: read `bin/managent status --json`, and if a slot is free and a task is eligible, fire `bin/dispatch <id> <model>` (oldest-by-`added`, needs met, T-id only, never a duty or a seat). The fleet must never sit idle with dispatchable work; PROGRESS must never stay empty for more than ten seconds. Chunk findings (`findings/DFLEET-<date>.json`) record the iteration's outcome — fired / cooldown / cap / nothing-eligible. |
 
 ## Scheduling — by work completed, not by clock
 
@@ -42,6 +43,18 @@ housekeeping must be current, because that claim is what everything downstream t
 
 A failing duty **blocks** rather than annotates. An advisory duty is ceremony, and this project
 has ruled that prose is not a remedy for a mechanism failure.
+
+### `DFLEET` is exempt from the landmark gate
+
+A dispatcher that gates the landmark it serves is circular: `DFLEET` erodes toward `L1 (the
+dashboard tells the truth)`, but `L1` is *exactly* "PROGRESS never sits empty with dispatchable
+work present" — so `DFLEET` being overdue is the condition `L1` describes, not a violation of it.
+A dead fleet should be visible in PROGRESS (the dashboard showing the idle fleet is the truth),
+not a block on declaring `L1`. `DFLEET` therefore never blocks a landmark declaration; the other
+duties (`DCLAIM`, `DRPLAY`, `DARGUS`) gate as stated above. The keeper is launched by the
+Orchestrator (or the human), and its cooldown flag (`tools/fleet-cooldown.sh`) is the graceful
+shutdown — the duty exists to keep the fleet full, not to gate the landmark that fleet-fullness
+*is*.
 
 ## What a chunk's pass means
 
