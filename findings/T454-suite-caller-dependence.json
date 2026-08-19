@@ -21,7 +21,7 @@
   },
   "control_results": {
     "no_MANAGENT_TASK_ID_BEFORE_fix": {"rc": 0, "fail_count": 0, "wall_s": "<1"},
-    "MANAGENT_TASK_ID=T404_BEFORE_fix": {"rc": 1, "fail_count": 6, "wall_s": "<1, "which_arms": ["3 (explicit — 'cannot resolve task T404 in the kanban' from arm 1's leftover staged docs/amendment.md cascading into arm 3's explicit-mode invocation)", "4 (scope — same leftover staged path)", "6 (T282 null — same leftover)", "7 (T282 mixed — same leftover)", "8 (T282 task identity — same leftover)", "9 (T282 seeded — same leftover)"]},
+    "MANAGENT_TASK_ID=T404_BEFORE_fix": {"rc": 1, "fail_count": 6, "wall_s": "<1", "which_arms": ["3 (explicit — 'cannot resolve task T404 in the kanban' from arm 1's leftover staged docs/amendment.md cascading into arm 3's explicit-mode invocation)", "4 (scope — same leftover staged path)", "6 (T282 null — same leftover)", "7 (T282 mixed — same leftover)", "8 (T282 task identity — same leftover)", "9 (T282 seeded — same leftover)"]},
     "no_MANAGENT_TASK_ID_AFTER_fix": {"rc": 0, "fail_count": 0, "wall_s": "<1"},
     "MANAGENT_TASK_ID=T404_AFTER_fix": {"rc": 0, "fail_count": 0, "wall_s": "<1"},
     "note": "BEFORE-fix measurements are at HEAD `c7f124d` against an unmodified `tools/git-commit-mine`. AFTER-fix measurements are at the same HEAD after the wrapper edit (and the manifest strike). Both readings of the SAME script at HEAD are now GREEN, so the conditionality that the brief named is gone."
