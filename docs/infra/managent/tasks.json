@@ -1385,6 +1385,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T457": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T457-does-any-control-catch-a-semantics-change.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T04:44:16Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Apply the preserved T452 memoization patch in a scratch copy and measure how many existing controls (mutants M3-M10, differential, battery, per-file tests) detect a deliberate semantics change. Zero firing is a finding of the first rank.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "T319": {
     "status": "done",
     "agent": "deepseek-v4-pro",
@@ -2243,6 +2265,28 @@
     "skip_acceptance_reason": null,
     "amendments": []
   },
+  "T456": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T456-honesty-instrument.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T04:44:16Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Build a matched-pair instrument (null: assertion true + implementation broken; seeded: implementation right + assertion false) to measure whether a worker refuses honestly or weakens the test. Answer key sealed before dispatch; graded blind across >=4 models.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": []
+  },
   "STANDING-ABSORB": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -2926,7 +2970,7 @@
     "amendments": []
   },
   "_sys": {
-    "next_id": 456,
+    "next_id": 457,
     "directive_next": 77,
     "assertion_next": 18
   }
