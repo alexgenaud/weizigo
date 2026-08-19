@@ -1,4 +1,27 @@
 {
+  "T442": {
+    "status": "done",
+    "agent": "minimax-m3",
+    "model": null,
+    "bundle": "untracked/T442-absorb-and-destate-doctor-arm.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-08T17:28:26Z",
+    "claimed": "2026-08-19T08:23:02Z",
+    "done": "2026-08-19T08:40:34Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": null,
+    "verdict": "pass-with-findings",
+    "verdict_note": "C7 unabsorbed 11 → 0; T441-audit envelope fixed; doctor arm 4 de-stated (controlled null + seeded); arm 6 (bin/ staleness) pre-existing RED, out of scope",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
+  },
   "T328": {
     "status": "done",
     "agent": "deepseek-v4-flash",
@@ -19,7 +42,8 @@
     "claim_count": 2,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test red at HEAD b045bff pre-existing, proven: clean-clone repro of src/vb_i11.zig:58 compile error (build.zig:407 clears the vb_i11 test target import table; T346 partial 9d2fd76) + regression-managent-standing 3-5 in scratch repo + git diff HEAD -- src/ empty; this row touches only tools/, docs/infra/bakeoff.md, findings/ — none reachable from the suite",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T372": {
     "status": "done",
@@ -41,7 +65,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/QA-023/c1-contrast-2026-08-05.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T342": {
     "status": "done",
@@ -63,7 +88,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "Worker killed by runner before done call; committed work + findings at 063da2b. build.zig wired.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T421": {
     "status": "done",
@@ -85,7 +111,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T423": {
     "status": "done",
@@ -107,7 +134,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T344": {
     "status": "done",
@@ -129,7 +157,8 @@
     "claim_count": 4,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "Pre-existing failures in qa023_brute_2x2, gtp.showscores, vb_bellman_4x4, vb_i11. All 4 vb_scc_4x4 tests pass.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T380": {
     "status": "done",
@@ -151,7 +180,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/KO-REVIEW/retrograde-ko-2026-08-05.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T402": {
     "status": "done",
@@ -173,7 +203,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-07T01:34:15Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): acceptance (zig test src/resolver.zig) 11 passed + 1 skipped; harness reproduced independently (23,420 positions, null PASS, deliberately_wrong REFUTED 20,216/20,216); ADR-0022 complete (invariant sentence, {0,1,2,7,9,12}, quarantine framing); commit scope clean; stubs honest. THREE findings sent back: A1 MAJOR — capture_budget(B) always returns no_opinion, so the harness's L==H agreement column (the one that matters per brief) is 0/0 for the one resolver the row is about; operator's 'compare results' ask unmet for the measured construction; implement the measured budget resolution so the harness can refute-or-verify it in situ, quarantine metadata kept. A2 MAJOR — GLOBAL.FP2->PROVEN proposal is a tautology (bracket_low/mid/high agree with L==H by definition; FP2 is history-independence, unchanged by this); withdraw or downgrade the proposal before absorption. A3 MINOR — MIGOS +2 epitaph (brief Do.1) absent from ADR."]
+    "amendments": ["2026-08-07T01:34:15Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): acceptance (zig test src/resolver.zig) 11 passed + 1 skipped; harness reproduced independently (23,420 positions, null PASS, deliberately_wrong REFUTED 20,216/20,216); ADR-0022 complete (invariant sentence, {0,1,2,7,9,12}, quarantine framing); commit scope clean; stubs honest. THREE findings sent back: A1 MAJOR — capture_budget(B) always returns no_opinion, so the harness's L==H agreement column (the one that matters per brief) is 0/0 for the one resolver the row is about; operator's 'compare results' ask unmet for the measured construction; implement the measured budget resolution so the harness can refute-or-verify it in situ, quarantine metadata kept. A2 MAJOR — GLOBAL.FP2->PROVEN proposal is a tautology (bracket_low/mid/high agree with L==H by definition; FP2 is history-independence, unchanged by this); withdraw or downgrade the proposal before absorption. A3 MINOR — MIGOS +2 epitaph (brief Do.1) absent from ADR."],
+    "epitaph": null
   },
   "T413": {
     "status": "done",
@@ -195,11 +226,12 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T446": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "untracked/T446-ledger-board-seam.md",
     "set": "A",
@@ -207,21 +239,22 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T17:37:17Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T07:58:41Z",
+    "done": "2026-08-19T08:15:43Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "board/next render closed ledger assertions as done (asserted); regression wired, smoke green",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T450": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "minimax-m3",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T450-pilot-gate-destroys-live-artifacts.md",
     "set": "E",
@@ -229,17 +262,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T18:20:22Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T12:54:06Z",
+    "done": "2026-08-19T13:18:30Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "tools/pilot_gate.sh writes live tracked artifacts before the verification that gates them, and --full deletes the 258 MB 4x4 checkpoint with no restore path. Found by four T447 race lanes.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "scratch-and-verify rewrite + 4-control regression (47s) all green; build.zig wiring swept into T466/af1d9fc but recorded as T450's",
+    "claim_count": 2,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T403": {
     "status": "done",
@@ -261,7 +295,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-07T01:23:11Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): red control verified by independent pre-fix worktree build (25c0330) — showboard/clear_board return '? unknown command' pre-fix, control 1 asserts exactly that and would fail; 4/4 controls green against deployed binary; commit 376997d scoped correctly. THREE gaps sent back for correction: G1 list_commands length/acceptance invariant test (named deliverable, absent); G2 deployed bin/weizigo-gtp stamps 25c0330-dirty — rebuild+deploy from clean HEAD, smoke with zero STALE, say so; G3 Sabaki recipe absent from deferred-mode banner/usage output."]
+    "amendments": ["2026-08-07T01:23:11Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): red control verified by independent pre-fix worktree build (25c0330) — showboard/clear_board return '? unknown command' pre-fix, control 1 asserts exactly that and would fail; 4/4 controls green against deployed binary; commit 376997d scoped correctly. THREE gaps sent back for correction: G1 list_commands length/acceptance invariant test (named deliverable, absent); G2 deployed bin/weizigo-gtp stamps 25c0330-dirty — rebuild+deploy from clean HEAD, smoke with zero STALE, say so; G3 Sabaki recipe absent from deferred-mode banner/usage output."],
+    "epitaph": null
   },
   "T404": {
     "status": "done",
@@ -283,7 +318,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T416": {
     "status": "done",
@@ -305,7 +341,8 @@
     "claim_count": 3,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T351": {
     "status": "dispatchable",
@@ -327,7 +364,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T424": {
     "status": "done",
@@ -349,11 +387,12 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T10:50:55Z: post-close: ACCEPTANCE-GATE RECORDING GAP (found at close): the store never captured acceptance= — T423 and T424 were registered at 2026-08-08T10:24:43Z via the suggest stub meta (deliverables=--, no acceptance key), and the real brief meta with acceptance= was written afterwards without re-running add. The gate itself did not run at done. No verification was actually skipped: tools/regression-claim-lifecycle.sh was run standalone 3x this session (red on pre-fix binaries, green after, green final) and is wired into zig build test. Recording the discrepancy on the row via amend --post-close. Follow-up for the Orchestrator's registration flow: re-read the bundle meta at done when acceptance is null, or re-register after the brief meta is finalized."]
+    "amendments": ["2026-08-08T10:50:55Z: post-close: ACCEPTANCE-GATE RECORDING GAP (found at close): the store never captured acceptance= — T423 and T424 were registered at 2026-08-08T10:24:43Z via the suggest stub meta (deliverables=--, no acceptance key), and the real brief meta with acceptance= was written afterwards without re-running add. The gate itself did not run at done. No verification was actually skipped: tools/regression-claim-lifecycle.sh was run standalone 3x this session (red on pre-fix binaries, green after, green final) and is wired into zig build test. Recording the discrepancy on the row via amend --post-close. Follow-up for the Orchestrator's registration flow: re-read the bundle meta at done when acceptance is null, or re-register after the brief meta is finalized."],
+    "epitaph": null
   },
   "T455": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "kimi-k2.7",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T455-unlabelled-commit-has-no-scope.md",
     "set": "C",
@@ -361,17 +400,41 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T19:55:44Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T08:23:02Z",
+    "done": "2026-08-19T08:34:40Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "An unlabelled commit (MANAGENT_TASK_ID unset) bypasses the pre-commit scope check entirely — tools/hooks/pre-commit:63/:110 warn and allow. Found by the Orchestrator committing two live consoles' source edits into d7e4bdb. The guard is strongest for dispatched workers and absent for the actor most able to do damage.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "Unlabelled pre-commit refused when staged paths held by in_progress row (tools/hooks/pre-commit:63-145 + lib active-holders). 5 regression arms under /tmp/weizigo all pass; original 3 controls still pass. T455 explicit-mode kept warn-and-allow — rationale recorded in branch comment and findings.",
+    "claim_count": 1,
     "acceptance": "sh tools/regression-precommit.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T468": {
+    "status": "done",
+    "agent": "minimax-m3",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T468-landmark-assignment.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T11:49:26Z",
+    "claimed": "2026-08-19T11:49:46Z",
+    "done": "2026-08-19T11:55:41Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Honest best-effort landmark assignment for every task (open, in progress, done, standing). Four outcomes allowed including 'no landmark - question the task'. Tests whether the all-L1/L4 do-now finding survives.",
+    "verdict": "pass",
+    "verdict_note": "Honest landmark assignment for all 146 tasks: L1 52%, L4 35%, L2 27%, L0 12%, L3 4%, L5 1%, L7 1%, NO-LANDMARK 2%. Brief's pre-measured finding survives (3 L1 + 2 L4 of five do-now, zero L2). Two proposed landmarks (L8 language, L9 race), two questioned tasks (T349 phantom, --bundle phantom). L6 zero rows by design.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T389": {
     "status": "done",
@@ -393,7 +456,31 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T473": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T473-i11-exhaustive-4x4.md",
+    "set": "E",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T14:19:46Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "I11 exhaustive at 4x4: 50,000 sampled -> all 99,133,036. L2 remainder T-b, the only scale-expensive item.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T358": {
     "status": "dispatchable",
@@ -415,7 +502,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/research/scaling-census-2026-08-04.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T447": {
     "status": "done",
@@ -437,7 +525,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T474": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T474-second-auditor-g3b.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T14:19:46Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Second auditor over the G3b evidence chain; must not share a model family with claude-fable-5. L2 remainder T-c.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T365": {
     "status": "done",
@@ -459,7 +571,54 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "acceptance is bin/weizigo-claimlint, which exits 1 by design while C2 carries honest debt (floor C2=14, tools/hooks/claimlint-floor.json) — same handling as T285/T287/T296. Verified instead: C2=14 before AND after the sweep (nothing newly dangling), calibration PASS both times, 0/32 old names repo-wide (seeded-control grep shown to fire first), ls docs/audits/ chronological.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "DRPLAY": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/DRPLAY-random-game-falsification.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T17:14:34Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "DUTY per docs/infra/duties.md — never completes, one chunk per invocation, due after 5 task closes, blocks landmark declaration when overdue or last chunk failed.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
+  },
+  "T472": {
+    "status": "done",
+    "agent": "deepseek-v4-pro",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T472-track-a-ruling.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T14:19:46Z",
+    "claimed": "2026-08-19T15:45:45Z",
+    "done": "2026-08-19T15:50:21Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Rule on Track A: KO_SENSITIVE trusted by provenance (T380 F-8) or regeneration required. L2 remainder T-a.",
+    "verdict": "pass",
+    "verdict_note": "Track A ruled discharged-by-provenance: WZO2 KO_SENSITIVE column is the ADR-0020 pure fixpoint, not the finisher",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T410": {
     "status": "done",
@@ -481,7 +640,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T426": {
     "status": "done",
@@ -503,11 +663,12 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T448": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "kimi-k2.7",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T448-live-tree-fixture-residue.md",
     "set": "A",
@@ -515,17 +676,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T18:09:19Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T12:54:09Z",
+    "done": "2026-08-19T13:06:23Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "Live-tree fixture residue survives a killed regression run (EXIT trap does not run on SIGKILL; tools/runner kills on guards). Found by claude-opus-5/orcha deriving the T447 answer key.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "Kill-survival + startup check landed for all 6 live-tree fixture sites; argus-doctor gains --check-fixtures-only + arms 19/20; volatile gains kill-survival self-check + SKIP_KILL_SURVIVAL=1 recursion guard (the 120s timeout the prior console's diff caused); claim-lifecycle + the four untracked-bundle scripts gain the same startup check + trap. All regression suites green except pre-existing argus-doctor arm 6 (deploy staleness, out of scope per Report-don't-adapt). Committed at 6dba9d2.",
+    "claim_count": 2,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T437": {
     "status": "done",
@@ -547,7 +709,8 @@
     "claim_count": 1,
     "acceptance": "tools/regression-consolidation-acceptance.sh",
     "skip_acceptance_reason": "acceptance script tools/regression-consolidation-acceptance.sh does not exist — Phase 7 (acceptance suite run) is step 7, deferred per plan. Steps 1-6 only.",
-    "amendments": ["2026-08-08T15:47:39Z: post-close: VERIFIED BY THE ORCHESTRATOR, not accepted on report. The code is real (4 commits, 8ce3270, 707 deletions, claimlint verb dispatch + parser retirement + absorb module + subagent merge + wrappers) and my T431 depth bound survived the merge (MAX_DEPTH=3 intact at bin/subagent:43). TWO CORRECTIONS. (1) The commit calls its three test failures 'pre-existing interface mismatch'. One is (regression-absorption-machinery, register 228 vs 221 — T427's console independently saw it). Two are NOT: regression-subagent-prompt and regression-ollama-dispatcher were run GREEN by me at ~16:0x today after T431, and T427 reported the subagent regressions passing in both of its suite runs. T437 made --provider REQUIRED and did not migrate the tests that call the old flags; regression-depth-enforcement is red for the same reason. Registered as T440. (2) The acceptance gate never ran and its script does not exist: skip_acceptance_reason says 'tools/regression-consolidation-acceptance.sh does not exist — Phase 7 deferred per plan', which is defensible against a steps-1-6 brief, but the 22 acceptance tests specified in 03-acceptance.md were never mechanised, so 'tests before code' held on paper only. A gate whose excuse is authored by the gated party is not a gate. Also new_rows: [] again — 'resolve in Phase B' deferred into prose with no row, the second consecutive sprint to do so. Process observation: T437 polled its inbox unprompted and logged D068 (falsifying my prediction that it would not), but registered and dispatched NO audit of its own work, unlike T428 which audited every phase."]
+    "amendments": ["2026-08-08T15:47:39Z: post-close: VERIFIED BY THE ORCHESTRATOR, not accepted on report. The code is real (4 commits, 8ce3270, 707 deletions, claimlint verb dispatch + parser retirement + absorb module + subagent merge + wrappers) and my T431 depth bound survived the merge (MAX_DEPTH=3 intact at bin/subagent:43). TWO CORRECTIONS. (1) The commit calls its three test failures 'pre-existing interface mismatch'. One is (regression-absorption-machinery, register 228 vs 221 — T427's console independently saw it). Two are NOT: regression-subagent-prompt and regression-ollama-dispatcher were run GREEN by me at ~16:0x today after T431, and T427 reported the subagent regressions passing in both of its suite runs. T437 made --provider REQUIRED and did not migrate the tests that call the old flags; regression-depth-enforcement is red for the same reason. Registered as T440. (2) The acceptance gate never ran and its script does not exist: skip_acceptance_reason says 'tools/regression-consolidation-acceptance.sh does not exist — Phase 7 deferred per plan', which is defensible against a steps-1-6 brief, but the 22 acceptance tests specified in 03-acceptance.md were never mechanised, so 'tests before code' held on paper only. A gate whose excuse is authored by the gated party is not a gate. Also new_rows: [] again — 'resolve in Phase B' deferred into prose with no row, the second consecutive sprint to do so. Process observation: T437 polled its inbox unprompted and logged D068 (falsifying my prediction that it would not), but registered and dispatched NO audit of its own work, unlike T428 which audited every phase."],
+    "epitaph": null
   },
   "T338": {
     "status": "done",
@@ -569,7 +732,8 @@
     "claim_count": 3,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test hangs on rules.zig benson_theorem_check which runs after differential tests; T338 tests verified via zig test src/differential.zig --test-filter T338: All 12 passed",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T384": {
     "status": "done",
@@ -591,7 +755,8 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C1a/C2/C6/C9 gating counters sit at the recorded floor — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed: C1a=10 C1b=0 C2=14 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row; commit 72855f7)",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T445": {
     "status": "done",
@@ -613,7 +778,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T462": {
+    "status": "done",
+    "agent": "deepseek-v4-flash",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T462-backlog-triage.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T07:57:59Z",
+    "claimed": "2026-08-19T07:58:16Z",
+    "done": "2026-08-19T08:10:05Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Cut ~30 dispatchable tasks to: <=5 do-now (well specified), an ideas file outside the kanban, and <=3 small-chunk background tasks. Every current task placed in exactly one bucket.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "Backlog triaged to a short do-now list: 5 do-now (T378 T455 T448 T454 T442), 3 background (STANDING-CLEANUP, STANDING-ABSORB, new STANDING-CLAIMVERIFY), 8 close-with-evidence (7 ledger-closed + --bundle stub), 10 ideas -> untracked/ideas.md. Findings: no retire verb for dispatchable rows; ledger-board seam runs both ways (A0016/A0017); git-commit-mine allowlist needs --explicit for docs/status/backlog-*.md and untracked/.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T400": {
     "status": "done",
@@ -635,7 +824,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": "Closed by claude-opus-5/orcha; worked by deepseek-v4-flash. Work LANDED at 3c63848 but the row was never claimed and sat dispatchable while its console worked and committed — the worked-without-claiming shape, so claim and done are recorded together here by the Orchestrator, not by the worker. Acceptance string (test -s on a research doc) is moot; deliverables verified by inspection at HEAD: AXIOMS.md C2 now reads Tromp-Taylor as-stands with Amendment 4 in section 7, GLOBAL.AXIOM-AREA updated in lockstep with register-tree-map.md, and src/rules.zig carries an additive characterization test pinning the contract (a non-Benson-alive invader scores as stones stand, +13, not +16 with removal). area_score untouched — no kernel behaviour changed. ORCHESTRATOR RULING RATIFIED: option (a), the code is the game. The axiom prose was wrong and the shipped scorer was right; prose bends to code because every solved artifact, every committed test and the MIGOS cross-validation were produced under as-stands scoring, so changing the code would invalidate the entire table while changing the prose invalidates nothing. Benson is NOT part of terminal scoring; it stays load-bearing only where dead-stone STATUS is decided — the ADR-0006 eye-prune, is_settled terminal detection including the WZO2 seed phase, and resign logic. This closes Fable owed-decision 1 exactly as recommended. OWED, minor and not worth holding the row: no findings/T400-*.json exists, so this row adds nothing to the C7 queue despite amending an axiom row; the substance lives in AXIOMS.md section 7 and CLAIMS.md where a reader will look. Landmark: advances L4 (the ledger is clean) — an axiom that described a game we do not play now describes the one we do.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T346": {
     "status": "done",
@@ -657,7 +847,31 @@
     "claim_count": 2,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "vb_i11 not yet wired into build.zig — sprint console responsibility per brief; standalone 14/14 pass",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T475": {
+    "status": "done",
+    "agent": "kimi-k2.7",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T475-absorb-corrected-denominators.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T14:19:46Z",
+    "claimed": "2026-08-19T17:06:50Z",
+    "done": "2026-08-19T17:10:46Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Propagate T383's corrected closure denominators into every stale surface; reconcile the mutation kill matrix. L2 remainder T-d.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "Propagated T383 corrected C-A1/C-A2 denominators (0/616,030,190 · 0/99,133,034) into instrument-coverage.md, CLAIMS.md 4x4.C1, accept.md Amendment 1 (both conventions named); added the missing 0/3,455,412 I5 denominator; reconciled the mutants.md kill matrix to 6/10 — T363's 'seven of seven' was an overstatement (M1/M2/M3/M4 SURVIVE; T345 KEY-4x4 is calibration, not per-mutant kill-verification), F3/D8 flag closed. T475.2 independently re-ran vb_mutants.zig (93/93) verifying the matrix. Found a git-commit-mine scope-resolution defect (absolute bundle path) — reported in commit msg, used --explicit.",
+    "claim_count": 2,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T353": {
     "status": "dispatchable",
@@ -679,7 +893,8 @@
     "claim_count": 0,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T427": {
     "status": "done",
@@ -701,7 +916,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T13:20:42Z: post-close: Verdict recorded while the row's console was still running its verification suite — the Orchestrator read 'liveness' showing no T427 entry as meaning no live console, which is the D054 error (no heartbeats proves no instrumentation, not no console; T427 never exported MANAGENT_TASK_ID). The commit f8a10af is sound: deliverable files were stable from 14:39:53 and were independently re-verified (16/16 arms, live-store sha256 unchanged, guard truth table exercised by hand incl. the non-fixture-add-succeeds cell the row's own arms omit). The in-flight suite run does NOT verify the committed state regardless: it started 14:31, before the last edits at 14:39:53. Directive sent to the console to report its result for post-close amendment rather than re-commit.", "2026-08-08T15:21:12Z: post-close: SUITE RESULT reported by the console (text only, no action, as directed). Run 1: 57/65 steps, 904/931 tests, 1 skipped, 19 failed, 7 crashed. Failing: qa023_brute_2x2 (4 ABRT, the documented T360 fail-fast set), t419_taxonomy (1), vb_bellman_4x4 (1), the fixpoint binary (10), regression-absorption-machinery (register 228 vs 221, documented stale fixture), plus 7 binaries it could not attribute by name and did not chase. Run 2: the fixpoint failures were gone, the rest remained. NONE OF THE FAILURES ARE T427's: regression-argus-doctor all arms PASS in both runs, and every managent/claimlint/git-commit-mine regression passed including regression-claim-lifecycle, the T424 suite most exposed to the new guard. Note 904/931 is BELOW the handover's documented 926/931 baseline. MY FIXPOINT DIAGNOSIS WAS WRONG AND THE CONSOLE REFUTED IT WITH EVIDENCE. I claimed the failures were artifacts of a tree changing under the run. They were not: its last Zig edit was to src/managent/main.zig, which the engine test binaries do not link. The real cause is FileNotFound on /tmp/weizigo/oracle-*.smd1 — T423 date-partitioned them into /tmp/weizigo/260707/ and src/vb_i11.zig reads the top-level paths unconditionally. It restored 8 files with cp -n and 91/91 passed on the same cached binary. Verified independently at src/vb_i11.zig:446/462/473/483/497 and by listing both directories. Registered as T438. WALL-CLOCK: the console declined to claim a cause it had not measured and did not time the runs; my 35 and 43 minute figures are direct ps readings and stand on their own, but the attribution of any overrun to the 16 new arms remains UNMEASURED. It notes the doctor script makes ~12 doctor invocations each spawning claimlint + git + ps + two managent reads, a plausible contributor and a one-line timed follow-up. ARM 12: the console independently confirmed the missing positive control (non-fixture add on live must SUCCEED) and agreed a permanent arm is the right fix; folded into T430's brief rather than minting a row."]
+    "amendments": ["2026-08-08T13:20:42Z: post-close: Verdict recorded while the row's console was still running its verification suite — the Orchestrator read 'liveness' showing no T427 entry as meaning no live console, which is the D054 error (no heartbeats proves no instrumentation, not no console; T427 never exported MANAGENT_TASK_ID). The commit f8a10af is sound: deliverable files were stable from 14:39:53 and were independently re-verified (16/16 arms, live-store sha256 unchanged, guard truth table exercised by hand incl. the non-fixture-add-succeeds cell the row's own arms omit). The in-flight suite run does NOT verify the committed state regardless: it started 14:31, before the last edits at 14:39:53. Directive sent to the console to report its result for post-close amendment rather than re-commit.", "2026-08-08T15:21:12Z: post-close: SUITE RESULT reported by the console (text only, no action, as directed). Run 1: 57/65 steps, 904/931 tests, 1 skipped, 19 failed, 7 crashed. Failing: qa023_brute_2x2 (4 ABRT, the documented T360 fail-fast set), t419_taxonomy (1), vb_bellman_4x4 (1), the fixpoint binary (10), regression-absorption-machinery (register 228 vs 221, documented stale fixture), plus 7 binaries it could not attribute by name and did not chase. Run 2: the fixpoint failures were gone, the rest remained. NONE OF THE FAILURES ARE T427's: regression-argus-doctor all arms PASS in both runs, and every managent/claimlint/git-commit-mine regression passed including regression-claim-lifecycle, the T424 suite most exposed to the new guard. Note 904/931 is BELOW the handover's documented 926/931 baseline. MY FIXPOINT DIAGNOSIS WAS WRONG AND THE CONSOLE REFUTED IT WITH EVIDENCE. I claimed the failures were artifacts of a tree changing under the run. They were not: its last Zig edit was to src/managent/main.zig, which the engine test binaries do not link. The real cause is FileNotFound on /tmp/weizigo/oracle-*.smd1 — T423 date-partitioned them into /tmp/weizigo/260707/ and src/vb_i11.zig reads the top-level paths unconditionally. It restored 8 files with cp -n and 91/91 passed on the same cached binary. Verified independently at src/vb_i11.zig:446/462/473/483/497 and by listing both directories. Registered as T438. WALL-CLOCK: the console declined to claim a cause it had not measured and did not time the runs; my 35 and 43 minute figures are direct ps readings and stand on their own, but the attribution of any overrun to the 16 new arms remains UNMEASURED. It notes the doctor script makes ~12 doctor invocations each spawning claimlint + git + ps + two managent reads, a plausible contributor and a one-line timed follow-up. ARM 12: the console independently confirmed the missing positive control (non-fixture add on live must SUCCEED) and agreed a permanent arm is the right fix; folded into T430's brief rather than minting a row."],
+    "epitaph": null
   },
   "T386": {
     "status": "done",
@@ -723,7 +939,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/decisions/0021-cycle-resolution-by-superko.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T362": {
     "status": "dispatchable",
@@ -745,7 +962,31 @@
     "claim_count": 0,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T459": {
+    "status": "done",
+    "agent": "kimi-k2.7",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T459-grade-t452-design-race.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T07:29:41Z",
+    "claimed": "2026-08-19T07:29:51Z",
+    "done": "2026-08-19T07:34:13Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Blind grading of the 7-lane T452 design race against the sealed key, by two independent non-Claude graders (family exclusion: neither shares a family with more than its own lane; inter-grader agreement reported).",
+    "verdict": "pass-with-findings",
+    "verdict_note": "Graded 7 anonymized T452 design answers blind; top A=20 E=20 D=19 B/C/F/G=18, no fabricated citations, 1-ko expectation is wrong (0 -> -4), bounded semantics-preserving fix exists via alpha-beta.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T364": {
     "status": "dispatchable",
@@ -767,11 +1008,12 @@
     "claim_count": 0,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T378": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "untracked/T378-qa023-probe-inverted-guards.md",
     "set": "K",
@@ -779,17 +1021,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-05T18:00:47Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T08:23:01Z",
+    "done": "2026-08-19T09:02:13Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Confirmed inverted White guards at :965/:1024 in src/qa023_probe.zig; two-line fix restores monotone Gauss-Seidel (Bellman residual 0/0 at 3x2, matches T372); 2 regression tests added; pin census differs by 2-3 states from T372 due to pre-existing seed_roots divergence; blast-radius table in findings lists which evidence files are affected.",
+    "claim_count": 1,
     "acceptance": "zig test src/qa023_probe.zig",
-    "skip_acceptance_reason": null,
-    "amendments": []
+    "skip_acceptance_reason": "Pre-existing crash in qa023_brute_2x2.test.smoke: empty board Black to move (T360: brute_value exceeded the node budget, src/qa023_brute_2x2.zig:204) exists at HEAD before this fix (verified via git stash: 90 tests with crash on test 6 at HEAD, 92 tests with crash on test 8 after my changes; the +2 are exactly the two new fixpoint_kernel regression tests added by T378). T378 did not introduce this crash. Brief says: Do not raise or relax qa023_brute_2x2's 20M-node fail-fast budget. If your work makes that test's crashes change in any way, stop and report. The crash behavior is unchanged in kind (same panic, same call site); only the test number shifted because two new tests precede the Brute2x2 block. Per STATE rule 7 (note on module-mapping caveat), verification uses --test-filter; the new tests pass: zig test src/qa023_probe.zig --test-filter 'White L' = 1/1, --test-filter 'White H' = 1/1.",
+    "amendments": [],
+    "epitaph": null
   },
   "T322": {
     "status": "done",
@@ -811,7 +1054,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "suite passed at 41.0s prior to commit",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T354": {
     "status": "done",
@@ -833,7 +1077,8 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exits 1 at the recorded floor (C1a=10, C1b=0, C2=14, C6=0, C9=0) by design — 'must be green' is unreachable today per tools/hooks/claimlint-floor.json. T354's real bar is counts unmoved, verified: claimlint output byte-identical before (HEAD f623a67) and after the task (334 rows, C1a 10, C2 14, C3 76, C4 46/2, C9 0, calibration PASS) — the deliverable is a proposal, the register/floor/fixtures untouched (commit 1e9b855).",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T438": {
     "status": "done",
@@ -855,7 +1100,8 @@
     "claim_count": 2,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T391": {
     "status": "done",
@@ -877,7 +1123,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T419": {
     "status": "done",
@@ -899,7 +1146,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T352": {
     "status": "dispatchable",
@@ -921,7 +1169,8 @@
     "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T376": {
     "status": "done",
@@ -943,7 +1192,8 @@
     "claim_count": 1,
     "acceptance": "sh tools/smoke.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T398": {
     "status": "done",
@@ -965,7 +1215,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T422": {
     "status": "done",
@@ -987,7 +1238,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T08:31:59Z: verdict=pass note=ORCHESTRATOR CLOSE-OUT, claude-opus-5/orcha. Verdict stands PASS. Absorption verified independently from a fresh claimlint run rather than read from the report: C7 unabsorbed 0, non-conforming 0, register 228 and mapping doc 228 in C9b lockstep with 0 node mismatches, floors unmoved at C2 11 and C3 48. Both controls were run as briefed, including the seeded one (absorb only the 3x3 row, confirm C7 reports exactly 1, then complete) — that is the control three earlier rows this week skipped. (1) D064 LANDED POST-CLOSE AND THAT IS ACCEPTABLE. The directive arrived in the inbox before the close but after the work; managent reopen refuses done tasks, so the re-pointing of T420 evidence to the rescued runs-2026-08-08 copies is in follow-up commit 4330ef2 rather than inside the row commit. The console disclosed this rather than leaving it to be discovered, which is the behaviour I want; the work is on disk, all four records are cited in the register, and every path is in git. Recorded here so the kanban and the commit history agree. The general lesson for the seat, not the row: a directive sent while a row is writing up will usually miss it — send steering early or accept it lands as a follow-up. (2) RULING ON THE C10 +2 DELTA: LEAVE IT. The two volatile paths at max-strength-2026-08-08.md:97-100 are inside a fenced code block and are BUILD COMMAND ILLUSTRATIONS — a zig --cache-dir, a --global-cache-dir, and a -femit-bin target — not evidence citations. A cache directory is not a claim support, and re-pointing it would produce a nonsensical command naming docs/evidence as a build cache. So the doc is correct as written and C10 is over-counting. THE REFINEMENT BELONGS IN C10, NOT IN THE DOC: it should distinguish an evidence citation from a reproduction command, most simply by not counting paths inside fenced code blocks. Report-only today so nothing is gated on it; recorded as a follow-up for whoever next touches claimlint. C10 census stands at 1061 and this absorption added none of it. (3) NOTE FOR THE NEXT SEAT: of that 1061, roughly 820 are untracked/ citations rather than /tmp — a much larger surface than the 344 /tmp paths T421 addressed, though untracked/ at least survives a reboot. It has not been triaged."]
+    "amendments": ["2026-08-08T08:31:59Z: verdict=pass note=ORCHESTRATOR CLOSE-OUT, claude-opus-5/orcha. Verdict stands PASS. Absorption verified independently from a fresh claimlint run rather than read from the report: C7 unabsorbed 0, non-conforming 0, register 228 and mapping doc 228 in C9b lockstep with 0 node mismatches, floors unmoved at C2 11 and C3 48. Both controls were run as briefed, including the seeded one (absorb only the 3x3 row, confirm C7 reports exactly 1, then complete) — that is the control three earlier rows this week skipped. (1) D064 LANDED POST-CLOSE AND THAT IS ACCEPTABLE. The directive arrived in the inbox before the close but after the work; managent reopen refuses done tasks, so the re-pointing of T420 evidence to the rescued runs-2026-08-08 copies is in follow-up commit 4330ef2 rather than inside the row commit. The console disclosed this rather than leaving it to be discovered, which is the behaviour I want; the work is on disk, all four records are cited in the register, and every path is in git. Recorded here so the kanban and the commit history agree. The general lesson for the seat, not the row: a directive sent while a row is writing up will usually miss it — send steering early or accept it lands as a follow-up. (2) RULING ON THE C10 +2 DELTA: LEAVE IT. The two volatile paths at max-strength-2026-08-08.md:97-100 are inside a fenced code block and are BUILD COMMAND ILLUSTRATIONS — a zig --cache-dir, a --global-cache-dir, and a -femit-bin target — not evidence citations. A cache directory is not a claim support, and re-pointing it would produce a nonsensical command naming docs/evidence as a build cache. So the doc is correct as written and C10 is over-counting. THE REFINEMENT BELONGS IN C10, NOT IN THE DOC: it should distinguish an evidence citation from a reproduction command, most simply by not counting paths inside fenced code blocks. Report-only today so nothing is gated on it; recorded as a follow-up for whoever next touches claimlint. C10 census stands at 1061 and this absorption added none of it. (3) NOTE FOR THE NEXT SEAT: of that 1061, roughly 820 are untracked/ citations rather than /tmp — a much larger surface than the 344 /tmp paths T421 addressed, though untracked/ at least survives a reboot. It has not been triaged."],
+    "epitaph": null
   },
   "T401": {
     "status": "done",
@@ -1009,7 +1261,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-07T01:31:06Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): 9 findings, sent back for correction. F1 CRITICAL: evidence doc + findings + summary report B1 168/1000, B2 193/1000, capped 144 — the committed run JSON findings/T401-bracket-tournament-4x4.json says B1 359/1000, B2 343/1000, capped 713 (direction agrees, magnitude misreported ~2x). F2 CRITICAL: seeded control is not the brief's — forced first-move pass on one game tests move-sensitivity, never weakens an engine to confirm worse-detection; no effect size; QA-023 parallel-path pattern. F3 CRITICAL: null control (old-vs-old determinism) not run; --controls-only is parsed but ignored (_ = controls_only). F4 MAJOR: 3x3 '12,816 games (4 arms)' false — only new_vs_new x2 sides = 6,408 played, capped 89.4% (5,732/6,408) not 44.7%. F5 MAJOR: B1/B2 baseline is old_vs_old self-play, not the brief's 'same opponent' (old(B) vs new(W) head-to-head) — metric as defined not measured. F6 MAJOR: 1,242 witnesses exist in committed JSON, zero published in doc. F7 MAJOR: straddling-vs-decisive class split enumerated but never analyzed (operator's sharpest class). F8 MINOR: 'old escapes 235/1000 expected - PSK under basic-ko' unverified; old engine's early-game non-greedy heuristic is an alternative cause. F9 MINOR: no commit/binary named for old engine. Commit scope and instrument trace clean otherwise."]
+    "amendments": ["2026-08-07T01:31:06Z: verdict=pass-with-findings note=T405 console audit (2026-08-07): 9 findings, sent back for correction. F1 CRITICAL: evidence doc + findings + summary report B1 168/1000, B2 193/1000, capped 144 — the committed run JSON findings/T401-bracket-tournament-4x4.json says B1 359/1000, B2 343/1000, capped 713 (direction agrees, magnitude misreported ~2x). F2 CRITICAL: seeded control is not the brief's — forced first-move pass on one game tests move-sensitivity, never weakens an engine to confirm worse-detection; no effect size; QA-023 parallel-path pattern. F3 CRITICAL: null control (old-vs-old determinism) not run; --controls-only is parsed but ignored (_ = controls_only). F4 MAJOR: 3x3 '12,816 games (4 arms)' false — only new_vs_new x2 sides = 6,408 played, capped 89.4% (5,732/6,408) not 44.7%. F5 MAJOR: B1/B2 baseline is old_vs_old self-play, not the brief's 'same opponent' (old(B) vs new(W) head-to-head) — metric as defined not measured. F6 MAJOR: 1,242 witnesses exist in committed JSON, zero published in doc. F7 MAJOR: straddling-vs-decisive class split enumerated but never analyzed (operator's sharpest class). F8 MINOR: 'old escapes 235/1000 expected - PSK under basic-ko' unverified; old engine's early-game non-greedy heuristic is an alternative cause. F9 MINOR: no commit/binary named for old engine. Commit scope and instrument trace clean otherwise."],
+    "epitaph": null
   },
   "T381": {
     "status": "done",
@@ -1031,7 +1284,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/THIRD-PARTY/gnugo-4x4-2026-08-05.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T408": {
     "status": "done",
@@ -1053,7 +1307,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-07T11:09:40Z: verdict=pass note=ORCHESTRATOR CORRECTION of MY OWN reading, claude-opus-5/orcha. The row is unchanged and remains PASS; what needs correcting is what I said about it. I wrote that T408 falsified the recorded five-agent Ollama ceiling and that it removed my concurrency argument. THAT WAS AN OVERCLAIM AND THE ROW ITSELF DID NOT MAKE IT. T408 wrote, carefully and correctly, that the ceiling is NOT OBSERVED AS A TOOL-LEVEL CAP THROUGH 6 and that if a ceiling exists it sits above 6 and was not hit. The worker was more precise than the Orchestrator; absence of evidence was mine to mishandle, not its. OPERATOR RULING 2026-08-07, accepted: there IS a five-agent Ollama ceiling. What is uncertain is only HOW it is enforced — the belief is that a sixth simultaneous upload/download is delayed or blocked-and-retried rather than refused, so it would never surface as an error. THE TEST COULD NOT HAVE SEEN IT, and this is the point that matters for anyone re-reading the row: the 6-concurrent probe completed in NINE SECONDS TOTAL on warm sessions with a trivial round-trip payload. A ceiling on concurrent transfer sessions cannot be detected by six near-instant warm replies. The instrument lacked the power to observe the thing it is being cited about, so not observed here carries almost no information. A logjam requires all five slots active in long-duration upload/download simultaneously, which may simply never occur in practice. STANDING WORDING, to be used wherever this is cited: the ceiling exists; we may reasonably choose not to worry about it while no negative side effect is observed; we must NOT claim there is no ceiling. Anyone quoting T408 on concurrency must quote the not-observed-through-6 phrasing and this caveat together. The row s own operational recommendation is unaffected and stands: keep max-two-concurrent per parent, glm dependable default, minimax ~2 min cold start, kimi flaky on multi-step shell bundles and must be output-verified. SECOND ITEM, promoted from the row s detail because it is the more dangerous finding: kimi attempt 1 replied OK. and RAN NOTHING, and the row stayed dispatchable. T408 caught it only because it asserted on STORE STATE rather than on the reply. That is the same failure shape as the tooling defects of this week — reports success while doing nothing — now at the AGENT layer. Registered as T412 (show-the-work dispatch verification)."]
+    "amendments": ["2026-08-07T11:09:40Z: verdict=pass note=ORCHESTRATOR CORRECTION of MY OWN reading, claude-opus-5/orcha. The row is unchanged and remains PASS; what needs correcting is what I said about it. I wrote that T408 falsified the recorded five-agent Ollama ceiling and that it removed my concurrency argument. THAT WAS AN OVERCLAIM AND THE ROW ITSELF DID NOT MAKE IT. T408 wrote, carefully and correctly, that the ceiling is NOT OBSERVED AS A TOOL-LEVEL CAP THROUGH 6 and that if a ceiling exists it sits above 6 and was not hit. The worker was more precise than the Orchestrator; absence of evidence was mine to mishandle, not its. OPERATOR RULING 2026-08-07, accepted: there IS a five-agent Ollama ceiling. What is uncertain is only HOW it is enforced — the belief is that a sixth simultaneous upload/download is delayed or blocked-and-retried rather than refused, so it would never surface as an error. THE TEST COULD NOT HAVE SEEN IT, and this is the point that matters for anyone re-reading the row: the 6-concurrent probe completed in NINE SECONDS TOTAL on warm sessions with a trivial round-trip payload. A ceiling on concurrent transfer sessions cannot be detected by six near-instant warm replies. The instrument lacked the power to observe the thing it is being cited about, so not observed here carries almost no information. A logjam requires all five slots active in long-duration upload/download simultaneously, which may simply never occur in practice. STANDING WORDING, to be used wherever this is cited: the ceiling exists; we may reasonably choose not to worry about it while no negative side effect is observed; we must NOT claim there is no ceiling. Anyone quoting T408 on concurrency must quote the not-observed-through-6 phrasing and this caveat together. The row s own operational recommendation is unaffected and stands: keep max-two-concurrent per parent, glm dependable default, minimax ~2 min cold start, kimi flaky on multi-step shell bundles and must be output-verified. SECOND ITEM, promoted from the row s detail because it is the more dangerous finding: kimi attempt 1 replied OK. and RAN NOTHING, and the row stayed dispatchable. T408 caught it only because it asserted on STORE STATE rather than on the reply. That is the same failure shape as the tooling defects of this week — reports success while doing nothing — now at the AGENT layer. Registered as T412 (show-the-work dispatch verification)."],
+    "epitaph": null
   },
   "T317": {
     "status": "done",
@@ -1075,7 +1330,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T425": {
     "status": "done",
@@ -1097,7 +1353,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T432": {
     "status": "dispatchable",
@@ -1119,7 +1376,8 @@
     "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T439": {
     "status": "dispatchable",
@@ -1141,7 +1399,8 @@
     "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T343": {
     "status": "done",
@@ -1163,7 +1422,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "Worker killed at 1800s wall. Code + findings committed. build.zig wiring owed.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T349": {
     "status": "done",
@@ -1185,7 +1445,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-04T15:14:38Z: verdict=abandoned note=VOID row, superseded by T352. --fail recorded verdict=blocked, which reads as 'work stalled'; abandoned is the honest terminal state for a row that never carried work."]
+    "amendments": ["2026-08-04T15:14:38Z: verdict=abandoned note=VOID row, superseded by T352. --fail recorded verdict=blocked, which reads as 'work stalled'; abandoned is the honest terminal state for a row that never carried work."],
+    "epitaph": null
   },
   "T405": {
     "status": "done",
@@ -1207,10 +1468,11 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-07T08:47:43Z: verdict=pass-with-findings note=Orcha follow-up 2026-08-07 complete: (1) findings schema repaired — 5 files now conforming (4 original + 1 recreated by follow-up worker, caught by the new claimlint acceptance gate), values verified identical to HEAD; workflow-gap answer: claimlint C7 is now a standing per-row acceptance check (was run only at sprint end before). (2) h2h three-way split published: 868 better/132 equal/0 worse per colour, identical sequences 25/1000 (2.5%), ply agreement 55.8% — not a tautology; verified by console re-run. (3) seeded h2h control fires: RED 73/400 (18.3%) + 75/400 (18.8%) worker config, 147/400 + 138/400 console config, GREEN 0 — 0/1000 now CONTROLLED. Commits 8620dd5 + 9e02697."]
+    "amendments": ["2026-08-07T08:47:43Z: verdict=pass-with-findings note=Orcha follow-up 2026-08-07 complete: (1) findings schema repaired — 5 files now conforming (4 original + 1 recreated by follow-up worker, caught by the new claimlint acceptance gate), values verified identical to HEAD; workflow-gap answer: claimlint C7 is now a standing per-row acceptance check (was run only at sprint end before). (2) h2h three-way split published: 868 better/132 equal/0 worse per colour, identical sequences 25/1000 (2.5%), ply agreement 55.8% — not a tautology; verified by console re-run. (3) seeded h2h control fires: RED 73/400 (18.3%) + 75/400 (18.8%) worker config, 147/400 + 138/400 console config, GREEN 0 — 0/1000 now CONTROLLED. Commits 8620dd5 + 9e02697."],
+    "epitaph": null
   },
   "T440": {
-    "status": "in_progress",
+    "status": "done",
     "agent": "claude-opus-5",
     "model": null,
     "bundle": "untracked/T440-migrate-dispatch-regressions.md",
@@ -1220,16 +1482,40 @@
     "caps": [],
     "added": "2026-08-08T15:47:12Z",
     "claimed": "2026-08-08T16:23:26Z",
-    "done": null,
+    "done": "2026-08-19T13:13:35Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "T437's --provider merge left 3 regressions calling the old flags; 2 of the 3 were verified green today and are NOT pre-existing",
-    "verdict": null,
-    "verdict_note": null,
+    "verdict": "pass",
+    "verdict_note": "Work committed 3aaffb6+b2a8517; findings reconstructed under T465 and committed 16c4230. Blocked eleven days on one missing deliverable.",
     "claim_count": 1,
     "acceptance": "tools/regression-depth-enforcement.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T477": {
+    "status": "in_progress",
+    "agent": "glm-5.2",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T477-dispatcher-heals-what-it-breaks.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T17:06:47Z",
+    "claimed": "2026-08-19T17:06:50Z",
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "bin/subagent reopens a task when its own verification shows the worker died leaving it claimed. Heal only that case; never on a deliverable failure; never touch the tree.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T374": {
     "status": "done",
@@ -1251,7 +1537,8 @@
     "claim_count": 1,
     "acceptance": "zig test src/gtp.zig",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T392": {
     "status": "done",
@@ -1273,7 +1560,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/SUITE-BISECT/bisect-2026-08-06.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T330": {
     "status": "done",
@@ -1295,7 +1583,31 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exits 1 at the recorded floor (C1a=10,C1b=0,C2=14,C6=0,C9=0) — 'must be green' is unreachable today per tools/hooks/claimlint-floor.json note and AGENTS.md; counts unchanged from before the task and the pre-commit gate (enforces <= floor) passed during commit 95a2810",
-    "amendments": ["2026-08-04T08:59:31Z: verdict=pass-with-findings note=Resuming console (commit 93c2000): independent re-derivation confirmed prior T330.2 work + its 3 extra live dependents; found and fixed 3 sole-evidence mis-annotations — 4x4.F2, 4x4.F3, GLOBAL.H5c were 'superseded by remaining evidence' but had NO remaining e: source (their d: edges are derives-from, not evidence; brief case 1 is e:-only); corrected to 'evidence retired; needs re-derivation'. Amended sheet §Completion ('Two'->'Five' edges) with a Correction paragraph. claimlint unchanged at floor. All 3 deliverables tracked & unmodified."]
+    "amendments": ["2026-08-04T08:59:31Z: verdict=pass-with-findings note=Resuming console (commit 93c2000): independent re-derivation confirmed prior T330.2 work + its 3 extra live dependents; found and fixed 3 sole-evidence mis-annotations — 4x4.F2, 4x4.F3, GLOBAL.H5c were 'superseded by remaining evidence' but had NO remaining e: source (their d: edges are derives-from, not evidence; brief case 1 is e:-only); corrected to 'evidence retired; needs re-derivation'. Amended sheet §Completion ('Two'->'Five' edges) with a Correction paragraph. claimlint unchanged at floor. All 3 deliverables tracked & unmodified."],
+    "epitaph": null
+  },
+  "DCLAIM": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/DCLAIM-verify-one-unbacked-claim.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T17:14:34Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "DUTY per docs/infra/duties.md — never completes, one chunk per invocation, due after 5 task closes, blocks landmark declaration when overdue or last chunk failed.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "bin/weizigo-claimlint",
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T356": {
     "status": "done",
@@ -1317,7 +1629,8 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "acceptance is bin/weizigo-claimlint, which exits 1 by design while C1a/C2/C3/C7/C9 carry honest debt — same handling as T285/T287/T296. Verified instead: counts unmoved at floor and calibration PASS after the change, which is this row's null control.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "--bundle": {
     "status": "dispatchable",
@@ -1339,7 +1652,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T347": {
     "status": "done",
@@ -1361,11 +1675,12 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test not green on this clone: pre-existing tools/regression-managent-standing.sh failure (STANDING-ABSORB et al. not registered in kanban — Orchestrator standing-task matter, not T347) + suite already non-green per T340's record (T338 uncommitted differential.zig). T347's own gates pass in isolation: zig test src/vb_health.zig 38/38, zig test src/vb_mutants.zig 43/43 incl. M9-BATTERY-STUBBED kill, red-then-green wiring proof demonstrated, no-silent-bypass @compileError gate verified. The M9 kill test in vb_mutants.zig is wired into zig build test; vb_health.zig wiring is the sprint console's job (brief: do not edit build.zig).",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T454": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "glm-5.2",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T454-suite-reading-depends-on-caller.md",
     "set": "J",
@@ -1373,21 +1688,45 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T19:36:37Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T15:45:50Z",
+    "done": "2026-08-19T16:12:47Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "zig build test yields 7 failing steps under a task identity and 6 without; the suite-truth manifest records the set unconditionally, so the gate's verdict depends on who runs it. Root cause is MANAGENT_TASK_ID leaking into the scratch repo (T369's own diagnosis). Found by running T369's acceptance gate independently.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass",
+    "verdict_note": "Wrapper treats env-derived TASK_ID that local kanban cannot resolve as advisory (warn + fall through to unlabelled); regression now reads GREEN under both env-unset and env-set; manifest struck; tools/git-commit-mine + docs/infra/suite-truth.md + findings/T454-suite-caller-dependence.json committed as a4c36bc",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T476": {
+    "status": "done",
+    "agent": "deepseek-v4-flash",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T476-delegation-procedure-legibility.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T16:22:33Z",
+    "claimed": "2026-08-19T16:22:36Z",
+    "done": "2026-08-19T16:58:58Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Extract the dispatch procedure as actually practised into DELEGATOR.md and a bin/dispatch wrapper, so the seat can be handed to a DeepSeek or Ollama orchestrator without folklore.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "Dispatch procedure extracted from 60+ practised runs into DELEGATOR.md; bin/dispatch wrapper + 14-control regression (red→green→red-proof) wired into zig build test. Findings: killed T466-surfaced orphan (stuck zig build test, ppid 1, 7h44, 3s CPU) blocking the acceptance gate; suite absorption arm fails only from T475's live CLAIMS.md edits.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T457": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "minimax-m3",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T457-does-any-control-catch-a-semantics-change.md",
     "set": "A",
@@ -1395,17 +1734,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-19T04:44:16Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T05:56:58Z",
+    "done": "2026-08-19T06:40:27Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "Apply the preserved T452 memoization patch in a scratch copy and measure how many existing controls (mutants M3-M10, differential, battery, per-file tests) detect a deliberate semantics change. Zero firing is a finding of the first rank.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "3 of 11 controls fire; all three are the same in-module smoke test reached via transitive file inclusion; brief's named controls (mutation battery, differential acceptance battery, smoke binary) are all silent; detection signal is fragile because the unpatched tree was already RED (T360 ABRT) so the patch changes one failure mode into another without creating a new red.",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T319": {
     "status": "done",
@@ -1427,7 +1767,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "suite passed at 42.4s prior to commit (307ec4c)",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T377": {
     "status": "done",
@@ -1449,7 +1790,8 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exits 1 by design (recorded floor debt: C1a=10, C1b=0, C2=14, C6=0, C9=0, calibration PASS — all at or below floor in both runs). The brief's acceptance bar is met: C7 non-conforming 5->0; floor counters unmoved. C7 unabsorbed 0->1 is the intended T375 mirror-measurement proposal entering the absorption queue.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T431": {
     "status": "done",
@@ -1471,7 +1813,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T370": {
     "status": "done",
@@ -1493,7 +1836,8 @@
     "claim_count": 1,
     "acceptance": "sh tools/smoke.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T453": {
     "status": "done",
@@ -1515,7 +1859,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "DARGUS": {
+    "status": "dispatchable",
+    "agent": null,
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/DARGUS-run-argus-once.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T17:14:51Z",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "DUTY per docs/infra/duties.md — run argus doctor once and ACT on each item; never completes; due after 5 task closes; blocks landmark declaration when overdue. Named DARGUS not DOCTOR: the T427 fixture-marker guard refuses ids containing DOCTOR on the live store, correctly.",
+    "verdict": null,
+    "verdict_note": null,
+    "claim_count": 0,
+    "acceptance": "bin/argus --mode doctor",
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T335": {
     "status": "done",
@@ -1537,7 +1905,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test red from T360 (qa023_brute_2x2 expected). All deploy checks PASS, zero STALE.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T394": {
     "status": "done",
@@ -1559,7 +1928,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-06T20:51:57Z: verdict=pass-with-findings note=ADJUDICATED by claude-opus-5/orcha. Verdict stands as PASS, upgraded to pass-with-findings for one narrative correction whose fault is NOT the workers. (1) THE OUT-OF-SAMPLE TEST IS VALID AND THE ROW EARNED IT. D053 required the 4x3 root prediction be timestamped before measurement; the row complied - prediction recorded 2026-08-06T15:40:39Z via ledger ping and in findings/T394-force-life.json (canForceLife B=true W=true, root L>0) BEFORE the 4x3 pass, then measured false/false with root [4,12]. The life-forcing half was WRONG and the row published that plainly, alongside the falsification of the briefs own 4x4 prediction. A dated miss is worth more than an undatable hit; T1s 4x3 rung stands as a genuine out-of-sample reading. Controls, calibrations and the full-fixpoint verification are present as briefed. (2) CORRECTION - THE PRUNING-ORACLE FRAMING IS A LOGICAL ERROR, AND IT ORIGINATES IN FABLES BRIEF, NOT IN THE WORKER. The doc at docs/research/force-life-classifier-2026-08-06.md:176-180 says T2s measured exception rate is the honest bound on using the classifier as a certified stop valuing, its a draw oracle at 4x4. That bounds the WRONG DIRECTION. T2 measures draw-by-loop => neither-can-force. The oracle use is the CONVERSE, neither-can-force => draw, and the rows own T3 measures that converse as FALSE: 85.3% of the neither-can-force class at 4x4 is DECISIVE (19,518,338 of 22,885,430), majority-decisive at every size >= 3x2. So the oracles error rate is 85.3%, not T2s 1.05%. A search pruning on it would abandon 19.5 million decisively-valued 4x4 states. ATTRIBUTION, recorded at Fables own request: the error is in the T394 brief, untracked/T394-force-life-classifier.md:54 - 'If T2 holds exactly, canForceLife=false for both players is a sound stop valuing, its a draw oracle' - authored by claude-fable-5/auditor, and repeated to this seat in Fables opening handover note. The worker inherited the framing in one sentence of section T2 while its own section T3 states the opposite correctly and says it cuts against the operators hypothesis. The doc therefore contradicts itself and the T3 side is right. THE SOUND STATEMENT: draws-by-loop are CONFINED to the neither-can-force class (exact through 3x3, 32 exceptions at 4x3, 9,376 witnessed at 4x4); confinement is not certification. Absorbed as GLOBAL.DRAWLOOP-CONFINED carrying the explicit non-claim, plus GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE recording the 85.3% refutation. (3) SCOPE FLAG for anyone citing this row: the 4x3 root [+4,+12] is MEASURED by a single instrument and NOT independently audited. Do not cite it as solved until a second seat verifies it. (4) LEDGER: findings file was non-conforming (missing task_id, model, claims); repaired pre-absorption and disclosed in-file. Landmark: advances L2 - T1s L==H form holds 5/5 (forcible immortality buys rule-independence, not victory) and the operators territory-denial hypothesis is falsified at 4x3/4x4. That is the operators loss and it cuts toward unconditional life being the wrong notion of territory for decisive wins."]
+    "amendments": ["2026-08-06T20:51:57Z: verdict=pass-with-findings note=ADJUDICATED by claude-opus-5/orcha. Verdict stands as PASS, upgraded to pass-with-findings for one narrative correction whose fault is NOT the workers. (1) THE OUT-OF-SAMPLE TEST IS VALID AND THE ROW EARNED IT. D053 required the 4x3 root prediction be timestamped before measurement; the row complied - prediction recorded 2026-08-06T15:40:39Z via ledger ping and in findings/T394-force-life.json (canForceLife B=true W=true, root L>0) BEFORE the 4x3 pass, then measured false/false with root [4,12]. The life-forcing half was WRONG and the row published that plainly, alongside the falsification of the briefs own 4x4 prediction. A dated miss is worth more than an undatable hit; T1s 4x3 rung stands as a genuine out-of-sample reading. Controls, calibrations and the full-fixpoint verification are present as briefed. (2) CORRECTION - THE PRUNING-ORACLE FRAMING IS A LOGICAL ERROR, AND IT ORIGINATES IN FABLES BRIEF, NOT IN THE WORKER. The doc at docs/research/force-life-classifier-2026-08-06.md:176-180 says T2s measured exception rate is the honest bound on using the classifier as a certified stop valuing, its a draw oracle at 4x4. That bounds the WRONG DIRECTION. T2 measures draw-by-loop => neither-can-force. The oracle use is the CONVERSE, neither-can-force => draw, and the rows own T3 measures that converse as FALSE: 85.3% of the neither-can-force class at 4x4 is DECISIVE (19,518,338 of 22,885,430), majority-decisive at every size >= 3x2. So the oracles error rate is 85.3%, not T2s 1.05%. A search pruning on it would abandon 19.5 million decisively-valued 4x4 states. ATTRIBUTION, recorded at Fables own request: the error is in the T394 brief, untracked/T394-force-life-classifier.md:54 - 'If T2 holds exactly, canForceLife=false for both players is a sound stop valuing, its a draw oracle' - authored by claude-fable-5/auditor, and repeated to this seat in Fables opening handover note. The worker inherited the framing in one sentence of section T2 while its own section T3 states the opposite correctly and says it cuts against the operators hypothesis. The doc therefore contradicts itself and the T3 side is right. THE SOUND STATEMENT: draws-by-loop are CONFINED to the neither-can-force class (exact through 3x3, 32 exceptions at 4x3, 9,376 witnessed at 4x4); confinement is not certification. Absorbed as GLOBAL.DRAWLOOP-CONFINED carrying the explicit non-claim, plus GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE recording the 85.3% refutation. (3) SCOPE FLAG for anyone citing this row: the 4x3 root [+4,+12] is MEASURED by a single instrument and NOT independently audited. Do not cite it as solved until a second seat verifies it. (4) LEDGER: findings file was non-conforming (missing task_id, model, claims); repaired pre-absorption and disclosed in-file. Landmark: advances L2 - T1s L==H form holds 5/5 (forcible immortality buys rule-independence, not victory) and the operators territory-denial hypothesis is falsified at 4x3/4x4. That is the operators loss and it cuts toward unconditional life being the wrong notion of territory for decisive wins."],
+    "epitaph": null
+  },
+  "T467": {
+    "status": "done",
+    "agent": "claude-fable-5",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T467-l2-discharge-audit.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T11:48:52Z",
+    "claimed": "2026-08-19T11:48:52Z",
+    "done": "2026-08-19T12:03:07Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Bounded holistic audit: has L2 (proven 4x4 values) been discharged; does the twice-amended evidence survive re-derivation by an independent route; and is an all-L1/L4 do-now queue correct sequencing or drift. Corrects LANDMARKS.md as part of the deliverable.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "L2 NOT DISCHARGED (G3b was, 2026-08-05); remainder enumerated + was unregistered; stale wrong-decode denominators found on every status surface; LANDMARKS.md corrected; commit 87d6711",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T368": {
     "status": "done",
@@ -1581,7 +1974,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-05T19:52:54Z: verdict=pass note=Attribution correction (Orcha, 2026-08-05), reported by glm-5.2/T371 rather than found by audit. T368's claim transition (dispatchable->in_progress, agent=deepseek-v4-flash) was physically committed under T371's kanban commit 01435b9, because docs/infra/managent/tasks.json is shared and held T368's uncommitted transition when T371 committed its own claim->done; directive D039's read flag (false->true) rode along the same way. CONTENT IS CORRECT — T368 was in fact claimed and executed by deepseek-v4-flash, which landed its own work commit 2903473 on top — only the carrying commit's attribution is wrong. Documented content-right/attribution-wrong class, docs/infra/fleet-git-isolation.md. No history rewrite: the ledger entry is accurate and this record states which commit carried it. Verdict unchanged (pass). Credit to the T371 console for reporting a defect that made its own commit look worse; that is exactly what the fleet-isolation doc asks for, and cheaper than any audit that would have caught it."]
+    "amendments": ["2026-08-05T19:52:54Z: verdict=pass note=Attribution correction (Orcha, 2026-08-05), reported by glm-5.2/T371 rather than found by audit. T368's claim transition (dispatchable->in_progress, agent=deepseek-v4-flash) was physically committed under T371's kanban commit 01435b9, because docs/infra/managent/tasks.json is shared and held T368's uncommitted transition when T371 committed its own claim->done; directive D039's read flag (false->true) rode along the same way. CONTENT IS CORRECT — T368 was in fact claimed and executed by deepseek-v4-flash, which landed its own work commit 2903473 on top — only the carrying commit's attribution is wrong. Documented content-right/attribution-wrong class, docs/infra/fleet-git-isolation.md. No history rewrite: the ledger entry is accurate and this record states which commit carried it. Verdict unchanged (pass). Credit to the T371 console for reporting a defect that made its own commit look worse; that is exactly what the fleet-isolation doc asks for, and cheaper than any audit that would have caught it."],
+    "epitaph": null
   },
   "T441-AUDIT": {
     "status": "done",
@@ -1603,7 +1997,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T444": {
     "status": "done",
@@ -1625,7 +2020,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T357": {
     "status": "dispatchable",
@@ -1647,7 +2043,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/infra/agents/ollama-concurrency-2026-08-04.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T339": {
     "status": "done",
@@ -1669,7 +2066,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test takes 3:31; worker verified via zig test src/rules.zig. Runner killed at 1800s wall.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T326": {
     "status": "done",
@@ -1691,7 +2089,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test red on pre-existing fleet regressions only (regression-git-commit-mine: T326-in-kanban fixture collision + leftover staged T268/T282 bundles from other agents; regression-subagent-prompt: odeeppi/oflashpi absent) — confirmed by stashing src/gtp.zig and re-running at clean HEAD; gtp.zig leg green (88/88 tests, smoke PASS zero STALE after zig build deploy)",
-    "amendments": ["2026-08-04T10:23:44Z: verdict=pass-with-findings note=correction (Orchestrator, 2026-08-04): original skip-acceptance blamed regression-git-commit-mine and regression-subagent-prompt as broken — both pass ALL CONTROLS in a clean run. The red observation was correct (suite exit 1) but the cause was a dirty tree with leftover test artifacts from other consoles, not defective scripts. The GTP deliverable is sound: 88/88 gtp tests, smoke PASS zero STALE after deploy"]
+    "amendments": ["2026-08-04T10:23:44Z: verdict=pass-with-findings note=correction (Orchestrator, 2026-08-04): original skip-acceptance blamed regression-git-commit-mine and regression-subagent-prompt as broken — both pass ALL CONTROLS in a clean run. The red observation was correct (suite exit 1) but the cause was a dirty tree with leftover test artifacts from other consoles, not defective scripts. The GTP deliverable is sound: 88/88 gtp tests, smoke PASS zero STALE after deploy"],
+    "epitaph": null
   },
   "T383": {
     "status": "done",
@@ -1713,7 +2112,8 @@
     "claim_count": 17,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test at 45/48 steps, 693/697 tests — the 2 failing steps are pre-existing and unrelated to this row: (1) the 4 qa023_brute_2x2 explosive smoke crashes (documented T360 standing failure, do not raise NODE_BUDGET), (2) the stale-bin managent integrity step (bin/managent not redeployed since the e7aeef5 T383/T384 registration; working tree was already dirty before this row). vb_closure module itself: 12/12 tests pass including the new T383 F-7 regression test; claimlint at/below floor (C1a=0 C1b=0 C2=11 C6=0 C9=0).",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T327": {
     "status": "done",
@@ -1735,7 +2135,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "T327 test crashes: @memcpy arguments alias at gtp.zig:996 (formatShowScores — overlapping src/dst). 122/123 pass, 1 crash. Fix: use std.mem.copyForwards instead of @memcpy for intra-buffer copy. T337 verified deliverable: all 5 brief items present, rendered sample in findings, smoke PASS. Crash is a one-line fix.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T359": {
     "status": "done",
@@ -1757,7 +2158,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/research/symmetry-fold-census-2026-08-04.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T382": {
     "status": "done",
@@ -1779,7 +2181,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/research/goban-pathology-2026-08-05.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T387": {
     "status": "done",
@@ -1801,7 +2204,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/research/capture-budget-2026-08-06.md",
     "skip_acceptance_reason": "No deliverable to accept: the value-mode reading never ran. src/t387_budget.zig:717-719 is an infinite loop (bitpos: u6 vs while (bitpos < 64) — tautological condition, += 1 wraps under the ReleaseFast that tools/runner forces; in Debug it would trap). Proven by sample(1): 2,554/2,554 stack samples at t387_budget.zig:718-719, 14h02m elapsed, 836 CPU-min, RSS 880 KB, no output file. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z — zombie. Hung process reaped by claude-opus-5/orcha 2026-08-06T14:47Z; nothing lost (no partial state at 880 KB RSS). PARTIAL VALUE SURVIVES AND IS PRESERVED: DAG mode terminated and its readings were sitting uncommitted in /tmp/weizigo/t387/ — copied to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges = the seeded control fires; 3x3 B=8 423,922 states 0 back edges theorem_holds; 4x3 B=8 10,636,928 states 0 back edges theorem_holds). T397 promotes them to findings/, fixes the loop red-then-green, then takes the minimax-identity reading against T386 denominators (80/2,748 at 3x3, 496/51,318 at 4x3). Failed rather than re-dispatched because the row cannot be resumed: the binary is defective and the console is gone. Scale note for the successor: 3x3 budgeted graph is 423,922 states, so a value pass is seconds — anything over a minute at 3x3 is hung.",
-    "amendments": ["2026-08-06T14:50:04Z: verdict=blocked note=FAILED, adjudicated by claude-opus-5/orcha (the row was worked by deepseek-v4-flash; the earlier identifier claude-opus-5/T387 was an artefact of my --agent flag on the close and has been restored — do NOT read this hang against Opus in model-perf.md). Cause: src/t387_budget.zig:717-719 is an infinite loop. bitpos is declared u6, whose range is 0..63, so the guard while (bitpos < 64) is a tautology and the += 1 at 63 wraps instead of trapping under the -O ReleaseFast that tools/runner forces. Debug would have caught it in the first second; the fleet build mode cannot. Evidence: sample(1) put 2,554 of 2,554 stack samples at t387_budget.zig:718-719, with 14h02m elapsed, 836 CPU-minutes, RSS 880 KB and no output file — 100 percent CPU allocating nothing is a spin, not a slow solve. The idiom occurs exactly once in the repo. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z, so it was also a zombie. Process reaped 2026-08-06T14:47Z; no partial state existed to salvage. WHAT SURVIVES: DAG mode terminated and its three readings were uncommitted in /tmp — preserved to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges, the seeded control firing; 3x3 B=8 423,922 states 0 back edges; 4x3 B=8 10,636,928 states 0 back edges). The structural half of the operator capture-budget result is therefore intact and the handover claim that it is confirmed still stands. WHAT DOES NOT: the Bellman-consistency reading the handover lists as the open question was never taken. It is not pending, it is unmeasured. FOLLOW-UP: T397 (preserve the DAG readings into findings/, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 against the T386 at-risk denominators 80/2,748 and 496/51,318, and rule on whether budget-from-here forces the capture counter into the key). Landmark: no advance — L2 unmoved, and one reading the seat believed was in flight is now known not to be."]
+    "amendments": ["2026-08-06T14:50:04Z: verdict=blocked note=FAILED, adjudicated by claude-opus-5/orcha (the row was worked by deepseek-v4-flash; the earlier identifier claude-opus-5/T387 was an artefact of my --agent flag on the close and has been restored — do NOT read this hang against Opus in model-perf.md). Cause: src/t387_budget.zig:717-719 is an infinite loop. bitpos is declared u6, whose range is 0..63, so the guard while (bitpos < 64) is a tautology and the += 1 at 63 wraps instead of trapping under the -O ReleaseFast that tools/runner forces. Debug would have caught it in the first second; the fleet build mode cannot. Evidence: sample(1) put 2,554 of 2,554 stack samples at t387_budget.zig:718-719, with 14h02m elapsed, 836 CPU-minutes, RSS 880 KB and no output file — 100 percent CPU allocating nothing is a spin, not a slow solve. The idiom occurs exactly once in the repo. Console never beat a heartbeat since dispatch 2026-08-06T00:24:23Z, so it was also a zombie. Process reaped 2026-08-06T14:47Z; no partial state existed to salvage. WHAT SURVIVES: DAG mode terminated and its three readings were uncommitted in /tmp — preserved to untracked/T397-t387-dag-readings/ (3x3 base graph 135,494 back edges, the seeded control firing; 3x3 B=8 423,922 states 0 back edges; 4x3 B=8 10,636,928 states 0 back edges). The structural half of the operator capture-budget result is therefore intact and the handover claim that it is confirmed still stands. WHAT DOES NOT: the Bellman-consistency reading the handover lists as the open question was never taken. It is not pending, it is unmeasured. FOLLOW-UP: T397 (preserve the DAG readings into findings/, fix the loop red-then-green, then take the minimax-identity reading at 3x3 and 4x3 against the T386 at-risk denominators 80/2,748 and 496/51,318, and rule on whether budget-from-here forces the capture counter into the key). Landmark: no advance — L2 unmoved, and one reading the seat believed was in flight is now known not to be."],
+    "epitaph": null
   },
   "T417": {
     "status": "done",
@@ -1823,7 +2227,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T430": {
     "status": "dispatchable",
@@ -1845,11 +2250,35 @@
     "claim_count": 0,
     "acceptance": "tools/regression-argus-doctor.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T469": {
+    "status": "done",
+    "agent": "glm-5.2",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T469-fleet-four-sections.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T12:11:38Z",
+    "claimed": "2026-08-19T12:11:42Z",
+    "done": "2026-08-19T12:34:01Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Small bounded edit: merge WORKING NOW and KANBAN into four sections (PROGRESS, CONCERNS with resolving commands, DONE recent, OPEN soon); apply the colon-means-instant time rule. Shell only, ~90 lines, tested by running it.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "watch-fleet.sh rewritten to four sections (PROGRESS/CONCERNS/DONE/OPEN); fixed a latent HEAL_MIN gate bug; T466 regression Arm B fails by design (superseded layout), Arms A/C/D pass",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T452": {
-    "status": "in_progress",
-    "agent": "minimax-m3",
+    "status": "dispatchable",
+    "agent": null,
     "model": null,
     "bundle": "untracked/T452-qa023-budget.md",
     "set": "J",
@@ -1857,7 +2286,7 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-18T18:20:25Z",
-    "claimed": "2026-08-18T19:53:47Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
@@ -1867,7 +2296,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T470": {
+    "status": "done",
+    "agent": "glm-5.2",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T470-argus-schedule-and-healing.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T13:13:55Z",
+    "claimed": "2026-08-19T13:14:23Z",
+    "done": "2026-08-19T13:17:13Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Two questions only: when should argus run under a 50% resource ceiling with one serial loop preferred, and what minimal set of actions should self-heal (with what must never). Successor to the retired T466.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "One-page fleet-monitoring policy: argus on triggers not a clock (load-gated, no daemon); one self-heal (reopen provably-dead claim, double-gated, opt-in) everything else manual. Found + filed a pre-commit scope-gate defect (gcm_scope_for_task doubles absolute bundle paths, drops every task's deliverables).",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T412": {
     "status": "done",
@@ -1889,7 +2342,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T393": {
     "status": "done",
@@ -1911,7 +2365,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-06T14:48:47Z: verdict=pass-with-findings note=ADJUDICATED by opus/orcha. Verdict stands as PASS; upgraded to pass-with-findings for two defects that do not touch the census. (1) MEASUREMENT INDEPENDENTLY CONFIRMED: the entire 3x3 half re-derived from an independent implementation (textbook Benson 1976 written from the definition in Python + WZO2 layout from src/artifact2.zig + colex decode from src/colex.zig; does not call t393_census.zig or rules.benson_alive). All 13 published 3x3 figures reproduce exactly, including the load-bearing Z-and-alive = 0/1,248 and 624 Z-positions of which 0 contain an alive chain, and the fresh-start slice 24,330 (T: 1,504/1,766/3,270/0/17,856). 4x4 not re-derived (hours in Python) but carried by three structural facts: the bracket partition matches the committed A4 pin census exactly on all four counts (external anchor, not a re-run); the join is sound by construction since anyB/anyW are computed per position and consumed in ONE loop that reports 2,766,492 in the T cell and 0 in the Z cell, so a defect zeroing Z would have to be bracket-selective; and the headline predicate either=anyB or anyW is INDEPENDENT of decodeKeyByte, i.e. it does not touch the function class that produced T380 F-7. (2) DEFECT, narrative: the doc s justification at :162-164 -- a Benson-alive chain of k stones implies score >= k for the owner in terminated lines -- is FALSE and refuted by T393 s own table. Benson life bounds the owner s AREA, not the score. Measured at 3x3: 90 entries contain a Black alive chain and have value <= 0, 60 of them exactly 0, the lowest L==H==-2 with a two-stone alive chain (claim predicts >= +2; wrong by four points and by sign). Witness ooo/o.x/ox. -- Black alive and losing. This makes the categorical result STRONGER, not weaker: it is not forced for terminated lines either. Carried by T398. (3) DEFECT, instrument hygiene: the three seeded mutants are substituted only into hand-built canary boards (:671-693), never into the sweep, so no control proves the Z cell CAN report non-zero. The reading survives on the by-construction argument above, which is sound but is not a control. Missing control specified in T398. (4) LEDGER: this row was registered without acceptance=, though its bundle declares acceptance=test -s docs/research/two-life-census-2026-08-06.md -- hence the audit WARN. Registration dropped it; not the worker s doing. Follow-ups registered: T398 (doc correction + the missing sweep control)."]
+    "amendments": ["2026-08-06T14:48:47Z: verdict=pass-with-findings note=ADJUDICATED by opus/orcha. Verdict stands as PASS; upgraded to pass-with-findings for two defects that do not touch the census. (1) MEASUREMENT INDEPENDENTLY CONFIRMED: the entire 3x3 half re-derived from an independent implementation (textbook Benson 1976 written from the definition in Python + WZO2 layout from src/artifact2.zig + colex decode from src/colex.zig; does not call t393_census.zig or rules.benson_alive). All 13 published 3x3 figures reproduce exactly, including the load-bearing Z-and-alive = 0/1,248 and 624 Z-positions of which 0 contain an alive chain, and the fresh-start slice 24,330 (T: 1,504/1,766/3,270/0/17,856). 4x4 not re-derived (hours in Python) but carried by three structural facts: the bracket partition matches the committed A4 pin census exactly on all four counts (external anchor, not a re-run); the join is sound by construction since anyB/anyW are computed per position and consumed in ONE loop that reports 2,766,492 in the T cell and 0 in the Z cell, so a defect zeroing Z would have to be bracket-selective; and the headline predicate either=anyB or anyW is INDEPENDENT of decodeKeyByte, i.e. it does not touch the function class that produced T380 F-7. (2) DEFECT, narrative: the doc s justification at :162-164 -- a Benson-alive chain of k stones implies score >= k for the owner in terminated lines -- is FALSE and refuted by T393 s own table. Benson life bounds the owner s AREA, not the score. Measured at 3x3: 90 entries contain a Black alive chain and have value <= 0, 60 of them exactly 0, the lowest L==H==-2 with a two-stone alive chain (claim predicts >= +2; wrong by four points and by sign). Witness ooo/o.x/ox. -- Black alive and losing. This makes the categorical result STRONGER, not weaker: it is not forced for terminated lines either. Carried by T398. (3) DEFECT, instrument hygiene: the three seeded mutants are substituted only into hand-built canary boards (:671-693), never into the sweep, so no control proves the Z cell CAN report non-zero. The reading survives on the by-construction argument above, which is sound but is not a control. Missing control specified in T398. (4) LEDGER: this row was registered without acceptance=, though its bundle declares acceptance=test -s docs/research/two-life-census-2026-08-06.md -- hence the audit WARN. Registration dropped it; not the worker s doing. Follow-ups registered: T398 (doc correction + the missing sweep control)."],
+    "epitaph": null
   },
   "T449": {
     "status": "dispatchable",
@@ -1933,7 +2388,8 @@
     "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T369": {
     "status": "done",
@@ -1955,7 +2411,8 @@
     "claim_count": 1,
     "acceptance": "sh tools/suite-truth.sh",
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-18T19:36:37Z: post-close: Acceptance gate run independently by claude-opus-5/orcha at f8983bb: RED, and correctly so. The manifest records the 7-red set unconditionally, but the suite yields 7 failing steps under a task identity and 6 without — measured both arms: env -u MANAGENT_TASK_ID -> rc=0/0 FAIL; MANAGENT_TASK_ID=T369 -> rc=1/6 FAIL. The row's own controls were green because they ran under its own identity. Gate mechanism validated (it fired on the fixed-red direction and named the script); manifest conditionality registered as T454. No fault in the diagnosis, which named this leak; the gap is that the conditionality never reached the manifest."]
+    "amendments": ["2026-08-18T19:36:37Z: post-close: Acceptance gate run independently by claude-opus-5/orcha at f8983bb: RED, and correctly so. The manifest records the 7-red set unconditionally, but the suite yields 7 failing steps under a task identity and 6 without — measured both arms: env -u MANAGENT_TASK_ID -> rc=0/0 FAIL; MANAGENT_TASK_ID=T369 -> rc=1/6 FAIL. The row's own controls were green because they ran under its own identity. Gate mechanism validated (it fired on the fixed-red direction and named the script); manifest conditionality registered as T454. No fault in the diagnosis, which named this leak; the gap is that the conditionality never reached the manifest."],
+    "epitaph": null
   },
   "T363": {
     "status": "done",
@@ -1977,7 +2434,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "zig build test at 46/48 steps, 691/695 tests — the 4 crashed tests are the pre-existing qa023_brute_2x2 explosive smoke tests (T360 fail-fast on the 20M-node budget; brief: do not raise). Acceptance improved from baseline 43/48 steps (681/685). claimlint at floor. smoke PASS zero STALE.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T375": {
     "status": "done",
@@ -1999,7 +2457,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/symmetric-2026-08-05.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T345": {
     "status": "done",
@@ -2021,7 +2480,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "Committed work + findings at e14a312. M1-M4 assertions partially wired.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T350": {
     "status": "done",
@@ -2043,7 +2503,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": "acceptance gate is 'zig build test'; the suite is red at HEAD on 9 pre-existing engine-module failures (vb_bellman_4x4 applyMove panic, differential/calibration I9/A2/I4/A1 violations) unrelated to this change — engine mid-refactor under T363/T380/T386/T387/T389. All managent regressions pass against the deployed 2d7a1db binary: integrity 16/16 (incl. the two acceptance controls), done-two-phase 7/7 (the brief's controls a and b), lock, done-git, smoke. See findings/T350-context.json.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T388": {
     "status": "done",
@@ -2065,7 +2526,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/infra/instrument-coverage.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T399": {
     "status": "done",
@@ -2087,7 +2549,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T406": {
     "status": "done",
@@ -2109,7 +2572,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T409": {
     "status": "done",
@@ -2131,7 +2595,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T411": {
     "status": "done",
@@ -2153,7 +2618,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T458": {
+    "status": "done",
+    "agent": "minimax-m3",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T458-row-disambiguation-sweep.md",
+    "set": "H",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T06:56:02Z",
+    "claimed": "2026-08-19T15:45:49Z",
+    "done": "2026-08-19T15:55:07Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Disambiguate 'row' -> task / claim in the startup-path documents only (7 files, 43 occurrences); add one short glossary entry; leave dated records untouched. Operator ruling 2026-08-19: fix the prose on disk rather than adding a linguistic rule.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "36 occurrences swept (task/claim) across the 7 startup-path files; +1 'Process vocabulary' glossary entry; deliberately left 3 prose cases (2 idioms, 1 intentional 'task row') + 2 JSON schema fields (new_rows); 2 unresolved judgement calls in findings notes.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T337": {
     "status": "done",
@@ -2175,7 +2664,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "S0 flock lock (fleet-critical), S1 dispatcher controls, S4 absorption C7 10→0, S5 4 orphan scripts, S6 partial. smoke PASS at 7a0c1ec. Suite hung at close time from concurrent zig processes (T338 acceptance race) — deploy current, all deliverables committed. Three deferrals: T350/T351/T352. C2 floor raise overruled by Orchestrator (38ca84a)",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T361": {
     "status": "done",
@@ -2197,7 +2687,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-04.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T373": {
     "status": "done",
@@ -2219,7 +2710,8 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exits 1 by design (the C2 gating counter sits at the recorded floor: 11 — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed: C1a=0 C1b=0 C2=11 C3=48 C6=0 C9=0 <= floor, calibration PASS; commit 5a70722 + floor-stamp 166300c). Counters before/after the triage: rows 339->207, C1a 10->0, C2 14->11, C3 76->48, C4 46/2->45/2 (report-only, archive-resolved), C5 4->0, C7 1->0, C1b/C6/C9 0, calibration PASS — every count moved DOWN. Seeded archive-resolution control verified (an ID not in INDEX.md still dangles).",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T390": {
     "status": "done",
@@ -2241,7 +2733,8 @@
     "claim_count": 1,
     "acceptance": "sh tools/regression-duplicate-dispatch.sh",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T418": {
     "status": "done",
@@ -2263,11 +2756,35 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T461": {
+    "status": "done",
+    "agent": "minimax-m3",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T461-assertion-ledger-fit-for-purpose.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T07:57:34Z",
+    "claimed": "2026-08-19T07:58:25Z",
+    "done": "2026-08-19T08:07:43Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Review the assertion ledger's purpose, intent and actual benefit; rule KEEP / SHRINK / KILL with a migration. Operator doubts it needs to exist as a thing. Recorded 'not worth building' is a successful outcome.",
+    "verdict": "pass",
+    "verdict_note": "Verdict KILL written to docs/infra/assertion-ledger/verdict.md (commit b1c7d02); findings file conforms. 14 assertions migrate per §2; T446 + operator ruling gate execution; this row writes no deletions.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T456": {
-    "status": "dispatchable",
-    "agent": null,
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T456-honesty-instrument.md",
     "set": "A",
@@ -2275,21 +2792,22 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-19T04:44:16Z",
-    "claimed": null,
-    "done": null,
+    "claimed": "2026-08-19T05:56:59Z",
+    "done": "2026-08-19T06:19:58Z",
     "dispatched": null,
     "dispatched_to": null,
     "note": "Build a matched-pair instrument (null: assertion true + implementation broken; seeded: implementation right + assertion false) to measure whether a worker refuses honestly or weakens the test. Answer key sealed before dispatch; graded blind across >=4 models.",
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "verdict": "pass-with-findings",
+    "verdict_note": "Honesty instrument built+run: 4/4 null pass, 4/4 seeded refused, 0 hacked; side finding — T411 nonce check false-fails for minimax/kimi",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "STANDING-ABSORB": {
-    "status": "done",
-    "agent": "deepseek-v4-flash",
+    "status": "dispatchable",
+    "agent": null,
     "model": null,
     "bundle": "/Users/alex/Project/Zig/weizigo/docs/infra/dispatch/STANDING-ABSORB.md",
     "set": "H",
@@ -2297,17 +2815,18 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-03T23:54:39Z",
-    "claimed": "2026-08-05T11:19:57Z",
-    "done": "2026-08-05T11:29:55Z",
-    "dispatched": "2026-08-05T11:17:34Z",
-    "dispatched_to": "deepseek-v4-flash",
-    "note": "Tier 0 absorb pass (ROADMAP 2026-08-05 finding 1). Live caveat: 'managent standing' trigger line reads C7=0 while a fresh bin/weizigo-claimlint reads C7=4 FAILS + 3 non-conforming — claimlint is the authority; report the discrepancy as a finding.",
-    "verdict": "pass",
+    "claimed": null,
+    "done": null,
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "C7 unabsorbed findings 11 > threshold 5",
+    "verdict": null,
     "verdict_note": null,
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T336": {
     "status": "done",
@@ -2329,7 +2848,31 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "sprint console — report committed",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T463": {
+    "status": "done",
+    "agent": "deepseek-v4-flash",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T463-qwen-canonical-label.md",
+    "set": "C",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T08:24:33Z",
+    "claimed": "2026-08-19T08:24:35Z",
+    "done": "2026-08-19T08:28:12Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Add qwen3.8:27b-mlx to canonical_models and the subagent tag map so qwen can be dispatched and raced through the harness with dispatch verification. Build only; the Orchestrator deploys when the fleet drains.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "qwen3.8:27b-mlx added to canonical_models + tag mapping; test-first red->green; binary built, not deployed (fleet drain); findings: bakeoff CANONICAL sync list untouched (scope), git-commit-mine scope empty on absolute bundle paths (T455-style)",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T385": {
     "status": "done",
@@ -2351,7 +2894,31 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T460": {
+    "status": "done",
+    "agent": "glm-5.2",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T460-grade-t452-design-race-second.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T07:30:01Z",
+    "claimed": "2026-08-19T07:30:04Z",
+    "done": "2026-08-19T07:39:16Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Second independent grader for the T452 design race; inter-grader agreement is the deliverable alongside the scores.",
+    "verdict": "pass-with-findings",
+    "verdict_note": "T452 design race graded blind: A=16 B=18 C=18 D=16 E=16 F=18 G=18; verdict: a bounded fix preserving the root measured quantity EXISTS on 2x2 (alpha-beta/fixpoint, audit 0/172, 339,959 nodes/state); C/F/G also find the 1-ko expectation wrong (-4) and TOTAL_STATES=2430 not 1620; no fabricated citations, no NODE_BUDGET raise; B/E have an off-by-18 F2 line range (662-680 not 680-696).",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T396": {
     "status": "done",
@@ -2373,7 +2940,8 @@
     "claim_count": 1,
     "acceptance": "bin/weizigo-claimlint",
     "skip_acceptance_reason": "claimlint exit code is permanently non-zero in this project (C2 gating counter sits at the recorded floor: 11 — the real gate is the pre-commit hook tools/hooks/claimlint-floor.json, which passed on commit cc869d7: C1a=0 C1b=0 C2=11 C3=48 C6=0 C9=0 <= floor, calibration PASS; C7 unabsorbed 0, non-conforming 0 after this row). Counters before/after: rows 207->212 (+5 new rows), edges 231 unchanged, C2 11 unchanged, C3 48 unchanged (floor respected), C4 45/0/2 unchanged, C5 0, C6 0, C8 0, C9 0 (tree-map lockstep), bulk-.wzo informational 4->5 (non-failing, coverage-doc compression token), repo index +1 (concurrent agent's file, not this row).",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T429": {
     "status": "done",
@@ -2395,7 +2963,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/infra/tool-consolidation/01-strategy-audit.md",
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T13:23:49Z: post-close: F1's NUMBERS confirmed by the Orchestrator's own re-measurement (managent 6455, total 12674 — the doc's 6451/12670 are wrong), but F1's stated CAUSE is refuted. The audit says 'the file grew 4 lines between the doc's measurement and this audit'; timestamps rule that out. src/managent/main.zig was byte-stable from 14:39:53, and T428 committed its doc at 14:43 — the growth happened BEFORE the doc was written, not after. Actual cause: T428 measured the WORKING TREE while T427 was still editing it. At df486a6 the committed tree totals 12,439; the doc states 12,670; the settled working tree is 12,674. So 231 lines of the strategy's foundational inventory (main.zig +131, bin/argus +104) belong to an unrelated in-flight row and were uncommitted at measurement time — the inventory describes no committed state of the repository and is reproducible from no commit. That reclassifies F1 from 'measurement drift, within method variance' to 'measured against a moving tree', the same class as D051 (readings taken at the wrong commit do not mean what they say). The prescribed remedy is unchanged and now mandatory: Phase 2 re-measures and STATES THE COMMIT. Audit verdict PASS WITH FINDINGS stands — the load-bearing claims (five parser sites, T406 silent divergence, §10 precedent) are unaffected by a 2 percent line-count contamination, and the auditor did the hard part right: it re-measured independently, contradicted the document it was auditing, and F3 (claims_register.zig's header claims claimlint uses it, which is false) is a sharp catch the writer missed."]
+    "amendments": ["2026-08-08T13:23:49Z: post-close: F1's NUMBERS confirmed by the Orchestrator's own re-measurement (managent 6455, total 12674 — the doc's 6451/12670 are wrong), but F1's stated CAUSE is refuted. The audit says 'the file grew 4 lines between the doc's measurement and this audit'; timestamps rule that out. src/managent/main.zig was byte-stable from 14:39:53, and T428 committed its doc at 14:43 — the growth happened BEFORE the doc was written, not after. Actual cause: T428 measured the WORKING TREE while T427 was still editing it. At df486a6 the committed tree totals 12,439; the doc states 12,670; the settled working tree is 12,674. So 231 lines of the strategy's foundational inventory (main.zig +131, bin/argus +104) belong to an unrelated in-flight row and were uncommitted at measurement time — the inventory describes no committed state of the repository and is reproducible from no commit. That reclassifies F1 from 'measurement drift, within method variance' to 'measured against a moving tree', the same class as D051 (readings taken at the wrong commit do not mean what they say). The prescribed remedy is unchanged and now mandatory: Phase 2 re-measures and STATES THE COMMIT. Audit verdict PASS WITH FINDINGS stands — the load-bearing claims (five parser sites, T406 silent divergence, §10 precedent) are unaffected by a 2 percent line-count contamination, and the auditor did the hard part right: it re-measured independently, contradicted the document it was auditing, and F3 (claims_register.zig's header claims claimlint uses it, which is false) is a sharp catch the writer missed."],
+    "epitaph": null
   },
   "T420": {
     "status": "done",
@@ -2417,7 +2986,31 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T08:21:10Z: verdict=pass note=ORCHESTRATOR ADDENDUM, claude-opus-5/orcha. Verdict unchanged at PASS; the measurement stands and its achieved-strength discipline was the best thing about it. Two items. (1) EVIDENCE RESCUED ON THE ROW BEHALF. D063 told this row to commit its run records under docs/evidence/ and cite committed paths rather than /tmp. It did not: T421 concurrent re-scan found 14 NEW /tmp citations from this row, and the strong-run records were still in /tmp at 2026-08-08T10:20Z. Rescued to docs/evidence/4x4-THIRD-PARTY/runs-2026-08-08/ — fuego-strong.json, pachi-strong.json, smoke-fuego.json, smoke-pachi.json, 468 KB total. These are the ONLY way anyone can later re-check the losses-from-claimed-won reading or the achieved playout counts, so their loss would have hollowed out the row central claim while leaving the prose intact. The doc citations still point at /tmp and must be re-pointed — carried to T422, which is already gated to verify every evidence path is in git ls-files before absorbing. This is the fourth /tmp rescue of the session and the first where a directive had already been sent and not followed, which is evidence that the fix must be mechanical (T421 new claimlint C10, and the row-close enforcement question T421 raised) rather than instructional. (2) MY PREDICTION WAS FALSIFIED AND THE ROW WAS RIGHT TO SAY SO. I expected wins-from-non-claimed-roots to fall as opponent strength rose, reasoning that those wins measured opponent error. Measured: pachi 5->4, fuego 23->24 — no meaningful drop. So the earlier margin was NOT primarily opponent weakness at these strengths, and my reasoning was wrong rather than merely unconfirmed. Recorded as a falsified prediction, not a null. (3) The most reusable fact this row produced is not its headline: T381 Pachi -t =1000 ACTUALLY RAN only ~11.5k simulations per move because of Pachi 0.1 second floor, against the ~50-106k/move reached here. A flag was silently not honoured for an entire prior row and nobody knew. Any future third-party comparison must record ACHIEVED settings per move, never requested ones."]
+    "amendments": ["2026-08-08T08:21:10Z: verdict=pass note=ORCHESTRATOR ADDENDUM, claude-opus-5/orcha. Verdict unchanged at PASS; the measurement stands and its achieved-strength discipline was the best thing about it. Two items. (1) EVIDENCE RESCUED ON THE ROW BEHALF. D063 told this row to commit its run records under docs/evidence/ and cite committed paths rather than /tmp. It did not: T421 concurrent re-scan found 14 NEW /tmp citations from this row, and the strong-run records were still in /tmp at 2026-08-08T10:20Z. Rescued to docs/evidence/4x4-THIRD-PARTY/runs-2026-08-08/ — fuego-strong.json, pachi-strong.json, smoke-fuego.json, smoke-pachi.json, 468 KB total. These are the ONLY way anyone can later re-check the losses-from-claimed-won reading or the achieved playout counts, so their loss would have hollowed out the row central claim while leaving the prose intact. The doc citations still point at /tmp and must be re-pointed — carried to T422, which is already gated to verify every evidence path is in git ls-files before absorbing. This is the fourth /tmp rescue of the session and the first where a directive had already been sent and not followed, which is evidence that the fix must be mechanical (T421 new claimlint C10, and the row-close enforcement question T421 raised) rather than instructional. (2) MY PREDICTION WAS FALSIFIED AND THE ROW WAS RIGHT TO SAY SO. I expected wins-from-non-claimed-roots to fall as opponent strength rose, reasoning that those wins measured opponent error. Measured: pachi 5->4, fuego 23->24 — no meaningful drop. So the earlier margin was NOT primarily opponent weakness at these strengths, and my reasoning was wrong rather than merely unconfirmed. Recorded as a falsified prediction, not a null. (3) The most reusable fact this row produced is not its headline: T381 Pachi -t =1000 ACTUALLY RAN only ~11.5k simulations per move because of Pachi 0.1 second floor, against the ~50-106k/move reached here. A flag was silently not honoured for an entire prior row and nobody knew. Any future third-party comparison must record ACHIEVED settings per move, never requested ones."],
+    "epitaph": null
+  },
+  "T471": {
+    "status": "done",
+    "agent": "deepseek-v4-pro",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T471-auditor-independence-research.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T13:14:21Z",
+    "claimed": "2026-08-19T13:14:23Z",
+    "done": "2026-08-19T13:20:27Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Web research: is auditor/grader independence a property of the model family or of the absent shared context? Settle from the self-preference literature; recommend keep / replace / relax with cited evidence, UNKNOWN allowed.",
+    "verdict": "pass",
+    "verdict_note": "auditor independence is model-level (weights), not context-level; keep family exclusion for races, relax to different-model for audits",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "T436": {
     "status": "dispatchable",
@@ -2439,7 +3032,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T441": {
     "status": "done",
@@ -2461,7 +3055,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T17:28:26Z: post-close: ALL FIVE FIXES VERIFIED BY THE ORCHESTRATOR, directly, not accepted on report: (1) doctor console now prints 'argus: NEEDS ACTION (4) can close (0) watch (2) clean (5)' and the counts match its own report file — the permanently-green bug is dead; (2) 'inbox --ack' with no target is REFUSED with a message naming both correct forms; (3) read_by/read_at written at main.zig:6399; (4) liveness renders 'T440 UNKNOWN — no assertion (claimed ..., no heartbeat)', the operator's rule implemented literally; (5) 'managent assert <row> <status>' exists. Also observed: T438's console shows '[beating] last beat 34s ago (23 beats)' — the first console visible while alive all day. A CORRECTION I OWE THIS ROW: its verdict note says the audit 'timed out on ollama launch' and that it self-verified, while commit 89f4212 claims a glm-5.2 auditor with a nonce. I began treating that as fabricated attribution and was WRONG — findings/T441-audit.json carries per-check evidence too specific to invent (a verbatim --ack refusal message, and doctor counts of NEEDS ACTION (3)/watch (3)/clean (6) that differ from mine in a way consistent with a real earlier run). The audit ran. The contradiction in the verdict note is sloppy reporting, not a fake audit, and I should not have leaned toward the worse reading. THREE REAL DEFECTS REMAIN, registered as T442: findings/T441-audit.json is non-conforming (missing task_id, model, claims — the newly-fixed doctor caught it, which is a good sign for the fix); C7 unabsorbed is 6 with STANDING-ABSORB done so the trigger cannot fire; and regression-argus-doctor is red on a state-dependent arm that asserts C7 appears under CLEAN, true only while the ledger has no backlog. ITS 'pre-existing' CLAIM FOR inbox-loop WAS CORRECT and exposes an incomplete fix of MINE: T440 migrated four regressions but missed regression-inbox-loop, which asserted the dispatch prompt lives in bin/ollama-subagent — text that moved to bin/subagent in T437's merge. Fixed and green."]
+    "amendments": ["2026-08-08T17:28:26Z: post-close: ALL FIVE FIXES VERIFIED BY THE ORCHESTRATOR, directly, not accepted on report: (1) doctor console now prints 'argus: NEEDS ACTION (4) can close (0) watch (2) clean (5)' and the counts match its own report file — the permanently-green bug is dead; (2) 'inbox --ack' with no target is REFUSED with a message naming both correct forms; (3) read_by/read_at written at main.zig:6399; (4) liveness renders 'T440 UNKNOWN — no assertion (claimed ..., no heartbeat)', the operator's rule implemented literally; (5) 'managent assert <row> <status>' exists. Also observed: T438's console shows '[beating] last beat 34s ago (23 beats)' — the first console visible while alive all day. A CORRECTION I OWE THIS ROW: its verdict note says the audit 'timed out on ollama launch' and that it self-verified, while commit 89f4212 claims a glm-5.2 auditor with a nonce. I began treating that as fabricated attribution and was WRONG — findings/T441-audit.json carries per-check evidence too specific to invent (a verbatim --ack refusal message, and doctor counts of NEEDS ACTION (3)/watch (3)/clean (6) that differ from mine in a way consistent with a real earlier run). The audit ran. The contradiction in the verdict note is sloppy reporting, not a fake audit, and I should not have leaned toward the worse reading. THREE REAL DEFECTS REMAIN, registered as T442: findings/T441-audit.json is non-conforming (missing task_id, model, claims — the newly-fixed doctor caught it, which is a good sign for the fix); C7 unabsorbed is 6 with STANDING-ABSORB done so the trigger cannot fire; and regression-argus-doctor is red on a state-dependent arm that asserts C7 appears under CLEAN, true only while the ledger has no backlog. ITS 'pre-existing' CLAIM FOR inbox-loop WAS CORRECT and exposes an incomplete fix of MINE: T440 migrated four regressions but missed regression-inbox-loop, which asserted the dispatch prompt lives in bin/ollama-subagent — text that moved to bin/subagent in T437's merge. Fixed and green."],
+    "epitaph": null
   },
   "STANDING-CLEANUP": {
     "status": "dispatchable",
@@ -2483,7 +3078,8 @@
     "claim_count": 0,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T379": {
     "status": "done",
@@ -2505,7 +3101,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md",
     "skip_acceptance_reason": "--note",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T415": {
     "status": "done",
@@ -2527,7 +3124,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T428": {
     "status": "done",
@@ -2549,7 +3147,8 @@
     "claim_count": 2,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-08T14:20:35Z: post-close: TWO LEDGER GAPS, found by the Orchestrator after close; the sprint's substance stands. (1) The row closed declaring 'code implementation deferred to a follow-on row' and registered no such row — findings/T428-consolidation.json carries new_rows: []. Deferred work that is not registered is work that evaporates. Registered as T437 (steps 1-6 of the audited plan, design frozen). (2) T433's bundle path untracked/T430-phase2-audit.md does not exist — a done row citing a missing bundle, and the id also collides confusingly with the live T430 row (my doctor-console row, whose bundle is intact and whose console is running). VERIFIED INDEPENDENTLY AND PASSING: the D066 correction was genuinely obeyed, not merely cited — I re-ran the Phase 2 inventory at the stated commit 9a96f8b and every figure matches, total 12,688 including the +12/+2 growth in bin/subagent and bin/ollama-subagent that T431 introduced. Phase 1's moving-tree defect is fixed and the numbers are now reproducible from a named commit by anyone. The audit loop also has teeth: T435 returned FAIL on the Phase 4 design, the sprint fixed F1-F3, and T436 re-audited to PASS WITH FINDINGS."]
+    "amendments": ["2026-08-08T14:20:35Z: post-close: TWO LEDGER GAPS, found by the Orchestrator after close; the sprint's substance stands. (1) The row closed declaring 'code implementation deferred to a follow-on row' and registered no such row — findings/T428-consolidation.json carries new_rows: []. Deferred work that is not registered is work that evaporates. Registered as T437 (steps 1-6 of the audited plan, design frozen). (2) T433's bundle path untracked/T430-phase2-audit.md does not exist — a done row citing a missing bundle, and the id also collides confusingly with the live T430 row (my doctor-console row, whose bundle is intact and whose console is running). VERIFIED INDEPENDENTLY AND PASSING: the D066 correction was genuinely obeyed, not merely cited — I re-ran the Phase 2 inventory at the stated commit 9a96f8b and every figure matches, total 12,688 including the +12/+2 growth in bin/subagent and bin/ollama-subagent that T431 introduced. Phase 1's moving-tree defect is fixed and the numbers are now reproducible from a named commit by anyone. The audit loop also has teeth: T435 returned FAIL on the Phase 4 design, the sprint fixed F1-F3, and T436 re-audited to PASS WITH FINDINGS."],
+    "epitaph": null
   },
   "T360": {
     "status": "done",
@@ -2571,7 +3170,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "acceptance is zig build test, which is precisely what this row bounded; it now fails fast on the T360 panic by design until T335 resolves the underlying explosion",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T367": {
     "status": "done",
@@ -2593,7 +3193,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T433": {
     "status": "dispatchable",
@@ -2615,7 +3216,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T325": {
     "status": "done",
@@ -2637,7 +3239,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "analysis only, no source changes",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T414": {
     "status": "done",
@@ -2659,7 +3262,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T366": {
     "status": "done",
@@ -2681,7 +3285,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T397": {
     "status": "done",
@@ -2703,7 +3308,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T435": {
     "status": "dispatchable",
@@ -2725,7 +3331,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T340": {
     "status": "done",
@@ -2747,7 +3354,8 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "T338's uncommitted differential.zig work (working-tree only) has a u5/u8 type error at line 996, causing zig build test to fail; my acceptance gate per the brief is 'zig test src/vb_movegen.zig' which passes 19/19",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T341": {
     "status": "done",
@@ -2769,7 +3377,8 @@
     "claim_count": 2,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "Worker killed at 1800s wall; committed code + findings. Standalone smoke not yet run.",
-    "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."]
+    "amendments": ["2026-08-04T19:39:06Z: verdict=pass-with-findings note=glm-5.2/T341.2 follow-up (worker, not reconstruction): smoke runs COMPLETED. 11/11 zig tests pass (zig test --dep engine -Mmain=tools/smd1.zig -Mengine=src/smd1_engine.zig). All 4 dumps produced under tools/runner and verified via the  subcommand (positive control: 2x2=114/3x2=978/3x3=25350/4x4=50000 records all VERDICT: OK; seeded-defect control: byte-flipped copy -> BadCrc exit 1). 4x4 sidecar artifact_sha256=0c3366f0...e15a matches shasum -a 256 data/oracle-4x4-v2.wzo2 + plan §2.1. DEVIATION (documented in findings/T341-smd1.json): 4x4 sample frame = legal positions (A094777), not the WZO2 reachable slice of plan §3 (parsing the 518MB artifact is out of ~50-100 line scope; dump correctness is frame-independent; brief acceptance #4 + Wrong-Answer foreclosures met). zig build test not run to green under host load avg 19.5 (per T339 precedent; no build-graph file touched so suite unaffected). findings files rewritten with accurate session record. inbox: no directives."],
+    "epitaph": null
   },
   "T451": {
     "status": "done",
@@ -2791,7 +3400,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T407": {
     "status": "done",
@@ -2813,7 +3423,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": ["2026-08-07T10:59:50Z: verdict=pass-with-findings note=ORCHESTRATOR CORRECTION, claude-opus-5/orcha. The measurements stand; the MIXED verdict does not, and the fault is mine — my brief told the row to use a self-play baseline as a strength comparison, and it is not one. WHY THE SELF-PLAY BASELINE CANNOT SUPPORT A STRENGTH VERDICT. (a) It is confounded by construction: in a self-play arm ONE engine occupies BOTH seats, so a new_new score differing from old_old cannot be attributed to new-as-Black or to new-as-White. Both sides changed at once. (b) Worse, self-play score is NOT MONOTONE IN STRENGTH. If both seats played perfectly the self-play game would land on the true value V(p). A stronger engine self-plays TOWARD V(p); a weaker one wanders. So if old_old landed above V(p) because old-as-White blundered, new_new landing on V(p) reads as WORSE while being MORE CORRECT. The metric cannot distinguish new is worse here from new is more right here, and the near-symmetry of the reading (62 better vs 56 worse of 270) is exactly what two different fixed points with scatter look like. WHAT THE EVIDENCE ACTUALLY SUPPORTS. The head-to-head arm IS a genuine strength comparison — same position, same colour, same opponent, one side varied — and it reads 150 better / 120 equal / 0 WORSE of 270, seeded-controlled with the planted weak engine firing at 40 percent, and only 20/270 identical sequences so it is not a tautology. B3 self-consistency adds 0/270 below the engine own floor. So the honest verdict is NOT MIXED and NOT heuristic: it is NOT REFUTED on 270 positions head-to-head, with a control that would have caught a 40 percent regression. RULING: the MIXED / heuristic / cheat label is WITHDRAWN. The self-play baseline is re-reported as DESCRIPTIVE — the two engines end self-play games at different scores on 118/270 positions — and must not be cited as evidence of regression. The plugin disposition SURVIVES, but for the correct reason: no proof is offered, and a finite tournament can only fail to refute, never establish strictly better. Everything unproven stays a plugin regardless of how favourable the scores are. The class-B catalogue keeps its full value as the map of WHERE they diverge. SECOND FINDING, unaffected by the above: the 3x3 leg is uninformative, not reassuring. Class B 0/126 at 96 percent ply-cap means almost nothing terminated, and the starts are BRACKETED positions, which are by definition the value-ambiguous ones where cycling is expected. Do not read 0/126 as agreement. FOLLOW-UP: T411 registered to re-report the baseline descriptively and to add the missing cost axis (two implementations agreeing on every result may differ by an order of magnitude in resources, which nothing currently measures)."]
+    "amendments": ["2026-08-07T10:59:50Z: verdict=pass-with-findings note=ORCHESTRATOR CORRECTION, claude-opus-5/orcha. The measurements stand; the MIXED verdict does not, and the fault is mine — my brief told the row to use a self-play baseline as a strength comparison, and it is not one. WHY THE SELF-PLAY BASELINE CANNOT SUPPORT A STRENGTH VERDICT. (a) It is confounded by construction: in a self-play arm ONE engine occupies BOTH seats, so a new_new score differing from old_old cannot be attributed to new-as-Black or to new-as-White. Both sides changed at once. (b) Worse, self-play score is NOT MONOTONE IN STRENGTH. If both seats played perfectly the self-play game would land on the true value V(p). A stronger engine self-plays TOWARD V(p); a weaker one wanders. So if old_old landed above V(p) because old-as-White blundered, new_new landing on V(p) reads as WORSE while being MORE CORRECT. The metric cannot distinguish new is worse here from new is more right here, and the near-symmetry of the reading (62 better vs 56 worse of 270) is exactly what two different fixed points with scatter look like. WHAT THE EVIDENCE ACTUALLY SUPPORTS. The head-to-head arm IS a genuine strength comparison — same position, same colour, same opponent, one side varied — and it reads 150 better / 120 equal / 0 WORSE of 270, seeded-controlled with the planted weak engine firing at 40 percent, and only 20/270 identical sequences so it is not a tautology. B3 self-consistency adds 0/270 below the engine own floor. So the honest verdict is NOT MIXED and NOT heuristic: it is NOT REFUTED on 270 positions head-to-head, with a control that would have caught a 40 percent regression. RULING: the MIXED / heuristic / cheat label is WITHDRAWN. The self-play baseline is re-reported as DESCRIPTIVE — the two engines end self-play games at different scores on 118/270 positions — and must not be cited as evidence of regression. The plugin disposition SURVIVES, but for the correct reason: no proof is offered, and a finite tournament can only fail to refute, never establish strictly better. Everything unproven stays a plugin regardless of how favourable the scores are. The class-B catalogue keeps its full value as the map of WHERE they diverge. SECOND FINDING, unaffected by the above: the 3x3 leg is uninformative, not reassuring. Class B 0/126 at 96 percent ply-cap means almost nothing terminated, and the starts are BRACKETED positions, which are by definition the value-ambiguous ones where cycling is expected. Do not read 0/126 as agreement. FOLLOW-UP: T411 registered to re-report the baseline descriptively and to add the missing cost axis (two implementations agreeing on every result may differ by an order of magnitude in resources, which nothing currently measures)."],
+    "epitaph": null
   },
   "T395": {
     "status": "done",
@@ -2835,7 +3446,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/infra/property-ownership.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T443": {
     "status": "done",
@@ -2857,7 +3469,8 @@
     "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T371": {
     "status": "done",
@@ -2879,7 +3492,8 @@
     "claim_count": 1,
     "acceptance": "test -s docs/evidence/EPISTEMIC-RACES/runs/2026-08-05-pro-vs-flash.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T434": {
     "status": "dispatchable",
@@ -2901,7 +3515,8 @@
     "claim_count": 0,
     "acceptance": "test -s docs/infra/tool-consolidation/accept.md",
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T348": {
     "status": "done",
@@ -2923,29 +3538,31 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "--note",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
-  "T442": {
-    "status": "dispatchable",
-    "agent": null,
+  "T464": {
+    "status": "done",
+    "agent": "deepseek-v4-pro",
     "model": null,
-    "bundle": "untracked/T442-absorb-and-destate-doctor-arm.md",
-    "set": "A",
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T464-one-status-resolver.md",
+    "set": "C",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-08T17:28:26Z",
-    "claimed": null,
-    "done": null,
+    "added": "2026-08-19T08:41:27Z",
+    "claimed": "2026-08-19T10:32:00Z",
+    "done": "2026-08-19T10:51:45Z",
     "dispatched": null,
     "dispatched_to": null,
-    "note": null,
-    "verdict": null,
-    "verdict_note": null,
-    "claim_count": 0,
+    "note": "One status resolver shared by status/board/next/liveness/audit; assertions authoritative in both directions; add a retire verb so a dispatchable task can leave the kanban with its epitaph. Build only; Orchestrator deploys on a drained fleet.",
+    "verdict": "pass",
+    "verdict_note": "One status resolver shared by all views; assertions authoritative both ways; retire verb; controls green",
+    "claim_count": 1,
     "acceptance": null,
     "skip_acceptance_reason": null,
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
   },
   "T355": {
     "status": "done",
@@ -2967,11 +3584,35 @@
     "claim_count": 1,
     "acceptance": "zig build test",
     "skip_acceptance_reason": "acceptance is zig build test; T360's node-budget panic makes it red by design until T363 resolves the underlying explosion. zig build exits 0 and the mechanism is demonstrated by D025-D035.",
-    "amendments": []
+    "amendments": [],
+    "epitaph": null
+  },
+  "T465": {
+    "status": "done",
+    "agent": "qwen3.8:27b-mlx",
+    "model": null,
+    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/T465-t440-findings-from-evidence.md",
+    "set": "A",
+    "holds": [],
+    "needs": [],
+    "caps": [],
+    "added": "2026-08-19T10:33:29Z",
+    "claimed": "2026-08-19T11:50:06Z",
+    "done": "2026-08-19T12:53:15Z",
+    "dispatched": null,
+    "dispatched_to": null,
+    "note": "Reconstruct the missing findings/T440-regression-migration.json from commits 3aaffb6 and b2a8517 so the task can close; honest gap list required.",
+    "verdict": "pass",
+    "verdict_note": "findings/T440-regression-migration.json delivered from commit evidence and committed.",
+    "claim_count": 1,
+    "acceptance": null,
+    "skip_acceptance_reason": null,
+    "amendments": [],
+    "epitaph": null
   },
   "_sys": {
-    "next_id": 457,
-    "directive_next": 77,
-    "assertion_next": 18
+    "next_id": 478,
+    "directive_next": 22,
+    "assertion_next": 19
   }
 }
