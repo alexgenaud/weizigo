@@ -48,6 +48,9 @@ unreachable.
 
 ## What follows from this
 
+- **Time and cost are subordinate to provable perfection, reliability, and simple elegance.** A
+  schedule is a plan, never an excuse to lower a standard. (Operator, 2026-08-19; the
+  project-global form is `docs/PRINCIPLES.md`.)
 - **A falsification is a result.** Most of what this project knows, it learned by
   being wrong on the record.
 - **Evidence outlives agents.** Documentation, working code and the epistemic tree
