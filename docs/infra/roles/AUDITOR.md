@@ -24,7 +24,7 @@ Invoked as: `You are the Auditor for <scope>.`
 
 ## Wide scope
 
-At project scope, look for what tooling cannot see. `bin/weizigo-claimlint` already finds orphans, dangling evidence and proven-without-evidence rows — cite those, don't re-derive them. Your residue is the part no checker reaches: a proof that is wrong, a test that cannot fail, a measurement of the wrong quantity, a definition that shifted between documents.
+At project scope, look for what tooling cannot see. `bin/weizigo-claimlint` already finds orphans, dangling evidence and proven-without-evidence claim rows — cite those, don't re-derive them. Your residue is the part no checker reaches: a proof that is wrong, a test that cannot fail, a measurement of the wrong quantity, a definition that shifted between documents.
 
 Work from `docs/epistemic/CLAIMS.md` rather than accumulated memory; if a fresh auditor cannot work from the register, that is a defect in the register — report it as one. Prefer a short life and a clean context: an auditor warm for days has a stack of his own rulings he can no longer revisit impartially.
 

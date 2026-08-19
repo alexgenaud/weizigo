@@ -268,6 +268,15 @@ software engineers, and LLM agents. Organized by domain.
   engine change: anchors, exhaustive symmetry (inversion + dihedral + L/H-swap),
   bracket containment, Exact-on-reachable, spot checks, arena. See ARCHITECTURE.
 
+## Process vocabulary (T458, 2026-08-19)
+
+- **task / claim** — the two words that replace "row" in process prose:
+  **task** = a unit of work in the kanban (brief, execution, findings); **claim** =
+  a falsifiable statement in the claim register (`docs/epistemic/CLAIMS.md`).
+  Reach for **task row** or **claim row** only when the line in the table is the
+  subject. A blind sweep across these produces "the task row's task row";
+  a sentence that reads correctly with the bare word is the right word.
+
 ## weizigo engine concepts (project jargon — defined, not standard)
 
 - **fresh-start score** **[project term]** — the score of a position assuming
@@ -301,7 +310,7 @@ scores (C1). A fresh-start score is **not** a real-game score under PSK
   2x2/3x2/3x3/4x3/4x4) because it exempts settled positions and divides by
   **non-settled** slots only. The two series are reconciled **at 4x4 only** (the
   36,368-slot settled exemption; `../research/ko-sensitive-chainability.md`, end
-  of Measurement 1); the smaller-goban rows are `CLAIMS.md` discrepancy D7 and
+  of Measurement 1); the smaller-goban claim rows are `CLAIMS.md` discrepancy D7 and
   remain unreconciled. The bracket `[L,H]` is the **spread of
   fresh-start fixpoints under different cycle-resolution conventions**; it is a
   CLAIMED fresh-start property, **not** a real-game bound (C3 falsified at
@@ -437,6 +446,6 @@ which always leaves a stone of the mover's colour. 131,068 such states at 4×4, 
 correctly absent.
 
 The findings file keeps the old word: findings are immutable once absorbed (T279
-absorbed it on 2026-08-03), so the correction propagates forward into the register row
+absorbed it on 2026-08-03), so the correction propagates forward into the register claim row
 and the evidence document rather than backward into the record. Superseding a term is
 not licence to rewrite what was written.

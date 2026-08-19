@@ -6,7 +6,7 @@ believing it is right.
 ## The header
 
 ```
-CLAIM:      the CLAIMS.md row this settles
+CLAIM:      the CLAIMS.md claim this settles
 KIND:       ANALYSIS (parallel, one new file) or MUTATION (serial, cites its analysis)
 OWNS:       exact paths — everything else is forbidden
 READS:      the minimum
@@ -16,7 +16,7 @@ DISPATCH:   the agent the human assigned this to; if blank, the Orchestrator
             queues it without a target and the agent self-claims
 ```
 
-The `DISPATCH` row is *advisory*, not *authoritative*: it is the human's
+The `DISPATCH` line is *advisory*, not *authoritative*: it is the human's
 preference, and any agent may still claim the task via
 `managent claim <id> --agent <name>`. The pattern is in
 `docs/infra/delegation/ROLES.md` §"Dispatching, claiming, and the
@@ -63,7 +63,7 @@ about models. A per-task requirement with a stated reason is legitimate; standin
 assignments and the final pick belong to the human. A task that only a huge
 context window can hold is a badly scoped brief.
 
-**Model assignment.** The brief does **not** specify a model — the human invokes the harness session and assigns the model at runtime (the model truth is known only there). You may *suggest* a model in the `DISPATCH` row or a dispatch note, but the choice is the human's. The agent is told its model at launch and writes the **real** model in the deliverable; the Orchestrator records stats and impressions in `docs/infra/model-perf.md`. (Temporary model preferences — e.g. 'use DeepSeek more right now' — are session memory, not disk rules; they change with billing and the human's call.)
+**Model assignment.** The brief does **not** specify a model — the human invokes the harness session and assigns the model at runtime (the model truth is known only there). You may *suggest* a model in the `DISPATCH` line or a dispatch note, but the choice is the human's. The agent is told its model at launch and writes the **real** model in the deliverable; the Orchestrator records stats and impressions in `docs/infra/model-perf.md`. (Temporary model preferences — e.g. 'use DeepSeek more right now' — are session memory, not disk rules; they change with billing and the human's call.)
 
 **Independence.** A reviewer must know less than the worker: give the artefact,
 the relevant foreclosures, and *find the flaw; assume one exists.* Anything

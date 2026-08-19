@@ -41,7 +41,7 @@ automatically. You only need `--agent` if the stored model is wrong and you
 need to correct it.
 
 If you forget, the Orchestrator may claim on your behalf — the kanban must
-match reality, and a stale `dispatchable` row is the Orchestrator's to fix.
+match reality, and a stale `dispatchable` task is the Orchestrator's to fix.
 Self-claiming is still the normal path: it is how `managent next`
 self-services and how your work is attributed to you in the performance ledger.
 
@@ -57,7 +57,7 @@ export MANAGENT_TASK_ID=<id>
 ```
 
 (claim prints the exact line). Every `tools/runner` invocation then inherits
-it and heartbeats land under your row, so `managent liveness` reads you as
+it and heartbeats land under your task, so `managent liveness` reads you as
 alive and `managent tell <id> pause|kill` can reach a running compute. A run
 without identity warns loudly and is invisible to both; do not run that way
 when you can avoid it. This step is too load-bearing to bury — do it before
@@ -100,7 +100,7 @@ console. The `managent inbox` command without `--ack` only displays; with
 interfere: ack is scoped to the target you pass.
 
 The Orchestrator's side is also one command. Sending a correction to a
-live row is `managent tell <task-id> --amend "<text>"`; no clipboard
+live task is `managent tell <task-id> --amend "<text>"`; no clipboard
 step, no relay.
 
 ## Your context is fresh — three things that have caught cold consoles
@@ -114,7 +114,7 @@ cites `src/exp6_solve.zig:964` at `082433e`, where that line is the pass child; 
 HEAD the same statement is line 927 and 964 is unrelated. Resolve with
 `git show <commit>:<path>`, not `sed` at HEAD. If a citation still does not support
 its claim after that, **say so with both resolutions shown** — a drifted citation
-in a PROVEN row is a finding, and quietly assuming the claim is how a wrong row
+in a PROVEN claim is a finding, and quietly assuming the claim is how a wrong claim
 survives.
 
 **A critique handed to you may be wrong — checking it is the job, agreeing is
@@ -245,8 +245,8 @@ notes (free text — the payload)
 ```
 
 **`claims` and `new_rows` stay empty in a dump.** The dump is a narrative record, not a
-proposal: your *findings* file proposes rows, and claimlint's C7 counts every proposal it
-can see. A dump that repeats them double-counts, so the same row shows up twice in the
+proposal: your *findings* file proposes claim rows, and claimlint's C7 counts every proposal it
+can see. A dump that repeats them double-counts, so the same claim row shows up twice in the
 absorption backlog and C7 stops being a usable number. This is not a style preference —
 on 2026-08-03 one task's dump added nine phantom entries to C7 on top of its findings
 file's eight, and three earlier consoles (T266, T270, T276) had each worked this out

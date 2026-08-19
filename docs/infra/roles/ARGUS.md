@@ -64,16 +64,16 @@ weekly sweep as a one-line check. Ten checks grouped by what the operator
 should DO:
 
 ```
-NEEDS ACTION  — rows worked but never claimed, non-conforming findings,
+NEEDS ACTION  — tasks worked but never claimed, non-conforming findings,
                 C7 unabsorbed ≥ threshold with standing tier unable to fire,
                 volatile evidence citations, deployed binary staleness,
-                uncommitted tracked files, fixture-shaped kanban rows
+                uncommitted tracked files, fixture-shaped kanban tasks
                 (T425-DOCTOR-* style detritus; id pattern or tools/ bundle
                 + claimed==done same second)
-CAN CLOSE     — done rows the operator can acknowledge
-WATCH         — in_progress rows with no heartbeat, long-running processes
-CLEAN         — no in_progress rows, C7 below threshold, register/tree-map
-                lockstep, floor counters at or below floor, no fixture rows
+CAN CLOSE     — done tasks the operator can acknowledge
+WATCH         — in_progress tasks with no heartbeat, long-running processes
+CLEAN         — no in_progress tasks, C7 below threshold, register/tree-map
+                lockstep, floor counters at or below floor, no fixture tasks
 ```
 
 Every finding names its evidence (a command, exit code, and output, or a

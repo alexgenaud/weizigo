@@ -59,7 +59,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   carries a status** — PROVEN / CLAIMED / FALSE-AS-SCOPED — and never assert "proven" or "sound" without
   the run that makes it so.
 - **Scratch is for working files; a citation is a commitment (T421, 2026-08-08).** Anything a document
-  cites must be committed under `docs/evidence/<claim-id>/` **before the row closes** — a `/tmp` citation
+  cites must be committed under `docs/evidence/<claim-id>/` **before the task closes** — a `/tmp` citation
   whose file still exists passes claimlint C2 (which only sees *missing* paths) and becomes a dead link
   the moment the sweep destroys the file; 43 such citations had already crossed that line on 2026-08-08
   before the 278-file rescue. claimlint C10 VOLATILE reports every `/tmp`, `/private/tmp`,
@@ -109,7 +109,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   and indistinguishable from your own, and a wildcard stage takes it. If you do not know which
   files are yours, you are not ready to commit — re-read your own brief's `deliverables=`, which
   is the authoritative list. Recorded failure, 2026-08-18: the **Orchestrator** ran `git add -A`
-  while three consoles were mid-row and committed two of their source fixes under an unrelated
+  while three consoles were mid-task and committed two of their source fixes under an unrelated
   message (`d7e4bdb`); the work survived, the authorship did not. The rule predated the failure,
   which is why the mechanism is being built too — `T455`, since a rule that only prose enforces
   is enforced only on whoever reads it. See `docs/infra/fleet-git-isolation.md`.
@@ -158,7 +158,7 @@ and English idioms ("across the board"). (User's terminology ruling, 2026-07-29;
 ## Tooling gets the same pipeline as research code (user requirement, 2026-08-07) — standing
 
 **Tests before implementation, for instruments and tooling, not only for the engine.** The delivery
-pipeline — spec → design → tests → implement → independent audit → accept — has been applied to rows
+pipeline — spec → design → tests → implement → independent audit → accept — has been applied to tasks
 that produce numbers and skipped for the code that produces them. **Every defect of the week of
 2026-08-03 was in tooling or an instrument; none was in the kernel.** That is not luck, it is where
 the discipline was missing:
@@ -168,7 +168,7 @@ the discipline was missing:
 | `t387_budget.zig` — `bitpos: u6` vs `while (bitpos < 64)`, infinite loop | none; only manifests under `-O ReleaseFast`, which is what `tools/runner` forces |
 | `gtp.zig` — `list_commands` reply 303 bytes into a `[256]u8` | none; crashed on a command every GUI sends at handshake |
 | `managent` — free text written into JSON unescaped | none; corrupted the live kanban **twice**, fleet-wide outage |
-| `absorb` — parser read a 221-row register as **empty** | none; reported "nothing to absorb" instead of failing |
+| `absorb` — parser read a 221-line claim register as **empty** | none; reported "nothing to absorb" instead of failing |
 
 The shared failure mode is worth naming, because it recurs: **the tool reported success while doing
 nothing.** A silent wrong answer outranks a loud crash.
@@ -178,8 +178,8 @@ So, standing:
 - **Write the failing test first and show it red**, then fix. A test written after the fix proves the
   fix compiles, not that the test works. If a defect has already been fixed and cannot be re-observed
   failing, **assert the invariant instead** — do not re-introduce a bug to watch it break.
-- **A tooling row is not accepted until its test is wired into `zig build test`.**
-- **Report which rows were test-first and which were not.** Sprint consoles must say so per row.
+- **A tooling task is not accepted until its test is wired into `zig build test`.**
+- **Report which tasks were test-first and which were not.** Sprint consoles must say so per task.
 - This binds the Orchestrator seat too. An Orchestrator production edit without a test is the same
   defect with a better excuse — 2026-08-07, `src/gtp.zig` was fixed from the Orchestrator seat and
   verified by hand, and its regression test had to be added afterwards by T403.
@@ -228,7 +228,7 @@ belong in the committed doc and findings file, where the Orchestrator reads them
 longer than a short paragraph or two, it is the wrong artifact.
 
 **Never ask the human to relay a message to another agent.** He is not a message bus. Write it to
-disk — a findings file, the row's doc, a `bin/managent tell` directive — and it will be read. Ask him
+disk — a findings file, the task's doc, a `bin/managent tell` directive — and it will be read. Ask him
 to relay something only when there is genuinely no on-disk route, and then say explicitly why not.
 
 ## Agent-to-human output — copy/paste boundaries (user requirement, 2026-07-29)
@@ -316,10 +316,10 @@ clean · **L5** one rulebook · **L6** small Go solved, certifiably · **L7** th
 nobody can expand is not communication. (These were "milestones M<n>" before 2026-08-05; the IDs
 moved to `L<n>` because `M1`–`M10` are already the mutant IDs.)
 
-**Every row has a SHORT NAME, phrased as the question the row answers.** Not a slug — a question
+**Every task has a SHORT NAME, phrased as the question the task answers.** Not a slug — a question
 a human can read: `T387 (does a capture cap make the game finite?)`, `T388 (do we run the same test
 at every goban size?)`. It goes in the brief's title line and in the `managent` note, and it is what
-appears in narrative to the operator. Report a row's outcome as a sentence that ties it to its
+appears in narrative to the operator. Report a task's outcome as a sentence that ties it to its
 landmark:
 
 > `T387 (does a capture cap make the game finite?)` — **answered yes, at 3×3.** One of the
@@ -327,9 +327,9 @@ landmark:
 
 An ID with no short name forces the reader to open the brief to learn what the work was about.
 
-**Frame work as movement between landmarks.** A sprint is not "a list of rows that closed" — it is a
+**Frame work as movement between landmarks.** A sprint is not "a list of tasks that closed" — it is a
 step from one landmark toward the next. When you open a brief, say which landmark the work serves;
-when you close a row, say what a human can now see that they could not before, and what still
+when you close a task, say what a human can now see that they could not before, and what still
 stands in the way:
 
 > **Landmark:** advances `L<n> (<short name>)` — <what is now visible> — <what remains>.
@@ -340,7 +340,7 @@ Three rules keep it honest rather than decorative:
 2. **State which direction a result cuts.** If something got worse, say *whose* and *which way*.
    "Every game diverged and there were 9 genuine losses" is uninterpretable until you say the losses
    were the *old* engine's and the new engine wins those games.
-3. **A row that advances no landmark says so** — `Landmark: none directly; unblocks <row>`. Fleet
+3. **A task that advances no landmark says so** — `Landmark: none directly; unblocks <task>`. Fleet
    plumbing is honest work; dressing it up as mission progress is what makes landmark talk worthless.
 
 This is for the operator, who is the only reader who cannot query the repo — every other artifact
