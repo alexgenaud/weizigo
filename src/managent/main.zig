@@ -106,6 +106,7 @@ const canonical_models = [_][]const u8{
     "glm-5.2",
     "minimax-m3",
     "kimi-k2.7",
+    "qwen3.8:27b-mlx",
 };
 
 fn isCanonicalModel(s: []const u8) bool {

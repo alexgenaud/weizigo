@@ -129,8 +129,33 @@ else
     check_agent_in_line "$DONE_LINE" "minimax-m3" "done"  || FAIL=1
 fi
 
-# ── control 4: depth cap still fires ─────────────────────────────────────
-echo "  4. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
+# ── control 4: qwen3.8:27b-mlx (T463) ──────────────────────────────────
+# qwen3.8:27b-mlx is the exact serving identity (T463) — raw tag and
+# canonical label coincide, so the assertion is that the mapping resolves
+# to the canonical and the prompt carries it on the claim/done lines,
+# while the launch still uses the raw tag.
+echo "  4. qwen3.8:27b-mlx — launch uses raw tag, agent lines use canonical"
+OUT_QWEN=$("$OLLAMA_SUBAGENT" T996 --model qwen3.8:27b-mlx --dry-run 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: ollama-subagent exit code $RC"
+    echo "$OUT_QWEN"
+    FAIL=1
+else
+    if launch_uses_tag "$OUT_QWEN" "qwen3.8:27b-mlx"; then
+        echo "    PASS launch: ollama launch pi --model qwen3.8:27b-mlx"
+    else
+        echo "    FAIL launch: expected ollama launch pi --model qwen3.8:27b-mlx, not found in output"
+        FAIL=1
+    fi
+    CLAIM_LINE=$(echo "$OUT_QWEN" | grep "FIRST: bin/managent claim" || true)
+    DONE_LINE=$(echo "$OUT_QWEN" | grep "bin/managent done" || true)
+    check_agent_in_line "$CLAIM_LINE" "qwen3.8:27b-mlx" "claim" || FAIL=1
+    check_agent_in_line "$DONE_LINE" "qwen3.8:27b-mlx" "done"  || FAIL=1
+fi
+
+# ── control 5: depth cap still fires ─────────────────────────────────────
+echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
 OUT=$(WEIZIGO_AGENT_DEPTH=3 "$OLLAMA_SUBAGENT" T996 --model glm-5.2:cloud 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
@@ -145,7 +170,7 @@ fi
 # canonical_models[] in main.zig, and every Ollama model in canonical_models[]
 # must have at least one tag mapping.  Two copies of one truth — the
 # divergence this project keeps paying for.
-echo "  5. cross-check: OLLAMA_TAG_TO_CANONICAL ↔ canonical_models[]"
+echo "  6. cross-check: OLLAMA_TAG_TO_CANONICAL ↔ canonical_models[]"
 MAIN_ZIG="$ROOT/src/managent/main.zig"
 PASS_CROSS=1
 
@@ -204,7 +229,7 @@ if [ "$PASS_CROSS" -eq 1 ]; then
 
     # Check: every Ollama-model in canonical_models[] must have at least one
     # tag mapping in OLLAMA_TAG_TO_CANONICAL
-    OLLAMA_ZIG_MODELS="glm-5.2 minimax-m3 kimi-k2.7"
+    OLLAMA_ZIG_MODELS="glm-5.2 minimax-m3 kimi-k2.7 qwen3.8:27b-mlx"
     for zm in $OLLAMA_ZIG_MODELS; do
         if ! echo "$OLLAMA_CANONICALS" | grep -Fxq "$zm"; then
             echo "    FAIL cross-check: zig canonical '$zm' (Ollama model) has NO tag mapping in OLLAMA_TAG_TO_CANONICAL"
@@ -223,7 +248,7 @@ fi
 # A synthetic version of the broken code — the launch uses the canonical
 # label instead of the raw tag. This is the red half: the control that
 # proves the green controls actually test something.
-echo "  6. seeded-defect: canonical-label-in-launch is CAUGHT"
+echo "  7. seeded-defect: canonical-label-in-launch is CAUGHT"
 # We construct a synthetic dry-run that mimics the old broken behaviour
 # by replacing the raw tag with the canonical label in the output.
 # The green control above (launch_uses_tag) expects the raw tag; if the

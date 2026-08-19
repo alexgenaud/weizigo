@@ -59,6 +59,8 @@ OLLAMA_TAG_TO_CANONICAL = {
     "kimi-k2.7-code": "kimi-k2.7",
     "kimi-k2.7:cloud": "kimi-k2.7",
     "kimi-k2.7-code:cloud": "kimi-k2.7",
+    "qwen3.8:27b-mlx": "qwen3.8:27b-mlx",
+    "qwen3.8:27b-mlx:cloud": "qwen3.8:27b-mlx",
 }
 
 
