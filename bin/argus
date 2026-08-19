@@ -135,6 +135,22 @@ def _fmt_relative(path, root):
         return str(path)
 
 
+def _fmt_duration(secs):
+    """Operator rule (2026-08-19): a duration never contains a colon.
+    >= 3600 s -> NhMM (4h28); 60-3599 s -> N'SS (19'48);
+    < 60 s -> SSs (48s) or SS.cc bare when fractional (12.34)."""
+    secs = float(secs)
+    if secs < 60:
+        if secs == int(secs):
+            return f"{int(secs)}s"
+        return f"{secs:.2f}"
+    if secs < 3600:
+        m, s = divmod(int(secs), 60)
+        return f"{m}'{s:02d}"
+    h, r = divmod(int(secs), 3600)
+    return f"{h}h{r // 60:02d}"
+
+
 # ── checklist registry parser ────────────────────────────────────────
 
 def parse_checklist_registry(path):
@@ -1163,13 +1179,13 @@ class ArgusRun:
                 continue
             if minutes < 30:
                 continue  # short-lived; not a hang
-            suspects.append((pid, etime, cmd[:80]))
+            suspects.append((pid, etime, minutes, cmd[:80]))
 
         if suspects:
-            for pid, etime, cmd in suspects[:5]:
+            for pid, etime, minutes, cmd in suspects[:5]:
                 self.doctor_finding(
                     "WATCH",
-                    f"long-running process (pid={pid}, etime={etime}): {cmd}",
+                    f"long-running process (pid={pid}, running {_fmt_duration(minutes * 60)}): {cmd}",
                     evidence_command="ps -eo pid,etime,command",
                     evidence_output=f"{pid} {etime} {cmd}",
                 )

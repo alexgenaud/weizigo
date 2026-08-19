@@ -131,14 +131,20 @@ def _parse_hms(s):
     return 0.0
 
 
-def _format_clock(secs):
-    """Format seconds as [H:]M:SS for human-readable output."""
-    secs = int(secs)
-    h, r = divmod(secs, 3600)
-    m, s = divmod(r, 60)
-    if h:
-        return f"{h}:{m:02d}:{s:02d}"
-    return f"{m}:{s:02d}"
+def _format_duration(secs):
+    """Format seconds per the operator rule (2026-08-19): a duration never
+    contains a colon. >= 3600 s -> NhMM (e.g. 4h28); 60-3599 s -> N'SS
+    (e.g. 19'48); < 60 s -> SSs (e.g. 48s) or SS.cc bare when fractional."""
+    secs = float(secs)
+    if secs < 60:
+        if secs == int(secs):
+            return f"{int(secs)}s"
+        return f"{secs:.2f}"
+    if secs < 3600:
+        m, s = divmod(int(secs), 60)
+        return f"{m}'{s:02d}"
+    h, r = divmod(int(secs), 3600)
+    return f"{h}h{r // 60:02d}"
 
 
 def _cpu_time_seconds(pid):
@@ -343,13 +349,15 @@ def sweep():
     body = data[1:] if len(data) > 1 else []
     n_show = min(20, len(body))
 
-    print(f"  PID  ETIME      CPUTIME    COMMAND", file=sys.stderr)
-    print(f"  ---  -----      -------    -------", file=sys.stderr)
+    print(f"  PID  ELAPSED    CPU        COMMAND", file=sys.stderr)
+    print(f"  ---  --------   --------   -------", file=sys.stderr)
     for line in body[:n_show]:
         parts = line.split(None, 3)
         if len(parts) >= 4:
             pid, etime, cputime, cmd = parts
-            print(f"  {pid:<5s} {etime:<10s} {cputime:<10s} {cmd}", file=sys.stderr)
+            el = _format_duration(_parse_cputime(etime))
+            ct = _format_duration(_parse_cputime(cputime))
+            print(f"  {pid:<5s} {el:<10s} {ct:<10s} {cmd}", file=sys.stderr)
         else:
             print(f"  {line}", file=sys.stderr)
     print(f"[runner] === {len(body)} processes total, showing top {n_show} ===", file=sys.stderr)
@@ -505,7 +513,7 @@ def _log_peaks(peak_rss, peak_cpu=None, t0=None):
         print(f"[runner] peak total CPU by PID:{elapsed}", file=sys.stderr)
         for pid in sorted(peak_cpu, key=lambda p: -peak_cpu[p]):
             secs = peak_cpu[pid]
-            print(f"[runner]   pid {pid:>7d}  {_format_clock(secs):>10s} ({secs}s)", file=sys.stderr)
+            print(f"[runner]   pid {pid:>7d}  {_format_duration(secs):>10s} ({secs}s)", file=sys.stderr)
 
 
 # ── main ─────────────────────────────────────────────────────────────
@@ -613,7 +621,7 @@ def main():
     else:
         guards.append("rss off")
     if args.progress_timeout:
-        guards.append(f"progress-timeout {args.progress_timeout}s ({_format_clock(args.progress_timeout)})")
+        guards.append(f"progress-timeout {args.progress_timeout}s ({_format_duration(args.progress_timeout)})")
     else:
         guards.append("progress-timeout off")
     guards.append(f"fallback: wall {args.max_wall}s cpu {args.max_cpu}s (silent children)")
@@ -805,7 +813,7 @@ def main():
                     if since_progress >= args.progress_timeout:
                         kill_reason = (
                             f"progress timeout {args.progress_timeout}s "
-                            f"({_format_clock(args.progress_timeout)}) — "
+                            f"({_format_duration(args.progress_timeout)}) — "
                             f"no [progress] for {since_progress:.0f}s"
                         )
             else:
@@ -814,13 +822,13 @@ def main():
                 if args.max_wall and elapsed >= args.max_wall:
                     kill_reason = (
                         f"wall ceiling {args.max_wall}s "
-                        f"({_format_clock(args.max_wall)}) reached "
+                        f"({_format_duration(args.max_wall)}) reached "
                         f"at {elapsed:.1f}s elapsed (no [progress] lines seen)"
                     )
                 elif args.max_cpu and total_cpu >= args.max_cpu:
                     kill_reason = (
                         f"CPU ceiling {args.max_cpu}s "
-                        f"({_format_clock(args.max_cpu)}) exceeded "
+                        f"({_format_duration(args.max_cpu)}) exceeded "
                         f"({total_cpu:.1f}s total) (no [progress] lines seen)"
                     )
 

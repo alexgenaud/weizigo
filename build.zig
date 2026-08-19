@@ -229,6 +229,19 @@ pub fn build(b: *std.Build) void {
     subagent_prompt_regression.cwd = b.path(".");
     test_step.dependOn(&subagent_prompt_regression.step);
 
+    // ── T466: fleet-surface controls (time notation + self-heal) ────
+    // Pins the COMMITTED untracked/watch-fleet.sh contract (git show HEAD),
+    // never the live working-tree file (co-owned; T469 landed the four-
+    // section layout, the operator's console iterates on it). Arms: A
+    // duration formatters obey the no-colon rule; B PROGRESS/CONCERNS
+    // truth; C the opt-in heal reopens an old processless claim with an
+    // assertion; D the heal leaves live/fresh/done rows alone. If a future
+    // commit changes the script's layout or test hooks, this fails loudly
+    // instead of silently stopping to test — that is the point.
+    const watch_fleet_regression = b.addSystemCommand(&.{ "sh", "tools/regression-watch-fleet.sh" });
+    watch_fleet_regression.cwd = b.path(".");
+    test_step.dependOn(&watch_fleet_regression.step);
+
     // ── T337 S1: ollama-dispatcher regression controls ───────────────
     // T317 item 2 passed the canonical label to ollama launch instead
     // of the Ollama tag — every ollama dispatch would have failed, and
@@ -325,6 +338,28 @@ pub fn build(b: *std.Build) void {
     const gcm_hook_regression = b.addSystemCommand(&.{ "sh", "tools/regression-git-commit-mine-hook.sh" });
     gcm_hook_regression.cwd = b.path(".");
     test_step.dependOn(&gcm_hook_regression.step);
+
+    // ── T450: pilot-gate scratch-and-verify controls ─────────────────
+    // The gate's whole value is that a failing run leaves nothing
+    // behind (T447 found four races where it wrote live tracked
+    // artifacts before the verification that gates them, and
+    // `rm -f data/oracle-4x4.checkpoint.wzo` before a 20-min rebuild
+    // with no restore path). Controls assert: (1) fast-branch null
+    // — unmodified tree passes, live tree byte-identical after;
+    // (2) fast-branch seeded — single-byte perturbation in scratch
+    // is detected, live tree byte-identical; (3) --full restore
+    // path — a stubbed rebuild that fails fast exits non-zero, EXIT
+    // trap wipes scratch, live data/ byte-identical; (4) gate source
+    // contract — no destructive ops (`rm -f data/oracle-4x4`,
+    // `mv ...oracle-4x4.wzo.prev`), no retracted WANT hash
+    // (b42c3371...), checks the canonical checkpoint (a2174fed...),
+    // EXIT trap present, RETRO_SAVE_*_OUT routes scratch writes.
+    // Control 1 (fast null) takes minutes because it rebuilds the
+    // four small-goban artifacts from scratch — that is the cost
+    // of a real null control, not a test defect.
+    const pilot_gate_regression = b.addSystemCommand(&.{ "sh", "tools/regression-pilot-gate.sh" });
+    pilot_gate_regression.cwd = b.path(".");
+    test_step.dependOn(&pilot_gate_regression.step);
 
     // ── GTP boardsize desync controls (T403) ─────────────────────────
     // Seeded (red): after rejected boardsize in deferred mode, the GTP
