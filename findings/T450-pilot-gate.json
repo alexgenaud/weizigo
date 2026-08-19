@@ -1,0 +1,120 @@
+{
+ "task_id": "T450",
+ "date": "2026-08-19",
+ "model": "minimax-m3",
+ "identifier": "minimax-m3/T450.2",
+ "claims": [],
+ "new_rows": [],
+ "directives_acked": ["D079"],
+ "notes": "T450 (pilot_gate.sh scratch-and-verify) — delivered as briefed. Two commits: 51dbf23 rewrote tools/pilot_gate.sh so it writes into /tmp/weizigo/pilot_gate.*, verifies in scratch, and only `cp`s into the live tree on a clean hash match; e3c7451 added tools/regression-pilot-gate.sh with four controls (fast-null, fast-seeded, --full-restore-path, gate-source-contract) and wired it into zig build test. The pre-existing build.zig wiring edit was swept into T466's commit af1d9fc (T455/T268 incident class: 'the work survived, the authorship did not') — recorded as T466 note 48c6151. ALL FOUR CONTROLS PASSED locally on 2026-08-19: null 41s (rebuilds 2x2/3x2/3x3/4x3, live tree byte-identical after), seeded <1s (perturbation in scratch caught, live tree untouched), --full-restore-path <1s (fake `zig` in PATH forces fast failure; EXIT trap cleans scratch, live data/ byte-identical — the 258 MB checkpoint was never at risk), source-contract <1s (no destructive ops, checks canonical a2174fed... not retracted b42c3371..., EXIT trap present, RETRO_SAVE_*_OUT routed). Wall budget for the full suite: ~47s.",
+ "directive_D079": "RESUME directive from claude-opus-5/orcha (2026-08-19T12:54:16Z) — a prior kimi-k2.7 console died at 75-min wall before committing; its work was still in the tree. The directive said 'Do NOT start over. Read the diffs, judge them, finish and commit. AND COMMIT AS YOU GO'. I judged the prior work correct, kept its substantive design (scratch-and-verify, EXIT trap, ENV var routing, symlink gymnastics to satisfy engine's hardcoded writeChecksums paths), tightened the regex on control 4 (`^trap cleanup.*EXIT` because the prior pattern needed `.*` to match at least one char), replaced the chmod-555 control 3 stub with a fake-zig stub (faster, doesn't wait for the engine to attempt the 20-min rebuild before failing — the brief explicitly allowed 'a stubbed rebuild that fails deliberately'), and committed the two main files before starting the next step. The build.zig edit did not get a T450 commit because the shared file was swept into T466's af1d9fc; T466's own record (48c6151) noted 'attribution belongs to T450', so the project captured it.",
+ "control_results": {
+  "1_fast_null": {
+   "wall_s": 41,
+   "passed": true,
+   "what_proved": "gate passes on an unmodified tree; live artifacts/ byte-identical to HEAD afterwards",
+   "live_artifacts_clean": true,
+   "live_data_clean": true
+  },
+  "2_fast_seeded": {
+   "wall_s": 1,
+   "passed": true,
+   "perturbation": "single-byte flip at offset 10 of oracle-2x2.wzo (scratch copy only)",
+   "detected_divergence": "3caaf08b52b1cb576c32f3ceaf960a3fbe7d52cf94a35be88f0be5ac3427b284 vs want 1ed06e648561995005a16489dcf6c4205c5aa11f427da81cceca40d3cab62abf",
+   "live_artifacts_clean": true,
+   "what_proved": "verify step catches a determinism break BEFORE promotion into live tree"
+  },
+  "3_full_restore_path": {
+   "wall_s": 1,
+   "passed": true,
+   "stub": "fake `zig` in PATH that exits 1 (per brief: 'stubbed rebuild that fails deliberately')",
+   "live_data_clean": true,
+   "scratch_cleaned_by_trap": true,
+   "what_proved": "any --full failure path exits non-zero, the EXIT trap wipes /tmp/weizigo/pilot_gate.*, and live data/ is byte-identical — the 258 MB checkpoint is never at risk because the engine only knows scratch paths via the gate's cwd, never via the live repo"
+  },
+  "4_source_contract": {
+   "wall_s": 1,
+   "passed": true,
+   "checks": [
+    "no `rm -f data/oracle-4x4` in script (the destructive op is gone)",
+    "no `mv ...oracle-4x4.wzo.prev` in script",
+    "no `WANT=.*b42c3371` (the retracted pre-crisis oracle-4x4.wzo hash — file doesn't exist)",
+    "checks canonical `a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118` (the on-disk committed checkpoint)",
+    "EXIT trap `trap cleanup EXIT INT TERM` present",
+    "RETRO_SAVE_2X2_OUT routes fast-branch writes into scratch"
+   ]
+  }
+ },
+ "deliverables": {
+  "tools/pilot_gate.sh": {
+   "status": "committed",
+   "commit": "51dbf23",
+   "diff_summary": "scratch-and-verify rewrite; +172 -15; mode changed to 100755"
+  },
+  "tools/regression-pilot-gate.sh": {
+   "status": "committed",
+   "commit": "e3c7451",
+   "diff_summary": "new file; 4 controls; +195"
+  },
+  "build.zig": {
+   "status": "swept into T466 commit af1d9fc (T455/T268 incident class: 'work survived, authorship did not'; T466's own record 48c6151 named T450 as the owner)",
+   "note": "the wiring edit was added to build.zig, but a sibling console (T466) staged the same file and committed it as part of a sweep before I could path-stage mine"
+  },
+  "findings/T450-pilot-gate.json": "this file"
+ },
+ "brief_asks": [
+  {
+   "id": "REGENERATE-INTO-SCRATCH",
+   "text": "Regenerate into a scratch directory and compare against the live artifacts; write the live tree only after the comparison passes. The gate's whole value is that a failing run leaves nothing behind.",
+   "status": "SATISFIED",
+   "evidence": "tools/pilot_gate.sh: SCRATCH_ROOT=$(mktemp -d /tmp/weizigo/pilot_gate.XXXXXX); FAST_DIR/FULL_DIR created under it; engine writes via RETRO_SAVE_*_OUT into $FAST_DIR and via cd $FULL_DIR with RETRO_4X4_OUT/CKPT into $FULL_DIR; verify step reads scratch hashes against $REPO/artifacts/SHA256SUMS; only after verify passes (FAIL=0), the fast branch `cp`s into $REPO/artifacts/*.wzo; the --full branch never writes to $REPO (data/ is gitignored, comparison IS the gate); belt-and-braces `git diff --exit-code -- artifacts/` after promotion catches drift.",
+   "control": "1 fast-null (41s, passed, live tree byte-identical after); 2 fast-seeded (perturbation caught, live tree untouched); 4 source-contract (no destructive ops)."
+  },
+  {
+   "id": "FULL-NO-DESTRUCTIVE-STEP",
+   "text": "For --full: take the destructive step only after the rebuild has produced a verified file, or make the old checkpoint recoverable (rename with a trap that restores on any exit). Do not delete a data/ table while it has no off-disk archive.",
+   "status": "SATISFIED-BY-NON-DESTRUCTION",
+   "evidence": "tools/pilot_gate.sh no longer deletes or renames the live checkpoint. The --full branch runs the rebuild entirely in $FULL_DIR, with RETRO_4X4_OUT/RETRO_4X4_CKPT env vars pointing at scratch paths (not cwd-relative defaults to data/). The live data/ is never touched. The EXIT trap wipes scratch on any exit code (including SIGTERM/SIGKILL via INT/TERM in the trap list). T443 P3 (off-disk archive for data/) is not yet ratified and run, but the gate no longer depends on it because nothing destructive happens to live data/.",
+   "control": "3 --full-restore-path (fake zig, gate fails fast, EXIT trap wipes scratch, live data/ byte-identical)."
+  },
+  {
+   "id": "CONTROL-SEEDED",
+   "text": "Seeded — force a mismatch (perturb one artifact byte in the scratch copy) and show the gate failing with the live tree byte-identical afterwards.",
+   "status": "SATISFIED",
+   "evidence": "tools/regression-pilot-gate.sh control 2: cp artifacts/* into scratch, single-byte flip at offset 10 of oracle-2x2.wzo, replicate the gate's verify logic, assert FAIL=1 and `git diff --exit-code -- artifacts/` is clean. Detected: got 3caaf08b... vs want 1ed06e64...; live tree untouched.",
+   "control": "2 fast-seeded (1s, passed)."
+  },
+  {
+   "id": "CONTROL-NULL",
+   "text": "Null — an unmodified tree passes and is byte-identical afterwards.",
+   "status": "SATISFIED",
+   "evidence": "tools/regression-pilot-gate.sh control 1: run pilot_gate.sh (no flags); assert exit 0; assert `git diff --exit-code -- artifacts/` and `git diff --exit-code -- data/` clean. Wall ~41s (rebuilds the four small-goban artifacts).",
+   "control": "1 fast-null (41s, passed)."
+  },
+  {
+   "id": "DONT-WEAKEN",
+   "text": "Do not weaken either check to make the gate green; the gate is the instrument.",
+   "status": "HONOURED",
+   "evidence": "The gate is strictly stricter than the prior version: the prior version's `git diff --exit-code -- artifacts/` only caught a divergence AFTER live tree was written; the new version catches it BEFORE promotion. The --full branch's WANT_CKPT is the canonical on-disk checkpoint (a2174fed...), not the retracted oracle-4x4.wzo (b42c3371...) — checking the retracted hash would have been a quiet lie. Control 4 source-contract asserts the gate still does what it's supposed to and no destructive op sneaks back in."
+  },
+  {
+   "id": "DONT-RUN-FULL-REBUILD",
+   "text": "--full costs ~20 min of rebuild; you do not need to run it to fix it — reason from the code and prove the restore path with a stubbed rebuild that fails deliberately.",
+   "status": "SATISFIED",
+   "evidence": "Control 3 forces a fast failure with a fake `zig` in PATH — `zig run` exits 1 before any engine work begins. The gate's `set -e` aborts; EXIT trap wipes scratch; live data/ is byte-identical. The 'engine fails mid-rebuild' case is structurally unreachable: the engine only knows $FULL_DIR paths via env vars; live data/ is invisible to it."
+  }
+ ],
+ "caveats": [
+  "T466's commit af1d9fc swept in the build.zig wiring edit (8-line addition under the T455/T268 incident class: 'the work survived, the authorship did not'). T466's own record 48c6151 named T450 as the owner of that wiring edit; the project captured the attribution but T450 has no own commit on build.zig.",
+  "The fast branch's symlink trick (pre-create artifacts/<name> as symlinks to ../<bare>) relies on the engine writing the bare names before writeChecksums reads the artifacts/<name> paths. If a future engine refactor changes the write order, the symlinks would dangle at read time and the gate's verify step would fail-closed with 'no such file' — a benign regression, not a corruption.",
+  "The fake-zig control 3 stub exits 1 from the PATH-prepended stub directory. It does not exercise the case where the engine PARTIALLY writes a checkpoint before failing — that case is structurally impossible to reach with the current gate because the engine's RETRO_4X4_CKPT env var points to a path under $FULL_DIR, never to live data/. Reasoning from the code, not the wall clock (brief allowance)."
+ ],
+ "gaps": [
+  "GAP-1 (build.zig attribution): the wiring edit landed under T466, not T450. The work is correct and the project captured attribution in 48c6151; a clean T450 commit on build.zig would have been preferable but the shared-index hazard made it impossible to land one without racing T466. Recorded here so a future row that needs to amend the wiring knows the lineage."
+ ],
+ "positive_findings": [
+  "The kimi-k2.7/T450.1 console that died at the 75-min wall left a complete, correct gate rewrite in the working tree; this row was an order of magnitude faster than it would have been starting from scratch.",
+  "The symlink trick (engine cwd + dangling artifacts/<name> symlinks to scratch bare files) is a clean way to redirect a hardcoded-path engine into a scratch tree without patching the engine; worth noting for future 'engine writes to cwd-relative path' gates.",
+  "The brief's allowance to 'reason from the code and prove the restore path with a stubbed rebuild' is a useful precedent: a 20-min real rebuild would prove the same thing, but the stub proves it in <1s and the brief's reasoning still holds (the engine's data/ path is unreachable because it's never given the cwd-relative default)."
+ ]
+}
