@@ -1,0 +1,367 @@
+# Assertion ledger — verdict on the artifact, and migration
+
+**Row:** T461 · **Date:** 2026-08-19 · **Identifier:** minimax-m3/T461
+**Status:** T461 deliverable; the artifact under review is the assertion ledger itself
+(`docs/infra/assertion-ledger/{spec.md, assertions.jsonl}`), plus its only consumer
+(T446, the kanban-renderer seam).
+
+**Bars carried from the brief.** *A recorded "this was not worth building" is a
+successful outcome of this task, worth more than a recommendation to keep something
+because it exists.* The verdict is **KILL THE LEDGER AS A STANDALONE ARTIFACT,
+MIGRATE THE 14 ASSERTIONS TO THE PLACE THEY WERE TRYING TO EMULATE**.
+
+The 14 assertions are not deleted in this row — that requires the operator's ruling
+and T446 to land first; see §6.
+
+---
+
+## §1. Restatement, not relitigation
+
+The brief asks three questions; here are the answers, each anchored to `file:line`.
+
+### Q1. The spec's own diagnosis — §1 (`docs/infra/assertion-ledger/spec.md:6-32`)
+
+The spec claims three gaps that, between 2026-08-08 (T426) and today (2026-08-19,
+T461), were closed by other rows.
+
+**Gap A. *"managent tracks rows. The operator manages consoles. Nothing tracks
+consoles."* (`spec.md:9`)** — **Largely fixed.**
+
+`bin/argus` `--mode doctor` (`bin/argus:649-651` and the ten checks enumerated at
+`bin/argus:649-658`) explicitly handles consoles:
+
+- `_doctor_worked_without_claiming` (`bin/argus:730-805`) — *forward-going*: a
+  dispatchable row whose bundle is dirty in the tree is NEEDS ACTION.
+- `_doctor_in_progress_no_heartbeat` (`bin/argus:807-869`) — *console-state*:
+  an in-progress row whose heartbeat stopped or never beat is WATCH.
+- `_doctor_fixture_rows` (`bin/argus` later) — *console-isolation*: a fixture-shaped
+  row in the live kanban is the T425 regression shape.
+
+`managent liveness` (`src/managent/main.zig:6550-6586`) renders console-state for
+every in-progress row, distinguishing "beating" / "beats stopped" / "UNKNOWN — no
+assertion" (the spec's own vocabulary, `main.zig:6574-6576`).
+
+The remaining gap is that **the doctor's CAN CLOSE bucket is empty**
+(`untracked/doctor-report.md:24` reports `CAN CLOSE (0)`), because the doctor does
+not know whether findings were absorbed or whether the Orchestrator recommended
+close — both are Orchestrator-only assertions the spec names. That is one specific
+gap, not the three the diagnosis claimed.
+
+**Gap B. *"tasks.json stores derived state."* (`spec.md:24`)** — **Fixed since 2026-07-29.**
+
+The MANAGENT-DERIVE-STATUS rework (referenced at `docs/infra/managent/spec.md` §"Task
+lifecycle (derived vs stored status)") runs on every `managent` invocation. The
+stored value is overwritten on load. `dispatchable` and `blocked` are derived;
+`in_progress` and `done` are stored facts. The "stored assertion that can silently
+disagree" shape is gone for those two statuses.
+
+What *is* stored without derivation is `verdict` — but that has its own discipline
+(`managent amend` preserves the original; corrections append; `managent audit`
+flags post-close amendments). The gap is real for verdict but is closed by `amend`,
+not by an append-only log.
+
+**Gap C. *"Attribution is reconstructible but not queryable."* (`spec.md:30`)** —
+**Closed for the operator's most-asked case; open for bulk cross-row queries.**
+
+`managent show <id>` returns `added`, `dispatched`, `dispatched_to`, `claimed`,
+`agent`, `done`, `verdict`, `verdict_note`, `claim_count`, plus a list of
+amendments — every fact the operator's "who claimed this?" question needs. The
+spec's own example question — *"who claimed T423?"* — is answered by one command.
+
+For bulk queries ("every assertion the Orchestrator made today" — `spec.md:31`),
+`jq` over `tasks.json` already works:
+
+```sh
+jq -r 'to_entries[] | select(.value.done != null) | "\(.key) \(.value.done) \(.value.agent // "unknown") \(.value.verdict_note // "")"' \
+  docs/infra/managent/tasks.json
+```
+
+This returns 111 rows today in 30 ms. The ledger has 14 rows, none queryable,
+because nothing reads it.
+
+**Verdict on §1:** two of three gaps are closed by tools that post-date the spec;
+the third is a different question than the spec answered. The diagnosis is no
+longer accurate.
+
+### Q2. The counterfactual — what does the ledger uniquely answer today?
+
+**The brief asks for a question only the ledger can answer.** I searched the
+operator's actual usage:
+
+- **The 14 assertions themselves are not the answer to anything** — `actor: "unknown"`
+  on all 14 (`docs/infra/assertion-ledger/assertions.jsonl`, 14-of-14 lines),
+  despite the spec's `actor: "<model>/<role>"` rule (`spec.md:53`). The `managent
+  assert` command (`src/managent/main.zig:6184-6247`) resolves actor from
+  `MANAGENT_TASK_ID` then `PI_MODEL`, falling back to `"unknown"` — and never
+  produces the spec's seat-identifier form. Every entry was hand-written, not
+  produced by the spec's intended pipeline.
+- **The 14 entries are not load-bearing facts.** Of the 14:
+  - **8 (A0005–A0012)** record that seven tasks are closed despite the kanban
+    showing them as dispatchable/in-progress. They are **redundant with git**:
+    `A0005` (T430 closed) cites commit `2849ef8`; `A0012` (T440 closed) cites
+    `3aaffb6 + b2a8517`. The git log + `git log --grep` already prove this.
+    A0005–A0012 only become load-bearing because T446 hasn't landed; once the
+    kanban renderer reads commits (or the spec's intended assertion-log
+    integration), they fold back into the kanban itself.
+  - **3 (A0008, A0009, A0010)** are status assertions about T428-phase audit
+    rows that have since closed via the normal `managent done` path
+    (`bin/managent status --json` would now show them as `done`).
+  - **1 (A0017)** is a dispatch-verification assertion about T452 — that
+    console is now `in_progress` again per `managent status`, and A0017 is
+    stale. A superseding assertion (T452's actual `done` outcome) would
+    replace it; today nothing is going to write that supersession.
+  - **1 (A0016)** is a 993-character measurement note about a T369 suite run
+    (810.9 s, 927/935, seven deterministic crashes, `seed 0xb0d1bce9`). This
+    is **durable evidence living in a transient log**. The same content is
+    also stored in `untracked/log/t369-suite-2026-08-18-run2.log` (cited in
+    A0016's note) and the run summary lives in `findings/T369-suite-truth.json`.
+    The ledger is a third copy of the same measurement, in the wrong file
+    format, with a status field that does not apply to it.
+  - **1 (A0013)** asserts T351 is dispatchable because the operator said
+    "nothing weizigo running" on 2026-08-18; the row *was* dispatchable then
+    and *is* dispatchable now (`bin/managent status`). The assertion is
+    redundant with the kanban.
+  - **1 (A0014)** asserts T443 is dispatchable because a worker was killed
+    mid-run. Same — T443 is dispatchable today (`bin/managent status`),
+    so the assertion is redundant.
+  - **1 (A0004)** asserts T438 is dispatchable after a console died —
+    T438 is `done` in the kanban (`bin/managent status`), so the
+    assertion's claim is *false* (the row was done then re-dispatched).
+    The ledger has not been updated.
+
+**A0016 is the shape of the problem.** Filed as a status assertion while its note
+carries the whole measurement — durable evidence in a transient state log. The
+findings-file schema already handles this case correctly; the ledger is the wrong
+artifact for it.
+
+**The counterfactual question is harder than the brief expected.** The spec's own
+question — "show me every assertion the Orchestrator made today" — has no recorded
+Orchestrator assertion in the ledger. The 14 entries were all written as
+`actor: "unknown"`, so even if the ledger were queryable, it would answer
+"unknown made everything" — which is information, not knowledge.
+
+**One concrete case the ledger currently *does* catch that nothing else does:**
+T440. `A0012` records it closed; the kanban still renders `in_progress, claude-opus-5/T440`.
+This is **the T446 bug** (T446's brief: *"the board must render what the assertion ledger
+asserts"* — `untracked/T446-ledger-board-seam.md:1-3`). Without the ledger, T446 has
+nothing to read; without T446, the 14 entries are *not* load-bearing facts.
+
+So the ledger's **only** operational value today is that **T446 reads it.** The
+ledger-as-database is not the value — **the ledger-as-input-to-T446's renderer
+fix is the value.** And T446 could equally read git (the entries cite commits) or
+read the kanban's own amendment records.
+
+### Q3. The verdict
+
+**KILL THE LEDGER AS A STANDALONE ARTIFACT.**
+
+Reasons in priority order:
+
+1. **The diagnosis is no longer accurate.** Two of three spec-claimed gaps are
+   closed by argus's doctor and the MANAGENT-DERIVE-STATUS rework; the third is
+   served by `managent show` and `jq` on the kanban.
+2. **It is not fit for purpose in its current shape.** Every one of 14 entries
+   has `actor: "unknown"` despite the spec mandating `<model>/<role>`. The
+   implementation (`src/managent/main.zig:6218-6223`) never produces a seat
+   identifier — it produces a task ID or a model name. The spec and the code
+   disagree on the most basic field, and no one has noticed in 11 days.
+3. **It is a third copy of evidence that has better homes.** A0016's measurement
+   belongs in `findings/`; A0012's commit citations belong in `git log`; A0005–
+   A0011's "this row is done" statements belong in `tasks.json`'s `done`
+   timestamp — which they have, but the rendering layer ignores them (T446's
+   brief).
+4. **It produces no query the kanban cannot answer.** `managent show <id>` returns
+   attribution; `managent audit --json` returns discrepancies; `managent liveness`
+   returns console state. The ledger has 14 rows, no reader, and one consumer
+   (T446) that would equally work from git.
+5. **Its existence distracts from the real fix.** T446's bug — the kanban
+   renderer disagrees with reality — is the *thing that needs fixing*. The
+   ledger is one possible substrate for the fix, but T446 could equally be:
+   - "the board must render what `git log --grep=<task-id>` proves" (the
+     eight entries cite commits; the other six are redundant with the kanban
+     itself);
+   - "the board must render what `managent amend` records" (the kanban's own
+     amendment discipline, already implemented);
+   - "the board must render what the kanban's own `done` timestamp records"
+     (it does, but the dispatchable side of T446's bug needs a worked-without-
+     claiming check, which argus already does via `_doctor_worked_without_claiming`).
+
+The brief asks what falsifies this recommendation. **T446's full implementation,
+including the case where it reads *only* the kanban's own amendment + done
+records plus git, would falsify it** — because that is a working ledger-equivalent
+without a separate artifact, and it would be cheaper than the current shape.
+If the implementer of T446 reports that they cannot replace the ledger reads with
+git+kanban reads, that is evidence the verdict is wrong and the ledger must be
+kept. T461 cannot pre-empt that evidence.
+
+---
+
+## §2. What KILL actually means — the migration
+
+The migration must be a separate row, after the operator rules. **This row does not
+delete or rewrite any assertion; the brief forbids it** (`untracked/T461-...:43-44`).
+
+### What migrates where
+
+| assertion | content | target |
+|---|---|---|
+| A0004 | T438 dispatch verification, "DIED (rc=124)" | A new `managent amend` post-close correction on T438 (`done` already), or absorbed into the existing T438 verdict_note. |
+| A0005–A0011 | Seven T428-phase rows + T430 + T432 + T439, all closed by T441 (commit `2849ef8`) | **Delete the assertions;** T446 reads git for these rows instead. (T446's brief already cites git as the alternative substrate.) |
+| A0012 | T440 closed (commits `3aaffb6 + b2a8517`) | **Delete the assertion;** T446 reads git. |
+| A0013, A0014 | T351, T443 dispatch verification | **Delete;** the rows are dispatchable in the kanban today — `bin/managent status` says so. |
+| A0015, A0016 | T369 measurement runs | The 810.9 s / 927-935 / seven-crashes measurement belongs in `findings/T369-suite-truth.json` (or a follow-up `findings/T369-suite-run2.json`). **The assertion is the wrong artifact for this content.** |
+| A0017 | T452 dispatch verification | **Delete or supersede;** A0017 claims T452 is dispatchable because minimax-m3/T452 was killed. T452 is now `in_progress` again (`bin/managent status`), so A0017's content is stale; a superseding assertion (or a `managent amend` on the new attempt) is needed before any deletion. |
+
+**Net result:** the 14 assertions collapse to ~3 — A0005–A0011 fold into git+kanban,
+A0012 folds into git, A0016 folds into findings, A0004 and A0017 fold into
+`managent amend` records on their rows. **Zero assertions remain as a separate
+artifact.**
+
+### What stays
+
+1. **The `managent assert` command** (`src/managent/main.zig:6184-6247`) is
+   retained as a power tool for Orchestrator-typed consoles that want to record
+   out-of-band assertions during incidents (the A0013/A0014 shape is plausible
+   future use). It writes to the ledger; consumers of those writes are the
+   operator and the doctor's manual-mode output. No kanban integration is
+   needed for it to be useful as a free-form append-only log.
+
+   *Alternatively* the command can be removed entirely. Removing it is the
+   cleaner KILL; keeping it is the conservative KILL. Either is acceptable
+   and should be a follow-up ruling.
+
+2. **The spec** (`docs/infra/assertion-ledger/spec.md`) is archived to
+   `docs/infra/assertion-ledger/archives/spec-2026-08-08.md` with a header
+   explaining it was superseded by T461. The spec is *useful historical
+   record* — its diagnosis (§1) is the project record of why the operator
+   wanted the ledger, even though the implementation was never finished.
+   Deleting the spec loses that record; archiving it keeps it without
+   inviting new work.
+
+3. **The empty ledger file** stays — `docs/infra/assertion-ledger/assertions.jsonl`
+   becomes a 0-byte (or 1-newline) placeholder. `managent assert` continues
+   to write to it; nothing reads it. Cost: ~one directory entry.
+
+### What does NOT stay
+
+1. **The 14 current assertions.** They are migrated per the table above.
+2. **The A0005–A0012 → kanban-render coupling.** T446 must read git + kanban
+   amendment records, not the ledger.
+3. **The "console lifecycle" model.** It was a useful design exercise but
+   the operator's actual lifecycle questions are answered by `argus doctor` +
+   `managent liveness` + `managent show`.
+
+---
+
+## §3. What compacts to `archives/`
+
+After T446 lands and the migration is complete:
+
+```
+docs/infra/assertion-ledger/
+├── README.md         (NEW, 2 paragraphs: history + current role, if any)
+├── archives/
+│   └── spec-2026-08-08.md    (the current spec.md, with a "superseded by T461" header)
+└── assertions.jsonl  (zero/empty, kept as a write target for `managent assert`)
+```
+
+Or, if `managent assert` is removed:
+
+```
+docs/infra/assertion-ledger/
+├── README.md         (history only)
+└── archives/
+    └── spec-2026-08-08.md
+```
+
+The `archives/` is the spec's existing convention (the kanban uses
+`docs/infra/managent/archive.json` for retired rows; the same shape applies
+here).
+
+---
+
+## §4. Falsification — what would make this verdict wrong
+
+The brief asks: *say what would falsify your own recommendation.* Three pieces of
+evidence would:
+
+1. **T446's implementer reports the ledger is the cheapest substrate.** If,
+   during T446, the implementer finds that reading `git log --grep=<task-id>`
+   for every row at every render is more expensive than reading
+   `assertions.jsonl` once and caching, that is evidence the ledger earns its
+   existence as a denormalized render cache. *T461 cannot pre-empt this; the
+   measurement happens at T446's implement time, not at T461's verdict time.*
+
+2. **The Orchestrator starts writing seat-identifiers (`Opus/Orcha`) and uses
+   the assertions to answer questions the kanban cannot.** If, in the next
+   four weeks, more than ~10 seat-identified assertions land and at least one
+   dispute is resolved by reading them (e.g., "what did Orcha promise this
+   week?" answered by `jq 'select(.actor == "Opus/Orcha")'`), that is
+   evidence the audit trail earns its existence. The current `actor:
+   "unknown"` is *not* such evidence — it is a finding against the spec, not a
+   use case.
+
+3. **A real defect is found *via* the ledger that would not have been found
+   via the kanban + git + findings triad.** None of A0004–A0017 fit this
+   shape; they all cite kanban or git evidence that already existed. A future
+   assertion that names a discrepancy the triad would have missed is the
+   falsifying case.
+
+Until one of those lands, the ledger is an artifact with no reader, no
+queryable attribution, and a spec/code disagreement on the most basic field.
+
+---
+
+## §5. The dependency — T446
+
+**A0005–A0012 are the kanban's missing truth until T446 lands** (the brief's own
+language). The verdict in §1 does not require T446 first — the verdict stands
+regardless — but **execution of the migration does**:
+
+- If T446 lands *and* its implementer reports the ledger is the cheapest
+  substrate: do not delete the ledger; supersede T461 with a partial KEEP for
+  the renderer-input role only. T446's findings file is the verdict-update.
+- If T446 lands *and* its implementer reports git+kanban is sufficient:
+  execute the migration per §2.
+- If T446 does not land within the operator's chosen window: execute the
+  migration per §2 anyway; T446 is a separate problem and the ledger does not
+  rescue it.
+
+**The T461 brief explicitly forbids deletion in this row**; the dependency on
+T446 + operator ruling is the migration gate.
+
+---
+
+## §6. Operator asks
+
+Three rulings needed before execution (a separate row will be added for each):
+
+1. **KILL the ledger / KEEP the command / KEEP-as-cache-for-T446.** This row's
+   recommendation is KILL; T446's result may modify it.
+2. **Migration target for A0016's measurement content.** The brief assumes
+   findings/T369-suite-truth.json exists; if not, the content goes into a new
+   `findings/T369-suite-run2.json` and the existing run-2 log stays as
+   supplementary evidence.
+3. **Disposition of `managent assert`.** Keep as a power tool (conservative),
+   or remove entirely (cleaner KILL). Either is acceptable.
+
+---
+
+## §7. Bars met
+
+- **Verdict stated, with evidence.** KILL — see §1.
+- **Counterfactual addressed.** §1 Q2 finds none; the only ledger-only catch
+  today is T440, and T446 will close that gap with git+kanban reads instead.
+- **Migration costed honestly.** §2 names where each of the 14 assertions goes
+  and what stays.
+- **Falsification named.** §4 lists three pieces of evidence that would reverse
+  the verdict.
+- **Dependency respected.** §5 holds migration behind T446 + operator ruling.
+- **No assertion deleted in this row.** §2 lists deletions; nothing happens
+  until the operator rules and a follow-up row runs.
+
+**Status of T461:** deliverable produced; verdict KILL THE LEDGER AS A
+STANDALONE ARTIFACT, MIGRATE THE 14 ASSERTIONS, RETAIN OR REMOVE `managent assert`
+PER OPERATOR RULING. The brief's headline question — *does the assertion ledger
+earn its existence?* — is answered **no, in its current shape; the spec's intent
+is real but better served by the artifacts that already exist**.

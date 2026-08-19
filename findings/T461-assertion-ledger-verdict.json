@@ -1,0 +1,32 @@
+{
+  "task_id": "T461",
+  "date": "2026-08-19",
+  "model": "minimax-m3",
+  "claims": [],
+  "new_rows": [],
+  "verdict": {
+    "headline": "KILL the assertion ledger as a standalone artifact; migrate the 14 assertions to git, kanban amendments, and findings; retain or remove `managent assert` per operator ruling.",
+    "spec_status": "Diagnosis (§1, spec.md:6-32) is no longer accurate: 2 of 3 gaps are closed by argus doctor + MANAGENT-DERIVE-STATUS; the 3rd is served by managent show + jq on the kanban.",
+    "current_shape": "14 assertions, all with actor='unknown' (spec required '<model>/<role>'). 8 are redundant with git (they cite commits). 1 (A0016) is durable evidence in a transient state log — belongs in findings/. 1 (A0004) is false today (T438 was done then re-dispatched). Only T440's case (A0012 vs in_progress kanban) is operational, and T446 reads the ledger to fix that — T446 could equally read git.",
+    "implementation_defect": "src/managent/main.zig:6218-6223 — the `managent assert` command resolves actor from MANAGENT_TASK_ID then PI_MODEL then 'unknown', never producing the spec's seat-identifier form. The spec and the code disagree on the most basic field; this has not been noticed in 11 days.",
+    "counterfactual": "No question only the ledger can answer today. The kanban already stores added/dispatched/dispatched_to/claimed/agent/done/verdict/verdict_note/claim_count per row; jq yields 111 rows in 30 ms. The 14 ledger entries add no information the kanban+git+findings triad does not already provide.",
+    "migration": {
+      "A0004": "fold into a managent amend post-close correction on T438 (row already done)",
+      "A0005_A0012": "delete after T446 lands; T446 reads git instead of the ledger",
+      "A0013_A0014": "delete — rows are dispatchable in the kanban today (bin/managent status)",
+      "A0015_A0016": "fold A0016's 810.9 s / 927-935 / 7 crashes measurement into findings/T369-suite-truth.json or a new findings/T369-suite-run2.json",
+      "A0017": "delete or supersede — T452 was redispatched, A0017 is stale"
+    },
+    "falsification": [
+      "T446 implementer reports ledger is the cheapest substrate (not git+kanban)",
+      "Orchestrator starts writing seat-identifiers and resolves disputes via ledger queries",
+      "A future assertion catches a defect the kanban+git+findings triad would have missed"
+    ],
+    "dependency": "T446 + operator ruling before migration executes. T461 itself does not delete any assertion.",
+    "remaining_artifacts": "spec.md archived to archives/spec-2026-08-08.md; assertions.jsonl kept as 0/1-byte write target; managent assert retained as a power tool OR removed per operator ruling."
+  },
+  "deliverables_produced": [
+    "docs/infra/assertion-ledger/verdict.md"
+  ],
+  "notes": "Per the brief, the deliverable is a verdict, not execution. The brief explicitly forbids deleting or rewriting an assertion in this task — migration is a separate row, gated on the operator's ruling and T446's outcome. Inbox loop D0NN: none (bin/managent inbox T461 --ack returned no pending directives). NONCE-e1ead9779db30bf3 verified at message start."
+}
