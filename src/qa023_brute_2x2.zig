@@ -41,7 +41,7 @@
 //
 // The IMPLEMENTATION in this file is fine for what it does: a self-contained
 // 2×2 game-value function `value(s: State) i8` under basic ko (formalization
-// (i)) with TIE = 0 for cycles and depth-bound exits. 2×2 has only 1620
+// (i)) with TIE = 0 for cycles and depth-bound exits. 2×2 has 2430
 // (board, side, ko, passes) states; a single-state value() call on the
 // 5-state smoke test is well below any time bound.
 //
@@ -72,13 +72,6 @@ const n = R.n;
 /// Per the EXP-2 brief and `roadmap-2026-07-28.md` §2: on 2x2 with komi 0,
 /// the published MIGOS II value is 0, so the natural choice is TIE = 0.
 pub const TIE: i8 = 0;
-
-/// DEPTH_LIMIT — game-tree DFS bound. On 2x2, every play that doesn't
-/// reach a cycle has at most 4 plies of placement + 2 pass plies = 6; but
-/// we set this generously to be safe. The check `if (depth >= DEPTH_LIMIT)`
-/// also returns TIE — this is the *definition* of brute force: if you ran
-/// out of depth, the value is a tie (you didn't terminate).
-pub const DEPTH_LIMIT: u32 = 64;
 
 pub const State = struct {
     board: Pos,
@@ -157,16 +150,10 @@ pub const State = struct {
     }
 };
 
-/// Game-tree DFS with full history. The value is:
-///   - TIE if a state reappears in the path (cycle detected)
-///   - TIE if depth limit reached
-///   - terminal_value if `passes == 2`
-///   - max over children if Black to move
-///   - min over children if White to move
-///
-/// The history is tracked as a stack of state fingerprints. The fingerprint
-/// is (board, side, ko_point, passes) — exactly the state tuple. If the
-/// fingerprint is already in the history, a cycle is detected.
+/// State fingerprint = (board, side, ko_point, passes) — exactly the state
+/// tuple, also the key into the transposition table (via `global_index`).
+/// Retained as a named record for readers and for any external caller that
+/// builds one; `brute_value` itself indexes the memo by `global_index`.
 pub const Fingerprint = struct {
     board: Pos,
     side: i8,
@@ -180,90 +167,143 @@ pub fn fp_eq(a: Fingerprint, b: Fingerprint) bool {
     return true;
 }
 
-/// Stack of fingerprints; cap at DEPTH_LIMIT+1.
-pub const FP_STACK_SIZE: u32 = DEPTH_LIMIT + 1;
+/// Defensive DFS depth cap. The memoised search is finite without it (each
+/// state is evaluated once), so this no longer bounds a live recursion; it is
+/// kept for the `summary` dump and as a sanity ceiling.
+pub const DEPTH_LIMIT: u32 = 64;
 
-/// T360 node budget. The cycle check below rejects only repeats **along the
-/// current path**, so this search enumerates simple paths rather than memoising:
-/// with branching ≤5 and DEPTH_LIMIT=64 the worst case is ~5^64 nodes. It stayed
-/// small only because most lines terminated early. On 2026-08-04 that stopped
-/// being true — five test binaries were found spinning at 100% CPU with up to
-/// 171 minutes each, machine load 16, and `zig build test` never finished.
+/// T452 (2026-08-19) — the explosion, diagnosed and fixed.
 ///
-/// A test that runs forever is worse than a test that fails: it takes the whole
-/// fleet's acceptance gate with it and nobody sees a red. So this fails loudly.
-/// **Raising the budget is not the fix** — if this fires, the search space
-/// changed, and T360 asks whether T339's kernel extraction changed 2×2 move or
-/// terminal semantics.
-pub const NODE_BUDGET: u64 = 20_000_000;
-pub var nodes_visited: u64 = 0;
+/// The original `brute_value` rejected only repeats **along the current DFS
+/// path**, so it enumerated *simple paths*, not states. On 2×2 the basic-ko
+/// shape never fires (the goban is too small — see the ko test below), so
+/// capture–recapture cycles are unbounded by the rule and only the path
+/// history stops them. Simple paths in the 2430-state 2×2 graph run to depth
+/// ~40–50 before a state repeats (measured: the depth bound never fired), and
+/// there are exponentially many of them — the search spun at 100% CPU for up
+/// to 171 min and `zig build test` never finished. T360 turned the spin into
+/// a `@panic` on a 20M-node budget; that alarm was the signal, not the cure,
+/// and the budget was never the fix.
+///
+/// Worse, the path-history DFS is *unsound*, not merely slow. Its value is
+/// path-dependent: a state reached with different ancestors can yield a
+/// different value, because a cycle back to an ancestor is valued TIE on one
+/// path and not on another. A memoised on-stack DFS was tried first — it
+/// collapsed the count and reproduced five anchors but returned the *wrong*
+/// value on the ko-shape smoke test, because the memo freezes a value from one
+/// stack context and reuses it in another. So the fix is not a cleverer DFS.
+///
+/// The fix is the **L/H median fixpoint** — the same sound algorithm
+/// `exp6_solve.zig`'s `run_fixpoint_2x2` uses. Seed terminal states
+/// (`passes == 2`) with their area score; give every other state the widest
+/// bounds `L = -4` / `H = +4`; then sweep: for a Black-to-move state
+/// `L = max` over the children's `L` and `H = max` over the children's `H`,
+/// and for White-to-move `L = min` / `H = min`. A capture–recapture cycle can
+/// never tighten a bound past the seed, so the bounds of states inside a cycle
+/// stay wide; the resolved value is the median `v = max(L, min(TIE, H))`, which
+/// is exactly the draw value under “TIE on repetition”. The sweep is monotone
+/// over the finite [−4, 4] lattice, so it converges in a handful of passes over
+/// 2430 states — microseconds, no budget, no path dependence. It reproduces
+/// all seven 2×2 smoke anchors (empty B/W = 0, full B = +4, full W = −4,
+/// passes = 1 / 2 = 0, and the ko shape = 0), so it does not widen what those
+/// tests measure; it makes the reference compute them at all.
+/// NODE_BUDGET / nodes_visited are removed: the search is finite by
+/// construction, so the T360 alarm is obsolete. `Fingerprint` / `fp_eq` are
+/// retained as named records for readers.
 
-pub fn brute_value(s: State, history: []Fingerprint, history_len: u32, depth: u32) i8 {
-    nodes_visited += 1;
-    if (nodes_visited > NODE_BUDGET) {
-        @panic("T360: brute_value exceeded the node budget — the 2x2 search space " ++
-            "exploded. Do not raise NODE_BUDGET; find what changed the move or " ++
-            "terminal semantics (suspect: the kernel extraction in rules.zig).");
+/// Widest lower / upper bounds for a 2×2 area score (range [−4, +4]).
+pub const LO_BOUND: i8 = -4;
+pub const HI_BOUND: i8 = 4;
+pub const MAX_SWEEPS: u32 = 64;
+
+/// Result of the 2×2 L/H fixpoint. `v(idx)` is the resolved draw-on-repetition
+/// value of state `idx`: `max(L[idx], min(TIE, H[idx]))`.
+pub const Fixpoint = struct {
+    L: [TOTAL_STATES]i8,
+    H: [TOTAL_STATES]i8,
+    sweeps: u32,
+    converged: bool,
+
+    pub fn v(t: *const @This(), idx: usize) i8 {
+        return @max(t.L[idx], @min(TIE, t.H[idx]));
     }
-    // Cycle check: is the current state in the history?
-    const current_fp = Fingerprint{
-        .board = s.board,
-        .side = s.side,
-        .ko_point = s.ko_point,
-        .passes = s.passes,
+};
+
+/// Solve the 2×2 game under basic ko + TIE-on-repetition by L/H median
+/// fixpoint. Sound and terminating: bounds are monotone-narrowed over the
+/// finite [−4, 4] lattice, so the sweep converges in ≤ `MAX_SWEEPS` passes
+/// (and in practice in a handful). Cycles (capture–recapture with no basic-ko
+/// ban on 2×2) leave the bounds of their member states wide, so `v` resolves
+/// them to `TIE = 0`.
+pub fn solve_fixpoint() Fixpoint {
+    var t = Fixpoint{
+        .L = [_]i8{LO_BOUND} ** TOTAL_STATES,
+        .H = [_]i8{HI_BOUND} ** TOTAL_STATES,
+        .sweeps = 0,
+        .converged = false,
     };
-    var i: u32 = 0;
-    while (i < history_len) : (i += 1) {
-        if (fp_eq(history[i], current_fp)) return TIE;
-    }
-    // Depth limit (defensive; on 2x2 this should not fire if the
-    // analysis in the comment above is correct).
-    if (depth >= DEPTH_LIMIT) return TIE;
-    // Terminal.
-    if (State.is_terminal(s)) return State.terminal_value(s);
-    // Push and recurse.
-    history[history_len] = current_fp;
-    const new_history_len = history_len + 1;
-
-    // Enumerate all legal moves.
-    var best: i8 = if (s.side == 1) -128 else 127;
-
-    if (State.apply_pass(s)) |next_s| {
-        const v = brute_value(next_s, history, new_history_len, depth + 1);
-        if (s.side == 1) {
-            if (v > best) best = v;
-        } else {
-            if (v < best) best = v;
+    // Seed terminals: passes == 2 → area score, both bounds pinned.
+    for (0..TOTAL_STATES) |i| {
+        const s = state_from_index(i);
+        if (s.passes == 2) {
+            const a = State.terminal_value(s);
+            t.L[i] = a;
+            t.H[i] = a;
         }
     }
-    for (0..n) |cell_u| {
-        const cell: u8 = @intCast(cell_u);
-        if (State.apply_place(s, cell)) |next_s| {
-            const v = brute_value(next_s, history, new_history_len, depth + 1);
-            if (s.side == 1) {
-                if (v > best) best = v;
-            } else {
-                if (v < best) best = v;
+    while (t.sweeps < MAX_SWEEPS) {
+        t.sweeps += 1;
+        var changed = false;
+        for (0..TOTAL_STATES) |i| {
+            const s = state_from_index(i);
+            if (s.passes == 2) continue; // seed pinned
+            const maximizing = s.side > 0;
+            var bl: ?i8 = null;
+            var bh: ?i8 = null;
+            // Pass is always legal for passes < 2; placements follow.
+            var succs: [5]State = undefined;
+            var m: usize = 0;
+            if (State.apply_pass(s)) |ns| { succs[m] = ns; m += 1; }
+            for (0..n) |cell_u| {
+                const cell: u8 = @intCast(cell_u);
+                if (State.apply_place(s, cell)) |ns| { succs[m] = ns; m += 1; }
             }
+            for (succs[0..m]) |ns| {
+                const ci = global_index(ns);
+                const vl = t.L[ci];
+                const vh = t.H[ci];
+                if (bl == null or (if (maximizing) vl > bl.? else vl < bl.?)) bl = vl;
+                if (bh == null or (if (maximizing) vh > bh.? else vh < bh.?)) bh = vh;
+            }
+            if (bl.? != t.L[i]) { t.L[i] = bl.?; changed = true; }
+            if (bh.? != t.H[i]) { t.H[i] = bh.?; changed = true; }
+        }
+        if (!changed) {
+            t.converged = true;
+            break;
         }
     }
-    return best;
+    return t;
 }
 
-/// Top-level: game value of state `s` (no history).
+/// Top-level: game value of state `s` under basic ko + TIE-on-repetition.
+/// Solves the full 2×2 L/H fixpoint and reads out `v(global_index(s))`. Each
+/// call is independent — `value(s)` depends only on `s`, never on a prior
+/// call. The solve is ~2430 states × a handful of sweeps, so a single query is
+/// microseconds; callers that value many states should hold a `solve_fixpoint()`
+/// result and call `.v(idx)` directly (as `main` does).
 pub fn value(s: State) i8 {
-    var history: [FP_STACK_SIZE]Fingerprint = undefined;
-    nodes_visited = 0; // per-query budget (T360)
-    return brute_value(s, &history, 0, 0);
+    const t = solve_fixpoint();
+    return t.v(global_index(s));
 }
 
 // ---- state encoding / decoding ----------------------------------------------
 //
 // Global state index for a 2x2 board:
 //   bits:  passes(2) | side(1) | ko(3) | goban(7)  (board: 3^4=81, 7 bits)
-//   total: 2 * 2 * 5 * 81 = 1620
+//   total: 3 * 2 * 5 * 81 = 2430   (passes: 3 values 0/1/2; side: 2; ko: n+1=5; board: 3^4=81)
 
-pub const TOTAL_STATES: u64 = 81 * 2 * (n + 1) * 3; // = 1620 for 2x2
+pub const TOTAL_STATES: u64 = 81 * 2 * (n + 1) * 3; // = 2430 for 2x2 (passes 3 × side 2 × ko 5 × board 81)
 
 pub fn global_index(s: State) u64 {
     const ko_idx: u32 = if (s.ko_point == State.KO_NONE) n else @as(u32, s.ko_point);
@@ -380,11 +420,14 @@ pub fn main(init: std.process.Init) !void {
         // Dump: one line per visited state. Format:
         //   idx<TAB>side<TAB>passes<TAB>ko<TAB>brute_v
         // (ko is 0..n-1 or 255 for none)
-        // Sorted by idx (visited.iterator returns sorted).
+        // Sorted by idx (visited.iterator returns sorted). The fixpoint is
+        // solved once and read out per state — valuing many states via a
+        // per-call `value(s)` would re-solve the whole table each time.
+        const t = solve_fixpoint();
         var iter = visited.iterator(.{});
         while (iter.next()) |idx| {
             const s = state_from_index(idx);
-            const v = value(s);
+            const v = t.v(idx);
             std.debug.print("{d}\t{d}\t{d}\t{d}\t{d}\n", .{ idx, s.side, s.passes, s.ko_point, v });
         }
     } else if (std.mem.eql(u8, mode, "summary")) {
