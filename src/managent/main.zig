@@ -3339,8 +3339,13 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     var state = try readState(io, state_path);
     defer freeState(&state);
 
+    // T446: the board consults the assertion ledger — a `closed` assertion
+    // supersedes tasks.json's status for rendering.
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
+
     if (use_json) {
-        try printStatusJson(w, &state, repo_root);
+        try printStatusJson(w, &state, &ledger, repo_root);
         return;
     }
 
@@ -3358,6 +3363,12 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     var it_sort = state.iterator();
     while (it_sort.next()) |entry| {
         const tid = entry.key_ptr.*;
+        // T446: a `closed` assertion renders the row under done regardless of
+        // what tasks.json stores (dispatchable or in_progress → done).
+        if (closedAssertion(&ledger, tid) != null) {
+            try done.append(alloc, tid);
+            continue;
+        }
         switch (entry.value_ptr.*.status) {
             .dispatchable => try dispatchable.append(alloc, tid),
             .in_progress => try in_progress.append(alloc, tid),
@@ -3379,8 +3390,8 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     std.mem.sort([]const u8, failed.items, {}, sortFn);
 
     // ── stdout: the data ──
-    printSection(w, "dispatchable", dispatchable.items, &state, repo_root);
-    printSection(w, "in progress", in_progress.items, &state, repo_root);
+    printSection(w, "dispatchable", dispatchable.items, &state, &ledger, repo_root);
+    printSection(w, "in progress", in_progress.items, &state, &ledger, repo_root);
 
     // ── stderr: warnings ──
     var warned = false;
@@ -3402,13 +3413,13 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     }
     if (warned) w.diag("\n", .{});
 
-    printSection(w, "blocked", blocked.items, &state, repo_root);
-    printSection(w, "done", done.items, &state, repo_root);
-    printSection(w, "failed", failed.items, &state, repo_root);
+    printSection(w, "blocked", blocked.items, &state, &ledger, repo_root);
+    printSection(w, "done", done.items, &state, &ledger, repo_root);
+    printSection(w, "failed", failed.items, &state, &ledger, repo_root);
     w.data("\n", .{});
 }
 
-fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *StateMap, repo_root: []const u8) void {
+fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *StateMap, ledger: *const LedgerStatuses, repo_root: []const u8) void {
     w.data("\n  {s} ({d})\n", .{ label, ids.len });
     if (ids.len == 0) {
         w.data("    -- none --\n", .{});
@@ -3417,6 +3428,7 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
     for (ids) |tid| {
         const ts = state.get(tid).?;
         const rel = bundleRel(ts.bundle, repo_root);
+        const asserted = closedAssertion(ledger, tid);
         w.data("    {s} set {c}", .{ tid, ts.set });
         if (ts.needs.len > 0) {
             w.data(", needs", .{});
@@ -3426,12 +3438,18 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
             w.data(", holds", .{});
             for (ts.holds) |h| w.data(" {s}", .{h});
         }
-        if (ts.agent) |_| {
-            const ident = agentIdentifier(ts, tid) catch tid;
-            w.data(", {s}", .{ident});
-        }
-        if (ts.dispatched_to) |dt| {
-            w.data(", dispatched {s}", .{dt});
+        // T446: a closed-asserted row shows its assertion, not a live claim —
+        // the board must not imply a seat is occupied by finished work.
+        if (asserted) |a| {
+            w.data(", (asserted: {s})", .{a});
+        } else {
+            if (ts.agent) |_| {
+                const ident = agentIdentifier(ts, tid) catch tid;
+                w.data(", {s}", .{ident});
+            }
+            if (ts.dispatched_to) |dt| {
+                w.data(", dispatched {s}", .{dt});
+            }
         }
         if (ts.verdict) |v| {
             w.data(", verdict={s}", .{v});
@@ -3440,7 +3458,7 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
     }
 }
 
-fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
+fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, repo_root: []const u8) !void {
     // T399: this is a JSON writer (stdout data consumed by dashboards); free
     // text goes through writeJsonString like every other JSON writer.
     var buf = std.ArrayList(u8).empty;
@@ -3453,22 +3471,31 @@ fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
         first = false;
         const ts = entry.value_ptr.*;
         const rel = bundleRel(ts.bundle, repo_root);
+        // T446: a `closed` assertion supersedes tasks.json's status.
+        const asserted = closedAssertion(ledger, entry.key_ptr.*);
         try buf.appendSlice(alloc, "\n  {\"id\":");
         try writeJsonString(&buf, entry.key_ptr.*);
         try buf.appendSlice(alloc, ",\"status\":");
-        try writeJsonString(&buf, statusToString(ts.status));
+        try writeJsonString(&buf, if (asserted != null) "done" else statusToString(ts.status));
         try buf.appendSlice(alloc, ",\"set\":");
         try writeJsonString(&buf, &.{ts.set});
         try buf.appendSlice(alloc, ",\"bundle\":");
         try writeJsonString(&buf, rel);
+        if (asserted) |a| {
+            try buf.appendSlice(alloc, ",\"asserted\":");
+            try writeJsonString(&buf, a);
+        }
         if (ts.model) |m| {
             try buf.appendSlice(alloc, ",\"model\":");
             try writeJsonString(&buf, m);
         }
-        if (ts.agent) |_| {
-            const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
-            try buf.appendSlice(alloc, ",\"identifier\":");
-            try writeJsonString(&buf, ident);
+        // T446: no live claim shown for a closed-asserted row.
+        if (asserted == null) {
+            if (ts.agent) |_| {
+                const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
+                try buf.appendSlice(alloc, ",\"identifier\":");
+                try writeJsonString(&buf, ident);
+            }
         }
         if (ts.needs.len > 0) {
             try buf.appendSlice(alloc, ",\"needs\":[");
@@ -3486,9 +3513,11 @@ fn printStatusJson(w: Writers, state: *StateMap, repo_root: []const u8) !void {
             }
             try buf.appendSlice(alloc, "]");
         }
-        if (ts.dispatched_to) |dt| {
-            try buf.appendSlice(alloc, ",\"dispatched_to\":");
-            try writeJsonString(&buf, dt);
+        if (asserted == null) {
+            if (ts.dispatched_to) |dt| {
+                try buf.appendSlice(alloc, ",\"dispatched_to\":");
+                try writeJsonString(&buf, dt);
+            }
         }
         if (ts.verdict) |v| {
             try buf.appendSlice(alloc, ",\"verdict\":");
@@ -4020,12 +4049,19 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     defer unlockStore();
     var state = try readState(io, state_path);
 
+    // T446: `next` consults the assertion ledger — a row whose latest
+    // assertion is `closed` is finished and must never be handed out, even
+    // though tasks.json still stores it as dispatchable.
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
+
     var candidate_id: ?[]const u8 = null;
 
     var it = state.iterator();
     while (it.next()) |entry| {
         const ts = entry.value_ptr.*;
         if (deriveStatus(&state, ts) != .dispatchable) continue;
+        if (closedAssertion(&ledger, entry.key_ptr.*) != null) continue;
         if (phaseGate(state, ts.set)) continue;
         if (holdsConflict(state, ts.holds, entry.key_ptr.*) != null) continue;
         candidate_id = entry.key_ptr.*;
@@ -4592,6 +4628,116 @@ fn appendAssertion(w: Writers, io: std.Io, repo_root: []const u8, a: Assertion) 
     const file = try std.Io.Dir.cwd().createFile(io, path, .{});
     defer file.close(io);
     try file.writeStreamingAll(io, out.items);
+}
+
+// ── ledger/board seam (T446) ────────────────────────────────────────────────
+// `status` / `next` render the kanban from tasks.json only; the assertion
+// ledger is the audit trail that can disagree with it.  A0005–A0012 assert
+// `closed` on eight rows that tasks.json still renders dispatchable (T430/
+// T432/T433/T434/T435/T436/T439) or in_progress (T440) — a dispatcher picking
+// "next dispatchable" can re-dispatch finished work, and the board shows a
+// seat that no longer exists.  The ledger's latest assertion on a row
+// supersedes tasks.json's status for rendering: a `closed` assertion renders
+// the row under done with an `(asserted)` marker and takes it out of `next`.
+// Only `closed` supersedes here.  The other ledger statuses (dispatchable,
+// in_progress) are assertions that may disagree with tasks.json in ways the
+// doctor reports (assertion-ledger spec §9.3) — this seam does not pick a
+// winner for those; it closes the one disagreement class that re-dispatches
+// finished work.
+
+const LedgerStatus = struct {
+    status_value: []const u8,
+    assertion_id: []const u8,
+};
+
+const LedgerStatuses = std.StringHashMapUnmanaged(LedgerStatus);
+
+/// Read the assertion ledger and keep, per object, only the LATEST assertion
+/// (append-only: a later line supersedes an earlier one).  Returns an empty
+/// map when the ledger file is missing (null arm — behaviour unchanged).
+fn readLedgerStatuses(io: std.Io, repo_root: []const u8) LedgerStatuses {
+    var map: LedgerStatuses = .{};
+    const path = std.fs.path.join(alloc, &.{ repo_root, ASSERTIONS_FILE }) catch return map;
+    defer alloc.free(path);
+
+    const content = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch |err| {
+        if (err == error.FileNotFound) return map;
+        return map;
+    };
+    defer alloc.free(content);
+
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const trimmed = std.mem.trim(u8, line, " \r\n");
+        if (trimmed.len == 0) continue;
+
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+
+        if (parsed.value != .object) continue;
+        const obj = parsed.value.object;
+
+        const object = obj.get("object") orelse continue;
+        const a_id = obj.get("id") orelse continue;
+        if (object != .string or a_id != .string) continue;
+
+        var status_value: []const u8 = "";
+        if (obj.get("meta")) |m| {
+            if (m == .object) {
+                if (m.object.get("status")) |sv| {
+                    if (sv == .string) status_value = sv.string;
+                }
+            }
+        }
+        if (status_value.len == 0) continue;
+
+        const key_dupe = alloc.dupe(u8, object.string) catch continue;
+        const sv_dupe = alloc.dupe(u8, status_value) catch {
+            alloc.free(key_dupe);
+            continue;
+        };
+        const aid_dupe = alloc.dupe(u8, a_id.string) catch {
+            alloc.free(key_dupe);
+            alloc.free(sv_dupe);
+            continue;
+        };
+        const gop = map.getOrPut(alloc, key_dupe) catch {
+            alloc.free(key_dupe);
+            alloc.free(sv_dupe);
+            alloc.free(aid_dupe);
+            continue;
+        };
+        if (gop.found_existing) {
+            alloc.free(key_dupe);
+            alloc.free(gop.value_ptr.status_value);
+            alloc.free(gop.value_ptr.assertion_id);
+        } else {
+            gop.key_ptr.* = key_dupe;
+        }
+        gop.value_ptr.status_value = sv_dupe;
+        gop.value_ptr.assertion_id = aid_dupe;
+    }
+    return map;
+}
+
+fn freeLedgerStatuses(map: *LedgerStatuses) void {
+    var it = map.iterator();
+    while (it.next()) |entry| {
+        alloc.free(entry.key_ptr.*);
+        alloc.free(entry.value_ptr.status_value);
+        alloc.free(entry.value_ptr.assertion_id);
+    }
+    map.deinit(alloc);
+}
+
+/// The assertion id when the row's latest ledger assertion is `closed`, else
+/// null.  `closed` is the console-lifecycle terminal state (spec §2.3); a
+/// row that has been closed is finished, so it renders under done and is
+/// never handed out by `next`.
+fn closedAssertion(map: *const LedgerStatuses, tid: []const u8) ?[]const u8 {
+    const entry = map.get(tid) orelse return null;
+    if (std.mem.eql(u8, entry.status_value, "closed")) return entry.assertion_id;
+    return null;
 }
 
 // ── heartbeat reading (WORKER-CHANNEL) ──────────────────────────────────────

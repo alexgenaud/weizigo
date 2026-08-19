@@ -301,6 +301,19 @@ pub fn build(b: *std.Build) void {
     integrity_regression.cwd = b.path(".");
     test_step.dependOn(&integrity_regression.step);
 
+    // ── T446: ledger/board seam controls ──────────────────────────
+    // The board and `next` must render what the assertion ledger asserts:
+    // a `closed` assertion supersedes tasks.json's status so finished work
+    // is neither shown dispatchable nor handed out by `next`.  Four arms:
+    // dispatchable + closed → done (asserted), in_progress + closed → done
+    // (asserted, no live claim), `next` never hands out a closed-asserted
+    // row, and the null arm (no ledger file) leaves rendering and `next`
+    // unchanged.  Scratch store + scratch ledger only — never the live
+    // kanban.  Wired here because `zig build test` is the T446 gate.
+    const ledger_board_seam_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-ledger-board-seam.sh" });
+    ledger_board_seam_regression.cwd = b.path(".");
+    test_step.dependOn(&ledger_board_seam_regression.step);
+
     const depth_regression = b.addSystemCommand(&.{ "sh", "tools/regression-depth-enforcement.sh" });
     depth_regression.cwd = b.path(".");
     test_step.dependOn(&depth_regression.step);
