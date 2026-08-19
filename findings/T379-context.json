@@ -1,0 +1,12 @@
+{
+  "task_id": "T379",
+  "date": "2026-08-19",
+  "model": "deepseek-v4-flash",
+  "identifier": "Orchestrator/ORCHA-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "CONTEXT DUMP — reconstructed. T379 (per-ply trajectory consistency in self-play) was claimed 2026-08-05T21:22:56Z by deepseek-v4-flash/T379 and its console died with no work in the tree: no src/t379_*, no run document, no findings, no live process (kanban verdict_note; same blindness as T361 — liveness could not distinguish a dead row from a working one, T370). The brief was re-registered as T389 the same night (6da4ac8) and T389 delivered it pass: instrument src/t389_traj.zig, evidence docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md, findings/T389-trajectory-consistency.json + T389-context.json, commit 009d26a. What the operator should take from T379's history: the task's question was answered under its successor, the evidence is committed and citable under T389, and the dead console's in-session reasoning is permanently lost — the T440 lesson, two days earlier. Nothing in this dump proposes register changes; claims[] and new_rows[] are empty per the context-dump rule (dumps are narrative, not proposals).",
+  "method": "none — console died before work began; reconstruction from kanban row and git history only",
+  "original_worker": "deepseek-v4-flash/T379 (per kanban agent field)",
+  "original_findings_exist": "NO — never written; reconstructed 2026-08-19 by the Orchestrator seat (ORCHA-flash) so T379's declared deliverables resolve (AC10)"
+}

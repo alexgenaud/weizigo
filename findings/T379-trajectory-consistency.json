@@ -1,0 +1,24 @@
+{
+  "task_id": "T379",
+  "date": "2026-08-19",
+  "model": "deepseek-v4-flash",
+  "identifier": "Orchestrator/ORCHA-flash",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "blocked",
+  "notes": "RECONSTRUCTION. This file was NOT written by the console that held T379. T379 (per-ply trajectory consistency in self-play, operator-proposed invariant) was claimed 2026-08-05T21:22:56Z by deepseek-v4-flash/T379 and its console died before producing any work: the verdict_note records 'no src/t379*, no run document, no findings, and no live process' (kanban row T379, done 2026-08-06T01:03:43Z, verdict blocked). The work was re-registered the same night as T389 (commit 6da4ac8 'T379 failed as a zombie, re-registered as T389') and T389 delivered it: commit 009d26a 'T389 (flash): per-ply trajectory consistency in new-engine self-play — the engine honours its own brackets', verified pass, evidence at docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md (T379's declared acceptance target; it exists, written under T389) plus findings/T389-trajectory-consistency.json and findings/T389-context.json. The original T379 console's reasoning is UNAVAILABLE; nothing here claims intent or observed runs. claims[] is empty for two reasons: the reconstruction proposes no epistemic-register status change, and T389's own findings files carry the measurement content (they too have claims: [] — the trajectory work produced an instrument and a run, not register proposals). This file exists so that T379's declared deliverables resolve; the honest record of what T379 itself delivered is: nothing, because its console died before work landed in the tree.",
+  "reconstruction": {
+    "reconstructed_by": {
+      "seat": "Orchestrator (deepseek-v4-flash)",
+      "date": "2026-08-19",
+      "basis": "kanban row T379 verdict_note; git commits 6da4ac8 and 009d26a; brief untracked/T379-self-play-trajectory-consistency.md; T389's committed findings files"
+    },
+    "what_T379_delivered": "NOTHING — console died 2026-08-05T21:22:56Z with no work in tree, no findings, no live process. Verdict blocked per kanban.",
+    "what_happened_to_the_brief": "Re-registered as T389 (commit 6da4ac8); T389 delivered the full brief and closed pass (009d26a). Evidence: docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md, findings/T389-trajectory-consistency.json, findings/T389-context.json.",
+    "gaps": [
+      "T379's own instrument never existed (no src/t379_*.zig); T389's instrument is src/t389_traj.zig, built and run under T389.",
+      "The seeded control, corpus replay and violation census all live in T389's findings; T379 contributed none of them.",
+      "The original console's reasoning about the brief is permanently unavailable (T440-class loss, same failure shape)."
+    ]
+  }
+}
