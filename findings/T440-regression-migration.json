@@ -1,0 +1,103 @@
+{
+  "task_id": "T440",
+  "date": "2026-08-19",
+  "model": "qwen3.8:27b-mlx",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass-with-findings",
+  "notes": "RECONSTRUCTION. This file was NOT written by the console that did T440's work. It was reconstructed on 2026-08-19 by qwen3.8:27b-mlx/T465 from commit evidence alone (git show 3aaffb6, git show b2a8517, plus docs/infra/assertion-ledger/assertions.jsonl A0012 and the original brief untracked/T440-migrate-dispatch-regressions.md). The original worker is the kanban agent field of T440, claude-opus-5; its console exited without producing the findings file, so its reasoning about what it ran and saw is UNAVAILABLE. Nothing here is a claim about intent or about a green run the worker actually observed; it is what the two commits show. No source was changed, no build or test was run for this reconstruction (the brief for T465 forbids it); claims[] is empty because this reconstruction proposes no epistemic-register status change - it records delivery. VERDICT pass-with-findings: the code migration the commits show is present and internally consistent (five regressions migrated to --provider plus a cwd-path fix on three wrappers), but two of T440's own brief sub-deliverables are NOT evidenced in the commit evidence: (1) the green-run command output was not captured anywhere committed (only asserted in the commit messages), and (2) the mechanizability assessment of the 22 tests of docs/infra/tool-consolidation/03-acceptance.md was never delivered by these commits (the script itself still does not exist, and a separate audit T434 answers a related question for a different task T428). A third nuance: T440's 'assertions must not change' bar is not literally held across all five scripts - regression-ollama-dispatcher and regression-inbox-loop arm 4 re-source their assertion TARGET (because T437 moved the text under test from bin/ollama-subagent into bin/subagent), which is a target move, not a weakening, and arm 5 was expressly retained. Closure is the Orchestrator's, per the brief; this file only makes the missing evidence exist. See migration_report below.",
+  "migration_report": {
+    "reconstructed_by": {
+      "task": "T465",
+      "date": "2026-08-19",
+      "model_canonical": "qwen3.8:27b-mlx",
+      "original_worker": "claude-opus-5 (per docs/infra/managent/tasks.json T440.agent; also the Co-Authored-By on both commits)",
+      "original_findings_exist": "NO - file was never written; console's reasoning unavailable",
+      "evidence_basis": "commits 3aaffb6 and b2a8517; assertion-ledger A0012 (operator asserted 2026-08-18 work committed); brief untracked/T440-migrate-dispatch-regressions.md"
+    },
+    "commits": [
+      {
+        "sha": "3aaffb6",
+        "sha_full": "3aaffb617a1e2822739ff6ced62a966aaa1ff60b",
+        "subject": "T440: green again - migrate four regressions to --provider, and fix three wrappers that only worked from the repo root.",
+        "stat_summary": "8 files changed, 44 insertions(+), 22 deletions(-)",
+        "files": [
+          {"path": "bin/ollama-subagent", "insertions": 8, "deletions": 2, "role": "T440 second-defect (cwd) fix", "note": "Backward-compat wrapper now resolves its target via os.path.dirname(os.path.abspath(__file__)) -> HERE + 'subagent' instead of a bare relative 'bin/subagent', so it works from any cwd, not only the repo root. Adds a deprecation stderr line."},
+          {"path": "bin/subagent-ds", "insertions": 10, "deletions": 3, "role": "T440 second-defect (cwd) fix", "note": "Same fix as bin/ollama-subagent: resolve target from this file's own directory (HERE + 'subagent')."},
+          {"path": "bin/weizigo-absorb", "insertions": 5, "deletions": 1, "role": "T440 second-defect (cwd) fix", "note": "sh wrapper: HERE=$(cd $(dirname \"$0\") && pwd); now execs \"$HERE/weizigo-claimlint\" absorb instead of a relative exec bin/weizigo-claimlint absorb, so it works from any cwd."},
+          {"path": "docs/infra/managent/tasks.json", "insertions": 4, "deletions": 4, "role": "kanban bookkeeping (this commit's own claim)", "note": "T440's own kanban transition: status dispatchable->in_progress, agent null->claude-opus-5, claimed timestamp set, claim_count 0->1. Not regression-migration code."},
+          {"path": "tools/regression-depth-enforcement.sh", "insertions": 2, "deletions": 2, "role": "migration (brief-listed script A1)", "note": "Inserts --provider deepseek at call sites 3c and 5 (the depth arms). grep assertions unchanged. Satisfies brief ask 'migrate depth-enforcement.sh'; preserves the depth-arm property (assertions untouched)."},
+          {"path": "tools/regression-dispatch-verification.sh", "insertions": 3, "deletions": 3, "role": "migration (BEYOND the brief's three)", "note": "Inserts --provider deepseek at the three seeded/null control call sites (1, 3, 4). NOT in the brief's three-script list; the commit disclosure says FOUR regressions were red, not three, and this is the unlisted one. Over-delivery, honestly disclosed."},
+          {"path": "tools/regression-ollama-dispatcher.sh", "insertions": 8, "deletions": 3, "role": "migration + assertion re-source (brief-listed script A3)", "note": "The OLLAMA path: the wrapper already delegates to --provider ollama, so the migration here is re-sourcing the OLLAMA_TAG_TO_CANONICAL cross-check to read bin/subagent (TAG_TABLE_SRC) instead of bin/ollama-subagent, because T437 moved that table into bin/subagent. This changes the assertion's TARGET FILE (text moved), not its strength."},
+          {"path": "tools/regression-subagent-prompt.sh", "insertions": 4, "deletions": 4, "role": "migration (brief-listed script A2)", "note": "Inserts --provider deepseek at the four call sites (1, 2, 3, 5, depth-cap). Assertions unchanged. Satisfies brief ask 'migrate subagent-prompt.sh'."}
+        ]
+      },
+      {
+        "sha": "b2a8517",
+        "sha_full": "b2a8517a50538da571eec09f1b3c4f44abf73c07",
+        "subject": "T440 follow-up: a fifth regression was red from T437's merge and I missed it.",
+        "stat_summary": "2 files changed, 75 insertions(+), 22 deletions(-)",
+        "files": [
+          {"path": "docs/infra/managent/tasks.json", "insertions": 65, "deletions": 20, "role": "co-committed kanban bookkeeping (NOT T440 migration work)", "note": "Unrelated to the regression migration: T438 claim (dispatchable->in_progress), T441-AUDIT registered as done/verdict pass, T441 done + verdict pass-with-findings + long amendment, T442 registered (dispatchable), _sys next_id 441->443, directive_next 69->71, assertion_next+4. Flagged so a reader does not mistake 85 lines of kanban churn for T440 deliverable."},
+          {"path": "tools/regression-inbox-loop.sh", "insertions": 10, "deletions": 2, "role": "migration (BEYOND the brief; the fifth, missed by the first pass)", "note": "Arm 4 cross-check target changed from 'BOTH dispatch prompts' (loop over bin/subagent AND bin/ollama-subagent) to bin/subagent ONLY, because the INBOX LOOP text moved from the wrapper into bin/subagent at T437's merge. Arm 5 still dry-runs the wrapper end-to-end (render-by-delegating), expressly retained so the check tests no less than before. A re-source, not a weakening. The first T440 pass missed this one; b2a8517 discloses that honestly."}
+        ]
+      }
+    ],
+    "brief_asks": [
+      {
+        "id": "MIGRATE-THREE",
+        "text": "Migrate tools/regression-depth-enforcement.sh, regression-subagent-prompt.sh, regression-ollama-dispatcher.sh to --provider deepseek|ollama.",
+        "status": "SATISFIED",
+        "evidence": "All three show --provider inserted (depth-enforcement, subagent-prompt) or assertion re-sourced to the new location of the moved table (ollama-dispatcher). In addition two more broken regressions were fixed though not in the brief: regression-dispatch-verification.sh (3aaffb6) and regression-inbox-loop.sh (b2a8517).",
+        "note": "Five regressions migrated, not three; the two extras are honestly disclosed in the commit messages ('FOUR ... not three'; 'a fifth ... I missed it')."
+      },
+      {
+        "id": "ASSERTIONS-UNCHANGED",
+        "text": "The assertions must not change: depth arms must still prove depth 1 and 2 may dispatch, depth 3 is refused, an unreadable depth fails closed, and the child is stamped depth+1.",
+        "status": "SATISFIED-WITH-NUANCE",
+        "evidence": "For the two DeepSeek-flag scripts (depth-enforcement, subagent-prompt) only --provider deepseek was inserted and the grep assertions are byte-for-byte unchanged. But 'nothing an assertion says has changed' is NOT literally universal across all five: regression-ollama-dispatcher re-sources its cross-check to bin/subagent, and regression-inbox-loop arm 4 re-sources from both prompts to bin/subagent only. Both are TARGET moves forced by T437 relocating the text; neither reduces the property tested, and inbox-loop arm 5 was retained.",
+        "note": "The named depth-arm property is preserved exactly. The nuance is a target re-point, not a weakening."
+      },
+      {
+        "id": "DEPTH-CAP-SURVIVED",
+        "text": "Verify that MAX_DEPTH = 3 is intact at bin/subagent:43 before changing anything, and do not weaken a test to make it pass.",
+        "status": "CLAIMED-NOT-ATTACHED",
+        "evidence": "The 3aaffb6 commit message asserts the bound survived ('MAX_DEPTH = 3 at bin/subagent:43 ... intact'). The two commits contain no captured output or artifact of that verification. This reconstruction (a reading-and-writing task) did not and did not re-run it.",
+        "note": "Asserted in prose; no committed proof. The historical 'before you changed anything' check is not re-derivable from commit evidence."
+      },
+      {
+        "id": "DONT-WEAKEN",
+        "text": "Do not 'fix' a test by weakening what it asserts. If a test's assertion looks wrong, leave it failing and report.",
+        "status": "HONOURED",
+        "evidence": "Every change is additive (--provider inserted) or a target re-source to the relocated text; no assertion was relaxed. The inbox-loop diff expressly retained arm 5 to avoid testing less. No test was left red to hide an assertion problem; none was weakened to pass.",
+        "note": "Bar as observed from the diffs."
+      },
+      {
+        "id": "GREEN-COMMAND-OUTPUT",
+        "text": "Run all three green and say so with the command output.",
+        "status": "NOT-EVIDENCED-IN-THESE-COMMITS",
+        "evidence": "commit 3aaffb6 says 'Four of four green' and b2a8517 lists eight regressions 'all green', but no run output is captured in any committed location (no docs/evidence/ artifact, no run log). The original console's pasted output is part of the unavailable reasoning.",
+        "note": "Prose assertion only. No committed command output. This is one of the two load-bearing gaps."
+      },
+      {
+        "id": "CONSOLIDATION-ACCEPTANCE-MECHANIZABILITY",
+        "text": "Note that tools/regression-consolidation-acceptance.sh does NOT exist; do not write it; say in your findings whether the 22 specified tests (03-acceptance.md) are mechanizable as written.",
+        "status": "NOT-EVIDENCED-IN-THESE-COMMITS",
+        "evidence": "The two commits neither create the script nor assess the 22 tests. Confirmed the script is absent on disk AND in git history (git log 'tools/regression-consolidation-acceptance*' is empty). A separate audit, docs/infra/tool-consolidation/03-acceptance-audit.md (T434, task T428 Phase 3), audits the 22 tests as PASS-WITH-FINDINGS and flags several RED-first controls as unfalsifiable as written (F1) - but that is a different task, not T440's deliverable, and it does not answer T440's specific 'are they mechanizable as written?' question.",
+        "note": "The primary honest gap: this sub-deliverable was not delivered by T440's commits at all."
+      }
+    ],
+    "gaps": [
+      "GAP-1 (GREEN-COMMAND-OUTPUT): no committed green-run output for the migrated regressions; only prose 'Four of four green' / 'all green' in the commit messages.",
+      "GAP-2 (CONSOLIDATION-ACCEPTANCE-MECHANIZABILITY): the brief's request to say whether the 22 tests of 03-acceptance.md are mechanizable as written was never delivered by T440; the script still does not exist and no mechanizability verdict is in these commits.",
+      "GAP-3 (DEPTH-CAP-SURVIVED): MAX_DEPTH=3 at bin/subagent:43 is asserted in the 3aaffb6 message but no committed artifact/output backs it.",
+      "GAP-4 (ASSERTIONS-UNCHANGED nuance): the bar does not hold literally for all five scripts - regression-ollama-dispatcher and regression-inbox-loop arm 4 re-source their assertion TARGET (text moved into bin/subagent at T437); re-sourcing, not weakening, but it is a change to what is asserted.",
+      "GAP-5 (reconstruction caveat): the original T440 console (claude-opus-5) left no findings file and no committed reasoning; this file is commit-evidence reconstruction only. T440 never reached 'done' (kanban still in_progress as of this reconstruction)."
+    ],
+    "positive_findings": [
+      "The worker over-delivered honestly: it found and fixed two more broken regressions than the brief listed (dispatch-verification in 3aaffb6, inbox-loop in b2a8517) and disclosed each undercount in its own commit message rather than hiding it.",
+      "The 3aaffb6 commit surfaces a second, independently-reported defect (cutover wrappers used a bare relative path and only worked from the repo root) and fixes all three wrappers to self-locate; the commit message's framing ('a backward-compat wrapper that breaks on cwd is worse than no wrapper') is a sound rationale.",
+      "The 3aaffb6 b2a8517 pair with T441's verdict-note amendment form a coherent, disclosed story: T440 first pass missed the fifth regression, T441 reported it as 'pre-existing', and T440's follow-up fixed it and explained why the wrapper-render distinction must be tested."
+    ]
+  }
+}
