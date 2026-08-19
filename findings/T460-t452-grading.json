@@ -1,0 +1,15 @@
+{
+  "task_id": "T460",
+  "date": "2026-08-19",
+  "model": "glm-5.2",
+  "claims": [
+    {
+      "id": "T452-design-race-verdict",
+      "proposed_status": "CLAIMED",
+      "rationale": "Independent grading of seven anonymized lanes against the sealed 20-point KEY. Scores: A=16, B=18, C=18, D=16, E=16, F=18, G=18. No fabricated citations found; no lane recommended raising NODE_BUDGET. Two lanes (B, E) cite proof-v2:680-696 for finding F2, which is actually at 662-680 (680-696 is F3) — an off-by-~18 line range, not a fabrication; B additionally cites reference-semantics:88-90 for a truncation ban not at those lines. The central disagreement (does a bounded fix preserve what the search measures?) splits the lanes 4-3; my independent verdict is that a bounded fix EXISTS on 2x2 (alpha-beta with no transposition table, measured 339,959 nodes/state in the committed audit; and/or the retrograde L/H fixpoint, 0/172 disagreements), because the root value(s) is path-independent on 2x2 (max forced-win length 3 << DEPTH_LIMIT 64). The no-fix camp (A, D, E) proves the full V(s,A) function is unbounded — a real result — but over-concludes about the root, which is what value(s) measures. Three lanes (C, F, G) correctly identify that the 1-ko smoke expectation at qa023_brute_2x2.zig:508 is wrong (true value -4 by a forced 3-ply line, hand-verified) and that the TOTAL_STATES expression at :266 evaluates to 2430 not 1620 (the inline comment is arithmetically wrong for the expression).",
+      "evidence_path": "untracked/race-grading/t452/scores-glm-5.2.md"
+    }
+  ],
+  "new_rows": [],
+  "notes": "Second, independent grader for T452 design race (blind). Read-only: no source edited, no build run; citations opened and checked against the repo, the 1-ko forced line and the 6-cycle witness verified by hand against rules.zig move semantics, the 339,959-node / 0/172-disagreement figures taken from the committed audit stdout (audit-2x2-mismatch-zig.stdout:37-38, opened and read). Lane B names itself (MiniMax-M3) in its own text; ignored per the brief. Inbox loop: no pending directives at claim time or at the pre-done check (bin/managent inbox T460 --ack -> 0 directives). Deliverables: untracked/race-grading/t452/scores-glm-5.2.md and this file. Status: pass-with-findings — the race produced four lanes (B/C/F/G) reaching the correct 'a bounded fix exists' verdict, three of them (C/F/G) with a proof of root path-independence and the -4/2430 findings; the no-fix camp (A/D/E) is wrong about the root but right about the full V(s,A) impossibility. Tie at 18 among B/C/F/G with C/F/G a clear tier above B on preservation rigor; tie at 16 among A/D/E."
+}
