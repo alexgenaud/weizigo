@@ -1,0 +1,52 @@
+{
+  "task_id": "T473",
+  "date": "2026-08-20",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T473",
+  "claims": [],
+  "new_rows": [],
+  "method": {
+    "question": "Run I11 move-set consistency (R8 vs kernel) exhaustively at 4×4 — the L2 audit's remainder T-b. The G3b discharge scoped I11 at 4×4 to a 50,000-state stratified sample (0.05%); L2's own text forbids a sample ('full table as the denominator, never a sample'). Extend compareSmd1 from 50k to the full denominator, report wall time and peak RSS, measure cost before the full sweep, and keep the seeded-defect controls firing at the small rungs.",
+    "subject": "the 4×4 WZO2 table data/oracle-4x4-v2.wzo2 (SHA 0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a, 24,318,165 groups, 99,133,036 entries) and the SMD1 artifact slice over it (24,318,165 legal positions × 2 sides = 48,636,330 records)",
+    "instruments": {
+      "src/vb_i11.zig": {
+        "change": "added compareTableDirect (R8 vs kernel over every stored WZO2 entry, key-byte decode per artifact2 §2.2 kb>>2 — T383 F-7 contract), a self-contained WZO2 header reader with exact file-size check, decodeKeyByte, smd1MeasureSlice (measurement-only full-sweep emitter), readFileBytes, nowMs; gated tests WEIZIGO_I11_4X4_MEASURE=1 (10× sample + projection) and WEIZIGO_I11_4X4_FULL=1 (full slice + full table); always-on tests: key-byte decode regression and 3×3 table-direct calibration",
+        "runs": "suite 40/40 pass (Debug + ReleaseSafe). MEASURE (ReleaseFast, runner): cmp 245 ms/500k, sweep 3,529 ms/500k + full 43M-index legal filter (legal positions = 24,318,165 exactly), table 203 ms/500k; projection 407 s total (ceiling 1800 s). FULL (ReleaseFast, runner): slice 0/48,636,330 (emit 15,252 ms + compare 12,610 ms), table 0/99,133,036 (37,518 ms; slice 48,505,262 + ko-active 2,122,512 + passes1 48,505,262), exit 0 in 69.5 s, peak RSS 558 MB"
+      }
+    },
+    "artifacts_read": {
+      "data/oracle-4x4-v2.wzo2": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a (verified before the runs; 518,123,097 bytes)",
+      "data/oracle-3x3-v2.wzo2": "calibration artifact for the new table-direct path (0 mismatches / 49,428 entries)"
+    },
+    "controls": {
+      "NULL CONTROL kernel-vs-SMD1": "0/114 at 2×2, 0 at 3×2, 0 at 3×3 — pass",
+      "SEEDED-DEFECT suicide at 2×2": "mismatches > 0 — fires (brief bar 1/114-style)",
+      "exhaustive ladder": "0/114 · 0/978 · 0/25,350 · 0/643,378 — unchanged",
+      "4×4 sampled 50k": "0/50,000 — unchanged"
+    }
+  },
+  "findings": [
+    {
+      "id": "F-1",
+      "question": "Is I11 move-set consistency at 4×4 exhaustive with zero violations, on the full table as the denominator?",
+      "verdict": "yes — two readings: 0 / 48,636,330 (SMD1 slice, all artifact-slice records) and 0 / 99,133,036 (every stored WZO2 table entry, ko-active and passes=1 included)",
+      "claim": "R8 and the kernel agree bit-for-bit on all 17 bits (16 cells + pass) of every legal-move set at 4×4. The slice arm extends compareSmd1 from 50k to every record the SMD1 format can hold (ko=NONE, passes=0; the format's slice header is fixed by design-M1 §4.6, so ko/passes variants cannot be dumped). The table arm covers the literal '99,133,036' the L2 audit quotes by decoding each stored entry's key byte and comparing directly — strictly more states than the slice (slice 48,505,262 + ko-active 2,122,512 + passes1 48,505,262, partition asserted).",
+      "measurement": "FULL slice: records=48,636,330 mismatches=0 emit=15,252 ms compare=12,610 ms. FULL table: entries=99,133,036 groups=24,318,165 slice=48,505,262 ko_active=2,122,512 passes1=48,505,262 mismatches=0 total=37,518 ms. Runner: exit 0 in 69.5 s, peak RSS 558 MB."
+    },
+    {
+      "id": "F-2",
+      "question": "Does the SMD1 slice denominator match the table's legal-position set (no silent denominator reduction)?",
+      "verdict": "yes, with a documented composition difference",
+      "claim": "The exhaustive SMD1 emission's is_legal filter counts exactly 24,318,165 legal positions (= OEIS A094777(4) = the table's n_groups, row 4x4.S3a PROVEN), so slice records = 24,318,165 × 2 = 48,636,330. The table stores 48,505,262 of those slice states; the 131,068 difference are legal-but-not-root-reachable slice states (G3a: the table is the root-reachable set; the T380 settled-skip non-reachable figure 133,102 is the same phenomenon under a different convention). Neither denominator was reduced to make the check fit — the two arms report their own spaces and both are exhaustive within them.",
+      "measurement": "slice arm total = 48,636,330 (asserted); table arm slice_entries = 48,505,262; full-table partition slice + ko_active + passes1 = 99,133,036 (asserted in-test)."
+    },
+    {
+      "id": "F-3",
+      "question": "Was the cost measured before the full sweep, and did the projection hold?",
+      "verdict": "measured first; projection right about feasibility, overshot the emission arm ~22×",
+      "claim": "A 10× sample (500,000 records/entries) was timed and the projection recorded before the full run: compareSmd1 245 ms/500k → slice compare ≈ 23 s (actual 12.6 s); table-direct 203 ms/500k → full table ≈ 40 s (actual 37.5 s); slice emission 3,529 ms/500k → ≈ 343 s (actual 15.3 s). The emission overshoot is a methodology artifact: the sample's 3.5 s was dominated by the one-time constant legal-filter sweep over all 43,046,721 colex indices, which the record-ratio extrapolation double-counted. The projection's purpose — decide before committing the machine — was served (projected 407 s total vs 1800 s ceiling; actual 69.5 s).",
+      "measurement": "projection (recorded before the full run): slice_emit≈343 s slice_cmp≈23 s table_direct≈40 s total≈407 s. Actual: 15.3 + 12.6 + 37.5 ≈ 65 s of compute; exit 0 in 69.5 s wall incl. compile."
+    }
+  ],
+  "notes": "T473 closes L2 remainder T-b: the one non-exhaustive G3b condition at 4×4 is now exhaustive — 0/48,636,330 slice records (SMD1 dump machinery extended from 50k to the full slice) and 0/99,133,036 stored table entries (new direct table arm covering ko-active and passes=1 states the SMD1 format cannot represent). The brief's '99,133,036' literal is satisfied by the table arm; the slice arm reports its own format-bounded denominator loudly rather than silently reducing anything. Key-byte decode follows the T383 F-7-corrected artifact2 §2.2 contract (kb>>2) with a regression test; the new table-direct instrument is calibrated green at 3×3 (0/49,428) before being trusted at 4×4. No claim status is proposed: 4x4.C1 stays CLAIMED — Track A, the #2 auditor gate and the KO_SENSITIVE-column distrust still stand; this run removes the I11 sample scope limit from its promotion conditions. Evidence: docs/evidence/I11-4x4-EXHAUSTIVE/PROVENANCE.md (committed). The '0 / 50,000 sampled of 99,133,036 (0.05%)' scope limit in accept.md:218 and CLAIMS.md 4x4.C1 (:328) is superseded by these readings and should be re-quoted wherever cited (T-d absorption territory)."
+}

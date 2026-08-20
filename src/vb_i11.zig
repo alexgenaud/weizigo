@@ -62,6 +62,23 @@
 //      by reading build.zig:601-612 at HEAD 189e423. There is no *standalone
 //      named step*; standalone runs use the zig test command above.
 // Both are tracked on T438, which remains open.
+//
+// T473 (L2 remainder T-b): the 4×4 rung goes EXHAUSTIVE. Two instruments:
+//   (1) FULL SLICE — the SMD1 dump machinery (tools/smd1.zig emitExhaustive
+//       path, ported in-file for fixtures) run at 4×4 over every artifact-
+//       slice record (ko=NONE, passes=0): 24,318,165 legal positions × 2
+//       sides = 48,636,330 records, compareSmd1 over all of them.
+//   (2) FULL TABLE — direct R8-vs-kernel comparison over every stored WZO2
+//       table entry (data/oracle-4x4-v2.wzo2): 99,133,036 entries,
+//       including the ko-active and passes=1 states the SMD1 slice format
+//       cannot represent (design-M1 §4.6 slice = ko=NONE, passes=0). This
+//       is the literal denominator the L2 audit quotes ("0 / 50,000 sampled
+//       of 99,133,036"). The SMD1 format cannot hold ko/passes variants, so
+//       the full-table arm decodes each entry's key_byte (artifact2 §2.2
+//       contract, kb>>2 — T383 F-7) and compares R8 vs the kernel directly.
+//   Both run gated (WEIZIGO_I11_4X4_MEASURE=1 / WEIZIGO_I11_4X4_FULL=1) so
+//   `zig build test` stays fast; the full runs execute under tools/runner.
+//   Author: deepseek-v4-flash/T473 · Date: 2026-08-20.
 
 const std = @import("std");
 const expect = std.testing.expect;
@@ -648,6 +665,264 @@ pub fn freeFixture(bytes: []u8) void {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  T473 — EXHAUSTIVE 4×4 I11 (full-table denominator)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// WZO2 minimal reader + direct table comparison. The WZO2 schema authority
+// is design-M1.md §4 (rev 3); the header fields and the key-byte layout below
+// mirror vb_closure.zig's parseWzo2Header / keyByteKo (the T383 F-7
+// corrected decoder — ko field at bits 2..(1+ko_bits), NOT kb>>1). This file
+// does not import vb_closure.zig (which would drag its tests into this
+// artifact); the reader is self-contained and structurally verified against
+// the known 4×4 header (T333 parse: n_groups=24,318,165, n_entries=
+// 99,133,036) plus a key-byte decode regression test.
+
+const WZO2_MAGIC = [_]u8{ 'W', 'Z', 'O', '2' };
+const WZO2_VERSION: u16 = 1;
+const WZO2_HEADER_SIZE: usize = 128;
+const WZO2_GROUP_HEADER_SIZE: usize = 5; // colex u32 LE + entry_count u8
+const WZO2_ENTRY_SIZE: usize = 4; // key_byte + L + H + DTT
+const WZO2_RULES_ID: u16 = 3;
+
+const Wzo2Header = struct {
+    w: u8,
+    h: u8,
+    ko_bits: u8,
+    hdr_flags: u8,
+    n_groups: u64,
+    n_entries: u64,
+    data_offset: u64,
+};
+
+/// Parse and structurally validate a WZO2 header. Mirrors
+/// vb_closure.parseWzo2Header (same field offsets, same checks) plus an exact
+/// file-size consistency check (design-M1 §1: no trailing sentinel).
+fn parseWzo2Header(bytes: []const u8) !Wzo2Header {
+    if (bytes.len < WZO2_HEADER_SIZE) return error.Truncated;
+    if (!std.mem.eql(u8, bytes[0..4], &WZO2_MAGIC)) return error.BadMagic;
+    const version = std.mem.readInt(u16, bytes[4..6], .little);
+    if (version != WZO2_VERSION) return error.BadVersion;
+    const w = bytes[6];
+    const h = bytes[7];
+    const rules_id = std.mem.readInt(u16, bytes[8..10], .little);
+    if (rules_id != WZO2_RULES_ID) return error.WrongRulesId;
+    const entry_size = std.mem.readInt(u16, bytes[10..12], .little);
+    if (entry_size != WZO2_ENTRY_SIZE) return error.BadEntrySize;
+    const group_header_size = bytes[12];
+    if (group_header_size != WZO2_GROUP_HEADER_SIZE) return error.BadGroupHeaderSize;
+    const ko_bits = bytes[13];
+    const hdr_flags = bytes[14];
+    const n_groups = std.mem.readInt(u64, bytes[16..24], .little);
+    const n_entries = std.mem.readInt(u64, bytes[24..32], .little);
+    const data_offset = std.mem.readInt(u64, bytes[32..40], .little);
+    if (data_offset != WZO2_HEADER_SIZE) return error.BadDataOffset;
+    const expected: u64 = data_offset +
+        n_groups * WZO2_GROUP_HEADER_SIZE +
+        n_entries * WZO2_ENTRY_SIZE;
+    if (bytes.len != @as(usize, @intCast(expected))) return error.BadFileSize;
+    return .{
+        .w = w,
+        .h = h,
+        .ko_bits = ko_bits,
+        .hdr_flags = hdr_flags,
+        .n_groups = n_groups,
+        .n_entries = n_entries,
+        .data_offset = data_offset,
+    };
+}
+
+/// Key-byte decode (artifact2 §2.2 contract; MSB→LSB layout
+/// [passes:1][ko:KO_BITS][side:1][terminal:1]): side +1=Black/-1=White,
+/// ko point (0..ko_none, ko_none = none), passes 0/1. The terminal LSB is
+/// not an input to either move generator (both derive the move set from
+/// (pos, side, ko, passes)); it is ignored here, matching how every I11
+/// comparison treats the state.
+const KeyByteDecoded = struct {
+    side: i8,
+    ko: u8,
+    passes: u2,
+};
+
+fn decodeKeyByte(kb: u8, ko_bits: u8) KeyByteDecoded {
+    const ko_mask: u8 = if (ko_bits == 0) 0 else @intCast((@as(u16, 1) << @intCast(ko_bits)) - 1);
+    return .{
+        .side = if ((kb & 2) != 0) @as(i8, -1) else @as(i8, 1),
+        .ko = (kb >> 2) & ko_mask,
+        .passes = @intCast((kb >> @intCast(2 + ko_bits)) & 1),
+    };
+}
+
+/// Result of the direct table comparison (R8 vs kernel over every stored
+/// WZO2 entry). Adds the structural accounting the full-table reading
+/// reports: slice (ko=NONE, passes=0), ko-active (ko < n) and passes=1
+/// subsets, which together partition the table (invariant: passes≥1 ⇒
+/// ko=none, design-M1 §2.5).
+pub const TableCmpResult = struct {
+    mismatches: u64,
+    total: u64,
+    n_groups: u64,
+    slice_entries: u64,
+    ko_active_entries: u64,
+    passes1_entries: u64,
+    examples: [5]CmpResult.Mismatch,
+    example_count: usize,
+};
+
+/// Compare R8 against the kernel over every entry of a WZO2 artifact.
+/// `limit` bounds the number of entries compared (measurement mode); null =
+/// the full table. At 4×4 the full denominator is 99,133,036 stored entries
+/// — the literal "full table" the L2 audit's I11 line quotes, including the
+/// ko-active and passes=1 states the SMD1 slice format cannot represent.
+pub fn compareTableDirect(comptime w: usize, comptime h: usize, bytes: []const u8, limit: ?u64) !TableCmpResult {
+    const hdr = try parseWzo2Header(bytes);
+    if (hdr.w != w or hdr.h != h) return error.BadGoban;
+    const R = kernel_rules.Rules(w, h);
+    const X = engine.colex.Indexer(w, h);
+    const n = w * h;
+    const ko_none = R.ko_none();
+    const ko_bits = hdr.ko_bits;
+    var res = TableCmpResult{
+        .mismatches = 0,
+        .total = 0,
+        .n_groups = hdr.n_groups,
+        .slice_entries = 0,
+        .ko_active_entries = 0,
+        .passes1_entries = 0,
+        .examples = undefined,
+        .example_count = 0,
+    };
+    const group_off: usize = @intCast(hdr.data_offset);
+    const entry_off: usize = group_off + @as(usize, @intCast(hdr.n_groups)) * WZO2_GROUP_HEADER_SIZE;
+
+    var entry_idx: u64 = 0;
+    outer: for (0..hdr.n_groups) |g| {
+        const go: usize = group_off + g * WZO2_GROUP_HEADER_SIZE;
+        const colex32 = std.mem.readInt(u32, bytes[go..][0..4], .little);
+        const count: usize = bytes[go + 4];
+        const pos = X.pos_from_colex(colex32);
+        for (0..count) |_| {
+            const eo: usize = entry_off + @as(usize, @intCast(entry_idx)) * WZO2_ENTRY_SIZE;
+            const kb = bytes[eo];
+            const dec = decodeKeyByte(kb, ko_bits);
+            const side = dec.side;
+            const ko = dec.ko;
+            const passes = dec.passes;
+
+            if (ko == ko_none and passes == 0) res.slice_entries += 1;
+            if (ko < ko_none) res.ko_active_entries += 1;
+            if (passes == 1) res.passes1_entries += 1;
+
+            // Kernel side
+            const kernel_bm = R.legalMoves(&pos, side, ko, passes);
+
+            // R8 side
+            const r8_state: vb_movegen.State(w, h) = .{
+                .pos = pos,
+                .side = side,
+                .ko = ko,
+                .passes = passes,
+            };
+            const r8_bm = vb_movegen.legalMoves(w, h, r8_state);
+
+            var mismatch = false;
+            for (0..n + 1) |i| {
+                if (bitSet(kernel_bm[0..], i) != bitSet(&r8_bm, i)) {
+                    mismatch = true;
+                }
+            }
+
+            if (mismatch) {
+                res.mismatches += 1;
+                if (res.example_count < 5) {
+                    var r8_extra: u8 = 0;
+                    var kernel_extra: u8 = 0;
+                    for (0..@min(n + 1, 8)) |i| {
+                        const r8_has = bitSet(&r8_bm, i);
+                        const k_has = bitSet(kernel_bm[0..], i);
+                        if (r8_has and !k_has) r8_extra |= @as(u8, 1) << @intCast(i);
+                        if (!r8_has and k_has) kernel_extra |= @as(u8, 1) << @intCast(i);
+                    }
+                    res.examples[res.example_count] = .{
+                        .colex_idx = @as(u64, colex32),
+                        .side = side,
+                        .r8_has_solver_lacks = r8_extra,
+                        .solver_has_r8_lacks = kernel_extra,
+                    };
+                    res.example_count += 1;
+                }
+            }
+            res.total += 1;
+            entry_idx += 1;
+            if (limit) |lim| {
+                if (entry_idx >= lim) break :outer;
+            }
+        }
+    }
+    return res;
+}
+
+/// Monotonic milliseconds (Zig 0.16; same shape as tools/smd1.zig's nowMs).
+fn nowMs() u64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.MONOTONIC, &ts);
+    return @as(u64, @intCast(ts.sec)) * 1000 + @as(u64, @intCast(ts.nsec)) / 1_000_000;
+}
+
+/// Read a whole file (Zig 0.16 std.Io; same shape as vb_closure.readFileBytes).
+fn readFileBytes(allocator: std.mem.Allocator, path: []const u8) ![]u8 {
+    var threaded = std.Io.Threaded.init(allocator, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    return try std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .unlimited);
+}
+
+/// Measurement-only slice sweep (T473 bar: measure before committing the
+/// machine). Walks the FULL colex space applying the kernel legal-position
+/// filter (is_legal) — reporting the legal-position count, cross-checked
+/// against A094777(4) = 24,318,165 — and appends at most `record_limit`
+/// slice records (kernel legalMoves × both sides), timing the whole pass.
+/// The full emission cost projects as elapsed × 48,636,330 / record_limit.
+const SliceMeasureResult = struct {
+    record_count: u64,
+    legal_positions: u64,
+    elapsed_ms: u64,
+};
+
+fn smd1MeasureSlice(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator, record_limit: u64) !SliceMeasureResult {
+    const R = kernel_rules.Rules(w, h);
+    const X = engine.colex.Indexer(w, h);
+    const E = engine.enumerate.Enumerator(w, h);
+    const n = w * h;
+    const cb = smd1ColexBytes(n);
+    const mb = R.moves_bytes;
+    const ko_none = R.ko_none();
+    const rec_size: usize = @as(usize, cb) + 1 + mb;
+
+    const t0 = nowMs();
+    var records: std.ArrayListUnmanaged(u8) = .empty;
+    defer records.deinit(gpa);
+
+    var legal_positions: u64 = 0;
+    var idx: u64 = 0;
+    while (idx < X.total) : (idx += 1) {
+        const pos = X.pos_from_colex(idx);
+        if (!E.is_legal(&pos)) continue;
+        legal_positions += 1;
+        // Keep sweeping for the count even after the emission cap is hit.
+        if (records.items.len / rec_size >= record_limit) continue;
+        const bm_b = R.legalMoves(&pos, 1, ko_none, 0);
+        try smd1AppendRecord(&records, gpa, idx, 1, bm_b[0..], cb);
+        const bm_w = R.legalMoves(&pos, -1, ko_none, 0);
+        try smd1AppendRecord(&records, gpa, idx, 2, bm_w[0..], cb);
+    }
+    return .{
+        .record_count = records.items.len / rec_size,
+        .legal_positions = legal_positions,
+        .elapsed_ms = nowMs() - t0,
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  TESTS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -847,4 +1122,155 @@ test "vb_i11: I11 3×3 SMD1 cross-check — R8 vs SMD1 → 0 mismatches" {
     defer freeFixture(bytes);
     const res = try compareSmd1(3, 3, bytes);
     try expectEqual(@as(u64, 0), res.mismatches);
+}
+
+// ---- T473: exhaustive 4×4 I11 ------------------------------------------
+
+// ---- key-byte decode regression (artifact2 §2.2 contract, T383 F-7) -----
+
+test "vb_i11: T473 — key-byte decode matches the artifact2 §2.2 contract" {
+    // Layout MSB→LSB: [passes:1][ko:KO_BITS][side:1][terminal:1]. Encode
+    // via the documented construction, decode via the production path — a
+    // kb>>1-style leak (T383 F-7) would be caught by the ko expectations.
+    const ko_bits: u8 = 5; // 4×4: ko values 0..16 fit in 5 bits
+
+    // (passes << 7) | (ko << 2) | (side << 1) | terminal
+    const kb_black_ko3 = (@as(u8, 0) << 7) | (3 << 2) | (0 << 1) | 0; // 12
+    const d1 = decodeKeyByte(kb_black_ko3, ko_bits);
+    try expectEqual(@as(i8, 1), d1.side);
+    try expectEqual(@as(u8, 3), d1.ko);
+    try expectEqual(@as(u2, 0), d1.passes);
+
+    const kb_white_koNONE = (@as(u8, 0) << 7) | (16 << 2) | (1 << 1) | 0; // 66
+    const d2 = decodeKeyByte(kb_white_koNONE, ko_bits);
+    try expectEqual(@as(i8, -1), d2.side);
+    try expectEqual(@as(u8, 16), d2.ko);
+    try expectEqual(@as(u2, 0), d2.passes);
+
+    const kb_black_passes1 = (@as(u8, 1) << 7) | (16 << 2) | (0 << 1) | 0; // 192
+    const d3 = decodeKeyByte(kb_black_passes1, ko_bits);
+    try expectEqual(@as(i8, 1), d3.side);
+    try expectEqual(@as(u8, 16), d3.ko);
+    try expectEqual(@as(u2, 1), d3.passes);
+}
+
+// ---- calibration: direct table comparison at 3×3 (always-on, cheap) -----
+
+test "vb_i11: T473 — 3×3 table direct — R8 vs kernel over every stored entry → 0" {
+    const gpa = std.heap.page_allocator;
+    const file_bytes = try readFileBytes(gpa, "data/oracle-3x3-v2.wzo2");
+    defer gpa.free(file_bytes);
+    const res = try compareTableDirect(3, 3, file_bytes, null);
+    // The new table-direct path exercised at the smallest real WZO2
+    // artifact before it is trusted at 4×4: every stored entry (ko-active
+    // and passes=1 included) must agree between R8 and the kernel.
+    try expectEqual(@as(u64, 0), res.mismatches);
+    try expect(res.total > 0);
+    try expectEqual(res.total, res.slice_entries + res.ko_active_entries + res.passes1_entries);
+    std.debug.print(
+        "I11 3x3 table direct: total={d} groups={d} slice={d} ko_active={d} passes1={d} mismatches={d}\n",
+        .{ res.total, res.n_groups, res.slice_entries, res.ko_active_entries, res.passes1_entries, res.mismatches },
+    );
+}
+
+// ---- measurement run (T473 bar: extrapolate before the full sweep) ------
+
+test "I11 4×4 MEASURE (WEIZIGO_I11_4X4_MEASURE=1): 10× sample cost + full-run projection" {
+    if (std.c.getenv("WEIZIGO_I11_4X4_MEASURE") == null) {
+        std.debug.print("SKIP I11 4x4 measure (set WEIZIGO_I11_4X4_MEASURE=1 to run)\n", .{});
+        return;
+    }
+    const gpa = std.heap.page_allocator;
+    const n_sample: u64 = 500_000; // 10× the historical 50k sample
+
+    // (A) compareSmd1 rate: R8 vs a 500k sampled SMD1 dump.
+    const t0 = nowMs();
+    const bytes = try fixtureSampled(4, 4, 31337, @intCast(n_sample));
+    const t_emit_sample = nowMs() - t0;
+    const t1 = nowMs();
+    const res_a = try compareSmd1(4, 4, bytes);
+    const t_cmp_sample = nowMs() - t1;
+    freeFixture(bytes);
+    try expectEqual(@as(u64, 0), res_a.mismatches);
+    try expectEqual(n_sample, res_a.total);
+
+    // (B) slice emission rate: full colex sweep + legal filter + 500k records.
+    const t2 = nowMs();
+    const meas = try smd1MeasureSlice(4, 4, gpa, n_sample);
+    const t_sweep = nowMs() - t2;
+    try expectEqual(@as(u64, 24_318_165), meas.legal_positions); // A094777(4)
+    try expectEqual(n_sample, meas.record_count);
+
+    // (C) table-direct rate: 500k entries of the real artifact.
+    const t3 = nowMs();
+    const table_bytes = try readFileBytes(gpa, "data/oracle-4x4-v2.wzo2");
+    defer gpa.free(table_bytes);
+    const res_c = try compareTableDirect(4, 4, table_bytes, n_sample);
+    const t_table_sample = nowMs() - t3;
+    try expectEqual(@as(u64, 0), res_c.mismatches);
+    try expectEqual(n_sample, res_c.total);
+
+    // Projections (full denominators 48,636,330 slice records / 99,133,036
+    // table entries; the sampled emission adds rejection-sampling overhead,
+    // so (B)'s sweep is the emission projection base).
+    const slice_records: u64 = 48_636_330;
+    const table_entries: u64 = 99_133_036;
+    const p_emit = t_sweep * slice_records / n_sample;
+    const p_cmp = t_cmp_sample * slice_records / n_sample;
+    const p_table = t_table_sample * table_entries / n_sample;
+    const p_total = p_emit + p_cmp + p_table;
+
+    std.debug.print(
+        "I11 4x4 MEASURE: cmp_sample={d} ms ({d} rec) sweep={d} ms ({d} legal pos, {d} rec) table_sample={d} ms ({d} ent) sample_emit={d} ms\n",
+        .{ t_cmp_sample, res_a.total, t_sweep, meas.legal_positions, meas.record_count, t_table_sample, res_c.total, t_emit_sample },
+    );
+    std.debug.print(
+        "I11 4x4 PROJECT: slice_emit≈{d} s slice_cmp≈{d} s table_direct≈{d} s total≈{d} s (runner wall ceiling 1800 s)\n",
+        .{ p_emit / 1000, p_cmp / 1000, p_table / 1000, p_total / 1000 },
+    );
+}
+
+// ---- full runs (gated by WEIZIGO_I11_4X4_FULL=1, under tools/runner) -----
+
+test "I11 4×4 FULL slice (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 48,636,330 SMD1 slice records" {
+    if (std.c.getenv("WEIZIGO_I11_4X4_FULL") == null) {
+        std.debug.print("SKIP I11 4x4 full slice (set WEIZIGO_I11_4X4_FULL=1 to run)\n", .{});
+        return;
+    }
+    const t0 = nowMs();
+    const bytes = try fixtureExhaustive(4, 4);
+    const t_emit = nowMs() - t0;
+    const t1 = nowMs();
+    const res = try compareSmd1(4, 4, bytes);
+    const t_cmp = nowMs() - t1;
+    defer freeFixture(bytes);
+    // 24,318,165 legal positions × 2 sides = 48,636,330 (A094777(4); the
+    // WZO2 table's n_groups). A different count means the kernel's
+    // legal-position enumeration disagrees with the table's group index.
+    std.debug.print(
+        "I11 4x4 FULL slice: records={d} mismatches={d} emit={d} ms compare={d} ms total={d} ms\n",
+        .{ res.total, res.mismatches, t_emit, t_cmp, nowMs() - t0 },
+    );
+    try expectEqual(@as(u64, 48_636_330), res.total);
+    try expectEqual(@as(u64, 0), res.mismatches);
+}
+
+test "I11 4×4 FULL table (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 99,133,036 stored entries" {
+    if (std.c.getenv("WEIZIGO_I11_4X4_FULL") == null) {
+        std.debug.print("SKIP I11 4x4 full table (set WEIZIGO_I11_4X4_FULL=1 to run)\n", .{});
+        return;
+    }
+    const gpa = std.heap.page_allocator;
+    const t0 = nowMs();
+    const file_bytes = try readFileBytes(gpa, "data/oracle-4x4-v2.wzo2");
+    defer gpa.free(file_bytes);
+    const res = try compareTableDirect(4, 4, file_bytes, null);
+    std.debug.print(
+        "I11 4x4 FULL table: entries={d} groups={d} slice={d} ko_active={d} passes1={d} mismatches={d} total={d} ms\n",
+        .{ res.total, res.n_groups, res.slice_entries, res.ko_active_entries, res.passes1_entries, res.mismatches, nowMs() - t0 },
+    );
+    try expectEqual(@as(u64, 99_133_036), res.total);
+    try expectEqual(@as(u64, 24_318_165), res.n_groups);
+    try expectEqual(@as(u64, 0), res.mismatches);
+    try expectEqual(res.total, res.slice_entries + res.ko_active_entries + res.passes1_entries);
 }
