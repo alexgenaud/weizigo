@@ -215,7 +215,7 @@ at its top stating its status. **Do not rely on these for current truth.**
 
 | file | status | replacement |
 |---|---|---|
-| `docs/AGENTS.md` | stray fragment | `AGENTS.md` (repo root) |
+| `docs/AGENTS.md` | stray fragment, removed (T508, 2026-08-20) | `AGENTS.md` (repo root) |
 | `docs/engine/TODO.md` | SUPERSEDED | `docs/epistemic/PROGRESS.md` + `docs/epistemic/boards/4x4/EPISTEMIC.md` |
 | `docs/infra/agents/workflow.md` | RETIRED 2026-07-28 | `AGENTS.md` + `docs/infra/delegation/DELEGATOR.md` |
 | `docs/infra/agents/boss-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATOR.md` |
