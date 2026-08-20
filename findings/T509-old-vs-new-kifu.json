@@ -1,0 +1,126 @@
+{
+  "task_id": "T509",
+  "date": "2026-08-20",
+  "model": "glm-5.2",
+  "identifier": "glm-5.2/T509",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Reproduction of the T366 old-vs-new 4x4 kifu evidence (the work T361 abandoned). Re-ran the unchanged T366 instrument (src/t366_evse.zig, source SHA 4e378353, identical to the 2026-08-05 build) at git HEAD 7852d5e, 15 days and 69 src/ commits after the T366 run, against the same two pinned artifacts (old a2174fed..., new 0c3366f0..., both match artifacts/SHA256SUMS). Result reproduces bit-for-bit: same 132 games, all 132 SGFs byte-identical to the committed t366-*.sgf corpus, same headline (fA genuine 3/66, fB genuine 7/66), same 10 genuine-loss games, same divergence nodes/moves/values, mirror measurement unchanged (new engine 0 genuine losses in both frames). The old-vs-new finding is stable across every engine change since 2026-08-05 (those changes are GTP/buffer/scoring-prose fixes — T403 boardsize desync, GTP list_commands overflow, T374 show-scores @memcpy, T400 Tromp-Taylor prose — none touch solve/oracle/retro/artifact). No register claims: the kifu neither refutes nor confirms a registered row; it is reproduction evidence for L2 (proven 4x4 values). One minor doc defect noted: the T366 deliverable prose (old-vs-new-4x4-2026-08-05.md §1/§3) states '62 of 66 first divergences per frame fall in that [fresh-start] slice', but its own findings JSON (the authority) records in_scope_first_divergences=66 in both frames, which this reproduction confirms. The 62 is a prose slip against the JSON; the in-scope fraction is 66/66, not 62/66. INBOX: no directives received (acked 0).",
+  "reproduction": {
+    "predecessor": "T366 (registered 2026-08-05; T361 abandoned with no work in tree)",
+    "instrument": {
+      "source": "src/t366_evse.zig",
+      "source_sha256": "4e378353159fc891fcf477beb9198d4915794ef6f311c6f51cac967beebc91ab",
+      "source_unchanged_since_t366": true,
+      "binary": "/tmp/weizigo/t366/t366-evse",
+      "binary_sha256": "9839b0fd099bd13f4b3639700b8dbf17880a2b03d8f70d270f3a606d098c3f29",
+      "build_git_head": "7852d5e (working tree over HEAD at build time; src/version.zig regenerated reads 7852d5e-dirty)",
+      "build_version_stamp": "weizigo-t366-evse f56933e-dirty built 2026-08-20T11:18:34Z zig 0.16.0",
+      "build_command": "zig build-exe -O ReleaseFast --dep version -Mroot=src/t366_evse.zig -Mversion=src/version.zig --cache-dir /tmp/weizigo/t366/cache --global-cache-dir /tmp/weizigo/t366/global --name weizigo-t366-evse -femit-bin=/tmp/weizigo/t366/t366-evse"
+    },
+    "artifacts": {
+      "old": {
+        "path": "data/oracle-4x4.checkpoint.wzo",
+        "sha256": "a2174fedd6a0591dc66b0b42ef1f52bdc28b97c448dbc5b043d96de3a3b1e118",
+        "bytes": 258280358,
+        "rules_id": 1,
+        "rules": "Chinese area, komi 0, positional superko (WZO1; fresh-start single values, no ko/passes dimension; the known-untrustworthy writes-ON build)",
+        "pinned_in": "artifacts/SHA256SUMS",
+        "unchanged_since_t366": true
+      },
+      "new": {
+        "path": "data/oracle-4x4-v2.wzo2",
+        "sha256": "0c3366f07fb33c6f2838ead48ad3080b64dbe55935b87af4f140d81a29e4e15a",
+        "bytes": 518123097,
+        "rules_id": 3,
+        "rules": "Chinese area, komi 0, basic ko, L/H bracket (WZO2; Markov key on goban/side/ko_point/passes)",
+        "pinned_in": "artifacts/SHA256SUMS",
+        "unchanged_since_t366": true
+      }
+    },
+    "run": {
+      "command": "tools/runner -- /tmp/weizigo/t366/t366-evse --old data/oracle-4x4.checkpoint.wzo --new data/oracle-4x4-v2.wzo2 --frame both --openings 30 --seed 42 --out /tmp/weizigo/t366/t509-sgf --json /tmp/weizigo/t366/t509-raw.json",
+      "seed": 42,
+      "openings": "3 canonical one-ply (corner A1, edge B1, centre B2) + 30 seeded random two-ply (deduplicated: 33 distinct openings)",
+      "games_per_frame": 66,
+      "frames_total_games": 132,
+      "peak_rss_mb": 746,
+      "wall_seconds": 0.6
+    },
+    "sgf_byte_identity": {
+      "generated_count": 132,
+      "compared_against": "docs/evidence/ENGINE-VS-ENGINE/t366-*.sgf (the committed T366 corpus)",
+      "mismatches": 0,
+      "verdict": "All 132 regenerated SGFs are byte-identical to the committed T366 corpus; the run is a perfect reproduction."
+    },
+    "frames": [
+      {
+        "frame": "fA",
+        "enforcement": "old=psk, new=psk (shared PSK)",
+        "diverged_games": 66,
+        "in_scope_first_divergences": 66,
+        "total_disagreeing_plys": 256,
+        "genuine_value_losses": 3,
+        "loss_not_attributable": 33,
+        "equal_value": 30,
+        "outcome_unknown": 0,
+        "capped_games": 0,
+        "old_wins": 30,
+        "old_losses": 36,
+        "old_draws": 0,
+        "cross_ruleset_plys": 0,
+        "ko_disagree_by_class": [235, 17, 4, 0],
+        "mirror": {
+          "new_wins": 36,
+          "new_losses": 30,
+          "new_draws": 0,
+          "new_engine_genuine_losses": 0,
+          "new_engine_loss_not_attributable": 30,
+          "new_engine_equal_value": 36,
+          "new_engine_outcome_unknown": 0
+        },
+        "genuine_loss_games": ["fA-o19-W", "fA-o21-B", "fA-o32-W"]
+      },
+      {
+        "frame": "fB",
+        "enforcement": "old=psk, new=basic-ko (new ruleset)",
+        "diverged_games": 66,
+        "in_scope_first_divergences": 66,
+        "total_disagreeing_plys": 270,
+        "genuine_value_losses": 7,
+        "loss_not_attributable": 33,
+        "equal_value": 26,
+        "outcome_unknown": 0,
+        "capped_games": 0,
+        "old_wins": 26,
+        "old_losses": 40,
+        "old_draws": 0,
+        "cross_ruleset_plys": 8,
+        "ko_disagree_by_class": [249, 17, 4, 0],
+        "mirror": {
+          "new_wins": 40,
+          "new_losses": 26,
+          "new_draws": 0,
+          "new_engine_genuine_losses": 0,
+          "new_engine_loss_not_attributable": 26,
+          "new_engine_equal_value": 40,
+          "new_engine_outcome_unknown": 0
+        },
+        "genuine_loss_games": ["fB-o02-B", "fB-o04-B", "fB-o06-B", "fB-o17-B", "fB-o19-W", "fB-o21-B", "fB-o32-W"]
+      }
+    ],
+    "genuine_loss_table": [
+      {"game": "fA-o19-W", "opening": "random-016-adcb", "old_colour": "W", "result": "B+3", "div_ply": 5, "old_move": "db", "old_child_value": -1, "new_move": "dc", "new_child_value": -1, "node_old_v0": -1, "node_new_L": -16, "node_new_H": -1, "arbiter_score": -1},
+      {"game": "fA-o21-B", "opening": "random-018-dbbc", "old_colour": "B", "result": "W+3", "div_ply": 6, "old_move": "ac", "old_child_value": 0, "new_move": "dc", "new_child_value": 1, "node_old_v0": 1, "node_new_L": 1, "node_new_H": 1, "arbiter_score": 1},
+      {"game": "fA-o32-W", "opening": "random-029-ddcc", "old_colour": "W", "result": "B+3", "div_ply": 2, "old_move": "aa", "old_child_value": -16, "new_move": "dc", "new_child_value": -16, "node_old_v0": -16, "node_new_L": -16, "node_new_H": -16, "arbiter_score": -16},
+      {"game": "fB-o02-B", "opening": "canonical-centre-B2", "old_colour": "B", "result": "W+16", "div_ply": 4, "old_move": "ac", "old_child_value": 2, "new_move": "ab", "new_child_value": 1, "node_old_v0": 2, "node_new_L": 1, "node_new_H": 16, "arbiter_score": 1},
+      {"game": "fB-o04-B", "opening": "random-001-dddc", "old_colour": "B", "result": "W+16", "div_ply": 2, "old_move": "bc", "old_child_value": 2, "new_move": "cc", "new_child_value": 1, "node_old_v0": 2, "node_new_L": 1, "node_new_H": 16, "arbiter_score": 1},
+      {"game": "fB-o06-B", "opening": "random-003-cabc", "old_colour": "B", "result": "W+16", "div_ply": 5, "old_move": "bd", "old_child_value": 1, "new_move": "cd", "new_child_value": 1, "node_old_v0": 1, "node_new_L": 1, "node_new_H": 1, "arbiter_score": 1},
+      {"game": "fB-o17-B", "opening": "random-014-bacc", "old_colour": "B", "result": "W+16", "div_ply": 7, "old_move": "ab", "old_child_value": 1, "new_move": "db", "new_child_value": 1, "node_old_v0": 0, "node_new_L": 1, "node_new_H": 1, "arbiter_score": 1},
+      {"game": "fB-o19-W", "opening": "random-016-adcb", "old_colour": "W", "result": "B+3", "div_ply": 5, "old_move": "db", "old_child_value": -1, "new_move": "dc", "new_child_value": -1, "node_old_v0": -1, "node_new_L": -16, "node_new_H": -1, "arbiter_score": -1},
+      {"game": "fB-o21-B", "opening": "random-018-dbbc", "old_colour": "B", "result": "W+3", "div_ply": 6, "old_move": "ac", "old_child_value": 0, "new_move": "dc", "new_child_value": 1, "node_old_v0": 1, "node_new_L": 1, "node_new_H": 1, "arbiter_score": 1},
+      {"game": "fB-o32-W", "opening": "random-029-ddcc", "old_colour": "W", "result": "B+3", "div_ply": 2, "old_move": "aa", "old_child_value": -16, "new_move": "dc", "new_child_value": -16, "node_old_v0": -16, "node_new_L": -16, "node_new_H": -16, "arbiter_score": -16}
+    ],
+    "raw_json": "/tmp/weizigo/t366/t509-raw.json (not committed; disposable scratch under /tmp/weizigo per AGENTS.md two-types rule)"
+  }
+}
