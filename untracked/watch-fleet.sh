@@ -70,19 +70,41 @@ PYX
 
     : > "$T.prog"; : > "$T.conc"; : > "$T.done"; : > "$T.open"
 
-    for p in $(pgrep -f "pi --provider|ollama launch pi|claude -p" 2>/dev/null); do
-        cmd=$(ps -o command= -p "$p" 2>/dev/null); case "$cmd" in *watch-fleet*|*tools/runner*) continue;; esac
+    # Detect live workers by the brief path in their argv, not by provider:
+    # deepseek chains are subagent -> runner -> pi (the pi child's argv is
+    # bare "pi"); ollama carries "ollama launch pi"; claude carries "claude -p".
+    # The one thing every chain shares is the runner/subagent argv containing
+    # "Follow untracked/T<id>-*.md". Match that, skip only the fleet script's
+    # own process, and dedupe by task id (a chain yields several matches).
+    for p in $(pgrep -f "Follow untracked/T[0-9]+" 2>/dev/null); do
+        cmd=$(ps -o command= -p "$p" 2>/dev/null)
+        # Skip only the fleet script's OWN process (argv IS the script
+        # invocation). A mere mention of watch-fleet.sh in an argv is not the
+        # script — T493's own worker argv lists the deliverable path and must
+        # not be hidden.
+        case "$cmd" in
+            sh*"$0"|bash*"$0"|*" /bin/sh "*"$0"*) continue ;;
+        esac
+        t=$(echo "$cmd" | sed -n 's/.*Follow untracked\/\(T[0-9]*\).*/\1/p' | head -1)
+        [ -z "$t" ] && continue
+        printf '%s\n' "$t" >> "$T.prog.ids"
+    done
+    sort -u "$T.prog.ids" 2>/dev/null | while read -r t; do
+        p=$(pgrep -f "Follow untracked/$t-" 2>/dev/null | sort -n | tail -1)
+        [ -z "$p" ] && continue
+        cmd=$(ps -o command= -p "$p" 2>/dev/null)
         [ "$(lsof -a -p "$p" -d cwd -Fn 2>/dev/null|grep '^n'|cut -c2-)" = "$REPO" ] || continue
-        t=$(echo "$cmd" | sed -n 's/.*Follow untracked\/\(T[0-9]*\).*/\1/p' | head -1); [ -z "$t" ] && continue
         esec=$(ps -o etime= -p $p 2>/dev/null | tr -d ' ' | awk -F'[-:]' '
             {if(NF==4) print $1*86400+$2*3600+$3*60+$4;
              else if(NF==3) print $1*3600+$2*60+$3;
              else if(NF==2) print $1*60+$2; else print 0}')
         case "$esec" in ''|*[!0-9]*) esec=0 ;; esac
-        printf '%010d\t  %-5s %-3s %-7s %-6s %-8s %s\n' "$esec" "$t" "$(lm "$t")" \
+        printf '%010d\t  %-5s %-3s %-8s  %-6s %-6s %s\n' "$esec" "$t" "$(lm "$t")" \
+            "$(mdl "$(echo "$cmd"|sed -n 's/.*--model \([^ ]*\).*/\1/p'|head -1)")" \
             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" "$(ps -o time= -p $p|tr -d ' '|awk -F: '{print $NF}')" \
-            "$(mdl "$(echo "$cmd"|sed -n 's/.*--model \([^ ]*\).*/\1/p'|head -1)")" "$(desc "$t")" >> "$T.prog.raw"
+            "$(desc "$t")" >> "$T.prog.raw"
     done
+    rm -f "$T.prog.ids"
 
     sort -rn "$T.prog.raw" 2>/dev/null | cut -f2- | fit > "$T.prog"; rm -f "$T.prog.raw"
 
@@ -91,11 +113,11 @@ import json;d=json.load(open('$T.json'))
 o=[((v.get('claimed') or ''),k) for k,v in d.items() if v.get('status')=='in_progress']
 print(' '.join(k for _,k in sorted(o,reverse=True)))" 2>/dev/null); do
         pgrep -f "Follow untracked/$t-" >/dev/null 2>&1 && continue
-        printf '  %-5s %-3s %-8s %s\n' "$t" "$(lm "$t")" "orphaned" "$(desc "$t")" | fit >> "$T.conc"
+        printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "orphaned" "$(desc "$t")" | fit >> "$T.conc"
     done
     for f in untracked/bakeoff/*/*/out.md; do
         [ -f "$f" ] && [ ! -s "$f" ] && grep -qa "exit 12[0-9]" "$(dirname "$f")"/trailer.log 2>/dev/null &&
-        printf '  %-5s %-3s %-8s %s\n' "race" "" "killed" "lane $(basename $(dirname $f))" | fit >> "$T.conc"
+        printf '  %-5s %-3s %-8s  %s\n' "race" "" "killed" "lane $(basename $(dirname $f))" | fit >> "$T.conc"
     done
 
     for t in $(python3 -c "
@@ -140,7 +162,7 @@ head=[k for k in prio if k in disp]
 tail=sorted([k for k in disp if k not in head], key=lambda x:int(x[1:]))
 print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
         st=$(awk -F'\t' -v t="$t" '$1==t{print $2}' "$T.openstat" 2>/dev/null)
-        printf '  %-5s %-3s %-8s %s\n' "$t" "$(lm "$t")" "${st:-open}" "$(desc "$t")" | fit >> "$T.open"
+        printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "${st:-open}" "$(desc "$t")" | fit >> "$T.open"
     done
 
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null)
@@ -168,7 +190,7 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     # how long have we been watching? refresh rate follows that, not the clock
     age=$(( $(date +%s) - START ))
     nap=$(nap_for_age "$age")
-    printf '\n  %s · refresh %ss · q or ^C quits · any other key updates now\n' "$(date '+%H:%M:%S')" "$nap"
+    printf '\n  %s · q or ^C quits · another key to refresh %ss\n' "$(date '+%H:%M:%S')" "$nap"
 
     # macOS ships bash 3.2, whose `read -t` returns 1 on TIMEOUT — the same status as EOF.
     # A timeout and a ^D are therefore indistinguishable here, so ^D cannot be a quit key
