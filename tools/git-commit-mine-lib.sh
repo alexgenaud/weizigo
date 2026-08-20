@@ -19,8 +19,10 @@
 #       scope <repo> <task-id> [tasks-json]
 #           prints the full scope, one path per line: the bundle's
 #           deliverables ∪ findings/<id>-*.json ∪ the two fleet-coordination
-#           surfaces (docs/status/CURRENT.md, docs/status/HANDOVER.md — any
-#           worker may legitimately touch these).
+#           surfaces any worker may legitimately touch (docs/status/CURRENT.md,
+#           docs/status/HANDOVER.md) ∪ the two absorption surfaces the closer
+#           edits inside its own commit (docs/epistemic/CLAIMS.md,
+#           findings/rejections.json) — T484.
 #       active-holders <repo> [tasks-json]
 #           prints live-holder rows, one per line, tab-separated:
 #               <task-id>\t<agent>\t<path>
@@ -169,7 +171,8 @@ gcm_scope_for_task() {
     for f in "$repo"/findings/"$tid"-*.json; do
         [ -e "$f" ] && printf '%s\n' "${f#$repo/}"
     done
-    printf '%s\n' "docs/status/CURRENT.md" "docs/status/HANDOVER.md"
+    printf '%s\n' "docs/status/CURRENT.md" "docs/status/HANDOVER.md" \
+        "docs/epistemic/CLAIMS.md" "findings/rejections.json"
     return 0
 }
 
