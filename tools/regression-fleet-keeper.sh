@@ -37,7 +37,17 @@
 #   g. logjam flag after FLEET_LOGJAM_FLAG minutes (telemetry only).
 #   h. waiting=1 outranks priority; a bumped blocked task anchors pressure.
 #
-# Task: T496/T501 · Model: glm-5.2 · Date: 2026-08-19 (T496), 2026-08-20 (T501)
+# T504 §5 arms (heal cooldown — a recently-healed row is parked, not re-fired;
+# red-first, scratch store/repo):
+#   T504-a. seeded: claim_count=2 + a recent T477 heal record → parked for the
+#           window, and the exclusion is logged (also control d).
+#   T504-b. null: after the window the row is eligible again (cooldown expires).
+#   T504-c. null: a fresh row (claim_count=1, no heal) is dispatched normally.
+#   T504-e. seeded: a fresh T477 heal record with claim_count=1 → parked (the
+#           live T358 defect: dispatcher healed, keeper re-fired).
+#
+# Task: T496/T501/T504 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504)
+# Date: 2026-08-19 (T496), 2026-08-20 (T501/T504)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -55,6 +65,10 @@ trap 'rm -rf "$WORK"' EXIT
 
 # A stale depth stamp would trip bin/dispatch's cap check.
 unset WEIZIGO_AGENT_DEPTH || true
+# A leaked DeepSeek-window carve (FLEET_MODEL_ALLOW/DENY in the caller's env)
+# would deny glm-5.2 and break every arm's model resolution.  The suite owns
+# these knobs (arm f sets/unset them explicitly); start clean (T504).
+unset FLEET_MODEL_ALLOW FLEET_MODEL_DENY || true
 
 # ── scratch repo + store ─────────────────────────────────────────────────
 cd "$WORK"
@@ -153,9 +167,11 @@ row_status() {  # $1=id → status word from `managent show`
 }
 
 # ── T501 helpers: pressure state on the scratch store ────────────────────
-reset_keeper_state() {  # fresh pressure/log/flag for each arm
+reset_keeper_state() {  # fresh pressure/log/flag/heal state for each arm
   rm -f "$WORK/untracked/fleet-keeper.pressure.json"
   rm -f "$WORK/untracked/fleet-keeper.logjam.flag"
+  rm -f "$WORK/untracked/fleet-keeper.heal.json"
+  rm -f "$WORK/docs/infra/dispatch-heals.jsonl"
   : > "$WORK/untracked/log/fleet-keeper.log"
 }
 
@@ -197,6 +213,38 @@ state = {
     "waiting_since": None if waiting in ("", "null") else waiting,
     "running": [x for x in running.split(",") if x],
 }
+json.dump(state, open(path, "w"), indent=1)
+PY
+}
+
+# ── T504 helpers: claim_count + heal state on the scratch store ──────────
+set_claim_count() {  # $1=id $2=n — bump a seeded row's claim_count
+  python3 - "$STORE" "$1" "$2" <<'PY'
+import json, sys
+store, tid, n = sys.argv[1], sys.argv[2], int(sys.argv[3])
+doc = json.load(open(store))
+if tid in doc:
+    doc[tid]["claim_count"] = n
+json.dump(doc, open(store, "w"), indent=1)
+PY
+}
+
+seed_heal_log() {  # $1=id $2=iso_ts — one T477 dispatcher heal record
+  printf '{"task_id": "%s", "model": "glm-5.2", "exit_code": 124, "wall_seconds": 350.9, "healed_by": "dispatcher", "timestamp": "%s"}\n' "$1" "$2" \
+      >> "$WORK/docs/infra/dispatch-heals.jsonl"
+}
+
+seed_heal_state() {  # $1=id $2=healed_epoch(or empty) $3=seen_cc $4=seen_hl_ts(or empty)
+  python3 - "$WORK/untracked/fleet-keeper.heal.json" "$1" "$2" "$3" "$4" <<'PY'
+import json, sys
+path, tid, healed, seen_cc, seen_hl = sys.argv[1:6]
+state = {"healed": {}, "seen_hl": {}, "seen_cc": {}}
+if healed:
+    state["healed"][tid] = float(healed)
+if seen_hl:
+    state["seen_hl"][tid] = seen_hl
+if seen_cc:
+    state["seen_cc"][tid] = int(seen_cc)
 json.dump(state, open(path, "w"), indent=1)
 PY
 }
@@ -257,8 +305,10 @@ else
   if ! grep -q "cooldown\|at cap" "$WORK/untracked/log/fleet-keeper.log" 2>/dev/null; then
     :
   fi
-  if grep -q "dispatched T1 → glm-5.2" "$WORK/untracked/log/fleet-keeper.log" \
-     && grep -q "dispatched T4 → glm-5.2" "$WORK/untracked/log/fleet-keeper.log"; then
+  # T503 exploration-first: a model-less row gets the LEAST-DATA model, so the
+  # fired model is dynamic; assert each firing is logged, not which model.
+  if grep -q "dispatched T1 → " "$WORK/untracked/log/fleet-keeper.log" \
+     && grep -q "dispatched T4 → " "$WORK/untracked/log/fleet-keeper.log"; then
     echo "    PASS: log records each firing"
   else
     echo "    FAIL: log missing firing lines"; tail -5 "$WORK/untracked/log/fleet-keeper.log" | sed 's/^/    | /'
@@ -701,6 +751,108 @@ if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T500 " && [ "$(pressure
   echo "    PASS: bumped blocked T400 anchors pressure; free T500 (p99) admitted"
 else
   echo "    FAIL: h1 expected T400 anchored + T500 dispatched (rc=$RC anchor=$(pressure_field anchor)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T504 §5 arm a: a recently-healed row is parked, not re-fired ────────
+echo "  T504-a. seeded: claim_count=2 + recent heal → parked for the window; exclusion logged"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T358 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T358 findings/T358.json
+set_claim_count T358 2
+reset_keeper_state
+HEAL_TS=$(python3 -c 'import datetime;print(datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+seed_heal_log T358 "$HEAL_TS"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T358)" = "dispatchable" ]; then
+  echo "    PASS: healed T358 parked (not dispatched), row left dispatchable"
+else
+  echo "    FAIL: expected T358 parked (rc=$RC status=$(row_status T358)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+if grep -q "heal-cooldown: T358" "$WORK/untracked/log/fleet-keeper.log"; then
+  echo "    PASS: exclusion logged (heal-cooldown: T358)"
+else
+  echo "    FAIL: exclusion not logged"; tail -5 "$WORK/untracked/log/fleet-keeper.log" | sed 's/^/    | /'; FAIL=1
+fi
+# persistence: a second iteration still parks it (cooldown ongoing, same signal)
+OUT2=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC2=$?
+if [ "$RC2" -eq 0 ] && echo "$OUT2" | grep -q "^none"; then
+  echo "    PASS: cooldown persists across iterations (still parked)"
+else
+  echo "    FAIL: expected T358 still parked on the second iteration (rc=$RC2); got:"; echo "$OUT2" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T504 §5 arm b: after the window the row is eligible again ───────────
+echo "  T504-b. null: after the window the row is eligible again (cooldown expires)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T358 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T358 findings/T358.json
+set_claim_count T358 2
+reset_keeper_state
+OLD_EPOCH=$(python3 -c 'import time; print(time.time() - 700)')
+seed_heal_state T358 "$OLD_EPOCH" 2 ""
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T358 "; then
+  echo "    PASS: expired cooldown → T358 dispatched again"
+else
+  echo "    FAIL: expected T358 dispatched after the window (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T504 §5 arm c: a fresh row is dispatched normally ───────────────────
+echo "  T504-c. null: a fresh row (claim_count=1, no heal) is dispatched normally"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+set_claim_count T1 1
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T1 "; then
+  echo "    PASS: fresh T1 (claim_count=1) dispatched normally"
+else
+  echo "    FAIL: expected T1 dispatched (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T504 §5 arm e: a fresh heal record parks even claim_count=1 ─────────
+echo "  T504-e. seeded: a fresh T477 heal record with claim_count=1 → parked (the live T358 defect)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T358 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T358 findings/T358.json
+set_claim_count T358 1
+reset_keeper_state
+HEAL_TS=$(python3 -c 'import datetime;print(datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+seed_heal_log T358 "$HEAL_TS"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T358)" = "dispatchable" ]; then
+  echo "    PASS: fresh heal record parks T358 even at claim_count=1"
+else
+  echo "    FAIL: expected T358 parked on a fresh heal record (rc=$RC status=$(row_status T358)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
 fi
 
 echo ""

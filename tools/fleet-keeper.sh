@@ -45,7 +45,12 @@
 # Env:
 #   FLEET_INTERVAL       seconds between iterations (default 10)
 #   FLEET_CAP            max in_progress workers (default 5)
-#   FLEET_DEFAULT_MODEL  model for rows with no stored model (default glm-5.2)
+#   FLEET_DEFAULT_MODEL  model for rows with no stored model.  NOT a free
+#                        default: when unset, a model-less row gets the
+#                        LEAST-DATA model (min per-model task count, ties by
+#                        canonical order) so the exploration-first rule
+#                        (T503) governs, not a fixed favourite.  Set it
+#                        explicitly only to force a window.
 #   FLEET_MODEL_ALLOW    comma list of canonical models allowed (D022); unset
 #                        = all allowed.  e.g. "deepseek-v4-pro,deepseek-v4-flash"
 #                        carves a DeepSeek-only window.
@@ -54,6 +59,11 @@
 #                        turns an ollama cooldown into a config line.
 #   FLEET_LOGJAM_FLAG    minutes after which a blocked anchor is flagged
 #                        (T500 §10; telemetry only, default 60).
+#   FLEET_HEAL_COOLDOWN  seconds a recently-healed row stays out of the
+#                        dispatch pool (default 600 — 10 min; T504).  A row
+#                        the dispatcher just healed (docs/infra/dispatch-heals.jsonl)
+#                        or whose claim_count >= 2 needs investigation, not
+#                        an instant re-fire (the T358 duplicate-dispatch class).
 #   FLEET_ROOT            working dir for untracked/ (cooldown, log, bundles);
 #                        default = this repo.  Set to a scratch dir in tests.
 #   FLEET_TEST_WORKER    forwarded to bin/dispatch as --test-worker (tests).
@@ -61,7 +71,7 @@
 #
 #   --once               run exactly one iteration and exit (test hook).
 #
-# Task: T496/T501 · Model: glm-5.2 · Date: 2026-08-19 (T496), 2026-08-20 (T501)
+# Task: T496/T501/T504 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -101,6 +111,14 @@ LOGDIR = os.path.join(FLEET_ROOT, "untracked", "log")
 LOG = os.path.join(LOGDIR, "fleet-keeper.log")
 PRESSURE = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.pressure.json")
 LOGJAM_FLAG = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.logjam.flag")
+# T504: per-row heal cooldown.  HEAL_STATE is the keeper's own memory
+# (untracked/, alongside the pressure file); HEAL_LOG is T477's dispatcher
+# heal record (docs/infra/dispatch-heals.jsonl); STORE is the kanban, read
+# directly for claim_count (status --json omits it).
+HEAL_STATE = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.heal.json")
+HEAL_LOG = os.path.join(FLEET_ROOT, "docs", "infra", "dispatch-heals.jsonl")
+STORE = os.environ.get("MANAGENT_STORE") or os.path.join(REAL_ROOT, "docs", "infra", "managent", "tasks.json")
+HEAL_COOLDOWN = int(os.environ.get("FLEET_HEAL_COOLDOWN", "600"))
 MG = os.path.join(REAL_ROOT, "bin", "managent")
 DISPATCH = os.path.join(REAL_ROOT, "bin", "dispatch")
 
@@ -214,6 +232,28 @@ def model_allowed(model):
         return False
     return True
 
+def least_data_model(by_id):
+    # T503 exploration-first: a model-less row gets the model with the FEWEST
+    # tasks in the ledger (ties by canonical order), so the under-measured are
+    # sampled and an over-measured favourite is not silently handed everything.
+    # The deny/allow gate still applies: the chosen model must be allowed.
+    counts = {}
+    for r in by_id.values():
+        m = (r.get("model") or "").split(":")[0]
+        if not m:
+            continue
+        counts[m] = counts.get(m, 0) + 1
+    # Known canonical set (T317) so ties and missing models resolve stably.
+    canon = ["kimi-k2.7", "minimax-m3", "deepseek-v4-flash",
+             "deepseek-v4-pro", "glm-5.2"]
+    best = None
+    for m in canon:
+        if not model_allowed(m):
+            continue
+        if best is None or counts.get(m, 0) < counts.get(best, 0):
+            best = m
+    return best or DEFAULT_MODEL  # all gated: fall back to the explicit default
+
 def parse_iso(s):
     # UTC epoch seconds for an ISO-8601 "…Z" timestamp (calendar.timegm treats
     # the tuple as UTC, matching time.time()).
@@ -239,6 +279,72 @@ def save_pressure(state):
             json.dump(state, f)
     except OSError:
         pass  # pressure tracking is advisory; never fatal.
+
+def read_heal_log():
+    # T504: T477's dispatcher heal record log (tools/dispatch_verify.py) —
+    # one JSON line per heal: {task_id, model, exit_code, wall_seconds,
+    # healed_by, timestamp}.  Append-only; the latest timestamp per task
+    # wins.  Missing/unreadable file → no heals (null arm).
+    out = {}
+    try:
+        with open(HEAL_LOG, "r", errors="replace") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except ValueError:
+                    continue
+                tid = rec.get("task_id")
+                tstr = rec.get("timestamp")
+                if not tid or not tstr:
+                    continue
+                e = parse_iso(tstr)
+                if e is None:
+                    continue
+                if tid not in out or e > out[tid][0]:
+                    out[tid] = (e, tstr)
+    except OSError:
+        pass
+    return out
+
+def read_claim_counts():
+    # T504: claim_count lives in the kanban store, not in `status --json`
+    # (printStatusJson omits it).  Read the store directly — the same file
+    # watch-fleet.sh reads.  Missing/unreadable → empty (null arm).
+    try:
+        with open(STORE, "r", errors="replace") as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for k, v in doc.items():
+        if k == "_sys" or not isinstance(v, dict):
+            continue
+        try:
+            out[k] = int(v.get("claim_count") or 0)
+        except (TypeError, ValueError):
+            out[k] = 0
+    return out
+
+def load_heal_state():
+    try:
+        with open(HEAL_STATE, "r") as f:
+            d = json.load(f) or {}
+            return {"healed": d.get("healed") or {},
+                    "seen_hl": d.get("seen_hl") or {},
+                    "seen_cc": d.get("seen_cc") or {}}
+    except (OSError, ValueError):
+        return {"healed": {}, "seen_hl": {}, "seen_cc": {}}
+
+def save_heal_state(state):
+    # Like save_pressure: never create untracked/ here (dead-man's switch).
+    try:
+        with open(HEAL_STATE, "w") as f:
+            json.dump(state, f)
+    except OSError:
+        pass  # heal cooldown is advisory; never fatal.
 
 def fire(pick, in_prog, c_eff):
     rid = pick["row"]["id"]
@@ -288,6 +394,49 @@ def main():
         print("error")
         return 0
     by_id = {r.get("id"): r for r in rows}
+
+    # ── T504 heal cooldown: observe fresh heals, park healed rows ────────
+    now = time.time()
+    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now))
+    heal_log = read_heal_log()
+    claim_counts = read_claim_counts()
+    heal_state = load_heal_state()
+    healed = heal_state.get("healed") or {}
+    seen_hl = heal_state.get("seen_hl") or {}
+    seen_cc = heal_state.get("seen_cc") or {}
+    for r in rows:
+        rid = r.get("id") or ""
+        st = r.get("status")
+        if st == "done":
+            # step 4: a real close ends the row's story — clear the cooldown.
+            healed.pop(rid, None)
+            seen_hl.pop(rid, None)
+            seen_cc.pop(rid, None)
+            continue
+        if st != "dispatchable":
+            continue
+        marked = False
+        # signal 1: a fresh T477 heal record (the dispatcher's own ledger).
+        if rid in heal_log:
+            epoch, tstr = heal_log[rid]
+            if seen_hl.get(rid) != tstr:
+                seen_hl[rid] = tstr
+                healed[rid] = epoch if epoch <= now else now
+                marked = True
+        # signal 2: claim_count >= 2 (kanban fallback — a row claimed and
+        # returned without a heal record, e.g. a manual reopen).
+        cc = claim_counts.get(rid, 0)
+        if cc >= 2 and seen_cc.get(rid, 0) != cc:
+            seen_cc[rid] = cc
+            if not marked:
+                healed[rid] = now
+                marked = True
+    # step 4: the window expiring also ends the cooldown (prune stale entries).
+    for rid in list(healed):
+        if now - float(healed[rid]) >= HEAL_COOLDOWN:
+            healed.pop(rid, None)
+    save_heal_state({"healed": healed, "seen_hl": seen_hl, "seen_cc": seen_cc})
+
     in_prog_rows = [r for r in rows if r.get("status") == "in_progress"]
     running = {r.get("id") for r in in_prog_rows}
     # The set of holds currently held by a RUNNING task (the only holds that
@@ -306,11 +455,18 @@ def main():
             continue  # duties run by their own mechanism
         if not re.fullmatch(r"T\d+", rid):
             continue  # non-T seats (ORCHA-*, STANDING-*) stay manual
+        # T504: a recently-healed row is parked — the worker that exited
+        # without closing needs investigation, not an instant re-fire.
+        if rid in healed:
+            age = now - float(healed[rid])
+            if age < HEAL_COOLDOWN:
+                log(f"heal-cooldown: {rid} (healed {int(age)}s ago, waiting)")
+                continue
         if not needs_met(r, by_id):
             continue
         if not has_bundle(rid):
             continue
-        model = r.get("model") or DEFAULT_MODEL
+        model = r.get("model") or least_data_model(by_id)
         if not model_allowed(model):
             continue  # D022 (1): model cooldown window
         holds = set(r.get("holds") or [])
@@ -328,8 +484,6 @@ def main():
     prev = load_pressure()
     prev_running = set(prev.get("running") or [])
     completed = prev_running - running  # ids that left in_progress this iter
-    now = time.time()
-    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now))
 
     anchor = None
     drops = 0
