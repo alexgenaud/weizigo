@@ -3557,3 +3557,17 @@ Baseline for the incoming seat to beat.
 
 *Recorded 2026-08-20 during the pre-authorized wrap-up. Claims: none — impressions + measured scorecard.*
 dispatch-verify 2026-08-20 T510 deepseek-v4-pro report=success verified=fail fail=deliverables
+dispatch-verify 2026-08-20 T509 glm-5.2 report=success verified=pass
+
+## Standing model-allocation rule — RULED (Course rev 3, ruling 6, 2026-08-20)
+
+**Exploration-first is the standing default** (until aspect-race data supersedes it):
+- a model-less row gets the **least-data model** (per the task-type data-count map from
+  tools/model-profiles.py — the keeper's `least_data_model` implements this);
+- **Ollama-first for leaf rows** per the 2026-08-18 cost stance (flat-fee budget);
+- comparison-worthy tasks run **two models blind head-to-head** (most-suitable + least-data);
+- the expired Flash-default TEMP (2026-08-12) is **not renewed** — no model is the default by
+  identity; data decides.
+
+Formalized from T503 + the operator's recorded stance. Superseded only by aspect-race data
+(Stage 2a, GO under ruling 7).
