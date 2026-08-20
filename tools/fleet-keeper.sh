@@ -15,16 +15,28 @@
 #      man's switch: if the flag's directory cannot be read, treat it as
 #      cooldown-set and dispatch nothing — a dead fleet is the safe
 #      failure, not a free-for-all.)
-#   3. if in_progress >= FLEET_CAP → dispatch nothing.
-#   4. else pick the next dispatchable TASK (status dispatchable, id T\d+,
-#      NOT a duty, needs all satisfied, exactly one bundle), ordered by
-#      `added` ascending (oldest first — the queue's natural priority; do
-#      not re-implement DO-NOW ranking, that is backlog policy, not fleet
-#      policy).
+#   3. compute `eligible` (status dispatchable, id T\d+, NOT a duty, needs
+#      all satisfied, exactly one bundle, model passes the gate), ordered by
+#      the §5 key: waiting=1 first, then priority=N (0-99, 99 highest,
+#      default 50), then `added` ascending.
+#   4. run the logjam-PRESSURE state machine (§6–§8 of
+#      docs/infra/fleet-keeper-design.md, T500): if the first eligible task
+#      is conflict-blocked (its holds intersect a running task's holds), it
+#      is the anchor — the fleet cap drops by one per running task that
+#      completes while it stays blocked, until its holds free and it runs
+#      solo.  Under pressure, only conflict-free candidates may be admitted.
 #   5. fire `bin/dispatch <id> <model>` — model from the row's stored
-#      `model`, else FLEET_DEFAULT_MODEL.  One log line per firing.
+#      `model`, else FLEET_DEFAULT_MODEL, gated by FLEET_MODEL_ALLOW /
+#      FLEET_MODEL_DENY (D022).  One log line per firing.
 #   6. never dispatches a duty row (DCLAIM/DRPLAY/DARGUS/DFLEET) or a
 #      non-T seat (ORCHA-*); those run by their own mechanism.
+#
+# THE ONE-WRITER INVARIANT (T500, the operator's non-negotiable): the keeper
+# NEVER dispatches a task whose holds intersect the holds of any in_progress
+# task.  The pressure mechanism achieves progress by shrinking parallelism,
+# never by preempting a holder or dispatching a conflict.  (D022's old
+# "dispatch-anyway after a wait" escape was REJECTED by the operator on
+# 2026-08-20 and is gone from this file.)
 #
 # The cooldown flag is the GRACEFUL stop (running workers finish, nothing
 # new starts); a signal (q/^C) or killing the loop is the HARD stop.  Run
@@ -34,6 +46,14 @@
 #   FLEET_INTERVAL       seconds between iterations (default 10)
 #   FLEET_CAP            max in_progress workers (default 5)
 #   FLEET_DEFAULT_MODEL  model for rows with no stored model (default glm-5.2)
+#   FLEET_MODEL_ALLOW    comma list of canonical models allowed (D022); unset
+#                        = all allowed.  e.g. "deepseek-v4-pro,deepseek-v4-flash"
+#                        carves a DeepSeek-only window.
+#   FLEET_MODEL_DENY     comma list of canonical models denied (D022); wins over
+#                        ALLOW.  e.g. "glm-5.2,minimax-m3,kimi-k2.7,qwen3.8"
+#                        turns an ollama cooldown into a config line.
+#   FLEET_LOGJAM_FLAG    minutes after which a blocked anchor is flagged
+#                        (T500 §10; telemetry only, default 60).
 #   FLEET_ROOT            working dir for untracked/ (cooldown, log, bundles);
 #                        default = this repo.  Set to a scratch dir in tests.
 #   FLEET_TEST_WORKER    forwarded to bin/dispatch as --test-worker (tests).
@@ -41,7 +61,7 @@
 #
 #   --once               run exactly one iteration and exit (test hook).
 #
-# Task: T496 · Model: glm-5.2 · Date: 2026-08-19
+# Task: T496/T501 · Model: glm-5.2 · Date: 2026-08-19 (T496), 2026-08-20 (T501)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -58,7 +78,7 @@ export FLEET_DEFAULT_MODEL="${FLEET_DEFAULT_MODEL:-glm-5.2}"
 
 iterate() {
 python3 - "$ROOT" "$ONCE" <<'PY'
-import glob, json, os, re, subprocess, sys, time
+import calendar, glob, json, os, re, subprocess, sys, time
 
 REAL_ROOT = sys.argv[1]
 ONCE = sys.argv[2] == "1"
@@ -67,10 +87,20 @@ DEFAULT_MODEL = os.environ.get("FLEET_DEFAULT_MODEL", "glm-5.2")
 FLEET_ROOT = os.environ.get("FLEET_ROOT") or REAL_ROOT
 TEST_WORKER = os.environ.get("FLEET_TEST_WORKER")
 FLEET_ROOT_SET = os.environ.get("FLEET_ROOT") is not None
+# D022 (1) model-allowlist: FLEET_MODEL_ALLOW / FLEET_MODEL_DENY (comma lists of
+# canonical model labels).  Lets an operator carve a model-cooldown window
+# (e.g. "no ollama until 02:00") as a config line, not a code edit.  Default
+# (both unset): the row's stored model as today.
+ALLOW = {m for m in os.environ.get("FLEET_MODEL_ALLOW", "").split(",") if m}
+DENY = {m for m in os.environ.get("FLEET_MODEL_DENY", "").split(",") if m}
+# T500 §10: minutes after which a blocked anchor is flagged (telemetry only).
+LOGJAM_FLAG_MIN = int(os.environ.get("FLEET_LOGJAM_FLAG", "60"))
 
 COOLDOWN = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.cooldown")
 LOGDIR = os.path.join(FLEET_ROOT, "untracked", "log")
 LOG = os.path.join(LOGDIR, "fleet-keeper.log")
+PRESSURE = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.pressure.json")
+LOGJAM_FLAG = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.logjam.flag")
 MG = os.path.join(REAL_ROOT, "bin", "managent")
 DISPATCH = os.path.join(REAL_ROOT, "bin", "dispatch")
 
@@ -140,8 +170,116 @@ def added_of(tid):
             return line.split("added:", 1)[1].strip()
     return ""
 
+def bundle_path(tid):
+    hits = glob.glob(os.path.join(FLEET_ROOT, "untracked", f"{tid}-*.md"))
+    return hits[0] if len(hits) == 1 else None
+
+def priority_of(tid):
+    # D022 (2): priority lives in the bundle's `<!--managent ... priority=N-->
+    # header — the single simplest source (co-located with the brief, no
+    # engine/store change, no extra file).  0-99, 99 highest, default 50.
+    bp = bundle_path(tid)
+    if not bp:
+        return 50
+    try:
+        with open(bp, "r", errors="replace") as f:
+            head = f.read(2048)
+    except OSError:
+        return 50
+    m = re.search(r"priority\s*=\s*(\d+)", head)
+    if not m:
+        return 50
+    p = int(m.group(1))
+    return p if 0 <= p <= 99 else 50
+
+def waiting_of(tid):
+    # T500 §5: `waiting=1` in the bundle header is the operator's "bump" — a
+    # task marked waiting outranks every priority number as "next".  Boolean.
+    bp = bundle_path(tid)
+    if not bp:
+        return 0
+    try:
+        with open(bp, "r", errors="replace") as f:
+            head = f.read(2048)
+    except OSError:
+        return 0
+    return 1 if re.search(r"waiting\s*=\s*1\b", head) else 0
+
+def model_allowed(model):
+    # D022 (1): allowlist/denylist gate the resolved model.  Both unset →
+    # everything allowed (the row's stored model as today).
+    if model in DENY:
+        return False
+    if ALLOW and model not in ALLOW:
+        return False
+    return True
+
+def parse_iso(s):
+    # UTC epoch seconds for an ISO-8601 "…Z" timestamp (calendar.timegm treats
+    # the tuple as UTC, matching time.time()).
+    try:
+        return calendar.timegm(time.strptime(s, "%Y-%m-%dT%H:%M:%SZ"))
+    except (TypeError, ValueError):
+        return None
+
+def load_pressure():
+    try:
+        with open(PRESSURE, "r") as f:
+            return json.load(f) or {}
+    except (OSError, ValueError):
+        return {}
+
+def save_pressure(state):
+    # Never create untracked/ here — the dead-man's switch depends on its
+    # absence being detectable.  In production (and in the scratch repo)
+    # untracked/ already exists; a missing dir is a cooldown, not a chance
+    # to silently recreate it.
+    try:
+        with open(PRESSURE, "w") as f:
+            json.dump(state, f)
+    except OSError:
+        pass  # pressure tracking is advisory; never fatal.
+
+def fire(pick, in_prog, c_eff):
+    rid = pick["row"]["id"]
+    model = pick["model"]
+    cmd = [DISPATCH, rid, model]
+    if FLEET_ROOT_SET:
+        cmd.append(f"--test-root={FLEET_ROOT}")
+    if TEST_WORKER:
+        cmd.append(f"--test-worker={TEST_WORKER}")
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True,
+                              env=dict(os.environ), timeout=60)
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        log(f"ERROR dispatch {rid} → {model}: {e}")
+        print("error")
+        return
+    out = proc.stdout.strip()
+    err = proc.stderr.strip()
+    if proc.returncode == 0 and out.startswith("dispatched "):
+        log(f"dispatched {rid} → {model} (in_progress {in_prog}/{c_eff}) — {out}")
+        print(f"dispatched {rid} {model}")
+    else:
+        log(f"dispatch REFUSED {rid} → {model} (rc={proc.returncode}) — {err or out}")
+        print(f"refused {rid}")
+
 def main():
     if cooldown_set():
+        # T500 §6/§8: cooldown dispatches nothing but still advances the
+        # `running` snapshot (so `completed` stays an honest diff).  Never
+        # touch anchor/drops/waiting_since — cooldown pauses pressure, it
+        # does not reset it.
+        rows = read_rows()
+        if rows is not None:
+            prev = load_pressure()
+            running = {r.get("id") for r in rows if r.get("status") == "in_progress"}
+            save_pressure({
+                "anchor": prev.get("anchor"),
+                "drops": prev.get("drops") or 0,
+                "waiting_since": prev.get("waiting_since"),
+                "running": sorted(running),
+            })
         log("cooldown flag set — no new dispatches")
         print("cooldown")
         return 0
@@ -150,11 +288,15 @@ def main():
         print("error")
         return 0
     by_id = {r.get("id"): r for r in rows}
-    in_prog = sum(1 for r in rows if r.get("status") == "in_progress")
-    if in_prog >= CAP:
-        log(f"at cap ({in_prog}/{CAP}) — no dispatch")
-        print("cap")
-        return 0
+    in_prog_rows = [r for r in rows if r.get("status") == "in_progress"]
+    running = {r.get("id") for r in in_prog_rows}
+    # The set of holds currently held by a RUNNING task (the only holds that
+    # block — a done holder is no holder).  managent's own holdsConflict
+    # (src/managent/main.zig) enforces this at claim time too.
+    inprog_holds = set()
+    for r in in_prog_rows:
+        for h in (r.get("holds") or []):
+            inprog_holds.add(h)
     elig = []
     for r in rows:
         rid = r.get("id") or ""
@@ -168,34 +310,102 @@ def main():
             continue
         if not has_bundle(rid):
             continue
-        elig.append(r)
-    if not elig:
-        log("nothing eligible")
+        model = r.get("model") or DEFAULT_MODEL
+        if not model_allowed(model):
+            continue  # D022 (1): model cooldown window
+        holds = set(r.get("holds") or [])
+        elig.append({"row": r, "model": model,
+                     "priority": priority_of(rid),
+                     "waiting": waiting_of(rid),
+                     "added": added_of(rid) or "",
+                     "holds": holds,
+                     "conflict_blocked": bool(holds & inprog_holds)})
+    # §5 ordering: waiting=1 first, then priority desc (99 highest), then
+    # added ascending (oldest first).
+    elig.sort(key=lambda e: (-e["waiting"], -e["priority"], e["added"]))
+
+    # ── §6 pressure bookkeeping ──────────────────────────────────────────
+    prev = load_pressure()
+    prev_running = set(prev.get("running") or [])
+    completed = prev_running - running  # ids that left in_progress this iter
+    now = time.time()
+    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now))
+
+    anchor = None
+    drops = 0
+    waiting_since = None
+    if elig and elig[0]["conflict_blocked"]:
+        top = elig[0]
+        if prev.get("anchor") == top["row"]["id"]:
+            # Same anchor still the blocked next → drop rule (§7).
+            anchor = top["row"]["id"]
+            drops = int(prev.get("drops") or 0) + len(completed)
+            waiting_since = prev.get("waiting_since") or now_iso
+        else:
+            # Entry or re-anchor: a fresh pressure epoch from drops = 0.
+            anchor = top["row"]["id"]
+            drops = 0
+            waiting_since = now_iso
+    # else: no blocked next → NORMAL (anchor null, drops 0).
+
+    c_eff = CAP if anchor is None else max(1, CAP - drops)
+
+    save_pressure({
+        "anchor": anchor,
+        "drops": drops,
+        "waiting_since": waiting_since,
+        "running": sorted(running),
+    })
+
+    anchor_holds = set()
+    if anchor is not None:
+        for e in elig:
+            if e["row"]["id"] == anchor:
+                anchor_holds = e["holds"]
+                break
+        # §10 signal 2: every pressured iteration logs the state.
+        holder_of = {}
+        for r in in_prog_rows:
+            for h in (r.get("holds") or []):
+                holder_of.setdefault(h, r.get("id"))
+        held = "{" + ",".join(sorted(anchor_holds)) + "}"
+        holders = ", ".join(f"{h}←{holder_of.get(h, '?')}" for h in sorted(anchor_holds))
+        log(f"pressure: {anchor} blocked on {held} — drops={drops} cap={c_eff} ({holders})")
+
+        # §10 flag telemetry: after FLEET_LOGJAM_FLAG minutes, write the flag
+        # (one line per anchor) and log a LOGJAM: line every iteration.
+        waited = now - (parse_iso(waiting_since) or now)
+        if waited >= LOGJAM_FLAG_MIN * 60:
+            try:
+                held_files = ",".join(sorted(anchor_holds))
+                per_file = ",".join(f"{h}:{holder_of.get(h, '?')}" for h in sorted(anchor_holds))
+                with open(LOGJAM_FLAG, "w") as f:
+                    f.write(f"{anchor} held={held_files} holders={per_file} waited={int(waited // 60)}min\n")
+            except OSError:
+                pass
+            log(f"LOGJAM: {anchor} waited {int(waited // 60)}min (>= {LOGJAM_FLAG_MIN}min) — "
+                f"held {held_files}, holders {per_file}")
+
+    # ── §8 step 3: cap ───────────────────────────────────────────────────
+    if len(running) >= c_eff:
+        log(f"at cap ({len(running)}/{c_eff}) — no dispatch")
+        print("cap")
+        return 0
+
+    # ── §8 step 4: two-test candidate filter ─────────────────────────────
+    candidates = []
+    for e in elig:
+        if e["holds"] & inprog_holds:
+            continue  # the one-writer invariant (§3), always
+        if anchor is not None and (e["holds"] & anchor_holds):
+            continue  # compatibility with the blocked task, under pressure
+        candidates.append(e)
+    if not candidates:
+        log("logjam: no conflict-free eligible task")
         print("none")
         return 0
-    elig.sort(key=lambda r: added_of(r["id"]) or "")
-    pick = elig[0]
-    model = pick.get("model") or DEFAULT_MODEL
-    cmd = [DISPATCH, pick["id"], model]
-    if FLEET_ROOT_SET:
-        cmd.append(f"--test-root={FLEET_ROOT}")
-    if TEST_WORKER:
-        cmd.append(f"--test-worker={TEST_WORKER}")
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              env=dict(os.environ), timeout=60)
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        log(f"ERROR dispatch {pick['id']} → {model}: {e}")
-        print("error")
-        return 0
-    out = proc.stdout.strip()
-    err = proc.stderr.strip()
-    if proc.returncode == 0 and out.startswith("dispatched "):
-        log(f"dispatched {pick['id']} → {model} (in_progress was {in_prog}/{CAP}) — {out}")
-        print(f"dispatched {pick['id']} {model}")
-    else:
-        log(f"dispatch REFUSED {pick['id']} → {model} (rc={proc.returncode}) — {err or out}")
-        print(f"refused {pick['id']}")
+    pick = candidates[0]  # elig is sorted; the first survivor is the best key
+    fire(pick, len(running), c_eff)
     return 0
 
 sys.exit(main())

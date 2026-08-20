@@ -24,7 +24,20 @@
 #   6. a non-T id row (a claude/Orchestrator seat) and a duty row → not
 #      picked; left for manual dispatch / the duty's own mechanism.
 #
-# Task: T496 · Model: glm-5.2 · Date: 2026-08-19
+# T501 §13 arms (logjam-pressure state machine, docs/infra/fleet-keeper-design.md;
+# red-first, scratch store/repo):
+#   a. drop-then-solo — cap drops 5→4→3→2→1 as running holders complete,
+#      then the freed anchor runs solo (cap resets to 5).
+#   b. conflict-free still runs under pressure (holds-free task admitted).
+#   c. a conflicting mutation never dispatches (holds ∩ inprog_holds).
+#   d. no blocked next → cap stays C (NORMAL refill).
+#   e. a held task whose hold is free dispatches immediately (no pressure).
+#   f. model cooldown binds the pressure path (denied candidate not admitted;
+#      denied anchor's model exits pressure).
+#   g. logjam flag after FLEET_LOGJAM_FLAG minutes (telemetry only).
+#   h. waiting=1 outranks priority; a bumped blocked task anchors pressure.
+#
+# Task: T496/T501 · Model: glm-5.2 · Date: 2026-08-19 (T496), 2026-08-20 (T501)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -103,17 +116,19 @@ PY
 
 # Full task record.  Args via env: ID,STATUS,SET,ADDED,NEEDS(comma),MODEL,DUTY
 task_rec() {
-ID="$1" STATUS="$2" SETV="$3" ADDED="$4" NEEDS="${5:-}" MODEL="${6:-}" DUTY="${7:-false}"
+ID="$1" STATUS="$2" SETV="$3" ADDED="$4" NEEDS="${5:-}" MODEL="${6:-}" DUTY="${7:-false}" HOLDS="${8:-}"
 NEEDS_JSON="[]"
 [ -n "$NEEDS" ] && NEEDS_JSON=$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1].split(",")))' "$NEEDS")
-MODEL_JSON="null"; [ -n "$MODEL" ] && MODEL_JSON="\"$MODEL\""
-python3 - "$ID" "$STATUS" "$SETV" "$ADDED" "$NEEDS_JSON" "$MODEL_JSON" "$DUTY" <<'PY'
+MODEL_JSON="null"; [ -n "$MODEL" ] && MODEL_JSON="$MODEL"
+HOLDS_JSON="[]"
+[ -n "$HOLDS" ] && HOLDS_JSON=$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1].split(",")))' "$HOLDS")
+python3 - "$ID" "$STATUS" "$SETV" "$ADDED" "$NEEDS_JSON" "$MODEL_JSON" "$DUTY" "$HOLDS_JSON" <<'PY'
 import json, sys
-uid, status, setv, added, needs, model, duty = sys.argv[1:8]
+uid, status, setv, added, needs, model, duty, holds = sys.argv[1:9]
 bundle = f"untracked/{uid}-bundle.md" if uid != "ORCHA-FLASH" else "untracked/ORCHA-SEAT-flash.md"
 print(json.dumps({uid: {
     "status": status, "agent": None, "model": None if model == "null" else model,
-    "bundle": bundle, "set": setv, "holds": [], "needs": json.loads(needs), "caps": [],
+    "bundle": bundle, "set": setv, "holds": json.loads(holds), "needs": json.loads(needs), "caps": [],
     "added": added, "claimed": "2026-08-19T21:00:00Z" if status == "in_progress" else None,
     "done": None, "dispatched": None, "dispatched_to": None, "note": None,
     "verdict": None, "verdict_note": None, "claim_count": 1 if status == "in_progress" else 0,
@@ -125,13 +140,65 @@ PY
 }
 
 # Write a bundle for a task id (so the keeper's has_bundle and bin/dispatch agree).
-seed_bundle() {  # $1=id  $2=deliverable
-  printf '<!--managent set=A deliverables=%s-->\n# %s — T496 regression bundle\n' "${2:-findings/x.json}" "$1" \
+seed_bundle() {  # $1=id  $2=deliverable  $3=priority  $4=waiting
+  local meta="set=A deliverables=${2:-findings/x.json}"
+  [ -n "${3:-}" ] && meta="$meta priority=$3"
+  [ -n "${4:-}" ] && meta="$meta waiting=$4"
+  printf '<!--managent %s-->\n# %s — fleet-keeper regression bundle\n' "$meta" "$1" \
       > "$WORK/untracked/$1-bundle.md"
 }
 
 row_status() {  # $1=id → status word from `managent show`
   "$MG" show "$1" 2>/dev/null | awk 'NR==2 && NF>=2 {print $2}'
+}
+
+# ── T501 helpers: pressure state on the scratch store ────────────────────
+reset_keeper_state() {  # fresh pressure/log/flag for each arm
+  rm -f "$WORK/untracked/fleet-keeper.pressure.json"
+  rm -f "$WORK/untracked/fleet-keeper.logjam.flag"
+  : > "$WORK/untracked/log/fleet-keeper.log"
+}
+
+set_row_status() {  # $1=id $2=status — flip a seeded row (simulate a completion)
+  python3 - "$STORE" "$1" "$2" <<'PY'
+import json, sys
+store, tid, status = sys.argv[1], sys.argv[2], sys.argv[3]
+doc = json.load(open(store))
+if tid in doc:
+    doc[tid]["status"] = status
+    if status == "done":
+        doc[tid]["done"] = "2026-08-20T00:00:00Z"
+    else:
+        doc[tid]["done"] = None
+json.dump(doc, open(store, "w"), indent=1)
+PY
+}
+
+pressure_field() {  # $1=field → raw value (empty when absent/null)
+  python3 -c 'import json,sys
+try:
+    d = json.load(open(sys.argv[1]))
+    v = d.get(sys.argv[2])
+    if v is None:
+        print("")
+    else:
+        print(v)
+except Exception:
+    print("")' "$WORK/untracked/fleet-keeper.pressure.json" "$1"
+}
+
+seed_pressure() {  # $1=anchor(or null) $2=drops $3=waiting_since_iso(or null) $4=running(comma)
+  python3 - "$WORK/untracked/fleet-keeper.pressure.json" "$1" "$2" "$3" "$4" <<'PY'
+import json, sys
+path, anchor, drops, waiting, running = sys.argv[1:6]
+state = {
+    "anchor": None if anchor in ("", "null") else anchor,
+    "drops": int(drops or 0),
+    "waiting_since": None if waiting in ("", "null") else waiting,
+    "running": [x for x in running.split(",") if x],
+}
+json.dump(state, open(path, "w"), indent=1)
+PY
 }
 
 echo "=== T496 fleet-keeper regression ==="
@@ -393,6 +460,247 @@ if echo "$OFF" | grep -qi "cleared" && [ ! -f "$WORK/untracked/fleet-keeper.cool
   echo "    PASS: off clears the flag and announces"
 else
   echo "    FAIL: off did not clear: $OFF"; FAIL=1
+fi
+
+# ── T501 §13 arm a: drop-then-solo (seeded) ──────────────────────────────
+echo "  a. seeded: pressure drops cap 5→4→3→2→1, then the anchor runs solo"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec R2 in_progress A 2026-08-20T00:00:01Z "" glm-5.2 false b)',
+  '$(task_rec R3 in_progress A 2026-08-20T00:00:02Z "" glm-5.2 false)',
+  '$(task_rec R4 in_progress A 2026-08-20T00:00:03Z "" glm-5.2 false)',
+  '$(task_rec R5 in_progress A 2026-08-20T00:00:04Z "" glm-5.2 false)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a,b)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -ne 0 ] || ! echo "$OUT" | grep -q "^cap"; then
+  echo "    FAIL: entry iteration expected cap (5 running, anchor blocked) (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+elif [ "$(pressure_field anchor)" = "T100" ] && [ "$(pressure_field drops)" = "0" ]; then
+  echo "    PASS: entry anchors T100, drops=0"
+else
+  echo "    FAIL: entry pressure state anchor=$(pressure_field anchor) drops=$(pressure_field drops) (want T100/0)"; FAIL=1
+fi
+for pair in "R3 1" "R4 2" "R5 3" "R1 4"; do
+  set -- $pair
+  COMPLETE_ID="$1"; WANT_DROPS="$2"
+  set_row_status "$COMPLETE_ID" done
+  OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+  DROPS=$(pressure_field drops)
+  ANCHOR=$(pressure_field anchor)
+  if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^cap" && [ "$ANCHOR" = "T100" ] && [ "$DROPS" = "$WANT_DROPS" ]; then
+    echo "    PASS: $COMPLETE_ID done → drops=$WANT_DROPS (C_eff shrinks), nothing dispatched"
+  else
+    echo "    FAIL: after $COMPLETE_ID done expected cap+drops=$WANT_DROPS (anchor=$ANCHOR drops=$DROPS rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+  fi
+done
+set_row_status R2 done
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T100 " && [ "$(pressure_field anchor)" = "" ]; then
+  echo "    PASS: R2 done frees T100 → dispatched solo, pressure reset (anchor null)"
+else
+  echo "    FAIL: after R2 done expected T100 solo dispatch + reset (anchor='$(pressure_field anchor)' rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T501 §13 arm b: conflict-free still runs under pressure ──────────────
+echo "  b. seeded: conflict-free task still runs under pressure"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+  '$(task_rec T200 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+seed_bundle T200 findings/T200.json 50
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T200 " && [ "$(pressure_field anchor)" = "T100" ]; then
+  echo "    PASS: T100 anchors pressure; holds-free T200 admitted"
+else
+  echo "    FAIL: expected T200 dispatched while T100 anchored (rc=$RC anchor=$(pressure_field anchor)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T501 §13 arm c: a conflicting mutation never dispatches ──────────────
+echo "  c. seeded: a conflicting mutation never dispatches under pressure"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+  '$(task_rec T300 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false a)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+seed_bundle T300 findings/T300.json 90
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T100)" = "dispatchable" ] && [ "$(row_status T300)" = "dispatchable" ]; then
+  echo "    PASS: T300 (holds {a}) never dispatched — its holds intersect the running holder"
+else
+  echo "    FAIL: expected none with T100/T300 both conflict-blocked (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T501 §13 arm d: no blocked next → cap stays C (NORMAL refill) ───────
+echo "  d. null: no blocked next → cap stays C, NORMAL refill"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false)',
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T1 " && [ "$(pressure_field anchor)" = "" ] && [ "$(pressure_field drops)" = "0" ]; then
+  echo "    PASS: holds-free next → NORMAL (anchor null, drops 0), dispatched"
+else
+  echo "    FAIL: expected NORMAL refill dispatch (rc=$RC anchor=$(pressure_field anchor) drops=$(pressure_field drops)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T501 §13 arm e: free-held task dispatches immediately (no pressure) ──
+echo "  e. null: a held task whose hold is free dispatches immediately"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T100 " && [ "$(pressure_field anchor)" = "" ]; then
+  echo "    PASS: hold {a} is free (nothing running) → immediate dispatch, NORMAL"
+else
+  echo "    FAIL: expected immediate dispatch of free-held T100 (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T501 §13 arm f: model cooldown binds the pressure path ──────────────
+echo "  f. seeded: model cooldown binds the pressure path"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+  '$(task_rec T200 dispatchable A 2026-08-20T00:01:01Z "" kimi-k2.7 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+seed_bundle T200 findings/T200.json 50
+reset_keeper_state
+export FLEET_MODEL_DENY="kimi-k2.7"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+unset FLEET_MODEL_DENY
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T200)" = "dispatchable" ] && [ "$(pressure_field anchor)" = "T100" ]; then
+  echo "    PASS: denied model not admitted under pressure (T200 skipped, T100 anchored)"
+else
+  echo "    FAIL: f1 expected none + T200 skipped (rc=$RC anchor=$(pressure_field anchor)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+# f2: deny the ANCHOR's model → pressure exits (anchor null), free task runs
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+seed_bundle T200 findings/T200.json 50
+seed_pressure T100 2 "$(python3 -c 'import datetime;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')" R1
+export FLEET_MODEL_DENY="glm-5.2"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+unset FLEET_MODEL_DENY
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T200 " && [ "$(pressure_field anchor)" = "" ]; then
+  echo "    PASS: anchor's model denied → pressure exits, T200 dispatched"
+else
+  echo "    FAIL: f2 expected pressure exit + T200 dispatch (rc=$RC anchor=$(pressure_field anchor)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T501 §13 arm g: logjam flag after FLEET_LOGJAM_FLAG minutes ──────────
+echo "  g. seeded: logjam flag after FLEET_LOGJAM_FLAG minutes (telemetry only)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+reset_keeper_state
+OLD=$(python3 -c 'import datetime;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=61)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+seed_pressure T100 0 "$OLD" R1
+export FLEET_LOGJAM_FLAG=60
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+unset FLEET_LOGJAM_FLAG
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && grep -q "T100" "$WORK/untracked/fleet-keeper.logjam.flag" && [ "$(row_status T100)" = "dispatchable" ]; then
+  echo "    PASS: flag written, LOGJAM logged, nothing conflicting dispatched"
+else
+  echo "    FAIL: expected logjam flag + none (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && sed 's/^/    flag: /' "$WORK/untracked/fleet-keeper.logjam.flag"; FAIL=1
+fi
+
+# ── T501 §13 arm h: waiting=1 outranks priority (the bump) ───────────────
+echo "  h. seeded: waiting=1 outranks priority; a bumped blocked task anchors pressure"
+# h0: nothing blocked → the waiting task is next despite lower priority
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T400 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+  '$(task_rec T500 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T400 findings/T400.json 20 1
+seed_bundle T500 findings/T500.json 99
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T400 "; then
+  echo "    PASS: waiting=1 (p20) is next over priority 99"
+else
+  echo "    FAIL: h0 expected T400 (waiting=1) dispatched over T500 (p99) (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+# h1: the bumped task is conflict-blocked → it anchors pressure
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T400 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+  '$(task_rec T500 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T400 findings/T400.json 20 1
+seed_bundle T500 findings/T500.json 99
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T500 " && [ "$(pressure_field anchor)" = "T400" ]; then
+  echo "    PASS: bumped blocked T400 anchors pressure; free T500 (p99) admitted"
+else
+  echo "    FAIL: h1 expected T400 anchored + T500 dispatched (rc=$RC anchor=$(pressure_field anchor)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
 fi
 
 echo ""
