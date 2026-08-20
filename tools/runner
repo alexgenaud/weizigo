@@ -923,9 +923,23 @@ def main():
         print(f"[runner]   heartbeats will land under '{task_identity}'.", file=sys.stderr)
         print("[runner]   fix: export MANAGENT_TASK_ID=<task-id> (preferred — children inherit it)", file=sys.stderr)
         print("[runner]        or pass --task-id <task-id> (explicit per-run override).", file=sys.stderr)
+        # T515 (F6, 2026-08-20): run records are task-id-named, never
+        # pid-named.  A degraded run is unattributable — `managent reap`
+        # keys records to rows by the `task` field, and a `runner/<pid>`
+        # record matches no row (30 such stragglers were archived on
+        # 2026-08-20).  The fix: a degraded run writes NO run record at all,
+        # so every record that does exist carries a real task id.  Heartbeats
+        # still land under the loud `runner/<pid>` fallback above (T370's
+        # visibility fix is preserved — the brief is about run records, not
+        # heartbeats).
+        print("[runner]   no run record will be written (records are task-id-named; a pid-named record is the F6 defect — T515).", file=sys.stderr)
     else:
         identity_source = "--task-id" if args.task_id else "MANAGENT_TASK_ID"
         print(f"[runner] task identity: {task_identity} (source: {identity_source})", file=sys.stderr)
+    # T515: run records are written only when a real task identity is present.
+    # `record_root` is None in degraded mode, so _write_run_record and
+    # _finalize_run_record become no-ops (both early-return on a falsy root).
+    record_root = repo_root if not identity_degraded else None
     pending_stops = _check_directives(task_identity, repo_root)
     if pending_stops:
         _emit_heartbeat(task_identity, shlex.join(argv), -1, -1, -1, repo_root)
@@ -961,7 +975,7 @@ def main():
         "start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "command": shlex.join(argv),
     }
-    _write_run_record(run_record, repo_root)
+    _write_run_record(run_record, record_root)
 
     # Make stderr non-blocking for select-based reading
     import fcntl
@@ -1189,7 +1203,7 @@ def main():
                 peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
                 total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
                 _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
-                _finalize_run_record(run_record, repo_root, ret=None, signum=signal.SIGKILL,
+                _finalize_run_record(run_record, record_root, ret=None, signum=signal.SIGKILL,
                                     wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
                                     killed=kill_reason)
                 print(f"[runner] exit 124 ({kill_reason}) in {elapsed:.1f} s", file=sys.stderr)
@@ -1199,7 +1213,7 @@ def main():
     except Exception as exc:
         elapsed = time.monotonic() - t0
         _emit_heartbeat(task_identity, shlex.join(argv), elapsed, -1, -1, repo_root)
-        _finalize_run_record(run_record, repo_root, wall=elapsed, killed=f"runner exception: {exc}")
+        _finalize_run_record(run_record, record_root, wall=elapsed, killed=f"runner exception: {exc}")
         raise
     finally:
         if args.show_peak and not logs_done and (peak_rss or peak_cpu):
@@ -1213,10 +1227,10 @@ def main():
     # returncode (-signum).  Record the signal separately so reap's note can
     # name "SIGKILL" instead of a bare code.
     if ret < 0:
-        _finalize_run_record(run_record, repo_root, ret=None, signum=-ret,
+        _finalize_run_record(run_record, record_root, ret=None, signum=-ret,
                             wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb)
     else:
-        _finalize_run_record(run_record, repo_root, ret=ret,
+        _finalize_run_record(run_record, record_root, ret=ret,
                             wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb)
     if host_guard_fired:
         print(f"[runner] note: host guard fired during this run (relieved host pressure; proc exited {ret})", file=sys.stderr)
