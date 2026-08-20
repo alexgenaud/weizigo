@@ -130,6 +130,7 @@ unset WEIZIGO_AGENT_DEPTH
 cat > "$STORE" <<'JSONEOF'
 {
   "TSEED": {"status":"in_progress","agent":"t352","model":"minimax-m3","bundle":"untracked/TSEED-bundle.md","set":"G","holds":[],"needs":[],"caps":[],"added":"2026-08-04T16:00:00Z","claimed":"2026-08-04T16:00:00Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"claim_count":1},
+  "TOTHER": {"status":"in_progress","agent":"t352","model":"minimax-m3","bundle":"untracked/TOTHER-bundle.md","set":"G","holds":[],"needs":[],"caps":[],"added":"2026-08-04T16:00:00Z","claimed":"2026-08-04T16:00:00Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"claim_count":1},
   "_sys": {"next_id": 9000, "directive_next": 1}
 }
 JSONEOF
@@ -384,6 +385,111 @@ else
 fi
 if echo "$LIVE_OUT" | grep -q "never beat"; then
     echo "    FAIL: liveness still uses 'never beat' (must be 'UNKNOWN — no assertion')"
+    FAIL=1
+fi
+
+# ── 10. T439 seeded: a targetless --ack does NOT consume another target's mail ─
+# The T439 defect: a targetless 'inbox --ack' matched target.len==0 to EVERY
+# row, so one console's ack consumed another row's directives (observed live:
+# the T427 console's targetless ack consumed D068 addressed to T437, and no
+# record said who read what).  The T441 fix refuses a targetless --ack unless
+# --all is given.  This arm proves the fix by the bar's shape: plant one
+# directive per row, attempt a targetless ack, and verify NEITHER row's mail
+# was consumed — still read:false on disk and still listed in the display.
+# A fix that acks nothing would pass THIS arm alone; arm 11 is the null arm
+# that keeps a targeted ack honest (both are required by the T439 bars).
+echo ""
+echo "  10. seeded: targetless --ack does NOT consume another target's mail (T439)"
+# Plant one directive per row so 'exactly one row' is measurable.
+"$MG" tell TSEED amend --note "t439-seeded-targetless-a" --from T439-test >/dev/null 2>&1
+T439_DA=$("$MG" inbox TSEED 2>/dev/null | grep -oE 'D[0-9]+' | head -1)
+"$MG" tell TOTHER amend --note "t439-seeded-targetless-b" --from T439-test >/dev/null 2>&1
+T439_DB=$("$MG" inbox TOTHER 2>/dev/null | grep -oE 'D[0-9]+' | head -1)
+if [ -z "$T439_DA" ] || [ -z "$T439_DB" ] || [ "$T439_DA" = "$T439_DB" ]; then
+    echo "    FAIL: could not plant two distinct directives (DA=${T439_DA:-none} DB=${T439_DB:-none})"
+    FAIL=1
+fi
+# Attempt the targetless ack — must be REFUSED (T441 guard), RC != 0.
+TLESS_OUT=$("$MG" inbox --ack 2>&1)
+TLESS_RC=$?
+if [ "$TLESS_RC" -eq 0 ] || ! echo "$TLESS_OUT" | grep -q "would mark every row"; then
+    echo "    FAIL: targetless --ack not refused (RC=$TLESS_RC):"
+    echo "$TLESS_OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+# The refusal must have consumed NOTHING: both rows' mail still unread on disk.
+if grep -q "\"id\":\"$T439_DA\".*\"read\":true" "$DIRECTIVES" || \
+   grep -q "\"id\":\"$T439_DB\".*\"read\":true" "$DIRECTIVES"; then
+    echo "    FAIL: targetless ack consumed mail despite refusal"
+    grep -E "\"id\":\"$T439_DA\"|\"id\":\"$T439_DB\"" "$DIRECTIVES" | sed 's/^/      /'
+    FAIL=1
+else
+    echo "    PASS: targetless --ack refused (RC=$TLESS_RC) and consumed nothing"
+fi
+# And the display still shows both (read path and write path agree).
+DISP_OUT=$("$MG" inbox 2>/dev/null)
+if echo "$DISP_OUT" | grep -q "$T439_DA" && echo "$DISP_OUT" | grep -q "$T439_DB"; then
+    echo "    PASS: both directives still listed in the display after refusal"
+else
+    echo "    FAIL: display missing one or both directives after refusal"
+    echo "$DISP_OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+
+# ── 11. T439 null: a targeted --ack still works and marks exactly one row's mail ─
+# The null arm guards the other direction of the T439 bar: a fix that acks
+# nothing would pass arm 10 alone.  A properly targeted ack must still work
+# AND must touch exactly one row's mail — the TSEED directive gets read:true
+# with attribution, the TOTHER directive stays unread.
+echo ""
+echo "  11. null: targeted --ack marks exactly one row's mail (T439)"
+export MANAGENT_TASK_ID=T439
+TGT_OUT=$("$MG" inbox TSEED --ack 2>/dev/null)
+TGT_RC=$?
+unset MANAGENT_TASK_ID
+if [ "$TGT_RC" -ne 0 ] || ! echo "$TGT_OUT" | grep -q "acked 1 directive"; then
+    echo "    FAIL: targeted ack did not report exactly 'acked 1 directive' (RC=$TGT_RC):"
+    echo "$TGT_OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+# The targeted row's directive is read with attribution; the other row's is not.
+if grep -q "\"id\":\"$T439_DA\".*\"read\":true" "$DIRECTIVES" && \
+   grep -q "\"id\":\"$T439_DA\".*\"read_by\":\"T439\"" "$DIRECTIVES" && \
+   ! grep -q "\"id\":\"$T439_DB\".*\"read\":true" "$DIRECTIVES"; then
+    echo "    PASS: TSEED's mail read with read_by=T439; TOTHER's mail untouched"
+else
+    echo "    FAIL: attribution or scoping wrong on disk:"
+    grep -E "\"id\":\"$T439_DA\"|\"id\":\"$T439_DB\"" "$DIRECTIVES" | sed 's/^/      /'
+    FAIL=1
+fi
+# And TOTHER's inbox still lists its mail as pending.
+TOTHER_OUT=$("$MG" inbox TOTHER 2>/dev/null)
+if echo "$TOTHER_OUT" | grep -q "$T439_DB"; then
+    echo "    PASS: TOTHER's inbox still lists $T439_DB as pending"
+else
+    echo "    FAIL: TOTHER's inbox lost $T439_DB"
+    echo "$TOTHER_OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+
+# ── 12. T439 seeded: a targetless --ack with --all is the explicit opt-in ────
+# The T441 design decision (recorded in findings/T439): a targetless ack is
+# refused unless --all is explicit.  This arm proves the opt-in still works
+# after the two T439 arms above have run — it acks TOTHER's remaining mail.
+echo ""
+echo "  12. seeded: --all --ack after refusal acks the remaining mail (T439)"
+ALL2_OUT=$("$MG" inbox --all --ack 2>/dev/null)
+if echo "$ALL2_OUT" | grep -q "acked 1 directive"; then
+    echo "    PASS: --all --ack acked the remaining directive (TOTHER's $T439_DB)"
+else
+    echo "    FAIL: --all --ack did not ack exactly the remaining mail:"
+    echo "$ALL2_OUT" | sed 's/^/      /'
+    FAIL=1
+fi
+if grep -q "\"id\":\"$T439_DB\".*\"read\":true" "$DIRECTIVES"; then
+    echo "    PASS: $T439_DB read on disk after --all --ack"
+else
+    echo "    FAIL: $T439_DB still unread after --all --ack"
     FAIL=1
 fi
 
