@@ -1,0 +1,10 @@
+{
+  "task_id": "T499",
+  "date": "2026-08-20",
+  "model": "glm-5.2",
+  "identifier": "glm-5.2/T499",
+  "claims": [],
+  "new_rows": [],
+  "notes": "1-ko smoke test fixed: the previous assertion of 0 was wrong; the true minimax value is -4. Hand-derivation (written into the test comment): W at cell 0, B at cell 1, White to move. White plays cell 3, capturing Black's lone stone (cell 1's liberties were {0,3}; filling 3 -> 0 libs). Not a basic-ko shape (capturing stone at 3 has two liberties), but ko is irrelevant to the value. After the capture Black's only legal placements are suicide, so Black passes; White passes; terminal area_score = 0 - 4 = -4. The L/H fixpoint computes -4 correctly; the assertion was the defect (its comment reasoned 'basic-ko never fires on 2x2 therefore value is 0' — but the value is set by capture + forced pass, not by ko). All 85 tests pass after the fix (zig test -O ReleaseSafe src/qa023_brute_2x2.zig). Worker was wall-killed at 3600s after completing the derivation without committing; work committed and close completed by the Orchestrator seat (ORCHA-flash) from the verified working-tree diff, per the evidence. claims: [] — test-correction, no register change.",
+  "verdict": "pass"
+}

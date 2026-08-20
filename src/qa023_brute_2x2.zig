@@ -519,28 +519,40 @@ test "smoke: passes=2 IS terminal" {
 }
 
 test "smoke: 1-ko shape: B captures 1 W stone, the ko point forbids the snapback" {
-    // 2x2 board: cells 0 1 / 2 3 (row-major). Set up: White at cell 0
-    // (single stone). Black plays cell 1 — does it capture?
-    //  After: B[0]=0, B[1]=1, B[2]=0, B[3]=0. W[0] alone has neighbors
-    //  1 (Black), no liberties — captured. So next board: B[1]=1, others
-    //  empty. The captured cell is 0. Black's stone at 1 has neighbors
-    //  0 (empty), 3 (empty), 2 (empty) — THREE liberties, not the basic-ko
-    //  shape. So no ko is set; the new ko_point is NONE.
-    // So the move is legal, and the resulting state has ko_point = NONE.
-    // Now Black's turn with B[1]=1, side=White. White can play cell 0.
-    //  After: B[0]=-1, B[1]=1, B[2]=0, B[3]=0. The new placement at 0
-    //  has neighbors 1 (Black) — 1 liberty, OK. No capture. So this is
-    //  a legal move for White.
-    // The "ko point" notion only matters for the *single-stone capture
-    // with capturing stone having exactly 1 liberty* shape. On 2x2, this
-    // requires the capturing stone to be on the edge, with the captured
-    // stone in the corner. E.g., capture scenario:
-    //   Position: W[0], B[1]. Black plays cell 3. B[3] has neighbors
-    //   1 (B), 2 (empty) — TWO liberties, not 1. No ko.
-    //  So on 2x2, basic-ko with formalization (i) NEVER fires! The
-    //  2x2 goban is too small for the ko shape to occur.
-    //  This is the trivial-coincidence case for A2.
-    //  (The 2x2 result must still be 0; this test asserts it.)
+    // 2x2 board: cells 0 1 / 2 3 (row-major). Position: W at cell 0, B at
+    // cell 1, cells 2 and 3 empty. White to move (side=-1, minimizing under
+    // Black-positive scoring). ko_point = NONE, passes = 0.
+    //
+    // Hand-derivation of the minimax value (T499, 2026-08-20):
+    //
+    // White's legal moves and their fixpoint values:
+    //   pass      -> {W0,B1,_,_}, B to move, passes=1     -> v =  4
+    //   play 2    -> {W0,B1,W,_}, B to move               -> v =  0
+    //   play 3    -> {W0,_,_,W},   B to move (captures B1) -> v = -4
+    //
+    // The decisive line is `play 3`: White at cell 3 captures Black's lone
+    // stone at cell 1 (cell 1's liberties were {0,3}; filling 3 -> 0 libs).
+    // The capture is NOT a basic-ko shape (the capturing stone at 3 has two
+    // liberties, cells 1 and 2, so ko_point stays NONE), but ko is
+    // irrelevant to the value here anyway.
+    //
+    // After {W0,_,_,W} with Black to move: Black's only legal placements
+    //   cell 1 (neighbours 0=W, 3=W -> 0 libs, captures nothing -> suicide)
+    //   cell 2 (neighbours 0=W, 3=W -> suicide)
+    // are both illegal, so Black's sole move is PASS -> {W0,_,_,W}, White to
+    // move, passes=1. Symmetrically White's only legal move is PASS ->
+    // terminal. Terminal area_score({W0,_,_,W}): White stones {0,3} = 2;
+    // the empty region {1,2} borders only White (cell 1 touches 0,3; cell 2
+    // touches 0,3) -> White territory +2; Black 0. Score = 0 - 4 = -4.
+    //
+    // So the play-3 child has value -4. White minimizes, and -4 is the
+    // global floor (a full-White 2x2 scores -4), so the position value is
+    // exactly min(4, 0, -4) = -4.
+    //
+    // The previous assertion of 0 was wrong. Its comment reasoned that
+    // "basic-ko never fires on 2x2, therefore the value is 0" -- but the
+    // value is set by capture + forced pass, not by ko. The L/H fixpoint
+    // (the engine) computes -4 correctly; the assertion was the defect.
     const s = State{
         .board = [_]i8{ -1, 1, 0, 0 },
         .side = -1,
@@ -548,5 +560,5 @@ test "smoke: 1-ko shape: B captures 1 W stone, the ko point forbids the snapback
         .passes = 0,
     };
     const v = value(s);
-    try expect(v == 0);
+    try expect(v == -4);
 }
