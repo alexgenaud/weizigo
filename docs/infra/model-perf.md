@@ -3795,3 +3795,4 @@ measurement apparatus quietly producing the answer it assumed.
 
 Review when the aspect races return per-aspect data; the races, not this note, are the authority.
 dispatch-verify 2026-08-20 T540 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T538 deepseek-v4-pro report=success verified=pass
