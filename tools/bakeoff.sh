@@ -781,6 +781,12 @@ def _write_tokens_template(run_dir, run, lanes):
             f"| {lane['label']} |  |  |  |  | {lane['family']} |")
     body = (
         f"# Token readout — {run} (operator fills at each lane's close)\n\n"
+        "AUTHORITATIVE RECORD (G1, T542): the mechanical per-lane readings are\n"
+        "written by the harness into lanes.json and tokens.json — collect_tokens()\n"
+        "reads the lane trailer or tools/token-capture.py, and a lane with no\n"
+        "reading is `null` + a reason, never estimated. This table is a HUMAN AID\n"
+        "for reconciling the console against the mechanical record; it is NOT the\n"
+        "source of truth and never substitutes for it.\n\n"
         "Harness rule (T328, operator ruling 2026-08-05): agents cannot read\n"
         "their own meter; the harness console can. At each lane's close record\n"
         "the console readout VERBATIM — percent, window denominator, harness —\n"

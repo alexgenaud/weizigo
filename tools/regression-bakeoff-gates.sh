@@ -133,6 +133,54 @@ ok(True, "G3 — the glm-vs-qwen grade counts without refusal")
 g_y = b.grade_family({"grader": "glm-5.2", "lane": "glm-5.2", "score": 8}, fam)
 ok(g_y["is_family"] is True, "G3 — glm grader vs glm lane IS family-excluded")
 
+# ── G3: roster-epoch 2026-08-20b exclusion arithmetic ────────────────────
+# The grand-race §2 arithmetic the bundle calls "tight": Claude lanes are
+# graded by the DeepSeek pair + qwen (3 graders), qwen by everyone (6).  The
+# bundle's "DS lanes by the Claude four" UNDERCOUNTS: G3 excludes only
+# same-family grades, and qwen is a different family from deepseek, so a DS
+# lane has 5 cross-family graders (see the T542.2 finding in
+# findings/T542-bakeoff-gates.json).  Asserted with literal epoch labels
+# (the roster file docs/infra/races/roster-2026-08-20b.txt is untracked, so
+# a fresh-clone `zig build test` must not depend on it).
+roster = [
+    "claude-fable-5", "claude-opus-5", "claude-sonnet-5",
+    "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
+    "qwen3.8:27b-mlx",
+]
+lane_fam = {l: b.model_family(l) for l in roster}
+CLAUDE4 = ["claude-fable-5", "claude-opus-5", "claude-sonnet-5",
+           "claude-haiku-4-5-20251001"]
+DS2 = ["deepseek-v4-pro", "deepseek-v4-flash"]
+for lane in roster:
+    graders = sorted(g for g in roster if g != lane
+                     and b.model_family(g) != lane_fam[lane])
+    if lane in CLAUDE4:
+        ok(graders == sorted(DS2 + ["qwen3.8:27b-mlx"]),
+           "G3 epoch-2026-08-20b — %s graded by the DS pair + qwen (3 graders)" % lane)
+    elif lane in DS2:
+        # NOTE (T542.2 finding): the bundle says "DS lanes by the Claude four"
+        # (4), but grand-race.md §5 says everyone grades everything and G3
+        # excludes only SAME-family grades — qwen is a different family from
+        # deepseek, so qwen grades DS lanes too (5 cross-family graders).
+        ok(graders == sorted(CLAUDE4 + ["qwen3.8:27b-mlx"]),
+           "G3 epoch-2026-08-20b — %s graded by the Claude four + qwen (5 cross-family graders; the bundle's 'Claude four' undercounts)" % lane)
+    else:
+        ok(graders == sorted(CLAUDE4 + DS2),
+           "G3 epoch-2026-08-20b — %s graded by everyone (6 graders)" % lane)
+    for g in roster:
+        if g == lane:
+            continue
+        gr = b.grade_family({"grader": g, "lane": lane, "score": 5}, lane_fam)
+        if b.model_family(g) == lane_fam[lane]:
+            try:
+                b.count_grade(gr, lane_fam)
+                ok(False, "G3 epoch — %s grading %s should refuse" % (g, lane))
+            except b.FamilyGradeError:
+                pass
+        else:
+            b.count_grade(gr, lane_fam)
+ok(True, "G3 epoch-2026-08-20b — every pair is excluded exactly when families match")
+
 # ── G1: token wiring (trailer wins; capture join; null + reason) ──────────
 scratch = tempfile.mkdtemp()
 os.makedirs(os.path.join(scratch, "tools"))
