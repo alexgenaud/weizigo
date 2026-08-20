@@ -455,6 +455,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdDuty(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "landmark")) {
         try cmdLandmark(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "orient")) {
+        try cmdOrient(w, io, repo_root, state_path, args);
     } else {
         w.diag("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -4308,6 +4310,232 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     w.data("\n", .{});
 }
 
+// `managent orient` (T353) composes the worker preamble at read time — a
+// generated, ≤150-line surface that replaces the ~1,524-line reading list a
+// worker otherwise wades through before its own brief (AGENTS.md + DELEGATEE.md
+// + sprint.md + DIRECTION.md + PHASES.md + STATE.md). It follows the `resume`
+// pattern: nothing is stored, nothing can rot — the surface IS the sources,
+// read at the instant of invocation.
+//
+// Order (per the brief): principles → current gates → kanban (dispatchable /
+// in-progress with liveness / blocked with what blocks them) → fresh activity
+// (git log) → handover head (by reference, not copied) → what it does NOT
+// replace. The line count is stated at the end so the cap is visible; a
+// surface over 150 lines fails its own test and warns on stderr.
+//
+// Principles are EXTRACTED from the existing documents, not invented: each is
+// a one-line imperative restatement of a rule that already lives in AGENTS.md,
+// DELEGATEE.md, sprint.md or DIRECTION.md. Adding policy here would be the
+// exact hand-maintained diary STATE.md became.
+fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = args;
+
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
+
+    const now = try nowTimestamp();
+    defer alloc.free(now);
+
+    var in_progress = std.ArrayList([]const u8).empty;
+    defer in_progress.deinit(alloc);
+    var dispatchable = std.ArrayList([]const u8).empty;
+    defer dispatchable.deinit(alloc);
+    var blocked = std.ArrayList([]const u8).empty;
+    defer blocked.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const tid = entry.key_ptr.*;
+            const ts = entry.value_ptr.*;
+            switch (resolveStatus(&state, ts, &ledger, tid).status) {
+                .in_progress => try in_progress.append(alloc, tid),
+                .dispatchable => try dispatchable.append(alloc, tid),
+                .blocked => try blocked.append(alloc, tid),
+                else => {},
+            }
+        }
+    }
+    const sortFn = struct {
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
+    }.lt;
+    std.mem.sort([]const u8, in_progress.items, {}, sortFn);
+    std.mem.sort([]const u8, dispatchable.items, {}, sortFn);
+    std.mem.sort([]const u8, blocked.items, {}, sortFn);
+
+    // Heartbeats power the in-progress liveness label (beating / stalled /
+    // UNKNOWN). Degrades to an empty list when untracked/heartbeat.jsonl is
+    // absent (fresh clone) — every in_progress row then reads UNKNOWN.
+    var heartbeats = readHeartbeats(w, io, repo_root) catch std.ArrayList(Heartbeat).empty;
+    defer {
+        for (heartbeats.items) |h| {
+            alloc.free(h.identifier);
+            alloc.free(h.task);
+            alloc.free(h.ts);
+            alloc.free(h.command);
+        }
+        heartbeats.deinit(alloc);
+    }
+
+    var now_tp: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &now_tp);
+    const now_unix: i64 = now_tp.sec;
+    const stale_secs: i64 = 5 * 60;
+
+    // Build the surface into a buffer so the line count can be stated and the
+    // 150-line cap checked before anything reaches stdout.
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    const Surface = struct {
+        b: *std.ArrayList(u8),
+        fn p(self: @This(), comptime fmt: []const u8, a: anytype) void {
+            const s = std.fmt.allocPrint(alloc, fmt, a) catch return;
+            defer alloc.free(s);
+            self.b.appendSlice(alloc, s) catch {};
+        }
+    };
+    const o = Surface{ .b = &buf };
+
+    o.p("=== managent orient — generated worker preamble (≤150 lines) ===\n", .{});
+    o.p("composed {s} from tasks.json · git · claimlint · floor\n", .{now});
+    o.p("self: built from {s}{s} (zig {s})\n", .{ version.commit, if (version.dirty) "-dirty" else "", version.zig_version });
+
+    // ── principles (extracted, one line each) ──
+    o.p("\n## principles (extracted from AGENTS.md / DELEGATEE.md / sprint.md / DIRECTION.md)\n", .{});
+    o.p("1. Commit → deploy → smoke for every mutating commit, before anything else touches the store.\n", .{});
+    o.p("2. One writer per engine file; declare via kanban holds= and clear when done.\n", .{});
+    o.p("3. The claimlint floor never rises; a regression moves it down or is reverted.\n", .{});
+    o.p("4. Instruments over documents — a checker ships a known-good it passes and a known-bad it catches.\n", .{});
+    o.p("5. Both findings deliverables: findings/<id>-<slug>.json (schema) + findings/<id>-context.json (dump).\n", .{});
+    o.p("6. Canonical model labels only — one spelling per model (src/managent/main.zig canonical_models).\n", .{});
+    o.p("7. Never ask a model to introspect its own kind; workers are task IDs, seats are roles.\n", .{});
+    o.p("8. Mutation is serial per held file; analysis is parallel and unlimited.\n", .{});
+
+    // ── current gates (floor + live claimlint) ──
+    o.p("\n## gates (live)\n", .{});
+    const hooks_result = runCommand(alloc, io, &.{ "git", "-C", repo_root, "config", "core.hooksPath" }) catch "";
+    defer if (@intFromPtr(hooks_result.ptr) != @intFromPtr("".ptr)) alloc.free(hooks_result);
+    const hooks_trimmed = std.mem.trim(u8, hooks_result, " \t\n\r");
+    if (std.mem.eql(u8, hooks_trimmed, "tools/hooks")) {
+        o.p("pre-commit hook: INSTALLED (core.hooksPath = tools/hooks)\n", .{});
+    } else if (hooks_trimmed.len > 0) {
+        o.p("pre-commit hook: '{s}' (not tools/hooks — install: git config core.hooksPath tools/hooks)\n", .{hooks_trimmed});
+    } else {
+        o.p("pre-commit hook: NOT INSTALLED (install: git config core.hooksPath tools/hooks)\n", .{});
+    }
+    const cl = runClaimlintSummary(alloc, io, repo_root);
+    const floor = readResumeFloor(io, repo_root);
+    if (!cl.ran) {
+        o.p("claimlint: unavailable (bin/weizigo-claimlint not built — build: zig build)\n", .{});
+    } else {
+        o.p("claimlint: ", .{});
+        if (cl.c1a) |v| o.p("C1a={d} ", .{v}) else o.p("C1a=? ", .{});
+        if (cl.c1b) |v| o.p("C1b={d} ", .{v}) else o.p("C1b=? ", .{});
+        if (cl.c2) |v| o.p("C2={d} ", .{v}) else o.p("C2=? ", .{});
+        if (cl.c6) |v| o.p("C6={d} ", .{v}) else o.p("C6=? ", .{});
+        o.p("calibration={s}\n", .{if (cl.calibration_pass) "PASS" else "FAIL/unparsed"});
+    }
+    if (floor) |f| {
+        o.p("floor: C1a={d} C1b={d} C2={d} C6={d}\n", .{ f.c1a, f.c1b, f.c2, f.c6 });
+    } else {
+        o.p("floor: tools/hooks/claimlint-floor.json unreadable\n", .{});
+    }
+
+    // ── kanban (dispatchable / in-progress with liveness / blocked) ──
+    o.p("\n## kanban (live)\n", .{});
+    o.p("in progress ({d}):\n", .{in_progress.items.len});
+    if (in_progress.items.len == 0) {
+        o.p("  -- none --\n", .{});
+    }
+    for (in_progress.items) |tid| {
+        const ts = state.get(tid).?;
+        const rel = bundleRel(ts.bundle, repo_root);
+        const ident = agentIdentifier(ts, tid) catch tid;
+        var latest: ?Heartbeat = null;
+        for (heartbeats.items) |h| {
+            if (std.mem.eql(u8, h.task, tid)) {
+                if (latest == null or std.mem.lessThan(u8, (latest.?).ts, h.ts)) latest = h;
+            }
+        }
+        const live_label = blk: {
+            if (latest) |hb| {
+                if (ageSecFromTs(hb.ts, now_unix)) |age| {
+                    if (age <= stale_secs) break :blk "beating";
+                    break :blk "stalled";
+                }
+                break :blk "?";
+            }
+            break :blk "UNKNOWN";
+        };
+        o.p("  {s}  ({s}) [{s}] — {s}\n", .{ tid, ident, live_label, rel });
+    }
+    o.p("dispatchable ({d}):\n", .{dispatchable.items.len});
+    if (dispatchable.items.len == 0) {
+        o.p("  -- none --\n", .{});
+    }
+    for (dispatchable.items) |tid| {
+        const ts = state.get(tid).?;
+        const rel = bundleRel(ts.bundle, repo_root);
+        o.p("  {s} [set {c}] — {s}\n", .{ tid, ts.set, rel });
+    }
+    o.p("blocked ({d}):\n", .{blocked.items.len});
+    if (blocked.items.len == 0) {
+        o.p("  -- none --\n", .{});
+    }
+    for (blocked.items) |tid| {
+        const ts = state.get(tid).?;
+        const rel = bundleRel(ts.bundle, repo_root);
+        o.p("  {s} [set {c}] needs", .{ tid, ts.set });
+        for (ts.needs) |n| o.p(" {s}", .{n});
+        o.p(" — {s}\n", .{rel});
+    }
+
+    // ── fresh activity (last commits, with task IDs from the subjects) ──
+    o.p("\n## fresh activity (git log --oneline -10)\n", .{});
+    const log_result = runCommand(alloc, io, &.{ "git", "-C", repo_root, "log", "--oneline", "-10" }) catch "";
+    defer if (@intFromPtr(log_result.ptr) != @intFromPtr("".ptr)) alloc.free(log_result);
+    if (std.mem.trim(u8, log_result, " \t\n\r").len == 0) {
+        o.p("  -- no commits yet --\n", .{});
+    } else {
+        var ll = std.mem.splitScalar(u8, log_result, '\n');
+        while (ll.next()) |l| {
+            if (l.len > 0) o.p("  {s}\n", .{l});
+        }
+    }
+
+    // ── handover head (by reference — the prose is not copied here) ──
+    o.p("\n## handover head (by reference — not copied here)\n", .{});
+    o.p("  run `bin/managent resume` for the one-page status.\n", .{});
+    o.p("  durable: docs/epistemic/PROGRESS.md (hub) · docs/epistemic/CLAIMS.md (register)\n", .{});
+
+    // ── what this does NOT replace ──
+    o.p("\n## what this does NOT replace\n", .{});
+    o.p("  - your row's own brief (the bundle file your dispatch named)\n", .{});
+    o.p("  - the sprint's ratified spec/plan (docs/infra/sprint.md + its plan)\n", .{});
+
+    // Line count: count newlines in the pre-footer buffer, then the footer is
+    // one line, so the reported total equals the actual newline count of the
+    // emitted buffer (a `wc -l` on the output agrees with the stated number).
+    var pre_lines: usize = 0;
+    for (buf.items) |c| if (c == '\n') {
+        pre_lines += 1;
+    };
+    // The footer is "\n{N} lines\n" — a blank separator line plus the
+    // count line — so it adds two newlines. The reported total therefore
+    // equals the actual newline count of the emitted buffer (a `wc -l` on
+    // the output agrees with the stated number).
+    const total = pre_lines + 2;
+    o.p("\n{d} lines\n", .{total});
+
+    std.Io.File.stdout().writeStreamingAll(io, buf.items) catch {};
+    if (total > 150) {
+        w.diag("orient: WARNING — surface is {d} lines, exceeds the 150-line cap (T353)\n", .{total});
+    }
+}
+
 fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     const exec_prefix = getFlagValue(args, "--exec");
 
@@ -4800,6 +5028,7 @@ fn printHelp(w: Writers) void {
         \\  managent landmark <Ln> --declare  gate a landmark declaration on duty currency (overdue or last-failed blocks)
         \\  managent standing         register triggered standing-tier tasks
         \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
+        \\  managent orient           generate the ≤150-line worker preamble (principles + gates + kanban + activity)
         \\  managent help             show this help
         \\
         \\Options:
@@ -7275,6 +7504,7 @@ fn runCommand(allocator: std.mem.Allocator, io: std.Io, argv: []const []const u8
     });
     return result.stdout;
 }
+
 
 const RunGitOut = struct {
     stdout: []const u8,

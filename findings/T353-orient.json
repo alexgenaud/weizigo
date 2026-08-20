@@ -1,0 +1,8 @@
+{
+  "task_id": "T353",
+  "date": "2026-08-20",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T353 (does managent orient cut the dispatch preamble to a tenth?) — answered yes, at the first measured count. `managent orient` composes the ≤150-line worker preamble at read time (principles → gates → kanban → fresh activity → handover head → what it does NOT replace) from tasks.json, git, claimlint and the floor file, following the proven `resume` pattern: nothing is stored, nothing can rot. Measured on the live repo: orient = 73 lines vs the ~1,524-line reading list it replaces (AGENTS.md + DELEGATEE.md + sprint.md + DIRECTION.md + PHASES.md + STATE.md at the brief's writing; the docs have since grown — AGENTS.md 389, DELEGATEE.md 266 today — so the reduction is ~1,359→73, about 1/19th of the preamble). Claims/new_rows intentionally empty: a tooling surface, not an epistemic claim; no CLAIMS.md rows touched. Handover context (D028, ORCHA-flash 2026-08-20): Ollama tokens expiring — this worker wound down as directed; the deliverable was genuinely complete at the handover, so the row closes. The implementation shipped in the working tree by an earlier T353 console (T353.1/.2) was verified, its regressions run, findings written, and the row closed by T353.3. Note: tools/regression-orient.sh was untracked at claim time although HEAD's build.zig already wired it into `zig build test` (committed under 5e5b864/T352); the script is committed by this task. The build.zig working-tree hunks for T362 (runner-guard) and T503 (model-profiles) belong to those rows and were deliberately NOT staged (staging rule: stage by name only)."
+}

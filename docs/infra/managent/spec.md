@@ -39,6 +39,7 @@ managent sync <role>           print unread inbox; exit non-zero when write owed
 managent audit [--json]        cross-check kanban against reality; exit 1 if FIX findings, 0 otherwise (WARN-only / clean)
 managent standing              print standing-tier triggers and task status
 managent resume                compose the resume surface at read time (replaces CURRENT.md; pure reader)
+managent orient                generate the ≤150-line worker preamble at read time (T353; pure reader)
 
 Global options:
   -h, --help                  print help (works with any verb, e.g. `managent standing --help`)
@@ -46,7 +47,7 @@ Global options:
 
 ### Output streams
 
-**stdout = data.** `status`, `show`, `why`, `sync`, `audit`, `standing`, `resume` write
+**stdout = data.** `status`, `show`, `why`, `sync`, `audit`, `standing`, `resume`, `orient` write
 their payload to stdout — anything a caller might parse, filter, or redirect.
 
 **stderr = diagnostics.** Warnings, errors, `REJECTED`, `BLOCKED`, migration
@@ -371,6 +372,54 @@ $ managent resume
     src/managent/main.zig  (held by T286)
   ...
   verdict: 1 live task(s) — resume where you left off.
+```
+
+### `managent orient`
+
+Generates the **worker preamble** at read time (T353) — a ≤150-line surface
+that replaces the ~1,524-line reading list a worker otherwise wades through
+before its own brief (`AGENTS.md` + `DELEGATEE.md` + `sprint.md` +
+`DIRECTION.md` + `PHASES.md` + `STATE.md`). Pure reader: never writes
+`tasks.json`. Follows the `resume` pattern — nothing is stored, nothing can
+rot — so a stale preamble is structurally impossible.
+
+Sections, in order:
+
+- **principles** — eight one-line imperatives, *extracted* from the existing
+  documents (commit → deploy → smoke; one writer per file; floor never rises;
+  instruments over documents; both findings deliverables; canonical labels;
+  never ask a model to introspect; mutation serial). Not new policy.
+- **gates (live)** — pre-commit hook install state; claimlint counts
+  (C1a/C1b/C2/C6/calibration) from a run; the recorded floor
+  (`tools/hooks/claimlint-floor.json`) read live.
+- **kanban (live)** — in-progress (with a liveness label: beating / stalled /
+  UNKNOWN), dispatchable, and blocked (with what blocks them, from `needs`).
+- **fresh activity** — `git log --oneline -10`.
+- **handover head** — by reference: a pointer to `managent resume`, not a copy.
+- **what this does NOT replace** — the row's own brief, and the sprint's
+  ratified spec/plan.
+
+The line count is stated at the end; a surface over 150 lines fails its own
+test and warns on stderr. Degradation is explicit: unbuilt claimlint prints
+`claimlint: unavailable`; an unset hook prints `NOT INSTALLED`.
+
+`bin/subagent` (and `bin/ollama-subagent`, which delegates to it) tells workers
+to run `bin/managent orient` before reading the bundle, replacing the reading
+list in brief preambles.
+
+Regression controls: `tools/regression-orient.sh` (null — empty kanban + clean
+tree → exit 0, ≤150 lines, stated count == `wc -l`; seeded-floor — perturb one
+floor value → orient shows the new number; seeded-row — a temp row appears
+under dispatchable then leaves when done; degradation; structure), wired into
+`zig build test`.
+
+```
+$ managent orient
+
+  === managent orient — generated worker preamble (≤150 lines) ===
+  composed 2026-08-20T01:27:18Z from tasks.json · git · claimlint · floor
+  ...
+  77 lines
 ```
 
 ---
