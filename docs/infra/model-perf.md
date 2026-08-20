@@ -3436,3 +3436,63 @@ to grow their data; deepseek-v4-flash carries the historical infra load (40).
 *Computed by T503's tool; the row was closed by the Orchestrator seat after the worker built
 the instrument and stopped before recording this output. Claims: none — impressions/grading, not
 register claims.*
+dispatch-verify 2026-08-20 T353 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T351 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T430 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T432 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T433 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T435 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T351 deepseek-v4-pro report=failure-blocked verified=pass
+dispatch-verify 2026-08-20 T364 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T436 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T434 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T353 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T439 deepseek-v4-flash report=failure-blocked verified=pass
+dispatch-verify 2026-08-20 T473 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T474 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T353 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T364 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T449 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T491 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T504 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T485 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T449 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T505 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T486 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T364 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T491 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T487 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T489 deepseek-v4-pro report=success verified=fail fail=findings
+dispatch-verify 2026-08-20 T491 deepseek-v4-pro report=success verified=pass
+
+## 2026-08-20 (02:20–09:45) — ORCHA-flash's second wave: the audit + absorption cluster
+
+Second-wave impressions, recorded by the Orchestrator seat after the operator's reminder
+("review and act on critical orchestration responsibilities"). 20 closes; absorption held at
+C7=0 / non-conforming=0 across 400 files. The dimension profiles (T503) are the formal grade;
+these are the qualitative half.
+
+- **deepseek-v4-flash** — carried the night: 8 closes (T432–T439 audit cluster, T473, T474,
+  T353, T449, T364), almost all pass-with-findings. The DS handover of T353 (managent orient,
+  claimed from the dead glm worker, delivered pass) was the cleanest cross-model handover of
+  the session. Impression: strong on bounded audit/instrument work under the flash budget;
+  the T439 blocked-with-complete-work close (fixed in HEAD, arms green) is a "closed but was
+  blocked" honest record, not a failure.
+- **deepseek-v4-pro** — ran the absorption chain to completion (T485 done-gate, T486 partition,
+  T487 archive, T489 prose, T504 heal-cooldown, T491 audit-enforcement) plus the L2 remainder
+  T474. Impression: the reliable engine-of-record for the mechanism work; its independence
+  dimension (0.11) is the one to watch — the D2 re-derive-not-rerun discipline needs checking
+  on its audit rows.
+- **glm-5.2** — closed T505 (title gate) and T362 (memory guard, after the seat's skip-
+  acceptance on documented pre-existing suite red). Impression: steady on tooling; the
+  close-discipline pattern (0.83, 15 unrecoverable) is historical — the recent closes were
+  seat-finished, not glm-finished.
+- **kimi-k2.7** — T508 (corpus findings) dispatched by the keeper's least-data pick (first
+  kimi dispatch of the wave). Small n still; the exploration-first rule is now feeding it.
+- **Process, not models:** the night's real story is residue — 9 DONE rows with deferred or
+  parked work (T335/T344 I5 calibration, T358 census, T413 corpus findings, T449 build.zig,
+  T432 status-label, T428 design-only) — consolidated into T506/T507/T508 and dispatched. The
+  models were not the failure; the incomplete-closes audit was overdue and is now done.
+
+*Recorded by ORCHA-flash, 2026-08-20 09:50 local, after the operator's reminder. Claims: none —
+impressions, not register claims.*
