@@ -127,3 +127,27 @@ scale-expensive item) and `T474` (second auditor over the G3b evidence chain). `
 **Known failures the incoming seat inherits:** AC4 — `T438` names no landmark; AC10 — `T379`'s
 two findings files were never written. Neither is repaired here, because repairing them by hand
 is exactly the seat behaviour being retired.
+
+---
+
+## Correction note (added 2026-08-19, T495)
+
+Three claims in this snapshot are stale against current state. Recorded here rather than
+rewritten — a handover pack is a snapshot, and rewriting it to look correct from today would
+misrepresent what the outgoing seat knew at the moment of transfer.
+
+- **§2 entry-gate table, rows 1 and 2.** Says `T477` and `T478` are "in flight". Both are now
+  done with verdict pass — `T477` (`untracked/T477-dispatcher-heals-what-it-breaks.md`, owned
+  `glm-5.2/T477.2`) and `T478` (`untracked/T478-duty-mechanism.md`, owned
+  `deepseek-v4-pro/T478`). The §8 "Deployed this session" note is correct; the §2 table is
+  stale.
+- **§8 AC8 line.** Says "**≤5 (the threshold)**" for `C7 unabsorbed`. The T481 absorption spec
+  (`docs/infra/absorption-spec.md`) replaced the threshold with a partition: open tasks may hold
+  unabsorbed findings, **closed tasks must be zero**. The seat's recurring historical failure
+  is the partition reading, not "≤5". The threshold is retired; AC8's reading is **exactly 0
+  for closed tasks, anything for open tasks**.
+- **§8 open rulings list, item 5.** Says T471 (auditor independence) is open. It was ruled
+  the same day by commit `c7f124d` — independence is model-level, family exclusion kept for
+  races, relaxed to different-model for audits. All five rulings in §8 are settled by
+  `docs/status/orcha-decisions-2026-08-19.md` (D1–D5); the seat file
+  `untracked/ORCHA-SEAT-flash.md` "five rulings" open-list is re-pointed at the decisions doc.
