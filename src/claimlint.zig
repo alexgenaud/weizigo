@@ -167,6 +167,7 @@ const CHECKS = [_]Check{
     .{ .id = "C8", .name = "UNKILLED" },
     .{ .id = "C9", .name = "UNMAPPED" },
     .{ .id = "C10", .name = "VOLATILE" },
+    .{ .id = "C11", .name = "UNAUDITED" },
 };
 
 /// The canonical name for a check ID, e.g. `checkName("C3")` → `UNBACKED`.
@@ -363,6 +364,76 @@ const CAL_SYNTHETIC_C7_INFRA =
     \\    }
     \\  ],
     \\  "new_rows": []
+    \\}
+;
+
+/// C11 tier-A audit-enforcement calibration (T491). The audit policy (D2,
+/// 2026-08-19) makes every tier-A row — a claim status change to PROVEN,
+/// FALSE/FALSE-AS-SCOPED, or retired (SUPERSEDED) — carry an `audited_by`
+/// field in its findings. Four arms exercise the one pure parser:
+///   CAL_SYNTHETIC_C11_AUDITED   tier-A promotion WITH audited_by — must be silent
+///   CAL_SYNTHETIC_C11_UNAUDITED tier-A promotion WITHOUT audited_by — must be caught
+///   CAL_SYNTHETIC_C11_PRERULING pre-ruling refutation, no audited_by — silent (grandfathered)
+///   CAL_SYNTHETIC_C11_NOTIERA   non-tier-A proposal, no audited_by — silent (out of scope)
+const CAL_SYNTHETIC_C11_AUDITED =
+    \\{
+    \\  "task_id": "T491CAL",
+    \\  "date": "2026-08-20",
+    \\  "model": "TestModel",
+    \\  "audited_by": "deepseek-v4-flash/T491AUDIT",
+    \\  "claims": [
+    \\    {
+    \\      "id": "GLOBAL.CAL-AUDITED-OK",
+    \\      "proposed_status": "PROVEN",
+    \\      "rationale": "Synthetic — audited tier-A promotion",
+    \\      "evidence_path": "none"
+    \\    }
+    \\  ]
+    \\}
+;
+const CAL_SYNTHETIC_C11_UNAUDITED =
+    \\{
+    \\  "task_id": "T491CAL",
+    \\  "date": "2026-08-20",
+    \\  "model": "TestModel",
+    \\  "claims": [
+    \\    {
+    \\      "id": "GLOBAL.CAL-AUDITED-BAD",
+    \\      "proposed_status": "PROVEN",
+    \\      "rationale": "Synthetic — unaudited tier-A promotion (must be caught)",
+    \\      "evidence_path": "none"
+    \\    }
+    \\  ]
+    \\}
+;
+const CAL_SYNTHETIC_C11_PRERULING =
+    \\{
+    \\  "task_id": "T491CAL",
+    \\  "date": "2026-08-18",
+    \\  "model": "TestModel",
+    \\  "claims": [
+    \\    {
+    \\      "id": "GLOBAL.CAL-AUDITED-PRE",
+    \\      "proposed_status": "FALSE-AS-SCOPED",
+    \\      "rationale": "Synthetic — pre-ruling refutation, grandfathered",
+    \\      "evidence_path": "none"
+    \\    }
+    \\  ]
+    \\}
+;
+const CAL_SYNTHETIC_C11_NOTIERA =
+    \\{
+    \\  "task_id": "T491CAL",
+    \\  "date": "2026-08-20",
+    \\  "model": "TestModel",
+    \\  "claims": [
+    \\    {
+    \\      "id": "GLOBAL.CAL-AUDITED-CLAIMED",
+    \\      "proposed_status": "CLAIMED",
+    \\      "rationale": "Synthetic — non-tier-A proposal (no audit required)",
+    \\      "evidence_path": "none"
+    \\    }
+    \\  ]
     \\}
 ;
 
@@ -1690,6 +1761,28 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
         checkName("C10"), c10_hits.items.len, c10_tmp, c10_priv, c10_abs, c10_untracked,
     });
 
+    // ── C11 tier-A audit enforcement ─────────────────────────────────────
+    util.out("\n== C11 {s}  TIER-A AUDIT ENFORCEMENT (fails the run) ==\n", .{checkName("C11")});
+    util.out("The audit policy (D2, 2026-08-19) makes every tier-A row — a claim status\n", .{});
+    util.out("change to PROVEN, FALSE/FALSE-AS-SCOPED, or retired (SUPERSEDED) — carry an\n", .{});
+    util.out("`audited_by` field in its findings. A findings file dated on/after\n", .{});
+    util.out("{s} with such a proposal and no non-empty `audited_by` fails the run:\n", .{AUDIT_POLICY_DATE});
+    util.out("a check that only reports is the ceremony the policy exists to end\n", .{});
+    util.out("(\"the tool reports success while doing nothing\").\n\n", .{});
+    const c11_results = try checkAudited(gpa, io, FINDINGS_DIR);
+    if (c11_results.unaudited == 0) {
+        util.out("  (none)\n", .{});
+    } else {
+        for (c11_results.items.items) |v| {
+            util.out("  C11 {s}  {s} — {d} tier-A status change(s) without `audited_by`\n", .{
+                checkName("C11"), v.file, v.tier_a_count,
+            });
+        }
+    }
+    util.out("\n  C11 {s} unaudited tier-A rows: {d}  ({d} in-scope files, {d} scanned)\n", .{
+        checkName("C11"), c11_results.unaudited, c11_results.in_scope, c11_results.files,
+    });
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -2084,7 +2177,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
         //    that cannot parse must trigger exit 1 without needing an
         //    accompanying unabsorbed finding. The pre-fix predicate
         //    ignored `nonconforming`, so this arm fails.
-        const would_fail = shouldFailRun(0, 0, 0, 0, 0, bad.nonconforming, 0);
+        const would_fail = shouldFailRun(0, 0, 0, 0, 0, bad.nonconforming, 0, 0);
         synth_c7_nonconf_exit_ok = bad.nonconforming == 1 and bad.unabsorbed == 0 and
             bad.conforming == 0 and bad.conform_issues.items.len == 1 and would_fail;
     }
@@ -2226,6 +2319,33 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("                silent … {s}\n", .{if (synth_c9_ok) "SILENT" else "BROKEN"});
     if (!synth_c9_ok) cal_ok = false;
 
+    // C11 calibration — the tier-A audit gate (T491). Four arms on the same
+    // pure parser:
+    //   known-bad:  tier-A promotion (→ PROVEN) after the ruling, no audited_by
+    //               → must be caught (1 violation).
+    //   known-good: same file with a non-empty audited_by → must be silent.
+    //   known-good: tier-A refutation BEFORE the ruling, no audited_by → silent
+    //               (the policy is forward-looking, not retroactive).
+    //   known-good: non-tier-A proposal (→ CLAIMED) after the ruling, no
+    //               audited_by → silent (only the tier-A class is gated).
+    var synth_c11_ok = false;
+    {
+        const audited = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_AUDITED, "calibration/T491-audited.json");
+        const unaudited = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_UNAUDITED, "calibration/T491-unaudited.json");
+        const preruling = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_PRERULING, "calibration/T491-preruling.json");
+        const nottiera = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_NOTIERA, "calibration/T491-nottiera.json");
+        synth_c11_ok = audited.in_scope == 1 and audited.unaudited == 0 and
+            unaudited.in_scope == 1 and unaudited.unaudited == 1 and
+            preruling.in_scope == 0 and preruling.unaudited == 0 and
+            nottiera.in_scope == 0 and nottiera.unaudited == 0;
+    }
+    util.out("  known-bad 13 (C11 {s}, synthetic): a tier-A promotion after the ruling\n", .{checkName("C11")});
+    util.out("                without `audited_by` must be caught … {s}\n", .{if (synth_c11_ok) "CAUGHT (1 unaudited)" else "BROKEN"});
+    util.out("  known-good 12 (C11 {s}, synthetic): the same file WITH `audited_by`, a\n", .{checkName("C11")});
+    util.out("                pre-ruling refutation, and a non-tier-A proposal must all be\n", .{});
+    util.out("                silent … {s}\n", .{if (synth_c11_ok) "SILENT (3 silent)" else "BROKEN"});
+    if (!synth_c11_ok) cal_ok = false;
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -2243,11 +2363,12 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)   [{s}]\n", .{ c8_violations, checkName("C8") });
     util.out("  C9 tree-mapping violations      {d}   (FAILS)   [{s}]\n", .{ c9_fail, checkName("C9") });
     util.out("  C10 volatile evidence paths     {d}   (report only — does not fail, yet)   [{s}]\n", .{ c10_hits.items.len, checkName("C10") });
+    util.out("  C11 unaudited tier-A rows      {d}   (FAILS)   [{s}]\n", .{ c11_results.unaudited, checkName("C11") });
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);
-    if (shouldFailRun(c1_count, alarms.items.len, c2_total, c6, c7, c7_results.nonconforming, c9_fail)) std.process.exit(1);
+    if (shouldFailRun(c1_count, alarms.items.len, c2_total, c6, c7, c7_results.nonconforming, c9_fail, c11_results.unaudited)) std.process.exit(1);
     std.process.exit(0);
 }
 
@@ -2291,7 +2412,7 @@ fn runC7(io: Io, gpa: Allocator, claims_path: []const u8, as_json: bool) !void {
     util.out("  non-conforming: {d} (fails the run when > 0; spec §6.1)\n", .{c7_results.nonconforming});
     util.out("  unabsorbed: {d}\n", .{c7_results.unabsorbed});
     util.out("  dispositioned: {d}\n", .{c7_results.rejected});
-    if (shouldFailRun(0, 0, 0, 0, c7_results.unabsorbed, c7_results.nonconforming, 0)) std.process.exit(1);
+    if (shouldFailRun(0, 0, 0, 0, c7_results.unabsorbed, c7_results.nonconforming, 0, 0)) std.process.exit(1);
     std.process.exit(0);
 }
 
@@ -2314,7 +2435,7 @@ fn runC7Json(io: Io, gpa: Allocator, reg: *Register) !void {
     }
     try buf.append(gpa, ']');
     util.out("{s}", .{buf.items});
-    if (shouldFailRun(0, 0, 0, 0, c7_results.unabsorbed, c7_results.nonconforming, 0)) std.process.exit(1);
+    if (shouldFailRun(0, 0, 0, 0, c7_results.unabsorbed, c7_results.nonconforming, 0, 0)) std.process.exit(1);
     std.process.exit(0);
 }
 
@@ -2325,10 +2446,10 @@ fn runC7Json(io: Io, gpa: Allocator, reg: *Register) !void {
 /// louder than a file that says something wrong. The pre-fix predicate did
 /// not include this count, which is exactly the T454 defect: malformed
 /// files contributed 0 unabsorbed, so the run said nothing was wrong.
-fn shouldFailRun(c1_count: usize, c1b_alarms: usize, c2_total: usize, c6: usize, c7_unabsorbed: usize, c7_nonconforming: usize, c9_fail: usize) bool {
+fn shouldFailRun(c1_count: usize, c1b_alarms: usize, c2_total: usize, c6: usize, c7_unabsorbed: usize, c7_nonconforming: usize, c9_fail: usize, c11_unaudited: usize) bool {
     return c1_count > 0 or c1b_alarms > 0 or c2_total > 0 or
         c6 > 0 or c7_unabsorbed > 0 or c7_nonconforming > 0 or
-        c9_fail > 0;
+        c9_fail > 0 or c11_unaudited > 0;
 }
 
 fn spaces(n: usize) []const u8 {
@@ -3067,6 +3188,131 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
     return result;
 }
 
+// ── C11 tier-A audit enforcement (T491) ────────────────────────────────────
+
+/// The audit-policy ruling date (2026-08-19, D2). A findings file dated on or
+/// after this date that proposes a tier-A status change must carry an
+/// `audited_by` field. Findings dated earlier are grandfathered: the policy is
+/// forward-looking, not retroactive (a pre-ruling row cannot be retroactively
+/// unaudited). ISO dates (YYYY-MM-DD) compare correctly lexicographically,
+/// which is how the gate decides "on or after".
+const AUDIT_POLICY_DATE = "2026-08-19";
+
+/// True when `raw` names one of the tier-A status destinations (D2): → PROVEN,
+/// → FALSE (either spelling), → retired (SUPERSEDED — the register's
+/// "true when written, overtaken by events" status, T269). These are the only
+/// status changes the policy makes mechanically auditable from a findings
+/// file: the instrument-row and experiment-row tier-A classes carry no status
+/// marker in the schema, so they are enforced by the dispatch layer, not here.
+fn isTierAProposal(raw: []const u8) bool {
+    const s = trim(raw);
+    return std.mem.eql(u8, s, "PROVEN") or
+        std.mem.eql(u8, s, "FALSE") or
+        std.mem.eql(u8, s, "FALSE-AS-SCOPED") or
+        std.mem.eql(u8, s, "SUPERSEDED");
+}
+
+fn isIsoDate(s: []const u8) bool {
+    if (s.len != 10) return false;
+    if (s[4] != '-' or s[7] != '-') return false;
+    for (s, 0..) |c, i| {
+        if (i == 4 or i == 7) continue;
+        if (!std.ascii.isDigit(c)) return false;
+    }
+    return true;
+}
+
+/// One findings file that proposes a tier-A status change on/after the ruling
+/// without recording an auditor.
+const C11Violation = struct {
+    file: []const u8,
+    /// number of tier-A proposals in the file (claims[] + new_rows[])
+    tier_a_count: usize,
+};
+
+const C11Result = struct {
+    files: usize = 0,
+    in_scope: usize = 0,
+    unaudited: usize = 0,
+    items: std.ArrayList(C11Violation) = .empty,
+};
+
+/// C11 on a single findings file's bytes. Pure (no Io): the JSON string is
+/// passed in, so both the live directory scan and the in-memory calibration /
+/// unit-test arms share this one implementation. A file that does not parse,
+/// is not an object, has no ISO date, or is dated before the ruling is out of
+/// scope and contributes zero. `audited_by` is a top-level non-empty string —
+/// one per findings file, because the audit is of the task's results (one
+/// auditor per task), not per claim.
+fn auditCheckFile(gpa: Allocator, json: []const u8, file_path: []const u8) !C11Result {
+    var result: C11Result = .{};
+    var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch return result;
+    defer parsed.deinit();
+    if (parsed.value != .object) return result;
+    const root = parsed.value.object;
+    result.files = 1;
+
+    const date = strField(root, "date") orelse return result;
+    if (!isIsoDate(date)) return result;
+    if (std.mem.lessThan(u8, date, AUDIT_POLICY_DATE)) return result;
+
+    var tier_a_count: usize = 0;
+    if (root.get("claims")) |cv| {
+        if (cv == .array) {
+            for (cv.array.items) |item| {
+                if (item != .object) continue;
+                const ps = strField(item.object, "proposed_status") orelse continue;
+                if (isTierAProposal(ps)) tier_a_count += 1;
+            }
+        }
+    }
+    if (root.get("new_rows")) |nv| {
+        if (nv == .array) {
+            for (nv.array.items) |item| {
+                if (item != .object) continue;
+                const st = strField(item.object, "status") orelse continue;
+                if (isTierAProposal(st)) tier_a_count += 1;
+            }
+        }
+    }
+    if (tier_a_count == 0) return result;
+    result.in_scope = 1;
+
+    const ab = strField(root, "audited_by");
+    if (ab == null or trim(ab.?).len == 0) {
+        result.unaudited = 1;
+        try result.items.append(gpa, .{
+            .file = try gpa.dupe(u8, file_path),
+            .tier_a_count = tier_a_count,
+        });
+    }
+    return result;
+}
+
+/// Scan findings/*.json for C11 violations (the live-tree arm).
+fn checkAudited(gpa: Allocator, io: Io, dir_path: []const u8) !C11Result {
+    var result: C11Result = .{};
+    var dir = Io.Dir.cwd().openDir(io, dir_path, .{ .iterate = true }) catch |e| {
+        if (e == error.FileNotFound) return result;
+        return e;
+    };
+    defer dir.close(io);
+    var w = try dir.walkSelectively(gpa);
+    defer w.deinit();
+    while (try w.next(io)) |e| {
+        if (e.kind != .file) continue;
+        if (!std.mem.endsWith(u8, e.basename, ".json")) continue;
+        if (std.mem.eql(u8, e.basename, "rejections.json")) continue;
+        const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch continue;
+        const fr = try auditCheckFile(gpa, body, e.path);
+        result.files += fr.files;
+        result.in_scope += fr.in_scope;
+        result.unaudited += fr.unaudited;
+        try result.items.appendSlice(gpa, fr.items.items);
+    }
+    return result;
+}
+
 const Alarm = struct { child: usize, parent: usize };
 
 /// `d:` edges whose parent can never be FALSE (a MEASUREMENT, a definition, or
@@ -3379,4 +3625,44 @@ fn shortestFalseChain(gpa: Allocator, reg: *Register, start: usize) !?std.ArrayL
         }
     }
     return null;
+}
+
+// ── C11 unit tests (T491) ────────────────────────────────────────────────
+// `zig test src/claimlint.zig` runs these; they are the red-first arms for
+// the tier-A audit gate. They exercise the SAME pure parser the runtime
+// calibration block and the live scan call, so a pass here and a pass in the
+// calibration block are two views of one implementation.
+
+test "C11 UNAUDITED: tier-A promotion without audited_by is caught" {
+    const gpa = std.testing.allocator;
+    var r = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_UNAUDITED, "T491-unaudited.json");
+    defer r.items.deinit(gpa);
+    for (r.items.items) |v| gpa.free(v.file);
+    try std.testing.expectEqual(@as(usize, 1), r.in_scope);
+    try std.testing.expectEqual(@as(usize, 1), r.unaudited);
+    try std.testing.expectEqual(@as(usize, 1), r.items.items.len);
+}
+
+test "C11 UNAUDITED: audited_by makes a tier-A promotion silent" {
+    const gpa = std.testing.allocator;
+    var r = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_AUDITED, "T491-audited.json");
+    defer r.items.deinit(gpa);
+    try std.testing.expectEqual(@as(usize, 1), r.in_scope);
+    try std.testing.expectEqual(@as(usize, 0), r.unaudited);
+}
+
+test "C11 UNAUDITED: pre-ruling refutation is grandfathered (silent)" {
+    const gpa = std.testing.allocator;
+    var r = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_PRERULING, "T491-preruling.json");
+    defer r.items.deinit(gpa);
+    try std.testing.expectEqual(@as(usize, 0), r.in_scope);
+    try std.testing.expectEqual(@as(usize, 0), r.unaudited);
+}
+
+test "C11 UNAUDITED: non-tier-A proposal is silent" {
+    const gpa = std.testing.allocator;
+    var r = try auditCheckFile(gpa, CAL_SYNTHETIC_C11_NOTIERA, "T491-nottiera.json");
+    defer r.items.deinit(gpa);
+    try std.testing.expectEqual(@as(usize, 0), r.in_scope);
+    try std.testing.expectEqual(@as(usize, 0), r.unaudited);
 }

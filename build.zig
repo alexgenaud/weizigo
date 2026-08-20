@@ -118,6 +118,35 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
 
+    // ── claimlint C11 audit-enforcement unit tests (T491) ───────────
+    // `zig test src/claimlint.zig` runs the same tests standalone; wired here
+    // so `zig build test` gates the tier-A audit check on every suite run. The
+    // module gets the same imports as the claimlint executable below — the
+    // `version` module is load-bearing (claimlint.zig imports it by module
+    // name); claims_register/absorb are mirrored for parity.
+    const claimlint_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/claimlint.zig"),
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        }),
+    });
+    claimlint_tests.root_module.addImport("version", version_mod);
+    claimlint_tests.root_module.addImport("claims_register", b.createModule(.{
+        .root_source_file = b.path("src/claims_register.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
+    claimlint_tests.root_module.addImport("absorb", b.createModule(.{
+        .root_source_file = b.path("src/absorb.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
+    const run_claimlint_tests = b.addRunArtifact(claimlint_tests);
+    run_claimlint_tests.cwd = b.path(".");
+    test_step.dependOn(&run_claimlint_tests.step);
+
     // ── oracle-v2 acceptance tests (M4a, T182) ────────────────────
     const oracle_v2_accept_tests = b.addTest(.{
         .root_module = b.createModule(.{

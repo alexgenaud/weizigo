@@ -29,6 +29,7 @@ task with a NEW findings file. The findings file is an immutable record.
   "task_id": "<string, required>",
   "date": "<YYYY-MM-DD, required>",
   "model": "<string, required>",
+  "audited_by": "<string, optional>",
   "claims": [
     {
       "id": "<string, required>",
@@ -61,6 +62,7 @@ task with a NEW findings file. The findings file is an immutable record.
 | `task_id` | yes | string | `managent` task identifier, e.g. `"T129"` |
 | `date` | yes | string | ISO date `YYYY-MM-DD` when the finding was produced |
 | `model` | yes | string | Model name, e.g. `"DSPro"`, `"Fable"`, `"Consul"` |
+| `audited_by` | no | string | Auditor identifier (`<model>/<task-id>`), e.g. `"deepseek-v4-flash/T491AUDIT"`. **Required** by claimlint C11 for any findings file dated on/after 2026-08-19 (the D2 audit-policy ruling) that proposes a tier-A status change — a claim `→ PROVEN`, `→ FALSE`/`→ FALSE-AS-SCOPED`, or a new/retired row (`→ SUPERSEDED`) — in `claims[].proposed_status` or `new_rows[].status`. One auditor per file (the audit is of the task's results); a missing or empty value on an in-scope file fails the run. Findings dated before the ruling are grandfathered. |
 | `claims` | yes | array | Claim status changes proposed by this task |
 | `claims[].id` | yes | string | Claim ID as registered in CLAIMS.md §2, e.g. `"QA-027"` |
 | `claims[].proposed_status` | yes | string | One of: `PROVEN`, `CLAIMED`, `FALSE-AS-SCOPED`, `FALSE`, `UNTESTED`, `INTRACTABLE`, `MEASUREMENT` |

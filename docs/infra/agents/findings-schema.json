@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Model that executed the task — e.g. DSPro, DSFlash, Fable, Consul."
     },
+    "audited_by": {
+      "type": "string",
+      "description": "Auditor identifier (<model>/<task-id>) — e.g. deepseek-v4-flash/T491AUDIT. Required by claimlint C11 for any findings file dated on/after 2026-08-19 (D2 audit-policy ruling) that proposes a tier-A status change (a claim -> PROVEN, -> FALSE/FALSE-AS-SCOPED, or a new/retired row -> SUPERSEDED) in claims[].proposed_status or new_rows[].status. One auditor per file; a missing or empty value on an in-scope file fails the run. Findings dated before the ruling are grandfathered."
+    },
     "claims": {
       "type": "array",
       "description": "Claim status changes proposed by this task. Empty array when none are touched.",
