@@ -9,9 +9,13 @@ Usage:
             canonical_models[], T317) or a dispatch tag that canonicalizes
             to one (glm-5.2:cloud, kimi-k2.7-code, kimi-k2.7:cloud,
             minimax-m3:cloud, qwen3.8:27b-mlx:cloud; dspro/dsflash for the
-            deepseek pair).  claude-* labels are REFUSED — claude seats run
-            from a claude console with `claude -p`, never through a
-            non-Claude harness (human rule, stated in bin/subagent).
+            deepseek pair; claude-fable-5 / claude-opus-5 / claude-sonnet-5 /
+            claude-haiku-4-5-20251001 for the claude pair).  claude labels
+            route to bin/subagent's claude provider, which launches a
+            headless `claude -p` session in the Claude Code harness — never
+            through the Anthropic API from here (T494; the prohibition is
+            about the *harness*, not the dispatcher:
+            docs/infra/agents/subdelegation.md:152-156).
 
   --wall=N  tools/runner wall-clock fallback in seconds (default 2700 —
             the mode of recent practice; how to choose: DELEGATOR.md
@@ -76,6 +80,11 @@ MODELS = {
     "minimax-m3":        ("ollama", ["--model", "minimax-m3:cloud"]),
     "kimi-k2.7":         ("ollama", ["--model", "kimi-k2.7-code:cloud"]),
     "qwen3.8:27b-mlx":   ("ollama", ["--model", "qwen3.8:27b-mlx"]),
+    # T494: claude labels route to the claude provider (headless claude -p).
+    "claude-fable-5":            ("claude", ["--model", "claude-fable-5"]),
+    "claude-opus-5":             ("claude", ["--model", "claude-opus-5"]),
+    "claude-sonnet-5":           ("claude", ["--model", "claude-sonnet-5"]),
+    "claude-haiku-4-5-20251001": ("claude", ["--model", "claude-haiku-4-5-20251001"]),
 }
 
 # Input-convenience aliases (same shape managent accepts).
@@ -99,11 +108,6 @@ def canonicalize_model(raw: str) -> str:
 def resolve_model(raw: str):
     """→ (canonical, err, provider, flags); err set (canon None) on refusal."""
     canon = canonicalize_model(raw)
-    if canon.startswith("claude-"):
-        return None, (
-            f"dispatch: refused {raw!r} — claude seats run from a claude console "
-            f"with `claude -p '<brief>'` and must never be dispatched by a "
-            f"non-Claude harness (human rule)."), None, None
     if canon in MODELS:
         provider, flags = MODELS[canon]
         return canon, None, provider, flags
@@ -111,8 +115,6 @@ def resolve_model(raw: str):
         f"dispatch: refused model {raw!r} — not a canonical model label "
         f"(T317, src/managent/main.zig).\n"
         f"  dispatchable here: {', '.join(sorted(MODELS))}\n"
-        f"  canonical but claude-seat: claude-opus-5, claude-sonnet-5, "
-        f"claude-fable-5, claude-haiku-4-5-20251001\n"
         f"  (kimi-k2.7-code and any :cloud tag are accepted and canonicalized)"), None, None
 
 
@@ -239,6 +241,21 @@ def main(argv):
         print(f"dry-run {task_id} → {canon} ({provider})")
         print(f"  subagent: {shlex.join(cmd)}")
         print(f"  log: {log_rel}")
+        # T494: for the claude provider, surface the exact `claude -p` line
+        # the worker would run (the T481/t490 precedent shape) by delegating
+        # to bin/subagent --dry-run — the prompt builder lives in one place.
+        # Nothing is spawned; subagent --dry-run only prints.
+        if provider == "claude":
+            sub_dry = [sys.executable, subagent, "--provider", "claude", *flags,
+                       task_id, f"--wall={wall}", "--dry-run"]
+            if test_root:
+                sub_dry.append(f"--test-root={test_root}")
+            r = subprocess.run(sub_dry, cwd=root, capture_output=True, text=True)
+            for line in r.stdout.rstrip("\n").splitlines():
+                print(f"  resolved: {line}")
+            if r.returncode != 0:
+                print(f"  resolved: [subagent --dry-run exited {r.returncode}] "
+                      f"{r.stderr.strip()}")
         print(f"  would run: {shell_line}")
         return 0
 

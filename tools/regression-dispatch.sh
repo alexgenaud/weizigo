@@ -25,8 +25,8 @@
 #              MUST refuse (shared cap with bin/subagent).
 #   sync       the model map in bin/dispatch must cover every canonical
 #              model in src/managent/main.zig canonical_models[] (T317
-#              single source of truth) — dispatchable ones by name, the
-#              claude family by the claude- refusal branch.
+#              single source of truth) — dispatchable ones by name,
+#              including the claude family via the claude provider (T494).
 #   e2e        a real dispatch through the wrapper with a stub worker
 #              (bin/subagent --test-worker): nohup detach writes
 #              untracked/log/t<id>.log, the row leaves dispatchable →
@@ -223,13 +223,22 @@ else
     FAIL=1
 fi
 
-echo "  9. seeded: claude-* label → refuse with the claude-seat guidance"
+# T494 (2026-08-19): the claude-seat refusal is RETIRED.  The cited rule was
+# mis-stated — the prohibition is about the *harness*, not the dispatcher
+# (docs/infra/agents/subdelegation.md:152-156): Claude must never run *inside*
+# a pi/Ollama harness driving the Anthropic API, but a headless `claude -p`
+# session launched by a non-Claude worker is explicitly acceptable.  claude
+# labels now route to bin/subagent's claude provider.  This arm was RED
+# against the pre-T494 code (claude was refused); it goes GREEN once the
+# claude branch lands.
+echo "  9. claude-* label routes to --provider claude (T494: rule corrected —"
+echo "     headless claude -p from a non-Claude worker is allowed)"
 OUT=$(cd "$ROOT" && "$DISPATCH" T991 claude-opus-5 --dry-run --test-root="$WORK" 2>&1)
 RC=$?
-if [ "$RC" -ne 0 ] && echo "$OUT" | grep -qi "claude"; then
-    echo "    PASS: refused claude-opus-5 (rc=$RC)"
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q -- "--provider claude --model claude-opus-5 T991 --wall=2700"; then
+    echo "    PASS: claude-opus-5 routes to --provider claude (rc=$RC)"
 else
-    echo "    FAIL: rc=$RC; expected claude refusal"; echo "$OUT" | sed 's/^/    | /'
+    echo "    FAIL: rc=$RC; expected claude routing"; echo "$OUT" | sed 's/^/    | /'
     FAIL=1
 fi
 
@@ -276,14 +285,68 @@ for m in $CANON; do
     elif echo "$m" | grep -q "^claude-" && grep -q "claude-" "$DISPATCH"; then
         :
     else
-        echo "    FAIL: canonical model '$m' not resolved (and not claude-refused) in bin/dispatch"
+        echo "    FAIL: canonical model '$m' not resolved in bin/dispatch"
         SYNC_FAIL=1
     fi
 done
 if [ "$SYNC_FAIL" -eq 0 ]; then
-    echo "    PASS: all canonical models resolved or claude-refused"
+    echo "    PASS: all canonical models resolved (incl. claude via the claude provider)"
 else
     FAIL=1
+fi
+
+# ── T494: claude-provider arms (red against the pre-T494 code) ───────────
+# The claude branch must (a) render the exact `claude -p` line of the T481/
+# t490 precedent shape in --dry-run, (b) route every canonical claude label,
+# and (c) inherit the row-state refusal — a claude dispatch of an
+# in_progress row is still refused, the same fence that caught T350/T376.
+echo " 13a. dry-run claude-fable-5 prints the exact claude -p line (T481 shape)"
+OUT=$(cd "$ROOT" && "$DISPATCH" T991 claude-fable-5 --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+# The resolved claude -p command must carry the nonce, the model, the
+# allowedTools set, and the text output format — the T481/t490 precedent.
+if [ "$RC" -eq 0 ] \
+   && echo "$OUT" | grep -q "claude -p" \
+   && echo "$OUT" | grep -q -- "--model claude-fable-5" \
+   && echo "$OUT" | grep -q -- "--allowedTools Read,Write,Edit,Bash,Grep,Glob" \
+   && echo "$OUT" | grep -q -- "--output-format text" \
+   && echo "$OUT" | grep -qE "NONCE-[0-9a-f]{16}"; then
+    echo "    PASS: claude -p line carries model, allowedTools, output-format, nonce"
+else
+    echo "    FAIL: claude -p shape incomplete (rc=$RC)"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo " 13b. dry-run all four canonical claude labels route to --provider claude"
+CLAUDE_FAIL=0
+for lbl in claude-fable-5 claude-opus-5 claude-sonnet-5 claude-haiku-4-5-20251001; do
+    OUT=$(cd "$ROOT" && "$DISPATCH" T991 "$lbl" --dry-run --test-root="$WORK" 2>&1)
+    if ! echo "$OUT" | grep -q -- "--provider claude --model $lbl T991"; then
+        echo "    FAIL: $lbl did not route to --provider claude --model $lbl"
+        echo "$OUT" | sed 's/^/    | /'
+        CLAUDE_FAIL=1
+    fi
+done
+if [ "$CLAUDE_FAIL" -eq 0 ]; then
+    echo "    PASS: all four claude labels route to the claude provider"
+else
+    FAIL=1
+fi
+
+echo " 13c. seeded: claude dispatch of an in_progress row refuses (row-state"
+echo "      guard inherited by the claude branch — the T350/T376 fence holds)"
+seed_task T994 findings/T994-result.json
+"$MG" claim T994 --agent claude-fable-5 >/dev/null 2>&1
+OUT=$(cd "$ROOT" && "$DISPATCH" T994 claude-fable-5 --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "in_progress"; then
+    echo "    PASS: refused in_progress claude dispatch (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected in_progress refusal for claude"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+if [ -e "$WORK/untracked/log/t994.log" ]; then
+    echo "    FAIL: claude refusal spawned a dispatch (log exists)"; FAIL=1
 fi
 
 # ── e2e: one real dispatch through the wrapper (stub worker) ──────────────
@@ -334,6 +397,57 @@ if [ -f "$WORK/docs/T990-result.txt" ]; then
     echo "    PASS: deliverable written by the worker"
 else
     echo "    FAIL: deliverable docs/T990-result.txt missing"
+    FAIL=1
+fi
+
+# ── T494 e2e: a claude dispatch through the wrapper (stub worker) ─────────
+# Proves the claude branch inherits the full dispatch+verify path: nohup
+# detach, claim → in_progress → done, verification PASSED, deliverable
+# written, and a perf-ledger line attributed to claude-fable-5.  RED
+# against the pre-T494 code (claude refused at resolve_model).
+echo " 15. e2e: claude dispatch T989 with stub worker → done → perf-ledger line"
+seed_task T989 docs/T989-result.txt
+OUT=$(cd "$ROOT" && "$DISPATCH" T989 claude-fable-5 \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] || ! echo "$OUT" | grep -q "^dispatched T989"; then
+    echo "    FAIL: claude dispatch rc=$RC; expected 'dispatched T989' data line"
+    echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+else
+    echo "    PASS: claude dispatch returned and printed the data line"
+fi
+SEEN_DONE=0
+for i in $(seq 1 60); do
+    S=$(row_status T989)
+    [ "$S" = "done" ] && { SEEN_DONE=1; break; }
+    sleep 0.5
+done
+if [ "$SEEN_DONE" -eq 1 ]; then
+    echo "    PASS: claude row reached done"
+else
+    echo "    FAIL: claude row did not reach done in 30s (status=$(row_status T989))"
+    FAIL=1
+fi
+CLOG="$WORK/untracked/log/t989.log"
+if [ -f "$CLOG" ] && grep -q "verification PASSED" "$CLOG"; then
+    echo "    PASS: untracked/log/t989.log exists and ends verification PASSED"
+else
+    echo "    FAIL: claude log missing or verification not PASSED ($CLOG)"
+    [ -f "$CLOG" ] && tail -5 "$CLOG" | sed 's/^/    | /'
+    FAIL=1
+fi
+if [ -f "$WORK/docs/T989-result.txt" ]; then
+    echo "    PASS: claude deliverable written by the worker"
+else
+    echo "    FAIL: claude deliverable docs/T989-result.txt missing"
+    FAIL=1
+fi
+if grep -q "dispatch-verify .* T989 claude-fable-5 report=.* verified=pass" "$WORK/perf-ledger.txt"; then
+    echo "    PASS: perf-ledger line written for claude-fable-5 (verified=pass)"
+else
+    echo "    FAIL: perf-ledger line for claude-fable-5 missing"
+    [ -f "$WORK/perf-ledger.txt" ] && cat "$WORK/perf-ledger.txt" | sed 's/^/    | /'
     FAIL=1
 fi
 

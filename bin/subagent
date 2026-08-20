@@ -19,11 +19,14 @@ REQUIRED --provider flag. A bare call exits non-zero naming "provider" (C2.1).
 
 Workers can reach Ollama models through `ollama launch pi` — the depth cap
 stops bin/subagent recursion but does not stop Ollama launches (T320, 2026-08-03).
-Claude seats use the Claude Code harness and must never be dispatched by a
-non-Claude harness (human rule). Depth increments per dispatch and refuses at
-MAX_DEPTH (3), so a manager may delegate a manager and the chain still ends.
-The depth cap stops runaway recursion; it is not a security boundary — see
-docs/infra/agents/subdelegation.md.
+Claude seats run from the Claude Code harness (`claude -p`); a non-Claude
+worker may launch a headless claude -p session (T494, correcting the prior
+reading of the rule — docs/infra/agents/subdelegation.md:152-156: the
+prohibition is about the harness, not the dispatcher: Claude must never run
+*inside* a pi/Ollama process driving the Anthropic API). Depth increments per
+dispatch and refuses at MAX_DEPTH (3), so a manager may delegate a manager
+and the chain still ends. The depth cap stops runaway recursion; it is not a
+security boundary — see docs/infra/agents/subdelegation.md.
 
 Dispatch verification (T411, 2026-08-07): an agent that replies "OK." and
 runs nothing is the most dangerous defect this project has seen (T408/kimi).
@@ -43,10 +46,23 @@ DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 MAX_DEPTH = 3
 
 # ── provider configuration ─────────────────────────────────────────────────
-PROVIDERS = {"deepseek", "ollama"}
+PROVIDERS = {"deepseek", "ollama", "claude"}
 
 # DeepSeek model map (flags → canonical labels)
 DS_MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
+
+# Claude canonical labels (T317 canonical_models[] — the only claude labels
+# bin/subagent admits; the headless `claude -p --model <label>` form runs in
+# the Claude Code harness, never through the Anthropic API from here).
+CLAUDE_MODELS = {
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-fable-5",
+    "claude-haiku-4-5-20251001",
+}
+
+# Tools the headless claude session may use (the T481/t490 precedent set).
+CLAUDE_ALLOWED_TOOLS = "Read,Write,Edit,Bash,Grep,Glob"
 
 # Ollama tag → canonical model label mapping (must stay in sync with
 # src/managent/main.zig canonical_models[] — T317 item 2).
@@ -108,7 +124,8 @@ def main(argv):
     if not provider:
         sys.exit("subagent: missing --provider (deepseek|ollama)\n" + __doc__)
     if provider not in PROVIDERS:
-        sys.exit(f"subagent: unknown provider '{provider}' — must be deepseek or ollama\n")
+        sys.exit(f"subagent: unknown provider '{provider}' — must be one of "
+                 f"{', '.join(sorted(PROVIDERS))}\n")
 
     # Depth cap (shared, before provider branch — NF2 resolved)
     try:
@@ -141,6 +158,16 @@ def main(argv):
         if len(chosen_ds) != 1:
             sys.exit("subagent: for --provider deepseek, name exactly one model — --dspro or --dsflash")
         model = DS_MODELS[chosen_ds[0]]
+    elif provider == "claude":
+        # Claude: --model <canonical claude label> is required; the label is
+        # passed straight to `claude -p --model`, so it must be canonical.
+        if not raw_model:
+            sys.exit("subagent: for --provider claude, --model <canonical claude label> "
+                     "is required\n  canonical: " + ", ".join(sorted(CLAUDE_MODELS)) + "\n")
+        if raw_model not in CLAUDE_MODELS:
+            sys.exit(f"subagent: '{raw_model}' is not a canonical claude label.\n"
+                     f"  canonical: {', '.join(sorted(CLAUDE_MODELS))}\n")
+        model = raw_model
     else:  # ollama
         if not raw_model:
             sys.exit("subagent: for --provider ollama, --model <tag> is required\n")
@@ -216,6 +243,15 @@ def main(argv):
         if rss_mb:
             cmd.extend(["--rss-cap-mb", rss_mb])
         cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
+    elif provider == "claude":
+        # T494: the headless Claude Code harness. The model runs in its own
+        # process (claude -p), never through the Anthropic API from here —
+        # the fence the rule actually draws (subdelegation.md:152-156).
+        # runner supplies the wall/RSS guards the T481 precedent logged.
+        cmd = ["tools/runner", "--max-wall", wall, "--",
+               "claude", "-p", prompt, "--model", model,
+               "--allowedTools", CLAUDE_ALLOWED_TOOLS,
+               "--output-format", "text"]
     else:  # ollama
         cmd = ["tools/runner", "--max-wall", wall, "--",
                "ollama", "launch", "pi", "--model", raw_model, "-y", "--", "-p", prompt]

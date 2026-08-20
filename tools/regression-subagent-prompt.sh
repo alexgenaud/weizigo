@@ -139,6 +139,68 @@ else
     FAIL=1
 fi
 
+# ── T494: claude-provider prompt controls (red against pre-T494 code) ──────
+# The claude branch reuses the SAME prompt wrapper the other providers get:
+# the nonce injection, the claim/findings/done lifecycle with --agent
+# <canonical claude label>, and the resolved `claude -p ... --model ...
+# --allowedTools Read,Write,Edit,Bash,Grep,Glob --output-format text`
+# command of the T481/t490 precedent shape.
+echo "  3a. claude --dry-run emits --agent claude-fable-5 on claim and done"
+OUT=$("$SUBAGENT" --provider claude T995 --model claude-fable-5 --dry-run 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: subagent exit code $RC"; echo "$OUT"; FAIL=1
+else
+    CLAIM_LINE=$(echo "$OUT" | grep "FIRST: bin/managent claim" || true)
+    DONE_LINE=$(echo "$OUT" | grep "bin/managent done" || true)
+    CLAIM_OK=0; DONE_OK=0
+    if echo "$CLAIM_LINE" | grep -q "\-\-agent claude-fable-5"; then CLAIM_OK=1; fi
+    if echo "$DONE_LINE" | grep -q "\-\-agent claude-fable-5"; then DONE_OK=1; fi
+    if [ "$CLAIM_OK" -eq 1 ] && [ "$DONE_OK" -eq 1 ]; then
+        echo "    PASS: --agent claude-fable-5 on claim and done lines"
+    else
+        echo "    FAIL: claim=$CLAIM_OK done=$DONE_OK"
+        echo "    claim line: $CLAIM_LINE"; echo "    done line:  $DONE_LINE"
+        FAIL=1
+    fi
+fi
+
+echo "  3b. claude --dry-run resolves the claude -p command of the T481 shape"
+# The dry-run command must be the headless claude -p form: runner-wrapped,
+# with --model, the allowedTools set, and --output-format text. The nonce
+# must appear in the prompt argument.
+OUT=$("$SUBAGENT" --provider claude T995 --model claude-fable-5 --dry-run 2>&1)
+if echo "$OUT" | grep -q "claude -p" \
+   && echo "$OUT" | grep -q -- "--model claude-fable-5" \
+   && echo "$OUT" | grep -q -- "--allowedTools Read,Write,Edit,Bash,Grep,Glob" \
+   && echo "$OUT" | grep -q -- "--output-format text" \
+   && echo "$OUT" | grep -qE "NONCE-[0-9a-f]{16}"; then
+    echo "    PASS: claude -p line carries model, allowedTools, output-format, nonce"
+else
+    echo "    FAIL: claude -p shape incomplete"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  3c. claude --provider without --model refuses (canonical label required)"
+OUT=$("$SUBAGENT" --provider claude T995 --dry-run 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -qi "model"; then
+    echo "    PASS: refused claude dispatch without --model (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected refusal naming --model"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  3d. claude --model with a non-canonical label refuses"
+OUT=$("$SUBAGENT" --provider claude T995 --model claude-fake-9 --dry-run 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "claude-fake-9"; then
+    echo "    PASS: refused non-canonical claude label (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected refusal naming claude-fake-9"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
 # ── depth cap: still fires ───────────────────────────────────────────────
 # T315 does not change the depth cap. Prove it still refuses at depth 2.
 echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
