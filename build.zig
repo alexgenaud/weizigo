@@ -314,6 +314,17 @@ pub fn build(b: *std.Build) void {
     runner_brief_regression.cwd = b.path(".");
     test_step.dependOn(&runner_brief_regression.step);
 
+    // ── T537: orcha-acceptance verdict controls ────────────────────────
+    // The acceptance suite's summary printed ACCEPTANCE PASS while AC2/AC6/AC7
+    // were warning (the verdict tested only $FAIL), and AC7 was a cumulative-
+    // ever wall-kill counter labelled "today".  T537 ships a three-state
+    // verdict (exit 0 clean / 1 FAIL / 2 WARN-only, warning ids on the line)
+    // and re-scopes AC7 to a 24 h window over run records.  Drives the real
+    // tools/orcha-acceptance.sh against a hermetic scratch repo (no managent).
+    const orcha_accept_regression = b.addSystemCommand(&.{ "sh", "tools/regression-orcha-acceptance.sh" });
+    orcha_accept_regression.cwd = b.path(".");
+    test_step.dependOn(&orcha_accept_regression.step);
+
     // ── subagent-prompt controls (T315/T317) ──────────────────────────
     // bin/subagent is given a model but did not include --agent <model>
     // in the generated prompt.  T315 ships the controls standalone; T317
@@ -642,6 +653,18 @@ pub fn build(b: *std.Build) void {
     const models_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-models.sh" });
     models_regression.cwd = b.path(".");
     test_step.dependOn(&models_regression.step);
+
+    // ── T539: holds= writer + --sync + vacuous-case controls ────────
+    // The one-writer invariant was vacuous: 34 of 49 rows whose bundle
+    // declared holds= had "holds": [] in the store, so holdsConflict
+    // compared empty sets and always passed.  Controls: add parses
+    // holds= (comma-split), --holds a,b writes rows without a bundle
+    // holds, holds --sync reconciles stale rows idempotently, and a
+    // claim/dispatch whose store holds is empty but whose bundle declares
+    // holds warns loudly instead of silently reporting "no conflict".
+    const holds_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-holds.sh" });
+    holds_regression.cwd = b.path(".");
+    test_step.dependOn(&holds_regression.step);
 
     // ── T390: duplicate-dispatch controls ────────────────────────
     // Two consoles on one row happened three times on 2026-08-05/06
