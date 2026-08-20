@@ -139,9 +139,21 @@ EOF
                 echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset) and the holder table cannot be read; unlabelled commit allowed. Staged paths:"
                 list_staged
             else
-                bash "$LIB" active-holders "$ROOT" "${MANAGENT_STORE:-}" > "$HOLDERS_FILE" 2>/dev/null || true
-                if [ ! -s "$HOLDERS_FILE" ]; then
-                    echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset) and no live holders known (kanban unreadable or empty); unlabelled commit allowed. Staged paths:"
+                # T540 item 3: capture the exit status of active-holders so the
+                # hook can tell "store unreadable" (non-zero) from "store read,
+                # zero holders" (0 + empty). `|| HOLDERS_RC=$?` keeps `set -e`
+                # from aborting the hook on the non-zero case.
+                HOLDERS_RC=0
+                bash "$LIB" active-holders "$ROOT" "${MANAGENT_STORE:-}" > "$HOLDERS_FILE" 2>/dev/null || HOLDERS_RC=$?
+                if [ "$HOLDERS_RC" -ne 0 ]; then
+                    # T540 item 3: store unreadable — say so, don't conflate it
+                    # with "no holders declared" (the two need different reads).
+                    echo "pre-commit: WARNING — no task identity (MANAGENT_TASK_ID unset) and the holder table cannot be read (kanban unreadable); unlabelled commit allowed. Staged paths:"
+                    list_staged
+                elif [ ! -s "$HOLDERS_FILE" ]; then
+                    # T540 item 3: store read, zero live holders declared — the
+                    # ordinary no-holders case, distinct from an unreadable store.
+                    echo "pre-commit: unlabelled commit, store read, no live holders declared — allowed. Staged paths:"
                     list_staged
                 else
                     COLLISIONS=""

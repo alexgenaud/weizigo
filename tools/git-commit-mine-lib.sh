@@ -28,9 +28,13 @@
 #               <task-id>\t<agent>\t<path>
 #           a (task-id, path) tuple for every in_progress row's
 #               holds ∪ bundle-deliverables
-#           empty stdout when no live holders or store unreadable; exit 0
-#           always (the pre-commit backstop treats empty-as-unknown as
-#           warn-and-allow — the same degraded-path as today's branch).
+#           exit 0 + empty stdout when the store is readable and NO
+#               in_progress row holds anything; exit 3 when the store
+#               is unreadable (or not a dict) — so the pre-commit
+#               backstop can distinguish "store read, no holders"
+#               from "kanban unreadable" (T540 item 3; the old code
+#               exited 0 for both and the hook printed one conflated
+#               message, naming the wrong cause).
 #
 # tasks-json defaults to <repo>/docs/infra/managent/tasks.json. The caller
 # passes MANAGENT_STORE (the managent binary's substrate-isolation override,
@@ -109,9 +113,11 @@ gcm_bundle_deliverables() {
 
 gcm_active_holders() {
     # <repo> [tasks-json] → prints tab-separated <task-id>\t<agent>\t<path> rows
-    # for every in_progress row's (holds ∪ bundle-deliverables). Empty on
-    # store-unreadable / no-live-holders; exit 0 always so the pre-commit
-    # backstop can fall back to warn-and-allow without ceremony.
+    # for every in_progress row's (holds ∪ bundle-deliverables). Empty stdout
+    # on store-unreadable / no-live-holders. Exit code now DISAMBIGUATES the
+    # two (T540 item 3): 0 = store readable (holders may be empty), 3 = store
+    # unreadable/not-a-dict. The pre-commit backstop branches on it so a
+    # real signal is no longer mis-labelled as "kanban unreadable or empty".
     [ "$#" -ge 1 ] || { echo "git-commit-mine-lib: active-holders needs <repo>" >&2; return 2; }
     local repo="$1"
     local store="${2:-$1/docs/infra/managent/tasks.json}"
@@ -120,8 +126,10 @@ import json, os, sys
 repo, store = sys.argv[1], sys.argv[2]
 try:
     d = json.load(open(store))
+    if not isinstance(d, dict):
+        sys.exit(3)
 except Exception:
-    sys.exit(0)
+    sys.exit(3)
 for tid, t in d.items():
     if (t.get("status") or "").lower() != "in_progress":
         continue
@@ -154,7 +162,7 @@ for tid, t in d.items():
             seen.add(p)
             print(f"{tid}\t{agent}\t{p}")
 PYEOF
-    return 0
+    return $?
 }
 
 gcm_scope_for_task() {

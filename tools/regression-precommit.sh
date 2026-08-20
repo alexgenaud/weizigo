@@ -225,7 +225,10 @@ fi
 rm -rf "$WORK"
 
 # ── 7b. null-no-collision: no live holders + unlabelled commit → ALLOW silently ─
-echo "  7b. null-no-collision: no live holders; unlabelled commit on an unheld path allowed silently"
+#      T540 item 3: a READABLE empty kanban must be labelled "no live holders
+#      declared", NOT "kanban unreadable" — the two were conflated and named
+#      the wrong cause. Assert the message distinguishes them.
+echo "  7b. null-no-collision: no live holders; unlabelled commit on an unheld path allowed, message says 'no live holders declared' (not 'unreadable')"
 WORK=$(new_scratch)
 cd "$WORK"
 git init -q
@@ -244,8 +247,11 @@ echo ok > docs/random.md
 git add docs/random.md
 OUT=$(MANAGENT_TASK_ID="" MANAGENT_STORE="$WORK/docs/infra/managent/tasks.json" run_hook "$WORK")
 RC=$?
-if [ "$RC" -eq 0 ] && ! echo "$OUT" | grep -q "REFUSED"; then
-    echo "    PASS: allowed (RC=0), no refusal — operator's normal case stays fast"
+if [ "$RC" -eq 0 ] \
+   && ! echo "$OUT" | grep -q "REFUSED" \
+   && echo "$OUT" | grep -q "no live holders declared" \
+   && ! echo "$OUT" | grep -q "unreadable"; then
+    echo "    PASS: allowed (RC=0), and the message distinguishes a readable empty store from an unreadable one"
 else
     echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -3)"
     FAIL_T455=1
@@ -303,9 +309,9 @@ OUT=$(MANAGENT_TASK_ID="" MANAGENT_STORE="" run_hook "$WORK")
 RC=$?
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q "WARNING" \
-   && echo "$OUT" | grep -q "kanban unreadable" \
+   && echo "$OUT" | grep -q "cannot be read" \
    && echo "$OUT" | grep -q "docs/random.md"; then
-    echo "    PASS: warned (RC=0), naming the unreadable-kanban reason and the staged path"
+    echo "    PASS: warned (RC=0), naming the unreadable-kanban reason (distinct from 'no live holders') and the staged path"
 else
     echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -4)"
     FAIL_T455=1
