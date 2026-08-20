@@ -1,0 +1,10 @@
+{
+  "task_id": "ORCHA-FLASH",
+  "date": "2026-08-20",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/ORCHA-FLASH",
+  "claims": [],
+  "new_rows": [],
+  "notes": "CORRECTION RECORD (Fable's verification, 2026-08-20): the wrap-up step-7 report claimed 'zero runner_<pid>.json stragglers'. That claim was FALSE at verification — 30 files existed in untracked/runs/ (I had checked untracked/log/, the wrong directory). The files are tools/runner's own pid-named run records (task: 'runner/<pid>', the A5 defect: records are pid-named, not task-id-named). RECONCILED: all 30 archived to untracked/runs/archive-2026-08-20/ (host-local, gitignored — correct home). Root-cause fix is Course row A5 (T515, task-id everywhere) — until records are task-id-named, this class recurs. Lesson recorded: a 'zero' claim in a handover is measured against the directory the file actually lands in, not the one assumed.",
+  "verdict": "pass-with-findings"
+}

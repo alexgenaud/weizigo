@@ -1,0 +1,10 @@
+{
+  "task_id": "T361",
+  "date": "2026-08-20",
+  "model": "unknown/T361",
+  "identifier": "unknown/T361",
+  "claims": [],
+  "new_rows": [],
+  "notes": "CONTEXT: T361's console exited with no work in tree (closed abandoned 2026-08-04). The old-vs-new 4x4 kifu brief was re-registered as T509 in the 2026-08-20 wrap-up. This context file records the disposition; no original session reasoning survives.",
+  "method": "none — console died before work"
+}

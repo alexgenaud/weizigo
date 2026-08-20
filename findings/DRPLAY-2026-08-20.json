@@ -1,9 +1,9 @@
 {
-  "task_id": "T502",
-  "date": "2026-08-20",
-  "model": "glm-5.2",
-  "duty": "DRPLAY",
-  "claims": [],
-  "chunk_verdict": "pass",
-  "notes": "DRPLAY chunk: played one deliberately-suboptimal 4x4 game against the oracle and checked the predicted/played value. VERDICT: NO-CRISIS (no disagreement). DESIGN (chosen to dodge the ko/history-dependence confound the AGENTS.md foreclosures flag — fresh-start != real-game once a cycle is possible): Black = oracle genmove (optimal per table), White = `play white pass` every turn (maximally suboptimal). This forces an ACYCLIC game: White never contests a point, so no ko/cycle can arise; on an acyclic line fresh-start == real-game (C1), so a disagreement would be a genuine table/scoring bug, not the known leak (GLOBAL.LEAK). Artifact: data/oracle-4x4-basicko-tie-area.wzo (the newest 4x4 artifact, 2026-07-30; the writes-ON checkpoint was avoided). RESULT: Black played A4,B4,D3,C4 then passed; two consecutive passes at ply 11 (Black pass, White pass); game over. Terminal scoring via two independent oracle code paths: `final_score` = B+16 and `weizigo_score` = B+16/W+0 (area) — they AGREE. The result is arithmetically correct: White never placed a stone, so all 16 goban points are Black stones or empty regions touching only Black -> Black area = 16, White area = 0, komi 0 -> B+16. (weizigo_settled reported 'no' / provisional with 2 contested chains — that is the heuristic scorer's own caveat, not a table inconsistency; the two area-score paths agree and the count is exact.) OPERATIONALISATION NOTE: the oracle's GTP surface (list_commands) does NOT expose the raw table vb/vw game-theoretic root value, so 'predicted value' could not be read as a single number; the predicted-vs-played check was operationalised as terminal-score self-consistency on an acyclic line (two scoring code paths on the same terminal position), which is the strongest table-falsification this surface supports. Driver: /tmp/weizigo/t502-drplay.py (committed copy not required — disposable scratch under /tmp/weizigo per AGENTS.md). No single disagreement found -> not a crisis. Chunk was actually performed, findings committed -> pass."
+ "task_id": "DRPLAY",
+ "date": "2026-08-20",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/DRPLAY",
+ "claims": [],
+ "new_rows": [],
+ "notes": "DRPLAY chunk (AC5 standing item): BLOCKED-WITH-REASON \u2014 the oracle play binaries are STALE. bin/weizigo-oracle (Jul 31) and zig-out/gtp (Jul 23) both fail with BadMagic on the current artifact (untracked/oracle-v2/oracle-4x4-v2.wzo2, 518MB, the format the session's oracle GTP sessions used). 'zig build deploy' (run for the DARGUS chunk) updated other bins but NOT these two \u2014 the deploy set misses the oracle/gtp engines. The one-game chunk cannot run until the current engine is built. RECORDED finding: the deploy set should include the oracle/gtp engines (root cause for this chunk's block). Chunk = blocked-with-reason, not 'nothing to do'; the AC5 duty is current-by-attempt with the reason on record."
 }

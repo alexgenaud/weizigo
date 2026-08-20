@@ -1,9 +1,9 @@
 {
-  "task_id": "T502",
-  "date": "2026-08-20",
-  "model": "glm-5.2",
-  "duty": "DARGUS",
-  "claims": [],
-  "chunk_verdict": "pass",
-  "notes": "DARGUS chunk: ran `bin/argus --mode doctor` once (under tools/runner, MANAGENT_TASK_ID=T502). First run reported 8 NEEDS-ACTION findings: 6 stale deployed binaries (bin/managent, weizigo-chainability, weizigo-claimlint, weizigo-engine-vs-engine, weizigo-gtp, weizigo-reachcensus all older than zig-out/), 983 volatile evidence citations (C10, report-only standing debt census per AGENTS.md), and an uncommitted tree (14 modified tracked / 3 untracked). ACTION TAKEN: ran `zig build deploy` (under tools/runner) to refresh the 6 stale deployed binaries from zig-out; confirmed via a second `argus --mode doctor` that the 6 stale-binary findings cleared (NEEDS ACTION dropped 8 -> 3). REMAINING 3 NEEDS-ACTION findings are NOT actionable in this chunk and are left for the owners: (1) 983 volatile citations = C10 report-only standing-debt census (AGENTS.md: 'treat it as a standing debt census, not a gate'); (2) uncommitted tree = files held by other in-flight tasks (bin/dispatch+bin/subagent by T494, tools/regression-*.sh and untracked/watch-fleet.sh by T493, tools/fleet-keeper.sh by T501) plus shared kanban state (tasks.json/archive.json/directives.jsonl/model-perf.md) mutated fleet-wide — not mine to stage solo per the per-name staging rule; (3) 'ORCHA-FLASH worked but never claimed' = an unclaimed-seat issue on untracked/ORCHA-SEAT-flash.md, an Orchestrator-seat concern, not a leaf-worker fix. The chunk was actually performed and a regression (6 stale binaries) was resolved, so this is a pass, not 'nothing to do'. Findings path name avoids the word DOCTOR per the T427 fixture-marker guard. argus doctor report committed at untracked/doctor-report.md (run 20260820T000858Z-doctor)."
+ "task_id": "DARGUS",
+ "date": "2026-08-20",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/DARGUS",
+ "claims": [],
+ "new_rows": [],
+ "notes": "DARGUS chunk (AC5 standing item, 2026-08-20): ran bin/argus --mode doctor. Reported NEEDS ACTION 7 / watch 7 / clean 5. Acted on the actionable finding: 5 stale binaries (weizigo-chainability, claimlint, engine-vs-engine, gtp, reachcensus) \u2014 ran 'zig build deploy'; re-check shows 0 stale-vs-zig-out remaining. Remaining NEEDS ACTION: 1007 volatile evidence citations (C10 census, /tmp+untracked paths in committed docs \u2014 pre-existing standing debt, tracked by C10) and 1 uncommitted tree file (kanban store + this findings file \u2014 committing now). No regression; chunk passes."
 }

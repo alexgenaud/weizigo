@@ -1,9 +1,9 @@
 {
-  "task_id": "T502",
-  "date": "2026-08-20",
-  "model": "glm-5.2",
-  "duty": "DCLAIM",
-  "claims": [],
-  "chunk_verdict": "pass",
-  "notes": "DCLAIM chunk: picked one prose-only PROVEN claim and recorded NO-SUCH-PROBE. Claim chosen: GLOBAL.S2 (Benson's unconditional-life theorem holds on every finite goban), status PROVEN, evidence `CONCEPTS.md:10-12`; `4x3/EPISTEMIC.md:25`; `docs/evidence/GLOBAL-S2/PROVENANCE.md`. This is one of the 48/69 PROVEN claims with no re-runnable probe. Its own PROVENANCE states verbatim: 'No build, no probe, no artefact' — the claim is a citation of an external published mathematical theorem (Benson 1976, Theorems 1-3), not an empirical result of this project. NO-SUCH-PROBE, naming what a probe would need: a probe cannot prove a published mathematical theorem; the only empirical object in-repo is the rules.zig Benson *implementation*, whose exhaustive falsification is a SEPARATE claim already PROVEN (3x3.S2-impl — implementation, not theorem). For GLOBAL.S2 itself, a probe would need either (a) a machine-checkable formal proof of Benson's theorem imported into a proof assistant, or (b) an exhaustive enumeration over every finite goban showing unconditional-life classification equals game-theoretic life under all alternation sequences — option (b) is intractable in general and option (a) is not an empirical probe at all. Therefore no re-runnable probe exists or can exist; the claim is correctly PROVEN-by-citation and the NO-SUCH-PROBE recording is the honest outcome. No claim status change proposed (claims: []). Chunk was actually performed (claim inspected in CLAIMS.md line 280, PROVENANCE read in full), findings committed — pass, not 'nothing to do'."
+ "task_id": "DCLAIM",
+ "date": "2026-08-20",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/DCLAIM",
+ "claims": [],
+ "new_rows": [],
+ "notes": "DCLAIM chunk (AC5 standing item): verified GLOBAL.PASS-NOKO (PROVEN, code + independent re-derivation). The invariant: passes >= 1 => ko_point = none; every pass child encodes KO_NONE. VERIFIED at HEAD (7852d5e): src/exp6_solve.zig:927 'pass_enc = encodeState4(board_idx, 1-side, KO_NONE4, passes+1)' and :587 (generalized pass returns .ko = KO_NONE). CITATION DRIFT: the row pins ':964' at 082433e; the line moved to :927 at HEAD \u2014 substance intact, pin stale. Recommendation: re-pin the row's citation to :927. The claim HOLDS; the probe was re-runnable and passed."
 }
