@@ -70,6 +70,10 @@ git commit -qm base
 STORE="$WORK/docs/infra/managent/tasks.json"
 export MANAGENT_STORE="$STORE"
 export WEIZIGO_MODEL_PERF="$WORK/perf-ledger.txt"
+# T477: the dispatcher's heal writes to a scratch file during tests, never the
+# live heal log (2026-08-20 audit F3: the suite was appending T989/T990 heals
+# to docs/infra/dispatch-heals.jsonl).
+export WEIZIGO_DISPATCH_HEALS="$WORK/dispatch-heals.jsonl"
 export REAL_MG="$MG"
 
 # ── stub worker (honest): claims, writes+commits the deliverable, sleeps
