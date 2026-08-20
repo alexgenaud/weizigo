@@ -78,6 +78,15 @@ import json;print(' '.join(r['id'] for r in json.load(open('$S')) if r.get('stat
 done
 [ "$miss" = 0 ] && say AC10 PASS "recent closes have their findings" || say AC10 FAIL "$miss declared findings file(s) missing"
 
+# AC11 — push currency (D1 amendment, Course rev 4 ruling 5): the durability
+# mechanism is push currency — the git remote is the only off-machine home, and
+# the first push measured 887 commits stale. The seat pushes at each day's
+# close; this check WARNs when the local branch is far ahead of origin (a
+# threshold above which the off-disk copy is materially stale). The first push
+# of the backlog waits on the operator's word on repo visibility only.
+stale=$(git rev-list --count origin/main..main 2>/dev/null || echo 0)
+[ "${stale:-0}" -lt 100 ] && say AC11 PASS "push current ($stale ahead)" || say AC11 WARN "$stale commits ahead of origin/main — push at day's close (durability = push currency, ruling 5)"
+
 rm -f "$S"
 if [ "$JSON" = 1 ]; then printf '{"fail":%s,"checks":[%s]}\n' "$FAIL" "${OUT%,}"
 else printf '\n  %s\n' "$([ "$FAIL" = 0 ] && echo 'ACCEPTANCE PASS' || echo "ACCEPTANCE FAIL — $FAIL check(s)")"; fi
