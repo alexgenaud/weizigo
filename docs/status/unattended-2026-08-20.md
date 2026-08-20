@@ -70,3 +70,37 @@ Memory 32 GB free, no orphaned `zig` processes, claimlint at the floor
 The day's recurring pattern is **the measurement apparatus quietly producing the
 answer it assumed**. Before believing any number here, check what the instrument
 that produced it could not have reported.
+
+## Owed — carried forward (added 16:25 local, as the unattended run progressed)
+
+**Closed this hour:** `T542` (all four race gates green, 36/36 controls, wired into
+`zig build test`), `T545` (five store writers locked — two more than the seat's own
+survey found; 5-arm concurrency regression green with the pre-fix RED reproduced),
+`T543` (aspect races round 1 — 27/49 captured, zero tokens, annotated).
+
+**`T541` — the quiet suite-truth re-run — is OWED and must be run deliberately.**
+It closed `blocked` at 16:22 having correctly refused to run: *"Precondition failed:
+fleet busy (in_progress=3 …); suite NOT run, manifest untouched."* That is the right
+outcome, not a failure — the brief's precondition worked. But the work still needs
+doing, and it needs a **drained fleet**: set the keeper cooldown
+(`touch untracked/fleet-keeper.cooldown`), let the running rows finish, confirm
+`in_progress(0)` and no `bin/subagent` processes, reopen the row, run it alone, then
+lift the cooldown. Do **not** let the keeper pick it up again — it has no notion of
+preconditions (inventory item 14), which is why it dispatched it into a busy fleet
+in the first place.
+
+**`T546` — aspect races round 2 — unblocks the moment `T521` closes** (`T542` is
+already done). Its first instruction is to prove token capture on ONE lane before
+firing the other 25, so round 1's zero-token outcome cannot repeat. It re-runs only
+the 26 owed lane-packet combinations; round 1's 27 good results are not re-spent.
+
+**`T511` and `T535` are gated behind `T546` / `T541` on purpose** — `T511` rewrites
+the keeper script while the keeper is executing it, and `T535` is the Stage-4 history
+squash spec under a standing queued-not-dispatched directive. Both gates are honest
+"not yet" constraints wearing a `needs` edge, which is itself inventory item 14.
+
+**Two seat errors to note against the record:** a directive and a commit message were
+each mangled by shell backticks (the directive was resent clean; the commit message
+has a two-word gap and was left, since amending a pushed commit would rewrite the
+archive branch's history for cosmetics — the full text is in the inventory). And the
+seat's survey of unlocked store writers found three of five; `T545` found the rest.
