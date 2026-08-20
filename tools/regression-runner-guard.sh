@@ -25,11 +25,49 @@
 # safe on any host.
 #
 # Task: T362 · Role: worker · Model: glm-5.2 · Date: 2026-08-20
+# T512 (audit F3, 2026-08-20): run from a SCRATCH git repo so every runner
+# invocation's telemetry — heartbeats (untracked/heartbeat.jsonl), run
+# records (untracked/runs/), token tees (untracked/tokens/) — lands in
+# scratch, never the live repo's untracked/.  The runner resolves its
+# repo_root from CWD, so the scratch cd IS the isolation.  The closing
+# check scans the LIVE heartbeat.jsonl for this suite's fixture commands:
+# a fixture beat in the live file is the F3 defect class returning.
 
 set -e
 
-RUNNER="tools/runner"
-cd "$(git rev-parse --show-toplevel)"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+PROJECT="$(cd "$HERE/.." && pwd)"
+RUNNER="$PROJECT/tools/runner"
+
+mkdir -p /tmp/weizigo
+WORK="$(mktemp -d /tmp/weizigo/t362-guard-XXXXXX)" || { echo "regression-runner-guard.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+cd "$WORK"
+git init -q
+
+# ── live-telemetry baseline + closing isolation (T512, audit F3) ────────
+# The live heartbeat.jsonl is append-only and the live fleet may
+# legitimately append while this suite runs, so the closing check cannot
+# byte-compare; it snapshots the line count and scans only the lines
+# appended DURING the run for this suite's fixture commands.  The F3
+# defect was exactly fixture telemetry (T989/T990 heals) in a live log.
+LIVE_HB="$PROJECT/untracked/heartbeat.jsonl"
+LIVE_HB_BASE=$(wc -l < "$LIVE_HB" 2>/dev/null || echo 0)
+
+check_isolation() {
+    ISO_FAIL=0
+    APPENDED=$(tail -n +$((LIVE_HB_BASE + 1)) "$LIVE_HB" 2>/dev/null)
+    if [ -z "$APPENDED" ]; then
+        echo "    PASS: live heartbeat.jsonl — no lines appended during the run"
+    elif echo "$APPENDED" | grep -qE 'bytearray\(60|bytearray\(30|bytearray\(10|bytearray\(200|\[progress\] start|"command": "sleep 1"'; then
+        echo "    FAIL: fixture heartbeat line(s) appended to the LIVE heartbeat.jsonl (F3 regression)"
+        echo "$APPENDED" | grep -nE 'bytearray\(60|bytearray\(30|bytearray\(10|bytearray\(200|\[progress\] start|"command": "sleep 1"' | sed 's/^/    | /'
+        ISO_FAIL=1
+    else
+        echo "    PASS: live heartbeat.jsonl — appended lines carry no fixture data"
+    fi
+    [ "$ISO_FAIL" -eq 0 ] || exit 1
+}
+trap 'rm -rf "$WORK"; check_isolation' EXIT
 
 echo "=== regression-runner-guard: null — small job untouched with free mem ==="
 set +e

@@ -10,11 +10,49 @@
 #                    still SIGKILLed (exit 124) and reports why.
 #
 # Task: T311 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-03
+# T512 (audit F3, 2026-08-20): run from a SCRATCH git repo so every runner
+# invocation's telemetry — heartbeats (untracked/heartbeat.jsonl), run
+# records (untracked/runs/), token tees (untracked/tokens/) — lands in
+# scratch, never the live repo's untracked/.  The runner resolves its
+# repo_root from CWD, so the scratch cd IS the isolation.  The closing
+# check scans the LIVE heartbeat.jsonl for this suite's fixture commands:
+# a fixture beat in the live file is the F3 defect class returning.
 
 set -e
 
-RUNNER="tools/runner"
-cd "$(git rev-parse --show-toplevel)"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+PROJECT="$(cd "$HERE/.." && pwd)"
+RUNNER="$PROJECT/tools/runner"
+
+mkdir -p /tmp/weizigo
+WORK="$(mktemp -d /tmp/weizigo/t311-reporting-XXXXXX)" || { echo "regression-runner-reporting.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+cd "$WORK"
+git init -q
+
+# ── live-telemetry baseline + closing isolation (T512, audit F3) ────────
+# The live heartbeat.jsonl is append-only and the live fleet may
+# legitimately append while this suite runs, so the closing check cannot
+# byte-compare; it snapshots the line count and scans only the lines
+# appended DURING the run for this suite's fixture commands.  The F3
+# defect was exactly fixture telemetry (T989/T990 heals) in a live log.
+LIVE_HB="$PROJECT/untracked/heartbeat.jsonl"
+LIVE_HB_BASE=$(wc -l < "$LIVE_HB" 2>/dev/null || echo 0)
+
+check_isolation() {
+    ISO_FAIL=0
+    APPENDED=$(tail -n +$((LIVE_HB_BASE + 1)) "$LIVE_HB" 2>/dev/null)
+    if [ -z "$APPENDED" ]; then
+        echo "    PASS: live heartbeat.jsonl — no lines appended during the run"
+    elif echo "$APPENDED" | grep -qE 'bytearray\(200|"command": "sleep (0\.5|1|2)"|ReleaseSafe --help'; then
+        echo "    FAIL: fixture heartbeat line(s) appended to the LIVE heartbeat.jsonl (F3 regression)"
+        echo "$APPENDED" | grep -nE 'bytearray\(200|"command": "sleep (0\.5|1|2)"|ReleaseSafe --help' | sed 's/^/    | /'
+        ISO_FAIL=1
+    else
+        echo "    PASS: live heartbeat.jsonl — appended lines carry no fixture data"
+    fi
+    [ "$ISO_FAIL" -eq 0 ] || exit 1
+}
+trap 'rm -rf "$WORK"; check_isolation' EXIT
 
 echo "=== regression-runner-reporting: null — walker announced exactly once ==="
 WALKER_COUNT=$("$RUNNER" --no-prepend-zig -- sleep 1 2>&1 | grep -c '\[runner\] process walker:' || true)
