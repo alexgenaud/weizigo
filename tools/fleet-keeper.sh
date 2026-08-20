@@ -512,6 +512,7 @@ def main():
     })
 
     anchor_holds = set()
+    flagged = False
     if anchor is not None:
         for e in elig:
             if e["row"]["id"] == anchor:
@@ -530,15 +531,38 @@ def main():
         # (one line per anchor) and log a LOGJAM: line every iteration.
         waited = now - (parse_iso(waiting_since) or now)
         if waited >= LOGJAM_FLAG_MIN * 60:
+            flagged = True
+            held_files = ",".join(sorted(anchor_holds))
+            per_file = ",".join(f"{h}:{holder_of.get(h, '?')}" for h in sorted(anchor_holds))
             try:
-                held_files = ",".join(sorted(anchor_holds))
-                per_file = ",".join(f"{h}:{holder_of.get(h, '?')}" for h in sorted(anchor_holds))
                 with open(LOGJAM_FLAG, "w") as f:
                     f.write(f"{anchor} held={held_files} holders={per_file} waited={int(waited // 60)}min\n")
             except OSError:
                 pass
             log(f"LOGJAM: {anchor} waited {int(waited // 60)}min (>= {LOGJAM_FLAG_MIN}min) — "
                 f"held {held_files}, holders {per_file}")
+    # T514: logjam-flag lifecycle — the flag is created ONLY by the pressure
+    # state machine (a blocked anchor past FLEET_LOGJAM_FLAG minutes) and is
+    # removed the iteration that condition no longer holds: pressure exit
+    # (anchor null), re-anchor to a different id (fresh waiting_since, below
+    # threshold), or — defensively — the same anchor dropping below threshold
+    # (cannot happen while the anchor stays, since waited only grows, but the
+    # branch is correct regardless).  A loud artifact that outlives its
+    # condition (F5: a flag naming a task that is now running while
+    # pressure.json says NORMAL) trains readers to ignore it, so the flag is
+    # always reconciled to the current pressure state — never hand-planted,
+    # never left stale.  A flag the keeper did not write (hand-planted, or a
+    # leftover from a crashed previous run) is swept on the next iteration the
+    # condition is false: the keeper's own cleanup, not a manual `rm`.
+    # Telemetry only: clearing the flag dispatches nothing and never preempts a
+    # holder (the one-writer invariant, §3).  Under cooldown the flag is left
+    # untouched (the early return above) — cooldown pauses pressure, it does
+    # not reset it; the flag is reconciled when cooldown lifts.
+    if not flagged and os.path.exists(LOGJAM_FLAG):
+        try:
+            os.remove(LOGJAM_FLAG)
+        except OSError:
+            pass  # removing the flag is telemetry hygiene; never fatal.
 
     # ── §8 step 3: cap ───────────────────────────────────────────────────
     if len(running) >= c_eff:

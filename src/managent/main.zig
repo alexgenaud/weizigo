@@ -324,6 +324,18 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
     const w = Writers{ .io = io };
 
+    // T517: `models` is a pure static lookup over canonical_models[] — the
+    // single source the keeper / dispatch / subagent / watch-fleet shell out
+    // to (F7: model canonicalization was ×4 with four definitions, and the
+    // keeper's least-data picker listed only the non-Claude five, so a
+    // model-less row could never draw a Claude label).  It needs NEITHER a
+    // repo root NOR a kanban store, so it short-circuits BEFORE findRepoRoot
+    // — callable from any directory.  Safe with no store at all.
+    if (args.len >= 2 and std.mem.eql(u8, args[1], "models")) {
+        try cmdModels(w, args);
+        return;
+    }
+
     const repo_root = try findRepoRoot(w, io);
     defer alloc.free(repo_root);
 
@@ -3686,7 +3698,7 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
 
     // T446: the board consults the assertion ledger — a `closed` assertion
     // supersedes tasks.json's status for rendering.
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
 
     if (use_json) {
@@ -4263,7 +4275,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     // evidence is.  Degrades to "-- none --" on a fresh clone (no
     // untracked/runs/, no heartbeat file).
     {
-        var ledger_res = readLedgerStatuses(io, repo_root);
+        var ledger_res = readLedgerStatuses(io, state_path);
         defer freeLedgerStatuses(&ledger_res);
         var heartbeats_res = readHeartbeats(w, io, repo_root) catch std.ArrayList(Heartbeat).empty;
         defer {
@@ -4529,7 +4541,7 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 
     var state = try readState(io, state_path);
     defer freeState(&state);
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
 
     const now = try nowTimestamp();
@@ -4744,7 +4756,7 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     // T446: `next` consults the assertion ledger — a row whose latest
     // assertion is `closed` is finished and must never be handed out, even
     // though tasks.json still stores it as dispatchable.
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
 
     var candidate_id: ?[]const u8 = null;
@@ -4788,6 +4800,7 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 }
 
 fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root; // T518: the assertion ledger is now derived from state_path.
     if (args.len < 3) {
         w.diag("usage: managent show <id>\n", .{});
         std.process.exit(1);
@@ -4804,7 +4817,7 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 
     // T497: the assertion ledger is an annotation (history) only — it never
     // overrides the kanban-store status shown on the first line below.
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
 
     // ── stdout: the data ──
@@ -4952,6 +4965,37 @@ fn cmdWhoami(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8)
 
     const ident = try agentIdentifier(ts, id);
     w.data("{s}\n", .{ident});
+}
+
+// ── T517: canonical model list — the single source of truth ───────────────
+// Exposes canonical_models[] as a queryable verb so the keeper (and dispatch,
+// subagent, watch-fleet) can `managent models` / `managent models --json`
+// instead of maintaining a second copy that drifts (F7 measured four
+// definitions).  Pure static: no kanban store read, no migration — main()
+// short-circuits this verb before the migration block, so it is safe to call
+// with no store at all (MANAGENT_STORE may point at a nonexistent path).
+fn cmdModels(w: Writers, args: [][]const u8) !void {
+    const use_json = hasFlag(args, "--json");
+    if (use_json) {
+        // One JSON array, canonical order, machine-readable.  Labels carry
+        // only [a-z0-9.:-] but go through writeJsonString for the project's
+        // own discipline (every JSON string is escaped, no raw quotes).
+        var buf: std.ArrayList(u8) = .empty;
+        defer buf.deinit(alloc);
+        try buf.append(alloc, '[');
+        for (canonical_models, 0..) |m, i| {
+            if (i > 0) try buf.append(alloc, ',');
+            try writeJsonString(&buf, m);
+        }
+        try buf.append(alloc, ']');
+        try buf.append(alloc, '\n');
+        w.data("{s}", .{buf.items});
+    } else {
+        // One label per line — the shape `while read m` consumes.
+        for (canonical_models) |m| {
+            w.data("{s}\n", .{m});
+        }
+    }
 }
 
 fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
@@ -5232,6 +5276,7 @@ fn printHelp(w: Writers) void {
         \\  managent amend <id>        append a correction record (verdict + note) to a done/failed task
         \\  managent amend <id> --post-close <text>  record a follow-up against a done row (verdict untouched)
         \\  managent retire <id> --note <epitaph>  archive a row (any status) with a one-line epitaph (archive, never delete)
+        \\  managent models [--json]   print the canonical model list (T317 single source; --json for machine output)
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent assert <row> <status> [--note]  assert a row's status to the assertion ledger (T441)
@@ -5329,6 +5374,12 @@ const DIRECTIVES_FILE = "docs/infra/managent/directives.jsonl";
 
 // ── assertion ledger (T426/T441) ────────────────────────────────────────────
 
+// T518/F9: the assertion ledger's DEFAULT location, relative to repo_root,
+// is `docs/infra/assertion-ledger/assertions.jsonl` — a sibling of the
+// default store (`docs/infra/managent/tasks.json`).  The actual path is now
+// derived from the store (assertionLedgerPath) so a MANAGENT_STORE scratch
+// override relocates the ledger too; this constant documents the default
+// layout and is kept for readers that still reason about the on-disk tree.
 const ASSERTIONS_FILE = "docs/infra/assertion-ledger/assertions.jsonl";
 
 const Assertion = struct {
@@ -5472,8 +5523,23 @@ fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) 
 
 // ── assertion ledger (T426/T441) ────────────────────────────────────────────
 
-fn appendAssertion(w: Writers, io: std.Io, repo_root: []const u8, a: Assertion) !void {
-    const path = try std.fs.path.join(alloc, &.{ repo_root, ASSERTIONS_FILE });
+/// T518/F9: derive the assertion-ledger path from the store (state_path),
+/// not from repo_root.  The default store lives at
+/// `<repo_root>/docs/infra/managent/tasks.json` and the default ledger at the
+/// sibling `<repo_root>/docs/infra/assertion-ledger/assertions.jsonl`; deriving
+/// the ledger as `dirname(state_path)/../assertion-ledger/assertions.jsonl`
+/// preserves that default layout AND relocates the ledger alongside the store
+/// when MANAGENT_STORE points at a scratch path.  Before this, `assert` wrote
+/// to `repo_root/...` unconditionally — a scratch store's assertion leaked into
+/// the live repo's ledger.  The reader (readLedgerStatuses) uses the same
+/// derivation so a scratch assertion is read back from the scratch ledger.
+fn assertionLedgerPath(state_path: []const u8) ![]const u8 {
+    const dir = std.fs.path.dirname(state_path) orelse ".";
+    return try std.fs.path.join(alloc, &.{ dir, "..", "assertion-ledger", "assertions.jsonl" });
+}
+
+fn appendAssertion(w: Writers, io: std.Io, state_path: []const u8, a: Assertion) !void {
+    const path = try assertionLedgerPath(state_path);
     defer alloc.free(path);
 
     const dirname = std.fs.path.dirname(path) orelse ".";
@@ -5574,9 +5640,9 @@ const LedgerStatuses = std.StringHashMapUnmanaged(LedgerStatus);
 /// Read the assertion ledger and keep, per object, only the LATEST assertion
 /// (append-only: a later line supersedes an earlier one).  Returns an empty
 /// map when the ledger file is missing (null arm — behaviour unchanged).
-fn readLedgerStatuses(io: std.Io, repo_root: []const u8) LedgerStatuses {
+fn readLedgerStatuses(io: std.Io, state_path: []const u8) LedgerStatuses {
     var map: LedgerStatuses = .{};
-    const path = std.fs.path.join(alloc, &.{ repo_root, ASSERTIONS_FILE }) catch return map;
+    const path = assertionLedgerPath(state_path) catch return map;
     defer alloc.free(path);
 
     const content = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch |err| {
@@ -6421,7 +6487,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
     // T464: audit classifies every row through the same resolver as the board
     // — a closed assertion is done, a dispatchable assertion is dispatchable.
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
 
     // Collect git ls-files for checking deliverables
@@ -7726,6 +7792,7 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 // absence of an assertion is UNKNOWN, never "none".
 
 fn cmdAssert(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root; // T518: the assertion ledger is now derived from state_path.
     if (args.len < 4) {
         w.diag("usage: managent assert <row> <status> [--note <text>]\n", .{});
         w.diag("  status: dispatchable | in_progress | done | absorbed | recommended-close | closed\n", .{});
@@ -7777,7 +7844,7 @@ fn cmdAssert(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     // Write assertion under the same lock as the kanban
     try lockStore(io, state_path);
     defer unlockStore();
-    appendAssertion(w, io, repo_root, a) catch |err| {
+    appendAssertion(w, io, state_path, a) catch |err| {
         w.diag("  FAILED: assertion not written ({s}) — nothing was appended to the ledger\n", .{@errorName(err)});
         std.process.exit(1);
     };
@@ -8025,7 +8092,7 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
 
     // T464: liveness consults the assertion ledger through the same resolver
     // as every other view — a closed-asserted row is not a live claim.
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
 
     // T370 (2026-08-06): staleness threshold in minutes.  Default 5;
@@ -8167,7 +8234,7 @@ fn cmdReap(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 
     var state = try readState(io, state_path);
     defer freeState(&state);
-    var ledger = readLedgerStatuses(io, repo_root);
+    var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
     var heartbeats = try readHeartbeats(w, io, repo_root);
     defer {

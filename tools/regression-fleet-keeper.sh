@@ -709,6 +709,110 @@ else
   echo "    FAIL: expected logjam flag + none (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && sed 's/^/    flag: /' "$WORK/untracked/fleet-keeper.logjam.flag"; FAIL=1
 fi
 
+# ── T514 arm g2: logjam flag cleared on pressure exit (F5 lifecycle) ──────
+# F5: the flag is written but never removed when pressure exits, so it
+# persists stale (naming a task that is now running while pressure.json
+# says NORMAL).  The flag must be cleared by the keeper's own state machine
+# the iteration the anchor is released (anchor → null), never hand-pruned.
+echo "  g2. seeded: flag written under pressure → holder completes → pressure exits → flag removed (F5)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+reset_keeper_state
+OLD=$(python3 -c 'import datetime;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=61)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+seed_pressure T100 0 "$OLD" R1
+export FLEET_LOGJAM_FLAG=60
+# iter 1: T100 blocked by R1, waited 61min → flag written, nothing dispatched.
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && grep -q "T100" "$WORK/untracked/fleet-keeper.logjam.flag"; then
+  echo "    PASS: iter 1 wrote the flag naming T100 (blocked, waited 61min)"
+else
+  echo "    FAIL: g2 iter 1 expected flag naming T100 (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && sed 's/^/    flag: /' "$WORK/untracked/fleet-keeper.logjam.flag"; FAIL=1
+fi
+# iter 2: R1 completes → T100 frees and dispatches, pressure exits → flag removed.
+set_row_status R1 done
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+unset FLEET_LOGJAM_FLAG
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T100 " && [ ! -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && [ "$(pressure_field anchor)" = "" ]; then
+  echo "    PASS: iter 2 pressure exited → T100 dispatched, flag removed, anchor null"
+else
+  echo "    FAIL: g2 iter 2 expected T100 dispatched + flag gone + anchor null (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && { echo "    stale flag still present:"; sed 's/^/    flag: /' "$WORK/untracked/fleet-keeper.logjam.flag"; }; echo "    anchor=$(pressure_field anchor)"; FAIL=1
+fi
+
+# ── T514 arm g3: logjam flag cleared on re-anchor (stale old-anchor flag) ─
+# Re-anchor (a different task becomes the blocked next) releases the old
+# anchor; its flag names the old anchor and is now stale.  The keeper must
+# clear it — the new anchor's fresh waiting_since is below threshold, so no
+# new flag is written this iteration either.
+echo "  g3. seeded: flag names old anchor → old anchor model-denied, new blocked next → re-anchor clears stale flag"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec R2 in_progress A 2026-08-20T00:00:01Z "" glm-5.2 false b)',
+  '$(task_rec T100 dispatchable A 2026-08-20T00:01:00Z "" kimi-k2.7 false a)',
+  '$(task_rec T200 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false b)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T100 findings/T100.json 99
+seed_bundle T200 findings/T200.json 90
+reset_keeper_state
+OLD=$(python3 -c 'import datetime;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=61)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+seed_pressure T100 0 "$OLD" R1,R2
+export FLEET_LOGJAM_FLAG=60
+# iter 1: no deny → T100 (kimi) blocked by R1, waited 61min → flag written naming T100.
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && grep -q "T100" "$WORK/untracked/fleet-keeper.logjam.flag"; then
+  echo "    PASS: iter 1 wrote the flag naming T100 (blocked, waited 61min)"
+else
+  echo "    FAIL: g3 iter 1 expected flag naming T100 (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -f "$WORK/untracked/fleet-keeper.logjam.flag" ] && sed 's/^/    flag: /' "$WORK/untracked/fleet-keeper.logjam.flag"; FAIL=1
+fi
+# iter 2: deny kimi → T100 leaves eligible; T200 (glm, holds b, blocked by R2) is the new blocked next → re-anchor.
+export FLEET_MODEL_DENY="kimi-k2.7"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+unset FLEET_MODEL_DENY FLEET_LOGJAM_FLAG
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ ! -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && [ "$(pressure_field anchor)" = "T200" ]; then
+  echo "    PASS: iter 2 re-anchored to T200 → stale T100 flag removed, no new flag (waited < 60min)"
+else
+  echo "    FAIL: g3 iter 2 expected re-anchor T200 + flag gone (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && { echo "    stale flag still present:"; sed 's/^/    flag: /' "$WORK/untracked/fleet-keeper.logjam.flag"; }; echo "    anchor=$(pressure_field anchor)"; FAIL=1
+fi
+
+# ── T514 arm g4: a hand-planted/stale flag is swept on a NORMAL iteration ─
+# "never hand-planted": a flag the keeper did not write (hand-planted, or a
+# leftover from a crashed previous run) is removed by the keeper's own sweep
+# on the next iteration the pressure condition is false — not a manual `rm`.
+echo "  g4. seeded: a hand-planted flag is swept on a NORMAL iteration (never hand-planted)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+# Hand-plant a stale flag the pressure state machine never produced.
+printf 'T999 hand-planted stale flag waited=999min\n' > "$WORK/untracked/fleet-keeper.logjam.flag"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T1 " && [ ! -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && [ "$(pressure_field anchor)" = "" ]; then
+  echo "    PASS: hand-planted flag swept on a NORMAL iteration; T1 dispatched normally"
+else
+  echo "    FAIL: g4 expected hand-planted flag removed + T1 dispatched (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; [ -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && echo "    stale flag still present"; echo "    anchor=$(pressure_field anchor)"; FAIL=1
+fi
+
 # ── T501 §13 arm h: waiting=1 outranks priority (the bump) ───────────────
 echo "  h. seeded: waiting=1 outranks priority; a bumped blocked task anchors pressure"
 # h0: nothing blocked → the waiting task is next despite lower priority
