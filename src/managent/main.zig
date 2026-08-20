@@ -445,6 +445,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdAmend(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "sync")) {
         try cmdSync(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "holds")) {
+        try cmdHolds(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "tell")) {
         try cmdTell(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "assert")) {
@@ -624,9 +626,20 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
             result.set = value[0];
             set_found = true;
         } else if (std.mem.eql(u8, key, "holds")) {
+            // T539: holds= is comma-separated (like needs).  The old code stored
+            // the whole value as ONE element, so a two-file hold became
+            // ["a.zig,b.zig"] and the one-writer check compared against a string
+            // no real file name could equal — vacuous by construction.
             if (value.len > 0) {
-                result.holds = try alloc.alloc([]const u8, 1);
-                result.holds[0] = try alloc.dupe(u8, value);
+                var holds_list = std.ArrayList([]const u8).empty;
+                var holds_split = std.mem.splitScalar(u8, value, ',');
+                while (holds_split.next()) |h| {
+                    const trimmed = std.mem.trim(u8, h, " \t");
+                    if (trimmed.len > 0) {
+                        try holds_list.append(alloc, try alloc.dupe(u8, trimmed));
+                    }
+                }
+                result.holds = try holds_list.toOwnedSlice(alloc);
             }
         } else if (std.mem.eql(u8, key, "needs")) {
             if (value.len > 0) {
@@ -702,6 +715,146 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
     }
 
     return result;
+}
+
+/// T539: parse a comma-separated holds list (the `--holds a,b` flag and the
+/// `holds=` bundle key share this).  Empty items are dropped; the result is a
+/// list of dupe'd strings owned by the page allocator.
+fn parseHoldsList(list: []const u8) ![][]const u8 {
+    var out = std.ArrayList([]const u8).empty;
+    var split = std.mem.splitScalar(u8, list, ',');
+    while (split.next()) |h| {
+        const trimmed = std.mem.trim(u8, h, " \t");
+        if (trimmed.len > 0) {
+            try out.append(alloc, try alloc.dupe(u8, trimmed));
+        }
+    }
+    return out.toOwnedSlice(alloc);
+}
+
+/// T539: merge `--holds a,b` into a parsed BundleMeta, deduplicating against
+/// what the bundle header already declared (header first, flag as fallback).
+fn mergeHoldsFlag(meta: *BundleMeta, holds_flag: ?[]const u8) !void {
+    const hf = holds_flag orelse return;
+    const flag_holds = try parseHoldsList(hf);
+    var merged = std.ArrayList([]const u8).empty;
+    for (meta.holds) |h| try merged.append(alloc, h);
+    for (flag_holds) |h| {
+        var dup = false;
+        for (meta.holds) |oh| {
+            if (std.mem.eql(u8, oh, h)) {
+                dup = true;
+                break;
+            }
+        }
+        if (!dup) try merged.append(alloc, try alloc.dupe(u8, h));
+    }
+    meta.holds = try merged.toOwnedSlice(alloc);
+}
+
+/// T539: read the `holds=` list out of a bundle header WITHOUT the exit(1)
+/// behavior of parseBundleMeta (used by `holds --sync` and the claim/next
+/// vacuous-case guard, which must survive a malformed or missing bundle).
+/// Returns null when the file is unreadable or declares no `holds=` key.
+fn readBundleHolds(io: std.Io, bundle_abs: []const u8) ?[][]const u8 {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch return null;
+    defer alloc.free(content);
+
+    const marker = "<!--managent ";
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    var line_count: usize = 0;
+    var meta_line: ?[]const u8 = null;
+    while (lines.next()) |line| : (line_count += 1) {
+        if (line_count >= 50) break;
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (std.mem.startsWith(u8, trimmed, marker)) {
+            meta_line = trimmed;
+            break;
+        }
+    }
+    const ml = meta_line orelse return null;
+
+    const key = "holds=";
+    const idx = std.mem.indexOf(u8, ml, key) orelse return null;
+    const val_start = idx + key.len;
+    // Value runs to the next whitespace (or end of line/comment).
+    var val_end = val_start;
+    while (val_end < ml.len and ml[val_end] != ' ' and ml[val_end] != '\t' and ml[val_end] != '\r') : (val_end += 1) {}
+    if (val_end == val_start) return null;
+    var value = std.mem.trim(u8, ml[val_start..val_end], " \t\r");
+    // The header is an HTML comment; when holds= is the last key (no trailing
+    // space before -->) the terminator lands inside the value.  Strip it.
+    if (std.mem.endsWith(u8, value, "-->")) {
+        value = value[0 .. value.len - 3];
+    }
+    value = std.mem.trim(u8, value, " \t\r");
+    if (value.len == 0) return null;
+    return parseHoldsList(value) catch null;
+}
+
+/// T539: like findBundle, but returns null instead of exiting — `holds --sync`
+/// and the vacuous-case guard must not die on a row whose bundle is gone.
+fn findBundleOrNull(io: std.Io, repo_root: []const u8, id: []const u8) ?[]const u8 {
+    const untracked_path = std.fs.path.join(alloc, &.{ repo_root, "untracked" }) catch return null;
+    defer alloc.free(untracked_path);
+
+    var dir = std.Io.Dir.cwd().openDir(io, untracked_path, .{}) catch return null;
+    defer dir.close(io);
+
+    const prefix = std.fmt.allocPrint(alloc, "{s}-", .{id}) catch return null;
+    defer alloc.free(prefix);
+
+    var candidates = std.ArrayList([]const u8).empty;
+    defer {
+        for (candidates.items) |c| alloc.free(c);
+        candidates.deinit(alloc);
+    }
+
+    var iter = dir.iterate();
+    while (iter.next(io) catch return null) |entry| {
+        if (entry.kind != .file) continue;
+        if (std.mem.startsWith(u8, entry.name, prefix) and std.mem.endsWith(u8, entry.name, ".md")) {
+            candidates.append(alloc, alloc.dupe(u8, entry.name) catch return null) catch return null;
+        }
+    }
+    if (candidates.items.len == 0) return null;
+
+    std.mem.sort([]const u8, candidates.items, {}, struct {
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
+    }.lt);
+
+    return std.fs.path.join(alloc, &.{ repo_root, "untracked", candidates.items[0] }) catch null;
+}
+
+/// T539: resolve a row's bundle to an absolute path, preferring the live glob
+/// (untracked/<id>-*.md, the same glob registration uses) over the stored
+/// `bundle` field (which can be absolute or stale).
+fn bundleAbsFor(io: std.Io, repo_root: []const u8, id: []const u8, bundle: []const u8) ?[]const u8 {
+    if (findBundleOrNull(io, repo_root, id)) |found| return found;
+    if (bundle.len == 0) return null;
+    if (std.fs.path.isAbsolute(bundle)) return bundle;
+    return std.fs.path.join(alloc, &.{ repo_root, bundle }) catch null;
+}
+
+/// T539: the holds the one-writer check should actually use for a row about to
+/// be claimed.  When the store's holds is non-empty it is authoritative.  When
+/// it is EMPTY but the bundle header declares holds, the registration path
+/// dropped them — the invariant's input is missing, so we must say so rather
+/// than silently return "no conflict".  Warn on stderr naming the row and the
+/// files, and use the bundle's declaration for the check so the mechanism is
+/// not blind.  (The permanent fix is `managent holds --sync`.)
+fn effectiveHolds(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8, ts: TaskState) [][]const u8 {
+    if (ts.holds.len > 0) return ts.holds;
+    const abs = bundleAbsFor(io, repo_root, id, ts.bundle) orelse return ts.holds;
+    const declared = readBundleHolds(io, abs) orelse return ts.holds;
+    if (declared.len == 0) return ts.holds;
+    w.diag("  warning: {s} declares holds in its bundle but the store row has none", .{id});
+    w.diag(" (registration gap — one-writer check is using the bundle's holds)", .{});
+    for (declared) |h| w.diag(" {s}", .{h});
+    w.diag("\n  run 'managent holds --sync' to reconcile the store\n", .{});
+    return declared;
 }
 
 // ── state file ──────────────────────────────────────────────────────────────
@@ -1543,7 +1696,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const use_auto = hasFlag(args, "--auto");
 
     if (!use_auto and args.len < 3) {
-        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>] [--model <name>] [--note <text>]\n", .{});
+        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>] [--holds a,b] [--model <name>] [--note <text>]\n", .{});
         w.diag("       managent add --auto --bundle <path>  (mint opaque T<N> ID)\n", .{});
         std.process.exit(1);
     }
@@ -1555,6 +1708,11 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const set_override = getFlagValue(args, "--set");
     const needs_extra = getFlagValue(args, "--needs");
     const model_flag = getFlagValue(args, "--model");
+    // T539: --holds a,b is the explicit writer for rows whose bundle header
+    // does not carry holds= (or has none yet).  Merged with the bundle's own
+    // declaration, deduplicated — the bundle stays the author's source of
+    // truth, the flag is the fallback.
+    const holds_flag = getFlagValue(args, "--holds");
     // T478: --duty marks the row a duty at registration (meta `duty` key is
     // the bundle-carried alternative; either one sets the stored flag).
     const duty_flag = hasFlag(args, "--duty");
@@ -1612,7 +1770,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         };
         defer alloc.free(bundle_path);
 
-        const meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+        var meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+        try mergeHoldsFlag(&meta, holds_flag);
 
         const tmp_for_needs = TaskState{ .needs = meta.needs };
         const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
@@ -1698,7 +1857,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const owned_bundle = bundle_override == null;
     defer if (owned_bundle) alloc.free(bundle_path);
 
-    const meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+    var meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+    try mergeHoldsFlag(&meta, holds_flag);
 
     const tmp_for_needs = TaskState{ .needs = meta.needs };
     const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
@@ -1832,7 +1992,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 std.process.exit(1);
             }
 
-            if (holdsConflict(state, ts_ptr.holds, id)) |holder| {
+            if (holdsConflict(state, effectiveHolds(w, io, repo_root, id, ts_ptr.*), id)) |holder| {
                 w.diag("\n  REJECTED: holds conflict on file — {s} is in progress\n", .{holder});
                 std.process.exit(1);
             }
@@ -1894,7 +2054,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 std.process.exit(1);
             }
 
-            if (holdsConflict(state, ts_ptr.holds, id)) |holder| {
+            if (holdsConflict(state, effectiveHolds(w, io, repo_root, id, ts_ptr.*), id)) |holder| {
                 w.diag("\n  REJECTED: holds conflict on file — {s} is in progress\n", .{holder});
                 std.process.exit(1);
             }
@@ -1963,6 +2123,13 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
         w.diag("error: task '{s}' not found\n", .{id});
         std.process.exit(1);
     };
+
+    // T539: a dispatch whose bundle declares holds= but whose store row is
+    // empty is the vacuous-case blind spot — the one-writer invariant would
+    // compare empty sets and always pass.  effectiveHolds warns loudly on
+    // stderr naming the row and files; enforcement happens at claim/next.
+    const repo_root = try findRepoRoot(w, io);
+    _ = effectiveHolds(w, io, repo_root, id, ts_ptr.*);
 
     if (ts_ptr.status == .done) {
         w.diag("warning: {s} is already done; recording the dispatch anyway\n", .{id});
@@ -4770,7 +4937,7 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         // and a dispatchable assertion re-queues a stored-in_progress row.
         if (resolveStatus(&state, ts, &ledger, entry.key_ptr.*).status != .dispatchable) continue;
         if (phaseGate(state, ts.set)) continue;
-        if (holdsConflict(state, ts.holds, entry.key_ptr.*) != null) continue;
+        if (holdsConflict(state, effectiveHolds(w, io, repo_root, entry.key_ptr.*, ts), entry.key_ptr.*) != null) continue;
         candidate_id = entry.key_ptr.*;
         break;
     }
@@ -6475,6 +6642,98 @@ fn getEventGen(state: *StateMap) u64 {
         count += 1;
     }
     return count;
+}
+
+// ── holds --sync — reconcile the store's holds= field with bundle headers ──
+
+/// T539: order-insensitive equality for two holds lists (the one-writer check
+/// compares memberships, not ordering).
+fn holdsListsEqual(a: [][]const u8, b: [][]const u8) bool {
+    if (a.len != b.len) return false;
+    for (a) |x| {
+        var found = false;
+        for (b) |y| {
+            if (std.mem.eql(u8, x, y)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) return false;
+    }
+    return true;
+}
+
+fn cmdHolds(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 3 or !std.mem.eql(u8, args[2], "--sync")) {
+        w.diag("usage: managent holds --sync\n", .{});
+        w.diag("       reads every row's bundle header holds= and fills the store,\n", .{});
+        w.diag("       printing each change; idempotent; covers done/failed rows.\n", .{});
+        std.process.exit(1);
+    }
+
+    // T539: bundle headers are the author's source of truth; the store's
+    // holds= field is the cache.  This command rebuilds the cache.  Lock →
+    // read → modify → writeLocked → unlock (same lost-update pattern as add).
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    var updated: u32 = 0;
+    var unchanged: u32 = 0;
+    var no_bundle: u32 = 0;
+    var no_declared: u32 = 0;
+
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        if (std.mem.eql(u8, entry.key_ptr.*, "_sys")) continue;
+        const id = entry.key_ptr.*;
+        const ts = entry.value_ptr.*;
+
+        const abs = bundleAbsFor(io, repo_root, id, ts.bundle) orelse {
+            no_bundle += 1;
+            continue;
+        };
+        const declared = readBundleHolds(io, abs) orelse {
+            // No holds= key (or unreadable header).  Leave the store row as-is:
+            // the author simply declared no holds, and a --holds flag may have
+            // been the writer instead.  Never silently clear.
+            no_declared += 1;
+            continue;
+        };
+
+        if (holdsListsEqual(ts.holds, declared)) {
+            unchanged += 1;
+            continue;
+        }
+
+        // Print the diff, then write.  The bundle wins — it is the source of
+        // truth; the store field is what was missing.
+        w.data("holds: {s} ", .{id});
+        if (ts.holds.len == 0) {
+            w.data("[]", .{});
+        } else {
+            w.data("[", .{});
+            for (ts.holds, 0..) |h, hi| {
+                if (hi > 0) w.data(",", .{});
+                w.data("{s}", .{h});
+            }
+            w.data("]", .{});
+        }
+        w.data(" -> [", .{});
+        for (declared, 0..) |h, hi| {
+            if (hi > 0) w.data(",", .{});
+            w.data("{s}", .{h});
+        }
+        w.data("]\n", .{});
+
+        entry.value_ptr.holds = declared;
+        updated += 1;
+    }
+
+    if (updated > 0) {
+        try writeStateLocked(io, state_path, &state);
+    }
+    w.data("holds --sync: {d} updated, {d} unchanged, {d} no-bundle, {d} no-declared-holds\n", .{ updated, unchanged, no_bundle, no_declared });
 }
 
 // ── 2. audit — cross-check kanban against reality ───────────────────────────
