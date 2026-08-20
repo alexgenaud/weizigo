@@ -71,6 +71,45 @@ epoch stay valid *as that epoch*; nothing is rewritten.
 Each generation phase: byte-identical brief per lane, isolated worktree, `tools/runner` trailer
 captured, lane output committed to the race directory before any grading.
 
+### Sequential lanes and time-shifting — RULED 2026-08-20 (operator's question, answered)
+
+The operator asked whether all models race the *exact same* task — spec, scope, design, plan,
+audit, acceptance tests, unit tests — and observed that *"these do not need to be run in parallel
+as long as the results are unique and isolated."*
+
+**Both halves are correct, and the second has a consequence worth stating.**
+
+1. **Same task, byte-identical.** That is the design above and it is enforced, not merely
+   intended: `tools/bakeoff.sh` writes one `prompt.txt` and records its SHA-256, and every lane
+   receives those exact bytes. The aspect races (§7b) add a **frozen fixture store** so each lane
+   also sees identical *platform* state — the confound the races exist to kill, since no two
+   seats ever inherited the same repo.
+2. **Parallelism is not required for validity, and the harness already agrees.** `bakeoff.sh`
+   runs lanes **sequentially by default** — "deterministic, no shared-credential contention".
+   Sequential is not merely acceptable, it is *better* for the mechanical anchors: concurrent
+   lanes contend for CPU, RAM and credentials, so their wall/CPU/RSS numbers stop being
+   comparable. Measured today: eight concurrent fleet dispatches make every timing on those rows
+   non-comparable, which is why they are fleet rows and not race lanes.
+3. **Therefore time-shifting a lane is legitimate.** Because the brief is byte-pinned and the
+   fixture is frozen, a lane run at 15:45 is comparable with one run at 14:20. This is the
+   answer to the Claude 5-hour token window: a Claude lane may simply **wait for the reset**
+   with no loss of validity. Pause and resume cost nothing but clock.
+4. **The one thing that does NOT survive time-shifting or concurrency: throughput.** Wall-clock,
+   CPU and cost-per-second comparisons require comparable load conditions. So:
+   **quality and correctness anchors are time-shift-safe; latency anchors are not.** Every record
+   must carry its timestamp and roster epoch (already required, §2) *and* a note of what else was
+   running, or its timing anchor is uninterpretable. A latency ranking assembled across different
+   load conditions is a low-confidence result and is labelled as such, exactly like the
+   panel-only Claude-vs-Claude orderings.
+
+**Scope note, so the two races are not confused.** The seven sealed packets running now (§7b) are
+*orchestration* aspects — triage, verdict discipline, inbox handling, crash recovery, dispatch
+authoring, plus epistemic prior-art mapping and formal precision. They do **not** cover
+spec/design authoring, audit authoring, or test authoring. Those are **P1–P4.5 above** (and task
+types T-E, T-A, T-B in `model-task-matrix.md`), which are gated on the P0 prerequisites — of
+which, measured 2026-08-20, only G5 was implemented (see `T542`). So the authoring comparison the
+operator described is the **grand race**, not the aspect races in flight today.
+
 | phase | every model independently… | sees | graded how |
 |---|---|---|---|
 | **P0 gate** | — (prerequisites, §4) | — | mechanical: all P0 rows green |

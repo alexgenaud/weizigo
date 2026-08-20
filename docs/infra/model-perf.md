@@ -3796,3 +3796,53 @@ measurement apparatus quietly producing the answer it assumed.
 Review when the aspect races return per-aspect data; the races, not this note, are the authority.
 dispatch-verify 2026-08-20 T540 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-20 T538 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T519 claude-haiku-4-5-20251001 report=success verified=fail fail=deliverables
+dispatch-verify 2026-08-20 T534 claude-sonnet-5 report=success verified=pass
+dispatch-verify 2026-08-20 T537 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T544 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T512 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429
+dispatch-verify 2026-08-20 T532 claude-fable-5 report=success verified=pass
+dispatch-verify 2026-08-20 - deepseek-v4-flash report=bare verified=fail fail=deliverables
+dispatch-verify 2026-08-20 T545 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T527 claude-fable-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T529 claude-opus-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 - deepseek-v4-flash report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 T543 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T542 deepseek-v4-pro report=incomplete verified=fail fail=row
+
+<!-- CORRECTION — 2026-08-20, Orchestrator seat: T527/T529 rc=124, cause NOT established -->
+**DO NOT SCORE (2026-08-20, Orchestrator seat).** These two lines —
+
+    dispatch-verify 2026-08-20 T527 claude-fable-5 report=incomplete verified=fail fail=row
+    dispatch-verify 2026-08-20 T529 claude-opus-5  report=incomplete verified=fail fail=row
+
+**must not be counted against fable or opus pending diagnosis.** Both exited
+`rc=124` (a timeout code) at 869.9 s and 894.0 s, and **no runner guard was
+exceeded**: wall budget 3600 s, CPU fallback 3600 s, measured cumulative CPU only
+~8 s (T527) and ~91 s (T529), peak RSS far under the 12288 MB cap. So the harness
+did not kill them. The logs contain no provider error text, so `T538`'s
+provider-refusal classifier does not match either.
+
+What is known: two Claude sessions on the two most expensive Claude models died at
+a timeout code, ~14–15 minutes in, while the account stood at **85 % of its
+5-hour window with ~30 minutes to reset**. Meanwhile fable completed `T532`
+(exit 0, 663 s) and haiku completed `T519` (exit 0, 425 s) in the same period, so
+this is not a blanket Claude outage.
+
+**Two seat theories were tested and BOTH FAILED — recorded so nobody re-derives
+them.** (1) *"`--output-format text` buffers all output, so a >600 s task trips the
+600 s progress watchdog"* — refuted: `T532` ran 663 s and survived; and the
+watchdog fires on absent `[progress]` marker lines, which no Claude session emits,
+so the fallback (wall/CPU) governs instead. (2) *"cumulative CPU across children
+hit the 3600 s fallback"* — refuted by the trailers above (~8 s and ~91 s).
+
+Most likely remaining candidate, **unverified**: a Claude-side usage/rate limit or
+an internal session timeout surfacing as `rc=124` without an error line reaching
+the captured log. Handed to `T538` (which owns outcome classification) to
+establish or rule out, with the rule that an infrastructure death is recorded
+`verified=unreached reason=<…>`, never as a model score. Until then these two rows
+are **unattributed, not failed** — the honest state.
+
+This matters more than two rows: fable and opus are two of the four lanes in the
+operator's critical comparison, and a mis-scored infrastructure death is precisely
+the `T538` defect class reappearing in a form the classifier cannot yet see.

@@ -1,7 +1,0 @@
-#!/bin/sh
-# Backward-compat wrapper: weizigo-claimlint absorb.
-# T440: resolve from this script's directory — the original exec'd a relative
-# "bin/weizigo-claimlint" and worked only from the repo root.
-HERE=$(cd "$(dirname "$0")" && pwd)
-echo "weizigo-absorb: use weizigo-claimlint absorb" >&2
-exec "$HERE/weizigo-claimlint" absorb "$@"
