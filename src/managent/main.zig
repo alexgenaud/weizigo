@@ -2344,6 +2344,100 @@ fn deliverableVerdict(io: std.Io, repo_root: []const u8, d: []const u8) Delivera
     return .{ .ok = false, .reason = "missing" };
 }
 
+/// T485: the absorption done-gate (absorption-spec §4, §13 task 3). Runs
+/// claimlint `c7 --json` (the machine-readable C7 report, one object per
+/// findings file) and takes the C7 verdict scoped to the closing task's
+/// files — the close is refused while any of ITS files is non-conforming or
+/// carries an unabsorbed proposal. The count is claimlint's own: this
+/// function consumes the JSON, it does not reimplement the comparison
+/// (the T294 rule made mechanical). Exit 3 (register unreadable) refuses
+/// the close as an infrastructure fault, the same posture as the pre-commit
+/// hook's hard requirement on a runnable claimlint.
+fn refuseIfUnabsorbed(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8) void {
+    const result = std.process.run(alloc, io, .{
+        .argv = &.{ "bin/weizigo-claimlint", "c7", "--json" },
+        .cwd = .{ .path = repo_root },
+    }) catch {
+        w.diag("\n  REJECTED: {s} — cannot run bin/weizigo-claimlint (build it: zig build); the absorption gate is blind without it.\n", .{id});
+        std.process.exit(1);
+    };
+    defer alloc.free(result.stdout);
+    defer alloc.free(result.stderr);
+
+    const code: u8 = switch (result.term) {
+        .exited => |c| c,
+        else => 255,
+    };
+    if (code == 3) {
+        w.diag("\n  REJECTED: {s} — claimlint cannot read the register (exit 3); infrastructure fault.\n", .{id});
+        if (result.stderr.len > 0) w.diag("  claimlint: {s}\n", .{std.mem.trim(u8, result.stderr, " \t\r\n")});
+        std.process.exit(1);
+    }
+    if (code != 0 and code != 1) {
+        w.diag("\n  REJECTED: {s} — claimlint exited unexpectedly (code {d}); infrastructure fault.\n", .{ id, code });
+        if (result.stderr.len > 0) w.diag("  claimlint: {s}\n", .{std.mem.trim(u8, result.stderr, " \t\r\n")});
+        std.process.exit(1);
+    }
+    // Exit 0: nothing non-conforming and nothing unabsorbed ANYWHERE, so the
+    // closing task's files are conforming and absorbed by construction.
+    if (code == 0) return;
+
+    // Exit 1: claimlint found a non-conforming or unabsorbed file somewhere.
+    // Scope to THIS task: only files whose task_id matches the closing id
+    // refuse this close. Other tasks' drift is their own close's problem
+    // (spec §9: the gate is scoped, never global).
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, result.stdout, .{ .allocate = .alloc_always }) catch {
+        w.diag("\n  REJECTED: {s} — claimlint c7 --json emitted unparseable output (infrastructure fault).\n", .{id});
+        std.process.exit(1);
+    };
+    defer parsed.deinit();
+    if (parsed.value != .array) {
+        w.diag("\n  REJECTED: {s} — claimlint c7 --json did not emit an array (infrastructure fault).\n", .{id});
+        std.process.exit(1);
+    }
+
+    var nonconforming = false;
+    var unabsorbed = false;
+
+    // Non-conforming first — a file that cannot speak must fail louder than
+    // a file that says something wrong (spec §6.1, the T454 illusion).
+    for (parsed.value.array.items) |pf| {
+        if (pf != .object) continue;
+        const tid = runRecOptStr(pf.object, "task_id") orelse continue;
+        if (!std.mem.eql(u8, tid, id)) continue;
+        const conforming = if (pf.object.get("conforming")) |v| v == .bool and v.bool else false;
+        if (conforming) continue;
+        nonconforming = true;
+        const path = runRecStr(pf.object, "path");
+        const reason = runRecStr(pf.object, "conforming_reason");
+        w.diag("  NON-CONFORMING  {s} — {s}\n", .{ path, if (reason.len > 0) reason else "(no reason reported)" });
+    }
+
+    // Then unabsorbed proposals — each named: claim id, proposed, actual.
+    for (parsed.value.array.items) |pf| {
+        if (pf != .object) continue;
+        const tid = runRecOptStr(pf.object, "task_id") orelse continue;
+        if (!std.mem.eql(u8, tid, id)) continue;
+        if (pf.object.get("unabsorbed")) |ua| {
+            if (ua != .array) continue;
+            for (ua.array.items) |u| {
+                if (u != .object) continue;
+                unabsorbed = true;
+                const cid = runRecStr(u.object, "id");
+                const proposed = runRecStr(u.object, "proposed");
+                const actual = runRecStr(u.object, "actual");
+                w.diag("  C7 UNABSORBED  `{s}` — findings says `{s}`, register says `{s}`\n", .{ cid, proposed, actual });
+            }
+        }
+    }
+
+    if (nonconforming or unabsorbed) {
+        w.diag("\n  REJECTED: {s} — findings are non-conforming or unabsorbed (absorption gate, T485).\n", .{id});
+        w.diag("  Repair path: run `bin/weizigo-claimlint absorb <file>`, apply or disposition, commit, `done` again.\n", .{});
+        std.process.exit(1);
+    }
+}
+
 fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     // ── T390: claim-at-close gate ──
     // The kanban's claim timestamps prove consoles do the work FIRST and
@@ -2524,6 +2618,19 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             w.diag("  A deliverable that is not committed is not a deliverable.\n", .{});
             std.process.exit(1);
         }
+    }
+
+    // ── T485: absorption done-gate (absorption-spec §4) ──
+    // For pass / pass-with-findings / fail-found, run claimlint `c7 --json`
+    // and take the C7 verdict scoped to THIS task's findings files. Refuse
+    // the close while any of them is non-conforming (named first, with the
+    // parse error) or carries an unabsorbed proposal (each named: claim id,
+    // proposed, register-actual). Refusal precedes the phase-1 write; there
+    // is no --skip-absorption flag and no --force bypass — an escape valve
+    // here is the threshold reborn. blocked/abandoned are exempt, exactly
+    // like the deliverable check above (spec §9).
+    if (!std.mem.eql(u8, verdict_str, "blocked") and !std.mem.eql(u8, verdict_str, "abandoned")) {
+        refuseIfUnabsorbed(w, io, repo_root, id);
     }
 
     // ── T350 phase-1 pre-checks (under lock, before the done write) ──

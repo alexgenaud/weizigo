@@ -120,6 +120,18 @@ git init -q
 git config user.email t424@test
 git config user.name T424
 mkdir -p docs docs/infra/managent
+# T485: the absorption done-gate runs claimlint on every gated close; the
+# scratch repo must carry a claimlint binary + a parseable (empty) register.
+mkdir -p bin docs/epistemic
+cp "$CLAIMLINT" bin/weizigo-claimlint
+cat > docs/epistemic/CLAIMS.md <<'CLAIMS_EOF'
+# scratch register — done-gate control (T485)
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+|---|---|---|---|---|---|---|---|---|---|---|
+CLAIMS_EOF
 echo base > README.md
 git add README.md
 git commit -qm base

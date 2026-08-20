@@ -152,6 +152,26 @@ JSONEOF
 
 # ── seeded-row: register a temp row, it appears; close it, it moves ──────
 echo "  4. seeded-row control: a temp row appears under dispatchable, then leaves when closed"
+# T485: `managent done` below runs the absorption done-gate, which needs a
+# claimlint binary + parseable register in the scratch repo. Provision it
+# ONLY now — the degradation control (arm 2) asserts claimlint is UNAVAILABLE
+# in the scratch repo, so it must stay absent until after that arm has run.
+GATE_CL="$PROJECT/zig-out/bin/weizigo-claimlint"
+[ -x "$GATE_CL" ] || GATE_CL="$PROJECT/bin/weizigo-claimlint"
+if [ ! -x "$GATE_CL" ]; then
+    echo "SKIP: no weizigo-claimlint binary (build with 'zig build') — the done-gate needs it"
+    exit 0
+fi
+mkdir -p bin docs/epistemic
+cp "$GATE_CL" bin/weizigo-claimlint
+cat > docs/epistemic/CLAIMS.md <<'CLAIMS_EOF'
+# scratch register — done-gate control (T485)
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+|---|---|---|---|---|---|---|---|---|---|---|
+CLAIMS_EOF
 mkdir -p "$WORK/untracked"
 cat > "$WORK/untracked/T353SEED-bundle.md" <<'MDEOF'
 <!--managent set=C-->

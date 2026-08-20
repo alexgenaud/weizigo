@@ -39,6 +39,24 @@ git config user.email t278@test
 git config user.name T278
 echo base > README.md
 mkdir -p docs untracked artifacts docs/infra/managent
+# T485: the absorption done-gate runs claimlint on every gated close; the
+# scratch repo must carry a claimlint binary + a parseable (empty) register.
+GATE_CL="$PROJECT/zig-out/bin/weizigo-claimlint"
+[ -x "$GATE_CL" ] || GATE_CL="$PROJECT/bin/weizigo-claimlint"
+if [ ! -x "$GATE_CL" ]; then
+    echo "SKIP: no weizigo-claimlint binary (build with 'zig build') — the done-gate needs it"
+    exit 0
+fi
+mkdir -p bin docs/epistemic
+cp "$GATE_CL" bin/weizigo-claimlint
+cat > docs/epistemic/CLAIMS.md <<'CLAIMS_EOF'
+# scratch register — done-gate control (T485)
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+|---|---|---|---|---|---|---|---|---|---|---|
+CLAIMS_EOF
 printf 'untracked/\n' > .gitignore
 git add README.md .gitignore
 git commit -qm base

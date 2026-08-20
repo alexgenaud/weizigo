@@ -71,6 +71,25 @@ git init "$TMPDIR" 2>/dev/null
 git -C "$TMPDIR" config user.email "test@test" 2>/dev/null
 git -C "$TMPDIR" config user.name "test" 2>/dev/null
 
+# T485: the absorption done-gate runs claimlint on every gated close; the
+# scratch repo must carry a claimlint binary + a parseable (empty) register.
+GATE_CL="$PROJECT/zig-out/bin/weizigo-claimlint"
+[ -x "$GATE_CL" ] || GATE_CL="$PROJECT/bin/weizigo-claimlint"
+if [ ! -x "$GATE_CL" ]; then
+    echo "SKIP: no weizigo-claimlint binary (build with 'zig build') — the done-gate needs it"
+    exit 0
+fi
+mkdir -p "$TMPDIR/bin" "$TMPDIR/docs/epistemic"
+cp "$GATE_CL" "$TMPDIR/bin/weizigo-claimlint"
+cat > "$TMPDIR/docs/epistemic/CLAIMS.md" <<'CLAIMS_EOF'
+# scratch register — done-gate control (T485)
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+|---|---|---|---|---|---|---|---|---|---|---|
+CLAIMS_EOF
+
 # Seed an existing task T105 with next_id=105 (next_id ≤ max T-ID → collision)
 # When suggest runs, it will read next_id=105 and mint T105, clobbering this one.
 EXISTING_BUNDLE="untracked/T105-important-experiment.md"
