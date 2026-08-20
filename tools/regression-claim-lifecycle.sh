@@ -413,6 +413,192 @@ else
     echo "    PASS: fixture paths absent once the fixture doc is gone"
 fi
 
+# ── T432: console liveness is an ASSERTION — UNKNOWN, never absence ───────
+# T432 (2026-08-20): status is an assertion carrying an author and a
+# timestamp; a later assertion supersedes an earlier one; ABSENCE of an
+# assertion is UNKNOWN, never "none". No tool may derive non-existence from
+# silence — no heartbeat means no instrumentation, not no console (D054).
+# Arms:
+#   6 seeded: an in_progress row with no heartbeat and no assertion reads
+#     "UNKNOWN — no assertion" in liveness AND in the doctor's report; none
+#     of liveness/status/doctor output carries an absence-implication phrase.
+#   7 null: an asserted-idle row shows its assertion (never UNKNOWN) in
+#     status and drops out of liveness; a heartbeat row reads [beating],
+#     never UNKNOWN; the assertion records its actor.
+#   8 seeded: argus checklist's stale-in-progress proposed brief must not
+#     say "reopen if dead" — absence never grounds to presume death.
+
+echo "  6. seeded: unasserted row renders UNKNOWN — no assertion"
+cd "$WORK"   # arm 5 left us in the live repo; the T432 arms must run from scratch
+cat > arm6-bundle.md <<'EOF'
+<!--managent set=C deliverables=docs/arm6.md-->
+EOF
+OUT=$("$MG" add T432-ARM6 --bundle arm6-bundle.md 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+OUT=$("$MG" claim T432-ARM6 --agent "$AGENT" 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: claim: $OUT"; FAIL=1; fi
+
+LIVE_OUT=$("$MG" liveness 2>/dev/null)
+if echo "$LIVE_OUT" | grep -q "T432-ARM6  UNKNOWN.*no assertion"; then
+    echo "    PASS: liveness renders the unasserted row UNKNOWN — no assertion"
+else
+    echo "    FAIL: liveness does not render T432-ARM6 as UNKNOWN — no assertion:"
+    echo "$LIVE_OUT" | grep "T432-ARM6" | sed 's/^/        /'
+    FAIL=1
+fi
+
+STATUS_OUT=$("$MG" status 2>/dev/null)
+if echo "$LIVE_OUT$STATUS_OUT" | grep -qiE "no console|not running|presumed dead|reopen if dead|console dead|is dead"; then
+    echo "    FAIL: liveness/status output carries an absence-implication phrase:"
+    echo "$LIVE_OUT$STATUS_OUT" | grep -iE "no console|not running|presumed dead|reopen if dead|console dead|is dead" | sed 's/^/        /'
+    FAIL=1
+else
+    echo "    PASS: liveness/status output carries no absence phrase"
+fi
+
+# doctor arm: scratch tree with copied binaries + minimal register (T442 pattern)
+mkdir -p "$WORK/bin" "$WORK/docs/epistemic" "$WORK/findings"
+cp "$PROJECT/bin/managent" "$WORK/bin/managent"
+cp "$PROJECT/bin/argus" "$WORK/bin/argus"
+cp "$PROJECT/bin/weizigo-claimlint" "$WORK/bin/weizigo-claimlint" 2>/dev/null || true
+cat > "$WORK/docs/epistemic/CLAIMS.md" <<'CLAIMS_EOF'
+# CLAIMS — scratch register for T432 doctor testing
+
+**Created:** 2026-08-20
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `t432.scratch-row` | — | all | scratch row for T432 doctor liveness testing | PROVEN | AGENTS.md:1 | — | — | 0 | ? | Z-TEST |
+CLAIMS_EOF
+cat > "$WORK/findings/rejections.json" <<'REJ_EOF'
+{"description": "scratch rejections registry for T432 doctor testing","rejections": []}
+REJ_EOF
+(cd "$WORK" && "$PROJECT/bin/argus" --mode doctor --root "$WORK" --report "$WORK/doctor-report.md" >/dev/null 2>&1)
+if [ -s "$WORK/doctor-report.md" ] && grep -q "T432-ARM6 in_progress, UNKNOWN.*no assertion" "$WORK/doctor-report.md"; then
+    echo "    PASS: doctor renders the unasserted row UNKNOWN — no assertion"
+else
+    echo "    FAIL: doctor report does not render T432-ARM6 as UNKNOWN — no assertion:"
+    [ -f "$WORK/doctor-report.md" ] && grep "T432-ARM6" "$WORK/doctor-report.md" | sed 's/^/        /'
+    FAIL=1
+fi
+if [ -f "$WORK/doctor-report.md" ] && grep -qiE "no console|not running|presumed dead|reopen if dead|console dead" "$WORK/doctor-report.md"; then
+    echo "    FAIL: doctor report carries an absence-implication phrase:"
+    grep -iE "no console|not running|presumed dead|reopen if dead|console dead" "$WORK/doctor-report.md" | sed 's/^/        /'
+    FAIL=1
+else
+    echo "    PASS: doctor report carries no absence phrase"
+fi
+
+# ── arm 7: null — asserted-idle and heartbeat rows never read UNKNOWN ────
+echo "  7. null: asserted-idle and heartbeat rows never read UNKNOWN"
+cat > arm7-bundle.md <<'EOF'
+<!--managent set=C deliverables=docs/arm7.md-->
+EOF
+OUT=$("$MG" add T432-ARM7 --bundle arm7-bundle.md 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+OUT=$(MANAGENT_TASK_ID=T432-ARM7 "$MG" assert T432-ARM7 done --note "T432 null arm: console idle by assertion" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: assert T432-ARM7 done refused (RC=$RC): $OUT"
+    FAIL=1
+else
+    echo "    PASS: assert done records the assertion"
+fi
+if python3 -c "
+import json,sys
+ok=False
+try:
+    for l in open('docs/infra/assertion-ledger/assertions.jsonl'):
+        o=json.loads(l)
+        if o.get('object')=='T432-ARM7' and o.get('actor')=='T432-ARM7':
+            ok=True
+except Exception:
+    pass
+sys.exit(0 if ok else 1)"; then
+    echo "    PASS: assertion attributed (actor=T432-ARM7)"
+else
+    echo "    FAIL: assertion not attributed to the asserting actor"
+    FAIL=1
+fi
+STATUS_OUT=$("$MG" status 2>/dev/null)
+if echo "$STATUS_OUT" | grep "T432-ARM7" | grep -q "(asserted:"; then
+    echo "    PASS: status shows the asserted-idle row with its assertion"
+else
+    echo "    FAIL: status does not show (asserted: ...) for T432-ARM7:"
+    echo "$STATUS_OUT" | grep "T432-ARM7" | sed 's/^/        /'
+    FAIL=1
+fi
+if echo "$STATUS_OUT" | grep "T432-ARM7" | grep -q "UNKNOWN"; then
+    echo "    FAIL: asserted-idle row still reads UNKNOWN in status"
+    FAIL=1
+else
+    echo "    PASS: asserted-idle row does NOT say UNKNOWN in status"
+fi
+LIVE_OUT=$("$MG" liveness 2>/dev/null)
+if echo "$LIVE_OUT" | grep -q "T432-ARM7"; then
+    echo "    FAIL: asserted-idle row still listed by liveness"
+    FAIL=1
+else
+    echo "    PASS: asserted-idle row dropped from liveness (not in_progress)"
+fi
+# heartbeat row: an affirmative signal reads [beating], never UNKNOWN
+cat > arm7b-bundle.md <<'EOF'
+<!--managent set=C deliverables=docs/arm7b.md-->
+EOF
+OUT=$("$MG" add T432-ARM8 --bundle arm7b-bundle.md 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
+OUT=$("$MG" claim T432-ARM8 --agent "$AGENT" 2>&1)
+if [ $? -ne 0 ]; then echo "    FAIL: claim: $OUT"; FAIL=1; fi
+mkdir -p untracked
+HB_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+printf '{"identifier":"t432-null-arm","task":"T432-ARM8","ts":"%s","command":"sleep 1"}\n' "$HB_TS" >> untracked/heartbeat.jsonl
+LIVE_OUT=$("$MG" liveness 2>/dev/null)
+if echo "$LIVE_OUT" | grep "T432-ARM8" | grep -q "\[beating\]"; then
+    echo "    PASS: heartbeat row reads [beating] — an affirmative signal"
+else
+    echo "    FAIL: heartbeat row does not read [beating]:"
+    echo "$LIVE_OUT" | grep "T432-ARM8" | sed 's/^/        /'
+    FAIL=1
+fi
+if echo "$LIVE_OUT" | grep "T432-ARM8" | grep -q "UNKNOWN"; then
+    echo "    FAIL: heartbeat row still reads UNKNOWN"
+    FAIL=1
+else
+    echo "    PASS: heartbeat row does NOT say UNKNOWN"
+fi
+
+# ── arm 8: seeded — checklist proposed brief never presumes death ────────
+echo "  8. seeded: stale-in-progress proposed brief never presumes death"
+cat > "$WORK/registry-t432.md" <<'REG_EOF'
+# Argus checklist registry (T432 scratch)
+
+## Slugs
+
+| slug | check | baseline | baseline_date | baseline_run | grade | first_seen | citations |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| stale-in-progress | `bin/managent liveness` + `bin/managent status` — count in_progress tasks | 0 tasks in_progress | 2026-08-20 | `20260820Z-checklist` | must | 2026-08-20 | T432 |
+REG_EOF
+(cd "$WORK" && "$PROJECT/bin/argus" --mode checklist --root "$WORK" --checklist "$WORK/registry-t432.md" --log "$WORK/ckl-watchdog.md" --summary "$WORK/ckl-summary.md" >/dev/null 2>&1)
+if [ -f "$WORK/ckl-watchdog.md" ] && grep -q "reopen if dead" "$WORK/ckl-watchdog.md"; then
+    echo "    FAIL: proposed brief presumes death ('reopen if dead'):"
+    grep "reopen if dead" "$WORK/ckl-watchdog.md" | sed 's/^/        /'
+    FAIL=1
+else
+    echo "    PASS: proposed brief never says 'reopen if dead'"
+fi
+if [ -f "$WORK/ckl-watchdog.md" ] && grep -q "UNKNOWN.*no assertion" "$WORK/ckl-watchdog.md"; then
+    echo "    PASS: proposed brief carries the UNKNOWN framing"
+else
+    echo "    FAIL: proposed brief lacks the UNKNOWN framing:"
+    [ -f "$WORK/ckl-watchdog.md" ] && grep "proposed_brief" "$WORK/ckl-watchdog.md" | sed 's/^/        /'
+    FAIL=1
+fi
+
+# restore the live-repo cwd the T448 arm expects ($0 is relative there)
+cd "$PROJECT"
+
 # ── T448: kill-survival — start-up check refuses stale fixture ────────────
 # Plant a stale fixture doc (mimics a SIGKILLed previous run leaving
 # residue in the live tree) and re-invoke the script in a child shell.

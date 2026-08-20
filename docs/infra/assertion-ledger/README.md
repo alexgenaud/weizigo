@@ -20,6 +20,14 @@ kanban (`bin/managent show <id>` and `bin/managent status`), git
 (`git log --grep=<task-id>`), and `findings/` (one JSON file per task).
 Three sources; no fourth.
 
-`managent assert` is retained as a power tool for Orchestrator-typed
-consoles; it writes to a no-op target. No kanban or dashboard integration
-is needed for it to be useful as a free-form append-only log.
+`managent assert` is retained as a power tool. It appends an attributed
+assertion (actor, timestamp, verb, object, basis) to
+`docs/infra/assertion-ledger/assertions.jsonl` — the one file this directory
+still hosts, and NOT a no-op target: T464's single status resolver
+(`src/managent/main.zig` `resolveStatus`) reads it, and an assertion's
+`status_value` overrides `tasks.json` in both directions for `status`,
+`liveness`, the board and `next` (T446). A row asserted `closed`/`done`
+renders as done with an `(asserted: …)` marker; a row with no assertion
+and no heartbeat renders `UNKNOWN — no assertion` (T432, 2026-08-20). The
+ledger stays retired as a *store of record* — assertions are a thin
+correction channel on top of the kanban, not a fourth source of truth.
