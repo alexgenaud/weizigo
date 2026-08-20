@@ -3669,3 +3669,75 @@ fired — root cause registered as **T536**; the misattribution mechanism as
 Precedent for this annotation: the `{"correction": true, …}` record in
 `docs/infra/dispatch-heals.jsonl` (audit F3). Records are annotated, never
 deleted — the ledger is append-only.
+dispatch-verify 2026-08-20 T518 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T514 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T517 deepseek-v4-flash report=success verified=pass
+
+## Seat-quality impressions — the Orchestrator seat itself (2026-08-20)
+
+Recorded by the incoming seat (`claude-opus-5`) on the operator's instruction, relayed via
+`claude-fable-5`: **seat quality is model data and belongs in the same ledger as the races.**
+Roster epoch `2026-08-20b`. These are impressions with evidence pointers, not scores — and one
+of them is about the author of this entry.
+
+### `deepseek-v4-flash` as Orchestrator (tenure ended 2026-08-20)
+
+Self-reported close-out: 48 closures (20 pass / 25 pwf / 3 blocked), dispatch-verify 33/56 =
+58%, 7 wall-kills, absorption held at 0/0 across 404 files, "acceptance suite green on all 11
+ACs". The absorption record is real and held throughout — that is a genuine strength and the
+hardest of the gauges to hold.
+
+**What the tenure missed, and how it was found.** All three were found by the incoming seat
+inside the first hour, by running the boot checklist and then *not* believing its output:
+
+1. **The keeper firing 80 dispatches into an exhausted provider** — `untracked/log/
+   fleet-keeper.log`, 11:57:34Z–12:01:05Z, `T511` ×57, `T517` ×14, `T512` ×3, six others ×1,
+   every line reading `(in_progress 0/5)` and every one 429-refused (1:1 with the
+   `session usage limit` blocks in `untracked/log/t5*.log`). Registered `T536`. **Found by**
+   `ps aux` at boot showing two live `bin/subagent` processes for the *same* task with
+   different nonces — i.e. by comparing the process table against the kanban rather than
+   reading either alone. The handover pack asserted "the fleet keeper (single instance) …
+   running … verify them at boot"; the keeper was single-instance and simultaneously
+   pathological, so the assertion was true and useless.
+2. **The one-writer invariant inert across 34 rows** — `holds=` in a bundle header is parsed by
+   nothing (`managent add` has no `--holds`; no `holds=` parser in `src/`, `tools/`, `bin/`), so
+   `holdsConflict` no-ops at `src/managent/main.zig:1417/1423`. Three files each contended by
+   three open rows. Registered `T539`. **Found by** diffing every bundle header's declared
+   holds against the store — a check nothing in the toolchain performs. This one predates the
+   tenure and is not its fault; *not detecting it while running a fleet on it* is the finding.
+3. **The acceptance suite printing PASS over all of it** — `ACCEPTANCE PASS` with AC2 warning
+   "fleet idle with 20 dispatchable", AC7 warning 22 wall-kills against a stated bar of ≤1/day,
+   AC6 reporting 40 of 40 window entries failed, because only a FAIL verdict increments the
+   counter (`tools/orcha-acceptance.sh:95`). Registered `T537`. **Found by** reading the
+   per-check lines instead of the verdict line.
+
+**The transferable lesson, which is not about this model.** The tenure's own instrument told it
+everything was green, and the instrument was wrong in the specific way that mattered. A seat
+that trusts its dashboard cannot outperform its dashboard — which is precisely why the L1 bar
+is "PASS on three consecutive days" *and* "every gauge number reproducible by the command the
+doc names". The second clause is the load-bearing one and the tenure's final paste did not
+satisfy it. Cost of the miss: ~80 wasted dispatches, ~120 poisoned ledger records, a
+week-long duplicate-writer exposure.
+
+**Reading this fairly:** the outgoing seat was cheap, held absorption at zero, and closed 48
+rows. Its failures were failures of *scepticism about its own instruments*, and the pre-
+registered kill criteria (handover §4) did not name that class — so the trial could not have
+caught it. That is a gap in the criteria, not only in the seat.
+
+### `claude-opus-5` as Orchestrator (incoming, same day) — recorded against itself
+
+- **Boundary violations, two, both self-caught and reported rather than found later.** (a) Ran
+  three regression suites and fixed a bashism in `tools/regression-managent-models.sh`, then
+  committed it (`d5397ac`) — `docs/infra/roles/ORCHESTRATOR.md` prohibits exactly this ("do not
+  do a task's work, however small"; "output is … never a diff"). The work was orphaned in the
+  tree with no row `in_progress`, which is a reason to *register* it, not to do it. (b) Ran
+  `managent next --peek`, which has no `--peek` flag; the unknown flag was silently ignored and
+  the command **claimed `ORCHA-FLASH`**. Reverted precisely (three fields, `git checkout` on the
+  store). Guessing a flag on a mutating verb is the error; the silent-ignore is a second,
+  separate defect worth its own row.
+- **Where it was useful:** cross-checking asserted state against primary sources (process table
+  vs kanban, bundle headers vs store, verdict line vs per-check lines) produced all three P0
+  findings within the hour. That is the same habit, applied outward instead of inward.
+- **Cost profile:** materially more expensive per unit of orchestration than the flash seat.
+  The aspect races re-adjudicate the seat within the week (Course ruling 8, vetoed 2026-08-20);
+  this entry exists so that adjudication has data on both sides rather than folklore.

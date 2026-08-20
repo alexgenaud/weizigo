@@ -22,15 +22,49 @@ performance; this one measures the job.
 
 ## 2. Roster
 
-8 lanes, canonical labels (validate against the list, never a pattern):
-`claude-fable-5`, `claude-opus-5`, `deepseek-v4-pro`, `deepseek-v4-flash`, `glm-5.2`,
-`minimax-m3`, `kimi-k2.7`, `qwen3.8:27b-mlx` (local; best-effort — it was wall-killed with 0
-bytes in T447; it stays in for exploration-first data, its DNFs are data too, and it never runs
-during a measured suite run per `model-task-matrix.md:104-106`).
+### Roster epoch `2026-08-20b` — CURRENT (amended 2026-08-20, operator directive via claude-fable-5)
+
+**7 lanes**, canonical labels (validate against the list, never a pattern):
+`claude-fable-5`, `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001`,
+`deepseek-v4-pro`, `deepseek-v4-flash`, `qwen3.8:27b-mlx`.
+
+`qwen3.8:27b-mlx` is local and best-effort — it was wall-killed with 0 bytes in T447; it stays
+in for exploration-first data, its DNFs are data too, and it never runs during a measured suite
+run (`model-task-matrix.md:104-106`). **Additional local models may join** if a probe shows
+benefit — record the probe alongside the record it justifies.
+
+**Reason for the amendment, recorded:** the Ollama weekly token allowance is exhausted, so
+`glm-5.2`, `minimax-m3` and `kimi-k2.7` cannot be dispatched at all. On 2026-08-20 the fleet
+keeper fired 80 dispatches into an HTTP 429 in about 3.5 minutes and every one was recorded as
+a *model* failure (incident: `T536` re-fire, `T538` misattribution; correction annotated in
+`docs/infra/model-perf.md`). Racing a lane that cannot accept a connection measures the billing
+account, not the model. **The trio rejoins as a delta round when credits refresh** — it is a
+deferral, not a removal. Every ledger record already carries its roster epoch, so the delta
+round aggregates honestly against this one and the profiles tool still refuses to cross an
+epoch boundary.
+
+**G3 consequence, stated plainly:** four of the seven lanes are Claude lanes, and the panel's
+non-Claude graders drop from six to **three**. A Claude lane is therefore graded by only three
+independent graders. So: **mechanical anchors outrank panel scores wherever both exist**, and
+any ranking among Claude lanes that rests on panel scores alone is reported as
+**low-confidence** and labelled as such in the result table. Do not present a panel-only
+Claude-vs-Claude ordering as a finding.
+
+**The sealed `T528` aspect-race packets are unchanged.** Roster is resolved at dispatch time,
+not at seal time, so the pinned packet manifest hash (`SHA256SUMS`, commit `b389b0f`) still
+verifies. Aspect races remain **GO** with this roster and are dispatched as fleet slots allow;
+Claude lanes run under `WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1`, already authorized.
 
 Every record carries **canonical label + serving tag + epoch date** (two silent model swaps have
 already poisoned aggregates; the boundary is recorded, and the profiles tool refuses to
 aggregate across it).
+
+### Roster epoch `2026-08-20a` — SUPERSEDED (record, not instruction)
+
+8 lanes: `claude-fable-5`, `claude-opus-5`, `deepseek-v4-pro`, `deepseek-v4-flash`, `glm-5.2`,
+`minimax-m3`, `kimi-k2.7`, `qwen3.8:27b-mlx`. Superseded by `2026-08-20b` above on the day it
+was written, for the Ollama-exhaustion reason recorded there. Records already carrying this
+epoch stay valid *as that epoch*; nothing is rewritten.
 
 ## 3. Phases
 

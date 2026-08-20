@@ -421,3 +421,11 @@
 
 
 
+
+
+
+
+{"id":"D036","target":"T536","directive":"amend","note":"Ollama weekly tokens exhausted (operator, via Fable): ship FLEET_MODEL_DENY=glm-5.2,minimax-m3,kimi-k2.7 as a DURABLE default not a shell export; the keeper is stopped and YOU restart it after your controls pass (bash re-reads a running script, so the seat would not restart it while you rewrite the file); see the AMENDMENT appended to your brief.","from":"unknown","ts":"2026-08-20T12:18:47Z","read":false}
+
+
+
