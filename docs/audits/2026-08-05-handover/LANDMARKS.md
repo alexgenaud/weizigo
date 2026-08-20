@@ -292,7 +292,7 @@ a short landmark line** — no new artifact, no schema change, no extra approval
 > **Landmark:** advances `M<n> (<short name>)` — <what a human can now see that they could not
 > before> — <what still stands between here and that landmark>.
 
-Three rules make it useful rather than decorative:
+Three rules make it useful rather than decorative (full discipline in `AGENTS.md` §Landmarks):
 
 1. **Always expand the ID.** `L2 (proven 4×4 values)`, never a bare `L2`.
 2. **Say the direction plainly.** If a result makes something look *worse*, say which thing got
