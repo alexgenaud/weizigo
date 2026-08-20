@@ -1,0 +1,8 @@
+{
+  "task_id": "T508",
+  "date": "2026-08-20",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Executed the five instruction-corpus findings T413 deferred from T410's 2026-08-07 audit. Each finding got its own commit. F08: removed the stray docs/AGENTS.md redirect fragment (only citation was a historical dirty-tree inventory listing the filename) and updated docs/INDEX.md attic to record the removal. F10: added a verification note to docs/infra/delegation/DELEGATEE.md's canonical-model-labels table stating it was checked against src/managent/main.zig canonical_models on 2026-08-20; the Zig array remains the single source of truth and managent rejects non-canonical labels at write time. F11: added cross-references in docs/infra/delegation/DELEGATEE.md and docs/infra/dispatch/README.md pointing to AGENTS.md foreclosures as the canonical home of the one-writer-per-engine-file rule. F12: added a cross-reference in docs/audits/2026-08-05-handover/LANDMARKS.md's 'How work reports against landmarks' section to AGENTS.md §Landmarks. F14: expanded every bare landmark ID in docs/status/sprint-2026-08-07.md and docs/status/sprint-2026-08-08.md to use the canonical short name from LANDMARKS.md (e.g. L2 -> L2 (proven 4×4 values), L3 -> L3 (the new engine outplays the old one), L4 -> L4 (the ledger is clean), L0 -> L0 (the table and the instruments exist)). All five commits passed the pre-commit claimlint floor. The disputed F09 (HUMAN.md) was not re-opened, per brief."
+}
