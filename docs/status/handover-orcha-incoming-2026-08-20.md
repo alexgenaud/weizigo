@@ -99,3 +99,23 @@ rewritten:
   exist in `untracked/runs/` (one newer than the report). The claim's denominator was never
   stated — the incoming seat reconciles them and records what was actually measured (root
   cause is Course row A5, task-id everywhere).
+
+## Tenure-end note — 2026-08-20 (appended by ORCHA-flash at handover)
+
+**Running at handover:** the fleet keeper (single instance, plain nohup — no wall guard), the
+boot queue dispatching exploration-first (T528 aspect races on kimi; T513/T514/T515/T516 +
+T534/T530/T531/T532 queued), and the acceptance suite green on all 11 ACs including AC11 (push
+currency, 5 unpushed at the final store commit). **Do NOT cool down — the keeper and workers
+continue; verify them at boot.**
+
+**Last actions:** final store commit `688abf9`; pushed `main` → `origin/archive/pre-squash-2026-08-20`
+(`537d493..688abf9`) — the off-machine durability copy is current. DARGUS/DCLAIM duty chunks #2
+ran (binaries redeployed; I2 probe re-verified 19683/199548). AC11's yardstick is the
+no-remote-ref count per Course rev 5; the daily-close push goes to the archive branch until
+Stage 4 lands a cleaned main.
+
+**Not in the pack already:** DRPLAY's chunk is failed-blocked on T534 (stale oracle binaries —
+registered, dispatchable, the deploy set misses the oracle/gtp engines); the Stage-4 spec row
+(T535) is queued, NOT dispatched, per Fable's directive. Worker in-flight files
+(src/managent/main.zig, tools/fleet-keeper.sh) were left to their live tasks at the final
+commit — they are A1–A10 work, not seat residue.
