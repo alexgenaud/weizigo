@@ -1,0 +1,1645 @@
+{
+  "task_id": "T543",
+  "run": "aspect-races-2026-08-20b",
+  "date": "2026-08-20",
+  "epoch_date": "2026-08-20b",
+  "role": "race official (dispatch/capture/anonymize/record; NOT grading)",
+  "harness_snapshot": {
+    "bakeoff_git_blob": "e2fc6ccaf818a43dfd194b0ea608694ad66fe9e9",
+    "bakeoff_sha256": "4cc8653f382090647c2ef9d01e006ab48cf4e4de8bd47227a2cf1d204b3aac69",
+    "runner_git_blob": "618bcf27006e1607d35ae2a548588e5769a75bc2",
+    "runner_sha256": "36d0c1c41c91e7a081030610a8579be06dca484aa676f68ab752136cdad65982"
+  },
+  "worktree": "/private/tmp/weizigo/race-t543",
+  "isolation": {
+    "root_is_worktree": true,
+    "keys_location": "main checkout untracked/race-aspects/packets/*/key.txt and untracked/race-keys/ (outside worktree reach)",
+    "strength": "relative-path boundary only \u2014 a tool-using lane can still reach the host filesystem (incl. the main checkout's gitignored untracked/) via absolute paths; no sandbox (T376)"
+  },
+  "claude_gate": "WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1",
+  "packets": [
+    {
+      "race": "aspect-triage",
+      "brief": "untracked/race-aspects/packets/aspect-triage/PACKET.md",
+      "prompt_sha256": "47c68ae2d4ca1d210e4bc7e48ab795d8c5f1a47e6988a41dd3533cacb33e6e65",
+      "cwd": "/private/tmp/weizigo/race-t543/race-input/aspect-triage",
+      "lanes": [
+        {
+          "race": "aspect-triage",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-triage/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/deepseek-v4-pro/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 314.1,
+          "cpu_s": 4.61,
+          "rss_mb": 197,
+          "out_bytes": 1697,
+          "out_sha256": "205ba682d4fb9bc690510d43f6398c9badaaba323d150cccfa8eaf97cbac7e31",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-triage",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-triage/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/deepseek-v4-flash/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 113.3,
+          "cpu_s": 3.19,
+          "rss_mb": 201,
+          "out_bytes": 2211,
+          "out_sha256": "c2ef45d315100302d6ef0bb825d1df339392ed1621a48b1fd6ffc7cb610cbe0e",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-triage",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-triage/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/claude-fable-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 89.2,
+          "cpu_s": 1.37,
+          "rss_mb": 443,
+          "out_bytes": 2929,
+          "out_sha256": "f72913538649757cca084402aead5a0a2ece2da5e7f096c450fff8b2d1c70b56",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-triage",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-triage/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/claude-opus-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 157.5,
+          "cpu_s": 1.79,
+          "rss_mb": 448,
+          "out_bytes": 4975,
+          "out_sha256": "747b95d3e5a1e1ee25fb614350cb1648c4228e84c5f25cabc8039d71a286b99f",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-triage",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-triage/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/claude-sonnet-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 325.4,
+          "cpu_s": 2.119999999999999,
+          "rss_mb": 448,
+          "out_bytes": 640,
+          "out_sha256": "70ba59e6f9be0eefa918e8a374b72a5976cf65e9eb8adecb02329062b6cf1e04",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-triage",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-triage/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/claude-haiku-4-5-20251001/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 50.8,
+          "cpu_s": 1.2100000000000002,
+          "rss_mb": 448,
+          "out_bytes": 1466,
+          "out_sha256": "5d5d0784dafeaaa5207a69dd0d64f6190c0f0c39837406c30bd43daba0307e67",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-triage",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 triage\n\n**Task:** Given the attached findings dump and existing task state, register the correct rows with correct `needs` and `holds`.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding-dump.json` \u2014 three unregistered findings produced by workers.\n- `fixtures/existing-tasks.json` \u2014 current `managent` store rows, to avoid duplications and set `needs`.\n\n**What you must produce:** a single markdown file `out.md` containing, for each finding, one `bin/managent add` command line (or equivalent row spec) with:\n1. The task ID you assign;\n2. The set it belongs to;\n3. The `needs=` dependencies (comma-separated, no spaces);\n4. The `holds=` file(s) if any;\n5. A one-line rationale for the dependency choices.\n\n**Rules:**\n- Do not reuse existing task IDs.\n- A row that edits a held file must list that file in `holds`.\n- A row whose work depends on another row'\"'\"'s output must list that row in `needs`.\n- If a finding should be rejected rather than registered, say so and why.\n\n**Scoring (answer-keyed, blind):** one point per correctly registered row (ID, set, needs, holds, rationale all match the key). Half point if the registration is directionally right but misses a dependency or hold. Zero for a duplicated ID, wrong set, or registering a finding that should be rejected.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-triage/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-triage/qwen3.8:27b-mlx/trailer.log",
+          "status": "failed",
+          "exit": 1,
+          "wall_s": 498.5,
+          "cpu_s": 34.15,
+          "rss_mb": 171,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6023 MB < floor 6144 MB",
+          "note": null,
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        }
+      ]
+    },
+    {
+      "race": "aspect-verdict",
+      "brief": "untracked/race-aspects/packets/aspect-verdict/PACKET.md",
+      "prompt_sha256": "314ca70013c2a9ae01b42b269abe2e5bdaeb556869e7a23409265a21b04ded28",
+      "cwd": "/private/tmp/weizigo/race-t543/race-input/aspect-verdict",
+      "lanes": [
+        {
+          "race": "aspect-verdict",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-verdict/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/deepseek-v4-pro/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 0.69,
+          "rss_mb": 96,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6106 MB < floor 6144 MB (largest member pid 45715 RSS 96 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-verdict",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-verdict/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/deepseek-v4-flash/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 0.69,
+          "rss_mb": 96,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6106 MB < floor 6144 MB (largest member pid 45712 RSS 96 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-verdict",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-verdict/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/claude-fable-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 0.51,
+          "rss_mb": 328,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6102 MB < floor 6144 MB (largest member pid 45714 RSS 328 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-verdict",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-verdict/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/claude-opus-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 0.49,
+          "rss_mb": 327,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6105 MB < floor 6144 MB (largest member pid 45711 RSS 327 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-verdict",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-verdict/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/claude-sonnet-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 0.49,
+          "rss_mb": 327,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6109 MB < floor 6144 MB (largest member pid 45713 RSS 327 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-verdict",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-verdict/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/claude-haiku-4-5-20251001/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 0.49,
+          "rss_mb": 327,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6109 MB < floor 6144 MB (largest member pid 45716 RSS 327 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-verdict",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 verdict discipline\n\n**Task:** A delivered row with a planted flaw has landed in your inbox. Read it and return a verdict.\n\n**Input files (frozen fixture store):**\n- `fixtures/finding.json` \u2014 the delivered findings file.\n- `fixtures/claim.json` \u2014 the claim the finding proposes to update.\n\n**What you must produce:** a single markdown file `out.md` containing:\n1. `PASS` or `REFUSE`.\n2. If `REFUSE`, the exact flaw class from the allowed list: `no denominator`, `dangling evidence path`, `sample presented as census`, `control that cannot fire`, `tautological differential`, `key mismatch`, `other`.\n3. A one-sentence rationale.\n\n**Allowed flaw classes:**\n- `no denominator` \u2014 a quantitative claim with no stated sample size, denominator, or run identifier.\n- `dangling evidence path` \u2014 the evidence path does not exist or is not committed under `docs/evidence/`.\n- `sample presented as census` \u2014 a sample rate is reported as if it were exhaustive or a full count.\n- `control that cannot fire` \u2014 the seeded control is constructed so that failure is impossible.\n- `tautological differential` \u2014 the verification compares the implementation against itself or an alias.\n- `key mismatch` \u2014 the claimed invariant is contradicted by a committed key or table.\n- `other` \u2014 a flaw not covered above (requires explicit explanation).\n\n**Scoring (answer-keyed, blind):** point iff verdict and flaw class both match the key. Half point if verdict matches but class is wrong. Zero for PASS on a REFUSE finding.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-verdict/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-verdict/qwen3.8:27b-mlx/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 108.8,
+          "cpu_s": 2.16,
+          "rss_mb": 196,
+          "out_bytes": 379,
+          "out_sha256": "7e4ddad3c20c7f0a8e76ccc0b96eb5e0d7fe3d423acef4b811e8e64626e7ea83",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        }
+      ]
+    },
+    {
+      "race": "aspect-inbox",
+      "brief": "untracked/race-aspects/packets/aspect-inbox/PACKET.md",
+      "prompt_sha256": "d5615326777ecca55d8bb2905468f56b74df53aac77a2bab6fe85194f36bc6cb",
+      "cwd": "/private/tmp/weizigo/race-t543/race-input/aspect-inbox",
+      "lanes": [
+        {
+          "race": "aspect-inbox",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-inbox/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/deepseek-v4-pro/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 11.0,
+          "cpu_s": 1.32,
+          "rss_mb": 216,
+          "out_bytes": 894,
+          "out_sha256": "64a1033a3bd322d6f29c27564e5436124c56bf3361bcbff0ed51d84622773274",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-inbox",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-inbox/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/deepseek-v4-flash/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 13.5,
+          "cpu_s": 1.41,
+          "rss_mb": 215,
+          "out_bytes": 1211,
+          "out_sha256": "4f8139109506cf02c9f297a2ffc3e56a890a664cf68046a9e7116a82b3b3c0ab",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-inbox",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-inbox/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/claude-fable-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 16.6,
+          "cpu_s": 1.1800000000000002,
+          "rss_mb": 445,
+          "out_bytes": 1133,
+          "out_sha256": "c49a8d8bf39c1662ddf53df1df31e8e8e625ebdfd830fd82cc372a0d0f002e8b",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-inbox",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-inbox/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/claude-opus-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 38.8,
+          "cpu_s": 1.46,
+          "rss_mb": 445,
+          "out_bytes": 2094,
+          "out_sha256": "8d59bc77b7810684c84e479bf195b9482d3f64ded6cbfaf26ec52e4d72a614bb",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-inbox",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-inbox/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/claude-sonnet-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 17.0,
+          "cpu_s": 1.39,
+          "rss_mb": 448,
+          "out_bytes": 1037,
+          "out_sha256": "4ab2c2d76173bdded54515d552d5d0ef350f99e78994b55f97bf4f580d46040b",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-inbox",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-inbox/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/claude-haiku-4-5-20251001/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 14.2,
+          "cpu_s": 1.1800000000000002,
+          "rss_mb": 447,
+          "out_bytes": 456,
+          "out_sha256": "379b80d10ca49aaad7cf1d5c2ed90ed222b74844501738e4cc7f4702ab8f3cb0",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-inbox",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 inbox handling\n\n**Task:** Drain a seeded directive backlog correctly.\n\n**Input files (frozen fixture store):**\n- `fixtures/directives.json` \u2014 four `managent tell` directives queued for your task.\n- `fixtures/STATE.md` \u2014 the current task state before draining.\n\n**What you must produce:** a single markdown file `out.md` containing, in order, your action for each directive:\n1. Directive ID.\n2. Directive kind (`pause`, `amend`, `question`, `kill`).\n3. Action taken (`acknowledged`, `acted`, `replied`, `dumped_context_and_exited`).\n4. One-line note recording any state change.\n\n**Action rules:**\n- `pause` \u2014 acknowledge only; do not alter work; record directive ID in notes.\n- `amend` \u2014 act on it if the amendment is unambiguous; if ambiguous, reply with a clarifying question.\n- `question` \u2014 reply with the requested information.\n- `kill` \u2014 write a context dump and stop processing further directives.\n\n**Scoring (answer-keyed, blind):** one point per directive handled correctly according to the key. The `kill` directive must stop the drain; directives after it are ignored and scored as no-op.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-inbox/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-inbox/qwen3.8:27b-mlx/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 179.9,
+          "cpu_s": 2.59,
+          "rss_mb": 195,
+          "out_bytes": 2663,
+          "out_sha256": "8fc0299e37f681b6f413131bcd793d9fc8213451310aff94bfaea41683684075",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        }
+      ]
+    },
+    {
+      "race": "aspect-crash",
+      "brief": "untracked/race-aspects/packets/aspect-crash/PACKET.md",
+      "prompt_sha256": "e5382a071f02f4daea6eee36dff71d351caea8f386dd5caeb435e5b037dd453b",
+      "cwd": "/private/tmp/weizigo/race-t543/race-input/aspect-crash",
+      "lanes": [
+        {
+          "race": "aspect-crash",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-crash/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/deepseek-v4-pro/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.48,
+          "rss_mb": 212,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6130 MB < floor 6144 MB (largest member pid 96162 RSS 144 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-crash",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-crash/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/deepseek-v4-flash/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 110.4,
+          "cpu_s": 2.94,
+          "rss_mb": 191,
+          "out_bytes": 410,
+          "out_sha256": "fa37247c9be3adf0778e9840393eb62fe544ca9e3292879deaaf46e59ed2720f",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-crash",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-crash/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/claude-fable-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.04,
+          "rss_mb": 442,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6077 MB < floor 6144 MB (largest member pid 96157 RSS 407 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-crash",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-crash/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/claude-opus-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 122.9,
+          "cpu_s": 1.5699999999999998,
+          "rss_mb": 442,
+          "out_bytes": 562,
+          "out_sha256": "4e2f866a95c18bddd58282b358cfedfd82fa4c24f9054e9419cf050d3239f4ed",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-crash",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-crash/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/claude-sonnet-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.26,
+          "rss_mb": 441,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6095 MB < floor 6144 MB (largest member pid 96161 RSS 405 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-crash",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-crash/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/claude-haiku-4-5-20251001/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.04,
+          "rss_mb": 442,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6079 MB < floor 6144 MB (largest member pid 96160 RSS 404 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "aspect-crash",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 crash recovery\n\n**Task:** From the `managent resume` output and `STATE.md` alone, state the correct next three actions.\n\n**Input files (frozen fixture store):**\n- `fixtures/resume-output.txt` \u2014 the exact stdout of `bin/managent resume` after a host restart.\n- `fixtures/STATE.md` \u2014 the untracked crash-recovery anchor for the epic.\n\n**What you must produce:** a single markdown file `out.md` containing exactly three numbered actions. Each action must be one of:\n- `claim <task> --agent <model>`\n- `done <task> --agent <model> --status <status> --note <note>`\n- `reopen <task>`\n- `tell <task> <directive>`\n- `read <path>`\n- `run <command>`\n\nNo other text except a one-line rationale after the three actions.\n\n**Scoring (answer-keyed, blind):** one point per action that matches the key exactly (including task, model, status, and note). Partial credit if the action is right but parameters differ.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-crash/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-crash/qwen3.8:27b-mlx/trailer.log",
+          "status": "failed",
+          "exit": 1,
+          "wall_s": 57.1,
+          "cpu_s": 2.16,
+          "rss_mb": 171,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6143 MB < floor 6144 MB",
+          "note": null,
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        }
+      ]
+    },
+    {
+      "race": "aspect-dispatch",
+      "brief": "untracked/race-aspects/packets/aspect-dispatch/PACKET.md",
+      "prompt_sha256": "b40c86c49ecc13901d46979243ddf0cfd3ac76396f2ccf6355a0ebcfa1290d3f",
+      "cwd": "/private/tmp/weizigo/race-t543/race-input/aspect-dispatch",
+      "lanes": [
+        {
+          "race": "aspect-dispatch",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/deepseek-v4-pro/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 16.7,
+          "cpu_s": 1.12,
+          "rss_mb": 206,
+          "out_bytes": 760,
+          "out_sha256": "943ff69899ea42d038e2e91e960367515d3a7b15ea3aba521101f712d9f7fc85",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-dispatch",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/deepseek-v4-flash/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 8.9,
+          "cpu_s": 0.96,
+          "rss_mb": 207,
+          "out_bytes": 898,
+          "out_sha256": "2fc6954dd87a0a890f8ffc015e5ec4eafcd48b7adb0a7fd25b184dab8cbb5394",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-dispatch",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/claude-fable-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 14.3,
+          "cpu_s": 0.74,
+          "rss_mb": 448,
+          "out_bytes": 708,
+          "out_sha256": "37ad4d2f8ad22e7adcccd8bffc25f2d2c9840d02c1ac75ad7662fb0337836c43",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-dispatch",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/claude-opus-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 36.9,
+          "cpu_s": 1.06,
+          "rss_mb": 449,
+          "out_bytes": 1746,
+          "out_sha256": "75fe16ee7fa21b4142fe2244f9bf3b654b03829d3be9a9ff64c02f01d961fd55",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-dispatch",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/claude-sonnet-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 12.1,
+          "cpu_s": 0.78,
+          "rss_mb": 448,
+          "out_bytes": 891,
+          "out_sha256": "b41fcc6f7ee80e04f12a5a89055b818229bcb1d88684e29ba6409f6b9c5730e3",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-dispatch",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/claude-haiku-4-5-20251001/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 8.2,
+          "cpu_s": 0.77,
+          "rss_mb": 448,
+          "out_bytes": 777,
+          "out_sha256": "e2d2490c351454d744110556a93d1d4a4cb11d2aa9a31af1c20878bd1e83846d",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "aspect-dispatch",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Aspect race \u2014 dispatch authoring\n\n**Task:** Write the delegation package for a known row.\n\n**Input files (frozen fixture store):**\n- `fixtures/row-spec.json` \u2014 the ratified task specification.\n\n**What you must produce:** a single markdown file `out.md` that is a complete dispatch package (the body of a brief) containing:\n1. One-line title with task ID and short-name question.\n2. Landmark this task serves.\n3. Goal paragraph.\n4. `Needs:` dependencies, comma-separated.\n5. `Holds:` files, comma-separated (empty if none).\n6. Deliverable path(s) and acceptance criterion.\n7. Build/run command.\n8. Read-first list.\n\n**Scoring (answer-keyed, blind):** one point per required section present and factually correct. The key contains the expected `needs`, `holds`, deliverable, and acceptance. Half point for missing a read-first item.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/aspect-dispatch/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/aspect-dispatch/qwen3.8:27b-mlx/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 123.4,
+          "cpu_s": 1.8699999999999999,
+          "rss_mb": 196,
+          "out_bytes": 1500,
+          "out_sha256": "b2f414273d9fd8c3f17df13200bcc3f0ce4f8611e4f10e1a6946c45a053ff944",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        }
+      ]
+    },
+    {
+      "race": "epistemic-race3",
+      "brief": "untracked/race-aspects/packets/epistemic-race3/PACKET.md",
+      "prompt_sha256": "ca606b806d6f47ca0dde5cbd59b572035be0a239da7dd80649392760980cd122",
+      "cwd": "/private/tmp/weizigo/race-t543",
+      "lanes": [
+        {
+          "race": "epistemic-race3",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/epistemic-race3/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/deepseek-v4-pro/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.13,
+          "rss_mb": 216,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6116 MB < floor 6144 MB (largest member pid 61438 RSS 125 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race3",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/epistemic-race3/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/deepseek-v4-flash/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.11,
+          "rss_mb": 199,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6116 MB < floor 6144 MB (largest member pid 61440 RSS 129 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race3",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race3/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/claude-fable-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.03,
+          "rss_mb": 440,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6128 MB < floor 6144 MB (largest member pid 61441 RSS 337 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race3",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race3/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/claude-opus-5/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 241.9,
+          "cpu_s": 2.5499999999999985,
+          "rss_mb": 466,
+          "out_bytes": 10249,
+          "out_sha256": "ac2816a0b96cdb1e1b71b75b3c42eba867b80d137593bacb5ddce1f9da9b283f",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "epistemic-race3",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race3/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/claude-sonnet-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.1300000000000001,
+          "rss_mb": 441,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6126 MB < floor 6144 MB (largest member pid 61439 RSS 349 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race3",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race3/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/claude-haiku-4-5-20251001/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 51.6,
+          "cpu_s": 1.5,
+          "rss_mb": 440,
+          "out_bytes": 5587,
+          "out_sha256": "bb8ed4369c5eeee8c05283e2484ecc43e3d64f641a08a57c6ae05e31d4a5c9f8",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "epistemic-race3",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 3 \u2014 prior-art mapping\n\n**Task:** For each packet, give the correct prior-art name, a citation, and a one-paragraph explanation of what the technique adds to the project.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race3/` (R3-P1 through R3-P6). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Prior-art name (exact match to the key).\n3. Citation.\n4. One paragraph: what the technique adds.\n\n**Scoring (answer-keyed, blind):** name match is mechanical; paragraph is blind-graded against the key for accuracy and concision. Two near-identical correct paragraphs must score within one rubric step (null control). A plausible-but-wrong name ranks below the keyed name (seeded control).\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/epistemic-race3/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race3/qwen3.8:27b-mlx/trailer.log",
+          "status": "failed",
+          "exit": 1,
+          "wall_s": null,
+          "cpu_s": 3.26,
+          "rss_mb": 171,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 5825 MB < floor 6144 MB",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        }
+      ]
+    },
+    {
+      "race": "epistemic-race5",
+      "brief": "untracked/race-aspects/packets/epistemic-race5/PACKET.md",
+      "prompt_sha256": "58a7ae8abaafac9c2edb6f0d39f7746d3996695f9da75153be9bd6e60b995660",
+      "cwd": "/private/tmp/weizigo/race-t543",
+      "lanes": [
+        {
+          "race": "epistemic-race5",
+          "family": "deepseek",
+          "label": "deepseek-v4-pro",
+          "serving_tag": "deepseek-v4-pro",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-pro --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/epistemic-race5/deepseek-v4-pro/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/deepseek-v4-pro/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 215.6,
+          "cpu_s": 2.97,
+          "rss_mb": 215,
+          "out_bytes": 1318,
+          "out_sha256": "5fb984f7b39a87be73148571f5e4a93e47c5df818982df5d273198688c547226",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "epistemic-race5",
+          "family": "deepseek",
+          "label": "deepseek-v4-flash",
+          "serving_tag": "deepseek-v4-flash",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- pi --provider deepseek --model deepseek-v4-flash --no-session -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/epistemic-race5/deepseek-v4-flash/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/deepseek-v4-flash/trailer.log",
+          "status": "ok",
+          "exit": 0,
+          "wall_s": 112.5,
+          "cpu_s": 2.77,
+          "rss_mb": 202,
+          "out_bytes": 2811,
+          "out_sha256": "8c6e2ac282668ce4f5be8f3f05607442fe5ac96570732183d917a14dac9abe95",
+          "kill": null,
+          "note": null,
+          "official_verified": "pass",
+          "official_reason": null
+        },
+        {
+          "race": "epistemic-race5",
+          "family": "claude",
+          "label": "claude-fable-5",
+          "serving_tag": "claude-fable-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race5/claude-fable-5/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/claude-fable-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.09,
+          "rss_mb": 439,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6121 MB < floor 6144 MB (largest member pid 46692 RSS 395 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race5",
+          "family": "claude",
+          "label": "claude-opus-5",
+          "serving_tag": "claude-opus-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n' --model claude-opus-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race5/claude-opus-5/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/claude-opus-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.06,
+          "rss_mb": 441,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6004 MB < floor 6144 MB (largest member pid 46694 RSS 403 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race5",
+          "family": "claude",
+          "label": "claude-sonnet-5",
+          "serving_tag": "claude-sonnet-5",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n' --model claude-sonnet-5 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race5/claude-sonnet-5/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/claude-sonnet-5/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.05,
+          "rss_mb": 441,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 5973 MB < floor 6144 MB (largest member pid 46693 RSS 400 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race5",
+          "family": "claude",
+          "label": "claude-haiku-4-5-20251001",
+          "serving_tag": "claude-haiku-4-5-20251001",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- claude -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n' --model claude-haiku-4-5-20251001 --allowedTools Read,Write,Edit,Bash --output-format text",
+          "out": "untracked/race-aspects/runs/epistemic-race5/claude-haiku-4-5-20251001/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/claude-haiku-4-5-20251001/trailer.log",
+          "status": "guard-killed",
+          "exit": 124,
+          "wall_s": null,
+          "cpu_s": 1.02,
+          "rss_mb": 439,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 6003 MB < floor 6144 MB (largest member pid 46691 RSS 396 MB)",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        },
+        {
+          "race": "epistemic-race5",
+          "family": "ollama",
+          "label": "qwen3.8:27b-mlx",
+          "serving_tag": "qwen3.8:27b-mlx",
+          "command": "/Users/alex/Project/Zig/weizigo/untracked/race-aspects/snapshot/runner --max-wall 1800 -- ollama launch pi --model qwen3.8:27b-mlx -y -- -p 'You are one lane in a head-to-head bake-off: several models race the same bounded task, blind-graded. Follow the task brief exactly.\n\nProduce your entire deliverable as your final message \u2014 the harness captures your output verbatim to a file. Do not write files or run shell commands unless the task brief explicitly requires it.\n\n===== TASK BRIEF =====\n# Epistemic race 5 \u2014 formal precision\n\n**Task:** For each packet, audit the stated axiom set and report whether it is consistent or inconsistent; if inconsistent, name a minimal inconsistent subset.\n\n**Frozen fixture store:** the committed packets under `docs/evidence/EPISTEMIC-RACES/packets/race5/` (R5-P1 through R5-P3). These packets are sealed and static; every lane sees the same bytes.\n\n**What you must produce:** a single markdown file `out.md` with one entry per packet:\n1. Packet ID.\n2. Verdict: `CONSISTENT` or `INCONSISTENT`.\n3. If `INCONSISTENT`, the minimal subset of axioms that contradict (e.g. `{A1, A4}`).\n4. One-sentence rationale.\n\n**Scoring (answer-keyed, blind):** point iff verdict matches the key and, for inconsistent packets, the minimal subset is correct. False alarms (claiming inconsistency where the key says consistent) score zero.\n\n===== END TASK BRIEF =====\n'",
+          "out": "untracked/race-aspects/runs/epistemic-race5/qwen3.8:27b-mlx/out.md",
+          "trailer": "untracked/race-aspects/runs/epistemic-race5/qwen3.8:27b-mlx/trailer.log",
+          "status": "failed",
+          "exit": 1,
+          "wall_s": null,
+          "cpu_s": 3.66,
+          "rss_mb": 184,
+          "out_bytes": 0,
+          "out_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "kill": "host memory pressure \u2014 avail 5570 MB < floor 6144 MB",
+          "note": "no runner exit line in trailer",
+          "official_verified": "infrastructure",
+          "official_reason": "host-memory-pressure"
+        }
+      ]
+    }
+  ],
+  "official": {
+    "closed_by": "deepseek-v4-pro/T543.2",
+    "closed_at": "2026-08-20T13:49:44Z",
+    "role": "race official (dispatch/capture/anonymize/record; NOT grading)",
+    "seal_verification": {
+      "performed_at": "2026-08-20T13:49:44Z",
+      "summary": "ALL packet seals verified: 7/7 keys, 7/7 PACKET.md, 7/7 fixtures tar match the MANIFEST; the MANIFEST itself matches its artifacts/SHA256SUMS pin @ b389b0f",
+      "all_match": true,
+      "keys": [
+        {
+          "id": "A1",
+          "path": "untracked/race-aspects/packets/aspect-triage/key.txt",
+          "match": true,
+          "sha256": "ec4a74d43c219a6d5c1f8e65d1f54c2085df6f17d86479e761e15f98e8505a3e"
+        },
+        {
+          "id": "A2",
+          "path": "untracked/race-aspects/packets/aspect-verdict/key.txt",
+          "match": true,
+          "sha256": "51790aba6e11b5fa64c715eb419ff64d5963bd8ff2c498a43f1df47daa5bc97e"
+        },
+        {
+          "id": "A3",
+          "path": "untracked/race-aspects/packets/aspect-inbox/key.txt",
+          "match": true,
+          "sha256": "5546347c045eb9264e7f91dac7fc4c93c5cfdf82cd5b701ef8b70888c4c7b482"
+        },
+        {
+          "id": "A4",
+          "path": "untracked/race-aspects/packets/aspect-crash/key.txt",
+          "match": true,
+          "sha256": "40373cdab8908e9b433f1018548fa110b065f00d3c22d367fbfdeb69a451fce9"
+        },
+        {
+          "id": "A5",
+          "path": "untracked/race-aspects/packets/aspect-dispatch/key.txt",
+          "match": true,
+          "sha256": "9960d64bafcd76873556f3eeea8b2f80ece3956e14fa13c9bd0e8a7292c6014a"
+        },
+        {
+          "id": "E3",
+          "path": "untracked/race-keys/race3.key",
+          "match": true,
+          "sha256": "8f4aeee81149c87fbc4e77876c844731d7d8e9c4148500dd43ff55e7719f2f3b"
+        },
+        {
+          "id": "E5",
+          "path": "untracked/race-keys/race5.key",
+          "match": true,
+          "sha256": "8cfd52f1242a53c97c2f05df397443faf72043101cb7a3a4cfa922856e1ab3e5"
+        }
+      ],
+      "packet_md": [
+        {
+          "id": "A1",
+          "path": "untracked/race-aspects/packets/aspect-triage/PACKET.md",
+          "match": true,
+          "sha256": "b4f16cc56c49056071be3253da9335e62c4539cc91ecd85ce94145d517f9f611"
+        },
+        {
+          "id": "A2",
+          "path": "untracked/race-aspects/packets/aspect-verdict/PACKET.md",
+          "match": true,
+          "sha256": "0f78c0966eda519e195814c063d97f006a22610235716959471eaae4818afaad"
+        },
+        {
+          "id": "A3",
+          "path": "untracked/race-aspects/packets/aspect-inbox/PACKET.md",
+          "match": true,
+          "sha256": "bd7774e460d68ac881b5e3068aa5d70c6f57e60772d5788a17a2fea4c9cb1ff9"
+        },
+        {
+          "id": "A4",
+          "path": "untracked/race-aspects/packets/aspect-crash/PACKET.md",
+          "match": true,
+          "sha256": "b962d3cde3db7e69088fde99d1747533ecd12efc4014d2ce1e99d42562606047"
+        },
+        {
+          "id": "A5",
+          "path": "untracked/race-aspects/packets/aspect-dispatch/PACKET.md",
+          "match": true,
+          "sha256": "350746c69d4032c831a3bd149c649520eeb33bfffe173ffe90fc56abdbce020e"
+        },
+        {
+          "id": "E3",
+          "path": "untracked/race-aspects/packets/epistemic-race3/PACKET.md",
+          "match": true,
+          "sha256": "96a68e5b205359ceeb5b4596f89311c061b492758f739657e9da0d7eaed9da9d"
+        },
+        {
+          "id": "E5",
+          "path": "untracked/race-aspects/packets/epistemic-race5/PACKET.md",
+          "match": true,
+          "sha256": "571dbd097a68b389851288a38ffdaca45441b6b5001600824a3ce6dac804630f"
+        }
+      ],
+      "fixtures": [
+        {
+          "id": "A1",
+          "path": "aspect-triage/fixtures",
+          "match": true,
+          "sha256": "4810d70095f6a5b99e33c1eb1e3f676008805e264bd9f678d6bb9f2e03b16eaa"
+        },
+        {
+          "id": "A2",
+          "path": "aspect-verdict/fixtures",
+          "match": true,
+          "sha256": "911681d5b3dc04b1eb14f63e84748f54837c04698a24d20aa2f21d785fca9309"
+        },
+        {
+          "id": "A3",
+          "path": "aspect-inbox/fixtures",
+          "match": true,
+          "sha256": "c24c980d6a1891d92db0224b65cde3525b7cf304cc06ac43d923024daf8b9ceb"
+        },
+        {
+          "id": "A4",
+          "path": "aspect-crash/fixtures",
+          "match": true,
+          "sha256": "8e52201d0f7f6e9d575ca5950619ba9735e7ec6bd3abc76ff1d6fb6381702d96"
+        },
+        {
+          "id": "A5",
+          "path": "aspect-dispatch/fixtures",
+          "match": true,
+          "sha256": "c73d755b0b7870cae72c50d4d69bb8e6fa539d61f5bf73237898884235ec1e72"
+        },
+        {
+          "id": "E3",
+          "path": "race3",
+          "match": true,
+          "sha256": "ea10f0fba0c302ab04cd9d193b1f21a535aad8335c7ccb0792c29adbae2dccd3"
+        },
+        {
+          "id": "E5",
+          "path": "race5",
+          "match": true,
+          "sha256": "ca01dfd70a401d3fdead7aa9be4a28a0e08975aff766fa7494f17bce0bf96773"
+        }
+      ],
+      "manifest": {
+        "path": "untracked/race-aspects/packets/MANIFEST.md",
+        "sha256": "91c31c8c6190778a024b5b89711f61aec1fd018e887034f9f76f88c3702624f4",
+        "pin": "91c31c8c6190778a024b5b89711f61aec1fd018e887034f9f76f88c3702624f4",
+        "pin_source": "artifacts/SHA256SUMS @ commit b389b0f",
+        "match": true
+      }
+    },
+    "sanitization": {
+      "G4": "sanitizer replicated from tools/bakeoff.sh @ 5d7b0d5; out.sanitized.md written alongside each captured out.md; self-identifying lanes flagged (retained as data, never silently scrubbed)",
+      "per_lane": {
+        "aspect-triage/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-triage/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-triage/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-triage/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/claude-opus-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-triage/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-triage/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-triage/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-triage/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/claude-opus-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-verdict/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-verdict/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/claude-opus-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-inbox/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-inbox/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-crash/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-crash/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": true,
+          "self_id_matches": [
+            "deepseek-v4-flash"
+          ]
+        },
+        "aspect-crash/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-crash/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/claude-opus-5/out.sanitized.md",
+          "self_identified": true,
+          "self_id_matches": [
+            "deepseek-v4-flash"
+          ]
+        },
+        "aspect-crash/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-crash/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-crash/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-crash/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/claude-opus-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "aspect-dispatch/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/aspect-dispatch/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/claude-opus-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race3/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race3/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/deepseek-v4-pro": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/deepseek-v4-pro/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/deepseek-v4-flash": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/deepseek-v4-flash/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/claude-fable-5": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/claude-fable-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/claude-opus-5": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/claude-opus-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/claude-sonnet-5": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/claude-sonnet-5/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/claude-haiku-4-5-20251001": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/claude-haiku-4-5-20251001/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        },
+        "epistemic-race5/qwen3.8:27b-mlx": {
+          "sanitized_out": "untracked/race-aspects/runs/epistemic-race5/qwen3.8:27b-mlx/out.sanitized.md",
+          "self_identified": false,
+          "self_id_matches": []
+        }
+      }
+    },
+    "gates_status": {
+      "G1_tokens": "RED at dispatch \u2014 Claude lanes fired with --output-format text (D045's JSON correction arrived after lanes were away); DS/qwen raw stdout+stderr preserved in out.md + trailer.log. Every token cell null + reason, never estimated. T521 may mine trailer/heartbeat later.",
+      "G2_isolation": "SATISFIED BY CONSTRUCTION \u2014 lanes ran from git worktree /private/tmp/weizigo/race-t543 with keys outside reach; relative-path boundary only, NOT a sandbox (T376)",
+      "G3_family_exclusion": "GRADING-TIME \u2014 not applied (official does not grade)",
+      "G4_blinding": "applied mechanically at capture (sanitize step above); grading uses blinded outputs",
+      "G5_record": "SATISFIED \u2014 lanes.json + sealed lane map + this record",
+      "G6_impressions": "explicit waiver \u2014 the race official's hard boundary forbids output-quality opinions; impressions are the grading panel's (G3) output, captured at grading time"
+    },
+    "dispatch_valid_but_not_grade_valid": true,
+    "dont_score_rc124_cohort": {
+      "ruling": "commit 2740174 (2026-08-20): DO NOT SCORE the rc=124 cohort",
+      "count": 22,
+      "cause": "host memory pressure \u2014 the seat ran up to 14 workers plus 8 headless Claude sessions; lanes' own RSS was 56-448 MB, culled because the HOST fell below the 6144 MB floor, not because they were large",
+      "classification": "verified=infrastructure reason=host-memory-pressure; excluded from per-model rates"
+    },
+    "protocol": "sequential lanes are the default; time-shifting is valid (commit 5330909, 2026-08-20). This run's lanes were fired CONCURRENTLY per D038/D041 before that ruling \u2014 that concurrency is the recorded launch-haste and the cause of the memory-pressure kills.",
+    "re_dispatch_needed": {
+      "count": 22,
+      "protocol": "sequential, ONE lane at a time (no concurrency)",
+      "when": "after ~20:30 local reset (fleet quieter; Claude allowance reset)",
+      "priority": "critical four first (claude-fable-5, claude-opus-5, deepseek-v4-pro, deepseek-v4-flash), then best-effort three (claude-sonnet-5, claude-haiku-4-5-20251001, qwen3.8:27b-mlx)",
+      "claude_output_format": "--output-format json per D045 so the envelope carries usage; extract text + usage into the lane dir",
+      "lanes": [
+        {
+          "race": "aspect-triage",
+          "label": "qwen3.8:27b-mlx",
+          "reason": "host-memory-pressure",
+          "status": "failed",
+          "exit": 1
+        },
+        {
+          "race": "aspect-verdict",
+          "label": "deepseek-v4-pro",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-verdict",
+          "label": "deepseek-v4-flash",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-verdict",
+          "label": "claude-fable-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-verdict",
+          "label": "claude-opus-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-verdict",
+          "label": "claude-sonnet-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-verdict",
+          "label": "claude-haiku-4-5-20251001",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-crash",
+          "label": "deepseek-v4-pro",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-crash",
+          "label": "claude-fable-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-crash",
+          "label": "claude-sonnet-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-crash",
+          "label": "claude-haiku-4-5-20251001",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "aspect-crash",
+          "label": "qwen3.8:27b-mlx",
+          "reason": "host-memory-pressure",
+          "status": "failed",
+          "exit": 1
+        },
+        {
+          "race": "epistemic-race3",
+          "label": "deepseek-v4-pro",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race3",
+          "label": "deepseek-v4-flash",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race3",
+          "label": "claude-fable-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race3",
+          "label": "claude-sonnet-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race3",
+          "label": "qwen3.8:27b-mlx",
+          "reason": "host-memory-pressure",
+          "status": "failed",
+          "exit": 1
+        },
+        {
+          "race": "epistemic-race5",
+          "label": "claude-fable-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race5",
+          "label": "claude-opus-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race5",
+          "label": "claude-sonnet-5",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race5",
+          "label": "claude-haiku-4-5-20251001",
+          "reason": "host-memory-pressure",
+          "status": "guard-killed",
+          "exit": 124
+        },
+        {
+          "race": "epistemic-race5",
+          "label": "qwen3.8:27b-mlx",
+          "reason": "host-memory-pressure",
+          "status": "failed",
+          "exit": 1
+        }
+      ]
+    },
+    "token_capture_status": {
+      "captured": false,
+      "reason": "launch-haste \u2014 G1 not wired at dispatch (text output-format; D045 arrived after lanes were away); recorded as missing, never estimated",
+      "recoverable_from": "untracked/race-aspects/runs/<race>/<label>/trailer.log and untracked/heartbeat.jsonl (T521's instrument)"
+    }
+  }
+}
