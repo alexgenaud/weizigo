@@ -4055,3 +4055,61 @@ This is an Orchestrator resource decision, not model behaviour: opus was doing
 exactly what its row asked. Any per-model rate must exclude it, and `T529` is owed a
 re-dispatch on a quiet host. It joins the day's earlier rc=124 cohort under the same
 rule — infrastructure and seat decisions never score as model quality.
+dispatch-verify 2026-08-20 T524 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T546 deepseek-v4-pro report=incomplete verified=fail fail=row
+
+## FIRST REAL TOKEN DATA — aspect races round 2, 2026-08-20 (epoch 2026-08-20b)
+
+`T546`, run `aspect-races-round2-2026-08-20b`, worktree `/private/tmp/weizigo/race-t546`,
+`root_is_worktree=true`, `keys_in_worktree=[]`. Harness pinned
+(`bakeoff_sha256=5d270321…`, runner blob recorded).
+
+**17 of 22 owed lane-packet runs captured, and all 17 carry a token reading.** That
+ends **seven consecutive races at n=0 tokens** — the G1 breach is broken. Gates G1/G2/G5
+held; G4 flagged four self-identifying lanes rather than scrubbing them.
+
+| lane | runs | tokens_in | tokens_out | in/run | peak RSS | source |
+|---|---|---|---|---|---|---|
+| sonnet | 3 | 558,049 | 18,988 | 186,016 | 498 MB | trailer |
+| haiku | 2 | 535,863 | 11,434 | **267,932** | 498 MB | trailer |
+| opus | 2 | 450,365 | 15,932 | 225,183 | 513 MB | trailer |
+| fable | 4 | 322,668 | 17,115 | 80,667 | 472 MB | trailer |
+| dspro | 3 | 261,665 | 24,562 | 87,222 | 207 MB | pi-session-jsonl |
+| flash | 2 | 153,517 | 20,047 | 76,759 | 217 MB | pi-session-jsonl |
+| qwen | 1 | 20,081 | 252 | 20,081 | 173 MB | pi-session-jsonl |
+
+### Do NOT rank from this table yet. Three reasons, all structural.
+
+1. **Coverage is uneven and non-random.** 5 of 7 packets, and runs per lane range from
+   **1 to 4**. Lanes did not attempt the same work, so totals are not comparable and
+   even the in/run column compares different packet mixes. The 5 missing runs are
+   re-dispatched (`--wall=7200`).
+2. **The two token sources may not be measuring the same thing.** Claude lanes read
+   from the runner `trailer`; DeepSeek and qwen from `pi-session-jsonl`. Whether both
+   count cache reads, system prompt and tool results identically is **unestablished** —
+   and the operator's central question is precisely a cross-family cost comparison, so
+   this must be settled before any Claude-vs-DeepSeek cost claim. Handed to `T546`.
+3. **One lane was guard-killed** (qwen on aspect-triage) and its partial counts are in
+   the table; qwen is best-effort by roster rule.
+
+### What is nonetheless worth noticing, as a hypothesis to test
+
+`haiku` consumed the **most tokens per run (268k)** of any lane — more than opus (225k)
+and more than three times fable (81k). For the cheapest, smallest model that is
+counter-intuitive, and it is exactly the kind of thing folklore would never have
+surfaced. Candidate explanations, none verified: retry or self-correction loops,
+verbose tool use, or a longer path to the same answer. If it survives even coverage, it
+matters commercially — cheap per token is not cheap per task. This is a hypothesis with
+n=2, not a finding.
+
+Also: the Claude lanes' peak RSS (472–513 MB) is roughly **2.4×** the DeepSeek lanes'
+(207–217 MB), consistent with a local harness process versus a thin API client.
+
+### Why round 2 was truncated
+
+Killed by two guards in succession: `KILL: host memory pressure — avail 5776 MB < floor
+6144 MB`, then `KILL: wall ceiling 2700s reached (no [progress] lines seen)`. The 2700 s
+wall was the **keeper's default**, not the row's class (verification wants 5400–7200 s) —
+the wall-guess defect (inventory item C5) hitting the most valuable row of the day. Its
+`DO NOT SCORE` scope is the kill itself, not the 17 captured readings, which are valid.
