@@ -35,7 +35,7 @@ Per `spec.md` Rev 5 §2.3: prove the L/H values in the 4×4 table are the fixpoi
 | C-A1: 0 children-not-in-table | ✅ **PASS — 0 / 600,763,414 non-terminal children over all 99,133,036 entries at 4×4** under the wrong-decode (`kb>>1`) the original T363 run used; T383 corrected-decode re-run: **0 / 616,030,190** (kernel-successor; `findings/T383-ko-decode.json:48`). 251 s, 1124 MB peak RSS; 48,505,262 passes=2 children counted separately as expected-absent terminals, avg branching factor 6.06 |
 | C-A2: 0 reachable-not-in-table | ✅ **PASS — 0 missing; 99,020,312 reachable non-terminal states over 32 snapshot sweeps at 4×4** under the wrong-decode (`kb>>1`) the original T363 run used; T383 corrected-decode re-run: **0 / 99,133,034** (kernel-successor, 32 sweeps, 2 structurally-impossible non-reachable entries — colex=0 side-mismatch — enumerated in `findings/T383-ko-decode.json` F-4; the T380 settled-skip variant is 98,999,934 reachable / 133,102 non-reachable, a different reachability measure). Note: table holds 99,133,036 entries; under the kernel-successor convention 2 entries are not root-reachable (e.g. White-to-move-on-empty passes=0), so reachable ≠ n_entries is expected, not a defect |
 | I11: 0 mismatches on sampled space | ✅ PASS — 0 / 50,000 (all rungs 0: 114 / 978 / 25,350 / 643,378 / 50,000) |
-| I5: KO_SENSITIVE ⊆ cycle-reachable | ✅ **PASS at 4×3 and 4×4** — 4×3: 0 / 170,181 KO_SENSITIVE (V=1,929,035, E=6,858,926, maxSCC=1,284,078); 4×4: **0 / 3,455,412** (V=99,133,036, E=565,402,416, maxSCC=47,429,504, cycle-reachable 97,689,592, 136 s, 2768 MB peak RSS). Seeded-defect control demonstrated red-then-green at 4×4 (baseline 0 → spurious L≠H → 1 → restore → 0). **Vacuity finding (T363): at 3×2 every passes=0 ko=NONE slot is cycle-reachable in the full-graph model, and at 4×3 the non-CR slots are all already KO_SENSITIVE — the spec §7.2 premise that 3×2 is the first non-vacuous rung does not hold for the full (colex, side, ko, passes) graph; the first genuine red-then-green rung is 4×4.** |
+| I5: KO_SENSITIVE ⊆ cycle-reachable | ✅ **PASS at 4×3 and 4×4** — 4×3: 0 / 170,181 KO_SENSITIVE (V=1,929,035, E=6,858,926, maxSCC=1,284,078); 4×4: **0 / 3,455,412** (V=99,133,036, E=565,402,416, maxSCC=47,429,504, cycle-reachable 97,689,592, 136 s, 2768 MB peak RSS). Seeded-defect control demonstrated red-then-green at 4×4 (baseline 0 → spurious L≠H → 1 → restore → 0). **Vacuity finding (T363): at 3×2 every passes=0 ko=NONE slot is cycle-reachable in the full-graph model, and at 4×3 the non-CR slots are all already KO_SENSITIVE — the spec §7.2 premise that 3×2 is the first non-vacuous rung does not hold for the full (colex, side, ko, passes) graph; the first genuine red-then-green rung is 4×4.** **N1 (T474, `findings/T474-second-auditor.json`): the 4×4 I5 instrument is placement-only** — `checkI5Wzo2`'s pass-edge path is dead (SMD1 sentinel), so CR/E are computed on the placement-only subgraph (E=565,402,416 placement-only vs ~616M with pass edges). Placement-only CR ⊆ full-graph CR, so 0/3,455,412 remains valid for the full-graph claim (false PASS impossible); the E metric is not cross-comparable with 3×2/4×3 (which count pass edges). |
 | Key-agreement: 0 mismatches | ✅ PASS — 0 / 99,133,036 at 4×4 (T345); **0 / 643,378 at 4×3** (T363 retroactive rung, WZO1 artifact slice) |
 | Seven mutants killed | ✅ **6 of 10 confirmed killed** (corrected by T475 from T363's "7 of 7" overstatement) — M5/M6/M7 by I2/I7/I2, **M8 by C-A1/C-A2 closure and M10 by I11 null control** (both asserted red-then-green in `vb_mutants.zig`, T363), M9 by BATT-HEALTH (T347). M1/M2/M3/M4 SURVIVE: T345 KEY-4x4 calibration demonstrates machinery sensitivity to colex bit-flip but is not per-mutant kill-verification; per-mutant fixtures for M1/M2/M4 do not exist; M3 test (`src/vb_mutants.zig:94`) asserts `I5Status.pass` (vacuous at 2×2). The remaining Gap G1/G3 is owed to Phase 2 kernel producer-extraction. |
 
@@ -53,6 +53,14 @@ All four gaps from §6 are now closed (T363, 2026-08-05). What remains honestly 
 ### 3.1 The seeded-defect control is vacuous at 3×2 (and 4×3) in the full-graph model
 
 Spec §7.2 and plan F2 premise: the first non-vacuous I5 seeded-defect control runs at 3×2. **Measured (T363): false for the full (colex, side, ko, passes) graph this implementation uses.** At 3×2 every passes=0 ko=NONE slot is cycle-reachable (ko_not_cr=0, no hint) — the same vacuity the spec attributed to 2×2 only. At 4×3 the non-cycle-reachable slots (24 in the all-legal graph) are all already KO_SENSITIVE, so a spurious-KO_SENSITIVE seed cannot raise ko_not_cr. The first rung where a genuine red-then-green seeded-defect is demonstrable is **4×4** (non-CR L==H entries exist, ~1.44M; the test seeds a spurious L≠H on one and shows ko_not_cr 0 → 1 → 0). The 4×4 control is wired and passes; the 3×2/4×3 vacuity is recorded in the tests as a NOTE, not silently skipped.
+
+**N1 correction (T474, `findings/T474-second-auditor.json`):** the 4×4 I5 instrument
+(`checkI5Wzo2`) is **placement-only** — its pass-edge path is dead (SMD1 sentinel), so
+the 4×4 graph is the placement-only subgraph (E=565,402,416 vs ~616M with pass edges),
+not the full (colex, side, ko, passes) graph named above. Placement-only CR is a subset
+of full-graph CR, so the 4×4 seeded-defect demonstration and the 0/3,455,412 reading
+remain valid (a false PASS is impossible — the check is stricter), but the E metric is
+not cross-comparable across rungs (3×2/4×3 count pass edges, 4×4 does not).
 
 ### 3.2 I4 at 4×3 uses the WZO1 instrument, not the WZO2 bracket check
 
@@ -222,12 +230,12 @@ Reproduces T363's figures exactly, including wall time and peak RSS.
 | Key agreement | **0 / 99,133,036** (4×4) · **0 / 643,378** (4×3) | exhaustive |
 | I5 — KO_SENSITIVE ⊆ cycle-reachable | **0 / 3,455,412** (4×4) · **0 / 170,181** (4×3) | exhaustive |
 | I11 — move-set consistency | **0 / 50,000** at 4×4; 0 at every lower rung (114 / 978 / 25,350 / 643,378) | **sampled at 4×4** |
-| Mutation adequacy (Amendment 2 gate) | 7 / 7 mutants asserted killed, M8 + M10 wired red-then-green | — |
+| Mutation adequacy (Amendment 2 gate) | 6 / 10 mutants asserted killed (M5/M6/M7/M8/M9/M10; M1/M2/M4 unasserted, M3 survives — T475), M8 + M10 wired red-then-green | — |
 
 **Ruling: G3b is discharged.** Promotions per spec §1.1 are authorised — `4x4.C1` UNTESTED →
 CLAIMED, `4x4.FP1` UNTESTED → CLAIMED, `GLOBAL.H4` claim text updated to drop "partial" with no
 status change. CLAIMED is the ceiling pending Phase 3; nothing here is promoted to PROVEN, and the
-Amendment 2 mutation gate is satisfied by the 7/7 kills.
+Amendment 2 mutation gate is satisfied by the 6/10 kills (T475 reconciliation; M1/M2/M3/M4 remain unasserted/surviving — Gap G1/G3).
 
 **Four scope limits ride with the discharge and must be quoted wherever it is cited:**
 

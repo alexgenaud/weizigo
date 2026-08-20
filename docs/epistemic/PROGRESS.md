@@ -437,7 +437,13 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
 
 ### 7.5 Other open items
 
-- **4×4 writes-off regen** (D3): untested, the single gate on Track A
+- **4×4 writes-off regen** (D3): untested. Track A's `memo_writes=false`
+  KO_SENSITIVE-column regeneration is **not registered** — the WZO2 column was
+  discharged by provenance (T472, `findings/T472-track-a-ruling.json`): it is the
+  ADR-0020 pure loopy-game fixpoint bracket, never the finisher — so D3 is no
+  longer 'the single gate on Track A'. D3 still gates the finisher-based artifacts
+  (the writes-on checkpoint `data/oracle-4x4.checkpoint.wzo`'s ko-sensitive values
+  stay untrusted) and the #2 auditor
   `[4x4.D3:UNTESTED]`.
 - **FP1 acceptance checks 1–2** (seed, zero-change at 4×4): can be read
   post-hoc from T104's audit output `[4x4.FP1-C1:UNTESTED]`

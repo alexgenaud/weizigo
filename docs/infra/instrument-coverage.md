@@ -71,7 +71,7 @@ from the size-specific instruments below — different code, different formats.
 | I4 Bellman (A2) | `oracle_v2_accept.zig` `checkA2` (:729) — **kernel `rules.Rules` move engine** | 4×4 exhaustive (T309) and sampled; WZO2 artifacts at 3×3/4×4 | WZO2 | pass: 0/99,133,036 (A2_exhaustive, baselines.json) |
 | I5 SCC | `vb_scc_4x4.zig` `checkI5Small` (:398) — 3×2/4×3 WZO1; `checkI5Wzo1Bitset` (:1378) — 4×3; `checkI5Wzo2` (:810) — 4×4 | 4×4 (99,133,036 entries); 3×2/4×3 as calibration rungs | WZO1 (3×2/4×3) + WZO2 (4×4) | pass: ko_not_cr **0 / 3,455,412** ko_sensitive (T344/T363; `docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md:177`) |
 | I7 DTT (A8) | `oracle_v2_accept.zig` `checkA8` (:926) | WZO2 artifacts (3×3, 4×4) | WZO2 | pass (A8, baselines.json) |
-| I11 move-set | `vb_i11.zig` `compareDirect` (:275) — 2×2/3×2/3×3/4×3 exhaustive; `compareSmd1` (:174) — 4×4 sampled 50k stratified via SMD1 dumps | 2×2–4×3 exhaustive, 4×4 sampled | none (R8 vs kernel/SMD1) | pass: 0 mismatches (T346) |
+| I11 move-set | `vb_i11.zig` `compareDirect` (:275) — 2×2/3×2/3×3/4×3 exhaustive; `compareSmd1` (:174) — 4×4 full SMD1 slice (48,636,330 records); `compareTableDirect` — 4×4 full table (99,133,036 entries) | 2×2–4×4 exhaustive (T473) | none (R8 vs kernel/SMD1) | pass: 0 / 48,636,330 slice + 0 / 99,133,036 table (T473; supersedes T346's 50k sample) |
 | C-A1/C-A2 closure | `vb_closure.zig` `ca1ForwardClosure` (:438), `ca2BackwardClosure` (:702) | 3×3 exhaustive (tests); 4×4 full gated `WEIZIGO_CLOSURE_4X4_FULL=1` (T363) | WZO2 | **corrected-decode (kernel successor, T383):** C-A1 children-not-in-table **0 / 616,030,190**; C-A2 reachable-not-in-table **0 / 99,133,034** (2 structurally-impossible non-reachable entries; `findings/T383-ko-decode.json:48`). **Stale-decode (wrong kb>>1, T363):** C-A1 0/600,763,414 · C-A2 0/99,020,312 — superseded |
 | key agreement | `differential.zig` T267 (:401) — engine vs builder, self-play/human games; T345 KEY-4×4 (:1244) — producer kernel vs R8 consumer, all 99,133,036 entries | T267: 2×2/3×2/3×3/4×4 (game-sampled); T345: 4×4 only (table-exhaustive); T363 added 4×3 retroactive rung (0/643,378) | WZO2 (4×4); live play (smaller) | pass: 0 mismatches (T345) |
 | mutation assertions | `vb_mutants.zig` (M3 :94, M5 :132, M6 :162, M7 :190, M8 :269, M9 :228, M10 :319) | 2×2 WZO1 fixtures (in-memory corruption of `artifacts/oracle-2x2.wzo`); M8 also runs closure at 3×3 | WZO1 | — (no 4×4 WZO1 mutant; WZO2 mutants live in A6) |
@@ -162,7 +162,11 @@ not-applicable (`vb_fixpoint.checkI11` :473), so every baseline I11 row reads
 not-applicable while the real instrument (`vb_i11.zig`) runs outside the battery
 (T346). A reader of `baselines.json` sees I11 "n/a" at every size and cannot tell
 that the check exists and passes. The declared matrix and the actual instrument have
-diverged; nothing reconciles them.
+diverged; nothing reconciles them. **T473 (2026-08-20) made the real instrument
+ exhaustive at 4×4** — 0 / 48,636,330 SMD1 slice records and 0 / 99,133,036 stored
+ table entries (`findings/T473-i11-exhaustive.json`) — so `modeForCell`'s 'sampled at
+ 3×3+' is now wrong on two counts: the battery never executes it, and the instrument
+ it describes is exhaustive.
 
 ### D6 — key agreement: exhaustive form exists only at the largest rung
 
@@ -212,7 +216,7 @@ column marks what is genuinely size-specific (a 99M-entry sweep is not a 25K swe
 | **I5 SCC** | Unify the KO_SENSITIVE denominator to the **artifact-wide census** (the convention that matches the WZO1 raw flag census, 378, and the WZO2 L≠H census, 3,455,412). Collapse the 3×2/4×3 overlap to ONE small-goban implementation (either keep `vb_graph.checkI5` or `checkI5Small`, not both). Keep the 4×4 WZO2 bitset/Tarjan path as the scale-specific backend but drive it through the same counting semantics. | low (counting semantics) / moderate (collapse) | yes at 4×4 — 1.46B linear space, ~2.8 GB RSS (T344); no below that |
 | **I7 DTT** | Adopt A8's recurrence (DTT > min(children)) as the single definition; either add a WZO1 column reader to A8 or port I7's terminal checks into the WZO2 path. Differential at 3×3 (both formats exist). | moderate | no |
 | **I9 anchors** | No work — already parametric. Add a 4×4 WZO2 anchor run so the parametric function is exercised on the artifact it was written for. | none | no |
-| **I11** | Wire `vb_i11` as the battery's I11 runner. GAP-5 is closed: the SMD1 dump format exists and T346 verified it (`src/vb_i11.zig:65–128,174`). The declared-mode matrix then matches reality. | low (wiring only) | 4×4 sampling is scale-specific (50k stratified vs exhaustive); direct comparison at ≤4×3 stays exhaustive |
+| **I11** | Wire `vb_i11` as the battery's I11 runner. GAP-5 is closed: the SMD1 dump format exists and T346 verified it (`src/vb_i11.zig:65–128,174`). The declared-mode matrix then matches reality. | low (wiring only) | no longer — T473 ran 4×4 exhaustively (0 / 48,636,330 slice + 0 / 99,133,036 table, 69.5 s, 558 MB RSS); only the battery wiring remains |
 | **key agreement** | Run T345's table-exhaustive form at 3×3 WZO2 (49,428 entries) as the small-rung differential; keep T267 game-based as the secondary all-size check. | low | no — the exhaustive form is only 4×4 today because that is where the WZO2 artifact is |
 | **C-A1/C-A2** | Already parametric (w,h from header, `vb_closure.zig:438,702`). Declare closure WZO2-only explicitly, or add a WZO1 closure; the full 4×4 sweep (600M children, 1.1 GB) is a scale matter, keep it gated. | low (documentation) | full 4×4 sweep genuinely scale-specific |
 | **mutation assertions** | Port the WZO1 2×2 mutant fixtures to WZO2 at 3×3 (construct in memory; the artifact is small enough). Reconcile `mutants.md` with `vb_mutants.zig`/T363 (M8/M10 rows, kill-rate line) so the matrix reflects the code. Kill M1/M2/M4 or mark them definitively unasserted. | moderate | no |
