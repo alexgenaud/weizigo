@@ -3556,3 +3556,4 @@ Baseline for the incoming seat to beat.
 - **minimax-m3** — 4 tasks, one wall-kill; needs more samples before judgement.
 
 *Recorded 2026-08-20 during the pre-authorized wrap-up. Claims: none — impressions + measured scorecard.*
+dispatch-verify 2026-08-20 T510 deepseek-v4-pro report=success verified=fail fail=deliverables
