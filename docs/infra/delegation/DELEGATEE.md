@@ -32,6 +32,10 @@ T317, 2026-08-03).  managent rejects non-canonical labels at write time.
 | `minimax-m3` | minimax-m3:cloud, MiniMax-M3 |
 | `kimi-k2.7` | kimi-k2.7-code, kimi-k2.7-code:cloud, Kimi-K2.7 |
 
+*Table verified against `src/managent/main.zig` `canonical_models` on 2026-08-20
+(T508); the Zig array remains the single source of truth and `managent` rejects
+non-canonical labels at write time, so drift fails loudly.*
+
 ## The first thing you do
 
 **Claim the task.** `managent claim <id>` transitions the task from
