@@ -36,10 +36,19 @@
 #
 # All fixtures are synthetic and run in a scratch dir under /tmp/weizigo —
 # never the live repo, never the live kanban (MANAGENT_STORE), never
-# docs/infra/model-perf.md (WEIZIGO_MODEL_PERF).  bin/dispatch is invoked
-# with --test-root=$WORK so the bundle and log land in scratch.
+# docs/infra/model-perf.md (WEIZIGO_MODEL_PERF), never
+# docs/infra/dispatch-heals.jsonl (WEIZIGO_DISPATCH_HEALS).  bin/dispatch
+# is invoked with --test-root=$WORK so the bundle and log land in scratch.
+#
+# Telemetry isolation (audit F3, 2026-08-20; T512): the suite must PROVE it
+# writes only to scratch — the F3 defect was fixture T989/T990 heal records
+# appended to the LIVE dispatch-heals.jsonl because WEIZIGO_DISPATCH_HEALS
+# was not exported.  Arm 15a is the positive control (a real heal must land
+# in the scratch log) and the closing isolation assertion scans the lines
+# appended to the live logs during the run for fixture markers.
 #
 # Task: T476 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-19
+# T512 isolation arms: 2026-08-20
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -75,6 +84,34 @@ export WEIZIGO_MODEL_PERF="$WORK/perf-ledger.txt"
 # to docs/infra/dispatch-heals.jsonl).
 export WEIZIGO_DISPATCH_HEALS="$WORK/dispatch-heals.jsonl"
 export REAL_MG="$MG"
+
+# ── live-telemetry baselines (T512, audit F3) ─────────────────────────────
+# The live logs are append-only and the live fleet legitimately appends to
+# them while this suite runs, so the closing isolation check cannot be a
+# byte-identity compare.  It snapshots the line counts now and scans the
+# lines appended DURING the run for the suite's fixture markers: any fixture
+# record in the live logs is the F3 defect returning.
+LIVE_HEALS="$ROOT/docs/infra/dispatch-heals.jsonl"
+LIVE_PERF="$ROOT/docs/infra/model-perf.md"
+LIVE_HEALS_BASE=$(wc -l < "$LIVE_HEALS" 2>/dev/null || echo 0)
+LIVE_PERF_BASE=$(wc -l < "$LIVE_PERF" 2>/dev/null || echo 0)
+
+# ── T485 done-gate substrate in scratch ───────────────────────────────────
+# bin/managent done runs `bin/weizigo-claimlint c7 --json` from the repo
+# root it walks from CWD — the scratch repo — so the e2e stub's close needs
+# a claimlint binary + a minimal register there, exactly as
+# regression-dispatch-verification.sh provisions them.  Without it the
+# stub's done is refused ("cannot run bin/weizigo-claimlint") and the e2e
+# arms fail with rc=1 (observed 2026-08-20).
+CLAIMLINT="$ROOT/bin/weizigo-claimlint"
+[ -x "$CLAIMLINT" ] || CLAIMLINT="$ROOT/zig-out/bin/weizigo-claimlint"
+if [ -x "$CLAIMLINT" ]; then
+    mkdir -p "$WORK/bin" "$WORK/docs/epistemic"
+    ln -s "$CLAIMLINT" "$WORK/bin/weizigo-claimlint"
+    printf '# minimal scratch claims register (T476 regression)\n' > "$WORK/docs/epistemic/CLAIMS.md"
+else
+    echo "regression-dispatch.sh: WARNING — weizigo-claimlint not built (zig build); the e2e done-gate arms will fail" >&2
+fi
 
 # ── stub worker (honest): claims, writes+commits the deliverable, sleeps
 # past the T390 claim-to-done window, closes the row.  Parses task/model/
@@ -321,12 +358,14 @@ echo " 13a. dry-run claude-fable-5 prints the exact claude -p line (T481 shape)"
 OUT=$(cd "$ROOT" && "$DISPATCH" T991 claude-fable-5 --dry-run --test-root="$WORK" 2>&1)
 RC=$?
 # The resolved claude -p command must carry the nonce, the model, the
-# allowedTools set, and the text output format — the T481/t490 precedent.
+# allowedTools set, and the json output format — the T481/t490 precedent
+# (json since T521: the usage envelope is the token-capture source; the
+# runner unwraps the text for verification).
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q "claude -p" \
    && echo "$OUT" | grep -q -- "--model claude-fable-5" \
    && echo "$OUT" | grep -q -- "--allowedTools Read,Write,Edit,Bash,Grep,Glob" \
-   && echo "$OUT" | grep -q -- "--output-format text" \
+   && echo "$OUT" | grep -q -- "--output-format json" \
    && echo "$OUT" | grep -qE "NONCE-[0-9a-f]{16}"; then
     echo "    PASS: claude -p line carries model, allowedTools, output-format, nonce"
 else
@@ -468,6 +507,70 @@ else
     FAIL=1
 fi
 
+# ── F3 isolation positive control (T512): a real heal lands in scratch ──
+# The audit F3 defect: the suite's e2e arms appended T989/T990 fixture heal
+# records to the LIVE docs/infra/dispatch-heals.jsonl because
+# WEIZIGO_DISPATCH_HEALS was not exported.  This arm forces the exact T477
+# heal signature — worker claims, then dies rc=1 leaving the row
+# in_progress, so verification fails and heal_dispatch reopens it — and
+# asserts the heal record lands in the SCRATCH log.  RED against the
+# pre-fix code (the record would land in the live log instead; the closing
+# isolation assertion below then fails).
+echo " 15a. F3 positive control: claim-then-die worker → heal record in scratch, row reopened"
+seed_task T987 findings/T987-result.json
+cat > "$WORK/stub_die.py" <<'STUBDIEEOF'
+#!/usr/bin/env python3
+import os, re, subprocess, sys
+# Claim, then die rc=1 without closing: rc!=0 + row in_progress is the
+# exact T477 signature the dispatcher heals (verify fails → heal_dispatch).
+prompt = sys.argv[-1]
+mg = os.environ["REAL_MG"]
+task = re.search(r"managent claim (T\d+)", prompt).group(1)
+model = re.search(r"managent claim \S+ --agent (\S+)", prompt).group(1)
+subprocess.run([mg, "claim", task, "--agent", model], check=True)
+sys.exit(1)
+STUBDIEEOF
+chmod +x "$WORK/stub_die.py"
+: > "$WORK/dispatch-heals.jsonl"   # fresh scratch heal log for this arm
+OUT=$(cd "$ROOT" && "$DISPATCH" T987 deepseek-v4-flash \
+        --test-root="$WORK" --test-worker="$WORK/stub_die.py" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T987"; then
+    echo "    PASS: dispatch returned and printed the data line"
+else
+    echo "    FAIL: dispatch rc=$RC; expected 'dispatched T987' data line"
+    echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+HEAL_SEEN=0
+REOPEN_SEEN=0
+for i in $(seq 1 60); do
+    if grep -q '"task_id": "T987"' "$WORK/dispatch-heals.jsonl" 2>/dev/null; then HEAL_SEEN=1; fi
+    [ "$(row_status T987)" = "dispatchable" ] && REOPEN_SEEN=1
+    [ "$HEAL_SEEN" -eq 1 ] && [ "$REOPEN_SEEN" -eq 1 ] && break
+    sleep 0.5
+done
+if [ "$HEAL_SEEN" -eq 1 ]; then
+    echo "    PASS: heal record landed in the SCRATCH heal log (WEIZIGO_DISPATCH_HEALS)"
+else
+    echo "    FAIL: no heal record in the scratch heal log"
+    cat "$WORK/dispatch-heals.jsonl" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+if [ "$REOPEN_SEEN" -eq 1 ]; then
+    echo "    PASS: row reopened to dispatchable by the heal"
+else
+    echo "    FAIL: row not reopened (status=$(row_status T987))"
+    FAIL=1
+fi
+if grep -q "healed: dispatcher reopened T987" "$WORK/untracked/log/t987.log" 2>/dev/null; then
+    echo "    PASS: dispatch log carries the heal line"
+else
+    echo "    FAIL: heal line missing from untracked/log/t987.log"
+    [ -f "$WORK/untracked/log/t987.log" ] && tail -5 "$WORK/untracked/log/t987.log" | sed 's/^/    | /'
+    FAIL=1
+fi
+
 # ── T505 arms: brief-title length gate (≤40 chars) at dispatch ──────────
 # The 40-char title rule (DELEGATOR.md §Task titles) was violated three
 # times in one session.  The gate lives in bin/dispatch (not src/managent,
@@ -511,6 +614,36 @@ else
     echo "    FAIL: rc=$RC; expected no-title-line refusal"; echo "$OUT" | sed 's/^/    | /'
     FAIL=1
 fi
+
+# ── F3 isolation assertion (T512): nothing of the suite reached live telemetry ─
+# The live logs are append-only; the live fleet may legitimately append while
+# this suite runs.  The invariant under test is: lines appended during the
+# run carry NO fixture marker (T987/T989/T990 — the ids this suite's
+# dispatched arms use).  The F3 defect was exactly these fixture records in
+# the live heal log.
+echo " 19. isolation: live dispatch-heals + model-perf gained no fixture data"
+ISO_FAIL=0
+APPENDED=$(tail -n +$((LIVE_HEALS_BASE + 1)) "$LIVE_HEALS" 2>/dev/null)
+if [ -z "$APPENDED" ]; then
+    echo "    PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run"
+elif echo "$APPENDED" | grep -qE '"task_id": "T(987|989|990)"'; then
+    echo "    FAIL: fixture heal record(s) appended to the LIVE heal log (F3 regression)"
+    echo "$APPENDED" | grep -nE '"task_id": "T(987|989|990)"' | sed 's/^/    | /'
+    ISO_FAIL=1
+else
+    echo "    PASS: docs/infra/dispatch-heals.jsonl — appended lines carry no fixture data"
+fi
+APPENDED=$(tail -n +$((LIVE_PERF_BASE + 1)) "$LIVE_PERF" 2>/dev/null)
+if [ -z "$APPENDED" ]; then
+    echo "    PASS: docs/infra/model-perf.md — no lines appended during the run"
+elif echo "$APPENDED" | grep -qE ' T(987|989|990) '; then
+    echo "    FAIL: fixture perf line(s) appended to the LIVE model-perf.md"
+    echo "$APPENDED" | grep -nE ' T(987|989|990) ' | sed 's/^/    | /'
+    ISO_FAIL=1
+else
+    echo "    PASS: docs/infra/model-perf.md — appended lines carry no fixture data"
+fi
+[ "$ISO_FAIL" -eq 0 ] || FAIL=1
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then

@@ -59,7 +59,7 @@
 # failure, or guard kill) so liveness shows real runs even if ungraceful.
 #
 # T370 (2026-08-06): identity also propagates via MANAGENT_TASK_ID from the
-# dispatch wrappers (bin/subagent, bin/ollama-subagent, tools/bakeoff.sh) so
+# dispatch wrappers (bin/subagent, tools/bakeoff.sh) so
 # nested invocations inherit it.  A run with neither --task-id nor the env
 # var is a DEGRADED mode and warns loudly: heartbeats land under
 # runner/<pid>, liveness cannot attribute them, and directives cannot reach
@@ -395,7 +395,7 @@ def _write_run_record(record, repo_root):
             pass
 
 
-def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None):
+def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None, tokens=None):
     """Stamp the child's outcome onto the in-memory launch record and persist.
 
     ret is the child's exit code; signum is the signal that killed the child
@@ -403,6 +403,11 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
     caller passes signum explicitly on the kill paths).  Either may be None:
     a record with neither is a launch record whose runner died before the
     child's fate was known — "killed mid-flight", not "completed".
+
+    tokens (T521) is the capture dict {tokens_in, tokens_out, source,
+    missing_reason} or None.  When provided the record carries the token
+    fields ALWAYS — nulls included — so a run record is self-describing:
+    "no reading" is visible in the record itself, never a missing key.
     """
     if run_record is None:
         return
@@ -419,16 +424,25 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         run_record["rss_mb"] = round(rss_mb, 1)
     if killed is not None:
         run_record["killed"] = killed
+    if tokens is not None:
+        run_record["tokens_in"] = tokens.get("tokens_in")
+        run_record["tokens_out"] = tokens.get("tokens_out")
+        run_record["tokens_source"] = tokens.get("source")
+        run_record["tokens_missing_reason"] = tokens.get("missing_reason")
     _write_run_record(run_record, repo_root)
 
 
 # ── heartbeat emission (WORKER-CHANNEL) ────────────────────────────────────
 
-def _emit_heartbeat(task_id, command, wall, cpu, rss_mb, repo_root):
+def _emit_heartbeat(task_id, command, wall, cpu, rss_mb, repo_root,
+                   tokens_in=None, tokens_out=None):
     """Append a heartbeat line to untracked/heartbeat.jsonl.
 
     The heartbeat records the runner invocation so `managent liveness`
-    can report per-task liveness.
+    can report per-task liveness.  T521: the EXIT beats carry the token
+    reading (tokens_in/tokens_out) so the heartbeat file is another
+    mechanical per-task token surface (the bakeoff finalize already names
+    trailer.log and heartbeat.jsonl as sources).
     """
     if not repo_root:
         return
@@ -447,6 +461,9 @@ def _emit_heartbeat(task_id, command, wall, cpu, rss_mb, repo_root):
         "cpu": round(cpu, 1) if cpu >= 0 else None,
         "rss_mb": round(rss_mb, 1) if rss_mb >= 0 else None,
     }
+    if tokens_in is not None:
+        record["tokens_in"] = tokens_in
+        record["tokens_out"] = tokens_out
     # Strip None values for brevity
     record = {k: v for k, v in record.items() if v is not None}
 
@@ -813,14 +830,16 @@ def _drain_stderr(proc, progress_seen, last_progress_time, task_identity, comman
     """Read any remaining stderr from the child after it exits.
 
     Forwards lines to the runner's stderr, checks for [progress] markers,
-    and emits a heartbeat on each one found.
+    and emits a heartbeat on each one found.  Returns the remaining text
+    so the caller can accumulate it into the full-stream capture (T521).
     """
+    remaining = ""
     try:
         import fcntl as _fcntl
         fd = proc.stderr.fileno()
         fl = _fcntl.fcntl(fd, _fcntl.F_GETFL)
         _fcntl.fcntl(fd, _fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
-        remaining = proc.stderr.read()
+        remaining = proc.stderr.read() or ""
         if remaining:
             for line in remaining.splitlines():
                 print(line, file=sys.stderr)
@@ -828,6 +847,203 @@ def _drain_stderr(proc, progress_seen, last_progress_time, task_identity, comman
                     _emit_heartbeat(task_identity, command, time.monotonic(), -1, -1, repo_root)
     except (ValueError, OSError):
         pass
+    return remaining
+
+
+def _drain_stdout(proc, forward):
+    """Read any remaining stdout from the child after it exits.
+
+    forward=False buffers only (a claude JSON lane — the envelope is
+    unwrapped after parsing, never streamed raw).  Returns the remaining
+    text for the full-stream capture.
+    """
+    remaining = ""
+    try:
+        import fcntl as _fcntl
+        fd = proc.stdout.fileno()
+        fl = _fcntl.fcntl(fd, _fcntl.F_GETFL)
+        _fcntl.fcntl(fd, _fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
+        remaining = proc.stdout.read() or ""
+        if remaining and forward:
+            sys.stdout.write(remaining)
+            sys.stdout.flush()
+    except (ValueError, OSError):
+        pass
+    return remaining
+
+
+# ── T521: mechanical token capture (the capture path, at dispatch time) ────
+# G1 is run-time, not retroactive (D043): tokens are captured when the lane
+# runs or they are lost.  The runner is the one process every lane passes
+# through (bin/subagent dispatches, tools/bakeoff.sh races), so the capture
+# lives here: parse the claude JSON envelope (text + usage), tee the raw
+# stdout+stderr per task, append the per-run ledger record (a reading or an
+# explicit missing-with-reason), stamp the run record and the trailer line.
+
+def _load_token_capture():
+    """Lazy-load tools/token-capture.py (a sibling module).
+
+    Returns None when absent — the runner is a general-purpose wrapper and
+    must keep working (without capture) in any tree that lacks the
+    instrument.  Never raises on import failure: capture failing open is
+    a missing record with a reason, not a crash.
+    """
+    try:
+        import importlib.util
+        here = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(here, "token-capture.py")
+        if not os.path.isfile(path):
+            return None
+        spec = importlib.util.spec_from_file_location("token_capture", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+def _json_output_lane(argv):
+    """True when the child command asks for a claude JSON usage envelope.
+
+    Detection is by the flag pair (`--output-format json`), not the binary
+    name, so any shim or future claude driver that emits the envelope is
+    captured; a lane that does not opt in is teed but never parsed.
+    """
+    for i, a in enumerate(argv):
+        if a == "--output-format" and i + 1 < len(argv) and argv[i + 1] == "json":
+            return True
+    return False
+
+
+def _argv_model(argv):
+    """The `--model` value in the child argv, or None."""
+    for i, a in enumerate(argv):
+        if a == "--model" and i + 1 < len(argv):
+            return argv[i + 1]
+    return None
+
+
+def _argv_provider(argv):
+    """The dispatch family: the `--provider` value, else the child basename."""
+    for i, a in enumerate(argv):
+        if a == "--provider" and i + 1 < len(argv):
+            return argv[i + 1]
+    if argv:
+        return os.path.basename(argv[0]) or None
+    return None
+
+
+def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
+                    task_identity, repo_root, start_ts, rc, kill_reason=None):
+    """The capture path for one run.  Returns a dict
+    {tokens_in, tokens_out, source, missing_reason} (None values when no
+    reading) or None when there is no repo root (degraded — no task, so
+    nothing to key the record on).
+
+    Side effects, all under <repo_root>/untracked/tokens/:
+      - tee the complete raw stdout+stderr per task (any usage lines
+        survive — the deepseek/pi and ollama/qwen capture, D043 item 2);
+      - append one ledger record per run: a reading when one exists, else
+        an explicit missing record with a reason — never estimated, never
+        a blank cell (D043 item 3).
+    """
+    if not repo_root:
+        return None
+    tc = _load_token_capture()
+    model = _argv_model(argv)
+    provider = _argv_provider(argv)
+    out = {"tokens_in": None, "tokens_out": None, "source": None,
+           "missing_reason": None, "text": None}
+    usage = None
+    is_api_error = False
+    if tc is not None:
+        try:
+            tc.write_tees(repo_root, task_identity, start_ts, provider,
+                          stdout_text, stderr_text)
+        except Exception:
+            pass
+        if claude_json_lane:
+            try:
+                text, usage, meta = tc.parse_claude_envelope(stdout_text)
+                out["text"] = text
+                if usage is not None and not meta.get("is_error"):
+                    out["tokens_in"] = usage["input"] + usage["cache_read"]
+                    out["tokens_out"] = usage["output"]
+                    out["source"] = "claude-json-envelope"
+                elif meta.get("is_error"):
+                    is_api_error = True
+                    out["missing_reason"] = (
+                        "claude api error (is_error=true, zero usage)")
+                else:
+                    out["missing_reason"] = "no claude usage envelope in output"
+            except Exception:
+                out["missing_reason"] = "claude envelope parse failed"
+        else:
+            out["missing_reason"] = (
+                "no structured usage in process output (pi/ollama lane); "
+                "raw stdout+stderr teed to untracked/tokens/; the pi session "
+                "JSONL is the retroactive meter")
+    else:
+        if claude_json_lane:
+            out["missing_reason"] = (
+                "tools/token-capture.py absent — no envelope parse, no ledger")
+        else:
+            out["missing_reason"] = (
+                "tools/token-capture.py absent — no tee, no ledger")
+    if tc is not None:
+        try:
+            label = tc.canon_tag(model) if model else None
+            entry = {
+                "task": task_identity,
+                "model": label,
+                "provider": provider,
+                "ts": start_ts,
+                "tokens_in": out["tokens_in"],
+                "tokens_out": out["tokens_out"],
+                "source": out["source"],
+                "missing_reason": out["missing_reason"],
+                "rc": rc,
+            }
+            if usage is not None:
+                entry.update({"input": usage.get("input"),
+                              "output": usage.get("output"),
+                              "cache_read": usage.get("cache_read"),
+                              "cache_write": usage.get("cache_write"),
+                              "reasoning": usage.get("reasoning")})
+            if kill_reason:
+                entry["note"] = f"killed: {kill_reason}"
+            if is_api_error:
+                entry["note"] = "claude envelope reported is_error"
+            tc.append_ledger(repo_root, entry)
+        except Exception:
+            pass
+    return out
+
+
+def _print_tokens_trailer(tok):
+    """The trailer lines the bakeoff G1 gate reads (tokens_in/tokens_out)."""
+    if tok is None:
+        return
+    if tok.get("tokens_in") is not None:
+        print(f"[runner] tokens_in={tok['tokens_in']} "
+              f"tokens_out={tok['tokens_out']}", file=sys.stderr)
+    else:
+        reason = tok.get("missing_reason") or "no source"
+        print(f"[runner] tokens: no reading — {reason}", file=sys.stderr)
+
+
+def _forward_claude_text(stdout_text):
+    """Forward the unwrapped claude result text to the lane's stdout.
+
+    The envelope is NEVER streamed raw: the lane's stdout stays the model's
+    answer (out.md / subagent capture / verification all see the text), and
+    the raw envelope survives in the tee.
+    """
+    if stdout_text:
+        sys.stdout.write(stdout_text)
+        if not stdout_text.endswith("\n"):
+            sys.stdout.write("\n")
+        sys.stdout.flush()
 
 
 def main():
@@ -911,6 +1127,13 @@ def main():
 
     if not args.no_prepend_zig:
         argv = prepend_releasefast(argv)
+
+    # T521: claude JSON lane — the child asked for the usage envelope, so
+    # its stdout is parsed (text + usage) instead of streamed raw.
+    claude_json_lane = _json_output_lane(argv)
+    if claude_json_lane:
+        print("[runner] token capture: claude json lane (envelope -> text + usage)",
+              file=sys.stderr)
 
     cap_bytes = args.rss_cap_mb * 1024 * 1024
     poll_s = args.poll_ms / 1000.0
@@ -1012,7 +1235,12 @@ def main():
 
     t0 = time.monotonic()
     run_record = None  # T364: set after Popen; None guards the exception path if spawn itself fails
-    proc = subprocess.Popen(argv, preexec_fn=preexec_fn, stderr=subprocess.PIPE, text=True)
+    # T521: stdout is piped so the capture path can tee it per task (and,
+    # for claude json lanes, unwrap the usage envelope).  Forwarding keeps
+    # the lane's stdout byte-identical to the inherited-pipe behaviour.
+    proc = subprocess.Popen(argv, preexec_fn=preexec_fn,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True)
     sys.stderr.flush()
 
     # ── T364: launch run record — written BEFORE any exit path can run, so
@@ -1039,11 +1267,12 @@ def main():
     }
     _write_run_record(run_record, record_root)
 
-    # Make stderr non-blocking for select-based reading
+    # Make stderr + stdout non-blocking for select-based reading
     import fcntl
-    fd = proc.stderr.fileno()
-    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+    for stream in (proc.stderr, proc.stdout):
+        fd = stream.fileno()
+        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
     peak_rss = {}   # pid -> max RSS bytes
     peak_cpu = {}   # pid -> cumulative CPU seconds (peak snapshot per PID)
@@ -1055,6 +1284,12 @@ def main():
     stderr_buf = ""           # partial-line buffer
     last_log_rss_time = 0.0   # throttle per-poll RSS logging (T311: once per 2 s)
 
+    # T521: full-stream capture for the tee + envelope parse.  stdout is
+    # forwarded live for normal lanes and buffered whole for claude json
+    # lanes (the envelope is unwrapped after the run, never streamed raw).
+    stdout_full = []
+    stderr_full = []
+
     logs_done = False  # suppress finally-block logging if kill path already did it
 
     # T370: mid-run directive poll state (gated on identity, see loop)
@@ -1064,19 +1299,35 @@ def main():
         while True:
             ret = proc.poll()
             if ret is not None:
-                # Read any remaining stderr before exiting loop
-                _drain_stderr(proc, progress_seen, last_progress_time,
-                              task_identity, shlex.join(argv), repo_root)
+                # Read any remaining stderr/stdout before exiting loop
+                stderr_remain = _drain_stderr(
+                    proc, progress_seen, last_progress_time,
+                    task_identity, shlex.join(argv), repo_root)
+                if stderr_remain:
+                    stderr_full.append(stderr_remain)
+                stdout_remain = _drain_stdout(proc, forward=not claude_json_lane)
+                if stdout_remain:
+                    stdout_full.append(stdout_remain)
                 break
 
             elapsed = time.monotonic() - t0
 
-            # ── read child stderr (non-blocking via select) ────────────
+            # ── read child stdout+stderr (non-blocking via select) ────
             try:
-                r, _, _ = select.select([proc.stderr], [], [], poll_s)
+                r, _, _ = select.select([proc.stdout, proc.stderr], [], [], poll_s)
+                if proc.stdout in r:
+                    chunk = proc.stdout.read()
+                    if chunk:
+                        stdout_full.append(chunk)
+                        # Forward live for normal lanes; a claude json lane
+                        # is buffered whole and unwrapped after the run.
+                        if not claude_json_lane:
+                            sys.stdout.write(chunk)
+                            sys.stdout.flush()
                 if proc.stderr in r:
                     chunk = proc.stderr.read()
                     if chunk:
+                        stderr_full.append(chunk)
                         stderr_buf += chunk
                         # Process complete lines
                         while '\n' in stderr_buf:
@@ -1264,10 +1515,23 @@ def main():
                 elapsed = time.monotonic() - t0
                 peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
                 total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
-                _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+                # T521: a killed lane has no clean usage envelope — record
+                # the missing explicitly (the ledger carries the reason).
+                # Degraded runs (no task identity) write nothing — same gate
+                # as run records (T515).
+                tok = _capture_tokens(
+                    argv, claude_json_lane,
+                    "".join(stdout_full), "".join(stderr_full),
+                    task_identity, repo_root, run_record["start"],
+                    rc=124, kill_reason=kill_reason) if record_root else None
+                _emit_heartbeat(task_identity, shlex.join(argv), elapsed,
+                                total_cpu_sum, peak_rss_mb, repo_root,
+                                tokens_in=(tok or {}).get("tokens_in"),
+                                tokens_out=(tok or {}).get("tokens_out"))
                 _finalize_run_record(run_record, record_root, ret=None, signum=signal.SIGKILL,
                                     wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
-                                    killed=kill_reason)
+                                    killed=kill_reason, tokens=tok)
+                _print_tokens_trailer(tok)
                 print(f"[runner] exit 124 ({kill_reason}) in {elapsed:.1f} s", file=sys.stderr)
                 sys.exit(124)
 
@@ -1284,16 +1548,36 @@ def main():
     elapsed = time.monotonic() - t0
     peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
     total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
-    _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+    # T521: the capture path — tee raw streams per task, record the claude
+    # envelope reading (or an explicit missing), stamp the run record.
+    # Degraded runs (no task identity) write nothing — same gate as run
+    # records (T515).
+    tok = _capture_tokens(
+        argv, claude_json_lane,
+        "".join(stdout_full), "".join(stderr_full),
+        task_identity, repo_root, run_record["start"],
+        rc=ret if ret is not None else 0) if record_root else None
+    if claude_json_lane and tok and tok.get("text"):
+        # The envelope unwraps to the model's answer — forward the TEXT to
+        # the lane's stdout (verification and grading see the answer, never
+        # the raw envelope; the envelope survives in the tee).
+        _forward_claude_text(tok["text"])
+    _emit_heartbeat(task_identity, shlex.join(argv), elapsed,
+                    total_cpu_sum, peak_rss_mb, repo_root,
+                    tokens_in=(tok or {}).get("tokens_in"),
+                    tokens_out=(tok or {}).get("tokens_out"))
     # T364: child's fate — subprocess reports killed-by-signal as a negative
     # returncode (-signum).  Record the signal separately so reap's note can
     # name "SIGKILL" instead of a bare code.
     if ret < 0:
         _finalize_run_record(run_record, record_root, ret=None, signum=-ret,
-                            wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb)
+                            wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
+                            tokens=tok)
     else:
         _finalize_run_record(run_record, record_root, ret=ret,
-                            wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb)
+                            wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
+                            tokens=tok)
+    _print_tokens_trailer(tok)
     if host_guard_fired:
         print(f"[runner] note: host guard fired during this run (relieved host pressure; proc exited {ret})", file=sys.stderr)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)

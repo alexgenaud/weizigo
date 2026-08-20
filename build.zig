@@ -235,6 +235,33 @@ pub fn build(b: *std.Build) void {
     run_vb_graph_tests.cwd = b.path(".");
     test_step.dependOn(&run_vb_graph_tests.step);
 
+    // ── T531: evidence-artifact sink controls (two surfaces) ─────────
+    // Ruling 4 (ROADMAP-2026-08-20 rev 3) split the suite's output into two
+    // surfaces: the console carries the pass/fail summary and owes zero
+    // failed-command noise, the artifact carries the [EXPECTED]/I4-I9
+    // instrument readings.  `src/evidence.zig` is the sink; these are its
+    // in-band controls — the null control writes the sink-control line that
+    // `docs/infra/suite-truth-manifest.md` then requires, so a sink that quietly
+    // stopped working fails the gate on its own account instead of as a silence
+    // spread across every instrument.  The console half (a passing binary emits
+    // nothing on stderr) is asserted from outside, in
+    // tools/regression-suite-surfaces.sh, with its seeded-defect twin.
+    const evidence_control_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/evidence_control.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_evidence_control_tests = b.addRunArtifact(evidence_control_tests);
+    run_evidence_control_tests.cwd = b.path(".");
+    test_step.dependOn(&run_evidence_control_tests.step);
+
+    // ── T531: two-surfaces gate controls ─────────────────────────────
+    const suite_surfaces_regression = b.addSystemCommand(&.{ "sh", "tools/regression-suite-surfaces.sh" });
+    suite_surfaces_regression.cwd = b.path(".");
+    test_step.dependOn(&suite_surfaces_regression.step);
+
     // ── pre-commit hook regression controls (T272) ──────────────────
     const precommit_regression = b.addSystemCommand(&.{ "sh", "tools/regression-precommit.sh" });
     precommit_regression.cwd = b.path(".");
@@ -502,6 +529,22 @@ pub fn build(b: *std.Build) void {
     duty_regression.cwd = b.path(".");
     test_step.dependOn(&duty_regression.step);
 
+    // ── T545: store-writer flock controls ───────────────────────────
+    // Three store writers took no flock over their whole read-modify-write
+    // (cmdTell, the startup migration, standing) — the audit found two more
+    // (cmdAssert read-outside-lock, cmdSync/writeSyncData no lock at all).
+    // Any overlapping claim/close/attribution was SILENTLY REVERTED; the
+    // observed incident: 4 tells in ~3 min with 14 workers live, zero
+    // directives delivered, D042/D043 minted twice, directive_next 44 → 43.
+    // Five arms against a scratch MANAGENT_STORE in a scratch repo (never
+    // the live kanban): N concurrent tells → N distinct ids, counter +N ·
+    // tell racing a claim → the claim survives (deterministic flock-hold) ·
+    // migration read racing a done → the close survives · concurrent
+    // standing + set → both survive · null single tell → one id.
+    const concurrency_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-concurrency.sh" });
+    concurrency_regression.cwd = b.path(".");
+    test_step.dependOn(&concurrency_regression.step);
+
     // T496: fleet-keeper loop + cooldown flag controls (scratch store + scratch
     // repo). Fires oldest-eligible until the cap, cools down on a flag, and
     // the dead-man's switch treats an unreadable cooldown dir as cooldown.
@@ -681,6 +724,20 @@ pub fn build(b: *std.Build) void {
     const bakeoff_gates_regression = b.addSystemCommand(&.{ "sh", "tools/regression-bakeoff-gates.sh" });
     bakeoff_gates_regression.cwd = b.path(".");
     test_step.dependOn(&bakeoff_gates_regression.step);
+
+    // ── T521: mechanical token capture controls (the capture path) ──
+    // G1 is run-time, not retroactive (D043): tokens are captured at
+    // dispatch or lost — every prior race ended at n=0 readings.  The
+    // controls pin the capture path against fake claude/pi shims in a
+    // scratch repo (never the live tree, never credentials): the claude
+    // JSON envelope parse (text + usage), the runner's per-lane trailer
+    // tokens line + run-record stamp + unwrapped stdout, the per-task raw
+    // tee, the ledger (a reading or an explicit missing-with-reason,
+    // never a blank cell), and the G1 `--json --cwd --since` models map
+    // (ledger wins for claude; the pi session scan fills pi labels).
+    const token_capture_regression = b.addSystemCommand(&.{ "sh", "tools/regression-token-capture.sh" });
+    token_capture_regression.cwd = b.path(".");
+    test_step.dependOn(&token_capture_regression.step);
 
     // ── T390: duplicate-dispatch controls ────────────────────────
     // Two consoles on one row happened three times on 2026-08-05/06

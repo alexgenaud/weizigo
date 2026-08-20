@@ -520,7 +520,7 @@ def lane_argv(lane, prompt, wall, claude_tools):
                          "--no-session", "-p", prompt]
     if fam == "claude":
         return runner + ["claude", "-p", prompt, "--model", lane["label"],
-                         "--allowedTools", claude_tools, "--output-format", "text"]
+                         "--allowedTools", claude_tools, "--output-format", "json"]
     if fam == "ollama":
         return runner + ["ollama", "launch", "pi", "--model", lane["serving_tag"],
                          "-y", "--", "-p", prompt]
@@ -538,7 +538,7 @@ def lane_emit_cmd(lane, prompt_ref, wall, claude_tools):
                 f"--no-session -p {prompt_ref}")
     if fam == "claude":
         return (base + f"claude -p {prompt_ref} --model {lane['label']} "
-                f"--allowedTools {claude_tools} --output-format text")
+                f"--allowedTools {claude_tools} --output-format json")
     if fam == "ollama":
         return (base + f"ollama launch pi --model {lane['serving_tag']} -y -- "
                 f"-p {prompt_ref}")

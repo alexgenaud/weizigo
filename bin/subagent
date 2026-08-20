@@ -254,10 +254,14 @@ def main(argv):
         # process (claude -p), never through the Anthropic API from here —
         # the fence the rule actually draws (subdelegation.md:152-156).
         # runner supplies the wall/RSS guards the T481 precedent logged.
+        # T521: --output-format json — the usage envelope is the token-
+        # capture source (G1 is run-time, not retroactive); the runner
+        # unwraps the text for verification, so the lane's stdout and the
+        # nonce check are unchanged.
         cmd = ["tools/runner", "--max-wall", wall, "--",
                "claude", "-p", prompt, "--model", model,
                "--allowedTools", CLAUDE_ALLOWED_TOOLS,
-               "--output-format", "text"]
+               "--output-format", "json"]
     else:  # ollama
         cmd = ["tools/runner", "--max-wall", wall, "--",
                "ollama", "launch", "pi", "--model", raw_model, "-y", "--", "-p", prompt]

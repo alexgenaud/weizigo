@@ -143,8 +143,10 @@ fi
 # The claude branch reuses the SAME prompt wrapper the other providers get:
 # the nonce injection, the claim/findings/done lifecycle with --agent
 # <canonical claude label>, and the resolved `claude -p ... --model ...
-# --allowedTools Read,Write,Edit,Bash,Grep,Glob --output-format text`
-# command of the T481/t490 precedent shape.
+# --allowedTools Read,Write,Edit,Bash,Grep,Glob --output-format json`
+# command of the T481/t490 precedent shape (json since T521 — the usage
+# envelope is what makes token capture mechanical; the runner unwraps the
+# text for verification).
 echo "  3a. claude --dry-run emits --agent claude-fable-5 on claim and done"
 OUT=$("$SUBAGENT" --provider claude T995 --model claude-fable-5 --dry-run 2>&1)
 RC=$?
@@ -167,13 +169,14 @@ fi
 
 echo "  3b. claude --dry-run resolves the claude -p command of the T481 shape"
 # The dry-run command must be the headless claude -p form: runner-wrapped,
-# with --model, the allowedTools set, and --output-format text. The nonce
+# with --model, the allowedTools set, and --output-format json (T521 — the
+# envelope carries the usage counts; the runner unwraps the text). The nonce
 # must appear in the prompt argument.
 OUT=$("$SUBAGENT" --provider claude T995 --model claude-fable-5 --dry-run 2>&1)
 if echo "$OUT" | grep -q "claude -p" \
    && echo "$OUT" | grep -q -- "--model claude-fable-5" \
    && echo "$OUT" | grep -q -- "--allowedTools Read,Write,Edit,Bash,Grep,Glob" \
-   && echo "$OUT" | grep -q -- "--output-format text" \
+   && echo "$OUT" | grep -q -- "--output-format json" \
    && echo "$OUT" | grep -qE "NONCE-[0-9a-f]{16}"; then
     echo "    PASS: claude -p line carries model, allowedTools, output-format, nonce"
 else

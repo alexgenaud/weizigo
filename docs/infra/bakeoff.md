@@ -42,7 +42,7 @@ tools/bakeoff.sh <brief> <roster> [--run NAME] [--emit] [--wall N] [--claude-too
   | family | dispatch | notes |
   |---|---|---|
   | `deepseek` | `pi --provider deepseek --model <label> --no-session -p <prompt>` | pi harness; needs `DEEPSEEK_API_KEY` in env |
-  | `claude` | `claude -p <prompt> --model <label> --allowedTools <tools> --output-format text` | headless Claude Code session (below) |
+  | `claude` | `claude -p <prompt> --model <label> --allowedTools <tools> --output-format json` | headless Claude Code session (below) |
   | `ollama` | `ollama launch pi --model <tag> -y -- -p <prompt>` | **serving tag required** (third field, e.g. `glm-5.2:cloud`) — the label alone does not pin what is served |
 
   Labels must be canonical (`src/managent/main.zig` `canonical_models`; the
@@ -128,7 +128,7 @@ Flags the harness emits for a claude lane:
 
 ```sh
 tools/runner --max-wall <N> -- claude -p "<prompt>" --model <model> \
-    --allowedTools "Read,Write,Edit,Bash" --output-format text
+    --allowedTools "Read,Write,Edit,Bash" --output-format json
 ```
 
 - `-p, --print` — non-interactive: print response and exit. The workspace
@@ -141,9 +141,15 @@ tools/runner --max-wall <N> -- claude -p "<prompt>" --model <model> \
   usual task shapes; narrow per task (e.g. `Bash(zig build test)` instead of
   bare `Bash`). `--dangerously-skip-permissions` is deliberately NOT used —
   it bypasses all permission checks and is not needed for bounded tasks.
-- `--output-format text` — the plain final response goes to stdout, which the
-  harness redirects to `out.md`. (`json` / `stream-json` exist for structured
-  capture; text is the lane default.)
+- `--output-format json` — the usage envelope (T521, 2026-08-20): the
+  runner parses the envelope, records the token counts mechanically (G1 is
+  run-time, not retroactive — captured at dispatch or lost), and forwards
+  the unwrapped final response to stdout, which the harness redirects to
+  `out.md`. The raw envelope is teed to `untracked/tokens/` and the reading
+  lands in the run record, the trailer (`[runner] tokens_in=.. tokens_out=..`)
+  and `untracked/tokens/tokens.jsonl`. (`text` is the old default — it
+  carries no usage, which is how every pre-T521 claude lane ended with no
+  token reading.)
 
 **Execution gate:** claude lanes execute only when `WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1`
 is exported; without it the lane is refused (status `refused` in `lanes.json`)
