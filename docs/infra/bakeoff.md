@@ -81,9 +81,9 @@ read from `lanes.json` — never from the model (attribution doctrine: a model's
 self-report is not evidence; `T320`, `T321`).
 
 Lanes run **sequentially** by default: deterministic, and no two lanes share
-the credential at once (the fleet cap of two concurrent pi-subagents is a
-rate-limit scope). Parallelism, when the human wants it, is the `--emit`
-block backgrounded in one console.
+the credential at once (see `docs/infra/agents/subdelegation.md` for the
+current parallelism limits — ANALYSIS unlimited, MUTATION serial). Parallelism,
+when the human wants it, is the `--emit` block backgrounded in one console.
 
 ### Worktree execution and the isolation boundary (T376)
 

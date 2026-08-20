@@ -105,7 +105,7 @@ value decays if it lands eight hours late.
 takes the machine to load ~9.5, and load contamination is exactly what produced the bogus 35–52
 minute suite readings on 2026-08-08. Any midnight job must check for a running suite first.
 
-## 3b. In flight — the first T-B (mechanism fix) readings, 2026-08-18 21:53
+## 3b. Closed — the first T-B (mechanism fix) readings, 2026-08-18 21:53
 
 Three crash-repair rows dispatched in parallel to three different models, same bars, same
 acceptance shape:
