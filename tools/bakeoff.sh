@@ -6,7 +6,7 @@ each wrapped in tools/runner (RSS/wall/CPU guards, per-lane trailer with
 wall + CPU + peak RSS, heartbeat record), each writing its own
 untracked/bakeoff/<run>/<model>/out.md.
 
-  tools/bakeoff.sh <brief> <roster> [--run NAME] [--emit] [--wall N] [--claude-tools S]
+  tools/bakeoff.sh <brief> <roster> [--run NAME] [--emit] [--wall N] [--claude-tools S] [--allow-unisolated R]
 
   <brief>          task brief path (its text is the prompt, identical per lane)
   <roster>         one lane per line: '<family> <canonical-label> [ollama-tag]'
@@ -26,6 +26,11 @@ untracked/bakeoff/<run>/<model>/out.md.
   --claude-tools S --allowedTools value for claude lanes (default
                    "Read,Write,Edit,Bash"); narrow per task, e.g.
                    --claude-tools "Read,Write,Edit,Bash(zig build test)"
+  --allow-unisolated R
+                   override the G2 isolation gate (exit 2 refusal when the
+                   run root is not a git worktree, or the key/rubric dir is
+                   reachable by relative path); R is the operator's reason,
+                   recorded in lanes.json. Loud and explicit — never default.
 
 Lane layout (untracked/bakeoff/<run>/):
   prompt.txt                     the exact prompt bytes (identical per lane)
@@ -57,7 +62,17 @@ and `wait`ed.
 
 Exit codes: 0 when every executed lane exited 0; 1 when any lane failed or was
 refused (the summary says which); 2 on harness errors (bad args/roster, run
-name exists, missing dispatch binary, missing credential).
+name exists, missing dispatch binary, missing credential, G2 isolation gate
+refused).
+
+Race gates wired here (grand-race.md §4, T542): G1 tokens — per-lane readings
+are collected mechanically into lanes.json/tokens.json, never estimated, null
++ reason when absent; G2 isolation — refuse to dispatch (exit 2) unless the
+root is a git worktree and untracked/race-keys|race-grading are unreachable,
+override with --allow-unisolated; G3 family exclusion — count_grade() hard-
+refuses a grade whose grader shares the lane's model family; G4 blinding —
+each out.md gets out.sanitized.md with self-identifying text redacted (the
+original is never modified) and the lane flagged in lanes.json.
 
 Engineering rules (sprint.md): one state area under untracked/ (untracked/
 bakeoff/, nothing in docs/src/data/artifacts); root resolved via
@@ -92,6 +107,7 @@ CANONICAL = {
     "claude-haiku-4-5-20251001",
     "deepseek-v4-pro", "deepseek-v4-flash",
     "glm-5.2", "minimax-m3", "kimi-k2.7",
+    "qwen3.8:27b-mlx",
 }
 
 FAMILIES = {"deepseek", "claude", "ollama"}
@@ -118,6 +134,298 @@ def die(msg, code=2):
 
 def diag(msg):
     sys.stderr.write(f"[bakeoff] {msg}\n")
+
+
+# ── G1/G2/G3/G4 race gates (T542) ────────────────────────────────────
+#
+# The grand race (docs/infra/races/grand-race.md §4) does not start until
+# gates G1–G6 are green. T542 wires G1 (tokens), G2 (isolation refusal),
+# G3 (family exclusion at counting) and G4 (blinding sanitizer) into this
+# harness. G5 (lanes.json + sealed lane map) already held; G6 (impressions)
+# is T522's row.
+
+# ── model family (G3) ────────────────────────────────────────────────
+
+def model_family(label):
+    """Model FAMILY for G3 exclusion — claude/deepseek/glm/qwen/minimax/kimi —
+    finer than the roster's dispatch family (deepseek/claude/ollama). glm,
+    minimax, kimi and qwen are all ollama-SERVED but are four different model
+    families; self-preference bias is per model family, not per dispatch
+    mechanism. Derived from the canonical label, never a model self-report."""
+    low = label.lower()
+    for fam in ("claude", "deepseek", "qwen", "glm", "minimax", "kimi"):
+        if low.startswith(fam):
+            return fam
+    return label
+
+
+class FamilyGradeError(Exception):
+    """A grade whose grader shares the lane's model family was asked to be
+    counted (G3). Hard refusal — a silent filter would drop data."""
+
+
+def grade_family(grade, lane_family_by_label):
+    """Annotate one grade with is_self/is_family. Never raises: retention is
+    unconditional (self/family grades are retained and analyzed, grand-race
+    §5)."""
+    g = dict(grade)
+    g["is_self"] = g["grader"] == g["lane"]
+    g["is_family"] = model_family(g["grader"]) == lane_family_by_label[g["lane"]]
+    return g
+
+
+def count_grade(grade, lane_family_by_label):
+    """Return the grade as a counted datum, or hard-refuse (raise) when the
+    grader shares the lane's model family (G3). The caller counts only
+    non-family grades; asking to count a family grade is a defect the harness
+    refuses to let pass silently."""
+    g = grade_family(grade, lane_family_by_label)
+    if g["is_family"]:
+        raise FamilyGradeError(
+            f"G3 family exclusion: grader {g['grader']!r} and lane {g['lane']!r} "
+            f"share model family {model_family(g['grader'])!r} — this grade is "
+            f"retained as data but must never be counted")
+    return g
+
+
+def count_grades(grades, lane_family_by_label):
+    """Admit a list of grades to counting, hard-refusing on any family grade.
+    Family grades must be separated by the caller (they are retained, never
+    counted) — this function refuses rather than filters."""
+    return [count_grade(g, lane_family_by_label) for g in grades]
+
+
+# ── G4 blinding sanitizer ────────────────────────────────────────────
+
+# Model family words, for first-person/attribution constructions. Case is
+# deliberate: the first-person pattern is case-insensitive; the bare
+# proper-noun pattern is case-SENSITIVE so lowercase "minimax" (the Go search
+# algorithm) and lowercase "glm" are NOT treated as a model family.
+FAMILY_WORDS = ("Claude", "DeepSeek", "GLM", "Qwen", "Kimi", "Minimax",
+                "Ollama", "Anthropic", "OpenAI", "Gemini", "GPT")
+
+_SELF_ID_RES = [
+    # first-person / attribution: "I am Claude", "as a DeepSeek model", "I'm GLM"
+    re.compile(
+        r"\b(?:I\s+am|I'?m|as|like)\s+(?:an?\s+)?(?:a\s+)?"
+        r"(?:" + "|".join(FAMILY_WORDS) + r")\b", re.I),
+    # canonical model labels (unambiguous self-identification)
+    re.compile(r"\b(?:" + "|".join(re.escape(l) for l in CANONICAL) + r")\b",
+               re.I),
+    # bare capitalized proper nouns (NOT lowercase minimax/glm — those are
+    # algorithm terms in this project's prose)
+    re.compile(r"\b(?:Claude|DeepSeek|GLM|Qwen|Kimi|Minimax|Ollama|Anthropic|"
+               r"OpenAI|Gemini|GPT)\b"),
+]
+
+REDACT = "[SELF-IDENTIFICATION REDACTED]"
+
+
+def find_self_identifications(text):
+    """Non-overlapping spans of self-identifying text, merged so overlapping
+    patterns redact once."""
+    spans = set()
+    for rx in _SELF_ID_RES:
+        for m in rx.finditer(text):
+            spans.add((m.start(), m.end()))
+    merged = []
+    for s, e in sorted(spans):
+        if merged and s <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+        else:
+            merged.append([s, e])
+    return merged
+
+
+def redact_self_identifications(text, spans):
+    out, prev = [], 0
+    for s, e in spans:
+        out.append(text[prev:s])
+        out.append(REDACT)
+        prev = e
+    out.append(text[prev:])
+    return "".join(out)
+
+
+def sanitize_out(out_path):
+    """G4: write <out>.sanitized.md alongside out_path. The original is never
+    modified — it is evidence. Returns (sanitized_path, matches) where matches
+    lists the redacted substrings (empty when the lane did not self-identify).
+    A self-identifying lane is FLAGGED by the caller, not silently scrubbed."""
+    with open(out_path, "rb") as f:
+        raw = f.read()
+    text = raw.decode("utf-8", errors="replace")
+    spans = find_self_identifications(text)
+    base, ext = os.path.splitext(out_path)
+    sanitized_path = base + ".sanitized" + ext
+    if not spans:
+        # byte-identical copy when nothing to redact
+        shutil.copyfile(out_path, sanitized_path)
+        return sanitized_path, []
+    with open(sanitized_path, "w") as f:
+        f.write(redact_self_identifications(text, spans))
+    return sanitized_path, [text[s:e] for s, e in spans]
+
+
+# ── G2 isolation ─────────────────────────────────────────────────────
+
+# Gitignored secret markers under race-grading.  The answer keys live in
+# untracked/race-keys/; the grading fixtures (anonymizer + sealed lane map,
+# keyed packets, clean twins) live in untracked/race-grading/.  The two
+# committed t452/scores-*.md are grader OUTPUT (not secrets) and are NOT
+# markers — a fresh worktree contains only those, so a real worktree run
+# still passes G2.
+RUBRIC_SECRET_MARKERS = (
+    "README.md", "anonymize.py", "race1", "t447",
+    os.path.join("t452", "lanes-map.sealed.json"),
+    os.path.join("t452", "KEY.md"),
+)
+
+
+def assess_isolation(root):
+    """The G2 boundary, stated honestly (T376): a git WORKTREE root has `.git`
+    as a FILE and holds only committed content, so the gitignored key/rubric
+    secrets (untracked/race-keys/, and the keyed fixtures under
+    untracked/race-grading/) do not exist in the lane's view at all. That is
+    a relative-path boundary, NOT a sandbox. This function reports the facts
+    and any gate problems; enforce_g2() refuses."""
+    is_worktree = os.path.isfile(os.path.join(root, ".git"))
+    reachable = []
+    if os.path.exists(os.path.join(root, "untracked", "race-keys")):
+        reachable.append("untracked/race-keys")
+    gd = os.path.join(root, "untracked", "race-grading")
+    if os.path.isdir(gd):
+        for m in RUBRIC_SECRET_MARKERS:
+            if os.path.exists(os.path.join(gd, m)):
+                reachable.append(os.path.join("untracked", "race-grading", m))
+                break  # one marker suffices to name the breach
+    problems = []
+    if not is_worktree:
+        problems.append("root is not a git worktree (.git is a directory, "
+                        "not a file)")
+    if reachable:
+        problems.append("key/rubric secret reachable by relative path from "
+                        "the run root: " + ", ".join(reachable))
+    return {
+        "root": root,
+        "root_is_worktree": is_worktree,
+        "keys_reachable": reachable,
+        "problems": problems,
+        "lane_cwd": root,
+        "strength": ("relative-path boundary only — a tool-using lane can "
+                     "reach the host filesystem (incl. the main checkout's "
+                     "gitignored untracked/) via absolute paths; no sandbox "
+                     "(T376)"),
+    }
+
+
+def enforce_g2(isolation, allow_unisolated):
+    """Refuse to dispatch (exit 2, naming G2) unless root_is_worktree is true
+    AND the key/rubric directory is not reachable by a relative path. The
+    operator's explicit --allow-unisolated '<reason>' overrides, and the
+    override is recorded in lanes.json."""
+    if not isolation["problems"] or allow_unisolated:
+        return
+    reasons = "; ".join(isolation["problems"])
+    die("G2 isolation gate refused: " + reasons + " — dispatch from a git "
+        "worktree (key/rubric dirs are gitignored, so absent from the lane's "
+        "view), or override explicitly with --allow-unisolated '<reason>'", 2)
+
+
+# ── G1 token wiring ──────────────────────────────────────────────────
+
+TOKEN_CAPTURE_SCRIPT = "tools/token-capture.py"   # T521 deliverable
+
+TRAILER_TOKENS_RE = re.compile(
+    r"\[runner\]\s+tokens_in=(\d+)\s+tokens_out=(\d+)")
+
+
+def _trailer_token_reading(trailer_path):
+    try:
+        with open(trailer_path) as f:
+            text = f.read()
+    except FileNotFoundError:
+        return None
+    m = TRAILER_TOKENS_RE.search(text)
+    if not m:
+        return None
+    return {"in": int(m.group(1)), "out": int(m.group(2)), "source": "trailer"}
+
+
+def collect_tokens(root, run_dir, date, results):
+    """G1 wiring (NOT a re-implementation — T521 owns tools/token-capture.py):
+    read per-lane token counts mechanically, never estimate, never leave the
+    field absent. Sources, in priority order:
+      1. `[runner] tokens_in=.. tokens_out=..` in each lane's trailer.log
+         (per-lane, most precise).
+      2. `tools/token-capture.py --json --cwd <root> --since <date>` — the
+         instrument's `models` map, joined on the canonical lane label.
+    A lane with no reading is null + a reason."""
+    capture_script = os.path.join(root, TOKEN_CAPTURE_SCRIPT)
+    models = {}
+    if os.path.isfile(capture_script):
+        try:
+            proc = subprocess.run(
+                [sys.executable, capture_script, "--json", "--cwd", root,
+                 "--since", date],
+                capture_output=True, text=True, timeout=60)
+            if proc.returncode == 0:
+                try:
+                    data = json.loads(proc.stdout)
+                    models = data.get("models") or {}
+                except ValueError:
+                    models = {}
+            else:
+                diag(f"token capture (T521) exited {proc.returncode}: "
+                     f"{(proc.stderr or '').strip()[:200]}")
+        except Exception as exc:
+            diag(f"token capture (T521) raised: {exc}")
+    else:
+        diag("token capture (T521) not present — per-lane readings fall back "
+             "to the trailer record only")
+    for entry in results:
+        label = entry["label"]
+        tr = _trailer_token_reading(os.path.join(run_dir, label, "trailer.log"))
+        if tr is not None:
+            entry["tokens_in"] = tr["in"]
+            entry["tokens_out"] = tr["out"]
+            entry["tokens_source"] = tr["source"]
+            entry["tokens_missing_reason"] = None
+            continue
+        m = models.get(label)
+        if isinstance(m, dict) and m.get("tokens_in") is not None:
+            entry["tokens_in"] = m.get("tokens_in")
+            entry["tokens_out"] = m.get("tokens_out")
+            entry["tokens_source"] = "token-capture.py"
+            entry["tokens_missing_reason"] = None
+            continue
+        entry["tokens_in"] = None
+        entry["tokens_out"] = None
+        entry["tokens_source"] = None
+        if entry.get("status") == "refused":
+            entry["tokens_missing_reason"] = "lane refused — no run, no token reading"
+        elif not os.path.isfile(capture_script):
+            entry["tokens_missing_reason"] = (
+                "no token reading recorded (no tools/token-capture.py and no "
+                "[runner] tokens line in trailer)")
+        else:
+            entry["tokens_missing_reason"] = (
+                f"no token reading recorded (token-capture.py has no reading "
+                f"for {label!r} and trailer has no [runner] tokens line)")
+
+
+def write_tokens_summary(run_dir, results):
+    summary = {}
+    for e in results:
+        summary[e["label"]] = {
+            "in": e.get("tokens_in"),
+            "out": e.get("tokens_out"),
+            "source": e.get("tokens_source"),
+            "missing_reason": e.get("tokens_missing_reason"),
+        }
+    with open(os.path.join(run_dir, "tokens.json"), "w") as f:
+        json.dump(summary, f, indent=2)
+        f.write("\n")
 
 
 def find_root():
@@ -316,17 +624,8 @@ def preflight(lanes, wall):
                 die("ollama lane requested but no `ollama` binary on PATH")
 
 
-def execute(brief, roster, run, wall, claude_tools, lanes):
-    root = find_root()
-    # T376 isolation record: a git WORKTREE root has `.git` as a FILE (a
-    # `gitdir:` pointer) and holds only committed content, so gitignored
-    # state (e.g. untracked/race-keys/, untracked/race-grading/) does not
-    # exist in the lane's view at all. That is a RELATIVE-PATH boundary only:
-    # a tool-using lane can still read the main checkout's gitignored files
-    # via absolute paths (no sandbox, T376 finding 2). The record below makes
-    # the truth auditable in lanes.json — it does not make the boundary
-    # stronger.
-    is_worktree = os.path.isfile(os.path.join(root, ".git"))
+def execute(brief, roster, run, wall, claude_tools, lanes, root, isolation,
+            allow_unisolated):
     bakeoff_dir = os.path.join(root, "untracked", "bakeoff")
     os.makedirs(bakeoff_dir, exist_ok=True)
     run_dir = os.path.join(bakeoff_dir, run)
@@ -369,6 +668,9 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
                 "kill": None,
                 "note": f"{CLAUDE_GATE} unset — emit only (T328 bar)",
                 "elapsed_s": None,
+                "sanitized_out": None,
+                "self_identified": False,
+                "self_id_matches": [],
             }
             results.append(entry)
             any_bad = True
@@ -393,6 +695,14 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
             status = "guard-killed"
         else:
             status = "failed"
+        # G4 blinding: write out.sanitized.md next to the original (never
+        # modified — it is evidence); flag a self-identifying lane in
+        # lanes.json (the flag is itself a data point, not a silent scrub).
+        sanitized_out = None
+        self_id_matches = []
+        if status == "ok" and os.path.exists(out_path):
+            sanitized_path, self_id_matches = sanitize_out(out_path)
+            sanitized_out = os.path.relpath(sanitized_path, root)
         entry = {
             "family": fam,
             "label": label,
@@ -409,6 +719,9 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
             "kill": meta.get("kill"),
             "note": meta.get("note"),
             "elapsed_s": round(time.monotonic() - t0, 2),
+            "sanitized_out": sanitized_out,
+            "self_identified": bool(self_id_matches),
+            "self_id_matches": self_id_matches,
         }
         results.append(entry)
         if status != "ok":
@@ -416,6 +729,10 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
         diag(f"lane {label}: {status} (exit {proc.returncode}, "
              f"wall {meta.get('wall_s')}s cpu {meta.get('cpu_s')}s "
              f"rss {meta.get('rss_mb')}MB, {entry['out_bytes']}B out)")
+
+    # G1 tokens: mechanical per-lane readings, null + reason when absent.
+    collect_tokens(root, run_dir, date, results)
+    write_tokens_summary(run_dir, results)
 
     lanes_doc = {
         "run": run,
@@ -425,14 +742,8 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
         "prompt_sha256": prompt_sha,
         "claude_gate": CLAUDE_GATE,
         "claude_tools": claude_tools,
-        "isolation": {
-            "root": root,
-            "root_is_worktree": is_worktree,
-            "lane_cwd": root,  # lanes dispatch with cwd=root
-            "strength": "relative-path boundary only — a tool-using lane can "
-                         "reach the host filesystem (incl. the main checkout's "
-                         "gitignored untracked/) via absolute paths; no sandbox (T376)",
-        },
+        "isolation": dict(isolation, allow_unisolated=bool(allow_unisolated),
+                          allow_unisolated_reason=allow_unisolated or None),
         "lanes": results,
     }
     with open(os.path.join(bakeoff_dir, ".lock"), "w") as lf:
@@ -444,7 +755,8 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
 
     # summary — stdout is data
     print(f"run={run}")
-    print(f"root={root} worktree={is_worktree}")
+    print(f"root={root} worktree={isolation['root_is_worktree']} "
+          f"allow_unisolated={bool(allow_unisolated)}")
     print(f"brief={brief}")
     print(f"roster={roster}")
     print(f"lanes={len(results)}")
@@ -452,6 +764,8 @@ def execute(brief, roster, run, wall, claude_tools, lanes):
         extra = ""
         if e["status"] != "ok" and (e["kill"] or e["note"]):
             extra = f" note={e['kill'] or e['note']!r}"
+        extra += (f" self_id={e['self_identified']} "
+                  f"tokens_in={e['tokens_in']} tokens_out={e['tokens_out']}")
         print(f"RESULT {e['label']} family={e['family']} serving_tag={e['serving_tag']} "
               f"status={e['status']} exit={e['exit']} wall_s={e['wall_s']} "
               f"cpu_s={e['cpu_s']} rss_mb={e['rss_mb']} out_bytes={e['out_bytes']}"
@@ -489,7 +803,7 @@ def _write_tokens_template(run_dir, run, lanes):
 
 USAGE = (
     "usage: tools/bakeoff.sh <brief> <roster> [--run NAME] [--emit] "
-    "[--wall N] [--claude-tools S]\n"
+    "[--wall N] [--claude-tools S] [--allow-unisolated R]\n"
     "  brief   task brief path (its text is the prompt, identical per lane)\n"
     "  roster  one lane per line: '<family> <canonical-label> [ollama-tag]'\n"
     "          families: deepseek | claude | ollama\n"
@@ -498,7 +812,11 @@ USAGE = (
     "  --wall N           tools/runner --max-wall seconds (default 1800)\n"
     "  --claude-tools S   --allowedTools value for claude lanes\n"
     "                     (default \"Read,Write,Edit,Bash\")\n"
+    "  --allow-unisolated R  override the G2 isolation gate; R is the\n"
+    "                     operator's reason, recorded in lanes.json\n"
     "claude lanes execute only with " + CLAUDE_GATE + "=1 exported; --emit always shows them.\n"
+    "G2 refuses to dispatch unless the root is a git worktree with keys outside\n"
+    "reach (override: --allow-unisolated).\n"
 )
 
 
@@ -507,7 +825,7 @@ def main(argv):
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ("--run", "--wall", "--claude-tools") and i + 1 < len(argv):
+        if a in ("--run", "--wall", "--claude-tools", "--allow-unisolated") and i + 1 < len(argv):
             flags.append((a, argv[i + 1]))
             i += 2
             continue
@@ -545,13 +863,19 @@ def main(argv):
             die(f"--wall must be an integer, got {wall!r}")
     claude_tools = next((v for k, v in flags if k == "--claude-tools"),
                         DEFAULT_CLAUDE_TOOLS)
+    allow_unisolated = next((v for k, v in flags if k == "--allow-unisolated"),
+                            None)
     emit_only = any(k == "--emit" for k, _ in flags)
 
     lanes = parse_roster(roster)
     if emit_only:
         return emit(brief, roster, run, wall, claude_tools, lanes)
+    root = find_root()
+    isolation = assess_isolation(root)
+    enforce_g2(isolation, allow_unisolated)
     preflight(lanes, wall)
-    return execute(brief, roster, run, wall, claude_tools, lanes)
+    return execute(brief, roster, run, wall, claude_tools, lanes, root,
+                   isolation, allow_unisolated)
 
 
 if __name__ == "__main__":

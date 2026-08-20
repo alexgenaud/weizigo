@@ -666,6 +666,22 @@ pub fn build(b: *std.Build) void {
     holds_regression.cwd = b.path(".");
     test_step.dependOn(&holds_regression.step);
 
+    // ── T542: grand-race bake-off gate controls (G1/G2/G3/G4) ─────
+    // G5 already held; G6 is T522's. Controls pin: G1 tokens (trailer
+    // reading wins over token-capture.py; null + reason when absent; the
+    // field is present, never absent), G2 isolation (main checkout -> exit 2
+    // naming G2; a real worktree with keys outside proceeds; --allow-
+    // unisolated records the override + reason), G3 family exclusion
+    // (count_grade hard-refuses a family grade; retained in the record; the
+    // family is the model family, not the dispatch family), and G4 blinding
+    // (self-identifying text redacted into out.sanitized.md, original never
+    // modified, lane flagged; a clean lane's sanitized copy is byte-identical
+    // and unflagged). Every lane is a fake `pi` shim — no real model runs,
+    // no credentials read. Scratch worktree + scratch run dirs only.
+    const bakeoff_gates_regression = b.addSystemCommand(&.{ "sh", "tools/regression-bakeoff-gates.sh" });
+    bakeoff_gates_regression.cwd = b.path(".");
+    test_step.dependOn(&bakeoff_gates_regression.step);
+
     // ── T390: duplicate-dispatch controls ────────────────────────
     // Two consoles on one row happened three times on 2026-08-05/06
     // (T376/T389/T350); the kanban shows claim-at-close is the disease
