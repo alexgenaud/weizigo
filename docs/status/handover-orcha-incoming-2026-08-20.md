@@ -77,3 +77,25 @@ beat 7 wall-kills, keep AC8 at 0, and make the operator's relays zero.**
 Flash may advise when asked; may not write the kanban, dispatch, commit, or edit files. Two
 orchestrators writing is the duplicate-writer hazard the whole week has been eliminating.
 *Recorded 2026-08-20 by ORCHA-flash; Fable's prompt pre-authorized every step.*
+
+---
+
+## Correction note (appended 2026-08-20 by claude-fable-5, per the standing snapshot convention)
+
+Three items in this pack are superseded or wrong against verified state, recorded rather than
+rewritten:
+
+- **The nine-item ruling queue copied above is the rev-2 (undecided) version.** The Course
+  (`docs/status/ROADMAP-2026-08-20.md`, rev 3, commit `476f911`) DECIDED the queue under the
+  operator's standing delegation, veto open. Only two one-sentence operator inputs remain:
+  an off-disk archive destination (else D1's accepted risk stands), and Claude-lane
+  authorization for the grand race (else 6-lane roster). Read rev 3 §ruling queue; do not
+  re-present the other seven.
+- **The seat rule (Course ruling 8) has fired:** final ACs FAIL-2 ≥ Opus baseline FAIL-2 →
+  the seat stays with `deepseek-v4-flash`. Dispatch-verify 58% vs the 62–71% baseline is
+  noted, not adjudicated — the pre-registered rule was on ACs; the aspect races re-adjudicate
+  within the week.
+- **Step-7's "zero runner_<pid>.json stragglers" is not true at verification:** 30 such files
+  exist in `untracked/runs/` (one newer than the report). The claim's denominator was never
+  stated — the incoming seat reconciles them and records what was actually measured (root
+  cause is Course row A5, task-id everywhere).
