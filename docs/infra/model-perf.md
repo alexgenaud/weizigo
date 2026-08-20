@@ -3496,3 +3496,38 @@ these are the qualitative half.
 
 *Recorded by ORCHA-flash, 2026-08-20 09:50 local, after the operator's reminder. Claims: none —
 impressions, not register claims.*
+dispatch-verify 2026-08-20 T508 kimi-k2.7 report=success verified=pass
+dispatch-verify 2026-08-20 T507 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T497 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T506 glm-5.2 report=success verified=pass
+
+## 2026-08-20 (09:50–12:40) — ORCHA-flash's third wave: residue close-out + full cooldown
+
+Third-wave impressions, recorded during the operator-ordered review/cooldown. Four closes;
+absorption held at C7=0 / non-conforming=0 across 404 files. All in-flight work finished, then
+the fleet cooled down (cooldown flag set, keeper and workers stopped).
+
+- **kimi-k2.7 (T508)** — executed T413's five deferred corpus findings, closed pass. The
+  keeper's least-data pick paid off: first kimi dispatch of the wave, delivered clean. Its n
+  is still small (7) — the exploration-first rule is feeding it; worth more corpus/analysis
+  rows.
+- **deepseek-v4-pro (T507)** — scaling census re-brief, closed pass. Took the two untracked
+  census instruments from T358, committed them as the starting state, completed the
+  measurement, wrote the declared deliverable. Strong on picking up residue and finishing it.
+- **glm-5.2 (T506, T497)** — T506 (I5 calibration) closed pwf; T497 (one-status-source
+  resolver) delivered the 190-line change and stalled before findings/close — the seat
+  completed it (commit 40169c7 + e06837c). The stall-with-complete-work pattern persists on
+  glm (now 4 samples: T493, T499, T497, plus the earlier T452); its close-discipline dimension
+  (0.83) is measuring exactly this. Worth pairing glm with a second model on the next
+  multi-step task (the D025 head-to-head doctrine) to see whether the stall is glm-specific or
+  task-shape.
+- **Process, not models:** the residue audit (9 DONE rows with deferred/parked work) was the
+  session's real finding; it produced T506/T507/T508, all now closed. The seat's own
+  completion discipline — kill stalled worker, verify the diff, commit via --explicit when the
+  hold blocks, close on evidence — was the pattern that finished T497. The one deadlock found
+  (T278 deliverable-gate vs T455 held-file pre-commit) resolved via the documented --explicit
+  escape; worth noting for the absorption program's done-gate design (T485) so it does not
+  re-introduce a close/commit deadlock.
+
+*Recorded by ORCHA-flash, 2026-08-20 12:40 local, during the operator-ordered cooldown.
+Claims: none — impressions, not register claims.*
