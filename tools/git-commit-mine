@@ -143,7 +143,13 @@ fi
 
 # ── scope resolution ──────────────────────────────────────────────────────
 SCOPE_FILE=$(mktemp "${TMPDIR:-/tmp}/git-commit-mine-scope-XXXXXX")
-trap 'rm -f "$SCOPE_FILE"' EXIT
+# T547: fd 9 is the commit mutex (an exclusive flock held across
+# stage→verify→commit). The EXIT trap releases it on every exit path;
+# flock(2) is also kernel-released when the process dies for ANY reason
+# (crash, SIGKILL, exit 1), so this trap is belt-and-braces, not the only
+# release. exec 9>&- on a never-opened fd is a harmless no-op, so the trap
+# is safe on the early-exit paths that never acquired the lock.
+trap 'rm -f "$SCOPE_FILE"; exec 9>&- 2>/dev/null || true' EXIT
 
 declare_scope() {  # add a path to the scope
     [ -n "$1" ] && printf '%s\n' "$1" >> "$SCOPE_FILE"
@@ -248,6 +254,91 @@ if [ -n "$TASK_ID" ] && [ "$EXPLICIT" -eq 0 ]; then
             ;;
     esac
 fi
+
+# ── holds check (T547) ───────────────────────────────────────────────────
+# The one-writer invariant protects FILE CONTENTS, not the git index: a
+# path's working-tree content may already carry another row's in-flight edit,
+# and `git add <path>` stages that path's ENTIRE current content (T521:
+# 784235a absorbed T531/T545's build.zig hunks + T512's regression-dispatch.sh
+# arms under the T521 message). Before staging, refuse any named path held by
+# a DIFFERENT in_progress row — the holds map is populated (T539), so the
+# check is finally possible. --explicit is the loud escape (caller takes
+# responsibility). An unreadable store degrades to warn-and-allow, same as the
+# pre-commit backstop (T540 item 3), so a momentarily-unreadable kanban never
+# wedges a worker. This runs BEFORE the mutex/staging so a refusal leaves the
+# index byte-for-byte untouched.
+HOLDERS_FILE=$(mktemp "${TMPDIR:-/tmp}/gcm-holders-XXXXXX") || HOLDERS_FILE=""
+if [ -n "$HOLDERS_FILE" ]; then
+    HOLDERS_RC=0
+    gcm_active_holders "$REPO" "${MANAGENT_STORE:-}" > "$HOLDERS_FILE" 2>/dev/null || HOLDERS_RC=$?
+    FOREIGN_HELD=""
+    if [ "$HOLDERS_RC" -eq 0 ]; then
+        for p in "${PATHS[@]}"; do
+            rel="$p"
+            rel="${rel#./}"
+            case "$rel" in
+                /*) rel="${rel#"$REPO"/}" ;;
+            esac
+            HIT=$(awk -F'\t' -v p="$rel" -v me="${TASK_ID:-}" '$3 == p && $1 != me { print; exit }' "$HOLDERS_FILE")
+            if [ -n "$HIT" ]; then
+                HTID=$(printf '%s\n' "$HIT" | cut -f1)
+                HAGENT=$(printf '%s\n' "$HIT" | cut -f2)
+                FOREIGN_HELD="${FOREIGN_HELD}${rel}  (held by ${HTID}${HAGENT:+, agent=${HAGENT}})"$'\n'
+            fi
+        done
+    fi
+    if [ -n "$FOREIGN_HELD" ]; then
+        if [ "$EXPLICIT" -eq 0 ]; then
+            echo "git-commit-mine: REFUSED — path(s) held by a different in_progress row:" >&2
+            printf '%b' "$FOREIGN_HELD" | while IFS= read -r l; do [ -n "$l" ] && echo "git-commit-mine:   $l" >&2; done
+            echo "git-commit-mine:   This is the T521 incident class — do NOT stage another row's" >&2
+            echo "git-commit-mine:   in-flight edit. Wait for the holder to commit, or pass" >&2
+            echo "git-commit-mine:   --explicit to take responsibility (loud, recorded)." >&2
+            rm -f "$HOLDERS_FILE"
+            exit 1
+        fi
+        echo "git-commit-mine: WARNING — --explicit: committing path(s) held by a different in_progress row:" >&2
+        printf '%b' "$FOREIGN_HELD" | while IFS= read -r l; do [ -n "$l" ] && echo "git-commit-mine:   $l" >&2; done
+        echo "git-commit-mine:   you take responsibility for this content (loud, recorded)." >&2
+    elif [ "$HOLDERS_RC" -ne 0 ]; then
+        echo "git-commit-mine: NOTE — holder table unreadable (kanban unreadable); holds check skipped." >&2
+    fi
+    rm -f "$HOLDERS_FILE"
+fi
+
+# ── commit mutex (T547) ─────────────────────────────────────────────────
+# One shared .git/index means two workers' stage→commit sequences can
+# interleave and absorb each other's staged content (T521: 784235a). Take an
+# exclusive flock for the whole stage→verify→commit span; the lock file lives
+# alongside the store's lockfile (docs/infra/managent/), NOT inside .git/.
+# flock(2) is kernel-released on ANY process exit — the fd closes and the
+# lock drops, so there is no stale-lock wedge. Default blocks until the
+# holder finishes (the holder WILL finish — see above); GCM_LOCK_TIMEOUT_SECS
+# bounds the wait for tests/diagnostics and turns a timeout into a loud
+# refusal instead of an unbounded block.
+LOCK_FILE="$REPO/docs/infra/managent/git-commit-mine.lock"
+mkdir -p "$(dirname "$LOCK_FILE")" || { echo "git-commit-mine: REFUSED — cannot create lock dir $(dirname "$LOCK_FILE")" >&2; exit 2; }
+exec 9<>"$LOCK_FILE" || { echo "git-commit-mine: REFUSED — cannot open commit mutex $LOCK_FILE" >&2; exit 2; }
+python3 - "$LOCK_FILE" 9 <<'PYEOF'
+import fcntl, sys, time, os
+lock_path = sys.argv[1]
+fd = int(sys.argv[2])
+timeout = os.environ.get("GCM_LOCK_TIMEOUT_SECS", "")
+if timeout:
+    deadline = time.time() + float(timeout)
+    while True:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except (BlockingIOError, OSError):
+            if time.time() >= deadline:
+                sys.stderr.write("git-commit-mine: REFUSED — commit mutex held for >%ss by another worker (mid-commit); retry.\n" % timeout)
+                sys.exit(1)
+            time.sleep(0.1)
+else:
+    fcntl.flock(fd, fcntl.LOCK_EX)
+PYEOF
+[ $? -ne 0 ] && exit 1
 
 # ── stage only the named paths ───────────────────────────────────────────
 cd "$REPO" || exit 2
@@ -363,6 +454,12 @@ else
 fi
 RC=$?
 [ "$RC" -ne 0 ] && exit "$RC"
+
+# T547: release the commit mutex as soon as the commit lands — the
+# post-commit verification below is read-only and must not extend the held
+# window (the bundle's "shortest window that still makes stage-and-commit
+# atomic").
+exec 9>&- 2>/dev/null || true
 
 # ── verify the commit contains exactly the named paths — three cases ─────
 # (T282 defect 1):
