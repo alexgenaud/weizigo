@@ -232,8 +232,8 @@
     "epitaph": null
   },
   "T514": {
-    "status": "in_progress",
-    "agent": "glm-5.2",
+    "status": "dispatchable",
+    "agent": null,
     "model": "glm-5.2",
     "bundle": "untracked/T514-logjam-flag-lifecycle.md",
     "set": "A",
@@ -241,7 +241,7 @@
     "needs": [],
     "caps": [],
     "added": "2026-08-20T10:49:14Z",
-    "claimed": "2026-08-20T11:18:15Z",
+    "claimed": null,
     "done": null,
     "dispatched": null,
     "dispatched_to": null,

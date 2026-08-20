@@ -462,6 +462,22 @@ pub fn build(b: *std.Build) void {
     ledger_board_seam_regression.cwd = b.path(".");
     test_step.dependOn(&ledger_board_seam_regression.step);
 
+    // ── T518/F9: managent assert honors the MANAGENT_STORE override ──
+    // The first regression to exercise `managent assert` *writing*; the
+    // T497 ledger-board-seam regression seeds the ledger by hand and only
+    // reads it. Four arms against a scratch store located OUTSIDE the fake
+    // repo (so the store-override path is actually exercised):
+    // assert writes the record to the SCRATCH ledger (not the repo-root
+    // one) · show renders the (asserted) annotation by reading the SCRATCH
+    // ledger (reader honors the override too) · the assertion_next counter
+    // is persisted to the SCRATCH store · and the default-store arm
+    // (MANAGENT_STORE unset) still writes to repo_root's ledger so the
+    // default layout is preserved. Scratch store + scratch repo only —
+    // never the live kanban or the live assertion ledger.
+    const assert_store_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-assert-store.sh" });
+    assert_store_regression.cwd = b.path(".");
+    test_step.dependOn(&assert_store_regression.step);
+
     // ── T478: duty mechanism + landmark gate controls ──────────────────
     // Duties are beneficial work that never completes; managent must
     // recognise them (bundle meta `duty` key / --duty flag), count task
@@ -611,6 +627,21 @@ pub fn build(b: *std.Build) void {
     const status_json_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-status-json.sh" });
     status_json_regression.cwd = b.path(".");
     test_step.dependOn(&status_json_regression.step);
+
+    // ── T517: canonical model list exposed (`managent models`) ───────
+    // F7: model canonicalization was ×4 with four definitions (managent
+    // canonical_models[], bin/dispatch MODELS, bin/subagent CLAUDE_MODELS,
+    // watch-fleet mdl()), and the keeper's least-data picker listed only the
+    // five non-Claude models — so a model-less row could never draw a Claude
+    // label. This wires the regression that asserts `managent models` (and
+    // `--json`) exposes canonical_models[] verbatim as the single source the
+    // keeper/dispatch/subagent can shell out to: prints exactly the source
+    // array (no drift), valid --json, stdout/stderr split, every Claude
+    // label present, and a pure-static arm (no kanban store touched,
+    // callable with no repo). RED against the pre-T517 binary, GREEN after.
+    const models_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-models.sh" });
+    models_regression.cwd = b.path(".");
+    test_step.dependOn(&models_regression.step);
 
     // ── T390: duplicate-dispatch controls ────────────────────────
     // Two consoles on one row happened three times on 2026-08-05/06

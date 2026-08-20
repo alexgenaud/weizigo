@@ -3571,3 +3571,71 @@ dispatch-verify 2026-08-20 T509 glm-5.2 report=success verified=pass
 
 Formalized from T503 + the operator's recorded stance. Superseded only by aspect-race data
 (Stage 2a, GO under ruling 7).
+dispatch-verify 2026-08-20 T528 kimi-k2.7 report=success verified=pass
+dispatch-verify 2026-08-20 T516 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T515 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T513 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T520 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T519 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T512 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T518 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T514 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T512 glm-5.2 report=incomplete verified=fail fail=row
