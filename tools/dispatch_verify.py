@@ -63,6 +63,80 @@ FAILURE_VERDICTS = ("blocked", "fail-found", "abandoned")
 # owner, and a second owner is a defect (the 2026-08-20 fleet audit, F4).
 HEAL_OWNER = "dispatcher"
 
+# ── T538: provider-level refusal detection ─────────────────────────────────
+#
+# A worker killed by an account-level 429/401/403 never reached the model, so
+# it must not be recorded as that model failing its task (the 2026-08-20
+# Ollama session-usage-limit incident: ~80 keeper dispatches died in ~22 s
+# each before the worker read its brief, and all 80 were misattributed as
+# glm-5.2 failures in docs/infra/model-perf.md).  The worker log
+# (untracked/log/t<id>.log, written by bin/dispatch's nohup redirect) carries
+# the refusal block.
+#
+# Only STRONG provider-refusal signatures match, and the classifier is
+# conservative by construction — a bare HTTP status code is not enough, and
+# incidental digits must never match: `[runner] pid 42994` is ruled out by the
+# \b word boundary, 401/403 require an auth keyword nearby, and the status-code
+# signatures anchor to the START of a line (the refusal is emitted as
+# `429: {"message":...}`), which a mention inside a prompt never is.  The
+# distinction must not become an excuse that launders genuine failures.
+PROVIDER_REFUSAL_SIGNATURES = (
+    # An HTTP status code at the start of a line is the refusal block the
+    # provider client emits, e.g. 429: {"message":"...","type":"api_error",...}.
+    (re.compile(r"^\s*429\b", re.M), "provider-429"),
+    (re.compile(r"^\s*401\b", re.M), "provider-auth"),
+    (re.compile(r"^\s*403\b", re.M), "provider-auth"),
+    # Billing / rate-limit prose (the api_error message body).
+    (re.compile(r"session usage limit", re.I), "provider-429"),
+    (re.compile(r"reached your (?:session )?usage limit", re.I), "provider-429"),
+    (re.compile(r"\brate limit\b", re.I), "provider-429"),
+    (re.compile(r"\bquota\b", re.I), "provider-429"),
+    (re.compile(r"too many requests", re.I), "provider-429"),
+    # Auth refusals.
+    (re.compile(r"invalid api key", re.I), "provider-auth"),
+    (re.compile(r"\bunauthorized\b", re.I), "provider-auth"),
+    (re.compile(r"\bforbidden\b", re.I), "provider-auth"),
+    # Connection failures.
+    (re.compile(r"connection refused", re.I), "provider-connection"),
+    (re.compile(r"connection reset", re.I), "provider-connection"),
+    (re.compile(r"could not connect", re.I), "provider-connection"),
+    (re.compile(r"name or service not known", re.I), "provider-connection"),
+    (re.compile(r"temporary failure in name resolution", re.I), "provider-connection"),
+)
+
+
+def provider_refusal_reason(root, task_id):
+    """Return the provider-refusal reason ('provider-429' / 'provider-auth' /
+    'provider-connection') when the model was never reached, else None.
+
+    The worker log (untracked/log/t<id>.log) is the evidence source: it is
+    written by bin/dispatch's nohup redirect and carries the refusal block
+    regardless of which provider emitted it.  A missing/unreadable log is a
+    non-match, never an error — the absence of a refusal signature means the
+    failure is attributed normally.
+    """
+    if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
+        return None
+    p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
+    try:
+        with open(p, errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return None
+    for rx, reason in PROVIDER_REFUSAL_SIGNATURES:
+        if rx.search(text):
+            return reason
+    return None
+
+
+def _fail_perf(task_id, model, report, fail_check, unreached):
+    """The perf tuple for a failed dispatch.  `unreached` (a provider-refusal
+    reason) turns a model failure into a lane-availability event: the ledger
+    line records verified=unreached reason=<reason>, not verified=fail."""
+    if unreached:
+        return (task_id, model, report, "unreached", unreached)
+    return (task_id, model, report, "fail", fail_check)
+
 
 def generate_nonce():
     """A fresh 128-bit echo token."""
@@ -347,6 +421,18 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
     details = []
     nonce_ok = nonce in stdout
 
+    # T538: a provider refusal (HTTP 429/401/403, quota/auth, connection
+    # failure) means the model was never reached — an infrastructure fact, not
+    # a task failure.  It applies only when the worker died (rc != 0) before
+    # the work landed; a clean exit that did nothing is still a genuine model
+    # failure, and a worker that closed the row before a non-zero exit was
+    # clearly reached, so both stay 'fail'.
+    unreached = provider_refusal_reason(root, task_id) if rc != 0 else None
+    if unreached:
+        details.append(
+            "NOTE provider refusal (reason=%s): the model was never reached — "
+            "recorded as unreached, not a task failure" % unreached)
+
     dl_missing = []
     findings_bad = []  # [(deliverable, error), ...] — malformed findings records
     for d in (deliverables or []):
@@ -369,7 +455,7 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
             return (2,
                     "worker exited rc=%d — verification FAILED" % rc,
                     details + ["FAIL exit: worker did not exit cleanly (rc=%d)" % rc],
-                    (task_id, model, "crash", "fail", "exit"))
+                    _fail_perf(task_id, model, "crash", "exit", unreached))
         if not nonce_ok:
             return (2,
                     "worker reported success; verification FAILED: nonce echo missing",
@@ -414,7 +500,7 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                 % (rc, status),
                 details + ["FAIL exit: rc=%d; FAIL kanban: task %s is still %s"
                            % (rc, task_id, status)],
-                (task_id, model, "incomplete", "fail", "row"))
+                _fail_perf(task_id, model, "incomplete", "row", unreached))
 
     # Row is closed.  What did the worker report — and did the work happen?
     verdict = verdict or "pass"
@@ -552,6 +638,15 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
         "healed_by": HEAL_OWNER,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+    # T538: a heal caused by an unreached provider is a DIFFERENT event from an
+    # ordinary dispatcher heal — the worker died of a lane-down refusal, not a
+    # task failure.  Record the reason so T536's keeper backoff (and any lane
+    # availability reader) can tell them apart.  The historical correction
+    # record ({"correction": true, ...}) stays the precedent for retroactive
+    # annotation; this field is the forward-looking classification.
+    unreached = provider_refusal_reason(root, task_id)
+    if unreached:
+        rec["unreached"] = unreached
     path = (os.environ.get(assert_path_env)
             or os.path.join(real_root, "docs", "infra", "dispatch-heals.jsonl"))
     wrote = True
@@ -595,13 +690,18 @@ def record_perf(root, perf):
     loud warning, never a failed dispatch: verification is the gate, the
     ledger is data collection.
     """
-    task_id, model, report, verified, fail = perf
+    task_id, model, report, verified, reason = perf
     date = time.strftime("%Y-%m-%d")
     path = os.environ.get("WEIZIGO_MODEL_PERF") or os.path.join(
         root, "docs", "infra", "model-perf.md")
+    if verified == "unreached":
+        suffix = " reason=%s" % reason
+    elif verified == "fail":
+        suffix = " fail=%s" % reason
+    else:
+        suffix = ""
     line = "dispatch-verify %s %s %s report=%s verified=%s%s\n" % (
-        date, task_id or "-", model, report, verified,
-        (" fail=%s" % fail) if fail else "")
+        date, task_id or "-", model, report, verified, suffix)
     try:
         with open(path, "a") as f:
             f.write(line)
