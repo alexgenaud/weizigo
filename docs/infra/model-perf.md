@@ -3639,3 +3639,33 @@ dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-20 T511 glm-5.2 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-20 T512 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T512 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T517 glm-5.2 report=incomplete verified=fail fail=row
+
+<!-- CORRECTION — 2026-08-20, incoming Orchestrator seat (registered as T538) -->
+**CORRECTION (2026-08-20, incoming Orchestrator seat).** The ~80 immediately
+preceding `dispatch-verify 2026-08-20 … glm-5.2 … verified=fail fail=row`
+records are **NOT glm-5.2 task failures and must be excluded from any per-model
+rate.** The Ollama account reached its session usage limit; every one of those
+dispatches was refused with HTTP 429 at connect time, in 21.8–21.9 s, before the
+worker read its brief. glm-5.2 never received those tasks. The keeper re-fired
+into the wall 80 times in ~3.5 minutes (T511 ×57, T517 ×14, T512 ×3, and one
+each of T513/T515/T516/T518/T519/T520) because nothing recorded that it had just
+fired — root cause registered as **T536**; the misattribution mechanism as
+**T538**; evidence in `untracked/log/fleet-keeper.log` and the matching 1:1
+`session usage limit` blocks in `untracked/log/t5*.log`.
+Precedent for this annotation: the `{"correction": true, …}` record in
+`docs/infra/dispatch-heals.jsonl` (audit F3). Records are annotated, never
+deleted — the ledger is append-only.
