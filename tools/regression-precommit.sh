@@ -152,14 +152,19 @@ new_scratch() {
 }
 
 stub_claimlint() {
+    # $1 = scratch dir; $2 = C7 non-conforming count (default 0). T483 added
+    # the non-conforming line so the hook's new floor has a number to read;
+    # the T455 controls emit 0, the T483 seeded control emits 1.
+    STUB_NONCONF="${2:-0}"
     mkdir -p "$1/bin"
-    cat > "$1/bin/weizigo-claimlint" <<'EOF'
+    cat > "$1/bin/weizigo-claimlint" <<EOF
 #!/bin/sh
 echo "  calibration: PASS"
 echo "  C1a orphans / C1b alarms      0 / 0   (FAILS)"
 echo "  C2 dangling evidence paths    0   (FAILS)"
 echo "  C3 PROVEN w/o committed evid.      0   (debt...)"
 echo "  C6 cite-tag mismatches        0   (FAILS)"
+echo "  C7 non-conforming files        $STUB_NONCONF   (reported)"
 echo "  C9 tree-mapping violations      0   (FAILS)"
 exit 0
 EOF
@@ -344,6 +349,54 @@ fi
 # Re-enable errexit for the final 'all controls passed' line and any
 # later additions.
 set -e
+
+# ── T483 control: C7-nonconforming floor ──────────────────────────────
+# A commit staging invalid findings/*.json must be refused by the hook's
+# new C7-nonconforming floor (absorption-spec §6.2). The instrument under
+# test is the HOOK's floor comparison — extract the `C7 non-conforming
+# files` count from the claimlint summary and refuse when it exceeds the
+# recorded floor. The detection half (a malformed findings file reports
+# nonconforming=1) is claimlint's contract, already proven by its built-in
+# calibration (known-bad 9 + known-bad 11), which the hook itself gates on
+# (`calibration: PASS`). So this arm's stub emits the count a real
+# claimlint would for the malformed file staged below, and asserts the
+# hook refuses — isolating the new floor logic, exactly as the T455 arms
+# isolate the holder-collision guard. The malformed file is staged so the
+# arm is a seeded commit carrying invalid findings JSON, not a bare
+# env-var injection.
+echo ""
+echo "=== regression-precommit: C7-nonconforming floor control ==="
+WORK=$(new_scratch)
+cd "$WORK"
+git init -q
+git config user.email t483@test
+git config user.name T483
+echo base > README.md
+git add README.md
+git commit -qm base
+mkdir -p tools docs/infra/managent findings
+cp "$REPO/tools/git-commit-mine-lib.sh" tools/
+# Empty kanban: unlabelled commit touches no held path → gate 2 allows, so
+# the control reaches the claimlint floor comparison it is meant to test.
+printf '{}\n' > docs/infra/managent/tasks.json
+stub_claimlint "$WORK" 1
+# The seeded defect: invalid findings JSON (unclosed object, truncated).
+printf '{"task_id": "T483-CTRL", "date": "2026-08-20", "model": "test", "claims": [\n' > findings/T483-ctrl-malformed.json
+git add findings/T483-ctrl-malformed.json
+set +e
+OUT=$(MANAGENT_TASK_ID="" MANAGENT_STORE="$WORK/docs/infra/managent/tasks.json" run_hook "$WORK")
+RC=$?
+set -e
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q "C7-nonconforming regressed"; then
+    echo "    PASS: refused (RC=$RC) — C7-nonconforming floor compared 1 > 0"
+else
+    echo "    FAIL: RC=$RC"
+    echo "    output (first 8 lines):"
+    echo "$OUT" | head -8 | sed 's/^/      /'
+    exit 1
+fi
+rm -rf "$WORK"
 
 echo ""
 echo "=== regression-precommit: all controls passed ==="

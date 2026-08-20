@@ -216,6 +216,10 @@ fi
 #      the C3 ratchet floor (T373): report-only at the claimlint level, the
 #      floor lives here in the hook, exactly like C1a/C2/C6/C9.
 # C6:  "  C6 cite-tag mismatches         0   (FAILS)"      → $4=0
+# C7nc: "  C7 non-conforming files        0   (reported)"  → $4=0
+#       (T483 floor — absorption-spec §6.2; the line says (reported) not
+#       (FAILS) because non-conforming is report-only in claimlint's SUMMARY,
+#       but claimlint's own exit predicate fails on it; the floor lives here.)
 SUMMARY_LINE=$(echo "$OUTPUT" | grep '^  C1a orphans / C1b alarms' | grep 'FAILS')
 CURRENT_C1a=$(echo "$SUMMARY_LINE" | awk '{print $6}')
 CURRENT_C1b=$(echo "$SUMMARY_LINE" | awk '{print $8}')
@@ -223,6 +227,7 @@ CURRENT_C2=$(echo "$OUTPUT" | grep '^  C2 dangling evidence paths' | grep 'FAILS
 CURRENT_C3=$(echo "$OUTPUT" | grep '^  C3 PROVEN w/o committed evid.' | awk '{print $6}')
 CURRENT_C6=$(echo "$OUTPUT" | grep '^  C6 cite-tag mismatches' | grep 'FAILS' | awk '{print $4}')
 CURRENT_C9=$(echo "$OUTPUT" | grep '^  C9 tree-mapping violations' | grep 'FAILS' | awk '{print $4}')
+CURRENT_C7NONCONF=$(echo "$OUTPUT" | grep '^  C7 non-conforming files' | awk '{print $4}')
 
 # ── read floor ─────────────────────────────────────────────────────────
 # Uses python3 for reliable JSON parsing (available on all dev hosts)
@@ -236,9 +241,10 @@ FLOOR_C2=$(read_floor_field "C2")
 FLOOR_C3=$(read_floor_field "C3")
 FLOOR_C6=$(read_floor_field "C6")
 FLOOR_C9=$(read_floor_field "C9")
+FLOOR_C7NONCONF=$(read_floor_field "C7-nonconforming")
 
 # ── guard: floor file parseable ────────────────────────────────────────
-for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C3" "$FLOOR_C6" "$FLOOR_C9"; do
+for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C3" "$FLOOR_C6" "$FLOOR_C9" "$FLOOR_C7NONCONF"; do
     if [ "$val" = "PARSE_ERROR" ]; then
         echo "pre-commit: cannot parse $FLOOR_FILE — blocking commit"
         exit 1
@@ -268,7 +274,8 @@ regression "C2"  "$CURRENT_C2"  "$FLOOR_C2"
 regression "C3"  "$CURRENT_C3"  "$FLOOR_C3"
 regression "C6"  "$CURRENT_C6"  "$FLOOR_C6"
 regression "C9"  "$CURRENT_C9"  "$FLOOR_C9"
+regression "C7-nonconforming" "$CURRENT_C7NONCONF" "$FLOOR_C7NONCONF"
 
 # ── all clear ──────────────────────────────────────────────────────────
-echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C3=$CURRENT_C3 C6=$CURRENT_C6 C9=$CURRENT_C9 — ≤ floor, allowed"
+echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C3=$CURRENT_C3 C6=$CURRENT_C6 C9=$CURRENT_C9 C7-nonconforming=$CURRENT_C7NONCONF — ≤ floor, allowed"
 exit 0
