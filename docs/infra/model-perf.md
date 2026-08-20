@@ -3432,7 +3432,7 @@ stamp included):
 | claude-haiku-4-5-20251001  | 2.00 (n=1) | 1.00 (n=1) | 1.00 (n=1) | — | 1.00 (n=1) | 0.00 (n=1) | 0/1/0/0 |
 | claude-opus-5              | 1.33 (n=6) | 1.00 (n=6) | 0.00 (n=3) | — | 0.67 (n=6) | 0.00 (n=4) | 1/4/0/1 |
 | claude-sonnet-5            | 2.00 (n=1) | 1.00 (n=1) | 2.00 (n=1) | — | 1.00 (n=1) | 0.00 (n=1) | 0/1/0/0 |
-| deepseek-v4-flash          | 1.65 (n=75) | 0.96 (n=78) | 1.42 (n=33) | 1.00 (n=6) | 0.96 (n=76) | 0.13 (n=23) | 49/23/1/5 |
+| deepseek-v4-flash          | 1.66 (n=76) | 0.97 (n=78) | 1.40 (n=35) | 1.00 (n=6) | 0.97 (n=77) | 0.12 (n=24) | 48/24/1/5 |
 | deepseek-v4-pro            | 1.48 (n=52) | 1.00 (n=52) | 1.43 (n=42) | 0.88 (n=8) | 0.94 (n=52) | 0.07 (n=14) | 27/14/4/7 |
 | glm-5.2                    | 1.42 (n=38) | 1.00 (n=38) | 0.33 (n=115) | 0.67 (n=9) | 1.00 (n=37) | 0.29 (n=14) | 16/14/3/5 |
 | kimi-k2.7                  | 1.67 (n=9) | 1.00 (n=9) | 1.25 (n=12) | 1.00 (n=3) | 1.00 (n=9) | 0.50 (n=2) | 5/2/0/2 |
@@ -3949,3 +3949,5 @@ dispatch-verify 2026-08-20 T542 deepseek-v4-flash report=success verified=pass
 dispatch-verify 2026-08-20 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-20 T545 deepseek-v4-flash report=success verified=pass
 dispatch-verify 2026-08-20 T541 deepseek-v4-flash report=failure-blocked verified=pass
+dispatch-verify 2026-08-20 T512 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
