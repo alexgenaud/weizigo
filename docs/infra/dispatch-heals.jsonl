@@ -47,3 +47,13 @@
 {"task_id": "T517", "model": "glm-5.2", "exit_code": 1, "wall_seconds": 891.5, "healed_by": "dispatcher", "timestamp": "2026-08-20T11:48:52Z"}
 {"task_id": "T518", "model": "glm-5.2", "exit_code": 1, "wall_seconds": 444.6, "healed_by": "dispatcher", "timestamp": "2026-08-20T11:49:01Z"}
 {"task_id": "T514", "model": "glm-5.2", "exit_code": 124, "wall_seconds": 2385.7, "healed_by": "dispatcher", "timestamp": "2026-08-20T11:57:58Z"}
+{"task_id": "T544", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 741.1, "healed_by": "dispatcher", "timestamp": "2026-08-20T12:55:34Z"}
+{"task_id": "T512", "model": "deepseek-v4-flash", "exit_code": 124, "wall_seconds": 611.6, "healed_by": "dispatcher", "timestamp": "2026-08-20T12:56:43Z", "unreached": "provider-429"}
+{"task_id": "T545", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 420.4, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:01:01Z"}
+{"task_id": "T527", "model": "claude-fable-5", "exit_code": 124, "wall_seconds": 869.9, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:01:01Z"}
+{"task_id": "T529", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 894.0, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:01:01Z"}
+{"task_id": "T542", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 1343.8, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:01:01Z"}
+{"task_id": "T543", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 1235.9, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:01:02Z"}
+{"task_id": "T530", "model": "deepseek-v4-flash", "exit_code": 124, "wall_seconds": 1409.4, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:10:01Z"}
+{"task_id": "T521", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 2311.4, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:15:43Z"}
+{"task_id": "T531", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 1754.7, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:15:46Z"}
