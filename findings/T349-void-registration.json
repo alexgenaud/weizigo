@@ -1,0 +1,10 @@
+{
+  "task_id": "T349",
+  "date": "2026-08-20",
+  "model": "unknown/T349",
+  "identifier": "unknown/T349",
+  "claims": [],
+  "new_rows": [],
+  "notes": "NO FINDINGS OWED — recorded per the pre-authorized DONE-review sweep. T349 is a void registration: a shell-quoting accident captured --set as the slug (kanban verdict_note: 'VOID: malformed registration (shell quoting captured --set as the slug)'). No work was ever done; the intended T227-timeout work was registered as T352, which carries it. A void row with no work owes no findings file; this record states why.",
+  "verdict": "blocked"
+}

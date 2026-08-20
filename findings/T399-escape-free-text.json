@@ -1,0 +1,10 @@
+{
+  "task_id": "T399",
+  "date": "2026-08-20",
+  "model": "unknown/T399",
+  "identifier": "unknown/T399",
+  "claims": [],
+  "new_rows": [],
+  "notes": "RECONSTRUCTION from commit evidence (pre-authorized wrap-up): T399 closed pass 2026-08-06 without a findings file. Commit 7558775 ('T399: escape free text at every JSON write site in managent; write-site round-trip guards; reader warnings; audit ledger check; regression controls') shows the work: JSON-escaped free text at every managent write site, round-trip guards, reader warnings, audit ledger check, regression controls. T424's commit 95b69ec confirms the claim-at-close measurement (T399 closed 5s inside the 10s window, 8.8% of rows). Original console reasoning unavailable; the commit evidence is the deliverable. claims: [] — reconstruction records delivery, not a register change.",
+  "verdict": "pass"
+}

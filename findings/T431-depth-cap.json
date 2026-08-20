@@ -1,0 +1,10 @@
+{
+  "task_id": "T431",
+  "date": "2026-08-20",
+  "model": "unknown/T431",
+  "identifier": "unknown/T431",
+  "claims": [],
+  "new_rows": [],
+  "notes": "RECONSTRUCTION from commit evidence (pre-authorized wrap-up): T431 closed pass 2026-08-08 without a findings file. The kanban verdict_note records the work: 'depth cap bounds recursion (MAX_DEPTH=3, increments) instead of flattening every child to a leaf; sprint consoles can now dispatch their own phase audits'. This is the depth-cap mechanism (WEIZIGO_AGENT_DEPTH) documented in docs/infra/agents/subdelegation.md — a bound on delegation chains so agent->subagent->sub-subagent terminates, distinct from parallel width. The implementation lives in bin/subagent/bin/dispatch (the depth stamp + refusal). Original console reasoning unavailable; the verdict_note and the live mechanism are the evidence. claims: [] — reconstruction, not a register change.",
+  "verdict": "pass"
+}

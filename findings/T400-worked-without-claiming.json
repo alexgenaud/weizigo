@@ -1,0 +1,10 @@
+{
+  "task_id": "T400",
+  "date": "2026-08-20",
+  "model": "unknown/T400",
+  "identifier": "unknown/T400",
+  "claims": [],
+  "new_rows": [],
+  "notes": "RECONSTRUCTION from commit evidence (pre-authorized wrap-up): T400 closed pass 2026-08-06 without a findings file. The record: T400 was one of the worked-without-claiming rows (T392/T395/T400/T404/T419) named in T424's commit 95b69ec — a row worked and committed while reading dispatchable; T424's fix (git-commit-mine refuses a commit whose task is not in_progress) exists because of this class. T424 also measured T400 closed 0s inside the claim-at-close window. Original console reasoning unavailable; the evidence is the T424 commit and the T400 row history. claims: [] — reconstruction, not a register change.",
+  "verdict": "pass"
+}
