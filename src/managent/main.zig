@@ -3060,6 +3060,8 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     defer refused_holds.deinit(alloc);
     var refused_absorbed = std.ArrayList([]const u8).empty;
     defer refused_absorbed.deinit(alloc);
+    var refused_nonconforming = std.ArrayList([]const u8).empty;
+    defer refused_nonconforming.deinit(alloc);
 
     // First pass: find live dependents (tasks that need an archivable row)
     var live_needed = std.StringHashMapUnmanaged(void).empty;
@@ -3076,60 +3078,81 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         }
     }
 
-    // C7 absorption check: run claimlint and collect the task IDs of
-    // findings files carrying UNABSORBED entries. T368: the unabsorbed
-    // items live in claimlint's C7 DETAIL section ("  C7 UNABSORBED  `...`"
-    // followed by an "in <file>" line) — the old parse looked for T-tokens
-    // after the summary line, a format that never existed in any claimlint
-    // output, so the absorption refusal was silently dead (same defect
-    // class as CODE.STANDING-C3-DEAD). The task ID comes from the findings
-    // filename per findings/README.md's <TASKID>-<slug>.json convention.
-    // A missing section header is a loud warning, never a silent "nothing
-    // unabsorbed".
+    // C7 absorption check (T487): consume claimlint's machine-readable
+    // `c7 --json` report — one object per findings file — instead of
+    // re-parsing the human-readable C7 block. The old parser matched only
+    // "  C7 UNABSORBED  `" item lines and missed NON-CONFORMING lines
+    // (claimlint emits "  C7 ... NON-CONFORMING  <file> — <reason>"), so a
+    // done task carrying a non-conforming findings file archived cleanly —
+    // the same "parser matches a format that doesn't exist / misses a format
+    // that does" class as T368 and CODE.STANDING-C3-DEAD. One count, one
+    // implementation (absorption-spec §7): claimlint computes the per-file
+    // verdict (conforming + unabsorbed[]); archive maps each drifting file
+    // to its owning task id (declared task_id, else the <TASKID>-<slug>.json
+    // filename convention) and refuses that task.
     var unabsorbed = std.StringHashMapUnmanaged(void).empty;
     defer unabsorbed.deinit(alloc);
-    const cl_result = blk: {
-        const r = std.process.run(alloc, io, .{
-            .argv = &.{"bin/weizigo-claimlint"},
-            .cwd = .{ .path = repo_root },
-        }) catch break :blk null;
-        break :blk r;
-    };
-    if (cl_result) |*cr| {
-        defer alloc.free(cr.stdout);
-        defer alloc.free(cr.stderr);
-        const item_marker = "  C7 UNABSORBED  `";
-        var lines = std.mem.splitScalar(u8, cr.stdout, '\n');
-        var in_c7_section = false;
-        var c7_section_found = false;
-        var prev_item = false;
-        while (lines.next()) |line| {
-            if (std.mem.indexOf(u8, line, "== C7 ") != null) {
-                in_c7_section = true;
-                c7_section_found = true;
-                continue;
-            }
-            if (in_c7_section and std.mem.indexOf(u8, line, "== C8 ") != null) break;
-            if (!in_c7_section) continue;
-            if (std.mem.startsWith(u8, line, item_marker)) {
-                prev_item = true;
-                continue;
-            }
-            if (prev_item) {
-                prev_item = false;
-                const trimmed = std.mem.trim(u8, line, " \t\r");
-                if (std.mem.startsWith(u8, trimmed, "in ")) {
-                    if (taskIdFromFindingsPath(trimmed[3..])) |tid| {
-                        unabsorbed.put(alloc, try alloc.dupe(u8, tid), {}) catch {};
+    var nonconforming = std.StringHashMapUnmanaged(void).empty;
+    defer nonconforming.deinit(alloc);
+    {
+        const cl_result = blk: {
+            const r = std.process.run(alloc, io, .{
+                .argv = &.{ "bin/weizigo-claimlint", "c7", "--json" },
+                .cwd = .{ .path = repo_root },
+            }) catch break :blk null;
+            break :blk r;
+        };
+        if (cl_result) |*cr| {
+            defer alloc.free(cr.stdout);
+            defer alloc.free(cr.stderr);
+            const code: u8 = switch (cr.term) {
+                .exited => |c| c,
+                else => 255,
+            };
+            // Exit 0: nothing non-conforming and nothing unabsorbed anywhere,
+            // so no task is refused by construction (the same shortcut as the
+            // done-gate and the standing partition join).
+            if (code == 0) {
+                // clean — nothing to refuse
+            } else if (code == 1) {
+                var parsed = std.json.parseFromSlice(std.json.Value, alloc, cr.stdout, .{ .allocate = .alloc_always }) catch null;
+                if (parsed) |*pv| {
+                    defer pv.deinit();
+                    if (pv.value != .array) {
+                        w.diag("  WARNING: claimlint c7 --json did not emit an array — the archive absorption check is blind\n", .{});
+                    } else {
+                        for (pv.value.array.items) |pf| {
+                            if (pf != .object) continue;
+                            const obj = pf.object;
+                            const conforming = if (obj.get("conforming")) |v| v == .bool and v.bool else false;
+                            var has_unabsorbed = false;
+                            if (obj.get("unabsorbed")) |ua| {
+                                if (ua == .array and ua.array.items.len > 0) has_unabsorbed = true;
+                            }
+                            if (conforming and !has_unabsorbed) continue;
+                            // Owning task id: the declared task_id, else the
+                            // filename-derived id (mirrors the partition join).
+                            const declared = runRecOptStr(obj, "task_id") orelse "";
+                            const path = runRecStr(obj, "path");
+                            const tid = if (declared.len > 0) declared else (taskIdFromFindingsPath(path) orelse "");
+                            if (tid.len == 0) continue;
+                            if (!conforming) {
+                                nonconforming.put(alloc, try alloc.dupe(u8, tid), {}) catch {};
+                            }
+                            if (has_unabsorbed) {
+                                unabsorbed.put(alloc, try alloc.dupe(u8, tid), {}) catch {};
+                            }
+                        }
                     }
+                } else {
+                    w.diag("  WARNING: claimlint c7 --json emitted unparseable output — the archive absorption check is blind\n", .{});
                 }
+            } else {
+                w.diag("  WARNING: claimlint c7 --json failed (exit {d}) — the archive absorption check is blind\n", .{ code });
             }
+        } else {
+            w.diag("  WARNING: bin/weizigo-claimlint missing or failed to run — the archive absorption check is blind\n", .{});
         }
-        if (!c7_section_found) {
-            w.diag("  WARNING: claimlint C7 section header ('== C7 ') not found — the archive absorption check cannot see unabsorbed findings\n", .{});
-        }
-    } else {
-        w.diag("  WARNING: bin/weizigo-claimlint missing or failed to run — the archive absorption check is blind\n", .{});
     }
 
     // Second pass: determine eligibility
@@ -3159,9 +3182,14 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
                 try refused_holds.append(alloc, id);
                 continue;
             }
-            // Check absorption: warn if C7 has unabsorbed findings for this task
+            // Check absorption: refuse a task whose findings are unabsorbed
+            // (C7) or whose findings file is non-conforming (T487).
             if (unabsorbed.contains(id)) {
                 try refused_absorbed.append(alloc, id);
+                continue;
+            }
+            if (nonconforming.contains(id)) {
+                try refused_nonconforming.append(alloc, id);
                 continue;
             }
 
@@ -3177,11 +3205,12 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     if (to_archive.items.len > 0) {
         for (to_archive.items) |a| w.diag(" {s}", .{a});
     }
-    w.diag("\n  refused: {d} not done/failed, {d} live dependents, {d} uncommitted holds, {d} unabsorbed findings\n", .{
+    w.diag("\n  refused: {d} not done/failed, {d} live dependents, {d} uncommitted holds, {d} unabsorbed findings, {d} non-conforming findings\n", .{
         refused_not_done.items.len,
         refused_dependents.items.len,
         refused_holds.items.len,
         refused_absorbed.items.len,
+        refused_nonconforming.items.len,
     });
 
     if (dry_run) {

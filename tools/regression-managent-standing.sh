@@ -321,6 +321,26 @@ else
     FAIL=1
 fi
 
+# ── T368 control 12 / T487: archive --dry-run refuses a NON-CONFORMING file ─
+# The archive C7 parser matched only "  C7 UNABSORBED  `" item lines and missed
+# claimlint's NON-CONFORMING line, so a done task whose findings file cannot be
+# parsed archived cleanly. The refusal must now cover non-conforming files
+# exactly as it covers unabsorbed entries — one count, one implementation: the
+# archive path consumes claimlint's `c7 --json`, never the human-readable block.
+echo " 12. T487: archive --dry-run refuses a done task with a NON-CONFORMING findings file"
+STORE3="$WORK/docs/infra/managent/tasks-archive2.json"
+cat > "$STORE3" <<'JSONEOF'
+{"TARCH2":{"status":"done","agent":"test","bundle":"untracked/TARCH2.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":"archive non-conforming control","acceptance":null,"claim_count":1}}
+JSONEOF
+printf '{ this is not valid json ' > findings/TARCH2-broken.json
+OUT12=$(MANAGENT_STORE="$STORE3" "$MG" archive --dry-run 2>&1)
+if echo "$OUT12" | grep -q "1 non-conforming findings" && ! echo "$OUT12" | grep -q "archivable: 1 row"; then
+    echo "    PASS: TARCH2 refused (1 non-conforming findings)"
+else
+    echo "    FAIL: output:"; echo "$OUT12" | sed 's/^/      /'
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-managent-standing: ALL CONTROLS PASSED ==="
