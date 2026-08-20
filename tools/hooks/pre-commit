@@ -4,9 +4,9 @@
 #      "green" (green is unreachable today) — T272, installed by T280.
 #   2. staged-path subset backstop (T282): staged paths must be a subset of
 #      the committing task's declared deliverables ∪ its findings files ∪ the
-#      two fleet-coordination surfaces (CURRENT.md, HANDOVER.md) — scope
-#      resolved by tools/git-commit-mine-lib.sh, the SAME implementation the
-#      wrapper uses, so the two can never drift apart. Catches the T268
+#      four shared surfaces (CURRENT.md, HANDOVER.md, CLAIMS.md,
+#      rejections.json) — scope resolved by tools/git-commit-mine-lib.sh, the
+#      SAME implementation the wrapper uses, so the two can never drift apart. Catches the T268
 #      incident class (three absorptions on 2026-08-02) for anyone who
 #      bypasses the wrapper.
 #
@@ -104,7 +104,8 @@ EOF
                             [ -n "$vp" ] && echo "pre-commit:   $vp"
                         done
                         echo "pre-commit:   Scope = the bundle's deliverables= plus findings/<id>-*.json plus"
-                        echo "pre-commit:   docs/status/CURRENT.md, docs/status/HANDOVER.md (mirrors tools/git-commit-mine)."
+                        echo "pre-commit:   docs/status/CURRENT.md, docs/status/HANDOVER.md,"
+                        echo "pre-commit:   docs/epistemic/CLAIMS.md, findings/rejections.json (mirrors tools/git-commit-mine)."
                         echo "pre-commit:   This is the T268 incident class — do NOT unstage another console's work."
                         echo "pre-commit:   Commit through tools/git-commit-mine, or --no-verify only after reviewing"
                         echo "pre-commit:   the listed paths yourself."

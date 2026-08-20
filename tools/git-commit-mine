@@ -29,9 +29,10 @@
 # Scope for a task = its bundle's `deliverables=` meta header, plus its own
 # findings files (findings/<id>-*.json), plus the two fleet-coordination
 # surfaces any worker may legitimately touch (docs/status/CURRENT.md,
-# docs/status/HANDOVER.md). Scope resolution lives in
-# tools/git-commit-mine-lib.sh, shared with the pre-commit backstop (T282) —
-# one implementation, two callers.
+# docs/status/HANDOVER.md), plus the two absorption surfaces the closer edits
+# inside its own commit (docs/epistemic/CLAIMS.md, findings/rejections.json) —
+# T484. Scope resolution lives in tools/git-commit-mine-lib.sh, shared with
+# the pre-commit backstop (T282) — one implementation, two callers.
 #
 # Explicit-mode commits export GIT_MINE_EXPLICIT=1 so the pre-commit backstop
 # treats them as the wrapper-took-responsibility case (warn-and-allow), not a
@@ -158,6 +159,11 @@ if [ -n "$TASK_ID" ]; then
     # fleet-coordination surfaces any worker may legitimately commit
     declare_scope "docs/status/CURRENT.md"
     declare_scope "docs/status/HANDOVER.md"
+    # T484: absorption surfaces — the closer (worker or Orchestrator) edits
+    # the register and the rejection registry inside its own commit, so both
+    # are in every task's scope, exactly like the two surfaces above.
+    declare_scope "docs/epistemic/CLAIMS.md"
+    declare_scope "findings/rejections.json"
 fi
 
 # ── claim-status check (T424) ────────────────────────────────────────────
@@ -294,7 +300,8 @@ if [ -n "$SCOPE_SOURCE" ] && [ "$EXPLICIT" -eq 0 ]; then
         else
             echo "git-commit-mine: REFUSED — path not in your declared scope ($SCOPE_SOURCE): $p"
             echo "  Scope = the bundle's deliverables= plus findings/<id>-*.json plus"
-            echo "  docs/status/CURRENT.md, docs/status/HANDOVER.md. Commit only declared"
+            echo "  docs/status/CURRENT.md, docs/status/HANDOVER.md,"
+            echo "  docs/epistemic/CLAIMS.md, findings/rejections.json. Commit only declared"
             echo "  files, or pass --explicit to take responsibility for the paths yourself."
             exit 1
         fi

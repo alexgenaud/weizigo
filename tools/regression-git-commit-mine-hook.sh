@@ -42,6 +42,7 @@ echo "  C1a orphans / C1b alarms      0 / 0   (FAILS)"
 echo "  C2 dangling evidence paths    0   (FAILS)"
 echo "  C3 PROVEN w/o committed evid.      0   (debt...)"
 echo "  C6 cite-tag mismatches        0   (FAILS)"
+echo "  C7 non-conforming files        0   (reported)"
 echo "  C9 tree-mapping violations      0   (FAILS)"
 exit 0
 EOF
@@ -240,6 +241,36 @@ OUT=$(MANAGENT_TASK_ID=T282H MANAGENT_STORE="$WORK/docs/infra/managent/tasks.jso
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "⊆ scope"; then
     echo "    PASS: hook allowed (RC=0) — findings glob included in scope"
+else
+    echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -4)"
+    FAIL=1
+fi
+rm -rf "$WORK"
+
+# ── arm 7: register + rejections admitted to every task's scope (T484) ──
+echo "  7. T484 register/rejections: staged CLAIMS.md + findings/rejections.json in scope"
+WORK=$(new_scratch)
+cd "$WORK"
+git init -q
+git config user.email t282@test
+git config user.name T282
+echo base > README.md
+git add README.md
+git commit -qm base
+mkdir -p tools
+cp "$LIVE/tools/git-commit-mine-lib.sh" tools/
+stub_claimlint "$WORK"
+seed_kanban "$WORK" T282H T282H-bundle.md
+printf '<!--managent set=B deliverables=docs/ok.md-->\n' > T282H-bundle.md
+mkdir -p docs/epistemic findings
+echo ok > docs/ok.md
+echo 'register row' > docs/epistemic/CLAIMS.md
+echo '{}' > findings/rejections.json
+git add docs/ok.md docs/epistemic/CLAIMS.md findings/rejections.json
+OUT=$(MANAGENT_TASK_ID=T282H MANAGENT_STORE="$WORK/docs/infra/managent/tasks.json" run_hook "$WORK")
+RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "⊆ scope"; then
+    echo "    PASS: hook allowed (RC=0) — register + rejections admitted to every task's scope"
 else
     echo "    FAIL: RC=$RC, output: $(echo "$OUT" | head -4)"
     FAIL=1

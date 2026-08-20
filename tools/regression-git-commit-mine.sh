@@ -219,6 +219,23 @@ else
     FAIL=1
 fi
 
+# ── T484 arm: CLAIMS.md + findings/rejections.json in every task's scope ──
+echo "  10. T484 scope: register + rejections committed under task identity"
+mkdir -p docs/epistemic findings
+echo "  register row" > docs/epistemic/CLAIMS.md
+echo '{}' > findings/rejections.json
+OUT=$(MANAGENT_TASK_ID=T282-ARM8 "$WRAP" docs/epistemic/CLAIMS.md findings/rejections.json -m "T484 scope" 2>&1)
+RC=$?
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+if [ "$RC" -eq 0 ] && \
+   printf '%s\n' "$IN_COMMIT" | grep -Fxq "docs/epistemic/CLAIMS.md" && \
+   printf '%s\n' "$IN_COMMIT" | grep -Fxq "findings/rejections.json"; then
+    echo "    PASS: RC=0, commit contains docs/epistemic/CLAIMS.md and findings/rejections.json (register + rejections in every task's scope)"
+else
+    echo "    FAIL: RC=$RC, commit: $IN_COMMIT, output: $(echo "$OUT" | head -3)"
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-git-commit-mine: ALL CONTROLS PASSED ==="
