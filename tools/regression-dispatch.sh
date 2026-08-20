@@ -106,6 +106,19 @@ seed_task() {  # $1=id  $2=deliverable
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }
 
+# T505: seed a task with an exact-length title (the brief's `# T<id> — <title>`
+# line).  The title is the text after ` — `; the 40-char limit (DELEGATOR.md
+# §Task titles) applies to that portion, not the whole `# T<id> —` line.
+seed_task_titled() {  # $1=id  $2=deliverable  $3=title
+    printf '<!--managent set=C deliverables=%s-->\n# %s — %s\n' "$2" "$1" "$3" \
+        > "$WORK/untracked/$1-bundle.md"
+    "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
+}
+
+title_of_len() {  # $1=N → N-char title (repeated 't')
+    printf 't%.0s' $(seq 1 "$1")
+}
+
 row_status() {  # $1=id — status word from `managent show`'s "<id>  <status>" line
     "$MG" show "$1" 2>/dev/null | awk 'NR==2 && NF>=2 {print $2}'
 }
@@ -448,6 +461,50 @@ if grep -q "dispatch-verify .* T989 claude-fable-5 report=.* verified=pass" "$WO
 else
     echo "    FAIL: perf-ledger line for claude-fable-5 missing"
     [ -f "$WORK/perf-ledger.txt" ] && cat "$WORK/perf-ledger.txt" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+# ── T505 arms: brief-title length gate (≤40 chars) at dispatch ──────────
+# The 40-char title rule (DELEGATOR.md §Task titles) was violated three
+# times in one session.  The gate lives in bin/dispatch (not src/managent,
+# which is serial-held by T485/486/487/497; not bin/dispatch's claude
+# logic, which T494 owns).  A brief whose `# T<id> — <title>` title
+# portion exceeds 40 chars refuses dispatch, naming the title and limit.
+echo " 16. T505 null: 39-char title dispatches (dry-run)"
+seed_task_titled T995 findings/T995-result.json "$(title_of_len 39)"
+OUT=$(cd "$ROOT" && "$DISPATCH" T995 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "dry-run T995"; then
+    echo "    PASS: 39-char title dispatched (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; 39-char title should dispatch"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo " 17. T505 seeded: 41-char title refuses dispatch, naming title + limit"
+seed_task_titled T996 findings/T996-result.json "$(title_of_len 41)"
+OUT=$(cd "$ROOT" && "$DISPATCH" T996 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "40" && echo "$OUT" | grep -qi "title"; then
+    echo "    PASS: refused 41-char title, named the 40-char limit (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected title-length refusal"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+if [ -e "$WORK/untracked/log/t996.log" ]; then
+    echo "    FAIL: title refusal spawned a dispatch (log exists)"; FAIL=1
+fi
+
+echo " 18. T505 seeded: brief with no `# T<id> — title` line refuses dispatch"
+printf '<!--managent set=C deliverables=docs/T997-x.txt-->\nno title line here\n' \
+    > "$WORK/untracked/T997-bundle.md"
+"$MG" add T997 >/dev/null 2>&1
+OUT=$(cd "$ROOT" && "$DISPATCH" T997 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -qi "title"; then
+    echo "    PASS: refused brief with no title line (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected no-title-line refusal"; echo "$OUT" | sed 's/^/    | /'
     FAIL=1
 fi
 

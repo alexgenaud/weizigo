@@ -221,6 +221,38 @@ def main(argv):
                  "\n  bin/subagent resolves the brief the same way — fix the "
                  "bundle first.")
 
+    # ── title-length gate (T505) ───────────────────────────────────────
+    # The title is the brief's `# T<nnn> — <title>` line (DELEGATOR.md
+    # §Task titles: one line, under 40 chars). It is a display surface —
+    # watch-fleet, the perf ledger, PROGRESS/DONE/OPEN all read it. The gate
+    # lives here, in bin/dispatch, NOT in src/managent (serial-held by
+    # T485/486/487/497) and NOT in bin/dispatch's claude logic (T494). A
+    # brief whose title portion exceeds 40 chars refuses dispatch, naming
+    # the title and the limit; a brief with no title line is malformed.
+    bundle_path = hits[0]
+    title = None
+    title_re = re.compile(r"^#\s+T\d+\s+(?:\u2014|--|-)\s+(.+?)\s*$")
+    try:
+        with open(bundle_path, encoding="utf-8") as bf:
+            for line in bf:
+                m = title_re.match(line)
+                if m:
+                    title = m.group(1)
+                    break
+    except OSError as e:
+        sys.exit(f"dispatch: REFUSED — cannot read bundle {bundle_path}: {e}")
+    if title is None:
+        sys.exit(f"dispatch: REFUSED — bundle {os.path.relpath(bundle_path, root)} "
+                 f"has no `# {task_id} — <title>` line (DELEGATOR.md §Task titles).\n"
+                 f"  Every brief opens with that line; it is the title watch-fleet and"
+                 f"  the perf ledger display. Add it before dispatch.")
+    if len(title) > 40:
+        sys.exit(f"dispatch: REFUSED — title `{title}` is {len(title)} chars, over "
+                 f"the 40-char limit (DELEGATOR.md §Task titles).\n"
+                 f"  The title is a display surface, not a summary: a title that needs"
+                 f"  more than 40 chars is a sign the task is two tasks. Shorten it;\n"
+                 f"  the long form goes in the brief's body.")
+
     # ── construct the subagent command ───────────────────────────────────
     subagent = os.path.join(ROOT, "bin", "subagent")
     cmd = [sys.executable, subagent, "--provider", provider, *flags,

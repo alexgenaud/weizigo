@@ -80,17 +80,28 @@ MSG=""
 TASK_ID=""
 BUNDLE=""
 EXPLICIT=0
+LONG_SUBJECT_REASON=""
 prev=""
 for arg in "$@"; do
     if [ "$prev" = "-m" ]; then MSG="$arg"; prev=""; continue; fi
     if [ "$prev" = "--task" ]; then TASK_ID="$arg"; prev=""; continue; fi
     if [ "$prev" = "--bundle" ]; then BUNDLE="$arg"; prev=""; continue; fi
+    if [ "$prev" = "--long-subject" ]; then LONG_SUBJECT_REASON="$arg"; prev=""; continue; fi
     case "$arg" in
-        -m|--task|--bundle) prev="$arg" ;;
+        -m|--task|--bundle|--long-subject) prev="$arg" ;;
         --explicit) EXPLICIT=1 ;;
         *) PATHS+=("$arg") ;;
     esac
 done
+# --long-subject was the last arg → no reason given. The escape must be
+# loud AND stated; a bare flag is a silent escape attempt (T505).
+if [ "$prev" = "--long-subject" ]; then
+    echo "git-commit-mine: REFUSED — --long-subject needs a stated reason." >&2
+    echo "  The escape is loud, not silent: a subject over 72 chars is exceptional" >&2
+    echo "  and must say WHY (fleet-git-isolation.md §4.1a). Record the reason in" >&2
+    echo "  the commit body or a findings note, and pass it to the flag." >&2
+    exit 1
+fi
 
 if [ "${#PATHS[@]}" -eq 0 ]; then
     echo "git-commit-mine: REFUSED — no paths. A pathless commit is exactly the"
@@ -101,6 +112,29 @@ fi
 if [ -z "$MSG" ]; then
     echo "git-commit-mine: REFUSED — no commit message (-m <msg>)." >&2
     exit 2
+fi
+
+# ── subject-length gate (T505) ───────────────────────────────────────────
+# The subject is the text up to the first newline of -m
+# (fleet-git-isolation.md §4.1a: one line, under 72 chars). A subject over
+# 72 chars is refused unless --long-subject <reason> declares a loud,
+# recorded escape — the point is that an over-long subject is *exceptional
+# and visible*, not impossible.
+SUBJECT="${MSG%%$'\n'*}"
+SUBJECT_LEN=${#SUBJECT}
+if [ "$SUBJECT_LEN" -gt 72 ]; then
+    if [ -n "$LONG_SUBJECT_REASON" ]; then
+        echo "git-commit-mine: NOTE — --long-subject escape invoked: subject is" >&2
+        echo "  ${SUBJECT_LEN} chars (over the 72-char limit). Reason: $LONG_SUBJECT_REASON" >&2
+        echo "  Record this escape in the commit body or the task's findings file." >&2
+    else
+        echo "git-commit-mine: REFUSED — subject is ${SUBJECT_LEN} chars, over the" >&2
+        echo "  72-char limit (fleet-git-isolation.md §4.1a). The subject is the text" >&2
+        echo "  up to the first newline of -m; the body carries the detail. Split the" >&2
+        echo "  commit, or pass --long-subject <reason> to declare a loud, recorded" >&2
+        echo "  escape (the reason goes in the commit body or a findings note)." >&2
+        exit 1
+    fi
 fi
 if [ -z "$TASK_ID" ] && [ -z "$BUNDLE" ] && [ -n "${MANAGENT_TASK_ID:-}" ]; then
     TASK_ID="$MANAGENT_TASK_ID"

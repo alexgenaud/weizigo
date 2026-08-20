@@ -236,6 +236,68 @@ else
     FAIL=1
 fi
 
+# ── T505 arms: commit-subject length gate (≤72 chars) ───────────────────
+# The 72-char subject rule (fleet-git-isolation.md §4.1a) was written down
+# and then violated three times in one session. The gate makes it
+# mechanical: the subject (text up to the first newline of -m) over 72
+# chars is refused unless --long-subject <reason> declares a loud escape.
+SUB71=$(printf 'x%.0s' $(seq 1 71))   # 71 chars — under the limit, passes
+SUB73=$(printf 'y%.0s' $(seq 1 73))   # 73 chars — over the limit, refused
+
+echo "  11. T505 null: 71-char subject passes"
+echo "  amendment5" > docs/amendment5.md
+printf '<!--managent set=B deliverables=docs/amendment5.md-->\n' > T505-bundle.md
+OUT=$("$WRAP" --bundle T505-bundle.md docs/amendment5.md -m "$SUB71" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    echo "    PASS: 71-char subject committed ($(git rev-parse --short HEAD))"
+else
+    echo "    FAIL: 71-char subject refused (RC=$RC)"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  12. T505 seeded: 73-char subject refused, naming the limit"
+echo "  amendment6" > docs/amendment6.md
+printf '<!--managent set=B deliverables=docs/amendment6.md-->\n' > T505-bundle.md
+COMMITS_BEFORE=$(git rev-list --count HEAD)
+OUT=$("$WRAP" --bundle T505-bundle.md docs/amendment6.md -m "$SUB73" 2>&1)
+RC=$?
+COMMITS_AFTER=$(git rev-list --count HEAD)
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "73" \
+   && echo "$OUT" | grep -qi "subject" && [ "$COMMITS_AFTER" -eq "$COMMITS_BEFORE" ]; then
+    echo "    PASS: refused 73-char subject, named the length, no commit"
+else
+    echo "    FAIL: RC=$RC, commits $COMMITS_BEFORE->$COMMITS_AFTER"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  13. T505 escape: --long-subject <reason> allows 73-char subject (loud)"
+echo "  amendment7" > docs/amendment7.md
+printf '<!--managent set=B deliverables=docs/amendment7.md-->\n' > T505-bundle.md
+OUT=$("$WRAP" --bundle T505-bundle.md docs/amendment7.md \
+      -m "$SUB73" --long-subject "integration commit spanning two gates" 2>&1)
+RC=$?
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+if [ "$RC" -eq 0 ] && [ "$IN_COMMIT" = "docs/amendment7.md" ] \
+   && echo "$OUT" | grep -qi "long-subject"; then
+    echo "    PASS: --long-subject escape allowed 73-char subject, loud note printed"
+else
+    echo "    FAIL: RC=$RC, commit: $IN_COMMIT"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  14. T505 escape: --long-subject with no reason is refused (silent escape dies)"
+echo "  amendment8" > docs/amendment8.md
+printf '<!--managent set=B deliverables=docs/amendment8.md-->\n' > T505-bundle.md
+OUT=$("$WRAP" --bundle T505-bundle.md docs/amendment8.md -m "$SUB73" --long-subject 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -qi "long-subject"; then
+    echo "    PASS: --long-subject with no reason refused"
+else
+    echo "    FAIL: RC=$RC; expected refusal"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-git-commit-mine: ALL CONTROLS PASSED ==="
