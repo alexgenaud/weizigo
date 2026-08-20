@@ -374,8 +374,19 @@ pub fn main(init: std.process.Init.Minimal) !void {
         }
     }
 
-    // Migration: on every invocation, re-derive dispatchable/blocked statuses
+    // Migration: on every invocation, re-derive dispatchable/blocked statuses.
+    // T545: the whole read→migrate→write runs under the flock.  The previous
+    // code read the store UNLOCKED and wrote via writeState (lock only around
+    // the write), so ANY invocation that triggered a migration — including
+    // ordinary reads — reverted every concurrent claim/close/attribution that
+    // landed between read and write.  Observed 2026-08-20 while the fleet was
+    // hot: `[migrate] T535: stored dispatchable → blocked (needs-derived)`.
+    // The lock is taken on every invocation (read-only verbs included) because
+    // the decision to write depends on the read; a pre-read outside the lock
+    // would reopen the window.
     {
+        try lockStore(io, state_path);
+        defer unlockStore();
         var st = try readState(io, state_path);
         const migrated = migrateState(w, &st);
         // T478: one-time duty-flag migration — recognize duties registered
@@ -392,7 +403,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
             if (test_harness and is_live) {
                 refuseLiveWrite(w, cmd, "MANAGENT_TEST=1 — a read-only verb would migrate the live store; point MANAGENT_STORE at a scratch path");
             }
-            try writeState(io, state_path, &st);
+            try writeStateLocked(io, state_path, &st);
         }
         freeState(&st);
     }
@@ -6502,7 +6513,13 @@ fn cmdSync(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
 
     // Update read state (skip with --peek: read-only, does not write _sync cursor)
+    // T545: writeSyncData rewrites the WHOLE store file; it must be under the
+    // flock like every other whole-file writer.  The previous code wrote it
+    // UNLOCKED — a concurrent claim/close/done landing between writeSyncData's
+    // raw read and its rename was silently reverted.
     if (!peek_only) {
+        try lockStore(io, state_path);
+        defer unlockStore();
         var st = try readState(io, state_path);
         const new_rs = RoleSync{
             .last_read_msg = max_num,
@@ -7550,6 +7567,15 @@ fn computeAbsorptionPartition(
 fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = args;
 
+    // T545: the whole read→trigger→register→persist sequence runs under the
+    // store flock.  The previous code read the store UNLOCKED and wrote via
+    // writeState (registerStanding, lock only around each write) plus raw
+    // file surgery (persistStandingState, no lock at all), so a concurrent
+    // claim/close/done could be reverted by `standing`'s whole-file writes.
+    // The flock is released by process exit on the early-exit paths below.
+    try lockStore(io, state_path);
+    defer unlockStore();
+
     var state = try readState(io, state_path);
 
     // ── detect triggers ──
@@ -7885,7 +7911,10 @@ fn registerStanding(
             }
             if (existing.note) |old| alloc.free(old);
             existing.note = try alloc.dupe(u8, note);
-            try writeState(io, state_path, state);
+            // T545: writeStateLocked — the caller (cmdStanding) already holds
+            // the flock; writeState would re-flock a second fd and deadlock
+            // against itself.  The read→write span is under the caller's lock.
+            try writeStateLocked(io, state_path, state);
             w.data("\n      re-registered {s} [set: H] [dispatchable] (was {s} — standing triggers re-open the row)\n", .{ id, statusToString(prev) });
             return;
         }
@@ -7930,11 +7959,21 @@ fn registerStanding(
         .note = note,
     };
     try state.put(alloc, try alloc.dupe(u8, id), ts);
-    try writeState(io, state_path, state);
+    // T545: writeStateLocked — same reasoning as the re-register path above:
+    // cmdStanding holds the flock across the whole read→register→persist span.
+    try writeStateLocked(io, state_path, state);
     w.data("\n      registered {s} [set: H] [dispatchable]", .{id});
 }
 
 fn persistStandingState(io: std.Io, state_path: []const u8, c3: u64, msg: u64, false_cnt: u64, dirty: u64) !void {
+    // T545: this raw read→surgery→rename rewrites the WHOLE store file.  It
+    // is safe only because the sole caller (cmdStanding) holds the store
+    // flock across the entire sequence — do NOT call it from an unlocked
+    // path.  (Known sibling defect, out of scope for T545: serializeState
+    // drops the `_standing`/`_sync` keys, so any later writeStateLocked from
+    // another command erases them until the next standing/sync run rewrites
+    // them; the standing trigger priors therefore read 0 after any other
+    // store write.  A first-class `_standing` in StateMap is the real fix.)
     const content = std.Io.Dir.cwd().readFileAlloc(io, state_path, alloc, .unlimited) catch return;
     defer alloc.free(content);
 
@@ -8010,7 +8049,18 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     const note_text = getFlagValue(args, "--note");
     const from_who = getFlagValue(args, "--from") orelse "unknown";
 
-    // Persist the directive counter by reading and writing state
+    // T545: the whole read→mint→append→counter-persist→verify sequence runs
+    // under the store flock.  cmdTell previously read the store BEFORE the
+    // lock and wrote the stale snapshot back via writeState (lock only around
+    // the write), so any overlapping claim/close/attribution was silently
+    // reverted.  Observed 2026-08-20: 4 tells in ~3 minutes with 14 live
+    // workers — zero directives reached their inboxes, D042/D043 were minted
+    // twice, and _sys.directive_next moved BACKWARDS 44 → 43 (a counter that
+    // decrements is a lost-update race, not a display bug).
+    try lockStore(io, state_path);
+    defer unlockStore();
+
+    // Re-read under the lock: loads the CURRENT directive counter.
     var state_for_counter = try readState(io, state_path);
     defer freeState(&state_for_counter);
 
@@ -8034,12 +8084,46 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         std.process.exit(1);
     };
 
-    // Persist the updated directive counter
-    try writeState(io, state_path, &state_for_counter);
+    // Persist the updated directive counter — writeStateLocked, because the
+    // flock above is already held.  The snapshot is fresh (read under the
+    // lock), so no concurrent change can be reverted.
+    try writeStateLocked(io, state_path, &state_for_counter);
+
+    // T545: a directive must never be silently lost.  Verify it is readable
+    // back from the ledger and fail loudly if not — `tell` printing success
+    // for a directive that never landed is what hid the 2026-08-20 incident.
+    if (!directiveIsReadable(w, io, repo_root, state_path, d_id)) {
+        w.diag("FATAL: directive {s} is NOT readable back from the ledger after write — it was LOST.  The counter has already advanced; do not blindly retell (check the ledger first).\n", .{d_id});
+        std.process.exit(1);
+    }
 
     w.diag("\n  told {s} -> {s}\n", .{ target, directive });
     w.diag("  directive {s}\n", .{d_id});
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
+}
+
+/// T545: a directive must never be silently lost.  Returns true iff a record
+/// with the given id is readable back from the directives ledger (the same
+/// reader cmdInbox uses — T399 parse-resilient).  Called under the store lock
+/// right after the append + store write, so the ledger is stable.
+fn directiveIsReadable(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, d_id: []const u8) bool {
+    var bad: u32 = 0;
+    var list = readDirectives(w, io, repo_root, state_path, &bad) catch return false;
+    defer {
+        for (list.items) |d| {
+            alloc.free(d.id);
+            alloc.free(d.target);
+            alloc.free(d.directive);
+            if (d.note) |n| alloc.free(n);
+            alloc.free(d.from);
+            alloc.free(d.ts);
+        }
+        list.deinit(alloc);
+    }
+    for (list.items) |d| {
+        if (std.mem.eql(u8, d.id, d_id)) return true;
+    }
+    return false;
 }
 
 // ── assert <row> <status> [--note <text>] — assert a row's status ────────────
@@ -8080,7 +8164,14 @@ fn cmdAssert(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     else
         "unknown";
 
-    // Persist the assertion counter
+    // T545: the assertion-counter read must sit under the same lock as the
+    // write.  The previous code read the store BEFORE lockStore and then
+    // wrote the STALE snapshot via writeStateLocked — the same lost-update
+    // shape as cmdTell (reverts any concurrent claim/close that lands between
+    // the read and the lock).  T544 should test this same mechanism for the
+    // `model: null` backfill loss.
+    try lockStore(io, state_path);
+    defer unlockStore();
     var state_for_counter = try readState(io, state_path);
     defer freeState(&state_for_counter);
 
@@ -8101,8 +8192,6 @@ fn cmdAssert(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     };
 
     // Write assertion under the same lock as the kanban
-    try lockStore(io, state_path);
-    defer unlockStore();
     appendAssertion(w, io, state_path, a) catch |err| {
         w.diag("  FAILED: assertion not written ({s}) — nothing was appended to the ledger\n", .{@errorName(err)});
         std.process.exit(1);
