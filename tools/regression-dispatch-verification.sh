@@ -178,7 +178,20 @@ if mode == "lazy":
     print("OK.")
     sys.exit(0)
 
+if mode == "refused":
+    # T538: provider refused before the worker could claim (HTTP 429 at
+    # connect time).  The worker never read the brief; the 429 block lives in
+    # the seeded worker log (untracked/log/t<id>.log), written by tools/runner
+    # in production and seeded directly by the harness here.
+    sys.exit(1)
+
 subprocess.run([mg, "claim", task, "--agent", model], check=True)
+
+if mode == "refused_claim":
+    # T538: the worker claimed (row -> in_progress), then the provider refused
+    # on a later call — exit 1, row left in_progress, heal must fire with an
+    # unreached marker in the heal assertion record.
+    sys.exit(1)
 
 # T477 seeded wound: the worker claimed, then died (timeout/crash, rc=124)
 # before doing any work. The row is left in_progress under a dead console —
@@ -240,6 +253,12 @@ seed_task T999 docs/T999-result.txt
 seed_task T1000 docs/T1000-result.txt
 seed_task T1001 docs/T1001-result.txt
 seed_task T1002 docs/T1002-result.txt
+# T538: provider-refusal arms — the worker log (untracked/log/t<id>.log) is
+# the classifier's evidence source; the harness seeds it directly (a stub run
+# via --test-worker has no tools/runner to write one).
+seed_task T1003 docs/T1003-result.txt
+seed_task T1004 docs/T1004-result.txt
+seed_task T1005 docs/T1005-result.txt
 # T513: the findings arms (7/8/9) are BARE-FILE dispatches — no kanban row,
 # no managent add. The bundle .md declares its findings deliverable and is
 # passed to bin/subagent as the target path (not a T-ID).
@@ -590,6 +609,105 @@ if [ "$TOTAL" -gt 0 ] && [ "$TOTAL" -eq "$DISP" ]; then
 else
     echo "    FAIL: $DISP/$TOTAL heal record(s) are healed_by=dispatcher — a second owner is present"
     cat "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+# ── seeded control 6 (T538): a 429 worker log is provider refusal, not a ─
+# model failure.  The model never saw the brief, so the ledger must record
+# verified=unreached reason=provider-429 (NOT verified=fail).
+echo "  11. seeded: a 429 worker log is classified unreached (not a model failure)"
+mkdir -p "$WORK/untracked/log"
+cat > "$WORK/untracked/log/t1003.log" <<'LOGEOF'
+[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1003-x.md'
+[runner] task identity: T1003 (source: MANAGENT_TASK_ID)
+429: {"message":"you (test) have reached your session usage limit, upgrade: https://ollama.com/upgrade","type":"api_error","param":null,"code":null}
+Error: exit status 1
+LOGEOF
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1003 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1003 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: 429 log classified unreached (rc=$RC), reason=provider-429"
+else
+    echo "    FAIL: rc=$RC; expected verified=unreached reason=provider-429"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+if grep -q "T1003 .* verified=fail" "$WEIZIGO_MODEL_PERF"; then
+    echo "    FAIL: T1003 recorded verified=fail (a provider refusal is not a model failure)"
+    FAIL=1
+else
+    echo "    PASS: T1003 has no verified=fail line"
+fi
+if ! echo "$OUT" | grep -q 'healed.*reopened T1003'; then
+    echo "    PASS: no heal (row was dispatchable — the worker never claimed)"
+else
+    echo "    FAIL: heal fired on an unclaimed 429 refusal"
+    FAIL=1
+fi
+
+# ── seeded control 7 (T538): a clean log + no claim is a GENUINE failure —
+# still verified=fail.  The distinction must not launder real failures.
+echo "  12. seeded: a genuine failure with a clean log is still verified=fail"
+cat > "$WORK/untracked/log/t1004.log" <<'LOGEOF'
+[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1004-x.md'
+[runner] task identity: T1004 (source: MANAGENT_TASK_ID)
+Launching Pi...
+LOGEOF
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1004 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1004 deepseek-v4-flash report=incomplete verified=fail fail=row" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: clean log + no claim is still verified=fail fail=row (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected verified=fail fail=row"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+if grep -q "T1004 .* verified=unreached" "$WEIZIGO_MODEL_PERF"; then
+    echo "    FAIL: T1004 laundered as unreached (the provider was fine)"
+    FAIL=1
+else
+    echo "    PASS: T1004 not laundered as unreached"
+fi
+
+# ── seeded control 8 (T538): a claimed-then-refused worker heals with an ─
+# unreached marker, so the heal log distinguishes a lane-down heal from an
+# ordinary dispatcher heal (T536's keeper backoff wants to tell them apart).
+echo "  13. seeded: a claimed-then-refused worker heals with an unreached marker"
+cat > "$WORK/untracked/log/t1005.log" <<'LOGEOF'
+[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1005-x.md'
+[runner] task identity: T1005 (source: MANAGENT_TASK_ID)
+429: {"message":"you (test) have reached your session usage limit","type":"api_error","param":null,"code":null}
+Error: exit status 1
+LOGEOF
+OUT=$(STUB_MODE=refused_claim "$SUBAGENT" --provider deepseek T1005 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q 'healed.*reopened T1005'; then
+    echo "    PASS: claimed-then-refused worker healed (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected heal for T1005"
+    echo "$OUT" | sed 's/^/    | /' | tail -12
+    FAIL=1
+fi
+HEALREC=$(grep '"task_id": "T1005"' "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null)
+if [ -n "$HEALREC" ] \
+   && echo "$HEALREC" | grep -q '"unreached": "provider-429"' \
+   && echo "$HEALREC" | grep -q '"healed_by": "dispatcher"'; then
+    echo "    PASS: heal record carries unreached=provider-429 (distinct event)"
+else
+    echo "    FAIL: heal record missing the unreached marker for T1005"
+    echo "$HEALREC" | sed 's/^/    | /'
+    FAIL=1
+fi
+if grep -q "T1005 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: T1005 perf line records unreached"
+else
+    echo "    FAIL: T1005 perf line missing the unreached record"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
     FAIL=1
 fi
 
