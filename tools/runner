@@ -177,10 +177,42 @@ def _cpu_time_seconds(pid):
     return None
 
 
-# ── repo root (walk up for .git) ───────────────────────────────────────────
+# ── repo root (git rev-parse first, walk-up fallback) ───────────────────────
 
 def _find_repo_root():
-    """Walk up from cwd to find the repo root (contains .git)."""
+    """Resolve the repo root, worktree-aware (T449).
+
+    A git WORKTREE's `.git` is a FILE carrying a `gitdir:` pointer, not a
+    directory, so the isdir-only walk-up could not see a worktree root and
+    walked to the filesystem root, returning None — silently killing
+    heartbeats, directive reads, and the auto-claim path for any runner
+    launched from a worktree (the T447 race ran five lanes with no
+    heartbeats, 2026-08-18).  Prefer git's own answer: `git rev-parse
+    --show-toplevel` accepts both the normal `.git` directory and the
+    worktree `.git` file (T376 fixed the identical defect in
+    tools/bakeoff.sh).  Do NOT simply add os.path.isfile: a `.git` file's
+    `gitdir:` may point outside the tree, and the git command already
+    answers correctly for both forms.
+
+    The walk-up remains only as the fallback for a non-git directory — the
+    runner is a general-purpose command wrapper that must keep working
+    outside any repository (heartbeat/directive features are then inert,
+    exactly as before the fix).
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            timeout=2.0,
+        )
+        if proc.returncode == 0:
+            root = proc.stdout.strip()
+            if root:
+                return root
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    # Not inside a git repository (or no git on PATH): walk up for a
+    # `.git` DIRECTORY, the normal-checkout form.
     current = os.getcwd()
     while True:
         if os.path.isdir(os.path.join(current, ".git")):
