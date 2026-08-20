@@ -67,8 +67,12 @@ trap 'rm -rf "$WORK"' EXIT
 unset WEIZIGO_AGENT_DEPTH || true
 # A leaked DeepSeek-window carve (FLEET_MODEL_ALLOW/DENY in the caller's env)
 # would deny glm-5.2 and break every arm's model resolution.  The suite owns
-# these knobs (arm f sets/unset them explicitly); start clean (T504).
-unset FLEET_MODEL_ALLOW FLEET_MODEL_DENY || true
+# these knobs (arm f sets them explicitly); start clean (T504).  DENY must be
+# the EMPTY STRING, not unset: the keeper now ships a durable default deny
+# (D036, Ollama quota exhausted) that applies exactly when FLEET_MODEL_DENY is
+# unset, and the suite's arms need glm-5.2 allowed unless an arm says otherwise.
+unset FLEET_MODEL_ALLOW || true
+export FLEET_MODEL_DENY=""
 
 # ── scratch repo + store ─────────────────────────────────────────────────
 cd "$WORK"
@@ -110,6 +114,17 @@ subprocess.run([mg, "claim", task, "--agent", model], check=True)
 sys.exit(0)
 STUBEOF
 chmod +x "$WORK/stub.py"
+
+# T536 seeded worker: exit non-zero WITHOUT claiming, so the keeper sees
+# "pid gone + row still dispatchable" — the exact pre-claim-death signature
+# (provider 429 / quota / auth failure).
+cat > "$WORK/stub_die.py" <<'STUBDIEEOF'
+#!/usr/bin/env python3
+import sys
+# Deliberately never claim; die non-zero like a 429-ed worker.
+sys.exit(1)
+STUBDIEEOF
+chmod +x "$WORK/stub_die.py"
 
 # ── store seeding (direct JSON for deterministic `added` ordering) ───────
 # managent's `added` is second-resolution; tasks added in the same second
@@ -167,10 +182,12 @@ row_status() {  # $1=id → status word from `managent show`
 }
 
 # ── T501 helpers: pressure state on the scratch store ────────────────────
-reset_keeper_state() {  # fresh pressure/log/flag/heal state for each arm
+reset_keeper_state() {  # fresh pressure/log/flag/heal/attempts state for each arm
   rm -f "$WORK/untracked/fleet-keeper.pressure.json"
   rm -f "$WORK/untracked/fleet-keeper.logjam.flag"
   rm -f "$WORK/untracked/fleet-keeper.heal.json"
+  rm -f "$WORK/untracked/fleet-keeper.attempts.json"
+  rm -f "$WORK/untracked/fleet-keeper.lane-down.json"
   rm -f "$WORK/docs/infra/dispatch-heals.jsonl"
   : > "$WORK/untracked/log/fleet-keeper.log"
 }
@@ -246,6 +263,51 @@ if seen_hl:
 if seen_cc:
     state["seen_cc"][tid] = int(seen_cc)
 json.dump(state, open(path, "w"), indent=1)
+PY
+}
+
+# ── T536 helpers: pre-claim-death backoff + lane-down state ─────────────
+attempt_pid() {  # $1=id → last recorded worker pid (empty if none)
+  python3 -c 'import json,sys
+try:
+    d = json.load(open(sys.argv[1]))
+    r = d.get("rows", {}).get(sys.argv[2], {})
+    print(r.get("last_pid") or "")
+except Exception:
+    print("")' "$WORK/untracked/fleet-keeper.attempts.json" "$1"
+}
+
+attempt_failures() {  # $1=id → consecutive pre-claim failures (0 if none)
+  python3 -c 'import json,sys
+try:
+    d = json.load(open(sys.argv[1]))
+    r = d.get("rows", {}).get(sys.argv[2], {})
+    print(r.get("failures", 0) or 0)
+except Exception:
+    print("0")' "$WORK/untracked/fleet-keeper.attempts.json" "$1"
+}
+
+wait_dead() {  # $1=id — wait for the recorded worker pid to exit
+  local pid i
+  pid=$(attempt_pid "$1")
+  if [ -z "$pid" ]; then
+    sleep 1   # no attempt memory yet (the red arm) — stub_die exits fast anyway
+    return 0
+  fi
+  for i in $(seq 1 100); do
+    kill -0 "$pid" 2>/dev/null || return 0
+    sleep 0.2
+  done
+  return 0
+}
+
+seed_attempts() {  # $1 = python source that defines `doc` (the attempts state)
+  python3 - "$WORK/untracked/fleet-keeper.attempts.json" "$1" <<'PY'
+import json, sys
+path, doc_py = sys.argv[1], sys.argv[2]
+ns = {"json": json}
+exec(doc_py, ns)
+json.dump(ns["doc"], open(path, "w"), indent=1)
 PY
 }
 
@@ -664,7 +726,7 @@ seed_bundle T200 findings/T200.json 50
 reset_keeper_state
 export FLEET_MODEL_DENY="kimi-k2.7"
 OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
-unset FLEET_MODEL_DENY
+export FLEET_MODEL_DENY=""
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T200)" = "dispatchable" ] && [ "$(pressure_field anchor)" = "T100" ]; then
   echo "    PASS: denied model not admitted under pressure (T200 skipped, T100 anchored)"
 else
@@ -677,7 +739,7 @@ seed_bundle T200 findings/T200.json 50
 seed_pressure T100 2 "$(python3 -c 'import datetime;print((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')" R1
 export FLEET_MODEL_DENY="glm-5.2"
 OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
-unset FLEET_MODEL_DENY
+export FLEET_MODEL_DENY=""
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T200 " && [ "$(pressure_field anchor)" = "" ]; then
   echo "    PASS: anchor's model denied → pressure exits, T200 dispatched"
 else
@@ -781,7 +843,8 @@ fi
 # iter 2: deny kimi → T100 leaves eligible; T200 (glm, holds b, blocked by R2) is the new blocked next → re-anchor.
 export FLEET_MODEL_DENY="kimi-k2.7"
 OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
-unset FLEET_MODEL_DENY FLEET_LOGJAM_FLAG
+export FLEET_MODEL_DENY=""
+unset FLEET_LOGJAM_FLAG
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ ! -e "$WORK/untracked/fleet-keeper.logjam.flag" ] && [ "$(pressure_field anchor)" = "T200" ]; then
   echo "    PASS: iter 2 re-anchored to T200 → stale T100 flag removed, no new flag (waited < 60min)"
 else
@@ -957,6 +1020,197 @@ if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T358)" = 
   echo "    PASS: fresh heal record parks T358 even at claim_count=1"
 else
   echo "    FAIL: expected T358 parked on a fresh heal record (rc=$RC status=$(row_status T358)); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T536 §controls arm 1: pre-claim death → fired once, then parked ────
+# The regression that would have caught the 2026-08-20 incident: a worker that
+# dies before claiming (provider 429) must not be re-fired every iteration.
+# Against the pre-T536 keeper this arm FAILS (the row is re-fired endlessly).
+echo "  T536-1. seeded: pre-claim death → fired once, then parked (no 2nd fire within cooldown)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+DIEWORKER="$WORK/stub_die.py"
+O1=$(cd "$ROOT" && FLEET_TEST_WORKER="$DIEWORKER" "$KEEPER" --once 2>&1); RC1=$?
+wait_dead T1
+O2=$(cd "$ROOT" && FLEET_TEST_WORKER="$DIEWORKER" "$KEEPER" --once 2>&1); RC2=$?
+if [ "$RC1" -eq 0 ] && echo "$O1" | grep -q "^dispatched T1 " \
+   && [ "$RC2" -eq 0 ] && echo "$O2" | grep -q "^none"; then
+  echo "    PASS: T1 fired once, then parked (no 2nd fire within the cooldown)"
+else
+  echo "    FAIL: expected T1 dispatched once then none (rc1=$RC1 rc2=$RC2); got:"
+  printf 'O1: %s\nO2: %s\n' "$O1" "$O2" | sed 's/^/    | /'; FAIL=1
+fi
+if [ "$(attempt_failures T1)" = "1" ] && [ "$(row_status T1)" = "dispatchable" ]; then
+  echo "    PASS: one pre-claim failure counted, row still dispatchable"
+else
+  echo "    FAIL: expected 1 failure and dispatchable row (failures=$(attempt_failures T1) status=$(row_status T1))"; FAIL=1
+fi
+if grep -q "backoff: T1" "$WORK/untracked/log/fleet-keeper.log"; then
+  echo "    PASS: backoff decision logged (backoff: T1)"
+else
+  echo "    FAIL: backoff decision not logged"; tail -5 "$WORK/untracked/log/fleet-keeper.log" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T536 §controls arm 2: three rows die pre-claim on one model → LANE-DOWN ─
+echo "  T536-2. seeded: three rows die pre-claim on one model → LANE-DOWN; a fourth is not dispatched"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+  '$(task_rec T2 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false)',
+  '$(task_rec T3 dispatchable A 2026-08-20T00:01:02Z "" glm-5.2 false)',
+  '$(task_rec T4 dispatchable A 2026-08-20T00:01:03Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+seed_bundle T2 findings/T2.json
+seed_bundle T3 findings/T3.json
+seed_bundle T4 findings/T4.json
+reset_keeper_state
+DIEWORKER="$WORK/stub_die.py"
+B1=$(cd "$ROOT" && FLEET_TEST_WORKER="$DIEWORKER" "$KEEPER" --once 2>&1); wait_dead T1
+B2=$(cd "$ROOT" && FLEET_TEST_WORKER="$DIEWORKER" "$KEEPER" --once 2>&1); wait_dead T2
+B3=$(cd "$ROOT" && FLEET_TEST_WORKER="$DIEWORKER" "$KEEPER" --once 2>&1); wait_dead T3
+B4=$(cd "$ROOT" && FLEET_TEST_WORKER="$DIEWORKER" "$KEEPER" --once 2>&1); RC4=$?
+if echo "$B1" | grep -q "^dispatched T1 " \
+   && echo "$B2" | grep -q "^dispatched T2 " \
+   && echo "$B3" | grep -q "^dispatched T3 " \
+   && [ "$RC4" -eq 0 ] && echo "$B4" | grep -q "^none"; then
+  echo "    PASS: T1,T2,T3 fired in order; 3rd pre-claim death tripped the lane, T4 not dispatched"
+else
+  echo "    FAIL: expected T1,T2,T3 then none (T4 benched); got:"
+  printf 'B1: %s\nB2: %s\nB3: %s\nB4: %s\n' "$B1" "$B2" "$B3" "$B4" | sed 's/^/    | /'; FAIL=1
+fi
+if [ -f "$WORK/untracked/fleet-keeper.lane-down.json" ] && grep -q "glm-5.2" "$WORK/untracked/fleet-keeper.lane-down.json"; then
+  echo "    PASS: lane-down.json records glm-5.2"
+else
+  echo "    FAIL: lane-down.json missing or lacks glm-5.2"; FAIL=1
+fi
+if grep -q "LANE-DOWN glm-5.2" "$WORK/untracked/log/fleet-keeper.log"; then
+  echo "    PASS: LANE-DOWN logged"
+else
+  echo "    FAIL: LANE-DOWN not logged"; tail -6 "$WORK/untracked/log/fleet-keeper.log" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T536 §controls arm 3: healthy claim → no backoff, no lane-down ──────
+echo "  T536-3. null: a worker that claims normally → no backoff, no lane-down, dispatch proceeds"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+C1=$(cd "$ROOT" && "$KEEPER" --once 2>&1)
+for i in $(seq 1 60); do
+  [ "$(row_status T1)" = "in_progress" ] && break
+  sleep 0.3
+done
+C2=$(cd "$ROOT" && "$KEEPER" --once 2>&1)
+if echo "$C1" | grep -q "^dispatched T1 " && echo "$C2" | grep -q "^none"; then
+  echo "    PASS: healthy claim → dispatched, then none (no re-fire)"
+else
+  echo "    FAIL: expected dispatch then none (healthy fleet not braked); got:"
+  printf 'C1: %s\nC2: %s\n' "$C1" "$C2" | sed 's/^/    | /'; FAIL=1
+fi
+if [ "$(attempt_failures T1)" = "0" ] && [ ! -e "$WORK/untracked/fleet-keeper.lane-down.json" ]; then
+  echo "    PASS: no backoff, no lane-down"
+else
+  echo "    FAIL: healthy claim produced backoff/lane-down state (failures=$(attempt_failures T1) lane-down=$(test -e "$WORK/untracked/fleet-keeper.lane-down.json" && echo yes || echo no))"; FAIL=1
+fi
+if ! grep -q "LANE-DOWN" "$WORK/untracked/log/fleet-keeper.log" && ! grep -q "backoff: T1" "$WORK/untracked/log/fleet-keeper.log"; then
+  echo "    PASS: no LANE-DOWN/backoff logged"
+else
+  echo "    FAIL: LANE-DOWN/backoff logged for a healthy claim"; FAIL=1
+fi
+
+# ── T536 §controls arm 4: expired backoff → dispatched again ────────────
+echo "  T536-4. null: a row whose backoff window has expired → dispatched again"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+OLD=$(python3 -c 'import time; print(time.time() - 700)')
+seed_attempts "doc = {'rows': {'T1': {'model': 'glm-5.2', 'last_ts': 0, 'last_pid': None, 'failures': 2, 'backoff_until': $OLD}}, 'models': {}}"
+D1=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$D1" | grep -q "^dispatched T1 "; then
+  echo "    PASS: expired backoff → T1 dispatched again"
+else
+  echo "    FAIL: expected T1 dispatched after backoff expiry (rc=$RC); got:"; echo "$D1" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T536 §controls arm 5: lane-down expiry → model re-probed ────────────
+echo "  T536-5. seeded: lane-down expiry → the model is re-probed after FLEET_LANE_RETRY"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T4 dispatchable A 2026-08-20T00:01:03Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T4 findings/T4.json
+reset_keeper_state
+OLD=$(python3 -c 'import time; print(time.time() - 1900)')
+seed_attempts "doc = {'rows': {}, 'models': {'glm-5.2': {'failed_rows': ['T1','T2','T3'], 'benched_until': $OLD, 'benched_since': $OLD}}}"
+E1=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$E1" | grep -q "^dispatched T4 "; then
+  echo "    PASS: benched model re-probed after the lane retry (T4 dispatched)"
+else
+  echo "    FAIL: expected T4 dispatched after lane-down expiry (rc=$RC); got:"; echo "$E1" | sed 's/^/    | /'; FAIL=1
+fi
+if [ ! -e "$WORK/untracked/fleet-keeper.lane-down.json" ]; then
+  echo "    PASS: expired lane no longer listed in lane-down.json"
+else
+  echo "    FAIL: lane-down.json still present after expiry"; cat "$WORK/untracked/fleet-keeper.lane-down.json" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T536 amendment D036 arm 6: durable default deny when FLEET_MODEL_DENY unset ─
+echo "  T536-6. seeded: durable default deny (unset) → ollama models refused, deepseek dispatched"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+  '$(task_rec T2 dispatchable A 2026-08-20T00:01:01Z "" deepseek-v4-flash false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+seed_bundle T2 findings/T2.json
+reset_keeper_state
+unset FLEET_MODEL_DENY
+F1=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+export FLEET_MODEL_DENY=""
+if [ "$RC" -eq 0 ] && echo "$F1" | grep -q "^dispatched T2 " && ! echo "$F1" | grep -q "^dispatched T1 "; then
+  echo "    PASS: unset DENY → glm-5.2 (ollama) refused by the durable default, deepseek-v4-flash dispatched"
+else
+  echo "    FAIL: expected T2 (deepseek) dispatched and T1 (glm) denied under the durable default (rc=$RC); got:"; echo "$F1" | sed 's/^/    | /'; FAIL=1
 fi
 
 echo ""

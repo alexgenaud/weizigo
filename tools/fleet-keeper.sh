@@ -55,7 +55,10 @@
 #                        = all allowed.  e.g. "deepseek-v4-pro,deepseek-v4-flash"
 #                        carves a DeepSeek-only window.
 #   FLEET_MODEL_DENY     comma list of canonical models denied (D022); wins over
-#                        ALLOW.  e.g. "glm-5.2,minimax-m3,kimi-k2.7,qwen3.8"
+#                        ALLOW.  DURABLE DEFAULT (D036, 2026-08-20): when UNSET
+#                        it denies glm-5.2,minimax-m3,kimi-k2.7 until the Ollama
+#                        weekly quota refreshes — set FLEET_MODEL_DENY= (empty)
+#                        to override for a forced window.  e.g. "glm-5.2,minimax-m3"
 #                        turns an ollama cooldown into a config line.
 #   FLEET_LOGJAM_FLAG    minutes after which a blocked anchor is flagged
 #                        (T500 §10; telemetry only, default 60).
@@ -64,6 +67,14 @@
 #                        the dispatcher just healed (docs/infra/dispatch-heals.jsonl)
 #                        or whose claim_count >= 2 needs investigation, not
 #                        an instant re-fire (the T358 duplicate-dispatch class).
+#   FLEET_DISPATCH_COOLDOWN seconds a row stays out after a firing (default
+#                        300; T536).  Caps the keeper at ~1 fire per row per
+#                        window, whatever the store says — the pre-claim-death
+#                        rate limiter.
+#   FLEET_MODEL_FAILURE_TRIP consecutive pre-claim deaths on one model, across
+#                        different rows, that bench the model (default 3; T536).
+#   FLEET_LANE_RETRY     seconds a benched model stays down before a re-probe
+#                        (default 1800; T536).
 #   FLEET_ROOT            working dir for untracked/ (cooldown, log, bundles);
 #                        default = this repo.  Set to a scratch dir in tests.
 #   FLEET_TEST_WORKER    forwarded to bin/dispatch as --test-worker (tests).
@@ -71,7 +82,7 @@
 #
 #   --once               run exactly one iteration and exit (test hook).
 #
-# Task: T496/T501/T504 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504)
+# Task: T496/T501/T504/T536 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504/T536) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504/T536)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -99,12 +110,28 @@ TEST_WORKER = os.environ.get("FLEET_TEST_WORKER")
 FLEET_ROOT_SET = os.environ.get("FLEET_ROOT") is not None
 # D022 (1) model-allowlist: FLEET_MODEL_ALLOW / FLEET_MODEL_DENY (comma lists of
 # canonical model labels).  Lets an operator carve a model-cooldown window
-# (e.g. "no ollama until 02:00") as a config line, not a code edit.  Default
-# (both unset): the row's stored model as today.
+# (e.g. "no ollama until 02:00") as a config line, not a code edit.
+# D036 (operator, 2026-08-20): the Ollama weekly token allowance is exhausted
+# (the 429 wall).  The three ollama models are DENIED BY DEFAULT until credits
+# refresh, so the knowledge outlives any one shell.  REVIEW: restore the empty
+# default when the quota clears.  An explicitly-set FLEET_MODEL_DENY — even the
+# empty string (`FLEET_MODEL_DENY=`) — overrides the default for a forced
+# window; a non-empty list carves a different one.
 ALLOW = {m for m in os.environ.get("FLEET_MODEL_ALLOW", "").split(",") if m}
-DENY = {m for m in os.environ.get("FLEET_MODEL_DENY", "").split(",") if m}
+DEFAULT_DENY = "glm-5.2,minimax-m3,kimi-k2.7"
+_deny_env = os.environ.get("FLEET_MODEL_DENY")
+DENY = {m for m in (_deny_env if _deny_env is not None else DEFAULT_DENY).split(",") if m}
 # T500 §10: minutes after which a blocked anchor is flagged (telemetry only).
 LOGJAM_FLAG_MIN = int(os.environ.get("FLEET_LOGJAM_FLAG", "60"))
+# T536: pre-claim-death backoff + circuit breaker knobs.  A row fired within
+# DISPATCH_COOLDOWN is never eligible (whatever the store says); consecutive
+# pre-claim deaths back off 300→600→1200→3600; MODEL_FAILURE_TRIP distinct
+# rows dying on one model bench that model for LANE_RETRY seconds.
+DISPATCH_COOLDOWN = int(os.environ.get("FLEET_DISPATCH_COOLDOWN", "300"))
+MODEL_FAILURE_TRIP = int(os.environ.get("FLEET_MODEL_FAILURE_TRIP", "3"))
+LANE_RETRY = int(os.environ.get("FLEET_LANE_RETRY", "1800"))
+BACKOFF_BASE = 300
+BACKOFF_CAP = 3600
 
 COOLDOWN = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.cooldown")
 LOGDIR = os.path.join(FLEET_ROOT, "untracked", "log")
@@ -119,6 +146,13 @@ HEAL_STATE = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.heal.json")
 HEAL_LOG = os.path.join(FLEET_ROOT, "docs", "infra", "dispatch-heals.jsonl")
 STORE = os.environ.get("MANAGENT_STORE") or os.path.join(REAL_ROOT, "docs", "infra", "managent", "tasks.json")
 HEAL_COOLDOWN = int(os.environ.get("FLEET_HEAL_COOLDOWN", "600"))
+ATTEMPTS = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.attempts.json")
+LANE_DOWN = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.lane-down.json")
+# T536 in-memory state (loaded fresh each iteration).  BENCHED_UNTIL is
+# published by reconcile() so model_allowed()/least_data_model() refuse a
+# benched lane.
+ATTEMPTS_STATE = {"rows": {}, "models": {}}
+BENCHED_UNTIL = {}
 MG = os.path.join(REAL_ROOT, "bin", "managent")
 DISPATCH = os.path.join(REAL_ROOT, "bin", "dispatch")
 
@@ -225,10 +259,15 @@ def waiting_of(tid):
 
 def model_allowed(model):
     # D022 (1): allowlist/denylist gate the resolved model.  Both unset →
-    # everything allowed (the row's stored model as today).
+    # everything allowed (the row's stored model as today).  T536 adds the
+    # per-model circuit breaker: a benched model (consecutive pre-claim deaths
+    # tripped the lane) is refused until its FLEET_LANE_RETRY re-probe window.
     if model in DENY:
         return False
     if ALLOW and model not in ALLOW:
+        return False
+    bu = BENCHED_UNTIL.get(model)
+    if bu and bu > time.time():
         return False
     return True
 
@@ -346,6 +385,123 @@ def save_heal_state(state):
     except OSError:
         pass  # heal cooldown is advisory; never fatal.
 
+def pid_alive(pid):
+    # T536: a pre-claim death is "the recorded pid is gone".  kill(pid, 0)
+    # probes existence without signalling.  A recycled pid is a known limit;
+    # acceptable for a backoff heuristic (the test scratch dir has no recycling).
+    if not pid:
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, not ours — treat as alive
+    except (OSError, ValueError):
+        return False
+    return True
+
+def load_attempts():
+    try:
+        with open(ATTEMPTS, "r") as f:
+            d = json.load(f) or {}
+            return {"rows": d.get("rows") or {}, "models": d.get("models") or {}}
+    except (OSError, ValueError):
+        return {"rows": {}, "models": {}}
+
+def save_attempts():
+    # Like save_pressure: never create untracked/ here (dead-man's switch).
+    try:
+        with open(ATTEMPTS, "w") as f:
+            json.dump(ATTEMPTS_STATE, f)
+    except OSError:
+        pass  # backoff memory is advisory; never fatal.
+
+def backoff_seconds(failures):
+    # T536 layer 2: 300 s → 600 s → 1200 s, cap 3600 s, per consecutive
+    # pre-claim death of the same row.
+    n = max(0, int(failures) - 1)
+    return min(BACKOFF_BASE * (2 ** n), BACKOFF_CAP)
+
+def reconcile(rows):
+    # T536: adjudicate the keeper's own firings.  A row whose recorded pid is
+    # gone AND that never left `dispatchable` is one pre-claim death: bump its
+    # backoff (300→600→1200→3600) and the model's failure streak; bench the
+    # model's lane at MODEL_FAILURE_TRIP distinct rows.  A real claim
+    # (in_progress/done) by a row the keeper fired resets that model's streak.
+    global BENCHED_UNTIL
+    now = time.time()
+    rrows = ATTEMPTS_STATE.get("rows")
+    mmodels = ATTEMPTS_STATE.get("models")
+    for r in rows:
+        rid = r.get("id") or ""
+        st = r.get("status")
+        rec = rrows.get(rid)
+        if rec is None:
+            continue
+        model = rec.get("model")
+        if st in ("in_progress", "done"):
+            pending = rec.get("last_pid") is not None
+            rec["failures"] = 0
+            rec["backoff_until"] = None
+            rec["last_pid"] = None
+            rec["last_ts"] = None  # the attempt succeeded; no pending pre-claim cooldown
+            # A firing the keeper made just claimed — that model's streak breaks.
+            if pending and model and model in mmodels:
+                mm = mmodels[model]
+                mm["failed_rows"] = []
+                mm["benched_until"] = None
+                mm["benched_since"] = None
+            continue
+        if st != "dispatchable":
+            continue  # blocked/failed/… — not a firing this keeper must judge
+        pid = rec.get("last_pid")
+        if pid is None:
+            continue  # already adjudicated (or pidless firing)
+        if pid_alive(pid):
+            continue  # worker still running — no death yet
+        # Pre-claim death: pid gone, row never left dispatchable.
+        rec["failures"] = int(rec.get("failures") or 0) + 1
+        backoff = backoff_seconds(rec["failures"])
+        rec["backoff_until"] = now + backoff
+        rec["last_pid"] = None
+        log(f"backoff: {rid} pre-claim death #{rec['failures']} — parked {backoff}s")
+        if model:
+            mm = mmodels.setdefault(model, {"failed_rows": [], "benched_until": None,
+                                            "benched_since": None})
+            fr = mm.setdefault("failed_rows", [])
+            if rid not in fr:
+                fr.append(rid)
+            if len(fr) >= MODEL_FAILURE_TRIP:
+                if (mm.get("benched_until") or 0) <= now:
+                    mm["benched_until"] = now + LANE_RETRY
+                    mm["benched_since"] = now
+                    log(f"LANE-DOWN {model} — {len(fr)} consecutive pre-claim deaths")
+    # Drop entries for rows that left the store entirely (purged/retired).
+    live = {r.get("id") for r in rows}
+    for rid in list(rrows):
+        if rid not in live:
+            del rrows[rid]
+    # Publish the benched set for model_allowed()/least_data_model().
+    BENCHED_UNTIL = {m: v.get("benched_until") for m, v in mmodels.items()
+                     if v.get("benched_until")}
+    # lane-down.json — the operator-visible census of benched lanes (telemetry).
+    try:
+        down = {}
+        for m, v in mmodels.items():
+            bu = v.get("benched_until")
+            if bu and bu > now:
+                down[m] = {"consecutive_failures": len(v.get("failed_rows") or []),
+                           "benched_since": v.get("benched_since"),
+                           "benched_until": bu}
+        if down:
+            with open(LANE_DOWN, "w") as f:
+                json.dump(down, f)
+        elif os.path.exists(LANE_DOWN):
+            os.remove(LANE_DOWN)
+    except OSError:
+        pass  # the lane-down census is telemetry; never fatal.
+
 def fire(pick, in_prog, c_eff):
     rid = pick["row"]["id"]
     model = pick["model"]
@@ -364,6 +520,20 @@ def fire(pick, in_prog, c_eff):
     out = proc.stdout.strip()
     err = proc.stderr.strip()
     if proc.returncode == 0 and out.startswith("dispatched "):
+        # T536 layer 1: record the firing (pid + time) so the next iteration
+        # knows this row was just fired.  A pre-claim death is adjudicated on
+        # a later iteration; the cooldown holds until then.
+        m = re.search(r"pid (\d+)", out)
+        pid = int(m.group(1)) if m else None
+        prev = ATTEMPTS_STATE.get("rows", {}).get(rid) or {}
+        ATTEMPTS_STATE.setdefault("rows", {})[rid] = {
+            "model": model,
+            "last_ts": time.time(),
+            "last_pid": pid,
+            "failures": int(prev.get("failures") or 0),
+            "backoff_until": None,
+        }
+        save_attempts()
         log(f"dispatched {rid} → {model} (in_progress {in_prog}/{c_eff}) — {out}")
         print(f"dispatched {rid} {model}")
     else:
@@ -437,6 +607,13 @@ def main():
             healed.pop(rid, None)
     save_heal_state({"healed": healed, "seen_hl": seen_hl, "seen_cc": seen_cc})
 
+    # ── T536 pre-claim-death memory: adjudicate firings, back off, trip lanes ─
+    global ATTEMPTS_STATE
+    ATTEMPTS_STATE = load_attempts()
+    reconcile(rows)
+    save_attempts()
+    attempts_rows = ATTEMPTS_STATE.get("rows") or {}
+
     in_prog_rows = [r for r in rows if r.get("status") == "in_progress"]
     running = {r.get("id") for r in in_prog_rows}
     # The set of holds currently held by a RUNNING task (the only holds that
@@ -466,9 +643,28 @@ def main():
             continue
         if not has_bundle(rid):
             continue
+        # T536: dispatch-attempt memory + per-row backoff.  A row just fired
+        # (or whose worker is still running, or whose consecutive pre-claim
+        # deaths back off) is parked — the keeper never re-fires it.
+        rec = attempts_rows.get(rid)
+        if rec is not None:
+            bu = rec.get("backoff_until")
+            if bu and now < float(bu):
+                log(f"backoff: {rid} parked {int(float(bu) - now)}s more "
+                    f"({rec.get('failures') or 0} consecutive pre-claim deaths)")
+                continue
+            pid = rec.get("last_pid")
+            if pid is not None and pid_alive(pid):
+                log(f"attempt-cooldown: {rid} worker pid {pid} still running — not re-fired")
+                continue
+            last_ts = rec.get("last_ts") or 0
+            if now - float(last_ts) < DISPATCH_COOLDOWN:
+                log(f"attempt-cooldown: {rid} fired {int(now - float(last_ts))}s ago "
+                    f"(< {DISPATCH_COOLDOWN}s) — not re-fired")
+                continue
         model = r.get("model") or least_data_model(by_id)
         if not model_allowed(model):
-            continue  # D022 (1): model cooldown window
+            continue  # D022 (1) model window / T536 benched lane
         holds = set(r.get("holds") or [])
         elig.append({"row": r, "model": model,
                      "priority": priority_of(rid),
