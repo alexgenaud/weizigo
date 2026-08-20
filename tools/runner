@@ -405,9 +405,11 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
     child's fate was known — "killed mid-flight", not "completed".
 
     tokens (T521) is the capture dict {tokens_in, tokens_out, source,
-    missing_reason} or None.  When provided the record carries the token
-    fields ALWAYS — nulls included — so a run record is self-describing:
-    "no reading" is visible in the record itself, never a missing key.
+    missing_reason, session_id, session_reason} or None.  When provided
+    the record carries the token fields ALWAYS — nulls included — so a run
+    record is self-describing: "no reading" is visible in the record
+    itself, never a missing key.  T552: the same applies to the session
+    handle (session_id / session_reason always present).
     """
     if run_record is None:
         return
@@ -429,6 +431,10 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         run_record["tokens_out"] = tokens.get("tokens_out")
         run_record["tokens_source"] = tokens.get("source")
         run_record["tokens_missing_reason"] = tokens.get("missing_reason")
+        # T552: the resumable session handle, stamped ALWAYS (nulls
+        # included) so the record is self-describing about the handle too.
+        run_record["session_id"] = tokens.get("session_id")
+        run_record["session_reason"] = tokens.get("session_reason")
     _write_run_record(run_record, repo_root)
 
 
@@ -936,9 +942,10 @@ def _argv_provider(argv):
 def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     task_identity, repo_root, start_ts, rc, kill_reason=None):
     """The capture path for one run.  Returns a dict
-    {tokens_in, tokens_out, source, missing_reason} (None values when no
-    reading) or None when there is no repo root (degraded — no task, so
-    nothing to key the record on).
+    {tokens_in, tokens_out, source, missing_reason, session_id,
+    session_reason} (None values when no reading / no handle) or None when
+    there is no repo root (degraded — no task, so nothing to key the record
+    on).
 
     Side effects, all under <repo_root>/untracked/tokens/:
       - tee the complete raw stdout+stderr per task (any usage lines
@@ -946,6 +953,13 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
       - append one ledger record per run: a reading when one exists, else
         an explicit missing record with a reason — never estimated, never
         a blank cell (D043 item 3).
+
+    T552: the same record carries the resumable session handle (session_id
+    + session_reason) wherever the token counts land — run record, lane
+    trailer, ledger line.  A family with a handle in its envelope (claude)
+    records it; a family without one (pi/ollama never emit it) records null
+    WITH a reason — the same rule token capture already follows, never a
+    blank, never an invented id.
     """
     if not repo_root:
         return None
@@ -953,7 +967,8 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
     model = _argv_model(argv)
     provider = _argv_provider(argv)
     out = {"tokens_in": None, "tokens_out": None, "source": None,
-           "missing_reason": None, "text": None}
+           "missing_reason": None, "text": None,
+           "session_id": None, "session_reason": None}
     usage = None
     is_api_error = False
     if tc is not None:
@@ -966,6 +981,16 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
             try:
                 text, usage, meta = tc.parse_claude_envelope(stdout_text)
                 out["text"] = text
+                # T552: the envelope also carries the resumable session
+                # handle — record it beside the token reading, or null
+                # with a reason when the field is absent.  The handle is
+                # independent of the usage reading (an is_error envelope
+                # may still carry one).
+                if meta.get("session_id_present"):
+                    out["session_id"] = meta.get("session_id")
+                else:
+                    out["session_reason"] = (
+                        "claude envelope carries no session_id field")
                 if usage is not None and not meta.get("is_error"):
                     out["tokens_in"] = usage["input"] + usage["cache_read"]
                     out["tokens_out"] = usage["output"]
@@ -978,18 +1003,33 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     out["missing_reason"] = "no claude usage envelope in output"
             except Exception:
                 out["missing_reason"] = "claude envelope parse failed"
+                out["session_reason"] = "claude envelope parse failed"
         else:
             out["missing_reason"] = (
                 "no structured usage in process output (pi/ollama lane); "
                 "raw stdout+stderr teed to untracked/tokens/; the pi session "
                 "JSONL is the retroactive meter")
+            # T552: pi persists its session to disk (resumable via
+            # `pi --session <uuid>`) but never emits the id — recorded
+            # null with the honest reason, so a reader knows the handle
+            # exists on disk and where, without pretending the output
+            # carried it.
+            out["session_reason"] = (
+                "pi/ollama lane: no session id in process output; pi saves "
+                "sessions to ~/.pi/agent/sessions/<cwd-slug>/<uuid>.jsonl "
+                "and resumes via `pi --session <uuid>`, but the id is not "
+                "emitted at dispatch")
     else:
         if claude_json_lane:
             out["missing_reason"] = (
                 "tools/token-capture.py absent — no envelope parse, no ledger")
+            out["session_reason"] = (
+                "tools/token-capture.py absent — no envelope parse, no handle")
         else:
             out["missing_reason"] = (
                 "tools/token-capture.py absent — no tee, no ledger")
+            out["session_reason"] = (
+                "tools/token-capture.py absent — no tee, no handle")
     if tc is not None:
         try:
             label = tc.canon_tag(model) if model else None
@@ -1002,6 +1042,8 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                 "tokens_out": out["tokens_out"],
                 "source": out["source"],
                 "missing_reason": out["missing_reason"],
+                "session_id": out["session_id"],
+                "session_reason": out["session_reason"],
                 "rc": rc,
             }
             if usage is not None:
@@ -1021,7 +1063,9 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
 
 
 def _print_tokens_trailer(tok):
-    """The trailer lines the bakeoff G1 gate reads (tokens_in/tokens_out)."""
+    """The trailer lines the bakeoff G1 gate reads (tokens_in/tokens_out)
+    and the lane record's session handle (T552: session_id=..., or a
+    no-handle line with the reason — never a blank)."""
     if tok is None:
         return
     if tok.get("tokens_in") is not None:
@@ -1030,6 +1074,11 @@ def _print_tokens_trailer(tok):
     else:
         reason = tok.get("missing_reason") or "no source"
         print(f"[runner] tokens: no reading — {reason}", file=sys.stderr)
+    if tok.get("session_id") is not None:
+        print(f"[runner] session_id={tok['session_id']}", file=sys.stderr)
+    else:
+        reason = tok.get("session_reason") or "no session source"
+        print(f"[runner] session: no handle — {reason}", file=sys.stderr)
 
 
 def _forward_claude_text(stdout_text):

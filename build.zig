@@ -754,6 +754,37 @@ pub fn build(b: *std.Build) void {
     token_capture_regression.cwd = b.path(".");
     test_step.dependOn(&token_capture_regression.step);
 
+    // ── T552: session-handle capture controls ────────────────────────
+    // Every dispatch discards the resumable session id, so a follow-up
+    // question to a worker costs a fresh context that reads its own prior
+    // work as a stranger's.  The controls pin the capture: a seeded claude
+    // envelope's session_id lands on all three token surfaces (run record,
+    // lane trailer, ledger line); an envelope without the field and a pi
+    // lane with no envelope at all record null + reason — never a blank,
+    // never an invented id — and a normal dispatch is unchanged beyond the
+    // extra field.  The resume round trip (dispatch, exit, resume the
+    // captured id) is a MANUAL arm: it needs real credentials, which these
+    // controls never touch (T521 rule); proven irl in findings/T552.
+    const session_capture_regression = b.addSystemCommand(&.{ "sh", "tools/regression-session-capture.sh" });
+    session_capture_regression.cwd = b.path(".");
+    test_step.dependOn(&session_capture_regression.step);
+
+    // ── T529: grand-race P0 gate controls ────────────────────────
+    // The P0 gate (tools/race-p0-verify.sh) is the one command that says
+    // GO/NO-GO before a race starts: sealed keys and packets, the frozen
+    // fixture stores, the roster, and the two G2 halves — no key material
+    // reachable from the run root, and no lane transcript showing a lane
+    // acting on one.  Controls: an untouched copy of a store still matches
+    // its seal (the MANIFEST's tar seal does NOT, which is why the seal is
+    // content-based), a flipped byte is caught, a planted key.txt is
+    // caught, a lane that reads a key is caught, and a packet brief that
+    // merely NAMES the key path is not counted as a lane action.  The
+    // sealed packets live under untracked/, so the live-tree GO/NO-GO arms
+    // skip loudly on a fresh clone while the controls always run.
+    const race_p0_regression = b.addSystemCommand(&.{ "sh", "tools/regression-race-p0.sh" });
+    race_p0_regression.cwd = b.path(".");
+    test_step.dependOn(&race_p0_regression.step);
+
     // ── T390: duplicate-dispatch controls ────────────────────────
     // Two consoles on one row happened three times on 2026-08-05/06
     // (T376/T389/T350); the kanban shows claim-at-close is the disease

@@ -258,6 +258,11 @@ def main(argv):
         # capture source (G1 is run-time, not retroactive); the runner
         # unwraps the text for verification, so the lane's stdout and the
         # nonce check are unchanged.
+        # T552: the same envelope carries the resumable session handle;
+        # the runner records it beside the token counts (run record,
+        # lane trailer, ledger line) — null with a reason for the
+        # pi/ollama lanes, which never emit one. The dispatch shape is
+        # unchanged; capture is the wrapper's job.
         cmd = ["tools/runner", "--max-wall", wall, "--",
                "claude", "-p", prompt, "--model", model,
                "--allowedTools", CLAUDE_ALLOWED_TOOLS,

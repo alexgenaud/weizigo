@@ -10,11 +10,15 @@ path — the code the lane wrapper (tools/runner) and the dispatchers
   parse_claude_envelope(raw)  -> (text, usage, meta)
       `claude -p --output-format json` stdout: the runner extracts BOTH the
       result text (forwarded to the lane's stdout, so verification and
-      grading see the answer) and the usage counts (recorded mechanically).
-      Ground truth shape, claude 2.1.237, probed irl 2026-08-20: single-line
-      JSON {type:'result', subtype:'success', result:<text>, is_error:bool,
+      grading see the answer) and the usage counts (recorded mechanically),
+      plus the resumable session handle (T552).  Ground truth shape, claude
+      2.1.237, probed irl 2026-08-20: single-line JSON {type:'result',
+      subtype:'success', result:<text>, is_error:bool, session_id:<uuid>,
       usage:{input_tokens, output_tokens, cache_read_input_tokens,
-      cache_creation_input_tokens, output_tokens_details:{thinking_tokens}}}.
+      cache_creation_input_tokens, output_tokens_details:{thinking_tokens}}}.  The
+      session handle rides in meta (session_id / session_id_present) so the
+      envelope is parsed ONCE — never a second parser (T517 single-source
+      lesson).
 
   write_tees(root, task, ts, provider, stdout_text, stderr_text)
       deepseek/pi and ollama/qwen lanes produce no structured usage line, so
@@ -93,6 +97,18 @@ CLAUDE_USAGE_KEYS = {
     "cache_read": "cache_read_input_tokens",
     "cache_write": "cache_creation_input_tokens",
 }
+
+
+def _empty_meta():
+    """The meta dict for output with no parseable envelope: no error, no
+    terminal reason, and no session handle (session_id None, present=False)
+    so callers can always read the same keys."""
+    return {
+        "is_error": False,
+        "terminal_reason": None,
+        "session_id": None,
+        "session_id_present": False,
+    }
 
 
 def canon_tag(tag):
@@ -195,7 +211,7 @@ def parse_claude_envelope(raw):
     """
     text = raw or ""
     if not text.strip():
-        return "", None, {"is_error": False, "terminal_reason": None}
+        return "", None, _empty_meta()
     obj = None
     # 1. whole-output parse (single-line or pretty-printed single object).
     candidates = [text]
@@ -224,10 +240,16 @@ def parse_claude_envelope(raw):
             if isinstance(o, dict):
                 obj = o
     if not isinstance(obj, dict):
-        return text, None, {"is_error": False, "terminal_reason": None}
+        return text, None, _empty_meta()
     meta = {
         "is_error": bool(obj.get("is_error")),
         "terminal_reason": obj.get("terminal_reason"),
+        # T552: the resumable session handle.  session_id is the string
+        # value (or None); session_id_present is True only for a usable
+        # string handle, so a shape change degrades to null + a reason,
+        # never a blank and never an invented id.
+        "session_id": obj.get("session_id") if isinstance(obj.get("session_id"), str) else None,
+        "session_id_present": isinstance(obj.get("session_id"), str),
     }
     result = obj.get("result")
     if not isinstance(result, str):
