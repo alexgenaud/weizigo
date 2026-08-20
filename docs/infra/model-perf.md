@@ -3846,3 +3846,50 @@ are **unattributed, not failed** — the honest state.
 This matters more than two rows: fable and opus are two of the four lanes in the
 operator's critical comparison, and a mis-scored infrastructure death is precisely
 the `T538` defect class reappearing in a form the classifier cannot yet see.
+dispatch-verify 2026-08-20 T530 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T521 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T531 claude-opus-5 report=incomplete verified=fail fail=row
+
+<!-- CORRECTION — 2026-08-20, Orchestrator seat: the rc=124 cohort is HOST MEMORY PRESSURE, not model failure -->
+## DO NOT SCORE — the 2026-08-20 rc=124 cohort (12 rows). Cause: the seat over-dispatched.
+
+**Every `exit_code: 124` heal recorded on 2026-08-20 is an infrastructure kill and must be
+excluded from all per-model rates.** Affected rows: `T497 T512 T514 T521 T527 T529 T530 T531
+T542 T543 T544 T545`. By label: dspro 5, glm 2, flash 2, opus 2, fable 1.
+
+**Established cause, from the runner's own kill lines:**
+
+    [runner] KILL: host memory pressure — avail 5816 MB < floor 6144 MB (largest member pid 72121 RSS 87 MB)
+    [runner] KILL: host memory pressure — avail 5851 MB < floor 6144 MB (largest member pid 78796 RSS 60 MB)
+    [runner] KILL: host memory pressure — avail 5868 MB < floor 6144 MB (largest member pid 96341 RSS 60 MB)
+    [runner] KILL: host memory pressure — avail 6113 MB < floor 6144 MB (largest member pid 67442 RSS 84 MB)
+    [runner] KILL: host memory pressure — avail 6129 MB < floor 6144 MB (largest member pid 67390 RSS 56 MB)
+
+Note the victims' own RSS: **56–87 MB**. They were not the memory consumers; they were culled
+because the *host* fell below the 6144 MB floor. The consumers were concurrent full-suite runs —
+four `zig test` binaries at 2069/2040/1975/447 MB from **three simultaneous** `zig build test`
+invocations, ~6.5 GB. Freeing two orphaned suite trees took free memory 1.7 GB → 7.2 GB.
+
+**The seat caused this.** It dispatched up to 14 workers plus 8 headless Claude sessions on a
+48 GB host, and several of those workers each independently launched the full suite. The fleet cap
+counts **workers, not resource weight**, so five 2 GB suite runs pass a cap of five as easily as
+five `sed` invocations do.
+
+**Three seat theories were tested and refuted before the real cause was found** — recorded so
+nobody re-derives them: (1) buffered `--output-format text` tripping the 600 s progress watchdog
+(refuted: `T532` ran 663 s and survived; the watchdog needs `[progress]` marker lines no Claude
+session emits, so the wall/CPU fallback governs); (2) cumulative child CPU hitting the 3600 s
+fallback (refuted: measured ~8 s and ~91 s); (3) a Claude-side usage limit (refuted: dspro, flash
+and glm died identically — it spans every provider).
+
+**Consequence for the races.** This cohort spans both providers and five labels, including
+**opus ×2 and fable ×1** — three of the four lanes in the operator's critical comparison. Scoring
+them would rank the models by how much memory pressure the Orchestrator generated while they ran.
+That is the `T538` defect class (infrastructure recorded as model quality) in a form its
+classifier cannot see: there is no provider error text to match, because the provider was never
+the problem.
+
+Follow-ups owed: `T538` extends its classifier to `rc=124` + a runner host-pressure kill line →
+`verified=unreached reason=host-memory-pressure`. A new gap needs an owner: **resource-aware
+admission** — the keeper (and any dispatcher) must weight a suite-running row differently from a
+text edit, and concurrent full-suite runs need a mutex. Filed in the tooling-defect inventory.
