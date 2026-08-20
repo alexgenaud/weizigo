@@ -245,6 +245,99 @@ def _check_directives(task_id, repo_root, verbose=True):
     return stops
 
 
+# ── run records (T364, 2026-08-20) — parent-side exit evidence ──────────────
+#
+# A SIGKILLed runner cannot write its own exit heartbeat — on 2026-08-04 the
+# Orchestrator's load-16 sweep killed every process above 50% CPU with
+# `kill -9`, and T355/T356 ended with NO exit beat at all (wall 5.5s, launch
+# only).  `managent liveness` cannot tell "never started" from "killed
+# mid-flight" from heartbeats alone.
+#
+# The run record fixes the structural gap: the PARENT records the child's
+# fate, not the child.  The runner writes untracked/runs/<task>.json at
+# LAUNCH (pid, pgid, start, command, launcher_pid) and REWRITES it at exit
+# with the child's outcome (exit status OR signal, wall, peak RSS, kill
+# reason).  Two failure classes, both readable afterwards:
+#   - kill -9 of the CHILD: the runner survives and writes a COMPLETED
+#     record (exit/signal fields present) — evidence exists despite the
+#     SIGKILL;
+#   - kill -9 of the RUNNER itself: the launch record remains with NO exit
+#     fields — the next `managent reap` / `resume` reads "killed mid-flight".
+#
+# `managent reap` keys the row to the record's "task" field and checks the
+# record's "pid" (the runner's own pid) against the process table: alive
+# runner = backed row (never reap an idle-but-alive worker — stalled is the
+# progress watchdog's job); dead runner = orphan, with the record's fields
+# as the evidence for the abandoned note.
+
+def _sanitize_identity(task_identity):
+    """Map a task identity to a filesystem-safe filename segment.
+
+    Task identities may carry '/' (e.g. DSPro/2B-5, runner/<pid>); the run
+    record path must be a single file, so every character outside the safe
+    set becomes '_'.  reap matches on the record's stored "task" field, not
+    the filename, so the mangling is cosmetic only.
+    """
+    return "".join(ch if (ch.isalnum() or ch in "._-") else "_" for ch in task_identity)
+
+
+def _run_record_path(task_identity, repo_root):
+    return os.path.join(repo_root, "untracked", "runs", _sanitize_identity(task_identity) + ".json")
+
+
+def _write_run_record(record, repo_root):
+    """Atomically write a run record (tmp + rename).
+
+    Torn writes matter here: the record is exactly the evidence that
+    survives a SIGKILL, so a half-written record must never be what a
+    reader sees.  tmp + os.replace keeps the visible file either the old
+    version or the complete new one.
+    """
+    if not repo_root:
+        return
+    path = _run_record_path(record.get("task", "unknown"), repo_root)
+    tmp = path + ".tmp"
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(tmp, "w") as f:
+            json.dump(record, f, sort_keys=True)
+            f.write("\n")
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        except OSError:
+            pass
+
+
+def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None):
+    """Stamp the child's outcome onto the in-memory launch record and persist.
+
+    ret is the child's exit code; signum is the signal that killed the child
+    (subprocess reports killed-by-signal as a negative returncode, so the
+    caller passes signum explicitly on the kill paths).  Either may be None:
+    a record with neither is a launch record whose runner died before the
+    child's fate was known — "killed mid-flight", not "completed".
+    """
+    if run_record is None:
+        return
+    run_record["end"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if ret is not None:
+        run_record["exit"] = ret
+    if signum is not None:
+        run_record["signal"] = signum
+    if wall is not None:
+        run_record["wall"] = round(wall, 1)
+    if cpu is not None:
+        run_record["cpu"] = round(cpu, 1)
+    if rss_mb is not None:
+        run_record["rss_mb"] = round(rss_mb, 1)
+    if killed is not None:
+        run_record["killed"] = killed
+    _write_run_record(run_record, repo_root)
+
+
 # ── heartbeat emission (WORKER-CHANNEL) ────────────────────────────────────
 
 def _emit_heartbeat(task_id, command, wall, cpu, rss_mb, repo_root):
@@ -820,8 +913,23 @@ def main():
             sys.exit(1)
 
     t0 = time.monotonic()
+    run_record = None  # T364: set after Popen; None guards the exception path if spawn itself fails
     proc = subprocess.Popen(argv, preexec_fn=preexec_fn, stderr=subprocess.PIPE, text=True)
     sys.stderr.flush()
+
+    # ── T364: launch run record — written BEFORE any exit path can run, so
+    # a SIGKILL of this runner leaves the evidence (pid, pgid, start) even
+    # though the exit record can never be written.  The exit paths below
+    # stamp the child's fate onto this same record.
+    run_record = {
+        "task": task_identity,
+        "pid": os.getpid(),
+        "pgid": proc.pid,
+        "launcher_pid": os.getppid(),
+        "start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "command": shlex.join(argv),
+    }
+    _write_run_record(run_record, repo_root)
 
     # Make stderr non-blocking for select-based reading
     import fcntl
@@ -1049,6 +1157,9 @@ def main():
                 peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
                 total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
                 _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+                _finalize_run_record(run_record, repo_root, ret=None, signum=signal.SIGKILL,
+                                    wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
+                                    killed=kill_reason)
                 print(f"[runner] exit 124 ({kill_reason}) in {elapsed:.1f} s", file=sys.stderr)
                 sys.exit(124)
 
@@ -1056,6 +1167,7 @@ def main():
     except Exception as exc:
         elapsed = time.monotonic() - t0
         _emit_heartbeat(task_identity, shlex.join(argv), elapsed, -1, -1, repo_root)
+        _finalize_run_record(run_record, repo_root, wall=elapsed, killed=f"runner exception: {exc}")
         raise
     finally:
         if args.show_peak and not logs_done and (peak_rss or peak_cpu):
@@ -1065,6 +1177,15 @@ def main():
     peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
     total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
     _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+    # T364: child's fate — subprocess reports killed-by-signal as a negative
+    # returncode (-signum).  Record the signal separately so reap's note can
+    # name "SIGKILL" instead of a bare code.
+    if ret < 0:
+        _finalize_run_record(run_record, repo_root, ret=None, signum=-ret,
+                            wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb)
+    else:
+        _finalize_run_record(run_record, repo_root, ret=ret,
+                            wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb)
     if host_guard_fired:
         print(f"[runner] note: host guard fired during this run (relieved host pressure; proc exited {ret})", file=sys.stderr)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)

@@ -219,7 +219,7 @@ const mutating_verbs = [_][]const u8{
     "add",     "claim",  "done",    "reopen", "purge", "set",
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
-    "standing", "assert", "retire", "duty",
+    "standing", "assert", "retire", "duty", "reap",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -443,6 +443,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdPing(w, io, repo_root, args);
     } else if (std.mem.eql(u8, cmd, "liveness")) {
         try cmdLiveness(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "reap")) {
+        try cmdReap(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "audit")) {
         try cmdAudit(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "standing")) {
@@ -4105,6 +4107,53 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
         if (!held_any) w.data("    -- none --\n", .{});
     }
 
+    // ── fleet stalls (T364): in_progress rows with no live backing process ─
+    // An in_progress row whose runner is gone (or was never seen) is a fleet
+    // stall — it belongs where the operator already looks.  The same
+    // classification as `managent reap`, read-only.  A row backed by a live
+    // runner pid or a fresh heartbeat is NOT a stall; a row with no process
+    // evidence is.  Degrades to "-- none --" on a fresh clone (no
+    // untracked/runs/, no heartbeat file).
+    {
+        var ledger_res = readLedgerStatuses(io, repo_root);
+        defer freeLedgerStatuses(&ledger_res);
+        var heartbeats_res = readHeartbeats(w, io, repo_root) catch std.ArrayList(Heartbeat).empty;
+        defer {
+            for (heartbeats_res.items) |h| {
+                alloc.free(h.identifier);
+                alloc.free(h.task);
+                alloc.free(h.ts);
+                alloc.free(h.command);
+            }
+            heartbeats_res.deinit(alloc);
+        }
+        const STALL_ORPHAN_MIN: i64 = blk: {
+            const override_ptr = std.c.getenv("RESUME_STALL_MIN");
+            if (override_ptr) |op| {
+                const sp = std.mem.span(op);
+                if (std.fmt.parseInt(i64, sp, 10)) |v| break :blk v else |_| {}
+            }
+            break :blk 5;
+        };
+        var rows_res = classifyReapRows(w, io, repo_root, &state, &ledger_res, STALL_ORPHAN_MIN * 60, heartbeats_res.items) catch null;
+        defer if (rows_res) |*rr| freeReapRows(rr);
+
+        w.data("\n  fleet stalls (in_progress rows with no live process):\n", .{});
+        var n_stall: u32 = 0;
+        if (rows_res) |rr| {
+            for (rr.items) |r| {
+                if (!isOrphanReap(r.cls)) continue;
+                n_stall += 1;
+                w.data("    ! {s}  ORPHAN — {s}\n", .{ r.tid, r.evidence });
+            }
+        }
+        if (n_stall == 0) {
+            w.data("    -- none --\n", .{});
+        } else {
+            w.data("    run `managent reap` to report, `managent reap --close` to close as abandoned.\n", .{});
+        }
+    }
+
     // ── pending directives (T352) — a fleet stall is an unread directive ──
     // The resume surface must say so where the operator already looks, with
     // age in minutes so a stale directive reads as stale.  Older than the
@@ -5024,6 +5073,7 @@ fn printHelp(w: Writers) void {
         \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
         \\  managent liveness [--stale-min <min>]  show per-task liveness: UNKNOWN / beating / beats stopped (default threshold 5 min)
+        \\  managent reap [--close]  reconcile in_progress rows vs the process table; --close closes orphans as abandoned (T364)
         \\  managent duty <UID> done  record a duty chunk (--verdict pass|fail --findings <path>); duties never close
         \\  managent landmark <Ln> --declare  gate a landmark declaration on duty currency (overdue or last-failed blocks)
         \\  managent standing         register triggered standing-tier tasks
@@ -5533,6 +5583,319 @@ fn readHeartbeats(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(
 
     return result;
 }
+
+// ── run records + orphan reaping (T364, 2026-08-20) ────────────────────────
+//
+// T364 closes the two structural gaps behind the 2026-08-04 fleet incident
+// (T355/T356 rows ended with NO exit heartbeat — the runner was SIGKILLed in
+// a load-16 sweep — and the rows sat in_progress for hours with nothing
+// alive behind them):
+//
+//   1. tools/runner writes a PARENT-side exit record at launch
+//      (untracked/runs/<task>.json: pid, pgid, start, command) and rewrites
+//      it at exit with the child's fate (exit code or signal, wall, peak
+//      RSS, kill reason).  A `kill -9` of the child leaves a COMPLETED
+//      record — the parent wrote it.  A `kill -9` of the runner leaves the
+//      launch record with no exit fields — "killed mid-flight", readable by
+//      the next reap/resume.
+//   2. `managent reap` reconciles the kanban against the process table: for
+//      each in_progress row, a live runner pid (from the run record) or a
+//      fresh heartbeat means the row is BACKED and is never reaped (stalled
+//      is the progress watchdog's job, not the reaper's); a dead runner
+//      with a completed record, a dead runner with no exit fields, or no
+//      process evidence at all means ORPHAN.  `--close` closes each orphan
+//      as `abandoned` with a note naming the evidence — never a verdict
+//      guess (an orphaned row is abandoned, not pass).
+
+const RunRecord = struct {
+    task: []const u8 = "",
+    pid: i64 = 0,
+    pgid: i64 = 0,
+    launcher_pid: i64 = 0,
+    start: []const u8 = "",
+    end: ?[]const u8 = null,
+    exit: ?i64 = null,
+    signal: ?i64 = null,
+    command: []const u8 = "",
+    wall: f64 = 0.0,
+    cpu: f64 = 0.0,
+    rss_mb: f64 = 0.0,
+    killed: ?[]const u8 = null,
+};
+
+fn runRecI64(o: std.json.ObjectMap, key: []const u8) i64 {
+    return if (o.get(key)) |v| switch (v) {
+        .integer => v.integer,
+        else => 0,
+    } else 0;
+}
+
+fn runRecOptI64(o: std.json.ObjectMap, key: []const u8) ?i64 {
+    return if (o.get(key)) |v| switch (v) {
+        .integer => v.integer,
+        else => null,
+    } else null;
+}
+
+fn runRecStr(o: std.json.ObjectMap, key: []const u8) []const u8 {
+    return if (o.get(key)) |v| if (v == .string) v.string else "" else "";
+}
+
+fn runRecOptStr(o: std.json.ObjectMap, key: []const u8) ?[]const u8 {
+    return if (o.get(key)) |v| if (v == .string) v.string else null else null;
+}
+
+fn runRecF64(o: std.json.ObjectMap, key: []const u8) f64 {
+    return if (o.get(key)) |v| switch (v) {
+        .float => @floatCast(v.float),
+        .integer => @floatFromInt(v.integer),
+        else => 0.0,
+    } else 0.0;
+}
+
+fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(RunRecord) {
+    var result = std.ArrayList(RunRecord).empty;
+    errdefer result.deinit(alloc);
+
+    const runs_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "runs" });
+    defer alloc.free(runs_dir);
+
+    var dir = std.Io.Dir.cwd().openDir(io, runs_dir, .{}) catch |err| {
+        if (err == error.FileNotFound) return result; // fresh clone / no runs yet
+        return err;
+    };
+    defer dir.close(io);
+
+    var bad: u32 = 0; // same silent-skip hazard as readHeartbeats: a corrupt
+    // run record must be reported, not swallowed (T399).
+    var it = dir.iterate();
+    while (it.next(io) catch null) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".json")) continue;
+
+        const abs = std.fs.path.join(alloc, &.{ runs_dir, entry.name }) catch continue;
+        defer alloc.free(abs);
+        const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch |err| {
+            if (err == error.FileNotFound) continue;
+            bad += 1;
+            continue;
+        };
+        defer alloc.free(content);
+
+        const trimmed = std.mem.trim(u8, content, " \r\n");
+        if (trimmed.len == 0) {
+            bad += 1;
+            continue;
+        }
+
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch {
+            bad += 1;
+            continue;
+        };
+        defer parsed.deinit();
+        if (parsed.value != .object) {
+            bad += 1;
+            continue;
+        }
+        const obj = parsed.value.object;
+
+        const task = runRecStr(obj, "task");
+        if (task.len == 0) {
+            bad += 1;
+            continue;
+        }
+
+        const end = runRecOptStr(obj, "end");
+        const killed = runRecOptStr(obj, "killed");
+        try result.append(alloc, RunRecord{
+            .task = try alloc.dupe(u8, task),
+            .pid = runRecI64(obj, "pid"),
+            .pgid = runRecI64(obj, "pgid"),
+            .launcher_pid = runRecI64(obj, "launcher_pid"),
+            .start = try alloc.dupe(u8, runRecStr(obj, "start")),
+            .end = if (end) |s| try alloc.dupe(u8, s) else null,
+            .exit = runRecOptI64(obj, "exit"),
+            .signal = runRecOptI64(obj, "signal"),
+            .command = try alloc.dupe(u8, runRecStr(obj, "command")),
+            .wall = runRecF64(obj, "wall"),
+            .cpu = runRecF64(obj, "cpu"),
+            .rss_mb = runRecF64(obj, "rss_mb"),
+            .killed = if (killed) |s| try alloc.dupe(u8, s) else null,
+        });
+    }
+    if (bad > 0) {
+        w.diag("warn: {d} unparseable or malformed run record(s) in untracked/runs/\n", .{bad});
+    }
+    return result;
+}
+
+/// True when a process with this pid exists (POSIX kill(pid, 0) probe).
+/// Conservative on doubt: PermissionDenied means the process exists but we
+/// may not signal it; any unexpected error is treated as alive — the reaper
+/// never closes a row it cannot prove dead.
+fn processAlive(pid: i64) bool {
+    if (pid <= 0) return false;
+    std.posix.kill(@intCast(pid), @enumFromInt(0)) catch |err| {
+        return switch (err) {
+            error.ProcessNotFound => false,
+            else => true,
+        };
+    };
+    return true;
+}
+
+const ReapClass = enum {
+    backed_process, // run-record pid alive — never reap
+    backed_heartbeat, // no run record but a fresh heartbeat — never reap
+    orphan_ended, // runner dead, completed record — run ended, row never closed
+    orphan_midflight, // runner dead, launch record only — killed mid-flight
+    orphan_no_evidence, // no run record, no fresh heartbeat — nothing backs the row
+};
+
+const ReapRow = struct {
+    tid: []const u8,
+    cls: ReapClass,
+    evidence: []const u8,
+};
+
+fn latestRunRecordFor(runs: []const RunRecord, tid: []const u8) ?RunRecord {
+    var latest: ?RunRecord = null;
+    for (runs) |r| {
+        if (!std.mem.eql(u8, r.task, tid)) continue;
+        if (latest == null or std.mem.lessThan(u8, (latest.?).start, r.start)) latest = r;
+    }
+    return latest;
+}
+
+fn latestHeartbeatFor(heartbeats: []const Heartbeat, tid: []const u8) ?Heartbeat {
+    var latest: ?Heartbeat = null;
+    for (heartbeats) |h| {
+        if (!std.mem.eql(u8, h.task, tid)) continue;
+        if (latest == null or std.mem.lessThan(u8, (latest.?).ts, h.ts)) latest = h;
+    }
+    return latest;
+}
+
+/// Classify every in_progress row as backed or orphan, with the evidence
+/// string that becomes the abandoned note.  Shared by `reap` and `resume`.
+/// Caller frees the rows (tid/evidence are allocated).
+fn classifyReapRows(
+    w: Writers,
+    io: std.Io,
+    repo_root: []const u8,
+    state: *const StateMap,
+    ledger: *const LedgerStatuses,
+    stale_secs: i64,
+    heartbeats: []const Heartbeat,
+) !std.ArrayList(ReapRow) {
+    var rows = std.ArrayList(ReapRow).empty;
+    errdefer rows.deinit(alloc);
+
+    var runs = try readRunRecords(w, io, repo_root);
+    defer {
+        for (runs.items) |r| {
+            alloc.free(r.task);
+            alloc.free(r.start);
+            if (r.end) |s| alloc.free(s);
+            alloc.free(r.command);
+            if (r.killed) |s| alloc.free(s);
+        }
+        runs.deinit(alloc);
+    }
+
+    var now_tp: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &now_tp);
+    const now_unix: i64 = now_tp.sec;
+
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const tid = entry.key_ptr.*;
+        const ts = entry.value_ptr.*;
+        if (resolveStatus(state, ts, ledger, tid).status != .in_progress) continue;
+
+        var cls: ReapClass = undefined;
+        var evidence: []const u8 = "";
+
+        if (latestRunRecordFor(runs.items, tid)) |rec| {
+            if (processAlive(rec.pid)) {
+                cls = .backed_process;
+                evidence = try std.fmt.allocPrint(alloc,
+                    "runner pid {d} alive (start {s}, command {s}) — row is backed", .{
+                    rec.pid, rec.start, rec.command,
+                });
+            } else if (rec.exit != null or rec.signal != null) {
+                // The run COMPLETED (child exited or was killed) but the row
+                // was never closed — the runner is gone.
+                cls = .orphan_ended;
+                if (rec.signal) |sig| {
+                    evidence = try std.fmt.allocPrint(alloc,
+                        "no live process — run ended signal={d} wall={d:.1}s at {s}; runner pid {d} dead; row never closed", .{
+                        sig, rec.wall, rec.end orelse "?", rec.pid,
+                    });
+                } else {
+                    evidence = try std.fmt.allocPrint(alloc,
+                        "no live process — run ended exit={d} wall={d:.1}s at {s}; runner pid {d} dead; row never closed", .{
+                        rec.exit orelse -1, rec.wall, rec.end orelse "?", rec.pid,
+                    });
+                }
+            } else {
+                // Launch record with no exit fields: the runner itself was
+                // killed mid-flight (the 2026-08-04 incident shape).
+                cls = .orphan_midflight;
+                evidence = try std.fmt.allocPrint(alloc,
+                    "no live process — launch record {s} (command {s}) has no exit fields; runner pid {d} dead — killed mid-flight", .{
+                    rec.start, rec.command, rec.pid,
+                });
+            }
+        } else if (latestHeartbeatFor(heartbeats, tid)) |hb| {
+            if (ageSecFromTs(hb.ts, now_unix)) |age| {
+                if (age <= stale_secs) {
+                    cls = .backed_heartbeat;
+                    evidence = try std.fmt.allocPrint(alloc,
+                        "no run record but last beat {d}s ago — beating, never reap a healthy worker", .{age});
+                } else {
+                    cls = .orphan_no_evidence;
+                    evidence = try std.fmt.allocPrint(alloc,
+                        "no live process — no run record; last heartbeat {s} ({d}s ago); nothing backs the row", .{
+                        hb.ts, age,
+                    });
+                }
+            } else {
+                cls = .orphan_no_evidence;
+                evidence = try std.fmt.allocPrint(alloc,
+                    "no live process — no run record; last heartbeat {s} (unparseable ts); nothing backs the row", .{hb.ts});
+            }
+        } else if (ts.claimed) |claimed| {
+            cls = .orphan_no_evidence;
+            evidence = try std.fmt.allocPrint(alloc,
+                "no live process — no run record and never beat since claim {s}", .{claimed});
+        } else {
+            cls = .orphan_no_evidence;
+            evidence = try alloc.dupe(u8, "no live process — no run record and no heartbeat");
+        }
+
+        try rows.append(alloc, .{ .tid = tid, .cls = cls, .evidence = evidence });
+    }
+    return rows;
+}
+
+fn freeReapRows(rows: *std.ArrayList(ReapRow)) void {
+    for (rows.items) |r| {
+        alloc.free(r.evidence);
+        // r.tid is NOT freed: it aliases the state map's key memory (the
+        // classifier copies the key pointer).  The caller owns the map and
+        // frees it via freeState; freeing here would double-free.
+    }
+    rows.deinit(alloc);
+}
+
+fn isOrphanReap(cls: ReapClass) bool {
+    return switch (cls) {
+        .backed_process, .backed_heartbeat => false,
+        else => true,
+    };
+}
+
 
 // ── 1. sync <role> — message-bus sync ───────────────────────────────────────
 
@@ -7461,6 +7824,156 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
 
     if (found == 0) {
         w.data("    -- no in_progress tasks --\n", .{});
+    }
+    w.data("\n", .{});
+}
+
+// ── reap — reconcile the kanban against the process table (T364) ────────────
+//
+// For each in_progress row: a live runner pid (from the run record in
+// untracked/runs/) or a fresh heartbeat means the row is BACKED and is
+// never reaped — a row whose worker is alive but idle is reported as alive,
+// stalled being the progress watchdog's job, not the reaper's.  Everything
+// else is an ORPHAN: a dead runner with a completed record (the run ended
+// but the row was never closed), a dead runner with a launch record only
+// (killed mid-flight — the 2026-08-04 incident shape), or no process
+// evidence at all (no run record, no fresh heartbeat).
+//
+// Report-only by default (stdout = data; exit 0 whether or not orphans
+// exist).  `--close` closes each orphan as `abandoned` with the evidence as
+// the note — never a verdict guess.  The close runs under the store flock
+// with a FRESH re-classification, so a row that became backed between the
+// report and the close is not closed.
+fn cmdReap(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    const do_close = hasFlag(args, "--close");
+
+    // Same staleness threshold as liveness (T370): the line between
+    // "beating" and "beats stopped".  Default 5 min; override with
+    // --stale-min or LIVENESS_STALE_MIN.
+    const stale_min = blk: {
+        const override_ptr = std.c.getenv("LIVENESS_STALE_MIN");
+        if (override_ptr) |op| {
+            const sp = std.mem.span(op);
+            if (std.fmt.parseFloat(f64, sp)) |f| break :blk f else |_| {}
+        }
+        if (getFlagValue(args, "--stale-min")) |v| {
+            if (std.fmt.parseFloat(f64, v)) |f| break :blk f else |_| {}
+        }
+        break :blk 5.0;
+    };
+    const stale_secs: i64 = @intFromFloat(@max(stale_min, 0.0) * 60.0);
+
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
+    var heartbeats = try readHeartbeats(w, io, repo_root);
+    defer {
+        for (heartbeats.items) |h| {
+            alloc.free(h.identifier);
+            alloc.free(h.task);
+            alloc.free(h.ts);
+            alloc.free(h.command);
+        }
+        heartbeats.deinit(alloc);
+    }
+
+    var rows = try classifyReapRows(w, io, repo_root, &state, &ledger, stale_secs, heartbeats.items);
+    defer freeReapRows(&rows);
+
+    w.data("\n  Reap — in_progress rows vs the process table:\n", .{});
+    var n_backed: u32 = 0;
+    var n_orphan: u32 = 0;
+    for (rows.items) |r| {
+        if (isOrphanReap(r.cls)) {
+            n_orphan += 1;
+            w.data("    {s}  [ORPHAN]   {s}\n", .{ r.tid, r.evidence });
+        } else {
+            n_backed += 1;
+            w.data("    {s}  [BACKED]   {s}\n", .{ r.tid, r.evidence });
+        }
+    }
+    if (rows.items.len == 0) {
+        w.data("    -- no in_progress rows --\n", .{});
+    }
+    w.data("\n  backed: {d}   orphans: {d}   (stale threshold {d:.1} min)\n", .{ n_backed, n_orphan, stale_min });
+    if (n_orphan == 0) {
+        w.data("  nothing to reap.\n\n", .{});
+        return;
+    }
+    if (!do_close) {
+        w.data("  run `managent reap --close` to close each orphan as `abandoned`\n", .{});
+        w.data("  with the evidence above as its note (never a verdict guess).\n\n", .{});
+        return;
+    }
+
+    // ── --close: under the flock, fresh re-read + re-classification ────
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state2 = try readState(io, state_path);
+    defer freeState(&state2);
+    var rows2 = try classifyReapRows(w, io, repo_root, &state2, &ledger, stale_secs, heartbeats.items);
+    defer freeReapRows(&rows2);
+
+    var closed = std.ArrayList([]const u8).empty;
+    defer closed.deinit(alloc);
+    const now = try nowTimestamp();
+    defer alloc.free(now);
+    for (rows2.items) |r| {
+        if (!isOrphanReap(r.cls)) continue;
+        const ts_ptr = state2.getPtr(r.tid) orelse continue;
+        if (ts_ptr.status != .in_progress) continue;
+        const note = try std.fmt.allocPrint(alloc, "reaped: {s}", .{r.evidence});
+        ts_ptr.status = .done;
+        // dupe per task: freeState frees each task's own done string; a
+        // shared pointer would be freed once per task (double free).
+        ts_ptr.done = try alloc.dupe(u8, now);
+        ts_ptr.verdict = try alloc.dupe(u8, "abandoned");
+        if (ts_ptr.verdict_note) |old| alloc.free(old);
+        ts_ptr.verdict_note = note;
+        sys_closes += 1; // T478: a close is a close — duty due-counts advance
+        try closed.append(alloc, r.tid);
+    }
+
+    if (closed.items.len == 0) {
+        w.diag("  nothing to close — rows are backed again since the report (state changed)\n", .{});
+        return;
+    }
+
+    // Unblock dependents whose needs are now met (same semantics as cmdDone:
+    // a .done row satisfies needs, whatever its verdict).
+    var unblocked = std.ArrayList([]const u8).empty;
+    defer unblocked.deinit(alloc);
+    var it2 = state2.iterator();
+    while (it2.next()) |entry| {
+        const dep_ts = entry.value_ptr.*;
+        if (dep_ts.status != .blocked) continue;
+        if (deriveStatus(&state2, dep_ts) == .dispatchable) {
+            const dep_ptr = state2.getPtr(entry.key_ptr.*).?;
+            dep_ptr.status = .dispatchable;
+            try unblocked.append(alloc, entry.key_ptr.*);
+        }
+    }
+
+    try writeStateLocked(io, state_path, &state2);
+
+    w.data("  closed {d} orphan(s) as `abandoned`:", .{closed.items.len});
+    for (closed.items) |c| w.data(" {s}", .{c});
+    w.data("\n", .{});
+    for (rows2.items) |r| {
+        if (!isOrphanReap(r.cls)) continue;
+        var was_closed = false;
+        for (closed.items) |c| {
+            if (std.mem.eql(u8, c, r.tid)) was_closed = true;
+        }
+        if (was_closed) {
+            w.data("    {s}: note = reaped: {s}\n", .{ r.tid, r.evidence });
+        }
+    }
+    if (unblocked.items.len > 0) {
+        w.data("  unblocked:", .{});
+        for (unblocked.items) |u| w.data(" {s}", .{u});
+        w.data("\n", .{});
     }
     w.data("\n", .{});
 }

@@ -221,6 +221,20 @@ pub fn build(b: *std.Build) void {
     runner_regression.cwd = b.path(".");
     test_step.dependOn(&runner_regression.step);
 
+    // ── orphan-reaper controls (T364) ─────────────────────────────────
+    // Parent-side exit records + `managent reap`: the 2026-08-04 incident
+    // (SIGKILLed runners wrote no exit heartbeat; rows sat in_progress with
+    // nothing alive behind them).  Arms: exit-record null (clean run leaves
+    // a completed record), seeded child-SIGKILL (record survives with
+    // signal=9), seeded runner-SIGKILL (launch record remains, no exit
+    // fields), reap report+close (orphans named and closed abandoned with
+    // evidence), null (live worker never reaped), heartbeat-backed never
+    // reaped, resume fleet-stall surface.  The reap arms SKIP loudly when
+    // the managent binary lacks the reap command (main.zig integration).
+    const orphan_reaper_regression = b.addSystemCommand(&.{ "sh", "tools/regression-orphan-reaper.sh" });
+    orphan_reaper_regression.cwd = b.path(".");
+    test_step.dependOn(&orphan_reaper_regression.step);
+
     // ── subagent-prompt controls (T315/T317) ──────────────────────────
     // bin/subagent is given a model but did not include --agent <model>
     // in the generated prompt.  T315 ships the controls standalone; T317

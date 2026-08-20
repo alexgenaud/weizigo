@@ -181,6 +181,62 @@ The heartbeat carries wall-clock time, cumulative CPU, peak RSS, command,
 and the task identifier.  These accumulate per task in `heartbeat.jsonl`
 and drive `managent liveness` and the staleness checks in `managent audit`.
 
+### Run records — parent-side exit evidence (T364, 2026-08-20)
+
+A heartbeat is written by the child of the child — the runner itself.  When
+the runner is SIGKILLed it cannot write one (2026-08-04: T355/T356 ended
+with NO exit beat at all, and their rows sat `in_progress` for hours with
+nothing alive behind them).  The parent must record the child's fate, not
+the child.  The runner therefore writes a **run record** at
+`untracked/runs/<task>.json` in two stages:
+
+1. **Launch record** — written immediately after the child spawns, before
+   any exit path can run: the runner's own `pid`, the child's process group
+   `pgid`, `launcher_pid`, `start` timestamp, and the command.  A SIGKILL
+   of the runner itself leaves exactly this.
+2. **Completed record** — the same file rewritten at every exit (success,
+   failure, guard kill, exception) with the child's fate: `exit` code or
+   `signal` (subprocess reports killed-by-signal as a negative returncode;
+   the runner records the signal separately), `end` timestamp, `wall`,
+   `cpu`, `rss_mb`, and `killed` (the guard's kill reason).
+
+Two failure classes, both readable afterwards:
+
+- `kill -9` of the **child** → the runner survives and writes a completed
+  record (`signal` present) — evidence exists despite the SIGKILL;
+- `kill -9` of the **runner** → the launch record remains with no exit
+  fields — `managent reap` / `resume` reads "killed mid-flight".
+
+The write is atomic (tmp + rename), so a reader never sees a torn record.
+`managent reap` keys rows to the record's `task` field, checks the record's
+`pid` (the runner) against the process table, and closes orphaned rows
+`abandoned` with the record's fields as the note.  `managent resume`
+flags in_progress rows with no live backing in its "fleet stalls" section.
+
+### Guarding the sweep — a %CPU sweep kills workers (T364, 2026-08-20)
+
+The 2026-08-04 incident was caused by sweeping every process above 50 % CPU
+with `kill -9` during a load-16 crisis — the sweep killed the project's own
+workers (the runners and their children), and their rows stayed
+`in_progress` for hours with nothing alive behind them.  **A CPU-percentage
+threshold kills workers indiscriminately**: the runner itself is idle (its
+CPU is near zero) while its child hammers a core, and a `zig test` binary
+spinning at high CPU is exactly the project's own workload, not a leak.
+
+If a crisis kill is needed, target the **process group of the offending
+row**, not a `%CPU` threshold:
+
+```sh
+# the run record names the child's process group (pgid) for the row:
+python3 -c 'import json;print(json.load(open("untracked/runs/<task>.json"))["pgid"])'
+kill -9 -- -<pgid>          # the runner's setsid child is its own group
+```
+
+The runner's own guards (RSS cap, host-pressure guard, progress watchdog)
+are the sanctioned kill paths; an external sweep is the failure mode they
+exist to survive.  `tools/runner --sweep` *lists* top CPU consumers for the
+human to inspect — it does not kill.
+
 ### `managent liveness` states (T370, 2026-08-06)
 
 `liveness` distinguishes three real states per in_progress task instead of
