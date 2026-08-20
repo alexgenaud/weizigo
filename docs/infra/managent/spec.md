@@ -677,11 +677,16 @@ Checks the five standing-tier triggers and **auto-registers** any that fired
   writes). (T210 D2)
 - **STANDING-REEVIDENCE** — claimlint C3 debt grows
 - **STANDING-CONSOLIDATE** — any new falsification (FALSE-AS-SCOPED count increased)
-- **STANDING-ABSORB** — claimlint C7 unabsorbed findings exceeds the threshold
-  (5, rationale in `src/managent/main.zig`; the count is read from
-  `bin/weizigo-claimlint`'s own summary, never reimplemented, and the per-file
-  composition is surfaced). Absolute, not change-based: a backlog that stays
-  above the threshold across turns still needs absorbing. (T294)
+- **STANDING-ABSORB** — the absorption **closed partition** reads above zero
+  (T486, absorption-spec §8): any findings file on a done/failed/archived task
+  that is non-conforming or carries unabsorbed proposals. The partition is
+  computed by joining claimlint's `c7 --json` per-file report against the
+  kanban + archive; the count is claimlint's own — never reimplemented
+  (T481 §7) — and the per-file composition is surfaced in `managent audit`.
+  A non-zero closed partition is a crisis trigger for mechanism bypass (the
+  close gate, T485, makes it impossible by construction), not a chore
+  threshold; the open partition (findings of still-open tasks) is healthy
+  in-flight work and never fires.
 
 Trigger state is persisted in the `_standing` key of `tasks.json`. Each
 template brief lives in `docs/infra/dispatch/STANDING-*.md`.

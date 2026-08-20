@@ -13,6 +13,19 @@ epistemic register (`docs/epistemic/CLAIMS.md`).
 ratifies absorption. If a later re-examination changes a verdict, it is a NEW
 task with a NEW findings file. The findings file is an immutable record.
 
+## Findings files vs register rows — not a bijection
+
+347 findings files exist; the register holds 228 rows (T481 §1, 2026-08-19).
+These are not, and must never be, in bijection. A findings file is an
+**immutable per-task proposal-and-provenance record** (the integrity rule
+above); the register is the **current ratified belief**. 41 distinct findings
+files are cited as evidence inside `docs/epistemic/CLAIMS.md`; 25 are named in
+`findings/rejections.json`; the remainder are matched-status records or
+presence-only context dumps. Silence in the register about a findings **file**
+is normal. Silence about a **proposal** is the defect — claimlint C7 is exactly
+its census: every proposal is either reflected, dispositioned, or owned by a
+still-open task; anything else is drift (absorption-spec §1, T481).
+
 ## File naming
 
 ```

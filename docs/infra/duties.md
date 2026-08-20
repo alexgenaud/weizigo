@@ -67,10 +67,14 @@ Since a duty cannot complete, a chunk passes when all three hold:
 "Nothing to do" is a **fail**, not a pass: it means the duty could not find work, and a duty that
 cannot find work is either finished (impossible by construction) or broken.
 
-## Not yet built
+## The duty verbs (live — T478)
 
-`managent` has no duty verbs. The mechanism — register, due-count, run, gate — is `T478`.
-Until it lands, duties are defined here and dispatched by hand, which is honest but manual.
+`managent` ships the duty mechanism since T478: `managent duty <UID> done --verdict
+pass|fail --findings <path>` records one chunk (a duty never closes), `managent add --duty`
+registers a duty, `managent landmark <Ln> --declare` gates a landmark declaration on duty
+currency (overdue or last-failed blocks), and `managent status` renders duties in their own
+section. Due-ness is by closes, not clock: a duty becomes due `due_after` task closes
+(default 5) after its last chunk. Duties are no longer dispatched by hand.
 
 ## Naming note
 

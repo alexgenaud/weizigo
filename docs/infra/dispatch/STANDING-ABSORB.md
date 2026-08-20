@@ -1,24 +1,28 @@
 <!--managent set=H-->
-# STANDING-ABSORB — absorb the findings backlog
+# STANDING-ABSORB — absorb the closed partition
 
-**Landmark:** advances `L4 (the ledger is clean)` — auto-triggered absorption pass; without it, unabsorbed findings silently accumulate, and the C7 gauge reads one number while the register reads another.
+**Landmark:** advances `L4 (the ledger is clean)` — crisis-triggered absorption pass for findings on closed tasks; a non-zero reading means someone went around the close gate (absorption-spec §8, T481).
 
-Auto-registered standing task. Trigger: claimlint's C7 unabsorbed-findings count
-exceeds the threshold (5) — `managent standing` fires when
-`C7 unabsorbed findings` in `bin/weizigo-claimlint`'s summary is above it, and
-prints the per-file composition so triage is done before work starts.
+Auto-registered standing task. Trigger: the **closed partition** reads above
+**zero** (T486, absorption-spec §8) — any findings file on a done/failed/
+archived task that is non-conforming or carries unabsorbed proposals.
+`managent standing` joins claimlint's `c7 --json` per-file report against the
+kanban + archive (T481 §7) and fires on the first such file, printing the
+per-file composition so the bypass is triaged before work starts.
 
-Absorption has been registered by hand three times in two days (T279, T288,
-T293) because the Orchestrator happened to notice C7 climbing. This trigger
-makes that a mechanism (T294, 2026-08-03).
+The open partition — findings of still-open tasks, at any count — is healthy
+in-flight work and never triggers. The closed partition is a crisis: with the
+close gate in place (T485), a non-zero reading can only mean a side door
+(hand-edited register, post-close findings edit, deleted rejection entry).
 
 ## Task
 
-Absorb the unabsorbed findings into the epistemic register:
+Absorb the closed partition into the epistemic register:
 
-- Read the count and its per-file breakdown from `managent standing` (the
-  count is claimlint's own — do not reimplement it).
-- For each UNABSORBED entry: reconcile the proposed status against
+- Read the composition from `managent standing` / `managent audit` (the count
+  is claimlint's `c7 --json` joined against the kanban — do not reimplement
+  it, T481 §7).
+- For each closed-partition entry: reconcile the proposed status against
   `docs/epistemic/CLAIMS.md`; ratify it (update/add the row, citing the
   findings file) or disposition it in `findings/rejections.json` with a
   reason-carrying entry.
@@ -26,8 +30,6 @@ Absorb the unabsorbed findings into the epistemic register:
   noise in the count: when a dump's claims are already carried by the same
   task's findings file, disposition the duplicates rather than absorbing them
   twice.
-- Do not absorb what is not yours to absorb: the CLAIMS.md owner is the
-  claims-register seat; confirm scope before editing.
 - **Never widen a claimlint floor to admit a citation.** When a finding cites
   a path under `/tmp/` or `untracked/`, that evidence is alive only until the
   next prune or reboot.  Rescue the file into tracked evidence under
@@ -39,6 +41,6 @@ Absorb the unabsorbed findings into the epistemic register:
 
 ## Deliverable
 
-C7 unabsorbed down to at or below the threshold, with every remaining entry
-explicitly dispositioned; the absorption reflected in `docs/epistemic/CLAIMS.md`
+Closed partition down to zero, with every remaining entry explicitly
+dispositioned; the absorption reflected in `docs/epistemic/CLAIMS.md`
 and/or `findings/rejections.json`, committed.
