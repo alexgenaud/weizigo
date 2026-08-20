@@ -250,6 +250,19 @@ pub fn build(b: *std.Build) void {
     runner_regression.cwd = b.path(".");
     test_step.dependOn(&runner_regression.step);
 
+    // ── fleet-aware memory guard controls (T362) ───────────────────────
+    // The runner's RSS cap is per-process and absolute; T362 adds a
+    // host-pressure guard that reads system-wide available memory and,
+    // below a danger floor derived from hw.memsize, SIGKILLs the LARGEST
+    // member of the process group.  Four arms: null (small job untouched),
+    // seeded (host guard fires on the composition case via an injected
+    // reading, per-process cap does NOT), seeded (progress watchdog still
+    // bites — that guard is unchanged), guard-bite (per-process cap still
+    // bites).  `zig build test` is the T362 acceptance gate.
+    const runner_guard_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-guard.sh" });
+    runner_guard_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_guard_regression.step);
+
     // ── orphan-reaper controls (T364) ─────────────────────────────────
     // Parent-side exit records + `managent reap`: the 2026-08-04 incident
     // (SIGKILLed runners wrote no exit heartbeat; rows sat in_progress with
@@ -263,6 +276,20 @@ pub fn build(b: *std.Build) void {
     const orphan_reaper_regression = b.addSystemCommand(&.{ "sh", "tools/regression-orphan-reaper.sh" });
     orphan_reaper_regression.cwd = b.path(".");
     test_step.dependOn(&orphan_reaper_regression.step);
+
+    // ── worktree-root controls (T449) ─────────────────────────────────
+    // The runner's _find_repo_root() walked up for a `.git` DIRECTORY,
+    // which is a FILE in a git worktree — repo_root resolved to None and
+    // heartbeats/directives silently died for any runner launched from a
+    // worktree (the T447 race ran five lanes with no heartbeats).  T449
+    // resolves via `git rev-parse --show-toplevel` (same fix as bakeoff,
+    // T376), walk-up kept as the non-git fallback.  Arms: seeded (heartbeat
+    // lands in a fresh worktree's own untracked/), seeded (directive in
+    // the worktree's directives.jsonl is read, exit 124), null
+    // (main-checkout run unchanged — exactly one heartbeat line).
+    const runner_worktree_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-worktree.sh" });
+    runner_worktree_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_worktree_regression.step);
 
     // ── subagent-prompt controls (T315/T317) ──────────────────────────
     // bin/subagent is given a model but did not include --agent <model>
@@ -325,6 +352,21 @@ pub fn build(b: *std.Build) void {
     const dispatch_regression = b.addSystemCommand(&.{ "sh", "tools/regression-dispatch.sh" });
     dispatch_regression.cwd = b.path(".");
     test_step.dependOn(&dispatch_regression.step);
+
+    // ── T503: model dimension profiles controls ───────────────────────
+    // tools/model-profiles.py grades each model's performance dimensions
+    // from the ledger and carries the operator's exploration-first
+    // selection rule (no data on a task type is a reason to choose).
+    // Controls: (a) a 0-data model is selected over one with data,
+    // (b) when every candidate has data the type's dominant dimension
+    // decides, (c) an empty dimension is `—` (null) never 0, (d) the
+    // --json output round-trips byte-identically and matches hand-computed
+    // averages, (e) an uncommitted declared deliverable flips
+    // deliverable_conformance to 0.  Scratch store/ledger/logs only —
+    // never the live kanban, live repo, or docs/infra/model-perf.md.
+    const model_profiles_regression = b.addSystemCommand(&.{ "sh", "tools/regression-model-profiles.sh" });
+    model_profiles_regression.cwd = b.path(".");
+    test_step.dependOn(&model_profiles_regression.step);
 
     // ── T352: inbox-loop regression controls ──────────────────────
     // Five controls: empty inbox is a no-op, a `tell` → read → ack →

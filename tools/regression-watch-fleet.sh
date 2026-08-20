@@ -224,6 +224,85 @@ else
 fi
 if [ "$e_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 
+# ── Arm F: process-filter collision (T493 change 5, LIVE file) ────────
+# The live file skips any candidate whose command contains the substring
+# "watch-fleet" — meant to hide the script's own invocation, but it also
+# hides a WORKER whose bundle path contains "watch-fleet" (e.g.
+# T492-watch-fleet-keypress-reset.md). Red-first: a seeded worker with
+# that bundle path must be SHOWN; a worker whose command contains the
+# script path "watch-fleet.sh" must still be HIDDEN. The fix matches the
+# script's own path (.sh) rather than the bare substring.
+# NB: a PHYSICAL scratch path (under /private/tmp, not the /tmp symlink)
+# is required because the live file sets REPO=$(pwd) of `dirname "$0")/..`
+# and compares it to lsof's resolved cwd — a /tmp path would mismatch the
+# worker's /private/tmp cwd and hide every worker, the way the real
+# (non-symlinked) repo does not.
+echo "  F. watch-fleet bundle-path worker shown; script invocation hidden (live file)"
+WORK2=$(mktemp -d /private/tmp/weizigo/wf-live-XXXXXX)
+mkdir -p "$WORK2/bin" "$WORK2/untracked" "$WORK2/docs/infra/managent"
+ln -s "$MG" "$WORK2/bin/managent"
+STORE2="$WORK2/docs/infra/managent/tasks.json"
+printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STORE2"
+LIVE_COPY="$WORK2/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY" 2>/dev/null
+# brief whose slug contains "watch-fleet" (line 2 = the desc source); a long
+# title also makes the PROGRESS row wide enough for arm G's trimming check.
+printf '<!--managent -->\n# T492 — watch-fleet keypress resets the refresh schedule and a long description here\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORK2/untracked/T492-watch-fleet-keypress-reset.md"
+[ -n "$DUMMY_PID" ] && kill "$DUMMY_PID" 2>/dev/null
+# worker whose bundle path contains "watch-fleet" (the bug) — must be SHOWN
+bash -c "cd '$WORK2' && exec -a 'pi --provider ollama --model glm-5.2 Follow untracked/T492-watch-fleet-keypress-reset.md' sleep 90" &
+P492=$!
+# worker whose command contains the script path "watch-fleet.sh" — must stay HIDDEN
+bash -c "cd '$WORK2' && exec -a 'pi --provider ollama --model glm-5.2 Follow untracked/T991-watch-fleet.sh' sleep 90" &
+P991=$!
+FRAME_F=$(MANAGENT_STORE="$STORE2" FLEET_COLS=200 sh "$LIVE_COPY" </dev/null 2>/dev/null)
+kill "$P492" "$P991" 2>/dev/null; wait "$P492" "$P991" 2>/dev/null
+f_fail=0
+if ! printf '%s\n' "$FRAME_F" | grep -q '^  T492 '; then
+    echo "    FAIL: T492 (bundle path with watch-fleet) should be SHOWN in PROGRESS"; f_fail=1
+fi
+if printf '%s\n' "$FRAME_F" | grep -q '^  T991 '; then
+    echo "    FAIL: T991 (command with watch-fleet.sh) should be HIDDEN"; f_fail=1
+fi
+if [ "$f_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORK2"
+
+# ── Arm G: terminal size re-read per frame (T493 change 4, LIVE file) ─
+# Control: the live file must read COLS freshly each frame and not cache a
+# hardcoded width. Two one-shot frames with FLEET_COLS=20 and =200 must trim
+# the same wide PROGRESS row differently — proving COLS drives layout on
+# every run. (The script re-reads stty size / FLEET_COLS at the top of each
+# loop iteration; one-shot mode draws one frame, so per-invocation freshness
+# is the observable proxy for per-frame freshness. Code inspection confirms
+# no size variable survives across loop iterations.)
+echo "  G. FLEET_COLS read per frame — wide row trims at 20, not at 200 (live file)"
+WORK3=$(mktemp -d /private/tmp/weizigo/wf-size-XXXXXX)
+mkdir -p "$WORK3/bin" "$WORK3/untracked" "$WORK3/docs/infra/managent"
+ln -s "$MG" "$WORK3/bin/managent"
+STORE3="$WORK3/docs/infra/managent/tasks.json"
+printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STORE3"
+LIVE_COPY3="$WORK3/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY3" 2>/dev/null
+printf '<!--managent -->\n# T492 — watch-fleet keypress resets the refresh schedule and a long description here\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORK3/untracked/T492-watch-fleet-keypress-reset.md"
+bash -c "cd '$WORK3' && exec -a 'pi --provider ollama --model glm-5.2 Follow untracked/T492-watch-fleet-keypress-reset.md' sleep 90" &
+P492=$!
+g_fail=0
+FRAME_20=$(MANAGENT_STORE="$STORE3" FLEET_COLS=20 sh "$LIVE_COPY3" </dev/null 2>/dev/null)
+FRAME_200=$(MANAGENT_STORE="$STORE3" FLEET_COLS=200 sh "$LIVE_COPY3" </dev/null 2>/dev/null)
+kill "$P492" 2>/dev/null; wait "$P492" 2>/dev/null
+row20=$(printf '%s\n' "$FRAME_20" | grep '^  T492 ' | head -1)
+row200=$(printf '%s\n' "$FRAME_200" | grep '^  T492 ' | head -1)
+len20=${#row20}; len200=${#row200}
+if [ -z "$row20" ] || [ -z "$row200" ]; then
+    echo "    FAIL: T492 row missing (20:${row20:-<none>} 200:${row200:-<none>})"; g_fail=1
+elif [ "$len20" -gt 20 ]; then
+    echo "    FAIL: at COLS=20 row should be <=20 chars, got $len20: '$row20'"; g_fail=1
+elif [ "$len200" -le 20 ]; then
+    echo "    FAIL: at COLS=200 row should be >20 chars, got $len200: '$row200'"; g_fail=1
+fi
+if [ "$g_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORK3"
+
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="
     exit 1
