@@ -455,7 +455,7 @@ class ArgusRun:
                 value=current,
                 baseline=baseline_val,
                 proposed_task=True,
-                proposed_brief=f"{in_progress_count} task(s) in_progress. Verify consoles are alive; reopen if dead.",
+                proposed_brief=f"{in_progress_count} task(s) in_progress. Verify each console's liveness by assertion or heartbeat; absence of a signal is UNKNOWN — no assertion, never grounds to presume a console dead.",
             )
         else:
             self.finding(
@@ -843,10 +843,9 @@ class ArgusRun:
     # ── check 2: in_progress with no heartbeat ────────────────────────
 
     def _doctor_in_progress_no_heartbeat(self):
-        """Rows in_progress with no recent heartbeat (= potentially dead console).
-
-        "no heartbeat means no MANAGENT_TASK_ID, not necessarily a dead console" —
-        the check is honest about that. We report under WATCH.
+        """Rows in_progress with no heartbeat — render UNKNOWN — no assertion,
+        never absence (D054: no heartbeat means no instrumentation, not no
+        console). Reported under WATCH, honest about the gap.
         """
         exit_code, stdout, stderr = _managent(self.root, "liveness")
         if exit_code != 0:
@@ -880,7 +879,7 @@ class ArgusRun:
             for row_id, why in suspects:
                 self.doctor_finding(
                     "WATCH",
-                    f"{row_id} in_progress, no heartbeat ({why}) — may lack MANAGENT_TASK_ID",
+                    f"{row_id} in_progress, UNKNOWN — no assertion ({why}) — may lack MANAGENT_TASK_ID",
                     evidence_command="bin/managent liveness",
                     evidence_output=f"{row_id}: {why}",
                 )
