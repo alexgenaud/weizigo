@@ -3873,6 +3873,12 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
                 try buf.appendSlice(alloc, ",\"last_chunk_ts\":");
                 try writeJsonString(&buf, v);
             }
+            // T516: duties carry the same `added`/`claim_count` store fields
+            // as task rows; emit them for a uniform schema across the array.
+            try buf.appendSlice(alloc, ",\"added\":");
+            try writeJsonString(&buf, ts.added);
+            try buf.appendSlice(alloc, ",\"claim_count\":");
+            try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.claim_count}));
             try buf.appendSlice(alloc, "}");
             continue;
         }
@@ -3927,6 +3933,15 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             try buf.appendSlice(alloc, ",\"verdict\":");
             try writeJsonString(&buf, v);
         }
+        // T516: expose `added` (registration timestamp) and `claim_count`
+        // (per-row claim tally) inline so the keeper never shells out to
+        // `show` for two fields the dashboard wants. Both are always-present
+        // store fields (`added` defaults to "", `claim_count` defaults to 0),
+        // so they emit unconditionally for a stable JSON schema.
+        try buf.appendSlice(alloc, ",\"added\":");
+        try writeJsonString(&buf, ts.added);
+        try buf.appendSlice(alloc, ",\"claim_count\":");
+        try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{ts.claim_count}));
         try buf.appendSlice(alloc, "}");
     }
     if (!first) try buf.appendSlice(alloc, "\n");

@@ -291,6 +291,18 @@ pub fn build(b: *std.Build) void {
     runner_worktree_regression.cwd = b.path(".");
     test_step.dependOn(&runner_worktree_regression.step);
 
+    // ── T515: run records are task-id-named, never pid-named (F6) ────────
+    // A degraded run (no --task-id, no MANAGENT_TASK_ID) used to write a
+    // `runner_<pid>.json` run record that `managent reap` could not key to
+    // any row (30 such stragglers were archived on 2026-08-20).  The fix:
+    // tools/runner writes NO run record in degraded mode, so every record
+    // that exists carries a real task id.  Arms: env-identity names the
+    // record, degraded writes nothing, T370's loud warning is preserved,
+    // --task-id auto-claim names the record too (SKIP when no managent).
+    const runner_taskid_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-taskid.sh" });
+    runner_taskid_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_taskid_regression.step);
+
     // ── subagent-prompt controls (T315/T317) ──────────────────────────
     // bin/subagent is given a model but did not include --agent <model>
     // in the generated prompt.  T315 ships the controls standalone; T317
@@ -576,6 +588,18 @@ pub fn build(b: *std.Build) void {
     const done_two_phase_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-done-two-phase.sh" });
     done_two_phase_regression.cwd = b.path(".");
     test_step.dependOn(&done_two_phase_regression.step);
+
+    // ── T516: status --json added/claim_count controls ───────────────
+    // F7: `status --json` omitted `added` (registration ts) and
+    // `claim_count` (per-row claim tally), forcing the keeper to shell out
+    // to `show` for two fields the dashboard wants inline. Four arms,
+    // scratch store only: claimed task exposes added + claim_count==1 ·
+    // dispatchable task exposes added + claim_count==0 · re-claimed task
+    // exposes claim_count==2 · byte-identity guard (status --json never
+    // mutates tasks.json). RED against the pre-T516 binary, GREEN after.
+    const status_json_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-status-json.sh" });
+    status_json_regression.cwd = b.path(".");
+    test_step.dependOn(&status_json_regression.step);
 
     // ── T390: duplicate-dispatch controls ────────────────────────
     // Two consoles on one row happened three times on 2026-08-05/06

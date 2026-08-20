@@ -1,0 +1,8 @@
+{
+  "task_id": "T516",
+  "date": "2026-08-20",
+  "model": "glm-5.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T516 (does status --json carry added/claim_count?) — answered yes. F7 fix: printStatusJson (src/managent/main.zig) now emits `added` (registration timestamp string) and `claim_count` (per-row claim tally, integer) for every row, including the duty branch, so the keeper no longer shells out to `show` for two fields the dashboard wants inline. Both are always-present store fields (added defaults to \"\", claim_count defaults to 0) and emit unconditionally for a stable JSON schema. Test-first: wrote tools/regression-managent-status-json.sh (4 arms, scratch store only — claimed task added+claim_count==1, dispatchable task added+claim_count==0, re-claimed task claim_count==2, byte-identity guard that status --json never mutates tasks.json); shown RED against the pre-fix binary (added/claim_count absent) then GREEN after the fix. Wired into zig build test as status_json_regression. Verified against the live store (T516 now shows added + claim_count==1). No-neighbor regressions all green: managent-integrity, duty, ledger-board-seam, lock, done-two-phase, duplicate-dispatch, claim-lifecycle. This is a tooling change; no claim-status change proposed, so claims/new_rows are empty and no D2 auditor applies."
+}
