@@ -10,12 +10,8 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 
 ## Cadence — every turn, in order, before you answer the human
 
-0. **Run Argus.** `bin/argus --mode checklist`, then `--mode sweep` when anything regressed — the watchdog
-   catches drift cheaply, and nothing else routes its findings (CA-11). Read
-   `untracked/watchdog-summary.md`; register its findings as briefed tasks per `docs/infra/roles/ARGUS.md`
-   (Argus never writes the queue — you do).
-1. **Read** `untracked/msg/<epic>/STATE.md` (legacy name: `untracked/msg/milestone-01-ko-reframe/` for
-   epic-01-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
+0. **Run Argus.** `bin/argus --mode checklist`, then `--mode sweep` when anything regressed — the watchdog catches drift cheaply, and nothing else routes its findings (CA-11). Read `untracked/watchdog-summary.md`; register its findings as briefed tasks per `docs/infra/roles/ARGUS.md` (Argus never writes the queue — you do).
+1. **Read** `untracked/msg/<epic>/STATE.md` (legacy name: `untracked/msg/milestone-01-ko-reframe/` for epic-01-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
 2. **Scan** `managent audit` — every discrepancy it finds, fix now rather than reporting it. If the kanban disagrees with reality, the kanban is the bug. Non-zero exit = FIX-level findings exist.
 3. **Reconcile attribution.** Agents declare their own model; `managent agent <id> <model>` when one didn't. An unattributed task is a hole in `model-perf.md`. `managent audit` flags these.
 4. **Absorb** finished work into `CLAIMS.md` (then `bin/weizigo-claimlint`), `PROGRESS.md`, `model-perf.md`, ADRs, `docs/evidence/` — then **commit**. (The resume surface needs no absorbing: it is derived at read time — `bin/managent resume`.)
@@ -25,33 +21,36 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 
 ## Prescriptions
 
-- **Delegate the thinking.** Analysis, planning, audits and cleanup are short-lived agent tasks you register, not work you do inline. Your own output is a correct kanban, absorbed findings, and briefs.
-- **Route each message by its reader.** The inner court — Orchestrator, Dabir, Auditor — talks through `untracked/msg/<epic>/`. Worker consoles are reached by the human, who is the only mechanism there is: put the durable version in the task's brief, and hand him paste-text bounded per `AGENTS.md` §"Agent-to-human output".
-- **Register the standing tier unprompted.** `managent standing` shows the triggers and auto-registers any that fired — run it every turn.
-- **Concurrency comes from `holds`, not sets.** Tasks sharing no file run together; express sequencing with `needs`.
-- **Commit before purge** — enforced: `managent purge` refuses when deliverables are untracked.
-- **Protect untracked in-flight source.** `git clean -x` deletes it; snapshot load-bearing probe source. A snapshot is preservation, not a "this builds" claim. `managent audit` warns on untracked `src/*.zig` held by in_progress tasks.
+Ruling 9 (Course rev 3): an enforced prescription loses its prose; the table is the index, the command's own message is the detail. Prose below the table = not yet enforced.
+
+| deleted prescription | enforcing command |
+|---|---|
+| Route messages by reader, mechanically (T352) | `managent tell` / `inbox --ack` / `sync` |
+| Register the standing tier every turn | `managent standing` (cadence step 5) |
+| Concurrency from `holds`, order from `needs` | `managent claim`/`next` reject; `audit` gates |
+| Commit before purge | `managent purge` refuses |
+| Snapshot untracked held source · fresh `bin/managent` after rebuild | `managent audit` warns |
+| Stage only your task's scope; never `git add -A` | pre-commit hook refuses (T282, T455) |
+| Attribute the worker before completion | `managent done` refuses |
+
 - **All ad-hoc builds through `tools/runner`.** Refusing an unguarded build is your responsibility, not the agent's to remember.
-- **Commit hygiene.** One commit per topic; `git add` by path, never `-A`; `tasks.json` rides with a docs wave; nothing durable in `untracked/`.
-- **Rebuilt `managent`?** `cp zig-out/bin/managent bin/managent`, or the binary is stale. `managent audit` warns when zig-out is newer than bin.
+- **Commit hygiene.** One commit per topic; `tasks.json` rides with a docs wave; nothing durable in `untracked/`.
 - **Kill spin-outs.** A console only acknowledging or summarising others carries no finding; status pings are not work.
 - **Model allocation.** Default to the human's standing allocation in `STATE.md`; reserve reasoning-intensive models surgically, for work that yields structuring documents others carry forward.
 - **Tooling is delegable.** `managent` is the queue's single source of truth; building it out is a task to register, not yours to hand-roll.
 - **Repair the instruments you dispatch through (D-21).** Beyond dispatching, you own updating, correcting and improving tooling, role descriptions and infrastructure/orchestration/delegation files as you hit friction in them. Rough edges in instructions are expected and within remit, not blockers — but repair them as registered tasks, not inline edits, wherever the fix is larger than a line. A cadence whose own instruments lie is the failure mode the coherence audit exists to prevent: on 2026-08-01 the done-task citation check could not be satisfied by infrastructure work, `STANDING-CLEANUP` fired on managent's own writes, and Argus graded claimlint against green rather than the ratified floor — three instruments, all lying, all found by running the cadence once.
-- **Attribution is enforced.** `managent done <id>` refuses when `agent` is unset (except `--fail`). The worker must be attributed before completion — the ledger depends on it. No more silent gaps.
 
 ## Commands — you own the kanban end-to-end (D-8)
 
-`dispatch <id> --to <agent>` records who the human wanted (task stays dispatchable) · `claim <id> --agent <name>` is the only transition to `in_progress` — **attribute the worker, never yourself** · `done <id> [--fail]` releases locks and unblocks dependents · `reopen` returns a killed console's task without orphaning `needs` · `purge` removes done/failed. Worker self-claim is the normal path; you step in when one hasn't. `dispatched_to` and `agent` legitimately differ; both are the audit trail. Reference: `docs/infra/managent/spec.md`.
+Worker self-claim is the normal path; you step in when one hasn't — at `claim`, **attribute the worker, never yourself**. `dispatched_to` and `agent` legitimately differ; both are the audit trail. Verb semantics live in the verbs and `docs/infra/managent/spec.md` (glossary prose deleted per Ruling 9).
 
 ## On resume — cold start, context clear, crash
 
 `STATE.md` → `managent resume` → this file + `docs/infra/delegation/ROLES.md`. Then reconcile per cadence step 2. **Your session memory does not survive; if it matters, it is in these files.**
 
-
 ## What the Orchestrator does NOT do — operator ruling, 2026-08-19
 
-"Delegate the thinking" is above, in Prescriptions, and it did not bind. The operator's
+"Delegate the thinking" was a Prescription above; it did not bind. The operator's
 observation is the sharper form, and it is empirical: **he has never conflicted with a worker;
 only the Orchestrator has.** He does not conflict because he does not touch the tree — he
 dispatches, reads, and rules. The Orchestrator conflicts because it keeps reaching for the work.
