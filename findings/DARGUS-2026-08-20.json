@@ -5,5 +5,5 @@
  "identifier": "deepseek-v4-flash/DARGUS",
  "claims": [],
  "new_rows": [],
- "notes": "DARGUS chunk (AC5 standing item, 2026-08-20): ran bin/argus --mode doctor. Reported NEEDS ACTION 7 / watch 7 / clean 5. Acted on the actionable finding: 5 stale binaries (weizigo-chainability, claimlint, engine-vs-engine, gtp, reachcensus) \u2014 ran 'zig build deploy'; re-check shows 0 stale-vs-zig-out remaining. Remaining NEEDS ACTION: 1007 volatile evidence citations (C10 census, /tmp+untracked paths in committed docs \u2014 pre-existing standing debt, tracked by C10) and 1 uncommitted tree file (kanban store + this findings file \u2014 committing now). No regression; chunk passes."
+ "notes": "DARGUS chunk #2: ran argus --mode doctor. 5 stale binaries again (chainability, claimlint, engine-vs-engine, gtp, reachcensus \u2014 the deploy-set gap T534 tracks); ran 'zig build deploy', re-check 0 stale. 9 modified tracked files in tree = this session's work, committing in the wave. No regression; chunk passes."
 }

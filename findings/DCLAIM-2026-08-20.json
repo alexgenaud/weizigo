@@ -5,5 +5,5 @@
  "identifier": "deepseek-v4-flash/DCLAIM",
  "claims": [],
  "new_rows": [],
- "notes": "DCLAIM chunk (AC5 standing item): verified GLOBAL.PASS-NOKO (PROVEN, code + independent re-derivation). The invariant: passes >= 1 => ko_point = none; every pass child encodes KO_NONE. VERIFIED at HEAD (7852d5e): src/exp6_solve.zig:927 'pass_enc = encodeState4(board_idx, 1-side, KO_NONE4, passes+1)' and :587 (generalized pass returns .ko = KO_NONE). CITATION DRIFT: the row pins ':964' at 082433e; the line moved to :927 at HEAD \u2014 substance intact, pin stale. Recommendation: re-pin the row's citation to :927. The claim HOLDS; the probe was re-runnable and passed."
+ "notes": "DCLAIM chunk #2: verified 4x4.V1-INVSYM-BROKEN (PROVEN). Evidence: docs/evidence/BATTERY/triage-T260.md + i2-wzo2-T270.md. Re-ran the probe: tools/runner -- python3 docs/evidence/BATTERY/i2-wzo2-T270/check_i2_wzo2.py --verify-math \u2192 exit 0, math_3x3_checked 19683, math_4x4_sampled 199548. The claim's evidence is re-runnable and holds; no NO-SUCH-PROBE. Chunk passes."
 }
