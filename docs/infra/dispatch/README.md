@@ -80,8 +80,9 @@ lists every held path), and clears the hold when done. Two consoles must never h
 file.
 
 **Never two consoles on an engine file.** `src/retro.zig`, `src/oracle.zig`,
-`src/rules.zig`, `src/solve.zig` — one writer, ever. Most of these experiments
-should need *none* of them; prefer a new file.
+`src/rules.zig`, `src/solve.zig` — one writer, ever (canonical rule in
+`AGENTS.md` foreclosures). Most of these experiments should need *none* of them;
+prefer a new file.
 
 **`docs/epistemic/CLAIMS.md` has exactly one owner.** Everyone else records
 findings in their own document and the owner folds them in. It is the spine; a

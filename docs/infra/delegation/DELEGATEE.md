@@ -152,8 +152,8 @@ write the result beside it in `/tmp/weizigo/`, never into the deliverable.
 
 **Scope.** Own only the paths your brief lists. If your task is MUTATION, declare
 them via the kanban `holds=` field and clear the declaration when done. Never a
-second writer on `src/retro.zig`, `oracle.zig`, `rules.zig`, `solve.zig`; never a
-write to `data/` or `artifacts/`.
+second writer on `src/retro.zig`, `oracle.zig`, `rules.zig`, `solve.zig` (see
+`AGENTS.md` foreclosures); never a write to `data/` or `artifacts/`.
 
 **Builds go through `tools/runner`.** Any `zig build` / `zig build-exe` /
 `zig test` / `python3 tools/play_oracle.py` invocation runs under
