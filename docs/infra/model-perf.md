@@ -3333,3 +3333,61 @@ dispatch-verify 2026-08-19 T448 kimi-k2.7 report=success verified=pass
 dispatch-verify 2026-08-19 T466 deepseek-v4-flash report=unknown verified=fail fail=row
 dispatch-verify 2026-08-19 T450 minimax-m3 report=success verified=pass
 dispatch-verify 2026-08-19 T470 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-19 T450 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T471 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-19 T472 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-19 T458 minimax-m3 report=success verified=fail fail=nonce
+dispatch-verify 2026-08-19 T454 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-19 T475 kimi-k2.7 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-19 T476 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-19 T475 kimi-k2.7 report=success verified=pass
+dispatch-verify 2026-08-19 T478 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-19 T480 kimi-k2.7 report=success verified=pass
+dispatch-verify 2026-08-19 T477 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-19 T479 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-19 T477 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-19 T492 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-19 T482 minimax-m3 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T482 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-20 T494 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T493 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T452 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T496 glm-5.2 report=success verified=fail fail=exit
+dispatch-verify 2026-08-20 T500 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T501 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T493 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T495 kimi-k2.7 report=success verified=fail fail=deliverables
+dispatch-verify 2026-08-20 T494 glm-5.2 report=success verified=fail fail=nonce
+
+## 2026-08-20 (00:00–02:20) — ORCHA-flash's first wave: absorption + fleet mechanics
+
+First-wave impressions, recorded by the Orchestrator seat (ORCHA-flash) on the operator's
+question ("have we been absorbing findings and recording model-perf stats?"). All 10 closes
+T477–T501 proposed no register claims (instrument/tooling work); absorption held at C7=0.
+The dispatch-verify lines above are mechanical; these are the judgement half, which lapsed
+until asked.
+
+- **deepseek-v4-pro** — T500 (logjam-pressure spec) and T501 (keeper state machine) both
+  fast, clean passes; T501's arms a–h green first-time. First impression: strong on precise
+  algorithm specification and implementation; the deepseek pi chain was invisible to
+  watch-fleet's PROGRESS (bare `pi` argv) — a detector defect, not a model defect. Worth
+  more spec/implementation work.
+- **minimax-m3** — T482 (claimlint c7 --json) wall-killed at 3600s with no progress lines,
+  then re-dispatched and passed on the second attempt (T498 verify row). First impression:
+  the wall-kill may be launch/flakiness rather than model quality — needs one more sample
+  before judging.
+- **kimi-k2.7** — T495 (correction sprint) closed pass but verified=fail (deliverables).
+  First impression: delivered the substance; the close path needs watching (same
+  deliverable-verification shape as T459/T460 earlier).
+- **glm-5.2** — mixed: T492/T496 passed; T493 stalled after delivering (worker alive 46 min,
+  ~8s CPU, work committed by the seat); T452's 1-ko smoke red is the documented pre-existing
+  T369 aggregate, not a regression. Impression: capable but the wall-kill/stall pattern is
+  now three samples — watch wall behavior on glm before loading it with long tasks.
+- **Process, not models:** every defect this wave was in tooling or the seat — the
+  deepseek-invisible detector, the T493 stall-and-close, my own dispatch gaps and one
+  one-writer violation (editing watch-fleet.sh while T493 held it). The models were not the
+  failure; the instruments and the seat were. T501's keeper + T493's detector fix are the
+  mechanisms built in response.
+
+*Recorded by ORCHA-flash, 2026-08-20 02:20 local, in answer to the operator's question.
+Claims: none — impressions only, not register claims.*
