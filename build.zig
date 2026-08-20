@@ -324,10 +324,22 @@ pub fn build(b: *std.Build) void {
     // 9 controls and was verified NOT to write live tasks.json (operates
     // in /tmp/weizigo scratch repo), git-commit-mine-hook passes all 6
     // controls after C9 stub fix (added missing C9 output line).
-    // T227 still times out (>120s) — deferred same as T322.
     const integrity_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-integrity.sh" });
     integrity_regression.cwd = b.path(".");
     test_step.dependOn(&integrity_regression.step);
+
+    // ── T352: T227 acceptance-check regression controls ────────────────
+    // The 2026-08-01 T227 regression timed out (>120s) and was deferred by
+    // T322 and T337 S5.  T352 diagnosed the hang (pre-flock mkdir mutex
+    // leaked the store lock on acceptance-failure exits; fixed by T337 S0's
+    // flock) and rewired the script onto the seeded in_progress pattern with
+    // a wall-clock budget per `done` call (see tools/regression-T227.sh).
+    // Three controls (signal-killed acceptance REJECTED, deliverables= stops
+    // at the next key=, empty --skip-acceptance REJECTED) plus the live-
+    // kanban byte-identity guard.  <4s wall, scratch store only.
+    const t227_regression = b.addSystemCommand(&.{ "sh", "tools/regression-T227.sh" });
+    t227_regression.cwd = b.path(".");
+    test_step.dependOn(&t227_regression.step);
 
     // ── T446: ledger/board seam controls ──────────────────────────
     // The board and `next` must render what the assertion ledger asserts:
@@ -415,6 +427,20 @@ pub fn build(b: *std.Build) void {
     const resume_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-resume.sh" });
     resume_regression.cwd = b.path(".");
     test_step.dependOn(&resume_regression.step);
+
+    // ── orient-surface controls (T353) ───────────────────────────────
+    // `managent orient` replaces the ~1,524-line worker reading list with a
+    // generated, ≤150-line preamble composed at read time. Controls: null
+    // (empty kanban + clean tree → exit 0, ≤150 lines, stated count == wc -l),
+    // seeded-floor (perturb one floor value → orient shows the new number,
+    // not a stored copy), seeded-row (a temp row appears under dispatchable,
+    // then leaves the live surface when done), degradation (unbuildable
+    // claimlint/hook degrade to explicit markers), structure (all six sections
+    // present and ordered). Same SKIP convention as the resume regression:
+    // no managent binary carrying `orient` → SKIP loudly.
+    const orient_regression = b.addSystemCommand(&.{ "sh", "tools/regression-orient.sh" });
+    orient_regression.cwd = b.path(".");
+    test_step.dependOn(&orient_regression.step);
 
     // ── standing-tier controls (T294) ───────────────────────────────
     // STANDING-ABSORB null + seeded controls — the standing mechanism had

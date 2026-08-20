@@ -1,115 +1,146 @@
 #!/bin/bash
-# T227 regression tests — acceptance-check defect fixes
-# A3: uses --store to isolate from the live kanban.
-# Run: tools/regression-T227.sh
-set -euo pipefail
+# regression-T227.sh — acceptance-check defect controls (T227), rewired for
+# the post-T350/T390/T317 managent.  The 2026-08-01 original timed out (>120s)
+# in zig build test; T352 diagnosed and fixed that here.
+#
+# Root cause of the timeout (T352 diagnosis): the pre-flock `lockStateDir`
+# mkdir mutex retried in an infinite `while (true)` loop.  A `managent done`
+# whose acceptance command failed exited via std.process.exit(1) — which skips
+# Zig `defer` cleanup — while still holding the lock, leaking the lock dir.
+# The next managent invocation hung forever trying to acquire it.  T337 S0
+# replaced the mkdir mutex with flock(2) (kernel-released on any process death,
+# bounded ~3.2s retry), so the infinite wait is gone.  What remained was
+# bit-rot: the old script's `grep -o 'T[0-9][0-9]*'` captured the banner's
+# build timestamp `T00:…` instead of the minted ID, `--agent DSPro` is now a
+# non-canonical label, and claim-then-immediate-done trips the T390
+# claim-at-close refusal.
+#
+# Fix: restructure to the proven seeded-store pattern (cf.
+# regression-managent-done-two-phase.sh) — scratch git repo under
+# /tmp/weizigo, task records seeded directly in_progress with an old claimed
+# timestamp, and each `done` run under a wall-clock budget so a future hang
+# fails fast instead of stalling the suite.
+#
+# Controls:
+#   1  signal-killed acceptance command (kill -9 $$) must be REJECTED
+#   2  deliverables= must stop at the next key= token (acceptance isolated)
+#   3  empty --skip-acceptance reason must be REJECTED
+#   g  byte-identity: the live kanban must not be mutated
+#
+# Task: T352 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-20
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-MANAGENT="$PROJECT_DIR/bin/managent"
-FAILURES=0
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+PROJECT="$(cd "$HERE/.." && pwd)"
+MG="$PROJECT/bin/managent"
+FAIL=0
 
-red() { echo "  FAIL: $*"; FAILURES=$((FAILURES + 1)); }
-green() { echo "  PASS: $*"; }
+# T445: /tmp/weizigo decays (tmp sweeps, reboots).  Create it, and REFUSE to
+# run if scratch creation fails — an empty scratch var once sent this suite's
+# arms into the LIVE repo (2026-08-18 incident).
+mkdir -p /tmp/weizigo
+WORK="$(mktemp -d /tmp/weizigo/regression-T227-XXXXXX)" || { echo "regression-T227.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+trap 'rm -rf "$WORK"' EXIT
+cd "$WORK"
+git init -q
+git config user.email t227@test
+git config user.name T227
+mkdir -p docs/infra/managent untracked tools
+STORE="$WORK/docs/infra/managent/tasks.json"
+export MANAGENT_STORE="$STORE"
 
-echo "=== T227 regression tests (isolated store) ==="
-echo ""
-
-# ── Byte-identity guard: the live kanban must not be mutated ──
-LIVE_STORE="$PROJECT_DIR/docs/infra/managent/tasks.json"
+# Byte-identity guard: the live kanban must not be mutated.
+LIVE_STORE="$PROJECT/docs/infra/managent/tasks.json"
 LIVE_HASH=$(shasum -a 256 "$LIVE_STORE" | cut -d' ' -f1)
 
-# ── Temporary isolated store ──
-TEST_STORE=$(mktemp -t managent-regtest-XXXXXX.json)
-# Initialise the test store as a minimal valid state
-echo '{"_sys":{"next_id":900,"directive_next":1}}' > "$TEST_STORE"
+red() { echo "    FAIL: $*"; FAIL=1; }
+green() { echo "    PASS: $*"; }
 
-# Each managent invocation uses MANAGENT_STORE to isolate
-export MANAGENT_STORE="$TEST_STORE"
-M="$MANAGENT"
-
-# Helper: create a temp bundle file
-make_bundle() {
-    local slug="$1"
-    local f="/tmp/managent-regtest-${slug}-$$.md"
-    cat > "$f"
-    echo "$f"
+# Run a command under a wall-clock budget (portable; macOS has no GNU timeout).
+# $1 = budget seconds; remaining args = the command.  Output flows to stdout.
+# Returns the command's exit status, or 124 when the budget expired (SIGKILL).
+run_budgeted() {
+    local budget="$1"; shift
+    local pid
+    "$@" &
+    pid=$!
+    local elapsed=0
+    while kill -0 "$pid" 2>/dev/null; do
+        if [ "$elapsed" -ge "$budget" ]; then
+            kill -9 "$pid" 2>/dev/null
+            wait "$pid" 2>/dev/null
+            echo "  (budget ${budget}s expired — killed pid $pid)" >&2
+            return 124
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+    wait "$pid"
 }
 
-# Helper: create a test task from a pre-written bundle.
-create_and_claim() {
-    local bundle_path="$1"
-    local id
-    id=$($M add --auto --bundle "$bundle_path" --set A 2>&1 | grep -o 'T[0-9][0-9]*' | head -1)
-    if [ -z "$id" ]; then
-        echo "ERROR: could not create task from $bundle_path" >&2
-        return 1
-    fi
-    $M claim "$id" >/dev/null 2>&1 || true
-    echo "$id"
+seed() {  # $1 = JSON body of one or more task records (no trailing comma)
+    printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1}\n}\n' "$1" > "$STORE"
 }
 
-# ── Test 1: signal-killed acceptance command must be REJECTED ──
-echo "--- Defect 1: signal-killed acceptance ---"
+# One in_progress task record (bare "KEY":{...} pair): $1=id  $2=acceptance cmd  $3=bundle path
+rec() {
+    printf '"%s":{"status":"in_progress","agent":"deepseek-v4-pro","model":"deepseek-v4-pro","bundle":"%s","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":"%s","skip_acceptance_reason":null,"claim_count":1}' "$1" "$3" "$2"
+}
 
-BUNDLE1=$(make_bundle "sigkill" << 'BUNDLEEOF'
-<!--managent set=A deliverables=src/managent/main.zig acceptance=kill -9 $$-->
-# test - signal kill acceptance
-BUNDLEEOF
-)
-
-T1=$(create_and_claim "$BUNDLE1")
-if [ -z "$T1" ]; then red "Could not create test task"; rm -f "$BUNDLE1" "$TEST_STORE"; exit 1; fi
-
-if $M done "$T1" --status pass --agent DSPro 2>&1; then
-    red "managent done accepted a signal-killed acceptance command (should have REJECTED)"
-else
-    green "managent done correctly REJECTED signal-killed acceptance command"
-fi
-rm -f "$BUNDLE1"
-
-# ── Test 2: deliverables= must stop at next key= ──
+echo "=== T227 regression tests (isolated store, seeded in_progress) ==="
 echo ""
-echo "--- Defect 2: deliverables= swallows key= tokens ---"
 
-BUNDLE2=$(make_bundle "deliverables" << 'BUNDLEEOF'
-<!--managent set=A deliverables=src/managent/main.zig acceptance=echo ok-->
+# ── Control 1: signal-killed acceptance command must be REJECTED ───────────
+echo '  D1. signal-killed acceptance command (kill -9 $$) is REJECTED'
+seed "$(rec D1 'kill -9 $$' 'untracked/D1-bundle.md')"
+OUT=$(run_budgeted 20 "$MG" done D1 --status pass --agent deepseek-v4-pro 2>&1); RC=$?
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q 'acceptance command killed by signal 9' \
+   && echo "$OUT" | grep -q 'reverted D1 to in_progress'; then
+    green "managent done correctly REJECTED signal-killed acceptance command"
+else
+    red "signal-killed acceptance was not rejected (RC=$RC): $OUT"
+fi
+
+# ── Control 2: deliverables= must stop at the next key= token ──────────────
+echo ""
+echo "  D2. deliverables= correctly isolated from acceptance= key"
+# A committed deliverable in the scratch repo, plus a bundle whose meta header
+# places acceptance= right after deliverables=.  If the deliverables parser
+# swallowed the acceptance= token, the deliverable would be
+# "tools/t227-deliverable.txt acceptance=echo ok" (missing) and done would fail.
+echo "fixture deliverable" > tools/t227-deliverable.txt
+git add tools/t227-deliverable.txt && git commit -qm "T227 deliverable fixture"
+cat > untracked/D2-bundle.md << 'BUNDLEEOF'
+<!--managent set=A deliverables=tools/t227-deliverable.txt acceptance=echo ok-->
 # test - deliverables parsing
 BUNDLEEOF
-)
-
-T2=$(create_and_claim "$BUNDLE2")
-if [ -z "$T2" ]; then red "Could not create test task"; rm -f "$BUNDLE1" "$BUNDLE2" "$TEST_STORE"; exit 1; fi
-
-if $M done "$T2" --status pass --agent DSPro 2>&1; then
+seed "$(rec D2 'echo ok' 'untracked/D2-bundle.md')"
+OUT=$(run_budgeted 20 "$MG" done D2 --status pass --agent deepseek-v4-pro 2>&1); RC=$?
+if [ "$RC" -eq 0 ] \
+   && echo "$OUT" | grep -q 'acceptance: echo ok OK' \
+   && echo "$OUT" | grep -q 'verdict: pass'; then
     green "deliverables= correctly isolated from acceptance= key"
 else
-    red "deliverables= may have swallowed acceptance= (done rejected)"
+    red "deliverables= may have swallowed acceptance= (done rejected, RC=$RC): $OUT"
 fi
-rm -f "$BUNDLE2"
 
-# ── Test 3: --skip-acceptance requires non-empty reason ──
+# ── Control 3: empty --skip-acceptance reason must be REJECTED ─────────────
 echo ""
-echo "--- Defect 3: empty --skip-acceptance reason ---"
-
-BUNDLE3=$(make_bundle "skipempty" << 'BUNDLEEOF'
-<!--managent set=A deliverables=src/managent/main.zig acceptance=echo ok-->
-# test - empty skip reason
-BUNDLEEOF
-)
-
-T3=$(create_and_claim "$BUNDLE3")
-if [ -z "$T3" ]; then red "Could not create test task"; rm -f "$BUNDLE1" "$BUNDLE2" "$BUNDLE3" "$TEST_STORE"; exit 1; fi
-
-if $M done "$T3" --status pass --agent DSPro --skip-acceptance "" 2>&1; then
-    red "managent done accepted empty --skip-acceptance reason (should have REJECTED)"
-else
+echo "  D3. empty --skip-acceptance reason is REJECTED"
+seed "$(rec D3 'echo ok' 'untracked/D3-bundle.md')"
+OUT=$(run_budgeted 20 "$MG" done D3 --status pass --agent deepseek-v4-pro --skip-acceptance "" 2>&1); RC=$?
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q 'REJECTED: D3 --skip-acceptance requires a non-empty reason' \
+   && "$MG" show D3 2>/dev/null | grep -q '  D3  in_progress'; then
     green "managent done correctly REJECTED empty --skip-acceptance reason"
+else
+    red "empty --skip-acceptance reason was not rejected (RC=$RC): $OUT"
 fi
-rm -f "$BUNDLE3"
 
-# ── Byte-identity assertion ──
+# ── Byte-identity assertion ────────────────────────────────────────────────
 echo ""
-echo "--- Byte-identity guard ---"
+echo "  g. live kanban unchanged"
 LIVE_HASH_AFTER=$(shasum -a 256 "$LIVE_STORE" | cut -d' ' -f1)
 if [ "$LIVE_HASH" = "$LIVE_HASH_AFTER" ]; then
     green "live kanban unchanged (byte-identical)"
@@ -117,13 +148,10 @@ else
     red "live kanban was MUTATED by regression test!"
 fi
 
-# Clean up
-rm -f "$TEST_STORE"
-
-# ── Summary ──
 echo ""
-echo "=== T227 regression: $FAILURES failures ==="
-if [ "$FAILURES" -gt 0 ]; then
-    exit 1
+if [ "$FAIL" -eq 0 ]; then
+    echo "=== T227 regression: ALL CONTROLS PASSED ==="
+else
+    echo "=== T227 regression: $FAIL FAILURE(S) ==="
 fi
-exit 0
+exit "$FAIL"
