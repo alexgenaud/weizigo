@@ -564,6 +564,21 @@ pub fn build(b: *std.Build) void {
     gcm_hook_regression.cwd = b.path(".");
     test_step.dependOn(&gcm_hook_regression.step);
 
+    // ── T547: commit-mutex + holds-check controls ──────────────────
+    // The shared .git/index is a fleet-scale hazard even when the
+    // one-writer invariant holds: two rows can legally hold disjoint
+    // files and still collide at commit time (T521: 784235a absorbed
+    // T531/T545's build.zig hunks + T512's regression-dispatch.sh arms
+    // under the T521 message). Controls: two concurrent runs, one
+    // commit delayed → each commit contains ONLY its own paths; a path
+    // held by a different in_progress row → refused naming the holder;
+    // --explicit → allowed and recorded loudly; single null; two
+    // concurrent disjoint nulls; an external holder → short-timeout
+    // refusal proves the flock is exclusive.
+    const commit_concurrency_regression = b.addSystemCommand(&.{ "sh", "tools/regression-commit-concurrency.sh" });
+    commit_concurrency_regression.cwd = b.path(".");
+    test_step.dependOn(&commit_concurrency_regression.step);
+
     // ── T450: pilot-gate scratch-and-verify controls ─────────────────
     // The gate's whole value is that a failing run leaves nothing
     // behind (T447 found four races where it wrote live tracked
