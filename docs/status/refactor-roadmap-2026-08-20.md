@@ -1,4 +1,13 @@
-# Orchestration refactor — the cannibalization roadmap
+# Orchestration refactor — SEED BRIEF (cannibalization strategy)
+
+**Artifact type: SEED BRIEF.** Not a spec, not a plan, not a worker brief — the repo
+uses those words with fixed meanings (`docs/infra/sprint.md`: a brief instructs one
+worker; a spec says what we want, testably, for one sprint; a plan is the builder's
+strategy for a pass). This document is *upstream* of all three: it frames the problem,
+states the vision, and proposes the development pattern. It **seeds** sprints; it is
+never itself a phase document and must not be cited as one. (T428 called the equivalent
+artifact "01-strategy".) Named at the operator's prompting, 2026-08-20 — the seat had
+called it a "roadmap", which was loose.
 
 **Status:** PROPOSED by the Orchestrator seat, 2026-08-20. **Awaits the operator's
 ratification** — he is the sprint owner and did not write this.
