@@ -3531,3 +3531,28 @@ the fleet cooled down (cooldown flag set, keeper and workers stopped).
 
 *Recorded by ORCHA-flash, 2026-08-20 12:40 local, during the operator-ordered cooldown.
 Claims: none — impressions, not register claims.*
+
+## ORCHA-flash close-out scorecard — 2026-08-19 18:00 → 2026-08-20 (tenure)
+
+Measured with the same commands as handover-orcha-flash-2026-08-19.md §4, same denominators.
+Baseline for the incoming seat to beat.
+
+| metric | outgoing seat (flash) | previous (Opus) |
+|---|---|---|
+| tasks closed in tenure | **48** (20 pass, 25 pwf, 3 blocked) | 34 dispatched / 141 done (register) |
+| dispatch-verify pass rate, tenure | **33 / 56 = 58 %** | 24 / 34 = 71 % |
+| dispatch-verify pass rate, all time | 68 / (measured at handover) | 33 / 53 = 62 % |
+| wall-killed logs (tenure) | **7** | 8 |
+| acceptance suite at close | FAIL (AC4/AC5/AC10 — AC4/AC5 fixed, AC10 is pre-existing context-dump debt) | FAIL 2 |
+| orphans operator noticed first | 2 (T493 undispatched, T482 wall-kill) | 5 |
+| absorption at close | C7=0, non-conforming=0 (404 files) | 0 (cleared by T480) |
+
+**Tenure model impressions, per model** (the qualitative half; profiles are the formal grade):
+
+- **deepseek-v4-pro** — the engine of record: absorption chain to completion, T500/T501 spec+impl, T510 dispatched. Strong on precise mechanism work; independence dimension (0.11) is the watch — re-derive, don't re-run.
+- **deepseek-v4-flash** — carried the audit cluster (8 closes) and the T353 cross-model handover (cleanest of the session). Strong bounded audit work; the exploration-first rule should keep feeding it.
+- **glm-5.2** — the stall-with-complete-work pattern is now 4 samples (T493/T499/T497/T452): work delivered, close missed, seat finished. Close-discipline 0.83 measures it. Pair head-to-head next per D025.
+- **kimi-k2.7** — small n (7), first keeper-fed dispatch clean (T508). The least-data pick is feeding it; keep doing so.
+- **minimax-m3** — 4 tasks, one wall-kill; needs more samples before judgement.
+
+*Recorded 2026-08-20 during the pre-authorized wrap-up. Claims: none — impressions + measured scorecard.*
