@@ -3893,3 +3893,39 @@ Follow-ups owed: `T538` extends its classifier to `rc=124` + a runner host-press
 `verified=unreached reason=host-memory-pressure`. A new gap needs an owner: **resource-aware
 admission** — the keeper (and any dispatcher) must weight a suite-running row differently from a
 text edit, and concurrent full-suite runs need a mutex. Filed in the tooling-defect inventory.
+dispatch-verify 2026-08-20 T543 deepseek-v4-pro report=success verified=pass
+
+## Aspect races round 1 (2026-08-20, roster epoch 2026-08-20b) — quality data usable, cost data ZERO
+
+Race official `deepseek-v4-pro/T543.2`, closed 13:49Z. Record:
+`untracked/race-aspects/lanes.json` (per-packet `prompt_sha256`, harness snapshot
+`bakeoff_sha256=4cc8653f…`, worktree `/private/tmp/weizigo/race-t543`,
+`root_is_worktree=true`, keys outside relative-path reach).
+
+49 lane-packet records (7 packets × 7 lanes): **ok 27 · guard-killed 18 · failed 4**
+(the 4 all qwen, local best-effort). Per lane, `ok`/7 — **opus 5, flash 5, haiku 4,
+dspro 4, fable 3, sonnet 3, qwen 3**.
+
+**The 22 non-`ok` records are DO NOT SCORE.** 18 were runner guard kills (the host
+memory-pressure class — the seat's over-dispatch, not model behaviour) and 4 were
+qwen local failures recorded as data per the best-effort rule.
+
+**All 49 carry `tokens: null`.** This is the **seventh** consecutive race to finish at
+n=0 token readings, which is exactly the breach G1 was written to prevent. Cause,
+recorded without softening: the Orchestrator ungated `T543` from `T542` (the gate row)
+on the reasoning that G1 was recoverable retroactively from runner records.
+`claude-fable-5` corrected that — *tokens are captured at dispatch or lost* — and the
+correction arrived after the lanes were away. Contributing mechanism:
+`bin/subagent:260` hardcodes `--output-format text` for Claude lanes, so the JSON
+usage envelope that carries the counts is never produced.
+
+**Therefore:** round 1 is admissible for *quality/correctness* comparisons among the
+27 `ok` lanes and inadmissible for any cost, token or efficiency claim. Do not
+compute cost-per-task from it; there is no denominator. Round 2 (`T546`) re-runs the
+26 owed combinations and is **gated on `T542`+`T521`** so the same trade cannot be
+made twice; the 27 `ok` results are not re-run.
+
+Coverage caveat for anyone ranking from this: no lane completed all 7 packets, and
+the missing packets are not random — they correlate with when the host was under
+memory pressure. A per-lane ranking from partial, non-random coverage is
+low-confidence until round 2 closes the gaps.
