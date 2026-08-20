@@ -20,6 +20,18 @@ Writes exactly three files (R3 write allowlist):
                                  alone (the JSONL run/finding stream is the source
                                  of truth; this is the human-facing view).
 
+Exit status (T430, 2026-08-20): --mode doctor exits 1 when its NEEDS ACTION
+section is non-empty, 0 otherwise — the one-line check's verdict is machine-
+readable, not just text. The regression suite (tools/regression-argus-doctor.sh)
+never propagates this code into `zig build test`: its arms ignore the doctor's
+RC or assert the contract deterministically against scratch states.
+
+--dry-run freshness (T430, 2026-08-20): a dry run dumps ONLY the current run's
+entries (filtered by run id) and uses a unique per-run temp log/summary/report,
+so findings from previous runs never print as if current. An explicit
+--log/--summary/--report is honored even in dry-run; without one, nothing under
+the repo is written.
+
 Identifier: DSPro/T195 · 2026-08-01 (sweep/checklist), minimax-m3/T425 · 2026-08-08 (doctor)
 """
 
@@ -29,6 +41,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -52,9 +65,15 @@ def _utc_iso(ts=None):
 
 
 def _utc_compact(ts=None):
-    """ISO-8601 basic UTC: YYYYMMDDTHHMMSS."""
+    """ISO-8601 basic UTC: YYYYMMDDTHHMMSSmmm (millisecond resolution, T430).
+
+    Millisecond resolution keeps run ids unique across back-to-back runs —
+    the --dry-run freshness filter and the summary's last-run filter both
+    key on run id, and second resolution let two runs in the same second
+    share an id, mixing their entries."""
     t = ts if ts is not None else time.time()
-    return time.strftime("%Y%m%dT%H%M%S", time.gmtime(t))
+    base = time.strftime("%Y%m%dT%H%M%S", time.gmtime(t))
+    return f"{base}{int((t % 1) * 1000):03d}"
 
 
 def _run(cmd, timeout=30, cwd=None):
@@ -1873,7 +1892,10 @@ def main():
     ap.add_argument("--root", default=None,
                     help="Override repo root (default: walk up from this script; T425 scratch support)")
     ap.add_argument("--dry-run", action="store_true",
-                    help="Print findings to stdout, do not write files")
+                    help="Print findings to stdout; do not write project files. "
+                         "Per-run temp log/summary/report unless --log/--summary/"
+                         "--report are given explicitly; the run log dump shows only "
+                         "the current run's entries (T430).")
     args = ap.parse_args()
 
     root = Path(args.root).resolve() if args.root else _repo_root()
@@ -1889,8 +1911,25 @@ def main():
         args.checklist = str(root / "docs" / "epic-01-markovian" / "sprints" / "argus" / "checklist.md")
 
     if args.dry_run:
-        args.log = "/tmp/argus-dryrun-watchdog.md"
-        args.summary = "/tmp/argus-dryrun-summary.md"
+        # T430: dry-run must be FRESH and must not touch project files. The
+        # old fixed /tmp paths accumulated prior runs' entries (printed as if
+        # current) and silently ignored --log/--summary/--report. Honor an
+        # explicit path; default to a unique per-run temp file so consecutive
+        # dry-runs never share state. mkstemp then unlink: the writers recreate
+        # the path on first write, so a run that dies before writing leaves no
+        # empty file behind.
+        if args.log is None:
+            fd, args.log = tempfile.mkstemp(prefix="argus-dryrun-", suffix=".log")
+            os.close(fd)
+            os.unlink(args.log)
+        if args.summary is None:
+            fd, args.summary = tempfile.mkstemp(prefix="argus-dryrun-", suffix=".summary")
+            os.close(fd)
+            os.unlink(args.summary)
+        if args.report is None:
+            fd, args.report = tempfile.mkstemp(prefix="argus-dryrun-", suffix=".report")
+            os.close(fd)
+            os.unlink(args.report)
 
     run = ArgusRun(args, root)
 
@@ -1927,6 +1966,7 @@ def main():
     # sweep-grade filter ("must"/"critical"/"should") would match
     # nothing on every run, making the one-line check always lie
     # (T430).
+    need = 0
     if args.mode == "doctor" and hasattr(run, "doctor_groups"):
         need = len(run.doctor_groups.get("NEEDS ACTION", []))
         can = len(run.doctor_groups.get("CAN CLOSE", []))
@@ -1952,13 +1992,29 @@ def main():
             print("argus: clean — no violations", file=sys.stderr)
 
     if args.dry_run:
-        print("\n--- dry-run log ---", file=sys.stderr)
+        print(f"\n--- dry-run log (run {run.run_id}) ---", file=sys.stderr)
+        # T430: print ONLY the current run's entries. The log file may hold
+        # earlier runs' entries (an explicit --log pointed at a shared file,
+        # or pre-fix residue); printing them as current is the staleness
+        # defect this fixes.
         for entry in _read_json_lines(args.log):
-            print(json.dumps(entry, sort_keys=True), file=sys.stderr)
+            if entry.get("run") == run.run_id:
+                print(json.dumps(entry, sort_keys=True), file=sys.stderr)
         print("\n--- dry-run summary ---", file=sys.stderr)
         if os.path.isfile(args.summary):
             with open(args.summary) as f:
                 print(f.read(), file=sys.stderr)
+
+    # T430 decision (on the record): --mode doctor exits 1 iff its NEEDS
+    # ACTION section is non-empty, 0 otherwise. The seeded regression arm
+    # requires the exit status to distinguish the two states, and a one-line
+    # check that automation can gate on needs a machine-readable verdict —
+    # text alone is the permanently-green control this task exists to kill.
+    # `zig build test` is NOT reddened: the suite's exit code is its own FAIL
+    # flag and every doctor invocation inside it either ignores RC or asserts
+    # this contract against deterministic scratch states.
+    if args.mode == "doctor" and need > 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

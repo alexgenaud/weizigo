@@ -62,6 +62,19 @@
 #  18. informational — live C7 unabsorbed reading (operator-facing, never a
 #                gate). The operator reads the live C7 from this line; the
 #                suite never fails on it.
+#  19. T448 — kill-survival self-check (start-up refusal) + arm 20 null
+#  20. T448 — null: live tree byte-identical after the full run
+#  21. T430 — seeded: ≥1 NEEDS ACTION item (controlled C7 seed) → console
+#                verdict is NOT clean and exit status 1 distinguishes it
+#  22. T430 — null: empty NEEDS ACTION → clean verdict, exit 0 (a fix that
+#                prints "not clean" unconditionally must fail this one)
+#  23. T430 — freshness: two consecutive --dry-run runs, the first seeds a
+#                C7 finding the second does not — the second must NOT print
+#                the first's finding (and must still print its own log)
+#  24. T430 — permanent: a normal, non-fixture `add` on the live store still
+#                SUCCEEDS and writes the row (a guard that refused every
+#                live write would pass arms 12/13 while silently breaking
+#                fleet registration)
 #
 # Every control creates any temp files under /tmp/weizigo/ and cleans them
 # up in the trap. The live repo is touched only by arm 1 (touch + restore),
@@ -82,6 +95,8 @@
 # Task: T425 · Role: worker · Model: minimax-m3 · Date: 2026-08-08
 # T427 hardening: deepseek-v4-flash/T427 · Date: 2026-08-08
 # T448: kill-survival + startup check (glm-5.2/T448, 2026-08-19)
+# T430: doctor console-verdict arms (21/22) + --dry-run freshness (23) +
+#       live non-fixture add positive control (24) (deepseek-v4-flash/T430, 2026-08-20)
 
 set -u
 
@@ -905,6 +920,183 @@ fi
 if [ "$RESIDUE" -eq 0 ]; then
     echo "    PASS: no live-tree residue; AGENTS.md clean"
 else
+    FAIL=1
+fi
+
+# ── helper: seed 6 unabsorbed C7 findings into the scratch tree ─────────
+# Controlled counter ≥ threshold 5 (same shape as arm 17's seed) — the
+# doctor MUST surface it under NEEDS ACTION. Used by arms 21 and 23.
+seed_c7_findings() {
+    cat > "$SCRATCH_TREE_ROOT/$SCRATCH_FINDINGS_DIR/T425-DOCTOR-C7SEED.json" <<'SEED_EOF'
+{
+  "task_id": "T425-DOCTOR-C7-SEED",
+  "date": "2026-08-19",
+  "model": "minimax-m3",
+  "identifier": "minimax-m3/T425-C7-SEED",
+  "claims": [
+    {"id": "scratch.NONEXISTENT-1", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 1", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-2", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 2", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-3", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 3", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-4", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 4", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-5", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 5", "evidence_path": "AGENTS.md"},
+    {"id": "scratch.NONEXISTENT-6", "proposed_status": "PROVEN", "rationale": "controlled C7 seed 6", "evidence_path": "AGENTS.md"}
+  ],
+  "new_rows": []
+}
+SEED_EOF
+}
+
+# ── arm 21: T430 — seeded: NEEDS ACTION ≥ 1 → console honest, exit 1 ──
+# The T430 defect: the console verdict filtered findings by sweep grade
+# (must/critical/should) while every doctor finding is graded "could", so
+# the one-line check printed "clean — no violations" on every run, forever.
+# T441 fixed the console TEXT; this arm pins the BEHAVIOUR deterministically
+# (controlled C7 seed, no dependence on live-tree state) and pins the exit
+# status: a run whose report has ≥1 NEEDS ACTION item must NOT print a
+# clean verdict and its exit status must distinguish it (exit 1).
+echo "  21. T430 seeded: NEEDS ACTION ≥ 1 → console not clean, exit 1"
+setup_scratch_tree
+seed_c7_findings
+STDERR_21="$WORK/doctor-stderr-21.txt"
+"$ARGUS" --mode doctor --root "$SCRATCH_TREE_ROOT" --report "$WORK/doctor-report-21.md" >/dev/null 2>"$STDERR_21"
+RC_21=$?
+rm -f "$SCRATCH_TREE_ROOT/$SCRATCH_FINDINGS_DIR/T425-DOCTOR-C7SEED.json"
+STDERR_LINE_21=$(head -1 "$STDERR_21")
+NEED_21=$(group_count "$WORK/doctor-report-21.md" "NEEDS ACTION" "^-")
+if echo "$STDERR_LINE_21" | grep -q "^argus: NEEDS ACTION"; then
+    echo "    PASS: console verdict reports NEEDS ACTION (need=$NEED_21): $STDERR_LINE_21"
+else
+    echo "    FAIL: console verdict missing NEEDS ACTION (need=$NEED_21): $STDERR_LINE_21"
+    FAIL=1
+fi
+if echo "$STDERR_LINE_21" | grep -q "clean — no violations"; then
+    echo "    FAIL: console still says 'clean — no violations' while NEEDS ACTION=$NEED_21"
+    FAIL=1
+else
+    echo "    PASS: old 'clean — no violations' lie absent"
+fi
+if [ "$RC_21" -eq 1 ]; then
+    echo "    PASS: exit 1 distinguishes the seeded state (rc=$RC_21)"
+else
+    echo "    FAIL: seeded run exit=$RC_21 (expected 1 — exit status must distinguish NEEDS ACTION)"
+    FAIL=1
+fi
+
+# ── arm 22: T430 — null: empty NEEDS ACTION → clean verdict, exit 0 ──
+# Pairs with arm 21: a run whose report has an empty NEEDS ACTION section
+# MUST print the clean verdict and exit 0. A fix that prints "not clean"
+# unconditionally must fail this arm. The scratch tree still carries WATCH
+# noise (missing kanban, host ps) — the assertion is scoped to what is
+# deterministic: no NEEDS ACTION claimed, the clean count present in the
+# verdict line, exit 0.
+echo "  22. T430 null: NEEDS ACTION empty → clean verdict, exit 0"
+setup_scratch_tree
+STDERR_22="$WORK/doctor-stderr-22.txt"
+"$ARGUS" --mode doctor --root "$SCRATCH_TREE_ROOT" --report "$WORK/doctor-report-22.md" >/dev/null 2>"$STDERR_22"
+RC_22=$?
+STDERR_LINE_22=$(head -1 "$STDERR_22")
+NEED_22=$(group_count "$WORK/doctor-report-22.md" "NEEDS ACTION" "^-")
+if [ "$NEED_22" = "0" ] && ! echo "$STDERR_LINE_22" | grep -q "NEEDS ACTION"; then
+    echo "    PASS: no NEEDS ACTION claimed (report need=$NEED_22)"
+else
+    echo "    FAIL: console/report claims NEEDS ACTION on a clean run (need=$NEED_22): $STDERR_LINE_22"
+    FAIL=1
+fi
+if echo "$STDERR_LINE_22" | grep -qE "clean \("; then
+    echo "    PASS: clean verdict present: $STDERR_LINE_22"
+else
+    echo "    FAIL: clean verdict missing: $STDERR_LINE_22"
+    FAIL=1
+fi
+if [ "$RC_22" -eq 0 ]; then
+    echo "    PASS: exit 0 on empty NEEDS ACTION (rc=$RC_22)"
+else
+    echo "    FAIL: null run exit=$RC_22 (expected 0)"
+    FAIL=1
+fi
+
+# ── arm 23: T430 — freshness: --dry-run prints only the current run ──
+# The second T430 defect: --dry-run dumped the ACCUMULATED log (fixed
+# /tmp/argus-dryrun-watchdog.md), so findings from PREVIOUS runs printed as
+# if current, and --log did not redirect it. Two consecutive --dry-run
+# invocations: the first seeds a C7 finding (scratch tree), the second does
+# not — the second must NOT print the first's finding, and must still print
+# its own dry-run log.
+echo "  23. T430 freshness: --dry-run prints only the current run's findings"
+# Pre-fix the fixed path accumulates across runs — start from empty so the
+# arm measures the script, not leftover /tmp state (post-fix these paths
+# are unused; the rm is a no-op).
+rm -f /tmp/argus-dryrun-watchdog.md /tmp/argus-dryrun-summary.md
+setup_scratch_tree
+seed_c7_findings
+"$ARGUS" --mode doctor --dry-run --root "$SCRATCH_TREE_ROOT" >/dev/null 2>"$WORK/dryrun-23-run1.txt"
+RC1_23=$?
+rm -f "$SCRATCH_TREE_ROOT/$SCRATCH_FINDINGS_DIR/T425-DOCTOR-C7SEED.json"
+"$ARGUS" --mode doctor --dry-run --root "$SCRATCH_TREE_ROOT" >/dev/null 2>"$WORK/dryrun-23-run2.txt"
+RC2_23=$?
+if grep -q "C7 unabsorbed=6" "$WORK/dryrun-23-run1.txt"; then
+    echo "    PASS: run 1 (seeded) printed the C7 finding (rc=$RC1_23)"
+else
+    echo "    FAIL: run 1 did not print the seeded C7 finding (seed broken or dry-run dump missing)"
+    FAIL=1
+fi
+if grep -q "C7 unabsorbed=6" "$WORK/dryrun-23-run2.txt"; then
+    echo "    FAIL: run 2 printed run 1's finding — stale --dry-run output"
+    FAIL=1
+else
+    echo "    PASS: run 2 does not print run 1's finding (rc=$RC2_23)"
+fi
+if grep -q "dry-run log" "$WORK/dryrun-23-run2.txt"; then
+    echo "    PASS: run 2 still prints its own dry-run log"
+else
+    echo "    FAIL: run 2 dry-run dump missing"
+    FAIL=1
+fi
+
+# ── arm 24: T430 — non-fixture add on the live store still SUCCEEDS ──
+# Arms 12/13 prove the guards fire for fixture ids and MANAGENT_TEST=1.
+# The cell that matters most is the inverse: a NORMAL, non-fixture add on
+# the live store must still succeed AND write the row. A guard that refused
+# every live write would pass arms 12/13 while silently breaking
+# registration for the whole fleet (Orchestrator requirement 2026-08-08,
+# hand-verified then; permanent arm added T430). Against a fake repo whose
+# default store is tracked (= that repo's "live" store), same shape as
+# arms 12/13.
+echo "  24. T430: non-fixture add on the live store still SUCCEEDS"
+# arm 19's kill-survival self-check calls cleanup() mid-suite, which removes
+# $WORK — and with it the fake repo built by arms 12/13. Rebuild it here so
+# the arm is self-contained (git init on an existing repo is a no-op).
+FAKE="$WORK/fake-repo"
+mkdir -p "$FAKE/docs/infra/managent" "$FAKE/tools" "$FAKE/untracked"
+git -C "$FAKE" init -q 2>/dev/null
+cp "$LIVE_STORE" "$FAKE/docs/infra/managent/tasks.json"
+git -C "$FAKE" add docs/infra/managent/tasks.json
+# Id carries NO fixture marker (DOCTOR/FIXTURE/SEED/PROBE/ARM/TEST — the
+# guard matches uppercased substrings) — the WORK basename embeds "doctor"
+# (mktemp argus-doctor-XXXXXX) so it must NOT appear in the id.
+ARM24_ID="T430LIVE-OK-$(date +%s)$$"
+ARM24_BUNDLE="$FAKE/untracked/T430-live-ok-bundle.md"
+cat > "$ARM24_BUNDLE" <<'EOF'
+<!--managent set=G-->
+# T430 live-add positive control
+EOF
+( cd "$FAKE" && env -u MANAGENT_STORE "$MG" add "$ARM24_ID" --bundle "untracked/T430-live-ok-bundle.md" >/dev/null 2>&1 )
+rc_24=$?
+fake_wrote=$(python3 - "$FAKE/docs/infra/managent/tasks.json" "$ARM24_ID" <<'PYEOF'
+import json, sys
+with open(sys.argv[1]) as f:
+    d = json.load(f)
+print(1 if sys.argv[2] in d else 0)
+PYEOF
+)
+# Tidy: drop the row + bundle so the fake store stays clean for any later
+# reader (the fake repo dies with $WORK in the trap regardless).
+remove_row "$FAKE/docs/infra/managent/tasks.json" "$ARM24_ID" 2>/dev/null || true
+rm -f "$ARM24_BUNDLE"
+if [ "$rc_24" = "0" ] && [ "$fake_wrote" = "1" ]; then
+    echo "    PASS: non-fixture add on live store succeeded (rc=$rc_24) and wrote the row"
+else
+    echo "    FAIL: non-fixture add on live store (rc=$rc_24 wrote=$fake_wrote) — a guard refusing every live write breaks fleet registration"
     FAIL=1
 fi
 
