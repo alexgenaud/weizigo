@@ -18,6 +18,31 @@ next row of that type goes to a model whose cell is blank, provided the row is s
 4. `claude-fable-5` sparingly, under 90 % of 200 k. `kimi-k3` excluded on cost.
 5. **Local `qwen3.8:27b-mlx`** costs no credits at all but costs the machine — see §3.
 
+## 0. Short names — operator ruling, 2026-08-19
+
+**Short names are presentation only.** They are a convenience for prose and conversation, valid
+*now*, and they carry no version meaning. `flash` is whatever DeepSeek-Flash we are running
+today; if it silently becomes v5, `flash` still means "the flash we use". `kimi` is always "the
+kimi we use" — K2.7 today, K3 if we ever switch, without a new short name.
+
+**Every record — kanban, ledgers, findings, model-perf — writes the canonical label AND the
+date.** That pair is what stays interpretable years later; a short name in a record is a defect.
+Distinct short names are needed only when two models with confusable names run at the same time.
+
+Preferred length 3–5 characters.
+
+| short | canonical label today (2026-08-19) | serving tag where it differs |
+|---|---|---|
+| `opus` | `claude-opus-5` | — |
+| `fable` | `claude-fable-5` | — |
+| `sonnet` | `claude-sonnet-5` | — |
+| `dspro` | `deepseek-v4-pro` | — |
+| `flash` | `deepseek-v4-flash` | — |
+| `glm` | `glm-5.2` | `glm-5.2:cloud` |
+| `minimax` | `minimax-m3` | `minimax-m3:cloud` |
+| `kimi` | `kimi-k2.7` | `kimi-k2.7-code:cloud` |
+| `qwen` | `qwen3.8:27b-mlx` | local (MLX) |
+
 ## 1. The task types this project actually dispatches
 
 | # | task type | what it demands | shape |

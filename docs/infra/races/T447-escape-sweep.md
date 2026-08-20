@@ -120,3 +120,24 @@ suited to instead is written up in `docs/infra/model-task-matrix.md` §3.
 
 Full per-lane detail: `findings/T447-regression-escape-sweep.json`. Lane outputs (gitignored):
 `untracked/bakeoff/t447-2026-08-18/<model>/out.md`.
+
+---
+
+# Race 2 — T452 design question (2026-08-19)
+
+Same protocol, different task type: **analysis / design**, not audit. One question ("what is the
+correct fix, and is a correct fix possible without changing what the search measures?"), four
+lanes, read-only, one output file each — conflict-proof by construction.
+
+| artifact | path (gitignored) | sha256 |
+|---|---|---|
+| key + rubric (20 pts) | `untracked/race-keys/T452-design-key.md` | `573591a023addbeae3ce3fae4d8131b44b9af54726bf47f029887f480fc114d7` |
+| brief (identical per lane) | `untracked/race/T452-design-brief.md` | `d5d62104658f0ee835b06a2725205e966dfdc453fcaaa92231dac850b084b64b` |
+
+Roster: `deepseek-v4-flash`, `glm-5.2`, `kimi-k2.7`, `minimax-m3`. **minimax-m3 is deliberately
+included** — it is the model whose abandoned attempt raised the question, and excluding it would
+turn one incomplete row into a verdict about a model. The key awards its highest single score to
+the answer *"no bounded fix preserves the semantics — here is the proof"*, so an honest refusal
+is the winning move rather than a forfeit.
+
+Status: dispatched 2026-08-19.
