@@ -417,10 +417,14 @@ under dispatchable then leaves when done; degradation; structure), wired into
 $ managent orient
 
   === managent orient — generated worker preamble (≤150 lines) ===
-  composed 2026-08-20T01:27:18Z from tasks.json · git · claimlint · floor
+  composed <timestamp> from tasks.json · git · claimlint · floor
   ...
-  77 lines
+  66 lines
 ```
+
+The example's line count is the value measured on the live repo when it was
+written; the count varies with the live kanban and git state, and the stated
+count always equals `wc -l` of the surface (asserted by the null control).
 
 ---
 
