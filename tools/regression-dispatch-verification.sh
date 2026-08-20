@@ -69,7 +69,7 @@ git init -q
 git config user.email t411@test
 git config user.name T411
 echo base > README.md
-mkdir -p docs untracked docs/infra/managent
+mkdir -p docs untracked docs/infra/managent findings
 printf 'untracked/\n' > .gitignore
 git add README.md .gitignore
 git commit -qm base
@@ -113,6 +113,32 @@ subprocess.run([mg, "claim", task, "--agent", model], check=True)
 if mode == "die":
     sys.exit(124)
 
+# T488: findings-deliverable modes. The seeded deliverable path is under
+# findings/; these write findings-shaped content instead of the text stub,
+# then close pass — exercising the dispatch-verify findings parse (invalid
+# JSON, missing required keys, and a valid null).
+if mode in ("badfindings", "missingkeys", "goodfindings"):
+    import json
+    os.makedirs(os.path.dirname(dl) or ".", exist_ok=True)
+    if mode == "badfindings":
+        content = "{ this is not valid JSON "
+    elif mode == "missingkeys":
+        content = json.dumps({"task_id": task, "date": "2026-08-20"})
+    else:  # goodfindings
+        content = json.dumps({
+            "task_id": task, "date": "2026-08-20", "model": model,
+            "claims": [], "notes": "T488 stub: valid findings record",
+        })
+    with open(dl, "w") as f:
+        f.write(content)
+    subprocess.run(["git", "add", "--", dl], check=True)
+    subprocess.run(["git", "commit", "-qm", "T488 stub findings (%s)" % mode], check=True)
+    time.sleep(11)
+    subprocess.run([mg, "done", task, "--agent", model, "--status", "pass",
+                    "--note", "T488 seeded: %s findings deliverable" % mode], check=True)
+    print(nonce + " task complete (%s)" % mode)
+    sys.exit(0)
+
 with open(dl, "w") as f:
     f.write("T411 stub deliverable\n")
 subprocess.run(["git", "add", "--", dl], check=True)
@@ -155,6 +181,9 @@ seed_task T999 docs/T999-result.txt
 seed_task T1000 docs/T1000-result.txt
 seed_task T1001 docs/T1001-result.txt
 seed_task T1002 docs/T1002-result.txt
+seed_task T1003 findings/T1003-result.json
+seed_task T1004 findings/T1004-result.json
+seed_task T1005 findings/T1005-result.json
 if [ "$FAIL" -ne 0 ]; then
     echo "=== regression-dispatch-verification: setup FAILED (managent add) ==="
     exit 1
@@ -400,6 +429,72 @@ if ! grep -q '"task_id": "T1002"' "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null; then
     echo "    PASS: no assertion record for T1002 (heal did not fire)"
 else
     echo "    FAIL: assertion record written for T1002 (heal should not have fired)"
+    FAIL=1
+fi
+
+# ── seeded control 4 (T488): a findings deliverable that EXISTS but is ──
+# invalid JSON must fail the verify at dispatch-verify time. This is the T454
+# class — a findings file written as invalid JSON and closed pass because the
+# close gate checked existence, not parse.
+echo "  7. seeded: invalid-JSON findings deliverable fails the verify (T488)"
+OUT=$(STUB_MODE=badfindings "$SUBAGENT" --provider deepseek T1003 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q "malformed findings deliverable(s): findings/T1003-result.json"; then
+    echo "    PASS: dispatcher failed the malformed findings deliverable (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected 'malformed findings deliverable(s)' naming the file"
+    echo "$OUT" | sed 's/^/    | /' | tail -12
+    FAIL=1
+fi
+if grep -q "T1003 deepseek-v4-flash report=success verified=fail fail=findings" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: perf ledger records T1003 verified=fail fail=findings"
+else
+    echo "    FAIL: perf ledger missing the T1003 findings-fail record"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+# The row closed pass but the deliverable is malformed — a claim to
+# investigate, not a death. No heal must fire.
+if ! echo "$OUT" | grep -q 'healed.*reopened'; then
+    echo "    PASS: no heal line (malformed findings is not the heal case)"
+else
+    echo "    FAIL: heal fired on a malformed-findings failure"
+    FAIL=1
+fi
+
+# ── seeded control 5 (T488): valid JSON but missing required keys also fails
+echo "  8. seeded: findings deliverable missing required keys fails the verify (T488)"
+OUT=$(STUB_MODE=missingkeys "$SUBAGENT" --provider deepseek T1004 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q "malformed findings deliverable(s): findings/T1004-result.json"; then
+    echo "    PASS: dispatcher failed the key-missing findings deliverable (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected malformed-findings refusal naming the file"
+    echo "$OUT" | sed 's/^/    | /' | tail -12
+    FAIL=1
+fi
+
+# ── null (T488): a VALID findings deliverable must pass — no wrong refusal
+echo "  9. null: a VALID findings deliverable passes (T488)"
+OUT=$(STUB_MODE=goodfindings "$SUBAGENT" --provider deepseek T1005 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && echo "$OUT" | grep -q "worker reported success; side effects verified — verification PASSED"; then
+    echo "    PASS: valid findings deliverable verified (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected PASSED on a valid findings deliverable"
+    echo "$OUT" | sed 's/^/    | /' | tail -12
+    FAIL=1
+fi
+if [ -f "$WORK/findings/T1005-result.json" ]; then
+    echo "    PASS: valid findings deliverable exists"
+else
+    echo "    FAIL: valid findings deliverable missing"
     FAIL=1
 fi
 

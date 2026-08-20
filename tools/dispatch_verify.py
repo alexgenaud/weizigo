@@ -95,6 +95,44 @@ def parse_deliverables(bundle_abs, fallback=None):
     return [fallback] if fallback else []
 
 
+# Required top-level keys of a findings record (findings/README.md schema).
+FINDINGS_REQUIRED_KEYS = ("task_id", "date", "model", "claims")
+
+
+def is_findings_deliverable(d):
+    """True when the repo-relative deliverable path `d` is under findings/."""
+    reld = os.path.normpath(d)
+    return reld == "findings" or reld.startswith("findings" + os.sep)
+
+
+def verify_findings_file(path):
+    """Validate one findings deliverable against the findings/README.md schema.
+
+    Returns a list of error strings; empty means the file is a well-formed
+    findings record.  Checks, per T488 (absorption-spec.md §6.4): the file
+    JSON-loads, is an object, and carries the required keys (task_id, date,
+    model, claims) with claims an array.  This is the cheap worker-side early
+    warning; the authoritative conformance check remains claimlint + the
+    done gate (T485).
+    """
+    errors = []
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except ValueError as e:
+        return ["invalid JSON: %s" % e]
+    except OSError as e:
+        return ["unreadable: %s" % e]
+    if not isinstance(data, dict):
+        return ["not a JSON object"]
+    missing = [k for k in FINDINGS_REQUIRED_KEYS if k not in data]
+    if missing:
+        errors.append("missing required key(s): %s" % ", ".join(missing))
+    if "claims" in data and not isinstance(data["claims"], list):
+        errors.append("claims must be an array")
+    return errors
+
+
 def store_path(root, store_env=None):
     """MANAGENT_STORE overrides the default state path (A3: substrate isolation)."""
     if store_env:
@@ -132,10 +170,15 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
     nonce_ok = nonce in stdout
 
     dl_missing = []
+    findings_bad = []  # [(deliverable, error), ...] — malformed findings records
     for d in (deliverables or []):
         p = d if os.path.isabs(d) else os.path.join(root, d)
         if not os.path.exists(p):
             dl_missing.append(d)
+            continue
+        if is_findings_deliverable(d):
+            for err in verify_findings_file(p):
+                findings_bad.append((d, err))
 
     if not nonce_ok:
         details.append(
@@ -159,6 +202,13 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                     % ", ".join(dl_missing),
                     details + ["FAIL deliverables: missing: %s" % ", ".join(dl_missing)],
                     (task_id, model, "bare", "fail", "deliverables"))
+        if findings_bad:
+            for d, err in findings_bad:
+                details.append("FAIL findings: %s — %s" % (d, err))
+            return (2,
+                    "worker reported success; verification FAILED: malformed findings deliverable(s): %s"
+                    % ", ".join(d for d, _ in findings_bad),
+                    details, (task_id, model, "bare", "fail", "findings"))
         return (0,
                 "verification PASSED (bare-file dispatch: nonce echoed; no kanban row to verify)",
                 details, (task_id, model, "bare", "pass", None))
@@ -213,6 +263,17 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                 % (worker_report, ", ".join(dl_missing)),
                 details + ["FAIL deliverables: missing: %s" % ", ".join(dl_missing)],
                 (task_id, model, worker_report, "fail", "deliverables"))
+
+    # T488: a findings deliverable that exists but does not parse (or lacks the
+    # required keys) is broken work regardless of the verdict — report it
+    # before the close, not after (absorption-spec.md §6.4).
+    if findings_bad:
+        for d, err in findings_bad:
+            details.append("FAIL findings: %s — %s" % (d, err))
+        return (2,
+                "worker reported %s; verification FAILED: malformed findings deliverable(s): %s"
+                % (worker_report, ", ".join(d for d, _ in findings_bad)),
+                details, (task_id, model, worker_report, "fail", "findings"))
 
     if not nonce_ok:
         return (2,
@@ -335,3 +396,63 @@ def record_perf(root, perf):
         print("[verify] WARNING: could not record dispatch perf at %s: %s"
               % (path, e), file=sys.stderr)
         return False
+
+
+def scan_findings(root):
+    """Yield (relpath, errors) for every findings/*.json under root.
+
+    Skips rejections.json — it is the rejection ledger, not a findings record
+    (the same skip claimlint's C7 scan applies at src/claimlint.zig:3022).  A
+    missing findings/ directory yields nothing (a task may run before any
+    findings file has been produced).
+    """
+    findings_dir = os.path.join(root, "findings")
+    try:
+        names = sorted(os.listdir(findings_dir))
+    except OSError:
+        return
+    for name in names:
+        if not name.endswith(".json") or name == "rejections.json":
+            continue
+        rel = os.path.join("findings", name)
+        yield rel, verify_findings_file(os.path.join(findings_dir, name))
+
+
+def main(argv):
+    """`tools/dispatch_verify.py --dry-run` — the T488 acceptance gate.
+
+    Runs the same findings parse verify_dispatch applies to declared findings
+    deliverables, but over the live findings/ directory: a cheap early warning
+    that every findings file JSON-loads and carries the required keys.  Exit 0
+    when clean; exit 2 when any file is malformed (naming each), so a broken
+    findings file fails the gate loudly rather than silently.
+
+    --root <dir> overrides the repo root (default: current directory).
+    """
+    root = "."
+    args = argv[1:]
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--root":
+            if i + 1 < len(args):
+                i += 1
+                root = args[i]
+        elif a.startswith("--root="):
+            root = a.split("=", 1)[1]
+        # --dry-run is the (only) mode; unknown flags are ignored so the
+        # acceptance line can evolve without breaking this gate.
+        i += 1
+
+    bad = [(rel, err) for rel, errs in scan_findings(root) for err in errs]
+    if bad:
+        for rel, err in bad:
+            print("FAIL findings: %s — %s" % (rel, err))
+        print("dispatch-verify --dry-run: %d malformed findings file(s)" % len(bad))
+        return 2
+    print("dispatch-verify --dry-run: findings parse clean")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
