@@ -66,6 +66,8 @@ non-searchable one. This file is the durable inventory; it supersedes nothing an
 
 10. **Seat error, mechanism gap behind it:** three dispatches today went out before checking the live holder, and one (`T545`) was dispatched with no `holds=` declared, so it claimed a file another row held. `bin/dispatch` could refuse, or warn, when a bundle declares `holds` the store does not carry — the check exists nowhere.
 
+17. **A `blocked` close satisfies a dependency, so refusing to do work counts as having done it.** Encountered 17:25, not hunted for. `T541` correctly refused to run (precondition failed, suite not run, manifest untouched) and closed with verdict `blocked`. Because the row's *status* became `done`, it satisfied `T535`'s `needs` — and `T535` is the Stage-4 history-cleanup-and-squash spec, which silently became `dispatchable` with the keeper live. A row that declined its work must not discharge anything that depends on that work being finished. `needs` should be satisfied only by a *successful* verdict (`pass` / `pass-with-findings`), with `blocked` / `fail-found` / `abandoned` leaving dependents gated. This is the last item added; the list is closed for discovery per the operator's 2026-08-20 direction.
+
 ## E. The proposed calm sprint (the operator's suggestion, 2026-08-20)
 
 His words: *"when things cool down a bit in the short term, we can take a calm and diligent sprint
