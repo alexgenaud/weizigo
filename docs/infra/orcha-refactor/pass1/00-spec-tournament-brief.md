@@ -13,8 +13,10 @@ each section strong and separable, and say plainly which part of your spec you t
 its best contribution.
 
 All outputs then become inputs to a further independent round, so expect to see the other
-six and be asked to revise. You are also being evaluated per *skill dimension* rather
-than ranked overall — the purpose of these races is a skill matrix, not a champion.
+six and be asked to revise. You are being evaluated to learn what models are good at,
+not to crown a champion. No dimension schema is imposed: expect a coarse grade plus a
+sentence of nuance. What is worth measuring will be discovered from the results, not
+decided in advance.
 
 ## The problem, measured
 

@@ -61,23 +61,28 @@ spec, research, design, scope, plan, implementation, verification — but in pra
 So the ladder is a menu, not a treadmill. The plan for each pass states which phases it
 runs and which it inherits.
 
-## What the races are actually for
+## What the races are for — and what we do NOT yet know
 
-Not to crown a winner. **To build a skill matrix per model per phase**, so that work can
-be routed and over-spending stopped. The operator's aim, recorded: *"I hope we'll find
-strengths and weaknesses early and reduce the model participation in subsequent phases in
-later passes. We may learn that some models are great at free-thinking and writing and
-planning but not implementation and other models are the opposite. Or we may decide that
-some models are overqualified for tasks that any model can handle equally and
-sufficiently well."*
+Not to crown a winner. To learn, from experience, which models are good at what — so
+participation can shrink later and over-spending stops.
 
-Two consequences:
+**We do not know what to measure yet, and we are not going to pretend otherwise.** The
+operator, 2026-08-20: *"I don't know if a skill matrix is best or if we even know what
+skill dimensions to isolate and evaluate. I suspect for each model we'll say great, good,
+average, bad, terrible for each phase. We might have some nuance like 'thorough but lacks
+nuance' or 'wordy without content' or 'precise and concise but overlooked critical
+findings' or 'follows directions but not proactive' or 'proactive but cannot follow
+directions'. I really do not know what we should measure and I assume we'll discover the
+dimensions in the middle while trying."*
 
-1. **Participation shrinks as evidence accumulates.** Early phases run wide; later phases
-   run only the lanes the matrix says are worth it.
-2. **"Overqualified" is a measurable claim**, not an impression — quality delta against
-   tokens spent. Token capture landed 2026-08-20 (`T521`), so cost per phase is now a
-   real number for the first time.
+So the recording rule for every phase is deliberately loose: **a coarse grade per model
+per phase, plus a sentence of nuance in that register.** No dimension schema is imposed
+up front. Dimensions get proposed only once we have observations that suggest them —
+discovered in the middle, not anticipated.
+
+Standing guidance from the operator on method, which outranks any clever design in this
+file: *"we are already getting too deep into decide-by-committee. We need to learn from
+experience rather than anticipate a clever tournament before trying."*
 
 ## Consolidation: by aspect, not by winner
 
@@ -94,22 +99,10 @@ So: same inputs, independent outputs, then **all outputs become inputs to anothe
 independent round**. Consolidation selects the best *aspects* across documents rather
 than electing one document.
 
-**Two risks the seat flags, with proposed mitigations — the operator and Fable to rule:**
-
-- **Incoherence.** A document assembled from the best paragraphs of seven can contradict
-  itself; parts optimised separately do not necessarily compose. *Mitigation:* aspect
-  selection is followed by a single **coherence pass owned by one author** (Fable, per the
-  adjudication ruling) whose job is internal consistency, not further selection. Committee
-  chooses the parts; one hand makes them agree.
-- **Convergence to mush.** If every output is fed back to every model, round two may
-  anchor on round one and lose the diversity that made the exercise valuable.
-  *Mitigation:* cap the rounds (the audit loop is already capped at two), and **measure
-  divergence between rounds** — if round-two documents converge sharply, that is itself a
-  finding about the method, not a success.
-- **Premature lock-in.** Reducing participation on n=1 or n=2 evidence is exactly the
-  folklore this project is trying to replace ("race, don't decide"). *Mitigation:* narrow
-  a phase's roster only after a stated number of observations, and re-test periodically —
-  models change under the same label, and the epoch mechanism already exists to record it.
+The seat has objections to this mechanism. They are deliberately **not** merged here —
+they stand separately in `docs/infra/orcha-refactor/pass1/00-seat-objections.md` so that
+Fable sees the operator's mechanism as written and the seat's objections as written, and
+may adopt either, both, or a third path of its own.
 
 ## The cannibalization pattern
 
