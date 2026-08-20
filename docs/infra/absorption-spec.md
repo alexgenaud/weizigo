@@ -100,7 +100,8 @@ declared findings file was never written, so `managent done` refused the close f
 **eleven days** (`docs/infra/managent/tasks.json:1520-1538`: claimed 2026-08-08T16:23:26Z,
 done 2026-08-19T13:13:35Z; `untracked/T465-t440-findings-from-evidence.md:6-9`). The row
 showed a live claim for a console that no longer existed; the operator worked around it in
-the assertion ledger (`docs/infra/assertion-ledger/assertions.jsonl:9`, A0012) and a later
+the assertion ledger (`docs/infra/assertion-ledger/archive/assertions-2026-08-19.jsonl:9`,
+A0012 — archived 2026-08-19, T495) and a later
 task reconstructed the findings from commit archaeology (`16c4230`), with the worker's
 actual reasoning permanently lost. Two lessons the mechanism must carry: **(a)** a block
 at close *works* — the gate held for eleven days without being routed around; **(b)** a
