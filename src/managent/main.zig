@@ -408,7 +408,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
     } else if (std.mem.eql(u8, cmd, "next")) {
         try cmdNext(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "show")) {
-        try cmdShow(w, io, state_path, args);
+        try cmdShow(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "whoami")) {
         try cmdWhoami(w, io, state_path, args);
     } else if (std.mem.eql(u8, cmd, "dispatch")) {
@@ -3802,7 +3802,6 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
     for (ids) |tid| {
         const ts = state.get(tid).?;
         const rel = bundleRel(ts.bundle, repo_root);
-        const asserted = resolveStatus(state, ts, ledger, tid).asserted;
         w.data("    {s} set {c}", .{ tid, ts.set });
         if (ts.needs.len > 0) {
             w.data(", needs", .{});
@@ -3812,18 +3811,18 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
             w.data(", holds", .{});
             for (ts.holds) |h| w.data(" {s}", .{h});
         }
-        // T446: a closed-asserted row shows its assertion, not a live claim —
-        // the board must not imply a seat is occupied by finished work.
-        if (asserted) |a| {
-            w.data(", (asserted: {s})", .{a});
-        } else {
-            if (ts.agent) |_| {
-                const ident = agentIdentifier(ts, tid) catch tid;
-                w.data(", {s}", .{ident});
-            }
-            if (ts.dispatched_to) |dt| {
-                w.data(", dispatched {s}", .{dt});
-            }
+        // T497: the agent/identifier and dispatch line reflect the KANBAN
+        // store (the row is live per tasks.json); the assertion ledger only
+        // appends a history annotation, never replacing a live claim.
+        if (ts.agent) |_| {
+            const ident = agentIdentifier(ts, tid) catch tid;
+            w.data(", {s}", .{ident});
+        }
+        if (ts.dispatched_to) |dt| {
+            w.data(", dispatched {s}", .{dt});
+        }
+        if (writeAssertionAnnotation(w, ledger, tid, 40)) {
+            // annotation rendered above
         }
         if (ts.verdict) |v| {
             w.data(", verdict={s}", .{v});
@@ -3877,7 +3876,10 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             try buf.appendSlice(alloc, "}");
             continue;
         }
-        // T464: ONE status resolver — ledger authoritative in both directions.
+        // T497: status comes ONLY from the kanban store (deriveStatus).
+        // `asserted` is an informational annotation field (the latest
+        // assertion id), never authority; the live claim fields render
+        // regardless of whether an assertion is present.
         const resolved = resolveStatus(state, ts, ledger, entry.key_ptr.*);
         const asserted = resolved.asserted;
         try buf.appendSlice(alloc, "\n  {\"id\":");
@@ -3896,13 +3898,10 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             try buf.appendSlice(alloc, ",\"model\":");
             try writeJsonString(&buf, m);
         }
-        // T446: no live claim shown for a closed-asserted row.
-        if (asserted == null) {
-            if (ts.agent) |_| {
-                const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
-                try buf.appendSlice(alloc, ",\"identifier\":");
-                try writeJsonString(&buf, ident);
-            }
+        if (ts.agent) |_| {
+            const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
+            try buf.appendSlice(alloc, ",\"identifier\":");
+            try writeJsonString(&buf, ident);
         }
         if (ts.needs.len > 0) {
             try buf.appendSlice(alloc, ",\"needs\":[");
@@ -3920,11 +3919,9 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             }
             try buf.appendSlice(alloc, "]");
         }
-        if (asserted == null) {
-            if (ts.dispatched_to) |dt| {
-                try buf.appendSlice(alloc, ",\"dispatched_to\":");
-                try writeJsonString(&buf, dt);
-            }
+        if (ts.dispatched_to) |dt| {
+            try buf.appendSlice(alloc, ",\"dispatched_to\":");
+            try writeJsonString(&buf, dt);
         }
         if (ts.verdict) |v| {
             try buf.appendSlice(alloc, ",\"verdict\":");
@@ -4775,7 +4772,7 @@ fn cmdNext(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
 }
 
-fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
+fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
         w.diag("usage: managent show <id>\n", .{});
         std.process.exit(1);
@@ -4789,6 +4786,11 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
         w.diag("error: task '{s}' not found\n", .{id});
         std.process.exit(1);
     };
+
+    // T497: the assertion ledger is an annotation (history) only — it never
+    // overrides the kanban-store status shown on the first line below.
+    var ledger = readLedgerStatuses(io, repo_root);
+    defer freeLedgerStatuses(&ledger);
 
     // ── stdout: the data ──
     w.data("\n", .{});
@@ -4875,6 +4877,18 @@ fn cmdShow(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !
     }
     if (ts.verdict_note) |vn| {
         w.data("    verdict_note: {s}\n", .{vn});
+    }
+    // T497: the latest assertion (if any) renders as a history annotation —
+    // it never overrides the kanban-store status on the first line.
+    if (ledger.get(id)) |ls| {
+        w.data("    assertion: {s} — {s}", .{ ls.assertion_id, ls.status_value });
+        if (ls.ts.len > 0) w.data(", {s}", .{ls.ts});
+        if (ls.note.len > 0) {
+            const shown = if (ls.note.len > 80) ls.note[0..80] else ls.note;
+            w.data(" — {s}", .{shown});
+            if (ls.note.len > 80) w.data("…", .{});
+        }
+        w.data("\n", .{});
     }
     if (ts.acceptance) |ac| {
         w.data("    acceptance: {s}\n", .{ac});
@@ -5511,22 +5525,33 @@ fn appendAssertion(w: Writers, io: std.Io, repo_root: []const u8, a: Assertion) 
     try file.writeStreamingAll(io, out.items);
 }
 
-// ── ledger/board seam (T446 → T464) ────────────────────────────────────────
+// ── ledger/board seam (T446 → T464 → T497) ──────────────────────────────────
 // `status` / `next` render the kanban from tasks.json only; the assertion
-// ledger is the audit trail that can disagree with it.  T446 closed one
-// disagreement class (a `closed` assertion renders the row done and takes it
-// out of `next`).  T464 generalises the seam: the latest assertion on a row
-// is authoritative over tasks.json in BOTH directions, for every status the
-// ledger can assert — `closed` (→ done), `dispatchable`, `in_progress`,
-// `done`, `absorbed` and `recommended-close` (both → done).  A `dispatchable`
-// assertion re-queues a stored-in_progress row (A0017/T452); an `in_progress`
-// assertion re-opens a stored-done row (A0016/T369).  Every view — status,
-// the board rendering, next, liveness, audit — resolves a task's status
-// through resolveStatus() and nowhere else.
+// ledger is the audit trail of console-lifecycle FACTS (console died at T,
+// absorbed at T, recommended-close).  T446 first let a `closed` assertion
+// override tasks.json; T464 generalised that to BOTH directions — the latest
+// assertion was authoritative over the stored status for every status the
+// ledger can assert.  T497 reverses T464's generalisation: the failure mode
+// was live in the record.  Assertion A0017 said T452 was `dispatchable`
+// (written when a previous worker was killed); the kanban store said
+// `in_progress` (a new worker was live); the resolver rendered the assertion,
+// so watch-fleet showed T452 in both PROGRESS and OPEN.  A stale event log
+// overrode a live kanban truth.
+//
+// Status has exactly ONE source: the kanban store (`tasks.json`), written
+// only by managent verbs (claim/done/reopen/retire/verdict).  The assertion
+// ledger remains an append-only event log, but it must NEVER override status
+// — its latest entry on a row renders as an ANNOTATION (history) in
+// `status`/`show` output, never as the effective status.  Every view —
+// status, the board rendering, next, liveness, audit — resolves a task's
+// status through resolveStatus() and nowhere else, and resolveStatus() now
+// returns deriveStatus() unconditionally.
 
 const LedgerStatus = struct {
     status_value: []const u8,
     assertion_id: []const u8,
+    note: []const u8 = "",
+    ts: []const u8 = "",
 };
 
 const LedgerStatuses = std.StringHashMapUnmanaged(LedgerStatus);
@@ -5561,14 +5586,22 @@ fn readLedgerStatuses(io: std.Io, repo_root: []const u8) LedgerStatuses {
         if (object != .string or a_id != .string) continue;
 
         var status_value: []const u8 = "";
+        var note_value: []const u8 = "";
         if (obj.get("meta")) |m| {
             if (m == .object) {
                 if (m.object.get("status")) |sv| {
                     if (sv == .string) status_value = sv.string;
                 }
+                if (m.object.get("note")) |nv| {
+                    if (nv == .string) note_value = nv.string;
+                }
             }
         }
         if (status_value.len == 0) continue;
+        var ts_value: []const u8 = "";
+        if (obj.get("ts")) |tv| {
+            if (tv == .string) ts_value = tv.string;
+        }
 
         const key_dupe = alloc.dupe(u8, object.string) catch continue;
         const sv_dupe = alloc.dupe(u8, status_value) catch {
@@ -5580,21 +5613,40 @@ fn readLedgerStatuses(io: std.Io, repo_root: []const u8) LedgerStatuses {
             alloc.free(sv_dupe);
             continue;
         };
+        const note_dupe = alloc.dupe(u8, note_value) catch {
+            alloc.free(key_dupe);
+            alloc.free(sv_dupe);
+            alloc.free(aid_dupe);
+            continue;
+        };
+        const ts_dupe = alloc.dupe(u8, ts_value) catch {
+            alloc.free(key_dupe);
+            alloc.free(sv_dupe);
+            alloc.free(aid_dupe);
+            alloc.free(note_dupe);
+            continue;
+        };
         const gop = map.getOrPut(alloc, key_dupe) catch {
             alloc.free(key_dupe);
             alloc.free(sv_dupe);
             alloc.free(aid_dupe);
+            alloc.free(note_dupe);
+            alloc.free(ts_dupe);
             continue;
         };
         if (gop.found_existing) {
             alloc.free(key_dupe);
             alloc.free(gop.value_ptr.status_value);
             alloc.free(gop.value_ptr.assertion_id);
+            alloc.free(gop.value_ptr.note);
+            alloc.free(gop.value_ptr.ts);
         } else {
             gop.key_ptr.* = key_dupe;
         }
         gop.value_ptr.status_value = sv_dupe;
         gop.value_ptr.assertion_id = aid_dupe;
+        gop.value_ptr.note = note_dupe;
+        gop.value_ptr.ts = ts_dupe;
     }
     return map;
 }
@@ -5605,44 +5657,47 @@ fn freeLedgerStatuses(map: *LedgerStatuses) void {
         alloc.free(entry.key_ptr.*);
         alloc.free(entry.value_ptr.status_value);
         alloc.free(entry.value_ptr.assertion_id);
+        alloc.free(entry.value_ptr.note);
+        alloc.free(entry.value_ptr.ts);
     }
     map.deinit(alloc);
 }
 
-/// The single, unmissable status resolver (T464).  Every view — status, the
-/// board rendering, next, liveness, audit — calls this to learn a task's
-/// effective status.  The assertion ledger's latest assertion on a row is
-/// authoritative over tasks.json's stored status in both directions;
-/// otherwise the stored status is needs-derived (dispatchable ↔ blocked) via
-/// deriveStatus.  `asserted` carries the winning assertion id whenever the
-/// ledger spoke; it is null when no ledger file exists (null arm) or no
-/// assertion maps to a row status.
+/// The single, unmissable status resolver (T446 → T464 → T497).  Every view
+/// — status, the board rendering, next, liveness, audit — calls this to
+/// learn a task's effective status.  T497: status comes ONLY from the kanban
+/// store via deriveStatus (stored status, needs-derived dispatchable ↔
+/// blocked); the assertion ledger never overrides it.  `asserted` carries
+/// the latest assertion's id whenever the ledger has spoken on a row, so the
+/// view can render it as an annotation (history); it is null when no ledger
+/// file exists (null arm) or no entry covers the row.  `asserted` is an
+/// ANNOTATION, never authority.
 const ResolvedStatus = struct {
     status: TaskStatus,
     asserted: ?[]const u8,
 };
 
-/// Map an assertion-ledger status string to a row status.  `closed`,
-/// `absorbed` and `recommended-close` are console-lifecycle states that occur
-/// after the row is done, so they all render as done.  Unknown strings return
-/// null (no override) rather than guessing.
-fn ledgerStatusToTask(s: []const u8) ?TaskStatus {
-    if (std.mem.eql(u8, s, "dispatchable")) return .dispatchable;
-    if (std.mem.eql(u8, s, "in_progress")) return .in_progress;
-    if (std.mem.eql(u8, s, "done")) return .done;
-    if (std.mem.eql(u8, s, "closed")) return .done;
-    if (std.mem.eql(u8, s, "absorbed")) return .done;
-    if (std.mem.eql(u8, s, "recommended-close")) return .done;
-    return null;
+fn resolveStatus(state: *const StateMap, ts: TaskState, ledger: *const LedgerStatuses, tid: []const u8) ResolvedStatus {
+    const asserted: ?[]const u8 = if (ledger.get(tid)) |ls| ls.assertion_id else null;
+    return .{ .status = deriveStatus(state, ts), .asserted = asserted };
 }
 
-fn resolveStatus(state: *const StateMap, ts: TaskState, ledger: *const LedgerStatuses, tid: []const u8) ResolvedStatus {
-    if (ledger.get(tid)) |ls| {
-        if (ledgerStatusToTask(ls.status_value)) |effective| {
-            return .{ .status = effective, .asserted = ls.assertion_id };
-        }
+/// Render a row's latest assertion as an annotation (history, not authority).
+/// Writes nothing and returns false when the ledger has no entry for `tid`.
+/// `max_note` caps the note (the live A0004 note is hundreds of chars); 0
+/// means omit the note entirely.  Shape: `(asserted: A0017 — dispatchable,
+/// 2026-08-19 04:30Z; <note>)`.
+fn writeAssertionAnnotation(w: Writers, ledger: *const LedgerStatuses, tid: []const u8, max_note: usize) bool {
+    const ls = ledger.get(tid) orelse return false;
+    w.data("(asserted: {s} — {s}", .{ ls.assertion_id, ls.status_value });
+    if (ls.ts.len > 0) w.data(", {s}", .{ls.ts});
+    if (max_note > 0 and ls.note.len > 0) {
+        const shown = if (ls.note.len > max_note) ls.note[0..max_note] else ls.note;
+        w.data("; {s}", .{shown});
+        if (ls.note.len > max_note) w.data("…", .{});
     }
-    return .{ .status = deriveStatus(state, ts), .asserted = null };
+    w.data(")", .{});
+    return true;
 }
 
 // ── heartbeat reading (WORKER-CHANNEL) ──────────────────────────────────────
@@ -7717,6 +7772,7 @@ fn cmdAssert(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 
     w.diag("\n  asserted {s} -> {s}\n", .{ target, status_val });
     w.diag("  assertion {s}\n", .{a_id});
+    w.diag("  (annotation only — status comes from the kanban store; this assertion does not override it)\n", .{});
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
 }
 

@@ -420,11 +420,14 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════════
-# ── T464: ONE status resolver + retire verb ────────────────────────────────
-# Every view (status/board, next, liveness, audit) resolves a task's status
-# through ONE function; the assertion ledger is authoritative in BOTH
-# directions; retire archives a dispatchable row with an epitaph (archive,
-# never delete). All arms run against the scratch store — never the live one.
+# ── T497: ONE status source — the kanban store (T446 → T464 → T497) ───────
+# Status has exactly one source: tasks.json (the kanban store), written only
+# by managent verbs. The assertion ledger is an append-only event log of
+# console-lifecycle facts; its latest entry on a row renders as an ANNOTATION
+# (history) in status/show output, never as the effective status. T464 made
+# the ledger authoritative in both directions; T497 reverses that — the live
+# defect was A0017 (T452 dispatchable) overriding a live in_progress kanban.
+# All arms run against the scratch store — never the live one.
 # ══════════════════════════════════════════════════════════════════════════
 
 mkdir -p "$TMPDIR/docs/infra/assertion-ledger"
@@ -444,22 +447,18 @@ t464_assert() { # $1=assertion-id $2=row $3=status
     printf '{"id":"%s","ts":"2026-08-18T17:10:20Z","actor":"test","verb":"asserted","object":"%s","basis":"performed","meta":{"status":"%s","note":"seeded regression"}}\n' "$1" "$2" "$3" >> "$LEDGER"
 }
 
-# ── Check 17: T464 — closed assertion drops a row from next, in-progress, liveness ──
-echo "        17. T464: closed assertion drops a row from next, in-progress list, liveness"
+# ── Check 17: T497 — a `closed` assertion is an annotation, not authority ──
+echo "        17. T497: closed assertion annotates but does not drop a row from the kanban"
 
 : > "$LEDGER"
 t464_seed "$(t464_disp T464A),$(t464_inprog T464B claude-opus-5)"
 t464_assert A0005 T464A closed
 t464_assert A0012 T464B closed
 
-NEXT_OUT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
-if ! echo "$NEXT_OUT" | grep -q 'claimed'; then
-    echo "           PASS: next refused to hand out closed-asserted T464A"
-else
-    echo "           FAIL: next handed out a closed-asserted row: $NEXT_OUT"
-    FAIL=1
-fi
-
+# T464A is dispatchable in the kanban; the closed assertion must NOT make it
+# done. T464B is in_progress in the kanban; the closed assertion must NOT drop
+# it from liveness. Both keep their kanban-store status and gain an (asserted)
+# annotation.
 STATUS_JSON=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
 python3 - "$STATUS_JSON" <<'PYEOF'
 import sys, json
@@ -468,28 +467,44 @@ by_id = {d["id"]: d for d in data}
 fails = []
 t464a = by_id.get("T464A")
 t464b = by_id.get("T464B")
-if t464a is None or t464a.get("status") != "done" or t464a.get("asserted") != "A0005":
-    fails.append("T464A should be done+asserted=A0005, got %r" % t464a)
-if t464b is None or t464b.get("status") != "done" or t464b.get("asserted") != "A0012":
-    fails.append("T464B should be done+asserted=A0012, got %r" % t464b)
+if t464a is None or t464a.get("status") != "dispatchable" or t464a.get("asserted") != "A0005":
+    fails.append("T464A should be dispatchable (kanban)+asserted=A0005, got %r" % t464a)
+if t464b is None or t464b.get("status") != "in_progress" or t464b.get("asserted") != "A0012":
+    fails.append("T464B should be in_progress (kanban)+asserted=A0012, got %r" % t464b)
+# T497: the live claim (identifier) renders even when an assertion is present.
+if t464b is not None and t464b.get("identifier") is None:
+    fails.append("T464B should still show its identifier (live claim), got %r" % t464b)
 if fails:
     for f in fails:
         print("           FAIL: " + f)
     sys.exit(1)
-print("           PASS: closed-asserted rows render done with (asserted) markers")
+print("           PASS: closed-asserted rows keep kanban status with (asserted) markers")
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
 LIVENESS_OUT=$(cd "$TMPDIR" && "$MG" liveness 2>/dev/null)
 if echo "$LIVENESS_OUT" | grep -q 'T464B'; then
-    echo "           FAIL: closed-asserted T464B still listed by liveness"
-    FAIL=1
+    echo "           PASS: closed-asserted T464B still listed by liveness (kanban in_progress)"
 else
-    echo "           PASS: closed-asserted T464B absent from liveness"
+    echo "           FAIL: closed-asserted T464B dropped from liveness"
+    FAIL=1
 fi
 
-# ── Check 18: T464 — dispatchable assertion re-queues a stored in_progress row ──
-echo "        18. T464: dispatchable assertion re-queues a stored in_progress row"
+# A closed assertion on a dispatchable row does NOT suppress next — the row is
+# dispatchable in the kanban, so next hands it out. (Run on a fresh seed so the
+# claim does not mutate the status read above.)
+t464_seed "$(t464_disp T464C)"
+t464_assert A0007 T464C closed
+NEXT_OUT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
+if echo "$NEXT_OUT" | grep -q 'claimed T464C'; then
+    echo "           PASS: next hands out a dispatchable row despite a closed assertion"
+else
+    echo "           FAIL: next refused a dispatchable row because of a closed assertion: $NEXT_OUT"
+    FAIL=1
+fi
+
+# ── Check 18: T497 — a `dispatchable` assertion does NOT re-queue a stored in_progress row (the T452 arm) ──
+echo "        18. T497: dispatchable assertion does not re-queue a stored in_progress row (T452 arm)"
 
 : > "$LEDGER"
 t464_seed "$(t464_inprog T464D minimax-m3)"
@@ -501,19 +516,65 @@ import sys, json
 data = json.loads(sys.argv[1])
 by_id = {d["id"]: d for d in data}
 t = by_id.get("T464D")
-if t is None or t.get("status") != "dispatchable" or t.get("asserted") != "A0017":
-    print("           FAIL: T464D should be dispatchable+asserted=A0017, got %r" % t)
+if t is None or t.get("status") != "in_progress" or t.get("asserted") != "A0017":
+    print("           FAIL: T464D should be in_progress (kanban)+asserted=A0017, got %r" % t)
     sys.exit(1)
-print("           PASS: T464D renders dispatchable with (asserted: A0017)")
+# T497: the live claim (identifier) renders — the stale assertion does not hide it.
+if t.get("identifier") is None:
+    print("           FAIL: T464D should still show its identifier (live claim), got %r" % t)
+    sys.exit(1)
+print("           PASS: T464D renders in_progress (kanban) with (asserted: A0017) annotation")
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
+# show renders the assertion as a history annotation line, not as the status.
+SHOW_OUT=$(cd "$TMPDIR" && "$MG" show T464D 2>/dev/null)
+if echo "$SHOW_OUT" | grep -q '^  T464D  in_progress' && echo "$SHOW_OUT" | grep -q 'assertion: A0017'; then
+    echo "           PASS: show renders kanban in_progress + assertion annotation line"
+else
+    echo "           FAIL: show did not render the T452 shape correctly: $SHOW_OUT"
+    FAIL=1
+fi
+
+# next must NOT hand out T464D — it is in_progress in the kanban, and the
+# stale dispatchable assertion no longer re-queues it. (This is the exact
+# T452 defect: a stale event log overrode a live kanban truth.)
 NEXT_OUT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
 if echo "$NEXT_OUT" | grep -q 'claimed T464D'; then
-    echo "           PASS: next hands out dispatchable-asserted T464D"
-else
-    echo "           FAIL: next did not hand out T464D: $NEXT_OUT"
+    echo "           FAIL: next handed out T464D — the stale dispatchable assertion re-queued a live row"
     FAIL=1
+else
+    echo "           PASS: next refused T464D (kanban in_progress wins over stale dispatchable assertion)"
+fi
+
+# ── Check 21: T497 — a `done` assertion does NOT close a stored in_progress row ──
+echo "        21. T497: done assertion does not close a stored in_progress row (null arm 2)"
+
+: > "$LEDGER"
+t464_seed "$(t464_inprog T464G claude-opus-5)"
+t464_assert A0019 T464G done
+
+STATUS_JSON=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
+python3 - "$STATUS_JSON" <<'PYEOF'
+import sys, json
+data = json.loads(sys.argv[1])
+by_id = {d["id"]: d for d in data}
+t = by_id.get("T464G")
+if t is None or t.get("status") != "in_progress" or t.get("asserted") != "A0019":
+    print("           FAIL: T464G should be in_progress (kanban)+asserted=A0019, got %r" % t)
+    sys.exit(1)
+print("           PASS: T464G renders in_progress (kanban) with (asserted: A0019) annotation")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+# next must NOT hand out T464G (kanban in_progress); the done assertion is only
+# an annotation and does not close the row.
+NEXT_OUT=$(cd "$TMPDIR" && "$MG" next 2>&1) || true
+if echo "$NEXT_OUT" | grep -q 'claimed T464G'; then
+    echo "           FAIL: next handed out T464G — a done assertion closed a live row"
+    FAIL=1
+else
+    echo "           PASS: next refused T464G (kanban in_progress wins over done assertion)"
 fi
 
 # ── Check 19: T464 — retire moves a dispatchable row to archive with an epitaph ──
@@ -576,8 +637,8 @@ fi
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then
-    echo "  T204/T209/T213/T217/T295/T464: ALL CHECKS PASS"
+    echo "  T204/T209/T213/T217/T295/T464/T497: ALL CHECKS PASS"
 else
-    echo "  T204/T209/T213/T217/T295/T464: SOME CHECKS FAILED"
+    echo "  T204/T209/T213/T217/T295/T464/T497: SOME CHECKS FAILED"
 fi
 exit "$FAIL"

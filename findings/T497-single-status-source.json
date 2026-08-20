@@ -1,0 +1,10 @@
+{
+  "task_id": "T497",
+  "date": "2026-08-20",
+  "model": "glm-5.2",
+  "identifier": "glm-5.2/T497.2",
+  "claims": [],
+  "new_rows": [],
+  "notes": "ONE status source implemented: the assertion ledger is an annotation (history) only — it never overrides tasks.json. 190-line change to src/managent/main.zig (123+/67-): removed the ledgerStatusToTask override path and the 'asserted = resolveStatus' authority; added annotation rendering (writeAssertionAnnotation) and the T497 comment at main.zig:4790. Regression: tools/regression-managent-integrity.sh gains Check 17 ('a closed assertion annotates but does not drop a row from the kanban'). Verified: full 'zig build' passes (exit 0, 15.5s); rebuilt binary renders status from the store. RECONSTRUCTION: the worker (glm-5.2, claim 2) stalled after writing the code and regression but before its findings file or close; this findings file was written by the Orchestrator seat (ORCHA-flash) from the committed diff + regression evidence. claims: [] — instrumentation, no register change. This closes the T452/A0017 two-source defect class: status now lives in exactly one place.",
+  "verdict": "pass"
+}
