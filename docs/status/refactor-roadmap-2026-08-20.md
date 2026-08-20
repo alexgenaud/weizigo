@@ -46,6 +46,71 @@ because **`killpg` covers exactly one process group** and `zig build`'s descenda
 create their own. macOS has no cgroups, so there is no kernel-level "kill everything
 below this". That boundary cannot be patched; it has to be replaced by holding handles.
 
+## How passes and phases actually work (operator, 2026-08-20)
+
+A pass is **not** a fixed repeat of every phase. Each pass *potentially* contains all of
+spec, research, design, scope, plan, implementation, verification — but in practice:
+
+- the spec may be written once and **scope reduced** on each later pass;
+- **research findings accumulate** across passes rather than being redone;
+- scope may be **triaged forward**, and a verification failure in pass N becomes scope in
+  pass N+1;
+- scope may be **split in two**, and the second half skips spec/research/design entirely
+  because they were already done.
+
+So the ladder is a menu, not a treadmill. The plan for each pass states which phases it
+runs and which it inherits.
+
+## What the races are actually for
+
+Not to crown a winner. **To build a skill matrix per model per phase**, so that work can
+be routed and over-spending stopped. The operator's aim, recorded: *"I hope we'll find
+strengths and weaknesses early and reduce the model participation in subsequent phases in
+later passes. We may learn that some models are great at free-thinking and writing and
+planning but not implementation and other models are the opposite. Or we may decide that
+some models are overqualified for tasks that any model can handle equally and
+sufficiently well."*
+
+Two consequences:
+
+1. **Participation shrinks as evidence accumulates.** Early phases run wide; later phases
+   run only the lanes the matrix says are worth it.
+2. **"Overqualified" is a measurable claim**, not an impression — quality delta against
+   tokens spent. Token capture landed 2026-08-20 (`T521`), so cost per phase is now a
+   real number for the first time.
+
+## Consolidation: by aspect, not by winner
+
+Corrected from the seat's earlier proposal, which was winner-takes-all with grafts. The
+operator's mechanism:
+
+> *"These races are not winner-takes-all. We are evaluating all models on skill
+> dimensions. We are selecting aspects of documents and consolidating into the best one
+> results. Yes, it's by committee, but each model does all of his own work independently
+> — same inputs — different outputs. All outputs are inputs again to all independent
+> models."*
+
+So: same inputs, independent outputs, then **all outputs become inputs to another
+independent round**. Consolidation selects the best *aspects* across documents rather
+than electing one document.
+
+**Two risks the seat flags, with proposed mitigations — the operator and Fable to rule:**
+
+- **Incoherence.** A document assembled from the best paragraphs of seven can contradict
+  itself; parts optimised separately do not necessarily compose. *Mitigation:* aspect
+  selection is followed by a single **coherence pass owned by one author** (Fable, per the
+  adjudication ruling) whose job is internal consistency, not further selection. Committee
+  chooses the parts; one hand makes them agree.
+- **Convergence to mush.** If every output is fed back to every model, round two may
+  anchor on round one and lose the diversity that made the exercise valuable.
+  *Mitigation:* cap the rounds (the audit loop is already capped at two), and **measure
+  divergence between rounds** — if round-two documents converge sharply, that is itself a
+  finding about the method, not a success.
+- **Premature lock-in.** Reducing participation on n=1 or n=2 evidence is exactly the
+  folklore this project is trying to replace ("race, don't decide"). *Mitigation:* narrow
+  a phase's roster only after a stated number of observations, and re-test periodically —
+  models change under the same label, and the epoch mechanism already exists to record it.
+
 ## The cannibalization pattern
 
 Each pass extracts **one responsibility** into a `managent` verb, then **edits the old

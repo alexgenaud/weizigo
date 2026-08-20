@@ -1,9 +1,20 @@
 # Pass 1 — SPEC: process ownership. Tournament brief (identical bytes to every lane)
 
 You are writing a **spec** for pass 1 of the orchestration refactor. Seven models receive
-this exact brief. Your spec will be anonymized, graded by the other lanes, and one
-winner selected with grafts from runners-up. Write the best spec you can; do not write
-code, and do not write the plan or the design.
+this exact brief — same inputs, independent outputs. Write the best spec you can; do not
+write code, and do not write the plan or the design.
+
+**This is not winner-takes-all.** Your spec is anonymized and read by every other lane.
+Consolidation then selects the best **aspects** across all seven documents — a section,
+an argument, a test idea, a safety guard — and assembles them. So a spec that is weak
+overall but contains one excellent section still contributes, and a polished spec with
+nothing distinctive may contribute little. **Write to be quarried, not just to win:** make
+each section strong and separable, and say plainly which part of your spec you think is
+its best contribution.
+
+All outputs then become inputs to a further independent round, so expect to see the other
+six and be asked to revise. You are also being evaluated per *skill dimension* rather
+than ranked overall — the purpose of these races is a skill matrix, not a champion.
 
 ## The problem, measured
 
@@ -87,8 +98,12 @@ it correctly treats the session-vs-process-group question as open, and economy. 
 where grader family equals author family are refused at counting (`G3`). Self-identifying
 text is flagged, not scrubbed (`G4`) — do not name yourself.
 
-Final selection and consolidation is made by `claude-fable-5` as the operator's
-designated judge, on anonymized inputs in a fresh session.
+Consolidation and the final ruling belong to `claude-fable-5` as the operator's
+designated authority (`docs/infra/delegation/ROLES.md`, "Adjudication authority"), acting
+as a **separate fresh instance** on anonymized inputs — so a Fable-authored spec in this
+pool is judged by a Fable that has never seen it. Its job is to select aspects across the
+seven and then make the assembled result internally coherent; committee chooses the
+parts, one hand makes them agree.
 
 ## Deliverable
 

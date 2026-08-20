@@ -147,3 +147,18 @@
 
 {"id":"D052","target":"T546","directive":"amend","note":"ROUND 2 PARTIAL SUCCESS — 17 of 22 owed lanes captured, and CRITICALLY all 17 carry token readings (tokens_in/tokens_out with tokens_source). That breaks a seven-race streak of n=0; this is the first real cost data the project has. You were then killed by TWO guards: host memory pressure (avail 5776MB < floor 6144MB) and then the wall ceiling at 2700s. The 2700s wall was the KEEPER's default, not your brief's class (verification wants 5400-7200s) — that is the wall-guess defect, not your error. RESUME: re-dispatched by hand with --wall=7200. Do ONLY the 5 still-owed lane-packet combinations; do NOT re-run the 17 already captured (their data is recorded in lanes-round2.json). Append to lanes-round2.json rather than replacing it. TWO THINGS TO RECORD in your findings: (1) token sources DIFFER by family — Claude lanes read from 'trailer', DeepSeek/qwen from 'pi-session-jsonl'. State explicitly whether those two accountings are comparable (do they both count cache reads? system prompt? tool results?) because a cross-family token comparison is invalid until that is settled, and the operator's central question is exactly a cross-family cost comparison. (2) Four lanes SELF-IDENTIFIED on aspect-crash (fable, dspro, sonnet, haiku) — G4 flagged them correctly; note that this particular packet appears to invite self-identification, which is itself a finding about the packet, not just the lanes.","from":"unknown","ts":"2026-08-20T15:19:27Z","read":true,"read_by":"T546","read_at":"2026-08-20T15:19:35Z"}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{"id":"D053","target":"T551","directive":"amend","note":"BOTH ARTIFACTS REVISED SINCE YOUR DISPATCH — re-read them before ruling. The operator corrected the seat on two points and added a third; your review must rule on the REVISED versions. (1) NOT winner-takes-all: consolidation selects the best ASPECTS across all seven documents and assembles them, rather than electing one winner with grafts. All outputs then become inputs to a further independent round. Authors are now told to write to be quarried and to name their own best contribution. (2) Passes are a MENU not a treadmill: a pass potentially contains all phases, but scope may be reduced per pass, research accumulates, verification failures triage forward, and a split second half may skip spec/research/design entirely because they were already done. (3) The races exist to build a SKILL MATRIX per model per phase so participation can shrink as evidence accumulates and over-spending stops — not to crown a champion; and 'overqualified' is now a measurable claim because token capture landed today. ALSO RULE ON THREE RISKS the seat raised against the operator's mechanism, since you outrank us both: incoherence (a document assembled from the best paragraphs of seven can contradict itself — the seat proposes aspect-selection followed by a single coherence pass owned by you); convergence to mush (feeding all outputs back to all models may anchor round two and destroy the diversity that made the exercise worth running — the seat proposes capping rounds and MEASURING divergence, treating sharp convergence as a finding about the method rather than a success); and premature lock-in (narrowing a roster on n=1 or n=2 is the folklore this project is replacing — the seat proposes a stated observation count before narrowing, plus periodic re-test since models change under the same label). Your verdict on the tournament brief remains SPEND / SPEND-WITH-EDITS / DO-NOT-SPEND, and you may rewrite it directly.","from":"unknown","ts":"2026-08-20T17:12:21Z","read":false}
