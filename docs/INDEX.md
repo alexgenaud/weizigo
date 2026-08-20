@@ -231,10 +231,10 @@ at its top stating its status. **Do not rely on these for current truth.**
 | `docs/research/methods-and-findings.md` | historical overview | `docs/epistemic/PROGRESS.md` |
 | `docs/research/ghi-and-superko.md` | historical (pre-ADR-0013) | `docs/decisions/0013` |
 | `docs/research/data-model-and-measurements.md` | historical (2026-07-14) | `docs/decisions/0002` |
-| `docs/status/handover-glm-5.2-2026-07-29.md` | ephemeral handover | superseded by later session |
-| `docs/status/handover-glm-advisor-2026-07-28.md` | ephemeral handover | superseded by later session |
-| `docs/status/handover-minimax-m3-2026-07-29.md` | ephemeral handover | superseded by later session |
-| `docs/status/handover-opus-orcha-2026-07-29.md` | ephemeral handover | superseded by later session |
+| `docs/status/archive/handovers/handover-glm-5.2-2026-07-29.md` | ephemeral handover | superseded by later session |
+| `docs/status/archive/handovers/handover-glm-advisor-2026-07-28.md` | ephemeral handover | superseded by later session |
+| `docs/status/archive/handovers/handover-minimax-m3-2026-07-29.md` | ephemeral handover | superseded by later session |
+| `docs/status/archive/handovers/handover-opus-orcha-2026-07-29.md` | ephemeral handover | superseded by later session |
 
 ---
 
