@@ -271,6 +271,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `CODE.RESOLVER-INTERFACE` | Z-AUDIT | ADR-0022: pluggable resolver interface, none authoritative — instrument architecture (T402, absorbed T418) |
 | `CODE.RESOLVER-BUDGET-QUARANTINE` | Z-AUDIT | capture budget demoted to a named pluggable resolver whose registration metadata records its measured non-convergence — instrument validity; sibling GLOBAL.CAPTURE-BUDGET-DAG; CLAIMED not PROVEN at absorption (T402, absorbed T418) |
 | `CODE.RESOLVER-CONTROLS` | Z-AUDIT | harness null + seeded controls fire at all 23,420 3×3 positions — instrument-control discipline, re-verified at absorption (T402, absorbed T418) |
+| `GLOBAL.REACH-P4-CENSUS` | Z-STATE-REACH | T507: reachable (board, side, ko, passes) state census at all solved sizes — totals 258 / 2,586 / 73,758 / 1,929,038 / 147,638,298; cross-checks WZO2 headers + t386 + an independent Python re-implementation; evidences state-reachability (3.3 Z-STATE-REACH), the L7 sizing datum |
 
 ## 2. Adopted retirements — 132 rows moved to archives/register/, by family
 
