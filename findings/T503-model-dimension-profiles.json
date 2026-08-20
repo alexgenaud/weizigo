@@ -1,0 +1,10 @@
+{
+  "task_id": "T503",
+  "date": "2026-08-20",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T503",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Per-model dimension profiles instrument (tools/model-profiles.py, six dimensions from ledger signals: verdict/done/dispatch-verify/wall-kill-census/findings-conformance) plus the task-type data-count pairing map and the exploration-first selection rule. The worker built the tool and edited model-perf's mechanical verify lines but stopped before writing the profiles section or a findings file; the row closed as dispatchable. The Orchestrator seat completed the absorption: appended the Dimension profiles section to model-perf (single source of truth: the tool's --json output, recomputed not hand-held), wrote this findings file, and closed the row. Claims: [] — instrumentation/impressions, no register change. Key measured reads: glm close-discipline 0.83 (15 unrecoverable = wall-kill/stall pattern); ds-pro independence 0.11 (re-runs not re-derives on audits); kimi/minimax small n = the models exploration-first now selects.",
+  "verdict": "pass-with-findings"
+}

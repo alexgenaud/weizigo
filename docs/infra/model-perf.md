@@ -3391,3 +3391,48 @@ until asked.
 
 *Recorded by ORCHA-flash, 2026-08-20 02:20 local, in answer to the operator's question.
 Claims: none — impressions only, not register claims.*
+dispatch-verify 2026-08-20 T483 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T502 glm-5.2 report=success verified=pass
+dispatch-verify 2026-08-20 T498 minimax-m3 report=success verified=pass
+dispatch-verify 2026-08-20 T499 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T484 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T488 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T358 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T358 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T352 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T357 minimax-m3 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T351 kimi-k2.7 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T353 glm-5.2 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T503 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T357 glm-5.2 report=success verified=pass
+
+## Dimension profiles — per-model, by task type (T503, 2026-08-20)
+
+**Single source of truth: `tools/model-profiles.py --json` (recompute, never hand-hold).**
+Six dimensions graded from ledger signals (verdict, done, dispatch-verify, wall-kill census,
+findings conformance): correctness / completion / close-discipline / efficiency /
+deliverable-conformance / independence. Averaged per model; `—` = no data (absence of evidence,
+not evidence of absence). **Selection rule (operator, 2026-08-20): prefer the model with the
+LEAST data for a task type — lack of data is a reason to choose. Comparison-worthy tasks run two
+models head-to-head (most-suitable + least-data), blind-graded (T447 precedent).**
+
+Current profiles (computed 2026-08-20, `tools/model-profiles.py --json`):
+
+| model | correctness | completion | close-disc | efficiency | deliverable | independence | task-type data (infra/verif/spec/battery) |
+|---|---|---|---|---|---|---|---|
+| deepseek-v4-flash | 1.81 (n=57) | 1.00 | 1.43 | — | 1.00 | 0.15 | 40/13/1/3 |
+| deepseek-v4-pro | 1.58 (n=36) | 0.97 | 1.68 | 0.00 (n=1) | 0.94 | 0.11 | 19/9/3/6 |
+| glm-5.2 | 1.41 (n=29) | 0.94 | **0.83** (15 unrecoverable) | 0.86 | 1.00 | 0.40 | 14/10/3/4 |
+| kimi-k2.7 | 1.57 (n=7) | 1.00 | 1.10 | 1.00 (n=3) | 1.00 | 1.00 (n=1) | 4/1/0/2 |
+| minimax-m3 | 1.33 (n=15) | 1.00 | 1.46 | 1.00 (n=3) | 0.93 | 0.20 | 6/5/1/3 |
+| claude-fable-5 | 1.80 (n=5) | 1.00 | — | — | 1.00 | 1.00 (n=1) | 1/1/2/1 |
+| claude-opus-5 | 1.33 (n=6) | 1.00 | — | — | 1.00 | 0.00 | 1/4/0/1 |
+
+Reads: glm's close-discipline 0.83 (15 unrecoverable) is the measured wall-kill/stall pattern;
+deepseek-v4-pro's independence 0.11 says it re-ran rather than re-derived on audits (the D2
+concern); kimi/minimax have small n — exactly the models the exploration-first rule now selects
+to grow their data; deepseek-v4-flash carries the historical infra load (40).
+
+*Computed by T503's tool; the row was closed by the Orchestrator seat after the worker built
+the instrument and stopped before recording this output. Claims: none — impressions/grading, not
+register claims.*
