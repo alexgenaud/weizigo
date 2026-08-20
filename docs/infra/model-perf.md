@@ -1,4 +1,4 @@
-# Model-performance observations (untracked scratch — impressions, not science)
+# Model-performance observations (tracked impressions and rulings, see managent tasks.json)
 
 **Status: living scratchpad. [Current.]**
 
@@ -3741,3 +3741,57 @@ caught it. That is a gap in the criteria, not only in the seat.
 - **Cost profile:** materially more expensive per unit of orchestration than the flash seat.
   The aspect races re-adjudicate the seat within the week (Course ruling 8, vetoed 2026-08-20);
   this entry exists so that adjudication has data on both sides rather than folklore.
+dispatch-verify 2026-08-20 T536 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T539 deepseek-v4-pro report=success verified=pass
+
+## Interim model-allocation default — RULED 2026-08-20 (Course ruling 6, closing it)
+
+The Flash-default TEMP expired 2026-08-12 unrenewed and the Course's ruling 6 asked the seat to
+state an interim default. Stating it now, prompted by an operator challenge that landed a hit.
+
+**The default is `deepseek-v4-flash`.** `deepseek-v4-pro` requires a *stated reason recorded on
+the row*. Claude lanes are for work where the operator has asked for them or where a race is
+measuring them.
+
+### The challenge, and the honest answer
+
+The operator asked, 2026-08-20 ~14:55, why every in-progress row was on `deepseek-v4-pro`:
+*"if it's 'random' or rather 'default', then I think ds flash should be default unless we know
+that dspro is the model better suited to the specific task type."*
+
+He was right, and the split is worth recording exactly, because it is a seat-quality data point:
+
+- **Reasoned pro:** `T536`, `T539` (P0 fleet-control-loop state machines — a wrong backoff or a
+  wrong invariant is worse than a slow one), `T537` (verdict logic), `T538` (a classifier that
+  must not launder genuine failures), `T540` (a manager that subdelegates and needs judgement).
+- **Pro by momentum, not judgement:** `T521`, `T542`, `T543`, `T544`. No per-row reason was
+  formed; the previous dispatch's model was reused. That is a default masquerading as a decision.
+
+**The evidence available at the time contradicted the momentum.** `T514`, `T517` and `T518` were
+dispatched to `deepseek-v4-flash` the same hour and all three closed with verification PASSED —
+T518 in **82.6 s**, T514 and T517 inside ~3 minutes each — writing conforming findings files from
+committed evidence. Flash was, on the day's only evidence, sufficient for the work it was given.
+
+**Why this matters beyond cost.** It is the "race, don't decide" failure committed by the seat
+that is supposed to enforce it, and it *damages the comparison the operator most wants*: if pro
+draws every interesting row, no data is ever generated about whether flash could have done them,
+and the ledger then "shows" pro is the capable one. An allocation default is a measurement
+instrument, and a biased one manufactures its own justification. This is the same shape as
+`T544` (half of closed rows unattributed) and `T538` (refusals scored as failures): the
+measurement apparatus quietly producing the answer it assumed.
+
+### The rule, operationally
+
+1. Dispatch `deepseek-v4-flash` unless a reason is stated on the row.
+2. Escalate to `deepseek-v4-pro` for: correctness-critical control-loop or invariant work,
+   classifiers/graders whose false-negatives launder other failures, and manager/console rows
+   that subdelegate. Record the reason at dispatch.
+3. A flash row that fails for capability reasons is **escalated and the escalation recorded** —
+   that record is the data that makes this default falsifiable. A flash row that fails for
+   billing/connection reasons is infrastructure (`T538`) and is re-dispatched to flash.
+4. `least_data_model()` (exploration-first, `T503`) stays the tie-breaker for model-less rows —
+   but note it currently computes over the 21% of closed rows that carry a model at all
+   (`T544`), so its "least measured" answer is not trustworthy until that lands.
+
+Review when the aspect races return per-aspect data; the races, not this note, are the authority.
+dispatch-verify 2026-08-20 T540 deepseek-v4-pro report=success verified=pass
