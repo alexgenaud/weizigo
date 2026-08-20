@@ -117,8 +117,9 @@ deploy-staleness by T369, git-commit-mine env-bleed by T454).
 ### Shell regression 6 — `tools/regression-absorption-machinery.sh`
 
 - **Cause:** hardcoded register count: arms A1/B1 assert `parsed 221 rows`
-  while the live register now has 228 rows (`absorb: parsed 228 rows`).
-  The fixture copies the real register but the count is frozen at 221.
+  while the live register now has the count `bin/weizigo-claimlint` prints
+  on every run (rows parsed). The fixture copies the real register but the
+  count is frozen at 221.
 - **Owning row:** T406 · **Verdict:** defect.
 
 ### Shell regression 7 — `tools/regression-argus-doctor.sh`
@@ -138,8 +139,8 @@ deploy-staleness by T369, git-commit-mine env-bleed by T454).
   which passed by design; several regression scripts seed fixture docs into
   the live tree and remove them only in an exit trap (Orchestrator directive
   D071, 2026-08-18, independently confirms the fixture-seeding class). The
-  live register (228 rows) and the tree-map (228 rows) are in lockstep;
-  `bin/weizigo-claimlint` reports C9 = 0. Nothing to fix.
+  live register and the tree-map (printed by `bin/weizigo-claimlint` on every
+  run) are in lockstep; `bin/weizigo-claimlint` reports C9 = 0. Nothing to fix.
 - **The brief undercounted the shell reds** (it named only argus-doctor).
   The run-2 log carries four `run sh failure` steps: managent-integrity,
   git-commit-mine, absorption-machinery, argus-doctor. Two reproduce at

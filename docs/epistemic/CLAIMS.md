@@ -213,7 +213,7 @@ durable locator.
 
 ## 2. The register
 
-**274 rows** (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
+**The register's current row count is printed by `bin/weizigo-claimlint` (rows parsed) — do not hold the number in prose.** Historical census at 2026-08-19 sweep: 228 rows; the arithmetic below is preserved for the record, **not** as a live total. (217 at the 2026-07-28 sweep + the 28 `QA-nnn` rows imported into
 §2.11 the same day + **8 added later on 2026-07-28** promoting rulings D-1, D-2,
 D-3, D-5 and EXP-3's per-goban census: `3x3.E2-RUN1`, `3x3.E2-RUN2`,
 `3x3.H1-CENSUS`, `4x3.H1-CENSUS`, `GLOBAL.H5a-CHILD`, `GLOBAL.H5a-FALLBACK`,
