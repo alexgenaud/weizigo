@@ -10,26 +10,38 @@
 # the EXP-9 close-out: ReleaseFast by default, SIGKILL the process group
 # at any ceiling breach, clear reporting on stderr, exit 124.
 #
-# Three ceilings, all default-on:
-#   --rss-cap-mb 4096   SIGKILL the process group when any member exceeds
-#                       this RSS.  Protects against compiler blowups that
-#                       Jetsam does not catch before the watchdog fires.
-#   --max-wall 1800     SIGKILL the process group after this many seconds
-#                       of wall-clock time.  Protects against compute loops
-#                       that do not allocate, so RSS never fires.
+# Four guards, three default-on:
+#   --rss-cap-mb 12288  SECONDARY bound: SIGKILL the process group when any
+#                       member exceeds this RSS.  Generous now that the
+#                       host guard exists — catches a single runaway
+#                       allocation, not a legitimate 4.1 GB check.
+#   --host-mem-floor-mb FLEET-AWARE guard (T362): read system-wide available
+#                       memory; below a danger floor (default derived from
+#                       hw.memsize, total // 8) SIGKILL the LARGEST member
+#                       of the process group — a fleet citizen relieving
+#                       host pressure before the host panics.  The per-
+#                       process cap bounds ONE worker; five such workers
+#                       would commit 40 GB.  The 2026-07-29 panic had
+#                       system free ~46 MB of 48 GB before watchdogd
+#                       starved — do not raise the floor casually.
+#                       --no-host-guard disables.  WEIZIGO_HOST_MEM_AVAIL_MB
+#                       injects the reading for the test (never exhaust
+#                       the host to test the floor).
+#   --max-wall 1800     (fallback for silent children) SIGKILL after this
+#                       many wall seconds if no [progress] lines seen.
 #                       macOS does not have timeout(1), so this is the
 #                       project's only reliable wall-time backstop.
-#   --max-cpu 3600      SIGKILL the process group when the sum of
-#                       cumulative CPU seconds across ALL descendants
-#                       exceeds this.  Protects against multi-process
-#                       spin loops where no single child shows alarming
-#                       RSS or wall time.  Reported per-PID on exit.
+#   --max-cpu 3600      (fallback for silent children) SIGKILL when the
+#                       sum of cumulative CPU seconds across ALL
+#                       descendants exceeds this.  Reported per-PID on exit.
 #
-# Why three ceilings?  The 2026-07-29 panic proved that a single guard
-# (RSS) is not enough.  A `zig test` binary spinning at 0% RSS sat
-# undetected for 5 hours because name-based greps missed the anonymous
-# process.  The wall ceiling catches the long-duration case; the CPU
-# ceiling catches the high-throughput case regardless of process name.
+# Why multiple guards?  The 2026-07-29 panic proved that a single guard
+# (per-process RSS) is not enough — and per-process RSS says nothing
+# about the fleet.  A `zig test` binary spinning at 0% RSS sat undetected
+# for 5 hours because name-based greps missed the anonymous process.  The
+# host guard catches fleet-wide memory pressure; the wall/CPU ceilings
+# catch the silent long/throughput cases; the progress watchdog catches
+# stuck children that still emit progress lines.
 #
 # macOS timeout(1) gap.  macOS ships no `timeout` utility (it is
 # Linux-only / coreutils-only).  Agents reaching for `timeout` to bound
@@ -501,6 +513,108 @@ def _rss_bytes(pid):
     return None
 
 
+# ── host memory (fleet-aware guard, T362) ───────────────────────────
+#
+# The per-process RSS cap bounds ONE worker.  It says nothing about five
+# workers at once.  This host has 48 GB and took a watchdog-timeout kernel
+# PANIC under OOM on 2026-07-29 (docs/infra/host/incident-2026-07-29.md:
+# zig at 12.5 GB resident, system free ~46 MB of 48 GB, watchdogd starved
+# 91 s, Apple silicon watchdog fired).  The fleet-aware guard reads
+# system-wide available memory and, below a danger floor derived from
+# hw.memsize, SIGKILLs the LARGEST member of this process group — a fleet
+# citizen relieving host pressure before the host panics.  The floor is
+# derived, never hardcoded; do not raise it casually.
+#
+# The danger floor is NEVER tested by actually exhausting host memory;
+# WEIZIGO_HOST_MEM_AVAIL_MB injects the reading for the composition test.
+
+def _host_mem_bytes():
+    """Return total physical memory in bytes, or None.
+
+    macOS: `sysctl -n hw.memsize`.
+    Linux: /proc/meminfo `MemTotal:` in kB.
+    """
+    if sys.platform == 'linux' and os.path.isdir('/proc'):
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal:"):
+                        return int(line.split()[1]) * 1024
+        except (OSError, ValueError, IndexError):
+            return None
+        return None
+    try:
+        out = subprocess.run(
+            ["sysctl", "-n", "hw.memsize"],
+            capture_output=True, text=True, timeout=2.0,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return int(out.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
+def _host_avail_bytes():
+    """Return system-wide available memory in bytes, or None.
+
+    Available = memory reclaimable without swapping.  When the env var
+    WEIZIGO_HOST_MEM_AVAIL_MB is set, that value is returned verbatim —
+    the test hook that lets the composition case reproduce without
+    exhausting the host (T362 bar: inject the reading).
+
+    macOS: vm_stat (free + inactive + purgeable + speculative) * page size.
+    Linux: /proc/meminfo `MemAvailable:` in kB.
+    """
+    injected = os.environ.get("WEIZIGO_HOST_MEM_AVAIL_MB")
+    if injected is not None:
+        try:
+            return int(injected) * 1024 * 1024
+        except ValueError:
+            pass  # fall through to the real reading
+
+    if sys.platform == 'linux' and os.path.isdir('/proc'):
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemAvailable:"):
+                        return int(line.split()[1]) * 1024
+        except (OSError, ValueError, IndexError):
+            return None
+        return None
+
+    # macOS / BSD: vm_stat.  The first line carries the page size; the
+    # reclaimable page classes are free / inactive / purgeable / speculative.
+    try:
+        out = subprocess.run(
+            ["vm_stat"], capture_output=True, text=True, timeout=2.0,
+        )
+        if out.returncode != 0:
+            return None
+        page = 4096
+        classes = {"Pages free:": 0, "Pages inactive:": 0,
+                  "Pages purgeable:": 0, "Pages speculative:": 0}
+        for line in out.stdout.splitlines():
+            ls = line.strip()
+            if "page size of" in ls:
+                m = re.search(r'page size of (\d+)', ls)
+                if m:
+                    page = int(m.group(1))
+                continue
+            for key in classes:
+                if ls.startswith(key):
+                    # "Pages free:  832602." -> strip the trailing dot
+                    tail = ls[len(key):].strip().rstrip('.')
+                    try:
+                        classes[key] = int(tail)
+                    except ValueError:
+                        pass
+        return sum(classes.values()) * page
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
 # ── logging ──────────────────────────────────────────────────────────
 
 def _log_peaks(peak_rss, peak_cpu=None, t0=None):
@@ -547,9 +661,24 @@ def main():
                     "RSS / wall / CPU ceiling.  Also: --sweep for "
                     "orphan-zig detection.",
     )
-    ap.add_argument("--rss-cap-mb", type=int, default=4096,
-                    help="kill the process group when any member exceeds "
-                         "this RSS in MB (default 4096)")
+    ap.add_argument("--rss-cap-mb", type=int, default=12288,
+                    help="secondary bound: SIGKILL the process group when any "
+                         "member exceeds this RSS in MB (default 12288 — "
+                         "generous now that the host guard exists; catches a "
+                         "single runaway allocation, not a legitimate 4.1 GB "
+                         "check). 0 disables the per-process cap.")
+    ap.add_argument("--host-mem-floor-mb", type=int, default=0,
+                    help="fleet-aware guard: when system-wide available "
+                         "memory falls below this floor, SIGKILL the LARGEST "
+                         "member of the process group (a fleet citizen relieving "
+                         "host pressure before the host panics).  Default 0 = "
+                         "derive from hw.memsize (total // 8).  The 2026-07-29 "
+                         "host panic (system free ~46 MB of 48 GB) is the "
+                         "precedent — do not raise it casually.  See "
+                         "docs/infra/host/incident-2026-07-29.md.")
+    ap.add_argument("--no-host-guard", action="store_true",
+                    help="disable the fleet-aware host-pressure guard "
+                         "(the per-process cap and progress watchdog remain)")
     ap.add_argument("--max-wall", type=int, default=1800,
                     help="(fallback for silent children) SIGKILL after this "
                          "many wall seconds if no [progress] lines seen "
@@ -609,6 +738,23 @@ def main():
     cap_bytes = args.rss_cap_mb * 1024 * 1024
     poll_s = args.poll_ms / 1000.0
 
+    # ── fleet-aware host-pressure guard (T362) ────────────────────────────
+    # The danger floor is derived from hw.memsize (total // 8) unless the
+    # caller sets --host-mem-floor-mb.  0 with no explicit override means
+    # "derive"; --no-host-guard disables.  If the reading is unavailable
+    # on the host, the guard is inert (cannot measure = cannot fire).
+    host_total = _host_mem_bytes()
+    if args.no_host_guard:
+        host_floor_bytes = 0
+    elif args.host_mem_floor_mb > 0:
+        host_floor_bytes = args.host_mem_floor_mb * 1024 * 1024
+    elif host_total is not None:
+        host_floor_bytes = host_total // 8
+    else:
+        host_floor_bytes = 0
+    host_guard_on = host_floor_bytes > 0
+    host_guard_fired = False  # set when the guard SIGKILLs a member
+
     # New process group so SIGKILL reaches the whole tree, not just the
     # wrapper's child. (The child becomes its own session leader; the
     # group ID == its PID.)
@@ -620,6 +766,12 @@ def main():
         guards.append(f"rss {args.rss_cap_mb} MB")
     else:
         guards.append("rss off")
+    if host_guard_on:
+        floor_mb = host_floor_bytes // (1024 * 1024)
+        total_gb = (host_total // (1024 ** 3)) if host_total else 0
+        guards.append(f"host-floor {floor_mb} MB (of {total_gb} GB)")
+    else:
+        guards.append("host-guard off")
     if args.progress_timeout:
         guards.append(f"progress-timeout {args.progress_timeout}s ({_format_duration(args.progress_timeout)})")
     else:
@@ -735,6 +887,7 @@ def main():
 
             total_cpu = 0.0
             over_rss = False
+            poll_rss = {}  # pid -> current RSS bytes (this poll, for the host guard)
 
             for pid in pids:
                 # RSS check
@@ -756,6 +909,7 @@ def main():
                             continue
                     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
                         continue
+                poll_rss[pid] = rss
                 peak_rss[pid] = max(peak_rss.get(pid, 0), rss)
                 if args.rss_cap_mb and rss > cap_bytes:
                     over_rss = True
@@ -779,6 +933,51 @@ def main():
                         _runner_print(f"[runner] PID {pid}{extra}")
             sys.stderr.flush()
 
+            # ── fleet-aware host-pressure guard (T362) ──────────────────
+            # Read system-wide available memory; below the danger floor,
+            # SIGKILL the LARGEST member of the process group — a fleet
+            # citizen relieving host pressure before the host panics (the
+            # 2026-07-29 watchdog-timeout panic is the precedent).  Surgical:
+            # only the largest pid dies.  If that pid is the direct child,
+            # the run ends (kill_reason escalates to the exit-124 path);
+            # otherwise the loop continues and, if pressure persists, the
+            # next poll kills the next-largest.  The reading is injectable
+            # via WEIZIGO_HOST_MEM_AVAIL_MB so the danger floor is never
+            # tested by actually exhausting host memory.
+            kill_reason = None
+            if host_guard_on and poll_rss:
+                avail = _host_avail_bytes()
+                if avail is not None and avail < host_floor_bytes:
+                    largest_pid = max(poll_rss, key=lambda p: poll_rss[p])
+                    largest_rss = poll_rss[largest_pid]
+                    avail_mb = avail // (1024 * 1024)
+                    floor_mb = host_floor_bytes // (1024 * 1024)
+                    if largest_pid == proc.pid:
+                        # killing the direct child ends the run
+                        kill_reason = (
+                            f"host memory pressure — avail {avail_mb} MB "
+                            f"< floor {floor_mb} MB (largest member pid "
+                            f"{largest_pid} RSS "
+                            f"{largest_rss // (1024*1024)} MB)"
+                        )
+                    else:
+                        try:
+                            os.kill(largest_pid, signal.SIGKILL)
+                            host_guard_fired = True
+                            print(
+                                f"[runner] KILL: host memory pressure — "
+                                f"avail {avail_mb} MB < floor {floor_mb} MB",
+                                file=sys.stderr,
+                            )
+                            print(
+                                f"[runner]   killed largest member: pid "
+                                f"{largest_pid} RSS "
+                                f"{largest_rss // (1024*1024)} MB",
+                                file=sys.stderr,
+                            )
+                        except ProcessLookupError:
+                            pass
+
             # ── WORKER-CHANNEL: mid-run directive poll (T370) ───────────
             # A `managent tell <id> pause|kill` issued after launch must
             # still land — without identity the seat could not halt an
@@ -800,9 +999,9 @@ def main():
                         )
 
             # ── kill decisions ────────────────────────────────────────
-            kill_reason = None
-
-            if midrun_kill_reason:
+            if kill_reason:
+                pass  # host guard already decided (direct-child kill)
+            elif midrun_kill_reason:
                 kill_reason = midrun_kill_reason
             elif over_rss:
                 kill_reason = f"RSS cap {args.rss_cap_mb} MB exceeded"
@@ -866,6 +1065,8 @@ def main():
     peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
     total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
     _emit_heartbeat(task_identity, shlex.join(argv), elapsed, total_cpu_sum, peak_rss_mb, repo_root)
+    if host_guard_fired:
+        print(f"[runner] note: host guard fired during this run (relieved host pressure; proc exited {ret})", file=sys.stderr)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)
 
     # ── WORKER-CHANNEL: auto-done on success ─────────────────────────────
