@@ -1,0 +1,10 @@
+{
+  "task_id": "T528",
+  "date": "2026-08-20",
+  "model": "kimi-k2.7",
+  "identifier": "kimi-k2.7/T528",
+  "status": "completed",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Authored seven sealed aspect-race packets (A1–A5 orchestrator aspect-races plus E3 and E5 epistemic races). Deliverables: untracked/race-aspects/packets/MANIFEST.md with sealed SHA-256s for every packet brief, frozen fixture store, and answer key; packet plaintext keys live in untracked/race-aspects/packets/*/{key,keys}.txt and remain lane-inaccessible. The two epistemic races reuse the already-sealed committed packets at docs/evidence/EPISTEMIC-RACES/packets/race3/ and race5/ and their existing key SHA-256s from 2026-08-05. Races are not dispatched in this row; separate kanban rows will run the lanes after the packet manifest is sealed."
+}
