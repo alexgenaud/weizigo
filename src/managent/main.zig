@@ -6876,6 +6876,44 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         }
     }
 
+    // ── T486: absorption partition (absorption-spec §8) ──────────────────
+    // Join claimlint's `c7 --json` against the live kanban + archive. A closed
+    // task carrying unabsorbed/non-conforming findings is a crisis — with the
+    // done gate (T485) live it can only mean someone went around the mechanism
+    // — so each closed-partition file is a FIX finding naming the file. The
+    // open partition is healthy in-flight work: informational, never a gate.
+    {
+        const archive_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+        defer alloc.free(archive_path);
+        var archive_state = try readState(io, archive_path);
+        defer freeState(&archive_state);
+
+        var part = computeAbsorptionPartition(io, repo_root, &state, &archive_state) catch |e| blk: {
+            const msg = try std.fmt.allocPrint(alloc, "absorption partition unavailable — claimlint c7 --json failed ({s}); the closed-partition alarm is blind", .{@errorName(e)});
+            try findings.append(alloc, .{ .level = "FIX", .id = "absorption-partition", .msg = msg });
+            break :blk AbsorptionPartition{ .closed = std.ArrayList(PartitionEntry).empty, .open_files = 0, .open_unabsorbed = 0 };
+        };
+        defer freeAbsorptionPartition(&part);
+
+        for (part.closed.items) |e| {
+            const msg = if (e.nonconforming)
+                try std.fmt.allocPrint(alloc, "closed-partition drift: '{s}' is non-conforming on closed task {s} — mechanism bypass (absorption-spec §8)", .{ e.path, e.task_id })
+            else
+                try std.fmt.allocPrint(alloc, "closed-partition drift: '{s}' carries {d} unabsorbed proposal(s) on closed task {s} — mechanism bypass (absorption-spec §8)", .{ e.path, e.unabsorbed, e.task_id });
+            // id is a stable literal, NOT e.task_id: the partition strings are
+            // freed at the end of this block (defer below), while the findings'
+            // .id/.msg are emitted later — a slice into part.closed would be a
+            // use-after-free at the output emission.
+            try findings.append(alloc, .{ .level = "FIX", .id = "absorption-partition", .msg = msg });
+        }
+
+        // Open partition is informational — surfaced on the data channel in
+        // human mode (never a finding); --json consumers get findings only.
+        if (!use_json) {
+            w.data("  absorption partition: closed {d}, open {d} file(s) / {d} unabsorbed proposal(s)\n", .{ part.closed.items.len, part.open_files, part.open_unabsorbed });
+        }
+    }
+
     if (use_json) {
         w.data("[\n", .{});
         for (findings.items, 0..) |f, fi| {
@@ -6921,25 +6959,10 @@ const Standing = struct {
     brief_path: []const u8,
 };
 
-/// STANDING-ABSORB threshold — the claimlint C7 unabsorbed-findings count at
-/// which the absorption backlog becomes a kanban task, chosen by T294
-/// (2026-08-03). Rationale:
-///   • 0 is out — the permanently-red-gate failure (GRAND-AUDIT §1c): C7 is
-///     never 0 for long, and a trigger that fires on every transient artifact
-///     trains people to ignore it.
-///   • 1–4 is the in-flight noise band. A finished task's findings file is
-///     legitimately unabsorbed until the Orchestrator ratifies it into
-///     CLAIMS.md; during fleet turns 1–4 pending is normal operation. Firing
-///     there is the permanently-red gate at a smaller size.
-///   • The smallest fully decomposable genuine backlog observed was 10
-///     (2026-08-03: C7=21 = 10 genuine + 11 context dumps repeating their
-///     findings files — T290-context 9, T288-context 2). 5 fires on that with
-///     margin while still clearing the noise band.
-///   • 5 is a session-sized job — triage + reconcile + CLAIMS.md update +
-///     disposition — which is exactly what a kanban task is for.
-/// The trigger is ABSOLUTE (count > threshold), not change-based: a backlog
-/// that sits at 8 across two turns is still a backlog that needs absorbing.
-const ABSORB_C7_THRESHOLD: u64 = 5;
+// T486 (absorption-spec §8): ABSORB_C7_THRESHOLD is retired. The threshold
+// conflated the open partition (healthy in-flight work) with the closed
+// partition (a crisis). STANDING-ABSORB's trigger is now closed-partition > 0
+// — see computeAbsorptionPartition below.
 
 const standing_templates = [_]Standing{
     .{ .id = "STANDING-HOLISTIC-AUDIT", .set = 'H', .needs = &.{}, .brief_path = "docs/infra/dispatch/STANDING-HOLISTIC-AUDIT.md" },
@@ -6990,6 +7013,116 @@ fn taskIdFromFindingsPath(path: []const u8) ?[]const u8 {
     return base[0..i];
 }
 
+// ── T486: the absorption partition (absorption-spec §8) ────────────────────
+// The retired threshold conflated two classes of unabsorbed findings —
+// in-flight work of open tasks (healthy) and drift of closed tasks (a
+// crisis). The partition splits them. claimlint stays kanban-free: its
+// `c7 --json` report names every findings file with its owning task id,
+// conforming flag and unabsorbed proposals; managent supplies the row-status
+// knowledge by joining against the live kanban + archive. A file is in the
+// CLOSED partition when it is non-conforming or carries unabsorbed proposals
+// AND its owning task is done/failed/archived. Everything else with drift is
+// the OPEN partition — healthy in-flight work, surfaced informationally only.
+
+const PartitionEntry = struct {
+    path: []const u8,
+    task_id: []const u8,
+    nonconforming: bool,
+    unabsorbed: u64,
+};
+
+const AbsorptionPartition = struct {
+    closed: std.ArrayList(PartitionEntry),
+    open_files: u64,
+    open_unabsorbed: u64,
+};
+
+fn freeAbsorptionPartition(p: *AbsorptionPartition) void {
+    for (p.closed.items) |e| {
+        alloc.free(e.path);
+        alloc.free(e.task_id);
+    }
+    p.closed.deinit(alloc);
+}
+
+/// A task id is "closed" when its row is done/failed in the live kanban, or
+/// lives in the archive (archive only ever admits done/failed rows).
+fn taskIsClosed(live: *const StateMap, archive: *const StateMap, tid: []const u8) bool {
+    if (tid.len == 0) return false;
+    if (archive.get(tid) != null) return true;
+    if (live.get(tid)) |ts| return ts.status == .done or ts.status == .failed;
+    return false;
+}
+
+/// Join claimlint's `c7 --json` report against the live kanban + archive and
+/// return the absorption partition. Callers MUST treat an error as a blind
+/// alarm (loud failure), never as an empty partition (a silent 0 is how a
+/// trigger dies — T368).
+fn computeAbsorptionPartition(
+    io: std.Io,
+    repo_root: []const u8,
+    live: *const StateMap,
+    archive: *const StateMap,
+) !AbsorptionPartition {
+    const result = std.process.run(alloc, io, .{
+        .argv = &.{ "bin/weizigo-claimlint", "c7", "--json" },
+        .cwd = .{ .path = repo_root },
+    }) catch return error.ClaimlintSpawnFailed;
+    defer alloc.free(result.stdout);
+    defer alloc.free(result.stderr);
+
+    const code: u8 = switch (result.term) {
+        .exited => |c| c,
+        else => 255,
+    };
+    if (code == 3) return error.ClaimlintRegisterUnreadable;
+    if (code != 0 and code != 1) return error.ClaimlintUnexpectedExit;
+
+    var part = AbsorptionPartition{ .closed = std.ArrayList(PartitionEntry).empty, .open_files = 0, .open_unabsorbed = 0 };
+    errdefer freeAbsorptionPartition(&part);
+
+    // Exit 0: nothing non-conforming and nothing unabsorbed ANYWHERE — the
+    // partition is empty by construction (closed and open alike).
+    if (code == 0) return part;
+
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, result.stdout, .{ .allocate = .alloc_always }) catch return error.ClaimlintJsonUnparseable;
+    defer parsed.deinit();
+    if (parsed.value != .array) return error.ClaimlintJsonNotArray;
+
+    for (parsed.value.array.items) |pf| {
+        if (pf != .object) continue;
+        const obj = pf.object;
+        const path = runRecStr(obj, "path");
+        const declared = runRecOptStr(obj, "task_id") orelse "";
+        const conforming = if (obj.get("conforming")) |v| v == .bool and v.bool else true;
+        var unabsorbed: u64 = 0;
+        if (obj.get("unabsorbed")) |ua| {
+            if (ua == .array) unabsorbed = ua.array.items.len;
+        }
+        if (conforming and unabsorbed == 0) continue;
+
+        // Owning task: the declared task_id, else the filename-derived id
+        // (absorption-spec §12: a misnamed orphan whose filename names a
+        // closed task still surfaces in the closed partition).
+        const file_tid = taskIdFromFindingsPath(path);
+        const closed = taskIsClosed(live, archive, declared) or
+            (if (file_tid) |ft| taskIsClosed(live, archive, ft) else false);
+
+        if (closed) {
+            try part.closed.append(alloc, PartitionEntry{
+                .path = try alloc.dupe(u8, path),
+                .task_id = try alloc.dupe(u8, if (declared.len > 0) declared else (file_tid orelse "")),
+                .nonconforming = !conforming,
+                .unabsorbed = unabsorbed,
+            });
+        } else {
+            part.open_files += 1;
+            part.open_unabsorbed += unabsorbed;
+        }
+    }
+    return part;
+}
+
 fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = args;
 
@@ -7009,8 +7142,8 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     var c3_prior: u64 = 0;
     const c3_marker = "C3 PROVEN w/o committed evid.";
     const claimlint_result = runCommand(alloc, io, &.{"bin/weizigo-claimlint"}) catch |e| {
-        w.diag("  standing: cannot run bin/weizigo-claimlint for the C3/C7 triggers ({s})\n", .{@errorName(e)});
-        w.diag("  Build it (zig build) — the standing C3/C7 readings are unavailable.\n", .{});
+        w.diag("  standing: cannot run bin/weizigo-claimlint for the C3 trigger / absorption partition ({s})\n", .{@errorName(e)});
+        w.diag("  Build it (zig build) — the standing C3/partition readings are unavailable.\n", .{});
         std.process.exit(1);
     };
     defer alloc.free(claimlint_result);
@@ -7022,62 +7155,31 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
         w.diag("  WARNING: claimlint marker '{s}' not found in its == SUMMARY == block — STANDING-REEVIDENCE reading UNRELIABLE\n", .{c3_marker});
     }
 
-    // Trigger 1b: claimlint C7 unabsorbed findings (for STANDING-ABSORB).
-    // Read from the SAME claimlint run the C3 trigger uses, and from
-    // claimlint's own summary — the count is claimlint's, never reimplemented
-    // here (two implementations of one number drift).
-    // T368: repointed at the current SUMMARY line
-    // ("  C7 unabsorbed findings         {d}   (FAILS)   [UNABSORBED]").
-    // T356 (28b7bda) renamed the old detail line "  C7 unabsorbed findings:
-    // {d}" to "  C7 UNABSORBED unabsorbed findings: {d}", silently killing
-    // the T294 marker — C7 read 0 from 2026-08-05 on and STANDING-ABSORB
-    // could never fire. A missing marker is a loud failure below, never a
-    // silent 0.
-    var c7_unabsorbed: u64 = 0;
-    const c7_marker = "C7 unabsorbed findings";
-    var c7_marker_missing = false;
-    if (parseSummaryCount(claimlint_result, c7_marker)) |v| {
-        c7_unabsorbed = v;
-    } else {
-        c7_marker_missing = true;
-        w.diag("  WARNING: claimlint marker '{s}' not found in its == SUMMARY == block — STANDING-ABSORB reading UNRELIABLE\n", .{c7_marker});
-    }
-    // Per-file composition: each UNABSORBED entry in claimlint's C7 detail
-    // section is followed by an "in <file>" line; aggregate per file so the
-    // trigger reports what the count is MADE OF, not just its size (the
-    // 2026-08-03 case: C7=21 was 10 genuine + 11 context dumps repeating
-    // their findings files). T368: repointed at the current item lines
-    // ("  C7 UNABSORBED  `...`") — T356 renamed the old "  UNABSORBED  `..."
-    // prefix; a drifted item format while C7>0 is warned, not silently empty.
-    var c7_files = std.StringHashMap(u64).init(alloc);
-    defer c7_files.deinit();
+    // Trigger 1b: the absorption partition (for STANDING-ABSORB).
+    // T486 (absorption-spec §8): the C7 threshold is retired — the trigger is
+    // now CLOSED-partition > 0, a crisis signal for mechanism bypass, not a
+    // chore threshold. The partition is computed from claimlint's own
+    // `c7 --json` (one count, one implementation — the T294 rule) joined
+    // against the live kanban + archive, which only managent knows. A blind
+    // partition (claimlint unavailable/unparseable) is a loud failure below,
+    // never a silent 0.
+    var partition_blind: bool = false;
+    var partition_blind_reason: []const u8 = "";
+    var partition: AbsorptionPartition = undefined;
     {
-        const item_marker = "  C7 UNABSORBED  `";
-        var lines = std.mem.splitScalar(u8, claimlint_result, '\n');
-        var prev_item = false;
-        var saw_item = false;
-        while (lines.next()) |line| {
-            if (std.mem.startsWith(u8, line, item_marker)) {
-                prev_item = true;
-                saw_item = true;
-                continue;
-            }
-            if (prev_item) {
-                prev_item = false;
-                const trimmed = std.mem.trim(u8, line, " \t\r");
-                if (std.mem.startsWith(u8, trimmed, "in ")) {
-                    const f = trimmed[3..];
-                    const key = alloc.dupe(u8, f) catch continue;
-                    const gop = try c7_files.getOrPut(key);
-                    if (!gop.found_existing) gop.value_ptr.* = 0;
-                    gop.value_ptr.* += 1;
-                }
-            }
-        }
-        if (c7_unabsorbed > 0 and !saw_item) {
-            w.diag("  WARNING: claimlint C7 detail item lines ('{s}') not found while C7={d} — per-file composition unavailable\n", .{ item_marker, c7_unabsorbed });
-        }
+        const archive_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+        defer alloc.free(archive_path);
+        var archive_state = try readState(io, archive_path);
+        defer freeState(&archive_state);
+
+        partition = computeAbsorptionPartition(io, repo_root, &state, &archive_state) catch |e| blk: {
+            partition_blind = true;
+            partition_blind_reason = @errorName(e);
+            w.diag("  WARNING: absorption partition unavailable ({s}) — STANDING-ABSORB reading UNRELIABLE\n", .{@errorName(e)});
+            break :blk AbsorptionPartition{ .closed = std.ArrayList(PartitionEntry).empty, .open_files = 0, .open_unabsorbed = 0 };
+        };
     }
+    defer freeAbsorptionPartition(&partition);
 
     // Read prior C3 debt from _standing metadata
     {
@@ -7251,54 +7353,47 @@ fn cmdStanding(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
         w.data("\n", .{});
     }
 
-    // STANDING-ABSORB: trigger when claimlint C7 unabsorbed findings exceeds
-    // the threshold (absolute, not change-based — see ABSORB_C7_THRESHOLD).
-    // Report the per-file composition alongside the size: a count nobody can
-    // decompose sends someone to triage before they can do work.
-    if (c7_marker_missing) {
-        w.data("    STANDING-ABSORB          C7 unabsorbed: UNRELIABLE (marker '{s}' not found in claimlint summary)", .{c7_marker});
+    // STANDING-ABSORB: trigger when the CLOSED partition is non-empty
+    // (absorption-spec §8). A non-zero closed partition is a crisis — with the
+    // done gate (T485) live, a closed task carrying unabsorbed or
+    // non-conforming findings can only mean someone went around the mechanism.
+    // The open partition is healthy in-flight work and never triggers.
+    if (partition_blind) {
+        w.data("    STANDING-ABSORB          closed partition: UNRELIABLE (claimlint c7 --json: {s})", .{partition_blind_reason});
         w.data("\n", .{});
     } else {
-        const triggered = c7_unabsorbed > ABSORB_C7_THRESHOLD;
-        w.data("    STANDING-ABSORB          C7 unabsorbed: {d} (threshold {d})", .{ c7_unabsorbed, ABSORB_C7_THRESHOLD });
-        if (triggered) {
-            w.data(" [TRIGGERED — absorption backlog above threshold]", .{});
-            try registerStanding(w, io, repo_root, state_path, &state, "STANDING-ABSORB", "C7 unabsorbed findings {d} > threshold {d}", .{ c7_unabsorbed, ABSORB_C7_THRESHOLD });
-        } else {
-            w.data(" — at/below threshold, no trigger", .{});
-        }
-        if (c7_files.count() > 0) {
-            const keys = try alloc.alloc([]const u8, c7_files.count());
-            defer alloc.free(keys);
-            var ki: usize = 0;
-            var it = c7_files.iterator();
-            while (it.next()) |entry| {
-                keys[ki] = entry.key_ptr.*;
-                ki += 1;
-            }
-            std.mem.sort([]const u8, keys, {}, struct {
-                fn lt(_: void, a: []const u8, b: []const u8) bool {
-                    return std.mem.lessThan(u8, a, b);
+        const closed_count = partition.closed.items.len;
+        w.data("    STANDING-ABSORB          closed partition: {d} (open: {d} file(s), {d} unabsorbed)", .{ closed_count, partition.open_files, partition.open_unabsorbed });
+        if (closed_count > 0) {
+            w.data(" [TRIGGERED — closed partition above zero]", .{});
+            // Per-file composition so triage happens before work starts.
+            w.data("\n        closed files:", .{});
+            for (partition.closed.items) |e| {
+                if (e.nonconforming) {
+                    w.data("  {s} (non-conforming, task {s})", .{ e.path, e.task_id });
+                } else {
+                    w.data("  {s} ({d} unabsorbed, task {s})", .{ e.path, e.unabsorbed, e.task_id });
                 }
-            }.lt);
-            w.data("\n        per file:", .{});
-            for (keys) |f| w.data("  {s}: {d}", .{ f, c7_files.get(f).? });
-            w.data("\n", .{});
+            }
+            try registerStanding(w, io, repo_root, state_path, &state, "STANDING-ABSORB", "closed partition: {d} file(s) on closed task(s) with unabsorbed/non-conforming findings", .{closed_count});
+        } else {
+            w.data(" — closed partition is empty, no trigger", .{});
         }
         w.data("\n", .{});
     }
 
-    // ── marker guard (T368): a missing claimlint marker is a broken ──
+    // ── marker guard (T368): a missing claimlint signal is a broken ──
     // mechanism, not a zero reading. The T356 rename killed C7's marker and
     // C7 read 0 for a day while STANDING-ABSORB silently could not fire;
-    // C3's marker was dead since birth (CODE.STANDING-C3-DEAD). Never
-    // persist priors from an unreliable reading — exit loudly so the next
-    // rename breaks a run, not a mechanism.
-    if (c3_marker_missing or c7_marker_missing) {
-        w.diag("\n  standing: FATAL — claimlint output does not carry every marker this build parses.\n", .{});
-        w.diag("  The affected C3/C7 readings above are UNRELIABLE; no trigger was evaluated from them.\n", .{});
-        w.diag("  Re-point the markers in src/managent/main.zig against a fresh `bin/weizigo-claimlint`\n", .{});
-        w.diag("  run (the standing regression tests guard the exact strings), then rebuild + redeploy.\n", .{});
+    // C3's marker was dead since birth (CODE.STANDING-C3-DEAD). The partition
+    // (T486) is read from `c7 --json`; a claimlint that cannot produce it is
+    // the same class of blind alarm — exit loudly so the next rename breaks a
+    // run, not a mechanism.
+    if (c3_marker_missing or partition_blind) {
+        w.diag("\n  standing: FATAL — claimlint output does not carry every signal this build parses.\n", .{});
+        w.diag("  The affected C3/partition readings above are UNRELIABLE; no trigger was evaluated from them.\n", .{});
+        w.diag("  Re-point the markers/JSON consumption in src/managent/main.zig against a fresh `bin/weizigo-claimlint`\n", .{});
+        w.diag("  run (the standing regression tests guard the exact contract), then rebuild + redeploy.\n", .{});
         std.process.exit(1);
     }
 

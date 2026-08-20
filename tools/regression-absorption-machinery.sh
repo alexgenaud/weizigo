@@ -22,17 +22,22 @@
 #                   parse (0 claims from a non-empty file)
 #
 # Defect 2 controls (managent standing — src/managent/main.zig registerStanding):
-#   seeded reopen   a `done` standing row re-triggered above threshold must
-#                   become dispatchable AGAIN (re-registered, note updated) —
-#                   the standing tier is recurring, done must not absorb
-#                   future triggers
+#   seeded reopen   a `done` standing row re-triggered by a closed partition
+#                   must become dispatchable AGAIN (re-registered, note
+#                   updated) — the standing tier is recurring, done must not
+#                   absorb future triggers
 #   live guard      a dispatchable/in_progress standing row re-triggered must
 #                   NOT spawn a second instance, and the refusal must read as
 #                   an inaction ("NOT re-registered", never the bare
 #                   "(already registered, skipping)" after TRIGGERED)
 #   family-wide     the reopen path is shared by all five standing templates —
 #                   verified on STANDING-REEVIDENCE too, not just ABSORB
-#   null            C7 at/below threshold → no trigger, store untouched
+#   null            closed partition 0 → no trigger, store untouched
+#
+# T486 (absorption-spec §8) re-points STANDING-ABSORB at the CLOSED partition:
+# the C7 threshold is gone; a closed task carrying unabsorbed findings is a
+# crisis trigger, an open task's findings are healthy in-flight work. Section
+# E adds the audit surface (managent audit names the closed-partition file).
 #
 # All fixtures are synthetic and run in /tmp/weizigo — the live kanban, live
 # findings/, and live CLAIMS.md are never touched. The real register is
@@ -280,7 +285,9 @@ MDEOF
 }
 
 seed_c7() {
-    # $1 = scratch dir — six unabsorbed claims → claimlint C7 = 6 > threshold 5
+    # $1 = scratch dir; $2 = store path. Six unabsorbed claims owned by a
+    # DONE task → closed partition = 1 (the STANDING-ABSORB trigger,
+    # absorption-spec §8). The open partition no longer triggers.
     cat > "$1/findings/T406SEED-absorb.json" <<'JSONEOF'
 {
   "task_id": "T406SEED",
@@ -291,22 +298,41 @@ seed_c7() {
   ]
 }
 JSONEOF
+    python3 - "$2" <<'PYEOF'
+import json, sys
+p = sys.argv[1]
+d = json.load(open(p))
+d['T406SEED'] = {
+    "status": "done",
+    "agent": "deepseek-v4-flash",
+    "bundle": "untracked/T406SEED.md",
+    "set": "A",
+    "holds": [], "needs": [], "caps": [],
+    "added": "2026-08-01T00:00:00Z",
+    "claimed": "2026-08-01T00:00:01Z",
+    "done": "2026-08-01T00:00:02Z",
+    "dispatched": None, "dispatched_to": None,
+    "note": None, "verdict": "pass",
+    "claim_count": 1
+}
+json.dump(d, open(p, 'w'))
+PYEOF
 }
 
 # ── C1. seeded reopen: a done standing row re-triggered becomes dispatchable ─
-echo "  C1. seeded reopen: done STANDING-ABSORB + C7=6 → dispatchable again"
+echo "  C1. seeded reopen: done STANDING-ABSORB + closed partition 1 → dispatchable again"
 setup_standing "$WORK/C1"
 STORE_C1="$WORK/C1/docs/infra/managent/tasks.json"
 cat > "$STORE_C1" <<'JSONEOF'
-{"STANDING-ABSORB":{"status":"done","agent":"deepseek-v4-flash","bundle":"docs/infra/dispatch/STANDING-ABSORB.md","set":"H","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":"C7 unabsorbed findings 8 > threshold 5","verdict":"pass","claim_count":1}}
+{"STANDING-ABSORB":{"status":"done","agent":"deepseek-v4-flash","bundle":"docs/infra/dispatch/STANDING-ABSORB.md","set":"H","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":"closed partition: 1 file(s)","verdict":"pass","claim_count":1}}
 JSONEOF
-seed_c7 "$WORK/C1"
+seed_c7 "$WORK/C1" "$STORE_C1"
 OUT_C1=$(MANAGENT_STORE="$STORE_C1" "$MG" standing 2>"$WORK/C1/stderr-C1")
-if echo "$OUT_C1" | grep -q "C7 unabsorbed: 6 (threshold 5)" && \
+if echo "$OUT_C1" | grep -q "closed partition: 1" && \
    echo "$OUT_C1" | grep -q "re-registered STANDING-ABSORB"; then
     STATUS_C1=$(python3 -c "import json;print(json.load(open('$STORE_C1'))['STANDING-ABSORB']['status'])")
     NOTE_C1=$(python3 -c "import json;print(json.load(open('$STORE_C1'))['STANDING-ABSORB'].get('note',''))")
-    if [ "$STATUS_C1" = "dispatchable" ] && echo "$NOTE_C1" | grep -q "6 > threshold 5"; then
+    if [ "$STATUS_C1" = "dispatchable" ] && echo "$NOTE_C1" | grep -q "closed partition"; then
         echo "    PASS: store status done→dispatchable, note updated to the new trigger reason"
     else
         echo "    FAIL: reopened but store says status=$STATUS_C1 note='$NOTE_C1'"
@@ -330,7 +356,7 @@ json.dump(d, open(p, 'w'))
 PYEOF
 OUT_C2=$(MANAGENT_STORE="$STORE_C1" "$MG" standing 2>"$WORK/C1/stderr-C2")
 STATUS_C2=$(python3 -c "import json;print(json.load(open('$STORE_C1'))['STANDING-ABSORB']['status'])")
-if echo "$OUT_C2" | grep -q "TRIGGERED — absorption backlog above threshold" && \
+if echo "$OUT_C2" | grep -q "TRIGGERED — closed partition above zero" && \
    [ "$STATUS_C2" = "in_progress" ] && \
    grep -q "NOT re-registered" "$WORK/C1/stderr-C2" && \
    ! grep -q "already registered, skipping" "$WORK/C1/stderr-C2" && \
@@ -366,17 +392,17 @@ else
     FAIL=1
 fi
 
-# ── C4. null control (standing): C7=0 → no trigger, store untouched ────────
-echo "  C4. null control: C7=0 → nothing proposed, no counter moves"
+# ── C4. null control (standing): closed partition 0 → no trigger, store untouched ─
+echo "  C4. null control: closed partition 0 → nothing proposed, no counter moves"
 setup_standing "$WORK/C4"
 STORE_C4="$WORK/C4/docs/infra/managent/tasks.json"
 echo '{}' > "$STORE_C4"
 OUT_C4=$(MANAGENT_STORE="$STORE_C4" "$MG" standing 2>/dev/null)
 if [ $? -eq 0 ] && \
-   echo "$OUT_C4" | grep -q "C7 unabsorbed: 0 (threshold 5)" && \
-   echo "$OUT_C4" | grep -q "at/below threshold, no trigger" && \
+   echo "$OUT_C4" | grep -q "closed partition: 0" && \
+   echo "$OUT_C4" | grep -q "closed partition is empty, no trigger" && \
    ! grep -q "STANDING-ABSORB" "$STORE_C4"; then
-    echo "    PASS: C7=0, explicit at/below-threshold statement, kanban untouched"
+    echo "    PASS: closed partition 0, explicit empty-partition statement, kanban untouched"
 else
     echo "    FAIL: output:"; echo "$OUT_C4" | sed 's/^/      /'
     echo "    store: $(cat "$STORE_C4")"
@@ -664,6 +690,52 @@ if [ "$RC_D9" -eq 0 ] && [ "$STATUS_D9" = "done" ]; then
     echo "    PASS: blocked close is exempt from the gate"
 else
     echo "    FAIL: RC=$RC_D9 status=$STATUS_D9, output:"; echo "$OUT_D9" | sed 's/^/      /'
+    FAIL=1
+fi
+
+# ── E. closed-partition audit surface (T486) ────────────────────────────
+# The acceptance criterion (absorption-spec §8): a closed task carrying an
+# unabsorbed proposal makes `managent audit` NAME the file as a FIX finding
+# (the closed partition is zero-tolerance — a non-zero reading is a crisis),
+# and the reading disappears once the drift is gone.
+echo "  E1. audit names a closed-partition file as FIX"
+setup_done_gate "$WORK/E1"
+STORE_E1="$WORK/E1/docs/infra/managent/tasks.json"
+cat > "$STORE_E1" <<'JSONEOF'
+{"T486SEED":{"status":"done","agent":"deepseek-v4-pro","bundle":"untracked/T486SEED.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","acceptance":"zig build test","claim_count":1},"_sys":{"next_id":9500,"directive_next":1}}
+JSONEOF
+cat > "$WORK/E1/findings/T486SEED-absorb.json" <<'JSONEOF'
+{
+  "task_id": "T486SEED",
+  "date": "2026-08-20",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "GLOBAL.FIX1",
+      "proposed_status": "CLAIMED",
+      "rationale": "E1 control: unabsorbed proposal on a closed task",
+      "evidence_path": "scratch.md:1"
+    }
+  ]
+}
+JSONEOF
+OUT_E1=$(MANAGENT_STORE="$STORE_E1" "$MG" audit 2>&1); RC_E1=$?
+if [ "$RC_E1" -ne 0 ] && \
+   echo "$OUT_E1" | grep -q "closed-partition drift" && \
+   echo "$OUT_E1" | grep -q "T486SEED-absorb.json"; then
+    echo "    PASS: audit names the file and the closed-partition drift (RC=$RC_E1)"
+else
+    echo "    FAIL: RC=$RC_E1, output:"; echo "$OUT_E1" | sed 's/^/      /'
+    FAIL=1
+fi
+
+echo "  E2. audit is silent on the closed partition once the drift is gone"
+rm "$WORK/E1/findings/T486SEED-absorb.json"
+OUT_E2=$(MANAGENT_STORE="$STORE_E1" "$MG" audit 2>&1)
+if ! echo "$OUT_E2" | grep -q "closed-partition drift"; then
+    echo "    PASS: no closed-partition finding after the drift is removed"
+else
+    echo "    FAIL: output:"; echo "$OUT_E2" | sed 's/^/      /'
     FAIL=1
 fi
 

@@ -2,20 +2,22 @@
 # regression-managent-standing.sh — T294 controls for `managent standing`'s
 # STANDING-ABSORB trigger; T368 extends: marker re-pointing, the loud-failure
 # class kill, the C3 (STANDING-REEVIDENCE) reading + growth control, and the
-# archive absorption refusal (same claimlint C7 parse family).
+# archive absorption refusal (same claimlint C7 parse family). T486 re-points
+# STANDING-ABSORB at the closed partition (absorption-spec §8): a CLOSED task
+# carrying unabsorbed findings triggers; an OPEN task's findings are healthy
+# in-flight work and never trigger.
 #
 # Before T294 the standing mechanism had NO controls at all: the four
 # pre-existing triggers ran in production with nothing proving they fire when
-# they should or stay silent when they should. STANDING-ABSORB (the C7
-# unabsorbed-findings trigger) ships with the pair the brief demands:
+# they should or stay silent when they should. STANDING-ABSORB (the closed-
+# partition trigger, T486) ships with the pair the brief demands:
 #
-#   null control     C7 at/below the threshold (here: empty findings/ → C7=0)
-#                    → the trigger does NOT fire, and `managent standing` SAYS
-#                    so ("at/below threshold, no trigger") rather than silence
-#   seeded control   a synthetic unabsorbed finding pushes C7 over (6 claims
-#                    not in the register → C7=6 > threshold 5) → the trigger
-#                    FIRES, names the count, and registers STANDING-ABSORB as
-#                    a dispatchable kanban task
+#   null control     empty findings/ → closed partition 0 → the trigger does
+#                    NOT fire, and `managent standing` SAYS so ("closed
+#                    partition is empty, no trigger") rather than silence
+#   seeded control   a DONE task carrying unabsorbed findings → closed
+#                    partition 1 → the trigger FIRES, names the file, and
+#                    registers STANDING-ABSORB as a dispatchable kanban task
 #
 # T368 adds the controls the marker-rotting incident class needs:
 #
@@ -121,16 +123,16 @@ git commit -qm base
 
 echo "=== managent standing regression (STANDING-ABSORB) ==="
 
-# ── null control: C7 at/below threshold → no trigger, and it says so ────────
-echo "  1. null control: empty findings/ → C7=0 ≤ threshold 5, no trigger, stated"
+# ── null control: closed partition 0 → no trigger, and it says so ──────
+echo "  1. null control: empty findings/ → closed partition 0, no trigger, stated"
 OUT=$("$MG" standing 2>/dev/null)
 RC=$?
 if [ "$RC" -eq 0 ] && \
-   echo "$OUT" | grep -q "C7 unabsorbed: 0 (threshold 5)" && \
-   echo "$OUT" | grep -q "at/below threshold, no trigger" && \
-   ! echo "$OUT" | grep -q "TRIGGERED — absorption backlog" && \
+   echo "$OUT" | grep -q "closed partition: 0" && \
+   echo "$OUT" | grep -q "closed partition is empty, no trigger" && \
+   ! echo "$OUT" | grep -q "TRIGGERED — closed partition" && \
    ! echo "$OUT" | grep -q "registered STANDING-ABSORB"; then
-    echo "    PASS: count 0, explicit at/below-threshold statement, no registration, RC=0"
+    echo "    PASS: closed partition 0, explicit empty-partition statement, no registration, RC=0"
 else
     echo "    FAIL: RC=$RC, output:"
     echo "$OUT" | sed 's/^/      /'
@@ -147,8 +149,17 @@ else
     echo "    PASS: kanban untouched by a below-threshold C7"
 fi
 
-# ── seeded control: 6 unabsorbed claims → C7=6 > 5, trigger fires, names it ─
-echo "  3. seeded control: synthetic unabsorbed finding pushes C7 over the threshold"
+# ── seeded control: a CLOSED task's unabsorbed findings → closed partition 1 ─
+# T486 (absorption-spec §8): the trigger is closed-partition > 0 — an OPEN
+# task's unabsorbed findings are healthy in-flight work and never trigger.
+echo "  3. seeded control: a done task carrying unabsorbed findings triggers"
+python3 - "$STORE" <<'PYEOF'
+import json, sys
+p = sys.argv[1]
+d = json.load(open(p))
+d['T294SEED'] = {"status":"done","agent":"deepseek-v4-flash","bundle":"untracked/T294SEED.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","claim_count":1}
+json.dump(d, open(p, 'w'))
+PYEOF
 cat > findings/T294SEED-absorb.json <<'JSONEOF'
 {
   "task_id": "T294SEED",
@@ -167,11 +178,11 @@ JSONEOF
 OUT=$("$MG" standing 2>/dev/null)
 RC=$?
 if [ "$RC" -eq 0 ] && \
-   echo "$OUT" | grep -q "C7 unabsorbed: 6 (threshold 5)" && \
-   echo "$OUT" | grep -q "TRIGGERED — absorption backlog above threshold" && \
+   echo "$OUT" | grep -q "closed partition: 1" && \
+   echo "$OUT" | grep -q "TRIGGERED — closed partition above zero" && \
    echo "$OUT" | grep -q "registered STANDING-ABSORB" && \
-   echo "$OUT" | grep -q "T294SEED-absorb.json: 6"; then
-    echo "    PASS: count named (6), trigger fired, task registered, per-file composition surfaced"
+   echo "$OUT" | grep -q "T294SEED-absorb.json (6 unabsorbed, task T294SEED)"; then
+    echo "    PASS: closed partition named (1), trigger fired, task registered, per-file composition surfaced"
 else
     echo "    FAIL: RC=$RC, output:"
     echo "$OUT" | sed 's/^/      /'
@@ -197,30 +208,30 @@ else
     FAIL=1
 fi
 
-# ── T368 control 6: the markers managent parses exist in a real claimlint ──
+# ── T368 control 6: the markers managent parses are present in a real claimlint ─
 # run. A claimlint output rename breaks THIS test before it can break the
 # standing mechanism again (the T356 incident class: the rename passed
-# because nothing asserted the exact strings). The strings must match
-# src/managent/main.zig's parseSummaryCount labels and the C7 detail item
-# marker exactly.
+# because nothing asserted the exact strings). The C3 summary marker is the
+# only human-readable string cmdStanding still scrapes; C7/absorption is now
+# consumed via `c7 --json` (T486), whose contract regression-claimlint-c7-json.sh
+# guards (path/task_id/conforming/unabsorbed arrays).
 echo "  6. T368: markers managent parses are present in a real claimlint run"
 CL_OUT=$("$PWD/bin/weizigo-claimlint" 2>/dev/null)
 MARKER_OK=1
 echo "$CL_OUT" | grep -q "== SUMMARY ==" || { echo "    FAIL: '== SUMMARY ==' block missing from claimlint output"; MARKER_OK=0; }
 echo "$CL_OUT" | grep -q "C3 PROVEN w/o committed evid." || { echo "    FAIL: C3 summary marker 'C3 PROVEN w/o committed evid.' missing — repoint parseSummaryCount in src/managent/main.zig"; MARKER_OK=0; }
-echo "$CL_OUT" | grep -q "C7 unabsorbed findings" || { echo "    FAIL: C7 summary marker 'C7 unabsorbed findings' missing"; MARKER_OK=0; }
-echo "$CL_OUT" | grep -q "  C7 UNABSORBED  \`" || { echo "    FAIL: C7 detail item marker '  C7 UNABSORBED  \`' missing"; MARKER_OK=0; }
 if [ "$MARKER_OK" -eq 1 ]; then
-    echo "    PASS: all four markers present in claimlint output"
+    echo "    PASS: SUMMARY block + C3 marker present (C7 is consumed via c7 --json)"
 else
     FAIL=1
 fi
 
 # ── T368 control 7: a drifted claimlint format is a LOUD failure, never a ──
-# silent 0. Stub claimlint with a summary that drifted away from the markers
-# (the pre-T356 colon style, which killed C7 for a day) — standing must exit
-# nonzero, print UNRELIABLE readings on stdout, and print a FATAL diagnostic
-# on stderr. The real claimlint is restored immediately after.
+# silent 0. Stub claimlint with a summary that drifted away from the C3
+# marker (the pre-T356 colon style, which killed C7 for a day) — and whose
+# `c7 --json` output is unparseable — standing must exit nonzero, print
+# UNRELIABLE readings on stdout, and print a FATAL diagnostic on stderr.
+# The real claimlint is restored immediately after.
 echo "  7. T368: drifted claimlint format → standing exits nonzero with UNRELIABLE readings"
 cp bin/weizigo-claimlint bin/weizigo-claimlint.real
 cat > bin/weizigo-claimlint <<'STUBEOF'
