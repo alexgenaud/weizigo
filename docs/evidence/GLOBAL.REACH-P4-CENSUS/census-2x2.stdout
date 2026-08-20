@@ -1,0 +1,7 @@
+# t358 2x2 clean reachability census (roots: empty B/W, ko=none, passes=0)
+# state space TOTAL_STATES = 2430 (3^4 * 2 * 5 * 3)
+# goban cells N = 4
+# total reachable (all passes) = 258
+#   passes in {0,1} (WZO2-stored) = 172
+#   passes == 2 (terminal)        = 86
+# by side: B=129 W=129

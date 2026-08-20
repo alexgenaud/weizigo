@@ -1,0 +1,7 @@
+# t358 3x2 reachability census (roots: empty B/W, ko=none, passes in 0,1); state space TOTAL32 = 30618 (3^6 * 2 * 7 * 3)
+# total reachable (all passes) = 2586
+#   passes in {0,1} (WZO2-stored) = 1732
+#   passes == 2 (terminal)        = 854
+# legal boards reachable = 489
+# by side: B=1293 W=1293
+# sweeps to converge = 12

@@ -1,0 +1,6 @@
+# t358 4x3 reachability census; state space TOTAL = 41452398 (3^12 * 2 * 13 * 3)
+# total reachable (all passes) = 1929038
+#   passes in {0,1} (WZO2-stored) = 1293848
+#   passes == 2 (terminal)        = 635190
+# legal boards reachable = 321689
+# sweeps to converge = 15

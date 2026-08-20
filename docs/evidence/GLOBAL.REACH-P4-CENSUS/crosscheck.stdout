@@ -1,0 +1,4 @@
+2x2 seeds=[0]: total=258 p01=172 p2=86 B=129 W=129 legal=57 sweeps=8 (space=2430)
+2x2 seeds=[0, 1]: total=258 p01=172 p2=86 B=129 W=129 legal=57 sweeps=8 (space=2430)
+3x2 seeds=[0]: total=2586 p01=1732 p2=854 B=1293 W=1293 legal=489 sweeps=12 (space=30618)
+3x2 seeds=[0, 1]: total=2586 p01=1732 p2=854 B=1293 W=1293 legal=489 sweeps=12 (space=30618)

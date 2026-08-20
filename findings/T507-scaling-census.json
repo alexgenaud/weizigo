@@ -1,0 +1,20 @@
+{
+  "task_id": "T507",
+  "date": "2026-08-20",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "GLOBAL.REACH-P4-CENSUS",
+      "legacy": "—",
+      "goban": "all",
+      "claim": "Reachable-state census over the full state tuple (board, side, ko, passes) from the fresh-start both-roots convention (empty board, both sides to move, ko=none, passes=0), measured at every solved goban size (T507, 2026-08-20, `src/t358_census_*.zig` under tools/runner, ReleaseFast). Reachable non-terminal (passes∈{0,1}, the WZO2-stored slice) / terminal (passes=2) / total: 2×2 172 / 86 / 258; 3×2 1,732 / 854 / 2,586; 3×3 49,428 / 24,330 / 73,758; 4×3 1,293,848 / 635,190 / 1,929,038; 4×4 99,133,036 / 48,505,262 / 147,638,298 (4×4 from the committed WZO2 header + accept.md C-A1 + capture-budget §2, not re-run). Legal positions 57 / 489 / 12,675 / 321,689 / 24,318,165. Root-seeding verified: the 3×2/3×3 wrappers seed passes∈{0,1}, which an independent Python re-implementation proves is a redundant over-seed (identical reachable set to passes∈{0}). Cross-checks: 3×3 non-terminal and legal exactly match data/oracle-3x3-v2.wzo2 header n_entries/n_groups; 4×3 total exactly matches the t386 census (1,929,038); 4×4 non-terminal exactly matches data/oracle-4x4-v2.wzo2 n_entries; legal column matches the historical RETRO_CENSUS census at all five sizes. Scaling: reachable non-terminal grows ~2.96×/cell (log10(n_entries) ≈ 0.3505 + 0.4792·cells), i.e. n_entries ≈ c·3ⁿ with c ≈ 2.4 slowly falling; WZO2 file = 4·n_entries + 5·n_groups + 128 bytes. Projection (model, falsifiable): 5×4 n_entries ≈ 7.6–8.6×10⁹ → table ≈ 41–45 GB, dense census bitset ≈ 110 GB (RAM-bound); 5×5 n_entries ≈ 1.7–2.1×10¹² → table ≈ 9–11 TB in the current representation. Known pre-existing discrepancy noted, not a defect: I5's 4×3 V=1,929,035 (accept.md §3.1) differs by 3 states from the census/t386 1,929,038.",
+      "status": "MEASUREMENT",
+      "evidence": "docs/research/scaling-census-2026-08-20.md; docs/evidence/GLOBAL.REACH-P4-CENSUS/PROVENANCE.md; src/t358_census_2x2.zig; src/t358_census_3x2.zig; src/t358_census_3x3.zig; src/t358_census_4x3.zig",
+      "depends_on": "",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "Directive inbox empty throughout (checked after the instruments commit and before close). Root-seeding verification: passes∈{0,1} vs passes∈{0} produce identical reachable sets (crosscheck.py); qa023_brute_2x2's ko=cell-on-empty over-seed is the real inflation the clean 2×2 instrument avoids. T358's original 4×4 row is read from committed artifact headers, not re-measured (a fresh 4×4 census needs a ~4.4B-slot dense bitset — the very cost this census quantifies)."
+}
