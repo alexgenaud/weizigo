@@ -47,7 +47,7 @@ Derived from the kanban, `model-perf.md` dispatch-verify lines, and git. No judg
 
 | metric | outgoing seat | how measured |
 |---|---|---|
-| tasks closed, 2026-08-18/19 | **34 dispatched, 141 done in the register** | `status --json` |
+| tasks closed, 2026-08-18/19 | **34 dispatched, 141 done in the kanban** | `status --json` |
 | dispatch-verify pass rate, today | **24 / 34 = 71 %** | `model-perf.md` dispatch-verify lines |
 | dispatch-verify pass rate, all time | 33 / 53 = 62 % | same |
 | wall-killed with no output | **8** | `grep -l "exit 124" untracked/log/t*.log` |

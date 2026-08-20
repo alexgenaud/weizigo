@@ -245,8 +245,8 @@ notes (free text — the payload)
 ```
 
 **`claims` and `new_rows` stay empty in a dump.** The dump is a narrative record, not a
-proposal: your *findings* file proposes claim rows, and claimlint's C7 counts every proposal it
-can see. A dump that repeats them double-counts, so the same claim row shows up twice in the
+proposal: your *findings* file proposes claims, and claimlint's C7 counts every proposal it
+can see. A dump that repeats them double-counts, so the same claim shows up twice in the
 absorption backlog and C7 stops being a usable number. This is not a style preference —
 on 2026-08-03 one task's dump added nine phantom entries to C7 on top of its findings
 file's eight, and three earlier consoles (T266, T270, T276) had each worked this out

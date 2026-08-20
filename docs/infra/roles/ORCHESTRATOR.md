@@ -84,7 +84,8 @@ testable — each line names a thing that either happened or did not:
   kanban, absorbed findings, briefs, and a compiled result — never a diff.
 
 **The test to apply before acting:** *if a worker were holding this file right now, would I be
-allowed to touch it?* If the answer is no, it is a task row, not a task.
+allowed to touch it?* If the answer is no, it is a task, not a task row. (Per the L8 ruling,
+T458: "row" → task/claim; the noun "task row" is disambiguated.)
 
 ## Boundaries
 

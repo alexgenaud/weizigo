@@ -128,7 +128,7 @@ in_progress re-dispatch is how the T350/T376/T389 duplicates happened — reopen
 a dead row first), a model outside the canonical set, any `claude-*` label, a
 task with no single `untracked/T<id>-*.md` bundle, a manager at the delegation
 cap. `--dry-run` prints the exact nohup command without spawning;
-`--wall=N` overrides the 2700 s default. The worker claims the row itself
+`--wall=N` overrides the 2700 s default. The worker claims the task itself
 (`managent claim <id> --agent <model>` is in the brief), runs under
 `tools/runner` (RSS 4 GB, progress watchdog 600 s, wall fallback), and closes
 with `managent done`; `bin/subagent` then verifies the work mechanically.
@@ -183,7 +183,7 @@ job is to be generous.
 **How to check whether it worked** (every step mechanical):
 
 1. `bin/dispatch` printed the data line with the pid and log path.
-2. Within seconds the worker claims: `bin/managent status` shows the row
+2. Within seconds the worker claims: `bin/managent status` shows the task
    `in_progress` (it left `dispatchable`).
 3. `bin/managent liveness T<id>` shows heartbeats once `tools/runner` is
    emitting. A fresh claim may read UNKNOWN for the first minutes — absence
@@ -192,13 +192,13 @@ job is to be generous.
    guards, the worker's `NONCE-…` echo, and at the end
    `[verify] worker reported success; side effects verified — verification
    PASSED`.
-5. The row reaches `done` with a verdict.
+5. The task reaches `done` with a verdict.
 
 **What dispatch verification proves and what it does not** (T411):
 
 - Proves, mechanically, after the worker returns: the worker echoed the
   injected nonce (it read the prompt), every declared deliverable exists, and
-  the row left `dispatchable` (claim → done happened). A per-model ledger
+  the task left `dispatchable` (claim → done happened). A per-model ledger
   line is recorded in `docs/infra/model-perf.md`. The worker's text is
   trusted in neither direction.
 - Does **not** prove the work is *correct* — a pass is "believing the work,
