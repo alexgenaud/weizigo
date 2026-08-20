@@ -1095,6 +1095,41 @@ pub fn build(b: *std.Build) void {
     const deploy_gtp_step = b.step("deploy-gtp", "Deploy weizigo-gtp to bin/ (remove-copy-sign)");
     deploy_gtp_step.dependOn(&gtp_deploy.step);
 
+    // ── deploy weizigo-gtp to bin/weizigo-oracle (alias, T534) ─────
+    // gtp.zig's own GTP `name` command replies "weizigo-oracle" (T263) —
+    // that's the identity duty docs and specs (DRPLAY, argus checklist,
+    // argus design) invoke it under. It reached bin/ only via a manual
+    // `zig build-exe -femit-bin=bin/weizigo-oracle` (B40), so committed
+    // source changes never redeployed it and it went stale (BadMagic on
+    // the current .wzo2 artifact, T534). Same binary, same deploy
+    // recipe, second destination name — no second compile needed.
+    const oracle_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-gtp", "bin/weizigo-oracle" });
+    oracle_deploy.step.dependOn(b.getInstallStep());
+    const deploy_oracle_step = b.step("deploy-oracle", "Deploy weizigo-gtp to bin/weizigo-oracle (remove-copy-sign)");
+    deploy_oracle_step.dependOn(&oracle_deploy.step);
+
+    // ── weizigo-arena (adversarial self-play audit, T534) ──────────
+    // Previously built only by hand (`zig build-exe src/arena.zig
+    // -femit-bin=bin/weizigo-arena`, B43) — never wired into build.zig,
+    // so it never got a deploy step and went stale the same way as
+    // weizigo-oracle above.
+    const arena_exe = b.addExecutable(.{
+        .name = "weizigo-arena",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/arena.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    arena_exe.root_module.addImport("version", version_mod);
+    b.installArtifact(arena_exe);
+
+    // ── deploy weizigo-arena to bin/ ────────────────────────────────
+    const arena_deploy = b.addSystemCommand(&.{ "sh", "tools/deploy.sh", "zig-out/bin/weizigo-arena", "bin/weizigo-arena" });
+    arena_deploy.step.dependOn(b.getInstallStep());
+    const deploy_arena_step = b.step("deploy-arena", "Deploy weizigo-arena to bin/ (remove-copy-sign)");
+    deploy_arena_step.dependOn(&arena_deploy.step);
+
     // ── deploy weizigo-claimlint to bin/ ───────────────────────────
     // GRAND-AUDIT §3 flagged bin/weizigo-claimlint as older than its source
     // and unstamped; it reached bin/ only by manual copy. Give it the same
@@ -1127,6 +1162,8 @@ pub fn build(b: *std.Build) void {
     const deploy_step = b.step("deploy", "Deploy every tool to bin/ (remove-copy-sign)");
     deploy_step.dependOn(&managent_deploy.step);
     deploy_step.dependOn(&gtp_deploy.step);
+    deploy_step.dependOn(&oracle_deploy.step);
+    deploy_step.dependOn(&arena_deploy.step);
     deploy_step.dependOn(&claimlint_deploy.step);
     deploy_step.dependOn(&chainability_deploy.step);
     deploy_step.dependOn(&evse_deploy.step);
