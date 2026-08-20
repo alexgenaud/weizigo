@@ -144,7 +144,7 @@ canonical_models[]`); the tag column is what actually runs:
 | minimax-m3 | ollama | `ollama launch pi --model minimax-m3:cloud -y -- -p …` |
 | kimi-k2.7 | ollama | `ollama launch pi --model kimi-k2.7-code:cloud -y -- -p …` |
 | qwen3.8:27b-mlx | ollama | `ollama launch pi --model qwen3.8:27b-mlx -y -- -p …` |
-| claude-opus-5 / -sonnet-5 / -fable-5 / -haiku-4-5-20251001 | claude seat | `claude -p …` from a claude console; never dispatched headless |
+| claude-opus-5 / -sonnet-5 / -fable-5 / -haiku-4-5-20251001 | claude seat | `claude -p …` from a Claude console, OR a non-Claude worker spawning it via shell (human ruling 2026-08-03: never inside another harness — see `docs/infra/agents/subdelegation.md` §Clarification) |
 
 **The harness rule, plainly.** Every headless harness takes the brief as
 `-p '<brief>'`. Whether `--` must precede it depends on who else parses flags:

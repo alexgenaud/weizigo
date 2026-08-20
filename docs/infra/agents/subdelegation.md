@@ -62,9 +62,9 @@ name. Updated for T431: the gate is `depth >= 3`, not `depth >= 2`.
 
 | Dispatcher | → DeepSeek | → Ollama | → Claude |
 |---|---|---|---|
-| **Human console** (depth unset → 1) | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
-| **Manager** (depth 2) | WORKS — `bin/subagent`, child stamped 3 (T431; was REFUSED) | WORKS — `ollama launch pi` | NOT ATTEMPTED (forbidden) |
-| **Leaf** (depth 3 = cap) | REFUSED — depth cap | WORKS — `ollama launch pi`, depth travels via env, no check | NOT ATTEMPTED (forbidden) |
+| **Human console** (depth unset → 1) | WORKS — `bin/subagent` or `pi` | WORKS — `ollama launch pi` | WORKS — `claude -p` (headless Claude Code; never inside another harness) |
+| **Manager** (depth 2) | WORKS — `bin/subagent`, child stamped 3 (T431; was REFUSED) | WORKS — `ollama launch pi` | WORKS — `claude -p` (headless Claude Code; never inside another harness) |
+| **Leaf** (depth 3 = cap) | REFUSED — depth cap | WORKS — `ollama launch pi`, depth travels via env, no check | WORKS — `claude -p` (headless Claude Code; never inside another harness) |
 
 **Two T320 cells were mis-attributed (corrected T321):**
 - T320's `deepseek-v4-pro (d=2) → DeepSeek REFUSED` cell ran `bin/subagent
