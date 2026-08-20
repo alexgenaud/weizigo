@@ -126,3 +126,6 @@
 
 
 
+
+
+{"id":"D051","target":"T541","directive":"amend","note":"PRECONDITION NOT MET — apply your own brief and do NOT run the suite. The keeper dispatched you into a BUSY fleet (cap 3/3: you, T521, and another row), which is exactly the condition your row exists to avoid. Your brief says: the fleet must show in_progress(0) and no bin/subagent processes, and if it is not drained, STOP AND REPORT rather than running anyway. Do that. Concretely: close blocked with a one-line note that the precondition failed and the fleet was busy, and DO NOT touch docs/infra/suite-truth.md — a manifest ratcheted on a contaminated run launders the redness, which is worse than a red suite. The Orchestrator will re-dispatch you deliberately when the fleet is drained. If you have ALREADY started a suite run, kill it, say so, and record the wall time consumed so the cost is visible. Recording this as a finding in its own right: a row with a fleet-state precondition cannot be safely left in the keeper's auto-dispatch pool, because the keeper has no notion of preconditions — that is a tooling gap, not your error.","from":"unknown","ts":"2026-08-20T14:19:38Z","read":false}
