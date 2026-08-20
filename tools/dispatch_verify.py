@@ -165,6 +165,175 @@ def task_state(data, task_id):
     return (t.get("status"), t.get("verdict"))
 
 
+# ── T520: per-task-class wall guidance + wall-kill telemetry ─────────────────
+#
+# F8: 16/25 heals were exit-124 wall-kills — briefs too big for their wall.
+# The epidemic was anecdotal: nothing recorded the brief's size at dispatch,
+# and nothing compared the chosen wall against the task class's observed
+# need.  This block ships the other half of T520 (tools/runner records
+# brief_bytes/prompt_bytes/wall_budget in the run record); here we carry the
+# per-task-class recommendation and the advisory that turns the measurement
+# into an actionable `[verify] wall-low:` line at dispatch time.
+#
+# The recommendation is sourced from the DELEGATOR wall table
+# (docs/infra/delegation/DELEGATOR.md §Choosing a wall) — the chosen wall is
+# tools/runner's *fallback* ceiling for silent children, and the 600 s
+# progress watchdog catches stuck runs first, so the backstop is generous.
+# Task classes reuse model-profiles.py's ordered keyword rule
+# (battery > verification > spec > infra; specific beats general).  battery
+# runs (suite sweeps, retrograde builds) are the longest; verification
+# (audits) is audit-heavy; spec is the standard mode; infra (tooling +
+# regression) is mid.
+#
+# DELEGATOR rows:
+#   1800  tiny bounded edit
+#   2700  standard task — the mode
+#   3600  mid task, tooling + regression
+#   4500-5400  analysis- or audit-heavy
+#   7200  audits, suite runs
+WALL_GUIDANCE = {
+    "spec": 2700,          # standard task — the mode
+    "infra": 3600,         # mid task, tooling + regression
+    "verification": 5400,  # audit-heavy
+    "battery": 7200,       # suite runs / retrograde builds — the longest
+}
+
+# A brief at or above this many bytes is "large" for its class and the
+# recommended wall escalates one DELEGATOR row — a 20 kB battery brief is
+# not sent out under a 30 min wall.  8 kiB is roughly where a brief stops
+# being a one-screen edit and starts being a document the model must read
+# end to end.
+LARGE_BRIEF_BYTES = 8192
+
+# Ordered keyword rule, mirroring tools/model-profiles.py TYPE_KEYWORDS
+# (battery > verification > spec > infra).  Kept inline so dispatch_verify
+# stays stdlib-only (model-profiles imports claimlint binaries).  Drift is
+# one-directional: add a keyword here AND in model-profiles.py when a new
+# class signal appears.
+_TYPE_KEYWORDS = {
+    "battery": [
+        "battery", "mutant", "vb_", "bellman", "scc", "movegen", "closure",
+        "smd1", "batt-health", "golden-master", "baseline",
+    ],
+    "verification": [
+        "audit", "verify", "verif", "race", "probe", "falsif", "confirm",
+        "grade", "grading", "re-audit", "reaudit", "second-auditor",
+        "third-auditor", "cross-check", "independent",
+    ],
+    "spec": [
+        "spec", "design", "strategy", "architecture", "plan", "blueprint",
+        "proposal", "draft",
+    ],
+    "infra": [],
+}
+
+
+def _glob_bundles(root, task_id):
+    """The bundle file(s) for a T-id task, or [] when not a T-id."""
+    if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
+        return []
+    import glob as _glob
+    return _glob.glob(os.path.join(root, "untracked", task_id + "-*.md"))
+
+
+def classify_task_type(root, task_id, store_env=None):
+    """Classify a dispatched task into one of spec/infra/verification/battery.
+
+    Reuses model-profiles.py's ordered keyword rule (battery > verification
+    > spec > infra; specific beats general).  The text blob is the lowercased
+    bundle basename plus the task's note/verdict_note from the store (so a
+    task classified at registration is not re-classified differently here).
+    Returns "infra" (the default) when no keyword matches, when task_id is
+    not a T-id, or when no single bundle resolves.
+    """
+    if not task_id or not re.fullmatch(r"T\d+", task_id):
+        return "infra"
+    hits = _glob_bundles(root, task_id)
+    if len(hits) != 1:
+        return "infra"
+    base = os.path.basename(hits[0])
+    if base.endswith(".md"):
+        base = base[:-3]
+    blob = base.lower()
+    data = read_store(root, store_env) or {}
+    t = data.get(task_id, {})
+    blob = " ".join([blob, t.get("note") or "", t.get("verdict_note") or ""]).lower()
+    for typ in ("battery", "verification", "spec", "infra"):
+        for kw in _TYPE_KEYWORDS.get(typ, ()):
+            if kw in blob:
+                return typ
+    return "infra"
+
+
+def recommended_wall(task_type, brief_bytes=None):
+    """Recommended fallback wall (s) for a task class, scaling up when the
+    brief is large.
+
+    The base is WALL_GUIDANCE[task_type] (infra is the default for an
+    unknown class).  A brief at or above LARGE_BRIEF_BYTES escalates one
+    DELEGATOR row — the next-larger class's wall — so a large spec brief is
+    not sent out under the standard 45 min wall.  Caps at the longest row
+    (7200 s) so battery, already at the top, stays there.
+    """
+    base = WALL_GUIDANCE.get(task_type, WALL_GUIDANCE["infra"])
+    if brief_bytes is not None and brief_bytes >= LARGE_BRIEF_BYTES:
+        rows = sorted(set(WALL_GUIDANCE.values()))
+        larger = [r for r in rows if r > base]
+        if larger:
+            base = min(larger)
+    return base
+
+
+def _run_record_path(root, task_id):
+    """Path to the runner's per-task run record, or None when not a T-id."""
+    if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
+        return None
+    return os.path.join(root, "untracked", "runs", task_id + ".json")
+
+
+def read_run_record(root, task_id):
+    """Load the runner's run record for `task_id`, or None when absent/unreadable.
+
+    The record (tools/runner, T364) carries brief_bytes, prompt_bytes,
+    wall_budget and the kill reason — the join key for the wall-kill census.
+    """
+    p = _run_record_path(root, task_id)
+    if not p or not os.path.isfile(p):
+        return None
+    try:
+        with open(p) as f:
+            return json.load(f)
+    except (ValueError, OSError):
+        return None
+
+
+def wall_advisory(root, task_id, wall_budget, brief_bytes=None, store_env=None):
+    """Compare a dispatch's wall budget against the class recommendation.
+
+    Returns (task_type, recommended, adequate, line):
+      task_type   the classified class (spec/infra/verification/battery)
+      recommended the recommended wall (s) for the class+brief
+      adequate    True iff wall_budget is None/<=0 (unknown) or >= recommended
+      line        a single `[verify]`-style advisory, or "" when adequate
+
+    The advisory is the epidemic made actionable: a wall too low for the
+    brief it carried is named at dispatch time, not only in a post-mortem
+    heal census.  It is never a hard fail — a wall-low is a risk, not a lie.
+    """
+    typ = classify_task_type(root, task_id, store_env=store_env)
+    rec = recommended_wall(typ, brief_bytes)
+    if wall_budget is None or wall_budget <= 0:
+        return typ, rec, True, ""
+    adequate = wall_budget >= rec
+    if adequate:
+        return typ, rec, True, ""
+    bb = "" if brief_bytes is None else " brief=%dB" % brief_bytes
+    line = ("wall-low: %s class=%s wall_budget=%ss < recommended %ss%s — "
+            "a wall-kill risk (brief too big for its wall; T520)"
+            % (task_id, typ, wall_budget, rec, bb))
+    return typ, rec, False, line
+
+
 def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                     store_env=None, deliverables=None):
     """Run the post-dispatch checks.
@@ -292,6 +461,22 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
     if dl_missing:
         details.append("NOTE deliverables absent (expected for %s)" % verdict)
 
+    # T520: wall-kill telemetry — flag a wall too low for the brief's class.
+    # The run record (untracked/runs/<task_id>.json) carries brief_bytes +
+    # wall_budget + the kill reason.  When the dispatch's wall budget was
+    # below the class recommendation for that brief, surface it as a detail —
+    # never a hard fail (a wall-low is a risk, not a lie).  This is the
+    # epidemic made actionable at dispatch time.
+    rr = read_run_record(root, task_id)
+    if rr:
+        wb = rr.get("wall_budget")
+        bb = rr.get("brief_bytes")
+        if bb is None:
+            bb = rr.get("prompt_bytes")
+        _typ, _rec, _ok, adv = wall_advisory(root, task_id, wb, bb, store_env=store_env)
+        if adv:
+            details.append(adv)
+
     if worker_report == "success":
         return (0,
                 "worker reported success; side effects verified — verification PASSED",
@@ -379,6 +564,20 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
     line = ("healed: dispatcher reopened %s (model=%s rc=%d wall=%.1fs) — "
             "assertion written"
             % (task_id, model, rc, wall_seconds))
+    # T520: on a wall-kill (rc==124, the runner's timeout convention) name the
+    # mis-sized dispatch in the heal line — the brief that was too big for its
+    # wall.  The run record carries brief_bytes + wall_budget; the advisory
+    # turns the reopen from a tidy into a measurement.
+    if rc == 124:
+        rr = read_run_record(root, task_id)
+        if rr:
+            wb = rr.get("wall_budget")
+            bb = rr.get("brief_bytes")
+            if bb is None:
+                bb = rr.get("prompt_bytes")
+            _typ, _rec, _ok, adv = wall_advisory(root, task_id, wb, bb, store_env=store_env)
+            if adv:
+                line = line + " | " + adv
     if not wrote:
         line = ("healed: dispatcher reopened %s (model=%s rc=%d wall=%.1fs) — "
                 "ASSERTION WRITE FAILED: %s"

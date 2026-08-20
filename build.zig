@@ -303,6 +303,17 @@ pub fn build(b: *std.Build) void {
     runner_taskid_regression.cwd = b.path(".");
     test_step.dependOn(&runner_taskid_regression.step);
 
+    // ── T520: runner brief-bytes + dispatch wall-guidance controls ──────
+    // tools/runner records brief_bytes/prompt_bytes/wall_budget in the run
+    // record (so every exit-124 wall-kill is joinable to the brief that
+    // caused it); tools/dispatch_verify.py carries per-task-class wall
+    // guidance (spec/infra/verification/battery differ, sourced from the
+    // DELEGATOR wall table) and a wall_advisory that flags a wall too low
+    // for the brief.  Hermetic scratch repo — no managent needed.
+    const runner_brief_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-brief-telemetry.sh" });
+    runner_brief_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_brief_regression.step);
+
     // ── subagent-prompt controls (T315/T317) ──────────────────────────
     // bin/subagent is given a model but did not include --agent <model>
     // in the generated prompt.  T315 ships the controls standalone; T317

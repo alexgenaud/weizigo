@@ -94,8 +94,60 @@ import shlex
 import signal
 import subprocess
 import sys
+import glob
 import time
 from pathlib import Path
+
+
+# ── brief / prompt telemetry (T520, 2026-08-20) ────────────────────────
+#
+# F8: 16/25 heals were exit-124 wall-kills — briefs too big for their wall.
+# The epidemic was anecdotal because nothing recorded the brief's size at
+# dispatch.  The runner is the dispatch-time process: it sees the prompt
+# the worker ingests (the `-p` argument) and, given a task identity, the
+# bundle file the brief came from.  Recording both in the run record makes
+# every wall-kill joinable to the brief that caused it.  See
+# tools/dispatch_verify.py (WALL_GUIDANCE / wall_advisory) for the
+# per-task-class recommendation that turns the measurement into guidance.
+
+def _prompt_bytes(argv):
+    """Byte length of the prompt argument the worker ingests, or None.
+
+    All three dispatch providers (deepseek/ollama/claude) pass the brief to
+    the worker as `-p <prompt>` (see bin/subagent's command builders).  The
+    prompt is what the model reads and what drives wall time, so its byte
+    length is the dispatch-time signal for the wall-kill epidemic.  The
+    first `-p` wins; every dispatch command carries exactly one.
+    """
+    for i, a in enumerate(argv):
+        if a == "-p" and i + 1 < len(argv):
+            try:
+                return len(argv[i + 1].encode("utf-8", "surrogatepass"))
+            except Exception:
+                return None
+    return None
+
+
+def _bundle_bytes(task_identity, repo_root):
+    """Byte size of the brief bundle for `task_identity`, or None.
+
+    `task_identity` is a T-id (e.g. T520); the bundle is the single
+    `untracked/T<id>-*.md`.  None when identity is not a T-id, when zero or
+    several bundles match, or when the file is unreadable — the literal
+    brief is then unmeasurable from the runner, but `prompt_bytes` still
+    records what the model ingested (prompt = wrapper + brief + nonce).
+    """
+    if not repo_root or not task_identity:
+        return None
+    if not re.fullmatch(r"T\d+", task_identity):
+        return None
+    hits = glob.glob(os.path.join(repo_root, "untracked", task_identity + "-*.md"))
+    if len(hits) != 1:
+        return None
+    try:
+        return os.path.getsize(hits[0])
+    except OSError:
+        return None
 
 
 # ── helpers ──────────────────────────────────────────────────────────
@@ -974,6 +1026,16 @@ def main():
         "launcher_pid": os.getppid(),
         "start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "command": shlex.join(argv),
+        # T520: wall-kill telemetry — record the brief's size and the wall
+        # budget at dispatch so every exit-124 is joinable to the brief that
+        # caused it.  brief_bytes is the bundle file (the literal brief);
+        # prompt_bytes is the `-p` argument (what the model ingests);
+        # wall_budget is this runner's --max-wall fallback ceiling (None when
+        # disabled).  _finalize stamps the outcome onto the same record; these
+        # three are set once at launch and persist.
+        "brief_bytes": _bundle_bytes(task_identity, repo_root),
+        "prompt_bytes": _prompt_bytes(argv),
+        "wall_budget": args.max_wall if args.max_wall else None,
     }
     _write_run_record(run_record, record_root)
 
