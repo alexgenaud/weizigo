@@ -164,3 +164,28 @@ So the independence a fresh instance buys is **procedural, not epistemic**:
 always; prefer a different model where the object under review is load-bearing
 reasoning; disclose same-model review when unavoidable.* (User clarification,
 2026-07-29, Dabir msg 031.)
+
+## Adjudication authority — operator ruling, 2026-08-20
+
+**`claude-fable-5` holds the first and final word on review, evaluation, consolidation
+and selection.** The operator's words: *"ALL models (including Fable) participate
+independently, freshly, and blindly. And another independent fresh Fable has the highest
+first and final word. There is no higher authority. I, the human, always reserve the
+right to step in, but I am passing authority to Fable."*
+
+Three consequences, stated so they cannot be applied loosely:
+
+1. **Author-Fable and judge-Fable are different instances.** Every lane, Fable included,
+   authors independently, freshly and blind. A *separate* fresh Fable instance then
+   judges on anonymized inputs. Same model label, different session, no shared context.
+2. **This is a deliberate override of `G3` family exclusion**, which is otherwise a hard
+   refusal at counting (`tools/bakeoff.sh`, shipped by T542, 2026-08-20). The override is
+   the operator's and is recorded here rather than applied silently — a mechanical gate
+   bypassed without a note is how this project accumulated seventeen defects. Where the
+   judge selects a winner that turns out to be its own family's, that fact is recorded
+   alongside the result.
+3. **The Orchestrator and the operator are not exempt.** The operator: *"you and I can
+   argue, hack, and propose all we want, and yet, I would still suggest we pass our ideas
+   through Fable for review and feedback."* Seat-authored seeds, briefs and roadmaps go
+   to Fable for review before they are spent on a fleet. The seat proposes; Fable rules;
+   the operator may step in.
