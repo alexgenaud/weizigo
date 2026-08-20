@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 # regression-dispatch-verification.sh — T411 controls for the dispatchers' work verification
 #
+# T513 (F4, 2026-08-20): re-pinned to HEAD. The regression runs the COMMITTED
+# dispatch contract (bin/subagent, bin/ollama-subagent, tools/dispatch_verify.py
+# extracted from HEAD into scratch), not the live working-tree file, so a live
+# uncommitted edit cannot pass this gate against a contract the commit did
+# not record. The substrate the contract depends on (managent, claimlint — the
+# T485 done-gate) is symlinked into the scratch repo root. Arms 7/8/9 were
+# reconciled with the T485 done-gate: a closing task's OWN malformed findings is
+# now caught by the done-gate (refusing the close), so the dispatch-verify
+# findings parse is exercised as the PRIMARY defense via BARE-FILE dispatches
+# (no kanban row, no done-gate). Arm 10 asserts the sole-owner invariant (F4):
+# every heal assertion record carries healed_by=dispatcher — the dispatcher
+# is the one automatic heal-reopen owner in any shipped script.
+#
 # T408's kimi incident (2026-08-07): dispatched a four-command kanban bundle,
 # got exactly "OK.", and the agent executed NOTHING. The row stayed
 # `dispatchable`. It was caught only because the probe asserted on STORE
@@ -43,10 +56,19 @@
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$HERE/.."
-SUBAGENT="$ROOT/bin/subagent"
-OLLAMA_SUBAGENT="$ROOT/bin/ollama-subagent"
 MG="$ROOT/bin/managent"
+CLAIMLINT="$ROOT/bin/weizigo-claimlint"
 FAIL=0
+
+# F4/T513 — re-pin to HEAD: the regression runs the COMMITTED dispatch
+# contract (bin/subagent, bin/ollama-subagent, tools/dispatch_verify.py
+# extracted from HEAD), not the live working-tree file. A live uncommitted
+# edit can no longer make this gate pass spuriously against a contract the
+# commit did not record. The substrate the contract depends on — managent
+# and weizigo-claimlint (the T485 done-gate) — is NOT under test here; the
+# deployed binaries are symlinked into the scratch repo root so the
+# committed done-gate can run (it invokes `bin/weizigo-claimlint` relative
+# to the repo root it walks from CWD).
 
 # The scratch dir lives under /tmp/weizigo (disposable outputs); this script
 # is also T411's acceptance gate, so it must not depend on the operator having
@@ -69,10 +91,35 @@ git init -q
 git config user.email t411@test
 git config user.name T411
 echo base > README.md
-mkdir -p docs untracked docs/infra/managent findings
+mkdir -p docs untracked docs/infra/managent findings bin tools docs/epistemic
 printf 'untracked/\n' > .gitignore
-git add README.md .gitignore
+# T513: the committed T485 done-gate runs `bin/weizigo-claimlint c7 --json`, which
+# reads docs/epistemic/CLAIMS.md relative to the scratch repo root. A minimal
+# register (no §2) parses to an empty register; c7 then scans findings/ only,
+# so the done-gate is faithful to the committed contract without dragging
+# the live register (and its 200+ evidence paths) into scratch.
+printf '# minimal scratch claims register (T513 regression)\n' > docs/epistemic/CLAIMS.md
+git add README.md .gitignore docs/epistemic/CLAIMS.md
 git commit -qm base
+
+# F4/T513 — extract the COMMITTED dispatch contract from HEAD into scratch.
+# $ROOT/bin/subagent computes ROOT from its own location, so placing it at
+# $WORK/bin/subagent makes it import $WORK/tools/dispatch_verify.py (also
+# extracted from HEAD) and resolve real_root=$WORK (so heal_dispatch reaches
+# $WORK/bin/managent via the symlink below). The substrate (managent,
+# claimlint) is symlinked, not extracted — it is not the contract under test.
+git -C "$ROOT" show HEAD:bin/subagent > "$WORK/bin/subagent"           || { echo "FATAL: HEAD:bin/subagent extract failed" >&2; exit 2; }
+git -C "$ROOT" show HEAD:bin/ollama-subagent > "$WORK/bin/ollama-subagent" || { echo "FATAL: HEAD:bin/ollama-subagent extract failed" >&2; exit 2; }
+git -C "$ROOT" show HEAD:tools/dispatch_verify.py > "$WORK/tools/dispatch_verify.py" || { echo "FATAL: HEAD:tools/dispatch_verify.py extract failed" >&2; exit 2; }
+chmod +x "$WORK/bin/subagent" "$WORK/bin/ollama-subagent"
+# Substrate symlinks: the committed contract calls `bin/managent` (heal) and
+# `bin/weizigo-claimlint` (the T485 done-gate) relative to the repo root it
+# walks from CWD; both must resolve inside $WORK so the scratch repo is a
+# faithful host for the committed contract.
+ln -s "$MG" "$WORK/bin/managent"
+ln -s "$CLAIMLINT" "$WORK/bin/weizigo-claimlint"
+SUBAGENT="$WORK/bin/subagent"
+OLLAMA_SUBAGENT="$WORK/bin/ollama-subagent"
 
 STORE="$WORK/docs/infra/managent/tasks.json"
 export MANAGENT_STORE="$STORE"
@@ -90,13 +137,39 @@ export REAL_MG="$MG"
 #   honest  does the work and reports success
 cat > "$WORK/stub.py" <<'STUBEOF'
 #!/usr/bin/env python3
-import os, re, subprocess, sys, time
+import json, os, re, subprocess, sys, time
 
 prompt = sys.argv[-1]
 mode = os.environ.get("STUB_MODE", "lazy")
 mg = os.environ["REAL_MG"]
 
 nonce = re.search(r"NONCE-[0-9a-f]{16}", prompt).group(0)
+
+# F4/T513 — bare-file dispatch: no kanban row, no `managent claim/done`, no
+# T485 done-gate. The dispatch_verify findings parse is the PRIMARY defense
+# here, so the T488 malformed/missing/valid findings cases are exercised via
+# bare-file (the T-ID path's done-gate now short-circuits a closing task's
+# own malformed findings, making the old T488 arms impossible). The
+# deliverable path is handed in by the harness (it is not in the bare-file
+# prompt); the harness writes it via STUB_DELIVERABLE.
+if "managent claim" not in prompt:
+    dl = os.environ["STUB_DELIVERABLE"]
+    os.makedirs(os.path.dirname(dl) or ".", exist_ok=True)
+    if mode == "badfindings":
+        content = "{ this is not valid JSON "
+    elif mode == "missingkeys":
+        content = json.dumps({"task_id": "T-bare", "date": "2026-08-20"})
+    else:  # goodfindings
+        content = json.dumps({
+            "task_id": "T-bare", "date": "2026-08-20",
+            "model": "deepseek-v4-flash", "claims": [],
+            "notes": "T513 stub: valid findings record (bare-file)",
+        })
+    with open(dl, "w") as f:
+        f.write(content)
+    print(nonce + " bare complete")
+    sys.exit(0)
+
 task = re.search(r"managent (?:claim|done) (T\d+)", prompt).group(1)
 model = re.search(r"managent claim \S+ --agent (\S+)", prompt).group(1)
 dl = re.search(r"^  - (\S+)$", prompt, re.M).group(1)
@@ -113,31 +186,17 @@ subprocess.run([mg, "claim", task, "--agent", model], check=True)
 if mode == "die":
     sys.exit(124)
 
-# T488: findings-deliverable modes. The seeded deliverable path is under
-# findings/; these write findings-shaped content instead of the text stub,
-# then close pass — exercising the dispatch-verify findings parse (invalid
-# JSON, missing required keys, and a valid null).
+# T488/T513: findings-deliverable modes now run as BARE-FILE dispatches
+# (see the bare-file block at the top). This T-ID branch is retained only for
+# the legacy `badfindings`/`missingkeys`/`goodfindings` STUB_MODE values that
+# arrive here on a T-ID prompt — the harness no longer sends them, but a
+# stub should never crash on an unexpected combination, so fall through to
+# the bare-file-equivalent T-ID path below instead of duplicating it.
 if mode in ("badfindings", "missingkeys", "goodfindings"):
-    import json
-    os.makedirs(os.path.dirname(dl) or ".", exist_ok=True)
-    if mode == "badfindings":
-        content = "{ this is not valid JSON "
-    elif mode == "missingkeys":
-        content = json.dumps({"task_id": task, "date": "2026-08-20"})
-    else:  # goodfindings
-        content = json.dumps({
-            "task_id": task, "date": "2026-08-20", "model": model,
-            "claims": [], "notes": "T488 stub: valid findings record",
-        })
-    with open(dl, "w") as f:
-        f.write(content)
-    subprocess.run(["git", "add", "--", dl], check=True)
-    subprocess.run(["git", "commit", "-qm", "T488 stub findings (%s)" % mode], check=True)
-    time.sleep(11)
-    subprocess.run([mg, "done", task, "--agent", model, "--status", "pass",
-                    "--note", "T488 seeded: %s findings deliverable" % mode], check=True)
-    print(nonce + " task complete (%s)" % mode)
-    sys.exit(0)
+    # unreachable from the harness after T513; kept as a guard so a future
+    # caller that does pass a T-ID + findings mode gets a loud failure
+    # rather than a silent claim/done cycle that the done-gate muddies.
+    raise SystemExit("stub: T-ID + findings mode %r is retired (use bare-file)" % mode)
 
 with open(dl, "w") as f:
     f.write("T411 stub deliverable\n")
@@ -181,9 +240,16 @@ seed_task T999 docs/T999-result.txt
 seed_task T1000 docs/T1000-result.txt
 seed_task T1001 docs/T1001-result.txt
 seed_task T1002 docs/T1002-result.txt
-seed_task T1003 findings/T1003-result.json
-seed_task T1004 findings/T1004-result.json
-seed_task T1005 findings/T1005-result.json
+# T513: the findings arms (7/8/9) are BARE-FILE dispatches — no kanban row,
+# no managent add. The bundle .md declares its findings deliverable and is
+# passed to bin/subagent as the target path (not a T-ID).
+seed_bare() {  # $1=slug  $2=deliverable
+    printf '<!--managent deliverables=%s-->\n# T513-bare-%s — bare-file findings bundle\n' "$2" "$1" \
+        > "$WORK/untracked/T513-bare-$1.md"
+}
+seed_bare bad       findings/T513-bare-bad.json
+seed_bare missing   findings/T513-bare-missing.json
+seed_bare good      findings/T513-bare-good.json
 if [ "$FAIL" -ne 0 ]; then
     echo "=== regression-dispatch-verification: setup FAILED (managent add) ==="
     exit 1
@@ -432,45 +498,50 @@ else
     FAIL=1
 fi
 
-# ── seeded control 4 (T488): a findings deliverable that EXISTS but is ──
-# invalid JSON must fail the verify at dispatch-verify time. This is the T454
-# class — a findings file written as invalid JSON and closed pass because the
-# close gate checked existence, not parse.
-echo "  7. seeded: invalid-JSON findings deliverable fails the verify (T488)"
-OUT=$(STUB_MODE=badfindings "$SUBAGENT" --provider deepseek T1003 --dsflash \
+# ── seeded control 4 (T488/T513): a findings deliverable that EXISTS but ──
+# is invalid JSON must fail the dispatch-verify findings parse. These run as
+# BARE-FILE dispatches (no kanban row): the T485 done-gate now short-circuits
+# a closing task's OWN malformed findings, so the dispatch-verify findings
+# check is the PRIMARY defense only where the done-gate does not run. This
+# isolates the T488 feature from the T485 gate rather than encoding a contract
+# the done-gate repealed.
+echo "  7. seeded: invalid-JSON findings deliverable fails the verify (bare-file, T488/T513)"
+OUT=$(STUB_MODE=badfindings STUB_DELIVERABLE=findings/T513-bare-bad.json \
+        "$SUBAGENT" --provider deepseek untracked/T513-bare-bad.md --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] \
-   && echo "$OUT" | grep -q "malformed findings deliverable(s): findings/T1003-result.json"; then
+   && echo "$OUT" | grep -q "malformed findings deliverable(s): findings/T513-bare-bad.json"; then
     echo "    PASS: dispatcher failed the malformed findings deliverable (rc=$RC)"
 else
     echo "    FAIL: rc=$RC; expected 'malformed findings deliverable(s)' naming the file"
     echo "$OUT" | sed 's/^/    | /' | tail -12
     FAIL=1
 fi
-if grep -q "T1003 deepseek-v4-flash report=success verified=fail fail=findings" "$WEIZIGO_MODEL_PERF"; then
-    echo "    PASS: perf ledger records T1003 verified=fail fail=findings"
+if grep -q "deepseek-v4-flash report=bare verified=fail fail=findings" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: perf ledger records the bare-file findings-fail"
 else
-    echo "    FAIL: perf ledger missing the T1003 findings-fail record"
+    echo "    FAIL: perf ledger missing the bare-file findings-fail record"
     cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
     FAIL=1
 fi
-# The row closed pass but the deliverable is malformed — a claim to
-# investigate, not a death. No heal must fire.
+# A bare-file dispatch has no kanban row, so there is nothing to heal.
 if ! echo "$OUT" | grep -q 'healed.*reopened'; then
-    echo "    PASS: no heal line (malformed findings is not the heal case)"
+    echo "    PASS: no heal line (bare-file dispatch — no kanban row to reopen)"
 else
-    echo "    FAIL: heal fired on a malformed-findings failure"
+    echo "    FAIL: heal fired on a bare-file dispatch"
     FAIL=1
 fi
 
-# ── seeded control 5 (T488): valid JSON but missing required keys also fails
-echo "  8. seeded: findings deliverable missing required keys fails the verify (T488)"
-OUT=$(STUB_MODE=missingkeys "$SUBAGENT" --provider deepseek T1004 --dsflash \
+# ── seeded control 5 (T488/T513): valid JSON but missing required keys fails
+# (bare-file, as above).
+echo "  8. seeded: findings deliverable missing required keys fails the verify (bare-file, T488/T513)"
+OUT=$(STUB_MODE=missingkeys STUB_DELIVERABLE=findings/T513-bare-missing.json \
+        "$SUBAGENT" --provider deepseek untracked/T513-bare-missing.md --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] \
-   && echo "$OUT" | grep -q "malformed findings deliverable(s): findings/T1004-result.json"; then
+   && echo "$OUT" | grep -q "malformed findings deliverable(s): findings/T513-bare-missing.json"; then
     echo "    PASS: dispatcher failed the key-missing findings deliverable (rc=$RC)"
 else
     echo "    FAIL: rc=$RC; expected malformed-findings refusal naming the file"
@@ -478,23 +549,47 @@ else
     FAIL=1
 fi
 
-# ── null (T488): a VALID findings deliverable must pass — no wrong refusal
-echo "  9. null: a VALID findings deliverable passes (T488)"
-OUT=$(STUB_MODE=goodfindings "$SUBAGENT" --provider deepseek T1005 --dsflash \
+# ── null (T488/T513): a VALID findings deliverable must pass (bare-file).
+echo "  9. null: a VALID findings deliverable passes (bare-file, T488/T513)"
+OUT=$(STUB_MODE=goodfindings STUB_DELIVERABLE=findings/T513-bare-good.json \
+        "$SUBAGENT" --provider deepseek untracked/T513-bare-good.md --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] \
-   && echo "$OUT" | grep -q "worker reported success; side effects verified — verification PASSED"; then
+   && echo "$OUT" | grep -q "verification PASSED (bare-file dispatch"; then
     echo "    PASS: valid findings deliverable verified (rc=$RC)"
 else
     echo "    FAIL: rc=$RC; expected PASSED on a valid findings deliverable"
     echo "$OUT" | sed 's/^/    | /' | tail -12
     FAIL=1
 fi
-if [ -f "$WORK/findings/T1005-result.json" ]; then
+if [ -f "$WORK/findings/T513-bare-good.json" ]; then
     echo "    PASS: valid findings deliverable exists"
 else
     echo "    FAIL: valid findings deliverable missing"
+    FAIL=1
+fi
+if grep -q "deepseek-v4-flash report=bare verified=pass" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: perf ledger records the bare-file pass"
+else
+    echo "    FAIL: perf ledger missing the bare-file pass record"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+# ── sole owner (F4/T513): the dispatcher is the ONE automatic heal-reopen ─
+# owner. Every assertion record the regression produced (arms 2b and 5 each
+# healed T1001 back to dispatchable) must carry healed_by=dispatcher — a
+# second owner would write a different value, and a second owner is the
+# defect F4 names. The heals log is the census of who reopens.
+echo "  10. sole owner (F4/T513): every heal record is healed_by=dispatcher (no second owner)"
+TOTAL=$(grep -c '"task_id"' "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null || echo 0)
+DISP=$(grep -c '"healed_by": "dispatcher"' "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null || echo 0)
+if [ "$TOTAL" -gt 0 ] && [ "$TOTAL" -eq "$DISP" ]; then
+    echo "    PASS: all $TOTAL heal record(s) are healed_by=dispatcher (the dispatcher is the sole owner)"
+else
+    echo "    FAIL: $DISP/$TOTAL heal record(s) are healed_by=dispatcher — a second owner is present"
+    cat "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null | sed 's/^/    | /'
     FAIL=1
 fi
 

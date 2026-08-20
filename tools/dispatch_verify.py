@@ -54,6 +54,15 @@ SUCCESS_VERDICTS = ("pass", "pass-with-findings")
 # Verdicts that mean "the worker reports the task did not succeed."
 FAILURE_VERDICTS = ("blocked", "fail-found", "abandoned")
 
+# F4/T513: the dispatcher is the SOLE automatic heal-reopen owner.  No other
+# shipped script reopens a kanban row unattended — `untracked/watch-fleet.sh`
+# at HEAD contains no heal (T492 dropped it) and `tools/fleet-keeper.sh` only
+# observes heals (cooldown), it does not reopen.  Every assertion record
+# written by `heal_dispatch` carries this value as `healed_by`, so the heals
+# log is the census of who reopens: a record NOT carrying it is a second
+# owner, and a second owner is a defect (the 2026-08-20 fleet audit, F4).
+HEAL_OWNER = "dispatcher"
+
 
 def generate_nonce():
     """A fresh 128-bit echo token."""
@@ -322,6 +331,12 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
     The tree is never touched (a heal that cleaned the working tree would
     destroy a dead worker's uncommitted edits — three consoles died that way
     this week).
+
+    F4/T513 — sole owner: this function is the ONLY automatic heal-reopen in
+    any shipped script.  The `healed_by` field is `HEAL_OWNER` ("dispatcher"),
+    so the heals log is a census of reopeners: any record NOT carrying it is a
+    second owner and a defect.  See `tools/regression-dispatch-verification.sh`
+    arm 10 for the invariant test.
     """
     if task_id is None:
         return (False, "")
@@ -349,7 +364,7 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
         "model": model,
         "exit_code": rc,
         "wall_seconds": round(wall_seconds, 1),
-        "healed_by": "dispatcher",
+        "healed_by": HEAL_OWNER,
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     path = (os.environ.get(assert_path_env)
