@@ -404,12 +404,15 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
     a record with neither is a launch record whose runner died before the
     child's fate was known — "killed mid-flight", not "completed".
 
-    tokens (T521) is the capture dict {tokens_in, tokens_out, source,
-    missing_reason, session_id, session_reason} or None.  When provided
-    the record carries the token fields ALWAYS — nulls included — so a run
-    record is self-describing: "no reading" is visible in the record
-    itself, never a missing key.  T552: the same applies to the session
-    handle (session_id / session_reason always present).
+    tokens (T521) is the capture dict {tokens_in, tokens_out, tokens_fresh,
+    tokens_cache_read, source, missing_reason, session_id, session_reason}
+    or None.  When provided the record carries the token fields ALWAYS —
+    nulls included — so a run record is self-describing: "no reading" is
+    visible in the record itself, never a missing key.  T552: the same
+    applies to the session handle (session_id / session_reason always
+    present).  T558: tokens_fresh / tokens_cache_read are the split behind
+    tokens_in (which keeps its meaning, input+cache_read); all three are
+    stamped together.
     """
     if run_record is None:
         return
@@ -429,6 +432,11 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
     if tokens is not None:
         run_record["tokens_in"] = tokens.get("tokens_in")
         run_record["tokens_out"] = tokens.get("tokens_out")
+        # T558: the split behind tokens_in — fresh (input) vs cache_read —
+        # stamped ALWAYS (nulls included) so a reader can price the two
+        # differently without re-deriving from the raw usage.
+        run_record["tokens_fresh"] = tokens.get("tokens_fresh")
+        run_record["tokens_cache_read"] = tokens.get("tokens_cache_read")
         run_record["tokens_source"] = tokens.get("source")
         run_record["tokens_missing_reason"] = tokens.get("missing_reason")
         # T552: the resumable session handle, stamped ALWAYS (nulls
@@ -1064,10 +1072,15 @@ def _argv_provider(argv):
 def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     task_identity, repo_root, start_ts, rc, kill_reason=None):
     """The capture path for one run.  Returns a dict
-    {tokens_in, tokens_out, source, missing_reason, session_id,
-    session_reason} (None values when no reading / no handle) or None when
-    there is no repo root (degraded — no task, so nothing to key the record
-    on).
+    {tokens_in, tokens_out, tokens_fresh, tokens_cache_read, source,
+    missing_reason, session_id, session_reason} (None values when no
+    reading / no handle) or None when there is no repo root (degraded — no
+    task, so nothing to key the record on).
+
+    T558: tokens_in stays input+cache_read (readers keep working); the
+    split rides beside it as tokens_fresh (= input) and tokens_cache_read
+    (= cache_read), so the cost ladder can price cache reads differently
+    from fresh input.  All three are stamped ALWAYS (nulls included).
 
     Side effects, all under <repo_root>/untracked/tokens/:
       - tee the complete raw stdout+stderr per task (any usage lines
@@ -1088,7 +1101,8 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
     tc = _load_token_capture()
     model = _argv_model(argv)
     provider = _argv_provider(argv)
-    out = {"tokens_in": None, "tokens_out": None, "source": None,
+    out = {"tokens_in": None, "tokens_out": None, "tokens_fresh": None,
+           "tokens_cache_read": None, "source": None,
            "missing_reason": None, "text": None,
            "session_id": None, "session_reason": None}
     usage = None
@@ -1114,7 +1128,13 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     out["session_reason"] = (
                         "claude envelope carries no session_id field")
                 if usage is not None and not meta.get("is_error"):
+                    # T558: tokens_in keeps its meaning (the sum, so old
+                    # readers are untouched); the split is recorded fresh
+                    # (= input) vs cache_read so the two can be priced
+                    # differently.
                     out["tokens_in"] = usage["input"] + usage["cache_read"]
+                    out["tokens_fresh"] = usage["input"]
+                    out["tokens_cache_read"] = usage["cache_read"]
                     out["tokens_out"] = usage["output"]
                     out["source"] = "claude-json-envelope"
                 elif meta.get("is_error"):
@@ -1162,6 +1182,8 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                 "ts": start_ts,
                 "tokens_in": out["tokens_in"],
                 "tokens_out": out["tokens_out"],
+                "tokens_fresh": out["tokens_fresh"],
+                "tokens_cache_read": out["tokens_cache_read"],
                 "source": out["source"],
                 "missing_reason": out["missing_reason"],
                 "session_id": out["session_id"],
@@ -1187,12 +1209,18 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
 def _print_tokens_trailer(tok):
     """The trailer lines the bakeoff G1 gate reads (tokens_in/tokens_out)
     and the lane record's session handle (T552: session_id=..., or a
-    no-handle line with the reason — never a blank)."""
+    no-handle line with the reason — never a blank).  T558: the token line
+    additionally carries the split behind tokens_in — tokens_fresh (= input)
+    and tokens_cache_read (= cache_read) — on the SAME line, so the bakeoff
+    trailer regex keeps matching tokens_in/tokens_out unchanged."""
     if tok is None:
         return
     if tok.get("tokens_in") is not None:
         print(f"[runner] tokens_in={tok['tokens_in']} "
-              f"tokens_out={tok['tokens_out']}", file=sys.stderr)
+              f"tokens_out={tok['tokens_out']} "
+              f"tokens_fresh={tok.get('tokens_fresh')} "
+              f"tokens_cache_read={tok.get('tokens_cache_read')}",
+              file=sys.stderr)
     else:
         reason = tok.get("missing_reason") or "no source"
         print(f"[runner] tokens: no reading — {reason}", file=sys.stderr)

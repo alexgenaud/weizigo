@@ -39,6 +39,10 @@ Lane layout (untracked/bakeoff/<run>/):
                                  close; a lane without a reading is reported as
                                  such, never estimated)
   <model>/out.md                 lane stdout = the model's answer (the deliverable)
+  <model>/session.jsonl          deepseek lanes: the pi session JSONL, written to a
+                                 per-lane path via `pi --session` (T558 — the old
+                                 --no-session destroyed the retroactive meter's data
+                                 at dispatch; the path is recorded in lanes.json)
   <model>/trailer.log            tools/runner stderr: argv echo, guards, exit
                                  line (wall), peak RSS/CPU per PID
   lanes.json                     the dispatch record: lane map + command + clocks
@@ -337,7 +341,8 @@ def enforce_g2(isolation, allow_unisolated):
 TOKEN_CAPTURE_SCRIPT = "tools/token-capture.py"   # T521 deliverable
 
 TRAILER_TOKENS_RE = re.compile(
-    r"\[runner\]\s+tokens_in=(\d+)\s+tokens_out=(\d+)")
+    r"\[runner\]\s+tokens_in=(\d+)\s+tokens_out=(\d+)"
+    r"(?:\s+tokens_fresh=(\d+)\s+tokens_cache_read=(\d+))?")
 
 
 def _trailer_token_reading(trailer_path):
@@ -349,7 +354,10 @@ def _trailer_token_reading(trailer_path):
     m = TRAILER_TOKENS_RE.search(text)
     if not m:
         return None
-    return {"in": int(m.group(1)), "out": int(m.group(2)), "source": "trailer"}
+    return {"in": int(m.group(1)), "out": int(m.group(2)),
+            "fresh": int(m.group(3)) if m.group(3) else None,
+            "cache_read": int(m.group(4)) if m.group(4) else None,
+            "source": "trailer"}
 
 
 def collect_tokens(root, run_dir, date, results):
@@ -389,6 +397,11 @@ def collect_tokens(root, run_dir, date, results):
         if tr is not None:
             entry["tokens_in"] = tr["in"]
             entry["tokens_out"] = tr["out"]
+            # T558: the trailer carries the split behind tokens_in (fresh =
+            # input, cache_read); the fields are present ALWAYS, nulls when
+            # the trailer predates the split.
+            entry["tokens_fresh"] = tr["fresh"]
+            entry["tokens_cache_read"] = tr["cache_read"]
             entry["tokens_source"] = tr["source"]
             entry["tokens_missing_reason"] = None
             continue
@@ -396,11 +409,17 @@ def collect_tokens(root, run_dir, date, results):
         if isinstance(m, dict) and m.get("tokens_in") is not None:
             entry["tokens_in"] = m.get("tokens_in")
             entry["tokens_out"] = m.get("tokens_out")
+            # T558: the capture join yields the summed reading only; the
+            # split is not in its schema — null, never 0.
+            entry["tokens_fresh"] = None
+            entry["tokens_cache_read"] = None
             entry["tokens_source"] = "token-capture.py"
             entry["tokens_missing_reason"] = None
             continue
         entry["tokens_in"] = None
         entry["tokens_out"] = None
+        entry["tokens_fresh"] = None
+        entry["tokens_cache_read"] = None
         entry["tokens_source"] = None
         if entry.get("status") == "refused":
             entry["tokens_missing_reason"] = "lane refused — no run, no token reading"
@@ -420,6 +439,8 @@ def write_tokens_summary(run_dir, results):
         summary[e["label"]] = {
             "in": e.get("tokens_in"),
             "out": e.get("tokens_out"),
+            "fresh": e.get("tokens_fresh"),
+            "cache_read": e.get("tokens_cache_read"),
             "source": e.get("tokens_source"),
             "missing_reason": e.get("tokens_missing_reason"),
         }
@@ -510,14 +531,30 @@ def build_prompt(brief_path):
     return HEADER + body + FOOTER
 
 
-def lane_argv(lane, prompt, wall, claude_tools):
+def lane_session_path(run, label):
+    """Per-lane pi session file, relative to the repo root.
+
+    T558: deepseek lanes used to dispatch `pi --no-session`, so no session
+    JSONL was ever written and their token cells were destroyed at dispatch
+    (the retroactive pi-session meter had nothing to read).  Now each lane
+    passes `pi --session <this path>` and the path is recorded in the lane
+    record, so the meter has a known per-lane file."""
+    return os.path.join("untracked", "bakeoff", run, label, "session.jsonl")
+
+
+def lane_argv(lane, prompt, wall, claude_tools, session_path=None):
     """tools/runner wrapper + dispatch argv for one lane. The prompt is the
-    same string object for every lane — identical brief text per lane."""
+    same string object for every lane — identical brief text per lane.
+    session_path is used by deepseek lanes only: the per-lane pi session
+    file (T558)."""
     runner = ["tools/runner", "--max-wall", str(wall), "--"]
     fam = lane["family"]
     if fam == "deepseek":
+        if session_path is None:
+            raise AssertionError(
+                "deepseek lane requires a session_path (T558)")
         return runner + ["pi", "--provider", "deepseek", "--model", lane["label"],
-                         "--no-session", "-p", prompt]
+                         "--session", session_path, "-p", prompt]
     if fam == "claude":
         return runner + ["claude", "-p", prompt, "--model", lane["label"],
                          "--allowedTools", claude_tools, "--output-format", "json"]
@@ -527,15 +564,19 @@ def lane_argv(lane, prompt, wall, claude_tools):
     raise AssertionError(fam)
 
 
-def lane_emit_cmd(lane, prompt_ref, wall, claude_tools):
+def lane_emit_cmd(lane, prompt_ref, wall, claude_tools, session_path=None):
     """Shell string for --emit. prompt_ref is a shell expression that yields
     the prompt text (the $(cat prompt.txt) expansion), deliberately left
-    unquoted so the human's console expands it."""
+    unquoted so the human's console expands it. session_path is used by
+    deepseek lanes only: the per-lane pi session file (T558)."""
     base = f"tools/runner --max-wall {wall} -- "
     fam = lane["family"]
     if fam == "deepseek":
+        if session_path is None:
+            raise AssertionError(
+                "deepseek lane requires a session_path (T558)")
         return (base + f"pi --provider deepseek --model {lane['label']} "
-                f"--no-session -p {prompt_ref}")
+                f"--session {shlex.quote(session_path)} -p {prompt_ref}")
     if fam == "claude":
         return (base + f"claude -p {prompt_ref} --model {lane['label']} "
                 f"--allowedTools {claude_tools} --output-format json")
@@ -593,7 +634,8 @@ def emit(brief, roster, run, wall, claude_tools, lanes):
     for lane in lanes:
         label = lane["label"]
         out.append(f"mkdir -p untracked/bakeoff/{run}/{label}")
-        cmd = lane_emit_cmd(lane, prompt_ref, wall, claude_tools)
+        cmd = lane_emit_cmd(lane, prompt_ref, wall, claude_tools,
+                            session_path=lane_session_path(run, label))
         out.append(f"{cmd} > untracked/bakeoff/{run}/{label}/out.md "
                    f"2> untracked/bakeoff/{run}/{label}/trailer.log")
     sys.stdout.write("\n".join(out) + "\n")
@@ -659,6 +701,9 @@ def execute(brief, roster, run, wall, claude_tools, lanes, root, isolation,
                 "command": shlex.join(lane_argv(lane, prompt, wall, claude_tools)),
                 "out": None,
                 "trailer": None,
+                "session_path": None,
+                "session_path_reason": (
+                    "lane refused — no dispatch, no session path"),
                 "status": "refused",
                 "exit": None,
                 "wall_s": None,
@@ -680,7 +725,24 @@ def execute(brief, roster, run, wall, claude_tools, lanes, root, isolation,
         os.makedirs(out_dir, exist_ok=True)
         out_path = os.path.join(out_dir, "out.md")
         trailer_path = os.path.join(out_dir, "trailer.log")
-        argv = lane_argv(lane, prompt, wall, claude_tools)
+        # T558: deepseek lanes get a per-lane pi session file (passed via
+        # --session, recorded here); claude/ollama lanes have no dispatch
+        # session path — recorded null with a reason, never a blank cell.
+        session_path = None
+        session_path_reason = None
+        if fam == "deepseek":
+            session_path = lane_session_path(run, label)
+        elif fam == "claude":
+            session_path_reason = (
+                "claude lane: session handle captured from the "
+                "--output-format json envelope (session_id), not a dispatch "
+                "session path")
+        else:  # ollama
+            session_path_reason = (
+                "ollama lane: inner pi writes to the default session dir "
+                "(~/.pi/agent/sessions/), no explicit dispatch path")
+        argv = lane_argv(lane, prompt, wall, claude_tools,
+                         session_path=session_path)
         env = dict(os.environ)
         env["WEIZIGO_AGENT_DEPTH"] = "3"          # lanes are leaf workers (T431: cap value, not 2)
         env["MANAGENT_TASK_ID"] = f"bakeoff/{run}/{label}"  # heartbeat identity
@@ -710,6 +772,8 @@ def execute(brief, roster, run, wall, claude_tools, lanes, root, isolation,
             "command": shlex.join(argv),
             "out": os.path.relpath(out_path, root),
             "trailer": os.path.relpath(trailer_path, root),
+            "session_path": session_path,
+            "session_path_reason": session_path_reason,
             "status": status,
             "exit": proc.returncode,
             "wall_s": meta.get("wall_s"),
@@ -765,7 +829,9 @@ def execute(brief, roster, run, wall, claude_tools, lanes, root, isolation,
         if e["status"] != "ok" and (e["kill"] or e["note"]):
             extra = f" note={e['kill'] or e['note']!r}"
         extra += (f" self_id={e['self_identified']} "
-                  f"tokens_in={e['tokens_in']} tokens_out={e['tokens_out']}")
+                  f"tokens_in={e['tokens_in']} tokens_out={e['tokens_out']}"
+                  f" tokens_fresh={e['tokens_fresh']} "
+                  f"tokens_cache_read={e['tokens_cache_read']}")
         print(f"RESULT {e['label']} family={e['family']} serving_tag={e['serving_tag']} "
               f"status={e['status']} exit={e['exit']} wall_s={e['wall_s']} "
               f"cpu_s={e['cpu_s']} rss_mb={e['rss_mb']} out_bytes={e['out_bytes']}"

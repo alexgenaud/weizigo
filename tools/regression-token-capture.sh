@@ -20,7 +20,12 @@
 #                       trailer prints `[runner] tokens_in=.. tokens_out=..`
 #                       (the bakeoff G1 trailer path), the lane stdout is the
 #                       UNWRAPPED text (never the envelope), the ledger gets a
-#                       reading, and the raw envelope is teed to disk
+#                       reading, and the raw envelope is teed to disk.
+#                       T558: the same surfaces additionally carry the split
+#                       behind tokens_in — tokens_fresh (= input) and
+#                       tokens_cache_read (= cache_read) — so the cost ladder
+#                       can price cache reads differently from fresh input;
+#                       tokens_in itself keeps its meaning (input+cache_read)
 #   C. pi lane e2e      a fake pi shim: raw stdout+stderr are teed per task
 #                       to disk (any usage lines survive), and the ledger
 #                       records tokens missing EXPLICITLY with a reason —
@@ -194,6 +199,13 @@ else
     else
         fail "trailer tokens line missing"; grep "tokens" "$WORK/claude.err" | sed 's/^/    | /'
     fi
+    # T558: the split rides the same trailer line — tokens_in keeps its
+    # meaning (input+cache_read), fresh and cache_read ride beside it
+    if grep -q "tokens_fresh=11 tokens_cache_read=33" "$WORK/claude.err"; then
+        pass "trailer splits tokens_in into tokens_fresh=11 tokens_cache_read=33"
+    else
+        fail "trailer token split missing"; grep "tokens" "$WORK/claude.err" | sed 's/^/    | /'
+    fi
     # run record tokens
     REC="$WORK/untracked/runs/T521CLAUDE.json"
     if test -f "$REC" && python3 -c "
@@ -201,6 +213,7 @@ import json,sys
 d=json.load(open('$REC'))
 assert d.get('tokens_in')==44 and d.get('tokens_out')==22, d
 assert d.get('tokens_source')=='claude-json-envelope', d
+assert d.get('tokens_fresh')==11 and d.get('tokens_cache_read')==33, d
 print('OK')" 2>/dev/null | grep -q OK; then
         pass "run record carries tokens_in/out/source"
     else
@@ -209,8 +222,10 @@ print('OK')" 2>/dev/null | grep -q OK; then
     # ledger reading
     LED="$WORK/untracked/tokens/tokens.jsonl"
     if test -f "$LED" && grep -q '"task": "T521CLAUDE"' "$LED" \
-       && grep -q '"tokens_in": 44' "$LED" && grep -q '"tokens_out": 22' "$LED"; then
-        pass "ledger records the claude reading"
+       && grep -q '"tokens_in": 44' "$LED" && grep -q '"tokens_out": 22' "$LED" \
+       && grep -q '"tokens_fresh": 11' "$LED" \
+       && grep -q '"tokens_cache_read": 33' "$LED"; then
+        pass "ledger records the claude reading (tokens_in/out + T558 split)"
     else
         fail "ledger claude reading missing"; cat "$LED" 2>/dev/null | head -5
     fi
