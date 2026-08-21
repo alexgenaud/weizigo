@@ -1,0 +1,18 @@
+# Grand-race / aspect-race roster — epoch 2026-08-20b
+# Authority: docs/infra/races/grand-race.md §2 (operator directive via claude-fable-5)
+# Format (tools/bakeoff.sh): <family> <canonical-label> [serving-tag]
+# Families: deepseek | claude | ollama.  Labels validated against the LIST in
+# src/managent/main.zig canonical_models — never against a pattern.
+#
+# The glm-5.2 / minimax-m3 / kimi-k2.7 trio is DEFERRED, not removed: Ollama
+# cloud returns HTTP 429 (session usage limit).  Re-probed by T529 and still
+# 429 at 2026-08-20T13:05Z.  They rejoin as a delta round when credits refresh;
+# records carry their own epoch so the delta aggregates honestly against this one.
+
+claude    claude-fable-5
+claude    claude-opus-5
+claude    claude-sonnet-5
+claude    claude-haiku-4-5-20251001
+deepseek  deepseek-v4-pro
+deepseek  deepseek-v4-flash
+ollama    qwen3.8:27b-mlx            qwen3.8:27b-mlx

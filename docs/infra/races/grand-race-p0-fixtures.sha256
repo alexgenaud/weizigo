@@ -1,0 +1,11 @@
+# Copy-stable content seals for the frozen fixture stores (T529).
+# seal = sha256 of the sorted 'sha256  relpath' listing of the store.
+# Regenerate deliberately: tools/race-p0-verify.sh --write-seals
+
+562e31dc2ee1684ddbab2df1d59aaf9048795773a84b789e8f3b3871e09711ac  aspect-crash
+3e96884e9388385a1355ff500cbc333c0a4231a9d24d8c1e3fb433599c35c5e1  aspect-dispatch
+708815518d4ff5ff2a4c2171c0f0cfe00678d57285e0fb94736f4f2dc36e2b2f  aspect-inbox
+d66b264591508bef768f5515b5a49507f6e837798f92cc3f6d7a70bba0ef8bfa  aspect-triage
+303f0882ed8764708d9710acc1ddde7dbf3847671d734415b99c0b783f80ee41  aspect-verdict
+64dc89981cfd3daa33294b0b55a2de9403d35959f2af8aa784837ffb491f60be  race3
+26ef248938b25b91adeb3f596fa8db5ca04788640732e89f40640b9ef6e36452  race5
