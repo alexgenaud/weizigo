@@ -1,0 +1,11 @@
+
+kernel accepted w/ board match : 298
+kernel rejections verified     : 272 (256 occupied, 16 suicide)
+kernel violations              : 0
+ko layer events                : 0 (all anomalous: 0)
+PSK layer events               : 0 (consistent 0, violations 0)
+construction failures          : 0
+total moves verified           : 570 (1.4s)
+KERNEL DENOMINATOR             : 570   violations = 0
+KERNEL VERDICT: 0/570 violations
+ALL LAYERS CLEAN — kernel reproduced at 2x2

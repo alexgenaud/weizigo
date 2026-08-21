@@ -1,0 +1,13 @@
+1x1: legal = 1  register asserts 1  [OK, 0.0s]
+2x2: legal = 57  register asserts 57  [OK, 0.0s]
+3x2: legal = 489  register asserts 489  [OK, 0.0s]
+3x3: legal = 12675  register asserts 12675  [OK, 0.2s]
+4x3: legal = 321689  register asserts 321689  [OK, 0.7s]
+4x4: legal = 24318165  register asserts 24318165  [OK, 54.9s]
+
+internal naive-vs-fast disagreements: 0
+ALL ASSERTED COUNTS REPRODUCED — 0 violations / 6 sizes
+
+-- extra validation: naive predicate at 4x3 (cross-checks the fast path on a 4-wide board) --
+4x3 naive legal = 321689 (4.8s)
+naive == fast == register: OK
