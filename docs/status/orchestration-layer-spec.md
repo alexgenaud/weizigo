@@ -64,12 +64,28 @@ Pass 2 (supervision) first — the queue and dashboard sit on top and are inert 
 queue **now**, calmly, ahead of build; build it after pass 2's supervisor holds its first child.
 Dashboard polish finishes L1.
 
-## 7. Open rulings for the operator
+## 7. Resolved — operator rulings, 2026-08-21 (consolidated with T557's leanings)
 
-1. **Ordering** — roadmap-priority, condition-first, or FIFO?
-2. **Appetite** — a hard gate (CONSERVE can block a task) or a soft bias (it only deprioritizes)?
-3. **One dispatch** — is the model→harness table fully data (a JSON row), or do hardcoded family
-   branches remain?
-4. **Overnight stop** — budget by closes, by wall, by gauge, or all three?
-5. **Pre-ratification** — does the queue ever act on a row the operator hasn't explicitly queued, or is
-   everything dispatched by prior intent?
+1. **Ordering** — aging-priority. Default 50/99; a blocked task's priority climbs each block; when the
+   next task is blocked, drop the parallel cap so logjammed tasks eventually run. FIFO is approximated by
+   "lowest-priority-in-queue minus 1, all bump one on each pop". **Conditions are non-negotiable** — they
+   must be satisfied before any dispatch, regardless of priority. (This logic existed in the old shell
+   scripts and worked; the design phase must recover and re-spec it.)
+2. **Appetite** — a spectrum, not one gate. Hard: forbid a model/family outright. Soft: subtle or strong
+   back-pressure. Fable RESERVED is hard; CONSERVE is soft; SPEND is none.
+3. **One dispatch (data vs code)** — open; delegate to design + audit to settle. Lean: fully data (a
+   hardcoded family branch is what pass 1 deleted), but the design must prove it.
+4. **Overnight** — conservative: reduced parallelization, higher tolerances for long-running processes
+   (table/engine builds must not time out prematurely). **Mandatory progress reports + heartbeats — no
+   silent processes** (zombie vs productive must be visible). Stop budget: all three, cheapest-first (wall,
+   then closes, then gauge).
+5. **Pre-ratification / recursion** — sprints MAY queue additional tasks or defer tasks, but every queued
+   task must be well-specified, unique, justified, and provably NOT recursive / replicating / self-DoS.
+   This needs a dedicated safety analysis (a task that mints tasks needs a cap + lineage + a justification
+   field) — delegated below.
+
+## 8. Delegation (the thorough pass)
+
+The sketch is the starting point; the full pipeline is delegated per the pass protocol: research (recover
+and re-spec the old bash queue logic) → spec → scope → design → audit → plan → build. Field: Opus (design),
+Flash (research), Sonnet + Haiku (audit), DSPro (author/consolidator).
