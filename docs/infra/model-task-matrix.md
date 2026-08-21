@@ -59,19 +59,23 @@ Preferred length 3–5 characters.
 
 ## 2. Measured cells (new epoch only — the 2026-08-18 DeepSeek boundary is not crossed)
 
-| | claude-opus-5 | claude-fable-5 | deepseek-v4-pro | deepseek-v4-flash | glm-5.2 | minimax-m3 | kimi-k2.7 | qwen3.8:27b-mlx |
-|---|---|---|---|---|---|---|---|---|
-| **T-A** audit | — | — | **34** (T447) | **38** (T447) | **30** (T447) | **27** (T447) | **25** (T447) | **no completion in 2400 s** (T447 late lane) |
-| **T-B** fix | — | — | — | — | — | — | — | — |
-| **T-C** diagnosis | — | — | **pass-w-findings** (T369) | — | — | — | — | — |
-| **T-D** bookkeeping | — | — | — | **pass** (T443) | — | — | — | — |
-| **T-E** spec | — | prior epoch only | — | — | — | — | — | — |
-| **T-F** adjudication | — | — | — | — | — | — | — | — |
-| **T-G** triage | — | — | **pass-w-findings** (T444) | — | — | — | — | — |
-| **T-H** console | in flight | prior epoch only | — | prior epoch only (T363) | — | — | — | — |
+| | claude-opus-5 | claude-fable-5 | claude-sonnet-5 | claude-haiku-4-5-20251001 | deepseek-v4-pro | deepseek-v4-flash | glm-5.2 | minimax-m3 | kimi-k2.7 | qwen3.8:27b-mlx |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **T-A** audit | **46** (T447-rep) | — | **26** (T447-rep) | **0** (T447-rep) | **34** (T447) | **38** (T447) | **30** (T447) | **27** (T447) | **25** (T447) | **no completion in 2400 s** (T447 late lane) |
+| **T-B** fix | — | — | — | — | — | — | — | — | — | — |
+| **T-C** diagnosis | — | — | — | — | **pass-w-findings** (T369) | — | — | — | — | — |
+| **T-D** bookkeeping | — | — | — | — | — | **pass** (T443) | — | — | — | — |
+| **T-E** spec | — | prior epoch only | — | — | — | — | — | — | — | — |
+| **T-F** adjudication | — | — | — | — | — | — | — | — | — | — |
+| **T-G** triage | — | — | — | — | **pass-w-findings** (T444) | — | — | — | — | — |
+| **T-H** console | in flight | prior epoch only | — | — | — | prior epoch only (T363) | — | — | — | — |
 
 Scores in **T-A** are the blind-graded T447 rubric (30 points; verified findings outside the key
-earn +3, which is why the top scores exceed 30). Everything else is a single row's verdict, which
+earn +3, which is why the top scores exceed 30). The `T447-rep` cells are the race #1 sealed-key
+replication (2026-08-21, `findings/T557-race1-t447-replication.json`): same key and brief, graded
+blind by a non-Claude grader (`deepseek-v4-flash`) to fill the Claude-family T-A cells that T447
+could not legitimately score (its grader was Claude). A different grader means `T447-rep` is not
+directly comparable to the `(T447)` numbers. Everything else is a single row's verdict, which
 is weaker evidence than a race — a verdict says "the work was acceptable", not "better than the
 alternative". **n = 1 everywhere.** No cell in this table justifies a ranking on its own.
 
@@ -145,5 +149,6 @@ Two conditions were set by the Orchestrator before dispatch, both of which the b
 3. **T-E (spec authoring)** at Ollama scale — only Fable has ever done it, in the prior epoch.
 4. **T-H (long-horizon console)** — the operator's own hypothesis is that `deepseek-v4-pro` may
    earn its premium here. Untested in the new epoch.
-5. **Opus and Fable in T-A** — excluded from T447 because the grader was Claude. Needs a
-   non-Claude grader to be legitimate.
+5. **Fable in T-A** — still empty. Opus, sonnet and haiku are now filled by the T447 sealed-key
+   replication (race #1, grader `deepseek-v4-flash`, `findings/T557-race1-t447-replication.json`);
+   Fable stays RESERVED and needs a reserved-appropriate non-Claude-graded run.
