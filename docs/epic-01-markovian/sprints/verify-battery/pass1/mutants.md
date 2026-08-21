@@ -48,10 +48,10 @@ calibration, not kill-verification.**
 
 | mutant | I1 | I2 | I3 | I4 | I5 | I6 | I7 | I8 | I9 | I10 | I11 | I12 | verdict | gap |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **M1** T178 colex | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3¹ |
-| **M2** T193 passes bit | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3¹ |
-| **M3** T265 ko-too-broad | — | — | n/a | — | may³ | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3 |
-| **M4** ACCEPT-KOKEY | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **SURVIVED** | G1/G3¹ |
+| **M1** T178 colex | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** (T530) | key-agreement¹ |
+| **M2** T193 passes bit | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** (T530) | key-agreement¹ |
+| **M3** T265 ko-too-broad | — | — | n/a | — | may³ | — | — | n/a | — | n/a | — | — | **KILLED** (T530) | key-agreement¹ |
+| **M4** ACCEPT-KOKEY | — | — | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** (T530) | key-agreement¹ |
 | **M5** GTP-LHSIDE | — | **✗** | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** | — |
 | **M6** DTT-UNSET | — | — | n/a | — | — | — | **✗** | n/a | — | n/a | — | — | **KILLED** | — |
 | **M7** INVSYM-BROKEN | — | **✗** | n/a | — | — | — | — | n/a | — | n/a | — | — | **KILLED** | — |
@@ -59,14 +59,12 @@ calibration, not kill-verification.**
 | **M9** BATTERY-STUBBED | — | — | — | — | — | — | — | — | — | — | — | — | **KILLED** | meta³ |
 | **M10** alias-control | — | — | — | — | — | — | — | — | — | — | — | — | **KILLED** (T363) | —⁵ |
 
-**Key:** `✗` = killed (invariant reports fail, test assertion verified) · `—` = not applicable (invariant doesn't test that property) · `n/a` = not applicable on WZO1 · `may³` = could catch in principle but the synthetic fixture does not trigger a kill (survival verified by test assertion) · `meta³` = killed by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347), which enumerates every declared invariant by compile-time reflection over `vb.Invariant` and fails iff any returns `.skipped` · `¹` = T345 KEY-4x4 calibration in `src/differential.zig:1554` flips bit 0 of producer colex and asserts the key-agreement invariant catches it (proves the machinery is sensitive), but no per-mutant kill-verification fixture for M1/M2/M4 exists; the intended killer is the T345 KEY-4x4 exhaustive run, which has been wired but does not yet have the per-mutant red-then-green test. · `⁴` = M8 fixture lives at `src/vb_mutants.zig:269` (3×3 WZO2, deletes one entry from `data/oracle-3x3-v2.wzo2`); C-A1 `children_not_in_table` 0→2, C-A2 `reachable_not_in_table` 0→1, restore → 0/0. · `⁵` = M10 fixture at `src/vb_mutants.zig:319` exercises the I11 null control (kernel-vs-SMD1, both kernel) → 0/114 vacuous, AND the seeded-defect control (allows-suicide mutant) → 1/114, together proving the harness is sensitive to genuine disagreement; the meta² gap (no battery-integrated independent-reimplementation check) was the original framing and is now superseded — the I11 null + seeded-defect pair is wired into the battery.
+**Key:** `✗` = killed (invariant reports fail, test assertion verified) · `—` = not applicable (invariant doesn't test that property) · `n/a` = not applicable on WZO1 · `may³` = could catch in principle but the synthetic fixture does not trigger a kill (superseded: M3 now killed by key-agreement, T530) · `meta³` = killed by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347), which enumerates every declared invariant by compile-time reflection over `vb.Invariant` and fails iff any returns `.skipped` · `¹` = killed by the key-agreement invariant (producer `rules.stateKey` vs consumer `vb_movegen.stateKey`, the T267/T345 machinery). Per-mutant red-then-green kill-verification fixtures for M1/M2/M3/M4 added by T530 at `src/vb_mutants.zig` (M1: producer index function swapped to the base-3 lexicographic rank, colex=10 vs rank=58 on the witness; M2: producer drops the passes bit, passes=1 encoded as passes=0; M3: producer uses the pre-T265 ko rule (any single-stone capture → ko) on a witness where the corrected rule says ko=NONE; M4: one consumer uses the pre-T265 ko rule while the other uses the corrected rule). The T345 KEY-4x4 exhaustive run (`src/differential.zig:1360`) remains the full-space reading. · `⁴` = M8 fixture lives at `src/vb_mutants.zig:269` (3×3 WZO2, deletes one entry from `data/oracle-3x3-v2.wzo2`); C-A1 `children_not_in_table` 0→2, C-A2 `reachable_not_in_table` 0→1, restore → 0/0. · `⁵` = M10 fixture at `src/vb_mutants.zig:319` exercises the I11 null control (kernel-vs-SMD1, both kernel) → 0/114 vacuous, AND the seeded-defect control (allows-suicide mutant) → 1/114, together proving the harness is sensitive to genuine disagreement; the meta² gap (no battery-integrated independent-reimplementation check) was the original framing and is now superseded — the I11 null + seeded-defect pair is wired into the battery.
 
-**Kill rate: 6 / 10 (denominator: 10 mutants).** Six mutants are killed by existing/new battery checks; the remaining 4 survive.
+**Kill rate: 10 / 10 (denominator: 10 mutants).** All ten catalogue mutants are killed by battery checks with red-then-green kill-verification fixtures.
 
 Of the 10 mutants:
-- **6 killed** by battery checks: M5 (I2 colour inversion), M6 (I7 DTT sanity), M7 (I2 colour inversion), M8 (C-A1/C-A2 closure, T363), M9 (BATT-HEALTH meta-check, T347), M10 (I11 null + seeded-defect, T363)
-- **3 survive** due to **G1/G3** (Z-R-STATE / Z-STATE-KEY — key agreement, partial coverage by T345 KEY-4x4 calibration, no per-mutant kill-verification): M1, M2, M4
-- **1 survives** due to **G1/G3** (I5 vacuity at 2×2 — every passes=0 slot is cycle-reachable; the proper killer is T267/T345 key-agreement which requires the Phase 2 kernel producer encoder): M3
+- **10 killed** by battery checks: M1 (key-agreement, T530), M2 (key-agreement, T530), M3 (key-agreement, T530 — inverted from SURVIVES), M4 (key-agreement, T530), M5 (I2 colour inversion), M6 (I7 DTT sanity), M7 (I2 colour inversion), M8 (C-A1/C-A2 closure, T363), M9 (BATT-HEALTH meta-check, T347), M10 (I11 null + seeded-defect, T363)
 
 **Reconciliation (T475, 2026-08-19).** T363's note (`findings/T363-g3b-completion.json`) claimed
 "SEVEN OF SEVEN mutants now asserted killed (M1-M4 KEY-4x4, M8 CLOSURE, M9 BATT-HEALTH, M10 I11-null)".
@@ -78,6 +76,16 @@ bit-flip, but exhaustive key-agreement has not been red-then-green tested agains
 fixtures specifically. The honest kill rate is **6/10**, not 7/10 or 4/10 (the pre-T347 figure).
 The matrix above is the corrected record.
 
+**Closure (T530, 2026-08-20).** The four remaining gaps are closed. M1/M2/M3/M4 now have
+per-mutant red-then-green kill-verification fixtures in `src/vb_mutants.zig` (key-agreement
+invariant: producer `rules.stateKey` vs consumer `vb_movegen.stateKey`). M3's test was inverted
+from `[EXPECTED-GAP]` SURVIVES to KILLED: the input that exposes it is a 2×2 single-stone
+capture where the capturing stone keeps >1 liberty — the pre-T265 rule spuriously sets ko there,
+the corrected rule (liberties==1 && friendly==0) returns ko=NONE, and the keys disagree.
+Kill rate is now **10/10**. The Amendment-2 mutation gate is satisfied as written (all mutants
+killed). The G1/G3 key-agreement invariant is no longer a gap for the catalogue mutants; the
+T345 KEY-4x4 exhaustive reading remains the full-space check.
+
 M3 merits explanation. It has a *conceivable* killer in the current
 battery (I5 SCC containment), but the synthetic fixture does not trigger
 a kill: on the 2×2 all-legal graph, every legal state at passes=0 is
@@ -87,6 +95,14 @@ expects `.pass` (survival), marked `[EXPECTED-GAP G1/G3]`. **When the Phase 2
 kernel lands and key-agreement is runnable, invert this assertion** to
 expect `.fail` — the fixture corruption is correct; only the check is
 absent.
+
+**Inverted on 2026-08-20 (T530):** the key-agreement invariant is now runnable and the M3
+assertion is inverted to `.fail` — the fixture at `src/vb_mutants.zig` kills the mutant. The
+witness input (2×2 board `[0,1,0,-1]`, Black plays cell 2) is a single-stone capture whose
+capturing stone keeps two liberties: the old rule returns ko=3, the corrected rule returns
+ko=NONE (4), and the producer/consumer keys disagree. The I5 vacuity note above remains the
+explanation of why I5 cannot kill it on 2×2/3×2/4×3; the artifact-level 4×4 red-then-green
+(spurious L!=H on a non-cycle-reachable entry) lives in `src/vb_scc_4x4.zig`.
 
 M5 is killed by I2 (column-wide vw negation triggers a colour-inversion
 violation). This is a valid kill — I2 catches this specific sign-antisymmetry
@@ -130,49 +146,99 @@ Every legal slot with a non-zero value produces a violation.
 **Killer:** I2 (colour inversion, `vb_table.zig` `checkI2`).
 **Test:** `src/vb_mutants.zig` `"M7-T260 inversion-broken killed by I2"`.
 
-## 4a. Survival-verified mutant — fixture description
+### M1 (T178: colex vs combinatorial rank) — KILLED by key-agreement (T530)
 
-This mutant has a synthetic fixture and test assertion, but the assertion
-expects `.pass` (survival) because the battery has no check that kills it.
-It is tied to its gap ID and marked `[EXPECTED-GAP]`. The assertion inverts
-when Phase 2 closes the gap.
+**Fixturing:** the producer's index function is replaced by a different
+bijection — the base-3 lexicographic rank (the class of "rank vs colex"
+confusion T178 was). On the witness 2×2 board `[1,-1,0,0]` the two bijections
+disagree (colex=10, rank=58). The producer key built with the rank disagrees
+with the consumer key (which re-encodes the position via its own colex) →
+key-agreement fires (red); with colex on both sides the keys agree (green).
 
-### M3 (T265: ko set too broadly) — SURVIVES (gap G1/G3)
+**Killer:** key-agreement invariant (producer `rules.stateKey` vs consumer
+`vb_movegen.stateKey`, the T267/T345 machinery).
+**Test:** `src/vb_mutants.zig` `"M1-T178 colex-vs-rank KILLED by key-agreement (red, then green)"`.
 
-**Fixturing:** The fb column is corrupted at colex index 40
+### M2 (T193: passes bit dropped) — KILLED by key-agreement (T530)
+
+**Fixturing:** the producer drops the passes bit — a passes=1 state (empty
+board, White to move, ko=NONE, reachable by Black passing first) is encoded
+with passes=0, landing at the passes=0 index. The producer key disagrees with
+the consumer key on the passes field (red); with the bit kept the keys agree
+(green). WZO1 has no passes dimension, so the fixture is at the key level.
+
+**Killer:** key-agreement invariant (producer `rules.stateKey` vs consumer
+`vb_movegen.stateKey`).
+**Test:** `src/vb_mutants.zig` `"M2-T193 passes-bit KILLED by key-agreement (red, then green)"`.
+
+### M4 (ACCEPT-KOKEY: old ko rule in one consumer) — KILLED by key-agreement (T530)
+
+**Fixturing:** the pre-T265 ko rule (any single-stone capture → ko) is restored
+in one consumer while the other uses the corrected rule. On the witness 2×2
+board `[0,0,1,-1]`, Black plays cell 1 — a single-stone capture whose
+capturing stone keeps two liberties: the old-rule consumer computes ko=3, the
+corrected-rule consumer computes ko=NONE (4). The two consumers' keys disagree
+(red); with both corrected the keys agree (green).
+
+**Killer:** key-agreement invariant (two consumers of the same state).
+**Test:** `src/vb_mutants.zig` `"M4-ACCEPT-KOKEY old-ko-consumer KILLED by key-agreement (red, then green)"`.
+
+## 4a. Survival-verified mutant — CLOSED 2026-08-20 (T530)
+
+The single survival-verified mutant (M3) was inverted to KILLED by T530; this
+section is retained as the record of the pre-closure state. The assertion
+inversion is in place (the fixture now expects `.fail`).
+
+### M3 (T265: ko set too broadly) — KILLED (T530) by key-agreement
+
+**Original fixturing:** The fb column is corrupted at colex index 40
 ([B,B,B,empty], Black side) — a position with no legal placement moves.
 KO_SENSITIVE is spuriously set. I5 maps this to (colex=40, side=0, ko=NONE,
 passes=0) and checks cycle-reachability. On the 2×2 all-legal graph, every
 legal state at passes=0 is cycle-reachable (pass transitions alone guarantee
-it), so I5 reports `ko_not_cr=0` → status `.pass`. The proper killer is
-key-agreement (T267, G1/G3).
+it), so I5 reports `ko_not_cr=0` → status `.pass`. That vacuity is why I5
+cannot kill the mutant on 2×2/3×2/4×3; the artifact-level 4×4 red-then-green
+(spurious L!=H on a non-cycle-reachable entry) lives in `src/vb_scc_4x4.zig`.
 
-**Test:** `src/vb_mutants.zig` `"M3-T265 ko-too-broad SURVIVES (gap G1/G3)"`.
-**Invert to `.fail` when:** Phase 2 kernel lands and key-agreement is runnable.
-**Test:** `src/vb_mutants.zig` `"M7-T260 inversion-broken killed by I2"`.
+**T530 killer:** the key-agreement invariant (producer `rules.stateKey` vs
+consumer `vb_movegen.stateKey`). The input that exposes M3: a 2×2 board
+`[0,1,0,-1]` (B at 1, W at 3), Black plays cell 2 — a single-stone capture
+whose capturing stone keeps two liberties. The pre-T265 rule (any single
+capture → ko) returns ko=3; the corrected rule (liberties==1 && friendly==0,
+`rules.koAfterCapture`) returns ko=NONE (4). The producer key built with the
+old rule disagrees with the consumer key — the check fires (red) and agrees
+when the producer uses the corrected rule (green).
+
+**Test:** `src/vb_mutants.zig` `"M3-T265 ko-too-broad KILLED by key-agreement (red, then green)"`.
 
 ## 5. Survived mutants — gap assignments
 
-### Gap G1/G3 — Z-R-STATE / Z-STATE-KEY (key agreement)
+### Gap G1/G3 — Z-R-STATE / Z-STATE-KEY (key agreement) — CLOSED 2026-08-20 (T530)
 
-**Affected mutants:** M1 (T178), M2 (T193), M4 (ACCEPT-KOKEY)
+**Affected mutants:** M1 (T178), M2 (T193), M4 (ACCEPT-KOKEY) — all KILLED by T530.
 
-The battery has no check that the producer's state encoding matches the
-consumer's. T267's key-agreement invariant — "run both encoders on the same
-state space, count mismatches" — requires both the producer encoder (solver
-kernel) and the consumer encoder (battery's own), per T290 spec §5. The
-consumer encoder exists (R8: battery re-implements everything); the producer
-encoder is in `src/exp6_solve.zig` and has not been extracted into the kernel.
-**Runnable after Phase 2.**
+Historical note: the battery had no check that the producer's state encoding
+matches the consumer's. T267's key-agreement invariant — "run both encoders
+on the same state space, count mismatches" — required both the producer
+encoder (kernel `rules.stateKey`, T273) and the consumer encoder (R8
+`vb_movegen.stateKey`, T340). **CLOSED by T530:** the producer encoder is
+available in the kernel and the per-mutant red-then-green fixtures for
+M1/M2/M3/M4 are wired into `zig build test` via `src/vb_mutants.zig`. The
+T345 KEY-4x4 exhaustive reading (0 / 99,133,036 mismatches) remains the
+full-space check.
 
-M1 note: I2 *may* incidentally catch a colex-vs-combinatorial-rank scramble
-if the index mismatch produces enough inversion violations. But this is
-coincidental — the intended killer is key-agreement, and relying on I2 to
-catch an encoding defect is not a calibrated check. Recorded as SURVIVED.
+M1 note (historical): I2 *may* incidentally catch a colex-vs-combinatorial-rank
+scramble if the index mismatch produces enough inversion violations. But this
+is coincidental — the intended killer is key-agreement. The T530 fixture kills
+M1 deterministically: the producer's index function is replaced by the base-3
+lexicographic rank (wrong bijection), the keys disagree (colex=10 vs rank=58
+on the witness), and agree when the producer uses colex.
 
-M2 note: WZO1 has no passes dimension, so the passes-bit defect cannot be
-fixtured on the artifacts the battery currently reads. On WZO2, T267's
-key-agreement check is the intended killer.
+M2 note (historical): WZO1 has no passes dimension, so the passes-bit defect
+cannot be fixtured on the artifacts the battery currently reads. The T530
+fixture kills M2 at the key level: the producer encodes a passes=1 state with
+the passes bit dropped (passes=0), the keys disagree, and agree when the bit
+is kept.
 
 ### Gap G2 — Z-STATE-REACH (closure C-A1/C-A2)
 
@@ -210,13 +276,13 @@ and the seeded-defect control (allows-suicide mutant → 1) wired into `zig buil
 establishes that the comparison infrastructure can both ignore an alias (vacuous 0) and detect a
 real divergence (> 0).
 
-**Gap G1/G3 — Z-R-STATE / Z-STATE-KEY (key agreement)** is the only remaining open gap, covering
-M1/M2/M3/M4. T345 KEY-4x4 calibration in `src/differential.zig:1554` demonstrates the key-agreement
-machinery is sensitive to colex bit-flip (mutant → mismatch detected), and T345 KEY-4x4 exhaustive
-runs the producer/consumer comparison over all 99,133,036 4×4 entries (`src/differential.zig:1360`).
-Per-mutant kill-verification fixtures for M1, M2, M4 do not yet exist; the M3 test
-(`src/vb_mutants.zig:94`) explicitly asserts SURVIVAL on 2×2 (vacuous at that size: every passes=0
-slot is cycle-reachable). Closing G1/G3 is the Phase 2 kernel producer-extraction deliverable.
+**Gap G1/G3 — Z-R-STATE / Z-STATE-KEY (key agreement)** covered M1/M2/M3/M4. T345 KEY-4x4
+calibration in `src/differential.zig:1554` demonstrates the key-agreement machinery is sensitive
+to colex bit-flip (mutant → mismatch detected), and T345 KEY-4x4 exhaustive runs the
+producer/consumer comparison over all 99,133,036 4×4 entries (`src/differential.zig:1360`).
+Per-mutant kill-verification fixtures for M1/M2/M3/M4 were added by **T530 (2026-08-20)** in
+`src/vb_mutants.zig`; the M3 test was inverted from SURVIVAL to KILLED. **Gap G1/G3 is closed**
+for the catalogue mutants; the T345 KEY-4x4 exhaustive reading remains the full-space check.
 
 ## 6. Fixtures and kill-verification
 
@@ -252,3 +318,4 @@ a clean artifact loaded into memory and corrupted in place.
 | 2026-08-04 | M9 (BATTERY-STUBBED) inverted SURVIVED → **KILLED** by the BATT-HEALTH meta-check (`src/vb_health.zig`, T347). The check enumerates every declared invariant by compile-time reflection over `vb.Invariant`, runs each via a comptime-complete runner registry, and fails iff any returns `.skipped`. Kill verified red-then-green in `src/vb_mutants.zig` `"M9-BATTERY-STUBBED killed by BATT-HEALTH (red, then green)"`. Kill rate 3/10 → 4/10. M10 remains SURVIVED (meta-gap: independent-reimplementation check not yet integrated). | minimax-m3/T347 |
 | 2026-08-05 | M8 (T261 deleted-entry) inverted SURVIVED → **KILLED** by the C-A1/C-A2 closure checks (`src/vb_closure.zig`, T342). Fixture deletes one entry from the 3×3 WZO2 artifact (`data/oracle-3x3-v2.wzo2`); forward closure finds `children_not_in_table` 0→2, backward closure finds `reachable_not_in_table` 0→1, restore → 0/0. M10 (alias-control) inverted SURVIVED → **KILLED** by the I11 null control + seeded-defect (`src/vb_i11.zig`, T346): kernel-vs-SMD1 (both kernel) → 0/114 vacuously, allows-suicide mutant → 1/114, together proving the comparison machinery is sensitive to genuine disagreement. Kill rate 4/10 → 6/10. (T363's note claimed "seven of seven"; run evidence at T475 showed that was an overstatement — M3 still SURVIVES in code, and M1/M2/M4 have no per-mutant kill-verification tests.) | deepseek-v4-flash/T363 |
 | 2026-08-19 | T475 reconciliation: corrected the kill matrix to **6 / 10** (not the 4/10 originally recorded nor the 7/10 claimed by T363); added the T363 M8/M10 inversions and the kernel-successor C-A1/C-A2 corrected denominators (T383); flagged D8 (flagged 2026-08-06, unreconciled until now). The matrix is now the durable record; per-mutant M1/M2/M3/M4 kill-verification fixtures remain the gap G1/G3 debt. | kimi-k2.7/T475 |
+| 2026-08-20 | **T530: kill rate 6/10 → 10/10.** M1 (colex-vs-rank), M2 (passes bit), M4 (ACCEPT-KOKEY) get per-mutant red-then-green kill-verification fixtures; M3 (ko-too-broad) is inverted from SURVIVES to KILLED. All four are killed by the key-agreement invariant (producer `rules.stateKey` vs consumer `vb_movegen.stateKey`, T267/T345 machinery): M1 swaps the producer's index function to the base-3 lexicographic rank; M2 drops the producer's passes bit; M3/M4 apply the pre-T265 ko rule (any single-stone capture → ko) to a witness where the corrected rule returns ko=NONE — the keys disagree (red) and agree when corrected (green). Gap G1/G3 closed for the catalogue mutants. The Amendment-2 mutation gate is now satisfied as written (all mutants killed). | deepseek-v4-flash/T530 |

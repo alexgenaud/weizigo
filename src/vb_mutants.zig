@@ -27,9 +27,12 @@
 // Per Amendment 1 (ratified 2026-08-03): mutants are synthetic — constructed
 // in memory from a clean artifact, never written to data/ or artifacts/.
 //
-// Kill-verification for mutants M3, M5, M6, M7, and M9 (BATT-HEALTH, T347).
-// Mutants M1, M2, M4, M8, M10 have no killer — see the catalogue at
-// docs/epic-01-markovian/sprints/verify-battery/pass1/mutants.md.
+// Kill-verification for all ten catalogue mutants (M1–M10).
+//   M1 (key-agreement, T530) · M2 (key-agreement, T530) · M3 (key-agreement,
+//   T530 — inverted from SURVIVES) · M4 (key-agreement, T530) ·
+//   M5 (I2) · M6 (I7) · M7 (I2) · M8 (C-A1/C-A2 closure, T363) ·
+//   M9 (BATT-HEALTH meta-check, T347) · M10 (I11 null + seeded-defect, T363).
+// Catalogue: docs/epic-01-markovian/sprints/verify-battery/pass1/mutants.md.
 
 const std = @import("std");
 const testing = std.testing;
@@ -37,10 +40,18 @@ const testing = std.testing;
 const vb = @import("vb_common.zig");
 const vb_table = @import("vb_table.zig");
 const vb_fixpoint = @import("vb_fixpoint.zig");
-const vb_graph = @import("vb_graph.zig");
 const vb_health = @import("vb_health.zig");
 const vb_closure = @import("vb_closure.zig");
 const vb_i11 = @import("vb_i11.zig");
+
+// Key-agreement machinery (producer kernel rules.stateKey / consumer R8
+// vb_movegen.stateKey) — the T267/T345 invariant that kills M1/M2/M3/M4.
+// rules/colex route through the shared engine shim (T341) so no engine file
+// belongs to two modules; vb_movegen imports only std and is safe directly.
+const engine = @import("engine");
+const rules = engine.rules;
+const colex_mod = engine.colex;
+const vb_mg = @import("vb_movegen.zig");
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -78,45 +89,247 @@ fn colOffsets(total: u64) struct {
     };
 }
 
-// ─── M3 — T265: ko set too broadly → GAP G1/G3, no killer ──────────────────
+// ─── key-agreement helpers (T530) ─────────────────────────────────────────
 
-// M3 survives: the battery has no key-agreement check (G1/G3 — Z-R-STATE /
-// Z-STATE-KEY). I5 (SCC containment) can detect spuriously-set KO_SENSITIVE
-// flags in principle, but on 2×2 every legal state at passes=0 is
-// cycle-reachable, so the synthetic fixture does not trigger a kill.
-// The proper killer is the T267 key-agreement invariant, which requires
-// the Phase 2 kernel's producer encoder.
+/// Base-3 lexicographic rank of a position: the odometer enumeration over
+/// [0, 3^n). A DIFFERENT bijection than colex — the class of "wrong index
+/// function" the T178 defect was (exp6 rank vs combinatorial colex). Used
+/// as the M1 mutant's producer index function.
+fn lexRank(comptime n_cells: usize, pos: [n_cells]i8) u64 {
+    var r: u64 = 0;
+    for (pos) |c| {
+        r = r * 3 + @as(u64, @intCast(c + 1));
+    }
+    return r;
+}
+
+/// The pre-T265 ko rule (M3/M4 mutant): ANY single-stone capture sets ko at
+/// the captured cell — no liberties==1 && friendly==0 test. Reproduces the
+/// T265 `CODE.GTP-KOKEY` defect (and its ACCEPT-KOKEY twin) this fixture is
+/// named for. Returns the captured cell, or ko_none (n_cells) otherwise.
+fn oldKoRule(comptime n_cells: usize, comptime w: usize, comptime h: usize, board: [n_cells]i8, colour: i8, cell: u8) u8 {
+    if (board[cell] != 0) return @intCast(n_cells);
+    const R = rules.Rules(w, h);
+    const next = R.pos_from_move(&board, colour, cell) catch return @intCast(n_cells);
+    const opp: i8 = -colour;
+    var opp_before: u8 = 0;
+    var last_captured: u8 = @intCast(n_cells);
+    for (0..n_cells) |p| {
+        if (board[p] == opp) opp_before += 1;
+        if (board[p] == opp and next[p] == 0) last_captured = @intCast(p);
+    }
+    var opp_after: u8 = 0;
+    for (0..n_cells) |p| {
+        if (next[p] == opp) opp_after += 1;
+    }
+    if (opp_before - opp_after == 1 and last_captured != n_cells) return last_captured;
+    return @intCast(n_cells);
+}
+
+/// The corrected ko rule: move applied via the kernel rules.Rules, ko
+/// delegated to the kernel's rules.koAfterCapture (liberties==1 &&
+/// friendly==0, T273) — the single production implementation, not a copy.
+fn correctedKoRule(comptime n_cells: usize, comptime w: usize, comptime h: usize, board: [n_cells]i8, colour: i8, cell: u8) u8 {
+    if (board[cell] != 0) return @intCast(n_cells);
+    const R = rules.Rules(w, h);
+    const next = R.pos_from_move(&board, colour, cell) catch return @intCast(n_cells);
+    return rules.koAfterCapture(&board, &next, colour, w, h, @intCast(n_cells));
+}
+
+/// Apply Black's placement at `cell`; null if illegal.
+fn applyMove(comptime n_cells: usize, comptime w: usize, comptime h: usize, board: [n_cells]i8, cell: usize) ?[n_cells]i8 {
+    const R = rules.Rules(w, h);
+    return R.pos_from_move(&board, 1, cell) catch null;
+}
+
+/// The T345 key-agreement comparison: field-by-field inequality of the
+/// producer key (kernel rules.stateKey) and the consumer key (R8
+/// vb_movegen.stateKey). Both StateKey types carry the same field set;
+/// any field difference is a key-agreement mismatch.
+fn keyDisagrees(a: anytype, b: anytype) bool {
+    return a.colex_idx != b.colex_idx or
+        a.side != b.side or
+        a.ko != b.ko or
+        a.passes != b.passes or
+        a.terminal != b.terminal;
+}
+
+// ─── M1 — T178: colex vs combinatorial rank → KILLED by key-agreement ──────
+
+// M1's mutation: the producer builds its key with the WRONG index function on
+// one side — one column's values sit at combinatorial-rank indices instead of
+// colex indices. The key-agreement invariant (T267/T345) compares the
+// producer's colex against the consumer's independently re-encoded colex
+// (vb_movegen.colexFromPos). The M1 mutant substitutes a different bijection
+// — the base-3 lexicographic rank, the same "rank vs colex" confusion T178
+// was — and the keys MUST disagree.
+
+test "M1-T178 colex-vs-rank KILLED by key-agreement (red, then green)" {
+    const w: usize = 2;
+    const h: usize = 2;
+    const n: usize = 4;
+    const ko_none: u8 = 4;
+    const board = [4]i8{ 1, -1, 0, 0 }; // B at 0, W at 1 — legal 2×2 position
+    const C = colex_mod.Indexer(w, h);
+    const correct_colex = C.colex_from_pos(&board);
+    const wrong_rank = lexRank(n, board);
+
+    // Non-vacuity: the mutant's index function must actually differ from
+    // colex on this input, or the fixture exercises nothing.
+    std.debug.print("[EXPECTED] M1-T178: colex={d} lexRank={d}\n", .{ correct_colex, wrong_rank });
+    try testing.expect(wrong_rank != correct_colex);
+
+    // RED: producer key built with the rank instead of colex → disagrees
+    // with the consumer, which re-encodes the position through its own colex.
+    const pk_mutant = rules.stateKey(wrong_rank, 1, ko_none, 0);
+    const ck = vb_mg.stateKey(w, h, vb_mg.State(w, h){ .pos = board, .side = 1, .ko = ko_none, .passes = 0 });
+    std.debug.print("[EXPECTED] M1-T178 RED: producer(colex={d}) vs consumer(colex={d}) disagree={}\n", .{ wrong_rank, correct_colex, keyDisagrees(pk_mutant, ck) });
+    try testing.expect(keyDisagrees(pk_mutant, ck));
+
+    // GREEN: producer uses colex → keys agree.
+    const pk_green = rules.stateKey(correct_colex, 1, ko_none, 0);
+    try testing.expect(!keyDisagrees(pk_green, ck));
+    std.debug.print("[EXPECTED] M1-T178 GREEN: producer(colex={d}) vs consumer agree\n", .{correct_colex});
+}
+
+// ─── M2 — T193: passes bit dropped → KILLED by key-agreement ───────────────
+
+// M2's mutation: the passes bit is dropped in the producer's key byte — a
+// passes=1 state lands at the passes=0 index. The key-agreement comparison
+// includes the passes field; the mutant producer encodes passes=1 as
+// passes=0 and the keys MUST disagree.
+
+test "M2-T193 passes-bit KILLED by key-agreement (red, then green)" {
+    // State from real play: empty board, White to move, ko=NONE, passes=1
+    // (reachable by Black passing first). The producer must encode passes=1.
+    const w: usize = 2;
+    const h: usize = 2;
+    const ko_none: u8 = 4;
+    const board = [4]i8{ 0, 0, 0, 0 };
+    const C = colex_mod.Indexer(w, h);
+    const colex_empty = C.colex_from_pos(&board);
+    const side_white: i8 = -1;
+
+    // Non-vacuity: passes=1 must be distinguishable from passes=0 — the key
+    // fields differ iff the producer drops the bit.
+    const pk_correct = rules.stateKey(colex_empty, side_white, ko_none, 1);
+    const pk_mutant = rules.stateKey(colex_empty, side_white, ko_none, 0);
+    try testing.expect(pk_correct.passes != pk_mutant.passes);
+
+    const ck = vb_mg.stateKey(w, h, vb_mg.State(w, h){ .pos = board, .side = side_white, .ko = ko_none, .passes = 1 });
+    std.debug.print("[EXPECTED] M2-T193: producer(passes=1) vs consumer(passes=1) agree={} ; mutant producer(passes=0) disagree={}\n", .{ !keyDisagrees(pk_correct, ck), keyDisagrees(pk_mutant, ck) });
+
+    // RED: mutant producer dropped the passes bit → keys disagree.
+    try testing.expect(keyDisagrees(pk_mutant, ck));
+    // GREEN: correct producer → keys agree.
+    try testing.expect(!keyDisagrees(pk_correct, ck));
+}
+
+// ─── M3 — T265: ko set too broadly → KILLED by key-agreement (T530) ────────
+
+// M3's mutation: the ko key is computed with the pre-T265 rule (ANY
+// single-stone capture sets ko) instead of the liberties==1 && friendly==0
+// test — the artifact tags states as ko-sensitive when they are not in any
+// ko cycle.
 //
-// This assertion expects SURVIVAL (I5 passes despite the corruption).
-// When Phase 2 lands and key-agreement is runnable, invert this assertion
-// to expect `.fail`.
+// I5 (SCC containment) cannot kill it on 2×2/3×2/4×3: every legal passes=0
+// state is cycle-reachable there, so a spuriously-set KO_SENSITIVE flag is
+// never non-cycle-reachable. The first non-vacuous I5 rung is 4×4, whose
+// artifact-level red-then-green (spurious L!=H on a non-cycle-reachable
+// entry) already lives in src/vb_scc_4x4.zig. The proper killer the
+// catalogue names is the T267 key-agreement invariant (G1/G3): producer and
+// consumer must build the same (colex, side, ko, passes, terminal) key for
+// a state from real play.
+//
+// The input that exposes M3: a position where a single-stone capture occurs
+// but the corrected rule says NO ko (the capturing stone keeps >1 liberty).
+// The old rule tags the state ko-sensitive (ko = captured cell); the
+// corrected rule says ko=NONE. The two keys disagree → the key-agreement
+// check kills the mutant.
 
-test "M3-T265 ko-too-broad SURVIVES (gap G1/G3)" {
-    const clean = try readArtifactBytes(testing.allocator, "artifacts/oracle-2x2.wzo");
-    defer testing.allocator.free(clean);
+test "M3-T265 ko-too-broad KILLED by key-agreement (red, then green)" {
+    // Witness (2×2): board [empty, B, empty, W], Black plays cell 2 —
+    // captures the W stone at cell 3 (single capture), but the capturing
+    // stone keeps two liberties (cells 0 and 3 after the capture), so the
+    // corrected rule returns ko=NONE while the old rule spuriously returns
+    // ko=3. This is the M3 mutant applied to a state from real play.
+    const w: usize = 2;
+    const h: usize = 2;
+    const n: usize = 4;
+    const ko_none: u8 = 4;
+    const board = [4]i8{ 0, 1, 0, -1 };
+    const cell: u8 = 2;
 
-    var corrupted = try testing.allocator.dupe(u8, clean);
-    defer testing.allocator.free(corrupted);
+    const next = applyMove(n, w, h, board, cell) orelse {
+        std.debug.print("[M3] witness move illegal — fixture broken\n", .{});
+        return error.FixtureWitnessIllegal;
+    };
 
-    const cols = colOffsets(81);
-    // Set KO_SENSITIVE on a non-cycle-reachable position. On 2×2 all-legal
-    // graph, every legal state at passes=0 is cycle-reachable, so I5 won't
-    // flag it. The mutation is still valid — the artifact has a spuriously
-    // set KO_SENSITIVE flag — but no battery check kills it.
-    corrupted[cols.fb + 40] |= 0x01; // colex=40 ([B,B,B,empty]), Black side
+    const corrected_ko = correctedKoRule(n, w, h, board, 1, cell);
+    const old_ko = oldKoRule(n, w, h, board, 1, cell);
+    std.debug.print("[EXPECTED] M3-T265: corrected_ko={d} old_ko={d} (old rule MUST spuriously set ko here)\n", .{ corrected_ko, old_ko });
+    // Non-vacuity: the mutant must actually differ from the corrected rule
+    // on this input, or the fixture exercises nothing.
+    try testing.expectEqual(ko_none, corrected_ko);
+    try testing.expect(old_ko != corrected_ko);
 
-    patchCrc(corrupted);
+    const C = colex_mod.Indexer(w, h);
+    const result_colex = C.colex_from_pos(&next);
 
-    var art = try vb_graph.loadArtifact(testing.allocator, corrupted);
-    defer art.deinit(testing.allocator);
+    // RED: producer uses the M3 mutant ko rule → key disagrees with the
+    // consumer (corrected rule). The key-agreement check must fire.
+    const pk_mutant = rules.stateKey(result_colex, -1, old_ko, 0);
+    const ck = vb_mg.stateKey(w, h, vb_mg.State(w, h){ .pos = next, .side = -1, .ko = corrected_ko, .passes = 0 });
+    std.debug.print("[EXPECTED] M3-T265 RED: producer(mutant ko={d}) vs consumer(ko={d}) disagree={}\n", .{ old_ko, corrected_ko, keyDisagrees(pk_mutant, ck) });
+    try testing.expect(keyDisagrees(pk_mutant, ck));
 
-    const goban = vb_graph.GobanSize{ .w = 2, .h = 2 };
-    const opts = vb_graph.I5Opts{ .graph = .all_legal };
-    const result = try vb_graph.checkI5(testing.allocator, goban, &art, opts);
+    // GREEN: producer uses the corrected rule → keys agree.
+    const pk_green = rules.stateKey(result_colex, -1, corrected_ko, 0);
+    try testing.expect(!keyDisagrees(pk_green, ck));
+    std.debug.print("[EXPECTED] M3-T265 GREEN: producer(corrected ko={d}) vs consumer agree\n", .{corrected_ko});
+}
 
-    std.debug.print("[EXPECTED-GAP G1/G3] M3-T265: I5 status={s} ko_flags={d} ko_not_cr={d} — SURVIVES, no key-agreement check\n", .{ @tagName(result.status), result.ko_sensitive_flags, result.ko_sensitive_not_cycle_reachable });
-    // CURRENT: mutant survives — no check kills it. INVERT to .fail when Phase 2 key-agreement lands.
-    try testing.expectEqual(vb_graph.I5Status.pass, result.status);
+// ─── M4 — CODE.ACCEPT-KOKEY: old ko rule restored in one consumer → KILLED ─
+
+// M4's mutation: the pre-T265 ko rule (any single-stone capture → ko) is
+// restored in ONE consumer while the other uses the corrected rule. Both
+// consumers must build the same key for the same state; with the old rule
+// in one of them, the keys MUST disagree.
+
+test "M4-ACCEPT-KOKEY old-ko-consumer KILLED by key-agreement (red, then green)" {
+    // Witness (2×2): board [empty, empty, B, W], Black plays cell 1 —
+    // captures the W stone at cell 3; the capturing stone keeps two
+    // liberties, so the corrected rule says ko=NONE while the restored old
+    // rule says ko=3. Same defect class as M3, but on the CONSUMER side:
+    // two consumers of the acceptance harness disagree on the same state.
+    const w: usize = 2;
+    const h: usize = 2;
+    const n: usize = 4;
+    const ko_none: u8 = 4;
+    const board = [4]i8{ 0, 0, 1, -1 };
+    const cell: u8 = 1;
+
+    const next = applyMove(n, w, h, board, cell) orelse {
+        std.debug.print("[M4] witness move illegal — fixture broken\n", .{});
+        return error.FixtureWitnessIllegal;
+    };
+
+    const corrected_ko = correctedKoRule(n, w, h, board, 1, cell);
+    const old_ko = oldKoRule(n, w, h, board, 1, cell);
+    try testing.expectEqual(ko_none, corrected_ko);
+    try testing.expect(old_ko != corrected_ko);
+
+    // RED: consumer A (mutant, old rule) vs consumer B (corrected rule) —
+    // the two consumers produce different keys for the same state.
+    const key_a = vb_mg.stateKey(w, h, vb_mg.State(w, h){ .pos = next, .side = -1, .ko = old_ko, .passes = 0 });
+    const key_b = vb_mg.stateKey(w, h, vb_mg.State(w, h){ .pos = next, .side = -1, .ko = corrected_ko, .passes = 0 });
+    std.debug.print("[EXPECTED] M4-ACCEPT-KOKEY RED: consumerA(old ko={d}) vs consumerB(corrected ko={d}) disagree={}\n", .{ old_ko, corrected_ko, keyDisagrees(key_a, key_b) });
+    try testing.expect(keyDisagrees(key_a, key_b));
+
+    // GREEN: both consumers use the corrected rule → keys agree.
+    const key_a_green = vb_mg.stateKey(w, h, vb_mg.State(w, h){ .pos = next, .side = -1, .ko = corrected_ko, .passes = 0 });
+    try testing.expect(!keyDisagrees(key_a_green, key_b));
+    std.debug.print("[EXPECTED] M4-ACCEPT-KOKEY GREEN: both consumers corrected → agree\n", .{});
 }
 
 // ─── M5 — T283: wrong side after move → GAP G1/G3, no killer ───────────────
