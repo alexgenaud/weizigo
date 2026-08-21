@@ -121,6 +121,14 @@ qualified models at different cost. Otherwise print `unmeasured` or `provisional
 tier. Under this rule `pass1-spec-r1` seeds cells and emits **no** tiers, which is the honest reading
 of its own low-confidence label.
 
+**Review independence = grading independence.** Whoever *re-derives or reviews* a race result must
+meet the same non-family independence the grader meets under G3. A race run on citation-integrity and
+verification-rate — the axes §6 names the best discriminators — must not be reviewed by a model from
+the family it is ranking, or the ladder will occasionally learn a family's self-assessment. (Recorded
+2026-08-21 after the B-3 review: the adjudicator was same-family as a lane and found for its family on
+the honesty axis; it held up only because the accusing seat owned its error unprompted — nothing made
+it safe.)
+
 ## 6. Metrics carried forward from round 1
 
 - **citation-integrity — promote, and split.** The round's rank-1 discriminator (sd ≈2.3, 5/7
@@ -191,6 +199,17 @@ effect ran *negative* — family graders were harsher. Blinding was imperfect th
 self-identified; uniform, so it separates nobody, but it is not a clean blind). A harness-killed lane
 is a fleet-reliability datum, never a quality datum. And the cost ladder stays uncomputable across
 families until §6's token split lands.
+
+**Named confound: the confident wrong answer is symmetric.** Every tier failed differently this
+month — fabrication, hallucinated line numbers, rubber-stamp "0 findings", and a build that still
+needed independent re-implementation to catch the implementor's bug. No model is exempt. The durable
+defense is the verification loop (R2/R3), not model reputation — a fleet of mid models plus a good
+verification loop beats a single trusted model. **Capability is not one axis**: verification depth and
+code throughput are separable (qwen caught the one finding no API model caught, every citation
+verified; its *Zig* implementation is simply untested — not "cannot code"). Measure them separately.
+And a race's value is the **union, not the ranking**: 7 models → 41 findings, best single → 21, the
+four criticals each from a different model. **Correction work is currently unmeasured** — the matrix
+counts throughput, nothing counts "fixed a wrong finding," which is what moved the ladder today.
 
 ## 11. Carry-forward — what the next agent picks up
 

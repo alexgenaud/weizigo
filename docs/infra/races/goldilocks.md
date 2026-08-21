@@ -8,6 +8,14 @@ revisable the moment data contradicts it.
 - **Fable > Sonnet > Gemma**, across tasks. The extremes are the only confident rungs.
 - The **middle is NOT ranked**: we have not established where DSPro, Opus, Flash, Qwen,
   Haiku sit relative to each other, for any general task type. Do not assume an order.
+- **A race's value is the union, not the ranking** (pass1-spec-r1, measured): 7 models →
+  41 findings, best single → 21, and the four criticals each came from a different model.
+  Multi-model audit earns its cost; the ranking is the least useful output.
+- **Capability is not one axis**: verification depth and code throughput are separable.
+  qwen3.8:27b-mlx is a verification specialist (caught the one finding no API model caught,
+  every citation verified); its *Zig* implementation is simply untested — not "cannot code".
+- **The confident wrong answer is symmetric**: every tier has failed a different way. The
+  durable defense is the verification loop (R2/R3), not model reputation.
 
 ## Naive prior (assumed, to be challenged)
 
