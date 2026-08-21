@@ -69,6 +69,7 @@
 // Standalone: no state.zig / zobrist.zig imports (dyld gotcha); std only.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const expect = std.testing.expect;
 
 /// FORMAT CONTRACT version of the address layout below (layered by stone
@@ -189,7 +190,7 @@ fn verify(comptime w: usize, comptime h: usize, gpa: std.mem.Allocator) !void {
         if (i == R.n) break;
     }
     if (count != R.total) return error.CountMismatch;
-    std.debug.print("{d}x{d}: bijection over all {d} boards VERIFIED (dense, no collision)\n", .{ w, h, count });
+    evidence.print("{d}x{d}: bijection over all {d} boards VERIFIED (dense, no collision)\n", .{ w, h, count });
 }
 
 pub fn main() !void {

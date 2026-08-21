@@ -51,6 +51,7 @@
 // GobanSize, VBArtifact, I5Opts, I5Result, CheckResult into vb_common.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const Allocator = std.mem.Allocator;
 
 // ─── public types (to be moved to vb_common.zig when T168 ships) ────────────
@@ -494,9 +495,9 @@ pub fn checkI5(
     const max_linear_for_hashmap: u64 = 50_000_000; // ~50M entries, ~1.2 GB hash map
     const linear_space = pow3(@intCast(n)) * 2 * @as(u64, n + 1);
     if (linear_space > max_linear_for_hashmap) {
-        std.debug.print("[I5] WARNING: goban {d}x{d} linear space {d} exceeds hash-map limit {d}.\n", .{ w, h, linear_space, max_linear_for_hashmap });
-        std.debug.print("[I5] Full bitset BFS (i5-feasibility.md phase 1–3) not yet implemented in this module.\n", .{});
-        std.debug.print("[I5] Run at 4×4 requires the rank-support bitset approach (~1.2 GB RSS).\n", .{});
+        evidence.print("[I5] WARNING: goban {d}x{d} linear space {d} exceeds hash-map limit {d}.\n", .{ w, h, linear_space, max_linear_for_hashmap });
+        evidence.print("[I5] Full bitset BFS (i5-feasibility.md phase 1–3) not yet implemented in this module.\n", .{});
+        evidence.print("[I5] Run at 4×4 requires the rank-support bitset approach (~1.2 GB RSS).\n", .{});
         return I5Result{ .status = .err, .error_msg = "4×4 requires bitset-based BFS (not yet implemented)" };
     }
 
@@ -582,7 +583,7 @@ fn checkI5Comptime(
                 }
                 if (i == n) break;
             }
-            std.debug.print("[I5] all-legal seeds: {d} legal positions × 2 sides = {d} root nodes\n", .{ legal_count, queue.items.len });
+            evidence.print("[I5] all-legal seeds: {d} legal positions × 2 sides = {d} root nodes\n", .{ legal_count, queue.items.len });
         },
         .reachable => {
             // Seed from empty board, Black to move, no ko
@@ -592,7 +593,7 @@ fn checkI5Comptime(
             try visited.put(linear, 0);
             try dense_to_linear.append(gpa, linear);
             try queue.append(gpa, linear);
-            std.debug.print("[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)\n", .{});
+            evidence.print("[I5] reachable-from-empty seeds: 1 root node (empty, Black, ko=NONE)\n", .{});
         },
     }
 
@@ -657,7 +658,7 @@ fn checkI5Comptime(
             else => {},
         }
     }
-    std.debug.print("[I5] BFS: V={d} nodes, E={d} edges  (p0={d} p1={d} p2={d})\n", .{ V, bfs_edge_count, p0, p1, p2 });
+    evidence.print("[I5] BFS: V={d} nodes, E={d} edges  (p0={d} p1={d} p2={d})\n", .{ V, bfs_edge_count, p0, p1, p2 });
 
     // ── Phase 2: iterative Tarjan SCC ────────────────────────────────────
 
@@ -934,7 +935,7 @@ fn checkI5Comptime(
         if (b) cycle_reachable_count += 1;
     }
 
-    std.debug.print("[I5] Tarjan: SCCs total={d} non-trivial={d} maxSize={d} cycleInvolved={d} cycleReachable={d}\n", .{ tarjan_ncomp, non_trivial, max_scc, cycle_involved_count, cycle_reachable_count });
+    evidence.print("[I5] Tarjan: SCCs total={d} non-trivial={d} maxSize={d} cycleInvolved={d} cycleReachable={d}\n", .{ tarjan_ncomp, non_trivial, max_scc, cycle_involved_count, cycle_reachable_count });
 
     // ── Phase 4: KO_SENSITIVE containment check ──────────────────────────
 
@@ -967,9 +968,9 @@ fn checkI5Comptime(
                 }
             }
         }
-        std.debug.print("[I5] KO_SENSITIVE flags: {d} total, {d} on graph (ko=NONE, passes=0), {d} NOT cycle-reachable\n", .{ ko_sensitive_flags, ko_sensitive_graph, ko_sensitive_not_cr });
+        evidence.print("[I5] KO_SENSITIVE flags: {d} total, {d} on graph (ko=NONE, passes=0), {d} NOT cycle-reachable\n", .{ ko_sensitive_flags, ko_sensitive_graph, ko_sensitive_not_cr });
     } else {
-        std.debug.print("[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)\n", .{});
+        evidence.print("[I5] No artifact provided — skipping KO_SENSITIVE containment check (graph metrics only)\n", .{});
     }
 
     const status: I5Status = if (ko_sensitive_not_cr > 0) .fail else .pass;
@@ -1083,7 +1084,7 @@ test "I5 calibration: 2x2 reachable graph" {
     // max SCC=160. Gate is exact-equality. cycle_reachable=162 and
     // sccs_total=96 are the third-route (T391) quadruple-level values.
     const result = try checkI5(std.testing.allocator, .{ .w = 2, .h = 2 }, null, .{ .graph = .reachable });
-    std.debug.print("2x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
+    evidence.print("2x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
     try std.testing.expectEqual(I5Status.pass, result.status);
     try std.testing.expectEqual(@as(u64, 255), result.nodes);
     try std.testing.expectEqual(@as(u64, 434), result.edges);
@@ -1101,7 +1102,7 @@ test "I5 calibration: 3x2 reachable graph" {
     // cycle-reachable=1,678 (true game root, phantoms excluded). Gate is
     // exact-equality; any deviation means the implementation changed.
     const result = try checkI5(std.testing.allocator, .{ .w = 3, .h = 2 }, null, .{ .graph = .reachable });
-    std.debug.print("3x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
+    evidence.print("3x2 reachable: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d}\n", .{ result.nodes, result.edges, result.max_scc_size, result.cycle_involved, result.cycle_reachable });
     try std.testing.expectEqual(@as(u64, 2583), result.nodes);
     try std.testing.expectEqual(@as(u64, 5510), result.edges);
     try std.testing.expectEqual(@as(u64, 1676), result.max_scc_size);

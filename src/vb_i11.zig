@@ -81,6 +81,7 @@
 //   Author: deepseek-v4-flash/T473 · Date: 2026-08-20.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 
@@ -1167,7 +1168,7 @@ test "vb_i11: T473 — 3×3 table direct — R8 vs kernel over every stored entr
     try expectEqual(@as(u64, 0), res.mismatches);
     try expect(res.total > 0);
     try expectEqual(res.total, res.slice_entries + res.ko_active_entries + res.passes1_entries);
-    std.debug.print(
+    evidence.print(
         "I11 3x3 table direct: total={d} groups={d} slice={d} ko_active={d} passes1={d} mismatches={d}\n",
         .{ res.total, res.n_groups, res.slice_entries, res.ko_active_entries, res.passes1_entries, res.mismatches },
     );
@@ -1177,7 +1178,7 @@ test "vb_i11: T473 — 3×3 table direct — R8 vs kernel over every stored entr
 
 test "I11 4×4 MEASURE (WEIZIGO_I11_4X4_MEASURE=1): 10× sample cost + full-run projection" {
     if (std.c.getenv("WEIZIGO_I11_4X4_MEASURE") == null) {
-        std.debug.print("SKIP I11 4x4 measure (set WEIZIGO_I11_4X4_MEASURE=1 to run)\n", .{});
+        evidence.print("SKIP I11 4x4 measure (set WEIZIGO_I11_4X4_MEASURE=1 to run)\n", .{});
         return;
     }
     const gpa = std.heap.page_allocator;
@@ -1220,11 +1221,11 @@ test "I11 4×4 MEASURE (WEIZIGO_I11_4X4_MEASURE=1): 10× sample cost + full-run 
     const p_table = t_table_sample * table_entries / n_sample;
     const p_total = p_emit + p_cmp + p_table;
 
-    std.debug.print(
+    evidence.print(
         "I11 4x4 MEASURE: cmp_sample={d} ms ({d} rec) sweep={d} ms ({d} legal pos, {d} rec) table_sample={d} ms ({d} ent) sample_emit={d} ms\n",
         .{ t_cmp_sample, res_a.total, t_sweep, meas.legal_positions, meas.record_count, t_table_sample, res_c.total, t_emit_sample },
     );
-    std.debug.print(
+    evidence.print(
         "I11 4x4 PROJECT: slice_emit≈{d} s slice_cmp≈{d} s table_direct≈{d} s total≈{d} s (runner wall ceiling 1800 s)\n",
         .{ p_emit / 1000, p_cmp / 1000, p_table / 1000, p_total / 1000 },
     );
@@ -1234,7 +1235,7 @@ test "I11 4×4 MEASURE (WEIZIGO_I11_4X4_MEASURE=1): 10× sample cost + full-run 
 
 test "I11 4×4 FULL slice (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 48,636,330 SMD1 slice records" {
     if (std.c.getenv("WEIZIGO_I11_4X4_FULL") == null) {
-        std.debug.print("SKIP I11 4x4 full slice (set WEIZIGO_I11_4X4_FULL=1 to run)\n", .{});
+        evidence.print("SKIP I11 4x4 full slice (set WEIZIGO_I11_4X4_FULL=1 to run)\n", .{});
         return;
     }
     const t0 = nowMs();
@@ -1247,7 +1248,7 @@ test "I11 4×4 FULL slice (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 48,636
     // 24,318,165 legal positions × 2 sides = 48,636,330 (A094777(4); the
     // WZO2 table's n_groups). A different count means the kernel's
     // legal-position enumeration disagrees with the table's group index.
-    std.debug.print(
+    evidence.print(
         "I11 4x4 FULL slice: records={d} mismatches={d} emit={d} ms compare={d} ms total={d} ms\n",
         .{ res.total, res.mismatches, t_emit, t_cmp, nowMs() - t0 },
     );
@@ -1257,7 +1258,7 @@ test "I11 4×4 FULL slice (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 48,636
 
 test "I11 4×4 FULL table (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 99,133,036 stored entries" {
     if (std.c.getenv("WEIZIGO_I11_4X4_FULL") == null) {
-        std.debug.print("SKIP I11 4x4 full table (set WEIZIGO_I11_4X4_FULL=1 to run)\n", .{});
+        evidence.print("SKIP I11 4x4 full table (set WEIZIGO_I11_4X4_FULL=1 to run)\n", .{});
         return;
     }
     const gpa = std.heap.page_allocator;
@@ -1265,7 +1266,7 @@ test "I11 4×4 FULL table (WEIZIGO_I11_4X4_FULL=1): R8 vs kernel over all 99,133
     const file_bytes = try readFileBytes(gpa, "data/oracle-4x4-v2.wzo2");
     defer gpa.free(file_bytes);
     const res = try compareTableDirect(4, 4, file_bytes, null);
-    std.debug.print(
+    evidence.print(
         "I11 4x4 FULL table: entries={d} groups={d} slice={d} ko_active={d} passes1={d} mismatches={d} total={d} ms\n",
         .{ res.total, res.n_groups, res.slice_entries, res.ko_active_entries, res.passes1_entries, res.mismatches, nowMs() - t0 },
     );

@@ -30,6 +30,7 @@
 // Does NOT import from src/ (R8 satisfied via battery modules).
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const Allocator = std.mem.Allocator;
 
 const vb = @import("vb_common.zig");
@@ -494,7 +495,7 @@ test "I4 Bellman residual on 2x2 artifact" {
     var dec = try loadArtifact("artifacts/oracle-2x2.wzo");
     defer dec.deinit();
     const result = checkI4(&dec, .{ .w = 2, .h = 2 });
-    std.debug.print("I4 2x2: violations={d} examined={d} ko_excluded={d}\n", .{ result.violations, result.denominator, result.ko_sensitive_excluded });
+    evidence.print("I4 2x2: violations={d} examined={d} ko_excluded={d}\n", .{ result.violations, result.denominator, result.ko_sensitive_excluded });
     try testing.expectEqual(FixpointStatus.pass, result.status);
     try testing.expectEqual(@as(u64, 0), result.violations);
 }
@@ -509,7 +510,7 @@ test "I4 Bellman residual on 4x3 artifact (rung 4, spec Rev 5)" {
     var dec = try loadArtifact("artifacts/oracle-4x3.wzo");
     defer dec.deinit();
     const result = checkI4(&dec, .{ .w = 4, .h = 3 });
-    std.debug.print("I4 4x3: violations={d} examined={d} ko_excluded={d} status={s}\n", .{ result.violations, result.denominator, result.ko_sensitive_excluded, @tagName(result.status) });
+    evidence.print("I4 4x3: violations={d} examined={d} ko_excluded={d} status={s}\n", .{ result.violations, result.denominator, result.ko_sensitive_excluded, @tagName(result.status) });
     try testing.expectEqual(FixpointStatus.pass, result.status);
     try testing.expectEqual(@as(u64, 0), result.violations);
 }
@@ -518,7 +519,7 @@ test "I7 DTT sanity on 3x2 artifact" {
     var dec = try loadArtifact("artifacts/oracle-3x2.wzo");
     defer dec.deinit();
     const result = checkI7(&dec, .{ .w = 3, .h = 2 });
-    std.debug.print("I7 3x2: terminals_bad={d} terminals_total={d}\n", .{ result.terminals_with_dtt_neq_0, result.terminals_total });
+    evidence.print("I7 3x2: terminals_bad={d} terminals_total={d}\n", .{ result.terminals_with_dtt_neq_0, result.terminals_total });
     // PSK artifact with basic-ko terminal detection may show false terminals.
     // The 4x4 basicko-tie test is the definitive I7 check.
 }
@@ -529,7 +530,7 @@ test "I7 DTT sanity on 4x4 basicko-tie artifact (must fail)" {
     var dec = loadArtifact("data/oracle-4x4-basicko-tie-area.wzo") catch return;
     defer dec.deinit();
     const result = checkI7(&dec, .{ .w = 4, .h = 4 });
-    std.debug.print("I7 4x4 v1: terminals_bad={d} uniform_val={?} status={s}\n", .{ result.terminals_with_dtt_neq_0, result.uniform_value, @tagName(result.status) });
+    evidence.print("I7 4x4 v1: terminals_bad={d} uniform_val={?} status={s}\n", .{ result.terminals_with_dtt_neq_0, result.uniform_value, @tagName(result.status) });
     // This artifact is known-bad: DTT uniform 255 including terminals.
     try testing.expectEqual(FixpointStatus.fail, result.status);
     try testing.expect(result.terminals_with_dtt_neq_0 > 0);
@@ -539,7 +540,7 @@ test "I9 anchors on 2x2 artifact" {
     var dec = try loadArtifact("artifacts/oracle-2x2.wzo");
     defer dec.deinit();
     const result = checkI9(&dec, .{ .w = 2, .h = 2 });
-    std.debug.print("I9 2x2: expected={?} actual={d} match={?}\n", .{ result.expected_root, result.actual_root, result.match });
+    evidence.print("I9 2x2: expected={?} actual={d} match={?}\n", .{ result.expected_root, result.actual_root, result.match });
     // PSK artifact (rules_id=1): root value may differ from basic-ko anchor.
     // Anchor mismatch is expected for non-basic-ko artifacts.
 }

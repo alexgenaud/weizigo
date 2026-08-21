@@ -31,6 +31,7 @@
 // Standalone except std; tests import the 5x5 stack for cross-validation only.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectEqualSlices = std.testing.expectEqualSlices;
@@ -559,7 +560,7 @@ test "5x5 cross-validation: pos_from_move matches state.armies_from_move" {
         const theirs = state.armies_from_move(&armies, colour, cell);
         if (mine) |m| {
             const t = theirs catch |e| {
-                std.debug.print("mismatch: rules ok, state err {any} cell {d}\n", .{ e, cell });
+                evidence.print("mismatch: rules ok, state err {any} cell {d}\n", .{ e, cell });
                 return error.Mismatch;
             };
             for (0..25) |i| {
@@ -956,12 +957,12 @@ pub fn benson_alive_regression_check(comptime w: usize, comptime h: usize, max_s
                 for (0..n) |p| {
                     if (a[p] != b[p]) {
                         pa_mismatches += 1;
-                        std.debug.print(
+                        evidence.print(
                             "benson_alive MISMATCH at pos (w={d} h={d} stones={d}) owner={d} cell={d}: rules={any} naive={any}\n  board=",
                             .{ w, h, stones, owner, p, a[p], b[p] },
                         );
-                        for (0..n) |q| std.debug.print(" {d}", .{pos[q]});
-                        std.debug.print("\n", .{});
+                        for (0..n) |q| evidence.print(" {d}", .{pos[q]});
+                        evidence.print("\n", .{});
                         return error.PassAliveMismatch;
                     }
                 }
@@ -978,12 +979,12 @@ pub fn benson_alive_regression_check(comptime w: usize, comptime h: usize, max_s
                         // (i.e. it was not captured as a result of this move)
                         if (next[p] != owner) {
                             immediate_capture_violations += 1;
-                            std.debug.print(
+                            evidence.print(
                                 "IMMEDIATE-CAPTURE violation: w={d} h={d} stones={d} owner={d} cert stone p={d} captured by opponent move q={d}\n  board=",
                                 .{ w, h, stones, owner, p, q },
                             );
-                            for (0..n) |r| std.debug.print(" {d}", .{pos[r]});
-                            std.debug.print("\n", .{});
+                            for (0..n) |r| evidence.print(" {d}", .{pos[r]});
+                            evidence.print("\n", .{});
                             return error.ImmediateCaptureViolation;
                         }
                     }
@@ -1024,7 +1025,7 @@ test "S2-4x4: benson_alive implementation regression (rules vs naive) for <=5 st
     try expect(r.pa_mismatches == 0);
     try expect(r.immediate_capture_violations == 0);
     try expect(r.positions > 0);
-    std.debug.print(
+    evidence.print(
         "S2-4x4 (k<=5): checked {d} legal positions; benson_alive vs naive mismatches={d}; immediate-capture violations={d}\n",
         .{ r.positions, r.pa_mismatches, r.immediate_capture_violations },
     );
@@ -1037,7 +1038,7 @@ test "S2-4x4: benson_alive implementation regression (rules vs naive) for <=8 st
     try expect(r.pa_mismatches == 0);
     try expect(r.immediate_capture_violations == 0);
     try expect(r.positions > 0);
-    std.debug.print(
+    evidence.print(
         "S2-4x4 (k<=8): checked {d} legal positions; benson_alive vs naive mismatches={d}; immediate-capture violations={d}\n",
         .{ r.positions, r.pa_mismatches, r.immediate_capture_violations },
     );

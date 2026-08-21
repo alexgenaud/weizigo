@@ -34,6 +34,7 @@
 // colex bijection). No other src/ imports.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const engine = @import("engine");
 const rules = engine.rules;
 const colex_mod = engine.colex;
@@ -933,7 +934,7 @@ test "C-A1 forward closure: 3x3 passes" {
     try testing.expect(result.n_entries_scanned > 0);
     try testing.expect(result.total_non_terminal_children > 0);
 
-    std.debug.print(
+    evidence.print(
         "C-A1 3×3: scanned={d} non-term-children={d} passes2={d} missing={d} avg_bf={d:.2}\n",
         .{ result.n_entries_scanned, result.total_non_terminal_children, result.passes2_children, result.children_not_in_table, result.avgBranchingFactor() },
     );
@@ -956,7 +957,7 @@ test "C-A1 forward closure: calibration — delete one entry → children_not_in
     try testing.expect(result.children_not_in_table > 0);
     try testing.expectEqual(ClosureStatus.fail, result.status);
 
-    std.debug.print(
+    evidence.print(
         "C-A1 3×3 CALIBRATION: missing={d} (expected > 0)\n",
         .{result.children_not_in_table},
     );
@@ -977,7 +978,7 @@ test "C-A2 backward closure: 3x3 passes" {
     try testing.expect(result.reachable_non_terminal > 0);
     try testing.expect(result.sweeps > 0);
 
-    std.debug.print(
+    evidence.print(
         "C-A2 3×3: reachable-non-term={d} (of {d} entries) reachable-term={d} missing={d} sweeps={d} pct-colex={d:.2}%\n",
         .{ result.reachable_non_terminal, reader.header.n_entries, result.reachable_terminal, result.reachable_not_in_table, result.sweeps, result.pctColexSpace(reader.header.n_groups) },
     );
@@ -998,7 +999,7 @@ test "C-A2 backward closure: calibration — delete one entry → reachable_not_
     try testing.expect(result.reachable_not_in_table > 0);
     try testing.expectEqual(ClosureStatus.fail, result.status);
 
-    std.debug.print(
+    evidence.print(
         "C-A2 3×3 CALIBRATION: missing={d} (expected > 0)\n",
         .{result.reachable_not_in_table},
     );
@@ -1007,13 +1008,13 @@ test "C-A2 backward closure: calibration — delete one entry → reachable_not_
 test "C-A1 forward closure: 4x4 passes on sample (first ~10 groups)" {
     // Full 4×4 C-A1 takes minutes; test a sample to verify mechanism.
     const file_bytes = readFileBytes(testing.allocator, "data/oracle-4x4-v2.wzo2") catch {
-        std.debug.print("SKIP: data/oracle-4x4-v2.wzo2 not found\n", .{});
+        evidence.print("SKIP: data/oracle-4x4-v2.wzo2 not found\n", .{});
         return;
     };
     defer testing.allocator.free(file_bytes);
 
     var reader = Wzo2Reader.load(testing.allocator, file_bytes) catch {
-        std.debug.print("SKIP: failed to load 4x4 artifact\n", .{});
+        evidence.print("SKIP: failed to load 4x4 artifact\n", .{});
         return;
     };
     defer reader.deinit();
@@ -1085,7 +1086,7 @@ test "C-A1 forward closure: 4x4 passes on sample (first ~10 groups)" {
     try testing.expect(checked > 0);
     try testing.expect(children_checked > 0);
 
-    std.debug.print(
+    evidence.print(
         "C-A1 4×4 sample: entries={d} children={d} passes2={d} missing={d}\n",
         .{ checked, children_checked, passes2, missing },
     );
@@ -1097,7 +1098,7 @@ test "C-A1/C-A2 4x4 full closure (gated by WEIZIGO_CLOSURE_4X4_FULL=1): children
     // Gated so `zig build test` stays fast — the sprint console runs it
     // explicitly with WEIZIGO_CLOSURE_4X4_FULL=1 for the reading.
     if (std.c.getenv("WEIZIGO_CLOSURE_4X4_FULL") == null) {
-        std.debug.print("SKIP 4x4 full closure (set WEIZIGO_CLOSURE_4X4_FULL=1 to run)\n", .{});
+        evidence.print("SKIP 4x4 full closure (set WEIZIGO_CLOSURE_4X4_FULL=1 to run)\n", .{});
         return;
     }
     const allocator = std.heap.page_allocator;
@@ -1108,7 +1109,7 @@ test "C-A1/C-A2 4x4 full closure (gated by WEIZIGO_CLOSURE_4X4_FULL=1): children
 
     // C-A1: forward closure over the whole table.
     const ca1 = try ca1ForwardClosure(&reader, allocator);
-    std.debug.print(
+    evidence.print(
         "C-A1 4x4 FULL: entries_scanned={d} non_term_children={d} passes2={d} children_not_in_table={d} avg_bf={d:.4} status={s}\n",
         .{ ca1.n_entries_scanned, ca1.total_non_terminal_children, ca1.passes2_children, ca1.children_not_in_table, ca1.avgBranchingFactor(), @tagName(ca1.status) },
     );
@@ -1118,7 +1119,7 @@ test "C-A1/C-A2 4x4 full closure (gated by WEIZIGO_CLOSURE_4X4_FULL=1): children
 
     // C-A2: backward closure from the fresh-start root.
     const ca2 = try ca2BackwardClosure(&reader, allocator);
-    std.debug.print(
+    evidence.print(
         "C-A2 4x4 FULL: reachable_non_terminal={d} reachable_terminal={d} reachable_not_in_table={d} sweeps={d} pct_colex={d:.4}% status={s}\n",
         .{ ca2.reachable_non_terminal, ca2.reachable_terminal, ca2.reachable_not_in_table, ca2.sweeps, ca2.pctColexSpace(reader.header.n_groups), @tagName(ca2.status) },
     );

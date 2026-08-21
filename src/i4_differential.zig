@@ -51,6 +51,7 @@
 // differential is the WZO2-side gate meanwhile.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const vb_bellman_4x4 = @import("vb_bellman_4x4.zig");
 const oracle_v2_accept = @import("oracle_v2_accept.zig");
 
@@ -78,11 +79,11 @@ test "I4 Bellman differential: vb_bellman_4x4 (R8) vs oracle_v2_accept A2 (kerne
     const entries = oracle_v2_accept.entryData(bytes, header);
     const a2 = try oracle_v2_accept.checkA2(header, groups, entries, null);
 
-    std.debug.print("[I4-diff 3x3] bellman(R8): entries={d} clear={d} set={d} viol_clear={d} viol_set={d} missing={d} move_div={d} no_child={d} {s}\n", .{
+    evidence.print("[I4-diff 3x3] bellman(R8): entries={d} clear={d} set={d} viol_clear={d} viol_set={d} missing={d} move_div={d} no_child={d} {s}\n", .{
         bellman.n_entries,        bellman.n_clear,          bellman.n_set,       bellman.violations_clear, bellman.violations_set,
         bellman.children_missing, bellman.move_divergences, bellman.no_children, @tagName(bellman.status),
     });
-    std.debug.print("[I4-diff 3x3] A2(kernel): checked={d} L_violations={d} H_violations={d} missing_child={d} stride={d} denominator={d}\n", .{
+    evidence.print("[I4-diff 3x3] A2(kernel): checked={d} L_violations={d} H_violations={d} missing_child={d} stride={d} denominator={d}\n", .{
         a2.checked, a2.L_violations, a2.H_violations, a2.missing_child, a2.stride, a2.denominator,
     });
 
@@ -110,5 +111,5 @@ test "I4 Bellman differential: vb_bellman_4x4 (R8) vs oracle_v2_accept A2 (kerne
     // table where every entry is clear would make the differential vacuous.
     try std.testing.expect(bellman.n_set > 0);
 
-    std.debug.print("[I4-diff 3x3] GREEN: R8 and kernel engines agree on every countable — the two Φ operators measure the same property\n", .{});
+    evidence.print("[I4-diff 3x3] GREEN: R8 and kernel engines agree on every countable — the two Φ operators measure the same property\n", .{});
 }

@@ -64,6 +64,7 @@
 // Run the exhaustive 4×4 (writes findings): `zig run src/vb_bellman_4x4.zig`.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const vbm = @import("vb_movegen.zig");
 
 const assert = std.debug.assert;
@@ -699,7 +700,7 @@ pub fn i4Bellman(reader: *Wzo2Reader, goban_label: []const u8) !I4Result {
             const e = reader.entries[@as(usize, @intCast(ei)) * WZO2_ENTRY_SIZE ..][0..WZO2_ENTRY_SIZE];
             ei += 1;
             if (heartbeat_enabled and ei % heartbeat_every == 0) {
-                std.debug.print("[progress] I4 {s}: {d}/{d} entries\n", .{ goban_label, ei, reader.header.n_entries });
+                evidence.print("[progress] I4 {s}: {d}/{d} entries\n", .{ goban_label, ei, reader.header.n_entries });
             }
             const kb = e[0];
             const side = keyByteSide(kb);
@@ -1123,7 +1124,7 @@ test "I4 3x3 (exhaustive, real WZO2): violations_clear == 0" {
     defer reader.deinit();
     try reader.buildColexMap(colexSpace(9));
     const res = try i4Bellman(&reader, "3x3 (exhaustive)");
-    std.debug.print(
+    evidence.print(
         "I4 3x3: status={s} entries={d} clear={d} set={d} viol_clear={d} viol_set={d} cycle_div={d} missing={d} move_div={d} no_child={d}\n",
         .{ @tagName(res.status), res.n_entries, res.n_clear, res.n_set, res.violations_clear, res.violations_set, res.cycle_boundary_divergences, res.children_missing, res.move_divergences, res.no_children },
     );
@@ -1149,7 +1150,7 @@ test "I4 3x3 calibration: corrupt one slot's L -> a violation is caught" {
     reader.entries[1] = @bitCast(@as(i8, 0)); // root Black L := 0 (was 9)
     const res = try i4Bellman(&reader, "3x3 (calibration: corrupted L only)");
     const total = res.violations_clear + res.violations_set + res.cycle_boundary_divergences;
-    std.debug.print("I4 3x3 CALIBRATION L-only: total_violations={d} (expected > 0)\n", .{total});
+    evidence.print("I4 3x3 CALIBRATION L-only: total_violations={d} (expected > 0)\n", .{total});
     try testing.expect(total > 0);
 }
 
@@ -1213,7 +1214,7 @@ test "I4 3x3 calibration: corrupt clear all-clear-children slot -> violations_cl
     reader.entries[off + 1] = @bitCast(bad);
     reader.entries[off + 2] = @bitCast(bad);
     const res = try i4Bellman(&reader, "3x3 (calibration: clear all-clear-children slot)");
-    std.debug.print(
+    evidence.print(
         "I4 3x3 CALIBRATION verdict-bucket: ei={d} viol_clear={d} (expected > 0) viol_set={d} cycle={d}\n",
         .{ tei, res.violations_clear, res.violations_set, res.cycle_boundary_divergences },
     );
@@ -1227,7 +1228,7 @@ test "I4 2x2 synthetic micro-artifact: closed fixpoint, violations_clear == 0" {
     defer reader.deinit();
     try reader.buildColexMap(colexSpace(4));
     const res = try i4Bellman(&reader, "2x2 (synthetic micro-artifact)");
-    std.debug.print(
+    evidence.print(
         "I4 2x2 synthetic: status={s} entries={d} clear={d} set={d} viol_clear={d}\n",
         .{ @tagName(res.status), res.n_entries, res.n_clear, res.n_set, res.violations_clear },
     );
@@ -1248,7 +1249,7 @@ test "I4 2x2 synthetic calibration: corrupt L and H equally -> violations_clear 
     reader.entries[1] = @bitCast(@as(i8, 1)); // L := 1
     reader.entries[2] = @bitCast(@as(i8, 1)); // H := 1
     const res = try i4Bellman(&reader, "2x2 (calibration: corrupted L and H equally)");
-    std.debug.print(
+    evidence.print(
         "I4 2x2 synthetic CALIBRATION equal: viol_clear={d} (expected > 0)\n",
         .{res.violations_clear},
     );
@@ -1258,7 +1259,7 @@ test "I4 2x2 synthetic calibration: corrupt L and H equally -> violations_clear 
 test "I4 4x4 sample (first groups): violations_clear == 0" {
     // Loads the 518MB artifact; exercises the full instrument on a small slice.
     const bytes = readFileBytes(testing.allocator, "data/oracle-4x4-v2.wzo2") catch {
-        std.debug.print("SKIP: 4x4 artifact not found\n", .{});
+        evidence.print("SKIP: 4x4 artifact not found\n", .{});
         return;
     };
     defer testing.allocator.free(bytes);
@@ -1359,7 +1360,7 @@ test "I4 4x4 sample (first groups): violations_clear == 0" {
             checked += 1;
         }
     }
-    std.debug.print(
+    evidence.print(
         "I4 4x4 sample: groups={d} checked={d} viol_clear={d} missing={d} move_div={d}\n",
         .{ max_groups, checked, viol_clear, missing, move_div },
     );
@@ -1370,12 +1371,12 @@ test "I4 4x4 sample (first groups): violations_clear == 0" {
 
 test "I4 4x4 exhaustive (gated by WEIZIGO_I4_4X4_FULL=1): violations_clear == 0" {
     if (std.c.getenv("WEIZIGO_I4_4X4_FULL") == null) {
-        std.debug.print("SKIP 4x4 exhaustive (set WEIZIGO_I4_4X4_FULL=1 to run)\n", .{});
+        evidence.print("SKIP 4x4 exhaustive (set WEIZIGO_I4_4X4_FULL=1 to run)\n", .{});
         return;
     }
     const allocator = std.heap.c_allocator;
     const res = try runI4OnArtifact(allocator, "data/oracle-4x4-v2.wzo2", "4x4 (exhaustive, gated test)", true);
-    std.debug.print(
+    evidence.print(
         "I4 4x4 EXHAUSTIVE: status={s} entries={d} clear={d} set={d} viol_clear={d} viol_set={d} cycle_div={d} missing={d} move_div={d} no_child={d}\n",
         .{ @tagName(res.status), res.n_entries, res.n_clear, res.n_set, res.violations_clear, res.violations_set, res.cycle_boundary_divergences, res.children_missing, res.move_divergences, res.no_children },
     );

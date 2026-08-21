@@ -40,6 +40,7 @@
 // src/ imports.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const vb_movegen = @import("vb_movegen.zig");
 
 const assert = std.debug.assert;
@@ -527,7 +528,7 @@ pub fn checkI5Small(
 
         // Progress report every 100000 states for large graphs
         if (w * h >= 12 and qhead - last_report >= 100000) {
-            std.debug.print("  BFS: {d}/{d} visited, queue={d}\n", .{ qhead, visited.count(), queue.items.len });
+            evidence.print("  BFS: {d}/{d} visited, queue={d}\n", .{ qhead, visited.count(), queue.items.len });
             last_report = qhead;
         }
 
@@ -1874,27 +1875,27 @@ pub fn printMemBreakdown(res: Result, goban_label: []const u8) void {
             return @as(f64, @floatFromInt(b)) / (1024.0 * 1024.0);
         }
     }.f;
-    std.debug.print("[mem {s}] total={d:.1} MiB (ledger sum) — plan-vs-actual comparison below\n", .{ goban_label, mib(memTotal(res)) });
-    std.debug.print("[mem {s}]   artifact file (mmap'd)   {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_file_bytes, mib(res.mem_file_bytes) });
-    std.debug.print("[mem {s}]   group index              {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_group_index, mib(res.mem_group_index) });
-    std.debug.print("[mem {s}]   entry data               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_entry_data, mib(res.mem_entry_data) });
-    std.debug.print("[mem {s}]   colex→group map          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_colex_map, mib(res.mem_colex_map) });
-    std.debug.print("[mem {s}]   entry_starts             {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_entry_starts, mib(res.mem_entry_starts) });
-    std.debug.print("[mem {s}]   Tarjan index             {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_index, mib(res.mem_index) });
-    std.debug.print("[mem {s}]   Tarjan lowlink           {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_lowlink, mib(res.mem_lowlink) });
-    std.debug.print("[mem {s}]   Tarjan onstack           {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_onstack, mib(res.mem_onstack) });
-    std.debug.print("[mem {s}]   SCC id (comp)            {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_comp, mib(res.mem_comp) });
-    std.debug.print("[mem {s}]   dense_to_linear          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_dense_linear, mib(res.mem_dense_linear) });
-    std.debug.print("[mem {s}]   linear_to_dense          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_linear_dense, mib(res.mem_linear_dense) });
-    std.debug.print("[mem {s}]   adjacency lists          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_adjacency, mib(res.mem_adjacency) });
-    std.debug.print("[mem {s}]   SCC stack                {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_scc_stack, mib(res.mem_scc_stack) });
-    std.debug.print("[mem {s}]   SCC reps                 {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_scc_rep, mib(res.mem_scc_rep) });
-    std.debug.print("[mem {s}]   comp_sizes               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_comp_sizes, mib(res.mem_comp_sizes) });
-    std.debug.print("[mem {s}]   cycle-reachable marks    {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_cr, mib(res.mem_cr) });
-    std.debug.print("[mem {s}]   BFS bitset               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_bitset, mib(res.mem_bitset) });
-    std.debug.print("[mem {s}]   DFS frame stack          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_frames, mib(res.mem_frames) });
-    std.debug.print("[mem {s}]   BFS queue                {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_queue, mib(res.mem_queue) });
-    std.debug.print("[mem {s}]   other (scratch/overhead) {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_other, mib(res.mem_other) });
+    evidence.print("[mem {s}] total={d:.1} MiB (ledger sum) — plan-vs-actual comparison below\n", .{ goban_label, mib(memTotal(res)) });
+    evidence.print("[mem {s}]   artifact file (mmap'd)   {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_file_bytes, mib(res.mem_file_bytes) });
+    evidence.print("[mem {s}]   group index              {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_group_index, mib(res.mem_group_index) });
+    evidence.print("[mem {s}]   entry data               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_entry_data, mib(res.mem_entry_data) });
+    evidence.print("[mem {s}]   colex→group map          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_colex_map, mib(res.mem_colex_map) });
+    evidence.print("[mem {s}]   entry_starts             {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_entry_starts, mib(res.mem_entry_starts) });
+    evidence.print("[mem {s}]   Tarjan index             {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_index, mib(res.mem_index) });
+    evidence.print("[mem {s}]   Tarjan lowlink           {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_lowlink, mib(res.mem_lowlink) });
+    evidence.print("[mem {s}]   Tarjan onstack           {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_onstack, mib(res.mem_onstack) });
+    evidence.print("[mem {s}]   SCC id (comp)            {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_comp, mib(res.mem_comp) });
+    evidence.print("[mem {s}]   dense_to_linear          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_dense_linear, mib(res.mem_dense_linear) });
+    evidence.print("[mem {s}]   linear_to_dense          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_linear_dense, mib(res.mem_linear_dense) });
+    evidence.print("[mem {s}]   adjacency lists          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_adjacency, mib(res.mem_adjacency) });
+    evidence.print("[mem {s}]   SCC stack                {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_scc_stack, mib(res.mem_scc_stack) });
+    evidence.print("[mem {s}]   SCC reps                 {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_scc_rep, mib(res.mem_scc_rep) });
+    evidence.print("[mem {s}]   comp_sizes               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_comp_sizes, mib(res.mem_comp_sizes) });
+    evidence.print("[mem {s}]   cycle-reachable marks    {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_cr, mib(res.mem_cr) });
+    evidence.print("[mem {s}]   BFS bitset               {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_bitset, mib(res.mem_bitset) });
+    evidence.print("[mem {s}]   DFS frame stack          {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_frames, mib(res.mem_frames) });
+    evidence.print("[mem {s}]   BFS queue                {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_queue, mib(res.mem_queue) });
+    evidence.print("[mem {s}]   other (scratch/overhead) {d:>9} B = {d:.1} MiB\n", .{ goban_label, res.mem_other, mib(res.mem_other) });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1913,7 +1914,7 @@ test "vb_scc_4x4: 3×2 calibration — SCC structure + clean check" {
     const result = try checkI5Small(allocator, 3, 2, bytes, false);
 
     // Diagnostic
-    std.debug.print("\n[3x2 diag] V={d} E={d} maxSCC={d} nSCC_non_trivial={d} cycle_involved={d} cycle_reachable={d} ko_sens={d} ko_not_cr={d}\n", .{
+    evidence.print("\n[3x2 diag] V={d} E={d} maxSCC={d} nSCC_non_trivial={d} cycle_involved={d} cycle_reachable={d} ko_sens={d} ko_not_cr={d}\n", .{
         result.nodes,          result.edges,           result.max_scc_size,       result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
@@ -1965,7 +1966,7 @@ test "vb_scc_4x4: 3×2 seeded-defect — spurious KO_SENSITIVE on a non-cycle-re
 
     // All-legal graph: look for a non-cycle-reachable passes=0 ko=NONE slot.
     const all_legal = try checkI5Small(allocator, 3, 2, bytes, true);
-    std.debug.print("[3x2 all-legal] V={d} ko_not_cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.ko_not_cr, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
+    evidence.print("[3x2 all-legal] V={d} ko_not_cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.ko_not_cr, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
 
     if (all_legal.seed_hint_clear_colex == null) {
         // Vacuity documented above: every 3×2 passes=0 ko=NONE slot is
@@ -1974,7 +1975,7 @@ test "vb_scc_4x4: 3×2 seeded-defect — spurious KO_SENSITIVE on a non-cycle-re
         // non-CR L==H entry exists (4×3's non-CR slots are all already
         // KO_SENSITIVE, so it is vacuous too). This is a measurement, not
         // a pass.
-        std.debug.print("[T344 NOTE] 3×2 all-legal has no non-CR clear-flag slot in the full graph — seeded-defect demonstrated at 4×4 instead (3×2 and 4×3 are vacuous in the full-graph model; 2×2, 3×2, 4×3-reachable share the same vacuity).\n", .{});
+        evidence.print("[T344 NOTE] 3×2 all-legal has no non-CR clear-flag slot in the full graph — seeded-defect demonstrated at 4×4 instead (3×2 and 4×3 are vacuous in the full-graph model; 2×2, 3×2, 4×3-reachable share the same vacuity).\n", .{});
         return;
     }
 
@@ -1996,13 +1997,13 @@ test "vb_scc_4x4: 3×2 seeded-defect — spurious KO_SENSITIVE on a non-cycle-re
     const corrupted = try checkI5Small(allocator, 3, 2, bytes, true);
     try std.testing.expectEqual(Status.fail, corrupted.status);
     try std.testing.expect(corrupted.ko_not_cr > all_legal.ko_not_cr);
-    std.debug.print("[3x2 seeded-defect RED] ko_not_cr={d} (baseline={d})\n", .{ corrupted.ko_not_cr, all_legal.ko_not_cr });
+    evidence.print("[3x2 seeded-defect RED] ko_not_cr={d} (baseline={d})\n", .{ corrupted.ko_not_cr, all_legal.ko_not_cr });
 
     // GREEN: restore the flag → back to baseline.
     bytes[flag_idx] = old_flag;
     const restored = try checkI5Small(allocator, 3, 2, bytes, true);
     try std.testing.expectEqual(restored.ko_not_cr, all_legal.ko_not_cr);
-    std.debug.print("[3x2 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
+    evidence.print("[3x2 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
 }
 
 test "vb_scc_4x4: 4×3 calibration — clean check passes" {
@@ -2016,11 +2017,11 @@ test "vb_scc_4x4: 4×3 calibration — clean check passes" {
 
     const result = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, false, false);
 
-    std.debug.print("\n[4x3] V={d} E={d} maxSCC={d} nSCC_nt={d} cycle_inv={d} cycle_reach={d} ko_sens={d} ko_not_cr={d}\n", .{
+    evidence.print("\n[4x3] V={d} E={d} maxSCC={d} nSCC_nt={d} cycle_inv={d} cycle_reach={d} ko_sens={d} ko_not_cr={d}\n", .{
         result.nodes,          result.edges,           result.max_scc_size,       result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });
-    std.debug.print("  seed_hint_colex={?d} seed_hint_side={?d}\n", .{ result.seed_hint_colex, result.seed_hint_side });
+    evidence.print("  seed_hint_colex={?d} seed_hint_side={?d}\n", .{ result.seed_hint_colex, result.seed_hint_side });
     printMemBreakdown(result, "4x3");
 
     try std.testing.expect(result.nodes > 0);
@@ -2052,7 +2053,7 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
 
     // Find a non-CR passes=0 state in the all-legal graph
     const all_legal = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
-    std.debug.print("\n[4x3 all-legal] V={d} E={d} scc_nt={d} maxSCC={d} ko_not_cr={d} ko_sens={d} cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.edges, all_legal.scc_non_trivial, all_legal.max_scc_size, all_legal.ko_not_cr, all_legal.ko_sensitive_count, all_legal.cycle_reachable, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
+    evidence.print("\n[4x3 all-legal] V={d} E={d} scc_nt={d} maxSCC={d} ko_not_cr={d} ko_sens={d} cr={d} hint_colex={?d} clear_hint_colex={?d}\n", .{ all_legal.nodes, all_legal.edges, all_legal.scc_non_trivial, all_legal.max_scc_size, all_legal.ko_not_cr, all_legal.ko_sensitive_count, all_legal.cycle_reachable, all_legal.seed_hint_colex, all_legal.seed_hint_clear_colex });
 
     // T391: with the CR-propagation order fixed, the 4×3 all-legal graph is
     // vacuous — ko_not_cr = 0 (no non-CR passes=0 ko=NONE slot at all). The
@@ -2064,7 +2065,7 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
     try std.testing.expect(all_legal.seed_hint_colex == null);
 
     const hint_colex = all_legal.seed_hint_clear_colex orelse {
-        std.debug.print("[T391 NOTE] 4×3 all-legal is vacuous (ko_not_cr=0): no non-CR passes=0 ko=NONE slot, so no red-then-green can be shown here. Seeded-defect demonstrated at 4×4. The T344/T363 '24 natural violations' were spurious (propagation-order bug, fixed by T391).\n", .{});
+        evidence.print("[T391 NOTE] 4×3 all-legal is vacuous (ko_not_cr=0): no non-CR passes=0 ko=NONE slot, so no red-then-green can be shown here. Seeded-defect demonstrated at 4×4. The T344/T363 '24 natural violations' were spurious (propagation-order bug, fixed by T391).\n", .{});
         return;
     };
     const hint_side = all_legal.seed_hint_clear_side.?;
@@ -2085,13 +2086,13 @@ test "vb_scc_4x4: 4×3 seeded-defect — red-then-green" {
     const corrupted = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
     try std.testing.expectEqual(Status.fail, corrupted.status);
     try std.testing.expect(corrupted.ko_not_cr > all_legal.ko_not_cr);
-    std.debug.print("[4x3 seeded-defect RED] ko_not_cr={d} (baseline was {d})\n", .{ corrupted.ko_not_cr, all_legal.ko_not_cr });
+    evidence.print("[4x3 seeded-defect RED] ko_not_cr={d} (baseline was {d})\n", .{ corrupted.ko_not_cr, all_legal.ko_not_cr });
 
     // Restore and verify
     bytes[flag_idx] = old_flag;
     const restored = try checkI5Wzo1Bitset(allocator, 4, 3, bytes, true, false);
     try std.testing.expectEqual(restored.ko_not_cr, all_legal.ko_not_cr);
-    std.debug.print("[4x3 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
+    evidence.print("[4x3 seeded-defect GREEN] restored ko_not_cr={d} (baseline={d})\n", .{ restored.ko_not_cr, all_legal.ko_not_cr });
 }
 
 test "vb_scc_4x4: T395 Defect-C control — descending CR propagation order fires (red), ascending is green" {
@@ -2130,11 +2131,11 @@ test "vb_scc_4x4: T395 Defect-C control — descending CR propagation order fire
     try std.testing.expectEqual(@as(u64, 24), seeded.ko_not_cr); // the fabricated "24 natural violations"
     try std.testing.expectEqual(@as(u64, 1_300_006), seeded.cycle_reachable); // T391 simulation of the bug
     try std.testing.expectEqual(Status.fail, seeded.status);
-    std.debug.print("[T395 Defect-C control] RED: descending CR propagation reproduces the historical spurious ko_not_cr={d} (CR {d}) — the differential would fire\n", .{ seeded.ko_not_cr, seeded.cycle_reachable });
+    evidence.print("[T395 Defect-C control] RED: descending CR propagation reproduces the historical spurious ko_not_cr={d} (CR {d}) — the differential would fire\n", .{ seeded.ko_not_cr, seeded.cycle_reachable });
 
     // GREEN again: ascending order is correct.
     try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
-    std.debug.print("[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading\n", .{});
+    evidence.print("[T395 Defect-C control] GREEN: ascending propagation reads ko_not_cr=0, CR=1,300,030 — true reading\n", .{});
 }
 
 test "vb_scc_4x4: 4×4 seeded-defect — spurious L!=H on a non-cycle-reachable entry → red-then-green" {
@@ -2158,7 +2159,7 @@ test "vb_scc_4x4: 4×4 seeded-defect — spurious L!=H on a non-cycle-reachable 
     try std.testing.expectEqual(Status.pass, clean.status);
     try std.testing.expectEqual(@as(u64, 0), clean.ko_not_cr);
     const seed_ei = clean.seed_hint_clear_colex orelse {
-        std.debug.print("[T344 NOTE] 4×4 has no non-CR L==H entry — cannot seed. (Unexpected; ~1.44M expected.)\n", .{});
+        evidence.print("[T344 NOTE] 4×4 has no non-CR L==H entry — cannot seed. (Unexpected; ~1.44M expected.)\n", .{});
         return;
     };
 
@@ -2168,19 +2169,19 @@ test "vb_scc_4x4: 4×4 seeded-defect — spurious L!=H on a non-cycle-reachable 
     const off = entry_data_start + @as(usize, @intCast(seed_ei)) * WZO2_ENTRY_SIZE + 1; // L byte
     const orig_l = file_bytes[off];
     const orig_h = file_bytes[off + 1];
-    std.debug.print("[4x4 seeded-defect] seed entry {d} L={d} H={d}\n", .{ seed_ei, @as(i8, @bitCast(orig_l)), @as(i8, @bitCast(orig_h)) });
+    evidence.print("[4x4 seeded-defect] seed entry {d} L={d} H={d}\n", .{ seed_ei, @as(i8, @bitCast(orig_l)), @as(i8, @bitCast(orig_h)) });
     file_bytes[off] = orig_l +% 1; // flip L to differ from H
     const corrupted = try checkI5Wzo2(allocator, file_bytes);
     try std.testing.expectEqual(Status.fail, corrupted.status);
     try std.testing.expect(corrupted.ko_not_cr > clean.ko_not_cr);
-    std.debug.print("[4x4 seeded-defect RED] ko_not_cr={d} (baseline {d}) at entry {d}\n", .{ corrupted.ko_not_cr, clean.ko_not_cr, seed_ei });
+    evidence.print("[4x4 seeded-defect RED] ko_not_cr={d} (baseline {d}) at entry {d}\n", .{ corrupted.ko_not_cr, clean.ko_not_cr, seed_ei });
 
     // GREEN: restore.
     file_bytes[off] = orig_l;
     const restored = try checkI5Wzo2(allocator, file_bytes);
     try std.testing.expectEqual(Status.pass, restored.status);
     try std.testing.expectEqual(@as(u64, 0), restored.ko_not_cr);
-    std.debug.print("[4x4 seeded-defect GREEN] restored ko_not_cr={d}\n", .{restored.ko_not_cr});
+    evidence.print("[4x4 seeded-defect GREEN] restored ko_not_cr={d}\n", .{restored.ko_not_cr});
 }
 
 test "vb_scc_4x4: 4×4 WZO2 — ko_not_cr == 0" {
@@ -2202,7 +2203,7 @@ test "vb_scc_4x4: 4×4 WZO2 — ko_not_cr == 0" {
     try std.testing.expectEqual(@as(u64, 24318165), hdr.n_groups);
     try std.testing.expectEqual(@as(u64, 99133036), hdr.n_entries);
 
-    std.debug.print("\n[4x4] {d} groups, {d} entries ({d} MB). Starting Tarjan...\n", .{
+    evidence.print("\n[4x4] {d} groups, {d} entries ({d} MB). Starting Tarjan...\n", .{
         hdr.n_groups, hdr.n_entries, file_bytes.len / (1024 * 1024),
     });
 
@@ -2210,11 +2211,11 @@ test "vb_scc_4x4: 4×4 WZO2 — ko_not_cr == 0" {
     // cycle-reachable propagation, this may be slow. The test
     // runner has a 10-minute silence timeout.
     const result = checkI5Wzo2(allocator, file_bytes) catch |err| {
-        std.debug.print("[4x4 FAIL] error: {}\n", .{err});
+        evidence.print("[4x4 FAIL] error: {}\n", .{err});
         return;
     };
 
-    std.debug.print("[4x4] V={d} E={d} maxSCC={d} nSCC_nt={d} cycle_inv={d} cycle_reach={d} ko_sens={d} ko_not_cr={d}\n", .{
+    evidence.print("[4x4] V={d} E={d} maxSCC={d} nSCC_nt={d} cycle_inv={d} cycle_reach={d} ko_sens={d} ko_not_cr={d}\n", .{
         result.nodes,          result.edges,           result.max_scc_size,       result.scc_non_trivial,
         result.cycle_involved, result.cycle_reachable, result.ko_sensitive_count, result.ko_not_cr,
     });

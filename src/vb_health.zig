@@ -45,6 +45,7 @@
 // `zig test src/vb_health.zig`.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const testing = std.testing;
 const Allocator = std.mem.Allocator;
 
@@ -338,7 +339,7 @@ test "M9: health check is GREEN on real invariants (no skipped)" {
     defer ctx.deinit();
 
     const v = check(&ctx);
-    std.debug.print("[EXPECTED] M9 green: status={s} declared={d} skipped={d}\n", .{
+    evidence.print("[EXPECTED] M9 green: status={s} declared={d} skipped={d}\n", .{
         @tagName(v.status), v.declared, v.skipped_count,
     });
     try testing.expectEqual(Status.pass, v.status);
@@ -358,7 +359,7 @@ test "M9: battery-stubbed mutant is RED (caught)" {
     mutant[@intFromEnum(stubbed)] = stubSkipped;
 
     const v = checkWith(&ctx, &mutant);
-    std.debug.print("[EXPECTED] M9 red: status={s} skipped={d} stubbed={s}\n", .{
+    evidence.print("[EXPECTED] M9 red: status={s} skipped={d} stubbed={s}\n", .{
         @tagName(v.status), v.skipped_count, invariantName(@intFromEnum(stubbed)),
     });
     try testing.expectEqual(Status.fail, v.status);
@@ -379,7 +380,7 @@ test "M9: stubbing a second invariant is still RED (two skipped)" {
     mutant[@intFromEnum(vb.Invariant.I11)] = stubSkipped;
 
     const v = checkWith(&ctx, &mutant);
-    std.debug.print("[EXPECTED] M9 double-red: status={s} skipped={d}\n", .{
+    evidence.print("[EXPECTED] M9 double-red: status={s} skipped={d}\n", .{
         @tagName(v.status), v.skipped_count,
     });
     try testing.expectEqual(Status.fail, v.status);

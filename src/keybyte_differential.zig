@@ -44,6 +44,7 @@
 // `zig test src/keybyte_differential.zig` from the repo root.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const vb_closure = @import("vb_closure.zig");
 const artifact2 = @import("artifact2.zig");
 
@@ -68,10 +69,10 @@ fn firstDisagreement(shift: u3) ?struct { kb: u8, ko_bits: u8, closure_ko: u8, c
 test "key-byte differential: closure decode == artifact2 contract on all 256 bytes × ko_bits {3,4,5}" {
     const d = firstDisagreement(2);
     if (d) |dd| {
-        std.debug.print("[keybyte-diff] DISAGREEMENT: kb={d} ko_bits={d} closure={d} contract={d}\n", .{ dd.kb, dd.ko_bits, dd.closure_ko, dd.contract_ko });
+        evidence.print("[keybyte-diff] DISAGREEMENT: kb={d} ko_bits={d} closure={d} contract={d}\n", .{ dd.kb, dd.ko_bits, dd.closure_ko, dd.contract_ko });
         return error.KeyByteDifferentialFired;
     }
-    std.debug.print("[keybyte-diff] GREEN: closure decode == artifact2 contract on all {d} bytes × {d} ko_bits rungs\n", .{ 256, ko_bits_list.len });
+    evidence.print("[keybyte-diff] GREEN: closure decode == artifact2 contract on all {d} bytes × {d} ko_bits rungs\n", .{ 256, ko_bits_list.len });
 }
 
 test "key-byte differential: F-7 control — seeded kb>>1 decode fires, fixed path is green" {
@@ -82,15 +83,15 @@ test "key-byte differential: F-7 control — seeded kb>>1 decode fires, fixed pa
     try std.testing.expectEqual(@as(u8, 1), vb_closure.keyByteKoShift(66, 5, 1)); // F-7 witness, buggy
     const d = firstDisagreement(1);
     if (d == null) {
-        std.debug.print("[keybyte-diff F-7] FAIL: seeded kb>>1 decode agreed with the contract — the differential would NOT fire\n", .{});
+        evidence.print("[keybyte-diff F-7] FAIL: seeded kb>>1 decode agreed with the contract — the differential would NOT fire\n", .{});
         return error.F7ControlNotRed;
     }
-    std.debug.print("[keybyte-diff F-7] RED: seeded kb>>1 decode diverges from the contract (first at kb={d} ko_bits={d}: closure ko={d} vs contract ko={d}) — the differential fires\n", .{ d.?.kb, d.?.ko_bits, d.?.closure_ko, d.?.contract_ko });
+    evidence.print("[keybyte-diff F-7] RED: seeded kb>>1 decode diverges from the contract (first at kb={d} ko_bits={d}: closure ko={d} vs contract ko={d}) — the differential fires\n", .{ d.?.kb, d.?.ko_bits, d.?.closure_ko, d.?.contract_ko });
 
     // GREEN: the fixed production path (shift=2) agrees everywhere, and the
     // historical witnesses decode correctly.
     try std.testing.expectEqual(@as(u8, 3), vb_closure.keyByteKo(12, 5));
     try std.testing.expectEqual(@as(u8, 16), vb_closure.keyByteKo(66, 5));
     try std.testing.expect(firstDisagreement(2) == null);
-    std.debug.print("[keybyte-diff F-7] GREEN: fixed path (kb>>2) agrees with the contract on every byte\n", .{});
+    evidence.print("[keybyte-diff F-7] GREEN: fixed path (kb>>2) agrees with the contract on every byte\n", .{});
 }

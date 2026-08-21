@@ -24,6 +24,7 @@
 // Author: DSPro/T168-w2 · 2026-07-31
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const version = @import("version");
 const vb = @import("vb_common.zig");
 const vbt = @import("vb_table.zig");
@@ -141,7 +142,7 @@ fn rssHwmMb() ?f64 {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn note(comptime fmt: []const u8, args: anytype) void {
-    std.debug.print(fmt, args);
+    evidence.print(fmt, args);
 }
 
 fn readFilePath(allocator: std.mem.Allocator, path: []const u8, max_size: usize) ![]u8 {

@@ -21,6 +21,7 @@
 // passes, terminal) key. Reproduces the T265 ko-rule defect on 626ec55^.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const testing = std.testing;
 
 // ── imports ─────────────────────────────────────────────────────────────────
@@ -1367,20 +1368,20 @@ test "T345: KEY-4x4 — producer vs consumer key-agreement exhaustive" {
     defer threaded.deinit();
     const io = threaded.io();
     const bytes = cwd.readFileAlloc(io, path, gpa, .unlimited) catch |err| {
-        std.debug.print("T345 KEY-4x4 SKIP: cannot read {s}: {}\n", .{ path, err });
+        evidence.print("T345 KEY-4x4 SKIP: cannot read {s}: {}\n", .{ path, err });
         return;
     };
     defer gpa.free(bytes);
 
     // Parse header.
     const hdr = parseWzo2HeaderKey(bytes) catch |err| {
-        std.debug.print("T345 KEY-4x4 FAIL: bad header: {}\n", .{err});
+        evidence.print("T345 KEY-4x4 FAIL: bad header: {}\n", .{err});
         return err;
     };
 
     // Read group index.
     const groups = readKeyGroups(bytes, hdr.data_offset, hdr.n_groups, gpa) catch |err| {
-        std.debug.print("T345 KEY-4x4 FAIL: group index: {}\n", .{err});
+        evidence.print("T345 KEY-4x4 FAIL: group index: {}\n", .{err});
         return err;
     };
     defer gpa.free(groups);
@@ -1438,7 +1439,7 @@ test "T345: KEY-4x4 — producer vs consumer key-agreement exhaustive" {
             {
                 mismatches += 1;
                 if (mismatches <= 5) {
-                    std.debug.print(
+                    evidence.print(
                         "T345 MISMATCH #{d}: colex={d} kb=0x{X:0>2} side={d} ko={d} passes={d}  " ++
                             "producer=(colex={d},side={d},ko={d},passes={d},term={})  " ++
                             "consumer=(colex={d},side={d},ko={d},passes={d},term={})\n",
@@ -1453,14 +1454,14 @@ test "T345: KEY-4x4 — producer vs consumer key-agreement exhaustive" {
 
             entries_checked += 1;
             if (entries_checked >= next_progress) {
-                std.debug.print("T345 progress: {d} / {d} entries checked, {d} mismatches\n", .{ entries_checked, n_entries, mismatches });
+                evidence.print("T345 progress: {d} / {d} entries checked, {d} mismatches\n", .{ entries_checked, n_entries, mismatches });
                 next_progress += progress_interval;
             }
         }
     }
 
     // ── Report verdict ───────────────────────────────────────────────
-    std.debug.print("\nT345 KEY-4x4 RESULT: {d} mismatches / {d} entries checked / {d} total entries\n", .{ mismatches, entries_checked, n_entries });
+    evidence.print("\nT345 KEY-4x4 RESULT: {d} mismatches / {d} entries checked / {d} total entries\n", .{ mismatches, entries_checked, n_entries });
     try testing.expectEqual(@as(u64, 0), mismatches);
     try testing.expectEqual(n_entries, entries_checked);
 }
@@ -1484,7 +1485,7 @@ test "T345: KEY-4x3 — producer vs consumer key-agreement over the WZO1 4×3 or
     defer threaded.deinit();
     const io = threaded.io();
     const bytes = cwd.readFileAlloc(io, path, gpa, .unlimited) catch |err| {
-        std.debug.print("T345 KEY-4x3 SKIP: cannot read {s}: {}\n", .{ path, err });
+        evidence.print("T345 KEY-4x3 SKIP: cannot read {s}: {}\n", .{ path, err });
         return;
     };
     defer gpa.free(bytes);
@@ -1537,7 +1538,7 @@ test "T345: KEY-4x3 — producer vs consumer key-agreement over the WZO1 4×3 or
             {
                 mismatches += 1;
                 if (mismatches <= 5) {
-                    std.debug.print(
+                    evidence.print(
                         "T345 KEY-4x3 MISMATCH #{d}: colex={d} side={d}  producer=(colex={d},side={d},ko={d},passes={d},term={})  consumer=(colex={d},side={d},ko={d},passes={d},term={})\n",
                         .{ mismatches, colex_val, side, pk.colex_idx, pk.side, pk.ko, pk.passes, pk.terminal, ck.colex_idx, ck.side, ck.ko, ck.passes, ck.terminal },
                     );
@@ -1546,7 +1547,7 @@ test "T345: KEY-4x3 — producer vs consumer key-agreement over the WZO1 4×3 or
         }
     }
 
-    std.debug.print("\nT345 KEY-4x3 RESULT: {d} mismatches / {d} states checked (expected {d})\n", .{ mismatches, checked, n_expected });
+    evidence.print("\nT345 KEY-4x3 RESULT: {d} mismatches / {d} states checked (expected {d})\n", .{ mismatches, checked, n_expected });
     try testing.expectEqual(@as(u64, 0), mismatches);
     try testing.expectEqual(n_expected, checked);
 }
@@ -1566,7 +1567,7 @@ test "T345: KEY-4x4 calibration — flipped bit in producer colex caught" {
     defer threaded.deinit();
     const io = threaded.io();
     const bytes = cwd.readFileAlloc(io, path, gpa, .unlimited) catch |err| {
-        std.debug.print("T345 calib SKIP: cannot read {s}: {}\n", .{ path, err });
+        evidence.print("T345 calib SKIP: cannot read {s}: {}\n", .{ path, err });
         return;
     };
     defer gpa.free(bytes);
@@ -1624,7 +1625,7 @@ test "T345: KEY-4x4 calibration — flipped bit in producer colex caught" {
         }
     }
 
-    std.debug.print("T345 calibration: {d} mismatches / {d} checked (mutant: flipped LSB of producer colex)\n", .{ mismatches, checked });
+    evidence.print("T345 calibration: {d} mismatches / {d} checked (mutant: flipped LSB of producer colex)\n", .{ mismatches, checked });
     try testing.expect(mismatches > 0); // MUST catch the corruption
 }
 
@@ -1839,24 +1840,24 @@ fn roundtripExp6_3x3(board: Board(9)) bool {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 fn printComparison(comptime n_cells: usize, comptime T: type, result: *const Comparison(n_cells, T)) void {
-    std.debug.print("  {s} @ {s}: {d}/{d} agree", .{ result.operation, result.size_label, result.agreements, result.total_boards });
+    evidence.print("  {s} @ {s}: {d}/{d} agree", .{ result.operation, result.size_label, result.agreements, result.total_boards });
     if (result.disagreements.len == 0) {
-        std.debug.print(" — ALL AGREE\n", .{});
+        evidence.print(" — ALL AGREE\n", .{});
     } else {
-        std.debug.print(" — {d} DISAGREEMENTS\n", .{result.disagreements.len});
+        evidence.print(" — {d} DISAGREEMENTS\n", .{result.disagreements.len});
         const show = @min(result.disagreements.len, 3);
         for (result.disagreements[0..show]) |d| {
-            std.debug.print("    board=[", .{});
+            evidence.print("    board=[", .{});
             for (d.board, 0..) |c, ci| {
-                if (ci > 0) std.debug.print(",", .{});
-                std.debug.print("{d}", .{c});
+                if (ci > 0) evidence.print(",", .{});
+                evidence.print("{d}", .{c});
             }
-            std.debug.print("] values=[", .{});
+            evidence.print("] values=[", .{});
             for (d.values, 0..) |v, vi| {
-                if (vi > 0) std.debug.print(",", .{});
-                std.debug.print("{}", .{v});
+                if (vi > 0) evidence.print(",", .{});
+                evidence.print("{}", .{v});
             }
-            std.debug.print("]\n", .{});
+            evidence.print("]\n", .{});
         }
     }
 }

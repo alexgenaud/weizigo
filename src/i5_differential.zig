@@ -46,6 +46,7 @@
 // diverges again.
 
 const std = @import("std");
+const evidence = @import("evidence.zig");
 const vb_graph = @import("vb_graph.zig");
 const vb_scc_4x4 = @import("vb_scc_4x4.zig");
 
@@ -75,11 +76,11 @@ fn runBoth(
     const general = try vb_graph.checkI5(allocator, .{ .w = @intCast(w), .h = @intCast(h) }, &art, opts);
     const specific = try vb_scc_4x4.checkI5Small(allocator, w, h, bytes, false);
 
-    std.debug.print("[I5-diff {d}x{d}] general: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d} koSensGraph={d} koNotCR={d} {s}\n", .{
+    evidence.print("[I5-diff {d}x{d}] general: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d} koSensGraph={d} koNotCR={d} {s}\n", .{
         w,                       h,                          general.nodes,                            general.edges,            general.max_scc_size, general.cycle_involved,
         general.cycle_reachable, general.ko_sensitive_graph, general.ko_sensitive_not_cycle_reachable, @tagName(general.status),
     });
-    std.debug.print("[I5-diff {d}x{d}] specific: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d} koSens={d} koNotCR={d} {s}\n", .{
+    evidence.print("[I5-diff {d}x{d}] specific: V={d} E={d} maxSCC={d} cycleInv={d} cycleReach={d} koSens={d} koNotCR={d} {s}\n", .{
         w,                        h,                           specific.nodes,     specific.edges,            specific.max_scc_size, specific.cycle_involved,
         specific.cycle_reachable, specific.ko_sensitive_count, specific.ko_not_cr, @tagName(specific.status),
     });
@@ -150,12 +151,12 @@ test "I5 Defect-A control (T391: passes==2 placement successors) fires the diffe
     try std.testing.expectEqual(@as(u64, 2_523), pair.general.cycle_reachable); // pre-fix
     // …and the differential fires: the pair is NOT identical.
     try std.testing.expect(!readingsIdentical(pair.general, pair.specific));
-    std.debug.print("[I5 Defect-A control] differential FIRES on seeded passes==2 successors (general E={d} vs specific E={d})\n", .{ pair.general.edges, pair.specific.edges });
+    evidence.print("[I5 Defect-A control] differential FIRES on seeded passes==2 successors (general E={d} vs specific E={d})\n", .{ pair.general.edges, pair.specific.edges });
 
     // GREEN: production knobs off — the pair agrees again.
     const clean = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{ .graph = .reachable });
     try expectIdentical(clean.general, clean.specific);
-    std.debug.print("[I5 Defect-A control] GREEN: fixed path agrees on every countable\n", .{});
+    evidence.print("[I5 Defect-A control] GREEN: fixed path agrees on every countable\n", .{});
 }
 
 test "I5 Defect-B control (T391: quadruple→triple SCC projection) fires the differential, then green" {
@@ -174,11 +175,11 @@ test "I5 Defect-B control (T391: quadruple→triple SCC projection) fires the di
     try std.testing.expectEqual(@as(u64, 988), pair.general.max_scc_size); // triple projection
     try std.testing.expectEqual(@as(u64, 1_676), pair.specific.max_scc_size); // correct instrument
     try std.testing.expect(!readingsIdentical(pair.general, pair.specific));
-    std.debug.print("[I5 Defect-B control] differential FIRES on seeded triple projection (general maxSCC={d} vs specific maxSCC={d})\n", .{ pair.general.max_scc_size, pair.specific.max_scc_size });
+    evidence.print("[I5 Defect-B control] differential FIRES on seeded triple projection (general maxSCC={d} vs specific maxSCC={d})\n", .{ pair.general.max_scc_size, pair.specific.max_scc_size });
 
     const clean = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{ .graph = .reachable });
     try expectIdentical(clean.general, clean.specific);
-    std.debug.print("[I5 Defect-B control] GREEN: fixed path agrees on every countable\n", .{});
+    evidence.print("[I5 Defect-B control] GREEN: fixed path agrees on every countable\n", .{});
 }
 
 test "I5 Defect-A+B control (both mutations) reproduces the exact pre-fix binary readings (T388 Run B)" {
@@ -200,11 +201,11 @@ test "I5 Defect-A+B control (both mutations) reproduces the exact pre-fix binary
     try std.testing.expectEqual(@as(u64, 1_000), pair.general.cycle_involved);
     try std.testing.expectEqual(@as(u64, 2_523), pair.general.cycle_reachable);
     try std.testing.expect(!readingsIdentical(pair.general, pair.specific));
-    std.debug.print("[I5 Defect-A+B control] differential FIRES: pre-fix readings reproduced exactly (E={d} maxSCC={d} cycleReach={d} sccs={d})\n", .{ pair.general.edges, pair.general.max_scc_size, pair.general.cycle_reachable, pair.general.sccs_total });
+    evidence.print("[I5 Defect-A+B control] differential FIRES: pre-fix readings reproduced exactly (E={d} maxSCC={d} cycleReach={d} sccs={d})\n", .{ pair.general.edges, pair.general.max_scc_size, pair.general.cycle_reachable, pair.general.sccs_total });
 
     const clean = try runBoth(allocator, 3, 2, "artifacts/oracle-3x2.wzo", .{ .graph = .reachable });
     try expectIdentical(clean.general, clean.specific);
-    std.debug.print("[I5 Defect-A+B control] GREEN: fixed path agrees on every countable\n", .{});
+    evidence.print("[I5 Defect-A+B control] GREEN: fixed path agrees on every countable\n", .{});
 }
 
 test "I5 cross-size differential 4×3 (reachable, artifacts/oracle-4x3.wzo) [env-gated]" {
@@ -220,7 +221,7 @@ test "I5 cross-size differential 4×3 (reachable, artifacts/oracle-4x3.wzo) [env
     // gates (vb_scc_4x4.zig 4×3 calibration) and the T391 third route
     // (docs/evidence/I5-DISAGREEMENT/third-route-4x3.py).
     if (std.c.getenv("WEIZIGO_I5_DIFF_4X3") == null) {
-        std.debug.print("SKIP 4×3 I5 differential (set WEIZIGO_I5_DIFF_4X3=1 to run)\n", .{});
+        evidence.print("SKIP 4×3 I5 differential (set WEIZIGO_I5_DIFF_4X3=1 to run)\n", .{});
         return error.SkipZigTest;
     }
     try differential(std.heap.page_allocator, 4, 3, "artifacts/oracle-4x3.wzo");
