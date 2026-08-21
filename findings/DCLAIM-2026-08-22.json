@@ -1,0 +1,9 @@
+{
+ "task_id": "DCLAIM",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/DCLAIM",
+ "claims": ["GLOBAL.S1"],
+ "new_rows": [],
+ "notes": "DCLAIM chunk: verified GLOBAL.S1 (PROVEN, Tier B, in-deg 4) — 'The colex mixed-radix index is a collision-free bijection over the 3^(w·h) goban space'. Probe: `tools/runner -- zig run src/colex.zig` (the committed standalone bijection verifier, `layout_version` 1; exhaustive over the full 3^n space via base-3 odometer + seen-bitset collision check + `pos_from_colex(colex_from_pos(p)) == p` round-trip). Reading (all VERIFIED dense, no collision): 2x2 81 boards, 3x3 19,683 boards, 3x2 729 boards, 4x4 43,046,721 boards — 0 violations / 43,067,214 boards. VERDICT: REPRODUCED. (Change no claim status per the duty: the claim stays Tier B because the probe lives in src/colex.zig and its run output is not yet committed under docs/evidence/; a promotion task would commit a stamped run log there.)"
+}

@@ -1,0 +1,9 @@
+{
+ "task_id": "DRPLAY",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/DRPLAY",
+ "claims": [],
+ "new_rows": [],
+ "notes": "DRPLAY chunk: played one deliberately-suboptimal 4x4 game against the oracle and compared the played result with the table's stored row. Start position (set up with play B A1, play W A2, play B B1, play W B2 — Black to move): {B: A1,B1; W: A2,B2}. Black's 2-stone group has a single liberty (C1), so this is a deliberately-suboptimal position. Table row at the start (ko=none passes=0, from the first genmove diagnostic): stored-v0 = -16, bracket [L=-16,H=-16] — a chainable (L==H) node. Played it out with bin/weizigo-gtp on data/oracle-4x4-v2.wzo2 (sha256 0c3366f0..., 4x4 WZO2, rules_id 3 Chinese area, komi 0, basic ko, L/H bracket): engine alternated both colours; Black's group was captured and Black resigned, game ended on two passes; final_score = W+16 (= -16 Black-positive). VERDICT: AGREE — played result (-16) equals the table's stored value exactly (L=H=-16). No disagreement, no crisis finding.\n\nEpistemic framing (honest, same as the 2026-08-20 chunk): this is a fresh-start consistency check (C1) on a chainable node, NOT a real-game claim — C2 (single-score history-independence) stays falsified at 3x2 and C3 (bracket bounds real-game score) stays falsified at 3x3. The played game is a real game with real history that landed on the fresh-start value on an L==H node, exactly the region where the chainability sweep found zero Bellman-identity violations.\n\nFull line: B C1, W C2, B D1, W D2, B A1, W B1, B C1, W D1, B A4, W B4, then B resign (decisively lost, opp 2-eye, area=-16), W pass, B pass -> W+16. Every genmove diagnostic along the line reported child-value=-16 stored-v0=-16 [L=-16,H=-16]; 0 lookup misses."
+}
