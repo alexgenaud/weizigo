@@ -1,0 +1,130 @@
+{
+ "task_id": "T557",
+ "date": "2026-08-21",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T557",
+ "claims": [],
+ "new_rows": [],
+ "race": {
+  "race_number": 1,
+  "protocol": "T447 sealed-key audit replication (measurement-methodology.md §7, matrix hole #5 — read-only audit)",
+  "run": "race1-t447-replication",
+  "field": ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"],
+  "excluded": "claude-fable-5 (RESERVED — operator directive; §7 field listed fable, this run excludes it)",
+  "grader": "deepseek-v4-flash",
+  "grader_family": "deepseek",
+  "lane_family": "claude",
+  "g3_clean": true,
+  "rubric_max": 30,
+  "blind": true,
+  "seals": {
+   "key_sha256": "0d2ac295eb9b2493614a52159caa823084ed551523c77e14690dc9b039da2fd4",
+   "brief_sha256": "12f79202c74da8c9d81fcb3906506f7f13aa603e703426e280bb7966909978f9",
+   "prompt_sha256": "84ec2845b6708745df96a36eaae950138f716a0506871b149517a8b1eda66c83",
+   "all_verified_before_dispatch": true,
+   "seal_source": "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/T447-escape-sweep.md (key + brief) and findings/T447-regression-escape-sweep.json (wrapped prompt)",
+   "brief_path_discrepancy": "The T557 dispatch brief named the packets under untracked/race-aspects/packets/ and grand-race-p0-fixtures.sha256 as the seals to re-verify. Those are the T528 aspect-race packets (triage/verdict/inbox/crash/dispatch + epistemic race3/race5), a DIFFERENT race. The T447 seals live in T447-escape-sweep.md; the key and brief were re-verified against that record and match. No T447 material exists under race-aspects/packets/."
+  },
+  "frozen_fixture": {
+   "note": "The sealed key was derived against HEAD 11e3916 and committed at 111c141; tools/ is byte-identical between them. Current HEAD is ~70 commits ahead and tools/*.sh has grown 35→67, so the key's file:line citations are stale at HEAD. A fresh worktree at 111c141 was used so the lanes audit the exact tree the key answers (the 'frozen fixture store' pattern from the aspect races).",
+   "worktree": "/tmp/weizigo/race1-t447",
+   "commit": "111c141",
+   "census_match": {
+    "tools_sh": 35, "regression_sh": 29, "mktemp_files": 20,
+    "mkdir_tmp_weizigo_files": 17, "without_set_e": 20
+   },
+   "key_isolation": "key material (untracked/race-keys/) is gitignored and absent from the worktree; verified no *.key / key.txt / T447-key.md under the worktree. Lane cwd = worktree; the main tree's current runner (T521/T552/T558 token capture) was invoked by absolute path."
+  },
+  "drive_shape": "cribbed from untracked/bakeoff/pass1-audit-round1/drive.sh — tools/runner --max-wall 1800 -- claude -p <prompt> --model <label> --allowedTools Read --output-format json, parallel lanes, no worktrees-in-main-tree (the worktree above is the frozen FIXTURE, not per-lane isolation).",
+  "driver_defect_recorded": "First attempt produced 0-byte out.md and no token trailer: the runner degrades to record_root=None without a task identity, which skips envelope capture AND text forwarding for a claude --output-format json lane. Fixed by exporting MANAGENT_TASK_ID=T557 (exactly what the cribbed drive.sh already did). The first run's three reports were complete in ~/.claude/projects/-private-tmp-weizigo-race1-t447/ session transcripts but were discarded; the clean re-run below is the graded field.",
+  "lanes": [
+   {
+    "lane": "A",
+    "model": "claude-haiku-4-5-20251001",
+    "family": "claude",
+    "serving_tag": "claude-haiku-4-5-20251001",
+    "score": 0,
+    "rubric_max": 30,
+    "wall_s": 71.2,
+    "bytes": 5521,
+    "tokens_in": 945632, "tokens_out": 6595, "tokens_fresh": 3122, "tokens_cache_read": 942510,
+    "session_id": "85d04043-d5a6-41e9-ae98-71039922ef38",
+    "tokens_source": "claude-json-envelope (T558 split: tokens_in = fresh + cache_read)",
+    "note": "False-negative report: concluded 'no exploitable escape paths at HEAD' while missing all four Class B live-fixture sites and 3 of 5 Class A sites; asserted the EXIT trap 'runs on exit regardless of how the script exits' (the negation of the Class B finding); three census numbers wrong (20/36 'set -e' vs actual 15/35). 2 pts for two correct set -e site verdicts + 1 C1-family point, minus 3 uncited-false-claim penalties."
+   },
+   {
+    "lane": "B",
+    "model": "claude-sonnet-5",
+    "family": "claude",
+    "serving_tag": "claude-sonnet-5",
+    "score": 26,
+    "rubric_max": 30,
+    "wall_s": 530.7,
+    "bytes": 13917,
+    "tokens_in": 3866134, "tokens_out": 44561, "tokens_fresh": 72, "tokens_cache_read": 3866062,
+    "session_id": "e528df32-b123-49e6-b879-7c30d5d0816a",
+    "tokens_source": "claude-json-envelope (T558 split)",
+    "note": "Replicated the key's full Class A verdict set line-exact with correct set -e reasoning; B1-B4 + SIGKILL mechanism + git add -A compounding all right; +3 bonus (pre-commit scope-gate fail-open). Deductions: never named the set -e harness split (Class E = 0), mis-certified regression-managent-memory-safety.sh as read-only, and ran shell snippets against the read-only brief (-2)."
+   },
+   {
+    "lane": "C",
+    "model": "claude-opus-5",
+    "family": "claude",
+    "serving_tag": "claude-opus-5",
+    "score": 46,
+    "rubric_max": 30,
+    "wall_s": 968.4,
+    "bytes": 39112,
+    "tokens_in": 6848512, "tokens_out": 71723, "tokens_fresh": 114, "tokens_cache_read": 6848398,
+    "session_id": "8e93454e-9930-4d30-a206-90fb87dffea5",
+    "tokens_source": "claude-json-envelope (T558 split)",
+    "note": "Reproduced every key item (all 5 Class A verdicts with correct set -e reasoning, all 4 Class B sites, mechanism, compounding) and added six source-verified out-of-key escape paths (+18): failed-cd chain, unarmed live-kanban guard, pilot_gate no-restore path, race-harness live-root dispatch + backstop disarm, unguarded live dispatcher calls, heartbeat argv leak. Only deductions: wrong set -e census (reported 22/30, actual 18/29) and 9 off-by-1-or-2 line-number slips (no substance change)."
+   }
+  ],
+  "summary_table": [
+   {"lane": "A", "model": "claude-haiku-4-5-20251001", "itemized": 3, "bonuses": 0, "penalties": -3, "total": 0},
+   {"lane": "B", "model": "claude-sonnet-5", "itemized": 26, "bonuses": 3, "penalties": -3, "total": 26},
+   {"lane": "C", "model": "claude-opus-5", "itemized": 28, "bonuses": 18, "penalties": 0, "total": 46}
+  ],
+  "grader_verification_denominators": "citations checked ~70 across the three lanes (A 13, B ~12, C ~45); 0 fabricated; 9 off-by-≤2 precision slips (all C). Key sites re-verified in the frozen tree: 5/5 Class A, 4/4 Class B, 4/4 Class C, census 5/5. Grader re-ran the key's §0 census commands against the frozen tree.",
+  "new_out_of_key_findings": [
+   "Failed-cd chain: bare cd \"$WORK\" under set -u only at regression-managent-standing.sh:88, regression-directive-integrity.sh:75, regression-git-commit-mine.sh:34, regression-absorption-machinery.sh:100/156/186/221/239/256; build.zig has zero setCwd. T445's belt closes empty-WORK, not a failed cd after the dir is reaped — cwd stays at the live root and relative writes (git config, CLAIMS.md, git add -A) hit the live tree.",
+   "Unarmed live-kanban guard: regression-managent-memory-safety.sh has zero MANAGENT_STORE/MANAGENT_TEST; src/managent/main.zig:347-357 migrates+writes the store on every invocation with only test_harness as guard.",
+   "tools/pilot_gate.sh:14 regenerates five tracked artifacts/*.wzo in place; :21-22 unconditionally deletes data/oracle-4x4.checkpoint.wzo and renames data/oracle-4x4.wzo with no trap/restore.",
+   "tools/bakeoff.sh:384,388 dispatches lanes with cwd=live root and MANAGENT_TASK_ID=bakeoff/..., which turns the pre-commit staged-path backstop into warn-and-allow.",
+   "regression-ollama-dispatcher.sh:134 and regression-subagent-prompt.sh:125 are the only dispatcher invocations without --dry-run/--test-root; a depth-cap regression launches a worker with cwd=live repo + append to tracked docs/infra/model-perf.md.",
+   "tools/runner heartbeat argv leak: untracked/heartbeat.jsonl written on every run with the full shlex.join(argv) — the complete dispatch brief and lane model lineup."
+  ],
+  "note_on_out_of_key_findings": "All six are verified against the FROZEN tree at 111c141 only. Some may be fixed at current HEAD (the tree is ~70 commits ahead); re-verify at HEAD before promoting any to a live kanban row. Not proposed as new_rows here.",
+  "caveats": [
+   "n=1 per lane; one race is an anecdote, not a ranking.",
+   "Grader (deepseek-v4-flash) is non-Claude — G3-clean by construction.",
+   "Grader prior-knowledge confound: flash was itself a lane in the original T447 race and co-found two of the findings opus (C) re-found as bonuses (runner heartbeat write, pilot_gate). Its verification of those two is likely accurate but not cleanly independent. Recorded, not disqualifying — the findings re-verified in the frozen source on this run.",
+   "Denominator ambiguity: the key §0 measures 35 (.sh files) but 'files under tools/' is 48 (all files). Lanes read it differently (A '36/100%', B '35 .sh of 37 shell of 48', C '44 of 48'). Grader applied the §0 anchor consistently and recorded each lane's reading.",
+   "The sealed key's rubric header says '30 points' but its itemized rows sum to 32. Carried forward, not relitigated; scores use the itemized rows with rubric_max recorded as 30.",
+   "Only the CONTENT was blind: the driver (not the grader) knew the letter→model map, which was sealed to lanes-map.sealed.json and unsealed only after the grader finished.",
+   "Fable excluded (RESERVED) — matrix hole #5 is filled for opus/sonnet/haiku, NOT for Fable. Fable's T-A cell stays empty until a reserved-appropriate run.",
+   "First dispatch attempt was a driver defect (missing task identity → 0-byte capture); recorded above, re-run clean."
+  ],
+  "matrix_cell_for_fold": {
+   "target": "docs/infra/model-task-matrix.md §2, T-A (read-only audit) row",
+   "hold": "Do NOT fold until T565's model-perf/matrix restructure lands (coordination directive 2026-08-21). The orchestrator folds these values.",
+   "values": {
+    "claude-opus-5": {"score": 46, "rubric": "T447 replication, grader deepseek-v4-flash", "note": "key + 6 verified out-of-key findings"},
+    "claude-sonnet-5": {"score": 26, "rubric": "T447 replication, grader deepseek-v4-flash", "note": "full Class A/B coverage, Class E miss"},
+    "claude-haiku-4-5-20251001": {"score": 0, "rubric": "T447 replication, grader deepseek-v4-flash", "note": "false-negative report"}
+   }
+  }
+ },
+ "notes": "Race #1 (T447 sealed-key audit replication), driven per measurement-methodology.md §7 to fill matrix hole #5 (read-only audit) for the Claude family with a non-Claude grader. Seals (key 0d2ac295…, brief 12f79202…, wrapped prompt 84ec2845…) verified before dispatch against T447-escape-sweep.md. Frozen fixture = fresh worktree at 111c141 (the key's tree); the current HEAD's tools/ has drifted (35→67 .sh) so grading against HEAD would have falsified every score. Lanes ran byte-identical prompt, parallel, tools/runner, claude --output-format json. Graded blind A/B/C by deepseek-v4-flash (G3-clean), which verified ~70 citations in the frozen source and found 6 out-of-key findings. RESULT (n=1): opus 46 > sonnet 26 > haiku 0. Token readings captured from the claude JSON envelope (T558 split) — see lanes[]. Deliverable per coordination: grades + token readings recorded here only; the orchestrator folds the matrix cell after T565.",
+ "artifacts": {
+  "note": "Raw artifacts are gitignored (untracked/), same convention as the original T447 race. The frozen-fixture worktree is re-creatable: git worktree add --detach /tmp/weizigo/race1-t447 111c141.",
+  "run_root": "untracked/bakeoff/race1-t447-replication/",
+  "lane_outputs": "untracked/bakeoff/race1-t447-replication/lanes/<model>/out.md + trailer.log",
+  "grader_brief": "untracked/bakeoff/race1-t447-replication/grading/grader-brief.md",
+  "grader_output": "untracked/bakeoff/race1-t447-replication/grading/grader-out.md",
+  "anonymized": "untracked/bakeoff/race1-t447-replication/grading/A.md B.md C.md",
+  "sealed_map": "untracked/bakeoff/race1-t447-replication/lanes-map.sealed.json",
+  "frozen_worktree": "/tmp/weizigo/race1-t447 (commit 111c141)"
+ }
+}
