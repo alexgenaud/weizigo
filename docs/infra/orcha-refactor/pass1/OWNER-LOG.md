@@ -980,6 +980,36 @@ normal kill path is byte-identical). Flagged; T556's arm, not this seat's to red
 
 ---
 
+## 2026-08-21 — D35: committed (bec8be2); cost/overqualification corrected in goldilocks.md
+
+Owner: deepseek-v4-pro / T557. Acting on the operator's instruction ("commit without my
+ruling; we can and should squash later") — the pass-1 work is now committed.
+
+- **Commit `bec8be2`** (subject "T557: pass-1 treekill verb + runner cannibalization +
+  acceptance suite") carries: `src/managent/main.zig`, `tools/runner`,
+  `tools/regression-runner-guard.sh`, the new `tools/regression-process-ownership.sh`,
+  `AGENTS.md` (goldilocks pointer), the whole `docs/infra/orcha-refactor/{pass1,grading}`
+  corpus, `docs/infra/races/{goldilocks,metric-vocabulary}.md`,
+  `docs/evidence/orcha-pass1-perfamily-topology/`, the pass-1 findings (T554/T556/T557 +
+  the Opus review), and `docs/infra/managent/tasks.json` (B-6 acceptance gate + T557 claim).
+  Staged by name via `tools/git-commit-mine --explicit`; the 44 remaining dirty paths are
+  other consoles' in-flight work (engine, grand-race-p0, model-profiles) and were NOT swept.
+- **Cost/overqualification correction (operator ruling) applied to `goldilocks.md`:**
+  overqualification is relative to task requirements, not cost; cost is factored LATE and
+  LAZY and is not a race-test measurement. Removed "cost" from the scored metrics and the
+  "next-cheaper"/"at more cost" wording from the just-right/overqualified definitions; the
+  Fable/Hello_World vs epistemic-tree example is in. So the B-3 ledger's "dspro is the
+  cheaper equivalent" is a deployment note, not a result — recorded as such, not as a rank.
+- **`findings/T556-pass1-stats.json` made conforming** (was C7-nonconforming — missing
+  task_id/date/model/claims, and a wrong `unknown/` identifier): the pre-commit floor (C7=0)
+  was blocking the commit; added the keys and set the correct model (`deepseek-v4-flash`, D22).
+  claimlint C7-nonconforming is back to 0; C2 stays 11 (at the recorded floor).
+
+Remaining after this: T554/T555/ORCHA-FLASH close (done gate now satisfiable), t11/t12 fold,
+and the ladder races.
+
+---
+
 ## 2026-08-21 — D26: handover to T557 (fresh DSPro); T556 goes read-only advisory
 
 Seat handover, following the D11/D13 pattern. Registered `T557` (dispatchable, set A) with
