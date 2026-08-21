@@ -9,16 +9,14 @@
 | 0-6 | DONE |
 | 7 build + audit | DONE (PASS-WITH-FINDINGS; B-1..B-6 closed) |
 | 8 verify + smoke | DONE (pass-1 green; full suite red only on pre-existing quirk + pending deploy) |
-| 9 accept | IN PROGRESS (08-accept.md + findings + deploy DONE; commit = the operator's bookend decision) |
+| 9 accept | DONE (08-accept.md + findings + deploy + commit `bec8be2`; T554/T555/ORCHA-FLASH closed) |
 
 ## Running now
-- phase 9 commit — prepared, awaiting the operator's bookend-commit decision (file list in OWNER-LOG D32)
 - t11 - DSPro designing the appetite config + matrix schema + model-perf restructure (in flight, audit next)
 
 ## Queued (in order)
-1. phase 9 commit — bookend (then close T554/T555/ORCHA-FLASH)
-2. t11 - audit with a fresh model, then implement (model-perf restructure + adopt config)
-3. ladder races - per `docs/infra/races/goldilocks.md` (R4/R5) and the appetite
+1. t11 - audit with a fresh model, then implement (model-perf restructure + adopt config)
+2. ladder races - per `docs/infra/races/goldilocks.md` (R4/R5) and the appetite
 
 ## Standing race-field constraint (operator + T556, 2026-08-21)
 Race **only Claude + DeepSeek API models** — Fable, Opus, Sonnet, Haiku, DSPro, Flash.
@@ -35,5 +33,4 @@ rungs. Claude weekly ~70% used → full field only to establish a rung, not rout
 - spec audit: `docs/infra/orcha-refactor/pass1/01-spec-audit-disposition.md`
 
 ## Blocked / open
-- **Committed** as `bec8be2` (D35). Remaining: close T554/T555/ORCHA-FLASH (done gate now satisfiable), then t11/t12 fold and the ladder races.
-- T554/T555/ORCHA-FLASH are orphaned in_progress rows; close now that the deliverable is committed.
+- **Pass-1 committed** (`bec8be2`…`6f8a432`) and T554/T555/ORCHA-FLASH closed. Remaining: t11/t12 fold and the ladder races.

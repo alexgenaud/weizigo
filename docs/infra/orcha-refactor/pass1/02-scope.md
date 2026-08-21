@@ -56,7 +56,6 @@ the only local model of interest — qwen's own dispatch failures are the same h
 
 1. G3 family-exclusion counting rule (round-2 analysis).
 2. spec-C detach exemption (`01-spec.md` open question 1).
-3. Bookend commit of the round-1 artifacts (owner's prior suggestion: yes).
 
 ## 6. Cut order if the pass must slim
 

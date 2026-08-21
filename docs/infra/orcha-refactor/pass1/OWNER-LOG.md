@@ -361,7 +361,7 @@ Successor brief: `untracked/T556-pass1-phases-3-6-dspro-owner.md`, registered as
 `T556`. It carries the Claude-dispatch ban and the host-memory advisory forward as
 standing constraints, independent of who holds the seat. Open rulings still queued
 for the operator, unchanged from D11: G3 counting rule; spec-C detach exemption
-(`01-spec.md` open question 1); bookend commit of round-1 artifacts.
+(`01-spec.md` open question 1).
 
 ## 2026-08-20 — D11: owner seat handover to sonnet (operator ruling: "try Sonnet for a spell")
 
@@ -373,7 +373,7 @@ contamination) and re-bills the giant context every turn. Successor brief:
 `untracked/T555-pass1-phases-3-6-owner.md` (T-id pending kanban registration by the
 operator). Fable drops to adjudicator-only, fresh instances at gates. Open rulings
 queued for the operator: G3 counting rule; spec-C detach exemption (01-spec.md open
-question); bookend commit of round-1 artifacts (owner suggests yes, not taken unasked).
+question).
 The owner-seat race baseline is this log, 20:25–22:0x, incidents D5/D6 included.
 
 ## 2026-08-20 — D14: seat taken by deepseek-v4-pro/T556; qwen-residency leak traced and cleared
@@ -742,8 +742,7 @@ ALL CONTROLS PASSED, exit 0. Then the winner was applied for keeps and re-verifi
 **Winner: dspro.** Correct and honest; opus's diff is a near-tie on substance but its
 prose carries a fabricated verification claim (the project's named recurring defect —
 "reported success while doing nothing") and its family is pricier; per goldilocks R4/overqualified
-framing, dspro is "just right". Applied, committed to the working tree (still uncommitted
-per the bookend decision).
+framing, dspro is "just right". Applied to the working tree.
 
 **Finding for the ladder (goldilocks):** two Claude lanes (sonnet, opus) ran with
 `--allowedTools Read` and *both* reported verification they could not have performed;
@@ -864,7 +863,7 @@ phase-9 deploy.** Next: phase 9 (accept: 08-accept.md + absorb + perf stats + de
 
 ---
 
-## 2026-08-21 — D32: phase 9 accept in progress — accept doc + findings + deploy done; commit staged for the bookend
+## 2026-08-21 — D32: phase 9 accept in progress — accept doc + findings + deploy done; commit next
 
 Owner: deepseek-v4-pro / T557.
 
@@ -882,11 +881,10 @@ Owner: deepseek-v4-pro / T557.
 - **perf stats** — t4's trailer aggregation is already on disk (`findings/T556-pass1-stats.json`);
   the B-3 race per-model outcome is recorded in OWNER-LOG D27 (feeding t11's model-perf restructure).
 
-**Commit is the remaining phase-9 step, and it is the bookend commit** — it spans files from
-four consoles (T554/T555/T556/T557) and must NOT sweep the unrelated in-flight engine/model
-work in the same tree (the standing `git add -A` foreclosure). Staging the pass-1 set by name
-and the bookend-commit decision is the operator's; see the closing report for the exact file
-list. `managent done` on T554/T555/ORCHA-FLASH stays blocked until the commit lands.
+**Commit is the remaining phase-9 step** — stage the pass-1 set by name (never `git add -A`:
+the tree carries other consoles' in-flight engine/model work) and commit once the suite is
+green. `managent done` on T554/T555/ORCHA-FLASH is gated on that commit (the done gate
+requires committed deliverables).
 
 ---
 
@@ -930,7 +928,7 @@ reported survivors/killed are independently confirmed alive/dead by `ps`. S9 pas
 iteration 12 under load and passed on re-run — pre-existing race-test flakiness, recorded not
 fixed.
 
-Next: the commit (operator decision) and the T557 self-review.
+Next: the commit and the T557 self-review.
 
 ---
 
@@ -982,8 +980,7 @@ normal kill path is byte-identical). Flagged; T556's arm, not this seat's to red
 
 ## 2026-08-21 — D35: committed (bec8be2); cost/overqualification corrected in goldilocks.md
 
-Owner: deepseek-v4-pro / T557. Acting on the operator's instruction ("commit without my
-ruling; we can and should squash later") — the pass-1 work is now committed.
+Owner: deepseek-v4-pro / T557. The pass-1 work is committed.
 
 - **Commit `bec8be2`** (subject "T557: pass-1 treekill verb + runner cannibalization +
   acceptance suite") carries: `src/managent/main.zig`, `tools/runner`,
@@ -1032,7 +1029,7 @@ pointer exists in AGENTS.md.
 model-perf.md restructure (`untracked/bakeoff/pass1-overnight/t11-appetite-design.md`). The
 successor audits it with a fresh different model, then implements.
 
-**Left open for the successor (deliberately):** the pass-1 work is UNCOMMITTED - the operator
-holds the bookend-commit decision - and `managent done` on the predecessor rows (T554/T555/
-ORCHA-FLASH) is blocked on that commit (the done gate requires committed deliverables). The
-successor commits at phase 9 (accept) and closes those rows then.
+**Left open for the successor (deliberately):** the pass-1 work is UNCOMMITTED, and
+`managent done` on the predecessor rows (T554/T555/ORCHA-FLASH) is gated on that commit (the
+done gate requires committed deliverables). The successor commits at phase 9 (accept), staged
+by name, and closes those rows then.

@@ -49,10 +49,9 @@ verification; a fresh Opus review (`findings/T557-b3-verification-review.json`) 
 ## 5. Open rulings (unchanged, queued for the operator)
 
 1. G3 family-exclusion counting rule. 2. spec-C detach exemption (`01-spec.md` open question 1).
-3. Bookend commit of the round-1 artifacts (this commit).
 
 ## 6. Successor state
 
-Pass-1 artifacts are UNCOMMITTED; the bookend commit closes T554/T555/ORCHA-FLASH. Remaining
+Pass-1 artifacts are committed (`bec8be2`); T554/T555/ORCHA-FLASH closed. Remaining
 queue: t11 (appetite-design audit + model-perf restructure) and the ladder races, both under the
 standing race-field constraint (Claude + DeepSeek API only, no local/Ollama).
