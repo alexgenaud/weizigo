@@ -1,0 +1,9 @@
+{
+ "task_id": "T567",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T567",
+ "claims": [],
+ "new_rows": [],
+ "notes": "T567 — scrubbed the six T559 load-test dummy lanes (TL1A..TL1F) that sat in_progress in the live store, making the 'in progress (8)' gauge lie by six. RECONSTRUCTION (with commit evidence): the brief's candidate mechanism ('043a53a store re-serialization resurrected the closes') is REFUTED. `git log -G '\"TL1A\"' -- docs/infra/managent/tasks.json` shows only ONE commit ever touched TL1A: e341eb1 ('T559: register + close load-test lanes'). In that commit the rows are already `status: in_progress, done: null, claim_count: 2` — the 'close' in the commit message never landed in the store. Snapshots at e341eb1, 043a53a, and HEAD all show 6 TL1 rows, all in_progress. So there is no resurrection: the close never happened. ROOT CAUSE: the T559 drive script (untracked/bakeoff/t559-drive.sh) dispatched six lanes via `tools/runner --max-wall 600 --task-id TL1x -- python3 -c 'import time; time.sleep(300)'`; the runner AUTO-CLAIMS the named row in the LIVE store at launch (T559 findings FINDING B: 'a SIGKILLed runner leaves the row in_progress'). The host guard culled each lane (SIGKILL), and no exit path ever closed/retired the rows. ACTION TAKEN: retired all six with `managent retire TL1x --note 'T559 load-test dummy lane; gate PASS; never actually closed — scrubbed by T567'`. `bin/managent status` now shows zero TL1* rows outside the archive. LEFT (follow-up T570): the durable fix — the T559 harness must run against a scratch MANAGENT_STORE (the established pattern, regression-dispatch-verification.sh:82) or guarantee cleanup on every exit path, plus a seeded-defect regression arm (a dummy lane left behind must turn the arm red). Registering that as T572 rather than folding a test-first tooling change into this scrub."
+}
