@@ -1,0 +1,9 @@
+{
+  "task_id": "T557",
+  "date": "2026-08-21",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T557",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Pass-2 spec audit (4 lanes: claude-opus-5, deepseek-v4-flash, claude-sonnet-5, claude-haiku-4-5-20251001). Verdict PASS-WITH-FINDINGS; disposition at docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/audit-disposition.md (F1-F11, all ACCEPT). Per-lane: opus 11 findings incl. the four musts (HOLD-6 false under the kept runner, seed Pass-5 deferral, DP-4 flag-keyed envelope seam, the fifth model list in fleet-keeper.sh) + live repro of B-9/B-10 reds; flash 6 (HOLD-6/C7 scoping, the \\bpi\\b gate tripping prose, no golden-master characterize arm for behaviour-preserving fleet-fill); sonnet 2 (F7 misapplied — bin/dispatch+bin/subagent tables match canonical_models exactly; canonical_models[] lacks a closing sentinel); haiku 3 (launch-template table missing — the data-not-code blocker; B-7/B-8 provenance). All four verified every citation on disk. Spec-fix delegated to Opus; re-audit (Flash/DSPro) follows."
+}
