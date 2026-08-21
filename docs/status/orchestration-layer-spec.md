@@ -89,3 +89,23 @@ Dashboard polish finishes L1.
 The sketch is the starting point; the full pipeline is delegated per the pass protocol: research (recover
 and re-spec the old bash queue logic) → spec → scope → design → audit → plan → build. Field: Opus (design),
 Flash (research), Sonnet + Haiku (audit), DSPro (author/consolidator).
+
+## 9. Artifact-state invariant (operational, non-negotiable)
+
+A lane's work is **LOST only when it exists in no location** — not in the tree, not in `untracked/`,
+not in `/tmp/weizigo/`, not in `~/.claude/projects/*/` (Claude session transcripts), not in git history.
+Everything else is a **location**: untracked, uncommitted, 0-byte-stdout, session-transcript — all
+recoverable, none "lost".
+
+A lane's deliverable lands in one (or more) of three places, and the runner/discharge must name which:
+(a) an in-tree file edit (Edit/Write tool — the file is in the repo, `git status` shows it);
+(b) the lane's stdout (forwarded by the runner); or
+(c) the Claude session transcript (`~/.claude/projects/<slug>/<uuid>.jsonl`).
+
+Before any claim about an artifact's fate, run the three checks mechanically, in order:
+1. `git status --porcelain <path>` — committed / untracked / modified.
+2. `ls -la <path>` and check size — on-disk / 0-byte / absent.
+3. `ls -lat ~/.claude/projects/*/` and grep the brief text — session transcript on disk.
+
+A 0-byte runner stdout is NOT a lost run if the lane's deliverable was an in-tree edit (T557's own
+error, 2026-08-21, repeated). "Lost" is reserved for "in no location."
