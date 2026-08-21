@@ -22,8 +22,8 @@
 #                      string.  The resume surface is the operator's
 #                      single read point, so the visibility lives there.
 #   cross-check        the `INBOX LOOP` paragraph is in BOTH the
-#                      bin/subagent and bin/ollama-subagent dispatch
-#                      prompts — the prompt is the only thing the worker
+#                      bin/subagent dispatch prompt for both providers
+#                      — the prompt is the only thing the worker
 #                      sees at the start, so the rule has to be there.
 #
 # All fixtures are synthetic and run in /tmp/weizigo — the live kanban and
@@ -121,7 +121,7 @@ DIRECTIVES="$WORK/docs/infra/managent/directives.jsonl"
 export MANAGENT_STORE="$STORE"
 # The regression is itself a worker-tier script — it would not dispatch
 # further — so we explicitly clear WEIZIGO_AGENT_DEPTH to depth-0 so the
-# dry-run of bin/ollama-subagent / bin/subagent inside the test renders
+# dry-run of bin/subagent inside the test renders
 # the prompt.  (When run from a manager console, the env already carries
 # depth 2 and the dry-run would refuse with the depth-cap message.)
 unset WEIZIGO_AGENT_DEPTH
@@ -257,7 +257,7 @@ fi
 # ── 4. cross-check: the INBOX LOOP paragraph is in both dispatch prompts ─
 # The prompt is the only thing a worker reads at the start; if the rule
 # is not there, the worker has no way to know to poll.  Both
-# bin/subagent and bin/ollama-subagent MUST carry the paragraph, AND
+# the dispatch prompt built by bin/subagent MUST carry the paragraph, AND
 # the paragraph MUST mention the worker-instruction command
 # (managent inbox <id> --ack).  A regression in either script is the
 # exact failure mode T352 names: the worker is silent, the human
@@ -265,15 +265,12 @@ fi
 echo ""
 echo "  4. cross-check: INBOX LOOP paragraph in the dispatch prompt"
 # T440/T441: T437 merged the subagent pair behind `--provider`, so the injected
-# prompt lives in bin/subagent alone; bin/ollama-subagent is now a thin
-# backward-compat wrapper that carries no prompt text. Assert against the
-# script that actually builds the prompt — checking the wrapper tested nothing
-# and was red for that reason, not because the paragraph had regressed.
+# prompt lives in bin/subagent alone. Assert against the script that actually
+# builds the prompt. (T527 removed the backward-compat wrapper entirely.)
 SUBAGENT="$PROJECT/bin/subagent"
-# Still needed by arm 5, which dry-runs the wrapper end-to-end: the
-# wrapper carries no prompt text of its own but must still RENDER it by
-# delegating to bin/subagent.
-OLLAMA_SUBAGENT="$PROJECT/bin/ollama-subagent"
+# T527 (T428 Phase B): the bin/ollama-subagent wrapper is removed; arm 5
+# dry-runs the ollama provider branch of bin/subagent directly.
+ollama_sub() { "$SUBAGENT" --provider ollama "$@"; }
 for s in "$SUBAGENT"; do
     if [ ! -f "$s" ]; then
         echo "    FAIL: $s missing"
@@ -309,7 +306,7 @@ printf '<!--managent set=G deliverables=findings/T997-test.json-->\n# T997 — d
 # script init (cleanup, EXIT/INT/TERM/HUP) already covers $BUNDLE and
 # the worker-act-on log. Overriding it here would have re-introduced
 # the EXIT-only coverage gap that T448 fixes.
-OUT=$("$OLLAMA_SUBAGENT" T997 --model minimax-m3 --dry-run 2>&1)
+OUT=$(ollama_sub T997 --model minimax-m3 --dry-run 2>&1)
 if echo "$OUT" | grep -q "INBOX LOOP" && \
    echo "$OUT" | grep -q "managent inbox T997 --ack"; then
     echo "    PASS: dry-run prompt includes 'INBOX LOOP' and 'managent inbox T997 --ack'"

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# regression-ollama-dispatcher.sh — T337 S1 controls for bin/ollama-subagent
+# regression-ollama-dispatcher.sh — T337 S1 controls for the Ollama dispatch path
+# (bin/subagent --provider ollama; the bin/ollama-subagent wrapper was removed by T527)
 #
 # T317 item 2 canonicalized the model label and then passed the CANONICAL
 # label to `ollama launch` instead of the Ollama tag. The Orchestrator fixed
@@ -14,7 +15,7 @@
 #                  passes the canonical label to ollama launch — is CAUGHT by
 #                  this test (the red half; without it the green half is
 #                  decoration).
-#   cross-check    OLLAMA_TAG_TO_CANONICAL in bin/ollama-subagent and
+#   cross-check    OLLAMA_TAG_TO_CANONICAL in bin/subagent and
 #                  canonical_models[] in src/managent/main.zig MUST NOT DRIFT.
 #                  Two copies of one truth is the divergence this project
 #                  keeps paying for (T336 §Gaps).
@@ -30,13 +31,20 @@
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$HERE/.."
-OLLAMA_SUBAGENT="$ROOT/bin/ollama-subagent"
-# T440: the tag table moved into bin/subagent when T437 merged the pair;
-# the wrapper no longer carries it, so the cross-check reads the source.
+SUBAGENT="$ROOT/bin/subagent"
+# T527 (T428 Phase B): the bin/ollama-subagent wrapper is removed; the Ollama
+# dispatcher IS bin/subagent --provider ollama. Same controls, new entry point.
+ollama_sub() { "$SUBAGENT" --provider ollama "$@"; }
+# T527: clear inherited depth — a depth-3 leaf running this suite would see
+# every dry-run REFUSED at the cap (the refusal is bin/subagent's, correct in
+# production, environmental noise here). Controls that test the cap set
+# WEIZIGO_AGENT_DEPTH explicitly per call, which still overrides this.
+unset WEIZIGO_AGENT_DEPTH
+# T440: the tag table moved into bin/subagent when T437 merged the pair.
 TAG_TABLE_SRC="$ROOT/bin/subagent"
 FAIL=0
 
-# Synthetic bundle — the T-ID branch of ollama-subagent requires it
+# Synthetic bundle — the T-ID branch of the dispatcher requires it
 BUNDLE="$ROOT/untracked/T996-regression-ollama-dispatcher.md"
 # T448: refuse to run if a previous run left live-tree residue behind.
 # The pre-T448 `rm -f` here was exactly the silent-overwrite behaviour
@@ -89,10 +97,10 @@ check_agent_in_line() {
 
 # ── control 1: glm-5.2:cloud ──────────────────────────────────────────────
 echo "  1. glm-5.2:cloud — launch uses raw tag, agent lines use canonical"
-OUT_GLM=$("$OLLAMA_SUBAGENT" T996 --model glm-5.2:cloud --dry-run 2>&1)
+OUT_GLM=$(ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
-    echo "    FAIL: ollama-subagent exit code $RC"
+    echo "    FAIL: ollama dispatch exit code $RC"
     echo "$OUT_GLM"
     FAIL=1
 else
@@ -110,10 +118,10 @@ fi
 
 # ── control 2: kimi-k2.7-code:cloud ──────────────────────────────────────
 echo "  2. kimi-k2.7-code:cloud — launch uses raw tag, agent lines use canonical"
-OUT=$("$OLLAMA_SUBAGENT" T996 --model kimi-k2.7-code:cloud --dry-run 2>&1)
+OUT=$(ollama_sub T996 --model kimi-k2.7-code:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
-    echo "    FAIL: ollama-subagent exit code $RC"
+    echo "    FAIL: ollama dispatch exit code $RC"
     echo "$OUT"
     FAIL=1
 else
@@ -131,10 +139,10 @@ fi
 
 # ── control 3: minimax-m3:cloud ──────────────────────────────────────────
 echo "  3. minimax-m3:cloud — launch uses raw tag, agent lines use canonical"
-OUT=$("$OLLAMA_SUBAGENT" T996 --model minimax-m3:cloud --dry-run 2>&1)
+OUT=$(ollama_sub T996 --model minimax-m3:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
-    echo "    FAIL: ollama-subagent exit code $RC"
+    echo "    FAIL: ollama dispatch exit code $RC"
     echo "$OUT"
     FAIL=1
 else
@@ -156,10 +164,10 @@ fi
 # to the canonical and the prompt carries it on the claim/done lines,
 # while the launch still uses the raw tag.
 echo "  4. qwen3.8:27b-mlx — launch uses raw tag, agent lines use canonical"
-OUT_QWEN=$("$OLLAMA_SUBAGENT" T996 --model qwen3.8:27b-mlx --dry-run 2>&1)
+OUT_QWEN=$(ollama_sub T996 --model qwen3.8:27b-mlx --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
-    echo "    FAIL: ollama-subagent exit code $RC"
+    echo "    FAIL: ollama dispatch exit code $RC"
     echo "$OUT_QWEN"
     FAIL=1
 else
@@ -177,7 +185,7 @@ fi
 
 # ── control 5: depth cap still fires ─────────────────────────────────────
 echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"
-OUT=$(WEIZIGO_AGENT_DEPTH=3 "$OLLAMA_SUBAGENT" T996 --model glm-5.2:cloud 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=3 ollama_sub T996 --model glm-5.2:cloud 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: refused at cap depth 3 (RC=$RC)"
@@ -187,7 +195,7 @@ else
 fi
 
 # ── cross-check: OLLAMA_TAG_TO_CANONICAL ↔ canonical_models[] ────────────
-# Every canonical value in the ollama-subagent mapping must appear in
+# Every canonical value in the bin/subagent tag mapping must appear in
 # canonical_models[] in main.zig, and every Ollama model in canonical_models[]
 # must have at least one tag mapping.  Two copies of one truth — the
 # divergence this project keeps paying for.
@@ -197,8 +205,7 @@ PASS_CROSS=1
 
 # Extract canonical values from the OLLAMA_TAG_TO_CANONICAL dict (the values —
 # right-hand side of each mapping). T440: the table lives in bin/subagent since
-# T437 merged the pair; bin/ollama-subagent is now a thin wrapper and no longer
-# carries it, so the cross-check reads the source of truth directly.
+# T437 merged the pair; the cross-check reads the source of truth directly.
 OLLAMA_CANONICALS=$(python3 -c "
 import re, sys
 with open('$TAG_TABLE_SRC') as f:
@@ -216,7 +223,7 @@ for line in block.split('\n'):
             vals.add(v.group(1))
 for v in sorted(vals):
     print(v)
-" 2>&1) || { echo "    FAIL: cannot parse OLLAMA_TAG_TO_CANONICAL from bin/ollama-subagent"; FAIL=1; PASS_CROSS=0; }
+" 2>&1) || { echo "    FAIL: cannot parse OLLAMA_TAG_TO_CANONICAL from bin/subagent"; FAIL=1; PASS_CROSS=0; }
 
 if [ "$PASS_CROSS" -eq 1 ]; then
     # Extract canonical_models array from main.zig

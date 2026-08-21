@@ -57,14 +57,21 @@ PROJECT="$(cd "$HERE/.." && pwd)"
 FAIL=0
 
 # ── binary resolution ─────────────────────────────────────────────────────
+# T527 (T428 Phase B): absorb is a verb of weizigo-claimlint; the standalone
+# weizigo-absorb binary and its compat wrapper are retired. ABSORB_BIN, if
+# set, must point at a claimlint binary (the verb is appended below).
+# The old resolution preferred zig-out/bin/weizigo-absorb, which after T437
+# was a STALE pre-merge artifact — the regression was exercising a retired
+# binary whenever zig-out had not been cleaned. Resolve claimlint instead.
 ABS="${ABSORB_BIN:-}"
 if [ -z "$ABS" ]; then
-    if [ -x "$PROJECT/zig-out/bin/weizigo-absorb" ]; then
-        ABS="$PROJECT/zig-out/bin/weizigo-absorb"
-    elif [ -x "$PROJECT/bin/weizigo-absorb" ]; then
-        ABS="$PROJECT/bin/weizigo-absorb"
+    if [ -x "$PROJECT/zig-out/bin/weizigo-claimlint" ]; then
+        ABS="$PROJECT/zig-out/bin/weizigo-claimlint"
+    elif [ -x "$PROJECT/bin/weizigo-claimlint" ]; then
+        ABS="$PROJECT/bin/weizigo-claimlint"
     fi
 fi
+absorb_run() { "$ABS" absorb "$@"; }
 MG="${MANAGENT_BIN:-}"
 if [ -z "$MG" ]; then
     if [ -x "$PROJECT/zig-out/bin/managent" ]; then
@@ -74,7 +81,7 @@ if [ -z "$MG" ]; then
     fi
 fi
 if [ -z "$ABS" ]; then
-    echo "SKIP: no weizigo-absorb binary found — build with 'zig build' (zig-out/bin/weizigo-absorb) or deploy"
+    echo "SKIP: no weizigo-claimlint binary found — build with 'zig build' (zig-out/bin/weizigo-claimlint) or deploy"
     exit 0
 fi
 if [ -z "$MG" ]; then
@@ -145,7 +152,7 @@ cat > findings.json <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_A1=$("$ABS" findings.json --dry-run 2>"$WORK/A/stderr-A1")
+OUT_A1=$(absorb_run findings.json --dry-run 2>"$WORK/A/stderr-A1")
 RC_A1=$?
 if [ "$RC_A1" -eq 0 ] && \
    grep -q "parsed ${REG_COUNT} rows" "$WORK/A/stderr-A1" && \
@@ -181,7 +188,7 @@ cat > docs/epistemic/CLAIMS.md <<'MDEOF'
 MDEOF
 echo "scratch evidence" > scratch.md
 cp "$WORK/A/findings.json" findings.json
-OUT_A2=$("$ABS" findings.json --dry-run 2>"$WORK/A10/stderr-A2")
+OUT_A2=$(absorb_run findings.json --dry-run 2>"$WORK/A10/stderr-A2")
 RC_A2=$?
 if [ "$RC_A2" -ne 0 ] && \
    grep -qi "0 rows" "$WORK/A10/stderr-A2" && \
@@ -211,7 +218,7 @@ cat > findings-null.json <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_A3=$("$ABS" findings-null.json 2>/dev/null)
+OUT_A3=$(absorb_run findings-null.json 2>/dev/null)
 RC_A3=$?
 if [ "$RC_A3" -eq 0 ] && \
    echo "$OUT_A3" | grep -q '"directive":"noop"' && \

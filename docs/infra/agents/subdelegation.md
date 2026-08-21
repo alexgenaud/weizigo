@@ -1,26 +1,29 @@
 # Subdelegation
 
 ```sh
-bin/subagent <T-ID> --dspro         # DeepSeek-v4-Pro worker
-bin/subagent <T-ID> --dsflash       # DeepSeek-v4-Flash worker
-bin/subagent <T-ID> --dspro --wall=900     # wall guard, default 1800s
-bin/subagent <T-ID> --dspro --dry-run      # print the command, spawn nothing
-bin/subagent <path.md> --dsflash    # bare dispatch, no kanban lifecycle
+bin/subagent --provider deepseek <T-ID> --dspro    # DeepSeek-v4-Pro worker
+bin/subagent --provider deepseek <T-ID> --dsflash  # DeepSeek-v4-Flash worker
+bin/subagent --provider deepseek <T-ID> --dspro --wall=900   # wall guard, default 1800s
+bin/subagent --provider deepseek <T-ID> --dspro --dry-run    # print the command, spawn nothing
+bin/subagent --provider deepseek <path.md> --dsflash   # bare dispatch, no kanban lifecycle
 
-bin/ollama-subagent <T-ID> --model <tag>            # Ollama worker (guarded path)
-bin/ollama-subagent <T-ID> --model glm-5.2:cloud --dry-run
+bin/subagent --provider ollama <T-ID> --model <tag>    # Ollama worker (guarded path)
+bin/subagent --provider ollama <T-ID> --model glm-5.2:cloud --dry-run
+bin/subagent --provider claude <T-ID> --model claude-sonnet-5   # headless claude -p (T494)
 ```
 
 No default model — name one. **Two distinct limits, do not conflate:** (a) the *parallel* count — no fleet cap; ANALYSIS unlimited, MUTATION serial, conflict-free by `holds=` and task-kind per `docs/infra/delegation/ROLES.md` §Concurrency (operator's ruling 2026-08-19: no DeepSeek rate-limit cap); (b) the *recursion* depth — `WEIZIGO_AGENT_DEPTH`/`MAX_DEPTH=3` below stays: it bounds delegation chains so agent → subagent → sub-subagent cannot loop or branch infinitely.
 
-`bin/subagent` dispatches DeepSeek only — by construction, it hardcodes the two
-DeepSeek models and requires `DEEPSEEK_API_KEY`. Claude seats use the Claude Code
-harness and do not need this tool.
-
-`bin/ollama-subagent` dispatches an Ollama model via `ollama launch pi` with
-the same depth-cap contract as `bin/subagent` (T321, 2026-08-03). It is the
-guarded path for Ollama delegation; `ollama launch pi` itself remains directly
-callable and unguarded — see §Reach matrix and §Depth-enforcement ruling below.
+`bin/subagent` is the ONE dispatcher (T437 merged the subagent pair; T527
+removed the backward-compat wrappers `bin/ollama-subagent` and
+`bin/subagent-ds` on 2026-08-20). The `--provider` flag is REQUIRED — a bare
+call is a hard error naming the flag. `--provider deepseek` requires
+`DEEPSEEK_API_KEY`; `--provider ollama` dispatches via `ollama launch pi` with
+the same depth-cap contract (T321, 2026-08-03) and is the guarded path for
+Ollama delegation; `ollama launch pi` itself remains directly callable and
+unguarded — see §Reach matrix and §Depth-enforcement ruling below. Claude
+seats normally run from the Claude Code harness; `--provider claude` runs a
+headless `claude -p` for dispatched rows (T494).
 
 **However, workers can reach beyond DeepSeek through other paths** (T320,
 2026-08-03). See §Reach matrix below.
@@ -117,7 +120,7 @@ posture and cost, so the human rules. Option costs, one line each:
 
 - **(a) Accept convention** — zero code; the risk is an accidental recursion
   burning cloud budget. Honest and cheap.
-- **(b) Wrap the Ollama launch** — `bin/ollama-subagent` stamps `WEIZIGO_AGENT_DEPTH`,
+- **(b) Wrap the Ollama launch** — the guarded dispatcher stamps `WEIZIGO_AGENT_DEPTH`,
   increments it, and refuses at the worker depth; a convention backed by a tool,
   not a boundary, and it only helps if used instead of `ollama launch pi`.
 - **(c) Strip `DEEPSEEK_API_KEY` from Ollama children** — the only option that
@@ -126,8 +129,9 @@ posture and cost, so the human rules. Option costs, one line each:
   leaf workers; DeepSeek is dispatched from the human console or a manager via
   `bin/subagent`), and the throwaway probe found none either.
 
-**Ruling: (b), with (a)'s honest documentation.** `bin/ollama-subagent` mirrors
-the `bin/subagent` contract for the Ollama path: it refuses at the worker depth
+**Ruling: (b), with (a)'s honest documentation.** The guarded Ollama path
+(ruled as `bin/ollama-subagent`, since T437/T527 the `--provider ollama` branch
+of `bin/subagent`) mirrors the DeepSeek contract: it refuses at the worker depth
 (`WEIZIGO_AGENT_DEPTH >= 2`), and stamps the child at depth 2. It is a safety
 mechanism, not a security boundary — `ollama launch pi` remains directly callable
 and unguarded, so the three paths above stay live and are documented as such.
@@ -220,7 +224,8 @@ WHEN DONE, before any other output:
 ```
 
 `--agent <model>` is always included; the script resolves the model from the
-`--dspro`/`--dsflash` flag. The bundle carries everything else.
+`--dspro`/`--dsflash` flag (deepseek), the `--model` tag (ollama/claude). The
+bundle carries everything else.
 
 ## Findings schema
 

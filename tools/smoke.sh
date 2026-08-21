@@ -127,8 +127,10 @@ deploy_check() {
 # Per-tool source scope: the tool's own sources + the version generator +
 # build.zig (a build.zig change can alter any binary's build or deploy).
 MANAGENT_SRC="src/managent/ tools/gen-version.sh build.zig"
-ABSORB_SRC="src/absorb.zig src/claims_register.zig tools/gen-version.sh build.zig"
-CLAIMLINT_SRC="src/claimlint.zig tools/gen-version.sh build.zig"
+# T527: absorb.zig and claims_register.zig compile INTO weizigo-claimlint
+# since the T437 merge — a change to either must flag a stale deployed
+# claimlint (the old CLAIMLINT_SRC missed them).
+CLAIMLINT_SRC="src/claimlint.zig src/absorb.zig src/claims_register.zig tools/gen-version.sh build.zig"
 GTP_SRC="src/gtp.zig tools/gen-version.sh build.zig"
 CHAIN_SRC="src/chainability.zig tools/gen-version.sh build.zig"
 EVSE_SRC="src/engine-vs-engine.zig tools/gen-version.sh build.zig"
@@ -136,14 +138,9 @@ REACH_SRC="src/reachcensus.zig tools/gen-version.sh build.zig"
 
 # managent: --version prints the banner and exits 0.
 deploy_check managent "$MANAGENT_SRC" --version
-# weizigo-absorb: no-arg run prints banner + usage (exit 1); banner is what we need.
-# T437 consolidated absorb into `weizigo-claimlint absorb` and removed
-# absorb_exe from build.zig, so bin/weizigo-absorb is no longer a deployed
-# binary — it is a compat alias that execs claimlint. The negative control
-# below compares a tool's version stamp to its own name, so an alias trips
-# it by design. Asserting a retired binary is current tests nothing; the
-# tool it delegates to IS still checked (weizigo-claimlint, below).
-# deploy_check weizigo-absorb "$ABSORB_SRC"   # retired T437/T440
+# weizigo-absorb: retired. T437 consolidated absorb into `weizigo-claimlint
+# absorb`; T527 removed the compat alias entirely. The tool it delegated to
+# IS still checked (weizigo-claimlint, below).
 # weizigo-claimlint: --version prints banner then scans the register (exit 0).
 deploy_check weizigo-claimlint "$CLAIMLINT_SRC" --version
 # weizigo-gtp: --version prints banner (stderr) then fails to load the artifact.

@@ -13,20 +13,24 @@
 # children — is NOT moot (the real dispatch proved the capability) but is held
 # for the human's explicit word and is NOT implemented here.
 #
+# T527 (T428 Phase B, 2026-08-20): the bin/ollama-subagent wrapper is removed;
+# the guarded Ollama path is bin/subagent --provider ollama. The controls below
+# are unchanged in meaning — only the entry point moved.
+#
 # Controls (option b):
-#   null-1   bin/ollama-subagent at human depth (unset -> 1) is NOT refused
+#   null-1   the ollama provider path at human depth (unset -> 1) is NOT refused
 #            (--dry-run prints the command, RC 0)
-#   null-2   bin/ollama-subagent at depth 1 is NOT refused
-#   seeded-1 bin/ollama-subagent at the worker depth (2) IS refused — this was
+#   null-2   the ollama provider path at depth 1 is NOT refused
+#   seeded-1 the ollama provider path at the cap depth IS refused — this was
 #            red pre-fix (no tool, no refusal) and is green post-fix
-#   seeded-2 bin/ollama-subagent fail-closes on an unreadable depth (refused)
-#   seeded-3 bin/subagent's DeepSeek->DeepSeek refusal STILL fires at depth 2
+#   seeded-2 the ollama provider path fail-closes on an unreadable depth (refused)
+#   seeded-3 bin/subagent's DeepSeek->DeepSeek refusal STILL fires at the cap
 #            (the bar: the existing edge must still be guarded after the change)
 #   doc-1    subdelegation.md records the ruling and the three paths
 #   doc-2    subdelegation.md records the attribution rule (never self-report)
 #
 # All fixtures are synthetic and run against the live repo's bin/ + docs/. The
-# T-ID branch of bin/ollama-subagent needs a synthetic bundle in untracked/.
+# T-ID branch of the dispatcher needs a synthetic bundle in untracked/.
 # This script is NOT in the build graph; wiring it into `zig build test` is a
 # separate row.
 #
@@ -41,7 +45,9 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$HERE/.."
 SUBAGENT="$ROOT/bin/subagent"
-OLLAMA_SUB="$ROOT/bin/ollama-subagent"
+# T527 (T428 Phase B): the bin/ollama-subagent wrapper is removed; the guarded
+# Ollama path IS bin/subagent --provider ollama. Same controls, same semantics.
+ollama_sub() { "$SUBAGENT" --provider ollama "$@"; }
 DOC="$ROOT/docs/infra/agents/subdelegation.md"
 FAIL=0
 
@@ -72,8 +78,8 @@ trap cleanup EXIT INT TERM HUP
 echo "=== depth-enforcement regression (T321, option b) ==="
 
 # ── null-1: human depth (unset) is NOT refused ───────────────────────────
-echo "  1. null: bin/ollama-subagent at depth unset is NOT refused"
-OUT=$(env -u WEIZIGO_AGENT_DEPTH "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+echo "  1. null: the ollama provider path at depth unset is NOT refused"
+OUT=$( (unset WEIZIGO_AGENT_DEPTH; ollama_sub T996 --model glm-5.2:cloud --dry-run) 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "ollama launch pi --model glm-5.2:cloud"; then
     echo "    PASS: prints command, RC 0 (not refused)"
@@ -83,8 +89,8 @@ else
 fi
 
 # ── null-2: depth 1 is NOT refused ──────────────────────────────────────
-echo "  2. null: bin/ollama-subagent at depth 1 is NOT refused"
-OUT=$(WEIZIGO_AGENT_DEPTH=1 "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+echo "  2. null: the ollama provider path at depth 1 is NOT refused"
+OUT=$(WEIZIGO_AGENT_DEPTH=1 ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=2"; then
     echo "    PASS: stamps child depth 2, RC 0 (not refused)"
@@ -96,8 +102,8 @@ fi
 # ── seeded-1: the CAP depth (3) IS refused — recursion terminates ───────
 # T431: the bound moved from 2 to 3 so a manager may delegate a manager. The
 # bound itself is the principle and must still fire; only its value moved.
-echo "  3. seeded: bin/ollama-subagent at cap depth 3 IS refused"
-OUT=$(WEIZIGO_AGENT_DEPTH=3 "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+echo "  3. seeded: the ollama provider path at cap depth 3 IS refused"
+OUT=$(WEIZIGO_AGENT_DEPTH=3 ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: refused at depth 3 (RC=$RC)"
@@ -110,8 +116,8 @@ fi
 # This is the point of the change: a sprint console must be able to dispatch
 # its own phase audits. Pre-T431 this was REFUSED, which is why sprints had
 # to ask the human to paste their dispatches.
-echo "  3b. null: bin/ollama-subagent at manager depth 2 is NOT refused, stamps 3"
-OUT=$(WEIZIGO_AGENT_DEPTH=2 "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+echo "  3b. null: the ollama provider path at manager depth 2 is NOT refused, stamps 3"
+OUT=$(WEIZIGO_AGENT_DEPTH=2 ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=3"; then
     echo "    PASS: manager may dispatch; child stamped depth 3"
@@ -134,8 +140,8 @@ else
 fi
 
 # ── seeded-2: unreadable depth fail-closes to worker ────────────────────
-echo "  4. seeded: bin/ollama-subagent fail-closes on an unreadable depth"
-OUT=$(WEIZIGO_AGENT_DEPTH=garbage "$OLLAMA_SUB" T996 --model glm-5.2:cloud --dry-run 2>&1)
+echo "  4. seeded: the ollama provider path fail-closes on an unreadable depth"
+OUT=$(WEIZIGO_AGENT_DEPTH=garbage ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: garbage depth treated as worker (RC=$RC)"

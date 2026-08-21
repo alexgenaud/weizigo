@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared dispatch verification for bin/subagent and bin/ollama-subagent (T411).
+"""Shared dispatch verification for bin/subagent — both provider branches (T411).
 
 T408's kimi incident (2026-08-07): a dispatched agent replied exactly "OK."
 and executed NOTHING — no claim, no ping, no done.  The row stayed

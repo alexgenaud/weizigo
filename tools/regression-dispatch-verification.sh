@@ -2,7 +2,7 @@
 # regression-dispatch-verification.sh — T411 controls for the dispatchers' work verification
 #
 # T513 (F4, 2026-08-20): re-pinned to HEAD. The regression runs the COMMITTED
-# dispatch contract (bin/subagent, bin/ollama-subagent, tools/dispatch_verify.py
+# dispatch contract (bin/subagent + tools/dispatch_verify.py
 # extracted from HEAD into scratch), not the live working-tree file, so a live
 # uncommitted edit cannot pass this gate against a contract the commit did
 # not record. The substrate the contract depends on (managent, claimlint — the
@@ -31,7 +31,7 @@
 #              incident, reproduced mechanically. The dispatcher MUST fail
 #              it (rc != 0, "verification FAILED", row still open), and the
 #              perf ledger must record verified=fail. Run through BOTH
-#              dispatchers (subagent and ollama-subagent), because the
+#              provider branches (deepseek and ollama), because the
 #              verification lives in two scripts sharing one module.
 #              RED RUN (pre-T411 tooling, recorded in the T411 session,
 #              2026-08-07): the same stub returned rc=0 and the row stayed
@@ -61,7 +61,7 @@ CLAIMLINT="$ROOT/bin/weizigo-claimlint"
 FAIL=0
 
 # F4/T513 — re-pin to HEAD: the regression runs the COMMITTED dispatch
-# contract (bin/subagent, bin/ollama-subagent, tools/dispatch_verify.py
+# contract (bin/subagent + tools/dispatch_verify.py
 # extracted from HEAD), not the live working-tree file. A live uncommitted
 # edit can no longer make this gate pass spuriously against a contract the
 # commit did not record. The substrate the contract depends on — managent
@@ -109,9 +109,8 @@ git commit -qm base
 # $WORK/bin/managent via the symlink below). The substrate (managent,
 # claimlint) is symlinked, not extracted — it is not the contract under test.
 git -C "$ROOT" show HEAD:bin/subagent > "$WORK/bin/subagent"           || { echo "FATAL: HEAD:bin/subagent extract failed" >&2; exit 2; }
-git -C "$ROOT" show HEAD:bin/ollama-subagent > "$WORK/bin/ollama-subagent" || { echo "FATAL: HEAD:bin/ollama-subagent extract failed" >&2; exit 2; }
 git -C "$ROOT" show HEAD:tools/dispatch_verify.py > "$WORK/tools/dispatch_verify.py" || { echo "FATAL: HEAD:tools/dispatch_verify.py extract failed" >&2; exit 2; }
-chmod +x "$WORK/bin/subagent" "$WORK/bin/ollama-subagent"
+chmod +x "$WORK/bin/subagent"
 # Substrate symlinks: the committed contract calls `bin/managent` (heal) and
 # `bin/weizigo-claimlint` (the T485 done-gate) relative to the repo root it
 # walks from CWD; both must resolve inside $WORK so the scratch repo is a
@@ -119,7 +118,9 @@ chmod +x "$WORK/bin/subagent" "$WORK/bin/ollama-subagent"
 ln -s "$MG" "$WORK/bin/managent"
 ln -s "$CLAIMLINT" "$WORK/bin/weizigo-claimlint"
 SUBAGENT="$WORK/bin/subagent"
-OLLAMA_SUBAGENT="$WORK/bin/ollama-subagent"
+# T527 (T428 Phase B): the bin/ollama-subagent wrapper is removed; the ollama
+# front door is the --provider ollama branch of the same script.
+ollama_sub() { "$SUBAGENT" --provider ollama "$@"; }
 
 STORE="$WORK/docs/infra/managent/tasks.json"
 export MANAGENT_STORE="$STORE"
@@ -128,6 +129,14 @@ export WEIZIGO_MODEL_PERF="$WORK/perf-ledger.txt"
 # the live docs/infra/dispatch-heals.jsonl).
 export WEIZIGO_DISPATCH_HEALS="$WORK/dispatch-heals.jsonl"
 export REAL_MG="$MG"
+
+# T512 (audit F3, 2026-08-20): baseline the LIVE telemetry logs for the
+# closing isolation assertion.  They are append-only and the live fleet may
+# legitimately grow them mid-run, so the check scans only the lines appended
+# DURING this run for the fixture ids T998..T1005 used here — the F3 defect
+# was exactly fixture heal records in the live log.
+LIVE_HEALS_BASE=$(wc -l < "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null || echo 0)
+LIVE_PERF_BASE=$(wc -l < "$ROOT/docs/infra/model-perf.md" 2>/dev/null || echo 0)
 
 # ── stub worker: a faithful fake agent ─────────────────────────────────────
 # It parses the task ID, model, deliverable path and nonce OUT OF THE PROMPT
@@ -316,43 +325,43 @@ else
     FAIL=1
 fi
 
-# ── seeded control 1b: the same lazy worker via bin/ollama-subagent ───────
-# The verification lives in two scripts sharing one module; prove both
-# scripts are wired (a lazy worker slipping through one of them is the same
-# defect with a different front door).
-echo "  2. seeded: lazy stub is FAILED by bin/ollama-subagent too"
-OUT=$(STUB_MODE=lazy "$OLLAMA_SUBAGENT" T998 --model glm-5.2:cloud \
+# ── seeded control 1b: the same lazy worker via the ollama provider path ──
+# The verification must be wired on BOTH provider branches (a lazy worker
+# slipping through one of them is the same defect with a different front
+# door). T527: the wrapper is gone; the branch itself is the front door.
+echo "  2. seeded: lazy stub is FAILED by the ollama provider path too"
+OUT=$(STUB_MODE=lazy ollama_sub T998 --model glm-5.2:cloud \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q "verification FAILED" \
    && echo "$OUT" | grep -q "never left dispatchable"; then
-    echo "    PASS: ollama-subagent failed the lazy worker (rc=$RC)"
+    echo "    PASS: ollama provider path failed the lazy worker (rc=$RC)"
 else
     echo "    FAIL: rc=$RC; expected 'verification FAILED' + 'never left dispatchable'"
     echo "$OUT" | sed 's/^/    | /' | tail -12
     FAIL=1
 fi
 
-# ── seeded control 1c (T477): the heal fires through the ollama front door ─
-# ollama-subagent execs bin/subagent --provider ollama, so the heal (which
-# lives in the shared dispatch_verify module, invoked from bin/subagent)
-# runs on both front doors. Prove it, cheaply: a die stub via ollama-subagent.
-echo "  2b. seeded: die stub is HEALED by bin/ollama-subagent too"
-OUT=$(STUB_MODE=die "$OLLAMA_SUBAGENT" T1001 --model glm-5.2:cloud \
+# ── seeded control 1c (T477): the heal fires through the ollama branch ────
+# The heal lives in the shared dispatch_verify module invoked from
+# bin/subagent; prove it runs on the ollama provider branch too, cheaply:
+# a die stub via --provider ollama.
+echo "  2b. seeded: die stub is HEALED by the ollama provider path too"
+OUT=$(STUB_MODE=die ollama_sub T1001 --model glm-5.2:cloud \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 # T1001 was healed back to dispatchable by arm 5; the die stub claims it
 # again then exits 124, so the heal must fire a second time.
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q 'healed.*reopened T1001'; then
-    echo "    PASS: ollama-subagent healed the dead worker (rc=$RC)"
+    echo "    PASS: ollama provider path healed the dead worker (rc=$RC)"
 else
-    echo "    FAIL: rc=$RC; expected heal line for T1001 via ollama-subagent"
+    echo "    FAIL: rc=$RC; expected heal line for T1001 via the ollama provider path"
     echo "$OUT" | sed 's/^/    | /' | tail -12
     FAIL=1
 fi
 if [ "$(row_status T1001)" = "dispatchable" ]; then
-    echo "    PASS: T1001 back to dispatchable (healed via ollama-subagent)"
+    echo "    PASS: T1001 back to dispatchable (healed via the ollama provider path)"
 else
     echo "    FAIL: T1001 status is $(row_status T1001), expected dispatchable"
     FAIL=1
@@ -712,6 +721,34 @@ else
 fi
 
 echo ""
+# ── T512 isolation assertion: nothing of the suite reached live telemetry ─
+# The fixture ids this suite dispatches are T998..T1005 (plus the perf/heal
+# assertions on them).  The live logs must not gain any such line during the
+# run — the F3 defect was fixture heals in docs/infra/dispatch-heals.jsonl.
+echo "  isolation: live dispatch-heals + model-perf gained no fixture data"
+ISO_FAIL=0
+APPENDED=$(tail -n +$((LIVE_HEALS_BASE + 1)) "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null)
+if [ -z "$APPENDED" ]; then
+    echo "    PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run"
+elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-5])"'; then
+    echo "    FAIL: fixture heal record(s) appended to the LIVE heal log (F3 regression)"
+    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-5])"' | sed 's/^/    | /'
+    ISO_FAIL=1
+else
+    echo "    PASS: docs/infra/dispatch-heals.jsonl — appended lines carry no fixture data"
+fi
+APPENDED=$(tail -n +$((LIVE_PERF_BASE + 1)) "$ROOT/docs/infra/model-perf.md" 2>/dev/null)
+if [ -z "$APPENDED" ]; then
+    echo "    PASS: docs/infra/model-perf.md — no lines appended during the run"
+elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-5]) '; then
+    echo "    FAIL: fixture perf line(s) appended to the LIVE model-perf.md"
+    echo "$APPENDED" | grep -nE ' T(998|999|100[0-5]) ' | sed 's/^/    | /'
+    ISO_FAIL=1
+else
+    echo "    PASS: docs/infra/model-perf.md — appended lines carry no fixture data"
+fi
+[ "$ISO_FAIL" -eq 0 ] || FAIL=1
+
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-dispatch-verification: ALL CONTROLS PASSED ==="
     exit 0
