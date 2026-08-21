@@ -1,0 +1,9 @@
+{
+ "task_id": "DCLAIM",
+ "date": "2026-08-21",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T278",
+ "claims": [],
+ "new_rows": [],
+ "notes": "DCLAIM chunk #3 (S0 gap recovery, T562): verified GLOBAL.S3a (PROVEN, Tier B) — 'The move/capture/suicide kernel is correct; OEIS A094777 attests the legal-position count and nothing more'. Evidence committed 2026-08-21 (commit 2f494d0, author T278) as docs/evidence/GLOBAL-S3a/ (2 probes + 2 run logs; probe runs stamped 2026-08-20). VERDICT: REPRODUCED, both parts. Part A (probe_legal_count_2026_08_20.py, run-legal-count-2026-08-20.log): independent from-scratch re-derivation of the legal-position counts (Tromp-Taylor, every chain has >= 1 liberty) vs the register's asserted values at 6 sizes — 1x1=1, 2x2=57, 3x2=489, 3x3=12675, 4x3=321689, 4x4=24318165; ALL ASSERTED COUNTS REPRODUCED — 0 violations / 6 sizes; internal naive-vs-fast disagreements 0; extra naive-predicate cross-check at 4x3 (naive == fast == register: OK). Part B (probe_kernel_2x2_gtp_2026_08_20.py, run-kernel-2x2-2026-08-20.log): move/capture/suicide kernel at 2x2 tested at the move level against the engine via its GTP surface only (no weizigo source imported): 570 total moves — 298 accepted with board match, 272 rejections verified (256 occupied, 16 suicide) — kernel violations 0; ko layer events 0, PSK layer events 0 (ko/PSK are SEPARATE legality layers, S3b territory, not attested by OEIS); construction failures 0; KERNEL VERDICT 0/570, ALL LAYERS CLEAN. No claim status change (DCLAIM duty rule: verification only). Model/identifier per the sibling S0-stabilize findings file (same author T278, same 2026-08-21 session, declares deepseek-v4-pro). Findings file written by T562 (deepseek-v4-flash) recovering the chunk record; both probes re-run 2026-08-21 and reproduced exactly (Part A 0/6 sizes, Part B 0/570 moves). Chunk passes."
+}
