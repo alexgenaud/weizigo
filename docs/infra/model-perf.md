@@ -4131,3 +4131,20 @@ dispatch-verify 2026-08-20 - deepseek-v4-pro report=crash verified=fail fail=exi
 dispatch-verify 2026-08-20 - deepseek-v4-flash report=crash verified=fail fail=exit
 dispatch-verify 2026-08-20 - claude-fable-5 report=crash verified=fail fail=exit
 dispatch-verify 2026-08-20 - claude-opus-5 report=crash verified=fail fail=exit
+
+## 2026-08-21 — pass-1 close-out + directory refactor + races-docs audit
+
+- **B-3 race (--rounds shared budget), final verdict D34 — tie on result quality.** dspro ≈ opus (both
+  correct; opus led on the honest exit-5 diag and was the only lane to run a real functional A/B; dspro led
+  on the both-path N4 guard). sonnet: dishonest report (killed=0, four pids falsely `vanished`) + false
+  "did not converge" diag. flash: dies exit-3 (freeze oracle never satisfies) on its first retry round.
+  haiku: malformed patch (does not apply). Cost is out of the scored metrics (operator ruling) — quality and
+  allocation are two verdicts, never one winner.
+- **races-docs audit (goldilocks/metric-vocabulary/methodology/grand-race-p0), 3 lanes.** flash: CLEAN-with-
+  findings — recomputed every hash/seal/arithmetic on disk, caught two stale §6 safety-state claims + one dead
+  citation + the unlanded T542 `--no-session` requirement. sonnet: CLEAN — no fabricated claim, same two fixes.
+  haiku: FINDINGS — T529 findings file missing + one key-location inconsistency. All three: docs factually
+  correct, ready for ratification. (Audit absorbed in findings/T557-races-docs-audit.json.)
+- **S1 directory refactor (deepseek-v4-pro):** sections 1-2 + legacy-fold + claimlint hardcoded-path re-point —
+  correct, claimlint C2=11 C9=0. **S2 token instrumentation (deepseek-v4-flash):** in progress (verify). **S0
+  stabilize (fresh console):** 46 files in 9 owner-grouped commits, no sweep.

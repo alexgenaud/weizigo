@@ -1,0 +1,9 @@
+{
+  "task_id": "T557",
+  "date": "2026-08-21",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T557",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Absorption of the 3-lane races-docs audit (deepseek-v4-flash, claude-sonnet-5, claude-haiku-4-5-20251001) over goldilocks.md / metric-vocabulary.md / measurement-methodology.md / grand-race-p0.md / roster / fixtures. VERDICT: CLEAN-WITH-FINDINGS — all three lanes verified the docs factually correct (every recomputable hash, seal, token reading, and arithmetic reproduces on disk), ready for ratification. Findings carried forward, each small: (1) T529-grand-race-p0.json findings file is missing (grand-race-p0.md §7 lists it as a deliverable) — registered T563 to write it; (2) measurement-methodology.md §6's two 'stale-safety-state' claims (the harness DOES refuse, the arm DOES exist) and one dead citation read as current posture to an operator — small doc fix; (3) the T542 --no-session requirement for DeepSeek race lanes never landed in tools/bakeoff.sh — that is exactly T558's in-flight fix, so it self-resolves. Model-perf impressions for B-3 + this audit + S0/S1/S2 recorded in docs/infra/model-perf.md (2026-08-21 section)."
+}
