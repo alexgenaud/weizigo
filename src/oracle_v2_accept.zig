@@ -58,6 +58,7 @@
 
 const std = @import("std");
 const util = @import("util.zig");
+const evidence = @import("evidence.zig");
 const colex = @import("colex.zig");
 const rules = @import("rules.zig");
 
@@ -581,7 +582,7 @@ fn checkA1Inner(
             if (group_idx == null) {
                 refusals += 1;
                 if (refusals <= 5) {
-                    util.warn("A1 REFUSAL: colex={d} side={d} ko={d} passes={d} group not found\n", .{ colex_val, side, ko, passes });
+                    evidence.print("A1 REFUSAL: colex={d} side={d} ko={d} passes={d} group not found\n", .{ colex_val, side, ko, passes });
                 }
                 break;
             }
@@ -591,7 +592,7 @@ fn checkA1Inner(
             if (entry == null) {
                 refusals += 1;
                 if (refusals <= 5) {
-                    util.warn("A1 REFUSAL: colex={d} side={d} ko={d} passes={d} entry not found\n", .{ colex_val, side, ko, passes });
+                    evidence.print("A1 REFUSAL: colex={d} side={d} ko={d} passes={d} entry not found\n", .{ colex_val, side, ko, passes });
                 }
                 break;
             }
@@ -882,13 +883,13 @@ fn checkA2Inner(
             if (L != best_L) {
                 L_violations += 1;
                 if (L_violations <= 10) {
-                    util.warn("A2 L-VIOLATION: colex={d} side={d} ko={d} p={d}  stored L={d} expected L={d}\n", .{ colex_val, side, ko_point, passes, L, best_L });
+                    evidence.print("A2 L-VIOLATION: colex={d} side={d} ko={d} p={d}  stored L={d} expected L={d}\n", .{ colex_val, side, ko_point, passes, L, best_L });
                 }
             }
             if (H != best_H) {
                 H_violations += 1;
                 if (H_violations <= 10) {
-                    util.warn("A2 H-VIOLATION: colex={d} side={d} ko={d} p={d}  stored H={d} expected H={d}\n", .{ colex_val, side, ko_point, passes, H, best_H });
+                    evidence.print("A2 H-VIOLATION: colex={d} side={d} ko={d} p={d}  stored H={d} expected H={d}\n", .{ colex_val, side, ko_point, passes, H, best_H });
                 }
             }
             checked += 1;

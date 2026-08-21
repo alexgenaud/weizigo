@@ -64,13 +64,33 @@ make_log() {           # make_log <path> <extra-cosmetic-lines>
   } > "$out"
 }
 
-make_reds_manifest() { # make_reds_manifest <path>
-  cat > "$1" <<'EOF'
+make_reds_manifest() { # make_reds_manifest <path> [compile-module]
+  cat > "$1" <<EOF
 # fixture reds manifest (T531 control)
 RED module fixturemod
 RED script tools/regression-fixture.sh
 COUNT steps-failed 2
 COUNT tests-crashed 1
+EOF
+  if [ -n "${2:-}" ]; then echo "RED compile $2" >> "$1"; fi
+}
+
+make_compile_manifest() { # make_compile_manifest <path> <compile-module> — counts match the compile-only log
+  cat > "$1" <<EOF
+# fixture reds manifest (T564 compile-class control)
+RED compile $2
+COUNT steps-failed 1
+COUNT tests-crashed 0
+EOF
+}
+
+make_compile_log() { # make_compile_log <path> — a module that fails to COMPILE, not to crash
+  cat > "$1" <<'EOF'
+I4 2x2: violations=0 examined=28 ko_excluded=82
+failed command: cd /repo && /opt/homebrew/.../bin/zig test -OReleaseSafe --dep engine -Mroot=/repo/src/fixturecompile.zig -OReleaseSafe -Mengine=/repo/src/fixtureengine.zig --cache-dir .zig-cache --name test --listen=-
+Build Summary: 61/62 steps succeeded (1 failed); 901/901 tests passed (0 skipped)
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
 EOF
 }
 
@@ -136,6 +156,23 @@ grep -q "MISSING READING: \[EXPECTED\] evidence-sink control" "$WORK/o3" \
   && pass "names the missing reading" || { fail "did not name the missing reading"; sed 's/^/    /' "$WORK/o3"; }
 grep -q "readings: 1/2 present" "$WORK/o3" \
   && pass "reports 1/2 present" || fail "wrong present/total"
+
+# ── 3b. seeded: a compile failure is a distinct reds class ───────────────
+echo "=== regression-suite-surfaces: 3b. seeded — a module that fails to COMPILE is caught ==="
+LOG_CFAIL="$WORK/compile-fail.log"; make_compile_log "$LOG_CFAIL"
+REDS_CF="$WORK/reds-cf.md"; make_compile_manifest "$REDS_CF" notinmanifest
+RC=$(run_gate "$WORK/o3b" --log "$LOG_CFAIL" --manifest "$REDS_CF" --surfaces "$SURF0" --evidence "$EV_FULL")
+[ "$RC" -ne 0 ] && pass "gate refuses the compile failure (exit $RC)" \
+  || fail "gate passed a module that failed to compile"
+grep -q "NEW RED (not in manifest): fixturecompile" "$WORK/o3b" \
+  && pass "names the compile-failing module" || { fail "did not name the module"; sed 's/^/    /' "$WORK/o3b"; }
+
+# ── 3c. null: a declared compile failure matches ──────────────────────────
+echo "=== regression-suite-surfaces: 3c. null — a declared compile failure is GREEN ==="
+REDS_CF2="$WORK/reds-cf2.md"; make_compile_manifest "$REDS_CF2" fixturecompile
+RC=$(run_gate "$WORK/o3c" --log "$LOG_CFAIL" --manifest "$REDS_CF2" --surfaces "$SURF0" --evidence "$EV_FULL")
+[ "$RC" -eq 0 ] && pass "declared compile failure matches (exit 0)" \
+  || { fail "declared compile failure exited $RC"; sed 's/^/    /' "$WORK/o3c"; }
 
 # ── 4. seeded: no artifact named ───────────────────────────────────────────
 echo "=== regression-suite-surfaces: 4. seeded — --log without --evidence fails closed ==="

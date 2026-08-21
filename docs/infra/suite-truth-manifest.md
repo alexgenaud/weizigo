@@ -49,28 +49,24 @@ them without re-running the gate (ratchet only):
 - **Suite verdict:** `Build Summary: 85/96 steps succeeded (6 failed); 777/778
   tests passed (1 skipped)` — **0 crashed tests** (the qa023/t419/vb_bellman
   crashes of the 2026-08-18 baseline are fixed at HEAD).
-- **Console surface:** 2 test-binary `failed command:` lines, 0 crashed test
-  steps → cosmetic = 2. Both are the `oracle_v2_accept` seeded-defect
-  controls (`A1 REFUSAL` / `A2 L-VIOLATION`), which print through
-  `util.warn` (stderr) rather than `evidence.print` — the same class T531
-  converted everywhere else. Ratchet target 0 once that conversion lands.
-- **Evidence surface:** every reading declared below was present in the
-  baseline artifact and is emitted by a module that compiles at HEAD (the
-  five compile-failing modules — keybyte_differential, smd1_engine,
-  vb_closure, vb_i11, vb_mutants — emit none of these lines, so a declared
-  reading cannot silently vanish with a compile failure).
-- **Reds drift (reported, not owned here):** the 2026-08-18 reds manifest is
-  stale — qa023_brute_2x2 / t419_taxonomy / vb_bellman_4x4 no longer crash,
-  regression-absorption-machinery is green, regression-watch-fleet is a new
-  red, and five modules fail to *compile* (a class the gate's RED-module
-  regex does not extract). Ratcheting `docs/infra/suite-truth.md` to the
-  current failing set is a separate task.
+- **Console surface:** 0 test-binary `failed command:` lines, 0 crashed test
+  steps → cosmetic = 0. The oracle_v2_accept seeded-defect controls
+  (`A1 REFUSAL` / `A2 L-VIOLATION`) previously printed through `util.warn`
+  (stderr) and cost the console 2 cosmetic lines; T564 routed them through
+  `evidence.print` (they now land in the evidence artifact, exactly like the
+  class T531 converted everywhere else), so the floor is reached.
+- **Reds drift (ratcheted by T564, not owned here):** the 2026-08-18 reds
+  manifest is now current — qa023_brute_2x2 / t419_taxonomy / vb_bellman_4x4
+  no longer crash, regression-absorption-machinery is green,
+  regression-watch-fleet is a new red, and four modules fail to compile (the
+  `rules.zig` root+engine conflict, a class the gate now extracts as
+  `RED compile`). Ratcheting `docs/infra/suite-truth.md` was T564's job.
 
 ## Machine section — parsed by `tools/suite-truth.sh`
 
 Do not edit the lines below without re-running the gate (ratchet only).
 
-CONSOLE cosmetic-failed-command 2
+CONSOLE cosmetic-failed-command 0
 EVIDENCE [EXPECTED] evidence-sink control: artifact write ok
 EVIDENCE [EXPECTED] M9 green: status=pass
 EVIDENCE [EXPECTED] M9 red: status=fail

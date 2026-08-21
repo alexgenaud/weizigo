@@ -31,9 +31,12 @@
 #   sh tools/suite-truth.sh --surfaces M override the surfaces manifest
 #   sh tools/suite-truth.sh --evidence F the run's evidence artifact
 #
-# The reds comparison is keyed on two failure classes and two summary counts,
+# The reds comparison is keyed on three failure classes and two summary counts,
 # read from docs/infra/suite-truth.md:
 #   RED module <name>      a test module whose tests crashed (signal ABRT)
+#   RED compile <name>     a test module that failed to COMPILE (T564: the
+#                          crash-regex does not see these — the failed step is
+#                          the `zig test` invocation, not a crash line)
 #   RED script <path>      a tools/*.sh regression that exited non-zero
 #   COUNT steps-failed N   failed build steps (from the Build Summary line)
 #   COUNT tests-crashed N  crashed tests (from the Build Summary line)
@@ -124,6 +127,14 @@ trap 'rm -rf "$TMP"' EXIT
 # Crashed test modules: `error: '<module>.test.<name>' terminated with signal ABRT`
 grep -E "^error: '[^.']+\.test\." "$LOG" | sed -E "s/^error: '([^.']+)\.test\..*/\1/" | sort -u > "$TMP/obs.modules"
 
+# Compile-failing test modules: `failed command: ... zig test ... -Mroot=.../src/<mod>.zig`.
+# A test target that fails to COMPILE never reaches the crash line the module
+# regex reads (T564): the failed step's command is the `zig test` invocation
+# itself, so the module is the basename of its -Mroot. Keep the two classes
+# apart in the manifest (`RED module` vs `RED compile`) — a module can be in
+# either class, and a compile failure hides the crash it would otherwise show.
+grep -E "^failed command:.*zig test" "$LOG" | sed -E "s/.*-Mroot=[^ ]*\/src\/([^/]+\.zig).*/\1/" | sed -E 's/\.zig$//' | sort -u > "$TMP/obs.compile"
+
 # Failed shell scripts: `failed command: ... && sh tools/<script>.sh`
 grep -E "failed command:.* sh tools/[^ ]+\.sh" "$LOG" | sed -E "s/.* sh (tools\/[^ ]+\.sh).*/\1/" | sort -u > "$TMP/obs.scripts"
 
@@ -133,6 +144,7 @@ OBS_TESTS_CRASHED=$(grep -oE "tests passed \([0-9]+ skipped, [0-9]+ crashed\)" "
 
 # ── extract the manifest's expected set ────────────────────────────────────
 grep -E "^RED module " "$MANIFEST" | sed -E "s/^RED module //" | sort -u > "$TMP/man.modules"
+grep -E "^RED compile " "$MANIFEST" | sed -E "s/^RED compile //" | sort -u > "$TMP/man.compile"
 grep -E "^RED script " "$MANIFEST" | sed -E "s/^RED script //" | sort -u > "$TMP/man.scripts"
 MAN_STEPS_FAILED=$(grep -E "^COUNT steps-failed " "$MANIFEST" | sed -E "s/^COUNT steps-failed //" | tail -1)
 MAN_TESTS_CRASHED=$(grep -E "^COUNT tests-crashed " "$MANIFEST" | sed -E "s/^COUNT tests-crashed //" | tail -1)
@@ -156,6 +168,21 @@ if [ -n "$ONLY_OBS_MOD" ]; then
 fi
 if [ -n "$ONLY_MAN_MOD" ]; then
   echo "  FIXED (in manifest, no longer crashing): $ONLY_MAN_MOD"
+  DIRTY=1
+fi
+
+echo ""
+echo "-- compile-failing test modules --"
+echo "  observed: $(tr '\n' ' ' < "$TMP/obs.compile")"
+echo "  manifest: $(tr '\n' ' ' < "$TMP/man.compile")"
+ONLY_OBS_CFL=$(comm -23 "$TMP/obs.compile" "$TMP/man.compile")
+ONLY_MAN_CFL=$(comm -13 "$TMP/obs.compile" "$TMP/man.compile")
+if [ -n "$ONLY_OBS_CFL" ]; then
+  echo "  NEW RED (not in manifest): $ONLY_OBS_CFL"
+  DIRTY=1
+fi
+if [ -n "$ONLY_MAN_CFL" ]; then
+  echo "  FIXED (in manifest, no longer failing to compile): $ONLY_MAN_CFL"
   DIRTY=1
 fi
 
