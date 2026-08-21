@@ -1,0 +1,9 @@
+{
+  "task_id": "T559",
+  "date": "2026-08-21",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T559",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Reap-under-load gate for pass-1's 'solved' claim (claude-opus-5 advisory item 3). Dispatched 6 runner lanes (TL1A..TL1F) + qwen3.8:27b-mlx, then re-dispatched with WEIZIGO_HOST_MEM_AVAIL_MB=100 injected so the host guard actually fires. RESULT — all three assertions HOLD: (a) host guard culls loudly — 6/6 lane trailers carry 'host memory pressure', and NO killpg/PermissionError crash (the pass-1 call-site replacement works under a 7-lane load); (b) run records account for every lane — 6/6 untracked/runs/TL1*.json carry reap_claimed=1 survivors=0 reap_ok=true killed='host memory pressure...'; (c) reap leaves zero survivors — 0 orphaned sleepers, each lane 'reap: treekill anchor=... claimed=1 killed=1 survivors=0 rounds=1'. FINDING A (guard metric): qwen's ~18 GB residency ALONE does NOT trip the host guard — the runner's _host_avail_bytes reads free+inactive+speculative+purgeable, which stayed ~17 GB on a 48 GB host (qwen's pages are reclaimable-class), well above the 6144 MB floor. The D6/D12/D14 culls needed materially heavier load (14 concurrent lanes + a download) to exhaust reclaimable memory too. So the injection was required to exercise the cull path; a real-load trip of the guard needs allocating lanes, not sleepers. FINDING B (harness): tools/runner auto-claims at launch; a SIGKILLed runner leaves the row in_progress, so a re-dispatch fails 'ALREADY CLAIMED' until reopen. FINDING C (my own leak, dogfooded): my pkill left 6 orphaned sleepers (children reparented to init); treekill reaped them cleanly — the exact class pass 1 fixes, observed live."
+}
