@@ -88,6 +88,17 @@ git commit -qm base
 STORE="$WORK/docs/infra/managent/tasks.json"
 export MANAGENT_STORE="$STORE"
 export WEIZIGO_MODEL_PERF="$WORK/perf-ledger.txt"
+# T512 (audit F3, 2026-08-20): the keeper dispatches through the REAL
+# bin/dispatch, whose heal_dispatch defaults to the LIVE heal log when
+# WEIZIGO_DISPATCH_HEALS is unset (tools/dispatch_verify.py:650-651) — the
+# exact leak that put T989/T990 fixture records into the live log.  Export
+# the override to scratch, and baseline the live logs for the closing
+# isolation assertion (append-only files; the live fleet may legitimately
+# grow them mid-run, so the check scans only lines appended during the run
+# for the fixture ids T0..T6 used here).
+export WEIZIGO_DISPATCH_HEALS="$WORK/dispatch-heals.jsonl"
+LIVE_HEALS_BASE=$(wc -l < "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null || echo 0)
+LIVE_PERF_BASE=$(wc -l < "$ROOT/docs/infra/model-perf.md" 2>/dev/null || echo 0)
 export REAL_MG="$MG"
 
 # The keeper reads cooldown/log/bundles from FLEET_ROOT and forwards it to
@@ -1214,6 +1225,34 @@ else
 fi
 
 echo ""
+# ── T512 isolation assertion: nothing of the suite reached live telemetry ─
+# The F3 defect class: fixture records from a suite appended to the LIVE
+# dispatch-heals.jsonl.  The ids this suite dispatches are T0..T6 (plus
+# stub rows); the live logs must not gain any such line during the run.
+echo "  isolation: live dispatch-heals + model-perf gained no fixture data"
+ISO_FAIL=0
+APPENDED=$(tail -n +$((LIVE_HEALS_BASE + 1)) "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null)
+if [ -z "$APPENDED" ]; then
+    echo "    PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run"
+elif echo "$APPENDED" | grep -qE '"task_id": "T[0-9]"'; then
+    echo "    FAIL: fixture heal record(s) appended to the LIVE heal log (F3 regression)"
+    echo "$APPENDED" | grep -nE '"task_id": "T[0-9]"' | sed 's/^/    | /'
+    ISO_FAIL=1
+else
+    echo "    PASS: docs/infra/dispatch-heals.jsonl — appended lines carry no fixture data"
+fi
+APPENDED=$(tail -n +$((LIVE_PERF_BASE + 1)) "$ROOT/docs/infra/model-perf.md" 2>/dev/null)
+if [ -z "$APPENDED" ]; then
+    echo "    PASS: docs/infra/model-perf.md — no lines appended during the run"
+elif echo "$APPENDED" | grep -qE ' T[0-9] '; then
+    echo "    FAIL: fixture perf line(s) appended to the LIVE model-perf.md"
+    echo "$APPENDED" | grep -nE ' T[0-9] ' | sed 's/^/    | /'
+    ISO_FAIL=1
+else
+    echo "    PASS: docs/infra/model-perf.md — appended lines carry no fixture data"
+fi
+[ "$ISO_FAIL" -eq 0 ] || FAIL=1
+
 if [ "$FAIL" -eq 0 ]; then
   echo "=== regression-fleet-keeper: ALL CONTROLS PASSED ==="
   exit 0
