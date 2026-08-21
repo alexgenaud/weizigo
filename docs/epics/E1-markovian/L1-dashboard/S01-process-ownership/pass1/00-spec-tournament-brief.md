@@ -122,7 +122,7 @@ verb the existing Python `tools/runner` will call in place of its `killpg`.
 ## How you will be judged
 
 Anonymized, then graded by the other lanes. Grading runs under
-`docs/infra/races/grand-race.md` §5 and gates G3/G4 — that document governs the protocol,
+`docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` §5 and gates G3/G4 — that document governs the protocol,
 including its grader null/seeded controls and its recorded consequence that on the
 2026-08-20b roster a Claude-authored spec receives only three countable grades while the
 qwen spec receives six, so panel-only Claude-vs-Claude orderings are low-confidence.

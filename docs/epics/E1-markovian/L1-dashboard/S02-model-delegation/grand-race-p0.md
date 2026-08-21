@@ -2,7 +2,7 @@
 
 **Author:** claude-opus-5 / T529 · **Date:** 2026-08-20 · **Landmark:** L9 (the fleet can race
 its own workers on demand)
-**Spec:** `docs/infra/races/grand-race.md` (roster epoch `2026-08-20b`, gates G1–G6, §8 spend)
+**Spec:** `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` (roster epoch `2026-08-20b`, gates G1–G6, §8 spend)
 **Scope, as ruled at commit `45cfad0`:** this row is the go/no-go prep — **roster, spend
 estimate, sealed-packet keys, fixture-store freeze**. It does *not* own gates G2/G3/G4 (that is
 `T542`) or the G1 capture instrument (`T521`). Where P0 work touches those gates it reports and
@@ -41,7 +41,7 @@ Nothing found here justifies stopping the aspect races, which have already run r
 
 ## 2. Roster — epoch `2026-08-20b`, resolved and validated
 
-Committed as `docs/infra/races/roster-2026-08-20b.txt` in the exact format the harness parses,
+Committed as `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/roster-2026-08-20b.txt` in the exact format the harness parses,
 so the roster is an input file rather than a paragraph someone retypes.
 
 | lane | family | serving tag | servable here | how checked |
@@ -108,7 +108,7 @@ that is routinely waived is not a seal. It also means the manifest's recipe can 
 against the originals, never against **what the lanes actually see**, which is the only place a
 fixture swap would show up.
 
-**Replaced, not patched over.** `docs/infra/races/grand-race-p0-fixtures.sha256` records a
+**Replaced, not patched over.** `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0-fixtures.sha256` records a
 copy-stable **content seal** per store: the sorted `sha256  relpath` listing of the store,
 hashed. It is mtime-, owner- and path-independent, so it verifies both at rest and in the staged
 copy. All 7 stores verify at origin and all 5 staged aspect stores verify in `T543`'s worktree.
@@ -330,9 +330,9 @@ green.
 
 | file | what it is |
 |---|---|
-| `docs/infra/races/grand-race-p0.md` | this document |
-| `docs/infra/races/roster-2026-08-20b.txt` | the epoch roster, in the format `tools/bakeoff.sh` parses |
-| `docs/infra/races/grand-race-p0-fixtures.sha256` | copy-stable content seals for the 7 frozen fixture stores |
+| `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0.md` | this document |
+| `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/roster-2026-08-20b.txt` | the epoch roster, in the format `tools/bakeoff.sh` parses |
+| `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0-fixtures.sha256` | copy-stable content seals for the 7 frozen fixture stores |
 | `tools/race-p0-verify.sh` | the P0 gate — one command, GO/NO-GO, `--self-test` carries its controls |
 | `tools/regression-race-p0.sh` | null + seeded controls, including red-first (a wrong seal must NO-GO) |
 | `findings/T529-grand-race-p0.json` | findings |

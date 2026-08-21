@@ -110,7 +110,7 @@ argument-against-itself already said so. Rejected on the seat's own reasoning.
 
 ## 4. Accumulation
 
-Create `docs/infra/races/metric-vocabulary.md`. After each grading round the
+Create `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/metric-vocabulary.md`. After each grading round the
 consolidator appends every newly proposed metric: name, one-line definition, proposer
 (canonical label), round, and — on later rounds — how many graders independently
 re-proposed it. Future grader briefs attach the vocabulary as **suggestions a grader
@@ -133,7 +133,7 @@ and "do not impose a fixed dimension schema up front".
    countable graders) — label them as such; never present one as a finding.
 5. **Recording rule per `LADDER.md`:** one coarse grade + one sentence of nuance per
    model into the ledger; grade records appended mechanically to
-   `docs/infra/races/grand-race-ledger.jsonl` per grand-race §6, never by hand.
+   `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-ledger.jsonl` per grand-race §6, never by hand.
 6. Append new metrics to the vocabulary file (§4 above).
 
 ## What this ruling deliberately does not do

@@ -3280,7 +3280,7 @@ names it; until then it can only be run outside the kanban path (as the T447 lat
 ### T447 — first answer-keyed race, 2026-08-18 (new epoch, n=1)
 
 One read-only task (sweep `tools/*.sh` for live-repo escape paths), five lanes, key sealed
-before dispatch, blind-graded. Full run document: `docs/infra/races/T447-escape-sweep.md`.
+before dispatch, blind-graded. Full run document: `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/T447-escape-sweep.md`.
 
 | model | score /30 | wall | output bytes |
 |---|---|---|---|

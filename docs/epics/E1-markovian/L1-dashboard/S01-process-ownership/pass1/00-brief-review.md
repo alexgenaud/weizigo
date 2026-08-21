@@ -112,14 +112,14 @@ measured escape mechanism and specifies the per-family residual check"*.
 
 ### R4 — MAJOR: the grading paragraph paraphrases the harness, and drifts from it
 The brief's G4 sentence ("Self-identifying text is flagged, not scrubbed") contradicts
-`docs/infra/races/grand-race.md` G4 ("sanitizer pass **strips/flags** …"). The brief also
+`docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` G4 ("sanitizer pass **strips/flags** …"). The brief also
 omits the machinery that makes seven grades aggregable: the null and seeded grader
 controls (§5), and the recorded G3 consequence that with the 2026-08-20b roster (4 Claude,
 2 DeepSeek, 1 qwen lane) a Claude-authored spec receives only **three** countable grades
 while the qwen spec receives six — grand-race.md already rules that panel-only
 Claude-vs-Claude orderings are low-confidence. **Required edit**: replace the brief's
 grading paragraph's protocol sentences with a citation — "Grading runs under
-`docs/infra/races/grand-race.md` §5 and gates G3/G4; the criteria are: …" — keeping the
+`docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` §5 and gates G3/G4; the criteria are: …" — keeping the
 criteria list. The final-selection sentence (Fable, fresh session, anonymized inputs)
 stands; that authority supersedes panel skew, which bounds the comparability risk.
 

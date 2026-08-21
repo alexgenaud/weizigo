@@ -16,7 +16,7 @@
 
 ## Queued (in order)
 1. t11 - audit with a fresh model, then implement (model-perf restructure + adopt config)
-2. ladder races - per `docs/infra/races/goldilocks.md` (R4/R5) and the appetite
+2. ladder races - per `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/goldilocks.md` (R4/R5) and the appetite
 
 ## Standing race-field constraint (operator + T556, 2026-08-21)
 Race **only Claude + DeepSeek API models** — Fable, Opus, Sonnet, Haiku, DSPro, Flash.
@@ -27,7 +27,7 @@ Claude via `--output-format json`, DS via `pi --provider deepseek`. Field = targ
 rungs. Claude weekly ~70% used → full field only to establish a rung, not routine tasks.
 
 ## Key artifacts
-- rules: `docs/infra/races/goldilocks.md` (R1-R5 provisional)
+- rules: `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/goldilocks.md` (R1-R5 provisional)
 - history: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md` (D1-D35)
 - build audit: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/audit-build-disposition.md`
 - spec audit: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/audit-disposition.md`

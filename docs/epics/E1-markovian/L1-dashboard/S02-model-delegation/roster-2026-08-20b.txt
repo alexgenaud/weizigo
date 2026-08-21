@@ -1,5 +1,5 @@
 # Grand-race / aspect-race roster — epoch 2026-08-20b
-# Authority: docs/infra/races/grand-race.md §2 (operator directive via claude-fable-5)
+# Authority: docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md §2 (operator directive via claude-fable-5)
 # Format (tools/bakeoff.sh): <family> <canonical-label> [serving-tag]
 # Families: deepseek | claude | ollama.  Labels validated against the LIST in
 # src/managent/main.zig canonical_models — never against a pattern.

@@ -139,7 +139,7 @@ breach:
 | G2 isolation | harness **refuses to dispatch** unless `root_is_worktree=true` and the key/rubric directory is outside the worktree's reach | T452 ran from the main checkout with the key reachable by relative path |
 | G3 family exclusion | harness refuses to *count* any grade where grader family == lane family; enforcement in `tools/bakeoff.sh`, not prose | T452's graders each ranked a set containing their own output; glm scored itself |
 | G4 blinding | sanitizer pass strips/flags self-identifying text in lane outputs before grading; a lane that self-identifies is noted (that is itself a data point) | two T452 lanes named themselves; "ignored for scoring" was ad hoc |
-| G5 record | `lanes.json` + sealed lane map are mandatory outputs of every phase; a race turn without them did not happen | T447 has no lanes.json; T452 is unrecorded in `docs/infra/races/` to this day |
+| G5 record | `lanes.json` + sealed lane map are mandatory outputs of every phase; a race turn without them did not happen | T447 has no lanes.json; T452 is unrecorded in `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/` to this day |
 | G6 impressions | the done-gate demands a model impression (or explicit waiver) at every race row's close | three seats lapsed identically; D3's partition logic, applied to model-perf |
 
 ## 5. Grading — the panel, its controls, and self-grades as data
@@ -161,7 +161,7 @@ breach:
 
 ## 6. Data — one schema, mechanical capture, absorbed at close
 
-Everything lands in `docs/infra/races/grand-race-ledger.jsonl` (append-only, one JSON per
+Everything lands in `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-ledger.jsonl` (append-only, one JSON per
 event), written by the harness, never by hand:
 
 ```

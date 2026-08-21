@@ -206,7 +206,7 @@ Readings, ranked by power rather than popularity:
   the panel as missing content).
 - Vocabulary hygiene: fable's `economy-honesty` and opus's `economy-and-honesty` blend polar
   economy with scalar uncertainty-honesty; recorded in the vocabulary with a suggestion to
-  split (see `docs/infra/races/metric-vocabulary.md`).
+  split (see `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/metric-vocabulary.md`).
 
 ## 7 Per-model grades for the ledger
 
@@ -232,14 +232,14 @@ most trustworthy panel numbers, and even they are n=1 documents per model.
 
 ## 8 Vocabulary
 
-Created `docs/infra/races/metric-vocabulary.md` (T553 ruling §4): all 49 proposed metrics
+Created `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/metric-vocabulary.md` (T553 ruling §4): all 49 proposed metrics
 (name, one-line definition, proposer, importance, scalar/polar tag), grouped into the ten
 clusters of §6, under round id `pass1-spec-r1`, task type `design/spec`. Suggestions for
 future rounds, never a required schema.
 
 ## 9 Ledger
 
-Grand-race §6 defines the grade-record schema for `docs/infra/races/grand-race-ledger.jsonl`
+Grand-race §6 defines the grade-record schema for `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-ledger.jsonl`
 and requires records be **written by the harness, never by hand**. No harness tooling for
 grade records exists yet (the 71 existing ledger lines are all lane records; nothing in
 `tools/`, `bin/`, or `src/` references the ledger). Accordingly, per instruction, the exact

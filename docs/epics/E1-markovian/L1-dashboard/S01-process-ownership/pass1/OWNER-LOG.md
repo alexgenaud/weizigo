@@ -179,7 +179,7 @@ verification of its output and its claims before counting it:
 aspect-based per the operator's ruling, provenance table, verifies every carried
 citation, knows the two verified corrections) and 2b grading analyst
 (`untracked/T554-grading-analysis.md` → `grading/03-round1-analysis.md` +
-`docs/infra/races/metric-vocabulary.md`; unseals the key from the owner scratchpad
+`docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/metric-vocabulary.md`; unseals the key from the owner scratchpad
 after sha256 check against the committed seal; validity → dual aggregation → bias
 stats → dispersion/polar metric analysis → per-model ledger grades). The key stays
 outside the repo so 2a's blindness holds while both run in parallel.
@@ -232,7 +232,7 @@ rubber-stamping less well on that lane).
 2. **Most discriminating metric: evidence/citation integrity** (not the universally
    proposed safety/testability clusters, which everything scored high on);
    uncertainty-honesty second with only two proposers. Dispersion-ranking per the
-   operator's instruction; vocabulary at docs/infra/races/metric-vocabulary.md, keyed
+   operator's instruction; vocabulary at docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/metric-vocabulary.md, keyed
    task-type=design/spec.
 3. Ledger appends for the 56 grade records are staged in analysis §9 as a fenced
    block — no mechanical append tool for grade records exists yet (candidate small
@@ -986,7 +986,7 @@ Owner: deepseek-v4-pro / T557. The pass-1 work is committed.
   acceptance suite") carries: `src/managent/main.zig`, `tools/runner`,
   `tools/regression-runner-guard.sh`, the new `tools/regression-process-ownership.sh`,
   `AGENTS.md` (goldilocks pointer), the whole `docs/infra/orcha-refactor/{pass1,grading}`
-  corpus, `docs/infra/races/{goldilocks,metric-vocabulary}.md`,
+  corpus, `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/{goldilocks,metric-vocabulary}.md`,
   `docs/evidence/orcha-pass1-perfamily-topology/`, the pass-1 findings (T554/T556/T557 +
   the Opus review), and `docs/infra/managent/tasks.json` (B-6 acceptance gate + T557 claim).
   Staged by name via `tools/git-commit-mine --explicit`; the 44 remaining dirty paths are
@@ -1019,7 +1019,7 @@ exit 0); qwen wall-killed at 60 min, 0 bytes - its second code-task failure, con
 "documents, not code" (goldilocks R6→R5). The five diffs are distinct in approach; apply+test
 is the successor's first task (judge by the 4 columns in `goldilocks.md`).
 
-**Delegation rules established:** `docs/infra/races/goldilocks.md` now carries 5 provisional
+**Delegation rules established:** `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/goldilocks.md` now carries 5 provisional
 rules (R1 audit-with-a-few-diverse-models · R2 re-implement code with a different model and
 language · R3 verify on disk · R4 delegate-to-proven / race-if-unproven · R5 test-local-sparingly),
 plus the working hypotheses (naive ladder, target ±2 fields, measurement approach). A one-row

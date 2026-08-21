@@ -8,7 +8,7 @@ practiced. Method: live process table, live logs (`docs/infra/dispatch-heals.jso
 `untracked/log/fleet-keeper.log`), fresh runs of `tools/orcha-acceptance.sh` and
 `bin/weizigo-claimlint`, and the governing docs, each claim carrying its file:line.
 **Companions:** `docs/status/ROADMAP-2026-08-20.md` (the plan) ·
-`docs/infra/races/grand-race.md` (the model-test protocol).
+`docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` (the model-test protocol).
 
 ---
 
@@ -156,7 +156,7 @@ run — 7 lanes including both Claude models):**
   containing *their own output* (glm scored itself E=16); the task note *reinterprets* the rule
   rather than meeting it;
 - blinding leaked (lanes self-identified as MiniMax-M3 in their own text);
-- the result is essentially unrecorded: `docs/infra/races/T447-escape-sweep.md:126-143` still
+- the result is essentially unrecorded: `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/T447-escape-sweep.md:126-143` still
   says "dispatched", no inter-grader agreement was computed, scores live only in two findings
   files, the seal never formally opened.
 

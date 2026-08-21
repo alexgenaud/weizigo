@@ -7,7 +7,7 @@
 | Status | ANONYMIZED PROPOSED. Citations verified 2026-08-21 against the live tree; line numbers drift (see §0). Does not ratify itself; audit + operator rule. |
 | Scope of this slice | T548 (dead workers leak multi-GB suite children) — the reaping half of T549's G1. |
 
-Protocol: `docs/infra/races/grand-race.md` §5 (grader null/seeded controls; roster `2026-08-20b` → only **three** non-Claude graders, so any Claude-vs-Claude panel ordering is low-confidence and mechanical anchors outrank it). Prior art, built on not re-derived: `docs/infra/fleet-repair/pass1/spec.md` (T549), its `spec-audit.md` (T550, PASS-WITH-EDITS), `untracked/T548-orphan-suite-reaper.md` (T548 brief — the three guards + controls), `docs/infra/host/incident-2026-07-29.md` (the 12.5 GB `zig` compile that panicked the kernel).
+Protocol: `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` §5 (grader null/seeded controls; roster `2026-08-20b` → only **three** non-Claude graders, so any Claude-vs-Claude panel ordering is low-confidence and mechanical anchors outrank it). Prior art, built on not re-derived: `docs/infra/fleet-repair/pass1/spec.md` (T549), its `spec-audit.md` (T550, PASS-WITH-EDITS), `untracked/T548-orphan-suite-reaper.md` (T548 brief — the three guards + controls), `docs/infra/host/incident-2026-07-29.md` (the 12.5 GB `zig` compile that panicked the kernel).
 
 ---
 

@@ -10,7 +10,7 @@ manual. The bet is unchanged: the project runs on tooling and process, not on an
 1. `docs/status/ROADMAP-2026-08-20.md` — THE COURSE. Stage 1 (L1 hands-off) is your first arc;
    the operator's priority is L1 before L2 before everything.
 2. `docs/audits/2026-08-20-fleet-and-model-audit.md` — F1–F10, the measured dashboard lies.
-3. `docs/infra/races/grand-race.md` — Stage 2.
+3. `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` — Stage 2.
 4. `AGENTS.md`, `docs/infra/roles/ORCHESTRATOR.md` (esp. "What the Orchestrator does NOT do"),
    `docs/infra/delegation/DELEGATOR.md` + `DELEGATEE.md`.
 5. `docs/infra/fleet-keeper-design.md` — the keeper's authoritative algorithm.
