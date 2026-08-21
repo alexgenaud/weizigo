@@ -1,29 +1,55 @@
 #!/usr/bin/env bash
-# regression-model-profiles.sh — controls for tools/model-profiles.py (T503).
+# regression-model-profiles.sh — controls for tools/model-profiles.py (T503, extended T524).
 #
-# T503 builds per-model dimension profiles from the ledger (verdict, done
+# T503 built per-model dimension profiles from the ledger (verdict, done
 # status, dispatch-verify lines, the wall-kill log census, findings
 # conformance) plus a task-type -> data-count map, and an exploration-first
 # selection rule: when a model has no data on a task type, that absence is a
-# REASON to choose it.  These controls pin the instrument's contract against
-# a seeded scratch store — never the live kanban, never docs/infra/model-perf.md:
+# REASON to choose it.  T524 extends the instrument to the operator-approved
+# D027 taxonomy: EIGHT dimensions (correctness, completion/close discipline,
+# thoroughness, independence, falsifiability discipline, efficiency, citation
+# honesty, scope discipline) and EIGHT task types (spec/design,
+# implementation-bounded, audit/verification, integration/reframe,
+# infra/tooling, research/census, battery-heavy, orchestration-seat), plus
+# the role->dimension map.  These controls pin that contract against a
+# seeded scratch store — never the live kanban, never
+# docs/infra/model-perf.md:
 #
 #   (a) exploration   a model with 0 tasks of a type is named over one with
 #                     data (the operator's exploration-first rule)
 #   (b) profile       when every candidate has data on the type, the type's
-#                     dominant dimension (spec -> correctness) decides
+#                     dominant dimension (spec/design -> correctness) decides
 #   (c) no-data       a dimension with zero graded tasks is `—` (null), not 0
+#                     (thoroughness and citation-honesty are null by design —
+#                     no recorded per-task signal yet; absence of evidence is
+#                     not evidence of absence)
 #   (d) round-trip    the tool's --json output is byte-identical across two
-#                     runs and agrees with hand-computed averages
+#                     runs and agrees with hand-computed averages, over the
+#                     8-dimension / 8-type schema (D027)
 #   (e) committed     a declared deliverable that is not git-committed makes
-#                     deliverable_conformance 0 (a committed one passes)
+#                     scope_discipline 0 (a committed one passes)
+#   (f) scope-incident a recorded scope incident (e.g. a commit-attribution
+#                     incident in the amendments) flips scope_discipline to 0
+#                     even when the findings conform
+#   (g) falsifiability  the keyword proxy over the recorded close text grades
+#                     1 when a refutation/falsification is named, 0 otherwise
+#   (h) completion_close  merged per-task dimension: a close event grades
+#                     2 (verified pass) / 1 (recoverable) / 0 (unrecoverable);
+#                     a graded task with no close event grades 1 (done) / 0
+#   (i) roles         the D027 role->dimension map is emitted in --json and
+#                     in the --table render (the section the directive said
+#                     must carry the taxonomy)
+#   (j) --table       every model with data; cells equal the JSON;
+#                     deterministic; stamp present
+#   (k) --check-doc   FRESH exits 0, STALE exits 1, absent exits 2
 #
 # All fixtures are synthetic and run in a scratch dir under /tmp/weizigo.
 # The tool is invoked with --store/--model-perf/--logs/--c7 pointed at the
-# fixture and --no-git (except arm e), so the live repo, live kanban and
+# fixture and --no-git (except arm e/f), so the live repo, live kanban and
 # live model-perf.md are never read and never written.
 #
-# Task: T503 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-20
+# Task: T503 (first half) · T524 (8×8 extension) · Role: worker ·
+# Model: deepseek-v4-pro (T503) / deepseek-v4-flash (T524) · Date: 2026-08-20
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -32,7 +58,7 @@ TOOL="$ROOT/tools/model-profiles.py"
 FAIL=0
 
 mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/t503-profiles-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+WORK="$(mktemp -d /tmp/weizigo/t524-profiles-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK"' EXIT
 
 echo "=== regression-model-profiles: pre-flight ==="
@@ -49,7 +75,11 @@ os.makedirs(os.path.join(work, "docs", "infra", "managent"), exist_ok=True)
 os.makedirs(os.path.join(work, "untracked", "log"), exist_ok=True)
 os.makedirs(os.path.join(work, "untracked"), exist_ok=True)
 
-# tasks.json — the store.  Only the fields the tool reads matter.
+# tasks.json — the store.  Only the fields the tool reads matter.  Slugs
+# cover all eight D027 task types:
+#   spec/design: T1 T2 T4 T12 · implementation-bounded: T11
+#   audit/verification: T6 · integration/reframe: T8 · infra/tooling: T3
+#   research/census: T9 · battery-heavy: T5 T7 · orchestration-seat: T10
 tasks = {
     "T1": {"agent": "alpha", "status": "done", "verdict": "pass-with-findings",
            "bundle": "untracked/T1-spec-design.md", "claimed": "2026-08-20T00:00:00Z",
@@ -65,7 +95,8 @@ tasks = {
            "done": "2026-08-20T00:13:00Z", "note": None, "verdict_note": None},
     "T5": {"agent": "beta", "status": "done", "verdict": "pass",
            "bundle": "untracked/T5-battery-mutant.md", "claimed": "2026-08-20T00:00:00Z",
-           "done": "2026-08-20T00:14:00Z", "note": None, "verdict_note": None},
+           "done": "2026-08-20T00:14:00Z", "note": None,
+           "verdict_note": "baseline hypothesis REFUTED by the control arm"},
     "T6": {"agent": "gamma", "status": "done", "verdict": "pass",
            "bundle": "untracked/T6-verify-audit.md", "claimed": "2026-08-20T00:00:00Z",
            "done": "2026-08-20T00:15:00Z", "note": None, "verdict_note": None},
@@ -73,20 +104,41 @@ tasks = {
     "T7": {"agent": "alpha", "status": "dispatchable", "verdict": None,
            "bundle": "untracked/T7-battery-vb.md", "claimed": None,
            "done": None, "note": None, "verdict_note": None},
+    "T8": {"agent": "alpha", "status": "done", "verdict": "pass",
+           "bundle": "untracked/T8-absorb-integration.md", "claimed": "2026-08-20T00:00:00Z",
+           "done": "2026-08-20T00:16:00Z", "note": None, "verdict_note": None},
+    "T9": {"agent": "alpha", "status": "done", "verdict": "pass",
+           "bundle": "untracked/T9-census-inventory.md", "claimed": "2026-08-20T00:00:00Z",
+           "done": "2026-08-20T00:17:00Z", "note": None, "verdict_note": None},
+    "T10": {"agent": "beta", "status": "done", "verdict": "pass",
+            "bundle": "untracked/T10-orcha-triage.md", "claimed": "2026-08-20T00:00:00Z",
+            "done": "2026-08-20T00:18:00Z", "note": None, "verdict_note": None},
+    "T11": {"agent": "beta", "status": "done", "verdict": "pass",
+            "bundle": "untracked/T11-fix-alias.md", "claimed": "2026-08-20T00:00:00Z",
+            "done": "2026-08-20T00:19:00Z", "note": None, "verdict_note": None},
+    # recorded scope incident in the amendments -> scope_discipline 0 despite
+    # a conforming findings file
+    "T12": {"agent": "alpha", "status": "done", "verdict": "pass",
+            "bundle": "untracked/T12-spec-draft.md", "claimed": "2026-08-20T00:00:00Z",
+            "done": "2026-08-20T00:20:00Z", "note": None, "verdict_note": None,
+            "amendments": ["2026-08-20T00:21:00Z: COMMIT-ATTRIBUTION INCIDENT (recorded by the worker)"]},
 }
 with open(os.path.join(work, "docs", "infra", "managent", "tasks.json"), "w") as f:
     json.dump(tasks, f)
 
 # model-perf.md — dispatch-verify lines (close discipline).  alpha: one pass,
-# one recoverable nonce fail -> 1.5.  gamma: none -> close discipline is `—`.
+# one recoverable nonce fail.  beta: two passes + one bare dispatch pass.
+# gamma: none -> gamma's completion_close comes only from its done status.
 with open(os.path.join(work, "model-perf.md"), "w") as f:
     f.write("# fixture\n")
     f.write("dispatch-verify 2026-08-20 T1 alpha report=success verified=pass\n")
     f.write("dispatch-verify 2026-08-20 T2 alpha report=success verified=fail fail=nonce\n")
     f.write("dispatch-verify 2026-08-20 T4 beta report=success verified=pass\n")
     f.write("dispatch-verify 2026-08-20 T5 beta report=success verified=pass\n")
+    f.write("dispatch-verify 2026-08-20 - beta report=bare verified=pass\n")
 
-# claimlint c7 --json output (deliverable conformance).  T3 is non-conforming.
+# claimlint c7 --json output (findings conformance -> scope discipline).
+# T3 is non-conforming; T12 conforms (its incident is in the amendments).
 c7 = [
     {"path": "T1-spec-design.json", "task_id": "T1", "conforming": True,
      "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
@@ -104,6 +156,21 @@ c7 = [
      "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
      "unabsorbed": [], "dispositioned": []},
     {"path": "T6-verify-audit.json", "task_id": "T6", "conforming": True,
+     "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
+     "unabsorbed": [], "dispositioned": []},
+    {"path": "T8-absorb-integration.json", "task_id": "T8", "conforming": True,
+     "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
+     "unabsorbed": [], "dispositioned": []},
+    {"path": "T9-census-inventory.json", "task_id": "T9", "conforming": True,
+     "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
+     "unabsorbed": [], "dispositioned": []},
+    {"path": "T10-orcha-triage.json", "task_id": "T10", "conforming": True,
+     "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
+     "unabsorbed": [], "dispositioned": []},
+    {"path": "T11-fix-alias.json", "task_id": "T11", "conforming": True,
+     "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
+     "unabsorbed": [], "dispositioned": []},
+    {"path": "T12-spec-draft.json", "task_id": "T12", "conforming": True,
      "conforming_reason": None, "claims_total": 0, "new_rows_total": 0,
      "unabsorbed": [], "dispositioned": []},
 ]
@@ -133,22 +200,30 @@ run_json() {
 echo ""
 echo "  1. exploration: alpha (0 battery tasks) chosen over beta (1 battery task)"
 OUT=$("$TOOL" --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" \
-      --logs "$LOGS" --c7 "$C7" --select battery --candidates alpha,beta 2>/dev/null)
+      --logs "$LOGS" --c7 "$C7" --select battery-heavy --candidates alpha,beta 2>/dev/null)
 if [ "$OUT" = "alpha" ]; then
-    echo "    PASS: --select battery named alpha (no data beats data)"
+    echo "    PASS: --select battery-heavy named alpha (no data beats data)"
 else
-    echo "    FAIL: --select battery returned '$OUT', expected alpha"
+    echo "    FAIL: --select battery-heavy returned '$OUT', expected alpha"
+    FAIL=1
+fi
+OUT=$("$TOOL" --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" \
+      --logs "$LOGS" --c7 "$C7" --select orchestration-seat --candidates alpha,beta 2>/dev/null)
+if [ "$OUT" = "alpha" ]; then
+    echo "    PASS: --select orchestration-seat named alpha (0 data beats beta's 1)"
+else
+    echo "    FAIL: --select orchestration-seat returned '$OUT', expected alpha"
     FAIL=1
 fi
 
 # ── (b) profile decides when all candidates have data ─────────────────────
-echo "  2. profile: both have spec data; beta (correctness 2.0) beats alpha (1.0)"
+echo "  2. profile: both have spec/design data; beta (correctness 2.0) beats alpha (1.67)"
 OUT=$("$TOOL" --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" \
-      --logs "$LOGS" --c7 "$C7" --select spec --candidates alpha,beta 2>/dev/null)
+      --logs "$LOGS" --c7 "$C7" --select spec/design --candidates alpha,beta 2>/dev/null)
 if [ "$OUT" = "beta" ]; then
-    echo "    PASS: --select spec named beta (highest dominant-dimension avg)"
+    echo "    PASS: --select spec/design named beta (highest dominant-dimension avg)"
 else
-    echo "    FAIL: --select spec returned '$OUT', expected beta"
+    echo "    FAIL: --select spec/design returned '$OUT', expected beta"
     FAIL=1
 fi
 
@@ -160,17 +235,23 @@ import json, sys
 d = json.loads(sys.argv[1])
 prof = d["profiles"]
 ok = True
-# gamma has no dispatch-verify lines -> close_discipline null
-if prof["gamma"]["close_discipline"]["avg"] is not None:
-    print("    FAIL: gamma close_discipline should be null (no data), got", prof["gamma"]["close_discipline"])
-    ok = False
-if prof["gamma"]["close_discipline"]["n"] != 0:
-    print("    FAIL: gamma close_discipline n should be 0, got", prof["gamma"]["close_discipline"]["n"])
-    ok = False
+# thoroughness has no recorded per-task signal by design (D027 dim 3)
+for m in ("alpha", "beta", "gamma"):
+    if prof[m]["thoroughness"]["avg"] is not None or prof[m]["thoroughness"]["n"] != 0:
+        print(f"    FAIL: {m} thoroughness should be null (no signal), got", prof[m]["thoroughness"])
+        ok = False
+    if prof[m]["citation_honesty"]["avg"] is not None or prof[m]["citation_honesty"]["n"] != 0:
+        print(f"    FAIL: {m} citation_honesty should be null (no incident recorded), got", prof[m]["citation_honesty"])
+        ok = False
 # gamma has no log -> efficiency null
-if prof["gamma"]["efficiency"]["avg"] is not None:
+if prof["gamma"]["efficiency"]["avg"] is not None or prof["gamma"]["efficiency"]["n"] != 0:
     print("    FAIL: gamma efficiency should be null (no log), got", prof["gamma"]["efficiency"])
     ok = False
+# alpha/beta have no audit/verification tasks -> independence null
+for m in ("alpha", "beta"):
+    if prof[m]["independence"]["avg"] is not None:
+        print(f"    FAIL: {m} independence should be null (no verification tasks), got", prof[m]["independence"])
+        ok = False
 if ok:
     print("    PASS: empty dimensions are null (—), not 0")
 else:
@@ -178,8 +259,8 @@ else:
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
-# ── (d) round-trip: deterministic + hand-computed averages ────────────────
-echo "  4. round-trip: two runs byte-identical; averages match hand computation"
+# ── (d) round-trip: deterministic + hand-computed averages over 8 dims ────
+echo "  4. round-trip: two runs byte-identical; averages match hand computation (8 dims)"
 JSON1=$(run_json)
 JSON2=$(run_json)
 if [ "$JSON1" = "$JSON2" ]; then
@@ -206,34 +287,79 @@ def chk(model, dim, expected_avg, expected_n):
         print(f"    FAIL: {model}.{dim} avg={a} n={n}, expected {expected_avg}/{expected_n}")
         ok = False
 
-# alpha correctness: T1 pwf(1) + T2 pwf(1) + T3 pass(2) = 4/3 over 3
-chk("alpha", "correctness", round(4/3, 2), 3)
-# alpha close discipline: pass(2) + nonce(1) = 1.5 over 2
-chk("alpha", "close_discipline", 1.5, 2)
-# alpha deliverable: T1(1) T2(1) T3(0) = 2/3
-chk("alpha", "deliverable_conformance", round(2/3, 2), 3)
-# alpha completion: T1,T2,T3 done = 1.0
-chk("alpha", "completion", 1.0, 3)
-# alpha type counts: spec=2 infra=1 battery=0 verification=0 (T7 excluded)
-if tc["alpha"] != {"spec": 2, "infra": 1, "battery": 0, "verification": 0}:
-    print("    FAIL: alpha type_counts wrong:", tc["alpha"]); ok = False
+# alpha: T1 pwf(1) T2 pwf(1) T3 pass(2) T8 pass(2) T9 pass(2) T12 pass(2) = 10/6
+chk("alpha", "correctness", round(10/6, 2), 6)
+# alpha completion_close: T1 close-pass(2) T2 close-nonce(1) T3 done(1) T8 done(1)
+#                        T9 done(1) T12 done(1) = 7/6
+chk("alpha", "completion_close", round(7/6, 2), 6)
+# alpha scope_discipline: T1(1) T2(1) T3(0 nonconform) T8(1) T9(1) T12(0 incident) = 4/6
+chk("alpha", "scope_discipline", round(4/6, 2), 6)
+# alpha falsifiability: no refutation named in any recorded close -> 0/6
+chk("alpha", "falsifiability", 0.0, 6)
+# beta: T4 pass(2) T5 pass(2) T10 pass(2) T11 pass(2) = 8/4
+chk("beta", "correctness", 2.0, 4)
+# beta completion_close: T4 close-pass(2) T5 close-pass(2) T10 done(1) T11 done(1)
+#                        + bare dispatch pass(2) = 8/5
+chk("beta", "completion_close", round(8/5, 2), 5)
+# beta falsifiability: T5 names a REFUTATION -> 1/4
+chk("beta", "falsifiability", 0.25, 4)
 # beta efficiency: T5 RSS wall-kill = 1.0 over 1
 chk("beta", "efficiency", 1.0, 1)
+# beta scope_discipline: T4 T5 T10 T11 all conform -> 1.0/4
+chk("beta", "scope_discipline", 1.0, 4)
+# gamma: single verify-audit row
+chk("gamma", "correctness", 2.0, 1)
+chk("gamma", "completion_close", 1.0, 1)
+chk("gamma", "independence", 0.0, 1)   # audit row, no re-derivation markers
+chk("gamma", "falsifiability", 0.0, 1)
+chk("gamma", "scope_discipline", 1.0, 1)
+
+# 8-type data counts (graded rows only; T7 excluded)
+TYPES = ["spec/design", "implementation-bounded", "audit/verification",
+         "integration/reframe", "infra/tooling", "research/census",
+         "battery-heavy", "orchestration-seat"]
+def tcd(tc_, model):
+    return {t: tc_.get(model, {}).get(t, 0) for t in TYPES}
+if tcd(tc, "alpha") != {"spec/design": 3, "implementation-bounded": 0,
+                        "audit/verification": 0, "integration/reframe": 1,
+                        "infra/tooling": 1, "research/census": 1,
+                        "battery-heavy": 0, "orchestration-seat": 0}:
+    print("    FAIL: alpha type_counts wrong:", tcd(tc, "alpha")); ok = False
+if tcd(tc, "beta") != {"spec/design": 1, "implementation-bounded": 1,
+                       "audit/verification": 0, "integration/reframe": 0,
+                       "infra/tooling": 0, "research/census": 0,
+                       "battery-heavy": 1, "orchestration-seat": 1}:
+    print("    FAIL: beta type_counts wrong:", tcd(tc, "beta")); ok = False
+if tcd(tc, "gamma") != {"spec/design": 0, "implementation-bounded": 0,
+                        "audit/verification": 1, "integration/reframe": 0,
+                        "infra/tooling": 0, "research/census": 0,
+                        "battery-heavy": 0, "orchestration-seat": 0}:
+    print("    FAIL: gamma type_counts wrong:", tcd(tc, "gamma")); ok = False
+
+# schema: 8 dimensions in D027 order, 8 task types, role map present
+if d["dimensions"] != ["correctness", "completion_close", "thoroughness",
+                       "independence", "falsifiability", "efficiency",
+                       "citation_honesty", "scope_discipline"]:
+    print("    FAIL: dimensions =", d["dimensions"]); ok = False
+if d["task_types"] != TYPES:
+    print("    FAIL: task_types =", d["task_types"]); ok = False
+if not isinstance(d.get("roles"), dict) or "Auditor" not in d["roles"]:
+    print("    FAIL: role->dimension map missing from --json"); ok = False
 if ok:
-    print("    PASS: hand-computed averages and type counts match")
+    print("    PASS: hand-computed averages, 8-type counts, schema and role map match")
 else:
     sys.exit(1)
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
-# ── (e) deliverables committed: git-tracked vs not ────────────────────────
-echo "  5. committed deliverable flips deliverable_conformance"
-GITWORK="$(mktemp -d /tmp/weizigo/t503-git-XXXXXX)"
+# ── (e) deliverables committed: git-tracked vs not (feeds scope) ──────────
+echo "  5. uncommitted deliverable flips scope_discipline"
+GITWORK="$(mktemp -d /tmp/weizigo/t524-git-XXXXXX)"
 trap 'rm -rf "$WORK" "$GITWORK"' EXIT
 cd "$GITWORK"
 git init -q
-git config user.email t503@test
-git config user.name T503
+git config user.email t524@test
+git config user.name T524
 mkdir -p docs/infra/managent untracked/log findings
 printf 'untracked/\n' > .gitignore
 
@@ -264,40 +390,63 @@ c7 = [
 ]
 with open(os.path.join(w, "c7.json"), "w") as f:
     json.dump(c7, f)
-# deliverable files on disk (T9's exists but is uncommitted)
 open(os.path.join(w, "docs/T8-out.txt"), "w").write("committed\n")
 open(os.path.join(w, "docs/T9-out.txt"), "w").write("uncommitted\n")
 print("git fixture seeded")
 PYEOF
-# commit T8's deliverable (and the store/c7/bundle so they are tracked where
-# the tool checks them — only docs/T8-out.txt matters for the arm)
 git add docs/T8-out.txt && git commit -qm "T8 deliverable committed"
 # T9-out.txt left untracked
 
-GJSON=$("$TOOL" --json --root "$GITWORK" --store "$GITWORK/docs/infra/managent/tasks.json" \
-        --model-perf "$GITWORK/noperf.md" --logs "$GITWORK/untracked/log" --c7 "$GITWORK/c7.json" 2>/dev/null)
 printf '' > "$GITWORK/noperf.md"
 GJSON=$("$TOOL" --json --root "$GITWORK" --store "$GITWORK/docs/infra/managent/tasks.json" \
         --model-perf "$GITWORK/noperf.md" --logs "$GITWORK/untracked/log" --c7 "$GITWORK/c7.json" 2>/dev/null)
 python3 - "$GJSON" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
-prof = d["profiles"]["alpha"]["deliverable_conformance"]
+prof = d["profiles"]["alpha"]["scope_discipline"]
 # alpha has T8 (committed -> 1) and T9 (uncommitted -> 0): avg 0.5
 if prof["n"] != 2 or prof["avg"] is None or abs(prof["avg"] - 0.5) > 1e-9:
-    print(f"    FAIL: committed-check avg={prof['avg']} n={prof['n']}, expected 0.5/2")
+    print(f"    FAIL: committed-check scope avg={prof['avg']} n={prof['n']}, expected 0.5/2")
     sys.exit(1)
-print("    PASS: uncommitted deliverable flips conformance to 0 (avg 0.5 over T8/T9)")
+print("    PASS: uncommitted deliverable flips scope_discipline to 0 (avg 0.5 over T8/T9)")
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
-# ── (f) --table render contract: verbatim, deterministic, faithful ───────
+# ── (f) recorded scope incident flips scope_discipline despite conform ────
+echo "  6. scope-incident override: amendments incident -> 0 even when findings conform"
+python3 - "$JSON1" <<'PYEOF'
+import json, sys
+d = json.loads(sys.argv[1])
+prof = d["profiles"]["alpha"]["scope_discipline"]
+# T12 conforms on c7 but carries a COMMIT-ATTRIBUTION INCIDENT in its
+# amendments: expected avg (1+1+0+1+1+0)/6 = 0.67 — the incident pulled it
+# below the non-incident 0.8 (T1,T2,T3,T8,T9).
+if prof["n"] != 6 or prof["avg"] is None or abs(prof["avg"] - round(4/6, 2)) > 1e-9:
+    print(f"    FAIL: incident-override avg={prof['avg']} n={prof['n']}, expected {round(4/6, 2)}/6")
+    sys.exit(1)
+print("    PASS: recorded scope incident overrode conformance (avg 0.67/6)")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+# ── (g) falsifiability keyword proxy ──────────────────────────────────────
+echo "  7. falsifiability: REFUTED in the recorded close names it (beta 1/4)"
+python3 - "$JSON1" <<'PYEOF'
+import json, sys
+d = json.loads(sys.argv[1])
+prof = d["profiles"]
+beta = prof["beta"]["falsifiability"]
+if beta["n"] != 4 or beta["avg"] is None or abs(beta["avg"] - 0.25) > 1e-9:
+    print(f"    FAIL: beta falsifiability avg={beta['avg']} n={beta['n']}, expected 0.25/4")
+    sys.exit(1)
+print("    PASS: T5's 'hypothesis REFUTED' graded beta falsifiability 1/4")
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+# ── (h) --table render contract: 8 dims + role map, verbatim, faithful ────
 # T523: the dimension-profiles table in docs/infra/model-perf.md must be the
-# tool's own --table render, pasted verbatim — hand-edited tables are
-# C10-class drift.  These controls pin the renderer against the same fixture
-# as arms (a)-(e): every cell equals the fixture JSON, `—` for null dims,
-# deterministic, stamp present.
-echo "  6. --table: every model with data; cells equal the JSON; deterministic; stamp present"
+# tool's own --table render, pasted verbatim.  T524: the render carries the
+# 8 D027 dimensions, the 8-type data column and the role->dimension map.
+echo "  8. --table: 8-dim columns; cells equal the JSON; role map present; deterministic; stamp"
 TABLE1=$("$TOOL" --table --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" 2>/dev/null)
 TABLE2=$("$TOOL" --table --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" 2>/dev/null)
 if [ "$TABLE1" = "$TABLE2" ]; then
@@ -314,39 +463,53 @@ python3 - "$TABLE1" <<'PYEOF'
 import sys
 
 tbl = sys.argv[1]
-data = [l for l in tbl.splitlines() if l.startswith("|") and not l.startswith("|--")]
-models = [r.split("|")[1].strip() for r in data[1:]]
+# model rows only: 12 split-cells (leading/trailing empty from the outer
+# pipes) = model + 8 dims + type-data.  The role-map block that follows is
+# also a markdown table but has 4 split-cells per row.
+rows = [l for l in tbl.splitlines()
+        if l.startswith("|") and not l.startswith("|--")
+        and len(l.split("|")) == 12]
+models = [r.split("|")[1].strip() for r in rows[1:]]
 ok = True
 if models != ["alpha", "beta", "gamma"]:
     print("    FAIL: --table model rows =", models); ok = False
-cells = {m: r.split("|") for m, r in zip(models, data[1:])}
+cells = {m: r.split("|") for m, r in zip(models, rows[1:])}
 def cell(m, col):
     return cells[m][col + 1].strip()
-# alpha correctness: T1 pwf + T2 pwf + T3 pass = 4/3 over 3
-if cell("alpha", 1) != "1.33 (n=3)":
+# alpha correctness: 10/6 over 6
+if cell("alpha", 1) != "1.67 (n=6)":
     print("    FAIL: alpha correctness cell", repr(cell("alpha", 1))); ok = False
-# gamma has no dispatch-verify lines / no log -> both null cells are em-dash
-if cell("gamma", 3) != "—" or cell("gamma", 4) != "—":
-    print("    FAIL: gamma null cells", repr(cell("gamma", 3)), repr(cell("gamma", 4))); ok = False
-# beta efficiency: RSS wall-kill = 1.0 over 1
-if cell("beta", 4) != "1.00 (n=1)":
-    print("    FAIL: beta efficiency cell", repr(cell("beta", 4))); ok = False
-# type-data column, infra/verif/spec/battery: alpha infra=1 verif=0 spec=2 battery=0
-if cell("alpha", 7) != "1/0/2/0":
-    print("    FAIL: alpha type-data cell", repr(cell("alpha", 7))); ok = False
+# gamma: thoroughness(3) efficiency(6) citation-honesty(7) are all null
+for col, name in ((3, "thoroughness"), (6, "efficiency"), (7, "citation-honesty")):
+    if cell("gamma", col) != "—":
+        print(f"    FAIL: gamma {name} cell", repr(cell("gamma", col))); ok = False
+# gamma independence (audit row, re-ran) is a real 0.00
+if cell("gamma", 4) != "0.00 (n=1)":
+    print("    FAIL: gamma independence cell", repr(cell("gamma", 4))); ok = False
+# beta efficiency: RSS wall-kill = 1.00 over 1
+if cell("beta", 6) != "1.00 (n=1)":
+    print("    FAIL: beta efficiency cell", repr(cell("beta", 6))); ok = False
+# type-data column, D027 order (spec/impl/audit/integr/infra/research/battery/orcha)
+if cell("alpha", 9) != "3/0/0/1/1/1/0/0":
+    print("    FAIL: alpha type-data cell", repr(cell("alpha", 9))); ok = False
+if cell("beta", 9) != "1/1/0/0/0/0/1/1":
+    print("    FAIL: beta type-data cell", repr(cell("beta", 9))); ok = False
+# role->dimension map is part of the --table render (D027 directive)
+if "Role" not in tbl or "Auditor" not in tbl or "calibration" not in tbl:
+    print("    FAIL: role->dimension map missing from --table render"); ok = False
 if ok:
-    print("    PASS: --table cells faithful to the fixture JSON")
+    print("    PASS: --table cells faithful to the fixture JSON; role map present")
 else:
     sys.exit(1)
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
-# ── (g) --check-doc contract: FRESH exits 0, STALE exits 1, absent exits 2 ─
+# ── (i) --check-doc contract: FRESH exits 0, STALE exits 1, absent exits 2 ─
 # T523: --check-doc is the standing freshness probe — it extracts the table
 # embedded in model-perf.md and compares it cell-by-cell against a fresh
 # computation.  Report-only by design (the live table goes stale as the
 # ledger moves; the fix is regeneration, not a gate).
-echo "  7. --check-doc: fresh=0, perturbed cell=1, missing table=2"
+echo "  9. --check-doc: fresh=0, perturbed cell=1, missing table=2"
 FRESH_DOC="$WORK/fresh.md"
 { cat "$PERF"; echo ""; echo "$TABLE1"; } > "$FRESH_DOC"
 if "$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$FRESH_DOC" --logs "$LOGS" --c7 "$C7" >/dev/null 2>&1; then
@@ -355,7 +518,7 @@ else
     echo "    FAIL: fresh doc should exit 0"; FAIL=1
 fi
 STALE_DOC="$WORK/stale.md"
-sed 's/1.33 (n=3)/9.99 (n=3)/' "$FRESH_DOC" > "$STALE_DOC"
+sed 's/1.67 (n=6)/9.99 (n=6)/' "$FRESH_DOC" > "$STALE_DOC"
 if "$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$STALE_DOC" --logs "$LOGS" --c7 "$C7" >/dev/null 2>&1; then
     echo "    FAIL: perturbed doc should exit non-zero (STALE)"; FAIL=1
 else

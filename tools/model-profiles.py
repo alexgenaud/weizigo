@@ -1,62 +1,125 @@
 #!/usr/bin/env python3
-"""Per-model dimension profiles from the ledger (T503).
+"""Per-model dimension profiles from the ledger (T503, extended T524).
 
 The operator's directive (2026-08-20): "Grade each model's performance on
 various aspect dimensions, then average each dimension to provide a
 performance dimension profile per model. If we lack data linking a model to
 task type, then that's reason to choose the model (rather than choose models
-with abundant data)."
+with abundant data)."  Directive D027 (operator-approved, 2026-08-20) fixed
+the taxonomy at EIGHT dimensions / EIGHT task types plus a role->dimension
+map; T524 brings this instrument to that contract.
 
 This is a READ-ONLY instrument: it reads the kanban store, the dispatch-verify
 ledger, the wall-kill log census and the claimlint C7 findings conformance,
 and reports per-model profiles.  It writes nothing — to the ledger or anywhere
 else.
 
-Dimensions (each graded per task from an existing recorded signal — no new
-subjective scoring):
+Dimensions (D027 order; each graded per task from an existing recorded signal
+— no new subjective scoring):
 
   correctness               verdict: pass=2, pass-with-findings=1,
                             fail-found=1, blocked=0, abandoned=0
-  completion                status reached done=1, else 0 (graded only for
-                            tasks that were claimed or closed — a never-claimed
-                            dispatchable row has no completion data)
-  close_discipline          dispatch-verify line: verified=pass=2;
-                            verified=fail with fail in {nonce, deliverables,
-                            findings}=1 (recoverable — the work exists, the
-                            close protocol broke); fail in {row, exit}=0
-                            (unrecoverable — the work is absent or crashed)
+  completion_close          merged D027 dimension 2 ("Completion / close
+                            discipline — row reached done vs
+                            wall-kill/stall/reopen"): a dispatch-verify close
+                            event grades verified=pass=2, verified=fail with
+                            fail in {nonce, deliverables, findings}=1
+                            (recoverable), fail in {row, exit}=0
+                            (unrecoverable); a graded task with no close
+                            event grades done=1 / not-done=0; a bare-dispatch
+                            close event grades by model.  One ordinal scale:
+                            2 = verified clean close, 1 = done or recoverable
+                            close break, 0 = not done or unrecoverable break.
+  thoroughness               D027 dimension 3 (depth of coverage).  NO
+                            recorded per-task signal exists in the ledger —
+                            emitted `—` (null) by design.  The directive's own
+                            examples ('thorough, best audit discipline' vs
+                            'superficial') are observational impressions and
+                            allocation-confounded (model-perf.md:82, the
+                            Class-B warning recorded below); a defensible
+                            signal would come from the race ledger's rubric
+                            scores (T529), not from prose.
+  independence              audit/verification tasks only: re-derived by a
+                            different route=1, re-run=0 (keyword proxy over
+                            the recorded note/verdict_note); non-audit tasks
+                            have no data
+  falsifiability            D027 dimension 5: named what would prove it wrong
+                            (T447: 'the sentence that decided it').  Keyword
+                            proxy over the recorded close text (note +
+                            verdict_note + amendments): a refutation /
+                            falsification marker present=1, absent=0, graded
+                            only on claimed/closed tasks.  This measures the
+                            recorded record, not the thinking — the same
+                            recording-culture bias the independence proxy
+                            already admits.
   efficiency                wall-kill log census (grep "exit 124" t*.log):
                             clean=2; RSS-cap kill, or a wall-ceiling kill
                             that was emitting progress=1 (wall-kill); a
                             wall-ceiling kill with no progress lines, or a
-                            CPU-ceiling kill=0 (stall / over-broad)
-  deliverable_conformance   findings file conforms per claimlint C7 AND
-                            declared deliverables are git-committed=1, else 0
-  independence              audit/verify tasks only: re-derived by a different
-                            route=1, re-run=0 (keyword proxy over the recorded
-                            note/verdict_note); non-audit tasks have no data
+                            CPU-ceiling kill=0 (stall / over-broad).  D027
+                            names token/cost per unit result; token capture
+                            (T521, untracked/tokens/tokens.jsonl) is the
+                            future signal — today's census is the recorded one.
+  citation_honesty          D027 dimension 7 (fabricated citations graded
+                            down, T447 '-2 for one fabricated citation').  NO
+                            reliable per-task recorded signal exists: T447's
+                            -2 was a race-grading event, claimlint C10
+                            (volatile citations) is per-doc not per-task, and
+                            a keyword proxy cannot distinguish 'reported no
+                            fabricated citations' (T459, clean) from 'was
+                            caught fabricating' (rare, recorded only in prose
+                            incidents).  Emitted `—` (null) by design; a
+                            signal would come from the race ledger or a
+                            per-doc->task C10 mapping.
+  scope_discipline          D027 dimension 8: stayed in the brief
+                            (holds=/one-writer doctrine; the seat's own
+                            failure class).  Recorded signal: the old
+                            deliverable-conformance check (findings conform
+                            per claimlint C7 AND declared deliverables are
+                            git-committed=1, else 0) plus a scope-incident
+                            override — a recorded incident in the close text
+                            (commit-attribution incident, wildcard staging,
+                            git add -A, scope creep, ...) grades 0 even when
+                            the findings conform.
 
 Averaging: per model, per dimension: sum of grades / count of tasks graded on
 that dimension.  A dimension with zero graded tasks is `—` (null), never 0 —
-absence of evidence is not evidence of absence.
+absence of evidence is not evidence of absence.  Caveat recorded per D027:
+observational impressions are allocation-confounded (model-perf.md Class-B,
+2026-08-05); the two-model + blind-grade doctrine (D025/D026) is what turns
+them into Class-A measurements — this table is Class-B until then.
 
-Task types (spec / infra / verification / battery) are classified by a
-deterministic keyword rule over the bundle slug + note + verdict_note.  This
-map feeds ONLY the exploration-first selection rule, never a graded dimension.
+Task types (D027's eight: spec/design, implementation-bounded,
+audit/verification, integration/reframe, infra/tooling, research/census,
+battery-heavy, orchestration-seat) are classified by a deterministic,
+ordered keyword rule over the bundle slug + note + verdict_note (specific
+beats general: battery > orchestration-seat > audit/verification >
+integration/reframe > research/census > spec/design > implementation-bounded
+> infra/tooling catch-all).  This map feeds ONLY the exploration-first
+selection rule and the type->data-count pairing map, never a graded
+dimension.
+
+The role->dimension map (D027, verbatim) — which dimensions define a good
+<role> — is emitted in --json and in the --table render so the model-perf
+section carries the taxonomy the directive ordered.
 
 Selection rule (exploration-first): for a task type, prefer the candidate
 model with the least data (fewest graded tasks) of that type; if any candidate
 has zero, a zero-data candidate is chosen.  Only when every candidate has data
 on the type does the profile decide: highest average on the type's dominant
-dimension (spec->correctness, infra->deliverable_conformance,
-verification->independence, battery->correctness), ties by diversity (more
+dimension (spec/design->correctness, implementation-bounded->correctness,
+audit/verification->independence, integration/reframe->scope_discipline,
+infra/tooling->scope_discipline, research/census->thoroughness,
+battery-heavy->correctness, orchestration-seat->scope_discipline; a null
+dominant dimension falls back to correctness), ties by diversity (more
 distinct types with data), then by the least data, then lexicographic label.
 
 Canonical model labels mirror src/managent/main.zig canonical_models[]; the
 log-tag canonicalization (strip :cloud, kimi-k2.7-code -> kimi-k2.7) is the
 same transform managent applies at registration time.
 
-Task: T503 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-20
+Task: T503 (first half) · T524 (8×8 extension) · Role: worker · Model:
+deepseek-v4-pro (T503) / deepseek-v4-flash (T524) · Date: 2026-08-20
 """
 import argparse
 import json
@@ -80,20 +143,76 @@ CANONICAL_MODELS = [
 
 DIMENSIONS = [
     "correctness",
-    "completion",
-    "close_discipline",
-    "efficiency",
-    "deliverable_conformance",
+    "completion_close",
+    "thoroughness",
     "independence",
+    "falsifiability",
+    "efficiency",
+    "citation_honesty",
+    "scope_discipline",
 ]
 
+# Display labels for the 8 dimensions (D027 names).
+DIMENSION_LABELS = {
+    "correctness": "Correctness",
+    "completion_close": "Completion / close discipline",
+    "thoroughness": "Thoroughness",
+    "independence": "Independence",
+    "falsifiability": "Falsifiability discipline",
+    "efficiency": "Efficiency",
+    "citation_honesty": "Citation honesty",
+    "scope_discipline": "Scope discipline",
+}
+
+# The eight D027 task types, in the directive's order, and their compact
+# table labels.
+TASK_TYPES = [
+    "spec/design",
+    "implementation-bounded",
+    "audit/verification",
+    "integration/reframe",
+    "infra/tooling",
+    "research/census",
+    "battery-heavy",
+    "orchestration-seat",
+]
+TYPE_LABELS = {
+    "spec/design": "spec",
+    "implementation-bounded": "impl",
+    "audit/verification": "audit",
+    "integration/reframe": "integr",
+    "infra/tooling": "infra",
+    "research/census": "research",
+    "battery-heavy": "battery",
+    "orchestration-seat": "orcha",
+}
+
 # Dominant dimension per task type — used only by the selection rule's
-# "profile decides" branch.
+# "profile decides" branch.  A null dominant dimension falls back to
+# correctness (see select()).
 DOMINANT = {
-    "spec": "correctness",
-    "infra": "deliverable_conformance",
-    "verification": "independence",
-    "battery": "correctness",
+    "spec/design": "correctness",
+    "implementation-bounded": "correctness",
+    "audit/verification": "independence",
+    "integration/reframe": "scope_discipline",
+    "infra/tooling": "scope_discipline",
+    "research/census": "thoroughness",
+    "battery-heavy": "correctness",
+    "orchestration-seat": "scope_discipline",
+}
+
+# The role->dimension map (directive D027, operator-approved 2026-08-20),
+# emitted verbatim in --json and in the --table render.  Names as recorded in
+# the directive; where a name matches a graded dimension it is the same
+# signal, otherwise it names an aspect this instrument does not yet grade.
+ROLES = {
+    "Orchestrator": ["scope discipline", "close discipline", "follow-through",
+                      "honesty-about-recorded"],
+    "Implementor": ["correctness", "completion", "efficiency", "scope discipline"],
+    "Designer/Planner": ["thoroughness", "falsifiability", "integration"],
+    "Tester": ["independence", "falsifiability", "calibration (known-bad + known-good)"],
+    "Researcher": ["thoroughness", "citation honesty", "efficiency-at-scale"],
+    "Auditor": ["independence", "thoroughness", "citation honesty", "calibration"],
 }
 
 # Verdict -> correctness grade (missing verdict = no data).
@@ -114,31 +233,83 @@ RECOVERABLE_FAIL = {"nonce", "deliverables", "findings"}
 UNTRACKED_PREFIXES = ("untracked/", "data/", "artifacts/")
 
 # ── task-type classifier: deterministic keyword rule, ordered ─────────────
-# battery > verification > spec > infra (specific beats general).  The text
-# blob is the lowercased bundle basename + note + verdict_note.
+# battery-heavy > orchestration-seat > audit/verification > integration/reframe
+# > research/census > spec/design > implementation-bounded > infra/tooling
+# (specific beats general).  The text blob is the lowercased bundle basename +
+# note + verdict_note.
 TYPE_KEYWORDS = [
-    ("battery", [
+    ("battery-heavy", [
         "battery", "mutant", "vb_", "bellman", "scc", "movegen", "closure",
-        "smd1", "batt-health", "golden-master", "baseline",
+        "smd1", "batt-health", "batt", "golden-master", "baseline",
+        "calibration", "exhaustive", "kifu", "tournament", "bracket",
+        "discharge", "divergence",
         "-i11", "-i5", "-i8", "-i4", "-i9", "-i10", "-i12",
     ]),
-    ("verification", [
+    ("orchestration-seat", [
+        "orcha", "orchestrat", "seat", "aspect", "triage", "inbox",
+        "crash-recovery", "dispatch-authoring", "console", "landmark",
+        "ruling",
+    ]),
+    ("audit/verification", [
         "audit", "verify", "verif", "race", "probe", "falsif", "confirm",
         "grade", "grading", "re-audit", "reaudit", "second-auditor",
-        "third-auditor", "cross-check", "independent",
+        "third-auditor", "cross-check", "independent", "review",
     ]),
-    ("spec", [
+    ("integration/reframe", [
+        "integration", "reframe", "consolidat", "absorb", "merge",
+        "repoint", "re-point", "unify", "migrate",
+    ]),
+    ("research/census", [
+        "research", "census", "survey", "inventory", "epistemic",
+        "taxonomy", "provenance", "study", "termination",
+    ]),
+    ("spec/design", [
         "spec", "design", "strategy", "architecture", "plan", "blueprint",
         "proposal", "draft",
     ]),
-    ("infra", []),
+    ("implementation-bounded", [
+        "fix", "implement", "assert", "isolation", "alias", "desync",
+        "crosstalk", "hang", "leak", "flake", "gtp", "taskid", "propagat",
+        "bughunt", "clobber", "mutex", "recursion", "timeout", "hard-fail",
+        "repair", "oob", "intcast",
+    ]),
+    ("infra/tooling", []),
 ]
+
+# Orchestration-seat keywords are matched against the BUNDLE SLUG ONLY, not
+# the note/verdict_note blob: the seat words (orcha/orchestrat/seat/console/
+# triage/inbox/...) appear in almost every recorded close as attribution
+# ('the Orchestrator ruled', 'the seat closed the row', 'verified via the
+# console'), so a note match would flood the seat bucket with ordinary worker
+# tasks.  The slug is the task author's own title — a seat word there is a
+# genuine signal.  All other types match the full blob.
+SLUG_ONLY_TYPES = {"orchestration-seat"}
 
 # Independence marker: audit/verify tasks that re-derived by a different route.
 INDEPENDENCE_MARKERS = [
     "independent", "re-implement", "reimplement", "re-derive", "rederive",
     "re-write", "rewrite", "different route", "from scratch", "second seat",
     "separate implementation", "by hand", "hand-derived", "re-derived",
+]
+
+# Falsifiability markers (D027 dim 5): the recorded close text names what
+# would prove the claim wrong.  Same keyword-proxy discipline as
+# INDEPENDENCE_MARKERS — measured over the recorded note/verdict_note/
+# amendments, so it measures what got recorded, not what was thought.
+FALSIFIABILITY_MARKERS = [
+    "falsif", "refut", "disprov", "disconfirm", "would prove",
+    "prove it wrong", "the sentence that decided", "popper", "counterexample",
+]
+
+# Scope-incident markers (D027 dim 8): a recorded incident in the close text
+# means the worker did not stay in the brief, regardless of findings
+# conformance.  Rare by design — absence of a marker is not graded (see
+# build_profiles: the conformance check is the ordinary signal).
+SCOPE_INCIDENT_MARKERS = [
+    "git add -A", "git add .", "commit -a", "wildcard stage",
+    "attribution incident", "scope creep", "outside the brief",
+    "out of scope", "violated its directive", "staged someone",
+    "unrelated message",
 ]
 
 
@@ -288,16 +459,36 @@ def classify_type(task):
     base = os.path.basename(bundle)
     if base.endswith(".md"):
         base = base[:-3]
+    base_l = base.lower()
     blob = " ".join([base, task.get("note") or "", task.get("verdict_note") or ""]).lower()
     for typ, kws in TYPE_KEYWORDS:
+        hay = base_l if typ in SLUG_ONLY_TYPES else blob
         for kw in kws:
-            if kw in blob:
+            if kw in hay:
                 return typ
-    return "infra"
+    return "infra/tooling"
 
 
 def is_audit_verify(typ):
-    return typ == "verification"
+    return typ == "audit/verification"
+
+
+def _close_blob(task):
+    """The task's recorded close text: note + verdict_note + amendments."""
+    return " ".join([task.get("note") or "", task.get("verdict_note") or "",
+                      " ".join(task.get("amendments") or [])]).lower()
+
+
+def _names_falsification(task):
+    """1 if the recorded close names a refutation/falsification, else 0."""
+    blob = _close_blob(task)
+    return 1 if any(m in blob for m in FALSIFIABILITY_MARKERS) else 0
+
+
+def _has_scope_incident(task):
+    """True iff the recorded close carries a scope incident marker."""
+    blob = _close_blob(task)
+    return any(m in blob for m in SCOPE_INCIDENT_MARKERS)
 
 
 def grade_independence(task):
@@ -323,7 +514,13 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
     dispatch = parse_dispatch_verify(perf_text)
     kills = scan_logs(logs_dir)
 
-    # close discipline: grade every dispatch-verify line (a close event).
+    # close events: verified=pass -> 2; verified=fail, recoverable reason -> 1;
+    # unrecoverable -> 0.  Keyed by the LINE's model (the worker the
+    # dispatch-verify recorded) — the old close-discipline attribution: the
+    # line's model is the authoritative worker for the close event, and it
+    # survives rows whose `agent` is None (blocked rows like T511) or whose
+    # recorded lines name a different verifier.  Completion observations are
+    # keyed by the task's agent (below).
     close_events = {}  # model -> list of grades
     for rec in dispatch:
         m = rec["model"]
@@ -337,6 +534,10 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
         else:
             continue
         close_events.setdefault(m, []).append(g)
+
+    # task ids that have at least one close event: those rows are covered by
+    # the event grades and contribute no separate completion observation.
+    task_close_ids = {r["task"] for r in dispatch if r["task"]}
 
     # efficiency: grade every (task, model) observed in a log segment.  A
     # segment with several kills takes the worst (minimum) grade.
@@ -358,7 +559,7 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
         graded = (t.get("verdict") is not None) or (t.get("claimed") is not None)
         if model:
             acc.setdefault(model, {d: [] for d in DIMENSIONS})
-            type_counts.setdefault(model, {x: 0 for x in ("spec", "infra", "verification", "battery")})
+            type_counts.setdefault(model, {x: 0 for x in TASK_TYPES})
             if graded:
                 type_counts[model][typ] += 1
 
@@ -367,31 +568,50 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
             if v in CORRECTNESS_GRADE:
                 acc[model]["correctness"].append(CORRECTNESS_GRADE[v])
 
-            # completion
-            if graded:
-                acc[model]["completion"].append(1 if t.get("status") == "done" else 0)
+            # completion/close discipline (merged, D027 dim 2): a close event
+            # grades 2/1/0 and subsumes the row's completion; a graded task
+            # with no close event grades done=1 / not-done=0.  Close events
+            # are attributed by the line's model and added after the loop;
+            # completion observations are attributed to the task's agent.
+            if graded and tid not in task_close_ids:
+                acc[model]["completion_close"].append(
+                    1 if t.get("status") == "done" else 0)
 
-            # deliverable conformance
-            c7_entries = c7.get(tid)
-            if c7_entries:
-                conform = all(ok for ok, _ in c7_entries)
-                if conform and not no_git:
-                    for dl in parse_deliverables(root, t.get("bundle")):
-                        if dl.startswith(UNTRACKED_PREFIXES):
-                            continue
-                        if not git_tracked(root, dl):
-                            conform = False
-                            break
-                acc[model]["deliverable_conformance"].append(1 if conform else 0)
+            # falsifiability (D027 dim 5): named what would prove it wrong.
+            if graded:
+                acc[model]["falsifiability"].append(_names_falsification(t))
+
+            # scope discipline (D027 dim 8): findings conform per C7 AND
+            # declared deliverables are git-committed, overridden to 0 by a
+            # recorded scope incident.  No C7 entry and no incident -> no data.
+            if _has_scope_incident(t):
+                acc[model]["scope_discipline"].append(0)
+            else:
+                c7_entries = c7.get(tid)
+                if c7_entries:
+                    conform = all(ok for ok, _ in c7_entries)
+                    if conform and not no_git:
+                        for dl in parse_deliverables(root, t.get("bundle")):
+                            if dl.startswith(UNTRACKED_PREFIXES):
+                                continue
+                            if not git_tracked(root, dl):
+                                conform = False
+                                break
+                    acc[model]["scope_discipline"].append(1 if conform else 0)
 
             # independence
             ind = grade_independence(t)
             if ind is not None:
                 acc[model]["independence"].append(ind)
 
-    # close discipline + efficiency are keyed by model, not task.
+            # thoroughness / citation_honesty: no recorded per-task signal
+            # (see the module docstring) — left null by construction.
+
+    # close events and wall-kill efficiency, keyed by model.  A task that has
+    # close events is covered by those grades (it contributes no separate
+    # completion observation — see the loop above).
     for m, grades in close_events.items():
-        acc.setdefault(m, {d: [] for d in DIMENSIONS})["close_discipline"].extend(grades)
+        acc.setdefault(m, {d: [] for d in DIMENSIONS})["completion_close"].extend(grades)
     for m, grades in eff_events.items():
         acc.setdefault(m, {d: [] for d in DIMENSIONS})["efficiency"].extend(grades)
 
@@ -435,18 +655,19 @@ def _counts_for(dim, grades):
     if dim == "correctness":
         return {"pass": grades.count(2), "pwf_or_fail_found": grades.count(1),
                 "blocked_or_abandoned": grades.count(0)}
-    if dim == "completion":
-        return {"done": grades.count(1), "not_done": grades.count(0)}
-    if dim == "close_discipline":
-        return {"pass": grades.count(2), "recoverable": grades.count(1),
-                "unrecoverable": grades.count(0)}
+    if dim == "completion_close":
+        return {"verified_pass": grades.count(2),
+                "done_or_recoverable": grades.count(1),
+                "not_done_or_unrecoverable": grades.count(0)}
+    if dim == "falsifiability":
+        return {"named": grades.count(1), "not_named": grades.count(0)}
     if dim == "efficiency":
         return {"clean": grades.count(2), "wall_kill": grades.count(1),
                 "stall_or_broad": grades.count(0)}
-    if dim == "deliverable_conformance":
-        return {"conform": grades.count(1), "nonconform": grades.count(0)}
     if dim == "independence":
         return {"yes": grades.count(1), "no": grades.count(0)}
+    if dim == "scope_discipline":
+        return {"conform": grades.count(1), "nonconform": grades.count(0)}
     return {}
 
 
@@ -487,41 +708,64 @@ def select(models, typ, profiles, type_counts):
 def render_human(profiles, type_counts):
     lines = []
     lines.append("Dimension averages (— = no data):")
-    header = "  %-22s %11s %10s %14s %10s %22s %12s" % (
-        "model", "correct", "complet", "close_disc", "efficienc",
-        "deliv_conf", "independence")
+    header = "  %-22s %11s %12s %10s %12s %12s %10s %12s %12s" % (
+        "model", "correct", "comp/close", "thorough", "independ",
+        "falsif", "efficienc", "citation", "scope")
     lines.append(header)
     for m in sorted(profiles):
         p = profiles[m]
         def cell(d):
             a = p[d]["avg"]
             return "—" if a is None else ("%.2f" % a)
-        lines.append("  %-22s %11s %10s %14s %10s %22s %12s" % (
-            m, cell("correctness"), cell("completion"),
-            cell("close_discipline"), cell("efficiency"),
-            cell("deliverable_conformance"), cell("independence")))
+        lines.append("  %-22s %11s %12s %10s %12s %12s %10s %12s %12s" % (
+            m, cell("correctness"), cell("completion_close"),
+            cell("thoroughness"), cell("independence"), cell("falsifiability"),
+            cell("efficiency"), cell("citation_honesty"), cell("scope_discipline")))
     lines.append("")
     lines.append("Task-type data counts (graded tasks per model):")
-    lines.append("  %-22s %6s %6s %13s %8s" % ("model", "spec", "infra", "verification", "battery"))
+    lines.append("  %-22s %6s %6s %13s %8s %6s %9s %9s %9s" % (
+        "model", "spec", "impl", "audit", "integr", "infra", "research",
+        "battery", "orcha"))
     for m in sorted(type_counts):
         tc = type_counts[m]
-        lines.append("  %-22s %6d %6d %13d %8d" % (
-            m, tc.get("spec", 0), tc.get("infra", 0),
-            tc.get("verification", 0), tc.get("battery", 0)))
+        lines.append("  %-22s %6d %6d %13d %8d %6d %9d %9d %9d" % (
+            m, tc.get("spec/design", 0), tc.get("implementation-bounded", 0),
+            tc.get("audit/verification", 0), tc.get("integration/reframe", 0),
+            tc.get("infra/tooling", 0), tc.get("research/census", 0),
+            tc.get("battery-heavy", 0), tc.get("orchestration-seat", 0)))
     return "\n".join(lines)
 
 
 TABLE_STAMP = ("<!-- model-profiles table: generated by tools/model-profiles.py "
                "--table on {date} — never hand-edit; regenerate and re-paste -->")
-TABLE_HEADER = ("| model | correctness | completion | close-disc | efficiency | "
-                "deliverable | independence | type data (infra/verif/spec/battery) |")
-TABLE_SEP = "|---|---|---|---|---|---|---|---|"
+TABLE_HEADER = ("| model | correctness | completion/close | thoroughness | "
+                "independence | falsifiability | efficiency | citation-honesty | "
+                "scope-discipline | type data (spec/impl/audit/integr/infra/"
+                "research/battery/orcha) |")
+TABLE_SEP = "|---|---|---|---|---|---|---|---|---|---|"
+
+
+def _role_map_block():
+    """The D027 role->dimension map as a markdown block, emitted as part of
+    the --table render (the section the directive ordered must carry the
+    taxonomy).  Static by design — it records the directive, not the data."""
+    lines = ["Role → defining dimensions (D027, operator-approved 2026-08-20): "
+             "which dimensions define a good <role>. Names as recorded in the "
+             "directive; where a name matches a graded dimension above it is the "
+             "same signal.",
+             "| role | defining dimensions |",
+             "|---|---|"]
+    for role, dims in ROLES.items():
+        lines.append("| %s | %s |" % (role, " · ".join(dims)))
+    return "\n".join(lines)
 
 
 def render_table(profiles, type_counts, date):
     """The canonical markdown table — the ONE render that may be pasted into
     docs/infra/model-perf.md.  Hand-editing it is C10-class drift (T523);
-    regenerate with `tools/model-profiles.py --table` instead."""
+    regenerate with `tools/model-profiles.py --table` instead.  Carries the
+    8 D027 dimensions, the 8-type data column and the role->dimension map
+    (T524)."""
     lines = [TABLE_STAMP.format(date=date), TABLE_HEADER, TABLE_SEP]
     for m in sorted(profiles):
         p = profiles[m]
@@ -530,12 +774,12 @@ def render_table(profiles, type_counts, date):
             n = p[d]["n"]
             return "—" if a is None else "%.2f (n=%d)" % (a, n)
         tc = type_counts.get(m, {})
-        tcell = "%d/%d/%d/%d" % (tc.get("infra", 0), tc.get("verification", 0),
-                                 tc.get("spec", 0), tc.get("battery", 0))
-        lines.append("| %-26s | %s | %s | %s | %s | %s | %s | %s |" % (
-            m, cell("correctness"), cell("completion"), cell("close_discipline"),
-            cell("efficiency"), cell("deliverable_conformance"),
-            cell("independence"), tcell))
+        tcell = "/".join(str(tc.get(t, 0)) for t in TASK_TYPES)
+        lines.append("| %-26s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+            m, cell("correctness"), cell("completion_close"), cell("thoroughness"),
+            cell("independence"), cell("falsifiability"), cell("efficiency"),
+            cell("citation_honesty"), cell("scope_discipline"), tcell))
+    lines.append(_role_map_block())
     return "\n".join(lines)
 
 
@@ -618,6 +862,9 @@ def main(argv):
                 "generated": _today(),
                 "selection": {"type": args.select, "chosen": chosen,
                               "candidates": models},
+                "dimensions": DIMENSIONS,
+                "task_types": TASK_TYPES,
+                "roles": ROLES,
                 "type_counts": type_counts,
                 "profiles": profiles,
             }, sort_keys=True))
@@ -642,6 +889,9 @@ def main(argv):
         print(json.dumps({
             "generated": _today(),
             "dimensions": DIMENSIONS,
+            "dimension_labels": DIMENSION_LABELS,
+            "task_types": TASK_TYPES,
+            "roles": ROLES,
             "profiles": profiles,
             "type_counts": type_counts,
             "task_type": task_type,
