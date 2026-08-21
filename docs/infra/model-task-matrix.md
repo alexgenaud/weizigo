@@ -8,15 +8,16 @@ here. A model is selected for a task type when evidence says it is the most appr
 **This file is the dispatch policy, not a report.** An empty cell is a reason to dispatch — the
 next row of that type goes to a model whose cell is blank, provided the row is safe to give away.
 
-## Cost stance while it holds (operator, 2026-08-18)
+## Cost stance — RETIRED (2026-08-21, T565; superseded by measurement-methodology.md §1 the appetite table)
 
-1. **Ollama credits are plentiful** — prefer `glm-5.2`, `minimax-m3`, `kimi-k2.7`. Spend them.
-2. Otherwise **`deepseek-v4-flash` over `deepseek-v4-pro`**: cheaper, and on the one measured
-   race also faster and better.
-3. **`deepseek-v4-pro` is worth trying on heavy, long-horizon, Opus/Fable-like work** — the one
-   shape no race has measured. That is where its premium might be earned, if anywhere.
-4. `claude-fable-5` sparingly, under 90 % of 200 k. `kimi-k3` excluded on cost.
-5. **Local `qwen3.8:27b-mlx`** costs no credits at all but costs the machine — see §3.
+The 2026-08-18 "cost stance while it holds" (Ollama-first for leaf rows, flash-over-pro,
+pro-for-heavy-work, fable-sparingly, qwen-costs-the-machine) is **superseded** by the appetite
+config in `measurement-methodology.md` §1 (levels OFF/PROBE/CONSERVE/SPEND/RESERVED, the
+family budget states as of 2026-08-21, and the hard reservations). Per that table: ollama-cloud
+is OFF→SPEND on a human flip (~48h ±24h, never a calendar auto-trust), claude is CONSERVE,
+claude-fable is RESERVED, deepseek is SPEND, local is PROBE. Where the two disagree, §1 wins.
+The retired stance is preserved verbatim in the archive:
+`docs/infra/archive/model-perf-2026-08-21.md`.
 
 ## 0. Short names — operator ruling, 2026-08-19
 
@@ -113,7 +114,7 @@ acceptance shape:
 | row | red being fixed | model |
 |---|---|---|
 | T451 | `t419_taxonomy` `@intCast` underflow | `glm-5.2` |
-| T452 | `qa023_brute_2x2` node-budget explosion | `minimax-m3` |
+| T452 | `qa023_brute_2x2` node-budget explosion | `glm-5.2` (first dispatch `minimax-m3` died in the rc=124 cohort — DO NOT SCORE, 2740174; completed worker per findings/T452-qa023-budget.json + kanban agent + dispatch-verify 2026-08-20 pass) |
 | T453 | `vb_bellman_4x4` `board[0..16]` OOB | `kimi-k2.7` |
 
 **What this design can say, and what it cannot.** Each row is a *different bug*, so this is
