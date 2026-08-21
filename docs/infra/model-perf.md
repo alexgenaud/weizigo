@@ -4113,3 +4113,21 @@ Killed by two guards in succession: `KILL: host memory pressure — avail 5776 M
 wall was the **keeper's default**, not the row's class (verification wants 5400–7200 s) —
 the wall-guess defect (inventory item C5) hitting the most valuable row of the day. Its
 `DO NOT SCORE` scope is the kill itself, not the 17 captured readings, which are valid.
+dispatch-verify 2026-08-20 T547 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T549 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T546 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-20 T549 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 T550 claude-fable-5 report=success verified=pass
+dispatch-verify 2026-08-20 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T551 claude-fable-5 report=success verified=pass
+dispatch-verify 2026-08-20 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-20 T553 claude-fable-5 report=success verified=pass
+dispatch-verify 2026-08-20 T552 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-20 - claude-haiku-4-5-20251001 report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 - qwen3.8:27b-mlx report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 - claude-sonnet-5 report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 - deepseek-v4-pro report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 - deepseek-v4-flash report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 - claude-fable-5 report=crash verified=fail fail=exit
+dispatch-verify 2026-08-20 - claude-opus-5 report=crash verified=fail fail=exit

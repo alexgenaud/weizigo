@@ -57,3 +57,7 @@
 {"task_id": "T530", "model": "deepseek-v4-flash", "exit_code": 124, "wall_seconds": 1409.4, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:10:01Z"}
 {"task_id": "T521", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 2311.4, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:15:43Z"}
 {"task_id": "T531", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 1754.7, "healed_by": "dispatcher", "timestamp": "2026-08-20T13:15:46Z"}
+{"task_id": "T529", "model": "claude-opus-5", "exit_code": 143, "wall_seconds": 1226.9, "healed_by": "dispatcher", "timestamp": "2026-08-20T14:52:39Z"}
+{"task_id": "T524", "model": "deepseek-v4-flash", "exit_code": 124, "wall_seconds": 2700.6, "healed_by": "dispatcher", "timestamp": "2026-08-20T15:17:34Z"}
+{"task_id": "T546", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 2700.4, "healed_by": "dispatcher", "timestamp": "2026-08-20T15:18:14Z"}
+{"task_id": "T549", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 649.6, "healed_by": "dispatcher", "timestamp": "2026-08-20T15:41:37Z"}
