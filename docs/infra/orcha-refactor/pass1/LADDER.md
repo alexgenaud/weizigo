@@ -14,7 +14,7 @@ row per gate, gate on a different model from the phase it audits.
 | 6 | plan | `05-plan.md` | document review | after 5 |
 | 7 | build (red → green) | the verb + controls | independent re-implementation, different model | after 6 |
 | 8 | verify + smoke | suite, claimlint | numbers audit | after 7 |
-| 9 | accept | `08-accept.md` + absorb + perf stats + commit | numbers audit | bookend |
+| 9 | accept | `08-accept.md` + absorb + perf stats + commit + deploy + smoke | numbers audit gates **ratify** accept.md (sprint.md §Acceptance step 5), never the commit (step 4) | after 8 |
 
 **Cannibalization is the deliverable, not the verb.** Pass 1 closes only when
 `tools/runner:1505` and the normal-exit path both call the new verb and the old code is

@@ -570,6 +570,16 @@
    "disposition": "not-a-register-claim",
    "refuting_row": "\u2014",
    "rationale": "ERA WAIVER (pre-authorized wrap-up, 2026-08-20): the pre-convention findings block (T203, T228-T251, T262, T275, T281) predates the findings-file convention; those rows carry no findings files because the convention did not exist when they closed. One waiver line covers the block rather than 24 archaeology digs, per the DONE-review sweep ruling. Their work is evidenced in git history; absence of findings files is era-consistent, not drift."
+  },
+  {
+   "finding_task": "T557",
+   "finding_file": "T557-pass1-phases-8-9.json",
+   "claim_id": "T557.D27-fabrication-finding",
+   "proposed_status": "FALSE-AS-SCOPED",
+   "register_status": "NO SUCH ID",
+   "disposition": "not-a-register-claim",
+   "refuting_row": "\u2014",
+   "rationale": "RETRACTED 2026-08-21. The notes of findings/T557-pass1-phases-8-9.json carried the D27 claim that the sonnet/opus B-3 lanes 'reported verification they could not have performed' under --allowedTools Read. The premise was false: --allowedTools pre-approves tools (it is not a deny-list; that is --disallowedTools) and the lane transcripts record real Bash (opus 31 calls, sonnet 12). Both lanes DEFEND. The retraction lives in OWNER-LOG D33 and findings/T557-b3-verification-review.json (claude-opus-5)."
   }
  ]
 }

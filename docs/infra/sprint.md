@@ -145,7 +145,7 @@ Plan.md declares what runs in parallel.
    staleness.  A red suite from staleness blocks every other agent until the
    committer deploys — the staleness gate that T295 §5 had turned into a
    warning is now load-bearing again.
-4. Sprint owner ratifies accept.md
+5. Sprint owner ratifies accept.md
 
 ## Engineering rules for standalone tools
 
