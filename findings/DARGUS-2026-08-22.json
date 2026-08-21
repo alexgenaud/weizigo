@@ -1,0 +1,9 @@
+{
+ "task_id": "DARGUS",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/DARGUS",
+ "claims": [],
+ "new_rows": ["T569"],
+ "notes": "DARGUS chunk: ran `bin/argus --mode doctor`. It CRASHED before producing a report: `UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 440-441: invalid continuation byte` (bin/argus:685 `run_doctor` → `_doctor_in_progress_no_heartbeat` → `_managent(root, 'liveness')`). Root cause: `bin/managent liveness` emits invalid UTF-8 — `src/managent/main.zig:8536` truncates the heartbeat command with `hb.command[0..40]`, a byte-slice that splits a multi-byte sequence. The trigger is the T557 queue-layer design brief's command line (`claude -p '# Queue-layer design brief → …'`), whose arrow (e2 86 92) sits astride byte 40; the output ends `…brief e2 80\\n` (dangling 2 bytes of a 3-byte char). Confirmed by capturing `managent liveness` stdout and byte-scanning: exactly one invalid sequence, at the command-display line. ACTION: diagnosed + registered T569 (test-first fix: UTF-8-boundary truncation helper applied at main.zig:8536, :5105, :5967; regression arm wired into zig build test; re-run argus doctor as acceptance). LEFT: the fix (T569) and the re-run — argus doctor stays blocked until T569 lands. VERDICT fail: the duty's reading regressed from the 2026-08-20 chunk (5 stale binaries + 6 orphaned zig-test processes, acted via `zig build deploy`) to 'instrument cannot run'. L1 declaration correctly stays blocked until T569 lands and a fresh DARGUS chunk passes."
+}
