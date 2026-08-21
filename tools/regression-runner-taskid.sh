@@ -204,6 +204,34 @@ EOF
     fi
 fi
 
+# ── E. degraded claude lane still forwards text (T566) ──────────────────────
+# The 2026-08-22 race-#1 defect: _forward_claude_text was gated on token
+# capture, and token capture was gated on record_root — so a claude
+# --output-format json lane with no task identity produced 0-byte stdout.
+# Pin: text must always forward; only recording is gated on identity.
+echo "  E. degraded claude lane forwards text (no silent 0-byte)"
+cat > "$WORK/claude_env.py" <<'PYEOF'
+import json
+print(json.dumps({"result": "degraded lane text",
+                  "usage": {"input_tokens": 5, "output_tokens": 3,
+                            "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}))
+PYEOF
+set +e
+env -u MANAGENT_TASK_ID "$RUNNER" --no-prepend-zig --no-host-guard --max-wall 20 -- \
+    python3 "$WORK/claude_env.py" --output-format json \
+    > "$WORK/t566.stdout" 2> "$WORK/t566.stderr"
+set -e
+if [ -s "$WORK/t566.stdout" ] && grep -q "degraded lane text" "$WORK/t566.stdout"; then
+    pass "degraded claude lane text forwarded (not 0-byte)"
+else
+    fail "degraded claude lane text not forwarded: stdout='$(cat "$WORK/t566.stdout" 2>/dev/null)'"
+fi
+if grep -q "WARNING: no task identity" "$WORK/t566.stderr"; then
+    pass "degraded claude lane warns loudly on stderr"
+else
+    fail "degraded claude lane did not warn"
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "regression-runner-taskid: ALL CONTROLS PASSED"

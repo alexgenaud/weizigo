@@ -1,0 +1,9 @@
+{
+ "task_id": "T566",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T566",
+ "claims": [],
+ "new_rows": [],
+ "notes": "Fixed: a Claude --output-format json lane run with NO task identity produced 0-byte stdout — its text was captured, parsed, then silently discarded. Root cause: `tools/runner:1800` gated `_forward_claude_text` on `tok`, and `tok` was None in degraded mode because `_capture_tokens` was only called `if record_root` (and `_capture_tokens` itself early-returned None on a falsy root). Observed live in race #1 (T557-race1-t447-replication.json). FIX: `_capture_tokens` now ALWAYS parses the envelope (extract text + usage) and returns the dict; only the RECORDING side-effects (tee + ledger append) are gated on identity (the call sites now pass `record_root` — None in degraded mode — instead of `repo_root`, and always call). REGRESSION (test-first, wired into `zig build test` via `tools/regression-runner-taskid.sh` arm E): a degraded claude lane (no identity, `--output-format json`) must emit its `result` text on stdout (not 0-byte) and warn loudly on stderr. RED = the race-#1 observation (0-byte stdout, recorded in T557-race1 findings). GREEN = arm E passes: 'degraded claude lane text forwarded (not 0-byte)' + 'degraded claude lane warns loudly on stderr'; full suite regression-runner-taskid ALL CONTROLS PASSED. Acceptance met."
+}

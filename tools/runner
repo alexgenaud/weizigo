@@ -1074,8 +1074,10 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
     """The capture path for one run.  Returns a dict
     {tokens_in, tokens_out, tokens_fresh, tokens_cache_read, source,
     missing_reason, session_id, session_reason} (None values when no
-    reading / no handle) or None when there is no repo root (degraded — no
-    task, so nothing to key the record on).
+    reading / no handle). T566: always returns the dict — the envelope PARSE
+    (text + usage) runs even in degraded mode so a claude lane never loses
+    its text; only the RECORDING (tee + ledger) is gated on identity
+    (repo_root is record_root here, None when degraded).
 
     T558: tokens_in stays input+cache_read (readers keep working); the
     split rides beside it as tokens_fresh (= input) and tokens_cache_read
@@ -1096,8 +1098,6 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
     WITH a reason — the same rule token capture already follows, never a
     blank, never an invented id.
     """
-    if not repo_root:
-        return None
     tc = _load_token_capture()
     model = _argv_model(argv)
     provider = _argv_provider(argv)
@@ -1108,11 +1108,16 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
     usage = None
     is_api_error = False
     if tc is not None:
-        try:
-            tc.write_tees(repo_root, task_identity, start_ts, provider,
-                          stdout_text, stderr_text)
-        except Exception:
-            pass
+        # T566: recording (tees + ledger) is gated on identity — repo_root
+        # here is record_root, which is None in degraded mode. The envelope
+        # parse below runs regardless, so a degraded claude lane still
+        # forwards its text (never a silent 0-byte).
+        if repo_root:
+            try:
+                tc.write_tees(repo_root, task_identity, start_ts, provider,
+                              stdout_text, stderr_text)
+            except Exception:
+                pass
         if claude_json_lane:
             try:
                 text, usage, meta = tc.parse_claude_envelope(stdout_text)
@@ -1172,7 +1177,7 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                 "tools/token-capture.py absent — no tee, no ledger")
             out["session_reason"] = (
                 "tools/token-capture.py absent — no tee, no handle")
-    if tc is not None:
+    if tc is not None and repo_root:
         try:
             label = tc.canon_tag(model) if model else None
             entry = {
@@ -1747,8 +1752,8 @@ def main():
                 tok = _capture_tokens(
                     argv, claude_json_lane,
                     "".join(stdout_full), "".join(stderr_full),
-                    task_identity, repo_root, run_record["start"],
-                    rc=124, kill_reason=kill_reason) if record_root else None
+                    task_identity, record_root, run_record["start"],
+                    rc=124, kill_reason=kill_reason)
                 _emit_heartbeat(task_identity, shlex.join(argv), elapsed,
                                 total_cpu_sum, peak_rss_mb, repo_root,
                                 tokens_in=(tok or {}).get("tokens_in"),
@@ -1795,8 +1800,8 @@ def main():
     tok = _capture_tokens(
         argv, claude_json_lane,
         "".join(stdout_full), "".join(stderr_full),
-        task_identity, repo_root, run_record["start"],
-        rc=ret if ret is not None else 0) if record_root else None
+        task_identity, record_root, run_record["start"],
+        rc=ret if ret is not None else 0)
     if claude_json_lane and tok and tok.get("text"):
         # The envelope unwraps to the model's answer — forward the TEXT to
         # the lane's stdout (verification and grading see the answer, never
