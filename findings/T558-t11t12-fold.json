@@ -1,0 +1,9 @@
+{
+  "task_id": "T558",
+  "date": "2026-08-21",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T558",
+  "claims": [],
+  "new_rows": [],
+  "notes": "t11/t12 fold execution — code half DONE, doc half DEFERRED. CODE HALF (committed 2821026, 4 files staged by name): (a) DeepSeek lanes no longer dispatch --no-session — bakeoff.sh:520/:538 now pass `pi --session untracked/bakeoff/<run>/<label>/session.jsonl` on both execute and emit, and the path is recorded in the lane record (session_path); (b) tools/runner splits tokens_in into tokens_fresh + tokens_cache_read while tokens_in keeps its input+cache_read meaning, threaded through _finalize_run_record, _print_tokens_trailer (same trailer line, old regex still matches), and the ledger. Test-first: regression-token-capture.sh extended RED then GREEN. Verified on a claude lane: tokens_in=800 tokens_out=25 tokens_fresh=100 tokens_cache_read=700. Full zig build test byte-identical to pre-change baseline (777/778 tests, same 4 rules.zig module-conflict compiles + watch-fleet/argus-doctor sh failures — zero from T558). DOC HALF (model-perf.md restructure, §8) deferred to T565 — it had an in-flight concurrent writer at the time. Cross-family cost is now computable (the races' blocking gate is open)."
+}
