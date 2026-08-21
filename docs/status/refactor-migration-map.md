@@ -13,9 +13,13 @@ phase. A sprint lives under its PRIMARY landmark.
 
 1. **Never orphan a citation.** After every section, `bin/weizigo-claimlint` must stay at C2 ≤ 11. The
    script relinks every moved path in committed docs (sed), then claimlint is the gate.
-2. **Do NOT move hardcoded paths.** `docs/infra/managent/` (the kanban store — managent reads it by
-   path), `findings/` (claimlint scans it by path), `docs/epistemic/CLAIMS.md` (the register),
-   `docs/evidence/` (cited by hash). Moving any of these breaks an instrument; leave them at the root.
+2. **Hardcoded paths move LAST, if at all — never in the main body.** `docs/infra/managent/` (the
+   kanban store — managent reads it by path), `findings/` (claimlint scans it by path),
+   `docs/epistemic/CLAIMS.md` (the register), `docs/evidence/` (cited by hash). The main body must not
+   touch them. IF coherence ultimately demands moving them, do it as a FINAL, separate, atomic commit —
+   after shutting down managent and every running task, re-pointing the instrument paths in code, and
+   testing that claimlint/managent still read them. That move is decided on its own merits, not as part
+   of S1's main body.
 3. **Preserve t11/t12** (unlanded seeds) — home them, do not delete.
 4. **Run in sections** (one sprint/domain at a time), commit after each. Never one big bang.
 5. **Binaries only in `zig-out/` + `bin/`** (both gitignored). Delete the root `./managent`.
@@ -59,6 +63,15 @@ moving them now risks the paused engine work).
    Archive or delete after confirming nothing committed cites it (claimlint C10 report, not a gate).
 4. Flat `findings/` (≈456 files) — regroup is an OPEN question (by epoch? by task?); do NOT move the
    directory itself (claimlint scans it by path).
+
+## The final atomic commit (conditional, after the main body)
+
+After sections 1–3 land and the suite is green, decide *on coherence alone* whether the hardcoded
+paths (`docs/infra/managent/`, `findings/`, `docs/epistemic/CLAIMS.md`, `docs/evidence/`) should move.
+If yes: a separate console, a singular atomic commit, in this order — shut down managent and every
+running task · re-point the instrument paths in code (managent's store path, claimlint's findings path)
+· `git mv` + relink · run `zig build test` + claimlint · commit. If the suite is not green after, revert
+the single commit and stop. Do not fold this into the main body.
 
 ## Open questions for the operator / S1 agent
 
