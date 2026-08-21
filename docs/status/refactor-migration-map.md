@@ -64,14 +64,18 @@ moving them now risks the paused engine work).
 4. Flat `findings/` (≈456 files) — regroup is an OPEN question (by epoch? by task?); do NOT move the
    directory itself (claimlint scans it by path).
 
-## The final atomic commit (conditional, after the main body)
+## The final atomic commit — DECIDED 2026-08-21: the hardcoded paths do NOT move
 
-After sections 1–3 land and the suite is green, decide *on coherence alone* whether the hardcoded
-paths (`docs/infra/managent/`, `findings/`, `docs/epistemic/CLAIMS.md`, `docs/evidence/`) should move.
-If yes: a separate console, a singular atomic commit, in this order — shut down managent and every
-running task · re-point the instrument paths in code (managent's store path, claimlint's findings path)
-· `git mv` + relink · run `zig build test` + claimlint · commit. If the suite is not green after, revert
-the single commit and stop. Do not fold this into the main body.
+Assessed on coherence alone, after the sections landed and the suite was green: the four hardcoded
+paths stay put. Rationale: they are the instrument-facing root, not pass/race artifacts —
+`docs/infra/managent/` is the live kanban store (managent reads it by hardcoded path, and the epic-tree
+fold already showed what moving a hardcoded path costs: claimlint C9 went 0→230 until the path was
+re-pointed in code); `findings/` is claimlint-scanned by path; `docs/epistemic/CLAIMS.md` and
+`docs/evidence/` are cited by hash across the register. Moving them buys no coherence — the "one
+canonical tree" goal is already met for the pass/race artifacts under `docs/epics/E1-markovian/` — and
+costs a managent+claimlint code re-point + rebuild + retest. The S1.5 residue (23 files citing the
+moved `docs/infra/orcha-refactor` + `docs/infra/races` paths) was re-pointed and committed (`6fb5801`).
+Closed: the refactor converges at `docs/epics/E1-markovian/` + the stable root.
 
 ## Open questions for the operator / S1 agent
 
