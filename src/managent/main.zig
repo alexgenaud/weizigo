@@ -8743,7 +8743,7 @@ fn printPendingDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_p
 //
 // `managent treekill` — enumerate and, with --kill, terminate every reachable
 // descendant of an anchor pid (live or dead).  Contract: the corrected
-// docs/infra/orcha-refactor/pass1/01-spec.md §2-§4.  One short-lived CLI, no
+// docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md §2-§4.  One short-lived CLI, no
 // store writes, no flock, no migration; family-independent (no provider token
 // appears in this region — D-2).
 

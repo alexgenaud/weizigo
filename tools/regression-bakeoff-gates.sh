@@ -140,7 +140,7 @@ ok(g_y["is_family"] is True, "G3 — glm grader vs glm lane IS family-excluded")
 # same-family grades, and qwen is a different family from deepseek, so a DS
 # lane has 5 cross-family graders (see the T542.2 finding in
 # findings/T542-bakeoff-gates.json).  Asserted with literal epoch labels
-# (the roster file docs/infra/races/roster-2026-08-20b.txt is untracked, so
+# (the roster file docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/roster-2026-08-20b.txt is untracked, so
 # a fresh-clone `zig build test` must not depend on it).
 roster = [
     "claude-fable-5", "claude-opus-5", "claude-sonnet-5",

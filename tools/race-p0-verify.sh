@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/race-p0-verify.sh — grand-race P0 go/no-go gate (T529)
 
-One command, one verdict.  `docs/infra/races/grand-race.md` §4 says the race
+One command, one verdict.  `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md` §4 says the race
 does not start until its gates are green; this checks the P0 half of that —
 roster, sealed-packet keys, and the frozen fixture store — mechanically, so the
 operator's go/no-go is one decision rather than a scramble.

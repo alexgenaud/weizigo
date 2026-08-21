@@ -6,7 +6,7 @@
     "landed_attempt_trailers": "untracked/bakeoff/pass1-audit-round1/*/trailer.log",
     "failed_attempt_trailers": "untracked/bakeoff/pass1-audit-round1/*/trailer.log.attempt1 and trailer.log.prev",
     "qwen_spec_run": "untracked/bakeoff/pass1-qwen-spec/trailer.log",
-    "hand_console_lanes": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md (D15: qwen audit, gemma4:31b-mlx)"
+    "hand_console_lanes": "docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md (D15: qwen audit, gemma4:31b-mlx)"
   },
   "roster": [
     "claude-fable-5",
@@ -160,7 +160,7 @@
       "peak_rss_mb": null,
       "failure_reason": "none",
       "missing_readings_reason": "hand console, no trailer",
-      "source": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md (D15: lane 7/7, LANDED, round's strongest)",
+      "source": "docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md (D15: lane 7/7, LANDED, round's strongest)",
       "dispatch": "operator hand console (OWNER-LOG D15)",
       "failed_attempts": [
         {
@@ -232,7 +232,7 @@
       "peak_rss_mb": null,
       "failure_reason": "none",
       "missing_readings_reason": "hand console, no trailer",
-      "source": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md (D15: out-of-roster, hand console)",
+      "source": "docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md (D15: out-of-roster, hand console)",
       "dispatch": "operator hand console (OWNER-LOG D15)",
       "failed_attempts": []
     },

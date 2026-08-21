@@ -47,7 +47,7 @@ if ! python3 tools/race-p0-verify.sh --self-test; then
 fi
 
 PACKETS=untracked/race-aspects/packets
-ROSTER=docs/infra/races/roster-2026-08-20b.txt
+ROSTER=docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/roster-2026-08-20b.txt
 if [ ! -d "$PACKETS" ] || [ ! -f "$ROSTER" ]; then
     echo
     echo "SKIP  live-tree arms: $PACKETS or $ROSTER absent (both untracked)."
@@ -64,7 +64,7 @@ fi
 
 echo
 echo "=== regression-race-p0: red-first — a wrong seal must NO-GO ==="
-SEALS=docs/infra/races/grand-race-p0-fixtures.sha256
+SEALS=docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0-fixtures.sha256
 BACKUP="$(mktemp /tmp/race-p0-seals-XXXXXX)" || { echo "FATAL: mktemp failed"; exit 2; }
 cp "$SEALS" "$BACKUP"
 restore() { cp "$BACKUP" "$SEALS"; rm -f "$BACKUP"; }

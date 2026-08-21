@@ -142,7 +142,7 @@ def diag(msg):
 
 # ── G1/G2/G3/G4 race gates (T542) ────────────────────────────────────
 #
-# The grand race (docs/infra/races/grand-race.md §4) does not start until
+# The grand race (docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md §4) does not start until
 # gates G1–G6 are green. T542 wires G1 (tokens), G2 (isolation refusal),
 # G3 (family exclusion at counting) and G4 (blinding sanitizer) into this
 # harness. G5 (lanes.json + sealed lane map) already held; G6 (impressions)

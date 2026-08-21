@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # regression-process-ownership.sh — pass-1 acceptance controls for `managent treekill`
-# (docs/infra/orcha-refactor/pass1/03-test.md — the authoritative arm list; 01-spec.md §5).
+# (docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/test.md — the authoritative arm list; 01-spec.md §5).
 #
 # Written BEFORE the verb exists (test-first, red-first — 03-test.md §5):
 #
