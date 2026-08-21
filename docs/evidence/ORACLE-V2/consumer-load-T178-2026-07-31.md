@@ -5,7 +5,7 @@ Status:   evidence of a test run (no claim rows promoted)
 Task:     T178 — oracle-v2 consumer-load test
 Worker:   DSFlash/T178 · Date: 2026-07-31 (UTC run 23:50–00:05)
 Instrument: src/oracle_v2_consumer_load.zig (new, T178)
-Subject:  the WZO2 artifact (format contract: docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md)
+Subject:  the WZO2 artifact (format contract: docs/epics/E1-markovian/sprints/oracle-v2/pass0/design-M1.md)
 ```
 
 Sprint.md acceptance item 3 — "Consumer-load smoke test (non-negotiable — 058

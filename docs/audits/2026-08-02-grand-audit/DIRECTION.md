@@ -1,4 +1,4 @@
-# DIRECTION — completing epic-01-markovian on solid foundations
+# DIRECTION — completing E1-markovian on solid foundations
 
 Role: Grand Auditor · Model: Claude Fable 5 · Date: 2026-08-02 · At HEAD `e714fd4`
 Status: **ratified by the human, 2026-08-02**, in discussion following `GRAND-AUDIT.md`.
@@ -62,7 +62,7 @@ both; the evidence decides. Two standing rules make that safe rather than slippe
 - The bar for any adjusted Z: **at least as good as today's 4×4 engine, fixed upon whatever is
   demonstrably better.**
 
-The axioms document lives at `docs/epic-01-markovian/AXIOMS.md` (axioms are epic-scoped).
+The axioms document lives at `docs/epics/E1-markovian/AXIOMS.md` (axioms are epic-scoped).
 Every axiom carries a claim ID from birth. The MIGOS tie-semantics question — currently
 absorbed under an explanation the register's own PROVEN row contradicts (GRAND-AUDIT §1d) —
 is adjudicated in AXIOMS.md before any kernel code depends on it.
@@ -201,7 +201,7 @@ regression input must not newly fail (or something changed underneath us). Confl
 is how an instrument comes to certify its own error.
 
 **Consequence if ratified:** Phase 1 task briefs say "seed a synthetic defect" rather than
-"fail `0c3366f0`", and `docs/epic-01-markovian/PHASES.md` records the split G3 gate below.
+"fail `0c3366f0`", and `docs/epics/E1-markovian/PHASES.md` records the split G3 gate below.
 
 ---
 

@@ -1,13 +1,13 @@
-<!-- provenance: rescued from docs/epic-01-markovian/sprints/verify-battery/archive/T172-blind-analysis.md by T208 (DSPro/T208, 2026-08-01); that directory is deletable at the sprint gate (docs/infra/sprint.md:51) per audit CA-5; this copy ensures the CODE.VB-BLINDGAPS claim retains its cited evidence after the gate sweep -->
+<!-- provenance: rescued from docs/epics/E1-markovian/sprints/verify-battery/archive/T172-blind-analysis.md by T208 (DSPro/T208, 2026-08-01); that directory is deletable at the sprint gate (docs/infra/sprint.md:51) per audit CA-5; this copy ensures the CODE.VB-BLINDGAPS claim retains its cited evidence after the gate sweep -->
 # T172 — Blind Re-implementation Analysis (V-11)
 
 ```
 Author:   DSPro/T172-w1 · 2026-07-31
 Status:   DELIVERED — independent auditor re-implementing invariants
           from spec alone, blind to existing battery source
-Inputs:   docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md (rev 1)
-          docs/epic-01-markovian/sprints/verify-battery/pass0/design-M1.md (rev 3)
-          docs/epic-01-markovian/sprints/verify-battery/archive/i5-feasibility.md
+Inputs:   docs/epics/E1-markovian/sprints/verify-battery/pass0/spec.md (rev 1)
+          docs/epics/E1-markovian/sprints/verify-battery/pass0/design-M1.md (rev 3)
+          docs/epics/E1-markovian/sprints/verify-battery/archive/i5-feasibility.md
 ```
 
 ---

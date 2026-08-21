@@ -261,7 +261,7 @@ absorption.
       "id": "CODE.VB-BLINDGAPS",
       "proposed_status": "PROVEN",
       "rationale": "Blind re-implementation of the verify-battery design found five spec gaps (GAP-5 CRITICAL).",
-      "evidence_path": "docs/epic-01-markovian/sprints/verify-battery/archive/T172-blind-analysis.md"
+      "evidence_path": "docs/epics/E1-markovian/sprints/verify-battery/archive/T172-blind-analysis.md"
     }
   ],
   "new_rows": [],

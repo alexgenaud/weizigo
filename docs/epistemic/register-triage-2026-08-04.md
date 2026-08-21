@@ -10,7 +10,7 @@ floor and the calibration fixtures are all untouched by T354.
 
 ## The filter, applied mechanically first
 
-`docs/epic-01-markovian/register-tree-map.md` maps every register row onto the
+`docs/epics/E1-markovian/register-tree-map.md` maps every register row onto the
 requirement tree descending from theorem Z. The machine-checked mapping
 (claimlint C9, floor 0, PASS at HEAD) says: **334 rows — 211 mapped to a node,
 123 carrying the disposition marker `RETIRED`**. A row that maps to no tree

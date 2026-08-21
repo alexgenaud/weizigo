@@ -32,7 +32,7 @@
 //   T530 — inverted from SURVIVES) · M4 (key-agreement, T530) ·
 //   M5 (I2) · M6 (I7) · M7 (I2) · M8 (C-A1/C-A2 closure, T363) ·
 //   M9 (BATT-HEALTH meta-check, T347) · M10 (I11 null + seeded-defect, T363).
-// Catalogue: docs/epic-01-markovian/sprints/verify-battery/pass1/mutants.md.
+// Catalogue: docs/epics/E1-markovian/sprints/verify-battery/pass1/mutants.md.
 
 const std = @import("std");
 const testing = std.testing;

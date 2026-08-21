@@ -10,14 +10,14 @@ Human-visible checkpoints for this roadmap live in `LANDMARKS.md` beside this fi
 tiers below are the dependency truth; the landmarks are the same journey as observations.
 
 Governing docs, in authority order: `docs/audits/2026-08-02-grand-audit/DIRECTION.md`
-(+ Amendments 1–2) · `docs/epic-01-markovian/PHASES.md` · `docs/infra/sprint.md` ·
+(+ Amendments 1–2) · `docs/epics/E1-markovian/PHASES.md` · `docs/infra/sprint.md` ·
 `docs/infra/human-decisions.md` · STATE.md (working-tree version, see finding 3).
 
 ---
 
 ## 1. Mission — unchanged, ratified, still the right one
 
-Complete epic-01-markovian in place: prove theorem Z — for each goban size in
+Complete E1-markovian in place: prove theorem Z — for each goban size in
 {2×2, 3×2, 3×3, 4×3, 4×4} (4×3 inserted as ladder rung 4 by spec Rev 5), under ruleset R as
 written in AXIOMS.md, the table gives the exact game-theoretic fresh-start [L,H] bracket for
 every legal (position, side), with explicit non-claims for everything else. All register rows

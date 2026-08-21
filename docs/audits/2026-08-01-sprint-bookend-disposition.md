@@ -3,7 +3,7 @@
 ```
 Role: worker · Task: T219 · Model: DSFlash/T219 · Date: 2026-08-01
 Brief: untracked/T219-sprint-bookend-disposition.md
-Scope: the four sprints under docs/epic-01-markovian/sprints/ with no
+Scope: the four sprints under docs/epics/E1-markovian/sprints/ with no
   accept.md — argus, knowledge-capture, orcha-tools, subagent-harness.
   oracle-v2 and verify-battery are excluded (still seeking G3).
 Method: per sprint, read the sprint's own spec.md acceptance criteria and
@@ -28,7 +28,7 @@ Constraint honoured: no accept.md written, no spec header edited. The
 
 ### What the spec promised
 
-`docs/epic-01-markovian/sprints/argus/pass0/spec.md` (revision 1, audited
+`docs/epics/E1-markovian/sprints/argus/pass0/spec.md` (revision 1, audited
 PASS by T161 — `archive/spec.audit-1.md`, absorbed `082433e`): a read-only
 watchdog, 14 requirements, two modes (checklist, sweep), an append-only log
 and a summary, with **seven acceptance criteria** (§5):
@@ -48,7 +48,7 @@ and a summary, with **seven acceptance criteria** (§5):
 - T161 spec audit PASS — absorbed `082433e` (`archive/spec.audit-1.md`).
 - T195 build + T199 implementation — absorbed `1582294` (origin of
   `bin/argus`, `docs/infra/roles/ARGUS.md`,
-  `docs/epic-01-markovian/sprints/argus/checklist.md`).
+  `docs/epics/E1-markovian/sprints/argus/checklist.md`).
 - T208 evidence/Argus triage — `b5352b9` (re-baselined orphan-gate;
   CA-5 evidence promotion).
 - T211 baseline disposition — `30dd956` (three cry-wolf fixes: summary
@@ -90,7 +90,7 @@ G1 approval unrecorded`
 
 ### What the spec promised
 
-`docs/epic-01-markovian/sprints/knowledge-capture/pass0/spec.md`
+`docs/epics/E1-markovian/sprints/knowledge-capture/pass0/spec.md`
 (revision 1): standardised findings JSON (R1), claimlint C7 check (R2),
 absorption tool (R3), absorption log as tool by-product (R4). Acceptance:
 A1 — T129 gap (QA-027 falsified at 4×4, register said CLAIMED) flagged by
@@ -141,7 +141,7 @@ evidenced (T129/T172 fixtures, C7=0, absorb dry-run converges)`
 
 ### What the spec promised
 
-`docs/epic-01-markovian/sprints/orcha-tools/pass0/spec.md` (revision 1):
+`docs/epics/E1-markovian/sprints/orcha-tools/pass0/spec.md` (revision 1):
 R1 `managent suggest` mints a T-ID + bundle + prompt line; R2 `done`
 verifies declared deliverables on disk; R3 `audit` flags done tasks whose
 deliverables are uncited. Acceptance: A1 suggest happy path; A2 missing
@@ -197,7 +197,7 @@ fix (a98bf04, regression green); A2/A3 PASS`
 
 ### What the spec promised
 
-`docs/epic-01-markovian/sprints/subagent-harness/pass0/spec.md`
+`docs/epics/E1-markovian/sprints/subagent-harness/pass0/spec.md`
 (revision 1): three deliverable files, no code — subdelegation.md prompt
 wrapper (R1), findings schema at `untracked/T<id>-findings.json` (R2),
 manager brief template (R3), manager absorption handoff (R4). Acceptance:

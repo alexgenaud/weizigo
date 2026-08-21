@@ -10,7 +10,7 @@
 #
 # R8 independence: this module implements the WZO2 header parse, the colex
 # bijection, colour flip, key-byte packing and the pairing loop from the
-# format spec (docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md)
+# format spec (docs/epics/E1-markovian/sprints/oracle-v2/pass0/design-M1.md)
 # and the invariant definition in DIRECTION.md §7.1/A3. It imports nothing
 # from src/. Two independent implementations of the check itself:
 #   * run_i2_reference — pure-Python per-group dict pairing

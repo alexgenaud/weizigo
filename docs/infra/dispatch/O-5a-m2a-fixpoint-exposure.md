@@ -22,9 +22,9 @@ Expose the fixpoint algorithm from `src/exp6_solve.zig` as a public interface. C
 ## Read first
 
 - `src/exp6_solve.zig` (the file you hold)
-- `docs/epic-01-markovian/sprints/oracle-v2/pass0/spec.md` §5 M2a
-- `docs/epic-01-markovian/sprints/oracle-v2/pass0/plan.md` §P1
-- `docs/epic-01-markovian/sprints/oracle-v2/archive/spec.audit-2.md` (F1 resolution)
+- `docs/epics/E1-markovian/sprints/oracle-v2/pass0/spec.md` §5 M2a
+- `docs/epics/E1-markovian/sprints/oracle-v2/pass0/plan.md` §P1
+- `docs/epics/E1-markovian/sprints/oracle-v2/archive/spec.audit-2.md` (F1 resolution)
 
 ## Rules
 

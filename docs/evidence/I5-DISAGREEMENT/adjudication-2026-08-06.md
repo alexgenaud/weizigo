@@ -65,7 +65,7 @@ passes)` states and report graph metrics plus the containment verdict.
   (`docs/evidence/QA-023/ko-fix-rerun-2026-07-29.stdout:107`).
 - 3×2 cycle-reachable spread 1,724 / 1,704 / **1,678**; "Convention for I5:
   the true game root, phantoms excluded → 1,678"
-  (`docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md` §5).
+  (`docs/epics/E1-markovian/sprints/verify-battery/pass0/spec.md` §5).
 - 2×2 true root: V=255, E=434, max SCC=160 (`scc2x2.py`).
 
 ---

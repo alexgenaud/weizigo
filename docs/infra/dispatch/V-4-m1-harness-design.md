@@ -2,7 +2,7 @@
 # V-4 — verify-battery M1 harness design
 
 **Gated on:** G1 (human ratification of verify-battery spec pass 1)
-**Deliverable:** `docs/epic-01-markovian/sprints/verify-battery/archive/design-M1.md`
+**Deliverable:** `docs/epics/E1-markovian/sprints/verify-battery/archive/design-M1.md`
 
 ## What to produce
 
@@ -15,10 +15,10 @@ Must contain:
 
 ## Read first
 
-- `docs/epic-01-markovian/sprints/verify-battery/pass0/spec.md` (the ratified spec) — especially §6a (12×5 matrix) and R6/R8
-- `docs/epic-01-markovian/sprints/verify-battery/pass0/plan.md` §P1
-- `docs/epic-01-markovian/sprints/verify-battery/archive/spec-audit.md`
-- `docs/epic-01-markovian/sprints/verify-battery/archive/i5-feasibility.md` (M4 design seed — M4 does NOT wait here)
+- `docs/epics/E1-markovian/sprints/verify-battery/pass0/spec.md` (the ratified spec) — especially §6a (12×5 matrix) and R6/R8
+- `docs/epics/E1-markovian/sprints/verify-battery/pass0/plan.md` §P1
+- `docs/epics/E1-markovian/sprints/verify-battery/archive/spec-audit.md`
+- `docs/epics/E1-markovian/sprints/verify-battery/archive/i5-feasibility.md` (M4 design seed — M4 does NOT wait here)
 
 ## Rules
 

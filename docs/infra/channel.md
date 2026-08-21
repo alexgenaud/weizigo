@@ -28,12 +28,12 @@ untracked/msg/
 ```
 
 **Current channel:** `untracked/msg/milestone-01-ko-reframe/` — the live epic channel for
-`epic-01-markovian`. Its directory name (`milestone-01-ko-reframe`)
-is a historical alias for `epic-01-markovian`. The term "milestone" is retired
+`E1-markovian`. Its directory name (`milestone-01-ko-reframe`)
+is a historical alias for `E1-markovian`. The term "milestone" is retired
 in favor of "epic" for new documents; the directory name is preserved as-is
 to avoid breaking existing references.
 
-**New sprints** use `untracked/msg/epic-01-markovian/<sprint>/`.
+**New sprints** use `untracked/msg/E1-markovian/<sprint>/`.
 
 ### Template
 
@@ -75,7 +75,7 @@ These are placeholder files with `<EPIC>`, `<SPRINT>`, `<DATE>` markers.
 
 - **Deletion of the live epic channel while the epic is open.**
   `untracked/msg/milestone-01-ko-reframe/` is the live epic channel for
-  `epic-01-markovian`. It may NOT be deleted until the epic closes.
+  `E1-markovian`. It may NOT be deleted until the epic closes.
 - **Deletion without accept.md ratification.** The pruning is opt-in and
   recorded, never silent.
 
@@ -107,7 +107,7 @@ that saved the evidence store is:
 
 `docs/evidence/README.md` exists because `untracked/` was cleaned and the
 primary evidence for load-bearing claims was destroyed (T13). A git-ignored
-directory inside `docs/` — e.g., `docs/epic-01-markovian/sprints/<sprint>/
+directory inside `docs/` — e.g., `docs/epics/E1-markovian/sprints/<sprint>/
 channel/` — would invert this invariant: a path that reads canonical but is
 not in git is the exact failure mode that destroyed T13's evidence.
 

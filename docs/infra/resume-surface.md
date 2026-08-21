@@ -183,6 +183,6 @@ directory name is not critical. The indirection is removed:
   to `/tmp/weizigo`, nothing load-bearing) was removed. `.gitignore` keeps the
   `ephemeral/` line with a comment — it can reappear, and if it does it stays
   invisible.
-- `docs/epic-01-markovian/PHASES.md` no longer lists the symlink as missing
+- `docs/epics/E1-markovian/PHASES.md` no longer lists the symlink as missing
   infrastructure. Historical audit text describing the broken symlink
   (`GRAND-AUDIT.md` §3, `arm-infra-tooling.md` D1) is left as record.

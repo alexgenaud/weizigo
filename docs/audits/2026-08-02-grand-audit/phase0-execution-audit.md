@@ -214,7 +214,7 @@ Deliverables:
    Phase 1 = T292 open).
 
 Acceptance: `grep -c "one ply" docs/epistemic/CLAIMS.md` returns 0 on axiom rows;
-claimlint exit unchanged vs floor; `grep "T271 open" docs/epic-01-markovian/PHASES.md`
+claimlint exit unchanged vs floor; `grep "T271 open" docs/epics/E1-markovian/PHASES.md`
 empty.
 
 ### A2 — Register the 282-row mapping task *(fixes F2)*

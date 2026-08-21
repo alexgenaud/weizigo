@@ -12,7 +12,7 @@ Bars:     read-only on source/instruments/artifacts; re-derivation by independen
 
 **The short form.** The sprint that `LANDMARKS.md` points at (G3b value-correctness) **was
 discharged on 2026-08-05** — signed ruling, two amendments, all verdicts standing
-(`docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md:188,258,288`). The four
+(`docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/accept.md:188,258,288`). The four
 gaps the landmark's status line calls "in flight" (closure, cycle containment, the 4×3 rung, two
 mutation assertions) closed the same day (accept.md:137–184). `LANDMARKS.md` has described a
 state fourteen days dead ever since. But **L2 itself was never ruled, and is not dischargeable

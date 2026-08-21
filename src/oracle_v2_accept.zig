@@ -24,7 +24,7 @@
 // Owner: M4a (holds until O-7r review PASS)
 //
 // Checks the WZO2 artifact against the format contract from M1's design
-// (docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md). This module
+// (docs/epics/E1-markovian/sprints/oracle-v2/pass0/design-M1.md). This module
 // runs BEFORE M2b/M3 produce the real artifact — the checks exist before the
 // code they judge (spec sprint.md A4).
 //

@@ -11,7 +11,7 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 ## Cadence — every turn, in order, before you answer the human
 
 0. **Run Argus.** `bin/argus --mode checklist`, then `--mode sweep` when anything regressed — the watchdog catches drift cheaply, and nothing else routes its findings (CA-11). Read `untracked/watchdog-summary.md`; register its findings as briefed tasks per `docs/infra/roles/ARGUS.md` (Argus never writes the queue — you do).
-1. **Read** `untracked/msg/<epic>/STATE.md` (legacy name: `untracked/msg/milestone-01-ko-reframe/` for epic-01-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
+1. **Read** `untracked/msg/<epic>/STATE.md` (legacy name: `untracked/msg/milestone-01-ko-reframe/` for E1-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
 2. **Scan** `managent audit` — every discrepancy it finds, fix now rather than reporting it. If the kanban disagrees with reality, the kanban is the bug. Non-zero exit = FIX-level findings exist.
 3. **Reconcile attribution.** Agents declare their own model; `managent agent <id> <model>` when one didn't. An unattributed task is a hole in `model-perf.md`. `managent audit` flags these.
 4. **Absorb** finished work into `CLAIMS.md` (then `bin/weizigo-claimlint`), `PROGRESS.md`, `model-perf.md`, ADRs, `docs/evidence/` — then **commit**. (The resume surface needs no absorbing: it is derived at read time — `bin/managent resume`.)

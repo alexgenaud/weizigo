@@ -17,7 +17,7 @@ every contradiction/duplication candidate was checked against its counterpart.
 Files that are short or clearly historical were read in full; long files
 (CLAIMS.md, model-perf.md, PROGRESS.md) were read by targeted section. Declared
 partial coverage: `docs/evidence/` (124 files, unread — evidence stores, not
-instruction) and `docs/epic-01-markovian/sprints/` (not in the routing path).
+instruction) and `docs/epics/E1-markovian/sprints/` (not in the routing path).
 
 | directory | files | lines | read |
 |---|---|---|---|
@@ -249,7 +249,7 @@ Per `docs/infra/human-decisions.md`, HUMAN.md is the operator's private scratch 
 ## 9. What was not checked
 
 - `docs/evidence/` (124 files) — evidence store, not instruction; not in routing path
-- `docs/epic-01-markovian/sprints/` — deep sprint design docs; not read by workers on standard tasks
+- `docs/epics/E1-markovian/sprints/` — deep sprint design docs; not read by workers on standard tasks
 - `untracked/msg/` channel messages — historical communication, not instruction
 - `src/managent/main.zig` canonical_models array vs DELEGATEE.md table — spot-checked, agree on all 9 entries
 - Every dispatch brief (80) was checked for CURRENT.md references (F05); content was not fully audited

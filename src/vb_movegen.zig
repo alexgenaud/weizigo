@@ -29,7 +29,7 @@
 // trust.
 //
 // RULESET INPUT — the only ruleset input is the prose of
-// `docs/epic-01-markovian/AXIOMS.md` §2 (A1–A6, B1–B3) and the StateKey
+// `docs/epics/E1-markovian/AXIOMS.md` §2 (A1–A6, B1–B3) and the StateKey
 // struct interface from `src/rules.zig` (field names + types, not the
 // implementation). No kernel/solver source was read. The implementation
 // was written from the axioms; the colex bijection was re-derived from

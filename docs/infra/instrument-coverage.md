@@ -9,7 +9,7 @@ Landmark: L0 (the table and the instruments exist)
 Scope:    map · name divergences · propose (no rewrites) · demonstrate one differential
 Inputs:   docs/evidence/BATTERY/baselines.json · docs/evidence/BATTERY/fleet.md ·
           src/verify_battery.zig + src/vb_*.zig · findings/T343,T344,T345,T346,T363,T258 ·
-          docs/epic-01-markovian/sprints/verify-battery/pass1/spec.md + mutants.md
+          docs/epics/E1-markovian/sprints/verify-battery/pass1/spec.md + mutants.md
 Acceptance: test -s docs/infra/instrument-coverage.md
 ```
 

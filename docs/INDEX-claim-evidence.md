@@ -43,7 +43,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `3x2.F1` | PROVEN (falsification) | `consistency-audit.md:25-34`; `0013:15-19`; `4x4/EPISTEMIC.md:49-52` |
 | `3x2.F3` | PROVEN (necessary condition) | `consistency-audit.md:30`; `0013:15-19` |
 | `3x2.F4` | PROVEN | `0013:88-91` (3×2/3×3/4×3 group) |
-| `3x2.I5-CAL` | MEASUREMENT (with the not-reproduced verdicts stated) | `docs/epic-01-markovian/sprints/verify-battery/archive/T171-final.md`; `docs/epic-01-markovian/sprints/verify-battery/archive/T171-audit.md`; `src/vb_graph.zig:988-1015` |
+| `3x2.I5-CAL` | MEASUREMENT (with the not-reproduced verdicts stated) | `docs/epics/E1-markovian/sprints/verify-battery/archive/T171-final.md`; `docs/epics/E1-markovian/sprints/verify-battery/archive/T171-audit.md`; `src/vb_graph.zig:988-1015` |
 | `3x2.M4` | MEASUREMENT | `ko-sensitive-chainability.md:51` |
 | `3x2.R1` | MEASUREMENT | `ruleset-options.md:92,164` |
 | `3x2.R3` | MEASUREMENT | `ruleset-options.md:92,99-101` |
@@ -112,11 +112,11 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `4x4.FP1-C2` | UNTESTED | `4x4/EPISTEMIC.md:74-75` |
 | `4x4.FP1-C3` | PROVEN (as scoped) | `4x4/EPISTEMIC.md:76-88`; `ko-sensitive-chainability.md:60-69` |
 | `4x4.FP3` | UNTESTED (`⬜ᴵᴺᴴ`) | `4x4/EPISTEMIC.md:37-43` |
-| `4x4.G-CENSUS` | MEASUREMENT | `docs/evidence/GLOBAL.H1-CENSUS/4x4-standard.txt`; `docs/evidence/GLOBAL.H1-CENSUS/4x4-ko-disabled.txt`; `docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md` (§F2 byte-budget derivation) |
+| `4x4.G-CENSUS` | MEASUREMENT | `docs/evidence/GLOBAL.H1-CENSUS/4x4-standard.txt`; `docs/evidence/GLOBAL.H1-CENSUS/4x4-ko-disabled.txt`; `docs/epics/E1-markovian/sprints/oracle-v2/pass0/design-M1.md` (§F2 byte-budget derivation) |
 | `4x4.GREEDY-BIAS` | CLAIMED | `PROGRESS.md:160-164`; `ko-sensitive-chainability.md:151-158` |
 | `4x4.GTP-DEFECT` | PROVEN | `PROGRESS.md:148-167`; `ko-sensitive-chainability.md:141-150` |
 | `4x4.HISTPERF-CHEAP` | MEASUREMENT | `retrograde-4x4.md:147-151` |
-| `4x4.I5-FEAS` | CLAIMED (projection; the calibration section is MEASUREMENT) | `docs/epic-01-markovian/sprints/verify-battery/archive/i5-feasibility.md`; `docs/evidence/QA-023/census-reconciliation.md` |
+| `4x4.I5-FEAS` | CLAIMED (projection; the calibration section is MEASUREMENT) | `docs/epics/E1-markovian/sprints/verify-battery/archive/i5-feasibility.md`; `docs/evidence/QA-023/census-reconciliation.md` |
 | `4x4.KO-CENSUS` | MEASUREMENT | `docs/research/ko-composition-census-2026-07-30.md`; `src/ko_cycle_census.zig` |
 | `4x4.KO-RULE-NULL` | PROVEN (these two games) | `ko-sensitive-chainability.md:102-118`; `4x4/EPISTEMIC.md:202-205` |
 | `4x4.M1` | MEASUREMENT | `4x4/EPISTEMIC.md:186`; `ruleset-options.md:116` |
@@ -153,7 +153,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `CODE.S4-XVAL` | MEASUREMENT | `0008:63-66` |
 | `CODE.UNDEF` | PROVEN | `arena-4x4-undef.md:20-56`; `0011:30-35` |
 | `CODE.VB-BLINDGAPS` | PROVEN (blind-reimplementation audit, committed) | `docs/evidence/CODE.VB-BLINDGAPS/T172-blind-analysis.md`; `src/vb_fixpoint.zig:545-547` |
-| `CODE.VB-STUBS` | PROVEN (by inspection) | `src/verify_battery.zig:26-27,357-373`; `src/vb_fixpoint.zig:502-547`; `docs/epic-01-markovian/sprints/verify-battery/archive/T168-notes.md` |
+| `CODE.VB-STUBS` | PROVEN (by inspection) | `src/verify_battery.zig:26-27,357-373`; `src/vb_fixpoint.zig:502-547`; `docs/epics/E1-markovian/sprints/verify-battery/archive/T168-notes.md` |
 | `CODE.WZO1-DTT-UNSET` | PROVEN (I7 across four gobans + independent spot-check + positive contrast artifact) | `docs/evidence/BATTERY/triage-T260.md`; `docs/evidence/BATTERY/fleet.md` |
 | `CODE.WZO2-CHAINSHORT` | PROVEN (by inspection; the code is committed) | `src/gtp.zig:286-288` |
 | `CODE.WZO2-INCOMPLETE` | PROVEN (direct artifact scan + self-play contradiction) | `findings/T261-m4b-triage.json`; `docs/evidence/ORACLE-V2/m4b-triage-T261.md`; `docs/evidence/ORACLE-V2/human-games-2026-08-02.md` |
@@ -193,24 +193,24 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.ADR0016-INHERIT` | CLAIMED (adopted rule — a decision, not a fact) | `docs/decisions/0016-per-board-independence-empirical-vs-structural.md`; `critique-2026-07-28.md:373` |
 | `GLOBAL.ANCHOR-DELTA` | CLAIMED | `retrograde-3x3.md:234-238` |
 | `GLOBAL.AUDITOR` | PROVEN | `consistency-audit.md:6-23`; `AGENTS.md:63-67`; `0013:117-122`; `docs/evidence/GLOBAL-AUDITOR/PROVENANCE.md`; `docs/evidence/GLOBAL-AUDITOR/consist-3x2-2026-07-30.log` |
-| `GLOBAL.AXIOM-AREA` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-BASICKO` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-BELLMAN` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-BRACKET` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-CAPTURE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-FRESHSTART` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-GEOM` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-KOPASS` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-KOSTATE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-LH` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-PASS` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-PASSSTATE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-SCORESIGN` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-STATE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-STONE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-SUICIDE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-TERMINAL` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
-| `GLOBAL.AXIOM-TIE` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-AREA` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-BASICKO` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-BELLMAN` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-BRACKET` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-CAPTURE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-FRESHSTART` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-GEOM` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-KOPASS` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-KOSTATE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-LH` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-PASS` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-PASSSTATE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-SCORESIGN` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-STATE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-STONE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-SUICIDE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-TERMINAL` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
+| `GLOBAL.AXIOM-TIE` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §2 |
 | `GLOBAL.B-1` | FALSE-AS-SCOPED (as of the code at 2026-07-27) | `corrections:136-171`; `0013:129-130`; `src/gtp.zig:154-196,90-93,121-132`; `src/artifact.zig:23-53,140,181` |
 | `GLOBAL.B1-AUDIT` | PROVEN | `leak-crisis.md:99-101`; `4x4/EPISTEMIC.md:90-97`; `CONCEPTS.md:29-30` |
 | `GLOBAL.B1-MULTIFIX` | MEASUREMENT | `leak-crisis.md:93-99` |
@@ -239,7 +239,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.F4-COST` | MEASUREMENT | `0013:92-108` |
 | `GLOBAL.FIN-BRACKET` | MEASUREMENT | `retrograde-3x3.md:165-179` |
 | `GLOBAL.FIN-NEARTERM` | MEASUREMENT | `retrograde-3x3.md:84-100` |
-| `GLOBAL.FIXPOINT-VS-SEARCH` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §4 |
+| `GLOBAL.FIXPOINT-VS-SEARCH` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §4 |
 | `GLOBAL.FP1` | PROVEN (as mathematics) | `CONCEPTS.md:25-30`; `0009:53-61`; `docs/evidence/GLOBAL-FP1/proof-2026-07-30.md` |
 | `GLOBAL.FP2` | CLAIMED | `CONCEPTS.md:31-32`; `0009:65-67,78-89` |
 | `GLOBAL.FP2-bounded` | FALSE-AS-SCOPED (at 3×2) | `CONCEPTS.md:33-37` |
@@ -274,7 +274,7 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.P1` | FALSE-AS-SCOPED | `CONCEPTS.md:123`; `4x4/EPISTEMIC.md:24` |
 | `GLOBAL.P2` | PROVEN (as scoped) | `CONCEPTS.md:124` |
 | `GLOBAL.P3` | FALSE-AS-SCOPED | `CONCEPTS.md:125`; `4x4/EPISTEMIC.md:25` |
-| `GLOBAL.PASS-NOKO` | PROVEN (code + independent re-derivation) | `src/exp6_solve.zig:964`; `docs/epic-01-markovian/sprints/oracle-v2/pass0/design-M1.md` (§2.5 invariant) |
+| `GLOBAL.PASS-NOKO` | PROVEN (code + independent re-derivation) | `src/exp6_solve.zig:964`; `docs/epics/E1-markovian/sprints/oracle-v2/pass0/design-M1.md` (§2.5 invariant) |
 | `GLOBAL.PSK-GAP` | PROVEN | `PROGRESS.md:178-181,224-228`; `open-hypotheses:56-61` |
 | `GLOBAL.R1` | PROVEN (structural) | `CONCEPTS.md:129`; `AGENTS.md:47-49`; `ruleset-options.md:95-97` |
 | `GLOBAL.R2` | PROVEN (argument) + MEASUREMENT | `ruleset-options.md:156-181`; `AGENTS.md:52-53` |
@@ -293,11 +293,11 @@ Source: docs/epistemic/CLAIMS.md (303 claims)
 | `GLOBAL.SWEEPS` | MEASUREMENT | `retrograde-4x4.md:21-22,30-32` |
 | `GLOBAL.T06` | MEASUREMENT | `PROGRESS.md:114-115` |
 | `GLOBAL.T14.1` | CLAIMED | `PROGRESS.md:238-240` |
-| `GLOBAL.TIE-MIGOS` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §4 |
+| `GLOBAL.TIE-MIGOS` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §4 |
 | `GLOBAL.UD-1` | CLAIMED | `PROGRESS.md:238-240` → `untracked/SUBAGENTS.md` (**not in git; see §7**) |
 | `GLOBAL.UD-2` | CLAIMED | `PROGRESS.md:238-240`; `4x4/EPISTEMIC.md:35,326-327` |
 | `GLOBAL.UD-3` | CLAIMED | `PROGRESS.md:238-240` |
-| `GLOBAL.Z` | CLAIMED | `docs/epic-01-markovian/AXIOMS.md` §1 |
+| `GLOBAL.Z` | CLAIMED | `docs/epics/E1-markovian/AXIOMS.md` §1 |
 | `QA-001` | FALSE | `critique-2026-07-28.md:359`; `ko-sensitive-chainability.md:70-71` |
 | `QA-002` | FALSE | `critique-2026-07-28.md:360`; `regressions/4x4-black-win-after-ko.txt:74` |
 | `QA-003` | FALSE | `critique-2026-07-28.md:361`; `corrections:66-96` |

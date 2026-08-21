@@ -904,7 +904,7 @@
     "model": "glm-5.2",
     "bundle": "untracked/T510-l2-clerical-absorb.md",
     "set": "A",
-    "holds": ["docs/epistemic/CLAIMS.md", "docs/epistemic/PROGRESS.md", "docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md", "docs/infra/instrument-coverage.md"],
+    "holds": ["docs/epistemic/CLAIMS.md", "docs/epistemic/PROGRESS.md", "docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/accept.md", "docs/infra/instrument-coverage.md"],
     "needs": [],
     "caps": [],
     "added": "2026-08-20T10:49:14Z",

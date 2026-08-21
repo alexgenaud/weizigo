@@ -33,7 +33,7 @@ genuine.
 ## 3. The check is wrong
 
 Under ADR-0020's loopy-game fixpoint semantics, L<H is **expected**. Axiom
-E3 (`docs/epic-01-markovian/AXIOMS.md` §2):
+E3 (`docs/epics/E1-markovian/AXIOMS.md` §2):
 
 > E3 — Bracket semantics: Where L(s) < H(s) the state is bracket-valued:
 > the value depends on information not in the state (history beyond k=1).
@@ -226,4 +226,4 @@ it is the expected output of the semantics.
   anomalous, there may be a 2×2-specific effect worth understanding.
 - Amend ADR-0020:47-49, which still refers to the 24 states as "mismatch"
   states (polarity inverted — the strategy audit flagged this at
-  `docs/epic-01-markovian/sprints/verify-battery/archive/strategy-audit.md:53`).
+  `docs/epics/E1-markovian/sprints/verify-battery/archive/strategy-audit.md:53`).

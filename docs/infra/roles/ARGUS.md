@@ -54,7 +54,7 @@ kanban for stale/orphan tasks, runs `claimlint` and `managent audit`, and checks
 `git status` for uncommitted tracked changes.
 
 **Mode 2 — checklist.** Read the checklist registry at
-`docs/epic-01-markovian/sprints/argus/checklist.md`, run each mechanized check,
+`docs/epics/E1-markovian/sprints/argus/checklist.md`, run each mechanized check,
 compare the result against the stored baseline, and emit a finding for every
 regression. Baselines are values, not booleans — a check is red only when it
 deviates from its baseline.

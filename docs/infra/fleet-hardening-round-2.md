@@ -116,7 +116,7 @@ T306's `GLOBAL.Z-R-MOVE-B1-EQUIV` proposed PROVEN at 2×2/3×2; register holds
 it at CLAIMED per DIRECTION Amendment 2 edge 5 (mutation adequacy missing for
 larger gobans). Dispositioned as `rejected-by-register` in
 `findings/rejections.json`. T316 absorbed under T312. Corresponding entries
-added to `docs/epic-01-markovian/register-tree-map.md`. C9=0 maintained.
+added to `docs/epics/E1-markovian/register-tree-map.md`. C9=0 maintained.
 
 **C2 floor raise overruled** (ARGUS.md:97-100 — floor lowered only by
 Orchestrator on evidence of a committed fix). The six

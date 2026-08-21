@@ -183,7 +183,7 @@ fn checkName(id: []const u8) []const u8 {
 /// (GRAND-AUDIT §1c, T272).
 const NARRATIVE_FILES = [_][]const u8{
     "docs/epistemic/PROGRESS.md",
-    "docs/epic-01-markovian/AXIOMS.md",
+    "docs/epics/E1-markovian/AXIOMS.md",
 };
 
 // ── calibration cases ────────────────────────────────────────────────────────
@@ -1606,11 +1606,11 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("\n== C8 {s}  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==\n", .{checkName("C8")});
     util.out("DIRECTION Amendment 2 edge 5: a claim about a kernel function may not be\n", .{});
     util.out("promoted past CLAIMED until the battery kills the mutants covering it.\n", .{});
-    util.out("Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json\n\n", .{});
+    util.out("Source: docs/epics/E1-markovian/sprints/verify-battery/pass1/kill-matrix.json\n\n", .{});
     var c8_violations: usize = 0;
     var c8_kernel_claims: usize = 0;
     var c8_unkilled_claims: usize = 0;
-    const KILL_MATRIX_PATH = "docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json";
+    const KILL_MATRIX_PATH = "docs/epics/E1-markovian/sprints/verify-battery/pass1/kill-matrix.json";
     const km_json = Io.Dir.cwd().readFileAlloc(io, KILL_MATRIX_PATH, gpa, .unlimited) catch |e| blk: {
         util.note("C8: cannot read {s}: {s} — check is blind\n", .{ KILL_MATRIX_PATH, @errorName(e) });
         break :blk @as([]const u8, &[_]u8{});
@@ -1661,12 +1661,12 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("Every register row carries the requirement-tree node it serves (AXIOMS.md §3)\n", .{});
     util.out("in the `tree` column (T305 — the dropped Phase 0 deliverable, phase0-execution-\n", .{});
     util.out("audit F2). C9a validates the vocabulary (a node, or RETIRED = proposed retirement);\n", .{});
-    util.out("C9b cross-checks docs/epic-01-markovian/register-tree-map.md against the register:\n", .{});
+    util.out("C9b cross-checks docs/epics/E1-markovian/register-tree-map.md against the register:\n", .{});
     util.out("same row set, same node per row — a mapping that silently covers a subset is the\n", .{});
     util.out("denominator defect this check exists to name.\n\n", .{});
     var c9: C9Result = .{};
     var c9_doc_missing = false;
-    const MAP_DOC_PATH = "docs/epic-01-markovian/register-tree-map.md";
+    const MAP_DOC_PATH = "docs/epics/E1-markovian/register-tree-map.md";
     const map_doc = Io.Dir.cwd().readFileAlloc(io, MAP_DOC_PATH, gpa, .unlimited) catch |e| blk: {
         util.note("C9: cannot read {s}: {s} — mapping document missing, treating as violation\n", .{ MAP_DOC_PATH, @errorName(e) });
         c9_doc_missing = true;
@@ -1675,7 +1675,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     try checkTreeMapping(gpa, &reg, map_doc, &c9);
     if (c9_doc_missing) {
         c9.doc_missing = true;
-        try c9.failures.append(gpa, "  C9 UNMAPPED  DOC MISSING — docs/epic-01-markovian/register-tree-map.md cannot be read (C9b is blind)");
+        try c9.failures.append(gpa, "  C9 UNMAPPED  DOC MISSING — docs/epics/E1-markovian/register-tree-map.md cannot be read (C9b is blind)");
     }
     for (c9.failures.items) |f| util.out("{s}\n", .{f});
     if (c9.failures.items.len == 0) util.out("  (none)\n", .{});

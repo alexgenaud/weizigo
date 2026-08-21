@@ -67,7 +67,7 @@
   "verdict": "pass",
   "verdict_note": "pass0 plan.md written (PROPOSED): all 6 spec \u00a76 questions answered, I11/R8 4x4 sample N=50000 stratified, 11 rows mapping every spec \u00a73 edge to needs, R8 independence by scheduling, third language not required (Kotlin escalation trigger stated), claimlint floors unmoved.",
   "claim_count": 1,
-  "acceptance": "test -s docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/plan.md",
+  "acceptance": "test -s docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/plan.md",
   "skip_acceptance_reason": null,
   "amendments": [],
   "epitaph": null
@@ -490,7 +490,7 @@
   "verdict": "fail-found",
   "verdict_note": "Plan audit Revision 1: NEEDS-FIX \u2014 critical closure/artifact-format mismatch plus 4 lower-grade findings",
   "claim_count": 1,
-  "acceptance": "test -s docs/epic-01-markovian/sprints/g3b-value-correctness/archive/plan-audit-r1.md",
+  "acceptance": "test -s docs/epics/E1-markovian/sprints/g3b-value-correctness/archive/plan-audit-r1.md",
   "skip_acceptance_reason": null,
   "amendments": [
    "2026-08-20T13:05:00Z: ADJUDICATED 2026-08-20 (pre-authorized wrap-up): fail-found stands \u2014 plan-audit found critical closure/artifact-format mismatch; findings committed (T332-g3b-plan-audit.json)."
@@ -751,7 +751,7 @@
   "verdict": "blocked",
   "verdict_note": "Work complete: pass0/plan.md Rev 2 committed (0845ecb) fixing all six findings F1-F6; findings at brief's path findings/T333-g3b-plan-rev2.json (committed). managent done gate rejects on the dispatch wrapper's stale deliverable name findings/T333-context.json, which the brief (untracked/T333-g3b-plan-rev2.md) explicitly overrules: 'the row will not close on the other name'. Orchestrator to re-point the bundle deliverable line to findings/T333-g3b-plan-rev2.json and re-close.",
   "claim_count": 1,
-  "acceptance": "test -s docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/plan.md",
+  "acceptance": "test -s docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/plan.md",
   "skip_acceptance_reason": null,
   "amendments": [],
   "epitaph": null
@@ -1289,7 +1289,7 @@
   "verdict": "pass-with-findings",
   "verdict_note": "PASS-WITH-EDITS: 10 findings (4 must, 2 critical, 2 should, 2 could); full report committed at 68a3b71",
   "claim_count": 1,
-  "acceptance": "test -s docs/epic-01-markovian/sprints/g3b-value-correctness/archive/spec-audit-r1.md",
+  "acceptance": "test -s docs/epics/E1-markovian/sprints/g3b-value-correctness/archive/spec-audit-r1.md",
   "skip_acceptance_reason": null,
   "amendments": [],
   "epitaph": null
@@ -1811,7 +1811,7 @@
   "verdict": "pass-with-findings",
   "verdict_note": "PASS-WITH-EDITS: F1-F6 fixed; WZO2 header/layout independently verified; two findings (N1 must stale Rev 3 ref, N2 should dual-writer on differential.zig) with exact edits supplied",
   "claim_count": 1,
-  "acceptance": "test -s docs/epic-01-markovian/sprints/g3b-value-correctness/archive/plan-audit-r2.md",
+  "acceptance": "test -s docs/epics/E1-markovian/sprints/g3b-value-correctness/archive/plan-audit-r2.md",
   "skip_acceptance_reason": null,
   "amendments": [],
   "epitaph": null

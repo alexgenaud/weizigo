@@ -185,8 +185,8 @@ re-runnable probe. Tier A = compliant.
     C4 GHOST-IDS  `GLOBAL.STATE-MD`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:329
     C4 GHOST-IDS  `GLOBAL.CLAIMLINT`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:1 docs/INDEX-claim-task.md:69
     C4 GHOST-IDS  `GLOBAL.HYPOTHESES`  cited at docs/evidence/GLOBAL.HYPOTHESES/PROVENANCE.md:1 docs/INDEX-claim-task.md:79
-    C4 GHOST-IDS  `GLOBAL.FP5`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:66
-    C4 GHOST-IDS  `GLOBAL.ADR0013-REF`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:71
+    C4 GHOST-IDS  `GLOBAL.FP5`  cited at docs/epics/E1-markovian/sprints/project-restructure/pass0/backlog.md:66
+    C4 GHOST-IDS  `GLOBAL.ADR0013-REF`  cited at docs/epics/E1-markovian/sprints/project-restructure/pass0/backlog.md:71
     C4 GHOST-IDS  `2x2.brute_value`  cited at docs/INDEX-claim-task.md:25
     C4 GHOST-IDS  `4x4.V1-INVSYM-RATE`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p5/PACKET.md:9
     C4 GHOST-IDS  `GLOBAL.ADR0012-EXTRAP`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:218
@@ -196,8 +196,8 @@ re-runnable probe. Tier A = compliant.
     C4 GHOST-IDS  `4x4.C-A1-PASS`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p4/PACKET.md:9
     C4 GHOST-IDS  `4x4.checkpoint`  cited at docs/INDEX-claim-task.md:52
     C4 GHOST-IDS  `GLOBAL.SESSION-CHOOSE`  cited at docs/INDEX-claim-task.md:90
-    C4 GHOST-IDS  `GLOBAL.FP4`  cited at docs/epic-01-markovian/sprints/project-restructure/pass0/backlog.md:65
-    C4 GHOST-IDS  `GLOBAL.CALPARENT-DEAD`  cited at docs/epic-01-markovian/sprints/knowledge-capture/pass0/design.md:181
+    C4 GHOST-IDS  `GLOBAL.FP4`  cited at docs/epics/E1-markovian/sprints/project-restructure/pass0/backlog.md:65
+    C4 GHOST-IDS  `GLOBAL.CALPARENT-DEAD`  cited at docs/epics/E1-markovian/sprints/knowledge-capture/pass0/design.md:181
     C4 GHOST-IDS  `4x4.DTT`  cited at docs/evidence/ORACLE-V2/build-T184-2026-08-01.md:128
     C4 GHOST-IDS  `4x4.WZO2-OOM`  cited at docs/evidence/ORACLE-V2/build-T184-2026-08-01.md:133
     C4 GHOST-IDS  `GLOBAL.H5c-verdict`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:109
@@ -218,7 +218,7 @@ re-runnable probe. Tier A = compliant.
     C4 GHOST-IDS  `GLOBAL.TIE-FREEFIX`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p2/PACKET.md:9
     C4 GHOST-IDS  `3x2.QA023.B-CAL-POS`  cited at docs/evidence/QA-023/reference-semantics-2026-07-29.md:128 docs/evidence/QA-023/probe-fix-2026-07-29.md:207 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:342 docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md:448
     C4 GHOST-IDS  `3x2.T13-C2`  cited at docs/evidence/EPISTEMIC-RACES/packets/race2/r2-p3/PACKET.md:9
-    C4 GHOST-IDS  `GLOBAL.CAL-SHOULDBE-FALSE`  cited at docs/epic-01-markovian/sprints/knowledge-capture/pass0/design.md:182
+    C4 GHOST-IDS  `GLOBAL.CAL-SHOULDBE-FALSE`  cited at docs/epics/E1-markovian/sprints/knowledge-capture/pass0/design.md:182
     C4 GHOST-IDS  `GLOBAL.ADR0017-REFUTE`  cited at docs/evidence/QA-018/review-a-glm/report.md:334 docs/decisions/0017-bracket-cut-refutation-attempt-failed.md:209
     C4 GHOST-IDS  `GLOBAL.BRACKET`  cited at docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:197 docs/evidence/GLOBAL.CLAIMLINT/run-2026-07-28.md:197 docs/epistemic/claimlint-2026-07-28.md:376 docs/epistemic/CLAIMS.md:298
     C4 GHOST-IDS  `2x2.value`  cited at docs/INDEX-claim-task.md:26
@@ -228,18 +228,18 @@ re-runnable probe. Tier A = compliant.
   register row, 0 without. A falsification cannot propagate to an ID the
   graph cannot see:
     C4 GHOST-IDS  UNMODELLED `QA-007`  cited at docs/infra/model-perf.md:1089 docs/epistemic/register-triage-2026-08-04.md:357 docs/epistemic/claimlint-2026-07-28.md:710
-    C4 GHOST-IDS  UNMODELLED `QA-008`  cited at docs/epistemic/register-triage-2026-08-04.md:358 docs/epic-01-markovian/register-tree-map.md:360 docs/epic-01-markovian/retirement-ruling-sheet.md:132
+    C4 GHOST-IDS  UNMODELLED `QA-008`  cited at docs/epistemic/register-triage-2026-08-04.md:358 docs/epics/E1-markovian/register-tree-map.md:360 docs/epics/E1-markovian/retirement-ruling-sheet.md:132
     C4 GHOST-IDS  UNMODELLED `QA-016`  cited at docs/research/newrule-4x4-2026-07-28.md:134 docs/infra/dispatch/EXP-4.md:55 docs/infra/dispatch/EXP-6.md:6
     C4 GHOST-IDS  UNMODELLED `QA-020`  cited at docs/research/newrule-certified-fraction-2026-07-30.md:7 docs/infra/dispatch/EXP-7-4x4-rerun.md:5 docs/infra/dispatch/EXP-7-4x4-rerun.md:204
-    C4 GHOST-IDS  UNMODELLED `QA-017`  cited at docs/infra/model-perf.md:1240 docs/epistemic/register-triage-2026-08-04.md:367 docs/epic-01-markovian/register-tree-map.md:362
+    C4 GHOST-IDS  UNMODELLED `QA-017`  cited at docs/infra/model-perf.md:1240 docs/epistemic/register-triage-2026-08-04.md:367 docs/epics/E1-markovian/register-tree-map.md:362
     C4 GHOST-IDS  UNMODELLED `QA-002`  cited at docs/infra/model-perf.md:1063 docs/epistemic/register-triage-2026-08-04.md:352 docs/epistemic/claimlint-2026-07-28.md:710
     C4 GHOST-IDS  UNMODELLED `QA-028`  cited at docs/infra/model-perf.md:1669 docs/epistemic/register-triage-2026-08-04.md:378 docs/epistemic/claimlint-2026-07-28.md:688
-    C4 GHOST-IDS  UNMODELLED `QA-005`  cited at docs/epistemic/register-triage-2026-08-04.md:355 docs/epistemic/CLAIMS.md:570 docs/epic-01-markovian/register-tree-map.md:357
+    C4 GHOST-IDS  UNMODELLED `QA-005`  cited at docs/epistemic/register-triage-2026-08-04.md:355 docs/epistemic/CLAIMS.md:570 docs/epics/E1-markovian/register-tree-map.md:357
     C4 GHOST-IDS  UNMODELLED `QA-024`  cited at docs/research/psk-divergence-2026-07-29.md:4 docs/infra/dispatch/EXP-8.md:6 docs/infra/dispatch/EXP-8.md:180
     C4 GHOST-IDS  UNMODELLED `QA-010`  cited at docs/infra/dispatch/EXP-8.md:7 docs/epistemic/register-triage-2026-08-04.md:360 docs/epistemic/claimlint-2026-07-28.md:390
-    C4 GHOST-IDS  UNMODELLED `QA-006`  cited at docs/epistemic/register-triage-2026-08-04.md:356 docs/epic-01-markovian/register-tree-map.md:358 docs/epic-01-markovian/retirement-ruling-sheet.md:130
+    C4 GHOST-IDS  UNMODELLED `QA-006`  cited at docs/epistemic/register-triage-2026-08-04.md:356 docs/epics/E1-markovian/register-tree-map.md:358 docs/epics/E1-markovian/retirement-ruling-sheet.md:130
     C4 GHOST-IDS  UNMODELLED `QA-018`  cited at docs/infra/dispatch/QA-018-REVIEW.md:14 docs/infra/dispatch/F2-REMEDY.md:5 docs/infra/dispatch/QA-018-RULING.md:5
-    C4 GHOST-IDS  UNMODELLED `QA-014`  cited at docs/epistemic/register-triage-2026-08-04.md:364 docs/epic-01-markovian/register-tree-map.md:392 docs/epic-01-markovian/retirement-ruling-sheet.md:165
+    C4 GHOST-IDS  UNMODELLED `QA-014`  cited at docs/epistemic/register-triage-2026-08-04.md:364 docs/epics/E1-markovian/register-tree-map.md:392 docs/epics/E1-markovian/retirement-ruling-sheet.md:165
     (none unmodelled)
 
   register rows nothing references — no citation outside §2 AND no
@@ -264,7 +264,7 @@ Scans 2 narrative files for `[ID:STATUS]` tags and verifies
 each against the register. A narrative whose cite-tags do not
 match the register is hallucination-prone.
   scanning: docs/epistemic/PROGRESS.md
-  scanning: docs/epic-01-markovian/AXIOMS.md
+  scanning: docs/epics/E1-markovian/AXIOMS.md
 
   (all cite-tags match the register)
 
@@ -348,7 +348,7 @@ AND it is not dispositioned in the rejection registry (findings/rejections.json)
 == C8 UNKILLED  MUTATION-ADEQUACY PROMOTION GATE (report only — does NOT fail, yet) ==
 DIRECTION Amendment 2 edge 5: a claim about a kernel function may not be
 promoted past CLAIMED until the battery kills the mutants covering it.
-Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json
+Source: docs/epics/E1-markovian/sprints/verify-battery/pass1/kill-matrix.json
 
   (none)
 
@@ -367,7 +367,7 @@ Source: docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json
 Every register row carries the requirement-tree node it serves (AXIOMS.md §3)
 in the `tree` column (T305 — the dropped Phase 0 deliverable, phase0-execution-
 audit F2). C9a validates the vocabulary (a node, or RETIRED = proposed retirement);
-C9b cross-checks docs/epic-01-markovian/register-tree-map.md against the register:
+C9b cross-checks docs/epics/E1-markovian/register-tree-map.md against the register:
 same row set, same node per row — a mapping that silently covers a subset is the
 denominator defect this check exists to name.
 
