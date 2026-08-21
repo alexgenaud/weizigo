@@ -147,6 +147,8 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | delegating to a DeepSeek subagent | `docs/infra/agents/subdelegation.md` — `odeeppi` (Pro) and `oflashpi` (Flash) shell commands |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
+| choosing which model to delegate to (provisional tiers + rules) | `docs/infra/races/goldilocks.md` |
+| measuring models (appetite, metric schema, how scores compare) | `docs/infra/races/measurement-methodology.md` — DESIGN, not built |
 
 ## The queue is a *kanban*; the playing surface is a *goban*
 

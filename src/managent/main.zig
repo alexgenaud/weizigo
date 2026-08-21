@@ -374,6 +374,18 @@ pub fn main(init: std.process.Init.Minimal) !void {
         }
     }
 
+    // T556 pass 1: `treekill` short-circuits AFTER findRepoRoot (it needs the repo
+    // root for G6's untracked/runs/ protected set) and BEFORE the
+    // lock-migrate-write block below — it never takes the kanban flock and
+    // never migrates the store (it runs on every runner exit path).
+    if (std.mem.eql(u8, cmd, "treekill")) {
+        cmdTreekill(w, io, repo_root, args) catch |err| {
+            w.diag("[treekill] internal error: {s}\n", .{@errorName(err)});
+            std.process.exit(3);
+        };
+        return;
+    }
+
     // Migration: on every invocation, re-derive dispatchable/blocked statuses.
     // T545: the whole read→migrate→write runs under the flock.  The previous
     // code read the store UNLOCKED and wrote via writeState (lock only around
@@ -5462,6 +5474,7 @@ fn printHelp(w: Writers) void {
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
         \\  managent liveness [--stale-min <min>]  show per-task liveness: UNKNOWN / beating / beats stopped (default threshold 5 min)
         \\  managent reap [--close]  reconcile in_progress rows vs the process table; --close closes orphans as abandoned (T364)
+        \\  managent treekill --anchor <pid> [--kill] [--seed <pids>] [--since <epoch>]  enumerate/kill a process tree (pass 1)
         \\  managent duty <UID> done  record a duty chunk (--verdict pass|fail --findings <path>); duties never close
         \\  managent landmark <Ln> --declare  gate a landmark declaration on duty currency (overdue or last-failed blocks)
         \\  managent standing         register triggered standing-tier tasks
@@ -8726,6 +8739,841 @@ fn printPendingDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_p
         w.diag("\n", .{});
     }
 }
+// ── treekill: process-tree ownership (pass 1) ────────────────────────────────
+//
+// `managent treekill` — enumerate and, with --kill, terminate every reachable
+// descendant of an anchor pid (live or dead).  Contract: the corrected
+// docs/infra/orcha-refactor/pass1/01-spec.md §2-§4.  One short-lived CLI, no
+// store writes, no flock, no migration; family-independent (no provider token
+// appears in this region — D-2).
+
+extern "c" fn getsid(pid: std.c.pid_t) std.c.pid_t;
+
+const OwnOpts = struct {
+    anchor: i64 = -1,
+    kill: bool = false,
+    seeds: []i64 = &.{},
+    since: ?i64 = null,
+    protect: []i64 = &.{},
+    rounds: u32 = 5,
+    settle_ms: u32 = 250,
+    ps_fixture: ?[]const u8 = null,
+};
+
+const ProcRow = struct {
+    pid: i64,
+    ppid: i64,
+    pgid: i64,
+    sid: i64,
+    uid: i64,
+    start_epoch: i64,
+    rss_kb: i64,
+    comm: []u8,
+};
+
+const OwnAction = enum { report, killed, vanished, refused, survived, protected };
+
+fn ownActionName(a: OwnAction) []const u8 {
+    return switch (a) {
+        .report => "report",
+        .killed => "killed",
+        .vanished => "vanished",
+        .refused => "refused",
+        .survived => "survived",
+        .protected => "protected",
+    };
+}
+
+const OwnState = struct {
+    claimed: std.AutoHashMap(i64, void),
+    refused: std.AutoHashMap(i64, void),
+    frozen: std.AutoHashMap(i64, void),
+    member_rows: std.AutoHashMap(i64, ProcRow),
+    actions: std.AutoHashMap(i64, OwnAction),
+
+    fn init(allocator: std.mem.Allocator) OwnState {
+        return .{
+            .claimed = std.AutoHashMap(i64, void).init(allocator),
+            .refused = std.AutoHashMap(i64, void).init(allocator),
+            .frozen = std.AutoHashMap(i64, void).init(allocator),
+            .member_rows = std.AutoHashMap(i64, ProcRow).init(allocator),
+            .actions = std.AutoHashMap(i64, OwnAction).init(allocator),
+        };
+    }
+
+    fn deinit(self: *OwnState) void {
+        var it = self.member_rows.valueIterator();
+        while (it.next()) |r| alloc.free(r.comm);
+        self.member_rows.deinit();
+        self.claimed.deinit();
+        self.refused.deinit();
+        self.frozen.deinit();
+        self.actions.deinit();
+    }
+};
+
+fn ownUsage(w: Writers) noreturn {
+    w.diag("[treekill] usage: managent treekill --anchor <pid> [--kill] [--seed <pid,...>] [--since <epoch>] [--protect <pid>]... [--rounds <n>] [--settle-ms <n>] [--ps-fixture <path>]\n", .{});
+    std.process.exit(2);
+}
+
+fn parseOwnArgs(w: Writers, args: [][]const u8) !OwnOpts {
+    var o = OwnOpts{};
+    var seeds = std.ArrayList(i64).empty;
+    defer seeds.deinit(alloc);
+    var protect = std.ArrayList(i64).empty;
+    defer protect.deinit(alloc);
+
+    var i: usize = 2; // args[0] == program name, args[1] == "treekill"
+    while (i < args.len) : (i += 1) {
+        const a = args[i];
+        if (std.mem.eql(u8, a, "--kill")) {
+            o.kill = true;
+        } else if (std.mem.eql(u8, a, "--anchor")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            o.anchor = std.fmt.parseInt(i64, args[i], 10) catch ownUsage(w);
+        } else if (std.mem.eql(u8, a, "--seed")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            var it = std.mem.splitScalar(u8, args[i], ',');
+            while (it.next()) |tok| {
+                const t = std.mem.trim(u8, tok, " \t");
+                if (t.len == 0) continue;
+                try seeds.append(alloc, std.fmt.parseInt(i64, t, 10) catch ownUsage(w));
+            }
+        } else if (std.mem.eql(u8, a, "--since")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            o.since = std.fmt.parseInt(i64, args[i], 10) catch ownUsage(w);
+        } else if (std.mem.eql(u8, a, "--protect")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            try protect.append(alloc, std.fmt.parseInt(i64, args[i], 10) catch ownUsage(w));
+        } else if (std.mem.eql(u8, a, "--rounds")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            o.rounds = std.fmt.parseInt(u32, args[i], 10) catch ownUsage(w);
+        } else if (std.mem.eql(u8, a, "--settle-ms")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            o.settle_ms = std.fmt.parseInt(u32, args[i], 10) catch ownUsage(w);
+        } else if (std.mem.eql(u8, a, "--ps-fixture")) {
+            i += 1;
+            if (i >= args.len) ownUsage(w);
+            o.ps_fixture = try alloc.dupe(u8, args[i]);
+        } else {
+            ownUsage(w);
+        }
+    }
+    if (o.anchor < 0) ownUsage(w); // missing --anchor
+    if (o.kill and o.ps_fixture != null) ownUsage(w); // G9
+    o.seeds = try seeds.toOwnedSlice(alloc);
+    o.protect = try protect.toOwnedSlice(alloc);
+    return o;
+}
+
+fn findRow(rows: []const ProcRow, pid: i64) ?*const ProcRow {
+    for (rows) |*r| {
+        if (r.pid == pid) return r;
+    }
+    return null;
+}
+
+fn findRowIdx(rows: []const ProcRow, pid: i64) ?usize {
+    for (rows, 0..) |r, idx| {
+        if (r.pid == pid) return idx;
+    }
+    return null;
+}
+
+fn dupeProcRow(r: ProcRow) !ProcRow {
+    return .{
+        .pid = r.pid,
+        .ppid = r.ppid,
+        .pgid = r.pgid,
+        .sid = r.sid,
+        .uid = r.uid,
+        .start_epoch = r.start_epoch,
+        .rss_kb = r.rss_kb,
+        .comm = try alloc.dupe(u8, r.comm),
+    };
+}
+
+fn freeRows(rows: *std.ArrayList(ProcRow)) void {
+    for (rows.items) |r| alloc.free(r.comm);
+    rows.deinit(alloc);
+}
+
+fn seedContains(seeds: []const i64, pid: i64) bool {
+    for (seeds) |s| {
+        if (s == pid) return true;
+    }
+    return false;
+}
+
+fn parsePsLine(line: []const u8, pid: *i64, ppid: *i64, pgid: *i64, uid: *i64, etime: *[]const u8, rss_kb: *i64, state_c: *u8, comm: *[]const u8) bool {
+    var toks: [7][]const u8 = undefined;
+    var idx: usize = 0;
+    var i: usize = 0;
+    const n = line.len;
+    while (i < n and idx < 7) {
+        while (i < n and (line[i] == ' ' or line[i] == '\t')) i += 1;
+        if (i >= n) return false;
+        const start = i;
+        while (i < n and line[i] != ' ' and line[i] != '\t') i += 1;
+        toks[idx] = line[start..i];
+        idx += 1;
+    }
+    if (idx < 7) return false;
+    while (i < n and (line[i] == ' ' or line[i] == '\t')) i += 1;
+    pid.* = std.fmt.parseInt(i64, toks[0], 10) catch return false;
+    ppid.* = std.fmt.parseInt(i64, toks[1], 10) catch return false;
+    pgid.* = std.fmt.parseInt(i64, toks[2], 10) catch return false;
+    uid.* = std.fmt.parseInt(i64, toks[3], 10) catch return false;
+    etime.* = toks[4];
+    rss_kb.* = std.fmt.parseInt(i64, toks[5], 10) catch return false;
+    state_c.* = if (toks[6].len > 0) toks[6][0] else '?';
+    comm.* = line[i..];
+    return true;
+}
+
+fn parseEtime(s: []const u8) i64 {
+    var days: i64 = 0;
+    var rest = s;
+    if (std.mem.indexOfScalar(u8, s, '-')) |dash| {
+        days = std.fmt.parseInt(i64, s[0..dash], 10) catch return 0;
+        rest = s[dash + 1 ..];
+    }
+    var total: i64 = 0;
+    var parts = std.mem.splitScalar(u8, rest, ':');
+    while (parts.next()) |p| {
+        total = total * 60 + (std.fmt.parseInt(i64, p, 10) catch return 0);
+    }
+    return days * 86400 + total;
+}
+
+fn readProcTable(io: std.Io) !std.ArrayList(ProcRow) {
+    var rows = std.ArrayList(ProcRow).empty;
+    const result = std.process.run(alloc, io, .{ .argv = &.{ "ps", "-axo", "pid=,ppid=,pgid=,uid=,etime=,rss=,state=,comm=" } }) catch return error.OwnPsFailed;
+    defer alloc.free(result.stderr);
+    defer alloc.free(result.stdout);
+    if (result.term != .exited or result.term.exited != 0) return error.OwnPsFailed;
+    const now = nowUnix();
+    var lines = std.mem.splitScalar(u8, result.stdout, '\n');
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        var pid: i64 = 0;
+        var ppid: i64 = 0;
+        var pgid: i64 = 0;
+        var uid: i64 = 0;
+        var etime_s: []const u8 = "";
+        var rss_kb: i64 = 0;
+        var state_c: u8 = '?';
+        var comm: []const u8 = "";
+        if (!parsePsLine(line, &pid, &ppid, &pgid, &uid, &etime_s, &rss_kb, &state_c, &comm)) continue;
+        if (state_c == 'Z') continue; // zombies are already dead — never claimed
+        const s = getsid(@intCast(pid));
+        if (s == -1) {
+            if (std.c.errno(s) == .SRCH) continue; // vanished between ps and getsid
+            return error.OwnGetsidFailed;
+        }
+        try rows.append(alloc, .{
+            .pid = pid,
+            .ppid = ppid,
+            .pgid = pgid,
+            .sid = s,
+            .uid = uid,
+            .start_epoch = now - parseEtime(etime_s),
+            .rss_kb = rss_kb,
+            .comm = try alloc.dupe(u8, comm),
+        });
+    }
+    return rows;
+}
+
+fn readPsFixture(io: std.Io, path: []const u8) !std.ArrayList(ProcRow) {
+    var rows = std.ArrayList(ProcRow).empty;
+    const content = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch return error.OwnFixtureUnreadable;
+    defer alloc.free(content);
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const t = std.mem.trim(u8, line, " \r\t");
+        if (t.len == 0) continue;
+        var toks: [6][]const u8 = undefined;
+        var idx: usize = 0;
+        var i: usize = 0;
+        const n = t.len;
+        while (i < n and idx < 6) {
+            while (i < n and (t[i] == ' ' or t[i] == '\t')) i += 1;
+            if (i >= n) break;
+            const start = i;
+            while (i < n and t[i] != ' ' and t[i] != '\t') i += 1;
+            toks[idx] = t[start..i];
+            idx += 1;
+        }
+        if (idx < 6) continue;
+        while (i < n and (t[i] == ' ' or t[i] == '\t')) i += 1;
+        const pid = std.fmt.parseInt(i64, toks[0], 10) catch continue;
+        const ppid = std.fmt.parseInt(i64, toks[1], 10) catch continue;
+        const pgid = std.fmt.parseInt(i64, toks[2], 10) catch continue;
+        const sid = std.fmt.parseInt(i64, toks[3], 10) catch continue;
+        const start_epoch = std.fmt.parseInt(i64, toks[4], 10) catch continue;
+        const rss_kb = std.fmt.parseInt(i64, toks[5], 10) catch continue;
+        try rows.append(alloc, .{
+            .pid = pid,
+            .ppid = ppid,
+            .pgid = pgid,
+            .sid = sid,
+            .uid = -1, // fixture rows are treated as same-uid
+            .start_epoch = start_epoch,
+            .rss_kb = rss_kb,
+            .comm = try alloc.dupe(u8, t[i..]),
+        });
+    }
+    return rows;
+}
+
+const SignalResult = enum { ok, gone, denied };
+
+fn trySignal(pid: i64, sig: std.c.SIG) SignalResult {
+    const rc = std.c.kill(@intCast(pid), sig);
+    if (rc == 0) return .ok;
+    return switch (std.c.errno(rc)) {
+        .SRCH => .gone,
+        else => .denied,
+    };
+}
+
+fn sleepMs(ms: u32) void {
+    const req: std.c.timespec = .{
+        .sec = @intCast(ms / 1000),
+        .nsec = @intCast((ms % 1000) * std.time.ns_per_ms),
+    };
+    _ = std.c.nanosleep(&req, null);
+}
+
+fn pidState(io: std.Io, pid: i64) !?u8 {
+    const pid_buf = try std.fmt.allocPrint(alloc, "{d}", .{pid});
+    defer alloc.free(pid_buf);
+    const result = std.process.run(alloc, io, .{ .argv = &.{ "ps", "-o", "state=", "-p", pid_buf } }) catch return error.OwnPsFailed;
+    defer alloc.free(result.stderr);
+    defer alloc.free(result.stdout);
+    if (result.term == .exited and result.term.exited == 0) {
+        const t = std.mem.trim(u8, result.stdout, " \n\r\t");
+        if (t.len == 0) return null;
+        return t[0];
+    }
+    if (result.term == .exited and result.term.exited == 1) return null; // gone
+    return error.OwnPsFailed;
+}
+
+fn freezeFrontier(w: Writers, io: std.Io, st: *OwnState, settle_ms: u32, mutation: ?[]const u8) !void {
+    _ = w;
+    if (mutation != null and std.mem.eql(u8, mutation.?, "freeze-off")) return;
+    var new_frozen = std.ArrayList(i64).empty;
+    defer new_frozen.deinit(alloc);
+    var it = st.claimed.keyIterator();
+    while (it.next()) |pid_ptr| {
+        const pid = pid_ptr.*;
+        if (st.frozen.contains(pid)) continue;
+        _ = trySignal(pid, std.c.SIG.STOP);
+        try st.frozen.put(pid, {});
+        try new_frozen.append(alloc, pid);
+    }
+    // Completion oracle (D-30): SIGSTOP returns before the target stops.
+    var waited_ms: u32 = 0;
+    while (true) {
+        var all_stopped = true;
+        for (new_frozen.items) |pid| {
+            const state = try pidState(io, pid);
+            if (state == null) continue; // vanished
+            if (state.? != 'T') {
+                all_stopped = false;
+                break;
+            }
+        }
+        if (all_stopped) break;
+        if (waited_ms >= settle_ms) return error.FreezeTimeout;
+        sleepMs(5);
+        waited_ms += 5;
+    }
+}
+
+fn resumeFrozen(frozen: *std.AutoHashMap(i64, void), mutation: ?[]const u8) void {
+    if (mutation != null and std.mem.eql(u8, mutation.?, "rollback-off")) return;
+    var it = frozen.keyIterator();
+    while (it.next()) |pid_ptr| {
+        _ = trySignal(pid_ptr.*, std.c.SIG.CONT);
+    }
+}
+
+var OWN_LOCK_FD: std.c.fd_t = -1;
+
+/// Serialize concurrent `treekill --kill` invocations on one tree (N4).  flock(2)
+/// is released by the kernel when the holder's fd closes — on explicit
+/// unlock OR on any process exit, so a crashed holder can never deadlock a
+/// successor.  Blocking (no NONBLOCK backoff): a live holder keeps the lock
+/// only for one kill+settle round, far under the runner's 30 s subprocess
+/// timeout.
+fn lockOwn(anchor: i64) !void {
+    const lock_path = try std.fmt.allocPrint(alloc, "/tmp/weizigo-treekill-{d}.lock", .{anchor});
+    defer alloc.free(lock_path);
+    const open_flags = std.posix.O{ .ACCMODE = .RDWR, .CREAT = true, .CLOEXEC = true };
+    const fd = std.c.open(@ptrCast(lock_path), open_flags, @as(c_int, 0o644));
+    if (fd == -1) return error.LockFailed;
+    const rc = std.c.flock(fd, std.posix.LOCK.EX);
+    if (rc != 0) {
+        _ = std.c.close(fd);
+        return error.LockFailed;
+    }
+    OWN_LOCK_FD = fd;
+}
+
+fn unlockOwn() void {
+    if (OWN_LOCK_FD == -1) return;
+    _ = std.c.flock(OWN_LOCK_FD, std.posix.LOCK.UN);
+    _ = std.c.close(OWN_LOCK_FD);
+    OWN_LOCK_FD = -1;
+}
+
+fn isAncestorOf(rows: []const ProcRow, self_pid: i64, pid: i64) bool {
+    var cur = self_pid;
+    var guard: usize = 0;
+    while (cur > 1 and guard < 256) : (guard += 1) {
+        const r = findRow(rows, cur) orelse return false;
+        if (r.ppid == pid) return true;
+        cur = r.ppid;
+    }
+    return false;
+}
+
+fn ppidChainReaches(rows: []const ProcRow, claimed: *std.AutoHashMap(i64, void), start: i64, anchor: i64) bool {
+    var cur = start;
+    var seen = std.AutoHashMap(i64, void).init(alloc);
+    defer seen.deinit();
+    var guard: usize = 0;
+    while (cur > 1 and guard < 256) : (guard += 1) {
+        if (cur == anchor) return true;
+        if (claimed.contains(cur)) return true;
+        if (seen.contains(cur)) return false;
+        seen.put(cur, {}) catch {};
+        const r = findRow(rows, cur) orelse return false;
+        cur = r.ppid;
+    }
+    return false;
+}
+
+fn closeOwnership(rows: []const ProcRow, st: *OwnState, anchor: i64, seeds: []const i64, since: i64, euid: i64) !bool {
+    var pgids = std.AutoHashMap(i64, void).init(alloc);
+    defer pgids.deinit();
+    var sid_leaders = std.AutoHashMap(i64, void).init(alloc);
+    defer sid_leaders.deinit();
+    var it0 = st.claimed.keyIterator();
+    while (it0.next()) |pid_ptr| {
+        if (findRow(rows, pid_ptr.*)) |r| {
+            try pgids.put(r.pgid, {});
+            if (r.sid == r.pid) try sid_leaders.put(r.pid, {});
+        }
+    }
+    var grew = false;
+    for (rows) |row| {
+        if (row.start_epoch < since) continue; // G4
+        if (st.claimed.contains(row.pid) or st.refused.contains(row.pid)) continue;
+        const ppid_edge = st.claimed.contains(row.ppid) or row.ppid == anchor;
+        const seed_edge = seedContains(seeds, row.pid);
+        const sid_edge = row.sid == anchor or sid_leaders.contains(row.sid);
+        const pgid_edge = pgids.contains(row.pgid) and ppidChainReaches(rows, &st.claimed, row.pid, anchor); // D-19 downward
+        if (ppid_edge or seed_edge or sid_edge or pgid_edge) {
+            if (row.uid != euid and row.uid >= 0) {
+                try st.refused.put(row.pid, {});
+                try st.member_rows.put(row.pid, try dupeProcRow(row));
+                try st.actions.put(row.pid, .refused);
+            } else {
+                try st.claimed.put(row.pid, {});
+                try st.member_rows.put(row.pid, try dupeProcRow(row));
+                try st.actions.put(row.pid, .report);
+            }
+            grew = true;
+        }
+    }
+    return grew;
+}
+
+fn killMembers(st: *OwnState, rows: []const ProcRow, mutation: ?[]const u8) u32 {
+    const parity_kill = mutation != null and std.mem.eql(u8, mutation.?, "kill-parity");
+    var killed: u32 = 0;
+    var it = st.claimed.keyIterator();
+    while (it.next()) |pid_ptr| {
+        const pid = pid_ptr.*;
+        // Mutation "kill-parity" (the B-3 acceptance instrument): odd pids
+        // survive the SIGKILL (no signal is sent) while even pids really die —
+        // forcing the retry path so the arm can assert rounds-spent, honest
+        // killed= across rounds (N4), and exit 5 with real survivors.
+        if (parity_kill and (pid & 1) == 1) {
+            st.actions.put(pid, .killed) catch {};
+            killed += 1;
+            continue;
+        }
+        // A pid absent from the fresh snapshot is already dead (gone or a
+        // zombie reaped/skipped by readProcTable) — report it vanished, never
+        // killed, so a concurrent invocation cannot produce a double-kill
+        // report for the same pid (N4). A pid we killed in an earlier round
+        // stays `killed`: a retry round must not downgrade it to `vanished`.
+        if (findRow(rows, pid) == null) {
+            if (st.actions.get(pid) != .killed) {
+                st.actions.put(pid, .vanished) catch {};
+            }
+            continue;
+        }
+        switch (trySignal(pid, std.c.SIG.KILL)) {
+            .ok => {
+                st.actions.put(pid, .killed) catch {};
+                killed += 1;
+            },
+            .gone => {
+                if (st.actions.get(pid) != .killed) {
+                    st.actions.put(pid, .vanished) catch {};
+                }
+            },
+            .denied => {
+                st.actions.put(pid, .refused) catch {};
+            },
+        }
+    }
+    return killed;
+}
+
+fn countSurvivors(rows: []const ProcRow, st: *OwnState) u32 {
+    var n: u32 = 0;
+    var it = st.claimed.keyIterator();
+    while (it.next()) |pid_ptr| {
+        if (findRow(rows, pid_ptr.*) != null) {
+            n += 1;
+            st.actions.put(pid_ptr.*, .survived) catch {};
+        }
+    }
+    return n;
+}
+
+const ProtectedEntry = struct { pid: i64, task: []u8 };
+
+fn readProtectedSet(io: std.Io, repo_root: []const u8, anchor: i64, rows: []const ProcRow) !std.ArrayList(ProtectedEntry) {
+    var result = std.ArrayList(ProtectedEntry).empty;
+    const runs_dir = std.fs.path.join(alloc, &.{ repo_root, "untracked", "runs" }) catch return result;
+    defer alloc.free(runs_dir);
+    var dir = std.Io.Dir.cwd().openDir(io, runs_dir, .{}) catch |err| {
+        if (err == error.FileNotFound) return result;
+        return err;
+    };
+    defer dir.close(io);
+    var it = dir.iterate();
+    while (it.next(io) catch null) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".json")) continue;
+        const abs = std.fs.path.join(alloc, &.{ runs_dir, entry.name }) catch continue;
+        defer alloc.free(abs);
+        const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch continue;
+        defer alloc.free(content);
+        const trimmed = std.mem.trim(u8, content, " \r\n");
+        if (trimmed.len == 0) continue;
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+        if (parsed.value != .object) continue;
+        const obj = parsed.value.object;
+        const task = runRecStr(obj, "task");
+        if (task.len == 0) continue;
+        const pgid = runRecI64(obj, "pgid");
+        if (pgid <= 0) continue;
+        if (pgid == anchor) continue; // the caller's own record
+        if (obj.get("exit") != null or obj.get("signal") != null or obj.get("wall") != null) continue; // finalized
+        const pid = runRecI64(obj, "pid");
+        if (pid <= 0) continue;
+        if (!processAlive(pid)) continue; // expired: runner dead
+        const start_epoch = runRecI64(obj, "start_epoch");
+        if (start_epoch > 0) {
+            if (findRow(rows, pid)) |r| {
+                if (r.start_epoch > start_epoch + 5) continue; // pid recycled after the record
+            }
+        }
+        try result.append(alloc, .{ .pid = pgid, .task = try alloc.dupe(u8, task) });
+    }
+    return result;
+}
+
+fn validateOwnership(w: Writers, io: std.Io, repo_root: []const u8, rows: []const ProcRow, st: *OwnState, opts: OwnOpts, self_pid: i64, own_sid: i64, euid: i64, mutation: ?[]const u8) bool {
+    _ = euid;
+    var it = st.claimed.keyIterator();
+    while (it.next()) |pid_ptr| {
+        const pid = pid_ptr.*;
+        if (pid <= 1) {
+            w.diag("[treekill] REFUSED: pid {d} is pid 0/1\n", .{pid});
+            return false;
+        }
+        if (pid == self_pid) {
+            w.diag("[treekill] REFUSED: pid {d} is this process\n", .{pid});
+            return false;
+        }
+        if (isAncestorOf(rows, self_pid, pid)) {
+            w.diag("[treekill] REFUSED: pid {d} is an ancestor of this process\n", .{pid});
+            return false;
+        }
+        if (pid == own_sid) {
+            w.diag("[treekill] REFUSED: pid {d} is this process's session leader\n", .{pid});
+            return false;
+        }
+        for (opts.protect) |p| {
+            if (p == pid) {
+                w.diag("[treekill] REFUSED: pid {d} is protected (--protect)\n", .{pid});
+                return false;
+            }
+        }
+    }
+    if (mutation != null and std.mem.eql(u8, mutation.?, "protect-off")) return true;
+    var prot = readProtectedSet(io, repo_root, opts.anchor, rows) catch {
+        w.diag("[treekill] internal error: cannot read the protected-set run records\n", .{});
+        return false;
+    };
+    defer {
+        for (prot.items) |pe| alloc.free(pe.task);
+        prot.deinit(alloc);
+    }
+    var it2 = st.claimed.keyIterator();
+    while (it2.next()) |pid_ptr| {
+        for (prot.items) |pe| {
+            if (pe.pid == pid_ptr.*) {
+                w.diag("[treekill] REFUSED: pid {d} is the anchor of in-progress task {s}\n", .{ pid_ptr.*, pe.task });
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+fn printOwnRecord(w: Writers, pid: i64, r: ProcRow, action: OwnAction) void {
+    w.data("{d}\t{d}\t{d}\t{d}\t{d}\t{d}\t{s}\t{s}\n", .{ pid, r.ppid, r.pgid, r.sid, r.start_epoch, r.rss_kb, ownActionName(action), r.comm });
+}
+
+fn printOwnReport(w: Writers, st: *OwnState) void {
+    var pids = std.ArrayList(i64).empty;
+    defer pids.deinit(alloc);
+    var it = st.member_rows.keyIterator();
+    while (it.next()) |p| pids.append(alloc, p.*) catch {};
+    std.mem.sort(i64, pids.items, {}, struct {
+        fn lt(_: void, a: i64, b: i64) bool {
+            return a < b;
+        }
+    }.lt);
+    for (pids.items) |pid| {
+        const r = st.member_rows.get(pid) orelse continue;
+        const action = st.actions.get(pid) orelse .report;
+        printOwnRecord(w, pid, r, action);
+    }
+}
+
+fn printOwnSummary(w: Writers, opts: OwnOpts, anchor_live: bool, st: *OwnState, rounds_used: u32) void {
+    var killed: u32 = 0;
+    var survivors: u32 = 0;
+    var it = st.actions.valueIterator();
+    while (it.next()) |a| {
+        switch (a.*) {
+            .killed => killed += 1,
+            .survived => survivors += 1,
+            else => {},
+        }
+    }
+    w.data("treekill anchor={d} root={s} claimed={d} killed={d} refused={d} survivors={d} rounds={d}\n", .{
+        opts.anchor,
+        if (anchor_live) "live" else "dead",
+        st.claimed.count(),
+        killed,
+        st.refused.count(),
+        survivors,
+        rounds_used,
+    });
+}
+
+fn cmdTreekill(w: Writers, io: std.Io, repo_root: []const u8, args: [][]const u8) !void {
+    const opts = try parseOwnArgs(w, args);
+    defer {
+        alloc.free(opts.seeds);
+        alloc.free(opts.protect);
+        if (opts.ps_fixture) |p| alloc.free(p);
+    }
+
+    const mutation: ?[]const u8 = if (std.c.getenv("MANAGENT_OWN_MUTATE")) |p| std.mem.span(p) else null;
+    if (mutation) |m| w.diag("[treekill] MUTATION ACTIVE: {s}\n", .{m});
+
+    const euid: i64 = @intCast(std.c.geteuid());
+    const self_pid: i64 = std.c.getpid();
+
+    var rows = blk: {
+        if (opts.ps_fixture) |p| {
+            break :blk readPsFixture(io, p) catch {
+                w.diag("[treekill] internal error: cannot read ps fixture {s}\n", .{p});
+                std.process.exit(3);
+            };
+        } else {
+            break :blk readProcTable(io) catch {
+                w.diag("[treekill] internal error: ps read failed\n", .{});
+                std.process.exit(3);
+            };
+        }
+    };
+    defer freeRows(&rows);
+
+    const anchor_row = findRow(rows.items, opts.anchor);
+    const anchor_live = anchor_row != null;
+    const anchor_start: i64 = if (anchor_row) |r| r.start_epoch else 0;
+    var since: i64 = opts.since orelse (if (anchor_live) anchor_start else 0);
+    if (mutation != null and std.mem.eql(u8, mutation.?, "since-off")) since = 0;
+
+    // ── early guards (G0/G1/G3), read-only or kill alike ──
+    if (opts.anchor <= 1) {
+        w.diag("[treekill] REFUSED: anchor pid {d} (pid 0/1 is never claimable)\n", .{opts.anchor});
+        std.process.exit(4);
+    }
+    if (anchor_live and anchor_row.?.uid != euid) {
+        w.diag("[treekill] REFUSED: anchor pid {d} is not owned by euid {d}\n", .{ opts.anchor, euid });
+        std.process.exit(4);
+    }
+    if (opts.anchor == self_pid) {
+        w.diag("[treekill] REFUSED: anchor pid {d} is this process\n", .{opts.anchor});
+        std.process.exit(4);
+    }
+    if (isAncestorOf(rows.items, self_pid, opts.anchor)) {
+        w.diag("[treekill] REFUSED: anchor pid {d} is an ancestor of this process\n", .{opts.anchor});
+        std.process.exit(4);
+    }
+    const own_sid: i64 = getsid(@intCast(self_pid));
+    if (own_sid == -1) {
+        w.diag("[treekill] internal error: getsid(self) failed\n", .{});
+        std.process.exit(3);
+    }
+    if (own_sid == opts.anchor) {
+        w.diag("[treekill] REFUSED: anchor pid {d} is this process's session leader\n", .{opts.anchor});
+        std.process.exit(4);
+    }
+
+    var st = OwnState.init(alloc);
+    defer st.deinit();
+
+    if (anchor_live) {
+        try st.claimed.put(opts.anchor, {});
+        try st.member_rows.put(opts.anchor, try dupeProcRow(anchor_row.?.*));
+        try st.actions.put(opts.anchor, .report);
+    }
+    for (opts.seeds) |s| {
+        if (findRow(rows.items, s)) |row_ptr| {
+            const row = row_ptr.*;
+            if (row.start_epoch < since) continue;
+            if (row.uid != euid and row.uid >= 0) {
+                try st.refused.put(s, {});
+                try st.member_rows.put(s, try dupeProcRow(row));
+                try st.actions.put(s, .refused);
+            } else {
+                try st.claimed.put(s, {});
+                try st.member_rows.put(s, try dupeProcRow(row));
+                try st.actions.put(s, .report);
+            }
+        }
+    }
+
+    var rounds_used: u32 = 0;
+    var survivors: u32 = 0;
+    var converged = false;
+    while (rounds_used < opts.rounds) {
+        rounds_used += 1;
+        if (opts.kill) {
+            freezeFrontier(w, io, &st, opts.settle_ms, mutation) catch {
+                resumeFrozen(&st.frozen, mutation);
+                w.diag("[treekill] internal error: freeze did not complete within the bound\n", .{});
+                std.process.exit(3);
+            };
+        }
+        if (opts.ps_fixture == null) {
+            freeRows(&rows);
+            rows = readProcTable(io) catch {
+                resumeFrozen(&st.frozen, mutation);
+                w.diag("[treekill] internal error: process table read failed\n", .{});
+                std.process.exit(3);
+            };
+        }
+        const grew = closeOwnership(rows.items, &st, opts.anchor, opts.seeds, since, euid) catch |err| {
+            resumeFrozen(&st.frozen, mutation);
+            w.diag("[treekill] internal error: {s}\n", .{@errorName(err)});
+            std.process.exit(3);
+        };
+        if (grew) continue;
+
+        converged = true;
+
+        if (opts.kill and !validateOwnership(w, io, repo_root, rows.items, &st, opts, self_pid, own_sid, euid, mutation)) {
+            resumeFrozen(&st.frozen, mutation);
+            printOwnSummary(w, opts, anchor_live, &st, rounds_used);
+            std.process.exit(4);
+        }
+
+        if (!opts.kill) break;
+
+        lockOwn(opts.anchor) catch {
+            w.diag("[treekill] internal error: cannot acquire the kill lock\n", .{});
+            resumeFrozen(&st.frozen, mutation);
+            std.process.exit(3);
+        };
+        // Fresh snapshot immediately before the kill (under the lock): a pid
+        // already killed by a concurrent invocation (now a zombie, skipped by
+        // readProcTable) is reported vanished, never killed — the N4
+        // no-double-kill contract.
+        if (opts.ps_fixture == null) {
+            freeRows(&rows);
+            rows = readProcTable(io) catch {
+                resumeFrozen(&st.frozen, mutation);
+                w.diag("[treekill] internal error: process table read failed\n", .{});
+                std.process.exit(3);
+            };
+        }
+        _ = killMembers(&st, rows.items, mutation);
+        sleepMs(opts.settle_ms);
+        if (opts.ps_fixture == null) {
+            freeRows(&rows);
+            rows = readProcTable(io) catch {
+                resumeFrozen(&st.frozen, mutation);
+                w.diag("[treekill] internal error: process table read failed\n", .{});
+                std.process.exit(3);
+            };
+        }
+        survivors = countSurvivors(rows.items, &st);
+        unlockOwn();
+        if (survivors == 0) break;
+    }
+
+    resumeFrozen(&st.frozen, mutation);
+
+    if (!converged) {
+        w.diag("[treekill] closure did not converge within {d} rounds\n", .{opts.rounds});
+        printOwnReport(w, &st);
+        printOwnSummary(w, opts, anchor_live, &st, rounds_used);
+        std.process.exit(5);
+    }
+
+    if (survivors > 0) {
+        // Opus's exit-5 diagnostic (B-3 race, consolidated in D34): name the
+        // survived-SIGKILL cause distinctly from the did-not-converge cause, so
+        // the ledger never reads the two exit-5 paths as one.
+        w.diag("[treekill] {d} claimed member(s) survived SIGKILL within {d} rounds\n", .{ survivors, opts.rounds });
+        printOwnReport(w, &st);
+        printOwnSummary(w, opts, anchor_live, &st, rounds_used);
+        std.process.exit(5);
+    }
+
+    printOwnReport(w, &st);
+    printOwnSummary(w, opts, anchor_live, &st, rounds_used);
+    std.process.exit(0);
+}
+
+// ── end treekill ─────────────────────────────────────────────────────────────
+
 // ── run a command and capture stdout ────────────────────────────────────────
 
 fn runCommand(allocator: std.mem.Allocator, io: std.Io, argv: []const []const u8) ![]const u8 {

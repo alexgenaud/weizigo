@@ -118,8 +118,8 @@ if ! grep -q 'host memory pressure' /tmp/weizigo/t362-seed.log; then
     cat /tmp/weizigo/t362-seed.log
     exit 1
 fi
-if ! grep -q 'killed largest member' /tmp/weizigo/t362-seed.log; then
-    echo "FAIL: seeded — no 'killed largest member' message"
+if ! grep -q 'reaping largest member' /tmp/weizigo/t362-seed.log; then
+    echo "FAIL: seeded — no 'reaping largest member' message"
     cat /tmp/weizigo/t362-seed.log
     exit 1
 fi
@@ -133,7 +133,7 @@ if grep -q 'RSS cap .* exceeded' /tmp/weizigo/t362-seed.log; then
     cat /tmp/weizigo/t362-seed.log
     exit 1
 fi
-echo "PASS: seeded — host guard fired, killed largest member, named avail figure; per-process cap did not fire"
+echo "PASS: seeded — host guard fired, reaped largest member, named avail figure; per-process cap did not fire"
 
 echo ""
 echo "=== regression-runner-guard: seeded — progress watchdog still bites (unchanged) ==="

@@ -1,0 +1,259 @@
+{
+  "title": "pass-1 lane timing/resource stats \u2014 mechanical aggregation",
+  "identifier": "deepseek-v4-flash/T556-stats",
+  "method": "mechanical extraction from trailer logs only; no estimates. Every reading cites its source file. A missing reading carries a reason, never a blank.",
+  "sources": {
+    "landed_attempt_trailers": "untracked/bakeoff/pass1-audit-round1/*/trailer.log",
+    "failed_attempt_trailers": "untracked/bakeoff/pass1-audit-round1/*/trailer.log.attempt1 and trailer.log.prev",
+    "qwen_spec_run": "untracked/bakeoff/pass1-qwen-spec/trailer.log",
+    "hand_console_lanes": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md (D15: qwen audit, gemma4:31b-mlx)"
+  },
+  "roster": [
+    "claude-fable-5",
+    "claude-haiku-4-5-20251001",
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "deepseek-v4-flash",
+    "deepseek-v4-pro",
+    "qwen3.8:27b-mlx"
+  ],
+  "notes": [
+    "peak_rss_mb is the runner's peak-RSS-by-PID walker maximum (descendant tree only). For ollama lanes (gemma4:12b-mlx, gemma4:26b-mlx, qwen3.8:27b-mlx) the model's memory lives in a daemon-owned `ollama runner` parented to `ollama serve`, NOT in the dispatched tree, so it is invisible to the walker (OWNER-LOG D15/D17).",
+    "wall_seconds comes from the runner's 'exit N in NNN.N s' line; exit_code from the runner's exit= line.",
+    "failure_reason 'host-memory cull + killpg EPERM' = host-floor guard fired (avail < 6144 MB), then tools/runner itself crashed unhandled at os.killpg (tools/runner:1554) with PermissionError, exit 1 (not 124).",
+    "claude-fable-5 / claude-opus-5 / claude-sonnet-5 had earlier T555 attempts whose trailers were overwritten by the successful T556 retry; only out.md.ERROR ('Expecting value: line 1 column 1 (char 0)', 41 bytes) remains on disk as evidence of the failed intermediate attempt."
+  ],
+  "lanes": [
+    {
+      "model": "claude-fable-5",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 522.6,
+      "peak_rss_mb": 540,
+      "failure_reason": "none",
+      "peak_rss_pid": 27034,
+      "source": "untracked/bakeoff/pass1-audit-round1/claude-fable-5/trailer.log",
+      "dispatch": "T556 retry-claude3.sh, parallel with opus+sonnet (OWNER-LOG D18)",
+      "failed_attempts": [
+        {
+          "exit_code": null,
+          "wall_seconds": null,
+          "peak_rss_mb": null,
+          "failure_reason": "host-memory cull (OWNER-LOG D12: exit 124 at ~384.5 s) then manual kill (D13); trailer overwritten",
+          "missing_readings_reason": "trailer overwritten by successful T556 retry; no preserved trailer",
+          "evidence": "out.md.ERROR ('Expecting value: line 1 column 1 (char 0)') + OWNER-LOG D12/D13"
+        }
+      ]
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 253.1,
+      "peak_rss_mb": 479,
+      "failure_reason": "none",
+      "peak_rss_pid": 69047,
+      "source": "untracked/bakeoff/pass1-audit-round1/claude-haiku-4-5-20251001/trailer.log",
+      "dispatch": "T555 drive.sh attempt 1 (OWNER-LOG D12) \u2014 only lane to finish before the host-pressure window; not re-run",
+      "failed_attempts": []
+    },
+    {
+      "model": "claude-opus-5",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 539.0,
+      "peak_rss_mb": 586,
+      "failure_reason": "none",
+      "peak_rss_pid": 27032,
+      "source": "untracked/bakeoff/pass1-audit-round1/claude-opus-5/trailer.log",
+      "dispatch": "T556 retry-claude3.sh, parallel with fable+sonnet (OWNER-LOG D18)",
+      "failed_attempts": [
+        {
+          "exit_code": null,
+          "wall_seconds": null,
+          "peak_rss_mb": null,
+          "failure_reason": "host-memory cull (OWNER-LOG D12: exit 124 at ~384.5 s) then manual kill (D13); trailer overwritten",
+          "missing_readings_reason": "trailer overwritten by successful T556 retry; no preserved trailer",
+          "evidence": "out.md.ERROR ('Expecting value: line 1 column 1 (char 0)') + OWNER-LOG D12/D13"
+        }
+      ]
+    },
+    {
+      "model": "claude-sonnet-5",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 348.4,
+      "peak_rss_mb": 542,
+      "failure_reason": "none",
+      "peak_rss_pid": 27033,
+      "source": "untracked/bakeoff/pass1-audit-round1/claude-sonnet-5/trailer.log",
+      "dispatch": "T556 retry-claude3.sh, parallel with fable+opus (OWNER-LOG D18)",
+      "failed_attempts": [
+        {
+          "exit_code": null,
+          "wall_seconds": null,
+          "peak_rss_mb": null,
+          "failure_reason": "host-memory cull (OWNER-LOG D12: exit 124 at ~384.5 s) then manual kill (D13); trailer overwritten",
+          "missing_readings_reason": "trailer overwritten by successful T556 retry; no preserved trailer",
+          "evidence": "out.md.ERROR ('Expecting value: line 1 column 1 (char 0)') + OWNER-LOG D12/D13"
+        }
+      ]
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 534.1,
+      "peak_rss_mb": 282,
+      "failure_reason": "none",
+      "peak_rss_pid": 36258,
+      "source": "untracked/bakeoff/pass1-audit-round1/deepseek-v4-flash/trailer.log",
+      "dispatch": "T556 retry (OWNER-LOG D15)",
+      "failed_attempts": [
+        {
+          "exit_code": 124,
+          "wall_seconds": 253.6,
+          "peak_rss_mb": 215,
+          "failure_reason": "host-memory cull",
+          "peak_rss_pid": 14169,
+          "cull_detail": "avail 4587 MB < floor 6144 MB (largest member pid 14169 RSS 177 MB)",
+          "source": "untracked/bakeoff/pass1-audit-round1/deepseek-v4-flash/trailer.log.attempt1",
+          "dispatch": "T555 retry.sh (OWNER-LOG D13)"
+        }
+      ]
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 829.9,
+      "peak_rss_mb": 215,
+      "failure_reason": "none",
+      "peak_rss_pid": 36257,
+      "source": "untracked/bakeoff/pass1-audit-round1/deepseek-v4-pro/trailer.log",
+      "dispatch": "T556 retry (OWNER-LOG D15)",
+      "failed_attempts": [
+        {
+          "exit_code": 124,
+          "wall_seconds": 253.6,
+          "peak_rss_mb": 213,
+          "failure_reason": "host-memory cull",
+          "peak_rss_pid": 14170,
+          "cull_detail": "avail 4587 MB < floor 6144 MB (largest member pid 14170 RSS 137 MB)",
+          "source": "untracked/bakeoff/pass1-audit-round1/deepseek-v4-pro/trailer.log.attempt1",
+          "dispatch": "T555 retry.sh (OWNER-LOG D13)"
+        }
+      ]
+    },
+    {
+      "model": "qwen3.8:27b-mlx",
+      "task": "audit",
+      "out_of_roster": false,
+      "exit_code": null,
+      "wall_seconds": "hand-console",
+      "peak_rss_mb": null,
+      "failure_reason": "none",
+      "missing_readings_reason": "hand console, no trailer",
+      "source": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md (D15: lane 7/7, LANDED, round's strongest)",
+      "dispatch": "operator hand console (OWNER-LOG D15)",
+      "failed_attempts": [
+        {
+          "exit_code": null,
+          "wall_seconds": null,
+          "peak_rss_mb": null,
+          "failure_reason": "killed mid-launch, no exit line (D12: sonnet manually killed the concurrent qwen dispatch; runner killed before writing its summary)",
+          "missing_readings_reason": "runner killed mid-launch \u2014 no exit line, no peak-RSS summary in trailer",
+          "source": "untracked/bakeoff/pass1-audit-round1/qwen3.8:27b-mlx/trailer.log.attempt1",
+          "dispatch": "T555 drive.sh qwen (OWNER-LOG D12)"
+        },
+        {
+          "exit_code": 1,
+          "wall_seconds": 117.8,
+          "peak_rss_mb": 189,
+          "failure_reason": "host-memory cull + killpg EPERM",
+          "peak_rss_pid": 56231,
+          "cull_detail": "KILL: host memory pressure \u2014 avail 4467 MB then 4089 MB < floor 6144 MB; runner crashed at os.killpg tools/runner:1554 (PermissionError)",
+          "source": "untracked/bakeoff/pass1-audit-round1/qwen3.8:27b-mlx/trailer.log",
+          "dispatch": "T556 retry-qwen.sh, solo (OWNER-LOG D15)"
+        }
+      ]
+    },
+    {
+      "model": "gemma4:12b-mlx",
+      "task": "audit",
+      "out_of_roster": true,
+      "exit_code": 0,
+      "wall_seconds": 2204.4,
+      "peak_rss_mb": 253,
+      "failure_reason": "none",
+      "peak_rss_pid": 79646,
+      "source": "untracked/bakeoff/pass1-audit-round1/gemma4:12b-mlx/trailer.log",
+      "dispatch": "T556 run-gemma-failed.sh, --no-host-guard, solo (OWNER-LOG D16)",
+      "caveat": "peak RSS is the descendant-walker view only; the 7.7 GB model's memory lives in a daemon-owned `ollama runner`, invisible to the walker (D15)",
+      "failed_attempts": [
+        {
+          "exit_code": 1,
+          "wall_seconds": 774.0,
+          "peak_rss_mb": 272,
+          "failure_reason": "host-memory cull + killpg EPERM",
+          "peak_rss_pid": 61359,
+          "cull_detail": "KILL: host memory pressure \u2014 avail 5876 MB < floor 6144 MB (killed largest member pid 61359 RSS 258 MB); runner crashed at os.killpg tools/runner:1554 (PermissionError)",
+          "source": "untracked/bakeoff/pass1-audit-round1/gemma4:12b-mlx/trailer.log.prev",
+          "dispatch": "T556 run-gem12.sh, host-guard on (OWNER-LOG D15)"
+        }
+      ]
+    },
+    {
+      "model": "gemma4:26b-mlx",
+      "task": "audit",
+      "out_of_roster": true,
+      "exit_code": 0,
+      "wall_seconds": 373.9,
+      "peak_rss_mb": 219,
+      "failure_reason": "none",
+      "peak_rss_pid": 17946,
+      "source": "untracked/bakeoff/pass1-audit-round1/gemma4:26b-mlx/trailer.log",
+      "dispatch": "T556 run-gemma-failed.sh, --no-host-guard, solo (OWNER-LOG D16)",
+      "caveat": "peak RSS is the descendant-walker view only; the model's memory lives in a daemon-owned `ollama runner`, invisible to the walker (D15)",
+      "failed_attempts": []
+    },
+    {
+      "model": "gemma4:31b-mlx",
+      "task": "audit",
+      "out_of_roster": true,
+      "exit_code": null,
+      "wall_seconds": "hand-console",
+      "peak_rss_mb": null,
+      "failure_reason": "none",
+      "missing_readings_reason": "hand console, no trailer",
+      "source": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md (D15: out-of-roster, hand console)",
+      "dispatch": "operator hand console (OWNER-LOG D15)",
+      "failed_attempts": []
+    },
+    {
+      "model": "qwen3.8:27b-mlx",
+      "task": "spec",
+      "out_of_roster": false,
+      "exit_code": 0,
+      "wall_seconds": 2182.5,
+      "peak_rss_mb": 170,
+      "failure_reason": "none",
+      "peak_rss_pid": 49167,
+      "source": "untracked/bakeoff/pass1-qwen-spec/trailer.log",
+      "dispatch": "T556 pass1-qwen-spec/run.sh, --no-host-guard, solo (OWNER-LOG D20)",
+      "failed_attempts": [],
+      "notes": "qwen's spec lane \u2014 post-hoc re-run (D20); the original tournament spec run (T554) produced 0 bytes after a host-memory cull + runner killpg EPERM crash (fleet datum, not a model datum)."
+    }
+  ],
+  "task_id": "T556",
+  "date": "2026-08-21",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": []
+}

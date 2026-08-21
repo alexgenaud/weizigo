@@ -395,7 +395,7 @@ def _write_run_record(record, repo_root):
             pass
 
 
-def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None, tokens=None):
+def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None, tokens=None, reap_claimed=None, reap_survivors=None, reap_ok=None, reap_unknown_partial=None):
     """Stamp the child's outcome onto the in-memory launch record and persist.
 
     ret is the child's exit code; signum is the signal that killed the child
@@ -435,6 +435,18 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         # included) so the record is self-describing about the handle too.
         run_record["session_id"] = tokens.get("session_id")
         run_record["session_reason"] = tokens.get("session_reason")
+    if reap_claimed is not None:
+        run_record["reap_claimed"] = reap_claimed
+    if reap_survivors is not None:
+        run_record["reap_survivors"] = reap_survivors
+    if reap_ok is not None:
+        run_record["reap_ok"] = reap_ok
+    if reap_unknown_partial is not None:
+        # B-1: a reap whose seed list was empty is unknown-partial — the
+        # marker lets the ledger distinguish a blind-spot reap (marker true)
+        # from a genuinely clean one (field absent; readers .get, the C6
+        # convention for old records).
+        run_record["reap_unknown_partial"] = reap_unknown_partial
     _write_run_record(run_record, repo_root)
 
 
@@ -645,6 +657,116 @@ def _detect_walker():
     return _descendant_pids_ps, 'ps'
 
 _WALKER_FN, _WALKER_NAME = _detect_walker()
+
+
+def _reap_tree(anchor, seed=(), since=None, protect=()):
+    """Terminate the tree rooted at `anchor` via `managent treekill --kill`.
+
+    Non-raising by contract (D-24): the runner must never die or mis-stamp a
+    success because the reaper failed.  Every failure is logged to stderr as
+    an unknown-partial leak incident and returned (never raised).  Returns a
+    dict {"claimed", "survivors", "ok", "reason", "unknown_partial"} for the
+    run record (C6).
+
+    B-1 (critical, phase-7 audit): a reap whose seed list is empty/None is
+    unknown-partial, NEVER clean — the child exited before the first poll
+    walk, so the closure ran without the seed roots that name r4-class
+    nested-session members and completeness is unattestable (01-spec.md §2
+    caller-obligations).  The recorded verdict overrides the verb's own
+    clean-looking exit 0 / survivors=0; the closure and kill logic are
+    untouched.
+    """
+    result = {"claimed": None, "survivors": None, "ok": False, "reason": "not-run"}
+    blind = not seed  # B-1: empty/None seed ⇒ completeness unattestable
+    if anchor is None:
+        result["reason"] = "no-anchor"
+        return result
+
+    # Resolve the binary from the runner's OWN location, never from cwd: the
+    # runner's cwd is the dispatch directory (possibly a scratch repo, as in
+    # the I1/I2 arms), so a cwd-relative lookup would miss the real binary.
+    # MANAGENT_BIN wins when set.
+    here = os.path.dirname(os.path.abspath(__file__))
+    proj_root = os.path.dirname(here)
+    mg = os.environ.get("MANAGENT_BIN")
+    if not mg:
+        for cand in (os.path.join(proj_root, "zig-out", "bin", "managent"),
+                     os.path.join(proj_root, "bin", "managent")):
+            if os.path.isfile(cand):
+                mg = cand
+                break
+    if not mg:
+        result["reason"] = "no-managent-binary"
+        print("[runner] reap FAILED: no managent binary (unknown-partial leak incident)", file=sys.stderr)
+        return result
+
+    argv = [mg, "treekill", "--anchor", str(int(anchor)), "--kill",
+            "--rounds", "5", "--settle-ms", "250"]
+    if since is not None:
+        argv += ["--since", str(int(since))]
+    if seed:
+        argv += ["--seed", ",".join(str(int(p)) for p in seed)]
+    for p in protect:
+        argv += ["--protect", str(int(p))]
+
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        result["reason"] = "timeout"
+        print("[runner] reap TIMEOUT after 30s (unknown-partial leak incident)", file=sys.stderr)
+        return result
+    except OSError as exc:
+        result["reason"] = f"spawn-failed: {exc}"
+        print(f"[runner] reap FAILED: {exc} (unknown-partial leak incident)", file=sys.stderr)
+        return result
+
+    claimed = None
+    survivors = None
+    summary = ""
+    for line in (proc.stdout or "").splitlines():
+        if line.startswith("treekill "):
+            summary = line
+            for field in line.split():
+                if field.startswith("claimed="):
+                    try:
+                        claimed = int(field.split("=", 1)[1])
+                    except ValueError:
+                        pass
+                elif field.startswith("survivors="):
+                    try:
+                        survivors = int(field.split("=", 1)[1])
+                    except ValueError:
+                        pass
+    result["claimed"] = claimed
+    result["survivors"] = survivors
+    result["ok"] = (proc.returncode == 0 and (survivors or 0) == 0)
+    if blind:
+        # B-1: empty seed ⇒ unknown-partial, never clean.  The child exited
+        # before the first poll walk, so the closure cannot attest
+        # completeness; the verb's own exit-0/survivors=0 report is a blind
+        # spot, not a clean reap, and must not be recorded as one.  Only the
+        # recorded verdict and its diagnostic differ — closure/kill above
+        # ran exactly as before.
+        result["ok"] = False
+        result["reason"] = "unknown-partial: empty seed"
+        result["survivors"] = None          # unattestable — never a misleading 0
+        result["unknown_partial"] = True    # C6 partial marker in the run record
+        if proc.returncode == 0:
+            print("[runner] reap UNKNOWN-PARTIAL: empty seed — completeness unattestable (blind-spot reap, B-1)", file=sys.stderr)
+        else:
+            err_tail = (proc.stderr or "").strip().splitlines()
+            err_line = err_tail[-1] if err_tail else ""
+            print(f"[runner] reap exit {proc.returncode}: {summary or '(no summary)'} {err_line} (unknown-partial leak incident)", file=sys.stderr)
+    elif proc.returncode == 0:
+        result["reason"] = "ok"
+        if summary:
+            print(f"[runner] reap: {summary}", file=sys.stderr)
+    else:
+        result["reason"] = f"exit {proc.returncode}"
+        err_tail = (proc.stderr or "").strip().splitlines()
+        err_line = err_tail[-1] if err_tail else ""
+        print(f"[runner] reap exit {proc.returncode}: {summary or '(no summary)'} {err_line} (unknown-partial leak incident)", file=sys.stderr)
+    return result
 
 
 # ── runner message dedup ─────────────────────────────────────────────
@@ -1287,6 +1409,9 @@ def main():
     # T521: stdout is piped so the capture path can tee it per task (and,
     # for claude json lanes, unwrap the usage envelope).  Forwarding keeps
     # the lane's stdout byte-identical to the inherited-pipe behaviour.
+    # D-22/D-23: the --since floor is a PRE-spawn epoch integer, stamped
+    # before Popen so it can never land strictly after the anchor's start.
+    spawn_epoch = int(time.time())
     proc = subprocess.Popen(argv, preexec_fn=preexec_fn,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True)
@@ -1302,6 +1427,7 @@ def main():
         "pgid": proc.pid,
         "launcher_pid": os.getppid(),
         "start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "start_epoch": spawn_epoch,
         "command": shlex.join(argv),
         # T520: wall-kill telemetry — record the brief's size and the wall
         # budget at dispatch so every exit-124 is joinable to the brief that
@@ -1343,6 +1469,9 @@ def main():
 
     # T370: mid-run directive poll state (gated on identity, see loop)
     last_directive_check = t0
+    # D-11/D-35: the last poll walk persists past the loop so the C2/C3 reap
+    # paths have a --seed even when the child exits before the first poll.
+    last_poll_pids = []
 
     try:
         while True:
@@ -1400,6 +1529,17 @@ def main():
 
             # ── RSS check (always on, no exemption) ────────────────────
             pids = _WALKER_FN(proc.pid)
+            last_poll_pids = pids
+
+            # I3/C3 test hook: raise inside the monitor loop so the
+            # exception-path reap (C3) is exercisable without a real bug.
+            # Inert unless RUNNER_TEST_RAISE is set in the environment
+            # (the same inject-don't-exhaust pattern as
+            # WEIZIGO_HOST_MEM_AVAIL_MB).  Raising here means the first
+            # poll walk has happened, so `last_poll_pids` is a real seed
+            # for the reap in the exception handler.
+            if os.environ.get("RUNNER_TEST_RAISE"):
+                raise RuntimeError("RUNNER_TEST_RAISE: injected exception (I3/C3)")
 
             total_cpu = 0.0
             over_rss = False
@@ -1477,22 +1617,34 @@ def main():
                             f"{largest_rss // (1024*1024)} MB)"
                         )
                     else:
-                        try:
-                            os.kill(largest_pid, signal.SIGKILL)
-                            host_guard_fired = True
-                            print(
-                                f"[runner] KILL: host memory pressure — "
-                                f"avail {avail_mb} MB < floor {floor_mb} MB",
-                                file=sys.stderr,
-                            )
-                            print(
-                                f"[runner]   killed largest member: pid "
-                                f"{largest_pid} RSS "
-                                f"{largest_rss // (1024*1024)} MB",
-                                file=sys.stderr,
-                            )
-                        except ProcessLookupError:
-                            pass
+                        host_guard_fired = True
+                        print(
+                            f"[runner] KILL: host memory pressure — "
+                            f"avail {avail_mb} MB < floor {floor_mb} MB",
+                            file=sys.stderr,
+                        )
+                        print(
+                            f"[runner]   reaping largest member: pid "
+                            f"{largest_pid} RSS "
+                            f"{largest_rss // (1024*1024)} MB",
+                            file=sys.stderr,
+                        )
+                        cull_reap = _reap_tree(largest_pid, since=spawn_epoch)
+                        # B-5: a mid-run host-guard cull is a reap the final
+                        # exit-path reap does NOT account for.  Record it
+                        # separately (never overwritten by the exit reap's
+                        # reap_* fields) so the ledger can see the cull's own
+                        # claimed/survivors/ok verdict at the incident's call
+                        # site (C6).
+                        if run_record is not None:
+                            run_record.setdefault("cull_reaps", []).append({
+                                "pid": largest_pid,
+                                "claimed": cull_reap.get("claimed"),
+                                "survivors": cull_reap.get("survivors"),
+                                "ok": cull_reap.get("ok"),
+                                "reason": cull_reap.get("reason"),
+                                "unknown_partial": cull_reap.get("unknown_partial"),
+                            })
 
             # ── WORKER-CHANNEL: mid-run directive poll (T370) ───────────
             # A `managent tell <id> pause|kill` issued after launch must
@@ -1549,11 +1701,7 @@ def main():
 
             if kill_reason:
                 print(f"[runner] KILL: {kill_reason}", file=sys.stderr)
-                print(f"[runner] SIGKILL pgid {proc.pid}", file=sys.stderr)
-                try:
-                    os.killpg(proc.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                reap_result = _reap_tree(proc.pid, seed=last_poll_pids, since=spawn_epoch)
                 try:
                     proc.wait(timeout=2.0)
                 except subprocess.TimeoutExpired:
@@ -1579,7 +1727,11 @@ def main():
                                 tokens_out=(tok or {}).get("tokens_out"))
                 _finalize_run_record(run_record, record_root, ret=None, signum=signal.SIGKILL,
                                     wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
-                                    killed=kill_reason, tokens=tok)
+                                    killed=kill_reason, tokens=tok,
+                                    reap_claimed=reap_result["claimed"],
+                                    reap_survivors=reap_result["survivors"],
+                                    reap_ok=reap_result["ok"],
+                                    reap_unknown_partial=reap_result.get("unknown_partial"))
                 _print_tokens_trailer(tok)
                 print(f"[runner] exit 124 ({kill_reason}) in {elapsed:.1f} s", file=sys.stderr)
                 sys.exit(124)
@@ -1587,12 +1739,23 @@ def main():
         ret = proc.wait()
     except Exception as exc:
         elapsed = time.monotonic() - t0
+        reap_result = _reap_tree(proc.pid, seed=last_poll_pids, since=spawn_epoch)
         _emit_heartbeat(task_identity, shlex.join(argv), elapsed, -1, -1, repo_root)
-        _finalize_run_record(run_record, record_root, wall=elapsed, killed=f"runner exception: {exc}")
+        _finalize_run_record(run_record, record_root, wall=elapsed, killed=f"runner exception: {exc}",
+                             reap_claimed=reap_result["claimed"],
+                             reap_survivors=reap_result["survivors"],
+                             reap_ok=reap_result["ok"],
+                             reap_unknown_partial=reap_result.get("unknown_partial"))
         raise
     finally:
         if args.show_peak and not logs_done and (peak_rss or peak_cpu):
             _log_peaks(peak_rss, peak_cpu, t0=t0)
+
+    # C2 (D-24): the normal-exit reap runs OUTSIDE the try block — a reap
+    # failure is caught inside _reap_tree and never mis-stamped as a runner
+    # exception — and before _capture_tokens so the tree's memory is released
+    # before the token parse.
+    reap_result = _reap_tree(proc.pid, seed=last_poll_pids, since=spawn_epoch)
 
     elapsed = time.monotonic() - t0
     peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
@@ -1621,11 +1784,19 @@ def main():
     if ret < 0:
         _finalize_run_record(run_record, record_root, ret=None, signum=-ret,
                             wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
-                            tokens=tok)
+                            tokens=tok,
+                            reap_claimed=reap_result["claimed"],
+                            reap_survivors=reap_result["survivors"],
+                            reap_ok=reap_result["ok"],
+                            reap_unknown_partial=reap_result.get("unknown_partial"))
     else:
         _finalize_run_record(run_record, record_root, ret=ret,
                             wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
-                            tokens=tok)
+                            tokens=tok,
+                            reap_claimed=reap_result["claimed"],
+                            reap_survivors=reap_result["survivors"],
+                            reap_ok=reap_result["ok"],
+                            reap_unknown_partial=reap_result.get("unknown_partial"))
     _print_tokens_trailer(tok)
     if host_guard_fired:
         print(f"[runner] note: host guard fired during this run (relieved host pressure; proc exited {ret})", file=sys.stderr)
