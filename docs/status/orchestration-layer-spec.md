@@ -84,6 +84,31 @@ Dashboard polish finishes L1.
    This needs a dedicated safety analysis (a task that mints tasks needs a cap + lineage + a justification
    field) — delegated below.
 
+## 7b. Resolved — operator rulings, 2026-08-22 (recorded by Fable at the operator's console; veto window open until the pass-2 build commits)
+
+6. **Standalone `tools/runner` disposition (pass-2 spec §11.1): fold into managent.** The build-guard
+   role becomes a `managent` verb in a later pass; the Python runner is transitional and gets a
+   ratified deletion when the verb ships — no silent deletion. HOLD-6a's path partition is
+   **transitional**, not permanent.
+7. **Nested-dispatch exemption (pass-2 spec §11.2): coarse refusal accepted.** Nested dispatches stay
+   refused by the G6 protected-set guard. Coherent with the 2026-08-20 stand-down ruling (one
+   dispatcher, cap 1). Re-open only when a real workflow needs nesting — register a row then, don't
+   pre-build.
+8. **`measurement-methodology.md` §3 (record shape) + §5 (grading/independence gates): ratified as
+   written.** The race JSONL schema builds against them.
+9. **L1 declaration bar: ratified as written** (ROADMAP-2026-08-20 §operator's frame): acceptance PASS
+   three consecutive days, zero operator process-relays, duties current by the gate not by grace,
+   fleet display accurate against `ps`, every gauge reproducible by its named command — then
+   `managent landmark L1 --declare`, independently audited before believed. The clock has not
+   started (all three duties due at 2026-08-22 00:50).
+10. **Dashboard home confirmed** (operator's words, 2026-08-22: "I expect bin/managent to produce a
+    dashboard with full task transparency. Written in Zig, fully tested, and reliable."). This
+    confirms §4 of this doc and the S03 queue-layer spec's placement in `src/managent/main.zig`;
+    `watch-fleet.sh` remains a spot-check viewer only — no further investment.
+
+Still owed operator **numbers** (not direction; spec defaults hold meanwhile): appetite constants
+(pass-2 spec §4.5) and `D_max`/mint budget (§5, `K` default 5).
+
 ## 8. Delegation (the thorough pass)
 
 The sketch is the starting point; the full pipeline is delegated per the pass protocol: research (recover

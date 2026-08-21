@@ -849,10 +849,16 @@ perfectly while spending the credit pool or replicating rows is not the delivera
    seed's "three programs" implies the former; this spec keeps the Python until that pass
    exists. Needs an operator/Orchestrator ruling — no silent deletion. **Rev-2 note:** the
    answer determines whether HOLD-6a's path partition is permanent or transitional.
+   **RULED 2026-08-22 (operator): fold into managent.** Python transitional, ratified deletion
+   when the verb ships; HOLD-6a's partition is transitional. Record:
+   `docs/status/orchestration-layer-spec.md` §7b item 6.
 2. **Nested-dispatch exemption** — carried unchanged from pass-1 Open question 1. The
    supervisor's held-child set + the existing G6 protected-set guard make a nested
    dispatch's runner pid (now a nested supervisor's pid) land inside an outer closure and
    trip total refusal; the coarser-than-ideal interim remains. Not resolved here.
+   **RULED 2026-08-22 (operator): coarse refusal accepted.** Nested dispatch stays refused;
+   re-open only when a real workflow needs it. Record:
+   `docs/status/orchestration-layer-spec.md` §7b item 7.
 3. **Seed-window residue size (r4)** — carried from pass-1 Open question 2; the
    supervisor's poll-walk seed list has the same r4 gap the runner's had. Unchanged.
 4. **How the supervisor is launched.** Foreground (operator console holds it) vs. under
