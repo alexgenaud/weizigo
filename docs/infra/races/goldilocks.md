@@ -27,10 +27,10 @@ pre-judge the result.
 
 ## Provisional rules (v1, 2026-08-21 - revise when a race contradicts them)
 
-- **R1 - Audit with a few diverse models.** `01-spec-audit-disposition.md`
+- **R1 - Audit with a few diverse models.** `audit-disposition.md`
 - **R2 - Re-implement code independently with a different model and language than the
-  implementor.** `07-build-audit-disposition.md`
-- **R3 - Verify every model output on disk before accepting it.** `01-spec-audit-disposition.md` (gemma)
+  implementor.** `audit-build-disposition.md`
+- **R3 - Verify every model output on disk before accepting it.** `audit-disposition.md` (gemma)
 - **R4 - Delegate to models proven adequate for the task type; if unproven, race the target
   plus adjacent models (3-4 with data, 5-6 without).** this doc
 - **R5 - Test local models (qwen, gemma) sparingly, and run them solo.** OWNER-LOG D12-D23

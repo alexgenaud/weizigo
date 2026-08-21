@@ -100,7 +100,7 @@ independent round**. Consolidation selects the best *aspects* across documents r
 than electing one document.
 
 The seat has objections to this mechanism. They are deliberately **not** merged here —
-they stand separately in `docs/infra/orcha-refactor/pass1/00-seat-objections.md` so that
+they stand separately in `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/00-seat-objections.md` so that
 Fable sees the operator's mechanism as written and the seat's objections as written, and
 may adopt either, both, or a third path of its own.
 

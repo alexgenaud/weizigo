@@ -24,7 +24,7 @@ accumulate into a vocabulary file and are offered — never imposed — to later
 
 **Setup owed by the seat before dispatch** (graders never see this): anonymize the seven
 specs per G4 (strip self-identifying text; a lane that self-identifies is noted as a
-data point) into `docs/infra/orcha-refactor/grading/anon/` as `spec-A.md` … . Insert
+data point) into `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/grading/anon/` as `spec-A.md` … . Insert
 one near-duplicate of a randomly chosen spec (cosmetic edits only — the null control)
 and one deliberately weakened spec authored by the seat and sealed pre-round (the
 seeded control). Shuffle labels. Nine documents. The label→author key and the two
@@ -39,11 +39,11 @@ You are grading anonymized spec documents from the pass-1 tournament. One of the
 be yours; grade it like the others. Do not name yourself; do not try to identify
 authors — an authorship guess is noise, not insight.
 
-INPUTS: the nine documents `docs/infra/orcha-refactor/grading/anon/spec-A.md` …
-`spec-I.md`, and `docs/infra/orcha-refactor/pass1/00-spec-tournament-brief.md` (what
+INPUTS: the nine documents `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/grading/anon/spec-A.md` …
+`spec-I.md`, and `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/00-spec-tournament-brief.md` (what
 the spec authors were asked to produce and how they were told they would be judged).
 
-WRITE exactly one file: `docs/infra/orcha-refactor/grading/grades/<your-lane-label>.md`.
+WRITE exactly one file: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/grading/grades/<your-lane-label>.md`.
 Read nothing else in `grades/`. Four sections, exactly this shape:
 
 ## 1 Metrics

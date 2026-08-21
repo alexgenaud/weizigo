@@ -10,7 +10,7 @@ additions 2026-08-20 · **Inputs:** the seven files in `grades/`, the sealed key
 sha256 of the key at
 `/private/tmp/claude-501/…/scratchpad/T554-grading-key.json` =
 `6ce50e8f4c559bdb0ab88e055835e32bb2a6cd1322d2dd1b256fa49cb11c50e5`, which **equals** the
-committed seal in `docs/infra/orcha-refactor/grading/key.sha256` (sealed 2026-08-20 before
+committed seal in `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/grading/key.sha256` (sealed 2026-08-20 before
 grader dispatch). The key is authentic; this analysis is the unsealing.
 
 **Unsealed facts.** Authors: spec-A = deepseek-v4-flash · spec-B = claude-fable-5 · spec-C =

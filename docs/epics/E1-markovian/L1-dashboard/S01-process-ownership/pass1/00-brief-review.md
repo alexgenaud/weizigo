@@ -2,7 +2,7 @@
 
 **Reviewer:** claude-fable-5/T551, 2026-08-20, under the adjudication authority of
 `docs/infra/delegation/ROLES.md` §Adjudication (operator ruling, 2026-08-20).
-**Reviewed:** `docs/infra/orcha-refactor/pass1/00-spec-tournament-brief.md` (the tournament
+**Reviewed:** `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/00-spec-tournament-brief.md` (the tournament
 brief) and `docs/status/refactor-roadmap-2026-08-20.md` (the SEED BRIEF), both authored by
 the Orchestrator seat (`claude-opus-5`).
 

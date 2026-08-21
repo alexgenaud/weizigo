@@ -12,7 +12,7 @@ verbose↔concise); for polar metrics record an author's observed *position*, no
 
 All 49 proposals (7 graders × 7 metrics), grouped by cluster. Importance is the proposer's own
 0–10 weight. Within-round recurrence is counted in the analysis
-(`docs/infra/orcha-refactor/grading/03-round1-analysis.md` §6), which also ranks clusters by
+(`docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/grading/03-round1-analysis.md` §6), which also ranks clusters by
 discriminative power — recurrence alone is not rank.
 
 ### Cluster: mechanism-fidelity (6 proposers)

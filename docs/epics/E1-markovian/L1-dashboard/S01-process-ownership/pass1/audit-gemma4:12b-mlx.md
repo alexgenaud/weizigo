@@ -1,4 +1,4 @@
-# Pass-1 spec audit — `docs/infra/orcha-refactor/pass1/01-spec.md` (findings only)
+# Pass-1 spec audit — `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md` (findings only)
 
 **Lane:** gemma4:12b-mlx — **out-of-roster bonus lane** (shell dispatch, `--no-host-guard`;
 the prior host-guard run crashed at `killpg`, OWNER-LOG D15). **Owner verification: the
@@ -7,7 +7,7 @@ document.** Deposited verbatim for the record; dispositioned REJECT in
 `01-spec-audit-disposition.md`.
 
 > I have reviewed the documentation and the specified files. Here are the findings based
-> on the audit of `docs/infra/orcha-refactor/pass1/01-spec.md`:
+> on the audit of `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md`:
 >
 > ### Audit Findings
 >

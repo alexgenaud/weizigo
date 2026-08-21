@@ -77,7 +77,7 @@ Codes 3/4/5 deviate from `managent`'s prevailing blanket `std.process.exit(1)` (
 
 ## 3. Building on the measured mechanism
 
-Taken as given (measured 2026-08-20, this repo, production chain; `docs/infra/orcha-refactor/pass1/LADDER.md`): the console harness starts each tool command in a **new session**; zig creates none (`std/process.zig:397` — `pgid: ?posix.pid_t = null`, verified present in Zig 0.16.0 at `/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/process.zig:397`, and the only occurrence of `pgid`/`setsid`/`setpgid` in that file). Escapees are session leaders ⇒ group- and session-level kills are structurally insufficient.
+Taken as given (measured 2026-08-20, this repo, production chain; `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/LADDER.md`): the console harness starts each tool command in a **new session**; zig creates none (`std/process.zig:397` — `pgid: ?posix.pid_t = null`, verified present in Zig 0.16.0 at `/opt/homebrew/Cellar/zig/0.16.0_1/lib/zig/std/process.zig:397`, and the only occurrence of `pgid`/`setsid`/`setpgid` in that file). Escapees are session leaders ⇒ group- and session-level kills are structurally insufficient.
 
 **Corroboration measured inside this lane, 2026-08-20** (a `claude -p` tool command, one command, reproducible):
 `os.getpid()=12988, ppid=12986`; `getsid(12986)=12986` and `getpgid(12986)=12986` — the tool-command shell **is** a session leader — while its parent `8068` has `getsid(8068)=8068`, a *different* session, and `8065` sits in session `281`. Two nested new sessions between the console and the command. Also confirmed: `ps -o pid,ppid,pgid,sess -p 12986` prints `SESS 0` — the `sess` column is useless on macOS, as the LADDER records.

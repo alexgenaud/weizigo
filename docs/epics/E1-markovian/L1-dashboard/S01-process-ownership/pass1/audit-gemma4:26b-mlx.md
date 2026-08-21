@@ -1,11 +1,11 @@
-# Pass-1 spec audit — `docs/infra/orcha-refactor/pass1/01-spec.md` (findings only)
+# Pass-1 spec audit — `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md` (findings only)
 
 **Lane:** gemma4:26b-mlx — **out-of-roster bonus lane** (shell dispatch, `--no-host-guard`).
 **Owner verification: the "0 findings" verdict is a rubber stamp — the audited document has
 18 verified defects (see `01-spec-audit-disposition.md`), including a citation error five
 other lanes independently caught.** Deposited verbatim for the record.
 
-> The audit of `docs/infra/orcha-refactor/pass1/01-spec.md` is complete. All file:line
+> The audit of `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md` is complete. All file:line
 > citations were verified against the current working tree, including the drift correction
 > of 49 lines applied to the `tools/runner` references. The specification is internally
 > consistent, and all safety guards, exit codes, and tool-chain dependencies are accurately

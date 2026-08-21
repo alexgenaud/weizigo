@@ -1,4 +1,4 @@
-# Pass-1 spec audit — `docs/infra/orcha-refactor/pass1/01-spec.md` (findings only)
+# Pass-1 spec audit — `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md` (findings only)
 
 **Lane:** gemma4:31b-mlx — **out-of-roster bonus lane** (hand console, not one of the seven
 roster lanes; output pasted by the operator and verified by owner T556 against the tree).

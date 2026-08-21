@@ -79,7 +79,7 @@ KILL survivors) so the golden-master behaviour is byte-comparable before the fix
 ## 3. The measured escape mechanism, and its residue
 
 The mechanism is measured, not conjectured (2026-08-20, this repo, production chain;
-`docs/infra/orcha-refactor/pass1/00-brief-review.md` M1/M2):
+`docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/00-brief-review.md` M1/M2):
 
 - **M1 — zig creates no groups or sessions.** `std.process.SpawnOptions.pgid` defaults `null`
   (`std/process.zig:397`); nothing in the zig 0.16 build path calls `setsid`/`setpgid`.
@@ -174,7 +174,7 @@ reason — a silent kill is a failed control.
 
 ## 6. Cannibalization — the pass is not done until the old path is deleted
 
-`docs/infra/orcha-refactor/pass1/LADDER.md` states it: cannibalization is the deliverable, not
+`docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/LADDER.md` states it: cannibalization is the deliverable, not
 the verb. Concretely:
 
 1. **`tools/runner:1505`** — the `os.killpg(proc.pid, signal.SIGKILL)` on the ceiling-kill path

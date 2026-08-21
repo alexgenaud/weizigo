@@ -1,4 +1,4 @@
-# Pass-1 spec audit — `docs/infra/orcha-refactor/pass1/01-spec.md` (findings only)
+# Pass-1 spec audit — `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/spec.md` (findings only)
 
 **Lane:** qwen3.8:27b-mlx (roster lane 7/7, hand console — shell dispatch failed 3× to
 host-memory culls, not to the model). All path:line citations below were read against the

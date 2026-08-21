@@ -28,9 +28,9 @@ rungs. Claude weekly ~70% used → full field only to establish a rung, not rout
 
 ## Key artifacts
 - rules: `docs/infra/races/goldilocks.md` (R1-R5 provisional)
-- history: `docs/infra/orcha-refactor/pass1/OWNER-LOG.md` (D1-D35)
-- build audit: `docs/infra/orcha-refactor/pass1/07-build-audit-disposition.md`
-- spec audit: `docs/infra/orcha-refactor/pass1/01-spec-audit-disposition.md`
+- history: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md` (D1-D35)
+- build audit: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/audit-build-disposition.md`
+- spec audit: `docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/audit-disposition.md`
 
 ## Blocked / open
 - **Pass-1 committed** (`bec8be2`…`6f8a432`) and T554/T555/ORCHA-FLASH closed. Remaining: t11/t12 fold and the ladder races.
