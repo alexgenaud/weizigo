@@ -1,0 +1,9 @@
+{
+ "task_id": "T569",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T569",
+ "claims": [],
+ "new_rows": [],
+ "notes": "Fixed: `bin/managent liveness` emitted invalid UTF-8 and crashed `bin/argus --mode doctor` (UnicodeDecodeError, byte 440). Root cause: `src/managent/main.zig` truncated display strings with raw BYTE slices — `hb.command[0..40]` (line 8536, the confirmed crash) plus two sibling sites `ls.note[0..80]` (5105) and `ls.note[0..max_note]` (5967) — which split a multi-byte UTF-8 sequence when it straddled the cut (the T557 queue-layer brief's `→` astride byte 40). FIX: extracted `utf8Truncate(s, max)` (backs the cut off past continuation bytes 0b10xxxxxx so the slice never ends mid-character) and used it at all three sites. TEST-FIRST: added a unit test `utf8Truncate never splits a multi-byte UTF-8 sequence` (exhaustive over every cut position of ASCII/2-byte/3-byte/4-byte/emoji/mixed strings, asserting `std.unicode.utf8ValidateSlice`) and wired it into `zig build test` via a `b.addTest` on `src/managent/main.zig`. RED (pre-fix, recorded in DARGUS-2026-08-22 findings): liveness stdout ended `…brief e2 80\\n` (dangling 2 bytes), argus doctor crashed. GREEN (post-fix): `zig test src/managent/main.zig` → 1/1 pass; `bin/managent liveness` → valid UTF-8 (718 bytes); `bin/argus --mode doctor` completes and reports 8 NEEDS-ACTION (6 stale binaries + 1132 volatile citations + 3 modified tracked), no crash. Acceptance met."
+}

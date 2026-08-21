@@ -147,6 +147,22 @@ pub fn build(b: *std.Build) void {
     run_claimlint_tests.cwd = b.path(".");
     test_step.dependOn(&run_claimlint_tests.step);
 
+    // ── managent UTF-8 truncation tests (T569) ─────────────────────
+    // `zig test src/managent/main.zig` runs the same test standalone; wired
+    // here so `zig build test` gates the no-split-multi-byte invariant on
+    // every suite run (the 2026-08-22 argus-doctor crash regression).
+    const managent_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/managent/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    managent_tests.root_module.addImport("version", version_mod);
+    const run_managent_tests = b.addRunArtifact(managent_tests);
+    run_managent_tests.cwd = b.path(".");
+    test_step.dependOn(&run_managent_tests.step);
+
     // ── oracle-v2 acceptance tests (M4a, T182) ────────────────────
     const oracle_v2_accept_tests = b.addTest(.{
         .root_module = b.createModule(.{

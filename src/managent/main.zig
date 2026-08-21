@@ -53,6 +53,46 @@ const Writers = struct {
     }
 };
 
+// ── UTF-8-safe truncation (T569) ─────────────────────────────────────────────
+
+/// Truncate `s` to at most `max` bytes without splitting a multi-byte UTF-8
+/// sequence. Backs the cut off past continuation bytes (0b10xxxxxx) so the
+/// slice never ends mid-character: a continuation byte at the cut means the
+/// character's lead byte is inside the slice and its remaining continuation
+/// bytes are at/after the cut.
+fn utf8Truncate(s: []const u8, max: usize) []const u8 {
+    if (s.len <= max) return s;
+    var end = max;
+    while (end > 0 and (s[end] & 0xC0) == 0x80) end -= 1;
+    return s[0..end];
+}
+
+test "utf8Truncate never splits a multi-byte UTF-8 sequence" {
+    const cases = [_][]const u8{
+        "",
+        "plain ascii command",
+        "é accent",
+        "arrow → inside",
+        "emoji 😀 inside",
+        "mixed é→😀 and ascii",
+    };
+    for (cases) |s| {
+        var max: usize = 0;
+        while (max <= s.len) : (max += 1) {
+            const t = utf8Truncate(s, max);
+            if (!std.unicode.utf8ValidateSlice(t)) {
+                std.debug.print("utf8Truncate({s}, {d}) => invalid UTF-8\n", .{ s, max });
+                return error.InvalidUtf8;
+            }
+        }
+    }
+    const expect = std.testing.expect;
+    try expect(std.mem.eql(u8, utf8Truncate("aé", 2), "a")); // drops the 2-byte é
+    try expect(std.mem.eql(u8, utf8Truncate("ab→", 4), "ab")); // drops the 3-byte →
+    try expect(std.mem.eql(u8, utf8Truncate("plain", 3), "pla"));
+    try expect(std.mem.eql(u8, utf8Truncate("plain", 99), "plain"));
+}
+
 // ── task types ──────────────────────────────────────────────────────────────
 
 const TaskStatus = enum {
@@ -5102,7 +5142,7 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         w.data("    assertion: {s} — {s}", .{ ls.assertion_id, ls.status_value });
         if (ls.ts.len > 0) w.data(", {s}", .{ls.ts});
         if (ls.note.len > 0) {
-            const shown = if (ls.note.len > 80) ls.note[0..80] else ls.note;
+            const shown = utf8Truncate(ls.note, 80);
             w.data(" — {s}", .{shown});
             if (ls.note.len > 80) w.data("…", .{});
         }
@@ -5964,7 +6004,7 @@ fn writeAssertionAnnotation(w: Writers, ledger: *const LedgerStatuses, tid: []co
     w.data("(asserted: {s} — {s}", .{ ls.assertion_id, ls.status_value });
     if (ls.ts.len > 0) w.data(", {s}", .{ls.ts});
     if (max_note > 0 and ls.note.len > 0) {
-        const shown = if (ls.note.len > max_note) ls.note[0..max_note] else ls.note;
+        const shown = utf8Truncate(ls.note, max_note);
         w.data("; {s}", .{shown});
         if (ls.note.len > max_note) w.data("…", .{});
     }
@@ -8532,10 +8572,7 @@ fn cmdLiveness(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
             } else {
                 w.data("    {s}  [last beat {s} (unparseable ts)]  ({d} beats)\n", .{ tid, hb.ts, beats });
             }
-            const cmd_display = if (hb.command.len > 40)
-                hb.command[0..40]
-            else
-                hb.command;
+            const cmd_display = utf8Truncate(hb.command, 40);
             if (cmd_display.len > 0) {
                 w.data("      command: {s}\n", .{cmd_display});
             }
