@@ -107,12 +107,14 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `4x4.FP3` | Z-CONVERGE-FINITE | UNTESTED |
 | `4x4.G-CENSUS` | Z-COMPLETE-ENUM | group-count bracket — the artifact's board address space covers the reachable boards |
 | `4x4.I5-FEAS` | Z-STATE-REACH | battery I5 cycle-reachability feasibility — the reachable-graph check |
+| `4x4.LEAK-TIEBREAK` | Z-NONCLAIMS | the T412 4x4 single-position leak is the replay engine's value-tie tie-break, not a table property (7/232 -> 0/87 under a min-DTT tie-break) |
 | `4x4.M2` | Z-CONVERGE-FINITE | 19 sweeps to fixpoint at 4x4 |
 | `4x4.P3` | Z-NONCLAIMS | NC4: 8–16% leak measurement |
 | `4x4.S1` | Z-STATE-LEGAL | round-trip through 4x4 |
 | `4x4.S2-impl` | Z-R-SCORE | UNTESTED — size-specific Benson impl |
 | `4x4.S3a` | Z-STATE-LEGAL | legal count 24,318,165 = OEIS A094777 |
 | `4x4.S4` | Z-R-SCORE | UNTESTED at 4x4 |
+| `4x4.WRITESOFF-DUP` | Z-TABLE-FAITHFUL | untracked writes-off checkpoint is byte-identical to data/oracle-4x4-parallel.checkpoint.wzo — the writes-on/off comparison was confounded |
 | `4x4.V1-INVSYM-BROKEN` | Z-TABLE-CONSISTENCY | the consistency check catches the v1 artifact's inversion failure |
 | `4x4.WZO2-A2-EXHAUSTIVE` | Z-CONVERGE-FIX | A2 Bellman identity on all 99,133,036 entries, exhaustive |
 | `4x4.WZO2-A5-EXHAUSTIVE` | Z-TABLE-ROUNDTRIP | A5 round-trip on all entries, exhaustive — closes the stride-97 sampling gap |
