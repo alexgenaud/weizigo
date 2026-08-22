@@ -1,0 +1,45 @@
+{
+  "task_id": "T651",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T651",
+  "kind": "tooling",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Built the autopilot keeper loop: the fleet now acts without a human, so never-idle-as-prose is retired the day this lands. tools/fleet-keeper.sh gains four loop-level mechanisms (each a test, wired into zig build test via tools/regression-fleet-keeper.sh): (1) single-instance lease — mkdir is the atomic lock (macOS ships no flock(1); the repo's commit mutex uses Python fcntl.flock but that is per-process and cannot span the bash loop's iterations); the lock dir records the owner pid, a SIGKILLed keeper leaves a stale dir whose dead pid the next keeper takes over, and a refused instance exits 3 naming the holder pid. (2) idle exit — when no worker is running and no dispatchable non-duty T-row remains, the loop prints idle and exits 0 so no keeper holds a seat while the queue is empty; launchd StartInterval wakes a fresh keeper. (3) family appetite + fan-out cap at dispatch — auto-dispatch only SPEND/CONSERVE families (OFF/RESERVED/PROBE refused; Fable RESERVED, local PROBE), and refuse a family already at its concurrent-lane cap (claude=3 one race's worth, fable=1, per §7c.33; configurable via FLEET_FAMILY_CAP so T628's meter re-sizes it without an edit). (4) orchestrator wake — a flag (untracked/fleet-keeper.wake), never a console spawn, written only when owed work exists: a due duty row (status=duty AND due) or a blocked anchor past FLEET_LOGJAM_FLAG. Deliberately excluded from 'owed work': normal T-rows (the loop dispatches them itself), anything under the logjam threshold (pressure handles it), provider cooldowns (T628 re-probes), and an empty queue (nothing owed). The wake is a signal to the operator/seat, because the loop is not qualified to decide what the seat should do and a fresh seat console is expensive. Also records (rather than silently skips) a hold-conflict: each candidate whose holds are held by a running worker logs hold-conflict naming the files and holders.",
+  "boundary_with_t628": "T628 owns the *when* (reset watcher, token meter, and the meter that sizes the family cap); T651 owns the *loop* (the dispatch-time enforcement). The loop reads FLEET_FAMILY_CAP (default claude=3,fable=1) and refuses a family at cap, and reads FLEET_APPETITE and refuses OFF/RESERVED/PROBE families — so when T628 writes a family-level cooldown (claude appetite OFF until reset) the loop already honours it without any coupling. The single-lane re-probe after a cooldown is structural, not a new mechanism: the loop dispatches at most ONE lane per iteration, so a recovering family is re-probed one lane at a time, never fanned out atomically.",
+  "deliberate_non_actions": [
+    "The orchestrator wake is a flag + log line, NOT a console spawn — the loop must not make a dispatch decision it is not qualified to make, and a fresh seat console is expensive (seat succession exists to avoid a permanently-live one).",
+    "PROBE (local) families are refused by default — local compute during a measured suite run is load contamination (D6/D12/D14); there is no ratified probe-flag signal for the loop to honour, so it errs closed.",
+    "RESERVED (Fable) is refused by default — Fable runs alone or not at all, and the loop cannot judge when a reserved task type is owed.",
+    "No calendar-based auto-trust of provider resets — the loop never schedules its own re-dispatch; that is T628's reset watcher (probe lane first), not the loop's.",
+    "A queue holding only gated rows (denied/benched/OFF) is NOT 'empty' — the keeper stays alive to re-check when a gate lifts; it launches no console and consumes no tokens while it waits.",
+    "The keeper must be launched from a shell/launchd at depth < 3 (WEIZIGO_AGENT_DEPTH unset or 1): bin/dispatch refuses at the delegation cap, so a keeper started from a worker console would refuse every firing (observed during the close_latency measurement). The launchd plist runs fresh, so this is the intended path.",
+    "StartInterval 15s chosen over 10s — close_latency is bounded by the poll interval and 15s already beats the 55-minute baseline ~220×; a shorter interval only spends more idle status reads."
+  ],
+  "launchd_chosen": "launchd (macOS host), not cron: native scheduler, StartInterval skips the tick while the job is already running (a busy keeper is never double-launched), RunAtLoad starts on install, and the keeper's own lease is belt-and-braces for any manual second start. The plist is committed at tools/weizigo.fleet-keeper.plist (paths host-specific); the keeper runs in LOOP mode and exits idle, so StartInterval re-wakes it. A cron fallback is a one-line crontab entry documented in the plist header — same shape, since a cron tick costs nothing when the queue is empty.",
+  "close_latency": {
+    "baseline_seconds": 3300,
+    "baseline_note": "55 minutes, operator-measured 2026-08-22 (15:34Z last Race G lane closed → 16:29Z operator asked)",
+    "mechanism": "the keeper polls the kanban every FLEET_INTERVAL (loop) or StartInterval (launchd), so close_latency is bounded by the poll interval",
+    "measured": {
+      "poll_interval_s": 1,
+      "n": 5,
+      "min_s": 0.936,
+      "median_s": 1.063,
+      "max_s": 1.112,
+      "method": "scratch store + stub worker (REAL managent claim); keeper loop already running against an in_progress anchor; five dispatchable rows registered one at a time, wall time measured from registration to status=in_progress"
+    },
+    "achieved_bound_s": "<= FLEET_INTERVAL (default 10) or <= StartInterval (default 15) — a >=220x reduction vs the 3300s baseline even at the most conservative launchd interval"
+  },
+  "t511_boundary": "T511 (keeper arg guard) is the registered row for the lease; this task took the lease half (single-instance check, exactly the pid-lock/mkdir scheme T511's brief names) because it is load-bearing for the two-keeper control, and left T511's remaining scope (refuse unknown args, refuse startup at the delegation cap) to T511. Both rows hold tools/fleet-keeper.sh, so they are serialized by the one-writer invariant; the Orchestrator should mark T511's lease arm done-by-T651 when it runs T511.",
+  "green_quotes": {
+    "regression-fleet-keeper.sh T651 arms": "T651-1a. PASS: held lease → refused naming holder pid (rc=3); PASS: row left dispatchable under a held lease\nT651-1b. PASS: exactly one keeper dispatched T1 (1 dispatch line); PASS: T1 claimed once (in_progress)\nT651-2. PASS: empty queue → idle, rc=0 (keeper exited, no worker launched)\nT651-3. PASS: T300 (holds {a} held by R1) not dispatched; PASS: reason recorded (hold-conflict: T300 holds {a})\nT651-4. PASS: deepseek OFF → glm-5.2 dispatched, deepseek lane refused; PASS: ollama OFF → deepseek dispatched, glm refused\nT651-5. PASS: claude at cap 3 → T4 refused, T5 dispatched; PASS: family-cap reason recorded (family-cap: T4 ... 3/3)\nT651-6. PASS: due duty → wake flag names DCLAIM; PASS: nothing dispatched; PASS: not-due duty → no wake flag\n=== regression-fleet-keeper: ALL CONTROLS PASSED ==="
+  },
+  "test_first_note": "The six T651 arms were written into tools/regression-fleet-keeper.sh before the implementation landed, and each is genuinely red against the pre-T651 keeper: 1a (the old keeper ignores the lock dir and would dispatch anyway), 2 (loop mode never exited — the arm's 9s watchdog would fire), 3 (no hold-conflict log line), 4 (no appetite gate — the first row is dispatched regardless of family), 5 (no family cap — T4 dispatched before T5), 6 (no wake flag). The suite was then run to green (all arms, old + new, PASS).",
+  "deliverables": [
+    "tools/fleet-keeper.sh",
+    "findings/T651-autopilot.json",
+    "tools/weizigo.fleet-keeper.plist"
+  ]
+}

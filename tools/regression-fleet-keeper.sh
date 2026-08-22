@@ -199,6 +199,8 @@ reset_keeper_state() {  # fresh pressure/log/flag/heal/attempts state for each a
   rm -f "$WORK/untracked/fleet-keeper.heal.json"
   rm -f "$WORK/untracked/fleet-keeper.attempts.json"
   rm -f "$WORK/untracked/fleet-keeper.lane-down.json"
+  rm -rf "$WORK/untracked/fleet-keeper.lock"
+  rm -f "$WORK/untracked/fleet-keeper.wake"
   rm -f "$WORK/docs/infra/dispatch-heals.jsonl"
   : > "$WORK/untracked/log/fleet-keeper.log"
 }
@@ -1268,6 +1270,224 @@ if echo "$G1" | grep -q "least-data census:.*censored=1"; then
   echo "    PASS: the skip count prints alongside the choice (censored=1)"
 else
   echo "    FAIL: no census line with censored=1 in the keeper output"; echo "$G1" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── T651 arms: autopilot keeper loop (single-instance lease, idle-exit,
+#    appetite gate, family fan-out cap, orchestrator wake) ────────────────
+
+echo "  T651-1a. seeded: a held lease → keeper refuses, names the holder"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+# Hold the lease like a live keeper: lock dir + pid file naming a live pid.
+mkdir "$WORK/untracked/fleet-keeper.lock"
+printf '%s\n' "$$" > "$WORK/untracked/fleet-keeper.lock/pid"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+rm -rf "$WORK/untracked/fleet-keeper.lock"
+if [ "$RC" -eq 3 ] && echo "$OUT" | grep -q "lease-held" && echo "$OUT" | grep -q "$$"; then
+  echo "    PASS: held lease → refused naming holder pid $$ (rc=3)"
+else
+  echo "    FAIL: expected lease-held naming $$ (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+if [ "$(row_status T1)" = "dispatchable" ]; then
+  echo "    PASS: row left dispatchable under a held lease"
+else
+  echo "    FAIL: row moved under a held lease (status=$(row_status T1))"; FAIL=1
+fi
+
+echo "  T651-1b. seeded: two concurrent keepers → exactly one dispatches (no duplicate)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+(cd "$ROOT" && "$KEEPER" --once >"$WORK/conc1.txt" 2>&1) &
+P1=$!
+(cd "$ROOT" && "$KEEPER" --once >"$WORK/conc2.txt" 2>&1) &
+P2=$!
+wait $P1; RC1=$?
+wait $P2; RC2=$?
+for i in $(seq 1 60); do
+  [ "$(row_status T1)" = "in_progress" ] && break
+  sleep 0.3
+done
+DISPATCHES=$(cat "$WORK/conc1.txt" "$WORK/conc2.txt" 2>/dev/null | grep -c "^dispatched T1 ")
+if [ "$DISPATCHES" -eq 1 ]; then
+  echo "    PASS: exactly one keeper dispatched T1 ($DISPATCHES dispatch line)"
+else
+  echo "    FAIL: expected exactly one dispatch, got $DISPATCHES"; cat "$WORK/conc1.txt" "$WORK/conc2.txt" 2>/dev/null | sed 's/^/    | /'; FAIL=1
+fi
+if [ "$(row_status T1)" = "in_progress" ]; then
+  echo "    PASS: T1 claimed once (in_progress)"
+else
+  echo "    FAIL: T1 not in_progress (status=$(row_status T1))"; FAIL=1
+fi
+
+echo "  T651-2. null: empty queue → loop mode prints idle and exits (no console, no tokens)"
+seed_store "doc = {}"
+reset_keeper_state
+"$KEEPER" >"$WORK/loop.txt" 2>&1 &
+KPID=$!
+for i in $(seq 1 30); do
+  kill -0 "$KPID" 2>/dev/null || break
+  sleep 0.3
+done
+if kill -0 "$KPID" 2>/dev/null; then
+  echo "    FAIL: keeper did not exit on empty queue (still running after 9s)"; kill -9 "$KPID" 2>/dev/null; FAIL=1
+else
+  wait "$KPID"; RC=$?
+  OUT=$(cat "$WORK/loop.txt")
+  if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^idle"; then
+    echo "    PASS: empty queue → idle, rc=0 (keeper exited, no worker launched)"
+  else
+    echo "    FAIL: expected idle exit on empty queue (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+  fi
+fi
+
+echo "  T651-3. seeded: holds held by a live worker → not dispatched, reason recorded"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec R1 in_progress A 2026-08-20T00:00:00Z "" glm-5.2 false a)',
+  '$(task_rec T300 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false a)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T300 findings/T300.json 90
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ "$(row_status T300)" = "dispatchable" ]; then
+  echo "    PASS: T300 (holds {a} held by R1) not dispatched"
+else
+  echo "    FAIL: expected none with held T300 (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+if grep -q "hold-conflict: T300 holds {a}" "$WORK/untracked/log/fleet-keeper.log"; then
+  echo "    PASS: reason recorded (hold-conflict: T300 holds {a})"
+else
+  echo "    FAIL: hold-conflict reason not logged"; tail -8 "$WORK/untracked/log/fleet-keeper.log" | sed 's/^/    | /'; FAIL=1
+fi
+
+echo "  T651-4. seeded: appetite OFF for a family → no lane of that family launches"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" deepseek-v4-flash false)',
+  '$(task_rec T2 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+seed_bundle T2 findings/T2.json
+reset_keeper_state
+O1=$(cd "$ROOT" && FLEET_APPETITE="deepseek=OFF" "$KEEPER" --once 2>&1); RC1=$?
+if [ "$RC1" -eq 0 ] && echo "$O1" | grep -q "^dispatched T2 glm-5.2" && ! echo "$O1" | grep -q "^dispatched T1 "; then
+  echo "    PASS: deepseek OFF → glm-5.2 (ollama) dispatched, deepseek lane refused"
+else
+  echo "    FAIL: expected T2 dispatched and T1 skipped (rc=$RC1); got:"; echo "$O1" | sed 's/^/    | /'; FAIL=1
+fi
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+seed_bundle T2 findings/T2.json
+reset_keeper_state
+O2=$(cd "$ROOT" && FLEET_APPETITE="ollama=OFF" "$KEEPER" --once 2>&1); RC2=$?
+if [ "$RC2" -eq 0 ] && echo "$O2" | grep -q "^dispatched T1 deepseek-v4-flash" && ! echo "$O2" | grep -q "^dispatched T2 "; then
+  echo "    PASS: ollama OFF → deepseek-v4-flash dispatched, glm lane refused"
+else
+  echo "    FAIL: expected T1 dispatched and T2 skipped (rc=$RC2); got:"; echo "$O2" | sed 's/^/    | /'; FAIL=1
+fi
+
+echo "  T651-5. seeded: family fan-out cap — claude at cap 3 → claude lane refused, deepseek admitted"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec C1 in_progress A 2026-08-20T00:00:00Z "" claude-opus-5 false)',
+  '$(task_rec C2 in_progress A 2026-08-20T00:00:01Z "" claude-sonnet-5 false)',
+  '$(task_rec C3 in_progress A 2026-08-20T00:00:02Z "" claude-haiku-4-5-20251001 false)',
+  '$(task_rec T4 dispatchable A 2026-08-20T00:01:00Z "" claude-opus-5 false)',
+  '$(task_rec T5 dispatchable A 2026-08-20T00:01:01Z "" deepseek-v4-flash false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T4 findings/T4.json
+seed_bundle T5 findings/T5.json
+reset_keeper_state
+O1=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC1=$?
+if [ "$RC1" -eq 0 ] && echo "$O1" | grep -q "^dispatched T5 deepseek-v4-flash" && ! echo "$O1" | grep -q "^dispatched T4 "; then
+  echo "    PASS: claude at cap 3 → T4 (claude) refused, T5 (deepseek) dispatched"
+else
+  echo "    FAIL: expected T5 dispatched and T4 refused at claude cap (rc=$RC1); got:"; echo "$O1" | sed 's/^/    | /'; FAIL=1
+fi
+if grep -q "family-cap: T4 family claude at cap 3/3" "$WORK/untracked/log/fleet-keeper.log"; then
+  echo "    PASS: family-cap reason recorded (family-cap: T4 ... 3/3)"
+else
+  echo "    FAIL: family-cap reason not logged"; tail -8 "$WORK/untracked/log/fleet-keeper.log" | sed 's/^/    | /'; FAIL=1
+fi
+
+echo "  T651-6. seeded: a due duty → orchestrator-wake flag written; no leaf launch"
+python3 - "$STORE" <<'PY'
+import json, sys
+doc = {
+  "_sys": {"next_id": 9000, "directive_next": 1, "assertion_next": 1,
+           "closes": 10, "duty_migrated": True},
+  "DCLAIM": {"status": "duty", "agent": None, "model": None,
+             "bundle": "untracked/DCLAIM-verify-one-unbacked-claim.md",
+             "set": "H", "holds": [], "needs": [], "caps": [],
+             "added": "2026-08-20T00:00:00Z", "claimed": None, "done": None,
+             "dispatched": None, "dispatched_to": None, "note": None,
+             "verdict": None, "verdict_note": None, "impression": None,
+             "impression_waiver": None, "claim_count": 0, "duty": True,
+             "due_after": 5, "last_chunk_closes": 0, "last_chunk_ts": None,
+             "last_chunk_verdict": None, "last_chunk_findings": None,
+             "acceptance": None, "skip_acceptance_reason": None,
+             "amendments": [], "epitaph": None},
+}
+json.dump(doc, open(sys.argv[1], "w"), indent=1)
+PY
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ -f "$WORK/untracked/fleet-keeper.wake" ] && grep -q "duty-due:DCLAIM" "$WORK/untracked/fleet-keeper.wake"; then
+  echo "    PASS: due duty → wake flag names DCLAIM"
+else
+  echo "    FAIL: wake flag missing or lacks DCLAIM"; [ -f "$WORK/untracked/fleet-keeper.wake" ] && sed 's/^/    wake: /' "$WORK/untracked/fleet-keeper.wake"; FAIL=1
+fi
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none"; then
+  echo "    PASS: nothing dispatched (duties are the seat's work, not the leaf's)"
+else
+  echo "    FAIL: expected none with only a due duty (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+# null: duty not due → no wake flag
+python3 - "$STORE" <<'PY'
+import json, sys
+doc = json.load(open(sys.argv[1]))
+doc["_sys"]["closes"] = 0
+json.dump(doc, open(sys.argv[1], "w"), indent=1)
+PY
+reset_keeper_state
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ ! -e "$WORK/untracked/fleet-keeper.wake" ]; then
+  echo "    PASS: not-due duty → no wake flag, none dispatched"
+else
+  echo "    FAIL: expected no wake flag when duty not due (rc=$RC)"; [ -e "$WORK/untracked/fleet-keeper.wake" ] && sed 's/^/    wake: /' "$WORK/untracked/fleet-keeper.wake"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
 fi
 
 

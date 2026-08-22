@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  weizigo.fleet-keeper.plist — launchd job for the autopilot keeper loop (T651).
+
+  Chosen over cron (macOS host): launchd is the native scheduler, StartInterval
+  semantics skip the tick while the job is already running (so a busy keeper is
+  never double-launched), RunAtLoad starts the keeper immediately on install,
+  and the keeper's own single-instance lease (fleet-keeper.lock) is the
+  belt-and-braces for any manual second start.  A cron fallback is the same
+  loop run as a one-line crontab entry, e.g. every 5 minutes:
+      */5 * * * * /bin/bash /path/to/weizigo/tools/fleet-keeper.sh
+  (the keeper exits when idle, so a cron tick costs nothing when the queue is
+  empty — same shape as StartInterval).
+
+  HOW THE LOOP + INTERVAL COMPOSE: fleet-keeper.sh runs in LOOP mode — it polls
+  every FLEET_INTERVAL while there is work and exits 0 ("idle") the moment the
+  queue empties, so no keeper holds a seat while idle.  StartInterval re-wakes
+  it up to 15s later; a row registered while idle is claimed within ≤15s
+  (measured median 1.06s at FLEET_INTERVAL=1 against the 55-minute baseline).
+
+  INSTALL (paths are host-specific — edit to match this clone):
+      cp tools/weizigo.fleet-keeper.plist ~/Library/LaunchAgents/
+      launchctl unload ~/Library/LaunchAgents/com.weizigo.fleet-keeper.plist 2>/dev/null || true
+      launchctl load   ~/Library/LaunchAgents/com.weizigo.fleet-keeper.plist
+      launchctl list | grep weizigo          # confirm
+  STOP / DISABLE (the null arm — behaviour byte-identical to today):
+      launchctl unload ~/Library/LaunchAgents/com.weizigo.fleet-keeper.plist
+  Env knobs live in the keeper, not here (FLEET_INTERVAL, FLEET_CAP,
+  FLEET_APPETITE, FLEET_FAMILY_CAP, FLEET_MODEL_ALLOW/DENY); to set them for
+  the launchd job, add them under EnvironmentVariables below.
+
+  Task: T651 · Model: deepseek-v4-pro · Date: 2026-08-22
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.weizigo.fleet-keeper</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/alex/Project/Zig/weizigo/tools/fleet-keeper.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/alex/Project/Zig/weizigo</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StartInterval</key>
+    <integer>15</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <!-- launchd's minimal environment lacks a login PATH/HOME; the keeper
+         (and the bin/dispatch workers it spawns) need python3 and $HOME. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin</string>
+        <key>HOME</key>
+        <string>/Users/alex</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/alex/Project/Zig/weizigo/untracked/log/fleet-keeper.launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/alex/Project/Zig/weizigo/untracked/log/fleet-keeper.launchd.log</string>
+</dict>
+</plist>

@@ -79,10 +79,20 @@
 #                        default = this repo.  Set to a scratch dir in tests.
 #   FLEET_TEST_WORKER    forwarded to bin/dispatch as --test-worker (tests).
 #   MANAGENT_STORE       scratch store (tests only; never set in production).
+#   FLEET_APPETITE       family appetite map "family=LEVEL" (T651).  The loop
+#                        auto-dispatches only SPEND/CONSERVE families; OFF,
+#                        RESERVED (Fable) and PROBE (local) are refused.
+#                        Default: claude=SPEND,deepseek=SPEND,ollama=SPEND,
+#                        fable=RESERVED,local=PROBE.  ollama's §1 OFF→SPEND is
+#                        the D036 default deny (model-level), not appetite.
+#   FLEET_FAMILY_CAP     per-family concurrent-lane cap "family=N" (T651;
+#                        §7c.33 enforcement at dispatch — T628 owns the meter
+#                        that sizes it).  Default: claude=3,fable=1; unlisted
+#                        = uncapped.
 #
 #   --once               run exactly one iteration and exit (test hook).
 #
-# Task: T496/T501/T504/T536 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504/T536) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504/T536)
+# Task: T496/T501/T504/T536/T651 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504/T536/T651) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504/T536), 2026-08-22 (T651)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -94,8 +104,38 @@ ONCE=0
 export FLEET_INTERVAL="${FLEET_INTERVAL:-10}"
 export FLEET_CAP="${FLEET_CAP:-5}"
 export FLEET_DEFAULT_MODEL="${FLEET_DEFAULT_MODEL:-glm-5.2}"
-# FLEET_ROOT defaults to ROOT inside the python (so production leaves it unset
-# and bin/dispatch gets no --test-root, exactly as a real dispatch).
+export FLEET_ROOT="${FLEET_ROOT:-$ROOT}"
+# FLEET_ROOT defaults to ROOT (so production leaves it unset and bin/dispatch
+# gets no --test-root, exactly as a real dispatch).  It is now also the lease
+# and state root in bash (T651), so export it for the python child too.
+
+# ── T651/T511 single-instance lease ──────────────────────────────────────
+# mkdir is the atomic lock (macOS ships no flock(1); the repo's commit mutex
+# uses Python fcntl.flock, but that is per-process and cannot span the bash
+# loop's iterations).  The lock DIR records the owner's pid; a SIGKILLed
+# keeper leaves a stale dir whose pid is dead, and the next keeper takes it
+# over.  The dir lives under untracked/ beside the cooldown flag, but we do
+# NOT create untracked/ itself: a missing untracked/ must stay missing (the
+# dead-man's switch below), so an unavailable lease degrades to no-guard and
+# lets cooldown_set() refuse.
+LOCK_DIR="$FLEET_ROOT/untracked/fleet-keeper.lock"
+if [ -d "$FLEET_ROOT/untracked" ]; then
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    HOLDER="$(cat "$LOCK_DIR/pid" 2>/dev/null || echo unknown)"
+    if [ -n "$HOLDER" ] && kill -0 "$HOLDER" 2>/dev/null; then
+      echo "lease-held: another keeper holds the lease (pid $HOLDER)"
+      exit 3
+    fi
+    # stale lease (holder dead) — take it over
+    rm -rf "$LOCK_DIR" 2>/dev/null || true
+    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+      echo "lease-held: could not take over the lease dir $LOCK_DIR"
+      exit 3
+    fi
+  fi
+  printf '%s\n' "$$" > "$LOCK_DIR/pid" 2>/dev/null || true
+  trap 'rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
+fi
 
 iterate() {
 python3 - "$ROOT" "$ONCE" <<'PY'
@@ -121,6 +161,52 @@ ALLOW = {m for m in os.environ.get("FLEET_MODEL_ALLOW", "").split(",") if m}
 DEFAULT_DENY = "glm-5.2,minimax-m3,kimi-k2.7"
 _deny_env = os.environ.get("FLEET_MODEL_DENY")
 DENY = {m for m in (_deny_env if _deny_env is not None else DEFAULT_DENY).split(",") if m}
+# T651: family appetite + fan-out cap (the loop's dispatch-time enforcement of
+# §1 and §7c.33).  T628 owns the *when* — the reset watcher, token meter and
+# the meter that re-sizes the cap — this loop owns the *loop*: it refuses a
+# family whose appetite is not SPEND/CONSERVE and a family already at its
+# concurrent-lane cap.  ollama's §1 "OFF→SPEND" is expressed by the D036
+# default deny above (model-level), not here, so the appetite default is SPEND
+# and the deny still refuses the three ollama models while the quota is out.
+FAMILY = {
+    "claude-opus-5": "claude", "claude-sonnet-5": "claude",
+    "claude-haiku-4-5-20251001": "claude", "claude-fable-5": "fable",
+    "deepseek-v4-pro": "deepseek", "deepseek-v4-flash": "deepseek",
+    "glm-5.2": "ollama", "minimax-m3": "ollama", "kimi-k2.7": "ollama",
+    "qwen3.8:27b-mlx": "local",
+}
+
+def _kv_map(env, default):
+    m = dict(default)
+    for kv in (os.environ.get(env) or "").split(","):
+        kv = kv.strip()
+        if "=" in kv:
+            k, v = kv.split("=", 1)
+            m[k.strip()] = v.strip()
+    return m
+
+DEFAULT_APPETITE = {"claude": "SPEND", "fable": "RESERVED", "deepseek": "SPEND",
+                    "ollama": "SPEND", "local": "PROBE"}
+APPETITE = _kv_map("FLEET_APPETITE", DEFAULT_APPETITE)
+DEFAULT_FAMILY_CAP = {"claude": 3, "fable": 1}  # §7c.33: one race's worth; Fable alone
+FAMILY_CAP = _kv_map("FLEET_FAMILY_CAP", DEFAULT_FAMILY_CAP)
+
+def family_of(model):
+    return FAMILY.get((model or "").split(":")[0], "other")
+
+def family_cap(family):
+    v = FAMILY_CAP.get(family)
+    if v in (None, ""):
+        return None  # uncapped
+    try:
+        return int(v)
+    except ValueError:
+        return None
+
+def appetite_allows(model):
+    fam = family_of(model)
+    return APPETITE.get(fam, "SPEND") in ("SPEND", "CONSERVE")
+
 # T500 §10: minutes after which a blocked anchor is flagged (telemetry only).
 LOGJAM_FLAG_MIN = int(os.environ.get("FLEET_LOGJAM_FLAG", "60"))
 # T536: pre-claim-death backoff + circuit breaker knobs.  A row fired within
@@ -138,6 +224,9 @@ LOGDIR = os.path.join(FLEET_ROOT, "untracked", "log")
 LOG = os.path.join(LOGDIR, "fleet-keeper.log")
 PRESSURE = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.pressure.json")
 LOGJAM_FLAG = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.logjam.flag")
+# T651: orchestrator-wake flag — the loop's signal (NOT a console spawn) that
+# the seat is owed work a leaf cannot do (a due duty, a sequencing decision).
+WAKE = os.path.join(FLEET_ROOT, "untracked", "fleet-keeper.wake")
 # T504: per-row heal cooldown.  HEAL_STATE is the keeper's own memory
 # (untracked/, alongside the pressure file); HEAL_LOG is T477's dispatcher
 # heal record (docs/infra/dispatch-heals.jsonl); STORE is the kanban, read
@@ -449,6 +538,43 @@ def pid_alive(pid):
         return False
     return True
 
+def _seat_owed(rows):
+    # T651: "owed work" a leaf cannot do, evaluated cheaply from the kanban
+    # and the keeper's own state.  Concretely: a duty row that is due (duties
+    # are the seat's work — absorption/sequencing/claim-verify/falsification —
+    # and the loop deliberately never dispatches a duty), or a blocked anchor
+    # that has waited past FLEET_LOGJAM_FLAG (a sequencing/dispatch decision
+    # only a human makes).  Deliberately EXCLUDED: normal T-rows (the loop
+    # dispatches those itself), anything under the logjam threshold (pressure
+    # handles it), provider cooldowns (T628 re-probes), and an empty queue
+    # (nothing owed — no wake, no console).
+    owed = []
+    for r in rows:
+        if r.get("status") == "duty" and r.get("due"):
+            owed.append(f"duty-due:{r.get('id')}")
+    if os.path.exists(LOGJAM_FLAG):
+        owed.append("logjam:blocked anchor past threshold")
+    return owed
+
+def _reconcile_wake(owed):
+    # The wake is a flag, never a console spawn: the loop is not qualified to
+    # decide what the seat should do, and a fresh seat console is expensive
+    # (seat succession exists to avoid a permanently-live one).  Reconciled
+    # every iteration so it is never left stale (same discipline as the
+    # logjam flag, T514).
+    if owed:
+        try:
+            with open(WAKE, "w") as f:
+                f.write("\n".join(owed) + "\n")
+        except OSError:
+            pass
+        log(f"orchestrator-wake: {'; '.join(owed)}")
+    elif os.path.exists(WAKE):
+        try:
+            os.remove(WAKE)
+        except OSError:
+            pass
+
 def load_attempts():
     try:
         with open(ATTEMPTS, "r") as f:
@@ -664,6 +790,34 @@ def main():
 
     in_prog_rows = [r for r in rows if r.get("status") == "in_progress"]
     running = {r.get("id") for r in in_prog_rows}
+
+    # ── T651 orchestrator wake + idle exit ───────────────────────────────
+    # Wake the seat (flag + log) only when owed work exists; then, if nothing
+    # is running AND no dispatchable leaf row remains, exit so no keeper idles
+    # (launchd StartInterval wakes a fresh keeper when work appears).  A queue
+    # holding only gated rows (denied/benched/OFF) is NOT empty — the keeper
+    # stays alive to re-check when a gate lifts; it launches no console and
+    # consumes no tokens while it waits.
+    _reconcile_wake(_seat_owed(rows))
+    leaf_pool = [r for r in rows
+                 if r.get("status") == "dispatchable"
+                 and not r.get("duty")
+                 and re.fullmatch(r"T\d+", r.get("id") or "")]
+    if not running and not leaf_pool:
+        save_pressure({"anchor": None, "drops": 0, "waiting_since": None,
+                       "running": []})
+        if os.path.exists(LOGJAM_FLAG):
+            try:
+                os.remove(LOGJAM_FLAG)
+            except OSError:
+                pass
+        if ONCE:
+            print("none")
+            return 0
+        log("idle: queue empty — exiting (launchd wakes a fresh keeper)")
+        print("idle")
+        return 1
+
     # The set of holds currently held by a RUNNING task (the only holds that
     # block — a done holder is no holder).  managent's own holdsConflict
     # (src/managent/main.zig) enforces this at claim time too.
@@ -713,6 +867,10 @@ def main():
         model = r.get("model") or least_data_model(by_id)
         if not model_allowed(model):
             continue  # D022 (1) model window / T536 benched lane
+        if not appetite_allows(model):
+            log(f"appetite: {rid} family {family_of(model)} appetite "
+                f"{APPETITE.get(family_of(model), 'SPEND')} — not auto-dispatched")
+            continue  # T651 §1: OFF/RESERVED/PROBE families never auto-launch
         holds = set(r.get("holds") or [])
         elig.append({"row": r, "model": model,
                      "priority": priority_of(rid),
@@ -814,10 +972,33 @@ def main():
         print("cap")
         return 0
 
-    # ── §8 step 4: two-test candidate filter ─────────────────────────────
+    # ── §8 step 4: candidate filter ─────────────────────────────────────
+    # T651 adds two gates before the one-writer holds test: the per-family
+    # fan-out cap (§7c.33 — refuse a family already at its concurrent-lane
+    # cap) and an explicit hold-conflict log (the reason must be recorded,
+    # not silently skipped).  The one-writer invariant (§3) still binds.
+    holder_of = {}
+    for r in in_prog_rows:
+        for h in (r.get("holds") or []):
+            holder_of.setdefault(h, r.get("id"))
+    family_inprog = {}
+    for r in in_prog_rows:
+        m = r.get("model") or (r.get("identifier") or "").split("/")[0] or ""
+        fam = family_of(m)
+        family_inprog[fam] = family_inprog.get(fam, 0) + 1
     candidates = []
     for e in elig:
+        fam = family_of(e["model"])
+        cap = family_cap(fam)
+        if cap is not None and family_inprog.get(fam, 0) >= cap:
+            log(f"family-cap: {e['row']['id']} family {fam} at cap "
+                f"{family_inprog.get(fam, 0)}/{cap} — not dispatched")
+            continue
         if e["holds"] & inprog_holds:
+            held = sorted(e["holds"] & inprog_holds)
+            holders = ", ".join(f"{h}←{holder_of.get(h, '?')}" for h in held)
+            log(f"hold-conflict: {e['row']['id']} holds {{{','.join(held)}}} "
+                f"held by running ({holders}) — not dispatched")
             continue  # the one-writer invariant (§3), always
         if anchor is not None and (e["holds"] & anchor_holds):
             continue  # compatibility with the blocked task, under pressure
@@ -835,8 +1016,14 @@ PY
 }
 
 # ── loop ──────────────────────────────────────────────────────────────────
+# T651: exit when idle (no running worker and no dispatchable leaf row), so
+# no keeper process holds a seat while the queue is empty; launchd
+# StartInterval wakes a fresh keeper when work appears.  `iterate` returns 1
+# on idle (loop mode only); --once always returns 0.
 while :; do
   iterate
+  rc=$?
   [ "$ONCE" -eq 1 ] && break
+  [ "$rc" -eq 1 ] && break
   sleep "$FLEET_INTERVAL"
 done
