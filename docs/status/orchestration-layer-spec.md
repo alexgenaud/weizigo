@@ -280,6 +280,18 @@ Still owed operator **numbers** (not direction; spec defaults hold meanwhile): a
     all, and Fable is not in the five-model roster. Both figures are interim, chosen to stop a
     known failure rather than measured; T628's rolling-window meter replaces them.
 
+    **Amended 2026-08-22 17:2xZ — the cap applies to lanes that do NOT flush incrementally.**
+    The cap exists to stop a wall destroying work, and evidence from the same day says that is
+    now the wrong lever. Three lanes were killed mid-race (T616 liveness, T638 watchdog, T641
+    protocol) and **all three left complete deliverables on disk**, because their briefs required
+    a flush after every unit of work. A wall costs a flushing lane a *prefix*, not its output.
+    So: a lane whose brief mandates incremental flushing, and whose work decomposes into units
+    that can be flushed, may run beyond the cap; the cap binds lanes that hold their result to
+    the end. The operator's standing instruction is to spend the Claude window productively, and
+    an idle cap defended on a risk we have already mitigated is waste, not prudence. Every brief
+    the seat writes from here mandates the flush — that requirement is now the price of the
+    exemption, not a nicety.
+
 **Citing rulings — two registers, one convention.** `docs/infra/human-decisions.md` §Recently
 ruled holds the operator's rulings verbatim and numbers them in its own sequence (32 census
 denominators, 33 mechanized randomization, 34 solo/panel shapes, 35 thoroughness vs economy).
