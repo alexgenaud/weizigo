@@ -9,6 +9,18 @@ selection (T636) with a measured complementarity record for two complete five-la
 (listed below). Machine-readable record: `tools/complementarity-record.json` (reduced by
 `tools/complementarity.py`, T637); race inputs under `tools/complementarity-inputs/`.
 
+> **Amendment (second console of T661, same day):** the first console committed this record
+> with a ≥3-of-5 grader majority for Race G (`2c40f03`). The second console audited the
+> reduction against the race's own arbitration — Fable's `findings/T649-grader-fairness.json`
+> — and adopted the arbitration's scoring set for the Race G headline: **T648 primary,
+> corroborated by T647 and T645; T644 evidence-quality only; T646 discarded as measurement**
+> (documented transcription corruption and anchoring). Exactly two Race G cells change:
+> **G09** loses lane-4 (its credit came from T644/T645/T646), and **G16 (2x2.C1)** — which
+> Fable rules "must not decide any ranking" — is excluded as `uncertain`. The actionable
+> panel-selection output is unchanged (anchor opus-5; second seat from {sonnet-5, pro,
+> flash}); the numbers behind it now rest on graders the race's arbitration believed. The
+> first console's numbers remain reproducible from git history (`2c40f03`).
+
 > **Union coverage is coverage of the union we found, never of the truth.** Every coverage
 > fraction below is over *n*, the graded reference union this run was given. A finding all
 > five lanes missed is invisible here, and a reader who forgets that will over-trust a 92%
@@ -33,8 +45,9 @@ and scored; skip count 3, none skipped:**
 Their artifacts count as work and are included everywhere below. No published figure here
 hides a guard-killed row.
 
-**Excluded from the rates: 3 Race C inputs, verdict `uncertain`** — see §4. Every other
-union item is `real` and rates are over n = 25 (G) and n = 9 (C).
+**Excluded from the rates: 3 Race C inputs + 1 Race G claim (G16/2x2.C1), verdict
+`uncertain`** — see §4 and §3.3. Every other union item is `real` and rates are over
+n = 24 (G) and n = 9 (C).
 
 **Costs** are reported per lane and per best-subset, never blended with rates (ruling 35).
 Deepseek lanes (T639, T638 in G; T623, T624 in C) have no structured usage in
@@ -56,16 +69,23 @@ phantom absence — the remap is what makes the union full.
 **Grader aggregation.** Each grade file carries a per-claim (G) or per-input (C) matrix of
 which lanes it ruled correct. One caught set per union item is built by **majority vote
 across the graders that have a matrix**:
-- Race G: ≥3 of 5 grade files (T644–T648), all five have full matrices.
+- **Race G (arbitrated set): ≥2 of 3 of T645, T647, T648.** Fable's arbitration (T649)
+  rules T648 primary scoring, corroborated by T647 and T645; T644 evidence-quality only
+  (its status-agreement axis marks rubber-stamps correct on all 25); T646 discarded as
+  measurement (Fable documents transcription errors and anchoring). The first console's
+  ≥3-of-5 majority (all five graders) was superseded after audit because its G09 and G16
+  cells rested on the discarded graders. All five single-grader matrices are retained as
+  the sensitivity band below and in `sensitivity-race-g-*.json`.
 - Race C: ≥3 of 4 grade files (**T654, T655, T657, T658**; **T656 has no per-item matrix —
   narrative only — and is excluded from the poll, stated**). T655's matrix is trigger-granular
   (5 divergent triggers); it is mapped to input level by the rule *input correct iff all
   three triggers correct* (its own 7 unanimous inputs are all-correct for every scorer).
 
-**Items with no grader majority (Race C only).** Three inputs split the four graders 2–2 —
-the *reference ruling itself* is contested, not the scorers' behaviour. They are marked
-`verdict: uncertain`, carry **no caught_by**, are excluded from every rate, and are reported
-in §4 instead of being resolved by guessing.
+**Items with no settled reference.** Four items are marked `verdict: uncertain`, carry
+**no caught_by**, are excluded from every rate, and are reported instead of being resolved
+by guessing: three Race C inputs split the four graders 2–2 (the *reference ruling itself*
+is contested, not the scorers' behaviour — §4.4), and Race G's **G16 (2x2.C1)** is Fable's
+ruled convention split, which "must not decide any ranking" (§3.3).
 
 **Merges.** Zero cross-lane phrasing merges were made: Race G's union *is* the claim set
 (one verdict per claim per lane) and Race C's union *is* the input set (the race's own
@@ -73,15 +93,19 @@ unit), so there was nothing to merge. The tool records `merge_decisions: 0` for 
 (form B, caught_by declared upstream). No aggressive merging was needed or done; the
 overlap you see in §3–§4 is measured, not manufactured.
 
-**Sensitivity.** The headline record uses the majority matrices above. Because the five
-Race G graders disagree on 60–96% of (claim, lane) cells and the four Race C graders on
-67–92%, every headline number carries a per-grader band, computed by re-running the
-reduction on each single grader's matrix (`sensitivity-race-g-{644..648}.json`,
-`sensitivity-race-c-{654,655,657,658}.json`). The band is reported next to the headline.
+**Sensitivity.** The headline record uses the matrices above. Because the five Race G
+graders disagree on 60–96% of (claim, lane) cells and the four Race C graders on 67–92%,
+every headline number carries a per-grader band, computed by re-running the reduction on
+each single grader's matrix (`sensitivity-race-g-{644..648}.json`,
+`sensitivity-race-c-{654,655,657,658}.json`). The Race G band keeps all five matrices,
+including T646's (discarded as measurement): it documents the disagreement range, and the
+load-bearing result — **no lane other than opus-5 has a unique catch under any single
+grader** — holds even for the corrupted T646 matrix. The band is reported next to the
+headline.
 
 ---
 
-## 3. Race G — claim-doubt (task type `claim-doubt/2026-08-22`, n = 25)
+## 3. Race G — claim-doubt (task type `claim-doubt/2026-08-22`, n = 24)
 
 Attribution: lane-1 claude-opus-5 (T640), lane-2 claude-sonnet-5 (T641), lane-3
 deepseek-v4-pro (T639), lane-4 claude-haiku-4-5-20251001 (T642), lane-5 deepseek-v4-flash
@@ -89,63 +113,76 @@ deepseek-v4-pro (T639), lane-4 claude-haiku-4-5-20251001 (T642), lane-5 deepseek
 
 ### 3.1 Per-lane unique-catch (the number panel selection consumes)
 
-| lane | model | catches (of 25) | unique catches | unique-catch rate (of own catches) | unique over union | cost (tokens) |
+| lane | model | catches (of 24) | unique catches | unique-catch rate (of own catches) | unique over union | cost (tokens) |
 |---|---|---|---|---|---|---|
-| lane-1 | claude-opus-5 | 23 | **7** | 0.304 | 0.280 | 26,604,448 |
-| lane-2 | claude-sonnet-5 | 15 | 0 | 0.000 | 0.000 | 7,088,967 |
-| lane-3 | deepseek-v4-pro | 16 | 0 | 0.000 | 0.000 | unknown |
-| lane-4 | claude-haiku-4-5-20251001 | 14 | 0 | 0.000 | 0.000 | 3,838,076 |
-| lane-5 | deepseek-v4-flash | 15 | 0 | 0.000 | 0.000 | unknown |
+| lane-1 | claude-opus-5 | 23 | **8** | 0.348 | 0.333 | 26,604,448 |
+| lane-2 | claude-sonnet-5 | 14 | 0 | 0.000 | 0.000 | 7,088,967 |
+| lane-3 | deepseek-v4-pro | 15 | 0 | 0.000 | 0.000 | unknown |
+| lane-4 | claude-haiku-4-5-20251001 | 12 | 0 | 0.000 | 0.000 | 3,838,076 |
+| lane-5 | deepseek-v4-flash | 14 | 0 | 0.000 | 0.000 | unknown |
 
-- **claude-opus-5 is the only lane with any unique catch** (G01, G06, G07, G10, G12, G17,
-  G18 — seven claims no other lane alone got right), and it misses only **G16 (2x2.C1)** and
-  **G25 (QA-022)**.
-- Lanes 2–5 contribute **zero unique catches** under the majority: everything they catch,
-  someone else catches too. Their role in this task type is redundancy, not coverage.
-- **Grader band (unique over union, per single grader):** opus-5 ranges 0.00 (T644) –
-  0.36 (T647), headline 0.28; lanes 2–5 are 0.00 under *every* grader. The T644 end of the
-  band is its structurally different axis: it marks lanes 2/3/5 correct on all 25 claims
-  (a rubber-stamp passes its status-agreement axis trivially — T645's warning), which
-  flattens everyone's uniqueness. The other four graders (T645/T647/T648, and mostly T646)
-  agree on opus-5's unique role.
+- **claude-opus-5 is the only lane with any unique catch** (G01, G06, G07, G09, G10, G12,
+  G17, G18 — eight claims no other lane alone got right), and it misses only **G25
+  (QA-022)** among reachable claims (**G16 is excluded** — see §3.3).
+- Lanes 2–5 contribute **zero unique catches** under the arbitrated set: everything they
+  catch, someone else catches too. Their role in this task type is redundancy, not coverage.
+- **Grader band (unique over union, per single grader; G16 excluded from every matrix):**
+  opus-5 ranges 0.00 (T644) – 0.33 (T647, T648). The arbitrated trio the headline follows
+  is tightly clustered: T645 0.29 (it declines G09), T647 and T648 0.33, headline 0.33 at
+  the top of the band; T646 (discarded as measurement) gives 0.13. Lanes 2–5 are 0.00
+  under *every* grader, including the discarded T646. The T644 end of the band is its
+  structurally different axis: it marks lanes 2/3/5 correct on all 25 claims (a
+  rubber-stamp passes its status-agreement axis trivially — T645's warning), which
+  flattens everyone's uniqueness.
+- **Cost-side census (over-refutations — incorrect verdicts on real items, never
+  subtracted from catches, reported so selection sees the cost of a refuting seat):**
+  lane-1 refuted G25 (QA-022) — Fable's "one clear over-refutation", graders 5–0 against
+  it; lane-4 refuted G03, G23, G25. No lane raised a false *item* on the union model
+  (the tool's `false_raises` are empty for every lane); these refutations of fine rows
+  are the same cost signal at claim level.
 
 ### 3.2 Pairwise overlap (Jaccard |A∩B|/|A∪B|)
 
 | | opus-5 | sonnet-5 | pro | haiku | flash |
 |---|---|---|---|---|---|
-| opus-5 | — | 0.52 | 0.56 | 0.54 | 0.52 |
-| sonnet-5 | 0.52 | — | **0.94** | 0.71 | 0.88 |
-| pro | 0.56 | 0.94 | — | 0.67 | **0.94** |
-| haiku | 0.54 | 0.71 | 0.67 | — | 0.61 |
-| flash | 0.52 | 0.88 | 0.94 | 0.61 | — |
+| opus-5 | — | 0.54 | 0.58 | 0.52 | 0.54 |
+| sonnet-5 | 0.54 | — | **0.93** | 0.73 | 0.87 |
+| pro | 0.58 | 0.93 | — | 0.69 | **0.93** |
+| haiku | 0.52 | 0.73 | 0.69 | — | 0.63 |
+| flash | 0.54 | 0.87 | 0.93 | 0.63 | — |
 
-Two clusters: **sonnet-5 / pro / flash are near-duplicates of each other** (0.88–0.94),
-each ~0.5 against opus-5; haiku is the most distinct from the pack (0.61–0.71) yet still
+Two clusters: **sonnet-5 / pro / flash are near-duplicates of each other** (0.87–0.93),
+each ~0.5 against opus-5; haiku is the most distinct from the pack (0.63–0.73) yet still
 has zero unique catches — its distinctness is spread across items others also caught, not
 concentrated anywhere only it saw.
 
 ### 3.3 Best subset of size k (k = 1..5), with the marginal gain of each seat
 
-| k | best subsets (all ties) | covered / 25 | coverage | marginal gain | fully-costed min cost |
+| k | best subsets (all ties) | covered / 24 | coverage | marginal gain | fully-costed min cost |
 |---|---|---|---|---|---|
-| 1 | {opus-5} | 23 | 0.92 | +0.92 | 26.6M |
-| 2 | {opus-5, sonnet-5} · {opus-5, pro} · {opus-5, flash} | 25 | **1.00** | **+0.08** (G16, G25) | 33.7M (opus+sonnet) |
-| 3 | any triple containing opus-5 (6 ties) | 25 | 1.00 | 0.00 | unknown |
-| 4 | any quadruple containing opus-5 (4 ties) | 25 | 1.00 | 0.00 | unknown |
-| 5 | all five | 25 | 1.00 | 0.00 | unknown |
+| 1 | {opus-5} | 23 | 0.958 | +0.958 | 26.6M |
+| 2 | {opus-5, sonnet-5} · {opus-5, pro} · {opus-5, flash} | 24 | **1.00** | **+0.042** (G25) | 33.7M (opus+sonnet) |
+| 3 | any triple containing opus-5 (6 ties) | 24 | 1.00 | 0.00 | unknown |
+| 4 | any quadruple containing opus-5 (4 ties) | 24 | 1.00 | 0.00 | unknown |
+| 5 | all five | 24 | 1.00 | 0.00 | unknown |
 
-- **The curve flattens at k = 2.** The second seat buys exactly two claims (G16, G25) —
-  the two opus-5 missed — and any of sonnet-5/pro/flash covers both. The third, fourth and
-  fifth seats buy nothing on this union.
+- **The curve flattens at k = 2.** The second seat buys exactly one reachable claim (G25)
+  — the one opus-5 missed — and any of sonnet-5/pro/flash catches it; **haiku does not**, so
+  {opus-5, haiku} is the only pair stuck at 23/24.
 - **"How big should a claim-doubt panel be": two seats, anchored on claude-opus-5 plus one
   of {sonnet-5, pro, flash}.** The cheapest fully-costed full-coverage pair is opus-5 +
   sonnet-5 at ~33.7M tokens (deepseek seats cost unknown, so a cheaper pair may exist but
   is not measurable from the token ledger).
-- **Aggregation-rule caveat:** the two swing claims (G16, G25) sit on the thinnest majorities
-  in the record. G16's four correct lanes are a 3/5 vote from {T644, T646, T648}; drop the
-  T644 axis and **nobody** is correct on G16 (4-grader majority is empty). G25's correct
-  lanes (2, 3, 5) are a unanimous 5/5. The claim *that a second seat reaches 100%* is
-  therefore more robust than the claim *about which specific claims it adds*.
+- **Why G16 is excluded (and why that is the honest reading):** G16 (2x2.C1) is a
+  *convention split, not a fact split* — Fable's ruling: all graders agree on the facts;
+  the honest row is "verified with citation-gap" or an explicit split; "this claim must
+  not decide any ranking". The first console's ≥3-of-5 majority credited lanes 2–5 on G16
+  from exactly {T644, T646, T648} — the rubber-stamp axis and the grader Fable discarded;
+  drop the T644 axis and no lane has a majority. The arbitrated trio (T645, T647, T648)
+  actually majority for lane-1 on G16, but Fable's ruling is that *neither* camp is
+  decisive, so the record excludes G16 from n (24) rather than handing either camp the
+  point. G25's correct lanes (2, 3, 5) are unanimous across the arbitrated trio and hold
+  under majority-of-5.
 
 ---
 
@@ -235,20 +272,22 @@ a measurement.** The honest read:
 
 **Stable (both task types):**
 - **claude-opus-5 is the anchor seat in both.** Only model with unique catches in claim-doubt
-  (7 unique, 0.28 over union); only perfect completer in discernment-scoring (9/9). Panel
+  (8 unique, 0.33 over union); only perfect completer in discernment-scoring (9/9). Panel
   selection may anchor on opus-5 for both types. Its cost is the highest in claim-doubt
   (26.6M tokens) but mid in discernment (1.7M) — do not fold that into the anchor decision;
   it is reported separately.
-- **The other four models contribute zero unique catches in both task types** (majority
-  rule). Nothing in either race makes sonnet-5, pro, haiku, or flash an irreplaceable
+- **The other four models contribute zero unique catches in both task types** (arbitrated
+  majority). Nothing in either race makes sonnet-5, pro, haiku, or flash an irreplaceable
   coverage source. Under the grader band, opus-5's uniqueness in claim-doubt ranges
-  0.00–0.36 but *no* grader gives any other lane a unique catch in either race.
+  0.00–0.33 but *no* grader — including the discarded T646 — gives any other lane a unique
+  catch in either race.
 
 **Type-specific (the part that must not be averaged away):**
-- **Panel size flattens at different k:** claim-doubt needs k = 2 (second seat buys the two
-  claims opus-5 misses); discernment-scoring is flat at k = 1 over the majority union.
+- **Panel size flattens at different k:** claim-doubt needs k = 2 (second seat buys the one
+  reachable claim opus-5 misses, G25 — G16 is excluded as contested); discernment-scoring
+  is flat at k = 1 over the majority union.
 - **Redundancy structure differs:** in claim-doubt the redundancy is *clustered*
-  (sonnet-5/pro/flash at Jaccard 0.88–0.94); in discernment-scoring it is *pervasive*
+  (sonnet-5/pro/flash at Jaccard 0.87–0.93); in discernment-scoring it is *pervasive*
   (sonnet-5/flash/haiku at 1.00) and the discriminating signal is which single input a
   model misses.
 
@@ -265,9 +304,10 @@ as the current prior, not a law.
 1. **Anchor on claude-opus-5 for both task types** (only model with unique catches in G,
    only perfect completer in C). The prior-driven label it replaces was correct on this point.
 2. **A second claim-doubt seat should be one of {sonnet-5, pro, flash}**, not haiku:
-   {opus-5, haiku} covers only 24/25 (the claims opus-5 misses are G16 and G25; haiku
-   catches G16 but not G25). This is a *measured* difference the prior could not have
-   supplied.
+   {opus-5, haiku} is the only pair stuck at 23/24 — haiku does not catch G25, the one
+   reachable claim opus-5 misses (under the first console's majority-of-5, haiku appeared
+   to add G16; the arbitrated record excludes G16 as contested, so that credit is gone).
+   This is a *measured* difference the prior could not have supplied.
 3. **Do not seat models for uniqueness where the record shows none.** In discernment-scoring
    no model is unique; a one-seat panel (opus-5) reaches the whole union. Seats 2–5 buy
    robustness to the *reference* being contested (§4.4), not coverage.
@@ -282,7 +322,7 @@ as the current prior, not a law.
 ```sh
 # self-tests
 python3 tools/complementarity.py check
-# majority record (this doc's headline numbers)
+# arbitrated record (this doc's headline numbers)
 python3 tools/complementarity.py reduce \
   --input tools/complementarity-inputs/race-g.json \
   --input tools/complementarity-inputs/race-c.json

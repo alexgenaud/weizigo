@@ -133,7 +133,7 @@
    "id": "scorer-1",
    "model": "claude-sonnet-5",
    "task_id": "T621",
-   "source": "findings/TT621-race-c.json",
+   "source": "findings/T621-race-c.json",
    "cost": 1603560,
    "cost_unit": "tokens",
    "cost_note": "tokens.jsonl clean reading, in+out"
@@ -142,7 +142,7 @@
    "id": "scorer-2",
    "model": "deepseek-v4-flash",
    "task_id": "T624",
-   "source": "findings/TT624-race-c.json",
+   "source": "findings/T624-race-c.json",
    "cost": null,
    "cost_unit": "tokens",
    "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
@@ -151,7 +151,7 @@
    "id": "scorer-3",
    "model": "deepseek-v4-pro",
    "task_id": "T623",
-   "source": "findings/TT623-race-c.json",
+   "source": "findings/T623-race-c.json",
    "cost": null,
    "cost_unit": "tokens",
    "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
@@ -160,7 +160,7 @@
    "id": "scorer-4",
    "model": "claude-opus-5",
    "task_id": "T622",
-   "source": "findings/TT622-race-c.json",
+   "source": "findings/T622-race-c.json",
    "cost": 1713162,
    "cost_unit": "tokens",
    "cost_note": "tokens.jsonl clean reading, in+out"
@@ -169,7 +169,7 @@
    "id": "scorer-5",
    "model": "claude-haiku-4-5-20251001",
    "task_id": "T620",
-   "source": "findings/TT620-race-c.json",
+   "source": "findings/T620-race-c.json",
    "cost": 1403846,
    "cost_unit": "tokens",
    "cost_note": "tokens.jsonl clean reading, in+out"

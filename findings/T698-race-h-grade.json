@@ -7,6 +7,8 @@
   "instrument": "sprint-manager capability battery (T672)",
   "sealed_key_hash": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289",
   "hash_verified": true,
+  "claims": [],
+  "new_rows": [],
   "note_entrants": "Four entrants found and graded: T685 (claude-opus-5), T687 (claude-haiku-4-5), T688 (deepseek-v4-pro), T689 (deepseek-v4-flash). T686 (expected, bundle cites T68{5,6,7,8,9}) does not exist — omitted from grading.",
 
   "per_axis": {

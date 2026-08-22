@@ -163,10 +163,8 @@
   {
    "id": "G16",
    "statement": "G16: 2x2.C1 (registered PROVEN)",
-   "verdict": "real",
-   "caught_by": [
-    "lane-1"
-   ]
+   "verdict": "uncertain",
+   "note": "G16 (2x2.C1) excluded from this single-grader matrix as in the headline: Fable's arbitration (T649) rules it a convention split that 'must not decide any ranking'."
   },
   {
    "id": "G17",

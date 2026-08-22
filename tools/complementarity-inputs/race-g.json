@@ -5,8 +5,8 @@
  "task_type": "claim-doubt",
  "epoch": "2026-08-22",
  "spec": "docs/epistemic/CLAIMS.md (25 claims, batch G01..G25)",
- "merge_policy": "Union = the 25 batch claims themselves, so no cross-lane phrasing merges were needed: every lane rendered exactly one verdict per claim. The only mapping work was keying normalization (two schemes -> batch labels, see notes). caught_by per item = lanes the grader majority (>=3 of 5 grade files T644-T648) ruled correct on the status axis; per-grader matrices and their disagreement band live in docs/infra/complementarity.md.",
- "notes": "Race G = claim-doubt (25 sealed claims, batch G01..G25; T-A/epistemic shape), five lanes findings/T63{8,9}-race-g.json + findings/T64{0,1,2}-race-g.json, five independent grades findings/T64{4,5,6,7,8}-race-g-grade.json, attribution from the sealed key untracked/race-grading/race-g/KEY.json. KEYING: two schemes in the lanes — batch labels G01..G25 (T638, T642) vs register claim IDs (T639, T640, T641); normalized onto batch labels via T638's G01..G25->register map, which is the race's own crosswalk: 25 keys remapped for each of T639/T640/T641, 0 for T638/T642; all five lanes' target sets are identical (verified: register sets == target 25 exactly). CENSUS: T638 (watchdog kill) and T641 (protocol kill) were killed and salvaged — artifacts complete, present and scored. GRADER AGGREGATION: each item's caught_by = lanes whose status verdict the grader majority (>=3 of 5) ruled correct. The five graders disagree on 60-96% of (claim,lane) cells; T644's axis is structurally different (status-agreement; marks lanes 2/3/5 correct on all 25 — rubber-stamps pass it trivially, per T645's warning). Majority tightness: 72/125 cells unanimous, 3 at 4/5, 8 at 3/5, 24 at 2/5, 18 at 1/5. Sensitivity per grader: sensitivity-race-g-<T>.json. COSTS from untracked/tokens/tokens.jsonl, clean structured readings only (T640 has two 'no structured usage' entries plus one clean 26,476,102; the clean reading is used, ambiguity flagged); deepseek lanes (T639, T638) have no structured usage, stated unknown. KEY sha256s hash the sealed lane originals, which are not the findings/ files, so they do not verify against findings/ paths (checked); attribution is taken from the KEY regardless.",
+ "merge_policy": "Union = the 25 batch claims themselves, so no cross-lane phrasing merges were needed: every lane rendered exactly one verdict per claim. The only mapping work was keying normalization (two schemes -> batch labels, see notes). Headline caught_by per item = lanes the ARBITRATED grader set (>=2 of 3 of T645/T647/T648 — Fable's T649 scoring set) ruled correct; G16 is verdict 'uncertain' (Fable: must not decide any ranking) and is excluded from every rate. Per-grader matrices (all five, incl. the discarded T646) and the disagreement band live in docs/infra/complementarity.md and the sensitivity-* inputs.",
+ "notes": "Race G = claim-doubt (25 sealed claims, batch G01..G25; T-A/epistemic shape), five lanes findings/T63{8,9}-race-g.json + findings/T64{0,1,2}-race-g.json, five independent grades findings/T64{4,5,6,7,8}-race-g-grade.json, Fable's arbitration findings/T649-grader-fairness.json, attribution from the sealed key untracked/race-grading/race-g/KEY.json. KEYING: two schemes in the lanes — batch labels G01..G25 (T638, T642) vs register claim IDs (T639, T640, T641); normalized onto batch labels via T638's G01..G25->register map, which is the race's own crosswalk: 25 keys remapped for each of T639/T640/T641, 0 for T638/T642; all five lanes' target sets are identical (verified: register sets == target 25 exactly). CENSUS: T638 (watchdog kill) and T641 (protocol kill) were killed and salvaged — artifacts complete, present and scored; skip count 2, none skipped. GRADER AGGREGATION (amended by the second console, T661 re-run): the first console used majority >=3 of all 5 grade files; the second console audited that against Fable's arbitration and adopted the arbitration's scoring set — T648 primary, corroborated by T647 and T645 (>=2 of 3); T644 is evidence-quality-only (its status-agreement axis marks rubber-stamps correct on all 25), T646 is discarded as measurement (Fable documents transcription corruption and anchoring). Under the arbitrated set exactly two cells change: G09 loses lane-4 (its credit came from T644/T645/T646) and G16 (2x2.C1) becomes verdict 'uncertain' with no caught_by (Fable: 'must not decide any ranking'; a convention split, not a fact split). The all-five majority and its numbers remain reproducible from git history. Sensitivity per grader (all five single-grader matrices, incl. the discarded T646 whose corruption is documented; G16 excluded from all of them, matching the headline): sensitivity-race-g-<T>.json. COSTS from untracked/tokens/tokens.jsonl, clean structured readings only (T640 has two 'no structured usage' entries plus one clean 26,476,102; the clean reading is used, ambiguity flagged); deepseek lanes (T639, T638) have no structured usage, stated unknown. KEY sha256s hash the sealed lane originals, which are not the findings/ files, so they do not verify against findings/ paths (checked); attribution is taken from the KEY regardless.",
  "union": [
   {
    "id": "G01",
@@ -94,9 +94,9 @@
    "statement": "G09: GLOBAL.C3 (registered FALSE-AS-SCOPED (at 3x3))",
    "verdict": "real",
    "caught_by": [
-    "lane-1",
-    "lane-4"
-   ]
+    "lane-1"
+   ],
+   "note": "Fable's arbitration (T649): headline caught_by uses the arbitration's scoring set {T645, T647, T648} (T648 primary, T647/T645 corroborating; T644 evidence-quality only, T646 discarded as measurement). Under that set, G09's correct lanes are [lane-1] only (2 of 3 votes: T647, T648). lane-4's earlier credit came from {T644, T645, T646}. T645 dissents (declines the refutation with argued grounds)."
   },
   {
    "id": "G10",
@@ -164,13 +164,8 @@
   {
    "id": "G16",
    "statement": "G16: 2x2.C1 (registered PROVEN)",
-   "verdict": "real",
-   "caught_by": [
-    "lane-2",
-    "lane-3",
-    "lane-4",
-    "lane-5"
-   ]
+   "verdict": "uncertain",
+   "note": "Fable's arbitration ruling (T649): G16 (2x2.C1) is a convention split, not a fact split — all graders agree on the facts; the honest row is 'verified with citation-gap' or an explicit split, and the claim 'must not decide any ranking'. Excluded from all rates (verdict uncertain, no caught_by); the two camps are documented in docs/infra/complementarity.md section 3."
   },
   {
    "id": "G17",
@@ -272,7 +267,7 @@
    "id": "lane-1",
    "model": "claude-opus-5",
    "task_id": "T640",
-   "source": "findings/TT640-race-g.json",
+   "source": "findings/T640-race-g.json",
    "cost": 26604448,
    "cost_unit": "tokens",
    "cost_note": "tokens.jsonl clean reading, in+out"
@@ -281,7 +276,7 @@
    "id": "lane-2",
    "model": "claude-sonnet-5",
    "task_id": "T641",
-   "source": "findings/TT641-race-g.json",
+   "source": "findings/T641-race-g.json",
    "cost": 7088967,
    "cost_unit": "tokens",
    "cost_note": "tokens.jsonl clean reading, in+out"
@@ -290,7 +285,7 @@
    "id": "lane-3",
    "model": "deepseek-v4-pro",
    "task_id": "T639",
-   "source": "findings/TT639-race-g.json",
+   "source": "findings/T639-race-g.json",
    "cost": null,
    "cost_unit": "tokens",
    "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
@@ -299,7 +294,7 @@
    "id": "lane-4",
    "model": "claude-haiku-4-5-20251001",
    "task_id": "T642",
-   "source": "findings/TT642-race-g.json",
+   "source": "findings/T642-race-g.json",
    "cost": 3838076,
    "cost_unit": "tokens",
    "cost_note": "tokens.jsonl clean reading, in+out"
@@ -308,7 +303,7 @@
    "id": "lane-5",
    "model": "deepseek-v4-flash",
    "task_id": "T638",
-   "source": "findings/TT638-race-g.json",
+   "source": "findings/T638-race-g.json",
    "cost": null,
    "cost_unit": "tokens",
    "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"

@@ -14,12 +14,12 @@
     {
       "input": "tools/complementarity-inputs/race-g.json",
       "race_id": "race-g",
-      "sha256": "65248fd86f717794534af35a627d7d8c7d4fb77f318fe4b0883353094b0e6627"
+      "sha256": "b3060c3e6a8f91e6cdb295847017d5b3aaa40bed613eda254d1ddb5476b51d02"
     },
     {
       "input": "tools/complementarity-inputs/race-c.json",
       "race_id": "race-c",
-      "sha256": "12add48f1c6544085852c2b818f7bcf781a719e2a71b63b90d9ab0cd2b5d5b98"
+      "sha256": "6869aa818e9f092924197f533fb4b266a4327660b0a8a10c65a70a3348e0ffc7"
     }
   ],
   "groups": {
@@ -585,7 +585,7 @@
           "cost": 26604448,
           "cost_unit": "tokens",
           "cost_unknown": false,
-          "coverage": 0.92,
+          "coverage": 0.958333,
           "covered": 23
         },
         "2": {
@@ -607,7 +607,7 @@
           "cost_unit": "tokens",
           "cost_unknown": false,
           "coverage": 1.0,
-          "covered": 25
+          "covered": 24
         },
         "3": {
           "best": [
@@ -646,7 +646,7 @@
           "cost_unit": null,
           "cost_unknown": true,
           "coverage": 1.0,
-          "covered": 25
+          "covered": 24
         },
         "4": {
           "best": [
@@ -679,7 +679,7 @@
           "cost_unit": null,
           "cost_unknown": true,
           "coverage": 1.0,
-          "covered": 25
+          "covered": 24
         },
         "5": {
           "best": [
@@ -695,7 +695,7 @@
           "cost_unit": null,
           "cost_unknown": true,
           "coverage": 1.0,
-          "covered": 25
+          "covered": 24
         }
       },
       "caught_matrix": {
@@ -741,8 +741,7 @@
           "lane-5"
         ],
         "G09": [
-          "lane-1",
-          "lane-4"
+          "lane-1"
         ],
         "G10": [
           "lane-1"
@@ -776,12 +775,6 @@
           "lane-2",
           "lane-3",
           "lane-4"
-        ],
-        "G16": [
-          "lane-2",
-          "lane-3",
-          "lane-4",
-          "lane-5"
         ],
         "G17": [
           "lane-1"
@@ -846,102 +839,102 @@
         "mappings": null,
         "merge_decisions": 0,
         "note": "no merge decisions were made by this reduction: the input declared caught sets directly and the race's own grader documented the dedup. The input notes must name that documentation.",
-        "policy": "Union = the 25 batch claims themselves, so no cross-lane phrasing merges were needed: every lane rendered exactly one verdict per claim. The only mapping work was keying normalization (two schemes -> batch labels, see notes). caught_by per item = lanes the grader majority (>=3 of 5 grade files T644-T648) ruled correct on the status axis; per-grader matrices and their disagreement band live in docs/infra/complementarity.md.",
+        "policy": "Union = the 25 batch claims themselves, so no cross-lane phrasing merges were needed: every lane rendered exactly one verdict per claim. The only mapping work was keying normalization (two schemes -> batch labels, see notes). Headline caught_by per item = lanes the ARBITRATED grader set (>=2 of 3 of T645/T647/T648 — Fable's T649 scoring set) ruled correct; G16 is verdict 'uncertain' (Fable: must not decide any ranking) and is excluded from every rate. Per-grader matrices (all five, incl. the discarded T646) and the disagreement band live in docs/infra/complementarity.md and the sensitivity-* inputs.",
         "raw_findings": null,
         "split_decisions": 0
       },
-      "n": 25,
+      "n": 24,
       "n_false_excluded": 0,
-      "n_uncertain_excluded": 0,
+      "n_uncertain_excluded": 1,
       "overlap_matrix": {
         "lane-1": {
           "lane-2": {
-            "jaccard": 0.52,
-            "shared": 13
-          },
-          "lane-3": {
-            "jaccard": 0.56,
-            "shared": 14
-          },
-          "lane-4": {
             "jaccard": 0.541667,
             "shared": 13
           },
+          "lane-3": {
+            "jaccard": 0.583333,
+            "shared": 14
+          },
+          "lane-4": {
+            "jaccard": 0.521739,
+            "shared": 12
+          },
           "lane-5": {
-            "jaccard": 0.52,
+            "jaccard": 0.541667,
             "shared": 13
           }
         },
         "lane-2": {
           "lane-1": {
-            "jaccard": 0.52,
+            "jaccard": 0.541667,
             "shared": 13
           },
           "lane-3": {
-            "jaccard": 0.9375,
-            "shared": 15
+            "jaccard": 0.933333,
+            "shared": 14
           },
           "lane-4": {
-            "jaccard": 0.705882,
-            "shared": 12
+            "jaccard": 0.733333,
+            "shared": 11
           },
           "lane-5": {
-            "jaccard": 0.875,
-            "shared": 14
+            "jaccard": 0.866667,
+            "shared": 13
           }
         },
         "lane-3": {
           "lane-1": {
-            "jaccard": 0.56,
+            "jaccard": 0.583333,
             "shared": 14
           },
           "lane-2": {
-            "jaccard": 0.9375,
-            "shared": 15
+            "jaccard": 0.933333,
+            "shared": 14
           },
           "lane-4": {
-            "jaccard": 0.666667,
-            "shared": 12
+            "jaccard": 0.6875,
+            "shared": 11
           },
           "lane-5": {
-            "jaccard": 0.9375,
-            "shared": 15
+            "jaccard": 0.933333,
+            "shared": 14
           }
         },
         "lane-4": {
+          "lane-1": {
+            "jaccard": 0.521739,
+            "shared": 12
+          },
+          "lane-2": {
+            "jaccard": 0.733333,
+            "shared": 11
+          },
+          "lane-3": {
+            "jaccard": 0.6875,
+            "shared": 11
+          },
+          "lane-5": {
+            "jaccard": 0.625,
+            "shared": 10
+          }
+        },
+        "lane-5": {
           "lane-1": {
             "jaccard": 0.541667,
             "shared": 13
           },
           "lane-2": {
-            "jaccard": 0.705882,
-            "shared": 12
-          },
-          "lane-3": {
-            "jaccard": 0.666667,
-            "shared": 12
-          },
-          "lane-5": {
-            "jaccard": 0.611111,
-            "shared": 11
-          }
-        },
-        "lane-5": {
-          "lane-1": {
-            "jaccard": 0.52,
+            "jaccard": 0.866667,
             "shared": 13
           },
-          "lane-2": {
-            "jaccard": 0.875,
+          "lane-3": {
+            "jaccard": 0.933333,
             "shared": 14
           },
-          "lane-3": {
-            "jaccard": 0.9375,
-            "shared": 15
-          },
           "lane-4": {
-            "jaccard": 0.611111,
-            "shared": 11
+            "jaccard": 0.625,
+            "shared": 10
           }
         }
       },
@@ -953,20 +946,20 @@
           "cost_note": "tokens.jsonl clean reading, in+out",
           "cost_unit": "tokens",
           "model": "claude-opus-5",
-          "source": "findings/TT640-race-g.json",
+          "source": "findings/T640-race-g.json",
           "source_sha256": null,
           "task_id": "T640",
-          "unique_catch_over_union": 0.28,
-          "unique_catch_rate": 0.304348,
-          "unique_catches": 7
+          "unique_catch_over_union": 0.333333,
+          "unique_catch_rate": 0.347826,
+          "unique_catches": 8
         },
         "lane-2": {
-          "catches": 15,
+          "catches": 14,
           "cost": 7088967,
           "cost_note": "tokens.jsonl clean reading, in+out",
           "cost_unit": "tokens",
           "model": "claude-sonnet-5",
-          "source": "findings/TT641-race-g.json",
+          "source": "findings/T641-race-g.json",
           "source_sha256": null,
           "task_id": "T641",
           "unique_catch_over_union": 0.0,
@@ -974,12 +967,12 @@
           "unique_catches": 0
         },
         "lane-3": {
-          "catches": 16,
+          "catches": 15,
           "cost": null,
           "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
           "cost_unit": "tokens",
           "model": "deepseek-v4-pro",
-          "source": "findings/TT639-race-g.json",
+          "source": "findings/T639-race-g.json",
           "source_sha256": null,
           "task_id": "T639",
           "unique_catch_over_union": 0.0,
@@ -987,12 +980,12 @@
           "unique_catches": 0
         },
         "lane-4": {
-          "catches": 14,
+          "catches": 12,
           "cost": 3838076,
           "cost_note": "tokens.jsonl clean reading, in+out",
           "cost_unit": "tokens",
           "model": "claude-haiku-4-5-20251001",
-          "source": "findings/TT642-race-g.json",
+          "source": "findings/T642-race-g.json",
           "source_sha256": null,
           "task_id": "T642",
           "unique_catch_over_union": 0.0,
@@ -1000,12 +993,12 @@
           "unique_catches": 0
         },
         "lane-5": {
-          "catches": 15,
+          "catches": 14,
           "cost": null,
           "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
           "cost_unit": "tokens",
           "model": "deepseek-v4-flash",
-          "source": "findings/TT638-race-g.json",
+          "source": "findings/T638-race-g.json",
           "source_sha256": null,
           "task_id": "T638",
           "unique_catch_over_union": 0.0,
@@ -1364,7 +1357,7 @@
           "cost_note": "tokens.jsonl clean reading, in+out",
           "cost_unit": "tokens",
           "model": "claude-sonnet-5",
-          "source": "findings/TT621-race-c.json",
+          "source": "findings/T621-race-c.json",
           "source_sha256": null,
           "task_id": "T621",
           "unique_catch_over_union": 0.0,
@@ -1377,7 +1370,7 @@
           "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
           "cost_unit": "tokens",
           "model": "deepseek-v4-flash",
-          "source": "findings/TT624-race-c.json",
+          "source": "findings/T624-race-c.json",
           "source_sha256": null,
           "task_id": "T624",
           "unique_catch_over_union": 0.0,
@@ -1390,7 +1383,7 @@
           "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
           "cost_unit": "tokens",
           "model": "deepseek-v4-pro",
-          "source": "findings/TT623-race-c.json",
+          "source": "findings/T623-race-c.json",
           "source_sha256": null,
           "task_id": "T623",
           "unique_catch_over_union": 0.0,
@@ -1403,7 +1396,7 @@
           "cost_note": "tokens.jsonl clean reading, in+out",
           "cost_unit": "tokens",
           "model": "claude-opus-5",
-          "source": "findings/TT622-race-c.json",
+          "source": "findings/T622-race-c.json",
           "source_sha256": null,
           "task_id": "T622",
           "unique_catch_over_union": 0.0,
@@ -1416,7 +1409,7 @@
           "cost_note": "tokens.jsonl clean reading, in+out",
           "cost_unit": "tokens",
           "model": "claude-haiku-4-5-20251001",
-          "source": "findings/TT620-race-c.json",
+          "source": "findings/T620-race-c.json",
           "source_sha256": null,
           "task_id": "T620",
           "unique_catch_over_union": 0.0,
