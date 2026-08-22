@@ -1,6 +1,10 @@
 #!/bin/sh
 # Fleet view — operator console. Nothing reads this. Read-only. Refresh 10 s.
-# Time: a colon is always an INSTANT (14:52:01). Durations never contain one (4h28, 19'48, 12.345).
+# Time: a colon is always an INSTANT (14:52:01); durations never contain one (4h28, 19'48, 12.345).
+# Times column (T591): every row type carries an HH:MM at the same column as PROGRESS's elapsed —
+#   CONCERNS = first seen (persists in $CONC_STATE across restarts), RECENT = the lane trailer's
+#   mtime (last kill/resolve, 24 h window), DONE = the store's `done` field (shown local, like the
+#   header and RECENT mtimes).
 # Layout: PROGRESS, CONCERNS (current) and RECENT (resolved/killed) always show every row.
 # DONE and OPEN show at least MIN_ROWS each (when they have that much data), expand into
 # whatever height is left, and never exceed MAX_ROWS.
@@ -27,6 +31,7 @@ START=$(date +%s)
 
 cd "$(dirname "$0")/.." || exit 1
 REPO=$(pwd); T=/tmp/weizigo/.fleet.$$; mkdir -p /tmp/weizigo
+CONC_STATE=${FLEET_CONC_STATE:-/tmp/weizigo/fleet-concerns.tsv}   # CONCERNS first-seen, survives restarts (T591)
 STTY_SAVE=""; [ -t 0 ] && STTY_SAVE=$(stty -g < /dev/tty 2>/dev/null)
 [ -n "$STTY_SAVE" ] && stty -echo < /dev/tty 2>/dev/null      # keys never echo, even mid-redraw
 cleanup() { rm -f "$T".* 2>/dev/null
@@ -41,6 +46,10 @@ mdl() { case "$1" in *opus*)echo opus;; *sonnet*)echo sonnet;; *haiku*)echo haik
         *v4-pro*|*dspro*)echo dspro;; *v4-flash*|*dsflash*)echo flash;;
         *glm*)echo glm;; *minimax*)echo minimax;; *kimi*)echo kimi;; *qwen*)echo qwen;; *gemma*)echo gemma;;
         *)echo "${1%%:*}";; esac; }
+mflag() { # $1 = argv; model = the --model arg, else the --dsflash/--dspro startup alias (T591)
+    m=$(echo "$1" | sed -n 's/.*--model \([^ ]*\).*/\1/p' | head -1)
+    [ -n "$m" ] && { printf '%s' "$m"; return; }
+    case "$1" in *--dsflash*) printf 'dsflash';; *--dspro*) printf 'dspro';; esac; }
 desc() { d=$(awk -F'\t' -v t="$1" '$1==t{print $2}' untracked/task-desc.tsv 2>/dev/null)
          b=$(ls untracked/"$1"-*.md 2>/dev/null | head -1)          # one brief, never a glob of several
          [ -z "$d" ] && [ -n "$b" ] && d=$(sed -n '2s/^# *//p' "$b" | sed 's/^T[0-9]* *//;s/^(\([^)]*\)).*/\1/;s/^— *//')
@@ -105,7 +114,7 @@ PYX
              else if(NF==2) print $1*60+$2; else print 0}')
         case "$esec" in ''|*[!0-9]*) esec=0 ;; esac
         printf '%010d\t  %-5s %-3s %-8s  %-6s %-6s %s\n' "$esec" "$t" "$(lm "$t")" \
-            "$(mdl "$(echo "$cmd"|sed -n 's/.*--model \([^ ]*\).*/\1/p'|head -1)")" \
+            "$(mdl "$(mflag "$cmd")")" \
             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" "$(ps -o time= -p $p|tr -d ' '|awk -F: '{print $NF}')" \
             "$(desc "$t")" >> "$T.prog.raw"
     done
@@ -113,6 +122,7 @@ PYX
 
     sort -rn "$T.prog.raw" 2>/dev/null | cut -f2- | fit > "$T.prog"; rm -f "$T.prog.raw"
 
+    : > "$T.conc.raw"
     for t in $(python3 -c "
 import json;d=json.load(open('$T.json'))
 o=[((v.get('claimed') or ''),k) for k,v in d.items() if v.get('status')=='in_progress']
@@ -121,26 +131,71 @@ print(' '.join(k for _,k in sorted(o,reverse=True)))" 2>/dev/null); do
         grep -q "    $t  \[beating\]" "$T.liveness" 2>/dev/null && continue
         lbl=$(ctag "$t")
         [ -z "$lbl" ] && { case "$(desc "$t")" in *seat*|*owner*|*owns*|*successor*|*console*|*orchestrator*) lbl="console";; *) lbl="orphaned";; esac; }
-        printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "$lbl" "$(desc "$t")" | fit >> "$T.conc"
+        printf '%s\t%s\n' "$t" "$lbl" >> "$T.conc.raw"
     done
+    # CONCERNS time = first seen. State persists across refreshes AND restarts
+    # (CONC_STATE); a concern that clears and reappears gets a fresh first-seen.
+    python3 - "$T.conc.raw" "$CONC_STATE" > "$T.conc.rows" <<'PY'
+import sys,os,time
+cur=[]
+for line in open(sys.argv[1]):
+    t,lbl=line.rstrip('\n').split('\t',1)
+    cur.append((t,lbl))
+now=str(int(time.time()))
+old={}
+if os.path.exists(sys.argv[2]):
+    for line in open(sys.argv[2]):
+        k,v=line.rstrip('\n').split('\t',1)
+        if any(k==t for t,_ in cur): old[k]=v
+out=[]
+for t,lbl in cur:
+    fs=old.get(t,now); old[t]=fs
+    try: tm=time.strftime('%H:%M',time.localtime(int(fs)))
+    except Exception: tm='--:--'
+    out.append('%s\t%s\t%s' % (t,lbl,tm))
+with open(sys.argv[2],'w') as f:
+    for x in out:
+        t,_,_=x.split('\t'); f.write('%s\t%s\n' % (t,old[t]))
+print('\n'.join(out))
+PY
+    while IFS=$(printf '\t') read -r t lbl tm; do
+        [ -z "$t" ] && continue
+        printf '  %-5s %-3s %-8s  %-6s %s\n' "$t" "$(lm "$t")" "$lbl" "$tm" "$(desc "$t")" | fit >> "$T.conc"
+    done < "$T.conc.rows"
     for f in untracked/bakeoff/*/*/out.md; do
         [ -f "$f" ] && [ ! -s "$f" ] || continue
         d=$(dirname "$f")
         [ -f "$d/trailer.log" ] || continue
-        # RECENT only: age out killed lanes whose trailer is older than 3 days
-        [ -z "$(find "$d/trailer.log" -mtime -3 2>/dev/null)" ] && continue
+        # RECENT only: age out killed lanes whose trailer is older than 24 h
+        # (HH:MM is unambiguous within a day)
+        [ -z "$(find "$d/trailer.log" -mtime -1 2>/dev/null)" ] && continue
         grep -qa "exit 12[0-9]" "$d/trailer.log" 2>/dev/null || continue
-        printf '  %-5s %-3s %-8s  %s\n' "race" "" "killed" "lane $(basename "$d")" | fit >> "$T.recent"
+        tm=$(date -r "$d/trailer.log" +%H:%M 2>/dev/null); [ -z "$tm" ] && tm="--:--"
+        printf '  %-5s %-3s %-8s  %-6s %s\n' "race" "" "killed" "$tm" "lane $(basename "$d")" | fit >> "$T.recent"
     done
 
-    for t in $(python3 -c "
-import json;d=json.load(open('$T.json'))
-o=[((v.get('done') or ''),k) for k,v in d.items() if v.get('status')=='done']
-print(' '.join(k for _,k in sorted(o,reverse=True)[:$MAX_ROWS]))" 2>/dev/null); do
-        v=$(python3 -c "import json;print(json.load(open('$T.json')).get('$t',{}).get('verdict','') or '?')" 2>/dev/null)
-        case "$v" in pass-with-findings) v=findings;; fail-found) v=fail;; esac
-        printf '  %-5s %-3s %-9s %s\n' "$t" "$(lm "$t")" "$v" "$(desc "$t")" | fit >> "$T.done"
-    done
+    # DONE rows: completed time (store `done`, UTC ISO -> local HH:MM) + verdict
+    python3 - "$T.json" "$MAX_ROWS" > "$T.done.rows" <<'PY'
+import json,sys,time,calendar
+d=json.load(open(sys.argv[1]))
+rows=[((v.get('done') or ''),k) for k,v in d.items() if v.get('status')=='done']
+rows.sort(reverse=True)
+def hm(ts):
+    if not ts: return '--:--'
+    try:
+        utc=time.strptime(ts[:19],'%Y-%m-%dT%H:%M:%S')
+        return time.strftime('%H:%M',time.localtime(calendar.timegm(utc)))
+    except Exception: return '--:--'
+for done,k in rows[:int(sys.argv[2])]:
+    v=(d.get(k) or {}).get('verdict','') or '?'
+    if v=='pass-with-findings': v='findings'
+    elif v=='fail-found': v='fail'
+    print('%s\t%s\t%s' % (k,v,hm(done)))
+PY
+    while IFS=$(printf '\t') read -r t v tm; do
+        [ -z "$t" ] && continue
+        printf '  %-5s %-3s %-9s %-6s %s\n' "$t" "$(lm "$t")" "$v" "$tm" "$(desc "$t")" | fit >> "$T.done"
+    done < "$T.done.rows"
     python3 - "$T.json" > "$T.openstat" <<'PYS'
 import json,sys,os,re
 d=json.load(open(sys.argv[1]))
