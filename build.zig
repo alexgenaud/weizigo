@@ -321,6 +321,20 @@ pub fn build(b: *std.Build) void {
     startup_liveness_regression.cwd = b.path(".");
     test_step.dependOn(&startup_liveness_regression.step);
 
+    // ── per-harness liveness fuse controls (T634) ─────────────────────
+    // The startup-liveness fuse keys on stdout — correct for pi/ollama
+    // (streaming), WRONG for claude (buffers to the end).  T616 died at
+    // 600.8 s with 43 KB already on disk, two seconds after T615's 598.8 s
+    // pass.  T634: claude lanes get an mtime fuse (declared deliverables +
+    // session transcript), threshold 3 x p95 of observed claude wall.  Arms:
+    // survives (buffered claude stub writes deliverable+transcript, no
+    // stdout, past the old startup timeout), hung (no stdout, no mtime —
+    // killed with kill_class=liveness), fast (untouched).  The pi/ollama
+    // stdout sensor is unchanged (the T586 suite above stays green).
+    const claude_liveness_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-claude-liveness.sh" });
+    claude_liveness_regression.cwd = b.path(".");
+    test_step.dependOn(&claude_liveness_regression.step);
+
     // ── suite-child reaping controls (T548) ───────────────────────────
     // Dead workers must not leak suite children: on 2026-08-20 the fleet
     // measured orphaned `zig test` binaries holding multi-GB RSS (9.1 GB at

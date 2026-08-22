@@ -1,0 +1,9 @@
+{
+  "task_id": "T634",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T634",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Per-harness liveness fuse in tools/runner: the startup-liveness fuse (T586) keyed on stdout, correct for pi/ollama (streaming) but WRONG for claude (buffers output to the end). T615 (claude-fable, 598.8s) passed and T616 (claude-opus, 600.8s, 43 KB already written) was killed two seconds later — a coin-flip wearing a measurement. FIX: claude lanes now get an mtime fuse on the declared deliverables + the claude session transcript (~/.claude/projects/<cwd-slug>/); a lane touching either is alive, and the kill is marked kill_class=liveness so no model-performance row is written against it. Threshold derived, not guessed: 3 x p95 of observed claude wall = 3 x 1543.5 s = 4631 s (n=29). Per-family p95 (snapshot 2026-08-22): claude 1543.5 s (n=29), deepseek 2340.9 s (n=113), ollama 2255.0 s (n=9), other 145.2 s (n=22). Full evidence + red/green quotes in findings/T634-context.json."
+}

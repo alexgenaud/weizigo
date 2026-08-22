@@ -1408,6 +1408,132 @@ def _is_agent_lane(argv):
     return os.path.basename(argv[0]) in AGENT_LANE_BINARIES
 
 
+def _is_claude_lane(argv):
+    """True when the wrapped child is a headless `claude -p` session — the
+    buffering harness (T634).  A claude lane is silent on stdout/stderr for
+    its WHOLE run by design (its output is buffered to the end), so the
+    stdout-as-liveness signal T586 earned for pi/ollama is the wrong sensor
+    here: T616 had already written 43 KB and 33 adjudicated items when the
+    600 s startup fuse killed it for being quiet.  Claude lanes get the
+    mtime fuse instead."""
+    if not argv:
+        return False
+    return os.path.basename(argv[0]) == "claude"
+
+
+# ── T634: per-harness liveness (claude mtime fuse) ─────────────────────────
+#
+# The startup-liveness fuse (T586) keys on stdout and is correct for pi/
+# ollama (streaming).  It is WRONG for claude: headless `claude -p` buffers
+# its output to the end, so a claude lane is silent for its whole run and the
+# 600 s fuse killed finished jobs (T616: 600.8 s, 43 KB already on disk, vs
+# T615's 598.8 s pass — two seconds separated a pass from a failure).  The
+# claude liveness sensor is mtime movement on what the harness actually emits
+# while working:
+#   - the declared deliverables (the bundle's deliverables= header), and
+#   - the claude session transcript (~/.claude/projects/<cwd-slug>/), the
+#     harness's per-lane scratch: every assistant turn and tool call appends
+#     to the session .jsonl, so a working lane moves mtime continuously; a
+#     hung lane's transcript stops moving.
+# The shared repo tree is deliberately NOT a sensor: other consoles write to
+# the same checkout, so a neighbour's edit would mark a hung lane "alive" —
+# noise defeats the fuse.  The threshold is derived, not guessed (see the
+# findings file): 3 x observed p95 of claude wall time (n=29, p95=1543.5 s)
+# = 4631 s.
+#
+# WEIZIGO_CLAUDE_TRANSCRIPT_DIR overrides the transcript dir (the test hook
+# that lets the regression drive a synthetic transcript without writing to
+# ~/.claude — never invent/read the real session store to test the fuse).
+
+
+def _project_slug(path):
+    """Claude Code's on-disk project-directory slug for a working directory
+    (mirrors tools/race-p0-verify.sh project_slug)."""
+    return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(path))
+
+
+def _claude_transcript_dir(cwd):
+    """The claude session transcript directory for `cwd`, overridable via
+    WEIZIGO_CLAUDE_TRANSCRIPT_DIR (test hook)."""
+    injected = os.environ.get("WEIZIGO_CLAUDE_TRANSCRIPT_DIR")
+    if injected:
+        return injected
+    return os.path.join(os.path.expanduser("~"), ".claude", "projects", _project_slug(cwd))
+
+
+def _declared_deliverables(task_identity, repo_root):
+    """Repo-relative deliverable paths declared by the bundle's
+    `deliverables=` meta header, or [] (mirrors dispatch_verify.
+    parse_deliverables — the runner keeps its own copy so it stays
+    stdlib-only and independent of the verifier)."""
+    if not repo_root or not task_identity:
+        return []
+    if not re.fullmatch(r"T\d+", task_identity):
+        return []
+    hits = glob.glob(os.path.join(repo_root, "untracked", task_identity + "-*.md"))
+    if len(hits) != 1:
+        return []
+    try:
+        with open(hits[0]) as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("<!--managent "):
+                    m = re.search(r"deliverables=(.*?)(?:\s|-->)", line)
+                    if m:
+                        return [p.strip() for p in m.group(1).rstrip(",").split(",") if p.strip()]
+                    break
+    except OSError:
+        pass
+    return []
+
+
+def _claude_sensor_max_mtime(deliverables, transcript_dir, launch_epoch):
+    """Max wall-clock mtime across the claude liveness sensor set.
+
+    Sensor set: the declared deliverable paths (absolute) and the claude
+    session transcript directory's entries (files + one level of session
+    subdirs) whose mtime is >= launch_epoch.  Entries older than launch are
+    skipped so a previous session's transcript can never be the "alive"
+    reading for this run.  Missing files contribute nothing (a deliverable
+    that does not exist yet is not evidence of a hang).
+    """
+    m = 0.0
+    for d in deliverables:
+        try:
+            st = os.stat(d)
+        except OSError:
+            continue
+        if st.st_mtime > m:
+            m = st.st_mtime
+    if transcript_dir and os.path.isdir(transcript_dir):
+        try:
+            names = os.listdir(transcript_dir)
+        except OSError:
+            names = []
+        for name in names:
+            p = os.path.join(transcript_dir, name)
+            try:
+                st = os.stat(p)
+            except OSError:
+                continue
+            if st.st_mtime >= launch_epoch and st.st_mtime > m:
+                m = st.st_mtime
+            if os.path.isdir(p):
+                # session subdir (claude writes per-session scratch under it)
+                try:
+                    for name2 in os.listdir(p):
+                        p2 = os.path.join(p, name2)
+                        try:
+                            st2 = os.stat(p2)
+                            if st2.st_mtime >= launch_epoch and st2.st_mtime > m:
+                                m = st2.st_mtime
+                        except OSError:
+                            continue
+                except OSError:
+                    continue
+    return m
+
+
 def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     task_identity, repo_root, start_ts, rc, kill_reason=None):
     """The capture path for one run.  Returns a dict
@@ -1629,12 +1755,22 @@ def main():
                          "Set 0 to disable progress watchdog (fallback "
                          "ceilings still apply).")
     ap.add_argument("--startup-timeout", type=int, default=600,
-                    help="T586: for agent lanes (pi/claude/ollama), SIGKILL "
+                    help="T586: for STREAMING agent lanes (pi/ollama), SIGKILL "
                          "when the worker emits no output at all within this "
                          "many seconds of launch (default 600 = 10 min; 0 to "
                          "disable). A never-started worker is a loud anomaly, "
                          "not a silent wall burn. Non-agent commands are "
-                         "unaffected.")
+                         "unaffected. Claude lanes are NOT covered — they "
+                         "buffer output; --claude-liveness-timeout governs "
+                         "them.")
+    ap.add_argument("--claude-liveness-timeout", type=int, default=4631,
+                    help="T634: for claude agent lanes (the buffering harness), "
+                         "SIGKILL when the declared deliverables + session "
+                         "transcript show no mtime movement for this many "
+                         "seconds (default 4631 = 3 x observed p95 of claude "
+                         "wall, n=29, p95=1543.5 s; 0 to disable). stdout is "
+                         "NOT a liveness signal for claude — it buffers to "
+                         "the end.")
     ap.add_argument("--poll-ms", type=int, default=250,
                     help="RSS / CPU / wall check interval in ms (default 250)")
     ap.add_argument("--no-prepend-zig", action="store_true",
@@ -1718,8 +1854,15 @@ def main():
     # Only these lanes get the startup-liveness check and stdout-as-progress
     # signal (generic zig builds keep their wall/CPU semantics).
     agent_lane = _is_agent_lane(argv)
-    if agent_lane and args.startup_timeout:
+    # T634: a claude lane is a separate case — it buffers output, so the
+    # stdout-based startup fuse must NOT apply to it; the mtime fuse does.
+    claude_lane = _is_claude_lane(argv)
+    if agent_lane and args.startup_timeout and not claude_lane:
         print(f"[runner] startup liveness: agent lane, timeout {args.startup_timeout}s",
+              file=sys.stderr)
+    if claude_lane:
+        print(f"[runner] claude liveness: mtime fuse, timeout {args.claude_liveness_timeout}s "
+              f"(stdout buffered — sensor = deliverables + session transcript)",
               file=sys.stderr)
 
     cap_bytes = args.rss_cap_mb * 1024 * 1024
@@ -1918,6 +2061,27 @@ def main():
     # D-11/D-35: the last poll walk persists past the loop so the C2/C3 reap
     # paths have a --seed even when the child exits before the first poll.
     last_poll_pids = []
+
+    # ── T634: claude liveness fuse state (mtime, not stdout) ────────────
+    # The watermark is the max sensor mtime at launch; any strictly-newer
+    # mtime is activity.  last_claude_activity is the monotonic timestamp of
+    # the last observed movement; the fuse kills when it ages past
+    # --claude-liveness-timeout.  The scan is throttled to once per ~1 s
+    # (the threshold is minutes long; a 250 ms re-scan is pure waste).
+    claude_transcript_dir = None
+    claude_deliverables = []
+    claude_watermark = 0.0
+    last_claude_activity = t0
+    last_claude_scan = 0.0
+    if claude_lane:
+        claude_transcript_dir = _claude_transcript_dir(os.getcwd())
+        if record_root:
+            claude_deliverables = [
+                d if os.path.isabs(d) else os.path.join(record_root, d)
+                for d in _declared_deliverables(task_identity, record_root)
+            ]
+        claude_watermark = _claude_sensor_max_mtime(
+            claude_deliverables, claude_transcript_dir, spawn_epoch)
 
     try:
         while True:
@@ -2143,6 +2307,30 @@ def main():
                 kill_reason = midrun_kill_reason
             elif over_rss:
                 kill_reason = f"RSS cap {args.rss_cap_mb} MB exceeded"
+            elif claude_lane:
+                # T634: claude liveness is mtime movement, not stdout — a
+                # claude lane buffers its output, so "silent" is normal.
+                # Kill only when the sensor set (declared deliverables +
+                # session transcript) stops moving for the derived threshold.
+                now_m = time.monotonic()
+                if now_m - last_claude_scan >= 1.0:
+                    last_claude_scan = now_m
+                    m = _claude_sensor_max_mtime(
+                        claude_deliverables, claude_transcript_dir, spawn_epoch)
+                    if m > claude_watermark:
+                        claude_watermark = m
+                        last_claude_activity = now_m
+                if args.claude_liveness_timeout > 0:
+                    since_activity = time.monotonic() - last_claude_activity
+                    if since_activity >= args.claude_liveness_timeout:
+                        kill_reason = (
+                            f"liveness timeout {args.claude_liveness_timeout}s "
+                            f"({_format_duration(args.claude_liveness_timeout)}) — "
+                            f"claude lane showed no mtime movement "
+                            f"(deliverables/session transcript) for "
+                            f"{since_activity:.0f}s"
+                        )
+                        run_record["kill_class"] = "liveness"
             elif progress_seen:
                 # Progress watchdog: kill if no progress for --progress-timeout
                 if args.progress_timeout > 0:
@@ -2168,6 +2356,11 @@ def main():
                         f"lane produced no output since launch (bundle never "
                         f"read?)"
                     )
+                    # T634: a liveness-fuse kill is unscoreable — mark the
+                    # run record so the verification layer (T629 killed_by)
+                    # can refuse to attribute it to the model.  The stderr
+                    # message above is byte-identical to T586's (null control).
+                    run_record["kill_class"] = "liveness"
                 elif args.max_wall and elapsed >= args.max_wall:
                     kill_reason = (
                         f"wall ceiling {args.max_wall}s "
