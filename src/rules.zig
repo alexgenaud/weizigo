@@ -1387,36 +1387,67 @@ test "koAfterCapture: seeded-defect — old (buggy) rule disagrees with kernel" 
     try expect(old_rule_ko != kernel_ko); // disagreement confirmed
 }
 
-// ── Lemma Z-R-MOVE-B1-EQUIV: shape-rule ⇔ position-identity equivalence ───
+// ── Lemma Z-R-MOVE-B1-EQUIV: shape-rule ⇔ recapture-recreates-P₁ ──────────
 //
-// B1 defines basic ko by position-identity: the resulting goban must be
-// identical to the goban two plies earlier. koAfterCapture implements the
-// operational shape rule: single capture, one liberty, no friendly neighbours.
-// This lemma proves the two conditions are extensionally equivalent — tested
-// exhaustively at 2×2 and 3×2 by constructing every two-ply sequence
-// P₀ →(White captures one)→ P₁ →(Black captures one)→ P₂ and checking that
-// P₂ == P₀ ⇔ koAfterCapture(P₁, P₂, Black) returns a ko point.
+// B1 defines basic ko by position-identity, and the engine judges the ban at
+// the resulting state against the position ONE state back (P₁), not the
+// window's start (P₀). koAfterCapture implements the operational shape rule:
+// single capture, one liberty, no friendly neighbours; it returns the ko
+// point (the captured stone's cell) when the rule fires.
+//
+// Corrected lemma (T380 F-3, re-stated T384): for a two-ply capture–recapture
+// window P₀ →(White captures one)→ P₁ →(Black captures one)→ P₂, the shape
+// rule fires (koAfterCapture(P₁, P₂, Black) returns a ko point c) ⇔ the only
+// White move from P₂ that recreates P₁ is the recapture at c. In words: a
+// recapture the shape rule bans recreates the position one state back.
+//
+// The ORIGINAL wording — "P₂ == P₀ ⇔ the shape rule fires" — was falsified
+// by T380 F-3: 152/784 exhaustive at 3×3 and 36,446/344,996 sampled at 4×4.
+// The two phrasings coincide at 2×2 and 3×2, which is why the old tests below
+// (now re-scoped to "holds at this size") passed while the general statement
+// was false. The corrected predicate holds 0/784 and 0/344,996.
 //
 // Only legal positions (no dead stones) are considered; equivalence is
 // vacuously meaningless for unreachable positions.
 
-/// Returns true if any stone on the board has zero liberties (an illegal
-/// position in Tromp-Taylor rules — dead stones from prior play).
+/// Returns true if any stone's chain has zero liberties (an illegal position
+/// in Tromp-Taylor rules — dead stones from prior play). Chain-flood, not
+/// per-stone: a stone with no empty neighbour is alive when its chain holds a
+/// liberty elsewhere. The old per-stone version over-filtered multi-stone
+/// chains and under-tested the lemma (432 vs 784 checked at 3×3 — T573).
 fn hasDeadStones(comptime n: usize, pos: []const i8, w: usize, h: usize) bool {
+    var visited = [_]bool{false} ** n;
     for (0..n) |p| {
-        if (pos[p] == 0) continue;
-        var nb: [4]usize = undefined;
-        const cnt = neighborsRt(p, w, h, &nb);
-        var alive = false;
-        for (nb[0..cnt]) |q| {
-            if (pos[q] == 0) { alive = true; break; }
+        if (pos[p] == 0 or visited[p]) continue;
+        var stack: [n]usize = undefined;
+        var sp: usize = 1;
+        stack[0] = p;
+        visited[p] = true;
+        var has_liberty = false;
+        while (sp > 0) {
+            sp -= 1;
+            const q = stack[sp];
+            var nb: [4]usize = undefined;
+            const cnt = neighborsRt(q, w, h, &nb);
+            for (nb[0..cnt]) |r| {
+                if (pos[r] == 0) {
+                    has_liberty = true;
+                } else if (pos[r] == pos[q] and !visited[r]) {
+                    visited[r] = true;
+                    stack[sp] = r;
+                    sp += 1;
+                }
+            }
         }
-        if (!alive) return true;
+        if (!has_liberty) return true;
     }
     return false;
 }
 
-test "Z-R-MOVE-B1-EQUIV: shape ⇔ position-identity exhaustive 2x2" {
+test "Z-R-MOVE-B1-EQUIV: OLD window predicate holds at 2x2 (vacuous)" {
+    // The OLD wording (P₂ == P₀ ⇔ shape rule fires) — held only at this size,
+    // and vacuously (checked == 0); falsified at 3×3+ (T380 F-3). This is a
+    // size-scoped reading, NOT a test of the general lemma.
     const exp6 = @import("exp6_solve.zig");
     var mismatches: usize = 0;
     var checked: usize = 0;
@@ -1477,7 +1508,10 @@ test "Z-R-MOVE-B1-EQUIV: shape ⇔ position-identity exhaustive 2x2" {
     try expectEqual(@as(usize, 0), mismatches);
 }
 
-test "Z-R-MOVE-B1-EQUIV: shape ⇔ position-identity exhaustive 3x2" {
+test "Z-R-MOVE-B1-EQUIV: OLD window predicate holds at 3x2" {
+    // The OLD wording (P₂ == P₀ ⇔ shape rule fires) — holds at 3×2 only because
+    // the two predicates coincide at this size; falsified at 3×3+ (T380 F-3).
+    // This is a size-scoped reading, NOT a test of the general lemma.
     const exp6 = @import("exp6_solve.zig");
     var mismatches: usize = 0;
     var checked: usize = 0;
@@ -1528,6 +1562,105 @@ test "Z-R-MOVE-B1-EQUIV: shape ⇔ position-identity exhaustive 3x2" {
     }
     try expect(checked > 0);
     try expectEqual(@as(usize, 0), mismatches);
+}
+
+/// Exhaustive 3×3 two-ply capture–recapture census for the B1 lemma: legal P₀,
+/// every White single-stone-capture window, every Black single-stone-capture
+/// reply. Returns the OLD-wording mismatch count and the corrected-predicate
+/// mismatch count. The corrected predicate is the one the engine actually
+/// needs: the set of White moves from P₂ that recreate P₁ (the position one
+/// state back) is exactly {ko point} iff the shape rule set a ko point.
+const B1Equiv3x3 = struct {
+    checked: usize = 0,
+    window_mismatches: usize = 0, // OLD predicate: P₂ == P₀ ⇔ shape
+    ban_mismatches: usize = 0, // corrected predicate: ban set == {ko point}
+};
+
+fn countB1Equiv3x3() B1Equiv3x3 {
+    const exp6 = @import("exp6_solve.zig");
+    var r = B1Equiv3x3{};
+    for (0..19683) |p0_idx| {
+        var p0: [9]i8 = undefined;
+        var v = p0_idx;
+        for (0..9) |j| {
+            const d: i8 = @intCast(v % 3);
+            v /= 3;
+            p0[j] = d - 1;
+        }
+        if (hasDeadStones(9, &p0, 3, 3)) continue;
+
+        for (0..9) |w_cell| {
+            if (p0[w_cell] != 0) continue;
+            var p1 = p0;
+            exp6.genericPosFromMove(9, &p1, -1, w_cell, 3, 3) catch continue;
+
+            var black_captured: u8 = 0;
+            for (0..9) |i| {
+                if (p0[i] == 1 and p1[i] == 0) black_captured += 1;
+            }
+            if (black_captured != 1) continue;
+
+            for (0..9) |b_cell| {
+                if (p1[b_cell] != 0) continue;
+                var p2 = p1;
+                exp6.genericPosFromMove(9, &p2, 1, b_cell, 3, 3) catch continue;
+
+                var white_captured: u8 = 0;
+                for (0..9) |i| {
+                    if (p1[i] == -1 and p2[i] == 0) white_captured += 1;
+                }
+                if (white_captured != 1) continue;
+
+                r.checked += 1;
+
+                // OLD window predicate: P₂ == P₀ ⇔ shape rule fires.
+                const pos_id = std.mem.eql(i8, &p2, &p0);
+                const ko_point = koAfterCapture(&p1, &p2, 1, 3, 3, 9);
+                const shape_ko = ko_point != 9;
+                if (pos_id != shape_ko) r.window_mismatches += 1;
+
+                // Corrected predicate: the White moves from P₂ that recreate
+                // P₁ must be exactly {ko_point} iff the shape rule set a ko.
+                var ban_cells: [9]u8 = undefined;
+                var bcnt: usize = 0;
+                for (0..9) |m| {
+                    if (p2[m] != 0) continue;
+                    var res = p2;
+                    exp6.genericPosFromMove(9, &res, -1, m, 3, 3) catch continue;
+                    if (std.mem.eql(i8, &res, &p1)) {
+                        if (bcnt < 9) ban_cells[bcnt] = @intCast(m);
+                        bcnt += 1;
+                    }
+                }
+                const ban_ok = if (shape_ko)
+                    (bcnt == 1 and ban_cells[0] == ko_point)
+                else
+                    (bcnt == 0);
+                if (!ban_ok) r.ban_mismatches += 1;
+            }
+        }
+    }
+    return r;
+}
+
+test "Z-R-MOVE-B1-EQUIV: corrected predicate exhaustive 3x3 — 0 violations" {
+    // The corrected lemma (T380 F-3): the shape rule fires ⇔ the recapture it
+    // bans recreates P₁ (the position one state back). Exhaustive over every
+    // legal 3×3 two-ply capture–recapture window. This is the test the
+    // falsified old wording never had — at 3×3 the two predicates diverge.
+    const r = countB1Equiv3x3();
+    try expectEqual(@as(usize, 784), r.checked); // denominator from T380 F-3
+    try expectEqual(@as(usize, 0), r.ban_mismatches);
+}
+
+test "Z-R-MOVE-B1-EQUIV: OLD window predicate falsified at 3x3 — 152/784" {
+    // Negative control keeping the falsification load-bearing (T380 F-3): the
+    // OLD wording "P₂ == P₀ ⇔ shape rule fires" fails on exactly 152 of the
+    // 784 checked windows at 3×3. If a refactor ever makes the old wording
+    // pass, this arm goes red.
+    const r = countB1Equiv3x3();
+    try expectEqual(@as(usize, 784), r.checked);
+    try expectEqual(@as(usize, 152), r.window_mismatches);
 }
 
 test "Z-R-MOVE-B1-EQUIV: seeded mutant — broken ko rule fails lemma" {
