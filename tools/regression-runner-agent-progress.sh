@@ -11,8 +11,9 @@
 # mirroring T634:
 #   1. the progress sensor adds the declared deliverables' mtime — a lane
 #      writing its deliverable is making progress, whatever its stream says;
-#   2. the threshold is derived, not chosen: 3 x p95 wall per family
-#      (pi/deepseek 7336 s, ollama 6766 s; --agent-progress-timeout overrides).
+#   2. the threshold is derived, not chosen: 3 x p95 wall per family,
+#      read from the shared table docs/infra/harness-p95.md
+#      (--agent-progress-timeout overrides).
 # Kills are unscoreable: the reason still starts "progress timeout", which the
 # runner stamps killed_by=watchdog (T629's vocabulary — no second enum).
 #
@@ -30,8 +31,9 @@
 #   non-agent (null)  a NON-agent child that emits a [progress] line then goes
 #                     quiet -> still killed by --progress-timeout (T214 path
 #                     unchanged for generic builds).
-#   derived (null)    the per-family threshold is printed for pi (7336 s) and
-#                     ollama (6766 s) when --agent-progress-timeout is unset.
+#   derived (null)    the per-family threshold is printed from the shared
+#                     table (pi and ollama differ) when
+#                     --agent-progress-timeout is unset.
 #
 # All fixtures are synthetic and run in a scratch git repo under /tmp/weizigo
 # — never the live repo.  The runner resolves repo_root from CWD, so the
@@ -201,6 +203,27 @@ fi
 
 echo ""
 echo "=== regression-runner-agent-progress: derived per-family thresholds ==="
+# Copy the COMMITTED shared table into the scratch repo so the runner reads
+# the REAL table (the scratch repo is its own repo_root; without the copy the
+# runner falls back to hardcoded values and the table path is untested).
+mkdir -p "$WORK/docs/infra"
+cp "$PROJECT/docs/infra/harness-p95.md" "$WORK/docs/infra/harness-p95.md"
+PI_T=$(python3 - "$WORK/docs/infra/harness-p95.md" <<'PY'
+import json, re, sys
+text = open(sys.argv[1]).read()
+m = re.search(r"<!-- BEGIN harness-p95 -->\s*```json\s*\n(.*?)\n```\s*\n<!-- END harness-p95 -->", text, re.DOTALL)
+d = json.loads(m.group(1))
+print(d["families"]["pi"]["threshold_s"])
+PY
+)
+OLLAMA_T=$(python3 - "$WORK/docs/infra/harness-p95.md" <<'PY'
+import json, re, sys
+text = open(sys.argv[1]).read()
+m = re.search(r"<!-- BEGIN harness-p95 -->\s*```json\s*\n(.*?)\n```\s*\n<!-- END harness-p95 -->", text, re.DOTALL)
+d = json.loads(m.group(1))
+print(d["families"]["ollama"]["threshold_s"])
+PY
+)
 set +e
 MANAGENT_TASK_ID=T9999 \
     "$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 -- ./pi fast \
@@ -211,11 +234,11 @@ MANAGENT_TASK_ID=T9999 \
     >"$WORK/doll.out" 2>"$WORK/doll.err"
 DOLL_EXIT=$?
 set -e
-if [ "$DPI_EXIT" -eq 0 ] && grep -q 'timeout 7336s' "$WORK/dpi.err" \
-   && [ "$DOLL_EXIT" -eq 0 ] && grep -q 'timeout 6766s' "$WORK/doll.err"; then
-    echo "PASS: derived — pi lane prints timeout 7336s, ollama lane prints timeout 6766s (3 x p95 per family)"
+if [ "$DPI_EXIT" -eq 0 ] && grep -q "timeout ${PI_T}s" "$WORK/dpi.err" \
+   && [ "$DOLL_EXIT" -eq 0 ] && grep -q "timeout ${OLLAMA_T}s" "$WORK/doll.err"; then
+    echo "PASS: derived — pi lane prints timeout ${PI_T}s, ollama lane prints timeout ${OLLAMA_T}s (from the shared table)"
 else
-    echo "FAIL: derived — expected pi=7336s and ollama=6766s in the startup banner"
+    echo "FAIL: derived — expected pi=${PI_T}s and ollama=${OLLAMA_T}s in the startup banner"
     echo "--- pi ---"; cat "$WORK/dpi.err" | sed 's/^/    | /'
     echo "--- ollama ---"; cat "$WORK/doll.err" | sed 's/^/    | /'
     FAIL=1
