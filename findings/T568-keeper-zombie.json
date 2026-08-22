@@ -4,6 +4,6 @@
  "model": "deepseek-v4-pro",
  "identifier": "deepseek-v4-pro/T568",
  "claims": [],
- "new_rows": ["T586"],
+ "new_rows": [],
  "notes": "KEEPER-ZOMBIE LESSON (operator directive, 2026-08-22) — recorded for the S03 dashboard and S04 spec. A `tools/fleet-keeper.sh` process (pid 99956) sat alive ~1.8 days (ppid=1, `bash tools/fleet-keeper.sh`) while dispatching nothing: no log output, no cooldown flag, and no alarm fired — the fleet drained by hand while the auto-drainer was a zombie. This is the exact defect class of ruling-record precedent D054: a watcher without a null-detector. REQUIREMENT (both specs): every long-lived drainer — the keeper today, the reconciler's cron in S04 — needs a LIVENESS GAUGE THAT ALARMS ON SILENCE (a heartbeat/beat-count with an explicit 'no beat in N' = loud red), not a log nobody reads. S03 dashboard: add a drainer-liveness gauge (re-derivable by `managent liveness`/a named command). S04 spec: the reconciler trigger must carry the same gauge; a cron that dies silent must trip the concern channel. Action taken this turn: keeper NOT relaunched (coherent with the one-dispatcher ruling); the zombie finding stands until the gauge exists."
 }
