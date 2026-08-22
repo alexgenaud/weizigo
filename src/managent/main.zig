@@ -125,6 +125,16 @@ const TaskState = struct {
     candidates: [][]const u8 = &.{},
     method: ?[]const u8 = null,
     assign_reasons: [][]const u8 = &.{},
+    // T636: row shape (ruling 34) — "solo" | "panel" | null.  null = legacy:
+    // an existing row with no shape behaves exactly as before T636 (T635's
+    // random/preferred/forced draw) and is never retroactively labelled.
+    // New rows registered without an explicit shape get the honest default
+    // (solo) at registration — see cmdAdd.
+    shape: ?[]const u8 = null,
+    // T636: shape-selection notes — one "<model>: <why>" line per selection
+    // decision (cost comparison for solo, marginal-complementarity step for
+    // panel).  Empty when the assignment came from the legacy draw.
+    shape_reasons: [][]const u8 = &.{},
     bundle: []const u8 = "",
     set: u8 = 'A',
     holds: [][]const u8 = &.{},
@@ -168,6 +178,25 @@ const TaskState = struct {
     // T464: one-line epitaph left when a row is retired from the live kanban
     // (archive, never delete — the full record moves, this one line stays).
     epitaph: ?[]const u8 = null,
+    // T627: dispatch scope fields (ruling 35 denominator).  Written by the
+    // tool at dispatch/claim time, never requested of workers.  null means
+    // ABSENT = UNKNOWN (an old row predates the field), which is distinct
+    // from 0 or "none" and must never render downstream as zero coverage or
+    // full marks.  brief_bytes is the bundle file size; files_in_scope is the
+    // count of unique deliverables= + holds= paths; expected_wall_s is the
+    // dispatcher's wall estimate (--expected-wall), null when none was made —
+    // never 0, which would masquerade as "instant".
+    brief_bytes: ?u64 = null,
+    files_in_scope: ?u32 = null,
+    expected_wall_s: ?u32 = null,
+    // ruling 35: the scope field must carry an enumerated target set (the
+    // thoroughness denominator), or say explicitly that the set cannot be
+    // enumerated in advance.  scope_enumerable == null → no scope statement
+    // recorded (UNKNOWN); true → scope_targets is the enumeration; false →
+    // the target set genuinely cannot be enumerated (scope_note says why).
+    scope_targets: [][]const u8 = &.{},
+    scope_enumerable: ?bool = null,
+    scope_note: ?[]const u8 = null,
 };
 
 const valid_verdicts = [_][]const u8{ "pass", "pass-with-findings", "fail-found", "blocked", "abandoned" };
@@ -316,8 +345,12 @@ fn isFamilyName(s: []const u8) bool {
 const AssignResult = struct {
     candidates: [][]const u8 = &.{},
     reasons: [][]const u8 = &.{},
-    method: []const u8 = "", // "random" | "forced" | "preferred"
+    method: []const u8 = "", // "random" | "forced" | "preferred" | "solo-cost" | "panel-greedy" | "panel-prior"
     model: []const u8 = "", // the outcome (canonical label)
+    // T636: shape-selection notes — one "<model>: <why>" line per selection
+    // decision (cost comparison for solo, marginal-complementarity step for
+    // panel).  Empty when the assignment came from the legacy T635 draw.
+    shape_reasons: [][]const u8 = &.{},
 };
 
 fn freeAssignResult(r: *AssignResult) void {
@@ -327,6 +360,8 @@ fn freeAssignResult(r: *AssignResult) void {
     alloc.free(r.reasons);
     alloc.free(r.method);
     alloc.free(r.model);
+    for (r.shape_reasons) |x| alloc.free(x);
+    alloc.free(r.shape_reasons);
     r.* = .{};
 }
 
@@ -347,14 +382,25 @@ const OsEntropy = struct {
     }
 };
 
-/// The mechanized assignment: filter canonical_models through the constraints
-/// that apply (family appetite, row-declared exclusions), then pick the
-/// outcome.  `requested` (non-null) forces `preferred`; a one-element
-/// qualified list forces `forced`; otherwise the draw is `random` via `rng`
-/// (production passes OS entropy; tests may pass a seeded PRNG to make the
-/// filter deterministic — the production draw is never a seeded PRNG).
-/// `exclusions` is a list of tokens, each a family name or a canonical model.
-fn assignModel(requested: ?[]const u8, exclusions: []const []const u8, rng: std.Random) !AssignResult {
+/// T635 filter: canonical_models through the constraints that apply (family
+/// appetite, row-declared exclusions).  Returns two owned ArrayLists so
+/// callers can append further reasons (e.g. the preferred-outside-qualified
+/// note) before the lists are frozen into an AssignResult.  Free with
+/// deinitQualified.
+const QualifiedLists = struct {
+    candidates: std.ArrayList([]const u8),
+    reasons: std.ArrayList([]const u8),
+};
+
+fn deinitQualified(q: *QualifiedLists) void {
+    for (q.candidates.items) |c| alloc.free(c);
+    q.candidates.deinit(alloc);
+    for (q.reasons.items) |x| alloc.free(x);
+    q.reasons.deinit(alloc);
+    q.* = undefined;
+}
+
+fn filterQualified(exclusions: []const []const u8) !QualifiedLists {
     var candidates = std.ArrayList([]const u8).empty;
     var reasons = std.ArrayList([]const u8).empty;
     errdefer {
@@ -402,36 +448,471 @@ fn assignModel(requested: ?[]const u8, exclusions: []const []const u8, rng: std.
         try candidates.append(alloc, try alloc.dupe(u8, m));
     }
 
+    return .{ .candidates = candidates, .reasons = reasons };
+}
+
+/// The mechanized assignment (ruling 33): filter canonical_models through the
+/// constraints that apply, then pick the outcome.  `requested` (non-null)
+/// forces `preferred`; a one-element qualified list forces `forced`;
+/// otherwise the draw is `random` via `rng` (production passes OS entropy;
+/// tests may pass a seeded PRNG — the production draw is never a seeded PRNG).
+/// `exclusions` is a list of tokens, each a family name or a canonical model.
+fn assignModel(requested: ?[]const u8, exclusions: []const []const u8, rng: std.Random) !AssignResult {
+    var lists = try filterQualified(exclusions);
+    errdefer deinitQualified(&lists);
+
     var method: []const u8 = undefined;
     var model: []const u8 = undefined;
     if (requested) |req| {
         method = try alloc.dupe(u8, "preferred");
         model = try alloc.dupe(u8, req);
         var in_list = false;
-        for (candidates.items) |c| {
+        for (lists.candidates.items) |c| {
             if (std.mem.eql(u8, c, req)) {
                 in_list = true;
                 break;
             }
         }
         if (!in_list) {
-            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: preferred by row (outside qualified list)", .{req}));
+            try lists.reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: preferred by row (outside qualified list)", .{req}));
         }
-    } else if (candidates.items.len == 0) {
+    } else if (lists.candidates.items.len == 0) {
         return error.NoQualifiedCandidate;
-    } else if (candidates.items.len == 1) {
+    } else if (lists.candidates.items.len == 1) {
         method = try alloc.dupe(u8, "forced");
-        model = try alloc.dupe(u8, candidates.items[0]);
+        model = try alloc.dupe(u8, lists.candidates.items[0]);
     } else {
         method = try alloc.dupe(u8, "random");
-        model = try drawCandidate(rng, candidates.items);
+        model = try drawCandidate(rng, lists.candidates.items);
     }
 
     return .{
-        .candidates = try candidates.toOwnedSlice(alloc),
-        .reasons = try reasons.toOwnedSlice(alloc),
+        .candidates = try lists.candidates.toOwnedSlice(alloc),
+        .reasons = try lists.reasons.toOwnedSlice(alloc),
         .method = method,
         .model = model,
+    };
+}
+
+// ── T636: row shape — solo ladder, panel compose (ruling 34) ──────────────
+// Every row has a shape.  Solo (single-lane: implementation, bookkeeping,
+// infra) picks the cheapest qualified model by measured cost.  Panel
+// (union-valued: audits, races, adjudication) anchors then adds the model
+// expected to contribute the most unique catches per token given the seats
+// already filled.  shape == null is LEGACY: an existing row that predates
+// this field behaves exactly as before (T635's random/preferred/forced
+// draw) and is never retroactively labelled.
+
+const RowShape = enum {
+    solo,
+    panel,
+};
+
+fn parseShape(s: []const u8) ?RowShape {
+    if (std.mem.eql(u8, s, "solo")) return .solo;
+    if (std.mem.eql(u8, s, "panel")) return .panel;
+    return null;
+}
+
+fn shapeName(s: RowShape) []const u8 {
+    return switch (s) {
+        .solo => "solo",
+        .panel => "panel",
+    };
+}
+
+/// The outcome of a shape-aware pick (model + method) before the surrounding
+/// filter result is merged into an AssignResult.  Slices owned by the caller.
+const ShapePick = struct {
+    model: []const u8 = "",
+    method: []const u8 = "", // "solo-cost" | "panel-greedy" | "panel-prior" | "random"
+};
+
+/// Median of a measured-cost list; null when empty.  Robust to the wide
+/// cross-task-type spread of token costs (26M claim-doubt vs 1.6M
+/// discernment); it is a central reading, not a guarantee — and a candidate
+/// with no reading stays unknown rather than being assumed cheap or expensive.
+fn medianCost(costs: []const u64) ?u64 {
+    if (costs.len == 0) return null;
+    const sorted = alloc.dupe(u64, costs) catch return null;
+    defer alloc.free(sorted);
+    std.mem.sort(u64, sorted, {}, struct {
+        fn lt(_: void, a: u64, b: u64) bool {
+            return a < b;
+        }
+    }.lt);
+    return sorted[sorted.len / 2];
+}
+
+/// Solo pick: cheapest qualified by measured cost (median over the standing
+/// complementarity record's per-lane readings).  `costs[i]` is the measured
+/// cost of `candidates[i]`; null = unknown.  Unknown is never assumed cheap
+/// or expensive: an unknown-cost candidate is never preferred over a known
+/// cheaper one, and when NO candidate has a known cost the pick falls back
+/// to a uniform draw (method=random) and says so.  Passed-over candidates are
+/// recorded with their reason (cost comparison or unknown).
+fn soloPick(candidates: []const []const u8, costs: []const ?u64, rng: std.Random, sreasons: *std.ArrayList([]const u8)) !ShapePick {
+    var cheapest: ?usize = null;
+    for (candidates, 0..) |_, i| {
+        const c = if (i < costs.len) costs[i] else null;
+        if (c == null) continue;
+        if (cheapest == null or c.? < costs[cheapest.?].?) {
+            cheapest = i;
+        }
+    }
+
+    if (cheapest == null) {
+        const picked = try drawCandidate(rng, candidates);
+        for (candidates) |c| {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: measured cost unknown — random draw (no cost data)", .{c}));
+        }
+        return .{ .model = picked, .method = try alloc.dupe(u8, "random") };
+    }
+
+    const best = cheapest.?;
+    const best_cost = costs[best].?;
+    for (candidates, 0..) |c, i| {
+        if (i == best) continue;
+        const ccost = if (i < costs.len) costs[i] else null;
+        if (ccost) |v| {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — measured cost {d} tokens > {d} (cheapest)", .{ c, v, best_cost }));
+        } else {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — measured cost unknown (not compared)", .{c}));
+        }
+    }
+    return .{
+        .model = try alloc.dupe(u8, candidates[best]),
+        .method = try alloc.dupe(u8, "solo-cost"),
+    };
+}
+
+fn indexOfModel(names: []const []const u8, model: []const u8) ?usize {
+    for (names, 0..) |n, i| {
+        if (std.mem.eql(u8, n, model)) return i;
+    }
+    return null;
+}
+
+/// One greedy-marginal-complementarity step: given the already-seated models,
+/// pick the model whose caught set adds the most items no seated model
+/// caught.  This is the "expected unique catches per token" ranking — cost is
+/// the tie-break among equal marginals (a known cheaper cost beats an unknown
+/// one; an unmeasured expectation is a prior and never preferred over a
+/// measured one).  Returns the index into `model_names`, or null when no
+/// candidate adds a unique catch (diminishing returns).
+fn greedyPanelStep(
+    model_names: []const []const u8,
+    caught_sets: []const []const []const u8,
+    costs: []const ?u64,
+    seats: []const []const u8,
+    sreasons: *std.ArrayList([]const u8),
+) !?usize {
+    var covered = std.StringHashMapUnmanaged(void){};
+    defer covered.deinit(alloc);
+    for (seats) |seat| {
+        const si = indexOfModel(model_names, seat) orelse continue;
+        for (caught_sets[si]) |item| {
+            try covered.put(alloc, item, {});
+        }
+    }
+
+    var best: ?usize = null;
+    var best_marginal: usize = 0;
+    for (model_names, 0..) |m, i| {
+        var is_seated = false;
+        for (seats) |s| {
+            if (std.mem.eql(u8, s, m)) {
+                is_seated = true;
+                break;
+            }
+        }
+        if (is_seated) continue;
+
+        var marginal: usize = 0;
+        for (caught_sets[i]) |item| {
+            if (!covered.contains(item)) marginal += 1;
+        }
+
+        if (best == null or marginal > best_marginal) {
+            best = i;
+            best_marginal = marginal;
+        } else if (marginal == best_marginal) {
+            const c_new = if (i < costs.len) costs[i] else null;
+            const c_best = if (best.? < costs.len) costs[best.?] else null;
+            if (c_new != null and c_best != null and c_new.? < c_best.?) {
+                best = i;
+            } else if (c_new != null and c_best == null) {
+                best = i;
+            }
+        }
+    }
+
+    const chosen = best orelse return null;
+    if (best_marginal == 0) {
+        try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "diminishing returns: no qualified candidate adds a unique catch given the seats already filled", .{}));
+        return null;
+    }
+    try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: adds {d} unique catch(es) given seats so far", .{ model_names[chosen], best_marginal }));
+    return chosen;
+}
+
+/// Read every measured per-lane token cost for `model` from the standing
+/// complementarity record (T637's `tools/complementarity-record.json`).
+/// Empty when the record is absent or has no reading — a missing cost is
+/// "unknown", never guessed cheap or expensive.
+fn readMeasuredCosts(io: std.Io, repo_root: []const u8, model: []const u8) ![]u64 {
+    const path = std.fs.path.join(alloc, &.{ repo_root, "tools", "complementarity-record.json" }) catch return &.{};
+    defer alloc.free(path);
+    const content = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch |err| {
+        if (err == error.FileNotFound) return &.{};
+        return err;
+    };
+    defer alloc.free(content);
+
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch return &.{};
+    defer parsed.deinit();
+
+    var costs = std.ArrayList(u64).empty;
+    if (parsed.value != .object) return &.{};
+    const groups = parsed.value.object.get("groups") orelse return &.{};
+    if (groups != .object) return &.{};
+    var git = groups.object.iterator();
+    while (git.next()) |g| {
+        const group = g.value_ptr.*;
+        if (group != .object) continue;
+        const per_lane = group.object.get("per_lane") orelse continue;
+        if (per_lane != .object) continue;
+        var lit = per_lane.object.iterator();
+        while (lit.next()) |lane_entry| {
+            const lane = lane_entry.value_ptr.*;
+            if (lane != .object) continue;
+            const m = lane.object.get("model") orelse continue;
+            if (m != .string or !std.mem.eql(u8, m.string, model)) continue;
+            if (lane.object.get("cost")) |cv| {
+                if (cv == .integer) {
+                    try costs.append(alloc, @intCast(cv.integer));
+                }
+            }
+        }
+    }
+    return costs.toOwnedSlice(alloc);
+}
+
+/// model → caught-item set, aggregated across every group of the standing
+/// complementarity record.  Not task-type-scoped: the row carries no
+/// task_type yet, so this is the honest whole-record prior and is labelled
+/// one in the selection reasons.
+const CaughtSets = std.StringHashMapUnmanaged(std.StringHashMapUnmanaged(void));
+
+fn freeCaughtSets(map: *CaughtSets) void {
+    var mit = map.iterator();
+    while (mit.next()) |e| {
+        alloc.free(e.key_ptr.*);
+        var inner = e.value_ptr.*;
+        var iit = inner.iterator();
+        while (iit.next()) |ie| alloc.free(ie.key_ptr.*);
+        inner.deinit(alloc);
+    }
+    map.deinit(alloc);
+}
+
+fn buildCaughtSets(io: std.Io, repo_root: []const u8) !CaughtSets {
+    var map = CaughtSets{};
+    errdefer freeCaughtSets(&map);
+
+    const path = std.fs.path.join(alloc, &.{ repo_root, "tools", "complementarity-record.json" }) catch return map;
+    defer alloc.free(path);
+    const content = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch |err| {
+        if (err == error.FileNotFound) return map;
+        return err;
+    };
+    defer alloc.free(content);
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch return map;
+    defer parsed.deinit();
+
+    if (parsed.value != .object) return map;
+    const groups = parsed.value.object.get("groups") orelse return map;
+    if (groups != .object) return map;
+
+    var git = groups.object.iterator();
+    while (git.next()) |g| {
+        const group = g.value_ptr.*;
+        if (group != .object) continue;
+        const per_lane = group.object.get("per_lane") orelse continue;
+        const caught_matrix = group.object.get("caught_matrix") orelse continue;
+        if (per_lane != .object or caught_matrix != .object) continue;
+
+        // lane id → model name (owned copies, freed at end of this group).
+        var lane_model = std.StringHashMapUnmanaged([]const u8){};
+        defer {
+            var lit2 = lane_model.iterator();
+            while (lit2.next()) |le| alloc.free(le.value_ptr.*);
+            lane_model.deinit(alloc);
+        }
+        {
+            var lit = per_lane.object.iterator();
+            while (lit.next()) |lane_entry| {
+                const lane = lane_entry.value_ptr.*;
+                if (lane != .object) continue;
+                const m = lane.object.get("model") orelse continue;
+                if (m != .string) continue;
+                try lane_model.put(alloc, lane_entry.key_ptr.*, try alloc.dupe(u8, m.string));
+            }
+        }
+
+        var mit = caught_matrix.object.iterator();
+        while (mit.next()) |item_entry| {
+            const item = item_entry.key_ptr.*;
+            const lanes = item_entry.value_ptr.*;
+            if (lanes != .array) continue;
+            for (lanes.array.items) |lv| {
+                if (lv != .string) continue;
+                const model = lane_model.get(lv.string) orelse continue;
+                const entry = try map.getOrPut(alloc, model);
+                if (!entry.found_existing) {
+                    entry.key_ptr.* = try alloc.dupe(u8, model);
+                    entry.value_ptr.* = .{};
+                }
+                try entry.value_ptr.put(alloc, try alloc.dupe(u8, item), {});
+            }
+        }
+    }
+    return map;
+}
+
+/// Panel pick: anchor + greedy marginal complementarity over the standing
+/// complementarity record (a `CaughtSets` map, possibly empty).  Empty map =
+/// prior-driven (uniform draw, labelled loudly).  `costs` is the parallel
+/// per-candidate measured cost (median) used only as the tie-break among
+/// equal marginals.  Pure over its inputs — testable with seeded fixtures.
+fn panelPick(
+    candidates: []const []const u8,
+    caught: *const CaughtSets,
+    costs: []const ?u64,
+    seats: []const []const u8,
+    rng: std.Random,
+    sreasons: *std.ArrayList([]const u8),
+) !ShapePick {
+    var measured = std.ArrayList([]const u8).empty;
+    defer measured.deinit(alloc);
+    var measured_caught = std.ArrayList([]const []const u8).empty;
+    defer {
+        for (measured_caught.items) |s| alloc.free(s);
+        measured_caught.deinit(alloc);
+    }
+    var measured_costs = std.ArrayList(?u64).empty;
+    defer measured_costs.deinit(alloc);
+
+    for (candidates, 0..) |c, i| {
+        const entry = caught.get(c);
+        if (entry == null) {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: no measured expectation in the complementarity record (prior, not ranked)", .{c}));
+            continue;
+        }
+        var items = std.ArrayList([]const u8).empty;
+        var it2 = entry.?.iterator();
+        while (it2.next()) |e| try items.append(alloc, e.key_ptr.*);
+        try measured.append(alloc, c);
+        try measured_caught.append(alloc, try items.toOwnedSlice(alloc));
+        try measured_costs.append(alloc, if (i < costs.len) costs[i] else null);
+    }
+
+    if (measured.items.len == 0) {
+        const picked = try drawCandidate(rng, candidates);
+        try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "prior-driven: complementarity record has no measured expectation for any qualified candidate — guessing (uniform draw)", .{}));
+        return .{ .model = picked, .method = try alloc.dupe(u8, "panel-prior") };
+    }
+
+    const next = try greedyPanelStep(measured.items, measured_caught.items, measured_costs.items, seats, sreasons);
+    const idx = next orelse return error.NoQualifiedCandidate;
+    return .{
+        .model = try alloc.dupe(u8, measured.items[idx]),
+        .method = try alloc.dupe(u8, "panel-greedy"),
+    };
+}
+
+/// Shape-aware assignment (ruling 34).  `shape == null` is the legacy T635
+/// draw (an existing row with no shape behaves exactly as before).  For a
+/// solo row the multi-candidate pick is cheapest-measured-cost; for a panel
+/// row it is anchor + greedy marginal complementarity over the standing
+/// record.  `requested` (--model) and a one-element qualified list behave as
+/// in T635 regardless of shape.  `seats` names already-seated models (panel
+/// only).  The T635 filter (candidates/reasons) is shared, so the
+/// candidates/method record is written identically whichever shape applied.
+fn selectForShape(
+    shape: ?RowShape,
+    requested: ?[]const u8,
+    exclusions: []const []const u8,
+    seats: []const []const u8,
+    rng: std.Random,
+    io: std.Io,
+    repo_root: []const u8,
+) !AssignResult {
+    if (shape == null) return assignModel(requested, exclusions, rng);
+
+    var lists = try filterQualified(exclusions);
+    errdefer deinitQualified(&lists);
+    var sreasons = std.ArrayList([]const u8).empty;
+    errdefer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+
+    var method: []const u8 = undefined;
+    var model: []const u8 = undefined;
+    if (requested) |req| {
+        method = try alloc.dupe(u8, "preferred");
+        model = try alloc.dupe(u8, req);
+        var in_list = false;
+        for (lists.candidates.items) |c| {
+            if (std.mem.eql(u8, c, req)) in_list = true;
+        }
+        if (!in_list) {
+            try lists.reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: preferred by row (outside qualified list)", .{req}));
+        }
+    } else if (lists.candidates.items.len == 0) {
+        return error.NoQualifiedCandidate;
+    } else if (lists.candidates.items.len == 1) {
+        method = try alloc.dupe(u8, "forced");
+        model = try alloc.dupe(u8, lists.candidates.items[0]);
+    } else {
+        const cands = lists.candidates.items;
+        switch (shape.?) {
+            .solo => {
+                var costs = std.ArrayList(?u64).empty;
+                defer costs.deinit(alloc);
+                for (cands) |c| {
+                    const readings = try readMeasuredCosts(io, repo_root, c);
+                    defer alloc.free(readings);
+                    try costs.append(alloc, medianCost(readings));
+                }
+                const pick = try soloPick(cands, costs.items, rng, &sreasons);
+                model = pick.model;
+                method = pick.method;
+            },
+            .panel => {
+                var caught = try buildCaughtSets(io, repo_root);
+                defer freeCaughtSets(&caught);
+                var costs = std.ArrayList(?u64).empty;
+                defer costs.deinit(alloc);
+                for (cands) |c| {
+                    const readings = try readMeasuredCosts(io, repo_root, c);
+                    defer alloc.free(readings);
+                    try costs.append(alloc, medianCost(readings));
+                }
+                const pick = try panelPick(cands, &caught, costs.items, seats, rng, &sreasons);
+                model = pick.model;
+                method = pick.method;
+            },
+        }
+    }
+
+    return .{
+        .candidates = try lists.candidates.toOwnedSlice(alloc),
+        .reasons = try lists.reasons.toOwnedSlice(alloc),
+        .method = method,
+        .model = model,
+        .shape_reasons = try sreasons.toOwnedSlice(alloc),
     };
 }
 
@@ -514,7 +995,7 @@ const mutating_verbs = [_][]const u8{
     "add",     "claim",  "done",    "reopen", "purge", "set",
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
-    "standing", "assert", "retire", "duty", "reap", "assign",
+    "standing", "assert", "retire", "duty", "reap", "assign", "shape",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -787,6 +1268,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdSuggest(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "assign")) {
         try cmdAssign(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "shape")) {
+        try cmdShape(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "duty")) {
         try cmdDuty(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "landmark")) {
@@ -842,6 +1325,10 @@ const BundleMeta = struct {
     // default closes-until-due (5).
     duty: bool = false,
     due_after: u32 = 5,
+    // T636: row shape (ruling 34).  null = not declared; registration then
+    // applies the honest default (solo).  A declared value must be solo or
+    // panel — anything else is refused at parse.
+    shape: ?[]const u8 = null,
 };
 
 fn findBundle(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8) ![]const u8 {
@@ -993,6 +1480,14 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
             // T478: per-duty closes-until-due (default 5).  An unparseable
             // value falls back to 5 rather than failing registration.
             result.due_after = std.fmt.parseInt(u32, value, 10) catch 5;
+        } else if (std.mem.eql(u8, key, "shape")) {
+            // T636: row shape (ruling 34).  Only solo|panel are accepted; a
+            // bogus value is refused rather than silently defaulted.
+            if (parseShape(value) == null) {
+                w.diag("error: invalid shape '{s}' in metadata (must be solo or panel)\n", .{value});
+                std.process.exit(1);
+            }
+            result.shape = try alloc.dupe(u8, value);
         } else if (std.mem.eql(u8, key, "context")) {
             w.diag("error: 'context=…' key is rejected (retired 2026-07-28); remove it from {s}\n", .{bundle_path});
             std.process.exit(1);
@@ -1210,6 +1705,68 @@ fn effectiveHolds(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8,
     for (declared) |h| w.diag(" {s}", .{h});
     w.diag("\n  run 'managent holds --sync' to reconcile the store\n", .{});
     return declared;
+}
+
+/// T627: mechanical scope facts, computed at dispatch/claim time from the
+/// bundle — never asked of a worker.  brief_bytes is the bundle file size;
+/// files_in_scope is the count of UNIQUE paths across the bundle's
+/// deliverables= and holds= (the files the task promises to touch or produce).
+/// Returns nulls (UNKNOWN) when the bundle cannot be read — an unmeasurable
+/// scope is a fact, distinct from an empty one.
+const ScopeFacts = struct {
+    brief_bytes: ?u64,
+    files_in_scope: ?u32,
+};
+
+fn computeScopeFacts(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8, ts: TaskState) !ScopeFacts {
+    const abs = bundleAbsFor(io, repo_root, id, ts.bundle) orelse
+        return .{ .brief_bytes = null, .files_in_scope = null };
+    const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch
+        return .{ .brief_bytes = null, .files_in_scope = null };
+    defer alloc.free(content);
+
+    // holds: the stored list is authoritative when present; otherwise read the
+    // bundle header's holds= so a registration-gap row still gets a real count.
+    const holds: []const []const u8 = if (ts.holds.len > 0) ts.holds else (readBundleHolds(io, abs) orelse &.{});
+
+    const dels = try parseDeliverablesFromBundle(w, io, abs, holds);
+    defer {
+        for (dels) |d| alloc.free(d);
+        alloc.free(dels);
+    }
+
+    var set = std.StringHashMapUnmanaged(void).empty;
+    defer set.deinit(alloc);
+    for (holds) |h| set.put(alloc, h, {}) catch {};
+    for (dels) |d| set.put(alloc, d, {}) catch {};
+
+    return .{
+        .brief_bytes = content.len,
+        .files_in_scope = @intCast(set.count()),
+    };
+}
+
+/// T627: write the scope enumeration onto a row.  `targets` (when non-null) is
+/// an owned, already-parsed target list (from --scope-targets);
+/// `unenumerable_reason` (when non-null) records that the set genuinely cannot
+/// be enumerated in advance.  Both null clears the statement to UNKNOWN — a
+/// re-dispatch without a scope flag is a fresh UNKNOWN, not a stale carry-over.
+/// Old scope_targets/scope_note are freed first.
+fn setScopeEnumeration(ts: *TaskState, targets: ?[][]const u8, unenumerable_reason: ?[]const u8) !void {
+    for (ts.scope_targets) |t| alloc.free(t);
+    alloc.free(ts.scope_targets);
+    if (ts.scope_note) |sn| alloc.free(sn);
+    ts.scope_targets = &.{};
+    ts.scope_note = null;
+    if (targets) |t| {
+        ts.scope_targets = t;
+        ts.scope_enumerable = true;
+    } else if (unenumerable_reason) |r| {
+        ts.scope_note = try alloc.dupe(u8, r);
+        ts.scope_enumerable = false;
+    } else {
+        ts.scope_enumerable = null;
+    }
 }
 
 // ── state file ──────────────────────────────────────────────────────────────
@@ -1525,6 +2082,21 @@ fn parseStateJson(content: []const u8) !StateMap {
                 ts.assign_reasons = try list.toOwnedSlice(alloc);
             }
         }
+        // T636: row shape + shape-selection notes.
+        if (obj.object.get("shape")) |sv3| {
+            if (sv3 == .string) ts.shape = try alloc.dupe(u8, sv3.string);
+        }
+        if (obj.object.get("shape_reasons")) |srv| {
+            if (srv == .array) {
+                var list = std.ArrayList([]const u8).empty;
+                for (srv.array.items) |item| {
+                    if (item == .string) {
+                        try list.append(alloc, try alloc.dupe(u8, item.string));
+                    }
+                }
+                ts.shape_reasons = try list.toOwnedSlice(alloc);
+            }
+        }
         if (obj.object.get("added")) |ad| {
             if (ad == .string) ts.added = try alloc.dupe(u8, ad.string);
         }
@@ -1595,6 +2167,33 @@ fn parseStateJson(content: []const u8) !StateMap {
         }
         if (obj.object.get("epitaph")) |ep| {
             if (ep == .string) ts.epitaph = try alloc.dupe(u8, ep.string);
+        }
+        // T627: dispatch scope fields (null = UNKNOWN, distinct from 0/none).
+        if (obj.object.get("brief_bytes")) |b| {
+            if (b == .integer) ts.brief_bytes = @intCast(b.integer);
+        }
+        if (obj.object.get("files_in_scope")) |f| {
+            if (f == .integer) ts.files_in_scope = @intCast(f.integer);
+        }
+        if (obj.object.get("expected_wall_s")) |e| {
+            if (e == .integer) ts.expected_wall_s = @intCast(e.integer);
+        }
+        if (obj.object.get("scope_enumerable")) |se| {
+            if (se == .bool) ts.scope_enumerable = se.bool;
+        }
+        if (obj.object.get("scope_targets")) |st| {
+            if (st == .array) {
+                var list = std.ArrayList([]const u8).empty;
+                for (st.array.items) |item| {
+                    if (item == .string) {
+                        try list.append(alloc, try alloc.dupe(u8, item.string));
+                    }
+                }
+                ts.scope_targets = try list.toOwnedSlice(alloc);
+            }
+        }
+        if (obj.object.get("scope_note")) |sn| {
+            if (sn == .string) ts.scope_note = try alloc.dupe(u8, sn.string);
         }
 
         try state.put(alloc, task_id, ts);
@@ -1697,6 +2296,20 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
 
         try buf.appendSlice(alloc, ",\n    \"assign_reasons\": [");
         for (ts.assign_reasons, 0..) |r, ri| {
+            if (ri > 0) try buf.appendSlice(alloc, ", ");
+            try writeJsonString(buf, r);
+        }
+        try buf.appendSlice(alloc, "]");
+
+        // T636: row shape + shape-selection notes.
+        if (ts.shape) |sh| {
+            try buf.appendSlice(alloc, ",\n    \"shape\": ");
+            try writeJsonString(buf, sh);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"shape\": null");
+        }
+        try buf.appendSlice(alloc, ",\n    \"shape_reasons\": [");
+        for (ts.shape_reasons, 0..) |r, ri| {
             if (ri > 0) try buf.appendSlice(alloc, ", ");
             try writeJsonString(buf, r);
         }
@@ -1825,6 +2438,44 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try writeJsonString(buf, ep);
         } else {
             try buf.appendSlice(alloc, ",\n    \"epitaph\": null");
+        }
+
+        // T627: dispatch scope fields (null = UNKNOWN, never 0/none).
+        if (ts.brief_bytes) |b| {
+            try buf.appendSlice(alloc, ",\n    \"brief_bytes\": ");
+            try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{b}));
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"brief_bytes\": null");
+        }
+        if (ts.files_in_scope) |f| {
+            try buf.appendSlice(alloc, ",\n    \"files_in_scope\": ");
+            try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{f}));
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"files_in_scope\": null");
+        }
+        if (ts.expected_wall_s) |e| {
+            try buf.appendSlice(alloc, ",\n    \"expected_wall_s\": ");
+            try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{e}));
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"expected_wall_s\": null");
+        }
+        if (ts.scope_enumerable) |se| {
+            try buf.appendSlice(alloc, ",\n    \"scope_enumerable\": ");
+            try buf.appendSlice(alloc, if (se) "true" else "false");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"scope_enumerable\": null");
+        }
+        try buf.appendSlice(alloc, ",\n    \"scope_targets\": [");
+        for (ts.scope_targets, 0..) |t, ti| {
+            if (ti > 0) try buf.appendSlice(alloc, ", ");
+            try writeJsonString(buf, t);
+        }
+        try buf.appendSlice(alloc, "]");
+        if (ts.scope_note) |sn| {
+            try buf.appendSlice(alloc, ",\n    \"scope_note\": ");
+            try writeJsonString(buf, sn);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"scope_note\": null");
         }
 
         try buf.appendSlice(alloc, "\n  }");
@@ -2236,6 +2887,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
 
         const now = try nowTimestamp();
+        // T636: honest default — a new row with no declared shape is solo.
+        const shape = meta.shape orelse try alloc.dupe(u8, "solo");
 
         const ts = TaskState{
             .status = initial_status,
@@ -2247,6 +2900,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .needs = meta.needs,
             .caps = meta.caps,
             .acceptance = meta.acceptance,
+            .shape = shape,
             .duty = meta.duty or duty_flag,
             .due_after = meta.due_after,
             .last_chunk_closes = if (meta.duty or duty_flag) sys_closes else 0,
@@ -2323,6 +2977,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
 
     const now = try nowTimestamp();
+    // T636: honest default — a new row with no declared shape is solo.
+    const shape = meta.shape orelse try alloc.dupe(u8, "solo");
 
     const ts = TaskState{
         .status = initial_status,
@@ -2334,6 +2990,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .needs = meta.needs,
         .caps = meta.caps,
         .acceptance = meta.acceptance,
+        .shape = shape,
         .duty = meta.duty or duty_flag,
         .due_after = meta.due_after,
         .last_chunk_closes = if (meta.duty or duty_flag) sys_closes else 0,
@@ -2474,6 +3131,12 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             // reads the count when naming the holder).
             ts_ptr.claim_count += 1;
 
+            // T627: fill mechanical scope facts on claim — a row claimed
+            // without a prior dispatch still carries brief_bytes/files_in_scope.
+            const claim_scope = try computeScopeFacts(w, io, repo_root, id, ts_ptr.*);
+            ts_ptr.brief_bytes = claim_scope.brief_bytes;
+            ts_ptr.files_in_scope = claim_scope.files_in_scope;
+
             try writeStateLocked(io, state_path, &state);
             const ident = try agentIdentifier(ts_ptr.*, id);
             w.diag("\n  claimed {s}  [set: {c}]  [{s}]\n", .{ id, ts_ptr.set, ident });
@@ -2540,6 +3203,12 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             // the .blocked branch — refusal paths never touch the count).
             ts_ptr.claim_count += 1;
 
+            // T627: fill mechanical scope facts on claim — a row claimed
+            // without a prior dispatch still carries brief_bytes/files_in_scope.
+            const claim_scope = try computeScopeFacts(w, io, repo_root, id, ts_ptr.*);
+            ts_ptr.brief_bytes = claim_scope.brief_bytes;
+            ts_ptr.files_in_scope = claim_scope.files_in_scope;
+
             try writeStateLocked(io, state_path, &state);
 
             const ident = try agentIdentifier(ts_ptr.*, id);
@@ -2566,7 +3235,7 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
 fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
-        w.diag("usage: managent dispatch <id> --to <agent> [--note <text>] [--force]\n", .{});
+        w.diag("usage: managent dispatch <id> --to <agent> [--note <text>] [--force] [--expected-wall <secs>] [--scope-targets <a,b,c> | --scope-unenumerable <reason>]\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
@@ -2593,6 +3262,46 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
             w.diag("error: --note is 4 KiB max (got {d} bytes)\n", .{nt.len});
             std.process.exit(1);
         }
+    }
+
+    // T627: scope fields.  expected_wall_s is the dispatcher's estimate; absent
+    // is UNKNOWN (null), never 0 — 0 would masquerade as "instant".  The scope
+    // enumeration is --scope-targets (enumerated) XOR --scope-unenumerable
+    // (explicitly cannot be enumerated); neither → UNKNOWN.
+    const expected_wall_raw = getFlagValue(args, "--expected-wall");
+    var expected_wall_s: ?u32 = null;
+    if (expected_wall_raw) |ew| {
+        const parsed = std.fmt.parseInt(u32, ew, 10) catch {
+            w.diag("error: --expected-wall must be a positive integer of seconds (got '{s}')\n", .{ew});
+            std.process.exit(1);
+        };
+        if (parsed == 0) {
+            w.diag("error: --expected-wall must be positive; absent is UNKNOWN (omit the flag), never 0\n", .{});
+            std.process.exit(1);
+        }
+        expected_wall_s = parsed;
+    }
+
+    const scope_targets_raw = getFlagValue(args, "--scope-targets");
+    const scope_unenum_raw = getFlagValue(args, "--scope-unenumerable");
+    if (scope_targets_raw != null and scope_unenum_raw != null) {
+        w.diag("error: --scope-targets and --scope-unenumerable are mutually exclusive\n", .{});
+        std.process.exit(1);
+    }
+    if (scope_unenum_raw) |r| {
+        if (r.len == 0) {
+            w.diag("error: --scope-unenumerable needs a non-empty reason (why the target set cannot be enumerated)\n", .{});
+            std.process.exit(1);
+        }
+    }
+    var scope_targets_owned: ?[][]const u8 = null;
+    if (scope_targets_raw) |t| {
+        const parsed = try parseHoldsList(t);
+        if (parsed.len == 0) {
+            w.diag("error: --scope-targets needs at least one target; use --scope-unenumerable <reason> to say the set cannot be enumerated\n", .{});
+            std.process.exit(1);
+        }
+        scope_targets_owned = parsed;
     }
 
     // T317: lock → re-read → modify → writeLocked → unlock
@@ -2662,6 +3371,15 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
     } else {
         ts_ptr.note = null;
     }
+
+    // T627: write the scope fields at dispatch time (the tool's job, never the
+    // worker's).  brief_bytes/files_in_scope are mechanical; expected_wall_s and
+    // the scope enumeration come from this dispatch's flags.
+    const scope_facts = try computeScopeFacts(w, io, repo_root, id, ts_ptr.*);
+    ts_ptr.brief_bytes = scope_facts.brief_bytes;
+    ts_ptr.files_in_scope = scope_facts.files_in_scope;
+    ts_ptr.expected_wall_s = expected_wall_s;
+    try setScopeEnumeration(ts_ptr, scope_targets_owned, scope_unenum_raw);
 
     try writeStateLocked(io, state_path, &state);
 
@@ -2759,6 +3477,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         .holds = &.{},
         .needs = &.{},
         .caps = &.{},
+        .shape = try alloc.dupe(u8, "solo"),
         .added = now,
         .claimed = null,
         .done = null,
@@ -4707,6 +5426,18 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             }
             try buf.appendSlice(alloc, "]");
         }
+        if (ts.shape) |sh| {
+            try buf.appendSlice(alloc, ",\"shape\":");
+            try writeJsonString(&buf, sh);
+        }
+        if (ts.shape_reasons.len > 0) {
+            try buf.appendSlice(alloc, ",\"shape_reasons\":[");
+            for (ts.shape_reasons, 0..) |r, ri| {
+                if (ri > 0) try buf.appendSlice(alloc, ",");
+                try writeJsonString(&buf, r);
+            }
+            try buf.appendSlice(alloc, "]");
+        }
         if (ts.agent) |_| {
             const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
             try buf.appendSlice(alloc, ",\"identifier\":");
@@ -5711,6 +6442,15 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             w.data("      {s}\n", .{r});
         }
     }
+    if (ts.shape) |sh| {
+        w.data("    shape:    {s}\n", .{sh});
+    }
+    if (ts.shape_reasons.len > 0) {
+        w.data("    shape_reasons ({d}):\n", .{ts.shape_reasons.len});
+        for (ts.shape_reasons) |r| {
+            w.data("      {s}\n", .{r});
+        }
+    }
     if (ts.agent) |_| {
         const ident = try agentIdentifier(ts, id);
         w.data("    identifier: {s}\n", .{ident});
@@ -5749,6 +6489,35 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
     if (ts.skip_acceptance_reason) |sr| {
         w.data("    skip_acceptance_reason: {s}\n", .{sr});
+    }
+    // T627: dispatch scope fields — null renders UNKNOWN, never 0/"none".
+    if (ts.brief_bytes) |b| {
+        w.data("    brief_bytes: {d}\n", .{b});
+    } else {
+        w.data("    brief_bytes: UNKNOWN\n", .{});
+    }
+    if (ts.files_in_scope) |f| {
+        w.data("    files_in_scope: {d}\n", .{f});
+    } else {
+        w.data("    files_in_scope: UNKNOWN\n", .{});
+    }
+    if (ts.expected_wall_s) |e| {
+        w.data("    expected_wall_s: {d}\n", .{e});
+    } else {
+        w.data("    expected_wall_s: UNKNOWN\n", .{});
+    }
+    if (ts.scope_enumerable) |se| {
+        if (se) {
+            w.data("    scope: enumerated ({d} targets)", .{ts.scope_targets.len});
+            for (ts.scope_targets) |t| w.data(" {s}", .{t});
+            w.data("\n", .{});
+        } else {
+            w.data("    scope: unenumerable", .{});
+            if (ts.scope_note) |sn| w.data(" — {s}", .{sn});
+            w.data("\n", .{});
+        }
+    } else {
+        w.data("    scope: UNKNOWN\n", .{});
     }
     if (ts.amendments.len > 0) {
         w.data("    amendments ({d}):\n", .{ts.amendments.len});
@@ -5833,7 +6602,7 @@ fn cmdModels(w: Writers, args: [][]const u8) !void {
 // emits the result as one JSON object on stdout.
 fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
-        w.diag("usage: managent assign <id> [--model <name>] [--exclude <tokens>] [--dry-run] [--json]\n", .{});
+        w.diag("usage: managent assign <id> [--model <name>] [--exclude <tokens>] [--seats <models>] [--dry-run] [--json]\n", .{});
         std.process.exit(1);
     }
     const id = args[2];
@@ -5862,6 +6631,33 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
         std.process.exit(1);
     };
 
+    // T636: the row's shape decides the pick (null = legacy T635 draw).
+    const shape: ?RowShape = if (ts_ptr.shape) |sh| parseShape(sh) else null;
+
+    // T636: --seats names already-seated models for a panel row (greedy
+    // marginal complementarity given the seats already filled).
+    var seats = std.ArrayList([]const u8).empty;
+    defer {
+        for (seats.items) |s| alloc.free(s);
+        seats.deinit(alloc);
+    }
+    if (getFlagValue(args, "--seats")) |sv| {
+        const parsed = try parseHoldsList(sv);
+        defer {
+            for (parsed) |s| alloc.free(s);
+            alloc.free(parsed);
+        }
+        for (parsed) |s| {
+            const canon = canonicalizeModelTag(s);
+            if (!isCanonicalModel(canon)) {
+                w.diag("error: '{s}' is not a canonical model label (--seats).\n", .{s});
+                printCanonicalModels(w);
+                std.process.exit(1);
+            }
+            try seats.append(alloc, try alloc.dupe(u8, canon));
+        }
+    }
+
     // Exclusions: the row's bundle `exclude=` (soft) plus any --exclude flag.
     var exclusions = std.ArrayList([]const u8).empty;
     defer {
@@ -5889,7 +6685,7 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     // Draw with OS entropy (ruling 33: never a seeded PRNG, never clock/task).
     var os = OsEntropy{ .io = io };
     const rng = std.Random.init(&os, OsEntropy.fill);
-    var result = assignModel(requested, exclusions.items, rng) catch |err| {
+    var result = selectForShape(shape, requested, exclusions.items, seats.items, rng, io, repo_root) catch |err| {
         if (err == error.NoQualifiedCandidate) {
             if (use_json) {
                 w.data("{{\"id\":\"{s}\",\"error\":\"no-qualified-candidate\",\"candidates\":[],\"reasons\":[]}}\n", .{id});
@@ -5930,6 +6726,16 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
             try writeJsonString(&buf, r);
         }
         try buf.appendSlice(alloc, "]");
+        try buf.appendSlice(alloc, ",\"shape_reasons\":[");
+        for (result.shape_reasons, 0..) |r, ri| {
+            if (ri > 0) try buf.appendSlice(alloc, ",");
+            try writeJsonString(&buf, r);
+        }
+        try buf.appendSlice(alloc, "]");
+        if (shape) |sh| {
+            try buf.appendSlice(alloc, ",\"shape\":");
+            try writeJsonString(&buf, shapeName(sh));
+        }
         if (dry_run) try buf.appendSlice(alloc, ",\"dry_run\":true");
         try buf.appendSlice(alloc, "}\n");
         w.data("{s}", .{buf.items});
@@ -5947,6 +6753,15 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
             w.data("{s}", .{r});
         }
         w.data("\n", .{});
+        if (shape) |sh| {
+            w.data("shape={s}\n", .{shapeName(sh)});
+        }
+        w.data("shape_reasons=", .{});
+        for (result.shape_reasons, 0..) |r, ri| {
+            if (ri > 0) w.data("|", .{});
+            w.data("{s}", .{r});
+        }
+        w.data("\n", .{});
     }
 
     if (dry_run) {
@@ -5954,6 +6769,54 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     } else {
         w.diag("  assigned {s} -> {s} [method={s}]\n", .{ id, result.model, result.method });
     }
+}
+
+// ── T636: row shape — set/amend the shape field (ruling 34) ───────────────
+// Registration defaults a new row to solo; this verb amends it.  `shape` is
+// what `assign` reads to decide between the solo ladder and panel
+// composition.  `shape <id>` (no value) shows the current shape read-only.
+fn cmdShape(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = repo_root;
+    if (args.len < 3) {
+        w.diag("usage: managent shape <id> [solo|panel]\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+
+    if (args.len < 4) {
+        var state = try readState(io, state_path);
+        defer freeState(&state);
+        const ts = state.get(id) orelse {
+            w.diag("error: task '{s}' not found\n", .{id});
+            std.process.exit(1);
+        };
+        if (ts.shape) |sh| {
+            w.data("shape: {s}\n", .{sh});
+        } else {
+            w.data("shape: (none — legacy draw)\n", .{});
+        }
+        return;
+    }
+
+    const value = args[3];
+    if (parseShape(value) == null) {
+        w.diag("error: invalid shape '{s}' (must be solo or panel)\n", .{value});
+        std.process.exit(1);
+    }
+
+    // T337: lock → re-read → modify → writeStateLocked → unlock.
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+    const ts_ptr = state.getPtr(id) orelse {
+        w.diag("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+    const old = ts_ptr.shape;
+    if (ts_ptr.shape) |oldsh| alloc.free(oldsh);
+    ts_ptr.shape = try alloc.dupe(u8, value);
+    try writeStateLocked(io, state_path, &state);
+    w.diag("\n  {s}  shape {s} -> {s}\n", .{ id, old orelse "(none)", value });
 }
 
 /// T635: copy a computed assignment onto the row (owning copies so the store
@@ -5972,6 +6835,13 @@ fn setAssignmentOnTask(ts: *TaskState, r: *const AssignResult) !void {
     for (ts.assign_reasons) |x| alloc.free(x);
     alloc.free(ts.assign_reasons);
     ts.assign_reasons = try reas.toOwnedSlice(alloc);
+
+    // T636: shape-selection notes (empty for the legacy draw).
+    var sreas = std.ArrayList([]const u8).empty;
+    for (r.shape_reasons) |x| try sreas.append(alloc, try alloc.dupe(u8, x));
+    for (ts.shape_reasons) |x| alloc.free(x);
+    alloc.free(ts.shape_reasons);
+    ts.shape_reasons = try sreas.toOwnedSlice(alloc);
 
     if (ts.method) |old| alloc.free(old);
     ts.method = try alloc.dupe(u8, r.method);
@@ -6343,6 +7213,9 @@ fn freeState(state: *StateMap) void {
         if (ts.method) |m| alloc.free(m);
         for (ts.assign_reasons) |r| alloc.free(r);
         alloc.free(ts.assign_reasons);
+        if (ts.shape) |sh| alloc.free(sh);
+        for (ts.shape_reasons) |r| alloc.free(r);
+        alloc.free(ts.shape_reasons);
         alloc.free(ts.added);
         if (ts.claimed) |c| alloc.free(c);
         if (ts.done) |d| alloc.free(d);
@@ -6358,6 +7231,10 @@ fn freeState(state: *StateMap) void {
         for (ts.amendments) |am| alloc.free(am);
         alloc.free(ts.amendments);
         if (ts.epitaph) |ep| alloc.free(ep);
+        // T627: scope fields
+        for (ts.scope_targets) |t| alloc.free(t);
+        alloc.free(ts.scope_targets);
+        if (ts.scope_note) |sn| alloc.free(sn);
     }
     state.deinit(alloc);
 }
@@ -8778,6 +9655,7 @@ fn registerStanding(
         .holds = &.{},
         .needs = &.{},
         .caps = &.{},
+        .shape = try alloc.dupe(u8, "solo"),
         .added = now,
         .claimed = null,
         .done = null,
@@ -10635,4 +11513,330 @@ test "assign: candidates/method/reasons round-trip serialize → parse" {
     try std.testing.expectEqualStrings("deepseek-v4-pro", p.candidates[1]);
     try std.testing.expectEqual(@as(usize, 1), p.assign_reasons.len);
     try std.testing.expectEqualStrings("glm-5.2: appetite OFF for family ollama-cloud", p.assign_reasons[0]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T627 tests — dispatch scope fields (ruling 35 denominator)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Test isolation per T427: these never touch the live store — they round-trip a
+// fixture row through serializeState/parseStateJson in memory only.
+
+test "scope: enumerated fields round-trip serialize → parse" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .dispatchable,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-22T00:00:00Z",
+        .brief_bytes = 4096,
+        .files_in_scope = 3,
+        .expected_wall_s = 1800,
+        .scope_enumerable = true,
+    };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-22T00:00:00Z");
+    var targets = std.ArrayList([]const u8).empty;
+    try targets.append(alloc, try alloc.dupe(u8, "src/managent/main.zig"));
+    try targets.append(alloc, try alloc.dupe(u8, "findings/TX-scope.json"));
+    try targets.append(alloc, try alloc.dupe(u8, "docs/infra/managent/spec.md"));
+    ts.scope_targets = try targets.toOwnedSlice(alloc);
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expectEqual(@as(?u64, 4096), p.brief_bytes);
+    try std.testing.expectEqual(@as(?u32, 3), p.files_in_scope);
+    try std.testing.expectEqual(@as(?u32, 1800), p.expected_wall_s);
+    try std.testing.expectEqual(@as(?bool, true), p.scope_enumerable);
+    try std.testing.expectEqual(@as(usize, 3), p.scope_targets.len);
+    try std.testing.expectEqualStrings("src/managent/main.zig", p.scope_targets[0]);
+    try std.testing.expect(p.scope_note == null);
+}
+
+test "scope: unenumerable statement round-trips (note, not a guessed list)" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .dispatchable,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-22T00:00:00Z",
+        .brief_bytes = 1234,
+        .files_in_scope = 1,
+        .expected_wall_s = null, // absent estimate → UNKNOWN, never 0
+        .scope_enumerable = false,
+    };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-22T00:00:00Z");
+    ts.scope_note = try alloc.dupe(u8, "open-ended sweep: target set grows during the pass");
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expectEqual(@as(?bool, false), p.scope_enumerable);
+    try std.testing.expectEqual(@as(usize, 0), p.scope_targets.len);
+    try std.testing.expectEqualStrings("open-ended sweep: target set grows during the pass", p.scope_note.?);
+    // expected_wall_s absent is UNKNOWN — it must never render as zero.
+    try std.testing.expectEqual(@as(?u32, null), p.expected_wall_s);
+}
+
+test "scope: old row without scope fields parses to UNKNOWN (null, not zero)" {
+    const content =
+        \\{
+        \\  "TX": {"status":"dispatchable","agent":null,"model":null,"bundle":"untracked/TX-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-22T00:00:00Z","claim_count":0}
+        \\}
+    ;
+    var state = try parseStateJson(content);
+    defer freeState(&state);
+    const ts = state.get("TX").?;
+    // Absence of an assertion is UNKNOWN, never "none" — old rows predate the
+    // field, and must not be read as brief_bytes=0 / files_in_scope=0.
+    try std.testing.expectEqual(@as(?u64, null), ts.brief_bytes);
+    try std.testing.expectEqual(@as(?u32, null), ts.files_in_scope);
+    try std.testing.expectEqual(@as(?u32, null), ts.expected_wall_s);
+    try std.testing.expectEqual(@as(?bool, null), ts.scope_enumerable);
+    try std.testing.expectEqual(@as(usize, 0), ts.scope_targets.len);
+    try std.testing.expect(ts.scope_note == null);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T636 tests — row shape: solo ladder, panel compose (ruling 34 controls)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test "shape: legacy row with no shape field parses to null (no retroactive label)" {
+    const content =
+        \\{
+        \\  "TX": {"status":"dispatchable","agent":null,"model":null,"bundle":"untracked/TX-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-22T00:00:00Z","claim_count":0}
+        \\}
+    ;
+    var state = try parseStateJson(content);
+    defer freeState(&state);
+    const ts = state.get("TX").?;
+    try std.testing.expect(ts.shape == null);
+    try std.testing.expectEqual(@as(usize, 0), ts.shape_reasons.len);
+}
+
+test "shape: shape + shape_reasons round-trip serialize → parse" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .dispatchable,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-22T00:00:00Z",
+    };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-22T00:00:00Z");
+    ts.shape = try alloc.dupe(u8, "panel");
+    var sreas = std.ArrayList([]const u8).empty;
+    try sreas.append(alloc, try alloc.dupe(u8, "claude-opus-5: adds 3 unique catch(es) given seats so far"));
+    ts.shape_reasons = try sreas.toOwnedSlice(alloc);
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expectEqualStrings("panel", p.shape.?);
+    try std.testing.expectEqual(@as(usize, 1), p.shape_reasons.len);
+    try std.testing.expectEqualStrings("claude-opus-5: adds 3 unique catch(es) given seats so far", p.shape_reasons[0]);
+}
+
+test "solo: cheapest qualified chosen, the two passed over recorded" {
+    var prng = std.Random.DefaultPrng.init(0);
+    const cands = [_][]const u8{ "claude-opus-5", "claude-sonnet-5", "deepseek-v4-flash" };
+    const costs = [_]?u64{ 5000, 2000, 3000 };
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+
+    const pick = try soloPick(&cands, &costs, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    try std.testing.expectEqualStrings("claude-sonnet-5", pick.model);
+    try std.testing.expectEqualStrings("solo-cost", pick.method);
+    try std.testing.expectEqual(@as(usize, 2), sreasons.items.len);
+    var saw_opus = false;
+    var saw_flash = false;
+    for (sreasons.items) |r| {
+        if (std.mem.indexOf(u8, r, "claude-opus-5: passed over") != null) saw_opus = true;
+        if (std.mem.indexOf(u8, r, "deepseek-v4-flash: passed over") != null) saw_flash = true;
+    }
+    try std.testing.expect(saw_opus);
+    try std.testing.expect(saw_flash);
+}
+
+test "solo: cheapest excluded by a constraint → next cheapest chosen" {
+    var prng = std.Random.DefaultPrng.init(0);
+    // The cheapest model was excluded upstream, so the qualified list handed
+    // to soloPick is {B, C}; the pick must be the next cheapest (B) and C is
+    // recorded as passed over.  (The exclusion itself is filterQualified's
+    // job and its reason is covered by the T635 exclusion tests.)
+    const cands = [_][]const u8{ "B", "C" };
+    const costs = [_]?u64{ 200, 300 };
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    const pick = try soloPick(&cands, &costs, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    try std.testing.expectEqualStrings("B", pick.model);
+    try std.testing.expectEqualStrings("solo-cost", pick.method);
+    try std.testing.expectEqual(@as(usize, 1), sreasons.items.len);
+    try std.testing.expect(std.mem.indexOf(u8, sreasons.items[0], "C: passed over") != null);
+}
+
+test "solo: all costs unknown → random draw, labelled unknown (never assumed)" {
+    var prng = std.Random.DefaultPrng.init(0);
+    const cands = [_][]const u8{ "claude-opus-5", "deepseek-v4-pro", "deepseek-v4-flash" };
+    const costs = [_]?u64{ null, null, null };
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    const pick = try soloPick(&cands, &costs, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    try std.testing.expectEqualStrings("random", pick.method);
+    // The draw is over the qualified list — one of the three.
+    var is_candidate = false;
+    for (cands) |c| {
+        if (std.mem.eql(u8, c, pick.model)) is_candidate = true;
+    }
+    try std.testing.expect(is_candidate);
+    try std.testing.expectEqual(@as(usize, 3), sreasons.items.len);
+    for (sreasons.items) |r| {
+        try std.testing.expect(std.mem.indexOf(u8, r, "measured cost unknown") != null);
+    }
+}
+
+test "panel: B strict subset of A → disjoint C is the second seat, not B" {
+    const names = [_][]const u8{ "A", "B", "C" };
+    const caught = [_][]const []const u8{
+        &.{ "x", "y", "z" },
+        &.{ "x", "y" },
+        &.{ "w" },
+    };
+    const costs = [_]?u64{ null, null, null };
+    const seats = [_][]const u8{"A"};
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    const next = try greedyPanelStep(&names, &caught, &costs, &seats, &sreasons);
+    const idx = next orelse return error.TestFailed;
+    try std.testing.expectEqualStrings("C", names[idx]);
+    try std.testing.expectEqual(@as(usize, 1), sreasons.items.len);
+    try std.testing.expect(std.mem.indexOf(u8, sreasons.items[0], "C: adds 1 unique catch(es)") != null);
+}
+
+test "panel: empty seats → anchor is the highest-coverage model" {
+    const names = [_][]const u8{ "A", "B", "C" };
+    const caught = [_][]const []const u8{
+        &.{ "x", "y", "z" },
+        &.{ "x", "y" },
+        &.{ "w" },
+    };
+    const costs = [_]?u64{ null, null, null };
+    const seats = [_][]const u8{};
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    const next = try greedyPanelStep(&names, &caught, &costs, &seats, &sreasons);
+    const idx = next orelse return error.TestFailed;
+    try std.testing.expectEqualStrings("A", names[idx]);
+}
+
+test "panel: empty complementarity record → prior-driven, labelled loudly" {
+    var prng = std.Random.DefaultPrng.init(0);
+    const candidates = [_][]const u8{ "claude-opus-5", "deepseek-v4-pro" };
+    var caught = CaughtSets{};
+    defer freeCaughtSets(&caught);
+    const costs = [_]?u64{ null, null };
+    const seats = [_][]const u8{};
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+
+    const pick = try panelPick(&candidates, &caught, &costs, &seats, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    try std.testing.expectEqualStrings("panel-prior", pick.method);
+    var is_candidate = false;
+    for (candidates) |c| {
+        if (std.mem.eql(u8, c, pick.model)) is_candidate = true;
+    }
+    try std.testing.expect(is_candidate);
+    var saw_prior = false;
+    for (sreasons.items) |r| {
+        if (std.mem.indexOf(u8, r, "prior-driven") != null) saw_prior = true;
+    }
+    try std.testing.expect(saw_prior);
+}
+
+test "panel: greedy marginal over a seeded caught map picks the disjoint seat" {
+    var prng = std.Random.DefaultPrng.init(0);
+    // A catches x,y,z; B catches x,y (strict subset); C catches w (disjoint).
+    const candidates = [_][]const u8{ "A", "B", "C" };
+    var caught = CaughtSets{};
+    defer freeCaughtSets(&caught);
+    {
+        const eA = try caught.getOrPut(alloc, "A");
+        eA.key_ptr.* = try alloc.dupe(u8, "A");
+        eA.value_ptr.* = .{};
+        try eA.value_ptr.put(alloc, try alloc.dupe(u8, "x"), {});
+        try eA.value_ptr.put(alloc, try alloc.dupe(u8, "y"), {});
+        try eA.value_ptr.put(alloc, try alloc.dupe(u8, "z"), {});
+        const eB = try caught.getOrPut(alloc, "B");
+        eB.key_ptr.* = try alloc.dupe(u8, "B");
+        eB.value_ptr.* = .{};
+        try eB.value_ptr.put(alloc, try alloc.dupe(u8, "x"), {});
+        try eB.value_ptr.put(alloc, try alloc.dupe(u8, "y"), {});
+        const eC = try caught.getOrPut(alloc, "C");
+        eC.key_ptr.* = try alloc.dupe(u8, "C");
+        eC.value_ptr.* = .{};
+        try eC.value_ptr.put(alloc, try alloc.dupe(u8, "w"), {});
+    }
+    const costs = [_]?u64{ null, null, null };
+    const seats = [_][]const u8{"A"};
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    const pick = try panelPick(&candidates, &caught, &costs, &seats, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    try std.testing.expectEqualStrings("panel-greedy", pick.method);
+    try std.testing.expectEqualStrings("C", pick.model);
 }

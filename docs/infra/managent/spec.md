@@ -161,7 +161,7 @@ $ managent claim B99
 Optional: `--agent <name>` to label who claimed it — a role or task label, never a
 model name (`ROLES.md` §2).
 
-### `managent dispatch <id> --to <agent> [--note <text>]`
+### `managent dispatch <id> --to <agent> [--note <text>] [--expected-wall <secs>] [--scope-targets <a,b,c> | --scope-unenumerable <reason>]`
 
 Records the human→agent dispatch decision: a specific agent is *queued* for
 this task. The task **stays in `dispatchable`**, the agent still claims it
@@ -185,6 +185,26 @@ substitute for any dedicated field. **Do not** use `--note` to record state
 that has its own field (status, holds, needs, agent, dispatched_to). It is
 for the *why* of the dispatch, recovery shape on resumption, or whatever else
 would otherwise be lost in `untracked/msg/`.
+
+**Scope fields (T627, ruling 35 denominator).** `dispatch` (and `claim`) write
+three mechanical scope facts plus an optional scope enumeration onto the row —
+computed by the tool, never requested of workers in briefs:
+
+- `brief_bytes` — the bundle brief's file size (mechanical, computed at dispatch).
+- `files_in_scope` — the count of unique paths across the bundle's `deliverables=`
+  and `holds=` (mechanical).
+- `expected_wall_s` — the dispatcher's wall estimate from `--expected-wall <secs>`.
+  Absent is **UNKNOWN (null), never 0** — 0 would masquerade as "instant".
+- `scope_targets` / `scope_enumerable` / `scope_note` — the enumerated target set
+  (ruling 35). `--scope-targets a,b,c` records an enumerated set (`scope_enumerable
+  = true`); `--scope-unenumerable <reason>` records that the set genuinely cannot
+  be enumerated in advance (`scope_enumerable = false`, `scope_note = <reason>`).
+  Neither flag → UNKNOWN (`scope_enumerable = null`) — an unrecorded scope is
+  neither "zero" nor "full marks" downstream. The two flags are mutually exclusive.
+
+Actual wall/cpu/rss stay in the runner's run records (`untracked/runs/<task>.json`,
+keyed by task id + attempt); the kanban row joins on task id, and `claim_count` is
+its attempt counter. Scope fields are not duplicated there.
 
 **Warnings, not errors:** dispatching to a task that is `in_progress` or
 `done` is recorded anyway and prints a warning. The audit trail is the
@@ -471,7 +491,15 @@ $ managent show B09
     caps:     reasoning:sustained
     added:    2026-07-26 14:00
     claimed:  2026-07-26 16:00
+    brief_bytes: 3594
+    files_in_scope: 2
+    expected_wall_s: 1800
+    scope: enumerated (3 targets) audit-sections audit-verbs audit-gates
 ```
+
+Scope fields render **UNKNOWN** when absent (`brief_bytes: UNKNOWN`, `scope:
+UNKNOWN`) — an old row predates the field; absence is never displayed as `0`
+or "none".
 
 ---
 
