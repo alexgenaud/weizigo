@@ -772,6 +772,18 @@ pub fn build(b: *std.Build) void {
     status_json_regression.cwd = b.path(".");
     test_step.dependOn(&status_json_regression.step);
 
+    // ── T587: store WRITE path must not mangle multi-byte UTF-8 ──────
+    // The WRITE-path sibling of T569's display truncation: a note/acceptance
+    // carrying — (e2 80 94), → (e2 86 92), é (c3 a9) must survive every
+    // mutating verb (add/claim/dispatch/set/done/amend) byte-exact, and the
+    // store must be valid JSON (python3 -m json.tool) after each write.
+    // Scratch store only — never the live kanban. Locks in the byte-correct
+    // writeJsonString/serializeState invariant (no fixed-size note buffer
+    // exists to slice; T399 guard refuses invalid-JSON writes).
+    const store_write_utf8_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-store-write-utf8.sh" });
+    store_write_utf8_regression.cwd = b.path(".");
+    test_step.dependOn(&store_write_utf8_regression.step);
+
     // ── T517: canonical model list exposed (`managent models`) ───────
     // F7: model canonicalization was ×4 with four definitions (managent
     // canonical_models[], bin/dispatch MODELS, bin/subagent CLAUDE_MODELS,
