@@ -1,0 +1,392 @@
+{
+ "task_id": "T619",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "identifier": "T619-race-f-dsflash",
+ "verdict": "pass-with-findings",
+ "union": [
+  {
+   "id": "U1",
+   "statement": "Internal cross-references §2.6 and §6.1 resolve to no section: §2.6 cited at spec.md:72,94,122 (data tables are §2.4); §6.1 cited at spec.md:89,98,359 (the metric is §6/REC-GATE-1; §6 has no subsections)",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:22-26, 72, 89, 94, 98, 122, 359",
+   "raised_by": [
+    1,
+    3
+   ]
+  },
+  {
+   "id": "U2",
+   "statement": "§8 traceability table omits rulings 15/16/17 with no 'deferred to S03/pass-2 §N' annotation: 15 consumed in §7 for its constants only, 16 (per-model spacing deleted; global 10 s dispatch gap) appears nowhere in body or table, 17 homed in REC-LIFE-6 body only; a reader of §8 alone cannot distinguish dropped from out-of-scope",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:374-398",
+   "raised_by": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "id": "U3",
+   "statement": "§7c.13 short-name resolution mapped to 'REC-LIFE-9 (table note)' in §8, but the table note contains none of the ruling's substance (short names ALWAYS resolve to the latest actively used version; 'active' ignores credit freezes and hourly/weekly limits; retirement re-points, never rewrites history)",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:151, 383",
+   "raised_by": [
+    1,
+    3,
+    5
+   ]
+  },
+  {
+   "id": "U4",
+   "statement": "§7c.15 condition (b) — a dedicated security analysis of the runaway surface before build — is not named in §7's build gating and (as raised) is owned by nobody in any of the three specs",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:367-370",
+   "raised_by": [
+    1,
+    3
+   ]
+  },
+  {
+   "id": "U5",
+   "statement": "The §7c.15 lane_cap values (deepseek 6 / ollama-cloud 5 / claude 3 / fable 1 / local 1) are not rowed in S04 §2.4, though the reconciler's dispatch verb is bounded by them",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:146-157",
+   "raised_by": [
+    3
+   ]
+  },
+  {
+   "id": "U6",
+   "statement": "§7c.18's runaway_streak = 5 mechanism (five growth-closes trip the breaker) is never stated in S04: §8 maps the ruling only to lineage_depth (REC-VERB-3) and identity/boundary (REC-VERB-4)",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:363, 385",
+   "raised_by": [
+    4
+   ]
+  },
+  {
+   "id": "U7",
+   "statement": "REC-GATE-3 asserts 'L1 and this gate are one bar, not two' but enumerates a different conjunction from the ratified §7b.9 bar: it drops acceptance-suite PASS, fleet display accurate against `ps`, and the `managent landmark L1 --declare` step, and adds every-escalation-in-contract",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:325-331",
+   "raised_by": [
+    3,
+    5
+   ]
+  },
+  {
+   "id": "U8",
+   "statement": "The attrition metric is described inconsistently: REC-GATE-1 defines it as the fraction of zero-token wakes (high = good), while REC-LIFE-1 says 'spawning a model for one [an empty-residue wake] is the failure this spec's attrition metric measures' — a different measurement, and a failure REC-LIFE-2 makes structurally impossible (empty residue → script acts, no model spawned); the denominator (wakes) is also gameable by trigger policy",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:88-89, 91-99, 308-313",
+   "raised_by": [
+    3
+   ]
+  },
+  {
+   "id": "U9",
+   "statement": "REC-LIFE-8 (holds= mandatory at mint) collides with REC-VERB-3 (the reconciler's one permitted mint is a bounded read-only investigation lane that by construction holds no file): no explicit empty/none sentinel is permitted, so the reconciler's only legal mint is refused by its own prerequisite",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:134-142, 174-180",
+   "raised_by": [
+    3
+   ]
+  },
+  {
+   "id": "U10",
+   "statement": "REC-VERB-2's never-list includes 'edit a spec/plan', which is a filesystem write, not a managent verb — REC-VERB-4's 'boundary lives in managent' cannot enforce it; the real mechanisms (holds=/one-writer, pre-commit hook) are unnamed, and C6 probes only a brief instructing amend/retire",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:169-172, 182-191, 282",
+   "raised_by": [
+    3
+   ]
+  },
+  {
+   "id": "U11",
+   "statement": "Post-pin rulings §7c.27–30 are unmapped (a fold owed at rev 2, not an authoring miss): the spec pins to 14d8d6b and scopes Inputs to rulings 11–26; 27–28 landed at 9efa218 13:07:08 vs the spec's 631682b 12:48:25, 29–30 at f79f53d. Seams: 27 makes real-work closes the observational evidence stream (T522 impression-or-waiver) that REC-VERB-5's close conditions do not capture; 28 makes the dial live with a mechanized TTL, which can expire mid-wake under REC-LIFE-3's read-once-at-spawn",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:14, 101-106, 193-200",
+   "raised_by": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "id": "U12",
+   "statement": "AUTOPILOT-5H's real-work bar is stated at two strengths: REC-GATE-2 says 'each of the five hours must contain real delegation, issue resolution, and closes' (per-hour, matching ruling 26) while REC-GATE-4 operationalizes 'each AUTOPILOT-5H run must show at least one delegation, one issue resolution, and one close' (per-run); a run with activity clustered in one hour passes GATE-4 and fails GATE-2's literal reading",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:319-320, 332-334",
+   "raised_by": [
+    5
+   ]
+  },
+  {
+   "id": "U13",
+   "statement": "'thrash' is a pass/fail term in REC-GATE-2's zero-list and the panic-halt trigger in REC-ESC-3, with no measurable definition anywhere in the spec",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:239-243, 317",
+   "raised_by": [
+    3,
+    5
+   ]
+  },
+  {
+   "id": "U14",
+   "statement": "AUTOPILOT-5H is not end-to-end testable: §5's C1–C10 battery has no arm for it, and the §7 deferred run-record schema's mandated fields (wake id, residue, verdict per action, probe flag, token count, wall, metric fields) omit the gate's own evidence terms (orphans, runaways, breaker-trips, panics, per-run delegation/resolution/close counts)",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:277-286, 357-359",
+   "raised_by": [
+    3,
+    4
+   ]
+  },
+  {
+   "id": "U15",
+   "statement": "REC-ESC-5's routing half (route the blocking file to its owning row, derived from holds=/the store) has no control arm: C10 tests only the forbid-'report' half",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:252-261, 286",
+   "raised_by": [
+    4
+   ]
+  },
+  {
+   "id": "U16",
+   "statement": "REC-GOAL-4 overstates (b) discharge: the (b) class is 12 rows across FOUR tables (provider quota/appetite 7, model fit 2, ordering 2, measurement validity 1); REC-LIFE-9 rows three tables covering 9 of 12, and model-fit and measurement-validity are never rowed nor stated out of the reconciler's universe",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:68-75, 146-157; decision-log.md:84-92",
+   "raised_by": [
+    1
+   ]
+  },
+  {
+   "id": "U17",
+   "statement": "REC-ESC-7 cites sprint.md's audit loop as the home of the cap rule, but sprint.md says 'Two-round cap for document review' while the spec says 'fails its third audit — the cap' (cap 3 per §7c.21); the supersession is unstated",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:263-265; docs/infra/sprint.md:103",
+   "raised_by": [
+    1
+   ]
+  },
+  {
+   "id": "U18",
+   "statement": "Three §ref pointers resolve to the wrong section: (a) 'successor queue orders (decision-log.md §2 T568-4, T557-1)' — the specific rows live in decision-log §5 (:326, :337), §2 names only the class (:88); (b) 'queue-cycle-attached (… S03-queue-layer/spec.md §3)' — §3 is Conditions, the queue cycle is §8; (c) the FLEET_MODEL_DENY/allow mechanism is S03 §1.1 R9 (:128), not §3",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:83-86, 152-155; S03-queue-layer/spec.md:128, 1191; decision-log.md:88, 326, 337",
+   "raised_by": [
+    1
+   ]
+  },
+  {
+   "id": "U19",
+   "statement": "§7c.30's final sentence — 'T587 (store write fix + class regression) gates S04 build and AUTOPILOT-5H' — is absent from §7's build gating (which lists only the pass-2 supervisor's first child, the queue layer's audited spec, and REC-LIFE-8; REC-CTRL-3 names T572, a different defect class)",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:367-370; orchestration-layer-spec.md:245-248",
+   "raised_by": [
+    5
+   ]
+  },
+  {
+   "id": "U20",
+   "statement": "§6's gates (REC-GATE-1..4) sit outside REC-CTRL-1's stated '§1–§4' battery window with zero entries in C1–C10 and no stated verification regime of their own — by §0's literal rule ('an id with no control is not a requirement, it is a wish') the retirement gate is a 'wish'",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:32-33, 271-276, 308-339",
+   "raised_by": [
+    2,
+    5
+   ]
+  },
+  {
+   "id": "U21",
+   "statement": "REC-CTRL-1's sentence 'Every id in §1–§4 has at least one arm here' is false against the printed C1–C10 table: 28 normative ids in §1–§4, the flips column names only 10 distinct (REC-LIFE-1/2, REC-VERB-1/4/5/6/7, REC-ESC-1/2/5); 18 of 28 (14 of 24 excluding the four REC-GOAL scope statements) have no arm, including REC-VERB-2, REC-VERB-3, REC-VERB-8, REC-LIFE-8, REC-ESC-4, REC-ESC-7",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:271-286",
+   "raised_by": [
+    1,
+    3,
+    5
+   ]
+  },
+  {
+   "id": "U22",
+   "statement": "REC-GOAL-2's 19.4 % is a bare number: it omits the study's own bias statements — column (c) is a lower bound and the mechanized fraction an upper bound (extraction rule) — and the study's §4.2 request that the spec say how much of verdict (15) REC-VERB-5's declared gates already convert into (a) is unanswered",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:53-59; decision-log.md:41-42, 172-175",
+   "raised_by": [
+    3
+   ]
+  },
+  {
+   "id": "U23",
+   "statement": "REC-VERB-4's kernel-attested identity (ruling 18(a): never env-var self-declaration, MANAGENT_TASK_ID spoofable by unsetting) conflicts with pass-2's identity disjunction: pass-2 §5 N5 treats 'MANAGENT_TASK_ID set OR supervisor's held-child marker' as a worker and ABSENCE as the OPERATOR (minted_by = operator, RUN-2's zero-authors rejection scoped away; §4.4's no-worker-writes-appetite refusal likewise) — unsetting MANAGENT_TASK_ID promotes a reconciler to operator, the exact escape the ruling names, and S04 §7 gates the reconciler's build on the pass-2 supervisor, with no fold row owning ruling 18(a)",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:182-191, 367-370; S01-process-ownership/pass2/spec.md:647, 762-765",
+   "raised_by": [
+    3
+   ]
+  },
+  {
+   "id": "U24",
+   "statement": "§7c.23's second clause — an epistemology challenge without a testable, tested alternative discharges nothing — is unabsorbed: §8 maps the ruling to REC-VERB-6, which covers only the gate-edit half, and verdict evaluation (REC-VERB-5) could accept an untested challenge as satisfying a gate",
+   "spec_ref": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md:202-206, 390; orchestration-layer-spec.md:203-207",
+   "raised_by": [
+    5
+   ]
+  }
+ ],
+ "adjudication": [
+  {
+   "id": "U1",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "grep -n '§2.6\\|§6.1' spec.md → §2.6 at :72,94,122; §6.1 at :89,98,359; §2's last subsection is §2.4 'The data tables (column (b)) — rows, not mechanism' (:146) and §6 has no subsections; spec.md:22-26: 'A citation that no longer resolves at 14d8d6b is a spec defect, not a reader's problem'",
+   "why": "Unresolvable internal refs in the sentences defining the pre-pass residue and the selection rule, against the doc's own citation doctrine. Intent unambiguous (typoclass), so 'should' not 'must' despite lane-1 rating must; lane-3 rated minor — the refs are still wrong in load-bearing text."
+  },
+  {
+   "id": "U2",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:374 '## 8. Rulings traceability — no ruling silently dropped'; §8 rows at :381-398 list 11,12,13,14,18,19,20,21,22,23,24/26,25,F4,F6,F7,F8,scope,(b) — no 15/16/17; orchestration-layer-spec.md:149-156 (§7c.16), :157-160 (§7c.17); grep '10 s\\|spacing' spec.md → zero hits; the 10 s gap mechanism is S03 §4 (:778-779)",
+   "why": "The §8 header promises no ruling silently dropped; 15/16/17 are absent with no 'owned by <spec> §N' annotation, so §8 alone cannot distinguish dropped from deferred. Substance is defensibly delegated (REC-VERB-1 verb 1 dispatches via the supervisor; S03 §4 owns spacing/lane_cap), so completeness defect, not substance — 'should'. All five lanes converged (lane-4 split it into F2/F3; lane-1/2/3/5 folded)."
+  },
+  {
+   "id": "U3",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:383 maps '§7c.13 short-name resolution' → 'REC-LIFE-9 (table note)'; spec.md:151 is the whole note ('0–9 **per model short name**, not per family; family setting is bulk convenience only' — ruling 11's point); orchestration-layer-spec.md:131-134 has the two load-bearing clauses (always-latest-actively-used; 'active' ignores credit freezes/hourly/weekly limits)",
+   "why": "A traceability table asserting coverage the text lacks stops the next auditor looking. The missing clause bites this spec directly: its own table sets ollama-cloud 0, and a reader reading 'appetite 0' as 'not active' gets short-name resolution wrong in the one case the ruling was written to settle."
+  },
+  {
+   "id": "U4",
+   "verdict": "false",
+   "severity": "note",
+   "citation": "S01-process-ownership/pass2/spec.md:774 '**Threat model, stated so the controls can seed it.** The runaway this section exists to stop is…' plus RUN-1–RUN-5 controls (:709-770); S04 §7 build gating (:367-370) gates on 'the pass-2 supervisor holding its first child and the queue layer's audited spec' — pass-2's audited spec contains the analysis; grep -in 'threat model\\|security analysis' over pass-2/S03/S04 → pass-2:774 (plus a pointer at :649) only",
+   "why": "The dedicated security analysis of the runaway surface EXISTS in pass-2 §5 (the threat-model paragraph + five seeded controls), and S04's build is gated on that spec. The claim 'owned by nobody in any of the three specs' is false. Residual: S04's build-gating sentence does not cross-reference it — a pointer nicety covered by U2, not a separate defect."
+  },
+  {
+   "id": "U5",
+   "verdict": "false",
+   "severity": "note",
+   "citation": "S03-queue-layer/spec.md:574-583 (family hard ceiling lane_cap(family(m))), :738-743 (model table: deepseek 6, claude 3, fable 1, local 1, ollama-cloud 5); REC-VERB-1 verb 1 (spec.md:160-164) dispatches 'via the supervisor (`managent supervise`)'; S03:587 'A candidate that would exceed either cap is skipped for this iteration only'",
+   "why": "The observation is factually accurate (S04 §2.4 does not row the lane_cap values), but the defect inference does not hold: the values ARE rowed in S03 §4 — the dispatch mechanism's home (S03:574-583 family hard ceiling, :738-743 model table) — and REC-VERB-1 verb 1 dispatches 'via the supervisor', which enforces the cap at dispatch (S03:587 skip-for-this-iteration-only, harmless). S04's stated convention (REC-LIFE-9: 'rows, not mechanism') is that mechanisms live in owning specs; nothing is broken and the reconciler does not need the numbers (it reads status/audit state, not concurrency ceilings). The residual traceability point folds into U2."
+  },
+  {
+   "id": "U6",
+   "verdict": "false",
+   "severity": "note",
+   "citation": "S01-process-ownership/pass2/spec.md:709-722 RUN-1: 'if Δ > 0 for K consecutive closes (K operator-set, default 5)… the **mint circuit breaker** trips: dispatch nothing new, loudly, with reason `mint-breaker`' — the identical growth-close breaker; S04 §7 (:363) consumes 'the `runaway_streak` = 5 / `lineage_depth` = 3 values are ratified (§7c.18) and are consumed, not re-set, here'; S04 Inputs cite 'pass2/spec.md §5 runaway/mint safety'",
+   "why": "The mechanism lives in pass-2 §5 RUN-1 (which S04's Inputs cite and whose audited spec S04's build gates on); S04 consuming the ratified constant without re-spec'ing the mechanism is exactly its stated convention. Lane-4's 'mechanism never mentioned in spec' is true of S04 but not a defect. The §8 table's partial map (lineage_depth + identity) covers the S04-relevant parts; residual traceability is U2."
+  },
+  {
+   "id": "U7",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "orchestration-layer-spec.md:99-103 §7b.9 (ratified as written): 'acceptance PASS three consecutive days, zero operator process-relays, duties current by the gate not by grace, fleet display accurate against `ps`, every gauge reproducible by its named command — then `managent landmark L1 --declare`, independently audited before believed'; spec.md:325-331 REC-GATE-3 enumerates only 'zero operator process-relays, duties current by the gate, every escalation in-contract, every gauge reproducible'",
+   "why": "Two conjunctions differing in three terms are two bars: REC-GATE-3 drops acceptance-suite PASS, fleet display vs `ps`, and the `landmark L1 --declare` action, and adds every-escalation-in-contract. As written the S04 gate can be met while the ratified L1 bar is not (acceptance red, fleet display lying), and 'one bar' would then license an L1 declaration the ratified terms refuse. Lane-5 rated it a minor observation ('every gauge reproducible arguably covers it'); the dropped acceptance-PASS and missing declare step are not arguable away."
+  },
+  {
+   "id": "U8",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:308-313 REC-GATE-1: 'the fraction of reconciler wakes that required **zero model tokens**'; spec.md:88-89 REC-LIFE-1: 'spawning a model for one is the failure this spec's attrition metric (§6.1) measures'; spec.md:91-99 REC-LIFE-2: empty residue → 'the script itself acts (… “do nothing, retire cleanly”) and no model is spawned'",
+   "why": "REC-LIFE-1 attributes to the metric a measurement (count the failure of spawning a model for an empty wake) that REC-GATE-1's definition does not perform, and names a failure REC-LIFE-2 makes structurally impossible; the two sentences also read opposite polarities. Separately the denominator (wakes) is gameable: the pre-pass owns the trigger, so a looser trigger inflates the zero-token fraction without retiring orchestration. Fix: REC-LIFE-1 cross-references REC-GATE-1, delete the impossible-failure clause, report the two counts separately."
+  },
+  {
+   "id": "U9",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:134-142 REC-LIFE-8: 'managent add must **require `--holds` (and `--bundle`) at mint**; a row minted without a holds declaration is refused at write time'; spec.md:174-180 REC-VERB-3: the reconciler mints '**exactly one** bounded read-only investigation lane per blocker' that 'may not mutate the store beyond its own close'; grep '--holds none\\|holds.*none' spec.md → no sentinel",
+   "why": "The read-only investigation lane holds no file by construction, and the spec permits no affirmative empty declaration, so the reconciler's only legal mint is refused by its own prerequisite. Lane-3 verified current state: --holds is optional today and merges with the bundle header (src/managent/main.zig:1761, :1778), so the collision is a spec-level design gap to settle cheaply before build, not a live bug."
+  },
+  {
+   "id": "U10",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:169-172 REC-VERB-2 never-list: 'may **never** … edit a spec/plan'; spec.md:182-191 REC-VERB-4: 'The verb boundary lives in `managent` itself, exactly as MANAGENT_TEST=1 refuses mutating verbs today'; spec.md:282 C6 seeds only 'brief *instructs* `amend`/`retire`'; managent verbs (§ store verbs) cannot refuse a filesystem edit",
+   "why": "§3 is headed 'enforced mechanically', but the spec/plan-edit half of the never-list is a filesystem write no managent verb can refuse; the enforcement that does exist (holds=/one-writer, pre-commit hook) is unnamed, and under §7c.18(b) the untested half is the one that matters (a brief that persuades the reconciler to edit a gate document meets no mechanism at all). Fix: split store verbs from file writes and name the mechanism + add the arm."
+  },
+  {
+   "id": "U11",
+   "verdict": "real",
+   "severity": "note",
+   "citation": "spec.md:14 Inputs scopes to '§7c rulings 11–26'; spec committed 631682b 2026-08-22 12:48:25; rulings 27–28 landed 9efa218 13:07:08 (orchestration-layer-spec.md:228-234, :235-240); 29–30 at f79f53d (:241-248); orchestration-layer-spec.md:228-234 (§7c.27: real-work closes are observational data, 'T522 impression-or-waiver is the mechanism and should be prioritized'); :235-240 (§7c.28: dial INITIAL, 'mechanized TTL — set-with-expiry')",
+   "why": "Absent because they postdate the pin — fold owed at rev 2, not author negligence (lane-1/3/5 all reached this; lane-4 rated 'dropped' but the timeline is decisive). The seams are real for the rev: 27's evidence stream needs REC-VERB-5 to capture impression/waiver at close, and 28's TTL'd bump can expire mid-wake under REC-LIFE-3's read-once-at-spawn — the reconciler must never cache or re-assert a dial value."
+  },
+  {
+   "id": "U12",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:319-320 REC-GATE-2: 'each of the five hours must contain real delegation, issue resolution, and closes'; spec.md:333-334 REC-GATE-4: 'each AUTOPILOT-5H run must show at least one delegation, one issue resolution, and one close'; orchestration-layer-spec.md:225-227 §7c.26: 'The five hours must contain real delegation, issue resolution, and closes'",
+   "why": "Per-hour (GATE-2, matching ruling 26) vs per-run (GATE-4) are different acceptance tests: activity clustered in hour 1 passes GATE-4 and fails GATE-2's literal reading. A pass/fail gate that unlocks L2 must be scriptable; the spec must pick one bar. The ruling's own wording is ambiguous, so the spec owes the resolution, not the ruling."
+  },
+  {
+   "id": "U13",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:317 REC-GATE-2 zero-list: 'zero orphans / runaways / breaker-trips / panics / thrash'; spec.md:242-243 REC-ESC-3: 'Panic-halt is reserved for thrash — when investigation itself adds thrash and things spin out of control'; grep -n 'thrash' spec.md → only these two",
+   "why": "A pass/fail term in the gate and the panic-halt trigger, load-bearing twice, with no measurable definition. §7c.24's 'no nervous moments' was correctly dropped as unmeasurable; 'thrash' was kept without the same discipline. Lane-3's proxy suggestion (runaway_streak breaker + repeat-dispatch count of one row) is the shape of the fix."
+  },
+  {
+   "id": "U14",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:357-359 deferred run-record schema 'must carry: wake id, residue, verdict per action, probe flag, token count, wall, and the §6.1 metric fields'; spec.md:277-286 C1–C10 contains no AUTOPILOT-5H row; REC-GATE-2's own terms (orphans, runaways, breaker-trips, panics; REC-GATE-4's per-run counts) are absent from the mandated field list",
+   "why": "The gate that unlocks L2 cannot be computed from the record it mandates (its evidence terms are not in the schema list the spec requires design to carry), and the §5 battery has no seeded arm for it (a run seeded with one orphan, and a run that stays alive with zero closes, must both fail). The schema is deferred to design, but the mandated field list is the spec's floor and the gate's terms belong in it."
+  },
+  {
+   "id": "U15",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:252-261 REC-ESC-5: 'route the blocking file to its owning row — the owning row is derived from `holds=`/the store, never from the reconciler's guess'; spec.md:286 C10 seeds only 'a \"report\" escalation | refused as a category; `managent done` is the record'",
+   "why": "C10 covers the forbid-'report' half of REC-ESC-5 only; the routing half (derive owning row from holds=/store, route, verify the unblock) has no arm, and §0's own rule makes an untested id a wish. The routing is mechanically seedable on a scratch store — it belongs in the battery."
+  },
+  {
+   "id": "U16",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "decision-log.md:84-92 §2(b): 'provider quota / appetite 7 · model fit 2 · ordering 2 · measurement validity 1' (four tables, 12 rows); spec.md:68-75 REC-GOAL-4 names three tables ('the appetite dial … the provider-quota/cooldown facts … the ordering table'); spec.md:146-157 REC-LIFE-9 rows the same three",
+   "why": "The claim 'The 12 (b) decisions are discharged by data tables that already exist' is not supported for 3 of 12 rows as written: model-fit (S03 §1.1 R10 exploration-first default + the ladder) and measurement-validity (one wall-clock event, arguably doctrine) have no named table and are never excluded. Fix is one sentence: name their homes or state them out of the reconciler's universe. The 19.4 % scope number is unaffected."
+  },
+  {
+   "id": "U17",
+   "verdict": "real",
+   "severity": "note",
+   "citation": "spec.md:263-265 REC-ESC-7: 'When a sprint phase fails its third audit — the cap … (`sprint.md` audit loop)'; docs/infra/sprint.md:103: 'Two-round cap for document review'; orchestration-layer-spec.md:183-192 §7c.21: 'if the THIRD audit still raises red flags or blockers, the phase — and the sprint — blocks and escalates'",
+   "why": "The two authorities disagree (2 vs 3) and the supersession is unstated; the spec follows the ruling (correctly) but cites sprint.md as if consistent. Real citation-consistency defect in a load-bearing escalation sentence; content is right, so 'note' — one clause ('cap 3 per §7c.21, which supersedes sprint.md's two-round cap') closes it."
+  },
+  {
+   "id": "U18",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "decision-log.md:326 (T557-1), :337 (T568-4) are in §5 (Full row table, '## 5' at :176); decision-log.md:88 (§2 (b) ordering row names only the class); S03-queue-layer/spec.md:1191 '## 8. The iteration, in order' (queue cycle) vs :320 '## 3. Conditions'; S03-queue-layer/spec.md:128 (R9 model window, FLEET_MODEL_ALLOW/DENY, under '### 1.1 What is actually implemented')",
+   "why": "All three pointers resolve to wrong sections; each is mechanically checkable (the content exists, the §ref is wrong). In a spec whose citations are its audit surface, wrong-section pointers are real defects — cheap fixes. (Lane-1's own 'S03 §2.1' for R9 is itself off — it is §1.1 — but the defect stands.)"
+  },
+  {
+   "id": "U19",
+   "verdict": "real",
+   "severity": "note",
+   "citation": "orchestration-layer-spec.md:245-248 §7c.30: 'T587 (store write fix + class regression) gates S04 build and AUTOPILOT-5H'; spec.md:367-370 build gating names only the pass-2 supervisor's first child, the queue layer's audited spec, and REC-LIFE-8; spec.md:293-297 REC-CTRL-3 names T572 ('the same defect class as C6's refusal'); git log 719ef9d 'absorb: close T584 (S04 audit) + T587 done'; tasks.json T587 bundle untracked/T587-store-write-utf8.md",
+   "why": "Real as a fold owed at rev 2: the ruling postdates the pin (f79f53d), so the gate could not have been recorded; satisfied in fact — T587 closed at 719ef9d. Note the ruling text says T587; lane-5 mis-attributed T599 (a race-B discernment task, different bundle), and its 'T599 closed at 719ef9d' is wrong — 719ef9d closed T587. Substance survives the ID error."
+  },
+  {
+   "id": "U20",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:32-33 §0: 'the test phase writes one seeded arm (flip) and one null arm (green) for **every** normative id'; spec.md:271-276 REC-CTRL-1: 'Every id in §1–§4 has at least one arm here'; §6 (REC-GATE-1..4, :308-339) has no arm in C1–C10 and no stated verification regime of its own",
+   "why": "§0's blanket rule and REC-CTRL-1's §1–§4 scoping leave §6's gates with no stated regime — by the doc's own literal §0 wording the retirement gate is 'a wish'. Largely unintended (AUTOPILOT-5H is a live multi-run measurement, not a scratch-store unit test, so the C-shape genuinely does not fit it), but the spec never says so; either scope §0 explicitly or give ¦6 its own verification statement. Lane-2 and lane-5 both raised this; lane-1/3's U21 half is the sibling claim about the §1–§4 table itself — kept separate because the two have different remediations (extend the table vs. state a §6 regime)."
+  },
+  {
+   "id": "U21",
+   "verdict": "real",
+   "severity": "should",
+   "citation": "spec.md:271-276 REC-CTRL-1 claim; spec.md:277-286 C1–C10 flips column names exactly 10 distinct ids (REC-LIFE-1, REC-LIFE-2, REC-VERB-1, REC-VERB-4, REC-VERB-5, REC-VERB-6, REC-VERB-7, REC-ESC-1, REC-ESC-2, REC-ESC-5) against 28 normative ids in §1–§4 (4+9+8+7); REC-VERB-2 (:169), REC-VERB-3 (:174), REC-VERB-8 (:216), REC-LIFE-8 (:134), REC-ESC-4 (:246), REC-ESC-7 (:263) have no arm",
+   "why": "The sentence is false against its own table: 18 of 28 (14 of 24 operative) ids have no arm, and by the doc's own §0 rule those are 'wishes'. §0 already commits the test phase to per-id arms, so the substance is owed; the defect is the overclaiming sentence — exactly the green reading this project's doctrine forbids. Fix: rephrase as 'C1–C10 are the mandatory core; the test phase owes the remaining arms, enumerated'. Lane-3 rated major; I weigh the §0 commitment and keep 'should'."
+  },
+  {
+   "id": "U22",
+   "verdict": "real",
+   "severity": "note",
+   "citation": "decision-log.md:41-42 extraction rule: column (c) is 'a **lower bound** and the mechanized fraction correspondingly an **upper bound**'; decision-log.md:172-175 §4.2 item 2: 'The spec should say how much — this study cannot, because the archived rows predate `acceptance=`'; spec.md:53-59 REC-GOAL-2 states '19.4 %' bare",
+   "why": "Arithmetic is correct (25/129 = 19.38 %; verified against decision-log §2: 61+12+56 = 129, verdict 15 + triage 10 = 25, relay 15 + doctrine 10 + scope 6 = 31) and the boundary is auditable, so the number itself is sound. What is missing is the study's own error-direction statements and an answer to its §4.2 question — one sentence ('unknown until the first N wakes; the attrition metric measures it') is both honest and the right instrument. Informational, not load-bearing."
+  },
+  {
+   "id": "U23",
+   "verdict": "real",
+   "severity": "must",
+   "citation": "S01-process-ownership/pass2/spec.md:762-765 §5 N5: 'A caller with `MANAGENT_TASK_ID` set (or the supervisor's held-child marker — the §4.4 marker) is a **worker** … A caller without it is the **operator**, whose row is written `minted_by = operator`'; pass2/spec.md:647 §4.4: appetite write refuses only 'when the caller's environment marks it a held worker (`MANAGENT_TASK_ID` present, or the supervisor's held-child marker set)'; orchestration-layer-spec.md:161-168 §7c.18(a): identity 'must be kernel-attested (parent-PID chain vs the supervisor's held-child table), never env-var self-declaration (`MANAGENT_TASK_ID` is spoofable by unsetting)'; spec.md:367-370 gates the reconciler's build on the pass-2 supervisor",
+   "why": "The escape is privilege-granting, not merely de-identifying: unsetting MANAGENT_TASK_ID reads as OPERATOR under pass-2 §5 N5 (RUN-2's zero-authors rejection scoped away, §4.4's no-worker-writes-appetite inapplicable) — the exact spoof the ratified Security Must names. S04 states the Must correctly for itself while gating its build on the spec that carries the escape, and no fold row owns ruling 18(a) (contrast T580 for S03 §4, T581 for pass-2 §4). Must: reconcile pass-2 to held-child-attestation-only (absence = UNKNOWN, never operator) and register the fold row before the verb boundary is built."
+  },
+  {
+   "id": "U24",
+   "verdict": "real",
+   "severity": "note",
+   "citation": "orchestration-layer-spec.md:203-207 §7c.23: 'An agent that challenges epistemology MUST propose hypotheses that are testable and then actually tested — a challenge without a testable alternative discharges nothing'; spec.md:390 maps '§7c.23 no-cheating mechanical' → 'REC-VERB-6'; spec.md:202-206 REC-VERB-6 covers only gate/brief/acceptance edits",
+   "why": "Half-absorption: REC-VERB-6 absorbs the gate-edit clause; the epistemology-challenge clause has no S04 home and the §8 mapping gives no sign it is elsewhere. Verdict evaluation per REC-VERB-5 runs declared gates, so the clause is arguably out of the reconciler's verb scope — but the table should say so rather than imply full coverage. Minor; a one-line annotation at rev 2."
+  }
+ ],
+ "claims": [],
+ "new_rows": [],
+ "notes": "T619 (Race F lane, DeepSeek Flash adjudicator). Read-only task: union + adjudication of five anonymized audit lanes over docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md. No edits to the spec, lane files, or any other findings file; this row produced exactly findings/T619-race-f.json. Lane summaries: lane-1 Fable 8 findings; lane-2 Sonnet 2; lane-3 Opus 12 (2 major); lane-4 DSFlash 8; lane-5 Sonnet-alt 6 (per the git log of sibling race rows, lane identities are the lanes' own claim, not checked by me). Union: 24 distinct items after dedup (U1–U24). Verdict distribution: 17 real (1 must — U23; 13 should; 3 note — U11/U19/U22 rated real at note), 2 false (U4, U6), 1 note-only observation (U5), 1 false-adjacent call — U24 real at note. NO finding contradicts the design or the 19.4% derivation; all reals are author-fold items for the S04 rev (the separate consuming row). DEDUP CALLS (close ones): U20 vs U21 kept separate — both attack the control-coverage claim but at different lines with different remediations (REC-CTRL-1's false table claim vs §0/§1–§4 scoping that leaves §6 gates regime-less); lane-2 F2 and lane-5 F4 bundle both halves, lanes 1/3 raise only the first. U2 absorbs lane-4 F1(traceability half)/F2/F3 and lane-3 n4's table half — one defect (the §8 index omits 15/16/17 with no out-of-scope annotation) even though lane-4 split it; the 16-body-absence and 17-body-presence are facets of the same index defect. U4/U6 judged false on substance (pass-2 §5 owns the security analysis and the runaway mechanism) with the residual traceability folded into U2 — I verified pass-2 spec:774 (threat model) and :709-722 (RUN-1) directly; lane-3's grep missed :774 (capital-T 'Threat model'). U19 corrected lane-5's task ID: the ruling (orchestration-layer-spec.md:247) says T587, not T599; T587 closed at 719ef9d. VERIFICATION COMMANDS RUN: grep -n '§2.6|§6.1|10 s|spacing|thrash|--holds none' spec.md; grep -in 'threat model|security analysis' pass2/S03/S04; grep -n 'FLEET_MODEL' S03; sed of decision-log §2(b)/§4.2/§5 rows; sed of orchestration-layer-spec §7b.9 and §7c.11–30; git log --grep T587/T599; tasks.json T587/T599 rows. INBOX: polled at claim, mid-work, and before close — empty every time, no directive IDs to record."
+}
