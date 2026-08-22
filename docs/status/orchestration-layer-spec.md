@@ -109,6 +109,123 @@ Dashboard polish finishes L1.
 Still owed operator **numbers** (not direction; spec defaults hold meanwhile): appetite constants
 (pass-2 spec §4.5) and `D_max`/mint budget (§5, `K` default 5).
 
+## 7c. Resolved — operator rulings, 2026-08-22 second batch (recorded by Fable at the operator's console; veto window open until the folding revs commit)
+
+11. **Appetite dial is 0–9 per MODEL (short name), not 0–99 per family.** A single digit; values
+    are read *relative to the current set*, not as absolute calibration. Family-level setting is a
+    **bulk convenience only** ("all ollama-cloud credits are exhausted", "dial down all Claude for
+    the next hour", "no local models while the 5x5 tables rebuild") — it writes the member models'
+    dials, it is not the unit of record. Initial values (operator, 2026-08-22): ollama-cloud
+    models 0 (CANNOT use at this time) · fable 2 (reserve for when Fable is most appropriate AND
+    needed) · opus 4, qwen 4 (use when appropriate; perhaps an alternative exists) · sonnet 6,
+    haiku 6, dspro 6, flash 6 (use liberally; the set's max never means must-use). Supersedes the
+    0–99-per-family shape that pass-2 rev 3 §4 and S03 rev 2 §4 just reconciled to — both specs
+    owe a fold; the §4 *mechanics* (0 = unliftable hard forbid, monotone back-pressure between,
+    max = no back-pressure, operator-only raise, auto may only reduce) carry over unchanged.
+12. **"Can use" vs "should use" are separate axes.** Appetite records only *can use* (permission +
+    back-pressure on a spend pool). *Should use* is decided by model test data (the ladder) plus
+    circumstantial appropriateness — including which mode the fleet is in: "get real work done"
+    (exploit the ladder) vs "eager to race models where evidence is sparse" (explore). This
+    ratifies and generalizes pass-2 §4.5's RESERVED finding: the reservation predicate was the
+    first "should" leaking into the "can" axis; no others may leak in.
+13. **Model retirement and short names.** Canonical model names are for the historic record only.
+    Short names (`qwen`, `glm`, …) ALWAYS resolve to the latest actively used version of that
+    line; "active" does not consider temporary credit freezes or hourly/weekly limits. Retiring a
+    model re-points the short name; it never rewrites history.
+14. **Escalation contract ratified** (S04 seed §6) **with two operator additions:** (a) a third
+    escalation category — **a premise violated**: a long-running assumed hypothesis is falsified,
+    or something believed possible proves impossible or astronomically difficult; (b) *irreversible*
+    explicitly includes **more than eight hours of wasted work** (a day, a night).
+15. **Runaway constants:** proposed values provisionally accepted (mint-streak trip 5, lineage
+    depth 3; lane_cap deepseek 6 / ollama-cloud 5 / claude 3 / fable 1 / local 1), **conditional
+    on**: (a) every constant gets a short *descriptive* name — `K`, `D_max`, `spacing_max` are
+    illegible to the person who must ratify them; (b) a dedicated security analysis of the runaway
+    surface before build. `spacing_max` itself is NOT yet ruled (not yet understood); explanation
+    owed, then ratification.
+
+    *Resolved 2026-08-22 (third batch, below): renames ratified (`runaway_streak` = 5,
+    `lineage_depth` = 3); per-model spacing deleted (ruling 16).*
+
+16. **Per-model spacing is DELETED; global spacing + failure backoff replace it.** Ruled after
+    explanation: every dispatch is a fresh instance, so per-model spacing gated nothing real —
+    its two jobs are already owned by `lane_cap` (concurrency) and the queue's failure-redispatch
+    backoff (retry storms, the actual churn vector). One **global** dispatch gap remains as a
+    stampede guard: default **10 s** between any two dispatches (operator's number; generous
+    during development, tunable). The `cooldown_max` constant and the per-family spacing
+    arithmetic (pass-2 §4.2, S03 §4) are struck at the next fold. A duplicated mechanism is
+    ceremony (process doctrine).
+17. **Dispatcher predicate (per-model, hard).** Separate from appetite and from "dispatch TO":
+    *may this model act as a dispatcher/manager at all*. Some models can dispatch; others simply
+    cannot — same shape as Fable's reservation predicate. The list is maintained from race
+    evidence (T363 first data point), never from belief. Refusal reason `dispatcher-predicate`.
+18. **Runaway constant renamed `runaway_streak` = 5.** Definition (plain): on every row close the
+    store notes whether open rows INCREASED (the close minted more than it finished); five such
+    growth-closes in an unbroken streak trips the breaker — no new dispatches, loudly, until the
+    operator clears it. `lineage_depth` = 3 ratified. **Security Musts ratified:** (a) caller
+    identity for store-write checks must be kernel-attested (parent-PID chain vs the supervisor's
+    held-child table), never env-var self-declaration (`MANAGENT_TASK_ID` is spoofable by
+    unsetting); (b) worker output is an injection surface into any reading agent — the verb
+    boundary stays mechanical in managent precisely because persuasion must not matter.
+19. **Escalation posture (supersedes the push/pull framing; operator's words 2026-08-22).**
+    Fixable red flags are fixed and work continues. Serious irreversible blockers block — and a
+    blocker is a research opportunity: the reconciler dispatches ONE bounded read-only
+    investigation lane per blocker so the operator briefing is always "blocker + evidence +
+    options forward with costs", never a bare halt. If unsure: investigate and research.
+    Panic-halt is reserved for thrash — when investigation adds thrash and things spin out of
+    control. Agents do the right thing: conservative, safe, diligent, transparent,
+    evidence-based, proactive, progressive.
+20. **The concern channel is first-class and always open.** Every agent — especially headless
+    subagents — must be able to record a concern or finding when it, its tools, or the process
+    fails (`managent assert` + findings file). Guard against protocol-skipping: a concern is
+    input to the reconciler, never a discharge — it closes nothing, excuses nothing, and reaches
+    the operator only after dedupe + contract check. An agent that asserts a concern still meets
+    or fails its own acceptance gate.
+21. **Closure is two-tier ("both"), and every phase runs a bounded audit loop.** Mechanical
+    closure: rows with `gate: <command>` close on exit 0 + committed deliverables + recorded
+    verdict — valid only if the gate was seen red first (red-first IS the gate's independent
+    check; a second pair of eyes there verifies nothing the gate didn't). Audit-act closure:
+    rows with `gate: audit` close only on an independent (non-same-family) audit verdict. Every
+    row declares its gate at mint; neither gate declared = not dispatchable. **Audit loop, cap
+    3:** each sprint phase is audited; red flags/blockers are addressed IN the phase, then
+    re-audited; if the THIRD audit still raises red flags or blockers, the phase — and the
+    sprint — blocks and escalates. Same at final verification/acceptance: the sprint may resolve
+    findings inside the final audit loop, but past a third red audit it cannot close itself.
+22. **Never idle; night and day are the same.** A process that halts ten minutes into an overnight
+    run and sits idle is the named failure — not spend. Token/window limits (typically five-hour):
+    wait with a scheduled resume, or redelegate to another model. Bugs: fix. Misbehaving tooling:
+    fix, carefully. There is ALWAYS work — the **idle-work ladder** (standing fallback classes):
+    play random games to falsify position scores; review code and clean up prose; optimize heavy
+    algorithms; walk the epistemic claims tree — reverify, prove hypotheses, or propose
+    alternative hypotheses. (STANDING-CLEANUP / STANDING-ABSORB / T533 STANDING-CLAIMVERIFY
+    already exist; the queue falls back to standing rows when the priority pool is empty or
+    gated.) No absolute overnight spend ceiling is set: appetite dials + provider limits are the
+    spend control.
+23. **No cheating (hard, mechanical).** An agent must never change a requirement it failed to
+    fulfill — a lane cannot edit its own row's gate, brief, or acceptance; gate edits require an
+    out-of-lane author (same enforcement family as the store-write security Musts). An agent that
+    challenges epistemology MUST propose hypotheses that are testable and then actually tested —
+    a challenge without a testable alternative discharges nothing.
+24. **L2 start criterion (return to science) = AUTOPILOT-5H.** When operator + Fable are
+    confident dispatching runs safely on autopilot for five hours — dogfooding actually works: no
+    bugs biting, no orphans, no runaway agents or processes, no thrashing, no panics, no nervous
+    moments — L2 and beyond begin. L1 perfection is NOT required. Concrete gate proposal: N
+    consecutive unattended five-hour runs, zero orphans/runaways/breaker-trips, every lane
+    accounted, real work produced each run. Until then, long runs are supervised trials.
+25. **Token-window exhaustion is a first-class, testable failure mode.** The five-hour API limit
+    is the most common unavoidable blocker. The handler must be **agent-free tooling** (an agent
+    handler dies of the same cause) and/or **rotate across families**: Sonnet/Haiku, DS Flash,
+    Ollama, local. Correction of record: **DeepSeek is NOT unlimited** — only the most reliable
+    cloud family, with no five-hour limits. A local model may be the most network-failure-tolerant
+    lane of all (possibly an EXCELLENT local-model niche — worth measuring). Testing: only by
+    actually hitting limits — Ollama blocks NOW (free live test target); Claude limits are tested
+    **constructively** every five hours (real work rides the window to exhaustion; never burn
+    tokens purely to test failure; the operator will warn as limits approach). Appetite doubles
+    as the spend/resource ceiling — including local compute (the 5x5 engine build is rationed by
+    the same dial logic as tokens).
+26. **AUTOPILOT-5H means ACTIVE autopilot.** Idle autopilot is no proof of stability. The five
+    hours must contain real delegation, issue resolution, and closes — "safe active autopilot"
+    is the bar that lets the operator do science in his dreams.
+
 ## 8. Delegation (the thorough pass)
 
 The sketch is the starting point; the full pipeline is delegated per the pass protocol: research (recover

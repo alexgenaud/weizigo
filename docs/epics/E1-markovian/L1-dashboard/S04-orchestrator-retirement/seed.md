@@ -63,8 +63,11 @@ shrinks accordingly.
   (nudge / question a lane); `reap --close` for a confirmed orphan; `done` with recorded verdict
   ONLY where the row's acceptance command exits 0; **escalate** (assert to the ledger + surface
   to the operator). **Never:** `retire`, `amend`, force-close, spec/plan edits, answering the
-  ruling queue, minting rows (it escalates the need instead — ruling 5's recursion safety stays
-  moot by construction).
+  ruling queue, minting rows — with ONE ruled exception (orchestration-layer-spec.md §7c.19): on
+  an irreversible blocker it mints exactly one bounded read-only investigation row (lineage-
+  tracked, justification = the blocker, so RUN-4 dedupes repeats and `lineage_depth` bounds the
+  chain) — the operator briefing on a blocker is "blocker + evidence + options forward", never a
+  bare halt.
 - **Enforcement is mechanism, not prose:** the verb boundary lives in `managent` itself
   (precedent: `MANAGENT_TEST=1` refuses mutating verbs). A reconciler that *asks nicely* not to
   amend is D054's prose failure again.
@@ -73,11 +76,16 @@ shrinks accordingly.
 - **Model:** cheapest passing per the race protocol; "reconciler" enters the task-type ladder as
   its own row.
 
-## 6. The escalation contract (principled, one sentence)
+## 6. The escalation contract (RATIFIED 2026-08-22 with two operator additions — orchestration-layer-spec.md §7c.14)
 
-> Escalate to the operator only decisions that are **irreversible** or that **change scope**;
-> everything else the reconciler resolves from the store and the docs, or delegates to a
-> stronger agent.
+> Escalate to the operator only: decisions that are **irreversible**, decisions that **change
+> scope**, or a **premise violated** — a long-running assumed hypothesis falsified, or something
+> believed possible proven impossible or astronomically difficult. Everything else the
+> reconciler resolves from the store and the docs, or delegates to a stronger agent.
+
+**Irreversible** explicitly includes more than eight hours of wasted work (a day, a night):
+work put at risk beyond that bar by proceeding on an unratified default is escalated *before*
+it runs, not vetoed after it burned.
 
 Corollary (doctrine: fix the tools, delete the prose): an escalation category that recurs twice
 must yield a rule or a tool that absorbs it; the recurrence check rides an existing duty chunk,
@@ -104,6 +112,11 @@ First live reading counts only after null + seeded-defect controls pass (red fir
 
 **Metric:** fraction of reconciler wakes that required **zero model tokens** — a wake the
 script alone could decide is a wake where no orchestrator existed. Track it in the run records.
+
+**Intermediate gate — AUTOPILOT-5H (ruled 2026-08-22, §7c.24):** N consecutive unattended
+five-hour runs with zero orphans / runaways / panics / thrash, every lane accounted, real work
+produced each run (never-idle, §7c.22). Passing it unlocks L2 (return to science); it is this
+sprint's verification centerpiece and comes before the retirement gate below.
 
 **Gate (the seat ends):** three consecutive clean days under reconciler-only steady-state
 operation — zero operator process-relays, duties current by the gate, every escalation
