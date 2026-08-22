@@ -252,7 +252,7 @@ fi
 # ── 6. seeded: store path — done --skip-acceptance with a nasty reason ───
 echo "  6. done --skip-acceptance with a multi-clause quoted reason round-trips"
 seed "$(rec_inprog TSKIP)"
-OUT=$("$MG" done TSKIP --skip-acceptance $'env broken, "quoted" clause, back\\slash, and a tab\there' 2>&1); RC=$?
+OUT=$("$MG" done TSKIP --impression "TSKIP control" --skip-acceptance $'env broken, "quoted" clause, back\\slash, and a tab\there' 2>&1); RC=$?
 STORE_OK=FAIL
 python3 - "$STORE" <<'PYEOF' && STORE_OK=PASS
 import json, sys

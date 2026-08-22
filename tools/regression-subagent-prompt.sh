@@ -139,6 +139,15 @@ else
     FAIL=1
 fi
 
+echo "  4b. seeded: done line names the impression-or-waiver gate (T522)"
+if echo "$OUT" | grep -q -- "--impression" && echo "$OUT" | grep -q -- "--impression-waiver"; then
+    echo "    PASS: done line carries --impression and --impression-waiver"
+else
+    echo "    FAIL: done line does not carry the impression-or-waiver flags"
+    echo "    output:"; echo "$OUT"
+    FAIL=1
+fi
+
 # ── T494: claude-provider prompt controls (red against pre-T494 code) ──────
 # The claude branch reuses the SAME prompt wrapper the other providers get:
 # the nonce injection, the claim/findings/done lifecycle with --agent

@@ -261,7 +261,7 @@ echo "# T$T213_TID — t213-pass" >> "$BUNDLE_PATH"
 # T390: claim-then-done within seconds is the claim-at-close pattern the
 # duplicate-dispatch guard refuses — the done gate needs --force to test the
 # verdict plumbing here (the claim was just recorded, no work between).
-DONE_OUT=$(cd "$TMPDIR" && "$MG" done "T$T213_TID" --force 2>&1)
+DONE_OUT=$(cd "$TMPDIR" && "$MG" done "T$T213_TID" --impression "T213 default-verdict control" --force 2>&1)
 if echo "$DONE_OUT" | grep -q 'verdict: pass'; then
     echo "           PASS: default verdict is pass"
 else
@@ -279,7 +279,7 @@ echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH2"
 echo "# T$T213_TID2 — t213-fail" >> "$BUNDLE_PATH2"
 (cd "$TMPDIR" && "$MG" claim "T$T213_TID2" 2>/dev/null)
 # T390: --force for the same claim-at-close reason as check 6.
-DONE_OUT2=$(cd "$TMPDIR" && "$MG" done "T$T213_TID2" --fail --force 2>&1)
+DONE_OUT2=$(cd "$TMPDIR" && "$MG" done "T$T213_TID2" --fail --impression "T213 fail-compat control" --force 2>&1)
 if echo "$DONE_OUT2" | grep -q 'verdict: blocked'; then
     echo "           PASS: --fail sets verdict=blocked"
 else
@@ -297,7 +297,7 @@ echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH3"
 echo "# T$T213_TID3 — t213-nonote" >> "$BUNDLE_PATH3"
 (cd "$TMPDIR" && "$MG" claim "T$T213_TID3" 2>/dev/null)
 # T390: --force for the same claim-at-close reason as check 6.
-if (cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass-with-findings --force 2>&1); then
+if (cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass-with-findings --impression "T213 no-note control" --force 2>&1); then
     echo "           FAIL: pass-with-findings without --note should be rejected"
     FAIL=1
 else
@@ -307,7 +307,7 @@ fi
 # ── Check 9: T213 — verdict command backfill ───────────────────────────────
 echo "        9. T213: verdict command backfills verdict on done task"
 
-(cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass --note "temp" --force 2>/dev/null)
+(cd "$TMPDIR" && "$MG" done "T$T213_TID3" --status pass --note "temp" --impression "T213 backfill control" --force 2>/dev/null)
 (cd "$TMPDIR" && "$MG" verdict "T$T213_TID3" pass-with-findings --note "gap X, follow-up T999" 2>/dev/null)
 SHOW_OUT=$(cd "$TMPDIR" && "$MG" show "T$T213_TID3" 2>/dev/null)
 if echo "$SHOW_OUT" | grep -q 'verdict:  pass-with-findings' && echo "$SHOW_OUT" | grep -q 'follow-up T999'; then
@@ -328,7 +328,7 @@ BEOF
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA217":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"true","claim_count":1}}
 JSONEOF
-DONE_OUT10=$(cd "$TMPDIR" && "$MG" done TA217 2>&1)
+DONE_OUT10=$(cd "$TMPDIR" && "$MG" done TA217 --impression "TA217 control" 2>&1)
 if echo "$DONE_OUT10" | grep -q 'verdict: pass' && echo "$DONE_OUT10" | grep -q 'acceptance: true OK'; then
     echo "           PASS: acceptance executed and task closed with pass"
 else
@@ -342,7 +342,7 @@ echo "        11. T217: acceptance=false rejects and task stays in_progress"
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA218":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"false","claim_count":1}}
 JSONEOF
-if (cd "$TMPDIR" && "$MG" done TA218 2>&1); then
+if (cd "$TMPDIR" && "$MG" done TA218 --impression "TA218 control" 2>&1); then
     echo "           FAIL: acceptance=false should have REJECTED"
     FAIL=1
 else
@@ -355,7 +355,7 @@ echo "        12. T217: --skip-acceptance bypasses command and closes task"
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA219":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"false","claim_count":1}}
 JSONEOF
-DONE_OUT12=$(cd "$TMPDIR" && "$MG" done TA219 --skip-acceptance "acceptance run takes 4 hours" 2>&1)
+DONE_OUT12=$(cd "$TMPDIR" && "$MG" done TA219 --impression "TA219 control" --skip-acceptance "acceptance run takes 4 hours" 2>&1)
 if echo "$DONE_OUT12" | grep -q 'ACCEPTANCE SKIPPED' && echo "$DONE_OUT12" | grep -q 'verdict: pass'; then
     echo "           PASS: --skip-acceptance recorded reason and closed task"
 else
@@ -383,7 +383,7 @@ echo "        14. T295: nonexistent acceptance command reports CANNOT RUN (not F
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA221":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"nonexistent-command-T295-seeded","claim_count":1}}
 JSONEOF
-DONE_OUT14=$(cd "$TMPDIR" && "$MG" done TA221 2>&1) || true
+DONE_OUT14=$(cd "$TMPDIR" && "$MG" done TA221 --impression "TA221 control" 2>&1) || true
 if echo "$DONE_OUT14" | grep -q "CANNOT RUN" && echo "$DONE_OUT14" | grep -q "infrastructure fault"; then
     echo "           PASS: nonexistent acceptance reports CANNOT RUN + infrastructure fault"
 else
@@ -397,7 +397,7 @@ echo "        15. T295: failing acceptance command reports ACCEPTANCE FAILED"
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA222":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"exit 1","claim_count":1}}
 JSONEOF
-DONE_OUT15=$(cd "$TMPDIR" && "$MG" done TA222 2>&1) || true
+DONE_OUT15=$(cd "$TMPDIR" && "$MG" done TA222 --impression "TA222 control" 2>&1) || true
 if echo "$DONE_OUT15" | grep -q "ACCEPTANCE FAILED" && echo "$DONE_OUT15" | grep -q "exited with code 1"; then
     echo "           PASS: failing acceptance reports ACCEPTANCE FAILED with exit code"
 else

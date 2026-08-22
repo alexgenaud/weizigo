@@ -162,7 +162,7 @@ else
     echo "    PASS: commit while in_progress succeeds (no new friction)"
 fi
 sleep 11   # pass the T390 claim-at-close window so the null close is unforced
-OUT=$("$MG" done TLC-ARM0 --status pass 2>&1)
+OUT=$("$MG" done TLC-ARM0 --status pass --impression "TLC-ARM0 control" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
     echo "    FAIL: done refused (RC=$RC): $OUT"
@@ -213,7 +213,7 @@ else
     echo "    PASS: same commit succeeds once claimed (claim is the precondition)"
 fi
 sleep 11
-OUT=$("$MG" done TLC-ARM1 --status pass 2>&1)
+OUT=$("$MG" done TLC-ARM1 --status pass --impression "TLC-ARM1 control" 2>&1)
 if [ $? -ne 0 ]; then echo "    FAIL: done: $OUT"; FAIL=1; fi
 # done-row commit: refused, and the refusal names amend (the post-close path).
 # The row's own deliverables are all committed by now, so this arm uses a
@@ -349,7 +349,7 @@ if [ $? -ne 0 ]; then echo "    FAIL: claim: $OUT"; FAIL=1; fi
 OUT=$(MANAGENT_TASK_ID=TLC-ARM4 "$WRAP" docs/arm4.md -m "TLC-ARM4 work" 2>&1)
 if [ $? -ne 0 ]; then echo "    FAIL: commit: $OUT"; FAIL=1; fi
 # claim and done within 10s: refused WITHOUT --force (T390 gate regression)
-OUT=$("$MG" done TLC-ARM4 --status pass 2>&1)
+OUT=$("$MG" done TLC-ARM4 --status pass --impression "TLC-ARM4 control" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ]; then
     echo "    FAIL: done within the 10s window succeeded without --force: $OUT"
@@ -361,7 +361,7 @@ else
     FAIL=1
 fi
 # with --force: closes AND records the force in the store (fix 4)
-OUT=$("$MG" done TLC-ARM4 --status pass --force 2>&1)
+OUT=$("$MG" done TLC-ARM4 --status pass --impression "TLC-ARM4 control" --force 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ]; then
     echo "    FAIL: --force close refused (RC=$RC): $OUT"

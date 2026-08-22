@@ -96,7 +96,7 @@ echo "=== managent done git check regression ==="
 echo "  1. null control: committed deliverables close normally"
 echo ok > docs/ok.md
 git add docs/ok.md && git commit -qm "ok deliverable"
-OUT=$("$MG" done DNULL --status pass 2>&1)
+OUT=$("$MG" done DNULL --status pass --impression "DNULL control" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && is_done DNULL; then
     echo "    PASS: DNULL closed (verdict pass), RC=0"
@@ -108,7 +108,7 @@ fi
 # ── seeded control: untracked deliverable ─────────────────────────────────
 echo "  2. seeded control: untracked deliverable is refused, naming it"
 echo seed > docs/seed.md            # on disk, NOT committed (the T272 hole)
-OUT=$("$MG" done DSEED --status pass 2>&1)
+OUT=$("$MG" done DSEED --status pass --impression "DSEED control" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "docs/seed.md" && ! is_done DSEED; then
     echo "    PASS: refused, named docs/seed.md, task stays in_progress"
@@ -122,7 +122,7 @@ echo "  3. seeded control: modified (uncommitted) deliverable is refused"
 echo mod > docs/mod.md
 git add docs/mod.md && git commit -qm "mod deliverable"
 echo more >> docs/mod.md            # uncommitted modification now
-OUT=$("$MG" done DSEED2 --status pass 2>&1)
+OUT=$("$MG" done DSEED2 --status pass --impression "DSEED2 control" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "docs/mod.md" && ! is_done DSEED2; then
     echo "    PASS: refused, named docs/mod.md, task stays in_progress"
@@ -136,7 +136,7 @@ git checkout -- docs/mod.md
 echo "  4. retention control: SHA256SUMS-pinned untracked/ artifact passes"
 echo "deadbeef  untracked/big.wzo" > artifacts/SHA256SUMS
 echo wzo > untracked/big.wzo        # deliberately never committed (ARGUS T211)
-OUT=$("$MG" done DRET --status pass 2>&1)
+OUT=$("$MG" done DRET --status pass --impression "DRET control" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && is_done DRET; then
     echo "    PASS: DRET closed via retention rule (untracked/ + SHA256SUMS)"
@@ -150,7 +150,7 @@ echo "  5. deletion control: staged deletion refused, committed deletion closes"
 echo gone > docs/gone.md
 git add docs/gone.md && git commit -qm "gone deliverable"
 git rm -q docs/gone.md              # staged deletion, not committed
-OUT=$("$MG" done DDEL --status pass 2>&1)
+OUT=$("$MG" done DDEL --status pass --impression "DDEL control" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "docs/gone.md" && ! is_done DDEL; then
     echo "    PASS: staged-but-uncommitted deletion refused, naming docs/gone.md"
@@ -159,7 +159,7 @@ else
     FAIL=1
 fi
 git commit -qm "delete gone"
-OUT=$("$MG" done DDEL --status pass 2>&1)
+OUT=$("$MG" done DDEL --status pass --impression "DDEL control" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && is_done DDEL; then
     echo "    PASS: committed deletion accepted (deliverable is the removal)"

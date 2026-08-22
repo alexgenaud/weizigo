@@ -120,6 +120,14 @@ const TaskState = struct {
     note: ?[]const u8 = null,
     verdict: ?[]const u8 = null,
     verdict_note: ?[]const u8 = null,
+    // T522: impression-or-waiver gate.  Every close must carry exactly one
+    // non-empty field: `impression` (how the model performed on this task
+    // type) or `impression_waiver` (the explicit reason no impression is
+    // owed).  Recorded on the row so close_completeness is computable
+    // (measurement-methodology §6) and model-perf cannot lapse silently —
+    // the failure the operator caught twice (fleet-and-model-audit §3).
+    impression: ?[]const u8 = null,
+    impression_waiver: ?[]const u8 = null,
     acceptance: ?[]const u8 = null,
     skip_acceptance_reason: ?[]const u8 = null,
     claim_count: u32 = 0,
@@ -1225,6 +1233,12 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("verdict_note")) |vn| {
             if (vn == .string) ts.verdict_note = try alloc.dupe(u8, vn.string);
         }
+        if (obj.object.get("impression")) |im| {
+            if (im == .string) ts.impression = try alloc.dupe(u8, im.string);
+        }
+        if (obj.object.get("impression_waiver")) |iw| {
+            if (iw == .string) ts.impression_waiver = try alloc.dupe(u8, iw.string);
+        }
         if (obj.object.get("acceptance")) |ac| {
             if (ac == .string) ts.acceptance = try alloc.dupe(u8, ac.string);
         }
@@ -1386,6 +1400,20 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try writeJsonString(buf, vn);
         } else {
             try buf.appendSlice(alloc, ",\n    \"verdict_note\": null");
+        }
+
+        if (ts.impression) |im| {
+            try buf.appendSlice(alloc, ",\n    \"impression\": ");
+            try writeJsonString(buf, im);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"impression\": null");
+        }
+
+        if (ts.impression_waiver) |iw| {
+            try buf.appendSlice(alloc, ",\n    \"impression_waiver\": ");
+            try writeJsonString(buf, iw);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"impression_waiver\": null");
         }
 
         try buf.appendSlice(alloc, ",\n    \"claim_count\": ");
@@ -2691,7 +2719,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     // blind.  cmdDone refuses; --force closes with a loud acknowledgement.
     const CLAIM_TO_DONE_REFUSE_SECS: i64 = 10;
     if (args.len < 3) {
-        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--skip-acceptance <reason>] [--force]\n", .{});
+        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--impression <text> | --impression-waiver <reason>] [--skip-acceptance <reason>] [--force]\n", .{});
         w.diag("       --fail (backward compat, sets verdict=blocked)\n", .{});
         w.diag("       --status defaults to 'pass'; --note required for non-pass verdicts\n", .{});
         w.diag("       --skip-acceptance bypasses the acceptance= command (reason mandatory)\n", .{});
@@ -2703,6 +2731,8 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     const note_override = getFlagValue(args, "--note");
     const agent_override_raw = getFlagValue(args, "--agent");
     const skip_acceptance_reason = getFlagValue(args, "--skip-acceptance");
+    const impression_override = getFlagValue(args, "--impression");
+    const impression_waiver_override = getFlagValue(args, "--impression-waiver");
 
     // T317: validate canonical model label at point of writing.
     var agent_override: ?[]const u8 = null;
@@ -2743,6 +2773,30 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (!std.mem.eql(u8, verdict_str, "pass") and verdict_note_str == null) {
         w.diag("\n  REJECTED: verdict '{s}' requires --note <text>\n", .{verdict_str});
         w.diag("  A verdict with no reason is the same information vacuum as bare 'done'.\n", .{});
+        std.process.exit(1);
+    }
+
+    // ── T522: impression-or-waiver gate ──
+    // Every close must record a model impression or an explicit waiver.
+    // model-perf lapsed under three orchestrators because nothing at close
+    // demanded it (fleet-and-model-audit §3); the waiver is the recorded
+    // N/A case, never a silent omission.  Exactly one non-empty field closes
+    // the row; both-empty and both-present are refused.  There is no --force
+    // bypass — an escape valve here is the lapse reborn (the absorption
+    // gate's lesson).  The gate is flag-only, so it runs before the lock.
+    const has_impression = impression_override != null and impression_override.?.len > 0;
+    const has_waiver = impression_waiver_override != null and impression_waiver_override.?.len > 0;
+    if (has_impression and has_waiver) {
+        w.diag("\n  REJECTED: {s} — give an impression OR a waiver, not both.\n", .{id});
+        w.diag("  --impression <text>        how the model performed on this task type (model-perf datum)\n", .{});
+        w.diag("  --impression-waiver <r>    the explicit reason no impression is owed (the recorded N/A)\n", .{});
+        std.process.exit(1);
+    }
+    if (!has_impression and !has_waiver) {
+        w.diag("\n  REJECTED: {s} — a close needs a model impression or an explicit waiver.\n", .{id});
+        w.diag("  model-perf lapses whenever close does not ask; the row cannot close silent.\n", .{});
+        w.diag("  --impression <text>        e.g. --impression \"clean spec pass, every citation verified\"\n", .{});
+        w.diag("  --impression-waiver <r>    e.g. --impression-waiver \"no model ran — operator close\"\n", .{});
         std.process.exit(1);
     }
 
@@ -2897,6 +2951,8 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     const prev_done = ts_ptr.done;
     const prev_verdict = ts_ptr.verdict;
     const prev_verdict_note = ts_ptr.verdict_note;
+    const prev_impression = ts_ptr.impression;
+    const prev_impression_waiver = ts_ptr.impression_waiver;
 
     // T213: all terminal tasks use status=.done; verdict carries the flavour
     ts_ptr.status = .done;
@@ -2904,6 +2960,15 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     ts_ptr.verdict = try alloc.dupe(u8, verdict_str);
     if (verdict_note_str) |vn| {
         ts_ptr.verdict_note = try alloc.dupe(u8, vn);
+    }
+    // T522: record the impression (or waiver) the gate demanded.  The gate
+    // guarantees at most one is non-empty; a fresh in_progress row has both
+    // null, so this is the only path (no old allocation to free here).
+    if (has_impression) {
+        ts_ptr.impression = try alloc.dupe(u8, impression_override.?);
+    }
+    if (has_waiver) {
+        ts_ptr.impression_waiver = try alloc.dupe(u8, impression_waiver_override.?);
     }
     // T217: record --skip-acceptance reason on the task
     if (skip_acceptance_reason) |reason| {
@@ -2967,7 +3032,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
                     w.diag("  command: {s}\n", .{acc_cmd});
                     w.diag("  This is an infrastructure fault, not a task failure.\n", .{});
                     // T350: phase 1 already wrote done — roll it back.
-                    const reverted = revertAcceptanceFailure(w, io, state_path, id, now, prev_done, prev_verdict, prev_verdict_note) catch false;
+                    const reverted = revertAcceptanceFailure(w, io, state_path, id, now, prev_done, prev_verdict, prev_verdict_note, prev_impression, prev_impression_waiver) catch false;
                     if (!reverted) w.diag("  WARNING: could not revert {s} — verify its status manually.\n", .{id});
                     w.diag("  Task stays in_progress. Fix the environment or use --skip-acceptance <reason>.\n", .{});
                     std.process.exit(1);
@@ -3015,7 +3080,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
                 if (!passed) {
                     // T350: phase 1 already wrote done — the store must not
                     // keep advertising a completion the gate never confirmed.
-                    const reverted = revertAcceptanceFailure(w, io, state_path, id, now, prev_done, prev_verdict, prev_verdict_note) catch false;
+                    const reverted = revertAcceptanceFailure(w, io, state_path, id, now, prev_done, prev_verdict, prev_verdict_note, prev_impression, prev_impression_waiver) catch false;
                     if (!reverted) w.diag("  WARNING: could not revert {s} — verify its status manually.\n", .{id});
                     w.diag("  Task stays in_progress. Fix the issue or use --skip-acceptance <reason>.\n", .{});
                     std.process.exit(1);
@@ -3054,6 +3119,8 @@ fn revertAcceptanceFailure(
     prev_done: ?[]const u8,
     prev_verdict: ?[]const u8,
     prev_verdict_note: ?[]const u8,
+    prev_impression: ?[]const u8,
+    prev_impression_waiver: ?[]const u8,
 ) !bool {
     try lockStore(io, state_path);
     defer unlockStore();
@@ -3080,6 +3147,10 @@ fn revertAcceptanceFailure(
     ts.verdict = if (prev_verdict) |v| try alloc.dupe(u8, v) else null;
     if (ts.verdict_note) |vn| alloc.free(vn);
     ts.verdict_note = if (prev_verdict_note) |vn| try alloc.dupe(u8, vn) else null;
+    if (ts.impression) |im| alloc.free(im);
+    ts.impression = if (prev_impression) |im| try alloc.dupe(u8, im) else null;
+    if (ts.impression_waiver) |iw| alloc.free(iw);
+    ts.impression_waiver = if (prev_impression_waiver) |iw| try alloc.dupe(u8, iw) else null;
 
     var reblocked = std.ArrayList([]const u8).empty;
     defer reblocked.deinit(alloc);
@@ -3157,6 +3228,16 @@ fn cmdReopen(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     if (ts_ptr.verdict_note) |vn| {
         alloc.free(vn);
         ts_ptr.verdict_note = null;
+    }
+    // T522: a reopened row must clear the prior close's impression/waiver —
+    // the gate demands a fresh one on the next close, never a stale carry-over.
+    if (ts_ptr.impression) |im| {
+        alloc.free(im);
+        ts_ptr.impression = null;
+    }
+    if (ts_ptr.impression_waiver) |iw| {
+        alloc.free(iw);
+        ts_ptr.impression_waiver = null;
     }
 
     try writeStateLocked(io, state_path, &state);
@@ -4175,6 +4256,14 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             try buf.appendSlice(alloc, ",\"verdict\":");
             try writeJsonString(&buf, v);
         }
+        if (ts.impression) |im| {
+            try buf.appendSlice(alloc, ",\"impression\":");
+            try writeJsonString(&buf, im);
+        }
+        if (ts.impression_waiver) |iw| {
+            try buf.appendSlice(alloc, ",\"impression_waiver\":");
+            try writeJsonString(&buf, iw);
+        }
         // T516: expose `added` (registration timestamp) and `claim_count`
         // (per-row claim tally) inline so the keeper never shells out to
         // `show` for two fields the dashboard wants. Both are always-present
@@ -5136,6 +5225,12 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (ts.verdict_note) |vn| {
         w.data("    verdict_note: {s}\n", .{vn});
     }
+    if (ts.impression) |im| {
+        w.data("    impression: {s}\n", .{im});
+    }
+    if (ts.impression_waiver) |iw| {
+        w.data("    impression_waiver: {s}\n", .{iw});
+    }
     // T497: the latest assertion (if any) renders as a history annotation —
     // it never overrides the kanban-store status on the first line.
     if (ledger.get(id)) |ls| {
@@ -5526,6 +5621,7 @@ fn printHelp(w: Writers) void {
         \\  --agent <name>           label who claimed — sets the model in the identifier (with claim / done)
         \\  --to <agent>             agent the task is dispatched to (with dispatch)
         \\  --note <text>            free-form context, ≤4 KiB (with dispatch / add / retire)
+        \\  --impression <text>      model impression required at close (with done); or --impression-waiver <reason>
         \\  --auto                   auto-generate opaque T<N> task ID (with add)
         \\  --bundle <path>          override bundle path (with add)
         \\  --set <A–Z>              override parallel set (with add / suggest)
@@ -5586,6 +5682,8 @@ fn freeState(state: *StateMap) void {
         if (ts.note) |nt| alloc.free(nt);
         if (ts.verdict) |v| alloc.free(v);
         if (ts.verdict_note) |vn| alloc.free(vn);
+        if (ts.impression) |im| alloc.free(im);
+        if (ts.impression_waiver) |iw| alloc.free(iw);
         if (ts.acceptance) |ac| alloc.free(ac);
         if (ts.skip_acceptance_reason) |sr| alloc.free(sr);
         for (ts.amendments) |am| alloc.free(am);
@@ -8698,6 +8796,11 @@ fn cmdReap(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         ts_ptr.verdict = try alloc.dupe(u8, "abandoned");
         if (ts_ptr.verdict_note) |old| alloc.free(old);
         ts_ptr.verdict_note = note;
+        // T522: reap --close is a close too — record the N/A as a waiver,
+        // never a silent omission.  An orphan died mid-attempt, so no
+        // impression exists; the waiver is the honest record.
+        if (ts_ptr.impression_waiver) |old| alloc.free(old);
+        ts_ptr.impression_waiver = try std.fmt.allocPrint(alloc, "reaped orphan: {s} (no impression — console died before close)", .{r.evidence});
         sys_closes += 1; // T478: a close is a close — duty due-counts advance
         try closed.append(alloc, r.tid);
     }

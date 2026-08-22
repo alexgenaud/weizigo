@@ -201,16 +201,28 @@ it exits non-zero. Bypass with `--skip-acceptance <reason>` — the reason is re
 task and surfaced by `audit`. Only applies to `pass` and `pass-with-findings` verdicts;
 `blocked`/`abandoned`/`fail-found` skip the acceptance check. (T217)
 
+**Every close demands an impression or an explicit waiver (T522).** `done` refuses unless the
+caller supplies `--impression <text>` (how the model performed on this task type) or
+`--impression-waiver <reason>` (the recorded reason no impression is owed). Both-empty and
+both-present are refused; an empty impression is not an impression. There is no `--force`
+bypass. The field is recorded on the row (`impression` / `impression_waiver`), making
+`close_completeness` computable (measurement-methodology §6) and stopping model-perf from
+lapsing silently (fleet-and-model-audit §3).
+
 ```
-$ managent done B09 --status pass
+$ managent done B09 --status pass --impression "clean spec pass, citations verified"
 
   B09 done  [set: C]  [verdict: pass]
 
-$ managent done B09 --status pass-with-findings --note "gap X, follow-up T999"
+$ managent done B09 --status pass-with-findings --note "gap X, follow-up T999" --impression "gap X found early"
 
   B09 done  [set: C]  [verdict: pass-with-findings]
 
-$ managent done B09 --fail
+$ managent done B09 --impression-waiver "no model ran — operator close"
+
+  B09 done  [set: C]  [verdict: pass]
+
+$ managent done B09 --fail --impression "stalled mid-work, never completed"
 
   B09 done  [set: C]  [verdict: blocked]
 ```

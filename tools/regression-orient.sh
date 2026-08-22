@@ -188,7 +188,7 @@ else
 fi
 # Close it: claim then done. done needs the row in_progress; claim moves it.
 "$MG" claim T353SEED --agent glm-5.2 >/dev/null 2>&1
-"$MG" done T353SEED --agent glm-5.2 --status pass --note "synthetic orient control" --force >/dev/null 2>&1
+"$MG" done T353SEED --agent glm-5.2 --status pass --note "synthetic orient control" --impression "orient control" --force >/dev/null 2>&1
 OUT_D=$("$MG" orient 2>/dev/null)
 # After done, the row must NOT appear in any live section (in_progress /
 # dispatchable / blocked) — done rows are not live.

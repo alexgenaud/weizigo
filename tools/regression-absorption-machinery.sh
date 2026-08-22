@@ -470,7 +470,7 @@ cat > "$WORK/D1/findings/TSEED1-absorb.json" <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_D1=$(MANAGENT_STORE="$STORE_D1" "$MG" done TSEED1 2>&1); RC_D1=$?
+OUT_D1=$(MANAGENT_STORE="$STORE_D1" "$MG" done TSEED1 --impression "D1 control" 2>&1); RC_D1=$?
 STATUS_D1=$(python3 -c "import json;print(json.load(open('$STORE_D1'))['TSEED1']['status'])")
 if [ "$RC_D1" -ne 0 ] && \
    echo "$OUT_D1" | grep -q "REJECTED: TSEED1" && \
@@ -491,7 +491,7 @@ setup_done_gate "$WORK/D2"
 STORE_D2="$WORK/D2/docs/infra/managent/tasks.json"
 seed_done_task "$STORE_D2" TSEED2
 printf '{"task_id": "TSEED2", "date": "2026-08-20", "model": "deepseek-v4-pro", "claims": [\n' > "$WORK/D2/findings/TSEED2-absorb.json"
-OUT_D2=$(MANAGENT_STORE="$STORE_D2" "$MG" done TSEED2 2>&1); RC_D2=$?
+OUT_D2=$(MANAGENT_STORE="$STORE_D2" "$MG" done TSEED2 --impression "D2 control" 2>&1); RC_D2=$?
 if [ "$RC_D2" -ne 0 ] && \
    echo "$OUT_D2" | grep -q "REJECTED: TSEED2" && \
    echo "$OUT_D2" | grep -q "TSEED2-absorb.json" && \
@@ -514,7 +514,7 @@ cat > "$WORK/D3/findings/TSEED3-absorb.json" <<'JSONEOF'
   "claims": []
 }
 JSONEOF
-OUT_D3=$(MANAGENT_STORE="$STORE_D3" "$MG" done TSEED3 2>&1); RC_D3=$?
+OUT_D3=$(MANAGENT_STORE="$STORE_D3" "$MG" done TSEED3 --impression "D3 control" 2>&1); RC_D3=$?
 if [ "$RC_D3" -ne 0 ] && \
    echo "$OUT_D3" | grep -q "REJECTED: TSEED3" && \
    echo "$OUT_D3" | grep -q "task_id"; then
@@ -544,7 +544,7 @@ cat > "$WORK/D4/findings/TSEED4-absorb.json" <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_D4=$(MANAGENT_STORE="$STORE_D4" "$MG" done TSEED4 --status fail-found --note "D4 control" 2>&1); RC_D4=$?
+OUT_D4=$(MANAGENT_STORE="$STORE_D4" "$MG" done TSEED4 --status fail-found --note "D4 control" --impression "D4 control" 2>&1); RC_D4=$?
 if [ "$RC_D4" -ne 0 ] && \
    echo "$OUT_D4" | grep -q "REJECTED: TSEED4" && \
    echo "$OUT_D4" | grep -q "GLOBAL.FIX1"; then
@@ -560,7 +560,7 @@ setup_done_gate "$WORK/D5"
 STORE_D5="$WORK/D5/docs/infra/managent/tasks.json"
 seed_done_task "$STORE_D5" TSEED5
 rm "$WORK/D5/docs/epistemic/CLAIMS.md"
-OUT_D5=$(MANAGENT_STORE="$STORE_D5" "$MG" done TSEED5 2>&1); RC_D5=$?
+OUT_D5=$(MANAGENT_STORE="$STORE_D5" "$MG" done TSEED5 --impression "D5 control" 2>&1); RC_D5=$?
 if [ "$RC_D5" -ne 0 ] && \
    echo "$OUT_D5" | grep -q "REJECTED: TSEED5" && \
    echo "$OUT_D5" | grep -q "infrastructure fault"; then
@@ -590,7 +590,7 @@ cat > "$WORK/D6/findings/TNULL1-absorb.json" <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_D6=$(MANAGENT_STORE="$STORE_D6" "$MG" done TNULL1 2>&1); RC_D6=$?
+OUT_D6=$(MANAGENT_STORE="$STORE_D6" "$MG" done TNULL1 --impression "D6 control" 2>&1); RC_D6=$?
 STATUS_D6=$(python3 -c "import json;print(json.load(open('$STORE_D6'))['TNULL1']['status'])")
 if [ "$RC_D6" -eq 0 ] && [ "$STATUS_D6" = "done" ]; then
     echo "    PASS: matched proposal closes cleanly"
@@ -632,7 +632,7 @@ cat > "$WORK/D7/findings/rejections.json" <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_D7=$(MANAGENT_STORE="$STORE_D7" "$MG" done TNULL2 2>&1); RC_D7=$?
+OUT_D7=$(MANAGENT_STORE="$STORE_D7" "$MG" done TNULL2 --impression "D7 control" 2>&1); RC_D7=$?
 STATUS_D7=$(python3 -c "import json;print(json.load(open('$STORE_D7'))['TNULL2']['status'])")
 if [ "$RC_D7" -eq 0 ] && [ "$STATUS_D7" = "done" ]; then
     echo "    PASS: rejection is absorption; close passes"
@@ -676,7 +676,7 @@ cat > "$WORK/D8/findings/TOTHER-absorb.json" <<'JSONEOF'
   ]
 }
 JSONEOF
-OUT_D8=$(MANAGENT_STORE="$STORE_D8" "$MG" done TSCOPE 2>&1); RC_D8=$?
+OUT_D8=$(MANAGENT_STORE="$STORE_D8" "$MG" done TSCOPE --impression "D8 control" 2>&1); RC_D8=$?
 STATUS_D8=$(python3 -c "import json;print(json.load(open('$STORE_D8'))['TSCOPE']['status'])")
 if [ "$RC_D8" -eq 0 ] && [ "$STATUS_D8" = "done" ]; then
     echo "    PASS: scoped gate ignores another task's drift"
@@ -691,7 +691,7 @@ setup_done_gate "$WORK/D9"
 STORE_D9="$WORK/D9/docs/infra/managent/tasks.json"
 seed_done_task "$STORE_D9" TBLOCK
 printf '{ this is not json ' > "$WORK/D9/findings/TBLOCK-absorb.json"
-OUT_D9=$(MANAGENT_STORE="$STORE_D9" "$MG" done TBLOCK --status blocked --note "D9 control" 2>&1); RC_D9=$?
+OUT_D9=$(MANAGENT_STORE="$STORE_D9" "$MG" done TBLOCK --status blocked --note "D9 control" --impression "D9 control" 2>&1); RC_D9=$?
 STATUS_D9=$(python3 -c "import json;print(json.load(open('$STORE_D9'))['TBLOCK']['status'])")
 if [ "$RC_D9" -eq 0 ] && [ "$STATUS_D9" = "done" ]; then
     echo "    PASS: blocked close is exempt from the gate"

@@ -127,7 +127,7 @@ RECS="$(duty_rec DCLAIM 0 -)__REC__$(task_inprog_rec T1)__REC__$(task_inprog_rec
 seed_store "$RECS" 0
 for i in 1 2 3 4 5; do
     printf '<!--managent set=A deliverables=-->\n# T%s\n' "$i" > "untracked/T$i.md"
-    "$MG" done "T$i" --status pass >/dev/null 2>&1
+    "$MG" done "T$i" --status pass --impression "duty control" >/dev/null 2>&1
 done
 
 STATUS_JSON=$("$MG" status --json 2>/dev/null)

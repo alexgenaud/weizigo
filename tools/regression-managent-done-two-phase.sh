@@ -85,7 +85,7 @@ echo "=== managent done two-phase lock regression ==="
 # ── control a: acceptance passes → task stays done ─────────────────────────
 echo "  a. acceptance=true keeps the task done (verdict pass)"
 seed "$(rec TA true)"
-OUT=$("$MG" done TA 2>&1); RC=$?
+OUT=$("$MG" done TA --impression "TA control" 2>&1); RC=$?
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q 'verdict: pass' \
    && "$MG" show TA 2>/dev/null | grep -q '  TA  done' \
@@ -99,7 +99,7 @@ fi
 # ── control b: acceptance fails → revert + re-block dependents ─────────────
 echo "  b. acceptance=false reverts to in_progress and re-blocks dependents"
 seed "$(rec TB false), $(dep_rec DEP TB)"
-OUT=$("$MG" done TB 2>&1); RC=$?
+OUT=$("$MG" done TB --impression "TB control" 2>&1); RC=$?
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q 'ACCEPTANCE FAILED: TB exited with code 1' \
    && echo "$OUT" | grep -q 'reverted TB to in_progress (acceptance failed)' \
@@ -116,7 +116,7 @@ fi
 echo "  c. acceptance runs unlocked (nested purge succeeds); vanish guard fires"
 ACC="$(printf '%s purge TC && exit 1' "$MG")"
 seed "$(rec TC "$ACC")"
-OUT=$("$MG" done TC 2>&1); RC=$?
+OUT=$("$MG" done TC --impression "TC control" 2>&1); RC=$?
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q 'purged 1 task(s): TC' \
    && echo "$OUT" | grep -q 'ACCEPTANCE FAILED: TC exited with code 1' \
@@ -130,7 +130,7 @@ fi
 # ── control e: --skip-acceptance closes, reason recorded, no phase 2 ───────
 echo "  e. --skip-acceptance closes the task and records the reason"
 seed "$(rec TE false)"
-OUT=$("$MG" done TE --skip-acceptance "regression control skips" 2>&1); RC=$?
+OUT=$("$MG" done TE --impression "TE control" --skip-acceptance "regression control skips" 2>&1); RC=$?
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q 'ACCEPTANCE SKIPPED: TE' \
    && echo "$OUT" | grep -q 'verdict: pass' \
@@ -144,7 +144,7 @@ fi
 # ── control f: empty --skip-acceptance reason rejected BEFORE the write ────
 echo "  f. empty --skip-acceptance reason rejected, store unmutated"
 seed "$(rec TF false)"
-OUT=$("$MG" done TF --skip-acceptance "" 2>&1); RC=$?
+OUT=$("$MG" done TF --impression "TF control" --skip-acceptance "" 2>&1); RC=$?
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q 'REJECTED: TF --skip-acceptance requires a non-empty reason' \
    && "$MG" show TF 2>/dev/null | grep -q '  TF  in_progress' \

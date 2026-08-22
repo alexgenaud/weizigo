@@ -176,14 +176,14 @@ if [ "$RC" -ne 0 ] || ! echo "$OUT" | grep -q 'claimed TC'; then
     echo "    FAIL: TC claim failed: $OUT"
     FAIL=1
 fi
-OUT=$("$MG" done TC 2>&1); RC=$?
+OUT=$("$MG" done TC --impression "TC control" 2>&1); RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q 'REJECTED: TC was claimed [0-9]\+s before this done'; then
     echo "    PASS: TC done refused for claim-at-close"
 else
     echo "    FAIL: claim-at-close done was not refused: $OUT"
     FAIL=1
 fi
-OUT=$("$MG" done TC --force 2>&1); RC=$?
+OUT=$("$MG" done TC --impression "TC control" --force 2>&1); RC=$?
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q 'FORCED: TC was claimed only' \
    && "$MG" show TC 2>/dev/null | grep -q '  TC  done'; then
@@ -200,7 +200,7 @@ bundle TD src/td_demo.txt
 echo "td demo" > src/td_demo.txt
 git add src/td_demo.txt untracked/TD-bundle.md
 git commit -q -m "seed TD deliverables"
-OUT=$("$MG" done TD 2>&1); RC=$?
+OUT=$("$MG" done TD --impression "TD control" 2>&1); RC=$?
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q 'verdict: pass' \
    && ! echo "$OUT" | grep -q 'REJECTED'; then

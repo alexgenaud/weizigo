@@ -111,7 +111,7 @@ echo ""
 # ── Control 1: signal-killed acceptance command must be REJECTED ───────────
 echo '  D1. signal-killed acceptance command (kill -9 $$) is REJECTED'
 seed "$(rec D1 'kill -9 $$' 'untracked/D1-bundle.md')"
-OUT=$(run_budgeted 20 "$MG" done D1 --status pass --agent deepseek-v4-pro 2>&1); RC=$?
+OUT=$(run_budgeted 20 "$MG" done D1 --status pass --agent deepseek-v4-pro --impression "D1 control" 2>&1); RC=$?
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q 'acceptance command killed by signal 9' \
    && echo "$OUT" | grep -q 'reverted D1 to in_progress'; then
@@ -134,7 +134,7 @@ cat > untracked/D2-bundle.md << 'BUNDLEEOF'
 # test - deliverables parsing
 BUNDLEEOF
 seed "$(rec D2 'echo ok' 'untracked/D2-bundle.md')"
-OUT=$(run_budgeted 20 "$MG" done D2 --status pass --agent deepseek-v4-pro 2>&1); RC=$?
+OUT=$(run_budgeted 20 "$MG" done D2 --status pass --agent deepseek-v4-pro --impression "D2 control" 2>&1); RC=$?
 if [ "$RC" -eq 0 ] \
    && echo "$OUT" | grep -q 'acceptance: echo ok OK' \
    && echo "$OUT" | grep -q 'verdict: pass'; then
@@ -147,7 +147,7 @@ fi
 echo ""
 echo "  D3. empty --skip-acceptance reason is REJECTED"
 seed "$(rec D3 'echo ok' 'untracked/D3-bundle.md')"
-OUT=$(run_budgeted 20 "$MG" done D3 --status pass --agent deepseek-v4-pro --skip-acceptance "" 2>&1); RC=$?
+OUT=$(run_budgeted 20 "$MG" done D3 --status pass --agent deepseek-v4-pro --impression "D3 control" --skip-acceptance "" 2>&1); RC=$?
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q 'REJECTED: D3 --skip-acceptance requires a non-empty reason' \
    && "$MG" show D3 2>/dev/null | grep -q '  D3  in_progress'; then

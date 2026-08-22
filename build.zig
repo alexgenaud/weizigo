@@ -733,6 +733,18 @@ pub fn build(b: *std.Build) void {
     done_two_phase_regression.cwd = b.path(".");
     test_step.dependOn(&done_two_phase_regression.step);
 
+    // ── T522: impression-or-waiver gate controls ──────────────────
+    // `managent done` must demand a model impression or an explicit
+    // waiver at every close (G6 / measurement-methodology §6), so
+    // model-perf cannot lapse silently.  Seeded arms: neither flag →
+    // refused · both flags → refused · empty impression → refused.
+    // Null arms: --impression records the field · --impression-waiver
+    // records the reason · blocked close is gated too (a stall is a
+    // model datum).  Same SKIP convention: no built claimlint → SKIP.
+    const impression_gate_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-impression-gate.sh" });
+    impression_gate_regression.cwd = b.path(".");
+    test_step.dependOn(&impression_gate_regression.step);
+
     // ── T516: status --json added/claim_count controls ───────────────
     // F7: `status --json` omitted `added` (registration ts) and
     // `claim_count` (per-row claim tally), forcing the keeper to shell out
