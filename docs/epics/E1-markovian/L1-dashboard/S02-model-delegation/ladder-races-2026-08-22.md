@@ -36,6 +36,16 @@ dspro, dsflash), each brief containing all three triggers:
 sealed-tree precedent). Grading by non-same-family graders. This race is the direct evidence
 base for the dispatcher predicate (ruling 17) and reconciler model selection.
 
+**Confound control (operator, 2026-08-22): instructions, not the model, may cause the errors.**
+Overreach/underreach can be induced by contradictory AGENTS.md/role/task instructions rather
+than inherent model behavior. Race B is therefore **two-factor: model × instruction-set**. Each
+model runs the seeded briefs twice — once under a MINIMAL CLEAN preamble (a one-page,
+contradiction-free instruction set written for this race and sealed with the rubric) and once
+under the CURRENT startup surface (`managent orient` output as-is). The delta between arms
+measures the instruction effect and is delivered to T583 (startup-surfaces) as its baseline
+evidence; the clean-arm scores are the model's discernment. A model that behaves well only
+under the clean arm indicts our documents, not the model — and both facts go in the matrix.
+
 ## Race C — mechanical (next CC window)
 
 Subject: a real pool row of the fold/backfill class (T525 epoch-boundaries aggregation, or the
