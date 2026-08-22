@@ -447,6 +447,260 @@ else
     fail "empty session dir must not crash"
 fi
 
+# ── F. T662: pi-session meter e2e (seeded) ────────────────────────────────
+# A pi lane whose dispatch passed `--session <path>` writes its session
+# JSONL to that exact path; after the lane closes the runner reads the
+# file and records the split.  pi's usage object carries input and
+# cacheRead SEPARATELY, so a readable session yields a REAL split — never
+# UNKNOWN.  Two assistant turns with seeded usage make the sums
+# hand-checkable: input 107, cacheRead 240, output 53 -> tokens_in 347.
+# RED against the pre-T662 code: the record said "no reading — the pi
+# session JSONL is the retroactive meter" and nothing read it.
+cat > fake-pi-session <<'SHIM'
+#!/usr/bin/env python3
+# A fake pi lane that behaves like the real one: writes its session JSONL
+# to the `--session <path>` target (the exact file the runner reads after
+# the child closes), then prints its reply.
+import json, os, sys
+path = None
+for i, a in enumerate(sys.argv):
+    if a == "--session" and i + 1 < len(sys.argv):
+        path = sys.argv[i + 1]
+        break
+def line(o): return json.dumps(o)
+if path:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(line({"type": "session", "version": 3, "id": "t662-sess-1",
+                      "timestamp": "2026-08-22T00:00:00Z", "cwd": "/repo"}) + "\n")
+        f.write(line({"type": "message", "id": "u1", "parentId": "t662-sess-1",
+                      "timestamp": "2026-08-22T00:00:01Z",
+                      "message": {"role": "user", "content": [{"type": "text",
+                          "text": "Follow untracked/T662F-x.md"}]}}) + "\n")
+        f.write(line({"type": "message", "id": "a1", "parentId": "u1",
+                      "timestamp": "2026-08-22T00:00:02Z",
+                      "message": {"role": "assistant", "content": [{"type": "text", "text": "x"}],
+                                  "provider": "deepseek", "model": "deepseek-v4-pro",
+                                  "usage": {"input": 100, "output": 50, "cacheRead": 200,
+                                            "cacheWrite": 10, "reasoning": 0,
+                                            "totalTokens": 360}}}) + "\n")
+        f.write(line({"type": "message", "id": "a2", "parentId": "a1",
+                      "timestamp": "2026-08-22T00:00:03Z",
+                      "message": {"role": "assistant", "content": [{"type": "text", "text": "y"}],
+                                  "provider": "deepseek", "model": "deepseek-v4-pro",
+                                  "usage": {"input": 7, "output": 3, "cacheRead": 40,
+                                            "cacheWrite": 0, "reasoning": 0,
+                                            "totalTokens": 50}}}) + "\n")
+sys.stdout.write("pi session lane output\n")
+sys.exit(0)
+SHIM
+chmod +x fake-pi-session
+
+echo "  F. pi-session meter: --session path read after close -> split recorded"
+export MANAGENT_TASK_ID=T662F
+OUT_F=$("$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 \
+        -- ./fake-pi-session --provider deepseek --model deepseek-v4-pro \
+           --session untracked/sessions/T662F.jsonl -p 'hi' 2>"$WORK/pi-f.err")
+RC=$?
+unset MANAGENT_TASK_ID
+
+if [ "$RC" -ne 0 ]; then
+    fail "pi-session lane runner rc=$RC"; sed 's/^/    | /' "$WORK/pi-f.err" | head -20
+else
+    if [ "$OUT_F" = "pi session lane output" ]; then
+        pass "pi-session lane stdout forwarded unchanged"
+    else
+        fail "pi-session lane stdout: got '$OUT_F'"
+    fi
+    REC="$WORK/untracked/runs/T662F.json"
+    if test -f "$REC" && python3 -c "
+import json,sys
+d=json.load(open('$REC'))
+assert d.get('tokens_in')==347, d.get('tokens_in')   # 107 fresh + 240 cache_read
+assert d.get('tokens_fresh')==107, d
+assert d.get('tokens_cache_read')==240, d
+assert d.get('tokens_out')==53, d
+assert d.get('tokens_source')=='pi-session-jsonl', d
+assert d.get('tokens_fresh')+d.get('tokens_cache_read')==d.get('tokens_in'), d
+assert d.get('session_id')=='t662-sess-1', d
+assert d.get('session_reason') is None, d
+assert d.get('session_path','').endswith('T662F.jsonl'), d
+assert d.get('session_path_reason') is None, d
+print('OK')" 2>/dev/null | grep -q OK; then
+        pass "run record: pi session meter split (347=107+240) + session id + path"
+    else
+        fail "pi-session run record"; cat "$REC" 2>/dev/null | head -5
+    fi
+    if grep -q "tokens_in=347 tokens_out=53 tokens_fresh=107 tokens_cache_read=240" "$WORK/pi-f.err"; then
+        pass "trailer carries the pi session split"
+    else
+        fail "pi-session trailer split missing"; grep "tokens" "$WORK/pi-f.err" | sed 's/^/    | /'
+    fi
+    if grep -q "session_id=t662-sess-1" "$WORK/pi-f.err"; then
+        pass "trailer carries the resumable session id"
+    else
+        fail "pi-session trailer id missing"; grep "session" "$WORK/pi-f.err" | sed 's/^/    | /'
+    fi
+    LED="$WORK/untracked/tokens/tokens.jsonl"
+    if test -f "$LED" && python3 -c "
+import json,sys
+for line in open('$LED'):
+    e=json.loads(line)
+    if e.get('task')=='T662F':
+        assert e.get('tokens_in')==347 and e.get('tokens_fresh')==107, e
+        assert e.get('tokens_cache_read')==240 and e.get('tokens_out')==53, e
+        assert e.get('source')=='pi-session-jsonl', e
+        assert e.get('session_id')=='t662-sess-1', e
+        assert e.get('session_path','').endswith('T662F.jsonl'), e
+        print('OK')" 2>/dev/null | grep -q OK; then
+        pass "ledger carries the pi session meter reading (split + id + path)"
+    else
+        fail "pi-session ledger"; cat "$LED" 2>/dev/null | head -5
+    fi
+fi
+
+# ── G. T662: session file MISSING -> UNKNOWN, loudly, never 0 ─────────────
+# A lane whose dispatch named a session path but whose session file does
+# not exist after close (pi never wrote it: launch crash, kill before
+# header) must record UNKNOWN — all three token fields None with a reason
+# NAMING the missing file.  Never 0 (a free lane in the ladder), never the
+# total (a fabricated reading).  RED against pre-T662: indistinguishable
+# from any other pi lane.
+cat > fake-pi-nosession <<'SHIM'
+#!/usr/bin/env python3
+# A fake pi lane that NEVER writes its session file — the missing-file
+# control.
+import sys
+sys.stdout.write("pi lane, no session written\n")
+sys.exit(0)
+SHIM
+chmod +x fake-pi-nosession
+
+echo "  G. missing session file -> UNKNOWN, loudly, never 0 / never the total"
+export MANAGENT_TASK_ID=T662G
+OUT_G=$("$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 \
+        -- ./fake-pi-nosession --provider deepseek --model deepseek-v4-flash \
+           --session untracked/sessions/T662G.jsonl -p 'hi' 2>"$WORK/pi-g.err")
+RC=$?
+unset MANAGENT_TASK_ID
+
+if [ "$RC" -ne 0 ]; then
+    fail "missing-session lane runner rc=$RC"; sed 's/^/    | /' "$WORK/pi-g.err" | head -20
+else
+    REC="$WORK/untracked/runs/T662G.json"
+    if test -f "$REC" && python3 -c "
+import json,sys
+d=json.load(open('$REC'))
+assert d.get('tokens_in') is None, d
+assert d.get('tokens_fresh') is None, d
+assert d.get('tokens_cache_read') is None, d
+assert d.get('tokens_out') is None, d
+mr=d.get('tokens_missing_reason') or ''
+assert 'session file missing' in mr, mr
+assert 'T662G.jsonl' in mr, mr
+sr=d.get('session_reason') or ''
+assert 'session file missing' in sr, sr
+print('OK')" 2>/dev/null | grep -q OK; then
+        pass "missing session file: all fields None + reason naming the file (UNKNOWN)"
+    else
+        fail "missing-session record"; cat "$REC" 2>/dev/null | head -5
+    fi
+    if grep -q "tokens: no reading" "$WORK/pi-g.err"; then
+        pass "trailer reports the missing reading loudly"
+    else
+        fail "missing-session trailer"; grep "tokens" "$WORK/pi-g.err" | sed 's/^/    | /'
+    fi
+fi
+
+# ── H. T662 null: an already-recorded lane is untouched (no back-fill) ────
+# A reconstructed token count is a fabricated one (T662 null control).
+# Seed a run record + ledger line for T662H, then run a NEW attempt of the
+# same task: the T650 archive of the old record must be BYTE-IDENTICAL to
+# the seed (no session_path stamped into history, no reading invented),
+# and the old ledger line must survive verbatim.
+echo "  H. null: an already-recorded lane is untouched; no back-fill"
+mkdir -p "$WORK/untracked/runs"
+cat > "$WORK/untracked/runs/T662H.json" <<'SEED'
+{"task": "T662H", "attempt": 1, "pid": 111, "start": "2026-08-22T00:00:00Z",
+ "command": "old attempt", "tokens_in": 999, "tokens_out": 1,
+ "tokens_fresh": 1, "tokens_cache_read": 998, "tokens_source": "claude-json-envelope",
+ "session_id": "old-sess", "seed_marker": true}
+SEED
+SEED_BEFORE=$(sha256sum "$WORK/untracked/runs/T662H.json" | cut -d' ' -f1)
+mkdir -p "$WORK/untracked/tokens"
+printf '%s\n' '{"task": "T662H", "ts": "2026-08-22T00:00:00Z", "tokens_in": 999, "tokens_out": 1, "source": "claude-json-envelope", "seed_marker": true}' >> "$WORK/untracked/tokens/tokens.jsonl"
+
+export MANAGENT_TASK_ID=T662H
+OUT_H=$("$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 \
+        -- ./fake-pi --provider deepseek --model deepseek-v4-flash -p 'hi' 2>"$WORK/pi-h.err")
+RC=$?
+unset MANAGENT_TASK_ID
+
+if [ "$RC" -ne 0 ]; then
+    fail "null lane runner rc=$RC"; sed 's/^/    | /' "$WORK/pi-h.err" | head -20
+else
+    # T650: the new attempt archives the bare record to <task>.1.json and
+    # writes a fresh bare.  The ARCHIVE must be byte-identical to the seed
+    # — history is never rewritten, never back-filled.
+    ARCH="$WORK/untracked/runs/T662H.1.json"
+    if test -f "$ARCH"; then
+        SEED_AFTER=$(sha256sum "$ARCH" | cut -d' ' -f1)
+        if [ "$SEED_AFTER" = "$SEED_BEFORE" ]; then
+            pass "old attempt archived byte-identical — no back-fill, no invented reading"
+        else
+            fail "old attempt REWRITTEN by the new run (archive differs from seed)"
+            diff "$ARCH" "$WORK/untracked/runs/T662H.json" | head -10
+        fi
+    else
+        fail "no archived attempt T662H.1.json found"; ls "$WORK/untracked/runs/" | sed 's/^/    | /'
+    fi
+    # the seed's ledger line survives verbatim (the new run appends only)
+    if grep -q '"seed_marker": true' "$WORK/untracked/tokens/tokens.jsonl"; then
+        pass "pre-existing ledger line untouched (new run appends, never rewrites)"
+    else
+        fail "pre-existing ledger line destroyed"
+    fi
+fi
+
+# ── J. T662: economy recompute by hand and from the records agree ────────
+# Ruling 35: economy = verified findings / output tokens.  The METER feeds
+# it, so the meter must reproduce a hand computation exactly.  Two seeded
+# readings exist in this scratch run: T521CLAUDE (arm B: 11 fresh + 33
+# cache_read = 44 in, 22 out) and T662F (arm F: 107 + 240 = 347 in, 53
+# out).  Recompute the derived fields from the RAW seeded usage by hand,
+# then read the records: they must agree.  The UNKNOWN record (T662G) must
+# be EXCLUDED — a record whose split is None may never enter an economy.
+echo "  J. economy: hand recompute over the seeded set == records; UNKNOWN excluded"
+if python3 -c "
+import json, sys
+# hand computation from the SEEDED usage values (the fixtures, not the records)
+claude = {'fresh': 11, 'cache_read': 33, 'out': 22}
+pi     = {'fresh': 107, 'cache_read': 240, 'out': 53}
+known = {'T521CLAUDE': claude, 'T662F': pi}
+recs = {}
+for tid in known:
+    d = json.load(open('$WORK/untracked/runs/%s.json' % tid))
+    recs[tid] = d
+    want = known[tid]
+    assert d.get('tokens_in') == want['fresh'] + want['cache_read'], (tid, d)
+    assert d.get('tokens_fresh') == want['fresh'], d
+    assert d.get('tokens_cache_read') == want['cache_read'], d
+    assert d.get('tokens_out') == want['out'], d
+# economy (output per input) computed from the seeds == computed from the records
+eco_by_hand = sum(k['out'] for k in known.values()) / sum(k['fresh'] + k['cache_read'] for k in known.values())
+eco_by_recs = sum(recs[t]['tokens_out'] for t in known) / sum(recs[t]['tokens_in'] for t in known)
+assert abs(eco_by_hand - eco_by_recs) < 1e-12, (eco_by_hand, eco_by_recs)
+# the UNKNOWN record is excluded: its split fields are None and it has no
+# tokens_in — an economy over it is impossible, and must never default to 0
+u = json.load(open('$WORK/untracked/runs/T662G.json'))
+assert u.get('tokens_in') is None and u.get('tokens_fresh') is None, u
+assert u.get('tokens_cache_read') is None, u
+print('OK')" 2>/dev/null | grep -q OK; then
+    pass "hand recompute over the seeded set == records; UNKNOWN record excluded"
+else
+    fail "economy recompute"; ls "$WORK/untracked/runs/" | sed 's/^/    | /'
+fi
+
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-token-capture: ALL PASS ==="
 else

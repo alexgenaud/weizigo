@@ -153,6 +153,20 @@ OLLAMA_TAG_TO_CANONICAL = {
 }
 
 
+def _pi_session_path(task_id):
+    """Per-lane pi session file for the token meter (T662).
+
+    `pi --session <path>` writes its session JSONL to exactly this file;
+    the runner reads it after the lane closes and records the usage split
+    (fresh vs cache_read) in the run record, trailer and ledger.  The path
+    is unique per dispatch attempt (epoch seconds), so a re-dispatch of
+    the same task never overwrites a previous attempt's session — the
+    T650 principle applied to the meter.  Lives under untracked/tokens/
+    (the capture home); the runner mkdirs the parent at launch."""
+    ident = task_id if task_id else "lane"
+    return f"untracked/tokens/sessions/{ident}.{int(time.time())}.jsonl"
+
+
 def run_worker(cmd, cwd, env):
     """Run the worker, streaming its stdout to the parent while capturing it."""
     proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
@@ -328,8 +342,13 @@ def main(argv):
         # tools/runner needs to tell a working worker from a hung one — the
         # nonce-stall failure mode was a pi worker producing ZERO stdout
         # for its whole run and being SIGKILLed at --max-wall mid-work.
+        # T662: --session <per-lane path> — pi writes its session JSONL
+        # (the token meter) to this exact file, so the runner can read the
+        # usage after the lane closes (T558 made the same change for
+        # bakeoff deepseek lanes).
+        session_rel = _pi_session_path(task_id)
         cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model,
-                    "--mode", "json", "-p", prompt])
+                    "--mode", "json", "--session", session_rel, "-p", prompt])
     elif provider == "claude":
         # T494: the headless Claude Code harness. The model runs in its own
         # process (claude -p), never through the Anthropic API from here —
@@ -349,8 +368,14 @@ def main(argv):
                "--allowedTools", CLAUDE_ALLOWED_TOOLS,
                "--output-format", "json"]
     else:  # ollama
+        # T662: --session <per-lane path> goes to the INNER pi (after the
+        # `--` ollama's separator), so the ollama lane's session JSONL is
+        # a known per-lane file the runner reads after close — the meter
+        # works for local lanes too, not just deepseek.
+        session_rel = _pi_session_path(task_id)
         cmd = ["tools/runner", "--max-wall", wall, "--",
-               "ollama", "launch", "pi", "--model", raw_model, "-y", "--", "-p", prompt]
+               "ollama", "launch", "pi", "--model", raw_model, "-y", "--",
+               "--session", session_rel, "-p", prompt]
 
     if dry_run:
         print(f"{DEPTH_VAR}={depth + 1}")

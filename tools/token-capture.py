@@ -309,6 +309,81 @@ def _harness_key(k):
     }[k]
 
 
+# ── T662: the per-lane pi-session meter reader ────────────────────────────
+# The runner calls read_pi_session() after a pi/ollama lane closes, with
+# the session path it passed at dispatch (`--session <path>`).  This is
+# the "retroactive meter" made deterministic: the file is per-lane, so no
+# attribution by prompt text is needed (the G1 scan below is the fallback
+# for lanes that predate the dispatch path).
+
+
+def read_pi_session(path):
+    """Read ONE pi session JSONL as the lane's token meter (T662).
+
+    Returns {"ok": True, "input", "output", "cache_read", "cache_write",
+    "reasoning", "turns", "session_id"} or {"ok": False, "reason"}.
+    The failure reasons are DISTINCT because each means something
+    different for the economy ladder:
+
+      - "session file missing: <path>"   (pi never wrote the file)
+      - "session file unreadable: <err>" (IO error)
+      - "no session header"              (empty / truncated file)
+      - "no usage-bearing turns"         (no completed model call)
+
+    A caller must treat ok=False as UNKNOWN — never 0, never the total.
+    Usage is summed over every assistant turn AND every summary/compaction
+    entry (pi's footer totals count both); a missing usage key counts 0
+    (pi normalizes the usage object shape for every provider — the same
+    key set was observed for deepseek and local ollama).
+    """
+    if not os.path.isfile(path):
+        return {"ok": False, "reason": "session file missing: %s" % path}
+    acc = {k: 0 for k in TOKEN_KEYS}
+    session_id = None
+    turns = 0
+    bad = 0
+    try:
+        fh = open(path, errors="replace")
+    except OSError as e:
+        return {"ok": False, "reason": "session file unreadable: %s" % e}
+    with fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                o = json.loads(line)
+            except ValueError:
+                bad += 1
+                continue
+            if not isinstance(o, dict):
+                bad += 1
+                continue
+            t = o.get("type")
+            if t == "session":
+                if isinstance(o.get("id"), str):
+                    session_id = o["id"]
+                continue
+            m = o.get("message")
+            if t == "message" and isinstance(m, dict) and m.get("role") == "assistant":
+                turns += 1
+                _add_usage(acc, m.get("usage"))
+            elif t in ("summary", "compaction") and isinstance(o.get("usage"), dict):
+                # pi's footer totals include the usage of summary generation.
+                _add_usage(acc, o.get("usage"))
+    if session_id is None:
+        return {"ok": False,
+                "reason": "no session header in %s" % os.path.basename(path)}
+    if turns == 0:
+        return {"ok": False,
+                "reason": "no usage-bearing turns in %s" % os.path.basename(path)}
+    return {"ok": True,
+            "input": acc["input"], "output": acc["output"],
+            "cache_read": acc["cache_read"], "cache_write": acc["cache_write"],
+            "reasoning": acc["reasoning"], "turns": turns,
+            "session_id": session_id}
+
+
 def _first_user_text(lines):
     """Return the text of the first user message in a session file's lines."""
     for line in lines:
@@ -361,6 +436,9 @@ def parse_session(path):
         "tokens": _usage_zero(),
         "model_turns": {},   # canonical model -> turn count
         "bad_lines": 0,
+        # T662: the resumable handle (the session header's id), so the
+        # scan path can name a session file the way the lane records do.
+        "session_id": None,
     }
     try:
         fh = open(path, errors="replace")
@@ -381,6 +459,8 @@ def parse_session(path):
             if t == "session":
                 rec["start"] = o.get("timestamp")
                 rec["cwd"] = o.get("cwd")
+                if isinstance(o.get("id"), str):
+                    rec["session_id"] = o["id"]
                 continue
             m = o.get("message")
             if t == "message" and isinstance(m, dict):
@@ -689,6 +769,7 @@ def _json_session(s):
         "input": s["tokens"]["input"], "output": s["tokens"]["output"],
         "cache_read": s["tokens"]["cache_read"], "cache_write": s["tokens"]["cache_write"],
         "reasoning": s["tokens"]["reasoning"], "total": s["tokens"]["total"],
+        "session_id": s.get("session_id"),
     }
 
 

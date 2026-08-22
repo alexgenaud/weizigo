@@ -589,6 +589,12 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         # included) so the record is self-describing about the handle too.
         run_record["session_id"] = tokens.get("session_id")
         run_record["session_reason"] = tokens.get("session_reason")
+        # T662: the pi lane's session file path (the meter read from it, or
+        # the path that was expected but missing) — stamped ALWAYS so a
+        # reader can audit which file a reading came from, or see that a
+        # path was named but the file never appeared.
+        run_record["session_path"] = tokens.get("session_path")
+        run_record["session_path_reason"] = tokens.get("session_path_reason")
     if reap_claimed is not None:
         run_record["reap_claimed"] = reap_claimed
     if reap_survivors is not None:
@@ -2158,20 +2164,31 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                             else os.path.join(os.getcwd(), session_path))
                 out["session_path"] = resolved
                 if tc is not None:
-                    parsed = tc.read_pi_session(resolved)
-                    if parsed.get("ok"):
-                        out["tokens_in"] = (parsed["input"]
-                                             + parsed["cache_read"])
-                        out["tokens_fresh"] = parsed["input"]
-                        out["tokens_cache_read"] = parsed["cache_read"]
-                        out["tokens_out"] = parsed["output"]
-                        out["source"] = "pi-session-jsonl"
-                        out["session_id"] = parsed["session_id"]
-                    else:
-                        reason = ("pi session JSONL unreadable: %s"
-                                  % parsed.get("reason"))
+                    read_pi = getattr(tc, "read_pi_session", None)
+                    if read_pi is None:
+                        # An OLDER token-capture.py (or a tree where the
+                        # pair is half-updated — the 2026-08-22 acd7451
+                        # worktree incident) has no per-lane reader: the
+                        # reading is UNKNOWN with the reason, never a crash.
+                        reason = ("tools/token-capture.py lacks "
+                                  "read_pi_session (older copy)")
                         out["missing_reason"] = reason
                         out["session_reason"] = reason
+                    else:
+                        parsed = read_pi(resolved)
+                        if parsed.get("ok"):
+                            out["tokens_in"] = (parsed["input"]
+                                                 + parsed["cache_read"])
+                            out["tokens_fresh"] = parsed["input"]
+                            out["tokens_cache_read"] = parsed["cache_read"]
+                            out["tokens_out"] = parsed["output"]
+                            out["source"] = "pi-session-jsonl"
+                            out["session_id"] = parsed["session_id"]
+                        else:
+                            reason = ("pi session JSONL unreadable: %s"
+                                      % parsed.get("reason"))
+                            out["missing_reason"] = reason
+                            out["session_reason"] = reason
                 else:
                     reason = "tools/token-capture.py absent — no pi session parse"
                     out["missing_reason"] = reason
@@ -2613,6 +2630,19 @@ def main():
                 stderr_text = result.stdout.strip()
             print(f"[runner] manage claim FAILED (exit {result.returncode}): {stderr_text}", file=sys.stderr)
             sys.exit(1)
+
+    # ── T662: the pi lane's session file must have an existing parent ──────
+    # pi does not mkdir the `--session <path>` target's directory; the
+    # runner creates it at launch so the child can write the file.  The
+    # same path is re-resolved identically in _capture_tokens after the
+    # child closes (both against os.getcwd(), pi's own resolution rule).
+    lane_session_path = _argv_session_path(argv)
+    if lane_session_path:
+        try:
+            os.makedirs(os.path.dirname(
+                os.path.join(os.getcwd(), lane_session_path)), exist_ok=True)
+        except OSError:
+            pass
 
     t0 = time.monotonic()
     run_record = None  # T364: set after Popen; None guards the exception path if spawn itself fails
