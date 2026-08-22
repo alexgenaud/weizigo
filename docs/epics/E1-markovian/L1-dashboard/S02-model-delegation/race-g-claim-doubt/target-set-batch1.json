@@ -1,0 +1,33 @@
+{
+ "batch": 1,
+ "n": 25,
+ "ids": [
+  "GLOBAL.H1-MARKOV",
+  "GLOBAL.ADR0006-EYE",
+  "GLOBAL.F1",
+  "3x2.T13",
+  "4x4.D3",
+  "GLOBAL.ADR0015-BURDEN",
+  "GLOBAL.AUDITOR",
+  "GLOBAL.BRUTE-ALIASING",
+  "GLOBAL.C3",
+  "QA-023",
+  "3x2.F1",
+  "CODE.VB-BLINDGAPS",
+  "CODE.WZO2-PASSBIT",
+  "GLOBAL.S1",
+  "QA-021",
+  "2x2.C1",
+  "3x2.C1",
+  "3x3.C3",
+  "GLOBAL.C2",
+  "CODE.WZO2-INCOMPLETE",
+  "GLOBAL.C4",
+  "GLOBAL.CERTCORE",
+  "GLOBAL.TIE-MIGOS",
+  "QA-019",
+  "QA-022"
+ ],
+ "selection_rule": "tierA top10 by dependents; tierB next8 PROVEN* with >=1 dependent; tierC next7 FALSE* with >=1 dependent; ties by id asc",
+ "sha256_of_ids": "c368b62b2168c6d326e07b84e42209b8c84c3b7468a0d3b2292bcfc7bb2341c3"
+}
