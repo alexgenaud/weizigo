@@ -53,6 +53,20 @@
 //       the whole reframe rests on can be read but not re-run
 //       (docs/evidence/README.md, CLAIMS.md §7).
 //
+//   C12 DEAD-GLOBS (dead glob citations) — a citation containing a glob
+//       metacharacter (`*`, `?`, `[...]`) is not a literal path, so C2 skips
+//       it rather than resolves it — a dead glob passes silently, and the
+//       register looks clean precisely where it is rotten. PAST FAILURE: the
+//       T665 seed. `GLOBAL.H1-MARKOV` cited `docs/audits/2b-3-audit-*.md` for
+//       seventeen days after T365/048af65 renamed the audit to
+//       `docs/audits/2026-07-29-2b-3-history-pairs-audit.md` in the date-prefix
+//       sweep; the glob matches nothing at HEAD and no existing check said so.
+//       C12 resolves globs against the repo index: 0 matches is a dead
+//       citation (the defect), >1 is ambiguous (the reader cannot tell which
+//       file carries the evidence), 1 is clean. Report-only at introduction
+//       (T665): the census tells us whether the debt is payable before a gate
+//       makes it a build failure.
+//
 //   C3  UNBACKED (proven without committed evidence) — a PROVEN claim whose
 //       evidence does not resolve under docs/evidence/. PAST FAILURE: roadmap-2026-07-28.md
 //       §4 P1 — 57 scratch files were swept on 2026-07-27, taking the primary
@@ -168,6 +182,7 @@ const CHECKS = [_]Check{
     .{ .id = "C9", .name = "UNMAPPED" },
     .{ .id = "C10", .name = "VOLATILE" },
     .{ .id = "C11", .name = "UNAUDITED" },
+    .{ .id = "C12", .name = "DEAD-GLOBS" },
 };
 
 /// The canonical name for a check ID, e.g. `checkName("C3")` → `UNBACKED`.
@@ -435,6 +450,23 @@ const CAL_SYNTHETIC_C11_NOTIERA =
     \\    }
     \\  ]
     \\}
+;
+
+/// C12 calibration — synthetic register rows carrying glob-form evidence
+/// citations, matched against the REAL repo index (T665). The dead seed is
+/// the H1-MARKOV glob: `docs/audits/2b-3-audit-*.md` matches nothing since
+/// T365/048af65 renamed the audit in the date-prefix sweep. The clean and
+/// ambiguous seeds resolve against real files — `docs/decisions/0006-*.md`
+/// matches exactly the one decision doc (stable: no second `0006-` file will
+/// appear), and `docs/audits/2026-08-0[1-9]-*.md` matches several (asserted
+/// as >1, robust to the audits dir growing). The calibration row is synthetic
+/// because the real H1-MARKOV citation is being re-pointed (T663, 2026-08-22)
+/// — a real-data arm would disappear when the register improves, the exact
+/// C1a lesson.
+const CAL_SYNTHETIC_C12_EXTRA =
+    \\| `GLOBAL.CALGLOB-DEAD` | — | all | synthetic: cites a glob matching nothing — must be flagged dead | CLAIMED | `docs/audits/2b-3-audit-*.md` | — | — | 0 | ? | Z-NONCLAIMS |
+    \\| `GLOBAL.CALGLOB-CLEAN` | — | all | synthetic: cites a glob matching exactly one file — must be clean | CLAIMED | `docs/decisions/0006-*.md` | — | — | 0 | ? | Z-NONCLAIMS |
+    \\| `GLOBAL.CALGLOB-AMBIG` | — | all | synthetic: cites a glob matching several files — must be ambiguous | CLAIMED | `docs/audits/2026-08-0[1-9]-*.md` | — | — | 0 | ? | Z-NONCLAIMS |
 ;
 
 /// C8 mutation-adequacy calibration — synthetic kill matrix with two claims:
@@ -764,6 +796,368 @@ fn pathTokens(gpa: Allocator, text: []const u8, out: *std.ArrayList([]const u8))
         try out.append(gpa, tok);
     }
 }
+
+// ── glob-form citation detection (C12, T665) ───────────────────────────────
+//
+// C2 DEAD-LINKS resolves LITERAL paths. A citation containing a glob
+// metacharacter (`*`, `?`, `[...]`) is not a path, so pathTokens splits it
+// on the metacharacter and the fragments fail the extension filter — the
+// glob is skipped rather than resolved, and a dead glob passes silently.
+// C12 resolves globs against the repo index: 0 matches is a DEAD citation
+// (the defect), >1 is AMBIGUOUS (the reader cannot tell which file carries
+// the evidence), 1 is clean.
+
+/// Glob metacharacters that make a token a glob CANDIDATE. `]` alone is not
+/// one — it only matters paired with `[`, so the tokenizer admits it but the
+/// candidacy check does not.
+fn isGlobChar(c: u8) bool {
+    return c == '*' or c == '?' or c == '[';
+}
+
+/// Tokenizer like pathTokens but glob metacharacters are part of the token,
+/// so `docs/audits/2b-3-audit-*.md` survives as ONE token instead of being
+/// split on the `*`, and `docs/audits/2026-08-0[1-9]-*.md` survives as one
+/// token instead of being split on the `]` that closes the char class. Emits
+/// only tokens that pass isGlobCandidate.
+fn isGlobTokenChar(c: u8) bool {
+    return isGlobChar(c) or c == ']';
+}
+fn globTokens(gpa: Allocator, text: []const u8, out: *std.ArrayList([]const u8)) !void {
+    var i: usize = 0;
+    while (i < text.len) {
+        if (!isPathChar(text[i]) and !isGlobTokenChar(text[i])) {
+            i += 1;
+            continue;
+        }
+        const start = i;
+        while (i < text.len and (isPathChar(text[i]) or isGlobTokenChar(text[i]))) : (i += 1) {}
+        const tok = cr.stripLineSpec(text[start..i]);
+        if (!isGlobCandidate(tok)) continue;
+        try out.append(gpa, tok);
+    }
+}
+
+/// A glob-form path candidate: the token (line-spec stripped) carries a known
+/// file extension, contains a glob metacharacter, and is not a URL. Markdown
+/// `**bold**`/`*italic*` wrapping reads as a glob but is formatting, so a
+/// token that both starts and ends with `*` is unwrapped and re-checked —
+/// `**AXIOMS.md**` unwraps to `AXIOMS.md` (no glob) and is skipped, while
+/// `**/*.md` (not wrapped: it ends in `.md`) stays a glob. A bare `[B,W,B,_,W,_]`
+/// board notation is filtered by the extension requirement, exactly as ratios
+/// and shorthand are filtered in pathTokens.
+fn isGlobCandidate(tok: []const u8) bool {
+    if (tok.len < 5) return false;
+    if (std.mem.startsWith(u8, tok, "http")) return false;
+    var has_glob = false;
+    for (tok) |c| if (isGlobChar(c)) {
+        has_glob = true;
+        break;
+    };
+    if (!has_glob) return false;
+    if (tok.len > 1 and tok[0] == '*' and tok[tok.len - 1] == '*') {
+        var s = tok;
+        while (s.len > 0 and s[0] == '*') s = s[1..];
+        while (s.len > 0 and s[s.len - 1] == '*') s = s[0 .. s.len - 1];
+        var inner_glob = false;
+        for (s) |c| if (isGlobChar(c)) {
+            inner_glob = true;
+            break;
+        };
+        if (!inner_glob) return false; // `**X**` is bold, not a pattern
+    }
+    if (!cr.hasPathExt(tok)) return false;
+    return true;
+}
+
+/// Match a glob char class `[...]` at the start of `pat` against char `c`.
+/// Returns the length of the whole class (including the closing `]`), or null
+/// if the class does not match / is unterminated (then `[` is literal).
+/// Supports ranges (`[a-z]`), negation (`[!...]` / `[^...]`), and a literal
+/// `]` as the first class member (`[]]`).
+fn globClassLen(pat: []const u8, c: u8) ?usize {
+    var i: usize = 1;
+    var negate = false;
+    if (i < pat.len and (pat[i] == '!' or pat[i] == '^')) {
+        negate = true;
+        i += 1;
+    }
+    var matched = false;
+    var first = true;
+    while (i < pat.len) {
+        if (pat[i] == ']' and !first) break;
+        if (c == pat[i]) matched = true;
+        if (i + 2 < pat.len and pat[i + 1] == '-' and pat[i + 2] != ']') {
+            if (c >= pat[i] and c <= pat[i + 2]) matched = true;
+            i += 3;
+        } else {
+            i += 1;
+        }
+        first = false;
+    }
+    if (i >= pat.len or pat[i] != ']') return null;
+    const ok = if (negate) !matched else matched;
+    return if (ok) i + 1 else null;
+}
+
+/// Anchored glob match against a whole path. `*` matches any run of non-`/`
+/// chars; `**` (two or more consecutive stars) matches any run INCLUDING `/`
+/// (directory-spanning); `?` matches one non-`/` char; `[...]` is a char
+/// class; an unterminated `[` is a literal. Everything else is literal.
+fn globMatch(pat: []const u8, s: []const u8) bool {
+    if (pat.len == 0) return s.len == 0;
+    switch (pat[0]) {
+        '*' => {
+            var stars: usize = 1;
+            while (stars < pat.len and pat[stars] == '*') : (stars += 1) {}
+            const crosses_slash = stars >= 2;
+            var i: usize = 0;
+            while (true) {
+                if (globMatch(pat[stars..], s[i..])) return true;
+                if (i >= s.len) return false;
+                if (!crosses_slash and s[i] == '/') return false;
+                i += 1;
+            }
+        },
+        '?' => {
+            if (s.len == 0 or s[0] == '/') return false;
+            return globMatch(pat[1..], s[1..]);
+        },
+        '[' => {
+            if (s.len == 0 or s[0] == '/') return false;
+            if (globClassLen(pat, s[0])) |consumed| return globMatch(pat[consumed..], s[1..]);
+            if (s[0] != '[') return false; // unterminated class: literal `[`
+            return globMatch(pat[1..], s[1..]);
+        },
+        else => {
+            if (s.len == 0 or s[0] != pat[0]) return false;
+            return globMatch(pat[1..], s[1..]);
+        },
+    }
+}
+
+/// How many repo files the glob resolves to. 0 = dead citation, 1 = clean,
+/// >1 = ambiguous. A glob-free pattern resolves as a literal path.
+fn globMatchCount(paths: []const []const u8, pattern: []const u8) usize {
+    var n: usize = 0;
+    for (paths) |p| {
+        if (globMatch(pattern, p)) n += 1;
+    }
+    return n;
+}
+
+/// Identifier tokens: alphanumeric runs in the glob's basename literal that
+/// identify a file across a rename: they contain both a digit and a letter
+/// (`2b`, `T38x`), or are a standalone single digit (`3` in `2b-3`). Pure
+/// letters (`audit`) and multi-digit date components (`2026`, `29`) are
+/// excluded — they are too common to identify a file. A rename preserves
+/// these tokens in ORDER even when it inserts or reorders words — T365
+/// inserted `history-pairs-` between `2b-3-` and `audit` — so a bounded
+/// token-subsequence match finds the rename survivor that a substring match
+/// cannot.
+fn identifierTokens(gpa: Allocator, lit: []const u8, out: *std.ArrayList([]const u8)) !void {
+    var i: usize = 0;
+    while (i < lit.len) {
+        if (!std.ascii.isAlphanumeric(lit[i])) {
+            i += 1;
+            continue;
+        }
+        const start = i;
+        while (i < lit.len and std.ascii.isAlphanumeric(lit[i])) : (i += 1) {}
+        const tok = lit[start..i];
+        var has_digit = false;
+        var has_letter = false;
+        for (tok) |c| {
+            if (std.ascii.isDigit(c)) has_digit = true else has_letter = true;
+        }
+        if ((has_digit and has_letter) or (tok.len == 1 and has_digit)) try out.append(gpa, tok);
+    }
+}
+
+/// True when `tok` sits at `pos` bounded by non-alphanumerics — the whole
+/// token `3` matches, but the `3` inside `30` does not.
+fn tokenBoundedAt(basename: []const u8, pos: usize, tok: []const u8) bool {
+    if (pos > 0 and std.ascii.isAlphanumeric(basename[pos - 1])) return false;
+    const after = pos + tok.len;
+    if (after < basename.len and std.ascii.isAlphanumeric(basename[after])) return false;
+    return true;
+}
+
+/// True when `basename` contains the identifier tokens in order, each as a
+/// bounded token (gaps allowed). `2026-07-29-2b-3-history-pairs-audit.md`
+/// contains bounded `2b` then bounded `3`; `2026-07-29-2b-2-census-audit.md`
+/// does not (no `3` after `2b`); a hypothetical `...-2b-30-...` does not (the
+/// `3` inside `30` is not bounded).
+fn basenameHasTokensInOrder(basename: []const u8, toks: []const []const u8) bool {
+    var search_from: usize = 0;
+    for (toks) |tok| {
+        var found = std.mem.indexOfPos(u8, basename, search_from, tok) orelse return false;
+        while (!tokenBoundedAt(basename, found, tok)) {
+            found = std.mem.indexOfPos(u8, basename, found + 1, tok) orelse return false;
+        }
+        search_from = found + tok.len;
+    }
+    return true;
+}
+
+/// Candidate files the dead glob probably meant: repo files in the glob's own
+/// directory whose basename carries the glob's identifier tokens in order
+/// (D037: "resolve it to what it should have named where you can"). 0
+/// candidates = cannot resolve (debt unknown — the `T38x-`/`000N-` placeholder
+/// class); 1 = the re-point target (debt precisely countable); >1 = several
+/// plausible targets (debt = the sum, an upper bound).
+fn globCandidates(gpa: Allocator, paths: []const []const u8, tok: []const u8) !std.ArrayList([]const u8) {
+    var out: std.ArrayList([]const u8) = .empty;
+    const slash = std.mem.lastIndexOfScalar(u8, tok, '/');
+    const dir = if (slash) |s| tok[0..s] else "";
+    const base_start = if (slash) |s| s + 1 else 0;
+    var gpos = base_start;
+    while (gpos < tok.len and !isGlobChar(tok[gpos])) : (gpos += 1) {}
+    const lit = tok[base_start..gpos];
+    var toks: std.ArrayList([]const u8) = .empty;
+    defer toks.deinit(gpa);
+    try identifierTokens(gpa, lit, &toks);
+    if (toks.items.len == 0) return out;
+    for (paths) |p| {
+        if (dir.len > 0) {
+            if (!std.mem.startsWith(u8, p, dir) or p.len <= dir.len or p[dir.len] != '/') continue;
+        }
+        if (basenameHasTokensInOrder(baseName(p), toks.items)) try out.append(gpa, p);
+    }
+    return out;
+}
+
+/// Dead LITERAL paths inside a candidate document — the citations that become
+/// reachable only once the glob is re-pointed (the T665 wall: one dead glob
+/// plus everything it was hiding). Uses C2b's exact rule: path-shaped tokens
+/// (with `/`) that do not resolve.
+fn deadLiteralsIn(gpa: Allocator, io: Io, idx: *Index, doc: []const u8) !usize {
+    const body = Io.Dir.cwd().readFileAlloc(io, doc, gpa, .unlimited) catch return 0;
+    var n: usize = 0;
+    var toks: std.ArrayList([]const u8) = .empty;
+    defer toks.deinit(gpa);
+    try pathTokens(gpa, body, &toks);
+    for (toks.items) |p| {
+        if (std.mem.indexOfScalar(u8, p, '/') == null) continue; // prose basenames: too noisy (C2b rule)
+        if ((try idx.resolve(p)) == null) n += 1;
+    }
+    return n;
+}
+
+const GlobDebt = struct {
+    /// candidate files the dead glob probably meant (0 = unknown)
+    cands: usize,
+    /// estimated additional dead citations reachable behind the glob
+    dead: usize,
+};
+
+/// Hidden-debt estimate for a dead glob: resolve it to what it should have
+/// named where possible, and count the dead citations behind that file. D037
+/// (T612, 2026-08-22): an unresolvable glob is a WALL — claimlint stops at it,
+/// so everything downstream is unchecked too; the register looks clean exactly
+/// where the rot is deepest.
+fn hiddenDebtOf(gpa: Allocator, io: Io, idx: *Index, tok: []const u8) !GlobDebt {
+    var cands = try globCandidates(gpa, idx.paths.items, tok);
+    defer cands.deinit(gpa);
+    if (cands.items.len == 0) return .{ .cands = 0, .dead = 0 };
+    var dead: usize = 0;
+    for (cands.items) |c| dead += try deadLiteralsIn(gpa, io, idx, c);
+    return .{ .cands = cands.items.len, .dead = dead };
+}
+
+const GlobHit = struct {
+    token: []const u8,
+    claim: []const u8,
+    via: []const u8,
+    from_column: bool,
+    matches: usize,
+};
+
+/// C12 scan surface A — the register's own evidence columns (backtick spans).
+/// Pure: takes the path list directly, so the calibration and unit tests can
+/// drive it with synthetic registers and synthetic indexes.
+fn globScanEvidence(gpa: Allocator, reg: *const Register, paths: []const []const u8, hits: *std.ArrayList(GlobHit)) !void {
+    for (reg.rows.items) |r| {
+        var spans: std.ArrayList([]const u8) = .empty;
+        defer spans.deinit(gpa);
+        try cr.backtickSpans(gpa, r.evidence, &spans);
+        for (spans.items) |sp| {
+            var toks: std.ArrayList([]const u8) = .empty;
+            defer toks.deinit(gpa);
+            try globTokens(gpa, sp, &toks);
+            for (toks.items) |t| {
+                try hits.append(gpa, .{
+                    .token = t,
+                    .claim = r.id,
+                    .via = "the evidence column itself",
+                    .from_column = true,
+                    .matches = globMatchCount(paths, t),
+                });
+            }
+        }
+    }
+}
+
+/// C12 scan — the two surfaces C2 scans, extended to globs:
+///   A: the register's own evidence columns (globScanEvidence).
+///   B: the bodies of the documents the evidence cites (reproduction inputs),
+///      skipping fenced code blocks (T424: a path in a fenced block is a
+///      build-command illustration, not a citation).
+fn globScan(gpa: Allocator, io: Io, idx: *Index, reg: *const Register, hits: *std.ArrayList(GlobHit)) !void {
+    try globScanEvidence(gpa, reg, idx.paths.items, hits);
+    var scanned = std.StringHashMap(void).init(gpa);
+    for (reg.rows.items) |r| {
+        var spans: std.ArrayList([]const u8) = .empty;
+        defer spans.deinit(gpa);
+        try cr.backtickSpans(gpa, r.evidence, &spans);
+        for (spans.items) |sp| {
+            var toks: std.ArrayList([]const u8) = .empty;
+            defer toks.deinit(gpa);
+            try pathTokens(gpa, sp, &toks);
+            for (toks.items) |t| {
+                const doc = (try idx.resolve(t)) orelse continue;
+                if (!endsWith(doc, ".md")) continue;
+                if (isIgnoredPath(doc)) continue; // do not descend into an uncommitted document
+                const key = try std.fmt.allocPrint(gpa, "{s}\x00{s}", .{ r.id, doc });
+                if (scanned.contains(key)) continue;
+                try scanned.put(key, {});
+                const body = Io.Dir.cwd().readFileAlloc(io, doc, gpa, .unlimited) catch continue;
+                var lit = std.mem.splitScalar(u8, body, '\n');
+                var fence_char: u8 = 0;
+                while (lit.next()) |line| {
+                    const fc = fenceCharOf(line);
+                    if (fc != 0) {
+                        if (fence_char == 0) {
+                            fence_char = fc;
+                        } else if (fc == fence_char) {
+                            fence_char = 0;
+                        }
+                        continue;
+                    }
+                    if (fence_char != 0) continue;
+                    var inner: std.ArrayList([]const u8) = .empty;
+                    defer inner.deinit(gpa);
+                    try globTokens(gpa, line, &inner);
+                    for (inner.items) |p| {
+                        if (std.mem.indexOfScalar(u8, p, '/') == null) continue; // prose basenames: too noisy (C2b rule)
+                        try hits.append(gpa, .{
+                            .token = p,
+                            .claim = r.id,
+                            .via = doc,
+                            .from_column = false,
+                            .matches = globMatchCount(idx.paths.items, p),
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
+const C12TokenLess = struct {
+    fn less(_: void, a: []const u8, b: []const u8) bool {
+        return std.mem.lessThan(u8, a, b);
+    }
+};
 
 // ── C10 volatile-evidence detection (T421) ────────────────────────────────
 //
@@ -1783,6 +2177,96 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
         checkName("C11"), c11_results.unaudited, c11_results.in_scope, c11_results.files,
     });
 
+    // ── C12 dead-glob citations (T665) ──────────────────────────────
+    util.out("\n== C12 {s}  GLOB-FORM CITATIONS (report only — does NOT fail, yet) ==\n", .{checkName("C12")});
+    util.out("A glob-form citation is a path carrying `*`, `?` or `[...]` that is\n", .{});
+    util.out("supposed to name a file. C2 {s} only resolves LITERAL paths — a glob\n", .{checkName("C2")});
+    util.out("is skipped rather than resolved, so a dead glob passes silently and\n", .{});
+    util.out("the register looks clean precisely where it is rotten. T665: `GLOBAL.H1-MARKOV`\n", .{});
+    util.out("cited `docs/audits/2b-3-audit-*.md` for seventeen days after T365/048af65\n", .{});
+    util.out("renamed the audit in the date-prefix sweep; no existing check said so.\n", .{});
+    util.out("C12 resolves globs against the repo index: 0 matches is a DEAD citation\n", .{});
+    util.out("(the defect), >1 is AMBIGUOUS (the reader cannot tell which file carries\n", .{});
+    util.out("the evidence), 1 is clean. Surfaces: the register's evidence columns and\n", .{});
+    util.out("the bodies of the documents they cite (the two surfaces C2 scans).\n\n", .{});
+    var c12_hits: std.ArrayList(GlobHit) = .empty;
+    defer c12_hits.deinit(gpa);
+    try globScan(gpa, io, &idx, &reg, &c12_hits);
+    var c12_by_token = std.StringHashMap(std.ArrayList(GlobHit)).init(gpa);
+    defer {
+        var it = c12_by_token.iterator();
+        while (it.next()) |e| e.value_ptr.deinit(gpa);
+        c12_by_token.deinit();
+    }
+    for (c12_hits.items) |h| {
+        const gop = try c12_by_token.getOrPut(h.token);
+        if (!gop.found_existing) gop.value_ptr.* = .empty;
+        try gop.value_ptr.append(gpa, h);
+    }
+    var c12_tokens: std.ArrayList([]const u8) = .empty;
+    defer c12_tokens.deinit(gpa);
+    {
+        var it = c12_by_token.iterator();
+        while (it.next()) |e| try c12_tokens.append(gpa, e.key_ptr.*);
+    }
+    std.mem.sort([]const u8, c12_tokens.items, {}, C12TokenLess.less);
+    var c12_dead: usize = 0;
+    var c12_ambig: usize = 0;
+    var c12_clean: usize = 0;
+    var c12_col_hits: usize = 0;
+    var c12_doc_hits: usize = 0;
+    for (c12_tokens.items) |tok| {
+        const group = c12_by_token.get(tok).?;
+        for (group.items) |h| {
+            if (h.from_column) c12_col_hits += 1 else c12_doc_hits += 1;
+        }
+        const m = group.items[0].matches;
+        if (m == 0) {
+            c12_dead += 1;
+        } else if (m == 1) {
+            c12_clean += 1;
+        } else {
+            c12_ambig += 1;
+        }
+    }
+    var c12_dead_shown: usize = 0;
+    var c12_ambig_shown: usize = 0;
+    var c12_hidden: usize = 0;
+    util.out("  DEAD — 0 matches, the citation resolves to nothing ({d} distinct):\n", .{c12_dead});
+    for (c12_tokens.items) |tok| {
+        const group = c12_by_token.get(tok).?;
+        if (group.items[0].matches != 0) continue;
+        c12_dead_shown += 1;
+        // D037: a dead glob is a WALL — count what becomes reachable once it
+        // is re-pointed to the file it should have named.
+        const debt = try hiddenDebtOf(gpa, io, &idx, tok);
+        c12_hidden += debt.dead;
+        if (debt.cands == 0) {
+            util.out("  C12 {s}  {s}  [DEAD — 0 matches · no candidate (debt unknown)]\n", .{ checkName("C12"), tok });
+        } else {
+            util.out("  C12 {s}  {s}  [DEAD — 0 matches · hidden debt: ~{d} dead citation(s) behind {d} candidate(s)]\n", .{ checkName("C12"), tok, debt.dead, debt.cands });
+        }
+        for (group.items) |h| util.out("           cited by `{s}` ({s})\n", .{ h.claim, h.via });
+    }
+    if (c12_dead_shown == 0) util.out("    (none)\n", .{});
+    util.out("\n  AMBIGUOUS — >1 match, the reader cannot tell which file carries the\n", .{});
+    util.out("  evidence ({d} distinct):\n", .{c12_ambig});
+    for (c12_tokens.items) |tok| {
+        const group = c12_by_token.get(tok).?;
+        const m = group.items[0].matches;
+        if (m <= 1) continue;
+        c12_ambig_shown += 1;
+        util.out("  C12 {s}  {s}  [AMBIGUOUS — {d} files]\n", .{ checkName("C12"), tok, m });
+        for (group.items) |h| util.out("           cited by `{s}` ({s})\n", .{ h.claim, h.via });
+    }
+    if (c12_ambig_shown == 0) util.out("    (none)\n", .{});
+    util.out("\n  CLEAN — exactly 1 match, no noise: {d} distinct globs not listed.\n", .{c12_clean});
+    util.out("\n  C12 {s} total: {d} glob citations ({d} distinct tokens) — {d} dead · {d} ambiguous · {d} clean;\n", .{
+        checkName("C12"), c12_hits.items.len, c12_tokens.items.len, c12_dead, c12_ambig, c12_clean,
+    });
+    util.out("            surfaces: {d} in evidence columns, {d} in cited documents\n", .{ c12_col_hits, c12_doc_hits });
+    util.out("            hidden debt behind dead globs: ~{d} additional dead citations (estimated)\n", .{c12_hidden});
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -2346,6 +2830,84 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("                silent … {s}\n", .{if (synth_c11_ok) "SILENT (3 silent)" else "BROKEN"});
     if (!synth_c11_ok) cal_ok = false;
 
+    // C12 calibration — dead-glob detection (T665). Three arms on the same
+    // scan path the live run calls (synthetic register rows against the REAL
+    // repo index), plus pure-matcher arms with synthetic path lists so the
+    // exact-4 ambiguity count and the guards (markdown bold, board notation,
+    // `?`, char classes, `**`) never depend on what the repo happens to hold.
+    // The seeded control is the H1-MARKOV glob, which must resolve DEAD.
+    var synth_c12_ok = false;
+    {
+        const synth_ext_c12 = try synthRegister(gpa, CAL_SYNTHETIC_C12_EXTRA);
+        var sreg_c12 = try cr.parseRegister(gpa, synth_ext_c12);
+        var s_hits: std.ArrayList(GlobHit) = .empty;
+        defer s_hits.deinit(gpa);
+        try globScan(gpa, io, &idx, &sreg_c12, &s_hits);
+        var saw_dead = false;
+        var saw_clean = false;
+        var saw_ambig = false;
+        var saw_clean_as_flagged = false;
+        for (s_hits.items) |h| {
+            if (std.mem.eql(u8, h.token, "docs/audits/2b-3-audit-*.md")) {
+                if (h.matches == 0) saw_dead = true;
+            }
+            if (std.mem.eql(u8, h.token, "docs/decisions/0006-*.md")) {
+                if (h.matches == 1) saw_clean = true else saw_clean_as_flagged = true;
+            }
+            if (std.mem.eql(u8, h.token, "docs/audits/2026-08-0[1-9]-*.md")) {
+                if (h.matches > 1) saw_ambig = true;
+            }
+        }
+        // Pure matcher arms — synthetic path list, no repo dependence.
+        const syn_paths = [_][]const u8{
+            "docs/audits/2026-07-29-2b-3-history-pairs-audit.md",
+            "docs/audits/2026-08-01-a.md",
+            "docs/audits/2026-08-01-b.md",
+            "docs/audits/2026-08-01-c.md",
+            "docs/audits/2026-08-01-d.md",
+        };
+        const m_dead = globMatchCount(&syn_paths, "docs/audits/2b-3-audit-*.md");
+        const m_four = globMatchCount(&syn_paths, "docs/audits/2026-08-01-?.md");
+        const m_clean = globMatchCount(&syn_paths, "docs/audits/2026-07-29-2b-3-history-pairs-audit.md");
+        const m_class = globMatchCount(&syn_paths, "docs/audits/2026-08-01-[ab].md");
+        const m_dstar = globMatchCount(&syn_paths, "docs/**/*.md");
+        const m_nocross = globMatchCount(&syn_paths, "docs/audits/*/*.md");
+        const m_neg = globMatchCount(&syn_paths, "docs/audits/2026-08-01-[!a].md");
+        const bold_ok = !isGlobCandidate("**AXIOMS.md**");
+        const board_ok = !isGlobCandidate("[B,W,B,_,W,_]");
+        const literal_ok = !isGlobCandidate("docs/audits/2b-3-history-pairs-audit.md");
+        const m_ok = m_dead == 0 and m_four == 4 and m_clean == 1 and m_class == 2 and
+            m_dstar == 5 and m_nocross == 0 and m_neg == 3 and
+            bold_ok and board_ok and literal_ok;
+        // D037 seeded fixture — the WALL. The H1-MARKOV glob, re-pointed to
+        // the audit it should have named, exposes the audit's dead literal
+        // paths (/tmp/audit_2b3_bias.py, /tmp/audit_2b3_independent.py) —
+        // exactly the C2 11→13 movement T663's re-point produces. C12 must
+        // estimate that hidden debt behind the dead glob (2 at 2026-08-22;
+        // asserted >= 1 so a future C2 repair of the audit doc does not
+        // silently re-base the fixture), and must find NO candidate for
+        // placeholder patterns (T38x) or volatile /tmp globs.
+        const debt_seed = try hiddenDebtOf(gpa, io, &idx, "docs/audits/2b-3-audit-*.md");
+        const debt_unknown = try hiddenDebtOf(gpa, io, &idx, "findings/T38x-*.json");
+        const debt_tmp = try hiddenDebtOf(gpa, io, &idx, "/tmp/weizigo/t416/out/*.json");
+        const debt_ok = debt_seed.cands == 1 and debt_seed.dead >= 1 and
+            debt_unknown.cands == 0 and debt_tmp.cands == 0;
+        synth_c12_ok = saw_dead and saw_clean and saw_ambig and !saw_clean_as_flagged and m_ok and debt_ok;
+    }
+    util.out("  known-bad 14 (C12 {s}, synthetic): a glob matching nothing\n", .{checkName("C12")});
+    util.out("                (`docs/audits/2b-3-audit-*.md`, the T665 seed) must be\n", .{});
+    util.out("                flagged DEAD, a glob matching one file CLEAN, and a glob\n", .{});
+    util.out("                matching several AMBIGUOUS … {s}\n", .{if (synth_c12_ok) "CAUGHT (1 dead, 1 clean, 1 ambiguous)" else "BROKEN"});
+    util.out("  known-good 13 (C12 {s}, synthetic): the pure matcher — `?` (exact-4\n", .{checkName("C12")});
+    util.out("                ambiguity), `[...]` classes, `**` directory-spanning, single-\n", .{});
+    util.out("                star no-cross, negation, markdown-bold and board-notation\n", .{});
+    util.out("                guards, literal-path silence … {s}\n", .{if (synth_c12_ok) "PASS (10 arms)" else "BROKEN"});
+    util.out("  known-bad 15 (C12 {s}, synthetic, D037): the WALL — the dead H1-MARKOV\n", .{checkName("C12")});
+    util.out("                glob hides dead citations inside the audit it should have\n", .{});
+    util.out("                named (the C2 11→13 movement); C12 must estimate that\n", .{});
+    util.out("                hidden debt, and find none for placeholders or /tmp … {s}\n", .{if (synth_c12_ok) "CAUGHT (hidden debt >= 1 behind 1 candidate)" else "BROKEN"});
+    if (!synth_c12_ok) cal_ok = false;
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -2364,6 +2926,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("  C9 tree-mapping violations      {d}   (FAILS)   [{s}]\n", .{ c9_fail, checkName("C9") });
     util.out("  C10 volatile evidence paths     {d}   (report only — does not fail, yet)   [{s}]\n", .{ c10_hits.items.len, checkName("C10") });
     util.out("  C11 unaudited tier-A rows      {d}   (FAILS)   [{s}]\n", .{ c11_results.unaudited, checkName("C11") });
+    util.out("  C12 dead / ambiguous globs     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c12_dead, c12_ambig, checkName("C12") });
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
@@ -3665,4 +4228,152 @@ test "C11 UNAUDITED: non-tier-A proposal is silent" {
     defer r.items.deinit(gpa);
     try std.testing.expectEqual(@as(usize, 0), r.in_scope);
     try std.testing.expectEqual(@as(usize, 0), r.unaudited);
+}
+
+// ── C12 unit tests (T665) ────────────────────────────────────────────────
+// `zig test src/claimlint.zig` runs these; they are the red-first arms for
+// the dead-glob check. They exercise the same pure functions the runtime
+// calibration block and the live scan call, so a pass here and a pass in the
+// calibration block are two views of one implementation.
+
+test "C12 DEAD-GLOBS: seeded H1-MARKOV glob resolves dead (0 matches)" {
+    const paths = [_][]const u8{
+        "docs/audits/2026-07-29-2b-3-history-pairs-audit.md",
+        "docs/decisions/0006-eye-prune-for-tractable-search.md",
+    };
+    try std.testing.expectEqual(@as(usize, 0), globMatchCount(&paths, "docs/audits/2b-3-audit-*.md"));
+}
+
+test "C12 DEAD-GLOBS: glob resolving to exactly one file is clean (1 match)" {
+    const paths = [_][]const u8{
+        "docs/decisions/0006-eye-prune-for-tractable-search.md",
+        "docs/decisions/0009-retrograde-value-iteration.md",
+    };
+    try std.testing.expectEqual(@as(usize, 1), globMatchCount(&paths, "docs/decisions/0006-*.md"));
+}
+
+test "C12 DEAD-GLOBS: glob resolving to four files is ambiguous (4 matches), not dead" {
+    const paths = [_][]const u8{
+        "docs/audits/2026-08-01-a.md",
+        "docs/audits/2026-08-01-b.md",
+        "docs/audits/2026-08-01-c.md",
+        "docs/audits/2026-08-01-d.md",
+        "docs/audits/2026-07-29-2b-3-history-pairs-audit.md",
+    };
+    try std.testing.expectEqual(@as(usize, 4), globMatchCount(&paths, "docs/audits/2026-08-01-?.md"));
+}
+
+test "C12 DEAD-GLOBS: ? and char classes match, single * does not cross /" {
+    const paths = [_][]const u8{
+        "docs/audits/2026-08-01-a.md",
+        "docs/audits/2026-08-02-b.md",
+        "docs/audits/2026-08-01-c.md",
+        "docs/audits/sub/d.md",
+    };
+    try std.testing.expectEqual(@as(usize, 3), globMatchCount(&paths, "docs/audits/2026-08-0[12]-?.md"));
+    try std.testing.expectEqual(@as(usize, 1), globMatchCount(&paths, "docs/audits/*/*.md")); // one level per star, no cross
+    try std.testing.expectEqual(@as(usize, 3), globMatchCount(&paths, "docs/audits/*.md"));
+}
+
+test "C12 DEAD-GLOBS: ** spans directories, negation class excludes" {
+    const paths = [_][]const u8{
+        "docs/a/b/c.md",
+        "docs/a/b.md",
+        "docs/x/a.md",
+        "docs/x/b.md",
+    };
+    try std.testing.expectEqual(@as(usize, 4), globMatchCount(&paths, "docs/**/*.md"));
+    try std.testing.expectEqual(@as(usize, 1), globMatchCount(&paths, "docs/x/[!a].md"));
+}
+
+test "C12 DEAD-GLOBS: markdown bold and board notation are not glob citations" {
+    try std.testing.expect(!isGlobCandidate("**AXIOMS.md**"));
+    try std.testing.expect(!isGlobCandidate("[B,W,B,_,W,_]"));
+    try std.testing.expect(!isGlobCandidate("docs/audits/2b-3-history-pairs-audit.md")); // literal: C2's job, not C12's
+    try std.testing.expect(isGlobCandidate("docs/audits/2b-3-audit-*.md"));
+    try std.testing.expect(isGlobCandidate("docs/audits/2026-08-0[1-9]-*.md"));
+}
+
+test "C12 DEAD-GLOBS: scan flags the seeded dead glob through the real evidence path" {
+    const gpa = std.testing.allocator;
+    // Synthetic path index: the renamed audit exists; the old glob must NOT
+    // resolve to it (0 matches = dead), the clean seed must resolve (1), and
+    // the ambiguous seed must resolve to several (>1).
+    const paths = [_][]const u8{
+        "docs/audits/2026-07-29-2b-3-history-pairs-audit.md",
+        "docs/audits/2026-08-01-a.md",
+        "docs/audits/2026-08-01-b.md",
+        "docs/decisions/0006-eye-prune-for-tractable-search.md",
+    };
+    const reg_text = try synthRegister(gpa, CAL_SYNTHETIC_C12_EXTRA);
+    defer gpa.free(reg_text);
+    // parseRegister owns no deinit; the synthetic register is parsed with the
+    // page allocator so its internals do not fail the leak checker (the
+    // runtime path uses the same page allocator).
+    var reg = try cr.parseRegister(std.heap.page_allocator, reg_text);
+    var hits: std.ArrayList(GlobHit) = .empty;
+    defer hits.deinit(gpa);
+    try globScanEvidence(gpa, &reg, &paths, &hits);
+    var saw_dead = false;
+    var saw_clean = false;
+    var saw_ambig = false;
+    for (hits.items) |h| {
+        if (std.mem.eql(u8, h.token, "docs/audits/2b-3-audit-*.md")) saw_dead = h.matches == 0;
+        if (std.mem.eql(u8, h.token, "docs/decisions/0006-*.md")) saw_clean = h.matches == 1;
+        if (std.mem.eql(u8, h.token, "docs/audits/2026-08-0[1-9]-*.md")) saw_ambig = h.matches > 1;
+    }
+    try std.testing.expect(saw_dead);
+    try std.testing.expect(saw_clean);
+    try std.testing.expect(saw_ambig);
+}
+
+test "C12 DEAD-GLOBS: a literal dead path is not a C12 candidate (C2's job alone)" {
+    const gpa = std.testing.allocator;
+    var toks: std.ArrayList([]const u8) = .empty;
+    defer toks.deinit(gpa);
+    // `untracked/c2pilot_3x2.zig` is C2's seeded known-bad — a literal dead
+    // path, no glob metacharacters. globTokens must not emit it; C2 catches it
+    // on its own surface, so the null control is: no double counting.
+    try globTokens(gpa, "the probe at `untracked/c2pilot_3x2.zig` is gone", &toks);
+    try std.testing.expectEqual(@as(usize, 0), toks.items.len);
+}
+
+test "C12 DEAD-GLOBS: identifier tokens survive word-inserting renames" {
+    const gpa = std.testing.allocator;
+    var toks: std.ArrayList([]const u8) = .empty;
+    defer toks.deinit(gpa);
+    // T365 renamed `2b-3-audit-*.md` to `2026-07-29-2b-3-history-pairs-audit.md`:
+    // the identifier tokens `2b` and `3` survive in order; `audit` (letters
+    // only) and the date digits do not.
+    try identifierTokens(gpa, "2b-3-audit-", &toks);
+    try std.testing.expectEqual(@as(usize, 2), toks.items.len);
+    try std.testing.expectEqualStrings("2b", toks.items[0]);
+    try std.testing.expectEqualStrings("3", toks.items[1]);
+    // A placeholder pattern still yields identifier tokens — but no repo file
+    // carries them, so the debt is reported unknown rather than guessed.
+    toks.clearRetainingCapacity();
+    try identifierTokens(gpa, "T38x-", &toks);
+    try std.testing.expectEqual(@as(usize, 1), toks.items.len);
+    try std.testing.expect(basenameHasTokensInOrder("T38x-thing.json", toks.items));
+    try std.testing.expect(!basenameHasTokensInOrder("T380-context.json", toks.items)); // T38x ≠ T380
+}
+
+test "C12 DEAD-GLOBS: candidates resolve the dead glob to the rename survivor" {
+    const gpa = std.testing.allocator;
+    const paths = [_][]const u8{
+        "docs/audits/2026-07-29-2b-3-history-pairs-audit.md",
+        "docs/audits/2026-07-29-2b-2-census-audit.md",
+        "docs/audits/2026-07-30-eye-prune-validation.md",
+        "docs/decisions/0001-branch-consolidation-and-zig-0.16.md",
+    };
+    var cands = try globCandidates(gpa, &paths, "docs/audits/2b-3-audit-*.md");
+    defer cands.deinit(gpa);
+    try std.testing.expectEqual(@as(usize, 1), cands.items.len);
+    try std.testing.expectEqualStrings("docs/audits/2026-07-29-2b-3-history-pairs-audit.md", cands.items[0]);
+    var none = try globCandidates(gpa, &paths, "docs/decisions/000N-*.md");
+    defer none.deinit(gpa);
+    try std.testing.expectEqual(@as(usize, 0), none.items.len);
+    var tmp = try globCandidates(gpa, &paths, "/tmp/weizigo/t416/out/*.json");
+    defer tmp.deinit(gpa);
+    try std.testing.expectEqual(@as(usize, 0), tmp.items.len);
 }
