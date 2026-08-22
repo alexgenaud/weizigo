@@ -1,0 +1,45 @@
+{
+  "task_id": "T676",
+  "date": "2026-08-22",
+  "model": "claude-haiku-4-5-20251001",
+  "claims": [
+    {
+      "id": "2x2.T12",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "RESCOPE (no status change). Register states '2×2 admits no reachable non-root cycles' unqualified. docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md §6.2 contradicts this: under basic-ko rule (the rule documented), 2×2 *has* reachable cycles (160-vertex SCC, 716 states with L<H). The claim was only true under PSK, not the current documented rule. T372 pattern: live row (dependent: 3x2.T13) whose stated claim is false under the rule the register documents. Row should be rescoped to PSK or withdrawn.",
+      "evidence_path": "docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md"
+    },
+    {
+      "id": "GLOBAL.ADR0015-BURDEN",
+      "proposed_status": "CLAIMED",
+      "rationale": "CITE (no status change). Row asserts in prose: 'three-seat blind review (QA-018-REVIEW-A/B/C: GLM-5.2, DeepSeek Pro, Kimi-k2.7) returned unanimously that ADR-0017's refutation-failed verdict is SOUND.' Evidence column cites none of the three review reports; all three exist and match the assertion. Row has dependent n:GLOBAL.C3 (load-bearing). Instruction: add three report paths to evidence column.",
+      "evidence_path": "docs/evidence/QA-018/review-a-glm/report.md"
+    },
+    {
+      "id": "4x4.SELF-PLAY-BRACKET-CONSISTENT",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "CITE (no status change). Row prose states 'trajectory consistency doc in docs/evidence/ENGINE-VS-ENGINE' — cites only indirectly via findings/T389-context.json, not directly in evidence column. docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md is the canonical narrative. Register convention cites evidence docs directly.",
+      "evidence_path": "docs/evidence/ENGINE-VS-ENGINE/self-play-consistency-2026-08-05.md"
+    },
+    {
+      "id": "4x4.NEW-ENGINE-MIRROR",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "CITE (no status change). Row cites ENGINE-VS-ENGINE/symmetric-2026-08-05.md but asserts 'reproduces T366 figures exactly' without citing the baseline kifu. docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-05.md carries T366 divergence kifu and baseline numbers the mirror measures against.",
+      "evidence_path": "docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-05.md"
+    },
+    {
+      "id": "4x4.C1",
+      "proposed_status": "CLAIMED",
+      "rationale": "CITE (no status change). Row's I11-exhaustive clause cites findings/T473-i11-exhaustive.json but not the run's PROVENANCE docs/evidence/I11-4x4-EXHAUSTIVE/PROVENANCE.md (artifact identity, commands, cross-checks). Register convention cites PROVENANCE files (per GLOBAL.REACH-P4-CENSUS, 4x4.LEAK-TIEBREAK, CODE.RESOLVER-INTERFACE pattern).",
+      "evidence_path": "docs/evidence/I11-4x4-EXHAUSTIVE/PROVENANCE.md"
+    },
+    {
+      "id": "WZO2.I2-CLEAN",
+      "proposed_status": "MEASUREMENT",
+      "rationale": "CITE (no status change). Row asserts R8-independence of I2 colour-inversion check but cites only .md and raw jsons, not the instrument docs/evidence/BATTERY/i2-wzo2-T270/check_i2_wzo2.py (the independent implementation itself, load-bearing for R8 claim).",
+      "evidence_path": "docs/evidence/BATTERY/i2-wzo2-T270/check_i2_wzo2.py"
+    }
+  ],
+  "new_rows": [],
+  "notes": "T676 class-C triage (race lane, independent from T673/T674/T675). Method: read all 31 unique uncited docs before ruling; ordered by live-row impact (T372 shape first, then prose-but-uncites with dependents, then superseded/exempt). ABSORB items (6 claims above): one hard T372 contradiction (2x2.T12 stated claim false under documented rule), five soft prose-asserts-but-uncites repairs (all CLAIMED/MEASUREMENT rows with assertions not backed by citations, one with dependent n:GLOBAL.C3, rest with 1–5 e: edges). Pattern observed: docs marked SUPERSEDED (e.g. QA-023/census-3x2-2026-07-29.md) are REJECT as they carry stale numbers already corrected in cited successors; docs named in findings[].claims=[] from completed task rows (instrument verifications, raw data) are EXEMPT or REJECT (no register consequence). The T372-shaped item (2x2.T12) is the one uncorrected contradiction found in the 31 docs — a live row whose register-stated claim is false under the rule documented. Shape summary: of 31 unique docs, 6 are ABSORB (hard + soft citation repairs); remainder are REJECT (superseded/subsumed/already-cited-via-successor) or EXEMPT (raw data/process/ops). No register claims discovered that contradict cited facts — this one item is the anomaly. Population estimate (outside docs/evidence/): 50–150 candidate documents across docs/research/, docs/audits/, docs/epics/*/accept.md, docs/decisions/ADR-*, with T372-shaped subset (contradictions) concentrated in QA-023 family and C2/C3 falsification regions — plausibly 1–5 such contradictions. Ordered-reading note: prioritized high-cascade rows (GLOBAL.ADR0015-BURDEN n:GLOBAL.C3, 4x4.C1 5 e:edges) before leaves, read documents before ruling per brief bar."
+}
