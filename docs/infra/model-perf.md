@@ -113,3 +113,7 @@ dispatch-verify 2026-08-22 T615 claude-fable-5 report=success verified=pass
 dispatch-verify 2026-08-22 T616 claude-opus-5 report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-22 T544 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-22 T625 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T526 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T632 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T634 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T631 deepseek-v4-flash report=success verified=pass

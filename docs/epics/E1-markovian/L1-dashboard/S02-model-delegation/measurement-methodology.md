@@ -26,12 +26,23 @@ appetite. The table is the authority; a machine-readable mirror is optional and 
 | family | appetite | budget state (as_of 2026-08-21) | race spend | execution spend | reservations (hard) |
 |---|---|---|---|---|---|
 | ollama-cloud (glm / minimax / kimi) | **OFF** → **SPEND** | 0 tokens, ~48 h ±24 h; "many next week" | no | no | rejoin is a **human flip**, never a calendar auto-trust (the window is fuzzy) |
-| claude (opus / sonnet / haiku) | **CONSERVE** | weekly ≈70 % used | override only | only where no cheaper qualified lane exists | 5 h rolling window: never start a task whose estimated wall exceeds the remaining window; no eager batching |
+| claude (opus / sonnet / haiku) | **SPEND** | weekly ≈70 % used (2026-08-21 reading, stale) | yes | yes | 5 h rolling window: never start a task whose estimated wall exceeds the remaining window; Claude fan-out capped per §7c.33 |
 | claude-fable | **RESERVED** | inherits claude weekly; hand over before 90 % of 200 k | upper tier only | only for reserved task types | deep holistic review · gate-holder verification · spec/design adjudication; same-day availability; never one-off/general |
 | deepseek (dspro / flash) | **SPEND** | generous, no recorded ceiling | yes | yes | soft burn-rate guard only |
 | local (qwen / gemma) | **PROBE** | no credits, costs the machine | exploration only | probe-flagged rows only | never during a measured suite run (load contamination — the D6/D12/D14 cull) |
 
-Source: operator inputs 2026-08-21 (t11 §Inputs). Task-type shares that tell us which cells matter:
+**Operator ruling, 2026-08-22 — claude and deepseek appetites are set EQUAL and HIGH.** Both
+families are `SPEND` for race and execution spend. The instruction was given as a roster: *race
+`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001`, `deepseek-v4-pro`,
+`deepseek-v4-flash`* — five lanes, no Claude/DS asymmetry in who may be asked. The cost-ladder
+rule (ruling 34, solo rows go to the cheapest qualified model) is unaffected: appetite says who
+*may* spend, the ladder says who *should* be picked, and equal appetite is what makes the
+comparison fair rather than what makes it free.
+
+**`claude-fable` stays RESERVED** — the window-only lift recorded in `ladder-races-2026-08-22.md`
+is hereby **withdrawn**, and Fable is not a lane in the five-model roster.
+
+Source: operator inputs 2026-08-21 (t11 §Inputs), amended by the operator 2026-08-22. Task-type shares that tell us which cells matter:
 audit 27 % · infra 22 % · battery 18 % · implement 11 % · orchestration 8 % · integration 6 % ·
 research 4 % · spec 3 %. **Operator intent: shift energy into `spec`** so less is spent later
 debugging — so `spec` is the high-leverage under-measured cell, not a rounding error.

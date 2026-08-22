@@ -270,12 +270,23 @@ Still owed operator **numbers** (not direction; spec defaults hold meanwhile): a
     a two-second margin deciding a ladder rung is a coin-flip wearing the clothes of a
     measurement. **T634 gates every further Claude lane.**
 
-33. **Claude fan-out is capped at 2 while the meter is missing.** Seven concurrent Claude lanes
-    at ~1.3 M input tokens each (T620 alone read 1,386,293) exhausted the five-hour window in
-    roughly ten minutes on 2026-08-22. Until T628 lands the rolling-window meter that sizes the
-    cap from evidence, the interim cap is **2 concurrent Claude lanes**, and a **RESERVED lane
-    (Fable) never runs concurrently with a fan-out** — it runs alone or not at all. This is an
-    interim number chosen to stop a known failure, not a measured one; T628 replaces it.
+33. **Claude fan-out is capped at one race's worth of lanes — currently 3.** Seven concurrent
+    Claude lanes at ~1.3 M input tokens each (T620 alone read 1,386,293) exhausted the five-hour
+    window in roughly ten minutes on 2026-08-22. The interim cap was set at 2; the operator's
+    2026-08-22 roster (race opus · sonnet · haiku · dspro · dsflash) needs 3 Claude seats, so the
+    cap is **3, stated as a principle rather than a number: one race's Claude lanes may run
+    concurrently, never two races at once, and never a fan-out plus unrelated Claude work.**
+    A **RESERVED lane (Fable) never runs concurrently with a fan-out** — it runs alone or not at
+    all, and Fable is not in the five-model roster. Both figures are interim, chosen to stop a
+    known failure rather than measured; T628's rolling-window meter replaces them.
+
+**Citing rulings — two registers, one convention.** `docs/infra/human-decisions.md` §Recently
+ruled holds the operator's rulings verbatim and numbers them in its own sequence (32 census
+denominators, 33 mechanized randomization, 34 solo/panel shapes, 35 thoroughness vs economy).
+This section numbers its own sequence and has reached 33. **The two collide, and they are not
+the same rulings.** Convention, from 2026-08-22: a bare "ruling N" means `human-decisions.md`;
+an entry in this section is always cited **`§7c.N`**. Where this section restates an operator
+ruling operationally — §7c.31 restates the guard ruling — it says so.
 
 ## 8. Delegation (the thorough pass)
 

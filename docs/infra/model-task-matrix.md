@@ -7,6 +7,8 @@ here. A model is selected for a task type when evidence says it is the most appr
 
 **This file is the dispatch policy, not a report.** An empty cell is a reason to dispatch — the
 next row of that type goes to a model whose cell is blank, provided the row is safe to give away.
+Where a cell is empty and a choice is still forced, `model-ladders.md` holds the current priors
+(Class C beliefs, 2026-08-22, `claude-fable-5`-authored) — they route exploration, never dispatch-as-evidence.
 
 ## Cost stance — RETIRED (2026-08-21, T565; superseded by measurement-methodology.md §1 the appetite table)
 
@@ -78,6 +80,46 @@ could not legitimately score (its grader was Claude). A different grader means `
 directly comparable to the `(T447)` numbers. Everything else is a single row's verdict, which
 is weaker evidence than a race — a verdict says "the work was acceptable", not "better than the
 alternative". **n = 1 everywhere.** No cell in this table justifies a ranking on its own.
+
+## 2b. Race F — T-F adjudication, 2026-08-22 — NOT PUBLISHABLE (ruling 32)
+
+The first measurement ever taken of **T-F (adjudication of another model's work)**, and the
+first cell in this matrix with a real five-lane field. **It does not meet ruling 32's census
+bar** and therefore does not enter `model-task-metrics.jsonl` and does not license a ladder
+claim: `killed_by` does not exist yet (T629), the attribution census is unfinished (T544), and
+n = 1 on this task type. It is recorded here as a reading, in full, so that it can be checked
+when the denominator is honest.
+
+Subject: the deduplicated union of five independent audits of the S04 reconciler spec, each
+union item ruled real / false / uncertain with a citation. Graded blind by `deepseek-v4-flash`
+(T632) over anonymized, hash-shuffled entrants against a 28-item reference union it built
+itself; three citations hand-verified before the mechanical pass, and the hand check agreed.
+
+| rank | model | items | citations checked / valid | grader's one-line reading |
+|---|---|---|---|---|
+| 1 | `claude-opus-5` | 33 | 93 / 92 | perfect recall 28/28, zero false-reals, best severity discipline, the only correct call on the F5 seam |
+| 2 | `deepseek-v4-flash` | 24 | 59 / 57 | the single best verdict in the race (G1, on located evidence); two notes-level slips |
+| 3 | `claude-fable-5` | 26 | 45 / 45 | every citation line-accurate |
+| 4 | `claude-sonnet-5` | 23 | 44 / 44 | every citation line-accurate |
+| 5 | `claude-haiku-4-5-20251001` | 19 | 35 / 33 | "everything is real" — 19 of 19 items called real in a set where five are refutable by the tree; discrimination avoided |
+
+Three things worth keeping even though the cell is not publishable:
+
+1. **The winner is the lane the harness killed and the ledger called a failure.** `claude-opus-5`
+   was terminated at 600.8 s by the stdout-only liveness fuse with its 43 KB deliverable already
+   written, recorded `verified=fail fail=row`, and salvaged only because someone looked. Had the
+   guard ruling not landed the same afternoon, the top result of this project's first
+   adjudication race would have been deleted as a model failure.
+2. **A cheap DeepSeek lane placed second, above two Claude models.** Whatever the ladder ends up
+   saying, "Claude tier above DS tier" is not what this cell shows.
+3. **Haiku's failure mode is specific and reusable.** Not "worse findings" but *no
+   discrimination*: it accepted every item at face value. That is a property to test for
+   directly rather than a low score to average away — and it is consistent with its 0 on the
+   T-A audit rubric. Cheap and fast, and so far not usable where the job is to say *no*.
+
+**Missing from this grade:** the complementarity record ruling 34 requires. The amendment
+reached T632 after it had finished, so who-caught-what was reduced to ranks. T637 recomputes it
+from the raw entrant artifacts; the data was never lost, only un-reduced.
 
 ## 3. What the local model is for — `qwen3.8:27b-mlx`
 
