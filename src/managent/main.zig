@@ -107,6 +107,15 @@ const TaskState = struct {
     status: TaskStatus = .dispatchable,
     agent: ?[]const u8 = null,
     model: ?[]const u8 = null,
+    // T544: attribution provenance.  model_source is null for first-hand
+    // attribution (recorded at claim/done/dispatch by the worker or seat) and
+    // set to the recovering source for backfilled values ("perf-ledger" /
+    // "run-record" / "agent-field") or the conflict marker when a wrong
+    // stored model was corrected ("conflict:<old>-><new>").  A model value
+    // of "unattributed" / "unattributed-pre-T544" is a first-class state —
+    // the data is gone — not a null, so aggregations exclude it by name.
+    model_source: ?[]const u8 = null,
+    model_unknown_reason: ?[]const u8 = null,
     bundle: []const u8 = "",
     set: u8 = 'A',
     holds: [][]const u8 = &.{},
@@ -230,6 +239,13 @@ const Directive = struct {
     from: []const u8,
     ts: []const u8,
     read: bool = false,
+    // T625: machine-checkable discharge condition for a `pause` — enforced
+    // only while <row> is not `done` in the kanban (re-evaluated at every
+    // apply by tools/runner and bin/dispatch via tools/directive_policy.py).
+    // D047's condition lived in prose inside --note and killed fresh
+    // dispatches for two days after it was satisfied; this field makes the
+    // condition evaluable.  Valid for `pause` only; see cmdTell.
+    until_done: ?[]const u8 = null,
 };
 
 const valid_directives = [_][]const u8{ "pause", "resume", "kill", "amend", "question" };
@@ -239,6 +255,16 @@ fn isValidDirective(s: []const u8) bool {
         if (std.mem.eql(u8, d, s)) return true;
     }
     return false;
+}
+
+/// T625: a kanban row id of the `T<digits>` shape — what `tell --until-done`
+/// accepts (and what a directive's `until_done` field must name).
+fn isTaskId(s: []const u8) bool {
+    if (s.len < 2 or s[0] != 'T') return false;
+    for (s[1..]) |c| {
+        if (c < '0' or c > '9') return false;
+    }
+    return true;
 }
 
 const StateMap = std.StringHashMapUnmanaged(TaskState);
@@ -1170,6 +1196,12 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("model")) |mv| {
             if (mv == .string) ts.model = try alloc.dupe(u8, mv.string);
         }
+        if (obj.object.get("model_source")) |msv| {
+            if (msv == .string) ts.model_source = try alloc.dupe(u8, msv.string);
+        }
+        if (obj.object.get("model_unknown_reason")) |mur| {
+            if (mur == .string) ts.model_unknown_reason = try alloc.dupe(u8, mur.string);
+        }
         if (obj.object.get("bundle")) |bv| {
             if (bv == .string) ts.bundle = try alloc.dupe(u8, bv.string);
         }
@@ -1321,6 +1353,20 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try writeJsonString(buf, m);
         } else {
             try buf.appendSlice(alloc, ",\n    \"model\": null");
+        }
+
+        if (ts.model_source) |ms| {
+            try buf.appendSlice(alloc, ",\n    \"model_source\": ");
+            try writeJsonString(buf, ms);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"model_source\": null");
+        }
+
+        if (ts.model_unknown_reason) |mur| {
+            try buf.appendSlice(alloc, ",\n    \"model_unknown_reason\": ");
+            try writeJsonString(buf, mur);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"model_unknown_reason\": null");
         }
 
         try buf.appendSlice(alloc, ",\n    \"bundle\": ");
@@ -1694,6 +1740,22 @@ fn agentIdentifier(ts: TaskState, task_id: []const u8) ![]const u8 {
         return try std.fmt.allocPrint(alloc, "{s}/{s}", .{ model, task_id });
     }
     return try std.fmt.allocPrint(alloc, "{s}/{s}.{d}", .{ model, task_id, ts.claim_count });
+}
+
+/// T544: record first-hand attribution when a caller names the model.
+/// Both `agent` and `model` are written (a claimed/closed row must never
+/// show a null model while its agent is known — the hole the attribution
+/// census measured), and any stale backfill provenance is cleared:
+/// first-hand observation beats a recovered value.
+fn setFirstHandAttribution(ts: *TaskState, model: []const u8) !void {
+    if (ts.agent) |old| alloc.free(old);
+    ts.agent = try alloc.dupe(u8, model);
+    if (ts.model) |old| alloc.free(old);
+    ts.model = try alloc.dupe(u8, model);
+    if (ts.model_source) |old| alloc.free(old);
+    ts.model_source = null;
+    if (ts.model_unknown_reason) |old| alloc.free(old);
+    ts.model_unknown_reason = null;
 }
 
 /// Resolve the identity of whoever is running the current process, for
@@ -2090,8 +2152,14 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             const now = try nowTimestamp();
             ts_ptr.status = .in_progress;
-            // T209: fall back to model stored at suggest/dispatch time
-            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
+            // T209 + T544: fall back to model stored at suggest/dispatch
+            // time; when --agent is named, record BOTH agent and model
+            // (first-hand) so a claimed row never shows a null model.
+            if (agent_name) |a| {
+                try setFirstHandAttribution(ts_ptr, a);
+            } else {
+                ts_ptr.agent = if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
+            }
             ts_ptr.claimed = now;
 
             // T390: bump claim_count only on a claim that will persist —
@@ -2152,8 +2220,14 @@ fn cmdClaim(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
             const now = try nowTimestamp();
             ts_ptr.status = .in_progress;
-            // T209: fall back to model stored at suggest/dispatch time
-            ts_ptr.agent = if (agent_name) |a| try alloc.dupe(u8, a) else if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
+            // T209 + T544: fall back to model stored at suggest/dispatch
+            // time; when --agent is named, record BOTH agent and model
+            // (first-hand) so a claimed row never shows a null model.
+            if (agent_name) |a| {
+                try setFirstHandAttribution(ts_ptr, a);
+            } else {
+                ts_ptr.agent = if (ts_ptr.model) |m| try alloc.dupe(u8, m) else null;
+            }
             ts_ptr.claimed = now;
 
             // T390: bump claim_count only on a claim that will persist (see
@@ -2196,6 +2270,16 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
 
     if (to_agent == null) {
         w.diag("error: --to <agent> is required\n", .{});
+        std.process.exit(1);
+    }
+    // T317 + T544: canonicalize and validate the dispatch target at point of
+    // writing — a made-up label here is attribution debt; the stored value
+    // must be a canonical model label (and becomes the row's `model`).
+    const to_raw = to_agent.?;
+    const to_canonical = canonicalizeModelTag(to_raw);
+    if (!isCanonicalModel(to_canonical)) {
+        w.diag("error: '{s}' is not a canonical model label.\n", .{to_raw});
+        printCanonicalModels(w);
         std.process.exit(1);
     }
     if (note_text) |nt| {
@@ -2257,7 +2341,16 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
     if (ts_ptr.dispatched_to) |d| alloc.free(d);
     if (ts_ptr.note) |n| alloc.free(n);
     ts_ptr.dispatched = try alloc.dupe(u8, now);
-    ts_ptr.dispatched_to = try alloc.dupe(u8, to_agent.?);
+    ts_ptr.dispatched_to = try alloc.dupe(u8, to_canonical);
+    // T544: dispatch names the model — record it first-hand so the write
+    // path no longer leaves `model` null (and corrects a bulk re-lane's
+    // wrong value).  `agent` (who actually claims) is untouched here.
+    if (ts_ptr.model) |old| alloc.free(old);
+    ts_ptr.model = try alloc.dupe(u8, to_canonical);
+    if (ts_ptr.model_source) |old| alloc.free(old);
+    ts_ptr.model_source = null;
+    if (ts_ptr.model_unknown_reason) |old| alloc.free(old);
+    ts_ptr.model_unknown_reason = null;
     if (note_text) |nt| {
         ts_ptr.note = try alloc.dupe(u8, nt);
     } else {
@@ -2266,9 +2359,9 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
 
     try writeStateLocked(io, state_path, &state);
 
-    w.diag("\n  dispatched {s}  to {s}  [set: {c}]\n", .{ id, to_agent.?, ts_ptr.set });
+    w.diag("\n  dispatched {s}  to {s}  [set: {c}]\n", .{ id, to_canonical, ts_ptr.set });
     if (ts_ptr.status == .dispatchable) {
-        w.diag("  awaiting claim by {s} (or another agent): managent claim {s}\n", .{ to_agent.?, id });
+        w.diag("  awaiting claim by {s} (or another agent): managent claim {s}\n", .{ to_canonical, id });
     }
     if (note_text != null) {
         w.diag("  note recorded ({d} bytes)\n", .{note_text.?.len});
@@ -2719,7 +2812,7 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     // blind.  cmdDone refuses; --force closes with a loud acknowledgement.
     const CLAIM_TO_DONE_REFUSE_SECS: i64 = 10;
     if (args.len < 3) {
-        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name>] [--impression <text> | --impression-waiver <reason>] [--skip-acceptance <reason>] [--force]\n", .{});
+        w.diag("usage: managent done <id> [--status pass|pass-with-findings|fail-found|blocked|abandoned] [--note <text>] [--agent <name> | --model <name> | --model-unknown <reason>] [--impression <text> | --impression-waiver <reason>] [--skip-acceptance <reason>] [--force]\n", .{});
         w.diag("       --fail (backward compat, sets verdict=blocked)\n", .{});
         w.diag("       --status defaults to 'pass'; --note required for non-pass verdicts\n", .{});
         w.diag("       --skip-acceptance bypasses the acceptance= command (reason mandatory)\n", .{});
@@ -2730,6 +2823,8 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     const status_override = getFlagValue(args, "--status");
     const note_override = getFlagValue(args, "--note");
     const agent_override_raw = getFlagValue(args, "--agent");
+    const model_override_raw = getFlagValue(args, "--model");
+    const model_unknown_reason = getFlagValue(args, "--model-unknown");
     const skip_acceptance_reason = getFlagValue(args, "--skip-acceptance");
     const impression_override = getFlagValue(args, "--impression");
     const impression_waiver_override = getFlagValue(args, "--impression-waiver");
@@ -2744,6 +2839,18 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
             std.process.exit(1);
         }
         agent_override = canonical;
+    }
+    // T544: --model is the same attribution by another name; canonical and
+    // validated the same way (one worker, one model label).
+    var model_override: ?[]const u8 = null;
+    if (model_override_raw) |m| {
+        const canonical = canonicalizeModelTag(m);
+        if (!isCanonicalModel(canonical)) {
+            w.diag("error: '{s}' is not a canonical model label.\n", .{m});
+            printCanonicalModels(w);
+            std.process.exit(1);
+        }
+        model_override = canonical;
     }
 
     // T213: resolve verdict — --status flag, or --fail backward compat, or default "pass"
@@ -2854,17 +2961,52 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         }
     }
 
-    // ── attribution enforcement (ORCHA-AUTOMATION item 3) ──
-    // T209: model (set at suggest/dispatch) is sufficient when agent is unset.
-    if (agent_override) |a| {
-        if (ts_ptr.agent) |old| alloc.free(old);
-        ts_ptr.agent = try alloc.dupe(u8, a);
+    // ── attribution enforcement (ORCHA-AUTOMATION item 3 + T544) ──
+    // T544: `model` is the ledger's attribution field.  A close names it via
+    // --agent/--model (first-hand, canonical) or declares it unknown via
+    // --model-unknown <reason>.  A silent null is refused — the 79%-null
+    // census must not grow.  --agent and --model are one attribution: given
+    // both, they must agree; given one, both fields are written so the
+    // agent/model split can never reopen.
+    if (agent_override != null and model_override != null and !std.mem.eql(u8, agent_override.?, model_override.?)) {
+        unlockStore();
+        w.diag("\n  REJECTED: {s} — --agent and --model name different models ({s} vs {s}).\n", .{ id, agent_override.?, model_override.? });
+        w.diag("  One worker, one attribution. Drop one of the flags.\n", .{});
+        std.process.exit(1);
     }
-    if (ts_ptr.agent == null and ts_ptr.model == null) {
+    if (model_unknown_reason != null and (agent_override != null or model_override != null)) {
+        unlockStore();
+        w.diag("\n  REJECTED: {s} — --model-unknown cannot be combined with --agent/--model.\n", .{id});
+        std.process.exit(1);
+    }
+    if (model_unknown_reason) |reason| {
+        if (reason.len == 0) {
+            unlockStore();
+            w.diag("\n  REJECTED: {s} — --model-unknown requires a non-empty reason.\n", .{id});
+            std.process.exit(1);
+        }
+        // Explicitly unattributed, never a silent null: the marker is
+        // first-class so aggregations exclude it by name.
+        if (ts_ptr.model) |old| alloc.free(old);
+        ts_ptr.model = try alloc.dupe(u8, "unattributed");
+        if (ts_ptr.model_source) |old| alloc.free(old);
+        ts_ptr.model_source = null;
+        if (ts_ptr.model_unknown_reason) |old| alloc.free(old);
+        ts_ptr.model_unknown_reason = try alloc.dupe(u8, reason);
+    } else if (agent_override != null or model_override != null) {
+        try setFirstHandAttribution(ts_ptr, (agent_override orelse model_override).?);
+    } else if (ts_ptr.model == null and ts_ptr.agent != null) {
+        // An in-flight row claimed before T544 has an agent but no model:
+        // promote the known agent to model so the close is attributed.
+        ts_ptr.model = try alloc.dupe(u8, ts_ptr.agent.?);
+    }
+
+    if (ts_ptr.model == null) {
         unlockStore();
         w.diag("\n  REJECTED: {s} has no agent or model set.\n", .{id});
-        w.diag("  Every completed task must carry an agent for the identifier and model-performance ledger.\n", .{});
-        w.diag("  Use: managent done {s} --agent <model>\n", .{id});
+        w.diag("  Every completed task must carry a model for the attribution ledger.\n", .{});
+        w.diag("  Use: managent done {s} --agent <model>   (or --model <model>)\n", .{id});
+        w.diag("  Or, if the model is genuinely unknown: --model-unknown <reason>\n", .{});
         w.diag("  Or set it first: managent agent {s} <model>\n", .{id});
         std.process.exit(1);
     }
@@ -3836,7 +3978,9 @@ fn cmdAgent(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         std.process.exit(1);
     };
     const old = ts_ptr.agent;
-    ts_ptr.agent = try alloc.dupe(u8, name);
+    // T544: correcting the agent also corrects the model — the two fields
+    // describe the same attribution and must not be allowed to diverge.
+    try setFirstHandAttribution(ts_ptr, name);
     try writeStateLocked(io, state_path, &state);
     w.diag("\n  {s}  agent {s} -> {s}\n", .{ id, old orelse "(none)", name });
 }
@@ -4226,6 +4370,14 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
         if (ts.model) |m| {
             try buf.appendSlice(alloc, ",\"model\":");
             try writeJsonString(&buf, m);
+        }
+        if (ts.model_source) |ms| {
+            try buf.appendSlice(alloc, ",\"model_source\":");
+            try writeJsonString(&buf, ms);
+        }
+        if (ts.model_unknown_reason) |mur| {
+            try buf.appendSlice(alloc, ",\"model_unknown_reason\":");
+            try writeJsonString(&buf, mur);
         }
         if (ts.agent) |_| {
             const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
@@ -4650,6 +4802,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
                 if (di.note) |n| alloc.free(n);
                 alloc.free(di.from);
                 alloc.free(di.ts);
+                if (di.until_done) |ud| alloc.free(ud);
             }
             d.deinit(alloc);
         };
@@ -5210,6 +5363,12 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (ts.model) |m| {
         w.data("    model:    {s}\n", .{m});
     }
+    if (ts.model_source) |ms| {
+        w.data("    model_source: {s}\n", .{ms});
+    }
+    if (ts.model_unknown_reason) |mur| {
+        w.data("    model_unknown_reason: {s}\n", .{mur});
+    }
     if (ts.agent) |_| {
         const ident = try agentIdentifier(ts, id);
         w.data("    identifier: {s}\n", .{ident});
@@ -5668,6 +5827,8 @@ fn freeState(state: *StateMap) void {
         alloc.free(ts.bundle);
         if (ts.agent) |a| alloc.free(a);
         if (ts.model) |m| alloc.free(m);
+        if (ts.model_source) |ms| alloc.free(ms);
+        if (ts.model_unknown_reason) |mur| alloc.free(mur);
         for (ts.holds) |h| alloc.free(h);
         alloc.free(ts.holds);
         for (ts.needs) |n| alloc.free(n);
@@ -5763,6 +5924,7 @@ fn readDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []c
         const d_from = if (obj.get("from")) |v| if (v == .string) v.string else "" else "";
         const d_ts = if (obj.get("ts")) |v| if (v == .string) v.string else "" else "";
         const d_read = if (obj.get("read")) |v| if (v == .bool) v.bool else false else false;
+        const d_until_done = if (obj.get("until_done")) |v| if (v == .string) v.string else "" else "";
 
         if (d_id.len == 0 or d_target.len == 0) {
             bad += 1;
@@ -5777,6 +5939,7 @@ fn readDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []c
             .from = try alloc.dupe(u8, d_from),
             .ts = try alloc.dupe(u8, d_ts),
             .read = d_read,
+            .until_done = if (d_until_done.len > 0) try alloc.dupe(u8, d_until_done) else null,
         });
     }
 
@@ -5820,6 +5983,10 @@ fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) 
         try buf.appendSlice(alloc, "true");
     } else {
         try buf.appendSlice(alloc, "false");
+    }
+    if (d.until_done) |ud| {
+        try buf.appendSlice(alloc, ",\"until_done\":");
+        try writeJsonString(&buf, ud);
     }
     try buf.appendSlice(alloc, "}\n");
 
@@ -7110,6 +7277,7 @@ fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 if (di.note) |n| alloc.free(n);
                 alloc.free(di.from);
                 alloc.free(di.ts);
+                if (di.until_done) |ud| alloc.free(ud);
             }
             dl.deinit(alloc);
         }
@@ -8186,7 +8354,8 @@ fn persistStandingState(io: std.Io, state_path: []const u8, c3: u64, msg: u64, f
 
 fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 4) {
-        w.diag("usage: managent tell <target> <pause|resume|kill|amend|question> [--note <text>] [--from <who>]\n", .{});
+        w.diag("usage: managent tell <target> <pause|resume|kill|amend|question> [--note <text>] [--from <who>] [--until-done <T-id>]\n", .{});
+        w.diag("  --until-done <T-id>  (pause only, T625): enforce until <T-id> is done in the kanban\n", .{});
         std.process.exit(1);
     }
     const target = args[2];
@@ -8199,6 +8368,29 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
 
     const note_text = getFlagValue(args, "--note");
     const from_who = getFlagValue(args, "--from") orelse "unknown";
+
+    // T625: `--until-done <row>` — a machine-checkable discharge condition
+    // for a `pause`.  Valid for pause only (a kill is an unconditional
+    // halt; amend/question are not enforced), the row must be a T-id, and
+    // it must not name the pause's own target (a self-blocking pause can
+    // never discharge).
+    const until_done_raw = getFlagValue(args, "--until-done");
+    var until_done: ?[]const u8 = null;
+    if (until_done_raw) |ud| {
+        if (!std.mem.eql(u8, directive, "pause")) {
+            w.diag("error: --until-done is valid only for a pause directive (got '{s}')\n", .{directive});
+            std.process.exit(1);
+        }
+        if (!isTaskId(ud)) {
+            w.diag("error: --until-done must name a T<id> row, got '{s}'\n", .{ud});
+            std.process.exit(1);
+        }
+        if (std.mem.eql(u8, ud, target)) {
+            w.diag("error: --until-done cannot name the pause's own target ({s}) — it would never discharge\n", .{target});
+            std.process.exit(1);
+        }
+        until_done = ud;
+    }
 
     // T545: the whole read→mint→append→counter-persist→verify sequence runs
     // under the store flock.  cmdTell previously read the store BEFORE the
@@ -8228,6 +8420,7 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         .from = try alloc.dupe(u8, from_who),
         .ts = try alloc.dupe(u8, now),
         .read = false,
+        .until_done = if (until_done) |ud| try alloc.dupe(u8, ud) else null,
     };
 
     appendDirective(w, io, repo_root, d) catch |err| {
@@ -8251,6 +8444,13 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     w.diag("\n  told {s} -> {s}\n", .{ target, directive });
     w.diag("  directive {s}\n", .{d_id});
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
+    if (until_done) |ud| {
+        w.diag("  until-done: enforced until {s} is done (re-evaluated at every apply)\n", .{ud});
+    } else if (std.mem.eql(u8, directive, "pause")) {
+        w.diag("  until-done: none — this pause has no discharge condition; it is enforced until acked,\n", .{});
+        w.diag("    or reported stale after the staleness horizon (tools/directive_policy.py).\n", .{});
+        w.diag("    Prefer `--until-done <row>` so the pause discharges itself.\n", .{});
+    }
 }
 
 /// T545: a directive must never be silently lost.  Returns true iff a record
@@ -8268,6 +8468,7 @@ fn directiveIsReadable(w: Writers, io: std.Io, repo_root: []const u8, state_path
             if (d.note) |n| alloc.free(n);
             alloc.free(d.from);
             alloc.free(d.ts);
+            if (d.until_done) |ud| alloc.free(ud);
         }
         list.deinit(alloc);
     }
@@ -8401,6 +8602,7 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             if (d.note) |n| alloc.free(n);
             alloc.free(d.from);
             alloc.free(d.ts);
+            if (d.until_done) |ud| alloc.free(ud);
         }
         directives.deinit(alloc);
     }
@@ -8418,6 +8620,7 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         found += 1;
         w.data("    {s}  {s}  from {s}  at {s}\n", .{ d.id, d.directive, d.from, d.ts });
         if (d.note) |n| w.data("      note: {s}\n", .{n});
+        if (d.until_done) |ud| w.data("      until_done: {s} (enforced until done)\n", .{ud});
     }
     if (found == 0) {
         w.data("  -- no pending directives --\n", .{});
@@ -8499,6 +8702,13 @@ fn cmdInbox(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
                 };
                 if (obj.get("ts")) |v| if (v == .string) {
                     try line_buf.appendSlice(alloc, ",\"ts\":");
+                    try writeJsonString(&line_buf, v.string);
+                };
+                if (obj.get("until_done")) |v| if (v == .string) {
+                    // T625: acking a directive must preserve its discharge
+                    // condition — the ack path is a re-serializer, not a
+                    // field drop (T399's re-escape discipline).
+                    try line_buf.appendSlice(alloc, ",\"until_done\":");
                     try writeJsonString(&line_buf, v.string);
                 };
                 try line_buf.appendSlice(alloc, ",\"read\":true");
@@ -8860,6 +9070,7 @@ fn printPendingDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_p
             if (d.note) |n| alloc.free(n);
             alloc.free(d.from);
             alloc.free(d.ts);
+            if (d.until_done) |ud| alloc.free(ud);
         }
         directives.deinit(alloc);
     }
@@ -8874,6 +9085,7 @@ fn printPendingDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_p
         found += 1;
         w.diag("    {s}  {s}  from {s}\n", .{ d.id, d.directive, d.from });
         if (d.note) |n| w.diag("      {s}\n", .{n});
+        if (d.until_done) |ud| w.diag("      until_done: {s} (enforced until done)\n", .{ud});
     }
     if (found > 0) {
         w.diag("\n", .{});

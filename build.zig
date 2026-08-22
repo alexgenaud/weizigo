@@ -477,6 +477,23 @@ pub fn build(b: *std.Build) void {
     dispatch_regression.cwd = b.path(".");
     test_step.dependOn(&dispatch_regression.step);
 
+    // ── T625: stale-directive dispatch controls ──────────────────────
+    // The 2026-08-22 incident: D047, a `pause` whose discharge condition
+    // lived in prose inside --note, kept killing fresh T544 dispatches
+    // two days after T545 closed, and every termination scored as a model
+    // failure (verified=fail).  These controls pin the fix: `--until-done
+    // <row>` discharge re-evaluated at apply time, a staleness horizon
+    // after which an unacked pause is reported stale rather than enforced,
+    // bin/dispatch refusing to launch a row a pending directive would kill
+    // (nothing spawned), a self-identifying run record for launch-time
+    // directive kills (kill_class=directive), and dispatch_verify
+    // recording verified=directive-kill — never a model-failure row —
+    // while a genuine wall-kill still scores as it does today.  Hermetic
+    // scratch repo + scratch store/ledger only.
+    const directive_kill_regression = b.addSystemCommand(&.{ "sh", "tools/regression-directive-kill.sh" });
+    directive_kill_regression.cwd = b.path(".");
+    test_step.dependOn(&directive_kill_regression.step);
+
     // ── T503: model dimension profiles controls ───────────────────────
     // tools/model-profiles.py grades each model's performance dimensions
     // from the ledger and carries the operator's exploration-first
@@ -798,6 +815,26 @@ pub fn build(b: *std.Build) void {
     const models_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-models.sh" });
     models_regression.cwd = b.path(".");
     test_step.dependOn(&models_regression.step);
+
+    // ── T544: model-attribution write path + backfill ───────────────
+    // The attribution census measured 79% of closed rows with a null
+    // `model` field because claim/done wrote `agent` but never `model`.
+    // The write-path regression asserts claim/done now record BOTH fields
+    // (first-hand), a close with no attribution is refused, --model-unknown
+    // records the gap explicitly, a bogus label is refused, and backfill
+    // provenance (model_source / model_unknown_reason) round-trips a store
+    // write.  The backfill regression asserts tools/attribution-backfill.py
+    // fills recoverable rows with sources recorded, marks unrecoverable rows
+    // unattributed-pre-T544 (never a silent null), corrects store-wrong
+    // values with the conflict recorded, leaves already-attributed rows
+    // alone, reports (never guesses) a genuine external conflict, and is
+    // idempotent.  RED against the pre-T544 binary, GREEN after.
+    const attribution_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-attribution.sh" });
+    attribution_regression.cwd = b.path(".");
+    test_step.dependOn(&attribution_regression.step);
+    const attribution_backfill_regression = b.addSystemCommand(&.{ "sh", "tools/regression-attribution-backfill.sh" });
+    attribution_backfill_regression.cwd = b.path(".");
+    test_step.dependOn(&attribution_backfill_regression.step);
 
     // ── T539: holds= writer + --sync + vacuous-case controls ────────
     // The one-writer invariant was vacuous: 34 of 49 rows whose bundle
