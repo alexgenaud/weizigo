@@ -1,0 +1,210 @@
+{
+  "task_id": "T641",
+  "date": "2026-08-22",
+  "model": "claude-sonnet-5",
+  "claims": [],
+  "new_rows": [],
+  "verdicts": [
+    {
+      "claim_id": "GLOBAL.H1-MARKOV",
+      "verdict": "verified",
+      "citation": "docs/research/open-hypotheses-2026-07-27.md:30-45 (H1 pivot, pre-split); docs/epistemic/PROGRESS.md:169-183 (ADR-0019->ADR-0020, EXP-3 census 51,419,046 triples); docs/infra/dispatch/2B-3-AUDIT.md and docs/audits/2026-07-29-2b-3-history-pairs-audit.md exist; docs/epistemic/qa023-c2-adjudication-2026-07-29.md exists and §3 content matches the row's cross-reference to QA-023",
+      "status_should_be": "UNTESTED (no change)",
+      "cascades": "9 dependents per target-set denominator; my own depends-on-column grep of CLAIMS.md finds only QA-011 citing an edge to this id, so I could not independently corroborate the count of 9 — see notes on the dependents-count discrepancy",
+      "why": "All four cited documents exist and their content matches what the row asserts (the split rationale, the EXP-3 GO census, and the C1 untested-for-want-of-contrast state); the row's own 'UNTESTED' status is an honest self-report, not an overclaim, so it holds at HEAD."
+    },
+    {
+      "claim_id": "GLOBAL.ADR0006-EYE",
+      "verdict": "verified",
+      "citation": "docs/decisions/0006-eye-prune-for-tractable-search.md:27-49 (soundness argument, matches claim text verbatim); docs/audits/2026-07-30-eye-prune-validation.md (T114): verdict 'not falsified... validated considerably further', 1,362,424 eyes / 909,540 eye-positions exhaustive at 4x4, 4,212 slots 0 disagreements",
+      "status_should_be": "CLAIMED (no change)",
+      "cascades": "6 dependents per target set",
+      "why": "The decision doc's argument matches the claim text, and the newest validation battery (T114) neither falsifies nor promotes it to PROVEN -- it explicitly names a residual risk (the sound unpruned control does not terminate) that keeps it short of PROVEN, so CLAIMED remains the correct status."
+    },
+    {
+      "claim_id": "GLOBAL.F1",
+      "verdict": "verified",
+      "citation": "docs/decisions/0013-sound-finisher-and-dependency-guarded-memo.md:20-44 (exact bug site and mechanism); docs/research/consistency-audit.md:25-34 (3x2 exhaustive: 'new' variant 45/378 violations, 'soundish' 0/378); docs/epistemic/boards/CONCEPTS.md:108-110 ('F1 writes-on finisher sound. (Falsified at 3x2; ADR-0013.)')",
+      "status_should_be": "FALSE-AS-SCOPED (no change)",
+      "cascades": "6 dependents per target set (includes 4x4.F1, 4x3.F1 per CLAIMS.md depends-on edges)",
+      "why": "All three citations are internally consistent and describe the same mechanism (ko_ref>=d cross-branch memo write) and the same measured violation count (45/378); nothing at HEAD contradicts it."
+    },
+    {
+      "claim_id": "3x2.T13",
+      "verdict": "verified",
+      "citation": "docs/evidence/T13/probe-reimplementation-2026-07-30.md (proposed wording in its §9 is a verbatim match for the register text); re-ran the committed instrument myself: `python3 docs/evidence/T13/t13_probe.py census` -> legal=489 settled=30 ko_sensitive_b=189 ko_sensitive_w=189, L==H=540 (exact match); `... sanity` -> 0 mismatches/540 (exact match); `... replay` -> 12/12 lines reproduce exactly, all still counterexamples (exact match); `... adr0006` -> 12/12 counterexamples survive with the eye-prune off, values unchanged (exact match). The `... exhaustive` step (154/508 slots, 4,432/134,504 pairs) was launched under this task but had not finished by the time this file was written -- see notes",
+      "status_should_be": "PROVEN (falsification) (no change)",
+      "cascades": "5 dependents per target set (3x2.T13 also feeds GLOBAL.C2 per CLAIMS.md 'depends on' text)",
+      "why": "I did not take the document's numbers on faith: I executed the committed, git-tracked t13_probe.py myself and reproduced four of its five result classes exactly (census, fresh-start sanity, all 12 replayed contradictions, and the ADR-0006-independence check). This is a live re-derivation, not a re-read of the claim's own citation."
+    },
+    {
+      "claim_id": "4x4.D3",
+      "verdict": "unverifiable-at-head",
+      "citation": "docs/epistemic/boards/4x4/EPISTEMIC.md:195-202,448 ('target wall <= 8h, memory <= 32GB (placeholder, unconfirmed with user)'; 'TODO confirm with user')",
+      "status_should_be": "UNTESTED (no change)",
+      "cascades": "5 dependents per target set",
+      "why": "This row is explicitly a forward-looking measurement plan with a self-declared placeholder target, not a claim about the world today; running the actual D3-4x3 pilot to test it would require a multi-hour build under tools/runner, which is out of scope for this lane and would contend with the hot fleet. The register's own UNTESTED status is the honest description and I have nothing to add or subtract from it."
+    },
+    {
+      "claim_id": "GLOBAL.ADR0015-BURDEN",
+      "verdict": "verified",
+      "citation": "docs/decisions/0015-bracket-cut-soundness-search-vs-real-history.md; docs/decisions/0017-bracket-cut-refutation-attempt-failed.md; docs/decisions/0018-bracket-cut-confirmed-unanimous-review-f2-remedy-is-new-task.md (line 29: 'ADR-0015 stands, confirmed', line 31: three-seat blind review returned 'unanimously', line 45: calibration passed unanimously); docs/decisions/0010-bracket-guided-finishing.md:16-18 ('holds under ANY arrival history'); src/retro.zig:464 (bracket-cut comment, ADR-0010 reference, still present at HEAD); docs/epistemic/critique-2026-07-28.md:376 (QA-018 row, matches)",
+      "status_should_be": "CLAIMED (no change)",
+      "cascades": "target set states 5 dependents; my depends-on-column grep of CLAIMS.md found zero rows with a structured edge naming GLOBAL.ADR0015-BURDEN as a target -- flagged as a batch-2 follow-up rather than acted on here (see notes)",
+      "why": "The full decision chain (0015 -> 0017 challenge -> 0018 confirmation) is present, committed, and each document says what the register claims it says, including the specific 'unanimous' and 'stands, confirmed' language. This is an argument-adjudication row, not a measurement, and CLAIMED-and-orphaned is what the chain actually supports."
+    },
+    {
+      "claim_id": "GLOBAL.AUDITOR",
+      "verdict": "verified",
+      "citation": "docs/research/consistency-audit.md:6-23 (identity definition, method); AGENTS.md:36-38 (auditor is the standing gate, 'necessary, not sufficient' language -- note: register cites AGENTS.md:63-67, which at HEAD is a different paragraph about scratch/citation discipline; the auditor language now lives at AGENTS.md:36-38, a citation drift, not a content problem); docs/decisions/0013:117-122 ('the #2 auditor is the standing gate: zero minimax-identity violations... Necessary, not sufficient'); docs/evidence/GLOBAL-AUDITOR/PROVENANCE.md and consist-3x2-2026-07-30.log (both present; log's first violation lines match PROVENANCE.md's reported 45 violations for the buggy variant); read src/retro.zig and confirmed consistBoard/runConsist/runConsist4 functions exist at HEAD (lines 2954-2980+) implementing exactly the described identity check",
+      "status_should_be": "PROVEN (no change)",
+      "cascades": "5 dependents per target set (3x2.F1, 3x2.F3, 3x2.F4, 3x3.F4, 4x3.F4 per CLAIMS.md depends-on edges)",
+      "why": "The instrument's source code exists at HEAD and matches its own documentation; the committed log file is raw stdout, not a hand-typed summary, and its content matches the provenance doc's stated results. I did not re-run the auditor itself (an 18-process zig fleet was already active on this host and a fresh compile-and-run was not necessary to confirm a code-and-log match), but I did confirm the AGENTS.md citation has drifted from its original line numbers -- worth a citation refresh, not a status change."
+    },
+    {
+      "claim_id": "GLOBAL.BRUTE-ALIASING",
+      "verdict": "verified",
+      "citation": "docs/audits/2026-07-30-audit-2x2-mismatch.md (verdict table matches register text exactly: fixpoint +-4 correct, first-revisit truncation 0->+-4, mismatches 24->0); read src/exp4_solve.zig:555-594 directly -- `brute_value_2x2` passes a single shared `succs_buf: *[5]Brute2x2.State` down every recursive call and then iterates `for (succs_buf[0..m])` after those recursive calls return, which is exactly the successor-buffer aliasing pattern the audit describes (a child recursion can overwrite entries the parent's loop still needs)",
+      "status_should_be": "FALSE (methodological) (no change)",
+      "cascades": "5 dependents per target set",
+      "why": "I read the actual buggy code at the cited line range rather than trusting the audit's description of it, and the aliasing mechanism is visible by inspection: the buffer is reused across recursion depths with no per-frame copy, so a deeper call's writes corrupt the parent's still-live iteration state. The code has not been fixed at HEAD (consistent with this being an archived defective evaluator, superseded by the fixpoint results, not a live path)."
+    },
+    {
+      "claim_id": "GLOBAL.C3",
+      "verdict": "verified",
+      "citation": "docs/status/leak-crisis.md:26-27 (C3 row: 'CLAIMED, falsified at 3x3', E2 25/4000 games leak); docs/epistemic/PROGRESS.md:128 area; docs/epistemic/boards/CONCEPTS.md:57-61 (C3 falsified at 3x3, 'falsified at 4x4 by analogy-expected... NOT an open hypothesis')",
+      "status_should_be": "FALSE-AS-SCOPED (at 3x3) (no change)",
+      "cascades": "6 dependents per target set (GLOBAL.FP2, GLOBAL.ADR0009-HONESTY per CLAIMS.md's own depends-on column, plus rows my grep matched: 4x3.C3, 4x4.C3, 4x4.F2, GLOBAL.REFRAME, GLOBAL.H1-MARKOV, GLOBAL.ADR0015-BURDEN)",
+      "why": "All three documents describe the same E2 3x3 leak result (25/4000, promise +3 -> final -9) with consistent numbers, and the falsification is corroborated independently by the leak-crisis.md B1 cross-check mentioned in the same file."
+    },
+    {
+      "claim_id": "QA-023",
+      "verdict": "verified",
+      "citation": "docs/evidence/QA-023/ directory contains 23 files including proof.md, PROVENANCE-* files, c1-witness-handcheck-2026-07-29.md, pinrule-sufficiency-2026-07-29.md, census-reconciliation.md, all present; hand-checked the c1-witness-handcheck.md tree dump directly: the (178,0,6,2)->(710,0,6,2)->... alpha-beta search trace shown in the file (values -3, -3, -6, 0, -3 at the listed nodes) is present verbatim and traces a self-consistent minimax tree, matching the row's cited witness values -3 and -6 for state (178,0,6,0)",
+      "status_should_be": "CLAIMED (no change)",
+      "cascades": "5 dependents per target set (GLOBAL.F2-REMEDY, QA-012, QA-026, QA-027 per CLAIMS.md depends-on edges)",
+      "why": "This is the register's most heavily-caveated row and its own text already documents every scope split (C1 vs C2, kernel-defect correction, fresh-start vs history-conditioned semantics) with citations that all resolve to real, committed files; I hand-verified one concrete node of the C1 witness tree rather than re-running the whole probe suite, which is consistent with the row's own status of CLAIMED-not-PROVEN pending the contrast generator fix."
+    },
+    {
+      "claim_id": "3x2.F1",
+      "verdict": "verified",
+      "citation": "docs/research/consistency-audit.md:25-34 (45/378 vs 0/378, same table used for GLOBAL.AUDITOR); docs/decisions/0013-sound-finisher-and-dependency-guarded-memo.md:15-19; docs/epistemic/boards/4x4/EPISTEMIC.md:48-52 (S1/sweep-count caveats, consistent context)",
+      "status_should_be": "PROVEN (falsification) (no change)",
+      "cascades": "4 dependents per target set",
+      "why": "This row cites the identical consistency-audit table already verified for GLOBAL.AUDITOR and GLOBAL.F1; the 45-of-378 number is the same measured quantity read three times from the same committed log, so it is internally consistent rather than independently re-derived a third time."
+    },
+    {
+      "claim_id": "CODE.VB-BLINDGAPS",
+      "verdict": "verified",
+      "citation": "docs/evidence/CODE.VB-BLINDGAPS/T172-blind-analysis.md:1212,1219,1222 (GAP-5 table row and recommendation, verbatim match); src/vb_fixpoint.zig -- the register cites lines 545-547, which at HEAD is an unrelated I9-anchor test block; `checkI11()` (the function GAP-5 is actually about) is now at lines 474-479 and its body is a permanent `.not_applicable` stub whose comment literally says 'GAP-5 (T172 blind analysis): dump format is unspecified. This invariant is stubbed until the format is defined' -- so the claim's substance is confirmed at HEAD, but its src/vb_fixpoint.zig:545-547 citation has drifted and no longer points at the relevant code",
+      "status_should_be": "PROVEN (blind-reimplementation audit, committed) -- content unchanged; citation should be corrected to src/vb_fixpoint.zig:474-479",
+      "cascades": "target set states 4 dependents; my depends-on-column grep found none -- same pattern as GLOBAL.ADR0015-BURDEN and GLOBAL.CERTCORE below, flagged once in notes rather than repeated",
+      "why": "checkI11's stub and its own comment name GAP-5 and T172 explicitly, so the claim is true at HEAD independent of the register's stale line citation -- but a reader following the register's exact citation (545-547) would land on the wrong code and could wrongly conclude the citation was fabricated. This is a real, checkable drift, not a refutation of the underlying claim."
+    },
+    {
+      "claim_id": "CODE.WZO2-PASSBIT",
+      "verdict": "verified",
+      "citation": "docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.md (verdict table matches register exactly: A3 16,314,978/99,133,036, A9 24,252,631 order violations, A5/A6 PASS, 3x3 control clean); confirmed via git: `git show f851102:src/oracle_v2_build.zig` line 387 shows the literal bug `encodeKeyByte(side, exp6.KO_NONE4, 0, 0, kb)`; `git show 5deec6b` is a one-line diff changing that `0` to `1`, exactly as described; at HEAD the fixed call (`..., 1, 0, kb)`) is present, now at line 411 (line number shifted by later edits, content correct)",
+      "status_should_be": "PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed) (no change)",
+      "cascades": "4 dependents per target set (SPRINT-M4a-ACCEPT, CODE.WZO2-INCOMPLETE per CLAIMS.md depends-on edges)",
+      "why": "I did not just read the claim's prose -- I pulled both pinned commits directly from git history and diffed them, confirming the bug commit's exact buggy line and the fix commit's exact one-character change, then confirmed the fixed form is what ships at HEAD."
+    },
+    {
+      "claim_id": "GLOBAL.S1",
+      "verdict": "verified",
+      "citation": "docs/epistemic/boards/4x4/EPISTEMIC.md:17 area ('S1 colex bijection PROVEN, exhaustive round-trip through 4x4'); docs/epistemic/boards/4x3/EPISTEMIC.md:24 ('Mixed-radix colex layout is size-generic and has been exhaustively round-tripped through 4x4; 4x3 raw space is smaller (531,441 gobans) and inherits the same structural proof'); cross-checked against the t13_probe.py self-test I ran for 3x2.T13, which independently exercises the same colex bijection at 3x2 (729 boards) and reports 'colex bijection over all 729 boards OK'",
+      "status_should_be": "PROVEN (no change)",
+      "cascades": "4 dependents per target set (4x4.S1, 4x3.S1, GLOBAL.AXIOM-STATE, CODE.ADR0011-FMT per CLAIMS.md depends-on edges)",
+      "why": "Both citations are present and consistent, and I have independent corroboration from a completely different task's re-implementation (the T13 probe) exercising the same bijection at a different goban size and passing."
+    },
+    {
+      "claim_id": "QA-021",
+      "verdict": "verified",
+      "citation": "docs/epistemic/critique-2026-07-28.md:379 (row matches register text exactly: 48,599,962 slots, 422,990 violations, all KO_SENSITIVE); docs/research/ko-sensitive-chainability.md:109-118 (same numbers restated independently: '0 out-of-flag violations across all 48,599,962 checked 4x4 slots', and the co-extensive-with-KO_SENSITIVE claim: '422,990/422,990')",
+      "status_should_be": "PROVEN (no change)",
+      "cascades": "4 dependents per target set (4x4.FP1-C3 per CLAIMS.md depends-on edge)",
+      "why": "The same 48,599,962/422,990 pair appears verbatim in two independently-authored documents cited by two different claim rows, which is a real cross-check even though I did not re-run the 87-second exhaustive scan myself."
+    },
+    {
+      "claim_id": "2x2.C1",
+      "verdict": "verified",
+      "citation": "docs/status/leak-crisis.md:24 ('C1 | Fresh-start scores correct... PROVEN | already done'); docs/epistemic/PROGRESS.md:126 area",
+      "status_should_be": "PROVEN (no change)",
+      "cascades": "3 dependents per target set",
+      "why": "Citations exist and match; this is an older, low-controversy result that later work (T13, EXP-4 audit) builds on without contradicting."
+    },
+    {
+      "claim_id": "3x2.C1",
+      "verdict": "verified",
+      "citation": "docs/status/leak-crisis.md:24; docs/research/c2-falsification-3x2.md:54-58 ('Alpha-beta without memo and without brackets is exact'); corroborated directly by my own t13_probe.py sanity run: 'fresh-start sanity: 0 mismatches / 540 L==H slots' at 3x2, which is precisely this claim's content (fresh-start score == history-aware exact solver)",
+      "status_should_be": "PROVEN (no change)",
+      "cascades": "3 dependents per target set (3x2.T13, 4x4.P3, GLOBAL.T06 per CLAIMS.md depends-on edges)",
+      "why": "Unlike most of this batch, I have a live re-derivation for this exact claim: the sanity check I ran for 3x2.T13 IS the C1 test (0/540 fresh-start mismatches), so this is not merely citation-checked but re-executed."
+    },
+    {
+      "claim_id": "3x3.C3",
+      "verdict": "verified",
+      "citation": "docs/status/leak-crisis.md:36,72-79 (E2 3x3 leak table: 25/4000 games, promise +3 -> final -9, matches exactly); docs/epistemic/boards/4x4/EPISTEMIC.md:55-66 (same E2 result restated: 'falsified at 3x3; analogy-expected falsified at 4x4')",
+      "status_should_be": "PROVEN (falsification) (no change)",
+      "cascades": "3 dependents per target set (4x3.C3, 4x4.C3, GLOBAL.ADR0015-BURDEN per CLAIMS.md depends-on edges)",
+      "why": "Both citations give the identical 25/4000, +3->-9 figures; this is the same underlying E2 experiment that GLOBAL.C3 (G09) also cites, so the two rows are consistent with each other as well as with their sources."
+    },
+    {
+      "claim_id": "GLOBAL.C2",
+      "verdict": "verified",
+      "citation": "docs/status/leak-crisis.md:25 (row matches exactly); docs/epistemic/PROGRESS.md:127 area; AGENTS.md -- register cites AGENTS.md:68-73, which at HEAD is the C10-VOLATILE citation-discipline paragraph, unrelated to C2. The actual C2 content ('The single-score (L==H) region is NOT history-independent... settled false at the smallest testable goban') is at AGENTS.md:39-43 at HEAD, a citation drift of about 29 lines caused by the file growing from 29 intervening commits",
+      "status_should_be": "FALSE-AS-SCOPED (at 3x2) -- content unchanged; citation should be corrected to AGENTS.md:39-43",
+      "cascades": "4 dependents per target set (GLOBAL.FP2-bounded per CLAIMS.md's own edge, plus GLOBAL.C4, GLOBAL.REFRAME, GLOBAL.H1-MARKOV per my grep)",
+      "why": "I checked the exact cited line range and it does not contain the claimed content; I then found the correct content nearby via full-file grep, so this is a genuine, checkable citation-drift finding on the project's single most load-bearing row, not a refutation of the claim itself (T13/3x2.T13, independently re-run above, is the real evidence and it still holds)."
+    },
+    {
+      "claim_id": "CODE.WZO2-INCOMPLETE",
+      "verdict": "verified",
+      "citation": "docs/evidence/ORACLE-V2/incompleteness-T266.md:27,109-122,483-484 (all key numbers -- 24,318,165 groups, 65,534/65,534 single-colour, 131,068 total, 48,505,262 and 48,636,330 cross-checks -- present verbatim; 65,534 = 2^16-2 is arithmetically self-consistent for 'every non-empty single-colour 4x4 goban except the full board'); docs/evidence/ORACLE-V2/incompleteness-verify-T277.md and findings/T266-incompleteness.json, findings/T277-verify-refutation.json all present",
+      "status_should_be": "FALSE-AS-SCOPED (no change)",
+      "cascades": "target set states 3 dependents; my depends-on-column grep found none pointing at this id -- same pattern noted in the file-level note",
+      "why": "The arithmetic identity 2(12,675)-1,020=24,330 and 2(24,318,165)-131,068=48,505,262 both check out by hand, which is a real (if small) re-derivation rather than a bare citation read, and it corroborates the internal consistency of a claim whose whole point is a corrected count."
+    },
+    {
+      "claim_id": "GLOBAL.C4",
+      "verdict": "verified",
+      "citation": "docs/status/leak-crisis.md:27 (row matches exactly: FALSE for both regions); docs/epistemic/PROGRESS.md:129 area; docs/epistemic/boards/4x4/EPISTEMIC.md:24-27 (S1/S3a context, consistent)",
+      "status_should_be": "FALSE-AS-SCOPED (no change)",
+      "cascades": "6 dependents per target set (GLOBAL.LEAK, GLOBAL.P1, GLOBAL.P3, 4x4.B16-GAME, GLOBAL.REFRAME, GLOBAL.H1-MARKOV per CLAIMS.md depends-on edges)",
+      "why": "This row is a direct logical consequence of GLOBAL.C2 (verified above, with a noted citation drift) and the ko-sensitive leak (GLOBAL.C3, also verified above); both premises hold, and the conclusion is drawn correctly."
+    },
+    {
+      "claim_id": "GLOBAL.CERTCORE",
+      "verdict": "verified",
+      "citation": "docs/decisions/0009-retrograde-value-iteration.md:65-67 (certification language matches register text closely: 'where L==H the score cannot depend on any cycle rule... equals the fresh-start score (and the mid-game score under ANY ban set)')",
+      "status_should_be": "FALSE-AS-SCOPED (no change)",
+      "cascades": "target set states 3 dependents; my depends-on-column grep found none pointing at this id -- same drift-vs-my-grep pattern noted once in file notes",
+      "why": "The cited lines in the ADR say exactly what the register attributes to them, and the row is correctly marked FALSE-AS-SCOPED because GLOBAL.C2's falsification (verified above) directly contradicts the certification's premise that L==H scores are cycle-rule-independent."
+    },
+    {
+      "claim_id": "GLOBAL.TIE-MIGOS",
+      "verdict": "verified",
+      "citation": "docs/evidence/GLOBAL-TIE-MIGOS/tie-experiment-T274.md:28,35,48,65,78,97,118-120,196 (every quoted fragment in the register row -- thesis §5.3.2, ICGA 2009 §3.3 'typically 0', Table 5.1, Appendix A §A.4 -- appears verbatim in the evidence file); findings/T274-tie-experiment.json and findings/T274-context.json both present",
+      "status_should_be": "FALSE-AS-SCOPED (no change)",
+      "cascades": "3 dependents per target set (GLOBAL.FIXPOINT-VS-SEARCH, 4x4.BASICKO-TIE per CLAIMS.md depends-on edges)",
+      "why": "I confirmed the register's summary matches its own evidence file word-for-word, but I did not independently obtain and read the MIGOS thesis or the 2009 ICGA paper myself -- that external primary source is out of scope for this lane's time budget, so this verdict certifies internal consistency (register <-> evidence file), not an independent check of the evidence file against the thesis it quotes."
+    },
+    {
+      "claim_id": "QA-019",
+      "verdict": "verified",
+      "citation": "docs/epistemic/critique-2026-07-28.md:377 (row matches exactly); read src/retro.zig directly and confirmed at HEAD: `saveArtifact` (currently starting ~line 2331) calls `RT.Finisher.init(&t, gpa, finisher_budget, true, progress_every, memo_writes, deps)` with a literal `true` for the `bracketed` parameter (per `Finisher.init`'s signature at line 961), while `memo_writes` and `deps` are passed through as variables -- i.e. `bracketed` really is hardcoded independent of `memo_writes`, exactly as claimed. The cited line number (2407) has drifted slightly (the call is now a few lines earlier) but the content is exact",
+      "status_should_be": "FALSE (no change)",
+      "cascades": "3 dependents per target set (GLOBAL.ADR0015-BURDEN per CLAIMS.md depends-on edge)",
+      "why": "This is a direct source-code re-derivation, not a citation check: I read the function signature and the call site myself and confirmed the literal `true` is passed for `bracketed` regardless of the other two flags, which is the entire substance of the claim."
+    },
+    {
+      "claim_id": "QA-022",
+      "verdict": "verified",
+      "citation": "docs/evidence/README.md; docs/epistemic/critique-2026-07-28.md:380 (row matches exactly: 'All cited under git-ignored untracked/; all deleted. T13's numbers survive... its probe source does not'); cross-checked directly against my own git inspection for 3x2.T13 above: `docs/evidence/T13/t13_probe.py` and `zig_t13_replay.zig` ARE tracked in git (committed at 51d90ee, 2026-07-30) but the probe-reimplementation doc itself states plainly (§1) that these are a NEW independent re-implementation, not a recovery of the original `untracked/c2pilot_3x2.zig` and `untracked/T13-minimax.md`, which remain gone and were never in git",
+      "status_should_be": "FALSE (no change)",
+      "cascades": "3 dependents per target set (3x2.T13 per CLAIMS.md depends-on edge)",
+      "why": "This claim and 3x2.T13 (G04) touch the same files, which let me check them against each other: the fact that t13_probe.py exists and is committed today does NOT retrieve the original lost evidence QA-022 is about -- it is a from-scratch reconstruction, exactly as its own §1 says. So QA-022's FALSE verdict (about retrieval) and 3x2.T13's PROVEN verdict (about reproducibility via reconstruction) are both true simultaneously and do not conflict, which is itself worth recording since a careless read could mistake one for contradicting the other."
+    }
+  ],
+  "notes": "Methodology: for each claim I checked that every cited file/line exists and that its content matches what the register attributes to it; where a cheap instrument was available I re-ran it myself rather than trusting the document (3x2.T13's t13_probe.py: census/sanity/replay/adr0006 all re-executed and matched exactly; QA-019 and CODE.VB-BLINDGAPS's checkI11 were re-derived by reading src/*.zig directly; CODE.WZO2-PASSBIT was re-derived by diffing the two pinned git commits directly). No zig build/test was run against a hot fleet (18 zig processes were active on this host for the duration of this lane); the one instrument I did run (t13_probe.py) is pure Python with no build step. Two genuine citation-line-drift findings surfaced and are recorded per-claim rather than treated as refutations: GLOBAL.C2's register citation AGENTS.md:68-73 now points at unrelated content (correct content is at AGENTS.md:39-43), and CODE.VB-BLINDGAPS's citation src/vb_fixpoint.zig:545-547 points at an unrelated test (correct content, checkI11, is now at src/vb_fixpoint.zig:474-479); GLOBAL.AUDITOR has a smaller version of the same drift (AGENTS.md:63-67 cited, content now at 36-38). Separately, for five rows (GLOBAL.ADR0015-BURDEN, CODE.VB-BLINDGAPS, CODE.WZO2-INCOMPLETE, GLOBAL.CERTCORE, QA-022) my own quick grep over CLAIMS.md's structured depends-on column (`[nde]:<id>` patterns) found zero or far fewer dependent rows than the target-set's stated dependent counts; I did not chase this further within this lane's budget and it may just mean those edges are recorded as prose rather than in the structured column, but it is worth a batch-2 check of whether the target-set's dependent-count script and the structured depends-on column actually agree project-wide. All 25 claims in the batch received a verdict; none were skipped."
+}
