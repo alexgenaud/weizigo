@@ -24,7 +24,8 @@ faithful executor. Subdelegation decision recorded per sprint doctrine (deviatio
 do the rows' work" is structural, not preference).
 
 **Bottom line for a sprint console:** all three Ollama targets — **kimi-k2.7, glm-5.2, minimax-m3** —
-are reachable from a DeepSeek parent via `bin/ollama-subagent`. Round-trip correctness 3/3. Kanban
+are reachable from a DeepSeek parent via `bin/subagent --provider ollama` (the `bin/ollama-subagent`
+wrapper this row measured was folded into it and deleted at `5330909`). Round-trip correctness 3/3. Kanban
 interaction (claim/ping/done against a scratch store) works on all three (kimi needed one retry).
 Concurrency through **6 simultaneous workers** completed with zero errors or hangs — the recorded
 "five-agent ceiling" is **not observed** as a tool-level cap (caveat: the probe ran trivial warm
