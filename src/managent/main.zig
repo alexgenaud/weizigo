@@ -116,6 +116,15 @@ const TaskState = struct {
     // the data is gone — not a null, so aggregations exclude it by name.
     model_source: ?[]const u8 = null,
     model_unknown_reason: ?[]const u8 = null,
+    // T635: mechanized assignment record (ruling 33).  `candidates` is the
+    // qualified list the draw was made from; `method` is random | forced |
+    // preferred; `assign_reasons` is one "<model>: <why>" line per excluded
+    // candidate (and any preferred-outside-qualified note).  Null/empty on a
+    // row that predates this field — historical rows stay honestly blank,
+    // never back-filled with a guess.
+    candidates: [][]const u8 = &.{},
+    method: ?[]const u8 = null,
+    assign_reasons: [][]const u8 = &.{},
     bundle: []const u8 = "",
     set: u8 = 'A',
     holds: [][]const u8 = &.{},
@@ -214,6 +223,218 @@ fn canonicalizeModelTag(raw: []const u8) []const u8 {
     return s;
 }
 
+// ── T635: mechanized model assignment (ruling 33) ──────────────────────────
+// Randomization is mechanized, never improvised.  When several qualified
+// models would do for a row, the assignment is drawn from the qualified list
+// by THIS code, and the row records `candidates`, `method` (random | forced |
+// preferred), and the draw.  Only `method=random` rows are unconfounded;
+// everything else is observational (ruling 33).
+//
+// Family membership mirrors canonical_models[]; appetite mirrors
+// measurement-methodology.md §1 (that table is the authority — this mirror
+// must move in step with it).  A canonical model without a family/appetite
+// row is refused (see the completeness test below) rather than silently
+// drawn — the F7 divergence this single source exists to prevent.
+
+const Appetite = enum {
+    off,
+    probe,
+    conserve,
+    spend,
+    reserved,
+};
+
+const ModelFamily = struct {
+    model: []const u8,
+    family: []const u8,
+};
+
+const FamilyAppetite = struct {
+    family: []const u8,
+    appetite: Appetite,
+};
+
+// model → family (every canonical model appears exactly once — completeness
+// test below).  Family names are the §1 table rows.
+const model_families = [_]ModelFamily{
+    .{ .model = "claude-opus-5", .family = "claude" },
+    .{ .model = "claude-sonnet-5", .family = "claude" },
+    .{ .model = "claude-haiku-4-5-20251001", .family = "claude" },
+    .{ .model = "claude-fable-5", .family = "claude-fable" },
+    .{ .model = "deepseek-v4-pro", .family = "deepseek" },
+    .{ .model = "deepseek-v4-flash", .family = "deepseek" },
+    .{ .model = "glm-5.2", .family = "ollama-cloud" },
+    .{ .model = "minimax-m3", .family = "ollama-cloud" },
+    .{ .model = "kimi-k2.7", .family = "ollama-cloud" },
+    .{ .model = "qwen3.8:27b-mlx", .family = "local" },
+};
+
+// family → appetite, mirroring measurement-methodology.md §1 (2026-08-22).
+// ollama-cloud is OFF (rejoin is a human flip); claude-fable is RESERVED
+// (never one-off/general); local is PROBE (probe-flagged rows only).
+const family_appetite = [_]FamilyAppetite{
+    .{ .family = "ollama-cloud", .appetite = .off },
+    .{ .family = "claude", .appetite = .spend },
+    .{ .family = "claude-fable", .appetite = .reserved },
+    .{ .family = "deepseek", .appetite = .spend },
+    .{ .family = "local", .appetite = .probe },
+};
+
+fn familyOf(model: []const u8) ?[]const u8 {
+    for (model_families) |mf| {
+        if (std.mem.eql(u8, mf.model, model)) return mf.family;
+    }
+    return null;
+}
+
+fn appetiteOf(family: []const u8) ?Appetite {
+    for (family_appetite) |fa| {
+        if (std.mem.eql(u8, fa.family, family)) return fa.appetite;
+    }
+    return null;
+}
+
+fn appetiteName(a: Appetite) []const u8 {
+    return switch (a) {
+        .off => "OFF",
+        .probe => "PROBE",
+        .conserve => "CONSERVE",
+        .spend => "SPEND",
+        .reserved => "RESERVED",
+    };
+}
+
+fn isFamilyName(s: []const u8) bool {
+    for (family_appetite) |fa| {
+        if (std.mem.eql(u8, fa.family, s)) return true;
+    }
+    return false;
+}
+
+/// The outcome of a mechanized assignment.  Every slice is owned by the page
+/// allocator; free with freeAssignResult.
+const AssignResult = struct {
+    candidates: [][]const u8 = &.{},
+    reasons: [][]const u8 = &.{},
+    method: []const u8 = "", // "random" | "forced" | "preferred"
+    model: []const u8 = "", // the outcome (canonical label)
+};
+
+fn freeAssignResult(r: *AssignResult) void {
+    for (r.candidates) |c| alloc.free(c);
+    alloc.free(r.candidates);
+    for (r.reasons) |x| alloc.free(x);
+    alloc.free(r.reasons);
+    alloc.free(r.method);
+    alloc.free(r.model);
+    r.* = .{};
+}
+
+/// Uniform draw over `candidates` (caller guarantees non-empty).  Returns an
+/// owned copy of the chosen label.
+fn drawCandidate(rng: std.Random, candidates: []const []const u8) ![]const u8 {
+    return alloc.dupe(u8, candidates[rng.uintLessThan(usize, candidates.len)]);
+}
+
+/// OS-entropy `std.Random`: every fill reads fresh kernel entropy via
+/// `std.Io.randomSecure` (getrandom/arc4random — always a syscall, no stored
+/// state, no caller-chosen seed).  EntropyUnavailable is a panic, never a
+/// silent fallback to a seeded PRNG (ruling 33).
+const OsEntropy = struct {
+    io: std.Io,
+    fn fill(self: *OsEntropy, buf: []u8) void {
+        self.io.randomSecure(buf) catch @panic("OS entropy unavailable (Io.randomSecure failed); refusing to draw from a fallback source");
+    }
+};
+
+/// The mechanized assignment: filter canonical_models through the constraints
+/// that apply (family appetite, row-declared exclusions), then pick the
+/// outcome.  `requested` (non-null) forces `preferred`; a one-element
+/// qualified list forces `forced`; otherwise the draw is `random` via `rng`
+/// (production passes OS entropy; tests may pass a seeded PRNG to make the
+/// filter deterministic — the production draw is never a seeded PRNG).
+/// `exclusions` is a list of tokens, each a family name or a canonical model.
+fn assignModel(requested: ?[]const u8, exclusions: []const []const u8, rng: std.Random) !AssignResult {
+    var candidates = std.ArrayList([]const u8).empty;
+    var reasons = std.ArrayList([]const u8).empty;
+    errdefer {
+        for (candidates.items) |c| alloc.free(c);
+        candidates.deinit(alloc);
+        for (reasons.items) |x| alloc.free(x);
+        reasons.deinit(alloc);
+    }
+
+    for (canonical_models) |m| {
+        const fam = familyOf(m) orelse {
+            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: no family mapping (add it to model_families)", .{m}));
+            continue;
+        };
+        const app = appetiteOf(fam) orelse {
+            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: no appetite for family {s} (add it to family_appetite)", .{ m, fam }));
+            continue;
+        };
+        if (app == .off) {
+            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: appetite OFF for family {s}", .{ m, fam }));
+            continue;
+        }
+        if (app == .reserved) {
+            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: family {s} appetite RESERVED (reserved task types only)", .{ m, fam }));
+            continue;
+        }
+        if (app == .probe) {
+            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: family {s} appetite PROBE (probe-flagged rows only)", .{ m, fam }));
+            continue;
+        }
+        var excluded = false;
+        for (exclusions) |tok| {
+            if (std.mem.eql(u8, tok, fam)) {
+                try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: excluded by row (family {s})", .{ m, fam }));
+                excluded = true;
+                break;
+            }
+            if (std.mem.eql(u8, tok, m)) {
+                try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: excluded by row (model {s})", .{ m, m }));
+                excluded = true;
+                break;
+            }
+        }
+        if (excluded) continue;
+        try candidates.append(alloc, try alloc.dupe(u8, m));
+    }
+
+    var method: []const u8 = undefined;
+    var model: []const u8 = undefined;
+    if (requested) |req| {
+        method = try alloc.dupe(u8, "preferred");
+        model = try alloc.dupe(u8, req);
+        var in_list = false;
+        for (candidates.items) |c| {
+            if (std.mem.eql(u8, c, req)) {
+                in_list = true;
+                break;
+            }
+        }
+        if (!in_list) {
+            try reasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: preferred by row (outside qualified list)", .{req}));
+        }
+    } else if (candidates.items.len == 0) {
+        return error.NoQualifiedCandidate;
+    } else if (candidates.items.len == 1) {
+        method = try alloc.dupe(u8, "forced");
+        model = try alloc.dupe(u8, candidates.items[0]);
+    } else {
+        method = try alloc.dupe(u8, "random");
+        model = try drawCandidate(rng, candidates.items);
+    }
+
+    return .{
+        .candidates = try candidates.toOwnedSlice(alloc),
+        .reasons = try reasons.toOwnedSlice(alloc),
+        .method = method,
+        .model = model,
+    };
+}
+
 fn isValidVerdict(s: []const u8) bool {
     for (valid_verdicts) |v| {
         if (std.mem.eql(u8, v, s)) return true;
@@ -293,7 +514,7 @@ const mutating_verbs = [_][]const u8{
     "add",     "claim",  "done",    "reopen", "purge", "set",
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
-    "standing", "assert", "retire", "duty", "reap",
+    "standing", "assert", "retire", "duty", "reap", "assign",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -564,6 +785,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdWhy(w, io, state_path, args);
     } else if (std.mem.eql(u8, cmd, "suggest")) {
         try cmdSuggest(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "assign")) {
+        try cmdAssign(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "duty")) {
         try cmdDuty(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "landmark")) {
@@ -829,8 +1052,43 @@ fn parseHoldsList(list: []const u8) ![][]const u8 {
     return out.toOwnedSlice(alloc);
 }
 
-/// T539: merge `--holds a,b` into a parsed BundleMeta, deduplicating against
-/// what the bundle header already declared (header first, flag as fallback).
+/// T635: read the `exclude=` list out of a bundle header WITHOUT the exit(1)
+/// behavior of parseBundleMeta.  Returns null when the file is unreadable or
+/// declares no `exclude=` key.  Each element is a family name (e.g. `claude`)
+/// or a canonical model label (e.g. `deepseek-v4-pro`).
+fn readBundleExclusions(io: std.Io, bundle_abs: []const u8) ?[][]const u8 {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch return null;
+    defer alloc.free(content);
+
+    const marker = "<!--managent ";
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    var line_count: usize = 0;
+    var meta_line: ?[]const u8 = null;
+    while (lines.next()) |line| : (line_count += 1) {
+        if (line_count >= 50) break;
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (std.mem.startsWith(u8, trimmed, marker)) {
+            meta_line = trimmed;
+            break;
+        }
+    }
+    const ml = meta_line orelse return null;
+
+    const key = "exclude=";
+    const idx = std.mem.indexOf(u8, ml, key) orelse return null;
+    const val_start = idx + key.len;
+    var val_end = val_start;
+    while (val_end < ml.len and ml[val_end] != ' ' and ml[val_end] != '\t' and ml[val_end] != '\r') : (val_end += 1) {}
+    if (val_end == val_start) return null;
+    var value = std.mem.trim(u8, ml[val_start..val_end], " \t\r");
+    if (std.mem.endsWith(u8, value, "-->")) {
+        value = value[0 .. value.len - 3];
+    }
+    value = std.mem.trim(u8, value, " \t\r");
+    if (value.len == 0) return null;
+    return parseHoldsList(value) catch null;
+}
+
 fn mergeHoldsFlag(meta: *BundleMeta, holds_flag: ?[]const u8) !void {
     const hf = holds_flag orelse return;
     const flag_holds = try parseHoldsList(hf);
@@ -1241,6 +1499,32 @@ fn parseStateJson(content: []const u8) !StateMap {
                 ts.caps = try list.toOwnedSlice(alloc);
             }
         }
+        // T635: mechanized assignment record.
+        if (obj.object.get("candidates")) |cv| {
+            if (cv == .array) {
+                var list = std.ArrayList([]const u8).empty;
+                for (cv.array.items) |item| {
+                    if (item == .string) {
+                        try list.append(alloc, try alloc.dupe(u8, item.string));
+                    }
+                }
+                ts.candidates = try list.toOwnedSlice(alloc);
+            }
+        }
+        if (obj.object.get("method")) |mv| {
+            if (mv == .string) ts.method = try alloc.dupe(u8, mv.string);
+        }
+        if (obj.object.get("assign_reasons")) |rv| {
+            if (rv == .array) {
+                var list = std.ArrayList([]const u8).empty;
+                for (rv.array.items) |item| {
+                    if (item == .string) {
+                        try list.append(alloc, try alloc.dupe(u8, item.string));
+                    }
+                }
+                ts.assign_reasons = try list.toOwnedSlice(alloc);
+            }
+        }
         if (obj.object.get("added")) |ad| {
             if (ad == .string) ts.added = try alloc.dupe(u8, ad.string);
         }
@@ -1393,6 +1677,28 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
         for (ts.caps, 0..) |c, ci| {
             if (ci > 0) try buf.appendSlice(alloc, ", ");
             try writeJsonString(buf, c);
+        }
+        try buf.appendSlice(alloc, "]");
+
+        // T635: mechanized assignment record (candidates / method / reasons).
+        try buf.appendSlice(alloc, ",\n    \"candidates\": [");
+        for (ts.candidates, 0..) |c, ci| {
+            if (ci > 0) try buf.appendSlice(alloc, ", ");
+            try writeJsonString(buf, c);
+        }
+        try buf.appendSlice(alloc, "]");
+
+        if (ts.method) |m| {
+            try buf.appendSlice(alloc, ",\n    \"method\": ");
+            try writeJsonString(buf, m);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"method\": null");
+        }
+
+        try buf.appendSlice(alloc, ",\n    \"assign_reasons\": [");
+        for (ts.assign_reasons, 0..) |r, ri| {
+            if (ri > 0) try buf.appendSlice(alloc, ", ");
+            try writeJsonString(buf, r);
         }
         try buf.appendSlice(alloc, "]");
 
@@ -4379,6 +4685,28 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             try buf.appendSlice(alloc, ",\"model_unknown_reason\":");
             try writeJsonString(&buf, mur);
         }
+        // T635: assignment record — `method` is the ruling-33 partition
+        // (random | forced | preferred); downstream readers split on it.
+        if (ts.method) |m| {
+            try buf.appendSlice(alloc, ",\"method\":");
+            try writeJsonString(&buf, m);
+        }
+        if (ts.candidates.len > 0) {
+            try buf.appendSlice(alloc, ",\"candidates\":[");
+            for (ts.candidates, 0..) |c, ci| {
+                if (ci > 0) try buf.appendSlice(alloc, ",");
+                try writeJsonString(&buf, c);
+            }
+            try buf.appendSlice(alloc, "]");
+        }
+        if (ts.assign_reasons.len > 0) {
+            try buf.appendSlice(alloc, ",\"assign_reasons\":[");
+            for (ts.assign_reasons, 0..) |r, ri| {
+                if (ri > 0) try buf.appendSlice(alloc, ",");
+                try writeJsonString(&buf, r);
+            }
+            try buf.appendSlice(alloc, "]");
+        }
         if (ts.agent) |_| {
             const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
             try buf.appendSlice(alloc, ",\"identifier\":");
@@ -5369,6 +5697,20 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (ts.model_unknown_reason) |mur| {
         w.data("    model_unknown_reason: {s}\n", .{mur});
     }
+    if (ts.method) |m| {
+        w.data("    method:   {s}\n", .{m});
+    }
+    if (ts.candidates.len > 0) {
+        w.data("    candidates:", .{});
+        for (ts.candidates) |c| w.data(" {s}", .{c});
+        w.data("\n", .{});
+    }
+    if (ts.assign_reasons.len > 0) {
+        w.data("    assign_reasons ({d}):\n", .{ts.assign_reasons.len});
+        for (ts.assign_reasons) |r| {
+            w.data("      {s}\n", .{r});
+        }
+    }
     if (ts.agent) |_| {
         const ident = try agentIdentifier(ts, id);
         w.data("    identifier: {s}\n", .{ident});
@@ -5480,6 +5822,166 @@ fn cmdModels(w: Writers, args: [][]const u8) !void {
             w.data("{s}\n", .{m});
         }
     }
+}
+
+// ── T635: mechanized model assignment verb ─────────────────────────────────
+// `managent assign <id>` filters the canonical models by the constraints that
+// apply (family appetite, row-declared exclusions) and draws the row's model
+// from the qualified list with OS entropy, recording `candidates`, `method`,
+// and the draw on the row.  `--model <name>` forces `preferred`; `--exclude
+// <tokens>` adds exclusions; `--dry-run` computes without writing; `--json`
+// emits the result as one JSON object on stdout.
+fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    if (args.len < 3) {
+        w.diag("usage: managent assign <id> [--model <name>] [--exclude <tokens>] [--dry-run] [--json]\n", .{});
+        std.process.exit(1);
+    }
+    const id = args[2];
+    const dry_run = hasFlag(args, "--dry-run");
+    const use_json = hasFlag(args, "--json");
+
+    // --model names the outcome; it must be a canonical label (preferred).
+    var requested: ?[]const u8 = null;
+    if (getFlagValue(args, "--model")) |m| {
+        const canon = canonicalizeModelTag(m);
+        if (!isCanonicalModel(canon)) {
+            w.diag("error: '{s}' is not a canonical model label.\n", .{m});
+            printCanonicalModels(w);
+            std.process.exit(1);
+        }
+        requested = canon;
+    }
+
+    // T337: lock → re-read → modify → writeStateLocked → unlock.
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    const ts_ptr = state.getPtr(id) orelse {
+        w.diag("error: task '{s}' not found\n", .{id});
+        std.process.exit(1);
+    };
+
+    // Exclusions: the row's bundle `exclude=` (soft) plus any --exclude flag.
+    var exclusions = std.ArrayList([]const u8).empty;
+    defer {
+        for (exclusions.items) |e| alloc.free(e);
+        exclusions.deinit(alloc);
+    }
+    if (bundleAbsFor(io, repo_root, id, ts_ptr.bundle)) |bundle_abs| {
+        if (readBundleExclusions(io, bundle_abs)) |decl| {
+            defer {
+                for (decl) |d| alloc.free(d);
+                alloc.free(decl);
+            }
+            // Copy out of `decl` — its elements are freed by the defer above.
+            for (decl) |d| try exclusions.append(alloc, try alloc.dupe(u8, d));
+        }
+    }
+    if (getFlagValue(args, "--exclude")) |ex| {
+        var split = std.mem.splitScalar(u8, ex, ',');
+        while (split.next()) |t| {
+            const trimmed = std.mem.trim(u8, t, " \t");
+            if (trimmed.len > 0) try exclusions.append(alloc, try alloc.dupe(u8, trimmed));
+        }
+    }
+
+    // Draw with OS entropy (ruling 33: never a seeded PRNG, never clock/task).
+    var os = OsEntropy{ .io = io };
+    const rng = std.Random.init(&os, OsEntropy.fill);
+    var result = assignModel(requested, exclusions.items, rng) catch |err| {
+        if (err == error.NoQualifiedCandidate) {
+            if (use_json) {
+                w.data("{{\"id\":\"{s}\",\"error\":\"no-qualified-candidate\",\"candidates\":[],\"reasons\":[]}}\n", .{id});
+            } else {
+                w.data("method=none\nmodel=\ncandidates=\nreasons=no qualified candidate (all canonical models excluded)\n", .{});
+            }
+            w.diag("  error: no qualified candidate for {s} (all canonical models excluded)\n", .{id});
+            std.process.exit(1);
+        }
+        return err;
+    };
+    defer freeAssignResult(&result);
+
+    // Record on the row (unless dry-run).
+    if (!dry_run) {
+        try setAssignmentOnTask(ts_ptr, &result);
+        try writeStateLocked(io, state_path, &state);
+    }
+
+    // stdout = data (parseable result / JSON); stderr = diagnostics.
+    if (use_json) {
+        var buf: std.ArrayList(u8) = .empty;
+        defer buf.deinit(alloc);
+        try buf.appendSlice(alloc, "{\"id\":");
+        try writeJsonString(&buf, id);
+        try buf.appendSlice(alloc, ",\"method\":");
+        try writeJsonString(&buf, result.method);
+        try buf.appendSlice(alloc, ",\"model\":");
+        try writeJsonString(&buf, result.model);
+        try buf.appendSlice(alloc, ",\"candidates\":[");
+        for (result.candidates, 0..) |c, ci| {
+            if (ci > 0) try buf.appendSlice(alloc, ",");
+            try writeJsonString(&buf, c);
+        }
+        try buf.appendSlice(alloc, "],\"reasons\":[");
+        for (result.reasons, 0..) |r, ri| {
+            if (ri > 0) try buf.appendSlice(alloc, ",");
+            try writeJsonString(&buf, r);
+        }
+        try buf.appendSlice(alloc, "]");
+        if (dry_run) try buf.appendSlice(alloc, ",\"dry_run\":true");
+        try buf.appendSlice(alloc, "}\n");
+        w.data("{s}", .{buf.items});
+    } else {
+        w.data("method={s}\n", .{result.method});
+        w.data("model={s}\n", .{result.model});
+        w.data("candidates=", .{});
+        for (result.candidates, 0..) |c, ci| {
+            if (ci > 0) w.data(",", .{});
+            w.data("{s}", .{c});
+        }
+        w.data("\nreasons=", .{});
+        for (result.reasons, 0..) |r, ri| {
+            if (ri > 0) w.data("|", .{});
+            w.data("{s}", .{r});
+        }
+        w.data("\n", .{});
+    }
+
+    if (dry_run) {
+        w.diag("  assign {s} -> {s} [method={s}] (dry run — not recorded)\n", .{ id, result.model, result.method });
+    } else {
+        w.diag("  assigned {s} -> {s} [method={s}]\n", .{ id, result.model, result.method });
+    }
+}
+
+/// T635: copy a computed assignment onto the row (owning copies so the store
+/// survives the result's lifetime).  The outcome is written to `model`, with
+/// `model_source` = "assign:<method>" so the provenance of the CHOICE is not
+/// mistaken for first-hand attribution (T544) nor for a backfill.
+fn setAssignmentOnTask(ts: *TaskState, r: *const AssignResult) !void {
+    var cands = std.ArrayList([]const u8).empty;
+    for (r.candidates) |c| try cands.append(alloc, try alloc.dupe(u8, c));
+    for (ts.candidates) |c| alloc.free(c);
+    alloc.free(ts.candidates);
+    ts.candidates = try cands.toOwnedSlice(alloc);
+
+    var reas = std.ArrayList([]const u8).empty;
+    for (r.reasons) |x| try reas.append(alloc, try alloc.dupe(u8, x));
+    for (ts.assign_reasons) |x| alloc.free(x);
+    alloc.free(ts.assign_reasons);
+    ts.assign_reasons = try reas.toOwnedSlice(alloc);
+
+    if (ts.method) |old| alloc.free(old);
+    ts.method = try alloc.dupe(u8, r.method);
+
+    if (ts.model) |old| alloc.free(old);
+    ts.model = try alloc.dupe(u8, r.model);
+    if (ts.model_source) |old| alloc.free(old);
+    ts.model_source = try std.fmt.allocPrint(alloc, "assign:{s}", .{r.method});
+    if (ts.model_unknown_reason) |old| alloc.free(old);
+    ts.model_unknown_reason = null;
 }
 
 fn cmdWhy(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8) !void {
@@ -5761,6 +6263,7 @@ fn printHelp(w: Writers) void {
         \\  managent amend <id> --post-close <text>  record a follow-up against a done row (verdict untouched)
         \\  managent retire <id> --note <epitaph>  archive a row (any status) with a one-line epitaph (archive, never delete)
         \\  managent models [--json]   print the canonical model list (T317 single source; --json for machine output)
+        \\  managent assign <id>       mechanized model assignment (ruling 33; --model/--exclude/--dry-run/--json)
         \\  managent whoami <id>       resolve agent identifier for a task
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent assert <row> <status> [--note]  assert a row's status to the assertion ledger (T441)
@@ -5835,6 +6338,11 @@ fn freeState(state: *StateMap) void {
         alloc.free(ts.needs);
         for (ts.caps) |c| alloc.free(c);
         alloc.free(ts.caps);
+        for (ts.candidates) |c| alloc.free(c);
+        alloc.free(ts.candidates);
+        if (ts.method) |m| alloc.free(m);
+        for (ts.assign_reasons) |r| alloc.free(r);
+        alloc.free(ts.assign_reasons);
         alloc.free(ts.added);
         if (ts.claimed) |c| alloc.free(c);
         if (ts.done) |d| alloc.free(d);
@@ -9977,4 +10485,154 @@ fn treeDirty(io: std.Io, repo_root: []const u8) TreeDirty {
         if (!is_kanban_store) out.nonkanban += 1;
     }
     return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T635 tests — mechanized model assignment (ruling 33 controls)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test "assign: every canonical model has a family and appetite mapping" {
+    for (canonical_models) |m| {
+        const fam = familyOf(m) orelse {
+            std.debug.print("canonical model '{s}' missing from model_families\n", .{m});
+            return error.TestFailed;
+        };
+        if (appetiteOf(fam) == null) {
+            std.debug.print("family '{s}' (model '{s}') missing from family_appetite\n", .{ fam, m });
+            return error.TestFailed;
+        }
+    }
+}
+
+test "assign: OFF family absent from every candidate list, reason recorded" {
+    var prng = std.Random.DefaultPrng.init(0);
+    var res = try assignModel(null, &.{}, prng.random());
+    defer freeAssignResult(&res);
+
+    // ollama-cloud is OFF (glm/minimax/kimi), fable RESERVED, qwen PROBE →
+    // the qualified list is the operator's five-model roster.
+    try std.testing.expectEqual(@as(usize, 5), res.candidates.len);
+    for (res.candidates) |c| {
+        try std.testing.expect(!std.mem.eql(u8, c, "glm-5.2"));
+        try std.testing.expect(!std.mem.eql(u8, c, "minimax-m3"));
+        try std.testing.expect(!std.mem.eql(u8, c, "kimi-k2.7"));
+        try std.testing.expect(!std.mem.eql(u8, c, "qwen3.8:27b-mlx"));
+        try std.testing.expect(!std.mem.eql(u8, c, "claude-fable-5"));
+    }
+    var saw_off = false;
+    for (res.reasons) |r| {
+        if (std.mem.indexOf(u8, r, "appetite OFF for family ollama-cloud") != null) saw_off = true;
+    }
+    try std.testing.expect(saw_off);
+}
+
+test "assign: single qualified candidate forces method=forced" {
+    var prng = std.Random.DefaultPrng.init(0);
+    // Exclude the claude family and flash → only deepseek-v4-pro remains.
+    const excl = [_][]const u8{ "claude", "deepseek-v4-flash" };
+    var res = try assignModel(null, &excl, prng.random());
+    defer freeAssignResult(&res);
+    try std.testing.expectEqualStrings("forced", res.method);
+    try std.testing.expectEqualStrings("deepseek-v4-pro", res.model);
+    try std.testing.expectEqual(@as(usize, 1), res.candidates.len);
+    try std.testing.expectEqualStrings("deepseek-v4-pro", res.candidates[0]);
+}
+
+test "assign: named model is preferred, qualified list still recorded" {
+    var prng = std.Random.DefaultPrng.init(0);
+    var res = try assignModel("claude-fable-5", &.{}, prng.random());
+    defer freeAssignResult(&res);
+    try std.testing.expectEqualStrings("preferred", res.method);
+    try std.testing.expectEqualStrings("claude-fable-5", res.model);
+    // fable is RESERVED, so it is not in the qualified list — but the list is
+    // still recorded so a later reader sees what was passed over.
+    try std.testing.expectEqual(@as(usize, 5), res.candidates.len);
+    var saw_note = false;
+    for (res.reasons) |r| {
+        if (std.mem.indexOf(u8, r, "preferred by row (outside qualified list)") != null) saw_note = true;
+    }
+    try std.testing.expect(saw_note);
+}
+
+test "assign: OS-entropy draw over 3 candidates is uniform within ±15%" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+
+    const pool = [_][]const u8{ "claude-opus-5", "claude-sonnet-5", "deepseek-v4-pro" };
+    var counts = [3]usize{ 0, 0, 0 };
+    const n: usize = 3000;
+    var i: usize = 0;
+    while (i < n) : (i += 1) {
+        var os = OsEntropy{ .io = io };
+        const rng = std.Random.init(&os, OsEntropy.fill);
+        const picked = try drawCandidate(rng, &pool);
+        defer alloc.free(picked);
+        if (std.mem.eql(u8, picked, pool[0])) {
+            counts[0] += 1;
+        } else if (std.mem.eql(u8, picked, pool[1])) {
+            counts[1] += 1;
+        } else {
+            counts[2] += 1;
+        }
+    }
+    const expected: usize = n / 3; // 1000
+    const tol: usize = expected * 15 / 100; // ±15% → [850, 1150]
+    for (counts, 0..) |c, j| {
+        std.debug.print("  candidate {d}: {d}/{d} draws\n", .{ j, c, n });
+        try std.testing.expect(c >= expected - tol and c <= expected + tol);
+    }
+}
+
+test "assign: row with no assignment record parses unchanged (null method)" {
+    const content =
+        \\{
+        \\  "TX": {"status":"dispatchable","agent":null,"model":null,"bundle":"untracked/TX-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-22T00:00:00Z","claim_count":0}
+        \\}
+    ;
+    var state = try parseStateJson(content);
+    defer freeState(&state);
+    const ts = state.get("TX").?;
+    try std.testing.expect(ts.method == null);
+    try std.testing.expectEqual(@as(usize, 0), ts.candidates.len);
+    try std.testing.expectEqual(@as(usize, 0), ts.assign_reasons.len);
+}
+
+test "assign: candidates/method/reasons round-trip serialize → parse" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .dispatchable,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-22T00:00:00Z",
+    };
+    // freeState frees bundle/added too — give the test owned copies.
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-22T00:00:00Z");
+    var cands = std.ArrayList([]const u8).empty;
+    try cands.append(alloc, try alloc.dupe(u8, "claude-opus-5"));
+    try cands.append(alloc, try alloc.dupe(u8, "deepseek-v4-pro"));
+    ts.candidates = try cands.toOwnedSlice(alloc);
+    ts.method = try alloc.dupe(u8, "random");
+    var reas = std.ArrayList([]const u8).empty;
+    try reas.append(alloc, try alloc.dupe(u8, "glm-5.2: appetite OFF for family ollama-cloud"));
+    ts.assign_reasons = try reas.toOwnedSlice(alloc);
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expectEqualStrings("random", p.method.?);
+    try std.testing.expectEqual(@as(usize, 2), p.candidates.len);
+    try std.testing.expectEqualStrings("claude-opus-5", p.candidates[0]);
+    try std.testing.expectEqualStrings("deepseek-v4-pro", p.candidates[1]);
+    try std.testing.expectEqual(@as(usize, 1), p.assign_reasons.len);
+    try std.testing.expectEqualStrings("glm-5.2: appetite OFF for family ollama-cloud", p.assign_reasons[0]);
 }
