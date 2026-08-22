@@ -1,0 +1,940 @@
+{
+ "task_id": "T645",
+ "date": "2026-08-22",
+ "model": "claude-sonnet-5",
+ "identifier": "claude-sonnet-5/T645",
+ "claims": [],
+ "new_rows": [],
+ "method": "Ruled all 25 claims myself against the repo (CLAIMS.md, the cited primary sources, git log/git show, and direct file reads) BEFORE reading any lane, per the brief. Normalized all five lanes' verdicts onto the sealed G01..G25 keys using the target-set-batch1.md heading map (each '### G<nn> \u2014 `<CLAIM.ID>`') per inbox directive D025: lane-1 was already dual-keyed (own 'key' field = G-id); lane-4 and lane-5 already keyed by G-id; lane-2 and lane-3 keyed by claim-ID name only and required 25 remaps each. All 125 lane-entries (5 lanes x 25 claims) mapped cleanly onto the sealed set \u2014 zero unmapped entries, zero coverage violations (no lane ruled on anything outside the 25 sealed claims). One entry (lane-5's G15) carries verdict value 'pending', which is none of the three legal outcomes; scored separately as non-conforming/unfinished per D025, not folded into verified/refuted/unverifiable-at-head, and not counted as coverage.",
+ "remap_counts": {
+  "lane-1": 0,
+  "lane-2": 25,
+  "lane-3": 25,
+  "lane-4": 0,
+  "lane-5": 0
+ },
+ "unmapped_entries": [],
+ "per_claim": {
+  "G01": {
+   "claim": "GLOBAL.H1-MARKOV",
+   "my_verdict": "refuted",
+   "my_citation": "Rationale clause 'C1 has never been tested with contrasting histories' is false at HEAD: T372 built and ran a shortest-arrival-first contrast generator 2026-08-05 (docs/evidence/QA-023/c1-contrast-2026-08-05.md; src/t372_zrtie.zig present, 110718 bytes) \u2014 3x2: 0/404 pairs across 24 eligible states; 3x3: 0/80 pairs across 6 states, both mandated controls fired. Headline UNTESTED still holds, but for budget-exhaustion reasons, not 'never tested'. Row's own third citation `docs/audits/2b-3-audit-*.md` matches no file at HEAD (`ls` returns no matches; real file is `2026-07-29-2b-3-history-pairs-audit.md`).",
+   "status_should_be": "UNTESTED (unchanged label; rationale sentence needs replacing, not the status)",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "unverifiable-at-head",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G02": {
+   "claim": "GLOBAL.ADR0006-EYE",
+   "my_verdict": "verified",
+   "my_citation": "CLAIMED stands; ADR-0006 weak-dominance argument (0006:27-49) and docs/audits/2026-07-30-eye-prune-validation.md exist and are internally consistent with the row. Moderate-depth check only \u2014 I did not re-run the T114 battery myself.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G03": {
+   "claim": "GLOBAL.F1",
+   "my_verdict": "verified",
+   "my_citation": "FALSE-AS-SCOPED confirmed: docs/decisions/0013-sound-finisher-and-dependency-guarded-memo.md and docs/research/consistency-audit.md:25-34 exist and are consistent with the row and with the ADR-0015 chain that cites the same finisher unsoundness.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G04": {
+   "claim": "3x2.T13",
+   "my_verdict": "verified",
+   "my_citation": "PROVEN (falsification) confirmed: docs/evidence/T13/probe-reimplementation-2026-07-30.md and docs/evidence/T13/t13_probe.py both present at HEAD and match the row's counts.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G05": {
+   "claim": "4x4.D3",
+   "my_verdict": "verified",
+   "my_citation": "UNTESTED stands; content accurate but citation has drifted: `4x4/EPISTEMIC.md:175-183,328` no longer matches \u2014 the D3 bullet is now at roughly :195-205 and the T07-9 placeholder note at :448 (confirmed by reading both ranges).",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "unverifiable-at-head",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "unverifiable-at-head",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G06": {
+   "claim": "GLOBAL.ADR0015-BURDEN",
+   "my_verdict": "refuted",
+   "my_citation": "CLAIMED (ADR-0015, ratified by ADR-0018) stands, but the row's narrative is materially wrong: 'all three convicted the two planted calibration defences ... as WRONG' is contradicted by the primary per-seat report `docs/evidence/QA-018/review-c-kimi-k27/report.md:193` which grades Defence 7 (the bracket_fail gate) **OVERSTATED**, not WRONG \u2014 and ADR-0018's own synthesis text ('All three seats convicted both planted defences') misreports its own underlying evidence. Verified by reading the raw seat report, not the decision doc's summary.",
+   "status_should_be": "CLAIMED (unchanged; the calibration-defence sentence needs correcting: Defence 6 WRONG (3/3), Defence 7 OVERSTATED per seat C (not WRONG, not 3/3 as ADR-0018 summarizes))",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G07": {
+   "claim": "GLOBAL.AUDITOR",
+   "my_verdict": "refuted",
+   "my_citation": "The instrument half (RETRO_CONSIST exists, necessary-not-sufficient) is real. The gate half is false as stated: `tools/hooks/pre-commit` runs only claimlint-floor + the staged-path backstop; `grep -n RETRO_CONSIST build.zig` returns nothing; RETRO_CONSIST is only reachable via an env-var branch in `src/retro.zig`'s `main()` (:4458-4482), invoked manually, never by an installed gate. Also the row's citation `AGENTS.md:63-67` points at the C10-VOLATILE paragraph, not the auditor-gate sentence (actually AGENTS.md:35-38, confirmed by line count).",
+   "status_should_be": "PROVEN, split: instrument half PROVEN; \"standing pre-commit gate\" half is NOT MECHANIZED at HEAD \u2014 no build step or hook invokes RETRO_CONSIST",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G08": {
+   "claim": "GLOBAL.BRUTE-ALIASING",
+   "my_verdict": "verified",
+   "my_citation": "FALSE (methodological) confirmed: docs/audits/2026-07-30-audit-2x2-mismatch.md and its .py instrument exist at HEAD and are internally consistent with the row's 'Stands: fixpoint / Withdrawn: brute-force cross-check' split.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G09": {
+   "claim": "GLOBAL.C3",
+   "my_verdict": "verified",
+   "my_citation": "FALSE-AS-SCOPED (at 3x3) stands for the E2 self-play outcome-reading. A broader pointwise-3x2 reading (via T13/ADR-0017 Horn B) is plausible but I did not independently confirm the logical chain that a C2 mismatch at L==H necessarily also falsifies the C3 bracket-bounding claim there; treating as an open question, not a confirmed scope error.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G10": {
+   "claim": "QA-023",
+   "my_verdict": "refuted",
+   "my_citation": "CLAIMED stands (row's own 'DO NOT MARK THIS ROW FALSE' honored) but the row omits two real, later, unabsorbed events: T372's contrast probe (2026-08-05, see G01) and T378 (fc9f35d, 2026-08-19) \u2014 a SEPARATE inverted-White-guard defect in `src/qa023_probe.zig` (:965/:1024), found 2026-08-05 (c251438) and fixed with two new regression tests 2026-08-19. Confirmed by `git log --oneline | grep T378` and reading the commit.",
+   "status_should_be": "CLAIMED (unchanged, per its own DO-NOT-MARK-FALSE instruction); append T372 (2026-08-05) and T378 (2026-08-19, fc9f35d) as unabsorbed evidence",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "unverifiable-at-head",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G11": {
+   "claim": "3x2.F1",
+   "my_verdict": "verified",
+   "my_citation": "PROVEN (falsification) confirmed, consistent with the G03/consistency-audit.md chain.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G12": {
+   "claim": "CODE.VB-BLINDGAPS",
+   "my_verdict": "refuted",
+   "my_citation": "GAP-5 'CRITICAL ... not honoured, permanent stub' is stale: T473 (`1680a04`) built `src/vb_i11.zig` and ran I11 exhaustively at 4x4 \u2014 '0/48,636,330 slice + 0/99,133,036 table' (confirmed via `git log`) \u2014 independently closing exactly the gap the row still calls open and blocking.",
+   "status_should_be": "PROVEN (historical, correct when made); GAP-5 should read CLOSED 2026-08-20/T473 (I11 exhaustive, 0 mismatches at 4x4)",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G13": {
+   "claim": "CODE.WZO2-PASSBIT",
+   "my_verdict": "verified",
+   "my_citation": "PROVEN stands; defect+one-line-fix (`5deec6b`) confirmed real. The trailing 'must be rebuilt and M4a re-run (T212) before oracle-v2 G3' reads as an open obligation but T212 discharged it 2026-08-01 (`docs/evidence/ORACLE-V2/m4a-accept-T212-2026-08-01.md/.stdout` exist, PASS 4/4). Treated as a logistics-only staleness (not enough on its own to flip the verdict) rather than a substantive defect in the claim.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G14": {
+   "claim": "GLOBAL.S1",
+   "my_verdict": "verified",
+   "my_citation": "PROVEN stands; simple bijection claim, citations consistent. Lower-depth check \u2014 not independently re-derived by me.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G15": {
+   "claim": "QA-021",
+   "my_verdict": "verified",
+   "my_citation": "PROVEN stands; `docs/research/ko-sensitive-chainability.md` content consistent with the row. Moderate-depth check only.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "pending",
+     "relation_to_my_verdict": "non-conforming"
+    }
+   }
+  },
+  "G16": {
+   "claim": "2x2.C1",
+   "my_verdict": "refuted",
+   "my_citation": "PROVEN overclaims: the row's own citation is `leak-crisis.md:24` ('already done') but the actual comparison 'vs the history-aware exact solver' (the `2x2.EXACT` row) completed only **8 of 114** roots \u2014 sampled, not exhaustive. This exact tension is already logged in CLAIMS.md's own \u00a76 Discrepancies as **D9** (`CLAIMS.md:991-1003`), unresolved, yet the `2x2.C1` row still reads as an unqualified PROVEN.",
+   "status_should_be": "CLAIMED (sampled) rather than a bare PROVEN, OR split explicitly: PROVEN on the 0/540 fresh-start-sanity half, CLAIMED(sampled, 8/114) on the vs-exact-solver half",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G17": {
+   "claim": "3x2.C1",
+   "my_verdict": "refuted",
+   "my_citation": "Same D9 pattern at 3x2: only **68 of 600** ko-sensitive roots complete (`CLAIMS.md:447`, `retrograde-3x3.md:50-52`). The oft-cited '0/540' figure is a different, easier check (fresh-start-vs-itself sanity on the L==H slots only, `c2-falsification-3x2.md:56-57`), not a comparison against the history-aware exact solver.",
+   "status_should_be": "Split by region: PROVEN on the L==H single-score half (540/540, 0 mismatches); CLAIMED (sampled, 68/600) on the ko-sensitive half",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G18": {
+   "claim": "3x3.C3",
+   "my_verdict": "unverifiable-at-head",
+   "my_citation": "PROVEN (falsification) rests on `3x3.B1`, which CLAIMS.md's own row (`CLAIMS.md:301`) states was 'Downgraded PROVEN\u2192CLAIMED 2026-07-29 (evidence-integrity sweep)' because its primary evidence (`untracked/T02-minimax.md`) is lost, prose summary only. The E2 4000-game run log is likewise not committed (no file under docs/ matches). The 12-pt leak is very likely still true but is not independently re-derivable from committed evidence today.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "unverifiable-at-head",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G19": {
+   "claim": "GLOBAL.C2",
+   "my_verdict": "verified",
+   "my_citation": "FALSE-AS-SCOPED (at 3x2) confirmed, T13 evidence already verified under G04.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G20": {
+   "claim": "CODE.WZO2-INCOMPLETE",
+   "my_verdict": "refuted",
+   "my_citation": "'closure (C-A1/C-A2) ... remain untested' is false at HEAD: the L2 audit T383 (2026-08-05, `findings/T383-ko-decode.json`, finding F-3) fixed a key-byte ko-decode bug and re-ran the gated full 4x4 closure: 'C-A1 0/616,030,190 children missing ... C-A2 0/99,133,034 reachable missing ... closure verdicts hold' \u2014 confirmed verbatim from the findings file. Closure is CLOSED, not untested; only L/H value-correctness remains open (the row's own trailing I4 sentence already anticipates this half correctly).",
+   "status_should_be": "FALSE-AS-SCOPED (unchanged); replace \"remain untested\" with \"closure CLOSED 2026-08-05 (T383): C-A1 0/616,030,190, C-A2 0/99,133,034 \u2014 only L/H value-correctness remains open\"",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-4": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "disagrees"
+    }
+   }
+  },
+  "G21": {
+   "claim": "GLOBAL.C4",
+   "my_verdict": "verified",
+   "my_citation": "FALSE-AS-SCOPED confirmed, consistent with `docs/epistemic/PROGRESS.md` \u00a73.3 and the C2/P3 dependency chain.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G22": {
+   "claim": "GLOBAL.CERTCORE",
+   "my_verdict": "verified",
+   "my_citation": "FALSE-AS-SCOPED confirmed, dependent on FP2; T13 numbers already verified under G04/G16/G17.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G23": {
+   "claim": "GLOBAL.TIE-MIGOS",
+   "my_verdict": "verified",
+   "my_citation": "FALSE-AS-SCOPED confirmed; `findings/T274-tie-experiment.json` exists at HEAD, consistent with the row's citations.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G24": {
+   "claim": "QA-019",
+   "my_verdict": "verified",
+   "my_citation": "FALSE confirmed: `src/retro.zig` around :2407 (the artifact-saving finisher call inside `saveArtifact`'s call path) hardcodes the bracketed argument `true`, distinct from the configurable call near :2515-2525 that reads `opts.finisher_bracketed` (default `true` at :2160) \u2014 confirmed by direct reading.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  },
+  "G25": {
+   "claim": "QA-022",
+   "my_verdict": "verified",
+   "my_citation": "FALSE (retrievability) confirmed; `docs/evidence/README.md` lines ~105-115 verbatim-match the row: T13 source recoverable-by-reimplementation (T110), the deliberate claimlint trap at the literal `untracked/c2pilot_3x2.zig` path (T128, 2026-07-31), T02/B1 numbers RECOVERABLE-not-regenerated, T07/B05 correctly LOST.",
+   "lanes": {
+    "lane-1": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-2": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-3": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    },
+    "lane-4": {
+     "verdict": "refuted",
+     "relation_to_my_verdict": "disagrees"
+    },
+    "lane-5": {
+     "verdict": "verified",
+     "relation_to_my_verdict": "agrees"
+    }
+   }
+  }
+ },
+ "lane_scores": {
+  "lane-1": {
+   "correct_out_of_25": 23,
+   "false_verified": 0,
+   "false_refuted": 2,
+   "other_errors": "none beyond the two soft false-refuteds (G09, G25)",
+   "evidence_quality": "Exceptional and unmatched in the field. Went to primary per-seat evidence rather than trusting synthesizing decision docs (G06: read docs/evidence/QA-018/review-c-kimi-k27/report.md directly and found it contradicts ADR-0018's own summary of its own review). Found five genuinely new, unabsorbed developments that ALL FOUR other lanes missed entirely: T372's contrast probe (G01/G10), T378's separate White-guard fix (G10), T473's I11 exhaustive closure (G12), T212's re-acceptance (G13, though it settled on 'verified' for this one too), and T383's L2 closure (G20). Independently surfaced the pre-existing D9 discrepancy in CLAIMS.md's own \u00a76 (G16/G17: PROVEN vs 8/114 and 68/600 sampled roots) that the register itself has flagged but never resolved. Verified the pre-commit hook does not mechanize RETRO_CONSIST (G07) by reading tools/hooks/pre-commit and grepping build.zig, not by trusting the row's own text. Ruled its own two misses (G09's broader-scope argument, G25's retrieval addendum) as 'refuted' when 'verified' was equally or more defensible \u2014 errs toward over-flagging, never toward laundering.",
+   "unverifiable_at_head_use": 1,
+   "unverifiable_at_head_correct": true
+  },
+  "lane-2": {
+   "correct_out_of_25": 15,
+   "false_verified": 9,
+   "false_refuted": 0,
+   "other_errors": "one miscalibrated 'unverifiable-at-head' dodge on a claim that is fully verifiable (G05)",
+   "evidence_quality": "Solid citation-existence checking and some genuine reproduction (re-ran t13_probe.py; diffed the pinned git commits f851102/5deec6b for the passbit fix; hand-checked WZO2-INCOMPLETE's arithmetic). But it never went beyond what the target-set row itself already cites \u2014 zero discovery of T372, T378, T473, T212, T383, or the Kimi report divergence, so 9 of the batch's 10 real staleness/overclaim problems were rubber-stamped as 'verified (no change)'. G01 (the batch's single highest-dependent claim, 9 dependents) was missed entirely: the cited dead-glob citation was not checked for existence.",
+   "unverifiable_at_head_use": 1,
+   "unverifiable_at_head_correct": false
+  },
+  "lane-3": {
+   "correct_out_of_25": 16,
+   "false_verified": 9,
+   "false_refuted": 0,
+   "other_errors": "declined to flip its own verdict label even after finding real staleness (see evidence quality)",
+   "evidence_quality": "Genuinely double-edged. Re-ran real instruments (t13_probe.py census/sanity/replay, `zig test src/colex.zig`) and its stated verdict convention is the most explicit and self-aware in the field ('verified' means the row's status is correct at HEAD; 'refuted' would mean the status/substance is wrong). It DID find T372's contrast probe and cited it correctly for both G01 and G10 \u2014 substantively matching lane-1's core catch on those two claims \u2014 but chose to keep the verdict label 'verified' rather than 'refuted', reasoning that promotion/correction 'is the operator's call'. That choice is defensible as a convention but it is exactly the labelling gap this round exists to expose: a reader scanning verdicts alone would not learn that G01/G10's stated rationale is stale. Missed G06 (no primary per-seat report check), G07 (treated the gate as literally mechanized, no pre-commit/build.zig check), G12/G13/G20 (no T473/T212/T383), and never used 'unverifiable-at-head' even where warranted (G18).",
+   "unverifiable_at_head_use": 0,
+   "unverifiable_at_head_correct": null
+  },
+  "lane-4": {
+   "correct_out_of_25": 13,
+   "false_verified": 6,
+   "false_refuted": 3,
+   "other_errors": "a genuinely confusing status_should_be on G10 ('UNTESTED (C1 split from C2)') that contradicts the row's own explicit 'DO NOT MARK THIS ROW FALSE' ruling; three of its five 'refuted' calls (G03, G23, G25) are convention artifacts \u2014 restating an already-FALSE-AS-SCOPED/FALSE row's own conclusion under a 'refuted' label rather than a genuine correction, scored as false_refuted here only because the verdict-field enum is being compared literally",
+   "evidence_quality": "By far the thinnest file in the field (7.9 KB vs lane-1's 98.6 KB) \u2014 one-line 'why' fields throughout, no line-level citation checks, no independent reproduction anywhere, no primary-source excavation beyond what the target-set row already quotes. Its lower false-verified count (6, vs 9 for lanes 2/3/5) is largely a labelling artifact: lane-4 defaults FALSE-type rows to a 'refuted' verdict (matching the register, not a new finding) rather than genuinely interrogating PROVEN/CLAIMED rows, so it happens to dodge the false-verified trap on claims it was never at risk of mis-verifying in the first place, while still missing every one of the batch's ten real staleness/overclaim problems on the PROVEN/CLAIMED side (G06, G07, G12, G13, G16, G17, G18, G20 all graded 'verified, no change').",
+   "unverifiable_at_head_use": 3,
+   "unverifiable_at_head_correct": "partial"
+  },
+  "lane-5": {
+   "correct_out_of_25": 15,
+   "false_verified": 9,
+   "false_refuted": 0,
+   "other_errors": "one non-conforming entry: G15's verdict is the literal string 'pending', which is none of the three legal values (verified/refuted/unverifiable-at-head) \u2014 an unfinished claim, not a fourth outcome; per D025 this does not count as covered",
+   "evidence_quality": "Comparable depth to lane-3 and arguably more granular on citation-drift: explicitly caught line-pointer staleness on G07 (AGENTS.md:63-67\u2192:35), G12 (vb_fixpoint.zig:545-547\u2192:474), G16/G17 (PROGRESS.md:126 section drift) and G18 (4x4/EPISTEMIC.md range drift) that lane-3 did not spell out. Also found T372 for G01/G10, same as lane-3, and again chose 'verified' over 'refuted'. Its own notes field is unusually candid: it explicitly logs 'batch-2 candidate findings, NOT acted on' naming the exact T372 staleness on G01/G10 and a fourth issue (G14's 'exhaustively round-tripped through 4x4' overstating a stride-97 sample) that no other lane raised at all \u2014 a real, uniquely-sourced observation, undercut by the decision to record it as deferred rather than reflected in the claim's own verdict. Missed G06/G12(closure)/G13(T212)/G20(T383) like lanes 2/3.",
+   "unverifiable_at_head_use": 0,
+   "unverifiable_at_head_correct": null
+  }
+ },
+ "complementarity": {
+  "note": "Ruling 34: correctness against my own per-claim ruling matters far more here than pairwise agreement \u2014 lanes 2/3/5 agree with each other on 23-24/25 claims precisely because they share the same rubber-stamp failure mode (see lane_scores), not because they are independently correct. High mutual agreement among the rubber-stamps should not be read as corroboration.",
+  "per_claim_correct_lanes": {
+   "G01": [
+    "lane-1"
+   ],
+   "G02": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G03": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-5"
+   ],
+   "G04": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G05": [
+    "lane-1",
+    "lane-3",
+    "lane-5"
+   ],
+   "G06": [
+    "lane-1"
+   ],
+   "G07": [
+    "lane-1"
+   ],
+   "G08": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G09": [
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G10": [
+    "lane-1"
+   ],
+   "G11": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G12": [
+    "lane-1"
+   ],
+   "G13": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G14": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G15": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4"
+   ],
+   "G16": [
+    "lane-1"
+   ],
+   "G17": [
+    "lane-1"
+   ],
+   "G18": [
+    "lane-1"
+   ],
+   "G19": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G20": [
+    "lane-1",
+    "lane-4"
+   ],
+   "G21": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G22": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G23": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-5"
+   ],
+   "G24": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ],
+   "G25": [
+    "lane-2",
+    "lane-3",
+    "lane-5"
+   ]
+  },
+  "per_lane_unique_correct_calls": {
+   "lane-1": [
+    "G01",
+    "G06",
+    "G07",
+    "G10",
+    "G12",
+    "G16",
+    "G17",
+    "G18"
+   ],
+   "lane-2": [],
+   "lane-3": [],
+   "lane-4": [],
+   "lane-5": []
+  },
+  "pairwise_agreement_matrix_out_of_25": {
+   "lane-1_lane-2": 13,
+   "lane-1_lane-3": 14,
+   "lane-1_lane-4": 13,
+   "lane-1_lane-5": 13,
+   "lane-2_lane-3": 24,
+   "lane-2_lane-4": 19,
+   "lane-2_lane-5": 23,
+   "lane-3_lane-4": 18,
+   "lane-3_lane-5": 24,
+   "lane-4_lane-5": 17
+  },
+  "best_pair_by_agreement": {
+   "pair": [
+    "lane-2",
+    "lane-3"
+   ],
+   "agreement": 24,
+   "caveat": "tied with lane-3/lane-5 at 24/25 (see matrix); this is the agreement-among-rubber-stamps pair, not the most-correct pair \u2014 the most-correct lane (lane-1) has the LOWEST pairwise agreement with every other lane (13-14/25) because it is the one lane that dissents from the shared blind spot."
+  }
+ },
+ "ranking": {
+  "order": [
+   "lane-1",
+   "lane-3",
+   "lane-5",
+   "lane-2",
+   "lane-4"
+  ],
+  "nuance": {
+   "lane-1": "First, clearly. 23/25 correct, ZERO false-verifieds (the only lane with none), 8 uniquely-correct calls no other lane made, and the only lane whose G06 finding required opening a primary per-seat report (not just the synthesizing ADR) to catch a real discrepancy between that report and its own decision doc's summary.",
+   "lane-3": "Tied with lane-5 for second. 16/25 correct (best of the middle three), real re-executed instruments, and the most explicit stated verdict-convention in the field \u2014 but that convention is exactly why it under-reports: it found T372's staleness on G01/G10 and said so in its 'why' text, then kept the verdict 'verified' anyway.",
+   "lane-5": "Tied with lane-3. 15/25 correct but more granular line-level citation-drift catches across more claims (G07/G12/G16/G17/G18), plus a uniquely-sourced observation on G14 (stride-97 sampled, not exhaustive) recorded in notes but not reflected in its own verdict. Held back by one non-conforming entry (G15 = 'pending').",
+   "lane-2": "Fourth. 15/25 correct on paper (tied with lane-5) but the shallowest of the three middle lanes in substance: missed T372 on the single highest-dependent claim in the batch (G01, 9 dependents) entirely, and used 'unverifiable-at-head' as a dodge on a claim (G05) that is straightforwardly verifiable.",
+   "lane-4": "Fifth. 13/25 correct, the thinnest file by a wide margin (8x smaller than lane-1), no independent reproduction anywhere, and one real analytical misstep (proposing a status change on G10 that the row's own text explicitly forbids). Its lower false-verified count is a labelling artifact, not rigor \u2014 see lane_scores."
+  },
+  "bet": "lane-1 over the field: ~90-95% \u2014 the zero-false-verified record and 8 unique correct calls are each independently primary-source-verified by me (T372, T378, T473, T212, T383, and the Kimi report divergence all exist exactly as lane-1 describes them; I did not take lane-1's word for any of them). lane-3 vs lane-5 for second: a genuine tie, call it 55-45 either way \u2014 lane-3 has one more strict-correct claim and zero non-conforming entries, lane-5 has more granular citation-drift catches and one more uniquely-sourced observation (G14); a rerun could plausibly flip this rung. lane-5 vs lane-2 for third/fourth: ~65% lane-5, on substantive depth (T372 found) despite an identical correct-count. lane-2 over lane-4: ~80%, on file depth and the avoidance of lane-4's G10 misstep."
+ },
+ "notes": "D025 (T612, acked) actioned: verdicts normalized onto G01..G25 before scoring; remap counts reported above; lane-5's 'pending' G15 scored as non-conforming/unfinished, not as one of the three legal outcomes, and excluded from its coverage count (24/25 covered, not 25/25). What I could not do: full independent primary-source re-derivation on every one of the 25 claims within this session's effort budget \u2014 I did deep, git/file-verified primary-source digs on the Tier-A cascade-risk claims and on every claim where the five lanes disagreed or where my own read of the target-set text raised a flag (G01, G05, G06, G07, G09, G10, G12, G13, G16, G17, G18, G20, G23, G24, G25 all independently checked against git log / git show / direct file reads, not just against the target-set's own citations), and lighter-touch internal-consistency checks on the remainder (G02, G03, G04, G08, G11, G14, G15, G19, G21, G22) where no lane raised a flag and the target-set's own citations were self-consistent. Read-only outside this file: did not edit CLAIMS.md, the target set, or any lane; did not open untracked/race-grading/. Inbox polled at claim, mid-grading (D025 received here), and before close."
+}
