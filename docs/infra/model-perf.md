@@ -21,3 +21,5 @@ go to the JSONL (measured) or the archive append (impressions), not here.
 
 - **pass-2 spec audit (4 lanes, 2026-08-21):** opus **great** (11 findings incl. all four musts, every citation verified + live repro of B-9/B-10 reds); flash **good** (6 — HOLD-6/C7 scoping, the `\bpi\b` gate, the missing golden-master arm); sonnet **good** (2 sharp provenance findings — F7 misapplied, sentinel gap); haiku **average** (3 — the launch-template-table blocker). Strongly convergent; the audit process worked.
 - **race1 (T447 read-only-audit replication, graded by flash, n=1 provisional):** opus 46 > sonnet 26 > haiku 0 (haiku false-negative "no escape paths"). No tier emitted (n=1, per methodology §5). Matrix-cell fold deferred to after T565.
+dispatch-verify 2026-08-22 T574 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T575 deepseek-v4-flash report=success verified=pass
