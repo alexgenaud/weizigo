@@ -3,8 +3,9 @@
 **Artifact type: SPEC** (`docs/infra/sprint.md` — a spec says what we want, testably,
 for one pass). **Owner:** deepseek-v4-pro/pass2-spec · **Rev 2 author:**
 `claude-opus-5`/pass2-spec-fix · **Rev 3 author:** deepseek-v4-pro/T577 (folds re-audit
-N1–N8, 2026-08-22) · **Date:** 2026-08-21 · **Status:** PROPOSED (rev 3 — rev-2 re-audit
-findings N1–N8 folded, awaiting re-audit); not a worker brief, not a plan, no code.
+N1–N8, 2026-08-22) · **Rev 4 author:** deepseek-v4-pro/T581 (folds appetite rulings
+11/12/16/17, 2026-08-22) · **Date:** 2026-08-21 · **Status:** PROPOSED (rev 4 — appetite
+rulings 11/12/16/17 folded, awaiting re-audit); not a worker brief, not a plan, no code.
 
 **Citation pinning (F11).** Every `file:line` in this document is pinned to commit
 `56b9cf1`. `docs/infra/managent/tasks.json`, `tools/regression-suite-surfaces.sh` and
@@ -32,7 +33,7 @@ rev-3 mandate).
 **holds** every worker it dispatches as a direct child and never detaches, replacing
 `tools/fleet-keeper.sh`, `bin/dispatch`, `bin/subagent`, `tools/runner` (dispatch role),
 `tools/dispatch_verify.py`, and `tools/fleet-cooldown.sh`. Plus: the one dispatch
-interface (pass-1 §7) — Pi and Claude dispatch through the same command; the per-family
+interface (pass-1 §7) — Pi and Claude dispatch through the same command; the per-model
 **appetite dial** (§4); **runaway/recursion safety** (§5); the `ollama stop` per-family
 release (Could, §6); and the pass-1 deferred treekill findings B-7..B-11 (§7).
 This document is the spec; controls are named, not written; no code.
@@ -60,13 +61,25 @@ does not weaken them. What changed:
 | op. (a) | **Appetite is a 0–99 dial per family**, replacing the static `OFF/PROBE/CONSERVE/SPEND/RESERVED` levels. 0 = hard forbid, 99 = full spend, everything between is mechanized back-pressure. Who may turn it and how a window reset is *observed* are both specified. New **Must** | §4 |
 | op. (b) | **Runaway/recursion safety** — mint-delta check, one-author-per-mint, lineage + justification on every queued row, enforced at the store write. New **Must** | §5 |
 
-**Rev 2 → rev 3 (this row, T577):** folds the rev-2 re-audit findings N1–N8
+**Rev 2 → rev 3 (rev 3, T577):** folds the rev-2 re-audit findings N1–N8
 (`findings/T574-pass2-spec-reaudit.json`) — S03 §ref pinned to `08bc2d5` (N1); §3.1
 label→appetite-family mapping added (N2); `justification-key` defined (N3); RUN-1 Δ
 pinned to the store write (N4); operator-vs-worker + legacy-row migration stated (N5);
 DP-6 scan scope pinned (N6); seed Pass-5→Pass-3 numbering corrected (N7); §4.5
 ollama-cloud old-level corrected to `OFF → SPEND` (N8). F1–F11 stay closed; the two
 operator-ratified Musts (§4, §5) are untouched in force beyond what N2–N5/N8 require.
+
+**Rev 3 → rev 4 (this row, T581):** folds the operator's appetite rulings
+(`docs/status/orchestration-layer-spec.md` §7c items 11, 12, 16, 17) into §4/§4.5 and
+everything that cites them. The appetite dial is **0–9 per model (short name)**, not
+0–99 per family (ruling 11); per-model spacing is **deleted**, replaced by one global
+10 s dispatch gap (ruling 16, which strikes `spacing_max` and the per-family spacing
+arithmetic); appetite records only *can use*, with *should use* on a separate axis
+(ruling 12, which generalizes the `RESERVED` finding); and a per-model **dispatcher
+predicate** is added as a hard flag separate from appetite (ruling 17). Initial
+per-model dial values are supplied (ruling 11) — the §4.5 numbers are no longer "owed".
+§4 *mechanics* carry over unchanged: 0 = unliftable hard forbid, monotone back-pressure
+between, max = no back-pressure, operator-only raise, auto reduce-only.
 
 **Owed follow-up (not this deliverable).** `pass2/scope.md`'s MoSCoW table predates §4 and
 §5 and must gain two Must rows; its cut order must gain the never-cut entries from §10.
@@ -213,8 +226,9 @@ managent supervise cooldown on|off|status    # graceful stop control (replaces f
 managent supervise stop                      # hard stop: treekill every held child, then exit
 managent supervise status [--json]           # the held-children list (NOT the full fleet view —
                                              #   that is a later read-only pass)
-managent appetite <family> [<0-99>]          # read / set the appetite dial (§4; operator-only write)
-managent appetite --window <family> <record> # assert an observed credit window (§4.3)
+managent appetite <model> [<0-9>]            # read / set the appetite dial (§4; operator-only write)
+managent appetite --family <family> <0-9>    # bulk write: every member model's dial (§4.1)
+managent appetite --window <provider> <record> # assert an observed credit window (§4.3)
 ```
 
 The `<id> <model>` form is the dispatch interface (§3). The no-argument form is the
@@ -238,13 +252,15 @@ spawn.
 **Two new admission gates, evaluated before any spawn** (both are Musts folded in rev 2,
 both are *gates on an existing decision point*, not new policy machinery):
 
-1. the **appetite dial** for the candidate's family (§4) — hard-forbid at 0, lane share
-   and dispatch spacing in between;
+1. the **appetite dial** for the candidate's model (§4) — hard-forbid at 0, lane share
+   in between — plus the per-model hard flags: the reservation predicate and the
+   dispatcher predicate (§4.5);
 2. the **runaway/recursion checks** for the candidate row (§5) — lineage depth,
    justification present, mint-delta breaker not tripped.
 
 Every refusal carries a **named reason string** (`appetite-forbid`,
-`appetite-lanes-exhausted`, `appetite-spacing`, `mint-breaker`, `lineage-depth`,
+`appetite-lanes-exhausted`, `dispatch-gap`, `reservation-mismatch`,
+`dispatcher-predicate`, `mint-breaker`, `lineage-depth`,
 `lineage-cycle`, `no-justification`, plus the carried `holds-conflict`, `at-cap`,
 `cooldown`, `backoff`, `lane-down`, `heal-cooldown`). Reason strings are the observable
 the controls read — a refusal that reports no reason is indistinguishable from a bug, and
@@ -484,7 +500,7 @@ preamble + deliverables + inbox loop, exactly as `bin/subagent` assembles it tod
 |---|---|---|---|
 | `family` | `deepseek` | `claude` | `ollama` |
 | `labels` | `deepseek-v4-pro`, `deepseek-v4-flash` | `claude-opus-5`, `claude-sonnet-5`, `claude-fable-5`, `claude-haiku-4-5-20251001` | `glm-5.2`, `minimax-m3`, `kimi-k2.7`, `qwen3.8:27b-mlx` |
-| `appetite family` (§4) | both labels → `deepseek` | `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001` → `claude`; `claude-fable-5` → `claude-fable` | `glm-5.2`, `minimax-m3`, `kimi-k2.7` → `ollama-cloud`; `qwen3.8:27b-mlx` → `local` |
+| `appetite model` (§4) | `deepseek-v4-pro` → `dspro`; `deepseek-v4-flash` → `flash` | `claude-opus-5` → `opus`; `claude-sonnet-5` → `sonnet`; `claude-haiku-4-5-20251001` → `haiku`; `claude-fable-5` → `fable` | `glm-5.2`, `minimax-m3`, `kimi-k2.7` → `ollama-cloud`; `qwen3.8:27b-mlx` → `qwen` |
 | `argv` | `pi --provider deepseek --model <m> -p <prompt>` | `claude -p <prompt> --model <m> --allowedTools <tools> --output-format json` | `ollama launch pi --model <tag> -y -- -p <prompt>` |
 | `argv source` | `bin/subagent:247-251` | `bin/subagent:266-269` | `bin/subagent:271-272` |
 | `output_format` | `text` | `json-envelope` (DP-5) | `text` |
@@ -494,17 +510,18 @@ preamble + deliverables + inbox loop, exactly as `bin/subagent` assembles it tod
 | `env` | `MANAGENT_TASK_ID`, `WEIZIGO_AGENT_DEPTH+1` | same | same |
 
 **Two taxonomies, one word (N2).** The `family` column above is the **launch family**
-(which argv to run); the `appetite family` column is the **dial family** §4 keys its gate
-on. They are not the same set: the claude launch row's labels span `claude` and
-`claude-fable` (the 200 k boundary), and the ollama launch row's labels span
-`ollama-cloud` and `local` (`qwen3.8:27b-mlx` is local per `measurement-methodology.md`
-§1). `local` has no launch-template *row* because it is launched through the ollama argv;
-it is a dial family, not a launch family. The appetite gate (§4) reads the `appetite
-family` column; nothing in §4 keys on the launch `family` column.
+(which argv to run); the `appetite model` column is the **model short name** §4 keys its
+gate on — the unit of record (ruling 11). They are not the same set: the claude launch
+row's labels span four short names (`opus`, `sonnet`, `haiku`, `fable`), and the ollama
+launch row's labels span `ollama-cloud` and `qwen` (`qwen3.8:27b-mlx` is local per
+`measurement-methodology.md` §1). A short name is never a launch family; every label has
+exactly one short name, so the dial is per-model while the argv is per-family. The
+appetite gate (§4) reads the `appetite model` column; nothing in §4 keys on the launch
+`family` column.
 
 Three properties the table must have, each gate-able: the `argv` column is a **template
 string**, so a family is added by appending a row (arm D6: add a synthetic 4th
-launch-family row pointing at a stub binary, **declaring its appetite family**, and assert
+launch-family row pointing at a stub binary, **declaring its appetite model (short name)**, and assert
 a dispatch through it works with **zero** source changes outside the table); the `tag →
 label` map is **in the table**, so the `:cloud` suffix never appears in ledger or store
 rows (arm D7); and the table lives in its own sentinel-fenced region, outside DP-3's
@@ -512,78 +529,92 @@ selection.
 
 ---
 
-## 4. Appetite — a 0–99 dial per family (operator refinement (a); **Must**)
+## 4. Appetite — a 0–9 dial per model (operator refinement (a); **Must**, rulings 11/12/16/17)
 
 **Operator requirement (2026-08-21):** *"Appetite — a spectrum, not one gate. Hard: forbid
 a model/family outright. Soft: subtle or strong back-pressure"*
-(`docs/status/orchestration-layer-spec.md` §7.2), with the intent: **slow down with Claude
-and speed up with Ollama as token/credit windows approach and reset.**
+(`docs/status/orchestration-layer-spec.md` §7.2), refined 2026-08-22 by rulings 11, 12, 16,
+17: the dial is **0–9 per model (short name)**, not 0–99 per family; appetite records only
+*can use*; per-model spacing is deleted in favour of one global 10 s dispatch gap; and a
+separate per-model **dispatcher predicate** decides whether a model may act as dispatcher.
 
 The static levels `OFF < PROBE < CONSERVE < SPEND < RESERVED`
-(`S02-model-delegation/measurement-methodology.md:23`) are **replaced** by a continuous
-integer dial per family. The levels' defect is not that they were wrong; it is that a
+(`S02-model-delegation/measurement-methodology.md:23`) are **replaced** by a single-digit
+integer dial per model. The levels' defect is not that they were wrong; it is that a
 five-valued enum cannot express "a bit less than yesterday", so every real adjustment
 became a doc edit, and one of the five values (`RESERVED`) was never on the same axis at
 all (§4.5).
 
 ### 4.1 The dial
 
-`appetite(f) ∈ {0, 1, …, 99}`, one integer per **family** (not per label — families share
-a credit pool, which is the thing being rationed). Families at `56b9cf1`: `claude`,
-`claude-fable` (a separate pool by the 200 k boundary), `deepseek`, `ollama-cloud`,
-`local`.
+`appetite(m) ∈ {0, 1, …, 9}`, one integer per **model (short name)** — the unit of record
+(ruling 11). A single digit; values are read *relative to the current set*, not as an
+absolute calibration. Model short names at `56b9cf1`: `ollama-cloud`, `fable`, `opus`,
+`qwen`, `sonnet`, `haiku`, `dspro`, `flash`. **Family is a bulk convenience only** — a
+family-level write ("all ollama-cloud credits are exhausted", "dial down all Claude for
+the next hour", "no local models while the 5×5 tables rebuild") writes its member models'
+dials; it is never the unit of record.
+
+Initial values (operator, 2026-08-22, ruling 11): `ollama-cloud` 0 · `fable` 2 · `opus` 4
+· `qwen` 4 · `sonnet` 6 · `haiku` 6 · `dspro` 6 · `flash` 6.
 
 - **`0` = hard forbid.** Checked *first*, before any arithmetic, and refused with reason
   `appetite-forbid`. Not back-pressure, not a small number — a floor.
-- **`99` = full spend.** No spacing, full lane cap. No back-pressure of any kind.
-- **`1..98` = mechanized back-pressure**, never a disguised off (§4.2).
+- **`9` = full spend.** Full lane cap. No back-pressure of any kind.
+- **`1..8` = mechanized back-pressure**, never a disguised off (§4.2).
 
 **The extremes are the safety property.** `0` must be unliftable by any automatic process
-(§4.4) and `99` must be reachable only by an operator assertion. Everything between is
+(§4.4) and `9` must be reachable only by an operator assertion. Everything between is
 policy; the ends are structure.
 
 ### 4.2 What the dial mechanically does
 
-Two effects, both monotone in the dial, both computed from operator-set per-family
-constants (`lane_cap(f)`, `spacing_max(f)`), both observable in the store:
+One monotone effect, computed from the operator-set per-model `lane_cap(m)`, observable
+in the store:
 
 ```
-lanes(f)   = 0                                  if appetite(f) == 0
-           = max(1, round(appetite(f) * lane_cap(f) / 99))    otherwise
-spacing(f) = round(spacing_max(f) * (99 - appetite(f)) / 98)  seconds, for appetite(f) >= 1
+lanes(m) = 0                                  if appetite(m) == 0
+         = max(1, round(appetite(m) * lane_cap(m) / 9))    otherwise
 ```
 
-- `lanes(f)` caps the family's concurrent held children. It is a **second cap**, below the
+- `lanes(m)` caps the model's concurrent held children. It is a **second cap**, below the
   fleet-wide effective cap; the lower of the two binds. Refusal reason
   `appetite-lanes-exhausted`.
-- `spacing(f)` is the minimum wall time between two consecutive dispatches to the family.
-  At 99 it is 0 s; at 1 it is the full `spacing_max`. Refusal reason `appetite-spacing`.
 - `max(1, …)` is deliberate: any nonzero dial permits **at least one lane**. A dial of 1
-  means "one lane, maximally spaced" — visibly throttled, not silently off. The only off
-  is `0`, and it says so.
+  means "one lane" — visibly throttled, not silently off. The only off is `0`, and it
+  says so.
+
+**Per-model spacing is DELETED (ruling 16).** Every dispatch is a fresh instance, so
+per-model spacing gated nothing real; its two jobs are already owned by `lane_cap`
+(concurrency) and the queue's failure-redispatch backoff (retry storms — the actual churn
+vector). The `spacing_max` constant and the per-family spacing arithmetic are struck. One
+**global** dispatch gap remains as a stampede guard: default **10 s** between any two
+dispatches (operator's number; generous during development, tunable). A dispatch inside
+the gap is refused with reason `dispatch-gap` — global, not per-model.
 
 No randomised admission. The dial must not perturb the eligibility *ordering* — ordering
 is S03's concern (`S03-queue-layer/spec.md@08bc2d5` §2.1) and a probabilistic gate would
-make S03's aging property untestable. The dial changes *how many* and *how often*, never
-*which*.
+make S03's aging property untestable. The dial changes *how many*, never *which*.
 
 ### 4.3 How a window reset is **observed** (not inferred)
 
 The standing rule: a status carries an author and a timestamp, later supersedes earlier,
 and **the absence of an assertion is UNKNOWN, not "none"**. Applied to credit windows:
 
-Each family carries a window record: `{kind: rolling|weekly|none, resets_at, remaining_frac,
+The thing with a credit window is the **provider** (deepseek, claude, ollama), not the
+model short name — one provider window gates all of its member models' dials. Each
+provider carries a window record: `{kind: rolling|weekly|none, resets_at, remaining_frac,
 observed_at, author, source}`. Three states, and the clamp each implies:
 
-| state | when | `appetite_auto(f)` |
+| state | when | `appetite_auto(provider)` |
 |---|---|---|
 | `OBSERVED` | an assertion exists with `observed_at` inside the current window | computed from `remaining_frac` by the operator-set curve |
 | `ASSUMED_RESET` | wall clock passed `resets_at`, no fresh assertion since | **held at the pre-reset value** — the machine does not speed up on a prediction |
-| `UNKNOWN` | last `observed_at` older than one window length, or never | clamped to `appetite_floor(f)`, an operator-set conservative default — **not 0** (that would be inferring non-existence) and **not 99** |
+| `UNKNOWN` | last `observed_at` older than one window length, or never | clamped to `appetite_floor(provider)`, an operator-set conservative default — **not 0** (that would be inferring non-existence) and **not 9** |
 
 Two admissible observation sources, both dated and authored:
 
-1. **an operator assertion** — `managent appetite --window <family> <record>`, author =
+1. **an operator assertion** — `managent appetite --window <provider> <record>`, author =
    the operator, `source = operator`;
 2. **a provider-reported figure captured at dispatch** — the `json-envelope` usage payload
    DP-5 already decodes carries the numbers; the supervisor records them with
@@ -592,7 +623,7 @@ Two admissible observation sources, both dated and authored:
    observation channel.
 
 **Wall-clock crossing `resets_at` is a prediction, never an observation.** It moves the
-family to `ASSUMED_RESET` and changes nothing else. A window that "should have reset" and
+provider to `ASSUMED_RESET` and changes nothing else. A window that "should have reset" and
 did not is exactly the case that burns credits, and it is unobservable from the clock.
 
 → Arms A3, A4, A5.
@@ -601,45 +632,63 @@ did not is exactly the case that burns credits, and it is unobservable from the 
 
 Three writers, strictly ordered:
 
-- **The operator sets `appetite_operator(f)`.** The authority. Any value 0–99. Every
+- **The operator sets `appetite_operator(m)`.** The authority. Any value 0–9. Every
   write is a record with author + timestamp; the previous value is superseded, not
-  overwritten silently.
-- **The supervisor computes `appetite_auto(f)`** from the window state (§4.3) and may
-  **only reduce**: `appetite_effective(f) = min(appetite_operator(f), appetite_auto(f))`.
+  overwritten silently. A **family-level** write (bulk convenience, ruling 11) writes its
+  member models' dials; it is sugar over the same per-model records, not a separate unit.
+- **The supervisor computes `appetite_auto`** from the window state (§4.3) and may
+  **only reduce**: `appetite_effective(m) = min(appetite_operator(m), appetite_auto(provider(m)))`.
   The machine can throttle and can restore *toward* the operator's number as a window is
-  observed to reset — it can never exceed it. `appetite_operator(f) = 0` therefore means
+  observed to reset — it can never exceed it. `appetite_operator(m) = 0` therefore means
   hard-forbid that no automatic process can lift, which is the whole point of the `0`
   extreme.
-- **No worker may write either value.** Mechanized: the `managent appetite <family> <n>`
+- **No worker may write either value.** Mechanized: the `managent appetite <model> <n>`
   write path refuses when the caller's environment marks it a held worker
   (`MANAGENT_TASK_ID` present, or the supervisor's held-child marker set), exit non-zero,
-  named reason. A worker that could raise its own family's appetite is a runaway vector
+  named reason. A worker that could raise its own model's appetite is a runaway vector
   and belongs to §5's threat model as much as to this section.
 
-→ Arms A1, A2, A6.
+→ Arms A1, A2, A6, A8.
 
-### 4.5 Migration from the levels, and what `RESERVED` actually was
+### 4.5 Migration from the levels, and the three per-model flags
 
-Default dial values, so the S02 table is superseded rather than orphaned (operator to
-ratify the numbers; the *mapping* is the spec's claim, the numbers are the operator's):
+The initial dial values are the operator's numbers, supplied 2026-08-22 (ruling 11) — they
+are no longer "owed", and there is no per-family default table left to ratify:
 
-| family | old level | dial | note |
+| model (short name) | old level | dial | note |
 |---|---|---|---|
-| `deepseek` | `SPEND` | 90 | the workhorse |
-| `claude` | `CONSERVE` | 45 | weekly ≈70 % used at 2026-08-21 |
-| `claude-fable` | `RESERVED` | 60 **+ reservation predicate** | see below |
-| `ollama-cloud` | `OFF → SPEND` (human flip) | 90 | the "speed up" side of the operator's ask; methodology records `OFF → SPEND`, 0 tokens, ~48 h — reconcile with the human-flip OFF state at ratification (N8) |
-| `local` | `PROBE` | 15 | costs the machine, not credits |
+| `ollama-cloud` | `OFF` | 0 | CANNOT use at this time (operator) |
+| `fable` | `RESERVED` | 2 | reserve for when Fable is most appropriate AND needed |
+| `opus` | `CONSERVE` | 4 | use when appropriate; perhaps an alternative exists |
+| `qwen` | `PROBE` | 4 | use when appropriate; perhaps an alternative exists |
+| `sonnet` | `CONSERVE` | 6 | use liberally |
+| `haiku` | `CONSERVE` | 6 | use liberally |
+| `dspro` | `SPEND` | 6 | use liberally |
+| `flash` | `SPEND` | 6 | use liberally |
 
-`RESERVED` was **not a point on the appetite axis** — it is a *task-type predicate*
-("deep holistic review · gate-holder verification · spec/design adjudication; never
-one-off/general", `measurement-methodology.md:30`). Rev 1 inherited it as a fifth level
-and thereby made the axis incoherent: a family could be simultaneously "most eager" and
-"almost never dispatchable". The dial separates the two: Fable has a **mid dial** (it may
-spend when it is the right lane) **and** a hard reservation predicate (it is the right
-lane rarely). The predicate is a separate hard gate, evaluated with the appetite check,
-refusal reason `reservation-mismatch`. Making this separation visible is a genuine finding
-of the refinement, not bookkeeping.
+A dial of 6 means "use liberally"; the set's max never means must-use. Values are read
+*relative to the current set*, not as an absolute calibration (ruling 11).
+
+**"Can use" vs "should use" are separate axes (ruling 12).** Appetite records only *can
+use* — permission plus back-pressure on a spend pool. *Should use* is decided by model
+test data (the ladder) plus circumstantial appropriateness, including which mode the fleet
+is in: "get real work done" (exploit the ladder) vs "eager to race models where evidence
+is sparse" (explore). `RESERVED` was **not a point on the appetite axis** — it was a
+*should-use* predicate ("deep holistic review · gate-holder verification · spec/design
+adjudication; never one-off/general", `measurement-methodology.md:30`) misfiled as a fifth
+level. Rev 1 inherited it as a level and thereby made the axis incoherent: a model could
+be simultaneously "most eager" and "almost never dispatchable". The dial separates the two:
+Fable has a **low dial** (it may spend when it is the right lane) **and** a hard
+reservation predicate (it is the right lane rarely). The predicate is a separate hard
+per-model gate, refusal reason `reservation-mismatch`, and it lives on the *should use*
+axis, not the appetite dial. The reservation predicate was the **first** "should" leaking
+into the "can" axis; no others may leak in (ruling 12).
+
+**Dispatcher predicate (ruling 17).** A third per-model hard flag, separate from appetite
+and from "dispatch TO": *may this model act as a dispatcher/manager at all*. Some models
+can dispatch; others simply cannot — the same shape as Fable's reservation predicate. The
+list is maintained from race evidence (T363 first data point), never from belief. Refusal
+reason `dispatcher-predicate`.
 
 ---
 
@@ -725,7 +774,7 @@ undispatchable; the spec states the migration rather than leaving it silent.
 **Threat model, stated so the controls can seed it.** The runaway this section exists to
 stop is: a worker whose close mints a copy of its own row (or two), each of which
 dispatches, each of which mints again — bounded by neither the process depth cap (depth
-stays flat) nor the fleet cap (rows are legitimate) nor appetite (the family is allowed).
+stays flat) nor the fleet cap (rows are legitimate) nor appetite (the model is allowed).
 RUN-4 refuses the first exact copy; RUN-3's depth cap bounds a mutating chain; RUN-1's
 breaker catches a replicator that evades both by varying its rows. Three independent
 mechanisms, because a single one is a single point of failure for a defect whose cost is
@@ -929,12 +978,13 @@ perfectly while spending the credit pool or replicating rows is not the delivera
    the supervisor polls per child every `--poll-ms` (default 250) and the cost of N
    concurrent poll walks is unmeasured. Design-phase measurement; if it measures badly,
    `sysctl(KERN_PROC_ALL)` is the same escape pass 1 named.
-6. **Appetite constants need operator ratification (§4.5).** The *mapping* from levels to
-   a dial, the 0/99 extremes, the reduce-only rule, and the three window states are the
-   spec's claims. The per-family default dial values, `lane_cap(f)`, `spacing_max(f)`,
-   `appetite_floor(f)`, and the `remaining_frac → appetite_auto` curve are the operator's
-   numbers and are unratified. Nothing in §4 is blocked on them: the controls exercise the
-   mechanism at chosen values.
+6. **Appetite constants need operator ratification (§4.5).** The 0/9 extremes, the
+   reduce-only rule, and the three window states are the spec's claims. The initial
+   per-model dial values are the operator's numbers and are **now supplied** (ruling 11,
+   2026-08-22) — no longer owed. `lane_cap(m)`, `appetite_floor(provider)`, and the
+   `remaining_frac → appetite_auto` curve are the operator's numbers and remain
+   unratified; `spacing_max` is struck (ruling 16). Nothing in §4 is blocked on them: the
+   controls exercise the mechanism at chosen values.
 7. **`D_max` and the mint budget (§5).** `D_max` (lineage depth cap), `K` (consecutive
    positive-Δ closes before the breaker trips, default 5), and the per-window mint budget
    need operator numbers. Unratified. The `MAX_DEPTH = 3` process cap
@@ -988,14 +1038,16 @@ lineage cycle check ⇒ R3 red.
 | D3 | seeded, decode failure | a `text`-emitting stub declaring `json-envelope` | decode fails with a **named** reason, distinguishable from `nonce-not-found`; the two verdicts are never conflated (DP-5) |
 | D4 | mutation | force every lane's decoder to `text` | D2 red |
 | D5 | seeded, second list | a fresh file holding 3 canonical labels as literals | DP-6 red; **D5-null**: green on the post-pass tree; **D5-pin**: adding an 11th label to an allowlisted residual holder is red until the pin is updated (F4) |
-| D6 | seeded, data-not-code | append a synthetic 4th launch-family row (declaring its appetite family) pointing at a stub binary | a dispatch through it works with **zero** source changes outside the table (§3.1) |
+| D6 | seeded, data-not-code | append a synthetic 4th launch-family row (declaring its appetite model) pointing at a stub binary | a dispatch through it works with **zero** source changes outside the table (§3.1) |
 | D7 | seeded, tag mapping | dispatch an ollama tag with a `:cloud` suffix | no `:cloud` string reaches any store row or ledger line; the canonical label does (§3.1) |
-| A1 | seeded, hard forbid | `appetite(claude) = 0`, an eligible claude row | zero dispatches, reason `appetite-forbid`; mutation (remove the `== 0` short-circuit) ⇒ red (§4.1) |
-| A2 | seeded, write authority | a held worker attempts `managent appetite claude 99` | refused non-zero with a named reason; the stored value is unchanged; an operator write of the same value succeeds (§4.4) |
-| A3 | seeded, reduce-only | `appetite_operator = 40`, supervisor computes `appetite_auto = 90` | `appetite_effective == 40`; the machine never exceeds the operator's number (§4.4) |
-| A4 | seeded, window states | drive one family through `OBSERVED` → wall clock past `resets_at` → `ASSUMED_RESET` → a fresh assertion | `ASSUMED_RESET` holds the pre-reset dial (**no speed-up on a prediction**); the fresh assertion lifts it; a stale-beyond-one-window record yields `UNKNOWN` clamped to `appetite_floor`, never 99 (§4.3) |
+| A1 | seeded, hard forbid | `appetite(sonnet) = 0`, an eligible sonnet row | zero dispatches, reason `appetite-forbid`; mutation (remove the `== 0` short-circuit) ⇒ red (§4.1) |
+| A2 | seeded, write authority | a held worker attempts `managent appetite sonnet 9` | refused non-zero with a named reason; the stored value is unchanged; an operator write of the same value succeeds (§4.4) |
+| A3 | seeded, reduce-only | `appetite_operator = 4`, supervisor computes `appetite_auto = 8` | `appetite_effective == 4`; the machine never exceeds the operator's number (§4.4) |
+| A4 | seeded, window states | drive one provider through `OBSERVED` → wall clock past `resets_at` → `ASSUMED_RESET` → a fresh assertion | `ASSUMED_RESET` holds the pre-reset dial (**no speed-up on a prediction**); the fresh assertion lifts it; a stale-beyond-one-window record yields `UNKNOWN` clamped to `appetite_floor`, never 9 (§4.3) |
 | A5 | seeded, envelope observation | a `json-envelope` stub lane carrying a usage payload | the window record is written with `source = envelope`, `observed_at`, and the worker's identity as author (§4.3) |
-| A6 | seeded, dial arithmetic | sweep `appetite ∈ {0, 1, 45, 98, 99}` with fixed `lane_cap`/`spacing_max` | `lanes`/`spacing` match §4.2 exactly; `lanes ≥ 1` for every nonzero dial; `spacing == 0` at 99; refusal reasons distinguish `appetite-lanes-exhausted` from `appetite-spacing` (§4.2) |
+| A6 | seeded, dial arithmetic | sweep `appetite ∈ {0, 1, 4, 8, 9}` with fixed `lane_cap` | `lanes` match §4.2 exactly; `lanes ≥ 1` for every nonzero dial; refusal reasons distinguish `appetite-lanes-exhausted` from the global `dispatch-gap` (§4.2) |
+| A7 | seeded, dispatcher predicate | an eligible row whose model's may-dispatch flag is false | zero dispatches, reason `dispatcher-predicate`; mutation (remove the check) ⇒ red (§4.5) |
+| A8 | seeded, bulk write | `managent appetite --family claude 3` | every claude model's dial (`opus`, `sonnet`, `haiku`, `fable`) becomes 3; no separate family record exists (§4.1) |
 | R1 | seeded, runaway | a stub whose every close mints 2 **distinct** rows | the mint breaker trips within `K` closes, reason `mint-breaker`, dispatch stops, total queued work stops growing; mutation (remove the Δ accumulator) ⇒ red (RUN-1) |
 | R1-null | null | a stub whose close mints nothing, run 3× `K` closes | breaker never trips; Δ recorded as ≤ 0 each close (RUN-1) |
 | R2 | seeded, authorship | a mint written with no author; a second write appending a second author | both rejected **at write time**; the store is unchanged (RUN-2) |
@@ -1026,6 +1078,7 @@ Adopted aspects → source:
 | the residual run-record / heartbeat writer (HOLD-6a/c) | `tools/runner:368-369`, `:372-382`, `:398-458`, `:463`, `:1385` |
 | `ollama stop` as a per-family release, severable Could; the launched-tag rule | `pass1/scope.md` §4; `bin/subagent:271-272`; `tools/bakeoff.sh:17` |
 | appetite as a **spectrum** (hard forbid vs soft back-pressure); mint safety needing "a cap + lineage + a justification field"; "well-specified, unique, justified, provably NOT recursive" | operator, `docs/status/orchestration-layer-spec.md` §7.2, §7.5 |
+| appetite as a **0–9 per-model dial**; can-vs-should axes; per-model spacing deleted; the dispatcher predicate | operator, `docs/status/orchestration-layer-spec.md` §7c items 11, 12, 16, 17 |
 | the level→dial migration baseline and the `RESERVED` reservation predicate | `S02-model-delegation/measurement-methodology.md:23-32` |
 | fleet-fill eligibility/pressure/backoff/cooldown carried behaviour-preserving; the 80× re-fire as the keeper's Red; the golden-master arm | `tools/fleet-keeper.sh`, `docs/infra/fleet-keeper-design.md`, `tools/regression-fleet-keeper.sh` |
 | nonce/deliverables/row-state verify; heal sole-owner; provider-refusal; wall-advisory | `tools/dispatch_verify.py`, `bin/subagent` |
@@ -1045,6 +1098,8 @@ Rejected major alternatives, one line each:
 | **a gate asserting "exactly one model list exists"** | false on the first run (three residual holders outside this pass's scope) and disabled by the second week; DP-6 enumerates and count-pins instead — F4 |
 | **DP-4 alone, with no decode seam** | forbids the claude JSON envelope the tree actually needs; a family-independent *declared* `output_format` field is the reconciliation — F3 |
 | **keeping the static `OFF..RESERVED` appetite levels** | a five-valued enum cannot express "a bit less than yesterday", so every adjustment is a doc edit; and `RESERVED` was a task-type predicate misfiled as an appetite level — operator refinement (a) |
+| **a 0–99 dial per family** | the unit of record is the model (short name); a family-level dial is bulk convenience only, never the thing rationed — ruling 11 |
+| **per-model dispatch spacing** | every dispatch is a fresh instance, so per-model spacing gated nothing real; concurrency is `lane_cap`'s job and retry storms are the queue backoff's job — ruling 16 |
 | **letting the supervisor raise its own appetite** | a machine that can lift its own credit ceiling has no ceiling; reduce-only with an operator-set maximum keeps the `0` extreme unliftable — §4.4 |
 | **treating a wall-clock `resets_at` crossing as an observed reset** | a window that should have reset and did not is exactly the case that burns credits, and it is invisible from the clock; absence of an assertion is UNKNOWN, not "reset" — §4.3 |
 | **relying on `MAX_DEPTH = 3` for recursion safety** | it caps *process* nesting; a flat replicator has constant process depth and unbounded lineage depth. Different quantity, different cap — §5 RUN-3, arm R4 |

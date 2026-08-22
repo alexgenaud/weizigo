@@ -1,0 +1,32 @@
+{
+  "task_id": "T581",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T581",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "R11",
+      "ruling": "Appetite dial is 0–9 per MODEL (short name), not 0–99 per family; family-level setting is bulk convenience only.",
+      "folded_at": "pass2/spec.md §4.1 (the dial, lines 548-559: `appetite(m) ∈ {0,1,…,9}` per model, family as bulk convenience, initial values table); §4.4 (family-level write is sugar over per-model records); §4.5 (initial per-model dial values table, lines 653-667); §3.1 (the `appetite family` column is now the `appetite model` short-name column, line 503)."
+    },
+    {
+      "id": "R12",
+      "ruling": "\"Can use\" vs \"should use\" are separate axes; appetite records only can-use; the RESERVED predicate was the first \"should\" leak and no others may leak in.",
+      "folded_at": "pass2/spec.md §4.5 (lines 672-685: the can-vs-should axis separation, the RESERVED predicate re-homed to the should-use axis with refusal reason `reservation-mismatch`)."
+    },
+    {
+      "id": "R16",
+      "ruling": "Per-model spacing is DELETED; one global 10 s dispatch gap replaces it; strike the spacing constant and per-family spacing arithmetic.",
+      "folded_at": "pass2/spec.md §4.2 (lines 587-593: `spacing_max` and the spacing formula struck, global 10 s `dispatch-gap` added); §2.1 reason list (line 262: `appetite-spacing` renamed to `dispatch-gap`); Open question 6 (line 986: `spacing_max` struck)."
+    },
+    {
+      "id": "R17",
+      "ruling": "Dispatcher predicate: hard per-model \"may dispatch\" flag, separate from appetite, maintained from race evidence.",
+      "folded_at": "pass2/spec.md §4.5 (lines 687-691: the dispatcher predicate with refusal reason `dispatcher-predicate`); §2.1 admission gate + reason list (lines 254-255, 263)."
+    }
+  ],
+  "notes": "Fold of orchestration-layer-spec.md §7c rulings 11/12/16/17 into pass2/spec.md §4/§4.5 (rev 3 → rev 4). Judgment calls made within the fold mandate, flagged for the auditor: (1) the struck per-model spacing refusal reason `appetite-spacing` is renamed `dispatch-gap` because the global gap is a stampede guard, not an appetite mechanism — this matches S03-queue-layer/spec.md's independent choice of the same reason string; (2) §4.3's window record is re-keyed from family to provider (deepseek/claude/ollama) because a credit window is provider-level and gates all member models' dials, so `appetite_auto` is per-provider while the dial and `appetite_operator` stay per-model; (3) two new control arms added — A7 (dispatcher-predicate refusal) and A8 (family bulk write) — so the two new mechanisms are testable, per the doc's own controls discipline. Cross-spec note: ruling 16's literal wording names `cooldown_max`, but pass2/spec.md §4.2's struck constant was `spacing_max` (no `cooldown_max` ever existed in pass-2; S03-queue-layer/spec.md:587's parenthetical \"cooldown_max (pass 2 §4.2's name…)\" is a slight misattribution — that constant is S03's, and striking `spacing_max` here satisfies ruling 16's intent for this pass). S03's fold is T580's artifact, out of this task's scope."
+}
