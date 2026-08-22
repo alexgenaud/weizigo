@@ -1,6 +1,10 @@
 {
-  "task": "T656",
+  "task_id": "T656",
+  "date": "2026-08-22",
+  "model": "claude-haiku-4-5-20251001",
   "title": "Race C grader: all-grade-all",
+  "claims": [],
+  "new_rows": [],
   "control_check": {
     "pair-6-minimal": {
       "expected": {
