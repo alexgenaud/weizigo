@@ -1,8 +1,9 @@
 #!/bin/sh
 # Fleet view — operator console. Nothing reads this. Read-only. Refresh 10 s.
 # Time: a colon is always an INSTANT (14:52:01). Durations never contain one (4h28, 19'48, 12.345).
-# Layout: PROGRESS and CONCERNS always show every row. DONE and OPEN show at least MIN_ROWS each
-# (when they have that much data), expand into whatever height is left, and never exceed MAX_ROWS.
+# Layout: PROGRESS, CONCERNS (current) and RECENT (resolved/killed) always show every row.
+# DONE and OPEN show at least MIN_ROWS each (when they have that much data), expand into
+# whatever height is left, and never exceed MAX_ROWS.
 MAX_ROWS=20
 MIN_ROWS=4
 # Refresh escalates: every 10 s for the first minute, every minute for the first hour, hourly after.
@@ -67,8 +68,9 @@ except Exception: raw={}
 for k,r in auth.items(): r['done']=(raw.get(k) or {}).get('done','')
 json.dump(auth,open(1,'w'))
 PYX
+    bin/managent liveness 2>/dev/null > "$T.liveness" || : > "$T.liveness"
 
-    : > "$T.prog"; : > "$T.conc"; : > "$T.done"; : > "$T.open"
+    : > "$T.prog"; : > "$T.conc"; : > "$T.recent"; : > "$T.done"; : > "$T.open"
 
     # Detect live workers by the brief path in their argv, not by provider:
     # deepseek chains are subagent -> runner -> pi (the pi child's argv is
@@ -113,11 +115,17 @@ import json;d=json.load(open('$T.json'))
 o=[((v.get('claimed') or ''),k) for k,v in d.items() if v.get('status')=='in_progress']
 print(' '.join(k for _,k in sorted(o,reverse=True)))" 2>/dev/null); do
         pgrep -f "Follow untracked/$t-" >/dev/null 2>&1 && continue
+        grep -q "    $t  \[beating\]" "$T.liveness" 2>/dev/null && continue
         printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "orphaned" "$(desc "$t")" | fit >> "$T.conc"
     done
     for f in untracked/bakeoff/*/*/out.md; do
-        [ -f "$f" ] && [ ! -s "$f" ] && grep -qa "exit 12[0-9]" "$(dirname "$f")"/trailer.log 2>/dev/null &&
-        printf '  %-5s %-3s %-8s  %s\n' "race" "" "killed" "lane $(basename $(dirname $f))" | fit >> "$T.conc"
+        [ -f "$f" ] && [ ! -s "$f" ] || continue
+        d=$(dirname "$f")
+        [ -f "$d/trailer.log" ] || continue
+        # RECENT only: age out killed lanes whose trailer is older than 3 days
+        [ -z "$(find "$d/trailer.log" -mtime -3 2>/dev/null)" ] && continue
+        grep -qa "exit 12[0-9]" "$d/trailer.log" 2>/dev/null || continue
+        printf '  %-5s %-3s %-8s  %s\n' "race" "" "killed" "lane $(basename "$d")" | fit >> "$T.recent"
     done
 
     for t in $(python3 -c "
@@ -165,12 +173,12 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
         printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "${st:-open}" "$(desc "$t")" | fit >> "$T.open"
     done
 
-    np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null)
+    np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
-    for v in np nc nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
+    for v in np nc nr nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
     # 9 fixed lines (title + blank&heading x4), up to 2 "(more)" lines, 1 spare so the
     # header never scrolls off — undercounting here is what pushed the title into scrollback.
-    avail=$(( ROWS - 14 - np - nc ))    # +2 for the footer's blank line and its text
+    avail=$(( ROWS - 16 - np - nc - nr ))    # +2 for RECENT heading, +2 for the footer
     ds=$(( avail / 2 )); os=$(( avail - ds ))
     [ "$ds" -gt "$nd" ] && { os=$(( os + ds - nd )); ds=$nd; }
     [ "$os" -gt "$no" ] && { ds=$(( ds + os - no )); os=$no; }
@@ -183,6 +191,7 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     printf '=== weizigo fleet — %s local ===\n' "$(date '+%H:%M:%S')"
     printf '\nPROGRESS'; [ "$np" = 0 ] && printf ' (none)\n' || { printf '\n'; cat "$T.prog"; }
     printf '\nCONCERNS'; [ "$nc" = 0 ] && printf ' (none)\n' || { printf '\n'; cat "$T.conc"; }
+    printf '\nRECENT';   [ "$nr" = 0 ] && printf ' (none)\n' || { printf '\n'; cat "$T.recent"; }
     printf '\nDONE';     show "$T.done" "$ds"
     printf '\nOPEN';     show "$T.open" "$os"
     [ "$ONESHOT" = 1 ] && { cleanup; exit 0; }
