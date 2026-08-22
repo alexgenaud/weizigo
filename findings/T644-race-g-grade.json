@@ -1,0 +1,1948 @@
+{
+ "task_id": "T644",
+ "date": "2026-08-22",
+ "model": "claude-opus-5",
+ "claims": [],
+ "new_rows": [],
+ "method": "Ruled all 25 claims myself against the repo FIRST, writing each ruling to findings/T644-race-g-grade.json before opening any lane file (per_claim entries were flushed one at a time; the lane files were read only after own-rulings reached 25/25). I then amended exactly one of my own rulings (G14) after two lanes surfaced a coverage gap I had missed \u2014 the amendment is marked in that entry and disclosed in limits.",
+ "own_ruling_first": true,
+ "my_own_result": "25 of 25 registered statuses are CORRECT at HEAD. Zero refuted, zero unverifiable-at-head. What is broken in this batch is not the statuses \u2014 it is the CITATION LAYER: 9 or more of the 25 rows cite file:line anchors whose content has moved, one cites a glob that matches nothing, GLOBAL.F2 is asserted as 'orphaned' while having no row at all, and two rows carry rationales superseded weeks ago (T372 on 2026-08-05, T378 on 2026-08-19). None of it is catchable by claimlint C2, which by its own documentation sees only missing paths.",
+ "per_claim": [
+  {
+   "claim": "G01",
+   "claim_id": "GLOBAL.H1-MARKOV",
+   "registered_status": "UNTESTED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Status UNTESTED is CORRECT for the claim as scoped, but the row's stated rationale is STALE at HEAD and one citation does not resolve. (a) The row justifies UNTESTED with 'C1 has never been tested with contrasting histories: the history generator misses the shortest arrival in 93% of states with ~62% shared prefixes'. That baseline reproduces (docs/audits/2026-07-29-2b-3-history-pairs-audit.md:209 '28/30 (93%)', :217 '~62% of their moves'), BUT the contrast test the row says was never run HAS since run: T372 (docs/evidence/QA-023/c1-contrast-2026-08-05.md, instrument src/t372_zrtie.zig) built a shortest-arrival-first generator measuring 100/100 shortest-arrival hit rate and 23.44% pairwise shared prefix vs the old generator's 2% / 52.91% re-run on the same machine, with a null control (0 mismatches) and a seeded control that DETECTED injected history dependence at both 3x2 and 3x3. So the 'never tested' clause is false at HEAD. (b) UNTESTED nevertheless survives: T372's own reading is 0/404 within-budget pairs disagreeing across only 24 C1-eligible states of 129 sampled, with 764/906 evaluations (84.3%) budget-exhausted, and T372 explicitly labels the fresh-start reading 'UNTESTED rather than true'. A 0-failure result at 16% coverage does not promote. (c) Citation defect: the row cites 'docs/audits/2b-3-audit-*.md'; no path matches that glob at HEAD (the real file is docs/audits/2026-07-29-2b-3-history-pairs-audit.md).",
+   "evidence_checked": [
+    "docs/audits/2026-07-29-2b-3-history-pairs-audit.md:209,217",
+    "docs/evidence/QA-023/c1-contrast-2026-08-05.md sections 3,4,5.1",
+    "docs/research/open-hypotheses-2026-07-27.md:30-40",
+    "docs/epistemic/PROGRESS.md:169-183"
+   ],
+   "defects_found": [
+    "citation glob docs/audits/2b-3-audit-*.md unresolvable at HEAD",
+    "row rationale asserts a test-never-run that T372 ran on 2026-08-05; row not updated"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "Still UNTESTED as a headline, but the reason must be replaced, not merely re-cited. Correct reason at HEAD: the contrast test HAS been run (T372) and found 0 C1"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "UNTESTED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "UNTESTED"
+    },
+    "lane-4": {
+     "mark": "disagrees on the verdict label, agrees on the status (called it unverifiable while still endorsing the registered status)",
+     "lane_verdict": "unverifiable-at-head",
+     "lane_status_should_be": "UNTESTED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "UNTESTED"
+    }
+   }
+  },
+  {
+   "claim": "G02",
+   "claim_id": "GLOBAL.ADR0006-EYE",
+   "registered_status": "CLAIMED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "CLAIMED is the correct status and the evidence is checkable at HEAD. docs/decisions/0006-eye-prune-for-tractable-search.md:27-49 does contain the decision and the weak-dominance argument at exactly the cited lines. The validation battery T114 (docs/audits/2026-07-30-eye-prune-validation.md:13-25) reports 'ADR-0006 is not falsified ... zero disagreements and zero lemma violations in every section', 17/17 hand-labelled assertions, and four plausible wrong predicates caught. The predicate is live in code (rules.zig R.is_own_eye, used at src/chainability.zig:85,100 and src/eyeprune_battery.zig:143,165). It correctly stays CLAIMED rather than PROVEN because T114's Correction 2 shows the control arm was NOT the unpruned game value (its memo caches every (pos,side,passes) node under positional superko, unsound) and the sound control does not terminate (32/32 roots unresolved at 3x2); and Correction 3 found a previously unidentified live class at 4x4 (96 pairs where the prune empties the move list and the pass edge carries it). So: validated far beyond its original state, not proven. CLAIMED is right.",
+   "evidence_checked": [
+    "docs/decisions/0006-eye-prune-for-tractable-search.md:27-49",
+    "docs/audits/2026-07-30-eye-prune-validation.md:13-25,81,129,142,158",
+    "src/chainability.zig:85,100",
+    "src/eyeprune_battery.zig:143,165"
+   ],
+   "defects_found": [],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED -- unchanged, and correctly so. The T114 battery makes the predicate and the local premises well-supported (exhaustive at 4x4) but explicitly leaves the"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    }
+   }
+  },
+  {
+   "claim": "G03",
+   "claim_id": "GLOBAL.F1",
+   "registered_status": "FALSE-AS-SCOPED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "The claim 'the writes-on finisher (ko_ref >= d cross-branch memo guard) is sound' is indeed FALSE, and both the argument and the measurement check out at HEAD. ADR-0013 at exactly the cited 0013:20-44 names the guard site verbatim -- 'if (hashable and ctx.memo_writes and ko_ref >= d) { ... write global memo ... }' -- and gives the GHI refutation: ko_ref >= d proves only that THIS arrival's subtree referenced no ancestor above P, and says nothing about a different arrival. The guard is still live at HEAD (src/oracle.zig:253, src/retro.zig:593 -- the ADR's own :208/:468 site references have drifted, but the register cites the ADR, not the source lines, so the register's citation is sound). The measurement is at exactly the cited docs/research/consistency-audit.md:25-34: variant 'new' memo_writes ON, 378 checked, 45 violations, PROVABLY BUGGY; 'soundish' OFF, 378 checked, 0. CONCEPTS.md:109 resolves. FALSE-AS-SCOPED is the right label: measured at 3x2, argued structural.",
+   "evidence_checked": [
+    "docs/decisions/0013-sound-finisher-and-dependency-guarded-memo.md:20-44",
+    "docs/research/consistency-audit.md:25-34",
+    "src/oracle.zig:253",
+    "src/retro.zig:593"
+   ],
+   "defects_found": [
+    "ADR-0013's internal guard-site refs src/oracle.zig:208 / src/retro.zig:468 have drifted to :253 / :593 (defect in the ADR, not in the register row)"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED -- unchanged. The scope qualifier is doing real work and is right: the falsification is exhaustive at 3x2 (378 slots, all KO_SENSITIVE) and is a"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    },
+    "lane-4": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G04",
+   "claim_id": "3x2.T13",
+   "registered_status": "PROVEN (falsification)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Every number in the row reproduces at exactly the cited section. docs/evidence/T13/probe-reimplementation-2026-07-30.md section 8 (:418-427) prints: '(slot, history) pairs tested : 134504', 'distinct ban-sets solved : 134504', 'L==H slots reached : 508 / 540', 'falsifying (slot, history) pairs : 4432'; and :26-27 states '154 of the 508 reachable L==H slots -- 30.3% -- are history-sensitive, not 12'. The 508 denominator is independently corroborated (:129-138 '508 was reproduced independently, and is a structural fact'; :293-296 a ten-of-ten per-slot histogram match between T13 and the re-implementation). The understatement claim ('the 2026-07-26 run sampled one history per slot and recorded 12 ... understates by >10x') follows arithmetically: 154/12 = 12.8x. This is the strongest-evidenced row in the batch: a blind re-implementation in a second language reproducing the original ten-for-ten, with the corrected order-independent count. Both cited probe sources exist and are committed (t13_probe.py 1154 lines, zig_t13_replay.zig).",
+   "evidence_checked": [
+    "docs/evidence/T13/probe-reimplementation-2026-07-30.md:26-27,116,129-138,260,293-296,418-427",
+    "docs/evidence/T13/t13_probe.py",
+    "docs/evidence/T13/zig_t13_replay.zig",
+    "docs/research/c2-falsification-3x2.md"
+   ],
+   "defects_found": [],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification) -- unchanged. This is the best-evidenced row in the batch: the falsification is re-executable from committed code at HEAD in under 20 sec"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification) (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    }
+   }
+  },
+  {
+   "claim": "G05",
+   "claim_id": "4x4.D3",
+   "registered_status": "UNTESTED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "UNTESTED is correct and is in fact the row's own point: it self-describes as 'a measurement, not a truth claim' with a placeholder budget. The content is present in the cited file and the placeholder is genuinely unconfirmed: docs/epistemic/boards/4x4/EPISTEMIC.md:195-202 has 'D3 writes-off 4x4 tractability. [T07-9] A measurement, not a ...' with 'wall <= 8 h, memory <= 32 GB (or whatever the dev machine sustains -- TODO confirm with user)', and :448 repeats it in the open-questions list as '[T07-9] D3 target wall/memory: confirm with user (placeholder 8h / 32GB)'. So the row's parenthetical '(placeholder, unconfirmed with the user)' is literally corroborated by a standing TODO in the cited file, and :328 records that a completed writes-off regen is still 'a named prerequisite' with the writes-off artifact 'uncommitted, in untracked/'. No writes-off 4x4 run has landed. UNTESTED holds. CITATION DEFECT: the row cites :175-183, which at HEAD is S2 Benson-implementation-regression prose, not D3.",
+   "evidence_checked": [
+    "docs/epistemic/boards/4x4/EPISTEMIC.md:175-183 (drifted),195-202,326-330,448"
+   ],
+   "defects_found": [
+    "line citation 4x4/EPISTEMIC.md:175-183 has drifted; D3 now lives at :195-202 and :448"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "UNTESTED -- unchanged and correct. The register-triage's own annotation, 'ev prose-only', is the sharper version of the same statement and should arguably be ca"
+    },
+    "lane-2": {
+     "mark": "disagrees on the verdict label, agrees on the status (called it unverifiable while still endorsing the registered status)",
+     "lane_verdict": "unverifiable-at-head",
+     "lane_status_should_be": "UNTESTED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "UNTESTED"
+    },
+    "lane-4": {
+     "mark": "disagrees on the verdict label, agrees on the status (called it unverifiable while still endorsing the registered status)",
+     "lane_verdict": "unverifiable-at-head",
+     "lane_status_should_be": "UNTESTED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "UNTESTED"
+    }
+   }
+  },
+  {
+   "claim": "G06",
+   "claim_id": "GLOBAL.ADR0015-BURDEN",
+   "registered_status": "CLAIMED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "The substance verifies on every checkable point, and one clause has become unverifiable-at-head. VERIFIED: (a) all three ADRs exist and are committed (0015 165 lines, 0017 227, 0018 103). (b) The strengthening figure the row states -- 'T13's 12 pointwise mismatches at 3x2 ride exactly the finisher's search-shaped histories (8/12 empty-rooted)' -- is at docs/decisions/0017-...:108-113: '12 verified mismatches ... eight are rooted at index 0, the empty goban; the other four are rooted at a legal position'. That is 8/12, exactly. (c) The empty-root identification argument is at 0017:79-80 ('For the empty root the identification is total: every legal game line from the empty goban is a candidate search path and vice versa'), which is the load-bearing step. (d) The three-seat blind review is at 0018:30-32 with the seats named as the row names them (QA-018-REVIEW-A GLM-5.2, -B DeepSeek Pro, -C Kimi-k2.7) and the verdict 'unanimously ... SOUND'; and -- the part that makes it evidence rather than a poll -- 0018:47,61-62 confirms the panel protocol planted two candidate exemption arguments and 'All three seats convicted both planted defences. No seat blessed a planted flaw.' That is a calibrated panel, the strongest instance of the project's own red/green discipline in this batch. (e) src/retro.zig:464 lands EXACTLY: at HEAD that line is the comment 'bracket cut: [lo,hi] holds under ANY arrival history -> KO_CLEAN (conditional assumption; ctx.brackets toggles it off)' -- literally the ADR-0010 premise ADR-0015 refutes, still in the code with its conditionality annotated. (f) The row's self-limitation ('A ruling about an argument, not a new measurement: it does not establish that the bracket fails at any goban other than 3x3') is honest and correct. UNVERIFIABLE-AT-HEAD: the clause 'GLOBAL.F2 stays orphaned' / 'F2 remains orphaned' cannot be checked, because GLOBAL.F2 HAS NO ROW in the register at HEAD -- it was removed by the T373/T354 triage (4x3.F2's depends-on cell records 'its only d: parent GLOBAL.F2 left the register with the triage'). Orphaned has silently become absent. CLAIMED is the right status for a ruling-about-an-argument.",
+   "evidence_checked": [
+    "docs/decisions/0017-bracket-cut-refutation-attempt-failed.md:79-80,108-113",
+    "docs/decisions/0018-...:30-32,45-47,61-62,82,94",
+    "src/retro.zig:464 (exact match at HEAD)",
+    "docs/decisions/0015-...",
+    "docs/decisions/0010-bracket-guided-finishing.md",
+    "CLAIMS.md: no GLOBAL.F2 row exists"
+   ],
+   "defects_found": [
+    "GLOBAL.F2 has no row in CLAIMS.md at HEAD, so the 'stays orphaned' clause is unverifiable; per the project's own status-is-an-assertion rule its status is now UNKNOWN, not orphaned",
+    "at least five live rows still name GLOBAL.F2 in their dependents column (GLOBAL.FP2:309, GLOBAL.CERTCORE:315, GLOBAL.C3:335, GLOBAL.ADR0010-SOUND:362, 2x2.F2:363) -- dangling dependents pointers to a removed row"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "CLAIMED as to the ruling -- that part is right and now ratified by ADR-0018. But two clauses must be corrected in the row text: 'all three convicted the two pla"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    }
+   }
+  },
+  {
+   "claim": "G07",
+   "claim_id": "GLOBAL.AUDITOR",
+   "registered_status": "PROVEN",
+   "my_verdict": "verified",
+   "confidence": "medium",
+   "ruling": "Two conjuncts, ruled separately. (1) 'passing is necessary, not sufficient (a solver can be self-consistent at a wrong fixpoint)' -- VERIFIED verbatim at the cited docs/research/consistency-audit.md:21-23: 'Necessary, not sufficient: passing does not prove correctness (a solver can be self-consistent at a wrong fixpoint) and it never yields the true score.' The auditor exists and runs: src/retro.zig:4458 (RETRO_CONSIST), :4466 (RETRO_CONSIST4), :4472, :4480, and the committed log docs/evidence/GLOBAL-AUDITOR/consist-3x2-2026-07-30.log shows real runs with checked=378 for soundish (0 violations) and deps (0 violations), exit 0. (2) 'is the standing pre-commit gate' -- TRUE AS POLICY, NOT AS MECHANISM. AGENTS.md:35 does assert 'The #2 self-consistency auditor is a mandatory pre-commit gate for any change to the finisher, memo...', so the register faithfully records what the document says. But the actually-installed hook (tools/hooks/pre-commit, core.hooksPath=tools/hooks) runs exactly two gates -- claimlint-vs-floor and the T282 staged-path subset backstop -- and contains no RETRO_CONSIST invocation. Under the project's own doctrine that prose is not a remedy for a mechanism failure, calling an unmechanized policy gate PROVEN is generous; I let PROVEN stand because the register's job is to record the document's assertion and the substantive half is exactly right, but I count a lane that refuted on the mechanization gap as a near-miss rather than an error. CITATION DEFECT: AGENTS.md:63-67 is cited; at HEAD those lines are claimlint-C10 / no-silent-writes / one-writer-per-engine-file prose. The auditor sentence is at AGENTS.md:35.",
+   "evidence_checked": [
+    "docs/research/consistency-audit.md:6-23",
+    "AGENTS.md:35 (content) vs AGENTS.md:63-67 (cited, drifted)",
+    "tools/hooks/pre-commit (full read -- no RETRO_CONSIST)",
+    "src/retro.zig:4458,4466,4472,4480",
+    "docs/evidence/GLOBAL-AUDITOR/consist-3x2-2026-07-30.log"
+   ],
+   "defects_found": [
+    "AGENTS.md:63-67 citation drifted; content is at AGENTS.md:35",
+    "'standing pre-commit gate' is policy prose only -- the installed hook does not invoke RETRO_CONSIST"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees (refuted, and proposes a different status)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "Split the row. The instrument half -- 'RETRO_CONSIST exists, is exhaustive at 3x2, reproduces, and passing it is necessary not sufficient' -- is PROVEN and I re"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G08",
+   "claim_id": "GLOBAL.BRUTE-ALIASING",
+   "registered_status": "FALSE (methodological)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "VERIFIED by reading the source at the cited lines, which is the strongest available check for a code claim. src/exp4_solve.zig:555-594 at HEAD is exactly brute_value_2x2, and the aliasing defect is visibly present and UNFIXED: the function takes 'succs_buf: *[5]Brute2x2.State' (a single shared successor buffer), fills succs_buf[0..m] with the children, then iterates 'for (succs_buf[0..m]) |child|' while recursing with the SAME succs_buf pointer -- so each child's recursion overwrites the parent's not-yet-visited successor slots. That is precisely the 'successor-buffer aliasing defect' the row asserts, at precisely the cited line range. The methodological verdict follows: any cross-check whose reference arm is this function is measuring the checker. The row's partition is also honest and is the part that matters: it WITHDRAWS the brute-force corroboration while explicitly keeping the fixpoint results (T102 2x2, T104's Python kernel at 2x2/3x2/3x3, MIGOS II anchor at 3x3) -- i.e. it does not over-claim collateral damage. Both cited audit artifacts exist and are committed (.md 342 lines, .py 701 lines).",
+   "evidence_checked": [
+    "src/exp4_solve.zig:555-594 (read at HEAD; defect present)",
+    "docs/audits/2026-07-30-audit-2x2-mismatch.md",
+    "docs/audits/2026-07-30-audit-2x2-mismatch.py"
+   ],
+   "defects_found": [
+    "the aliasing defect itself is still unfixed at HEAD -- consistent with the row (the cross-check is withdrawn, not repaired), but it means the same pattern named in exp5_solve.zig/exp6_solve.zig/exp6_hchain_audit.zig remains un-re-verified"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (methodological) -- unchanged. The label is doing exactly the right work: the falsified thing is the brute-force CROSS-CHECK as a corroborating instrument"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (methodological) (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (methodological)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (methodological)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (methodological)"
+    }
+   }
+  },
+  {
+   "claim": "G09",
+   "claim_id": "GLOBAL.C3",
+   "registered_status": "FALSE-AS-SCOPED (at 3x3)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Exact-line match. docs/status/leak-crisis.md:26 reads: 'C3 | The range [L,H] bounds the real-game score for any history, any cycle rule in [-n,n] | CLAIMED, falsified at 3x3 | E2 (below): 3x3 leaks with promise +3 -> final -9'. The claim text in the register is a verbatim restatement and the status FALSE-AS-SCOPED (at 3x3) matches 'falsified at 3x3' with the scope qualifier correctly retained (the falsification is at 3x3; the row does not over-generalise to all sizes). The mechanism is corroborated at leak-crisis.md:36 ('E2 found 3x3 leaks (25/4000 games: promise +3 -> final -9, 12-pt leak)') and in docs/epistemic/boards/4x4/EPISTEMIC.md:66-68, which marks 4x4 as 'analogy-expected falsified ... (NOT an open hypothesis)' -- correctly flagged as analogy, not measurement. This row's calculated dependent count (6 edges) is among the highest in the register, and the status is right.",
+   "evidence_checked": [
+    "docs/status/leak-crisis.md:26,36",
+    "docs/epistemic/boards/4x4/EPISTEMIC.md:66-68",
+    "docs/epistemic/PROGRESS.md:128",
+    "docs/epistemic/boards/CONCEPTS.md:57-61"
+   ],
+   "defects_found": [],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees (refuted, and proposes a different status)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE -- and the scope line should read '(outcome reading: falsified at 3x3, E2. Pointwise reading -- the one the bracket cut requires -- falsified at 3x2, T13 "
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3x3) (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3\u00d73)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3\u00d73)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G10",
+   "claim_id": "QA-023",
+   "registered_status": "CLAIMED",
+   "my_verdict": "verified",
+   "confidence": "medium",
+   "ruling": "The longest row in the batch; I checked its load-bearing numbers rather than its prose, and CLAIMED survives. VERIFIED: (a) the corrected/buggy census pair -- pinrule-sufficiency-2026-07-29.md:35 records the buggy '948/1532/142/0 all-states', and census-reconciliation.md:15 records the corrected 'L==H=2232, pin_T=322, pin_L=34, pin_H=34' from the corrected fixpoint_kernel. Both figures land as stated. (b) The T138 reconciliation is exact: census-reconciliation.md:53-60 gives the spread '1,724 --(ko-rule fix, -20)--> 1,704 --(phantom removal, -26)--> 1,678' and :75,:94,:102 name 1,678 as the true-game-root authoritative denominator, with :130 recording a calibration that 'matches 1,678 and does not fire on 1,704 or 1,724' -- a null/positive control on the denominator itself. (c) 396/396 is at pinrule-sufficiency:122 ('Restricting to shortest-arrival values: 396/396 within-budget values'), and :171 records the inverted control ('broken evaluator: 396/396 DISagree instead of'), so the 396/396 reading has a seeded control behind it. (d) The C1 witness (178,0,6,0) with arrivals giving -3 and -6 against fixpoint L=H=-6 is hand-verified at c1-witness-handcheck-2026-07-29.md and INDEPENDENTLY REPRODUCED node-for-node by a third implementation in T372 (c1-contrast-2026-08-05.md section 2.1: 22-node tree -> -3, 33-node tree -> -6, node counts matching the handcheck exactly). (e) The row's central discipline -- 'DO NOT MARK THIS ROW FALSE ... C2 is QA-026's content, NOT this row's' -- is a correct and important separation: state-sufficiency and value-formula are distinct propositions and the register keeps them apart. STALE AT HEAD (update lag, not refutation): the row's evidence trail rests on the corrected kernel while the SHIPPED src/qa023_probe.zig White-branch defect it documents has since been FIXED -- T378, commit fc9f35d, 2026-08-19, verified by 'git log -L 960,968:src/qa023_probe.zig' showing '- if (any and best < L_tab[li])' / '+ if (any and best > L_tab[li])', with a regression test now pinned at src/qa023_probe.zig:2605-2615 and all four guards correct at HEAD (:946,:965 use >, :1008,:1027 use <). T372 correctly reported the bug as live on 2026-08-05; it is not live on 2026-08-22, and the row does not say so. CLAIMED remains right: the fresh-start reading is still, on the row's own words and on T372's, 'UNTESTED rather than true'.",
+   "evidence_checked": [
+    "docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md:15,35,122,171,196",
+    "docs/evidence/QA-023/census-reconciliation.md:15,53-60,75,94,102,130",
+    "docs/evidence/QA-023/c1-witness-handcheck-2026-07-29.md",
+    "docs/evidence/QA-023/c1-contrast-2026-08-05.md section 2.1",
+    "src/qa023_probe.zig:946,965,1008,1027,2605-2615 at HEAD",
+    "git log -L 960,968:src/qa023_probe.zig -> fc9f35d (T378, 2026-08-19)"
+   ],
+   "defects_found": [
+    "row asserts the fixpoint_kernel White-branch defect without noting it was fixed at HEAD by T378/fc9f35d on 2026-08-19",
+    "same stale 93%-miss contrast rationale as G01, superseded by T372"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "CLAIMED for the headline -- unchanged; the row is right that it must not be marked FALSE and right about the C1/C2 split. Three text corrections, all mechanical"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    },
+    "lane-4": {
+     "mark": "disagrees",
+     "lane_verdict": "unverifiable-at-head",
+     "lane_status_should_be": "UNTESTED (C1 split from C2)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "CLAIMED"
+    }
+   }
+  },
+  {
+   "claim": "G11",
+   "claim_id": "3x2.F1",
+   "registered_status": "PROVEN (falsification)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Both numbers reproduce verbatim at the cited primary source. docs/research/consistency-audit.md:25-34 is headed 'Result -- 3x2 (exhaustive, 378 KO_SENSITIVE node/side slots)' and tabulates: 'new (committed artifact generation) | ON | 378 | 45 | PROVABLY BUGGY' and 'soundish | OFF | 378 | 0'. That is exactly '45 of 378 ... writes-off gives 0'. Independently corroborated three ways: ADR-0013 at 0013:15-19 restates it ('on 3x2 it violates the minimax identity at 45 of 378 ko-sensitive slots'), the committed run log docs/evidence/GLOBAL-AUDITOR/consist-3x2-2026-07-30.log shows checked=378 violations=0 for the writes-off arm, and docs/epistemic/boards/4x4/EPISTEMIC.md:59-64 records the same 45/378. The falsification is also non-trivially anchored: the empty goban is among the 45, where 'new' reports -2 while its own best child solved independently says 0, the published 3x2 score -- a self-contradiction, not a threshold judgement. PROVEN (falsification) is correct. CITATION DEFECT: the row cites 4x4/EPISTEMIC.md:49-52; at HEAD the F1 45/378 content is at :59-64 (:49-52 is FP-theorem/M2 prose).",
+   "evidence_checked": [
+    "docs/research/consistency-audit.md:25-34",
+    "docs/decisions/0013-sound-finisher-and-dependency-guarded-memo.md:15-19",
+    "docs/epistemic/boards/4x4/EPISTEMIC.md:59-64",
+    "docs/evidence/GLOBAL-AUDITOR/consist-3x2-2026-07-30.log"
+   ],
+   "defects_found": [
+    "line citation 4x4/EPISTEMIC.md:49-52 drifted; F1 content is at :59-64"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification) -- unchanged. A third variant not mentioned in the row also reproduces and is worth carrying: 'deps (guarded reuse, Track B): checked=378"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification) (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    }
+   }
+  },
+  {
+   "claim": "G12",
+   "claim_id": "CODE.VB-BLINDGAPS",
+   "registered_status": "PROVEN (blind-reimplementation audit, committed)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Verified in both halves, and the load-bearing half by reading code rather than the citation. (a) The five gaps are tabulated verbatim at docs/evidence/CODE.VB-BLINDGAPS/T172-blind-analysis.md:1208-1212 with exactly the severities and invariants the row states: GAP-1 Moderate I4, GAP-2 Minor I6, GAP-3 Moderate I7, GAP-4 Minor I10, GAP-5 CRITICAL I11 ('Solver-side dump format is specified nowhere; I11 cannot be independently re-implemented'). The verdict string is at :1216 ('YES, with five documented gaps') and the recommendation at :1222 ('resolve GAP-5 (I11 dump format) before dispatching'). (b) The sharpest assertion -- that the recommendation was NOT honoured and V-8 shipped checkI11 as a permanent not_applicable stub -- is VERIFIED at HEAD by reading src/vb_fixpoint.zig:474-479: checkI11() takes no arguments and unconditionally returns .status = .not_applicable with the note 'I11 dump format unspecified (GAP-5 from T172 blind analysis)'. The stub is moreover institutionalised by a test at :561 ('I11 not_applicable stubs') that asserts the stub stays a stub -- so the spec gap is now protected by a green test, which is the exact 'dead scope' the row names. PROVEN is correct. CITATION DEFECT: the row cites src/vb_fixpoint.zig:545-547; at HEAD that is inside a test 'I9 anchors on 3x2 artifact'. The real site is :474-479.",
+   "evidence_checked": [
+    "docs/evidence/CODE.VB-BLINDGAPS/T172-blind-analysis.md:1208-1212,1216,1222",
+    "src/vb_fixpoint.zig:474-479 (checkI11 stub, read at HEAD)",
+    "src/vb_fixpoint.zig:561 (test pinning the stub)"
+   ],
+   "defects_found": [
+    "line citation src/vb_fixpoint.zig:545-547 drifted; checkI11 is at :474-479",
+    "the GAP-5 stub is pinned by a passing test, so the critical spec gap now reads as green"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "PROVEN as a historical audit record -- T172 really did find five gaps and the finding was correct when made -- but the row must stop asserting the present tense"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (blind-reimplementation audit, committed) -- content unchanged; citation should be corrected to src/vb_fixpoint.zig:474-479"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (blind-reimplementation audit, committed)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (blind-reimplementation audit)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G13",
+   "claim_id": "CODE.WZO2-PASSBIT",
+   "registered_status": "PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "The best-evidenced row in the batch after G04, and the only one I could verify through git history. Every count matches two independent committed artifacts: docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.md:15 'A3 colour inversion FAIL 16,314,978 violations / 99,133,036 checked (16.5%)', :16 'A5 PASS 0 mismatches / 1,021,991 sampled (stride 97)', :18 'A9 FAIL ... 24,252,631 entry order violations' -- and the raw stdout independently at .stdout:13 'checked=99133036 violations=16314978 not_found=0' and .stdout:35 'entry_order_violations=24252631'. The root cause and the fix are confirmed in git, not merely cited: 'git show 5deec6b -- src/oracle_v2_build.zig' is exactly the one-character change the row describes -- '- encodeKeyByte(side, exp6.KO_NONE4, 0, 0, kb)' to '+ encodeKeyByte(side, exp6.KO_NONE4, 1, 0, kb)' -- i.e. the passes argument going 0 to 1 in the passes=1 loop, and the commit message reproduces the same figures. The pinned pre-fix commit f851102 exists as an object. The fix is live at HEAD (src/oracle_v2_build.zig:411 carries the 1; the passes=0 loop at :394 correctly carries 0). The GLOBAL.PASS-NOKO interaction the row invokes to explain 'exactly one violation per (board, side)' is arithmetically consistent with ~24.3M. PROVEN is correct.",
+   "evidence_checked": [
+    "docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.md:15,16,18",
+    "docs/evidence/ORACLE-V2/m4a-accept-T193-2026-08-01.stdout:13,35",
+    "git show 5deec6b -- src/oracle_v2_build.zig (the one-char fix)",
+    "src/oracle_v2_build.zig:394,411 at HEAD",
+    "git cat-file -t f851102"
+   ],
+   "defects_found": [
+    "the row's site citation src/oracle_v2_build.zig:387 was correct at the pinned commit f851102 but the line is :411 at HEAD -- the row does pin the commit, which is the convention working as intended"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN -- unchanged as to the defect -- but the row's final clause is now DISCHARGED and should say so. It reads 'the artifact must be rebuilt and M4a re-run (T"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed) (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (measured, both failing checks reproduced)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G14",
+   "claim_id": "GLOBAL.S1",
+   "registered_status": "PROVEN",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "AMENDED after a gap two lanes caught that my first pass missed; the verdict stands, the evidence grade drops. VERIFIED BY EXECUTION: 'zig test src/colex.zig' at HEAD gives 5/5 pass, including 'exhaustive bijection on 2x2 and 3x3 (and a rectangle)' and 'layer sizes sum to 3^n'. The bijection property is therefore mechanically checked, densely, at three sizes. BUT the committed test body (src/colex.zig:256-260) is exactly 'verify(2,2); verify(3,3); verify(3,2)' -- it does NOT cover 4x4. The 4x4 exhaustive sweep exists as verify(4,4,gpa) at src/colex.zig:202, but that call sits in the standalone RUNNER, not in a test, so it is not reached by zig build test and no committed log of it is in evidence. That matters because the cited evidence sentence at docs/epistemic/boards/4x3/EPISTEMIC.md:24 asserts the layout 'has been exhaustively round-tripped through 4x4' -- an assertion the committed test suite does not back. So PROVEN is still right (the claim is a structural bijection property, size-generic, densely verified at three sizes, and 3^16 = 43,046,721 is small enough that the runner closes it in seconds), but the specific 'through 4x4' wording is unbacked-at-HEAD rather than checked. I record this as my own miss: I initially graded this row's evidence as the batch's strongest on the strength of a green test, without reading which sizes the test actually calls -- which is precisely the never-trust-a-green-test failure the project's own doctrine names. CITATION DEFECT unchanged: 4x4/EPISTEMIC.md:17 drifted, S1 content at :24.",
+   "evidence_checked": [
+    "zig test src/colex.zig -- 5/5 PASS at HEAD (executed)",
+    "src/colex.zig:256-260 (test covers 2x2, 3x3, 3x2 only)",
+    "src/colex.zig:202 (verify(4,4) is in the runner, not a test)",
+    "docs/epistemic/boards/4x3/EPISTEMIC.md:24",
+    "3^16 = 43,046,721"
+   ],
+   "defects_found": [
+    "line citation 4x4/EPISTEMIC.md:17 drifted; S1 content is at :24",
+    "the cited 'exhaustively round-tripped through 4x4' is not backed by any committed test or log: the test covers 2x2/3x3/3x2 and the 4x4 sweep lives in the runner only"
+   ],
+   "amended": "first pass over-graded this row's evidence; corrected after cross-checking test coverage",
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN -- unchanged, and now with a live exhaustive 4x4 denominator (43,046,721 / 43,046,721, 0 defects, null + seeded controls) instead of a document assertion"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G15",
+   "claim_id": "QA-021",
+   "registered_status": "PROVEN",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Fully verified, and one of only two rows in the batch whose line-anchored citations both still land exactly. docs/epistemic/critique-2026-07-28.md:379 is the QA-021 row and reads '48,599,962 slots, 422,990 violations, all KO_SENSITIVE, zero outside. 87 s. Upgrades the 1:37 sample. Still does not cover the lo/hi tables (WZO1 has no bracket columns)' -- every figure and both caveats, verbatim. docs/research/ko-sensitive-chainability.md:109 independently states '0 out-of-flag violations across all 48,599,962 checked 4x4 slots (2026-07-28), no longer a sample result', and :116 gives the co-extensivity ladder '16/16, 72/72, 688/688, 6,092/6,092, and at 4x4 422,990/422,990 exhaustively'. That ladder is what makes the claim strong: the violation set is exactly the KO_SENSITIVE flag set at five sizes, so it is a structural identity, not a threshold. The row is also commendably self-limiting: it states its own scope gap ('Does not cover lo/hi -- WZO1 has no bracket columns'), corroborated at ko-sensitive-chainability.md:111-114 which calls the bracket-table form of the same check 'untested' with 'no run of it exists'. PROVEN is correct as scoped.",
+   "evidence_checked": [
+    "docs/epistemic/critique-2026-07-28.md:379",
+    "docs/research/ko-sensitive-chainability.md:105-120"
+   ],
+   "defects_found": [],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN -- unchanged, and it now has a second independent execution 25 days after the first. Two things the row states that the run also confirms and that are ea"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-5": {
+     "mark": "disagrees (unfinished \u2014 not a verdict; scored as uncovered per D024)",
+     "lane_verdict": "pending",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G16",
+   "claim_id": "2x2.C1",
+   "registered_status": "PROVEN",
+   "my_verdict": "verified",
+   "confidence": "medium",
+   "ruling": "The claim holds and the citation lands: docs/status/leak-crisis.md:24 reads 'C1 | Fresh-start scores correct as fresh-start scores (2x2, 3x2) | PROVEN (vs history-aware exact solver) | already done'. Note the source's own wording is narrower than the register's -- 'correct AS FRESH-START SCORES', i.e. the table agrees with an exact solver evaluated under fresh-start semantics; it is emphatically NOT the claim that fresh-start equals real-game (that is GLOBAL.C4, FALSE-AS-SCOPED). The register's shorter phrasing 'Fresh-start scores correct at 2x2 vs the history-aware exact solver' preserves the comparator and so does not over-reach. Corroborated at docs/epistemic/PROGRESS.md:126. I hold confidence at MEDIUM rather than HIGH for one reason the row does not disclose: its own evidence edges are 'e:2x2.EXACT' (status MEASUREMENT) and 'e:GLOBAL.ADR0006-EYE' (status CLAIMED) -- a PROVEN row whose eye-prune soundness dependency is only CLAIMED (see my G02 ruling, where the sound control arm does not terminate). That is an inheritance gap, not a falsification: the 2x2 space is small enough that the eye-prune's effect is separately checked, and T114 found the 'self-eye-fill is the only legal move' class EMPTY through 4x3. So PROVEN stands, with the inheritance noted.",
+   "evidence_checked": [
+    "docs/status/leak-crisis.md:24",
+    "docs/epistemic/PROGRESS.md:126",
+    "CLAIMS.md depends-on cell: e:2x2.EXACT (MEASUREMENT), e:GLOBAL.ADR0006-EYE (CLAIMED)",
+    "docs/audits/2026-07-30-eye-prune-validation.md:24 (class empty through 4x3)"
+   ],
+   "defects_found": [
+    "PROVEN status resting on a CLAIMED evidence edge (GLOBAL.ADR0006-EYE) -- inheritance gap"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees (refuted, and proposes a different status)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "CLAIMED (sampled), with the denominator in the row: 'Fresh-start scores correct at 2x2 vs the history-aware exact solver on 8 of 114 roots (7.0%), zero mismatch"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G17",
+   "claim_id": "3x2.C1",
+   "registered_status": "PROVEN",
+   "my_verdict": "verified",
+   "confidence": "medium",
+   "ruling": "Holds, same shape as G16. docs/status/leak-crisis.md:24 covers 2x2 and 3x2 in one row: 'Fresh-start scores correct as fresh-start scores (2x2, 3x2) | PROVEN (vs history-aware exact solver)'. The second citation's substance is confirmed but not at the cited lines: the row cites c2-falsification-3x2.md:56-57 for '0/540 L==H fresh-start mismatches'; at HEAD :56-57 is the '## Measurements' heading and a table header. The 540 denominator is at :36 ('540 slots (30 settled + 189 B ko-sensitive + 189 W...)') and :65 ('| L==H slots | 540 |'), and the sanity result is at :112 ('fresh-start sanity check passed on all 540 L==H slots'). So 0/540 is real, just mis-anchored. Crucially :112 continues 'But they are **not**...' -- the same document that supplies this row's corroboration is the document that falsifies C2 on the same slots (G04/G19): fresh-start values are self-consistent AND history-dependent, which is not a contradiction but is the distinction the row depends on and does not state. Same inheritance gap as G16 (e:GLOBAL.ADR0006-EYE is CLAIMED). PROVEN stands as scoped.",
+   "evidence_checked": [
+    "docs/status/leak-crisis.md:24",
+    "docs/research/c2-falsification-3x2.md:36,65,112 (content) vs :56-57 (cited, drifted)",
+    "CLAIMS.md depends-on: e:3x2.EXACT (MEASUREMENT), e:GLOBAL.ADR0006-EYE (CLAIMED)"
+   ],
+   "defects_found": [
+    "line citation c2-falsification-3x2.md:56-57 drifted; the 0/540 result is at :112 with the denominator at :36,:65",
+    "PROVEN status resting on a CLAIMED evidence edge (GLOBAL.ADR0006-EYE)"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees (refuted, and proposes a different status)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "Split by region, and both halves are supportable: 'PROVEN on the single-score region -- 540/540 L==H slots, zero fresh-start mismatches, re-run 2026-08-22 (LANE"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN"
+    }
+   }
+  },
+  {
+   "claim": "G18",
+   "claim_id": "3x3.C3",
+   "registered_status": "PROVEN (falsification)",
+   "my_verdict": "verified",
+   "confidence": "medium",
+   "ruling": "The falsification reproduces at both cited anchors. docs/status/leak-crisis.md:36: 'E2 found 3x3 leaks (25/4000 games: promise +3 -> final -9, 12-pt leak)'; :74 tabulates it: '3x3 | 4000 | 25 (promise +3 -> final -9; some -2) | 0 | C3 falsified (or lo bug -- but B1 ruled that out)'. The row's '12-pt leak' is the arithmetic +3 to -9. The mechanism is given at :76-79 (the +3 line becomes PSK-illegal as the game proceeds, forcing Black into -9) which is a causal account, not just a count -- and the 0 in the control column matters. Confidence MEDIUM, not HIGH, for a reason visible in the cited line itself: the source records an explicit alternative hypothesis, 'or lo bug', and discharges it only by appeal to B1 -- and 3x3.B1 is the row's own first evidence edge (e:3x3.B1) at status CLAIMED, not PROVEN. So a PROVEN falsification rests on a CLAIMED disambiguator that the primary source names as the competing explanation. That is the sharpest inheritance gap in the batch. It does not overturn the falsification (the leak is measured, 25/4000 with a 0 control, and 4x4 is correctly marked analogy-expected rather than measured at 4x4/EPISTEMIC.md:66-68), but PROVEN is one notch generous.",
+   "evidence_checked": [
+    "docs/status/leak-crisis.md:36,74-79",
+    "docs/epistemic/boards/4x4/EPISTEMIC.md:66-68",
+    "CLAIMS.md depends-on: e:3x3.B1 (CLAIMED), e:3x3.E3 (PROVEN), e:3x3.E2-RUN1/RUN2 (MEASUREMENT)"
+   ],
+   "defects_found": [
+    "PROVEN (falsification) resting on e:3x3.B1 at CLAIMED, where the primary source itself names the lo-bug alternative and discharges it via B1"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees",
+     "lane_verdict": "unverifiable-at-head",
+     "lane_status_should_be": "The falsification of C3 should NOT be withdrawn -- it is independently established elsewhere and more sharply (see G09: T13's 12 pointwise L==H mismatches at 3x"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification) (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "PROVEN (falsification)"
+    }
+   }
+  },
+  {
+   "claim": "G19",
+   "claim_id": "GLOBAL.C2",
+   "registered_status": "FALSE-AS-SCOPED (at 3x2)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Exact-line match and the falsification is the best-corroborated in the register. docs/status/leak-crisis.md:25 reads 'C2 | Single-score (L==H) positions are history-independent | FALSE-AS-SCOPED at 3x2 (falsified by T13; see below)' -- claim text and status both verbatim, including the 3x2 scope qualifier. The measurement behind it is G04, which I verified independently: 154 of 508 reachable L==H slots history-sensitive, 4,432 falsifying (slot,history) pairs of 134,504 tested (probe-reimplementation section 8, :418-427). PROGRESS.md:127 corroborates. The scope qualifier is doing real work and is correctly retained: the falsification is measured at 3x2 only, and 4x4/EPISTEMIC.md:55 marks 4x4 as 'analogy-expected, not an open hypothesis' rather than measured. CITATION DEFECT: the row cites AGENTS.md:68-73; at HEAD those lines are no-silent-writes-to-data / one-writer-per-engine-file / dates-are-absolute prose. The C2 content in AGENTS.md is at :26, :31, :39 and :43 (:39 'The single-score (L==H) region is NOT history-independent. T13 falsified C2 at 3x2 (2026-07-26)').",
+   "evidence_checked": [
+    "docs/status/leak-crisis.md:25",
+    "docs/epistemic/PROGRESS.md:127",
+    "AGENTS.md:26,31,39,43 (content) vs :68-73 (cited, drifted)",
+    "docs/evidence/T13/probe-reimplementation-2026-07-30.md:418-427"
+   ],
+   "defects_found": [
+    "line citation AGENTS.md:68-73 drifted; C2 content is at AGENTS.md:39,43"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3x2) -- unchanged. The scope tag is correct here, unlike GLOBAL.C3's (G09): T13 is a 3x2 experiment and the 4x4 extension is explicitly held"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3x2) -- content unchanged; citation should be corrected to AGENTS.md:39-43"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3\u00d72)"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (at 3\u00d72)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G20",
+   "claim_id": "CODE.WZO2-INCOMPLETE",
+   "registered_status": "FALSE-AS-SCOPED (the stated claim is wrong as measured; the artifact's structural completeness is established but value-correctness is not)",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "A model refutation row: every figure lands, the instrument was calibrated, and a second seat re-derived it with disjoint code. VERIFIED: docs/evidence/ORACLE-V2/incompleteness-T266.md:111 gives 'single-colour-black / single-colour-white groups | 65,534 / 65,534', :112 'groups one-sided at passes=1 | 131,068', and :119 checks the arithmetic identity '2(24,318,165) - 131,068 = 48,505,262'. The 51.7x figure is stated and derived at :483-485 ('Extrapolating 27.9% across all 24,318,165 groups gave ~6.77M. The true figure over the full denominator is 131,068 ... Overstated 51.7x'). The unreachability argument (a single-colour goban can only arise from a placement by the opposite colour) is corroborated structurally at :122 ('65,534 = 2^16 - 2'). The independent verification is genuine, not a re-run: incompleteness-verify-T277.md:31 states 't277_scan4.py, numpy-based, shares no code with t266_scan.py' and reads all 24,318,165 groups of a SHA-verified artifact, reproducing 65,534/65,534 at :36; the verdict at :7 is 'zero exceptions across all 24,318,165 groups'. Calibration was run (:61 'null control clean, five seeded defects all caught'). The row is also correctly self-limiting -- it refuses to over-claim from the refutation: 'The artifact is still not verified: closure (C-A1/C-A2) and L/H value-correctness remain untested.' That is exactly the right shape for a FALSE-AS-SCOPED with a long parenthetical. DEFECT: T277's calibration mutant set is gone -- incompleteness-verify-T277.md:184 says 'EVIDENCE LOST (path was /tmp, destroyed before rescue on 2026-08-08) -- the calibration mutant set above is gone'. So the calibration is attested in prose but its artifacts are not retrievable; the scan itself remains re-executable (t277_scan4.py, t277_shift_mutant.py, t277_verify.py are all committed).",
+   "evidence_checked": [
+    "docs/evidence/ORACLE-V2/incompleteness-T266.md:27,109-122,171,483-485",
+    "docs/evidence/ORACLE-V2/incompleteness-verify-T277.md:7,31,35-36,61,184",
+    "findings/T266-incompleteness.json",
+    "findings/T277-verify-refutation.json",
+    "docs/evidence/ORACLE-V2/t277_scan4.py, t277_shift_mutant.py, t277_verify.py (committed)"
+   ],
+   "defects_found": [
+    "T277's calibration mutant set is lost (was under /tmp, destroyed 2026-08-08) -- the calibration claim is prose-attested only, per T277's own disclosure at :184"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE-AS-SCOPED -- unchanged as to the T261 incompleteness claim. Replace the trailing clause with what is now true: 'Closure is CLOSED: C-A1 0 / 616,030,190 an"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (the stated claim is wrong as measured; the artifact's structural completeness is established but value-correctness is not)"
+    },
+    "lane-4": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE-AS-SCOPED (structural completeness at entry level)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G21",
+   "claim_id": "GLOBAL.C4",
+   "registered_status": "FALSE-AS-SCOPED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "Holds. docs/status/leak-crisis.md:27 reads 'C4 | Fresh-start score == real-game score | FALSE for *both* regions. Ko-sensitive: false by the leak. Single-score: false because C2 is falsified at 3x2 (T13) -- fresh-start != real-game even where L==H | consequence of C2 + T13'. So the claim is refuted twice over, by two independent mechanisms, which is why its depends-on cell correctly carries both halves (d:GLOBAL.C2 single-score, d:GLOBAL.P3 ko-sensitive). Both parents are themselves FALSE-AS-SCOPED, so the inheritance is sound. Corroborated at PROGRESS.md:129 and at docs/epistemic/boards/4x4/EPISTEMIC.md:35 ('C4 X fresh-start != real-game for ko-sensitive (structural)'). One honest tension worth recording rather than scoring against the row: the primary source says plain 'FALSE' and the 4x4 tree calls the ko-sensitive half 'structural' (i.e. size-independent), whereas the register softened it to FALSE-AS-SCOPED. FALSE-AS-SCOPED is the more conservative of the two and is defensible given that the single-score half derives from a 3x2-only measurement -- but the register is here weaker than its own source, which is the opposite of the usual drift direction and is worth noting as such. CITATION DEFECT: the row cites 4x4/EPISTEMIC.md:26; at HEAD that is mid-sentence OEIS-count prose. C4 is at :35.",
+   "evidence_checked": [
+    "docs/status/leak-crisis.md:27",
+    "docs/epistemic/PROGRESS.md:129",
+    "docs/epistemic/boards/4x4/EPISTEMIC.md:35 (content) vs :26 (cited, drifted)",
+    "CLAIMS.md depends-on: d:GLOBAL.C2 (FALSE-AS-SCOPED), d:GLOBAL.P3 (FALSE-AS-SCOPED)"
+   ],
+   "defects_found": [
+    "line citation 4x4/EPISTEMIC.md:26 drifted; C4 content is at :35",
+    "register status FALSE-AS-SCOPED is weaker than the primary source's plain FALSE / 'structural'"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED -- unchanged. Worth adding one structural note that makes the row robust: C4 does NOT need both halves. The single-score half alone kills it, an"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G22",
+   "claim_id": "GLOBAL.CERTCORE",
+   "registered_status": "FALSE-AS-SCOPED",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "The cleanest citation in the whole batch: the row quotes ADR-0009 and cites 0009:65-67, and those three lines at HEAD are exactly the quoted sentence. docs/decisions/0009-retrograde-value-iteration.md:65-67: 'Certification: where L == H, the score cannot depend on any cycle rule -- in particular not on superko bans or arrival history -- so it equals the fresh-start score (and the mid-game score under ANY ban set).' The row's quotation is verbatim and its characterisation ('the ADR-0009 certification decision') is right -- :68 continues 'These nodes are the oracle's certified core'. FALSE-AS-SCOPED is the correct status and follows directly from a measurement I verified independently under G04/G19: T13 found 154 of 508 reachable L==H slots at 3x2 whose exact value depends on the arrival history, which is a direct counterexample to 'where L==H the score cannot depend on ... arrival history'. The scope qualifier is right too: the counterexample is at 3x2. The inheritance is coherent -- d:GLOBAL.FP2 is the ADR-0009 honesty clause at CLAIMED (CLAIMS.md:309, 'explicitly NOT a theorem'), and CERTCORE is the stronger certification decision built on it, which is precisely why the stronger one falls while the honesty clause survives. That distinction is the register working as designed.",
+   "evidence_checked": [
+    "docs/decisions/0009-retrograde-value-iteration.md:65-67 (exact verbatim match),:68",
+    "CLAIMS.md:309 (GLOBAL.FP2 CLAIMED, 'explicitly NOT a theorem')",
+    "docs/evidence/T13/probe-reimplementation-2026-07-30.md:418-427 (the counterexample set)"
+   ],
+   "defects_found": [],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED -- unchanged. The scope should be spelled out rather than left implicit, because this row is the one people quote when they call the L==H region"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G23",
+   "claim_id": "GLOBAL.TIE-MIGOS",
+   "registered_status": "FALSE-AS-SCOPED (the minted mechanism is contradicted; the +2 anchor is a different game, not a different tie)",
+   "my_verdict": "verified",
+   "confidence": "medium",
+   "ruling": "Verified as far as this repository can carry it, with one honestly-bounded gap I could not close. VERIFIED IN-REPO: docs/evidence/GLOBAL-TIE-MIGOS/tie-experiment-T274.md:118-120 states the two primary-source findings the row rests on ('MIGOS's long-cycle-tie value is 0 (draw), the same as our TIE=0'; 'MIGOS's own basic-ko 4x4 result is +1 = our +1'), :28 gives the corrected section pointers ('The 4x4 solve is section 5.4.1 (Table 5.1) plus Appendix A (section A.4) for the rules'), :35 the rules-level answer (repetition ends the game, scored by pass-difference), :50-65 the quoted tie-value passage including 'assigns a value in the heuristic range (typically 0)'. The empirical half is fully checkable and internally derived: :139-142 gives V_root(TIE) = clamp(TIE, [L_root, H_root]) with the measured brackets [1,16] / [-16,-1], from which no flat TIE constant can produce the colour-symmetric (+2,-2) anchor -- an analytic impossibility argument, not a sampling result, which is the right shape here. The row's correction of the register's own prior mis-citation ('the 4x4.ANCHOR citation thesis section 6.4 was wrong') is a self-correction and counts in its favour. CANNOT CLOSE: the primary sources are external. docs/evidence/van-der-werf-sources/ holds only ssgo.pdf (92 KB, the Hayward-hosted paper); its README records that both erikvanderwerf.tengen.nl sources are 404 with Wayback-only copies, and that ssgo.pdf's sha256 is an unresolved 'TODO'. The thesis sections the row leans on (5.3.2, 5.4.1 / Table 5.1, Appendix A A.4) are NOT archived in-repo. So the thesis-quotation half of this row is UNVERIFIABLE-AT-HEAD by a repo-only grader, and I say so rather than laundering T274's transcription as checked. FALSE-AS-SCOPED with that parenthetical is the right status: the mechanism claim is contradicted, and the row correctly stops short of claiming the +2 anchor is wrong -- it says it is a different game.",
+   "evidence_checked": [
+    "docs/evidence/GLOBAL-TIE-MIGOS/tie-experiment-T274.md:28,35,48-65,78,118-120,139-142",
+    "findings/T274-tie-experiment.json",
+    "findings/T274-context.json",
+    "docs/evidence/van-der-werf-sources/README.md + ssgo.pdf (thesis NOT archived)"
+   ],
+   "defects_found": [
+    "the thesis sections the row quotes (5.3.2, 5.4.1/Table 5.1, Appendix A A.4) are not archived in-repo; two of the three original URLs are 404 and only Wayback copies exist",
+    "ssgo.pdf has no recorded sha256 (README says 'TODO -- verify if reproducibility matters'), so even the one archived source is unpinned"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED -- unchanged, but the row should stop leading with 'REFUTED by primary sources' and lead with the leg a reader can check. Proposed: 'REFUTED. De"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED (the minted mechanism is contradicted; the +2 anchor is a different game, not a different tie)"
+    },
+    "lane-4": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE-AS-SCOPED (different game, not different tie)"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE-AS-SCOPED"
+    }
+   }
+  },
+  {
+   "claim": "G24",
+   "claim_id": "QA-019",
+   "registered_status": "FALSE",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "The refutation holds, and I confirmed the load-bearing half by reading the source at HEAD rather than trusting the citation. (a) 'bracketed and memo_writes are independent' -- VERIFIED: they are two separate parameters throughout, src/retro.zig:920 'finishProgress(t, gpa, budget, bracketed, progress_every, memo_writes, deps)' and :961 'Finisher.init(t, gpa, budget, bracketed, progress_every, memo_writes, deps)'. Setting memo_writes=false therefore cannot switch brackets off. (b) 'saveArtifact hardcodes bracketed=true' -- STILL TRUE AT HEAD: saveArtifact (src/retro.zig:2331) takes memo_writes and deps as parameters but NOT bracketed, and its finisher construction passes the 4th positional argument -- the bracketed slot -- as the literal 'true': 'RT.Finisher.init(&t, gpa, finisher_budget, true, progress_every, memo_writes, deps)' at src/retro.zig:2408. So ADR-0013 Track A (memo_writes=false) provably does NOT escape QA-018's bracket premise: every artifact saveArtifact writes is bracket-derived regardless of the writes flag. FALSE is the correct status for the escape claim. CITATION DEFECT: the row cites src/retro.zig:2407, one line short of the hardcode at :2408 (:2407 is '.orbit_clash = 0,').",
+   "evidence_checked": [
+    "src/retro.zig:2331 (saveArtifact signature -- no bracketed param)",
+    "src/retro.zig:2408 (literal true in the bracketed slot)",
+    "src/retro.zig:920,961 (bracketed and memo_writes independent params)",
+    "docs/epistemic/critique-2026-07-28.md:377"
+   ],
+   "defects_found": [
+    "src/retro.zig:2407 citation is one line off the hardcode (:2408)"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE -- unchanged. The row is a correct falsification of a convenient escape hatch, and correcting it would have re-opened a route that does not exist. One cla"
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE"
+    },
+    "lane-4": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE"
+    }
+   }
+  },
+  {
+   "claim": "G25",
+   "claim_id": "QA-022",
+   "registered_status": "FALSE",
+   "my_verdict": "verified",
+   "confidence": "high",
+   "ruling": "VERIFIED -- and this is the batch's designed trap, so I state the trap explicitly. A grader who runs 'ls docs/evidence/T13/' sees t13_probe.py (1,154 lines, committed by 51d90ee 'Absorb T110'), concludes 'the probe source DOES survive', and refutes the row. That refutation would be wrong, and the register already says why, in the very section the row cites as evidence ('section 7 of this file'). CLAIMS.md section 7 (:1114ff) tabulates each lost file and its disposition, then rules in its consequences bullet: 'The original probe source (untracked/c2pilot_3x2.zig) and raw output (untracked/T13-minimax.md) remain lost -- the re-implementation is independent evidence, not a recovery -- so QA-022 is unchanged.' The distinction is load-bearing and correct: QA-022's proposition is RETRIEVABILITY of the cited evidence, and the cited artifacts were git-ignored and are gone; T110's 2026-07-30 blind re-implementation is a new independent artifact that reproduces the numbers, not a retrieval of the old one. docs/research/c2-falsification-3x2.md:15-16 says the same thing in its own words ('independent evidence, not a recovery -- but the experiment is now fully re-executable from committed code'). The other cited anchor lands exactly: critique-2026-07-28.md:380 is the QA-022 row with all four subjects (T13, T02/B1, T07, B05) and the FALSE verdict. Sub-check on the B1 clause: critique:380 says 'B1 has no durable evidence file at all', and docs/evidence/b1-least-fixpoint/ contains only b1-spec.md -- a method spec, no results -- which matches section 7's finer disposition ('RECOVERABLE -- method at b1-least-fixpoint/b1-spec.md; numbers need regeneration'). Consistent. FALSE is correct.",
+   "evidence_checked": [
+    "docs/epistemic/CLAIMS.md:1114-1150 (section 7 table + consequences)",
+    "docs/epistemic/critique-2026-07-28.md:380",
+    "docs/research/c2-falsification-3x2.md:15-16",
+    "git log --diff-filter=A -- docs/evidence/T13/t13_probe.py -> 51d90ee (T110 absorption)",
+    "docs/evidence/b1-least-fixpoint/ (b1-spec.md only)"
+   ],
+   "defects_found": [
+    "the row's terse phrasing 'T13's numbers survive; its probe source does not' invites exactly the wrong refutation; the disambiguation lives only in section 7, not in the row"
+   ],
+   "lane_verdicts": {
+    "lane-1": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE -- unchanged as to retrievability. Amend the trailing clause to: 'T13's numbers survive AND its experiment is executable again: the original probe source "
+    },
+    "lane-2": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE (no change)"
+    },
+    "lane-3": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE"
+    },
+    "lane-4": {
+     "mark": "disagrees on the verdict label, agrees on the status (refuted-but-status-unchanged: a row-repair proposal, not a status flip)",
+     "lane_verdict": "refuted",
+     "lane_status_should_be": "FALSE"
+    },
+    "lane-5": {
+     "mark": "agrees",
+     "lane_verdict": "verified",
+     "lane_status_should_be": "FALSE"
+    }
+   }
+  }
+ ],
+ "lane_scores": {
+  "scoring_convention": "My own 25 rulings were made before any lane file was opened, and all 25 registered statuses came out CORRECT. That makes false-verified structurally zero for every lane and makes raw correct-out-of-25 nearly non-discriminating, so I report three axes: (A) status agreement \u2014 does the lane's status_should_be match the registered status, the axis every lane's own convention shares; (B) verdict-label agreement with my 'verified'; (C) evidence quality and defect discovery, which is where the lanes actually separate.",
+  "lane-1": {
+   "correct_on_status_of_25": 20,
+   "verdict_label_agreement_of_25": 14,
+   "false_verified": 0,
+   "false_refuted_literal": 6,
+   "false_refuted_after_convention": 0,
+   "false_refuted_reading": "lane-1 declared its convention in its notes: 'in nine of the ten the claim's headline survives and a specific sub-clause of the row does not'. On six of its ten refutations (G01 G06 G10 G12 G20 G25) its own status_should_be leaves the registered status UNCHANGED \u2014 so these are row-repair proposals, not status flips, and the brief's stated cost of a false refutation (it kills downstream work) does not apply. Four refutations do propose changes: G07 and G17 propose SPLITTING the row, G09 proposes FALSE instead of FALSE-AS-SCOPED (strengthening, on the argument that the 3x3 scope qualifier understates a structural failure), G16 proposes demoting 2x2.C1 PROVEN to CLAIMED. I disagree with G16's demotion and with G09's de-scoping, and I rule G18 verified where lane-1 ruled unverifiable-at-head. So: 5 genuine status disagreements with me, 0 of them laundering a broken claim.",
+   "unverifiable_at_head_used": [
+    "G18"
+   ],
+   "unverifiable_use_assessment": "MISUSED ONCE. G18's cited evidence (leak-crisis.md:36,74-79) is present and readable at HEAD; lane-1's own text concedes the falsification's count reproduces. Calling it unverifiable overstates. This is the mirror image of a dodge \u2014 it is a strictness overshoot, not an evasion.",
+   "evidence_quality": "OUTSTANDING, and by a wide margin. 89 KB, a citation on 25/25 entries averaging 1,242 characters, 10 entries carrying a separate reproduction field. ELEVEN executions at HEAD with output quoted, of which I independently re-verified four: RETRO_CONSIST 3x2 (45/378 writes-on, 0/378 writes-off) reproduces the committed 2026-07-30 log exactly; chainability 4x4 (48,599,962 / 422,990 / all KO_SENSITIVE / 0 outside) matches critique:379 and ko-sensitive-chainability:109,116; zig test src/colex.zig 5/5 matches my own run; the T13 exhaustive sweep (508/540 slots, 4,432 falsifying pairs, 154 slots) matches probe-reimplementation section 8 to the digit. It ran NULL AND SEEDED CONTROLS and disclosed that its own first seeded control DID NOT FIRE (poison index exceeded the state space), fixed it, and re-ran \u2014 a near-miss recorded rather than buried, which is the project's own doctrine applied to the auditor. It closed two gaps by running the missing thing instead of reporting it missing, including a purpose-built exhaustive 4x4 colex sweep (3^16 = 43,046,721, zero defects) that no committed test covers. Two self-corrections shipped (the 28-dangling-references reading; the seeded control).",
+   "defects_found_confirmed": [
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "D5",
+    "D6",
+    "D8",
+    "D9",
+    "D10",
+    "D11",
+    "D12",
+    "D13"
+   ],
+   "own_errors": [
+    "D16 \u2014 states H1-MARKOV has 12 dependents while claiming exact reproduction of a comma count that is 9",
+    "G18 unverifiable-at-head is an overshoot"
+   ],
+   "verdict": "Did the work. Not remotely a rubber stamp, and its refutations are a disclosed stricter reading of the row rather than over-refutation of the claim."
+  },
+  "lane-2": {
+   "correct_on_status_of_25": 25,
+   "verdict_label_agreement_of_25": 24,
+   "false_verified": 0,
+   "false_refuted_literal": 0,
+   "false_refuted_after_convention": 0,
+   "unverifiable_at_head_used": [
+    "G05"
+   ],
+   "unverifiable_use_assessment": "DEFENSIBLE BUT WEAKER THAN VERIFIED. G05's cited content is findable at HEAD (4x4/EPISTEMIC.md:195-202, :448) and the row self-describes as an unconfirmed placeholder, so 'verified \u2014 correctly UNTESTED' is the tighter call; lane-2's status_should_be is UNTESTED (no change), so the substance is right and only the label is loose. Not a dodge.",
+   "evidence_quality": "STRONG AND DISCIPLINED. Citation on 25/25 entries averaging 422 characters, and \u2014 the part that matters \u2014 it checked that each cited line's CONTENT matches what the register attributes to it, which is how it found the AGENTS.md:68-73 and vb_fixpoint.zig:545-547 drifts. It re-derived three code claims from source rather than from documents (QA-019's bracketed hardcode, checkI11's stub, and CODE.WZO2-PASSBIT by diffing the two pinned git commits directly) \u2014 exactly the right move on code claims, and it independently reached my findings on all three. It re-ran t13_probe.py four ways. It disclosed what it did NOT do and why (no zig build with 18 zig processes live on the host) and disclosed one anomaly it chose not to chase, correctly hedging that the missing edges might be recorded as prose \u2014 which is exactly what they are.",
+   "defects_found_confirmed": [
+    "D2",
+    "D7"
+   ],
+   "own_errors": [
+    "MISSED D5 and then compounded it: its G14 citation quotes 4x4/EPISTEMIC.md:17 as if it read 'S1 colex bijection PROVEN, exhaustive round-trip through 4x4' (it does not \u2014 that is the drifted line lane-2 elsewhere catches on other rows), and it offers a 729-board 3x2 colex check from the T13 probe as corroboration for a 4x4 claim. That is the brief's named anti-pattern \u2014 citing the document the claim already cites \u2014 plus a size extrapolation, on the one row where a real coverage gap existed."
+   ],
+   "verdict": "Did the work. Zero errors of judgement; one significant miss."
+  },
+  "lane-3": {
+   "correct_on_status_of_25": 25,
+   "verdict_label_agreement_of_25": 25,
+   "false_verified": 0,
+   "false_refuted_literal": 0,
+   "false_refuted_after_convention": 0,
+   "unverifiable_at_head_used": [],
+   "unverifiable_use_assessment": "Never used. Given that no cited FILE is missing anywhere in the batch and every status is correct, never reaching for it is a defensible reading, not an avoidance \u2014 and lane-3 defined in advance what it would have meant.",
+   "evidence_quality": "GOOD, AND NOT A RUBBER STAMP \u2014 this is the finding I most wanted to get right, because 25/25 verified is exactly what a rubber stamp looks like. It is not one. Lane-3 declared its verdict convention up front (verified = the row's status is correct at HEAD), which is the same convention I used and which makes 25/25 the arithmetically expected result if the register is in fact sound. It ran the T13 probe (census/sanity/replay, 0/540, 12/12) and zig test src/colex.zig, and read source at HEAD for four separate files. Its cross-cutting findings overlap mine substantially and independently: the 2b-3 glob, the G01/G10/G25 staleness cluster, and G15 having no committed run log. Citation on 25/25, averaging 249 characters \u2014 the thinnest of the four serious lanes.",
+   "defects_found_confirmed": [
+    "D1",
+    "D2",
+    "D6"
+   ],
+   "own_errors": [
+    "D15 \u2014 'G05 memory placeholder <=32 GB superseded by measured 177 MB' is a false finding: 177 MB is a predicted artifact size, not a measured run footprint, and the same corpus records the actual as 3.1 GB (newrule-4x4-2026-07-28.md:189)",
+    "cites saveArtifact's bracketed=true at src/retro.zig:2407, where the literal true is at :2408 (:2407 is '.orbit_clash = 0,') \u2014 it repeated the register's own off-by-one instead of catching it",
+    "MISSED D5"
+   ],
+   "verdict": "Did the work; its all-verified column is earned, not rubber-stamped. Ranks below 2 and 5 because it shipped a false cross-cutting finding."
+  },
+  "lane-4": {
+   "correct_on_status_of_25": 24,
+   "verdict_label_agreement_of_25": 18,
+   "false_verified": 0,
+   "false_refuted_literal": 4,
+   "false_refuted_after_convention": 4,
+   "false_refuted_reading": "UNLIKE LANE-1, THESE ARE NOT A CONVENTION \u2014 THEY ARE MISLABELS, and the lane's own fields prove it. On all four refutations (G03 G20 G23 G25) lane-4's status_should_be equals the registered status AND its reproduction/why text argues FOR the row. G20's reproduction reads '131,068 absent entries are exactly unreachable single-colour gobans; 0 counter-examples' \u2014 that IS the register's content, i.e. it verified the row and stamped it 'refuted'. Lane-4 appears to have used 'refuted' to mean 'this row records a refutation', conflating the row's content with its own verdict. 4 of 4.",
+   "unverifiable_at_head_used": [
+    "G01",
+    "G05",
+    "G10"
+   ],
+   "unverifiable_use_assessment": "MISUSED 3 OF 3 \u2014 this is the dodge the brief names. G01: 'why' reads '2B-3-AUDIT evidence missing at HEAD'; the file exists at docs/audits/2026-07-29-2b-3-history-pairs-audit.md and only the citation GLOB is broken, so a pointer defect was escalated to missing evidence and then to unverifiable. G05: the stated reason ('measurement with placeholder specs unconfirmed with user') is a paraphrase of the row itself \u2014 that is a verification, not an inability. G10: 'split status unclear at HEAD' where the row states the split explicitly and at length.",
+   "evidence_quality": "WEAKEST BY AN ORDER OF MAGNITUDE. 7.4 KB against lane-1's 89 KB; 7 of 25 entries carry NO citation field at all; average citation 57 characters and average why 74. Several 'citations' are existence assertions rather than checks ('consistency-audit.md and AGENTS.md exist'). On G07 it asserted 'RETRO_CONSIST pre-commit gate' without opening tools/hooks/pre-commit \u2014 the single conjunct in the batch that fails as a mechanism. On G14 it cited the DRIFTED anchor 4x4/EPISTEMIC.md:17 as its verification and repeated the unbacked '4x4 round-trip exhaustive'. Its notes are internally inconsistent three ways: they open 'all 25 sealed claims verified at HEAD', then tally '12 verified, 5 refuted, 8 unverifiable-at-head', while the verdict array actually holds 18/4/3. NOT FABRICATION, THOUGH, AND I CHECKED: its two most surprising numbers are both real \u2014 the 50/8,000 independent replication (PROGRESS.md:118, SOLUTION-TREE.md:102, reconciled as QA-009 at critique:367) and the [2,9] empty-3x3 bracket (leak-crisis.md:63). The figures are sourced; the verdicts are not.",
+   "defects_found_confirmed": [
+    "D14"
+   ],
+   "own_errors": [
+    "4 of 4 refutations contradict their own status_should_be and their own supporting text",
+    "3 of 3 unverifiable-at-head are dodges, one resting on a false statement that a committed file is missing",
+    "notes tally contradicts its own verdict array, and its opening sentence contradicts both",
+    "asserted the RETRO_CONSIST gate without reading the hook",
+    "cited a drifted anchor as verification on G14"
+   ],
+   "verdict": "Rubber-stamped the hard rows and mislabelled the easy ones. The one thing it added (D14) is real and worth keeping."
+  },
+  "lane-5": {
+   "correct_on_status_of_25": 25,
+   "verdict_label_agreement_of_25": 24,
+   "false_verified": 0,
+   "false_refuted_literal": 0,
+   "false_refuted_after_convention": 0,
+   "unverifiable_at_head_used": [],
+   "pending_entries": [
+    "G15"
+   ],
+   "pending_assessment": "G15 carries verdict 'pending' \u2014 neither verified, refuted, nor unverifiable-at-head. Per directive D024 I score it as what it is: a claim the lane did not finish. Its notes disclose this honestly ('24 final + G15 re-derivation pending at flush time'), which is the right way to ship an unfinished item, but under ruling 35 the coverage denominator is 25 sealed claims and an unfinished entry does not count as covered. COVERAGE: 24/25.",
+   "evidence_quality": "STRONG. Citation on 24/25, and the highest average reasoning length of any lane except lane-1 (327 characters of 'why' per claim). Three real executions (chainability for G15, audit-2x2-mismatch.py for G08, zig test src/colex.zig for G14). It correctly classified the line-drift cluster as 'content-drift only \u2014 the substance exists at the new locations' rather than inflating it into refutations, which is the same call I made. AND IT MADE THE BATCH'S SHARPEST UNIQUE CATCH: on G14 it noticed that the cited 'exhaustively round-tripped through 4x4' is backed by nothing committed, and correctly observed that the 4x4 A5 round-trip is stride-97 sampled and exercises key bytes, not colex indices \u2014 while still ruling the bijection claim itself verified. I had graded that row's evidence as the batch's strongest on the strength of a green test; lane-5 and lane-1 are the reason I went back and amended my own G14 ruling.",
+   "defects_found_confirmed": [
+    "D2",
+    "D5",
+    "D6",
+    "D7"
+   ],
+   "own_errors": [
+    "left G15 unfinished, costing one claim of coverage"
+   ],
+   "verdict": "Did the work, and caught something four other rulings (including my own first pass) missed."
+  }
+ },
+ "complementarity": {
+  "per_claim_correct": [
+   {
+    "claim": "G01",
+    "claim_id": "GLOBAL.H1-MARKOV",
+    "registered_status": "UNTESTED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     5
+    ]
+   },
+   {
+    "claim": "G02",
+    "claim_id": "GLOBAL.ADR0006-EYE",
+    "registered_status": "CLAIMED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G03",
+    "claim_id": "GLOBAL.F1",
+    "registered_status": "FALSE-AS-SCOPED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     5
+    ]
+   },
+   {
+    "claim": "G04",
+    "claim_id": "3x2.T13",
+    "registered_status": "PROVEN (falsification)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G05",
+    "claim_id": "4x4.D3",
+    "registered_status": "UNTESTED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     3,
+     5
+    ]
+   },
+   {
+    "claim": "G06",
+    "claim_id": "GLOBAL.ADR0015-BURDEN",
+    "registered_status": "CLAIMED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G07",
+    "claim_id": "GLOBAL.AUDITOR",
+    "registered_status": "PROVEN",
+    "correct_on_status": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G08",
+    "claim_id": "GLOBAL.BRUTE-ALIASING",
+    "registered_status": "FALSE (methodological)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G09",
+    "claim_id": "GLOBAL.C3",
+    "registered_status": "FALSE-AS-SCOPED (at 3\u00d73)",
+    "correct_on_status": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G10",
+    "claim_id": "QA-023",
+    "registered_status": "CLAIMED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     5
+    ]
+   },
+   {
+    "claim": "G11",
+    "claim_id": "3x2.F1",
+    "registered_status": "PROVEN (falsification)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G12",
+    "claim_id": "CODE.VB-BLINDGAPS",
+    "registered_status": "PROVEN (blind-reimplementation audit, committed)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G13",
+    "claim_id": "CODE.WZO2-PASSBIT",
+    "registered_status": "PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G14",
+    "claim_id": "GLOBAL.S1",
+    "registered_status": "PROVEN",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G15",
+    "claim_id": "QA-021",
+    "registered_status": "PROVEN",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4
+    ]
+   },
+   {
+    "claim": "G16",
+    "claim_id": "2x2.C1",
+    "registered_status": "PROVEN",
+    "correct_on_status": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G17",
+    "claim_id": "3x2.C1",
+    "registered_status": "PROVEN",
+    "correct_on_status": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G18",
+    "claim_id": "3x3.C3",
+    "registered_status": "PROVEN (falsification)",
+    "correct_on_status": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G19",
+    "claim_id": "GLOBAL.C2",
+    "registered_status": "FALSE-AS-SCOPED (at 3\u00d72)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G20",
+    "claim_id": "CODE.WZO2-INCOMPLETE",
+    "registered_status": "FALSE-AS-SCOPED (the stated claim is wrong as measured; the artifact's structural completeness is established but value-correctness is not)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     5
+    ]
+   },
+   {
+    "claim": "G21",
+    "claim_id": "GLOBAL.C4",
+    "registered_status": "FALSE-AS-SCOPED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G22",
+    "claim_id": "GLOBAL.CERTCORE",
+    "registered_status": "FALSE-AS-SCOPED",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G23",
+    "claim_id": "GLOBAL.TIE-MIGOS",
+    "registered_status": "FALSE-AS-SCOPED (the minted mechanism is contradicted; the +2 anchor is a different game, not a different tie)",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     5
+    ]
+   },
+   {
+    "claim": "G24",
+    "claim_id": "QA-019",
+    "registered_status": "FALSE",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   },
+   {
+    "claim": "G25",
+    "claim_id": "QA-022",
+    "registered_status": "FALSE",
+    "correct_on_status": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "agreed_with_my_verdict": [
+     2,
+     3,
+     5
+    ]
+   }
+  ],
+  "unique_correct_on_status": {
+   "1": [],
+   "2": [],
+   "3": [],
+   "4": [],
+   "5": []
+  },
+  "pairwise_verdict_label_agreement_of_25": {
+   "1-2": 13,
+   "1-3": 14,
+   "1-4": 13,
+   "1-5": 13,
+   "2-3": 24,
+   "2-4": 19,
+   "2-5": 23,
+   "3-4": 18,
+   "3-5": 24,
+   "4-5": 17
+  },
+  "pairwise_status_agreement_of_25": {
+   "1-2": 20,
+   "1-3": 20,
+   "1-4": 19,
+   "1-5": 20,
+   "2-3": 25,
+   "2-4": 24,
+   "2-5": 25,
+   "3-4": 24,
+   "3-5": 25,
+   "4-5": 24
+  },
+  "best_pair_on_status": [
+   "1+2",
+   25
+  ],
+  "reading_of_the_status_axis": "DEGENERATE, AND THAT IS THE RESULT. Every one of the 25 claims has at least three lanes correct on status, so unique-correct-on-status is EMPTY for all five lanes and the best pair reaches 25/25 in nine of the ten pairings. This is not a measurement failure \u2014 it follows from my own finding that all 25 registered statuses are correct. When nothing is wrong, there is nothing for a panel to be complementary about on the correctness axis, and a race that only scored correct-out-of-25 here would have reported a five-way tie and learned nothing. The panel's real information content is entirely in the defect-discovery axis below, which is why ruling 34 is right.",
+  "defect_discovery_matrix": [
+   {
+    "id": "D1",
+    "defect": "G01 cites the glob docs/audits/2b-3-audit-*.md, which matches nothing at HEAD (real file: docs/audits/2026-07-29-2b-3-history-pairs-audit.md)",
+    "found_by": [
+     1,
+     3
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-4 saw the same symptom and mis-diagnosed it as '2B-3-AUDIT evidence missing at HEAD' \u2014 the file exists; only the pointer is broken"
+   },
+   {
+    "id": "D2",
+    "defect": "Systematic line-citation drift: at least 9 of 25 rows cite file:NN anchors whose content has moved (4x4/EPISTEMIC.md:175-183, :49-52, :17, :26; AGENTS.md:63-67, :68-73; c2-falsification-3x2.md:56-57; src/vb_fixpoint.zig:545-547; src/retro.zig:2407). No cited FILE is missing.",
+    "found_by": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-1 enumerated 9 rows and diagnosed the PROGRESS.md cluster as one un-repointed insertion rather than three errors; lane-2 found 3; lane-5 found 4; lane-3 general. lane-4 found none and cited a drifted line as its verification (G14)."
+   },
+   {
+    "id": "D3",
+    "defect": "claimlint C2 structurally cannot catch D2: it sees only missing paths, not drifted anchors (AGENTS.md:63-64 states this itself)",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-1 unique among the lanes; I reached the same conclusion independently"
+   },
+   {
+    "id": "D4",
+    "defect": "G07's 'standing pre-commit gate' is policy prose only \u2014 tools/hooks/pre-commit runs claimlint + the T282 staged-path backstop and never invokes RETRO_CONSIST",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-4 asserted the opposite ('RETRO_CONSIST pre-commit gate') without reading the hook; lanes 2,3,5 did not test the conjunct"
+   },
+   {
+    "id": "D5",
+    "defect": "G14's cited 'exhaustively round-tripped through 4x4' has no committed backing: src/colex.zig's exhaustive test calls verify(2,2)/verify(3,3)/verify(3,2) only; verify(4,4) lives in the runner at :202, outside zig build test",
+    "found_by": [
+     1,
+     5
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "THE BATCH'S SHARPEST CATCH. lane-5 named it precisely; lane-1 named it AND closed it by writing an independent 3^16 odometer sweep (43,046,721/43,046,721, 0 defects, null + seeded controls). lane-2 not only missed it but offered a 729-board 3x2 colex check as corroboration for a 4x4 claim. I missed it on my first pass and amended my own G14 ruling after reading these two."
+   },
+   {
+    "id": "D6",
+    "defect": "G01 and G10 justify their status with 'C1 has never been tested with contrasting histories (93% miss / 62% shared prefixes)', a rationale superseded on 2026-08-05 by T372's contrast generator (100% shortest-arrival hit, 23.44% shared prefix, null + seeded controls both run)",
+    "found_by": [
+     1,
+     3,
+     5
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-2 and lane-4 did not surface T372 at all"
+   },
+   {
+    "id": "D7",
+    "defect": "G25's terse 'T13's numbers survive; its probe source does not' invites a wrong refutation, because docs/evidence/T13/t13_probe.py IS committed \u2014 but CLAIMS.md section 7 explicitly rules the T110 work 'independent evidence, not a recovery \u2014 so QA-022 is unchanged'",
+    "found_by": [
+     2,
+     3,
+     5
+    ],
+    "my_verdict": "CONFIRMED \u2014 and this is the batch's designed trap",
+    "note": "lanes 1 and 4 both refuted G25. Both nonetheless left status_should_be = FALSE, so neither proposed the wrong repair; but both missed that section 7, which the row cites as evidence, had already dispositioned the point."
+   },
+   {
+    "id": "D8",
+    "defect": "Calibration/stdout evidence lost to /tmp: incompleteness-verify-T277.md:184 ('the calibration mutant set above is gone') and tie-experiment-T274.md:215 \u2014 a QA-022-class loss recurring after the citation-is-a-commitment rule",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-1 unique; I found the T277 instance independently"
+   },
+   {
+    "id": "D9",
+    "defect": "The register carries THREE mutually inconsistent dependent counts: the hand-written dependents column (which the batch's Tier A ranking used), computed reverse in-degree over depends-on edges, and the register's own section 4 in-degree table at CLAIMS.md:633-638",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED \u2014 verified all three myself",
+    "note": "lane-1's best unique find. I had independently computed the first two and reached the same top set (GLOBAL.S2 14, GLOBAL.INVSYM 11, GLOBAL.FP1 9, GLOBAL.S4 7 \u2014 none in batch 1); lane-1 also found the section 4 table, which I had not. lane-2 saw the anomaly, correctly hedged that the edges might be prose, and disclosed that it did not chase it."
+   },
+   {
+    "id": "D10",
+    "defect": "Batch dependents that resolve to archives/register rather than to live rows: retired IDs are not dangling and claimlint C4 resolves them as archived; only 4 of 20 distinct IDs are true ghosts",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED, and lane-1's self-correction is the point",
+    "note": "lane-1 first measured '28 dangling references', caught the error before shipping, and recorded that its detector had no null control. I made the identical mistake in my own first parse (my regex matched retired IDs inside explanatory prose) and caught it the same way. That two independent graders hit the same trap makes it a real hazard of the register's format, not a lane failure."
+   },
+   {
+    "id": "D11",
+    "defect": "GLOBAL.F2 has no row in CLAIMS.md at HEAD, yet G06's text asserts 'F2 remains orphaned' and at least five live rows still name it in their dependents column (CLAIMS.md:309, :315, :335, :362, :363)",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "lane-1 reached this via the retired-vs-ghost analysis and noted the prose has not followed the triage; I reached it by grepping for the row. Per the project's status-is-an-assertion rule, F2's status is now UNKNOWN, not orphaned."
+   },
+   {
+    "id": "D12",
+    "defect": "The clause 'Corrected 3x2 census 2232/322/34/34' is copy-pasted verbatim into three rows (QA-023, GLOBAL.LONGCYCLE, QA-013) and, per lane-1, reproduces in none of them at HEAD; only 3x2.BASICKO-TIE states it with its seed convention",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "PLAUSIBLE \u2014 I verified the clause appears in QA-023 and that census-reconciliation.md:15 records it against a 42-seed convention, but did not re-run the census to confirm non-reproduction",
+    "note": "lane-1's most valuable actionable repair proposal"
+   },
+   {
+    "id": "D13",
+    "defect": "T378 (commit fc9f35d, 2026-08-19) fixed the qa023_probe White-branch guard defect, and the rows that sourced L/H from the buggy kernel were never re-examined; G10 still presents the defect without noting the fix",
+    "found_by": [
+     1
+    ],
+    "my_verdict": "CONFIRMED",
+    "note": "I verified the fix independently via git log -L 960,968:src/qa023_probe.zig (- 'best < L_tab[li]' / + 'best > L_tab[li]') with a regression test now at src/qa023_probe.zig:2605-2615 and all four guards correct at HEAD. lane-1 additionally found that T378's own findings file says 'I did not read CLAIMS.md in full' and that its recommended demotions were never absorbed."
+   },
+   {
+    "id": "D14",
+    "defect": "G09/G18's 3x3 leak has an independent replication at a second sample size (50/8,000, same 0.625% rate) recorded at PROGRESS.md:118 and SOLUTION-TREE.md:102, and reconciled as QA-009 at critique-2026-07-28.md:367",
+    "found_by": [
+     4
+    ],
+    "my_verdict": "CONFIRMED \u2014 lane-4's one genuine unique contribution",
+    "note": "I did not surface this; it strengthens G18 materially, since a single 25/4000 run is a weaker basis for a PROVEN falsification than two runs at different n agreeing on the rate. Credit to the weakest lane for the one thing it added."
+   },
+   {
+    "id": "D15",
+    "defect": "lane-3's cross-cutting finding that G05's '<= 32 GB' placeholder is 'superseded by measured 177 MB' is WRONG: 177 MB is a PREDICTED artifact size for the (b,side,ko) state space (kostate-census-2026-07-28.md:42, f2-remedy-design-2026-07-29.md:103), not a measured writes-off run footprint \u2014 and docs/research/newrule-4x4-2026-07-28.md:189 records the actual as 3.1 GB against that same 177 MB prediction",
+    "found_by": [],
+    "my_verdict": "CONFIRMED as an ERROR IN LANE-3",
+    "note": "This is a lane defect, not a register defect. It did not change lane-3's verdict (verified / UNTESTED, which is right), but it is a false finding shipped in a findings file, and it is the reason lane-3 ranks below lanes 2 and 5."
+   },
+   {
+    "id": "D16",
+    "defect": "lane-1 states GLOBAL.H1-MARKOV has 12 dependents and claims to have reproduced the batch's Tier A 'exactly by counting comma-separated items'. The comma count is 9 (the target set's figure) and the backticked-ID count is 10. Neither is 12.",
+    "found_by": [],
+    "my_verdict": "CONFIRMED as an ERROR IN LANE-1",
+    "note": "Stated twice. It does not damage D9's substance (I verified the three rankings differ independently) but it is a wrong number inside the finding that names wrong numbers."
+   }
+  ],
+  "defect_discovery_counts": {
+   "lane-1": 12,
+   "lane-2": 2,
+   "lane-3": 3,
+   "lane-4": 1,
+   "lane-5": 4,
+   "note": "count of confirmed register defects (D1-D14) each lane surfaced; D15 and D16 are lane errors, not register defects, and are not counted"
+  },
+  "unique_defect_finds": {
+   "lane-1": [
+    "D3",
+    "D4",
+    "D8",
+    "D9",
+    "D10",
+    "D11",
+    "D12",
+    "D13"
+   ],
+   "lane-2": [],
+   "lane-3": [],
+   "lane-4": [
+    "D14"
+   ],
+   "lane-5": []
+  },
+  "best_pair_on_defects": "lane-1 + lane-5. Lane-1 alone surfaces 12 of the 14 confirmed register defects and closes two of them by running the missing instrument; lane-5 adds D5, which lane-1 also found but which lane-5 alone found WITHOUT having to build a new instrument to see it, and which lanes 2, 3, 4 and my own first pass all missed. Adding lane-4 buys exactly one further defect (D14) at the cost of seven mislabelled verdicts. On the status axis the best pair is any of 1+2, 1+3, 1+5, 2+3, 2+5, 3+5 \u2014 all reach 25/25 \u2014 which is why I do not report a best pair there.",
+  "pairwise_reading": "On the verdict LABEL, lanes 2, 3 and 5 cluster tightly (2-3: 24/25, 3-5: 24/25, 2-5: 23/25) while lane-1 sits far outside everyone (13-14/25 against all four) and lane-4 sits loosely apart (17-19/25). Read naively that makes lane-1 the outlier and the 2/3/5 cluster the consensus \u2014 and the brief is right that the majority vote of five lanes is not evidence. On the STATUS axis the same three are identical (25/25 pairwise) and lane-1 differs from each of them on exactly the 5 rows where it proposes a repair. The cluster is a convention cluster, not a corroboration cluster."
+ },
+ "ranking": [
+  {
+   "rank": 1,
+   "lane": 1,
+   "nuance": "Did more real verification than the other four combined: 11 executions at HEAD with output quoted, null and seeded controls with a disclosed control near-miss, two shipped self-corrections, 12 of the 14 confirmed register defects, and it closed two gaps by building the missing instrument rather than reporting it missing. Its 10 refutations are a disclosed stricter reading of the row (6 of them leave the status unchanged), not over-refutation of the claim. Costs: one wrong number (H1-MARKOV '12 dependents'), one unverifiable-at-head overshoot (G18), and 5 status proposals I would not adopt."
+  },
+  {
+   "rank": 2,
+   "lane": 5,
+   "nuance": "Clean, well-cited, three real runs, and the batch's sharpest unique catch (D5, the unbacked 'through 4x4' on G14) \u2014 which sent me back to amend my own ruling. Correctly refused to inflate line-drift into refutations. One claim left unfinished, so 24/25 coverage."
+  },
+  {
+   "rank": 2,
+   "lane": 2,
+   "nuance": "TIED WITH LANE-5, and I would not bet on the order. The most disciplined documentary lane: it checked cited CONTENT rather than cited existence, re-derived all three code claims from source and from pinned commits, and was candid about both what it did not run and what it did not chase. Zero errors of judgement. It loses the tie-break-that-isn't on one bad miss: on G14 it cited a drifted anchor as if it read what it does not, and offered a 729-board 3x2 check as corroboration for a 4x4 claim."
+  },
+  {
+   "rank": 4,
+   "lane": 3,
+   "nuance": "A genuine lane, not the rubber stamp its 25/25 verified column suggests: convention declared in advance, instruments run, four sources read at HEAD, three confirmed defects found independently. It drops a rung for shipping one false cross-cutting finding (the 177 MB / 32 GB conflation, where its own corpus records 3.1 GB) and for repeating the register's src/retro.zig:2407 off-by-one instead of catching it."
+  },
+  {
+   "rank": 5,
+   "lane": 4,
+   "nuance": "Clearly last. An order of magnitude less evidence, 7 of 25 entries with no citation at all, 4 of 4 refutations contradicting their own status_should_be and their own supporting text, 3 of 3 unverifiable-at-head verdicts that are dodges (one resting on the false claim that a committed file is missing), and notes whose tally contradicts both its own verdict array and its own opening sentence. It asserted the RETRO_CONSIST pre-commit gate without opening the hook \u2014 the one conjunct in the batch that fails. Not fabrication: I checked its two most surprising figures and both are sourced, and its 50/8,000 replication (D14) is a real contribution nobody else made, including me."
+  }
+ ],
+ "how_much_of_the_order_i_would_bet_on": "I would bet heavily on the two ends and very little on the middle. Lane-1 first: it is not close, and the gap is visible in kind as well as in volume \u2014 controls run, a control failure disclosed, two self-corrections, and gaps closed by execution. Lane-4 last: also not close, and diagnosable rather than merely thin. The middle is genuinely tight: lanes 5, 2 and 3 all scored 25/25 on status and 24-25/25 on verdict label, and I separate them only on work shown and on one error each. I report 5 and 2 as TIED and would not defend either order; 3 sits about half a rung below them on the strength of one false finding, and I would defend that gap only weakly. If the panel is re-run I expect the 1-first / 4-last poles to be stable and the 2/3/5 ordering to shuffle.",
+ "batch_integrity": {
+  "selection_rule_reproduces": "YES, EXACTLY \u2014 I re-derived it before scoring. Ranking the 230 parsed 11-column rows by the count of comma-separated items in the hand-written dependents column reproduces Tier A's ten claims in the target set's exact order (H1-MARKOV 9, ADR0006-EYE 6, F1 6, then seven at 5 broken by ID ascending); taking the next 8 PROVEN* rows with >=1 dependent reproduces Tier B exactly; the next 7 FALSE* rows with >=1 dependent reproduces Tier C exactly. The batch is checkable, as it claims.",
+  "but_the_rule_is_not_the_edges": "The target set describes Tier A as 'the 10 claims with the most dependents ... which is exactly what the register's dependency edges exist to expose'. It is not. The count that reproduces the batch is a comma-count of a hand-written PROSE column. Computing reverse in-degree from the structured depends-on edges gives a completely different top \u2014 GLOBAL.S2 14, GLOBAL.INVSYM 11, GLOBAL.FP1 9, GLOBAL.S4 7 \u2014 and NOT ONE of those four is in batch 1. The register's own section 4 in-degree table (CLAIMS.md:633-638) gives a THIRD ordering (GLOBAL.C3 9, 4x4.M4 9, GLOBAL.F1 7, GLOBAL.INVSYM 7, GLOBAL.S2 6). Three counts, three answers. Independently found by lane-1; the section 4 table is lane-1's find, not mine.",
+  "consequence_for_batch_2": "If cascade risk is the selection criterion, batch 1 has not covered the highest-cascade rows. GLOBAL.S2, GLOBAL.INVSYM, GLOBAL.FP1 and GLOBAL.S4 \u2014 four PROVEN rows carrying 7 to 14 structured dependents each \u2014 are untouched, and three of them are exactly the kind of load-bearing proof Tier B was meant to reach. Recommend batch 2 rank on computed reverse edges and take those four first. Not acted on here; the sealed batch was not modified.",
+  "keying": "Per directive D024 I normalized every lane onto G01-G25 before scoring. Lane-1 and lane-4 keyed by the G label (0 remaps); lanes 2, 3 and 5 keyed by register claim ID (25 remaps each). All five lanes mapped to exactly 25 entries with ZERO unmappable entries, so no lane ruled outside the sealed target set and there is no coverage violation of that kind. Had I joined naively on the key field, lanes 2, 3 and 5 would each have shown as 25 absent \u2014 the directive's warning was accurate and load-bearing.",
+  "lanes_ran_at_different_commits": "lane-1 records HEAD 36c2150; I ran at 3b28a7b. Both exist. I did not find a claim where the difference changes a verdict, but readings taken at different commits are not strictly commensurable and the race should pin one commit for all lanes."
+ },
+ "limits": [
+  "I did not re-run the 4x4 or 3x2 solvers, the WZO2 build, or the T266/T277 artifact scans. For G13, G20 and G15 I verified the numbers against two committed artifacts each (report plus raw stdout, or report plus independent re-derivation) and, for G13, against the git diff of the pinned fix commit \u2014 but I did not reproduce the measurements myself.",
+  "G23's primary sources are EXTERNAL and I could not check them. docs/evidence/van-der-werf-sources/ holds only ssgo.pdf (92 KB, sha256 recorded as an unresolved TODO); the thesis sections the row quotes (5.3.2, 5.4.1 / Table 5.1, Appendix A A.4) are not archived in-repo and two of the three original URLs are 404. The thesis-quotation half of that row is unverifiable-at-head by any repo-only grader, mine included. Its in-repo empirical half I did verify.",
+  "D12 (the census clause copy-pasted into three rows) I graded PLAUSIBLE rather than CONFIRMED: I verified the clause is present and that census-reconciliation.md:15 ties it to a 42-seed convention, but I did not re-run the census to confirm lane-1's claim that it reproduces in none of the three.",
+  "I MISSED D5 on my first pass through G14 and graded that row's evidence as among the batch's strongest because zig test src/colex.zig came back 5/5 \u2014 without reading which sizes the test actually calls. Lanes 5 and 1 caught it; I amended my G14 ruling after reading them. This is the never-trust-a-green-test failure in the grader, and it means my G14 entry is the one ruling in this file that was not formed independently of the lanes.",
+  "My own first parse of the depends-on column matched retired claim IDs inside explanatory prose and briefly showed five rows with dangling edges. I caught it by printing the raw cells before recording anything, and no false defect was shipped \u2014 but lane-1 hit the identical trap and had to self-correct, which suggests the register's practice of naming retired IDs in prose inside a structured column is a real hazard rather than either grader's carelessness.",
+  "I graded on status correctness plus evidence quality. A grader using lane-1's stricter row-as-written convention would rule several of my 'verified' rows refuted, and would not be wrong to \u2014 the difference is a declared boundary, not a disagreement about facts. I flag this because it is the single largest source of spread in this round, and because a race that treats it as five lanes disagreeing about the register is misreading four lanes agreeing about the register and disagreeing about what 'refuted' means."
+ ],
+ "notes": "T644 Race G all-grade-all grader (claude-opus-5). All 25 own rulings were made against the repo and flushed to this file BEFORE any lane file was opened; one ruling (G14) was subsequently amended and is marked as such. Directive D024 (amend, from T612, acked 2026-08-22T16:42:02Z) READ AND ACTED ON: lane verdicts were normalized onto G01-G25 before scoring (lanes 2, 3 and 5 required 25 key remaps each, lanes 1 and 4 required none; all five mapped to 25 entries with zero unmappable, reported under batch_integrity.keying), and lane-5's 'pending' verdict on G15 is scored as an unfinished claim rather than as any of the three legitimate outcomes, leaving lane-5 at 24/25 coverage under ruling 35. Headline: all 25 registered statuses are correct at HEAD; the register's citation layer is not. Ranking 1 > (5 tied 2) > 3 > 4, with high confidence on both poles and low confidence on the middle order. Read-only outside this file: no code, register, target set or lane was modified, and claims[]/new_rows[] are deliberately empty because a grader proposes no status changes."
+}
