@@ -67,6 +67,29 @@
 //       (T665): the census tells us whether the debt is payable before a gate
 //       makes it a build failure.
 //
+//   C13 NAMESPACE (namespace policy) — WHICH claim IDs the absorption check
+//       governs, as a rule rather than a hand-written reason per entry.
+//       Register-bound (silence is a defect): `GLOBAL.*`, `<N>x<N>.*`, `QA-*`,
+//       `CODE.*`. Exempt (process records, never register rows):
+//       `OBSERVATION.*`, `T###-*`, `SPRINT-*`, race-verdict IDs. PAST FAILURE:
+//       thirty-five entries in findings/rejections.json each carry a
+//       hand-written reason for the same few judgements; a rule that has to be
+//       restated per entry is not a rule. NOT a new absorption check — the
+//       findings-to-register direction is C7 above, and T668 verified at HEAD
+//       that every proposal the absorption-gap dossier flagged was already
+//       dispositioned there. C13 states the rule C7 leans on. Report-only.
+//
+//   C14 BARE-IDS (ID naming convention) — a new claim ID must be a family
+//       prefix plus WORDS (`GLOBAL.ADR0015-BURDEN`, `CODE.WZO2-PASSBIT`), not
+//       a bare letter-code in the `C1`/`H1`/`F2` style. PAST FAILURE:
+//       `GLOBAL.H1-MARKOV` had to be split out of a conjoined `GLOBAL.H1`
+//       because the name gave no hint it asserted two separable things, and
+//       `C1`..`C4` are four unrelated claims told apart by one digit.
+//       EXISTING IDS ARE NOT MASS-RENAMED (a sweep breaks every citation, and
+//       the citations are the evidence): the old/new line is the committed
+//       snapshot docs/epistemic/id-baseline.json, not a date heuristic.
+//       Report-only.
+//
 //   C3  UNBACKED (proven without committed evidence) — a PROVEN claim whose
 //       evidence does not resolve under docs/evidence/. PAST FAILURE: roadmap-2026-07-28.md
 //       §4 P1 — 57 scratch files were swept on 2026-07-27, taking the primary
@@ -183,6 +206,8 @@ const CHECKS = [_]Check{
     .{ .id = "C10", .name = "VOLATILE" },
     .{ .id = "C11", .name = "UNAUDITED" },
     .{ .id = "C12", .name = "DEAD-GLOBS" },
+    .{ .id = "C13", .name = "NAMESPACE" },
+    .{ .id = "C14", .name = "BARE-IDS" },
 };
 
 /// The canonical name for a check ID, e.g. `checkName("C3")` → `UNBACKED`.
@@ -2266,6 +2291,153 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     });
     util.out("            surfaces: {d} in evidence columns, {d} in cited documents\n", .{ c12_col_hits, c12_doc_hits });
     util.out("            hidden debt behind dead globs: ~{d} additional dead citations (estimated)\n", .{c12_hidden});
+    // ── C13 namespace policy (T669, operator ruling §6.3(1)) ─────────────
+    util.out("\n== C13 {s}  NAMESPACE POLICY (report only — does NOT fail, yet) ==\n", .{checkName("C13")});
+    util.out("Which claim IDs the absorption check (C7) governs, as a RULE rather than a\n", .{});
+    util.out("hand-written reason per entry. Register-bound (silence is a defect):\n", .{});
+    util.out("`GLOBAL.*`, `<N>x<N>.*`, `QA-*`, `CODE.*`. Exempt (process records, never\n", .{});
+    util.out("register rows): `OBSERVATION.*`, `T###-*`, `SPRINT-*`, race-verdict IDs.\n", .{});
+    util.out("NOTE: the findings-to-register absorption check itself is NOT new work — it\n", .{});
+    util.out("is C7 above, and T668 verified at HEAD that every proposal the absorption-gap\n", .{});
+    util.out("dossier flagged was already dispositioned. C13 supplies the rule C7 leans on.\n\n", .{});
+
+    var c13_sites: std.ArrayList(IdSite) = .empty;
+    defer c13_sites.deinit(gpa);
+    try collectProposedIds(gpa, io, FINDINGS_DIR, &c13_sites);
+    var c13_bound: usize = 0;
+    var c13_exempt: usize = 0;
+    var c13_unclassified: usize = 0;
+    for (c13_sites.items) |s| switch (classifyNamespace(s.id)) {
+        .register_bound => c13_bound += 1,
+        .exempt => c13_exempt += 1,
+        .unclassified => c13_unclassified += 1,
+    };
+    util.out("  proposed IDs on disk ({s}/*.json): {d}\n", .{ FINDINGS_DIR, c13_sites.items.len });
+    util.out("    register-bound: {d} · exempt: {d} · UNCLASSIFIED: {d}\n", .{ c13_bound, c13_exempt, c13_unclassified });
+    if (c13_unclassified > 0) {
+        util.out("\n  UNCLASSIFIED — the ID names no family at all, so the policy cannot place it.\n", .{});
+        util.out("  This is the class the C14 naming convention exists to stop at authoring time:\n", .{});
+        for (c13_sites.items) |s| {
+            if (classifyNamespace(s.id) != .unclassified) continue;
+            util.out("  C13 {s}  `{s}`\n              in {s}\n", .{ checkName("C13"), s.id, s.where });
+        }
+    }
+
+    // The census the brief asks for by name: how many hand-written exemptions
+    // does the rule now cover automatically, and how many still need a reason.
+    const rej_json = Io.Dir.cwd().readFileAlloc(io, REJECTIONS_FILE, gpa, .unlimited) catch @as([]const u8, &[_]u8{});
+    var c13_cov = try namespaceCoverage(gpa, rej_json);
+    defer c13_cov.bespoke.deinit(gpa);
+    const c13_auto = c13_cov.by_namespace + c13_cov.by_context_dump;
+    util.out("\n  RULE COVERAGE over the hand-written `not-a-register-claim` entries in {s}:\n", .{REJECTIONS_FILE});
+    util.out("    entries carrying a hand-written reason today: {d}\n", .{c13_cov.narc_total});
+    util.out("    covered by the namespace rule alone (§6.3(1)):  {d}\n", .{c13_cov.by_namespace});
+    util.out("    covered only by the context-dump axis (§3b):    {d}\n", .{c13_cov.by_context_dump});
+    util.out("    covered automatically, both axes:               {d}\n", .{c13_auto});
+    util.out("    still needing a bespoke reason:                 {d}\n", .{c13_cov.bespoke.items.len});
+    if (c13_cov.bespoke.items.len > 0) {
+        util.out("\n  BESPOKE — the rule does not reach these; each keeps its hand-written reason:\n", .{});
+        for (c13_cov.bespoke.items) |b| {
+            const shown = if (b.id.len > 72) b.id[0..72] else b.id;
+            util.out("    · `{s}`  ({s})\n", .{ shown, b.where });
+        }
+    }
+    util.out("\n  C13 {s} unclassified proposed IDs: {d}; exemptions still bespoke: {d}\n", .{
+        checkName("C13"), c13_unclassified, c13_cov.bespoke.items.len,
+    });
+
+    // ── C14 ID naming convention (T669, operator ruling §6.3(2)) ─────────
+    util.out("\n== C14 {s}  ID NAMING CONVENTION (report only — does NOT fail, yet) ==\n", .{checkName("C14")});
+    util.out("Family prefix plus WORDS — `GLOBAL.ADR0015-BURDEN`, `CODE.WZO2-PASSBIT`.\n", .{});
+    util.out("No new bare letter-codes in the `C1`/`H1`/`F2` style: `GLOBAL.H1-MARKOV` had\n", .{});
+    util.out("to be split out of a conjoined `GLOBAL.H1` because the name gave no hint it\n", .{});
+    util.out("asserted two separable things, and `C1`..`C4` are four unrelated claims told\n", .{});
+    util.out("apart by one digit. EXISTING IDS ARE NOT MASS-RENAMED — a sweep would break\n", .{});
+    util.out("every citation in the tree, and the citations are the evidence. The old/new\n", .{});
+    util.out("line is a committed snapshot, {s}, NOT a date heuristic\n", .{ID_BASELINE_PATH});
+    util.out("(a findings `date` is author-supplied; git-blame moves when a line moves).\n\n", .{});
+
+    var baseline = try loadIdBaseline(gpa, io, ID_BASELINE_PATH);
+    if (!baseline.loaded) {
+        util.out("  BASELINE MISSING — C14 is blind and reports nothing. This is a defect,\n", .{});
+        util.out("  not a clean run: restore {s} before trusting a 0.\n", .{ID_BASELINE_PATH});
+    } else {
+        util.out("  baseline: {d} IDs, snapshot at commit {s}\n", .{ baseline.ids.count(), baseline.commit });
+    }
+
+    // Newly introduced IDs = proposed on disk (or in the register) and absent
+    // from the snapshot. Register rows are scanned too: a new row can enter
+    // CLAIMS.md without ever passing through a findings file.
+    var c14_new: usize = 0;
+    var c14_bare: usize = 0;
+    var c14_nofam: usize = 0;
+    if (baseline.loaded) {
+        for (c13_sites.items) |s| {
+            if (baseline.has(s.id)) continue;
+            c14_new += 1;
+            switch (namingVerdict(s.id)) {
+                .bare_code => {
+                    c14_bare += 1;
+                    util.out("  C14 {s}  BARE-CODE  `{s}` — new ID, letter-code legacy; use words\n              in {s}\n", .{ checkName("C14"), s.id, s.where });
+                },
+                .no_family => {
+                    c14_nofam += 1;
+                    util.out("  C14 {s}  NO-FAMILY  `{s}` — new ID with no `GLOBAL.`/`CODE.`/`<N>x<N>.` prefix\n              in {s}\n", .{ checkName("C14"), s.id, s.where });
+                },
+                .ok, .qa_series => {},
+            }
+        }
+        for (reg.rows.items) |r| {
+            if (baseline.has(r.id)) continue;
+            c14_new += 1;
+            switch (namingVerdict(r.id)) {
+                .bare_code => {
+                    c14_bare += 1;
+                    util.out("  C14 {s}  BARE-CODE  `{s}` — new register row, letter-code legacy\n", .{ checkName("C14"), r.id });
+                },
+                .no_family => {
+                    c14_nofam += 1;
+                    util.out("  C14 {s}  NO-FAMILY  `{s}` — new register row with no scope prefix\n", .{ checkName("C14"), r.id });
+                },
+                .ok, .qa_series => {},
+            }
+        }
+    }
+    if (c14_bare + c14_nofam == 0) util.out("  (no newly introduced ID violates the convention)\n", .{});
+
+    // The retrospective census — the finding, per the brief. It is what the
+    // rule WOULD have flagged had it existed, and it is precisely why the
+    // ruling forbids a rename sweep: this debt is not payable by renaming.
+    var retro_bare: usize = 0;
+    var retro_nofam: usize = 0;
+    var retro_qa: usize = 0;
+    var retro_total: usize = 0;
+    {
+        var seen = std.StringHashMap(void).init(gpa);
+        defer seen.deinit();
+        for (reg.rows.items) |r| try seen.put(r.id, {});
+        for (c13_sites.items) |s| try seen.put(idHead(s.id), {});
+        var it = seen.keyIterator();
+        while (it.next()) |k| {
+            if (k.*.len == 0) continue;
+            retro_total += 1;
+            switch (namingVerdict(k.*)) {
+                .bare_code => retro_bare += 1,
+                .no_family => retro_nofam += 1,
+                .qa_series => retro_qa += 1,
+                .ok => {},
+            }
+        }
+    }
+    util.out("\n  RETROSPECTIVE CENSUS — what the rule would flag if applied to history:\n", .{});
+    util.out("    distinct IDs in play (register + findings): {d}\n", .{retro_total});
+    util.out("    bare letter-codes: {d} · no family prefix: {d} · QA numbered series: {d}\n", .{ retro_bare, retro_nofam, retro_qa });
+    util.out("    grandfathered by the baseline (NOT flagged, NOT renamed): {d}\n", .{retro_bare + retro_nofam});
+    util.out("    This is the number that makes the no-mass-rename ruling load-bearing.\n", .{});
+    util.out("\n  C14 {s} newly introduced IDs: {d} — bare-code: {d} · no-family: {d}\n", .{
+        checkName("C14"), c14_new, c14_bare, c14_nofam,
+    });
+
 
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
@@ -2908,6 +3080,112 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("                hidden debt, and find none for placeholders or /tmp … {s}\n", .{if (synth_c12_ok) "CAUGHT (hidden debt >= 1 behind 1 candidate)" else "BROKEN"});
     if (!synth_c12_ok) cal_ok = false;
 
+    // C13/C14 calibration (T669). Pure classifiers, so both arms run on
+    // synthetic IDs and never depend on what the register happens to hold —
+    // the C1a lesson: a real-data arm disappears when the data improves.
+    // The seeded arms are the four the operator's ruling names by hand, plus
+    // the false-positive arm that decides whether the check survives contact.
+    var synth_c13_ok = false;
+    {
+        // §6.3(1) — register-bound vs exempt vs unclassified.
+        const bound_ok = classifyNamespace("GLOBAL.X1") == .register_bound and
+            classifyNamespace("CODE.WZO2-PASSBIT") == .register_bound and
+            classifyNamespace("4x3.F2") == .register_bound and
+            classifyNamespace("QA-023") == .register_bound;
+        const exempt_ok = classifyNamespace("OBSERVATION.LANDMARK-L6-ZERO-TASKS") == .exempt and
+            classifyNamespace("T449") == .exempt and
+            classifyNamespace("T264-V1") == .exempt and
+            classifyNamespace("SPRINT-M4a-ACCEPT") == .exempt and
+            classifyNamespace("T452-design-race-verdict") == .exempt;
+        const unclass_ok = classifyNamespace("DOCTOR-CONSOLE-LIE") == .unclassified and
+            classifyNamespace("Z-CONVERGE-FIX") == .unclassified and
+            classifyNamespace("RESOLVER.INTERFACE") == .unclassified;
+        // Precedence: register-bound wins over the task-ID shape, or `3x2.T13`
+        // — a real goban row — would read as a process record and go exempt.
+        const precedence_ok = classifyNamespace("3x2.T13") == .register_bound;
+        // Prose appended after the identifier must not hide the namespace.
+        const prose_ok = classifyNamespace("GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement") == .register_bound and
+            classifyNamespace("GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps at 2×2") == .register_bound;
+        // The coverage census must partition, and must score the two axes
+        // apart: a namespace-exempt entry is never also counted as a dump.
+        const CAL_REJ_JSON =
+            \\{"rejections":[
+            \\{"claim_id":"OBSERVATION.CAL-EXEMPT","finding_file":"T999-cal.json","disposition":"not-a-register-claim","rationale":"r"},
+            \\{"claim_id":"GLOBAL.CAL-DUMP","finding_file":"T999-context.json","disposition":"not-a-register-claim","rationale":"r"},
+            \\{"claim_id":"CAL-BARE-NOFAMILY","finding_file":"T999-cal.json","disposition":"not-a-register-claim","rationale":"r"},
+            \\{"claim_id":"GLOBAL.CAL-ABSORBED","finding_file":"T999-cal.json","disposition":"absorbed-under-register-id","refuting_row":"GLOBAL.REAL"}
+            \\]}
+        ;
+        var cal_cov = try namespaceCoverage(gpa, CAL_REJ_JSON);
+        defer cal_cov.bespoke.deinit(gpa);
+        // 4 entries in, 1 is absorbed-under-register-id and must not be counted
+        // at all — the census is of hand-written EXEMPTIONS, not dispositions.
+        const cov_ok = cal_cov.narc_total == 3 and cal_cov.by_namespace == 1 and
+            cal_cov.by_context_dump == 1 and cal_cov.bespoke.items.len == 1 and
+            std.mem.eql(u8, cal_cov.bespoke.items[0].id, "CAL-BARE-NOFAMILY");
+        synth_c13_ok = bound_ok and exempt_ok and unclass_ok and precedence_ok and prose_ok and cov_ok;
+    }
+    util.out("  known-bad 16 (C13 {s}, synthetic, T669): a claim in `GLOBAL.*` and a bare\n", .{checkName("C13")});
+    util.out("                identifier with no family must classify register-bound and\n", .{});
+    util.out("                UNCLASSIFIED; the coverage census must score the namespace\n", .{});
+    util.out("                axis and the context-dump axis SEPARATELY, and must ignore\n", .{});
+    util.out("                non-exemption dispositions … {s}\n", .{if (synth_c13_ok) "CAUGHT (1 unclassified, 1 bespoke, 1+1 covered)" else "BROKEN"});
+    util.out("  known-good 14 (C13 {s}, synthetic, T669): `OBSERVATION.*` absent from the\n", .{checkName("C13")});
+    util.out("                register is EXEMPT not flagged; `3x2.T13` reads as a goban row\n", .{});
+    util.out("                and not a task ID; prose appended after an identifier does not\n", .{});
+    util.out("                hide its namespace … {s}\n", .{if (synth_c13_ok) "SILENT (12 arms)" else "BROKEN"});
+    if (!synth_c13_ok) cal_ok = false;
+
+    var synth_c14_ok = false;
+    {
+        // Seeded: a NEW bare letter-code must be flagged.
+        const bare_ok = namingVerdict("GLOBAL.X1") == .bare_code and
+            namingVerdict("GLOBAL.C2") == .bare_code and
+            namingVerdict("4x4.B39") == .bare_code and
+            namingVerdict("3x2.T13") == .bare_code;
+        // Null: the shape the ruling ASKS for must never be flagged. This is
+        // the arm that decides whether the check survives contact — a rule
+        // that fires on `ADR0015-BURDEN` is waived within a day.
+        const words_ok = namingVerdict("GLOBAL.ADR0015-BURDEN") == .ok and
+            namingVerdict("CODE.WZO2-PASSBIT") == .ok and
+            namingVerdict("GLOBAL.H1-MARKOV") == .ok and
+            namingVerdict("GLOBAL.BATTERY-PASS1-ACCEPTANCE") == .ok;
+        const nofam_ok = namingVerdict("DOCTOR-CONSOLE-LIE") == .no_family and
+            namingVerdict("Z-CONVERGE-FIX") == .no_family;
+        const qa_ok = namingVerdict("QA-023") == .qa_series;
+        // The baseline is what makes an old ID silent FOREVER. Same ID, same
+        // verdict, opposite outcome — the whole grandfathering mechanism.
+        const CAL_BASELINE_JSON =
+            \\{"commit":"cal","ids":["GLOBAL.C2","3x2.T13","QA-023","GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement"]}
+        ;
+        var cal_base = try parseIdBaseline(gpa, CAL_BASELINE_JSON);
+        defer cal_base.ids.deinit();
+        const grandfather_ok = cal_base.loaded and
+            cal_base.has("GLOBAL.C2") and cal_base.has("3x2.T13") and cal_base.has("QA-023") and
+            !cal_base.has("GLOBAL.X1");
+        // A prose-suffixed variant of a baselined ID is still OLD — the
+        // rename-robustness arm, from the other side: an author re-quoting a
+        // grandfathered ID with its description must not re-introduce it.
+        const prose_base_ok = cal_base.has("GLOBAL.I8-SCOPE");
+        // A missing baseline must read as BLIND, never as a clean 0.
+        var blind = try parseIdBaseline(gpa, "{ not json");
+        defer blind.ids.deinit();
+        const blind_ok = !blind.loaded;
+        synth_c14_ok = bare_ok and words_ok and nofam_ok and qa_ok and grandfather_ok and prose_base_ok and blind_ok;
+    }
+    util.out("  known-bad 17 (C14 {s}, synthetic, T669): a NEW `GLOBAL.X1` must be flagged\n", .{checkName("C14")});
+    util.out("                a bare letter-code, and a bare identifier with no family\n", .{});
+    util.out("                prefix flagged NO-FAMILY … {s}\n", .{if (synth_c14_ok) "CAUGHT (6 arms)" else "BROKEN"});
+    util.out("  known-good 15 (C14 {s}, synthetic, T669): the FALSE-POSITIVE arm — the\n", .{checkName("C14")});
+    util.out("                shape the ruling asks for (`GLOBAL.ADR0015-BURDEN`,\n", .{});
+    util.out("                `CODE.WZO2-PASSBIT`, `GLOBAL.H1-MARKOV`) must be silent, and\n", .{});
+    util.out("                baselined `GLOBAL.C2` / `3x2.T13` / `QA-023` silent forever —\n", .{});
+    util.out("                including when re-quoted with prose appended … {s}\n", .{if (synth_c14_ok) "SILENT (10 arms)" else "BROKEN"});
+    util.out("  known-bad 18 (C14 {s}, synthetic, T669): an unreadable baseline must read\n", .{checkName("C14")});
+    util.out("                as BLIND, never as a clean zero … {s}\n", .{if (synth_c14_ok) "CAUGHT (loaded=false)" else "BROKEN"});
+    if (!synth_c14_ok) cal_ok = false;
+
+
     util.out("\n  calibration: {s}\n", .{if (cal_ok) "PASS" else "FAIL — fix the checker before trusting the run"});
 
     // ── summary ─────────────────────────────────────────────────────────────
@@ -2927,6 +3205,8 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("  C10 volatile evidence paths     {d}   (report only — does not fail, yet)   [{s}]\n", .{ c10_hits.items.len, checkName("C10") });
     util.out("  C11 unaudited tier-A rows      {d}   (FAILS)   [{s}]\n", .{ c11_results.unaudited, checkName("C11") });
     util.out("  C12 dead / ambiguous globs     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c12_dead, c12_ambig, checkName("C12") });
+    util.out("  C13 unclassified / bespoke     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c13_unclassified, c13_cov.bespoke.items.len, checkName("C13") });
+    util.out("  C14 new bare-code / no-family  {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c14_bare, c14_nofam, checkName("C14") });
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
@@ -4230,6 +4510,283 @@ test "C11 UNAUDITED: non-tier-A proposal is silent" {
     try std.testing.expectEqual(@as(usize, 0), r.unaudited);
 }
 
+// ── C13/C14 namespace policy & ID naming convention (T669) ──────────────────
+//
+// Both checks execute the operator's ratification of 2026-08-22 evening
+// (`untracked/fable-absorption-gaps-2026-08-22.md` §6.3). Neither one is the
+// findings→register absorption check: **that already exists as C7**, and T668
+// verified at HEAD that every proposal the dossier flagged was in fact already
+// dispositioned in `findings/rejections.json` (CLAIMS.md §3 tail). What was
+// missing is the two rules C7 leans on but never states.
+
+/// Which side of the namespace policy an ID falls on (§6.3(1)).
+///   register_bound — an unreflected claim in this namespace is a defect
+///   exempt         — a process record, never a register row
+///   unclassified   — neither; the ID does not name its own family at all
+const IdClass = enum { register_bound, exempt, unclassified };
+
+/// The identifier proper, stripped of any prose the author appended to it.
+/// Real data carries both `GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-…` and
+/// `GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps …` inside `claim_id`/`id`
+/// fields. Classifying the whole string would drop every one of them into
+/// UNCLASSIFIED and hide the namespace they plainly belong to — the check
+/// would then report a policy gap that is really a punctuation accident.
+/// Note this is a *classification* convenience only: the malformed ID is
+/// still reported verbatim, and the baseline stores it verbatim.
+fn idHead(id: []const u8) []const u8 {
+    const t = trim(id);
+    var end: usize = 0;
+    while (end < t.len) : (end += 1) {
+        if (t[end] == ' ' or t[end] == '\t' or t[end] == ':') break;
+    }
+    return t[0..end];
+}
+
+/// `<N>x<N>.` — the goban scope prefix (`2x2.`, `4x3.`).
+fn isGobanScope(h: []const u8) bool {
+    var i: usize = 0;
+    while (i < h.len and std.ascii.isDigit(h[i])) i += 1;
+    if (i == 0) return false;
+    if (i >= h.len or h[i] != 'x') return false;
+    i += 1;
+    const d0 = i;
+    while (i < h.len and std.ascii.isDigit(h[i])) i += 1;
+    if (i == d0) return false;
+    return i < h.len and h[i] == '.';
+}
+
+/// `QA-023` — the numbered audit series. Whole-ID form, no dot scope.
+fn isQaSeries(h: []const u8) bool {
+    if (!std.mem.startsWith(u8, h, "QA-")) return false;
+    const rest = h["QA-".len..];
+    if (rest.len == 0) return false;
+    for (rest) |c| if (!std.ascii.isDigit(c)) return false;
+    return true;
+}
+
+/// A task identifier used as a claim ID — `T449`, `T264-V1`,
+/// `T452-design-race-verdict`, `T557.b3-…`. Exempt: a task ID names a process
+/// record, not an epistemic claim about Go.
+fn isTaskId(h: []const u8) bool {
+    if (h.len < 2 or h[0] != 'T') return false;
+    var i: usize = 1;
+    while (i < h.len and std.ascii.isDigit(h[i])) i += 1;
+    if (i == 1) return false;
+    return i == h.len or h[i] == '-' or h[i] == '.';
+}
+
+fn containsIgnoreCase(hay: []const u8, needle: []const u8) bool {
+    if (needle.len == 0 or hay.len < needle.len) return false;
+    var i: usize = 0;
+    while (i + needle.len <= hay.len) : (i += 1) {
+        if (std.ascii.eqlIgnoreCase(hay[i .. i + needle.len], needle)) return true;
+    }
+    return false;
+}
+
+/// §6.3(1). Register-bound: `GLOBAL.*`, `<N>x<N>.*`, `QA-*`, `CODE.*`.
+/// Exempt: `OBSERVATION.*`, `T###-*`, `SPRINT-*`, and race-verdict IDs.
+/// Order matters — register-bound is tested first, so `3x2.T13` reads as a
+/// goban row and not as a task ID.
+fn classifyNamespace(id: []const u8) IdClass {
+    const h = idHead(id);
+    if (h.len == 0) return .unclassified;
+    if (std.mem.startsWith(u8, h, "GLOBAL.")) return .register_bound;
+    if (std.mem.startsWith(u8, h, "CODE.")) return .register_bound;
+    if (isGobanScope(h)) return .register_bound;
+    if (isQaSeries(h)) return .register_bound;
+    if (std.mem.startsWith(u8, h, "OBSERVATION.")) return .exempt;
+    if (std.mem.startsWith(u8, h, "SPRINT-")) return .exempt;
+    if (isTaskId(h)) return .exempt;
+    if (containsIgnoreCase(id, "race-verdict")) return .exempt;
+    return .unclassified;
+}
+
+/// §6.3(2). `no_family` — the ID never names a scope (`DOCTOR-CONSOLE-LIE`).
+/// `bare_code` — scope plus a bare letter-code legacy (`GLOBAL.C2`).
+const NameVerdict = enum { ok, qa_series, bare_code, no_family };
+
+/// A bare letter-code: a short letter run, then a digit run, then nothing —
+/// `C1`, `H1`, `F2`, `FP3`, `B39`, `T13`. This is the shape the ruling forbids
+/// for NEW IDs, and the reason is on the record: `GLOBAL.H1-MARKOV` had to be
+/// split out of a conjoined `GLOBAL.H1` because the name carried no hint that
+/// it asserted two separable things, and `C1`/`C2`/`C3`/`C4` are four
+/// unrelated claims told apart by one digit. A legacy with words in it —
+/// `ADR0015-BURDEN`, `WZO2-PASSBIT` — is exactly what the ruling asks for and
+/// must stay silent, which is why the run must reach the END of the legacy:
+/// `ADR0015-BURDEN` has letters and digits but does not stop there.
+fn isBareLetterCode(legacy: []const u8) bool {
+    var i: usize = 0;
+    while (i < legacy.len and std.ascii.isAlphabetic(legacy[i])) i += 1;
+    if (i == 0 or i > 3) return false;
+    const digits_start = i;
+    while (i < legacy.len and std.ascii.isDigit(legacy[i])) i += 1;
+    if (i == digits_start) return false;
+    return i == legacy.len;
+}
+
+/// The `QA-<nnn>` series is exempt from the letter-code rule and reported as
+/// its own verdict rather than silently folded into `ok`. It is a numbered
+/// audit series where the number IS the identity (QA-023 is a specific audit,
+/// not a claim family member), so "family prefix plus words" does not apply.
+/// Called out explicitly because it is a JUDGEMENT the ruling does not make
+/// for us: if the operator wants new QA rows to carry words too, this one
+/// branch is where that changes.
+fn namingVerdict(id: []const u8) NameVerdict {
+    const h = idHead(id);
+    if (h.len == 0) return .no_family;
+    if (isQaSeries(h)) return .qa_series;
+    const dot = std.mem.indexOfScalar(u8, h, '.') orelse return .no_family;
+    const legacy = h[dot + 1 ..];
+    if (legacy.len == 0) return .no_family;
+    if (isBareLetterCode(legacy)) return .bare_code;
+    return .ok;
+}
+
+/// The line between "existing" and "newly introduced" (§6.3(2): existing IDs
+/// are NOT mass-renamed — a sweep would break every citation in the tree, and
+/// the citations are the evidence). Drawn as a committed SNAPSHOT rather than
+/// a date heuristic: a findings file's `date` field is author-supplied and
+/// unverifiable, and a git-blame heuristic re-classifies an ID every time its
+/// line moves. See docs/epistemic/id-baseline.json for how it was built.
+const ID_BASELINE_PATH = "docs/epistemic/id-baseline.json";
+
+const IdBaseline = struct {
+    ids: std.StringHashMap(void),
+    loaded: bool = false,
+    commit: []const u8 = "",
+    /// Both the verbatim ID and its head are inserted at load, so a prose-
+    /// suffixed variant of a baselined ID is still recognised as old.
+    fn has(self: *const IdBaseline, id: []const u8) bool {
+        if (self.ids.contains(trim(id))) return true;
+        return self.ids.contains(idHead(id));
+    }
+};
+
+fn parseIdBaseline(gpa: Allocator, json: []const u8) !IdBaseline {
+    var b: IdBaseline = .{ .ids = std.StringHashMap(void).init(gpa) };
+    var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch return b;
+    defer parsed.deinit();
+    if (parsed.value != .object) return b;
+    if (strField(parsed.value.object, "commit")) |c| b.commit = try gpa.dupe(u8, c);
+    const arr = parsed.value.object.get("ids") orelse return b;
+    if (arr != .array) return b;
+    for (arr.array.items) |v| {
+        if (v != .string) continue;
+        const verbatim = trim(v.string);
+        try b.ids.put(try gpa.dupe(u8, verbatim), {});
+        const h = idHead(verbatim);
+        if (h.len != 0 and h.len != verbatim.len) try b.ids.put(try gpa.dupe(u8, h), {});
+    }
+    b.loaded = true;
+    return b;
+}
+
+fn loadIdBaseline(gpa: Allocator, io: Io, path: []const u8) !IdBaseline {
+    const json = Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch |e| {
+        util.note("C14: cannot read {s}: {s} — the check is BLIND (every ID reads as old)\n", .{ path, @errorName(e) });
+        return IdBaseline{ .ids = std.StringHashMap(void).init(gpa) };
+    };
+    return parseIdBaseline(gpa, json);
+}
+
+/// One ID as it appears somewhere on disk, with the file that carries it.
+const IdSite = struct { id: []const u8, where: []const u8 };
+
+/// §6.3(1) coverage census over the hand-written exemptions already in
+/// `findings/rejections.json`. The point of the policy is that it REPLACES
+/// hand-written reasons with a rule; a rule that only covers half of them is
+/// worth knowing about, and the brief asks for that number by name.
+const NsCoverage = struct {
+    narc_total: usize = 0,
+    by_namespace: usize = 0,
+    by_context_dump: usize = 0,
+    bespoke: std.ArrayList(IdSite) = .empty,
+};
+
+/// A `*-context.json` file is a narrative dump, not a proposal — the second
+/// exemption axis in §3b, and file-shaped rather than ID-shaped. It is scored
+/// separately from the namespace rule so the two contributions stay legible:
+/// namespace alone covers far less than the two together, and conflating them
+/// would overstate what §6.3(1) buys on its own.
+fn isContextDump(file: []const u8) bool {
+    return std.mem.endsWith(u8, file, "-context.json");
+}
+
+fn namespaceCoverage(gpa: Allocator, json: []const u8) !NsCoverage {
+    var cov: NsCoverage = .{};
+    var parsed = std.json.parseFromSlice(std.json.Value, gpa, json, .{ .allocate = .alloc_always }) catch return cov;
+    defer parsed.deinit();
+    if (parsed.value != .object) return cov;
+    const rv = parsed.value.object.get("rejections") orelse return cov;
+    if (rv != .array) return cov;
+    for (rv.array.items) |ev| {
+        if (ev != .object) continue;
+        const disp = strField(ev.object, "disposition") orelse continue;
+        if (!std.mem.eql(u8, disp, "not-a-register-claim")) continue;
+        const cid = strField(ev.object, "claim_id") orelse continue;
+        const file = strField(ev.object, "finding_file") orelse "";
+        cov.narc_total += 1;
+        if (classifyNamespace(cid) == .exempt) {
+            cov.by_namespace += 1;
+        } else if (isContextDump(file)) {
+            cov.by_context_dump += 1;
+        } else {
+            try cov.bespoke.append(gpa, .{
+                .id = try gpa.dupe(u8, cid),
+                .where = try gpa.dupe(u8, file),
+            });
+        }
+    }
+    return cov;
+}
+
+/// Every claim ID proposed on disk, with the file carrying it: `claims[].id`
+/// and `new_rows[].id` over `findings/*.json`, including the malformed
+/// string-array `new_rows` form that real files carry (T438/T447) — dropping
+/// those would hide exactly the IDs most likely to break the convention.
+/// This is the same source set the baseline snapshot was built from, so
+/// "absent from the baseline" means "introduced after the snapshot" and
+/// nothing else.
+fn collectProposedIds(gpa: Allocator, io: Io, dir_path: []const u8, out: *std.ArrayList(IdSite)) !void {
+    var dir = Io.Dir.cwd().openDir(io, dir_path, .{ .iterate = true }) catch |e| {
+        if (e == error.FileNotFound) return;
+        return e;
+    };
+    defer dir.close(io);
+    var w = try dir.walkSelectively(gpa);
+    defer w.deinit();
+    while (try w.next(io)) |e| {
+        if (e.kind != .file) continue;
+        if (!std.mem.endsWith(u8, e.basename, ".json")) continue;
+        if (std.mem.eql(u8, e.basename, "rejections.json")) continue;
+        const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch continue;
+        var parsed = std.json.parseFromSlice(std.json.Value, gpa, body, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+        if (parsed.value != .object) continue;
+        const where = try gpa.dupe(u8, e.path);
+        if (parsed.value.object.get("claims")) |cv| if (cv == .array) {
+            for (cv.array.items) |c| {
+                if (c != .object) continue;
+                const id = strField(c.object, "id") orelse continue;
+                if (trim(id).len == 0) continue;
+                try out.append(gpa, .{ .id = try gpa.dupe(u8, id), .where = where });
+            }
+        };
+        if (parsed.value.object.get("new_rows")) |nv| if (nv == .array) {
+            for (nv.array.items) |r| {
+                const id = switch (r) {
+                    .object => strField(r.object, "id") orelse continue,
+                    .string => r.string,
+                    else => continue,
+                };
+                if (trim(id).len == 0) continue;
+                try out.append(gpa, .{ .id = try gpa.dupe(u8, id), .where = where });
+            }
+        };
+    }
+}
+
 // ── C12 unit tests (T665) ────────────────────────────────────────────────
 // `zig test src/claimlint.zig` runs these; they are the red-first arms for
 // the dead-glob check. They exercise the same pure functions the runtime
@@ -4376,4 +4933,137 @@ test "C12 DEAD-GLOBS: candidates resolve the dead glob to the rename survivor" {
     var tmp = try globCandidates(gpa, &paths, "/tmp/weizigo/t416/out/*.json");
     defer tmp.deinit(gpa);
     try std.testing.expectEqual(@as(usize, 0), tmp.items.len);
+}
+
+// ── C13/C14 unit tests (T669) ────────────────────────────────────────────
+// The namespace policy and the naming convention are pure functions over an
+// ID string, so the tests are pure too — no register, no repo index. That is
+// deliberate: an arm that reads real data disappears when the data improves
+// (the C1a lesson), and both of these rules must hold for IDs that do not
+// exist yet.
+
+test "C13 NAMESPACE: register-bound namespaces are the four the ruling names" {
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("GLOBAL.ADR0015-BURDEN"));
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("CODE.WZO2-PASSBIT"));
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("4x3.F2"));
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("QA-023"));
+}
+
+test "C13 NAMESPACE: process-record namespaces are exempt" {
+    try std.testing.expectEqual(IdClass.exempt, classifyNamespace("OBSERVATION.LANDMARK-L6-ZERO-TASKS"));
+    try std.testing.expectEqual(IdClass.exempt, classifyNamespace("T449"));
+    try std.testing.expectEqual(IdClass.exempt, classifyNamespace("T264-V1"));
+    try std.testing.expectEqual(IdClass.exempt, classifyNamespace("T557.b3-verification-review"));
+    try std.testing.expectEqual(IdClass.exempt, classifyNamespace("SPRINT-M4a-ACCEPT"));
+    try std.testing.expectEqual(IdClass.exempt, classifyNamespace("T452-design-race-verdict"));
+}
+
+test "C13 NAMESPACE: a goban scope beats the task-ID shape (3x2.T13 is a row)" {
+    // Precedence, not coincidence: `3x2.T13` ends in a task-ID-looking legacy.
+    // If exempt were tested first it would read as a process record and the
+    // absorption check would stop governing a real goban row.
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("3x2.T13"));
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("2x2.T12"));
+}
+
+test "C13 NAMESPACE: an ID naming no family is UNCLASSIFIED, not exempt" {
+    // The whole point of the class: `DOCTOR-CONSOLE-LIE` must NOT slide into
+    // exempt by default, or the policy silently forgives the bare identifiers
+    // that already needed five hand-written reasons in rejections.json.
+    try std.testing.expectEqual(IdClass.unclassified, classifyNamespace("DOCTOR-CONSOLE-LIE"));
+    try std.testing.expectEqual(IdClass.unclassified, classifyNamespace("Z-CONVERGE-FIX"));
+    try std.testing.expectEqual(IdClass.unclassified, classifyNamespace("RESOLVER.INTERFACE"));
+    try std.testing.expectEqual(IdClass.unclassified, classifyNamespace("WZO2.I2-CLEAN"));
+    try std.testing.expectEqual(IdClass.unclassified, classifyNamespace(""));
+}
+
+test "C13 NAMESPACE: prose appended after the identifier does not hide it" {
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement"));
+    try std.testing.expectEqual(IdClass.register_bound, classifyNamespace("GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps at 2×2"));
+    try std.testing.expectEqualStrings("GLOBAL.I8-SCOPE", idHead("GLOBAL.I8-SCOPE — I8 measures …"));
+    try std.testing.expectEqualStrings("GLOBAL.X", idHead("  GLOBAL.X: prose "));
+}
+
+test "C14 BARE-IDS: the forbidden shape is a letter run then a digit run, and nothing else" {
+    try std.testing.expect(isBareLetterCode("C1"));
+    try std.testing.expect(isBareLetterCode("H1"));
+    try std.testing.expect(isBareLetterCode("FP3"));
+    try std.testing.expect(isBareLetterCode("B39"));
+    try std.testing.expect(isBareLetterCode("T13"));
+    // The false-positive arm — words after the code make it legible, which is
+    // exactly what the ruling asks for.
+    try std.testing.expect(!isBareLetterCode("ADR0015-BURDEN"));
+    try std.testing.expect(!isBareLetterCode("WZO2-PASSBIT"));
+    try std.testing.expect(!isBareLetterCode("H1-MARKOV"));
+    try std.testing.expect(!isBareLetterCode("BATTERY-GAPS"));
+    try std.testing.expect(!isBareLetterCode("1234")); // no letters
+    try std.testing.expect(!isBareLetterCode("ABCD1")); // letter run too long to be a code
+    try std.testing.expect(!isBareLetterCode(""));
+}
+
+test "C14 BARE-IDS: verdicts over whole IDs, QA series called out separately" {
+    try std.testing.expectEqual(NameVerdict.bare_code, namingVerdict("GLOBAL.X1"));
+    try std.testing.expectEqual(NameVerdict.bare_code, namingVerdict("GLOBAL.C2"));
+    try std.testing.expectEqual(NameVerdict.no_family, namingVerdict("DOCTOR-CONSOLE-LIE"));
+    try std.testing.expectEqual(NameVerdict.no_family, namingVerdict(""));
+    try std.testing.expectEqual(NameVerdict.ok, namingVerdict("GLOBAL.ADR0015-BURDEN"));
+    try std.testing.expectEqual(NameVerdict.ok, namingVerdict("CODE.WZO2-PASSBIT"));
+    // QA-<nnn> is a numbered audit series where the number IS the identity;
+    // it is exempted as a judgement, and reported as its own verdict so the
+    // judgement is visible rather than folded into `ok`.
+    try std.testing.expectEqual(NameVerdict.qa_series, namingVerdict("QA-023"));
+}
+
+test "C14 BARE-IDS: the baseline grandfathers old IDs, including re-quoted with prose" {
+    const gpa = std.testing.allocator;
+    const json =
+        \\{"commit":"cal","ids":["GLOBAL.C2","3x2.T13","QA-023","GLOBAL.I8-SCOPE — I8 measures agreement"]}
+    ;
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    var b = try parseIdBaseline(arena.allocator(), json);
+    try std.testing.expect(b.loaded);
+    try std.testing.expect(b.has("GLOBAL.C2"));
+    try std.testing.expect(b.has("3x2.T13"));
+    try std.testing.expect(b.has("QA-023"));
+    // The rename-robustness arm from the other side: an author re-quoting a
+    // grandfathered ID with its description must not re-introduce it as new.
+    try std.testing.expect(b.has("GLOBAL.I8-SCOPE"));
+    try std.testing.expect(!b.has("GLOBAL.X1"));
+}
+
+test "C14 BARE-IDS: an unreadable baseline reads BLIND, never as a clean zero" {
+    const gpa = std.testing.allocator;
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    const b = try parseIdBaseline(arena.allocator(), "{ not json");
+    try std.testing.expect(!b.loaded);
+    const b2 = try parseIdBaseline(arena.allocator(), "{\"commit\":\"x\"}");
+    try std.testing.expect(!b2.loaded); // no `ids` array is also blind
+}
+
+test "C13 NAMESPACE: coverage census scores the two axes apart" {
+    const gpa = std.testing.allocator;
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    const json =
+        \\{"rejections":[
+        \\{"claim_id":"OBSERVATION.CAL","finding_file":"T999-cal.json","disposition":"not-a-register-claim","rationale":"r"},
+        \\{"claim_id":"GLOBAL.CAL","finding_file":"T999-context.json","disposition":"not-a-register-claim","rationale":"r"},
+        \\{"claim_id":"CAL-NOFAMILY","finding_file":"T999-cal.json","disposition":"not-a-register-claim","rationale":"r"},
+        \\{"claim_id":"GLOBAL.ABS","finding_file":"T999-cal.json","disposition":"absorbed-under-register-id","refuting_row":"GLOBAL.REAL"}
+        \\]}
+    ;
+    const cov = try namespaceCoverage(arena.allocator(), json);
+    // Only `not-a-register-claim` entries are exemptions; the absorbed one is
+    // a disposition and must not inflate the denominator.
+    try std.testing.expectEqual(@as(usize, 3), cov.narc_total);
+    try std.testing.expectEqual(@as(usize, 1), cov.by_namespace);
+    try std.testing.expectEqual(@as(usize, 1), cov.by_context_dump);
+    try std.testing.expectEqual(@as(usize, 1), cov.bespoke.items.len);
+    try std.testing.expectEqualStrings("CAL-NOFAMILY", cov.bespoke.items[0].id);
+    // An exempt-by-namespace entry that also sits in a dump is scored ONCE,
+    // to the namespace axis — otherwise the two axes double-count and the
+    // "namespace alone" figure overstates what §6.3(1) buys.
+    try std.testing.expectEqual(@as(usize, 3), cov.by_namespace + cov.by_context_dump + cov.bespoke.items.len);
 }
