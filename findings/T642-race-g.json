@@ -2,6 +2,7 @@
   "task_id": "T642",
   "date": "2026-08-22",
   "model": "claude-haiku-4-5-20251001",
+  "claims": [],
   "verdicts": [
     {"claim_id": "G01", "verdict": "unverifiable-at-head", "status_should_be": "UNTESTED", "cascades": ["GLOBAL.H1-COMPUTABLE", "QA-023"], "why": "2B-3-AUDIT evidence missing at HEAD"},
     {"claim_id": "G02", "verdict": "verified", "citation": "docs/audits/2026-07-30-eye-prune-validation.md §0 verdict line 20-22", "status_should_be": "CLAIMED", "cascades": ["GLOBAL.ADR0004-TERM"], "why": "T114 validation at 4x4 zero disagreements against unpruned table"},
