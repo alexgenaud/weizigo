@@ -1,0 +1,936 @@
+{
+ "task_id": "T684",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "deliverable": "landmark backfill per D042 scope cut — binary L1/L2, obvious-only — for the 152 rows in untracked/landmark-missing-2026-08-22.json",
+ "rows": [
+  {
+   "task_id": "DARGUS",
+   "status": "dispatchable",
+   "landmark": "L1",
+   "why": "argus doctor detects stale binaries/orphaned claims — fleet infrastructure gauges"
+  },
+  {
+   "task_id": "DCLAIM",
+   "status": "dispatchable",
+   "landmark": "L2",
+   "why": "re-derives prose-only PROVEN claims — the register/claims, go science"
+  },
+  {
+   "task_id": "DRPLAY",
+   "status": "dispatchable",
+   "landmark": "L2",
+   "why": "plays games against the 4×4 oracle table — solver science"
+  },
+  {
+   "task_id": "T317",
+   "status": "done",
+   "landmark": "L1",
+   "why": "managent attribution + canonical model labels — dispatch tooling"
+  },
+  {
+   "task_id": "T319",
+   "status": "done",
+   "landmark": "L1",
+   "why": "kanban archive command — fleet/store tooling"
+  },
+  {
+   "task_id": "T322",
+   "status": "done",
+   "landmark": "L1",
+   "why": "wiring orphaned regression controls — suite/tooling"
+  },
+  {
+   "task_id": "T325",
+   "status": "done",
+   "landmark": "L1",
+   "why": "diagnosing the non-deterministic suite — tooling/measurement"
+  },
+  {
+   "task_id": "T326",
+   "status": "done",
+   "landmark": "L1",
+   "why": "GTP handicap surface, 'no solver, no artifact' — engine tooling surface"
+  },
+  {
+   "task_id": "T327",
+   "status": "done",
+   "landmark": "L1",
+   "why": "GTP showscores surface, display only — engine tooling surface"
+  },
+  {
+   "task_id": "T328",
+   "status": "done",
+   "landmark": "L1",
+   "why": "bake-off harness + protocol — the fleet's measurement machinery"
+  },
+  {
+   "task_id": "T330",
+   "status": "done",
+   "landmark": "L2",
+   "why": "re-points nine evidence edges in CLAIMS.md — the register"
+  },
+  {
+   "task_id": "T335",
+   "status": "done",
+   "landmark": "L2",
+   "why": "G3b pass0 build sprint console — the solver's verification battery"
+  },
+  {
+   "task_id": "T336",
+   "status": "done",
+   "landmark": "L1",
+   "why": "fleet-hardening sprint console — the fleet's tools/kanban/suite"
+  },
+  {
+   "task_id": "T337",
+   "status": "done",
+   "landmark": "L1",
+   "why": "fleet-hardening round 2 — dispatcher control + suite legibility"
+  },
+  {
+   "task_id": "T338",
+   "status": "done",
+   "landmark": "L2",
+   "why": "MG-INV move-generator differential invariant — G3b solver battery"
+  },
+  {
+   "task_id": "T339",
+   "status": "done",
+   "landmark": "L2",
+   "why": "MG-KERN kernel move generator — G3b solver battery"
+  },
+  {
+   "task_id": "T340",
+   "status": "done",
+   "landmark": "L2",
+   "why": "R8 independent move generator + state-key encoder — G3b solver battery"
+  },
+  {
+   "task_id": "T341",
+   "status": "done",
+   "landmark": "L2",
+   "why": "SMD1 solver-side move-set dump — G3b solver battery"
+  },
+  {
+   "task_id": "T342",
+   "status": "done",
+   "landmark": "L2",
+   "why": "CLOSURE C-A1/C-A2 — G3b solver battery"
+  },
+  {
+   "task_id": "T343",
+   "status": "done",
+   "landmark": "L2",
+   "why": "I4-4x4 Bellman residual — G3b solver battery"
+  },
+  {
+   "task_id": "T344",
+   "status": "done",
+   "landmark": "L2",
+   "why": "I5-4x4 SCC containment — G3b solver battery"
+  },
+  {
+   "task_id": "T345",
+   "status": "done",
+   "landmark": "L2",
+   "why": "KEY-4x4 key agreement — G3b solver battery"
+  },
+  {
+   "task_id": "T346",
+   "status": "done",
+   "landmark": "L2",
+   "why": "I11 move-set consistency — G3b solver battery"
+  },
+  {
+   "task_id": "T347",
+   "status": "done",
+   "landmark": "L2",
+   "why": "BATT-HEALTH meta-check — G3b solver battery"
+  },
+  {
+   "task_id": "T348",
+   "status": "done",
+   "landmark": "L2",
+   "why": "DISCHARGE acceptance row — G3b solver battery"
+  },
+  {
+   "task_id": "T349",
+   "status": "done",
+   "landmark": "none",
+   "why": "void registration, superseded by T352, carries no work"
+  },
+  {
+   "task_id": "T350",
+   "status": "done",
+   "landmark": "L1",
+   "why": "cmdDone two-phase lock — managent/store tooling"
+  },
+  {
+   "task_id": "T354",
+   "status": "done",
+   "landmark": "L2",
+   "why": "register triage of all 334 rows — the register/claims"
+  },
+  {
+   "task_id": "T355",
+   "status": "done",
+   "landmark": "L1",
+   "why": "inbox loop, human out of the relay — dispatch/directive tooling"
+  },
+  {
+   "task_id": "T356",
+   "status": "done",
+   "landmark": "L2",
+   "why": "names claimlint C3/C7 checks — the register's instrument"
+  },
+  {
+   "task_id": "T359",
+   "status": "done",
+   "landmark": "L2",
+   "why": "symmetry fold census — solver internals (colex encoding, gates 5×5)"
+  },
+  {
+   "task_id": "T360",
+   "status": "done",
+   "landmark": "L1",
+   "why": "zig build test infinite recursion — suite/tooling"
+  },
+  {
+   "task_id": "T361",
+   "status": "done",
+   "landmark": "L2",
+   "why": "old-vs-new 4×4 engine kifu — solver science"
+  },
+  {
+   "task_id": "T363",
+   "status": "done",
+   "landmark": "L2",
+   "why": "closes the four G3b discharge gaps — solver verification"
+  },
+  {
+   "task_id": "T365",
+   "status": "done",
+   "landmark": "none",
+   "why": "docs/audits/ date-prefix sweep — doc reorganization, no landmark"
+  },
+  {
+   "task_id": "T366",
+   "status": "done",
+   "landmark": "L2",
+   "why": "re-registration of the old-vs-new engine kifu — solver science"
+  },
+  {
+   "task_id": "T367",
+   "status": "done",
+   "landmark": "L1",
+   "why": "race packet authoring + key sealing — the measurement program's machinery"
+  },
+  {
+   "task_id": "T368",
+   "status": "done",
+   "landmark": "L1",
+   "why": "re-couples standing trigger markers to claimlint — gauges/tooling"
+  },
+  {
+   "task_id": "T369",
+   "status": "done",
+   "landmark": "L1",
+   "why": "suite-truth manifest + gate — the suite's reading made honest"
+  },
+  {
+   "task_id": "T370",
+   "status": "done",
+   "landmark": "L1",
+   "why": "task identity reaches tools/runner — liveness/dispatch tooling"
+  },
+  {
+   "task_id": "T371",
+   "status": "done",
+   "landmark": "L1",
+   "why": "first race runs — model measurement"
+  },
+  {
+   "task_id": "T372",
+   "status": "done",
+   "landmark": "L2",
+   "why": "Z-R-TIE contrasting histories — tests a register claim (theorem Z)"
+  },
+  {
+   "task_id": "T373",
+   "status": "done",
+   "landmark": "L2",
+   "why": "adopts the register triage, UNBACKED 76→48 — the register/claims"
+  },
+  {
+   "task_id": "T392",
+   "status": "done",
+   "landmark": "L1",
+   "why": "establishes the real failing suite set at clean HEAD — suite/measurement"
+  },
+  {
+   "task_id": "T409",
+   "status": "done",
+   "landmark": "L1+L2",
+   "why": "sprint console: six-game divergence matrix (solver), absorption (register), fleet capacity"
+  },
+  {
+   "task_id": "T414",
+   "status": "done",
+   "landmark": "L1+L2",
+   "why": "sprint console: loop question (solver), dispatch verification (fleet), cleanup"
+  },
+  {
+   "task_id": "T417",
+   "status": "done",
+   "landmark": "L2",
+   "why": "cycle test + solution tree at 3×3 — solver science"
+  },
+  {
+   "task_id": "T431",
+   "status": "done",
+   "landmark": "L1",
+   "why": "delegation depth cap — dispatch tooling"
+  },
+  {
+   "task_id": "T437",
+   "status": "done",
+   "landmark": "L1",
+   "why": "tool consolidation (claimlint/absorb/subagent) — fleet tools"
+  },
+  {
+   "task_id": "T441",
+   "status": "done",
+   "landmark": "L1",
+   "why": "observation layer rebuild — the dashboard's observation machinery"
+  },
+  {
+   "task_id": "T441-AUDIT",
+   "status": "done",
+   "landmark": "L1",
+   "why": "audits the observation-layer fixes — same fleet machinery as T441"
+  },
+  {
+   "task_id": "T442",
+   "status": "done",
+   "landmark": "L2",
+   "why": "absorbs the C7 backlog — the register/claims absorption"
+  },
+  {
+   "task_id": "T443",
+   "status": "done",
+   "landmark": "L1",
+   "why": "artifact storage policy (/tmp vs untracked/ vs data/) — fleet infrastructure"
+  },
+  {
+   "task_id": "T444",
+   "status": "done",
+   "landmark": "L1",
+   "why": "triage of stale dispatchable rows — kanban/store tooling"
+  },
+  {
+   "task_id": "T445",
+   "status": "done",
+   "landmark": "L1",
+   "why": "scratch-dir hard-fail for regression scripts — tooling safety"
+  },
+  {
+   "task_id": "T446",
+   "status": "done",
+   "landmark": "L1",
+   "why": "kanban board renders the assertion ledger — observation tooling"
+  },
+  {
+   "task_id": "T447",
+   "status": "done",
+   "landmark": "L1",
+   "why": "live-repo escape-path audit of the shell harness — tooling"
+  },
+  {
+   "task_id": "T451",
+   "status": "done",
+   "landmark": "L2",
+   "why": "fixes t419_taxonomy intCast crash — a solver test module"
+  },
+  {
+   "task_id": "T453",
+   "status": "done",
+   "landmark": "L2",
+   "why": "fixes vb_bellman_4x4 applyMove OOB — a solver battery module"
+  },
+  {
+   "task_id": "T455",
+   "status": "done",
+   "landmark": "L1",
+   "why": "unlabelled-commit scope protection — commit/fleet tooling"
+  },
+  {
+   "task_id": "T458",
+   "status": "done",
+   "landmark": "L1",
+   "why": "kills ambiguous 'row' in agent-facing prose — fleet language/infrastructure"
+  },
+  {
+   "task_id": "T459",
+   "status": "done",
+   "landmark": "L1",
+   "why": "blind grading of the T452 design race — measurement"
+  },
+  {
+   "task_id": "T460",
+   "status": "done",
+   "landmark": "L1",
+   "why": "second independent blind grading — measurement"
+  },
+  {
+   "task_id": "T461",
+   "status": "done",
+   "landmark": "L1",
+   "why": "review of the assertion ledger — fleet observation machinery"
+  },
+  {
+   "task_id": "T462",
+   "status": "done",
+   "landmark": "L1",
+   "why": "backlog cut to a short do-now list — kanban/fleet planning"
+  },
+  {
+   "task_id": "T463",
+   "status": "done",
+   "landmark": "L1",
+   "why": "adds qwen to canonical model labels — dispatch tooling"
+  },
+  {
+   "task_id": "T464",
+   "status": "done",
+   "landmark": "L1",
+   "why": "one status resolver shared by all views — fleet tooling"
+  },
+  {
+   "task_id": "T533",
+   "status": "dispatchable",
+   "landmark": "L2",
+   "why": "STANDING-CLAIMVERIFY re-probes prose-only PROVEN claims — the claims"
+  },
+  {
+   "task_id": "T550",
+   "status": "done",
+   "landmark": "L1",
+   "why": "fleet-repair pass-1 SPEC audit — orchestration (fleet) machinery"
+  },
+  {
+   "task_id": "T551",
+   "status": "done",
+   "landmark": "L1",
+   "why": "adjudication of pass-1 briefs — orchestration machinery"
+  },
+  {
+   "task_id": "T553",
+   "status": "done",
+   "landmark": "L1",
+   "why": "ruling on the grading design — measurement methodology"
+  },
+  {
+   "task_id": "T554",
+   "status": "done",
+   "landmark": "L1",
+   "why": "pass-1 sprint-owner seat — orchestration machinery"
+  },
+  {
+   "task_id": "T555",
+   "status": "done",
+   "landmark": "L1",
+   "why": "pass-1 phases 3–6 owner — orchestration machinery"
+  },
+  {
+   "task_id": "T556",
+   "status": "done",
+   "landmark": "L1",
+   "why": "pass-1 phases 3–6 owner (DSPro) — orchestration machinery"
+  },
+  {
+   "task_id": "T557",
+   "status": "done",
+   "landmark": "L1",
+   "why": "pass-1 owner, phases 8–9 (treekill + audit criticals) — orchestration machinery"
+  },
+  {
+   "task_id": "T558",
+   "status": "done",
+   "landmark": "L1",
+   "why": "t11/t12 fold — token instrumentation + model-perf (measurement)"
+  },
+  {
+   "task_id": "T559",
+   "status": "done",
+   "landmark": "L1",
+   "why": "proves the reap under load — runner/fleet machinery"
+  },
+  {
+   "task_id": "T561",
+   "status": "done",
+   "landmark": "L1",
+   "why": "writes the missing suite-truth-manifest.md — suite/tooling"
+  },
+  {
+   "task_id": "T562",
+   "status": "done",
+   "landmark": "L2",
+   "why": "recovers the missing DCLAIM chunk-3 findings (C7 gate) — the claims record"
+  },
+  {
+   "task_id": "T563",
+   "status": "done",
+   "landmark": "L2",
+   "why": "recovers the missing T529 grand-race findings (C7 gate) — the claims record"
+  },
+  {
+   "task_id": "T564",
+   "status": "done",
+   "landmark": "L1",
+   "why": "ratchets the REDS manifest to the current failing set — suite truth"
+  },
+  {
+   "task_id": "T565",
+   "status": "done",
+   "landmark": "L1",
+   "why": "model-perf restructure, impressions vs measurements — measurement integrity"
+  },
+  {
+   "task_id": "T566",
+   "status": "done",
+   "landmark": "L1",
+   "why": "runner silent-drop fix for Claude lanes — runner/measurement tooling"
+  },
+  {
+   "task_id": "T567",
+   "status": "done",
+   "landmark": "L1",
+   "why": "scrubs six dummy lanes from the live store — kanban/store tooling"
+  },
+  {
+   "task_id": "T568",
+   "status": "done",
+   "landmark": "L1",
+   "why": "orchestrator successor seat — fleet control machinery"
+  },
+  {
+   "task_id": "T569",
+   "status": "done",
+   "landmark": "L1",
+   "why": "argus/liveness UTF-8 fix — fleet tooling"
+  },
+  {
+   "task_id": "T571",
+   "status": "done",
+   "landmark": "L2",
+   "why": "investigates the 4×4 single-position leak — solver/table science"
+  },
+  {
+   "task_id": "T572",
+   "status": "done",
+   "landmark": "L1",
+   "why": "keeps load-test lanes out of the live store — kanban/store tooling"
+  },
+  {
+   "task_id": "T573",
+   "status": "done",
+   "landmark": "L2",
+   "why": "re-mechanizes the falsified B1 predicate — solver lemma science"
+  },
+  {
+   "task_id": "T574",
+   "status": "done",
+   "landmark": "L1",
+   "why": "pass-2 rev-2 re-audit — orchestration (fleet) machinery"
+  },
+  {
+   "task_id": "T575",
+   "status": "done",
+   "landmark": "L1",
+   "why": "S03 queue-layer spec audit — orchestration machinery"
+  },
+  {
+   "task_id": "T576",
+   "status": "done",
+   "landmark": "L1",
+   "why": "author-fixes the S03 queue spec — orchestration machinery"
+  },
+  {
+   "task_id": "T577",
+   "status": "done",
+   "landmark": "L1",
+   "why": "folds pass-2 re-audit findings — orchestration machinery"
+  },
+  {
+   "task_id": "T578",
+   "status": "in_progress",
+   "landmark": "L1",
+   "why": "S04 orchestrator-retirement sprint — fleet control machinery"
+  },
+  {
+   "task_id": "T579",
+   "status": "done",
+   "landmark": "L1",
+   "why": "phase 0 of S04: decision-log classification — fleet machinery"
+  },
+  {
+   "task_id": "T580",
+   "status": "done",
+   "landmark": "L1",
+   "why": "folds appetite rulings into S03 spec — orchestration machinery"
+  },
+  {
+   "task_id": "T581",
+   "status": "done",
+   "landmark": "L1",
+   "why": "folds appetite rulings into pass-2 spec — orchestration machinery"
+  },
+  {
+   "task_id": "T582",
+   "status": "done",
+   "landmark": "L1",
+   "why": "authors the S04 reconciler spec — orchestration machinery"
+  },
+  {
+   "task_id": "T583",
+   "status": "dispatchable",
+   "landmark": "L1",
+   "why": "S05 startup-surfaces sprint — fleet machinery"
+  },
+  {
+   "task_id": "T584",
+   "status": "done",
+   "landmark": "L1",
+   "why": "independent audit of the S04 reconciler spec — orchestration machinery"
+  },
+  {
+   "task_id": "T585",
+   "status": "done",
+   "landmark": "L1",
+   "why": "startup-surface census — fleet machinery"
+  },
+  {
+   "task_id": "T586",
+   "status": "done",
+   "landmark": "L1",
+   "why": "workers never read the bundle (nonce/dispatch reliability) — dispatch tooling"
+  },
+  {
+   "task_id": "T587",
+   "status": "done",
+   "landmark": "L1",
+   "why": "store-write UTF-8 bug — kanban/store tooling"
+  },
+  {
+   "task_id": "T588",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race A lane: S04 spec audit — orchestration machinery"
+  },
+  {
+   "task_id": "T589",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race A lane: S04 spec audit — orchestration machinery"
+  },
+  {
+   "task_id": "T590",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race A lane: S04 spec audit — orchestration machinery"
+  },
+  {
+   "task_id": "T591",
+   "status": "done",
+   "landmark": "L1",
+   "why": "watch-fleet times + model fixes — the fleet view"
+  },
+  {
+   "task_id": "T592",
+   "status": "in_progress",
+   "landmark": "L1",
+   "why": "tools/scripts census — a census of the instruments"
+  },
+  {
+   "task_id": "T598",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T599",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T600",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T601",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T602",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T603",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T604",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T605",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T606",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T607",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race B discernment probe — model measurement"
+  },
+  {
+   "task_id": "T612",
+   "status": "dispatchable",
+   "landmark": "L1",
+   "why": "orchestrator seat + operator discussion surface — fleet control/measurement"
+  },
+  {
+   "task_id": "T614",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race A lane: S04 spec audit — orchestration machinery"
+  },
+  {
+   "task_id": "T615",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race F lane: audit-union adjudication — measurement"
+  },
+  {
+   "task_id": "T616",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race F lane: audit-union adjudication — measurement"
+  },
+  {
+   "task_id": "T617",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race F lane: audit-union adjudication — measurement"
+  },
+  {
+   "task_id": "T618",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race F lane: audit-union adjudication — measurement"
+  },
+  {
+   "task_id": "T619",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race F lane: audit-union adjudication — measurement"
+  },
+  {
+   "task_id": "T620",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race C lane: discernment scoring — measurement"
+  },
+  {
+   "task_id": "T621",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race C lane: discernment scoring — measurement"
+  },
+  {
+   "task_id": "T622",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race C lane: discernment scoring — measurement"
+  },
+  {
+   "task_id": "T623",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race C lane: discernment scoring — measurement"
+  },
+  {
+   "task_id": "T624",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Race C lane: discernment scoring — measurement"
+  },
+  {
+   "task_id": "T632",
+   "status": "done",
+   "landmark": "L1",
+   "why": "G3 blind grade of Race F — measurement"
+  },
+  {
+   "task_id": "T638",
+   "status": "done",
+   "landmark": "L2",
+   "why": "Race G lane: claim-doubt batch 1 — re-probing register claims"
+  },
+  {
+   "task_id": "T639",
+   "status": "done",
+   "landmark": "L2",
+   "why": "Race G lane: claim-doubt batch 1 — re-probing register claims"
+  },
+  {
+   "task_id": "T640",
+   "status": "done",
+   "landmark": "L2",
+   "why": "Race G lane: claim-doubt batch 1 — re-probing register claims"
+  },
+  {
+   "task_id": "T641",
+   "status": "done",
+   "landmark": "L2",
+   "why": "Race G lane: claim-doubt batch 1 — re-probing register claims"
+  },
+  {
+   "task_id": "T642",
+   "status": "done",
+   "landmark": "L2",
+   "why": "Race G lane: claim-doubt batch 1 — re-probing register claims"
+  },
+  {
+   "task_id": "T644",
+   "status": "done",
+   "landmark": "L2",
+   "why": "all-grade-all grader of the claim-doubt verdicts — the graded substance is the claims"
+  },
+  {
+   "task_id": "T645",
+   "status": "done",
+   "landmark": "L2",
+   "why": "all-grade-all grader of the claim-doubt verdicts — the graded substance is the claims"
+  },
+  {
+   "task_id": "T646",
+   "status": "done",
+   "landmark": "L2",
+   "why": "all-grade-all grader of the claim-doubt verdicts — the graded substance is the claims"
+  },
+  {
+   "task_id": "T647",
+   "status": "done",
+   "landmark": "L2",
+   "why": "all-grade-all grader of the claim-doubt verdicts — the graded substance is the claims"
+  },
+  {
+   "task_id": "T648",
+   "status": "done",
+   "landmark": "L2",
+   "why": "all-grade-all grader of the claim-doubt verdicts — the graded substance is the claims"
+  },
+  {
+   "task_id": "T649",
+   "status": "done",
+   "landmark": "L1",
+   "why": "Fable arbitrates grader fairness — measurement integrity"
+  },
+  {
+   "task_id": "T652",
+   "status": "done",
+   "landmark": "L1",
+   "why": "harness symmetry audit — the measurement harness"
+  },
+  {
+   "task_id": "T654",
+   "status": "done",
+   "landmark": "L1",
+   "why": "all-grade-all grader of Race C — measurement"
+  },
+  {
+   "task_id": "T655",
+   "status": "done",
+   "landmark": "L1",
+   "why": "all-grade-all grader of Race C — measurement"
+  },
+  {
+   "task_id": "T656",
+   "status": "done",
+   "landmark": "L1",
+   "why": "all-grade-all grader of Race C — measurement"
+  },
+  {
+   "task_id": "T657",
+   "status": "done",
+   "landmark": "L1",
+   "why": "all-grade-all grader of Race C — measurement"
+  },
+  {
+   "task_id": "T658",
+   "status": "done",
+   "landmark": "L1",
+   "why": "all-grade-all grader of Race C — measurement"
+  },
+  {
+   "task_id": "T678",
+   "status": "in_progress",
+   "landmark": "L1",
+   "why": "tools census race lane — a census of the instruments"
+  },
+  {
+   "task_id": "T679",
+   "status": "in_progress",
+   "landmark": "L1",
+   "why": "tools census race lane — a census of the instruments"
+  },
+  {
+   "task_id": "T680",
+   "status": "done",
+   "landmark": "L1",
+   "why": "tools census race lane — a census of the instruments"
+  },
+  {
+   "task_id": "T681",
+   "status": "in_progress",
+   "landmark": "L1",
+   "why": "tools census race lane — a census of the instruments"
+  }
+ ],
+ "summary": {
+  "denominator": 152,
+  "filled": 152,
+  "unknown_count": 0,
+  "counts_per_landmark": {
+   "L1": 106,
+   "L2": 42,
+   "none": 2,
+   "L1+L2": 2
+  },
+  "scheme": "D042: L1 (dispatch tooling / measurement + fleet infrastructure), L2 (go science — solver, register, claims), L1+L2 where a row carries both. Obvious-only: a row is assigned iff its own subject names the bucket mechanically (fleet/tooling/measurement -> L1; solver/register/claims -> L2). No deep digging; no basis taxonomy.",
+  "note_on_zero_unknown": "UNKNOWN = 0: the binary scheme is coarse enough that every row's subject mechanically names its bucket — the fleet's post-2026-08-12 work is almost entirely L1 (the L1-dashboard epic, S01-S05), and the solver/register/claims rows (G3b battery, register triage, claim-doubt) are L2. T349 and T365 are 'none' (void registration / pure doc sweep — rows that advance no landmark). The rows a fine-grained scheme could not reconstruct are exactly the ones D042's coarser scheme reconstructs."
+ },
+ "notes": "Directive D042 (acked 2026-08-22T20:29+): SCOPE CUT — binary L1/L2, obvious-only, drop basis taxonomy, low priority, do not grind the full 152. Applied in full; this file replaces the earlier four-way-basis draft, which was not committed. Deliverable-path note: this bundle's managent comment declares findings/T683-landmark-backfill.json (copy-paste from the T683 lane's bundle); the brief's Deliverable section names findings/T684-landmark-backfill.json, which is where this lane's deliverable is committed. The T683 path was left untouched — lane T683 has uncommitted work there. COMMIT ESCAPE DECLARED (2026-08-22 ~22:59): the pre-commit claimlint floor gate (C7-nonconforming floor 0) blocked every commit fleet-wide because three other lanes' untracked findings files are schema-non-conforming (T687-race-h, T692-race-g2, T693-race-g2 — missing required keys; two of them not registered in the store). This lane's file IS conforming (claims: [], new_rows: []); the block is collateral from other lanes' in-flight files. Committed this file via path-limited `git commit --no-verify` (only findings/T684-landmark-backfill.json; foreign staged entries left staged for their owners), after verifying the file's own claimlint conformance directly. The hook's own text sanctions --no-verify 'only after reviewing the listed paths yourself' (T282); this is that case, recorded.",
+ "claims": [],
+ "new_rows": []
+}
