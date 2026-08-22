@@ -1,0 +1,306 @@
+{
+  "task_id": "T646",
+  "date": "2026-08-22",
+  "model": "claude-haiku-4-5-20251001",
+  "claims": [],
+  "new_rows": [],
+  "keying_normalization": "D026 directive received 2026-08-22T16:42:02Z. Lanes used inconsistent keying: lanes 1,4,5 keyed by batch label (G01-G25); lanes 2,3 keyed by register claim ID. Normalized all to G01-G25. Remap counts: lane-1 (0 remapped), lane-2 (25 remapped from claim_id), lane-3 (25 remapped from claim_id), lane-4 (0 remapped), lane-5 (0 remapped). Coverage: all 5 lanes now report 25/25 claims. Lane-5 has one 'pending' verdict (G05 marked pending instead of verified/refuted).",
+  "per_claim": [
+    {
+      "claim": "G01",
+      "claim_id": "GLOBAL.H1-MARKOV",
+      "registered_status": "UNTESTED",
+      "my_verdict": "refuted",
+      "my_citation": "docs/evidence/QA-023/c1-contrast-2026-08-05.md: T372 ran contrast test 2026-08-05; registered status reason is outdated",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"},
+      "rationale": "Row claims state-sufficiency is untested 'because history generator misses shortest arrival 93%'; but T372 built contrasting generator and ran it 2026-08-05 with results committed. Register was never updated to cite T372. Lane-1 correctly identifies stale justification."
+    },
+    {
+      "claim": "G02",
+      "claim_id": "GLOBAL.ADR0006-EYE",
+      "registered_status": "CLAIMED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G03",
+      "claim_id": "GLOBAL.F1",
+      "registered_status": "FALSE-AS-SCOPED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G04",
+      "claim_id": "3x2.T13",
+      "registered_status": "PROVEN (falsification)",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G05",
+      "claim_id": "4x4.D3",
+      "registered_status": "UNTESTED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "unverifiable-at-head", "lane_3": "verified", "lane_4": "verified", "lane_5": "pending"}
+    },
+    {
+      "claim": "G06",
+      "claim_id": "GLOBAL.ADR0015-BURDEN",
+      "registered_status": "CLAIMED",
+      "my_verdict": "refuted",
+      "rationale": "Row claims 'all three [seats] convicted the two planted calibration defences as WRONG'; Seat C convicted Defence 6 WRONG but graded Defence 7 OVERSTATED. Panel unanimity is overstated. Lane-1 correctly identifies this.",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G07",
+      "claim_id": "GLOBAL.AUDITOR",
+      "registered_status": "PROVEN",
+      "my_verdict": "refuted",
+      "rationale": "Row claims 'standing pre-commit gate' — false at HEAD. tools/hooks/pre-commit has zero mentions of RETRO_CONSIST; it runs claimlint only. Auditor exists but is NOT gated. Lane-1 correctly separates instrument from gating claim.",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G08",
+      "claim_id": "GLOBAL.BRUTE-ALIASING",
+      "registered_status": "FALSE (methodological)",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G09",
+      "claim_id": "GLOBAL.C3",
+      "registered_status": "FALSE-AS-SCOPED (at 3x3)",
+      "my_verdict": "refuted",
+      "rationale": "Scope tag misleads: C3 has two readings with different falsification points. Outcome reading falsified at 3x3 (E2). Pointwise reading falsified at 3x2 (T13) — the one bracket-cut needs. Lane-1 correctly identifies this scope problem.",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "refuted", "lane_5": "verified"}
+    },
+    {
+      "claim": "G10",
+      "claim_id": "QA-023",
+      "registered_status": "CLAIMED",
+      "my_verdict": "refuted",
+      "rationale": "Row conflates C1 and C2 with different falsification points. C1 is UNTESTED-for-want-of-contrast but T372 ran contrast. C2 is FALSIFIED at 3x2. Row needs restructuring. Lane-1 correctly sees the issue.",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "refuted", "lane_5": "verified"}
+    },
+    {
+      "claim": "G11",
+      "claim_id": "3x2.F1",
+      "registered_status": "PROVEN (falsification)",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G12",
+      "claim_id": "CODE.VB-BLINDGAPS",
+      "registered_status": "PROVEN (blind-reimplementation audit, committed)",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G13",
+      "claim_id": "CODE.WZO2-PASSBIT",
+      "registered_status": "PROVEN",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G14",
+      "claim_id": "GLOBAL.S1",
+      "registered_status": "PROVEN",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G15",
+      "claim_id": "QA-021",
+      "registered_status": "PROVEN",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G16",
+      "claim_id": "2x2.C1",
+      "registered_status": "PROVEN",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G17",
+      "claim_id": "3x2.C1",
+      "registered_status": "PROVEN",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G18",
+      "claim_id": "3x3.C3",
+      "registered_status": "PROVEN (falsification)",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "unverifiable-at-head", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G19",
+      "claim_id": "GLOBAL.C2",
+      "registered_status": "FALSE-AS-SCOPED (at 3x2)",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G20",
+      "claim_id": "CODE.WZO2-INCOMPLETE",
+      "registered_status": "FALSE-AS-SCOPED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G21",
+      "claim_id": "GLOBAL.C4",
+      "registered_status": "FALSE-AS-SCOPED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G22",
+      "claim_id": "GLOBAL.CERTCORE",
+      "registered_status": "FALSE-AS-SCOPED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G23",
+      "claim_id": "GLOBAL.TIE-MIGOS",
+      "registered_status": "FALSE-AS-SCOPED",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G24",
+      "claim_id": "QA-019",
+      "registered_status": "FALSE",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "verified", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    },
+    {
+      "claim": "G25",
+      "claim_id": "QA-022",
+      "registered_status": "FALSE",
+      "my_verdict": "verified",
+      "lanes": {"lane_1": "refuted", "lane_2": "verified", "lane_3": "verified", "lane_4": "verified", "lane_5": "verified"}
+    }
+  ],
+  "lane_scores": {
+    "lane_1": {
+      "correct_verdicts": 19,
+      "false_verified": 0,
+      "false_refuted": 5,
+      "wrong_status": 1,
+      "summary": "Deep skeptic with expertise. Gets G01, G06, G07, G09, G10 uniquely correct (scope/gating issues others miss). Over-refutes measurement claims (5 false-refuted: G16, G17, G18, G20, G25). Best at identifying real problems in registered status."
+    },
+    "lane_2": {
+      "correct_verdicts": 19,
+      "false_verified": 5,
+      "false_refuted": 0,
+      "wrong_status": 1,
+      "summary": "Careful verifier. Misses scope/gating issues lane-1 identifies (G01, G06, G07, G09, G10 all false-verified). Pragmatically marks D3 unverifiable. Re-checks evidence but doesn't question registered status."
+    },
+    "lane_3": {
+      "correct_verdicts": 20,
+      "false_verified": 5,
+      "false_refuted": 0,
+      "wrong_status": 0,
+      "summary": "Rubber-stamping. Verifies everything without qualification. Misses the same 5 as lane-2 (G01, G06, G07, G09, G10). Best simple accuracy but achieves it by never questioning register."
+    },
+    "lane_4": {
+      "correct_verdicts": 15,
+      "false_verified": 3,
+      "false_refuted": 4,
+      "wrong_status": 3,
+      "summary": "Inconsistent. Marks 3 unverifiable-at-head plus 1 pending verdict (creating wrong-status errors). Gets G09, G10 right but misses others. Lowest accuracy (15/25)."
+    },
+    "lane_5": {
+      "correct_verdicts": 19,
+      "false_verified": 5,
+      "false_refuted": 0,
+      "wrong_status": 1,
+      "summary": "Pragmatic verifier. Identical to lane-2 on 24/25 claims. One 'pending' verdict on G05 (wrong-status). Same 5 false-verified as lanes 2-3."
+    }
+  },
+  "complementarity": {
+    "by_claim": [
+      {"claim": "G01", "correct_lanes": [1], "incorrect_lanes": [2, 3, 4, 5]},
+      {"claim": "G02", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G03", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G04", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G05", "correct_lanes": [1, 3, 4], "incorrect_lanes": [2, 5]},
+      {"claim": "G06", "correct_lanes": [1], "incorrect_lanes": [2, 3, 4, 5]},
+      {"claim": "G07", "correct_lanes": [1], "incorrect_lanes": [2, 3, 4, 5]},
+      {"claim": "G08", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G09", "correct_lanes": [1, 4], "incorrect_lanes": [2, 3, 5]},
+      {"claim": "G10", "correct_lanes": [1, 4], "incorrect_lanes": [2, 3, 5]},
+      {"claim": "G11", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G12", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G13", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G14", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G15", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G16", "correct_lanes": [2, 3, 4, 5], "incorrect_lanes": [1]},
+      {"claim": "G17", "correct_lanes": [2, 3, 4, 5], "incorrect_lanes": [1]},
+      {"claim": "G18", "correct_lanes": [2, 3, 4, 5], "incorrect_lanes": [1]},
+      {"claim": "G19", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G20", "correct_lanes": [2, 3, 4, 5], "incorrect_lanes": [1]},
+      {"claim": "G21", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G22", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G23", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G24", "correct_lanes": [1, 2, 3, 4, 5], "incorrect_lanes": []},
+      {"claim": "G25", "correct_lanes": [2, 3, 4, 5], "incorrect_lanes": [1]}
+    ],
+    "per_lane_unique_correct": {
+      "lane_1": 5,
+      "lane_2": 0,
+      "lane_3": 0,
+      "lane_4": 0,
+      "lane_5": 0
+    },
+    "unique_correct_claims": ["G01", "G06", "G07", "G09", "G10"],
+    "agreement_matrix": {
+      "lanes_1_4": 0.76,
+      "lanes_2_3": 0.96,
+      "lanes_2_4": 0.64,
+      "lanes_2_5": 0.96,
+      "lanes_3_5": 0.96
+    },
+    "best_pair": {
+      "lanes": "2 and 3",
+      "agreement": 0.96,
+      "note": "Identical on all but one claim (D3: lane-2 unverifiable, lane-3 verified). Confirms parallel over-verification."
+    }
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "lane": "lane_1",
+      "score": "19/25 correct",
+      "nuance": "Best analytical work despite lowest simple accuracy. Uniquely identifies 5 real scope/gating problems (G01, G06, G07, G09, G10) that define this race. Over-refutes 5 measurement claims where others verify correctly. Lane-1 is the expert in this batch."
+    },
+    {
+      "rank": "tied",
+      "lanes": ["lane_2", "lane_3"],
+      "score": "19-20/25 correct",
+      "nuance": "Both accept scope/gating issues at face value, but lane-3 achieves 20/25 by verifying everything. Lane-2 marks D3 unverifiable (pragmatic). Neither should be ranked above lane-1 despite higher simple counts; they miss the real problems."
+    },
+    {
+      "rank": 4,
+      "lane": "lane_5",
+      "score": "19/25 correct",
+      "nuance": "Identical to lane-2 in substance; one claim marked 'pending' instead of finished. Effective duplicate of lane-2's work."
+    },
+    {
+      "rank": 5,
+      "lane": "lane_4",
+      "score": "15/25 correct",
+      "nuance": "Inconsistent use of unverifiable-at-head (3 claims) plus 1 pending verdict. Catches some scope issues (G09, G10) but not the gating ones. Lowest accuracy and lowest consistency."
+    }
+  ],
+  "confidence_in_ranking": 0.8,
+  "confidence_note": "Lane-1 is clearly the best despite 19/25 simple score because it identifies the 5 real scope/gating defects (G01, G06, G07, G09, G10) that lanes 2-5 all miss. Those aren't measurement ambiguities; they are register status errors. Lanes 2-3 are interchangeable (96% agreement). Lane-4 is clearly worst (15/25, inconsistent status codes). The interesting question is lane-1 vs lanes-2-5: lane-1 trades 4 false-refuted for 5 unique correct; lanes-2-5 trade those same 5 unique for rubber-stamping. Confidence is high (0.8) that lane-1 did the better work.",
+  "notes": "Ruling 34: complementarity is first-class. The per-claim data shows lanes 1 and 4 uniquely converge on G09, G10 (scope issues) while lanes 2-3-5 form a permissive consensus. G01, G06, G07 are lane-1-only. This panel shows a deep/skeptical producer (lane-1) vs a consensus/accepting majority (lanes-2-3-5), with lane-4 splitting the difference inconsistently."
+}
