@@ -238,6 +238,16 @@ Still owed operator **numbers** (not direction; spec defaults hold meanwhile): a
     3 hours" requires a **mechanized TTL** — set-with-expiry that bumps now and auto-reverts
     later by tool, never by anyone remembering. The `managent appetite` verb gains relative ops
     (+n/-n, family bulk) and `--for <duration>`.
+29. **Orchestrator work boundary.** The seat-holder personally does ONLY refinements, seed/spec
+    updates, obvious one-liner bug fixes, configuration, absorption, sequencing, and dispatch.
+    Everything else — real implementation, non-trivial diagnosis, substantive docs — goes
+    through formal sprint rows under the pass protocol. No solo coding sessions at the seat.
+30. **Seat succession, 2026-08-22.** Fable's advisory session and DSPro/T568 both retire and
+    re-emerge as ONE fresh console (T612): orchestrator seat + operator's discussion surface,
+    merged until the reconciler ships. Seats hand over BEFORE context fills (handover doc →
+    commit → close own row with verdict → print successor paste line). Each successor's primary
+    mission is shortening the seat's remaining life. T587 (store write fix + class regression)
+    gates S04 build and AUTOPILOT-5H.
 
 ## 8. Delegation (the thorough pass)
 
