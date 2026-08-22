@@ -37,8 +37,10 @@ trap 'cleanup; exit 143' TERM                  # kill quits, immediately
 trap 'cleanup; printf "\n"; exit 0'  HUP
 
 dur() { echo "$1" | awk -F: '{if(NF==3)printf"%dh%02d",$1,$2; else if(NF==2)printf"%d'\''%02d",$1,$2; else print $1}'; }
-mdl() { case "$1" in *opus*)echo opus;; *fable*)echo fable;; *v4-pro*)echo dspro;; *v4-flash*)echo flash;;
-        *glm*)echo glm;; *minimax*)echo minimax;; *kimi*)echo kimi;; *qwen*)echo qwen;; *)echo "${1%%:*}";; esac; }
+mdl() { case "$1" in *opus*)echo opus;; *sonnet*)echo sonnet;; *haiku*)echo haiku;; *fable*)echo fable;;
+        *v4-pro*|*dspro*)echo dspro;; *v4-flash*|*dsflash*)echo flash;;
+        *glm*)echo glm;; *minimax*)echo minimax;; *kimi*)echo kimi;; *qwen*)echo qwen;; *gemma*)echo gemma;;
+        *)echo "${1%%:*}";; esac; }
 desc() { d=$(awk -F'\t' -v t="$1" '$1==t{print $2}' untracked/task-desc.tsv 2>/dev/null)
          b=$(ls untracked/"$1"-*.md 2>/dev/null | head -1)          # one brief, never a glob of several
          [ -z "$d" ] && [ -n "$b" ] && d=$(sed -n '2s/^# *//p' "$b" | sed 's/^T[0-9]* *//;s/^(\([^)]*\)).*/\1/;s/^— *//')
