@@ -444,6 +444,7 @@ rm -f "$SEED_BUNDLE"
 cat > "$SEED_BUNDLE" <<'EOF'
 <!--managent set=G-->
 # T425 doctor arm 2 — bundle
+**Landmark:** none directly; unblocks regression fixture
 EOF
 # DO NOT commit. Leave it untracked so the doctor's "dispatchable row +
 # bundle dirty" check fires, while not polluting the live git history.
@@ -551,6 +552,7 @@ track_fixture "$ARM7_BUNDLE"   # T448: trap must remove on signal
 cat > "$ARM7_BUNDLE" <<'EOF'
 <!--managent set=A-->
 # T425 doctor arm 7
+**Landmark:** none directly; unblocks regression fixture
 EOF
 "$MG" add "$ARM7_ROW_ID" --bundle "$ARM7_BUNDLE_REL" >/dev/null 2>&1 || true
 "$MG" claim "$ARM7_ROW_ID" --agent minimax-m3 >/dev/null 2>&1 || true
@@ -669,6 +671,7 @@ git -C "$FAKE" add docs/infra/managent/tasks.json
 cat > "$FAKE/tools/regression-argus-doctor-fixture.md" <<'EOF'
 <!--managent set=G-->
 # T427 guard fixture
+**Landmark:** none directly; unblocks regression fixture
 EOF
 ARM12_BASE="T425-DOCTOR-12-$(basename "$WORK")"
 # (a) MANAGENT_STORE unset, cwd = fake repo → the default store IS the fake
@@ -687,6 +690,7 @@ GUARD_FIXTURE="$PROJECT/untracked/T427-guard-fixture.md"
 cat > "$GUARD_FIXTURE" <<'EOF'
 <!--managent set=G-->
 # T427 guard fixture (scratch positive control)
+**Landmark:** none directly; unblocks regression fixture
 EOF
 "$MG" add "$ARM12_C" --bundle "untracked/T427-guard-fixture.md" >/dev/null 2>&1
 rc_c=$?
@@ -725,6 +729,7 @@ GUARD_FIXTURE="$PROJECT/untracked/T427-guard-fixture.md"
 cat > "$GUARD_FIXTURE" <<'EOF'
 <!--managent set=G-->
 # T427 guard fixture (scratch positive control)
+**Landmark:** none directly; unblocks regression fixture
 EOF
 MANAGENT_TEST=1 "$MG" add "$ARM13_ROW_ID" --bundle "untracked/T427-guard-fixture.md" >/dev/null 2>&1
 rc_b=$?
@@ -1079,6 +1084,7 @@ ARM24_BUNDLE="$FAKE/untracked/T430-live-ok-bundle.md"
 cat > "$ARM24_BUNDLE" <<'EOF'
 <!--managent set=G-->
 # T430 live-add positive control
+**Landmark:** none directly; unblocks regression fixture
 EOF
 ( cd "$FAKE" && env -u MANAGENT_STORE "$MG" add "$ARM24_ID" --bundle "untracked/T430-live-ok-bundle.md" >/dev/null 2>&1 )
 rc_24=$?

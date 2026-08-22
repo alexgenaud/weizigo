@@ -110,6 +110,21 @@ git commit -qm base
 # claimlint) is symlinked, not extracted — it is not the contract under test.
 git -C "$ROOT" show HEAD:bin/subagent > "$WORK/bin/subagent"           || { echo "FATAL: HEAD:bin/subagent extract failed" >&2; exit 2; }
 git -C "$ROOT" show HEAD:tools/dispatch_verify.py > "$WORK/tools/dispatch_verify.py" || { echo "FATAL: HEAD:tools/dispatch_verify.py extract failed" >&2; exit 2; }
+# T677 (2026-08-22): HEAD:bin/subagent imports tools/window_policy.py (the
+# provider-window gate); it is part of the committed contract and must be
+# extracted too — before this line the scratch subagent crashed with
+# ModuleNotFoundError and every arm failed (pre-existing red introduced by
+# T677, fixed here so the contract-under-test is the complete commit).
+git -C "$ROOT" show HEAD:tools/window_policy.py > "$WORK/tools/window_policy.py" || { echo "FATAL: HEAD:tools/window_policy.py extract failed" >&2; exit 2; }
+# T630: the four refusal fixtures (committed shapes extracted from the real
+# 2026-08-20/22 logs; provenance in tools/fixtures/README.md) are part of
+# the contract-under-test — the refusal arms seed worker logs from them.
+mkdir -p "$WORK/tools/fixtures"
+for fx in refusal-claude-session-limit refusal-ollama-session-limit \
+          refusal-quoted-429-watchdog refusal-quota-prose; do
+    git -C "$ROOT" show HEAD:tools/fixtures/$fx.fixture > "$WORK/tools/fixtures/$fx.fixture" \
+        || { echo "FATAL: HEAD:tools/fixtures/$fx.fixture extract failed" >&2; exit 2; }
+done
 chmod +x "$WORK/bin/subagent"
 # Substrate symlinks: the committed contract calls `bin/managent` (heal) and
 # `bin/weizigo-claimlint` (the T485 done-gate) relative to the repo root it
@@ -266,7 +281,7 @@ chmod +x "$WORK/stub.py"
 
 # ── synthetic tasks on the scratch kanban ─────────────────────────────────
 seed_task() {  # $1=id  $2=deliverable
-    printf '<!--managent set=A deliverables=%s-->\n# %s — T411 regression bundle\n' "$2" "$1" \
+    printf '<!--managent set=A deliverables=%s-->\n# %s — T411 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
         > "$WORK/untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }
@@ -289,6 +304,17 @@ seed_task T1008 docs/T1008-result.txt
 seed_task T1009 docs/T1009-result.txt
 seed_task T1010 docs/T1010-result.txt
 seed_task T1011 docs/T1011-result.txt
+# T630: per-family refusal-detector arms (20-27) — the four fixtures from
+# tools/fixtures/ plus the self-reference and deepseek-stamp arms.
+seed_task T1012 docs/T1012-result.txt
+seed_task T1013 docs/T1013-result.txt
+seed_task T1014 docs/T1014-result.txt
+seed_task T1015 docs/T1015-result.txt
+seed_task T1016 docs/T1016-result.txt
+seed_task T1017 docs/T1017-result.txt
+seed_task T1018 docs/T1018-result.txt
+seed_task T1019 docs/T1019-result.txt
+seed_task T1020 docs/T1020-result.txt
 # T513: the findings arms (7/8/9) are BARE-FILE dispatches — no kanban row,
 # no managent add. The bundle .md declares its findings deliverable and is
 # passed to bin/subagent as the target path (not a T-ID).

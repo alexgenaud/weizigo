@@ -143,7 +143,7 @@ STUBEOF
 chmod +x "$WORK/stub.py"
 
 seed_task() {  # $1=id  $2=deliverable
-    printf '<!--managent set=C deliverables=%s-->\n# %s — T476 regression bundle\n' "$2" "$1" \
+    printf '<!--managent set=C deliverables=%s-->\n# %s — T476 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
         > "$WORK/untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }
@@ -152,7 +152,7 @@ seed_task() {  # $1=id  $2=deliverable
 # line).  The title is the text after ` — `; the 40-char limit (DELEGATOR.md
 # §Task titles) applies to that portion, not the whole `# T<id> —` line.
 seed_task_titled() {  # $1=id  $2=deliverable  $3=title
-    printf '<!--managent set=C deliverables=%s-->\n# %s — %s\n' "$2" "$1" "$3" \
+    printf '<!--managent set=C deliverables=%s-->\n# %s — %s\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" "$3" \
         > "$WORK/untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }
@@ -604,7 +604,7 @@ if [ -e "$WORK/untracked/log/t996.log" ]; then
 fi
 
 echo " 18. T505 seeded: brief with no `# T<id> — title` line refuses dispatch"
-printf '<!--managent set=C deliverables=docs/T997-x.txt-->\nno title line here\n' \
+printf '<!--managent set=C deliverables=docs/T997-x.txt-->\nno title line here\n**Landmark:** none directly; unblocks regression fixture\n' \
     > "$WORK/untracked/T997-bundle.md"
 "$MG" add T997 >/dev/null 2>&1
 OUT=$(cd "$ROOT" && "$DISPATCH" T997 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)

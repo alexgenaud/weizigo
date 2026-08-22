@@ -939,6 +939,23 @@ pub fn build(b: *std.Build) void {
     attribution_backfill_regression.cwd = b.path(".");
     test_step.dependOn(&attribution_backfill_regression.step);
 
+    // ── T682: registration-time landmark gate ───────────────────────
+    // LANDMARKS.md requires every brief to declare a landmark; the rule
+    // lived only in prose until T592 showed what that is worth: one brief
+    // registered without the line and five `sed`-cloned siblings inherited
+    // the omission.  The gate refuses `managent add`/`suggest` bundles
+    // whose brief declares no landmark (or an unknown id), naming the file
+    // and the expected form.  Controls: no-landmark refusal naming the
+    // file, the four-way T592 clone refusal, L99 refusal listing the valid
+    // set, valid + "none directly" nulls, a read-only sweep of the real
+    // corpus (every valid declaration registers), the suggest template
+    // carrying the line, and status --json still parsing.  Scratch store
+    // only — the live kanban is never written.  RED against the pre-T682
+    // binary (it registered landmark-less bundles silently), GREEN after.
+    const landmark_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-landmark.sh" });
+    landmark_regression.cwd = b.path(".");
+    test_step.dependOn(&landmark_regression.step);
+
     // ── T539: holds= writer + --sync + vacuous-case controls ────────
     // The one-writer invariant was vacuous: 34 of 49 rows whose bundle
     // declared holds= had "holds": [] in the store, so holdsConflict

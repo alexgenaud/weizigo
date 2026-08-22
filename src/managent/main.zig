@@ -1642,6 +1642,136 @@ fn readBundleHolds(io: std.Io, bundle_abs: []const u8) ?[][]const u8 {
     return parseHoldsList(value) catch null;
 }
 
+// ── T682: require a **Landmark:** declaration at registration ──────────
+// LANDMARKS.md requires every brief to declare a landmark so work is
+// reported in milestone terms — *whose* loss, and which way it cuts.  T592
+// showed what happens when the rule lives only in prose: one brief
+// registered without the line, five `sed`-cloned siblings inherited the
+// omission, and nobody noticed until the operator did (D054's doctrine —
+// prose is not a remedy for a mechanism failure).
+//
+// The single source of landmark IDs is docs/audits/2026-08-05-handover/
+// LANDMARKS.md (L0..L7, prose table) — AS ADOPTED by D4
+// (docs/status/orcha-decisions-2026-08-19.md), which ratified L8 and L9.
+// LANDMARKS.md has NOT yet been updated for D4 (stale — a dashboard-truth
+// debt); the union below is therefore the gate's copy of the ratified set.
+// The comment is the coupling: adding a landmark means editing exactly this
+// list AND LANDMARKS.md.  IDs are NOT re-derived at runtime: parsing the
+// prose table would be its own fragile instrument, and it would miss the
+// D4-adopted ids entirely (L10 is proposed, not ratified, and stays out).
+const valid_landmark_ids = [_][]const u8{ "L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9" };
+
+const LandmarkVerdict = enum { declared, absent, invalid };
+
+/// T682: verdict on one bundle body.  `absent` — no **Landmark:** line at
+/// all (the T592 defect).  `invalid` — a line exists but declares no valid
+/// id (L99, prose-only, empty).  `declared` — a valid id, or the sanctioned
+/// no-landmark form (`none directly; unblocks <row>`, AGENTS.md §Landmarks).
+fn checkBundleLandmark(content: []const u8) LandmarkVerdict {
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |raw| {
+        var line = std.mem.trim(u8, raw, " \t\r");
+        // The convention appears quoted in blockquotes and inside bullets
+        // (AGENTS.md shows `> **Landmark:** ...`); strip one level of each.
+        if (line.len > 1 and line[0] == '>') {
+            line = std.mem.trim(u8, line[1..], " \t");
+        }
+        if (checkLandmarkLine(line)) |v| return v;
+        if (line.len > 1 and (line[0] == '-' or line[0] == '*')) {
+            const unbulleted = std.mem.trim(u8, line[1..], " \t");
+            if (checkLandmarkLine(unbulleted)) |v| return v;
+        }
+    }
+    return .absent;
+}
+
+/// T682: null when the line is not a **Landmark:** declaration; otherwise
+/// the verdict for the declaration it carries.
+fn checkLandmarkLine(line: []const u8) ?LandmarkVerdict {
+    if (!std.mem.startsWith(u8, line, "**Landmark:**")) return null;
+    const rest = std.mem.trim(u8, line["**Landmark:**".len..], " \t");
+    if (rest.len == 0) return .invalid;
+    // Sanctioned no-landmark form (AGENTS.md §Landmarks): an explicit
+    // declaration that NO landmark applies.  "nonsense" is not this form.
+    if (rest.len >= 4 and asciiEqFold(rest[0..4], "none")) {
+        if (rest.len == 4 or !isAlnumAscii(rest[4])) return .declared;
+    }
+    if (containsValidLandmarkId(rest)) return .declared;
+    return .invalid;
+}
+
+/// T682: true when `text` contains at least one valid landmark ID (L0..L9)
+/// as a standalone token — "L" + digits not glued to surrounding word
+/// characters ("CL1" and "L2cache" are not landmark references; "L99" is
+/// a reference to a landmark that does not exist).
+fn containsValidLandmarkId(text: []const u8) bool {
+    var i: usize = 0;
+    while (i < text.len) : (i += 1) {
+        if (text[i] != 'L') continue;
+        if (i > 0) {
+            const prev = text[i - 1];
+            if (isAlnumAscii(prev) or prev == '_') continue;
+        }
+        var j = i + 1;
+        while (j < text.len and text[j] >= '0' and text[j] <= '9') : (j += 1) {}
+        const digit_len = j - (i + 1);
+        if (digit_len == 0 or digit_len > 2) continue;
+        if (j < text.len and (isAlnumAscii(text[j]) or text[j] == '_')) continue;
+        for (valid_landmark_ids) |v| {
+            if (std.mem.eql(u8, text[i..j], v)) return true;
+        }
+    }
+    return false;
+}
+
+fn isAlnumAscii(c: u8) bool {
+    return (c >= '0' and c <= '9') or (c >= 'a' and c <= 'z') or (c >= 'A' and c <= 'Z');
+}
+
+fn asciiEqFold(a: []const u8, b: []const u8) bool {
+    if (a.len != b.len) return false;
+    for (a, b) |x, y| {
+        if (asciiLower(x) != asciiLower(y)) return false;
+    }
+    return true;
+}
+
+fn asciiLower(c: u8) u8 {
+    return if (c >= 'A' and c <= 'Z') c + 32 else c;
+}
+
+/// T682: registration-time gate — refuse a bundle whose brief declares no
+/// landmark (or one that is not a real landmark), naming the file and the
+/// expected form.  Exits non-zero; the row is never registered.
+fn enforceBundleLandmark(w: Writers, io: std.Io, bundle_path: []const u8) void {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_path, alloc, .unlimited) catch |err| {
+        w.diag("error: cannot read bundle {s} for landmark check: {}\n", .{ bundle_path, err });
+        std.process.exit(1);
+    };
+    defer alloc.free(content);
+
+    switch (checkBundleLandmark(content)) {
+        .declared => {},
+        .absent => {
+            w.diag("error: {s} declares no **Landmark:** line.\n", .{bundle_path});
+            w.diag("  Every brief declares a landmark (AGENTS.md §Landmarks / LANDMARKS.md):\n", .{});
+            w.diag("    **Landmark:** advances `L<n> (<short name>)` — <which way it cuts>\n", .{});
+            w.diag("    (a row that advances no landmark says: **Landmark:** none directly; unblocks <row>)\n", .{});
+            w.diag("  Valid ids: ", .{});
+            for (valid_landmark_ids) |v| w.diag("{s} ", .{v});
+            w.diag("\n", .{});
+            std.process.exit(1);
+        },
+        .invalid => {
+            w.diag("error: {s} declares an unknown landmark id.\n", .{bundle_path});
+            w.diag("  Valid ids (source: LANDMARKS.md + D4): ", .{});
+            for (valid_landmark_ids) |v| w.diag("{s} ", .{v});
+            w.diag("\n  Expected form: **Landmark:** advances `L<n> (<short name>)` — <which way it cuts>\n", .{});
+            std.process.exit(1);
+        },
+    }
+}
+
 /// T539: like findBundle, but returns null instead of exiting — `holds --sync`
 /// and the vacuous-case guard must not die on a row whose bundle is gone.
 fn findBundleOrNull(io: std.Io, repo_root: []const u8, id: []const u8) ?[]const u8 {
@@ -2882,6 +3012,9 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
 
         var meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
         try mergeHoldsFlag(&meta, holds_flag);
+        // T682: refuse a bundle whose brief declares no (or an unknown)
+        // landmark — the T592 defect multiplied five ways by brief-cloning.
+        enforceBundleLandmark(w, io, bundle_path);
 
         const tmp_for_needs = TaskState{ .needs = meta.needs };
         const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
@@ -2972,6 +3105,9 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
 
     var meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
     try mergeHoldsFlag(&meta, holds_flag);
+    // T682: refuse a bundle whose brief declares no (or an unknown)
+    // landmark — the T592 defect multiplied five ways by brief-cloning.
+    enforceBundleLandmark(w, io, bundle_path);
 
     const tmp_for_needs = TaskState{ .needs = meta.needs };
     const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
@@ -3458,7 +3594,17 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         const heading = try std.fmt.allocPrint(alloc, "# {s} — {s}\n", .{ id, slug });
         defer alloc.free(heading);
         try file.writeStreamingAll(io, heading);
+        // T682: the skeleton declares the sanctioned no-landmark form so the
+        // registration gate below passes; the seat fills in the real
+        // landmark when writing the brief.  A suggest-created bundle must
+        // be add-able — the gate would otherwise refuse its own creation.
+        try file.writeStreamingAll(io, "\n**Landmark:** none directly; unblocks <row>\n");
     }
+
+    // T682: the same gate that guards `add` guards the bundle suggest just
+    // wrote — if the template ever regresses, suggest refuses loudly
+    // instead of registering a row `add` would refuse.
+    enforceBundleLandmark(w, io, bundle_path);
 
     // Register the task in state
     const now = try nowTimestamp();
@@ -11839,4 +11985,161 @@ test "panel: greedy marginal over a seeded caught map picks the disjoint seat" {
     defer alloc.free(pick.method);
     try std.testing.expectEqualStrings("panel-greedy", pick.method);
     try std.testing.expectEqualStrings("C", pick.model);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T682 tests — registration-time landmark gate
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test "landmark: absent line → absent (the T592 defect)" {
+    const body =
+        \\<!--managent set=A deliverables=docs/x.md-->
+        \\# T592 — tools census
+        \\
+        \\Work that declares no landmark at all.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.absent, checkBundleLandmark(body));
+}
+
+test "landmark: wrong marker spelling → absent" {
+    const body =
+        \\<!--managent set=A-->
+        \\# T682 — marker typo
+        \\
+        \\*Landmark:* L1 (the dashboard tells the truth)
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.absent, checkBundleLandmark(body));
+}
+
+test "landmark: bare id (T682's own form) → declared" {
+    const body =
+        \\<!--managent set=A-->
+        \\# T682 — require a landmark at registration
+        \\
+        \\**Landmark:** L1 (measurement integrity) — and the row is its own worked example.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+}
+
+test "landmark: advances + backticked id + short name (common form) → declared" {
+    const body =
+        \\<!--managent set=A-->
+        \\# T351 — two surfaces
+        \\
+        \\**Landmark:** advances `L1 (the dashboard tells the truth)` — the noise makes the suite read red on a glance.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+}
+
+test "landmark: bare backticked id, no short name → declared" {
+    const body =
+        \\<!--managent set=A-->
+        \\# T403 — gtp boardsize desync
+        \\
+        \\**Landmark:** advances `L0` usability — the first thing a human hits.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+}
+
+test "landmark: two ids in one line → declared" {
+    const body =
+        \\<!--managent set=A-->
+        \\# T379 — trajectory consistency
+        \\
+        \\**Landmark:** advances `L2 (proven 4×4 values)` and `L3 (the new engine outplays the old one)` by ...
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+}
+
+test "landmark: protects / unblocks verbs → declared" {
+    const protect =
+        \\**Landmark:** protects `L2 (proven 4×4 values)` from contamination.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(protect));
+    const unblock =
+        \\**Landmark:** unblocks the open question on `L2 (proven 4×4 values)` — whether the capture budget ...
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(unblock));
+}
+
+test "landmark: sanctioned no-landmark form → declared" {
+    const body =
+        \\**Landmark:** none directly; unblocks T352
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+    const body2 =
+        \\**Landmark:** None directly.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body2));
+}
+
+test "landmark: blockquote and bullet wrappers → declared" {
+    const quoted =
+        \\> **Landmark:** advances `L2 (proven 4×4 values)` — what is now visible.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(quoted));
+    const bullet =
+        \\- **Landmark:** advances `L1 (the dashboard tells the truth)` — the gauge now reads true.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(bullet));
+}
+
+test "landmark: id mid-line with trailing prose → declared" {
+    const body =
+        \\**Landmark:** advances `L4` and the fleet's capacity. Operator, 2026-08-07.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+}
+
+test "landmark: unknown id L99 → invalid" {
+    const body =
+        \\**Landmark:** advances `L99 (bogus)` — this is not a landmark.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark(body));
+}
+
+test "landmark: prose-only declaration (no id) → invalid" {
+    const body =
+        \\**Landmark:** this row advances dashboard-truth work.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark(body));
+}
+
+test "landmark: empty declaration → invalid" {
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:**"));
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:**   \n"));
+}
+
+test "landmark: nonsense is not the none-form → invalid" {
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** nonsense about the goban"));
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** nonedirectly"));
+}
+
+test "landmark: out-of-range and glued ids → invalid" {
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** advances `L12 (too big)`"));
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** advances `CL1` — not a landmark"));
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** advances `L2cache`"));
+}
+
+test "landmark: id at string start, no leading verb → declared" {
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark("**Landmark:** L3 (the new engine outplays the old one) — measured"));
+}
+
+test "landmark: the landmark line is found anywhere in the body, not only line 1" {
+    const body =
+        \\<!--managent set=A-->
+        \\# T682 — mid-file landmark
+        \\
+        \\The failure, and why prose did not prevent it.  A long paragraph.
+        \\Another paragraph, still no marker.  Then:
+        \\
+        \\**Landmark:** advances `L1 (measurement integrity)` — the census tells us whether this is five rows or a hundred.
+    ;
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark(body));
+}
+
+test "landmark: D4-adopted ids L8/L9 declare; proposed L10 does not" {
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark("**Landmark:** L9 (the fleet can race its own workers on demand). Ruling 7: aspect races GO now."));
+    try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark("**Landmark:** advances `L4 (the ledger is clean)` and `L8 (the language the project speaks is unambiguous)`."));
+    try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** candidate `L10 (the repository tells its story cleanly)` — proposed."));
 }

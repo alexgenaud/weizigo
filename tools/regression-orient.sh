@@ -176,6 +176,7 @@ mkdir -p "$WORK/untracked"
 cat > "$WORK/untracked/T353SEED-bundle.md" <<'MDEOF'
 <!--managent set=C-->
 # T353SEED — synthetic orient control row
+**Landmark:** none directly; unblocks regression fixture
 MDEOF
 "$MG" add T353SEED --bundle untracked/T353SEED-bundle.md >/dev/null 2>&1
 OUT_C=$("$MG" orient 2>/dev/null)

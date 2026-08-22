@@ -147,6 +147,7 @@ echo "=== regression-claim-lifecycle ==="
 echo "  0. null control: claim → work → close cycle"
 cat > arm0-bundle.md <<'EOF'
 <!--managent set=A deliverables=docs/arm0.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 echo "  arm0 work" > docs/arm0.md
 OUT=$("$MG" add TLC-ARM0 --bundle arm0-bundle.md 2>&1)
@@ -175,6 +176,7 @@ fi
 echo "  1. seeded: commit under a dispatchable row refused"
 cat > arm1-bundle.md <<'EOF'
 <!--managent set=A deliverables=docs/arm1.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 echo "  arm1 work" > docs/arm1.md
 OUT=$("$MG" add TLC-ARM1 --bundle arm1-bundle.md 2>&1)
@@ -304,6 +306,7 @@ fi
 echo "  3. seeded: add --note round-trips"
 cat > arm3-bundle.md <<'EOF'
 <!--managent set=A deliverables=docs/arm3.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 OUT=$("$MG" add TLC-ARM3 --bundle arm3-bundle.md --note "context for the row" 2>&1)
 RC=$?
@@ -340,6 +343,7 @@ fi
 echo "  4. seeded: claim-at-close — refused without --force, recorded with it"
 cat > arm4-bundle.md <<'EOF'
 <!--managent set=A deliverables=docs/arm4.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 echo "  arm4 work" > docs/arm4.md
 OUT=$("$MG" add TLC-ARM4 --bundle arm4-bundle.md 2>&1)
@@ -444,6 +448,7 @@ echo "  6. seeded: unasserted row renders UNKNOWN — no assertion"
 cd "$WORK"   # arm 5 left us in the live repo; the T432 arms must run from scratch
 cat > arm6-bundle.md <<'EOF'
 <!--managent set=C deliverables=docs/arm6.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 OUT=$("$MG" add T432-ARM6 --bundle arm6-bundle.md 2>&1)
 if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
@@ -507,6 +512,7 @@ fi
 echo "  7. null: asserted-idle and heartbeat rows never read UNKNOWN"
 cat > arm7-bundle.md <<'EOF'
 <!--managent set=C deliverables=docs/arm7.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 OUT=$("$MG" add T432-ARM7 --bundle arm7-bundle.md 2>&1)
 if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi
@@ -558,6 +564,7 @@ fi
 # heartbeat row: an affirmative signal reads [beating], never UNKNOWN
 cat > arm7b-bundle.md <<'EOF'
 <!--managent set=C deliverables=docs/arm7b.md-->
+**Landmark:** none directly; unblocks regression fixture
 EOF
 OUT=$("$MG" add T432-ARM8 --bundle arm7b-bundle.md 2>&1)
 if [ $? -ne 0 ]; then echo "    FAIL: add: $OUT"; FAIL=1; fi

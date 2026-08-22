@@ -74,10 +74,12 @@ export MANAGENT_STORE="$STORE"
 cat > "$TMPDIR/untracked/T700-bundle.md" <<'BEOF'
 <!--managent set=A acceptance=printf 'ok — → é'-->
 # T700 — store-write UTF-8 control (add/claim/dispatch/set arms)
+**Landmark:** none directly; unblocks regression fixture
 BEOF
 cat > "$TMPDIR/untracked/T701-bundle.md" <<'BEOF'
 <!--managent set=A-->
 # T701 — store-write UTF-8 control (done/amend arm)
+**Landmark:** none directly; unblocks regression fixture
 BEOF
 
 # Assert the three multi-byte sequences are present byte-exactly in a field.

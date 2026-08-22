@@ -136,7 +136,7 @@ seed_lane() { # $1 id — registers into whatever store the ambient MANAGENT_STO
     # names (exported for the fix arms, unset for the seeded-defect arm), so
     # the add and the runner's child claim read the SAME env the runner sees.
     local id="$1"
-    printf '<!--managent set=A deliverables=findings/%s-load.json-->\n# %s bundle\n' "$id" "$id" > "untracked/$id-load.md"
+    printf '<!--managent set=A deliverables=findings/%s-load.json-->\n# %s bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$id" "$id" > "untracked/$id-load.md"
     bin/managent add "$id" --bundle "untracked/$id-load.md" --note "T572 load-test dummy lane" >/dev/null 2>&1
 }
 
