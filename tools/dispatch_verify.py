@@ -40,6 +40,20 @@ text.  There is no silent retry: a failed dispatch is a failed dispatch, and
 the report names the checks so the Orchestrator can adjudicate.
 
 Task: T411 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-07
+
+T631 (2026-08-22): this module is imported by bin/subagent from the COMMITTED
+revision — `git show HEAD:tools/dispatch_verify.py` into a disposable temp
+path — never the working tree (a mid-edit file cannot reach a running
+verifier; the T616 incident was exactly that: a half-written working-tree
+copy crashed heal_dispatch and left the row a silent in_progress zombie).
+The pin lives at the import site (bin/subagent); `holds` protects writers
+of this file from each other, the pin protects the in-flight dispatches
+that read it.  WEIZIGO_DISPATCH_VERIFY_UNPINNED=1 forces a working-tree
+import (developer escape hatch, loud warning).  If a heal STILL crashes —
+a committed bug is the residual case the pin cannot cover — bin/subagent's
+safety net catches it and appends a needs_manual_heal marker to this log
+(see heal_dispatch below); the invariant is that a crashed heal never
+leaves a row silently in_progress.
 """
 import json
 import os
@@ -791,6 +805,17 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
     so the heals log is a census of reopeners: any record NOT carrying it is a
     second owner and a defect.  See `tools/regression-dispatch-verification.sh`
     arm 10 for the invariant test.
+
+    T631 (2026-08-22): this module is imported from HEAD (pinned), never the
+    working tree, so a mid-edit file cannot crash the heal (the T616
+    incident).  If this function STILL raises — a committed bug — the caller
+    (bin/subagent) catches the exception and appends a marker to this same
+    heals log: {task_id, model, exit_code, wall_seconds, healed_by:
+    "dispatcher", healed: false, needs_manual_heal: true, error, timestamp}.
+    The row is then left in_progress but LOUDLY flagged — a crashed heal is
+    an unknown state, and auto-reopening it could relaunch a directive-kill
+    stand-down or erase a kimi-incident investigation.  The marker is the
+    census record that makes the zombie discoverable.
     """
     if task_id is None:
         return (False, "")

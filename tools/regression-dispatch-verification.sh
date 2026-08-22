@@ -117,6 +117,16 @@ chmod +x "$WORK/bin/subagent"
 # faithful host for the committed contract.
 ln -s "$MG" "$WORK/bin/managent"
 ln -s "$CLAIMLINT" "$WORK/bin/weizigo-claimlint"
+# T631: commit the extracted contract into scratch HEAD so the subagent's
+# pinned import (`git show HEAD:tools/dispatch_verify.py`) ENGAGES in
+# scratch.  Before T631 the extracted files stayed uncommitted — the pin
+# would then fall back to the working-tree copy (faithful here, it IS the
+# committed contract) — but the seeded broken-edit arms need the pin ACTIVE
+# to prove a working-tree edit cannot reach a running verifier.  Staged by
+# name; the substrate symlinks (bin/managent, bin/weizigo-claimlint) stay
+# untracked.
+git add bin/subagent tools/dispatch_verify.py
+git commit -qm "extract dispatch contract (T631 pin target)"
 SUBAGENT="$WORK/bin/subagent"
 # T527 (T428 Phase B): the bin/ollama-subagent wrapper is removed; the ollama
 # front door is the --provider ollama branch of the same script.
@@ -268,6 +278,8 @@ seed_task T1002 docs/T1002-result.txt
 seed_task T1003 docs/T1003-result.txt
 seed_task T1004 docs/T1004-result.txt
 seed_task T1005 docs/T1005-result.txt
+seed_task T1006 docs/T1006-result.txt
+seed_task T1007 docs/T1007-result.txt
 # T513: the findings arms (7/8/9) are BARE-FILE dispatches — no kanban row,
 # no managent add. The bundle .md declares its findings deliverable and is
 # passed to bin/subagent as the target path (not a T-ID).
@@ -402,8 +414,9 @@ OUT=$(STUB_MODE=honest "$SUBAGENT" --provider deepseek T1000 --dsflash \
         --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] \
-   && echo "$OUT" | grep -q "worker reported success; side effects verified — verification PASSED"; then
-    echo "    PASS: honest worker verified (rc=$RC)"
+   && echo "$OUT" | grep -q "worker reported success; side effects verified — verification PASSED" \
+   && ! echo "$OUT" | grep -q "T631 WARNING"; then
+    echo "    PASS: honest worker verified (rc=$RC), pin engaged silently"
 else
     echo "    FAIL: rc=$RC; expected PASSED"
     echo "$OUT" | sed 's/^/    | /' | tail -12
@@ -720,6 +733,118 @@ else
     FAIL=1
 fi
 
+# ── seeded control 14 (T631): a mid-edit working tree cannot reach the ──
+# verifier — the pinned import reads HEAD (the object database), never the
+# tree.  The T616 incident: T625's half-written tools/dispatch_verify.py
+# (valid syntax, broken semantics — heal_dispatch lost its directive_kill
+# parameter) was imported by T616's lane; the heal crashed with the exact
+# UnboundLocalError and T616 was left a silent in_progress zombie — the only
+# lane of the 2026-08-22 outage not reopened.  `holds` protects writers from
+# each other; the pin protects readers from writers.
+# RED (pre-T631, recorded in the T631 session): with the working tree broken,
+# the running verifier imported the broken copy, the heal crashed, no heal
+# line appeared and the row stayed in_progress — the zombie, reproduced.
+echo "  14. seeded: a broken working-tree dispatch_verify.py cannot reach the verifier (T631 pin)"
+cp "$WORK/tools/dispatch_verify.py" "$WORK/tools/dispatch_verify.py.good"
+python3 - "$WORK/tools/dispatch_verify.py" <<'PYEOF'
+import re, sys
+path = sys.argv[1]
+src = open(path).read()
+# The exact T616 semantic break: heal_dispatch loses its `directive_kill=None`
+# parameter default while the init block that reads it stays — valid Python,
+# UnboundLocalError at heal time (checked: imports, raises on call).
+pat = re.compile(
+    r'store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS",\n'
+    r'                    directive_kill=None\):')
+assert pat.search(src), "T631 arm 14: heal_dispatch signature locator failed"
+open(path, "w").write(pat.sub(
+    'store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS"):',
+    src, count=1))
+PYEOF
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1006 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+cp "$WORK/tools/dispatch_verify.py.good" "$WORK/tools/dispatch_verify.py"
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q 'healed.*reopened T1006' \
+   && ! echo "$OUT" | grep -q "T631 WARNING"; then
+    echo "    PASS: heal ran the PINNED copy despite the broken working tree (rc=$RC, heal line, no pin fallback)"
+else
+    echo "    FAIL: rc=$RC; expected heal line for T1006 with the working tree broken"
+    echo "$OUT" | sed 's/^/    | /' | tail -12
+    FAIL=1
+fi
+if [ "$(row_status T1006)" = "dispatchable" ]; then
+    echo "    PASS: T1006 reopened (the heal the broken tree would have killed)"
+else
+    echo "    FAIL: T1006 status is $(row_status T1006), expected dispatchable"
+    FAIL=1
+fi
+
+# ── seeded control 15 (T631): a heal that CRASHES — the T616 shape inside
+# the COMMITTED contract (not a working-tree artifact; a committed bug is the
+# residual case the pin cannot cover) — must not leave a silent zombie.
+# bin/subagent's safety net catches the exception, prints a loud HEAL
+# CRASHED line naming the row and the error, and appends a
+# needs_manual_heal marker to the heals census.  The row stays in_progress —
+# a crashed heal must not auto-reopen (the directive-kill stand-down and the
+# kimi investigation both depend on heal_dispatch's classification, which is
+# exactly what may be broken) — but it is LOUDLY flagged and the marker is
+# the census record a later task (T629) reads.
+echo "  15. seeded: a crashed heal flags the row loudly; no silent zombie (T631 safety net)"
+python3 - "$WORK/tools/dispatch_verify.py" <<'PYEOF'
+import re, sys
+path = sys.argv[1]
+src = open(path).read()
+pat = re.compile(
+    r'store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS",\n'
+    r'                    directive_kill=None\):')
+assert pat.search(src), "T631 arm 15: heal_dispatch signature locator failed"
+open(path, "w").write(pat.sub(
+    'store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS"):',
+    src, count=1))
+PYEOF
+git add tools/dispatch_verify.py
+git commit -qm "T631 arm 15: committed T616-shape heal (safety-net fixture)"
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1007 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && echo "$OUT" | grep -q 'HEAL CRASHED for T1007' \
+   && echo "$OUT" | grep -q 'UnboundLocalError'; then
+    echo "    PASS: heal crashed LOUDLY (rc=$RC; HEAL CRASHED line names the row and the error)"
+else
+    echo "    FAIL: rc=$RC; expected a loud HEAL CRASHED line for T1007"
+    echo "$OUT" | sed 's/^/    | /' | tail -12
+    FAIL=1
+fi
+MARK=$(grep '"task_id": "T1007"' "$WEIZIGO_DISPATCH_HEALS" 2>/dev/null | tail -1)
+if [ -n "$MARK" ] \
+   && echo "$MARK" | grep -q '"needs_manual_heal": true' \
+   && echo "$MARK" | grep -q '"healed": false' \
+   && echo "$MARK" | grep -q '"healed_by": "dispatcher"'; then
+    echo "    PASS: needs_manual_heal marker written (healed=false, healed_by=dispatcher)"
+else
+    echo "    FAIL: marker missing/incomplete for T1007"
+    echo "$MARK" | sed 's/^/    | /'
+    FAIL=1
+fi
+if [ "$(row_status T1007)" = "in_progress" ]; then
+    echo "    PASS: T1007 stays in_progress but FLAGGED (a crashed heal is an unknown state, not a silent one)"
+else
+    echo "    FAIL: T1007 status is $(row_status T1007), expected in_progress (flagged)"
+    FAIL=1
+fi
+# restore the good contract: the broken fixture is the last commit; reset
+# HEAD back to the clean extracted contract (untracked scratch files survive).
+git reset --hard -q HEAD~1
+if grep -q "directive_kill=None" "$WORK/tools/dispatch_verify.py"; then
+    echo "    PASS: good contract restored (reset to the clean extracted HEAD)"
+else
+    echo "    FAIL: contract not restored after arm 15"
+    FAIL=1
+fi
+
 echo ""
 # ── T512 isolation assertion: nothing of the suite reached live telemetry ─
 # The fixture ids this suite dispatches are T998..T1005 (plus the perf/heal
@@ -730,9 +855,9 @@ ISO_FAIL=0
 APPENDED=$(tail -n +$((LIVE_HEALS_BASE + 1)) "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null)
 if [ -z "$APPENDED" ]; then
     echo "    PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run"
-elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-5])"'; then
+elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-7])"'; then
     echo "    FAIL: fixture heal record(s) appended to the LIVE heal log (F3 regression)"
-    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-5])"' | sed 's/^/    | /'
+    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-7])"' | sed 's/^/    | /'
     ISO_FAIL=1
 else
     echo "    PASS: docs/infra/dispatch-heals.jsonl — appended lines carry no fixture data"
@@ -740,9 +865,9 @@ fi
 APPENDED=$(tail -n +$((LIVE_PERF_BASE + 1)) "$ROOT/docs/infra/model-perf.md" 2>/dev/null)
 if [ -z "$APPENDED" ]; then
     echo "    PASS: docs/infra/model-perf.md — no lines appended during the run"
-elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-5]) '; then
+elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-7]) '; then
     echo "    FAIL: fixture perf line(s) appended to the LIVE model-perf.md"
-    echo "$APPENDED" | grep -nE ' T(998|999|100[0-5]) ' | sed 's/^/    | /'
+    echo "$APPENDED" | grep -nE ' T(998|999|100[0-7]) ' | sed 's/^/    | /'
     ISO_FAIL=1
 else
     echo "    PASS: docs/infra/model-perf.md — appended lines carry no fixture data"

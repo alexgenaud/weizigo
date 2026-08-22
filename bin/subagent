@@ -39,8 +39,81 @@ not hold. The worker's text is never trusted. See tools/dispatch_verify.py.
 import glob, os, re, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "tools"))
-import dispatch_verify  # noqa: E402
+
+
+def _load_pinned_dispatch_verify():
+    """T631: import the dispatch contract from HEAD, never the working tree.
+
+    The 2026-08-22 T616 incident: T625's worker was mid-edit on
+    tools/dispatch_verify.py when T616's lane started; the import read a
+    half-written copy (valid syntax, broken semantics — heal_dispatch had
+    lost its directive_kill initialisation) and the heal crashed with
+    `UnboundLocalError: local variable 'directive_kill' referenced before
+    assignment`, leaving T616 a silent in_progress zombie — the only lane of
+    that outage not reopened.  `holds` protects writers of a file from each
+    other; nothing protected the in-flight dispatches that READ it, and every
+    live lane reads this module at exit.
+
+    Fix: load the module from the committed revision — `git show
+    HEAD:tools/dispatch_verify.py` reads the object database, never the
+    working tree, so an in-flight edit cannot reach a running verifier.  The
+    committed source is written to a disposable temp file and imported
+    through the normal machinery (same module name, real __file__ for
+    tracebacks, cached in sys.modules).
+
+    When the pin cannot engage (no git / not a repo / path absent from HEAD
+    — e.g. the T513 scratch regression, which extracts the committed
+    contract into a scratch tree whose HEAD does not contain it), fall back
+    to the working-tree copy WITH a loud warning: in that scratch case the
+    fallback IS the committed contract, and refusing would silently break
+    dispatch in any environment without git.  WEIZIGO_DISPATCH_VERIFY_UNPINNED=1
+    forces the fallback for a developer editing the module (T629/T630) who
+    wants to test through bin/subagent without committing first.
+    """
+    import importlib.util
+    import tempfile
+
+    if os.environ.get("WEIZIGO_DISPATCH_VERIFY_UNPINNED") == "1":
+        sys.stderr.write("[subagent] T631 WARNING: WEIZIGO_DISPATCH_VERIFY_UNPINNED=1 — "
+                         "importing the working-tree dispatch_verify.py; a mid-edit "
+                         "file CAN reach this verifier\n")
+        sys.path.insert(0, os.path.join(ROOT, "tools"))
+        return __import__("dispatch_verify")
+
+    proc = None
+    err = None
+    try:
+        proc = subprocess.run(
+            ["git", "-C", ROOT, "show", "HEAD:tools/dispatch_verify.py"],
+            capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        err = "git unavailable: %r" % (e,)
+    if proc is not None and proc.returncode == 0 and proc.stdout:
+        try:
+            tmp_dir = tempfile.mkdtemp(
+                prefix="t631-pinned-",
+                dir="/tmp/weizigo" if os.path.isdir("/tmp/weizigo") else None)
+            path = os.path.join(tmp_dir, "dispatch_verify.py")
+            with open(path, "w") as f:
+                f.write(proc.stdout)
+            spec = importlib.util.spec_from_file_location("dispatch_verify", path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            sys.modules["dispatch_verify"] = mod
+            return mod
+        except Exception as e:
+            err = "pinned import failed: %r" % (e,)
+    elif err is None:
+        err = ("git show HEAD:tools/dispatch_verify.py exited %d"
+               % (proc.returncode if proc is not None else -1))
+    sys.stderr.write("[subagent] T631 WARNING: pin failed (%s) — importing the "
+                     "working-tree copy of tools/dispatch_verify.py; a mid-edit "
+                     "file CAN reach this verifier\n" % err)
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    return __import__("dispatch_verify")
+
+
+dispatch_verify = _load_pinned_dispatch_verify()
 
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 MAX_DEPTH = 3
@@ -309,13 +382,61 @@ def main(argv):
     # that watched the worker die is still running and already knows. Heal
     # ONLY this case; every other failure is left for the Orchestrator.
     if exit_code != 0:
-        healed, heal_line = dispatch_verify.heal_dispatch(
-            root=root, real_root=ROOT, task_id=task_id, model=model,
-            rc=rc, wall_seconds=wall_seconds,
-            store_env=os.environ.get("MANAGENT_STORE"))
-        if heal_line:
-            print(f"[verify] {heal_line}", file=sys.stderr)
+        try:
+            healed, heal_line = dispatch_verify.heal_dispatch(
+                root=root, real_root=ROOT, task_id=task_id, model=model,
+                rc=rc, wall_seconds=wall_seconds,
+                store_env=os.environ.get("MANAGENT_STORE"))
+            if heal_line:
+                print(f"[verify] {heal_line}", file=sys.stderr)
+        except Exception as e:
+            # T631 invariant: a crashed heal must never leave a row SILENTLY
+            # in_progress.  The heal is the one automatic reopen; if it dies
+            # (a committed bug, a disk fault — anything the pin cannot cover),
+            # the row is left for a human but flagged loudly and recorded in
+            # the heals census, so the T616 zombie cannot recur unseen.
+            if task_id is not None:
+                _flag_manual_heal(task_id, model, rc, wall_seconds, e)
     return exit_code
+
+
+def _flag_manual_heal(task_id, model, rc, wall_seconds, exc):
+    """T631: record a heal that crashed as needing a MANUAL heal.
+
+    Self-contained (stdlib only, no dispatch_verify calls) so a broken
+    contract cannot break the marker that flags its own breakage.  Appends a
+    `needs_manual_heal` record to the same heals log heal_dispatch writes
+    (WEIZIGO_DISPATCH_HEALS or docs/infra/dispatch-heals.jsonl) and prints a
+    loud [verify] line.  The record still carries healed_by=dispatcher — the
+    dispatcher is the actor (F4/T513: the heals log is the census of who
+    reopens; any record not carrying it is a second owner) — but `healed:
+    false` marks it as NO reopen having happened.
+    """
+    import json
+    rec = {
+        "task_id": task_id,
+        "model": model,
+        "exit_code": rc,
+        "wall_seconds": round(wall_seconds, 1),
+        # F4/T513: "dispatcher" duplicates dispatch_verify.HEAL_OWNER on
+        # purpose — a broken contract must not be able to break the marker.
+        "healed_by": "dispatcher",
+        "healed": False,
+        "needs_manual_heal": True,
+        "error": "%s: %s" % (type(exc).__name__, exc),
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    path = (os.environ.get("WEIZIGO_DISPATCH_HEALS")
+            or os.path.join(ROOT, "docs", "infra", "dispatch-heals.jsonl"))
+    try:
+        with open(path, "a") as f:
+            f.write(json.dumps(rec) + "\n")
+        note = "marker appended to %s" % path
+    except OSError as e:
+        note = "MARKER WRITE FAILED (%s)" % e
+    print("[verify] HEAL CRASHED for %s (%s: %s) — row may be in_progress and "
+          "needs a MANUAL heal; %s"
+          % (task_id, type(exc).__name__, exc, note), file=sys.stderr)
 
 
 if __name__ == "__main__":
