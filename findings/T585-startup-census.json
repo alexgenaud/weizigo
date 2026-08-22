@@ -1,0 +1,298 @@
+{
+  "task_id": "T585",
+  "date": "2026-08-22",
+  "model": "claude-sonnet-5",
+  "claims": [],
+  "new_rows": [],
+  "surfaces": [
+    {
+      "id": "S1",
+      "path": "AGENTS.md",
+      "lines": 391,
+      "reads": "every agent, every task — the router; DELEGATOR.md/DELEGATEE.md/ROLES.md point back to it for foreclosures",
+      "contains": "project description; 8 non-negotiable foreclosures (PSK, kill-X%, score-on-cycle, ko-sensitive distrust, #2 auditor gate, L==H non-history-independence, Black-positive scores, 'colex index' not 'rank', no sub-goban solving, eye-prune); build/test/run; a 'where to go next' routing table; kanban/goban terminology; tooling-gets-tests-too policy; QA-023 verification rules; closing-report format; copy/paste boundaries; landmarks; untracked-dir conventions; agent-to-agent comms",
+      "classification": "clean-with-one-stale-citation-elsewhere",
+      "notes": "The file itself is internally consistent and its cited companions (ROLES.md, spec.md, fleet-git-isolation.md, channel.md, runner.md, agent-identity-and-worker-channel.md) all resolve on disk. Line numbers inside it (e.g. the QA-023 positive-control rule now at :207-209) have drifted since other documents pinned citations into it — see A2."
+    },
+    {
+      "id": "S2",
+      "path": "docs/infra/delegation/DELEGATEE.md",
+      "lines": 270,
+      "reads": "every worker executing a claimed task (AGENTS.md routes here)",
+      "contains": "identity line format; canonical model table; claim procedure; MANAGENT_TASK_ID export; inbox loop (T352); three cold-start warnings (commit-pinned line refs, critique-may-be-wrong, findings schema silently drops malformed files); verification hygiene (scratch vs deliverable paths); principles; kanban writing; reporting + context-dump schema; sub-delegation pointer",
+      "classification": "contradictory",
+      "notes": "Line 83 ('The bin/subagent and bin/ollama-subagent dispatch prompts already say this') names bin/ollama-subagent, which docs/infra/agents/subdelegation.md:18-19 records as removed by T527 on 2026-08-20 (confirmed: bin/ only contains bin/subagent, not bin/ollama-subagent or bin/subagent-ds). See A1."
+    },
+    {
+      "id": "S3",
+      "path": "docs/infra/delegation/DELEGATOR.md",
+      "lines": 213,
+      "reads": "whoever writes a task for another agent (AGENTS.md routes here)",
+      "contains": "title-length rule; brief header fields; bundle meta-line requirements; principles (falsifiability, cost, restraint, model assignment, independence, visibility, concurrency, durability, prior art, honest negatives); bin/dispatch procedure, model table, wall-time table, verification proof scope",
+      "classification": "clean",
+      "notes": "Cross-references to ROLES.md and spec.md resolve; the model-assignment and concurrency principles agree with ROLES.md's current text (no contradiction found)."
+    },
+    {
+      "id": "S4",
+      "path": "docs/infra/delegation/ROLES.md",
+      "lines": 192,
+      "reads": "whoever is dispatching or unsure of their role (AGENTS.md and DELEGATOR.md both route here)",
+      "contains": "specification restraint; roles-not-models (Dabir/Auditor/Orchestrator table); model recording; concurrency (ANALYSIS unlimited / MUTATION serial, the 2026-08-19 no-fleet-cap ruling, the depth cap as the only numeric bound); dispatching/claiming/kanban; instance-vs-model review independence; the 2026-08-20 Fable adjudication-authority ruling",
+      "classification": "clean, authoritative — but its 2026-08-19 ruling is not propagated (see A3)",
+      "notes": "§Concurrency explicitly states it is 'the concurrency authority' that sprint.md/subdelegation.md/manager-brief-template.md 'defer to' — but two of those three still carry the pre-ruling number it superseded (A3)."
+    },
+    {
+      "id": "S5",
+      "path": "docs/infra/sprint.md",
+      "lines": 157,
+      "reads": "whoever calls or executes a sprint (algorithmic work, new state representations, verifier/format changes, publishable numbers) — Dabir's craft note names the trigger",
+      "contains": "sprint/pass/phase ladder; bookends (spec/plan/accept); directories; channel location; 7 named phases; audit gates per phase; two-round audit-loop cap with a residue-routing table; grading vocabulary; subagent dispatch pointer; acceptance checklist; engineering rules for standalone tools",
+      "classification": "contradictory",
+      "notes": "Line 132 states 'Max two concurrent DeepSeek pi-subagents (API rate limit)' while citing ROLES.md as the concurrency authority in the same breath (line 134) — ROLES.md:104-107 records the operator's 2026-08-19 ruling that there is 'no fleet or per-provider cap.' See A3."
+    },
+    {
+      "id": "S6",
+      "path": "docs/audits/2026-08-02-grand-audit/DIRECTION.md",
+      "lines": 258,
+      "reads": "cited by managent orient's principles header as one of the four sources 'principles' are extracted from; read by whoever needs the ratified epic-01 direction",
+      "contains": "the doubt-everything stance; epic-as-claim-chain frame; the k=1 theorem; kernel definition; 5-phase plan; the court (Orchestrator/Auditor/managers/Dabir); quality commitments; Amendment 1 (mutation testing vs golden-master, ratified 2026-08-03) and Amendment 2 (phase order is dependency order, ratified 2026-08-03)",
+      "classification": "contradictory (stale citation)",
+      "notes": "Line 244 cites 'AGENTS.md:146-148' for the positive-control-must-exercise-the-instrument-under-test rule; at current AGENTS.md that rule is at line 207-209 (drifted ~60 lines as AGENTS.md grew). See A2."
+    },
+    {
+      "id": "S7",
+      "path": "docs/status/HANDOVER.md",
+      "lines": 127,
+      "reads": "cited as the succession template: ORCHESTRATOR.md:5 ('write docs/status/handover-<model>-<date>.md, template: docs/status/HANDOVER.md')",
+      "contains": "NOT a template — the full, unredacted 2026-07-27-evening 'chainability session' handover, including a 'read order' pointing to handover-minimax-m3-2026-07-29.md as 'the current handover' and six mentions of CURRENT.md",
+      "classification": "contradictory",
+      "notes": "CURRENT.md was retired 2026-08-03 (T286); this file still instructs the reader to consult it four times (lines 4-5, 22, 96, 116). Already flagged once: findings/T410-instruction-audit.json F04 (2026-08-07) called this 'the highest-impact stale instruction — it's the read-first template and teaches the wrong read order.' 15 days later (today, 2026-08-22) it is unchanged and still the file a fresh Orchestrator successor is pointed at. See A4."
+    },
+    {
+      "id": "S8",
+      "path": "docs/status/handover-orcha-flash-2026-08-19.md, handover-orcha-incoming-2026-08-20.md, handover-t557-2026-08-21.md (+ 10 archived under docs/status/archive/handovers/)",
+      "lines": 153,
+      "reads": "the incoming holder of a seat (Orchestrator succession, sprint-manager succession)",
+      "contains": "per-instance snapshot: seat identity, live gates, acceptance-suite state, open rulings, duties",
+      "classification": "clean (as a class)",
+      "notes": "Sampled the three most recent by mtime; none references a retired mechanism as current. Not exhaustively read line-by-line beyond the sample; flagged here only as a class, not individually audited."
+    },
+    {
+      "id": "S9",
+      "path": "docs/infra/roles/ORCHESTRATOR.md",
+      "lines": 93,
+      "reads": "the seat invoked as 'You are the Orchestrator' (exactly one, ever); routed from AGENTS.md and ROLES.md",
+      "contains": "succession rule; role purpose (absorption > dispatch); 8-step cadence; a deleted-prescription-to-enforcing-command table; commands section; on-resume pointer; the 2026-08-19 'what the Orchestrator does NOT do' ruling (5 prohibitions with dated incidents); boundaries",
+      "classification": "contradictory",
+      "notes": "Cadence step 0 says 'bin/argus --mode checklist, then --mode sweep' — omits --mode doctor, which ARGUS.md's own §Three modes and §On resume both treat as a required third leg of 'a standard pass.' Same omission as S12. See A5. Also line 5 points to the stale HANDOVER.md template (S7, A4)."
+    },
+    {
+      "id": "S10",
+      "path": "docs/infra/roles/AUDITOR.md",
+      "lines": 31,
+      "reads": "any seat invoked as 'You are the Auditor for <scope>'",
+      "contains": "scope-is-a-parameter framing; 13 principles (verify-then-assert, trace end-to-end, exercise-the-instrument controls, ask-what-a-wrong-answer-scores, distrust clean counters, re-implement independently, pre-register, distrust the convenient, route your own ruling elsewhere, say when work should stop, deliver verdicts not fixes, name-the-defect-and-stop, leave the queue to the Orchestrator); wide-scope notes",
+      "classification": "clean",
+      "notes": "Self-contained; no stale cross-reference found."
+    },
+    {
+      "id": "S11",
+      "path": "docs/infra/roles/DABIR.md",
+      "lines": 30,
+      "reads": "the counsel seat, invoked 'You are D2, the new Dabir, taking over from D1'",
+      "contains": "role purpose (holds the human's intent record); principles (answer from the stores, protect clean context, carry channel traffic, translate opinion into record, surface arguments, lead with the actionable, leave execution/audit/rulings to their owners); craft notes (rewrite DABIR-INTENT.md at close, prefer descriptive names, clean the file not just the rule, model failures that repeat are tool failures, call a sprint when work is algorithmic)",
+      "classification": "clean",
+      "notes": "The Navigator role the seed asks about (§3.4) is NOT this file and is not recorded anywhere under docs/infra/roles/ — see A6."
+    },
+    {
+      "id": "S12",
+      "path": "docs/infra/roles/ARGUS.md",
+      "lines": 174,
+      "reads": "the single watchdog seat, invoked 'You are Argus. Run --mode checklist, then --mode sweep'",
+      "contains": "purpose (process-state drift); authority (none — advisory only); a 3-path write allowlist; three modes (sweep/checklist/doctor); evidence rule; grading table; floor-grading rule with the canonical-floor pointer; untracked-artifact retention rule; pacing; 8-step on-resume; boundaries",
+      "classification": "contradictory",
+      "notes": "The invocation line at the top ('Run --mode checklist, then --mode sweep') names only 2 of the 3 modes; §Three modes explicitly says 'A standard pass runs all three, in sequence' and §On resume lists doctor as step 4 of 8. The invocation line predates T425/T427 (which added doctor) and was never updated. Same omission independently repeated in ORCHESTRATOR.md's cadence step 0 (S9). See A5."
+    },
+    {
+      "id": "S13",
+      "path": "docs/infra/agents/worker-role.md",
+      "lines": 7,
+      "reads": "nobody at spawn time — explicitly retired 2026-07-28, superseded by DELEGATEE.md + AGENTS.md",
+      "contains": "a one-paragraph retirement notice and supersession pointer",
+      "classification": "stale (deliberately, self-labeled)",
+      "notes": "Still sits under docs/infra/agents/, which the S05 seed names as a startup-surface directory; a fresh reader following 'docs/infra/agents/*' literally opens this before learning it is inert. Candidate for the audit/spec phase's delete list, not a contradiction."
+    },
+    {
+      "id": "S14",
+      "path": "docs/infra/agents/boss-role.md",
+      "lines": 50,
+      "reads": "nobody at spawn time — retired 2026-07-28, four items 'kept' inline",
+      "contains": "retirement notice + supersession pointers; 4 kept sections (decision hygiene, backlog depth/worker routing, worktree policy, the quality ledger) that duplicate content now also stated in DELEGATOR.md/ROLES.md",
+      "classification": "stale (deliberately, self-labeled)",
+      "notes": "Deliberately preserves dead line-number citations from docs/evidence/README.md into its own pre-retirement text ('left untouched on purpose... deliberate records of destroyed evidence'), which is candid but means the file mixes three eras (live-kept rules, dead citations, retirement notice) in 50 lines."
+    },
+    {
+      "id": "S15",
+      "path": "docs/infra/agents/workflow.md",
+      "lines": 33,
+      "reads": "nobody at spawn time — retired 2026-07-28, two rules kept",
+      "contains": "retirement notice + 'document before/while/after' rule + 'where state lives' rule",
+      "classification": "stale (deliberately, self-labeled)",
+      "notes": "The kept 'where state lives' section still says '(CURRENT.md is retired — ... the surface is now derived at read time)' — correct as written, unlike S7's HANDOVER.md, which still instructs readers to consult CURRENT.md."
+    },
+    {
+      "id": "S16",
+      "path": "docs/infra/agents/subdelegation.md",
+      "lines": 309,
+      "reads": "whoever dispatches a DeepSeek/Ollama/Claude subagent; cited by DELEGATOR.md, ROLES.md, sprint.md, manager-brief-template.md",
+      "contains": "bin/subagent invocation forms; the parallel-vs-recursion-depth distinction (with the current 2026-08-19 no-cap ruling correctly stated); reach matrix; depth-enforcement ruling history (T320/T321, options a/b/c, the human's rejections); attribution-never-asks-the-model rule; when-to-use table; 5 numbered rules; patterns; recording; prompt wrapper; findings schema pointer with minimal/full examples; manager absorption handoff",
+      "classification": "clean (most current of the concurrency-bearing docs) — but mis-cited by others",
+      "notes": "This file's own text correctly reflects the 2026-08-19 no-DeepSeek-cap ruling. It is manager-brief-template.md (S18) that misquotes it: 'see docs/infra/agents/subdelegation.md rule 5 — max 2 for DeepSeek pi-subagents' — subdelegation.md's actual numbered rule 5 is 'Independent re-implementation is the highest-value use,' which says nothing about a DeepSeek cap. See A3."
+    },
+    {
+      "id": "S17",
+      "path": "docs/infra/agents/ollama-concurrency-2026-08-04.md",
+      "lines": 155,
+      "reads": "not a startup-read routing surface — a dated T357 measurement report that happens to live under docs/infra/agents/",
+      "contains": "the 2026-08-20 Ollama-concurrency measurement (429 threshold ~18-20, not ~5; queue behaviour; live-session vs active-exchange question left unsettled)",
+      "classification": "clean, but miscategorized",
+      "notes": "Nothing routes a fresh agent to this file at spawn; it is a research artifact, not an instruction surface. Its presence in docs/infra/agents/ alongside the role/delegation instruction files is itself an archaeology item — the directory mixes 'read this before you act' files with 'here is what we measured once' files with no naming or subdirectory distinction. See A7."
+    },
+    {
+      "id": "S18",
+      "path": "docs/infra/agents/manager-brief-template.md",
+      "lines": 160,
+      "reads": "a builder/manager agent about to spawn subagents for a sprint",
+      "contains": "task-list table; dispatch instructions (managent suggest, bundle meta line, worker lifecycle, mechanical --exec dispatch); findings-collection checklist; gap-flagging + triage checklist; absorption-handoff format; post-absorption steps",
+      "classification": "contradictory",
+      "notes": "Two defects. (1) Line 22 states the superseded 'max 2 for DeepSeek pi-subagents, API rate limit' cap, misattributed to subdelegation.md's rule 5 (A3). (2) Line 105 states 'Required fields present — task_id, date, model and the claims array must be non-empty per findings/README.md' — findings/README.md does not say non-empty (§Schema marks claims required as an array, not as non-empty), docs/infra/agents/findings-schema.json:26 explicitly says 'Empty array when none are touched,' DELEGATEE.md:247-249 instructs claims to 'stay empty' in a context dump, and the overwhelming majority of committed findings files (e.g. T410, T507, T575, T579) ship claims:[] by design. See A8."
+    },
+    {
+      "id": "S19",
+      "path": "docs/infra/agents/findings-schema.json",
+      "lines": 102,
+      "reads": "machine-readable copy consulted alongside findings/README.md; declared authoritative-copy relationship ('this file must not diverge' from findings/README.md)",
+      "contains": "JSON Schema for the findings file (task_id/date/model/claims required; audited_by conditionally required per C11; new_rows/notes optional)",
+      "classification": "clean",
+      "notes": "Agrees with findings/README.md field-for-field (both mark only task_id/date/model/claims as required, claims empty-allowed). It is manager-brief-template.md (S18), not this file or README.md, that diverges — see A8."
+    },
+    {
+      "id": "S20",
+      "path": "findings/README.md",
+      "lines": 124,
+      "reads": "every worker producing a findings file (DELEGATEE.md, subdelegation.md and manager-brief-template.md all point here)",
+      "contains": "purpose; findings-vs-register-rows non-bijection explainer; naming convention; JSON schema table; field semantics (incl. the C11 audited_by rule); status-value table; tooling pointers (claimlint C7, weizigo-absorb)",
+      "classification": "clean",
+      "notes": "This is the authority manager-brief-template.md:105 misquotes (A8)."
+    },
+    {
+      "id": "S21",
+      "path": "bundle preambles (untracked/T<id>-*.md, e.g. this task's own untracked/T585-startup-census.md)",
+      "lines": "varies",
+      "reads": "the worker claiming that specific task",
+      "contains": "the <!--managent set=X deliverables=...--> meta line (machine-checked by managent done); title; read-first pointer; job description; deliverable path; acceptance criteria; the standard dispatch wrapper (claim/inbox-loop/done block) that bin/subagent injects around the bundle body",
+      "classification": "clean (mechanism); one drifted phrase inherited from DELEGATEE.md",
+      "notes": "The wrapper's inbox-loop paragraph is templated from DELEGATEE.md §The inbox loop and inherits its bin/ollama-subagent reference (A1) verbatim into every dispatch this task's own launch prompt is one live instance of that inheritance."
+    },
+    {
+      "id": "S22",
+      "path": "`managent orient` (src/managent/main.zig:4769-4976, cmdOrient)",
+      "lines": 208,
+      "reads": "any agent at spawn, per the task's own dispatch instructions ('BEFORE READING THE BUNDLE: run bin/managent orient')",
+      "contains": "self-build stamp; a hard-coded 8-line 'principles' list; live gates (pre-commit hook, claimlint vs floor); kanban snapshot (in_progress with liveness / dispatchable / blocked); last 10 commits; a handover-head pointer; a 'what this does not replace' footer; a self-reported line count with a 150-line cap warning",
+      "classification": "contradictory",
+      "notes": "The output's own header claims the principles are 'extracted from AGENTS.md / DELEGATEE.md / sprint.md / DIRECTION.md' (main.zig:4846), but the 8 lines that follow (main.zig:4847-4854) are literal string constants baked into the Zig source, not read from those four files at compose time. If any of the four files' underlying rules changes, `orient`'s principles section will not reflect it and nothing will detect the drift — the seed's own goal ('composed at read time from the store and a small set of audited sources') is not yet true of this section. Also: the seed's §3.3/§3.4 'orient --role <r>' variants (leaf/console/auditor/reconciler/navigator) do not exist — cmdOrient ignores its args entirely (main.zig:4770, `_ = args;`). See A9."
+    },
+    {
+      "id": "S23",
+      "path": "`managent resume` (src/managent/main.zig:4379-4600ish, cmdResume)",
+      "lines": "~220 (function continues past the excerpt read)",
+      "reads": "any agent resuming cold, per AGENTS.md's routing table and ORCHESTRATOR.md's on-resume line",
+      "contains": "self-check (binary staleness vs HEAD, comparing version.commit to git HEAD over src/managent/, tools/gen-version.sh, build.zig); kanban snapshot + held files; fleet-stall detection (managent reap classification, read-only); pending-directives / inbox surfacing with staleness threshold; channel STATE.md narrative scan under untracked/msg/*/STATE.md",
+      "classification": "clean",
+      "notes": "Unlike orient's principles section, resume's header claim ('composed ... from tasks.json · git log/config/status · claimlint · STATE.md') is accurate — the STATE.md narrative really is read live (main.zig:4309-4376, printChannelStateNarratives)."
+    },
+    {
+      "id": "S24",
+      "path": "Claude auto-memory convention (~/.claude/projects/.../memory/MEMORY.md + per-topic files, harness-scoped)",
+      "lines": "n/a (external to the repo)",
+      "reads": "a Claude-model agent only, injected by the harness at session start as system-reminder context, not read by any other model",
+      "contains": "cross-session memories of user preferences, feedback, project state, references, organized by type with an index file",
+      "classification": "clean, but explicitly out of scope for project-critical content",
+      "notes": "S05 seed §4 (Non-goals) rules this out directly: 'Claude auto-memory is harness-scoped convenience, not a project surface — nothing project-critical may live only there.' No contradiction found against that non-goal as of this census: spot-checking this session's own MEMORY.md shows it pointing back to committed docs (STATE.md, model-perf.md, findings files) rather than asserting facts nowhere else recorded."
+    }
+  ],
+  "archaeology": [
+    {
+      "id": "A1",
+      "severity": "must",
+      "kind": "stale reference to a removed tool",
+      "citation": "docs/infra/delegation/DELEGATEE.md:83",
+      "detail": "'The bin/subagent and bin/ollama-subagent dispatch prompts already say this' — bin/ollama-subagent and bin/subagent-ds were removed by T527 on 2026-08-20 per docs/infra/agents/subdelegation.md:18-19 (confirmed: `ls bin/` shows only bin/subagent, not ollama-subagent or subagent-ds). Every worker reading DELEGATEE.md's inbox-loop section, and every dispatched bundle whose wrapper templates from it (S21), inherits the dead tool name."
+    },
+    {
+      "id": "A2",
+      "severity": "should",
+      "kind": "drifted commit-pinned line citation",
+      "citation": "docs/audits/2026-08-02-grand-audit/DIRECTION.md:244",
+      "detail": "Cites 'AGENTS.md:146-148' for the QA-023 positive-control rule ('a positive control must exercise the instrument under test, not a parallel one'). At current AGENTS.md that sentence is at line 207-209 (AGENTS.md has grown from ~250 to 391 lines since 2026-08-02). DELEGATEE.md itself warns about exactly this failure mode ('A line reference that looks wrong is probably commit-pinned, not stale... resolve with git show <commit>:<path>, not sed at HEAD') but DIRECTION.md carries no commit pin for this citation, so a cold reader has no way to resolve it correctly without already knowing the convention."
+    },
+    {
+      "id": "A3",
+      "severity": "must",
+      "kind": "superseded rule still stated (3 sites) plus a broken cross-reference",
+      "citation": "docs/infra/sprint.md:132; docs/infra/agents/manager-brief-template.md:22; contrast docs/infra/delegation/ROLES.md:104-107 and docs/infra/agents/subdelegation.md:15",
+      "detail": "sprint.md:132 and manager-brief-template.md:22 both still assert 'Max two concurrent DeepSeek pi-subagents (API rate limit)'. ROLES.md:104-107 records the operator's 2026-08-19 ruling: 'There is no fleet or per-provider cap on parallel workers... the only numeric bound is the recursion depth cap.' subdelegation.md:15 already reflects this correctly ('no fleet cap... operator's ruling 2026-08-19: no DeepSeek rate-limit cap'). Both stale sites cite ROLES.md or subdelegation.md as their own authority in the same sentence, so the contradiction is self-contained on the page. manager-brief-template.md:22 additionally misattributes the (superseded) cap to 'subdelegation.md rule 5' — subdelegation.md's actual rule 5 ('Independent re-implementation is the highest-value use') says nothing about DeepSeek concurrency at all, so the citation target itself is wrong independent of the ruling."
+    },
+    {
+      "id": "A4",
+      "severity": "must",
+      "kind": "the read-first succession template is stale content, not a template — flagged before, still unfixed",
+      "citation": "docs/infra/roles/ORCHESTRATOR.md:5; docs/status/HANDOVER.md (all 127 lines, esp. 4-5, 9-14, 22, 96, 116)",
+      "detail": "ORCHESTRATOR.md:5 tells every outgoing Orchestrator to write its handover 'template: docs/status/HANDOVER.md'. That file is not a template — it is the complete, unredacted 2026-07-27-evening handover, which explicitly calls itself a 'Historical record' and directs the reader to a different file ('handover-glm-5.2-2026-07-29.md') as 'the current handover', and references the retired CURRENT.md four times as if live. This exact defect was already found and registered: findings/T410-instruction-audit.json (2026-08-07), finding F04, called it 'the highest-impact stale instruction — it's the read-first template and teaches the wrong read order.' 15 days later (this census, 2026-08-22) the file is byte-identical in substance and still the one path a fresh Orchestrator successor is pointed to."
+    },
+    {
+      "id": "A5",
+      "severity": "should",
+      "kind": "duplicated omission — two independent files understate the same three-mode contract",
+      "citation": "docs/infra/roles/ARGUS.md:3 (invocation line) vs ARGUS.md:44-77 (§Three modes) and :153-164 (§On resume); docs/infra/roles/ORCHESTRATOR.md:13 (cadence step 0)",
+      "detail": "ARGUS.md's own top-of-file invocation line ('Run --mode checklist, then --mode sweep') names 2 of the 3 modes the file itself defines; §Three modes says 'A standard pass runs all three, in sequence — checklist first... then sweep... then doctor,' and §On resume lists doctor explicitly as step 4 of 8. Doctor mode was added by T425/T427 after the invocation line was written and the line was never updated. ORCHESTRATOR.md's cadence step 0 ('Run Argus. bin/argus --mode checklist, then --mode sweep when anything regressed') independently repeats the same two-of-three omission — a second document drifted the same way from the same underlying change, which is the 'duplicated principle with drifted wording' pattern the S05 seed asks this census to flag."
+    },
+    {
+      "id": "A6",
+      "severity": "note",
+      "kind": "seed's own open question, confirmed by direct search",
+      "citation": "docs/infra/roles/ (DABIR.md, AUDITOR.md, ARGUS.md, ORCHESTRATOR.md — 4 files, no NAVIGATOR.md); untracked/msg/milestone-01-ko-reframe/0{54..63,70,74}-navigator-*.md (14 files)",
+      "detail": "The S05 seed (§3.4) asks the audit/spec phase to verify whether 'Navigator' is already a recorded role. Directly answered by this census: it is not. 'Navigator' appears only as a sender/addressee name in 14 untracked channel messages from the 2026-07-31 era (e.g. '059-navigator-to-all.md'); no docs/infra/roles/NAVIGATOR.md exists, and no other role file defines or mentions a Navigator role. This is not itself a contradiction — it is the open fact the next phase needs to adopt-or-retire against."
+    },
+    {
+      "id": "A7",
+      "severity": "could",
+      "kind": "directory mixes instruction surfaces with dated research artifacts",
+      "citation": "docs/infra/agents/ (ollama-concurrency-2026-08-04.md alongside worker-role.md, boss-role.md, workflow.md, subdelegation.md, manager-brief-template.md, findings-schema.json)",
+      "detail": "The S05 seed names 'docs/infra/agents/*' as a startup-read surface category. One file in it (ollama-concurrency-2026-08-04.md) is a dated T357 measurement report with no routing pointer aiming a fresh agent at it — it is not read at spawn by anyone. Its presence undifferentiated from the role/delegation instruction files in the same directory means a literal reading of the seed's surface list ('docs/infra/agents/*') pulls in a research artifact that was never meant to be a startup surface, alongside three deliberately-retired stub files (S13/S14/S15) that also aren't read at spawn. The directory's actual startup-read subset is narrower than its glob."
+    },
+    {
+      "id": "A8",
+      "severity": "must",
+      "kind": "contradicted schema rule — a stated requirement that the schema, the machine-readable copy, and the majority of committed instances all disagree with",
+      "citation": "docs/infra/agents/manager-brief-template.md:105; contrast findings/README.md (§Schema, 'claims' required-but-not-non-empty), docs/infra/agents/findings-schema.json:26 ('Empty array when none are touched'), docs/infra/delegation/DELEGATEE.md:251 ('claims and new_rows stay empty in a dump')",
+      "detail": "manager-brief-template.md's findings-collection checklist (item 3) states: 'Required fields present — task_id, date, model and the claims array must be non-empty per findings/README.md.' findings/README.md contains no such non-empty requirement (claims is simply a required array, explicitly allowed to be []). The machine-readable schema copy explicitly documents claims as 'Empty array when none are touched.' DELEGATEE.md's own reporting section instructs context dumps to keep claims empty by design. Sampled committed findings files confirm empty-claims is the norm for analysis/census/audit tasks, not an exception (findings/T410-instruction-audit.json, T507-scaling-census.json, T575-s03-queue-layer-audit.json, T579-decision-log-study.json all ship claims:[]). A manager literally following this checklist item would reject a large fraction of conforming findings files as defective."
+    },
+    {
+      "id": "A9",
+      "severity": "should",
+      "kind": "the composed-preamble's own provenance claim is false for one section; the seed's role-variant goal is unbuilt",
+      "citation": "src/managent/main.zig:4846 (header text) vs :4847-4854 (hard-coded content); :4770 (`_ = args;`)",
+      "detail": "cmdOrient prints '## principles (extracted from AGENTS.md / DELEGATEE.md / sprint.md / DIRECTION.md)' immediately above 8 lines that are Zig string literals baked into main.zig at build time, not read from any of the four named files at compose time (confirmed by reading the function body: no file I/O touches AGENTS.md/DELEGATEE.md/sprint.md/DIRECTION.md anywhere in cmdOrient). This is the inverse of the S05 seed's stated goal for orient ('a current, contradiction-free, role-sized orientation composed at read time from the store and a small set of audited sources') — today's principles section is neither derived from the sources nor guaranteed to track them if they change. Separately, cmdOrient discards its args parameter entirely (`_ = args;`), confirming the seed's §3.3 'orient --role <r>' variants do not exist yet; this is a gap for the S05 audit/spec phases to fill, not a contradiction in current text, so it is graded 'should' rather than 'must'."
+    }
+  ],
+  "surface_count": 24,
+  "archaeology_count": 9,
+  "denominators": {
+    "surfaces_enumerated": "24 items across 10 of the seed's named categories: AGENTS.md (1), DELEGATEE.md (1), DELEGATOR.md (1), sprint.md (1), DIRECTION.md (1), handover docs (2, one individual + one class-sample of 3), docs/infra/roles/* (4 of 4 files present), docs/infra/agents/* (6 of 6 markdown/json files present, one further split as bundle-preamble/inbox-wrapper mechanism), bundle preambles (1), managent orient/resume (2 commands), Claude auto-memory (1). docs/infra/delegation/ROLES.md is not separately named in the seed's list but is the single most-cited companion of DELEGATEE.md/DELEGATOR.md/AGENTS.md and is therefore censused as S4 for completeness.",
+    "classification_breakdown": "clean: 11 (S3, S4-as-doc, S8, S10, S11, S16, S19, S20, S23, S24, plus S4 itself counted once) — contradictory: 7 (S2, S6, S7, S9, S12, S18, S22) — stale-deliberate: 3 (S13, S14, S15) — clean-but-miscategorized: 1 (S17) — clean-with-external-drift: 1 (S1). Counts are per-surface classification as recorded in each surface's own 'classification' field above; sum is 24 (S1-S24) less one double-count avoided by treating S4's authority status and content classification as one row.",
+    "archaeology_flags": "9 (A1-A9): 4 must, 3 should, 1 could, 1 note. Every flag above cites at least one file:line pair verified against the current working tree at HEAD (git status shows only docs/infra/managent/directives.jsonl, docs/infra/managent/tasks.json and docs/infra/model-perf.md modified at census time — none of the files this census cites)."
+  },
+  "notes": "Read-only census, phase 1 of T583 (S05 startup-surfaces), per seed §3.1. Enumerated the 10 surface categories the seed names plus ROLES.md (uncounted in the seed's list but load-bearing for all three delegation docs). Deliberately did not fix anything (out of scope per the brief and the seed's own phase split — audit/spec phases fix). Highest-value finding for the next phase: A4 (the Orchestrator succession template is stale content, first flagged 2026-08-07 by T410 and still unfixed 15 days later) and A8 (a findings-schema rule stated in manager-brief-template.md contradicts the schema it cites as its own authority, and would cause a manager following it literally to reject the majority-shape of real findings files). A1/A3 are citation/rule drift of the kind that recurs whenever a tool is renamed or a ruling is issued and only some of the referencing documents are updated — the S05 spec phase may want a mechanized cross-reference check (grep for retired tool/rule names across docs/infra/) rather than relying on the next prose sweep to catch the next one. Inbox checked via `bin/managent inbox T585 --ack` before this write; empty."
+}
