@@ -37,3 +37,4 @@ dispatch-verify 2026-08-22 T582 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-22 T581 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-22 T580 claude-sonnet-5 report=success verified=pass
 dispatch-verify 2026-08-22 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T585 claude-sonnet-5 report=success verified=pass
