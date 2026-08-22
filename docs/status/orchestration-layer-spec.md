@@ -225,6 +225,19 @@ Still owed operator **numbers** (not direction; spec defaults hold meanwhile): a
 26. **AUTOPILOT-5H means ACTIVE autopilot.** Idle autopilot is no proof of stability. The five
     hours must contain real delegation, issue resolution, and closes — "safe active autopilot"
     is the bar that lets the operator do science in his dreams.
+27. **Allocation policies are standing hypotheses, never permanent rules.** Any rotation scheme
+    ("opus for analysis, sonnet for folds, DS for the pool") is a working policy under
+    race-don't-decide, constantly challenged by evidence. BOTH evidence streams count:
+    real-work closes are observational data (task type, model, verdict, cost at every close —
+    T522 impression-or-waiver is the mechanism and should be prioritized) and multi-model races
+    are the controlled experiments that adjudicate when observations conflict. Ollama models
+    will often replace Claude/DS models as evidence directs.
+28. **Appetite values are INITIAL and the dial is live.** Ruling 11's numbers are a starting
+    point, not a constant. The operator adjusts in relative, family-bulk terms ("cool down on
+    CC" = opus 4→3, sonnet/haiku 6→5, or similar) and temporarily: "increase CC for the next
+    3 hours" requires a **mechanized TTL** — set-with-expiry that bumps now and auto-reverts
+    later by tool, never by anyone remembering. The `managent appetite` verb gains relative ops
+    (+n/-n, family bulk) and `--for <duration>`.
 
 ## 8. Delegation (the thorough pass)
 
