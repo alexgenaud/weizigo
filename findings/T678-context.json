@@ -1,0 +1,50 @@
+{
+ "task_id": "T678",
+ "date": "2026-08-22",
+ "model": "claude-opus-5",
+ "claims": [],
+ "new_rows": [],
+ "context": {
+  "row": "T678 — tools/scripts census, race lane (one of five independent lanes; ruling 7c.35)",
+  "head_at_open": "533d908 (2026-08-22T20:16Z)",
+  "head_at_close": "66831ac — three commits landed from other consoles DURING this census (4abeace T680 census, 735db2b T677 window fix, 66831ac T677 findings)",
+  "disposition_table": "lives inside findings/T678-tools-census.json at census.tools[] (path, kind, tracked, last_commit, executable, shebang, callers-derived regression list, build.zig wiring, smoke result, verdict, why) with census.verdict_counts as the summary. The race lane's 'write your own findings file and nothing else' instruction is why it is not a separate doc.",
+  "commands_run_readonly": [
+   "bin/managent orient",
+   "bin/managent {status,status --json,resume,audit,audit --json,models,models --json,liveness,liveness --stale-min 5,orient,inbox,inbox T678,reap,why <claim>,show T678,whoami T678,help,standing,sync orchestrator --peek} — 15 read-only verbs",
+   "bin/managent {landmark,duty,assert,tell,suggest,treekill} with no args — usage-line checks",
+   "sh tools/smoke.sh (exit 0; 6 STALE, 3 functional PASS)",
+   "sh tools/fleet-cooldown.sh status (ON)",
+   "bin/dispatch T678 claude-opus-5 --dry-run (REFUSED, correct)",
+   "bin/subagent --provider deepseek T678 --dry-run (refused, correct)",
+   "python3 <tool> --help across 17 python surfaces",
+   "bin/weizigo-* --version and bare invocation across 7 binaries",
+   "set differences: tools/regression-*.sh vs build.zig addSystemCommand vs test_step.dependOn",
+   "git ls-files / git log -1 per surface; grep basename across tools/regression-*.sh for coverage"
+  ],
+  "commands_that_mutated": [
+   "bin/managent next  -> CLAIMED T578 as unknown/T578 (unintended; `next` is mutating with zero args). Repair `bin/managent reopen T578` BLOCKED by the session permission classifier. LEFT DIRTY — needs an operator.",
+   "bin/managent ping --note t678-census-smoke -> one heartbeat row (harmless, intended)",
+   "python3 tools/gen-indices --help -> rewrote 3 tracked docs; REVERTED via git checkout --",
+   "python3 tools/race-c-prepare.py --help -> rewrote 11 race-c lane files + KEY.json; deterministic over immutable inputs, byte-identical, LEFT AS IS"
+  ],
+  "hypotheses_checked_and_cleared": [
+   "smoke.sh not gating on STALE — CLEARED, deliberate per T289, documented at tools/smoke.sh:71-74",
+   "bash-4 constructs in the 44 bash-shebanged regressions run under `sh` — CLEARED, zero hits for declare -A / mapfile / readarray / ${x^^} / ${x,,}",
+   "missing exec bit breaking `zig build test` — CLEARED, build.zig invokes `sh <path>`",
+   "race-c KEY.json corruption from the accidental rewrite — CLEARED, sha256-ordered PAIRS over immutable findings/T59x-race-b.json, no clock or RNG",
+   "an addSystemCommand step never attached to test_step — CLEARED, all 66 have a matching dependOn",
+   "a build.zig-referenced regression script missing from disk — CLEARED, zero"
+  ],
+  "left_undone": [
+   "tools/suite-truth.sh not smoked (a real run is ~14 min); its surfaces are covered by regression-suite-surfaces.sh",
+   "tools/{orcha-acceptance,pilot_gate,deploy,gen-version,git-commit-mine}.sh and tools/fleet-keeper.sh not smoked — all mutating; verdicts rest on wiring + coverage evidence, not on execution",
+   "the 4 orphan regressions were not EXECUTED to see whether they still pass; a wiring row should run them before wiring them (they may have rotted while unwatched)",
+   "no per-tool caller graph beyond grep — a tool referenced only from a doc is reported as such, but I did not distinguish live prose from archived prose"
+  ],
+  "other_lanes": "NOT read. findings/T680-tools-census.json surfaced in a grep for window_policy.py and I did not open it; T680's commit message (4abeace) was visible in git log and I did not act on it.",
+  "inbox_polls": 3,
+  "directives_received": 0
+ },
+ "notes": "Context dump for T678 per orient principle 5. The schema deliverable is findings/T678-tools-census.json (119 surfaces, 10 defects, 97 KEEP / 17 FIX / 5 MERGE-INTO). No register proposals in either file."
+}
