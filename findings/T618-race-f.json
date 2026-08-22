@@ -1,5 +1,6 @@
 {
   "task_id": "T618",
+  "date": "2026-08-22",
   "model": "claude-haiku-4-5-20251001",
   "identifier": "T618-race-f-haiku",
   "verdict": "pass-with-findings",
