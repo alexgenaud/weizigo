@@ -221,3 +221,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{"id":"D021","target":"T587","directive":"amend","note":"Fable scope additions: (1) fix the CLASS — census every byte-slice in src/managent, one shared utf8Truncate, one class regression (—/→/é through every mutating verb); (2) production write path = serialize -> parse-back -> atomic-rename (refuse unparseable store). T587 green is a named gate for S04 build + AUTOPILOT-5H.","from":"deepseek-v4-pro/T568","ts":"2026-08-22T12:10:39Z","read":true,"read_by":"T587","read_at":"2026-08-22T12:11:05Z"}
+
+
+
+
