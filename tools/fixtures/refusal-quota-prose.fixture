@@ -1,0 +1,11 @@
+[runner] argv = pi --provider deepseek --model deepseek-v4-flash --mode json -p 'Follow untracked/T601-race-b-dsflash-minimal.md
+
+BEFORE READING THE BUNDLE: ... (brief elided in fixture)' 
+[runner] task identity: T601 (source: MANAGENT_TASK_ID)
+{"type":"message_start","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Reading the decision-log to map the provider quota/appetite rows."}],"thinkingSignature":"reasoning_content"},"api":"openai-completions","provider":"deepseek","model":"deepseek-v4-flash"}
+{"type":"toolCall","name":"bash","arguments":{"command":"rg -n \"quota|appetite\" docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/decision-log.md | head -20"}}
+{"type":"tool_execution_end","toolCallId":"call_00","toolName":"bash","result":{"content":[{"type":"text","text":"7:provider quota/appetite 7\n8:  - the decision-log (b) class is 12 rows across FOUR tables (decision-log.md §2: provider quota/appetite 7, model fit 2, ordering 2, measurement validity 1)"}]}}
+{"type":"message_end","message":{"role":"toolResult","toolCallId":"call_00","toolName":"bash","content":[{"type":"text","text":"The decision-log (b) class is 12 rows ... provider quota/appetite 7 rows..."}]}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"thinking_delta","contentIndex":0,"delta":" worker"}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"thinking_delta","contentIndex":0,"delta":" will"}}
+{"type":"message_update","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"thinking_delta","contentIndex":0,"delta":" later"}}

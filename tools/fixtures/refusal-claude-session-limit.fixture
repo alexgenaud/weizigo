@@ -1,0 +1,11 @@
+[runner] argv = claude -p 'Follow untracked/T615-race-f-fable.md
+
+BEFORE READING THE BUNDLE: run `bin/managent orient` ... (brief elided in fixture)' --model claude-fable-5 --allowedTools Read,Write,Edit,Bash,Grep,Glob --output-format json
+[runner] startup liveness: agent lane, timeout 600s
+[runner] task identity: T615 (source: MANAGENT_TASK_ID)
+[runner] process walker: ps (darwin)
+[runner] reap: treekill anchor=55942 root=dead claimed=0 killed=0 refused=0 survivors=0 rounds=1
+You've hit your session limit · resets 3pm (Europe/Oslo)
+[runner] tokens: no reading — claude api error (is_error=true, zero usage)
+[runner] session_id=b4a1a49f-e817-4916-851c-06fbcb57ac75
+[runner] exit 1 in 542.3 s

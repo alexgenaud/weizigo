@@ -1,0 +1,13 @@
+[runner] argv = pi --provider deepseek --model deepseek-v4-pro --mode json -p 'Follow untracked/T526-family-blinding-harness.md
+
+BEFORE READING THE BUNDLE: ... (brief elided in fixture)' 
+[runner] task identity: T526 (source: MANAGENT_TASK_ID)
+[runner] progress watchdog active (first agent-lane stderr seen)
+{"type":"message_start","message":{"role":"assistant","content":[{"type":"thinking","thinking":"Let me read the grand-race go/no-go document that quotes the 2026-08-20 Ollama session-limit refusal."}],"thinkingSignature":"reasoning_content"},"api":"ollama","provider":"ollama","model":"glm-5.2:cloud"}
+{"type":"toolCall","name":"read","arguments":{"path":"docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0.md"}}
+{"type":"tool_execution_end","toolCallId":"call_01","toolName":"read","result":{"content":[{"type":"text","text":"# Grand race — P0 go/no-go\n\n**The Ollama trio deferral, re-measured rather than assumed.** ... P0 **re-probed it** rather than inheriting it:\n\n```\n$ ollama run glm-5.2:cloud \"Reply with the single word: ok\"\nError: 429 Too Many Requests: you (infallible_moser_218) have reached your\nsession usage limit, upgrade for higher limits …                 (2026-08-20 ~13:05Z)\n```\n\nStill 429. The deferral stands ...\n"}]}}
+{"type":"message_end","message":{"role":"toolResult","toolCallId":"call_01","toolName":"read","content":[{"type":"text","text":"So the trio is out of this epoch; the deferral is recorded ..."}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[{"type":"thinking","thinking":"I have quoted the refusal from the document. Now let me continue the audit work — the family-blinding harness analysis continues here, dozens of tool round-trips follow."}]}}
+{"type":"agent_settled"}
+[runner] KILL: progress timeout 600s (10'00) — no [progress] for 600s
+[runner] exit 124 (progress timeout 600s (10'00) — no [progress] for 600s) in 1129.6 s

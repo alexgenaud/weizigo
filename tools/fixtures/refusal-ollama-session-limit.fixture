@@ -1,0 +1,16 @@
+[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T496-x.md
+
+BEFORE READING THE BUNDLE: ... (brief elided in fixture)' 
+[runner] guards: rss 4096 MB, progress-timeout 600s (10'00), fallback: wall 3600s cpu 3600s (silent children), poll = 250 ms
+[runner] process walker: ps (darwin)
+[runner] task identity: T496 (source: MANAGENT_TASK_ID)
+
+[37mPreparing Pi...[0m
+[37mChecking Pi installation...[0m
+[37mChecking Pi web search package...[0m
+
+[37mLaunching Pi...[0m
+
+429: {"message":"you (infallible_moser_218) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add extra usage: https://ollama.com/settings (ref: 7fc8aa76-8a93-4a7c-bc91-a5cae213b5db)","type":"api_error","param":null,"code":null}
+Error: exit status 1
+[runner] exit 1 in 22.3 s
