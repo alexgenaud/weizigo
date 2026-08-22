@@ -35,7 +35,12 @@
 
 const std = @import("std");
 const evidence = @import("evidence.zig");
-const engine = @import("engine");
+// Engine shim imported RELATIVELY (not as the named "engine" module): a bare
+// `zig test` on any battery root must compile standalone. The battery tree
+// stays one module, so evidence.zig (root side, above) and rules.zig (via
+// the shim) never straddle two modules — the T564 "file exists in modules
+// 'root' and 'engine'" compile family this row fixes.
+const engine = @import("smd1_engine.zig");
 const rules = engine.rules;
 const colex_mod = engine.colex;
 

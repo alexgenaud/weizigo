@@ -46,9 +46,13 @@ const vb_i11 = @import("vb_i11.zig");
 
 // Key-agreement machinery (producer kernel rules.stateKey / consumer R8
 // vb_movegen.stateKey) — the T267/T345 invariant that kills M1/M2/M3/M4.
-// rules/colex route through the shared engine shim (T341) so no engine file
-// belongs to two modules; vb_movegen imports only std and is safe directly.
-const engine = @import("engine");
+// rules/colex route through the engine shim (T341). Imported RELATIVELY (not
+// as the named "engine" module) so a bare `zig test src/vb_mutants.zig` —
+// the task's recorded acceptance command — compiles standalone: the whole
+// battery tree lives in one module and no file straddles two modules (the
+// T564 "file exists in modules 'root' and 'engine'" compile family).
+// vb_movegen imports only std and is safe directly.
+const engine = @import("smd1_engine.zig");
 const rules = engine.rules;
 const colex_mod = engine.colex;
 const vb_mg = @import("vb_movegen.zig");
@@ -548,11 +552,10 @@ test "M10-ALIAS-CONTROL killed by I11 null control (vacuous 0) + seeded-defect (
     // mutant must report > 0 — proving the harness is not blind.
     const w = 2;
     const h = 2;
-    const engine_mod = @import("engine");
-    const X = engine_mod.colex.Indexer(w, h);
+    const X = colex_mod.Indexer(w, h);
     var pos: [4]i8 = [_]i8{ 0, -1, -1, 0 }; // W at 1, W at 2
     const trigger_colex = X.colex_from_pos(&pos);
-    const E = engine_mod.enumerate.Enumerator(w, h);
+    const E = engine.enumerate.Enumerator(w, h);
     try testing.expect(E.is_legal(&pos));
     const res_def = try vb_i11.compareDefective(w, h, trigger_colex, 3);
     std.debug.print("[EXPECTED] M10-ALIAS-CONTROL: seeded-defect mismatches={d}/{d} (> 0 required)\n", .{ res_def.mismatches, res_def.total });

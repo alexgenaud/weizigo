@@ -303,6 +303,110 @@ fi
 if [ "$g_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORK3"
 
+# ── Arm H: T591 — times column + 24h RECENT + model aliases (LIVE file) ─
+# The LIVE file must render an HH:MM times column at the same column as
+# PROGRESS's elapsed column on CONCERNS (first seen), RECENT (trailer
+# mtime) and DONE (store `done`, local) rows; age RECENT to a 24 h window;
+# and map the --dsflash/--dspro subagent startup aliases to a model (a
+# lane's argv during startup has no --model, so the model column renders
+# empty until the runner spawns). First-seen state is scrubbed via
+# FLEET_CONC_STATE so the assertion is deterministic and the live fleet's
+# /tmp state is never touched. Red against the pre-T591 live file, green
+# after.
+echo "  H. times column HH:MM aligned with PROGRESS elapsed; RECENT 24h; --dsflash/--dspro model (live file)"
+WORK4=$(mktemp -d /private/tmp/weizigo/wf-times-XXXXXX)
+mkdir -p "$WORK4/bin" "$WORK4/untracked" "$WORK4/docs/infra/managent" \
+         "$WORK4/untracked/bakeoff/fake/fresh-lane" "$WORK4/untracked/bakeoff/fake/old-lane"
+ln -s "$MG" "$WORK4/bin/managent"
+# managent's findRepoRoot walks up from ITS cwd and hard-exits without a .git;
+# arms F/G never touch the store so they never hit this — arm H needs the store.
+git -C "$WORK4" init -q
+git -C "$WORK4" config user.email t591@test
+git -C "$WORK4" config user.name T591
+STORE4="$WORK4/docs/infra/managent/tasks.json"
+CONCSTATE4="$WORK4/concerns.tsv"
+LIVE_COPY4="$WORK4/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY4" 2>/dev/null
+# briefs: line 2 drives desc(); the Landmark line drives lm()
+printf '<!--managent -->\n# T960 — alias model worker\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORK4/untracked/T960-bundle.md"
+printf '<!--managent -->\n# T961 — concern time test\n\nBody.\n' > "$WORK4/untracked/T961-bundle.md"
+printf '<!--managent -->\n# T962 — done time test\n\nBody.\n' > "$WORK4/untracked/T962-bundle.md"
+rec4() {  # $1=id $2=status $3=done (null | quoted ISO)
+    printf '"%s":{"status":"%s","agent":"x","model":"x","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":%s,"dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$2" "$1" "$3"
+}
+seed4() { printf '{\n  %s,\n  "_sys": {"next_id": 9900, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$STORE4"; }
+seed4 "$(rec4 T960 in_progress null),$(rec4 T961 in_progress null),$(rec4 T962 done '"2026-01-02T03:04:05Z"')"
+# one killed lane with a fresh trailer (RECENT must show it, with its mtime),
+# one with a trailer older than 24 h (RECENT must age it out)
+printf '' > "$WORK4/untracked/bakeoff/fake/fresh-lane/out.md"
+printf 'exit 120\n' > "$WORK4/untracked/bakeoff/fake/fresh-lane/trailer.log"
+printf '' > "$WORK4/untracked/bakeoff/fake/old-lane/out.md"
+printf 'exit 120\n' > "$WORK4/untracked/bakeoff/fake/old-lane/trailer.log"
+OLD2D=$(date -v-2d +%Y%m%d%H%M 2>/dev/null) || OLD2D="202608190000"
+touch -t "$OLD2D" "$WORK4/untracked/bakeoff/fake/old-lane/trailer.log"
+# first-seen for T961 pinned to local midnight 2026-01-01 -> the CONCERNS
+# row must show 00:00, not "now" (proves persistence, not per-frame freshness)
+EPOCH_0000=$(date -j -f "%Y-%m-%d %H:%M:%S" "2026-01-01 00:00:00" +%s 2>/dev/null)
+[ -z "$EPOCH_0000" ] && EPOCH_0000=$(python3 -c "import time;print(int(time.mktime(time.strptime('2026-01-01 00:00:00','%Y-%m-%d %H:%M:%S'))))")
+printf 'T961\t%s\n' "$EPOCH_0000" > "$CONCSTATE4"
+# alias-model worker: subagent startup argv (--dsflash, no --model)
+bash -c "cd '$WORK4' && exec -a 'bin/subagent --provider deepseek --dsflash T960 Follow untracked/T960-bundle.md' sleep 90" &
+P960=$!
+sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
+# env -u WATCH_FLEET_SOURCE: arms A/E source the fleet file under
+# WATCH_FLEET_SOURCE=1, and macOS sh (bash POSIX mode) EXPORTS assignments
+# to the special builtin `.`, so the leaked export would make the live
+# copy exit at its source-guard with an empty frame. Scrub it here.
+FRAME_H=$(env -u WATCH_FLEET_SOURCE FLEET_CONC_STATE="$CONCSTATE4" MANAGENT_STORE="$STORE4" FLEET_COLS=200 sh "$LIVE_COPY4" </dev/null 2>/dev/null)
+kill "$P960" 2>/dev/null; wait "$P960" 2>/dev/null
+h_fail=0
+PROG_H=$(printf '%s\n' "$FRAME_H" | sed -n '/^PROGRESS/,/^CONCERNS/p')
+CONC_H=$(printf '%s\n' "$FRAME_H" | sed -n '/^CONCERNS/,/^RECENT/p')
+REC_H=$(printf '%s\n' "$FRAME_H" | sed -n '/^RECENT/,/^DONE/p')
+DONE_H=$(printf '%s\n' "$FRAME_H" | sed -n '/^DONE/,/^OPEN/p')
+prow=$(printf '%s\n' "$PROG_H" | grep '^  T960 ' | head -1)
+crow=$(printf '%s\n' "$CONC_H" | grep '^  T961 ' | head -1)
+rrow=$(printf '%s\n' "$REC_H" | grep 'fresh-lane' | head -1)
+drow=$(printf '%s\n' "$DONE_H" | grep '^  T962 ' | head -1)
+# every PROGRESS row must have a model (col 13-20 non-blank)
+while IFS= read -r pr; do
+    case "$pr" in
+        '  T'*) mc=$(printf '%s' "$pr" | cut -c13-20 | tr -d ' ')
+               [ -z "$mc" ] && { echo "    FAIL: empty model column in PROGRESS row: '$pr'"; h_fail=1; };;
+    esac
+done <<EOF
+$PROG_H
+EOF
+# the alias worker (--dsflash, no --model) must render model `flash`
+if [ -z "$prow" ]; then
+    echo "    FAIL: T960 (--dsflash alias worker) missing from PROGRESS"; h_fail=1
+elif [ "$(printf '%s' "$prow" | cut -c13-20 | tr -d ' ')" != "flash" ]; then
+    echo "    FAIL: T960 model column should be 'flash', row: '$prow'"; h_fail=1
+fi
+# each of the four row types carries a time at PROGRESS's elapsed column (23-28)
+DHM=$(python3 -c "import calendar,time;print(time.strftime('%H:%M',time.localtime(calendar.timegm(time.strptime('2026-01-02T03:04:05','%Y-%m-%dT%H:%M:%S')))))")
+RTM=$(date -r "$WORK4/untracked/bakeoff/fake/fresh-lane/trailer.log" +%H:%M)
+for probe in "$prow" "$crow" "$rrow" "$drow"; do
+    [ -n "$probe" ] || { echo "    FAIL: a times row is missing (prow/crow/rrow/drow)"; h_fail=1; continue; }
+    col=$(printf '%s' "$probe" | cut -c23-28 | tr -d ' ')
+    [ -n "$col" ] || { echo "    FAIL: no time at col 23-28 in '$probe'"; h_fail=1; }
+done
+if [ "$(printf '%s' "$crow" | cut -c23-28)" != "00:00 " ]; then
+    echo "    FAIL: CONCERNS first-seen should be the pinned 00:00, row: '$crow'"; h_fail=1
+fi
+printf '%s' "$crow" | grep -q 'orphaned' || { echo "    FAIL: CONCERNS label missing: '$crow'"; h_fail=1; }
+if [ "$(printf '%s' "$drow" | cut -c23-28)" != "$DHM " ]; then
+    echo "    FAIL: DONE completed time should be local $DHM of 03:04Z, row: '$drow'"; h_fail=1
+fi
+if [ "$(printf '%s' "$rrow" | cut -c23-28)" != "$RTM " ]; then
+    echo "    FAIL: RECENT time should be trailer mtime $RTM, row: '$rrow'"; h_fail=1
+fi
+if printf '%s\n' "$REC_H" | grep -q 'old-lane'; then
+    echo "    FAIL: old-lane (trailer > 24 h) should be aged out of RECENT"; h_fail=1
+fi
+if [ "$h_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORK4"
+
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="
     exit 1

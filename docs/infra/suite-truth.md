@@ -34,21 +34,24 @@ Build Summary: 83/96 steps succeeded (8 failed); 777/778 tests passed (1 skipped
 Four compile failures (one root cause), four failing shell regressions. The
 crash families of the 2026-08-18 manifest are struck (fixed).
 
-### Compile-failure family — `rules.zig` in both `root` and `engine` (4 modules)
+### Compile-failure family — `rules.zig` in both `root` and `engine` (4 modules) — STRUCK 2026-08-22 (T530)
 
 - **Targets:** `src/keybyte_differential.zig`, `src/vb_closure.zig`,
-  `src/vb_i11.zig`, `src/vb_mutants.zig` — each fails with
+  `src/vb_i11.zig`, `src/vb_mutants.zig` — each failed with
   `src/rules.zig:1:1: error: file exists in modules 'root' and 'engine'`.
-- **Cause:** these test roots import `evidence.zig` (root side) and the
+- **Cause (historical):** these test roots import `evidence.zig` (root side) and the
   `engine` module (`src/smd1_engine.zig`, which re-exports `rules.zig`)
   together; `rules.zig:34` itself imports `evidence.zig`, so the same file is
   reachable from both module roots and Zig 0.16 refuses a file in two modules.
   `tools/smd1.zig` (which imports only `engine`) compiles fine — the conflict
   is specific to roots that import both paths.
-- **Owning row:** none yet — the fix is to route these roots' `evidence`
-  import through the engine shim (like `tools/smd1.zig`) or move
-  `evidence.zig` behind the shim. T564 records the class; the fix is a
-  separate row.
+- **Fix (T530, 2026-08-22):** the three battery roots that imported the `engine`
+  module BY NAME now import the shim RELATIVELY (`@import("smd1_engine.zig")`)
+  — the battery tree stays one module, so no file straddles `root` and
+  `engine`. Verified: bare `zig test -O ReleaseSafe src/vb_mutants.zig` (the
+  T530 acceptance command) passes, and all five engine-wired artifacts
+  (vb_mutants, vb_closure, vb_i11, keybyte_differential, smd1) pass under the
+  build.zig wiring. T564 recorded the class; the fix landed in T530's row.
 
 ### Shell regression 1 — `tools/regression-watch-fleet.sh` — NEW red
 
@@ -126,13 +129,9 @@ a deploy; `zig build deploy-managent` clears them.
 
 Do not edit the lines below without re-running the gate (ratchet only).
 
-RED compile keybyte_differential
-RED compile vb_closure
-RED compile vb_i11
-RED compile vb_mutants
 RED script tools/regression-argus-doctor.sh
 RED script tools/regression-claimlint-promotion.sh
 RED script tools/regression-race-p0.sh
 RED script tools/regression-watch-fleet.sh
-COUNT steps-failed 8
+COUNT steps-failed 4
 COUNT tests-crashed 0

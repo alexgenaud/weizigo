@@ -89,7 +89,10 @@ const expectEqual = std.testing.expectEqual;
 const vb_movegen = @import("vb_movegen.zig");
 
 // Kernel move generator (via smd1_engine re-export — rules.zig, T339/MG-KERN).
-const engine = @import("engine");
+// Imported RELATIVELY (not as the named "engine" module) so the battery tree
+// compiles standalone under a bare `zig test` — no file may straddle the
+// root and engine modules (T564 "file exists in modules" compile family).
+const engine = @import("smd1_engine.zig");
 const kernel_rules = engine.rules;
 // Colex indexer + legal-position enumerator (reach the kernel via the same
 // engine shim that tools/smd1.zig uses, so the in-memory emitter below is the
