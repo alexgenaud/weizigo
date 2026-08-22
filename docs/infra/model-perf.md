@@ -60,3 +60,52 @@ dispatch-verify 2026-08-22 T587 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-22 T614 claude-fable-5 report=success verified=pass
 dispatch-verify 2026-08-22 T618 claude-haiku-4-5-20251001 report=success verified=pass
 dispatch-verify 2026-08-22 T599 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T620 claude-haiku-4-5-20251001 report=success verified=pass
+dispatch-verify 2026-08-22 T615 claude-fable-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T617 claude-sonnet-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T616 claude-opus-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T624 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T622 claude-opus-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T621 claude-sonnet-5 report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T619 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T623 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T526 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429
+
+### DO NOT SCORE — 2026-08-22 12:47Z, Claude session-limit outage (T612 seat annotation)
+
+Seven Claude lanes were live when the account's five-hour session limit was reached. Five were
+terminated mid-turn by the provider and are recorded above as **model failures. They are not.**
+The models did nothing wrong and were given no chance to react; the record blames them for a
+stop the provider chose.
+
+| ledger line | model | wall at kill | what actually happened |
+|---|---|---|---|
+| `T615 … verified=fail fail=row` | `claude-fable-5` | 542.3 s | provider session limit |
+| `T616 … verified=fail fail=row` | `claude-opus-5` | 549.9 s | provider session limit |
+| `T617 … verified=fail fail=row` | `claude-sonnet-5` | 540.4 s | provider session limit |
+| `T621 … verified=fail fail=row` | `claude-sonnet-5` | 360.1 s | provider session limit |
+| `T622 … verified=fail fail=row` | `claude-opus-5` | 358.1 s | provider session limit |
+
+Every one of the five logs ends with the same line, and it is unambiguous:
+
+    You've hit your session limit · resets 3pm (Europe/Oslo)
+    [runner] tokens: no reading — claude api error (is_error=true, zero usage)
+    [runner] exit 1 in 542.3 s
+
+`tools/dispatch_verify.py` has had a provider-refusal classifier since T538, and it did not fire
+— its signature list carries `session usage limit` and `reached your (session )?usage limit`,
+and the string Claude actually emits is `hit your session limit`. It misses by one word.
+
+**Two lines above are wrong in the opposite direction** and are also DO NOT SCORE:
+
+| ledger line | recorded | what actually happened |
+|---|---|---|
+| `T526 … verified=unreached reason=provider-429` | provider refusal | killed by the runner's own progress-timeout watchdog at 600 s (`untracked/runs/T526.json`: `killed: progress timeout 600s`, `signal 9`, cpu 1033 s). The classifier matched a **historical Ollama 429 the worker was quoting out of a document** — `Error: 429 Too Many Requests … reached your session usage limit`, dated 2026-08-20. |
+| `T601 … verified=unreached reason=provider-429` | provider refusal | ran fine and delivered `findings/T601-race-b.json`. The classifier matched the word **`quota`** inside the prose "provider quota/appetite 7". |
+
+So the instrument fails in both directions, and which direction it fails in is decided by
+whether a worker happened to quote a limit message. A real outage scores against the model; a
+real harness kill scores against the provider. Both corrupt the ladder, and the second one is
+exactly the laundering D048 warned against on 2026-08-20.
+
+Registered against **T625**, which already holds `tools/dispatch_verify.py`.
