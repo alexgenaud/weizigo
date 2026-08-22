@@ -1,8 +1,29 @@
 # S03 — spec: the queue layer (aging, conditions, appetite, overnight, mint safety)
 
 **Artifact type: SPEC** (`docs/infra/sprint.md` — a spec says what we want, testably, for one
-pass). **Owner:** `claude-opus-5`/S03-design · **Date:** 2026-08-21, **rev 2** 2026-08-22 (T576) ·
-**Status:** PROPOSED — audited before anything is built. Not a worker brief, not a plan, no code.
+pass). **Owner:** `claude-opus-5`/S03-design · **Date:** 2026-08-21, rev 2 2026-08-22 (T576),
+**rev 3** 2026-08-22 (T580) · **Status:** PROPOSED — audited before anything is built. Not a
+worker brief, not a plan, no code.
+
+## Changelog — rev 2 → rev 3 (T580, author-fold against `docs/status/orchestration-layer-spec.md`
+§7c rulings 11, 12, 16, 17)
+
+Rev 3 folds the operator's second 2026-08-22 batch of rulings, which superseded rev 2's §4 the day
+it landed. Nothing outside §4 (and the sections that cite it) changed; §1–§3 and §5–§10's own
+content is untouched.
+
+| ruling | what changed | where |
+|---|---|---|
+| 11 | The dial moved from **0–99 per family** to **0–9 per model** (short name); family-level sets are a bulk convenience that fans out to member models, not a record of its own. Initial per-model values recorded | §4 lead-in; `Q-APP-1..4, 6, 11`; §11 (data table split to model-grain + family-grain columns); §13 OQ 11, 12; §14 |
+| 12 | **Can-use vs should-use are separate axes.** The dial is can-only; no preference signal may be folded into `appetite_operator`/`appetite_auto`. New `Q-APP-2a`, with a write-boundary control `A12` | new `Q-APP-2a`; `Q-APP-6` (substitution stays can-axis only) |
+| 16 | **Per-family spacing deleted.** `Q-APP-5` is struck, not re-scaled; a single global `dispatch_gap_s` (default 10 s) replaces it as a non-appetite stampede guard at §8 step 9. `spacing_max`/`cooldown_max` withdrawn from the data table; `last_dispatch_at` becomes one global clock, not one per family | `Q-APP-5` (STRUCK); §8 step 9; §11 (data table, retained runtime state, mode table); §13 OQ 9 (now RESOLVED); §14 |
+| 17 | **Dispatcher predicate, new: `Q-APP-12`.** A third hard gate (`task_shape = T-H`), separate from appetite and from "dispatch TO", maintained from race evidence, refusal reason `dispatcher-predicate` | new `Q-APP-12`; `Q-COND-3`; `Q-MINT-8`; arm `A13` |
+
+Two arithmetic choices in this fold are the fold-author's own derivation, not digit-for-digit
+rulings, and are flagged rather than assumed: `Q-APP-4`'s lanes formula at `/9` (the natural
+rescale of pass 2 §4.2's `/99`), and `Q-APP-12`'s default-permissive dispatcher list absent race
+evidence. Both are §13 OQ 12. Pass 2's own §4 owes the matching fold (T581, in flight) —
+until it lands, S03 and pass 2 disagree on the dial's shape.
 
 ## Changelog — rev 1 → rev 2 (T576, author-fix against `findings/T575-s03-queue-layer-audit.json`)
 
@@ -381,10 +402,14 @@ satisfied), `N3` seeded (dep absent ⇒ refusal naming the id), `N4` (mutation: 
 status-only rule ⇒ `N2` must go red).
 
 **Q-COND-3 — appetite permits.** §4 in full — the 0-dial hard forbid (Q-APP-3), the reservation
-predicate (Q-APP-8), and `probe_only` (Q-APP-10) are **conditions** and exclude a row from
-`eligible`; the lane sub-cap (Q-APP-4) and spacing (Q-APP-5) are **step-9 filters** and leave the
-row eligible and accruing (Q-COND-0a). The split matters: a row a *dial* forbids is not runnable
-and must not anchor (Q-CAP-3), while a row merely waiting its family's turn is.
+predicate (Q-APP-8), `probe_only` (Q-APP-10), and the dispatcher predicate (Q-APP-12, §7c ruling
+17, new) are **conditions** and exclude a row from `eligible`; the two lane caps (Q-APP-4 — family
+ceiling and model share, both per-model dial as of §7c ruling 11) are **step-9 filters** and leave
+the row eligible and accruing (Q-COND-0a). Per-family spacing is **struck** (Q-APP-5, ruling 16);
+the global dispatch gap that replaces it is **not** an appetite mechanism at all — it is a
+stampede guard evaluated at §8 step 9, ahead of the two lane caps. The split matters: a row a
+*dial* forbids is not runnable and must not anchor (Q-CAP-3), while a row merely waiting for a
+lane is.
 
 **Q-COND-4 — fleet quiet.** **[CHANGE — this condition does not exist today.]**
 - (a) `host_avail_mb ≥ HOST_FLOOR_MB + headroom(family)` at admission time, where `headroom` is
@@ -454,28 +479,57 @@ closed.** Control: `C7` seeded (store unreadable ⇒ zero dispatches, non-zero r
 
 ---
 
-## 4. Appetite — the 0–99 dial (pass 2 §4), plus two hard predicates
+## 4. Appetite — the 0–9-per-model dial (§7c rulings 11, 12, 16, 17), plus three hard predicates
 
-**Authority.** Pass 2 §4 (introduced at rev 2, unchanged in force at **rev 3**, `4f47990`)
-**replaced** the static levels `OFF < PROBE < CONSERVE < SPEND < RESERVED`
-(`S02-model-delegation/measurement-methodology.md:23`) with a continuous integer dial per family,
-as operator refinement (a); it is a **Must** and it is on pass 2's never-cut list (§10.2). The 2026-08-22 rulings (`docs/status/orchestration-layer-spec.md` §7b, closing line) put
-the dial's *direction* beyond question and leave only its *constants* owed — *"Still owed operator
-numbers (not direction; spec defaults hold meanwhile): appetite constants (pass-2 spec §4.5)"*.
+**Fold authority.** `docs/status/orchestration-layer-spec.md` §7c rulings **11, 12, 16, 17**
+(2026-08-22, second batch) supersede this section as rev 2 wrote it (which folded pass 2 rev
+2/3 §4's 0–99-**per-family** dial). The fold is narrow, not a redesign: ruling 11 changes the
+dial's **unit and range** — per **model** (short name), 0–9 — not its mechanics; *"the §4
+mechanics (0 = unliftable hard forbid, monotone back-pressure between, max = no back-pressure,
+operator-only raise, auto may only reduce) carry over unchanged"* (ruling 11, verbatim). Ruling
+16 deletes per-family spacing outright (Q-APP-5 is **STRUCK** below, replaced by a global
+dispatch gap that is not part of the appetite axis at all). Ruling 17 adds a **third** hard
+predicate alongside reservation (Q-APP-8) and probe (Q-APP-10): the dispatcher predicate
+(Q-APP-12, new). Ruling 12 is not an arithmetic change but a standing rule this whole section
+must obey: everywhere below, "the dial" answers *can this model be used*, never *should it be,
+right now* — the second question is ladder data plus circumstance (Q-APP-2a) and must never be
+folded into `appetite_operator`/`appetite_auto`.
 
-**Rev 1 of this document specified the five levels** (it was authored against pass 2 rev 1) and
-would have had the queue evaluate `Q-COND-3` against a mechanism the supervisor does not
-implement — two Must-level documents that could not both ship (T575 N2). **This section is
-rewritten against the dial.** It does **not** re-specify the dial: pass 2 §4.1–§4.4 own the dial's
-definition, its arithmetic, its window observation, and its write hierarchy. §4 here owns only
-what the *queue* does with it, plus the two predicates that were never on the appetite axis at all.
+Pass-2's own §4 owes the matching fold (T581, in flight); until both land, S03 and pass 2
+disagree on the dial's shape — the exact "two Must-level documents" defect T575 N2 already named
+once, and this rewrite is that fix recurring one layer up, not a new invention. Initial per-model
+values (operator, 2026-08-22, ruling 11): `ollama-cloud` models (`glm`, `minimax`, `kimi`) **0**
+(cannot use at this time) · `fable` **2** (reserve for when Fable is most appropriate *and*
+needed) · `opus` **4**, `qwen` **4** (use when appropriate; perhaps an alternative exists) ·
+`sonnet` **6**, `haiku` **6**, `dspro` **6**, `flash` **6** (use liberally — the set's max never
+means must-use, ruling 12). `gemma` (the other `local` model) has no ruled value yet; §13 OQ 11.
+Family-level writes (*"dial down all Claude for the next hour"*) remain a **bulk convenience**
+only — they fan out to the member models' own dial records, never write a family-level record of
+record (ruling 11).
 
-**Q-APP-1 (the axis rule — unchanged, and now agreed on both sides).** Appetite acts on **model
+**Q-APP-1 (the axis rule — unchanged in shape, model-scoped in fact).** Appetite acts on **model
 resolution and admission**. It **never** alters task ordering. A row's position in §2's order is a
 function of the row alone (`waiting`, `priority`, `age`, `added`, `id`) and of nothing about which
-model it resolved to. Pass 2 §4.2 states the same rule from the other end — *"The dial must not
+model it resolved to. Pass 2 §4.2 stated the same rule from the other end — *"The dial must not
 perturb the eligibility ordering — ordering is S03's concern… The dial changes how many and how
-often, never which"* — and forbids randomised admission for the same reason.
+often, never which"* — and forbids randomised admission for the same reason. Nothing about the
+per-family → per-model unit change touches this rule: substitute "model" for "family" throughout
+and the axis rule reads identically.
+
+**Q-APP-2a (can-use vs should-use — §7c ruling 12, new).** Appetite records only **can use**:
+permission plus back-pressure on a spend pool, read as `appetite_effective(m)`. **Should use** is
+a *different* computation entirely — model-test-data (the S02 ladder) plus circumstance,
+including which mode the fleet is in ("get real work done": exploit the ladder; "eager to race
+models where evidence is sparse": explore) — and it is **out of scope for §4 and for the queue's
+admission check**. It governs a *different* decision this document does not own: which
+*qualified* model a dispatcher prefers, given several the dial admits. The reservation predicate
+(Q-APP-8) is the one place a "should" (Fable is rarely the right lane) was deliberately hardened
+into a "can" (Fable is refused outside its shape) — ruling 12 ratifies that one exception and
+forbids any other: no new predicate, dial value, or arithmetic in this section may encode
+*preference* rather than *permission*. Control: `A12` seeded — an appetite write carrying a
+`reason` field that names a should-axis fact (e.g. "sonnet did better on T-A last week") is
+refused at the write boundary with `should-not-can`; the dial write succeeds only when its reason
+names a can-axis fact (a credit balance, a rate-limit reset, an operator forbid).
 
 *Why.* A priority penalty for a throttled family would make the queue order depend on model
 assignment, so re-pointing one row's model would silently reorder unrelated work, and the ordering
@@ -484,74 +538,98 @@ separate means the two mechanisms are independently testable: an ordering arm ne
 appetite fixture, and an appetite arm never needs to reason about `age`.
 
 **Q-APP-2 (what the queue reads, never writes).** The queue reads
-`appetite_effective(f) = min(appetite_operator(f), appetite_auto(f))` (pass 2 §4.4) and the
-family's `lane_cap(f)` / `spacing_max(f)` constants. **The queue writes none of them.** The
-operator sets `appetite_operator`; the supervisor computes `appetite_auto` from the observed
-window record (pass 2 §4.3) and may only *reduce*; no worker may write either (pass 2 §4.4,
-mechanized there). A queue that could raise a dial to clear its own backlog is the runaway vector
-pass 2 §5 exists to stop, so the queue's relationship to the dial is read-only by construction.
+`appetite_effective(m) = min(appetite_operator(m), appetite_auto(m))` for the row's resolved
+**model** `m`, range **0–9** (§7c ruling 11; pass 2 §4.4 owns the arithmetic, re-scaled). It also
+reads `lane_cap(family(m))` — the *family's* concurrency ceiling stays family-scoped (ruling 15's
+list: `deepseek` 6, `ollama-cloud` 5, `claude` 3, `fable` 1, `local` 1), because it prices a
+shared resource pool (API/host concurrency), not a spend preference. **The queue writes neither.**
+The operator sets `appetite_operator(m)`; the supervisor computes `appetite_auto(m)` from the
+observed window record (pass 2 §4.3) and may only *reduce*; no worker may write either (pass 2
+§4.4, mechanized there; Q-APP-2a's write-boundary check is additive to this, not a replacement for
+it). A queue that could raise a dial to clear its own backlog is the runaway vector pass 2 §5
+exists to stop, so the queue's relationship to the dial stays read-only by construction — the
+unit change does not touch this.
 
-**Q-APP-3 (hard forbid — the `0` floor).** `appetite_effective(f) = 0` ⇒ no row resolving to `f`
+**Q-APP-3 (hard forbid — the `0` floor).** `appetite_effective(m) = 0` ⇒ no row resolving to `m`
 is admitted. Checked **first**, before any arithmetic, refusal reason `appetite-forbid` (pass 2
-§4.1). A row *pinned* to a 0-dial family is **ineligible** and is reported as parked on
-`appetite-forbid` — not silently dropped, and (Q-CAP-3) **never an anchor**. A row with **no**
-pinned model resolves to a permitted family instead (R10's least-measured rule, restricted to
-families with `appetite_effective ≥ 1`, as today at `:283`).
-- Current effect: `ollama-cloud` (glm-5.2, minimax-m3, kimi-k2.7) is at **0** by D036
-  (2026-08-20T12:18:47Z) — 0 tokens. Rejoin is a **human flip** of `appetite_operator`, never a
-  calendar auto-trust (methodology §1; pass 2 §4.3's `ASSUMED_RESET` row says the same thing
-  mechanically: *"the machine does not speed up on a prediction"*). Pass 2 §4.5's migration table
-  gives `ollama-cloud` a default of **90** as "the speed-up side of the operator's ask"; that is
-  the number the operator flips *to*, and it does not describe today. The queue's live value is
-  whatever the store's dial record says, and the record's author and timestamp are the evidence.
-  R9's `FLEET_MODEL_ALLOW` / `FLEET_MODEL_DENY` env pair survives only as an operator escape
-  hatch for a forced window, and it can only *narrow*: it is intersected with the dial, never
-  unioned. **The env vars can never lift a 0.**
+§4.1, re-scaled to 0–9). A row *pinned* to a 0-dial model is **ineligible** and is reported as
+parked on `appetite-forbid` — not silently dropped, and (Q-CAP-3) **never an anchor**. A row with
+**no** pinned model resolves to a permitted model instead (R10's least-measured rule, restricted
+to models with `appetite_effective ≥ 1`, as today at `:283`, generalised from family to model).
+- Current effect (ruling 11's initial values, operator, 2026-08-22): `ollama-cloud` models
+  (`glm-5.2`, `minimax-m3`, `kimi-k2.7`) are at **0** — carried forward from D036
+  (2026-08-20T12:18:47Z, then a family-level 0 under the retired 0–99 shape; ruling 11 restates
+  it as each member model's own dial record). Rejoin is a **human flip** of `appetite_operator`
+  per model, never a calendar auto-trust (methodology §1; pass 2 §4.3's `ASSUMED_RESET` row says
+  the same thing mechanically: *"the machine does not speed up on a prediction"*). The queue's
+  live value is whatever the store's per-model dial record says, and the record's author and
+  timestamp are the evidence. R9's `FLEET_MODEL_ALLOW` / `FLEET_MODEL_DENY` env pair survives only
+  as an operator escape hatch for a forced window, and it can only *narrow*: it is intersected
+  with the dial, never unioned. **The env vars can never lift a 0.**
 
-**Q-APP-4 (lanes — the family sub-cap).** `lanes(f) = max(1, round(appetite_effective(f) ×
-lane_cap(f) / 99))` for a nonzero dial, `0` at zero (pass 2 §4.2 verbatim; the queue does not
-re-derive it). It is a **second cap below `c_eff`** — the lower of the two binds:
+**Q-APP-4 (lanes — the family cap, and the model's share of it).** Two nested caps now, where
+rev 2 had one, because the dial moved to model-grain while the concurrency pool (ruling 15) stayed
+family-grain:
+
+1. **Family hard ceiling** `lane_cap(family(m))` (ruling 15's list) — total concurrent held
+   children whose resolved model shares this family, regardless of which member model. This is
+   the same number for every model in a family; it prices the shared API/host pool, not the dial.
+2. **Model soft share** `lanes(m) = max(1, round(appetite_effective(m) × lane_cap(family(m)) / 9))`
+   for a nonzero dial, `0` at zero — pass 2 §4.2's formula, re-derived at the 0–9 scale (denominator
+   9, not 99) and re-keyed from family to model, since the dial it scales is now per-model.
 
 ```
-admissible_now(f) = min(c_eff − |running|, lanes(f) − |held children resolved to f|)
+admissible_now(m) = min(c_eff − |running|,
+                         lane_cap(family(m)) − |held children resolved to family(m)|,
+                         lanes(m) − |held children resolved to m|)
 ```
 
-A candidate that would exceed `lanes(f)` is skipped **for this iteration only**, the next
+A candidate that would exceed either cap is skipped **for this iteration only**, the next
 candidate in the order is considered, and the skipped row **stays eligible** — so it keeps its
 `age` accrual (Q-ORD-4) and can still anchor (Q-CAP-3). Refusal reason
-`appetite-lanes-exhausted`. Evaluated at §8 step 9, alongside the two holds tests, for exactly
-the Q-COND-0a reason.
+`appetite-lanes-exhausted` (family cap) or `appetite-model-share-exhausted` (model cap) — named
+separately so a report can tell "this family is fully busy" from "this model's own share is
+busy but a sibling model in the family has room". Evaluated at §8 step 9, alongside the two holds
+tests, for exactly the Q-COND-0a reason.
 
-**Q-APP-5 (spacing — the queue-layer consequence of a rate limit).**
-`spacing(f) = round(spacing_max(f) × (99 − appetite_effective(f)) / 98)` seconds for a nonzero
-dial (pass 2 §4.2): the minimum wall time between two consecutive dispatches to `f`. Refusal
-reason `appetite-spacing`.
+*Open point, not a ruling.* The `/9` re-derivation of pass 2 §4.2's formula is this fold's own
+arithmetic, not something ruling 11 states digit-for-digit — the operator ruled the **unit**
+(model, 0–9) and the **initial values**, not the lanes formula's denominator. It is the natural
+generalisation (same shape, same monotone properties, scaled to the new range) and is flagged for
+ratification rather than assumed silently correct; see §13 OQ 12.
 
-This is the one place the dial touches something the levels never had, and it needs a queue rule
-the supervisor's spec does not state: **spacing is a per-family clock, not a per-row one, and it
-never stalls the iteration.** If the top candidate's family is inside its spacing window, the
-iteration continues down the order and fires the first candidate whose family is not — it does
-**not** fire nothing and it does **not** wait. Otherwise one throttled family at
-`appetite_effective = 1` would hold the whole fleet at its own `spacing_max`, converting
-back-pressure on one family into a fleet-wide stall — the "silently off" failure pass 2 §4.2's
-`max(1, …)` exists to prevent, reintroduced one layer up. A row skipped on spacing stays
-eligible and accrues.
+**Q-APP-5 — STRUCK (§7c ruling 16).** Per-family spacing and its constant `spacing_max(f)` are
+**deleted**, not re-derived at a new scale. Ruling 16, after explanation: every dispatch is a
+fresh instance, so per-family spacing gated nothing real — its two jobs were already owned by
+`lane_cap` (concurrency, Q-APP-4) and the queue's failure-redispatch backoff (Q-COND-10's retry
+storms, the actual churn vector). *"A duplicated mechanism is ceremony"* (ruling 16, citing
+process doctrine). What replaces it is **not an appetite mechanism at all** — a single **global**
+dispatch gap, default **10 s** (operator's number), the minimum wall time between *any* two
+dispatches regardless of model or family: a stampede guard, evaluated at §8 step 9 (the candidate
+filter), immediately **before** the two lane caps of Q-APP-4 — not a new step, since it sits in
+the same "does anything get to fire this iteration" region the struck spacing check used to
+occupy. Refusal reason `dispatch-gap`. It does not stall the iteration either — if the gap has not
+elapsed, the iteration reports idle for this tick and re-enters on the next, exactly as a
+fully-lanes-exhausted iteration already does; no new "does it stall" case is introduced. `cooldown_max` (pass 2 §4.2's name for the struck
+constant) is retired along with the arithmetic that used it. Any citation below to family-scoped
+spacing is a rev-2 fossil, struck at this fold — see the `A9` control, below, which is retired
+rather than re-scaled.
 
-*This is a clock in a dispatch decision*, which §1.2/design §9 argue against, and it is admitted
-here **narrowly and on purpose**: it is a *rate limit on a family*, never an input to ordering or
-to eligibility, so it cannot decide *which* row runs — only whether this family's turn has come
-round. The arms inject it the same way every other clock-dependent arm does (§9: seed a stale
-`last_dispatch_at` per family; no arm sleeps).
-
-**Q-APP-6 (lane substitution — the queue's own resolution rule).** If the row's model is
-**unpinned** and more than one family is qualified for the row's declared shape (Q-APP-8), resolve
-to the **qualified family with the highest `appetite_effective`**, ties broken by R10's
-least-measured rule. This is methodology §1's *"only where no cheaper qualified lane exists"*
-turned into arithmetic that is monotone in the dial rather than a prose reminder: as `claude`'s
-dial falls, unpinned qualified work migrates to `deepseek` without anyone editing a policy doc,
-which is the operator's stated intent (*"slow down with Claude and speed up with Ollama as
-token/credit windows approach and reset"*, pass 2 §4). A **pinned** row is never re-pointed —
-re-pointing an operator's explicit choice would be the mechanism overruling the human.
+**Q-APP-6 (model substitution — the queue's own resolution rule).** If the row's model is
+**unpinned** and more than one **model** is qualified for the row's declared shape (Q-APP-8),
+resolve to the **qualified model with the highest `appetite_effective`**, ties broken by R10's
+least-measured rule. Re-keyed from family to model by ruling 11 — the substitution target used to
+be the best-dialled *family*; it is now the best-dialled *model*, which additionally lets two
+models in the same family (e.g. `dspro` and `flash`) diverge once their dials do. This remains
+methodology §1's *"only where no cheaper qualified lane exists"* turned into arithmetic that is
+monotone in the dial rather than a prose reminder, and it stays strictly on the can-axis
+(Q-APP-2a): it picks among models the dial **admits**, and never asks which one *should* be
+preferred on task-type evidence — that question is the ladder's, not the queue's. As `claude`
+models' dials fall, unpinned qualified work migrates toward `deepseek` models without anyone
+editing a policy doc, which is the operator's stated intent (*"slow down with Claude and speed up
+with Ollama as token/credit windows approach and reset"*, pass 2 §4). A **pinned** row is never
+re-pointed — re-pointing an operator's explicit choice would be the mechanism overruling the
+human.
 
 **Q-APP-7 (the window guard).** Never start a row whose `est_wall_s` (from its `wall_class`,
 §6 Q-NIGHT-3) exceeds the family's remaining declared window: `est_wall_s ≤ window_remaining_s`.
@@ -563,13 +641,14 @@ takes its state at face value:
 |---|---|
 | `OBSERVED` | gate on `est_wall_s ≤ window_remaining_s` as computed from `remaining_frac` |
 | `ASSUMED_RESET` | gate on the **pre-reset** remaining value; crossing `resets_at` grants nothing |
-| `UNKNOWN` | the dial is already clamped to `appetite_floor(f)` (pass 2 §4.3); the queue applies the guard against the last observed remaining, and if there has never been one, admits only rows whose `wall_class` is the shortest — never treats absence as "the window is full" (`feedback-status-is-an-assertion`) |
+| `UNKNOWN` | the dial is already clamped to `appetite_floor(m)` (pass 2 §4.3, re-keyed to model by ruling 11); the queue applies the guard against the last observed remaining, and if there has never been one, admits only rows whose `wall_class` is the shortest — never treats absence as "the window is full" (`feedback-status-is-an-assertion`) |
 
 **Q-APP-8 (the reservation predicate — a hard gate, not a dial value).** Pass 2 §4.5's finding,
 adopted: `RESERVED` was **never a point on the appetite axis** — it is a *task-shape predicate*
 (*"deep holistic review · gate-holder verification · spec/design adjudication; never
-one-off/general"*, `measurement-methodology.md:30`). A family may therefore be simultaneously
-mid-dial (it may spend when it is the right lane) and hard-reserved (it is the right lane rarely).
+one-off/general"*, `measurement-methodology.md:30`), declared at family grain (Q-APP-11). A model
+may therefore be simultaneously mid-dial (it may spend when it is the right lane) and, via its
+family, hard-reserved (it is the right lane rarely).
 The predicate is evaluated **with** the appetite check and **before** the dial arithmetic (pass 2
 §4.5's *"separate hard gate"*; methodology §1's *"Reservations are hard and override appetite"*).
 Refusal reason `reservation-mismatch`. A row outside a reserved family's predicate cannot resolve
@@ -616,64 +695,102 @@ declared in progress (Q-COND-4c — methodology §1's *"never during a measured 
 contamination — the D6/D12/D14 cull)"*). The interlock is a condition, not a dial value, because a
 dial the machine drops to 0 for the duration would be indistinguishable from an operator forbid.
 
-**Q-APP-11 (the family table is data, and the mirror is gated).** One row per **family** (not per
-model), in the same sentinel-fenced data region as §5's dispatch table. **"Family" here means the
-*appetite* family, not the *launch* family** — pass 2 rev 3's N2 separated the two words: the launch
-family selects the argv (three rows: `deepseek`, `claude`, `ollama`), while the dial family is the
-credit pool (five: `deepseek`, `claude`, `claude-fable`, `ollama-cloud`, `local`), and the two sets
-do not coincide — one claude launch row spans `claude` and `claude-fable` across the 200 k boundary,
-and one ollama launch row spans `ollama-cloud` and `local` (`qwen3.8:27b-mlx` is local). Every gate
-in this section keys on the **`appetite family`** column of pass 2 §3.1's table; nothing in §4 keys
-on the launch `family` column. A new launch-family row must declare its appetite family (pass 2's
-arm D6), or the dial has a family it cannot price. Appetite columns:
-`family`, `models[]`, `appetite_operator`, `appetite_auto`, `appetite_floor`, `lane_cap`,
-`spacing_max`, `window` (the pass 2 §4.3 record), `reserved_for[]`, `probe_only`,
-`handover_at_tokens`, `budget_note`, `as_of`. `appetite_effective`, `lanes(f)` and `spacing(f)` are
-**derived at read time** and stored nowhere (Q-SCHEMA-1). Every dial write is a record with an
-author and a timestamp, superseding rather than overwriting (pass 2 §4.4). The prose authority is
-pass 2 §4.5's migration table (whose numbers the operator still owes) and methodology §1's
-reservations; **arm `A7` asserts the table and its sources agree field-by-field** — a mirror that
-can drift from its source silently is the F7 four-definitions defect again.
+**Q-APP-12 (the dispatcher predicate — the third hard gate, §7c ruling 17, new).** Separate from
+appetite and from "dispatch TO" (Q-APP-1's axis): *may this model act as a dispatcher/manager at
+all* — hold `task_shape = T-H` (`docs/infra/model-task-matrix.md` §1, *"long-horizon sprint
+console… dispatches its own leaves"*). Same shape as the reservation predicate (Q-APP-8): a
+per-model boolean, evaluated **with** the appetite check and **before** the dial arithmetic, at
+both registration and admission. Refusal reason `dispatcher-predicate`. **The list is maintained
+from race evidence only** (T363 is the first data point), never from belief — a model is not
+added to or removed from the dispatcher set by argument, only by a recorded head-to-head result
+(`docs/status/model-perf.md`, the race protocol). Until a race disqualifies or confirms a model,
+the predicate defaults to **permissive** for every model that is not already known to fail at it
+(ruling 17 states the gate exists and its evidentiary standard; it does not hand this fold a
+ratified deny-list — that is a §13 open question, OQ 12, not assumed here). This predicate never
+substitutes for the reservation predicate (Q-APP-8) or vice versa: a model can be dispatcher-fit
+and reservation-mismatched for a given row, or dispatcher-unfit and otherwise perfectly qualified
+— both gates apply independently, and either alone refuses.
 
-| family | pass 2 §4.5 default dial | hard predicate | what binds in practice |
-|---|---|---|---|
-| `deepseek` (pro / flash) | 90 | none | lanes ≈ `lane_cap`; spacing ≈ 0 — the workhorse |
-| `claude` (opus / sonnet / haiku) | 45 | none | ~half the lanes, mid spacing, window guard (Q-APP-7); unpinned qualified work substitutes to `deepseek` (Q-APP-6) |
-| `claude-fable` | 60 | `reserved_for = [(T-A, holistic), (T-E, *), (T-F, *)]` | the predicate, almost always — a mid dial on a lane that is rarely the right one |
-| `ollama-cloud` (glm / minimax / kimi) | 90 *(the flip target)* | none | **live value 0** (D036) ⇒ `appetite-forbid`; no dispatch at all until a human flips it |
-| `local` (qwen / gemma) | 15 | `probe_only = true`, plus Q-COND-4c | one lane, maximally spaced, probe rows only, never during a measured run |
+**Q-APP-11 (the model table is data, and the mirror is gated).** **Ruling 11 moves the record of
+appetite from one row per family to one row per model** — the table below is restructured
+accordingly; §5's dispatch table and the launch-family/appetite-family split (pass 2 rev 3 N2) are
+untouched by this fold. **"Family" below means the *appetite* family, not the *launch* family** —
+the launch family selects the argv (three rows: `deepseek`, `claude`, `ollama`), while the
+appetite family is the concurrency pool that `lane_cap` prices (five: `deepseek`, `claude`,
+`claude-fable`, `ollama-cloud`, `local`); the two sets still do not coincide (one claude launch row
+spans `claude` and `claude-fable` across the 200 k boundary; one ollama launch row spans
+`ollama-cloud` and `local`, since `qwen3.8:27b-mlx` is local). **Model columns** (Q-APP-2's axis,
+one row per short name): `model`, `family` (its appetite-family, for `lane_cap` lookup),
+`appetite_operator`, `appetite_auto`, `appetite_floor`. **Family columns** (unchanged grain,
+ruling 15's concurrency pricing — these did not move to model grain): `lane_cap`, `window` (the
+pass 2 §4.3 record — a shared credit/token pool is a family-level fact even though the dial that
+spends it is per-model), `reserved_for[]`, `probe_only`, `handover_at_tokens`, `budget_note`.
+`spacing_max` is **deleted** (Q-APP-5, ruling 16) — no replacement column; the global dispatch gap
+(Q-APP-5) is a single scalar in the mode table (§11), not a per-model or per-family record.
+`appetite_effective(m)` and `lanes(m)` are **derived at read time** and stored nowhere
+(Q-SCHEMA-1). Every dial write is a record with an author and a timestamp, superseding rather than
+overwriting (pass 2 §4.4). The prose authority is ruling 11's initial values (below) and
+methodology §1's reservations; **arm `A7` asserts the table and its sources agree field-by-field**
+— a mirror that can drift from its source silently is the F7 four-definitions defect again.
+
+| model | family | initial dial (ruling 11) | hard predicate | what binds in practice |
+|---|---|---|---|---|
+| `dspro`, `flash` | `deepseek` | 6, 6 | none | `lane_cap = 6`; the workhorse, no spacing left to bind |
+| `opus` | `claude` | 4 | none | shares `claude`'s `lane_cap = 3`; window guard (Q-APP-7); unpinned qualified work substitutes toward the higher-dialled sibling (Q-APP-6) |
+| `sonnet`, `haiku` | `claude` | 6, 6 | none | as `opus`, but a higher initial dial — the substitution target within the family until re-measured |
+| `fable` | `claude-fable` | 2 | `reserved_for = [(T-A, holistic), (T-E, *), (T-F, *)]`; `handover_at_tokens = 180000` | the predicate, almost always — a nonzero dial on a lane that is rarely the right one; `lane_cap = 1` |
+| `glm`, `minimax`, `kimi` | `ollama-cloud` | 0, 0, 0 | none | **all three at 0** ⇒ `appetite-forbid`; no dispatch at all until a human flips each model's dial (a family-level flip is the bulk convenience, ruling 11) |
+| `qwen` | `local` | 4 | `probe_only = true`, plus Q-COND-4c | shares `local`'s `lane_cap = 1`; probe rows only, never during a measured run |
+| `gemma` | `local` | **not yet ruled** | `probe_only = true`, plus Q-COND-4c | §13 OQ 11 — no operator value; the queue treats an unset model dial as `appetite_floor`, never as a default guess |
 
 **Controls.**
-- `A1` seeded: a family at `appetite_effective = 0` with a row pinned to it ⇒ parked on
+- `A1` seeded: a **model** at `appetite_effective = 0` with a row pinned to it ⇒ parked on
   `appetite-forbid`, reported, **not** an anchor, and the row's `age` does **not** accrue.
-- `A2` seeded: the reservation predicate — a `claude-fable` row with `(task_shape, scope) =
-  (T-A, row)` ⇒ refused `reservation-mismatch` at registration **and** at admission; the same row
-  at `(T-A, holistic)` ⇒ admitted. Plus the N8 regression: a row whose `task_type` is one of the 8
+  Re-keyed from family to model (ruling 11); the fixture pins one `ollama-cloud` model (e.g.
+  `glm`) rather than the whole family, and a **sibling** model in the same family at a nonzero
+  dial (there are none today — all three are 0 — so the fixture also seeds a hypothetical nonzero
+  sibling) must still admit.
+- `A2` seeded: the reservation predicate — a `fable` row with `(task_shape, scope) = (T-A, row)`
+  ⇒ refused `reservation-mismatch` at registration **and** at admission; the same row at
+  `(T-A, holistic)` ⇒ admitted. Plus the N8 regression: a row whose `task_type` is one of the 8
   measured types is **not** thereby excluded — the predicate reads `task_shape`, not `task_type`.
-- `A3` seeded: `lane_cap = 4`, dial `25` ⇒ `lanes = 1`; two ready rows on that family ⇒ exactly
-  one held child, and the second **still accrues `age`** and is reported
-  `appetite-lanes-exhausted`.
-- `A4` seeded: unpinned row qualified on two families, dials `45` and `90` ⇒ resolves to the `90`;
-  the same row **pinned** to the `45` family ⇒ stays on it. Then drop the `90` to `0` ⇒ the
-  unpinned row resolves to the `45`, never to the forbidden family.
+- `A3` seeded: `lane_cap(family) = 4`, model dial `2` (of 9) ⇒ `lanes(m) = 1` (Q-APP-4's
+  `round(2 × 4 / 9)`); two ready rows on that model ⇒ exactly one held child, and the second
+  **still accrues `age`** and is reported `appetite-model-share-exhausted`. A third ready row on a
+  **sibling** model in the same family, dial `9`, with the family already at 3 of its 4
+  `lane_cap` slots held ⇒ admitted (family cap not yet hit) even though the first model's own
+  share is exhausted — proving the two caps of Q-APP-4 are independent.
+- `A4` seeded: unpinned row qualified on two models, dials `4` and `9` (of 9) ⇒ resolves to the
+  `9`; the same row **pinned** to the `4`-dial model ⇒ stays on it. Then drop the `9` to `0` ⇒ the
+  unpinned row resolves to the `4`, never to the forbidden model.
 - `A5` seeded: a 0-dial-pinned row whose `effective` is the highest in the store ⇒ it is **not in
   the eligible set at all**, so it is not the top of the order, not the anchor, accrues no `age`,
   and `c_eff` stays at `C_window` (Q-CAP-3) — the self-DoS arm, shared with `M8`.
-- `A6` seeded: a row at `effective = 99` failing one condition ⇒ not dispatched (Q-ORD-9).
-- `A7` null: the family table agrees field-by-field with pass 2 §4.5 and methodology §1
-  (mechanical diff, including the `(task_shape, scope)` mapping of Q-APP-9).
+- `A6` seeded: a row at `effective = 9` (the new ceiling) failing one condition ⇒ not dispatched
+  (Q-ORD-9).
+- `A7` null: the model/family table agrees field-by-field with ruling 11's initial values and
+  methodology §1 (mechanical diff, including the `(task_shape, scope)` mapping of Q-APP-9).
 - `A8` seeded: `est_wall_s > window_remaining_s` ⇒ not started, reported `appetite-window`; and
   the window record at `ASSUMED_RESET` past `resets_at` ⇒ **still** gated on the pre-reset value
-  (crossing the clock grants nothing).
-- `A9` seeded: spacing — dial `1`, `spacing_max = 600`, a fresh `last_dispatch_at` for that
-  family, and the top candidate on it ⇒ that candidate is skipped `appetite-spacing`, **the next
-  candidate on another family fires in the same iteration**, and the skipped row accrues. Mutation:
-  make spacing stall the iteration ⇒ this arm goes red.
+  (crossing the clock grants nothing). Unaffected by the model/family unit change — the window is
+  still a family-scoped credit-pool fact.
+- `A9` **redefined** (§7c ruling 16 struck the per-family-spacing arm this letter used to name):
+  the global dispatch gap — two candidates ready in the same iteration, default gap `10 s`, a
+  `last_dispatch_at` (global, not per-family) inside the gap ⇒ the iteration reports idle for this
+  tick on `dispatch-gap`, **not** a per-row or per-model refusal, and re-enters on the next tick;
+  outside the gap ⇒ the top candidate fires. Mutation: make the gap block only same-family
+  dispatches (reintroducing per-family scoping) ⇒ this arm goes red, because two different
+  families inside the gap must still be refused together.
 - `A10` seeded: `probe_only` — a non-`probe` row on `local` ⇒ refused `probe-only`; a `probe` row
   ⇒ admitted; with a measurement declared, the `probe` row ⇒ refused (Q-COND-4c) and the next
   non-`probe` candidate on another family fires.
 - `A11` (mutation) let the queue write `appetite_operator` ⇒ pass 2 §4.4's worker-write refusal
   arm goes red, proving the queue's read-only relationship is enforced and not merely stated.
+- `A13` seeded (Q-APP-12, new): a row with `task_shape = T-H` resolving to a model **not** on the
+  dispatcher-fit list ⇒ refused `dispatcher-predicate`; the same row resolving to a dispatcher-fit
+  model ⇒ admitted. Plus: a model that is dispatcher-fit **and** reservation-mismatched for the
+  row ⇒ refused on `reservation-mismatch` (Q-APP-8 still applies independently, per Q-APP-12's
+  closing paragraph).
 
 ---
 
@@ -1011,13 +1128,15 @@ measure name its parent does not share, is refused. Depth ≤ 1 needs no measure
 proportionality).
 
 **Q-MINT-8 (runnability at mint time — the self-DoS check).** A minted row must be *capable of
-running*: its resolved family must permit it **now** (§4 — a nonzero dial, and the reservation and
-`probe_only` predicates satisfied), its `wall_class` and `task_shape` must exist in the tables, and
-its `needs` must form a DAG with the existing rows — a mint that introduces a cycle, or that names
-an ancestor in `needs`, is refused. A row that can only run on a family at
-`appetite_effective = 0` is refused with that reason, because an eternally-unrunnable row is the
-aging mechanism's worst input (Q-CAP-3's rationale). A *lane* or *spacing* limit is **not** grounds
-for refusal — those are transient and leave the row runnable.
+running*: its resolved model must permit it **now** (§4 — a nonzero model dial, plus the
+reservation, `probe_only`, and dispatcher (Q-APP-12) predicates satisfied), its `wall_class` and
+`task_shape` must exist in the tables, and its `needs` must form a DAG with the existing rows — a
+mint that introduces a cycle, or that names an ancestor in `needs`, is refused. A row that can
+only run on a model at `appetite_effective = 0` is refused with that reason, because an
+eternally-unrunnable row is the aging mechanism's worst input (Q-CAP-3's rationale). A *lane*
+limit is **not** grounds for refusal — it is transient and leaves the row runnable. (Rev 2 also
+named a *spacing* limit here; spacing is struck, §7c ruling 16, so there is nothing left of that
+kind to exempt.)
 
 **Q-MINT-9 (well-specified).** A minted row must satisfy the same registration gates a hand-
 registered row does — exactly one bundle, a `# T<nnn> — <title>` line under 40 chars
@@ -1056,9 +1175,9 @@ matches an ancestor ⇒ refused as self-replicating; matches a *closed* row ⇒ 
 `--supersedes` ⇒ admitted and the supersession recorded. `M6` seeded: overlapping deliverables
 with a grandparent ⇒ refused. `M7` seeded: depth-2 mint with no `decreases` ⇒ refused; with
 `n_child = n_parent` ⇒ refused; with `n_child < n_parent` ⇒ admitted. `M8` seeded: a mint pinned
-to a family at `appetite_effective = 0` ⇒ refused; and separately, an already-registered
+to a model at `appetite_effective = 0` ⇒ refused; and separately, an already-registered
 0-dial-pinned row with the store's highest `effective` ⇒ not eligible, not the anchor, `c_eff`
-unchanged (the self-DoS path, shared with `A5`). Plus: the same row pinned to a family merely at
+unchanged (the self-DoS path, shared with `A5`). Plus: the same row pinned to a model merely at
 its `lanes` limit ⇒ **admitted** (a transient limit is not grounds for refusal, Q-MINT-8). `M9` seeded: a mint whose
 `needs` closes a cycle ⇒ refused. `M10` seeded: a depth-2 mint passing every check ⇒ status
 `pending-ratification`, not dispatchable, counted in the gauge; after `ratified_by` ⇒
@@ -1085,8 +1204,8 @@ steps are this spec's additions.
  6. order                  sort by (waiting, effective, age, added, id)  (Q-ORD-3)     [new key]
  7. pressure bookkeeping   anchor with stickiness; drops += |completed|; c_eff (Q-CAP-1..3) [sticky new]
  8. cap                    |running| >= c_eff ⇒ dispatch nothing, report
- 9. candidate filter       two holds tests (Q-COND-1a/b) + appetite lanes/spacing (§4) —
-                           a row skipped here stays eligible and accrues (Q-COND-0a)
+ 9. candidate filter       global dispatch gap + two holds tests (Q-COND-1a/b) + appetite lanes
+                           (§4) — a row skipped here stays eligible and accrues (Q-COND-0a)
 10. fire one               hand the first surviving candidate to `managent supervise <id> <model>`
 11. accrue                 age += 1 for every eligible row not fired (Q-ORD-4)         [new]
 12. report                 per-interval progress report if due (Q-NIGHT-7)             [new]
@@ -1134,7 +1253,7 @@ red — this is what proves the arms are measuring what they claim (`feedback-ne
 | revert `needs` to the status-only rule | `N2` |
 | delete the data-table sentinel comments | `DP3` |
 | **make the sentinel selection empty** (rename a sentinel) | `DP3` — an empty selection must FAIL loudly, not pass |
-| **let spacing stall the iteration** instead of falling through the order | `A9` |
+| **let the global dispatch gap scope to one family instead of globally** (reintroduces per-family spacing) | `A9` |
 | **fold `UNDECLARED-STEP` back into `BEATING-STALLED`** | `NG4` |
 | **let the queue write `appetite_operator`** | `A11` |
 | disable the mint quarantine default | `M10` |
@@ -1160,7 +1279,7 @@ the two that the aging change is most likely to break, so they run first.
 | `P5` | seeded | Q-ORD-7 (driver ii) | anchor blocked; an operator sets `waiting = 1` on a different eligible row, which takes the top on key 1 | anchor and `drops` persist — a bump changes who *runs*, never who *anchors* |
 | `H1`–`H5` | null+seeded+mutation | Q-COND-1 | §3.1 | as §3.1; `H5` is the placement mutation — move the two holds tests into the step-5 conjunction and arm `a` plus `P4` must go red |
 | `N1`–`N4` | null+seeded+mutation | Q-COND-2 | §3.1 | as §3.1 |
-| `A1`–`A11` | seeded+null+mutation | §4 (the dial) | §4 | as §4; `A2` (the `task_shape` reservation predicate) and `A9` (spacing never stalls the iteration) are the two the rev-1 level model had no arm for |
+| `A1`–`A11`, `A13` | seeded+null+mutation | §4 (the dial) | §4 | as §4; `A2` (the `task_shape` reservation predicate), `A9` (the global dispatch gap, redefined at this fold — never per-family), and `A13` (the dispatcher predicate, §7c ruling 17, new) are the ones the rev-1 level model had no arm for. `A12` (the can/should write-boundary check, §7c ruling 12) is listed with Q-APP-2a, not here, since it guards the write path rather than the read/admission path this table otherwise covers |
 | `Q1`–`Q3` | null+seeded | Q-COND-4 | §3.1 | as §3.1 |
 | `D1`–`D3` | null+seeded | Q-COND-5 | §3.1 | as §3.1 |
 | `C1`–`C7` | seeded | Q-COND-6..12 | §3.2 | as §3.2 |
@@ -1197,8 +1316,9 @@ behaviour-preserving and are listed for explicit decision rather than adopted si
 it is pass 2 rev 2's operator-refinement (a), already a Must there and on its never-cut list, so it
 needs no ruling here — only its constants are owed (§7b closing line). Likewise the mint regime's
 write-time enforcement is pass 2 §5's. What §4 and §7 add here are the *queue-layer consequences*
-(Q-APP-5's spacing fall-through, Q-APP-9's `task_shape`/`scope` vocabulary, Q-MINT-11's breaker
-duties), and the one genuinely new vocabulary among them — `scope` — is §13 OQ 8.
+(Q-APP-4's lane-cap/model-share fall-through — Q-APP-5's spacing fall-through it replaced is
+struck, §7c ruling 16 — Q-APP-9's `task_shape`/`scope` vocabulary, Q-MINT-11's breaker duties),
+and the one genuinely new vocabulary among them — `scope` — is §13 OQ 8.
 
 **Recommendation on each:** adopt 1, 2, 3, 5, 7 as specified. Adopt 4 with the ruling that it
 changes **both** implementations in the same commit (`fleet-keeper`'s successor and
@@ -1224,26 +1344,31 @@ nowhere.
 **Store `_sys`, added fields:** `pops` (monotone count of fires — telemetry and the audit trail
 for `age`) · `minted` (count, for `MINT_RATE_MAX`) · `epoch_started_at`.
 
-**Data table (one location, pass 2 DP-2's region, sentinel-delimited):** per **model** —
-`label`, `family`, `serving_tag`, `aliases[]`. Per **family** — `provider`, `argv_template`,
-`require_env[]`, `preflight`, `tool_allowlist`, **`output_format ∈ {text, json-envelope}`** (pass 2
-§3.1/DP-5's name and domain — rev 1's `stdout_envelope ∈ {raw, json_result}` is withdrawn),
-`release`, `rss_cap_mb`, `host_headroom_mb`, and the appetite columns of Q-APP-11:
-`appetite_operator`, `appetite_auto`, `appetite_floor`, `lane_cap`, `spacing_max`, `window` (the
-pass 2 §4.3 record), `reserved_for[]`, `probe_only`, `handover_at_tokens`, `budget_note`, `as_of`.
-`appetite_effective`, `lanes(f)` and `spacing(f)` are derived at read time and stored nowhere.
+**Data table (one location, pass 2 DP-2's region, sentinel-delimited; §7c ruling 11 moves the
+appetite columns to model grain):** per **model** — `label`, `family`, `serving_tag`, `aliases[]`,
+and the model-grain appetite columns of Q-APP-11: `appetite_operator`, `appetite_auto`,
+`appetite_floor` (range 0–9). Per **family** — `provider`, `argv_template`, `require_env[]`,
+`preflight`, `tool_allowlist`, **`output_format ∈ {text, json-envelope}`** (pass 2 §3.1/DP-5's
+name and domain — rev 1's `stdout_envelope ∈ {raw, json_result}` is withdrawn), `release`,
+`rss_cap_mb`, `host_headroom_mb`, and the family-grain appetite columns of Q-APP-11: `lane_cap`,
+`window` (the pass 2 §4.3 record), `reserved_for[]`, `probe_only`, `handover_at_tokens`,
+`budget_note`, `as_of`. `spacing_max` is **withdrawn** (Q-APP-5, §7c ruling 16) — struck, not
+moved. `appetite_effective(m)` and `lanes(m)` are derived at read time and stored nowhere.
 
 **Mode table:** `C_base`, `C_night`, `NIGHT_WALL_FACTOR`, `progress_timeout`, `STALL_S`,
 `REPORT_EVERY`, `RUN_WALL_S`, `RUN_CLOSES`, gauge stop thresholds, `AGE_CAP`, `D_max` (pass 2
 RUN-3), `MINT_FANOUT_MAX` / `MINT_TREE_MAX` / `MINT_RATE_MAX`, `K` (the pass 2 RUN-1 breaker's
-consecutive-delta threshold), `HOST_FLOOR_MB`, `QUIET_LOAD`, and the §12.1 view's
+consecutive-delta threshold), `HOST_FLOOR_MB`, `QUIET_LOAD`, `dispatch_gap_s` (default **10**,
+§7c ruling 16 — the global stampede guard that replaces per-family spacing), and the §12.1 view's
 `MIN_ROWS`.
 
 **Retained runtime state** (recovered): pressure record (`anchor`, `drops`, `waiting_since`,
 `running`), heal state, attempt/backoff state, lane-down census, logjam flag. **Added:**
-`last_dispatch_at` per family (Q-APP-5's spacing clock — one timestamp per family, the only new
-clock in the layer, and it feeds a rate limit, never an ordering key). Pass 2 §2.4 moves
-the cooldown flag into the store; the rest may stay as the supervisor's own files since HOLD-6
+`last_dispatch_at`, **one global timestamp, not per-family** (§7c ruling 16 struck the per-family
+spacing clock rev 2 named here; the replacement gap is fleet-wide, so it needs exactly one clock,
+not one per family — fewer, not more, moving parts). It feeds `dispatch_gap_s`, a rate limit,
+never an ordering key. Pass 2 §2.4 moves the cooldown flag into the store; the rest may stay as
+the supervisor's own files since HOLD-6
 makes it the only writer.
 
 **Q-SCHEMA-1.** Every added field is a **stored fact** (an authored number, an observed count, a
@@ -1361,16 +1486,27 @@ an instrument; it earns its first reading the same way (`feedback-never-trust-a-
    or admit a quarter of the queue to it. The *mapping* in Q-APP-9 is this spec's claim; the
    *vocabulary* is new and the operator's to ratify, narrow, or replace. It is a declared field, so
    whatever the vocabulary, it stays hand-checkable.
-9. **Q-APP-5's spacing clock.** It is the only clock this layer admits into a dispatch path, and
-   design §9 argues against clocks there. The narrowing (a per-family rate limit that never decides
-   *which* row runs, only whether this family's turn has come) is stated in Q-APP-5, and the
-   fall-through rule keeps one throttled family from stalling the fleet — but the operator may
-   prefer the dial to act on `lanes` alone and drop `spacing` entirely, which would remove the
-   clock. `spacing` is pass 2 §4.2's, so dropping it is a pass-2 amendment, not a local choice.
+9. **RESOLVED (§7c ruling 16, 2026-08-22).** Q-APP-5's spacing clock — this OQ asked whether the
+   operator might prefer the dial to act on `lanes` alone and drop `spacing` entirely. The
+   operator did exactly that, after explanation: per-family spacing is struck, and the one clock
+   this layer now admits into a dispatch path is the global `dispatch_gap_s` (Q-APP-5), which is
+   not part of the appetite axis and does not decide *which* row runs, only *whether the fleet's
+   turn has come* — narrower than the struck rule, not wider. No further ruling owed here.
 10. **The `MIN_ROWS` budget and the four-section shape for §12.1.** Carried from
     `untracked/watch-fleet.sh` because it is the shape the operator already reads; the numbers
     (`MIN_ROWS`, and whether `CONCERNS` outranks `PROGRESS` when even the unelidable sections do
     not fit) want one look at a real screen.
+11. **`gemma`'s dial (§7c ruling 11, new).** The operator's initial-values list named seven models
+    plus the `ollama-cloud` trio; `qwen` (the other `local` model) got **4**, but `gemma` got no
+    number. Until ruled, the queue treats `gemma` as clamped to `appetite_floor` (pass 2 §4.3's
+    unknown-state rule, Q-APP-7's table, applied here too) — never a guessed default.
+12. **Two arithmetic choices this fold made without a digit-for-digit ruling, flagged for
+    ratification (§7c ruling 11 ruled the unit and the initial values, not these):** (a) Q-APP-4's
+    lanes formula re-derived at `/9` instead of `/99` — the natural rescale, not independently
+    ruled; (b) Q-APP-12's dispatcher-fit list defaults to **permissive** absent race evidence
+    (ruling 17 states the evidentiary standard, not a starting list) — an operator may prefer the
+    opposite default (deny until proven, rather than admit until disproven) given ruling 23's
+    no-cheating stance on unproven capability claims generally.
 
 ---
 
@@ -1383,7 +1519,8 @@ an instrument; it earns its first reading the same way (`feedback-never-trust-a-
 | the one-writer invariant; the rejection of dispatch-anyway; completion-driven over clock-driven; the floor at 1 and its proof; the logjam flag as telemetry-only | `docs/infra/fleet-keeper-design.md` §1, §3, §7, §9, §10 |
 | `waiting=1` as the bump; the three-key sort; eligibility filters; heal cooldown; pre-claim backoff and the lane circuit breaker; the cooldown dead-man's switch | `tools/fleet-keeper.sh` (lines cited per row in §1.1) |
 | the held-child set as a condition; one dispatch interface; the family-token grep gate; cooldown as a verb; shutdown semantics | `S01-process-ownership/pass2/spec.md` §2.1, §2.4, §2.5, §3 |
-| the appetite **dial** (0–99), `lanes`/`spacing`, the window record's three states, the write hierarchy, and the finding that `RESERVED` was never on the appetite axis | `S01-process-ownership/pass2/spec.md` §4.1–§4.5 (operator refinement (a), a Must; constants still owed per `docs/status/orchestration-layer-spec.md` §7b closing line) |
+| the appetite **dial**, `lanes`, the window record's three states, the write hierarchy, and the finding that `RESERVED` was never on the appetite axis | `S01-process-ownership/pass2/spec.md` §4.1–§4.5 (operator refinement (a), a Must; constants still owed per `docs/status/orchestration-layer-spec.md` §7b closing line) |
+| the dial is **0–9 per model**, not 0–99 per family; can-use/should-use are separate axes; per-family spacing deleted for a global 10 s dispatch gap; the dispatcher predicate | `docs/status/orchestration-layer-spec.md` §7c rulings 11, 12, 16, 17 (operator, 2026-08-22, second batch) — this fold, T580 |
 | the family table's prose source, the hard reservations, the probe interlock, the task-type shares | `S02-model-delegation/measurement-methodology.md` §1 (levels superseded by pass 2 §4; the reservations and the interlock are not) |
 | the `T-A … T-H` task shapes the reservation predicate matches on | `docs/infra/model-task-matrix.md` §1 |
 | mint write-time enforcement, one author per mint, lineage + justification, `D_max`, the mint-delta circuit breaker | `S01-process-ownership/pass2/spec.md` §5 (RUN-1..5) |
@@ -1403,7 +1540,9 @@ Rejected alternatives, one line each:
 | appetite as a single boolean gate | cannot express back-pressure at all; the operator's ruling is explicitly a spectrum |
 | appetite as the five static levels `OFF/PROBE/CONSERVE/SPEND/RESERVED` (rev 1 of this document) | a five-valued enum cannot express "a bit less than yesterday", so every real adjustment became a doc edit, and `RESERVED` was never on the same axis at all — pass 2 rev 2 §4/§4.5 replaced it with the dial, and two Must-level documents cannot both ship (T575 N2) |
 | matching the reservation predicate on `task_type` | its domain is the 8 measured types, so no row can carry `deep-holistic-review` and the predicate is unsatisfiable — it made Fable undispatchable rather than reserved (T575 N8) |
-| spacing that stalls the iteration when the top candidate's family is inside its window | converts back-pressure on one family into a fleet-wide stall at that family's `spacing_max` — the "silently off" failure pass 2 §4.2's `max(1, …)` exists to prevent, one layer up (Q-APP-5) |
+| spacing that stalls the iteration when the top candidate's family is inside its window (rev 2's design) | converts back-pressure on one family into a fleet-wide stall at that family's `spacing_max` — the "silently off" failure pass 2 §4.2's `max(1, …)` exists to prevent, one layer up (Q-APP-5, rev 2) |
+| per-family spacing at all (rev 2's shape, retained above for the record) | superseded outright, not merely re-scaled: every dispatch is a fresh instance, so a per-family clock gated nothing real — its two jobs were already owned by `lane_cap` and failure-redispatch backoff (§7c ruling 16) |
+| a per-family global dispatch gap (scoped rather than fleet-wide) | reintroduces the exact stampede risk the gap exists to close — two different throttled families could still stampede the host simultaneously (§7c ruling 16, arm `A9`) |
 | the two holds tests as §3 conditions (rev 1 of this document) | a conflict-blocked row would leave `eligible`, so nothing could ever anchor and the recovered cap-drop pressure machine — the operator's own arithmetic — would be inert (Q-COND-0a, T575 N1) |
 | a fourth liveness class only (no `UNDECLARED-STEP`) | classifies every legacy step-less worker `BEATING-STALLED` forever, which is the false alarm that trains the reader to ignore the report (Q-NIGHT-5, T575 N5) |
 | an *exclusive* family-token grep (grep the file, minus the data tables) | inverts the inclusive sentinel form that shipped and works, and can be defeated by moving code out of the excluded region — pass 2 rev 2 F5 (Q-DP-4, T575 N7) |
