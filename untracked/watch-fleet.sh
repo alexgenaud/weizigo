@@ -48,6 +48,7 @@ desc() { d=$(awk -F'\t' -v t="$1" '$1==t{print $2}' untracked/task-desc.tsv 2>/d
          [ -z "$d" ] && d="(no brief on disk)"
          printf '%s' "$d" | tr -s ' \t' ' ' | sed 's/ *$//'; }
 lm()   { grep -ho 'L[0-9]' untracked/"$1"-*.md 2>/dev/null | head -1; }
+ctag() { awk -F'\t' -v k="$1" '$1==k{print $2; exit}' untracked/concern-tags.tsv 2>/dev/null; }
 fit()  { cut -c1-"$COLS"; }                      # every row trimmed to the terminal width
 show() { # $1 file  $2 slots — print up to $2 rows, then "(more)" if any remain
     tot=$(grep -c . "$1" 2>/dev/null); [ -z "$tot" ] && tot=0
@@ -118,7 +119,9 @@ o=[((v.get('claimed') or ''),k) for k,v in d.items() if v.get('status')=='in_pro
 print(' '.join(k for _,k in sorted(o,reverse=True)))" 2>/dev/null); do
         pgrep -f "Follow untracked/$t-" >/dev/null 2>&1 && continue
         grep -q "    $t  \[beating\]" "$T.liveness" 2>/dev/null && continue
-        printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "orphaned" "$(desc "$t")" | fit >> "$T.conc"
+        lbl=$(ctag "$t")
+        [ -z "$lbl" ] && { case "$(desc "$t")" in *seat*|*owner*|*owns*|*successor*|*console*|*orchestrator*) lbl="console";; *) lbl="orphaned";; esac; }
+        printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "$lbl" "$(desc "$t")" | fit >> "$T.conc"
     done
     for f in untracked/bakeoff/*/*/out.md; do
         [ -f "$f" ] && [ ! -s "$f" ] || continue
