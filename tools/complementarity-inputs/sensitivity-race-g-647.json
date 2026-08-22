@@ -1,0 +1,313 @@
+{
+ "schema": "race-input",
+ "schema_version": 1,
+ "race_id": "race-g",
+ "task_type": "claim-doubt",
+ "epoch": "2026-08-22",
+ "spec": "docs/epistemic/CLAIMS.md (25 claims, batch G01..G25)",
+ "merge_policy": "Union = the 25 batch claims themselves, so no cross-lane phrasing merges were needed: every lane rendered exactly one verdict per claim. The only mapping work was keying normalization (two schemes -> batch labels, see notes). caught_by per item = lanes the grader majority (solely grade file T647 — sensitivity run) ruled correct on the status axis; per-grader matrices and their disagreement band live in docs/infra/complementarity.md.",
+ "notes": "Race G = claim-doubt (25 sealed claims, batch G01..G25; T-A/epistemic shape), five lanes findings/T63{8,9}-race-g.json + findings/T64{0,1,2}-race-g.json, five independent grades findings/T64{4,5,6,7,8}-race-g-grade.json, attribution from the sealed key untracked/race-grading/race-g/KEY.json. KEYING: two schemes in the lanes — batch labels G01..G25 (T638, T642) vs register claim IDs (T639, T640, T641); normalized onto batch labels via T638's G01..G25->register map, which is the race's own crosswalk: 25 keys remapped for each of T639/T640/T641, 0 for T638/T642; all five lanes' target sets are identical (verified: register sets == target 25 exactly). CENSUS: T638 (watchdog kill) and T641 (protocol kill) were killed and salvaged — artifacts complete, present and scored. GRADER AGGREGATION: each item's caught_by = lanes whose status verdict the grader majority (>=3 of 5) ruled correct. The five graders disagree on 60-96% of (claim,lane) cells; T644's axis is structurally different (status-agreement; marks lanes 2/3/5 correct on all 25 — rubber-stamps pass it trivially, per T645's warning). Majority tightness: 72/125 cells unanimous, 3 at 4/5, 8 at 3/5, 24 at 2/5, 18 at 1/5. Sensitivity per grader: sensitivity-race-g-<T>.json. COSTS from untracked/tokens/tokens.jsonl, clean structured readings only (T640 has two 'no structured usage' entries plus one clean 26,476,102; the clean reading is used, ambiguity flagged); deepseek lanes (T639, T638) have no structured usage, stated unknown. KEY sha256s hash the sealed lane originals, which are not the findings/ files, so they do not verify against findings/ paths (checked); attribution is taken from the KEY regardless.",
+ "union": [
+  {
+   "id": "G01",
+   "statement": "G01: GLOBAL.H1-MARKOV (registered UNTESTED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G02",
+   "statement": "G02: GLOBAL.ADR0006-EYE (registered CLAIMED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G03",
+   "statement": "G03: GLOBAL.F1 (registered FALSE-AS-SCOPED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G04",
+   "statement": "G04: 3x2.T13 (registered PROVEN (falsification))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G05",
+   "statement": "G05: 4x4.D3 (registered UNTESTED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-3",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G06",
+   "statement": "G06: GLOBAL.ADR0015-BURDEN (registered CLAIMED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G07",
+   "statement": "G07: GLOBAL.AUDITOR (registered PROVEN)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G08",
+   "statement": "G08: GLOBAL.BRUTE-ALIASING (registered FALSE (methodological))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G09",
+   "statement": "G09: GLOBAL.C3 (registered FALSE-AS-SCOPED (at 3x3))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G10",
+   "statement": "G10: QA-023 (registered CLAIMED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G11",
+   "statement": "G11: 3x2.F1 (registered PROVEN (falsification))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G12",
+   "statement": "G12: CODE.VB-BLINDGAPS (registered PROVEN (blind-reimplementation audit, committed))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G13",
+   "statement": "G13: CODE.WZO2-PASSBIT (registered PROVEN (measured, both failing checks reproduced with counts; root cause read in the source and fixed))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G14",
+   "statement": "G14: GLOBAL.S1 (registered PROVEN)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G15",
+   "statement": "G15: QA-021 (registered PROVEN)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4"
+   ]
+  },
+  {
+   "id": "G16",
+   "statement": "G16: 2x2.C1 (registered PROVEN)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G17",
+   "statement": "G17: 3x2.C1 (registered PROVEN)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G18",
+   "statement": "G18: 3x3.C3 (registered PROVEN (falsification))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1"
+   ]
+  },
+  {
+   "id": "G19",
+   "statement": "G19: GLOBAL.C2 (registered FALSE-AS-SCOPED (at 3x2))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G20",
+   "statement": "G20: CODE.WZO2-INCOMPLETE (registered FALSE-AS-SCOPED (the stated claim is wrong as measured; the artifact's structural completeness is established but value-correctness is not))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-4"
+   ]
+  },
+  {
+   "id": "G21",
+   "statement": "G21: GLOBAL.C4 (registered FALSE-AS-SCOPED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G22",
+   "statement": "G22: GLOBAL.CERTCORE (registered FALSE-AS-SCOPED)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G23",
+   "statement": "G23: GLOBAL.TIE-MIGOS (registered FALSE-AS-SCOPED (the minted mechanism is contradicted; the +2 anchor is a different game, not a different tie))",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G24",
+   "statement": "G24: QA-019 (registered FALSE)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-1",
+    "lane-2",
+    "lane-3",
+    "lane-4",
+    "lane-5"
+   ]
+  },
+  {
+   "id": "G25",
+   "statement": "G25: QA-022 (registered FALSE)",
+   "verdict": "real",
+   "caught_by": [
+    "lane-2",
+    "lane-3",
+    "lane-5"
+   ]
+  }
+ ],
+ "lanes": [
+  {
+   "id": "lane-1",
+   "model": "claude-opus-5",
+   "task_id": "T640",
+   "source": "findings/TT640-race-g.json",
+   "cost": 26604448,
+   "cost_unit": "tokens",
+   "cost_note": "tokens.jsonl clean reading, in+out"
+  },
+  {
+   "id": "lane-2",
+   "model": "claude-sonnet-5",
+   "task_id": "T641",
+   "source": "findings/TT641-race-g.json",
+   "cost": 7088967,
+   "cost_unit": "tokens",
+   "cost_note": "tokens.jsonl clean reading, in+out"
+  },
+  {
+   "id": "lane-3",
+   "model": "deepseek-v4-pro",
+   "task_id": "T639",
+   "source": "findings/TT639-race-g.json",
+   "cost": null,
+   "cost_unit": "tokens",
+   "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
+  },
+  {
+   "id": "lane-4",
+   "model": "claude-haiku-4-5-20251001",
+   "task_id": "T642",
+   "source": "findings/TT642-race-g.json",
+   "cost": 3838076,
+   "cost_unit": "tokens",
+   "cost_note": "tokens.jsonl clean reading, in+out"
+  },
+  {
+   "id": "lane-5",
+   "model": "deepseek-v4-flash",
+   "task_id": "T638",
+   "source": "findings/TT638-race-g.json",
+   "cost": null,
+   "cost_unit": "tokens",
+   "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
+  }
+ ]
+}

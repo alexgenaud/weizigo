@@ -10,6 +10,16 @@
       "input": "tools/complementarity-inputs/race-f.json",
       "race_id": "race-f",
       "sha256": "eba548777fe3deb5d21897cb6aaf44e136882b1e575e275df19cc8a80dc0a742"
+    },
+    {
+      "input": "tools/complementarity-inputs/race-g.json",
+      "race_id": "race-g",
+      "sha256": "65248fd86f717794534af35a627d7d8c7d4fb77f318fe4b0883353094b0e6627"
+    },
+    {
+      "input": "tools/complementarity-inputs/race-c.json",
+      "race_id": "race-c",
+      "sha256": "12add48f1c6544085852c2b818f7bcf781a719e2a71b63b90d9ab0cd2b5d5b98"
     }
   ],
   "groups": {
@@ -562,6 +572,865 @@
       "sample_note": "numbers from 1 race(s) (race-f); a complementarity number from one race is a PRIOR, labelled one, not a measurement — re-run as more races are absorbed.",
       "spec": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md",
       "task_type": "adjudication",
+      "uncaught_items": []
+    },
+    "claim-doubt/2026-08-22": {
+      "best_subsets": {
+        "1": {
+          "best": [
+            [
+              "lane-1"
+            ]
+          ],
+          "cost": 26604448,
+          "cost_unit": "tokens",
+          "cost_unknown": false,
+          "coverage": 0.92,
+          "covered": 23
+        },
+        "2": {
+          "best": [
+            [
+              "lane-1",
+              "lane-2"
+            ],
+            [
+              "lane-1",
+              "lane-3"
+            ],
+            [
+              "lane-1",
+              "lane-5"
+            ]
+          ],
+          "cost": 33693415,
+          "cost_unit": "tokens",
+          "cost_unknown": false,
+          "coverage": 1.0,
+          "covered": 25
+        },
+        "3": {
+          "best": [
+            [
+              "lane-1",
+              "lane-2",
+              "lane-3"
+            ],
+            [
+              "lane-1",
+              "lane-2",
+              "lane-4"
+            ],
+            [
+              "lane-1",
+              "lane-2",
+              "lane-5"
+            ],
+            [
+              "lane-1",
+              "lane-3",
+              "lane-4"
+            ],
+            [
+              "lane-1",
+              "lane-3",
+              "lane-5"
+            ],
+            [
+              "lane-1",
+              "lane-4",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 25
+        },
+        "4": {
+          "best": [
+            [
+              "lane-1",
+              "lane-2",
+              "lane-3",
+              "lane-4"
+            ],
+            [
+              "lane-1",
+              "lane-2",
+              "lane-3",
+              "lane-5"
+            ],
+            [
+              "lane-1",
+              "lane-2",
+              "lane-4",
+              "lane-5"
+            ],
+            [
+              "lane-1",
+              "lane-3",
+              "lane-4",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 25
+        },
+        "5": {
+          "best": [
+            [
+              "lane-1",
+              "lane-2",
+              "lane-3",
+              "lane-4",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 25
+        }
+      },
+      "caught_matrix": {
+        "G01": [
+          "lane-1"
+        ],
+        "G02": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G03": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-5"
+        ],
+        "G04": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G05": [
+          "lane-1",
+          "lane-3",
+          "lane-5"
+        ],
+        "G06": [
+          "lane-1"
+        ],
+        "G07": [
+          "lane-1"
+        ],
+        "G08": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G09": [
+          "lane-1",
+          "lane-4"
+        ],
+        "G10": [
+          "lane-1"
+        ],
+        "G11": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G12": [
+          "lane-1"
+        ],
+        "G13": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G14": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G15": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4"
+        ],
+        "G16": [
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G17": [
+          "lane-1"
+        ],
+        "G18": [
+          "lane-1"
+        ],
+        "G19": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G20": [
+          "lane-1",
+          "lane-4"
+        ],
+        "G21": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G22": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G23": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-5"
+        ],
+        "G24": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "G25": [
+          "lane-2",
+          "lane-3",
+          "lane-5"
+        ]
+      },
+      "epoch": "2026-08-22",
+      "false_raises": {
+        "lane-1": [],
+        "lane-2": [],
+        "lane-3": [],
+        "lane-4": [],
+        "lane-5": []
+      },
+      "merges": {
+        "form": "B (caught_by declared; merges upstream)",
+        "mappings": null,
+        "merge_decisions": 0,
+        "note": "no merge decisions were made by this reduction: the input declared caught sets directly and the race's own grader documented the dedup. The input notes must name that documentation.",
+        "policy": "Union = the 25 batch claims themselves, so no cross-lane phrasing merges were needed: every lane rendered exactly one verdict per claim. The only mapping work was keying normalization (two schemes -> batch labels, see notes). caught_by per item = lanes the grader majority (>=3 of 5 grade files T644-T648) ruled correct on the status axis; per-grader matrices and their disagreement band live in docs/infra/complementarity.md.",
+        "raw_findings": null,
+        "split_decisions": 0
+      },
+      "n": 25,
+      "n_false_excluded": 0,
+      "n_uncertain_excluded": 0,
+      "overlap_matrix": {
+        "lane-1": {
+          "lane-2": {
+            "jaccard": 0.52,
+            "shared": 13
+          },
+          "lane-3": {
+            "jaccard": 0.56,
+            "shared": 14
+          },
+          "lane-4": {
+            "jaccard": 0.541667,
+            "shared": 13
+          },
+          "lane-5": {
+            "jaccard": 0.52,
+            "shared": 13
+          }
+        },
+        "lane-2": {
+          "lane-1": {
+            "jaccard": 0.52,
+            "shared": 13
+          },
+          "lane-3": {
+            "jaccard": 0.9375,
+            "shared": 15
+          },
+          "lane-4": {
+            "jaccard": 0.705882,
+            "shared": 12
+          },
+          "lane-5": {
+            "jaccard": 0.875,
+            "shared": 14
+          }
+        },
+        "lane-3": {
+          "lane-1": {
+            "jaccard": 0.56,
+            "shared": 14
+          },
+          "lane-2": {
+            "jaccard": 0.9375,
+            "shared": 15
+          },
+          "lane-4": {
+            "jaccard": 0.666667,
+            "shared": 12
+          },
+          "lane-5": {
+            "jaccard": 0.9375,
+            "shared": 15
+          }
+        },
+        "lane-4": {
+          "lane-1": {
+            "jaccard": 0.541667,
+            "shared": 13
+          },
+          "lane-2": {
+            "jaccard": 0.705882,
+            "shared": 12
+          },
+          "lane-3": {
+            "jaccard": 0.666667,
+            "shared": 12
+          },
+          "lane-5": {
+            "jaccard": 0.611111,
+            "shared": 11
+          }
+        },
+        "lane-5": {
+          "lane-1": {
+            "jaccard": 0.52,
+            "shared": 13
+          },
+          "lane-2": {
+            "jaccard": 0.875,
+            "shared": 14
+          },
+          "lane-3": {
+            "jaccard": 0.9375,
+            "shared": 15
+          },
+          "lane-4": {
+            "jaccard": 0.611111,
+            "shared": 11
+          }
+        }
+      },
+      "overlap_note": null,
+      "per_lane": {
+        "lane-1": {
+          "catches": 23,
+          "cost": 26604448,
+          "cost_note": "tokens.jsonl clean reading, in+out",
+          "cost_unit": "tokens",
+          "model": "claude-opus-5",
+          "source": "findings/TT640-race-g.json",
+          "source_sha256": null,
+          "task_id": "T640",
+          "unique_catch_over_union": 0.28,
+          "unique_catch_rate": 0.304348,
+          "unique_catches": 7
+        },
+        "lane-2": {
+          "catches": 15,
+          "cost": 7088967,
+          "cost_note": "tokens.jsonl clean reading, in+out",
+          "cost_unit": "tokens",
+          "model": "claude-sonnet-5",
+          "source": "findings/TT641-race-g.json",
+          "source_sha256": null,
+          "task_id": "T641",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "lane-3": {
+          "catches": 16,
+          "cost": null,
+          "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
+          "cost_unit": "tokens",
+          "model": "deepseek-v4-pro",
+          "source": "findings/TT639-race-g.json",
+          "source_sha256": null,
+          "task_id": "T639",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "lane-4": {
+          "catches": 14,
+          "cost": 3838076,
+          "cost_note": "tokens.jsonl clean reading, in+out",
+          "cost_unit": "tokens",
+          "model": "claude-haiku-4-5-20251001",
+          "source": "findings/TT642-race-g.json",
+          "source_sha256": null,
+          "task_id": "T642",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "lane-5": {
+          "catches": 15,
+          "cost": null,
+          "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
+          "cost_unit": "tokens",
+          "model": "deepseek-v4-flash",
+          "source": "findings/TT638-race-g.json",
+          "source_sha256": null,
+          "task_id": "T638",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        }
+      },
+      "prior_warning": true,
+      "race_ids": [
+        "race-g"
+      ],
+      "sample_note": "numbers from 1 race(s) (race-g); a complementarity number from one race is a PRIOR, labelled one, not a measurement — re-run as more races are absorbed.",
+      "spec": "docs/epistemic/CLAIMS.md (25 claims, batch G01..G25)",
+      "task_type": "claim-doubt",
+      "uncaught_items": []
+    },
+    "discernment-scoring/2026-08-22": {
+      "best_subsets": {
+        "1": {
+          "best": [
+            [
+              "scorer-4"
+            ]
+          ],
+          "cost": 1713162,
+          "cost_unit": "tokens",
+          "cost_unknown": false,
+          "coverage": 1.0,
+          "covered": 9
+        },
+        "2": {
+          "best": [
+            [
+              "scorer-1",
+              "scorer-3"
+            ],
+            [
+              "scorer-1",
+              "scorer-4"
+            ],
+            [
+              "scorer-2",
+              "scorer-3"
+            ],
+            [
+              "scorer-2",
+              "scorer-4"
+            ],
+            [
+              "scorer-3",
+              "scorer-4"
+            ],
+            [
+              "scorer-3",
+              "scorer-5"
+            ],
+            [
+              "scorer-4",
+              "scorer-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 9
+        },
+        "3": {
+          "best": [
+            [
+              "scorer-1",
+              "scorer-2",
+              "scorer-3"
+            ],
+            [
+              "scorer-1",
+              "scorer-2",
+              "scorer-4"
+            ],
+            [
+              "scorer-1",
+              "scorer-3",
+              "scorer-4"
+            ],
+            [
+              "scorer-1",
+              "scorer-3",
+              "scorer-5"
+            ],
+            [
+              "scorer-1",
+              "scorer-4",
+              "scorer-5"
+            ],
+            [
+              "scorer-2",
+              "scorer-3",
+              "scorer-4"
+            ],
+            [
+              "scorer-2",
+              "scorer-3",
+              "scorer-5"
+            ],
+            [
+              "scorer-2",
+              "scorer-4",
+              "scorer-5"
+            ],
+            [
+              "scorer-3",
+              "scorer-4",
+              "scorer-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 9
+        },
+        "4": {
+          "best": [
+            [
+              "scorer-1",
+              "scorer-2",
+              "scorer-3",
+              "scorer-4"
+            ],
+            [
+              "scorer-1",
+              "scorer-2",
+              "scorer-3",
+              "scorer-5"
+            ],
+            [
+              "scorer-1",
+              "scorer-2",
+              "scorer-4",
+              "scorer-5"
+            ],
+            [
+              "scorer-1",
+              "scorer-3",
+              "scorer-4",
+              "scorer-5"
+            ],
+            [
+              "scorer-2",
+              "scorer-3",
+              "scorer-4",
+              "scorer-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 9
+        },
+        "5": {
+          "best": [
+            [
+              "scorer-1",
+              "scorer-2",
+              "scorer-3",
+              "scorer-4",
+              "scorer-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 9
+        }
+      },
+      "caught_matrix": {
+        "pair-1-orient": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-2-minimal": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-2-orient": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-3-minimal": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-3-orient": [
+          "scorer-3",
+          "scorer-4"
+        ],
+        "pair-4-minimal": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-4-orient": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-6-minimal": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ],
+        "pair-6-orient": [
+          "scorer-1",
+          "scorer-2",
+          "scorer-3",
+          "scorer-4",
+          "scorer-5"
+        ]
+      },
+      "epoch": "2026-08-22",
+      "false_raises": {
+        "scorer-1": [],
+        "scorer-2": [],
+        "scorer-3": [],
+        "scorer-4": [],
+        "scorer-5": []
+      },
+      "merges": {
+        "form": "B (caught_by declared; merges upstream)",
+        "mappings": null,
+        "merge_decisions": 0,
+        "note": "no merge decisions were made by this reduction: the input declared caught sets directly and the race's own grader documented the dedup. The input notes must name that documentation.",
+        "policy": "Union = the 12 graded inputs, the race's own unit, so no phrasing merges were needed. caught_by per item = scorers the grader majority (>=3 of 4 graders with a matrix: T654, T655, T657, T658) ruled correct on the input; T655's trigger-level data is mapped to input level (input correct iff all three triggers correct). Items with a 2-2 grader split are verdict 'uncertain' with no caught_by — the contested reference is reported, not resolved by guessing. Per-grader matrices and the disagreement band live in docs/infra/complementarity.md.",
+        "raw_findings": null,
+        "split_decisions": 0
+      },
+      "n": 9,
+      "n_false_excluded": 0,
+      "n_uncertain_excluded": 3,
+      "overlap_matrix": {
+        "scorer-1": {
+          "scorer-2": {
+            "jaccard": 1.0,
+            "shared": 8
+          },
+          "scorer-3": {
+            "jaccard": 0.777778,
+            "shared": 7
+          },
+          "scorer-4": {
+            "jaccard": 0.888889,
+            "shared": 8
+          },
+          "scorer-5": {
+            "jaccard": 1.0,
+            "shared": 8
+          }
+        },
+        "scorer-2": {
+          "scorer-1": {
+            "jaccard": 1.0,
+            "shared": 8
+          },
+          "scorer-3": {
+            "jaccard": 0.777778,
+            "shared": 7
+          },
+          "scorer-4": {
+            "jaccard": 0.888889,
+            "shared": 8
+          },
+          "scorer-5": {
+            "jaccard": 1.0,
+            "shared": 8
+          }
+        },
+        "scorer-3": {
+          "scorer-1": {
+            "jaccard": 0.777778,
+            "shared": 7
+          },
+          "scorer-2": {
+            "jaccard": 0.777778,
+            "shared": 7
+          },
+          "scorer-4": {
+            "jaccard": 0.888889,
+            "shared": 8
+          },
+          "scorer-5": {
+            "jaccard": 0.777778,
+            "shared": 7
+          }
+        },
+        "scorer-4": {
+          "scorer-1": {
+            "jaccard": 0.888889,
+            "shared": 8
+          },
+          "scorer-2": {
+            "jaccard": 0.888889,
+            "shared": 8
+          },
+          "scorer-3": {
+            "jaccard": 0.888889,
+            "shared": 8
+          },
+          "scorer-5": {
+            "jaccard": 0.888889,
+            "shared": 8
+          }
+        },
+        "scorer-5": {
+          "scorer-1": {
+            "jaccard": 1.0,
+            "shared": 8
+          },
+          "scorer-2": {
+            "jaccard": 1.0,
+            "shared": 8
+          },
+          "scorer-3": {
+            "jaccard": 0.777778,
+            "shared": 7
+          },
+          "scorer-4": {
+            "jaccard": 0.888889,
+            "shared": 8
+          }
+        }
+      },
+      "overlap_note": null,
+      "per_lane": {
+        "scorer-1": {
+          "catches": 8,
+          "cost": 1603560,
+          "cost_note": "tokens.jsonl clean reading, in+out",
+          "cost_unit": "tokens",
+          "model": "claude-sonnet-5",
+          "source": "findings/TT621-race-c.json",
+          "source_sha256": null,
+          "task_id": "T621",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "scorer-2": {
+          "catches": 8,
+          "cost": null,
+          "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
+          "cost_unit": "tokens",
+          "model": "deepseek-v4-flash",
+          "source": "findings/TT624-race-c.json",
+          "source_sha256": null,
+          "task_id": "T624",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "scorer-3": {
+          "catches": 8,
+          "cost": null,
+          "cost_note": "no structured usage in untracked/tokens/tokens.jsonl",
+          "cost_unit": "tokens",
+          "model": "deepseek-v4-pro",
+          "source": "findings/TT623-race-c.json",
+          "source_sha256": null,
+          "task_id": "T623",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "scorer-4": {
+          "catches": 9,
+          "cost": 1713162,
+          "cost_note": "tokens.jsonl clean reading, in+out",
+          "cost_unit": "tokens",
+          "model": "claude-opus-5",
+          "source": "findings/TT622-race-c.json",
+          "source_sha256": null,
+          "task_id": "T622",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "scorer-5": {
+          "catches": 8,
+          "cost": 1403846,
+          "cost_note": "tokens.jsonl clean reading, in+out",
+          "cost_unit": "tokens",
+          "model": "claude-haiku-4-5-20251001",
+          "source": "findings/TT620-race-c.json",
+          "source_sha256": null,
+          "task_id": "T620",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        }
+      },
+      "prior_warning": true,
+      "race_ids": [
+        "race-c"
+      ],
+      "sample_note": "numbers from 1 race(s) (race-c); a complementarity number from one race is a PRIOR, labelled one, not a measurement — re-run as more races are absorbed.",
+      "spec": "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-b-discernment/ (12 inputs)",
+      "task_type": "discernment-scoring",
       "uncaught_items": []
     },
     "spec-audit/2026-08-22": {

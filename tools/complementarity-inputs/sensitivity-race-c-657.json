@@ -1,0 +1,191 @@
+{
+ "schema": "race-input",
+ "schema_version": 1,
+ "race_id": "race-c",
+ "task_type": "discernment-scoring",
+ "epoch": "2026-08-22",
+ "spec": "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-b-discernment/ (12 inputs)",
+ "merge_policy": "Union = the 12 graded inputs, the race's own unit, so no phrasing merges were needed. caught_by per item = scorers the grader majority (solely grade file T657 — sensitivity run) ruled correct on the input; T655's trigger-level data is mapped to input level (input correct iff all three triggers correct). Items with a 2-2 grader split are verdict 'uncertain' with no caught_by — the contested reference is reported, not resolved by guessing. Per-grader matrices and the disagreement band live in docs/infra/complementarity.md.",
+ "notes": "Race C = discernment scoring (12 inputs pair-{1..6}-{minimal,orient}, two sealed null controls pair-6-*; T-D shape), five lanes findings/T62{0,1,2,3,4}-race-c.json, five independent grades findings/T65{4,5,6,7,8}-race-c-grade.json, attribution from the sealed key untracked/race-grading/race-c-grade/KEY.json. CONTROLS: pair-6-minimal and pair-6-orient are the sealed null controls; every grader's control check reports all five scorers matched the sealed key exactly, so they are non-discriminating union members (all five caught). CENSUS: T654 (provider-limit kill) was killed and salvaged — its grade is complete, present and scored. GRADER AGGREGATION: four of the five graders carry a per-item matrix (T654 matched-my-ruling, T657/T658 got-it-right, T655 trigger-granular mapped to inputs: input correct iff all three triggers correct, with the 7 unanimous inputs all-correct for every scorer); T656 has no per-item matrix (narrative only) and is excluded from the poll, stated. caught_by = majority >=3 of those four. The three items where the four graders split 2-2 (pair-1-minimal, pair-5-minimal, pair-5-orient) carry verdict 'uncertain' and NO caught_by: the reference ruling itself is contested, so they are excluded from every rate and reported separately rather than guessed. Grader cell agreement range: 67-92%. Sensitivity per grader: sensitivity-race-c-<T>.json. COSTS from untracked/tokens/tokens.jsonl, clean structured readings only (T621/T622 have one api-error zero-usage entry plus one clean reading; clean used, ambiguity flagged); deepseek scorers (T624, T623) have no structured usage, stated unknown. KEY sha256s hash the sealed originals, not the findings/ files (checked: they do not verify against findings/ paths); attribution taken from the KEY regardless.",
+ "union": [
+  {
+   "id": "pair-1-minimal",
+   "statement": "pair-1-minimal (Race B discernment input; control iff pair-6)",
+   "verdict": "uncertain",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3"
+   ]
+  },
+  {
+   "id": "pair-1-orient",
+   "statement": "pair-1-orient (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-2-minimal",
+   "statement": "pair-2-minimal (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-2-orient",
+   "statement": "pair-2-orient (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-3-minimal",
+   "statement": "pair-3-minimal (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-3-orient",
+   "statement": "pair-3-orient (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-3",
+    "scorer-4"
+   ]
+  },
+  {
+   "id": "pair-4-minimal",
+   "statement": "pair-4-minimal (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-4-orient",
+   "statement": "pair-4-orient (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-5-minimal",
+   "statement": "pair-5-minimal (Race B discernment input; control iff pair-6)",
+   "verdict": "uncertain",
+   "caught_by": [
+    "scorer-3",
+    "scorer-4"
+   ]
+  },
+  {
+   "id": "pair-5-orient",
+   "statement": "pair-5-orient (Race B discernment input; control iff pair-6)",
+   "verdict": "uncertain",
+   "caught_by": [
+    "scorer-3",
+    "scorer-4"
+   ]
+  },
+  {
+   "id": "pair-6-minimal",
+   "statement": "pair-6-minimal (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  },
+  {
+   "id": "pair-6-orient",
+   "statement": "pair-6-orient (Race B discernment input; control iff pair-6)",
+   "verdict": "real",
+   "caught_by": [
+    "scorer-1",
+    "scorer-2",
+    "scorer-3",
+    "scorer-4",
+    "scorer-5"
+   ]
+  }
+ ],
+ "lanes": [
+  {
+   "id": "scorer-1",
+   "model": "claude-sonnet-5",
+   "task_id": "T621",
+   "source": "findings/TT621-race-c.json",
+   "cost": 1603560,
+   "cost_unit": "tokens",
+   "cost_note": "tokens.jsonl clean reading, in+out"
+  },
+  {
+   "id": "scorer-2",
+   "model": "deepseek-v4-flash",
+   "task_id": "T624",
+   "source": "findings/TT624-race-c.json",
+   "cost": null,
+   "cost_unit": "tokens",
+   "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
+  },
+  {
+   "id": "scorer-3",
+   "model": "deepseek-v4-pro",
+   "task_id": "T623",
+   "source": "findings/TT623-race-c.json",
+   "cost": null,
+   "cost_unit": "tokens",
+   "cost_note": "no structured usage in untracked/tokens/tokens.jsonl"
+  },
+  {
+   "id": "scorer-4",
+   "model": "claude-opus-5",
+   "task_id": "T622",
+   "source": "findings/TT622-race-c.json",
+   "cost": 1713162,
+   "cost_unit": "tokens",
+   "cost_note": "tokens.jsonl clean reading, in+out"
+  },
+  {
+   "id": "scorer-5",
+   "model": "claude-haiku-4-5-20251001",
+   "task_id": "T620",
+   "source": "findings/TT620-race-c.json",
+   "cost": 1403846,
+   "cost_unit": "tokens",
+   "cost_note": "tokens.jsonl clean reading, in+out"
+  }
+ ]
+}
