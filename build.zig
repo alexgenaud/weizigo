@@ -306,6 +306,21 @@ pub fn build(b: *std.Build) void {
     runner_guard_regression.cwd = b.path(".");
     test_step.dependOn(&runner_guard_regression.step);
 
+    // ── startup-liveness controls (T586) ────────────────────────────
+    // The nonce-stall failure mode: a dispatched pi/deepseek worker
+    // produced ZERO stdout/stderr for its whole run (its activity goes only
+    // to the per-session JSONL), so tools/runner saw a "silent child" and
+    // SIGKILLed at --max-wall — a 45-minute burn for a worker that WAS
+    // reading the bundle.  T586: agent lanes (pi/claude/ollama) treat any
+    // output as a liveness signal, and an agent lane that emits nothing
+    // within --startup-timeout is killed LOUDLY instead.  Arms: red
+    // (silent pi-named stub killed with 'startup liveness timeout'), green
+    // (stub that echoes the nonce is untouched), scoping (a non-agent
+    // command silent past the timeout is untouched — the check is scoped).
+    const startup_liveness_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-startup-liveness.sh" });
+    startup_liveness_regression.cwd = b.path(".");
+    test_step.dependOn(&startup_liveness_regression.step);
+
     // ── suite-child reaping controls (T548) ───────────────────────────
     // Dead workers must not leak suite children: on 2026-08-20 the fleet
     // measured orphaned `zig test` binaries holding multi-GB RSS (9.1 GB at

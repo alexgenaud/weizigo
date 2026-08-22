@@ -1371,6 +1371,41 @@ def _argv_provider(argv):
     return None
 
 
+# ── T586: agent-lane detection (the startup-liveness scope) ─────────────────
+#
+# The nonce-stall failure mode was a dispatched pi/deepseek worker producing
+# ZERO stdout/stderr for its whole run — its activity (reasoning, tool
+# calls) goes only to ~/.pi/agent/sessions/<cwd-slug>/<uuid>.jsonl, never to
+# the captured streams.  tools/runner saw a "silent child" and SIGKILLed at
+# --max-wall, so a worker that WAS reading the bundle and working got killed
+# mid-task and verify_dispatch mis-reported "nonce: the worker did not read
+# the instruction bundle".
+#
+# The fix has two halves, both scoped to agent lanes (the dispatched model
+# workers) so generic `zig build`-shaped runs keep their wall/CPU semantics:
+#   1. stdout output from an agent lane counts as a liveness signal — a
+#      streaming worker is never mis-classified "silent";
+#   2. an agent lane that emits NOTHING within --startup-timeout of launch
+#      is killed LOUDLY with a distinct reason — a 10-minute anomaly, not
+#      a silent 45-minute burn.
+#
+# Detection is by the child binary's basename: pi (deepseek), claude, and
+# ollama are the three dispatch providers bin/subagent launches.  The
+# regression stubs (fake-pi) deliberately do NOT match so the token-capture
+# and session-capture controls are untouched.
+AGENT_LANE_BINARIES = ("pi", "claude", "ollama")
+
+
+def _is_agent_lane(argv):
+    """True when the wrapped child is a dispatched model worker (pi/claude/
+    ollama), the only lanes the startup-liveness check and stdout-as-progress
+    signal apply to.  A non-agent command (zig build, a test stub named
+    fake-pi) returns False and keeps the silent-child wall/CPU semantics."""
+    if not argv:
+        return False
+    return os.path.basename(argv[0]) in AGENT_LANE_BINARIES
+
+
 def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     task_identity, repo_root, start_ts, rc, kill_reason=None):
     """The capture path for one run.  Returns a dict
@@ -1591,6 +1626,13 @@ def main():
                          "this many seconds (default 600 = 10 min). "
                          "Set 0 to disable progress watchdog (fallback "
                          "ceilings still apply).")
+    ap.add_argument("--startup-timeout", type=int, default=600,
+                    help="T586: for agent lanes (pi/claude/ollama), SIGKILL "
+                         "when the worker emits no output at all within this "
+                         "many seconds of launch (default 600 = 10 min; 0 to "
+                         "disable). A never-started worker is a loud anomaly, "
+                         "not a silent wall burn. Non-agent commands are "
+                         "unaffected.")
     ap.add_argument("--poll-ms", type=int, default=250,
                     help="RSS / CPU / wall check interval in ms (default 250)")
     ap.add_argument("--no-prepend-zig", action="store_true",
@@ -1668,6 +1710,14 @@ def main():
     claude_json_lane = _json_output_lane(argv)
     if claude_json_lane:
         print("[runner] token capture: claude json lane (envelope -> text + usage)",
+              file=sys.stderr)
+
+    # T586: agent lane — the dispatched model worker (pi/claude/ollama).
+    # Only these lanes get the startup-liveness check and stdout-as-progress
+    # signal (generic zig builds keep their wall/CPU semantics).
+    agent_lane = _is_agent_lane(argv)
+    if agent_lane and args.startup_timeout:
+        print(f"[runner] startup liveness: agent lane, timeout {args.startup_timeout}s",
               file=sys.stderr)
 
     cap_bytes = args.rss_cap_mb * 1024 * 1024
@@ -1866,11 +1916,27 @@ def main():
                         if not claude_json_lane:
                             sys.stdout.write(chunk)
                             sys.stdout.flush()
+                        # T586: for an agent lane, any stdout output is a
+                        # liveness/progress signal — a streaming pi/claude
+                        # worker is never mis-classified "silent" and killed
+                        # at the wall ceiling mid-work.
+                        if agent_lane:
+                            last_progress_time = time.monotonic()
+                            if not progress_seen:
+                                progress_seen = True
+                                print(f"[runner] progress watchdog active (first agent-lane stdout seen)", file=sys.stderr)
                 if proc.stderr in r:
                     chunk = proc.stderr.read()
                     if chunk:
                         stderr_full.append(chunk)
                         stderr_buf += chunk
+                        # T586: agent-lane stderr (e.g. a provider error or
+                        # a warning) is equally a liveness signal.
+                        if agent_lane:
+                            last_progress_time = time.monotonic()
+                            if not progress_seen:
+                                progress_seen = True
+                                print(f"[runner] progress watchdog active (first agent-lane stderr seen)", file=sys.stderr)
                         # Process complete lines
                         while '\n' in stderr_buf:
                             line, stderr_buf = stderr_buf.split('\n', 1)
@@ -2050,7 +2116,19 @@ def main():
             else:
                 # Fallback: silent child — use traditional wall/CPU ceilings
                 progress_notice_printed = False  # kept in outer scope for diagnostics
-                if args.max_wall and elapsed >= args.max_wall:
+                # T586: an agent lane that has emitted NOTHING since launch is
+                # a never-started worker — kill it LOUDLY at --startup-timeout
+                # (default 10 min), not silently at the wall ceiling 45 min
+                # later.  Non-agent commands are unaffected (this branch is
+                # their wall/CPU fallback exactly as before).
+                if agent_lane and args.startup_timeout > 0 and elapsed >= args.startup_timeout:
+                    kill_reason = (
+                        f"startup liveness timeout {args.startup_timeout}s "
+                        f"({_format_duration(args.startup_timeout)}) — agent "
+                        f"lane produced no output since launch (bundle never "
+                        f"read?)"
+                    )
+                elif args.max_wall and elapsed >= args.max_wall:
                     kill_reason = (
                         f"wall ceiling {args.max_wall}s "
                         f"({_format_duration(args.max_wall)}) reached "

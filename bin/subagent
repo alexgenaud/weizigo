@@ -249,7 +249,14 @@ def main(argv):
         cmd = ["tools/runner", "--max-wall", wall]
         if rss_mb:
             cmd.extend(["--rss-cap-mb", rss_mb])
-        cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model, "-p", prompt])
+        # T586: --mode json makes pi stream its session events (reasoning,
+        # tool calls, usage) to stdout in real time instead of buffering
+        # until the final reply.  That stream is the liveness signal
+        # tools/runner needs to tell a working worker from a hung one — the
+        # nonce-stall failure mode was a pi worker producing ZERO stdout
+        # for its whole run and being SIGKILLed at --max-wall mid-work.
+        cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model,
+                    "--mode", "json", "-p", prompt])
     elif provider == "claude":
         # T494: the headless Claude Code harness. The model runs in its own
         # process (claude -p), never through the Anthropic API from here —
