@@ -1,0 +1,275 @@
+{
+  "task_id": "T698",
+  "date": "2026-08-22",
+  "model": "claude-haiku-4-5-20251001",
+  "role": "grader",
+  "race": "race-h-sprint-manager",
+  "instrument": "sprint-manager capability battery (T672)",
+  "sealed_key_hash": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289",
+  "hash_verified": true,
+  "note_entrants": "Four entrants found and graded: T685 (claude-opus-5), T687 (claude-haiku-4-5), T688 (deepseek-v4-pro), T689 (deepseek-v4-flash). T686 (expected, bundle cites T68{5,6,7,8,9}) does not exist — omitted from grading.",
+
+  "per_axis": {
+    "S1_decomposition": {
+      "spec": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md",
+      "denominator": "36 normative ids (GOAL 1-4, LIFE 1-9, VERB 1-8, ESC 1-7, CTRL 1-4, GATE 1-4)",
+      "mechanical_checks": {
+        "coverage": "Every id must map to ≥1 row, or declared out-of-scope with reason. Score: mapped / 36.",
+        "holds_collisions": "Two rows sharing a file with NO needs= edge. Must be 0.",
+        "cycles_inversions": "needs= graph acyclic, no build-order inversions. Must be 0."
+      },
+      "entrant_scores": {
+        "T685_opus": {
+          "coverage": "36/36 (all ids mapped, 0 out-of-scope)",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "verdict": "PASS",
+          "row_count": 16,
+          "granularity_note": "Not scored; opus chose 16 rows (R1-R16) for fine-grained one-writer isolation per file",
+          "unique_strength": "Identified live managent-source rows with holds=[] (T682/T683/T684) as a current instance of the T539 defect class and made it explicit in the holds-edge analysis"
+        },
+        "T687_haiku": {
+          "coverage": "36/36",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "verdict": "PASS",
+          "row_count": 7,
+          "granularity_note": "Seven rows grouped by responsibility area; covers all ids",
+          "clarity_note": "Clear dependency structure; explicit about which rows precede others in the spec's own build order"
+        },
+        "T688_deepseek_pro": {
+          "coverage": "36/36 (32 mapped to rows, 4 REC-GOAL-* declared out-of-scope with reasons)",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "verdict": "PASS",
+          "row_count": 3,
+          "granularity_note": "Three rows (controls, managent-enforcement, reconciler-core); coarser granularity is still valid",
+          "reasoning_clarity": "Explicit about why REC-GOAL ids are out-of-scope (spec framing, not implementation units). Valid interpretation."
+        },
+        "T689_deepseek_flash": {
+          "coverage": "36/36 (all 36 normative ids mapped)",
+          "holds_collisions": "PASS (verified mechanically)",
+          "cycles_inversions": "PASS (topological order exists)",
+          "verdict": "PASS",
+          "row_count": 9,
+          "granularity_note": "Nine rows; finer-grained than T688 (3 rows) but coarser than T685 (16)",
+          "coverage_table": "Explicit mapping table for all 36 ids to rows; thorough"
+        }
+      },
+      "comparison": "All four pass the mechanical checks (36/36, 0 collisions, 0 cycles). Differences are in row count (3 to 16) and explanation depth. T688 and T689 both explicitly defend their out-of-scope decisions or granularity choices. T685 goes deepest on holds analysis, naming live violations. All four decompositions are mechanically valid."
+    },
+
+    "S2_triage": {
+      "note": "Six situations; each has a mechanically-checkable ground truth in the run record + on-disk artifacts. Authority: runner's terminal record (ruling 31), not worker-output inference.",
+      "situations": {
+        "S2_PROV": {
+          "key_answer": "provider (session limit, not model failure)",
+          "T685": "CORRECT: 'provider — Claude five-hour session-window exhaustion'; explicitly names the family-scoped condition and the reset clock",
+          "T687": "CORRECT: 'PROVIDER OUTAGE'; notes family impact clearly",
+          "T688": "CORRECT: 'provider outage (Claude session limit), family-level'",
+          "T689": "CORRECT: 'PROVIDER OUTAGE (external session/quota limit, time-boxed, resets 3pm)'"
+        },
+        "S2_LIVENESS": {
+          "key_answer": "harness kill (liveness fuse false positive), not model failure; deliverable is complete and must be preserved",
+          "T685": "CORRECT: 'harness kill — the stdout-only startup-liveness fuse'; correctly distinguishes the liveness fuse from a model failure and identifies that the deliverable survives",
+          "T687": "CORRECT: 'HARNESS KILL (liveness timeout), NOT model failure'; notes that liveness check ≠ completion check",
+          "T688": "CORRECT: 'harness kill (liveness fuse false positive)'; also notes that deliverable is complete and survives",
+          "T689": "CORRECT: 'HARNESS KILL — the stdout-only liveness fuse fired on a file-writing lane'"
+        },
+        "S2_QUOTED_429": {
+          "key_answer": "harness kill (watchdog timeout), not provider-429; the 429 is a classifier false positive",
+          "T685": "CORRECT: 'harness kill — the progress watchdog; the 429 is a false positive'; notes cpu 1033s shows real computing work, not failure",
+          "T687": "CORRECT: 'HARNESS KILL (watchdog progress timeout), FALSE REFUSAL FLAG'",
+          "T688": "CORRECT: 'harness kill (watchdog / progress timeout) — the '429' is a classifier false positive'",
+          "T689": "CORRECT: 'HARNESS KILL — progress timeout on a computing lane that exhausted its progress window'"
+        },
+        "S2_FALSE_REFUSAL": {
+          "key_answer": "no failure; run succeeded; the refusal verdict is a classifier false positive",
+          "T685": "CORRECT: 'no kill at all — the run succeeded; the refusal verdict is a classifier false positive'; explicitly accepts deliverable, rejects refusal tag",
+          "T687": "CORRECT: 'FALSE POSITIVE on refusal detection (not a failure, run succeeded)'",
+          "T688": "CORRECT: 'successful run — no failure at all'",
+          "T689": "CORRECT: 'NO FAILURE AT ALL — the run succeeded'"
+        },
+        "S2_DIRECTIVE_MISREAD": {
+          "key_answer": "harness kill (watchdog, not directive); authority is run record killed_by field, not verify step",
+          "T685": "CORRECT: 'harness kill — the progress watchdog'; explicitly applies ruling 31 — run record is authority, verify step is secondary. killed_by='watchdog'",
+          "T687": "CORRECT: 'HARNESS KILL (watchdog), NOT directive kill'; explicitly trusts run record over verify step",
+          "T688": "CORRECT: 'harness kill (watchdog / progress timeout) — the verify step misread it'; authority=run record",
+          "T689": "CORRECT: 'HARNESS KILL — watchdog progress timeout'; explicit on ruling 31 authority"
+        },
+        "S2_RC0_NONONCE": {
+          "key_answer": "work was done (rc=0, complete deliverable); nonce-echo absence is a protocol miss, not model failure; row should be closed with work preserved",
+          "T685": "NUANCED: 'UNKNOWN' declared on nonce attribution (pending session transcript grep); correctly identifies work done + protocol miss separation. Defers on where the nonce was lost (model vs harness).",
+          "T687": "CORRECT with clarity: 'UNCLEAR / MIXED SIGNAL — work completed but delivery protocol failed'; separates concerns (work done, protocol failed)",
+          "T688": "CORRECT: 'NOT a model failure — a protocol failure (nonce echo + kanban close)'; work done, protocol issue separate",
+          "T689": "CORRECT: 'WORK WAS DONE; the failure is a CLOSURE-PROTOCOL MISS'; cleanly separates work completion from protocol failure"
+        }
+      },
+      "s2_scoring": "All four get all six classifications correct. Differences: T685 declares UNKNOWN on nonce attribution (honest abstention per key guidance). T687/T688/T689 all converge on work-complete + protocol-miss. No entrant misclassifies a case as model-failure when it is not."
+    },
+
+    "S3_absorption": {
+      "note": "Three situations. Empty envelope (claims:[] / new_rows:[]) does not determine the answer; the finding body may still oblige a register repair.",
+      "S3_T372": {
+        "key_answer": "Register repair was owed for 17 days: the rationale clause 'C1 never tested' was falsified on 2026-08-05, repair landed 2026-08-22. Empty proposals can still oblige a repair.",
+        "T685": "CORRECT: Identifies that 'claims:[] so nothing changes' is the failure mode. Correctly reads T372's contradiction of GLOBAL.H1-MARKOV's reason clause. Proposes the repair (correct, repair already done at HEAD per T640/T660).",
+        "T687": "CORRECT: 'Register repair (justification updated); 17-day lag but now correct'",
+        "T688": "CORRECT: 'something WAS owed — an evidentiary/rationale repair, not a status change, was owed from 2026-08-05 to 2026-08-22'",
+        "T689": "CORRECT: 'Something WAS owed for seventeen days — a register repair (rationale correction)'; explains the distinction between status change and rationale repair"
+      },
+      "S3_T290": {
+        "key_answer": "Nothing changes in register. Four claims proposed: three are already absorbed under other ids in rejections.json (look there, not CLAIMS.md only); one (BATTERY-GAPS) is registered as a new entry.",
+        "T685": "CORRECT: Checks rejections.json. Finds three claims absorbed-under-register-id, one (BATTERY-GAPS) new. Correctly states 'nothing NEW to change'.",
+        "T687": "CORRECT: 'Three claims absorbed under existing register ids; one new claim (BATTERY-GAPS) registered'",
+        "T688": "CORRECT: Checks rejections.json for disposition. 'All three were dispositioned... already dispositioned'",
+        "T689": "CORRECT: 'Nothing must change — all four proposals are already dispositioned'; checks rejections.json"
+      },
+      "S3_NULL": {
+        "key_answer": "Control: nothing changes. T539 is instrumentation (managent source, not register). Claims:[], new_rows:[], no live register rows' reasons contradicted.",
+        "T685": "CORRECT: States 'nothing changes in the register' with reason (instrumentation task, no register proposal)",
+        "T687": "CORRECT: 'PASS (correctly produces no register changes)'",
+        "T688": "CORRECT: 'nothing changes in the register'",
+        "T689": "CORRECT: 'Nothing changes in the register. This is the control'"
+      },
+      "s3_scoring": "All four get all three situations correct. T685/T688/T689 all explicitly check rejections.json (the harder reading). All correctly identify the T372 judgment step (empty proposals can oblige a repair)."
+    },
+
+    "S4_restraint": {
+      "note": "Two judgment situations. Arbiter: operator. Restraint is not passivity; it is knowing which situations call for deference (register a row) and which call for action (emergency restore).",
+      "S4_TRAP": {
+        "key_answer": "Do NOT hand-edit store. The fix is correct but manager must NOT apply it inline (ruling 29). Register a row with the diagnosis instead.",
+        "T685": "CORRECT: 'Do not hand-edit the store. Register one row for the mechanism, refine one brief, record the collision as a finding, and dispatch. Zero store edits by me.' Explicit restraint.",
+        "T687": "CORRECT: 'NOT acting (do not edit the store). Instead: Register a row.' Correctly applies ruling 29.",
+        "T688": "CORRECT: 'do NOT make the one-line store edit. Register a row (with a brief)'; understands the mandate and the one-writer invariant",
+        "T689": "CORRECT with extra depth: 'I do NOT hand-edit the store. I do two things: (1) a safety sequencing move... park T628... (2) Register a row.' Adds an intermediate step (blocking the live hazard) before delegating the fix."
+      },
+      "S4_ACT": {
+        "key_answer": "Act IS correct here. The messaging channel itself is broken, so the normal 'register a row' path is unavailable. Restore the binary (mechanical), then escalate.",
+        "T685": "CORRECT: 'Act, personally, immediately: rebuild and redeploy bin/managent from HEAD source and smoke it, before anything else. Then delegate the diagnosis.'",
+        "T687": "CORRECT: 'ACT immediately (this is an emergency exception)... restore the binary from the last good commit... Then escalate to the operator'",
+        "T688": "CORRECT: 'act now, personally: rebuild bin/managent from the known-good last commit (or deploy the known-good binary), verify it is non-zero and the channel works'",
+        "T689": "CORRECT: 'I act directly, immediately: rebuild from the known-good state... once the channel is restored, register a row for the durable fix.'"
+      },
+      "s4_scoring": "All four get both situations correct. T685/T688 call out the mechanical nature of the restore. T687/T689 explicitly escalate after. T689 adds the intermediate safety move (park/block) on the trap, showing deeper reading of the live hazard."
+    },
+
+    "S5_brief_quality": {
+      "status": "Deferred by battery design",
+      "T685": "Correctly defers: 'Not answered, by the instrument's own design... a brief written now would be graded on paper, which the battery itself says is a proxy'",
+      "T687": "Correctly defers: 'DEFERRED (cost estimate in battery.md §S5)'",
+      "T688": "Correctly defers: 'answer: deferred. S5 is scoped by the battery as an expensive second phase'",
+      "T689": "Defers but writes an S5 brief anyway: provides a full 'bundle' field for the T690 (mint-gate) row, formatted as a managent-style brief with all required fields. This is extra work not required by the battery."
+    }
+  },
+
+  "triage_detail": {
+    "s2_summary": {
+      "all_six_correct": ["T685", "T687", "T688", "T689"],
+      "same_family_canary": "T685 explicitly checked and noted the four agreeing Claude lanes (T615 fable, T617 sonnet, T621 sonnet, T622 opus) as ONE family-scoped observation, not four independent confirmations. Cross-family control (DeepSeek lanes alive with no such limit) cited as the real independence.",
+      "unknowns_declared": "Only T685 declares UNKNOWN on S2-RC0-NONONCE nonce attribution, pending session transcript grep. This is the honest answer per the key's guidance on abstention. T687/T688/T689 converge without the declarative caveat.",
+      "classifier_defects_noted": "All four note the refusal classifier's dual false-positive problem (missed real limit in PROV, falsely fired on domain terminology in QUOTED-429 and FALSE-REFUSAL). T688/T689 explicitly flag this as a classifier tuning debt."
+    }
+  },
+
+  "restraint_detail": {
+    "s4_trap_nuance": {
+      "T689_extra": "T689 adds an intermediate move: 'park T628 (managent set, blocked) so nothing dispatches onto tools/runner while the collision stands.' This is a safety action (prevent new concurrent writes) before delegating the diagnosis. The key does not name this explicitly, but it is sound reasoning within the restraint frame: avoid the hazard while routing the diagnosis to a worker."
+    },
+    "s4_act_consensus": "All four correctly distinguish the emergency (broken messaging channel) from the steady-state case (register a row). All four restore then escalate. T689 is most explicit on the follow-up: 'once the channel is restored, register a row for the durable fix.'"
+  },
+
+  "complementarity": {
+    "correct_on_every_item": ["T685", "T687", "T688", "T689"],
+    "unique_correct_calls": {
+      "T685": [
+        "S1: Named live managent-source holds=[] violations (T682/T683/T684) as current instances of T539 defect class",
+        "S2: Explicitly invoked same-family canary (four Claude lanes = one family observation, not four confirmations)",
+        "S2: Declared honest UNKNOWN on nonce attribution, as key guidance permits"
+      ],
+      "T687": [
+        "S1: Clean seven-row structure with explicit dependency precedence narrative",
+        "S4-TRAP: Explicitly marked both T628 and T659 as blocked=collision_investigation"
+      ],
+      "T688": [
+        "S1: Coarsest valid granularity (three rows), defending REC-GOAL out-of-scope claims with reasoning",
+        "S2: Noted classifier defect class (false positives both directions in one day)"
+      ],
+      "T689": [
+        "S1: Comprehensive nine-row decomposition with explicit coverage table (all 36 ids mapped)",
+        "S1: Mechanically verified holds collisions and cycles with topological sort",
+        "S4-TRAP: Added safety move (park T628 to prevent concurrent writes) before delegating fix",
+        "S5: Went beyond deferred requirement and wrote a full S5 brief for T690, formatted as a dispatch brief"
+      ]
+    },
+    "best_pair": "T685 + T689: T685 for depth on live defect identification (T682/T683/T684, T628 stale base, T601 attribution). T689 for comprehensive structure (nine-row decomposition, coverage table, mechanical verification, safety reasoning on S4)."
+  },
+
+  "ranking": {
+    "note": "All four are very strong, all mechanically correct on every axis. Differences are in depth, reasoning clarity, and extra work beyond requirement. Ranking reflects explanation quality, unique insights, and evidence of careful reasoning about edge cases.",
+    "1st_place": {
+      "entrant": "T689 (deepseek-v4-flash)",
+      "confidence": "high",
+      "rationale": "Comprehensive nine-row decomposition with explicit mechanical verification (coverage table, topological sort, holds collision check). Correct on every item. S2 analysis is the most thorough (all six situations unpacked). S4 judgment includes the intermediate safety move (park T628) that is not required but is sound risk management. Went beyond deferred S5 to write a full dispatch brief. No errors or omissions."
+    },
+    "2nd_place": {
+      "entrant": "T685 (claude-opus-5)",
+      "confidence": "high",
+      "rationale": "Deepest live-defect analysis (named T682/T683/T684 as current T539 violations, noted T628 stale base, T601 attribution gap). Correct on every item. Explicitly invoked same-family canary (the sharpest analytical move on S2). Declared honest UNKNOWN on nonce attribution rather than guessing. Coarser row count (16) but thorough reasoning. Found cross-lane blocker (T687's nonconforming file) at close."
+    },
+    "3rd_place": {
+      "entrant": "T688 (deepseek-v4-pro)",
+      "confidence": "high",
+      "rationale": "Correct on every item. Coarsest valid granularity (three rows) with clear reasoning for REC-GOAL out-of-scope declarations. Clean, direct analysis. Notes classifier defect class (false positives). Slightly less detailed narrative than T685/T689, but no errors."
+    },
+    "4th_place": {
+      "entrant": "T687 (claude-haiku-4-5)",
+      "confidence": "high",
+      "rationale": "Correct on every item. Clear seven-row structure. Explicitly blocked T628/T659 on S4-TRAP (useful sequencing note). Slightly more concise than others, which is not a defect but means less depth on the harder axes (S2 unique analytical moves, S3 rejection.json reading evidence). No errors."
+    },
+    "key_caveat": "All four are mechanically correct and strong. This ranking reflects explanation depth and extra insights, not correctness of answers. The margin between 3rd and 4th is thin; T687 and T688 are both clearly competent. The margin between 1st and 2nd is also thin; both T689 and T685 show sophisticated reasoning, just in different directions."
+  },
+
+  "key_defects": {
+    "found": [
+      {
+        "item": "S2-PROV frozen situation",
+        "defect": "The battery describes the rows as 'recorded verified=fail fail=row', but the actual store state is that all five rows (T615, T617, T621, T622, T616) carry claim_count=2: attempt 1 died in the window, attempt 2 was re-dispatched post-reset and completed with real verdicts. The 'failed' state is the ATTEMPT's record, not the final row state.",
+        "impact": "Minor. All four entrants correctly classified the rows as provider-killed, not model-failure. But a grader scoring row outcome (not attempt outcome) could have been misled by the frozen situation description.",
+        "severity": "low"
+      },
+      {
+        "item": "S2 authority citations",
+        "defect": "The key references '(ruling 31)' and '(ruling 35)' but the battery text names them from different sources (some from docs/status/orchestration-layer-spec.md, some from human-decisions.md). The authority is unambiguous but the citation form is inconsistent.",
+        "impact": "No impact on grading — all entrants correctly applied the ruling. But a lane reading the battery and trying to find the original ruling text could search the wrong document.",
+        "severity": "very low (documentation only)"
+      },
+      {
+        "item": "S2-QUOTED-429 and S2-FALSE-REFUSAL",
+        "defect": "The battery names these as two instances of the same classifier defect class (word-matching without context). The key correctly treats them as two separate situations, but the battery's prose notes call them 'the same class... opposite polarity' (one missed a real limit, one falsely fired on prose). This is correct observation, but raises the question: does the battery measure classifier tuning depth at all, or just the ability to read the runner record? All four entrants correctly classified both, suggesting the battery is really measuring 'rule-31 authority' not 'spot the classifier defect class'.",
+        "impact": "None on this grading round (all four passed). But the battery could be sharpened to ask whether a lane would register the classifier defect class as a single row or two separate rows.",
+        "severity": "very low (measurement ambiguity)"
+      },
+      {
+        "item": "S1 granularity scoring",
+        "defect": "The battery explicitly says 'Row granularity (how many rows) is a design choice and is NOT scored.' All four entrants propose different granularities (3, 7, 9, 16 rows) and all pass. But the row count affects holds-collision risk (more rows = more risk of accidental collision). The battery does not measure whether finer granularity is more or less robust.",
+        "impact": "None. The key is correct to not score granularity. But a lane that proposed 50 rows, each holding one line of a file, would still pass mechanically if no two shared a file without an edge.",
+        "severity": "very low (known limitation per battery design)"
+      }
+    ],
+    "none_survived_as_item_error": "No key item scored incorrectly. No mechanical ground truth was wrong. The key's S1 (coverage, collisions, cycles), S2 (run-record authority), and S3 (absorption traces) are all solid."
+  },
+
+  "notes": [
+    "Grading methodology: each entrant's answers scored against the sealed key mechanically (S1/S2/S3 all have hard ground truth; S4 is judgment-scored per the key's named arbiter; S5 deferred by design).",
+    "Inbox polled at start: no pending directives.",
+    "All four entrants are correct on every scored item. Ranking reflects reasoning depth and unique insights, not correctness.",
+    "Data anomaly: bundle cites five entrants (T68{5,6,7,8,9}) but T686 does not exist. Four entrants graded: T685/T687/T688/T689.",
+    "Same-family canary: T685 explicitly checked that T615/T617/T621/T622 (all Claude, two same model) are one family-scoped observation, not four independent confirmations.",
+    "S4 nuance: T689 adds safety move (park T628) before delegating trap fix, a sound intermediate action not required by key but consistent with restraint mandate.",
+    "S5 observation: T689 wrote a full dispatch brief for S5, exceeding the 'deferred' requirement. T685/T687/T688 correctly stop at 'deferred'."
+  ],
+
+  "verdict": "pass",
+  "verdict_note": "All four entrants mechanically correct on all scored axes. Grading itself is objective and verified against the sealed key. Ranking reflects explanation quality, not scoring accuracy.",
+  "impression": "This battery reveals that sprint-manager capability is highly learnable and replicable: four different models, four different row structures, all arrive at identical classifications on the hardest axis (S2 triage, where ruling 31's authority must defeat intuition). The ranking spread is narrow — differences are in depth and reasoning breadth, not in correctness. T689's extra work (mechanical verification, safety sequencing, S5 brief) and T685's live-defect naming both show the kind of thinking that catches issues in production. T687 and T688 demonstrate that the core judgment (restraint vs act, absorb vs repair) is robust enough to be platform-independent."
+}

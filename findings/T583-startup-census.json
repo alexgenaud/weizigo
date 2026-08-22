@@ -1,0 +1,275 @@
+{
+  "task_id": "T583",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "surfaces": [
+    {
+      "id": "S1",
+      "path": "AGENTS.md",
+      "lines": 391,
+      "reads": "every agent, every task — the router; the delegation docs and role docs all point back to it for foreclosures",
+      "classification": "clean",
+      "notes": "Internally consistent; every cited companion resolves on disk. Its line-number citations are pinned by OTHERS (see A2) and have drifted as AGENTS.md grew."
+    },
+    {
+      "id": "S2",
+      "path": "docs/infra/delegation/DELEGATEE.md",
+      "lines": 270,
+      "reads": "every worker executing a claimed task",
+      "classification": "contradictory",
+      "notes": "Line 83 names bin/ollama-subagent, removed 2026-08-20 (subdelegation.md:18-19). See A1."
+    },
+    {
+      "id": "S3",
+      "path": "docs/infra/delegation/DELEGATOR.md",
+      "lines": 213,
+      "reads": "whoever writes a task for another agent",
+      "classification": "clean",
+      "notes": "Cross-references resolve; model-assignment and concurrency principles agree with ROLES.md."
+    },
+    {
+      "id": "S4",
+      "path": "docs/infra/delegation/ROLES.md",
+      "lines": 191,
+      "reads": "whoever dispatches or is unsure of their role; the single most-cited companion of the delegation docs",
+      "classification": "clean, authoritative",
+      "notes": "§Concurrency is the authority others 'defer to' — but two of those others still carry the pre-ruling number (A3)."
+    },
+    {
+      "id": "S5",
+      "path": "docs/infra/sprint.md",
+      "lines": 156,
+      "reads": "whoever calls or executes a sprint",
+      "classification": "contradictory",
+      "notes": "Line 132 still asserts 'Max two concurrent DeepSeek pi-subagents (API rate limit)' — superseded by ROLES.md's 2026-08-19 no-cap ruling. See A3."
+    },
+    {
+      "id": "S6",
+      "path": "docs/audits/2026-08-02-grand-audit/DIRECTION.md",
+      "lines": 258,
+      "reads": "named by orient's principles header as one of the four extraction sources",
+      "classification": "contradictory (stale citation)",
+      "notes": "Line 244 cites AGENTS.md:146-148 for a rule now at AGENTS.md:207-209. See A2."
+    },
+    {
+      "id": "S7",
+      "path": "docs/status/HANDOVER.md",
+      "lines": 127,
+      "reads": "the incoming Orchestrator successor (ORCHESTRATOR.md:5 points here as the template)",
+      "classification": "contradictory",
+      "notes": "Not a template — a full 2026-07-27 handover that directs readers to the retired CURRENT.md four times. First flagged by T410 (2026-08-07), still unfixed. See A4."
+    },
+    {
+      "id": "S8",
+      "path": "docs/status/handover-*.md (3 recent + 10 archived)",
+      "lines": "153 (recent three)",
+      "reads": "the incoming holder of a seat",
+      "classification": "clean (as a class)",
+      "notes": "Sampled the three most recent; no retired mechanism referenced as current."
+    },
+    {
+      "id": "S9",
+      "path": "docs/infra/roles/ORCHESTRATOR.md",
+      "lines": 93,
+      "reads": "the seat invoked 'You are the Orchestrator'",
+      "classification": "contradictory",
+      "notes": "Cadence step 0 omits argus --mode doctor (A5); line 5 points at the stale HANDOVER.md template (A4)."
+    },
+    {
+      "id": "S10",
+      "path": "docs/infra/roles/AUDITOR.md",
+      "lines": 31,
+      "reads": "any seat invoked 'You are the Auditor for <scope>'",
+      "classification": "clean",
+      "notes": "Self-contained; no stale cross-reference."
+    },
+    {
+      "id": "S11",
+      "path": "docs/infra/roles/DABIR.md",
+      "lines": 30,
+      "reads": "the counsel seat",
+      "classification": "clean",
+      "notes": "Navigator is NOT this file and not recorded anywhere under docs/infra/roles/ (A6)."
+    },
+    {
+      "id": "S12",
+      "path": "docs/infra/roles/ARGUS.md",
+      "lines": 174,
+      "reads": "the single watchdog seat",
+      "classification": "contradictory",
+      "notes": "Invocation line names 2 of 3 modes; §Three modes requires all three in sequence. See A5."
+    },
+    {
+      "id": "S13",
+      "path": "docs/infra/agents/worker-role.md",
+      "lines": 7,
+      "reads": "nobody at spawn — RETIRED 2026-07-28",
+      "classification": "stale (self-labeled)",
+      "notes": "Retirement notice + supersession pointer. Delete-list candidate."
+    },
+    {
+      "id": "S14",
+      "path": "docs/infra/agents/boss-role.md",
+      "lines": 50,
+      "reads": "nobody at spawn — RETIRED 2026-07-28 (four items kept)",
+      "classification": "stale (self-labeled)",
+      "notes": "Kept sections duplicate content now in DELEGATOR.md/ROLES.md; mixes three eras."
+    },
+    {
+      "id": "S15",
+      "path": "docs/infra/agents/workflow.md",
+      "lines": 33,
+      "reads": "nobody at spawn — RETIRED 2026-07-28 (two rules kept)",
+      "classification": "stale (self-labeled)",
+      "notes": "Kept 'where state lives' correctly says CURRENT.md is retired (unlike S7)."
+    },
+    {
+      "id": "S16",
+      "path": "docs/infra/agents/subdelegation.md",
+      "lines": 309,
+      "reads": "whoever dispatches a subagent",
+      "classification": "clean (most current of the concurrency docs)",
+      "notes": "Correctly reflects the no-cap ruling; it is manager-brief-template.md that misquotes it (A3)."
+    },
+    {
+      "id": "S17",
+      "path": "docs/infra/agents/ollama-concurrency-2026-08-04.md",
+      "lines": 155,
+      "reads": "nobody at spawn — a dated measurement report",
+      "classification": "clean but miscategorized",
+      "notes": "Research artifact undifferentiated from instruction files in docs/infra/agents/. See A7."
+    },
+    {
+      "id": "S18",
+      "path": "docs/infra/agents/manager-brief-template.md",
+      "lines": 160,
+      "reads": "a manager about to spawn subagents",
+      "classification": "contradictory",
+      "notes": "Two defects: superseded DeepSeek cap (A3) and a 'claims array must be non-empty' rule the schema contradicts (A8)."
+    },
+    {
+      "id": "S19",
+      "path": "docs/infra/agents/findings-schema.json",
+      "lines": 102,
+      "reads": "machine-readable copy consulted with findings/README.md",
+      "classification": "clean",
+      "notes": "Agrees with findings/README.md; it is manager-brief-template.md (S18) that diverges (A8)."
+    },
+    {
+      "id": "S20",
+      "path": "findings/README.md",
+      "lines": 124,
+      "reads": "every worker producing a findings file",
+      "classification": "clean",
+      "notes": "The authority manager-brief-template.md:105 misquotes (A8)."
+    },
+    {
+      "id": "S21",
+      "path": "bundle preambles (untracked/T<id>-*.md)",
+      "lines": "varies",
+      "reads": "the worker claiming that task",
+      "classification": "clean (mechanism); inherits one drifted phrase",
+      "notes": "The dispatch wrapper templates its inbox-loop paragraph from DELEGATEE.md and inherits A1 verbatim."
+    },
+    {
+      "id": "S22",
+      "path": "managent orient (src/managent/main.zig cmdOrient)",
+      "lines": 208,
+      "reads": "any agent at spawn",
+      "classification": "contradictory",
+      "notes": "Principles header claims extraction from four files but the 8 lines are hard-coded Zig literals; --role variants do not exist (args discarded). See A9."
+    },
+    {
+      "id": "S23",
+      "path": "managent resume (src/managent/main.zig cmdResume)",
+      "lines": "~220",
+      "reads": "any agent resuming cold",
+      "classification": "clean",
+      "notes": "Header claim (composed from tasks.json · git · claimlint · STATE.md) is accurate — STATE.md is read live."
+    },
+    {
+      "id": "S24",
+      "path": "Claude auto-memory (~/.claude/projects/*/memory/)",
+      "lines": "n/a (external)",
+      "reads": "Claude-model agents only, harness-injected",
+      "classification": "clean, out of scope",
+      "notes": "S05 seed §4 rules it out of project-critical scope; spot-check confirms it points back to committed docs."
+    }
+  ],
+  "archaeology": [
+    {
+      "id": "A1",
+      "severity": "must",
+      "kind": "stale reference to a removed tool",
+      "citation": "docs/infra/delegation/DELEGATEE.md:83",
+      "detail": "Names bin/ollama-subagent; removed 2026-08-20 by T527 (subdelegation.md:18-19). Verified: ls bin/ shows only bin/subagent."
+    },
+    {
+      "id": "A2",
+      "severity": "should",
+      "kind": "drifted commit-pinned line citation",
+      "citation": "docs/audits/2026-08-02-grand-audit/DIRECTION.md:244",
+      "detail": "Cites AGENTS.md:146-148; the rule is now at AGENTS.md:207-209, with no commit pin to resolve by."
+    },
+    {
+      "id": "A3",
+      "severity": "must",
+      "kind": "superseded rule still stated (3 sites) + broken cross-reference",
+      "citation": "docs/infra/sprint.md:132; docs/infra/agents/manager-brief-template.md:22; contrast docs/infra/delegation/ROLES.md:104-107 and docs/infra/agents/subdelegation.md:15",
+      "detail": "Both sites still assert 'max 2 for DeepSeek pi-subagents (API rate limit)'; ROLES.md records the operator's 2026-08-19 no-fleet-cap ruling; manager-brief-template.md:22 additionally misattributes the superseded cap to 'subdelegation.md rule 5', whose actual text says nothing about it."
+    },
+    {
+      "id": "A4",
+      "severity": "must",
+      "kind": "read-first succession template is stale content, flagged before, still unfixed",
+      "citation": "docs/infra/roles/ORCHESTRATOR.md:5; docs/status/HANDOVER.md (esp. 4-5, 9, 22, 96, 116)",
+      "detail": "ORCHESTRATOR.md:5 tells successors to template from docs/status/HANDOVER.md; that file is a full historical handover directing readers to retired CURRENT.md four times. First flagged by T410 (2026-08-07), unchanged 15 days later."
+    },
+    {
+      "id": "A5",
+      "severity": "should",
+      "kind": "duplicated omission — two files understate the same three-mode contract",
+      "citation": "docs/infra/roles/ARGUS.md:3 vs :44-77; docs/infra/roles/ORCHESTRATOR.md:13",
+      "detail": "ARGUS invocation line and ORCHESTRATOR cadence step 0 both name only checklist+sweep; ARGUS §Three modes requires doctor as the third leg of a standard pass."
+    },
+    {
+      "id": "A6",
+      "severity": "note",
+      "kind": "seed's open question, answered",
+      "citation": "docs/infra/roles/ (no NAVIGATOR.md); untracked/msg/milestone-01-ko-reframe/0{54-63,70,74}-navigator-*.md",
+      "detail": "Navigator is NOT a recorded role; it appears only as a sender/addressee name in 14 channel messages from 2026-07-31 (a one-round planning seat that retired). No role file defines it."
+    },
+    {
+      "id": "A7",
+      "severity": "could",
+      "kind": "directory mixes instruction surfaces with dated research artifacts",
+      "citation": "docs/infra/agents/",
+      "detail": "ollama-concurrency-2026-08-04.md (a T357 measurement report) sits undifferentiated beside role/delegation instruction files and three retired stubs. The directory's actual spawn-read subset is narrower than its glob."
+    },
+    {
+      "id": "A8",
+      "severity": "must",
+      "kind": "contradicted schema rule",
+      "citation": "docs/infra/agents/manager-brief-template.md:105; contrast findings/README.md §Schema, findings-schema.json:26, DELEGATEE.md:251",
+      "detail": "manager-brief-template.md states claims 'must be non-empty'; the schema, README, DELEGATEE, and the majority of committed findings files (T410, T507, T575, T579) all allow claims:[]. A manager following it literally rejects conforming files."
+    },
+    {
+      "id": "A9",
+      "severity": "should",
+      "kind": "composed preamble's provenance claim is false for one section; role variants unbuilt",
+      "citation": "src/managent/main.zig:4846 (header) vs :4847-4854 (literals); :4770 (_ = args;)",
+      "detail": "cmdOrient's principles header claims extraction from AGENTS.md/DELEGATEE.md/sprint.md/DIRECTION.md, but the 8 lines are Zig string literals — no file I/O touches those docs in cmdOrient. --role variants do not exist (args discarded). Verified by reading the function body at the working tree."
+    }
+  ],
+  "surface_count": 24,
+  "archaeology_count": 9,
+  "denominators": {
+    "surfaces_enumerated": "24 across the seed's 10 named categories plus ROLES.md (uncounted in the seed's list but load-bearing) plus the orient/resume commands and Claude auto-memory.",
+    "classification_breakdown": "clean: 12 (S1, S3, S4, S8, S10, S11, S16, S19, S20, S23, S24, plus S17-as-doc) · contradictory: 8 (S2, S5, S6, S7, S9, S12, S18, S22) · stale-deliberate: 3 (S13, S14, S15) · clean-but-miscategorized: 1 (S17).",
+    "archaeology_severity": "4 must (A1, A3, A4, A8) · 3 should (A2, A5, A9) · 1 could (A7) · 1 note (A6).",
+    "verification": "The 4 'must' and 2 of the 3 'should' archaeology items (A1, A2, A3, A4, A5, A8, A9) were independently re-verified by this worker against the working tree at HEAD (e58fcec) via grep/sed/read, not taken from the prior census. No archaeology file has been modified since the prior census (git log confirms)."
+  },
+  "notes": "Read-only census, phase 1 of T583 (S05 startup-surfaces), per seed §3.1. A prior helper census exists (findings/T585-startup-census.json, claude-sonnet-5/T585, 2026-08-22); this file is the sprint's own census and records the same 24-surface / 9-archaeology result after independent re-verification of the load-bearing items, so it is self-contained rather than a pointer. No fixes applied (out of scope for a read-only census; the archaeology deletion phase owns the fixes). Highest-value items for the next phase: A4 (succession template stale, flagged once already) and A8 (a findings-schema rule that contradicts the schema it cites). A1/A3 are the recurring drift pattern — a tool rename or a ruling updates some referencing docs and not others — which motivates the sprint's compose-time contradiction detection (seed §5) as a mechanical guard rather than another prose sweep. One top-level scratch file (HUMAN.md, 46 lines) is a T556 smoke-test payload, not a startup surface, but its presence at the repo root is itself mild archaeology. Inbox checked via `bin/managent inbox T583 --ack` before this write; empty."
+}
