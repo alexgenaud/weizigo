@@ -249,6 +249,34 @@ Still owed operator **numbers** (not direction; spec defaults hold meanwhile): a
     mission is shortening the seat's remaining life. T587 (store write fix + class regression)
     gates S04 build and AUTOPILOT-5H.
 
+31. **A guard may stop a lane, but no guard may attribute.** (Operator + Fable, 2026-08-22,
+    after three guards each produced a false model-failure in one afternoon: the directive gate
+    killed T544 on a two-day-old pause, the refusal classifier both missed a real Claude limit
+    and fired on a *quoted* 429, and the stdout-only liveness fuse killed T616 at 600.8 s with
+    a finished 43 KB deliverable already on disk.) Stopping a lane is a harness decision;
+    scoring a model is a measurement. The two must not share a code path. Mechanically:
+    every verification record carries `killed_by` (an enumerated value written from the runner's
+    own terminal record, never inferred from worker output, which is untrusted for this
+    purpose), and **any row with `killed_by != none` is refused by every scorer**, which must
+    state how many rows it skipped so the denominator stays visible. Hand-written DO NOT SCORE
+    annotations are a symptom of this ruling's absence and are retired by T629.
+
+32. **Liveness is per-harness, and its threshold is derived.** A fuse that reads silence as
+    death is correct for a streaming `pi` lane and false for a Claude lane, which buffers to the
+    end. Each harness gets a sensor appropriate to it — for Claude, mtime on deliverables,
+    scratch and session transcript, not stdout — and the threshold is **≥ 3× the observed p95**
+    for that harness, computed from the run records with n and the figure stated, never a
+    constant someone chose. T615 survived at 598.8 s and T616 died at 600.8 s on identical work;
+    a two-second margin deciding a ladder rung is a coin-flip wearing the clothes of a
+    measurement. **T634 gates every further Claude lane.**
+
+33. **Claude fan-out is capped at 2 while the meter is missing.** Seven concurrent Claude lanes
+    at ~1.3 M input tokens each (T620 alone read 1,386,293) exhausted the five-hour window in
+    roughly ten minutes on 2026-08-22. Until T628 lands the rolling-window meter that sizes the
+    cap from evidence, the interim cap is **2 concurrent Claude lanes**, and a **RESERVED lane
+    (Fable) never runs concurrently with a fan-out** — it runs alone or not at all. This is an
+    interim number chosen to stop a known failure, not a measured one; T628 replaces it.
+
 ## 8. Delegation (the thorough pass)
 
 The sketch is the starting point; the full pipeline is delegated per the pass protocol: research (recover
