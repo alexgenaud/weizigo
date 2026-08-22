@@ -346,6 +346,22 @@ pub fn build(b: *std.Build) void {
     runner_taskid_regression.cwd = b.path(".");
     test_step.dependOn(&runner_taskid_regression.step);
 
+    // ── T572: load-test store-pollution controls ─────────────────────────
+    // The T559 load test left six dummy lanes (TL1A..TL1F) in_progress in
+    // the LIVE kanban: the runner auto-claims `--task-id` rows at launch,
+    // the host guard SIGKILLed the lanes, and no exit path closed the rows
+    // (scrubbed by T567; the TL1x ids carried no T427 fixture marker, so
+    // the live-store guard never tripped).  The fix: a load test must run
+    // against a scratch MANAGENT_STORE.  Arms: guard-kill lane under the
+    // scratch store redirects the claim and never creates the live store
+    // stand-in · seeded pre-fix shape makes the pollution checker go RED,
+    // retire turns it GREEN · clean-exit auto-done also writes only the
+    // scratch store · null control stays GREEN · the REAL live store is
+    // byte-identical throughout.  Scratch repo + scratch stores only.
+    const store_pollution_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-store-pollution.sh" });
+    store_pollution_regression.cwd = b.path(".");
+    test_step.dependOn(&store_pollution_regression.step);
+
     // ── T520: runner brief-bytes + dispatch wall-guidance controls ──────
     // tools/runner records brief_bytes/prompt_bytes/wall_budget in the run
     // record (so every exit-124 wall-kill is joinable to the brief that

@@ -1,0 +1,9 @@
+{
+ "task_id": "T572",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T572",
+ "claims": [],
+ "new_rows": [],
+ "notes": "T572 — load-test lanes can no longer pollute the live kanban store. Fix (job 1): the T559 harness (untracked/bakeoff/t559-drive.sh) now seeds its six TL1x dummy lanes into a SCRATCH MANAGENT_STORE (untracked/bakeoff/t559/store) and runs every lane with that store exported — the runner's auto-claim/auto-done inherit the env var, so every kanban write the lanes make lands in scratch; the drive ends by asserting the LIVE store holds zero TL1* rows and retiring the scratch lanes. Deliverable (job 2): tools/regression-managent-store-pollution.sh, wired into `zig build test` (build.zig, after the T515 runner-taskid block). Arms: A guard-kill lane (host-pressure injection, the T559 shape) under the scratch store redirects the claim and never creates the live-store stand-in; B reproduces the pre-fix shape (no MANAGENT_STORE) — the dummy row is left in_progress and the pollution checker goes RED, retire turns it GREEN (the seeded-defect red/green pair the acceptance asked for); C the exit-0 auto-done path also writes only the scratch store (the T390 claim-window refusal proves the redirection); D null control GREEN; E the REAL live store is byte-identical throughout. RED reading (arm B): 'seeded-defect: RED — dummy lane TL2C (in_progress) note=...'; GREEN reading (arm B cleanup plus arms A/C/D/E): 'after-cleanup: GREEN — no dummy lanes', 'regression-managent-store-pollution: ALL CONTROLS PASSED'. Gap recorded: the T427 live-store fixture guard (DOCTOR/FIXTURE/SEED/PROBE/ARM/TEST) would never have caught the original incident either — TL1x ids carry no fixture marker, so a load test could still inject a TL<digit> row into the live store by hand; a live-store refusal on the TL<digit> pattern is a candidate follow-up. The runner's cull/reap logic was NOT touched (out of scope)."
+}
