@@ -283,6 +283,12 @@ seed_task T1004 docs/T1004-result.txt
 seed_task T1005 docs/T1005-result.txt
 seed_task T1006 docs/T1006-result.txt
 seed_task T1007 docs/T1007-result.txt
+# T629: killed_by arms (16-19) — the run record is the classifier's evidence
+# source for harness kills; seed the tasks the new arms dispatch.
+seed_task T1008 docs/T1008-result.txt
+seed_task T1009 docs/T1009-result.txt
+seed_task T1010 docs/T1010-result.txt
+seed_task T1011 docs/T1011-result.txt
 # T513: the findings arms (7/8/9) are BARE-FILE dispatches — no kanban row,
 # no managent add. The bundle .md declares its findings deliverable and is
 # passed to bin/subagent as the target path (not a T-ID).
@@ -848,6 +854,101 @@ else
     FAIL=1
 fi
 
+# ── T629 arms: killed_by on the verification record ───────────────────────
+# Ruling 32: a guard-killed row (killed_by != none) is present and labeled
+# censored, never scored.  The ledger line is the verification record: it
+# must carry the enumerated killed_by value, written from the RUNNER'S OWN
+# terminal record (untracked/runs/<task>.json), never a grep over worker
+# output.  These four arms pin the schema on the writer side:
+#   16. seeded: a wall-kill run record (killed="wall ceiling ...") → the
+#       perf line carries killed_by=wall (red: no killed_by field at all)
+#   17. seeded: a provider refusal (429 log, no run record) → the perf line
+#       carries killed_by=provider-limit (red: no killed_by field)
+#   18. null:   a clean pass → the perf line carries killed_by=none
+#   19. seeded: a genuine failure (clean log, no claim) → the perf line
+#       carries killed_by=none — the schema must not launder real failures
+echo "  16. seeded: a wall-kill run record writes killed_by=wall on the perf line"
+mkdir -p "$WORK/untracked/runs"
+cat > "$WORK/untracked/runs/t1008.json" <<'RREOF'
+{"task": "T1008", "pid": 12308, "start": "2026-08-22T00:00:00Z", "start_epoch": 1, "command": "sleep 30", "wall_budget": 30, "exit": 124, "signal": 9, "wall": 30.0, "killed": "wall ceiling 30s (0'30) reached at 30.0s elapsed (no [progress] lines seen)"}
+RREOF
+cat > "$WORK/untracked/log/t1008.log" <<'LOGEOF'
+[runner] argv = pi --provider deepseek --model deepseek-v4-flash -p 'Follow untracked/T1008-x.md'
+[runner] task identity: T1008 (source: MANAGENT_TASK_ID)
+[runner] KILL: wall ceiling 30s (0'30) reached at 30.0s elapsed (no [progress] lines seen)
+[runner] exit 124 (wall ceiling 30s (0'30) reached at 30.0s elapsed (no [progress] lines seen)) in 30.0 s
+LOGEOF
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1008 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1008 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=wall" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: wall-kill row recorded verified=fail fail=row killed_by=wall (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected the perf line to carry killed_by=wall"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+# ── seeded 17 (T629): a provider refusal (429 log, no run record) is
+# recorded killed_by=provider-limit — the enumerated lane event, never a
+# model failure.
+echo "  17. seeded: a provider refusal writes killed_by=provider-limit on the perf line"
+cat > "$WORK/untracked/log/t1009.log" <<'LOGEOF'
+[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1009-x.md'
+[runner] task identity: T1009 (source: MANAGENT_TASK_ID)
+429: {"message":"you (test) have reached your session usage limit, upgrade: https://ollama.com/upgrade","type":"api_error","param":null,"code":null}
+Error: exit status 1
+LOGEOF
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1009 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1009 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: provider refusal row recorded killed_by=provider-limit (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected killed_by=provider-limit on the T1009 perf line"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+# ── null 18 (T629): a clean pass is recorded killed_by=none — the scored
+# denominator is explicit, not implied.
+echo "  18. null: a clean pass writes killed_by=none on the perf line"
+OUT=$(STUB_MODE=honest "$SUBAGENT" --provider deepseek T1010 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] \
+   && grep -q "T1010 deepseek-v4-flash report=success verified=pass killed_by=none" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: clean pass recorded verified=pass killed_by=none (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected killed_by=none on the T1010 perf line"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+# ── seeded 19 (T629): a genuine failure with a clean log is still
+# verified=fail AND killed_by=none — the fix must not become a laundry for
+# real failures (D048's standing warning).
+echo "  19. seeded: a genuine failure stays verified=fail fail=row killed_by=none (not laundered)"
+cat > "$WORK/untracked/log/t1011.log" <<'LOGEOF'
+[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1011-x.md'
+[runner] task identity: T1011 (source: MANAGENT_TASK_ID)
+Launching Pi...
+LOGEOF
+OUT=$(STUB_MODE=lazy "$SUBAGENT" --provider deepseek T1011 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1011 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=none" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: genuine failure recorded killed_by=none, still a scored fail (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected killed_by=none on the T1011 perf line (laundry guard)"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+
 echo ""
 # ── T512 isolation assertion: nothing of the suite reached live telemetry ─
 # The fixture ids this suite dispatches are T998..T1005 (plus the perf/heal
@@ -858,9 +959,9 @@ ISO_FAIL=0
 APPENDED=$(tail -n +$((LIVE_HEALS_BASE + 1)) "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null)
 if [ -z "$APPENDED" ]; then
     echo "    PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run"
-elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-7])"'; then
+elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-9]|101[01])"'; then
     echo "    FAIL: fixture heal record(s) appended to the LIVE heal log (F3 regression)"
-    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-7])"' | sed 's/^/    | /'
+    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-9]|101[01])"' | sed 's/^/    | /'
     ISO_FAIL=1
 else
     echo "    PASS: docs/infra/dispatch-heals.jsonl — appended lines carry no fixture data"
@@ -868,9 +969,9 @@ fi
 APPENDED=$(tail -n +$((LIVE_PERF_BASE + 1)) "$ROOT/docs/infra/model-perf.md" 2>/dev/null)
 if [ -z "$APPENDED" ]; then
     echo "    PASS: docs/infra/model-perf.md — no lines appended during the run"
-elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-7]) '; then
+elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-9]|101[01]) '; then
     echo "    FAIL: fixture perf line(s) appended to the LIVE model-perf.md"
-    echo "$APPENDED" | grep -nE ' T(998|999|100[0-7]) ' | sed 's/^/    | /'
+    echo "$APPENDED" | grep -nE ' T(998|999|100[0-9]|101[01]) ' | sed 's/^/    | /'
     ISO_FAIL=1
 else
     echo "    PASS: docs/infra/model-perf.md — appended lines carry no fixture data"

@@ -534,6 +534,88 @@ else
     echo "    FAIL: no-table doc should exit 2, got $rc"; FAIL=1
 fi
 
+# ── (m) T629: the census — censored rows are refused, skip counts print ──
+# Ruling 32: killed_by = none for every scored row; guard-killed rows are
+# present and labeled censored (never dropped, never scored); every scorer
+# prints, next to each published number, how many rows it skipped and why —
+# censored, unattributed, or both.  Seeded fixture: alpha pass (scored),
+# beta guard-killed (censored — must contribute NO grade), gamma genuine
+# legacy fail without the field (scored, still a failure), delta unattributed
+# (model `-` — skipped and counted).  Red (pre-T629): no census key, and the
+# censored row grades beta 0.
+echo "  m. T629: censored rows never score; the census prints scored/censored/unattributed"
+CWORK="$WORK/t629-census"
+mkdir -p "$CWORK/docs/infra/managent" "$CWORK/untracked/log" "$CWORK/untracked"
+python3 - "$CWORK" <<'PYEOF'
+import json, os, sys
+work = sys.argv[1]
+tasks = {
+    "T1": {"agent": "alpha", "status": "done", "verdict": "pass",
+           "bundle": "untracked/T1-spec.md", "claimed": "2026-08-20T00:00:00Z",
+           "done": "2026-08-20T00:10:00Z", "note": None, "verdict_note": None},
+    # censored row's task: never-graded in the store, so the ONLY way beta
+    # could earn a completion_close grade is the (censored) close event.
+    "T2": {"agent": "beta", "status": "in_progress", "verdict": None,
+           "bundle": "untracked/T2-audit.md", "claimed": "2026-08-20T00:00:00Z",
+           "done": None, "note": None, "verdict_note": None},
+    "T4": {"agent": "gamma", "status": "done", "verdict": "fail-found",
+           "bundle": "untracked/T4-infra.md", "claimed": "2026-08-20T00:00:00Z",
+           "done": "2026-08-20T00:10:00Z", "note": None, "verdict_note": None},
+    "T5": {"agent": "delta", "status": "in_progress", "verdict": None,
+           "bundle": "untracked/T5-spec.md", "claimed": "2026-08-20T00:00:00Z",
+           "done": None, "note": None, "verdict_note": None},
+}
+json.dump(tasks, open(os.path.join(work, "docs", "infra", "managent", "tasks.json"), "w"))
+perf = [
+    "# t629 census fixture\n",
+    "dispatch-verify 2026-08-20 T1 alpha report=success verified=pass killed_by=none\n",
+    "dispatch-verify 2026-08-20 T2 beta report=incomplete verified=fail fail=row killed_by=provider-limit\n",
+    # legacy row, no killed_by field: treated as none — still a genuine fail
+    "dispatch-verify 2026-08-20 T4 gamma report=incomplete verified=fail fail=row\n",
+    # unattributed: model is `-`, skipped and counted
+    "dispatch-verify 2026-08-20 T5 - report=incomplete verified=fail fail=row killed_by=none\n",
+]
+open(os.path.join(work, "model-perf.md"), "w").writelines(perf)
+open(os.path.join(work, "c7.json"), "w").write("[]")
+PYEOF
+CSTORE="$CWORK/docs/infra/managent/tasks.json"
+CPERF="$CWORK/model-perf.md"
+CLOGS="$CWORK/untracked/log"
+CC7="$CWORK/c7.json"
+CJSON=$("$TOOL" --json --no-git --root "$CWORK" --store "$CSTORE" --model-perf "$CPERF" --logs "$CLOGS" --c7 "$CC7" 2>/dev/null)
+python3 - "$CJSON" <<'PYEOF'
+import json, sys
+d = json.loads(sys.argv[1])
+ok = True
+c = d.get("census")
+if not c:
+    print("    FAIL: no census key in --json (Ruling 32: skip counts print with the figure)")
+    ok = False
+else:
+    for k, v in (("scored", 2), ("censored", 1), ("unattributed", 1), ("both", 0)):
+        if c.get(k) != v:
+            print("    FAIL: census[%s] = %s, expected %s (census %s)" % (k, c.get(k), v, c))
+            ok = False
+beta = d.get("profiles", {}).get("beta", {}).get("completion_close", {})
+if beta.get("n", 0) != 0:
+    print("    FAIL: censored row scored beta completion_close n=%s (must be refused)" % beta.get("n"))
+    ok = False
+gamma = d.get("profiles", {}).get("gamma", {}).get("completion_close", {})
+if gamma.get("avg") != 0.0 or gamma.get("n") != 1:
+    print("    FAIL: gamma completion_close = %s (expected 0.0/1 — legacy fail still scores)" % gamma)
+    ok = False
+alpha = d.get("profiles", {}).get("alpha", {}).get("completion_close", {})
+if alpha.get("avg") != 2.0 or alpha.get("n") != 1:
+    print("    FAIL: alpha completion_close = %s (expected 2.0/1 — the pass still scores)" % alpha)
+    ok = False
+if ok:
+    print("    PASS: census scored=2 censored=1 unattributed=1; censored row refused; pass and legacy-fail still grade")
+else:
+    sys.exit(1)
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-model-profiles: ALL CONTROLS PASSED ==="

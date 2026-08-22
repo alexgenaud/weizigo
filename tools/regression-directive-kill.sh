@@ -206,8 +206,9 @@ REC="$WORK/untracked/runs/t6256.json"
 if [ "$RRC" -eq 124 ] && [ -f "$REC" ] \
    && grep -q '"kill_class": "directive"' "$REC" \
    && grep -q 'D6256' "$REC" \
-   && grep -q '"killed": "directive' "$REC"; then
-    echo "    PASS: exit 124 AND run record names the directive (kill_class=directive, killed=\"directive ...\")"
+   && grep -q '"killed": "directive' "$REC" \
+   && grep -q '"killed_by": "directive"' "$REC"; then
+    echo "    PASS: exit 124 AND run record names the directive (kill_class=directive, killed_by=directive, killed=\"directive ...\")"
 else
     echo "    FAIL: runner rc=$RRC; run record $REC"
     [ -f "$REC" ] && cat "$REC" | sed 's/^/      | /'
@@ -419,6 +420,29 @@ else
     cat "$DIRECTIVES" | sed 's/^/      | /'
     FAIL=1
 fi
+
+# ── seeded 10 (T629): the runner stamps killed_by on its own kill records ─
+# The verification layer reads killed_by from the RUNNER'S terminal record;
+# the runner is the only process that knows which guard fired.  A wall-kill
+# (this arm) must write killed_by=wall into the run record — the vocabulary
+# this row defines (T634's coordinate: the runner emits the reason for
+# liveness kills into the same field).
+echo " 10. seeded (T629): runner stamps killed_by=wall on a wall-kill run record"
+seed "$(rec_disp T6261)"
+: > "$DIRECTIVES"
+(cd "$WORK" && MANAGENT_TASK_ID=T6261 "$RUNNER" --no-prepend-zig --max-wall 1 -- sleep 5) >/dev/null 2>&1
+RRC=$?
+REC="$WORK/untracked/runs/t6261.json"
+if [ "$RRC" -eq 124 ] && [ -f "$REC" ] \
+   && grep -q '"killed_by": "wall"' "$REC" \
+   && grep -q '"killed": "wall ceiling' "$REC"; then
+    echo "    PASS: wall-kill record carries killed_by=wall (rc=$RRC)"
+else
+    echo "    FAIL: runner rc=$RRC; expected a run record with killed_by=wall"
+    [ -f "$REC" ] && cat "$REC" | sed 's/^/      | /'
+    FAIL=1
+fi
+
 
 # ── cleanup + verdict ─────────────────────────────────────────────────────
 if [ "$FAIL" -eq 0 ]; then

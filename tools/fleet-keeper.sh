@@ -276,12 +276,24 @@ def least_data_model(by_id):
     # tasks in the ledger (ties by canonical order), so the under-measured are
     # sampled and an over-measured favourite is not silently handed everything.
     # The deny/allow gate still applies: the chosen model must be allowed.
+    # T629/Ruling 32: a guard-killed row (killed_by != none in the perf
+    # ledger) is present and labeled censored, NEVER counted as the model's
+    # data — the guard stopped the lane, so no measurement happened.  The
+    # census line prints the skip counts alongside the choice.
+    censored = _read_censored_tasks()
     counts = {}
+    unattributed = 0
     for r in by_id.values():
+        rid = r.get("id") or ""
         m = (r.get("model") or "").split(":")[0]
         if not m:
+            unattributed += 1
+            continue
+        if rid in censored:
             continue
         counts[m] = counts.get(m, 0) + 1
+    print("least-data census: counted=%d censored=%d unattributed=%d"
+          % (sum(counts.values()), len(censored), unattributed), file=sys.stderr)
     # Known canonical set (T317) so ties and missing models resolve stably.
     canon = ["kimi-k2.7", "minimax-m3", "deepseek-v4-flash",
              "deepseek-v4-pro", "glm-5.2"]
@@ -292,6 +304,42 @@ def least_data_model(by_id):
         if best is None or counts.get(m, 0) < counts.get(best, 0):
             best = m
     return best or DEFAULT_MODEL  # all gated: fall back to the explicit default
+
+
+def _read_censored_tasks():
+    """Task ids whose latest dispatch-verify ledger line carries killed_by != none.
+
+    T629: the perf ledger (WEIZIGO_MODEL_PERF, else the live model-perf.md)
+    is the verification record — a killed_by value names a guard stop, and
+    such rows are censored (never counted as model data).  Rows without the
+    field predate the schema and stay counted (legacy); a task with both a
+    censored line and a later genuine line is not censored (the latest line
+    wins).  Missing/unreadable ledger → empty set (nothing censored)."""
+    path = os.environ.get("WEIZIGO_MODEL_PERF") or os.path.join(
+        FLEET_ROOT, "docs", "infra", "model-perf.md")
+    censored = set()
+    try:
+        with open(path, errors="replace") as f:
+            for line in f:
+                if not line.startswith("dispatch-verify "):
+                    continue
+                parts = line.split()
+                if len(parts) < 5:
+                    continue
+                task = parts[2]
+                if not re.fullmatch(r"T\d+", task):
+                    continue
+                kb = None
+                for kv in parts[4:]:
+                    if kv.startswith("killed_by="):
+                        kb = kv.split("=", 1)[1]
+                if kb is not None and kb != "none":
+                    censored.add(task)
+                elif kb == "none":
+                    censored.discard(task)  # a later genuine line un-censors
+    except OSError:
+        pass
+    return censored
 
 def parse_iso(s):
     # UTC epoch seconds for an ISO-8601 "…Z" timestamp (calendar.timegm treats

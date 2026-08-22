@@ -370,6 +370,40 @@ def _check_directives(task_id, repo_root, verbose=True):
 # progress watchdog's job); dead runner = orphan, with the record's fields
 # as the evidence for the abandoned note.
 
+# ── T629 (2026-08-22): killed_by — the enumerated guard-kill vocabulary ──
+# The verification record (the dispatch-verify ledger line) carries one
+# enumerated killed_by value, written from the RUNNER'S OWN terminal record
+# — the runner is the only process that knows which guard fired, so it
+# stamps the enum on every kill path.  dispatch_verify reads it; every
+# scorer refuses a row with killed_by != none (Ruling 32: present, labeled
+# censored, never scored).  T634's coordinate: liveness kills already carry
+# kill_class=liveness; killed_by is the same vocabulary, stamped as the
+# enum on every kill path (launch refusal, mid-run poll, the guard loop,
+# and the runner-exception path).  Mirror of
+# dispatch_verify.KILLED_BY_VALUES.
+
+
+def _killed_by(kill_reason):
+    """Map a guard kill reason string to the T629 killed_by enum, or None
+    when the reason is not a guard kill (the caller guards)."""
+    if not kill_reason:
+        return None
+    kl = kill_reason.lower()
+    if kl.startswith("directive"):
+        return "directive"
+    if "liveness" in kl:
+        return "liveness"
+    if "progress timeout" in kl:
+        return "watchdog"
+    if "wall ceiling" in kl:
+        return "wall"
+    if "cpu ceiling" in kl:
+        return "cpu"
+    if "rss cap" in kl or "host memory pressure" in kl:
+        return "rss"
+    return "harness-error"
+
+
 def _sanitize_identity(task_identity):
     """Map a task identity to a filesystem-safe filename segment.
 
@@ -1970,6 +2004,7 @@ def main():
                 "exit": 124,
                 "wall": 0.0,
                 "kill_class": "directive",
+                "killed_by": "directive",
                 "killed": ("directive %s %s from %s (pending at launch)"
                             % (d.get("id", "?"),
                                str(d.get("directive", "?")).upper(),
@@ -2296,9 +2331,12 @@ def main():
                         # and kill_class makes it machine-distinguishable
                         # from wall/RSS/host kills (dispatch_verify reads
                         # it and records verified=directive-kill, never a
-                        # model-failure row).
+                        # model-failure row).  T629: killed_by is the
+                        # enumerated vocabulary the verification record
+                        # carries (killed stays the human-readable reason).
                         if run_record is not None:
                             run_record["kill_class"] = "directive"
+                            run_record["killed_by"] = "directive"
 
             # ── kill decisions ────────────────────────────────────────
             if kill_reason:
@@ -2387,6 +2425,12 @@ def main():
                 elapsed = time.monotonic() - t0
                 peak_rss_mb = max(peak_rss.values()) // (1024 * 1024) if peak_rss else 0
                 total_cpu_sum = sum(peak_cpu.values()) if peak_cpu else 0.0
+                # T629: the enumerated killed_by — the runner knows which
+                # guard fired (the mid-run directive branch already stamped
+                # it; the guard loop decides here).  dispatch_verify reads
+                # it from this record; the readers refuse killed_by != none.
+                if run_record is not None:
+                    run_record["killed_by"] = _killed_by(kill_reason)
                 # T521: a killed lane has no clean usage envelope — record
                 # the missing explicitly (the ledger carries the reason).
                 # Degraded runs (no task identity) write nothing — same gate
@@ -2416,6 +2460,10 @@ def main():
         elapsed = time.monotonic() - t0
         reap_result = _reap_tree(proc.pid, seed=last_poll_pids, since=spawn_epoch)
         _emit_heartbeat(task_identity, shlex.join(argv), elapsed, -1, -1, repo_root)
+        # T629: a runner-exception kill is a harness error, not a model
+        # decision — stamp the enum so the verification record can refuse it.
+        if run_record is not None:
+            run_record["killed_by"] = "harness-error"
         _finalize_run_record(run_record, record_root, wall=elapsed, killed=f"runner exception: {exc}",
                              reap_claimed=reap_result["claimed"],
                              reap_survivors=reap_result["survivors"],

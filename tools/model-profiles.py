@@ -503,10 +503,13 @@ def grade_independence(task):
 def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
     """Compute per-model dimension profiles and the type-count map.
 
-    Returns (profiles, type_counts, task_type):
+    Returns (profiles, type_counts, task_type, census):
       profiles[model][dim] = {"avg": float|None, "n": int, "counts": {...}}
       type_counts[model][type] = int
       task_type[taskid] = type
+      census = {"scored", "censored", "unattributed", "both", "eff_censored"}
+        (T629 / Ruling 32 — the skip counts that must print next to every
+        published number)
     """
     # ── grading records keyed by task id ─────────────────────────────────
     tasks = {k: v for k, v in store.items()
@@ -514,17 +517,55 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
     dispatch = parse_dispatch_verify(perf_text)
     kills = scan_logs(logs_dir)
 
+    # T629 / Ruling 32: the census.  A ledger row is CENSORED when its
+    # verification record carries killed_by != none — the runner's own
+    # terminal record named a guard stop (provider limit, directive, wall,
+    # cpu, rss, liveness, watchdog, harness-error).  Censored rows are
+    # present and labeled but NEVER scored, and the count prints next to the
+    # figure.  UNATTRIBUTED rows (no ledger model) are skipped and counted.
+    # BOTH = censored AND unattributed.  eff_censored = tasks whose
+    # log-scan efficiency grade was skipped because the row is censored.
+    censored_tasks = set()
+    censored_rows = 0
+    unattributed_rows = 0
+    both_rows = 0
+    scored_rows = 0
+    for rec in dispatch:
+        kb = rec.get("killed_by")
+        censored = kb not in (None, "none")
+        if not rec.get("model"):
+            unattributed_rows += 1
+            if censored:
+                both_rows += 1
+            continue
+        if censored:
+            censored_rows += 1
+            if rec.get("task"):
+                censored_tasks.add(rec["task"])
+            continue
+        scored_rows += 1
+    census = {
+        "scored": scored_rows,
+        "censored": censored_rows,
+        "unattributed": unattributed_rows,
+        "both": both_rows,
+        "eff_censored": 0,
+    }
+
     # close events: verified=pass -> 2; verified=fail, recoverable reason -> 1;
     # unrecoverable -> 0.  Keyed by the LINE's model (the worker the
     # dispatch-verify recorded) — the old close-discipline attribution: the
     # line's model is the authoritative worker for the close event, and it
     # survives rows whose `agent` is None (blocked rows like T511) or whose
     # recorded lines name a different verifier.  Completion observations are
-    # keyed by the task's agent (below).
+    # keyed by the task's agent (below).  T629: a CENSORED row (killed_by
+    # != none) contributes no close event — present, labeled, never scored.
     close_events = {}  # model -> list of grades
     for rec in dispatch:
         m = rec["model"]
         if not m:
+            continue
+        if rec.get("killed_by") not in (None, "none"):
             continue
         if rec["verified"] == "pass":
             g = 2
@@ -537,13 +578,20 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
 
     # task ids that have at least one close event: those rows are covered by
     # the event grades and contribute no separate completion observation.
+    # Censored rows stay in the set — a task whose only ledger line is
+    # censored is unscored (its store completion is not a measurement).
     task_close_ids = {r["task"] for r in dispatch if r["task"]}
 
     # efficiency: grade every (task, model) observed in a log segment.  A
-    # segment with several kills takes the worst (minimum) grade.
+    # segment with several kills takes the worst (minimum) grade.  T629: a
+    # task whose ledger row is censored is not a model measurement — the
+    # guard stopped the lane, so the kill is counted, not graded.
     eff_events = {}  # model -> list of grades
     for (task, model), reasons in kills.items():
         if not model:
+            continue
+        if task in censored_tasks:
+            census["eff_censored"] += 1
             continue
         eff_events.setdefault(model, []).append(min(_grade_reason(r) for r in reasons))
 
@@ -628,7 +676,7 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
                     "counts": _counts_for(dim, grades),
                 }
 
-    return profiles, type_counts, task_type
+    return profiles, type_counts, task_type, census
 
 
 def _grade_reason(reason):
@@ -705,7 +753,22 @@ def select(models, typ, profiles, type_counts):
     return pool[0]
 
 
-def render_human(profiles, type_counts):
+def census_line(census):
+    """The Ruling 32 skip-count line: printed next to every published number.
+
+    censored = ledger rows the runner's terminal record named as guard-killed
+    (killed_by != none) — present and labeled, never scored.  unattributed =
+    rows with no ledger model.  both = censored AND unattributed.
+    eff_censored = tasks whose log-scan efficiency grade was skipped because
+    the row is censored.  scored = the rows that actually contributed.
+    """
+    return ("census: scored=%d censored=%d unattributed=%d (both=%d, "
+            "eff-skipped=%d)" % (census.get("scored", 0), census.get("censored", 0),
+                                 census.get("unattributed", 0), census.get("both", 0),
+                                 census.get("eff_censored", 0)))
+
+
+def render_human(profiles, type_counts, census):
     lines = []
     lines.append("Dimension averages (— = no data):")
     header = "  %-22s %11s %12s %10s %12s %12s %10s %12s %12s" % (
@@ -733,6 +796,8 @@ def render_human(profiles, type_counts):
             tc.get("audit/verification", 0), tc.get("integration/reframe", 0),
             tc.get("infra/tooling", 0), tc.get("research/census", 0),
             tc.get("battery-heavy", 0), tc.get("orchestration-seat", 0)))
+    lines.append("")
+    lines.append(census_line(census))
     return "\n".join(lines)
 
 
@@ -760,7 +825,7 @@ def _role_map_block():
     return "\n".join(lines)
 
 
-def render_table(profiles, type_counts, date):
+def render_table(profiles, type_counts, date, census):
     """The canonical markdown table — the ONE render that may be pasted into
     docs/infra/model-perf.md.  Hand-editing it is C10-class drift (T523);
     regenerate with `tools/model-profiles.py --table` instead.  Carries the
@@ -780,6 +845,7 @@ def render_table(profiles, type_counts, date):
             cell("independence"), cell("falsifiability"), cell("efficiency"),
             cell("citation_honesty"), cell("scope_discipline"), tcell))
     lines.append(_role_map_block())
+    lines.append(census_line(census))
     return "\n".join(lines)
 
 
@@ -848,7 +914,7 @@ def main(argv):
                 break
     c7 = read_c7(args.c7, claimlint_bin, root)
 
-    profiles, type_counts, task_type = build_profiles(
+    profiles, type_counts, task_type, census = build_profiles(
         store, perf_text, logs_dir, c7, root, args.no_git)
 
     if args.select:
@@ -867,6 +933,7 @@ def main(argv):
                 "roles": ROLES,
                 "type_counts": type_counts,
                 "profiles": profiles,
+                "census": census,
             }, sort_keys=True))
         else:
             print(chosen if chosen is not None else "")
@@ -877,7 +944,7 @@ def main(argv):
         if embedded is None:
             print("NO TABLE FOUND: no '<!-- model-profiles table:' marker in %s" % perf_path)
             return 2
-        fresh = render_table(profiles, type_counts, _today())
+        fresh = render_table(profiles, type_counts, _today(), census)
         if table_body(embedded) == table_body(fresh):
             print("FRESH: the embedded table matches `tools/model-profiles.py --table` output")
             return 0
@@ -895,14 +962,15 @@ def main(argv):
             "profiles": profiles,
             "type_counts": type_counts,
             "task_type": task_type,
+            "census": census,
         }, sort_keys=True))
         return 0
 
     if args.table:
-        print(render_table(profiles, type_counts, _today()))
+        print(render_table(profiles, type_counts, _today(), census))
         return 0
 
-    print(render_human(profiles, type_counts))
+    print(render_human(profiles, type_counts, census))
     return 0
 
 

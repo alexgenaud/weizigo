@@ -561,6 +561,123 @@ def read_run_record(root, task_id):
         return None
 
 
+# ── T629: killed_by — the enumerated censoring vocabulary ─────────────────
+#
+# Ruling 32 (2026-08-22): a measured ladder, tier, or matrix cell is
+# publishable only when its denominator is a census — every scored row has
+# killed_by = none, guard-killed rows are present and labeled *censored*
+# (never dropped, never scored), and skip counts print alongside every
+# published number.  The verification record (the dispatch-verify ledger
+# line) carries the one enumerated value below, written from the RUNNER'S
+# OWN terminal record (untracked/runs/<task>.json: killed, signal, exit,
+# or the runner's own killed_by stamp) — never inferred from a broad grep
+# over worker output, which is untrusted for this purpose (that grep is
+# what produced the T526/T601 false positives).
+KILLED_BY_VALUES = (
+    "none",
+    "provider-limit",
+    "provider-auth",
+    "provider-connection",
+    "directive",
+    "wall",
+    "cpu",
+    "rss",
+    "liveness",
+    "watchdog",
+    "harness-error",
+)
+
+# D021 classifier reasons → killed_by enum.  provider-429 (the classifier's
+# name for every rate/session-limit refusal) is the brief's provider-limit.
+_PROVIDER_REASON_TO_KILLED_BY = {
+    "provider-429": "provider-limit",
+    "provider-auth": "provider-auth",
+    "provider-connection": "provider-connection",
+}
+
+
+def _classify_killed(killed, kill_class=None):
+    """Map a runner-initiated kill (the record's `killed` string + optional
+    kill_class) to the killed_by enum.  A kill we cannot classify is
+    harness-error — an unknown runner decision is censored, never scored
+    (the conservative direction)."""
+    kl = killed.lower()
+    if kill_class == "directive" or kl.startswith("directive"):
+        return "directive"
+    if kill_class == "liveness" or "liveness" in kl:
+        return "liveness"
+    if "progress timeout" in kl:
+        return "watchdog"
+    if "wall ceiling" in kl:
+        return "wall"
+    if "cpu ceiling" in kl:
+        return "cpu"
+    if "rss cap" in kl or "host memory pressure" in kl:
+        return "rss"
+    return "harness-error"
+
+
+def killed_by_reason(root, task_id, unreached=None, directive_kill=None):
+    """The enumerated killed_by for a task's terminal dispatch, or None when
+    the task is not a T-id.
+
+    Authority order (T629) — the RUNNER'S OWN terminal record is the source:
+      1. the runner's killed_by stamp in the run record (the runner knows
+         which guard fired; written on every kill path);
+      2. the record's killed / kill_class / signal / exit fields (records
+         written before the runner stamped the enum);
+      3. the D021 refusal/directive classifications, ONLY in the cases the
+         record cannot answer: a harness kill whose TAIL window shows the
+         refusal that CAUSED it (T616 — session limit blocked the lane, the
+         watchdog killed the silence), a non-zero exit with no harness kill
+         (T617 — claude exit 1, zero usage: reached-and-failed, or never
+         reached), and no record at all (pre-record launch refusals).
+    The classifier is window-constrained (first+last 8 KiB of worker
+    output) — the broad grep that produced the T526/T601 false positives is
+    structurally impossible (their quotes sat mid-log).
+    """
+    if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
+        return None
+    rr = read_run_record(root, task_id)
+    if rr is not None:
+        kb = rr.get("killed_by")
+        if kb in KILLED_BY_VALUES:
+            return kb
+        killed = rr.get("killed") or ""
+        if killed:
+            # A harness kill — unless a provider refusal in the TAIL window
+            # was its CAUSE (T616).  `unreached` (when passed) is exactly
+            # the D021 tail-window result for a killed record; recompute it
+            # when the caller did not (record_perf does not).
+            if unreached is None:
+                unreached = provider_refusal_reason(root, task_id)
+            if unreached:
+                return _PROVIDER_REASON_TO_KILLED_BY.get(unreached, "provider-limit")
+            return _classify_killed(killed, rr.get("kill_class"))
+        # No harness kill: the child ended by itself.
+        if rr.get("exit") is None and rr.get("signal") is not None:
+            return "harness-error"  # killed from outside the runner — unknown stop
+        if rr.get("exit") not in (None, 0):
+            # Non-zero exit with no harness kill: reached-and-failed, or
+            # never reached (T617).  The D021 classifier is the only way
+            # to tell them apart — a refusal censors, a plain failure
+            # scores as fail.
+            if unreached is None:
+                unreached = provider_refusal_reason(root, task_id)
+            if unreached:
+                return _PROVIDER_REASON_TO_KILLED_BY.get(unreached, "provider-limit")
+        return "none"
+    # No run record at all (pre-record launch refusals, stub harnesses).
+    if directive_kill:
+        return "directive"
+    if unreached is None:
+        unreached = provider_refusal_reason(root, task_id)
+    if unreached:
+        return _PROVIDER_REASON_TO_KILLED_BY.get(unreached, "provider-limit")
+    return "none"
+
+
+
 def wall_advisory(root, task_id, wall_budget, brief_bytes=None, store_env=None):
     """Compare a dispatch's wall budget against the class recommendation.
 
@@ -917,11 +1034,19 @@ def record_perf(root, perf):
     so the live ledger is never touched by a test.  A failure to record is a
     loud warning, never a failed dispatch: verification is the gate, the
     ledger is data collection.
+
+    T629: every line carries killed_by=<enum> — the verification record's
+    censoring field, derived from the RUNNER'S OWN terminal record (see
+    killed_by_reason).  A reader refuses any row with killed_by != none
+    (Ruling 32: present, labeled censored, never scored).  The derived value
+    is appended at the END of the line so every pre-existing substring
+    assertion (verified=..., fail=..., reason=...) still matches.
     """
     task_id, model, report, verified, reason = perf
     date = time.strftime("%Y-%m-%d")
     path = os.environ.get("WEIZIGO_MODEL_PERF") or os.path.join(
         root, "docs", "infra", "model-perf.md")
+    killed_by = killed_by_reason(root, task_id) or "none"
     if verified == "unreached":
         suffix = " reason=%s" % reason
     elif verified == "directive-kill":
@@ -933,8 +1058,8 @@ def record_perf(root, perf):
         suffix = " fail=%s" % reason
     else:
         suffix = ""
-    line = "dispatch-verify %s %s %s report=%s verified=%s%s\n" % (
-        date, task_id or "-", model, report, verified, suffix)
+    line = "dispatch-verify %s %s %s report=%s verified=%s%s killed_by=%s\n" % (
+        date, task_id or "-", model, report, verified, suffix, killed_by)
     try:
         with open(path, "a") as f:
             f.write(line)

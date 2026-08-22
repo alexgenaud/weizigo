@@ -151,6 +151,32 @@ case "$SUM" in
     *) fail "arm E summary wrong: $SUM" ;;
 esac
 
+# ── F. T629: AC6 refuses censored rows — a verified=fail line carrying
+# killed_by=provider-limit is present but NOT counted, and the skip count is
+# printed next to the figure.  Red (pre-T629): the censored line counts, so
+# AC6 WARNs and the run exits 2.
+echo "  F. AC6: censored verified=fail rows are skipped and counted (T629)"
+write_status '[]'
+GEN=$(python3 -c "
+lines = ['dispatch-verify 2026-08-20 T%03d alpha report=success verified=pass killed_by=none' % i for i in range(1, 40)]
+lines.append('dispatch-verify 2026-08-20 T999 alpha report=incomplete verified=fail fail=row killed_by=provider-limit')
+print('\\n'.join(lines))")
+write_perf "$GEN"
+write_claimlint "$CLAIM_OK"
+rm -rf untracked/runs; mkdir -p untracked/runs
+OUT=$(run_accept); RC=$?
+AC6D=$(printf '%s' "$OUT" | python3 -c 'import json,sys;d=json.load(sys.stdin);print([c["detail"] for c in d["checks"] if c["ac"]=="AC6"][0])' 2>/dev/null || echo PARSEFAIL)
+SUM=$(printf '%s' "$OUT" | python3 -c 'import json,sys;print(json.load(sys.stdin)["summary"])' 2>/dev/null || echo PARSEFAIL)
+if [ "$RC" -ne 0 ]; then fail "arm F exit $RC (expected 0 — the only fail is censored)"; else pass "arm F exit 0"; fi
+case "$AC6D" in
+    *"0 verified=fail"*"1 censored"*) pass "arm F AC6 counts 0, prints the skip: $AC6D" ;;
+    *) fail "arm F AC6 detail wrong (expected '0 verified=fail … (1 censored…)': $AC6D" ;;
+esac
+case "$SUM" in
+    *"ACCEPTANCE PASS"*) pass "arm F summary is ACCEPTANCE PASS: $SUM" ;;
+    *) fail "arm F summary wrong: $SUM" ;;
+esac
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "regression-orcha-acceptance: ALL CONTROLS PASSED"

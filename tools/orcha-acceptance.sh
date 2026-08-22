@@ -107,9 +107,17 @@ d=$("$MGM" landmark L4 --declare 2>&1 | grep -ci "overdue\|blocked" 2>/dev/null)
 # because each line needs a reason or a re-dispatch (handover §3). NOT FAIL: the
 # check measures presence, not unexplained-ness — the ledger line may itself be
 # the explanation — and FAIL-on-presence needs the operator's ruling.
-vf=$(tail -40 docs/infra/model-perf.md 2>/dev/null | grep -c "verified=fail")
-if [ "${vf:-0}" = 0 ]; then say AC6 PASS "0 verified=fail in the last 40 perf entries"
-else say AC6 WARN "$vf verified=fail line(s) in the last 40 perf entries — each needs a reason or a re-dispatch"; fi
+# T629/Ruling 32: a verified=fail line carrying killed_by != none is a
+# GUARD-KILLED row — present and labeled censored, never scored.  AC6 counts
+# only the uncensored (killed_by absent or none) failures and prints the
+# censored skip count next to the figure.
+perf40=$(tail -40 docs/infra/model-perf.md 2>/dev/null)
+CENSORED_RX='killed_by=(provider-limit|provider-auth|provider-connection|directive|wall|cpu|rss|liveness|watchdog|harness-error)'
+vf=$(printf '%s\n' "$perf40" | grep "verified=fail" | grep -Ev "$CENSORED_RX" | grep -c . || true)
+cens=$(printf '%s\n' "$perf40" | grep "verified=fail" | grep -Ec "$CENSORED_RX" || true)
+cens=${cens:-0}
+if [ "${vf:-0}" = 0 ]; then say AC6 PASS "0 verified=fail in the last 40 perf entries ($cens censored, skipped)"
+else say AC6 WARN "$vf verified=fail line(s) in the last 40 perf entries ($cens censored, skipped) — each needs a reason or a re-dispatch"; fi
 
 # AC7 — tasks wall-killed in the last 24 h. T537: was a cumulative-ever counter
 # (grep -l "exit 124" over every t*.log the project ever produced), which was

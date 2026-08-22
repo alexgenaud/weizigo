@@ -1224,6 +1224,53 @@ else
   echo "    FAIL: expected T2 (deepseek) dispatched and T1 (glm) denied under the durable default (rc=$RC); got:"; echo "$F1" | sed 's/^/    | /'; FAIL=1
 fi
 
+# ── T629: least_data_model refuses censored rows and prints the census ──
+# Ruling 32: a guard-killed row (killed_by != none in the perf ledger) is
+# present and labeled censored, never counted as the model's data.  Counts:
+# pro=1, flash=2 with ONE censored, kimi=2, minimax=2.  Red (pre-T629):
+# flash counts 2 → pro (1) is least-data and T923 goes to pro.  Green:
+# flash counts 1 → tie with pro → canonical order picks flash, and the
+# census line prints.
+echo "  T629. seeded: least_data_model excludes censored rows and prints the census"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T920 dispatchable A 2026-08-19T21:00:01Z "" deepseek-v4-pro false)',
+  '$(task_rec T921 dispatchable A 2026-08-19T21:00:02Z "" deepseek-v4-flash false)',
+  '$(task_rec T922 dispatchable A 2026-08-19T21:00:03Z "" deepseek-v4-flash false)',
+  '$(task_rec T924 dispatchable A 2026-08-19T21:00:04Z "" kimi-k2.7 false)',
+  '$(task_rec T925 dispatchable A 2026-08-19T21:00:05Z "" kimi-k2.7 false)',
+  '$(task_rec T926 dispatchable A 2026-08-19T21:00:06Z "" minimax-m3 false)',
+  '$(task_rec T927 dispatchable A 2026-08-19T21:00:07Z "" minimax-m3 false)',
+  '$(task_rec T928 dispatchable A 2026-08-19T21:00:08Z "" glm-5.2 false)',
+  '$(task_rec T929 dispatchable A 2026-08-19T21:00:09Z "" glm-5.2 false)',
+  '$(task_rec T923 dispatchable A 2026-08-19T20:00:00Z "" "" false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+for t in T920 T921 T922 T924 T925 T926 T927 T928 T929 T923; do seed_bundle "$t" findings/$t.json; done
+# fixture perf ledger: T921 is guard-killed (censored); the rest are clean.
+cat > "$WORK/perf-ledger.txt" <<'LEDGEREOF'
+dispatch-verify 2026-08-20 T920 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-20 T921 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=provider-limit
+dispatch-verify 2026-08-20 T922 deepseek-v4-flash report=success verified=pass killed_by=none
+LEDGEREOF
+reset_keeper_state
+G1=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$G1" | grep -q "^dispatched T923 deepseek-v4-flash"; then
+  echo "    PASS: censored row excluded — T923 (model-less) dispatched to deepseek-v4-flash"
+else
+  echo "    FAIL: expected T923 → deepseek-v4-flash (rc=$RC); got:"; echo "$G1" | sed 's/^/    | /'; FAIL=1
+fi
+if echo "$G1" | grep -q "least-data census:.*censored=1"; then
+  echo "    PASS: the skip count prints alongside the choice (censored=1)"
+else
+  echo "    FAIL: no census line with censored=1 in the keeper output"; echo "$G1" | sed 's/^/    | /'; FAIL=1
+fi
+
+
 echo ""
 # ── T512 isolation assertion: nothing of the suite reached live telemetry ─
 # The F3 defect class: fixture records from a suite appended to the LIVE
