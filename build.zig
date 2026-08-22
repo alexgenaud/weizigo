@@ -391,6 +391,23 @@ pub fn build(b: *std.Build) void {
     runner_taskid_regression.cwd = b.path(".");
     test_step.dependOn(&runner_taskid_regression.step);
 
+    // ── T650: run records are NEVER overwritten ────────────────────────
+    // A re-dispatch of the same task used to REWRITE untracked/runs/<task>.json,
+    // destroying the previous attempt's evidence (its wall, its exit, its kill
+    // reason) — on 2026-08-22 the records for T615/T621/T622 no longer described
+    // the kills.  The fix: the bare <task>.json ALWAYS holds the LATEST attempt;
+    // the previous bare is atomically renamed to <task>.<N>.json (N = the attempt
+    // number it carried) when a new attempt starts, so every attempt is a file
+    // and each record carries attempt + model.  Arms: killed-then-redispatch
+    // leaves BOTH records (RED pre-T650: the kill is gone), three attempts make
+    // three ordered records 1..3, single dispatch is byte-identical to today,
+    // every existing reader sees the latest on multi-attempt rows, the AC7
+    // wall-kill census counts each killed attempt exactly once, and the p95
+    // derivation counts completed attempts only (a killed wall is censored).
+    const runner_run_records_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-run-records.sh" });
+    runner_run_records_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_run_records_regression.step);
+
     // ── T572: load-test store-pollution controls ─────────────────────────
     // The T559 load test left six dummy lanes (TL1A..TL1F) in_progress in
     // the LIVE kanban: the runner auto-claims `--task-id` rows at launch,

@@ -369,6 +369,39 @@ def _check_directives(task_id, repo_root, verbose=True):
 # runner = backed row (never reap an idle-but-alive worker — stalled is the
 # progress watchdog's job); dead runner = orphan, with the record's fields
 # as the evidence for the abandoned note.
+#
+# ── T650 (2026-08-22): run records are NEVER overwritten ─────────────────
+# A re-dispatch of the same task used to REWRITE untracked/runs/<task>.json,
+# destroying the previous attempt's evidence: its wall, its exit, its kill
+# reason, its tokens, its session.  On 2026-08-22 the run records for T615,
+# T621 and T622 no longer described the kills — the re-runs had replaced
+# them, and the kills survived only in dispatch-heals.jsonl and the .log
+# files.  Ruling 32 (2026-08-22) requires guard-killed rows to be PRESENT
+# and labeled censored — never dropped.  An overwritten killed attempt is a
+# dropped one, silently, by the mechanism that should preserve it.
+#
+# The fix: the bare untracked/runs/<task>.json ALWAYS holds the LATEST
+# attempt; when a new attempt starts, the previous bare record is renamed
+# (atomic os.replace, never a copy — a copy would double-count in the AC7
+# census, which iterates every file) to untracked/runs/<task>.<N>.json where
+# N is the attempt number it carried.  Each record therefore exists exactly
+# once, every attempt is a file, and the bare path keeps meaning "the
+# current record" for every existing reader (dispatch_verify,
+# attribution-backfill, managent reap/resume, the AC7 wall-kill census, the
+# regressions).  A reader that globs ALL files now sees every attempt.
+#
+# Attempt numbering is "from the existing count": the first dispatch of a
+# task writes the bare record only (attempt 1 — a single-attempt row is
+# byte-identical to pre-T650), the second dispatch archives that record to
+# <task>.1.json and writes the bare as attempt 2, and so on.  Every record
+# carries its own "attempt" field so attempts are distinguishable at a
+# glance without trusting filenames.  Historical records are NEVER
+# migrated or back-filled (a back-filled record is a fabricated one).
+#
+# p95 / percentile computations over run records (T634, T643, and any
+# future derivation) count COMPLETED attempts ONLY — a record with an
+# exit/end and NO killed/killed_by/signal.  A killed attempt's wall is
+# censored (Ruling 32), not a sample of how long the work takes.
 
 # ── T629 (2026-08-22): killed_by — the enumerated guard-kill vocabulary ──
 # The verification record (the dispatch-verify ledger line) carries one
@@ -417,6 +450,68 @@ def _sanitize_identity(task_identity):
 
 def _run_record_path(task_identity, repo_root):
     return os.path.join(repo_root, "untracked", "runs", _sanitize_identity(task_identity) + ".json")
+
+
+def _model_from_argv(argv):
+    """The model label from the dispatch command's --model flag, or None.
+
+    Every run record carries an explicit `model` field (T650) so attempts
+    are distinguishable at a glance; the label is the literal --model value
+    the dispatcher launched with, parsed here once at launch.  The full
+    dispatch remains in `command`."""
+    for i, a in enumerate(argv):
+        if a == "--model" and i + 1 < len(argv):
+            return argv[i + 1]
+    return None
+
+
+_ATTEMPT_FILE_RX = None  # compiled lazily below (needs re, imported above)
+
+
+def _begin_attempt(task_identity, repo_root):
+    """Archive the previous attempt's record (if any) and return the new
+    attempt number (T650 — run records are never overwritten).
+
+    The bare untracked/runs/<task>.json always holds the LATEST attempt;
+    when a new attempt starts, the previous bare record is atomically
+    renamed to untracked/runs/<task>.<N>.json where N is the attempt number
+    it carried, and the new record takes the bare path.  Attempt numbering
+    is "from the existing count": first dispatch of a task is attempt 1
+    (bare only), the Nth dispatch is attempt N.  Returns 1 when no record
+    can be written (degraded mode) — callers no-op on a falsy record_root
+    anyway."""
+    global _ATTEMPT_FILE_RX
+    if not repo_root or not task_identity:
+        return 1
+    ident = _sanitize_identity(task_identity)
+    runs_dir = os.path.join(repo_root, "untracked", "runs")
+    try:
+        os.makedirs(runs_dir, exist_ok=True)
+    except OSError:
+        return 1
+    if _ATTEMPT_FILE_RX is None:
+        _ATTEMPT_FILE_RX = re.compile(r"^" + re.escape(ident) + r"\.(\d+)\.json$")
+    numbered = set()
+    try:
+        for fn in os.listdir(runs_dir):
+            m = _ATTEMPT_FILE_RX.match(fn)
+            if m:
+                numbered.add(int(m.group(1)))
+    except OSError:
+        pass
+    max_num = max(numbered) if numbered else 0
+    bare = os.path.join(runs_dir, ident + ".json")
+    if os.path.isfile(bare):
+        # The bare holds the most recent attempt: max_num + 1.  Rename it to
+        # its own attempt slot, atomically — never a copy, so the AC7 census
+        # (which iterates every file) counts each attempt exactly once.
+        archive = os.path.join(runs_dir, "%s.%d.json" % (ident, max_num + 1))
+        try:
+            os.replace(bare, archive)
+        except OSError:
+            pass
+        return max_num + 2
+    return max_num + 1
 
 
 def _write_run_record(record, repo_root):
@@ -1993,6 +2088,8 @@ def main():
             d = pending_stops[0]
             refused_rec = {
                 "task": task_identity,
+                "attempt": _begin_attempt(task_identity, record_root),
+                "model": _model_from_argv(argv),
                 "pid": os.getpid(),
                 "launcher_pid": os.getppid(),
                 "start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -2047,6 +2144,8 @@ def main():
     # stamp the child's fate onto this same record.
     run_record = {
         "task": task_identity,
+        "attempt": _begin_attempt(task_identity, record_root),
+        "model": _model_from_argv(argv),
         "pid": os.getpid(),
         "pgid": proc.pid,
         "launcher_pid": os.getppid(),
