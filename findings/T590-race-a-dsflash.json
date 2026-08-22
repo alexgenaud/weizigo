@@ -1,0 +1,67 @@
+{
+  "task_id": "T590",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T590",
+  "audited_by": "deepseek-v4-flash/T590",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass-with-findings",
+  "checks": {
+    "1_rulings_11_28_map": "pass-with-findings",
+    "2_scope_verdict_triage_19_4_mechanism": "pass",
+    "3_autopilot_f4_f6_f7": "pass",
+    "4_citations_resolve": "pass-with-findings"
+  },
+  "findings": [
+    {
+      "id": "N1",
+      "severity": "must",
+      "finding": "Internal cross-reference '§2.6' points at a section that does not exist. Three occurrences in load-bearing text: REC-GOAL-4 ('This spec **rows** those tables (§2.6)'), REC-LIFE-2 ('resolves every (b) lookup from the §2.6 tables'), REC-LIFE-6 ('Selection is a §2.6 table read, not a judgment.'). The data tables are §2.4 ('The data tables (column (b)) — rows, not mechanism', REC-LIFE-9). The document's own citation-pin paragraph declares unresolvable citations a spec defect ('A citation that no longer resolves at 14d8d6b is a spec defect, not a reader's problem'), and §2.6 resolves at no commit. The intended target is unambiguous (§2.4), so this is a typo-class defect, not a substance one, but it is a defect by the spec's own rule and it sits in the sentences that define the pre-pass residue and the selection rule.",
+      "disposition": "FIX: s/§2.6/§2.4/ at all three sites (REC-GOAL-4, REC-LIFE-2, REC-LIFE-6). No substance change."
+    },
+    {
+      "id": "N2",
+      "severity": "should",
+      "finding": "REC-GOAL-4 overstates (b) discharge. The decision-log (b) class is 12 rows across FOUR tables (decision-log.md §2: provider quota/appetite 7, model fit 2, ordering 2, measurement validity 1). The spec's REC-LIFE-9 rows three tables (appetite dial, provider quota/cooldown, ordering) — covering provider-quota (7) and ordering (2), i.e. 9 of 12. Model-fit (RQ-6 exploration-first default, T568-5 family-independence) is only implied via REC-LIFE-6's 'should use is decided by model test data (the ladder) + circumstantial appropriateness' and is never rowed; measurement-validity (DIR-064, wall-clock contamination under a competing local model) has no home anywhere in the spec. The claim 'The 12 (b) decisions are discharged by data tables that already exist' is therefore not supported for 3 of the 12 rows.",
+      "disposition": "ACCEPT. Either name a model-fit/ladder table row (the ladder IS a data table per decision-log (b) 'model fit') and a measurement-validity row in REC-LIFE-9, or state explicitly which of the 12 (b) rows are out of the reconciler's universe and why. The 19.4% scope number is unaffected."
+    },
+    {
+      "id": "N3",
+      "severity": "should",
+      "finding": "§7c.16 (per-model spacing DELETED; one global 10 s dispatch gap) is silently absent — the one ruling the brief names that the spec does not map. §8's traceability table maps rulings 11, 12, 13, 14, 18, 19, 20, 21, 22, 23, 24/26, 25 and F4/F6/F7/F8; 15, 16, 17 are absent from the table. 15's ratified values are consumed in §7 ('the runaway_streak = 5 / lineage_depth = 3 values are ratified (§7c.18)') and 17 is covered in REC-LIFE-6's body ('must pass the dispatcher predicate (§7c.17)'), but 16 — the deletion of per-model spacing and the global 10 s dispatch gap — appears nowhere in the spec body or the table. The 10 s gap is a queue-layer mechanism (S03 §4 / pass-2 §4.2) and the reconciler dispatches only via the supervisor (REC-VERB-1 verb 1), so the content is defensibly delegated — but the delegation is never stated, and the §8 header claims 'Each §7c ruling and study finding the brief names, mapped'.",
+      "disposition": "ACCEPT. Add a §8 row: '§7c.16 spacing deleted / global 10s gap → REC-VERB-1 (dispatch via supervisor); mechanism in S03 §4 / pass-2 §4.2, consumed not re-spec'd'. One line closes the traceability gap."
+    },
+    {
+      "id": "N4",
+      "severity": "should",
+      "finding": "§7c.13 (short-name resolution) mapping is nominal. §8 maps it to 'REC-LIFE-9 (table note)', but the table note states only the keying unit ('0–9 **per model short name**, not per family') — it does not state ruling 13's resolution semantics: short names ALWAYS resolve to the latest actively used version of that line; 'active' ignores temporary credit freezes or hourly/weekly limits; retiring a model re-points the short name and never rewrites history. None of that appears in the S04 spec. Also §7c.15's condition (b) — 'a dedicated security analysis of the runaway surface before build' — is not carried into the spec's build gating (§7: gated on the pass-2 supervisor holding its first child and the queue layer's audited spec); only the ratified constants are consumed.",
+      "disposition": "ACCEPT. Either state the resolution rule in REC-LIFE-9's table note or mark it explicitly delegated to the model-resolution layer (pass-2 §4.1 pins short names at a commit). For 15(b), add the security analysis of the runaway surface to the build-gating sentence, or name pass-2 §5's threat model as its home."
+    },
+    {
+      "id": "N5",
+      "severity": "should",
+      "finding": "Citation section pointers that resolve to the wrong section (the content exists; the section is wrong). (a) REC-LIFE-9 ordering table: 'successor queue orders (`decision-log.md` §2 `T568-4`, `T557-1`)' — the specific rows T568-4/T557-1 live in decision-log §5 (Full row table, lines 326/337); §2 (The counted table) mentions only the class 'the two successor queue orders (T568, T557)'. (b) REC-LIFE-1: 'queue-cycle-attached — as the tail step of a queue cycle (`S03-queue-layer/spec.md` §3)' — §3 is Conditions; the queue cycle is §8 'The iteration, in order'. (c) REC-LIFE-9 provider table mechanism cell: '`S03-queue-layer` §3 conditions + `managent` `FLEET_MODEL_DENY`/allow' — the FLEET_MODEL_DENY/ALLOW deny-list is S03 §2.1's R9 row (line 128), not §3.",
+      "disposition": "ACCEPT. Fix the three pointers: decision-log §5 for T568-4/T557-1; S03 §8 for the queue cycle; S03 §2.1 R9 for FLEET_MODEL_DENY/ALLOW (or 'S03 §3 conditions + §2.1 model window')."
+    },
+    {
+      "id": "N6",
+      "severity": "should",
+      "finding": "REC-ESC-7 cites sprint.md's audit loop as the home of the cap rule, but the two authorities disagree on the cap number and the supersession is unstated. REC-ESC-7: 'When a sprint phase fails its third audit — the cap — the phase and the sprint block and escalate (`sprint.md` audit loop).' docs/infra/sprint.md says 'Two-round cap for document review' (audit-loop section). The cap-3 comes from §7c.21 (operator ruling, 2026-08-22), which supersedes sprint.md's two-round cap; the spec follows the ruling (correctly) but cites sprint.md as if consistent. A reader reconciling the two sees 2 vs 3 with no note.",
+      "disposition": "ACCEPT. Add one clause: 'cap 3 per §7c.21, which supersedes sprint.md's two-round cap for document review (sprint.md to be folded)' — or cite §7c.21 only and leave sprint.md's audit loop out of the sentence."
+    },
+    {
+      "id": "N7",
+      "severity": "should",
+      "finding": "REC-CTRL-1's completeness claim overstates the printed table. 'Every id in §1–§4 has at least one arm here; the seed's named controls are the mandatory core' — the C1–C10 table as printed flips only 10 of the 28 normative ids in §1–§4 (REC-LIFE-1/2, REC-VERB-1/4/5/6/7, REC-ESC-1/2/5). REC-GOAL-1..4, REC-LIFE-3..9, REC-VERB-2/3/8, REC-ESC-3/4/6/7 have no arm in the table. §0 already states the real completeness mechanism ('the test phase writes one seeded arm (flip) and one null arm (green) for **every** normative id before the first live wake'), so the C1–C10 rows are the mandatory core and the per-id battery is a test-phase deliverable — but the §5 sentence reads as a claim about the table as printed.",
+      "disposition": "ACCEPT. Rephrase REC-CTRL-1's opening: 'C1–C10 below are the seed's named mandatory core; the test phase adds one flip arm and one null arm per remaining §1–§4 id before the first live wake (per §0).' Keeps the intent, stops the overclaim."
+    },
+    {
+      "id": "N8",
+      "severity": "could",
+      "finding": "Rulings §7c.27–28 post-date the spec's citation pin and are therefore unmapped — a staleness note, not a defect at the pin. 14d8d6b (the pin, 2026-08-22 12:41) contains rulings 11–26 only; 27–28 were committed by T583 (9efa218, 13:07) after the spec was authored. The audit brief's '11–28' is against HEAD, where 28 rulings exist. Both new rulings touch S04 territory and need folding at the next rev: 27 (allocation policies are standing hypotheses; both evidence streams count — T522 impression-or-waiver prioritized) and 28 (appetite values are INITIAL and the dial is live; relative ops + mechanized TTL set-with-expiry) are directly relevant to REC-LIFE-6 (selection) and REC-LIFE-9 (the dial table).",
+      "disposition": "NOTE for the next fold: absorb §7c.27 into REC-LIFE-6's selection rationale and §7c.28 into REC-LIFE-9 (dial is live; TTL is a pass-2 §4.4 mechanism — the S04 table should say the values are initial, per §7c.28, not static). Not a defect at the pin."
+    }
+  ],
+  "notes": "T590 (Race A lane, independent read-only audit) of docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md (authored deepseek-v4-pro/T582; opus auditing in parallel as T584 — no cross-talk). No writes to the spec or source. Check 1 (rulings 11-28 map): the named rulings all map; 16 is silently absent, 13's mapping is nominal, 27-28 post-date the pin — N3/N4/N8. Check 2 (scope = verdict+triage 19.4%, enforced as mechanism): PASS — REC-GOAL-2 arithmetic verified against decision-log.md §2 and findings/T579-decision-log-study.json (verdict 15 + triage 10 = 25; 25/129 = 19.4%; relay 15 + doctrine 10 + scope 6 = 31; 25+31 = 56 = (c)); the verb whitelist/never-list (REC-VERB-1/2) plus mechanical enforcement (REC-VERB-4, kernel-attested identity, control C6) deliver the mechanism. Check 3 (AUTOPILOT-5H testable; F4/F6/F7): PASS — REC-GATE-2/REC-GATE-4 give countable acceptance terms (N runs, zero orphans/runaways/breaker-trips/panics/thrash, >=1 delegation + >=1 issue-resolution + >=1 close per run), N=3 proposed default flagged for operator ratification; REC-LIFE-8 (holds= + bundle= required at mint, refused at write time) matches F4; REC-VERB-7 (retraction through the store, bounded to a specific prior wake, control C9) matches F6; REC-ESC-5 (route blocking file to owning row derived from holds=/store, never the reconciler's guess; 'report' forbidden as a category, control C10) matches F7. Check 4 (citations): the spec contains no file:line citations of its own (all refs are §refs, per its pin doctrine); §refs resolve at the pin with the exceptions in N1/N5/N6. F2 (broadcast tax) is the one study finding not mapped in §8 — it is an observation about class (a), not a reconciler requirement, so no finding. Inbox polled at claim, mid-work, and before close: empty every time, no directive IDs to record."
+}
