@@ -7,6 +7,7 @@ wall + CPU + peak RSS, heartbeat record), each writing its own
 untracked/bakeoff/<run>/<model>/out.md.
 
   tools/bakeoff.sh <brief> <roster> [--run NAME] [--emit] [--wall N] [--claude-tools S] [--allow-unisolated R]
+  tools/bakeoff.sh grade <run> <op> ...   (blind-grading workflow, T526 — below)
 
   <brief>          task brief path (its text is the prompt, identical per lane)
   <roster>         one lane per line: '<family> <canonical-label> [ollama-tag]'
@@ -31,6 +32,25 @@ untracked/bakeoff/<run>/<model>/out.md.
                    run root is not a git worktree, or the key/rubric dir is
                    reachable by relative path); R is the operator's reason,
                    recorded in lanes.json. Loud and explicit — never default.
+
+Blind-grading subcommand (T526, D-f — family exclusion + sealed-key blinding
+enforced MECHANICALLY, not by the dispatcher's memory):
+
+  tools/bakeoff.sh grade <run> seal-key <key-path>
+                   record the answer key's sha256 BEFORE any grading (T447);
+                   never overwritten, key text never stored
+  tools/bakeoff.sh grade <run> anonymize
+                   build blind inputs (<letter>.md from out.sanitized.md),
+                   seal the lane map — the map is NEVER printed
+  tools/bakeoff.sh grade <run> submit --grader <label> --artifact <A>
+                       --scores <json> [--controls <json>]
+                   record one grade; G3 refuses a same-family grader
+                   (exit 2) — a same-family model is not a grader of that lane
+  tools/bakeoff.sh grade <run> status
+                   grading state without revealing the map
+  tools/bakeoff.sh grade <run> unseal [--force <reason>]
+                   reveal the map + counted scores; refuses while grading is
+                   incomplete or the key/map/artifacts fail their seals
 
 Lane layout (untracked/bakeoff/<run>/):
   prompt.txt                     the exact prompt bytes (identical per lane)
@@ -871,11 +891,560 @@ def _write_tokens_template(run_dir, run, lanes):
         f.write(body)
 
 
+# ── grade subcommand (T526: blinding enforced, D-f) ───────────────────
+#
+# The race protocol (bakeoff.md §3) requires blind grading with sealed keys
+# (T447) and family exclusion (G3) — mechanically, "not by the dispatcher's
+# memory" (T526 bundle, roadmap D-f). T542 wired the building blocks (G3
+# count_grade / count_grades, G4 sanitize_out) but left the grading WORKFLOW
+# manual: the dispatcher anonymized by hand (untracked/race-grading/
+# anonymize.py), "sealed" the lane map by convention, and picked graders from
+# memory. This subcommand closes that gap — the harness itself refuses every
+# step that breaks blinding or family exclusion:
+#
+#   grade <run> seal-key <key-path>
+#       Record the answer key's sha256 into grade/seal.json BEFORE any
+#       grading. Refuses when the run has no lanes.json (nothing to grade),
+#       when the key file is missing, or when a DIFFERENT key is already
+#       sealed (never overwrite). The key text is never stored — only its
+#       hash — so an edited key fails the seal at the next gate that checks.
+#
+#   grade <run> anonymize
+#       Build the blind grading inputs: one <letter>.md per ok lane, copied
+#       from the lane's out.sanitized.md (G4 — self-identifying text is
+#       stripped BEFORE grading; the original out.md is never touched),
+#       letters assigned by the deterministic name-hash shuffle (identical
+#       to the manual T447 practice). Writes grade/lanes-map.sealed.json +
+#       grade/seal-record.json (map hash, per-artifact hashes, self-
+#       identified letters) and NEVER prints the map. Refuses when the key
+#       is not sealed (T447: the key must predate the outputs being read)
+#       or when already anonymized.
+#
+#   grade <run> submit --grader <label> --artifact <A> --scores <json>
+#           [--controls <json>]
+#       Record one grade. MECHANICAL G3: refuses (exit 2, naming G3) when
+#       model_family(grader) == model_family(lane behind the letter) — a
+#       same-family model is not a grader of that lane, and the refusal is
+#       the harness's, never the dispatcher's memory. Also refuses when the
+#       key is not sealed or its file no longer matches the seal (an edited
+#       key breaks the seal), when the letter is not in the map, when the
+#       grader is not a canonical label, or on a duplicate (grader, letter).
+#       Grades append to grade/grades.jsonl (append-only, never edited);
+#       refusals append to grade/refusals.jsonl (the enforcement record).
+#       stdout never reveals the map (the lane is named only in refusals,
+#       which are enforcement evidence the dispatcher must act on).
+#
+#   grade <run> status
+#       Grading state WITHOUT revealing the map: letters, graded/ungraded,
+#       key seal, refusals. stdout = data.
+#
+#   grade <run> unseal [--force <reason>]
+#       The only command that prints the map. Refuses while any letter has
+#       no grade (the map opens only after every score is written, T447;
+#       --force <reason> overrides and is recorded). Verifies the key hash
+#       still matches the seal, the map still matches its sealed hash, and
+#       the anonymized artifacts are unchanged (no override — a broken seal
+#       voids the round). Prints the map + per-lane totals counted from the
+#       grades (all of which passed G3 at submission; count_grades() re-
+#       checks at the counting layer as belt-and-suspenders).
+#
+# The seal is process-level, stated honestly: the map file is plaintext JSON
+# on disk (the dispatcher could read it) — what is enforced is that the
+# harness never prints it before unseal, refuses to unseal while grading is
+# incomplete, and detects post-hoc edits via the recorded map hash. The
+# GRADER (a model lane) never receives the map at all.
+
+GRADE_SUBDIR = "grade"
+SEAL_FILE = "seal.json"
+MAP_FILE = "lanes-map.sealed.json"
+SEAL_RECORD_FILE = "seal-record.json"
+GRADES_FILE = "grades.jsonl"
+REFUSALS_FILE = "refusals.jsonl"
+UNSEAL_FILE = "unseal.json"
+
+
+def _sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _resolve_run_dir(root, run_arg):
+    """A grade run is either a path (absolute, relative, or an existing dir)
+    or a run name under untracked/bakeoff/ of the resolved root."""
+    if os.path.isabs(run_arg) or os.path.isdir(run_arg):
+        return os.path.abspath(run_arg)
+    return os.path.join(root, "untracked", "bakeoff", run_arg)
+
+
+def _read_lanes(run_dir):
+    """The dispatch record (G5) is mandatory for grading: a race turn without
+    lanes.json did not happen (T447's gap)."""
+    path = os.path.join(run_dir, "lanes.json")
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        die(f"run {os.path.basename(run_dir)} has no lanes.json — the dispatch "
+            f"record (G5) is mandatory for grading; a race turn without it did "
+            f"not happen")
+    except ValueError as exc:
+        die(f"lanes.json is not valid JSON: {exc}")
+
+
+def _lane_family_map(lanes_doc):
+    """Fine-grained model family per lane label (G3 — model family, NOT the
+    roster's dispatch family: glm/minimax/kimi/qwen are four families despite
+    all being ollama-served)."""
+    return {e["label"]: model_family(e["label"])
+            for e in lanes_doc.get("lanes", [])}
+
+
+def _anonymize_letters(lanes_doc):
+    """Deterministic, content-independent shuffle (identical to the manual
+    anonymize.py practice, T447): order the ok lanes by sha256 of the
+    canonical label, letter A.. from the first. Lane identity comes from the
+    dispatch record only (label hygiene)."""
+    ok = [e for e in lanes_doc.get("lanes", [])
+          if e.get("status") == "ok" and e.get("label")]
+    ordered = sorted(ok, key=lambda e: hashlib.sha256(
+        e["label"].encode()).hexdigest())
+    return {chr(ord("A") + i): e["label"] for i, e in enumerate(ordered)}
+
+
+def _grade_state(run_dir, lanes_doc):
+    """Read-only snapshot of the run's grading state. Never raises on missing
+    files (they are None / empty) — the gates decide what is required."""
+    gd = os.path.join(run_dir, GRADE_SUBDIR)
+
+    def load(name):
+        p = os.path.join(gd, name)
+        if not os.path.isfile(p):
+            return None
+        with open(p) as f:
+            return json.load(f)
+
+    grades, refusals = [], []
+    for name, out in ((GRADES_FILE, grades), (REFUSALS_FILE, refusals)):
+        p = os.path.join(gd, name)
+        if os.path.isfile(p):
+            with open(p) as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        out.append(json.loads(line))
+    return {"dir": gd, "seal": load(SEAL_FILE), "map": load(MAP_FILE),
+            "record": load(SEAL_RECORD_FILE), "grades": grades,
+            "refusals": refusals}
+
+
+def _check_key(seal):
+    """T447 falsifiability: the key file on disk must still hash to the
+    sealed value. Returns (ok, detail); the caller decides how hard to fail."""
+    path = seal.get("key_path")
+    if not path or not os.path.isfile(path):
+        return False, f"key file {path!r} is missing — cannot verify the seal"
+    now = _sha256_file(path)
+    if now != seal.get("key_sha256"):
+        return False, (f"key file {path!r} sha256 {now[:16]}… != sealed "
+                       f"{seal['key_sha256'][:16]}… — edited since sealing")
+    return True, now
+
+
+def _require_key_ok(seal, verb):
+    ok, detail = _check_key(seal)
+    if not ok:
+        die(f"{verb} refused: {detail} — the seal is broken and the round is "
+            f"void (T447); there is no override")
+    return detail
+
+
+def _record_refusal(gd, grader, artifact, lane, reason):
+    entry = {"grader": grader, "artifact": artifact, "lane": lane,
+             "reason": reason,
+             "ts": datetime.now(timezone.utc).isoformat()}
+    with open(os.path.join(gd, REFUSALS_FILE), "a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+def _parse_scores(raw):
+    """Accept a JSON number or a flat JSON object of criterion->number (the
+    rubric shape is the race's; the harness only needs a mechanical total).
+    Returns (scores, total)."""
+    if raw is None:
+        die("submit: --scores is required (a number or a JSON object of "
+            "criterion->number)")
+    try:
+        v = json.loads(raw)
+    except ValueError as exc:
+        die(f"submit refused: --scores is not valid JSON: {exc}")
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return v, v
+    if isinstance(v, dict) and v:
+        out = {}
+        for k, x in v.items():
+            if isinstance(x, bool) or not isinstance(x, (int, float)):
+                die(f"submit refused: --scores criterion {k!r} is not a number "
+                    f"(scores must be a number or a flat object of numbers)")
+            out[k] = x
+        return out, sum(out.values())
+    die("submit refused: --scores must be a JSON number or a flat JSON object "
+        "of criterion->number (e.g. '{\"correctness\": 8, \"overreach\": 1}')")
+
+
+def grade_seal_key(run_dir, key_path):
+    lanes_doc = _read_lanes(run_dir)
+    if not os.path.isfile(key_path):
+        die(f"key file not found: {key_path}")
+    key_sha = _sha256_file(key_path)
+    gd = os.path.join(run_dir, GRADE_SUBDIR)
+    seal_path = os.path.join(gd, SEAL_FILE)
+    if os.path.isfile(seal_path):
+        with open(seal_path) as f:
+            existing = json.load(f)
+        if existing.get("key_sha256") != key_sha:
+            die(f"seal-key refused: a seal already exists with a DIFFERENT key "
+                f"(sha256 {existing.get('key_sha256', '?')[:16]}… != "
+                f"{key_sha[:16]}…) — never overwrite a seal; the run's key is "
+                f"fixed at first sealing")
+        print(f"seal-key: unchanged (key already sealed as {key_sha[:16]}…)")
+        return 0
+    os.makedirs(gd, exist_ok=True)
+    seal = {"key_path": os.path.abspath(key_path), "key_sha256": key_sha,
+            "prompt_sha256": lanes_doc.get("prompt_sha256"),
+            "brief": lanes_doc.get("brief"), "run": lanes_doc.get("run"),
+            "sealed_at": datetime.now(timezone.utc).isoformat()}
+    with open(seal_path, "w") as f:
+        json.dump(seal, f, indent=2)
+        f.write("\n")
+    print(f"seal-key: {key_sha} (key text never stored — only its hash)")
+    print(f"seal: {os.path.relpath(seal_path, run_dir)}")
+    return 0
+
+
+def grade_anonymize(run_dir):
+    lanes_doc = _read_lanes(run_dir)
+    gd = os.path.join(run_dir, GRADE_SUBDIR)
+    seal_path = os.path.join(gd, SEAL_FILE)
+    if not os.path.isfile(seal_path):
+        die("anonymize refused: the answer key is not sealed yet — run "
+            "`grade <run> seal-key <key-path>` first (T447: the key must be "
+            "sealed before the outputs are read)")
+    with open(seal_path) as f:
+        seal = json.load(f)
+    _require_key_ok(seal, "anonymize")
+    map_path = os.path.join(gd, MAP_FILE)
+    if os.path.isfile(map_path):
+        die(f"anonymize refused: already anonymized "
+            f"({os.path.relpath(map_path, run_dir)} exists) — never overwrite "
+            f"a sealed map; a corrected run is a new run")
+    letters = _anonymize_letters(lanes_doc)
+    if not letters:
+        die("anonymize refused: no ok lane has an output to grade")
+    os.makedirs(gd, exist_ok=True)
+    by_label = {e["label"]: e for e in lanes_doc.get("lanes", [])}
+    artifacts = {}
+    for letter, label in letters.items():
+        lane_dir = os.path.join(run_dir, label)
+        # G4: the blind artifact is the SANITIZED output (self-identifying
+        # text stripped before grading). Fall back to out.md only when the
+        # sanitized copy is missing, and say so in the seal record.
+        sani = os.path.join(lane_dir, "out.sanitized.md")
+        src = sani if os.path.isfile(sani) else os.path.join(lane_dir, "out.md")
+        if not os.path.isfile(src):
+            die(f"anonymize refused: lane {label!r} has no output to grade "
+                f"(expected {os.path.relpath(src, run_dir)})")
+        dst = os.path.join(gd, letter + ".md")
+        shutil.copy2(src, dst)
+        ent = by_label.get(label, {})
+        artifacts[letter] = {"lane": label, "sha256": _sha256_file(dst),
+                             "sanitized": src == sani,
+                             "self_identified": bool(ent.get("self_identified"))}
+    map_doc = {l: label for l, label in letters.items()}
+    with open(map_path, "w") as f:
+        json.dump(map_doc, f, indent=1)
+        f.write("\n")
+    map_sha = _sha256_file(map_path)
+    record = {"run": lanes_doc.get("run"), "letters": len(letters),
+              "map_sha256": map_sha, "artifacts": artifacts,
+              "self_identified_letters": sorted(
+                  l for l, a in artifacts.items() if a["self_identified"]),
+              "source": "out.sanitized.md (G4 sanitizer) with out.md fallback "
+                         "where absent",
+              "anonymized_at": datetime.now(timezone.utc).isoformat()}
+    with open(os.path.join(gd, SEAL_RECORD_FILE), "w") as f:
+        json.dump(record, f, indent=2)
+        f.write("\n")
+    print(f"anonymize: {len(letters)} blind artifact(s) in "
+          f"{os.path.relpath(gd, run_dir)}")
+    print(f"letters={' '.join(sorted(artifacts))} "
+          f"self_id={' '.join(record['self_identified_letters']) or 'none'}")
+    print(f"map_sha256={map_sha} (map sealed — revealed only by `grade unseal`)")
+    return 0
+
+
+def grade_submit(run_dir, grader, artifact, scores_raw, controls_raw):
+    lanes_doc = _read_lanes(run_dir)
+    gd = os.path.join(run_dir, GRADE_SUBDIR)
+    seal_path = os.path.join(gd, SEAL_FILE)
+    if not os.path.isfile(seal_path):
+        die("submit refused: the answer key is not sealed — grading against no "
+            "key is unfalsifiable (T316); run `grade <run> seal-key <key-path>` "
+            "first")
+    with open(seal_path) as f:
+        seal = json.load(f)
+    _require_key_ok(seal, "submit")
+    if grader not in CANONICAL:
+        die(f"submit refused: {grader!r} is not a canonical model label "
+            f"(canonical set: {', '.join(sorted(CANONICAL))})")
+    map_path = os.path.join(gd, MAP_FILE)
+    if not os.path.isfile(map_path):
+        die("submit refused: the run is not anonymized — grading must be blind; "
+            "run `grade <run> anonymize` first")
+    with open(map_path) as f:
+        map_doc = json.load(f)
+    if artifact not in map_doc:
+        die(f"submit refused: {artifact!r} is not an anonymized artifact letter "
+            f"(letters: {' '.join(sorted(map_doc))})")
+    lane = map_doc[artifact]
+    scores, total = _parse_scores(scores_raw)
+    controls = None
+    if controls_raw is not None:
+        try:
+            controls = json.loads(controls_raw)
+        except ValueError as exc:
+            die(f"submit refused: --controls is not valid JSON: {exc}")
+        if not isinstance(controls, dict):
+            die("submit refused: --controls must be a JSON object (e.g. "
+                "'{\"null_ctrl\": \"pass\", \"seeded_ctrl\": \"pass\"}')")
+    # MECHANICAL G3 (T526, D-f): same-family models are not graders of each
+    # other — the harness refuses; the dispatcher's memory is never asked.
+    fam_lane = model_family(lane)
+    fam_grad = model_family(grader)
+    if fam_lane == fam_grad:
+        kind = "a self-grade" if grader == lane else (
+            f"model family {fam_lane!r}")
+        reason = (f"G3 family exclusion: grader {grader!r} and lane {lane!r} "
+                  f"share {kind}")
+        _record_refusal(gd, grader, artifact, lane, reason)
+        die(reason + " — a same-family model is not a grader of that lane "
+            "(refusal recorded in grade/refusals.jsonl)")
+    # duplicates: a submitted grade is immutable (append-only)
+    grades_path = os.path.join(gd, GRADES_FILE)
+    if os.path.isfile(grades_path):
+        with open(grades_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                g = json.loads(line)
+                if g.get("grader") == grader and g.get("artifact") == artifact:
+                    die(f"submit refused: {grader!r} has already graded artifact "
+                        f"{artifact!r} — a submitted grade is immutable "
+                        f"(append-only); a corrected grade is a new run")
+    grade = {"grader": grader, "grader_family": fam_grad,
+             "artifact": artifact, "lane": lane, "lane_family": fam_lane,
+             "scores": scores, "total": total,
+             "is_self": grader == lane, "is_family": False,
+             "controls": controls,
+             "ts": datetime.now(timezone.utc).isoformat()}
+    with open(grades_path, "a") as f:
+        f.write(json.dumps(grade) + "\n")
+    # stdout never reveals the map (the lane is named only in refusals)
+    print(f"submit: {grader} -> artifact {artifact} total={total} — recorded "
+          f"(grade/{GRADES_FILE}, append-only; map stays sealed)")
+    return 0
+
+
+def grade_status(run_dir):
+    lanes_doc = _read_lanes(run_dir)
+    state = _grade_state(run_dir, lanes_doc)
+    seal = state["seal"]
+    map_doc = state["map"] or {}
+    letters = sorted(map_doc)
+    graded = {g.get("artifact") for g in state["grades"]}
+    missing = [l for l in letters if l not in graded]
+    if seal is None:
+        key_state = "NOT SEALED"
+    else:
+        ok, detail = _check_key(seal)
+        key_state = (f"sealed+verified ({detail[:16]}…)" if ok
+                     else f"sealed but UNVERIFIABLE: {detail}")
+    print(f"run={os.path.basename(run_dir)}")
+    print(f"key={key_state}")
+    print(f"anonymized={bool(map_doc)} letters={len(letters)}")
+    print(f"grades={len(state['grades'])} "
+          f"graded_letters={len(graded)}/{len(letters)}")
+    if missing:
+        print(f"ungraded={' '.join(missing)}")
+    print(f"refusals={len(state['refusals'])}")
+    for r in state["refusals"]:
+        print(f"  refusal {r['grader']} -> {r['artifact']}: {r['reason']}")
+    print(f"unsealed={os.path.isfile(os.path.join(state['dir'], UNSEAL_FILE))}")
+    return 0
+
+
+def grade_unseal(run_dir, force_reason):
+    lanes_doc = _read_lanes(run_dir)
+    state = _grade_state(run_dir, lanes_doc)
+    gd = state["dir"]
+    seal = state["seal"]
+    map_doc = state["map"]
+    record = state["record"]
+    if seal is None:
+        die("unseal refused: no key was sealed — there is nothing to unseal "
+            "against (T316: the key must predate grading)")
+    _require_key_ok(seal, "unseal")
+    if map_doc is None or record is None:
+        die("unseal refused: the run was never anonymized — nothing to unseal")
+    map_sha = _sha256_file(os.path.join(gd, MAP_FILE))
+    if map_sha != record.get("map_sha256"):
+        die(f"unseal refused: {MAP_FILE} no longer matches its sealed hash "
+            f"({map_sha[:16]}… != {record['map_sha256'][:16]}…) — the map was "
+            f"edited after sealing; void")
+    for letter, a in (record.get("artifacts") or {}).items():
+        p = os.path.join(gd, letter + ".md")
+        if not os.path.isfile(p):
+            die(f"unseal refused: blind artifact {letter}.md is missing")
+        if _sha256_file(p) != a.get("sha256"):
+            die(f"unseal refused: blind artifact {letter}.md no longer matches "
+                f"its sealed hash — edited after anonymization; void")
+    graded = {g.get("artifact") for g in state["grades"]}
+    missing = [l for l in sorted(map_doc) if l not in graded]
+    if missing and not force_reason:
+        die(f"unseal refused: {len(missing)} artifact(s) have no grade "
+            f"({' '.join(missing)}) — the map opens only after every score is "
+            f"written (T447); --force '<reason>' records a deliberate early "
+            f"unseal")
+    # counting layer, belt-and-suspenders: every recorded grade must pass G3
+    lane_fam = _lane_family_map(lanes_doc)
+    try:
+        counted = count_grades(state["grades"], lane_fam)
+    except FamilyGradeError as exc:
+        die(f"unseal refused: {exc} — a family grade is present in "
+            f"{GRADES_FILE}; the counting layer refuses it (G3)")
+    per_lane = {}
+    for g in counted:
+        per_lane.setdefault(g["lane"], []).append(g)
+    print(f"unseal=1 run={os.path.basename(run_dir)} key_verified=1")
+    print("map:")
+    for letter in sorted(map_doc):
+        print(f"  {letter}={map_doc[letter]}")
+    print(f"scores (counted: non-family grades only, n={len(counted)}):")
+    for lane in sorted(per_lane):
+        gs = per_lane[lane]
+        totals = [g["total"] for g in gs]
+        mean = sum(totals) / len(totals)
+        letters_of = "".join(l for l in map_doc if map_doc[l] == lane)
+        graders = ", ".join(f"{g['grader']}:{g['total']}" for g in gs)
+        print(f"  {lane} ({letters_of}): mean={mean:.2f} n={len(gs)} "
+              f"[{graders}]")
+    ungraded = [l for l in sorted(map_doc) if l not in graded]
+    if ungraded:
+        print(f"ungraded_letters={' '.join(ungraded)} "
+              f"(forced unseal: {force_reason})")
+    unseal_doc = {"run": lanes_doc.get("run"),
+                  "key_sha256": seal["key_sha256"], "map_sha256": map_sha,
+                  "counted_grades": len(counted), "family_grades": 0,
+                  "forced": bool(force_reason), "force_reason": force_reason,
+                  "map": map_doc,
+                  "per_lane": {lane: [g for g in gs]
+                                for lane, gs in per_lane.items()},
+                  "ungraded_letters": ungraded,
+                  "unsealed_at": datetime.now(timezone.utc).isoformat()}
+    with open(os.path.join(gd, UNSEAL_FILE), "w") as f:
+        json.dump(unseal_doc, f, indent=2)
+        f.write("\n")
+    print(f"unseal record: {os.path.relpath(os.path.join(gd, UNSEAL_FILE), run_dir)}")
+    return 0
+
+
+GRADE_USAGE = (
+    "usage: tools/bakeoff.sh grade <run> <op> [args]\n"
+    "  <run>  a run name under untracked/bakeoff/ or a path to a run dir\n"
+    "  ops:\n"
+    "    seal-key <key-path>   record the answer key's sha256 (T447: key\n"
+    "                          sealed before grading; never overwritten)\n"
+    "    anonymize             build blind grading inputs (<letter>.md from\n"
+    "                          out.sanitized.md) and seal the lane map\n"
+    "                          (never printed)\n"
+    "    submit --grader <label> --artifact <A> --scores <json>\n"
+    "                          [--controls <json>]\n"
+    "                          record one grade; G3 refuses a same-family\n"
+    "                          grader mechanically (exit 2)\n"
+    "    status                grading state without revealing the map\n"
+    "    unseal [--force <reason>]  reveal the map + counted scores (only\n"
+    "                          after every artifact is graded and the seals\n"
+    "                          verify)\n"
+)
+
+
+def grade_main(argv):
+    if not argv:
+        sys.stdout.write(GRADE_USAGE)
+        return 2
+    run_arg = argv[0]
+    op = argv[1] if len(argv) > 1 else None
+    if op is None:
+        sys.stdout.write(GRADE_USAGE)
+        return 2
+    root = find_root()
+    run_dir = _resolve_run_dir(root, run_arg)
+    if not os.path.isdir(run_dir):
+        die(f"run dir not found: {run_dir} (resolved from {run_arg!r})")
+    if op == "seal-key":
+        if len(argv) != 3:
+            die("grade seal-key requires exactly one argument: <key-path>")
+        return grade_seal_key(run_dir, argv[2])
+    if op == "anonymize":
+        return grade_anonymize(run_dir)
+    if op == "status":
+        return grade_status(run_dir)
+    if op == "submit":
+        grader = artifact = None
+        scores_raw = controls_raw = None
+        i = 2
+        while i < len(argv):
+            a = argv[i]
+            if a in ("--grader", "--artifact", "--scores", "--controls") \
+                    and i + 1 < len(argv):
+                val = argv[i + 1]
+                if a == "--grader":
+                    grader = val
+                elif a == "--artifact":
+                    artifact = val
+                elif a == "--scores":
+                    scores_raw = val
+                else:
+                    controls_raw = val
+                i += 2
+                continue
+            die(f"unknown submit flag {a}\n" + GRADE_USAGE)
+        if grader is None or artifact is None:
+            die("submit requires --grader <label> --artifact <letter> "
+                "--scores <json>")
+        return grade_submit(run_dir, grader, artifact, scores_raw, controls_raw)
+    if op == "unseal":
+        force = None
+        i = 2
+        while i < len(argv):
+            if argv[i] == "--force" and i + 1 < len(argv):
+                force = argv[i + 1]
+                i += 2
+                continue
+            die(f"unknown unseal flag {argv[i]}\n" + GRADE_USAGE)
+        return grade_unseal(run_dir, force)
+    die(f"unknown grade op {op!r}\n" + GRADE_USAGE)
+
+
 # ── main ─────────────────────────────────────────────────────────────
 
 USAGE = (
     "usage: tools/bakeoff.sh <brief> <roster> [--run NAME] [--emit] "
     "[--wall N] [--claude-tools S] [--allow-unisolated R]\n"
+    "       tools/bakeoff.sh grade <run> <op> [args]   (blind grading, T526)\n"
     "  brief   task brief path (its text is the prompt, identical per lane)\n"
     "  roster  one lane per line: '<family> <canonical-label> [ollama-tag]'\n"
     "          families: deepseek | claude | ollama\n"
@@ -889,10 +1458,15 @@ USAGE = (
     "claude lanes execute only with " + CLAUDE_GATE + "=1 exported; --emit always shows them.\n"
     "G2 refuses to dispatch unless the root is a git worktree with keys outside\n"
     "reach (override: --allow-unisolated).\n"
+    "grade ops: seal-key <path> | anonymize | submit --grader L --artifact A\n"
+    "          --scores <json> [--controls <json>] | status | unseal\n"
+    "          [--force <reason>]   (see the module docstring / --help)\n"
 )
 
 
 def main(argv):
+    if argv and argv[0] == "grade":
+        return grade_main(argv[1:])
     args, flags = [], []
     i = 0
     while i < len(argv):
