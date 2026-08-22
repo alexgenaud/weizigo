@@ -135,7 +135,8 @@ subprocess.run(["git", "add", "--", dl], check=True)
 subprocess.run(["git", "commit", "-qm", "T476 stub deliverable"], check=True)
 # T390: done within 10s of claim is refused as claim-at-close.
 time.sleep(11)
-subprocess.run([mg, "done", task, "--agent", model, "--status", "pass"], check=True)
+subprocess.run([mg, "done", task, "--agent", model, "--status", "pass",
+                "--impression-waiver", "stub worker — no model ran (T476 regression)"], check=True)
 print(nonce + " task complete")
 sys.exit(0)
 STUBEOF

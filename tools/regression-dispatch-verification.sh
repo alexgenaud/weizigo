@@ -244,18 +244,21 @@ time.sleep(11)
 # not on rc, and must NOT heal — a done row with a missing deliverable is a
 # claim to investigate, not a mess to tidy.
 if mode == "sabotage":
-    subprocess.run([mg, "done", task, "--agent", model, "--status", "pass"], check=True)
+    subprocess.run([mg, "done", task, "--agent", model, "--status", "pass",
+                    "--impression-waiver", "stub worker — no model ran (T411 regression)"], check=True)
     os.unlink(dl)
     print(nonce + " task complete")
     sys.exit(0)
 
 if mode == "fail":
     subprocess.run([mg, "done", task, "--agent", model, "--status", "fail-found",
-                    "--note", "T411 seeded: subject failed, work executed"], check=True)
+                    "--note", "T411 seeded: subject failed, work executed",
+                    "--impression-waiver", "stub worker — no model ran (T411 regression)"], check=True)
     print(nonce + " work done but the subject failed")
     sys.exit(0)
 
-subprocess.run([mg, "done", task, "--agent", model, "--status", "pass"], check=True)
+subprocess.run([mg, "done", task, "--agent", model, "--status", "pass",
+                "--impression-waiver", "stub worker — no model ran (T411 regression)"], check=True)
 print(nonce + " task complete")
 sys.exit(0)
 STUBEOF
