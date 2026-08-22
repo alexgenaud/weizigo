@@ -1,0 +1,60 @@
+{
+  "task_id": "T577",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T577",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass",
+  "findings": [
+    {
+      "id": "N1",
+      "disposition": "FIXED",
+      "spec_line": "header §\"Citation pinning (F11)\" — new \"§ref pinning (N1)\" note (spec.md:13); the three §refs carry the @08bc2d5 marker: header section-numbering note (spec.md:76), §4.2 (spec.md:566), §9 (spec.md:843)",
+      "note": "S03-queue-layer/spec.md did not exist at the spec's pin 56b9cf1 (verified: git cat-file -e 56b9cf1:... fails); it was committed only by 08bc2d5 (T557). The §ref is now pinned to 08bc2d5, named once in the header and marked at each cite site. No line-numbered citation is taken from S03, so the F11 file:line discipline is unaffected."
+    },
+    {
+      "id": "N2",
+      "disposition": "FIXED",
+      "spec_line": "§3.1 launch-template table gains an `appetite family` (§4) row (spec.md:487) plus the \"Two taxonomies, one word (N2)\" note (spec.md:496); arm D6 (Controls, spec.md:994) now declares the synthetic row's appetite family",
+      "note": "Label→appetite-family mapping pinned: deepseek-v4-{pro,flash}→deepseek; claude-opus-5/sonnet-5/haiku→claude, claude-fable-5→claude-fable; glm-5.2/minimax-m3/kimi-k2.7→ollama-cloud, qwen3.8:27b-mlx→local. Verified against measurement-methodology.md §1 (ollama-cloud = glm/minimax/kimi; local = qwen/gemma). Launch family (argv) and dial family (§4) are now named distinct."
+    },
+    {
+      "id": "N3",
+      "disposition": "FIXED",
+      "spec_line": "RUN-4 (spec.md:698) defines `justification-key`: the RUN-3 justification free text normalized — surrounding whitespace trimmed, internal whitespace runs collapsed to a single space, case preserved",
+      "note": "The key is the normalized text itself, not a separate field: the justification is the one thing a replicating worker reproduces verbatim, so a byte-identical copy collides. This makes arm R5 (same holds + same justification key) mechanizable."
+    },
+    {
+      "id": "N4",
+      "disposition": "FIXED",
+      "spec_line": "RUN-1 (spec.md:661) pins Δ accumulation to the store write path, under the store lock, on every row close regardless of who wrote the close (supervisor verify/heal or a worker closing its own row directly)",
+      "note": "Chose the store-write reading (the write is already serialized by the store lock, so the derivative is exact); a direct worker close can no longer bypass the counter. R1/R1-null no longer depend on a supervisor poll view."
+    },
+    {
+      "id": "N5",
+      "disposition": "FIXED",
+      "spec_line": "new paragraph \"Who writes the store, and legacy rows (N5)\" after RUN-5 (spec.md:712)",
+      "note": "States the operator-vs-worker distinction at the store write using the §4.4 marker (MANAGENT_TASK_ID set / held-child marker ⇒ worker; absent ⇒ operator, minted_by=operator, lineage=[self], not an anonymous mint). Legacy rows (~30 live at 56b9cf1) are grandfathered: backfilled minted_by=operator, lineage=[self], justification=migration note, with write-time checks scoped to post-cutover rows."
+    },
+    {
+      "id": "N6",
+      "disposition": "FIXED",
+      "spec_line": "DP-6 gains a \"Scan rule (N6)\" (spec.md:451): non-test code files only, DP-3 comment stripping (// for Zig, # for shell/Python), data excluded by extension (*.roster/*.json/*.jsonl), self-identifying-instrument exception named (src/t394_force_life.zig 2 hits, src/vb_bellman_4x4.zig 2 hits)",
+      "note": "Verified on disk: suite-truth.sh's 4 hits are all # comments; bakeoff-dryrun.roster is a .roster data file; t394_force_life.zig / vb_bellman_4x4.zig carry labels only in their own identity emission. With this scope the \"seven non-test files\" enumeration and D5-null's green assertion are defined."
+    },
+    {
+      "id": "N7",
+      "disposition": "FIXED",
+      "spec_line": "changelog F2 row (spec.md:50), §1.1 \"What HOLD-6 no longer claims (F2)\" (spec.md:180), §9 deferral (spec.md:849), and the rejected-alternatives row (spec.md:1043) all corrected from \"Pass 5\" to \"Pass 3\"",
+      "note": "Verified seed refactor-roadmap-2026-08-20.md:144 assigns Pass 3 to 'run records and heartbeats into the store' and Pass 5 to the supervisor. The §8 'Pass-5 dogfood' reference (spec.md:828) is left unchanged — it correctly names the supervisor's own dogfood, not the run-record migration."
+    },
+    {
+      "id": "N8",
+      "disposition": "FIXED (reconciliation deferred to operator ratification)",
+      "spec_line": "§4.5 migration table, ollama-cloud row (spec.md:631): old level corrected to `OFF → SPEND` (human flip), with the reconciliation note in the cell",
+      "note": "measurement-methodology.md §1 records ollama-cloud as OFF → SPEND, 0 tokens, ~48 h, rejoin is a human flip. The dial 90 is a proposed default pending operator ratification (§11 Q6); the mapping accuracy is corrected now and the dial value is flagged for reconciliation when the operator ratifies."
+    }
+  ],
+  "notes": "T577 — author-fix of the pass-2 spec (docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md) folding the rev-2 re-audit findings N1–N8 from findings/T574-pass2-spec-reaudit.json (PASS-WITH-FINDINGS). All eight adjudicated FIXED (N8 fixed with its reconciliation deferred to operator ratification, exactly as the re-audit disposition allows). F1–F11 NOT reopened (all stay closed); the two operator-ratified Musts (§4 appetite dial, §5 runaway/recursion safety) touched only where N2–N5/N8 require. Citations re-verified on disk before editing: git cat-file -e 56b9cf1 vs 08bc2d5 for S03-queue-layer/spec.md (N1); refactor-roadmap-2026-08-20.md:144/:161 for the pass numbering (N7); measurement-methodology.md §1 for the ollama-cloud OFF→SPEND state and the label→family mapping (N2, N8); src/t394_force_life.zig / src/vb_bellman_4x4.zig / tools/suite-truth.sh / tools/bakeoff-dryrun.roster for the DP-6 scan scope (N6). No claim-status changes and no new register rows are proposed (spec-only fix), so claims/new_rows are empty. Inbox: no pending directives."
+}

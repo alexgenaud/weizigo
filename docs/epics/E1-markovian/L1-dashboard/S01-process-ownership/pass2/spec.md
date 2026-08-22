@@ -2,14 +2,18 @@
 
 **Artifact type: SPEC** (`docs/infra/sprint.md` — a spec says what we want, testably,
 for one pass). **Owner:** deepseek-v4-pro/pass2-spec · **Rev 2 author:**
-`claude-opus-5`/pass2-spec-fix · **Date:** 2026-08-21 · **Status:** PROPOSED (rev 2 —
-audit disposition closed, awaiting re-audit); not a worker brief, not a plan, no code.
+`claude-opus-5`/pass2-spec-fix · **Rev 3 author:** deepseek-v4-pro/T577 (folds re-audit
+N1–N8, 2026-08-22) · **Date:** 2026-08-21 · **Status:** PROPOSED (rev 3 — rev-2 re-audit
+findings N1–N8 folded, awaiting re-audit); not a worker brief, not a plan, no code.
 
 **Citation pinning (F11).** Every `file:line` in this document is pinned to commit
 `56b9cf1`. `docs/infra/managent/tasks.json`, `tools/regression-suite-surfaces.sh` and
 `tools/suite-truth.sh` were dirty at authoring time; no line-numbered citation is taken
 from them. A citation that no longer resolves at `56b9cf1` is a spec defect, not a
-reader's problem.
+reader's problem. **§ref pinning (N1):** `S03-queue-layer/spec.md` is pinned to commit
+`08bc2d5` — it did not exist at `56b9cf1` (committed only by T557, a descendant of the
+pin). It is cited here only by §ref, never by line number; the pin is stated once here
+and each §ref to it carries the `@08bc2d5` marker.
 
 **Inputs:** the seed brief `docs/status/refactor-roadmap-2026-08-20.md` (target + the
 "held, not inferred" root cause + the cannibalization pattern); the pass-1 spec
@@ -20,7 +24,9 @@ C1–C6, §8 non-goals); the deferred register in `docs/status/ROADMAP-2026-08-2
 `docs/status/orchestration-layer-spec.md` §7.2 and §7.5 (the operator's own words on
 appetite-as-a-spectrum and mint safety);
 `S02-model-delegation/measurement-methodology.md` §1 (the appetite table this pass
-replaces the *levels* of, not the *numbers* in).
+replaces the *levels* of, not the *numbers* in);
+`findings/T574-pass2-spec-reaudit.json` (rev-2 re-audit, PASS-WITH-FINDINGS, N1–N8 — the
+rev-3 mandate).
 
 **Scope.** One long-lived mode of the existing binary — `managent supervise` — that
 **holds** every worker it dispatches as a direct child and never detaches, replacing
@@ -41,7 +47,7 @@ does not weaken them. What changed:
 
 | # | change | where |
 |---|---|---|
-| F1, F2 | HOLD-6 was false as written — `tools/runner` still writes run records and heartbeats (`task_identity` from `MANAGENT_TASK_ID`, `tools/runner:1385`), so single-writer is a **path** property, not a parenthood property. HOLD-6 is split into **HOLD-6a** (path-partitioned dispatch run records), **HOLD-6b** (single-writer read-modify-write state), **HOLD-6c** (enumerated append-only writers, atomicity asserted). The seed's Pass-5 store migration stays a non-goal and is now stated as a **deferral, not a claim** | §1, §9 |
+| F1, F2 | HOLD-6 was false as written — `tools/runner` still writes run records and heartbeats (`task_identity` from `MANAGENT_TASK_ID`, `tools/runner:1385`), so single-writer is a **path** property, not a parenthood property. HOLD-6 is split into **HOLD-6a** (path-partitioned dispatch run records), **HOLD-6b** (single-writer read-modify-write state), **HOLD-6c** (enumerated append-only writers, atomicity asserted). The seed's Pass-3 store migration stays a non-goal and is now stated as a **deferral, not a claim** | §1, §9 |
 | F3 | DP-4's "no family-specific verify branch" forbade the one branch the tree needs — the claude JSON usage envelope. New **DP-5** adopts the flag-keyed seam by name (`tools/runner:1041-1051`, "by the flag pair, not the binary name"): decoding keys on the launch template's `output_format` field, never on family | §3 |
 | F4 | `tools/fleet-keeper.sh:286-287` holds 5 of the 10 canonical labels (the F7/T503 defect). DP-2 now pins `canonical_models[]` (`src/managent/main.zig:115-126`) as the single source, and **DP-6** is a gate that fails on a *second* list — with the residual non-dispatch holders enumerated and count-pinned, so a new list is red | §3 |
 | F5 | DP-3's gate was **exclusive** (grep everything minus the data tables), which inverts pass-1's *inclusive* sentinel sweep — the form that shipped and works (T556 acceptance, `pass1/plan.md:173-174`). DP-3 now uses the inclusive `awk`-region form, strips comment lines (so `\bpi\b` cannot trip prose), and carries a seeded-defect control | §3 |
@@ -54,14 +60,22 @@ does not weaken them. What changed:
 | op. (a) | **Appetite is a 0–99 dial per family**, replacing the static `OFF/PROBE/CONSERVE/SPEND/RESERVED` levels. 0 = hard forbid, 99 = full spend, everything between is mechanized back-pressure. Who may turn it and how a window reset is *observed* are both specified. New **Must** | §4 |
 | op. (b) | **Runaway/recursion safety** — mint-delta check, one-author-per-mint, lineage + justification on every queued row, enforced at the store write. New **Must** | §5 |
 
+**Rev 2 → rev 3 (this row, T577):** folds the rev-2 re-audit findings N1–N8
+(`findings/T574-pass2-spec-reaudit.json`) — S03 §ref pinned to `08bc2d5` (N1); §3.1
+label→appetite-family mapping added (N2); `justification-key` defined (N3); RUN-1 Δ
+pinned to the store write (N4); operator-vs-worker + legacy-row migration stated (N5);
+DP-6 scan scope pinned (N6); seed Pass-5→Pass-3 numbering corrected (N7); §4.5
+ollama-cloud old-level corrected to `OFF → SPEND` (N8). F1–F11 stay closed; the two
+operator-ratified Musts (§4, §5) are untouched in force beyond what N2–N5/N8 require.
+
 **Owed follow-up (not this deliverable).** `pass2/scope.md`'s MoSCoW table predates §4 and
 §5 and must gain two Must rows; its cut order must gain the never-cut entries from §10.
 Flagged rather than silently edited — scope.md is a separate artifact and the rev-2
 mandate names spec.md.
 
-**Section numbering is stable where it is cited.** `S03-queue-layer/spec.md` cites this
-document's §2.1, §2.5 and §3; all three keep their numbers. §4 and §5 are inserted after
-§3, pushing the former §4–§9 down by two.
+**Section numbering is stable where it is cited.** `S03-queue-layer/spec.md@08bc2d5`
+cites this document's §2.1, §2.4, §2.5 and §3; all four keep their numbers. §4 and §5
+are inserted after §3, pushing the former §4–§9 down by two.
 
 ---
 
@@ -163,7 +177,7 @@ only what its mechanism holds:
   a FAIL. This arm is the null control that says *what multi-writer costs us* — the
   honest answer being "line order", which no reader depends on.
 
-**What HOLD-6 no longer claims (F2).** The seed's Pass 5 — moving run records and
+**What HOLD-6 no longer claims (F2).** The seed's Pass 3 — moving run records and
 heartbeats *into* the store, under the store lock — is **deferred and stays deferred**
 (§9). Rev 1 substituted an assertion for that migration; rev 2 does not. HOLD-6a/b/c hold
 by path partition, by deleting the competing writer, and by append atomicity — three
@@ -434,6 +448,18 @@ interface; variation in data; multi-root composition). Pass 2 builds it. The com
   #   registered), plus tools/regression-*.sh fixtures (test data, not definitions).
   ```
 
+  **Scan rule (N6).** The gate scans **non-test code files** (`src/*.zig`, `bin/*`,
+  `tools/*.sh`, `tools/*.py`; `tools/regression-*.sh` fixtures and `tools/suite-truth.sh`
+  are test/truth data, out of scope), strips comments with DP-3's rule — `//` for Zig,
+  `#` for shell/Python — and **excludes data by extension** (`*.roster`, `*.json`,
+  `*.jsonl`). **Self-identifying instruments are a named exception:** a code file whose
+  label literals occur only in its own task/model identity emission into JSON output is
+  not a model-list holder — at `56b9cf1` that is `src/t394_force_life.zig` (2 hits,
+  `deepseek-v4-flash/T394`) and `src/vb_bellman_4x4.zig` (2 hits, `glm-5.2/T343`).
+  Without this scope the naive raw-grep reading is red on the shipped tree (provenance
+  comments in `tools/suite-truth.sh`, the `tools/bakeoff-dryrun.roster` data file, the two
+  identity emissions), and D5-null's green assertion is undefined.
+
   Three predicates, all mechanized: (i) the allowlist is exact — a file outside it holding
   ≥ 2 labels is a FAIL; (ii) each allowlisted residual holder's label count is **pinned**,
   so adding a label to a copy fails until the pin is updated with a reason (the
@@ -458,6 +484,7 @@ preamble + deliverables + inbox loop, exactly as `bin/subagent` assembles it tod
 |---|---|---|---|
 | `family` | `deepseek` | `claude` | `ollama` |
 | `labels` | `deepseek-v4-pro`, `deepseek-v4-flash` | `claude-opus-5`, `claude-sonnet-5`, `claude-fable-5`, `claude-haiku-4-5-20251001` | `glm-5.2`, `minimax-m3`, `kimi-k2.7`, `qwen3.8:27b-mlx` |
+| `appetite family` (§4) | both labels → `deepseek` | `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001` → `claude`; `claude-fable-5` → `claude-fable` | `glm-5.2`, `minimax-m3`, `kimi-k2.7` → `ollama-cloud`; `qwen3.8:27b-mlx` → `local` |
 | `argv` | `pi --provider deepseek --model <m> -p <prompt>` | `claude -p <prompt> --model <m> --allowedTools <tools> --output-format json` | `ollama launch pi --model <tag> -y -- -p <prompt>` |
 | `argv source` | `bin/subagent:247-251` | `bin/subagent:266-269` | `bin/subagent:271-272` |
 | `output_format` | `text` | `json-envelope` (DP-5) | `text` |
@@ -466,12 +493,22 @@ preamble + deliverables + inbox loop, exactly as `bin/subagent` assembles it tod
 | `release` (§6) | none | none | `ollama stop <launched tag>` |
 | `env` | `MANAGENT_TASK_ID`, `WEIZIGO_AGENT_DEPTH+1` | same | same |
 
+**Two taxonomies, one word (N2).** The `family` column above is the **launch family**
+(which argv to run); the `appetite family` column is the **dial family** §4 keys its gate
+on. They are not the same set: the claude launch row's labels span `claude` and
+`claude-fable` (the 200 k boundary), and the ollama launch row's labels span
+`ollama-cloud` and `local` (`qwen3.8:27b-mlx` is local per `measurement-methodology.md`
+§1). `local` has no launch-template *row* because it is launched through the ollama argv;
+it is a dial family, not a launch family. The appetite gate (§4) reads the `appetite
+family` column; nothing in §4 keys on the launch `family` column.
+
 Three properties the table must have, each gate-able: the `argv` column is a **template
-string**, so a family is added by appending a row (arm D6: add a synthetic 4th family row
-pointing at a stub binary; assert a dispatch through it works with **zero** source changes
-outside the table); the `tag → label` map is **in the table**, so the `:cloud` suffix
-never appears in ledger or store rows (arm D7); and the table lives in its own
-sentinel-fenced region, outside DP-3's selection.
+string**, so a family is added by appending a row (arm D6: add a synthetic 4th
+launch-family row pointing at a stub binary, **declaring its appetite family**, and assert
+a dispatch through it works with **zero** source changes outside the table); the `tag →
+label` map is **in the table**, so the `:cloud` suffix never appears in ledger or store
+rows (arm D7); and the table lives in its own sentinel-fenced region, outside DP-3's
+selection.
 
 ---
 
@@ -526,8 +563,8 @@ spacing(f) = round(spacing_max(f) * (99 - appetite(f)) / 98)  seconds, for appet
   is `0`, and it says so.
 
 No randomised admission. The dial must not perturb the eligibility *ordering* — ordering
-is S03's concern (`S03-queue-layer/spec.md` §2.1) and a probabilistic gate would make
-S03's aging property untestable. The dial changes *how many* and *how often*, never
+is S03's concern (`S03-queue-layer/spec.md@08bc2d5` §2.1) and a probabilistic gate would
+make S03's aging property untestable. The dial changes *how many* and *how often*, never
 *which*.
 
 ### 4.3 How a window reset is **observed** (not inferred)
@@ -591,7 +628,7 @@ ratify the numbers; the *mapping* is the spec's claim, the numbers are the opera
 | `deepseek` | `SPEND` | 90 | the workhorse |
 | `claude` | `CONSERVE` | 45 | weekly ≈70 % used at 2026-08-21 |
 | `claude-fable` | `RESERVED` | 60 **+ reservation predicate** | see below |
-| `ollama-cloud` | `SPEND` | 90 | the "speed up" side of the operator's ask |
+| `ollama-cloud` | `OFF → SPEND` (human flip) | 90 | the "speed up" side of the operator's ask; methodology records `OFF → SPEND`, 0 tokens, ~48 h — reconcile with the human-flip OFF state at ratification (N8) |
 | `local` | `PROBE` | 15 | costs the machine, not credits |
 
 `RESERVED` was **not a point on the appetite axis** — it is a *task-type predicate*
@@ -621,8 +658,12 @@ Prose is not a remedy for a mechanism failure.
 Five assertions:
 
 - **RUN-1 (mint delta — the runaway detector).** Define `open(t)` = the count of rows in
-  the store whose status is not closed, sampled at time `t`. On every close the supervisor
-  records `Δ = open(after) − open(before)`. `Δ > 0` is legal — a sprint that discovers
+  the store whose status is not closed, sampled at time `t`. **Δ is accumulated at the
+  store write (N4):** on every row close — whether the close is written by the supervisor
+  (verify/heal) or by a worker closing its own row directly — the store's write path
+  records `Δ = open(after) − open(before)` under the store lock, so the derivative is
+  exact and a direct-worker close cannot bypass it. `Δ > 0` is legal — a sprint that
+  discovers
   work *should* queue it. What is illegal is **sustained** growth: if `Δ > 0` for `K`
   consecutive closes (`K` operator-set, default 5), or if the sum of `Δ` over a window
   exceeds a per-window mint budget, the **mint circuit breaker** trips: dispatch nothing
@@ -654,13 +695,32 @@ Five assertions:
   them is how a flat replicator gets past a depth guard.
 - **RUN-4 (uniqueness — the replicant check).** A minted row that collides with an
   existing open row on `(holds, justification-key)` is rejected as a replicant, reason
-  `duplicate-mint`. This is the "unique" half of the operator's requirement and the
-  cheapest of the five: a self-replicating worker's first duplicate is refused before the
-  breaker ever needs to trip.
+  `duplicate-mint`. **`justification-key` is defined here (N3):** the row's RUN-3
+  `justification` free text after normalization — surrounding whitespace trimmed,
+  internal runs of whitespace collapsed to a single space, case preserved. The key is the
+  normalized text itself, not a separate field: the justification is the one thing a
+  replicating worker reproduces verbatim, so keying uniqueness on the normalized string
+  (never on an author-supplied key field) is what makes a byte-identical copy collide.
+  This is the "unique" half of the operator's requirement and the cheapest of the five: a
+  self-replicating worker's first duplicate is refused before the breaker ever needs to
+  trip.
 - **RUN-5 (a parked row is reported, never dropped).** A row refused by RUN-3 or RUN-4 is
   **parked with its reason recorded and surfaced** by `supervise status`, not discarded.
   Silent rejection would make the queue lie about what it was asked to do — the same
   defect class as a queue reporting success while doing nothing.
+
+**Who writes the store, and legacy rows (N5).** The RUN checks are enforced at the store
+write, so the write must distinguish *who* writes. A caller with `MANAGENT_TASK_ID` set
+(or the supervisor's held-child marker — the §4.4 marker) is a **worker** and runs
+RUN-2/3/4 in full. A caller without it is the **operator**, whose row is **not** an
+anonymous mint: it is written `minted_by = operator`, `lineage = [self]` (RUN-3's
+authorless-by-design case), and RUN-2's "zero authors is rejected" scopes to *worker*
+mints only — an operator write is authored by the operator, not anonymous. **Legacy
+rows** — the ~30 live rows at `56b9cf1` with no `minted_by`/`lineage`/`justification` —
+are grandfathered: at cutover they are backfilled `minted_by = operator`,
+`lineage = [self]`, `justification` = the migration note, and the write-time checks are
+scoped to rows created after the cutover. An unbackfilled legacy row must not become
+undispatchable; the spec states the migration rather than leaving it silent.
 
 **Threat model, stated so the controls can seed it.** The runaway this section exists to
 stop is: a worker whose close mints a copy of its own row (or two), each of which
@@ -780,13 +840,13 @@ standalone build-guard role (ReleaseFast injection + `--sweep` — see Open ques
 handle supervisor-crash orphans (SUP-STOP-3 → T548's sweep); add a second supervisory
 process of any kind (the fix is that the mechanism holds, not that something watches it);
 own the queue *ordering* policy (aging, conditions, overnight budgets — that is
-`S03-queue-layer/spec.md`; this pass owns the appetite dial's data shape and enforcement
-point, not the ordering it feeds); claim Linux (macOS only is measured); kill cross-uid
+`S03-queue-layer/spec.md@08bc2d5`; this pass owns the appetite dial's data shape and
+enforcement point, not the ordering it feeds); claim Linux (macOS only is measured); kill cross-uid
 processes or elevate; re-open the nested-dispatch exemption (Open question 2, carried); or
 relitigate the pass-1 foreclosures (PSK, C2 falsified, single-score region — untouched).
 
 **The one deferral that must be stated, not implied (F2).** Moving run records and
-heartbeats *into* the store, under the store lock, is **the seed's Pass 5 and it remains
+heartbeats *into* the store, under the store lock, is **the seed's Pass 3 and it remains
 deferred**. Rev 1 listed this as a non-goal *and* let HOLD-6 claim the property the
 deferred pass would deliver. HOLD-6a/b/c (§1.1) now claim only what path partition,
 writer deletion, and append atomicity hold. The residual gap, named: two processes append
@@ -928,7 +988,7 @@ lineage cycle check ⇒ R3 red.
 | D3 | seeded, decode failure | a `text`-emitting stub declaring `json-envelope` | decode fails with a **named** reason, distinguishable from `nonce-not-found`; the two verdicts are never conflated (DP-5) |
 | D4 | mutation | force every lane's decoder to `text` | D2 red |
 | D5 | seeded, second list | a fresh file holding 3 canonical labels as literals | DP-6 red; **D5-null**: green on the post-pass tree; **D5-pin**: adding an 11th label to an allowlisted residual holder is red until the pin is updated (F4) |
-| D6 | seeded, data-not-code | append a synthetic 4th family row pointing at a stub binary | a dispatch through it works with **zero** source changes outside the table (§3.1) |
+| D6 | seeded, data-not-code | append a synthetic 4th launch-family row (declaring its appetite family) pointing at a stub binary | a dispatch through it works with **zero** source changes outside the table (§3.1) |
 | D7 | seeded, tag mapping | dispatch an ollama tag with a `:cloud` suffix | no `:cloud` string reaches any store row or ledger line; the canonical label does (§3.1) |
 | A1 | seeded, hard forbid | `appetite(claude) = 0`, an eligible claude row | zero dispatches, reason `appetite-forbid`; mutation (remove the `== 0` short-circuit) ⇒ red (§4.1) |
 | A2 | seeded, write authority | a held worker attempts `managent appetite claude 99` | refused non-zero with a named reason; the stored value is unchanged; an operator write of the same value succeeds (§4.4) |
@@ -980,7 +1040,7 @@ Rejected major alternatives, one line each:
 | re-implementing the keeper's policy (new ordering, new cap logic) | the policy is the tested asset; the pass swaps the mechanism, not the decisions |
 | keeping `bin/dispatch`/`bin/subagent` as thin per-harness wrappers long-term | DP-1 demands exactly one command; a wrapper is a second definition and re-opens the F7/T503 drift |
 | **rev 1's HOLD-6 (parenthood ⇒ sole writer)** | false: `tools/runner` survives in its build-guard role and still writes run records and heartbeats (`tools/runner:1385`, `:368-369`, `:463`). Single-writer is a path property — F1 |
-| **pulling the seed's Pass 5 (run records into the store) into this pass** | it is a store-schema change with its own concurrency tests; the honest alternative is a path partition plus a stated deferral, which is what §1.1 and §9 do — F2 |
+| **pulling the seed's Pass 3 (run records into the store) into this pass** | it is a store-schema change with its own concurrency tests; the honest alternative is a path partition plus a stated deferral, which is what §1.1 and §9 do — F2 |
 | **rev 1's exclusive family-token gate** (grep everything minus the data tables) | inverts the inclusive sentinel sweep that shipped and works; unscoped it can never pass, and `\bpi\b` trips prose — F5 |
 | **a gate asserting "exactly one model list exists"** | false on the first run (three residual holders outside this pass's scope) and disabled by the second week; DP-6 enumerates and count-pins instead — F4 |
 | **DP-4 alone, with no decode seam** | forbids the claude JSON envelope the tree actually needs; a family-independent *declared* `output_format` field is the reconciliation — F3 |
