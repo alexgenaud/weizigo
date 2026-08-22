@@ -292,6 +292,17 @@ Still owed operator **numbers** (not direction; spec defaults hold meanwhile): a
     the seat writes from here mandates the flush — that requirement is now the price of the
     exemption, not a nicety.
 
+34. **Liveness p95 is drawn from completed real work only.** (Operator, 2026-08-22.) T634 and
+    T643 both computed the DeepSeek p95 wall and disagreed — **2340.9 s (n=113)** against
+    **2445.05 s (n=66)** — because they drew from different populations, and both fuses now in
+    `tools/runner` were derived from different figures. The population rule: **finalized,
+    non-killed runs of real rows**; killed attempts are excluded (a killed attempt's wall
+    measures when we stopped it, not how long the work takes, and feeding kills back into the
+    threshold that caused them is a feedback loop that ratchets the fuse downward), and bakeoff
+    gate sub-runs are excluded (they are harness scaffolding, not work). **One shared p95 table
+    is published with the population rule stated on it, and every fuse recomputes from that
+    table** — no fuse derives its own denominator privately again.
+
 **Citing rulings — two registers, one convention.** `docs/infra/human-decisions.md` §Recently
 ruled holds the operator's rulings verbatim and numbers them in its own sequence (32 census
 denominators, 33 mechanized randomization, 34 solo/panel shapes, 35 thoroughness vs economy).

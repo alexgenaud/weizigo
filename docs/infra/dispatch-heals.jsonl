@@ -76,3 +76,4 @@
 {"task_id": "T621", "model": "claude-sonnet-5", "exit_code": 1, "wall_seconds": 360.2, "healed_by": "dispatcher", "timestamp": "2026-08-22T12:48:18Z"}
 {"task_id": "T635", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 1732.7, "healed_by": "dispatcher", "timestamp": "2026-08-22T15:05:56Z"}
 {"task_id": "T638", "model": "deepseek-v4-flash", "exit_code": 124, "wall_seconds": 1901.4, "healed_by": "dispatcher", "timestamp": "2026-08-22T15:22:16Z"}
+{"task_id": "T654", "model": "claude-opus-5", "exit_code": 1, "wall_seconds": 835.3, "healed_by": "dispatcher", "timestamp": "2026-08-22T17:34:15Z", "unreached": "provider-429"}

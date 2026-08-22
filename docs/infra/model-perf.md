@@ -95,3 +95,12 @@ dispatch-verify 2026-08-22 T648 deepseek-v4-flash report=success verified=pass k
 dispatch-verify 2026-08-22 T645 claude-sonnet-5 report=success verified=pass killed_by=none
 dispatch-verify 2026-08-22 T644 claude-opus-5 report=success verified=pass killed_by=none
 dispatch-verify 2026-08-22 T643 deepseek-v4-pro report=incomplete verified=directive-kill reason=unknown/pause/kill killed_by=watchdog
+dispatch-verify 2026-08-22 T656 claude-haiku-4-5-20251001 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T652 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T658 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T655 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T649 claude-fable-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T657 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T654 claude-opus-5 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-22 T651 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-22 T650 deepseek-v4-flash report=success verified=pass killed_by=none

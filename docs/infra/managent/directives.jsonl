@@ -347,3 +347,22 @@
 {"id":"D033","target":"T648","directive":"amend","note":"GRADING PROTOCOL ADDITIONS (operator + Fable, ratified while you run). (1) REPRODUCTION OUTCOMES ARE THE MECHANICAL ANCHOR. Your own per-claim ruling is the ground truth everything else is scored against, and a ruling you reproduced outranks a ruling you reasoned to. Where a lane claims 'refuted', attempt the reproduction it gives: if its command runs and shows what it says, that is a confirmed refutation regardless of how many other lanes said verified; if it does not run, or runs and shows something else, that is a false-refuted and you must say which of the two. Where a lane claims 'verified' on a claim asserting a count, a closure or a coverage figure, re-derive the number rather than accepting the citation. Rank reproduced findings above argued ones in every score you emit. (2) CRITIQUE CALIBRATION, per lane, as a named key 'critique_calibration': treating your adjudicated ground truth as the reference, report each lane's refutation PRECISION (of the claims it refuted, the fraction genuinely broken) and RECALL (of the claims genuinely broken, the fraction it caught), plus the raw counts and denominators. This is the number the round exists to produce: a lane that refutes nothing has recall 0 and undefined precision, and a lane that refutes everything has recall 1 and terrible precision. Neither is thoroughness. State both, never a blend. (3) PRIORITY REPRODUCTION TARGETS: G03 (GLOBAL.F1) and G23 (GLOBAL.TIE-MIGOS) were each refuted by exactly one lane and verified by the other four. A solo refutation is either the most valuable catch in the race or the clearest calibration failure in it, and nothing else in the batch discriminates as sharply. Spend disproportionate effort reproducing those two and report the attempt in full — the commands, the output, and your conclusion — even if inconclusive. Same treatment for G20 (CODE.WZO2-INCOMPLETE) and G25 (QA-022), the two claims refuted by two lanes rather than one. (4) STANCE COVARIATE: the lane brief you are grading was written in a NEUTRAL stance — it asked lanes to verify or refute, and did not press them to doubt. Record that in your findings as a covariate on every calibration number you emit. It matters because a later batch runs the identical design under an adversarial-stance brief, and the comparison between the two is what separates a model's disposition from its compliance with a brief. Do not adjust your scores for stance; just record which stance produced them.","from":"T612","ts":"2026-08-22T17:16:46Z","read":false}
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -61,7 +61,41 @@ Who holds the Orchestrator seat, and which roles exist. Recorded in the STATE an
 
 ## Recently ruled (keep short; drop items older than the current milestone)
 
-- **2026-08-19 — the Orchestrator delegates; it does not work.** Operator observation, and it is
+- **2026-08-22 — Ruling 32, census denominators.** A measured ladder, tier, or matrix cell is
+  publishable only when its denominator is a census: every row's model attribution verified,
+  `killed_by = none` for every scored row, guard-killed rows present and labeled *censored*
+  (never dropped, never scored), and skip counts printed alongside every published number.
+  Implementing rows: T629 (killed_by schema), T544 (attribution backfill). Priors documents
+  (Class C, e.g. `model-ladders.md`) are unaffected — they were never publishable as evidence.
+- **2026-08-22 — Ruling 33, randomization is mechanized, never improvised.** When more than one
+  qualified model would do for a row, the assignment is drawn by a `bin/managent` function from
+  the candidate list, and the row records `candidates`, `method` (random | forced | preferred),
+  and the draw. Neither human nor model generates randomness. Analysis treats only
+  `method=random` rows as unconfounded; everything else is observational.
+- **2026-08-22 — Ruling 34, solo rows ladder, panel rows compose.** Every row has a shape.
+  **Solo** (implementation, bookkeeping, infra, single-lane anything): cheapest qualified model
+  wins — the cost-ladder rule, applied after constraints (appetite, blocked families,
+  harness-fits-scope) filter the qualified set. **Panel** (union-valued work: audits, races,
+  adjudication): anchor first, then greedy marginal complementarity — the model adding the most
+  expected unique catches per token given the seats already filled — until appetite or
+  diminishing returns stops it. Races must reduce who-found-what into the complementarity
+  record; a race that keeps only its ranking discards the panel data this ruling runs on.
+- **2026-08-22 — Ruling 35, thoroughness and economy are separate facts.** Thoroughness =
+  coverage of a pre-enumerated target set (denominator from the T627 scope field). Economy =
+  verified findings per output token. Both stored as observed facts, never blended in the
+  record; verbosity is priced as cost, and penalized as quality only where ruling already
+  penalizes it — unverified load-bearing claims.
+- **2026-08-22 — guards may stop, never attribute; no guard without controls.** Ratified after
+  the 12:47Z Claude 5-hour-window outage, in which all three proxy-watching guards (directive
+  gate, progress watchdog, startup-liveness fuse) produced false model-failure verdicts in one
+  day. Two parts. **(a)** A harness guard may kill a lane, but attribution comes only from the
+  runner's terminal record: verification records carry `killed_by` (guard id / provider / none),
+  and the scoring pipeline refuses to score any row with `killed_by != none` — unscoreable **by
+  construction**, retiring hand-written DO-NOT-SCORE annotations. **(b)** Every guard is an
+  instrument: no guard ships without a null-control fixture and a seeded-defect fixture in the
+  regression suite ("never trust a green test" applied to the harness). Implementation:
+  T625 (classifier, landed 4aee950) + T628 (window resilience) + the schema change above;
+  direction relayed to Opus/Orcha 2026-08-22. Operator observation, and it is
   empirical rather than stylistic: *he has never conflicted with a delegated worker; only
   Opus/Orcha has.* He does not conflict because he never touches the tree. The seat's output is
   a correct kanban, briefs, dispatches, absorbed findings and compiled results — **never a
