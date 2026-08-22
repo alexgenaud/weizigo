@@ -57,3 +57,4 @@ dispatch-verify 2026-08-22 T607 claude-haiku-4-5-20251001 report=incomplete veri
 dispatch-verify 2026-08-22 T601 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429
 dispatch-verify 2026-08-22 T599 deepseek-v4-pro report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-22 T587 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T614 claude-fable-5 report=success verified=pass

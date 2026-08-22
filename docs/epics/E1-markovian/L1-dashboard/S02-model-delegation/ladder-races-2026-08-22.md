@@ -81,3 +81,55 @@ does Haiku clear the quality bar on mechanical (Race C) and show low-overreach d
 (Race B)? If yes, its ladder seat is high-volume mechanical + trap-resistant leaf work. If it
 fails all four races on quality alone (cost excluded per D35), record that as a finding and
 stop dispatching it — a model with no passing task type is evidence, not waste.
+
+---
+
+## Tier design — operator ruling, 2026-08-22 (T612 seat, recording)
+
+The operator's framing for the next window: races should resolve **tiers**, and the tiers of
+tasks and of models are raced against each other with **overlapping anchors**.
+
+| tier | Claude lanes | DS lanes (every tier) |
+|---|---|---|
+| **high** | `claude-fable-5`, `claude-opus-5` | `deepseek-v4-pro`, `deepseek-v4-flash` |
+| **mid** | `claude-opus-5`, `claude-sonnet-5` | `deepseek-v4-pro`, `deepseek-v4-flash` |
+| **low** | `claude-sonnet-5`, `claude-haiku-4-5-20251001` | `deepseek-v4-pro`, `deepseek-v4-flash` |
+
+Two structural points, because they are what makes a single ladder out of tier-local races:
+
+1. **Anchors link adjacent tiers.** `opus` sits in high and mid; `sonnet` sits in mid and low.
+   A tier-local race orders its own lanes; the shared anchor is what makes the orderings
+   composable into one chain. Drop the anchors and you get three unjoinable fragments.
+2. **The DS pair is the common ruler.** `dspro` and `dsflash` run in *every* tier race
+   (operator: "nearly always"), so every tier is measured against the same two rods. Where a
+   DS lane is genuinely conflicted — e.g. dspro adjudicating audits of a spec dspro authored —
+   the lane is dropped and the hole is recorded, never quietly filled.
+
+**"Wiggle-free" is the acceptance bar, and it is a replication bar.** A ladder rung counts as
+established only when the order (a) survives a second independent *subject* of the same task
+type, and (b) does not change when a different-family grader ranks it. Everything in
+`model-task-matrix.md` today is n = 1 and therefore wiggly by construction. Until a cell has
+n ≥ 2 with grader agreement, it is a reading, not a rung.
+
+**Fable's RESERVED appetite is lifted for high-tier race lanes for this window only** (derived
+from the operator naming Fable in the high tier). It reverts at window close unless re-ruled.
+
+### Race renumbering as run (supersedes the C/D sketch above where they differ)
+
+- **Race C — mechanical (T-D bookkeeping).** Subject: score all ten Race B lanes against the
+  sealed rubric. Identical input, sealed key already committed, read-only, per-lane output —
+  no worktree needed. Lanes: all three tiers (haiku · sonnet · opus · dspro · dsflash).
+  Real work: it *is* how Race B gets its result.
+- **Race F — adjudication (T-F, never measured).** Subject: the union of Race A's five audit
+  finding-sets over the S04 reconciler spec, adjudicated real/false/uncertain against the spec
+  text. Lanes: fable · opus · sonnet · haiku · dsflash (dspro conflicted — authored the spec).
+  Real work: the winning adjudication is the S04 spec-rev fold input the sprint owes.
+- **Race D — coding (T-B)** and **Race E — spec authoring (T-E)** follow in the window, on
+  bounded real rows with mechanized gates; worktree isolation applies to those two only.
+
+### Why real rows with mechanized gates, and not fresh sealed keys
+
+A race needs a key written before dispatch. Authoring one entangles the author's family with
+every lane. Riding a **real row whose acceptance is already a command** removes the problem:
+the gate *is* the key, it predates the race, and nobody's family authored it for this purpose.
+Setup then reduces to roster + isolation, which is configuration (ruling 29).
