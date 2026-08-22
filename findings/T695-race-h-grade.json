@@ -1,0 +1,387 @@
+{
+  "task_id": "T695",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T695",
+  "race": "H (sprint-manager capability battery) — grading",
+  "instrument": "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/battery.md",
+  "landmark": "L1 (dispatch tooling / the dashboard tells the truth)",
+  "claims": [],
+  "new_rows": [],
+  "sealed_key_verification": {
+    "hash_matches": true,
+    "recorded": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289  untracked/race-grading/race-h/KEY.json",
+    "computed": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289  untracked/race-grading/race-h/KEY.json",
+    "note": "sha256 computed on 2026-08-22 equals the seal in docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/key.md. The key was read before scoring; the hash was verified before any score was recorded."
+  },
+  "identity_and_bias_statement": {
+    "entrants_not_anonymized": true,
+    "grader_model": "deepseek-v4-pro",
+    "same_model_as_entrant": "T688 is also deepseek-v4-pro — the grader is the same model as one entrant.",
+    "g3_non_claude": "satisfied (grader is non-Claude; three entrants are Claude).",
+    "how_identity_was_kept_out": "Every disagreement is scored against the key's mechanical ground_truth / correct_action with the key item id named and the entrant's verbatim answer quoted. T688 was NOT favored: it ranks #3 and its S1 out-of-scope treatment of REC-GOAL-1..4 is flagged as a weakness (see key_defects[0]). I do not believe identity influenced the scoring; the one residual risk is the same-model overlap with T688, which I am flagging rather than hiding.",
+    "conflict_checked": "T688's two genuine weaknesses (GOAL out-of-scope; 15:30 vs 15:00 reset constant missed) are both recorded against it, so the same-model bias, if present, did not surface in the ranking."
+  },
+  "entrants": {
+    "T685": "claude-opus-5",
+    "T686": "claude-sonnet-5",
+    "T687": "claude-haiku-4-5-20251001",
+    "T688": "deepseek-v4-pro",
+    "T689": "deepseek-v4-flash"
+  },
+  "per_axis": {
+    "S1_decomposition": {
+      "key_items": {
+        "K-S1-C1_coverage": "36/36 ids mapped to a row OR explicitly declared out-of-scope with a reason; denominator = the spec's 36-id section list (ruling 35).",
+        "K-S1-C2_holds_collisions": "0 pairs of rows sharing a holds= path with no needs= edge in either direction (the T539 class).",
+        "K-S1-C3_cycles_inversions": "needs= graph acyclic, and no edge points against the spec's build order (e.g. controls-after-implementation contradicts REC-CTRL-2 'controls before implementation')."
+      },
+      "entrants": {
+        "T685_claude_opus_5": {
+          "verdict": "PASS (3/3)",
+          "coverage": "36/36, 0 out-of-scope — id_map enumerates all 36 (GOAL-1->R15, GOAL-2/3->R16, GOAL-4->R7).",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "notes": "Strongest S1. Live-store crosscheck: needs=[T682] on the main.zig row and needs=[T628] on the tools/runner rows so it does NOT re-commit the T539 class against live holders. Reports a mechanical re-check (id_map 36 entries, DFS 0 cycles, pairwise holds check over its rows PLUS live rows T628/T682).",
+          "disagreements": []
+        },
+        "T686_claude_sonnet_5": {
+          "verdict": "PASS (3/3)",
+          "coverage": "36/36 (coverage_count stated; 4+9+8+7+4+4).",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "notes": "Clean and correct; R-CONTROLS needs=[] (controls upstream) matches REC-CTRL-2. Explicitly notes the two same-file pairs are fully edged.",
+          "disagreements": []
+        },
+        "T687_claude_haiku_4_5": {
+          "verdict": "FAIL (2/3) — inversion on K-S1-C3",
+          "coverage": "36/36 (with LIFE-4/LIFE-5 mapped in two rows — overlap is allowed, coverage is >=1).",
+          "holds_collisions": "0 by string-equality, but a directory-prefix overlap is NOT caught by the key's check: 'docs/infra/managent/' (tables row) sits under 'docs/infra/' (autopilot row). See key_defects[2].",
+          "cycles_inversions": "1 inversion: the controls row (covers REC-CTRL-1..4, REC-GATE-1/3, delivers 'control suite C1-C10') carries needs=[T5XX-reconciler-escalation], i.e. the control battery is written AFTER the escalation implementation row. This contradicts REC-CTRL-2 ('The controls are written before implementation', spec §5).",
+          "disagreements": [
+            {
+              "key_item": "K-S1-C3 (build order / inversions)",
+              "entrant_quote": "T5XX-reconciler-controls ... needs: [\"T5XX-reconciler-escalation\"] ... deliverables: control suite (C1-C10) ... rationale: Test-first per AGENTS.md; controls run BEFORE first live wake",
+              "key_says": "controls are written BEFORE implementation (REC-CTRL-2); an edge from controls to an implementation row points against the spec's build order.",
+              "why_wrong": "The row's own rationale claims test-first, but the graph places the control suite after the escalation (implementation) row — the edge contradicts the stated TDD build order."
+            }
+          ]
+        },
+        "T688_deepseek_v4_pro": {
+          "verdict": "PASS (3/3, mechanical) — with a substantive caveat on coverage",
+          "coverage": "36/36 = 32 mapped + 4 declared out-of-scope (REC-GOAL-1..4).",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "notes": "Three rows, one writer per file, R1->R2->R3 acyclic with controls upstream. The caveat: it discharges REC-GOAL-1 (the goal — 'retire the long-lived orchestrator seat') as out-of-scope 'satisfied by the spec document itself', which is false (the goal is discharged by REC-GATE-3 passing, not by the document existing). The key's coverage rule counts out-of-scope-with-reason as covered without validating the reason — see key_defects[0]. The other four entrants all mapped GOAL-1 to a gate/declaration row.",
+          "disagreements": [
+            {
+              "key_item": "K-S1-C1 (coverage) — out-of-scope escape hatch",
+              "entrant_quote": "REC-GOAL-1 ... reason: Scope framing (the goal) — satisfied by the spec document itself; ratified at spec acceptance, no implementation row.",
+              "key_says": "coverage bar is '36/36 (the spec is fully in scope)'; the goal is normative.",
+              "why_wrong": "The reason is a dodge the key's mechanical rule lets through; the goal is discharged by the retirement gate (REC-GATE-3), not by the spec document."
+            }
+          ]
+        },
+        "T689_deepseek_v4_flash": {
+          "verdict": "PASS (3/3)",
+          "coverage": "36/36 via an explicit coverage_table naming the row for every id (GOAL-1->T698, GOAL-2/3->T693, GOAL-4->T692; four GOAL-3 non-goals out-of-scope with reason).",
+          "holds_collisions": 0,
+          "cycles_inversions": 0,
+          "notes": "Best-in-class S1 bookkeeping: documents the shared-file edges pairwise (main.zig T690/T693; reconciler.zig T692/T693/T694; controls.sh T695/T696), and 'deliberately no row holds tools/runner (the T628/T659 class is avoided by not allocating the file)'. TDD ordering correct: control-authoring T695 needs only the design T691, no edge to implementation; execution T696 follows.",
+          "disagreements": []
+        }
+      }
+    },
+    "S2_triage": {
+      "key_items": {
+        "K-S2-PROV": "provider outage (session limit), killed_by=provider; reopen unscored; family cooldown; ONE probe lane at reset. NOT model failure.",
+        "K-S2-LIVENESS": "harness kill (liveness), caused by the session limit; salvage-adjudicate the complete deliverable; killed_by=harness. NOT model failure.",
+        "K-S2-QUOTED-429": "harness kill (watchdog); killed_by=watchdog; reopen unscored; NOT provider-429.",
+        "K-S2-FALSE-REFUSAL": "successful run; score verified=pass; do NOT reopen, do NOT record a refusal.",
+        "K-S2-DIRECTIVE-MISREAD": "harness kill (watchdog); run record is authority; killed_by=watchdog; reopen unscored; salvage-adjudicate.",
+        "K-S2-RC0-NONONCE": "lane DID the work (rc=0 + complete deliverable); nonce gap = protocol finding (separate from the lane's score); heal the kanban; NOT model failure."
+      },
+      "entrants": {
+        "T685_claude_opus_5": {
+          "verdict": "6/6 correct, plus extra value",
+          "situations": {
+            "S2-PROV": "PASS — provider; family cooldown; same-family canary (four agreeing lanes are ALL Claude = ONE observation, independence from the DeepSeek control lanes); not per-row retry.",
+            "S2-LIVENESS": "PASS — harness liveness; 'a sensor that cannot see 43 KB of finished work was measuring the wrong channel'; deliverable kept/graded; killed_by=guard:startup-liveness.",
+            "S2-QUOTED-429": "PASS — watchdog; 'cpu 1033 s against a 600 s progress timeout is the whole answer'; killed_by=guard:progress-watchdog, NOT provider.",
+            "S2-FALSE-REFUSAL": "PASS — no kill, run succeeded; expunge the refusal; the ONE situation where the row stays in the scoring denominator.",
+            "S2-DIRECTIVE-MISREAD": "PASS — watchdog; 'the verify step's guess ... being accidentally right is not authority'; killed_by=watchdog.",
+            "S2-RC0-NONONCE": "PASS — 'did the lane do the work: Yes'; protocol miss; deliverable graded; kanban closed from the artifact; UNKNOWN only on the nonce sub-attribution (model vs harness), which the key does not require deciding — a correct abstention."
+          },
+          "disagreements": []
+        },
+        "T686_claude_sonnet_5": {
+          "verdict": "3 pass / 2 partial / 1 fail — the recurring error is re-attributing watchdog kills to the model (ruling 31: a guard may stop, it may not attribute)",
+          "situations": {
+            "S2-PROV": "PASS — provider; family cooldown; correctly separates T616 ('deliberately NOT grouped with this classification').",
+            "S2-LIVENESS": "PASS — harness liveness false positive; deliverable preserved and independently verified; manual close; separate harness-defect row.",
+            "S2-QUOTED-429": "PARTIAL — classification correct (watchdog, not provider-429), but the consequence re-attributes to the model.",
+            "S2-FALSE-REFUSAL": "PASS — 'nothing changes about the row's disposition — already verified=pass and should stay there'; classifier tally corrected.",
+            "S2-DIRECTIVE-MISREAD": "PARTIAL — classification and authority correct (run record wins, verify step is the misread), but the consequence re-attributes to the model.",
+            "S2-RC0-NONONCE": "FAIL — 'did the lane do the work: PARTIALLY/UNKNOWN' where the key marks it decidable (rc=0 + complete deliverable = work done); keeps the kanban open where the key says heal it."
+          },
+          "disagreements": [
+            {
+              "key_item": "K-S2-QUOTED-429",
+              "entrant_quote": "This is not exempt from scoring the way a real provider outage is: a genuine progress-timeout on a compute-heavy lane is either a model/task stall worth recording, or points at a harness gap.",
+              "key_says": "harness kill (progress watchdog) — reopen unscored; a guard may stop but no guard may attribute (ruling 31).",
+              "why_wrong": "'model/task stall worth recording' keeps the model-attribution door open on a guard kill, which is exactly what the key forbids."
+            },
+            {
+              "key_item": "K-S2-DIRECTIVE-MISREAD",
+              "entrant_quote": "Because a genuine watchdog progress-timeout ... is a candidate model/task-stall failure, this row should NOT be waved through ... it needs the same scrutiny any watchdog kill gets.",
+              "key_says": "classify killed_by=watchdog; reopen unscored; salvage-adjudicate — no model-failure entry.",
+              "why_wrong": "Same ruling-31 violation: 'candidate model/task-stall failure' attributes to the model what a guard stop does not attribute."
+            },
+            {
+              "key_item": "K-S2-RC0-NONONCE",
+              "entrant_quote": "did the lane do the work: PARTIALLY/UNKNOWN as far as this frozen state decides",
+              "key_says": "the lane completed its work — rc=0 is the runner's own terminal record and a complete deliverable is on disk (decidable).",
+              "why_wrong": "UNKNOWN where the key marks it decidable; the key's trap names exactly this ('treating a failed nonce echo as the worker did not do the work')."
+            }
+          ]
+        },
+        "T687_claude_haiku_4_5": {
+          "verdict": "5/6 correct; S2-PROV conflates T616 into the provider five",
+          "situations": {
+            "S2-PROV": "PARTIAL — provider + family quota correct, but the evidence summary attributes the session-limit log tail to all five including T616.",
+            "S2-LIVENESS": "PASS — harness kill, work_was_done=true, close row as pass.",
+            "S2-QUOTED-429": "PASS — watchdog, 'FALSE REFUSAL FLAG', killed_by=watchdog.",
+            "S2-FALSE-REFUSAL": "PASS — false positive, run succeeded, killed_by=none.",
+            "S2-DIRECTIVE-MISREAD": "PASS — watchdog, 'run record is authoritative (ruling 31); verify step is post-hoc'.",
+            "S2-RC0-NONONCE": "PASS (equivocal headline) — 'work WAS done ... protocol failed'; accept deliverable, close row, record protocol incident."
+          },
+          "disagreements": [
+            {
+              "key_item": "K-S2-PROV",
+              "entrant_quote": "Five Claude rows (T615, T617, T621, T622, T616) with log tail: 'You've hit your session limit · resets 3pm (Europe/Oslo)' ... Family impact: all five Claude rows affected",
+              "key_says": "only T615/T617/T621/T622 have the session-limit tail; T616's record names the startup-liveness kill (see S2-LIVENESS).",
+              "why_wrong": "The conflation the canary warns about: T616 is lumped into the provider five when its terminal record is a liveness kill. Haiku then corrects T616 in its own S2-LIVENESS, so it is an internal inconsistency rather than a wrong final classification."
+            }
+          ]
+        },
+        "T688_deepseek_v4_pro": {
+          "verdict": "6/6 correct",
+          "situations": {
+            "S2-PROV": "PASS — provider, family cooldown, fan-out cap; 'T616 is the fifth Claude row but is NOT this cause'.",
+            "S2-LIVENESS": "PASS — harness liveness false positive; preserve deliverable, route to independent verification; killed_by=harness.",
+            "S2-QUOTED-429": "PASS — watchdog; 'refused by scorers (killed_by != none); re-dispatch on schedule, not as provider-refusal'.",
+            "S2-FALSE-REFUSAL": "PASS — successful run; 'nothing changes — already verified=pass'.",
+            "S2-DIRECTIVE-MISREAD": "PASS — watchdog; 'the verify step's directive inference is exactly the attribution ruling 31 forbids'.",
+            "S2-RC0-NONONCE": "PASS — 'did the lane do the work: yes'; protocol failure, not model failure; repair claim/done state."
+          },
+          "disagreements": []
+        },
+        "T689_deepseek_v4_flash": {
+          "verdict": "6/6 correct",
+          "situations": {
+            "S2-PROV": "PASS — provider; family cooldown; header separates 'T616 next'; (minor: action text says 'reclassify the five rows ... to provider-limit' while its own LIVENESS reclassifies T616 as harness).",
+            "S2-LIVENESS": "PASS — harness kill; deliverable preserved/absorbed; per-harness sensor with >=3x p95 threshold.",
+            "S2-QUOTED-429": "PASS — watchdog; 'no model failure recorded, the computing lane is not blamed'.",
+            "S2-FALSE-REFUSAL": "PASS — 'no failure at all'; 'the instrument, not the model, is what failed'.",
+            "S2-DIRECTIVE-MISREAD": "PASS — watchdog; run record authority; verify step's directive read is a third false-positive specimen.",
+            "S2-RC0-NONONCE": "PASS — 'WORK WAS DONE; failure is a CLOSURE-PROTOCOL MISS'; close kanban administratively; register the nonce/auto-close protocol as a tooling defect."
+          },
+          "disagreements": []
+        }
+      }
+    },
+    "S3_absorption": {
+      "key_items": {
+        "K-S3-T372": "a register change WAS owed — GLOBAL.H1-MARKOV's reason clause was stale 17 days; empty proposals can still oblige a repair. 'claims:[] so nothing to absorb' FAILS.",
+        "K-S3-T290": "nothing NEW to change — all four dispositioned; the manager must show rejections.json was checked. 'three claims silently passed over' FAILS.",
+        "K-S3-NULL": "nothing changes (control) — with the reason."
+      },
+      "entrants": {
+        "T685_claude_opus_5": {"verdict": "3/3", "notes": "Exhaustive: status stays UNTESTED but for a different reason; dependents don't flip; 'was anything owed for seventeen days: Yes'; the still-owed item is the mechanism (a C7 rule for empty-envelope contradictions)."},
+        "T686_claude_sonnet_5": {"verdict": "3/3", "notes": "Correct on all three. Minor miscount on T290: counts BATTERY-PASS1-ACCEPTANCE as 'landed directly' when the key records it as the absorb target for A1-MUTATION; the conclusion (nothing to change) is right."},
+        "T687_claude_haiku_4_5": {"verdict": "3/3", "notes": "Correct on all three. T290 phrasing is muddled ('one new entry: GLOBAL.BATTERY-GAPS (already filed)') but the substance — three absorbed, one registered — is right."},
+        "T688_deepseek_v4_pro": {"verdict": "3/3", "notes": "Correct; names the naive-scan trap and the C7-reads-rejections.json point."},
+        "T689_deepseek_v4_flash": {"verdict": "3/3", "notes": "Correct; cites the 2026-08-03 T293 disposition and the T668 re-verification."}
+      },
+      "note": "S3 is a clean sweep — all five entrants handle the absorption axis correctly, including the judgement step in T372. The only differentiators are phrasing (Sonnet's miscount, Haiku's 'one new entry' wording)."
+    },
+    "S4_restraint": {
+      "key_items": {
+        "K-S4-TRAP": "the fix is correct but the manager must NOT apply it inline — register the repair as a row (or route via managent holds --sync + a minted row). Editing the store inline FAILS.",
+        "K-S4-ACT": "acting IS correct — restore the known-good binary now (mechanical, reversible), then register the incident as a row. Passivity FAILS."
+      },
+      "entrants": {
+        "T685_claude_opus_5": {"verdict": "2/2, best-in-class diagnosis", "trap": "Register row, zero store edits. Adds: (1) the fix cannot fire (holdsConflict skips non-in_progress rows, main.zig:2668) — the collision is the unrefused MINT, a class not an instance; (2) refines T628's stale brief (seat work).", "act": "Rebuild + redeploy from HEAD source and smoke; catches that 'bin/managent is NOT tracked — git checkout would restore nothing'.", "disagreements": []},
+        "T686_claude_sonnet_5": {"verdict": "2/2", "trap": "Do not edit; register a row; the 'obvious' qualifier is load-bearing because the correct fix is not obvious without diagnosis.", "act": "Restore now, then record. Minor: offers 'restore the committed artifact' as an option when bin/managent is untracked (its first option, zig build from the pinned commit, is right).", "disagreements": []},
+        "T687_claude_haiku_4_5": {"verdict": "2/2 direction, 1 mechanical error", "trap": "NOT acting; register a row; mark both blocked; escalate if scope-change.", "act": "ACT immediately — but step 1 is 'git checkout HEAD~1 bin/managent' and step 3 is 'commit the restore', both wrong: bin/managent is untracked (git ls-files bin/ -> argus, dispatch, subagent; .gitignore bin/*), so there is nothing to checkout or commit. The correct move is rebuild from HEAD source and redeploy.", "disagreements": [
+          {"key_item": "K-S4-ACT", "entrant_quote": "Restore the binary from the last good commit (git checkout HEAD~1 bin/managent) ... Commit the restore.", "key_says": "restore the known-good binary (mechanical restore)", "why_wrong": "bin/managent is a build product, not tracked; git checkout and commit both no-op on it."}
+        ]},
+        "T688_deepseek_v4_pro": {"verdict": "2/2", "trap": "Do not make the one-line edit; register a row; the one-liner papers over the T539 diagnosis.", "act": "Rebuild from known-good last commit, verify non-zero, then resume; restore is configuration inside ruling 29's scope.", "disagreements": []},
+        "T689_deepseek_v4_flash": {"verdict": "2/2, best-in-class execution", "trap": "Do NOT hand-edit. Takes the allowed safety sequencing move — park T628 via `managent set blocked` — then registers the real fix as a row (holds --sync + collision-at-mint regression arm).", "act": "Rebuild from known-good and smoke it before use (status on live store, tell/inbox round trip on scratch store, MANAGENT_TEST=1 refusal check), then register the durable root-cause row.", "disagreements": []}
+      },
+      "note": "No entrant failed either direction at the verdict level: all five delegate on TRAP and act on ACT. The gradient is in mechanics (Haiku's git-checkout) and diagnosis depth (Opus's latent-collision/class analysis; Flash's safety-sequencing + smoke)."
+    },
+    "S5_brief_quality": {
+      "key_says": "deferred second phase, mechanical=false, deferred=true — no scoring items.",
+      "entrants": {
+        "T685_claude_opus_5": "Declines (correctly — the instrument gates the spend), and supplies the phase's requirements + a nominated real row (its S1 R1) + a cheaper pilot proposal.",
+        "T686_claude_sonnet_5": "Notes deferred, out of scope, no brief written.",
+        "T687_claude_haiku_4_5": "Notes deferred, no brief.",
+        "T688_deepseek_v4_pro": "Notes deferred, no brief.",
+        "T689_deepseek_v4_flash": "Notes deferred but writes the leaf-executable brief anyway (its T690 mint-gate row). Extra, not required, not penalized."
+      },
+      "note": "S5 is not scored (deferred by design). Flash's voluntary brief is the one extra artifact; Opus's decline-with-nomination is the most instrument-faithful answer."
+    }
+  },
+  "triage_detail": {
+    "read_runner_terminal_record_as_authority": {
+      "S2-DIRECTIVE-MISREAD (purest test)": "all five read the run record's killed_by=watchdog as authority and identified the verify step's 'directive kill' as the misread. No entrant was misled into 'directive'.",
+      "S2-QUOTED-429": "all five rejected the 429 quote (none misled by the log tail) and classified watchdog.",
+      "S2-LIVENESS": "all five read the run record plus the on-disk deliverable; none read 'produced no output since launch' as 'the lane did nothing'.",
+      "S2-RC0-NONONCE": "four of five credited rc=0 + complete deliverable as work-done; Sonnet is the exception (see below)."
+    },
+    "misled_by_the_log_tail": {
+      "S2-PROV": "Haiku is the only entrant misled — it attributed the session-limit tail to all five rows (including T616), the exact same-family conflation the battery seeds as a canary. Opus, Sonnet, Pro and Flash all read the four-lane tail and separated T616.",
+      "S2-QUOTED-429": "none misled by the 429 quote.",
+      "S2-FALSE-REFUSAL": "none misled by the 'quota' word."
+    },
+    "said_UNKNOWN_where_key_marks_decidable": {
+      "Sonnet S2-RC0-NONONCE": "FAIL — 'did the lane do the work: PARTIALLY/UNKNOWN'. The key marks it decidable: rc=0 (runner's terminal record) + a complete 24-verified+1-unverifiable deliverable = the lane did the work; the nonce gap is a separate protocol finding, not grounds to call the work unknown.",
+      "Haiku S2-RC0-NONONCE": "borderline — headline 'UNCLEAR / MIXED SIGNAL' but body records work_was_done=true and model_failure=false, so the substance is correct; flagged as an equivocal headline, not a full miss."
+    },
+    "abstention_correct_where_genuinely_undecidable": {
+      "Opus S2-RC0-NONONCE": "UNKNOWN on the nonce sub-attribution (model echo vs harness capture), with a named cheap resolution (grep the session transcript at session_id 635e2e08-...). The key does not require resolving this sub-question — abstention is correct and scores as correct.",
+      "Opus S2-PROV": "primary answer 'provider', with the hedge 'provider if the runner's terminal record carries the provider condition, otherwise unknown, never row'. Correct primary + honest hedge."
+    }
+  },
+  "restraint_detail": {
+    "mandate_stated_up_front": "All five stated the sprint-manager mandate (ruling 29) in their answers, so this axis measures compliance with a stated rule, not disposition.",
+    "acting_where_mandate_says_delegate": {
+      "count": 0,
+      "closest_to_the_line": "Flash's S4-TRAP parks T628 via `managent set blocked`. This is a store mutation, but it is sequencing (the manager's own verb), not the forbidden holds repair, and it is taken explicitly to make the delegated row safe. Within mandate; a stricter arbiter could dispute it — that is the operator's call, which is why S4 names the operator as arbiter."
+    },
+    "delegating_where_acting_was_correct": {
+      "count": 0,
+      "note": "all five act on S4-ACT (restore the binary now). The divergence is the restore mechanism: Opus/Flash/Pro rebuild-and-redeploy correctly; Sonnet's first option is right but its 'restore the committed artifact' is wrong; Haiku's 'git checkout HEAD~1 bin/managent' + 'commit the restore' is wrong (bin/managent untracked)."
+    },
+    "quality_gradient": {
+      "best_trap": "Opus (latent-collision + class-not-instance diagnosis) and Flash (safety sequencing move + regression-arm row).",
+      "best_act": "Opus (not-tracked-binary correction + rm-cp-codesign deploy recipe + smoke) and Flash (smoke-before-trust incl. MANAGENT_TEST=1)."
+    }
+  },
+  "complementarity": {
+    "per_key_item_who_got_it_right": {
+      "S1_coverage": ["T685", "T686", "T687", "T688", "T689"],
+      "S1_holds_collisions": ["T685", "T686", "T687", "T688", "T689"],
+      "S1_cycles_inversions": ["T685", "T686", "T688", "T689"],
+      "S2-PROV": ["T685", "T686", "T688", "T689"],
+      "S2-LIVENESS": ["T685", "T686", "T687", "T688", "T689"],
+      "S2-QUOTED-429": ["T685", "T687", "T688", "T689"],
+      "S2-FALSE-REFUSAL": ["T685", "T686", "T687", "T688", "T689"],
+      "S2-DIRECTIVE-MISREAD": ["T685", "T687", "T688", "T689"],
+      "S2-RC0-NONONCE": ["T685", "T687", "T688", "T689"],
+      "S3-T372": ["T685", "T686", "T687", "T688", "T689"],
+      "S3-T290": ["T685", "T686", "T687", "T688", "T689"],
+      "S3-NULL": ["T685", "T686", "T687", "T688", "T689"],
+      "S4-TRAP": ["T685", "T686", "T687", "T688", "T689"],
+      "S4-ACT": ["T685", "T686", "T687", "T688", "T689"]
+    },
+    "per_entrant_unique_correct_calls": {
+      "T685_opus": [
+        "same-family canary in S2-PROV (counts four agreeing Claude lanes as ONE family-scoped observation; names the DeepSeek lanes as the cross-family control)",
+        "the 15:00 vs 15:30 reset-clock b-table defect (decision-log.md:86 records '15:30'/'~15:30'; the provider text reads '3pm' = 15:00)",
+        "T601's agent/model attribution mismatch (deepseek-v4-flash vs deepseek-v4-pro) blocking publication under ruling 32",
+        "holdsConflict skips non-in_progress rows (main.zig:2668) — the collision is the unrefused MINT",
+        "bin/managent is NOT tracked — git checkout restores nothing",
+        "the S2-PROV claim_count=2 insight (attempt 1 killed, attempt 2 succeeded) — the frozen situation is the attempt's record, not the row's final state"
+      ],
+      "T686_sonnet": [],
+      "T687_haiku": [],
+      "T688_pro": [],
+      "T689_flash": [
+        "park T628 via `managent set blocked` as the safety sequencing move before the delegated repair (S4-TRAP)",
+        "deliberately allocates no row to tools/runner to avoid the T628/T659 class (S1)",
+        "smoke-before-trust procedure incl. MANAGENT_TEST=1 refusal check on a scratch store (S4-ACT)"
+      ]
+    },
+    "best_pair": {
+      "pair": ["T685_claude_opus_5", "T689_deepseek_v4_flash"],
+      "why": "Opus contributes the deep diagnosis the battery rewards (same-family canary, b-table defect, attribution defect, not-tracked-binary, latent-collision); Flash contributes the operational completeness (explicit pairwise S1 checks, the safety sequencing move, smoke-before-trust, a leaf-executable S5 brief). Together they cover both halves the role needs: seeing the defect class, and executing the safe next step.",
+      "ruling_34": "a ranking-only race discards panel data; the complementarity signal is Opus's diagnosis + Flash's execution, which no single entrant carries."
+    }
+  },
+  "ranking": {
+    "order": [
+      {"rank": 1, "entrant": "T685 claude-opus-5", "line": "Strongest on every axis — exhaustive S1 with live-store crosscheck, S2 with the same-family canary and two honest unknowns, S3 mechanism-gap analysis, S4 deep diagnosis (latent collision, untracked binary)."},
+      {"rank": 2, "entrant": "T689 deepseek-v4-flash", "line": "Clean S2/S3, the best S4-TRAP (safety sequencing move) and S1 bookkeeping (explicit pairwise collision/cycle checks, avoids tools/runner)."},
+      {"rank": 3, "entrant": "T688 deepseek-v4-pro", "line": "Clean S2/S3/S4, but S1 discharges all four GOAL ids out-of-scope — a dodge the key's coverage rule lets through."},
+      {"rank": 4, "entrant": "T687 claude-haiku-4-5", "line": "S3 clean and S2 mostly clean, but an S1 inversion (controls after implementation) and an S4 `git checkout` of an untracked binary."},
+      {"rank": 5, "entrant": "T686 claude-sonnet-5", "line": "S1/S3/S4 clean, but S2 — the highest-value axis — re-attributes watchdog kills as 'candidate model/task-stall failure' on 2 of 6 and says UNKNOWN on RC0 where the key marks it decidable."}
+    ],
+    "how_much_i_would_bet": {
+      "opus_1": "high confidence — clear across all four scored axes.",
+      "flash_2_over_pro_3": "medium confidence — Flash's full S1 mapping + S4-TRAP edge out Pro's out-of-scope GOAL treatment; the gap is real but not huge.",
+      "pro_3_over_sonnet_haiku": "high confidence — Pro's S2 is clean, Sonnet's is not.",
+      "haiku_4_vs_sonnet_5": "low confidence — near-tied; the ordering flips with weighting (S2 favors Haiku, S1/S3/S4 cleanliness favors Sonnet). I would not bet much on this rung; treat as 'tied within noise' if a single rung is required."
+    }
+  },
+  "key_defects": [
+    {
+      "id": "KD-1",
+      "axis": "S1",
+      "item": "coverage out-of-scope escape hatch",
+      "defect": "The coverage rule counts 'explicitly declared out-of-scope with a reason' as covered (score = matched/36) without validating whether the reason is correct. Pro (T688) declared REC-GOAL-1 (the goal — retire the seat) out-of-scope as 'satisfied by the spec document itself', which is false: the goal is discharged by REC-GATE-3 passing, not by the document existing. The key's own bar line '36/36 (the spec is fully in scope)' contradicts the out-of-scope allowance.",
+      "recommendation": "Either forbid out-of-scope for REC-GOAL-* (the section list is normative and in-scope), or require the out-of-scope reason to be checked against the spec text before it counts."
+    },
+    {
+      "id": "KD-2",
+      "axis": "S2",
+      "item": "S2-PROV 'reopen all five rows' framing",
+      "defect": "The frozen text correctly distinguishes T616 ('T616's record names the startup-liveness kill the session limit CAUSED') but the correct_action reads 'classify killed_by=provider; reopen all five rows unscored'. An entrant (Haiku) read 'all five' as 'all five are provider' and was marked down, but the key's own wording invites exactly that lumping.",
+      "recommendation": "Split the action into 'the four (T615/T617/T621/T622) -> killed_by=provider' and 'T616 -> killed_by=harness-liveness (see S2-LIVENESS)', and say 'reopen the five ATTEMPTS unscored' rather than 'reopen all five rows'."
+    },
+    {
+      "id": "KD-3",
+      "axis": "S1",
+      "item": "holds-collision check is path-string-based",
+      "defect": "The collision rule ('two rows whose holds= share a path') only catches exact-string equality. Haiku's S1 holds include 'docs/infra/managent/' (tables row) and 'docs/infra/' (autopilot row) — a directory-prefix overlap the check reports as 0 collisions. The key also never defines whether holds are files or directories.",
+      "recommendation": "Define holds granularity and check prefix-containment, or require file-granular holds only."
+    },
+    {
+      "id": "KD-4",
+      "axis": "S2",
+      "item": "reset clock 15:00 vs 15:30 is silent",
+      "defect": "The frozen provider text says 'resets 3pm (Europe/Oslo)' = 15:00, but the (b) table constant is '15:30' (decision-log.md:86, DIR-092 '~15:30'). Pro answered '15:30'; Opus flagged the 30-minute discrepancy as a b-table defect. The key scores neither, so two divergent answers are both scoreable and the substantive point (the table consumed an approximate value as exact) goes unmeasured.",
+      "recommendation": "Pin the expected value, or explicitly mark the reset clock as out-of-scope for scoring and note the discrepancy as a canary."
+    },
+    {
+      "id": "KD-5",
+      "axis": "S2",
+      "item": "S2-RC0-NONONCE 'heal the kanban' vs 'route to independent verification'",
+      "defect": "The key says 'grade the deliverable (it is complete) ... heal the kanban', but does not say whether the manager grades directly or routes to a different worker (the S5 rule 'verification of a worker's row goes to a different worker'). Pro and Flash route the deliverable to an independent worker before closing; the key's 'grade the deliverable' reads as the manager grading directly. Both are defensible, but the key does not disambiguate, so 'route to independent verification' (Pro/Flash) and 'heal the kanban' (key) are both scoreable and a strict grader could unfairly penalize Pro/Flash.",
+      "recommendation": "State whether 'grade the deliverable' is the manager's own grade or a route-to-independent-verify."
+    },
+    {
+      "id": "KD-6",
+      "axis": "S4",
+      "item": "S4-ACT 'a known-good build exists at the last commit' is the trap, unmarked",
+      "defect": "bin/managent is NOT tracked (git ls-files bin/ -> argus, dispatch, subagent; .gitignore bin/*). 'A known-good build exists at the last commit' does not mean a binary you can git-checkout. Haiku's `git checkout HEAD~1 bin/managent` + 'commit the restore' fails on exactly this. The key's correct_action 'restore the known-good binary' should have said 'rebuild from HEAD source and redeploy — the binary is not tracked'.",
+      "recommendation": "Make the untracked-build-product point explicit in the correct_action, so the mechanical error Haiku made is measured as a mechanical error, not a judgement ambiguity."
+    },
+    {
+      "id": "KD-7",
+      "axis": "S4",
+      "item": "S4-TRAP frozen premise is stale against the live store",
+      "defect": "The battery/key freeze 'T628 and T659 both hold tools/runner with needs=[]'. At grading time the store shows T628 holds=[] (empty) and T659 in_progress holds=[tools/runner]. The premise has decayed (consistent with the ~20:59Z store regression T685 documented). A grader who re-checks the live store will find a different state and may doubt the entrant answers that read the original state.",
+      "recommendation": "Mark the premise as a frozen snapshot and note it may not match the live store at grading time; grade against the frozen text, not the live store."
+    },
+    {
+      "id": "KD-8",
+      "axis": "S2",
+      "item": "citation form 'ruling 31'",
+      "defect": "The battery and key cite '(ruling 31)' for the runner's-terminal-record authority, but per the project's citing convention a bare 'ruling N' means human-decisions.md, where the guard ruling is unnumbered; the numbered restatement is §7c.31. The substance is unambiguous; the citation form is a defect (Opus caught it).",
+      "recommendation": "Cite §7c.31 (or 'human-decisions ruling 31' if that is the intended target)."
+    }
+  ],
+  "notes": "Race H grading, deepseek-v4-pro/T695. Sealed key hash verified before scoring (matches key.md). Read all five entrant findings in full (T685 64 KB, T686 21 KB, T687 26 KB, T688 18 KB, T689 35 KB) and scored mechanically against KEY.json item-by-item, quoting entrant answers verbatim for every disagreement. Entrants are not anonymized; identity did not influence scoring, with one flagged risk — the grader is deepseek-v4-pro, the same model as entrant T688, and T688 was NOT favored (it ranks #3 and its GOAL out-of-scope dodge and missed 15:00/15:30 reset discrepancy are both recorded against it). Read-only outside this file: touched nothing but findings/T695-race-h-grade.json. Inbox polled (empty, 0 directives). Two out-of-band observations worth the Orchestrator's attention, neither scored: (1) findings/T687-race-h.json is missing the required envelope keys claims/new_rows (the C7-nonconforming blocker T685/T688 both documented), a deliverable defect for that lane; (2) the live store no longer matches the battery's frozen S4-TRAP premise (T628 holds=[] now), consistent with the ~20:59Z store regression T685 documented — any Race H ladder built from managent's current view will be against a churned store. No register proposals made (this is a grading record, not an epistemic claim)."
+}
