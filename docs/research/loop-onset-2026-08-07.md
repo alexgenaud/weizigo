@@ -231,13 +231,52 @@ enters are not blunders (0 % value-losing) and not escapes into unvalued states
 forever because every optimal move preserves the value and the value is a
 bracket.
 
-**Caveat on the 4×4 leak.** The committed 4×4 table is the writes-ON build
-(`data/oracle-4x4.checkpoint.wzo` / `data/oracle-4x4-v2.wzo2`), which the
-foreclosure in `AGENTS.md` flags as **not trustworthy for ko-sensitive values**.
-The 7 games that touch a single (L==H) position while looping may be a table
-artifact (a single value assigned within the ko-sensitive region) rather than a
-real phenomenon. The 3×3 result (0 % single, on the fresh-start-correct 3×3
-table) is clean.
+**RESOLVED 2026-08-22 (T571) — the 4×4 leak is a tie-break artifact, and the
+caveat below was mis-aimed.** Full analysis:
+`docs/evidence/T571-SINGLE-POSITION-LEAK/leak-resolution-2026-08-22.md`.
+
+1. *The caveat was inapplicable.* This run read only `data/oracle-4x4-v2.wzo2`
+   (the evidence file's own `wzo2_path`), which is the ADR-0020 pure fixpoint —
+   the `ko_ref ≥ d` guard (`GLOBAL.F1`) exists only in `src/oracle.zig:253` and
+   `src/retro.zig:593` and appears nowhere in the WZO2 build path
+   (`oracle_v2_build.zig` → `exp6_solve.zig`, 0 occurrences of `ko_ref` or
+   `memo_writes` in either). Naming `data/oracle-4x4.checkpoint.wzo` alongside
+   it imported the *checkpoint's* caveat onto an artifact with different
+   provenance, a different format and a different ruleset. Independently: in
+   WZO2 the KO_SENSITIVE property **is** `L ≠ H`
+   (`src/artifact2.zig:489`), so every entry in this leak sits in the
+   95,677,624-entry KO_SENSITIVE-*clear* column that the foreclosure does not
+   reach. The doubt pointed at the wrong half of the table.
+2. *The values are right.* All **45** distinct `L == H` states the 7 games visit
+   satisfy their own one-step Bellman identity when re-derived with
+   `exp6_solve.zig`'s independent successor generator: **0 violations / 45**,
+   null control **0 / 5,000**, per-state seeded-defect control **45 / 45** caught
+   with an exact +1 shift. All 45 carry a finite DTT (1 … 10), never `DTT_FAR`.
+3. *The leak belongs to the player, not the table or the game.* `chooseWzo2`
+   breaks value ties by lowest cell index, so inside the `L == H` region — where
+   many moves preserve the single value — it can cycle forever in a position
+   that is decisive and ≤ 10 plies from termination. On the **identical** 500
+   positions and the **identical** table, breaking ties by minimum DTT instead
+   takes capped games visiting `L == H` from **7 / 232 → 0 / 87** and `L == H`
+   plies from **1,203 / 92,800 → 0 / 34,800**; replicated at seed 997
+   (**3 / 250 → 0 / 84**). A random tie-break control gives 0 and 1, so the
+   effect is the degeneracy of a *fixed* tie-break rather than anything special
+   about DTT. Under a DTT-aware optimal player, 4×4 matches 3×3: capped games
+   are 100 % confined to `L < H`.
+
+Two numbers in this section are therefore tie-break-dependent, not table
+properties: the **7 / 232** leak and — the wider correction — the **46.40 %
+cap rate** itself (145 of the 232 capped games at seed 42, and 166 of 250 at
+seed 997, terminate once ties are broken by DTT). The Q1 sibling test and the
+Q1b DTT read are untouched: they measure the table with no player in them.
+
+*The superseded caveat, kept for the record:* "The committed 4×4 table is the
+writes-ON build (`data/oracle-4x4.checkpoint.wzo` / `data/oracle-4x4-v2.wzo2`),
+which the foreclosure in `AGENTS.md` flags as **not trustworthy for
+ko-sensitive values**. The 7 games that touch a single (L==H) position while
+looping may be a table artifact … The 3×3 result (0 % single, on the
+fresh-start-correct 3×3 table) is clean." The last sentence still stands; the
+rest does not.
 
 ---
 
@@ -313,8 +352,9 @@ indeed only 2×2 and 3×2; 4×3 and 4×4 roots are bracket-valued but **Black-fa
    measures loopiness, not depth. (Q1b)
 3. **Capped games are not blunders.** Under optimal self-play, capped games are
    100 % value-preserving moves, confined to the `L < H` region (100 % at 3×3;
-   98.70 % at 4×4 with a small, possibly-artifact leak), and 100 % genuine
-   cycles. (Q1c)
+   98.70 % at 4×4 — but see §Q1c RESOLVED: that 1.30 % remainder, and the 4×4
+   cap rate itself, are artifacts of the replay engine's value-tie tie-break,
+   not table properties; T571), and 100 % genuine cycles. (Q1c)
 4. **No cheap predictor exists.** Best single-feature F1 ≈ 0.30 (3×3) / 0.11
    (4×4), precision barely above base rate. `L < H` is not recoverable from
    local geometry. (Q2)
@@ -327,9 +367,13 @@ indeed only 2×2 and 3×2; 4×3 and 4×4 roots are bracket-valued but **Black-fa
   *is* forced into loops at 5,080 positions). Whether the quasi-rule would
   exonerate those positions requires a no-capture fixpoint build — a follow-up.
 - **4×3 DTT.** No WZO2 at 4×3; the honest cap there is unmeasured.
-- **The 4×4 single-position leak** (7 capped games touching L==H) may be a
+- ~~**The 4×4 single-position leak** (7 capped games touching L==H) may be a
   writes-ON table artifact; resolving it needs the Track-A `memo_writes=false`
-  regeneration the foreclosure already gates.
+  regeneration the foreclosure already gates.~~ **CLOSED 2026-08-22 (T571):** it
+  is neither a table artifact nor a fact about 4×4 Go — it is the replay
+  engine's fixed value-tie tie-break (0 / 87 capped games touch L==H once ties
+  break by DTT, same table, same 500 positions). No Track-A regeneration was
+  needed; the guard was never in this table's build path. See §Q1c RESOLVED.
 - **Whether the 5,080 forced-loop 3×3 positions are a *minimal* witness set**
   (a smaller "must-pass-through" frontier) is not analysed here; the sibling
   test counts positions, not a cut-set.
@@ -367,8 +411,12 @@ positions located*, so the cap's blindness is named rather than denied.
 
 All runs under `tools/runner` (4 GB RSS / wall / CPU guards); peak RSS observed
 ≤ 1.7 GB (4×4 sibling+dtt). Tables: `data/oracle-3x3-v2.wzo2`,
-`data/oracle-4x4-v2.wzo2`. The 4×4 table is the writes-ON build (foreclosure
-applies; the 4×4 single-position leak is reported under that caveat). Scores are
+`data/oracle-4x4-v2.wzo2`. ~~The 4×4 table is the writes-ON build (foreclosure
+applies; the 4×4 single-position leak is reported under that caveat).~~
+**Corrected 2026-08-22 (T571):** `data/oracle-4x4-v2.wzo2` is the ADR-0020 pure
+fixpoint — no writes-ON finisher ran and the `ko_ref ≥ d` guard is absent from
+its build path (`SOLUTION-TREE.md:153`, T380 F-8; T472's provenance ruling on
+`4x4.C1`). Scores are
 Black-positive throughout; the side-to-move picks the array, never the sign.
 
 **Inbox.** Directive **D056** (AMEND, claude-opus-5/Orcha, 2026-08-07) was
