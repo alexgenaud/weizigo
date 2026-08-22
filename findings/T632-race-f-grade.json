@@ -1,0 +1,137 @@
+{
+ "task_id": "T632",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T632",
+ "verdict": "pass-with-findings",
+ "claims": [],
+ "new_rows": [],
+ "citation_validity": {
+  "method": "Extracted every path:line citation from every adjudication entry's citation field in all five entrant files (276 resolvable citations). Mechanical check: file exists on disk at HEAD, line within file length, line content concerns the claim (verified by reading the cited lines; every spec.md line and every ruling line was cross-read against the primary sources). Reported per entrant as checked / valid / wrong-line / unverifiable.",
+  "control": "Three citations hand-picked at random across entrants and verified by command before the mechanical pass: (1) entrant-3 U17: spec.md:263-265 (REC-ESC-7 third-audit text) and sprint.md:103 (section header '## Audit loop'; the 'Two-round cap' sentence is at :105, two lines below — minor offset, same section); (2) entrant-4 U18: spec.md:286 (C10 row) and :254-256 (REC-ESC-5 routing rule); (3) entrant-2 U16: spec.md:308-313 (REC-GATE-1). All three concern exactly what the verdicts claim. The mechanical check agrees with the hand check in every case; no check was broken.",
+  "entrant_1": {
+   "checked": 35,
+   "valid": 33,
+   "wrong_line": 1,
+   "unverifiable": 1,
+   "details": "Wrong-line: U1's citation claims 'spec.md:44 has §2.4 \"The data tables\"' — line 44 is '## 1. Goal and scope'; §2.4 is at :144 (off by 100). Unverifiable: U6's citation contains no path:line at all (prose + a grep claim: 'grep for security analysis\\threat model ... returns one unrelated hit' — the 'one unrelated hit' is pass-2 §5:774's threat-model paragraph, which is in fact the counter-evidence to U6's own verdict). Remaining 33 citations resolve and concern their claims."
+  },
+  "entrant_2": {
+   "checked": 93,
+   "valid": 92,
+   "wrong_line": 1,
+   "unverifiable": 0,
+   "details": "Wrong-line (minor): U5 cites 'main.zig:817-832 parse/merge' for the holds-flag merge; :817-832 is the generic flag-parsing-helpers region — parseHoldsList ('Empty items are dropped') is at :1761-1768 and the 'author simply declared no holds' merge at :7032-7033 (both verified). The substantive claim is correct; the range is off-target. All other 92 citations verified line-accurate, including the highest-stakes ones: pass2:762-766 (identity disjunction, verbatim), orchestration-layer-spec.md:99-103 (§7b.9), :249-250 (ruling 30 T587 gate), S03:19/:20/:543/:574/:698 (folds of rulings 16/17/15), main.zig:2886-2908 (impression gate), decision-log.md:326/:337 (§5 rows), and the commit timestamps via git log."
+  },
+  "entrant_3": {
+   "checked": 59,
+   "valid": 57,
+   "wrong_line": 2,
+   "unverifiable": 0,
+   "details": "Wrong-line (both minor): U17 cites sprint.md:103 for the two-round cap — :103 is the section header, the sentence is at :105; U9 cites main.zig:1761/:1778 for the --holds-optional state — :1761 is the parseHoldsList doc comment (fine) but :1778 is the identity-resolution comment, which does not concern holds. All other 57 verified. Note: U4's grep citation ('grep -in threat model\\security analysis ... → pass-2:774') is the only entrant citation that actually found the pass-2 threat-model paragraph."
+  },
+  "entrant_4": {
+   "checked": 45,
+   "valid": 45,
+   "wrong_line": 0,
+   "unverifiable": 0,
+   "details": "All 45 line-level citations verified valid, including pass2:645-647/:762-764 (verbatim), main.zig:278/:499 (MANAGENT_TEST refusal), S03:128 (§1.1 R9). Content-level caveat: U6's verification grep ('grep -rn security analysis → zero hits') is phrase-narrow — the runaway surface's threat model exists at pass-2 §5:774 under the heading 'Threat model', which the phrase 'security analysis' cannot match; the conclusion drawn from that grep (see adjudication_accuracy G1) is wrong, but the line-level citations themselves are valid."
+  },
+  "entrant_5": {
+   "checked": 44,
+   "valid": 44,
+   "wrong_line": 0,
+   "unverifiable": 0,
+   "details": "All 44 line-level citations verified valid. Content-level caveat: U5's verification claim ('grep for security analysis|threat model across spec.md, seed.md, decision-log.md, S01 pass2 spec, S03 spec returns no matching hit tied to this condition') is factually false — pass-2 §5:774 is headed 'Threat model' and is precisely about the runaway surface ruling 15(b) names; a case-sensitive grep for lowercase 'threat model' would miss it, but the claim as written asserts a clean negative that the tree refutes."
+  }
+ },
+ "union_recall": {
+  "reference_union": "28 canonical defects built from the five source lanes (lane-1: 8 findings, lane-2: 2, lane-3: 12, lane-4: 8, lane-5: 6; deduplicated). Dedup rule used: two differently worded items are the same defect when they name the same spec defect with the same fix target (which spec sentence/section the fix lands in); I split by fix-target and defect class (citation-pointer vs traceability-table vs control-arm vs mechanism-collision). Applied: the three wrong-section pointers (decision-log §2 vs §5, S03 §3 vs §8, FLEET_MODEL_DENY) are three defects sharing a fix class but separate fix targets, so they are counted separately (A3/A4/A5); rulings 15/16/17 missing from §8 is ONE defect (B1 — one fix: add rows) even though lane 4 raised 16 and 17 separately; §2.6 and §6.1 are two defects (two fixes); 27/28 (B3) and 29/30 (B4) are two post-pin batches kept separate because ruling 30's T587 build-gate is a distinct build-gating claim; the four ruling-15 sub-claims (security analysis G1, lane_cap rows G2, descriptive names G3, runaway_streak mechanism G4) are four distinct claims about one ruling; the attrition-metric double definition (F2) and the gameable denominator (F3) are two defects that survive each other's fixes.",
+  "canonical_items": {
+   "A1": "§2.6 internal ref dangles (3 sites) — real",
+   "A2": "§6.1 internal ref dangles (3 sites) — real",
+   "A3": "decision-log §2 vs §5 pointer for T568-4/T557-1 — real",
+   "A4": "S03 §3 vs §8 pointer for the queue cycle — real",
+   "A5": "FLEET_MODEL_DENY/allow pointer — partially real, low (see adjudication_accuracy)",
+   "A6": "REC-ESC-7 cites sprint.md's two-round cap, supersession unstated — real",
+   "B1": "§8 omits rulings 15/16/17 with no deferral annotation — real (should)",
+   "B2": "§7c.13 mapped to REC-LIFE-9 table note but substance absent — real",
+   "B3": "rulings 27/28 post-pin, fold owed (incl. T522/TTL seams) — real",
+   "B4": "rulings 29/30 post-pin + T587 build gate absent — real",
+   "C1": "REC-GOAL-4 overstates (b) discharge (model-fit, measurement-validity unrowed) — real",
+   "C2": "REC-GOAL-2 19.4% bare; bias direction + decision-log §4.2 request unanswered — real",
+   "D1": "REC-CTRL-1 'every id in §1-§4 has an arm' false (10 of 28 flipped) — real",
+   "D2": "§6 gates outside the §1-§4 battery window; no stated regime — real",
+   "D3": "AUTOPILOT-5H has no seeded control arm — real",
+   "D4": "run-record schema omits the gate's own evidence terms — real",
+   "D5": "'unattended' and 'thrash' undefined — real",
+   "D6": "REC-ESC-5 routing half untested (C10 covers forbid-report only) — real",
+   "E1": "pass-2 identity disjunction: absent MANAGENT_TASK_ID reads as OPERATOR, a privilege-granting escape (18(a)) — real (must)",
+   "E2": "REC-VERB-2 file-write half unenforceable by managent verb refusal — real",
+   "E3": "REC-LIFE-8 (mandatory --holds) collides with REC-VERB-3 (read-only mint) — real",
+   "F1": "REC-GATE-3 'one bar, not two' while differing from §7b.9 in three terms — real",
+   "F2": "attrition metric defined twice; REC-LIFE-1 names a failure REC-LIFE-2 makes impossible — real",
+   "F3": "attrition denominator gameable by trigger policy — real",
+   "F4": "ACTIVE bar per-hour (REC-GATE-2) vs per-run (REC-GATE-4) — real",
+   "F5": "T522 impression/waiver capture 'not wired' into REC-VERB-5 — FALSE (hard mechanical gate at src/managent/main.zig:2886-2908, no --force bypass; the residual is prose-completeness, not wiring)",
+   "F6": "ruling 28's live dial + TTL can expire mid-wake under REC-LIFE-3 read-once-at-spawn — real (fold seam)",
+   "G1": "ruling 15(b) dedicated security analysis 'owned by nobody' — FALSE (pass-2 §5:774 'Threat model, stated so the controls can seed it' + RUN-1..RUN-5 + arms R1-R6 is the dedicated pre-build security analysis of the runaway surface, in the exact spec S04's build gates on; residual: S04 §7 does not cross-reference it — a pointer annotation folded into B1)",
+   "G2": "ruling 15 lane_cap values unrowed in §2.4 — FALSE (S03 §4 owns lane concurrency; REC-VERB-1 dispatches via the supervisor which enforces the cap; REC-GOAL-4's rows-not-mechanism)",
+   "G3": "ruling 15(a) descriptive constant names unaddressed — FALSE (renames ratified by ruling 18: runaway_streak=5 / lineage_depth=3; the spec consumes them at spec.md:364)",
+   "G4": "runaway_streak mechanism never mentioned — FALSE (constant named at spec.md:364; mechanism in pass-2 §5 RUN-1, consumed-not-re-set; the §8 row naming only lineage_depth is the B1 residue)",
+   "H1": "ruling 23's epistemology-challenge clause unabsorbed — real (low; REC-VERB-5's no-invented-verdict limits consequence)"
+  },
+  "per_entrant": {
+   "entrant_1": "Surfaced 26 of 28 distinct defects as items (19 items; aggressive merging — three pointers in one, AUTOPILOT facets in one, G1+G2 merged), so the 19-item union carries the smallest defect-coverage per item in the field. Distinct real findings captured: 22 of 26. Missed entirely: A2 (§6.1), D2 (§6 gates), F4 (per-hour vs per-run), H1 (§7c.23), plus false claims G3/G4 not surfaced. Also missed the G3/G4 discharge reasoning. raised_by attributions contain errors (U1 lists lane 5 for §2.6, which lane 5 never raised).",
+   "entrant_2": "Surfaced 28 of 28 as items (33 items — the finest granularity; split 27 from 28, F2 from F3, §2.6 from §6.1, 29/30 from the T587 gate). Distinct real findings captured: 26 of 26. No misses. Every dedup call documented in the notes with a reason.",
+   "entrant_3": "Surfaced 27 of 28 as items (24 items). Distinct real findings captured: 26 of 26. Missed only G3 (descriptive names, lane 4's F1). G4 correctly judged false; G1 correctly judged false (see adjudication_accuracy).",
+   "entrant_4": "Surfaced 28 of 28 as items (26 items; split the AUTOPILOT facets three ways, merged 15/16/17 into B1). Distinct real findings captured: 26 of 26. No misses.",
+   "entrant_5": "Surfaced 26 of 28 as items (23 items). Distinct real findings captured: 24 of 26. Missed as items: C2 (19.4% bare), F3 (gameable denominator), G2 (lane_cap); G3 is handled only as context inside U5 ('condition (a) ... separately discharged by ruling §7c.18') and G4 as an explicit notes exclusion ('omitted from the union as not a distinct defect once checked') with the correct reasoning (spec.md:364 names the constant)."
+  }
+ },
+ "adjudication_accuracy": {
+  "method": "Where entrants disagree with each other or with the primary sources, I ruled each contested item myself against the tree (spec.md, orchestration-layer-spec.md rulings 11-30, decision-log.md §2/§4/§5, sprint.md, S03 §1.1/§3/§8/§4, pass-2 §4.4/§5, src/managent/main.zig, tasks.json, git log). Ground truth on the five contested families:",
+  "contested_rulings": {
+   "G1_security_analysis": "FALSE as 'owned by nobody': pass-2 §5:774 threat model + RUN-1..RUN-5 + arms R1-R6 is a dedicated security analysis of the runaway surface, pre-build, in the spec S04's build is gated on. entrant-3 correct (false); entrant-2 defensible (uncertain — located the paragraph but judged sufficiency open); entrant-1/4/5 wrong (real-must) — entrant-4's 'zero hits' grep and entrant-5's 'no matching hit tied to this condition' grep both missed :774 by phrase/case, and both drew the confidence of a clean negative from that miss (the QA-023 'impossibly clean counters' failure shape).",
+   "G2_lane_cap": "FALSE: S03 §4 owns lane concurrency (S03:574 'Family hard ceiling lane_cap(family(m)) (ruling 15's list)'), the reconciler dispatches via the supervisor, and REC-GOAL-4's rows-not-mechanism convention defers it. entrant-2/3/4 correct (false); entrant-1 wrong (real, merged into U6) — one of entrant-1's two false_reals.",
+   "G3_descriptive_names": "FALSE: renames ratified by ruling 18, consumed at spec.md:364. entrant-2/4 correct (false); entrant-3/1 missed the claim; entrant-5 handled it as discharged inside U5.",
+   "G4_runaway_streak": "FALSE: constant named at spec.md:364; mechanism in pass-2 §5 RUN-1 (Δ>0 for K closes, default 5 — identical breaker). entrant-2/3/4 correct (false); entrant-5 correct exclusion in notes; entrant-1 missed.",
+   "F5_t522_wiring": "FALSE as 'not wired': main.zig:2886-2908 enforces impression-or-waiver at every close with no --force bypass ('an escape valve here is the lapse reborn'). entrant-2 correct (false — the only entrant that checked the code); entrant-1/3/4/5 treated it as a real seam inside the 27/28 fold item — the fold itself is real, but the specific 'the stream is not wired' claim is refuted.",
+   "A5_fleet_deny": "Borderline. The spec sentence ('S03 §3 conditions + managent FLEET_MODEL_DENY/allow') does NOT attribute the deny-list to §3 — it names managent as its home — so lane 1's 'mis-cites to §3' is a misreading; the deny-list's specification row R9 is S03 §1.1:128 (lane 1's own correction target §2.1 is wrong). entrant-2's false is the closer call on the component; entrant-3/4/5's real stands for the merged three-pointer item (A3/A4 are genuinely real) but over-credits the A5 half. Low impact: every entrant judged the merged item real overall.",
+   "everything_else": "All remaining items real per my independent checks (see union_recall canonical_items); no entrant judged any genuinely-real item false or uncertain except entrant-5's H1 uncertain (defensible — REC-VERB-5's no-invented-verdict plausibly forecloses the consequence, and the spec never states the connection) and entrant-2's G1 uncertain (defensible second-best) and A5 false (borderline, see above)."
+  },
+  "false_real_counts": {
+   "entrant_1": 2,
+   "entrant_2": 0,
+   "entrant_3": 0,
+   "entrant_4": 1,
+   "entrant_5": 1
+  },
+  "per_entrant_deviation": {
+   "entrant_1": "2 false_reals (G1 and G2, both merged into U6 and judged real). Severity inflation: U1 rates the §2.6 typo 'must' (the other four rate should/note — a stale renumber in load-bearing sentences is real, not blocking). No false or uncertain verdict anywhere in 19 items, against 5 false claims in the reference union — zero discrimination against the very claims the code refutes.",
+   "entrant_2": "0 false_reals. Correct falses on G2/G3/G4/F5 with code/spec evidence; correct should-rating on B1 (contra lane 4's 'high') with the S03 fold lines cited; correct note-downgrades on the §2.6/§6.1 typo class (contra lane 1's must) and on C2 ('an unanswered explicit request, not a numbers defect'); correct musts on E1/F1/F4 with the strongest why-texts in the field (e.g., F1: 'acceptance PASS and landmark L1 --declare are not gauges' — refuting lane 5's demotion). The one deviation is A5 (false on a partially-real component — defensible).",
+   "entrant_3": "0 false_reals. Best single call in the exercise: G1 correctly false, having located pass-2:774 and RUN-1 (:709-722) — the only entrant whose G1 verdict survives contact with the tree. Correct falses on G2/G4. Missed G3 (recall). Two notes-level blemishes: (a) the notes self-summary contradicts its own JSON ('17 real / 2 false / 1 note-only / 1 false-adjacent' vs the file's 21 real / 3 false); (b) the claim 'lane-5 mis-attributed T599' is unsupported — lane-5.json says 'LANE' (anonymized) and entrant-5 says T587, and T599 is a race-B task; E3's own U19 verdict (T587) is correct regardless.",
+   "entrant_4": "1 false_real (G1 real-must — the 'no spec, seed, or row owns [the security analysis]' claim is affirmatively false: pass-2 §5 owns it). Correct falses on G2/G3/G4 with good why-text (U24: 'contradicted by the spec's text'). Correct catch that lanes 2/5's 'no broken citation' held only at section-existence granularity. U8's merge of 27+28 with the timing fact stated is right. No uncertain anywhere — including on the one item where entrant-4 was wrong.",
+   "entrant_5": "1 false_real (G1 real-must on a false grep claim). Correct handling of G3 (discharged) and G4 (excluded with the right reason). Correct H1 uncertain with a genuinely two-sided argument. Missed C2 and F3 as items. U23 (T572 vs T587) is precise and verified against tasks.json. Severity calls (U10/U14/U18/U19 must) are sound."
+  }
+ },
+ "uncertain_use": {
+  "entrant_1": "Used nowhere: 19 of 19 items real, including both false_reals (G1, G2). No false, no uncertain, in a set where five items are refuted by the tree. Profile: discrimination avoided — the 'everything is real' pattern. This is the brief's 'avoided by guessing' shape (every item accepted at face value; the two items that needed code/spec pushback got none).",
+  "entrant_2": "Used once (G1) and well: uncertain reserved for the single genuinely open ownership question, with the counter-evidence (pass-2:774 threat model) actually located and weighed ('partial discharge of unstated sufficiency'); every refutable claim got a decisive verdict backed by evidence (U33's false rests on reading main.zig, U29-U31 on reading S03/pass-2). Best profile in the field.",
+  "entrant_3": "Used nowhere, and that is earned: the one item the other entrants were unsure about (G1) entrant-3 resolved — correctly — as false with the pass-2 evidence in hand. Decisiveness without guessing.",
+  "entrant_4": "Used nowhere: correct decisiveness on G2/G3/G4, but the same decisiveness produced the G1 false_real — the one place uncertain (or a wider grep) would have served. Mixed profile.",
+  "entrant_5": "Used once (H1) and defensibly — the §7c.23 clause genuinely has two readings. But the deployment is off where it mattered: G1 got a confident real-must on a false grep negative instead of the uncertain (or the false) that the counter-evidence supports."
+ },
+ "ranking": {
+  "order": ["entrant-2", "entrant-3", "entrant-4", "entrant-5", "entrant-1"],
+  "nuance": {
+   "entrant-2": "First. Perfect recall (28/28, 26/26 real), 93 line-accurate citations including code and git-log evidence, zero false_reals, the only correct call on F5 (checked main.zig instead of trusting the prose), correct severity discipline (downgraded the typo-class to note, the §8 omission to should, against lanes that rated must/high), and the best uncertain deployment (G1). Its one deviation (A5 false) is a close, well-argued call. Its notes ('where the vote would have misled') are the most valuable analytical content in the race.",
+   "entrant-3": "Second. Made the single best verdict in the exercise (G1 false, on located evidence), correct falses on G2/G4, 27/28 recall, 59 citations, decisive throughout. Held back by two notes-level accuracy slips (self-summary contradicting its own JSON; the unsupported 'lane-5 mis-attributed T599' claim), the G3 recall miss, and the F5 seam accepted as real.",
+   "entrant-4": "Third. Full recall (28/28), correct falses on G2/G3/G4, precise citations, sharp dedup documentation. The difference from entrant-3 is one item and it is the load-bearing one: G1 judged real-must on a phrase-narrow grep, where entrant-3 found the counter-evidence and entrant-2 at least acknowledged it. One false_real.",
+   "entrant-5": "Fourth. Solid citations and the correct G4 exclusion and H1 uncertain, but three recall misses as items (C2, F3, G2 — two of them real findings), and the same G1 false_real as entrant-4, with a verification claim ('no matching hit') that the tree refutes. Between entrant-4 and entrant-5 the separator is recall (28 vs 25) and decisive correctness on the lane-4 family.",
+   "entrant-1": "Fifth. 26/28 surfaced as distinct defects (22/26 real), the coarsest union, two false_reals (G1 and G2 — the only entrant to judge G2 real), a demonstrable wrong-line citation (:44 for §2.4), an unresolvable citation (U6), raised_by attribution errors, severity inflation on the §2.6 typo, and not a single false or uncertain verdict in 19 items against a reference union containing five refuted claims."
+  },
+  "bet": "I would bet on the ordering as stated at roughly 55-60% for the full five-lane ladder; the weak rung is the top pair. entrant-2 > entrant-3 at ~60-65%: entrant-3's G1 call is the best verdict in the race and its file is tighter, but entrant-2's perfect recall, the F5-false (the only code-checked verdict on that claim), 93 verified citations, and zero notes slips are measurable advantages. entrant-3 > entrant-4 at ~65-70%: they differ exactly on G1, and entrant-4's verdict is refuted by pass-2 §5 while entrant-3's is not. entrant-4 > entrant-5 at ~65-70%: strictly better recall, equal false_real count, more decisive correctness. entrant-5 > entrant-1 at ~85%: entrant-1 has two false_reals (including the only wrong G2 verdict), six recall misses, a wrong-line, and no pushback anywhere. The bottom three rungs are not within noise; the top pair is the only place a rerun could plausibly reorder."
+ },
+ "notes": "Grader seat for Race F (five entrants adjudicating the union of five audits of docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md). Read-only: the only file written is this one; untracked/race-grading/ was not opened; the sealed key was not consulted. Envelope check passed on all five files (conformant, no orphans, every union item adjudicated, every real verdict cited) — re-verified mechanically.\n\nWHAT MAKES ME DOUBT MY OWN GRADES (the graders are measured too): (1) The G1 ruling (false) is load-bearing for the entrant-2/3/4/5 ordering. My confidence is ~70%. The counter-view is that ruling 15(b) reads as a *gate* on the constants' acceptance ('conditional on ... (b) a dedicated security analysis ... before build') and nothing in the record shows anyone declaring the condition met — the pass-2 threat model is one paragraph inside §5, not a standalone analysis artifact; under that view entrant-2's uncertain is the best G1 call, entrant-3's false becomes a false_negative, and the top two rungs could swap. I went with false because the substance exists pre-build in the exact spec S04 gates its build on, which makes 'owned by nobody' literally false. (2) A5 is a coin-flip (E2's grammar reading vs the merged-item real); I weighted it lightly. (3) Severity calls (must vs should on D1/F4/G1) were not a grade driver except where a 'must' rested on a refuted fact (E4/E5/E1 on G1).\n\nOBSERVATION ON THE HARNESS KILLS (not docked, per the brief): the repo's commit log shows the 33-item entrant's file was written 'complete at the 600.8s liveness kill' and the 23-item entrant's 'written as the session limit cut the lane'. The killed entrants are not the weakest: the 33-item file is the strongest artifact in the race, and the 23-item file's gaps (C2/F3/G2) are mid-union absences rather than truncated text. The one artifact that reads as a thin tail — entrant-1's 19-item union with undocumented dedup calls and one-paragraph notes — cannot be attributed to cause, so I graded it as delivered. The kill rule (grade content, not the kill) is corroborated: the kill that looked most damaging produced the best file.\n\nOBSERVATION ON THE VOTE-VS-ARTIFACT THEME (corroborating the race's own finding): the single most consequential item (E1, the pass-2 identity disjunction) was raised by exactly one lane and every entrant judged it real/must — correct. Conversely, the items all five lanes raised (B1) are traceability annotations with mechanisms demonstrably folded elsewhere, and two of lane 4's 'high'-severity findings (G3, G4) are false. The entrant who pushed back against lane votes with primary-source evidence (entrant-2 on F5, entrant-3 on G1) is the entrant who graded highest.\n\nMETHOD: every line I cite here was opened this session. Commands run: git log on 14d8d6b/631682b/9efa218/719ef9d/f79f53d; sed/grep on all primary sources; grep for FLEET_MODEL (src/ has none — the env pair is fleet-keeper/S03 §1.1 R9), for TTL/set-with-expiry (folded into no spec in the epic tree — confirming the B3 seam), for the impression gate (main.zig:2886-2908, no --force bypass); tasks.json rows for T572/T587/T599 (all done; T599 is a race-B task). Inbox polled at claim, mid-grading, and before close: empty every time, no directive IDs to record."
+}
