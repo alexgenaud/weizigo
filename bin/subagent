@@ -7,6 +7,16 @@
   --wall=N               wall-clock guard, default 1800s
   --rss-cap-mb=N         RSS cap in MB, default 4096 (deepseek only)
   --dry-run              print the command, spawn nothing
+  --override-window-cooldown=<reason>
+                         bypass the T628 window-cooldown refusal for THIS
+                         launch only, with the operator's reason REQUIRED
+                         and recorded (append-only,
+                         untracked/fleet-window-overrides.jsonl — the T677
+                         escape hatch, in the --allow-unisolated spirit).
+                         subagent is where every lane actually launches, so
+                         the cooldown is ENFORCED here (T677/D040) — a
+                         gate only in bin/dispatch is advisory, and the
+                         probe lane went around it tonight.
 
   test-only flags (T411 — the regression uses them; production dispatches never do):
   --test-root=<dir>    resolve the repo from <dir> instead of the script location
@@ -39,6 +49,14 @@ not hold. The worker's text is never trusted. See tools/dispatch_verify.py.
 import glob, os, re, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# T677: the provider-window policy (reset watcher + token meter) is read
+# here as well as in bin/dispatch — subagent is the real launch chokepoint
+# (D040/T612: tonight's probe lane went around dispatch's gate via
+# subagent).  Working-tree import, same as bin/dispatch; window_policy is
+# my own serial-held file (T677 holds=).
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import window_policy  # noqa: E402
 
 
 def _load_pinned_dispatch_verify():
@@ -261,6 +279,49 @@ def main(argv):
         model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
         if model is None:
             model = re.sub(r":cloud$", "", raw_model)
+
+    # ── provider-window gate (T628 + T677): the real launch chokepoint ──
+    # bin/dispatch gates too, but subagent is where every lane actually
+    # launches — a gate only in dispatch is advisory (D040/T612: tonight's
+    # probe lane went around it via subagent).  A family in window cooldown
+    # refuses HERE with the same recorded override escape hatch.  The
+    # cooldown arms only from a terminal run record of a lane of that
+    # family (T677) — worker stdout is not evidence — so enforcement is
+    # safe: the false-arm class that locked claude out tonight is gone.
+    fam = window_policy.family_of(model)
+    if fam != "other":
+        now = time.time()
+        c = window_policy.family_cooldown(root, now).get(fam)
+        if c is not None:
+            override_reason = (flags.get("override-window-cooldown") or "").strip()
+            if override_reason:
+                if not dry_run:
+                    window_policy.record_override(
+                        root, task_id if task_id else (target or "?"),
+                        fam, c, override_reason, now)
+                print(f"subagent: WARNING — window cooldown for family {fam} "
+                      f"OVERRIDDEN for this launch by operator reason "
+                      f"{override_reason!r} (T677)", file=sys.stderr)
+            else:
+                fallback_note = ""
+                if c.get("fallback"):
+                    fallback_note = (
+                        "\n"
+                        f"  The reset could not be parsed, so this is a SHORT fallback "
+                        f"cooldown (probe scheduled for the reset time above); the "
+                        f"watcher re-checks the provider with ONE lane then.  If you "
+                        f"have checked the provider yourself, override with "
+                        f"--override-window-cooldown=<reason> (T677).")
+                sys.exit(
+                    f"subagent: REFUSED — family {fam} is in window cooldown until "
+                    f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(c['until']))} "
+                    f"(reset {c.get('reset_text') or '?'!r} from {c.get('source') or '?'}) "
+                    f"(T628).\n"
+                    f"  The provider's 5-hour window limit is still in force; a lane now "
+                    f"would die of the same limit (2026-08-22 12:47Z: five claude lanes "
+                    f"re-fired into the dead window).  This gate is ENFORCED at "
+                    f"subagent — every lane launch, dispatch or hand (T677/D040)."
+                    + fallback_note)
 
     # ── Nonce ──────────────────────────────────────────────────────────
     nonce = dispatch_verify.generate_nonce()

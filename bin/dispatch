@@ -4,6 +4,7 @@
 Usage:
   bin/dispatch <T-id> <model> [--wall=N] [--dry-run]
                [--test-root=<dir>] [--test-worker=<cmd>]
+               [--override-window-cooldown=<reason>]
 
   <model>   a canonical model label (src/managent/main.zig
             canonical_models[], T317) or a dispatch tag that canonicalizes
@@ -22,6 +23,17 @@ Usage:
             §Choosing a wall).
 
   --dry-run print the exact nohup command; spawn nothing.
+
+  --override-window-cooldown=<reason>
+              bypass the T628 window-cooldown refusal for THIS dispatch
+              only, with the operator's reason REQUIRED and recorded
+              (append-only, untracked/fleet-window-overrides.jsonl — the
+              T677 escape hatch, in the --allow-unisolated spirit).  The
+              token-budget and probe-concurrency gates still apply; the
+              keeper's automated loop still refuses (it must never route
+              around the guard).  A reason is mandatory: the flag exists
+              for "I have checked the provider myself; proceed", not for
+              convenience.
 
   test-only flags (T476 — the regression uses them; production never does):
   --test-root=<dir>    resolve bundle and log from <dir> (scratch repo)
@@ -63,12 +75,16 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # T625: the directive discharge/staleness policy lives in tools/ (shared
 # with tools/runner so the refusal here and the enforcement there agree).
+# T628: the rolling-window policy (reset watcher + token meter) lives
+# beside it, shared with tools/fleet-keeper.sh.
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import directive_policy  # noqa: E402
+import window_policy  # noqa: E402
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 MAX_DEPTH = 3
 DEFAULT_WALL = 2700
@@ -154,6 +170,7 @@ def main(argv):
     dry_run = False
     test_root = None
     test_worker = None
+    override_reason = None
 
     for a in argv:
         if a == "--dry-run":
@@ -169,6 +186,18 @@ def main(argv):
             test_root = a.split("=", 1)[1]
         elif a.startswith("--test-worker="):
             test_worker = a.split("=", 1)[1]
+        elif a.startswith("--override-window-cooldown="):
+            override_reason = a.split("=", 1)[1].strip()
+            if not override_reason:
+                sys.exit("dispatch: --override-window-cooldown requires a reason: "
+                         "--override-window-cooldown=<reason> (T677).\n"
+                         "  The flag exists for 'I have checked the provider myself; "
+                         "proceed', not for convenience.")
+        elif a == "--override-window-cooldown":
+            sys.exit("dispatch: --override-window-cooldown requires a reason: "
+                     "--override-window-cooldown=<reason> (T677).\n"
+                     "  The flag exists for 'I have checked the provider myself; "
+                     "proceed', not for convenience.")
         elif a.startswith("--"):
             sys.exit(__doc__)
         elif task_id is None:
@@ -282,6 +311,113 @@ def main(argv):
                  f"  or wait for an --until-done <row> condition to discharge.\n"
                  f"  Launching now would spend a worker's tokens on a run the runner\n"
                  f"  would stop at launch (T625).")
+
+    # ── provider-window gate (T628): never start a doomed lane ───────────
+    # The 2026-08-22 12:47Z incident: five claude lanes died of the
+    # provider's 5-hour session limit ("resets 3pm (Europe/Oslo)"), were
+    # healed, and were re-fired into the dead window.  Three gates, all
+    # from tools/window_policy (shared with the keeper):
+    #   1. cooldown — a family whose window is currently closed (a recent
+    #      provider-limit death with a reset in the future) refuses until
+    #      the reset; the watcher's nudge + probe re-checks the provider
+    #      with ONE lane, never a calendar-trusted full re-entry.  The
+    #      gate is ENFORCED at the real launch chokepoint, bin/subagent,
+    #      as well (T677/D040): a gate only here is advisory — tonight's
+    #      probe lane went around it via subagent — so a cooldown refusal
+    #      cannot be bypassed by calling the layer underneath.
+    #   2. token budget — a lane whose estimated tokens exceed the remaining
+    #      5-hour window budget refuses with the honest numbers; the meter
+    #      cannot see usage until a lane reports, so the cooldown is the
+    #      primary defence and this is the anticipatory one;
+    #   3. probe concurrency — after a reset, one lane at a time until the
+    #      probe window closes (verify-don't-assume).
+    # DeepSeek and the other families are untouched (the brief's non-goal:
+    # no cross-family generalization until a second family exhibits a
+    # windowed limit).  stdout stays data, diagnostics go to stderr.
+    # (T677/D040: the cooldown is enforced at bin/subagent too — this gate
+    # is the earlier, diagnostic one; a hand dispatch cannot route around
+    # the guard by calling the layer underneath.)
+    fam = window_policy.family_of(canon)
+    if fam != "other":
+        now = time.time()
+        cds = window_policy.family_cooldown(root, now)
+        c = cds.get(fam)
+        if c is not None:
+            if override_reason:
+                # T677: the deliberate, recorded escape hatch (the
+                # --allow-unisolated spirit).  The operator asserts they
+                # have checked the provider; the reason is appended to the
+                # audit log and printed loudly.  A DRY-RUN is not a
+                # decision — the override is recorded only when a real
+                # dispatch executes it.  The keeper's own loop does NOT get
+                # this override — only this human dispatch does.
+                if not dry_run:
+                    rec_path = window_policy.record_override(
+                        root, task_id, fam, c, override_reason, now)
+                else:
+                    rec_path = None
+                where = (f"recorded in {os.path.relpath(rec_path, root)}"
+                         if rec_path else "(dry-run — override would be recorded on a real dispatch)")
+                print(f"dispatch: WARNING — window cooldown for family {fam} "
+                      f"OVERRIDDEN for this dispatch by operator reason "
+                      f"{override_reason!r}; {where} (T677)", file=sys.stderr)
+                if not dry_run and rec_path is None:
+                    print("dispatch: WARNING — could not append to "
+                          "untracked/fleet-window-overrides.jsonl; the override "
+                          "is NOT recorded (T677)", file=sys.stderr)
+            else:
+                fallback_note = ""
+                if c.get("fallback"):
+                    fallback_note = (
+                        "\n"
+                        f"  The reset could not be parsed, so this is a SHORT fallback "
+                        f"cooldown (probe scheduled for the reset time above); the watcher "
+                        f"re-checks the provider with ONE lane then, and a fresh death "
+                        f"re-arms.  If you have checked the provider yourself, override "
+                        f"with --override-window-cooldown=<reason> (T677).")
+                sys.exit(
+                    f"dispatch: REFUSED — family {fam} is in window cooldown until "
+                    f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(c['until']))} "
+                    f"(reset {c.get('reset_text') or '?'!r} from {c.get('source') or '?'}) "
+                    f"(T628).\n"
+                    f"  The provider's 5-hour window limit is still in force; a lane now "
+                    f"would die of the same limit (2026-08-22 12:47Z: five claude lanes "
+                    f"re-fired into the dead window).  The watcher re-probes at reset + "
+                    f"jitter with ONE lane; dispatch again after the nudge.  This gate is "
+                    f"ENFORCED at bin/subagent as well (every lane launch, dispatch or "
+                    f"hand, T677/D040) — the only way past it is the recorded override, "
+                    f"--override-window-cooldown=<reason>."
+                    + fallback_note)
+        bc = window_policy.budget_check(fam, root, now)
+        if not bc["allowed"]:
+            sys.exit(
+                f"dispatch: REFUSED — family {fam} 5-hour window budget: used "
+                f"{bc['used']:,} + estimated lane {bc['estimate']:,} > remaining "
+                f"{bc['remaining']:,} of {bc['budget']:,} (T628).\n"
+                f"  A lane now would die mid-run of the provider limit.  Degrade "
+                f"appetite to CONSERVE/OFF (FLEET_APPETITE) or wait for the window "
+                f"to roll; the keeper sizes the fan-out cap from this meter.")
+        if bc["level"] == "CONSERVE":
+            print(f"dispatch: window note — family {fam} at CONSERVE (used "
+                  f"{bc['used']:,} of {bc['budget']:,} in the 5h window)",
+                  file=sys.stderr)
+        # probe-first: after a window reset, one lane at a time — a second
+        # concurrent lane while the probe is in flight is refused.
+        rows = None
+        try:
+            rows = json.loads(subprocess.run(
+                [os.path.join(ROOT, "bin", "managent"), "status", "--json"],
+                capture_output=True, text=True, timeout=20).stdout)
+        except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError):
+            rows = None
+        if (window_policy.probe_active(fam, root, now) and rows
+                and window_policy.family_inprog_count(fam, rows) >= 1):
+            sys.exit(
+                f"dispatch: REFUSED — family {fam} is in the post-reset probe window "
+                f"(one lane at a time, T628).\n"
+                f"  The watcher re-checks the provider with a single probe lane before "
+                f"the fleet re-enters; wait for the probe to close or the probe window "
+                f"to elapse.")
 
     # ── construct the subagent command ───────────────────────────────────
     subagent = os.path.join(ROOT, "bin", "subagent")

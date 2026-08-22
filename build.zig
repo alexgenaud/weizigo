@@ -553,6 +553,24 @@ pub fn build(b: *std.Build) void {
     directive_kill_regression.cwd = b.path(".");
     test_step.dependOn(&directive_kill_regression.step);
 
+    // ── T628 + T677: provider-window resilience controls ─────────────
+    // The 2026-08-22 12:47Z outage (five claude lanes died of the 5-hour
+    // session limit, nothing parsed the reset, nothing stopped re-dispatch
+    // into the dead window) and the same day's false lockout (T677: a live
+    // DeepSeek lane whose log QUOTED the provider's limit template armed a
+    // claude cooldown for 6h, self-extending off the live log's mtime).
+    // These controls pin the T628 mechanisms (reset-time watcher, token
+    // budget guard, family fan-out cap) and the T677 correction (a
+    // cooldown arms ONLY from a terminal run record of a lane of that
+    // family; unparseable reset → short death-anchored fallback + probe;
+    // the recorded --override-window-cooldown=<reason> escape hatch at
+    // bin/dispatch AND bin/subagent, the real launch chokepoint — D040).
+    // Hermetic scratch repo + scratch store/ledger only; the B1/E1 arms
+    // use the REAL kept t653/t617 logs and SKIP loudly on a fresh clone.
+    const window_regression = b.addSystemCommand(&.{ "sh", "tools/regression-window-resilience.sh" });
+    window_regression.cwd = b.path(".");
+    test_step.dependOn(&window_regression.step);
+
     // ── T503: model dimension profiles controls ───────────────────────
     // tools/model-profiles.py grades each model's performance dimensions
     // from the ledger and carries the operator's exploration-first
